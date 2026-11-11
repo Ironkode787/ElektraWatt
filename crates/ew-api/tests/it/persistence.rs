@@ -360,7 +360,7 @@ fn the_session_purges_asset_files_nothing_names() {
     let _ = std::fs::remove_dir_all(&state);
 }
 
-/// Owner ruling (2026-10-23): `project.assets.purge` is `HumanOnly`. A session that submits as a command log, a script,
+/// `project.assets.purge` is `HumanOnly`. A session that submits as a command log, a script,
 /// or an unconfirmed CLI may preview the files (`purge_preview`), but neither the command nor `purge_assets` deletes
 /// one; the GUI and a confirmed CLI may.
 #[test]
@@ -483,7 +483,7 @@ fn place_image(s: &mut Session) -> String {
     receipt.outcome.primary.expect("the item").1.as_uuid().to_string()
 }
 
-/// Cycle-29 review 7 (`Model::referenced_assets`: the save writes the assets the records name, the journal carries
+/// `Model::referenced_assets` (the save writes the assets the records name, the journal carries
 /// them): an image placed with its file as `data` and never saved survives a crash. The recovery holds the asset, the
 /// recovered model equals the live one, and the next save writes `assets/<hash>.svg`.
 #[test]
@@ -522,7 +522,7 @@ fn an_image_placed_with_data_survives_a_crash_and_the_next_save_writes_its_file(
     let _ = std::fs::remove_dir_all(&state);
 }
 
-/// Cycle-29 review 7: after a save and a reopen the purge keeps the asset file that only an image item names, and
+/// After a save and a reopen the purge keeps the asset file that only an image item names, and
 /// removes it once the item is deleted (so the keep is the item's doing, not a default).
 #[test]
 fn the_purge_keeps_an_asset_only_an_image_item_names() {

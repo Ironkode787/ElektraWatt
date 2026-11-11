@@ -413,7 +413,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     // Ctrl+Enter: a click with Alt held at the grid cursor (a placement without its autoconnect proposals, a bend
-    // without object snaps), the keyboard's twin of `canvas.activate {alt}` (fix round; per-context chords).
+    // without object snaps), the keyboard's twin of `canvas.activate {alt}` (per-context chords).
     keeps_banner(hidden(in_canvas(act(
         "canvas.activate_alt",
         View,
@@ -434,7 +434,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )))),
     // Placing on a panel page (doc 12 §12.4). Tab, R, X and the arrows keep their bindings:
     // on a panel page the shell maps them to these hidden actions (`ShellModel::shortcut_action`); Shift+Tab is
-    // `layout.previous`'s own canvas binding (ruling 5).
+    // `layout.previous`'s own canvas binding.
     with_params(
         "device:ref",
         hidden(act(

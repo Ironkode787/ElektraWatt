@@ -939,7 +939,7 @@ pub struct AddressIndexV {
     /// Every channel of the configuration project that resolves to an address, in (area, first bit, module, number,
     /// channel) order.
     pub uses: Vec<AddressUse>,
-    /// The overlap groups (FX38a): each connected run of [`uses`](Self::uses) in one area whose bit ranges overlap one
+    /// The overlap groups: each connected run of [`uses`](Self::uses) in one area whose bit ranges overlap one
     /// another in a chain (`IW0` against `I1.3`), once, as ascending indices into `uses` (so in address order), two
     /// members or more; the groups in the order of their first member. Their total size is at most `uses.len()`, so
     /// N channels on one address make one group of N, never N(N−1)/2 pairs.
@@ -1282,8 +1282,7 @@ impl Query for ChannelStates {
         // Step 4: the map claims channel c when it assigns c to solenoid s of position p, the valve at p
         // declares s, and s is unbound or bound to c. Only an unbound channel reaches step 4, so "bound to c"
         // cannot hold there; a coil counts as bound when any channel binds it, of this module or another
-        // (a valve moved by `assembly.attach` keeps its binding) and whatever its ID (review ruling, cycle
-        // 18): the CP → channel index, as normaliser N2 and `plc.bind_channel` read it. A module
+        // (a valve moved by `assembly.attach` keeps its binding) and whatever its ID: the CP → channel index, as normaliser N2 and `plc.bind_channel` read it. A module
         // whose map claims nothing does not read it.
         let claimed: std::collections::BTreeSet<u16> =
             if slots.iter().any(|s| s.coil.is_some() && s.channel.is_some()) {

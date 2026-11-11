@@ -97,7 +97,7 @@ fn terminal_key(page: &Page, designation: &Ident, terminal: Id<Device>) -> Termi
 /// The main representation of a device: the smallest-ID representation of its main function that is not
 /// a contact image. A strip without a segment (a strip aspect and no such representation) takes the main
 /// representation of its first placed terminal: lowest page, then lowest designation, then smallest ID
-/// (Golden A's 1X1, owner ruling for Golden B step B1). A device whose main function is not drawn otherwise takes
+/// (Golden A's 1X1). A device whose main function is not drawn otherwise takes
 /// the smallest-ID representation of its other functions that is not a contact image (the auxiliary fallback, a
 /// contact placed from a part before its coil). `ew_derive::MainRep` applies the same rule.
 pub fn main_rep(tx: &TxBuilder<'_>, device: Id<Device>) -> Option<Arc<Representation>> {

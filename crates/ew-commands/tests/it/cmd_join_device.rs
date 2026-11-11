@@ -321,8 +321,8 @@ fn an_unwired_contact_joins_a_device_whose_template_draws_other_cps() {
     assert_eq!(get(&e, FN_K2).and_then(|f| f.device), Some(DEV_K5));
 }
 
-/// FX38b (review w-b): the join reads no black box's CPs. The shared CP accessor gives a black box the CP pattern of
-/// its device's first part use that has one (FX38a, as ew-derive `FunctionCps` does), but a black box never reaches
+/// The join reads no black box's CPs. The shared CP accessor gives a black box the CP pattern of
+/// its device's first part use that has one (as ew-derive `FunctionCps` does), but a black box never reaches
 /// that read in the join: it is refused at `/rep` before any CP is compared, whichever device it names, and the
 /// model and its wires stay as they were. `plc.bind_channel` is the command that reads a black box's CPs.
 #[test]
@@ -348,7 +348,7 @@ fn a_black_box_is_refused_before_the_join_reads_its_cps() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// What the removed source carries (FX37a)
+// What the removed source carries
 
 fn set_device(device: Id<Device>, path: &str, value: serde_json::Value) -> SetFields {
     set_fields(KindName::Device, device.cast(), path, value)

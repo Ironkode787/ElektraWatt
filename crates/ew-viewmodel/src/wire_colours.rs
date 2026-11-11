@@ -129,7 +129,7 @@ pub fn normal(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
 }
 
 /// Where a stroke's code stands: the midpoint of its path, the normal of the segment it lies on and that segment's
-/// lane, so the code sits on its own stroke (W49.2 F9).
+/// lane, so the code sits on its own stroke.
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct LabelAt {
     /// The midpoint in sheet nanometres.
@@ -182,7 +182,7 @@ fn overlaps(a: (i64, i64), b: (i64, i64), c: (i64, i64), d: (i64, i64)) -> bool 
     a0.max(c0) < a1.min(c1)
 }
 
-/// Gives each segment of each stroke a lane (W49.2 F9): a segment that shares a stretch of its line with segments of
+/// Gives each segment of each stroke a lane: a segment that shares a stretch of its line with segments of
 /// strokes before it takes a lane none of them holds, so two wires drawn on one path stand side by side and each keeps
 /// its colour or stripes; a segment alone keeps lane 0, on its path. A run of such segments one after the
 /// other (a shared run that turns a corner) takes one lane, the lowest that none of the segments it shares with holds,
@@ -621,7 +621,7 @@ mod tests {
         assert_eq!(outside.pieces(), []);
     }
 
-    /// W49.2 F9: a WH and a GNYE wire drawn on one path stand in two lanes, so both colours show, and each code sits
+    /// A WH and a GNYE wire drawn on one path stand in two lanes, so both colours show, and each code sits
     /// on its own stroke's lane.
     #[test]
     fn two_wires_on_one_path_take_two_lanes_and_each_code_its_own() {

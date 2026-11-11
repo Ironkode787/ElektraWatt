@@ -1157,7 +1157,7 @@ fn capitalised(s: &str) -> String {
     }
 }
 
-/// The drawn row links of a report row on a generated page (FR-REP-042; rulings 1 and 4), in the
+/// The drawn row links of a report row on a generated page (FR-REP-042), in the
 /// row's link order:
 ///
 /// - `Cp`: the connection point, which the PLC overview sets to the coil of each bound channel (doc 10 §5);

@@ -105,7 +105,7 @@ pub enum PurgeError {
         /// The files the save was to remove.
         plan: PurgePlan,
     },
-    /// The purge is human-only (`project.assets.purge` is `HumanOnly`, owner ruling 2026-10-23) and the session's
+    /// The purge is human-only (`project.assets.purge` is `HumanOnly`) and the session's
     /// origin is not a human's: the GUI, or `ew project assets purge` confirmed on a terminal. Nothing was removed.
     HumanOnly,
 }

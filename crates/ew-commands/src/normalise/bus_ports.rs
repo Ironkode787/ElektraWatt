@@ -139,7 +139,7 @@ fn new_or_moved_functions(tx: &TxBuilder<'_>) -> BTreeMap<Id<Device>, BTreeSet<I
 }
 
 /// A part as a notice names it: `part CPU-DP`, or `a part without a number` when the number is empty (an `Ident` is
-/// never empty today; the words stay right if a part ever comes without one: cycle-40 review, part 3, finding 7).
+/// never empty today; the words stay right if a part ever comes without one).
 fn part_text(number: &str) -> String {
     if number.trim().is_empty() {
         "a part without a number".to_owned()
@@ -266,7 +266,7 @@ impl Normaliser for BusPorts {
 mod tests {
     use super::part_text;
 
-    /// Cycle-40 review, part 3, finding 7: a part without a number is named in words, never `part ` and nothing.
+    /// A part without a number is named in words, never `part ` and nothing.
     #[test]
     fn a_part_without_a_number_is_named_in_words() {
         assert_eq!(part_text("CPU-DP"), "part CPU-DP");

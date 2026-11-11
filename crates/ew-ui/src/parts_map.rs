@@ -36,7 +36,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         )
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {
-            // C40: a form that grows with the window when its samples need the room: as wide as the column
+            // A form that grows with the window when its samples need the room: as wide as the column
             // table, from `size.dialog.form` up to the grown form width (`dialog::form_width`); nothing is stretched.
             let (names, samples, combo) = column_widths(ui, map);
             let need = names
@@ -71,7 +71,7 @@ fn body(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
     );
     source_row(ui, map, events);
     columns(ui, map, events);
-    // Cycle 37 (window check W37): the refusal in words ("Map a column to Manufacturer").
+    // The refusal in words ("Map a column to Manufacturer").
     if let Some(e) = map.error_text() {
         crate::components::live_line(ui, &e, true);
     }
@@ -120,7 +120,7 @@ fn source_row(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
     });
 }
 
-/// The widths of the column table's columns (C40): the widest Column name (`type.body`), the widest sample
+/// The widths of the column table's columns: the widest Column name (`type.body`), the widest sample
 /// (`type.small`), each at least `size.dialog.label` × 0.6, and the drop-downs' (`size.dialog.label` × 1.4).
 fn column_widths(ui: &egui::Ui, map: &PartsMap) -> (f32, f32, f32) {
     let t = crate::components::tokens(ui);
@@ -161,7 +161,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                 t.text_tertiary.color32()
             })
     };
-    // C40: the Sample column takes the room the Column names and the drop-downs leave in the (grown) card, so
+    // The Sample column takes the room the Column names and the drop-downs leave in the (grown) card, so
     // a long sample is shown whole where the window has room and elides past that.
     let (names, _, combo) = column_widths(ui, map);
     let narrow = t.size_dialog_label * 0.6;
@@ -201,7 +201,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                         {
                             choices.push(m.clone());
                         }
-                        // Cycle 37 (window check W37): the members in words ("Part number"); the actions keep
+                        // The members in words ("Part number"); the actions keep
                         // their names.
                         let shown = c
                             .member

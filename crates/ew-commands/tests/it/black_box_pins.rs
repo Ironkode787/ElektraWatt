@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A black box's pins are connection points as a symbol's pins are (the cycle-40 play-test's blocker and majors):
+//! A black box's pins are connection points as a symbol's pins are:
 //!
 //! - a black box dragged by grid steps, mirrored or turned still takes a wire on every pin, although its pins (stored
 //!   as nm offsets from `pos`, `BoxCp.pos`) land up to 1 nm off the rational QET grid: the CP-exact rule of
@@ -540,7 +540,7 @@ fn a_quarter_turn_snaps_the_centre_to_the_grid_and_four_turns_bring_the_box_back
     assert_eq!(row(&e, rep).orient, Orient2::R0);
 }
 
-/// The cycle-41 review (finding 1): a box whose width plus height is an odd number of steps (its centre falls between
+/// A box whose width plus height is an odd number of steps (its centre falls between
 /// grid points on every quarter turn) comes back to the nanometre after four `rep.transform` quarter turns either way,
 /// and after a turn and its reverse; the review's cases, 5 by 4 and 3 by 2 steps at (31, 46), crept toward the origin.
 #[test]

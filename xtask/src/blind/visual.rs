@@ -916,7 +916,7 @@ mod tests {
         assert!(zoom(&["1", "2", "3"]).is_err());
     }
 
-    /// Cycle 39: the geometry's texts and frame sizes are the driver's; a run.json without them reads as the default.
+    /// The geometry's texts and frame sizes are the driver's; a run.json without them reads as the default.
     #[test]
     fn the_geometry_is_the_drivers() {
         let g = Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
@@ -963,7 +963,7 @@ mod tests {
         assert_eq!(Geometry::of(&rj), g);
     }
 
-    /// Cycle 39: a click and a zoom at x = 1900 pass at 1920 × 1080 points and ppp 1, and are refused at the default
+    /// A click and a zoom at x = 1900 pass at 1920 × 1080 points and ppp 1, and are refused at the default
     /// with the driver's texts.
     #[test]
     fn coordinates_are_checked_against_the_runs_frame() {

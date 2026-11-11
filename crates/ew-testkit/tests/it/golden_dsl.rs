@@ -78,7 +78,7 @@ fn built(seed: u64) -> (Session, Built) {
 }
 
 /// The same seed builds the same model and the same script. That the SQL results do not depend on the minted IDs is
-/// AC-15's comparison of paths (a), (b) and (c), which mint different IDs (test audit g7).
+/// AC-15's comparison of paths (a), (b) and (c), which mint different IDs.
 #[test]
 fn path_b_is_deterministic_and_compares_by_content() {
     let (a, built_a) = built(1);

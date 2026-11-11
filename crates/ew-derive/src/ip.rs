@@ -15,7 +15,7 @@
 //!   points only, and a re-pairing declares the points whose pairing changed.
 //!
 //! Both are note-free (ARCH §6.4, `Q::detached`): the EW-CORE-051 notes are part of their values, and the stitch
-//! graph pushes them, in the order the cycle-7 stitch graph did.
+//! graph pushes them, in the order the earlier stitch graph did.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -249,7 +249,7 @@ type GroupKey = (String, Option<Id<StructureNode>>);
 /// The chain order key of a point: (sort key, page position, anchor row, anchor column, ID).
 type ChainKey = (i64, usize, u32, u32, Id<Function>);
 
-/// Pairs every interruption point (the cold algorithm, unchanged from the cycle-7 stitch graph).
+/// Pairs every interruption point (the cold algorithm).
 fn pair(q: &Q) -> IpPairing {
     let fns = q.get::<IpFunctions>(());
     let (mode, _) = pairing_setting(q);

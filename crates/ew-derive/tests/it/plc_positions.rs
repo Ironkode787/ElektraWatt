@@ -231,7 +231,7 @@ fn foreign_binding(module: u128) -> Channel {
     .expect("a channel")
 }
 
-/// Review ruling: a coil counts as bound when any channel binds it, of another module (a valve
+/// A coil counts as bound when any channel binds it, of another module (a valve
 /// moved by `assembly.attach` keeps its binding) or of this module with a non-v5 ID, so the map's channel is
 /// not reserved.
 #[test]

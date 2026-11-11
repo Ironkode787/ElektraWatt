@@ -560,7 +560,7 @@ fn create_prevents_a_label_out_of_format_or_order() {
         .expect("history before the open revision");
 }
 
-/// RL-2 for `fields.set label` on the open revision (FX37a): a label out of the format or not after every other
+/// RL-2 for `fields.set label` on the open revision: a label out of the format or not after every other
 /// revision's is prevented with the rule and nothing changes; an in-order label is accepted.
 #[test]
 fn fields_set_label_prevents_a_label_out_of_format_or_order() {

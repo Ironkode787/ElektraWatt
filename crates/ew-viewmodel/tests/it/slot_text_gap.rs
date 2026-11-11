@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 37 window check (W37 q01): in a new project, two make contacts of -101K1 placed 9 grid steps apart on
+//! In a new project, two make contacts of -101K1 placed 9 grid steps apart on
 //! folio 101 print with the project's text styles; the first contact's back-reference "(101-D6)" must neither run
 //! into the second contact's tag nor overlap its own CP designation "14" (the drop below the tag meets it, so the
 //! text drops below that too). Checked on the page display list the canvas paints.
@@ -122,7 +122,7 @@ fn new_folio(tmp: &Tmp) -> ShellModel {
     s
 }
 
-/// Cycle 37 visual play-test: two starter valves (EW-GEN-VLV-1) side by side at one column and a little more: M1's
+/// Two starter valves (EW-GEN-VLV-1) side by side at one column and a little more: M1's
 /// "24 V" never overlaps or runs into M2's tag, and never lands on one of M1's own texts.
 #[test]
 fn a_valves_data_clears_the_next_valves_tag() {

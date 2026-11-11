@@ -261,9 +261,9 @@ fn the_legend_exports_through_the_named_block_path_and_no_default_export_changes
 }
 
 /// LB-9: PART DATA on 201 and 202 draws "Order Code 1" 51E-F13GCQP-D+H2GG and "Order Code 2"
-/// 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS under the title "PART DATA", whole, with no overflow finding. The ruling on lane
-/// A42's LB-9 stop: "PART DATA's label : part number weights are 3 : 10" (at 1 : 3 the 35-character code
-/// overflows at the 1.8 mm floor).
+/// 32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS under the title "PART DATA", whole, with no overflow finding.
+/// The rule: "PART DATA's label : part number weights are 3 : 10"
+/// (at 1 : 3 the 35-character code overflows at the 1.8 mm floor).
 #[test]
 fn part_data_on_201_and_202_draws_both_order_codes_with_no_overflow() {
     let s = common::golden_session();

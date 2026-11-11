@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fixes of window check W33 that a node or a painted shape can show without the
+//! The fixes that a node or a painted shape can show without the
 //! pixel gate: the Columns button's inset, the grid's scroll bar inside the focus ring, the form dialogs' words and
 //! check boxes, the label column, and the dock's borderless "All tabs" button.
 

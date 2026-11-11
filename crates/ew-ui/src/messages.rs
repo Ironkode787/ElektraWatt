@@ -63,7 +63,7 @@ pub(crate) fn severity_icon_id(severity: &str) -> IconId {
     match severity {
         "error" => IconId::circle_x,
         "warning" => IconId::alert_triangle,
-        // M39: the Properties header's pending chip, as the pending badge.
+        // The Properties header's pending chip, as the pending badge.
         "pending" => IconId::pencil,
         _ => IconId::info_circle,
     }
@@ -186,7 +186,7 @@ fn count_badge(ui: &mut Ui, t: &Tokens, severity: &'static str, count: usize) {
 
 /// "<n> <Word>" of a severity, singular for one ("1 Warning", "3 Warnings"): a count chip's word.
 pub(crate) fn count_words(severity: &str, n: usize) -> String {
-    // M39: pending findings count under one word, as the Messages header counts them ("2 Pending").
+    // Pending findings count under one word, as the Messages header counts them ("2 Pending").
     let words = if severity == "pending" {
         strings::text(key!("badge-pending"))
     } else if n == 1 {
@@ -293,7 +293,7 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let row = ui.horizontal(|ui| {
             ui.set_min_height(t.size_row);
             ui.spacing_mut().item_spacing.x = t.space_2;
-            // X32b: the pane's `space.4` gutter.
+            // The pane's `space.4` gutter.
             ui.add_space(t.space_4);
             let small = |ui: &mut Ui, text: &str, colour: Rgba| {
                 let galley = ui.painter().layout_no_wrap(
@@ -417,7 +417,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             _ => link,
         }
     };
-    // X32b: the Rule page link at the right end of the title line, the title cut with an ellipsis before it (whole
+    // The Rule page link at the right end of the title line, the title cut with an ellipsis before it (whole
     // in its tooltip), so the block keeps its link in view in a short pane. Waive… (or "Waived" with
     // Unwaive) stands before it on the same line.
     let title = strings::format(key!("messages-detail-rule"), &[&d.rule, &d.title]);
@@ -557,7 +557,7 @@ mod tests {
         }
     }
 
-    /// DK10: three distinct icon shapes and the words of the three severities; the group keys map to their severity.
+    /// Three distinct icon shapes and the words of the three severities; the group keys map to their severity.
     #[test]
     fn three_distinct_shapes_words_and_group_keys() {
         let ids: Vec<IconId> = ["error", "warning", "info"]

@@ -2314,7 +2314,7 @@ pub(crate) fn terminal_in_sentence(tag: &str) -> String {
     }
 }
 
-/// A connection point's label (`-1A4:-#2`) as a sentence names it (FX38d): a designation the device
+/// A connection point's label (`-1A4:-#2`) as a sentence names it: a designation the device
 /// shares between pins carries its position in words, "-1A4 pin - (2nd)", never the label's `#2`. Any other label
 /// (an unshared pin `-1A4:L+`, a terminal's clamp `-X1:1/a#2`) is returned as it is; tags,
 /// tables and printed labels keep the label.
@@ -2863,7 +2863,7 @@ impl ShellModel {
 mod tests {
     use super::*;
 
-    /// FX38d (play-test rv-vis-2 t0013): a pin whose designation the device shares is named by its position in words
+    /// A pin whose designation the device shares is named by its position in words
     /// in a sentence, never by the label's `#n`; an unshared pin, a terminal's clamp and an interruption point keep
     /// their label.
     #[test]

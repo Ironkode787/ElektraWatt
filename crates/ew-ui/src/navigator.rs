@@ -112,7 +112,7 @@ pub struct NavigatorPane {
     painted: usize,
     /// The rows the last frame painted: a cursor inside them is not scrolled to (a click does not move the list).
     view: std::ops::Range<usize>,
-    /// The list's height on the last frame (W31-1: a shorter list scrolls its cursor back into view).
+    /// The list's height on the last frame (a shorter list scrolls its cursor back into view).
     list_height: f32,
     /// The list's scroll area as last shown, and whether it came new (a dock change rebuilt the pane's ids,
     /// so the area starts at the top again): the cursor is then scrolled into view as if it had moved.
@@ -213,7 +213,7 @@ impl NavigatorPane {
         if self.filter != shell_filter && !ui.ctx().text_edit_focused() {
             self.filter = shell_filter;
         }
-        // X32b (doc 16a §5.4, §6.2, §6.5, §6.21): the tool line under the panel header, inset `space.4` from the pane's
+        // The tool line (doc 16a §5.4, §6.2, §6.5, §6.21) under the panel header, inset `space.4` from the pane's
         // sides and `size.control` high: New page and the Table toggle as 24-px icon buttons (one button kind), the
         // filter field taking what is left, then in table mode the Columns menu as a Subtle button with a chevron. One
         // row at any width: the filter shrinks first.
@@ -324,10 +324,10 @@ impl NavigatorPane {
         // footer below them.
         if self.kind == NavKind::Messages {
             crate::messages::header(ui, shell, events);
-            // W31-1: header, the rows in their own scroll area, the detail block (as tall as its content, and
+            // Header, the rows in their own scroll area, the detail block (as tall as its content, and
             // never so tall that fewer than two rows fit), then the footer, which is always on show.
             let row = row_height(ui.ctx());
-            // X32b: the footer and the detail block keep the pane's `space.4` gutter.
+            // The footer and the detail block keep the pane's `space.4` gutter.
             let frame = egui::Frame::new().inner_margin(egui::Margin::symmetric(
                 crate::theme::margin_px(t.space_4),
                 crate::theme::margin_px(t.space_1),
@@ -371,7 +371,7 @@ impl NavigatorPane {
                             .max_height(inner)
                             .min_scrolled_height(inner)
                             .show(ui, |ui| {
-                                // C39 (window check W39c2): the text keeps a gutter from the scroll bar, so the
+                                // The text keeps a gutter from the scroll bar, so the
                                 // Rule page link and a wrapped line never touch the bar or the pane's edge.
                                 let gutter = ui.spacing().scroll.bar_width + t.space_2;
                                 egui::Frame::new()
@@ -944,7 +944,7 @@ fn row_ui(
     let is_cursor = cursor == Some(row.key.as_str());
     let (glyph_clicked, response) = ui
         .horizontal(|ui| {
-            // X32b (doc 16a §6.6): the row's `space.4` padding, then 20 px of indent per level.
+            // The row's `space.4` padding (doc 16a §6.6), then 20 px of indent per level.
             let t = crate::theme::current(ui.ctx());
             ui.add_space(t.space_4 + t.size_tree_indent * (row.level.saturating_sub(1)) as f32);
             // The chevron column of a node (`chevron-right` closed, `chevron-down` open, `color.text.tertiary`), as
@@ -1009,7 +1009,7 @@ fn row_ui(
                 .frame(false)
                 .sense(Sense::click_and_drag())
                 .truncate();
-            // K32, generalised to every navigator by X32b (doc 16a §6.6, §6.24): the badges right-aligned at the row's
+            // The badges right-aligned (doc 16a §6.6, §6.24) at the row's
             // `space.4` padding, the title cut with an ellipsis before them and whole in its tooltip. A finding's
             // `fix`, `waived` and `pending` are status badges (its severity word is the severity cell's); a Messages
             // rule row's finding count is a count badge; another navigator's badges are caption chips.

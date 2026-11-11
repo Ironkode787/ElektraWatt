@@ -387,7 +387,7 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
         "75 × 100 mm printed"
     );
     assert!(span(printed(plate), 65_000_000, 90_000_000), "65 × 90 mm printed");
-    // The fit (ruling 1's stop rule): the outline stays clear of 902's PART DATA box (16.31–71.11 × 16.31–52.85 mm
+    // The fit: the outline stays clear of 902's PART DATA box (16.31–71.11 × 16.31–52.85 mm
     // printed), of the legend's rect (108.00–278.00 × 19.50–167.50, D17) and of the frame's drawing area, whose bottom
     // edge is at 182.02 mm printed.
     let outline = printed(enclosure);

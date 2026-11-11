@@ -13,7 +13,7 @@
 //!
 //! **Target.** The nearest rail within 15 points on screen whose axis the pointer projects onto between its ends,
 //! else the plate. A device whose mount kind is a TS kind off every rail is refused in the tool ("F55 mounts on a TS
-//! 35×7.5 rail; drop it on a rail.", ruling 6); a screw-mounted device always targets the plate; a device of unknown
+//! 35×7.5 rail; drop it on a rail."); a screw-mounted device always targets the plate; a device of unknown
 //! size either.
 //!
 //! **Target snapping on a rail** (D4). The footprint's left edge snaps within 15 points to (1) where it touches a
@@ -24,10 +24,10 @@
 //! footprints and of the ducts.
 //!
 //! **Modes.** Free by default; Ctrl held pushes, Alt held swaps; else the sticky mode of the tool options card. An
-//! assembly member whose siblings sit on the target rail defaults to push at its member-order slot (ruling 4) while no
+//! assembly member whose siblings sit on the target rail defaults to push at its member-order slot while no
 //! modifier is held and the sticky mode is free.
 //!
-//! **Refusals** (ruling 1). A refused drop is drawn at once from [`resolve`]'s error, from [`fits_rail`] or from the
+//! **Refusals.** A refused drop is drawn at once from [`resolve`]'s error, from [`fits_rail`] or from the
 //! tool's own off-rail rule; its text is the command's own, from the host's preview of the command the tool would
 //! commit (asked only when that command changes), or the tool's off-rail text.
 
@@ -389,7 +389,7 @@ impl LayoutGesture {
         Some(cmd)
     }
 
-    /// The host's preview of the current command: a refusal's text refuses the ghost (ruling 1).
+    /// The host's preview of the current command: a refusal's text refuses the ghost.
     pub fn on_preview(&mut self, info: &PreviewInfo) {
         // The command's own sentence, without the command name the error's display leads with.
         let name = self
@@ -846,7 +846,7 @@ fn resolve_at(
             };
             let width = ext.width;
             let (s_ptr, _) = axis.project(anchor_ptr);
-            // The mode, and ruling 4's slot default.
+            // The mode, and the slot default.
             let slot = match g.source {
                 Source::Device(d) => panel
                     .unplaced_device(d)
@@ -1164,7 +1164,7 @@ impl LayoutPlaceTool {
         self.gesture.as_ref()
     }
 
-    /// Moves the ghost to `at`: the overlay, or the preview of a new command (ruling 1).
+    /// Moves the ghost to `at`: the overlay, or the preview of a new command.
     fn track(&mut self, at: (i64, i64), mods: Mods, cx: &ToolCx<'_>) -> ToolOutput {
         self.last = Some((at, mods));
         let Some(device) = self.device else {

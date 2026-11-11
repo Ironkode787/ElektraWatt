@@ -280,7 +280,7 @@ mod tests {
             None
         );
         assert_eq!(parse_hash("sha256:00"), None);
-        // Review C35 nit: a sign is not a hex digit.
+        // A sign is not a hex digit.
         let plus = format!("sha256:+f{}", &hash_text(&h)["sha256:".len() + 2..]);
         assert_eq!(plus.len(), hash_text(&h).len());
         assert_eq!(parse_hash(&plus), None);

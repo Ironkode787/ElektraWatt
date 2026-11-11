@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fixes of window check W49.2 in the form dialogs and the strip editor:
+//! The fixes in the form dialogs and the strip editor:
 //!
 //! - F1 (doc 16a §6.12): every form dialog the shell opens, listed from `ew-viewmodel`'s source, takes its first focus
 //!   on its first text field, else on its Primary, which shows its focus ring; Enter on a fresh form submits it or is

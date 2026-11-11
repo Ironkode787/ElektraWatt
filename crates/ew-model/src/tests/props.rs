@@ -960,7 +960,7 @@ fn generator_exercises_link_updates() {
     }
 }
 
-/// The shrunk counterexample of `incremental_indexes_equal_rebuilt_after_every_batch` from the cycle-15 gate
+/// The shrunk counterexample of `incremental_indexes_equal_rebuilt_after_every_batch` from a gate run
 /// (seed in `proptest-regressions/tests/props.txt`), replayed deterministically. The last batch removes
 /// `DEV_102F2` and with it `FN_102F2_AUX`, the last function naming `FNDEF_CONTACT`; the next delete plan
 /// then removes that FnDef copy, which nothing names any more. The aux function the batch adds afterwards

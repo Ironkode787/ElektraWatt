@@ -223,7 +223,7 @@ pub use wires::{EndKind, PhysicalWire, PhysicalWires, PhysicalWiresOf, WireEnd};
 // The report-pages provider hook of `page_order` and the drawn-page order.
 pub use pages::{DrawnPageOrder, ReportPagesProvider};
 
-// Cycle-7 review: the constituent behind each level-7 wire value.
+// The constituent behind each level-7 wire value.
 pub use wires::OverrideSources;
 
 // Cross-references (relations, formats, texts) and the format token engine.

@@ -193,7 +193,7 @@ fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W31-2: at 1280×800 the renumber card's first tag change is on show in the Preview tab without a click: Tags is the
+/// At 1280×800 the renumber card's first tag change is on show in the Preview tab without a click: Tags is the
 /// list that carries the change, first and open, below Apply and Cancel.
 #[test]
 fn w31_2_the_first_tag_change_is_on_show_at_1280_by_800() {
@@ -228,7 +228,7 @@ fn w31_2_the_first_tag_change_is_on_show_at_1280_by_800() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W31-7: an undone entry offers Redo to here (`history.undo_to` redoes up to it, §8.4), not Undo to here; the applied
+/// An undone entry offers Redo to here (`history.undo_to` redoes up to it, §8.4), not Undo to here; the applied
 /// entries keep Undo to here. Its row is named `…, undone`.
 #[test]
 fn w31_7_an_undone_entry_offers_redo_to_here() {
@@ -297,7 +297,7 @@ fn a_changed_records_line_reads_in_dutch() {
     // The tag's member by its Properties label ("Kenmerknummering"), and the header of the two devices.
     assert!(has_text(&h, "gewijzigd apparaat -101F1 (kenmerknummering)"));
     assert!(has_text(&h, "2 apparaten"));
-    // The action after the Preview's colon in a sentence, and the revision in words (the orchestrator's wording).
+    // The action after the Preview's colon in a sentence, and the revision in words.
     assert!(has_text(&h, "Voorbeeld: eigenschap instellen"));
     assert!(has_text(&h, "Voorbeeld: eigenschap instellen · vanaf revisie 1"));
     h.state_mut().shell_mut().shutdown();

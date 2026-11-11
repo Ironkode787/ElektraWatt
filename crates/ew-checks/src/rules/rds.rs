@@ -51,7 +51,7 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
 /// the newer": the devices after the keeper of doc 15 §6.4 renumbered to free counters.
 ///
 /// Deviations: the catalogue lists the scope as device, but the grouping is project-wide, so the rule is
-/// evaluated once in the project scope. Prevent mode is not declared at MVP (owner ruling; ADR-0009
+/// evaluated once in the project scope. Prevent mode is not declared at MVP (ADR-0009
 /// decision 3 is amended by the design pass): tag uniqueness on commit would need every derived tag on
 /// each commit.
 #[derive(Clone, Copy, Debug)]

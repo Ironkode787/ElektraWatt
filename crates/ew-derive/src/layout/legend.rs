@@ -135,7 +135,7 @@ impl CarrierLabel {
         }
     }
 
-    /// The label inside a sentence (doc 16a §8, sentence case; ruling 4 of lane B42): "rail 1", "duct 3".
+    /// The label inside a sentence (doc 16a §8, sentence case): "rail 1", "duct 3".
     pub fn in_sentence(self) -> String {
         match self.kind {
             CarrierLabelKind::Rail => format!("rail {}", self.n),

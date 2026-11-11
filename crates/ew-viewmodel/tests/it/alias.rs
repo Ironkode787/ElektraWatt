@@ -346,7 +346,7 @@ fn a_failed_command_message_prints_the_alias() {
     shell.shutdown();
 }
 
-/// Ruling 9 (fix round): a link field's value typed back as `id:@n` resolves to `id:<uuid>`; free text with `@n` in
+/// A link field's value typed back as `id:@n` resolves to `id:<uuid>`; free text with `@n` in
 /// it stays text; `select.set` `refs` and a command reference take `id:@n` too.
 #[test]
 fn a_typed_link_value_and_references_take_the_id_form() {

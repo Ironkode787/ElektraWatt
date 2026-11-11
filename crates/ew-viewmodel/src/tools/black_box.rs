@@ -470,7 +470,7 @@ pub fn reshape_by_grip(
     if after == 0 {
         return Err(key!("reason-box-too-small"));
     }
-    // A grip never turns the box inside out (its CPs would then point inwards; fix round, item 6).
+    // A grip never turns the box inside out (its CPs would then point inwards).
     if before.signum() != after.signum() {
         return Err(key!("reason-box-inside-out"));
     }

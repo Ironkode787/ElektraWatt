@@ -52,7 +52,7 @@ fn member_cmp(a: &(u32, String, Id<Device>), b: &(u32, String, Id<Device>)) -> O
         .then_with(|| a.2.cmp(&b.2))
 }
 
-/// The left edge an assembly member is pushed in at (and part 3's PW-5, ruling 4): one function shared by
+/// The left edge an assembly member is pushed in at: one function shared by
 /// `layout.place_assembly`'s insertion and the layout tool's default slot, never a second copy.
 ///
 /// With a predecessor `pred` (the nearest earlier member on the rail, its rightmost item) the member's doubled centre is

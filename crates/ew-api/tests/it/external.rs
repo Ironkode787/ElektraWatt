@@ -5,7 +5,7 @@
 //!
 //! Each test opens a copy of Golden A in memory for editing. The external change is a colleague's save made by a second
 //! session on a copy of the project, whose changed files and manifest are then copied into the live folder, the files
-//! first and `manifest.json` last, as a sync client may, with no lock taken over (ruling 2). Golden A is only read.
+//! first and `manifest.json` last, as a sync client may, with no lock taken over. Golden A is only read.
 
 // The tests read rows through the untracked readers (dev-dependency `ew-model/raw-read`).
 #![allow(clippy::disallowed_methods)]
@@ -571,7 +571,7 @@ fn a_read_only_follower_reloads_and_writes_nothing() {
     }
 }
 
-/// D22 and ruling 1: `external.apply` is `Internal`, and no origin but the external-change apply reaches it: the GUI
+/// `external.apply` is `Internal`, and no origin but the external-change apply reaches it: the GUI
 /// and its palette, the CLI (confirmed or not), a command log, a script, MCP, a plugin and Python are refused.
 #[test]
 fn only_the_external_change_apply_reaches_external_apply() {
@@ -636,7 +636,7 @@ fn online(s: &Session) -> Vec<ew_api::checks::Finding> {
         .collect()
 }
 
-/// DG-5 (FR-CHK-012's acceptance; D29, rulings 5 and 6): two branches each added a device on
+/// FR-CHK-012's acceptance: two branches each added a device on
 /// folio 102 that numbers as -102F3. Without merge evidence only EW-RDS-004 reports; in a merged copy (`merged: true`)
 /// EW-CORE-013 reports the group with the older UUIDv7 as keeper and the fix "Renumber the newer", which gives the
 /// other the next free counter, -102F4, in one undo step.

@@ -126,7 +126,6 @@ pub const ARMS: &[Arm] = &[
         weight: 4,
         build: connection_draw,
     },
-    // Cycle 33
     Arm {
         command: "connection.draw_many",
         weight: 2,

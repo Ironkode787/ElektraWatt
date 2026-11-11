@@ -395,7 +395,7 @@ fn the_tag_field_proposes_join_for_an_existing_tag_and_commits_it() {
     assert_eq!(tag_of(&s, &rep_at(&s, (66, 30)).unwrap()), "-101K77");
 }
 
-/// FX37a: a join whose source device carries a function text goes ahead, and the join toast names what went with it.
+/// A join whose source device carries a function text goes ahead, and the join toast names what went with it.
 #[test]
 fn the_join_toast_names_what_the_source_device_dropped() {
     let tmp = Tmp::new("join-toast-dropped");

@@ -101,7 +101,7 @@ pub(crate) fn kind_name(kind: &ChannelKind) -> String {
     }
 }
 
-/// A binding as a notice names it, in words (the orchestrator's): "bound to
+/// A binding as a notice names it, in words: "bound to
 /// -201U3-Q1:14" (the CP by its device's tag and its designation), "bound to the junction at x 120, y 45 mm on page 3",
 /// "bound to an endpoint of a newer format", "unbound".
 pub(crate) fn binding_words(tx: &TxBuilder<'_>, binding: Option<&Endpoint>) -> String {

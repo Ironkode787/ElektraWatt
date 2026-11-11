@@ -382,7 +382,7 @@ impl GestureCell {
     }
 }
 
-/// A text a moved item hands a front-end (ruling 3: text keys, never English).
+/// A text a moved item hands a front-end (text keys, never English).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CellText {
     /// A text key and its arguments, in its placeholders' order (`{0}`, …).

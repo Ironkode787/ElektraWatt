@@ -53,7 +53,7 @@ fn clause(reason: &str) -> String {
 /// not parse or has an error (D8) is copied to `keymap.toml.bad-<n>` (once: a copy with the same bytes is named
 /// again) and refused with a banner; a file that cannot be
 /// read, or a refused one whose copy-aside failed, is refused with a banner and kept: the editor does not write over
-/// it in this run (C40 review part 2, finding 8).
+/// it in this run.
 pub(super) fn load_user_keymap(dir: &Path, preset_word: &str) -> Result<Option<Keymap>, KeymapTrouble> {
     let preset = Preset::from_setting(preset_word);
     let reason = match keymap::read_user(dir) {

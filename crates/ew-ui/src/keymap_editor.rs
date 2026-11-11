@@ -23,7 +23,7 @@ use crate::components::{self, Kind};
 use crate::theme;
 
 /// The share of the window's height the list may take before it scrolls (doc 16a §2: a list dialog fits its content
-/// up to a share of the window, so it grows at 1920 × 1080; W40b).
+/// up to a share of the window, so it grows at 1920 × 1080).
 const LIST_SHARE: f32 = 0.5;
 
 /// The most a row's keys column takes of the columns' room (it fits its widest chips below that).
@@ -80,7 +80,7 @@ fn record(ui: &Ui, action: &'static str, events: &mut Vec<Event>) {
 }
 
 /// The number of whole rows of `row_height` the list shows in a window `window_height` high with `rows` rows: as many
-/// as fit in [`LIST_SHARE`] of the window, never fewer than one, never more than there are (W40b: the list never
+/// as fit in [`LIST_SHARE`] of the window, never fewer than one, never more than there are (the list never
 /// ends in a half-cut row, and it grows with the window).
 pub(crate) fn visible_rows(window_height: f32, row_height: f32, rows: usize) -> usize {
     let fit = (window_height * LIST_SHARE / row_height.max(1.0)).floor() as usize;
@@ -89,7 +89,7 @@ pub(crate) fn visible_rows(window_height: f32, row_height: f32, rows: usize) -> 
 
 /// The widths of the action, keys and "where" columns in `room` points: the keys and "where" columns fit their widest
 /// content (`keys_need`, `where_need`) up to [`KEYS_SHARE`] and [`WHERE_SHARE`] of the room, and the action column
-/// takes the rest (W40b: the action column takes the free width).
+/// takes the rest (the action column takes the free width).
 pub(crate) fn columns(room: f32, keys_need: f32, where_need: f32) -> (f32, f32, f32) {
     let keys = keys_need.min(room * KEYS_SHARE);
     let place = where_need.min(room * WHERE_SHARE);
@@ -118,7 +118,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     }
     // The preset, and whether the user's keymap changes it.
     let preset = shell.keymap_preset().name();
-    // W40a 5b: "with your changes" only while an action's bindings differ from the preset's.
+    // "with your changes" only while an action's bindings differ from the preset's.
     let preset_line = if ew_viewmodel::keymap::has_changes(shell.keymap_preset(), shell.user_keymap()) {
         strings::format(key!("keymap-preset-custom"), &[preset])
     } else {
@@ -154,12 +154,12 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
     }
     let rows = shell.keymap_rows();
     // A row is as high as its Record and Reset buttons, with no gap between rows, so the list's height is a whole
-    // number of rows (W40b).
+    // number of rows.
     let row_height = t.size_row.max(t.size_control);
     let width = ui.available_width();
     // Five cells (three columns and two 72-px buttons) with four `space.3` gaps between them. The keys and "where"
     // columns fit their widest content; the action column takes the rest of the dialog's body, which grows with the
-    // window (doc 16a §2, W40b).
+    // window (doc 16a §2).
     let room = (width - 2.0 * BUTTON_WIDTH - 4.0 * t.space_3).max(0.0);
     let (keys_need, where_need) = {
         let painter = ui.painter();
@@ -280,7 +280,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, just_opened: bool, events: &
             }
         });
     ui.spacing_mut().item_spacing.y = gap;
-    // W40a 5a: the Menu key's note only while a shortcut is being recorded, under the list that shows the recording.
+    // The Menu key's note only while a shortcut is being recorded, under the list that shows the recording.
     if state.recording.is_some() {
         ui.label(
             RichText::new(strings::text(key!("keymap-menu-key")))
@@ -325,7 +325,7 @@ fn cell(ui: &mut Ui, width: f32, height: f32, content: impl FnOnce(&mut Ui)) {
 mod tests {
     use super::{columns, visible_rows};
 
-    /// W40b: the list shows whole rows, more in a taller window, never more than there are and never none.
+    /// The list shows whole rows, more in a taller window, never more than there are and never none.
     #[test]
     fn the_list_fits_whole_rows_and_grows_with_the_window() {
         let (floor, typical) = (visible_rows(800.0, 32.0, 500), visible_rows(1080.0, 32.0, 500));
@@ -336,7 +336,7 @@ mod tests {
         assert_eq!(visible_rows(1080.0, 32.0, 0), 0);
     }
 
-    /// W40b: the keys and "where" columns fit their content up to their shares; the action column takes the rest.
+    /// The keys and "where" columns fit their content up to their shares; the action column takes the rest.
     #[test]
     fn the_action_column_takes_the_free_width() {
         let (label, keys, place) = columns(600.0, 80.0, 120.0);

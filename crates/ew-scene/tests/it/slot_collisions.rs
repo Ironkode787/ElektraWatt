@@ -255,7 +255,7 @@ fn side_gap(a: Rect, b: Rect) -> Option<i64> {
         .then(|| (b.min().x.0 - a.max().x.0).max(a.min().x.0 - b.max().x.0))
 }
 
-/// Cycle 37 (window check, contacts 25 mm apart): a back-reference never runs into the neighbour contact's tag; a
+/// With contacts 25 mm apart, a back-reference never runs into the neighbour contact's tag; a
 /// back-reference beside it keeps at least the gap, else it drops below.
 #[test]
 fn a_back_reference_keeps_the_gap_from_the_neighbour_contacts_tag() {
@@ -289,7 +289,7 @@ fn a_back_reference_keeps_the_gap_from_the_neighbour_contacts_tag() {
     }
 }
 
-/// Cycle 37 (visual play-test): two starter valve coils side by side at one-column spacing and closer: M1's "24 V"
+/// Two starter valve coils side by side at one-column spacing and closer: M1's "24 V"
 /// keeps at least the gap from M2's tag (it drops below it), its own A1/A2 and tag stay where the symbol puts them,
 /// and at a spacing where nothing collides it stays beside its coil.
 #[test]
@@ -320,7 +320,7 @@ fn a_valves_technical_data_keeps_the_gap_from_the_next_valves_tag() {
     assert_eq!(text_box(&valves(20), 0x31, &["24 V"]), alone);
 }
 
-/// Cycle 37: a dropped back-reference that lands on its own CP designation (a three-digit "114" reaching under it)
+/// A dropped back-reference that lands on its own CP designation (a three-digit "114" reaching under it)
 /// drops below that too, clear of the neighbour's tag and of its own texts.
 #[test]
 fn a_dropped_back_reference_also_clears_its_own_designation() {

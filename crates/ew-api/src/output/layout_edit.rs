@@ -9,7 +9,7 @@
 //! terminal's Group row. Never `fields.set`: each row writes through the command that checks it (D12).
 //!
 //! Besides, the data the window's set-up dialogs offer (part 4, §8): the layout parts of a kind (the project's copies,
-//! then the system libraries' parts with the `copies` that embed them, ruling 8) and the project's locations.
+//! then the system libraries' parts with the `copies` that embed them) and the project's locations.
 //!
 //! Every row is `derived.<name>` of its kind; an editable one carries [`EditRoute::Command`] with its command's name.
 //! Lengths are millimetres as the project prints them (its decimal separator), the unit as a suffix.
@@ -36,7 +36,7 @@ use super::properties::{PropRow, Provenance, RowAction, RowValue};
 use super::scale_fit::{drawing_area, page_fitting_scale};
 use crate::{AnyCommand, Session};
 
-/// One row's edit (ruling 3): the text typed into row `row` (`derived.position`) of the record `target` of `kind`
+/// One row's edit: the text typed into row `row` (`derived.position`) of the record `target` of `kind`
 /// (`placement`, `carrier`, `mounting_surface`, `enclosure`, `layout_space`, `page`).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LayoutEdit {
@@ -77,7 +77,7 @@ pub(crate) const LAYOUT_KINDS: [Kind; 5] = [
 ];
 
 /// One part a set-up dialog or a drawing tool offers (part 4): a project copy, or a system library's part with the
-/// `copies` that embed it and its closure (the enclosure part's plate part too, ruling 8).
+/// `copies` that embed it and its closure (the enclosure part's plate part too).
 #[derive(Clone, PartialEq, Debug)]
 pub struct LayoutPartOffer {
     /// The part copy's ID (the ID its copy has, or will have, in the project).
@@ -886,7 +886,7 @@ impl Session {
         comma(&self.query())
     }
 
-    /// The one command of a layout row's edit (ruling 3): the door through which the view model commits every row of
+    /// The one command of a layout row's edit: the door through which the view model commits every row of
     /// [`EditRoute::Command`].
     ///
     /// # Errors
@@ -1218,7 +1218,7 @@ impl Session {
         }
     }
 
-    /// The layout parts of `kind` (`enclosure`, `rail` or `duct`) a set-up dialog or a drawing tool offers (part 4, D11, ruling 8): the project's copies
+    /// The layout parts of `kind` (`enclosure`, `rail` or `duct`) a set-up dialog or a drawing tool offers: the project's copies
     /// of that kind by part number, then the system libraries' parts of that kind the project does not hold, each with
     /// the `copies` that embed it and its closure; an enclosure part's plate part and its closure come along. For
     /// `enclosure` only parts with an enclosure section; for `rail` only parts with a rail section; for `cable` (New

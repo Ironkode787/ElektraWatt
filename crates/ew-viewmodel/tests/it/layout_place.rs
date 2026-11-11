@@ -166,7 +166,7 @@ const R1_SN3: [(&str, f64); 7] = [
 // ---------------------------------------------------------------------------------------------------------------
 // PW-1
 
-/// PW-1: the rows in `Unplaced` order (ruling 9) with their badges and drag sources; placing F55 removes its
+/// PW-1: the rows in `Unplaced` order with their badges and drag sources; placing F55 removes its
 /// row in the same revision; the panel tables are fetched once per revision and folio, never for a schematic page.
 #[test]
 fn the_unplaced_devices_navigator_lists_the_five_devices() {
@@ -632,7 +632,7 @@ fn shell_failed_text(param: &str) -> String {
 // PW-5
 
 /// PW-5: -201U9 dropped on Rail 3 without a modifier defaults to push at its member-order slot and gives AS-1's poses
-/// in one undo step; ruling 4: the whole rail equals what `layout.place_assembly` gives on another copy.
+/// in one undo step; the whole rail equals what `layout.place_assembly` gives on another copy.
 #[test]
 fn an_assembly_member_defaults_to_push_at_its_slot() {
     let tmp = Tmp::new("layout-pw5");

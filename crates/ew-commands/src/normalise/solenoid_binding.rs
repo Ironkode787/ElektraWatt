@@ -17,7 +17,7 @@
 //!   changed), changed its parts, or gained a function; or when the pair's channel is new in the
 //!   transaction (N1 created the module's channels after the valves existed, as the golden builder does).
 //!   Pairs of untouched valves and old channels are never reconsidered, so an explicit unbinding stays
-//!   (owner ruling: accepted as a deviation from FR-PLC-051, which the design pass rewords; a
+//!   (accepted as a deviation from FR-PLC-051, which the design pass rewords; a
 //!   moved valve whose coil stays bound elsewhere gets a notice).
 //! - **Effect.** The channel takes `binding = Cp(coil)` when the channel is unbound and no channel binds the
 //!   coil. An explicit binding wins: a coil that a channel already binds is left as it is (FR-PLC-051), and a
@@ -279,7 +279,7 @@ impl Normaliser for SolenoidBinding {
                     };
                     // whether some channel binds the coil: an index lookup with read-your-writes
                     if !tx.channels_at_cp(coil.0, coil.1).is_empty() {
-                        // Owner ruling: an explicit or earlier binding of the coil wins, also
+                        // An explicit or earlier binding of the coil wins, also
                         // after a move; a move rebinds only coils without a binding, and an explicit rebind
                         // is `plc.bind_channel` (the design pass rewords FR-PLC-051 and doc 10 §3.3). A
                         // triggered valve whose coil stays on another channel than the map's says so.

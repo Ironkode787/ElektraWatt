@@ -397,7 +397,7 @@ pub fn rule_language() -> &'static str {
     }
 }
 
-/// Test hook (`testkit`, ruling 5): loads the Fluent source `source` as the UI language `tag`, which
+/// Test hook (`testkit`): loads the Fluent source `source` as the UI language `tag`, which
 /// View ▸ Language then offers and [`set_locale`] selects; a message it lacks falls back to en-GB. A tag loaded
 /// before is replaced for later selections.
 #[cfg(feature = "testkit")]
@@ -531,7 +531,7 @@ pub fn field_label(kind: &str, path: &str) -> String {
     out
 }
 
-/// The word of a macro variable's type (W40a 5e): the words `macro.insert`'s coercion refusals use for it (a
+/// The word of a macro variable's type: the words `macro.insert`'s coercion refusals use for it (a
 /// `tag_counter` takes "a tag counter (an integer from 1)", so it is "tag counter"); a type this version does not
 /// know is its key with spaces. The window never prints a raw type key.
 pub fn var_type_word(ty: &str) -> String {
@@ -552,7 +552,7 @@ pub fn var_type_word(ty: &str) -> String {
     word.to_owned()
 }
 
-/// A choice value of a form dialog in words (doc 16a §8, ruling 2): the text of `choice-<value>`
+/// A choice value of a form dialog in words (doc 16a §8): the text of `choice-<value>`
 /// (`_` as `-`) in the UI language, else [`choice_words`]. The parameter keeps the raw word; only the window shows
 /// this.
 pub fn choice_text(value: &str) -> String {

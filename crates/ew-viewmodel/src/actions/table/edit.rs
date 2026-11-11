@@ -64,7 +64,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     )),
     // Edit, Properties of selection (E and Alt+Enter on the canvas) and Project properties: the shell has no Project
-    // menu yet, so the project's properties sit beside the selection's (lane ruling).
+    // menu yet, so the project's properties sit beside the selection's.
     keeps_banner(in_canvas(act(
         "props.focus",
         View,

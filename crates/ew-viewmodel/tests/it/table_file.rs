@@ -5,7 +5,7 @@
 //! show byte for byte as `ew export table strips --strip -X1031` writes it (TW-1; the CLI's path, run here through the
 //! same `ew-api` calls on a reader session of the saved project), `navigator.import_table` of a file with five changed
 //! labels opens the card with "5 changed" and Accept commits one undo step, Escape nothing (TW-1); a cell changed in
-//! the project and in the file is one conflict and Accept keeps the project's value (TW-2, ruling 7); the export is a
+//! the project and in the file is one conflict and Accept keeps the project's value (TW-2); the export is a
 //! job on the snapshot, and a cancel leaves no file (TW-3); the refusals in words.
 
 use std::path::Path;
@@ -181,13 +181,13 @@ fn steps(shell: &ShellModel) -> usize {
 }
 
 /// TW-1: the table on show filtered to -X1031 in node order is the CLI's `--strip -X1031` workbook byte for byte (the
-/// filter shows no row of another strip, so ruling 8's narrowing is not needed); a file with five changed labels opens
+/// filter shows no row of another strip, so no narrowing is needed); a file with five changed labels opens
 /// the card with "5 changed"; Escape commits nothing; Accept commits one `fields.set_many`, one undo step.
 #[test]
 fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     let tmp = Tmp::new("tw1");
     let mut shell = strips(&tmp);
-    // Every row on show sits under the strip -X1031 (ruling 8).
+    // Every row on show sits under the strip -X1031.
     let n = shell.nav(NavKind::Strips).unwrap();
     let table = n.table().unwrap();
     let parents: Vec<Option<u32>> = n

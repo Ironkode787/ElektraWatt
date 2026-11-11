@@ -511,7 +511,7 @@ fn split_for_hint(
 ///
 /// The graphic representations on MultiLine and BusTopology pages (cable markers, the screen graphic) and
 /// the multi-line ones on Fluid pages (the CPX black boxes of a valve terminal drawn on its fluid pages) are
-/// the owner's ruling: the reference drawings contain exactly these,
+/// allowed: the reference drawings contain exactly these,
 /// and Golden A's tables place them so (doc 20, build path (b)).
 pub fn allowed_rep_types(page: &PageType) -> Option<&'static [RepType]> {
     Some(match page {
@@ -996,7 +996,7 @@ pub(crate) fn step_route(
     }
     // Two coordinates that were equal can part by 1 nm (two CPs on one coordinate whose representations' grid
     // indices differ in `k mod 3` move by displacements that differ by 1 nm): such a segment would turn diagonal.
-    // It keeps its axis with a jog at the grid point nearest its middle (fix round, item 10):
+    // It keeps its axis with a jog at the grid point nearest its middle:
     // every new vertex has the jog's grid coordinate on one axis and an end's coordinate on the other.
     let mut out: Vec<Pt2> = Vec::with_capacity(next.len() + 4);
     for i in 0..n {

@@ -449,7 +449,7 @@ fn current_revision_cases() {
     }
 }
 
-/// FX37a: the revisions rank in the project's label order (`ew_derive::revision_label_key`): in the `letter` format
+/// The revisions rank in the project's label order (`ew_derive::revision_label_key`): in the `letter` format
 /// `AA` follows `Z` (natural order would put it first), and a label outside the format ranks below every label in it.
 #[test]
 fn the_current_revision_follows_the_project_label_order_past_z() {

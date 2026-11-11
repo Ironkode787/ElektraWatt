@@ -8,8 +8,7 @@
 //!
 //! Test code only: it never ships, and it reads bytes, not the model (the raw-read policy of `ew-model` is
 //! not involved). *As built:* doc 18 §3.9 names hayro's parser for the frame check; this
-//! in-repo reader covers the subset our writer produces without a new dependency (open ruling of the
-//! cycle-14 report). What it supports, and refuses with an error otherwise:
+//! in-repo reader covers the subset our writer produces without a new dependency. What it supports, and refuses with an error otherwise:
 //!
 //! - **File:** classic cross-reference tables and indirect objects read in file order (no object streams,
 //!   no encryption, no incremental-update semantics beyond "the later object wins"); streams with

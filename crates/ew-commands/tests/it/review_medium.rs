@@ -104,7 +104,7 @@ fn place_refuses_a_rep_type_the_page_does_not_allow() {
     assert!(reason.contains("no representations"), "{reason}");
 }
 
-/// The owner's ruling: graphic representations (cable markers) on multi-line and
+/// Graphic representations (cable markers) on multi-line and
 /// bus-topology pages and multi-line ones (the CPX black boxes) on fluid pages are allowed; the other types
 /// stay refused there.
 #[test]

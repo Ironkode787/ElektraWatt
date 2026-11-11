@@ -72,7 +72,7 @@ fn entity(change: &EntityChange, current: &Q, candidate: Option<&Q>) -> PreviewE
         _ => current,
     };
     let source = source_language(q);
-    // Cycle 37 (window check W37): a library copy is named too (a part by its number, a manufacturer by its name), and
+    // A library copy is named too (a part by its number, a manufacturer by its name), and
     // a label that only repeats the kind word ("bond") is left out, so the line never reads "added bond bond".
     let label = record_title(q, id, source.as_deref())
         .or_else(|| library_name(q, kind, id, source.as_deref()))

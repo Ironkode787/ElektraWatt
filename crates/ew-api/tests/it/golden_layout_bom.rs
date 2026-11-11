@@ -94,8 +94,8 @@ fn m(text: &str) -> Dec3 {
     text.parse().expect("a Dec3")
 }
 
-/// LB-1 and ruling 5: "In `DevicePartLines`, the carriers of one enclosure device that share a part copy give one part
-/// line (`LineSource::Carrier`) ... The lines come after the device's authored part uses"; ruling 7: the BOM prints
+/// In `DevicePartLines`, the carriers of one enclosure device that share a part copy give one part
+/// line (`LineSource::Carrier`) ... The lines come after the device's authored part uses; the BOM prints
 /// 1.71 and 3.17; the folio rule "applies to the BOM's Folios cell only".
 #[test]
 fn rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902() {
@@ -163,7 +163,7 @@ fn rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902() {
             ),
         ]
     );
-    // Row 26, the end brackets of R2's strips (EB-1, ruling 2): 902 alone.
+    // Row 26, the end brackets of R2's strips: 902 alone.
     assert_eq!(
         (rows[25].pos, rows[25].qty, rows[25].pages.clone()),
         (26, m("4"), vec![PageRef::Drawn(page("902"))])
@@ -175,7 +175,7 @@ fn rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902() {
 }
 
 /// A block of the `enclosure_legend` kind embedded on 902 (the rect of the PART DATA block; the block is drawn on no
-/// page: ruling 4 leaves drawing it to part 4b).
+/// page).
 fn legend_block(q: &Q) -> ReportBlock {
     let mut block = q
         .report_blocks()
@@ -224,7 +224,7 @@ fn qty(set: &RowSet, i: usize) -> String {
     }
 }
 
-/// LB-2's row content (ruling 4: "`layout_legend(surface)` in `ew-derive` with its 30 rows and F55's renumbering, tested
+/// The legend's row content ("`layout_legend(surface)` in `ew-derive` with its 30 rows and F55's renumbering, tested
 /// at the query"; "the `enclosure_legend` report kind registered in `ew-reports` with rows from that query, tested at
 /// the row level and placed on no page").
 #[test]

@@ -746,7 +746,7 @@ fn reshape_without_cps_widening_keeps_top_and_bottom_cps_where_they_are() {
     assert_eq!(top.pos, pt(2 * G, 0));
     assert_eq!(top.dir, Dir4::Up);
     // The bottom edge runs right to left from the moved right vertex; its left vertex kept its x, so it is the anchor
-    // and CP 6 stays where it is (fix round, item 3).
+    // and CP 6 stays where it is.
     let bottom = cp_of(&spec, 6);
     assert_eq!(bottom.pos, pt(4 * G, grid_at(12).0));
     assert_eq!(bottom.dir, Dir4::Down);

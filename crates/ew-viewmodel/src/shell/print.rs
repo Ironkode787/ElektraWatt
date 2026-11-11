@@ -34,12 +34,12 @@ use crate::key;
 use crate::strings;
 use crate::strings::Key;
 
-/// The Range of the pre-dialog (ruling 4).
+/// The Range of the pre-dialog.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PrintRange {
     /// Every page.
     All,
-    /// The current page (`PageSelection::Folios` of its folio, ruling 2).
+    /// The current page (`PageSelection::Folios` of its folio).
     Current,
     /// The ticked sections, each with its divider.
     Sections,
@@ -118,7 +118,7 @@ pub enum PrintBuild {
     Failed(String),
 }
 
-/// The print pre-dialog's state (D10, ruling 4).
+/// The print pre-dialog's state.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PrintDialog {
     /// The Range.
@@ -197,7 +197,7 @@ pub enum PrintVia {
     Viewer,
 }
 
-/// A built print set for the window to print (ruling 3), taken once.
+/// A built print set for the window to print, taken once.
 #[derive(Clone, Debug)]
 pub struct PrintRequest {
     /// The set: its PDF and its placed pages.
@@ -213,7 +213,7 @@ pub struct PrintRequest {
     pub cancel: Arc<std::sync::atomic::AtomicBool>,
 }
 
-/// How a print the window started ended (the platform's report, ruling 3).
+/// How a print the window started ended (the platform's report).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum PrintEnd {
     /// Sent to a printer (the system's print dialog, or `lp`).

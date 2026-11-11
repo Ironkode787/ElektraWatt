@@ -813,7 +813,7 @@ fn the_pages_table_shows_changed_in_at_the_default_width() {
         h.query_by_label("Sort by Generated").is_none(),
         "Generated waits in the chooser"
     );
-    // C39 (window check W39c2): the Title takes the room Folio and Changed in leave, so no room is left free right of
+    // The Title takes the room Folio and Changed in leave, so no room is left free right of
     // Changed in while a title is cut.
     let t = ew_ui::theme::current(&h.ctx);
     assert!(

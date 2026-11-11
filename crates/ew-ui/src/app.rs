@@ -219,7 +219,7 @@ pub struct App {
     /// The property grid pane.
     properties: PropertiesPane,
     /// The banner text [`App::report`] raised for a failure, while it stands: the next failure replaces it, where a
-    /// banner the shell raised itself keeps precedence (W46.4 F1); with the action that failed, whose next success
+    /// banner the shell raised itself keeps precedence; with the action that failed, whose next success
     /// clears it.
     reported: Option<String>,
     /// The action whose failure raised [`App::reported`]: the open palette form's when the form ran it.
@@ -400,13 +400,13 @@ impl App {
         self.dispatch_log.iter().map(|(a, _)| *a).collect()
     }
 
-    /// Dispatches `action` as a gesture of the window does, its failure reported as a banner (tests: W46.4 F1).
+    /// Dispatches `action` as a gesture of the window does, its failure reported as a banner.
     #[doc(hidden)]
     pub fn dispatch_from_window(&mut self, action: &'static str, params: &Value) {
         self.dispatch(action, params);
     }
 
-    /// The actions the frame dispatched with their parameters, oldest first (the last 256; tests: DK9).
+    /// The actions the frame dispatched with their parameters, oldest first (the last 256).
     #[doc(hidden)]
     pub fn dispatched_calls(&self) -> Vec<(&'static str, Value)> {
         self.dispatch_log.iter().cloned().collect()
@@ -1108,7 +1108,7 @@ impl App {
             options_card = self.tool_options(&ctx, pane, &mut events);
         }
         // OV2/OV6: the canvas painted before the HUD (whose place follows the pointer), so the chips keep off this
-        // frame's HUD, zoom control and tool options card (W40b) from the next frame on; the next input repaints
+        // frame's HUD, zoom control and tool options card from the next frame on; the next input repaints
         // anyway, no extra repaint.
         let chrome: Vec<egui::Rect> = match (self.page_pane, self.hud_rect) {
             (Some(pane), Some(hud)) => [hud, crate::hud::zoom_rect(&crate::theme::current(&ctx), pane)]
@@ -1401,7 +1401,7 @@ impl App {
         if dialog_open || picker_open || (ctx.text_edit_focused() && !palette_open) {
             return;
         }
-        // W46.4 i3: Escape with a Properties editor open is the editor's (`props.cancel`), whether or not its field
+        // Escape with a Properties editor open is the editor's (`props.cancel`), whether or not its field
         // still holds the focus: egui drops the focus on Escape before the frame, so `ui.dismiss` took it and the field
         // then committed on the lost focus (refused: nothing was being edited).
         if self.properties.field_open() && ctx.input(|i| i.key_pressed(Key::Escape)) {
@@ -1682,7 +1682,7 @@ impl App {
     /// The tool options card at the page view's top left: the fields of the IP tool,
     /// the Text tool's binding, the Wire marker's fields and the Structure box's style and fields,
     /// which the removed tool strip held, and the layout place options. Shown only while one of those
-    /// tools runs (or Select drags a placement); returns the card's frame (the canvas chips keep off it, W40b).
+    /// tools runs (or Select drags a placement); returns the card's frame (the canvas chips keep off it).
     fn tool_options(
         &mut self,
         ctx: &egui::Context,

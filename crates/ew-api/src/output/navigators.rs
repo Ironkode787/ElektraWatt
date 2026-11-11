@@ -2610,10 +2610,10 @@ fn parts_table(q: &Q, b: &mut Builder) {
 
 /// The Unplaced devices tree (doc 16 §5.2's row): one location node per layout space (its
 /// full designation, `+J-E-2416`), in space order, and under it the space's unplaced devices in `unplaced` order
-/// (natural full tag, ruling 9), each labelled by its tag as a sentence names it, with the badges `strip`, `assembly`
+/// (natural full tag), each labelled by its tag as a sentence names it, with the badges `strip`, `assembly`
 /// and `unknown size` and the cells Device (the tag again, the key column of table mode), Part (the primary part's
 /// number), W × H (mm) (`18 × 90`, empty when unknown) and
-/// Mount (the mount kind in words, `mount_label`, ruling 2). A space whose devices are all placed keeps its location
+/// Mount (the mount kind in words, `mount_label`). A space whose devices are all placed keeps its location
 /// node, so that the empty state can name it.
 fn unplaced_table(q: &Q, b: &mut Builder) {
     use ew_derive::layout::{Unplaced, mount_label, primary_part, rail_extent};

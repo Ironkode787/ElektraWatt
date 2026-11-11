@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `external.apply` (`ApplyExternal`, ruling 1): an external change, merged by the
+//! `external.apply` (`ApplyExternal`): an external change, merged by the
 //! session, committed as one undoable transaction.
 
 use ew_model::{AnyKey, AnyRow, Asset};

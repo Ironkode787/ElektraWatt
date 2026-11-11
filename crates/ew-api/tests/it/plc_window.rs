@@ -369,7 +369,7 @@ fn binding(s: &Session, channel: Id<Channel>) -> Option<ew_schema::Endpoint> {
         .clone()
 }
 
-/// FX38a (found by lane K38): `plc.bind_channel` checks the CP against the CPs the function has as the pages draw
+/// `plc.bind_channel` checks the CP against the CPs the function has as the pages draw
 /// them. A black-box card's CPs come from its part's pattern (the generic black-box FnDef defines none), so binding
 /// channel 2 of `EW-GEN-DO-1` to the pin of channel 5 moves the binding and unbinds channel 5 with the FR-PLC-005
 /// notice; an index the card does not have is refused, naming the part pattern as where its CPs come from.

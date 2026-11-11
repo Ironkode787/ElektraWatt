@@ -9,7 +9,7 @@ use super::*;
 pub(super) const PURGE_WORD: &str = "purge";
 
 /// `ew project assets purge`: the asset purge of doc 05 section 13.3 (`project.assets.purge`), a `HumanOnly`
-/// command (owner ruling, 2026-10-23): the preview's list, then, after the word typed on a controlling terminal, the
+/// command: the preview's list, then, after the word typed on a controlling terminal, the
 /// purge of exactly the listed files. `--preview` needs no terminal; without one the purge itself exits 2 before the
 /// project is opened.
 pub(super) fn run_assets_purge(a: &AssetsPurgeArgs) -> i32 {
@@ -199,7 +199,7 @@ mod tests {
         (code, String::from_utf8(output).unwrap())
     }
 
-    /// Owner ruling (2026-10-23): the purge is human-only. Each path: the preview (no terminal needed, nothing
+    /// The purge is human-only. Each path: the preview (no terminal needed, nothing
     /// changes), off a terminal (exit 2, nothing deleted), a wrong word (exit 1, nothing deleted), the typed word
     /// (exit 0, the listed file deleted after the list was shown).
     #[test]

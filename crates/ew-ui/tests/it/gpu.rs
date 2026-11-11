@@ -252,7 +252,7 @@ fn b2_folio_103_at_150_dpi_matches_the_cpu_raster() {
 
 /// The stress variant of the parity on the dense A3 page: in the deep nightly (`deep-nightly.yml`, job
 /// `gpu-parity`), not per pull request; `b2_folio_103_at_150_dpi_matches_the_cpu_raster` asserts the same parity on
-/// the real page per gate (test audit, 2026-10-29).
+/// the real page per gate.
 #[test]
 #[ignore = "deep run: the GPU parity on the dense A3 page"]
 fn b2_the_dense_a3_page_matches_the_cpu_raster() {

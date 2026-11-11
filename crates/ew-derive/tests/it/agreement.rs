@@ -113,8 +113,8 @@ fn assert_unique_where_counters_are(fx: &Fx, devices: &[u128]) {
     }
 }
 
-/// A strip without a segment takes the main representation of its first placed terminal, in both layers
-/// (owner ruling for Golden B step B1): lowest page, then lowest designation in natural order ("2" before
+/// A strip without a segment takes the main representation of its first placed terminal, in both layers:
+/// lowest page, then lowest designation in natural order ("2" before
 /// "10"), then smallest ID; an unplaced terminal does not count. Its tag gets that page.
 #[test]
 fn a_strip_without_a_segment_is_placed_through_its_first_terminal() {

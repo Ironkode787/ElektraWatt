@@ -437,7 +437,7 @@ fn reserved_kind_is_kept_without_a_finding() {
 // ---------------------------------------------------------------------------------------------------------
 // Migration of the revision kind: typed within format 0.1 (ADR-0011 amendment 4)
 
-/// The two revision lines of the golden fixture as the cycle-16 build wrote them: `revision` was a reserved
+/// The two revision lines of the golden fixture as an earlier build wrote them: `revision` was a reserved
 /// kind, kept as an unknown record, so its members were written in byte-wise key order.
 const OLD_REVISIONS: [&str; 2] = [
     r#"{"$k":"revision","date":"2025-03-03","description":"Initial issue","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","source_ref":{"key":"revisions|V1.0","lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929"},"state":"released"}"#,
@@ -1041,10 +1041,10 @@ fn a_page_file_with_page_items_and_a_structure_box_round_trips_byte_for_byte() {
     );
 }
 
-/// The same records as the cycle-26 build wrote them: `page_item` and `structure_box` were reserved kinds, kept
+/// The same records as an earlier build wrote them: `page_item` and `structure_box` were reserved kinds, kept
 /// as unknown records, so every object's members were written in byte-wise key order. This build reads them typed,
 /// reports the file as not canonical (info) and schedules its rewrite in the canonical member order of the typed
-/// kinds (the revision precedent); a newer build's file read by the cycle-26 reader is the reserved-kind
+/// kinds (the revision precedent); a newer build's file read by the earlier reader is the reserved-kind
 /// path, kept line for line (`reserved_kind_is_kept_without_a_finding`).
 #[test]
 fn page_items_written_by_an_older_build_load_typed_and_are_rewritten_canonically() {

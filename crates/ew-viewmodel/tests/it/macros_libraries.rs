@@ -288,7 +288,7 @@ fn ui3_save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
     assert_eq!(reason, "reason-library-write-window");
 }
 
-/// FX38b: a name with no letter or digit gives no key and is refused in words before any write (the library
+/// A name with no letter or digit gives no key and is refused in words before any write (the library
 /// directory is as it was); a typed key still saves it. A Greek name is a key now, so the refused name is `--`.
 #[test]
 fn a_name_that_gives_no_key_is_refused_before_any_write() {
@@ -343,7 +343,7 @@ fn a_refused_save_keeps_the_typed_name() {
     assert!(form.error.is_some(), "the reason under the fields");
 }
 
-/// FX38b: Save with an empty library field and no writable library installed says so, not "no library called \"\"".
+/// Save with an empty library field and no writable library installed says so, not "no library called \"\"".
 #[test]
 fn save_without_a_writable_library_names_the_reason() {
     let tmp = Tmp::new("macros-nowritable");

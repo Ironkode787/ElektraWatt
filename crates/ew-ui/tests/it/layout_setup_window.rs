@@ -118,7 +118,7 @@ fn the_create_enclosure_dialog_keeps_its_refusal_under_the_fields() {
     );
 }
 
-/// W44.2 F1: with its part emptied, the dialog's Create is disabled; a click on it sends nothing and leaves no
+/// With its part emptied, the dialog's Create is disabled; a click on it sends nothing and leaves no
 /// refusal under the fields.
 #[test]
 fn create_is_disabled_without_a_part() {

@@ -582,7 +582,7 @@ impl ShellModel {
         if self.tools.tool.name() != "ip" {
             return (out, false);
         }
-        // C40 (H40 item 6): a second source says what is in the way and the way out, not the rule's ID tie-break.
+        // A second source says what is in the way and the way out, not the rule's ID tie-break.
         let text = self
             .second_source_words(message)
             .unwrap_or_else(|| strings::format(key!("notice-ip-not-placed"), &[message]));
@@ -908,7 +908,7 @@ fn second_source_text(name: &str, folio: &str, key: &str) -> String {
 mod tests {
     use super::*;
 
-    /// Cycle-40 review: the EW-CORE-052 notice names the key the user has for `tool.ip_direction`, or the action by its
+    /// The EW-CORE-052 notice names the key the user has for `tool.ip_direction`, or the action by its
     /// title when it has none.
     #[test]
     fn the_second_source_notice_names_the_key_or_the_title() {

@@ -278,7 +278,7 @@ impl FormField {
     }
 
     /// Whether the field is free text: no choice and no run-time option list. A form's first focus is its first text
-    /// field, else its Primary (doc 16a §6.12; window check W49.2-F1).
+    /// field, else its Primary (doc 16a §6.12).
     pub fn is_text(&self) -> bool {
         self.choices.is_empty() && self.options.is_empty()
     }
@@ -528,7 +528,7 @@ impl ShellModel {
             params.insert(table.name.to_owned(), table.param());
         }
         let out = self.dispatch(action, &Value::Object(params));
-        // W49.1-A: a refused submit says why under the fields, as a failed one does.
+        // A refused submit says why under the fields, as a failed one does.
         if let Outcome::Refused { reason_key } = &out
             && let Some(Dialog::Form(f)) = &mut self.dialog
             && f.action == action

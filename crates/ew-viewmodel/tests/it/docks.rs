@@ -328,7 +328,7 @@ fn messages_shown(shell: &ShellModel) -> bool {
 }
 
 /// With History and Messages tabbed in the bottom dock and History in front, `messages.show` brings Messages to
-/// front (it stays in the layout); a second one, Messages now in front, closes it (FX38d kept); F8 (`messages.next`,
+/// front (it stays in the layout); a second one, Messages now in front, closes it; F8 (`messages.next`,
 /// its key read from the keymap) brings it to front too.
 #[test]
 fn messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
@@ -398,7 +398,7 @@ fn the_messages_dock_closes_and_keeps_the_zoom() {
         json!({"width": 1088.0, "height": 760.0}),
     );
     assert_eq!(view(&shell), fitted, "closing the dock refits the first fit");
-    // A view the user zoomed keeps its zoom and centre through the dock (FX38d).
+    // A view the user zoomed keeps its zoom and centre through the dock.
     done(&mut shell, "view.zoom_in", json!({}));
     let zoomed = view(&shell);
     assert!(!shell.canvas().unwrap().is_fitted());

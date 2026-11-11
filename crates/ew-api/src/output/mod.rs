@@ -49,7 +49,7 @@ mod job;
 // The devices a placed symbol can join (D1, D2).
 pub(crate) mod join;
 mod layers;
-// Properties for layout records and the Surface view rows (D12, ruling 3).
+// Properties for layout records and the Surface view rows.
 mod layout_edit;
 mod navigation;
 mod navigators;

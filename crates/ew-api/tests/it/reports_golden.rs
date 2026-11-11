@@ -203,7 +203,7 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
     let placed = |i: usize| matches!(&rows.rows[i].cells[7], Cell::Folios(f) if !f.is_empty());
     assert!((0..25).all(placed));
     // The bridges keep the folios of their strips, 103; the end brackets, derived from R2's strips, print the panel page
-    // that shows R2 (EB-1, ruling 2).
+    // that shows R2.
     let folios_of = |i: usize| -> Vec<String> {
         let Cell::Folios(folios) = &rows.rows[i].cells[7] else {
             panic!("folios column")

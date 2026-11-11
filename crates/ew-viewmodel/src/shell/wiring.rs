@@ -396,8 +396,8 @@ impl ShellModel {
     /// refused with `reason-bind-wired-pins` and a toast naming the pins, so that the channel is dropped on the pin
     /// meant); a device not wired to the card, when the card is a valve terminal with a free position, is attached
     /// there (`assembly.attach`) and then bound where it was dropped, two commands and two undo steps that the toast
-    /// names; **neither** is refused before the commit with `reason-bind-off-card` and a toast that says what to do
-    /// (FX38d). A bind that unbinds another channel (FR-PLC-005) names it in the toast by its address and the pin.
+    /// names; **neither** is refused before the commit with `reason-bind-off-card` and a toast that says what to do.
+    /// A bind that unbinds another channel (FR-PLC-005) names it in the toast by its address and the pin.
     pub(crate) fn act_navigator_bind(&mut self, p: &Map<String, Value>) -> Outcome {
         let channel = match string_param(p, "channel") {
             Ok(Some(c)) => c.trim().trim_start_matches("id:").to_owned(),
@@ -471,7 +471,7 @@ impl ShellModel {
                     None,
                     Some((device, tag, card, card_tag, position)),
                 ),
-                // FX38d: refused here in words, by the rule the command applies (`is_on_module`), not left to the
+                // Refused here in words, by the rule the command applies (`is_on_module`), not left to the
                 // command's error with record IDs; the words say what to do.
                 Some(OffCardBind::Neither {
                     device,

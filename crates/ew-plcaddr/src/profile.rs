@@ -307,7 +307,7 @@ impl AddressProfile {
             }),
             Token::Byte | Token::Bit => {
                 // A byte is a `u32` (at most 10 digits) and a bit fewer: longer splits never parse, and capping the
-                // run keeps a long digit string from costing a quadratic search (FX37a).
+                // run keeps a long digit string from costing a quadratic search.
                 let run = text
                     .bytes()
                     .take_while(u8::is_ascii_digit)

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 40 lane H40 at shell level: Output ▸ Parts list (FT-717).
+//! At shell level: Output ▸ Parts list.
 
 use crate::common;
 use ew_viewmodel::key;

@@ -353,7 +353,7 @@ fn records_of(
     }
 }
 
-/// A cell text of the sheet module: a workbook's `_xHHHH_` escapes decoded (ID-1174 ruling 5: `_x000D_` is a
+/// A cell text of the sheet module: a workbook's `_xHHHH_` escapes decoded (`_x000D_` is a
 /// carriage return, `_x005F_` a literal `_`), a CSV's text as it is. The parts import reads its cells raw.
 fn sheet_text(text: &str, format: SourceFormat) -> String {
     match format {

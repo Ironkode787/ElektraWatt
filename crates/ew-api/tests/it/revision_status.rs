@@ -334,7 +334,7 @@ fn pd3_golden_a_changes_101_and_106_in_v2() {
 
 /// PD-2: with V1.0 released with page digests (the digest branch), a drawn page is changed now when its digest
 /// differs or V2.0's page notes name it (doc 15 §5.6: the release's `changed_pages(r)` unions `r.page_notes` into the
-/// digest-changed pages, FX37a). Golden A's V2.0 notes 101 and 106, whose digests did not change: they are changed
+/// digest-changed pages). Golden A's V2.0 notes 101 and 106, whose digests did not change: they are changed
 /// in V2.0 in the overview and the "Changed in" column, 102 stays at V1.0 until an edit on it, and folio 911 lists
 /// V2.0's pages from the digests and the notes.
 #[test]
@@ -389,7 +389,7 @@ fn pd2_a_digest_based_release_follows_the_digests_and_the_page_notes() {
 
 /// PD-4: a title block that binds `{page.last_changed_in}` prints V2.0 on 101 and 106 and V1.0 on every other drawn
 /// page; in the digest branch the page bindings take the digest-based value (102 after an edit on it; the noted
-/// pages 101 and 106 stay V2.0, FX37a) and an unnoted, unchanged page keeps V1.0.
+/// pages 101 and 106 stay V2.0) and an unnoted, unchanged page keeps V1.0.
 #[test]
 fn pd4_the_placeholder_prints_the_revision_that_last_changed_the_page() {
     let s = golden_variant(true, None);

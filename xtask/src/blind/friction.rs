@@ -364,7 +364,7 @@ mod tests {
         );
     }
 
-    /// Cycle 39: a `--region` is checked against the run's frame: x = 1900 is inside 1920 × 1108, outside the default.
+    /// A `--region` is checked against the run's frame: x = 1900 is inside 1920 × 1108, outside the default.
     #[test]
     fn a_region_is_checked_against_the_runs_frame() {
         let g = crate::blind::visual::Geometry::parse(Some("1920x1080"), Some("1")).unwrap();

@@ -90,7 +90,7 @@ impl ShellModel {
                 Some(WireStroke::new(t.id, polyline, page.sheet, codes, &facts.company))
             })
             .collect();
-        // W49.2 F9: wires drawn on one path stand side by side.
+        // Wires drawn on one path stand side by side.
         crate::wire_colours::assign_lanes(&mut strokes);
         strokes
     }

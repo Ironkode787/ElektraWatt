@@ -230,7 +230,7 @@ pub fn changed_now(q: &Q, page: PageRef) -> bool {
     };
     let id: Id<Page> = Id::from_uuid(page_uuid(page));
     match last_digests(q) {
-        // The digest branch takes `o`'s noted pages too, as the release's `changed_pages(r)` will (FX37a).
+        // The digest branch takes `o`'s noted pages too, as the release's `changed_pages(r)` will.
         Some(digests) => {
             open.page_notes.iter().any(|n| n.page == id)
                 || is_revision_overview(q, page)

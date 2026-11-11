@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The G-PP blind-drafter run's part findings (lane J33), through the text interface: the minimal part
+//! The G-PP blind-drafter run's part findings, through the text interface: the minimal part
 //! chooser of the Parts row (draft FT row 1), part-first terminal placement into a strip (row 2) and no orphan device
 //! after deleting its last representation (row 5). Each test repeats the run's step on a writable copy of Golden A and
 //! reads the bill of materials of the saved project.
@@ -138,7 +138,7 @@ fn a_terminal_part_joins_its_strip_with_its_designation_and_carries_the_part() {
     done(&mut s, "tool.select", json!({}));
     done(&mut s, "select.set", json!({"refs": ["tag:-X1031:1"]}));
     assert_eq!(parts_text(&s), "PT 2.5-TWIN × 1");
-    // A strip that does not exist fails and lists the project's strips (lane K33), not turned into a free device.
+    // A strip that does not exist fails and lists the project's strips, not turned into a free device.
     let message = failed(
         &mut s,
         "place.pick",
@@ -194,7 +194,7 @@ const E55: &str = "85760c34-951e-5b8a-bbe2-3253c69e3db2";
 
 /// Finding 5: deleting the only representation of a device deletes the device and its part use in the same command,
 /// so the parts list has no phantom `-?G1`; one undo restores both. A device left without a representation by a
-/// delete of its representation alone is EW-CORE-047. (Cycle 33 review finding 1: the run's -102G1 is kept now, as it
+/// delete of its representation alone is EW-CORE-047. (The run's -102G1 is kept now, as it
 /// carries the +24V and 0V definitions and a bond; this row runs on E55, which carries no such intent.)
 #[test]
 fn deleting_the_last_representation_deletes_the_device_and_one_undo_restores_both() {
@@ -267,7 +267,7 @@ fn connect_intent(tmp: &Tmp, s: &mut ShellModel) -> (Vec<String>, usize, Vec<Uui
     (names, q.bonds().iter().count(), devices)
 }
 
-/// Cycle 33 review finding 1: deleting the only box of -102G1 on folio 102 keeps the device, because its CPs carry
+/// Deleting the only box of -102G1 on folio 102 keeps the device, because its CPs carry
 /// the +24V and 0V definitions and the 0V-PE bond, which a delete of the drawing must not drop unseen. The device is
 /// left to EW-CORE-047.
 #[test]

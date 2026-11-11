@@ -124,7 +124,7 @@ fn thin<T: ew_model::Entity>(model: &mut Model, keep: usize, kept: &[Kind]) {
 /// thinned to its first 2 pages and its last one, the devices drawn on them plus 5 others, and 2 library copies of each kind (and
 /// those the kept records name), written by `Store::create`. It has at least one file of every kind Golden A has
 /// (asserted), and a save of the edit batch ([`edit`]) makes the same sequence of `Vfs` calls as on Golden A (two
-/// device shards and a page written, a page removed), at a fraction of the open's parse cost (test audit g7).
+/// device shards and a page written, a page removed), at a fraction of the open's parse cost.
 pub fn small_fixture() -> BTreeMap<String, Vec<u8>> {
     use ew_store::ew_format::ew_schema::{FnDef, FormDef, LibCopy, Manufacturer, Part, SymbolDef};
     static SMALL: std::sync::OnceLock<BTreeMap<String, Vec<u8>>> = std::sync::OnceLock::new();

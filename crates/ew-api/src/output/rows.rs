@@ -992,7 +992,7 @@ mod tests {
         set
     }
 
-    /// Cycle-40 review, part 3, finding 3: every run of a strip in a block is kept, runs concatenated; a strip a
+    /// Every run of a strip in a block is kept, runs concatenated; a strip a
     /// later block lists again keeps the earlier rows and is a repeat naming the later block.
     #[test]
     fn every_run_of_a_strip_is_kept_and_a_repeat_across_blocks_is_named() {

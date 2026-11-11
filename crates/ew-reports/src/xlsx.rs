@@ -25,7 +25,7 @@
 //! `rev`, `generation` (empty without a store), `locale` `neutral`, `ew` (the program version), then one row per column
 //! of the first table: `column`, key, label, type ([`CellType`] name), editable (`true`/`false`).
 //!
-//! **The `_ew_base` sheet** (D5; ruling 1), hidden, after `_ew`, exactly when the first table has an editable
+//! **The `_ew_base` sheet**, hidden, after `_ew`, exactly when the first table has an editable
 //! column: a header row `id` and the editable columns' keys, then each row with an ID as exported (its ID, then its
 //! editable cells), then a last row `sha256` and [`WorkbookMeta::base_sha256`], the lowercase-hex SHA-256 of
 //! [`base_text`]. The writer takes no hash: the caller computes the digest, and the writer refuses a workbook with an
@@ -492,7 +492,7 @@ fn base_rows(table: &Table) -> Vec<Vec<String>> {
     rows
 }
 
-/// The text the digest of the `_ew_base` sheet is made over (D5; ruling 1): its rows without the digest row,
+/// The text the digest of the `_ew_base` sheet is made over: its rows without the digest row,
 /// each row's cell texts joined by tabs and ended by LF (the header first, then each row with an ID: its ID and its
 /// editable cells). The round trip reads the sheet back, makes the same text ([`rows_text`]) and compares the digests,
 /// so an edited base is detected.

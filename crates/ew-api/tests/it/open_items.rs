@@ -139,7 +139,7 @@ fn placeholder(what: &str, users: &str) -> Vec<String> {
     ])
 }
 
-/// OI-1 (the ruling on stop 1): the 24 rows Golden A derives as checked in, whole and in ruling 8's order. -XPE is open
+/// The 24 rows Golden A derives as checked in, whole and in order. -XPE is open
 /// (W-1 lives in a test copy only) and the eight FIELD-203Q valves have no part until FT-209 (FT-638).
 #[test]
 fn golden_a_lists_its_24_open_items() {
@@ -234,7 +234,7 @@ fn a_tbd_channel_address_is_listed_once() {
     assert_eq!(row_keys(&set), checked_keys(&s));
 }
 
-/// OI-2 (the ruling on stop 1): with W-1 recorded on -XPE's EW-CORE-041 finding exactly the -XPE row leaves.
+/// With W-1 recorded on -XPE's EW-CORE-041 finding exactly the -XPE row leaves.
 #[test]
 fn the_waived_xpe_row_leaves() {
     let mut s = common::golden_session();
@@ -262,7 +262,7 @@ fn the_waived_xpe_row_leaves() {
     assert_eq!(row_keys(&set), checked_keys(&s));
 }
 
-/// OI-2 (ruling 4): with the release scheme `drafting` set by `project.checks.set` the list runs in that scheme.
+/// With the release scheme `drafting` set by `project.checks.set` the list runs in that scheme.
 #[test]
 fn the_projects_release_scheme_applies() {
     let mut s = common::golden_session();
@@ -395,7 +395,7 @@ fn new_placeholder(q: &Q, what: &str) -> ew_schema::LibCopy<ew_schema::Part> {
     copy
 }
 
-/// OI-3 (ruling 5, feasibility item 4): an `open_items` block at folio 914 paginates inside the page order with no
+/// An `open_items` block at folio 914 paginates inside the page order with no
 /// cycle; a change of the page order (a new block before it, a drawn page reorder) leaves its rows as they are; -102G1
 /// given a TBD part adds one "TBD value" row and the block's pages follow in the same snapshot.
 #[test]

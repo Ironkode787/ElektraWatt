@@ -435,7 +435,7 @@ impl PlaceTool {
         }
     }
 
-    /// The insertion point of a placement at `at` (the orchestrator's ruling): a new terminal on a page point
+    /// The insertion point of a placement at `at`: a new terminal on a page point
     /// where a terminal of the same strip already sits moves to the right, two grid steps at a time, until the point
     /// is free (Golden A's 1X1 draws its three terminals of one cell 20 QET px apart). A terminal of the same strip is
     /// told by [`is_strip_terminal`] (its connection points print `<strip>:…`; autoconnect tells it the same way); every other target, and a terminal of another strip, stays at `at`.
@@ -523,7 +523,7 @@ impl PlaceTool {
         Some(self.transient(cx))
     }
 
-    /// `target` after the variant letter, which stands apart from the sentence ("Variant A · …", W49.3b-F7).
+    /// `target` after the variant letter, which stands apart from the sentence ("Variant A · …").
     fn with_variant(&self, target: &str) -> String {
         strings::format(
             key!("place-variant"),
@@ -531,8 +531,8 @@ impl PlaceTool {
         )
     }
 
-    /// The whole label of a terminal for a strip without a tag yet once the preview predicts the terminal's tag `tag`
-    /// (W49.3b-F7): the strip by its predicted tag, "terminal 1 on -101X1 (new)", not by the words for a strip without
+    /// The whole label of a terminal for a strip without a tag yet once the preview predicts the terminal's tag `tag`:
+    /// the strip by its predicted tag, "terminal 1 on -101X1 (new)", not by the words for a strip without
     /// one, and the terminal's tag not repeated; `None` for any other target.
     fn new_strip_label(&self, tag: &str) -> Option<String> {
         let PlaceTarget::Terminal {
@@ -775,7 +775,7 @@ impl Tool for PlaceTool {
     }
 
     fn on_commit(&mut self, done: bool) {
-        // The designation advances only after the host committed (fix round, item 2): a refused commit keeps it.
+        // The designation advances only after the host committed: a refused commit keeps it.
         if !done {
             return;
         }

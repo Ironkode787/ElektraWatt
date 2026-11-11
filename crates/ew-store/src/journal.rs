@@ -410,7 +410,7 @@ impl Journal {
         Ok(())
     }
 
-    /// The journal after an applied external change (doc 05 §9; ruling 9): starts the
+    /// The journal after an applied external change (doc 05 §9): starts the
     /// segment of the incoming generation `base`, journals the net local diff of `keys` from `incoming` to `current` as
     /// one transaction `external.rebase` (with the assets [`Journal::tx`] carries), and only then deletes the session's
     /// previous segment, as after a save. A crash at any point leaves a segment that recovers the live model.

@@ -532,7 +532,7 @@ pub trait Tool {
         None
     }
 
-    /// The host committed the tool's command (`done`) or the commit failed (fix round, item 2).
+    /// The host committed the tool's command (`done`) or the commit failed.
     fn on_commit(&mut self, done: bool) {
         let _ = done;
     }

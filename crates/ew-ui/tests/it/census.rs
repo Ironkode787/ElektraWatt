@@ -471,7 +471,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             h
         }
         DialogKind::ExternalChange => {
-            // W49.3's collision: W20's colour edited here, and saved otherwise by a colleague on disk.
+            // The collision: W20's colour edited here, and saved otherwise by a colleague on disk.
             let dir = tmp.golden("live.ew");
             let mut h = harness(tmp, Scripted::default(), Some(dir.clone()));
             h.set_size(egui::Vec2::new(1280.0, 800.0));

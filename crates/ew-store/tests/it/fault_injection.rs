@@ -41,8 +41,8 @@ fn setup(mode: DirSync) -> Setup {
 }
 
 /// The small fixture ([`small_fixture`]: a file of every kind Golden A has) opened as pid 1, and the edit batch:
-/// the per-case setup of the kill, power-loss and error sweeps, which open the project once per case (test audit
-/// g7). Every call of the save is still swept, in both directory-sync modes.
+/// the per-case setup of the kill, power-loss and error sweeps, which open the project once per case.
+/// Every call of the save is still swept, in both directory-sync modes.
 fn sweep_setup(mode: DirSync) -> Setup {
     setup_of(mode, small_fixture())
 }
@@ -296,8 +296,7 @@ fn kill_at_every_call_yields_g_or_g1() {
 /// A power loss at every call of a save (and after an acknowledged save), keeping 0, 1, 2 or all of the pending
 /// writes: the project opens at g or g1, never mixed, and a project whose generation g is intact never needs the
 /// EW-CORE-002 "mixed generation" finding, which makes the session read-only and asks the user to repair a project
-/// that has nothing wrong with it. (Its lax twin `power_loss_at_every_call_never_mixes`, which only printed the
-/// EW-CORE-002 cases, ran the same sweep and was removed by the test audit g7.)
+/// that has nothing wrong with it.
 #[test]
 fn power_loss_never_needs_the_mixed_generation_finding() {
     const ORPHAN: &str = "g1 + orphan of a removed file";
@@ -1319,7 +1318,7 @@ const LOGO: &[u8] =
     br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 20"><rect width="80" height="20"/></svg>"#;
 
 /// The sweeps' small fixture ([`small_fixture`]) opened as pid 1, and `g1`: the project row naming a logo asset
-/// that `g1` holds, journalled as committed (fix round).
+/// that `g1` holds, journalled as committed.
 fn logo_setup(mode: DirSync) -> (Arc<MemVfs>, Store, Model, BTreeSet<AnyKey>, ew_model::Asset) {
     use ew_store::ew_format::ew_schema::{AssetRef, COMPANY_MEMBER, sniff};
     let (vfs, root) = mem_project_of(mode, small_fixture());

@@ -471,7 +471,7 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
             .get_all_by_role(egui::Role::Button)
             .find(|n| {
                 n.accesskit_node().label().as_deref() == Some(label)
-                    // M39: the column scales with the panel; W40b: it gives way to a value down to half of
+                    // The column scales with the panel; it gives way to a value down to half of
                     // `size.property_label`.
                     && n.rect().width() >= tokens.size_property_label / 2.0 - 0.5
             })
@@ -487,7 +487,7 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
             at.x
         );
     }
-    // M39: the column fits the widest label on show (its indent included), never under `size.property_label`, never
+    // The column fits the widest label on show (its indent included), never under `size.property_label`, never
     // over 40 % of the row; a label cut at that maximum (painted with an ellipsis) means the maximum.
     let number = h
         .get_all_by_role(egui::Role::Group)
@@ -537,7 +537,7 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
         }
         need
     };
-    // W40b: at the floor the column then gives way to the widest value it can make whole (or its first word), never
+    // At the floor the column then gives way to the widest value it can make whole (or its first word), never
     // under half of `size.property_label`.
     let expected = need.min(row_width * 0.5).max(tokens.size_property_label);
     assert!(
@@ -922,7 +922,7 @@ fn the_properties_filter_for_more_than_twelve_rows() {
     for l in &painted_rows {
         assert!(kept.contains(l), "the painted row {l} matches {needle}");
     }
-    // `props.filter` with an empty text, while the field keeps the focus: the field shows what filters (C39 item 8).
+    // `props.filter` with an empty text, while the field keeps the focus: the field shows what filters.
     dispatch(&mut h, "props.filter", json!({"text": ""}));
     settle(&mut h);
     settle(&mut h);
@@ -1042,7 +1042,7 @@ fn c37_typing_into_an_opened_field_replaces_its_text() {
     assert_eq!(edit.buffer, "-102G8");
 }
 
-/// C39 (window check W39c2): at the floor (1280 by 800) the page's warning chip keeps its count and word ("1 Warning",
+/// At the floor (1280 by 800) the page's warning chip keeps its count and word ("1 Warning",
 /// not the icon alone) while the title elides, and the chip stands inside the pane's gutter (its right edge with the
 /// filter field's), never clipped by the pane's edge.
 #[test]

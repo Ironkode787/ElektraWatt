@@ -55,10 +55,10 @@ pub struct PropertiesPane {
     choices_rect: Option<(String, egui::Rect)>,
     /// The nesting level of the shallowest rows of the group being drawn (their labels are not indented).
     base_depth: u8,
-    /// The width the widest label of the rows on show needs this frame (M39: the label column fits its labels).
+    /// The width the widest label of the rows on show needs this frame (the label column fits its labels).
     label_need: f32,
     /// The widths each value of the rows on show needs in its cell this frame, whole and by its first word, with its
-    /// chip (W40b: the label column gives way to them).
+    /// chip (the label column gives way to them).
     value_needs: Vec<(f32, f32)>,
     /// The filter field's text (the shell's filter is set from it).
     filter: String,
@@ -70,14 +70,14 @@ pub struct PropertiesPane {
     /// The shell's filter text as last seen: a change made elsewhere (`props.filter`, Clear filter) shows in the field
     /// even while a text field has the focus.
     filter_seen: String,
-    /// The keys of the rows drawn in this frame (W46.4 F1: a refusal shown under a drawn row raises no
+    /// The keys of the rows drawn in this frame (a refusal shown under a drawn row raises no
     /// banner; the filter, a collapsed group and the advanced toggle hide rows).
     drawn: Vec<String>,
     /// Whether an editor field (no popup, no choices but its options) was drawn in this frame, and in the last one:
-    /// Escape is then the field's (W46.4 i3: egui drops a field's focus on Escape before the frame starts).
+    /// Escape is then the field's (egui drops a field's focus on Escape before the frame starts).
     field_now: bool,
     field_last: bool,
-    /// The row error last brought into view, (row key, message) (W46.4 F2): a new error scrolls its line into view once.
+    /// The row error last brought into view, (row key, message): a new error scrolls its line into view once.
     error_shown: Option<(String, String)>,
 }
 
@@ -238,7 +238,7 @@ impl PropertiesPane {
                 }
                 return;
             }
-            // M39: the label column fits the widest label of the rows on show (with its indent); W40b: what each value
+            // The label column fits the widest label of the rows on show (with its indent); what each value
             // needs, so that the label column gives way to it.
             self.value_needs.clear();
             self.label_need = {
@@ -531,7 +531,7 @@ impl PropertiesPane {
                 .map(|(severity, of)| chip(crate::messages::count_words(severity, of.len())))
                 .sum();
             let gaps = t.space_1 * groups.len().saturating_sub(1) as f32;
-            // C39 (window check W39c2): the title elides first (whole in its tooltip), down to its first three
+            // The title elides first (whole in its tooltip), down to its first three
             // characters and the ellipsis; only past that do the chips lose their words.
             let shortest: String = sheet
                 .header
@@ -543,7 +543,7 @@ impl PropertiesPane {
             let title = measure(shortest, &t.type_title);
             !findings.is_empty() && title + t.space_2 + chips + gaps > ui.available_width() - 2.0 * t.space_4
         };
-        // C39: the header keeps the pane's `space.4` gutter on both sides, as the filter field and the row labels, so
+        // The header keeps the pane's `space.4` gutter on both sides, as the filter field and the row labels, so
         // a chip at the right end is never clipped by the pane's edge.
         egui::Frame::new()
             .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_4), 0))
@@ -675,8 +675,8 @@ impl PropertiesPane {
         // `space.3` per level (16a sets no property indent).
         let t = crate::theme::current(ui.ctx());
         let width = ui.available_width();
-        // M39 (owner 2026-10-31: scale, not cap): the label column fits the widest label on show, between
-        // `size.property_label` and half the row; W40b: it gives way to the widest value it can make
+        // The label column fits the widest label on show, between
+        // `size.property_label` and half the row; it gives way to the widest value it can make
         // whole (a tag, a part number), below the widest single word of a label too. A label longer than its column
         // wraps at its words onto a second line and the row grows; one that still does not fit elides with
         // the whole label in its tooltip.
@@ -687,7 +687,7 @@ impl PropertiesPane {
         let depth = indent * f32::from(row.depth.saturating_sub(self.base_depth)).min(6.0);
         // A row with no value, that nothing edits or follows, has nothing to show in its value
         // column, so its label runs on across it (all but the last `size.control.inline`, where the "…" button
-        // stands). The column and its cap stay for a row with a value (M39).
+        // stands). The column and its cap stay for a row with a value.
         let valueless = value.is_empty()
             && !(row.actions.contains(&RowAction::Edit) || is_link(row))
             && !props.edit().is_some_and(|e| e.row == row.key);
@@ -948,7 +948,7 @@ impl PropertiesPane {
     /// The value cell of a row that is not being edited (a checkbox or a value) and its "…" button.
     fn value_and_actions(child: &mut Ui, shell: &ShellModel, p: &RowParts<'_>, events: &mut Vec<Event>) {
         let (t, row) = (p.t, p.row);
-        // X32b (doc 16a §6.8, the mockup's `.prow`: `96px 1fr`): the value cell takes the rest of the row up to its
+        // The value cell (doc 16a §6.8, the mockup's `.prow`: `96px 1fr`) takes the rest of the row up to its
         // `space.4` padding. The row's "…" button sits over the cell's right end and only while it shows (the
         // cursor row, hover, focus) does the cell's text and chip make room for it.
         let actions_id = p.group_id.with("actions");
@@ -1218,7 +1218,7 @@ impl PropertiesPane {
         events: &mut Vec<Event>,
     ) {
         let (t, row) = (p.t, p.row);
-        // M39: the message wraps inside the panel (never cut at its edge), its icon at the first line.
+        // The message wraps inside the panel (never cut at its edge), its icon at the first line.
         let shown = Some((row.key.clone(), e.clone()));
         let line = ui.horizontal_top(|ui| {
             ui.add_space(t.space_4);
@@ -1239,7 +1239,7 @@ impl PropertiesPane {
                 .wrap(),
             );
         });
-        // W46.4 F2: a new error brings its row and its line into view (at the 1280 × 800 floor it lay below the
+        // A new error brings its row and its line into view (at the 1280 × 800 floor it lay below the
         // pane's edge); the pane's scrolling is the user's again after that.
         if self.error_shown != shown {
             ui.scroll_to_rect(p.rect.union(line.response.rect), None);
@@ -1478,7 +1478,7 @@ impl PropertiesPane {
         );
         let name = label.to_owned();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
-        // W46.4 i3: Escape in an open field cancels the edit, whether or not the field still holds the focus (egui drops
+        // Escape in an open field cancels the edit, whether or not the field still holds the focus (egui drops
         // it on Escape before the frame, and a refused Enter leaves the field without it until it is focused again);
         // the window's keys leave Escape to the field (`App::route_keys`). A popup's or an ambiguity's Escape is the
         // shell's `ui.dismiss`, which closes them first.
@@ -1752,7 +1752,7 @@ fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, 
 }
 
 /// The header's findings by severity, most severe first (`error`, `warning`, then every other severity as `info`),
-/// then `pending`, each with its `(rule, message)` pairs; severities without a finding are left out. M39: a finding
+/// then `pending`, each with its `(rule, message)` pairs; severities without a finding are left out. A finding
 /// pending while `editing` (the editing page's folio) is the editing page counts as pending, not under its severity,
 /// as the Messages header counts it.
 fn severity_groups<'a>(
@@ -1784,8 +1784,8 @@ fn severity_groups<'a>(
 /// The Properties label column's width in a row `row` wide whose widest label on show needs `need` and whose values
 /// need `values` (each with its chip, [`value_need`]).
 ///
-/// M39: `need`, never below `size.property_label` and never above half the row (a longer label wraps
-/// at its words; the floor wins in a row too narrow for both). W40b (the value column gets the width first): the
+/// `need`, never below `size.property_label` and never above half the row (a longer label wraps
+/// at its words; the floor wins in a row too narrow for both). The value column gets the width first: the
 /// column then gives way, down to half of `size.property_label` (below a label's widest word too), to the widest value
 /// it can make whole that way. Each value counts whole, or, when it is too
 /// wide for that, by its first word if that is an identifier (a part number before its name, "EW-GEN-CPU-1
@@ -1815,7 +1815,7 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
     if is_header(section, row) {
         String::new()
     } else if is_page_kind(section, row) || is_line_kind(section, row) {
-        // M39 (doc 16a: words, not IDs): a page's Kind in the New page dialog's words ("Multi-line"); a fluid line's
+        // Words, not IDs (doc 16a): a page's Kind in the New page dialog's words ("Multi-line"); a fluid line's
         // Line kind in its words ("Pilot", T25).
         ew_viewmodel::strings::choice_text(&value_text(row))
     } else {
@@ -1824,7 +1824,7 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
 }
 
 /// The widths the value cell of `row` needs to show its value whole and to show its first word whole, infinite when
-/// that first word is not an identifier (W40b): the
+/// that first word is not an identifier: the
 /// text in `type.body` with the cell's `space.icon` padding on both sides and the provenance chip with its `space.2`
 /// gap when it shows, and the row's "…" button when it has actions (the cursor row's value stays whole).
 fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &PropRow) -> (f32, f32) {
@@ -2061,7 +2061,7 @@ mod tests {
 
     use super::choices_placement;
 
-    /// M39: the label column scales with the row (up to half of it), never under `size.property_label`.
+    /// The label column scales with the row (up to half of it), never under `size.property_label`.
     #[test]
     fn the_label_column_scales_with_the_panel() {
         use crate::theme::{Density, Theme, tokens};
@@ -2073,7 +2073,7 @@ mod tests {
         assert_eq!(super::label_column(&t, 100.0, 400.0, &[]), t.size_property_label);
     }
 
-    /// W40b: at the floor the value column gets the width first. The label column gives way to the widest value it
+    /// At the floor the value column gets the width first. The label column gives way to the widest value it
     /// can make whole (down to half of `size.property_label`); a value too wide even then takes nothing from it; with
     /// room to spare (1920) the labels keep their width.
     #[test]
@@ -2109,7 +2109,7 @@ mod tests {
         );
     }
 
-    /// M39: a finding pending on the editing page counts as pending, not under its severity; elsewhere it counts
+    /// A finding pending on the editing page counts as pending, not under its severity; elsewhere it counts
     /// under its severity, as the Messages header counts it.
     #[test]
     fn pending_findings_count_as_pending() {

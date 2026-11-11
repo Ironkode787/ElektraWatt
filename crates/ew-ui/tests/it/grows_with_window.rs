@@ -341,7 +341,7 @@ fn the_command_palette_grows_with_the_window() {
     assert_grows("the palette's field", floor, typical);
 }
 
-/// C40: wider at 1920 than at the floor, never narrower than `base` (the floor width) and within the window.
+/// Wider at 1920 than at the floor, never narrower than `base` (the floor width) and within the window.
 fn assert_grows_from(what: &str, base: f32, floor: f32, typical: f32) {
     assert!(
         typical > floor,
@@ -524,7 +524,7 @@ fn no_pages_row_is_cut_at_1920() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// C40 (b): the Pages table's Title is re-filled when its pane grows: after a resize from the floor to 1920
+/// The Pages table's Title is re-filled when its pane grows: after a resize from the floor to 1920
 /// it is wider.
 #[test]
 fn the_pages_table_title_refills_on_a_resize() {

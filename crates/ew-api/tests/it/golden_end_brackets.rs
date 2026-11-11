@@ -12,7 +12,7 @@
 //! - `eb2_902_draws_r2s_four_brackets_at_their_positions`: four rectangles in the footprints' pen, each with its strip's
 //!   placement, at [20, 30], [48.6, 58.6], [162.6, 172.6] and [198.6, 208.6] mm along R2, centred on its axis.
 //! - `golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs`: none on Golden A; -X1032 moved 5 mm
-//!   after -X1031 overlaps the bracket after -X1031; -X1032 at s = 544 mm passes the rail end by 10 mm (ruling 6), in
+//!   after -X1031 overlaps the bracket after -X1031; -X1032 at s = 544 mm passes the rail end by 10 mm, in
 //!   en-GB and nl-NL.
 //! - `eb_the_bracket_lines_memoise_as_they_run_cold`: memo against cold (and the engine's oracle) over the moves.
 
@@ -156,7 +156,6 @@ fn owned(v: &[&str]) -> Vec<String> {
     v.iter().map(|s| (*s).to_owned()).collect()
 }
 
-/// EB-1 (rulings 1 to 3).
 #[test]
 fn row_26_counts_the_derived_brackets_and_prints_902() {
     // Golden A as it is: row 26 reads 4, "-X1031, -X1032, 1X1", 902; assembly row 20 the same.
@@ -214,7 +213,7 @@ fn row_26_counts_the_derived_brackets_and_prints_902() {
     let (pos, qty, _, folios) = bracket_row(&q, BomMode::Component);
     // 1X1 × 2, -X1031 × 1, X33 × 2 derived, -X1032 × 1 authored.
     assert_eq!((pos, qty.as_str(), folios), (26, "6", owned(&["103", "902"])));
-    // Assembly mode reads the same lines (ruling 3), and 902's legend counts the derived brackets only (R2's
+    // Assembly mode reads the same lines, and 902's legend counts the derived brackets only (R2's
     // five: 1X1 × 2, -X1031 × 1, X33 × 2), its one bracket row after the 30 others (X33 placed, -X1032 removed).
     let (pos, qty, _, folios) = bracket_row(&q, BomMode::Assembly);
     assert_eq!((pos, qty.as_str(), folios), (20, "6", owned(&["103", "902"])));
@@ -227,7 +226,7 @@ fn row_26_counts_the_derived_brackets_and_prints_902() {
     assert_eq!(bracket_rows, [(31, Some("5".to_owned()))]);
 }
 
-/// EB-1, ruling 4: one truth for every reader of `device_part_lines`.
+/// One truth for every reader of `device_part_lines`.
 #[test]
 fn one_truth_every_reader_of_the_part_lines_follows() {
     let s = golden_common::session(&golden_common::batch());
@@ -367,7 +366,6 @@ fn bracket_findings(s: &Session) -> Vec<(String, String)> {
     out
 }
 
-/// EB-4 (rulings 5 and 6).
 #[test]
 fn golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs() {
     let mut s = golden_common::session(&golden_common::batch());

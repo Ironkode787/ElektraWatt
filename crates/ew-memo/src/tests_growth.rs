@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Engine tests of the cycle-10 review fixes: byte accounting only where it is needed (finding 2), and bounded
-//! growth (finding 3): carried dependencies a hook forgets or drops, part stamps without readers, and the
+//! Engine tests of byte accounting only where it is needed, and bounded
+//! growth: carried dependencies a hook forgets or drops, part stamps without readers, and the
 //! collection of orphan memos.
 
 use std::collections::{BTreeMap, BTreeSet};

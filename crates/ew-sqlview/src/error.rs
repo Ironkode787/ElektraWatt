@@ -94,7 +94,7 @@ mod tests {
     use super::SqlError;
 
     /// The refusal texts users and scripts see on stderr (`ew sql` exits 2 with them) name the denied statement in
-    /// parentheses. The CLI test of `ATTACH` was folded away (test audit g6), so the text is pinned here, next to
+    /// parentheses. The CLI test of `ATTACH` was folded away, so the text is pinned here, next to
     /// its source.
     #[test]
     fn refusals_name_the_denied_statement() {

@@ -204,7 +204,7 @@ fn the_recovery_dialog_offers_recover_open_read_only_and_discard() {
             .is_some()
     );
     assert!(h.query_by_label("Unsaved changes: 1").is_some());
-    // The elapsed time (the journal was written moments ago); W31-5: the UTC stamp as a secondary line under
+    // The elapsed time (the journal was written moments ago); the UTC stamp as a secondary line under
     // it, above the buttons (a hover tooltip covered them).
     let ago = h.get_by_label("Last change: just now").rect();
     let utc = h.get_by_label_contains(" UTC").rect();

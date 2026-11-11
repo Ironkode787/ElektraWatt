@@ -4,7 +4,7 @@
 //! Draw rail (doc 12 §3.2, §12.1): two clicks on a panel page's surface draw a mounting rail
 //! with `layout.carrier.add`. The draw tools' snapping lives here too; the duct tool ([`super::duct_draw`]) shares it.
 //!
-//! **Snapping** (D11, ruling 5: 15 points on screen, D4's radius). Each coordinate of the pointer snaps on its own, in
+//! **Snapping** (15 points on screen). Each coordinate of the pointer snaps on its own, in
 //! surface nm: to the nearest snap line within reach (the usable area's edges; for a duct also those edges inset by
 //! half its width; the outlines of the ducts; the ends and axes of the rails), else to the plate grid (5 mm, or 1 mm by
 //! the tool option). Of the targets in reach the nearest wins, the grid included; at equal distance a duct edge or a
@@ -15,7 +15,7 @@
 //! axis-parallel, D5). The part is the tool option's rail part ([`DrawPart`]), its profile from its rail section; a
 //! part without one is refused ("The rail part has no profile; choose a rail part with a rail section").
 //!
-//! **Ghost** (ruling 4): [`super::Ghost::Line`] from the first point to the pointer, drawn as a solid line in the
+//! **Ghost**: [`super::Ghost::Line`] from the first point to the pointer, drawn as a solid line in the
 //! `ghost` token with one chip giving its length (doc 16a §7.3, §7.4).
 
 use ew_api::AnyCommand;

@@ -148,7 +148,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ConfirmJournalDiscard => journal_discard_spec(),
         Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
-        // W45.1 F2: an empty search is said once, in the list (not here); Choose is disabled while the list is
+        // An empty search is said once, in the list (not here); Choose is disabled while the list is
         // empty, with its reason.
         Dialog::PartChoose(c) => part_choose_spec(c),
         // Save (Enter) and Cancel; a fork says that the library is not changed.
@@ -675,7 +675,7 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
                 _ => Vec::new(),
             },
             DialogButton {
-                // W44.2 F1: Create enclosure's Create is disabled while its location or part is empty.
+                // Create enclosure's Create is disabled while its location or part is empty.
                 disabled: match form.action {
                     "layout.enclosure_new" => model.enclosure_create_reason(),
                     _ => None,

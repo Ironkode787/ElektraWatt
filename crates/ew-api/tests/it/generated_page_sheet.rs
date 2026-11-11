@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! P-1 (play-test rv-vis-5 t0079): the property sheet of a generated page is titled by the page's folio and
+//! The property sheet of a generated page is titled by the page's folio and
 //! derived title ("901 Partlist 1"), not by its report block's title format; the block's own Title row keeps the
 //! format, which is what the block stores.
 

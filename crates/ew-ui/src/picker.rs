@@ -117,7 +117,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         )
         .collapsible(false)
         .resizable(false)
-        // C39 (doc 16a §2): the picker grows with the window as the palette does; the description takes the gain.
+        // The picker grows with the window as the palette does (doc 16a §2); the description takes the gain.
         .default_width(width)
         .min_width(width)
         .max_width(width)
@@ -175,7 +175,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 .max_height(t.size_row * 13.0)
                 .show(ui, |ui| {
                     ui.spacing_mut().item_spacing.y = 0.0;
-                    // M39: the part number and the function sit in columns that stay put, as wide as their widest
+                    // The part number and the function sit in columns that stay put, as wide as their widest
                     // text over the rows; the description takes the rest and elides (whole in the tooltip).
                     let small = crate::theme::font(&t.type_small);
                     let width = |text: &str| {
@@ -435,7 +435,7 @@ fn row_texts(
     }
 }
 
-/// A template function in words (M39): its kind text, or, where that is only the FnDef key (a FnDef whose category
+/// A template function in words: its kind text, or, where that is only the FnDef key (a FnDef whose category
 /// has fewer than two entries, `ew.fn.blackbox`), the key's last segment as words (`Blackbox`, through
 /// `strings::choice_words`).
 fn function_words(kind_text: &str, fndef_key: &str) -> String {
@@ -450,7 +450,7 @@ fn function_words(kind_text: &str, fndef_key: &str) -> String {
 mod tests {
     use crate::theme::{Density, Theme, font, tokens};
 
-    /// M39: a function whose kind text is its FnDef key reads as words, never as the key; a real kind text stays.
+    /// A function whose kind text is its FnDef key reads as words, never as the key; a real kind text stays.
     #[test]
     fn function_keys_read_as_words() {
         assert_eq!(

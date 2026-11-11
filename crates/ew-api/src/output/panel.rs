@@ -863,7 +863,7 @@ fn unplaced_of(q: &Q, space: Id<LayoutSpace>, carriers: &[PanelCarrier]) -> Vec<
                         .copied()
                         .collect()
                 };
-                // As `layout.place_assembly` inserts a member (ruling 4): after its nearest earlier member on the
+                // As `layout.place_assembly` inserts a member: after its nearest earlier member on the
                 // rail, else before its first later one.
                 let pred = order[..at]
                     .iter()

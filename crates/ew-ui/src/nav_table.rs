@@ -67,7 +67,7 @@ pub(crate) struct TableUi {
     chooser_for: Option<String>,
     /// The chooser list's active row.
     chooser_active: usize,
-    /// The grid's width last frame (C40, a resize re-fills the capped columns).
+    /// The grid's width last frame (a resize re-fills the capped columns).
     pane_width: Option<f32>,
     /// How the cursor's column is aligned again in the next frame, when the scroll that brought it into
     /// view left it cut by the frozen key column (or, while it fits, by the grid's right edge).
@@ -123,7 +123,7 @@ impl TableUi {
         // Doc 16a §6.21: rows of `size.row`, the header `size.table_header`, columns start at `size.table_column`
         // (egui_table sizes them to their content on the first frame) within its range.
         let tokens = crate::theme::current(ui.ctx());
-        // The edit's error (the column chooser is on the pane's tool line, X32b).
+        // The edit's error (the column chooser is on the pane's tool line).
         if let Some(e) = mode.error() {
             ui.horizontal(|ui| {
                 ui.add_space(tokens.space_4);
@@ -176,7 +176,7 @@ impl TableUi {
             SortBy::Label | SortBy::Order => None,
         };
         let area = ui.available_rect_before_wrap();
-        // C40: a resize of the grid re-sizes the capped columns (the Pages Title, the Libraries Name) to the
+        // A resize of the grid re-sizes the capped columns (the Pages Title, the Libraries Name) to the
         // new room, and a column's range scales with the grid: `size.table_column.max` or the grid's width.
         let resized = self.pane_width.is_some_and(|w| (w - area.width()).abs() > 0.5);
         self.pane_width = Some(area.width());
@@ -238,7 +238,7 @@ impl TableUi {
             .map(|c| (column_id(&table.columns[*c].key), table.columns[*c].label.clone()))
             .collect();
         ui.scope_builder(egui::UiBuilder::new().accessibility_parent(table_id), |ui| {
-            // C39 (window check W39c2, item 9): the rows are clipped to the grid's rect, so the top of the row past the
+            // The rows are clipped to the grid's rect, so the top of the row past the
             // last one in view does not show as a ghost row under the grid's border.
             ui.set_clip_rect(ui.clip_rect().intersect(area));
             // Doc 16a §6.21: the header band in `color.surface.sunken` across the grid with a 1-px
@@ -252,9 +252,9 @@ impl TableUi {
                 band.bottom() - tokens.border_width / 2.0,
                 theme::stroke(tokens.border_width, tokens.border_subtle),
             );
-            // X32b: the scroll bars stay on show while columns or rows overflow (egui's thin bars, visible when
+            // The scroll bars stay on show while columns or rows overflow (egui's thin bars, visible when
             // dormant, the handle in the widgets' foreground colour since the theme's widget fill is the panel's), so
-            // a grid wider than its pane shows that it scrolls sideways. B33: that foreground is the text colour, a
+            // a grid wider than its pane shows that it scrolls sideways. That foreground is the text colour, a
             // near-white bar on the dark panel; the handle is a component boundary, so at rest it takes
             // `color.border.control` (3:1 on the panel in both themes) and `color.text.secondary` under the pointer
             // and while dragged. The grid's own texts are painted with explicit colours, so nothing else changes.
@@ -769,7 +769,7 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
 }
 
 /// Paints `text` in `font` and `colour` at the left of `rect`, centred vertically and cut with an ellipsis at its
-/// width (W31-3); returns the painted width.
+/// width; returns the painted width.
 fn paint_text(ui: &Ui, rect: Rect, text: &str, font: FontId, colour: Rgba) -> f32 {
     let mut job = LayoutJob::single_section(text.to_owned(), TextFormat::simple(font, colour.color32()));
     job.wrap = TextWrapping::truncate_at_width(rect.width().max(0.0));
@@ -826,18 +826,18 @@ fn fills(kind: NavKind, key: &str) -> bool {
 }
 
 /// Whether a column has a cap that depends on the grid's width (the Pages Title, [`fill_cap`]; the Libraries Name,
-/// [`libraries_name_cap`]): a resize re-sizes it (C40).
+/// [`libraries_name_cap`]): a resize re-sizes it.
 fn capped(kind: NavKind, key: &str) -> bool {
     fills(kind, key) || (kind == NavKind::Libraries && key == "name")
 }
 
 /// The widest a column may be sized or dragged in a grid `pane` wide: `size.table_column.max`, or the grid's width
-/// when that is wider (C40, the cap scales with the pane, it is no width chosen for the floor).
+/// when that is wider (the cap scales with the pane, it is no width chosen for the floor).
 pub(crate) fn column_max(t: &Tokens, pane: f32) -> f32 {
     t.size_table_column_max.max(pane)
 }
 
-/// The Libraries table's Name cap in a grid `pane` wide: half the grid, never under `size.table_column` (M39). Its
+/// The Libraries table's Name cap in a grid `pane` wide: half the grid, never under `size.table_column`. Its
 /// other columns (Kind, Tier, Version) start wide and would leave the name too little room under [`fill_cap`].
 pub(crate) fn libraries_name_cap(t: &Tokens, pane: f32) -> f32 {
     (pane / 2.0).max(t.size_table_column)
@@ -1227,7 +1227,7 @@ impl TableDelegate for Delegate<'_> {
             response.dnd_set_drag_payload(crate::navigator::ChannelDrag(record.to_string()));
         }
         // Doc 16a §6.21: text in `type.small`, primary (a derived cell secondary), `space.4` padding, cut with an
-        // ellipsis at the column (W31-3).
+        // ellipsis at the column.
         // An accessory row's texts are secondary, except its editable Part cell.
         let accessory = node.role == NavRole::Accessory && reason.is_some();
         let colour = if column.derived || accessory {
@@ -1325,7 +1325,7 @@ impl TableDelegate for Delegate<'_> {
 mod cap_tests {
     use crate::theme::{Density, Theme, tokens};
 
-    /// M39: the Libraries Name cap scales with the grid (half of it), never under `size.table_column`.
+    /// The Libraries Name cap scales with the grid (half of it), never under `size.table_column`.
     #[test]
     fn the_libraries_name_cap_scales_with_the_pane() {
         let t = tokens(Theme::Light, Density::Comfortable);
@@ -1333,7 +1333,7 @@ mod cap_tests {
         assert_eq!(super::libraries_name_cap(&t, 600.0), 300.0);
     }
 
-    /// C39: the Pages Title takes the room the other columns leave, never under `size.table_column`.
+    /// The Pages Title takes the room the other columns leave, never under `size.table_column`.
     #[test]
     fn the_filling_column_takes_the_room_the_others_leave() {
         let t = tokens(Theme::Light, Density::Comfortable);
@@ -1342,7 +1342,7 @@ mod cap_tests {
         assert!(super::fill_cap(&t, 900.0, 250.0) > super::fill_cap(&t, 600.0, 250.0));
     }
 
-    /// C40: a column's range keeps `size.table_column.max` in a narrow grid and scales with a wide one.
+    /// A column's range keeps `size.table_column.max` in a narrow grid and scales with a wide one.
     #[test]
     fn the_column_range_scales_with_the_pane() {
         let t = tokens(Theme::Light, Density::Comfortable);

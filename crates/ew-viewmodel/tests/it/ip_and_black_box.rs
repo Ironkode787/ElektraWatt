@@ -98,7 +98,7 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     assert_eq!(s.tool().name(), "ip");
     assert_eq!(s.tool().state(), "floating");
     // A point in the left quarter of 103 proposes `target`; a typed name stays as typed even where the four 24VDC
-    // targets of 103 use it (fix round, item 4: a star's second target shares its name on purpose).
+    // targets of 103 use it (a star's second target shares its name on purpose).
     let left = grid_point(&s, (20, 40));
     cursor(&mut s, left);
     done(&mut s, "ip.name", json!({"text": "24VDC-1"}));
@@ -612,7 +612,7 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
     for c in &b1.cps {
         assert!(on_outline(&b1.outline, c.1), "CP {} at {:?}", c.0, c.1);
     }
-    // The CPs of the top and bottom edges stay where they were (the re-projection's anchor, fix round item 3).
+    // The CPs of the top and bottom edges stay where they were (the re-projection's anchor).
     for (idx, p, _) in &b0.cps {
         let q = b1.cps.iter().find(|c| c.0 == *idx).unwrap().1;
         assert_eq!(q, *p, "CP {idx} stays");

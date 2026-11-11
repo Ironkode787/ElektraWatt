@@ -20,7 +20,7 @@
 //! spare on each side, centred. Until the host first sizes the pane the view stays fitted, so that first layout fits
 //! again (it comes after the page was opened); after it a resize ([`CanvasModel::relayout`]: a dock opened, closed or
 //! dragged) fits a view that is still fitted and untouched again, and keeps the centre and the zoom of a view the user
-//! zoomed or panned (FX38d).
+//! zoomed or panned.
 //!
 //! **Zoom about an anchor** `a`: `centre' = a − (a − centre) × zoom / zoom'`, each axis rounded toward zero to whole
 //! nanometres, then clamped to the sheet: the anchor keeps its screen position to within 1 nm while the clamp is

@@ -182,7 +182,7 @@ fn the_page_tables_list_an_image_item() {
     );
 }
 
-/// Cycle-29 review 4: a page's views are memoised, and an image's format comes from the asset the project holds. An
+/// A page's views are memoised, and an image's format comes from the asset the project holds. An
 /// image item whose asset the project does not hold (its file is missing) reads as a PNG; the same file placed on
 /// another page with `data` brings the asset in the same transaction without touching the first page's rows, so the
 /// first page's memoised views must follow: they equal the cold ones (an SVG now: vector paths, no raster image).
@@ -227,7 +227,7 @@ fn an_asset_that_arrives_with_an_item_on_another_page_reaches_the_memoised_views
     );
 }
 
-/// Cycle-29 review 2, item 2: an asset can arrive in a transaction that changes no row at all. The project names its
+/// An asset can arrive in a transaction that changes no row at all. The project names its
 /// company logo by the full reference, the logo's file is missing, and an image item names the same hash; the same
 /// logo bytes set again change no row (the project row already names them) but bring the asset. The memo store must
 /// follow (it is advanced although the revision stayed): the image's views equal the cold ones, an SVG now.

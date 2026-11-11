@@ -21,7 +21,7 @@
 //! - `oracle_finds_no_mismatch_over_every_state` (`MemoMode::Oracle`): the same states with the engine's own
 //!   oracle re-running one memoised read in 64 cold (a fixed, deterministic sample); no mismatch and no cycle. Per
 //!   gate the value equality of every family and key is `memo_equals_cold_over_every_state`'s; this test checks
-//!   the engine's own oracle path (test audit g7: one sampled run instead of five shards at one in eight). Its
+//!   the engine's own oracle path (one sampled run instead of five shards at one in eight). Its
 //!   `#[ignore]`d twin `oracle_finds_no_mismatch_over_every_state_on_every_read` re-runs every read in one run
 //!   (the deep nightly).
 //! - `every_family_the_store_memoises_is_swept`: after the states and a sweep, every family holding memos in
@@ -796,7 +796,7 @@ fn growth_counts(session: &Session) -> (usize, usize, usize, usize) {
 /// were never collected (the review's probe: partition dependencies 110 -> 410, `page_ids` dependencies
 /// 1 -> 301, `page_local_nets` memos 13 -> 313, push index 9,526 -> 10,726). Now every count stays within a
 /// small constant of the live set.
-/// 60 create-and-delete cycles (300 before the test audit g7): a leak of one dependency, memo or push-index entry
+/// 60 create-and-delete cycles: a leak of one dependency, memo or push-index entry
 /// per cycle exceeds every bound below.
 #[test]
 fn creating_and_deleting_a_page_60_times_does_not_grow_the_store() {

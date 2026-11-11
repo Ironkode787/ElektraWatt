@@ -220,7 +220,7 @@ fn messages_rows_badges_and_header() {
             .any(|l| l == &pending.name && l.ends_with(", pending")),
         "{items:?}"
     );
-    // The cursor row is scrolled into view above the detail block that opened with it (W31-1, fixed by K32 for a list
+    // The cursor row is scrolled into view above the detail block that opened with it (for a list
     // that was taller the frame before).
     let list = h.get_by_label("Messages navigator").rect();
     let row = h

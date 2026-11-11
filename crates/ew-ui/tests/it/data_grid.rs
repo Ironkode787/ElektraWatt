@@ -193,7 +193,7 @@ fn gestures() -> Vec<(&'static str, Input)> {
     ]
 }
 
-/// DK9: every key of doc 16a §6.21 (arrows, Tab, Shift+Tab, Home, End, Ctrl+Home, Ctrl+End, Shift+Up, Shift+Down,
+/// Every key of doc 16a §6.21 (arrows, Tab, Shift+Tab, Home, End, Ctrl+Home, Ctrl+End, Shift+Up, Shift+Down,
 /// Enter, Ctrl+Enter, a printable character; in the editor Enter, Ctrl+Enter and Escape) and the pointer gestures
 /// (click, Ctrl+click, Shift+click, double click, header clicks) dispatch the same actions with the same parameters as
 /// before the restyle: the log equals the expected log recorded from the as-built grid.
@@ -391,7 +391,7 @@ fn same_rect(a: egui::Rect, b: egui::Rect) -> bool {
     (a.min - b.min).length() < 0.5 && (a.max - b.max).length() < 0.5
 }
 
-/// DK9: the grid is one `Table` node named "Terminal strips table"; its header cells are buttons "Sort by <column>"
+/// The grid is one `Table` node named "Terminal strips table"; its header cells are buttons "Sort by <column>"
 /// of `size.table_header` on the `color.surface.sunken` band; the sorted one (Terminal, ascending) is named ", sorted
 /// ascending" and paints `arrow-narrow-up` in `color.text.primary` after its label, the others no sort icon;
 /// after a second click it paints `arrow-narrow-down`. A derived column's header paints `math-function` in
@@ -492,7 +492,7 @@ fn one_table_node_with_sort_buttons_and_the_sort_icon() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// DK9: the key column (Strip) keeps its place after End scrolls the grid right, and both before and after it paints
+/// The key column (Strip) keeps its place after End scrolls the grid right, and both before and after it paints
 /// its 1-px `color.table.frozen_edge` line at its right edge from the header to the last row on show.
 #[test]
 fn the_key_column_stays_and_paints_the_frozen_edge() {
@@ -529,7 +529,7 @@ fn the_key_column_stays_and_paints_the_frozen_edge() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// DK9: two marked rows paint `color.accent.subtle` across the row; the cursor row paints the 2-px accent bar at the
+/// Two marked rows paint `color.accent.subtle` across the row; the cursor row paints the 2-px accent bar at the
 /// key cell's left, just inside the grid's focus ring, inset `space.2` top and bottom; the cursor cell paints a 2-px `color.table.cursor` ring inside
 /// it while the grid has the keyboard and a 1-px `color.table.cursor_idle` ring once the focus is on the canvas.
 #[test]
@@ -610,7 +610,7 @@ fn marked_rows_the_cursor_row_bar_and_the_cursor_ring() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// DK9: a double click on a writable cell opens the editor in the cell with the accent border: the panel fill inset
+/// A double click on a writable cell opens the editor in the cell with the accent border: the panel fill inset
 /// `space.1`, a 1-px `color.accent` border inside and a 1-px ring outside, `radius.sm`; the editor has the keyboard.
 #[test]
 fn a_double_click_opens_the_editing_cell_with_the_accent_border() {
@@ -668,7 +668,7 @@ fn a_double_click_opens_the_editing_cell_with_the_accent_border() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// DK9: rows are `size.row` high and the header `size.table_header`, in Comfortable and Compact.
+/// Rows are `size.row` high and the header `size.table_header`, in Comfortable and Compact.
 #[test]
 fn row_and_header_heights_in_both_densities() {
     for density in ["comfortable", "compact"] {
@@ -904,7 +904,7 @@ fn text_origin(shapes: &[egui::Shape], region: egui::Rect, text: &str) -> Option
     })
 }
 
-/// Doc 16a §6.21 (B33): the cell editor shows its text where the cell showed it, so nothing jumps when it opens: the
+/// Doc 16a §6.21: the cell editor shows its text where the cell showed it, so nothing jumps when it opens: the
 /// first glyph's baseline and left edge equal the cell label's within half a point.
 #[test]
 fn the_editor_text_sits_on_the_cell_text_baseline() {
@@ -952,7 +952,7 @@ fn the_editor_text_sits_on_the_cell_text_baseline() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// B33: the horizontal scroll handle of a grid wider than its pane stays on show at rest (X32b) in
+/// The horizontal scroll handle of a grid wider than its pane stays on show at rest in
 /// `color.border.control`, never in the text colour (a near-white bar on the dark panel), in light and dark.
 #[test]
 fn the_scroll_handle_is_a_quiet_boundary_not_the_text_colour() {

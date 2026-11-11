@@ -156,7 +156,7 @@ fn the_card_and_the_table_render_their_fields() {
     settle(&mut h);
     assert!(has_text_part(&h, "pt (process tag)"), "the pt field's label");
     assert!(has_text_part(&h, "n (tag counter)"), "the n field's label");
-    // W40a 5e: no raw type key anywhere on the card.
+    // No raw type key anywhere on the card.
     assert!(!has_text_part(&h, "process_tag") && !has_text_part(&h, "tag_counter"));
     assert!(field(&h, "pt (process tag)", ""), "an untyped field");
     done(

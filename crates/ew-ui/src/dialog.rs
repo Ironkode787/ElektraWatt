@@ -16,12 +16,12 @@ use ew_viewmodel::dialogs::{DialogAnswer, DialogButton, DialogSpec};
 use crate::components::{self, Kind, Tip};
 use crate::theme;
 
-/// The share of the window a form dialog takes once that is wider than `size.dialog.form` (C39; owner 2026-10-31:
-/// the UI grows with the space it has, never a width chosen for the floor).
+/// The share of the window a form dialog takes once that is wider than `size.dialog.form`
+/// (the UI grows with the space it has, never a width chosen for the floor).
 pub(crate) const FORM_SHARE: f32 = 0.45;
 
 /// The share of the window a small dialog that holds a list (the Show changes popup, the parts card) takes once that
-/// is wider than `size.dialog.small` (C40).
+/// is wider than `size.dialog.small`.
 pub(crate) const SMALL_SHARE: f32 = 0.3;
 
 /// A form dialog's width in a window `window` wide: `size.dialog.form`, growing with the window ([`FORM_SHARE`]).
@@ -64,7 +64,7 @@ pub(crate) fn show_sized(
     content: impl FnOnce(&mut Ui),
 ) -> Clicked {
     let t = theme::current(ctx);
-    // C39 (doc 16a §2): a form grows with the window, its fields and lists take the gain.
+    // A form grows with the window (doc 16a §2), its fields and lists take the gain.
     let width = match width {
         Some(w) => w,
         None if spec.form => form_width(&t, ctx.content_rect().width()),
@@ -154,7 +154,7 @@ fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool) -> Clicked {
     let t = components::tokens(ui);
     let mut clicked = None;
     let mut press = |ui: &mut Ui, b: &DialogButton, kind: Kind, focus: bool| {
-        // A disabled button says why on hover (W44.2 F1: Create enclosure's Create without a location or a part).
+        // A disabled button says why on hover (Create enclosure's Create without a location or a part).
         let r = components::button(ui, kind, &b.label, b.disabled.is_none(), t.size_button_min_width);
         let r = match &b.disabled {
             Some(reason) => r.disabled_tip(reason.as_str()),
@@ -227,7 +227,7 @@ mod tests {
         }
     }
 
-    /// C40: a form and a small list dialog keep their token width at the floor, are wider at 1920 and stay
+    /// A form and a small list dialog keep their token width at the floor, are wider at 1920 and stay
     /// inside a window narrower than their token.
     #[test]
     fn grown_dialogs_are_wider_at_1920_than_at_the_floor() {

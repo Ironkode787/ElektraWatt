@@ -4,7 +4,7 @@
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
-//! Connectivity notes and the linear partner lookup (A review findings F6, F7, F8, F13).
+//! Connectivity notes and the linear partner lookup.
 //!
 //! - `star_group_of_400_members_derives`: one source and 399 targets derive through every query.
 //! - `star_source_with_two_drawn_connections_is_no_hub_and_noted`: EW-POT-011, the wires end open.

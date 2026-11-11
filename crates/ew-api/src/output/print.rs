@@ -354,7 +354,7 @@ pub fn sections(q: &Q) -> Vec<(u16, String)> {
     all
 }
 
-/// [`print_set_with`] with the job's controller `ctl` (the print job, ruling 2): the export's phases with
+/// [`print_set_with`] with the job's controller `ctl` (the print job): the export's phases with
 /// their reports and checkpoints, then `report(0, 0, "writing")` before the placement and the writer.
 pub(crate) fn print_set_hooked(
     q: &Q,

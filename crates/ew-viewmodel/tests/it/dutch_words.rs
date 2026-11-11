@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Dutch UI's fix round: the palette form's labels and the finding detail's kind from keys in
+//! The Dutch UI: the palette form's labels and the finding detail's kind from keys in
 //! both locales, the count texts and a new terminal strip in words.
 
 use std::collections::BTreeSet;

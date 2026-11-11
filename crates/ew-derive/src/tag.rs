@@ -65,7 +65,7 @@ impl Query for MainFunction {
 /// representation, Golden A's 1X1, ▲U-43) takes the main representation of its first placed terminal: the
 /// terminal whose own main representation is on the lowest page (folio number, then folio label in natural
 /// order, then page ID), then with the lowest designation (natural order), then the smallest ID. So the
-/// strip has a page for `{page}` and for numbering (owner ruling, Golden B step B1).
+/// strip has a page for `{page}` and for numbering.
 ///
 /// **A device whose main function is not drawn** (a contact placed from a part's function template before its
 /// coil), and a strip without a placed terminal, take the smallest-ID representation of the device's functions that

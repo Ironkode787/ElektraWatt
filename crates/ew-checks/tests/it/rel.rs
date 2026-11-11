@@ -276,7 +276,7 @@ fn pack_versions_name_every_evaluated_pack() {
     assert_eq!(distinct.len(), packs.len(), "each pack its own definition");
 }
 
-/// FX38a n1: the definition text a sign-off's pack SHA-256 binds names a rule's kind and scope by the catalogue's
+/// The definition text a sign-off's pack SHA-256 binds names a rule's kind and scope by the catalogue's
 /// words (`rules.json`), never by `Debug`, so the digest does not move with a Rust spelling.
 #[test]
 fn the_pack_definition_text_is_pinned() {

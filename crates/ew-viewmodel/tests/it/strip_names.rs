@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 33 (G-PP findings 7 and 9, draft FT row 12) on copies of Golden A: the Terminal strips navigator takes a row by
+//! On copies of Golden A: the Terminal strips navigator takes a row by
 //! what it prints (a terminal's tag `-X1031:1`, which is its strip's label, a colon and its own label, or a label that
 //! only one row on show has), in `table.set` and `navigator.select`; and `place.pick` with a strip name the project
 //! does not have fails with a message that lists the project's strips.

@@ -528,7 +528,7 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
     ("refusal-revision-git-tag", "tag", "a Git tag"),
 ];
 
-/// NL-2: the terminology table heads the nl-NL file with the ruling's rows; over the
+/// NL-2: the terminology table heads the nl-NL file with its rows; over the
 /// messages, each Dutch term is used where its en-GB term is, and no rejected alternative is (one that is the Dutch
 /// term of another row, "kabel" for a cable, is that row's).
 #[test]

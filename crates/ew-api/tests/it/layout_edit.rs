@@ -699,7 +699,7 @@ fn part_named(number: &'static str) -> impl Fn(&ew_schema::LibDocument) -> bool 
     move |d| matches!(d, ew_schema::LibDocument::Part(p) if p.item.part_number.as_str() == number)
 }
 
-/// PS-1's library path (ruling 8): a system library holding Golden A's enclosure part and its plate part; the offer
+/// The library path: a system library holding Golden A's enclosure part and its plate part; the offer
 /// of `layout_part_offers` carries both through `copies` (the plate as the enclosure section's closure), and
 /// `layout.enclosure.create_from_part` with them creates +FIELD's enclosure with its plate in one command.
 #[test]

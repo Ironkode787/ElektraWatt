@@ -1,14 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas area (spec section 6.2; ruling D6): the open pages as tabs in
+//! The canvas area: the open pages as tabs in
 //! one or two tab groups side by side, toolkit-neutral. `ew-ui` rebuilds its nested egui_tiles tree from this model
 //! after every structural change ([`CanvasArea::version`]), so the model is the one source of truth.
 //!
 //! **Invariants** while a project is open: at least one group and one tab, at most two groups, at most
 //! [`MAX_TABS`] tabs over both groups, every group's `active` a valid index, `focused` a valid group. Tab IDs count
-//! from 1 per opened project and are never reused in it. Two groups are two canvases over one `Session` (ruling
-//! D3): every tab reads the same revision and page content.
+//! from 1 per opened project and are never reused in it. Two groups are two canvases over one `Session`: every tab reads the same revision and page content.
 //!
 //! The structural operations here are pure; the shell fetches page content and builds the tabs' canvases.
 
@@ -97,7 +96,7 @@ pub struct TabGroup {
     pub ppp: f64,
     /// Whether the host has sized the pane (`view.canvas_resize`): until then a resize fits a fitted page to the real
     /// pane; after it a resize (a dock opened, closed or dragged) refits a fitted, untouched view and keeps a zoomed
-    /// or panned view's zoom and centre (FX38d).
+    /// or panned view's zoom and centre.
     pub sized: bool,
 }
 

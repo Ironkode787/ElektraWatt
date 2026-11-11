@@ -65,7 +65,7 @@ impl Rows {
             .map_or("", String::as_str)
     }
 
-    /// Strip node `s` in words (ruling 7: a strip without a tag yet reads in words).
+    /// Strip node `s` in words (a strip without a tag yet reads in words).
     fn words(&self, s: usize) -> String {
         crate::navigators::strip_label(&self.node(s).label)
     }

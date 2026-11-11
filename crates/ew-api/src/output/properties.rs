@@ -1603,8 +1603,8 @@ impl Session {
                     .collect()
             })
             .unwrap_or_default();
-        // The generated pages: v5 page ID → (block, block title, the page's own heading). P-1 (play-test rv-vis-5):
-        // the heading is the page's folio and derived title ("901 Partlist 1"), not the block's title format.
+        // The generated pages: v5 page ID → (block, block title, the page's own heading).
+        // The heading is the page's folio and derived title ("901 Partlist 1"), not the block's title format.
         let order = q.get::<PageOrder>(());
         let generated: BTreeMap<Uuid, (Uuid, String, String)> = order
             .entries

@@ -189,7 +189,7 @@ impl Chord {
         format!("{}{key}", self.modifier_text())
     }
 
-    /// The text a person reads (the window's chips and menus, the editor's refusals and notes, KM-4 ruling): a
+    /// The text a person reads (the window's chips and menus, the editor's refusals and notes): a
     /// physical key reads as the cap it shows on a US layout (`Ctrl+phys:Digit0` is "Ctrl+0", `phys:KeyA` "A",
     /// `phys:Minus` "-"): the `phys:` grammar belongs to the keymap file only.
     pub fn display(&self) -> String {
@@ -574,7 +574,7 @@ pub fn chords_of(preset: Preset, user: Option<&Keymap>, meta: &ActionMeta) -> Ve
         .collect()
 }
 
-/// Whether the effective bindings of `meta` under `user` differ from the preset's (W40a 5b): an action whose user
+/// Whether the effective bindings of `meta` under `user` differ from the preset's: an action whose user
 /// binds equal the preset's is not changed.
 pub fn is_changed(preset: Preset, user: Option<&Keymap>, meta: &ActionMeta) -> bool {
     user.is_some() && chords_of(preset, user, meta) != chords_of(preset, None, meta)
@@ -600,7 +600,7 @@ fn context_phrase(context: Context) -> &'static str {
     })
 }
 
-/// The text of `finding` for a refused recording of `recorded` (W40a 5c): a conflict says what is in the way ("M is
+/// The text of `finding` for a refused recording of `recorded`: a conflict says what is in the way ("M is
 /// already Move in the canvas."), not the double binding the refusal prevented; any other finding as
 /// [`Finding::text`].
 pub fn refusal_text(finding: &Finding, recorded: &str) -> String {
@@ -923,7 +923,7 @@ pub struct EditorRow {
     pub context: Context,
     /// The bindings, as text.
     pub chords: Vec<String>,
-    /// Whether they differ from the preset's (W40a 5b: a user bind equal to the preset's is no change).
+    /// Whether they differ from the preset's (a user bind equal to the preset's is no change).
     pub custom: bool,
     /// The shadowing texts that involve the action (infos).
     pub notes: Vec<String>,
@@ -1014,7 +1014,7 @@ mod tests {
         assert!(Chord::parse("").is_err());
     }
 
-    /// Cycle-40 review: a chord reads as its key caps wherever a person sees it, for every physical key the `phys:`
+    /// A chord reads as its key caps wherever a person sees it, for every physical key the `phys:`
     /// grammar accepts; the binding text and the file text keep the grammar.
     #[test]
     fn physical_keys_display_as_their_key_caps() {
@@ -1150,7 +1150,7 @@ mod tests {
         assert!(has_changes(Preset::Ew, Some(&user)));
     }
 
-    /// W40a 5b: a user keymap whose bindings equal the preset's changes nothing: no row is Changed and the preset line
+    /// A user keymap whose bindings equal the preset's changes nothing: no row is Changed and the preset line
     /// has no changes; one different binding makes exactly that action Changed.
     #[test]
     fn a_user_keymap_equal_to_the_preset_changes_nothing() {
@@ -1170,7 +1170,7 @@ mod tests {
         assert_eq!(changed, ["tool.wire"]);
     }
 
-    /// W40a 5c: a refused recording says what is in the way; a loaded file's double binding keeps the conflict text.
+    /// A refused recording says what is in the way; a loaded file's double binding keeps the conflict text.
     #[test]
     fn a_refused_recording_names_the_action_in_the_way() {
         let conflict = Finding::Conflict {

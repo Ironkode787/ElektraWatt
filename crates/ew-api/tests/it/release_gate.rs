@@ -358,7 +358,7 @@ fn approve_the_saved_revision_bound_to_its_content() {
     s.save().expect("saved");
     assert_eq!(digest_on_disk(&copy), approved.content_digest);
     assert!(s.release_gate("V2.0", &integrity).expect("gate").passes());
-    // RG-3 (FX38a): a comment (comments.jsonl, not content) keeps the sign-off too. No command writes
+    // A comment (comments.jsonl, not content) keeps the sign-off too. No command writes
     // the reserved `comment` kind yet, so the comment arrives on disk as a review tool writes it, listed in the
     // manifest; the session reopens it, keeps it through a save, and the gate still passes.
     s.close();

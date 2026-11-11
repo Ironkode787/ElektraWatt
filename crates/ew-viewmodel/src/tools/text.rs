@@ -147,7 +147,7 @@ impl TextTool {
             return ToolOutput::None;
         };
         if let Some(bind) = self.bind.clone() {
-            // A bound text has nothing to type: the click places it (the lane's ruling).
+            // A bound text has nothing to type: the click places it.
             return ToolOutput::Commit(self.command(cx, at, &bind));
         }
         self.state = State::Typing {

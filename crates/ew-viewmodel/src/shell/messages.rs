@@ -60,7 +60,7 @@ impl ShellModel {
     }
 
     /// The counts the status bar's findings field shows: the open Messages pane's, else the last Check project's while
-    /// the project is at the revision it checked (FX38d: after a check with the pane closed the field is there, and
+    /// the project is at the revision it checked (after a check with the pane closed the field is there, and
     /// its click opens the pane).
     pub fn status_counts(&self) -> Option<MessageCounts> {
         if let Some(c) = self.messages_counts() {
@@ -345,7 +345,7 @@ impl ShellModel {
     /// dock, focused), or `on: false` to close it.
     pub(crate) fn act_messages_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let pane = PaneKind::Navigator(NavKind::Messages);
-        // FX38d (doc 16a §5.7): the command that opens the pane closes it again; `on` sets it. Only a pane in
+        // Doc 16a §5.7: the command that opens the pane closes it again; `on` sets it. Only a pane in
         // front closes; one behind another tab of its group (History) is brought to front.
         let in_front = self.layout().shown_in_place_of(pane) == Some(pane);
         let on = or_return!(super::jobs::bool_param(p, "on", !in_front));

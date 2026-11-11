@@ -33,7 +33,7 @@ use support::{Tmp, dispatch, done, on_golden, settle};
 
 const ACCENT: [u8; 3] = [0x0B, 0x63, 0xCE];
 const WHITE: [u8; 3] = [0xFF, 0xFF, 0xFF];
-/// `canvas.open_cp` (FX38a): slate-400, a neutral ink, not the accent.
+/// `canvas.open_cp`: slate-400, a neutral ink, not the accent.
 const OPEN_CP: [u8; 3] = [0x86, 0x8E, 0x99];
 
 fn at(p: (i64, i64)) -> Value {
@@ -718,7 +718,7 @@ fn ft1091_the_link_preview_and_the_cp_tooltip_never_show_together() {
 fn the_chips_keep_off_the_hud_and_the_zoom_control() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
-    // W49.3b-F7: the label ("Variant A · new F") is wider than the variant letter alone was; a wider window keeps
+    // The label ("Variant A · new F") is wider than the variant letter alone was; a wider window keeps
     // room for it above left of the HUD, where the test expects a free spot.
     h.set_size(egui::Vec2::new(1400.0, 800.0));
     settle(&mut h);
@@ -806,7 +806,7 @@ fn the_chips_keep_off_the_hud_and_the_zoom_control() {
 }
 
 /// The free connection points of Golden A's first multi-line page that has some (spare terminals are unwired by
-/// design) marked open in the canvas snapshot at 100 % (a hollow square in `canvas.open_cp`, a neutral grey, FX38a:
+/// design) marked open in the canvas snapshot at 100 % (a hollow square in `canvas.open_cp`, a neutral grey:
 /// its corners grey, no accent on the plain page), none at
 /// 25 % (a grid step under 4 points), and only in the session overlay: the page's display list, which print and PDF
 /// draw, does not change.

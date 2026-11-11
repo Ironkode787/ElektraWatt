@@ -309,7 +309,7 @@ impl HeapSize for ew_schema::Revision {
 // The typed sign-off and release record (digests, dates and counts are inline).
 plain!(u64, ew_schema::Digest128, ew_schema::Sha256, ew_schema::Date);
 
-/// A label format of a newer build keeps its value verbatim on the heap (FX37a); the known formats are inline.
+/// A label format of a newer build keeps its value verbatim on the heap; the known formats are inline.
 impl HeapSize for ew_schema::LabelFormat {
     fn heap_size(&self) -> usize {
         match self {

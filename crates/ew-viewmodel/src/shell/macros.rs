@@ -1145,7 +1145,7 @@ impl ShellModel {
                 || l.key == library
                 || l.id.to_string() == library
         }) else {
-            // FX38b: an empty library field means "the first writable one"; with none installed that is the reason,
+            // An empty library field means "the first writable one"; with none installed that is the reason,
             // not a library called "".
             if library.is_empty() {
                 return self.save_done(Outcome::refused(key!("reason-no-writable-library")));
@@ -1157,7 +1157,7 @@ impl ShellModel {
         }
         let (target, target_name) = (target.id, target.name.clone());
         let key = if key.is_empty() { key_of(&name) } else { key };
-        // FX38b: a name without a letter or digit gives no key; refused in words before any write, not left
+        // A name without a letter or digit gives no key; refused in words before any write, not left
         // to the library's identifier error.
         if key.is_empty() {
             return self.save_done(Outcome::refused(key!("reason-macro-no-key")));

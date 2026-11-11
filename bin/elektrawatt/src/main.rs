@@ -473,7 +473,7 @@ fn current_exe() -> Option<PathBuf> {
 /// The library tiers of the shell's sessions: the system libraries of the installation's content
 /// (`content/libraries`), the user's data and cache directories. An isolated run (a script) reads libraries only when
 /// `EW_DATA_DIR` names its data directory, never the user's own, and keeps its search index in `EW_CACHE_DIR` when
-/// that is set, else in `<EW_DATA_DIR>/cache`, never in the user's own cache (FX38b j1).
+/// that is set, else in `<EW_DATA_DIR>/cache`, never in the user's own cache.
 fn library_tiers(
     isolated: bool,
     content: Option<&Path>,
@@ -814,7 +814,7 @@ mod tests {
         parse_args(args.iter().map(OsString::from))
     }
 
-    /// FX38b j1: an isolated run with only `EW_DATA_DIR` keeps its search index under that directory, never in the
+    /// An isolated run with only `EW_DATA_DIR` keeps its search index under that directory, never in the
     /// user's default cache; `EW_CACHE_DIR` still wins; without `EW_DATA_DIR` it reads no libraries.
     #[test]
     fn an_isolated_run_keeps_its_cache_under_its_data_dir() {

@@ -239,7 +239,7 @@ impl FindPane {
                     }
                     ui.separator();
                     let name = strings::text(key!("find-folios")).to_owned();
-                    // W49.1-J: the field takes the rest of its row; where the rest cannot show the whole placeholder
+                    // The field takes the rest of its row; where the rest cannot show the whole placeholder
                     // (with a button's padding each side), it wraps to a row of its own and takes all of that.
                     let font = egui::TextStyle::Body.resolve(ui.style());
                     let hint = ui.fonts_mut(|fonts| {

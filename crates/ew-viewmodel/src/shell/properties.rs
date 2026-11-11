@@ -1638,7 +1638,7 @@ impl ShellModel {
                 // "Joined -K1 (NO contact 13-14) at 102-C4".
                 let rep = proposal.params["rep"].as_str().and_then(|r| r.parse().ok());
                 let joined = rep.and_then(|r| self.project.as_ref()?.session.joined_text(r));
-                // FX37a: what the removed source device carried goes with it; the toast names it.
+                // What the removed source device carried goes with it; the toast names it.
                 joined.map(|j| {
                     // FT-1483: the function's kind in the window's language.
                     let kind = super::navigators::kind_words(&j.kind).unwrap_or_else(|| j.kind.clone());
@@ -1992,7 +1992,7 @@ impl ShellModel {
     /// Freeze on a device section with several targets (§7.5): every device whose tag is not frozen gets
     /// `tag.frozen` ← `{"text": <its product designation>, "sign": "shown"}`, all in one `fields.set_many` through the
     /// preview and the policy (rule 2 opens the card). Each device's product designation is the derived tag row of its
-    /// own sheet: one `Session::property_sheet` call per device, on this action only (as "set all", ruling 7).
+    /// own sheet: one `Session::property_sheet` call per device, on this action only (as "set all").
     fn freeze_devices(&mut self, section: &SheetSection, row: &PropRow) -> Outcome {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
@@ -2506,7 +2506,7 @@ pub(super) mod tests {
              the checks report",
             "the reason says why, with no plan reference"
         );
-        // The window's shell: a person drives it (ruling 1: the origin is `Origin::Gui` only there).
+        // The window's shell: a person drives it (the origin is `Origin::Gui` only there).
         shell.mode = Mode::Gui;
         shell.person = true;
         assert_eq!(shell.dispatch("edit.undo", &Value::Null), Outcome::Done);

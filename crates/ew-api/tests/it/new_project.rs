@@ -178,7 +178,7 @@ fn a_directory_that_is_no_project_is_an_error() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The review's rulings on the copy: ordered lists, derived channel IDs, determinism, page texts
+// The copy: ordered lists, derived channel IDs, determinism, page texts
 
 fn lines_of(session: &Session) -> Vec<serde_json::Value> {
     ew_commands::rows::model_lines(&session.world().model)
@@ -810,7 +810,7 @@ fn layout_files(dir: &Path) -> (usize, std::collections::BTreeMap<String, usize>
     (files, counts)
 }
 
-/// Cycle-40 review, part 4, finding 2 (with FR-MAC-011): without devices the basic project keeps Golden A's
+/// FR-MAC-011: without devices the basic project keeps Golden A's
 /// one layout space and nothing of its panel layout (no enclosure, mounting surface, carrier or placement), its
 /// `layout/<space>.jsonl` reopens without integrity findings and its derived values verify; with the devices kept
 /// the layout is whole.

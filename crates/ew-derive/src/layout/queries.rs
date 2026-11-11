@@ -787,7 +787,7 @@ impl Query for CarrierGeometry {
 mod tests {
     use super::*;
 
-    /// Cycle-40 review, part 4, finding 4: an outline point that lands outside the `Nm` range drops the outline (an
+    /// An outline point that lands outside the `Nm` range drops the outline (an
     /// empty one), never the placement's geometry; points in range are placed.
     #[test]
     fn an_outline_point_outside_the_nm_range_drops_only_the_outline() {

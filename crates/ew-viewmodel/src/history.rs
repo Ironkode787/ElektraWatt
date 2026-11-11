@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The jump history of a canvas tab (spec section 6.3; ruling D4): Back and Forward walk the
+//! The jump history of a canvas tab: Back and Forward walk the
 //! locations a tab jumped from, per tab and not persisted.
 //!
 //! A jump (following a link, Go to, the navigator's Open) pushes the location it leaves on the back list (at most

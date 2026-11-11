@@ -8,8 +8,8 @@
 //! `ew_derive::channel_pin(pin_of, number)` ("X2:1") resolved **by name** on the module device's main
 //! function (the lowest ID of its functions with role main). The CPs searched are the part's CP pattern when
 //! it has one (black boxes and template functions take their CPs from it, doc 07 §4.2), else the CPs of the
-//! main function's FnDef copy; the first CP with that designation, by index, is the pin (review ruling,
-//! A designation survives a reordering of the FnDef's CPs, an index does not). The binding is set
+//! main function's FnDef copy; the first CP with that designation, by index, is the pin (a designation
+//! survives a reordering of the FnDef's CPs, an index does not). The binding is set
 //! only when the pin resolves and no other channel binds it (a CP is in at most one channel, FR-PLC-005);
 //! otherwise the channel stays unbound and a notice says why. A channel that is bound already (an explicit
 //! binding in the same transaction) is left as it is. Channels that existed before the transaction are not bound

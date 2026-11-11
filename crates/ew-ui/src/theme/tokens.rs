@@ -339,7 +339,7 @@ pub struct Tokens {
     pub size_quick_access_width: f32,
     pub size_quick_access_height: f32,
     pub size_search_width: f32,
-    /// C40 (FT-798): the command search grows with the window (a share of the tab row) up to this width.
+    /// FT-798: the command search grows with the window (a share of the tab row) up to this width.
     pub size_search_max_width: f32,
     pub size_search_height: f32,
     pub size_panel_header: f32,
@@ -350,10 +350,10 @@ pub struct Tokens {
     pub size_status_field: f32,
     /// The left column's width at the 1280-point floor (the Schematic workspace's default share there).
     pub size_panel_left: f32,
-    /// C40 (FT-798): the widest the left column grows to with the window while it keeps its default share.
+    /// FT-798: the widest the left column grows to with the window while it keeps its default share.
     pub size_panel_left_max: f32,
     pub size_dock_bottom: f32,
-    /// The bottom dock is never shown lower than this (W31-1: at least three Messages rows and a detail block).
+    /// The bottom dock is never shown lower than this (at least three Messages rows and a detail block).
     pub size_dock_bottom_min: f32,
     pub size_property_label: f32,
     pub size_tree_indent: f32,
@@ -373,7 +373,7 @@ pub struct Tokens {
     pub size_palette_row: f32,
     pub size_toast: f32,
     pub size_tooltip_max: f32,
-    /// C40: the line length of running text on a full-window page (the first-run screen), a reading
+    /// The line length of running text on a full-window page (the first-run screen), a reading
     /// measure kept fixed on purpose: it does not grow with the window.
     pub size_text_measure: f32,
     // Component tokens of the built widgets (doc 16a v1.1 §4.15).
@@ -1003,7 +1003,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         // volt-600 at 60 %.
         canvas_ghost: VOLT_600.alpha(153),
         canvas_snap: VOLT_600,
-        // The open marker of a connection point without a connection (screen only). FX38a: slate-400, a
+        // The open marker of a connection point without a connection (screen only). It is slate-400, a
         // subdued neutral ink (3.3:1 on the white sheet), never an accent shade, so it does not read as a handle.
         canvas_open_cp: SLATE_400,
         // The highlight slots' own colours in their order (doc 16a §4.6), one source with the canvas.

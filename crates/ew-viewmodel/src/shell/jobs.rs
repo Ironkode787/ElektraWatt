@@ -375,7 +375,7 @@ impl ShellModel {
         {
             return Outcome::refused(key!("reason-export-running"));
         }
-        // A PDF renamed over a file of the open project would damage it (review finding 5).
+        // A PDF renamed over a file of the open project would damage it.
         if inside(&project.dir, &path) {
             return Outcome::refused(key!("reason-export-into-project"));
         }
@@ -427,7 +427,7 @@ impl ShellModel {
     /// Waits for every running job and takes its end (its entry, notification and marker), as `jobs.wait` does for
     /// one. The headless runner calls it at the end of a run, before its unsaved-changes check, so a script whose
     /// export did not wait (`wait: false`) still writes its file, and its transcript, file and log are the same on
-    /// every run (§9 items 1 and 2; review finding 3).
+    /// every run.
     ///
     /// Returns, in job order, the notification texts of the failed, cancelled or panicked ends that no step waited
     /// for, whether their end was taken now or by an earlier poll: the runner prints each as

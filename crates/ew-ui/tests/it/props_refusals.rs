@@ -28,7 +28,7 @@ const EXTERNAL: &str =
 const TARGET: &str = "Interruption point W464: a star source is a source point; set the direction to source, or clear the star";
 
 /// Golden A on 102 at the window's floor (1280 × 800) with Properties shown, an external interruption point and a
-/// target point W464 placed (W46.4's script i3).
+/// target point W464 placed.
 fn with_two_points(tmp: &Tmp) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));

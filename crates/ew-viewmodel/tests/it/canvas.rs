@@ -587,7 +587,7 @@ fn a9_view_steps_fetch_no_page_and_re_execute_no_query() {
 }
 
 /// Revisions restart with every project session: a direct switch to another project at the same revision and
-/// folio is a new canvas page, never the old project's (the fix round).
+/// folio is a new canvas page, never the old project's.
 #[test]
 fn a_project_switch_at_the_same_revision_and_folio_is_a_new_page() {
     let tmp = Tmp::new("canvas");

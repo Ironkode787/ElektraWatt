@@ -6,7 +6,7 @@
 //! ([`Session::table_import`]), its changed cells compiled by table mode's own rule ([`super::table_edit::compile`]) into
 //! one `fields.set_many` ([`Session::apply_table_import`]).
 //!
-//! **Tables and keys** (D8, ruling 4): `nav:<word>` for the twelve table navigators ([`TABLE_NAVIGATORS`]),
+//! **Tables and keys**: `nav:<word>` for the twelve table navigators ([`TABLE_NAVIGATORS`]),
 //! `nav:strips/<strip uuid>` for one strip's rows; the report tables of `ew export` (`block:<uuid>`, `kind:<name>`,
 //! `kind:parts_summary/<mode>`); `sql` is never imported. A navigator table is every table row in node order with every
 //! column; its rows' IDs are the node keys.
@@ -46,7 +46,7 @@ use super::table_edit::{
 use super::{InputError, RowValue};
 use crate::{AnyCommand, CmdError, Receipt, Session, Submit};
 
-/// The navigators whose tables a round trip exports (D8, ruling 4), in [`NavKind::ALL`]'s order: not the
+/// The navigators whose tables a round trip exports, in [`NavKind::ALL`]'s order: not the
 /// macros, libraries or messages.
 pub const TABLE_NAVIGATORS: [NavKind; 12] = [
     NavKind::Pages,

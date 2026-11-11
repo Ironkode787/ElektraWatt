@@ -668,7 +668,7 @@ fn paint_wire_codes(
 
 /// The wire-colour view's strokes (D18) over a pane whose top-left is `origin`, at `ppp`: per connection a dark casing
 /// `CASING_PX` physical pixel wider on each side for a cased one, then its stroke (`STROKE_PT` points) in its colour or
-/// its two colours' alternating 2-mm dashes; a laned stroke (W49.2 F9) is drawn on its path moved into its lanes with
+/// its two colours' alternating 2-mm dashes; a laned stroke is drawn on its path moved into its lanes with
 /// its corners joined (`WireStroke::in_lanes`).
 pub fn wire_colour_shapes(
     strokes: &[ew_viewmodel::wire_colours::WireStroke],

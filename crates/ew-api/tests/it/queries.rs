@@ -227,7 +227,7 @@ fn keys_take_every_reference_form_of_their_kind() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// The failure paths (QU-3's unresolvable key; D11's kinds, project owner (delegated) ruling 3)
+// The failure paths
 
 /// Every refusal names what went wrong in words: the replay's message for a key that names no record, and for a
 /// record of another kind what it is and what the query takes ("Every adapter checks the resolved record's

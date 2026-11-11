@@ -36,8 +36,7 @@ use crate::tx::TxBuilder;
 ///   command is refused (nothing deleted) when one of them is no longer purgeable (named again, already gone): the
 ///   commit then never deletes a file the preview did not show. Absent: every purgeable file at the commit.
 ///
-/// The outcome's notices name the listed hashes. Exposure `HumanOnly` (ADR-0008 amendment 3; owner ruling,
-/// 2026-10-23): a confirmation is metadata only, so a command log, a script, MCP or a plugin could otherwise delete
+/// The outcome's notices name the listed hashes. Exposure `HumanOnly` (ADR-0008 amendment 3): a confirmation is metadata only, so a command log, a script, MCP or a plugin could otherwise delete
 /// files unattended; the purge is reachable from the GUI's confirmed step and from `ew project assets purge`, which
 /// asks for a typed word on a terminal.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]

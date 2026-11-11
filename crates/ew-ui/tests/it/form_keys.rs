@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A form dialog's submit keys and refusals (rulings 2 and 7, window check W49.1-A):
+//! A form dialog's submit keys and refusals:
 //! Ctrl+Enter submits a form dialog from any focus, and the form takes the key before the Ctrl+Enter of what lies
 //! under it (the find pane's replace); a refused submit says why in the form and keeps it open, whether it came from a
 //! click on the Primary, Enter on the focused Primary or Ctrl+Enter.

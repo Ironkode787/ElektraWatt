@@ -587,7 +587,7 @@ impl IpTool {
         let (auto, chosen) = self.auto_direction(pos);
         let tables = &cx.page.tables;
         // A typed name is the user's: the series rule never changes it (a second target of a star source shares the
-        // name on purpose; fix round, item 4).
+        // name on purpose).
         if let Some(typed) = &self.typed {
             let (name, direction) = propose(typed, true, auto, chosen, self.star, &self.project, tables);
             return (name, direction, None);
@@ -616,7 +616,7 @@ impl IpTool {
 
     /// What a click at the insertion point `pos` does with the ghost's CP: on the CP of an interruption
     /// point of the page it is refused (16a P10: no point stacked on another), Alt or not; on another CP (a pin, free or
-    /// wired, ruling 2) it connects unless Alt is held, an external connection point too; elsewhere it places
+    /// wired) it connects unless Alt is held, an external connection point too; elsewhere it places
     /// the point free.
     fn drop_on(&self, cx: &ToolCx<'_>, pos: (i64, i64)) -> DropOn {
         let Some(c) = self.cp_at(pos) else {
@@ -757,7 +757,7 @@ impl IpTool {
         }
         items.push(OverlayItem::Label {
             at: sheet,
-            // W42b: a starred point is labelled as its name's star source, which it is whatever its direction.
+            // A starred point is labelled as its name's star source, which it is whatever its direction.
             text: if self.star {
                 crate::strings::format(key!("ghost-ip-star"), &[&name])
             } else {

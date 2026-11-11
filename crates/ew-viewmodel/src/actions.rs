@@ -572,7 +572,7 @@ fn paste_page(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// An editable page whose type has a connection kind the Wire tool draws (fix round item 1).
+/// An editable page whose type has a connection kind the Wire tool draws.
 fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     m.wire_kind().map(|_| ())
@@ -1414,7 +1414,7 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
     let state = enabled_with(meta, model, &serde_json::Map::new());
     // Paste names the page kind that cannot take it (window check, item 3): the reason is a text with the kind, not a
     // plain key, so the item formats it here.
-    // Enclosure… likewise names Structure node… in its reason when the project has no location (W44.2 F1).
+    // Enclosure… likewise names Structure node… in its reason when the project has no location.
     let paste_reason = match meta.id {
         _ if state.is_err() => None,
         "edit.paste_clip" => model.paste_page_reason(),
@@ -2072,7 +2072,7 @@ mod tests {
         // The as-built parameter of Go to is `text` (the specification's example names `folio` and `cell`).
         assert_eq!(sig("nav.goto"), "text?:text");
         assert_eq!(sig("page.describe"), "folio?:text");
-        // The picker's Enter arms the pick with the same optional parameters as `place.pick` (fix round).
+        // The picker's Enter arms the pick with the same optional parameters as `place.pick`.
         assert_eq!(
             sig("picker.choose"),
             "letter?:text, strip?:text, terminal_designation?:text, designation?:text"

@@ -813,7 +813,7 @@ impl Session {
         self.release_plan_as(&self.submit_origin.clone(), label, integrity, options)
     }
 
-    /// [`Session::release_plan`] for a submission from `origin` (ruling 1: the `HumanOnly` gate is judged per
+    /// [`Session::release_plan`] for a submission from `origin` (the `HumanOnly` gate is judged per
     /// submission, by the origin of the one that asks, never by the session's): the window passes `Origin::Gui` only
     /// for a dialog a person confirmed at the window, and a scripted origin is refused here.
     ///
@@ -913,7 +913,7 @@ impl Session {
         self.release_with(&origin, ctx, integrity, options)
     }
 
-    /// [`Session::release`] for a submission from `origin` (ruling 1: judged per submission; see
+    /// [`Session::release`] for a submission from `origin` (judged per submission; see
     /// [`Session::release_plan_as`]). Every transaction of the release (the freeze, the stamp) is submitted from
     /// `origin`.
     ///
@@ -1435,7 +1435,7 @@ impl Session {
         self.discard_incomplete_release_as(&origin, options)
     }
 
-    /// [`Session::discard_incomplete_release`] for a submission from `origin` (ruling 1: judged per
+    /// [`Session::discard_incomplete_release`] for a submission from `origin` (judged per
     /// submission).
     ///
     /// # Errors
@@ -1531,7 +1531,7 @@ impl Session {
         self.complete_release_as(&origin, integrity, options)
     }
 
-    /// [`Session::complete_release`] for a submission from `origin` (ruling 1: judged per submission); the
+    /// [`Session::complete_release`] for a submission from `origin` (judged per submission); the
     /// stamp is submitted from `origin`.
     ///
     /// # Errors

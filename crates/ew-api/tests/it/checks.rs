@@ -85,7 +85,7 @@ fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_memo() {
 }
 
 /// The oracle is quiet over the full online check and the pre-delivery check of Golden A, re-running one memoised
-/// read in 16 cold per gate (a fixed, deterministic sample; test audit g7). The value equality of the whole report
+/// read in 16 cold per gate (a fixed, deterministic sample). The value equality of the whole report
 /// is the `_memo` half's; every read runs through the oracle in the deep nightly
 /// (`nightly_golden_a_check_oracle_is_quiet_on_every_read`).
 #[test]

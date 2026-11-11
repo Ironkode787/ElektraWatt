@@ -213,7 +213,7 @@ fn incremental_save_equals_full_save() {
 #[test]
 fn every_edit_kind_applies_on_the_fixture() {
     // Guards the property test against edit kinds that silently never apply: over a grid of random numbers
-    // every kind must apply at least a few times. A kind stops at the third apply (test audit g7).
+    // every kind must apply at least a few times. A kind stops at the third apply.
     let (vfs, root) = mem_project(DirSync::Explicit);
     let opened = Store::open(&root, options(&vfs, 1)).expect("opens");
     for kind in 0..6u8 {

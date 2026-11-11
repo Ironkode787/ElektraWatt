@@ -239,7 +239,7 @@ impl Command for ReshapeBox {
                         Some((i, a, b)) if i < new_abs.len() => {
                             let (na, nb) = (new_abs[i], new_abs[(i + 1) % new_abs.len()]);
                             // The anchor: the edge's endpoint whose coordinate along the edge did not change (the
-                            // second when only it kept it), else the first vertex (fix round, item 3).
+                            // second when only it kept it), else the first vertex.
                             let along_x = na.y == nb.y && na.x != nb.x;
                             let along_y = na.x == nb.x && na.y != nb.y;
                             let kept = |o: Pt2, n: Pt2| (along_x && o.x == n.x) || (along_y && o.y == n.y);

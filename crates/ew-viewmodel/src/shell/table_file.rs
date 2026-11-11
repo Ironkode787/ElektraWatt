@@ -4,7 +4,7 @@
 //! A navigator table's export to a file and the round trip's import from one,
 //! in the table mode of the focused navigator, or of the one navigator shown in it.
 //!
-//! **The table** (ruling 3): `Session::table_export` of the view's key, cut to the rows on show (matched by row ID, in
+//! **The table**: `Session::table_export` of the view's key, cut to the rows on show (matched by row ID, in
 //! the order on show) and the columns on show (matched by column key, in their order); the writer keeps the hidden `id`
 //! column and the `_ew` sheets, so the file re-imports. The key is `nav:<word>`, or `nav:strips/<strip>` while every
 //! row on show sits under one strip of the Terminal strips navigator, as `ew export table strips --strip` names it.
@@ -108,8 +108,7 @@ impl ShellModel {
         Ok(kind)
     }
 
-    /// The table key of navigator `kind`'s view, the node keys of its rows on show and its column keys on show (ruling
-    /// 3).
+    /// The table key of navigator `kind`'s view, the node keys of its rows on show and its column keys on show.
     fn shown_table(&self, kind: NavKind) -> Option<(String, Vec<String>, Vec<String>)> {
         let n = self.generic(kind)?;
         let mode = n.table_mode()?;
@@ -141,7 +140,7 @@ impl ShellModel {
         Some((key, row_keys, columns))
     }
 
-    /// The table of navigator `kind`'s view, cut to its rows and columns on show (ruling 3).
+    /// The table of navigator `kind`'s view, cut to its rows and columns on show.
     fn restricted_table(&self, kind: NavKind) -> Result<Table, Outcome> {
         let (Some((key, rows, columns)), Some(project)) = (self.shown_table(kind), &self.project) else {
             return Err(Outcome::refused(key!("reason-table-off")));
@@ -398,7 +397,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// Apply on a table import card (ruling 6): the import's one `fields.set_many`, one undo step; with nothing to
+    /// Apply on a table import card: the import's one `fields.set_many`, one undo step; with nothing to
     /// apply it is refused and the card stays; a project changed since the read is refused in words and the
     /// card stays.
     pub(super) fn apply_table_import_card(&mut self, card: Card) -> Outcome {

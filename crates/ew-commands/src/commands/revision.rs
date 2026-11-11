@@ -189,7 +189,7 @@ impl Command for CreateRevision {
     }
 }
 
-/// EW-REL-004's prevent half for `fields.set label` on the open revision `target` (FX37a; ADR-0009: a prevent rule
+/// EW-REL-004's prevent half for `fields.set label` on the open revision `target` (ADR-0009: a prevent rule
 /// holds for every interactive transaction): the new label is judged as an open revision's among the other revisions.
 /// A value that is not a label is left to the field's own refusal, and a label another revision has to EW-INV-017.
 pub(crate) fn refuse_label_edit_out_of_order(

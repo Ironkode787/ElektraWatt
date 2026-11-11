@@ -7,7 +7,7 @@
 //!   carriers (rails 1.71 m, ducts 3.17 m), the twenty placements; `Session::layout_spaces`.
 //! - `unplaced_is_the_five_devices_each_case_asserted`: `unplaced` is F55, E55, E56, S56, -201U9 and every other
 //!   device of the brief is out for its D8 case; a second space lists only its own location's devices.
-//! - `footprints_in_the_surface_frame`: the footprints of -102G1 and -X1031 (orchestrator ruling 1), the flip, a
+//! - `footprints_in_the_surface_frame`: the footprints of -102G1 and -X1031, the flip, a
 //!   screw part turned 90° on the surface, the unknown square.
 //! - `a_wider_part_widens_the_footprint_and_overlaps`: `part.assign` of a 27 mm part with `rail_offset` (9, 42.5).
 //! - `labels_follow_the_tag_and_no_layout_file_changes`: the two label modes; T55 → T57 on a saved copy of the
@@ -251,7 +251,7 @@ fn unplaced_is_the_five_devices_each_case_asserted() {
     assert_eq!(s.unplaced(space()), unplaced);
 }
 
-/// Orchestrator ruling 1: "LQ-3 footprints are in the surface frame: u = path[0].u + s". -102G1 on R1 is
+/// Footprints are in the surface frame: u = path[0].u + s. -102G1 on R1 is
 /// (101, 675)–(171, 805) mm; -X1031 on R2 is (98.6, 444)–(202.6, 516) mm; the spec's (61, …)–(131, …) and (58.6, …)–
 /// (162.6, …) are the same rectangles as `rail_occupancy` intervals in `s` (R1 and R2 start at u = 40 mm).
 #[test]
@@ -316,7 +316,7 @@ fn placement_id(v: Option<Value>) -> Id<Placement> {
 }
 
 /// LQ-4: -102F1 (A9F78116, 18 mm, centre clip) at s = 158 mm gets a 27 mm test part whose `rail_offset` (9, 42.5) mm is
-/// the 18 mm part's clip point (D7): the footprint widens to s 149–176 mm (u 189–216, ruling 1) at the same pose and
+/// the 18 mm part's clip point (D7): the footprint widens to s 149–176 mm (u 189–216) at the same pose and
 /// overlaps -102F2's interval (167–212).
 #[test]
 fn a_wider_part_widens_the_footprint_and_overlaps() {

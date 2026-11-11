@@ -283,7 +283,7 @@ fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
 }
 
 /// A move within the module re-evaluates the valve: a free coil binds at the new position; a bound coil
-/// keeps its channel, with a notice (owner ruling; EW-PLC-012 reports the deviation from the map,
+/// keeps its channel, with a notice (EW-PLC-012 reports the deviation from the map,
 /// doc 11 §4.2 N-FL-2).
 #[test]
 fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
@@ -951,7 +951,7 @@ fn a_part_without_channels_makes_every_channel_surplus() {
     assert_eq!(e.model().table::<Channel>().iter().count(), 0);
 }
 
-/// Review ruling: a device without the `plc_module` aspect is refused, and so are new parts in
+/// A device without the `plc_module` aspect is refused, and so are new parts in
 /// which `plc_module.part_use` names no entry (the count would fall to 0 and every channel go).
 #[test]
 fn set_module_part_refuses_a_non_module_and_a_dangling_part_use() {

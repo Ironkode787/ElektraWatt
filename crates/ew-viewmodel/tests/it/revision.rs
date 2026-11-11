@@ -77,8 +77,8 @@ fn archive_of(dir: &Path) -> PathBuf {
         .join("V1.0.ewarchive")
 }
 
-/// RU-3, the first step (ruling 1: "the dialogs open, fill, validate and cancel in the headless shell, through
-/// their own actions with parameters"): Approve, Release and Set author open with the gate's result in words, take
+/// RU-3, the first step (the dialogs open, fill, validate and cancel in the headless shell, through
+/// their own actions with parameters): Approve, Release and Set author open with the gate's result in words, take
 /// their fields from parameters, refuse a wrong typed label (whole text, kept in the dialog) and close with `cancel`.
 #[test]
 fn the_revision_dialogs_open_fill_validate_and_cancel_headless() {
@@ -160,7 +160,7 @@ fn the_revision_dialogs_open_fill_validate_and_cancel_headless() {
     s.shutdown();
 }
 
-/// RU-3, the second step (ruling 1: "the scripted confirm is refused, asserted on its whole text"): every
+/// RU-3, the second step (the scripted confirm is refused, asserted on its whole text): every
 /// confirm of a headless shell and of a window a script drives (the visual driver's `ShellModel::new_scripted`) is
 /// refused with the person text and changes nothing.
 #[test]
@@ -219,9 +219,9 @@ fn a_scripted_confirm_is_refused_with_the_whole_text() {
     }
 }
 
-/// RU-3, the completing half (ruling 1: "an ew-viewmodel test proves the completing half (approve, release,
+/// RU-3, the completing half (an ew-viewmodel test proves the completing half (approve, release,
 /// withdraw on `golden/fixtures/release-min`) by confirming the dialog through the same window-input path a click
-/// takes"): the window's shell (`ShellModel::new(Mode::Gui, …)`) dispatches each dialog's confirm button, as the window
+/// takes): the window's shell (`ShellModel::new(Mode::Gui, …)`) dispatches each dialog's confirm button, as the window
 /// does on a click (with the date it reads).
 #[test]
 fn a_person_at_the_window_approves_releases_and_withdraws() {

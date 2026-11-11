@@ -447,8 +447,8 @@ fn change_symbol_previews_and_commits_on_one_representation() {
     assert_eq!(state(&s)["canvas"]["picker"]["mode"], "exchange");
     done(&mut s, "ui.dismiss", json!({}));
     // A symbol of another function definition with no CP matching by designation: the preview is refused because a
-    // symbol CP would draw a function CP by no decision of the map's (ruling 5), which leaves no CP unmapped: the
-    // ghost names none (fix round, item 4), before the dwell too: the map comes from the two shapes.
+    // symbol CP would draw a function CP by no decision of the map's, which leaves no CP unmapped: the
+    // ghost names none, before the dwell too: the map comes from the two shapes.
     done(&mut s, "rep.exchange", json!({"symbol": "ew.iec.heater@qet10"}));
     assert_eq!(s.tool().name(), "exchange");
     assert_eq!(s.tool().state(), "armed");
@@ -1078,7 +1078,7 @@ fn the_wire_buttons_disabled_reason_names_the_page_kind() {
     }
 }
 
-/// A pending keyboard move does not survive Delete or undo (fix round, item 11): Delete cancels the move first and
+/// A pending keyboard move does not survive Delete or undo: Delete cancels the move first and
 /// deletes; two undos bring the representation back with no ghost, no pending move, no preview and no banner.
 #[test]
 fn a_pending_keyboard_move_is_cancelled_by_delete_and_undo() {

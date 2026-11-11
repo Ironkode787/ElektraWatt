@@ -144,7 +144,7 @@ fn golden_with_sheet(t: &Tmp, width_mm: i64, height_mm: i64) -> PathBuf {
     p
 }
 
-/// Cycle-40 review, part 3, finding 1: a page whose raster would exceed 150 million pixels is refused before anything
+/// A page whose raster would exceed 150 million pixels is refused before anything
 /// is allocated (exit 2, the whole text), never an aborted allocation. A sheet tens of metres wide is too large at
 /// every resolution; a 4 m sheet names the highest whole dpi that fits. `export png` refuses it the same way and
 /// writes nothing.

@@ -28,7 +28,7 @@ use crate::theme::{self, Tokens};
 /// after the actions, whose column is as wide as its widest button, so a button never wraps).
 pub const TEXT_SHARE: f32 = 0.15;
 
-/// The share a text column takes at most when its longest word needs more than [`TEXT_SHARE`] (W49.2 F8).
+/// The share a text column takes at most when its longest word needs more than [`TEXT_SHARE`].
 pub const TEXT_SHARE_MAX: f32 = 0.25;
 
 /// The widths of the columns of a table `width` wide (EW term, EPLAN, QET, Definition, Actions): each text column

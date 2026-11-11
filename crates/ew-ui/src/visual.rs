@@ -760,7 +760,7 @@ impl Driver {
                 })
             }
         };
-        // Cycle 41, ruling 1: the visual driver lays out and frames the window, but a script drives it, never a person:
+        // The visual driver lays out and frames the window, but a script drives it, never a person:
         // its shell submits from the script's origin, so every `HumanOnly` confirm (a release, an approval, a purge)
         // is refused while the dialogs still open, fill and frame.
         let mut shell = ShellModel::new_scripted(config.clone());

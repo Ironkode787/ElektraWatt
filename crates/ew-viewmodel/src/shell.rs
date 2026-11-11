@@ -1084,7 +1084,7 @@ impl ShellModel {
 
     /// A window shell that a script drives (the visual driver): it lays out, opens dialogs and frames them
     /// as the window does ([`Mode::Gui`]), but no person is at it, so every `HumanOnly` submission from it is refused
-    /// as a headless one is (ruling 1: a visual script opens, fills and frames the revision dialogs, and
+    /// as a headless one is (a visual script opens, fills and frames the revision dialogs, and
     /// their confirm is refused). Whoever builds the shell decides this; nothing a script sends can change it.
     pub fn new_scripted(config: ShellConfig) -> ShellModel {
         let mut model = ShellModel::new(Mode::Gui, config);
@@ -2479,7 +2479,7 @@ impl ShellModel {
         if let Some(outcome) = self.dismiss_find() {
             return outcome;
         }
-        // FX38d (doc 16a §5.7): Escape with the focus in the Messages pane closes it (the focus returns to the canvas),
+        // Doc 16a §5.7: Escape with the focus in the Messages pane closes it (the focus returns to the canvas),
         // once a tool at work has had its Escape (the Select tool at rest).
         if self.focus == Some(Focus::Navigator(crate::navigators::NavKind::Messages))
             && self.tools.tool.name() == "select"

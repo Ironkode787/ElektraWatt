@@ -218,7 +218,7 @@ fn name_field_placeholder(h: &Harness<'_, App>) -> Option<String> {
         .map(|v| v.to_string())
 }
 
-/// The cycle-41 review (finding 3): a name typed and then erased is cancelled, so the point the next click places
+/// A name typed and then erased is cancelled, so the point the next click places
 /// takes its automatic name, not the last text the field sent ("0").
 #[test]
 fn a_typed_name_erased_from_the_field_is_cancelled() {
@@ -403,7 +403,7 @@ fn a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
 }
 
 /// At the floor the Interruption point row of a placed point's function has no value, so its label
-/// runs across the value column and is whole; a row with a value keeps the label column (M39).
+/// runs across the value column and is whole; a row with a value keeps the label column.
 #[test]
 fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     let tmp = Tmp::new();

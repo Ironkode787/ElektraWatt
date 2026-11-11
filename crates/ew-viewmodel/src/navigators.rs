@@ -634,7 +634,7 @@ pub fn visible_rows(
 }
 
 /// The text of `node`'s cell in column `col` as the window shows it: the cell, except that the Terminal strips table's
-/// Strip column names a strip without a tag yet in words ([`strip_label`]; ruling 7, b#3).
+/// Strip column names a strip without a tag yet in words ([`strip_label`]).
 pub fn cell_text(table: &NavTable, node: &NavNode, col: usize) -> String {
     let cell = node.cells.get(col).map_or("", String::as_str);
     if table.kind == NavKind::Strips && table.columns.get(col).is_some_and(|c| c.key == "strip") {

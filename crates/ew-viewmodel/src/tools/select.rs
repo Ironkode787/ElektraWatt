@@ -147,7 +147,7 @@ pub struct SelectTool {
     /// The grid cursor as the last `CursorMove` placed it.
     cursor: Option<(i64, i64)>,
     /// The selection's generation and the page's revision when a drag or the keyboard move began: a change of
-    /// either makes the pending move stale (fix round, item 11).
+    /// either makes the pending move stale.
     origin: (u64, u64),
     /// The autoconnect proposals of the moved CPs at the current steps, as the describe text names them.
     proposals: Vec<(String, Option<String>)>,
@@ -497,7 +497,7 @@ impl SelectTool {
         })
     }
 
-    /// Whether a pending drag or keyboard move no longer stands (fix round, item 11): the
+    /// Whether a pending drag or keyboard move no longer stands: the
     /// selection changed under it, the page's revision changed (a delete, an undo, a redo, another commit) or one of
     /// its entities is gone (none of the representations, page items and structure boxes holds it). The host then
     /// escapes it, so no stale entity reaches a preview.

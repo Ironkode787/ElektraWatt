@@ -99,7 +99,7 @@ impl Command for CreatePlcConfigProject {
 /// Whether a function on `device` may take a channel of `module`: the device is the module
 /// itself (a pin of the card) or one of its descendants (the coil of a valve on it), following `parent` up at most
 /// 4096 steps. A function on no device is on no module. [`BindChannel`] refuses a binding outside this rule; a host
-/// asks the same question before it commits, so that it can refuse in words (FX38d).
+/// asks the same question before it commits, so that it can refuse in words.
 pub fn is_on_module(
     device: Option<Id<Device>>,
     module: Id<Device>,
@@ -170,7 +170,7 @@ impl Command for BindChannel {
         let mut notices = Vec::new();
         if let Some((function, idx)) = binding {
             let f = tx.require::<Function>(function)?;
-            // owner ruling: the signal CP lies on the module itself (a pin) or on one of its
+            // The signal CP lies on the module itself (a pin) or on one of its
             // descendants (the coil of a valve on the module); anything else is refused
             let inside = is_on_module(f.device, channel.module, |d| {
                 tx.get::<Device>(d).and_then(|x| x.parent)
@@ -182,7 +182,7 @@ impl Command for BindChannel {
                     crate::words::device(tx, channel.module)
                 ));
             }
-            // FX38a: the CPs the function has as the pages draw them (`function_cps`): a black-box card's come from
+            // The CPs the function has as the pages draw them (`function_cps`): a black-box card's come from
             // its part's CP pattern, not from the generic black-box FnDef, which defines none
             let device = match f.device {
                 Some(d) => tx.get::<Device>(d),
@@ -490,7 +490,7 @@ impl Command for SetModulePart {
             return tx.reject(text!("refusal-plc-not-module", crate::words::device(tx, m)));
         };
         if let Some(parts) = &self.parts {
-            // review ruling: a `part_use` that names no entry of the new parts would give a count
+            // A `part_use` that names no entry of the new parts would give a count
             // of 0 and delete every channel; it is refused, the part use is changed first
             if let Some(i) = aspect.part_use.filter(|i| usize::from(*i) >= parts.len()) {
                 return Err(CmdError::invalid_params(

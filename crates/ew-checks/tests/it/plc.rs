@@ -184,13 +184,13 @@ fn ew_plc_001_reports_overlaps_and_word_alignment() {
         "-1U3:0: the address QW1 does not start at a multiple of 2 bytes, the profile's word alignment (an unverified \
          convention)"
     );
-    // QW1 covers Q1.0 … Q2.7: one group of -1U3:0 and the seven other channels of -1U3 (FX38a: once, not seven pairs).
+    // QW1 covers Q1.0 … Q2.7: one group of -1U3:0 and the seven other channels of -1U3 (once, not seven pairs).
     let overlap: Vec<&ew_checks::Finding> = f.iter().filter(|f| f.discriminator == "overlap").collect();
     assert_eq!(overlap.len(), 1, "{f:#?}");
     assert_eq!(overlap[0].targets.len(), 8);
 }
 
-/// FX38a: three channels on one address are one finding with the three channels as targets.
+/// Three channels on one address are one finding with the three channels as targets.
 #[test]
 fn ew_plc_001_reports_a_group_of_three_once() {
     let f = findings_of(&manual_bits(&[(0, 0, 3), (1, 0, 3)]), "EW-PLC-001");
@@ -204,7 +204,7 @@ fn ew_plc_001_reports_a_group_of_three_once() {
     );
 }
 
-/// FX38b: an overlap group is chained, not a clique: `IW0` overlaps `I0.0` and `I1.7`, which do not overlap each
+/// An overlap group is chained, not a clique: `IW0` overlaps `I0.0` and `I1.7`, which do not overlap each
 /// other, and the three are one finding with the three channels as targets (moving `IW0` alone clears it, so the
 /// text asks to change addresses until none overlap, not to move all but one).
 #[test]
@@ -225,7 +225,7 @@ fn ew_plc_001_reports_a_chained_group_once() {
     );
 }
 
-/// FX38a: two overlaps on different addresses are two findings.
+/// Two overlaps on different addresses are two findings.
 #[test]
 fn ew_plc_001_reports_separate_overlaps_apart() {
     let f = findings_of(&manual_bits(&[(0, 0, 3), (1, 0, 5)]), "EW-PLC-001");
@@ -240,7 +240,7 @@ fn ew_plc_001_reports_separate_overlaps_apart() {
     assert!(f.iter().all(|f| f.targets.len() == 2), "{f:#?}");
 }
 
-/// FX38a: a group names five channels and counts the rest ("and 4 more channels"), in the rule text, the en-GB
+/// A group names five channels and counts the rest ("and 4 more channels"), in the rule text, the en-GB
 /// pattern (equal to it, as for EW-POT-001) and the nl-NL pattern; every member stays a target.
 #[test]
 fn ew_plc_001_names_five_channels_and_counts_the_rest() {
@@ -261,7 +261,7 @@ fn ew_plc_001_names_five_channels_and_counts_the_rest() {
     assert_eq!(nl.matches("(Q0.3)").count(), 5, "{nl}");
 }
 
-/// FX38a: EW-PLC-001's text is built in the rule and in the Fluent pattern; the en-GB pattern rendered from the
+/// EW-PLC-001's text is built in the rule and in the Fluent pattern; the en-GB pattern rendered from the
 /// finding's arguments equals the rule's text for a pair, a group of three, the "and N more" cut and the alignment
 /// warning, and the nl-NL pattern renders each.
 #[test]

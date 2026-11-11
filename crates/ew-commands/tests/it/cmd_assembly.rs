@@ -476,7 +476,7 @@ fn bind_channel_rejects_bad_endpoints_and_unknown_channels() {
     not_found(e.execute(&bind(id(0xdead), None)));
 }
 
-/// Owner ruling: a channel binds a CP of its module or of one of the module's descendants.
+/// A channel binds a CP of its module or of one of the module's descendants.
 #[test]
 fn bind_channel_refuses_a_cp_outside_the_module_and_its_children() {
     let mut e = engine(plc_model());
@@ -620,7 +620,7 @@ fn n1_keys_existing_channels_on_module_and_number_not_on_the_id() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Owner rulings of the cycle-16 review: covers and child counters
+// Covers and child counters
 
 /// Only covers that the edit adds are refused; a cover that fell out of scope (its child moved away by
 /// `assembly.attach`) is a check finding, so a later unrelated assembly edit commits.
@@ -718,7 +718,7 @@ fn supply_set_edits_one_member() {
         value,
     };
     assert_eq!(invalid_path(e.execute(&set("bogus", json!(1))), c), "/path");
-    // owner ruling: the electrical members wait for an ADR-0008 amendment
+    // The electrical members wait for an ADR-0008 amendment
     for path in ["phases", "u_nom", "earthing", "origin", "origin.ik_max"] {
         assert_eq!(
             invalid_path(e.execute(&set(path, json!(1))), c),

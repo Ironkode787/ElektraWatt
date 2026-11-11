@@ -114,7 +114,7 @@ pub const ADDRESS_OVERLAP: RuleMeta = RuleMeta {
 };
 
 /// EW-PLC-001: channel addresses of one configuration project whose bit ranges overlap in one area (`IW0` against
-/// `I1.3`; `address_index(cfg)`), one finding per overlap group (FX38a: the connected run of overlapping channels,
+/// `I1.3`; `address_index(cfg)`), one finding per overlap group (the connected run of overlapping channels,
 /// so N channels on one address are one finding, not N(N−1)/2), every member channel as a target, subject the first
 /// in address order, discriminator `overlap`; the text names the first [`SHOWN_OVERLAP_CHANNELS`] channels with
 /// their addresses and counts the rest ("and 7 more channels"); and a word, double-word or long-word address at a
@@ -122,7 +122,7 @@ pub const ADDRESS_OVERLAP: RuleMeta = RuleMeta {
 /// `alignment`. Automatic starts never overlap (A1), so a finding involves a manual value or a part map that gives
 /// two channels one bit.
 ///
-/// A group is chained, not a clique (FX38b): with `IW0`, `I0.0` and `I1.7` only `IW0` overlaps the others, so the
+/// A group is chained, not a clique: with `IW0`, `I0.0` and `I1.7` only `IW0` overlaps the others, so the
 /// text asks to change addresses until none overlap rather than to move all but one. Waiver drift, kept as is: the
 /// group's targets are all its members, so a waiver of an overlap group stops matching when the group's membership
 /// changes (a channel joins or leaves it), and the user waives the new group again.

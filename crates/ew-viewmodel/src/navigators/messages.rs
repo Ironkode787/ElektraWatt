@@ -53,7 +53,7 @@ pub struct MessagesState {
     /// What the shell reads from the online report, once per (project session, revision) and only when asked.
     pub(crate) online: std::cell::RefCell<Option<OnlineFacts>>,
     /// The counts of the last Check project, by (project session, revision): the status bar's findings field while
-    /// the Messages pane is closed and the revision is the checked one (FX38d: its click opens the pane). With them
+    /// the Messages pane is closed and the revision is the checked one (its click opens the pane). With them
     /// the table they were counted from, (the scheme's name, whether it was the migration report): the next check
     /// counts its changes only from a check of the same table.
     pub(crate) checked: Option<((u64, u64), CheckedTable, MessageCounts)>,

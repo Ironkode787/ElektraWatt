@@ -247,7 +247,7 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W31-1: at 1280×800 the bottom dock holds the Messages pane's header, at least three whole rows, and with a
+/// At 1280×800 the bottom dock holds the Messages pane's header, at least three whole rows, and with a
 /// finding selected both its row (of at least two whole rows) and its detail block, with the footer below.
 #[test]
 fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
@@ -306,7 +306,7 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
         footer.top() >= rule.bottom() && footer.bottom() <= 800.0,
         "the footer {footer:?} below the detail {rule:?}"
     );
-    // X32b: the Rule page link stands on the detail's title line, whole above the footer and inside the pane.
+    // The Rule page link stands on the detail's title line, whole above the footer and inside the pane.
     let link = h.get_by_label("Rule page").rect();
     assert!(
         link.top() >= list.bottom() - 0.5 && link.bottom() <= footer.top() + 0.5,
@@ -316,7 +316,7 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
         (link.center().y - rule.center().y).abs() <= 2.0 && link.right() <= list.right() + 0.5,
         "the link {link:?} at the right end of the title line {rule:?}"
     );
-    // C39 (W39c2): the link keeps a gutter from the detail's scroll bar at the pane's right edge.
+    // The link keeps a gutter from the detail's scroll bar at the pane's right edge.
     let tokens = ew_ui::theme::current(&h.ctx);
     assert!(
         link.right() <= list.right() - tokens.space_2,

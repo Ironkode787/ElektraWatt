@@ -51,7 +51,7 @@ pub enum DiskPoll {
 pub struct ExternalApplied {
     /// The generation it brought.
     pub generation: u64,
-    /// The records it took from disk (W49.3b-N3: a colliding record whose every field kept mine is not one).
+    /// The records it took from disk (a colliding record whose every field kept mine is not one).
     pub records: usize,
     /// The colliding records of which the session kept its own version, taking nothing of theirs.
     pub kept: usize,

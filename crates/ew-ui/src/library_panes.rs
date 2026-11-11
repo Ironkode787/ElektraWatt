@@ -135,8 +135,8 @@ fn copy_detail(ui: &mut Ui, d: &ew_viewmodel::ew_api::output::LibraryCopyDetail)
 /// The thumbnail box's height in points; its width is the detail block's.
 const THUMBNAIL_HEIGHT: f32 = 64.0;
 
-/// A variable line of the detail (`<name> (<type>)`, maybe with ` = <default>`) with its type in words (W40a 5e:
-/// "pt (process tag)"); a line of another shape as it is.
+/// A variable line of the detail (`<name> (<type>)`, maybe with ` = <default>`) with its type in words
+/// ("pt (process tag)"); a line of another shape as it is.
 fn variable_line(item: &str) -> String {
     if let Some((name, rest)) = item.split_once(" (")
         && let Some((ty, tail)) = rest.split_once(')')
@@ -146,7 +146,7 @@ fn variable_line(item: &str) -> String {
     item.to_owned()
 }
 
-/// The thumbnail's height in a detail region `cap` high whose lists take `lists` (W40a 5f): [`THUMBNAIL_HEIGHT`]
+/// The thumbnail's height in a detail region `cap` high whose lists take `lists`: [`THUMBNAIL_HEIGHT`]
 /// when both fit, else what the lists leave, never under `floor` (the lists then scroll).
 fn thumbnail_height(cap: f32, lists: f32, floor: f32) -> f32 {
     (cap - lists).clamp(floor.min(THUMBNAIL_HEIGHT), THUMBNAIL_HEIGHT)
@@ -363,7 +363,7 @@ fn macro_detail(
 
 #[cfg(test)]
 mod thumbnail_tests {
-    /// W40a 5f: the thumbnail keeps its height where the lists fit, gives up height at the floor down to the floor.
+    /// The thumbnail keeps its height where the lists fit, gives up height at the floor down to the floor.
     #[test]
     fn the_thumbnail_yields_to_the_lists() {
         use super::{THUMBNAIL_HEIGHT, thumbnail_height};
@@ -372,7 +372,7 @@ mod thumbnail_tests {
         assert_eq!(thumbnail_height(150.0, 300.0, 28.0), 28.0);
     }
 
-    /// W40a 5e: a variable's type in words on the detail card.
+    /// A variable's type in words on the detail card.
     #[test]
     fn a_variable_line_names_its_type_in_words() {
         assert_eq!(super::variable_line("pt (process_tag)"), "pt (process tag)");

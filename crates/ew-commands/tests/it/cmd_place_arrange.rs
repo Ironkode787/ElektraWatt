@@ -1059,7 +1059,7 @@ fn move_by_steps_keeps_the_shape_of_a_route_whose_both_ends_move() {
 /// A symbol of FnDef `ITEM_X` whose CP 0 lies one grid step less than 10 mm below its insertion point.
 const SYM_OFFSET: Id<SymbolDef> = id(0x6c);
 
-/// Two end CPs on one coordinate whose representations' y indices differ in `k mod 3` (fix round, item 10):
+/// Two end CPs on one coordinate whose representations' y indices differ in `k mod 3`:
 /// `REP_102F2` (SYM_TWO, CP 1 at 10 mm) at y index 6 and `REP_T1` (SYM_OFFSET, CP 0 at 10 mm − one step) at y
 /// index 7 put both CPs on y = at(6) + 10 mm; a horizontal wire joins them.
 fn level_model() -> (Model, Pt2, Pt2) {
@@ -1546,7 +1546,7 @@ fn exchange_with_an_explicit_pin_map_stores_it_and_moves_the_routes() {
         dog_leg(pt(l.x.0 + MM10, l.y.0), pt(8 * G, l.y.0 + MM10), true)
     );
     // A partial map: the symbol CP it leaves out would draw its index default, function CP 1, by no decision of
-    // the map's: refused as the derived map refuses it (fix round, item 5), and nothing is written.
+    // the map's: refused as the derived map refuses it, and nothing is written.
     let mut e = engine(exchange_model(|_| {}));
     let before = lines(e.model());
     let cmd = ExchangeSymbol {

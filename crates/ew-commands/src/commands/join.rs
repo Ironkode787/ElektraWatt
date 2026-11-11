@@ -39,7 +39,7 @@ use crate::tx::TxBuilder;
 /// it is removed in the same transaction, with the old function in the slot case. What the removed records carry
 /// besides that (the device's function text, process tag, structure, frozen tag and its other non-default members;
 /// in the slot case the old function's CP overrides and its other own members) goes with them: the join goes ahead
-/// and the outcome's notices name each dropped member (FX37a). A main function never lands on a
+/// and the outcome's notices name each dropped member. A main function never lands on a
 /// device that has one (EW-INV-002): the moved function is auxiliary or fills a slot. Refused, with the pointer: a
 /// representation that draws not exactly one normal function of a device, or whose device is a terminal or a strip,
 /// has another function, a part or another representation, or takes part in a device link, which the join would lose

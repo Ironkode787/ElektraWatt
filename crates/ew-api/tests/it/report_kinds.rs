@@ -17,7 +17,7 @@
 //! - "`member` = `report block <first folio> params.<key>` ..., `detail` the lane's sentence".
 //! - "`row_export` replaces the `pages` cell of every data row of a `revision_overview` row set with it,
 //!   for `--block` and `--kind` alike".
-//! - "`expected/csv/io_list.csv` ...: the default `io_list` rows of Golden A (28 data rows, C42's PX-1),
+//! - "`expected/csv/io_list.csv` ...: the default `io_list` rows of Golden A (28 data rows),
 //!   written by `--kind io_list`".
 
 use std::collections::BTreeSet;
@@ -84,7 +84,7 @@ fn data(csv: &str) -> Vec<Vec<String>> {
         .collect()
 }
 
-/// RK-1, RK-2, RK-7 and ruling 10: each kind CSV equals the export by kind on Golden A; twice-run equal. A kind the
+/// Each kind CSV equals the export by kind on Golden A; twice-run equal. A kind the
 /// export derives has its file.
 #[test]
 fn the_kind_csvs_equal_the_export_by_kind() {
@@ -172,7 +172,7 @@ fn rk1_the_device_list_lists_the_68_devices_of_folio_910() {
     }
 }
 
-/// RK-2 (FR-REP-010, ruling 1): the three strips' rows whole, in `terminal_diagram`'s default strip order (D6: the
+/// FR-REP-010: the three strips' rows whole, in `terminal_diagram`'s default strip order (the
 /// natural order of the printed tag, so "-X1031" and "-X1032" before "1X1").
 #[test]
 fn rk2_the_terminal_overview_lists_the_three_strips() {
@@ -349,7 +349,7 @@ fn rk2_a_reserved_terminal_counts_in_other_and_a_renumber_keeps_the_row() {
     assert_eq!(row_texts(&q, &set, renamed)[0], "-X1041");
 }
 
-/// RK-3 (ruling 4): the four refusals of D4 as `RowsError::to_string()`, whole.
+/// The four refusals as `RowsError::to_string()`, whole.
 #[test]
 fn rk3_the_refusals_of_the_export_by_kind() {
     let s = common::golden_session();
@@ -388,7 +388,7 @@ fn rk3_the_refusals_of_the_export_by_kind() {
     );
 }
 
-/// RK-3 (ruling 5): every registered kind but `terminal_diagram` exports a header line without a panic.
+/// Every registered kind but `terminal_diagram` exports a header line without a panic.
 #[test]
 fn rk3_every_registered_kind_but_terminal_diagram_exports() {
     let s = common::golden_session();
@@ -410,7 +410,7 @@ fn rk3_the_parts_summary_kind_is_the_component_bom() {
     assert_eq!(export(&q, "parts_summary").csv, committed);
 }
 
-/// RK-6 (ruling 7): the revision overview's CSV prints the changed pages as folio 911 does: V1.0 empty, V2.0
+/// The revision overview's CSV prints the changed pages as folio 911 does: V1.0 empty, V2.0
 /// "101, 106"; the export by kind writes the same rows.
 #[test]
 fn rk6_the_revision_overview_csv_prints_the_changed_pages() {
@@ -472,7 +472,7 @@ fn notes_of(s: &Session, block: Id<ReportBlock>) -> (usize, Vec<DeriveNote>) {
     (rows, notes)
 }
 
-/// RK-5 (ruling 6): `params.mode` "assembly" gives the assembly rows; "Assembly", 3 and an undeclared key give the
+/// `params.mode` "assembly" gives the assembly rows; "Assembly", 3 and an undeclared key give the
 /// component rows and exactly one note naming the block in words and the key.
 #[test]
 fn rk5_the_parts_summary_mode_parameter() {

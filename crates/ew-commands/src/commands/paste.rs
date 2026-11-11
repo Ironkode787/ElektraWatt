@@ -1468,7 +1468,7 @@ mod tests {
     /// resolves. Derived from doc 03: a representation's functions and symbol copy, a function's FnDef copy, a
     /// device's part copies, a connection's ends, a terminal's strip and a potential definition's endpoint are
     /// mandatory; a device's parent, a connection's `overrides.wire_part`, the `external` references are optional.
-    /// The rows the specification does not name are this lane's (ruling 3 of the report): the record's own page
+    /// The other rows are: the record's own page
     /// (retargeted, never unresolved), the structure slots (cleared: the record inherits), an import lineage (`None`:
     /// the paste drops `source_ref`, a pasted record is new, not imported), a strip accessory's part (mandatory like a part use), an assembly configuration's part and covers (optional), the PLC
     /// station's configuration project (mandatory: copy drops the aspect), a cable core or bus cable (mandatory and

@@ -203,7 +203,7 @@ mod tests {
     }
 
     /// A check run's project is a copy in `work/`: a stateless call deletes `work/` and puts the copy back, so the
-    /// check prelude's `file.open dir=project` finds it (fix round).
+    /// check prelude's `file.open dir=project` finds it.
     #[test]
     fn a_check_run_keeps_its_project_across_the_replays() {
         let tmp = Tmp::new("stateless-check");

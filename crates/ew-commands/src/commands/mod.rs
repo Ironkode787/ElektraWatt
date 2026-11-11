@@ -13,7 +13,7 @@
 //! class `Edit` except `project.checks.set`, `check.waive` and `check.unwaive`, which are `HumanOnly` (ADR-0008 amendment
 //! 3: they decide a check outcome), `revision.set_author`, `revision.withdraw`, `revision.approve` and
 //! `revision.release`, which are `HumanOnly` because they decide the four-eyes sign-off and the release history,
-//! and `project.assets.purge`, which is `HumanOnly` because deleted files do not come back (owner ruling, 2026-10-23).
+//! and `project.assets.purge`, which is `HumanOnly` because deleted files do not come back.
 //! `external.apply` is of exposure class `Internal` and stability `Internal`: only the session's external-change apply
 //! submits it, from the origin `external`.
 

@@ -8,7 +8,7 @@
 //! the summary line under it (records, tags, cross-reference texts, pages; an import's created and skipped counts);
 //! then the lists **Entities, Tags, Xrefs, Pages** as collapsible sections with a chevron and a count badge, each
 //! virtualised and at most `size.preview_list` rows high before it scrolls: the one that carries the change first and
-//! open (Tags for a renumber, Entities otherwise), then the others closed (W31-2), Xrefs and Pages last. List rows are
+//! open (Tags for a renumber, Entities otherwise), then the others closed, Xrefs and Pages last. List rows are
 //! `size.row` in `type.small`: an entity row shows the change word in `color.text.tertiary` in a 64-px column, the
 //! kind in `color.text.secondary`, the label in `color.text.primary` and the changed fields in tertiary; a tag or
 //! cross-reference row "old → new" with the arrow in tertiary, a cross-reference with its folio first. Without a card
@@ -61,7 +61,7 @@ fn list(ui: &mut Ui, title: &str, rows: &[Row], open: bool) -> f32 {
             ui.spacing_mut().item_spacing.y = 0.0;
             for r in &rows[range] {
                 let width = ui.available_width();
-                // Left-aligned in the row (W31-2: `add_sized` centred them).
+                // Left-aligned in the row (`add_sized` centred them).
                 ui.allocate_ui_with_layout(
                     egui::vec2(width, row),
                     Layout::left_to_right(Align::Center),
@@ -184,7 +184,7 @@ fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
     }
 }
 
-/// FT-396: the paste choice card's copies ("FX-MCB-1PN (Fixture): this project 1.1.0, pasted
+/// The paste choice card's copies ("FX-MCB-1PN (Fixture): this project 1.1.0, pasted
 /// 1.0.0, patch"), one wrapped `type.small` label each, then its two choices as Secondary buttons, Use the project's
 /// copy first (`paste.resolve`); a disabled choice keeps its place and says why in its tooltip and under the buttons.
 fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &mut Vec<Event>) {
@@ -302,7 +302,7 @@ fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &
 }
 
 /// A macro card's ad-hoc values, one row per variable: the label "<name> (<type in words>)" in `type.small`
-/// `color.text.secondary` in a column as wide as the widest label (at most half the row), the field beside it as wide as a form dialog's field (W40a item 4: the row is a form dialog's body,
+/// `color.text.secondary` in a column as wide as the widest label (at most half the row), the field beside it as wide as a form dialog's field (the row is a form dialog's body,
 /// [`crate::dialog::form_width`], which grows with the window; never the whole preview panel), with the value set's
 /// (or the default's) value as its placeholder, and the command's refusal of a typed value under the field at the
 /// field's width in `color.error`. The field keeps what is typed while it has the focus and sends `macros.value` when
@@ -413,7 +413,7 @@ fn macro_values(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: 
     }
 }
 
-/// The macro card's value columns (W40a item 4): the label column as wide as the widest label, at most half the
+/// The macro card's value columns: the label column as wide as the widest label, at most half the
 /// row; the field as wide as a form dialog's field, the rest of a form dialog's
 /// body ([`crate::dialog::form_width`] less its margins, which grows with the window), never wider than the panel.
 fn value_columns(t: &Tokens, widest: f32, window: f32, available: f32) -> (f32, f32) {
@@ -667,7 +667,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             .id_salt("preview-lists")
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                // W31-2: the list that carries the change comes first and open (Tags for a renumber, the changed
+                // The list that carries the change comes first and open (Tags for a renumber, the changed
                 // entities otherwise); the others follow, closed.
                 let renumber = card.preview.name.ends_with("renumber") && !tags.is_empty();
                 let mut closed = 0.0;
@@ -682,7 +682,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 closed += list(ui, strings::text(key!("preview-pages")), &pages, false);
                 closed
             });
-        // Window check F2 (doc 16a §6.23, P2): while the lists are scrolled, a 1-px `color.border.subtle` edge at the
+        // While the lists (doc 16a §6.23) are scrolled, a 1-px `color.border.subtle` edge at the
         // top of their area parts the rows passing under it from the fixed summary line.
         if shown.state.clamped_offset().y > 0.0 {
             ui.painter().hline(
@@ -702,7 +702,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
 mod value_column_tests {
     use super::*;
 
-    /// W40a item 4: the field is a form dialog's field: it grows with the window, never fills a wide panel, and the
+    /// The field is a form dialog's field: it grows with the window, never fills a wide panel, and the
     /// label column follows its widest label.
     #[test]
     fn the_value_field_is_as_wide_as_a_form_field() {

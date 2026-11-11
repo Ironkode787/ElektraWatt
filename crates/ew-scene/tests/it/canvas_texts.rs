@@ -446,7 +446,7 @@ fn the_labels_layer_reports_a_moved_tag_where_it_prints() {
     );
 }
 
-/// Cycle 39 (window check): a cable marker's tag, wider than its mark, used to print centred on it with the mark's
+/// A cable marker's tag, wider than its mark, used to print centred on it with the mark's
 /// sides through the text ("-1[06W]1"); it stands clear of the mark, beside it on the right, reading horizontally.
 #[test]
 fn a_cable_tag_stands_clear_of_its_mark() {

@@ -1127,7 +1127,7 @@ fn export_errors() {
             "unknown format `svg` (csv, xlsx, pdf)"
         )
     );
-    // Cycle-40 review, part 3, finding 5: the row exports write rows, and the refusal points to the report PDF.
+    // The row exports write rows, and the refusal points to the report PDF.
     for what in ["bom", "cables", "wires", "terminals"] {
         assert_eq!(
             p(&["export", what, "--format", "pdf"]),

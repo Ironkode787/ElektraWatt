@@ -172,7 +172,7 @@ impl ShellModel {
     }
 
     /// The line and sentence of the Unplaced devices navigator's empty state (doc 16a §6.17): without a layout
-    /// space "No panel layout yet" (ruling 3: no action in this part); with every device placed "All devices placed"
+    /// space "No panel layout yet" (no action in this part); with every device placed "All devices placed"
     /// and "Every device of +J-E-2416 is placed." (the table's locations, in order).
     pub fn unplaced_empty(&self) -> (String, String) {
         let locations: Vec<&str> = self
@@ -201,7 +201,7 @@ impl ShellModel {
     }
 
     /// The line and sentence of the Terminal strips table's empty state when the project has strips but no terminal,
-    /// or the strip editor shows a strip without one (ruling 7: the table's rows are terminals), "No terminals
+    /// or the strip editor shows a strip without one (the table's rows are terminals), "No terminals
     /// yet" and how to place one; `None` otherwise.
     pub fn strips_empty(&self) -> Option<(String, String)> {
         let n = self.navs.get(&NavKind::Strips)?;
@@ -1071,7 +1071,7 @@ impl ShellModel {
                 if let Some(n) = self.generic_mut(kind) {
                     n.filter = t.to_owned();
                     // A filter of the user's own, or the scope's Clear (an empty filter), ends the strip editor's
-                    // scope (ruling 7, b#2).
+                    // scope.
                     n.scope = None;
                 }
                 Outcome::Done
@@ -1729,7 +1729,7 @@ fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usiz
     }
 }
 
-/// A navigator table's texts in the UI language (ruling 1: `ew-api` gives the codes, the shell the words),
+/// A navigator table's texts in the UI language (`ew-api` gives the codes, the shell the words),
 /// once per fetch: the column headers by their `column-<navigator>-<key>` text, else `column-<key>` (the
 /// strip editor's columns with them), an accessory row's kind, the Messages pane's group headers
 /// (`messages-group-<severity>`) and, in a language other than en-GB, each rule group's title and each finding's

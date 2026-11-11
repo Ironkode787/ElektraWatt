@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The history panel (D13; FR-UI-023) and its Show changes popup, in the design language of
-//! doc 16a §6.24 (DK11, DK12; lane K32).
+//! doc 16a §6.24.
 //!
 //! **The panel** lists the shell's history lines newest first ([`ew_viewmodel::undo_history::HistoryPane::lines`]).
 //! The header ("12 steps · cursor at 9", then "oldest kept: step `<k>` · `<a>` MB of `<b>` MB") is in
@@ -355,7 +355,7 @@ fn entry_row(ui: &mut Ui, t: &Tokens, e: &Entry<'_>) -> EntryOut {
         if !on_show {
             actions.set_opacity(0.0);
         }
-        // W31-7: `history.undo_to` redoes up to an undone entry (§8.4), so its row offers Redo to here; the others keep
+        // `history.undo_to` redoes up to an undone entry (§8.4), so its row offers Redo to here; the others keep
         // Undo to here (§8.8).
         let (walk, walk_icon) = match e.state {
             EntryState::Redo => (key!("history-redo-to"), IconId::arrow_forward_up),
@@ -436,7 +436,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
             line
         })
         .collect();
-    // C40: the popup is as wide as its longest line, from `size.dialog.small` up to a share of the window
+    // The popup is as wide as its longest line, from `size.dialog.small` up to a share of the window
     // (`dialog::small_width`); past that a line elides. A short list keeps the small width, nothing is stretched.
     let font = theme::font(&t.type_body);
     let longest = lines
@@ -502,7 +502,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
 mod tests {
     use super::*;
 
-    /// DK11: the state icons and the undone tone of doc 16a §6.24 in every theme.
+    /// The state icons and the undone tone of doc 16a §6.24 in every theme.
     #[test]
     fn state_icons_and_the_undone_tone() {
         use crate::theme::{Density, Theme, tokens};

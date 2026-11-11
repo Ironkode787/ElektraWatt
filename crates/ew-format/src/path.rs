@@ -184,7 +184,7 @@ impl FilePath {
     /// here: `<dir>/<stem>.unlisted-<generation>.<ext>`, with `-<n>` after the generation for `n > 0` when
     /// that name is taken. [`classify`] reports every such name as [`PathClass::Stray`], so the writer never
     /// reads, rewrites or deletes it, and every open reports it as EW-CORE-004 until the user merges or
-    /// deletes it (review, owner ruling: never rename over a file that is not in the baseline).
+    /// deletes it (never rename over a file that is not in the baseline).
     ///
     /// ```
     /// use ew_format::{FilePath, PathClass, classify};

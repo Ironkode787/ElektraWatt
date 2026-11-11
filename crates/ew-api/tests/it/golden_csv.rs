@@ -328,7 +328,7 @@ fn list(cps: &[ew_derive::Cp]) -> String {
     format!("[{}]", items.join(", "))
 }
 
-/// Cycle-40 review, part 4, finding 5: the importer's copy of the carrier-path rule agrees with
+/// The importer's copy of the carrier-path rule agrees with
 /// `ew-derive`'s `check_path` on every case (the importer may not depend on `ew-derive`, so the copy stays).
 #[test]
 fn the_importer_and_the_derivation_agree_on_carrier_paths() {

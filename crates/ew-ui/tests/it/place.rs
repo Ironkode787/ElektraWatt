@@ -45,7 +45,7 @@ fn a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the_dwe
     assert!(format!("{ghost:?}").contains("terminal"), "{ghost:?}");
     // The window's dwell timer previews the command after 80 ms of rest; the ghost then shows the predicted tag.
     // The rest is the action `canvas.dwell` (D11): dispatched as the window's dwell timer dispatches it, so the test
-    // reads no clock and sleeps nowhere (fix round, item 6).
+    // reads no clock and sleeps nowhere.
     dispatch(&mut h, "canvas.dwell", json!({"ms": 80}));
     settle(&mut h);
     let Some(ew_ui::ew_viewmodel::tools::Ghost::Place { tag: Some(tag), .. }) =
@@ -245,7 +245,7 @@ fn double_click(h: &mut Harness<'_, App>, pos: Pos2) {
     settle(h);
 }
 
-/// The cycle-38 double-click rule: the Place tool defines no finish on a double click, so two quick clicks are two
+/// The double-click rule: the Place tool defines no finish on a double click, so two quick clicks are two
 /// plain presses (the window used to turn the second into `tool.finish`). The second lands exactly on the
 /// first's twin (same symbol, point and orientation) and is refused in words; one grid step away places again.
 #[test]

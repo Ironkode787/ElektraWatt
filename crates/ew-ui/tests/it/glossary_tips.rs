@@ -197,7 +197,7 @@ fn a_cased_strokes_casing_is_painted_first_one_pixel_wider_on_each_side() {
     );
 }
 
-/// W49.2 F8: at the 1280 × 800 floor in Dutch the term column is as wide as "Onderbrekingspunt" needs, so the term
+/// At the 1280 × 800 floor in Dutch the term column is as wide as "Onderbrekingspunt" needs, so the term
 /// wraps between words, never inside one; the pane's rows fit.
 #[test]
 fn f8_the_dutch_term_keeps_its_longest_word_whole_at_the_floor() {
@@ -247,7 +247,7 @@ fn f8_the_dutch_term_keeps_its_longest_word_whole_at_the_floor() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W49.2 F9: a WH and a GNYE wire on one path are drawn side by side, both colours on show; each code on its own.
+/// A WH and a GNYE wire on one path are drawn side by side, both colours on show; each code on its own.
 #[test]
 fn f9_two_wires_on_one_path_are_drawn_side_by_side() {
     use ew_ui::ew_viewmodel::wire_colours::{LANE_PT, WireStroke, assign_lanes};

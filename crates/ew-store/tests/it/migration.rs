@@ -22,7 +22,7 @@ use ew_store::ew_format::{FindingKind, hash_text, sha256};
 use ew_store::mem::{DirSync, MemVfs};
 use ew_store::{Access, Changes, OpenMode, Opened, Store, Vfs, join};
 
-/// The golden fixture's revisions as the cycle-16 build wrote them (an unknown kind: byte-wise key order).
+/// The golden fixture's revisions as an earlier build wrote them (an unknown kind: byte-wise key order).
 const OLD: &str = concat!(
     r#"{"$k":"revision","date":"2025-03-03","description":"Initial issue","id":"4a41f813-2160-5abe-89f2-a3f019bf4268","label":"V1.0","source_ref":{"key":"revisions|V1.0","lineage":"763dd2f1-b9b8-558e-8d55-97d7304a4929"},"state":"released"}"#,
     "\n",

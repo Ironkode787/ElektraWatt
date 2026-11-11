@@ -1209,7 +1209,7 @@ impl Session {
         }
     }
 
-    /// The project-integrity check of `ew check --integrity` (FR-CHK-012; ruling 5):
+    /// The project-integrity check of `ew check --integrity` (FR-CHK-012):
     /// the store's integrity findings of opening it (`opened`) and every registered rule whose ID lies in EW-CORE-001
     /// to -019 (EW-CORE-011's conflict records and EW-CORE-013's collisions after a merge), in release mode, with merge
     /// evidence as [`Session::check`] takes it. Its exit code is 1 on any error.

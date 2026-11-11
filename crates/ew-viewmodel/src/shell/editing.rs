@@ -1639,7 +1639,7 @@ impl ShellModel {
     }
 
     /// A pending drag or keyboard move whose selection changed or whose representations are gone is escaped at the end
-    /// of the dispatch that changed them (fix round, item 11): its ghost, readout and preview go.
+    /// of the dispatch that changed them: its ghost, readout and preview go.
     fn cancel_stale_move(&mut self) {
         let stale = self
             .with_tool(|t, cx| {
@@ -1746,7 +1746,7 @@ impl ShellModel {
         };
         let Some(c) = self.canvas() else { return };
         let v = variant.to_string();
-        // The label without its variant part (`Variant A · `, W49.3b-F7): the announcement names the variant itself.
+        // The label without its variant part (`Variant A · `): the announcement names the variant itself.
         let prefix = strings::format(key!("place-variant"), &[&v, ""]);
         let label = self
             .tools

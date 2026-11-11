@@ -306,7 +306,7 @@ mod tests {
         );
     }
 
-    /// Cycle-40 review, part 3, finding 4: two folios whose file names are the same (after `_` for other characters,
+    /// Two folios whose file names are the same (after `_` for other characters,
     /// and ignoring case) are refused naming both folios and the file; distinct names pass.
     #[test]
     fn two_folios_with_one_file_name_are_refused() {

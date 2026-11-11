@@ -151,7 +151,7 @@ fn the_iec_profile_changes_the_notation_only() {
     assert!(format!("{err}").contains("iec-61131-3"), "{err}");
 }
 
-/// Doc 10 §2.5 (FX38a): under the IEC profile a channel address typed without its size (`%Q20.1`) is the bit
+/// Doc 10 §2.5: under the IEC profile a channel address typed without its size (`%Q20.1`) is the bit
 /// `%QX20.1`; a unit address without its size (`%Q20`) is refused with the profile's example.
 #[test]
 fn the_iec_profile_reads_a_bit_without_its_size() {

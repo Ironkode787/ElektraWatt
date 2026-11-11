@@ -154,7 +154,7 @@ impl PartsMap {
         self.column_map().is_ok()
     }
 
-    /// A member in words, as the mapping card shows it (window check W37; doc 16a P2): "Manufacturer",
+    /// A member in words, as the mapping card shows it (doc 16a P2): "Manufacturer",
     /// "Part number", "Description (de)", "Technical data: Nennstrom", "Free property: Farbe", with `header` the
     /// column's header. A name that is no member is shown as it is. Describe text and scripts keep the member names.
     pub fn member_text(member: &str, header: &str) -> String {

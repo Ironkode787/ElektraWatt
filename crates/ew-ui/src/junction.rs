@@ -58,7 +58,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         .anchor(Align2::CENTER_TOP, [0.0, 60.0])
         .collapsible(false)
         .resizable(false)
-        // C40: kept at `size.dialog.small` on purpose: two button rows and a short member list, which a
+        // Kept at `size.dialog.small` on purpose: two button rows and a short member list, which a
         // wider window would only pad with empty space.
         .default_width(crate::theme::current(ctx).size_dialog_small)
         .show(ctx, |ui| {

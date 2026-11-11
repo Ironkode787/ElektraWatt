@@ -31,7 +31,7 @@ fn click(kind: StatusKind) -> Option<Event> {
     }
 }
 
-/// The icon before a field's text (doc 16a §5.8), if any. X32b: one rule for the save state, every state has its icon
+/// The icon before a field's text (doc 16a §5.8), if any. One rule for the save state, every state has its icon
 /// and the icon takes the field's colour: Saved a check in `color.success`, Unsaved changes a dot in
 /// `color.text.primary`, Read-only a lock in `color.warning`.
 fn icon(field: &StatusField) -> Option<&'static str> {

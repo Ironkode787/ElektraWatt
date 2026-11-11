@@ -125,7 +125,7 @@ fn makers(e: &Engine) -> usize {
     e.model().table::<LibCopy<Manufacturer>>().len()
 }
 
-/// Review C35 m4: only the manufacturer copies an inserted part copy names are inserted; an import whose part copies
+/// Only the manufacturer copies an inserted part copy names are inserted; an import whose part copies
 /// are all skipped inserts none and is an empty transaction (no undo step).
 #[test]
 fn only_the_manufacturers_of_inserted_parts_are_inserted() {

@@ -494,7 +494,7 @@ impl Card {
         }
     }
 
-    /// The lead line of a failed card (FX38d; doc 16a P3, words not IDs) and the rule code that may follow it
+    /// The lead line of a failed card (doc 16a P3, words not IDs) and the rule code that may follow it
     /// in secondary text; `None` while the preview stands. A macro card leads with a sentence that says what blocks
     /// the apply and how many conflicts its list shows (the list is the detail, so the lead never repeats a row); the
     /// other cards keep `card-failed` with the command's message.
@@ -1716,7 +1716,7 @@ mod tests {
         assert!(strings::set_locale("en"));
     }
 
-    /// FX38d: a refusal's leading rule code is split off for the secondary text; any other message stays whole.
+    /// A refusal's leading rule code is split off for the secondary text; any other message stays whole.
     #[test]
     fn a_rule_code_is_split_off_the_message() {
         assert_eq!(

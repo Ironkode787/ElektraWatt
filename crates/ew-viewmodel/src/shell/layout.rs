@@ -294,7 +294,7 @@ impl ShellModel {
         self.send_tool(&CanvasEvent::CursorMove { at })
     }
 
-    /// `layout.next` (Tab on a panel page) and `layout.previous` (Shift+Tab, ruling 5): the next or previous placement
+    /// `layout.next` (Tab on a panel page) and `layout.previous` (Shift+Tab): the next or previous placement
     /// of the focused rail (the selected placement's rail, else Rail 1) in carrier order (by `s0`), wrapping.
     pub(crate) fn act_layout_step(&mut self, step: i64) -> Outcome {
         let Some(panel) = self.panel_tables() else {
@@ -405,7 +405,7 @@ impl ShellModel {
 
     /// `layout.rotate` (R) and `layout.flip` (X) on a panel page: to a floating ghost, its turn; to the selected
     /// placement, R turns it 90° on the plate and X turns it 180° on a rail (`layout.move`); R on a rail and X on the
-    /// plate are refused in words with the keys of the keymap (ruling 7).
+    /// plate are refused in words with the keys of the keymap.
     pub(crate) fn act_layout_turn(&mut self, key: ToolKey) -> Outcome {
         if matches!(self.tools.tool.ghost(), Some(crate::tools::Ghost::Layout { .. })) {
             return self.send_tool(&CanvasEvent::Key(key));
@@ -432,7 +432,7 @@ impl ShellModel {
         self.commit_layout("layout.move", cmd)
     }
 
-    /// The words of a refused turn (R on a rail, X on the plate) with the keys of the keymap (ruling 7): the text of
+    /// The words of a refused turn (R on a rail, X on the plate) with the keys of the keymap: the text of
     /// `reason-layout-turn` wherever it shows, from `layout.rotate` and `layout.flip` here and from the layout place
     /// and Select tools' turn keys during a drag ([`ShellModel::refusal_text`]).
     pub(super) fn layout_turn_refusal(&self) -> String {
@@ -520,7 +520,7 @@ fn blocked_text(panel: &PanelTables, by: Option<Uuid>) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Setting the panel up from the window (§8; D10, D11; rulings 7, 8).
+// Setting the panel up from the window.
 
 /// A command's refusal as a sentence under a set-up dialog's fields: without the command's name before it
 /// (`layout.enclosure.create_from_part: location J-E-2416 already has …` reads "Location J-E-2416 already has …."),
@@ -541,7 +541,7 @@ fn in_words(message: &str) -> String {
     out
 }
 
-/// The orders of the Auto-fill rail dialog, `(value, words)` (ruling 7: a choice list built at run time).
+/// The orders of the Auto-fill rail dialog, `(value, words)` (a choice list built at run time).
 fn fill_orders() -> Vec<(String, String)> {
     vec![
         (
@@ -724,13 +724,13 @@ impl ShellModel {
 
     /// `layout.enclosure_new {location, part}` (Project ▸ Enclosure…, D7, D10): `layout.enclosure.create_from_part` of
     /// the location (its code or ID) with the enclosure part (its number or ID: a project copy, or an installed
-    /// library's part, embedded through `copies` with its plate part, ruling 8), the focused page's function as the
+    /// library's part, embedded through `copies` with its plate part), the focused page's function as the
     /// enclosure device's. In the window without both the Create enclosure dialog opens (the focused page's location
     /// and the first part chosen); a refusal stays under its fields.
     pub(crate) fn act_layout_enclosure_new(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "layout.enclosure_new";
         // A project without a location has nowhere to put an enclosure: the menu disables the entry with this text
-        // (W44.2 F1), and the action refuses with it.
+        // and the action refuses with it.
         if let Some(reason) = self.enclosure_new_reason() {
             self.tools.notice = Some(reason);
             self.tools.notice_sticky = false;
@@ -747,7 +747,7 @@ impl ShellModel {
             let missing = if location.is_none() { "location" } else { "part" };
             return match self.mode {
                 super::Mode::Headless => failed(key!("error-missing-param"), &[missing]),
-                // Create is disabled while a field is empty (W44.2 F1); Enter in the form says why in the same words.
+                // Create is disabled while a field is empty; Enter in the form says why in the same words.
                 super::Mode::Gui if self.in_form_of(ACTION) => {
                     let message = strings::text(if location.is_none() {
                         key!("reason-enclosure-location")
@@ -798,7 +798,7 @@ impl ShellModel {
         self.layout_form_done(ACTION, out)
     }
 
-    /// The Create enclosure dialog (ruling 7): the location (the given one, else the focused page's, else the first)
+    /// The Create enclosure dialog: the location (the given one, else the focused page's, else the first)
     /// and the enclosure part (the given one, else the first: the project's copies, then the libraries' parts).
     fn enclosure_form(&self, location: Option<String>, part: Option<String>) -> super::FormDialog {
         let page = self.focused_page_id();
@@ -882,7 +882,7 @@ impl ShellModel {
             .collect()
     }
 
-    /// Why Project ▸ Enclosure… is disabled in a project that can be changed (W44.2 F1): the project has no location
+    /// Why Project ▸ Enclosure… is disabled in a project that can be changed: the project has no location
     /// yet ("The project has no location yet; add one with Structure node… first.", named by the registry's label);
     /// `None` when it has one, or no project is open.
     pub fn enclosure_new_reason(&self) -> Option<String> {
@@ -896,7 +896,7 @@ impl ShellModel {
         ))
     }
 
-    /// Why the Create enclosure dialog's Create is disabled (W44.2 F1): its location is empty ("Choose a location"),
+    /// Why the Create enclosure dialog's Create is disabled: its location is empty ("Choose a location"),
     /// else its part ("Type or choose a part number"); `None` while both are given or another dialog is open.
     pub fn enclosure_create_reason(&self) -> Option<String> {
         let Some(super::Dialog::Form(f)) = &self.dialog else {

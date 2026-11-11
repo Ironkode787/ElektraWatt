@@ -703,7 +703,7 @@ fn ghost_json(shell: &ShellModel) -> String {
                 "at_nm",
                 &at_nm.map_or(Value::Null, |(x, y)| Value::from(vec![x, y])),
             ),
-            // The external reference's printed text, as the describe line prints it (fix round, item 9).
+            // The external reference's printed text, as the describe line prints it.
             member("external", &external.map_or(Value::Null, Value::from)),
             // The pin a click connects the point to, `null` where it places it free.
             member("connects", &connects.map_or(Value::Null, Value::from)),

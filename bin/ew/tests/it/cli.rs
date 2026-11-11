@@ -1698,7 +1698,7 @@ fn project_checks_set_needs_an_interactive_terminal() {
 }
 
 /// `ew project assets purge --preview` lists the asset files nothing names and changes nothing; the purge
-/// itself is human-only (owner ruling, 2026-10-23) and exits 2 off a terminal with nothing deleted; an unknown option is
+/// itself is human-only and exits 2 off a terminal with nothing deleted; an unknown option is
 /// a usage error.
 #[test]
 fn project_assets_purge_previews_and_is_refused_off_a_terminal() {

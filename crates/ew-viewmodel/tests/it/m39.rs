@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 39's wave-2 window-check findings (lane M39) at shell level, on Golden A: the palette's `:` refusal and the
+//! Window-check findings at shell level, on Golden A: the palette's `:` refusal and the
 //! title after a folio, the form's hint, Edit ▸ Delete with nothing selected, the part editor's kind words and the
 //! Place HUD's symbol name.
 

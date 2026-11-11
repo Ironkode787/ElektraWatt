@@ -29,7 +29,7 @@ use crate::icons::{self, IconId};
 use crate::theme::{self, Tokens};
 
 /// The share of the window the command palette and the place picker take once that is wider than `size.palette`
-/// (C39; owner 2026-10-31: the UI grows with the space it has, never a width chosen for the floor).
+/// (the UI grows with the space it has, never a width chosen for the floor).
 pub(crate) const PALETTE_SHARE: f32 = 0.4;
 
 /// The label of `entry` with the characters the query's best alignment matches in `type.body.strong`;
@@ -110,7 +110,7 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
     );
     x += label_w + t.space_3;
     // The key chips first, at the right; the tail (the reason or the breadcrumb) takes the room up to them and elides
-    // with an ellipsis, its whole text in the row's tooltip (M39: a disabled reason was clipped with no ellipsis).
+    // with an ellipsis, its whole text in the row's tooltip (a disabled reason was clipped with no ellipsis).
     let mut tail_right = rect.right() - t.space_3;
     if !entry.shortcut.is_empty() {
         let chip_area = Rect::from_min_max(
@@ -210,7 +210,7 @@ pub fn show(
             .shadow(theme::shadow(&t.elevation_2))
             .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
             .show(ui, |ui| {
-                // C39 (doc 16a §2): the palette grows with the window (never narrower than at the floor).
+                // The palette grows with the window (doc 16a §2), never narrower than at the floor.
                 let width = crate::dialog::grown(t.size_palette, PALETTE_SHARE, ctx.content_rect().width());
                 ui.set_width(width - 2.0 * t.space_2);
                 ui.spacing_mut().item_spacing.y = t.space_1;
@@ -363,7 +363,7 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
             crate::components::live_line(ui, error, true);
         });
     }
-    // M39: the form says how it applies and how it goes back, in the hint style (`type.small`, tertiary).
+    // The form says how it applies and how it goes back, in the hint style (`type.small`, tertiary).
     ui.horizontal(|ui| {
         ui.add_space(t.space_3);
         ui.label(

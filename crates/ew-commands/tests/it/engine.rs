@@ -170,7 +170,7 @@ fn every_v0_command_is_an_edit_command_but_the_check_schemes() {
     assert_eq!(r.names().count(), r.commands().count());
     for c in r.commands() {
         // ADR-0008 amendment 3: the release scheme decides a check outcome, so its command is `HumanOnly`; the asset
-        // purge deletes files that do not come back (owner ruling, 2026-10-23); a scripted waiver would defeat the record
+        // purge deletes files that do not come back; a scripted waiver would defeat the record
         // (ADR-0019 decision 8); the revision author, a withdrawal, the sign-off and the release are a
         // person's.
         let expected = if matches!(

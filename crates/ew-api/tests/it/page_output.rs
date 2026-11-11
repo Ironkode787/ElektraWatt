@@ -334,7 +334,7 @@ const PNG_SAMPLE: [&str; 12] = [
 ];
 
 /// Per gate: one golden page of every page type ([`PNG_SAMPLE`]) renders to a 150 dpi PNG within doc 20's
-/// tolerance of the committed one (test audit g7). Every page is compared by the deep nightly
+/// tolerance of the committed one. Every page is compared by the deep nightly
 /// (`nightly_the_png_candidates_match_within_the_doc_20_tolerance_on_every_page`) and by the acceptance gate
 /// (AC-02's raster entry).
 #[test]

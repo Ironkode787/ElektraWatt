@@ -174,7 +174,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
     // The picker leads with the part's description in words.
     assert!(!con.description.is_empty(), "the generic contactor's description");
     assert_ne!(con.description, con.part_number);
-    // The generic relay's change-over contacts read as words (rv-vis-1 friction 9: "CO").
+    // The generic relay's change-over contacts read as words (not "CO").
     let rly = cat
         .parts
         .iter()

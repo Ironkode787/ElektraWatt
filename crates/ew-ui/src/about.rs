@@ -294,7 +294,7 @@ pub fn show(
             }
         }
         // The elapsed time against the store's clock; the exact time (UTC, no time-zone source) as a small
-        // secondary line under it (W31-5: a hover tooltip covered the buttons).
+        // secondary line under it (a hover tooltip covered the buttons).
         Dialog::Recovery {
             last_change_ms,
             failed,

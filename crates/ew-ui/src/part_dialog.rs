@@ -169,7 +169,7 @@ pub(crate) fn chooser(
                             color: t.text_tertiary.color32(),
                             ..Default::default()
                         };
-                        // M39: the badges are never cut; the description elides first, to the room the part
+                        // The badges are never cut; the description elides first, to the room the part
                         // number, the manufacturer and the badges leave (its whole text in the row's tooltip).
                         let mut badges = vec![PartChooser::source(o)];
                         badges.extend(c.badge(o));
@@ -266,7 +266,7 @@ pub(crate) fn elide_to(text: &str, room: f32, measure: impl Fn(&str) -> f32) -> 
     chars[..lo].iter().collect::<String>().trim_end().to_owned() + "\u{2026}"
 }
 
-/// The part editor's Kind (M39): a combo box that shows the kind's word ("Device") and offers every part kind by its
+/// The part editor's Kind: a combo box that shows the kind's word ("Device") and offers every part kind by its
 /// word; picking one sends its value (`part.field {field: "kind", value: "end_bracket"}`).
 fn kind_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event>) {
     use ew_viewmodel::shell::part_dialog::{PART_KINDS, part_kind_word};

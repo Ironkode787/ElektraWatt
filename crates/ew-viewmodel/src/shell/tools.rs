@@ -290,7 +290,7 @@ impl ShellModel {
         self.tools.notice = None;
         self.tools.notice_sticky = false;
         // An editing tool (Wire, Edit route, Place, Change symbol, and the part-4b Text, Text edit, Graphic, Wire
-        // marker, Structure box and part-5 Image tools) works on one page (window-check ruling): a page or tab
+        // marker, Structure box and part-5 Image tools) works on one page: a page or tab
         // change ends it and Select takes over. The selection survives.
         if matches!(
             self.tools.tool.name(),
@@ -692,7 +692,7 @@ impl ShellModel {
         };
         let list: Vec<String> = proposals
             .iter()
-            // FX38d: a shared pin designation reads by its position in words in the sentence, not as `-#2`.
+            // A shared pin designation reads by its position in words in the sentence, not as `-#2`.
             .filter_map(|(cp, target)| {
                 target
                     .as_ref()

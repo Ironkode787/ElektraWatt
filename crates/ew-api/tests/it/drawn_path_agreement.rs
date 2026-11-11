@@ -7,7 +7,7 @@
 //! unrouted), and over random ends (a proptest): a connection without a route is unrouted, has no drawn path and is
 //! drawn as the straight line between its ends.
 //!
-//! W45.1 F1: EW-TERM-006's Messages row and its detail card (which shows the message cell) name the terminal once.
+//! EW-TERM-006's Messages row and its detail card (which shows the message cell) name the terminal once.
 
 use crate::golden_common::read_only as golden;
 
@@ -138,7 +138,7 @@ fn run(s: &mut Session, name: &str, params: serde_json::Value) -> Vec<Uuid> {
         .collect()
 }
 
-/// W45.1 F1: on an empty stretch of Golden A's folio 103, terminal -X1031 71 and two coils
+/// On an empty stretch of Golden A's folio 103, terminal -X1031 71 and two coils
 /// above and below it, then a wire drawn from the upper coil to the lower one across the terminal (drawing a wire does
 /// not split it at a symbol it crosses): EW-TERM-006, whose Messages row names the terminal once. Its message leads with
 /// the subject, so the row shows the message alone; the detail card shows the message cell, which names it once too.

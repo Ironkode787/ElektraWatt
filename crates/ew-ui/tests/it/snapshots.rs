@@ -16,8 +16,8 @@
 //! file exists, else with the shared one; a bless on Linux writes an override only for an image that differs from the
 //! shared one beyond the tolerance, and removes an override that no longer differs.
 //!
-//! One image per screen (test audit, 2026-10-29): each cropped screen is gated in light Comfortable, plus dark
-//! Compact for the DK12 panes. The theme tokens are gated by `theme.rs` (`dl2_the_dump_equals_the_blessed_file`,
+//! One image per screen: each cropped screen is gated in light Comfortable, plus dark
+//! Compact for the Messages pane and the Terminal strips grid. The theme tokens are gated by `theme.rs` (`dl2_the_dump_equals_the_blessed_file`,
 //! `density_changes_sizes_only`, `apply_maps_the_tokens_onto_egui`) and the whole window in light and dark at
 //! both densities by `main-*`, so a dark or Compact copy of every crop guards nothing more. Every image this file
 //! writes is gated: nothing is rendered for review only.
@@ -200,7 +200,7 @@ fn the_main_window_in_light_and_dark_at_both_densities() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// DK7's 300 % variant: the main window, light and Comfortable, at 1280 × 800 points on a 300 % display (3840 × 2400
+/// The 300 % variant: the main window, light and Comfortable, at 1280 × 800 points on a 300 % display (3840 × 2400
 /// pixels). The setting `ui_scale` reaches 300 % too (`UI_SCALES`); this variant takes 300 % as the
 /// system's scale (egui's native pixels per point), which is how a 300 % display reaches the window. Gated and re-blessed with the main-window images; the test keeps its name from before.
 #[test]
@@ -466,7 +466,7 @@ fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
     )
 }
 
-/// DK12 (lane K32): the Messages pane in tree mode (Golden A's error and a pending finding, then the
+/// The Messages pane in tree mode (Golden A's error and a pending finding, then the
 /// cursor on the pending finding with its detail block) and the History panel (three steps, a save marker, one undone), each cropped to its pane,
 /// gated: all three in light Comfortable, the detail block in dark Compact.
 #[test]
@@ -629,7 +629,7 @@ fn drag(h: &mut Harness<'_, App>, from: egui::Pos2, by: egui::Vec2) {
     h.run_ok();
 }
 
-/// DK12's grid (doc 16a §6.21): Golden A's Terminal strips navigator in table mode, filtered `x1031`, sorted
+/// The grid (doc 16a §6.21): Golden A's Terminal strips navigator in table mode, filtered `x1031`, sorted
 /// by Terminal, with the derived Potential column moved next to Terminal so that it is on show, two marked rows and
 /// the cursor cell in the second (`dk12-grid-*`), then the editing cell opened on the cursor cell
 /// (`dk12-grid-edit-*`; the editor opens where the cursor is, so the cursor ring and the editor are two images).
@@ -1512,7 +1512,7 @@ fn the_properties_header_with_many_findings_in_light() {
                     let a = n.accesskit_node();
                     a.label().or_else(|| a.value())
                 })
-                // M39: findings pending on the editing page count as one Pending chip, as the Messages pane counts them.
+                // Findings pending on the editing page count as one Pending chip, as the Messages pane counts them.
                 .filter(|l| l.contains(" Warnings: ") || l.contains(" Errors: ") || l.contains(" Pending: "))
                 .collect()
         };

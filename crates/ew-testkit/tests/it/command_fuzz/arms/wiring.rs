@@ -82,7 +82,7 @@ pub(super) fn connection_draw(live: &Live, rng: &mut SplitMix64) -> Option<Step>
     )
 }
 
-// Cycle 33: the chain of bridges of Edit ▸ Bridge terminals.
+// The chain of bridges of Edit ▸ Bridge terminals.
 pub(super) fn connection_draw_many(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (_, functions) = rng.pick(&live.page_functions)?;
     match rng.below(10) {

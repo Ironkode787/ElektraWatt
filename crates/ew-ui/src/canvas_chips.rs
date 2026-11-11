@@ -356,7 +356,7 @@ fn preview(
         }
     }
     // The header straight above the first placed change, else in the corner; the unplaced changes below it. The
-    // corner lies clear of the chrome there (W40b: the tool options card at the canvas's top left).
+    // corner lies clear of the chrome there (the tool options card at the canvas's top left).
     let t = placer.tokens;
     let corner = clear_corner(
         input.rect,
@@ -403,7 +403,7 @@ fn preview(
 
 /// The target in the canvas `canvas`'s corner that the preview's unplaced chips stack from: `corner`, moved down until
 /// a chip of `size` below right of it (the rule's candidate there) overlaps none of the chrome `obstacles`, `gap`
-/// under the lowest one it met (W40b: the preview chip lies below the tool options card, never behind it). A corner
+/// under the lowest one it met (the preview chip lies below the tool options card, never behind it). A corner
 /// pushed past the canvas's bottom stays where it was (the rule then fades the chip).
 pub fn clear_corner(canvas: Rect, corner: Pos2, size: Vec2, obstacles: &[Rect], gap: f32) -> Pos2 {
     let mut at = corner;
@@ -644,7 +644,7 @@ mod tests {
         );
     }
 
-    /// W40b: the preview's corner moves below the tool options card at the canvas's top left, and stays put when
+    /// The preview's corner moves below the tool options card at the canvas's top left, and stays put when
     /// nothing is there or when below the card would leave the canvas.
     #[test]
     fn the_preview_corner_lies_clear_of_the_tool_options_card() {

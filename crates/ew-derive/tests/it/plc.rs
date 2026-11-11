@@ -671,7 +671,7 @@ fn a_start_edit_re_addresses_its_own_module_only() {
     assert_eq!(texts(&store.query(), M3)[0], "Q2.0", "M3 keeps its start");
 }
 
-/// `address_index(cfg)`: every resolved channel address as a bit range, sorted, and the overlap groups (FX38a): a
+/// `address_index(cfg)`: every resolved channel address as a bit range, sorted, and the overlap groups: a
 /// manual channel address inside another module's range makes a group of two; a word address a group of itself and
 /// the channels it covers, once.
 #[test]
@@ -708,7 +708,7 @@ fn the_address_index_lists_overlaps() {
     assert_eq!(q.get::<ew_derive::AddressIndex>(cfg()).uses.len(), 24);
 }
 
-/// FX38a: N channels on one manual address make one group of N members, never N(N−1)/2 pairs; the index holds at most
+/// N channels on one manual address make one group of N members, never N(N−1)/2 pairs; the index holds at most
 /// one entry per channel in its groups whatever N is (a hostile project of identical manual addresses, doc 05 §3.6).
 #[test]
 fn the_address_index_stays_linear_for_identical_addresses() {

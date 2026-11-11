@@ -446,7 +446,7 @@ fn a_palette_run_that_fails_is_cleared_by_the_actions_next_success() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W49.1-J: the folio filter takes the rest of its row (a row of its own where the rest cannot show its placeholder),
+/// The folio filter takes the rest of its row (a row of its own where the rest cannot show its placeholder),
 /// so its placeholder shows whole in Dutch at the 1280 × 800 floor and at 1920 × 1080 and the field reaches the pane's
 /// right edge; every node fits at both sizes.
 #[test]

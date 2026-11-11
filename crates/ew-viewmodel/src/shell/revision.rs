@@ -10,7 +10,7 @@
 //! `confirm` it validates the fields (the typed label, the role, the reason, the date the window passed, the git
 //! consent), then submits the `HumanOnly` command.
 //!
-//! **Who may confirm** (ruling 1: "the `HumanOnly` gate is per submission"). The submission carries the
+//! **Who may confirm**: the `HumanOnly` gate is per submission. The submission carries the
 //! shell's own origin ([`ShellModel::origin`]): `Origin::Gui` only in the window a person drives. The headless shell and
 //! a window a script drives ([`ShellModel::new_scripted`], the visual driver) open, fill, validate and frame the
 //! dialogs, but their confirm is refused with `error-revision-person`, and the session judges the same origin again

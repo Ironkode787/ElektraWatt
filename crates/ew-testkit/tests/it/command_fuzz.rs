@@ -208,8 +208,8 @@ fn open_session(seed: u64) -> Session {
 
 /// [`open_session`] with another memo mode. The validity tests (every arm commits what it calls well-formed, refuses
 /// what it calls malformed and leaves the model unchanged, and undoes to the golden project) read no memoised value
-/// that an oracle would check, so they open with [`MemoMode::On`]: the oracle's cold re-runs were most of their cost
-/// (test audit g7). The memo oracle in the fuzz loop stays in `fuzz_smoke` and `fuzz_long`.
+/// that an oracle would check, so they open with [`MemoMode::On`]: the oracle's cold re-runs were most of their cost.
+/// The memo oracle in the fuzz loop stays in `fuzz_smoke` and `fuzz_long`.
 fn open_session_with(seed: u64, memo: MemoMode) -> Session {
     let batch = golden_batch();
     let mut project = None;
@@ -976,7 +976,7 @@ fn smoke_cadence() -> Cadence {
 
 #[test]
 fn fuzz_smoke() {
-    // One seed per gate (test audit g7); `fuzz_long` runs the seeds 1..=20, seed 2 among them, every night.
+    // One seed per gate; `fuzz_long` runs the seeds 1..=20, seed 2 among them, every night.
     let seed = 1;
     // A debug build derives the page order cold in oracle mode on every read after a page-affecting commit
     // (seconds): the smoke test samples every 15th step and skips the closing sweeps (`fuzz_long` runs them).
@@ -1393,7 +1393,7 @@ fn the_star_and_scale_arms_reach_their_refusals() {
     }
 }
 
-/// Cycle-29 review: the `item.place` arm that places an image from its file gives the image's rectangle an area on
+/// The `item.place` arm that places an image from its file gives the image's rectangle an area on
 /// every draw: the two opposite corners differ on both axes, whichever grid position the first corner drew (before, a
 /// fixed second corner made the rectangle empty on about one draw in forty, and `item.place` refuses an empty
 /// rectangle). The steps of that branch are the ones whose `data` is a PNG file.
@@ -1492,7 +1492,7 @@ fn conductor_add_commits_on_a_cable_and_is_refused_on_another_device() {
     assert_eq!(done, [true, false]);
 }
 
-/// Cycle 33 `fuzz-smoke` finding (`fuzz/regressions/command_sequence/route-repeated-vertex`, seed 286 720 002): the
+/// A `fuzz-smoke` finding (`fuzz/regressions/command_sequence/route-repeated-vertex`, seed 286 720 002): the
 /// arm built a Z-shaped `connection.route` whose bend line ran through an end, so the route repeated a vertex, which
 /// the product refuses, and the run expected a commit. The step sequence: that route is refused and changes
 /// nothing, and the tidy dog-leg between the same ends commits (the arm's routes are tidy).
@@ -1529,7 +1529,7 @@ fn a_route_that_repeats_a_vertex_is_refused_and_the_tidy_route_commits() {
     assert_eq!(done, [false, true]);
 }
 
-/// Cycle 42 `fuzz-smoke` finding (`fuzz/regressions/command_sequence/rep-move-surface-view`, CI run 41255625529):
+/// A `fuzz-smoke` finding (`fuzz/regressions/command_sequence/rep-move-surface-view`, CI run 41255625529):
 /// the run moved the surface view of a panel-layout page of Golden A with `rep.move`'s `items`, which the product
 /// refuses (a surface view is set by `page.surface_view.set`, never moved with a selection), and expected a commit.
 /// The arm no longer restates the rule (the step is `Either`). The step sequence: the move of the surface view is
@@ -1611,7 +1611,7 @@ fn a_structure_box_survives_a_save_and_reload() {
         .unwrap_or_else(|e| panic!("after the undo: {e}"));
 }
 
-/// Cycle 52 `fuzz-smoke` finding (`fuzz/regressions/command_sequence/rep-transform-black-box-pivot`, CI run
+/// A `fuzz-smoke` finding (`fuzz/regressions/command_sequence/rep-transform-black-box-pivot`, CI run
 /// 42069007538, seed 382 692 297 722 036 225): `rep.transform` turned and mirrored Golden A's black box -102G1, which
 /// turns about the centre of its bounding box and so moves its insertion point by rule (`rep.transform`, "The
 /// pivot"), and the arm's oracle expected the insertion point to stay. The input replays with the cadence of the

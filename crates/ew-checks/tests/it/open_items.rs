@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The open-items list on small fixtures: the open items are the open findings of the
-//! open-item rules that `run` reports in release mode of the project's release scheme (the orchestrator's ruling 2,
-//! "`open_items` calls `run_rules` ... and keeps the findings that are `FindingState::Open` and
-//! `open_item_of` some row"), and the release scheme is the project's when it ships, else `pre-delivery` (ruling 4).
+//! open-item rules that `run` reports in release mode of the project's release scheme
+//! ("`open_items` calls `run_rules` ... and keeps the findings that are `FindingState::Open` and
+//! `open_item_of` some row"), and the release scheme is the project's when it ships, else `pre-delivery`.
 
 use crate::common;
 

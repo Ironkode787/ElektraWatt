@@ -93,7 +93,7 @@ fn core047_reports_a_device_whose_functions_are_not_drawn() {
     assert_eq!(r[0].severity, Severity::Error, "release blocks");
 }
 
-/// Cycle 33 review finding 8: EW-CORE-047 asks for a schematic representation; a device drawn only on a panel
+/// EW-CORE-047 asks for a schematic representation; a device drawn only on a panel
 /// front is reported, one drawn in a multi-line schematic is not.
 #[test]
 fn core047_a_device_drawn_only_on_a_panel_front_is_reported() {

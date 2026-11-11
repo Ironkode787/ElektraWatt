@@ -14,8 +14,8 @@ const LIB: &str = "6a1d0f3e-8b25-5c74-9e1a-d3f60b8c2e47";
 const COPY: &str = "5e2b8c41-9d07-5f36-a1c8-4b7e0d2f9a65";
 const ITEM: &str = "a83c1f70-4b29-5e6d-8c05-7f1a3e9b0d42";
 
-/// The part item's compact JSON: an interlinking block with two supply groups (doc 10 §2.6's 550208, as ruling 1
-/// shapes it), an unknown group member and a separate earth pin.
+/// The part item's compact JSON: an interlinking block with two supply groups (doc 10 §2.6's 550208),
+/// an unknown group member and a separate earth pin.
 fn item() -> String {
     concat!(
         r#"{"manufacturer":{"library":"6a1d0f3e-8b25-5c74-9e1a-d3f60b8c2e47","item":"0f7b2c94-5d3a-5e81-a6f9-2b8c0e4d7a13","version_req":"^1"},"#,

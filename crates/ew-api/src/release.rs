@@ -353,7 +353,7 @@ impl Session {
         self.approve_as(&origin, approval, integrity)
     }
 
-    /// [`Session::approve`] for a submission from `origin` (ruling 1: the `HumanOnly` gate is judged per
+    /// [`Session::approve`] for a submission from `origin` (the `HumanOnly` gate is judged per
     /// submission, by the origin of the one that asks, never by the session's). `revision.approve` is submitted from
     /// `origin`, so a scripted origin gets the exposure error and nothing changes.
     ///

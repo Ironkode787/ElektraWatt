@@ -48,7 +48,7 @@ macro_rules! closed_choices {
     ($($(#[$doc:meta])* $name:ident = $values:expr;)*) => {
         $($(#[$doc])* pub static $name: ClosedChoices = ClosedChoices($values);)*
 
-        /// Every closed set of this module (ruling 2: the choice-word test reads it).
+        /// Every closed set of this module (the choice-word test reads it).
         pub static ALL: &[&ClosedChoices] = &[$(&$name),*];
     };
 }

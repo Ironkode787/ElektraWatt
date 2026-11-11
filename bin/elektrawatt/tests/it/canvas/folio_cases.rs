@@ -164,7 +164,7 @@ pub fn folio_101_is_placed_by_a_generated_script_twice_identically_and_replays_c
         replayed, placed,
         "the replay's records equal the scripted session's"
     );
-    // The devices (tags, parts, terminal aspects) and functions too, IDs aside (fix round, item 7).
+    // The devices (tags, parts, terminal aspects) and functions too, IDs aside.
     let (scripted, _) = Session::open_read_only(&tmp.path("a").join("folio.ew"), "test").unwrap();
     let (devices, functions) = records_of(&scripted);
     assert_eq!(records_of(&s), (devices.clone(), functions.clone()));

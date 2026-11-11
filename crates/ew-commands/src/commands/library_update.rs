@@ -1014,7 +1014,7 @@ mod tests {
     }
 
     proptest! {
-        /// Review C35 m2: an explicit map is accepted exactly when every pair names CPs of both copies and no old or
+        /// An explicit map is accepted exactly when every pair names CPs of both copies and no old or
         /// new index repeats; what it accepts is an injection holding every pair.
         #[test]
         fn an_explicit_map_is_accepted_only_as_an_injection(

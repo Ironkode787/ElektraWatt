@@ -5,7 +5,7 @@
 //! to doc 16a §6.10.
 //!
 //! **Toasts.** At most three, stacked at the canvas's top right, `space.4` from its edges (under the canvas tabs), the
-//! newest at the top: 300 px wide (`size.toast`; W40b: [`TOAST_SHARE`] of a wider window), `color.surface.raised`, `elevation.2`, `radius.lg`, `space.4` padding; three
+//! newest at the top: 300 px wide (`size.toast`; [`TOAST_SHARE`] of a wider window), `color.surface.raised`, `elevation.2`, `radius.lg`, `space.4` padding; three
 //! columns with `space.3` gaps: the 20-px semantic icon ([`tone_icon`]: a result's worst severity with the icons of
 //! §6.24, else a check in `color.success` for a toast with an action, the info icon otherwise), the title in
 //! `type.body.strong` with a result's line under it in `type.small` and `color.text.secondary` (the check's
@@ -44,7 +44,7 @@ fn action_link(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, ev
     // Doc 16a §6.10: two actions share one row while they fit, else the second wraps under the first.
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_4;
-        // W49.3b-N2: stacked, the links keep the text's row spacing, not a control's height.
+        // Stacked, the links keep the text's row spacing, not a control's height.
         ui.spacing_mut().item_spacing.y = t.space_1;
         ui.spacing_mut().interact_size.y = 0.0;
         for action in actions {
@@ -105,11 +105,11 @@ pub(crate) fn tone_icon(t: &Tokens, tone: NoteTone) -> (IconId, theme::Rgba) {
     }
 }
 
-/// The share of the window's width a toast takes once that is wider than `size.toast` (W40b; doc 16a §2: the UI
+/// The share of the window's width a toast takes once that is wider than `size.toast` (doc 16a §2: the UI
 /// grows with the space it has).
 pub(crate) const TOAST_SHARE: f32 = 0.22;
 
-/// The rows a toast's line wraps to before it is cut (W40b: a refusal's reason is never cut at one line; what does
+/// The rows a toast's line wraps to before it is cut (a refusal's reason is never cut at one line; what does
 /// not fit in three rows is in the HUD, the log and the tooltip).
 pub(crate) const LINE_ROWS: usize = 3;
 
@@ -187,7 +187,7 @@ fn toast(
                         (title, Some(line)) => {
                             // The title carries the whole text as the live region. It wraps at word boundaries up to two
                             // rows (a disabled command's reason is never cut at one line), the line up to three
-                            // (W40b), each then cut with an ellipsis; the whole text is the toast's tooltip, so
+                            // each then cut with an ellipsis; the whole text is the toast's tooltip, so
                             // the labels show no tooltip of their own. A check's counts stay on one line (the
                             // waived and pending counts qualify the title, so the severities fit).
                             let response = ui.add(
@@ -513,7 +513,7 @@ mod tests {
         );
     }
 
-    /// W40b: a toast keeps `size.toast` at the floor, is wider at 1920 and stays inside a narrow window.
+    /// A toast keeps `size.toast` at the floor, is wider at 1920 and stays inside a narrow window.
     #[test]
     fn the_toast_grows_with_the_window() {
         let t = theme::tokens(Theme::Light, Density::Comfortable);
@@ -523,7 +523,7 @@ mod tests {
         assert_eq!(toast_width(&t, 200.0), 200.0);
     }
 
-    /// W40b: a refusal's reason wraps at word boundaries up to three rows, then is cut with an ellipsis.
+    /// A refusal's reason wraps at word boundaries up to three rows, then is cut with an ellipsis.
     #[test]
     fn the_line_wraps_up_to_three_rows() {
         let ctx = egui::Context::default();
