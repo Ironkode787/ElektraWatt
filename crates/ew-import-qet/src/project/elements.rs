@@ -662,7 +662,15 @@ impl Mx<'_, '_> {
                             (t.text.clone(), Some(SlotKind::FunctionText), true)
                         }
                         "UserText" => (t.text.clone(), None, false),
+                        // A report's label text, as an information or a composite text of the label alone, prints
+                        // where its partner is (QET's report formula).
                         "ElementInfo" if ip_name.is_some() && info == "label" => {
+                            (String::new(), Some(SlotKind::Xref), true)
+                        }
+                        "CompositeText"
+                            if ip_name.is_some()
+                                && t.composite.as_deref().is_some_and(|c| c.trim() == "%{label}") =>
+                        {
                             (String::new(), Some(SlotKind::Xref), true)
                         }
                         "ElementInfo" => (
@@ -1184,9 +1192,9 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
 ///
 /// 1. **Pairs** from the links between `next_report` (source) and `previous_report` (target) elements; a
 ///    report without a linked partner of the other direction is an unpaired interruption point.
-/// 2. **Name** of a pair: the first non-empty of the source's label, the target's label, the source's first
-///    `UserText` dynamic text, the target's (the reference set writes pairing names there); both ends get
-///    it. When both ends carry a name and the names differ, EW-IMP-115 lists both texts. A pair without any
+/// 2. **Name** of a pair: the first non-empty of the source's first `UserText` dynamic text, the target's
+///    (the name QET prints; its label text prints the partner's position), the source's label, the
+///    target's; both ends get it. When both ends carry a name and the names differ, EW-IMP-115 lists both texts. A pair without any
 ///    name gets one synthesised name `IP-<folio of the source>-<n>`, an unpaired report its own; each is
 ///    reported (EW-IMP-115).
 /// 3. **Groups**: a name shared by several pairs keeps QET's explicit pairs in chain order: pair `i` of the
@@ -1251,7 +1259,9 @@ fn map_reports(
     }
     let label = |i: usize| elems[i].el.info_nonempty("label").map(str::to_owned);
     let utext = |i: usize| user_text(elems[i].el).map(str::to_owned);
-    let own = |i: usize| label(i).or_else(|| utext(i));
+    // The name QET prints is a report's text; its label text prints the partner's position, so the label
+    // information names a report only when it has no text.
+    let own = |i: usize| utext(i).or_else(|| label(i));
     let valid = |n: Option<String>| n.and_then(|n| Ident::from_input(&n).ok());
 
     // 2. Names.
@@ -1275,9 +1285,9 @@ fn map_reports(
         }
         let Some(&t) = partner.get(&s) else { continue };
         pair_order.push((s, t));
-        // The first usable text in the order source label, target label, source text, target text; a text
+        // The first usable text in the order source text, target text, source label, target label; a text
         // that is not an identifier is skipped, not the rest of the order.
-        let name = [label(s), label(t), utext(s), utext(t)]
+        let name = [utext(s), utext(t), label(s), label(t)]
             .into_iter()
             .flatten()
             .find_map(|n| Ident::from_input(&n).ok())

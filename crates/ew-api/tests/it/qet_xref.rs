@@ -29,9 +29,23 @@ fn def(name: &str, link: &str, kind: &str) -> String {
     )
 }
 
+/// The label text of a placed element in 7 pt: the label information, with the text stored in the file.
+const INFO_LABEL: &str = r#"<dynamic_elmt_text text_from="ElementInfo" x="-30" y="0" font="Sans Serif,7,-1,5,50,0,0,0,0,0"><text>stale</text><info_name>label</info_name></dynamic_elmt_text>"#;
+
+/// The label text written as a composite text of the label alone.
+const COMPOSITE_LABEL: &str = r#"<dynamic_elmt_text text_from="CompositeText" x="-30" y="0" font="Sans Serif,7,-1,5,50,0,0,0,0,0"><text>stale</text><composite_text>%{label}</composite_text></dynamic_elmt_text>"#;
+
 /// A placed element `def` at `(x, y)` with UUID number `id`, its label information, its own texts (the label
-/// text in 7 pt and a user text) and links.
-fn placed(def: &str, id: u32, (x, y): (u32, u32), label: &str, user: &str, links: &[u32]) -> String {
+/// text `label_text` and a user text) and links.
+fn placed(
+    def: &str,
+    id: u32,
+    (x, y): (u32, u32),
+    label: &str,
+    label_text: &str,
+    user: &str,
+    links: &[u32],
+) -> String {
     let links: String = links
         .iter()
         .map(|l| format!(r#"<link_uuid uuid="{{00000000-0000-4000-8000-{l:012x}}}"/>"#))
@@ -41,7 +55,7 @@ fn placed(def: &str, id: u32, (x, y): (u32, u32), label: &str, user: &str, links
   <terminals><terminal x="-10" y="0" orientation="3" id="{id}"/></terminals>
   <elementInformations><elementInformation name="label">{label}</elementInformation></elementInformations>
   <dynamic_texts>
-   <dynamic_elmt_text text_from="ElementInfo" x="-30" y="0" font="Sans Serif,7,-1,5,50,0,0,0,0,0"><text>stale</text><info_name>label</info_name></dynamic_elmt_text>
+   {label_text}
    <dynamic_elmt_text text_from="UserText" x="0" y="-10" font="Sans Serif,9,-1,5,50,0,0,0,0,0"><text>{user}</text></dynamic_elmt_text>
   </dynamic_texts>
   <links_uuids>{links}</links_uuids>
@@ -57,21 +71,21 @@ fn diagram(order: u32, elements: &[String]) -> String {
 }
 
 /// Folio 1: a going arrow `L-7` at 1-E8 and a coil `-K1` at 1-C3. Folio 2: the coming arrow `L-7` at 2-B2
-/// and the coil's two contacts at 2-D5 and 2-F7.
-fn project() -> String {
+/// and the coil's two contacts at 2-D5 and 2-F7. The arrows' label texts are `arrow_label`.
+fn project(arrow_label: &str) -> String {
     let f1 = diagram(
         1,
         &[
-            placed("going", 1, (500, 350), "", "L-7", &[2]),
-            placed("coil", 3, (200, 190), "-K1", "", &[4, 5]),
+            placed("going", 1, (500, 350), "", arrow_label, "L-7", &[2]),
+            placed("coil", 3, (200, 190), "-K1", INFO_LABEL, "", &[4, 5]),
         ],
     );
     let f2 = diagram(
         2,
         &[
-            placed("coming", 2, (100, 110), "", "L-7", &[1]),
-            placed("contact", 4, (300, 270), "", "", &[3]),
-            placed("contact", 5, (400, 430), "", "", &[3]),
+            placed("coming", 2, (100, 110), "", arrow_label, "L-7", &[1]),
+            placed("contact", 4, (300, 270), "", INFO_LABEL, "", &[3]),
+            placed("contact", 5, (400, 430), "", INFO_LABEL, "", &[3]),
         ],
     );
     let defs = [
@@ -94,9 +108,14 @@ fn project() -> String {
 }
 
 fn import() -> Imported {
+    import_with(INFO_LABEL)
+}
+
+fn import_with(arrow_label: &str) -> Imported {
     let lib = StarterLibrary::from_dir(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../content"))
         .expect("the starter content");
-    let imported = import_qet("xref.qet", project().into_bytes(), &lib).expect("an importable project");
+    let imported =
+        import_qet("xref.qet", project(arrow_label).into_bytes(), &lib).expect("an importable project");
     assert!(imported.session.is_ok(), "{:?}", imported.session.as_ref().err());
     imported
 }
@@ -136,14 +155,19 @@ fn shown(s: &Session, folio: &str, kind: &SlotKind) -> Vec<String> {
 
 #[test]
 fn a_folio_report_pair_prints_its_name_and_its_partners_position_on_both_folios() {
+    // The label text as the label information, and as a composite text of the label alone.
+    for label_text in [INFO_LABEL, COMPOSITE_LABEL] {
+        let imported = import_with(label_text);
+        let s = imported.session.as_ref().unwrap();
+        // QET's report formula `%F-%l%c` on QET's cells; the stale text stored in the file is not printed.
+        for (folio, partner) in [("1", "2-B2"), ("2", "1-E8")] {
+            let texts = shown(s, folio, &SlotKind::Xref);
+            assert!(texts.contains(&partner.to_owned()), "folio {folio}: {texts:?}");
+            assert!(!texts.contains(&"stale".to_owned()), "folio {folio}: {texts:?}");
+        }
+    }
     let imported = import();
     let s = imported.session.as_ref().unwrap();
-    // QET's report formula `%F-%l%c` on QET's cells; the stale text stored in the file is not printed.
-    for (folio, partner) in [("1", "2-B2"), ("2", "1-E8")] {
-        let texts = shown(s, folio, &SlotKind::Xref);
-        assert!(texts.contains(&partner.to_owned()), "folio {folio}: {texts:?}");
-        assert!(!texts.contains(&"stale".to_owned()), "folio {folio}: {texts:?}");
-    }
     for folio in ["1", "2"] {
         assert_eq!(
             shown(s, folio, &SlotKind::FunctionText),

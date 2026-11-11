@@ -478,24 +478,27 @@ fn a_folio_report_pair_gets_one_name() {
     assert_eq!(found[0].0, found[1].0, "{found:?}");
     assert!(found[0].0.starts_with("IP-"), "{found:?}");
 
-    // Case 3: only the target has a label, the source a text: the label wins and the finding names it.
+    // Case 3: both ends print the text "L-9" and carry another label (QET prints the partner's position
+    // where the label stands): the printed text names the pair, and nothing differs.
     let text = qet(
         r#"version="0.100""#,
         &[
-            folio("1", "A", vec![el(NEXT, s.clone(), 100, 100).text("L-9").link(&t)]),
+            folio(
+                "1",
+                "A",
+                vec![el(NEXT, s.clone(), 100, 100).label("2-B4").text("L-9").link(&t)],
+            ),
             folio(
                 "2",
                 "B",
-                vec![el(PREVIOUS, t.clone(), 100, 100).label("L-3").link(&s)],
+                vec![el(PREVIOUS, t.clone(), 100, 100).label("1-C3").text("L-9").link(&s)],
             ),
         ],
     );
     let imported = import(&text);
     let found = ips(&imported);
-    assert!(found.iter().all(|(n, _, _)| n == "L-3"), "{found:?}");
-    let e115 = entries(&imported, "EW-IMP-115");
-    assert_eq!(e115.len(), 1, "{}", all_entries(&imported));
-    assert!(e115[0].contains("named `L-3`"), "{}", e115[0]);
+    assert!(found.iter().all(|(n, _, _)| n == "L-9"), "{found:?}");
+    assert!(entries(&imported, "EW-IMP-115").is_empty(), "{}", all_entries(&imported));
 
     // Case 4: a source label that is not an identifier (a tab inside) falls through to the target label.
     let text = qet(
