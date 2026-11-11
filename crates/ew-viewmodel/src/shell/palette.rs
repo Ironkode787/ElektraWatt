@@ -176,7 +176,10 @@ impl ShellModel {
                 strings::text(actions::Submenu::Navigators.label_key())
             );
             for button in crate::rail::rail(self).left {
-                let Some(rank) = rank(query, &button.label, [], button.word, 0, state.is_ok()) else {
+                // A panel's name weighs as an alias does, so that a command of as good a match ranks first ("part"
+                // finds Device from part… before the panel Parts in use).
+                let names = [button.label.as_str()];
+                let Some(rank) = rank(query, "", names, button.word, 0, state.is_ok()) else {
                     continue;
                 };
                 ranked.push(Ranked {
