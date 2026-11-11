@@ -5,7 +5,7 @@
 //!
 //! Every user-facing text of `ew-viewmodel` and `ew-ui` is a message of the en-GB Fluent file
 //! `locales/en-GB/shell.ftl`; no other literal reaches a screen, a menu, a banner or a transcript. The code names a key
-//! with [`key!`](crate::key), checked at compile time against [`KEYS`] (the key list `cargo xtask settle` generates
+//! with [`key!`](crate::key), checked at compile time against [`KEYS`] (the key list `build.rs` writes
 //! from that file), or, for a key built at run time, with [`Key::run_time`]. A text may take the arguments
 //! `{ $p0 }`, `{ $p1 }`, … that [`format()`] fills in, always as strings; [`text`] shows them as `{0}`, `{1}`, ….
 //!
@@ -65,22 +65,27 @@ impl CountKey {
     }
 }
 
-/// Whether `key` is a key of [`KEYS`]: the compile-time check of [`key!`](crate::key) (lengths first, then bytes).
+/// Whether `key` is a key of [`KEYS`]: the compile-time check of [`key!`](crate::key). It is a binary search of the
+/// sorted list, because the compiler runs it once for every key the code names.
 pub const fn has_key(key: &str) -> bool {
     let wanted = key.as_bytes();
-    let mut i = 0;
-    while i < KEYS.len() {
-        let candidate = KEYS[i].as_bytes();
-        if candidate.len() == wanted.len() {
-            let mut j = 0;
-            while j < wanted.len() && candidate[j] == wanted[j] {
-                j += 1;
-            }
-            if j == wanted.len() {
-                return true;
-            }
+    let (mut low, mut high) = (0, keys::SORTED_KEYS.len());
+    while low < high {
+        let mid = low + (high - low) / 2;
+        let candidate = keys::SORTED_KEYS[mid].as_bytes();
+        let mut i = 0;
+        while i < candidate.len() && i < wanted.len() && candidate[i] == wanted[i] {
+            i += 1;
         }
-        i += 1;
+        if i == candidate.len() && i == wanted.len() {
+            return true;
+        }
+        // `candidate` sorts first when it is a prefix of `wanted` or its first differing byte is the smaller one.
+        if i == candidate.len() || (i < wanted.len() && candidate[i] < wanted[i]) {
+            low = mid + 1;
+        } else {
+            high = mid;
+        }
     }
     false
 }
