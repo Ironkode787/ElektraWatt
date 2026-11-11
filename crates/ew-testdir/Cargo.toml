@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license = "MIT OR Apache-2.0"
-description = "The fresh temporary directory of the tests (dev-only; FT-569, FT-586)."
+description = "The temporary directory, the tree copy and the source-tree paths of the tests (dev-only)."
 repository.workspace = true
 publish = false
 

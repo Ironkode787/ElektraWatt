@@ -1,13 +1,77 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The temporary directory of a test, shared by the tests of every crate. A dev-only
+//! The temporary directory of a test, shared by the tests of every crate: [`Tmp`], which is removed when the test
+//! ends, [`copy_dir`], and the paths of the golden project and the starter content in the source tree. A dev-only
 //! helper crate without dependencies, so any crate may take it as a dev-dependency.
 
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static COUNTER: AtomicU32 = AtomicU32::new(0);
+
+/// Golden A in the source tree. A test never opens it in a writing or locking mode: it works on a copy
+/// ([`Tmp::golden`]).
+pub const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+
+/// The content tree of the source tree: the starter library and the templates.
+pub const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
+
+/// A fresh temporary directory ([`fresh_dir`]), removed on drop.
+pub struct Tmp(pub PathBuf);
+
+impl Tmp {
+    /// A new, empty directory whose name starts with `stem`.
+    pub fn new(stem: &str) -> Tmp {
+        Tmp(fresh_dir(stem))
+    }
+
+    /// The directory.
+    pub fn dir(&self) -> &Path {
+        &self.0
+    }
+
+    /// The path of `name` inside the directory.
+    pub fn path(&self, name: &str) -> PathBuf {
+        self.0.join(name)
+    }
+
+    /// A copy of Golden A at `name` inside the directory, made now.
+    pub fn golden(&self, name: &str) -> PathBuf {
+        let target = self.0.join(name);
+        copy_dir(Path::new(GOLDEN_A), &target);
+        target
+    }
+}
+
+impl Drop for Tmp {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// Copies the directory tree `from` to `to`, creating `to` and its parents.
+///
+/// # Panics
+///
+/// When a directory cannot be read or created or a file cannot be copied: a test cannot go on without its files.
+pub fn copy_dir(from: &Path, to: &Path) {
+    let fail = |what: &str, path: &Path, e: std::io::Error| -> ! { panic!("cannot {what} {}: {e}", path.display()) };
+    if let Err(e) = std::fs::create_dir_all(to) {
+        fail("create", to, e);
+    }
+    let entries = std::fs::read_dir(from).unwrap_or_else(|e| fail("read", from, e));
+    for entry in entries {
+        let entry = entry.unwrap_or_else(|e| fail("read", from, e));
+        let source = entry.path();
+        let target = to.join(entry.file_name());
+        if source.is_dir() {
+            copy_dir(&source, &target);
+        } else if let Err(e) = std::fs::copy(&source, &target) {
+            fail("copy", &source, e);
+        }
+    }
+}
 
 /// A new, empty directory `<temp>/<stem>-<pid>-<n>` that this call created. A test process that is killed (a cancelled
 /// or timed-out run) leaves its directory behind with the project's lock, the journal and the settings in it; a later
@@ -43,7 +107,23 @@ pub fn fresh_dir_in(parent: &Path, stem: &str, counter: &AtomicU32) -> PathBuf {
 mod tests {
     use std::sync::atomic::AtomicU32;
 
-    use super::{fresh_dir, fresh_dir_in};
+    use super::{Tmp, copy_dir, fresh_dir, fresh_dir_in};
+
+    /// A tree is copied with its subdirectories, and the temporary directory is gone when its `Tmp` is dropped.
+    #[test]
+    fn a_tree_is_copied_and_the_directory_is_removed_on_drop() {
+        let tmp = Tmp::new("ew-testdir-copy");
+        let dir = tmp.dir().to_path_buf();
+        std::fs::create_dir_all(tmp.path("a").join("sub")).unwrap();
+        std::fs::write(tmp.path("a").join("sub").join("f.txt"), "x").unwrap();
+        copy_dir(&tmp.path("a"), &tmp.path("b").join("c"));
+        assert_eq!(
+            std::fs::read_to_string(tmp.path("b").join("c").join("sub").join("f.txt")).unwrap(),
+            "x"
+        );
+        drop(tmp);
+        assert!(!dir.exists());
+    }
 
     /// A leftover directory of the same PID and number (a killed run's settings and project lock) is
     /// skipped, not adopted, and left as it was.
