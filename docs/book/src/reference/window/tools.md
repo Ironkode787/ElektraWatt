@@ -84,15 +84,16 @@ click in between. Open it with Draw ▸ Connect ▸ Wire. See [A first schematic
 
 While you draw, the wire shows the route it will take. The route never runs through another connection point, along
 another wire, through a symbol or a text, over the frame's bands, or through a junction, and never makes a fourth
-arm of a junction. When no such route exists the wire shows as a dashed straight line and the hint
+arm of a junction. When no such route exists the wire shows as a dashed right-angled line and the hint
 says "No clear route: the wire stays unrouted. Click to place bends." Ending it there stores an unrouted wire: it
 keeps its connection, but it is drawn dashed and the check reports it until it has a route. Click on empty points
 to place bends and the wire follows them ("Bend placed: click a connection point to end the wire."). A junction
 that already joins three wires is not an end: the hint says "This junction already joins three wires: end on a wire
 to make a new junction."
 
-An unrouted wire, from an import or a placement, is drawn as a dashed straight line between its ends, on the page
-and in the PDF. Route page or Route selection draws it.
+An unrouted wire, from an import or a placement, is drawn as a dashed line between its ends, straight or with
+one corner and never diagonal, on the page and in the PDF. The line takes no notice of what lies under it: it is
+no route yet. Route page or Route selection draws it.
 
 ## Next autoconnect proposal
 

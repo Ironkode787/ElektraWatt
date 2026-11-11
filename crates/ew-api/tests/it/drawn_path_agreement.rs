@@ -101,9 +101,10 @@ proptest! {
     #![proptest_config(ProptestConfig::with_cases(256))]
 
     /// Any two ends on a page (equal, on one line or apart; each with any leaving direction or none): without a stored
-    /// route the scene draws the straight line between them, nothing where they meet.
+    /// route the scene draws a right-angled line between them (straight on one line, else one corner; never a
+    /// diagonal), nothing where they meet.
     #[test]
-    fn the_scene_draws_an_unrouted_connection_straight_between_any_two_ends(
+    fn the_scene_draws_an_unrouted_connection_right_angled_between_any_two_ends(
         a in (-3i64..=3, -3i64..=3),
         b in (-3i64..=3, -3i64..=3),
         da in 0usize..5,
@@ -117,8 +118,15 @@ proptest! {
             &[],
             sheet,
         );
-        let expected = if a == b { vec![a] } else { vec![a, b] };
-        prop_assert_eq!(scene, expected);
+        if a == b {
+            prop_assert_eq!(scene, vec![a]);
+        } else {
+            let corners = if a.x == b.x || a.y == b.y { 2 } else { 3 };
+            prop_assert_eq!((scene.first(), scene.last(), scene.len()), (Some(&a), Some(&b), corners));
+            for w in scene.windows(2) {
+                prop_assert!(w[0].x == w[1].x || w[0].y == w[1].y, "a diagonal: {:?}", scene);
+            }
+        }
     }
 }
 

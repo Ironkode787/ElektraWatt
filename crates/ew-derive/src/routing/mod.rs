@@ -65,5 +65,5 @@ pub use page::{Body, CpPoint, DrawnConnection, JunctionPoint, PageGeometry, Poin
 pub use plan::{OneEnd, RoutePlan, SUPPLY_ORDER, Unrouted, clear_one, route_one, route_page};
 pub use search::{
     BEND_COST, CROSSING_COST, Heading, MATE_STEP_COST, MAX_NODES, RouteEnd, RouteRequest, Routed, STEP_COST,
-    auto_route, clear, route,
+    auto_route, clear, route, unrouted_line,
 };

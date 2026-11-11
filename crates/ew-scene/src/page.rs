@@ -1091,7 +1091,7 @@ impl Builder<'_> {
         let stroke = wire_stroke(view.grid);
         // The drawn polylines in connection-ID order (the hop rule of `crate::hops` reads them all first), each with
         // its stroke: a fluid pilot or drain line is dashed 4:2 in the page's wire pen. An unrouted
-        // connection is the dashed straight line between its ends in the thinnest pen, and no wire: it
+        // connection is the dashed right-angled line between its ends in the thinnest pen, and no wire: it
         // takes and makes no hop.
         let mut drawn: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
         let mut strokes: Vec<Stroke> = Vec::new();

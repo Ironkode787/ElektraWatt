@@ -348,8 +348,9 @@ fn the_same_page_routes_the_same_wires() {
     assert_eq!(routes("ft706-det-a"), routes("ft706-det-b"));
 }
 
-/// Without a clear route the ghost is the unrouted line, the hint says so, and the commit stores
-/// the wire unrouted; with a fixed bend, the bends and an L tail are the user's route.
+/// Without a clear route the ghost is the unrouted line, right-angled and never a diagonal, the hint says so,
+/// and the commit stores the wire unrouted, drawn on the page as the ghost showed it; with a fixed bend, the bends
+/// and an L tail are the user's route.
 #[test]
 fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     let tmp = Tmp::new("ft706-direct");
@@ -376,7 +377,12 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
     let unrouted = "No clear route: the wire stays unrouted. Click to place bends.";
     assert_eq!(p.s.tool_hint(), unrouted);
     let (from, to) = (p.bottom[0].at, p.l.at);
-    assert_eq!(p.s.wire_ghost_route(), Some(vec![from, to]), "the unrouted line");
+    let ghost = p.s.wire_ghost_route().expect("the unrouted line");
+    assert_eq!((ghost.first(), ghost.last()), (Some(&from), Some(&to)));
+    assert!(
+        ghost.windows(2).all(|w| w[0].0 == w[1].0 || w[0].1 == w[1].1),
+        "a diagonal: {ghost:?}"
+    );
     click(&mut p.s, p.l.at, false);
     // Not a refusal: the wire is drawn, without a route.
     assert_eq!(p.s.revision(), rev.map(|r| r + 1), "one commit");
@@ -388,6 +394,7 @@ fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {
         .collect();
     assert_eq!(new.len(), 1);
     assert!(!new[0].stored_route, "stored unrouted");
+    assert_eq!(new[0].polyline, ghost, "the page draws the line the ghost showed");
     // The hint stays with the drawn wire until the next one starts.
     assert_eq!(
         (p.s.tool().state(), p.s.tool_hint().as_str()),

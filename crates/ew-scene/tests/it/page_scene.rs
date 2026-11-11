@@ -718,10 +718,10 @@ fn fluid_pilot_and_drain_lines_are_dashed_and_working_lines_solid() {
     assert_eq!(dash_of(2), dashed);
 }
 
-/// A connection without a route is unrouted: the dashed straight line between its ends, in the
+/// A connection without a route is unrouted: a dashed right-angled line between its ends, in the
 /// thinnest pen, whatever its kind.
 #[test]
-fn an_unrouted_connection_is_the_dashed_straight_line_in_the_thinnest_pen() {
+fn an_unrouted_connection_is_a_dashed_right_angled_line_in_the_thinnest_pen() {
     let mut v = view();
     let mut record = (*v.connections[0].connection).clone();
     record.route.clear();
@@ -748,7 +748,16 @@ fn an_unrouted_connection_is_the_dashed_straight_line_in_the_thinnest_pen() {
         .into_iter()
         .find(|(u, _)| *u == id)
         .map(|(_, pts)| pts);
-    assert_eq!(line, Some(vec![below(10, 20), below(50, 50)]));
+    let line = line.expect("the unrouted line");
+    assert_eq!(
+        (line.first(), line.last()),
+        (Some(&below(10, 20)), Some(&below(50, 50)))
+    );
+    assert_eq!(line.len(), 3, "one corner: {line:?}");
+    assert!(
+        line.windows(2).all(|w| w[0].x == w[1].x || w[0].y == w[1].y),
+        "a diagonal: {line:?}"
+    );
 }
 
 #[test]

@@ -30,7 +30,7 @@ symbol wired to the supply's PE terminal. One conductor is missing on purpose: t
    - EW-IMP-122: the lamp and the earth had no label, so EW gave them the tags -1A1 and -1X1.
 
    The others are live checks of the project, and yours to fix: EW-CORE-073 says that the file's three conductors
-   have no route, so they are drawn as dashed straight lines; EW-POT-009 says that the lamp's pin X2 and the
+   have no route, so they are drawn as dashed lines; EW-POT-009 says that the lamp's pin X2 and the
    supply's pin - are not connected; and EW-CORE-041 says that none of the four devices has a part.
 4. Choose **Draw ▸ Connect ▸ Route page**.
    The preview says "Route 3 wires on folio 1: 3 routed, 0 not routed." Choose **Apply**: the three wires are drawn

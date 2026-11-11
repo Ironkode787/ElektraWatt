@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The polyline a connection is drawn along: stored routes as stored, an unrouted connection as the straight line
-//! between its ends, clamping and properties.
+//! The polyline a connection is drawn along: stored routes as stored, an unrouted connection as a right-angled
+//! line between its ends, clamping and properties.
 
 use ew_scene::route::{RouteEnd, connection_polyline};
 use ew_schema::Dir4;
@@ -39,14 +39,37 @@ fn all_dirs() -> Vec<Option<Dir4>> {
     ]
 }
 
-/// A connection without a stored route is the straight line between its ends whatever their directions,
-/// a single point where they meet (nothing is drawn); never an L.
+/// Whether a direction runs along y; `None` for none or an unknown one.
+fn vertical(d: &Option<Dir4>) -> Option<bool> {
+    match d {
+        Some(Dir4::Up | Dir4::Down) => Some(true),
+        Some(Dir4::Left | Dir4::Right) => Some(false),
+        _ => None,
+    }
+}
+
+/// A connection without a stored route is a right-angled line between its ends, never a diagonal (the owner's
+/// hands-on test of 0.1.0: a diagonal line read as a route the router had drawn askew): straight for aligned ends,
+/// else one corner, the first leg along end `a`'s direction, else the last along end `b`'s, else horizontal first;
+/// a single point where the ends meet (nothing is drawn).
 #[test]
-fn an_unrouted_connection_is_the_straight_line_between_its_ends() {
+fn an_unrouted_connection_is_a_right_angled_line_between_its_ends() {
     for da in all_dirs() {
         for db in all_dirs() {
             let (a, b) = (end(100, 100, da.clone()), end(400, 300, db.clone()));
-            assert_eq!(unrouted(a, b), vec![p(100, 100), p(400, 300)], "{da:?} {db:?}");
+            let vertical_first = match (vertical(&da), vertical(&db)) {
+                (Some(v), _) => v,
+                (None, Some(v)) => !v,
+                (None, None) => false,
+            };
+            let corner = if vertical_first { p(100, 300) } else { p(400, 100) };
+            assert_eq!(
+                unrouted(a, b),
+                vec![p(100, 100), corner, p(400, 300)],
+                "{da:?} {db:?}"
+            );
+            let (a, b) = (end(100, 100, da.clone()), end(400, 100, db.clone()));
+            assert_eq!(unrouted(a, b), vec![p(100, 100), p(400, 100)], "{da:?} {db:?}");
             let (a, b) = (end(100, 100, da.clone()), end(100, 100, db.clone()));
             assert_eq!(unrouted(a, b), vec![p(100, 100)], "{da:?} {db:?}");
         }
@@ -86,7 +109,7 @@ fn a_stored_route_is_drawn_as_stored_and_joined_to_each_end_by_a_straight_segmen
 #[test]
 fn clamping_pulls_ends_onto_the_page_edge() {
     let r = unrouted(end(-500, 200, Some(Dir4::Right)), end(1500, 700, None));
-    assert_eq!(r, vec![p(0, 200), p(1000, 700)]);
+    assert_eq!(r, vec![p(0, 200), p(1000, 200), p(1000, 700)]);
     // Both ends clamp onto the same point.
     let r = unrouted(end(-5, -5, None), end(-9, -1, None));
     assert_eq!(r, vec![p(0, 0)]);
@@ -136,9 +159,12 @@ proptest! {
         let r = connection_polyline(&a, &b, &[], pg);
         prop_assert_eq!(r.first().copied(), Some(a.pos));
         prop_assert_eq!(r.last().copied(), Some(b.pos));
-        prop_assert!((1..=2).contains(&r.len()));
+        prop_assert!((1..=3).contains(&r.len()));
         for v in &r {
             prop_assert!(pg.contains(*v));
+        }
+        for w in r.windows(2) {
+            prop_assert!(w[0].x == w[1].x || w[0].y == w[1].y, "a diagonal: {:?}", r);
         }
     }
 

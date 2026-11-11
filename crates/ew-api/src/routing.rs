@@ -10,7 +10,8 @@
 
 use ew_derive::ew_ids::Uuid;
 pub use ew_derive::routing::{
-    Heading, Measures, OneEnd, PageGeometry, RoutePlan, Unrouted, clear_one, measure, route_one, route_page,
+    Heading, Measures, OneEnd, PageGeometry, RouteEnd, RoutePlan, Unrouted, clear_one, measure, route_one,
+    route_page, unrouted_line,
 };
 
 use crate::Session;

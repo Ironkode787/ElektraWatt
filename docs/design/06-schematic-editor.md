@@ -525,7 +525,13 @@ route editor's first edit stores its drawn polyline (WP-S2.04 §8.4).
 
 [ADR-0033](../adr/0033-schematic-routing-model.md) governs routing. A connection is drawn along its stored route, the full
 vertex list with both ends, and a page connection without a route is *unrouted*:
-drawn as a dashed straight line, not split by normaliser 7, not read by EW-TERM-006, reported by EW-CORE-073. The
+drawn as a dashed right-angled line (below), not split by normaliser 7, not read by EW-TERM-006, reported by
+EW-CORE-073. **The unrouted line is never a diagonal** (the owner's hands-on test of 0.1.0: a diagonal read as a
+route the router had drawn askew): ends on one horizontal or vertical line are joined straight, else by one corner
+made of the ends' own coordinates, the first leg along the first end's direction, else the last leg along the second
+end's, else horizontal first. It takes no notice of what lies under it and is no route: the page draws it dashed in
+the thinnest pen, and the Wire tool's ghost and the router's own result for a request without a route are the same
+line (`ew_derive::routing::unrouted_line`). The
 commands still never route: the router, now `ew_derive::routing` reached through `ew_api::routing`, runs in
 the tools and in Route page and Route selection, which store their plan with `connection.route_many`; autoconnect
 hints store their straight run; `rep.move` takes the routes the Select tool re-solved (FT-18). A new row 18,
@@ -967,8 +973,8 @@ stateDiagram-v2
   clear route the ghost is the unrouted dashed line, the HUD says so, and the wire is stored unrouted unless the user
   fixed a bend. A junction that already joins three wires is not an end target.
 - *As built.* The ghost is `route_one`'s route; the passes
-  and the turned IP end are gone. Without a clear route the ghost is the dashed straight line of an unrouted
-  wire and the HUD says "No clear route: the wire stays unrouted. Click to place bends."; a commit then stores the
+  and the turned IP end are gone. Without a clear route the ghost is the dashed right-angled line of an unrouted
+  wire, the line the page then draws, and the HUD says "No clear route: the wire stays unrouted. Click to place bends."; a commit then stores the
   wire without a route, or with the fixed bends and an L tail as the user's route when a bend was fixed. After a click
   that places a bend the HUD says "Bend placed: click a connection point to end the wire." Over a junction that
   already joins three wires the HUD says "This junction already joins three wires: end on a wire to make a new
@@ -1123,7 +1129,8 @@ Under [ADR-0033](../adr/0033-schematic-routing-model.md), this section's router 
 WP-S2.19 specification §5: the search moves to
 `ew_derive::routing`; only the Clear pass remains, as hard rules; integer costs for steps, bends, crossings and
 parallel mates; a page or a selection routed in a fixed order (supply potentials first, then by span) with at most two
-rip-up rounds; no fallback L: a connection without a clear route stays unrouted and is reported. Step 4 of the list
+rip-up rounds; no fallback route: a connection without a clear route stays unrouted and is reported (its dashed
+line is right-angled, and it is no route). Step 4 of the list
 above (re-solve after a move, FT-18) is built in the Select tool, which passes the re-solved routes to `rep.move`.
 
 *As built.* On the release of a move the Select tool builds the

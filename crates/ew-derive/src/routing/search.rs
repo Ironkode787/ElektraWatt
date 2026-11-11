@@ -48,7 +48,7 @@
 //! end takes that end's coordinate on the axis of the segment between them (a CP may sit up to 1 nm off a rational
 //! grid; `geometry::require_route` accepts a coordinate equal to an end CP's), collinear and duplicate interior
 //! vertices removed. Without a path inside the area (or with an unusable grid or an area of more than
-//! [`MAX_NODES`] nodes) there is no route ([`Routed::direct`]): the result is the straight line between the ends, the
+//! [`MAX_NODES`] nodes) there is no route ([`Routed::direct`]): the result is [`unrouted_line`], the right-angled
 //! line an unrouted connection is drawn with, never a wire.
 
 use std::cmp::Reverse;
@@ -185,7 +185,7 @@ pub struct Routed {
     /// Its cost by the weights of the search (steps, bends, crossings, mates' steps); 0 without a route.
     pub cost: u32,
     /// Whether no route was found: no path inside the area (or an unusable grid or an area over [`MAX_NODES`]); the
-    /// points are then the straight line between the ends, the unrouted line, never a wire.
+    /// points are then [`unrouted_line`], never a wire.
     pub direct: bool,
 }
 
@@ -336,11 +336,31 @@ pub fn route(req: &RouteRequest) -> Routed {
             direct: false,
         },
         None => Routed {
-            points: vec![req.from.at, req.to.at],
+            points: unrouted_line(req.from, req.to),
             cost: 0,
             direct: true,
         },
     }
+}
+
+/// The line of a connection without a route, between its two ends: right-angled, never diagonal (a diagonal line
+/// read as a wire the router had drawn askew). Ends on one horizontal or vertical line are joined straight; else by
+/// one corner made of the ends' own coordinates: the first leg runs along the first end's direction, else the last
+/// leg along the second end's, else the first leg is horizontal. It takes no notice of what lies under it: it is
+/// the line an unrouted connection is drawn with, dashed, and no wire. The page, the Wire tool's ghost and
+/// [`route`] draw it by this one rule.
+pub fn unrouted_line(from: RouteEnd, to: RouteEnd) -> Vec<(i64, i64)> {
+    let (p, q) = (from.at, to.at);
+    if p.0 == q.0 || p.1 == q.1 {
+        return vec![p, q];
+    }
+    let vertical_first = match (from.dir, to.dir) {
+        (Some(d), _) => d.vertical(),
+        (None, Some(d)) => !d.vertical(),
+        (None, None) => false,
+    };
+    let corner = if vertical_first { (p.0, q.1) } else { (q.0, p.1) };
+    vec![p, corner, q]
 }
 
 /// Whether the given route `points` from `req.from.at` to `req.to.at` is one the router could take: walked on the
@@ -1008,7 +1028,7 @@ mod tests {
     }
 
     #[test]
-    fn without_a_path_the_result_is_the_straight_unrouted_line() {
+    fn without_a_path_the_result_is_the_right_angled_unrouted_line() {
         // The second end is walled in on every side inside the area.
         let to = end(10, 10, None);
         let walls = vec![
@@ -1018,11 +1038,11 @@ mod tests {
             rect(11, 7, 13, 13),
         ];
         let r = auto_route(&req(end(0, 0, Some(Heading::Right)), to, walls));
-        assert_eq!(r, vec![p(0, 0), p(10, 10)]);
+        assert_eq!(r, vec![p(0, 0), p(10, 0), p(10, 10)]);
         // An unusable grid finds none too.
         let mut bad = req(end(0, 0, None), end(3, 4, None), vec![]);
         bad.grid = (0, 1);
-        assert_eq!(auto_route(&bad), vec![p(0, 0), p(3, 4)]);
+        assert_eq!(auto_route(&bad), vec![p(0, 0), p(3, 0), p(3, 4)]);
         // The result says it is direct; the same ends without the walls are routed.
         let to = end(10, 10, None);
         let walls = vec![
@@ -1033,7 +1053,7 @@ mod tests {
         ];
         let walled = route(&req(end(0, 0, Some(Heading::Right)), to, walls));
         assert!(walled.direct);
-        assert_eq!(walled.points, vec![p(0, 0), p(10, 10)]);
+        assert_eq!(walled.points, vec![p(0, 0), p(10, 0), p(10, 10)]);
         assert!(!route(&req(end(0, 0, Some(Heading::Right)), to, vec![])).direct);
     }
 
@@ -1146,7 +1166,7 @@ mod tests {
         );
         big.area = [-300 * MM, -300 * MM, 300 * MM, 300 * MM];
         assert!(route(&big).direct);
-        assert_eq!(auto_route(&big), vec![big.from.at, big.to.at]);
+        assert_eq!(auto_route(&big), unrouted_line(big.from, big.to));
         // Ends at the edge of `i64` give no stub: no route either.
         let edge = RouteRequest {
             from: RouteEnd {
@@ -1175,7 +1195,7 @@ mod tests {
     fn a_stub_inside_a_foreign_body_gives_no_route() {
         // The first end's stub node lies inside another representation's body. The node itself is free, but every
         // move out of it runs through the body's open inside, which only an end's own corridor may cross
-        // (rule 3): no route, the unrouted straight line (D3), as for a foreign obstacle across the
+        // (rule 3): no route, the unrouted line (D3), as for a foreign obstacle across the
         // corridor below. (only nodes were blocked and the route left down along the stub.)
         let rq = req(
             end(0, 0, Some(Heading::Down)),
@@ -1184,7 +1204,7 @@ mod tests {
         );
         let routed = route(&rq);
         assert!(routed.direct, "{:?}", routed.points);
-        assert_eq!(routed.points, [rq.from.at, rq.to.at]);
+        assert_eq!(routed.points, unrouted_line(rq.from, rq.to));
     }
 
     #[test]
@@ -1493,7 +1513,7 @@ mod tests {
         rq.own[1] = vec![rect(-3, -1, 3, 9)];
         let routed = route(&rq);
         assert!(routed.direct, "{:?}", routed.points);
-        assert_eq!(routed.points, [rq.from.at, rq.to.at]);
+        assert_eq!(routed.points, unrouted_line(rq.from, rq.to));
     }
 
     #[test]
@@ -1817,8 +1837,35 @@ mod tests {
             };
             let routed = route(&rq);
             assert!(routed.direct, "{:?}", routed.points);
-            assert_eq!(routed.points, vec![p(fx, fy), p(tx, ty)]);
+            assert_eq!(routed.points, unrouted_line(rq.from, rq.to));
+            assert!(orthogonal(&routed.points), "{:?}", routed.points);
         }
+    }
+
+    #[test]
+    fn an_unrouted_line_is_right_angled() {
+        let line = |a: RouteEnd, b: RouteEnd| unrouted_line(a, b);
+        // Aligned ends: straight.
+        assert_eq!(line(end(0, 0, None), end(0, 5, None)), vec![p(0, 0), p(0, 5)]);
+        assert_eq!(line(end(0, 0, None), end(0, 0, None)), vec![p(0, 0), p(0, 0)]);
+        // The first leg along the first end's direction.
+        assert_eq!(
+            line(end(0, 0, Some(Heading::Down)), end(3, 5, Some(Heading::Left))),
+            vec![p(0, 0), p(0, 5), p(3, 5)]
+        );
+        assert_eq!(
+            line(end(0, 0, Some(Heading::Right)), end(3, 5, None)),
+            vec![p(0, 0), p(3, 0), p(3, 5)]
+        );
+        // Without one, the last leg along the second end's; without either, horizontal first.
+        assert_eq!(
+            line(end(0, 0, None), end(3, 5, Some(Heading::Left))),
+            vec![p(0, 0), p(0, 5), p(3, 5)]
+        );
+        assert_eq!(
+            line(end(0, 0, None), end(3, 5, None)),
+            vec![p(0, 0), p(3, 0), p(3, 5)]
+        );
     }
 
     #[test]
@@ -1858,9 +1905,9 @@ mod tests {
             let routed = route(&rq);
             proptest::prop_assert_eq!(routed.points.first(), Some(&p(fx, fy)));
             proptest::prop_assert_eq!(routed.points.last(), Some(&p(tx, ty)));
-            // Without a route the result is the unrouted line between the ends, which is no wire and may lean.
+            // Routed or not, the result is right-angled: without a route it is the unrouted line.
+            proptest::prop_assert!(orthogonal(&routed.points), "{:?}", routed.points);
             if !routed.direct {
-                proptest::prop_assert!(orthogonal(&routed.points), "{:?}", routed.points);
                 let v = violations(&rq, &routed.points);
                 proptest::prop_assert!(v.is_empty(), "{:?}: {:?}", routed.points, v);
             }

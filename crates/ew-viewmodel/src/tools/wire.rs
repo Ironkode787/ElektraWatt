@@ -43,7 +43,7 @@ use ew_api::geometry::Dir;
 use ew_api::output::Uuid;
 use ew_api::output::ew_dl::EntityRef;
 use ew_api::output::ew_dl::ew_units::Rect;
-use ew_api::routing::{OneEnd, clear_one, heading, route_one};
+use ew_api::routing::{OneEnd, RouteEnd, clear_one, heading, route_one, unrouted_line};
 use serde_json::{Value, json};
 
 use super::{
@@ -649,6 +649,14 @@ fn one_end(at: (i64, i64), dir: Option<Dir>, rep: Option<EntityRef>) -> OneEnd {
     }
 }
 
+/// A tool's end as the router takes it.
+fn route_end(at: (i64, i64), dir: Option<Dir>) -> RouteEnd {
+    RouteEnd {
+        at,
+        dir: dir.map(heading),
+    }
+}
+
 /// The user's tail from `from` (leaving along `from_dir`, or arrived at along `arrive`) to `to` (entered against
 /// `to_dir`), taken without a clear route after a fixed bend: the straight segment for aligned ends,
 /// else one corner from the ends' own coordinates, the first leg along `from_dir`'s axis, else the last along
@@ -661,17 +669,12 @@ fn l_tail(
     if from == to {
         return vec![from];
     }
-    if from.0 == to.0 || from.1 == to.1 {
-        return vec![from, to];
-    }
-    let (down_first, across_first) = ((from.0, to.1), (to.0, from.1));
-    let vertical = |d: Dir| d.vector().0 == 0;
-    let mut corner = match (from_dir, to_dir) {
-        (Some(d), _) if vertical(d) => down_first,
-        (Some(_), _) | (None, None) => across_first,
-        (None, Some(d)) if vertical(d) => across_first,
-        (None, Some(_)) => down_first,
+    // The corner of the unrouted line's rule.
+    let line = unrouted_line(route_end(from, from_dir), route_end(to, to_dir));
+    let [_, mut corner, _] = line[..] else {
+        return line;
     };
+    let (down_first, across_first) = ((from.0, to.1), (to.0, from.1));
     if from_dir.is_none()
         && let Some(h) = arrive
         && heading_between(from, corner).map(Dir::vector) == Some((-h.vector().0, -h.vector().1))
@@ -797,8 +800,9 @@ impl WireTool {
     /// routed connection a fixed wire, every other CP with its stub and every junction not at an end reserved, the
     /// ends' own bodies left only along a CP's escape corridor (`own`: the start's while the tail starts at it, the
     /// end's). Before it, the direct route through a free terminal in line is taken when it qualifies
-    /// ([`through_route`]). Without a clear route the tail is the straight line to the end, the unrouted
-    /// line, or after a fixed bend the user's L ([`l_tail`]).
+    /// ([`through_route`]). Without a clear route the tail is the right-angled line an unrouted connection is
+    /// drawn with ([`unrouted_line`], the page's own rule, so the ghost is what a click stores), or after a fixed
+    /// bend the user's L ([`l_tail`]).
     fn tail(
         &mut self,
         cx: &ToolCx<'_>,
@@ -829,7 +833,10 @@ impl WireTool {
         let (points, direct) = match routed {
             Some(points) => (points, false),
             None if arrive.is_some() => (l_tail((from, from_dir, arrive), t, to.dir()), true),
-            None => (vec![from, t], true),
+            None => (
+                unrouted_line(route_end(from, from_dir), route_end(t, to.dir())),
+                true,
+            ),
         };
         self.routes += 1;
         self.direct = direct;
