@@ -393,7 +393,7 @@ fn the_hook_is_installed_and_a_foreign_one_is_kept() {
     );
     assert_eq!(std::fs::read_to_string(&hook).unwrap(), "#!/bin/sh\necho mine\n");
 
-    // C49-p10b#5: on Windows a `core.hooksPath` inside the repository, written in another case, is inside it.
+    // On Windows a `core.hooksPath` inside the repository, written in another case, is inside it.
     if cfg!(windows) {
         let upper = r
             .repo()

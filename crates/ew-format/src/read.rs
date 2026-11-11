@@ -695,7 +695,7 @@ impl<'a> Loader<'a> {
             .push(Finding::new(kind, Some(file.clone()), line, message));
     }
 
-    /// A library document a migration step changed that would end opaque refuses the open (ID-1221 ruling 2, ID-1230
+    /// A library document a migration step changed that would end opaque refuses the open (ID-1230
     /// ruling 2): kept by its hash only, it would never be written, and the step's change would be lost.
     fn refuse_opaque(&mut self, path: &FilePath, message: String) {
         self.failed.get_or_insert(MigrationError {

@@ -256,7 +256,7 @@ impl ShellModel {
             },
         };
         let strip = &table.nodes[at];
-        // ID-1278 ruling 7 (W49.2-F2): a strip without a tag yet (`-?X?`) is shown by its ID, never by a filter built
+        // A strip without a tag yet (`-?X?`) is shown by its ID, never by a filter built
         // from its placeholder tag; any other strip by its `strip:` filter (§6.10).
         let (filter, scope) = if strip.label.contains('?') {
             (String::new(), Some(strip.key.clone()))

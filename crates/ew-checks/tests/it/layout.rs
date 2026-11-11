@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The EW-LAYOUT MVP rules (LC-1 to LC-7) on a small plate modelled on Golden A's (doc 20
-//! §13, WP-S4.01 §6.1): a 650 × 900 mm plate in location +J-E-2416, rails R1 (40, 740)–(610, 740), R2 (40, 480)–
+//! §13): a 650 × 900 mm plate in location +J-E-2416, rails R1 (40, 740)–(610, 740), R2 (40, 480)–
 //! (610, 480) and R3 (40, 200)–(610, 200) (TS 35×7.5), ducts D2 (20, 860)–(20, 0) and D4 (40, 600)–(610, 600) (40 ×
 //! 60). On R1 -101F1 (18 mm, s = 140), -102F1 (18 mm, s = 158) and -102F2 (45 mm, s = 189.5); on R2 the strip -X1031 (three
 //! 6.2 mm terminals, left end s = 58.6); on R3 the station -201U1 (50 mm, s = 45) and its modules -201U2 (position 1,

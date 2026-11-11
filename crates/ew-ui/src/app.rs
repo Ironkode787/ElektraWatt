@@ -264,8 +264,8 @@ pub struct App {
     /// The Join chooser's type-ahead text.
     chooser_typing: crate::chooser::TypeAhead,
     /// The opening of the dialog the last frame showed ([`ShellModel::dialog_generation`]): a dialog opened since is a
-    /// new one, which takes its first focus (doc 16a §6.12), even when it replaced the last in one frame (W49.3-F1: the
-    /// collision dialog after Renumber) or is of the same kind (C49-p10b#4: rebuilt by a second change).
+    /// new one, which takes its first focus (doc 16a §6.12), even when it replaced the last in one frame (the
+    /// collision dialog after Renumber) or is of the same kind (rebuilt by a second change).
     dialog_was: Option<u64>,
     /// The file dialog that is open off the window's thread, with the request it answers.
     pending_pick: Option<(PromptRequest, Receiver<Pick>)>,
@@ -610,7 +610,7 @@ impl App {
     /// tag's, FT-633; cycle 37, window check W37) or that the Properties pane shows under a drawn row (`action` a
     /// `props.*` one whose dispatch set the row's error; W46.4 F1) is not made a banner as well.
     ///
-    /// ID-1278 ruling 8: a failure the open palette form shows under its fields is not made a banner either, and the
+    /// A failure the open palette form shows under its fields is not made a banner either, and the
     /// banner this raised for an action's failure clears when that action next succeeds.
     fn report(&mut self, outcome: Outcome, action: Option<&str>) {
         if self.shell.nav_rename_error().is_some() {
@@ -669,7 +669,7 @@ impl App {
         {
             return;
         }
-        // A state banner (W49.3-F2) lies under a message: the message shows over it.
+        // A state banner lies under a message: the message shows over it.
         if self.shell.message_banner().is_none() || ours {
             self.shell.show_banner(&message);
             self.reported = Some(message);
@@ -754,7 +754,7 @@ impl App {
                         {
                             events.push(Event::Action("external.review", Value::Null));
                         }
-                        // FT-1499 (ID-1486): the damaged-copy banner's one Primary updates the copies from their
+                        // FT-1499: the damaged-copy banner's one Primary updates the copies from their
                         // libraries; a banner of a copy no library holds offers nothing.
                         if self.shell.damaged_update_offered()
                             && crate::components::button(
@@ -920,7 +920,7 @@ impl App {
 
         let mut events: Vec<Event> = Vec::new();
         self.properties.begin_frame();
-        // ID-1276 ruling 2: Ctrl+Enter submits a form dialog from any focus. The form takes the key before the keymap
+        // Ctrl+Enter submits a form dialog from any focus. The form takes the key before the keymap
         // and the panes under it, so their Ctrl+Enter (`canvas.activate_alt`, `preview.apply`, `find.replace_all`)
         // does not fire.
         let form_key = matches!(self.shell.dialog(), Some(ew_viewmodel::shell::Dialog::Form(_)))
@@ -1232,7 +1232,7 @@ impl App {
         );
         // FT-1088 (doc 16a §6.10): a hover pauses a toast only once the pointer has moved onto it (a
         // pointer-moved event in this frame) and keeps it paused while the pointer stays; a toast that appears under a
-        // pointer at rest is not paused, so it fades on time. FT-1137: a toast that holds the keyboard focus
+        // pointer at rest is not paused, so it fades on time. A toast that holds the keyboard focus
         // is paused too.
         let pointer_moved = ctx.input(|i| i.events.iter().any(|e| matches!(e, egui::Event::PointerMoved(_))));
         self.toast_stack = stack;

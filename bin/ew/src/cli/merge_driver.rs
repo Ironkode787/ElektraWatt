@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew merge-driver %O %A %B %L %P` and `%O %A %B %P`: git's merge driver for project files (WP-S1.17 D15, doc 05
-//! §11.2; ADR-0012 amendment 2; decision log ID-1271).
+//! `ew merge-driver %O %A %B %L %P` and `%O %A %B %P`: git's merge driver for project files (doc 05
+//! §11.2; ADR-0012 amendment 2).
 //!
 //! It reads the three files under the reader's limits (doc 05 §3.6), makes `%P` project-relative, merges once through
 //! [`ew_api::merge_file`] and writes the result to `%A` all-or-nothing (a temporary file beside it, then a rename). It
 //! never runs git and takes no project lock: `%A` is git's temporary file, not a project file. Exit 0 clean, 1 with
 //! conflict records (or with `%A` left as ours when a side is newer than this reader, FT-1235, or holds a record it
-//! cannot read, FT-1490), 129 on a caught internal
+//! cannot read), 129 on a caught internal
 //! error (I/O, a panic in the merge) with `%A` as it was; a usage error
 //! exits 129 too, with clap's text.
 

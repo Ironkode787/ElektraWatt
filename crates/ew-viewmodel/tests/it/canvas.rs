@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The canvas model through the shell on a temporary copy of Golden A (WP-S2.02 part 1, acceptance checks A1, A2,
+//! The canvas model through the shell on a temporary copy of Golden A (acceptance checks A1, A2,
 //! A5, A8 and the model half of A9).
 
 use crate::common::{self, Tmp, done, state};
@@ -65,7 +65,7 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     assert_eq!(keys("view.fit_page"), ["Home"]);
     assert_eq!(keys("view.pan_right"), ["Ctrl+Arrow Right"]);
     // No shortcut is bound twice within a shell context (WP-S2.01 A1; a context's binding may shadow a global
-    // one, WP-S2.03 §6.6) and none is Ctrl+Alt (the registry test of WP-S2.01 covers the rest).
+    // one) and none is Ctrl+Alt (the registry test of WP-S2.01 covers the rest).
     let all: Vec<(actions::Context, &str)> = ACTIONS
         .iter()
         .flat_map(|a| a.shortcut.iter().map(move |s| (a.context, *s)))

@@ -1156,7 +1156,7 @@ mod tests {
 
     /// BV9 and the feasibility rule: the reference solutions replayed on the built product. Both briefs are runnable
     /// (every hard item met, the soft ones met or marked infeasible): `brief-relays-valves` since WP-S2.18 part 1, whose
-    /// `place.pick function=<tag>:13-14` puts each relay's contact on its relay's auxiliary slot (FT-599, WP-S2.18 D4;
+    /// `place.pick function=<tag>:13-14` puts each relay's contact on its relay's auxiliary slot (
     /// since FT-655 the contactor's contacts are template slots and `device=<tag>` fills the first, 1-2).
     /// `brief-plc-io` since WP-S2.18 part 4.
     /// Needs `elektrawatt` and `ew` built in `target/debug` (the workspace run builds them); without them the test says

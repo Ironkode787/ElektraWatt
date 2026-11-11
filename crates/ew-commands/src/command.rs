@@ -86,7 +86,7 @@ pub trait DynCommand: Send + Sync {
     }
 
     /// Runs on the same transaction after the normalisers; nothing by default (`import.apply` records the hashes of
-    /// the records as committed, WP-S3.09 D11).
+    /// the records as committed).
     ///
     /// # Errors
     ///

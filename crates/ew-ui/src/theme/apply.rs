@@ -168,7 +168,7 @@ pub fn apply(tokens: &Tokens, ctx: &egui::Context) {
 }
 
 /// Installs the `theme` and `density` settings (`settings.toml`): both egui slots, then the preference, so that
-/// `system` follows the operating system (D5). WP-S2.08 D14: the settings `min_font_pt` and
+/// `system` follows the operating system (D5). The settings `min_font_pt` and
 /// `reduce_motion` (as `ShellModel::reduce_motion` resolves it) come as two more arguments; `min_font_pt` raises every
 /// text token below it to it, and reduced motion sets the motion tokens, egui's animation time with them,
 /// to zero and scrolls to a target without animation.
@@ -193,7 +193,7 @@ pub fn apply_setting(theme: &str, density: &str, min_font_pt: u8, reduce_motion:
 }
 
 /// Raises every text token of `t` whose size is below `min_pt` points to that size, its line height by as much (the
-/// setting `min_font_pt`, WP-S2.08 D14); 0 leaves the tokens as they are.
+/// setting `min_font_pt`); 0 leaves the tokens as they are.
 fn raise_text(t: &mut Tokens, min_pt: u8) {
     let min = f32::from(min_pt);
     for token in [

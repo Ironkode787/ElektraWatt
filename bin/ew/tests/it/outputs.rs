@@ -371,7 +371,7 @@ fn report_refuses_xlsx_without_a_file_and_an_unknown_block() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S3.06 part 1: `ew export report --kind <kind>` (D4), the revision overview's changed pages (D11), the block
+// `ew export report --kind <kind>` (D4), the revision overview's changed pages (D11), the block
 // parameters on save (D9)
 
 /// The kinds with a golden CSV written by the export by kind: the registered kinds with a file
@@ -677,7 +677,7 @@ fn a_named_block_equals_the_default_one() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S3.07 part 2: `ew print` (PR-1, PR-2, D9)
+// `ew print` (PR-1, PR-2, D9)
 
 /// The `--json` result of a run, parsed.
 fn json(o: &Output) -> serde_json::Value {

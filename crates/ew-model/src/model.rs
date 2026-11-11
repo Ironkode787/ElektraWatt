@@ -144,7 +144,7 @@ impl Model {
         Model::from_records_missing(project, records, lib, &BTreeSet::new())
     }
 
-    /// [`Model::from_records`] for a project whose library copies `missing` could not be read (FT-1383, ID-1395): a
+    /// [`Model::from_records`] for a project whose library copies `missing` could not be read (FT-1383): a
     /// record that names one of them is no EW-INV-001 here, so the project opens (read-only, the loader's finding
     /// naming the copy); an edit that touches such a record is still refused by EW-INV-001. Nor is a violation of
     /// another rule whose records include such a referrer ([`unexplained_by_dropped_copies`]): any other
@@ -412,7 +412,7 @@ impl Model {
         /// interruption-point function is owned by its representation, so removing its last representation
         /// removes the function as well, and with it the connections at its CPs (`connection.a`/`b` cascade)
         /// and the definitions and bonds there (unlink, dropped). And a removed record's conflict record (the
-        /// conflict with its ID whose target is of its kind, WP-S1.17 D17) is removed with it.
+        /// conflict with its ID whose target is of its kind) is removed with it.
         ///
         /// A referrer through a `forbid` link that the plan does not remove itself is
         /// [`ModelError::Referenced`]. The plan covers link policies only: other invariants (one main function

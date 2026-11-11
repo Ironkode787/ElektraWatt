@@ -170,7 +170,7 @@ pub enum PlaceTarget {
         letter: Ident,
     },
     /// One new terminal of an existing strip, created as `terminal.add` creates it and placed (`device.place`
-    /// only; AC-28, WP-S2.04 D9).
+    /// only; AC-28).
     NewTerminal {
         /// The strip device.
         #[schemars(with = "UuidS")]
@@ -224,7 +224,7 @@ pub struct ConnectHint {
 ///   1]}` and one function per entry of the part copy's `function_template`, in template order (def: the entry's
 ///   FnDef copy, which must be embedded; role main for `main`, else auxiliary; kind `black_box` when the FnDef's
 ///   contact kind is `black_box`, else normal; `template_entry` the entry's index, so the CPs follow from that
-///   entry, doc 03 §7, FT-655); the representation
+///   entry, doc 03 §7); the representation
 ///   draws entry `template`, the others stay unplaced. The symbol's FnDef must be entry `template`'s, and that
 ///   entry must not be a black box (`box.black` places those). A part without a function template takes
 ///   `template` 0 and gets one main function of the symbol's FnDef.
@@ -598,7 +598,7 @@ fn zero() -> Pt2 {
 /// variant or shape it keeps verbatim) and `items` with a cross-page `page` are rejected. A moved wire marker writes
 /// a clean list (its entries naming a connection that does not exist or is not on its page are dropped).
 ///
-/// **Re-solved routes and connect on move** (WP-S2.19 D14, D15; both optional, so a script's move keeps the follow):
+/// **Re-solved routes and connect on move** (D15; both optional, so a script's move keeps the follow):
 /// after the follow, each entry of `routes` replaces a connection's route exactly as `connection.route` would (errors
 /// prefixed `/routes/<i>`, as `connection.route_many` prefixes them); then each hint of `connect` makes a wire from
 /// the named representation's symbol CP as a `device.place` hint does, with the straight route between its ends (a

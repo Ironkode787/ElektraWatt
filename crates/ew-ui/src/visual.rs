@@ -15,7 +15,7 @@
 //! - an input line (`{"input":"click","x":412,"y":96}`, spec §4.1): the egui events of the input in one or more
 //!   frames, then frames until the window settles; one transcript line `{"step","input","dispatched","state"}`, with
 //!   `"closed":true` once the application has closed; `{"input":"answer_open","path":"plan.qet"}` runs no frame and
-//!   makes the next open file dialog answer with that file, resolved against the script's folder (FT-1201; without
+//!   makes the next open file dialog answer with that file, resolved against the script's folder (without
 //!   it an open dialog answers Cancelled);
 //! - a frame line (`{"frame":"t0003.png"}`, optional `"settle":false` for a look, `"zoom":[x,y,w,h]`, and
 //!   `"paint":false` for a replay that settles as the run did but paints nothing): the

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The headless canvas through the built binary (WP-S2.02 part 1, acceptance checks A6 and A8; the viewer of
+//! The headless canvas through the built binary (acceptance checks A6 and A8; the viewer of
 //! WP-S2.03 part 1, V8; the tool framework of part 2, T7 and T8): no window, no GPU, no display. A7's transcripts are
 //! `it/headless.rs`'s and its snapshot bytes T7's; V6, V7 and T10's flows are `ew-viewmodel`'s tests and V12's two runs
 //! are A7's (test clean-up, 2026-10-30).
@@ -520,7 +520,7 @@ fn t7_the_snapshot_composites_the_tool_overlay() {
         ("cp.next", json!({})),
         ("canvas.activate", json!({})),
         ("canvas.snapshot", json!({"path": p("measure.png")})),
-        // R1-8: the snap markers and the cursor share the accent; the same overlay with the cursor hidden tells them
+        // The snap markers and the cursor share the accent; the same overlay with the cursor hidden tells them
         // apart.
         ("cursor.set", json!({})),
         ("canvas.snapshot", json!({"path": p("markers.png")})),

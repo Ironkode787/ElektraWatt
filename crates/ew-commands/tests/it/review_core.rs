@@ -629,7 +629,7 @@ fn d4_edit_delete_cost_counts_planned_records() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-437: route hygiene. `connection.draw` and `connection.route` refuse a route with a repeated vertex or a
+// Route hygiene. `connection.draw` and `connection.route` refuse a route with a repeated vertex or a
 // segment that runs over another one (`geometry::require_route`, `geometry::route_defect`).
 
 /// Two devices on page 102 with their first CPs at (G, G) and (4G, G).

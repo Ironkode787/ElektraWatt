@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The reads the editing tools of the canvas prepare once per (revision, folio) or per symbol copy (WP-S2.04 §4.3,
+//! The reads the editing tools of the canvas prepare once per (revision, folio) or per symbol copy (
 //! D6, D8): what can be placed on a page ([`Session::place_catalogue`]), the `library.embed` parameters of a
 //! starter symbol ([`Session::starter_embed`]), a symbol copy's shape ([`Session::symbol_shape`]) and the records
 //! drawn on a page as tables ([`Session::page_tables`]). A tool never calls the `Session`: the shell's tool host
@@ -155,7 +155,7 @@ pub struct CatalogueTemplateFn {
     pub black_box: bool,
     /// The CPs a function placed from the entry gets, in CP index order: each function CP index and the designation
     /// of the pattern entry it is drawn as (`ew_schema::TemplateFn::function_cps`, the rule `function_cps` derives,
-    /// FT-655: by position with the FnDef's CP indices when the entry names as many pattern entries as the FnDef has
+    /// By position with the FnDef's CP indices when the entry names as many pattern entries as the FnDef has
     /// CPs, else the pattern entries with their own indices; the whole pattern when the entry names none).
     pub cps: Vec<(u16, String)>,
 }
@@ -267,7 +267,7 @@ fn fndef_of(q: &Q, r: &LibRef) -> Option<Arc<LibCopy<FnDef>>> {
 }
 
 /// The catalogue row of part `part` with copy ID `copy` (the manufacturer left empty); for a library part without a
-/// function template `None` (FT-1375: a held copy without one is a row without functions, placed with a symbol the
+/// function template `None` (a held copy without one is a row without functions, placed with a symbol the
 /// user chooses). `library` names a library part the project does not hold: its template FnDefs that the project
 /// does not embed are read from the starter.
 fn catalogue_part(
@@ -817,7 +817,7 @@ impl Session {
 /// Every terminal strip of the project with its tag as `page` prints it and the next designation and sequence
 /// number, by tag, ties by ID.
 fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
-    // The decimal designations in use (FT-1083, ID-1181: the next one is the lowest number free, so a gap an Undo
+    // The decimal designations in use (ID-1181: the next one is the lowest number free, so a gap an Undo
     // left is filled), the width of the widest zero-padded spelling (so `01` is followed by `02`) and the largest
     // sequence number of each strip's terminals.
     let mut used: BTreeMap<Id<Device>, (BTreeSet<u64>, usize, u32)> = BTreeMap::new();
@@ -943,7 +943,7 @@ pub struct ExchangeMap {
     pub unmatched: Option<(u16, u16)>,
 }
 
-/// The CP map `rep.exchange_symbol` derives without `pin_map` (FT-424; `ew_commands`' `derive_pin_map`, the
+/// The CP map `rep.exchange_symbol` derives without `pin_map` (`ew_commands`' `derive_pin_map`, the
 /// command's own rule), for a representation that draws `current` and gets `new`: the function's CPs are those
 /// `current` draws with their designations (`ShapeCp.designation`); when both shapes draw the same FnDef the map is
 /// by index, else by designation, ASCII case-insensitively. A function CP the current symbol does not draw cannot
@@ -1517,7 +1517,7 @@ pub struct TableCp {
     /// A terminal CP's side in the model's words (doc 08 §2.1): `field` when its side is the strip's
     /// `field_side`, `internal` for the other side; `None` for a CP without a side.
     pub side: Option<&'static str>,
-    /// The printed PLC address of the channel bound to it (`ew_derive::PlcAddressText`'s pins, WP-S1.21 D7); `None`
+    /// The printed PLC address of the channel bound to it (`ew_derive::PlcAddressText`'s pins); `None`
     /// for an unbound CP or an address that does not resolve.
     pub plc_address: Option<String>,
 }
@@ -1560,7 +1560,7 @@ pub struct TableConnection {
     /// sheet.
     pub off_sheet: Vec<usize>,
     /// A fluid line's line kind (`working`, `pilot`, `exhaust`, `drain`, `flexible`, `unknown` for a kind of a newer
-    /// format; WP-S1.20 D17, FT-1320); `None` for any other connection.
+    /// format); `None` for any other connection.
     pub line_kind: Option<String>,
 }
 
@@ -1574,7 +1574,7 @@ impl TableConnection {
 }
 
 /// The segments of the drawn (clamped) `polyline` that lie on no segment of the connection's unclamped `path`
-/// (`ew_derive::drawn_path`, the path normaliser 7 and EW-TERM-006 read; FT-1049). A stored route is drawn vertex
+/// (`ew_derive::drawn_path`, the path normaliser 7 and EW-TERM-006 read). A stored route is drawn vertex
 /// for vertex, so its segment `i` is compared with the path's segment `i` alone; a provisional route (at most three
 /// vertices, cleaned after the clamp) with every segment of the path.
 fn off_sheet_segments(polyline: &[Pt2], path: &[Pt2], stored: bool) -> Vec<usize> {

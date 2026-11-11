@@ -4,7 +4,7 @@
 //! WP-S1.18 part 5 (RU-3): the revision dialogs of Check ▸ Revision on copies of `golden/fixtures/release-min` (one open
 //! revision V1.0 with its author; no finding but EW-REL-001 before the sign-off). The dialogs open, fill, validate and
 //! cancel in the headless shell through their own actions; a scripted confirm is refused with its whole text; a
-//! person at the window approves, releases and withdraws. FT-842: the release's housekeeping warnings in Messages.
+//! person at the window approves, releases and withdraws. The release's housekeeping warnings in Messages.
 //! Cycle 41, ruling 4: a scripted purge is refused. The fix round FIX41b: every refusal in words (ruling 1), the
 //! incomplete release's confirmations with the git consent (ruling 2), counts in their noun's number (ruling 4), the
 //! check messages without a command (ruling 5), the release's warnings with their cause in words (ruling 6).
@@ -77,7 +77,7 @@ fn archive_of(dir: &Path) -> PathBuf {
         .join("V1.0.ewarchive")
 }
 
-/// RU-3, the first step (cycle 41, ruling 1: "the dialogs open, fill, validate and cancel in the headless shell, through
+/// RU-3, the first step (ruling 1: "the dialogs open, fill, validate and cancel in the headless shell, through
 /// their own actions with parameters"): Approve, Release and Set author open with the gate's result in words, take
 /// their fields from parameters, refuse a wrong typed label (whole text, kept in the dialog) and close with `cancel`.
 #[test]
@@ -219,7 +219,7 @@ fn a_scripted_confirm_is_refused_with_the_whole_text() {
     }
 }
 
-/// RU-3, the completing half (cycle 41, ruling 1: "an ew-viewmodel test proves the completing half (approve, release,
+/// RU-3, the completing half (ruling 1: "an ew-viewmodel test proves the completing half (approve, release,
 /// withdraw on `golden/fixtures/release-min`) by confirming the dialog through the same window-input path a click
 /// takes"): the window's shell (`ShellModel::new(Mode::Gui, …)`) dispatches each dialog's confirm button, as the window
 /// does on a click (with the date it reads).
@@ -654,7 +654,7 @@ fn ruling2_a_discard_cancelled_at_its_confirmation_keeps_the_archive() {
     s.shutdown();
 }
 
-/// FT-842 (cycle 41, ruling 2: "After a release, the window drains them and shows each once as a Messages entry in
+/// FT-842 (ruling 2: "After a release, the window drains them and shows each once as a Messages entry in
 /// words, with the file name only. The entry has severity Warning, and its rule column names the source in a word
 /// ("Release"), not an ID. One toast points to Messages in its text"): a state directory whose release records
 /// cannot be read gives one warning under Warnings ▸ Release and one toast; an open without trouble shows none.
@@ -695,7 +695,7 @@ fn the_release_warnings_show_once_in_messages() {
         vec![
             "warning".to_owned(),
             "Release".to_owned(),
-            // FIX41b ruling 6: the cause in words from the error's kind, never the OS text or its code.
+            // The cause in words from the error's kind, never the OS text or its code.
             "The release records in the folder releases could not be read: it is not a folder.".to_owned(),
             String::new(),
             String::new(),

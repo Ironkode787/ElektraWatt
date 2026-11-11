@@ -14,8 +14,9 @@
 //! The runner stays in this test crate for its shared helpers (`tests/page_output/`, `tests/golden_common/`); it
 //! moves to `ew-testkit` (`ew-testkit accept --gate`) with the golden builders.
 //!
-//! - `cargo xtask acceptance <report.md>` runs the gate: the `#[ignore]`d test `gate` writes the report and
-//!   fails when any entry fails or is not built (exit status non-zero).
+//! - The gate is the `#[ignore]`d test `gate`, a part of the deep run (CONTRIBUTING.md, "Tests"): it writes the
+//!   report to `EW_ACCEPTANCE_REPORT`, or to `target/tmp/acceptance-report.md` without it, and fails when any
+//!   entry fails or is not built.
 //! - The ordinary tests run the runner without the raster comparison and the measurements, in the three shards of
 //!   [`HEADLESS_SHARDS`] that nextest runs in parallel, and compare each shard's rows with the
 //!   committed `expected/acceptance_headless.md`; a fourth test shows that the shards evaluate every row of the
@@ -50,7 +51,7 @@ fn committed_report() -> std::path::PathBuf {
 }
 
 /// The ordinary run's options: no raster comparison (the 150 dpi PNGs are compared by `tests/it/page_output.rs`, and
-/// by the full run of `cargo xtask acceptance`), no performance measurements (milestone runs only), and no
+/// by the gate of the deep run), no performance measurements (milestone runs only), and no
 /// veraPDF report (the headless run never reads EW_VERAPDF_REPORT: the committed report does not depend on the
 /// environment). The oracle sessions re-run one memoised read in 64 cold (a fixed, deterministic sample; test
 /// audit g7): the gate and the deep nightly's `nightly_the_headless_report_equals_the_committed_report_on_every_
@@ -64,10 +65,10 @@ fn headless() -> Options {
     }
 }
 
-/// The deep nightly's run of the headless report with the oracle on every read of the oracle sessions (CI-N-02):
+/// The deep run of the headless report with the oracle on every read of the oracle sessions:
 /// every row equals the committed report's and the oracle finds no mismatch.
 #[test]
-#[ignore = "deep nightly (CI-N-02): the headless acceptance report with the oracle on every read"]
+#[ignore = "deep run: the headless acceptance report with the oracle on every read"]
 fn nightly_the_headless_report_equals_the_committed_report_on_every_read() {
     let report = run(Options {
         oracle: ew_derive::Oracle::Every,
@@ -174,7 +175,7 @@ fn the_headless_report_equals_the_committed_report_shard_3_of_3() {
 /// with no oracle mismatch (each shard asserts its own mismatches are none), with the expected counts.
 #[test]
 fn the_headless_report_shards_cover_the_committed_report() {
-    // R1-7: under `EW_BLESS=1` shard 1 rewrites the committed report while nextest runs this test beside it, so a
+    // Under `EW_BLESS=1` shard 1 rewrites the committed report while nextest runs this test beside it, so a
     // read here could see the file half-written. A bless run checks nothing (the shards also return early); the
     // next ordinary run checks the blessed file. Without `EW_BLESS` (every gate and CI run) nothing changes.
     if std::env::var_os("EW_BLESS").is_some_and(|v| v == "1") {
@@ -243,11 +244,11 @@ fn the_headless_report_shards_cover_the_committed_report() {
     );
 }
 
-/// The gate itself, run by `cargo xtask acceptance`: the full run with the raster comparison, writing the
-/// report to `EW_ACCEPTANCE_REPORT`; it fails when an entry fails or is not built, or the oracle finds a
+/// The gate itself: the full run with the raster comparison, writing the report to `EW_ACCEPTANCE_REPORT`
+/// (`target/tmp/acceptance-report.md` without it); it fails when an entry fails or is not built, or the oracle finds a
 /// mismatch. `EW_PERF_ASSERT=1` adds the AC-17 measurements.
 #[test]
-#[ignore = "run by `cargo xtask acceptance`"]
+#[ignore = "deep run: the acceptance gate with the raster comparison, which writes its report"]
 fn gate() {
     let report = run(Options {
         raster: true,
@@ -257,7 +258,10 @@ fn gate() {
             .filter(|v| !v.is_empty())
             .map(std::path::PathBuf::from),
     });
-    let path = std::env::var_os("EW_ACCEPTANCE_REPORT").expect("EW_ACCEPTANCE_REPORT names the report file");
+    let path = std::env::var_os("EW_ACCEPTANCE_REPORT").map_or_else(
+        || std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join("acceptance-report.md"),
+        std::path::PathBuf::from,
+    );
     std::fs::write(path, report.markdown()).expect("the report path is writable");
     let blocking: Vec<String> = report
         .blocking()

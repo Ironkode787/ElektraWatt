@@ -24,7 +24,7 @@
 //! page views and one memoised `page_display_list` family per layer through the session's memo store, the page
 //! phase on `ew_export::par_map`, then the PDF or SVG writer with the bundled fonts.
 //!
-//! The PDF export also runs as a job ([`Session::export_job`], WP-S2.09 part 1): a snapshot with a cold `Q` on a
+//! The PDF export also runs as a job ([`Session::export_job`]): a snapshot with a cold `Q` on a
 //! thread of [`ew_jobs`], with progress and cooperative cancel.
 //!
 //! **What only the window shows and edits** ([`window`]): the clipboard, find and replace, the history rows, the
@@ -137,7 +137,7 @@ pub use part_offers::{Fit, OfferView, PartOffer, PartOfferQuery, PartPick, PartT
 
 /// The reference of an image file as the asset store makes it ([`sniff_asset`] and the SHA-256 of the bytes): what a
 /// front-end reads from a file the user picked or dropped before it asks `item.place` to store it.
-/// It is a gate that brings an image in, so it applies the pixel limit ([`ew_schema::pixel_limit`], ID-1417).
+/// It is a gate that brings an image in, so it applies the pixel limit ([`ew_schema::pixel_limit`]).
 ///
 /// # Errors
 ///
@@ -153,7 +153,7 @@ pub fn asset_ref_of(bytes: &[u8]) -> Result<AssetRef, AssetError> {
     })
 }
 
-/// An image of the project that no drawing shows ([`Session::undrawn_images`], decision log ID-1417).
+/// An image of the project that no drawing shows ([`Session::undrawn_images`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct UndrawnImage {
     /// Whether it is the company logo.
@@ -422,12 +422,12 @@ pub struct DamagedCopy {
     /// [`DamagedCopy::words`] names the first, in key order; empty otherwise.
     pub left_out_words: Vec<Text>,
     /// Whether an installed library holds a readable document of the copy the banner names (FT-1499, ID-1486; of any
-    /// copy the open dropped when [`DamagedCopy::left_out`], whose banner names them all, C53-p4#5): the banner then
+    /// copy the open dropped when [`DamagedCopy::left_out`], whose banner names them all): the banner then
     /// offers Update from library ([`Session::update_damaged_copies`]).
     pub in_library: bool,
 }
 
-/// What [`Session::update_damaged_copies`] did (FT-1499, ID-1486): the damaged library copies written from their
+/// What [`Session::update_damaged_copies`] did (FT-1499): the damaged library copies written from their
 /// libraries and those no installed library holds a readable document of, each in words as
 /// [`DamagedCopy::words`] names a copy, in key order. Both empty for a project without a damaged copy.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
@@ -1093,7 +1093,7 @@ impl Session {
 
     /// Opens a project directory read-only for a reader such as `ew check` (doc 17 §3.1: readers take no
     /// lock and read one generation): no lock, no roll-forward, no journal; an `.ewz` given as `dir` opens from memory
-    /// ([`Session::open_ewz`], WP-S1.17 D9). `app_version` names the program in the store's diagnostics.
+    /// ([`Session::open_ewz`]). `app_version` names the program in the store's diagnostics.
     ///
     /// # Errors
     ///
@@ -1171,7 +1171,7 @@ impl Session {
     }
 
     /// The shipped check scheme the project names for a run in `mode` (`settings.extra.checks`, set by
-    /// `project.checks.set`, FT-366): `release_scheme` for [`checks::CheckMode::Release`] (the release gate and
+    /// `project.checks.set`): `release_scheme` for [`checks::CheckMode::Release`] (the release gate and
     /// `ew check`), `active_scheme` for [`checks::CheckMode::Online`]. `None` when the project names none or
     /// names a scheme that does not ship (a newer or damaged file): the caller's default applies.
     pub fn project_check_scheme(&self, mode: checks::CheckMode) -> Option<&'static checks::Scheme> {
@@ -1309,7 +1309,7 @@ impl Session {
         Ok(())
     }
 
-    /// FT-1383 (ID-1418): the first record, in the integrity check's order, that names a library copy the open
+    /// FT-1383: the first record, in the integrity check's order, that names a library copy the open
     /// dropped as damaged, as the device's tag, the copy's project-relative file and, from the installed libraries, the
     /// copy's part, with the copy and that record in words; when the model passes the check, the
     /// first copy the open dropped that no record names ([`DamagedCopy::left_out`]); `None` when there is neither. A
@@ -1392,7 +1392,7 @@ impl Session {
         })
     }
 
-    /// Update from library of the damaged library copies (FT-1499, decision log ID-1486): every copy the open dropped
+    /// Update from library of the damaged library copies (FT-1499): every copy the open dropped
     /// as damaged that an installed library holds is read and checked as `library.embed` reads a library's document,
     /// before anything is written, and the store then writes those copies over their damaged files in one save
     /// ([`Store::update_damaged_copies`]); a copy no library holds, or whose document the check refuses, stays damaged
@@ -1478,7 +1478,7 @@ impl Session {
         }
     }
 
-    /// The document of `kind` and the library's name of the installed item whose copy ID is `copy` (FT-1396, ID-1423;
+    /// The document of `kind` and the library's name of the installed item whose copy ID is `copy` (
     /// FT-1500): the words of a damaged copy, whose own file cannot be read.
     fn installed_document(
         &self,
@@ -1568,7 +1568,7 @@ impl Session {
     }
 
     /// The user's consent to converting a project that opened migrated from an older format
-    /// ([`OpenReport::migrated_from`], WP-S1.17 D11), kept in memory: the next [`Session::save`] first writes the
+    /// ([`OpenReport::migrated_from`]), kept in memory: the next [`Session::save`] first writes the
     /// backup `<project folder>.pre-<format>.ewz` beside the project folder (`-2`, `-3` and so on past a name that holds
     /// another file), read back and verified, and then saves in this version's format. A session closed before that
     /// save writes nothing, and the next open asks again. Nothing for a project that was not migrated.

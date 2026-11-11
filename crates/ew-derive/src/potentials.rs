@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The potential partition: `potential_partition()` (ARCH §6.1, §6.4; doc 08 §3.3–§3.4; ADR-0002 amendments 4
-//! and 5; WP-S1.07 part 2).
+//! and 5).
 //!
 //! # The value: topology only, per connected component
 //!

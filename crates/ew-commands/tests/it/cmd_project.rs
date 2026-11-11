@@ -837,7 +837,7 @@ fn company_set_refuses_a_logo_that_is_no_image_or_a_hostile_svg() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-447: the project description through `fields.set`
+// The project description through `fields.set`
 
 /// `fields.set` with kind `project` and the project's ID sets `master.description`; undo restores it; a neutral
 /// text and a language object both read back.

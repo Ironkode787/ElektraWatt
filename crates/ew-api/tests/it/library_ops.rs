@@ -945,7 +945,7 @@ fn symbol_key(d: &LibDocument) -> Option<String> {
 /// FT-698, the product path of Golden A's symbol change: over Golden A as it was (its lamp, position
 /// switch and 5/2 valve at 0.1.0, rebuilt from the new copies and checked against the published hashes), the library
 /// status offers exactly those three copies an update, a minor one to the starter's 0.2.0 (the 5/2 valve a major one
-/// to its 0.3.0, which names the FnDef's 0.2, WP-S1.20); "update from library" updates them in one command, after which
+/// to its 0.3.0, which names the FnDef's 0.2); "update from library" updates them in one command, after which
 /// the held copies equal the bootstrap's (the committed fixture's), no copy has an update left and the valve of
 /// -201U3-Q1 prints its channel address Q0.1.
 #[test]

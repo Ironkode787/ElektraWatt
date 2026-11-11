@@ -713,7 +713,7 @@ fn markers_sit_at_their_revisions_and_the_counts_are_exact() {
     s.shutdown();
 }
 
-/// R1-7 of cycle 31: `history.row` with the extreme steps does not overflow; it clamps to the first (newest) or the
+/// `history.row` with the extreme steps does not overflow; it clamps to the first (newest) or the
 /// last (oldest) entry.
 #[test]
 fn history_row_clamps_the_extreme_steps() {
@@ -770,7 +770,7 @@ fn the_purge_step() {
     );
     done(&mut s, "file.close", json!({}));
     done(&mut s, "file.open", json!({"dir": dir.to_string_lossy()}));
-    // `confirm` without the open confirmation purges nothing (R1-5).
+    // `confirm` without the open confirmation purges nothing.
     let unused: Vec<_> = std::fs::read_dir(dir.join("assets"))
         .unwrap()
         .map(|e| e.unwrap().path())

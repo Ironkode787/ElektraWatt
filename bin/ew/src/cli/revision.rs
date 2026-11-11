@@ -409,7 +409,7 @@ pub(super) fn released_lines(output: &mut dyn std::io::Write, done: &ew_api::Rel
 
 /// An archive of the open revision's label that a crashed release left (doc 05 section 14.1 "On failure"): the
 /// person types `complete` (when it can be completed) to stamp it, or `discard` (when this project directory's own run
-/// provably wrote it, FT-814) to remove it and its tag. An archive that is not this project's (another project's or
+/// provably wrote it) to remove it and its tag. An archive that is not this project's (another project's or
 /// revision's, or one that names no project) is offered neither: it is kept, and the release is refused; so is one that
 /// can neither be completed nor provably discarded.
 pub(super) fn settle_release(
@@ -911,7 +911,7 @@ mod tests {
 
     /// RA-3 through the CLI: an archive of the open revision's label that no record names (what a crashed release
     /// leaves: here the archive of an identical copy) is offered before a new release; `complete` stamps the revision
-    /// with it, and a damaged one can only be discarded. FT-814: a copy of the project finds the other copy's archive
+    /// with it, and a damaged one can only be discarded. A copy of the project finds the other copy's archive
     /// in the shared archive folder, but `discard` is not offered without this folder's run record, and typed it
     /// removes nothing; with the record it is offered and removes the archive and the record.
     #[test]

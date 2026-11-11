@@ -352,7 +352,7 @@ pub struct MacroDetail {
     /// The variables as the insert card's fields take them: the name, the type's word (`text`, `number`,
     /// `bool`, …) and the default, `None` without one; in the macro's order.
     pub variable_fields: Vec<(String, String, Option<serde_json::Value>)>,
-    /// The value sets' values by variable name, in the order of [`MacroDetail::value_sets`] (FT-785: a field's
+    /// The value sets' values by variable name, in the order of [`MacroDetail::value_sets`] (a field's
     /// placeholder shows the chosen set's value).
     pub value_set_values: Vec<BTreeMap<String, serde_json::Value>>,
     /// The macro in its library (`version_req` `*`), `None` for a copy no installed library holds: only a macro of an
@@ -398,7 +398,7 @@ impl MacroDetail {
     }
 }
 
-/// A macro's thumbnail (WP-S1.19 §11, FT-754 (a)): the macro inserted on a blank page of a throwaway copy of the
+/// A macro's thumbnail (FT-754 (a)): the macro inserted on a blank page of a throwaway copy of the
 /// project, drawn as the page's sheet display list, and the region of the sheet its records cover.
 #[derive(Clone, Debug)]
 pub struct MacroThumbnail {

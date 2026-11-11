@@ -306,7 +306,7 @@ fn a_repair_open_still_demotes_for_any_other_forcing_finding() {
     opened.store.close();
 }
 
-/// ID-1185 ruling 6: the broken lines leave the kept lines only when the save succeeds (in `adopt`). An error at each
+/// The broken lines leave the kept lines only when the save succeeds (in `adopt`). An error at each
 /// file-system call of the save: before its commit point the save fails, the lines are still there and the next
 /// discard succeeds; after it the save is decided and they are gone. A schema violation in the same shard stays.
 #[test]
@@ -434,7 +434,7 @@ fn a_cloud_synced_open_reads_a_missing_file_again_after_five_seconds() {
     assert_eq!(opened.report.access, Access::Edit);
 }
 
-/// FT-1383 (ID-1395): one damaged library copy that a device names (a part copy cut short, so the loader drops it)
+/// FT-1383: one damaged library copy that a device names (a part copy cut short, so the loader drops it)
 /// no longer refuses the whole project with EW-INV-001: the project opens read-only, its finding naming the copy's
 /// file, and the copy is not in the model. A repair open of it stays read-only too.
 #[test]
@@ -574,7 +574,7 @@ fn with_copy(model: &ew_model::Model, path: &str) -> (ew_model::Model, BTreeSet<
     (next, keys)
 }
 
-/// FT-1499 (ID-1486): Update from library of a damaged copy writes the library's document over the damaged file, with
+/// FT-1499: Update from library of a damaged copy writes the library's document over the damaged file, with
 /// its manifest entry, under the lock it takes and gives back; the store stays read-only, and the project then opens
 /// for editing with the copy, every other file as it was.
 #[test]
@@ -613,7 +613,7 @@ fn update_damaged_copies_writes_the_copy_and_the_project_opens_for_editing() {
     again.store.close();
 }
 
-/// FT-1499 (ID-1486): another file that does not hold the bytes its manifest lists (here a page file edited outside,
+/// FT-1499: another file that does not hold the bytes its manifest lists (here a page file edited outside,
 /// EW-CORE-002) refuses the update before anything is written, as would another session's lock: the update would hide
 /// that finding.
 #[test]

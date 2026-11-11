@@ -304,7 +304,7 @@ mod tests {
     }
 
     /// `{prev}{prev}x` doubles the text per row: the row that would pass the bound is refused as too long instead of
-    /// growing without bound (R1-1); no row builds more than 10000 characters, so 64 rows stay small. No timing is
+    /// growing without bound; no row builds more than 10000 characters, so 64 rows stay small. No timing is
     /// asserted (no wall clock in tests of this crate; performance is not measured, owner's rule).
     #[test]
     fn a_doubling_prev_pattern_is_bounded_per_row() {

@@ -1068,7 +1068,7 @@ fn export_out_to_an_unwritable_path_is_exit_2() {
 /// The oracle re-runs every memoised read, about 90 s in a debug build, so the test is run by hand
 /// (`cargo nextest run -p ew --run-ignored only`) and by the acceptance runner's AC-16 at the library level.
 #[test]
-#[ignore = "about 90 s in a debug build (the oracle re-runs every memoised read)"]
+#[ignore = "deep run: the oracle re-runs every memoised read"]
 fn verify_derived_golden_a_is_clean() {
     let o = ew(&["verify-derived".as_ref(), GOLDEN_A.as_ref()]);
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
@@ -2634,7 +2634,7 @@ fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S1.22 part 3: `ew fmt`, `ew recover` and `ew import csv`
+// `ew fmt`, `ew recover` and `ew import csv`
 
 /// The journal files of the isolated `ew` (`home`) with their bytes.
 fn journal_files(home: &std::path::Path) -> std::collections::BTreeMap<String, Vec<u8>> {
@@ -2880,7 +2880,7 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
     assert!(tree(&broken) == before, "nothing is written");
 }
 
-/// C52-p4#1, #2 (FT-1383, ID-1418; FT-1396): a writer refused on a project whose damaged library copy a device uses names the
+/// C52-p4#1, #2 (FT-1383): a writer refused on a project whose damaged library copy a device uses names the
 /// device, the copy in words and the way out, and writes nothing.
 #[test]
 fn a_writer_names_the_damaged_copy_a_device_uses() {
@@ -2994,7 +2994,7 @@ fn starter_mcb_project(t: &Tmp, home: &std::path::Path) -> (PathBuf, PathBuf) {
     (project, file)
 }
 
-/// FT-1499 (ID-1486): `ew update-copies` writes a damaged copy of a starter part from the compiled-in library, byte for
+/// FT-1499: `ew update-copies` writes a damaged copy of a starter part from the compiled-in library, byte for
 /// byte as the assignment's save wrote it, says so with the version written, and the project then opens for
 /// editing (`ew fmt` writes nothing).
 #[test]
@@ -3027,7 +3027,7 @@ fn update_copies_writes_a_damaged_copy_from_its_library() {
     assert_eq!(fmt.status.code(), Some(0), "{}", stderr(&fmt));
 }
 
-/// FT-1499 (ID-1486): `ew update-copies` on a project whose damaged copy no library holds (Golden A's own part copy of
+/// FT-1499: `ew update-copies` on a project whose damaged copy no library holds (Golden A's own part copy of
 /// -201U8-Q1) is refused in words, exit 1, and writes nothing.
 #[test]
 fn update_copies_refuses_a_copy_no_library_holds() {
@@ -3479,7 +3479,7 @@ fn fmt_repair_backs_up_a_hand_edited_project_as_found() {
     }
 }
 
-/// ID-1185 ruling 3: the refusals come before anything is written, each named, exit 2, in this order: an `.ewz`; a
+/// The refusals come before anything is written, each named, exit 2, in this order: an `.ewz`; a
 /// crashed session's journal (here before a conflict marker the repair cannot discard); a finding other than a broken
 /// line that forces read-only (EW-CORE-006), also one beyond the findings cap; a project whose backup cannot be packed
 /// (no manifest; a page file edited outside ElektraWatt since the last save is packed as found); a backup name
@@ -3776,7 +3776,7 @@ fn recover_refuses_a_replay_that_collides_with_a_later_save() {
 /// Ruling 2 of cycle 41: "`ew recover` checks that it got edit access ... Then it refuses with exit 2 and the same
 /// text `ew apply` uses for a held lock; it never acts read-only." While this test process holds the project's lock,
 /// `ew recover` and `ew apply` exit 2 with the same text, `ew apply`'s as built: the read-only reason a second open
-/// sees, with the lock's holder (FR-COL-006); the crashed session's journal stays. FT-943: the holder's user name
+/// sees, with the lock's holder (FR-COL-006); the crashed session's journal stays. The holder's user name
 /// holds a right-to-left override (U+202E), which the refusal prints escaped.
 #[test]
 fn recover_and_apply_refuse_a_held_lock_with_the_same_text() {

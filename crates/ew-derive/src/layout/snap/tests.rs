@@ -365,7 +365,7 @@ fn rail() -> impl Strategy<Value = (i128, Vec<RailItem>)> {
     rail_of(0..=8)
 }
 
-/// [`rail`] with a number of items in `count` (ID-1493: the swap test draws a rail with an item rather than reject
+/// [`rail`] with a number of items in `count` (the swap test draws a rail with an item rather than reject
 /// one without, which aborted at the deep nightly's case count).
 fn rail_of(count: std::ops::RangeInclusive<usize>) -> impl Strategy<Value = (i128, Vec<RailItem>)> {
     (
@@ -512,7 +512,7 @@ proptest! {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S4.02 part 2: next-fit (D6, `layout.auto_fill`)
+// Next-fit (D6, `layout.auto_fill`)
 
 /// D6: next-fit takes the first place at or after the floor where the item fits with its gaps (the rail start's on an
 /// empty rail; occupied stretches skipped), never a gap before the floor, and `None` when nothing fits.

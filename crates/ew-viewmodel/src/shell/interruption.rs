@@ -141,7 +141,7 @@ impl ShellModel {
 
     /// The shape of the catalogue symbol whose key is `base` in the page's grid family (`ew.gen.ip`,
     /// `ew.gen.ip@qet10`), and the library documents a command drawing it carries (a starter symbol the project lacks,
-    /// with its FnDef; FT-673).
+    /// with its FnDef).
     fn family_shape(&mut self, base: &str) -> Result<(Arc<SymbolShape>, Vec<Value>), Outcome> {
         let none = Outcome::refused(key!("reason-no-ip-symbol"));
         let cat = self
@@ -537,7 +537,7 @@ impl ShellModel {
         }
     }
 
-    /// FIXPT41: the IP tool's click (a primary press or Enter) whose point's CP would lie on another interruption
+    /// The IP tool's click (a primary press or Enter) whose point's CP would lie on another interruption
     /// point, or an external connection point's on a pin, is refused as FT-822's refused point is: nothing is
     /// committed, the ghost stays where the click put it, the words stand in the HUD until the next canvas input and
     /// in a warning toast. `None` for every other event, tool or drop.

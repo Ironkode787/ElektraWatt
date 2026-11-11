@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The keymaps in the shell (WP-S2.08 part 2, D6 to D8; the files and the rules in [`crate::keymap`]): the active
+//! The keymaps in the shell (D6 to D8; the files and the rules in [`crate::keymap`]): the active
 //! preset (the `keymap` setting) with the user's `keymap.toml` over it, the effective bindings the window binds and the
 //! menus, the palette and the describe text show, and the keymap editor's actions (search, record, reset, import,
 //! export). Every edit is checked by D8's rules first; an edit with an error is refused and listed in the editor, so
@@ -51,7 +51,7 @@ fn clause(reason: &str) -> String {
 
 /// The user's keymap in `dir` checked against the preset `preset_word`: `Ok(None)` without a file. A file that does
 /// not parse or has an error (D8) is copied to `keymap.toml.bad-<n>` (once: a copy with the same bytes is named
-/// again, FIX40d) and refused with a banner; a file that cannot be
+/// again) and refused with a banner; a file that cannot be
 /// read, or a refused one whose copy-aside failed, is refused with a banner and kept: the editor does not write over
 /// it in this run (C40 review part 2, finding 8).
 pub(super) fn load_user_keymap(dir: &Path, preset_word: &str) -> Result<Option<Keymap>, KeymapTrouble> {

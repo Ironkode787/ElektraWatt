@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The shell's texts through Fluent: LO-3 the completeness gate; the pseudo-locale en-XA; the run-time switch. Part 4
-//! (D12, ID-1269): NL-1 the arguments of every Dutch message, NL-2 the terminology table.
+//! (D12): NL-1 the arguments of every Dutch message, NL-2 the terminology table.
 
 use crate::common::{Tmp, done};
 use ew_viewmodel::actions::{self, Menu, Submenu};
@@ -72,7 +72,7 @@ fn the_pseudo_locale_accents_pads_and_brackets() {
     assert_eq!(strings::text(key!("menu-file")), "File");
 }
 
-/// ID-1219 ruling 5, ID-1269 ruling 5: the shipped Dutch and a test language are offered with their own names and
+/// The shipped Dutch and a test language are offered with their own names and
 /// switched at run time; a test language falls back to en-GB per message and never replaces a shipped one; the
 /// pseudo-locale is never offered.
 #[test]
@@ -320,7 +320,7 @@ fn nl_has(texts: &str, term: &str) -> bool {
     }
 }
 
-/// Whether the rejected Dutch word `alt` is in `texts` (lower case), inside a word too (FT-1341: "standaarddraadkleur"
+/// Whether the rejected Dutch word `alt` is in `texts` (lower case), inside a word too ("standaarddraadkleur"
 /// holds "draadkleur"), once the row's own term `own` is taken out ("kabelgoot" holds a duct's "goot" by right).
 fn nl_rejected(texts: &str, alt: &str, own: &str) -> bool {
     let texts = if own.is_empty() {
@@ -561,7 +561,7 @@ fn the_terminology_table_is_followed() {
     }
     let header_ends = nl.find("\nmenu-file = ").unwrap();
     assert!(nl[..header_ends].contains("# term: device = apparaat (not: toestel, component)\n"));
-    // ID-1278 ruling 4: the checks' Dutch messages follow the table too, select arms and attributes included.
+    // The checks' Dutch messages follow the table too, select arms and attributes included.
     let rules = texts(&rule_messages_nl());
     // Message by message. Each table term an en-GB message holds as whole words (the longest first, a term
     // inside a longer one not counted again) is its Dutch term in the nl-NL message, inside a compound too. A rejected
@@ -655,7 +655,7 @@ fn messages_with(ftl: &str, prefix: &str) -> std::collections::BTreeMap<String, 
         .collect()
 }
 
-/// C49-p10b#1: the record kinds' and the fields' Dutch headings follow the terminology table message by
+/// The record kinds' and the fields' Dutch headings follow the terminology table message by
 /// message, so a right use elsewhere cannot hide a wrong one: each table term an en-GB heading holds (the longest
 /// first, a term inside a longer one not counted again) is its Dutch term in the nl-NL heading.
 #[test]
@@ -669,7 +669,7 @@ fn the_kind_and_field_headings_follow_the_table_each() {
         let nl = messages_with(&nl_file, prefix);
         for (key, en) in messages_with(&en_file, prefix) {
             let dutch = nl.get(&key).unwrap_or_else(|| panic!("{key} has no Dutch text"));
-            // FIX50b ruling 1: a Git tag is Git's own word ("Git-tag"), not the drawing's device tag (NL-2's Git
+            // A Git tag is Git's own word ("Git-tag"), not the drawing's device tag (NL-2's Git
             // exemption).
             let mut english = en.replace("git tag", " ");
             for term in &table {

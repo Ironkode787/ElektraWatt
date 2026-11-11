@@ -115,7 +115,7 @@ pub fn lane_offset_pt(lane: u8) -> f64 {
 }
 
 /// The unit normal of the line through `a` and `b` (turned a quarter from its direction); `(0, 0)` for a point. One
-/// normal per line (C49-p8b#1): the direction runs from the lower end to the higher (by x, then y), so two segments of
+/// normal per line: the direction runs from the lower end to the higher (by x, then y), so two segments of
 /// one line drawn in opposite directions share it, and a lane is the same side of the line for both.
 pub fn normal(a: (f64, f64), b: (f64, f64)) -> (f64, f64) {
     let (a, b) = if b < a { (b, a) } else { (a, b) };
@@ -142,7 +142,7 @@ pub struct LabelAt {
 
 /// Whether the segments `a`–`b` and `c`–`d` lie on one line and share a stretch of positive length.
 ///
-/// Any `i64` ends (C49-p8b#4): the differences are taken in `i128`, the direction reduced to its lowest terms, and a
+/// Any `i64` ends: the differences are taken in `i128`, the direction reduced to its lowest terms, and a
 /// cross product beyond `i128` (a slant across most of the `i64` range) counts as no shared stretch.
 fn overlaps(a: (i64, i64), b: (i64, i64), c: (i64, i64), d: (i64, i64)) -> bool {
     let v = (
@@ -184,9 +184,9 @@ fn overlaps(a: (i64, i64), b: (i64, i64), c: (i64, i64), d: (i64, i64)) -> bool 
 
 /// Gives each segment of each stroke a lane (W49.2 F9): a segment that shares a stretch of its line with segments of
 /// strokes before it takes a lane none of them holds, so two wires drawn on one path stand side by side and each keeps
-/// its colour or stripes; a segment alone keeps lane 0, on its path. FT-1283: a run of such segments one after the
+/// its colour or stripes; a segment alone keeps lane 0, on its path. A run of such segments one after the
 /// other (a shared run that turns a corner) takes one lane, the lowest that none of the segments it shares with holds,
-/// so the wire keeps its lane over the run and its corner turns with it ([`WireStroke::in_lanes`]). FT-1344: a segment
+/// so the wire keeps its lane over the run and its corner turns with it ([`WireStroke::in_lanes`]). A segment
 /// that shares only part of its stretch is first split where the shared part begins and ends, so only that part takes
 /// the lane and the rest stays on the path.
 pub fn assign_lanes(strokes: &mut [WireStroke]) {
@@ -667,7 +667,7 @@ mod tests {
         assert_eq!(lane_offset_pt(3), 2.0 * LANE_PT);
     }
 
-    /// C49-p8b#1: three wires on one stretch, the third drawn the other way, stand in three lanes on three sides of
+    /// Three wires on one stretch, the third drawn the other way, stand in three lanes on three sides of
     /// the path, and their three codes stand apart: no stroke and no code on another.
     #[test]
     fn three_wires_on_one_line_one_reversed_stand_apart() {
@@ -694,7 +694,7 @@ mod tests {
         assert_eq!(labels, sides, "each code on its own stroke");
     }
 
-    /// FT-1283 (C49-p8b#5): a wire keeps one lane over a shared run that turns a corner, the lowest that none of the
+    /// A wire keeps one lane over a shared run that turns a corner, the lowest that none of the
     /// run's segments meets (not lane 1 on one segment and lane 2 on the next), and drawn in its lanes its corner is
     /// one point where the moved segments' lines cross.
     #[test]
@@ -774,7 +774,7 @@ mod tests {
         );
     }
 
-    /// C49-p8b#4: the lanes take ends anywhere in `i64`, without an overflow.
+    /// The lanes take ends anywhere in `i64`, without an overflow.
     #[test]
     fn lanes_at_the_ends_of_i64() {
         let (lo, hi) = (i64::MIN, i64::MAX);

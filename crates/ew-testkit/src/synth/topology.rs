@@ -1520,7 +1520,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "L/XL fixtures are generated with the performance spike (milestone rule)"]
+    #[ignore = "deep run: the L and XL fixtures"]
     fn l_and_xl_plans_meet_the_class_bounds() {
         // Plan-only: index arithmetic, no records (the L/XL records are generated with the performance
         // spike, see `tests/synth.rs`).

@@ -1141,7 +1141,7 @@ mod tests {
 
     /// The key of a path follows the directory, not its spelling (a `..` path reaches the same key); another
     /// directory of the same name has another key, and so has one whose name differs only in case on a case-sensitive
-    /// file system (the memory one): nothing is folded (FIX40a, finding 5).
+    /// file system (the memory one): nothing is folded (finding 5).
     #[test]
     fn the_key_follows_the_directory() {
         let vfs = MemVfs::new(DirSync::Explicit);

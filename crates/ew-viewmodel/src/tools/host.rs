@@ -139,7 +139,7 @@ pub(crate) struct ToolHost {
     /// `(i64::MIN, i64::MIN)`, which no pointer move matches.
     pub notice_at: Option<(i64, i64)>,
     /// The project revision and the selection's generation at the end of the last dispatch: a notice clears when
-    /// either changes, since the state it refused is gone (FT-1032: a committed command, a Properties edit, undo or
+    /// either changes, since the state it refused is gone (a committed command, a Properties edit, undo or
     /// redo, a selection change).
     pub notice_basis: Option<(Option<u64>, u64)>,
     /// The paste tool committed: at the end of the dispatch Select takes over with the pasted representations selected.
@@ -163,13 +163,13 @@ pub(crate) struct ToolHost {
     pub result_note: Option<ResultNote>,
     /// The placing options of the tool options card (the sticky mode and the grid step), kept across tools.
     pub layout_options: super::LayoutOptions,
-    /// Whether a move connects its autoconnect proposals, kept across tools for the session (WP-S2.19 D15: on until
+    /// Whether a move connects its autoconnect proposals, kept across tools for the session (on until
     /// `tool.connect_on_move` turns it off).
     pub connect_on_move: bool,
     /// Whether a `layout.*` commit of this dispatch announces the selected placement's live text once the page is
     /// read again (at the end of the dispatch).
     pub layout_announce: bool,
-    // FT-900, FT-995 (ID-1147)
+    // FT-900, FT-995
     /// The schematic Place tool committed: at the end of the dispatch the representations it made are the selection.
     pub placed: bool,
     /// The device a layout drop placed: at the end of the dispatch its placement is the selection.
@@ -177,7 +177,6 @@ pub(crate) struct ToolHost {
     /// The pointer point of a layout drop or of a Select drag's drop: the HUD names no pick stack there until the
     /// pointer moves elsewhere.
     pub quiet_stack_at: Option<(i64, i64)>,
-    // WP-S4.02 part 4
     /// The draw tools' part offers of (session, revision, kind): computed when Draw rail or Draw duct is armed, and
     /// again only when its options or the revision change (the options card reads them every frame).
     pub draw_offers: std::cell::RefCell<Option<DrawOffers>>,
@@ -196,11 +195,11 @@ pub enum ResultNote {
         pos: (i64, i64),
         /// The wires' count and list.
         wires: Option<(String, String)>,
-        /// Why the placement left the click point, as the Place tool's HUD said it (FT-1208: a terminal moved off a
+        /// Why the placement left the click point, as the Place tool's HUD said it (a terminal moved off a
         /// terminal of its strip); `None` when it stands on the click point.
         moved: Option<String>,
     },
-    /// The IP tool's `connection.draw_to_ip` from the pin under the point's CP (FIXPT41): the point's insertion point
+    /// The IP tool's `connection.draw_to_ip` from the pin under the point's CP: the point's insertion point
     /// (page nm), its committed name and the pin in words.
     IpConnected {
         /// The insertion point.
@@ -216,7 +215,7 @@ pub enum ResultNote {
     },
     /// A delete of representations (Delete, the command bar's Delete): the names of the interruption points among
     /// them and the connections at their connection points that the selection did not name (said only for those
-    /// the delete removed, FT-547); and the devices that keep no representation but stay in the project,
+    /// the delete removed); and the devices that keep no representation but stay in the project,
     /// each with its tag before the delete and whether it has a part (so it stays in the parts list).
     Deleted {
         /// The interruption points' names.

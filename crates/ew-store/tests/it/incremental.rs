@@ -192,7 +192,7 @@ fn run(steps: &[Vec<Edit>]) -> Result<(), String> {
 
 #[test]
 fn incremental_save_equals_full_save() {
-    // A runner of its own rather than `proptest!`, whose PROPTEST_CASES has no ceiling. ID-1496: at most 2,000 cases
+    // A runner of its own rather than `proptest!`, whose PROPTEST_CASES has no ceiling. At most 2,000 cases
     // whatever PROPTEST_CASES asks, so that the deep nightly's 20,000 stay within its proptest step's 600 s bound per
     // test.
     let mut config = proptest::test_runner::contextualize_config(ProptestConfig {

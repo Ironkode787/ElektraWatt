@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The names and own attributes of a potential, split out of the partition (ADR-0002 amendment 4: "a folio
-//! renumber or a move re-derives names and not the topology"; ARCH §6.4 `potential_names`; WP-S1.07 part 2).
+//! renumber or a move re-derives names and not the topology"; ARCH §6.4 `potential_names`).
 //!
 //! - **`potential_name(p)`** (doc 08 §3.5): the name of the first definition in rank order ([`ranked_defs`]: natural
-//!   order of the name, the defining point's printed text, the ID; WP-S1.16 D9) (another name is noted as EW-POT-017); else the first non-external source interruption point in page order (page position, anchor
+//!   order of the name, the defining point's printed text, the ID) (another name is noted as EW-POT-017); else the first non-external source interruption point in page order (page position, anchor
 //!   row, anchor column, ID); else the first external source interruption point in that order (review decision
 //!   D6); else (doc 08 §3.5 step 2b) the supply's name `<root>/<tag>:<designation>` when the
 //!   potential is entered through the pass-through pair of a function f (its flow `upstream`): `<root>` is the

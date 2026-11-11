@@ -247,7 +247,7 @@ fn each_quarantined_line_carries_its_kind() {
     assert!(loaded.read_only_beyond_repair);
 }
 
-/// ID-1185 ruling 3: the flag counts a forcing finding beyond the findings cap, which the list no longer holds.
+/// The flag counts a forcing finding beyond the findings cap, which the list no longer holds.
 #[test]
 fn a_forcing_finding_beyond_the_cap_sets_the_flag() {
     let limits = Limits {
@@ -281,7 +281,7 @@ fn a_forcing_finding_beyond_the_cap_sets_the_flag() {
     assert!(!loaded.read_only_beyond_repair);
 }
 
-/// ID-1185 ruling 1: a library document that is not UTF-8 is EW-CORE-005 of the whole file, with no line: not a broken
+/// A library document that is not UTF-8 is EW-CORE-005 of the whole file, with no line: not a broken
 /// line, and beyond a repair.
 #[test]
 fn a_library_document_not_utf8_is_beyond_a_repair() {

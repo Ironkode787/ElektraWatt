@@ -122,7 +122,7 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     let ghost = canvas(&s)["ghost"].clone();
     assert_eq!(ghost["direction"], "target");
     assert_eq!(ghost["name"], "24VDC-1", "typed: no series");
-    // D goes on from the offered target: undirected; the star toggles, and walks the point to source (FT-980, ID-1146:
+    // D goes on from the offered target: undirected; the star toggles, and walks the point to source (ID-1146:
     // a star source is a source point).
     done(&mut s, "tool.ip_direction", json!({}));
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
@@ -148,7 +148,7 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     assert_eq!(placed.pos, right);
     // The direction chosen with D stays after the commit (no flip after a placement), in either quarter; the
     // star left it alone and is cleared, and the remembered name's series goes on to its first name that no point of
-    // the project has (ID-1462: 24VDC-1 to 24VDC-4 stand in Golden A).
+    // the project has (24VDC-1 to 24VDC-4 stand in Golden A).
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     assert_eq!(canvas(&s)["ghost"]["star"], false);
     assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-5");

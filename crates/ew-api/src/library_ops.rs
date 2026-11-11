@@ -52,7 +52,7 @@ pub enum ApiError {
     NothingToDo,
     /// The command was refused (the update plan's preview).
     Cmd(CmdError),
-    /// The strip cell's compile refused the chosen part (WP-S2.07 D16, [`Session::part_pick_command`]).
+    /// The strip cell's compile refused the chosen part ([`Session::part_pick_command`]).
     Strip(crate::output::StripEditError),
 }
 
@@ -105,7 +105,7 @@ pub struct CpMap {
     pub map: Vec<(u16, u16)>,
 }
 
-/// The library state of one held copy (WP-S1.19 §8, FT-487's data).
+/// The library state of one held copy (FT-487's data).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CopyState {
     /// The library's document has the held copy's hash (or a lower version).
@@ -187,7 +187,7 @@ pub struct UpdatePlan {
     pub derived: DerivedDiff,
 }
 
-/// One library copy a pasted fragment carries in another version than the project holds (WP-S2.07 D22, FT-396), as
+/// One library copy a pasted fragment carries in another version than the project holds (FT-396), as
 /// the paste choice card lists it: "FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, patch".
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct VersionConflict {
@@ -596,7 +596,7 @@ impl Session {
         })
     }
 
-    /// The parts of the system libraries (WP-S2.18 D6: the compiled-in generic starter parts, and any installed system
+    /// The parts of the system libraries (the compiled-in generic starter parts, and any installed system
     /// library), as library documents with copy metadata, in library then item ID order. The picker and the Parts row
     /// list those the project does not hold after its embedded copies.
     pub fn library_parts(&self) -> Vec<LibCopy<Part>> {
@@ -740,7 +740,7 @@ impl Session {
         AnyCommand::of(&cmd).map_err(ApiError::Cmd)
     }
 
-    /// The library state of every held copy that came from a library (WP-S1.19 §8, FT-487's data), in kind then copy
+    /// The library state of every held copy that came from a library (FT-487's data), in kind then copy
     /// ID order: a local fork; else the item as [`Session::libraries`] holds it now: missing, deprecated (with its
     /// successor), the held hash (current), or another version (update available, with the class of the change; a
     /// lower library version counts as current). Project-local copies (the project's own items, `library_id` = the
@@ -801,7 +801,7 @@ impl Session {
         out
     }
 
-    /// The library copies of a fragment that the project holds in another version (WP-S2.07 D22, FT-396), in
+    /// The library copies of a fragment that the project holds in another version (FT-396), in
     /// fragment order: what makes `edit.paste` refuse without `adapt`. `fragment` is `edit.paste`'s `fragment`
     /// member (`ParsedFragment::params`); a copy that does not read as a library document is left out (the paste
     /// refuses it). Empty when the paste needs no choice.
@@ -897,7 +897,7 @@ impl Session {
         self.update_plan(&q, pairs, &embed, cp_maps)
     }
 
-    /// The plan of "update the project's copy" from documents (WP-S2.07 D22, FT-396): as
+    /// The plan of "update the project's copy" from documents (FT-396): as
     /// [`Session::update_from_library`], with the new versions taken from `docs` (a pasted fragment's copies) instead
     /// of the installed libraries. A document the project holds with another hash is updated to it; one it holds with
     /// the same hash is left out; one it does not hold travels in the command's `embed` when an updated document names

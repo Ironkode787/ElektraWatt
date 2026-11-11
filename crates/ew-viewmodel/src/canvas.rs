@@ -102,7 +102,7 @@ pub fn reading_key(cells: Option<&PageCells>, p: (i64, i64)) -> (u32, u32, i64, 
 
 /// Sorts `links` into reading order. Links at the same reading key go by what is printed, the label of their target
 /// (its cell, else its folio) in natural order, a link without a target last; only links that print the same keep
-/// the destination and then the paint order, which both follow random IDs (FT-483, as `Session::page_cps` does for
+/// the destination and then the paint order, which both follow random IDs (as `Session::page_cps` does for
 /// coincident connection points), so two copies of a project list them alike.
 pub fn sort_links(links: &mut [PageLink], cells: Option<&PageCells>) {
     links.sort_by(|a, b| {
@@ -118,7 +118,7 @@ pub fn sort_links(links: &mut [PageLink], cells: Option<&PageCells>) {
     });
 }
 
-/// The grid points of a page on the sheet (WP-S2.02's grid overlay, WP-S2.03 §6.6): point `k` of an axis lies at
+/// The grid points of a page on the sheet (WP-S2.02's grid overlay): point `k` of an axis lies at
 /// `offset + scale × k × num / den`, rounded to the nearest nm.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct GridMap {
@@ -375,17 +375,17 @@ pub struct CanvasPage {
     pub links: Vec<PageLink>,
     /// The page's frame cells (`Session::page_cells`); `None` for a page without a frame grid.
     pub cells: Option<PageCells>,
-    /// The connection points drawn on the page in reading order (`Session::page_cps`, WP-S2.03 §7.5).
+    /// The connection points drawn on the page in reading order (`Session::page_cps`).
     pub cps: Vec<PageCp>,
     /// The page's snapper, built from its grid and connection points.
     pub snapper: Snapper,
-    /// The records drawn on the page as tables, in page nm (`Session::page_tables`, WP-S2.04 §6.2): empty for a
+    /// The records drawn on the page as tables, in page nm (`Session::page_tables`): empty for a
     /// page that is not drawn.
     pub tables: Arc<PageTables>,
-    /// The panel data of a panel-layout page with a surface view (`Session::panel_tables`, WP-S4.02 D9), fetched once
+    /// The panel data of a panel-layout page with a surface view (`Session::panel_tables`), fetched once
     /// per (session, revision, folio) with the page content; `None` for every other page.
     pub panel: Option<Arc<ew_api::output::PanelTables>>,
-    /// The page as the schematic router reads it (`Session::page_geometry`, WP-S2.19 D4), fetched with the tables:
+    /// The page as the schematic router reads it (`Session::page_geometry`), fetched with the tables:
     /// the Wire tool routes its ghost against it. Empty for a page that is not drawn.
     pub geometry: Arc<ew_api::routing::PageGeometry>,
 }
@@ -883,7 +883,7 @@ impl CanvasModel {
             .and_then(|i| self.page.cps.get(i))
     }
 
-    /// The tooltip of the connection point under the pointer (doc 16a §7.2; FT-512's tooltip half, WP-S2.17 part 5):
+    /// The tooltip of the connection point under the pointer (doc 16a §7.2; FT-512's tooltip half):
     /// [`cp_tip`] of [`CanvasModel::hovered_cp`].
     pub fn hovered_cp_tip(&self) -> Option<String> {
         self.hovered_cp().map(|cp| cp_tip(&self.page, cp))

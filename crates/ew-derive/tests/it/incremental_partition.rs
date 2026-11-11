@@ -67,7 +67,7 @@ const P4: u128 = 0x103;
 
 const STRIP: u128 = 0x5000;
 const LOC: u128 = 0x900;
-/// A second own location: added and removed by the edits (cycle 33: an unlocated rail-bonded terminal joins the
+/// A second own location: added and removed by the edits (an unlocated rail-bonded terminal joins the
 /// only own location, and no rail once there are two).
 const LOC2: u128 = 0x901;
 /// An external reference naming LOC2: added and removed by the edits (cycle 33 review finding 7: a location an external

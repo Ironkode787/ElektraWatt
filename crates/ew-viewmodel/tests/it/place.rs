@@ -545,7 +545,7 @@ fn pointer_and_cursor_moves_with_a_tool_armed_and_picker_filtering_call_no_sessi
     assert_eq!(s.session_calls().run_script, calls.run_script + 1);
 }
 
-/// C49-p8b#3: the Place tool's label names a strip without a tag yet in words, never by its
+/// The Place tool's label names a strip without a tag yet in words, never by its
 /// placeholder tag.
 #[test]
 fn the_place_label_names_a_strip_without_a_tag_in_words() {
@@ -1129,7 +1129,7 @@ fn a_pending_keyboard_move_is_cancelled_by_delete_and_undo() {
 }
 
 /// A numbering scheme whose tags print the anchor cell's column (`-101F1.8`), set on a copy of Golden A, so that a
-/// move of an existing device changes its tag (FT-502: Golden A's own page-based tags change neither with a move on
+/// move of an existing device changes its tag (Golden A's own page-based tags change neither with a move on
 /// the page nor with a structure box, whose location the displayed tag omits).
 fn column_numbering(s: &mut ShellModel) {
     let numbering = json!({"default": "page-based", "schemes": [
@@ -1266,7 +1266,7 @@ fn a_contact_placed_from_a_part_before_its_coil_gets_a_numbered_tag() {
     s.shutdown();
 }
 
-/// FT-900 (ID-1147): after a placement the representation it made is the selection, replacing what was selected; the
+/// FT-900: after a placement the representation it made is the selection, replacing what was selected; the
 /// Place tool stays armed and floats the next one.
 #[test]
 fn ft900_a_placement_selects_what_it_placed_and_the_tool_stays_armed() {

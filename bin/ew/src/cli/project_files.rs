@@ -172,7 +172,7 @@ fn run_fmt_with(
 }
 
 /// What `ew fmt` says on a project of an older format, which opens migrated and only `ew upgrade` writes (WP-S1.17
-/// D11, decision log ID-1312), with its exit code: `--check` a needed change (1), `ew fmt` a refusal (2).
+/// D11), with its exit code: `--check` a needed change (1), `ew fmt` a refusal (2).
 fn fmt_older(check: bool, dir: &Path, from: &str) -> (i32, String) {
     if check {
         (1, format!("fmt: {}", older_format(dir, from)))
@@ -1143,7 +1143,7 @@ mod tests {
                 json: true,
             }))
         );
-        // ID-1185 ruling 7: `--repair` with `--check` is refused by the parser, before any open.
+        // `--repair` with `--check` is refused by the parser, before any open.
         assert_eq!(
             parse(&["fmt", "p.ew", "--repair", "--check"]),
             Err(
@@ -1939,7 +1939,7 @@ mod tests {
     /// A session on a project of an older format (opened migrated) adds page 3 and crashes. `ew upgrade`
     /// refuses the journal, so `ew recover --replay` is the way out that keeps it: off a terminal without `--yes` it
     /// exits 2 and a wrong word exits 1, the journal kept and offered again each time; `--yes` replays, writes the
-    /// upgrade's backup and saves in this version's format. FT-1394: the consent comes before the replay, so a
+    /// upgrade's backup and saves in this version's format. The consent comes before the replay, so a
     /// declined run leaves the journal byte for byte as the crash left it, its labels offered again; stderr is
     /// asserted whole.
     #[test]

@@ -578,7 +578,7 @@ fn page_item_kind_words(kind: &Value) -> Option<String> {
 }
 
 /// The provenance of a device's tag row (§6.4, D15): frozen, or derived as a child, a terminal or by a numbering
-/// scheme. Shared with `ew query device_tag --explain` (WP-S1.22 D12, [`Session::tag_provenance`]).
+/// scheme. Shared with `ew query device_tag --explain` ([`Session::tag_provenance`]).
 fn tag_provenance(q: &Q, device: Id<Device>, tag: Option<&ew_derive::Tag>) -> Provenance {
     match tag.map(|t| &t.source) {
         Some(TagSource::Frozen) => {
@@ -971,7 +971,7 @@ impl Session {
 
 /// A colour code as the wire-colour view lists it: an IEC or company code and a foreign code by their spelling; a
 /// form of a newer format as `?`, which resolves to no colour, so the connection is drawn as the unresolved pattern
-/// (C49-p8b#7) rather than left out.
+/// rather than left out.
 fn colour_code_text(code: &ew_schema::ColourCode) -> Option<String> {
     use ew_schema::ColourCode;
     match code {
@@ -1435,7 +1435,7 @@ fn part_function_row(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<
 }
 
 /// A configuration project's address profile is a choice of the profiles at hand (the built-ins and
-/// the project's copies, WP-S7.03 D8) by their references, which `plc.set_profile` pins through
+/// the project's copies) by their references, which `plc.set_profile` pins through
 /// [`Session::layout_edit`].
 /// The row's text is the chosen profile's name, its value the reference.
 fn profile_chooser(q: &Q, built: &mut [Built]) {
@@ -2519,7 +2519,7 @@ impl Session {
         {
             return parsed;
         }
-        // WP-S2.07 §8 (FT-429, FT-690): the PLC grid's typed editors. A channel's address and a module's start as the
+        // WP-S2.07 §8 (FT-429): the PLC grid's typed editors. A channel's address and a module's start as the
         // profile's text or a keyword (the command reads it with the configuration project's profile), a channel's
         // target as a device tag (its main function), a module's slot as a number.
         if let Some(parsed) = self.plc_input(kind, row_path, text) {
@@ -2637,7 +2637,7 @@ pub(crate) fn plc_slot_input(t: &str) -> Result<ParsedInput, InputError> {
     })
 }
 
-/// A cable's length source typed as its words (FT-429, WP-S2.07 §7): `<number> m` (or the number alone, in metres)
+/// A cable's length source typed as its words (FT-429): `<number> m` (or the number alone, in metres)
 /// is a manual length, `missing` (or `length missing`, the cable overview's text) none, `from part` the part's.
 /// `None` for anything else (a JSON value, the field's own form, parsed as before).
 fn cable_length_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
@@ -2822,7 +2822,7 @@ fn prop_via(q: &Q, source: &PropSource, potential: &str, class: Option<&ew_schem
 mod tests {
     use super::*;
 
-    /// C49-p8b#7: a colour code of a newer format is listed as `?` (drawn as the unresolved pattern), not dropped.
+    /// A colour code of a newer format is listed as `?` (drawn as the unresolved pattern), not dropped.
     #[test]
     fn a_colour_code_of_a_newer_format_is_listed_as_unresolved() {
         let code = |v: Value| -> ew_schema::ColourCode { serde_json::from_value(v).expect("a colour code") };

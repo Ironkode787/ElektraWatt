@@ -176,7 +176,7 @@ fn a_layout_directory_loads_clean() {
 
 /// Layout records written while the kinds were reserved (kept verbatim, every object's members in byte-wise key
 /// order) load typed; the file is reported as not canonical (info) and rewritten in the typed member order (the
-/// revision precedent, FT-165).
+/// revision precedent).
 #[test]
 fn layout_records_written_while_reserved_are_rewritten_canonically() {
     let canonical = files_of(&records());

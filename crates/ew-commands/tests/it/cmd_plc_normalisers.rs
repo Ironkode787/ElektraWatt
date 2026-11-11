@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC normalisers beyond channel creation (lane C): N2 `solenoid_binding` (FT-275,
+//! The PLC normalisers beyond channel creation (lane C): N2 `solenoid_binding` (
 //! FR-PLC-051), N3 `module_pin_binding`, N1's kind change and its surplus notice with the
 //! Bulk command `plc.set_module_part` (FR-PLC-053).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.

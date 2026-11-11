@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard below the shell on Golden A (WP-S2.05 part 3, acceptance checks CB1 to CB3 and the session half of
+//! The clipboard below the shell on Golden A (acceptance checks CB1 to CB3 and the session half of
 //! CB4 to CB6): the fragment `Session::copy_fragment` writes (byte-equal, against a committed file, the closure rules),
 //! `parse_fragment`'s refusals of hostile text, and `edit.paste` (every rejection at its pointer, the child device, the
 //! library copies, the structure rebinding, the exact grid-step translation, one undo step). The LINKS oracle of CB3 is
@@ -940,7 +940,7 @@ fn a_replay_numbers_the_new_devices_alike() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// FT-452: page items and structure boxes in the fragment
+// Page items and structure boxes in the fragment
 
 /// A free text alone copies (no representation is needed) and pastes by the same grid steps.
 #[test]
@@ -1279,7 +1279,7 @@ fn copy_fragment_reports_incomplete_page_items() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// FT-403: an older fragment through the migration chain
+// An older fragment through the migration chain
 
 /// `value` with its top-level member `from` named `to`.
 fn renamed(mut value: Value, from: &str, to: &str) -> Value {

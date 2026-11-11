@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel's own parts of the navigator pane (WP-S2.09 part 2, §7.3, §7.4; restyled by WP-S2.17 part 3,
+//! The message panel's own parts of the navigator pane (§7.3, §7.4; restyled by WP-S2.17 part 3,
 //! doc 16a §6.24): the header with the scheme and one count badge per severity, the quick-fix card, the detail block
 //! of the cursor's finding with its Fix button and rule page link, the footer, and the severity icon and word of the
 //! finding rows (FR-UI-025: an icon, a colour and the word).
@@ -201,7 +201,7 @@ pub(crate) fn count_words(severity: &str, n: usize) -> String {
     strings::format(key!("props-findings-count"), &[&n.to_string(), words])
 }
 
-/// One chip for `findings.len()` findings of one severity (cycle 36, window check W36; cycle 37: always one chip per
+/// One chip for `findings.len()` findings of one severity (window check W36; cycle 37: always one chip per
 /// severity): the icon and "<n> <Word(s)>" ("1 Warning", "3 Warnings"), a `Label` node named by that and each
 /// "<rule>: <message>", the same lines as the tooltip.
 pub(crate) fn severity_count_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::Response {
@@ -385,7 +385,7 @@ fn fix_card(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
 /// The detail block of the cursor's finding, below the rows (doc 16a §6.24): a 1-px `color.border.subtle` line, the
 /// rule ID and title in `type.body.strong`, the kind and severity in `type.small` `color.text.secondary`, the message
 /// in `type.body`, "Quick fix: `<label>`" in `type.small` with **Fix…** as a Secondary button (disabled with its reason
-/// as the tooltip on a read-only project), and at the title line's right end **Waive…** (FT-674; on a waived finding
+/// as the tooltip on a read-only project), and at the title line's right end **Waive…** (on a waived finding
 /// "Waived" in `color.text.secondary` with **Unwaive**) and **Rule page**, links in `type.small` `color.accent`, so the
 /// waiver costs the block no height.
 pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
@@ -418,7 +418,7 @@ pub(crate) fn detail(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         }
     };
     // X32b: the Rule page link at the right end of the title line, the title cut with an ellipsis before it (whole
-    // in its tooltip), so the block keeps its link in view in a short pane. FT-674: Waive… (or "Waived" with
+    // in its tooltip), so the block keeps its link in view in a short pane. Waive… (or "Waived" with
     // Unwaive) stands before it on the same line.
     let title = strings::format(key!("messages-detail-rule"), &[&d.rule, &d.title]);
     ui.scope(|ui| {

@@ -3,7 +3,7 @@
 
 //! The EW-CORE, EW-RDS, EW-NUM and EW-TERM rules of pages, texts, designations and terminals
 //! (EW-CORE-021, -022, -025, -026, -061, -063, -071; EW-RDS-001, -002, -003, -007, -009, -010; EW-NUM-002; EW-TERM-003,
-//! -004), EW-CORE-008's `channel` half (FT-229) and EW-CORE-052's prevent mode (FT-194). One positive and one negative
+//! -004), EW-CORE-008's `channel` half (FT-229) and EW-CORE-052's prevent mode. One positive and one negative
 //! fixture per rule (P4-1), the prevent rules refusing the candidate and only it, and the ID-permutation test of
 //! WP-S1.16 §10. EW-CORE-083 and -084 (the rule system) are tested in the engine's unit tests (P4-3).
 
@@ -352,7 +352,7 @@ fn core071_reports_a_graphic_line_on_a_connection_point() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-CORE-008 `channel` (FT-229) and EW-CORE-052 prevent (FT-194)
+// EW-CORE-008 `channel` (FT-229) and EW-CORE-052 prevent
 
 /// A device `-A1` (a PLC module when `module`) with channel 0.
 fn channel_fx(module: bool) -> Fx {

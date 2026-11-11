@@ -70,7 +70,7 @@ impl Default for RenumberOptions {
 /// The devices in scope that take part in numbering (`numbering::numbered`: no terminal aspect, no frozen
 /// tag, default scheme; with `include_frozen` also the frozen ones) and are placed are grouped by (page of
 /// the main representation, letter); a cable without a definition line takes the page of its first core, and a cable
-/// on no page the project's group (`numbering::main_page`, FT-1406). In each group the devices are ordered by their
+/// on no page the project's group (`numbering::main_page`). In each group the devices are ordered by their
 /// main representation's position, column first (x, then y), then by ID; a cable without a representation comes
 /// after the drawn devices. Counters held by devices of the group outside the scope
 /// are reserved. Then, in order:

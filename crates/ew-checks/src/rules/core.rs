@@ -219,7 +219,7 @@ impl Rule for UnpairedInterruptionPoint {
 }
 
 /// EW-CORE-052 "Ambiguous interruption point" (doc 15 §4.2): conflict, o p r, error, project. Prevent mode (ADR-0009
-/// amendment 1, FT-194) is declared and wired: [`AmbiguousInterruptionPoint`]'s `prevent` refuses a batch that makes a
+/// amendment 1) is declared and wired: [`AmbiguousInterruptionPoint`]'s `prevent` refuses a batch that makes a
 /// new ambiguity.
 pub const AMBIGUOUS_INTERRUPTION_POINT: RuleMeta = RuleMeta {
     id: "EW-CORE-052",
@@ -843,7 +843,7 @@ const fn integrity(
 /// EW-CORE-008 "Dangling reference" (doc 15 §4.2): integrity, n r, error, project. The store reports the dangling
 /// references of opening a project ([`INTEGRITY`]); the registered rule
 /// [`DanglingReference`](crate::rules::device::DanglingReference) reports the frame defaults that name a form copy the
-/// project does not hold (FT-368) and the channels whose module is not a PLC module (FT-229).
+/// project does not hold and the channels whose module is not a PLC module (FT-229).
 pub const DANGLING_REFERENCE: RuleMeta = integrity(
     "EW-CORE-008",
     "100008",

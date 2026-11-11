@@ -206,7 +206,7 @@ pub enum LegendItem {
     Carrier(Id<Carrier>),
     /// A placement on one of the surface's carriers or on the surface itself.
     Placement(Id<Placement>),
-    /// The derived end brackets of one bracket part on the surface's rails (WP-S4.02 D13, doc 12 §5.4's layout-only
+    /// The derived end brackets of one bracket part on the surface's rails (doc 12 §5.4's layout-only
     /// accessories): one row per part (and variant), quantity the number of brackets.
     Bracket(PartRef),
 }

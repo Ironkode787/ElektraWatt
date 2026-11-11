@@ -260,7 +260,7 @@ fn entry(q: &Q, order: &crate::pages::PageOrderV, wire: &PhysicalWire) -> Entry 
 ///
 /// 1. on different pages, the end on the earlier page in the page order;
 /// 2. on one page, the end with the smaller flow distance ([`CpFlowDistanceOf`]: hops over the potential's
-///    wires, bridges and terminal shorts from the CPs where the potential enters; FT-101), when both ends lie
+///    wires, bridges and terminal shorts from the CPs where the potential enters), when both ends lie
 ///    in the wire's one potential and the walk reaches both with different distances;
 /// 3. otherwise the end with the smaller anchor cell (row, then column; of several representations on the page the
 ///    smallest cell), then the smaller CP label in natural order ([`cp_label`]), then the places the function is drawn

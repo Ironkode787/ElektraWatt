@@ -1362,7 +1362,7 @@ fn junction_and_route_entries_name_what_to_select_and_undo_drops_the_marks() {
 }
 
 /// Window check (r23): after the keyboard wiring of folio 103 (W, `]`, Enter, `]`, `]`, Enter, Escape) and after Ctrl+Z no
-/// tool mark stands; the keyboard grid cursor stays where it was (WP-S2.03 §7.7: a keyboard user's position does not
+/// tool mark stands; the keyboard grid cursor stays where it was (a keyboard user's position does not
 /// vanish when a tool ends or a step is undone).
 #[test]
 fn escape_and_undo_leave_no_tool_mark_and_keep_the_grid_cursor() {

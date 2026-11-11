@@ -144,7 +144,7 @@ impl Session {
     }
 
     /// The folio of every drawn page in `preview`'s candidate model, by page ID, in its page order: the Preview tab
-    /// names a page whose folio the card changes by both folios ("106 → 104", ID-1497 (4)).
+    /// names a page whose folio the card changes by both folios ("106 → 104").
     pub fn preview_folios(&self, preview: &Preview) -> Vec<(Uuid, String)> {
         let q = self.query_over(preview.candidate());
         q.get::<PageOrder>(())

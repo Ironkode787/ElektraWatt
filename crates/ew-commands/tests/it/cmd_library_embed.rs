@@ -169,7 +169,7 @@ fn library_embed_inserts_a_manufacturer_and_a_macro_copy_once_and_undo_removes_t
         .clone();
     assert_eq!(row.item.variables[0].bindings[0].record, id::<()>(LOCAL_G1));
     // Embedded already, at any version: refused, each kind on its own.
-    // FT-909 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
+    // FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
     // with what the user can do")
     for (again, want) in [
         (

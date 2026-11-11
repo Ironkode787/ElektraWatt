@@ -486,7 +486,7 @@ pub struct Card {
 
 impl Card {
     /// What the card's title names (`Preview: <it>`): the command's title, but for a route card the button that opened
-    /// it, "Route page" or "Route selection" (ID-1509 (9), the window check's C3).
+    /// it, "Route page" or "Route selection" (the window check's C3).
     pub fn command(&self) -> &str {
         match &self.origin {
             CardOrigin::Route { selection: true, .. } => strings::text(key!("action-route-selection")),
@@ -641,7 +641,7 @@ impl PropertiesState {
     }
 
     /// Shows `message` as the error under the row `row`, starting with a capital: the line stands on its own under the
-    /// row, and the commands' texts are lowercase (FT-1075, ID-1182; [`crate::strings::sentence_start`]).
+    /// row, and the commands' texts are lowercase ([`crate::strings::sentence_start`]).
     pub(crate) fn set_error(&mut self, row: impl Into<String>, message: impl AsRef<str>) {
         self.error = Some((
             row.into(),
@@ -908,7 +908,7 @@ pub fn visible_rows<'s>(
 }
 
 /// The rows of one group that the Properties filter `filter` keeps: those it matches ([`row_matches`]) and, among
-/// the group's rows, their parents, so that two rows on show never share a label without their parents (FT-1358, doc
+/// the group's rows, their parents, so that two rows on show never share a label without their parents (doc
 /// 16a §6.8: "Party 2" above its "Personal data").
 pub fn filtered<'r>(section: &SheetSection, rows: Vec<&'r PropRow>, filter: &str) -> Vec<&'r PropRow> {
     let matched: Vec<&str> = rows
@@ -1074,7 +1074,7 @@ pub fn kind_plural(kind: &str, n: usize) -> String {
 }
 
 /// The header of a sheet's section of `n` records of `kind`: the kind in sentence case, singular for one,
-/// with the count ("Device (1)", "Devices (2)"), in the UI language (FT-1356: "Apparaat (1)"; FT-1411: "Apparaten
+/// with the count ("Device (1)", "Devices (2)"), in the UI language ("Apparaat (1)"; FT-1411: "Apparaten
 /// (2)").
 pub fn section_header(kind: &str, n: usize) -> String {
     if n == 1 {
@@ -1280,7 +1280,7 @@ pub fn enum_word_of<'t>(kind: &str, path: &str, ty: &FieldType, text: &'t str) -
 }
 
 /// A Properties card's summary line (`card-line`): its targets, then its changes, tags and cross-reference texts each
-/// counted with its own singular (FIX50b, as the quick fix's); the window and the describe text show it.
+/// counted with its own singular (as the quick fix's); the window and the describe text show it.
 pub fn card_line(card: &Card) -> String {
     let (tags, xrefs) = card_counts(card);
     strings::format(
@@ -1296,7 +1296,7 @@ pub fn card_line(card: &Card) -> String {
 }
 
 /// A reorder card's summary line (`card-reorder`): its moves (`notices`), then its tags and cross-reference texts each
-/// counted with its own singular (FIX50b).
+/// counted with its own singular.
 pub fn reorder_line(card: &Card, notices: &[String]) -> String {
     let (tags, xrefs) = card_counts(card);
     strings::format(key!("card-reorder"), &[&notices.join(", "), &tags, &xrefs])
@@ -1493,7 +1493,7 @@ pub fn value_text(row: &PropRow) -> String {
     }
 }
 
-/// One entry of a row's actions menu: a row action of the grid, the shell's Make variable (WP-S1.19 §11,
+/// One entry of a row's actions menu: a row action of the grid, the shell's Make variable (
 /// FT-754 (h)), which remembers the row's field as a variable of the next Save as macro…, or a Parts row's Choose
 /// part…, Add part… and Edit part….
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

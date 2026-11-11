@@ -694,7 +694,7 @@ fn row_and_header_heights_in_both_densities() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-532 and FT-536: the empty state, the grid's focus ring and the Columns menu's move icons
+// The empty state, the grid's focus ring and the Columns menu's move icons
 
 /// Whether a `Group` node is named `name` (an empty state, doc 16a §6.17).
 fn group_named(h: &Harness<'static, App>, name: &str) -> bool {

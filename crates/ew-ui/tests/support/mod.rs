@@ -420,7 +420,7 @@ pub fn assert_accessible(harness: &Harness<'_, App>) {
         let node = node.accesskit_node();
         // The dock's and the canvas area's handles are named `Splitter` nodes ("Resize Pages and Page view")
         // like every other input. (A table's column handles and egui's panel handle are splitters with other names.)
-        // WP-S2.08 part 3: the name's form in the UI language.
+        // The name's form in the UI language.
         let reachable = egui::accessibility::is_input(node.role())
             || node.data().supports_action(egui::accesskit::Action::Focus);
         if !node.is_hidden()

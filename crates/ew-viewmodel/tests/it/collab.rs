@@ -299,7 +299,7 @@ fn a_cloud_synced_folder_shows_its_banner() {
     let cloud_banner = "This project is in a cloud-synced folder (OneDrive). Two people can open it within the sync \
                         delay; use git or a network share for teams.";
     assert_eq!(s.banner(), Some(cloud_banner));
-    // W49.3-F2: a state banner stays through ordinary actions; Dismiss takes it away until the next open.
+    // A state banner stays through ordinary actions; Dismiss takes it away until the next open.
     done(&mut s, "page.goto", json!({"folio": "102"}));
     assert_eq!(s.banner(), Some(cloud_banner));
     s.dismiss_banner();
@@ -310,7 +310,7 @@ fn a_cloud_synced_folder_shows_its_banner() {
     assert_eq!(s.banner(), None);
 }
 
-/// W49.3-F2: after Decide later, the held-saves banner stays through navigation and zoom and cannot be dismissed; its
+/// After Decide later, the held-saves banner stays through navigation and zoom and cannot be dismissed; its
 /// Choose… (`external.review`) reopens the dialog.
 #[test]
 fn the_held_banner_stays_until_the_choice() {
@@ -767,7 +767,7 @@ fn a_mixed_choice_counts_what_came_from_disk() {
         &[colour(&w20, json!(["RD"])), colour(&w21, json!(["RD"]))],
     );
     done(&mut s, "project.check_disk", json!({}));
-    // C49-p10b#6: not over another dialog.
+    // Not over another dialog.
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "help.about", json!({}));
     assert_eq!(

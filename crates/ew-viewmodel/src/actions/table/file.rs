@@ -101,7 +101,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // Project, Import, Re-import QElectroTech project (the open project's earlier import), its
-    // proposal's Re-import (`accept`) and the re-import card's Apply. FT-1388: a command-bar button beside
+    // proposal's Re-import (`accept`) and the re-import card's Apply. A command-bar button beside
     // the import's.
     with_params(
         "file?:path, accept?:bool",
@@ -296,7 +296,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_external_review(),
     ))),
-    // FT-1499 (ID-1486): the damaged-copy banner's Update from library.
+    // FT-1499: the damaged-copy banner's Update from library.
     hidden(act(
         "library.update_damaged",
         Command,

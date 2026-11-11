@@ -544,7 +544,7 @@ fn headers(bytes: &[u8]) -> Vec<String> {
         .headers
 }
 
-/// ID-1224 ruling 3: the export is cut to the rows and columns on show: a hidden column is not in the
+/// The export is cut to the rows and columns on show: a hidden column is not in the
 /// header, `id` is kept, only the rows on show are written, in the order on show; the cut file re-imports three-way
 /// with no notice, and one changed cell is the toast's "1 changed cell".
 #[test]

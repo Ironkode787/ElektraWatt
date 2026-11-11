@@ -98,7 +98,7 @@ fn golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle() {
 /// The deep nightly's twin of `golden_a_check_memoised_equals_cold_and_the_oracle_is_quiet_oracle`: every memoised
 /// read of both checks re-run cold.
 #[test]
-#[ignore = "deep nightly (CI-N-02): the check oracle on every read, about two minutes in a debug build"]
+#[ignore = "deep run: the check oracle on every read"]
 fn nightly_golden_a_check_oracle_is_quiet_on_every_read() {
     check_oracle_is_quiet(ew_derive::Oracle::Every);
 }
@@ -311,7 +311,7 @@ fn the_0v_pe_bond_fix_declares_b1_on_w27_and_undo_restores_the_finding() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S1.16 part 2: the EW-POT pack on Golden A (doc 20 §18.1; P2-2).
+// The EW-POT pack on Golden A (doc 20 §18.1; P2-2).
 
 /// The open findings of `rule` in a run, as `(severity, subject)` sorted.
 fn subjects(report: &checks::CheckReport, rule: &str) -> Vec<(String, String)> {
@@ -481,7 +481,7 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S1.16 part 3: cables, parts and devices on Golden A (doc 20 §18.1; P3-2, P3-3).
+// Cables, parts and devices on Golden A (doc 20 §18.1; P3-2, P3-3).
 
 /// P3-3 / doc 20 §18.1: the EW-CORE rules of part 3 report on Golden A the rows of EF-07 (EW-CORE-034: +J-E-206 → 1X1,
 /// D-19), EF-17 (EW-CORE-043: the four TBD parts, errors in release mode, D-04) and EF-04 (EW-CORE-041: S56, E56), and

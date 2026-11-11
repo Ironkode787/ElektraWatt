@@ -5,7 +5,7 @@
 //! representation, where the run enters and leaves it, is drawn as two connections in one transaction (one undo
 //! step), so a terminal drawn into a vertical circuit is in the circuit; a run over one free CP (a T) stays one
 //! connection. The wires are drawn by the window's own path (pointer presses on the canvas, the bends fixed with Alt
-//! on grid points, as a drafter does), on a writable copy of Golden A's folio 103 in an empty area. FT-708: a double
+//! on grid points, as a drafter does), on a writable copy of Golden A's folio 103 in an empty area. A double
 //! click on the pin a wire just ended on starts the next wire there.
 
 use crate::common;

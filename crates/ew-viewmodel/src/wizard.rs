@@ -9,10 +9,10 @@
 //! through model commands (`Session::run_script`): the shipped frame and title-block forms (`library.embed`), the
 //! company (`project.company.set`: the panel-builder party, the title-block notice and the logo as a project asset,
 //! FT-337), the frame defaults (`project.frames.set`), the colour profile (the sample's convention or one of the
-//! shipped EN 60204-1 and IEC 60445 profiles, FT-337), the size profile, the numbering schemes and the
+//! shipped EN 60204-1 and IEC 60445 profiles), the size profile, the numbering schemes and the
 //! cross-reference format (`project.settings.set`), the languages and printed formats (`project.languages.set`),
 //! the structure nodes, the sections, the report blocks of the golden layout (`report_block.create`, each
-//! with its form from the library, FT-341) and the first revision. The check scheme is validated and kept in the draft, listed
+//! with its form from the library) and the first revision. The check scheme is validated and kept in the draft, listed
 //! on the review step as "kept in the draft": its command, `project.checks.set`, is `HumanOnly` (ADR-0008
 //! amendment 3: it decides a check outcome), so a script, the wizard's included, cannot submit it. A field's
 //! [`FieldMeta::written`] says which kind it is.
@@ -1074,7 +1074,7 @@ impl Wizard {
     }
 
     /// The review step's lines: [`Draft::review`], with the check scheme `written` once the confirmed
-    /// `wizard.apply_check_scheme` wrote it (FT-336: `project.checks.set` is `HumanOnly`, so `wizard.finish` keeps it in
+    /// `wizard.apply_check_scheme` wrote it (`project.checks.set` is `HumanOnly`, so `wizard.finish` keeps it in
     /// the draft and the review offers to apply it after finishing).
     pub fn review(&self) -> Vec<ReviewLine> {
         let mut lines = self.draft.review();

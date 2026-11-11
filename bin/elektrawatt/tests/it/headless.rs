@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! End-to-end tests of the headless mode of the `elektrawatt` binary (WP-S2.01 part 1, acceptance checks A6, A7
+//! End-to-end tests of the headless mode of the `elektrawatt` binary (acceptance checks A6, A7
 //! and A8): no window, no GPU, no display. Every test works on a temporary copy of Golden A with `EW_CONFIG_DIR`
 //! in a temporary directory; nothing is written into the repository.
 
@@ -634,7 +634,7 @@ fn a_headless_run_leaves_the_users_settings_alone() {
 /// clean-up of 2026-10-30 (for PG10 the second run is the alias-substituted one of ID-630 (c)). One case per test,
 /// named as the test; a failing case prints its panic and its name, and the test fails naming every failed case.
 #[test]
-#[ignore = "deep nightly (CI-N-02): each headless script run twice, byte-identical transcripts"]
+#[ignore = "deep run: each headless script run twice, byte-identical transcripts"]
 fn nightly_every_script_transcript_is_byte_identical_twice() {
     type Case = (&'static str, fn(bool));
     let cases: &[Case] = &[

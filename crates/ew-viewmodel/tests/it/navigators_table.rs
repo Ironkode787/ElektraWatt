@@ -247,7 +247,7 @@ fn pattern_fill_over_the_twelve_spare_terminals_is_one_fields_set_many() {
     shell.shutdown();
 }
 
-/// R1-1: `{prev}{prev}x` doubles the text per row. The dialog's preview computes only its five rows over 60 marked
+/// `{prev}{prev}x` doubles the text per row. The dialog's preview computes only its five rows over 60 marked
 /// devices, and applying it over the 28 terminals makes the rows that would grow past 10000 characters invalid
 /// ("too long") instead of exhausting memory; nothing is committed.
 #[test]

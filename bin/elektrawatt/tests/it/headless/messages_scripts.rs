@@ -171,7 +171,7 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
             ("messages.next", json!({})),
             ("ui.describe", json!({})),
             // EF-08 under the cursor, the tab elsewhere, Enter. The filter hides the first finding (EF-03 on the DP
-            // port, WP-S1.21 part 4), which leaves the cursor on its group: F8 puts it on EF-08.
+            // port), which leaves the cursor on its group: F8 puts it on EF-08.
             ("navigator.filter", json!({"kind": "messages", "text": "-3W1"})),
             ("messages.next", json!({})),
             ("page.goto", json!({"folio": "1"})),
@@ -243,12 +243,12 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
     let d = describe(&lines[18]);
     let rows = finding_rows(d);
     // The filter's tokens `3`, `w` and `1` are also prefixes of tokens of other rows (EF-10's -201U1:3 and -202U1:3
-    // "wired", and rows of later rule packs; FT-663), so the count is not pinned: the cursor is on -3W1 and EF-10's
+    // "wired", and rows of later rule packs), so the count is not pinned: the cursor is on -3W1 and EF-10's
     // two rows are listed.
     let at: Vec<&&str> = rows.iter().filter(|r| r.ends_with(" cursor")).collect();
     assert!(at.len() == 1 && at[0].contains("-3W1"), "{d}");
     for cp in ["-201U1:3", "-202U1:3"] {
-        let start = format!("  row level 3 finding \"{cp} "); // the message leads with its subject, shown once (FT-759)
+        let start = format!("  row level 3 finding \"{cp} "); // the message leads with its subject, shown once
         assert!(rows.iter().any(|r| r.starts_with(&start)), "{d}");
     }
     assert_eq!(

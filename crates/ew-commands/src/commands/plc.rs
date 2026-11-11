@@ -386,7 +386,7 @@ impl Command for SetStart {
 }
 
 /// `plc.set_profile` (`SetProfile`, doc 10 §3.9 `plc.set_profile{cfg, profile}`, FR-PLC-008, FR-PLC-007; WP-S1.21
-/// D8; WP-S7.03 D8): pins another address profile at hand on a configuration project.
+/// D8): pins another address profile at hand on a configuration project.
 ///
 /// `profile` names a profile at hand, built in or held by the project as a `plc_profile` copy (a library's profile
 /// is embedded by the front end with `library.embed` first), by its reference `id@version` or its ID alone, without

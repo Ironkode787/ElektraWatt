@@ -28,7 +28,7 @@ use crate::theme::{self, Tokens, TypeToken};
 /// How near the pointer may come to the HUD before it moves under the tab bar (doc 16a §5.5), points.
 const AVOID: f32 = 48.0;
 
-/// How far the pointer must go from the HUD's place at the bottom before it moves back there (ID-1497 (11): with
+/// How far the pointer must go from the HUD's place at the bottom before it moves back there (with
 /// the gap between 48 and 96 px it does not flip back and forth), points.
 const RETURN: f32 = 96.0;
 

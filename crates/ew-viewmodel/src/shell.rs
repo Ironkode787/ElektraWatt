@@ -68,7 +68,7 @@ mod messages;
 mod navigation;
 mod navigators;
 mod onboarding;
-// WP-S2.07 part 2: swap cores, and Delete and F2 in navigator trees (§7, FT-490).
+// Swap cores, and Delete and F2 in navigator trees (§7, FT-490).
 mod row_ops;
 // The strip editor's row gestures (§6.4, §6.5).
 mod strip_editor;
@@ -546,7 +546,7 @@ pub struct ShellModel {
     /// The import and re-import cards and their jobs.
     import: projects::ImportState,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
-    /// focus (C49-p10b#4).
+    /// focus.
     dialog_gen: u64,
     prompt: Option<PromptRequest>,
     record: Record,
@@ -635,7 +635,6 @@ pub struct ShellModel {
     /// Every `dispatch` since the log was last taken, in call order, while the log is on (a visual run's evidence;
     /// off by default, so the window and the headless runner keep nothing).
     dispatch_log: Option<Vec<DispatchEntry>>,
-    // WP-S1.18 part 5
     /// Whether a person drives this shell: the window's own shell ([`ShellModel::new`] in [`Mode::Gui`]). A headless
     /// shell and a window shell a script drives ([`ShellModel::new_scripted`], the visual driver) are not, and every
     /// `HumanOnly` submission from them is refused. Set at construction only; no action or parameter changes it.
@@ -694,10 +693,10 @@ fn string_param<'a>(p: &'a Map<String, Value>, name: &str) -> Result<Option<&'a 
     }
 }
 
-/// The banner of a project open read-only because of a damaged library copy (FT-1383, ID-1418): the device that uses
+/// The banner of a project open read-only because of a damaged library copy (FT-1383): the device that uses
 /// it, the copy's part and its library when an installed library holds it; a copy no device names by its own words and
 /// the record that names it, and one that no record names with the Save As that leaves it out. When
-/// no installed library holds a damaged copy, it says so instead of naming the update (FT-1499, ID-1486).
+/// no installed library holds a damaged copy, it says so instead of naming the update (FT-1499).
 fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
     if !damaged.in_library {
         return damaged_banner_no_library(damaged);
@@ -733,7 +732,7 @@ fn damaged_banner(damaged: &ew_api::DamagedCopy) -> String {
     }
 }
 
-/// [`damaged_banner`] when no installed library holds a damaged copy (FT-1499, ID-1486): the banner says so and offers
+/// [`damaged_banner`] when no installed library holds a damaged copy (FT-1499): the banner says so and offers
 /// no update. A copy no library holds has no part number to name.
 fn damaged_banner_no_library(damaged: &ew_api::DamagedCopy) -> String {
     match damaged {
@@ -835,7 +834,7 @@ mod save_error_tests {
 mod choice_word_tests {
     use crate::strings::{self, choice_text, choice_words};
 
-    /// ID-1278 ruling 2 (W49.1 D): every value of the closed sets the window shows through `choice_text` has
+    /// Every value of the closed sets the window shows through `choice_text` has
     /// its `choice-<value>` in en-GB and nl-NL: every `enum(…)` and `bool` of an `ACTIONS` signature, whatever its
     /// form plan, the form dialogs' choices (New page's types, New structure node's aspects, the yes-or-no fields,
     /// Renumber devices…' scopes and schemes, Save as macro's kinds, the revision forms' roles), the part editor's
@@ -1085,7 +1084,7 @@ impl ShellModel {
 
     /// A window shell that a script drives (the visual driver): it lays out, opens dialogs and frames them
     /// as the window does ([`Mode::Gui`]), but no person is at it, so every `HumanOnly` submission from it is refused
-    /// as a headless one is (cycle 41, ruling 1: a visual script opens, fills and frames the revision dialogs, and
+    /// as a headless one is (ruling 1: a visual script opens, fills and frames the revision dialogs, and
     /// their confirm is refused). Whoever builds the shell decides this; nothing a script sends can change it.
     pub fn new_scripted(config: ShellConfig) -> ShellModel {
         let mut model = ShellModel::new(Mode::Gui, config);
@@ -1289,7 +1288,7 @@ impl ShellModel {
     }
 
     /// The banner, if one is showing: a message, else the banner of a state that holds (saves held by a change on disk,
-    /// the cloud-synced folder; W49.3-F2).
+    /// the cloud-synced folder).
     pub fn banner(&self) -> Option<&str> {
         self.banner.as_deref().or(self.collab.state_banner.as_deref())
     }
@@ -1446,7 +1445,7 @@ impl ShellModel {
             log.len() - 1
         });
         let outcome = self.dispatch_unlogged(action, params);
-        // W49.3-F2: a state banner follows its state, and the UI language.
+        // A state banner follows its state, and the UI language.
         self.refresh_state_banner();
         // Tip 3 on an editing tool's, Paste's, a move's or a reorder's generated-page refusal.
         self.tip_for_outcome(action, params, &outcome);
@@ -1543,7 +1542,7 @@ impl ShellModel {
         outcome
     }
 
-    /// `tool.finish`: Shift+Enter or a double click; a selected free text opens text edit instead (WP-S2.04 §7.3,
+    /// `tool.finish`: Shift+Enter or a double click; a selected free text opens text edit instead (
     /// §10.5).
     pub(crate) fn act_tool_finish(&mut self, _p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() == "select"
@@ -1577,7 +1576,7 @@ impl ShellModel {
         self.tools.connect_on_move
     }
 
-    /// `tool.connect_on_move`: turns connect on move off or on again for the session (WP-S2.19 D15, ADR-0007 amendment
+    /// `tool.connect_on_move`: turns connect on move off or on again for the session (ADR-0007 amendment
     /// 3: on by default); the status bar says the new state with the key.
     pub(crate) fn act_tool_connect_on_move(&mut self, _p: &Map<String, Value>) -> Outcome {
         self.tools.connect_on_move = !self.tools.connect_on_move;
@@ -1931,7 +1930,7 @@ impl ShellModel {
 
     /// The session options of the shell's own sessions: the origin is the GUI, new IDs from the system unless a test
     /// set a source (`set_id_source_for_tests`, feature `testkit`); the configuration's library tiers with the
-    /// company libraries of the settings key `libraries.company` after any the configuration names (WP-S1.19 D4,
+    /// company libraries of the settings key `libraries.company` after any the configuration names (
     /// FT-754 (f)).
     fn configured_libraries(&self) -> Option<ew_api::library::LibraryTiers> {
         let company = self.settings.company_libraries(self.config.config_dir.as_deref());
@@ -2022,7 +2021,7 @@ impl ShellModel {
             },
             Access::ReadOnly(reason) => {
                 let key = read_only_key(reason);
-                // FT-1383 (ID-1418): a damaged library copy a device uses is named, with the way out.
+                // FT-1383: a damaged library copy a device uses is named, with the way out.
                 let damaged = matches!(reason, ReadOnlyReason::Integrity)
                     .then(|| session.damaged_copy())
                     .flatten();
@@ -2095,7 +2094,7 @@ impl ShellModel {
         self.area = None;
         self.focus = None;
         // The window's geometry, recorded only by a real window, is written once at its end, merged into the
-        // file as it is on disk now (R1-5): another instance may have changed other settings meanwhile.
+        // file as it is on disk now: another instance may have changed other settings meanwhile.
         if self.mode == Mode::Gui
             && let (Some(geometry), Some(dir)) = (self.settings.window, &self.config.config_dir)
             && Settings::save_window(dir, geometry).is_err()
@@ -2161,7 +2160,7 @@ impl ShellModel {
     }
 
     pub(crate) fn act_save_as(&mut self, p: &Map<String, Value>) -> Outcome {
-        // FT-1383 (ID-1418): a project whose damaged library copy a record names is not copied: the copy would not open.
+        // FT-1383: a project whose damaged library copy a record names is not copied: the copy would not open.
         // One that no record names is left out of the copy, which says so.
         let damaged = self.project.as_ref().and_then(|p| p.session.damaged_copy());
         if let Some(d) = damaged.as_ref().filter(|d| !d.left_out) {
@@ -2456,7 +2455,7 @@ impl ShellModel {
         {
             return outcome;
         }
-        // C49-p8b#2: Escape in a navigator with an empty filter ends the strip editor's scope.
+        // Escape in a navigator with an empty filter ends the strip editor's scope.
         if let Some(Focus::Navigator(k)) = self.focus
             && let Some(n) = self.generic_mut(k)
             && n.filter.is_empty()
@@ -2464,8 +2463,8 @@ impl ShellModel {
         {
             return Outcome::Done;
         }
-        // Escape in a navigator cancels the reorder card (WP-S2.09 part 2: and the quick-fix card;
-        // WP-S3.08 part 3: and the table import card).
+        // Escape in a navigator cancels the reorder card (and the quick-fix card;
+        // And the table import card).
         if matches!(self.focus, Some(Focus::Navigator(_)))
             && self.props.card().is_some_and(|c| {
                 matches!(
@@ -2505,7 +2504,7 @@ impl ShellModel {
     pub fn answer_confirm(&mut self, answer: ConfirmAnswer) -> Outcome {
         if matches!(self.dialog, Some(Dialog::ConfirmJournalDiscard)) {
             // The question about the earlier session's journal: Discard deletes it, anything else keeps it (and returns
-            // to the recovery dialog it came from, WP-S2.09 §6.6).
+            // to the recovery dialog it came from).
             self.dialog = None;
             let stashed = self.recovery_stash.take();
             return match answer {

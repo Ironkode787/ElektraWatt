@@ -32,7 +32,7 @@ use crate::icons::{self, IconId};
 use crate::theme::{self, Tokens};
 
 /// The actions of `n` as text links in `type.small` SemiBold `color.accent`, each disabled while it is not valid (an
-/// external change offers Undo and Show changes, WP-S1.17 D24).
+/// external change offers Undo and Show changes).
 fn action_link(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, events: &mut Vec<Event>) {
     let actions = n.actions();
     if actions.len() < 2 {
@@ -113,7 +113,7 @@ pub(crate) const TOAST_SHARE: f32 = 0.22;
 /// not fit in three rows is in the HUD, the log and the tooltip).
 pub(crate) const LINE_ROWS: usize = 3;
 
-/// The rows a toast's title wraps to before it is cut (ID-1139: a disabled command's reason is never cut at one line;
+/// The rows a toast's title wraps to before it is cut (a disabled command's reason is never cut at one line;
 /// the whole text is in the toast's tooltip).
 pub(crate) const TITLE_ROWS: usize = 2;
 
@@ -132,7 +132,7 @@ pub(crate) fn text_width(t: &Tokens, width: f32) -> f32 {
 const NB_HYPHEN: char = '\u{2011}';
 
 /// The layout of a toast's title or line: wrapped at word boundaries in the text column, up to `rows` rows
-/// ([`TITLE_ROWS`], [`LINE_ROWS`]), then cut with an ellipsis. FT-1507: never at a hyphen, so a tag
+/// ([`TITLE_ROWS`], [`LINE_ROWS`]), then cut with an ellipsis. Never at a hyphen, so a tag
 /// ("-X1031", "103-E9") is never broken: each hyphen is shown as U+2011, the non-breaking hyphen, which the UI's faces
 /// carry ([`crate::fonts::carries`]); the labels are not selectable, and their accessible names keep "-".
 fn line_job(line: &str, font: egui::FontId, colour: egui::Color32, rows: usize) -> egui::text::LayoutJob {
@@ -188,7 +188,7 @@ fn toast(
                             // The title carries the whole text as the live region. It wraps at word boundaries up to two
                             // rows (a disabled command's reason is never cut at one line), the line up to three
                             // (W40b), each then cut with an ellipsis; the whole text is the toast's tooltip, so
-                            // the labels show no tooltip of their own. A check's counts stay on one line (FT-664: the
+                            // the labels show no tooltip of their own. A check's counts stay on one line (the
                             // waived and pending counts qualify the title, so the severities fit).
                             let response = ui.add(
                                 egui::Label::new(line_job(
@@ -252,7 +252,7 @@ fn toast(
             });
         });
     // A `Group` node over the card, named "Notification" (its text is the live region inside). FT-1144:
-    // hovering it shows the whole text in doc 16a §6.18's tooltip only when the title or the line is cut (ID-940,
+    // hovering it shows the whole text in doc 16a §6.18's tooltip only when the title or the line is cut (
     // ID-1139), unless a control inside shows its own tooltip.
     let text_w = text_width(t, width);
     let cut = match n.lines() {
@@ -293,7 +293,7 @@ pub(crate) fn toast_anchor(t: &Tokens, ctx: &Context, canvas: Option<Rect>, bar_
     }
 }
 
-/// Whether the toasts stand at the canvas's bottom right rather than its top right (FT-1211, doc 16a §6.10; ID-1417,
+/// Whether the toasts stand at the canvas's bottom right rather than its top right (doc 16a §6.10; ID-1417,
 /// C52-p3#2), from whether they did in the last frame (`low`): while a tool other than Select is active (`working`), a
 /// press in the canvas's top-right quarter, where the toasts would stand over the next placing, sends them low; they
 /// stay low until Select is back or a press elsewhere on the canvas. A pointer that only moves changes nothing, nor
@@ -329,7 +329,7 @@ pub(crate) fn toast_opacity(age: f64, life: f64, fade: f64) -> f32 {
 }
 
 /// The visible toasts of `shell`, the newest at the top, anchored at `anchor` (the stack's corner `pivot` there: its
-/// top right, or its bottom right while the toasts stand low, FT-1211), each painted at its opacity in `opacity` (1
+/// top right, or its bottom right while the toasts stand low), each painted at its opacity in `opacity` (1
 /// when absent); `under_modal` puts them in the middle order, below a modal dialog's backdrop (doc 16a §6.12), so the
 /// dialog is the only focus. Returns the serials of the toasts under the pointer, those of the toasts that hold the
 /// keyboard focus, and the stack's rectangle.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-924 (decision log ID-1148): a device duplicated with Ctrl+D (`edit.duplicate`, then the paste ghost dropped:
+//! FT-924: a device duplicated with Ctrl+D (`edit.duplicate`, then the paste ghost dropped:
 //! `edit.paste`, whose copies lose their counter and frozen tag, numbered by normaliser 4) prints a whole tag, with
 //! no "?" for a counter or a page, for the kinds of device online numbering skips (`ew_commands::numbering::numbered`)
 //! that it reaches: a terminal (its strip copied and numbered with it) and a device with a frozen tag (the copy loses

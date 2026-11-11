@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The row exports of a chosen report block (WP-S1.22 part 2, D8; FT-241's CSV half, FR-EXT-027):
+//! The row exports of a chosen report block (D8; FT-241's CSV half, FR-EXT-027):
 //! `ew export wires`, `ew export terminals [--strip <tag>]`, `--block <name or id>` on `bom`, `cables`, `wires` and
 //! `terminals`, `ew export report --block <name or id> --format csv|pdf`, and `ew export report --kind <kind>`, the
-//! whole-project rows of a registered kind (WP-S3.06 D4; [`RowExport::Kind`]).
+//! whole-project rows of a registered kind ([`RowExport::Kind`]).
 //!
 //! The rows are a block's rows as its folios print them ([`ew_reports::rows_of`], the BOM in the export's mode through
 //! [`ew_reports::arranged`]), written by the one CSV writer of the golden dialect ([`ew_reports::csv::rows_csv`]), so
@@ -911,7 +911,7 @@ impl Session {
 /// A workbook as text, through the round trip's reader: for each sheet in workbook order (hidden
 /// ones included) a line `[<name>]`, then its rows as the reader gives them, the header row first, each row's cell
 /// texts joined by tabs (`\`, tab, LF and CR in a cell written `\\`, `\t`, `\n`, `\r`), LF line ends. The round trip's
-/// sheets `_ew` and `_ew_base` are read whole ([`ew_import_catalog::sheet::read_rows`], ID-1174 ruling 2).
+/// sheets `_ew` and `_ew_base` are read whole ([`ew_import_catalog::sheet::read_rows`]).
 ///
 /// # Errors
 ///

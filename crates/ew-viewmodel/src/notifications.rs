@@ -39,7 +39,7 @@ pub enum NoteAction {
     /// Tip 3's Show report block: the block selected, in Properties.
     ShowBlock,
     /// Open the history at the step the notification reports, with its changes (an external change's Show changes,
-    /// WP-S1.17 D24, decision log ID-1284 ruling 3).
+    /// WP-S1.17 D24).
     ShowChanges,
     /// Back to the symbol editor and its kept draft, after a test placement.
     BackToEditor,
@@ -186,7 +186,7 @@ impl Notification {
 
     /// The title and the optional line of the toast (doc 16a §6.10): a toned result's text splits at its first `": "`
     /// into the title ("Check") and the line of counts ("4 errors, 25 warnings"); any other text is the title alone.
-    /// The line stands on its own, so it starts with a capital (FT-1075, ID-1182: [`strings::sentence_start`]).
+    /// The line stands on its own, so it starts with a capital (ID-1182: [`strings::sentence_start`]).
     pub fn lines(&self) -> (&str, Option<Cow<'_, str>>) {
         if self.tone.is_some()
             && let Some((title, line)) = self.text.split_once(": ")

@@ -11,7 +11,7 @@
 //! bar, the left rail chooses its pane; a pane outside a tab bar has the 32-px panel header ("PROJECT",
 //! "PROPERTIES"), which is also its drag handle; the page view and the panes of a tab bar have no heading. The Project
 //! entry's panes (Pages and Devices) carry the segmented control under their header. The splitters are named
-//! (FT-338, `crate::splitter`), and the left column collapses to its rail.
+//! (`crate::splitter`), and the left column collapses to its rail.
 
 use std::collections::BTreeMap;
 
@@ -263,7 +263,7 @@ impl Dock {
             clamps.extend(self.keep_left_wide(ui.available_width(), want, lack));
         }
         if guessed {
-            // R3-4: a split without a last shown height was clamped against the guess; the next frame uses its
+            // A split without a last shown height was clamped against the guess; the next frame uses its
             // real height.
             ui.ctx().request_repaint();
         }
@@ -1168,7 +1168,7 @@ mod tests {
         }
     }
 
-    /// R2-2 of cycle 31: at 1280 × 800 the Messages pane is shown at least 300 pt tall, but the clamp is display
+    /// At 1280 × 800 the Messages pane is shown at least 300 pt tall, but the clamp is display
     /// only: the layout after the frames equals the layout before them (no rewrite of the workspace file).
     #[test]
     fn the_bottom_clamp_is_shown_but_not_persisted() {
@@ -1217,7 +1217,7 @@ mod tests {
         assert!(dragged < 260.0, "the dragged share stands: {dragged}");
     }
 
-    /// R2-2 of cycle 31: a short window then a tall one does not raise the share: on the tall frame the Messages pane
+    /// A short window then a tall one does not raise the share: on the tall frame the Messages pane
     /// has its own share (350 of 1000) again, not the raised share of the short frame (FX38d: which leaves the page
     /// view half the window).
     #[test]
@@ -1248,7 +1248,7 @@ mod tests {
         );
     }
 
-    /// R2-2 of cycle 31: a left column where Messages was docked under the page list is not the page view's split,
+    /// A left column where Messages was docked under the page list is not the page view's split,
     /// so it is not clamped.
     #[test]
     fn a_left_column_holding_messages_is_not_clamped() {
@@ -1284,7 +1284,7 @@ mod tests {
         );
     }
 
-    /// R3-3 of cycle 31: when the user drags the splitter during a clamped frame, `restore` keeps the dragged
+    /// When the user drags the splitter during a clamped frame, `restore` keeps the dragged
     /// shares, so the layout is the user's new one.
     #[test]
     fn a_drag_during_a_clamped_frame_keeps_the_dragged_shares() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cross-references: `xref_format()`, `xref_relation(rep)` and `xref_text(rep)` (WP-S1.08; doc 03 §10,
+//! Cross-references: `xref_format()`, `xref_relation(rep)` and `xref_text(rep)` (doc 03 §10,
 //! doc 06 §2.6–§2.8, ARCH §6.4, FR-XRF-001 … FR-XRF-025).
 //!
 //! A cross-reference is a relation between representations; its text is derived from the targets' anchor

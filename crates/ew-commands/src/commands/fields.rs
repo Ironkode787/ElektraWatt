@@ -258,7 +258,7 @@ pub const ASPECTS: &[&str] = &[
 /// Coalesce typing in one cell with a key (FR-UI-009). A page whose kind moves away from `panel_layout` loses its
 /// surface views in the same transaction (`fields.set_many` judges the page's final kind).
 ///
-/// `copies` (WP-S2.07 D16, as `device.place` since FT-656): library documents (`lib/` JSON form) that the value names
+/// `copies` (as `device.place` since FT-656): library documents (`lib/` JSON form) that the value names
 /// and the project lacks (a catalogue part chosen for a strip's bridge or accessory), embedded first, in the same
 /// transaction, as `part.assign` embeds its closure: each is checked as `library.embed` checks it, at `/copies/i`; a
 /// copy the project holds with the same hash is reused, one it holds with another hash (another version of the item)

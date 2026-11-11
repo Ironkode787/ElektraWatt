@@ -7,25 +7,25 @@
 //! `connection.draw`'s `route`, so the command stores what the ghost showed and the router never runs on replay.
 //!
 //! **The search.** Grid nodes inside the area (the area's nearest grid indices, extended to hold both ends and
-//! their stubs), 4-neighbourhood, cost [`STEP_COST`] per step and [`BEND_COST`] per bend (WP-S2.19 D6: 2 and 8,
+//! their stubs), 4-neighbourhood, cost [`STEP_COST`] per step and [`BEND_COST`] per bend (2 and 8,
 //! today's ratio), [`RouteRequest::cross_cost`] more for each right-angle crossing of another wire
 //! ([`CROSSING_COST`] in a page solve) and [`MATE_STEP_COST`] instead of a step's cost beside a mate's route
 //! ([`RouteRequest::mates`], §5.4), no move back against the arriving heading (a U-turn would cost one bend only;
 //! FT-437). A node whose page point lies strictly inside an
-//! obstacle rectangle is blocked, and a move that runs through the open inside of one is not taken (FT-706: a text
+//! obstacle rectangle is blocked, and a move that runs through the open inside of one is not taken (a text
 //! thinner than a grid step lies between two nodes); the two ends, their nearest grid nodes and their stub nodes
 //! are never blocked, nor the move from a CP end to its stub but by a text across it ([`RouteRequest::texts`]:
-//! 1 rule 4 has no exemption; ID-1509). The nodes of the [`RouteRequest::reserved`] points
+//! 1 rule 4 has no exemption). The nodes of the [`RouteRequest::reserved`] points
 //! (the other CPs and their stubs) are blocked. A CP end
 //! (one with a leaving direction) first leaves one step along its direction (the stub) and is entered along the
 //! opposite of its direction; no move enters the first CP end's node nor leaves the second end's; a
 //! junction or split end (`dir: None`) has no such constraint. A first end without a direction may carry the
-//! heading the route arrived there with ([`RouteRequest::arrive`], a fixed bend's incoming direction; FT-437): the
+//! heading the route arrived there with ([`RouteRequest::arrive`], a fixed bend's incoming direction): the
 //! first move never takes its opposite, so the route never doubles back over the segment before the bend; a turn
 //! there costs nothing (the bend was fixed to turn at), so the tie rule is otherwise the one of an end without a
 //! direction.
 //!
-//! **The ends' own representations** ([`RouteRequest::own`], FT-706). The rectangles of the two ends' own
+//! **The ends' own representations** ([`RouteRequest::own`]). The rectangles of the two ends' own
 //! representations (body, black-box outline, texts) block like the other obstacles, except along a CP end's escape
 //! corridor: the nodes from the end along its direction, the stub and every further node while it, or the move on
 //! out of it, lies inside one of those rectangles, so that a wire leaves and enters a CP straight out of its own box
@@ -148,7 +148,7 @@ pub struct RouteRequest {
     pub obstacles: Vec<[i64; 4]>,
     /// The text boxes `[x0, y0, x1, y1]` in page nm (any corner order, inflated as the caller inflates them), the
     /// ends' own included: they block as the obstacles do, and the move from a CP end to its stub too (WP-S2.19 §5.1
-    /// rule 4 has no exemption; ID-1509). Empty: no text.
+    /// rule 4 has no exemption). Empty: no text.
     pub texts: Vec<[i64; 4]>,
     /// The connection grid `(num, den)` nm.
     pub grid: (i64, i64),
@@ -156,7 +156,7 @@ pub struct RouteRequest {
     /// the page's drawing area.
     pub area: [i64; 4],
     /// The heading the route arrived at `from` with, for a first end without a direction (a fixed bend's incoming
-    /// direction, FT-437): the first move never takes its opposite; a turn at `from` costs no bend. Ignored for a CP
+    /// direction): the first move never takes its opposite; a turn at `from` costs no bend. Ignored for a CP
     /// end (one with `dir`).
     pub arrive: Option<Heading>,
     /// The rectangles `[x0, y0, x1, y1]` of the first and the second end's own representation (body, black-box

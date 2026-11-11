@@ -99,7 +99,7 @@ pub(super) fn run_apply(a: &ApplyArgs) -> i32 {
     }
 }
 
-/// `ew update-copies` (FT-1499, decision log ID-1486): every damaged library copy that a library of `ew lib` holds is
+/// `ew update-copies` (FT-1499): every damaged library copy that a library of `ew lib` holds is
 /// written from it, as the window's Update from library writes it, and the project opens again; a copy no library
 /// holds is named. A refusal is printed in its words, nothing written.
 pub(super) fn run_update_copies(a: &UpdateCopiesArgs) -> i32 {

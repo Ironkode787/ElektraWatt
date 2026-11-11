@@ -526,7 +526,7 @@ fn assigned_junction_refusal(first: Id<Connection>, second: Id<Connection>, gone
     }
 }
 
-/// FT-848 (ID-1108: "the junction refusal names the printed number, the counter only where the printed labels
+/// FT-848 ("the junction refusal names the printed number, the counter only where the printed labels
 /// coincide"): the two members of one physical wire print the same number, so the refusal adds their counters; two
 /// wires that print different numbers are named by the printed numbers alone.
 #[test]

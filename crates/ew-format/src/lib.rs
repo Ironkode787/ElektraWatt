@@ -37,7 +37,7 @@
 //!   copies share it, so a copy reads with one hash wherever it was migrated.
 //! - **Writing a whole project** ([`render_records`], [`project_files`]): the path of an importer's batch
 //!   and of the golden fixture (doc 20 §3.2 path (c)).
-//! - **Merging** ([`merge_record`], [`merge_file`]): the three-way merge core of doc 05 §11.2 and §11.3 (WP-S1.17 D2,
+//! - **Merging** ([`merge_record`], [`merge_file`]): the three-way merge core of doc 05 §11.2 and §11.3 (
 //!   D13, D14, D16) per record on `serde_json::Value`, under `ew-schema`'s strategy table, and per file (a record
 //!   file, a library document, `manifest.json`), writing conflict records as lines.
 //!

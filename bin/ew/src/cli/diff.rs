@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew diff <from> <to> [--json] [--exit-code]` and `ew diff --textconv <file>` (WP-S1.17 D26, D27; doc 05 §11.6;
+//! `ew diff <from> <to> [--json] [--exit-code]` and `ew diff --textconv <file>` (D27; doc 05 §11.6;
 //! FR-COL-013).
 //!
 //! A side is a project directory, an `.ewz`, an `.ewarchive`, `git:<rev>` (the project's files at that revision, read

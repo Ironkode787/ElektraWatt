@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The incremental maintenance of the potential partition (ADR-0002 amendment 4, ARCH §6.1 "incremental
-//! connectivity"; decision log ID-219): the components an edit touched are recomputed from the per-page nets,
+//! connectivity"): the components an edit touched are recomputed from the per-page nets,
 //! every other component is kept as it is.
 //!
 //! # The algorithm

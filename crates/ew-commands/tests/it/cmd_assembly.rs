@@ -500,7 +500,7 @@ fn rebinding_a_held_cp_names_the_unbound_channel_in_the_notice() {
     let (c1, c3) = (channel_id(DEV_102F2, 1), channel_id(DEV_102F2, 3));
     e.execute(&bind(c1, cp_param(FN_102F2, 4))).expect("bind");
     let r = e.execute(&bind(c3, cp_param(FN_102F2, 4))).expect("rebind");
-    // The channel in words (its number), no record ID; FT-952 (ID-1108: "N1's and N3's PLC notices drop their
+    // The channel in words (its number), no record ID; FT-952 ("N1's and N3's PLC notices drop their
     // UUIDs and requirement IDs"): no requirement ID.
     assert_eq!(
         r.outcome.notices,

@@ -79,7 +79,7 @@ pub struct CatalogTarget<'a> {
     /// The target's current part of an item ID, if it holds one.
     pub existing: &'a dyn Fn(Uuid) -> Option<LibCopy<Part>>,
     /// Give every manufacturer a master record of another library resolves to a copy in the target (a project, whose
-    /// parts name embedded manufacturer copies, WP-S1.19 D10): item [`manufacturer_item`]`(library, key)`, version
+    /// parts name embedded manufacturer copies): item [`manufacturer_item`]`(library, key)`, version
     /// [`FIRST_VERSION`], the record's content; the parts name the copy. Without it the parts name the master record.
     pub local_manufacturers: bool,
     /// With [`CatalogTarget::local_manufacturers`], the libraries whose master records the parts name directly

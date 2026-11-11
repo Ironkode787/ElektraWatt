@@ -623,7 +623,7 @@ impl<'a> TxBuilder<'a> {
         })
     }
 
-    /// The child devices of a device (`Device.parent`), in ID order (FT-352: an index lookup, not a scan of the device
+    /// The child devices of a device (`Device.parent`), in ID order (an index lookup, not a scan of the device
     /// table).
     pub fn children_of(&self, device: Id<Device>) -> Vec<Id<Device>> {
         self.indexed::<Device>(IndexRead::DeviceChildren(device), |d| d.parent == Some(device))
@@ -994,7 +994,7 @@ impl<'a> TxBuilder<'a> {
     /// size, applies the size limits ([`ew_schema::sniff`]) and hashes them. The reference it returns is what a
     /// record stores; the bytes join the model with this transaction's ops (an asset is not an op: undo keeps
     /// it, and the save writes the assets that records name). The pixel limit of a raster image is the gates' that
-    /// bring an image in (`store_image`, [`ew_schema::pixel_limit`], ID-1417), not this one's: `external.apply` takes
+    /// bring an image in (`store_image`, [`ew_schema::pixel_limit`]), not this one's: `external.apply` takes
     /// the assets another build saved as they are.
     ///
     /// # Errors

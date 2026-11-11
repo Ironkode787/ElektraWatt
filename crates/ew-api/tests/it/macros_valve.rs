@@ -115,7 +115,7 @@ fn tag_of(q: &Q, d: Id<Device>) -> String {
         .map_or_else(|| "?".to_owned(), |t| t.full.clone())
 }
 
-/// The `assembly.attach` that moves the child `tag` of -201U1 to the free position `position` (ID-1329: EW-FL-013 refuses
+/// The `assembly.attach` that moves the child `tag` of -201U1 to the free position `position` (EW-FL-013 refuses
 /// a second module at a held position, FI-07, so a typical inserted again needs its slot freed first).
 fn free_slot(s: &Session, tag: &str, position: u32) -> AnyCommand {
     AnyCommand {
@@ -280,7 +280,7 @@ fn page_spec(s: &Session) -> MacroSpec {
     variables.extend(group_variables("a", &t.a));
     variables.extend(group_variables("b", &t.b));
     // The text slots of each group's module and valves on 203 (the function-text slot moved below
-    // the valve body for the process tags, FT-1323) as a variable, which the spare value sets reset.
+    // the valve body for the process tags) as a variable, which the spare value sets reset.
     let q = s.query();
     for (p, g) in [("a", &t.a), ("b", &t.b)] {
         let bindings: Vec<Value> = std::iter::once(g.module)

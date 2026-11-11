@@ -21,7 +21,7 @@ pub struct Transaction {
     /// Whether it enters the undo stack; otherwise it is a marker line.
     pub undoable: bool,
     /// The command's exposure class at commit. `undo` and `redo` refuse a `HumanOnly` step from an origin that
-    /// could not have submitted it ([`Exposure::allows_history`]; ADR-0008 amendment 3's note, FT-404). Recorded at
+    /// could not have submitted it ([`Exposure::allows_history`]; ADR-0008 amendment 3's note). Recorded at
     /// commit, not looked up at undo time, because the registry may no longer hold the command (a plugin unloaded).
     /// In memory only: the history is not persisted.
     pub exposure: Exposure,

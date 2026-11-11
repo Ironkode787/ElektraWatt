@@ -156,7 +156,7 @@ fn at(value: Option<&Value>, path: &str) -> Option<Value> {
 impl Session {
     /// The label of the record `(kind, id)` by the property grid's rule (a device's tag, a page's folio and title, a
     /// connection by its ends), or a library copy's name; `None` for a record without one (the collision dialog's
-    /// records, WP-S1.17 D24).
+    /// records).
     pub fn record_label(&self, kind: ew_derive::ew_schema::Kind, id: Uuid) -> Option<String> {
         label_of(&self.query(), kind, id)
     }

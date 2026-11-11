@@ -133,7 +133,7 @@ fn f1_every_opening_of_the_collision_dialog_focuses_apply() {
     enter_applies_mine(&mut h, "a refused save");
 }
 
-/// C49-p10b#4: a collision dialog rebuilt by a second change is opened again: the focus the user moved to All theirs
+/// A collision dialog rebuilt by a second change is opened again: the focus the user moved to All theirs
 /// does not stay, the rebuilt dialog's first focus is Apply, and Enter applies mine.
 #[test]
 fn f1b_a_rebuilt_collision_dialog_takes_its_first_focus_again() {

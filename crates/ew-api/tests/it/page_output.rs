@@ -335,7 +335,7 @@ const PNG_SAMPLE: [&str; 12] = [
 
 /// Per gate: one golden page of every page type ([`PNG_SAMPLE`]) renders to a 150 dpi PNG within doc 20's
 /// tolerance of the committed one (test audit g7). Every page is compared by the deep nightly
-/// (`nightly_the_png_candidates_match_within_the_doc_20_tolerance_on_every_page`) and by `cargo xtask acceptance`
+/// (`nightly_the_png_candidates_match_within_the_doc_20_tolerance_on_every_page`) and by the acceptance gate
 /// (AC-02's raster entry).
 #[test]
 fn the_png_candidates_match_within_the_doc_20_tolerance_one_page_per_type() {
@@ -348,7 +348,7 @@ fn the_png_candidates_match_within_the_doc_20_tolerance_one_page_per_type() {
 /// Every golden page renders to a 150 dpi PNG within doc 20's tolerance of the committed one (the deep nightly,
 /// CI-N-02). `EW_BLESS=1` with `--run-ignored all` rewrites every committed PNG.
 #[test]
-#[ignore = "deep nightly (CI-N-02): the 150 dpi PNG of every golden page"]
+#[ignore = "deep run: the 150 dpi PNG of every golden page"]
 fn nightly_the_png_candidates_match_within_the_doc_20_tolerance_on_every_page() {
     with_golden_pages(|pages| png_candidates_match(&pages.iter().collect::<Vec<_>>()));
 }
@@ -939,7 +939,7 @@ fn a_section_selection_is_the_sections_pages_with_its_divider() {
 }
 
 /// PR-1, PR-3 and D8: section 1 on A5 with the fit prints the five pages on A5 landscape sheets, each stamped
-/// "scaled 70 %" (min(210/297, 148/210), ID-1114 ruling 2); each page's content is the export page's list item for
+/// "scaled 70 %" (min(210/297, 148/210)); each page's content is the export page's list item for
 /// item and its overlay is the stamp alone; read back, every page is 210 × 148 mm and prints its stamp once; the set
 /// is the same bytes twice. Its SHA-256 and structure are the committed `expected/print/` files (`EW_BLESS=1`
 /// rewrites them; `ew`'s `print_of_golden_a_section_1_on_a5_is_the_committed_print_set` checks the CLI's bytes).

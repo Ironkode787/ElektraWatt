@@ -5,7 +5,7 @@
 //!
 //! - `rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902`: -UC1 carries no rail or duct part use;
 //!   its carrier lines give rows 24 and 25 at 1.71 m and 3.17 m; rows 22 to 25 print folio 902, and row 26 (the end
-//!   brackets, WP-S4.02 part 5) too; 27 rows.
+//!   brackets) too; 27 rows.
 //! - `the_legend_of_the_plate_lists_31_rows_and_renumbers`: `enclosure_legend` (registered) over a block embedded
 //!   on 902: -UC1, -UC1-plate, R1 … R3, D1 … D5, the twenty placements by DT, then the end brackets (WP-S4.02 EB-3:
 //!   quantity 4, no DT); placing F55 on R1 adds its row and renumbers the rows after it.

@@ -139,7 +139,7 @@ impl Picker {
 
     /// Recomputes the rows after a filter change; the current row goes back to the first.
     pub fn refilter(&mut self) {
-        // Every typed token is a case-folded substring of one of the row's texts (cycle 36: "relay" found the generic
+        // Every typed token is a case-folded substring of one of the row's texts ("relay" found the generic
         // relay only by its key).
         let f = self.filter.to_lowercase();
         let tokens: Vec<&str> = f.split_whitespace().collect();
@@ -188,7 +188,7 @@ impl Picker {
         }
         if self.mode != PickerMode::Exchange {
             // The part rows grouped by manufacturer, under the manufacturer's header
-            // ([`Picker::header_before`]); the filter matches the manufacturer too. FT-1087: one order,
+            // ([`Picker::header_before`]); the filter matches the manufacturer too. One order,
             // (manufacturer, part number), the catalogue's order within a tie; FT-1375: the project's own
             // copies before the libraries' parts.
             let mut parts: Vec<usize> = (0..self.catalogue.parts.len()).collect();
@@ -233,7 +233,7 @@ impl Picker {
 
     /// The manufacturer header that stands above row `i`: the manufacturer of a part row whose manufacturer
     /// differs from the row before it (or that is the first part row), or that starts its group
-    /// ([`Picker::group_before`], FT-1513); `None` for every other row.
+    /// ([`Picker::group_before`]); `None` for every other row.
     pub fn header_before(&self, i: usize) -> Option<&str> {
         let manufacturer = |row: Option<&PickerRow>| match row {
             Some(PickerRow::PartFn(p, _) | PickerRow::Part(p)) => self

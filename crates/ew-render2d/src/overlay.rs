@@ -130,11 +130,11 @@ pub const HANDLE_PX: i64 = 8;
 /// window (QET's 2.6 mm step is about 6.8 points at 69 %) and not on a page shrunk to a thumbnail.
 pub const OPEN_CP_MIN_STEP_PT: f64 = 4.0;
 
-/// The side of the open marker of a free connection point at scale 1 (FT-705: a `4s + 1`-pixel hollow square with an
+/// The side of the open marker of a free connection point at scale 1 (a `4s + 1`-pixel hollow square with an
 /// `s`-pixel rim; 5 pixels at scale 1).
 pub const OPEN_CP_PX: i64 = 5;
 
-/// The colour token of a tool line (WP-S2.03 §7.4; provisional until WP-S2.08's theme).
+/// The colour token of a tool line (provisional until WP-S2.08's theme).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ToolToken {
     /// The ghost of a drag.

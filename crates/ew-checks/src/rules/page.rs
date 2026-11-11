@@ -1022,7 +1022,7 @@ pub fn wire_along_wire(page: Id<Page>, folio: &str, wire: LayoutWire<'_>, other:
 }
 
 /// A representation as a layout rule names it (EW-CORE-069, -070): a device by its tag, an interruption point by its
-/// name, which each language words itself ("interruption point L-1", "onderbrekingspunt L-1"; ID-1509 (7)).
+/// name, which each language words itself ("interruption point L-1", "onderbrekingspunt L-1").
 #[derive(Clone, Copy, Debug)]
 pub enum SymbolName<'a> {
     /// A device's tag as the page prints it, with its prefix (or the symbol's key for a representation without one).

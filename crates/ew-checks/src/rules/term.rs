@@ -99,7 +99,7 @@ pub const TERMINAL_WITHOUT_DESIGNATION: RuleMeta = RuleMeta {
 /// EW-TERM-001: a terminal of a strip whose designation is empty. `Ident` is non-empty, so a model built
 /// through the command layer rarely holds one; the rule stays for the registry and for lenient data (a
 /// designation of white space only). One finding per terminal, no discriminator. Its prevent half (doc 15 §4.4
-/// "prevent, lenient on import"; ID-1392, FT-1399) refuses a batch that leaves a touched terminal without a
+/// "prevent, lenient on import") refuses a batch that leaves a touched terminal without a
 /// designation it had before; `Ident` already refuses an empty or blank designation, so it is silent on every snapshot
 /// the schema reads.
 #[derive(Clone, Copy, Debug)]
@@ -772,7 +772,7 @@ impl Line {
 
 /// EW-TERM-006: a connection point of a terminal, drawn on the page by the
 /// terminal's own symbol, lies on the path a wire or cable core of the page is drawn along (`ew_derive::drawn_path`:
-/// its stored route; an unrouted connection has none, WP-S2.19 D3), and that wire does not join the terminal: the page
+/// its stored route; an unrouted connection has none), and that wire does not join the terminal: the page
 /// shows the terminal in the wire, but it is not connected. A wire joins the terminal when an end is a CP of any
 /// function of the terminal's device, or a junction standing on one of the terminal's CP points on the page that a
 /// connection joins to a CP of the terminal's device. One finding per terminal and wire: targets the terminal and the

@@ -13,7 +13,7 @@
 //! **Accessibility.** The pane is a `Group` named "Find and replace"; the fields are text inputs and the toggles check
 //! boxes labelled by their names; the results are a list box whose options are named by the result's line in plain
 //! text, so that a screen reader reads it plainly, and described by the same line with the matches in `[[…]]` (never
-//! colour alone: the window also draws them bold and underlined; FT-433); only the rows on show are built. The card and
+//! colour alone: the window also draws them bold and underlined); only the rows on show are built. The card and
 //! the pane's note are polite live regions.
 
 use egui::text::{LayoutJob, TextFormat};
@@ -514,7 +514,7 @@ impl FindPane {
                             n.set_description(marked);
                             n.set_selected(selected);
                         });
-                        // C49-p5b#1: a cut row shows its whole line in its tooltip (doc 16a §6.6).
+                        // A cut row shows its whole line in its tooltip (doc 16a §6.6).
                         let response = response.tip(name);
                         if response.double_clicked() {
                             events.push(Event::Action("ui.focus", json!({"area": "find"})));

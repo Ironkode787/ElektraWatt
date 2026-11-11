@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `enclosure_legend` at the row level (WP-S4.01 part 4, D11; the orchestrator's ruling 4 of cycle 41: "registered in
+//! `enclosure_legend` at the row level (D11; the orchestrator's ruling 4 of cycle 41: "registered in
 //! `ew-reports` with rows from that query, tested at the row level and placed on no page"): the cells of each row
 //! kind, a carrier without a derivable length, and the blocks that have no surface. Golden A's 30 rows are `ew-api`'s
 //! `tests/golden_layout_bom.rs`.

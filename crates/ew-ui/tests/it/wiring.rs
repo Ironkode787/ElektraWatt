@@ -347,7 +347,7 @@ fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
 }
 
 /// The pointer over a cross-reference label of folio 101 that leads to another page shows the pointing hand and
-/// the tooltip "Go to <its target's cell or folio>"; over empty sheet the cursor is the default one. FT-1091 (ID-1184):
+/// the tooltip "Go to <its target's cell or folio>"; over empty sheet the cursor is the default one. FT-1091:
 /// the tooltip waits while the link preview shows (the rest opens the preview first) and shows once it is dismissed.
 /// The preview says, under its title, how to go there.
 #[test]
@@ -388,7 +388,7 @@ fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     assert_eq!(underlines, 1, "the link's underline");
     // The tooltip says the gesture.
     let tip = format!("Click to go to {label}");
-    // FT-1091 (ID-1184): the rest opens the link preview first, and the tooltip waits while it shows ...
+    // FT-1091: the rest opens the link preview first, and the tooltip waits while it shows ...
     let mut preview = false;
     for _ in 0..120 {
         h.hover_at(at);

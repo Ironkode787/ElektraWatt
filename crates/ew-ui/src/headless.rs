@@ -8,7 +8,7 @@
 //! to the core runner of `ew_viewmodel::script`, and the smoke run of architecture section 10.1.
 //!
 //! Exit codes: 0 all steps done; 1 a step was refused or failed (the run stops there; with `--keep-going` the run
-//! goes on and the exit code is 1 when any step was not done, WP-S6.13 §5.5.1), or the script ended with unsaved
+//! goes on and the exit code is 1 when any step was not done), or the script ended with unsaved
 //! changes, or a job no step waited for failed, was cancelled or panicked; 2 a usage error (an unreadable or
 //! malformed script, an unknown action ID).
 

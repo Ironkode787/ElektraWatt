@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The nine further navigators and the highlight members on Golden A (WP-S2.06 part 2, acceptance checks NP1 and NP2,
+//! The nine further navigators and the highlight members on Golden A (acceptance checks NP1 and NP2,
 //! and the member half of NP3): each provider's table rows equal its oracle (the stored block's data rows, or the
 //! golden facts of §7.1), the records and open targets of one row per provider, FR-UI-005's counts (D16), and the
 //! members of a potential's and of a connection's highlight.
@@ -587,7 +587,7 @@ fn members_of_24vdc_1_are_its_wire_list_connections() {
     assert!(s.highlight_members(&HighlightTarget::Net(unknown)).is_empty());
 }
 
-/// R1-10: the third row kind of the Potentials overview. On Golden A without the definition of 24VDC-4 that
+/// The third row kind of the Potentials overview. On Golden A without the definition of 24VDC-4 that
 /// potential is known only by its name at connection points, so its row's record is a CP and its kind `cp`; every
 /// other row keeps its definition or its bond, and the overview keeps its 20 rows.
 #[test]

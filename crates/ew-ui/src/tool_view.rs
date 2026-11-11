@@ -3,7 +3,7 @@
 
 //! What the window paints of the tool framework besides the shared marks (§7.3, §7.8): the tool
 //! overlay's marks in the renderer's form and the tool strip. The overlay's text labels, the kept preview's semantic
-//! ghost and the link preview's frame are canvas chips ([`crate::canvas_chips`], WP-S2.17 part 5).
+//! ghost and the link preview's frame are canvas chips ([`crate::canvas_chips`]).
 
 use egui::Ui;
 use ew_render2d::overlay::{Dash, MarkerKind, ToolMark, ToolToken};

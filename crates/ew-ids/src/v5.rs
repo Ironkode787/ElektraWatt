@@ -62,7 +62,7 @@ pub const NS_LIBCOPY: Uuid = Uuid::from_u128(0x04c1640f_8857_4dfc_9bff_e9baad47f
 /// minted once for this purpose; **fixed forever**, since every imported record's ID derives from it.
 pub const NS_IMPORT: Uuid = Uuid::from_u128(0x7b75186c_f28e_49ce_b7f7_26b137095a65);
 
-/// The namespace of the file-level conflict records of the merge core (WP-S1.17 D14, decision log
+/// The namespace of the file-level conflict records of the merge core (decision log
 /// ID-1268). A random v4 UUID minted once for this purpose; **fixed forever**, since a file's conflict
 /// record is found by its ID.
 pub const NS_CONFLICT: Uuid = Uuid::from_u128(0x62f02f37_42d2_48ec_8f0d_692fb85254a0);

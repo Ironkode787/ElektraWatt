@@ -312,7 +312,7 @@ fn labels(h: &Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// ID-1278 ruling 5 (W49.1 I): after View ▸ Language back to English, the very next frame's Pages navigator speaks
+/// After View ▸ Language back to English, the very next frame's Pages navigator speaks
 /// English (its rows were kept from the Dutch frame until the next change): in tree mode its section row and the
 /// `generated` badge (the grid's badge reads "QET 10 px" in both languages, as the status bar), in table mode its
 /// cells' row positions.

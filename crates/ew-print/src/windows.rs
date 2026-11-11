@@ -13,7 +13,7 @@
 //! at the lower of the device's horizontal and vertical resolutions (the placement's offset is from the paper's corner,
 //! so the printable area's offset is subtracted) and each stretched by `StretchDIBits` to its device rectangle,
 //! `EndPage`; then `EndDoc`. A band that would start below the device's paper is not sent, nor a band that is white
-//! paper alone. The job's cancel signal ([`PrintJob::cancel`], FT-1157) is read before each band:
+//! paper alone. The job's cancel signal ([`PrintJob::cancel`]) is read before each band:
 //! once it is set, the document is aborted (`AbortDoc`) and the print is [`PrintError::Cancelled`]. With
 //! [`PrintJob::monochrome`] the bands are drawn from the lists `ew_render_cpu::monochrome` gives, the greying the PDF
 //! uses; the driver's colour setting is left as it is. A failure aborts the document. The print set's PDF is not used.

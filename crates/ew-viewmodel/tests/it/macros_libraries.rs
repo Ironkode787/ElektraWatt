@@ -289,7 +289,7 @@ fn ui3_save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
 }
 
 /// FX38b: a name with no letter or digit gives no key and is refused in words before any write (the library
-/// directory is as it was); a typed key still saves it. FT-763: a Greek name is a key now, so the refused name is `--`.
+/// directory is as it was); a typed key still saves it. A Greek name is a key now, so the refused name is `--`.
 #[test]
 fn a_name_that_gives_no_key_is_refused_before_any_write() {
     let tmp = Tmp::new("macros-nokey");

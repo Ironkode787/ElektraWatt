@@ -313,7 +313,7 @@ pub enum Ghost {
         at_nm: Option<(i64, i64)>,
         /// The printed text of the external reference of an external connection point.
         external: Option<String>,
-        /// The pin a click connects the point to, in words (`-102F2:14`; FIXPT41); `None` where it places it free.
+        /// The pin a click connects the point to, in words (`-102F2:14`); `None` where it places it free.
         connects: Option<String>,
     },
     /// The black box tool's rectangle.
@@ -507,7 +507,7 @@ pub trait Tool {
         false
     }
 
-    /// A sentence about what the tool proposes, said in the HUD and in the toast of the commit it makes (FT-1023: the
+    /// A sentence about what the tool proposes, said in the HUD and in the toast of the commit it makes (the
     /// IP tool's "0V is taken, so this point is 0V-1."; the Place tool's terminal moved off its click point, FT-1208, at
     /// the end of its toast only); `None` for most tools.
     fn proposal_note(&self) -> Option<String> {
@@ -576,7 +576,7 @@ pub struct ToolCx<'a> {
     pub selection: &'a Selection,
     /// The placing options of the tool options card: the sticky mode and the grid step.
     pub layout: LayoutOptions,
-    /// Whether a move connects its autoconnect proposals (WP-S2.19 D15: on by default; `tool.connect_on_move` toggles
+    /// Whether a move connects its autoconnect proposals (on by default; `tool.connect_on_move` toggles
     /// it for the session).
     pub connect_on_move: bool,
 }

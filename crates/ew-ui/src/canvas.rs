@@ -16,7 +16,7 @@
 //! Every frame, per group, in four measured phases:
 //!
 //! 1. **input**: the pane's size, the pointer with its modifiers, the primary button's press and release (the
-//!    active tool's input, WP-S2.03 part 2), the wheel, pinch, the middle drag, the mouse's back and forward buttons
+//!    active tool's input), the wheel, pinch, the middle drag, the mouse's back and forward buttons
 //!    and the pointer's rest become registry actions with the group (`view.zoom_to`, `view.pan`, `canvas.pointer`,
 //!    `canvas.press`, `canvas.release`, `canvas.dwell`, `view.canvas_resize`, `nav.back`, `ui.focus`), dispatched by
 //!    the frame after painting like every other input, so a script and the window take the same path; the rest is
@@ -93,7 +93,7 @@ pub(crate) const GROUPS: usize = 2;
 /// rectangle, else, while an entity is hovered, the rectangle of the first entity of the pick stack under the pointer
 /// (the one a click picks, FT-500; WP-S2.17 part 5, doc 16a §6.25), else the hovered entity's; none on a selected
 /// entity (doc 16a §7.1: the selection only). While the Join chooser is open, its active row's object instead (doc 16a
-/// §6.22, WP-S2.18).
+/// §6.22).
 pub fn hover_rect(shell: &ShellModel, group: usize, c: &CanvasModel) -> Option<SheetRect> {
     if shell.chooser().is_some() {
         let object = shell.chooser_object()?;
@@ -175,7 +175,7 @@ fn cp_pitch(c: &CanvasModel) -> Option<f64> {
 /// `canvas.snapshot` (section 6.6) of group `group`: the pane as the canvas shows it once settled, at
 /// `pane × ppp` pixels, and its resolution `round(D)`: `render_region` at that resolution with the view origin on a
 /// whole pixel, white paper and the surround of the settings' theme (light for `system`), then the overlays (the
-/// grid cursor and the link hover outline included, WP-S2.03 §6.8) composited by integer fills. It never uses tiles
+/// grid cursor and the link hover outline included) composited by integer fills. It never uses tiles
 /// or a GPU, so equal inputs give equal bytes on every run of one build target. A pane wider or taller than 4096
 /// pixels is rendered in regions of at most 4096 pixels and stitched.
 ///
@@ -598,7 +598,7 @@ fn printed_texts(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec
 /// Paints the wire-colour view's codes of `strokes` (D18): each code as a canvas chip (`canvas.chip` at 94 % with
 /// `canvas.chip_text` in `type.caption`, `radius.sm`, `space.1` padding) over every stroke, placed by doc 16a §7.4's
 /// rule from the middle of its stroke in its lane, clear of the codes placed before it, of the chrome
-/// `obstacles` and the other chips, of the `pointer`'s box and of the page's printed texts (FT-1345,
+/// `obstacles` and the other chips, of the `pointer`'s box and of the page's printed texts (
 /// [`crate::canvas_chips::wire_code_chips`]); a code with no free place is drawn faded. Returns the codes' frames with
 /// whether each is faded, and the printed texts' frames.
 #[allow(clippy::too_many_arguments)]
@@ -669,7 +669,7 @@ fn paint_wire_codes(
 /// The wire-colour view's strokes (D18) over a pane whose top-left is `origin`, at `ppp`: per connection a dark casing
 /// `CASING_PX` physical pixel wider on each side for a cased one, then its stroke (`STROKE_PT` points) in its colour or
 /// its two colours' alternating 2-mm dashes; a laned stroke (W49.2 F9) is drawn on its path moved into its lanes with
-/// its corners joined (FT-1283, `WireStroke::in_lanes`).
+/// its corners joined (`WireStroke::in_lanes`).
 pub fn wire_colour_shapes(
     strokes: &[ew_viewmodel::wire_colours::WireStroke],
     origin: Pos2,
@@ -881,12 +881,11 @@ struct GroupView {
     /// Whether the primary button went down on this canvas and has not come up yet (its release is the tool's).
     pressed: bool,
     /// The input time (egui's, seconds) and position of the last primary press: a second one within
-    /// [`DOUBLE_CLICK_S`] and 4 points is a double click, `tool.finish` for a tool that finishes on one (WP-S2.04 §6.1;
+    /// [`DOUBLE_CLICK_S`] and 4 points is a double click, `tool.finish` for a tool that finishes on one (
     /// measured by the window's input clock, never by the model; a test harness steps that clock, so a double click is
     /// decided without a sleep).
     last_press: Option<(f64, Pos2)>,
     /// Whether the open context menu was opened over an object (its selection commands) or over nothing (Paste);
-    /// FT-715.
     menu_over: bool,
     /// The page (session, folio) of the previous frame: a page change suppresses the pointer replay, a view or model
     /// change on the same page sends it again from the pointer's screen position.
@@ -1046,7 +1045,7 @@ pub(crate) fn ring_runs(centre: Pos2, radius: f32, texts: &[Rect]) -> Vec<Vec<Po
     runs
 }
 
-/// The sheet rectangles of the texts (glyph runs) of the page's display list `list`, at any depth (FT-1506: the arrival
+/// The sheet rectangles of the texts (glyph runs) of the page's display list `list`, at any depth (the arrival
 /// ring runs under them).
 pub(crate) fn text_rects(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec<SheetRect> {
     use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind, Transform, ew_units::Pt2};
@@ -1255,7 +1254,7 @@ impl CanvasHost {
         (&self.chips.0, self.chips.1)
     }
 
-    /// Every chip painted on the canvas of `group` in the last frame (WP-S2.17 part 5: labels, highlight name chips,
+    /// Every chip painted on the canvas of `group` in the last frame (labels, highlight name chips,
     /// the preview), in paint order.
     pub fn canvas_chips(&self, group: usize) -> &[CanvasChip] {
         self.chip_plans.get(group).map_or(&[], Vec::as_slice)
@@ -1432,7 +1431,7 @@ impl CanvasHost {
         self.context_menu(&response, shell, canvas, group, events);
         // FT-512's tooltip half (doc 16a §7.2, §6.18): the connection point under the pointer names its printed label,
         // its kind and its potential in a tooltip in the inverse style.
-        // FT-1091 (ID-1184): the link preview popup and a hover tooltip never show at once; while the popup shows, the
+        // FT-1091: the link preview popup and a hover tooltip never show at once; while the popup shows, the
         // tooltip waits (the popup is the richer answer to the same hover, and the two overlapped over the sheet).
         let popup_shows = shell.link_preview().is_some();
         if let Some(tip) = canvas.hovered_cp_tip() {
@@ -1639,7 +1638,7 @@ impl CanvasHost {
             }
         }
         // A group the area no longer shows (View ▸ Side by side off, its last tab closed) forgets a press held on it:
-        // its release would otherwise reach the tool from a later click anywhere (FT-392; the shell escaped the tool
+        // its release would otherwise reach the tool from a later click anywhere (the shell escaped the tool
         // and drops a release that still comes).
         let groups = shell.area().map_or(0, |a| a.groups.len());
         for v in self.views.iter_mut().skip(groups) {
@@ -1905,7 +1904,7 @@ impl CanvasHost {
     }
 
     /// Wheel, pinch, the middle drag, pointer movement with its modifiers, the primary button's press and release (the
-    /// active tool's input; a click on a link is the Select tool's follow, WP-S2.03 §7.6) and the back and forward
+    /// active tool's input; a click on a link is the Select tool's follow) and the back and forward
     /// buttons as registry actions.
     #[allow(clippy::too_many_arguments)]
     fn map_input(
@@ -2223,7 +2222,7 @@ impl CanvasHost {
     }
 
     /// The pointer's or the grid cursor's rest on the focused canvas (D11): `canvas.dwell` once after 80 ms and once
-    /// after 300 ms without a move, measured on egui's frame time (FT-570: the wall clock in the window, the driver's
+    /// after 300 ms without a move, measured on egui's frame time (the wall clock in the window, the driver's
     /// frames in a test or a visual run); nothing timed reaches the model.
     fn dwell(&mut self, ui: &Ui, canvas: &CanvasModel, group: usize, events: &mut Vec<Event>) {
         // Input this frame means it has not rested since; a queued pointer or view action would otherwise let the

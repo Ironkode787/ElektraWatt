@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The status-bar model (WP-S2.01 part 1, spec section 5.3; WP-S2.02 part 1, spec section 6.5; UX/UI doc 16
+//! The status-bar model (spec section 5.3; WP-S2.02 part 1, spec section 6.5; UX/UI doc 16
 //! section 3.6).
 //!
 //! Left to right: the hint (the active tool's status hint, or the hovered link's target while the tool shows the
-//! hover; WP-S2.03 §7.2), the page as `<folio> (<n> of <total>)`,
+//! hover), the page as `<folio> (<n> of <total>)`,
 //! the cursor `102-H15 · x 255.0 y 172.5 mm` (the cell where one exists, then sheet coordinates: the pointer over
-//! the focused canvas, else the grid cursor, else left out; WP-S2.03 §6.5, FT-345), the zoom `156 %`, the grid (`QET 10 px`, a pitch
+//! the focused canvas, else the grid cursor, else left out), the zoom `156 %`, the grid (`QET 10 px`, a pitch
 //! such as `4 mm`, or `Grid off`), the save state (`*` unsaved, `saved`, or `read-only: <reason>`), the canvas
 //! backend (`CPU`, `WARP` or `GPU <backend>`), the UI language, `Notifications <n>` while the notifications log is not
 //! empty, and while a job runs the job field. Without a project the page and save fields are left
@@ -53,7 +53,7 @@ pub fn grid_words(num_nm: i64, den: i64) -> String {
 }
 
 /// One end of a wire in words: its connection point's label (`-102F1:2`, the device's tag and the point), else what it
-/// is. FT-1250: only a junction is "a junction".
+/// is. Only a junction is "a junction".
 pub(crate) fn end_words(e: &WireEnd) -> String {
     match e {
         WireEnd::Point(label) => label.clone(),
@@ -395,7 +395,7 @@ pub struct StatusField {
 }
 
 /// The findings field's text and tone: `1 error · 2 warnings`, the worst severity's tone; `None` when every count is
-/// zero. FT-710: the counts are [`crate::navigators::messages::MessageCounts::open`]'s (the project's open findings without the
+/// zero. The counts are [`crate::navigators::messages::MessageCounts::open`]'s (the project's open findings without the
 /// pending and the waived ones, as the check's toast and the Messages tab's chip count them), and the pending ones
 /// follow as their own part (`6 warnings · 2 pending on this page`), so leaving the page, which ends them, is
 /// explained.

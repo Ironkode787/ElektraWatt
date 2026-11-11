@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool framework through the shell on temporary copies of Golden A (WP-S2.03 part 2, acceptance checks T4, T5,
+//! The tool framework through the shell on temporary copies of Golden A (acceptance checks T4, T5,
 //! T6, T8, T9, T10 and the model half of T11): Select with its clicks and bands, snapping on the QET grid, the
 //! keyboard tool input, the link hover preview, Escape safety, the transcript and describe members and the exact
 //! counts of tool events.

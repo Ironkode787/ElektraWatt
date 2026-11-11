@@ -106,7 +106,6 @@ pub struct SessionCalls {
     pub preview_entities: u64,
     /// `Session::history_view`: once per (project session, revision) while the history panel is open.
     pub history_view: u64,
-    // WP-S4.02 part 4
     /// `Session::layout_part_offers` for Draw rail and Draw duct: when the tool is armed, and again only when its
     /// options or the revision change.
     pub layout_part_offers: u64,
@@ -283,7 +282,7 @@ impl ShellModel {
 
     /// Sets up the view state of the project just installed: its page rows, one tab on the first page, the canvas
     /// focused, the navigator reset, the cache emptied. The ID aliases stay: they live for the whole script run, so an
-    /// earlier `@n` never names another record (ID-630 (b), FT-422).
+    /// earlier `@n` never names another record (ID-630 (b)).
     pub(super) fn install_view(&mut self) {
         self.navigator = PageNavigator::new();
         // A project's navigator states and chips go with it (the panes stay in the layout).
@@ -1323,7 +1322,6 @@ impl ShellModel {
                 self.focus = Some(Focus::CommandBar);
                 Outcome::Done
             }
-            // WP-S2.17 part 3
             "history" if self.history_shown() => {
                 self.focus = Some(Focus::History);
                 Outcome::Done
@@ -1355,7 +1353,6 @@ impl ShellModel {
             .chain((0..groups).map(Focus::Canvas))
             .chain(self.properties_shown().then_some(Focus::Properties))
             .chain(self.find_shown().then_some(Focus::Find))
-            // WP-S2.17 part 3
             .chain(self.history_shown().then_some(Focus::History))
             .collect();
         let here = self

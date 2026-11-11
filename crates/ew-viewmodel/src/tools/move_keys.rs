@@ -11,7 +11,7 @@
 //!
 //! **Rubber bands** (§6.7). A connection with exactly one end on a moved representation is drawn from the moved
 //! CP's new position along its polyline as `geometry::follow_end` moves it ([`follow_polyline`]: the end vertex by
-//! the CP's own displacement, the far end fixed, a dog-leg where a segment cannot follow; FT-423); a connection with
+//! the CP's own displacement, the far end fixed, a dog-leg where a segment cannot follow); a connection with
 //! both ends moved is drawn translated.
 
 use std::collections::BTreeSet;
@@ -179,7 +179,7 @@ pub fn move_proposals(
     };
     let ghost = super::autoconnect::moved_cps(tables, &delta);
     let mut found = super::autoconnect::proposals(&ghost, tables, moved, super::wire::drawing_area(cx), 0);
-    // A move never splits an existing wire (ADR-0007 decision 4, ID-1509 (6)), so a split is no proposal of a move:
+    // A move never splits an existing wire (ADR-0007 decision 4), so a split is no proposal of a move:
     // the ghost lists only the wires the release makes (C53-rt#12).
     found
         .list

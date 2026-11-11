@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Migration of a project written before the revision kind was typed (FT-165; ADR-0011 amendment 4,
-//! decision log ID-334: typing a reserved kind is additive within format 0.1, so there is no format or
+//! Migration of a project written before the revision kind was typed (ADR-0011 amendment 4,
+//! Typing a reserved kind is additive within format 0.1, so there is no format or
 //! `$v` bump). An older build kept the revisions as records of a reserved kind and wrote their members in
 //! byte-wise key order; this build opens such a project for editing with typed revisions, reports the file
 //! as not canonical (info), and its next save rewrites the file in the canonical member order.

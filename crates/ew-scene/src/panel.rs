@@ -40,7 +40,7 @@
 //! (`xref.device`, 1.83 mm em printed, doc 20 §17.5), at its paper height at every scale: it is never scaled. Its ink
 //! box is the shaped text's advance along the text by the face's cap height across it, plus the descent only when the
 //! label has a descender glyph ([`has_descender`]), plus [`LABEL_PAD`] on every side (the orchestrator's ruling 5 of
-//! cycle 41: ew-text's existing advance and vertical metrics, no new API). The fit test against the footprint's paper
+//! Ew-text's existing advance and vertical metrics, no new API). The fit test against the footprint's paper
 //! rectangle takes the first of:
 //!
 //! 1. horizontal, centred on the footprint, when the box fits as it is;

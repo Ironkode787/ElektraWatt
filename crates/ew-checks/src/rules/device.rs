@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! EW-CORE device and part rules of the 04x block (doc 15 §4.2): EW-CORE-041 to -045 and -048,
-//! and EW-CORE-008's `form` half (FT-368) and `channel` half (FT-229, part 4). EW-CORE-047 is in [`core`](super::core).
+//! and EW-CORE-008's `form` half and `channel` half (FT-229, part 4). EW-CORE-047 is in [`core`](super::core).
 //!
 //! # Determinism
 //!
@@ -65,7 +65,7 @@ pub const DEVICE_WITHOUT_PART: RuleMeta = RuleMeta {
 
 /// EW-CORE-041: a device without a part use (FR-CHK-024; D-04, EF-04, EF-19). The device half only: a device that
 /// is not placed is EW-LAY-001's. The exemption of a device "supplied by others" (`supply_scope =
-/// by_others`, FR-DEV-037, decision log ID-322) waits for the attribute (FT-209): until it exists the rule fires for
+/// by_others`, FR-DEV-037) waits for the attribute (FT-209): until it exists the rule fires for
 /// such devices too. Left out: a strip (its terminals carry the parts), a cable (its part is the cable part, and a
 /// cable without one is reported by its length and core rules), a PLC configuration device and a device without
 /// functions (nothing is drawn or wired, so nothing is ordered). One finding per device: target the device, no
@@ -202,7 +202,7 @@ const PLACEHOLDER_NUMBER: &str = "TBD";
 
 /// EW-CORE-043: a placeholder part: a part copy whose part number is `TBD` (FR-CHK-034, D-04, EF-17). The schema has
 /// no typed placeholder marker on a part; Golden A's four placeholder parts carry the part number `TBD` (doc 20
-/// §14.1, decision log ID-316, ID-317). One finding per placeholder copy, as EF-17 counts them: targets the copy and
+/// §14.1). One finding per placeholder copy, as EF-17 counts them: targets the copy and
 /// every device that uses it (a part use, or a carrier part line of its enclosure: WP-S4.01 part 4 moved -UC1's rail
 /// and duct from part uses to its carriers), the fingerprint keyed on the copy, discriminator `placeholder`. It is reported in the
 /// scope of the first of those devices by printed tag, so a further user of the part changes neither the count nor
@@ -277,7 +277,7 @@ impl Rule for PlaceholderPart {
 }
 
 /// The part copies EW-CORE-043 looks at for a device: its part uses ([`parts_of`]) and the parts of its carrier part
-/// lines (`LineSource::Carrier`: the rails and ducts of its enclosure, WP-S4.01 D11), in the order of [`parts_of`]. A
+/// lines (`LineSource::Carrier`: the rails and ducts of its enclosure), in the order of [`parts_of`]. A
 /// placeholder rail or duct reaches the BOM through the carriers since WP-S4.01 part 4, so it stays an open
 /// item that blocks release (EF-17), owned by the enclosure device.
 fn placeholder_candidates(q: &Q, device: &Device) -> Vec<(Id<Part>, std::sync::Arc<LibCopy<Part>>)> {
@@ -329,7 +329,7 @@ pub const OPEN_TBD_VALUE: RuleMeta = RuleMeta {
 
 /// EW-CORE-044: a typed `Tbd` value of the device (FR-CHK-034, D-15): a PLC module's input or output start, the
 /// address of each of its channels (`AddrSpec::Tbd`), and the station address of each bus port of its functions
-/// (`AddrValue::Tbd`, WP-S1.21 D11). EW-PLC-015 reports the same module values of a module inside a configuration
+/// (`AddrValue::Tbd`). EW-PLC-015 reports the same module values of a module inside a configuration
 /// project with the same targets, and EW-BUS-001 the same port of a logical net with the port function as target;
 /// their findings supersede these (doc 15 §3.6), so a module outside every configuration project and a port outside
 /// every logical net stay this rule's. One finding per value: the module (and the channel) as targets,
@@ -630,7 +630,7 @@ impl Rule for OrderCodesCover {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-CORE-008, the `form` (FT-368) and `channel` (FT-229) halves
+// EW-CORE-008, the `form` and `channel` (FT-229) halves
 
 /// EW-CORE-008, the dangling references a loaded model can hold. An integrity rule of release mode: it runs in `ew
 /// check` and the release gate, not online. Two halves, by discriminator:
@@ -641,8 +641,8 @@ impl Rule for OrderCodesCover {
 ///   defaults are a settings member that is not. Reported per stored page, as the cell grid resolves it
 ///   (`FrameGridOf`): the entry of the page's type, then the default, whichever the resolution consults and finds
 ///   missing. Target the page.
-/// - **`channel`** (FT-229, WP-S1.16 part 4): a PLC channel whose module carries no `plc_module` aspect, which an
-///   older build that deleted the module's aspect leaves behind (ID-334; a missing module is a checked link the model
+/// - **`channel`** (FT-229): a PLC channel whose module carries no `plc_module` aspect, which an
+///   older build that deleted the module's aspect leaves behind (a missing module is a checked link the model
 ///   refuses on open). Target the channel and the device, subject `<device tag>:<channel number>`. The delete quick
 ///   fix of FT-229 waits for a command that deletes a channel (`edit.delete` does not take one; WP-S1.16 §11.2
 ///   item 6).

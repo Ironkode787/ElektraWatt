@@ -833,7 +833,7 @@ fn scale_to_send(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Option<
 
 /// The datum that centres the enclosure of `surface` (its outer rectangle, else the usable polygon's bounds) in the
 /// drawing area of `page`'s frame grid at `scale` (D12; the page's, or the one sent with the view, ID-1148; the grid
-/// the page's cells read, the built-in default one on a page without a frame form, FT-1016); `None` without a frame
+/// the page's cells read, the built-in default one on a page without a frame form); `None` without a frame
 /// grid: no centred datum is offered, and a page without a view then keeps the datum (0, 0), one with a view its own.
 pub(crate) fn centred_datum(
     q: &Q,
@@ -1222,7 +1222,7 @@ impl Session {
     /// of that kind by part number, then the system libraries' parts of that kind the project does not hold, each with
     /// the `copies` that embed it and its closure; an enclosure part's plate part and its closure come along. For
     /// `enclosure` only parts with an enclosure section; for `rail` only parts with a rail section; for `cable` (New
-    /// cable…, FT-1371) only parts with cable cores; nothing for any other word. A library part whose closure does not
+    /// cable…) only parts with cable cores; nothing for any other word. A library part whose closure does not
     /// resolve is left out.
     pub fn layout_part_offers(&self, kind: &str) -> Vec<LayoutPartOffer> {
         let kind = match kind {
@@ -1345,7 +1345,7 @@ impl Session {
 
     /// The datum `page.surface_view.set` takes to show `surface` centred on the panel page `page` (D12; PS-1):
     /// the enclosure's rectangle centred in the frame's drawing area at the scale the page draws the view at (its
-    /// own, or the fitting scale a page still drawn not to scale takes with the view, ID-1148). `None` for a page
+    /// own, or the fitting scale a page still drawn not to scale takes with the view). `None` for a page
     /// without a frame grid or an unknown page or surface.
     pub fn centred_surface_datum(&self, page: Uuid, surface: Uuid) -> Option<(i64, i64)> {
         let q = self.query();

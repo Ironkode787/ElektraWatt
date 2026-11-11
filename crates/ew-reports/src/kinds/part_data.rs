@@ -18,7 +18,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 /// The PART DATA box.
 ///
 /// Source devices: the block's `manual.include` devices, else the root ancestors of the devices drawn on the
-/// embedded page **and** the enclosure device of the surface the page's surface view shows (WP-S4.01 D16: a test of
+/// embedded page **and** the enclosure device of the surface the page's surface view shows (a test of
 /// the page's items, through `ew_derive::layout::page_surface`, which also requires a panel-layout page; the
 /// orchestrator's ruling 3 of cycle 42). A source with an assembly aspect that has configs lists one row per order code (doc 11
 /// §5.5 step 6, D-36): the config's label ("Order Code 1"; "Order Code n" when it has none), and the

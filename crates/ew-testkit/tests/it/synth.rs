@@ -740,7 +740,7 @@ fn l_and_xl_plans_match_the_class_bounds() {
 }
 
 #[test]
-#[ignore = "L/XL fixtures are generated with the performance spike (milestone rule)"]
+#[ignore = "deep run: the L and XL fixtures"]
 fn l_and_xl_generate() {
     for class in [SizeClass::L, SizeClass::XL] {
         let g = synth::project(class, 1);

@@ -246,7 +246,7 @@ fn double_click(h: &mut Harness<'_, App>, pos: Pos2) {
 }
 
 /// The cycle-38 double-click rule: the Place tool defines no finish on a double click, so two quick clicks are two
-/// plain presses (the window used to turn the second into `tool.finish`). FT-751: the second lands exactly on the
+/// plain presses (the window used to turn the second into `tool.finish`). The second lands exactly on the
 /// first's twin (same symbol, point and orientation) and is refused in words; one grid step away places again.
 #[test]
 fn two_quick_clicks_with_the_place_tool_place_once_and_refuse_the_stacked_twin() {
@@ -421,7 +421,7 @@ fn the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_symbol
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1375 (R0-F1): on GP-UT (Golden A without -102F1 and its four wires), folio 102, Draw ▸ Place ▸ Device
+/// On GP-UT (Golden A without -102F1 and its four wires), folio 102, Draw ▸ Place ▸ Device
 /// from part… (its key from the keymap) filtered by `A9F78116` lists the project's own copy, which has no function
 /// template; choosing it asks for its symbol, and the MCB symbol places -102F1 with its part, in one undo step.
 #[test]

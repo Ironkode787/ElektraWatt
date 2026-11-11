@@ -18,11 +18,11 @@
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! **The name** is the typed one, unchanged; else a proposal from a base ([`proposal_base`], FT-950; an external point's
-//! is `IP`, FT-619): the derived potential name of the page's CP that lies exactly under the ghost's CP when it is
+//! is `IP`): the derived potential name of the page's CP that lies exactly under the ghost's CP when it is
 //! given (not a fallback), else the last name this tool or the Wire tool's P committed, else that potential's fallback
 //! name, else `IP`; then, while an interruption point of the project already has the proposal, the next name of its
 //! numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`), so that only a typed name joins two points.
-//! **The direction** is `source` while the star is on (FT-980, ID-1146: a star source is a source point; the chosen
+//! **The direction** is `source` while the star is on (ID-1146: a star source is a source point; the chosen
 //! direction is kept for after it), else the one D chose, else `target` for an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
 //! the typed name and the star are cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
@@ -34,7 +34,7 @@
 //! commit use the external-arrow symbol the host gives, `ip.place` and `connection.draw_to_ip` carry `external`, and
 //! the star is refused.
 //!
-//! **A drop on a pin connects** (FIXPT41, FR-CON-003): when the ghost's CP lies exactly on a CP of the
+//! **A drop on a pin connects** (FR-CON-003): when the ghost's CP lies exactly on a CP of the
 //! page that no interruption point draws (a pin, free or wired), the click commits `connection.draw_to_ip` with that
 //! CP as `a` and an empty route (a route-less wire of length zero, one undo step), and the ghost says so ("connects
 //! to -102F2:14"); Alt (held on the last pointer move or the press, or `canvas.activate_alt`) places the point free
@@ -225,7 +225,7 @@ impl ProjectIps {
 /// user's, unchanged, and an automatic `source` whose name has a source on another page and none on this one, without a
 /// star, becomes `target` with that name: only a name the user gives joins two points. Otherwise the point
 /// keeps `auto` and takes the first name of the series that no interruption point of the project has
-/// ([`ProjectIps::free_name`], ID-1462), read from the model at the moment of naming, so a reopen, an undo or a paste
+/// ([`ProjectIps::free_name`]), read from the model at the moment of naming, so a reopen, an undo or a paste
 /// never repeats a name.
 pub fn propose(
     base: &str,
@@ -397,7 +397,7 @@ pub struct IpTool {
     /// The library documents the placement embeds (`ip.place`'s `copies`); the host sends only those the
     /// project lacks.
     copies: Vec<Value>,
-    /// Alt held on the last pointer move or press: a drop on a pin places the point without connecting (FIXPT41).
+    /// Alt held on the last pointer move or press: a drop on a pin places the point without connecting.
     suppressed: bool,
     /// The pin the last overlay's click would connect to, in words (the ghost's `connects`).
     shown_connects: Option<String>,
@@ -405,7 +405,7 @@ pub struct IpTool {
     shown_taken: Option<String>,
 }
 
-/// What a click does with the ghost's CP where it is (FIXPT41).
+/// What a click does with the ghost's CP where it is.
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum DropOn {
     /// A free grid point, or Alt held: `ip.place`.
@@ -480,7 +480,7 @@ impl IpTool {
         self.copies = copies;
     }
 
-    /// Sets the project's source points read at the model revision `rev` (FT-822; the host reads them again when the
+    /// Sets the project's source points read at the model revision `rev` (the host reads them again when the
     /// revision changes).
     pub fn set_project(&mut self, project: ProjectIps, rev: Option<u64>) {
         self.project = project;
@@ -614,7 +614,7 @@ impl IpTool {
             .map(|base| crate::strings::format(key!("hud-ip-taken"), &[base, &self.shown]))
     }
 
-    /// What a click at the insertion point `pos` does with the ghost's CP (FIXPT41): on the CP of an interruption
+    /// What a click at the insertion point `pos` does with the ghost's CP: on the CP of an interruption
     /// point of the page it is refused (16a P10: no point stacked on another), Alt or not; on another CP (a pin, free or
     /// wired, ruling 2) it connects unless Alt is held, an external connection point too; elsewhere it places
     /// the point free.
@@ -654,7 +654,7 @@ impl IpTool {
 
     /// The words of the refusal of a click at the press point `at` (sheet nm; `None` for Enter at the current point),
     /// with the overlay there (the ghost stays); `None` when the click commits. The host asks before it sends the
-    /// click (FIXPT41).
+    /// click.
     pub fn refusal(&mut self, at: Option<(i64, i64)>, cx: &ToolCx<'_>) -> Option<(String, Overlay)> {
         if let Some(at) = at {
             let s = cx.snapper.snap_grid(at);
@@ -668,7 +668,7 @@ impl IpTool {
     }
 
     /// The command a click at the current point commits: `connection.draw_to_ip` from the pin under the ghost's CP
-    /// with an empty route (FIXPT41), else `ip.place`; `None` before the first move or where the click is refused.
+    /// with an empty route, else `ip.place`; `None` before the first move or where the click is refused.
     fn command(&self, cx: &ToolCx<'_>) -> Option<(Box<AnyCommand>, String, IpDir)> {
         let (_, pos) = self.at?;
         let (name, direction) = self.resolve(cx, Some(pos));
@@ -818,8 +818,8 @@ impl Tool for IpTool {
                 ToolOutput::Transient(self.refresh(cx))
             }
             CanvasEvent::Key(ToolKey::ToggleDirection) => {
-                // D goes on from the direction the ghost shows (FT-822: a target offered for a name that has a
-                // source elsewhere turns undirected, then source). FT-980: on a starred point (a source) D clears the
+                // D goes on from the direction the ghost shows (a target offered for a name that has a
+                // source elsewhere turns undirected, then source). On a starred point (a source) D clears the
                 // star and steps on from source; the star stays off when D comes back to source.
                 let _ = self.refresh(cx);
                 self.star = false;

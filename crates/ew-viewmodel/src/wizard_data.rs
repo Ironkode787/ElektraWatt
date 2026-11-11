@@ -22,7 +22,7 @@ pub const SIZE_PROFILE_SAMPLE: &str = include_str!("../../../content/profiles/si
 /// The shipped frame and title-block forms of `content/forms` (the QElectroTech-compatible A4 landscape frames with
 /// and without the grid, the cover frame, and the title block they name), in the `lib/` JSON form that
 /// `library.embed` takes. The wizard embeds them into the basic project and names them in its frame defaults (doc
-/// 16 section 9.2, step 2; FT-336); the sample project holds the same copies.
+/// 16 section 9.2, step 2); the sample project holds the same copies.
 pub const SHIPPED_FORMS: [&str; 4] = [
     include_str!("../../../content/forms/ew.frame.qet-a4-landscape-cover.json"),
     include_str!("../../../content/forms/ew.frame.qet-a4-landscape-grid.json"),

@@ -5,7 +5,7 @@
 //! [`NavTable`], the visible rows (a depth-first walk over the expanded nodes, or the flat list), the filter over the
 //! precomputed tokens and facets, the sort, and the marked rows.
 //!
-//! The Pages navigator keeps its as-built tree (`crate::navigator`, WP-S2.03 §6.1) with its keys, actions and
+//! The Pages navigator keeps its as-built tree (`crate::navigator`) with its keys, actions and
 //! describe lines (D5); it shares this module's filter ([`Query`]), the marks and the selection synchronisation. Every
 //! other navigator is a [`Navigator`] over the table that `Session::navigator_table` builds, fetched once per
 //! (kind, revision) while the navigator is open.
@@ -18,7 +18,7 @@
 //! **Filter** (§6.3). The query is split at whitespace: a part `<facet>:<value>` with a facet of the closed list
 //! (`page`, `potential`, `state`, `kind`, `part`) matches a node with that facet and a case-folded equal value;
 //! `unplaced` and `frozen` alone match the flag (in the PLC navigator also `unassigned`, `spare`, `tbd` and `duplicate`,
-//! and the facet `config:<name>`, WP-S2.07 §8); every other part is plain text, split into tokens like the node tokens
+//! and the facet `config:<name>`); every other part is plain text, split into tokens like the node tokens
 //! (`ew_api::output::nav_tokens`). A node matches when every facet and flag matches, and either every plain token is a
 //! prefix of one of its tokens or the plain text, case-folded, is a substring of its case-folded label. Matches keep
 //! their ancestors, shown and expanded.

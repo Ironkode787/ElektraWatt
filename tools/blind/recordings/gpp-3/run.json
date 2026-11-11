@@ -55,7 +55,7 @@
   "handed_back": true,
   "diverged_at": null,
   "ci": "nightly",
-  "stale": null,
+  "stale": "recorded on 2026-10-29; the product answers differently since (first at step 17, place.pick). The next persona round's recording replaces it",
   "clean_before_epilogue": true,
   "child_exit": 1,
   "golden_changed": false

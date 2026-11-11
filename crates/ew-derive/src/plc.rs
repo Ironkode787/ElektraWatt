@@ -35,7 +35,7 @@
 //!
 //! The finest key is a module, station or configuration project (ARCH §6.3). A module reads its channels
 //! through the channels-by-module index (`module_channel_ids(module)`, keyed on (module, number) as N1 keys
-//! them, FT-319) and then each channel row by ID, so a channel edit invalidates its module only; step 4 reads
+//! them) and then each channel row by ID, so a channel edit invalidates its module only; step 4 reads
 //! the CP → channel index. Stations and device links are found by whole-table reads, cut off early by value.
 
 use std::collections::BTreeMap;
@@ -486,7 +486,7 @@ pub fn solenoid_coil(q: &Q, device: Id<Device>, solenoid: &Ident) -> Option<crat
 }
 
 /// The function whose representation draws an internal coil (doc 11 §3.1: the coil is drawn in its valve's
-/// symbol, WP-S1.20 D5): for a function on a FnDef of contact kind `coil` without a representation of its own, the
+/// symbol): for a function on a FnDef of contact kind `coil` without a representation of its own, the
 /// lowest-ID function of its device on a FnDef of contact kind `valve`; `None` otherwise. The PLC rows and the CP
 /// link destinations read it, so a channel bound to an internal coil points at its valve.
 pub fn coil_host(q: &Q, function: Id<Function>) -> Option<Id<Function>> {

@@ -23,7 +23,6 @@ fn choose(s: &mut ShellModel, filter: &str) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-605
 
 /// A terminal chosen in the picker of a project without strips opens the strip chooser on its empty state (the
 /// window's empty state says why and offers New terminal strip); `strip.new` lists the new strip as the current row
@@ -52,7 +51,6 @@ fn the_picker_opens_the_empty_strip_chooser_and_strip_new_fills_it() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-618
 
 /// The PE terminal's symbol asks for its strip as the feed-through terminal does: picked without a strip it opens
 /// the strip chooser, and the chosen strip's terminal is armed.
@@ -76,7 +74,6 @@ fn the_pe_terminal_opens_the_strip_chooser() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-621
 
 fn page_text(s: &mut ShellModel, folio: &str) -> String {
     done(s, "page.describe", json!({ "folio": folio }));
@@ -122,7 +119,6 @@ fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-600
 
 /// Table mode reaches the start of a strip: Add accessory with `before` on the first terminal row adds the accessory
 /// at `after_seq` 0 (Pos 0.1), on a later terminal directly before it (after the terminal before it and the accessories

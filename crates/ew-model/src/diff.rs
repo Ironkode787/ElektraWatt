@@ -3,7 +3,7 @@
 
 //! The first difference between two models ([`crate::Model::content_diff`]): what
 //! [`crate::Model::content_eq`] calls unequal, named for a diagnosis (the save-and-reload oracle of the command
-//! fuzzer, FT-468).
+//! fuzzer).
 
 use std::fmt;
 use std::sync::Arc;

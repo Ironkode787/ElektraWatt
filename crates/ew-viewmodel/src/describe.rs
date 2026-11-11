@@ -9,7 +9,7 @@
 //! the first-run flow, the wizard, or the project view (the page navigator, the canvas tabs and the focus, the page
 //! view and its canvas lines, the workspace and its layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
 //! Directory names appear, paths never. The structural words are fixed English machine text; quoted text is user text
-//! (a label, a name). A record ID is printed as its alias `@n`, a value token like a number (decision log ID-630,
+//! (a label, a name). A record ID is printed as its alias `@n`, a value token like a number (
 //! FT-422; [`crate::alias`]): the hovered entity and the selection unquoted, an
 //! ID inside a quoted text inside the quotes; no UUID reaches the text.
 
@@ -349,7 +349,7 @@ fn other_navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
             user(&nav.sort_label()),
             if nav.descending { "descending" } else { "ascending" },
             user(&nav.filter),
-            // ID-1278 ruling 7: the strip the editor shows by its ID, in words.
+            // The strip the editor shows by its ID, in words.
             nav.scope_label()
                 .map_or_else(String::new, |s| format!(" strip \"{}\"", user(&s))),
             rows.len(),
@@ -474,7 +474,7 @@ fn table_lines(
         } else {
             "row"
         };
-        // ID-1278 ruling 7: a strip without a tag yet in words in its Strip cell.
+        // A strip without a tag yet in words in its Strip cell.
         let cells: Vec<String> = shown
             .iter()
             .map(|i| crate::navigators::cell_text(table, node, *i))
@@ -528,7 +528,7 @@ fn table_lines(
 fn label_of(table: Option<&std::sync::Arc<crate::navigators::NavTable>>, key: &str) -> String {
     table
         .and_then(|t| t.nodes.iter().find(|n| n.key == key))
-        // ID-1278 ruling 7: a strip without a tag yet in words.
+        // A strip without a tag yet in words.
         .map(|n| {
             if n.role == crate::navigators::NavRole::Strip {
                 crate::navigators::strip_label(&n.label)
@@ -570,7 +570,6 @@ fn tab_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(Focus::Properties) => lines.push("focus properties".to_owned()),
         Some(Focus::Find) => lines.push("focus find".to_owned()),
         Some(Focus::CommandBar) => lines.push("focus commandbar".to_owned()),
-        // WP-S2.17 part 3
         Some(Focus::History) => lines.push("focus history".to_owned()),
         None => {}
     }
@@ -1042,7 +1041,7 @@ fn jobs_lines(model: &ShellModel, lines: &mut Vec<String>) {
         lines.push(match &e.status {
             crate::jobs::JobStatus::Running => format!("{head} running"),
             crate::jobs::JobStatus::Done { pages, kib, now } => {
-                // WP-S3.08 ruling 4 of ID-1224: a table's end has no page count.
+                // A table's end has no page count.
                 let pages = pages.map(|n| format!(" pages {n}")).unwrap_or_default();
                 let mut line = format!("{head} done{pages} kib {kib} rev {}", e.rev);
                 if let Some(m) = now {
@@ -1538,7 +1537,7 @@ fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
             ids.join(" ")
         ));
         // What the live region says of the selection, quoted as user text as the page items' texts are
-        // (ID-1278 ruling 11: a line break or a `"` in a free text never splits or ends the line).
+        // (a line break or a `"` in a free text never splits or ends the line).
         lines.push(format!(
             "canvas live {}",
             page_quoted(&crate::status::selection_text(model))
@@ -1706,7 +1705,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             if let Some(e) = external {
                 line.push_str(&format!(" external \"{e}\""));
             }
-            // FIXPT41: the pin a click connects the point to.
+            // The pin a click connects the point to.
             if let Some(c) = connects {
                 line.push_str(&format!(" connects \"{c}\""));
             }
@@ -2620,7 +2619,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
         .iter()
         .map(|c| {
             let (a, b) = (end_text(&c.a), end_text(&c.b));
-            // The vertices where the drawn polyline turns (WP-S2.19 D2: a stored route is drawn as stored, so a vertex
+            // The vertices where the drawn polyline turns (a stored route is drawn as stored, so a vertex
             // it runs straight through is no bend).
             let bends = c
                 .polyline

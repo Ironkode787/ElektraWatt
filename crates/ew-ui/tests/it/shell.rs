@@ -23,7 +23,7 @@ fn the_start_page_offers_open_and_names_no_project() {
     assert!(h.query_by_label("This version has no update check").is_some());
     // The status bar's state field; the start page's hint left the bar.
     assert!(h.query_by_label("Ready").is_some());
-    // The app menu is there on every operating system (WP-S2.17 part 2: one button opens the whole tree, in doc
+    // The app menu is there on every operating system (one button opens the whole tree, in doc
     // 16a §9.2's order).
     support::open_menu(&mut h, &[]);
     let labels: Vec<String> = h

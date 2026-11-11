@@ -454,7 +454,7 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
     (NavKind::Cables, "length", "device", "cable.length"),
     (NavKind::Potentials, "potential", "potential_def", "name"),
     // The G-PP triage's row 8: Type and Voltage set a definition's `ptype` and `voltage`; on a potential without one
-    // the Name defines it, with Type and Voltage typed in the same gesture (WP-S1.16 D4; the view model compiles
+    // the Name defines it, with Type and Voltage typed in the same gesture (the view model compiles
     // `potential.define` at `NavNode::define_at`).
     (NavKind::Potentials, "kind", "potential_def", "ptype"),
     (NavKind::Potentials, "voltage", "potential_def", "voltage"),
@@ -925,7 +925,7 @@ fn fndef_key(q: &Q, f: &Function) -> Option<String> {
 /// lower-cased, then the CP designations of the function's template entry (else of the FnDef, in `idx` order) joined
 /// by `-`. Category `["Relay", "Contact", "NO"]` with CPs 13 and 14 gives `NO contact 13-14`; a last entry equal to
 /// the CP designations run together is dropped and the one before it capitalised (`["Relay", "Coil", "A1A2"]` with
-/// CPs A1 and A2 gives `Coil A1-A2`); a last entry `CO` reads `Changeover` (FT-712, FT-752: `Changeover contact 11-12-14`);
+/// CPs A1 and A2 gives `Coil A1-A2`); a last entry `CO` reads `Changeover` (FT-752: `Changeover contact 11-12-14`);
 /// a category of fewer
 /// than two non-empty entries, or a missing FnDef copy, gives [`fndef_name`]. The Properties grid's "Part function"
 /// row and the picker's meta line read it.
@@ -984,7 +984,7 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
             .map(|c| c.to_uppercase().chain(chars).collect())
             .unwrap_or_default()
     } else {
-        // FT-712: the change-over kind is spelled out; FT-752: in sentence case (`Changeover contact 11-12-14` beside
+        // The change-over kind is spelled out; FT-752: in sentence case (`Changeover contact 11-12-14` beside
         // `NO contact 13-14`). The FnDef keeps its category.
         let last = LAST_ENTRY_WORDS
             .iter()
@@ -1034,7 +1034,7 @@ const KIND_WORDS: &[(&str, &str, &str, bool)] = &[
     ("Valve52", "SolenoidSpring", "5/2 valve", true),
 ];
 
-/// The word of a category's last entry where the generic rule of [`kind_text`] spells it out (FT-712: `CO` reads
+/// The word of a category's last entry where the generic rule of [`kind_text`] spells it out (`CO` reads
 /// "changeover"); in the same localisation as [`KIND_WORDS`].
 const LAST_ENTRY_WORDS: &[(&str, &str)] = &[("CO", "changeover")];
 
@@ -1985,7 +1985,7 @@ fn cables_table(q: &Q, b: &mut Builder) {
 }
 
 /// The PLC grid's columns (FR-PLC-021): the members of PBF §2.8 that WP-S1.21's model has. Rack, data
-/// type, safety and signal range have no member yet and are left out. FT-757: the address is the key column and the
+/// type, safety and signal range have no member yet and are left out. The address is the key column and the
 /// target, symbol and function text follow it, so that a grid at the default rail width shows what a channel is
 /// and what it drives; station, slot and comment come last.
 const PLC_COLUMNS: [(&str, &str); 14] = [
@@ -2852,7 +2852,7 @@ impl Session {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// WP-S2.09 part 2: the message panel (§7.1, D8)
+// The message panel (§7.1, D8)
 
 /// The columns of the message panel's table rows (§7.1), in order; `rule` is the key column.
 const MESSAGE_COLUMNS: [&str; 7] = [

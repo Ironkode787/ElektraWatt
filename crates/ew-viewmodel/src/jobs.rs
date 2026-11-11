@@ -120,7 +120,7 @@ pub struct JobEntry {
     pub(crate) unseen_failure: Option<String>,
     /// Whether a step waited for the job (a waiting `file.export_pdf` or `jobs.wait`), set for every outcome and
     /// never by a poll: `jobs.wait {}` picks the newest job no step waited for, so its choice does not depend on
-    /// which poll took an end (R2-1).
+    /// which poll took an end.
     pub(crate) waited: bool,
 }
 

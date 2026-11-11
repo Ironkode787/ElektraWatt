@@ -110,7 +110,7 @@ impl ChannelKeyed<(Id<Device>, u16)> {
     }
 
     /// Every channel of `module` by number in (number, ID) order, duplicates of a number included (EW-CORE-008
-    /// `duplicate_number`, FT-350).
+    /// `duplicate_number`).
     pub fn all_of_module(&self, module: Id<Device>) -> Vec<(u16, Id<Channel>)> {
         self.by_key
             .range(((module, 0), first_id())..)

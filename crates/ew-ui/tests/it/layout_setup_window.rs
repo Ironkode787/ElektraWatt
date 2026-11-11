@@ -219,7 +219,7 @@ fn focused_field(h: &Harness<'_, App>) -> (String, egui::Rect) {
 }
 
 /// W44.4 F-h: -102F1's Realised part edited, then the same row of -201U1's placement edited: the editor shows
-/// -201U1's own part, not -102F1's. Once with the first editor cancelled and frames between (C44-p6#4: W44.4 F-h's
+/// -201U1's own part, not -102F1's. Once with the first editor cancelled and frames between (W44.4 F-h's
 /// case), once with `select.set` on -201U1's placement and `props.edit` on the same row with no frame between, the
 /// first editor's field still focused: the field keeps its focus across the change and still shows -201U1's own part.
 #[test]

@@ -371,7 +371,7 @@ fn hovering_a_toast_pauses_its_fade() {
 }
 
 /// FT-1137 (doc 16a §6.10, "hovering or focusing one pauses it"): a toast whose Dismiss button holds the keyboard
-/// focus is paused for as long as it holds it, the pointer away from it. FT-1171: also while the shell's focus is on
+/// focus is paused for as long as it holds it, the pointer away from it. Also while the shell's focus is on
 /// the canvas, a toast's Dismiss button that takes the keyboard focus keeps it (the canvas does not take it back each
 /// frame).
 #[test]

@@ -201,7 +201,7 @@ pub fn git_dir(vfs: &dyn Vfs, dir: &Path) -> io::Result<Option<PathBuf>> {
 /// An I/O error reading the `.git` file or the git directory's `commondir`, its text led by the path that failed.
 pub fn own_hooks(vfs: &dyn Vfs, root: &Path, hooks: &Path) -> io::Result<bool> {
     let at = |path: &Path, e: io::Error| io::Error::new(e.kind(), format!("{}: {e}", path.display()));
-    // Both sides canonical (C49-p10b#5): a path in another case (Windows) or through a link is the same folder.
+    // Both sides canonical: a path in another case (Windows) or through a link is the same folder.
     let hooks = canonical(vfs, hooks);
     if hooks.starts_with(canonical(vfs, root)) {
         return Ok(true);
@@ -837,7 +837,7 @@ pub const HOOKS_PATH_MAX: usize = 4096;
 /// runs from the AppImage only when it lies under `appdir`, the mount the same runtime names (`$APPIMAGE` and `$APPDIR`):
 /// a program started from another AppImage (an editor's terminal) inherits both, and its `ew` is not under that mount.
 pub fn ew_command(exe: &Path, appimage: Option<&Path>, appdir: Option<&Path>) -> String {
-    // Both sides canonical (C49-p10b#5): a mount reached through a link is the same mount.
+    // Both sides canonical: a mount reached through a link is the same mount.
     let under =
         |mount: &Path| canonical(&crate::vfs::OsVfs, exe).starts_with(canonical(&crate::vfs::OsVfs, mount));
     match (appimage, appdir) {

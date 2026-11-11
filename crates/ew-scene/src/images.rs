@@ -6,7 +6,7 @@
 //! them here from the bytes the project holds before any renderer reads the list ([`resolve_images`]).
 //!
 //! - **SVG** becomes vector paths ([`svg_items`]): the bytes pass the store's rejecter first
-//!   ([`ew_schema::svg_hazard`], FT-383), then usvg parses and normalises them (default features off: no text, no
+//!   ([`ew_schema::svg_hazard`]), then usvg parses and normalises them (default features off: no text, no
 //!   system fonts; image `href`s resolve to nothing, so no file or URL is read) and every visible path becomes an
 //!   `ew-dl` path in the image's rectangle, in a group clipped to it. Every renderer draws paths already, so the logo
 //!   prints as vectors in the CPU renderer, the PDF writer and the SVG writer (resvg is not used).

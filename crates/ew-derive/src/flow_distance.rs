@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The per-CP flow distance: `cp_flow_distance(potential)` (doc 08 §3.8 "Orientation (From/To)" step 2, FT-101).
+//! The per-CP flow distance: `cp_flow_distance(potential)` (doc 08 §3.8 "Orientation (From/To)" step 2).
 //!
 //! # Rule
 //!

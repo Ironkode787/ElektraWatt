@@ -348,7 +348,7 @@ fn designation_of(tx: &TxBuilder<'_>, t: Id<Device>) -> String {
 /// order and `parts` on each. A placement of the strip on a rail that grows pushes the items after it by the overlap,
 /// cascading; a placement turned 180° grows left and pushes the items before it. Rejected: the
 /// strip is not a device with the strip aspect; `before` is not a terminal of
-/// the strip; new terminals between two terminals of one consecutive bridge group (FT-641, CI-06: the message names
+/// the strip; new terminals between two terminals of one consecutive bridge group (CI-06: the message names
 /// the group and the places outside it); no terminal; a spec with `seq`; a designation already used in the strip or twice in the list; a
 /// sequence number beyond 4294967295. A missing strip, `before`, function definition or part copy is `NotFound`.
 /// Cost Interactive. Outcome: the first new terminal device.
@@ -540,7 +540,7 @@ impl Command for InsertTerminals {
     }
 }
 
-/// `terminal.move`: terminals of one strip put before another terminal of the strip, or at its end (WP-S2.07 §5.2,
+/// `terminal.move`: terminals of one strip put before another terminal of the strip, or at its end (
 /// D4).
 ///
 /// Let T be the strip's terminals in (`seq`, ID) order. The new order O is T without the moved terminals, with them

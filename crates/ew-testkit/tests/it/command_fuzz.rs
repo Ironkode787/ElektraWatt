@@ -1637,7 +1637,7 @@ fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
     );
 }
 
-/// Deep nightly finding (ID-1493; `fuzz/regressions/command_sequence/device-create-valve-part-functions`, seed
+/// Deep nightly finding (`fuzz/regressions/command_sequence/device-create-valve-part-functions`, seed
 /// 13 901 746 652 117 265 409, step 0): `device.create` with Golden A's valve part and a main FnDef of another kind
 /// commits three functions, its main one and the valve and coil functions normaliser N-FL-1 makes from the valve
 /// part, and the arm expected one. The input (the finding's seed, its tape remade to draw the finding's
@@ -1651,7 +1651,7 @@ fn device_create_with_a_valve_part_counts_its_valve_functions() {
     );
 }
 
-/// Deep nightly finding (ID-1493; `fuzz/regressions/command_sequence/valve-add-plc-module-part-attached-to-station`,
+/// Deep nightly finding (`fuzz/regressions/command_sequence/valve-add-plc-module-part-attached-to-station`,
 /// seed 365 072 220 161, step 2): `valve.add` on Golden A's -203Q1 with the electronic module part 533361, whose PLC
 /// section has the role module, committed, and normaliser N0 made the new device a PLC module and attached it to the
 /// project's only station, as WP-S1.21 D4 says for a module without a station ancestor; the arm expected a child of
@@ -2383,7 +2383,7 @@ fn payload_text(payload: &(dyn std::any::Any + Send)) -> String {
 /// no new seed starts after `n` seconds of wall clock (the run is then `status: budget`, not a failure: the
 /// seeds run are listed, and the seed list is deterministic, so the next night's range continues it).
 #[test]
-#[ignore = "nightly fuzz: EW_FUZZ_SEEDS, EW_FUZZ_STEPS"]
+#[ignore = "deep run: the long fuzz (EW_FUZZ_SEEDS, EW_FUZZ_STEPS)"]
 fn fuzz_long() {
     let seeds: Vec<u64> = match std::env::var("EW_FUZZ_SEEDS") {
         Ok(list) => parse_seeds(&list),

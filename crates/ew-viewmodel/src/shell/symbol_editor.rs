@@ -184,7 +184,7 @@ impl SymbolEditor {
 }
 
 /// The style a new free text takes when none was chosen in the draft: the small style pin designations use
-/// (ID-1477 (2); `ew_scene`'s default for a connection point's designation).
+/// (`ew_scene`'s default for a connection point's designation).
 pub const NEW_TEXT_STYLE: &str = "cp.small";
 
 /// The style of a free text of `after` that differs from the same text of `before`, or is new with a style: the style
@@ -432,7 +432,7 @@ impl ShellModel {
         );
     }
 
-    /// `symbol.new_page` (M25-p7#2; ID-1477 (1)): the published symbol of a draft saved to a library and unchanged
+    /// `symbol.new_page` (M25-p7#2): the published symbol of a draft saved to a library and unchanged
     /// since, placed on a new page with its grid at 40/40 mm (Test on a new page's point) and selected, as the Insert
     /// symbol picker's offer places it; the editor steps aside as after a test placement. Any other draft is refused:
     /// its offer is Test on a new page.
@@ -1276,7 +1276,7 @@ impl ShellModel {
             draft.key.chars().take(100).collect::<String>()
         );
         // The same content placed again is the same copy (re-review part 4): its item IDs come from its key,
-        // which carries the content's suffix, never a new UUIDv7 per placement. ID-1476: the v5 name's parts
+        // which carries the content's suffix, never a new UUIDv7 per placement. The v5 name's parts
         // joined with U+001F (ADR-0004 amendment 4), as projects store these IDs.
         let item = |kind: &str| {
             ew_api::output::Uuid::new_v5(

@@ -98,7 +98,7 @@ pub struct Settings {
     /// The canvas renderer, one of [`CANVAS_BACKENDS`].
     pub canvas_backend: String,
     /// The property grid's collapsed categories, `<kind>/<category>` (`device/identity`), sorted (`[properties]
-    /// collapsed`, WP-S2.05 §6.1.2).
+    /// collapsed`).
     pub properties_collapsed: Vec<String>,
     /// Whether the property grid shows the Advanced rows (`[properties] show_advanced`).
     pub properties_show_advanced: bool,
@@ -238,7 +238,7 @@ impl Settings {
         let theme = take_choice(&mut table, "theme", &THEMES)?;
         let density = take_choice(&mut table, "density", &DENSITIES)?;
         let canvas_backend = take_choice(&mut table, "canvas_backend", &CANVAS_BACKENDS)?;
-        // An integer; a value out of range loads as off. ID-1278 ruling 14: a float of an integral value
+        // An integer; a value out of range loads as off. A float of an integral value
         // (`14.0`) loads as that size, any other float as off.
         let in_range = |i: i64| {
             u8::try_from(i)
@@ -351,7 +351,7 @@ impl Settings {
         parts_favourites.sort();
         parts_recent.truncate(MAX_RECENT_PARTS);
         // `[window]`. Known members this version cannot read are dropped, not the whole
-        // file: the window then opens at its default size. Other members of the table are kept (R1-6).
+        // file: the window then opens at its default size. Other members of the table are kept.
         let window = match table.remove("window") {
             Some(toml::Value::Table(mut w)) => {
                 let geometry = crate::window::WindowGeometry::from_toml(&w);
@@ -624,7 +624,7 @@ impl Settings {
         write_atomically(dir, &self.to_toml())
     }
 
-    /// Merges the window geometry `geometry` into `<dir>/settings.toml` as the file is on disk now (R1-5): only the
+    /// Merges the window geometry `geometry` into `<dir>/settings.toml` as the file is on disk now: only the
     /// known members of `[window]` change, every other key and table stays as another instance may have written it
     /// meanwhile. Nothing is written when the file already holds this geometry (as whole points), or when it is
     /// unreadable (the next start copies it aside); an absent file gets the defaults with the geometry. Written
@@ -775,7 +775,7 @@ pub(crate) fn copy_aside_as(path: &Path, file_name: &str) -> Option<String> {
 
 /// As [`copy_aside_as`], but a copy with the same bytes that is already there is named instead of copying again: a
 /// refused `keymap.toml`, which is read and refused on every start while the user's file stays, is
-/// copied aside once (FIX40d). Every existing `.bad-<n>` is looked through for the same bytes before the first free
+/// copied aside once. Every existing `.bad-<n>` is looked through for the same bytes before the first free
 /// name is written, so a gap in the numbers (a copy the user deleted) never copies the same file twice.
 pub(crate) fn copy_aside_once_as(path: &Path, file_name: &str) -> Option<String> {
     let dir = path.parent()?;
@@ -879,7 +879,7 @@ fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     written
 }
 
-/// Makes the directory `dir` user-only on Unix, mode 0700, when its mode is wider (WP-S6.05 D10, NFR-PRIV-05: the
+/// Makes the directory `dir` user-only on Unix, mode 0700, when its mode is wider (NFR-PRIV-05: the
 /// configuration directory, the state directory's `crashes/`). On Windows the directories inherit the per-user ACL of
 /// `%APPDATA%` and `%LOCALAPPDATA%`, and nothing is done. A failure is ignored: the directory keeps its mode.
 pub fn user_only_dir(dir: &Path) {
@@ -1327,7 +1327,7 @@ mod tests {
             None,
             "a known key of the wrong type"
         );
-        // ID-1278 ruling 14: a float of an integral value loads as that size, any other as off, and the
+        // A float of an integral value loads as that size, any other as off, and the
         // file's other settings are kept.
         for (text, pt) in [("14.0", 14), ("14.5", 0), ("17.0", 0), ("nan", 0), ("inf", 0)] {
             let s = Settings::parse(&format!(
@@ -1400,7 +1400,7 @@ mod tests {
         }
     }
 
-    /// R1-5: two instances' settings on one file. The later exit merges only its window geometry into the file on
+    /// Two instances' settings on one file. The later exit merges only its window geometry into the file on
     /// disk, so the earlier instance's recent project and theme stay; the same geometry again writes nothing; an
     /// unreadable file is left alone; an absent one gets the defaults with the geometry.
     #[test]

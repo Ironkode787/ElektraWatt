@@ -677,7 +677,7 @@ fn plate_copy_id(section: &EnclosureSection) -> Option<Id<Part>> {
 }
 
 /// The enclosure of `device` in `space` and its plate surface, as `layout.enclosure.create` makes them (shared with
-/// `layout.enclosure.create_from_part`, WP-S4.02 D7): the plate part from the section, its size from its mounting-plate
+/// `layout.enclosure.create_from_part`): the plate part from the section, its size from its mounting-plate
 /// section, else its `mech`; the surface's device the first child of `device` (in ID order) that uses the plate part;
 /// the frame centring the plate in the enclosure ([`plate_frame`]).
 fn insert_enclosure(
@@ -773,7 +773,7 @@ impl Command for DeleteEnclosure {
 /// vertical line, a duct an orthogonal polyline. A rail's profile comes from its part's rail section when it has one
 /// (a different `profile` is refused). Rejected: a surface or part copy that does not exist (`/surface`, `/part`);
 /// parameters of the other kind (`/params`); a profile that is not a rail profile, a duct length ≤ 0 (`/params/…`); a
-/// path of the wrong number of points, a segment without length or at another angle (`/path`). `copies` (WP-S4.02 D7,
+/// path of the wrong number of points, a segment without length or at another angle (`/path`). `copies` (
 /// FT-656's pattern) embeds library documents first, in the same transaction, as `device.place` does (`/copies/i`), so
 /// that a library rail or duct part can be used directly. Interactive. Outcome: the new carrier.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -2599,7 +2599,7 @@ fn fill_units(tx: &TxBuilder<'_>, q: &Q, candidates: Vec<Candidate>) -> Vec<Vec<
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Set-up and edits (WP-S4.02 D7, FT-840)
+// Set-up and edits (FT-840)
 
 /// An identifier this module spells as a literal.
 fn ident(name: &'static str, text: &str) -> Result<Ident, CmdError> {

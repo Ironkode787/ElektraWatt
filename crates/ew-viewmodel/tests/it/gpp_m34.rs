@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The G-PP placement and interruption-point follow-ups of cycle 34, lane B34 (FT-399, FT-543, FT-545, FT-546,
-//! FT-547, FT-550, FT-578), through the text interface.
+//! The G-PP placement and interruption-point follow-ups of cycle 34, lane B34 (
+//! FT-547), through the text interface.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -31,7 +31,7 @@ fn ghost(s: &ShellModel) -> Value {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-543: the picker's `terminal_designation`, `designation` its old name.
+// The picker's `terminal_designation`, `designation` its old name.
 
 /// `terminal_designation` names the terminal's designation in `place.pick` (and `picker.choose`); `designation`, its
 /// old name, still does; given both, `terminal_designation` wins.
@@ -88,7 +88,7 @@ fn a_designation_on_a_device_says_where_its_tag_is_set() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-399: an interruption point renamed from the grid.
+// An interruption point renamed from the grid.
 
 /// A selected interruption point's grid has its name, direction, sort and star as editable rows of its function
 /// (`fields.set` `kind.ip.*`); typing a name renames it in one undo step, and the direction takes its words.
@@ -141,7 +141,7 @@ fn an_interruption_point_is_renamed_and_redirected_from_the_grid() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-547: the IP tool keeps the chosen direction; a deleted IP says it took its wire.
+// The IP tool keeps the chosen direction; a deleted IP says it took its wire.
 
 /// The page's interruption points as (name, direction), sorted.
 fn ips(s: &ShellModel) -> Vec<(String, String)> {
@@ -228,7 +228,7 @@ fn deleting_an_ip_with_its_wire_says_so_in_the_toast() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-546: every placement answers with its result line.
+// Every placement answers with its result line.
 
 /// The sheet point of grid index `k` on the shown page.
 fn grid(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
@@ -284,7 +284,7 @@ fn every_place_commit_names_the_tag_and_the_cell() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-545: autoconnect shows its wires before the commit, and the way to place without them.
+// Autoconnect shows its wires before the commit, and the way to place without them.
 
 /// While the ghost proposes wires, the transcript's ghost lists them, the HUD says how many and how to place without
 /// them (before any commit), and the commit connects exactly the wires the ghost listed.

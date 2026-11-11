@@ -55,7 +55,7 @@ pub struct JoinProposal {
     pub tag: String,
 }
 
-/// What the toast of a join says (WP-S2.18 D3: "Joined -K1 (NO contact 13-14) at 102-C4").
+/// What the toast of a join says ("Joined -K1 (NO contact 13-14) at 102-C4").
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct JoinedText {
     /// The device's tag as a report prints it.
@@ -242,7 +242,7 @@ impl Session {
     }
 
     /// The numbering format a new terminal strip of letter `letter` takes (`{page}{letter}{counter}`;
-    /// `ew_derive::strip_format`, FT-1403).
+    /// `ew_derive::strip_format`).
     pub fn strip_format(&self, letter: &str) -> String {
         ew_derive::strip_format(&self.query(), letter)
     }

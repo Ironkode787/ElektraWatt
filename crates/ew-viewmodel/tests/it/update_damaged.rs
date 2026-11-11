@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1499 (ID-1486): the read-only banner of a project with a damaged library copy (FT-1383) offers Update from library
+//! FT-1499: the read-only banner of a project with a damaged library copy (FT-1383) offers Update from library
 //! when an installed library holds the copy's item; the action writes the library's copy over the damaged file and
 //! opens the project again, writable when the integrity check passes. Several damaged copies: every one a library holds
 //! is updated and the others are named. No library holds it: the banner says so and offers nothing. Nothing is written

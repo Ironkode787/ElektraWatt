@@ -767,7 +767,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             format!("{what} \u{b7} {keys}")
         }
         // The move's HUD names connect on move's key and the session's state, which the key turns at once
-        // (ID-1509 (9), C2).
+        // (C2).
         Some(Ghost::Move { readout, .. }) => {
             let state = strings::format(
                 if model.connect_on_move() {
@@ -816,7 +816,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                 parts.push(direction.to_owned());
             }
             parts.extend(external);
-            // FIXPT41: a click on a pin connects the point; the HUD says it before the click.
+            // A click on a pin connects the point; the HUD says it before the click.
             if let Some(cp) = connects {
                 parts.push(strings::format(key!("hud-ip-connects"), &[&cp]));
             }

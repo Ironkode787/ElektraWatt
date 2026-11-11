@@ -248,7 +248,7 @@ impl ShellModel {
     /// The action and parameters a keyboard shortcut bound to `action` runs with the current focus (WP-S2.07 part 1
     /// ruling): Alt+Up and Alt+Down (`pages.move_up`, `pages.move_down`) run `strip.move {step: -1 | 1}` while the
     /// Terminal strips navigator has the focus; Delete and F2 (`table.clear`, `table.edit`) run `navigator.delete` and
-    /// `navigator.rename` with the focused navigator's `kind` while it is not in table mode (WP-S2.07 part 2, FT-490);
+    /// `navigator.rename` with the focused navigator's `kind` while it is not in table mode (FT-490);
     /// every other binding runs its own action without parameters.
     pub fn shortcut_action(&self, action: &'static str) -> (&'static str, Value) {
         // ID-1463 (doc 16a P8): while the symbol editor shows, the main window's drawing keys choose its tools.
@@ -295,7 +295,7 @@ impl ShellModel {
         }
     }
 
-    /// The FnDef key of a function, asked of the session (cycle 37: the Devices navigator's function row names the
+    /// The FnDef key of a function, asked of the session (the Devices navigator's function row names the
     /// function in words, so its label no longer is the key).
     pub(super) fn function_fndef_key(&self, function: &str) -> Option<String> {
         let id = function.trim().parse::<ew_api::output::Uuid>().ok()?;
@@ -440,7 +440,7 @@ impl ShellModel {
                         }
                         let badges: Vec<String> =
                             badge_codes.iter().map(|b| super::macros::badge_word(b)).collect();
-                        // ID-1278 ruling 7: a strip without a tag yet reads in words, not by its underived tag.
+                        // A strip without a tag yet reads in words, not by its underived tag.
                         let label = if node.role == ew_api::output::NavRole::Strip {
                             crate::navigators::strip_label(&node.label)
                         } else {
@@ -1128,7 +1128,7 @@ impl ShellModel {
     }
 
     /// `navigator.row {kind, key?, step?, to?, extend?}`: moves the cursor (a `key` under a collapsed node expands its
-    /// path, FT-528); `extend` marks the range from the anchor to the new cursor in visible order (Shift+Up,
+    /// path); `extend` marks the range from the anchor to the new cursor in visible order (Shift+Up,
     /// Shift+Down, Shift+click).
     pub(crate) fn act_navigator_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.open_kind(p));
@@ -1652,7 +1652,7 @@ pub(super) fn kind_words(text: &str) -> Option<String> {
     leading.or_else(|| generic_kind_words(&words))
 }
 
-/// The generic rule's kind text in the UI language (FT-1483, ID-1457, ID-1459): its first two words are the FnDef
+/// The generic rule's kind text in the UI language (FT-1483): its first two words are the FnDef
 /// category's last two segments ("NO contact 13-14", "Changeover contact 11-12-14"), or its one segment before the CP
 /// designations ("Coil A1-A2"), each by its `kind-segment-<segment>` text, two of them joined by `kind-generic` (a Dutch
 /// segment carries its own joint: "NO-contact", "Wisselcontact"); a segment without a text is shown as written. `None`
@@ -1675,7 +1675,7 @@ fn generic_kind_words(words: &[&str]) -> Option<String> {
     )
 }
 
-/// A library row's tier, access and index state in the UI language (FT-1483, ID-1459): the tier by its facet, the access
+/// A library row's tier, access and index state in the UI language (FT-1483): the tier by its facet, the access
 /// by the `writable` facet, the state cell's index words and an unreadable profile's note by their closed English forms
 /// (`ew-api`'s `index_word` and `ew_derive::unreadable_profile`), any other note as it is.
 fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usize>, state: Option<usize>) {
@@ -1730,10 +1730,10 @@ fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usiz
 }
 
 /// A navigator table's texts in the UI language (ruling 1: `ew-api` gives the codes, the shell the words),
-/// once per fetch: the column headers by their `column-<navigator>-<key>` text, else `column-<key>` (FT-1264, the
-/// strip editor's columns with them, FT-1289), an accessory row's kind, the Messages pane's group headers
+/// once per fetch: the column headers by their `column-<navigator>-<key>` text, else `column-<key>` (the
+/// strip editor's columns with them), an accessory row's kind, the Messages pane's group headers
 /// (`messages-group-<severity>`) and, in a language other than en-GB, each rule group's title and each finding's
-/// message as the Messages detail renders it (FT-1162, `ew_api::checks::messages`). The badges keep their codes; the
+/// message as the Messages detail renders it (`ew_api::checks::messages`). The badges keep their codes; the
 /// rows word them ([`super::macros::badge_word`]).
 pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &super::Project) {
     let nav = table.kind.word();
@@ -1772,7 +1772,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
     let kind = (nav == "libraries")
         .then(|| table.columns.iter().position(|c| c.key == "kind"))
         .flatten();
-    // FT-1483 (ID-1459): a library's tier, access and state cells; a report block's kind, by its code.
+    // FT-1483: a library's tier, access and state cells; a report block's kind, by its code.
     let column = |key: &str| table.columns.iter().position(|c| c.key == key);
     let library = (nav == "libraries").then(|| (column("tier"), column("access"), column("state")));
     let block_kind = (nav == "blocks").then(|| column("kind")).flatten();
@@ -1916,7 +1916,7 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
 }
 
 // -----------------------------------------------------------------------------------------------------------------
-// WP-S2.06 part 2: potential and net highlighting (§7.3, D14)
+// Potential and net highlighting (§7.3, D14)
 
 /// The highlight a row stands for: a potential row of the potential overview (its record names the potential), or a
 /// connection row (the net of its first connection); `None` for every other row.

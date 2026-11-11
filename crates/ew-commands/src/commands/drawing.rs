@@ -52,7 +52,7 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Optio
 /// The given members are merged into the object: a value sets the member, `null` removes it; members of the
 /// object this command does not know are kept. An object left empty is removed. `crossings` (`plain` or `hops`,
 /// FR-CON-031) chooses how crossing wires are drawn; absent means plain. `marker_mode` (`all`, `deviations`,
-/// `explicit` or `none`; FR-CON-024, WP-S2.04 part 4a) chooses which wires carry a wire marker; absent means the
+/// `explicit` or `none`; FR-CON-024) chooses which wires carry a wire marker; absent means the
 /// as-built rule (a connection's `show_marker`). Presentation only: no record changes meaning (the drawing and the
 /// marker derivation read the members). Rejected: a `drawing` member of the project settings that is not an
 /// object (a newer or damaged format; the command never overwrites it); an unknown value (invalid); no member

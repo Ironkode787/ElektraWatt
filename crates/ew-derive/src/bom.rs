@@ -310,8 +310,8 @@ pub struct BomRow {
 ///    short tag, full tag and ID (natural order); the pages are those of the main representations of the devices
 ///    with a line other than an end-bracket line ([`LineSource::GroupAccessory`]) together with, for a line of a
 ///    layout object (the device of an enclosure or of a mounting surface, a carrier line, an end-bracket line), the
-///    panel-layout pages whose surface view shows its surface (WP-S4.01 D11, FT-204: -UC1's rows print folio 902;
-///    WP-S4.02 D13: an end-bracket line prints the panel pages of its rails and none of its strip's representation
+///    panel-layout pages whose surface view shows its surface (FT-204: -UC1's rows print folio 902;
+///    An end-bracket line prints the panel pages of its rails and none of its strip's representation
 ///    pages, so row 26 prints 902), in page order. That is the Folios cell only: the order below
 ///    reads the representations alone. The covers of a configured row are the union of its configs' covers.
 /// 4. **Order:** rows with a placed device first, by the least (page-order position, column, row) of their

@@ -549,7 +549,7 @@ impl eframe::App for ShellApp {
     }
 }
 
-/// FT-526 (R1-4, R2-1, R3-1, R3-2): on the first frame the window goes to the saved outer position of `saved` (in the
+/// On the first frame the window goes to the saved outer position of `saved` (in the
 /// platform's desktop space: physical pixels), one whose position is on no monitor (its
 /// monitor gone) moves onto the primary monitor, and a window saved maximised is maximised after the move (the builder
 /// never maximises it). This reads winit's physical values; the conversion, the clamp and the order of the steps are

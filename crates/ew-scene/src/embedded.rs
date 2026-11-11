@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Embedded report blocks on a drawn page (FR-REP-028, doc 09 §2.2): the cover's colour and standard-size
-//! tables (doc 20 §17.3) and, for every other kind, a boxed report table (WP-S4.01 D16: PART DATA, the layout
+//! tables (doc 20 §17.3) and, for every other kind, a boxed report table (PART DATA, the layout
 //! legend).
 //!
 //! The caller fills an [`EmbeddedView`] with the **printed** texts of the block; [`lower_embedded`] is a pure function

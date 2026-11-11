@@ -30,7 +30,7 @@
 //! `zoom` (per cent rounded to 0.1), `view_nm` (`[x0, y0, x1, y1]`, the sheet rectangle the pane shows), `grid`
 //! (`[num_nm, den]`, `null` when off or absent), `pointer_nm` (`[x, y]` or `null`), `hover` (the entity's alias or
 //! `null`), `backend` (the label), `statistics` (whether the overlay is shown) and `renderer` (the `canvas_backend`
-//! setting, `auto` or `cpu`; WP-S2.02 part 2), then `cursor_nm` (the grid cursor, `[x, y]` or
+//! setting, `auto` or `cpu`), then `cursor_nm` (the grid cursor, `[x, y]` or
 //! `null`), `cell` (the status bar's cursor cell or `null`) and `link` (the hovered link: `{"folio", "cell"}`,
 //! `{"external": true}` or `null`), then `tool` (`{"name", "state"}`), `snap` (`{"kind", "at_nm",
 //! "label"}` or `null`), `selection` (the selected entities' aliases in selection order), `preview` (`{"command",
@@ -345,7 +345,6 @@ pub fn state_json(shell: &ShellModel) -> String {
                 Some(Focus::Properties) => Value::from("properties"),
                 Some(Focus::Find) => Value::from("find"),
                 Some(Focus::CommandBar) => Value::from("commandbar"),
-                // WP-S2.17 part 3
                 Some(Focus::History) => Value::from("history"),
             },
         ),
@@ -507,7 +506,7 @@ fn card_json(shell: &ShellModel) -> String {
     ])
 }
 
-/// The `toast` member: the newest visible toast or `null`; `undo` says whether it offers Undo (WP-S2.09: the describe
+/// The `toast` member: the newest visible toast or `null`; `undo` says whether it offers Undo (the describe
 /// text lists every visible toast with its action's validity).
 fn toast_json(shell: &ShellModel) -> String {
     match shell.toast() {
@@ -706,7 +705,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             ),
             // The external reference's printed text, as the describe line prints it (fix round, item 9).
             member("external", &external.map_or(Value::Null, Value::from)),
-            // FIXPT41: the pin a click connects the point to, `null` where it places it free.
+            // The pin a click connects the point to, `null` where it places it free.
             member("connects", &connects.map_or(Value::Null, Value::from)),
         ]),
         Some(Ghost::Box { outline, cps }) => object(vec![
@@ -902,7 +901,7 @@ pub fn renderer_word(shell: &ShellModel) -> &'static str {
 
 /// The summary line of the open preview card as the window shows it (the card's own summary string), or `None`
 /// without a card: a failed card prints its failure; a bulk or table card, which the window shows only in the Preview
-/// tab, prints that tab's title and summary line, `<title> · <summary>` (FT-580, [`ShellModel::preview_summary`]).
+/// tab, prints that tab's title and summary line, `<title> · <summary>` ([`ShellModel::preview_summary`]).
 pub fn card_summary(shell: &ShellModel) -> Option<String> {
     use crate::properties::CardOrigin;
     let card = shell.properties().card()?;

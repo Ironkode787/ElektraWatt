@@ -22,7 +22,7 @@ use ew_store::mem::DirSync;
 use ew_store::{Access, Changes, Opened, Store, Vfs, join};
 
 /// A part copy of the golden project (the configured product 51E-F13GCQP-D+H2GG): no sections, no new members (the
-/// copies of mounted parts carry `mech` since doc 20 §13's test geometry, WP-S4.01 D13).
+/// copies of mounted parts carry `mech` since doc 20 §13's test geometry).
 const PART_COPY: &str = "lib/parts/1d4f67c2-712f-539f-888b-2a6ec30629aa.json";
 
 /// The new members as an older build kept them: unknown, so JSON values in `extra`.

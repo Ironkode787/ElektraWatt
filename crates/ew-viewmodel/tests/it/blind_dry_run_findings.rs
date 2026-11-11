@@ -238,7 +238,7 @@ fn an_unused_strip_is_listed_with_its_alias_and_deleted_by_delete() {
     let tmp = Tmp::new("ft485-9");
     let mut s = new_project(&tmp);
     done(&mut s, "strip.new", json!({"letter": "X"}));
-    // Item 1: the toast says where the strip shows. FT-893: not its `-X??` tag; the tag it takes with its first
+    // Item 1: the toast says where the strip shows. Not its `-X??` tag; the tag it takes with its first
     // terminal on page 101, a fresh multi-line page, by the project's scheme `{page}{letter}{counter}`.
     assert_eq!(
         toast(&s),

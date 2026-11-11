@@ -356,7 +356,7 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
 
 /// The letter a new project (identifier set EN 81346-2:2009) gives each generic starter part placed from the
 /// picker without a letter of its own: the selector switch and the one-pole on/off switch S (a manual command, FT-1204
-/// by IEC 81346-2:2019, ID-1395), the valve's coil M (a solenoid actuator), not the switching device's Q or the
+/// by IEC 81346-2:2019), the valve's coil M (a solenoid actuator), not the switching device's Q or the
 /// relay's K.
 #[test]
 fn a_new_project_gives_each_starter_part_its_iec_81346_letter() {

@@ -35,7 +35,7 @@ pub const BULK_ABOVE: usize = 500;
 /// `cost`). A released or withdrawn revision is immutable (FR-REV-009): naming one is refused at
 /// `/targets/<i>`; the open revision may be deleted. A deleted page takes the open revision's note on it along.
 ///
-/// The layout kinds (WP-S4.02 D7, FT-837: `layout_space`, `enclosure`, `mounting_surface`, `carrier`, `placement`)
+/// The layout kinds (FT-837: `layout_space`, `enclosure`, `mounting_surface`, `carrier`, `placement`)
 /// delete with the model's cascades as `layout.*.delete` do, after four checks on the selection (ruling 6): a plate
 /// surface without its enclosure is refused; a plan that removes the device of an enclosure is refused; a carrier left
 /// holding a placement the same delete does not remove is refused (`layout.carrier.delete` with `then` empties it),

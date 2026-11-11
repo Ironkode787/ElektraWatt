@@ -3,7 +3,7 @@
 
 //! Waive… and Unwaive in the Messages pane on copies of Golden A (the reason prompt, its ten-character rule,
 //! the author preference, the date the window passes, one `check.waive` or `check.unwaive` per step, the check toast's
-//! waived count). FT-675: the canvas's conflict overlay of an unbonded merged 0 V/PE potential (Golden A without its
+//! waived count). The canvas's conflict overlay of an unbonded merged 0 V/PE potential (Golden A without its
 //! bond B1), which never reaches the page's display list.
 
 use crate::common;
@@ -407,7 +407,7 @@ fn an_undefined_potential_s_finding_draws_its_named_point() {
     shell.shutdown();
 }
 
-/// FT-1363 (W50-F13): in a window a script drives, the Waive prompt's refusal of the human-only `check.waive` is worded
+/// In a window a script drives, the Waive prompt's refusal of the human-only `check.waive` is worded
 /// by the command's title under the fields, never the error's raw form with the exposure class and the origin.
 #[test]
 fn a_scripted_window_shows_the_waive_refusal_in_words() {

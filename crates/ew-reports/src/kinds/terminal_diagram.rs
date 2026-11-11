@@ -141,7 +141,7 @@ impl ReportKindDef for TerminalDiagram {
 }
 
 /// The strips of a block: the strip devices of its manual selection, else all strips by natural tag (shared with
-/// `terminal_overview`, WP-S3.06 D6).
+/// `terminal_overview`).
 pub(super) fn strips_of(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
     let is_strip = |d: Id<Device>| q.devices().get(d).is_some_and(|d| d.aspects.strip.is_some());
     let selected: Vec<Id<Device>> = block

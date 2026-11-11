@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Page display lists per layer (doc 09 §4.1, ARCH §6.4 `page_display_list(page, layer, lang)`, ADR-0015
-//! decision 1 and amendment 2; WP-S3.04).
+//! decision 1 and amendment 2).
 //!
 //! # The view
 //!
@@ -73,8 +73,8 @@
 //!   are placed as on the same box unturned (origin `2C − pos`, `C` the box's centre on the page, no turn), so they
 //!   keep their place relative to the box and their collision rules; the style is the slot's own `style` when it names a known text style, else
 //!   [`symbol::default_style_key`] of the slot kind (an unknown name is reported as
-//!   [`PageFinding::UnknownSlotStyle`], ID-227). `max_width` is not applied yet.
-//!   A text that lists several items carries one link per item ([`SlotValue::item_links`], FT-86): an invisible
+//!   [`PageFinding::UnknownSlotStyle`]). `max_width` is not applied yet.
+//!   A text that lists several items carries one link per item ([`SlotValue::item_links`]): an invisible
 //!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
 //!   own items, with the text's entity and a [`Link::Source`].
 //! - **Slot text collisions**. A cross-reference slot (`xref`) without a position override follows rules 1
@@ -84,14 +84,14 @@
 //!   its own frame (a coil's contact mirror never climbs into the technical data above it). (2) A horizontal one
 //!   whose layout box overlaps another slot text's box on the page (its own symbol's or another representation's; the
 //!   texts in print order, each seen where it ended), or stands beside another representation's text less than
-//!   [`SLOT_TEXT_GAP`] away (cycle 37: "(101-D6)" ran into "-101K1"), drops straight down until its top is
+//!   [`SLOT_TEXT_GAP`] away ("(101-D6)" ran into "-101K1"), drops straight down until its top is
 //!   [`SLOT_TEXT_GAP`] below the lowest box it so collided with; when it meets only its own symbol's texts there
 //!   (its CP designation reaching under it) it drops below those too, at most three times, and it stays where it was
 //!   when another representation's text is there or it finds no free place. At one-column spacing a contact's back-reference so moves below the neighbour contact's
-//!   tag. (3) A horizontal technical-data text follows rule 2 against other representations' texts only (cycle 37: a
+//!   tag. (3) A horizontal technical-data text follows rule 2 against other representations' texts only (a
 //!   valve's "24 V" ran into the next valve's tag); within one symbol its author's layout stands. A black box's pin
 //!   texts are fixed obstacles of rule 3 as of rule 2: a technical-data text that overlaps one drops below it.
-//!   (4) A horizontal cross-reference text that a horizontal wire runs through (FT-1436: on folio 101 the "102-A1" of
+//!   (4) A horizontal cross-reference text that a horizontal wire runs through (on folio 101 the "102-A1" of
 //!   L-1 stood across N-1's wire, by N-1's own "102-A1") rises [`SLOT_TEXT_GAP`] above what is in its way, at most
 //!   three times, to the first place the device-tag rule judges free and that overlaps no other representation's
 //!   symbol body, inside the page's drawing area; without one it stays. Printed text order
@@ -106,7 +106,7 @@
 //!   reaches the outline's left edge, to the first place no stored wire crosses; without one it stays. A text with an
 //!   override stays where it says. A stack that collides with another representation's pin
 //!   text rises [`SLOT_TEXT_GAP`] above what is in its way, at most three times, as a raised device tag
-//!   does, to the first place the device-tag rule judges free (ID-1250: no wire runs through it, it collides with no
+//!   does, to the first place the device-tag rule judges free (no wire runs through it, it collides with no
 //!   text or pin text of another representation; a movable device tag yields to it in its turn) and that stays inside
 //!   the page's drawing area (the frame's drawing area, else the page); without a free place it stays.
 //! - **Device tags**. A device tag of a symbol that is no black box, without a position or angle override
@@ -417,7 +417,7 @@ pub struct PageView {
     /// The structure boxes of a drawn page with their captions: outlines in
     /// [`Layer::Symbols`], captions in [`Layer::Labels`].
     pub structure_boxes: Vec<StructureBoxView>,
-    /// The surface view of a panel-layout page (WP-S4.01 part 3, [`crate::panel`]): drawn into [`Layer::Surface`],
+    /// The surface view of a panel-layout page ([`crate::panel`]): drawn into [`Layer::Surface`],
     /// [`Layer::Carriers`], [`Layer::Placements`] and [`Layer::Labels`]; `None` on every other page.
     pub panel: Option<PanelView>,
     /// The strip tags printed at terminals drawn alone (doc 08 §6.7), drawn into
@@ -499,7 +499,7 @@ pub enum PageFinding {
     },
     /// A finding of the report table.
     Table(TableFinding),
-    /// An image item the export job could not draw: its bytes are not held, or its SVG is refused (FT-384; the
+    /// An image item the export job could not draw: its bytes are not held, or its SVG is refused (the
     /// job adds these after resolving the sheet list, `crate::images::resolve_images`).
     Image(crate::images::ImageIssue),
 }
@@ -1269,7 +1269,7 @@ impl Builder<'_> {
         self.item_labels(view);
     }
 
-    /// The strip tags of terminals drawn alone ([`PageView::strip_tags`], ID-1151), by representation ID. They are
+    /// The strip tags of terminals drawn alone ([`PageView::strip_tags`]), by representation ID. They are
     /// no obstacle of the placement rules above and are not moved by them.
     fn strip_tags(&mut self, view: &PageView) {
         let step = view.grid.at(1).unwrap_or(Nm::ZERO);
@@ -1741,7 +1741,7 @@ impl Builder<'_> {
     /// horizontal cross-reference text that a horizontal wire runs through rises [`SLOT_TEXT_GAP`] above what is in
     /// its way, at most [`SLOT_TEXT_DROPS`] times, to the first place the device-tag rule judges free (no wire runs
     /// through it, it overlaps no other text of its own symbol and collides with no text or pin text of another
-    /// representation, and overlaps no other representation's symbol body, FT-1519) inside the page's drawing area;
+    /// representation, and overlaps no other representation's symbol body) inside the page's drawing area;
     /// without a free place it stays.
     fn place_xrefs_off_wires(&self, view: &PageView, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
         if !texts.iter().any(|t| t.xref && t.angle == Angle2::ZERO) {
@@ -2339,7 +2339,7 @@ fn shifted(r: Rect, dx: Nm) -> Rect {
     )
 }
 
-/// The tag rule's free test (FT-758, module documentation, "Device tags"; FT-1138's risen caption, ID-1250): what is
+/// The tag rule's free test (module documentation, "Device tags"; FT-1138's risen caption): what is
 /// in the way of a place `b` of a text of `entity`, as the vertical extent of each text (`texts`: the boxes and their
 /// entities, but those `skip` names) and pin text there, and of each horizontal wire through it; `None` when another
 /// wire runs through it. Empty: the place is free. A text or pin text of `entity` is in the way when it overlaps the

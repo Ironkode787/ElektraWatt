@@ -5,7 +5,7 @@
 // (ADR-0001 amendment 2), the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
-//! The wire-property chain reads the profile through queries only (WP-S1.07 part 2, ADR-0002 amendment 4
+//! The wire-property chain reads the profile through queries only (ADR-0002 amendment 4
 //! "Query shapes", ARCH §6.4 rows `settings_member`, `profile_row_for`, `wire_props_of`), on a small wired
 //! project: four potentials (L 230 V AC, L+ 24 V DC, M, PE) and a strip of three terminals that the PE
 //! potential reaches by three wires.

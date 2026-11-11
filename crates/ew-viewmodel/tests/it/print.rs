@@ -49,7 +49,7 @@ fn labels(s: &ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// Waits for the running build to end, as `wait_print` does, but polling a bounded number of times (FT-1120: a join
+/// Waits for the running build to end, as `wait_print` does, but polling a bounded number of times (a join
 /// that never returns would hold the run): fails, naming `step`, when the build is still running after 600 polls of
 /// 100 ms.
 fn wait_print_bounded(s: &mut ShellModel, step: &str) {

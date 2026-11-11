@@ -671,7 +671,7 @@ fn oracle_finds_no_mismatch_over_every_state() {
 /// The full oracle of the deep nightly (CI-N-02, FT-297; `.github/workflows/deep-nightly.yml`, run with
 /// `--run-ignored all`): the same states, with every memoised read at every depth re-run cold.
 #[test]
-#[ignore = "deep nightly (CI-N-02): the oracle on every read, about five minutes in a debug build"]
+#[ignore = "deep run: the oracle on every read"]
 fn oracle_finds_no_mismatch_over_every_state_on_every_read() {
     oracle_finds_no_mismatch(Oracle::Every, 1, STATES);
 }

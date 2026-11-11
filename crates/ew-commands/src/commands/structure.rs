@@ -267,7 +267,7 @@ impl CreateReportBlock {
 /// take (as `page.create` keeps a folio free): a page of folio `first`, with sub-page continuation
 /// one of `<first>.<k>`, the section's divider page when `first` is the first folio of a section with a divider
 /// (FR-PAG-009), or the first folio of another page-oriented block of the section than `own` (the block
-/// itself when it is edited, ID-1417). `None` when it is free.
+/// itself when it is edited). `None` when it is free.
 pub(super) fn held_folio(
     tx: &TxBuilder<'_>,
     section: Option<Id<Section>>,

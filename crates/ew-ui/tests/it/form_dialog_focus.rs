@@ -119,7 +119,7 @@ fn person(tmp: &Tmp, dir: &Path, actions: &[(&str, Value)]) {
     s.shutdown();
 }
 
-/// Opens the form of `action` with `params` and checks it (W49.2-F1): the first focus is the first text field, else
+/// Opens the form of `action` with `params` and checks it: the first focus is the first text field, else
 /// the Primary; Enter submits it or is refused with its reason in the form, and toggles no check box. Closes what it
 /// left open (the form, a card). Returns the action, for the tally.
 #[track_caller]
@@ -191,7 +191,7 @@ fn check_form(h: &mut Harness<'_, App>, action: &str, params: Value) -> String {
     action.to_owned()
 }
 
-/// W49.2-F1: every form dialog of the shell, listed from the source, takes its first focus on its first text field,
+/// Every form dialog of the shell, listed from the source, takes its first focus on its first text field,
 /// else on its Primary (doc 16a §6.12), and Enter on the fresh form submits it or is refused with its reason (ID-1276
 /// ruling 7), toggling no check box. Renumber devices… (no text field, two check boxes) opened on "Include frozen
 /// tags" before: the first Enter toggled it, silently.
@@ -336,7 +336,7 @@ fn texts(h: &Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// W49.2-F2: Edit ▸ Strip editor on a new strip without a terminal opens the table on that strip
+/// Edit ▸ Strip editor on a new strip without a terminal opens the table on that strip
 /// by its ID: no filter text, its own rows (none, so the empty state "No terminals yet"), while Golden A's other strips
 /// have rows. No text of the window and no line of `ui.describe` holds the placeholder tag, in English or in Dutch; the
 /// describe header names the strip in words. Before, the filter `strip:-?x?` showed with "Nothing matches".
@@ -396,7 +396,7 @@ fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
             t.contains("?x?") || t.contains("x??")
         };
         assert!(!placeholder(&describe), "{language}: {describe}");
-        // C49-p8b#2: the scope shows in words in the filter row.
+        // The scope shows in words in the filter row.
         assert!(
             h.query_all_by_label(chip).next().is_some(),
             "{language}: the filter row says {chip}"
@@ -408,7 +408,7 @@ fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
         let tagged: Vec<String> = texts(&h).into_iter().filter(|t| placeholder(t)).collect();
         assert!(tagged.is_empty(), "{language}: {tagged:?}");
     }
-    // C49-p8b#2: Golden A's strips have rows, the editor showed the new strip alone. The scope's Clear ends it, and
+    // Golden A's strips have rows, the editor showed the new strip alone. The scope's Clear ends it, and
     // so does Escape on the empty filter.
     let scoped = |h: &Harness<'_, App>| {
         let nav = h.state().shell().nav(NavKind::Strips).expect("the strip editor");
@@ -445,7 +445,7 @@ fn w49_2_f2_the_strip_editor_opens_a_strip_without_a_tag_by_its_id() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W49.2-F1: Enter on a check box a form's Tab reached neither submits the form nor toggles the box, and the box
+/// Enter on a check box a form's Tab reached neither submits the form nor toggles the box, and the box
 /// keeps the focus; Space still toggles it.
 #[test]
 fn w49_2_f1_enter_on_a_forms_check_box_does_nothing() {

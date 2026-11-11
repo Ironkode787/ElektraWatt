@@ -380,7 +380,7 @@ fn the_hud_prompts_the_selection_and_the_pick_stack() {
     assert_eq!(s.selection().items.len(), 1);
     done(&mut s, "canvas.pointer", at(empty, json!({})));
     assert_eq!(hud(&s).prompt, "1 selected \u{b7} Del deletes \u{b7} R rotates");
-    // FT-521: at an overlap of two wires and a symbol (FT-500's point on folio 101 at actual size).
+    // At an overlap of two wires and a symbol (FT-500's point on folio 101 at actual size).
     done(&mut s, "view.zoom_actual", json!({}));
     let y = common::provisional_overlap_on_101(&mut s);
     let over = (150_000_000, y);

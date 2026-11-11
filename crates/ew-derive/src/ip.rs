@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Interruption-point pairing, split out of the stitch graph: `ip_info(f)` and `ip_pairing()` (doc 03 §10,
-//! FR-XRF-007, FR-XRF-010; ARCH §6.4; WP-S1.07 part 2).
+//! FR-XRF-007, FR-XRF-010; ARCH §6.4).
 //!
 //! - **`ip_info(f)`** is one memo per interruption-point function: its specification, its CP, its first
 //!   representation and page, its pairing scope node and its page-order position. A move of its symbol or a

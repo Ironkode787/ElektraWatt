@@ -411,7 +411,7 @@ pub enum PageScope {
 /// `start + i × step`. `step` is at least 1. A new folio that equals the folio of a page outside the scope
 /// in the same section is rejected. A page of the same section whose label's leading number segment (up to the first
 /// `.`, or the whole label) is the printed old number takes the printed new number instead (`101.1` becomes `20.1`
-/// when 101 becomes 20; `101a` and `1011.1` keep their label; FT-475); a rewritten label that equals another page's
+/// when 101 becomes 20; `101a` and `1011.1` keep their label); a rewritten label that equals another page's
 /// printed folio is rejected. A page whose printed folio changes is rejected, in `page.create`'s words, on the folio
 /// of its section's divider page or on a folio a page-oriented report block of its section generates. Bulk.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]

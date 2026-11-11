@@ -3,7 +3,7 @@
 
 //! Built-in report row queries, user SQL reports through the sandboxed query API of `ew-sqlview`,
 //! pagination into virtual pages, and the table writers: CSV presets and an own XLSX writer (doc 09 §1.3, ADR-0018;
-//! WP-S3.08 part 1: [`table`], [`csv`], [`xlsx`]).
+//! [`table`], [`csv`], [`xlsx`]).
 //!
 //! # Pipeline
 //!

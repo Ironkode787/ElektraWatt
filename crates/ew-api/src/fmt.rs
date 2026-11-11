@@ -565,7 +565,7 @@ fn holds(vfs: &dyn Vfs, path: &Path, bytes: &[u8]) -> io::Result<bool> {
 /// already held these bytes and is reused. Otherwise: the temporary name `<target>.tmp` beside it (a leftover of an
 /// interrupted repair of this project removed first: the caller holds its lock), the bytes written, read back and
 /// synced, moved to `target` by [`Vfs::rename_noreplace`] (on a file system without hard links, by [`Vfs::rename`]
-/// after `target` is checked absent again, the race between the two accepted as for the extract, C47-p2#3) and the
+/// after `target` is checked absent again, the race between the two accepted as for the extract) and the
 /// folder synced. Any failure removes what this call created; a power loss leaves at most the temporary file.
 pub(crate) fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result<bool, RepairError> {
     let failed = |error: io::Error| RepairError::Backup {
@@ -679,7 +679,7 @@ pub fn repair(session: &mut Session) -> Result<Repaired, RepairError> {
     if session.is_dirty() {
         return Err(RepairError::Dirty);
     }
-    // ID-1185 ruling 3, ID-1186 ruling 4: a store whose files cannot be packed as found refuses, before the answer that
+    // A store whose files cannot be packed as found refuses, before the answer that
     // nothing is to be repaired.
     let found = ewz::pack_as_found(store).map_err(RepairError::Pack)?;
     let discarded: Vec<DiscardedLine> = store

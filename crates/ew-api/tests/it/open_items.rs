@@ -140,7 +140,7 @@ fn placeholder(what: &str, users: &str) -> Vec<String> {
 }
 
 /// OI-1 (the ruling on stop 1): the 24 rows Golden A derives as checked in, whole and in ruling 8's order. -XPE is open
-/// (W-1 lives in a test copy only, WP-S1.16 §10.3) and the eight FIELD-203Q valves have no part until FT-209 (FT-638).
+/// (W-1 lives in a test copy only) and the eight FIELD-203Q valves have no part until FT-209 (FT-638).
 #[test]
 fn golden_a_lists_its_24_open_items() {
     let s = common::golden_session();

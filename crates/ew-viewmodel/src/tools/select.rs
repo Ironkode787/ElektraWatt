@@ -53,7 +53,7 @@
 //! the click that a press on a selected connection's segment becomes, and for `Activate`. Shift and Ctrl clicks never
 //! walk, and any other release ends the walk.
 //!
-//! *As built (2026-11-07, FT-1512; FT-1438, decision log ID-1397, ID-1408, ID-1433).* FT-500's rule has one
+//! *As built (2026-11-07).* FT-500's rule has one
 //! exception: a press on a symbol's **body**, the middle half of one of its representation's rectangles each way,
 //! picks the symbol before a wire under it even when the wire's line is nearer than the rectangle's centre; a repeated
 //! click walks on to the wire. Nearer the rectangle's outline, where wires meet the pins, the nearer of the wire and

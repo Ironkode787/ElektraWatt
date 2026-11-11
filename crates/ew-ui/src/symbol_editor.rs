@@ -1094,7 +1094,7 @@ impl EditorView {
                     if scroll != 0.0 {self.manual_view=true;}
                     self.zoom = (self.zoom * (scroll * 0.0015).exp()).clamp(1.0,80.0);
                 }
-                // Fit fills the canvas at every width (SM25 nit: a small import filled 60 px at 1920). ID-1477 (9): it
+                // Fit fills the canvas at every width (SM25 nit: a small import filled 60 px at 1920). It
                 // fits when the draft opens, when the canvas changes size and when Fit is chosen, never because the
                 // drawing changed; an empty draft shows the 40 mm square right and below its origin. ID-1483 (F5): the
                 // view stands on the canvas's bottom edge, which the refusal banner above it does not move.

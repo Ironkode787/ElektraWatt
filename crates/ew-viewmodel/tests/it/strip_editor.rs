@@ -505,7 +505,7 @@ fn se14_describe_lines() {
     shell.shutdown();
 }
 
-/// C49-p8b#3: an accessory at the start of a new strip without a tag yet reads the strip in words
+/// An accessory at the start of a new strip without a tag yet reads the strip in words
 /// in its toast and in its row's Strip cell, never by the placeholder tag.
 #[test]
 fn an_untagged_strips_accessory_row_names_it_in_words() {

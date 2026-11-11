@@ -5,7 +5,7 @@
 //!
 //! **Order** (deterministic and without a clock):
 //! 1. with a compatibility filter, compatible parts before the others (doc 07 §4.3: "offers MCB 1P+N parts first");
-//!    when the filter names the function's FnDef ([`FnCompat::fndef`], WP-S2.07 D17), the parts whose function
+//!    when the filter names the function's FnDef ([`FnCompat::fndef`]), the parts whose function
 //!    template declares that FnDef come before the other compatible ones;
 //! 2. the rank tier: exact `pn_norm` (1), `pn_norm` prefix (2), trigram substring (3), full text (4); a query
 //!    without text lists every part in tier 0;

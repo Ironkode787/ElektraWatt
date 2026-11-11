@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! A drawn potential is named, typed and given its voltage in the Potentials table (G-PP triage row 8, amending
-//! ID-752; WP-S1.16 D4, FT-577): on a copy of Golden A whose 19 potential definitions are deleted (every potential is
+//! ID-752): on a copy of Golden A whose 19 potential definitions are deleted (every potential is
 //! then known only at its connection points, as on a freshly drawn folio), the Name cell of a row defines its
 //! potential with the typed name at the row's CP in one undo step, alone or with Type and Voltage typed in the same
 //! gesture; Type or Voltage typed without a name refuses with "Name the potential first" and creates nothing. Once L,

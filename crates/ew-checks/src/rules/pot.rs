@@ -2091,7 +2091,7 @@ fn is_earth(t: &PotentialType) -> bool {
 }
 
 /// The CPs of a two-terminal load (a coil, a lamp, a heater): its physical electrical CPs without an earth role, when
-/// there are exactly two; `None` for any other function and for a black box (FT-1398: a two-pin element an importer
+/// there are exactly two; `None` for any other function and for a black box (a two-pin element an importer
 /// could not read, a QElectroTech supply among them, is neither a load nor a source).
 fn two_terminal(q: &Q, f: Id<Function>) -> Option<[u16; 2]> {
     if is_black_box(q, f) {

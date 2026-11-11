@@ -255,7 +255,7 @@ fn parts_import(size: Size) {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1278 ruling 13: the check down bites. Renumber pages… fits the 1280 × 720-point window at 300 % with its Primary
+/// The check down bites. Renumber pages… fits the 1280 × 720-point window at 300 % with its Primary
 /// and Cancel; in a window too short for it, its buttons are reported as leaving the window.
 #[test]
 fn a_footer_below_the_window_is_reported() {

@@ -292,7 +292,7 @@ pub enum TroubleKind {
     RecordNotUpdated,
 }
 
-/// One piece of a release's housekeeping trouble ([`Session::take_release_troubles`], FT-842): what happened, the
+/// One piece of a release's housekeeping trouble ([`Session::take_release_troubles`]): what happened, the
 /// file it concerns and the error. Its `Display` is the text the CLI prints (with the full path); a window shows
 /// [`ReleaseTrouble::file_name`] only.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -303,7 +303,7 @@ pub struct ReleaseTrouble {
     pub path: PathBuf,
     /// The error, in words (the CLI prints it).
     pub error: String,
-    /// The error's kind: the window words the cause from it, never from the OS text (FIX41b ruling 6).
+    /// The error's kind: the window words the cause from it, never from the OS text.
     pub kind: std::io::ErrorKind,
 }
 
@@ -686,7 +686,7 @@ impl Session {
     /// directory that could not be removed (when a release is settled, or when a stale one is removed as the project
     /// opens or [`Session::incomplete_release`] looks). Nothing is lost by it (a record only allows a discard of what
     /// matches it exactly); the front-end shows each as a warning (the CLI its `Display` text, the window its words
-    /// with the file name only, FT-842).
+    /// with the file name only).
     pub fn take_release_troubles(&self) -> Vec<ReleaseTrouble> {
         std::mem::take(&mut *self.release_troubles.borrow_mut())
     }
@@ -813,7 +813,7 @@ impl Session {
         self.release_plan_as(&self.submit_origin.clone(), label, integrity, options)
     }
 
-    /// [`Session::release_plan`] for a submission from `origin` (cycle 41, ruling 1: the `HumanOnly` gate is judged per
+    /// [`Session::release_plan`] for a submission from `origin` (ruling 1: the `HumanOnly` gate is judged per
     /// submission, by the origin of the one that asks, never by the session's): the window passes `Origin::Gui` only
     /// for a dialog a person confirmed at the window, and a scripted origin is refused here.
     ///
@@ -913,7 +913,7 @@ impl Session {
         self.release_with(&origin, ctx, integrity, options)
     }
 
-    /// [`Session::release`] for a submission from `origin` (cycle 41, ruling 1: judged per submission; see
+    /// [`Session::release`] for a submission from `origin` (ruling 1: judged per submission; see
     /// [`Session::release_plan_as`]). Every transaction of the release (the freeze, the stamp) is submitted from
     /// `origin`.
     ///
@@ -1306,7 +1306,7 @@ impl Session {
     /// cannot be completed ([`IncompleteRelease::refusal`]); a damaged one or one of another project or revision is not
     /// this project's at all and is kept ([`IncompleteRelease::foreign`]). One of this project and revision that no run
     /// record of this project directory matches is not provably this directory's leftover, and a discard keeps it
-    /// ([`IncompleteRelease::unproven`], FT-814). This directory's stale run records go first (their archive gone or
+    /// ([`IncompleteRelease::unproven`]). This directory's stale run records go first (their archive gone or
     /// released), as when the project opens.
     ///
     /// # Errors
@@ -1435,7 +1435,7 @@ impl Session {
         self.discard_incomplete_release_as(&origin, options)
     }
 
-    /// [`Session::discard_incomplete_release`] for a submission from `origin` (cycle 41, ruling 1: judged per
+    /// [`Session::discard_incomplete_release`] for a submission from `origin` (ruling 1: judged per
     /// submission).
     ///
     /// # Errors
@@ -1658,7 +1658,7 @@ impl Session {
 
     /// The git worktree and the tag that completing the incomplete release of `label` would commit and tag in, as
     /// [`Session::complete_release_as`] judges them; `None` outside a git worktree. The window asks for the person's
-    /// consent with it before it completes (cycle 41, FIX41b ruling 2: "completing an incomplete release asks, like a
+    /// consent with it before it completes (FIX41b ruling 2: "completing an incomplete release asks, like a
     /// release").
     ///
     /// # Errors

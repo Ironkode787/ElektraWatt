@@ -1199,7 +1199,7 @@ fn move_by_steps_rejections() {
         }),
         "/steps",
     );
-    // FT-864 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres, names ... a
+    // FT-864 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres, names ... a
     // wire by its printed number"): a wire whose route the move takes outside the drawable range is named by its
     // number.
     let mut edge = engine(steps_model_at(Nm(ew_commands::geometry::MAX_COORD - 1)));
@@ -1859,7 +1859,7 @@ fn device_place_with_an_old_target_serialises_as_before() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-423: route ends stay on their connection points
+// Route ends stay on their connection points
 
 const CON_P1: Id<ew_schema::Connection> = id(0x4301);
 const CON_P2: Id<ew_schema::Connection> = id(0x4302);
@@ -2396,7 +2396,7 @@ fn a_positional_contacts_endpoints_survive_a_pattern_re_index() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-673: `copies` on rep.exchange_symbol
+// `copies` on rep.exchange_symbol
 
 #[test]
 fn exchange_embeds_its_copies_in_the_same_undo_step() {

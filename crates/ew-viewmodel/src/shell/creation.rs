@@ -303,7 +303,7 @@ pub struct FormDialog {
 }
 
 impl FormDialog {
-    /// The line under field `field`, if it has one (ID-1497 (4): Renumber pages' Start says that the section dividers
+    /// The line under field `field`, if it has one (Renumber pages' Start says that the section dividers
     /// keep their numbers).
     pub fn note(&self, field: &str) -> Option<&'static str> {
         match (self.action, field) {

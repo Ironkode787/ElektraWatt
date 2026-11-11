@@ -105,7 +105,7 @@ const PRE_DELIVERY_OFF: [&str; 4] = ["EW-RDS-002", "EW-CORE-055", "EW-FL-008", "
 
 /// `pre-delivery`: the default release scheme; every rule whose modes include release (or prevent) at
 /// release severity, with EW-RDS-002, EW-CORE-055, EW-FL-008 and EW-FL-014 off, and the import findings (EW-IMP, the
-/// migration report's, WP-S3.09 D9) off. EW-REL runs in the gate only.
+/// migration report's) off. EW-REL runs in the gate only.
 pub const PRE_DELIVERY: Scheme = Scheme {
     name: "pre-delivery",
     purpose: "release scheme; ew check --scheme pre-delivery",

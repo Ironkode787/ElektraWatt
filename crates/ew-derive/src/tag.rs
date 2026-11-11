@@ -17,7 +17,7 @@
 //! its tags unique wherever the counters are: its counter scope is `"page"` and its format and every
 //! rule's format contain `{page}`, `{letter}` and `{counter}`. Any other scheme (from the project's
 //! settings or named by `TagScheme::Named`) is skipped with a [`DeriveNote::SchemeNotApplied`] and the
-//! pinned profile's default scheme formats the tag (decision log ID-99; until WP-S1.11 numbers every
+//! pinned profile's default scheme formats the tag (until WP-S1.11 numbers every
 //! scheme).
 
 use std::collections::BTreeSet;
@@ -341,7 +341,7 @@ pub fn rule_product(q: &Q, device: Id<Device>) -> Option<(String, TagSource)> {
 }
 
 /// The numbering format a new terminal strip of letter `letter` takes (a device with the `strip` aspect, the default
-/// scheme and no kind, FT-1403): the applied scheme's first matching rule's format, else the scheme's.
+/// scheme and no kind): the applied scheme's first matching rule's format, else the scheme's.
 pub fn strip_format(q: &Q, letter: &str) -> String {
     let settings = q.get::<profile::NumberingSettingsOf>(());
     let scheme = applied_scheme(q, settings.as_ref().as_ref(), None);

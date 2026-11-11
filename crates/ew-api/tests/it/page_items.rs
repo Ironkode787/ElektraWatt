@@ -238,7 +238,7 @@ fn a_stale_marker_entry_is_ignored() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-468: the fuzz-smoke finding of CI run 40115388450 as a plain test
+// The fuzz-smoke finding of CI run 40115388450 as a plain test
 
 /// Store options on the in-memory file system (the project and its journals stay inside the test).
 fn ft468_store(vfs: &Arc<MemVfs>) -> StoreOptions {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode's pure rule (WP-S2.06 part 3, §8.2, §8.3; moved down from the view model by WP-S3.08 D10, ID-1174
+//! Table mode's pure rule (§8.2, §8.3; moved down from the view model by WP-S3.08 D10, ID-1174
 //! ruling 3), so that the grid and the table round trip produce the same command for the same cells.
 //!
 //! **Editable cells** (§8.2): a column with a route of §8.2's table (`NavColumn::route`), on a row with records of the
@@ -282,7 +282,7 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
         Some(ty) if is_scalar(&ty) => None,
         // WP-S2.07 part 2 (§7, FT-429): a cable's length source has its typed editor (`parse_field_input`).
         Some(_) if (kind.as_str(), path.as_str()) == ("device", "cable.length") => None,
-        // WP-S2.07 §8 (FT-429, FT-690): the PLC grid's typed editors.
+        // WP-S2.07 §8 (FT-429): the PLC grid's typed editors.
         Some(_) if TYPED_PLC.contains(&(kind.as_str(), path.as_str())) => None,
         Some(_) => Some(ew_commands::text_key!("table-reason-property-grid")),
         None => Some(ew_commands::text_key!("table-reason-no-command")),
@@ -332,7 +332,7 @@ pub struct GestureCell {
     /// A defining cell in a gesture with cells of another row or of a defined record (one `potential.define` per
     /// gesture).
     pub define_clash: bool,
-    /// A defining Type or Voltage cell whose row gets no name in the gesture (WP-S1.16 D4, FT-577: "Name the
+    /// A defining Type or Voltage cell whose row gets no name in the gesture (FT-577: "Name the
     /// potential first").
     pub define_unnamed: bool,
 }

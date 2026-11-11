@@ -718,7 +718,7 @@ impl Targets<'_> {
     }
 }
 
-/// The printed table of a generated page ([`Session::page_list_table`], FT-660): what a text-only reader needs of a
+/// The printed table of a generated page ([`Session::page_list_table`]): what a text-only reader needs of a
 /// list page.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PageListTable {
@@ -741,7 +741,7 @@ pub struct PageListRow {
 
 impl Session {
     /// The rows of the page navigator: one per entry of the derived page order, in that order (the entries of
-    /// [`Session::page_labels`], same count and folios; WP-S2.03 §4.2).
+    /// [`Session::page_labels`], same count and folios).
     pub fn page_rows(&self) -> Vec<PageRow> {
         let q = self.query();
         let order = q.get::<PageOrder>(());

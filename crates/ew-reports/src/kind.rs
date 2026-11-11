@@ -54,7 +54,7 @@ pub trait ReportKindDef: Send + Sync {
     }
 }
 
-/// One declared block parameter of a kind ([`ReportKindDef::params`], WP-S3.06 D9).
+/// One declared block parameter of a kind ([`ReportKindDef::params`]).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct ParamDef {
     /// The snake_case key in the block's `params` object (`mode`).
@@ -225,7 +225,7 @@ fn block_words(q: &Q, block: &ReportBlock, kind: &str) -> String {
     }
 }
 
-/// How an embedded report block prints on its page ([`ReportKindDef::embedded_layout`], WP-S4.01 D16).
+/// How an embedded report block prints on its page ([`ReportKindDef::embedded_layout`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct EmbeddedLayout {
     /// The printed columns in order: `(column key, relative width)`. A key the row set does not have prints nothing.

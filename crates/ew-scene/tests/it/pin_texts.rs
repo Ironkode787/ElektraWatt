@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The pin texts of a black box (WP-S1.21 D7, module documentation of `ew_scene::page`, "Pin texts"): each
+//! The pin texts of a black box (module documentation of `ew_scene::page`, "Pin texts"): each
 //! [`RepView::pins`] entry prints in `data.small` inside the outline, 1 mm from its box CP along the inward normal,
 //! vertical for a pin leaving up or down and horizontal for one leaving left or right; an entry without a box CP prints
 //! nothing; a turned box turns the rule with it.

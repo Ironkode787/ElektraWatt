@@ -58,7 +58,7 @@ fn every_view_has_its_documented_columns_and_the_golden_counts() {
     };
     // Doc 17 §6.1 "Golden rows" and doc 20: 28 terminals, 3 cables, 13 conductors, 44 wires and 6 bridges,
     // the 27 rows of folio 901, one bond (B1). 18 of the 19 potentials of §7.3 (the DP bus potential needs
-    // the Bus connections, FT-111) and 34 of the 36 pages of §5 (908.1 and 908.2 need PLC channel records):
+    // the Bus connections) and 34 of the 36 pages of §5 (908.1 and 908.2 need PLC channel records):
     // the M1 gap list of the acceptance report.
     let rows = |table: &str| golden_common::table(table).len().to_string();
     assert_eq!(count("api_v1_terminal"), rows("terminals.csv"));

@@ -634,7 +634,7 @@ fn core008_reports_frame_defaults_naming_a_missing_form() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-594: the canonical order
+// The canonical order
 
 /// Three functions with an unconnected CP 1 each, on devices tagged -K10, -K2 and -K1, whose IDs are `ids` in that
 /// tag order.

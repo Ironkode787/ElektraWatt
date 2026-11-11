@@ -27,7 +27,7 @@
 //! - **Page IDs** ([`page_uuid`]): a drawn page's ID, a divider's section ID, a generated page's v5 ID
 //!   `v5(block, index)` (`GeneratedPage::id`); every PDF destination is unique.
 //! - **Frame form**: `Page.form`, else the frame defaults of the project settings (doc 03 §5.1 `FrameDefaults`,
-//!   resolved by `ew_derive::frame_form_of` like the cell grid: the entry of the page's type, else `default`; FT-336), else the
+//!   resolved by `ew_derive::frame_form_of` like the cell grid: the entry of the page's type, else `default`), else the
 //!   no-grid frame [`NOGRID_FRAME`] (the form of the project library with that key); a generated page's
 //!   `GeneratedPage::form`, else the no-grid frame; a divider the frame defaults' `section_divider` entry, else the
 //!   no-grid frame. A frame-defaults form the project does not hold falls through to the next rule. The
@@ -74,7 +74,7 @@
 //!   symbol's own `cp_designation` slot prints, or an empty one, is left out.
 //! - **Break marks** (D-41, doc 11 §5.5 step 5): the `assembly_break_marks()` of a drawn page ([`page_break_marks`]),
 //!   drawn by the scene at the side of their representation.
-//! - **Wire markers** (ID-144; WP-S2.04 part 4a, `ew_derive::connection_marker`): with the project's `marker_mode`
+//! - **Wire markers** (`ew_derive::connection_marker`): with the project's `marker_mode`
 //!   absent, connections with `overrides.show_marker` print the explicit cross-section and the colour codes (their
 //!   file spelling, `GNYE`), joined by a space; in a mode, the connections the mode selects print their effective
 //!   values. A connection a wire-marker item lists prints no marker of its own: the item prints the group.
@@ -1069,7 +1069,7 @@ fn cover_tables(q: &Q, block: &ReportBlock) -> CoverTables {
     cover
 }
 
-/// The boxed table of an embedded block other than the cover, as printed texts on `page` (WP-S4.01 D16; see the module
+/// The boxed table of an embedded block other than the cover, as printed texts on `page` (see the module
 /// documentation).
 fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
     let set = q.get::<BlockRows>(block.id);

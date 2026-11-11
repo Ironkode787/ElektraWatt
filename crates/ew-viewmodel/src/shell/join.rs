@@ -90,7 +90,7 @@ impl ShellModel {
     }
 
     /// The FnDef copy the catalogue's symbol row `i` draws; a starter symbol the project lacks is not embedded here: the
-    /// placement carries it (FT-656, FT-673), so `place.pick device=` is one undo step.
+    /// placement carries it (FT-656), so `place.pick device=` is one undo step.
     fn row_fndef(
         &mut self,
         cat: &PlaceCatalogue,

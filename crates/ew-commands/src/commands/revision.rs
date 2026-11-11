@@ -16,7 +16,7 @@
 //! a new record written by `revision.withdraw`.
 //!
 //! The open revision that appears with the first content edit after a release is the normaliser
-//! `revision_ensure_open`'s ([`crate::normalise::RevisionEnsureOpen`], WP-S1.18 D3). Deleting a page drops the open
+//! `revision_ensure_open`'s ([`crate::normalise::RevisionEnsureOpen`]). Deleting a page drops the open
 //! revision's note on it in the same transaction (`drop_notes_on_removed_pages`); the notes of released
 //! and withdrawn revisions stay.
 
@@ -73,7 +73,7 @@ pub struct RevisionPageNote {
 ///
 /// Creates `Revision {label, date, author, checker, description, state, page_notes}` with a new ID; author
 /// and checker are party roles (FR-PRJ-003). Rejected: a checker on an open revision (at `/checker`: the checker
-/// of an open revision is written only by approval, WP-S1.18 D4, FT-402); a checker equal to the author (at
+/// of an open revision is written only by approval); a checker equal to the author (at
 /// `/checker`, EW-INV-018); a page note on a page that does not exist (at `/page_notes/<i>/page`) or a second
 /// note on one page (at `/page_notes/<i>`, EW-INV-019); a label that another revision has, other than a
 /// withdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); state `released`
@@ -440,7 +440,7 @@ pub struct ApprovedPack {
 }
 
 /// `revision.approve` (`ApproveRevision`): the checker's sign-off on the open revision (doc 15 §5.4; FR-REV-005,
-/// FR-REV-021; WP-S1.18 D9): writes the revision's `checker` and its `sign_off {checker, content_digest, date, packs,
+/// FR-REV-021): writes the revision's `checker` and its `sign_off {checker, content_digest, date, packs,
 /// scheme, waivers_ack}`, the one path that writes the checker of an open revision (D4). A later content edit
 /// changes the content digest, and EW-REL-001 then reports the sign-off as stale; approving again replaces it.
 ///
@@ -580,7 +580,7 @@ pub struct ReleasedArchive {
 }
 
 /// `revision.release` (`ReleaseRevision`): the stamp of a release (doc 05 §14.1 step 6, doc 15 §5.5; FR-REV-006,
-/// FR-REV-020, FR-REV-022; WP-S1.18 D13): sets the open revision `Released`, its `date` to `released_on` when it has
+/// FR-REV-020, FR-REV-022): sets the open revision `Released`, its `date` to `released_on` when it has
 /// none, and writes its `release` record: the sign-off copied as `approval`, the archive's name and SHA-256, the
 /// released generation, the content digest at that generation, the derivation profile, the gate's rule packs, every
 /// page digest and the changed pages, and the git tag when the project is in a worktree.

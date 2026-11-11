@@ -273,7 +273,7 @@ impl NavigatorPane {
                         if let Some(nav) = table_nav {
                             crate::nav_table::chooser(ui, shell, nav, events);
                         }
-                        // C49-p8b#2: the strip editor's scope (one strip, by its ID) stands in the filter's place in
+                        // The strip editor's scope (one strip, by its ID) stands in the filter's place in
                         // words, with its Clear; Clear, or Escape on the empty filter, ends it.
                         if let Some(words) = scope.as_deref() {
                             let clear = crate::components::icon_button(
@@ -324,7 +324,7 @@ impl NavigatorPane {
         // footer below them.
         if self.kind == NavKind::Messages {
             crate::messages::header(ui, shell, events);
-            // W31-1: header, the rows in their own scroll area, the detail block (FT-915: as tall as its content, and
+            // W31-1: header, the rows in their own scroll area, the detail block (as tall as its content, and
             // never so tall that fewer than two rows fit), then the footer, which is always on show.
             let row = row_height(ui.ctx());
             // X32b: the footer and the detail block keep the pane's `space.4` gutter.
@@ -618,7 +618,7 @@ impl NavigatorPane {
             crate::components::empty_state(ui, IconId::layout_dashboard, &line, &sentence, None);
             return;
         }
-        // ID-1278 ruling 7: the Terminal strips table of a project with strips but no terminal says so.
+        // The Terminal strips table of a project with strips but no terminal says so.
         if let Some((line, sentence)) = shell.strips_empty().filter(|_| self.kind == NavKind::Strips) {
             crate::components::empty_state(ui, IconId::ew_terminal_strip, &line, &sentence, None);
             return;
@@ -829,9 +829,9 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
     (icon, strings::text(line), strings::text(key!("empty-nav-text")))
 }
 
-/// The inline editor of a row whose label is being renamed (WP-S2.07 part 2, FT-490): a one-line text field at the
+/// The inline editor of a row whose label is being renamed (FT-490): a one-line text field at the
 /// row's indent, opened on the current label with the focus; Enter commits (`navigator.rename {text}`), Escape or a
-/// click elsewhere cancels (`navigator.rename {cancel}`). FT-633: while a refusal shows under the field (`refused`), a
+/// click elsewhere cancels (`navigator.rename {cancel}`). While a refusal shows under the field (`refused`), a
 /// click elsewhere (the proposal's button) leaves the field open; Escape still cancels.
 fn rename_ui(
     ui: &mut Ui,

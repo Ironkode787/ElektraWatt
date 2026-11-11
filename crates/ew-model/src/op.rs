@@ -139,7 +139,7 @@ impl Model {
     /// committed, so every structural invariant holds again; a delete-time rule judges an edit's removal,
     /// not a state, and would refuse a valid restore: the undo of `library.embed` removes copies that the
     /// records of the state before it name through `LibRef` links, which then name nothing (EW-INV-021,
-    /// ADR-0009 amendment 7, FT-316). Every edit goes through [`Model::apply_with`]; the name says what this
+    /// ADR-0009 amendment 7). Every edit goes through [`Model::apply_with`]; the name says what this
     /// path skips, so that no edit takes it by accident.
     pub fn apply_history(&self, ops: &[Op], rev: Rev) -> Result<Model, ModelError> {
         let (m, scope) = self.apply_rows(ops, rev)?;

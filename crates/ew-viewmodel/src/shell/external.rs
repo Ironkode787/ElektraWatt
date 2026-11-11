@@ -49,7 +49,7 @@ pub struct CollisionRow {
     pub take: Take,
 }
 
-/// The rows of the collision dialog counted as they read (W49.3-F4): `2 fields and 1 record`, a whole-record row
+/// The rows of the collision dialog counted as they read: `2 fields and 1 record`, a whole-record row
 /// counted as a record.
 pub(crate) fn collision_count(rows: &[CollisionRow]) -> String {
     let records = rows.iter().filter(|r| r.whole).count();
@@ -80,7 +80,7 @@ pub(crate) struct CollabState {
     /// Whether the open project is in a git worktree whose git configuration has no merge driver.
     pub(crate) driver_missing: bool,
     /// The banner of a state that holds ([`ShellModel::refresh_state_banner`]): saves held by a change on disk, or the
-    /// cloud-synced folder. It shows under a message banner and stays while its state holds (W49.3-F2).
+    /// cloud-synced folder. It shows under a message banner and stays while its state holds.
     pub(crate) state_banner: Option<String>,
     /// Whether the user dismissed the cloud folder's banner (until the next open).
     pub(crate) cloud_dismissed: bool,
@@ -180,7 +180,7 @@ impl ShellModel {
         }
     }
 
-    /// The banner of the state that holds, in the UI language (doc 16a §6.11; W49.3-F2): saves held by a change on disk
+    /// The banner of the state that holds, in the UI language (doc 16a §6.11): saves held by a change on disk
     /// that collides (D24) or cannot be read (D21), else the cloud-synced folder (D25) until the user dismisses it. It
     /// stays while its state holds, whatever action runs; only resolving the state (or Dismiss, for the cloud folder)
     /// takes it away.
@@ -256,7 +256,7 @@ impl ShellModel {
         if !self.external_choice_waiting() {
             return Outcome::refused(key!("reason-no-external-change"));
         }
-        // D24: never over another dialog (C49-p10b#6).
+        // D24: never over another dialog.
         if self.dialog.is_some() {
             return Outcome::refused(key!("reason-dialog-open"));
         }
@@ -301,7 +301,7 @@ impl ShellModel {
             });
         }
         let records = strings::format_count(crate::count_key!("external-changes"), a.records);
-        // W49.3-F5: nothing of theirs was taken (All mine): the window says it kept the user's version.
+        // Nothing of theirs was taken (All mine): the window says it kept the user's version.
         // Nothing taken and nothing kept (the same edit made on both sides) has words of its own.
         let mut text = if a.records == 0 && a.kept == 0 {
             strings::text(key!("toast-external-same")).to_owned()
@@ -506,7 +506,7 @@ impl ShellModel {
                 .flatten()
                 .map(|d| (p.epoch, d))
         });
-        // The cloud folder's banner is a state banner (W49.3-F2).
+        // The cloud folder's banner is a state banner.
         self.collab.cloud_dismissed = false;
         self.refresh_state_banner();
         migrated.map(|_| strings::text(key!("banner-older-format")).to_owned())

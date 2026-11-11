@@ -1381,7 +1381,7 @@ pub fn read_tables(dir: &Path) -> Result<Vec<ImportInput>, TablesError> {
 
 /// Imports golden-dialect tables (`golden/J-E-2416/tables/`, doc 20) with the symbols, FnDefs and forms of `library`
 /// in `mode` (strict, the bootstrap's default, drops a row with a foreign colour code with EW-IMP-002; lenient keeps
-/// it with EW-IMP-008, decision log ID-375). A table of the dialect that is not readable CSV refuses the import, with
+/// it with EW-IMP-008). A table of the dialect that is not readable CSV refuses the import, with
 /// the reader's line (the importer itself would only drop the table with a finding).
 ///
 /// # Errors

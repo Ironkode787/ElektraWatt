@@ -534,7 +534,7 @@ fn every_navigator_opens() {
 
 /// NV4 (NFR-PERF-15, structural; §11): a synthetic table of 10,000 nodes built in the test (no `Session`): the tree and
 /// the flat list, a filter keystroke and a descending sort give the right rows. Timings are not measured (owner's
-/// rule, ID-512), so the 100,000 nodes of NFR-PERF-15 are not needed here: the rows do not depend on the size.
+/// rule), so the 100,000 nodes of NFR-PERF-15 are not needed here: the rows do not depend on the size.
 #[test]
 fn ten_thousand_nodes_flatten_filter_and_sort() {
     use ew_api::output::{NavColumn, NavNode, NavTable, nav_natural_key, nav_tokens};

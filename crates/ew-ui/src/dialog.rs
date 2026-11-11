@@ -103,7 +103,7 @@ pub(crate) fn show_sized(
             }
             content(ui);
             ui.add_space(t.space_2);
-            // W49.2-F1: the footer's own scope, so its buttons keep their ids (and the focus) when the body above
+            // The footer's own scope, so its buttons keep their ids (and the focus) when the body above
             // gains a line (a form's refusal).
             clicked = ui
                 .scope_builder(
@@ -164,7 +164,7 @@ fn footer(ui: &mut Ui, spec: &DialogSpec, focus_primary: bool) -> Clicked {
         if focus && b.disabled.is_none() {
             r.request_focus();
         }
-        // W49.2-F1: the focused button shows its focus ring (doc 16a §6.1).
+        // The focused button shows its focus ring (doc 16a §6.1).
         components::focus_ring(ui, &r, t.radius_md);
         if r.clicked() {
             clicked = Some(b.answer.clone());

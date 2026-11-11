@@ -213,7 +213,7 @@ impl Session {
             .map(|(_, r)| r.label.as_str().to_owned())
     }
 
-    /// The open revision with its author's and its checker's party roles, when set (WP-S1.18 part 5: the revision
+    /// The open revision with its author's and its checker's party roles, when set (the revision
     /// dialogs name them, and Set author submits `revision.set_author` for this revision; edits need not be saved).
     pub fn open_revision_roles(&self) -> Option<(Id<Revision>, Option<PartyRole>, Option<PartyRole>)> {
         self.query()
@@ -223,7 +223,7 @@ impl Session {
             .map(|(_, r)| (r.id, r.author.clone(), r.checker.clone()))
     }
 
-    /// The labels of the released revisions that are not withdrawn, in label order (WP-S1.18 part 5: the Withdraw
+    /// The labels of the released revisions that are not withdrawn, in label order (the Withdraw
     /// dialog offers the last one).
     pub fn released_labels(&self) -> Vec<String> {
         let q = self.query();
@@ -353,7 +353,7 @@ impl Session {
         self.approve_as(&origin, approval, integrity)
     }
 
-    /// [`Session::approve`] for a submission from `origin` (cycle 41, ruling 1: the `HumanOnly` gate is judged per
+    /// [`Session::approve`] for a submission from `origin` (ruling 1: the `HumanOnly` gate is judged per
     /// submission, by the origin of the one that asks, never by the session's). `revision.approve` is submitted from
     /// `origin`, so a scripted origin gets the exposure error and nothing changes.
     ///

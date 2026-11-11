@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid through the shell on temporary copies of Golden A (WP-S2.05 part 1, acceptance checks PG3, PG4,
+//! The property grid through the shell on temporary copies of Golden A (acceptance checks PG3, PG4,
 //! PG6, PG7, the view-model half of PG8, PG10's transcript and describe members, and the model half of PG11's exact
 //! counts): `‹varies›`, one commit per edit and one undo step, the wire overrides with their chips, the terminals' part
 //! in one command with the toast, the edit policy with the card and its stale rule, the editors' refusals and the

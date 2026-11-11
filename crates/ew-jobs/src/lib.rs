@@ -167,7 +167,7 @@ impl Gate {
     }
 
     /// Blocks until a job is blocked at checkpoint `at`; panics, naming `at`, when none is after
-    /// `WAIT_REACHED_ROUNDS` waits of a second each (FT-1120: a job that never arrives fails its test, which a
+    /// `WAIT_REACHED_ROUNDS` waits of a second each (a job that never arrives fails its test, which a
     /// nextest profile without a bound would let hang). No clock is read: the waits are counted.
     pub fn wait_reached(&self, at: &'static str) {
         self.wait_reached_within(at, WAIT_REACHED_ROUNDS, std::time::Duration::from_secs(1));

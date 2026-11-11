@@ -345,7 +345,7 @@ impl ShellModel {
     /// dock, focused), or `on: false` to close it.
     pub(crate) fn act_messages_show(&mut self, p: &Map<String, Value>) -> Outcome {
         let pane = PaneKind::Navigator(NavKind::Messages);
-        // FX38d (doc 16a §5.7): the command that opens the pane closes it again; `on` sets it. FT-916: only a pane in
+        // FX38d (doc 16a §5.7): the command that opens the pane closes it again; `on` sets it. Only a pane in
         // front closes; one behind another tab of its group (History) is brought to front.
         let in_front = self.layout().shown_in_place_of(pane) == Some(pane);
         let on = or_return!(super::jobs::bool_param(p, "on", !in_front));
@@ -810,9 +810,9 @@ fn named_cp(discriminator: &str) -> Option<(ew_api::output::Uuid, u16)> {
 
 /// The toast of `messages.check`: the errors and warnings always, the infos when there are any; the waived and
 /// pending findings, when there are any, qualify the title so the line of counts stays one line:
-/// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`. FT-1432: after an earlier check of
+/// `Check: 1 error, 0 warnings`, `Check · 1 waived: 1 error, 0 warnings`. After an earlier check of
 /// the same project (`before`), the line leads with what changed since then, then the project's totals:
-/// `Check: −1 error since the last check; project: 0 errors, 2 warnings`. ID-1497 (3): `before` carries how many of
+/// `Check: −1 error since the last check; project: 0 errors, 2 warnings`. `before` carries how many of
 /// this check's findings the earlier one did not count, so that equal counts of other findings read "2 findings
 /// changed", not "no change".
 pub(crate) fn check_summary(c: MessageCounts, before: Option<(MessageCounts, usize)>) -> String {

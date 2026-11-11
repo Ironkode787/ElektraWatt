@@ -441,7 +441,7 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
 
 /// Tutorial 2 (D10, DC-6): on tutorial 1's project, a strip with two terminals, the cabinet and the field
 /// side wired, a cable from the starter set's part with the field wires as its cores (its tag from its first core's
-/// page, FT-1406), its length set, the strip editor and the Cables navigator read, checked and saved: every step done,
+/// page), its length set, the strip editor and the Cables navigator read, checked and saved: every step done,
 /// the end state the page names, and the lint.
 #[test]
 fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {

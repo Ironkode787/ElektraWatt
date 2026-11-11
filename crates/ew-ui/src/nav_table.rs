@@ -18,7 +18,7 @@
 //! (`ui.dismiss`, the Escape chain), and leaving it commits.
 //!
 //! **Accessibility.** The table is the focusable node with the role `Table` named `<navigator> table`; a header cell is
-//! a button named `Sort by <column label>` (FT-523: the sorted one adds ", sorted ascending" or ", sorted
+//! a button named `Sort by <column label>` (the sorted one adds ", sorted ascending" or ", sorted
 //! descending"); a cell is a node with the role `Cell` named `<column label> <cell text>,
 //! row <i> of <n>`, with `, read-only` for a read-only cell (§8.1).
 //!
@@ -69,10 +69,10 @@ pub(crate) struct TableUi {
     chooser_active: usize,
     /// The grid's width last frame (C40, a resize re-fills the capped columns).
     pane_width: Option<f32>,
-    /// ID-1497 F1: how the cursor's column is aligned again in the next frame, when the scroll that brought it into
+    /// How the cursor's column is aligned again in the next frame, when the scroll that brought it into
     /// view left it cut by the frozen key column (or, while it fits, by the grid's right edge).
     realign: Option<egui::Align>,
-    /// ID-1497 F1: after a scroll to the cursor's column, its cell as laid out in the last frame and how many frames
+    /// After a scroll to the cursor's column, its cell as laid out in the last frame and how many frames
     /// more the grid waits for it to come to rest before it checks the column's place.
     settling: Option<(Rect, u8)>,
 }
@@ -80,7 +80,7 @@ pub(crate) struct TableUi {
 /// How far the grid's focus ring is inset into the pane (doc 16a §6.21: 1 px).
 const RING_INSET: f32 = 1.0;
 
-/// ID-1497 F1: the most frames the grid waits for a scroll to its cursor's column to come to rest.
+/// The most frames the grid waits for a scroll to its cursor's column to come to rest.
 const SETTLE_FRAMES: u8 = 30;
 
 /// The egui_table ID of the column with key `key` (its width survives hiding and reordering).
@@ -299,7 +299,7 @@ impl TableUi {
             }
         });
         self.painted = delegate.painted;
-        // ID-1497 F1: a column the grid scrolls into view lands whole to the right of the frozen key column, and one
+        // A column the grid scrolls into view lands whole to the right of the frozen key column, and one
         // wider than the room with its left edge there. egui scrolls as little as it can and left the column cut under
         // the key column at the floor; such a column is aligned again in the next frame: at its left edge when the key
         // column cuts it, at its right edge when the grid's edge cuts one that fits.
@@ -846,7 +846,7 @@ pub(crate) fn libraries_name_cap(t: &Tokens, pane: f32) -> f32 {
 /// The width the Pages Title or the Libraries Name may not grow past in a grid `pane` wide whose other columns need
 /// `others` (C39, owner 2026-10-31: never a width chosen for the floor): the room the other columns leave, at least
 /// `size.table_column`, so that nothing is cut while the pane has room and the next column ("Changed in", FT-718;
-/// Kind, FT-755) still starts in view; past that the cell elides with its whole text in the tooltip and the grid
+/// Kind) still starts in view; past that the cell elides with its whole text in the tooltip and the grid
 /// scrolls sideways.
 pub(crate) fn fill_cap(t: &Tokens, pane: f32, others: f32) -> f32 {
     (pane - others).max(t.size_table_column)
@@ -900,9 +900,9 @@ struct Delegate<'a> {
     painted: usize,
     /// The cursor row's key cell as painted this frame (the chooser list opens under it).
     cursor_rect: Option<Rect>,
-    /// ID-1497 F1: the cursor's cell (or the edited one) as laid out this frame, when it is not in the key column.
+    /// The cursor's cell (or the edited one) as laid out this frame, when it is not in the key column.
     cursor_cell: Option<Rect>,
-    /// ID-1497 F1: the right edge of the frozen key column this frame.
+    /// The right edge of the frozen key column this frame.
     key_right: Option<f32>,
     /// The width the columns other than the filling one need ([`fill_cap`]), measured once in a sizing pass.
     others: Option<f32>,
@@ -1169,7 +1169,7 @@ impl TableDelegate for Delegate<'_> {
         };
         let node = &self.table.nodes[row.node as usize];
         let column = &self.table.columns[c];
-        // ID-1278 ruling 7: a strip without a tag yet in words in its Strip cell.
+        // A strip without a tag yet in words in its Strip cell.
         let text = ew_viewmodel::navigators::cell_text(self.table, node, c);
         let reason = cell_reason(self.table, node, c);
         let mut name = if text.is_empty() {

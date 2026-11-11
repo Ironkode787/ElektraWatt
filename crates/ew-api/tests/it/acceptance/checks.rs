@@ -307,7 +307,7 @@ pub fn all(r: &mut Runner) {
         r.entry("AC-17", "exporting the PDF takes at most 3 s", ac17_pdf);
     } else {
         r.entry("AC-17", "open <= 0.5 s, check <= 2 s, PDF export <= 3 s", |_| {
-            na("measured at milestone deliveries (cargo xtask acceptance --milestone, release profile)")
+            na("not measured during development; the gate measures it with EW_PERF_ASSERT=1 in a release build")
         });
     }
     r.entry(
@@ -823,7 +823,7 @@ fn ac06_tags(c: &Ctx) -> Outcome {
 /// - Row 26, tags: §14.1 lists "1X1, -X1031, -X1032"; the parts list sorts the tags in the order of the ID-9
 ///   sign order, "-X1031, -X1032, 1X1".
 ///
-/// Row 26's folio is §14.1's 902 since WP-S4.02 part 5 derives the end brackets from R2's strips (FT-204; ID-1081,
+/// Row 26's folio is §14.1's 902 since WP-S4.02 part 5 derives the end brackets from R2's strips (
 /// ruling 1).
 const AC07_ACCEPTED: [(&str, &str, &str, &str); 1] =
     [("26", "Tags", "1X1, -X1031, -X1032", "-X1031, -X1032, 1X1")];
@@ -1208,7 +1208,7 @@ fn run_json(
 
 /// AC-15 path (b) (doc 20 §3.2): the builder DSL of `ew-testkit` builds Golden A through commands
 /// only, from the project shell (the project row and the project-local parts; the non-local library copies
-/// come from `library.embed`, FT-278), with the bootstrap
+/// come from `library.embed`), with the bootstrap
 /// batch as its typed description; the acceptance SQL over the built project must return the expected CSVs
 /// (by content: the commands mint their own IDs).
 fn ac15_builder_path(c: &Ctx) -> Outcome {

@@ -143,7 +143,7 @@ pub(crate) fn show<P>(
 
 /// The shares of two neighbours with `shares` and sizes `sizes` (points) after the handle between them moved by
 /// `delta` points: each keeps at least [`MIN_SIZE`]. `None` when nothing changes: no movement, or two neighbours
-/// together smaller than twice the minimum (the handle then does nothing, R1-3).
+/// together smaller than twice the minimum (the handle then does nothing).
 fn traded(shares: (f32, f32), sizes: (f32, f32), delta: f32) -> Option<(f32, f32)> {
     let ((sa, sb), (wa, wb)) = (shares, sizes);
     // Before the clamp, whose bounds cross (and panic) below twice the minimum; a NaN size or delta fails here too.
@@ -172,7 +172,7 @@ mod tests {
         assert_eq!(traded((1.0, 1.0), (100.0, 100.0), 0.0), None);
     }
 
-    /// R1-3: two neighbours of 20 points each (less than twice the minimum together) neither panic nor change, on a
+    /// Two neighbours of 20 points each (less than twice the minimum together) neither panic nor change, on a
     /// drag or on a double click (which centres: a delta of 0 here, and of any size on a lopsided pair).
     #[test]
     fn small_neighbours_do_not_panic() {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew fmt`'s library half (`ew_api::fmt`, WP-S1.22 D9): it rewrites only the files not in canonical form, through the
+//! `ew fmt`'s library half (`ew_api::fmt`): it rewrites only the files not in canonical form, through the
 //! save protocol, all or nothing under a process kill or a power loss at every file-system call, and it refuses a
 //! rewrite that would change a line's content.
 
@@ -511,7 +511,7 @@ fn a_repair_discards_the_broken_line_after_a_backup() {
     s.close();
 }
 
-/// ID-1185 ruling 3: without a broken line a repair writes nothing and makes no backup, though files are out of
+/// Without a broken line a repair writes nothing and makes no backup, though files are out of
 /// canonical form (`ew fmt`'s work, not the repair's; the manifest holds their hashes, as a save of their bytes
 /// writes them).
 #[test]
@@ -707,7 +707,7 @@ fn a_hand_edited_project_is_repaired_after_a_backup_of_its_files_as_found() {
     }
 }
 
-/// ID-1185 ruling 3 and ID-1186 ruling 4: a store whose files cannot be packed as found refuses the repair before
+/// A store whose files cannot be packed as found refuses the repair before
 /// anything is written: a listed file that cannot be read (a fault of the `Vfs` at its read, after a page file edited
 /// outside ElektraWatt that the backup takes as found), and a project without a manifest.
 #[test]
@@ -850,7 +850,7 @@ fn a_backup_name_holding_another_file_refuses_and_this_generations_pack_is_reuse
     assert_eq!(vfs.read(&backup()).unwrap(), packed.bytes);
 }
 
-/// ID-1185 ruling 5: a parent folder that cannot be written refuses with nothing changed; the rerun succeeds.
+/// A parent folder that cannot be written refuses with nothing changed; the rerun succeeds.
 #[test]
 fn a_folder_that_cannot_be_written_refuses_the_backup() {
     let (disk, page, canonical) = page_with(&[BROKEN], true);
@@ -1000,7 +1000,7 @@ fn a_save_incomplete_after_its_commit_point_carries_what_the_repair_decided() {
     );
 }
 
-/// ID-1185 ruling 8: a fault at every file-system call of a repair: an error of that one call (the process lives on), a
+/// A fault at every file-system call of a repair: an error of that one call (the process lives on), a
 /// process kill and a power loss keeping 0, 1 or all pending name changes. During the backup an error leaves no backup
 /// and nothing else; between the backup and the save, and inside the save before its commit point, the project is
 /// unchanged; after the commit point the next open completes generation 2, which never comes without the backup. A

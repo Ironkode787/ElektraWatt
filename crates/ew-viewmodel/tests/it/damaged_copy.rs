@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1383 (ID-1395): a copy of Golden A whose one library copy that a device names is damaged opens read-only in
+//! FT-1383: a copy of Golden A whose one library copy that a device names is damaged opens read-only in
 //! the window, as a damaged copy no device names does, instead of being refused whole: every page shows and the
 //! checks run.
 

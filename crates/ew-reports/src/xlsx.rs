@@ -774,11 +774,11 @@ mod tests {
         assert_eq!(escape("bell\u{7}"), "bell_x0007_");
         assert_eq!(escape("_x0041_ and _x"), "_x005F_x0041_ and _x");
         assert_eq!(escape("tab\tline\n"), "tab\tline\n");
-        // ID-1174 ruling 5: a carriage return is the workbook's escape, which a parser keeps.
+        // A carriage return is the workbook's escape, which a parser keeps.
         assert_eq!(escape("a\r\nb"), "a_x000D_\nb");
     }
 
-    /// ID-1174 ruling 5: names are unique ignoring case as `str::to_lowercase` folds it, and an apostrophe
+    /// Names are unique ignoring case as `str::to_lowercase` folds it, and an apostrophe
     /// at either end is replaced (also one a cut leaves at the end).
     #[test]
     fn sheet_names_fold_case_fully_and_drop_end_apostrophes() {
@@ -803,7 +803,7 @@ mod tests {
         );
     }
 
-    /// ID-1174 ruling 5: a number of more than 15 significant digits stays text, a shorter one is numeric.
+    /// A number of more than 15 significant digits stays text, a shorter one is numeric.
     #[test]
     fn a_long_number_stays_text() {
         let mut t = table("n");
@@ -833,7 +833,7 @@ mod tests {
         assert_eq!(significant_digits("1500"), 2);
     }
 
-    /// ID-1174 ruling 5: every refusal is whole and ends with what to do.
+    /// Every refusal is whole and ends with what to do.
     #[test]
     fn every_refusal_says_what_to_do() {
         assert_eq!(

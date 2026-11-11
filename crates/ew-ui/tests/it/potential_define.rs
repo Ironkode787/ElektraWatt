@@ -205,7 +205,7 @@ fn a_potentials_rows_context_menu_defines_its_potential() {
     shell.shutdown();
 }
 
-/// ID-1278 ruling 8 (W49.1 M): Define potential… whose voltage does not read ("abc") shows its failure under the
+/// Define potential… whose voltage does not read ("abc") shows its failure under the
 /// palette form's fields only, never as a banner as well; corrected and run again, it defines the potential with no
 /// banner either, and the form with its error is gone.
 #[test]

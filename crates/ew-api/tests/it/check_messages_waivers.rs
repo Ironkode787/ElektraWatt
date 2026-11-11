@@ -33,7 +33,7 @@ const FOUR_PACKS: [&str; 8] = [
 ];
 
 /// The findings of the four packs that doc 20 §18.1 does not list, each with the follow-up that removes it (FT-638): the
-/// process valves are supplied by others and exempt once `supply_scope` exists (FT-209, WP-S7.01; decision log ID-322).
+/// process valves are supplied by others and exempt once `supply_scope` exists (FT-209).
 const KNOWN_EXCESS: [(&str, &str, &str); 8] = [
     ("EW-CORE-041", "=P01+FIELD-203Q1", "FT-638 (FT-209 supply_scope)"),
     ("EW-CORE-041", "=P01+FIELD-203Q2", "FT-638 (FT-209 supply_scope)"),

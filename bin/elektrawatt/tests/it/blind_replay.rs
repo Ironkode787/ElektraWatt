@@ -298,9 +298,9 @@ fn blind_replay() {
     assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));
 }
 
-/// The long recordings (`ci = "nightly"`), replayed by the deep nightly.
+/// The long recordings (`ci = "nightly"`), replayed by the deep run.
 #[test]
-#[ignore = "the nightly's"]
+#[ignore = "deep run: the long recordings"]
 fn blind_replay_long() {
     let out = run_recordings(Path::new(RECORDINGS), "nightly");
     assert!(out.failures.is_empty(), "{}", out.failures.join("\n"));

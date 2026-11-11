@@ -131,7 +131,7 @@ pub const WAIVER_REASON_MIN_CHARS: usize = 10;
 /// Rejected: a rule ID that is not of the form `EW-<PACK>-<three digits>` (at `/rule`); a fingerprint that is not 32
 /// hex digits (at `/fingerprint`); an empty reason or one with a text shorter than [`WAIVER_REASON_MIN_CHARS`]
 /// characters (at `/reason`); a finding that a waiver of the same rule covers already (the existing waiver is named by
-/// its rule, and by the finding's `subject` when it is given, FT-1509).
+/// its rule, and by the finding's `subject` when it is given).
 ///
 /// **Exposure `HumanOnly`** (ADR-0019 decision 8, doc 15 §2.5 "Who may waive"): a scripted waiver would defeat the
 /// record, so command logs, scripts, MCP and plugins get `CmdError::Exposure`. Interactive; undoable as one step.

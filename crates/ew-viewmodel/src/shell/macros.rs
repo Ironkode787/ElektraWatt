@@ -326,7 +326,7 @@ fn save_error(e: &ew_api::MacroError, sets: &[String]) -> Outcome {
 }
 
 /// The words of a row badge in the UI language: the Libraries and Macros navigators' codes (§11), the other
-/// navigators' fixed badge words by their `nav-badge-<word>` text (FT-1264: `unplaced`, `frozen`, `spare`, `main`, a
+/// navigators' fixed badge words by their `nav-badge-<word>` text (`unplaced`, `frozen`, `spare`, `main`, a
 /// severity, ...) and a strip's `<n> spare`; any other badge (a rule group's count) as given.
 pub(super) fn badge_word(code: &str) -> String {
     let text = match code {
@@ -393,7 +393,7 @@ impl ShellModel {
         self.macros.detail.as_ref().and_then(|(_, _, t)| t.as_deref())
     }
 
-    /// The detail of the library copy under the Libraries navigator's cursor (FT-755: name, kind, key, library,
+    /// The detail of the library copy under the Libraries navigator's cursor (name, kind, key, library,
     /// version, state, as the Macros navigator's detail shows a macro); `None` when the cursor is on no copy row or
     /// the navigator is closed.
     pub fn library_copy_detail(&self) -> Option<&LibraryCopyDetail> {
@@ -935,7 +935,7 @@ impl ShellModel {
     }
 
     /// The end of Save as macro…: a failure or refusal stays in its dialog with its text, a success closes it. A
-    /// refusal before the dialog opens (nothing selected, no project) shows its reason in the banner (FT-755: a refused
+    /// refusal before the dialog opens (nothing selected, no project) shows its reason in the banner (a refused
     /// save leaves a trace in the window; a failure becomes the banner through the window's report).
     fn save_done(&mut self, out: Outcome) -> Outcome {
         if !self.in_form_of(SAVE)

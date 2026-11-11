@@ -245,7 +245,7 @@ pub(crate) fn push_cell(
     // The style at the size the text was laid out in (shrink-to-fit may have made it smaller).
     let final_style = style.with_size(laid.shaped.run.size);
     // One call for all the cell's spans: the boxes come from the drawn shaping, which `span_quads` cannot redo (it takes
-    // no fonts; C44-p3#1, C44-p6#2).
+    // no fonts).
     let spanned: Vec<(&Range<usize>, Destination)> = links
         .iter()
         .filter_map(|l| Some((l.span.as_ref()?, l.dest)))

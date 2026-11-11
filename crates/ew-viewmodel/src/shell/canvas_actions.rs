@@ -122,7 +122,7 @@ impl ShellModel {
     /// Whether motion is reduced (NFR-A11Y-04; View, Reduce motion): the `reduce_motion` setting, and
     /// while it is unset whether the canvas draws on the CPU, because the setting asks for it
     /// ([`ShellModel::cpu_canvas_setting`]) or because the window's canvas is on the CPU path (FR-UI-028's fallback
-    /// after a GPU failure, headless, the tests' harness; ID-1278 ruling 12).
+    /// after a GPU failure, headless, the tests' harness).
     pub fn reduce_motion(&self) -> bool {
         self.settings
             .reduce_motion

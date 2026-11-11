@@ -1171,7 +1171,7 @@ fn scale_input(text: &str) -> Option<Result<Value, InputError>> {
     })
 }
 
-/// A cable's length source in the words its typed editor reads back (FT-429, WP-S2.07 §7): `{"manual": <nm>}` as
+/// A cable's length source in the words its typed editor reads back (FT-429): `{"manual": <nm>}` as
 /// `<metres> m`, `from_part` as `from part`, `missing` as is; `None` for any other JSON value.
 fn length_source_text(value: &Value) -> Option<String> {
     match value {

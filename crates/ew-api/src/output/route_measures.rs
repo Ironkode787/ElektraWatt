@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A page's geometry for the schematic router and its layout measures in words (WP-S2.19 part 1, decision log
+//! A page's geometry for the schematic router and its layout measures in words (decision log
 //! ID-1498): [`Session::page_geometry`] builds `ew_derive::routing`'s [`PageGeometry`] from the page tables
 //! ([`Session::page_tables`]), the labels layer's text boxes and the frame; [`Session::layout_report`] measures one
 //! page or every schematic page and names what it finds the way the page prints it, for `ew layout`.
@@ -448,7 +448,7 @@ fn cp_text(q: &Q, cp: &TableCp) -> String {
 
 /// `text`, which names a CP or a representation of `device` as the page prints its tag, with the tag's product sign
 /// also where a frozen tag hides it on pages (`G1:+` → `-G1:+`): the layout rules and the route card name a device by
-/// its tag with its prefix, as §12a's `{wire}` and the other rules do (ID-1509 (9), the window check's F4).
+/// its tag with its prefix, as §12a's `{wire}` and the other rules do (the window check's F4).
 fn signed(q: &Q, device: Option<Id<ew_derive::ew_schema::Device>>, text: &str) -> String {
     let tag = device.and_then(|d| q.get::<ew_derive::DeviceTag>(d).as_ref().clone());
     let Some(tag) = tag.filter(|t| !t.sign_on_pages) else {

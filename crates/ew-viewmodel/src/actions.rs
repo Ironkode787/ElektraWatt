@@ -578,7 +578,7 @@ fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
     m.wire_kind().map(|_| ())
 }
 
-/// An editable page with a connection or a representation selected (Route selection, WP-S2.19 D13; ID-1509 (8)).
+/// An editable page with a connection or a representation selected (Route selection).
 fn route_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
     if m.route_selection_ids().is_empty() {
@@ -697,7 +697,7 @@ fn one_free_text(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// An editable page whose selection is two or more terminals of one strip not all bridged yet (Edit ▸ Bridge
-/// terminals; FT-411, §10.7, cycle 33).
+/// terminals; FT-411, §10.7).
 fn two_strip_terminals(m: &ShellModel) -> Result<(), Key<'static>> {
     // A writable project, not an editable page (the selection may be records).
     writable(m)?;
@@ -792,7 +792,7 @@ fn can_discard_journal(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// Update from library needs the damaged-copy banner that offers it (FT-1499, ID-1486).
+/// Update from library needs the damaged-copy banner that offers it (FT-1499).
 fn damaged_update_offered(m: &ShellModel) -> Result<(), Key<'static>> {
     if m.damaged_update_offered() {
         Ok(())
@@ -1123,7 +1123,7 @@ fn editable_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// Save as macro… (WP-S1.19 §11, FT-754 (b)): a page on show with something selected (a window macro) or pages
+/// Save as macro… (FT-754 (b)): a page on show with something selected (a window macro) or pages
 /// marked in the Pages navigator (a page macro).
 fn macro_scope_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     page_shown(m)?;
@@ -1349,7 +1349,7 @@ pub enum MenuEntry {
         /// Its items.
         items: Vec<ActionItem>,
     },
-    /// A command-bar group of more than three commands, as a submenu of its tab's menu (WP-S2.17 part 2, doc 16a
+    /// A command-bar group of more than three commands, as a submenu of its tab's menu (doc 16a
     /// §9.2): its entries are items and submenus.
     Group {
         /// The group.

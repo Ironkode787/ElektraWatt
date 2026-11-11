@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `Session::find` and `FindResults::replace_command` on Golden A (WP-S2.05 part 2, acceptance check FR2 and the
+//! `Session::find` and `FindResults::replace_command` on Golden A (acceptance check FR2 and the
 //! session half of FR3 and FR4): plain, case, whole-word and regular-expression matches with their ranges, the order
 //! rule, the folio and selection scopes, the errors, the truncation, the hits that are found but not replaced, and the
 //! one `fields.set_many` a replace commits.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Keyboard shortcuts of the keymap as egui shortcuts (WP-S2.01 part 1, spec section 5.3, UX/UI doc 16
+//! Keyboard shortcuts of the keymap as egui shortcuts (spec section 5.3, UX/UI doc 16
 //! section 4.2; WP-S2.08 part 2, D6).
 //!
 //! The keymap writes bindings as text (`Ctrl+Shift+Z`, `Page Down`, `]`, `phys:BracketRight`); `Ctrl` is
@@ -169,7 +169,7 @@ pub fn chord_text(key: Key, physical: Option<Key>, modifiers: Modifiers) -> Opti
 pub use ew_viewmodel::keymap::display;
 
 /// A binding as every surface names it: the keycap form ("Esc", "Del", "Up", "Ctrl+Z") of the menus, the key chips,
-/// the palette, the keymap editor, the command bar, the tooltips and the hints (FT-1081, FT-1112, ID-1182, ID-1229,
+/// the palette, the keymap editor, the command bar, the tooltips and the hints (
 /// doc 16a §8 item 7).
 pub use ew_viewmodel::keymap::short_display;
 

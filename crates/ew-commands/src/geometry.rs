@@ -186,8 +186,8 @@ pub fn end_point(tx: &TxBuilder<'_>, e: &Endpoint, page: Id<Page>) -> Option<Pt2
     }
 }
 
-/// The straight route of an autoconnect hint's wire from `a` to `b` on `page` (WP-S2.19 D12: a proposal is a
-/// straight, clear run, WP-S2.04 §8.3): both ends' points when they lie on one line; empty, so unrouted, otherwise.
+/// The straight route of an autoconnect hint's wire from `a` to `b` on `page` (a proposal is a
+/// straight, clear run): both ends' points when they lie on one line; empty, so unrouted, otherwise.
 pub fn hint_route(tx: &TxBuilder<'_>, a: &Endpoint, b: &Endpoint, page: Id<Page>) -> Vec<Pt2> {
     match (end_point(tx, a, page), end_point(tx, b, page)) {
         (Some(p), Some(q)) if p != q && (p.x == q.x || p.y == q.y) => vec![p, q],

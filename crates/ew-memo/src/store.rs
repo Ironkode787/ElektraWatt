@@ -188,7 +188,7 @@ impl<I> TrailEntry<I> {
 }
 
 /// The state of the memo of one key, read without changing the store ([`Store::explain`], the trail of
-/// `ew query --explain`, WP-S1.22 D12).
+/// `ew query --explain`).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Explain<I> {
     /// The query family.

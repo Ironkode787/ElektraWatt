@@ -8,7 +8,7 @@
 //! size tables, from the profiles in the project settings).
 //! Derived now from the Derivation II queries (potential partition, physical wires, effective wire
 //! properties): `wire_list`, `potential_overview`, `terminal_diagram`, `terminal_overview` (FR-REP-010, one row per
-//! strip; WP-S3.06 D6), `cable_overview_diagrams`. Those
+//! strip), `cable_overview_diagrams`. Those
 //! queries read the drawn page order, which has no report pages, so these kinds derive their rows inside the
 //! pagination like the others.
 //! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview` and `io_list` (FR-PLC-023). From the tags and wire numbers:

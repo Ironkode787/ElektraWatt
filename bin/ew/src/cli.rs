@@ -273,7 +273,7 @@ pub struct UpgradeArgs {
     pub yes: bool,
 }
 
-/// The arguments of `ew update-copies` (FT-1499, decision log ID-1486).
+/// The arguments of `ew update-copies` (FT-1499).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct UpdateCopiesArgs {
     /// The project directory; `None`: found from the current directory.

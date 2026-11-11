@@ -204,7 +204,7 @@ pub struct OpenReport {
     pub recovery: Option<RecoveryInfo>,
     /// Whether unsaved changes are crash-protected (a journal is open).
     pub journaled: bool,
-    /// The older format the project was migrated from in memory ([`FormatAccess::Migrate`], WP-S1.17 D11); its first
+    /// The older format the project was migrated from in memory ([`FormatAccess::Migrate`]); its first
     /// save needs [`Store::confirm_upgrade`].
     pub migrated_from: Option<String>,
 }
@@ -361,7 +361,7 @@ pub enum SaveStep {
     Renames,
     /// Step 7: renaming the intent over `manifest.json`.
     Manifest,
-    /// The backup of a project of an older format, written before its first save (WP-S1.17 D11, decision log
+    /// The backup of a project of an older format, written before its first save (decision log
     /// ID-1221 ruling 5): nothing of the project was written.
     Backup,
 }
@@ -416,7 +416,7 @@ pub enum SaveError {
     /// was written. A copy in a new folder ([`Store::create`]) starts again at generation 0.
     GenerationLimit,
     /// The project was migrated from the older format `from` and its first save converts it, which needs the user's
-    /// consent first ([`Store::confirm_upgrade`], WP-S1.17 D11): nothing was written.
+    /// consent first ([`Store::confirm_upgrade`]): nothing was written.
     UpgradeConsent {
         /// The older format.
         from: String,
@@ -748,7 +748,7 @@ pub struct Store {
     /// A project of an older format migrated in memory, until its first save passes its commit point.
     migrated: Option<Migrated>,
     /// The changed `manifest.json` a poll saw first, by the hash of its bytes (`None`: absent), and when
-    /// ([`Store::poll`], WP-S1.17 D20).
+    /// ([`Store::poll`]).
     watch: Option<(Option<[u8; 32]>, std::time::SystemTime)>,
 }
 
@@ -1268,7 +1268,7 @@ impl Store {
         let Some(project) = loaded.project else {
             return Err(OpenError::NoProject(findings));
         };
-        // FT-1383 (ID-1395): the library copies of the documents with a finding, which the loader may have dropped. A
+        // FT-1383: the library copies of the documents with a finding, which the loader may have dropped. A
         // record that names one is no EW-INV-001 at this open: the project opens read-only, the finding naming the
         // copy's file, and the user updates the copy from its library.
         let missing: BTreeSet<AnyKey> = findings
@@ -1754,7 +1754,7 @@ impl Store {
 
     /// Writes `model` as generation 1 into `root` (a new project, Save As), which must not hold a
     /// manifest, and keeps it open for editing. Inside a git worktree it also writes the managed `.gitattributes` and
-    /// `.gitignore` blocks ([`crate::git::write_blocks`], WP-S1.17 D28).
+    /// `.gitignore` blocks ([`crate::git::write_blocks`]).
     ///
     /// # Errors
     ///
@@ -2727,7 +2727,7 @@ impl Store {
         self.save_inner(&base, Changes::Keys(&BTreeSet::new()), &BTreeSet::new(), true)
     }
 
-    /// Update from library of the damaged library copies `keys` (FT-1499, decision log ID-1486): one save of `model`,
+    /// Update from library of the damaged library copies `keys` (FT-1499): one save of `model`,
     /// which holds the library's documents of those copies, that writes each over its damaged file, which the open kept
     /// as it was found, and lists it in the manifest, as a save writes an updated copy; nothing else is written. A store
     /// that the integrity findings made read-only takes the lock for the save and gives it back after, staying
@@ -3213,7 +3213,7 @@ mod tests {
         assert!(same_bytes(&vfs, pa, Path::new("/p/e")).is_err(), "an absent file");
     }
 
-    /// ID-1230 ruling 1: a save that keeps a newer minor's stamp keeps its `unstable` flag, whatever this build's
+    /// A save that keeps a newer minor's stamp keeps its `unstable` flag, whatever this build's
     /// released list says; a save that writes [`FORMAT`] marks it by the list. (A store of [`FORMAT`] `0.x` cannot
     /// open a newer minor, every `0.y` being its own major, so the file is the manifest the save keeps.)
     #[test]

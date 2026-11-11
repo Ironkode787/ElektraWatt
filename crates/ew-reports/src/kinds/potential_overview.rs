@@ -119,7 +119,7 @@ fn potential_pages(q: &Q, wires: &Wires, p: &Potential, order: &ew_derive::PageO
 }
 
 /// The members of a potential as folio 909 counts them (doc 20 §7.3; a potential a bus segment carries counts the
-/// segment's members, WP-S1.21 D11): [`ew_derive::potential_member_count`], one reader for the report and the view.
+/// segment's members): [`ew_derive::potential_member_count`], one reader for the report and the view.
 fn member_count(q: &Q, p: &Potential) -> usize {
     ew_derive::potential_member_count(q, p)
 }

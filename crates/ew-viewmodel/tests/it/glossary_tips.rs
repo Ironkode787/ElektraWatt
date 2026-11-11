@@ -512,7 +512,7 @@ fn a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
     s.shutdown();
 }
 
-/// C49-p6b#5, C49-p8#9: the six Dutch choice words are the words the window already uses for those values.
+/// The six Dutch choice words are the words the window already uses for those values.
 #[test]
 fn the_six_dutch_choice_words_equal_their_siblings() {
     use ew_viewmodel::strings::{self, Key};

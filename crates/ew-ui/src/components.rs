@@ -43,7 +43,7 @@ pub(crate) fn tokens(ui: &Ui) -> std::sync::Arc<Tokens> {
     theme::current(ui.ctx())
 }
 
-/// The most lines a tooltip shows; a longer text ends its last line in "…" (cycle 37: a finding's tooltip covered
+/// The most lines a tooltip shows; a longer text ends its last line in "…" (a finding's tooltip covered
 /// half the canvas). The whole text stays the widget's accessible description ([`Tip::tip`]).
 pub(crate) const TIP_MAX_LINES: usize = 8;
 
@@ -351,7 +351,7 @@ pub(crate) fn icon_toggle(ui: &mut Ui, id: IconId, name: &str, enabled: bool, on
     icon_toggle_tip(ui, id, name, name, enabled, on)
 }
 
-/// [`icon_toggle`] whose tooltip is `tip` rather than its name (FT-1435: Back names its key, "Back (Alt+Left)").
+/// [`icon_toggle`] whose tooltip is `tip` rather than its name (Back names its key, "Back (Alt+Left)").
 pub(crate) fn icon_toggle_tip(
     ui: &mut Ui,
     id: IconId,
@@ -1115,7 +1115,7 @@ pub(crate) fn card_strip(ui: &mut Ui, shell: &ShellModel, line: &str, events: &m
                     n.set_value(live);
                 });
             };
-            // One line while the whole text fits beside the buttons; else (FT-565: a 280-px Properties panel left
+            // One line while the whole text fits beside the buttons; else (a 280-px Properties panel left
             // "Preview o…") the text takes the strip's width on its own line and the buttons go under it, right-aligned.
             let width = |s: &str, accent: bool| {
                 ui.painter()

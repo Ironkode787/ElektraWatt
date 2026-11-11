@@ -10,7 +10,7 @@
 //! that is not its connection's end, so a press beside a rail's end joins the rail at the next grid point along it
 //! rather than fixing a bend, FT-1084; a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
 //! `require_split_point` accepts), else the grid point. Alt suppresses the object snaps. Ties by the smaller
-//! distance, then for a CP the first in the page tables' order (natural label, its bytes, (y, x), ID; FT-439), for a
+//! distance, then for a CP the first in the page tables' order (natural label, its bytes, (y, x), ID), for a
 //! junction by the smaller ID (two junctions are never at one point); for a segment the larger connection ID,
 //! which is later in paint order (connections paint in ID order, so the one on top); WP-S2.02's pick breaks a tie
 //! the same way. This is a paint-order contract, not a creation-order guarantee: UUIDv7 IDs are not guaranteed to
@@ -255,7 +255,7 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
     let limit = reach * reach;
     let d2 = |p: (i64, i64)| super::dist2(cx.snapper.page_to_sheet(p), at);
     // 1. A connection point.
-    // A tie keeps the first CP in the page tables' order (natural label, its bytes, (y, x), ID; FT-439).
+    // A tie keeps the first CP in the page tables' order (natural label, its bytes, (y, x), ID).
     let mut best: Option<(i128, &ew_api::output::TableCp)> = None;
     for cp in &tables.cps {
         let d = d2(cp.at);

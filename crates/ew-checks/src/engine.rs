@@ -145,7 +145,7 @@ impl CheckReport {
 
     /// The report with the integrity findings of opening the project joined (doc 15 §4.2: the integrity
     /// rules EW-CORE-001 … 019 run on open and, where the catalogue lists `r`, in release mode; EW-CORE-011 is a
-    /// registered rule over the model, decision log ID-1279). In release
+    /// registered rule over the model). In release
     /// mode every item of a rule whose modes include release joins the findings, the counts and the exit
     /// code at the item's severity; items of other rules, of unknown IDs, and every item in online mode are
     /// left out. Integrity findings are never waivable. The findings are re-sorted.
@@ -174,7 +174,7 @@ impl CheckReport {
 }
 
 impl CheckReport {
-    /// The report with EW-CORE-013's groups joined for merge evidence that the model does not hold (WP-S1.17 D29,
+    /// The report with EW-CORE-013's groups joined for merge evidence that the model does not hold (
     /// decision log ID-1284): a merged manifest, a merge or rebase in progress, `ew check --integrity --after-merge`.
     /// In a mode that runs EW-CORE-013 (online and release), when the run evaluated it without findings (the model holds
     /// no conflict record), every group of [`merge_collisions`](crate::rules::core::merge_collisions) joins the
@@ -308,7 +308,7 @@ fn supersede(findings: Vec<Finding>) -> Vec<Finding> {
 /// Runs `scheme` in `mode` over the snapshot of `q` (doc 15 §3): every enabled shipped rule in every
 /// scope of its kind, through the memo family [`CheckOf`]; then the effective severities (§3.2),
 /// supersession (§3.6), waivers (§2.5) and EW-CORE-081 for waivers that match nothing; the findings sorted
-/// in canonical order ([`Finding::order_cmp`], §3.9, FT-594).
+/// in canonical order ([`Finding::order_cmp`], §3.9).
 ///
 /// A rule that panics in a scope yields EW-CORE-083 there and leaves every other finding as it is; a rule whose data
 /// table does not load is not evaluated and EW-CORE-084 names it.
@@ -324,7 +324,7 @@ pub fn run(q: &Q, scheme: &Scheme, mode: CheckMode) -> CheckReport {
     }
 }
 
-/// [`run`] over the registered rules of `list` only (WP-S3.06 D7, D8: the open-item rules of
+/// [`run`] over the registered rules of `list` only (D8: the open-item rules of
 /// [`open_items`](crate::open_items)): the same path (scheme enablement, effective severities, supersession among the
 /// findings of `list`, waivers, EW-CORE-081), with the memo reads through [`Q::try_get`], so a query cycle is
 /// returned, never a panic. Supersession sees only the findings of `list`: a rule outside `list` that supersedes a

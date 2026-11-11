@@ -55,7 +55,7 @@ fn derived(name: &str) -> String {
         .unwrap_or_default()
 }
 
-/// Ruling 1 (W49.1 C): every parameter of every action the palette opens a form for has its `param-<name>` label in
+/// Ruling 1: every parameter of every action the palette opens a form for has its `param-<name>` label in
 /// en-GB and nl-NL; the en-GB label is the one derived before, the Dutch one its own.
 #[test]
 fn every_palette_form_parameter_has_a_label_in_both_locales() {
@@ -111,7 +111,7 @@ fn kinds() -> [RuleKind; 5] {
     all
 }
 
-/// Ruling 3 (W49.1 F): every rule kind has its `finding-kind-<kind>` in en-GB and nl-NL, and the detail's line of a
+/// Ruling 3: every rule kind has its `finding-kind-<kind>` in en-GB and nl-NL, and the detail's line of a
 /// completeness error reads in the UI language with both words mid-sentence; in en-GB as before.
 #[test]
 fn the_finding_detail_names_kind_and_severity_in_words() {
@@ -137,7 +137,7 @@ fn the_finding_detail_names_kind_and_severity_in_words() {
     assert!(strings::set_locale("en"));
 }
 
-/// Ruling 6 (W49.1 K): a count of one takes its own text in both languages.
+/// Ruling 6: a count of one takes its own text in both languages.
 #[test]
 fn a_count_of_one_reads_in_the_singular() {
     let cases = [
@@ -193,7 +193,7 @@ fn a_count_of_one_reads_in_the_singular() {
     );
 }
 
-/// Ruling 7 (W49.1 L): right after Terminal strip…, the Terminal strips tree names the new strip in words, not by its
+/// Ruling 7: right after Terminal strip…, the Terminal strips tree names the new strip in words, not by its
 /// underived tag, and the table, whose rows are terminals, says there is none yet and how to place one.
 #[test]
 fn a_new_strip_without_a_terminal_reads_in_words() {
@@ -346,7 +346,7 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
         ("Enclosure heater ", "Kastverwarming "),
         ("2P manual switch ", "2P-handschakelaar "),
         ("NO position switch ", "NO-positieschakelaar "),
-        // FT-1483 (ID-1457): the generic rule's segments, a segment without words of its own as written.
+        // FT-1483: the generic rule's segments, a segment without words of its own as written.
         ("Cabinet lamp ", "Kastlamp "),
         ("NC thermostat ", "NC-thermostaat "),
         ("A1A2 coil ", "A1A2 spoel "),
@@ -931,7 +931,7 @@ fn the_navigators_sections_and_yes_or_no_cells_read_in_dutch() {
     shell.shutdown();
 }
 
-/// FT-1355 (W50-F4): the Messages pane names its scheme in the window's language, as the wizard's choice does.
+/// The Messages pane names its scheme in the window's language, as the wizard's choice does.
 #[test]
 fn the_messages_scheme_reads_in_dutch() {
     let tmp = Tmp::new("scheme-nl");
@@ -1022,7 +1022,7 @@ fn every_report_kind_has_its_words_in_both_locales() {
     assert_eq!(missing(&wanted), Vec::<String>::new());
 }
 
-/// FT-1364 (W50-F14): View ▸ Language takes the toasts on show off the screen, so none mixes the languages; the log
+/// View ▸ Language takes the toasts on show off the screen, so none mixes the languages; the log
 /// keeps them, and choosing the language already on show keeps them.
 #[test]
 fn a_language_switch_drops_the_toasts_on_show() {
@@ -1040,7 +1040,7 @@ fn a_language_switch_drops_the_toasts_on_show() {
     shell.shutdown();
 }
 
-/// FT-1338 (ID-1392): the window words what `ew-api` builds in English (FT-680) in its language: a device's kind, a
+/// The window words what `ew-api` builds in English (FT-680) in its language: a device's kind, a
 /// terminal's state, an interruption point's direction, a function's kind of `KIND_WORDS` and a provenance chip; in
 /// en-GB they read as before.
 #[test]
@@ -1112,7 +1112,7 @@ fn navigator_cells_kinds_and_chips_read_in_dutch() {
     shell.shutdown();
 }
 
-/// FT-1483 (ID-1457, ID-1459): the window words what the navigators' JSON keeps in English: a function's kind by the
+/// FT-1483: the window words what the navigators' JSON keeps in English: a function's kind by the
 /// generic rule ("NC thermostat 5-3"), a library's tier, access and index state, a report block's kind; in en-GB they read as
 /// the CLI prints them, but a block's kind, which reads by its words in both.
 #[test]

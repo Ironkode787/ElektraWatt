@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The export job's page display lists are memoised per layer and incremental (FT-59; ARCH §6.4, doc 09 §4.1: "a
+//! The export job's page display lists are memoised per layer and incremental (ARCH §6.4, doc 09 §4.1: "a
 //! wire edit never rebuilds the title block").
 //!
 //! Each test exports the golden project once through the session's memo store, commits one edit and exports

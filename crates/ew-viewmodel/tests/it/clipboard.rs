@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard through the shell on temporary copies of Golden A (WP-S2.05 part 3, acceptance checks CB4, CB7 and
+//! The clipboard through the shell on temporary copies of Golden A (acceptance checks CB4, CB7 and
 //! the shell half of CB8): FR-DEV-029's copy and paste of -102F1 on folio 102 (-102F3, part A9F78116, no wire); the
 //! paste tool (ghost, dwell preview with the predicted tags, commit with the pasted representation selected, Escape);
 //! duplicate (the clipboard unchanged); cut (one undo step, the clipboard keeps the fragment); plain text refused; the

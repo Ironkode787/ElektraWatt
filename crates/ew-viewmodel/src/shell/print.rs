@@ -613,7 +613,7 @@ impl ShellModel {
     /// The end of build `generation`: the dialog's state, when it still shows that build.
     fn finish_print(&mut self, generation: u64, end: JobEnd<Result<PrintSet, OutputError>>) {
         // A selection the page order refuses is the Pages text's refusal, shown once under the field
-        // in words while the preview shows the empty state; any other failure shows in the preview only. FT-1190: the
+        // in words while the preview shows the empty state; any other failure shows in the preview only. The
         // refusal is told by its kind, `OutputError::Selection`, never by its text.
         let pages = self.print_dialog().is_some_and(|d| d.range == PrintRange::Pages);
         let (build, set, field_error) = match end {

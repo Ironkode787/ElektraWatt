@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel in the window without rendering (WP-S2.09 part 2, acceptance check MS5 and the window half of
+//! The message panel in the window without rendering (acceptance check MS5 and the window half of
 //! MS1 and MS4): View ▸ Messages docks the pane at the bottom with its header line, rows and footer; the finding rows
 //! are tree items named `<label>, finding, <severity>[, fix][, pending]`; F8 and Shift+F8 walk the findings from the
 //! keyboard; the detail block names the cursor's rule and its Rule page link opens the rule's page in the browser; a

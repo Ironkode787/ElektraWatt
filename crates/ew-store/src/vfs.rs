@@ -85,7 +85,7 @@ pub trait Vfs: Send + Sync + fmt::Debug {
     /// project's journal directory, so that one project reached through two paths (a mapped drive and its
     /// UNC path, a symbolic link) has one journal (doc 05 §8.1).
     fn canonicalize(&self, path: &Path) -> io::Result<PathBuf>;
-    /// Makes `path` user-only when its mode is wider: a directory (`dir`) 0700, a file 0600 (WP-S6.05 D10,
+    /// Makes `path` user-only when its mode is wider: a directory (`dir`) 0700, a file 0600 (
     /// NFR-PRIV-05: the state directory, its journals). Only the OS file system on Unix does anything: on Windows the
     /// state directory inherits the per-user ACL of `%LOCALAPPDATA%`. A failure is ignored: the path keeps its mode.
     fn user_only(&self, path: &Path, dir: bool) {

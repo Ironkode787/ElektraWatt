@@ -42,11 +42,11 @@ pub struct Options {
     /// Compare the 150 dpi PNGs of the AC-02 folios (about a minute in a debug build). Off, the PNG entry is
     /// reported as not applicable.
     pub raster: bool,
-    /// Measure and assert the AC-17 times (a milestone run: `cargo xtask acceptance --milestone`, which sets
+    /// Measure and assert the AC-17 times (the gate with `EW_PERF_ASSERT=1`, which sets
     /// `EW_PERF_ASSERT=1`). Off, AC-17 is reported as not applicable and no clock is read.
     pub perf: bool,
     /// The memo oracle of the two oracle sessions (`oracle`, `profiled`) once they are open: `Oracle::Every` in the
-    /// gate (`cargo xtask acceptance`) and the deep nightly, a fixed sample per gate in the ordinary tests (test
+    /// gate and the deep run, a fixed sample per gate in the ordinary tests (test
     /// audit g7). The mismatch count is in the report either way.
     pub oracle: ew_derive::Oracle,
     /// The veraPDF XML report that AC-13's veraPDF entry reads (the gate passes `EW_VERAPDF_REPORT` here; the

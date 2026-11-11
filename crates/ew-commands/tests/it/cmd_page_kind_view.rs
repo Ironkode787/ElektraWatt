@@ -234,7 +234,7 @@ fn a_page_without_a_view_deletes_nothing() {
     assert_eq!(count(e.model()), items);
 }
 
-/// FT-882 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
+/// FT-882 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
 /// with what the user can do"): a move of a selection that holds the surface view names the view and the true reason.
 #[test]
 fn a_move_of_a_selection_with_the_surface_view_names_it() {

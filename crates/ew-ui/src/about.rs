@@ -464,7 +464,7 @@ fn form_fields(
             ui.add_space(t.space_3);
             if f.is_toggle() {
                 let mut on = f.value == "true";
-                // W49.2-F1: Enter on the focused check box is no click (egui's): it neither toggles nor submits;
+                // Enter on the focused check box is no click (egui's): it neither toggles nor submits;
                 // Space toggles it. The check box takes the next automatic id.
                 if ui.memory(|m| m.has_focus(ui.next_auto_id())) {
                     ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Enter));

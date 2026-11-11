@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host and the preview protocol with tools that exist only here (WP-S2.03 part 2, spec §7.6; acceptance
+//! The tool host and the preview protocol with tools that exist only here (spec §7.6; acceptance
 //! checks T1, T2, T3, the probe's part of T9 and the preview words of T10). Built only with the dev-only feature
 //! `testkit` (`required-features`), which `ShellModel::set_tool_for_tests` needs; `ci/dep-rules.toml` bans the feature
 //! on every non-dev edge, so the binaries never contain the seam.

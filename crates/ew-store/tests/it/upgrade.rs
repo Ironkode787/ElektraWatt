@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A project of an older format through the store (WP-S1.17 D10, D11 and D3, decision log ID-1221 rulings 3, 4, 5
+//! A project of an older format through the store (D11 and D3, decision log ID-1221 rulings 3, 4, 5
 //! and 7): the migrated open (MG-1), a migration that fails (MG-2), the consent gate of the first save, the unstable
 //! marker and its read side (SG-1). The `"0.0"` fixture is built here: a project record at `$v` 0 with its member's
 //! old name, a library copy no step changes, and a manifest of format `"0.0"` with a member the format step renames.

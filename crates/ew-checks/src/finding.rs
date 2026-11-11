@@ -114,7 +114,7 @@ impl Target {
 pub struct QuickFix {
     /// The label, in English: the CLI's and the JSON's text.
     pub label: String,
-    /// The Fluent message of the label in the rule messages (`fix-…`, [`crate::messages::fix_label`]; FT-1482), the
+    /// The Fluent message of the label in the rule messages (`fix-…`, [`crate::messages::fix_label`]), the
     /// window's text; `None` for a fix an importer proposed, whose label is shown as written.
     pub key: Option<&'static str>,
     /// The command name from the catalogue, for example `terminal.designate`.
@@ -159,7 +159,7 @@ pub struct Finding {
     /// Whether the rule read library data of a confidence other than `verified` (FR-PRT-031, FT-323's marker,
     /// [`ew_derive::part_confidence`]): the finding is then marked as resting on unverified data.
     pub unverified_data: bool,
-    /// The import code a live finding stands for in the migration report as well (WP-S3.09 D9: one row per
+    /// The import code a live finding stands for in the migration report as well (one row per
     /// condition, [`crate::rules::imp::fold`]); `None` for every other finding.
     pub origin: Option<&'static str>,
     /// The fingerprint.

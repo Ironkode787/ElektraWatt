@@ -465,7 +465,7 @@ impl ShellModel {
     /// Why a row cannot take `action` now, as the outcome that refuses it: `None` when it can. A read-only
     /// project refuses with `reason-read-only`; in an editable project a derived row is computed
     /// (`reason-row-computed`), a human-only row keeps `reason-human-only`, a row with another read-only reason reads
-    /// that reason in a sentence (`crate::properties::refusal_text`, a formatted refusal; FT-1051), and an editable
+    /// that reason in a sentence (`crate::properties::refusal_text`, a formatted refusal), and an editable
     /// row that does not
     /// offer the action reads `reason-action-not-offered`.
     fn props_refusal(&self, section: &SheetSection, row: &PropRow, action: RowAction) -> Option<Outcome> {
@@ -1873,7 +1873,7 @@ impl ShellModel {
         }
     }
 
-    /// The entries of the actions menu of the row `key` (FT-530, FT-754 (h)): the row's actions, then Make variable
+    /// The entries of the actions menu of the row `key` (FT-754 (h)): the row's actions, then Make variable
     /// when the row can be a macro variable (a row of one record with an action, not a derived value), then on a
     /// Parts row Choose part…, Add part… and Edit part…; empty for a row that is not on show.
     pub fn row_menu(&self, key: &str) -> Vec<RowMenuItem> {
@@ -2311,7 +2311,7 @@ impl ShellModel {
     }
 
     /// Shows `text` as a toast: what a command did that the page does not show by itself (a new strip, the
-    /// wires a placement drew); `undo` offers Undo. WP-S2.09 D6: the toasts of these callers share the key `edit`, so a
+    /// wires a placement drew); `undo` offers Undo. The toasts of these callers share the key `edit`, so a
     /// newer one replaces an older one on screen; every one enters the notifications log.
     pub(super) fn notify(&mut self, text: String, undo: bool) {
         self.notify_with(text, "edit", undo);
@@ -2506,7 +2506,7 @@ pub(super) mod tests {
              the checks report",
             "the reason says why, with no plan reference"
         );
-        // The window's shell: a person drives it (cycle 41, ruling 1: the origin is `Origin::Gui` only there).
+        // The window's shell: a person drives it (ruling 1: the origin is `Origin::Gui` only there).
         shell.mode = Mode::Gui;
         shell.person = true;
         assert_eq!(shell.dispatch("edit.undo", &Value::Null), Outcome::Done);

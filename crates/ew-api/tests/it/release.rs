@@ -972,7 +972,7 @@ struct Seen {
     /// Open with an incomplete release that was discarded.
     discarded: u32,
     /// Open with an incomplete release that no run record proves this directory's: a discard kept it, and it was
-    /// completed. Since the record is durable before the archive has its name (FIX40a, finding 3), a crash never leaves
+    /// completed. Since the record is durable before the archive has its name (finding 3), a crash never leaves
     /// this: the sweeps assert it is zero.
     kept: u32,
 }
@@ -1139,7 +1139,7 @@ fn sweep(fault: fn(u64) -> Fault, in_worktree: bool) -> Seen {
 /// RA-3 (process kill): a kill at every file-system call of the release, inside a worktree (the fake port keeps the
 /// tag across the crash). The outcomes of [`after_the_crash`] occur: open with nothing written, an incomplete release
 /// completed and discarded, and released; never one a discard keeps, since the run's record is durable before the
-/// archive has its name (FIX40a, finding 3: a crash right after the rename is discardable by this directory).
+/// archive has its name (finding 3: a crash right after the rename is discardable by this directory).
 #[test]
 fn a_kill_at_every_call_leaves_a_settled_or_incomplete_release() {
     let seen = sweep(|at| Fault::Kill { at }, true);
@@ -1373,7 +1373,7 @@ fn a_foreign_archive_in_the_root_is_kept() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-814: what a discard may remove when two copies of one project directory share an archive root or a repository
+// What a discard may remove when two copies of one project directory share an archive root or a repository
 
 /// Why a discard keeps an archive of this project and the open revision that no run record of this project directory
 /// names.

@@ -37,11 +37,11 @@ const VERSION: &str = "0.1.0";
 /// 0.4.1 since FT-1204 moved the on/off switch to the manual-command category, class S, 0.5.0 since FT-1401
 /// added the generic cable EW-GEN-CBL-1.
 const LIBRARY_VERSION: &str = "0.5.0";
-/// The parts whose content changed after 0.1.0, at their next patch version (FT-659: the selector switch on a
-/// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. FT-655: the relay
-/// and the contactor template their contacts beside the coil. WP-S1.21 D17: the CPU's bus section, after 0.2.0.
-/// The dimensions. WP-S1.20 D4: the valve's solenoid 14 leaves the pattern for its fluid section, a
-/// major change. FT-1204: the on/off switch on the manual-command FnDef, letter S).
+/// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
+/// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
+/// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
+/// The dimensions. The valve's solenoid 14 leaves the pattern for its fluid section, a
+/// major change. The on/off switch on the manual-command FnDef, letter S).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.1"),
     ("EW-GEN-VLV-1", "0.2.0"),

@@ -3,7 +3,7 @@
 
 //! The PLC navigator and grid in the view model (acceptance PG2 to PG4, PG6): a channel row
 //! dropped on a connection point binds it with one `plc.bind_channel` (FR-PLC-020), a drop beside every CP is refused,
-//! the PLC flags filter the rows, and pasting eight symbols into the grid is one undo step (FR-PLC-021). FT-753: a
+//! the PLC flags filter the rows, and pasting eight symbols into the grid is one undo step (FR-PLC-021). A
 //! channel dropped on a field device wired to its card binds the card's pin, on a valve beside a valve terminal attaches
 //! and binds it, and on anything else is refused in words; FT-757: the grid leads with address and target, a displaced
 //! channel is named, an edited row keeps the cursor, the toast reads in sentence case. PG6: transcript and counts.

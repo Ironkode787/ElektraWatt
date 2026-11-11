@@ -154,7 +154,7 @@ fn a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
     shell.shutdown();
 }
 
-/// ID-1278 ruling 11: a selected free text of two lines that holds a `"` is quoted on one `canvas live`
+/// A selected free text of two lines that holds a `"` is quoted on one `canvas live`
 /// line as the page items' texts are (a line break a space, a `"` a `'`); the live region keeps the text as it is.
 #[test]
 fn a_two_line_text_with_a_quote_stays_on_one_quoted_line() {

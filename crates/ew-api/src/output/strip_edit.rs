@@ -220,7 +220,7 @@ impl Session {
             .collect()
     }
 
-    /// The key of the function definition of the function `record` (WP-S2.06 §6.7: the drop of an unplaced function
+    /// The key of the function definition of the function `record` (the drop of an unplaced function
     /// row arms the Place tool with a symbol drawing that definition; the row names the function in words since cycle
     /// 37), else the definition's ID text; `None` when `record` is no function.
     pub fn function_fndef_key(&self, record: Uuid) -> Option<String> {
@@ -229,7 +229,7 @@ impl Session {
         Some(super::navigators::fndef_name(&q, f))
     }
 
-    /// The main function of the device `record` and the key of its function definition (WP-S2.07 §6.8: an unplaced
+    /// The main function of the device `record` and the key of its function definition (an unplaced
     /// terminal row places its terminal's main function); `None` when `record` is no device or the device has no
     /// function. The key is empty for a definition without one.
     pub fn main_function(&self, record: Uuid) -> Option<(Uuid, String)> {
@@ -266,7 +266,7 @@ impl Session {
         self.strip_edits_with(edits, Vec::new())
     }
 
-    /// [`Session::strip_edits`] with parts the project does not hold yet resolving beside its copies (WP-S2.07 D16: a
+    /// [`Session::strip_edits`] with parts the project does not hold yet resolving beside its copies (a
     /// catalogue part the part dialog chose, whose closure the command carries in `copies`): each `[copy ID, part
     /// number, manufacturer, kind word, description]`.
     pub(crate) fn strip_edits_with(

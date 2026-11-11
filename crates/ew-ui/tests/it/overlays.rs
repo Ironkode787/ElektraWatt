@@ -197,7 +197,7 @@ const TILE_PIXELS: usize = 16;
 
 /// The first 32 × 32 tile (x, y, count) of an image `w` pixels wide that holds more than [`TILE_PIXELS`]
 /// differing pixels: the differences may be scattered edge pixels, never a drawn thing, so a short tag that appears
-/// or goes (59 pixels of "1X1") fails although the whole image allows more. FT-1350: the tiles overlap by half (one
+/// or goes (59 pixels of "1X1") fails although the whole image allows more. The tiles overlap by half (one
 /// every 16 pixels), so a tag up to 16 pixels across lies whole in one of them wherever it stands.
 fn crowded_tile(differs: &[bool], w: usize) -> Option<(usize, usize, usize)> {
     let h = differs.len() / w;
@@ -615,7 +615,7 @@ fn the_link_preview_has_a_named_region() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1091 (ID-1184; play-test rv-vis-7, t0009): the link preview popup and a hover tooltip never show at once. A
+/// FT-1091 (play-test rv-vis-7, t0009): the link preview popup and a hover tooltip never show at once. A
 /// connection point that stands on a link (24VDC-1 of folio 103, over 0VDC's link to cell 102-C15; FT-1436 moved
 /// folio 101's "102-A1" off N-1) is hovered until the rest opens the popup, and then for as long again: the connection
 /// point's tooltip does not show while the popup does.

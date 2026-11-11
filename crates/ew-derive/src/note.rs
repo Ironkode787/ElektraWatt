@@ -76,7 +76,7 @@ pub enum DeriveNote {
         used: String,
     },
     /// A numbering scheme was not applied; the pinned profile's default scheme formats the tag instead
-    /// (decision log ID-99, until the numbering engine of WP-S1.11 numbers every scheme).
+    /// (until the numbering engine of WP-S1.11 numbers every scheme).
     SchemeNotApplied {
         /// The scheme key.
         scheme: String,

@@ -55,7 +55,7 @@ impl PasteTool {
         }
     }
 
-    /// The tool pasting with `adapt` (FT-396's Use the project's copy, WP-S2.07 D22).
+    /// The tool pasting with `adapt` (FT-396's Use the project's copy).
     #[must_use]
     pub fn adapting(mut self, adapt: Vec<ew_api::output::Uuid>) -> PasteTool {
         self.adapt = adapt;

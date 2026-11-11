@@ -1036,7 +1036,7 @@ impl Command for CreateBond {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S2.04 part 3: a wire ending in a new interruption point, and the arrangement of interruption points
+// A wire ending in a new interruption point, and the arrangement of interruption points
 
 /// `false`, for `skip_serializing_if`.
 fn is_false(b: &bool) -> bool {
@@ -1048,7 +1048,7 @@ fn is_r0(o: &Orient2) -> bool {
     o.is_default()
 }
 
-/// The refusal of an interruption point's star (ID-1146, ID-1038's ruling (a)): a star source is a source point, and
+/// The refusal of an interruption point's star (ID-1038's ruling (a)): a star source is a source point, and
 /// an external point never pairs, so it takes no star. `None` for an unstarred point and a starred source; the
 /// external refusal first, since clearing the star answers both.
 pub(crate) fn star_problem(direction: &IpDirection, star_source: bool, external: bool) -> Option<Text> {
@@ -1114,7 +1114,7 @@ pub struct IpAtEnd {
 ///
 /// Nothing derived is read inside the transaction (the name and the direction are the tool's). Rejected: as
 /// `ip.place` (a missing page, symbol copy or external reference, a FnDef that is not embedded, `ip.pos` off the
-/// grid, a starred point that is no source or is external, ID-1146), as `connection.draw` (a missing endpoint record,
+/// grid, a starred point that is no source or is external), as `connection.draw` (a missing endpoint record,
 /// off-grid geometry, a route that does not meet its CPs) and an `a` end that no representation of `page` draws; an IP
 /// symbol whose FnDef has not exactly one CP, or that does not draw it; a fluid line, and another kind from a fluid
 /// end, in words (T1, T2).

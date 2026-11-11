@@ -91,7 +91,7 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
     out
 }
 
-/// The arguments a pattern reads as numbers (an ordinal through `NUMBER(…, type: "ordinal")`, FT-756).
+/// The arguments a pattern reads as numbers (an ordinal through `NUMBER(…, type: "ordinal")`).
 const NUMBER_ARGS: &[&str] = &["cp_nth"];
 
 /// The decimal arguments of a rule, by rule ID: written with the decimal separator of the language

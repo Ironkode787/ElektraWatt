@@ -899,7 +899,7 @@ fn reshape_rejections_write_nothing() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-399: an interruption point's members through `fields.set`
+// An interruption point's members through `fields.set`
 
 fn set_ip(f: Id<Function>, member: &str, value: serde_json::Value) -> ew_commands::commands::SetFields {
     ew_commands::commands::SetFields {
@@ -985,7 +985,7 @@ fn fields_set_refuses_ip_members_on_other_functions_and_bad_values() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-673: `copies` on connection.draw_to_ip and ip.place
+// `copies` on connection.draw_to_ip and ip.place
 
 /// The library of the FT-673 copies (another library than the fixture's, so the copy is a new item).
 const LIBRARY_F673: Uuid = Uuid::from_u128(0xf673_0000);
@@ -1063,7 +1063,7 @@ fn ip_place_embeds_its_copies_in_the_same_undo_step() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-980: a star source is a source point, and an external point takes no star; FT-946: an external
+// A star source is a source point, and an external point takes no star; FT-946: an external
 // point at the end of a wire
 
 /// The refusal of a starred point with another direction.

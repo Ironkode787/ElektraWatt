@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1084 and FT-1096 (ID-1181, the cycle-46 play-test): a press of the Wire tool within reach of a rail but not of
+//! FT-1084 and FT-1096 (the cycle-46 play-test): a press of the Wire tool within reach of a rail but not of
 //! its end's connection point, beside the end's grid point, joins the rail at the next grid point along it with a
 //! junction, rather than fixing a bend there that leaves the wire to end elsewhere; and the T-join the tool makes on
 //! the default template has its junction and the junction's dot. The situation is built through the window's own

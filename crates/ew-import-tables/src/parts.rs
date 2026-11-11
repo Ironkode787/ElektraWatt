@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Parts tables into an existing project (FT-410; the golden-dialect slice of WP-S1.19a's parts import): the
+//! Parts tables into an existing project (the golden-dialect slice of WP-S1.19a's parts import): the
 //! `parts.csv` a person chose and, when they lie in the same folder, its sibling tables `part_cps.csv`,
 //! `part_templates.csv`, `cable_cores.csv` and `part_plc.csv`, read into project-local part copies exactly as the
 //! bootstrap mints them (`emit/parts.rs`): `library_id` = the project ID, `item_id = v5(ns, "parts|{key}")` in the
@@ -194,7 +194,7 @@ pub fn parse_parts_tables(
 }
 
 /// What [`parse_parts_tables`] reads: the project-local part copies in `parts.csv` row order, and the project-local
-/// manufacturer copies they name in name order (WP-S1.19 D10: `item_id = v5(ns, "manufacturers|<name>")`, the key
+/// manufacturer copies they name in name order (`item_id = v5(ns, "manufacturers|<name>")`, the key
 /// and name the table's manufacturer cell).
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct PartsTables {

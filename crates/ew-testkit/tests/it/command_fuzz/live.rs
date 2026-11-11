@@ -183,7 +183,7 @@ pub struct IpInfo {
     pub name: String,
     /// Whether `ip.continue` of it leaves its name with at most one source point: it is no target, or no other
     /// point of its name is a source, or one of them is the flagged star source (a second source without a star
-    /// source is EW-CORE-052, which prevents it, FT-194).
+    /// source is EW-CORE-052, which prevents it).
     pub continues_cleanly: bool,
 }
 

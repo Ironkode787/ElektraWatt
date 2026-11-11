@@ -84,7 +84,7 @@ impl Member {
 ///
 /// Checked:
 /// - `numbering` ([`crate::NumberingSettings`]): `default` must name one of `schemes` (otherwise the
-///   profile's scheme applies silently, decision log ID-103); every format must use only the known tokens
+///   profile's scheme applies silently); every format must use only the known tokens
 ///   (an unknown one prints into tags); every scheme must be one that `device_tag` applies (the
 ///   `SchemeNotApplied` rule of decision log ID-99: counter scope `"page"` and formats with `{page}`,
 ///   `{letter}` and `{counter}`);
@@ -150,7 +150,7 @@ pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
 
 /// The company colour codes that [`check_member`] accepts for the `colour_profile` value `colour_profile`, as
 /// `(code, base IEC 60757 code)` in the order the profile's `codes` declare them (doc 08 §4.5: `("DBU", "BU")`);
-/// empty for a value [`check_member`] would refuse, and for a profile that declares none (WP-S2.05 §4.2: the
+/// empty for a value [`check_member`] would refuse, and for a profile that declares none (the
 /// property grid's colour editor accepts exactly these besides the IEC codes).
 pub fn company_codes(colour_profile: &Value) -> Vec<(String, String)> {
     if check_member(Member::ColourProfile, colour_profile).is_err() {

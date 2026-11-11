@@ -10,7 +10,7 @@
 //! maximised one keeps its last normal size and position with `maximized = true`.
 //!
 //! **Units.** The size is in points at the zoom 1 on every platform; the position is in the desktop's uniform space,
-//! physical pixels (R2-1; macOS, with its global logical points of R3-2, is not a supported platform).
+//! physical pixels (macOS, with its global logical points of R3-2, is not a supported platform).
 //!
 //! - *The size.* egui reports the window's rectangles in its points at the current zoom (the physical pixels divided
 //!   by the native scale times egui's zoom factor, which is the UI scale); the recorded size is the reported one times
@@ -38,7 +38,7 @@
 //! eframe's winit window and [`first_frame`] moves the window to its saved position and runs the same pure clamp
 //! ([`placement`]) there: a window whose title bar is on no monitor (its monitor gone) moves onto the primary one.
 //!
-//! **A window restored maximised** (R3-1) is built un-maximised and maximised on the first frame, after the move: had
+//! **A window restored maximised** is built un-maximised and maximised on the first frame, after the move: had
 //! the builder maximised it, the system would keep its normal rectangle where the builder's first guess put it,
 //! uncorrected and unclamped, and un-maximising would send it there (off the panel at a monitor scale above 100 %).
 //! The first frame's commands (`OuterPosition`, then `Maximized`) are applied in that order in one frame: egui-winit
@@ -61,7 +61,7 @@ pub struct Display {
 
 /// The window builder `builder` with the saved geometry `saved` restored: its size and its position as a first guess
 /// (the saved pixels taken as points); never maximised, even when the saved state is: [`first_frame`] places the
-/// window and then maximises it (R3-1).
+/// window and then maximises it.
 pub fn restore(builder: ViewportBuilder, saved: Option<WindowGeometry>) -> ViewportBuilder {
     let Some(g) = saved.map(|g| window::restore(g, &[])) else {
         return builder;
@@ -80,7 +80,7 @@ pub enum FirstFrameStep {
     Maximize,
 }
 
-/// The first frame's steps (R3-1): the move of [`first_frame_position`] when the window's position is known
+/// The first frame's steps: the move of [`first_frame_position`] when the window's position is known
 /// (`outer_px`; Wayland reports none) and the window must move, then the maximise when the saved state is maximised.
 /// The arguments are those of [`first_frame_position`], with the whole saved geometry.
 pub fn first_frame(
@@ -121,7 +121,7 @@ pub fn placement(at: (f32, f32), size: (f32, f32), monitors: &[MonitorArea]) -> 
     ((g.x, g.y) != at).then_some((g.x, g.y))
 }
 
-/// The first frame's move of the window (R2-1, R2-2, R3-2): the `OuterPosition` to send, in points at the
+/// The first frame's move of the window: the `OuterPosition` to send, in points at the
 /// zoom `zoom`, or `None` when the window stays. `saved` is the saved outer position in physical pixels (when there is
 /// one); the window's outer top-left corner `outer_px` and inner size `inner_px` as it opened and the `displays` are
 /// winit's physical values; `scale` is the window's native scale. The window goes to the saved position, clamped onto
@@ -270,7 +270,7 @@ mod tests {
         assert_eq!(observed(&unscaled, 1.0, Some(normal)), None);
     }
 
-    /// R1-1, R2-1: at the UI scale 2 and the native scale 1.5 egui reports a window of 1280 × 800 logical points
+    /// At the UI scale 2 and the native scale 1.5 egui reports a window of 1280 × 800 logical points
     /// (1920 × 1200 px) with its outer corner at (150, 75) px as 640 × 400 points at (50, 25); the window records the
     /// size in zoom-1 points and the position in pixels.
     #[test]
@@ -295,7 +295,7 @@ mod tests {
         );
     }
 
-    /// R2-1: a desktop of a 150 % primary (1920 × 1080 px) and a 100 % secondary to its right (2560 × 1440 px at
+    /// A desktop of a 150 % primary (1920 × 1080 px) and a 100 % secondary to its right (2560 × 1440 px at
     /// x = 1920), the UI scale 1.25. A window saved on the secondary at (2200, 100) px opens on the primary from the
     /// builder's guess (2200 points → 3300 px), the first frame moves it back to 2200 px, and it records 2200 px again:
     /// start after start, no drift and no shrink (it used to go 2200 → 3300 → 4950 px, then onto the primary).
@@ -353,7 +353,7 @@ mod tests {
         }
     }
 
-    /// R2-1: a saved position on no monitor (a monitor gone, or a value from before R2-1 in points) is clamped on the
+    /// A saved position on no monitor (a monitor gone, or a value from before R2-1 in points) is clamped on the
     /// first frame; a window already at its saved place does not move; no saved position runs the clamp on where the
     /// window opened.
     #[test]
@@ -399,7 +399,7 @@ mod tests {
         assert_eq!(nan, None);
     }
 
-    /// R1-4: a window that opened on a monitor that is gone moves onto the primary one; one on any monitor
+    /// A window that opened on a monitor that is gone moves onto the primary one; one on any monitor
     /// (the left one at negative x included) stays; without a monitor list nothing moves.
     #[test]
     fn the_first_frame_moves_an_off_screen_window_onto_the_primary_monitor() {
@@ -444,7 +444,7 @@ mod tests {
             .collect()
     }
 
-    /// R2-2: the first frame's conversion at the scale 1.5 and the zoom 2. The primary (listed second) is at 150 %:
+    /// The first frame's conversion at the scale 1.5 and the zoom 2. The primary (listed second) is at 150 %:
     /// 2880 × 1620 px at (0, 0); a window that opened at (-3000, 60) px, on a monitor that is gone, moves onto the
     /// primary at x = 0 and keeps its y; egui-winit maps the command back to physical pixels by `zoom × scale`.
     #[test]
@@ -481,7 +481,7 @@ mod tests {
         );
     }
 
-    /// R3-1: a window saved maximised on a single 150 % panel (3840 × 2160 px) with its normal corner at (2700, 100) px
+    /// A window saved maximised on a single 150 % panel (3840 × 2160 px) with its normal corner at (2700, 100) px
     /// opens un-maximised from the builder's guess (2700 points → 4050 px, off the panel); the first frame moves it to
     /// its saved normal place and then maximises it. Saved un-maximised it only moves; at its place and maximised it
     /// only maximises; without a known position (Wayland) a maximised window is still maximised.

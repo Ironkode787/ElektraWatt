@@ -185,7 +185,7 @@ impl ShellModel {
                 };
                 self.notify(text, true);
             }
-            // FIXPT41: an interruption point dropped on a pin says where it stands, what it connects to and the way
+            // An interruption point dropped on a pin says where it stands, what it connects to and the way
             // to place it free (the key from the keymap).
             ResultNote::IpConnected {
                 pos,
@@ -878,7 +878,7 @@ impl ShellModel {
 
     /// `place.pick` (§7.6, headless): one of `symbol` (key or copy ID), `part` (part number or copy ID) with
     /// `template` (0-based; a part without a function template with `symbol` instead), `function` (ID, with `symbol`); optional `letter`; for a terminal `strip` (tag or ID)
-    /// and `designation`. WP-S2.18 D4: `device=<tag>` (with `symbol`) joins an existing device, and `function` also
+    /// and `designation`. `device=<tag>` (with `symbol`) joins an existing device, and `function` also
     /// takes `<tag>:<slot>` or `<tag>` (with `symbol`): see [`super::join`].
     pub(crate) fn act_place_pick(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(cat) = self.catalogue() else {
@@ -1032,7 +1032,7 @@ impl ShellModel {
         }
         // FT-485 item 1: the strip draws nothing until a terminal is placed, so the toast says where it shows. FT-893:
         // its tag (`-X??` until then) is not shown; the toast says when it takes one, with the tag it would take from a
-        // terminal on the page on show as the example. FT-1090: a frozen tag is its own from the start.
+        // terminal on the page on show as the example. A frozen tag is its own from the start.
         self.sync_views();
         let given = frozen
             .then(|| {
@@ -1363,7 +1363,7 @@ impl ShellModel {
                 },
             };
         };
-        // An interruption point takes the wires at its connection point with it; the toast says so. FT-709: a
+        // An interruption point takes the wires at its connection point with it; the toast says so. A
         // device that keeps no symbol but stays in the project (EW-CORE-047) is named, with where it stays.
         let unplaced = self.devices_kept_unplaced(&reps, &unused);
         let note = delete_note(&reps, &drawn, &page.tables, unplaced);
@@ -1623,7 +1623,7 @@ impl ShellModel {
         };
         self.say_result(&before, &now);
         // The IP tool's ghost proposes its next name on the page as the commit left it (its kept direction may meet
-        // the name it just placed; FT-547).
+        // the name it just placed).
         self.after_ip_commit();
         let kept: Vec<EntityRef> = self
             .tools

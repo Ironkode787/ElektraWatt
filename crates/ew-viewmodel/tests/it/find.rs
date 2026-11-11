@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Find and replace through the shell on temporary copies of Golden A (WP-S2.05 part 2, acceptance checks FR3 to FR6
+//! Find and replace through the shell on temporary copies of Golden A (acceptance checks FR3 to FR6
 //! and PG7's stale replace card): "Spare" on 204 to 206 is 20 results and 16 on 204 and 205; the replace previews 20
 //! changes in the card and commits one `fields.set_many` (one undo step); the regular expression `(Spare)` →
 //! `$1 (unused)`; an identifier technical value; a library part number found but not replaced; freeze on three devices

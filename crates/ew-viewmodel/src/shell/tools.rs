@@ -396,7 +396,7 @@ impl ShellModel {
         if matches!(ev, CanvasEvent::Press { .. } | CanvasEvent::Activate) && self.place_needs_designation() {
             return Outcome::refused(key!("reason-designation-needed"));
         }
-        // FIXPT41: the IP tool's click on another interruption point, or an external point's on a pin, is refused in
+        // The IP tool's click on another interruption point, or an external point's on a pin, is refused in
         // words before it reaches the tool; the ghost stays.
         if let Some(out) = self.ip_drop_refused(ev) {
             return out;
@@ -471,7 +471,7 @@ impl ShellModel {
                 self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
                 // FT-485 item 3: the wires a placement draws by its autoconnect hints, said in the toast.
                 let connects = self.autoconnect_words(cmd.as_ref());
-                // FIXPT41: the pin the IP tool's point connects to, as its ghost named it before the commit.
+                // The pin the IP tool's point connects to, as its ghost named it before the commit.
                 let ip_pin = match self.tools.tool.ghost() {
                     Some(crate::tools::Ghost::Ip { connects, .. })
                         if cmd.name() == "connection.draw_to_ip" =>
@@ -541,7 +541,7 @@ impl ShellModel {
                 self.tools.preview = None;
                 // A committed paste returns to Select with the pasted representations selected.
                 self.tools.pasted = out == Outcome::Done && self.tools.tool.name() == "paste";
-                // FT-900 (ID-1147): what a placement made is the selection, replacing it: the schematic Place tool's
+                // FT-900: what a placement made is the selection, replacing it: the schematic Place tool's
                 // representations (the tool stays armed) and a layout drop's placement, at the end of the dispatch.
                 self.tools.placed = out == Outcome::Done && self.tools.tool.name() == "place";
                 if out == Outcome::Done
@@ -710,7 +710,7 @@ impl ShellModel {
         Some((count, list.join(", ")))
     }
 
-    /// After a committed placement of the schematic Place tool (FT-900, ID-1147): the representations the page tables
+    /// After a committed placement of the schematic Place tool (FT-900): the representations the page tables
     /// hold now and did not before the commit are the selection, one selection change; the tool stays armed.
     pub(super) fn after_place(&mut self) {
         if !std::mem::take(&mut self.tools.placed) {
@@ -1643,7 +1643,7 @@ mod ft779 {
         }
     }
 
-    /// FT-1363 (W50-F13): a human-only command refused for a script's origin is worded by its title, in the window's
+    /// A human-only command refused for a script's origin is worded by its title, in the window's
     /// language, never "exposure HumanOnly is refused for origin cmdlog:script.uiscript".
     #[test]
     fn a_refused_exposure_names_the_command_in_the_windows_language() {

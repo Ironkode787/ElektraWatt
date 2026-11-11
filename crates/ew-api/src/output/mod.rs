@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page output: the export job of the session (FT-59; doc 09 §4; ARCH §6.4, §8.4; decision log ID-125, ID-144,
-//! ID-344, ID-346).
+//! Page output: the export job of the session (doc 09 §4; ARCH §6.4, §8.4; decision log ID-125, ID-144,
+//! ID-344).
 //!
 //! **The view.** `view.rs` owns the glue rules that fill `ew_scene::page::PageView` from `Q` (the rules that were
 //! test glue until cycle 14), one query family per part of the view. **The layers.** `layers.rs` builds one
@@ -97,7 +97,7 @@ pub use editing::{
     TableEnd, TableItem, TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map,
 };
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
-/// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl` (WP-S2.02 §4.2;
+/// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl` (
 /// architecture §3 rule 7).
 pub use ew_dl;
 pub use ew_export::{Parallelism, PdfDate, PdfReport, SvgFile, svg_file_name};
@@ -112,7 +112,6 @@ pub use layers::{
     text_style_table,
 };
 pub use layout_edit::{LayoutEdit, LayoutEditError, parse_mm};
-// FT-1016
 pub use navigation::{CellLabel, GotoError, LinkTarget, PageCells, PageCp, PageListTable, PageRow};
 pub use scale_fit::fitting_scale;
 // The panel tables and the pure items of `ew_derive::layout` the layout tool runs, so that

@@ -3,7 +3,7 @@
 
 //! The project-creating and project-recovering actions of the shell: New project, Open
 //! sample project and Tutorials, Import QElectroTech project, and discarding the journal of an
-//! earlier session (FT-313's first part, decision log ID-475).
+//! earlier session (FT-313's first part).
 //!
 //! All of them end in a `Session` from `ew-api` that the shell holds like an opened project: a new project is
 //! `Session::new_project` followed by `Session::create` into the directory the user chose, an import is

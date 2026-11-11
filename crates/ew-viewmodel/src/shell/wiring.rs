@@ -392,7 +392,7 @@ impl ShellModel {
     /// nearest CP within 8 screen points), takes the channel: one `plc.bind_channel` with `endpoint: {cp: {function,
     /// idx}}`, whose own rules decide. A drop with no CP under it is refused with `reason-drop-on-cp`.
     ///
-    /// A CP off the channel's card (FT-753, `Session::off_card_bind`) is reached in the model's terms: a device
+    /// A CP off the channel's card (`Session::off_card_bind`) is reached in the model's terms: a device
     /// **wired** to one channel pin of the card binds the channel to that pin (wired to two or more, the drop is
     /// refused with `reason-bind-wired-pins` and a toast naming the pins, so that the channel is dropped on the pin
     /// meant); a device not wired to the card, when the card is a valve terminal with a free position, is attached

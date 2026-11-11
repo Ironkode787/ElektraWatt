@@ -597,7 +597,7 @@ pub struct Occupied {
 /// placement)` (doc 12 §2.6). Strips are one interval (their terminals side by side, D5). Intervals may overlap: the
 /// overlap is reported (EW-LAY-006), never resolved. Empty for a missing carrier, a duct, a rail without a valid
 /// axis; a placement without geometry is left out. The intervals are the bare footprints; each carries its clearance
-/// pads ([`Occupied::pad`], WP-S4.02 D3), which the snapping reads and the overlap check does not.
+/// pads ([`Occupied::pad`]), which the snapping reads and the overlap check does not.
 #[derive(Debug)]
 pub struct RailOccupancy;
 

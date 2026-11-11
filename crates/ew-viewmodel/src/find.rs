@@ -181,7 +181,7 @@ pub fn hit_label(hit: &FindHit) -> String {
 }
 
 /// `before` with each matched range marked as `[[…]]` (the window marks them bold and underlined; a result's accessible
-/// description uses the brackets, never colour alone, while its accessible name is the plain text, FT-433).
+/// description uses the brackets, never colour alone, while its accessible name is the plain text).
 pub fn marked(hit: &FindHit) -> String {
     let mut out = String::new();
     let mut at = 0;

@@ -396,7 +396,7 @@ fn bind_channel_takes_a_pin_of_a_black_box_card() {
         .expect("a black-box pin binds");
     assert_eq!(binding(&s, ch2), Some(ew_schema::Endpoint::Cp(function, idx)));
     assert_eq!(binding(&s, ch5), None);
-    // The displaced channel in words, no record ID; FT-952 (ID-1108: "N1's and N3's PLC notices drop their
+    // The displaced channel in words, no record ID; FT-952 ("N1's and N3's PLC notices drop their
     // UUIDs and requirement IDs"): no requirement ID either.
     assert!(!format!("{:?}", receipt.outcome.notices).contains(&ch5.to_string()));
     let notice =

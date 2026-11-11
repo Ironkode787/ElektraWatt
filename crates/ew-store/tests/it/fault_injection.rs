@@ -1145,7 +1145,7 @@ fn symlinked_page_file_is_not_followed() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-316: the `LibRef` keep-alive and the journal (EW-INV-021, ADR-0009 amendment 7)
+// The `LibRef` keep-alive and the journal (EW-INV-021, ADR-0009 amendment 7)
 
 /// The library and item of the FnDef copy of the FT-316 tests, and its copy ID `lib_copy_id(LIB_316,
 /// ITEM_316)` = `v5(NS_LIBCOPY, "<library>\u{1F}<item>")`; every test checks through the referrer index that

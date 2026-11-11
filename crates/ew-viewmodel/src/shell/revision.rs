@@ -164,7 +164,7 @@ fn field(
     }
 }
 
-/// The cause of an I/O failure as a release text ends on it (FIX41b ruling 6: "release troubles in words"):
+/// The cause of an I/O failure as a release text ends on it ("release troubles in words"):
 /// not found, no permission, not a folder, each in words from the error's kind; any other kind adds nothing, so the
 /// sentence ends on "could not be read" (never the OS text or its code).
 fn io_cause(kind: std::io::ErrorKind) -> &'static str {
@@ -187,13 +187,13 @@ pub(crate) fn trouble_text(t: &ReleaseTrouble) -> String {
     strings::format(key, &[&t.file_name(), io_cause(t.kind)])
 }
 
-/// The key of a count's text: `one` for exactly one, `many` otherwise (FIX41b ruling 4: "counts take their noun's
+/// The key of a count's text: `one` for exactly one, `many` otherwise ("counts take their noun's
 /// number").
 fn counted(n: usize, one: Key<'static>, many: Key<'static>) -> Key<'static> {
     if n == 1 { one } else { many }
 }
 
-/// Why the release gate cannot run, in words (FIX41b ruling 1: never the `Display` text).
+/// Why the release gate cannot run, in words (never the `Display` text).
 fn gate_words(e: &GateError) -> String {
     match e {
         GateError::NoProject => strings::text(key!("gate-no-project")).to_owned(),
@@ -209,7 +209,7 @@ fn gate_words(e: &GateError) -> String {
 }
 
 /// A gate's safety waiver in words: the rule's title and the object its finding is on, as the Messages table names a
-/// waived finding (FIX41b ruling 1: never the waiver's ID).
+/// waived finding (never the waiver's ID).
 fn waiver_words(report: &CheckReport, waiver: &str) -> String {
     let finding = report
         .findings
@@ -229,7 +229,7 @@ fn waiver_words(report: &CheckReport, waiver: &str) -> String {
     }
 }
 
-/// The approval's refusal in words (FIX41b ruling 1): each [`ApproveError`] the window can meet has a text of its
+/// The approval's refusal in words: each [`ApproveError`] the window can meet has a text of its
 /// own, a waiver is named by its rule and object, a refused command goes through [`command_failed`] (ID-939's rule);
 /// the CLI keeps the `Display` texts. `report` is the gate's report the waivers are looked up in.
 fn approve_words(e: &ApproveError, report: Option<&CheckReport>, params: &Value) -> String {
@@ -270,7 +270,7 @@ fn refusal_text(out: Outcome) -> String {
     }
 }
 
-/// A release error in words (FIX41b ruling 1): a text of its own for every [`ReleaseError`], with file names instead
+/// A release error in words: a text of its own for every [`ReleaseError`], with file names instead
 /// of paths (`paths` lists the ones a reason given in words may name); never the `Display` text, which stays the
 /// CLI's. A match without a wildcard, so a new variant needs its words.
 fn release_words(e: &ReleaseError, paths: &[PathBuf]) -> String {
@@ -596,7 +596,7 @@ impl ShellModel {
         paths
     }
 
-    /// A release error in words ([`release_words`], FIX41b ruling 1), with file names instead of paths.
+    /// A release error in words ([`release_words`]), with file names instead of paths.
     fn release_error_text(&self, e: &ReleaseError) -> String {
         let mut paths: Vec<&Path> = Vec::new();
         if let Some(found) = &self.revision.incomplete {
@@ -682,7 +682,7 @@ impl ShellModel {
         };
         self.revision.integrity = integrity;
         if let Err(e) = result {
-            // FIX41b ruling 1: words, not IDs, in every revision refusal.
+            // Words, not IDs, in every revision refusal.
             // A refused parameter of the approval's command is named by its member (the shell built the command).
             return self.revision_failed(approve_words(&e, Some(&gate.report), &Value::Null));
         }
@@ -1362,7 +1362,7 @@ impl ShellModel {
     }
 
     /// A refused revision command, shown through [`command_failed`] (ID-939's rule: a refused parameter is named by its
-    /// field's words; FIX41b ruling 1); the refusal stays in the dialog.
+    /// field's words); the refusal stays in the dialog.
     fn revision_command_failed(&mut self, e: &CmdError, cmd: &AnyCommand) -> Outcome {
         let message = refusal_text(command_failed(e, &cmd.params));
         self.revision_failed(message)
@@ -1406,7 +1406,7 @@ mod tests {
         }
     }
 
-    /// FIX41b ruling 1: each `ApproveError` the window can meet reads as a whole text in words: no rule ID, no waiver
+    /// Each `ApproveError` the window can meet reads as a whole text in words: no rule ID, no waiver
     /// ID, no `Display` or `Debug` text; a refused command goes through `command_failed`.
     #[test]
     fn every_approval_refusal_reads_in_words() {
@@ -1491,7 +1491,7 @@ mod tests {
         );
     }
 
-    /// FIX41b ruling 1: every `GateError` in words.
+    /// Every `GateError` in words.
     #[test]
     fn every_gate_refusal_reads_in_words() {
         let cases = [
@@ -1533,7 +1533,7 @@ mod tests {
         }
     }
 
-    /// FIX41b ruling 1: the `ReleaseError`s the window can meet, in words with file names only (never `Display`, which
+    /// The `ReleaseError`s the window can meet, in words with file names only (never `Display`, which
     /// stays the CLI's; never the origin's `Debug`).
     #[test]
     fn every_release_refusal_reads_in_words() {
@@ -1642,7 +1642,7 @@ mod tests {
         }
     }
 
-    /// FIX41b ruling 1: a refused withdrawal goes through `command_failed`, as the action shows it: the command by its
+    /// A refused withdrawal goes through `command_failed`, as the action shows it: the command by its
     /// title, the parameter by its field's words.
     #[test]
     fn a_refused_withdrawal_reads_in_words() {
@@ -1658,7 +1658,7 @@ mod tests {
         );
     }
 
-    /// FIX41b ruling 4: the counts of the blocked dialogs take their noun's number, for one and for two.
+    /// The counts of the blocked dialogs take their noun's number, for one and for two.
     #[test]
     fn the_blocked_counts_take_their_nouns_number() {
         let text = |n: usize, one, many| strings::format(counted(n, one, many), &[&n.to_string()]);
@@ -1688,7 +1688,7 @@ mod tests {
         );
     }
 
-    /// FIX41b ruling 6: a release's housekeeping warning names the file and its cause in words from the error's kind,
+    /// A release's housekeeping warning names the file and its cause in words from the error's kind,
     /// never the OS text or its code; each mapped kind, and another kind, which ends on "could not be read".
     #[test]
     fn the_release_warnings_name_their_cause_in_words() {

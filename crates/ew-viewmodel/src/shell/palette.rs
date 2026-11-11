@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command palette in the shell (WP-S2.08 part 1, FR-UI-012; the matching in [`crate::palette`]): the entries of
+//! The command palette in the shell (FR-UI-012; the matching in [`crate::palette`]): the entries of
 //! a query by its prefix (D4), ranked with the aliases of the glossary (D5 (b)) and the recents (D3), and Enter: an
 //! action runs (or opens its parameter form, D5 (a)), a page is shown, a cell is gone to, an object is selected and a
 //! rule shows Messages filtered to it. The palette is transient widget state: nothing here is persisted.

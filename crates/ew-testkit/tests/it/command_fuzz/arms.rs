@@ -337,7 +337,6 @@ pub const ARMS: &[Arm] = &[
         weight: 3,
         build: rep_exchange_symbol,
     },
-    // WP-S2.18 D3
     Arm {
         command: "rep.join_device",
         weight: 2,

@@ -233,7 +233,7 @@ fn a_journal_whose_base_moved_and_collides_is_refused_and_kept() {
     d.store.close();
 }
 
-/// WP-S1.17, decision log ID-1185 ruling 3: `ew fmt --repair` names a crashed session's journal before a finding it
+/// `ew fmt --repair` names a crashed session's journal before a finding it
 /// cannot repair, so a repair open that a conflict marker made read-only still summarises the journal (and keeps it);
 /// a plain open made read-only by the same finding does not.
 #[test]

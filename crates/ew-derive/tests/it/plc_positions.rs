@@ -222,7 +222,7 @@ const FOREIGN: u128 = 0xc000;
 
 /// A channel of `module` with a non-v5 ID that binds V2's coil 14. Its number lies beyond the part's eight
 /// channels: a channel with a number below the count is the module's channel with that number (the lowest
-/// ID, as N1 keys them, FT-319), which this one would replace.
+/// ID, as N1 keys them), which this one would replace.
 fn foreign_binding(module: u128) -> Channel {
     serde_json::from_value(json!({
         "id": uid(FOREIGN), "module": uid(module), "number": 9, "kind": "do",

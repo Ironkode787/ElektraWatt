@@ -158,7 +158,7 @@ fn a_failed_command_leaves_the_history_alone() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-404: a step records the exposure of its command
+// A step records the exposure of its command
 
 #[test]
 fn a_step_records_the_exposure_of_its_command() {
@@ -185,7 +185,7 @@ fn a_step_records_the_exposure_of_its_command() {
     e.undo(&script).expect("the move is the script's to undo");
 }
 
-/// FT-404 ruling 3: the exposure check applies only to the step being undone or redone; a transparent marker is
+/// The exposure check applies only to the step being undone or redone; a transparent marker is
 /// passed over.
 #[test]
 fn a_transparent_human_only_marker_does_not_block_a_scripted_undo() {

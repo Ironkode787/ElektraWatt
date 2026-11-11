@@ -7,7 +7,7 @@
 //! State `armed`. The overlay is the new shape's outline at the representation's position and orientation with a
 //! `cp` marker per CP it draws and a dashed rectangle around each function CP that would become unmapped, known at
 //! once from the current and the new symbol's shapes by the command's own rule (`ew_api::output::exchange_map`:
-//! by index for the same FnDef, else by designation; FT-424), so the ghost names them before the dwell. `Dwell`
+//! by index for the same FnDef, else by designation), so the ghost names them before the dwell. `Dwell`
 //! previews, `Activate` or a press commits `rep.exchange_symbol {rep, symbol}`, `Escape` answers `None` (the host
 //! returns to Select).
 

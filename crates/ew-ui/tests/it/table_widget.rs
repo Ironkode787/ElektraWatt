@@ -130,7 +130,7 @@ fn the_key_column_stays_while_the_table_scrolls_right() {
 }
 
 /// TB7: a header click sorts by that column, a second one reverses it; the column chooser shows a check box per column
-/// (the key column's is disabled), hides a column and moves another left. FT-523: the sorted header's name ends
+/// (the key column's is disabled), hides a column and moves another left. The sorted header's name ends
 /// ", sorted ascending" or ", sorted descending".
 #[test]
 fn header_click_sorts_and_the_chooser_hides_and_orders() {

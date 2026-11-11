@@ -48,7 +48,7 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
 /// an unnumbered designation (it still contains `?`, EW-IMP-122) is skipped.
 ///
 /// One finding per duplicated designation, targets every device of the group, no discriminator, with the fix "Renumber
-/// the newer": the devices after the keeper of doc 15 §6.4 renumbered to free counters (WP-S1.17 D29, decision log
+/// the newer": the devices after the keeper of doc 15 §6.4 renumbered to free counters (decision log
 /// ID-1284 ruling 6).
 ///
 /// Deviations: the catalogue lists the scope as device, but the grouping is project-wide, so the rule is

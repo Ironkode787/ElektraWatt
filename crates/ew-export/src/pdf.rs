@@ -185,7 +185,7 @@ pub struct PdfReport {
     pub images: usize,
     /// Images not drawn, counted per occurrence: bytes that do not decode as a PNG or JPEG within
     /// [`ew_render_cpu::MAX_IMAGE_PIXELS`], an image without its bytes, an SVG image item (an SVG asset reaches the
-    /// writer as paths, FT-384).
+    /// writer as paths).
     pub skipped_images: usize,
     /// Symbol instances the resolver could not resolve.
     pub unresolved_instances: usize,

@@ -73,7 +73,7 @@ pub struct Q {
     notes: RefCell<Vec<NoteFrame>>,
     profile: &'static DerivationProfile,
     profile_status: ProfileStatus,
-    /// The report engine behind generated pages (`Q::with_report_pages`, WP-S3.03); none by default.
+    /// The report engine behind generated pages (`Q::with_report_pages`); none by default.
     /// Configuration, not a tracked input: see the type documentation.
     pub(crate) report_pages: crate::pages::ProviderSlot,
     /// The memo store of a memoising `Q`, which holds this `Q`'s snapshot at its current revision.

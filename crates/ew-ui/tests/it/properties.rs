@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The property grid in the window without rendering (WP-S2.05 part 1, acceptance checks PG5, PG9 and the window half
+//! The property grid in the window without rendering (acceptance checks PG5, PG9 and the window half
 //! of PG11): AC-28's W29 step (W29 chosen through `select.set`, the chips, the colour through the editor, undo), D-06's property-grid
 //! entry from the keyboard alone (override the description of folio 101, see the finding, reset, undo), the exact
 //! counts of the window host, and the accessible-name walker after every step.
@@ -652,7 +652,7 @@ fn severity_word(severity: &str) -> &'static str {
 }
 
 /// FT-530 (doc 16a §6.8, §6.13, §6.16): the header's findings are severity chips, one named `Label` node per severity
-/// ("<n> <Word(s)>: <rule>: <message>; …", cycle 37) with each rule and message in the tooltip, no "[severity] rule
+/// ("<n> <Word(s)>: <rule>: <message>; …") with each rule and message in the tooltip, no "[severity] rule
 /// message" text; the row's
 /// actions are a popup menu anchored on its "…" button, whose items choose and which Escape closes.
 #[test]

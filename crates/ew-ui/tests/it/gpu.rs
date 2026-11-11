@@ -254,7 +254,7 @@ fn b2_folio_103_at_150_dpi_matches_the_cpu_raster() {
 /// `gpu-parity`), not per pull request; `b2_folio_103_at_150_dpi_matches_the_cpu_raster` asserts the same parity on
 /// the real page per gate (test audit, 2026-10-29).
 #[test]
-#[ignore = "nightly: the deep nightly's gpu-parity job runs it (--run-ignored only)"]
+#[ignore = "deep run: the GPU parity on the dense A3 page"]
 fn b2_the_dense_a3_page_matches_the_cpu_raster() {
     let devices = devices();
     if devices.is_empty() {

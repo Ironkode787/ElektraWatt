@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The surface view of a panel-layout page as the scene reads it (WP-S4.01 part 3, D9 and D10;
+//! The surface view of a panel-layout page as the scene reads it (D9 and D10;
 //! [`ew_scene::panel`]): the parts of a [`PanelView`] each panel layer reads, filled from the derived layout queries
 //! of `ew_derive::layout` (`placement_geometry`, `carrier_geometry`, `layout_label`), never re-derived here.
 //!
@@ -93,7 +93,7 @@ impl Query for PageSurfaceView {
         if page.kind != PageType::PanelLayout {
             return Arc::new(None);
         }
-        // The frame's page-to-sheet factor, so that the page's stated scale holds on paper (cycle 41, review part 1,
+        // The frame's page-to-sheet factor, so that the page's stated scale holds on paper (review part 1,
         // finding 5); a page without a frame, or a frame without the map, prints at 1.
         let sheet_ppb = q
             .get::<PageFrameOf>(PageRef::Drawn(*key))

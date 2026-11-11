@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The delivery play-test of cycle 41 (rv-vis-5, FIXPT41): an interruption point dropped so that its connection
+//! The delivery play-test of cycle 41 (rv-vis-5): an interruption point dropped so that its connection
 //! point lies on a pin connects to it (FR-CON-003), in one undo step, as a symbol placed the same way
 //! does; Alt places it free; a drop on another interruption point, and an external point's on a pin, are refused in
 //! words.
@@ -62,7 +62,7 @@ fn ghost_pos(s: &ShellModel) -> (i64, i64) {
 
 /// The insertion point whose ghost CP lies on the page point `target`, read from the armed tool's ghost
 /// (`pos = target - orient(cp.at)`): its insertion point and its CP marker with the ghost at the target, so the
-/// ghost shows the form of the direction there (WP-S2.19 D16: a source's CP is one grid step behind its tip, a
+/// ghost shows the form of the direction there (a source's CP is one grid step behind its tip, a
 /// target's at its tip).
 fn insertion_for(s: &mut ShellModel, target: (i64, i64)) -> (i64, i64) {
     cursor(s, target);
@@ -397,7 +397,7 @@ fn a_point_on_a_junction_or_inside_a_wire_is_refused() {
     }
 }
 
-/// FT-946 (ID-1146, ID-1019's ruling 3 b): an external connection point dropped on a pin connects to it as any point
+/// FT-946 (ID-1019's ruling 3 b): an external connection point dropped on a pin connects to it as any point
 /// does: the HUD says so, the click commits `connection.draw_to_ip` with the point's `external`, in one undo step, and
 /// the saved point is external; on a free grid point it still places.
 #[test]

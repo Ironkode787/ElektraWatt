@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start-up offer (WP-S6.05 D10, D11; NFR-REL-13's "offer recovery at the next start", FR-UI-050's 0.1.0 part as
+//! The start-up offer (D11; NFR-REL-13's "offer recovery at the next start", FR-UI-050's 0.1.0 part as
 //! ID-1247 reads it, doc 05 §8.3's start-up half).
 //!
 //! At start (the window and the headless mode, not the smoke run) [`ShellModel::start_up`] makes the configuration

@@ -620,7 +620,7 @@ fn folio_103_bridges_draw_on_terminals_placed_by_symbol() {
     assert_eq!(groups, [1, 2, 3], "each chain takes the next free group");
 }
 
-/// SE12 (WP-S2.07 D10, FT-585; replaces the cycle-33 pin of review finding 9): a bridge joins terminals, not CPs.
+/// SE12 (replaces the cycle-33 pin of review finding 9): a bridge joins terminals, not CPs.
 /// Two part-less terminals are bridged at their side-1 CP (index 0); once they carry PT 2.5-TWIN, whose shaft-1 entry
 /// is CP index 3, Bridge terminals on the pair is refused as "already bridged"; on the pair and a third terminal it
 /// draws one connection, into the same group, from the second terminal's shaft CP; the side-1 bridge stays as drawn.
@@ -686,7 +686,7 @@ fn a_part_added_after_a_partless_bridge_keeps_the_pair_bridged() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// WP-S2.07 part 1: selection by records (D9), the shaft rule and Remove bridge (D11)
+// Selection by records (D9), the shaft rule and Remove bridge (D11)
 
 /// The Terminal strips row keys of terminals `designations` of strip `strip` (the navigator open in table mode).
 fn strip_rows(s: &mut ShellModel, strip: &str, designations: &[&str]) -> Vec<String> {

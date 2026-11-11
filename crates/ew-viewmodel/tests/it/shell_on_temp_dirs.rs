@@ -64,7 +64,7 @@ fn done(shell: &mut ShellModel, action: &str, params: Value) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-307, FT-312: new, sample, import, tutorials
+// New, sample, import, tutorials
 
 #[test]
 fn a_new_project_starts_from_the_builtin_basic_project_and_is_saved_at_once() {
@@ -442,7 +442,7 @@ fn a_migration_report_row_previews_its_quick_fix() {
     );
     done(&mut shell, "file.import_qet_apply", json!({ "confirm": true }));
     // The banner's count is the report's (3 errors, 8 warnings and 5 infos: the file's three conductors
-    // have no route, EW-CORE-073, WP-S2.19 D17).
+    // have no route, EW-CORE-073).
     assert_eq!(
         shell.banner(),
         Some("Imported lamp-circuit.qet: 1 page, 4 devices, 16 findings in the migration report.")
@@ -1097,7 +1097,7 @@ fn the_discard_is_refused_without_a_leftover_journal() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-308: first run
+// First run
 
 #[test]
 fn the_first_run_flow_records_its_answers_in_the_settings() {
@@ -1213,7 +1213,7 @@ fn bad_first_run_answers_are_refused_and_the_flow_ends_where_it_is_told() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-308: the wizard
+// The wizard
 
 #[test]
 fn the_wizard_keeps_a_draft_until_it_finishes() {
@@ -1955,7 +1955,7 @@ fn without_the_sample_the_wizard_works_and_the_preview_says_why_it_is_empty() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-309: workspaces
+// Workspaces
 
 #[test]
 fn workspaces_are_files_in_the_configuration_directory() {
@@ -2087,7 +2087,7 @@ fn a_headless_run_without_a_configuration_directory_writes_no_workspace() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-311, FT-312: F1, the settings quick switches, the describe text
+// F1, the settings quick switches, the describe text
 
 #[test]
 fn f1_resolves_the_context_in_order() {

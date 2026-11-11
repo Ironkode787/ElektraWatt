@@ -68,7 +68,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     let t = crate::theme::current(ctx);
     // ID-1427 (W52 F2): the table uses the space it has. The picker's content is as wide as its widest name, its part
     // number column and its function column need, at least its grown width; the window then keeps `space.6` free on
-    // each side. ID-1439: measured over the step's rows without the filter, and never narrower than the
+    // each side. Measured over the step's rows without the filter, and never narrower than the
     // width it opened at, so typing does not move the field.
     let spacing = ctx.global_style().spacing.clone();
     let margin = spacing.window_margin.leftf() + spacing.window_margin.rightf();
@@ -154,7 +154,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 events.push(Event::Action("picker.filter", json!({ "text": filter })));
             }
             // A terminal chosen in a project without strips opens the strip chooser on an empty state that
-            // says why and offers New terminal strip (doc 16a §6.17), whose form offers the tag (FT-1090, ID-1181:
+            // says why and offers New terminal strip (doc 16a §6.17), whose form offers the tag (ID-1181:
             // `strip.new {dialog}`); its Create lists the new strip as the current row.
             if picker.mode == PickerMode::Strip && picker.empty_text() == Some(key!("picker-empty-strips")) {
                 let new = crate::components::empty_state(
@@ -307,7 +307,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
 }
 
 /// The reason a row's function column shows for a disabled row: none for a symbol on another connection grid, whose
-/// reason shows whole under the list when it is the current row (ID-1477 (1): never cut).
+/// reason shows whole under the list when it is the current row (never cut).
 fn column_reason(picker: &ew_viewmodel::tools::Picker, row: PickerRow) -> Option<String> {
     match row {
         PickerRow::Symbol(k) if picker.catalogue.symbols[k].grid_mismatch.is_some() => None,
@@ -334,7 +334,7 @@ fn second_text(t: &crate::theme::Tokens, second: &str, enabled: bool) -> egui::R
 }
 
 /// A row's name, the text after it (a part row's part number), its library or function line (a part's function
-/// in words, FT-664), and its tooltip with the full name and the raw IDs.
+/// in words), and its tooltip with the full name and the raw IDs.
 fn row_texts(
     picker: &ew_viewmodel::tools::Picker,
     row: PickerRow,
@@ -352,7 +352,7 @@ fn row_texts(
             };
             // ID-1427 (W52 F16): the row names the symbol by its name in words ("Contact, changeover"), in both
             // languages; a symbol without a name by the key's last segment without its grid variant
-            // (`ew.iec.mcb-1p@qet10` → `mcb-1p`). FT-1196: the tooltip likewise, never the keys.
+            // (`ew.iec.mcb-1p@qet10` → `mcb-1p`). The tooltip likewise, never the keys.
             let name = if s.name.is_empty() {
                 ew_viewmodel::tools::symbol_name(&s.key).to_owned()
             } else {
@@ -423,7 +423,7 @@ fn row_texts(
         }
         PickerRow::Strip(k) => {
             let st = &picker.catalogue.strips[k];
-            // ID-1278 ruling 7: a strip without a tag yet in words.
+            // A strip without a tag yet in words.
             let label = ew_viewmodel::navigators::strip_label(&st.tag);
             (
                 label.clone(),

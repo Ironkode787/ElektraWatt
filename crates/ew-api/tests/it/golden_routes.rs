@@ -250,7 +250,7 @@ fn write_routes(routes: &BTreeMap<String, String>) {
 /// Why a connection of Golden A runs more than twice the Manhattan distance of its ends (ID-1504 (4d)), by its words.
 const DETOURS: &[(&str, &str)] = &[];
 
-/// Why a connection of Golden A bends more than four times (RG3, ID-1509 (3)), by its words.
+/// Why a connection of Golden A bends more than four times (RG3), by its words.
 const BENDS: &[(&str, &str)] = &[
     (
         "PE-1.1 → -X1032:1/b",

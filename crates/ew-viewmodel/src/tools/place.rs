@@ -20,7 +20,7 @@
 //! page (even-odd, the boundary inside; the innermost by area, ties by ID) becomes `join_device {device: the box's
 //! device, role: aux}` (doc 06 §2.7). A `new_terminal` target advances its designation after each commit when it is
 //! decimal digits, and lands on the next free point two grid steps to the right while a terminal of the same strip
-//! sits on its point (the proposals are then not sent). A join target ([`PlaceTarget::Join`], WP-S2.18 D1) sends `existing_function` with the device's
+//! sits on its point (the proposals are then not sent). A join target ([`PlaceTarget::Join`]) sends `existing_function` with the device's
 //! next unplaced slot of the symbol's FnDef, else `join_device {device, role: aux}`; its label reads `join -K1`.
 //!
 //! **Autoconnect**: on a page whose type autoconnects, every move of the ghost computes the
@@ -109,7 +109,7 @@ pub struct PlaceTool {
     /// The snapped insertion point: (sheet nm, page nm).
     at: Option<((i64, i64), (i64, i64))>,
     /// Where the placement at `at` lands (page nm) and how many grid steps right of `at` that is: `at` itself, but for a
-    /// terminal moved off a terminal of its strip ([`Self::stacked_pos`], FT-1208). Set with the overlay.
+    /// terminal moved off a terminal of its strip ([`Self::stacked_pos`]). Set with the overlay.
     landing: Option<((i64, i64), i64)>,
     /// The predicted tag of a fresh preview.
     tag: Option<String>,
@@ -420,7 +420,7 @@ impl PlaceTool {
                 "terminal",
                 strings::format(
                     key!("place-target-terminal"),
-                    // ID-1278 ruling 7 (C49-p8b#3): a strip without a tag yet in words; W49.3-F7: the terminal
+                    // A strip without a tag yet in words; W49.3-F7: the terminal
                     // first, then the strip it goes on.
                     &[
                         &if strip_tag.contains('?') {
@@ -704,7 +704,7 @@ impl PlaceTool {
         }
     }
 
-    /// The designation of a `new_terminal` target, as the catalogue proposes it after an Undo or a Redo (FT-1083,
+    /// The designation of a `new_terminal` target, as the catalogue proposes it after an Undo or a Redo (
     /// ID-1181): the tool stops asking for one.
     pub fn set_designation(&mut self, next: String) {
         if let PlaceTarget::Terminal { designation, .. } = &mut self.target {
@@ -875,7 +875,7 @@ impl Tool for PlaceTool {
             .or_else(|| info.tags.first())
             .map(|(_, after)| after.clone())?;
         // The label of the last overlay gains the tag (the overlay is otherwise what the last move drew). A label that
-        // already ends with the tag of an earlier preview at this point, or with this one, gets it once (FT-507: one
+        // already ends with the tag of an earlier preview at this point, or with this one, gets it once (one
         // label per tag).
         let mut o = self.last.clone();
         let whole = self.new_strip_label(&tag);

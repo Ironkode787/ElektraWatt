@@ -265,7 +265,7 @@ pub fn is_release_note(node: &NavNode) -> bool {
     node.key == RELEASE_KEY || node.key.starts_with(&format!("{RELEASE_KEY}/"))
 }
 
-/// FT-842 (cycle 41, ruling 2: "each once as a Messages entry in words, with the file name only. The entry has
+/// FT-842 (ruling 2: "each once as a Messages entry in words, with the file name only. The entry has
 /// severity Warning, and its rule column names the source in a word ("Release"), not an ID"): `table` with the
 /// release's housekeeping warnings `notes` under Warnings ▸ Release, after the rules of the check (the Warnings group
 /// is added when the check has none). The rows are finding rows (severity `warning`, state `open`) without a target,

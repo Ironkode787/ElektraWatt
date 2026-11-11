@@ -427,7 +427,7 @@ impl Session {
     }
 
     /// Saves a selection or pages as a macro into the writable library `target` (doc 07 §3.5, FR-MAC-001,
-    /// FR-MAC-002, FR-MAC-007; WP-S1.19 D12): a library write, not a project command. The fragment keeps the source
+    /// FR-MAC-002, FR-MAC-007): a library write, not a project command. The fragment keeps the source
     /// IDs as its local IDs; structure references equal to the source page's are cleared (page-relative: the records
     /// inherit the target page's structure); frozen tags are cleared unless kept; connections to records outside the
     /// scope are dropped and their CPs listed; the closure's library copies become references (`lib`, `^version`);

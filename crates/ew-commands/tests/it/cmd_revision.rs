@@ -300,7 +300,7 @@ fn a_released_revision_is_not_editable() {
     let err = e
         .execute(&set(&[v2, v1], "description", json!("rewritten")))
         .unwrap_err();
-    // FT-909 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
+    // FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
     // with what the user can do")
     match &err {
         CmdError::InvalidParams { message, .. } => assert_eq!(
@@ -441,7 +441,7 @@ fn a_withdrawn_revision_is_not_editable() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S1.18 part 1: labels, the automatic open revision, the roles, withdrawal
+// Labels, the automatic open revision, the roles, withdrawal
 
 /// A raw revision record (an older file, a merge, an import).
 fn raw(id: u128, label: &str, state: RevisionState) -> Revision {
@@ -529,7 +529,7 @@ fn create_prevents_a_label_out_of_format_or_order() {
     let mut e = engine(golden_model());
     let (rule, finding) = prevented(e.execute(&create("2", NewRevisionState::Open)).unwrap_err());
     assert_eq!(rule, LABEL_ORDER_RULE);
-    // FT-909 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
+    // FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
     // with what the user can do")
     assert_eq!(
         finding,
@@ -863,7 +863,7 @@ fn withdraw_adds_a_record_and_leaves_the_released_one() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S1.18 part 3: the sign-off
+// The sign-off
 
 fn approve(revision: Id<Revision>, checker: PartyRole) -> ApproveRevision {
     ApproveRevision {
@@ -994,7 +994,7 @@ fn approve_writes_the_checker_and_the_sign_off_from_a_person_only() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S1.18 part 4: the release's stamp
+// The release's stamp
 
 fn release(revision: Id<Revision>) -> ReleaseRevision {
     ReleaseRevision {

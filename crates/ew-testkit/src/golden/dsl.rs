@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The builder DSL (doc 20 §3.2 path (b), WP-S6.01): typed methods that create one record each through the
+//! The builder DSL (doc 20 §3.2 path (b)): typed methods that create one record each through the
 //! commands of doc 06 §3.1 and return the IDs the commands minted.
 //!
 //! Each method takes the record to create, with every reference already naming a record of the built
@@ -327,7 +327,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         .map(|_| ())
     }
 
-    /// `edit.paste` with `adapt` (WP-S2.07 D22, FT-396's "Use the project's copy"): as `paste`, reusing the project's
+    /// `edit.paste` with `adapt` (FT-396's "Use the project's copy"): as `paste`, reusing the project's
     /// copies `adapt` (copy IDs) where the fragment carries another version of them. An empty `adapt` is left out, so
     /// the command equals `paste`'s.
     ///
@@ -1094,7 +1094,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
             m.remove(k);
         }
         // The builder draws without a route (a junction's connections come from a split); a stored route is set
-        // afterwards by `connection.route`, which checks it against the drawn ends (FT-1315: F1 to F16 of Golden A).
+        // afterwards by `connection.route`, which checks it against the drawn ends (F1 to F16 of Golden A).
         if let Some(route) = take(&mut m, "route") {
             self.run("connection.route", json!({"connection": id, "route": route}))?;
         }

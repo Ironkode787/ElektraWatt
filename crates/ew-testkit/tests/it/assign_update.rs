@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Golden A checks of the builder DSL's verbs `assign_part` and `update_library` (WP-S1.19 part 3, `part.assign` and
+//! Golden A checks of the builder DSL's verbs `assign_part` and `update_library` (`part.assign` and
 //! `library.update`) against a session over path (a)'s batch (the committed directory is never opened). The
 //! acceptance tests with a library run in `ew-api` (`tests/library_ops.rs`).
 

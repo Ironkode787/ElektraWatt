@@ -1010,7 +1010,7 @@ common-key counts, so a shrinking key set fails). The differences, by class:
 
 ## Acceptance runner
 
-`cargo xtask acceptance [--milestone] <report.md>` runs the gate-M1 runner (doc 20 §21, §22; doc 18 §3.10) over the
+The acceptance gate (the test `acceptance::gate` of `ew-api`, a part of the deep run of CONTRIBUTING.md) runs the gate-M1 runner (doc 20 §21, §22; doc 18 §3.10) over the
 golden project with the oracle on and writes a Markdown table with one row per named check, a JUnit file
 (`target/nextest/ci/junit.xml`, nextest profile `ci`) and the exit status. It runs the `#[ignore]`d test `gate` of
 `crates/ew-api/tests/it/acceptance.rs` (about 2 minutes in a debug build); a stale report is deleted first.

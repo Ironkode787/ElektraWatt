@@ -106,7 +106,7 @@ fn chord_in_one_frame(h: &mut Harness<'_, App>, modifiers: Modifiers, key: Key) 
 
 /// The find pane, focused, under the frame that opens a form (Ctrl+Shift+N) and the next one (Ctrl+Enter): on the
 /// form's first frame no modal layer stands yet, so the pane still holds egui's focus and reads its own keys; only
-/// the frame's consume keeps Ctrl+Enter with the form (C49-p5b#2).
+/// the frame's consume keeps Ctrl+Enter with the form.
 #[track_caller]
 fn open_the_form_and_ctrl_enter_in_one_frame(h: &mut Harness<'_, App>, scope: Option<&str>) {
     let pane = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-find"));

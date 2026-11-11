@@ -342,7 +342,7 @@ impl ShellModel {
 
     /// The route of an editable cell, or why it is read-only.
     /// Whether `text` means what cell (node `i`, column `col`) shows: the same text, or in an enumerated field's
-    /// column the same choice, by its code or by its words in a shipped language (FT-1338, ID-1392: such a cell reads
+    /// column the same choice, by its code or by its words in a shipped language (ID-1392: such a cell reads
     /// in the window's language, so a copy made in the other language pastes unchanged).
     fn same_cell(&self, view: &TableView, i: u32, col: usize, text: &str) -> bool {
         let Some(shown) = view.table.nodes[i as usize].cells.get(col) else {

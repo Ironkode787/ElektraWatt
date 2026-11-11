@@ -244,7 +244,7 @@ fn strictly_on(grid: PageGridMap, a: (i64, i64), b: (i64, i64), p: (i64, i64)) -
 }
 
 /// Whether a ghost CP lies strictly inside a segment that the scene's clamp drew along the sheet's edge, off its
-/// wire's path (FT-1049, ID-1148: [`TableConnection::off_sheet`](ew_api::output::TableConnection::off_sheet)): the
+/// wire's path (ID-1148: [`TableConnection::off_sheet`](ew_api::output::TableConnection::off_sheet)): the
 /// Place tool refuses that drop, because the symbol would look joined to a wire that does not run there. A CP at
 /// such a segment's end is not inside it.
 pub fn on_off_sheet_segment(cps: &[GhostCp], tables: &PageTables) -> bool {

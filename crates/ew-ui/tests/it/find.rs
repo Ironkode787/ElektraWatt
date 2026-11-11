@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The find pane in the window without rendering (WP-S2.05 part 2, acceptance checks FR3 in kittest and the window
+//! The find pane in the window without rendering (acceptance checks FR3 in kittest and the window
 //! half of FR6's exact counts): Ctrl+H opens find and replace with the text field focused, typing makes no search,
 //! Enter runs it once, the 20 results are a named list box, Ctrl+Enter previews the replace in the card and a second
 //! Ctrl+Enter applies it (one undo step), Ctrl+Z undoes it; Escape closes the card, then gives the focus back to the
@@ -320,7 +320,7 @@ fn results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
 
 /// A result longer than the pane and a result with a line break keep one line's height (the row truncates),
 /// so the cursor, moved past them, sits inside the list at the 1280 × 800 floor and at 1920 × 1080; its name and
-/// description keep the whole line with the replacement, its tooltip shows that line (C49-p5b#1), and it alone is
+/// description keep the whole line with the replacement, its tooltip shows that line, and it alone is
 /// selected for AccessKit.
 #[test]
 fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
@@ -487,7 +487,7 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
             "{size:?}: a field of {} for a placeholder of {hint} and a margin of {margin}",
             field.width()
         );
-        // W49.2-F5: the rows keep the header's inset, `space.4`, at the right as at the left.
+        // The rows keep the header's inset, `space.4`, at the right as at the left.
         let inset = ew_ui::theme::current(&h.ctx).space_4;
         assert!(
             (pane.right() - inset - field.right()).abs() <= 2.0,

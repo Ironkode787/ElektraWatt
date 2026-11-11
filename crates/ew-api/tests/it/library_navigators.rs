@@ -116,7 +116,7 @@ fn cell<'t>(t: &'t NavTable, n: &'t NavNode, key: &str) -> &'t str {
 /// UI-4: without libraries (the compiled-in ones only), Golden A's frames and title block have no source (badge
 /// `source_missing`, "Source missing") while its symbols are current; the compiled-in libraries stand under "System",
 /// read-only. Tiers and the group of the project's copies are words. (Golden A's parts are its own items, which
-/// `library_status` leaves out, WP-S1.19 §8.)
+/// `library_status` leaves out)
 #[test]
 fn ui4_golden_a_copies_have_no_source_without_libraries() {
     let s = golden(None);

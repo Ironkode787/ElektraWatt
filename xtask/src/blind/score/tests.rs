@@ -629,7 +629,7 @@ fn s2_and_s4_leave_out_what_ends_on_a_folio_that_is_not_drawn() {
     );
     let s = score(Some(&t), &e);
     // Expected: the wire A:1 to C:3 on 101 only (the span 101,102 is out, and so is the wire to L-1, whose partner is
-    // on 102, FT-598); the xref L-1 -> 102-A1 is out too (partner on 102).
+    // on 102); the xref L-1 -> 102-A1 is out too (partner on 102).
     assert_eq!(by_id(&s, "S2").status, Status::Ok, "{:?}", by_id(&s, "S2").misses);
     assert_eq!(by_id(&s, "S2").want, "1 rows");
     let s4 = by_id(&s, "S4");

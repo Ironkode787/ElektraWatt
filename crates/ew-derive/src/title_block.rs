@@ -438,7 +438,7 @@ fn revision_scope(out: &mut Out, q: &Q, project: &Project) {
 }
 
 /// `page.last_changed_in` of a drawn page: the no-digest branch of [`last_changed_in`] (page digests are computed in
-/// `ew-api`, which hands its digest-based value to the page's bindings; WP-S1.18 part 2).
+/// `ew-api`, which hands its digest-based value to the page's bindings).
 fn last_changed_scope(out: &mut Out, q: &Q, page: PageRef) {
     let PageRef::Drawn(id) = page else {
         return;

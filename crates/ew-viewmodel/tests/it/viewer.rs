@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The read-only viewer through the shell on temporary copies of Golden A (WP-S2.03 part 1, acceptance checks V2 to
+//! The read-only viewer through the shell on temporary copies of Golden A (acceptance checks V2 to
 //! V5, V9 and the model half of V10): the canvas area, walks, jumps and the per-tab history, the page navigator, the
 //! keyboard grid cursor, links, Go to, the transcript and describe members and the exact counts.
 

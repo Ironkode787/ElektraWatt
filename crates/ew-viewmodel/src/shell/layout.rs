@@ -491,7 +491,7 @@ impl ShellModel {
     /// The after-commit duty of a `layout.*` commit (at the end of its dispatch, the page read again): the live region
     /// says where the selected placement now is ("-102F1, rail 1 at 163 mm, no findings").
     pub(super) fn after_layout_commit(&mut self) {
-        // FT-900 (ID-1147): the placement a layout drop made is the selection, replacing it.
+        // FT-900: the placement a layout drop made is the selection, replacing it.
         if let Some(device) = self.tools.placed_device.take()
             && let Some(id) = self
                 .panel_tables()
@@ -520,7 +520,7 @@ fn blocked_text(panel: &PanelTables, by: Option<Uuid>) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// WP-S4.02 part 4: setting the panel up from the window (§8; D10, D11; rulings 7, 8).
+// Setting the panel up from the window (§8; D10, D11; rulings 7, 8).
 
 /// A command's refusal as a sentence under a set-up dialog's fields: without the command's name before it
 /// (`layout.enclosure.create_from_part: location J-E-2416 already has …` reads "Location J-E-2416 already has …."),

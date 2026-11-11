@@ -145,7 +145,7 @@ fn unbind_device(tx: &mut TxBuilder<'_>, device: Id<Device>, moved: Id<Device>) 
     Ok(changed)
 }
 
-/// The coil CP of `solenoid` on `valve` (WP-S1.20 D5, `ew_derive::solenoid_coil`'s rule): `None` unless the valve
+/// The coil CP of `solenoid` on `valve` (`ew_derive::solenoid_coil`'s rule): `None` unless the valve
 /// part (the first part use whose copy has a fluid section with solenoids) declares it; else the first of its
 /// functions (in ID order) with an `ew_derive::coil_cp` for it.
 fn coil_of(

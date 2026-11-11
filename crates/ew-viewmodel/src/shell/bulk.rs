@@ -696,7 +696,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-human-only"));
         }
         // `confirm` purges exactly the files the open confirmation lists; without it nothing is purged (an empty
-        // `project.assets.purge` would remove every purgeable file unconfirmed; R1-5 of cycle 31).
+        // `project.assets.purge` would remove every purgeable file unconfirmed).
         let Some(Dialog::ConfirmPurge { assets, .. }) = &self.dialog else {
             return Outcome::refused(key!("reason-no-purge-dialog"));
         };

@@ -195,7 +195,6 @@ commands! {
     assign::AssignPart,
     library_update::UpdateLibraryCopies,
     macro_insert::InsertMacro,
-    // WP-S2.18 D3
     join::JoinDevice,
     // WP-S2.07 part 4a (D20)
     part_edit::EditPartCopy,

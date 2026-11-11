@@ -181,7 +181,7 @@ impl Locale {
         let id: unic_langid::LanguageIdentifier = tag.parse().unwrap_or_default();
         let mut bundle = Bundle::new_concurrent(vec![id]);
         bundle.set_use_isolating(false);
-        // ID-1278 ruling 9: `IN_SENTENCE($p0)` puts a label mid-sentence ([`in_sentence`]), for a language whose
+        // `IN_SENTENCE($p0)` puts a label mid-sentence ([`in_sentence`]), for a language whose
         // sentence lowers a name ("Voorbeeld: apparaat plaatsen") where en-GB keeps it.
         let _ = bundle.add_function("IN_SENTENCE", |positional, _| match positional.first() {
             Some(FluentValue::String(s)) => FluentValue::from(in_sentence(s)),
@@ -382,7 +382,7 @@ pub fn languages() -> Vec<(&'static str, &'static str)> {
     out
 }
 
-/// The decimal number `number` (`268.4`, written with a point) with the UI language's decimal separator (ID-1389, W51
+/// The decimal number `number` (`268.4`, written with a point) with the UI language's decimal separator (W51
 /// finding L: `268,4` in Dutch).
 pub fn decimal(number: &str) -> String {
     number.replace('.', text(key!("number-decimal-point")))
@@ -653,7 +653,7 @@ pub fn choice_words(value: &str) -> String {
 }
 
 /// A record kind as a heading in the UI language (`Potential definition`, `Potentiaaldefinitie`): its
-/// `record-kind-<kind>` text, else [`kind_label`] with a capital (W49.3-F3).
+/// `record-kind-<kind>` text, else [`kind_label`] with a capital.
 pub fn kind_heading(kind: &str) -> String {
     let key = format!("record-kind-{}", kind.replace('_', "-"));
     lookup(&key).map_or_else(|| sentence_start(&kind_label(kind)).into_owned(), str::to_owned)
@@ -738,7 +738,7 @@ pub fn in_sentence(label: &str) -> String {
     }
 }
 
-/// A part of a message the window shows on its own line (FT-1075, ID-1182: a toast's line under its title, a
+/// A part of a message the window shows on its own line (ID-1182: a toast's line under its title, a
 /// Properties refusal), starting with a capital: the text of a command or a check stays lowercase after its title or
 /// its prefix (doc 16a §8.1), and the window capitalises where the part stands alone. A rule code first ("EW-CORE-052:
 /// ") is left as it is and the words after it start with the capital; a designation, a code or a digit first ("-K1
@@ -905,7 +905,7 @@ mod tests {
         assert_eq!(command_title("plugin.custom"), "plugin.custom");
     }
 
-    /// RD43 §9 item 9: every built-in command has its title key, and every `command-` key of `KEYS` names a built-in
+    /// Every built-in command has its title key, and every `command-` key of `KEYS` names a built-in
     /// command.
     #[test]
     fn the_command_title_keys_are_the_builtin_commands() {
@@ -946,7 +946,7 @@ mod tests {
         assert_eq!(lookup("part-field-part_number"), Some("Part number"));
     }
 
-    /// RD43 §5: the en-GB file parses without an error.
+    /// The en-GB file parses without an error.
     #[test]
     fn the_english_file_parses() {
         assert_eq!(en_gb_errors(), Vec::<String>::new());
@@ -967,7 +967,7 @@ mod tests {
         assert_eq!(nl_nl().texts["language-name"], "Nederlands");
     }
 
-    /// RD43 §5: a key built at run time looks up the same text as the literal key, and a miss shows `?`.
+    /// A key built at run time looks up the same text as the literal key, and a miss shows `?`.
     #[test]
     fn a_run_time_key_reads_the_same_table() {
         let name = String::from("menu-file");

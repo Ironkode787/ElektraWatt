@@ -317,7 +317,7 @@ pub fn table_columns(
         .collect())
 }
 
-/// A table as the round trip reads it (WP-S3.08 D12, [`crate::sheet`]): the header row and the data rows' cell texts.
+/// A table as the round trip reads it ([`crate::sheet`]): the header row and the data rows' cell texts.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct SheetTable {
     /// The header row: the first record with any text, each cell trimmed.
@@ -353,7 +353,7 @@ fn records_of(
     }
 }
 
-/// A cell text of the sheet module: a workbook's `_xHHHH_` escapes decoded (WP-S3.08, ID-1174 ruling 5: `_x000D_` is a
+/// A cell text of the sheet module: a workbook's `_xHHHH_` escapes decoded (ID-1174 ruling 5: `_x000D_` is a
 /// carriage return, `_x005F_` a literal `_`), a CSV's text as it is. The parts import reads its cells raw.
 fn sheet_text(text: &str, format: SourceFormat) -> String {
     match format {
@@ -477,7 +477,7 @@ pub fn sheet_names(bytes: &[u8], limits: &Limits) -> Result<Vec<String>, ImportE
 mod tests {
     use super::*;
 
-    /// ID-1174 ruling 2: `read_rows` gives every record whole (no header, no cut to its width), text-free records
+    /// `read_rows` gives every record whole (no header, no cut to its width), text-free records
     /// left out, under the same limits.
     #[test]
     fn read_rows_gives_every_record_whole() {
@@ -534,7 +534,7 @@ mod tests {
         );
     }
 
-    /// ID-1174 ruling 5: the workbook escapes decode left to right; a CSV keeps them.
+    /// The workbook escapes decode left to right; a CSV keeps them.
     #[test]
     fn workbook_escapes_decode() {
         assert_eq!(decode_escapes("a_x000D_\nb"), "a\r\nb");

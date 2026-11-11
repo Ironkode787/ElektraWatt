@@ -740,7 +740,7 @@ pub(super) fn layout_enclosure_create_from_part(live: &Live, rng: &mut SplitMix6
     }
 }
 
-/// `layout.space.edit` (WP-S4.02 part 2, FT-840): a space renamed or its name cleared (accepted); refused: a space that
+/// `layout.space.edit` (FT-840): a space renamed or its name cleared (accepted); refused: a space that
 /// does not exist, no name member.
 pub(super) fn layout_space_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("layout.space.edit", p);
@@ -758,7 +758,7 @@ pub(super) fn layout_space_edit(live: &Live, rng: &mut SplitMix64) -> Option<Ste
     }
 }
 
-/// `layout.enclosure.edit` (WP-S4.02 part 2, FT-840): an enclosure moved in its space (accepted); refused: an enclosure
+/// `layout.enclosure.edit` (FT-840): an enclosure moved in its space (accepted); refused: an enclosure
 /// that does not exist, a turned pose.
 pub(super) fn layout_enclosure_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("layout.enclosure.edit", p);
@@ -780,7 +780,7 @@ pub(super) fn layout_enclosure_edit(live: &Live, rng: &mut SplitMix64) -> Option
     }
 }
 
-/// `layout.surface.edit` (WP-S4.02 part 2, FT-840): a surface's PE bond set (accepted); refused: a surface that does
+/// `layout.surface.edit` (FT-840): a surface's PE bond set (accepted); refused: a surface that does
 /// not exist.
 pub(super) fn layout_surface_edit(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let cmd = |p: Value| Step::cmd("layout.surface.edit", p);
@@ -791,7 +791,7 @@ pub(super) fn layout_surface_edit(live: &Live, rng: &mut SplitMix64) -> Option<S
     Some(cmd(json!({"surface": s, "pe_bond": rng.chance(2)})).counts(&[(Table::Surfaces, 0)]))
 }
 
-/// `edit.delete` of one layout record (WP-S4.02 part 2, FT-840): a placement goes; an empty carrier, enclosure or space
+/// `edit.delete` of one layout record (FT-840): a placement goes; an empty carrier, enclosure or space
 /// goes with what it contains; refused: an occupied carrier, enclosure or space, a plate surface without its
 /// enclosure. After a commit every placement has its device and its carrier or surface.
 pub(super) fn edit_delete_layout(live: &Live, rng: &mut SplitMix64) -> Option<Step> {

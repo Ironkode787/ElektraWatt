@@ -70,7 +70,7 @@ pub struct PropertiesPane {
     /// The shell's filter text as last seen: a change made elsewhere (`props.filter`, Clear filter) shows in the field
     /// even while a text field has the focus.
     filter_seen: String,
-    /// The keys of the rows drawn in this frame (cycle 46, W46.4 F1: a refusal shown under a drawn row raises no
+    /// The keys of the rows drawn in this frame (W46.4 F1: a refusal shown under a drawn row raises no
     /// banner; the filter, a collapsed group and the advanced toggle hide rows).
     drawn: Vec<String>,
     /// Whether an editor field (no popup, no choices but its options) was drawn in this frame, and in the last one:
@@ -564,7 +564,7 @@ impl PropertiesPane {
         ui.horizontal(|ui| {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 ui.spacing_mut().item_spacing.x = t.space_1;
-                // Right to left: info, warning, error, so the most severe reads first. FT-759: a chip is a button
+                // Right to left: info, warning, error, so the most severe reads first. A chip is a button
                 // that opens Messages filtered to the record (the existing `messages.show` and `navigator.filter`).
                 for (severity, of) in groups.iter().rev() {
                     let chip = if compact {
@@ -782,7 +782,7 @@ impl PropertiesPane {
         if let Some(e) = error {
             self.error_line(ui, props, &parts, e, events);
         }
-        // A list with no match opens no popup. FT-1036: the list starts under the value cell.
+        // A list with no match opens no popup. The list starts under the value cell.
         if let Some(c) = props
             .choices()
             .filter(|c| c.row == row.key && !c.items.is_empty())
@@ -1784,7 +1784,7 @@ fn severity_groups<'a>(
 /// The Properties label column's width in a row `row` wide whose widest label on show needs `need` and whose values
 /// need `values` (each with its chip, [`value_need`]).
 ///
-/// M39: `need`, never below `size.property_label` and never above half the row (FT-1413, ID-1419: a longer label wraps
+/// M39: `need`, never below `size.property_label` and never above half the row (ID-1419: a longer label wraps
 /// at its words; the floor wins in a row too narrow for both). W40b (the value column gets the width first): the
 /// column then gives way, down to half of `size.property_label` (below a label's widest word too), to the widest value
 /// it can make whole that way. Each value counts whole, or, when it is too
@@ -1847,7 +1847,7 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
             .x
     };
     // The first word with the ellipsis that follows it when the rest is cut, for an identifier only (a word with a
-    // digit: a tag, a part number, an order number). FT-1413: prose ("Electrical Definition") takes nothing from the
+    // digit: a tag, a part number, an order number). Prose ("Electrical Definition") takes nothing from the
     // labels; it elides with the whole value in its tooltip, and the labels stay whole.
     // ID-1427 (W52 F4): a mixed value ("‹varies› (2)") counts whole, as an identifier does.
     let varies = matches!(row.value, RowValue::Varies { .. });

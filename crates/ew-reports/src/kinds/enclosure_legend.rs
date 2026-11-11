@@ -15,7 +15,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey
 /// The enclosure legend: the rows of `ew_derive::layout::layout_legend` for the surface of the block's embedded page
 /// (the surface its `surface_view` shows): the enclosure, the plate, one row per carrier (rails, then ducts, the
 /// designation empty, the length in metres as the quantity), then the placements by designation, then one row per
-/// end-bracket part (WP-S4.02 D13: the designation empty, the number of derived brackets as the quantity; row ID
+/// end-bracket part (the designation empty, the number of derived brackets as the quantity; row ID
 /// `entity(surface)` then the part copy and its variant, source the part copy); positions 1 … n.
 ///
 /// A block that is not embedded, or embedded on a page without a surface view, has no rows.

@@ -17,7 +17,7 @@ use sha2::{Digest, Sha256};
 use super::view::{GoldenPage, golden_session};
 
 /// The glyphs the PDF writer drops because neither bundled font has them. The "∞" of the nine main-function
-/// cross-reference texts and the "−" and "⇄" of the report pages come from the symbol fallback face (FT-85,
+/// cross-reference texts and the "−" and "⇄" of the report pages come from the symbol fallback face (
 /// ADR-0028 recommendation 3), so none is dropped.
 pub const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 0;
 

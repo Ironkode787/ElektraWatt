@@ -467,7 +467,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
     assert_eq!(shell.revision(), rev, "nothing committed");
     done(&mut shell, "ui.dismiss", json!({}));
     // Page 101 renumbered to 150, then section 1's folios narrowed to 100 to 149 (`page.renumber` keeps a folio inside
-    // its section, FT-1511): EW-CORE-021 (conflict), never pending, while the commits make the page the editing page
+    // its section): EW-CORE-021 (conflict), never pending, while the commits make the page the editing page
     // again (so MSGTEST's finding is pending once more).
     let page = common::page_id(&shell, "101");
     done(
@@ -822,7 +822,7 @@ fn a_finding_row_shows_its_subject_once() {
     shell.shutdown();
 }
 
-/// FT-1140 (item 9): the detail block's message stands on its own line, so it starts with a capital (ID-1182,
+/// FT-1140 (item 9): the detail block's message stands on its own line, so it starts with a capital (
 /// `strings::sentence_start`); the row keeps the rule's lowercase text.
 #[test]
 fn the_detail_message_starts_with_a_capital() {

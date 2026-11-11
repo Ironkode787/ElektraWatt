@@ -364,7 +364,7 @@ pub struct CpMapParam {
 /// `cp_overrides` of the affected functions (a FnDef's: the functions of that definition; a part's: the functions
 /// of its devices that its template or pattern gives CPs; a symbol's: the functions its representations draw, by
 /// the FnDef CP each symbol CP draws). A template-origin function's CP stays on the part pattern entry it is drawn as
-/// (FT-655: its endpoint is a FnDef CP index where the template entry pairs by position, so it is not mapped as a
+/// (its endpoint is a FnDef CP index where the template entry pairs by position, so it is not mapped as a
 /// pattern index): a part update moves it with that entry, a FnDef update keeps the entry and takes the endpoint the
 /// new FnDef gives it. Referencing records change nowhere else.
 ///
@@ -476,7 +476,7 @@ fn affected_functions(tx: &TxBuilder<'_>, doc: &LibDocument) -> Vec<Id<Function>
 struct Anchor(Id<Part>, u16);
 
 /// The CPs of template-origin function `func` with `doc` in place of the held copy of the same item, by the rule
-/// `function_cps` derives (`ew_schema::template_entry_of`, `TemplateFn::function_cps`, FT-655): each CP's
+/// `function_cps` derives (`ew_schema::template_entry_of`, `TemplateFn::function_cps`): each CP's
 /// endpoint, anchor and designation. `None` when the function is not template-origin in that world.
 fn template_anchors(
     tx: &TxBuilder<'_>,

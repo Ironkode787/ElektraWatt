@@ -6,7 +6,7 @@
 //!
 //! The agent never needs the repository: the harness, the product binaries, the user guide, the starter content and
 //! the reference files are copied into the folder. The sample project is not: `EW_SAMPLE_DIR` points at an empty
-//! folder, and `golden/` is hashed here and again at `stop` (D16). A usability task's start project (WP-S2.12 D5,
+//! folder, and `golden/` is hashed here and again at `stop` (D16). A usability task's start project (
 //! which amends D16 in one point) is a copy of the golden project made here, never a path to the fixture.
 
 use std::collections::BTreeMap;

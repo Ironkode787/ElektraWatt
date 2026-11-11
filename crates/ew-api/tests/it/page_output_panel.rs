@@ -462,7 +462,7 @@ fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
             .filter(|i| i.entity == Some(entity(id)))
             .filter_map(item_bounds)
             .collect();
-        // A strip's end brackets follow the footprints with its placement's entity (WP-S4.02 D13; their positions are
+        // A strip's end brackets follow the footprints with its placement's entity (their positions are
         // `golden_end_brackets::eb2_…`).
         let brackets = ["R1", "R2", "R3"]
             .iter()

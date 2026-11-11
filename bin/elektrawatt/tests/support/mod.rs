@@ -35,7 +35,7 @@ use serde_json::{Value, json};
 pub use ew_testdir::{CONTENT, GOLDEN_A, copy_dir};
 
 /// The first match in `text` of the UUID pattern `[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}`, if any: the
-/// check that no record ID reaches a transcript line or a describe text, which print the alias `@n` instead (FT-422,
+/// check that no record ID reaches a transcript line or a describe text, which print the alias `@n` instead (
 /// decision log ID-630). Written here on its own, not with the printer's scanner, so that the two check each other.
 pub fn first_uuid(text: &str) -> Option<&str> {
     const GROUPS: [usize; 5] = [8, 4, 4, 4, 12];
@@ -445,7 +445,7 @@ fn black_box_steps(
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// WP-S2.04 part 2: typed tags, the wiring and the oracle of a folio
+// Typed tags, the wiring and the oracle of a folio
 
 /// `num / den` rounded to the nearest integer, ties toward zero (`ew_units::Grid`'s rule).
 fn div_round(num: i128, den: i128) -> i128 {
@@ -771,7 +771,7 @@ impl Tmp {
 }
 
 /// The path of the `elektrawatt` binary under test. nextest sets `NEXTEST_BIN_EXE_elektrawatt` at run time (the
-/// binaries of an `--archive-file` run are unpacked elsewhere than the compile-time path, FT-353); a plain
+/// binaries of an `--archive-file` run are unpacked elsewhere than the compile-time path); a plain
 /// `cargo test` falls back to the compile-time path.
 // Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
 #[allow(clippy::disallowed_methods)]

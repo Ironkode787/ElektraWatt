@@ -48,7 +48,7 @@ pub struct NavRename {
     pub tag: bool,
 }
 
-/// What F2 renames on a row (FT-490, FT-633).
+/// What F2 renames on a row (FT-490).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum RenameRoute {
     /// A field through `fields.set`: (record kind, field path).

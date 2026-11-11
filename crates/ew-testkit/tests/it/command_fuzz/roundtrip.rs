@@ -51,7 +51,7 @@ pub struct Disk {
 /// The numbers of this process's scratch folders.
 static SCRATCH_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-/// A new, empty folder `<base>/ew-fuzz-<pid>-<seed>-<n>` (`n` from `counter`) that this call created (FT-602; the rule
+/// A new, empty folder `<base>/ew-fuzz-<pid>-<seed>-<n>` (`n` from `counter`) that this call created (the rule
 /// of `ew-testdir`'s `fresh_dir_in`, copied because the cargo-fuzz crate, a workspace of its own, includes this module
 /// and cannot depend on it): `base` is created first when it does not exist yet; a leftover folder of a killed run
 /// whose PID was reused is skipped, not adopted, and the next number is taken instead.

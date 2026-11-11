@@ -21,7 +21,7 @@ fn field<'a, 'h>(h: &'h egui_kittest::Harness<'a, ew_ui::app::App>, name: &str) 
 }
 
 /// Runs the frame until `done` holds of the shell, bounded like `support::wait_for_page` (600 frames, 20 ms apart),
-/// then settles. ID-1106: after Create or Enter the test waits on the state, not on one `settle` frame.
+/// then settles. After Create or Enter the test waits on the state, not on one `settle` frame.
 #[track_caller]
 fn wait_until(
     h: &mut egui_kittest::Harness<'_, ew_ui::app::App>,
@@ -140,7 +140,7 @@ fn a_refusal_stays_in_the_dialog_and_the_type_is_a_choice() {
         "the refusal is not made a banner as well"
     );
     // Choosing the type from the list.
-    // The first list is Type (ID-1477 (1): Connection grid follows it).
+    // The first list is Type (Connection grid follows it).
     h.get_all_by_role(egui::Role::ComboBox)
         .next()
         .expect("the Type list")

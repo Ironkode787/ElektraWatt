@@ -140,7 +140,7 @@ fn the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
 }
 
 /// FT-1078, as FT-567: the History header starts `space.4` inside the pane, as the Messages header does. FT-1362
-/// (ruling 7; W50-F12): with one step the History dock is as high as its one row needs, at the floor and at 1920 × 1080,
+/// (ruling 7): with one step the History dock is as high as its one row needs, at the floor and at 1920 × 1080,
 /// and the row reads in words: the command's title and its origin, not `fields.set` and `script ui-script`.
 #[test]
 fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {

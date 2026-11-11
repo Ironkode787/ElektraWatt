@@ -4,7 +4,7 @@
 //! The chips of a canvas (doc 16a §7.3 to §7.5): the tool overlay's labels (the Place ghost's one
 //! label with the tag it will get, FT-507; the measurement readout), the highlights' name chips and the kept
 //! preview's semantic ghost (its header with the command and status, one chip per changed tag or cross-reference
-//! text, FT-389), each placed by `ew-viewmodel`'s one rule, [`place_chip`] (D13), in that order, so that a later chip
+//! text), each placed by `ew-viewmodel`'s one rule, [`place_chip`] (D13), in that order, so that a later chip
 //! keeps off the earlier ones.
 //!
 //! **Obstacles**: the outside of the canvas, the frame-statistics panel, the chrome the caller reports
@@ -12,7 +12,7 @@
 //! [`crate::canvas::CanvasHost::set_chrome_obstacles`]), the
 //! pointer's 16-point box, and every chip placed before. **Targets**: a label stands by its point; a highlight's
 //! name chip by the first vertex of its first drawn wire; a tag change by the printed tag text of the device's first
-//! representation on the page (`TableRep::tag_at`, FT-502), else the top-left corner of its body, else the Place
+//! representation on the page (`TableRep::tag_at`), else the top-left corner of its body, else the Place
 //! tool's floating insertion point; a cross-reference change by its representation's body; the header right above
 //! the first placed change (its target is a point 8 points left of that chip's top-left corner, so the rule's
 //! preferred anchor is straight above it); changes the page does not draw, and the header without a placed change,
@@ -425,7 +425,7 @@ pub fn clear_corner(canvas: Rect, corner: Pos2, size: Vec2, obstacles: &[Rect], 
 /// `(anchor, size)` by doc 16a §7.4's rule, in order: [`place_chip`] by its anchor (its stroke's middle in its lane)
 /// clear of the canvas's outside, of the codes placed before it, of `obstacles` and of the `pointer`'s box; where every
 /// candidate is taken, the nearest place stacked inward (`gap` apart) clear of the same; only where there is none, the
-/// first candidate, faded (`true`). FT-1345: `obstacles` are what §7.4 names besides: the HUD, the
+/// first candidate, faded (`true`). `obstacles` are what §7.4 names besides: the HUD, the
 /// frame-statistics panel, the other chips and the drawing's printed texts.
 pub fn wire_code_chips(
     bounds: Rect,
@@ -493,7 +493,7 @@ pub fn paint(ui: &Ui, clip: Rect, chips: &[CanvasChip]) {
 
 /// The frame of the link preview popup: a popover (doc 16a §6.13's surface: `elevation.1`, a 1-px
 /// `color.border.default` outline) around `rect` and the target's folio as a canvas chip above it, with `go` (how to go
-/// there, FT-1123) on a line under the folio.
+/// there) on a line under the folio.
 pub fn paint_popup_frame(ui: &Ui, clip: Rect, rect: Rect, folio: &str, go: &str) {
     let t = crate::theme::current(ui.ctx());
     let painter = ui.painter_at(clip);

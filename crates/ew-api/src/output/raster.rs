@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page rasters (WP-S1.22 part 2, D7; FR-EXT-004, FT-254): `ew render --page <folio> --png` and `ew export png`.
+//! Page rasters (D7; FR-EXT-004, FT-254): `ew render --page <folio> --png` and `ew export png`.
 //!
 //! One function draws a page: [`page_png`] renders a page scene's sheet list through `ew-render-cpu` with the bundled
 //! fonts only ([`font_bytes`]) and encodes it as PNG with the resolution in its `pHYs` chunk. The golden PNGs

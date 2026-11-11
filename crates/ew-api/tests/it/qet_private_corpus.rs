@@ -107,7 +107,7 @@ fn the_private_corpus_imports_derives_and_exports() {
             devices.len()
         );
         drop(q);
-        // The shipped export job (`Session::export_pdf`, FT-59) with a fixed date.
+        // The shipped export job (`Session::export_pdf`) with a fixed date.
         let out = session
             .export_pdf(&ExportOptions {
                 date: Some(PdfDate::ymd(2026, 1, 1)),

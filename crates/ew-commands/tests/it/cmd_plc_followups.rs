@@ -163,7 +163,6 @@ fn tag(e: &Engine, device: Id<Device>) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-320
 
 /// FT-320 through `assembly.attach`: the valve moved from the module to a plain device leaves no channel bound to it,
 /// in the same step, with the notice; undo restores the binding.
@@ -242,7 +241,6 @@ fn a_move_within_the_module_keeps_the_binding() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-352
 
 /// N2 reads the module's children through the parent index (`TxBuilder::children_of`, recorded in the read
 /// set as `IndexRead::DeviceChildren`). A move within the module prepared before a valve was added to the module is
@@ -270,9 +268,8 @@ fn n2_reads_the_children_through_the_parent_index() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-953, FT-955
 
-/// FT-953 (ID-1108: "FT-320's unbind checks every descendant of a moved sub-assembly"): a valve that sits on its
+/// FT-953 ("FT-320's unbind checks every descendant of a moved sub-assembly"): a valve that sits on its
 /// module through a sub-assembly leaves the module when the sub-assembly is attached elsewhere; its coil is unbound in
 /// the same step, the notice names the valve and the moved sub-assembly, and undo restores the binding.
 #[test]
@@ -327,7 +324,6 @@ fn an_unrelated_device_edit_leaves_a_prepared_attach_valid() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-321
 
 /// A DI card part with 4 channels, its pin map and a CP pattern of the given designations at indexes `first`….
 fn card(part_id: Id<Part>, number: &str, pin_of: Option<&str>, pins: &[&str], first: u16) -> LibCopy<Part> {

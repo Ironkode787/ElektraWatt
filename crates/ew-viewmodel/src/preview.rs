@@ -12,7 +12,7 @@
 //! card's rebuild (a new revision) is a new card and a card that comes back unchanged is not fetched twice.
 //!
 //! **Opening and closing.** A new card shows the tab (`Layout::with_bottom`, then `Layout::showing`) and leaves the
-//! focus where it was. When the last card ends (Apply, Cancel), a tab the cards opened closes (cycle 39: an empty tab
+//! focus where it was. When the last card ends (Apply, Cancel), a tab the cards opened closes (an empty tab
 //! took the canvas's height), while a tab that was in the layout before the first card (the user opened it by hand)
 //! stays, showing "No preview is open"; closing the tab while a card is open cancels the card (the shell's
 //! `sync_preview`).
@@ -43,7 +43,7 @@ pub fn card_key(card: &Card) -> CardKey {
     )
 }
 
-/// The changed fields of a record of `kind` (its top-level members) in words for the Preview tab's row (cycle 39,
+/// The changed fields of a record of `kind` (its top-level members) in words for the Preview tab's row (
 /// FIX39b-1): each by its label in a sentence (`part_number` → "part number"); a library copy's content hash
 /// (`sha256`) is no field to a reader: it is left out when another field changed, and reads "content" when it is the
 /// only change.
@@ -113,7 +113,7 @@ impl PreviewPane {
     }
 
     /// The folios of the pages whose content changes, in page order, each with the folio the card gives it when that
-    /// is another (ID-1497 (4): "106 → 104").
+    /// is another ("106 → 104").
     pub fn pages(&self) -> &[(String, Option<String>)] {
         &self.pages
     }

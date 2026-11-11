@@ -972,7 +972,7 @@ fn rep_move_refuses_an_unknown_variant() {
     let CmdError::Rejected { reason, .. } = err else {
         panic!("{err:?}");
     };
-    // FT-882 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and
+    // FT-882 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and
     // ends with what the user can do")
     assert_eq!(
         reason,

@@ -658,7 +658,7 @@ fn poll_to_the_end(s: &mut ShellModel) {
     }
 }
 
-/// R1-2 of cycle 31: a `jobs.wait` after a poll already took the failed or cancelled end still sees it, with and
+/// A `jobs.wait` after a poll already took the failed or cancelled end still sees it, with and
 /// without `job`, so whether the runner's poll or the wait took the end does not change the run's outcome.
 #[test]
 fn a_wait_after_a_poll_took_the_end_still_sees_it() {
@@ -704,7 +704,7 @@ fn a_wait_after_a_poll_took_the_end_still_sees_it() {
     s.shutdown();
 }
 
-/// R2-1 of cycle 31: with two `wait: false` exports, A failed and B done, `jobs.wait {}` chooses B whether a poll
+/// With two `wait: false` exports, A failed and B done, `jobs.wait {}` chooses B whether a poll
 /// already took B's end (a) or B still runs (b): A's failure stays unseen in both, so the run reports the same text
 /// and the same exit status. A second `jobs.wait {}` then chooses A and sees its failure.
 #[test]
@@ -735,7 +735,7 @@ fn jobs_wait_chooses_the_newest_job_no_step_waited_for_whatever_the_polls_took()
         // The hold stays for every later checkpoint `page`: a helper releases until the step is over.
         let stop = std::sync::atomic::AtomicBool::new(false);
         // Sets `stop` on every exit of the scope closure, unwinding included, so a failed assertion fails the
-        // test instead of leaving the helper looping (R3-1).
+        // test instead of leaving the helper looping.
         struct Stop<'a>(&'a std::sync::atomic::AtomicBool);
         impl Drop for Stop<'_> {
             fn drop(&mut self) {

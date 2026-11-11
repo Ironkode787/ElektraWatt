@@ -433,7 +433,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         |s, _| s.send_proposal_key(),
     )))),
     // WP-S4.02 part 3 (D4, D10; doc 12 §12.4): placing on a panel page. Tab, R, X and the arrows keep their bindings:
-    // on a panel page the shell maps them to these hidden actions (`ShellModel::shortcut_action`, ID-628); Shift+Tab is
+    // on a panel page the shell maps them to these hidden actions (`ShellModel::shortcut_action`); Shift+Tab is
     // `layout.previous`'s own canvas binding (ruling 5).
     with_params(
         "device:ref",
@@ -628,7 +628,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ))),
     // Route page and Route selection after Edit route, previewed (no default key); after Interruption,
     // so the two stack in one column of their own (ID-1506 (6)). Each its own icon, neither the generated badge's
-    // (ID-1509 (9), C1): the page as a whole, and a pull on the selected wires.
+    // (C1): the page as a whole, and a pull on the selected wires.
     keeps_banner(placed(
         place(Group::Connect, 7, CommandSize::Small, None),
         "file-settings",
@@ -1217,7 +1217,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices… and Purge unused images…
-    // WP-S2.08 D7: Ctrl+Shift+N, doc 16 §4.4's shell binding.
+    // Ctrl+Shift+N, doc 16 §4.4's shell binding.
     with_params(
         "scope?:enum(project|page|selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",
         placed(
