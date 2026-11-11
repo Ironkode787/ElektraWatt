@@ -643,7 +643,9 @@ rejected (§14).
   ([06](06-schematic-editor.md) §2.5, where Mn mirrors about the symbol's vertical axis and then rotates by n). With
   QET 0.200 `mirror`, and assuming QET mirrors in the element frame before rotating: `horizontal` → M(90k),
   `vertical` → M(180 + 90k), `both` → R(180 + 90k), angles mod 360. The assumption is unverified and is fixed by
-  rendering mirrored corpus elements in QET and in EW (Open question 12).
+  rendering mirrored corpus elements in QET and in EW (Open question 12). *As built:* QET 0.100, the pilot's
+  version, writes no `mirror` (the pilot's projects hold none), and the importer reads none, so an element a later
+  QET mirrors arrives unmirrored.
 - **Grid-line positions.** On QET's default border (17 × 60 px columns,
   8 × 80 px rows, 20 px headers), an element whose cell a cross-reference prints (an interruption point
   `next_report`/`previous_report`, a master or a slave) that lies exactly on an inner column or row line
@@ -683,7 +685,7 @@ map one to one:
 | `ellipse x y width height`, `circle x y diameter` | ellipse, circle | `x y` is the bounding box's top-left |
 | `arc x y width height start angle` | elliptic arc | degrees; 0° at 3 o'clock; positive span counter-clockwise on screen, so a point is `(cx + rx·cosθ, cy − ry·sinθ)`; the importer keeps `start` and `angle` as given, and lowering in `ew-scene` evaluates the arc with `ew-dl`'s deterministic trigonometry |
 | `polygon x1 … xn y1 … yn closed` | polyline or closed polygon | |
-| `text x y text size\|font color rotation` | static symbol text | font per §4.10; `rotation` is Qt's clockwise-positive angle and becomes the negated `Angle2` (counter-clockwise positive, [03](03-domain-model.md) §3.1; ADR-0005 amendment 2) |
+| `text x y text size\|font color rotation` | static symbol text | font per §4.10; `rotation` is Qt's clockwise-positive angle and becomes the negated `Angle2` (counter-clockwise positive, [03](03-domain-model.md) §3.1; ADR-0005 amendment 2); `x y` is the first line's baseline, and a text of several lines becomes one text per line, each 1.15 em lower in the text's own frame |
 | `dynamic_text`, legacy `input tagg` | text slot | `label` → tag slot, `function` → function-text slot, `CompositeText` → slot with a format; `UserText` → static text. In a project the placed elements print their own texts instead (§4.4.2) |
 | `terminal x y orientation name type uuid` | connection point | index = definition order; designation = `name` (empty allowed); direction from `orientation`; `type` Generic, Inner or Outer kept |
 
@@ -747,7 +749,9 @@ map one to one:
    upper case and whose counter has no leading zero becomes a derived `TagSpec{letter, counter}`. Every other label
    stays a `FrozenTag` that prints the source text unchanged, so a label EW would print differently (`-101K01`,
    `-101f1`) is frozen rather than re-derived, and EW-IMP-009 never fires for a tag. EW-IMP-103 lists the frozen
-   labels, strips excepted. A structure prefix (`+…-X1`) is kept in `Device.extra` until structure nodes are created
+   labels, strips excepted. A label that several devices carry stays a `FrozenTag` on each, though it fits the
+   rule: two derived tags with one counter would print as two numbers, where QET prints the label twice;
+   EW-IMP-103 says so, and EW-RDS-004 reports the duplicate. A structure prefix (`+…-X1`) is kept in `Device.extra` until structure nodes are created
   . An element
    without any label gets `TagSpec{letter: prefix attribute, else "A", counter: none}` (numbered on import), so
    the device keeps an identity, and is reported once per folio as EW-IMP-122. Its tag is not printed, because QET prints none: the
@@ -773,7 +777,10 @@ by its import style (§4.10). Each placed element then prints its own texts, eac
   text on the left end of a line's middle: the corner plus QET's 4 px text margin, plus 0.547 em down to the
   middle of the first line (the ascent less half the cap height of the substituted families), plus 1.15 em per
   further line (Qt's line spacing). A text of several lines becomes one text per line, so that its lines keep
-  QET's spacing. The offset turns with the text's rotation rounded to a quarter turn, then with the element.
+  QET's spacing. The offset turns with the text's rotation rounded to a quarter turn, then with the element. A
+  text with a fixed width (`text_width` above 0) QET 0.100 lays out centred in its box, whatever its
+  `Halignment` (which only keeps the box's anchor when the text changes), so its lines are centred on the box's
+  middle: a centred free text, or a centred slot of its kind that the import adds to the symbol.
 - **What.** A user text prints as written, an element information its value (a slave's label is its master's,
   as QET links them), a composite text its format with each `%{name}` replaced by that information. Qt rich text
   prints its plain text, one line per paragraph, in the size of its first span or body (§4.13).
@@ -801,10 +808,14 @@ through the texts above, but parts, user properties and comments from it are not
   to the symbol (hidden, in QET's 5 pt) and shows on each representation. A master lists its slaves' positions
   one per line directly under its first label text (QET's `snapto="label"`); a linked slave prints its master's
   position under its label text, or above it for `xrefpos="AlignTop"`, `slave_offset` px away, as the `<xref>` of
-  its master's type says. What differs from QET: the text starts where the label starts, where QET centres it
-  under the label (the import knows no text widths); a master prints positions only, without QET's contact
-  glyphs, terminal names and prefixes; `displayhas="cross"`, `snapto="bottom"` and a slave beside its label print
-  as this list under the label, each reported once per type (EW-IMP-009).
+  its master's type says. The text is centred on the middle of the label's box, as QET centres it: half a fixed
+  `text_width`, else the 4 px margin and half the label, counted at 0.55 em a character (the import has no
+  text widths, so this middle is an estimate). A master's contact list (`displayhas="contacts"`) has its texts
+  28 px right of that middle, where QET prints them after the contacts it draws. What differs from QET: a master
+  prints positions only, without QET's contact symbols, terminal names and prefixes, and its rows stand one
+  line of the 5 pt style apart (about 7.7 px) where QET's stand 10 px apart: both need a drawing of the list that
+  the scene does not have. `displayhas="cross"`, `snapto="bottom"` and a slave beside its label print as this
+  list under the label, each reported once per type (EW-IMP-009).
 
 ### 4.6 Folio reports → interruption points
 
@@ -823,8 +834,9 @@ importer reconstructs QET's pairs exactly:
 5. **Verify** (pass P3): the derived pairs must equal the QET pairs; every difference is an error finding.
 
    *As built.* Step 2 takes one name per linked pair from the first non-empty of: the
-   source's `label`, the target's `label`, the source's first `UserText` dynamic text, the target's first `UserText`
-   (the reference set stores interruption-point names in `UserText`); both ends get that name and the other end's
+   source's first `UserText` dynamic text, the target's first `UserText`, the source's `label`, the target's
+   `label`. The text comes first because it is the name QET prints: a report's label text prints its partner's
+   position, so its `label` information can hold anything; both ends get that name and the other end's
    differing text is kept as an alias and reported in one EW-IMP-115 entry that quotes both texts. A pair without any
    name gets one synthesised name `IP-{folio}-{n}` for both ends (EW-IMP-115). Several pairs that share a name get
    `IpSpec.sort` 2i and 2i+1 and an EW-IMP-115 saying the project needs chain mode. The conductor `function` of the
@@ -836,7 +848,8 @@ importer reconstructs QET's pairs exactly:
    unpaired, as in QET.
 
    *As built, printing.* A report keeps its definition's drawing. The text QET binds to its `label` (which QET
-   fills with the partner's position by the report formula) shows the symbol's cross-reference slot, in that
+   fills with the partner's position by the report formula), as the label information or as a composite text of
+   `%{label}` alone, shows the symbol's cross-reference slot, in that
    text's own style and place; a text that is the pair's name shows the function-text slot, which prints the
    interruption point's name. The import adds both slots to the symbol, hidden, and shows them per
    representation. The position stored in the file is not read: EW derives it.
@@ -1073,6 +1086,10 @@ the recognisers of FR-IMP-017:
   symbols. A mark whose value equals the crossed wire's derived cross-section is dropped. A mark whose value differs
   is dropped as well, the wire keeps its derived property, and EW-IMP-123 carries the mark's value with the quick fix
   "set the override to the mark's value", so nothing the mark said is lost and no override is created silently.
+  *As built:* not yet; a mark arrives as a placed element that prints its own texts (QET users write cable tags,
+  part texts and core colours on it). It has no terminals, and EW-CORE-069 counts only the bodies of
+  representations that draw a connection point, so the marks QET draws across their wires raise no "wire through
+  a symbol" (417 such findings on the pilot's reference project before).
 - Converted texts are removed from the page in the same transaction and listed (EW-IMP-107), with a revert action.
   The conversion of the reference's four marker groups into ten CDPs is MF-07.
 - **Colour aliases.** The shipped table maps foreign colour notations to IEC 60757: BR → BN, SW → BK, BL → BU,
@@ -1175,6 +1192,10 @@ interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strip
   front door `ew_api::import` runs the `migration` scheme of `ew-checks` on the imported model, every built
   `pre-delivery` rule, lenient (§2.5). Definition findings are reported only for definitions that placed elements use, and a font substitution
   once per family.
+- **Built-in documents.** The importer resolves `ew.fn.ip` and `ew.titleblock.qet-a4` in the starter content the
+  host passes (`ew import qet --content`, the window's content directory). Without a content directory both take
+  the documents compiled into the program (`StarterLibrary::compiled`: the starter symbols and FnDefs and that
+  title block), so a folio report, and with it its connections, is never dropped for want of the content.
 - **Not imported yet** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101
  , rules R2/R3, structure nodes and EW-IMP-102, parts from element information,
   text-to-data recognisers, thumbnails, cables, conductor properties as potential definitions and overrides,
