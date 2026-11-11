@@ -100,7 +100,10 @@ pub fn styles(sizes: &BTreeSet<u16>) -> BTreeMap<Ident, TextStyleSpec> {
         .iter()
         .filter_map(|&pt| {
             let key = style_key(pt);
-            Some((Ident::from_input(&key).ok()?, crate::prims::text::style_spec(&key)?))
+            Some((
+                Ident::from_input(&key).ok()?,
+                crate::prims::text::style_spec(&key)?,
+            ))
         })
         .collect()
 }
@@ -650,9 +653,13 @@ fn logo_image(
     } else {
         (ch * w / h, ch)
     };
-    let (dw, dh) = (i64::try_from(dw).map_err(|e| e.to_string())?, i64::try_from(dh).map_err(|e| e.to_string())?);
+    let (dw, dh) = (
+        i64::try_from(dw).map_err(|e| e.to_string())?,
+        i64::try_from(dh).map_err(|e| e.to_string())?,
+    );
     let (ox, oy) = (cx0 + (cx1 - cx0 - dw) / 2, cy0 + (cy1 - cy0 - dh) / 2);
-    let rect = Bounds::new(Pt2::new(Nm(ox), Nm(oy)), Pt2::new(Nm(ox + dw), Nm(oy + dh))).map_err(|e| e.to_string())?;
+    let rect = Bounds::new(Pt2::new(Nm(ox), Nm(oy)), Pt2::new(Nm(ox + dw), Nm(oy + dh)))
+        .map_err(|e| e.to_string())?;
     Ok(Primitive::Image(ImagePrim {
         rect,
         asset,
