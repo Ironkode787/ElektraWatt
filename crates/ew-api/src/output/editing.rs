@@ -107,6 +107,9 @@ pub struct CatalogueSymbol {
     pub name: String,
     /// How the symbol gets onto a page.
     pub placed_by: PlacedBy,
+    /// The first level of its FnDef's category (`ProtectionOvercurrent`, the browser's tree node); empty when the
+    /// FnDef is missing.
+    pub category: String,
 }
 
 /// How a symbol gets onto a page: what choosing it in the Insert symbol list does.
@@ -146,6 +149,8 @@ pub struct CataloguePart {
     pub copy: Uuid,
     /// `(library, item)` of a library part the project does not hold; `None` for an embedded copy.
     pub library: Option<(Uuid, Uuid)>,
+    /// The name of that library (the browser's library column); empty for an embedded copy.
+    pub library_name: String,
     /// The part number.
     pub part_number: String,
     /// The part's description in words (the picker row leads with it): its neutral text, else its first
@@ -165,6 +170,9 @@ pub struct CataloguePart {
     /// supply), `None` when the part has no category or the set no mapping: a black box placed from the part
     /// takes it.
     pub letter: Option<String>,
+    /// The first level of the part's own category, else of its main function's FnDef category (the browser's tree
+    /// node); empty when it has neither.
+    pub category: String,
 }
 
 /// One function of a part's template in the place catalogue.
@@ -312,6 +320,7 @@ fn catalogue_part(
     if part.function_template.is_empty() && library.is_some() {
         return None;
     }
+    let mut main_category = None;
     let functions = part
         .function_template
         .iter()
@@ -322,6 +331,9 @@ fn catalogue_part(
                 Some(_) => fndef_of(q, &t.fndef),
                 None => q.fndefs().get(def_id).cloned(),
             };
+            if t.main && main_category.is_none() {
+                main_category = def.as_ref().map(|d| d.item.category.0.as_str().to_owned());
+            }
             let symbol = rows
                 .iter()
                 .find(|(r, f)| *f == def_id && r.allowed)
@@ -391,6 +403,7 @@ fn catalogue_part(
     Some(CataloguePart {
         copy,
         library,
+        library_name: String::new(),
         part_number: part.part_number.as_str().to_owned(),
         description: super::properties::neutral_or_first(&part.description),
         manufacturer: String::new(),
@@ -398,6 +411,12 @@ fn catalogue_part(
         functions,
         words,
         letter,
+        category: part
+            .category
+            .as_ref()
+            .map(|(c, _, _)| c.as_str().to_owned())
+            .or(main_category)
+            .unwrap_or_default(),
     })
 }
 
@@ -473,6 +492,10 @@ fn symbol_row(
     };
     CatalogueSymbol {
         placed_by,
+        category: def
+            .as_ref()
+            .map(|d| d.item.category.0.as_str().to_owned())
+            .unwrap_or_default(),
         key,
         copy,
         fndef_key,
@@ -615,6 +638,7 @@ impl Session {
                 row.fndef_key = key_or_id(def.item.meta.key.as_ref(), def.id.as_uuid());
                 row.letter = letter_of(set, Some(&def));
                 row.terminal = matches!(def.item.category.0.as_str(), "Terminal" | "TerminalEarth");
+                row.category = def.item.category.0.as_str().to_owned();
                 // A library master already has its authored outline and pins; do not redraw it as a box.
                 row.black_box = false;
                 row.name = format!("{} · {}", row.name, library.name);
@@ -651,8 +675,19 @@ impl Session {
             }
             let manufacturer = self.library_manufacturer(&c.item.manufacturer);
             let source = Some((c.library_id.as_uuid(), c.item_id.as_uuid()));
+            let library_name = self
+                .libraries()
+                .libraries()
+                .into_iter()
+                .find(|l| l.id == c.library_id.as_uuid())
+                .map(|l| l.name.clone())
+                .unwrap_or_default();
             if let Some(row) = catalogue_part(&q, set, &rows, c.id.as_uuid(), &c.item, source) {
-                parts.push(CataloguePart { manufacturer, ..row });
+                parts.push(CataloguePart {
+                    manufacturer,
+                    library_name,
+                    ..row
+                });
             }
         }
         // The project's own copies first, then the libraries' parts, each in that order.

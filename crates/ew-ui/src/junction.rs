@@ -4,7 +4,8 @@
 //! The junction sequence editor popup (FR-CON-005): the junction's style and wiring as buttons, its
 //! sequence as rows named by each member's far endpoint, the physical wires through it below. Up and Down focus a row
 //! (a view change of the popup), Alt+Up and Alt+Down move the focused member (`junction.member`), R cycles a bevel's
-//! orientation (`junction.style`), Escape closes it (`ui.dismiss`, the topmost popup). Every change is a registry
+//! orientation (`junction.style`), Escape, the close button and a click beside it close it (`ui.dismiss`, the topmost
+//! popup). Every change is a registry
 //! action, so the headless mode drives the same model; each commits one `junction.edit`.
 
 use egui::{Align2, Button, Id, Key, Modifiers, Window};
@@ -53,8 +54,14 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
             json!({"style": "bevel", "orient": next}),
         ));
     }
-    Window::new(strings::format(key!("junction-title"), &[&editor.cell]))
-        .id(Id::unique("junction-editor"))
+    let id = Id::unique("junction-editor");
+    // FT-1635: a click beside it or its close button closes it, as Escape does.
+    crate::components::overlay_backdrop(ctx, id, false, events);
+    let title = strings::format(key!("junction-title"), &[&editor.cell]);
+    Window::new(&title)
+        .id(id)
+        .order(egui::Order::Foreground)
+        .title_bar(false)
         .anchor(Align2::CENTER_TOP, [0.0, 60.0])
         .collapsible(false)
         .resizable(false)
@@ -62,6 +69,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, events: &mut Vec<Event>) {
         // wider window would only pad with empty space.
         .default_width(crate::theme::current(ctx).size_dialog_small)
         .show(ctx, |ui| {
+            crate::components::overlay_title(ui, &title, shell, events);
             ui.horizontal(|ui| {
                 ui.label(strings::text(key!("junction-style")));
                 for (style, key) in [

@@ -7,7 +7,7 @@
 //!
 //! **Reads.** The place catalogue is fetched once per (session, revision, folio) while the picker or `place.pick`
 //! needs it, a symbol shape once per copy per revision (§6.2); pointer and cursor moves, the picker's filter and its
-//! row keys make no `Session` call (§12 item 4).
+//! row keys make no `Session` call (§12 item 4) but the shape of a symbol the browser's picture shows first.
 //!
 //! **Host commits** (§6.4 item 2) go through the tool's commit path: `Session::execute_with` in the window,
 //! `Session::run_script` headless. A failed host commit leaves the tool unarmed and shows the message in the banner.
@@ -333,6 +333,26 @@ impl ShellModel {
             m.insert(key, Arc::clone(&shape));
         }
         Some(shape)
+    }
+
+    /// The picker's picture follows its current row: the shape of the symbol the row places, through the shape
+    /// cache (one `Session` read per symbol and revision); none for a strip or a part without a symbol.
+    pub(super) fn refresh_picker_preview(&mut self) {
+        let Some(picker) = &self.tools.picker else {
+            return;
+        };
+        let symbol = picker
+            .rows
+            .get(picker.row)
+            .and_then(|r| picker.row_symbol(*r))
+            .map(|s| (s.key.clone(), s.copy));
+        let shape = symbol.and_then(|(key, copy)| {
+            let copy = copy.or_else(|| self.project.as_ref()?.session.starter_symbol_copy(&key))?;
+            self.cached_shape(copy.to_string(), |s| s.symbol_shape(copy))
+        });
+        if let Some(picker) = &mut self.tools.picker {
+            picker.preview = shape;
+        }
     }
 
     /// The shape of an embedded catalogue symbol.
@@ -764,6 +784,51 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `picker.category {to | step}`: the browser's tree node by its word (`all`, `project`, `other` or a category
+    /// key, [`Node::word`](crate::tools::Node::word)), or `step` nodes down (up when negative, clamped).
+    pub(crate) fn act_picker_category(&mut self, p: &Map<String, Value>) -> Outcome {
+        let to = match string_param(p, "to") {
+            Ok(v) => v.map(str::to_owned),
+            Err(e) => return e,
+        };
+        let step = p.get("step").and_then(Value::as_i64);
+        let Some(picker) = &mut self.tools.picker else {
+            return Outcome::refused(key!("reason-no-picker"));
+        };
+        let node = match (to, step) {
+            (Some(word), _) => match crate::tools::Node::of_word(&word) {
+                Some(node) => node,
+                None => return failed(key!("error-bad-param"), &["to"]),
+            },
+            (None, Some(step)) => {
+                let Some(at) = picker.nodes.iter().position(|(n, _)| *n == picker.node) else {
+                    return Outcome::Done;
+                };
+                let last = picker.nodes.len().saturating_sub(1) as i64;
+                let at = (at as i64).saturating_add(step).clamp(0, last) as usize;
+                picker.nodes[at].0.clone()
+            }
+            (None, None) => return failed(key!("error-missing-param"), &["to"]),
+        };
+        picker.set_node(node);
+        Outcome::Done
+    }
+
+    /// `picker.open {open?}`: opens the part of the current row to its functions (`open` true, the default) or closes
+    /// it, its part's row current then.
+    pub(crate) fn act_picker_open(&mut self, p: &Map<String, Value>) -> Outcome {
+        let open = match p.get("open") {
+            None => true,
+            Some(Value::Bool(b)) => *b,
+            Some(_) => return failed(key!("error-bad-param"), &["open"]),
+        };
+        let Some(picker) = &mut self.tools.picker else {
+            return Outcome::refused(key!("reason-no-picker"));
+        };
+        picker.set_open(open);
+        Outcome::Done
+    }
+
     /// `picker.new_page`: the current row, a symbol on another connection grid than the page's, placed on
     /// a new page with its grid and selected; the picker closes.
     pub(crate) fn act_picker_new_page(&mut self) -> Outcome {
@@ -857,12 +922,16 @@ impl ShellModel {
                     other => other,
                 }
             }
-            (_, PickerRow::Part(pi)) => {
-                if let Some(picker) = &mut self.tools.picker {
-                    picker.choose_part(pi);
+            // A part with a function template places its main function, as its first function row did.
+            (_, PickerRow::Part(pi)) => match self.tools.picker.as_ref().and_then(|p| p.part_main(pi)) {
+                Some(k) => self.arm(cat, Pick::PartFn(pi, k), p),
+                None => {
+                    if let Some(picker) = &mut self.tools.picker {
+                        picker.choose_part(pi);
+                    }
+                    Outcome::Done
                 }
-                Outcome::Done
-            }
+            },
             (_, PickerRow::Symbol(i)) => self.arm(cat, Pick::Symbol(i), p),
             (_, PickerRow::PartFn(a, b)) => self.arm(cat, Pick::PartFn(a, b), p),
             // The strip chooser: the pending terminal placement with the chosen strip.

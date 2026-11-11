@@ -16,8 +16,8 @@
 //! log keeps it.
 //!
 //! **The log.** A popover above the status bar's notifications field, newest first, with each one's action while it is
-//! valid; Escape or Close closes it (`notifications.show`). It never takes the focus by itself. Its empty state says
-//! so.
+//! valid; Escape, Close or a click beside it closes it (`notifications.show`, `ui.dismiss`). It never takes the focus
+//! by itself. Its empty state says so.
 
 use egui::{Align, Align2, Context, Layout, Rect, RichText, Ui, Vec2};
 use ew_viewmodel::key;
@@ -387,7 +387,10 @@ pub(crate) fn show_log(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event
         return;
     }
     let t = theme::current(ctx);
-    egui::Area::new(egui::Id::unique("notifications-log"))
+    let id = egui::Id::unique("notifications-log");
+    // FT-1635: a click beside it closes it, as Escape and Close do.
+    components::overlay_backdrop(ctx, id, false, events);
+    egui::Area::new(id)
         .anchor(Align2::RIGHT_BOTTOM, [-t.space_4, -(t.size_status + t.space_2)])
         .order(egui::Order::Foreground)
         .show(ctx, |ui| {

@@ -2697,8 +2697,9 @@ msgstr ""
 
 #: src/how-to/choose-parts.md:27
 msgid ""
-"In the picker, choose the part's function, for example the terminal of "
-"EW-GEN-TRM-1."
+"In the browser, double-click the part, for example the terminal "
+"EW-GEN-TRM-1; its row places the part's main function. To place another "
+"function, open the part with its arrow and double-click the function."
 msgstr ""
 
 #: src/how-to/choose-parts.md:28
@@ -2994,7 +2995,8 @@ msgstr ""
 
 #: src/reference/window/tools.md:23
 msgid ""
-"Places a symbol from the library: choose the symbol in the picker, then "
+"Places a symbol from the library: double-click the symbol in the browser "
+"(its categories at the left, a picture of the chosen row at the right), then "
 "click where it goes; each click places one more until you finish. Open it "
 "with Draw ▸ Place ▸ Symbol…. See [A first schematic "
 "page](../../tutorials/first-page.md)."
@@ -3007,8 +3009,9 @@ msgstr ""
 #: src/reference/window/tools.md:28
 msgid ""
 "Places a device from a part of the library, so that the device has its part "
-"from the start. Open it with Draw ▸ Place ▸ Device from part…. See [Choose "
-"parts](../../how-to/choose-parts.md)."
+"from the start. The browser lists one row per part; a part with several "
+"functions opens to them with its arrow (or Right). Open it with Draw ▸ Place "
+"▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md)."
 msgstr ""
 
 #: src/reference/window/tools.md:31 src/explanation/eplan-and-ew.md:112

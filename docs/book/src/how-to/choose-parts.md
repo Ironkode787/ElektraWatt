@@ -24,7 +24,8 @@ Messages pane. **Edit ▸ Edit part…** changes the project's copy of the part.
 When you know the part before you draw, place the device from it, so that the device has its part from the start:
 
 1. Choose **Draw ▸ Place ▸ Device from part…** (`Shift+I`).
-2. In the picker, choose the part's function, for example the terminal of EW-GEN-TRM-1.
+2. In the browser, double-click the part, for example the terminal EW-GEN-TRM-1; its row places the part's main
+   function. To place another function, open the part with its arrow and double-click the function.
 3. Click where the device goes on the page.
 
 ## Read the parts list

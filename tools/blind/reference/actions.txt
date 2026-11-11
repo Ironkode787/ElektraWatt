@@ -108,6 +108,8 @@ external_ref.new Command "External reference…" menu "Project" shortcut none co
 place.pick Command "Pick a symbol to place" menu none shortcut none context canvas hidden params "symbol?:text, part?:text, function?:ref, device?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text"
 picker.filter View "Filter the picker" menu none shortcut none context global hidden params "text:text"
 picker.row View "Move the picker's row" menu none shortcut none context global hidden params "step?:int, to?:enum(first|last)"
+picker.category View "Choose a category of the browser" menu none shortcut none context global hidden params "to?:text, step?:int"
+picker.open View "Open or close a part's functions" menu none shortcut none context global hidden params "open?:bool"
 picker.choose Command "Choose the picker's row" menu none shortcut none context global hidden params "letter?:text, strip?:text, terminal_designation?:text, designation?:text"
 picker.new_page Command "Place on a new page with its grid" menu none shortcut none context global hidden params ""
 place.join Command "Join device…" menu none shortcut "J" context canvas hidden params ""

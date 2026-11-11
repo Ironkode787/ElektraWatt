@@ -481,15 +481,25 @@ fn pointer_and_cursor_moves_with_a_tool_armed_and_picker_filtering_call_no_sessi
     // The first frame of the page has fetched its content.
     done(&mut s, "tool.place", json!({}));
     let calls = s.session_calls();
-    for text in ["m", "mc", "mcb", ""] {
-        done(&mut s, "picker.filter", json!({ "text": text }));
-        done(&mut s, "picker.row", json!({"step": 1}));
-    }
+    let browse = |s: &mut ShellModel| {
+        for text in ["m", "mc", "mcb", ""] {
+            done(s, "picker.filter", json!({ "text": text }));
+            done(s, "picker.row", json!({"step": 1}));
+        }
+    };
+    browse(&mut s);
+    // The browser's picture reads the shape of each symbol it shows, once per revision; nothing else.
+    let shown = s.session_calls();
     assert_eq!(
-        s.session_calls(),
+        ew_viewmodel::shell::SessionCalls {
+            symbol_shape: calls.symbol_shape,
+            ..shown
+        },
         calls,
         "the picker filters without a Session call"
     );
+    browse(&mut s);
+    assert_eq!(s.session_calls(), shown, "the shapes shown are cached");
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
     let calls = s.session_calls();
@@ -914,18 +924,19 @@ fn the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one(
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("ft1087-order");
     let mut s = shell(&tmp, "103");
-    // The part rows: maker, part number, the template function; and whether the project held the part.
+    // The part rows: maker, part number, the template function the row places; and whether the project held the
+    // part.
     let rows = |s: &ShellModel| -> Vec<(String, String, u16, bool)> {
         let p = s.picker().expect("the picker");
         p.rows
             .iter()
             .filter_map(|r| match r {
-                PickerRow::PartFn(i, k) => {
+                PickerRow::Part(i) => {
                     let part = &p.catalogue.parts[*i];
                     Some((
                         part.manufacturer.clone(),
                         part.part_number.clone(),
-                        part.functions[*k].index,
+                        part.functions[p.part_main(*i)?].index,
                         part.library.is_none(),
                     ))
                 }
@@ -987,9 +998,9 @@ fn the_picker_filter_matches_descriptions_names_and_keywords_by_token() {
         let (mut parts, mut symbols) = (Vec::new(), Vec::new());
         for r in &p.rows {
             match r {
-                PickerRow::PartFn(i, _) => parts.push(p.catalogue.parts[*i].part_number.clone()),
+                PickerRow::Part(i) => parts.push(p.catalogue.parts[*i].part_number.clone()),
                 PickerRow::Symbol(i) => symbols.push(p.catalogue.symbols[*i].key.clone()),
-                PickerRow::Strip(_) | PickerRow::Part(_) => {}
+                PickerRow::Strip(_) | PickerRow::PartFn(..) => {}
             }
         }
         (parts, symbols)
@@ -1201,7 +1212,7 @@ fn moving_an_existing_device_changes_its_tag_in_the_preview() {
 /// A contact placed from a starter part's auxiliary template entry (EW-GEN-CON-1,
 /// entry 4, letter K) before its coil gets a numbered tag like any placed device, never "-?K?": the device is placed
 /// through the contact (`numbering::main_rep`'s auxiliary fallback). Both paths that arm it: `place.pick` with the part,
-/// and the picker's part row chosen with `picker.choose`.
+/// and the picker's part opened to its functions and the entry's row chosen with `picker.choose`.
 #[test]
 fn a_contact_placed_from_a_part_before_its_coil_gets_a_numbered_tag() {
     use ew_viewmodel::tools::PickerRow;
@@ -1244,6 +1255,8 @@ fn a_contact_placed_from_a_part_before_its_coil_gets_a_numbered_tag() {
     let mut s = shell(&tmp, "101");
     done(&mut s, "tool.place", json!({}));
     done(&mut s, "picker.filter", json!({"text": "EW-GEN-CON-1"}));
+    // The part's row opens to its functions.
+    done(&mut s, "picker.open", json!({}));
     let row = {
         let p = s.picker().expect("the picker");
         p.rows
@@ -1309,7 +1322,7 @@ fn a_part_row_carries_its_rating() {
         .rows
         .iter()
         .filter_map(|r| match r {
-            PickerRow::PartFn(i, _) => Some(&p.catalogue.parts[*i]),
+            PickerRow::Part(i) => Some(&p.catalogue.parts[*i]),
             _ => None,
         })
         .map(|part| (part.part_number.clone(), part.rating.clone()))

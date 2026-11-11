@@ -210,7 +210,7 @@ fn exact_counts_of_place_move_and_the_picker_in_the_window() {
         next.run_script, previewed.run_script,
         "the window commits through the session, not a log"
     );
-    // The picker: filtering and its row keys make no Session call.
+    // The picker: filtering and its row keys make no Session call but the shape of each symbol its picture shows.
     press(&mut h, Key::Escape);
     press(&mut h, Key::I);
     let opened = h.state().shell().session_calls();
@@ -223,8 +223,12 @@ fn exact_counts_of_place_move_and_the_picker_in_the_window() {
         h.key_press(Key::ArrowDown);
         h.run_ok();
     }
+    let shown = h.state().shell().session_calls();
     assert_eq!(
-        h.state().shell().session_calls(),
+        ew_ui::ew_viewmodel::shell::SessionCalls {
+            symbol_shape: opened.symbol_shape,
+            ..shown
+        },
         opened,
         "the picker filters without a Session call"
     );
@@ -454,8 +458,8 @@ fn device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     let rows: Vec<String> = picker.rows.iter().map(|r| picker.row_line(*r)).collect();
     assert_eq!(rows, ["row part \"A9F78116\" symbol"]);
     assert!(
-        h.query_by_label_contains("Miniature circuit breaker 1P")
-            .is_some(),
+        h.query_all_by_label_contains("Miniature circuit breaker 1P")
+            .any(|n| n.accesskit_node().role() == egui::Role::Button),
         "the row leads with the part's description"
     );
     press(&mut h, Key::Enter);
@@ -473,8 +477,8 @@ fn device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     assert_eq!(rows, ["row symbol \"mcb-1p\" embedded \"ew.iec.mcb-1p@qet10\""]);
     // The row names the symbol by its name in words, never by its key.
     assert!(
-        h.query_by_label_contains("Miniature circuit breaker, 1 pole")
-            .is_some(),
+        h.query_all_by_label_contains("Miniature circuit breaker, 1 pole")
+            .any(|n| n.accesskit_node().role() == egui::Role::Button),
         "the symbol by its name"
     );
     assert!(h.query_by_label_contains("mcb-1p").is_none(), "no key on show");
@@ -505,8 +509,8 @@ fn device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// On GP-UT, a click on A9F78116's row (a part without a symbol) opens its symbol chooser with a line
-/// under the title that says why it asks, its filter with the keyboard focus (the click had moved it to the row), and
+/// On GP-UT, A9F78116's row (a part without a symbol), clicked, and its Choose a symbol… open its symbol chooser with
+/// a line under the title that says why it asks, its filter with the keyboard focus (the click had moved it to the row), and
 /// a press on the page does nothing while it is open, as with the strip chooser.
 #[test]
 fn the_symbol_chooser_of_a_part_says_why_takes_the_keys_and_holds_the_page() {
@@ -532,7 +536,13 @@ fn the_symbol_chooser_of_a_part_says_why_takes_the_keys_and_holds_the_page() {
         h.query_by_label(note).is_none(),
         "no line before the part is chosen"
     );
-    h.get_by_label_contains("Miniature circuit breaker 1P").click();
+    // A click makes the row current; its Choose a symbol… asks for the symbol.
+    h.query_all_by_label_contains("Miniature circuit breaker 1P")
+        .find(|n| n.accesskit_node().role() == egui::Role::Button)
+        .expect("the part's row")
+        .click();
+    settle(&mut h);
+    h.get_by_label("Choose a symbol…").click();
     settle(&mut h);
     assert!(
         h.query_by_label("Choose a symbol for A9F78116").is_some(),
@@ -541,7 +551,7 @@ fn the_symbol_chooser_of_a_part_says_why_takes_the_keys_and_holds_the_page() {
     assert!(h.query_by_label(note).is_some(), "the line under the title");
     let filter = h
         .get_all_by_role(egui::Role::TextInput)
-        .find(|n| n.accesskit_node().placeholder() == Some("Filter by key, part number or function"))
+        .find(|n| n.accesskit_node().placeholder() == Some("Search names, part numbers and keywords"))
         .expect("the chooser's filter");
     assert!(filter.accesskit_node().is_focused(), "the filter has the keys");
     let press = h

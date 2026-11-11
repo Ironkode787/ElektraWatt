@@ -1217,6 +1217,64 @@ pub(crate) fn section_header(
     open
 }
 
+/// The way out of a floating overlay (FT-1635), one behaviour for every overlay of the window: a backdrop over the
+/// whole window under it catches a click beside the overlay, which is `ui.dismiss` as Escape is, so the click
+/// reaches nothing under it. `dim` paints it in `color.backdrop` (the browser), else it is clear. Called in each frame
+/// the overlay is drawn; the overlay itself stands in [`egui::Order::Foreground`], above the backdrop.
+pub(crate) fn overlay_backdrop(ctx: &egui::Context, id: egui::Id, dim: bool, events: &mut Vec<Event>) {
+    let t = theme::current(ctx);
+    let rect = ctx.content_rect();
+    let shown = egui::Area::new(id.with("backdrop"))
+        .order(egui::Order::Middle)
+        .fixed_pos(rect.min)
+        .show(ctx, |ui| {
+            // A click target the keyboard never reaches (Escape is its key), so it is no node to name.
+            let (_, response) = ui.allocate_exact_size(rect.size(), Sense::CLICK);
+            if dim {
+                ui.painter()
+                    .rect_filled(rect, theme::SQUARE, t.backdrop.color32());
+            }
+            response
+        });
+    // Above every other middle-order area (the HUD, the zoom control), so a click beside the overlay closes it.
+    ctx.move_to_top(shown.response.layer_id);
+    if shown.inner.clicked() || shown.inner.secondary_clicked() {
+        events.push(Event::Action("ui.dismiss", json!({})));
+    }
+}
+
+/// The title row of a floating overlay: its title in `type.title` at the left, [`close_button`] at the right.
+pub(crate) fn overlay_title(ui: &mut Ui, title: &str, shell: &ShellModel, events: &mut Vec<Event>) {
+    let t = tokens(ui);
+    ui.horizontal(|ui| {
+        ui.label(
+            RichText::new(title)
+                .font(theme::font(&t.type_title))
+                .color(t.text_primary.color32()),
+        );
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            close_button(ui, shell, events);
+        });
+    });
+}
+
+/// The close button of a floating overlay (FT-1635): the 24-px X icon button named "Close", its tooltip with the key
+/// of `ui.dismiss` ("Close (Esc)"); a click is `ui.dismiss`.
+pub(crate) fn close_button(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    let name = strings::text(key!("dialog-close"));
+    let key = ew_viewmodel::actions::find("ui.dismiss")
+        .map(|m| ew_viewmodel::keymap::short_display(&shell.shortcut_text(m)))
+        .unwrap_or_default();
+    let tip = if key.is_empty() {
+        name.to_owned()
+    } else {
+        format!("{name} ({key})")
+    };
+    if icon_toggle_tip(ui, IconId::x, name, &tip, true, None).clicked() {
+        events.push(Event::Action("ui.dismiss", json!({})));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Kind, TIP_MAX_LINES, button_look, tip_galley};

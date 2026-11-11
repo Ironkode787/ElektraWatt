@@ -8,7 +8,8 @@
 //! from the pointer's 16-px box, inside the page view and above the HUD.
 //!
 //! Keys: Up and Down (wrapping, `chooser.row`), Home, End, type-ahead on the name (`chooser.type`, the typed text
-//! kept for a second), Enter picks (`chooser.choose`), Escape closes it (`ui.dismiss`, the topmost popup). Every
+//! kept for a second), Enter picks (`chooser.choose`), Escape or a click beside it closes it (`ui.dismiss`, the
+//! topmost popup). Every
 //! change is a registry action, so the headless mode drives the same model. AccessKit: a `ListBox` named by the
 //! question ("Join device"), its rows `ListBoxOption`s with position and set size; the active row is selected.
 
@@ -125,6 +126,8 @@ pub(crate) fn show(
         .filter(|p| bound.contains(*p))
         .map_or(bound.center(), |p| p + vec2(16.0, 16.0));
     let list_id = Id::unique("join-chooser");
+    // FT-1635: a click beside it closes it, as Escape does.
+    crate::components::overlay_backdrop(ctx, list_id, false, events);
     let question = ch.question.clone();
     egui::Area::new(list_id.with("area"))
         .order(egui::Order::Foreground)

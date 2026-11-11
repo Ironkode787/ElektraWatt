@@ -783,7 +783,7 @@ fn the_black_box_picker_arms_the_tool_with_the_two_corner_hint() {
         .expect("the picker")
         .rows
         .iter()
-        .position(|r| matches!(r, ew_viewmodel::tools::PickerRow::PartFn(..)))
+        .position(|r| matches!(r, ew_viewmodel::tools::PickerRow::Part(..)))
         .expect("a part row");
     done(&mut s, "picker.row", json!({"to": row}));
     done(&mut s, "picker.choose", json!({}));

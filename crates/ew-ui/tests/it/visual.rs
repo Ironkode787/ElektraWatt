@@ -1189,7 +1189,7 @@ fn a_symbol_drawn_in_the_editor_reaches_the_library_a_page_and_the_picker() {
 }
 
 /// The owner's hands-on test of 0.1.0: a click on Wire marker in the Insert symbol list did nothing. By the pointer:
-/// the row arms the Wire marker tool, and the Interruption point row the Interruption tool.
+/// a double click on the row arms the Wire marker tool, and on the Interruption point row the Interruption tool.
 #[test]
 fn a_click_on_a_tool_s_symbol_in_the_insert_symbol_list_arms_the_tool() {
     use ew_ui::ew_viewmodel::shell::Outcome;
@@ -1216,7 +1216,11 @@ fn a_click_on_a_tool_s_symbol_in_the_insert_symbol_list_arms_the_tool() {
             .find(|(l, at)| l.starts_with(row) && at.0 > rail)
             .unwrap_or_else(|| panic!("no row {row}: {:?}", d.labels()))
             .1;
-        d.input(&click(at));
+        // A click makes the row current; a double click chooses it.
+        d.input(&Input::DoubleClick {
+            at,
+            mods: Modifiers::NONE,
+        });
         d.settle();
         assert_eq!(state(&mut d)["canvas"]["tool"]["name"], json!(tool), "{row}");
         assert!(d.shell_mut().picker().is_none(), "{row}: the list stays open");

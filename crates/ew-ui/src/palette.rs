@@ -192,6 +192,8 @@ pub fn show(
         d.insert_temp(form_key, now);
         now.is_some() && was != now
     });
+    // FT-1635: a click beside it closes it, as Escape does.
+    crate::components::overlay_backdrop(ctx, Id::unique("command-palette"), false, events);
     let area = egui::Area::new(Id::unique("command-palette")).order(egui::Order::Foreground);
     let area = match anchor {
         Some(field) => area
@@ -228,13 +230,16 @@ pub fn show(
                         t.icon_stroke,
                     );
                     let mut query = state.query.clone();
+                    // The close button at the row's right end (FT-1635).
+                    let field_w = ui.available_width() - t.size_control_inline - ui.spacing().item_spacing.x;
                     let edit = ui.add(
                         TextEdit::singleline(&mut query)
                             .hint_text(strings::text(key!("palette-hint")))
                             .frame(egui::Frame::NONE)
                             .font(theme::font(&t.type_body))
-                            .desired_width(f32::INFINITY),
+                            .desired_width(field_w),
                     );
+                    crate::components::close_button(ui, shell, events);
                     if just_opened && form.is_none() {
                         edit.request_focus();
                     }

@@ -21,13 +21,15 @@ Measure.
 
 ## Symbol
 
-Places a symbol from the library: choose the symbol in the picker, then click where it goes; each click places one
-more until you finish. Open it with Draw ▸ Place ▸ Symbol…. See [A first schematic page](../../tutorials/first-page.md).
+Places a symbol from the library: double-click the symbol in the browser (its categories at the left, a picture of
+the chosen row at the right), then click where it goes; each click places one more until you finish. Open it with
+Draw ▸ Place ▸ Symbol…. See [A first schematic page](../../tutorials/first-page.md).
 
 ## Device from part
 
-Places a device from a part of the library, so that the device has its part from the start. Open it with Draw ▸
-Place ▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md).
+Places a device from a part of the library, so that the device has its part from the start. The browser lists one
+row per part; a part with several functions opens to them with its arrow (or Right). Open it with Draw ▸ Place ▸
+Device from part…. See [Choose parts](../../how-to/choose-parts.md).
 
 ## Black box
 

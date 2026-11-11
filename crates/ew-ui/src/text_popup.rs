@@ -4,8 +4,9 @@
 //! The text popup (§10.5): the Text tool's and text edit's single-line field. While the Text
 //! tool types or Text edit is open, a window at the top holds one field; edits send `text.input` for the preview,
 //! and Enter sends the latest `text.input` and `tool.finish`
-//! (so the tool places or changes the text), Escape is the window's popup dismissal (the key routing sends
-//! `ui.dismiss`, which reaches the tool). The buffer starts as the ghost's text and is dropped when the popup closes.
+//! (so the tool places or changes the text), Escape, the close button and a click beside the popup are the window's
+//! popup dismissal (`ui.dismiss`, which reaches the tool). The buffer starts as the ghost's text and is dropped when
+//! the popup closes.
 
 use egui::{Align2, Id, Window};
 use ew_viewmodel::key;
@@ -28,12 +29,19 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, buffer: &mut Option<String>
     let Some(text) = buffer.as_mut() else {
         return;
     };
-    Window::new(strings::text(popup.title_key))
-        .id(Id::unique("text-popup"))
+    let id = Id::unique("text-popup");
+    // FT-1635: a click beside it or its close button closes it, as Escape does.
+    crate::components::overlay_backdrop(ctx, id, false, events);
+    let title = strings::text(popup.title_key);
+    Window::new(title)
+        .id(id)
+        .order(egui::Order::Foreground)
+        .title_bar(false)
         .anchor(Align2::CENTER_TOP, [0.0, 60.0])
         .collapsible(false)
         .resizable(false)
         .show(ctx, |ui| {
+            crate::components::overlay_title(ui, title, shell, events);
             ui.label(strings::text(key!("action-text-input")));
             let edit = ui.add(egui::TextEdit::singleline(text).desired_width(320.0));
             // Named for assistive technology (and the tests), as the tool strip's fields are.

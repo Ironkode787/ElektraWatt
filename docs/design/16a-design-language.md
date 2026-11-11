@@ -733,6 +733,21 @@ described here (FT-798's remainder).
 
 *As built.* The part picker's rows lead with the part's description in words, not its code (`CataloguePart.description`); a disabled row says why on hover (`disabled_tip`), as the command bar's disabled tools already did; a change-over contact reads "changeover contact 11-12-14" by a display mapping.
 
+*As built (FT-1636).* **The device and symbol browser** replaces the flat picker list for Insert symbol, Insert device,
+Change symbol, Insert black box and the strip chooser: one overlay over the `color.backdrop` scrim, the window less
+`space.6` on each side and most of its height, `elevation.2`, `radius.lg`, `space.5` padding; the title in
+`type.title` with the close button at the right, the filter field, then three columns. **Left, the tree:** All, In
+this project, one node per function category (the first level of a symbol's FnDef category, of a part's own category
+or its main function's; the words are `function-category-<key>` texts, a category without words falls under Other),
+Other, each with its count of hits under the filter. **Middle, the table** of §6.7 (`type.small`, `size.row`, the
+header on `color.surface.sunken`): name, part number, ratings and library, a greyed row's reason in the last column;
+one row per part, which opens to its functions with a chevron (Left and Right in the table), and whose own row places
+its main function. **Right, what will be placed:** the symbol's outline on the white sheet with its connection
+points, its name, part number and ratings, its connection points' designations, a greyed row's reason, and the Primary
+Place. A click makes a row or node current (the Selected state with the 2-px accent bar), a double click or Enter
+places; Tab goes between the filter, the tree and the table. The picture is read through the shape cache, once per
+symbol and revision.
+
 ### 5.7 Bottom: Messages, Find, Jobs, History, Preview
 
 One tab group below the canvas (WP-S2.09 D14), **closed by default**. It opens when the user asks: the status-bar
@@ -1027,6 +1042,13 @@ Modal only when the work cannot continue without the answer (doc 16 §4.1). `col
 right-aligned in the platform's order (Windows: Primary then Secondary; Linux: Secondary then Primary), a
 destructive action left-aligned and apart from the others. Escape cancels; Enter runs the Primary; the first focus is
 the Primary unless it is destructive. No close cross: Cancel is the way out.
+
+*As built (FT-1635).* **A floating overlay is no dialog:** the browser (§5.6), the command palette, the Join chooser,
+the junction editor, the text popup, Show changes and the notifications log close by Escape, by a click beside them
+and, where they have a title row, by a close button (the `x` icon button at the right, its tooltip "Close (Esc)" with
+the key of `ui.dismiss`); the click beside lands on a backdrop under the overlay (clear, the browser's
+`color.backdrop`), so it reaches nothing below, and is `ui.dismiss` as Escape is. One component does it
+(`components::overlay_backdrop`, `close_button`). A dialog that asks keeps asking.
 
 *As built.* Every dialog is drawn modal over the `color.backdrop` scrim. **In a confirmation of a destructive step (journal discard, purge) Cancel is the Primary**, so Enter keeps the data; the step is the danger button, and the Primary is drawn as a Secondary beside it. The button order on Linux and macOS has no test yet.
 

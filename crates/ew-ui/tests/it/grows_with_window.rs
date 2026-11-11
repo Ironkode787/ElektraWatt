@@ -91,7 +91,7 @@ fn the_part_picker_grows_with_the_window() {
         |h| {
             open_part_picker(h);
         },
-        |h| field_width(h, "Filter by key, part number or function"),
+        |h| field_width(h, "Search names, part numbers and keywords"),
     );
     // The picker takes the width its columns need, so it may be as wide at the floor as at 1920.
     assert!(
@@ -110,7 +110,7 @@ fn the_part_picker_keeps_its_width_and_stays_inside_the_window() {
         open_part_picker(&mut h);
         settle(&mut h);
         settle(&mut h);
-        let hint = "Filter by key, part number or function";
+        let hint = "Search names, part numbers and keywords";
         let field = |h: &Harness<'_, App>| {
             h.get_all_by_role(egui::Role::TextInput)
                 .find(|n| n.accesskit_node().data().placeholder() == Some(hint))
@@ -138,8 +138,9 @@ fn the_part_picker_keeps_its_width_and_stays_inside_the_window() {
     }
 }
 
-/// In Device from part (§6.22) the part names are whole at the floor and at 1920, beside a part
-/// number as long as Golden A's "32P-VGL-R-…" order code: the table uses the space it has.
+/// In Device from part the part names are whole at 1920 beside a part number as long as Golden A's "32P-VGL-R-…"
+/// order code: the table uses the space it has. At the floor, beside the browser's tree and detail, a long name is
+/// cut with an ellipsis and whole in its row's tooltip (doc 16a §6.8).
 #[test]
 fn part_names_are_whole_in_device_from_part() {
     for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
@@ -176,34 +177,46 @@ fn part_names_are_whole_in_device_from_part() {
                 .any(|(t, _)| t == "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"),
             "the long order code on show at {size:?}"
         );
-        let cut: Vec<&String> = painted.iter().filter(|(_, e)| *e).map(|(t, _)| t).collect();
-        assert!(cut.is_empty(), "names cut at {size:?}: {cut:?}");
+        if size.x > 1280.0 {
+            let cut: Vec<&String> = painted.iter().filter(|(_, e)| *e).map(|(t, _)| t).collect();
+            assert!(cut.is_empty(), "names cut at {size:?}: {cut:?}");
+        }
         h.state_mut().shell_mut().shutdown();
     }
 }
 
-/// At the floor a part row's function text stays inside the row, never cut hard at the popup's
-/// edge (the picker now takes the width its columns need, so these stand whole), and the row's tooltip ends
-/// with the whole text.
+/// Opens every part of the picker that opens to its functions (`picker.open` on its row).
+fn open_every_part(h: &mut Harness<'_, App>) {
+    use ew_viewmodel::tools::PickerRow;
+    loop {
+        let closed = {
+            let picker = h.state().shell().picker().expect("the picker");
+            picker
+                .rows
+                .iter()
+                .position(|r| matches!(r, PickerRow::Part(p) if picker.opens(*p) && !picker.open.contains(p)))
+        };
+        let Some(row) = closed else { break };
+        dispatch(h, "picker.row", json!({ "to": row }));
+        dispatch(h, "picker.open", json!({}));
+    }
+    settle(h);
+    settle(h);
+}
+
+/// At the floor an opened part's function rows keep their text inside the row, and each row's tooltip is the
+/// function in words ("1 of 5 Coil A1-A2 main"), never a FnDef key.
 #[test]
-fn a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip() {
+fn a_parts_function_rows_stay_inside_the_row_and_read_in_words() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
     open_part_picker(&mut h);
-    // The rows with the longest function texts ("1 of 1 NO position switch 13-14 main").
-    dispatch(&mut h, "picker.filter", json!({"text": "switch"}));
-    settle(&mut h);
-    settle(&mut h);
-    settle(&mut h);
-    // Each painted text, its rectangle and whether it is cut with an ellipsis.
-    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Rect, bool)>) {
+    open_every_part(&mut h);
+    // Each painted text, its rectangle.
+    fn walk(shape: &egui::Shape, out: &mut Vec<(String, egui::Rect)>) {
         match shape {
             egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, out)),
-            egui::Shape::Text(t) => out.push((
-                t.galley.text().to_owned(),
-                t.visual_bounding_rect(),
-                t.galley.elided,
-            )),
+            egui::Shape::Text(t) => out.push((t.galley.text().to_owned(), t.visual_bounding_rect())),
             _ => {}
         }
     }
@@ -211,23 +224,22 @@ fn a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip() {
     for c in &h.output().shapes {
         walk(&c.shape, &mut texts);
     }
-    // The rows of part functions: their tooltip (the description) ends with "<n> of <m> <function>".
+    // The function rows: their tooltip is "<n> of <m> <function>".
     let rows: Vec<(egui::Rect, String)> = h
         .get_all_by_role(egui::Role::Button)
         .filter_map(|n| {
             let tip = n.accesskit_node().description()?.to_owned();
-            let meta = tip.lines().last()?.to_owned();
-            let mut words = meta.split(' ');
+            let mut words = tip.split(' ');
             let numbered = words.next()?.parse::<usize>().is_ok() && words.next()? == "of";
-            numbered.then(|| (n.rect(), meta))
+            numbered.then(|| (n.rect(), tip))
         })
         .collect();
-    assert!(!rows.is_empty(), "part rows");
-    for (row, meta) in &rows {
-        // The row's function text as painted.
-        for (text, at, _) in texts
+    assert!(!rows.is_empty(), "function rows");
+    for (row, tip) in &rows {
+        assert!(!tip.contains("ew.fn."), "{tip:?} in words");
+        for (text, at) in texts
             .iter()
-            .filter(|(text, at, _)| row.contains(at.left_center()) && text == meta)
+            .filter(|(text, at)| row.contains(at.left_center()) && text == tip)
         {
             assert!(
                 at.right() <= row.right() + 0.5,
@@ -238,67 +250,14 @@ fn a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// A part row's tooltip in Device from part is its description, its maker and part
-/// number, and its function in words, never a FnDef key.
-#[test]
-fn a_part_rows_tooltip_ends_with_its_function_in_words() {
-    use ew_viewmodel::{key, strings, tools::PickerRow};
-    let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
-    open_part_picker(&mut h);
-    dispatch(&mut h, "picker.filter", json!({"text": "switch"}));
-    settle(&mut h);
-    settle(&mut h);
-    let wanted: Vec<String> = {
-        let picker = h.state().shell().picker().expect("the picker");
-        picker
-            .rows
-            .iter()
-            .filter_map(|r| match r {
-                PickerRow::PartFn(p, k) => {
-                    let part = &picker.catalogue.parts[*p];
-                    let f = &part.functions[*k];
-                    if part.description.is_empty() || f.kind_text == f.fndef_key {
-                        return None;
-                    }
-                    let mut meta = strings::format(
-                        key!("picker-part-function"),
-                        &[
-                            &(k + 1).to_string(),
-                            &part.functions.len().to_string(),
-                            &f.kind_text,
-                        ],
-                    );
-                    if f.main {
-                        meta.push(' ');
-                        meta.push_str(strings::text(key!("picker-main")));
-                    }
-                    Some(format!(
-                        "{}\n{} {}\n{meta}",
-                        part.description, part.manufacturer, part.part_number
-                    ))
-                }
-                _ => None,
-            })
-            .collect()
-    };
-    assert!(!wanted.is_empty(), "part rows with a description");
-    let tips: Vec<String> = h
-        .get_all_by_role(egui::Role::Button)
-        .filter_map(|n| n.accesskit_node().description())
-        .collect();
-    for tip in &wanted {
-        assert!(tips.contains(tip), "{tip:?} among {tips:?}");
-    }
-    h.state_mut().shell_mut().shutdown();
-}
-
-/// The labels of the nodes AccessKit is told are selected, the command tab on show left out.
+/// The labels of the nodes AccessKit is told are selected, the command tab on show and the browser's tree node left
+/// out.
 fn selected_labels(h: &Harness<'_, App>) -> Vec<String> {
     h.root()
         .children_recursive()
         .filter(|n| {
-            n.accesskit_node().is_selected() == Some(true) && n.accesskit_node().role() != egui::Role::Tab
+            n.accesskit_node().is_selected() == Some(true)
+                && !matches!(n.accesskit_node().role(), egui::Role::Tab | egui::Role::TreeItem)
         })
         .map(|n| n.accesskit_node().label().unwrap_or_default())
         .collect()

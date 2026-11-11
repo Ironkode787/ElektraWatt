@@ -55,6 +55,28 @@ fn derived(name: &str) -> String {
         .unwrap_or_default()
 }
 
+/// FT-1636: every function category of the shipped identifier sets (the first level of an FnDef category) has its
+/// words in en-GB and nl-NL, so the browser's tree names it rather than listing its devices under Other.
+#[test]
+fn every_function_category_has_words_in_both_locales() {
+    let sets = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../ew-rds/data/identifier-sets.toml"),
+    )
+    .unwrap();
+    // The `key` line after each `[[category]]` header.
+    let wanted: BTreeSet<String> = sets
+        .split("[[category]]")
+        .skip(1)
+        .filter_map(|c| {
+            c.lines()
+                .find_map(|l| l.strip_prefix("key = \"")?.strip_suffix('"'))
+        })
+        .map(|k| format!("function-category-{k}"))
+        .collect();
+    assert!(!wanted.is_empty());
+    assert_eq!(missing(&wanted), Vec::<String>::new());
+}
+
 /// Ruling 1: every parameter of every action the palette opens a form for has its `param-<name>` label in
 /// en-GB and nl-NL; the en-GB label is the one derived before, the Dutch one its own.
 #[test]

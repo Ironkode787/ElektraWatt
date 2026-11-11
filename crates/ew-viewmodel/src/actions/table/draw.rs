@@ -142,6 +142,31 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_picker_row(p),
         )),
     )),
+    // The browser's tree node, and a part opened to its functions or closed (Left and Right).
+    keeps_banner(with_params(
+        "to?:text, step?:int",
+        hidden(act(
+            "picker.category",
+            View,
+            Menu::Draw,
+            &[],
+            picker_open,
+            None,
+            |s, p| s.act_picker_category(p),
+        )),
+    )),
+    keeps_banner(with_params(
+        "open?:bool",
+        hidden(act(
+            "picker.open",
+            View,
+            Menu::Draw,
+            &[],
+            picker_open,
+            None,
+            |s, p| s.act_picker_open(p),
+        )),
+    )),
     keeps_banner(hidden(with_params(
         // `arm` reads the optional device letter and, for a terminal, the strip and its designation
         // (`terminal_designation`; keeps `designation` as its old name).

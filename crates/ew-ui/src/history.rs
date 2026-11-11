@@ -446,8 +446,12 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
     let grown = crate::dialog::small_width(&t, ctx.content_rect().width());
     let width = (longest + 2.0 * t.space_5 + t.space_3).clamp(t.size_dialog_small.min(grown), grown)
         - 2.0 * t.space_5;
+    let id = egui::Id::unique("history-changes");
+    // FT-1635: a click beside it closes it, as Escape and Close do.
+    components::overlay_backdrop(ctx, id, false, events);
     egui::Window::new(&title)
-        .id(egui::Id::unique("history-changes"))
+        .id(id)
+        .order(egui::Order::Foreground)
         .title_bar(false)
         .frame(frame)
         .collapsible(false)

@@ -610,7 +610,8 @@ cursor follows the current page.
 focused canvas takes the keys of the `canvas` context (§4.4) and the pointer events (§4.5). A click on a link is now
 the Select tool's `Follow` output; F stays the shell action `nav.follow` (above). **The Escape chain** runs in this
 order: a popup or dialog, then the link preview, then the tool's own step, then back to Select, then clearing the
-selection; with nothing open Escape reaches the tool through `ui.dismiss`. A busy tool is escaped (its overlay,
+selection; with nothing open Escape reaches the tool through `ui.dismiss`. A click beside a floating overlay and its
+close button are `ui.dismiss` too ([16a](16a-design-language.md) §6.12, FT-1635). A busy tool is escaped (its overlay,
 preview and link preview cleared) on any change of the focused group, tab or page. **The pointer rule:** the canvas
 takes the primary button's presses and releases from egui's pointer-button events in order, each with its own position
 and modifiers, so a press and a release in one frame (a touchpad tap, a slow frame) still click. A press counts as the

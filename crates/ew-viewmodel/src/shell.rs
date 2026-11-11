@@ -1456,6 +1456,8 @@ impl ShellModel {
         let outcome = self.dispatch_unlogged(action, params);
         // A state banner follows its state, and the UI language.
         self.refresh_state_banner();
+        // The browser's picture follows its current row.
+        self.refresh_picker_preview();
         // Tip 3 on an editing tool's, Paste's, a move's or a reorder's generated-page refusal.
         self.tip_for_outcome(action, params, &outcome);
         if let Some(entry) = slot.and_then(|i| self.dispatch_log.as_mut()?.get_mut(i)) {
