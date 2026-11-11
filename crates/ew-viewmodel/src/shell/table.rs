@@ -33,9 +33,7 @@ use crate::navigators::table::{
     cell_reason, cell_text, compile, define_point, gesture_rows, mark_conflicts, pattern_texts,
     potential_input, route_type, row_targets, row_terminal, rows_word, strip_route, strip_targets,
 };
-use crate::properties::{
-    Card, CardOrigin, Decision, EditRoute, FieldReadOnly, PendingEdit, RowValue, find_row, policy,
-};
+use crate::properties::{Card, CardOrigin, Decision, EditRoute, FieldReadOnly, PendingEdit, policy};
 use crate::strings;
 use crate::strings::Key;
 use crate::tools::PreviewState;
@@ -445,8 +443,8 @@ impl ShellModel {
         }
     }
 
-    /// A target's stored member and the project's source language, for a composed leaf or a language text (one
-    /// property sheet of that record).
+    /// A target's stored member and the project's source language, for a composed leaf or a language text: one
+    /// record read per target (a fill over hundreds of rows asks it for each).
     fn member_base(&self, kind: &str, target: Uuid, member: &str) -> MemberBase {
         let Some(project) = &self.project else {
             return MemberBase {
@@ -454,16 +452,10 @@ impl ShellModel {
                 language: "en".to_owned(),
             };
         };
-        bump(&self.calls, |c| c.property_sheet += 1);
-        let sheet = project.session.property_sheet(&[target]);
-        let value = find_row(&sheet, &format!("{kind}/{member}")).and_then(|(_, r)| match &r.value {
-            RowValue::One { json, .. } => Some(json.clone()),
-            _ => None,
-        });
-        let language = sheet
-            .languages
-            .first()
-            .cloned()
+        let value = project.session.stored_field(kind, target, member);
+        let language = project
+            .session
+            .source_language()
             .or_else(|| match &value {
                 Some(Value::Object(o)) => o.keys().next().cloned(),
                 _ => None,

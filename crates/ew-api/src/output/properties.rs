@@ -1586,6 +1586,27 @@ fn potential_of(q: &Q, conn: &Connection) -> Option<ew_derive::PotentialId> {
 }
 
 impl Session {
+    /// The stored value at `path` of the record `id`, when it is a record of kind `kind` (the catalogue's name of
+    /// the kind): the JSON its property row holds, read from the record alone. `None` where the record is of another
+    /// kind or the value is absent or `null`. A caller that needs one stored value of each of many records asks
+    /// this, not a property sheet per record.
+    pub fn stored_field(&self, kind: &str, id: Uuid, path: &str) -> Option<Value> {
+        let (found, json) = lookup(&self.query(), id)?;
+        if found.name() != kind {
+            return None;
+        }
+        json_at(&json, path).filter(|v| !v.is_null()).cloned()
+    }
+
+    /// The project's source language, when it names its languages.
+    pub fn source_language(&self) -> Option<String> {
+        self.query()
+            .project()
+            .languages
+            .as_ref()
+            .map(|l| l.source.to_string())
+    }
+
     /// The property sheet of the records `ids` in the current snapshot (§4.2, §6.2 to §6.4). Deterministic; reads
     /// memoised queries only and adds no memoised family.
     pub fn property_sheet(&self, ids: &[Uuid]) -> PropertySheet {

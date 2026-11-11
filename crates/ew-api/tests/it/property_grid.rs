@@ -1083,6 +1083,48 @@ fn an_external_points_row_names_its_reference() {
     assert_eq!(text(&s), "JE-N1000-03");
 }
 
+/// `Session::stored_field` gives what the record's property row holds, without a sheet: every top-level row of a
+/// device's, a wire's and a page's own section, a value or none; and nothing for a record of another kind.
+#[test]
+fn a_stored_field_is_what_the_record_s_row_holds() {
+    let s = golden();
+    let records = [
+        ("device", device(&s, "-101F1")),
+        ("connection", wire(&s, "W29")),
+        ("page", page(&s, "103")),
+    ];
+    for (kind, id) in records {
+        let sheet = s.property_sheet(&[id]);
+        let section = sheet
+            .sections
+            .iter()
+            .find(|x| x.kind == kind)
+            .unwrap_or_else(|| panic!("no section {kind}"));
+        let mut values = 0;
+        for r in section
+            .rows
+            .iter()
+            .filter(|r| r.depth == 0 && !r.key.contains("/derived."))
+        {
+            let stored = s.stored_field(kind, id, &r.path);
+            match &r.value {
+                RowValue::One { json, .. } => {
+                    values += 1;
+                    assert_eq!(stored.as_ref(), Some(json), "{}", r.key);
+                }
+                RowValue::Absent => assert_eq!(stored, None, "{}", r.key),
+                other => panic!("{}: {other:?}", r.key),
+            }
+        }
+        assert!(values > 0, "{kind}: no row with a value");
+        assert_eq!(s.stored_field("junction", id, "id"), None, "{kind}");
+    }
+    assert_eq!(
+        s.source_language().as_deref(),
+        s.property_sheet(&[]).languages.first().map(String::as_str)
+    );
+}
+
 /// A fluid line's sheet has the row Line kind with its word and no Kind row of raw JSON; a wire
 /// has no Line kind row.
 #[test]
