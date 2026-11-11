@@ -435,7 +435,12 @@ impl DisplayCx for SheetCx<'_> {
 
     fn record_label(&self, id: &str) -> Option<String> {
         let uuid = Uuid::parse_str(id).ok()?;
-        record_title(self.q, uuid, self.source.as_deref())
+        record_title(self.q, uuid, self.source.as_deref()).or_else(|| {
+            // A library copy (a representation's symbol, a function's definition, a page's form) by its name.
+            [Kind::Symbol, Kind::Fndef, Kind::Form]
+                .into_iter()
+                .find_map(|k| super::navigators::libraries::copy_name(self.q, k, uuid))
+        })
     }
 
     fn source_language(&self) -> Option<String> {

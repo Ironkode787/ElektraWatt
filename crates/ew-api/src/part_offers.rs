@@ -546,8 +546,10 @@ impl Session {
         rows.into_iter().map(|(_, o)| o).collect()
     }
 
-    /// The names of the functions a part's template declares (the dialog's detail line): each template FnDef's key,
-    /// else its item ID, in template order.
+    /// The names of the functions a part's template declares (the dialog's detail line), in template order: each
+    /// entry in words, as the Properties grid's Part function row reads it ("NO contact 13-14", "Coil A1-A2"), else
+    /// its FnDef's key; an entry whose FnDef does not resolve has no name and is left out (FT-819: the line printed
+    /// "functions ew.fn.mcb-1pn", or an item ID).
     pub fn part_offer_functions(&self, pick: &PartPick) -> Vec<String> {
         let q = self.query();
         let part = match pick {
@@ -560,12 +562,27 @@ impl Session {
             }
         };
         part.map(|p| {
+            let pattern: Vec<u16> = p.cp_pattern.iter().map(|c| c.idx).collect();
             p.function_template
                 .iter()
-                .map(|t| {
-                    self.template_fndef(&q, &t.fndef)
-                        .and_then(|d| d.meta.key.map(|k| k.as_str().to_owned()))
-                        .unwrap_or_else(|| t.fndef.item.as_uuid().to_string())
+                .filter_map(|t| {
+                    let def = self.template_fndef(&q, &t.fndef)?;
+                    let def_cps: Vec<u16> = def.cps.iter().map(|c| c.idx).collect();
+                    // The entry's CP designations, else the FnDef's, as the place catalogue reads them.
+                    let mut cps: Vec<String> = t
+                        .function_cps(&pattern, &def_cps)
+                        .iter()
+                        .filter_map(|c| p.cp_pattern.iter().find(|x| x.idx == c.pattern))
+                        .map(|c| c.designation.as_str().to_owned())
+                        .collect();
+                    if cps.is_empty() {
+                        let mut own: Vec<(u16, String)> =
+                            def.cps.iter().map(|c| (c.idx, c.designation.as_str().to_owned())).collect();
+                        own.sort();
+                        cps = own.into_iter().map(|(_, d)| d).collect();
+                    }
+                    crate::output::navigators::kind_text(&def, &cps)
+                        .or_else(|| def.meta.key.map(|k| k.as_str().to_owned()))
                 })
                 .collect()
         })

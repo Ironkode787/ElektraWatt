@@ -171,6 +171,13 @@ fn form_name(kind: &FormKind, key: Option<&str>) -> String {
 /// name, a function definition's kind text ("Black box", "NO contact 13-14"), a form's [`form_name`], a PLC
 /// profile's label else its `id@version`, else its key.
 fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
+    copy_name(q, kind, copy).unwrap_or_else(|| kind_word(kind).to_owned())
+}
+
+/// [`copy_label`] without its last fallback, the kind's word: `None` for a copy the project does not hold or one
+/// without a name. The property grid names a referenced copy by it (FT-430: a representation's Symbol row and a
+/// function's Definition row printed the copy's UUID).
+pub(crate) fn copy_name(q: &Q, kind: Kind, copy: Uuid) -> Option<String> {
     fn key<T>(c: &LibCopy<T>, meta: impl Fn(&T) -> &ew_schema::ItemMeta) -> Option<String> {
         meta(&c.item).key.as_ref().map(ToString::to_string)
     }
@@ -229,9 +236,7 @@ fn copy_label(q: &Q, kind: Kind, copy: Uuid) -> String {
         }),
         _ => None,
     };
-    label
-        .filter(|l| !l.is_empty())
-        .unwrap_or_else(|| kind_word(kind).to_owned())
+    label.filter(|l| !l.is_empty())
 }
 
 /// The devices of a macro's first variant as the detail lists them: `-<letter><counter>` and the function text, in

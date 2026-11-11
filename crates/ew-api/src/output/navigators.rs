@@ -43,7 +43,7 @@ use super::layout_edit::mm_text;
 use super::view::PageFrameOf;
 use crate::Session;
 
-mod libraries;
+pub(super) mod libraries;
 pub use libraries::{LibraryCopyDetail, MacroDetail, MacroThumbnail};
 
 /// The navigators (D4; adds the message panel last), in View ▸ Navigators order.

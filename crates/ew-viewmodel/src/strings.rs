@@ -1364,6 +1364,11 @@ mod tests {
         );
         assert_eq!(field_label("device", "parts[1]"), "Part use 2");
         assert_eq!(field_label("device", "derived.cp[0]"), "Connection point 1");
+        // FT-1668: words, not the field names cut short.
+        assert_eq!(
+            ["pos", "orient", "ptype"].map(|m| field_label("representation", m)),
+            ["Position", "Orientation", "Potential type"]
+        );
         assert_eq!(kind_plural("device"), "devices");
         assert_eq!(kind_plural("potential_def"), "potential definitions");
         assert_eq!(kind_plural("structure_box"), "structure boxes");

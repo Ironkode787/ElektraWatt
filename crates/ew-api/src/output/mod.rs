@@ -52,7 +52,7 @@ mod layers;
 // Properties for layout records and the Surface view rows.
 mod layout_edit;
 mod navigation;
-mod navigators;
+pub(crate) mod navigators;
 // The surface view of a panel-layout page (D9, D10).
 pub(crate) mod panel;
 // The labelled entity list of a preview (§4.2).
