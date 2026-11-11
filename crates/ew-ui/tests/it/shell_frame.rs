@@ -254,7 +254,7 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     settle(&mut h);
     assert!(h.state().shell().wizard().is_some());
     assert!(h.query_all_by_label("1. Company").count() >= 1);
-    assert!(h.query_by_label("Preview").is_some());
+    assert!(h.query_by_label("Example").is_some());
     wait_for_preview(&mut h);
     let first = h.state().shell().wizard().unwrap().preview_rev();
 
@@ -269,6 +269,15 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     h.get_by_role_and_label(egui::Role::TextInput, "Device numbering format")
         .type_text("{page}-{letter}{counter}");
     h.run_ok();
+    // The Result follows the text being typed, before Enter commits it (FT-1631).
+    assert!(
+        h.query_by_label_contains("The third contactor on page 102 is named -102-K3.")
+            .is_some()
+    );
+    assert_eq!(
+        h.state().shell().wizard().unwrap().draft().get("device_format"),
+        "{page}{letter}{counter}"
+    );
     h.key_press(Key::Enter);
     settle(&mut h);
     let w = h.state().shell().wizard().unwrap();
@@ -279,7 +288,7 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     );
     wait_for_preview(&mut h);
     // A choice: the cross-reference style.
-    h.get_by_label("EPLAN style (/102.A1)").click();
+    h.get_by_label("EPLAN style").click();
     settle(&mut h);
     assert_eq!(h.state().shell().wizard().unwrap().draft().get("xref"), "eplan");
     // An invalid value is refused with its reason on the screen and leaves the draft as it was.
@@ -288,16 +297,16 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
     h.get_by_label("Back").click();
     settle(&mut h);
     // The cover is the other page of the preview.
-    h.get_by_label("Cover").click();
+    h.get_by_label("Cover page").click();
     settle(&mut h);
     assert_eq!(h.state().shell().wizard().unwrap().preview_folio(), "1");
     wait_for_preview(&mut h);
 
     // The review lists what is written and what stays in the draft; Create asks for the directory.
-    h.get_by_label("11. Review and create").click();
+    h.get_by_label("10. Review and create").click();
     settle(&mut h);
-    assert!(h.query_all_by_label("kept: apply after finishing").count() > 0);
-    assert!(h.query_all_by_label("written to the basic project").count() > 0);
+    assert!(h.query_all_by_label("set after you create it").count() > 0);
+    assert!(h.query_all_by_label("in the standard").count() > 0);
     // Controls of `size.control` (28 px) push the button under the fold of this window.
     h.get_by_label("Create the basic project…").scroll_to_me();
     settle(&mut h);
@@ -315,16 +324,16 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
             .is_some()
     );
     // The check scheme is applied after finishing, by a person, after a confirmation.
-    h.get_by_label("Apply the check scheme").scroll_to_me();
+    h.get_by_label("Apply the check level").scroll_to_me();
     settle(&mut h);
-    h.get_by_label("Apply the check scheme").click();
+    h.get_by_label("Apply the check level").click();
     settle(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),
         Some(Dialog::ConfirmCheckScheme { .. })
     ));
     assert!(
-        h.query_by_label_contains("decides which rules the release gate runs")
+        h.query_by_label_contains("decides what the program checks before")
             .is_some()
     );
     h.get_by_label("Apply").click();
@@ -334,8 +343,8 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
         text.contains("\"checks\":{\"release_scheme\":\"pre-delivery\"}"),
         "{text}"
     );
-    assert!(h.query_all_by_label("kept: apply after finishing").count() == 0);
-    assert!(h.query_by_label("Apply the check scheme").is_none());
+    assert!(h.query_all_by_label("set after you create it").count() == 0);
+    assert!(h.query_by_label("Apply the check level").is_none());
     h.get_by_label("Close").scroll_to_me();
     settle(&mut h);
     h.get_by_label("Close").click();
@@ -365,7 +374,7 @@ fn closing_the_wizard_keeps_the_draft_and_the_screen_returns_to_the_start_page()
     h.get_by_label("Company standard wizard…").click();
     settle(&mut h);
     assert!(h.state().shell().wizard().is_some());
-    h.get_by_label("Close (the draft is kept)").click();
+    h.get_by_label("Close").click();
     settle(&mut h);
     assert!(h.state().shell().wizard().is_none());
     assert!(h.query_by_label("Create company standard").is_some());

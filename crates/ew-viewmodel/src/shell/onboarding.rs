@@ -439,7 +439,7 @@ impl ShellModel {
 
     fn set_wizard_step(&mut self, step: Step) {
         if let Some(w) = &mut self.onboarding.wizard {
-            w.step = step;
+            w.go_to(step);
             w.error = None;
         }
         self.persist_draft();

@@ -1691,9 +1691,13 @@ fn the_wizard_writes_the_company_the_frame_and_the_formats() {
         .filter(|l| !l.written)
         .map(|l| l.label.as_str())
         .collect();
-    assert_eq!(kept, ["Check scheme"], "{review:?}");
+    assert_eq!(kept, ["Check level"], "{review:?}");
+    done(&mut shell, "wizard.goto", json!({"step": 9}));
     let describe = shell.describe();
-    assert!(describe.contains("kept"), "{describe}");
+    assert!(
+        describe.contains("review \"Check level\": \"Full\" kept"),
+        "{describe}"
+    );
 
     let grid = tmp.0.join("grid.ew");
     done(&mut shell, "wizard.finish", json!({ "dir": path(&grid) }));
@@ -1945,10 +1949,10 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
     done(&mut shell, "wizard.finish", json!({ "dir": path(&basic) }));
     let review = shell.describe();
     assert!(
-        review.contains("review \"Check scheme\": \"Full\" kept"),
+        review.contains("review \"Check level\": \"Full\" kept"),
         "{review}"
     );
-    assert!(review.contains("button \"Apply the check scheme\""), "{review}");
+    assert!(review.contains("button \"Apply the check level\""), "{review}");
     for params in [json!({}), json!({"confirm": true})] {
         assert_eq!(
             run(&mut shell, "wizard.apply_check_scheme", params),
@@ -1981,7 +1985,7 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
     );
     let dialog = gui.describe();
     assert!(
-        dialog.contains("dialog \"Apply the check scheme?\"") && dialog.contains("\"Full\""),
+        dialog.contains("dialog \"Apply the check level?\"") && dialog.contains("\"Full\""),
         "{dialog}"
     );
     done(&mut gui, "wizard.apply_check_scheme", json!({"confirm": true}));
@@ -1993,10 +1997,10 @@ fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
     );
     let review = gui.describe();
     assert!(
-        review.contains("review \"Check scheme\": \"Full\" written"),
+        review.contains("review \"Check level\": \"Full\" written"),
         "{review}"
     );
-    assert!(!review.contains("button \"Apply the check scheme\""), "{review}");
+    assert!(!review.contains("button \"Apply the check level\""), "{review}");
     assert_eq!(
         run(&mut gui, "wizard.apply_check_scheme", json!({"confirm": true})),
         Outcome::Refused {
@@ -2016,12 +2020,17 @@ fn without_the_sample_the_wizard_works_and_the_preview_says_why_it_is_empty() {
     let mut shell = ShellModel::new(Mode::Headless, config);
     done(&mut shell, "tools.company_standard", json!({}));
     let err = shell.wizard_preview_content().unwrap_err();
-    assert!(err.contains("sample project is not installed"), "{err}");
+    assert!(
+        err.contains("example pages do not come with this installation"),
+        "{err}"
+    );
     let describe = shell.describe();
     assert!(
-        describe.contains("preview \"Folio 102\": unavailable \"The sample project is not installed"),
+        describe.contains("preview \"Schematic page\": unavailable \"The example pages do not come"),
         "{describe}"
     );
+    // The step's own result does not need the example pages.
+    assert!(describe.contains("example \"Company: -\""), "{describe}");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -2745,15 +2754,15 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "{wizard}"
     );
     assert!(wizard.contains("field \"Company name\": \"-\""), "{wizard}");
-    assert!(wizard.contains("preview \"Folio 102\": ready"), "{wizard}");
+    assert!(wizard.contains("preview \"Schematic page\": ready"), "{wizard}");
     done(&mut shell, "wizard.goto", json!({"step": 9}));
     let review = shell.describe();
     assert!(
-        review.contains("wizard \"Company standard\": step 10 of 10 \"Review and create\" (#11)"),
+        review.contains("wizard \"Company standard\": step 10 of 10 \"Review and create\" (#10)"),
         "{review}"
     );
     assert!(
-        review.contains("review \"Cross-reference style\": \"QET style (102-A1)\" written"),
+        review.contains("review \"Cross-reference style\": \"QET style\" written"),
         "{review}"
     );
     assert!(
@@ -2761,7 +2770,7 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
         "{review}"
     );
     assert!(
-        review.contains("review \"Check scheme\": \"Pre-delivery\" kept"),
+        review.contains("review \"Check level\": \"Pre-delivery\" kept"),
         "{review}"
     );
     assert!(

@@ -185,6 +185,7 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
         step.number()
     ));
     lines.push(format!("  label \"{}\"", strings::text(step.hint_key())));
+    lines.push(format!("  label \"{}\"", strings::text(step.later_key())));
     if step == Step::Review {
         for line in w.review() {
             lines.push(format!(
@@ -212,6 +213,9 @@ fn wizard(model: &ShellModel, lines: &mut Vec<String>) {
                     lines.push(format!("  field \"{label}\": \"{}\"", w.draft().display_value(f)));
                 }
             }
+        }
+        for line in w.example(None) {
+            lines.push(format!("  example \"{}\"", line.trim_start()));
         }
     }
     if let Some(error) = w.error() {

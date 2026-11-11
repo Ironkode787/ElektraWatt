@@ -921,7 +921,7 @@ fn pin_journal_times(dir: &std::path::Path, t: u64) {
 /// CP6: the four dialogs that need a fixture, each cropped to the dialog's frame with its shadow, light
 /// Comfortable, gated: the recovery dialog (an earlier session's journal on a copy of Golden A, its last change
 /// pinned to 2026-10-28 12:00 UTC and the dialog's clock to two hours later), the question of discarding that journal
-/// (Discard… of the recovery dialog), the check-scheme question (Apply the check scheme of the finished
+/// (Discard… of the recovery dialog), the check-scheme question (Apply the check level of the finished
 /// company-standard wizard) and the purge question (a copy of Golden A whose first new logo was replaced and saved,
 /// re-opened).
 #[test]

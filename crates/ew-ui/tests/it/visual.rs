@@ -2446,3 +2446,95 @@ fn symbol_editor_new_symbol_asks_before_it_drops_unsaved_changes() {
     assert_eq!(editor.draft.key, "user.new-symbol");
     d.shell_mut().shutdown();
 }
+
+/// FT-1629 to FT-1633: the company-standard wizard gone through by clicks and keys, its steps numbered 1 to 10. Every
+/// step shows its Result, a colour profile changes its rows and turns the example to the cover page, the steps passed
+/// are done, and Create writes the basic project.
+#[test]
+fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standard() {
+    use ew_ui::ew_viewmodel::strings;
+    use ew_ui::ew_viewmodel::wizard::Step;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config_with_resources(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    d.settle();
+    let press = |d: &mut Driver, label: &str| {
+        let at = d
+            .find(label)
+            .unwrap_or_else(|| panic!("{label}: {:?}", d.labels()));
+        d.input(&click(at));
+        d.settle();
+    };
+    // The window's widgets by their names; the step's texts (its Result) as `ui.describe` lists them.
+    let shows = |d: &Driver, text: &str| d.labels().iter().any(|(l, _)| l.contains(text));
+    let result = |d: &mut Driver, text: &str| d.shell_mut().describe().contains(&format!("example \"{text}"));
+    press(&mut d, "Create company standard");
+    assert!(d.shell_mut().wizard().is_some());
+    assert!(shows(&d, "1. Company") && shows(&d, "10. Review and create"));
+    assert!(result(&mut d, "Company: -"));
+    // The company name by keys: Shift+Tab from no focus walks back from the last field (logo, notice, name).
+    for _ in 0..3 {
+        d.input(&key("shift+tab"));
+    }
+    d.input(&Input::Type {
+        text: "Example Panels".to_owned(),
+    });
+    d.input(&key("enter"));
+    d.settle();
+    assert!(result(&mut d, "Company: Example Panels"));
+    let steps: [(&str, &str); 8] = [
+        (
+            "2. Frame and title block",
+            "Schematic pages: QET-compatible A4 landscape, with grid",
+        ),
+        (
+            "3. Colour profile",
+            "24 VDC: Positive dark blue, Signal dark blue, 0V white",
+        ),
+        (
+            "4. Size profile",
+            "A control wire is 0.75 mm² and a mains wire 1.5 mm²",
+        ),
+        (
+            "5. Identifiers and numbering",
+            "The third contactor on page 102 is named -102K3.",
+        ),
+        (
+            "6. Structure and sections",
+            "Section 1, Wiring Definition: pages 100 to 199",
+        ),
+        ("7. Revisions", "The title block's revision cell reads V1.0."),
+        ("8. Languages and formats", "A date prints as 14-03-2026."),
+        (
+            "9. Reports and checks",
+            "Page 901, parts list: every part with its quantity",
+        ),
+    ];
+    for (title, text) in steps {
+        press(&mut d, "Next");
+        let step = d.shell_mut().wizard().unwrap().step();
+        assert_eq!(
+            format!("{}. {}", step.number(), strings::text(step.title_key())),
+            title
+        );
+        assert!(result(&mut d, text), "{title}: {}", d.shell_mut().describe());
+        if step == Step::Colour {
+            // The colour step shows the cover page, which prints the table, and its rows follow the profile.
+            assert!(d.shell_mut().wizard().unwrap().preview_is_cover());
+            press(&mut d, "EN 60204-1 machine (not yet checked)");
+            assert!(result(&mut d, "AC control: Control red"));
+            assert!(!result(&mut d, "24 VDC: Positive dark blue"));
+        }
+    }
+    // The steps passed are done; the review creates the standard in a new folder.
+    press(&mut d, "Next");
+    assert!(d.shell_mut().wizard().unwrap().is_done(Step::Reports));
+    press(&mut d, "Create the basic project…");
+    let project = std::fs::read_to_string(tmp.0.join("project").join("project.jsonl")).unwrap();
+    assert!(
+        project.contains("Example Panels") && project.contains("ew.en60204-1-machine"),
+        "{project}"
+    );
+    assert!(shows(&d, "Apply the check level"), "{:?}", d.labels());
+    d.shell_mut().shutdown();
+}

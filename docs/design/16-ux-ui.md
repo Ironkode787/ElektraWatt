@@ -1359,10 +1359,26 @@ the basic project itself. Existing projects keep the copy they were created from
 to an existing project is a previewed command planned for 1.x. NFR-UX-08 is met when Golden A reproduces from the
 shipped defaults plus the pilot's basic project made with this wizard.
 
-*As built.* Ten steps (1 to 9 and 11; step 10 is
-1.0), each with its fields validated as typed; the draft `ew.wizard-draft/1` lives in the configuration directory until
-the wizard finishes; the live preview renders the cover and folio 102 of the sample project with the current choices
-on a fork. The defaults are the sample project's conventions (numbering `{page}{letter}{counter}`, strips
+*As built.* Ten steps, numbered 1 to 10 on the screen (the table's step 10 is 1.0, so Review and create shows
+as 10), each with its fields validated as typed; the draft `ew.wizard-draft/1` lives in the configuration directory until
+the wizard finishes; the right column, **Example**, renders the cover page and a schematic page (folio 102 of the
+sample project) with the current choices on a fork, and never names the sample project: without it, one sentence
+says the example pages do not come with the installation. **Each step explains itself (FT-1629 to FT-1633):** under
+its title one or two sentences say what it is and what the choice changes, and a quieter line says whether and where
+it can be changed later (Project ▸ Setup ▸ Project properties for the colour and size profiles, the numbering and
+the cross-reference format; Structure node… and Report block… in a project; the wizard again for the rest). Under
+the fields (beside them where two reading measures fit) a **Result** card shows what the fields make, live while a
+field is typed in: the title block's company lines; the chosen colour profile's rows by group, read from its data,
+with its basis and why DBU/WH 24 V is preselected; the cable sizes in words; the numbering tokens with their meaning,
+the third contactor and the first strip on page 102 and both cross-reference styles; the page tree the sections make,
+with the report pages in them; the revision label; a date and a number in the chosen formats; each report page in
+one line and what each check level finds, with one example finding each. The Colour and Size steps turn the example
+to the cover page, which prints their tables (the schematic page draws no wire colours, which is why a colour
+choice seemed to change nothing); Frame and Numbering turn it to the schematic page. Choices are radio groups; a
+placeholder is an example value, never the label. The step list marks the steps passed with a check. A bar at the
+foot of the step holds Close and Start over as Subtle buttons at the left (their tooltips say the choices are kept,
+or put back) and Back (Secondary) and Next or Create the basic project… (Primary) at the right; after Create, Apply
+the check level (Primary) and Close. The check scheme is called the **check level** on the screen. The defaults are the sample project's conventions (numbering `{page}{letter}{counter}`, strips
 `{letter}{page}{counter}`, the colour profile "DBU/WH 24 V", the size profile "0.75/1.5", the QET-style
 cross-reference format, `=P01`, sections 1, 2 and 9); a numbering format must contain `{page}`, `{letter}` and
 `{counter}` until the numbering engine of WP-S1.11 (R2). **What the wizard writes**: `wizard.finish`
@@ -1389,8 +1405,8 @@ embeds its form. The table shows each field's state:
 registered `HumanOnly` command (Interactive; shipped schemes only, stored in `settings.extra.checks`; ADR-0008
 amendment 3 and decision log ID-443 stand, ID-546), because the scheme decides check outcomes and release. So
 `wizard.finish` writes everything else and the check scheme stays in the draft. After `wizard.finish` the wizard stays
-on the review step, whose row for the check scheme reads "kept: apply after finishing" and which offers the action
-**Apply the check scheme** (registry action `wizard.apply_check_scheme`). Its confirmation names the scheme; on Apply
+on the review step, whose row for the check scheme reads "set after you create it" and which offers the action
+**Apply the check level** (registry action `wizard.apply_check_scheme`). Its confirmation names the scheme; on Apply
 the GUI runs the `HumanOnly` `project.checks.set` and saves, and the row then reads `written`. Headless, the same
 action is refused with `reason-human-only` and the refusal is recorded in the transcript (doc 18 §3.17; two tests pin
 both outcomes); no new `ui.describe` word is needed. **The headless-reachable human path** is the CLI subcommand `ew
@@ -1398,8 +1414,8 @@ project checks set [<project-dir>] [--active <scheme>] [--release <scheme>]`, ne
 the scheme's name on the controlling terminal and writes only on an exact answer; without a terminal it exits 2 and
 has no flag that skips the question (FR-EXT-030, doc 17 §2.3).
 
-The review step lists every field with `written` or `kept in the draft`; every row reads `written`
-except the check scheme, which keeps its own wording above until the confirmed step. The preview applies the same commands to the sample project, so the cover and
+The review step lists every field with "in the standard" (`written` in `ui.describe`); every row reads so
+except the check scheme, which reads "set after you create it" (`kept`) until the confirmed step. The preview applies the same commands to the sample project, so the cover and
 folio 102 show the notice, the ISO date format and the chosen frame (a test pins all three). A test checks that the
 settings commands of the defaults leave the sample project unchanged, and the build path of the golden project
 stays at 609 commands and 607 undo steps: moving its formatting into `project.languages.set` and `project.company.set`
@@ -1999,7 +2015,7 @@ including its migration report, resolved in ≤ 1 hour (NFR-UX-06).
 | OS notifications | | | ● | |
 | One project per window, second project in a new instance (§3.8) | ● | | | |
 | Several projects in one session (FR-PRJ-027) | | | ● | |
-| First run and company-standard wizard steps 1–9, 11 | ● | | | |
+| First run and company-standard wizard steps 1–10 | ● | | | |
 | Wizard step 10 (manufacturing defaults) | | ● | | |
 | Applying company-standard changes to existing projects | | | ● | |
 | Glossary panel, palette aliases, contextual tips | ● | | | |

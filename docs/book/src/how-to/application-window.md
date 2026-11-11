@@ -77,10 +77,12 @@ step can be skipped. **Help, First-run setup** runs it again. Nothing in it make
 ## Company-standard wizard
 
 The wizard collects the conventions of your company and writes a **basic project**, from which new projects start. It
-has steps for the company, the frame and title block, the colour profile, the size profile, identifiers and numbering,
-structure and sections, revisions, languages and formats, and reports and checks, and a review. A preview of the cover
-and of a sample page shows the current choices. The draft is kept in the configuration directory until you finish, and
-the basic project is written to a directory you choose and becomes the default for **New project**.
+has ten steps: the company, the frame and title block, the colour profile, the size profile, identifiers and numbering,
+structure and sections, revisions, languages and formats, reports and checks, and a review. Each step says what it is
+and where you can change it later, and its **Result** shows what your choices make, such as the name of the third
+contactor on page 102; the **Example** beside it shows a cover page and a schematic page with your choices. Your
+choices are kept in the configuration directory until you finish, and the basic project is written to a directory you
+choose and becomes the default for **New project**.
 
 ## About
 

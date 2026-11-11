@@ -370,7 +370,7 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
         first.contains("wizard \"Company standard\": step 1 of 10 \"Company\" (#1)"),
         "{first}"
     );
-    assert!(first.contains("preview \"Folio 102\": ready"), "{first}");
+    assert!(first.contains("preview \"Schematic page\": ready"), "{first}");
     // NFR-UX-08 in miniature: the default draft's preview is the sample's folio 102 and its cover.
     assert!(
         compare_with_golden(&page, "102") <= 0.5,
@@ -391,7 +391,7 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
     );
     // The check scheme stays in the draft (its command is `HumanOnly`, ADR-0008 amendment 3).
     assert!(
-        review.contains("review \"Check scheme\": \"Pre-delivery\" kept"),
+        review.contains("review \"Check level\": \"Pre-delivery\" kept"),
         "{review}"
     );
     assert!(review.contains("\" written"), "{review}");

@@ -807,8 +807,8 @@ fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
                     "Label mode: Abbreviated"
                 ]),
                 words(&[
-                    "Apply the check scheme \"Pre-delivery\" to the basic project? The check scheme decides which rules \
-                     the release gate runs and what the checks report."
+                    "Apply the check level \"Pre-delivery\" to the company standard? It decides what the program \
+                     checks before a drawing set can be released."
                 ]),
                 "268.4".to_owned()
             ),
@@ -819,8 +819,8 @@ fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
                     "Labelmodus: Afgekort"
                 ]),
                 words(&[
-                    "Het controleschema \"Vóór oplevering\" op het basisproject toepassen? Het controleschema bepaalt \
-                     welke regels de vrijgavepoort uitvoert en wat de controles melden."
+                    "Het controleniveau \"Vóór oplevering\" op de bedrijfsstandaard toepassen? Het bepaalt wat het \
+                     programma controleert voordat een tekeningenset kan worden vrijgegeven."
                 ]),
                 "268,4".to_owned()
             )

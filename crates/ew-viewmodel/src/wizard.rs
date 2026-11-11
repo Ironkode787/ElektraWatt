@@ -51,8 +51,8 @@ pub const DRAFT_SCHEMA: &str = "ew.wizard-draft/1";
 /// The draft file's name in the configuration directory.
 pub const DRAFT_FILE: &str = "wizard-draft.json";
 
-/// A step of the wizard, in order. The numbers of doc 16 section 9.2 are 1 to 9 and 11 (step 10, the
-/// manufacturing settings, is 1.0).
+/// A step of the wizard, in order, numbered 1 to 10 on the screen (doc 16 section 9.2's step 10, the manufacturing
+/// settings, is 1.0, so its review step 11 shows as 10).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum Step {
     /// 1 Company.
@@ -73,7 +73,7 @@ pub enum Step {
     Languages,
     /// 9 Reports and checks.
     Reports,
-    /// 11 Review and create.
+    /// 10 Review and create.
     Review,
 }
 
@@ -102,11 +102,34 @@ impl Step {
         Step::ALL.get(index).copied()
     }
 
-    /// The number of doc 16 section 9.2.
-    pub fn number(self) -> u32 {
+    /// The number on the screen: the 1-based position.
+    pub fn number(self) -> usize {
+        self.index() + 1
+    }
+
+    /// Which example page shows what the step changes: the cover page (`true`) prints the colour and size tables,
+    /// the schematic page (`false`) the frame and the device names; `None` keeps the page the reader chose.
+    pub fn example_on_cover(self) -> Option<bool> {
         match self {
-            Step::Review => 11,
-            other => u32::try_from(other.index() + 1).unwrap_or(0),
+            Step::Colour | Step::Size => Some(true),
+            Step::Frame | Step::Numbering => Some(false),
+            _ => None,
+        }
+    }
+
+    /// The key of the step's line on whether and where its settings can be changed later.
+    pub fn later_key(self) -> Key<'static> {
+        match self {
+            Step::Company => key!("wizard-later-company"),
+            Step::Frame => key!("wizard-later-frame"),
+            Step::Colour => key!("wizard-later-colour"),
+            Step::Size => key!("wizard-later-size"),
+            Step::Numbering => key!("wizard-later-numbering"),
+            Step::Structure => key!("wizard-later-structure"),
+            Step::Revisions => key!("wizard-later-revisions"),
+            Step::Languages => key!("wizard-later-languages"),
+            Step::Reports => key!("wizard-later-reports"),
+            Step::Review => key!("wizard-later-review"),
         }
     }
 
@@ -761,16 +784,7 @@ impl Draft {
 
     /// The cross-reference format, or `None` for the pinned profile's (the QET style).
     fn xref_value(&self) -> Option<Value> {
-        (self.get("xref") == "eplan").then(|| {
-            json!({
-                "key": "eplan-style",
-                "name": { "en": "EPLAN style" },
-                "ip": "/{page}.{row}{column}",
-                "aux_to_main": "/{page}.{row}{column}",
-                "main_to_aux": "{list}",
-                "matrix": { "per_row": 3, "max": 9, "overflow": "\u{2026}" },
-            })
-        })
+        (self.get("xref") == "eplan").then(|| xref_format("eplan"))
     }
 
     /// The company command (`project.company.set`) with the members the draft names (an empty field sends
@@ -1017,6 +1031,256 @@ pub(crate) fn shipped_form_id(key: &str) -> Option<Value> {
     shipped_form(key).and_then(|form| form.get("id").cloned())
 }
 
+/// The cross-reference format of an `xref` choice: the EPLAN style the wizard writes, or for `qet` the `ip` format of
+/// the pinned derivation profile, which a basic project keeps (only its `ip` member is read here, for the example).
+fn xref_format(choice: &str) -> Value {
+    if choice == "eplan" {
+        json!({
+            "key": "eplan-style",
+            "name": { "en": "EPLAN style" },
+            "ip": "/{page}.{row}{column}",
+            "aux_to_main": "/{page}.{row}{column}",
+            "main_to_aux": "{list}",
+            "matrix": { "per_row": 3, "max": 9, "overflow": "\u{2026}" },
+        })
+    } else {
+        json!({ "ip": "{page}-{row}{column}" })
+    }
+}
+
+/// `format` with each `{token}` of `values` replaced by its value.
+fn fill(format: &str, values: &[(&str, &str)]) -> String {
+    values.iter().fold(format.to_owned(), |text, (token, value)| {
+        text.replace(&format!("{{{token}}}"), value)
+    })
+}
+
+/// The English text of a multi-language member of profile data (`{"en": …}`), else "".
+fn en(value: &Value) -> &str {
+    value.get("en").and_then(Value::as_str).unwrap_or("")
+}
+
+impl Draft {
+    /// The worked example of `step`: what its settings make, line by line, from the draft's values (the step's
+    /// "Result"). The review step has none.
+    pub fn example(&self, step: Step) -> Vec<String> {
+        let shown = |key: &str| field_meta(key).map(|f| self.display_value(f)).unwrap_or_default();
+        let f = strings::format;
+        match step {
+            Step::Company => vec![
+                f(key!("wizard-example-company"), &[&shown("company_name")]),
+                f(key!("wizard-example-notice"), &[&shown("company_notice")]),
+                f(key!("wizard-example-logo"), &[&shown(LOGO_FIELD)]),
+            ],
+            Step::Frame => vec![
+                f(key!("wizard-example-frame"), &[&shown("frame")]),
+                f(key!("wizard-example-text-styles"), &[&shown("text_styles")]),
+            ],
+            Step::Colour => self.colour_example(),
+            Step::Size => match self.get("size") {
+                "default" => vec![strings::text(key!("wizard-example-size-none")).to_owned()],
+                _ => vec![
+                    f(
+                        key!("wizard-example-size"),
+                        &[self.get("csa_control"), self.get("csa_mains")],
+                    ),
+                    strings::text(key!("wizard-example-on-cover")).to_owned(),
+                ],
+            },
+            Step::Numbering => self.numbering_example(),
+            Step::Structure => self.structure_example(),
+            Step::Revisions => vec![f(key!("wizard-example-revision"), &[self.get("first_revision")])],
+            Step::Languages => {
+                let date = match self.get("date_format") {
+                    "iso8601" => "2026-03-14",
+                    _ => "14-03-2026",
+                };
+                let decimal = match self.get("decimal") {
+                    "comma" => "1,5",
+                    _ => "1.5",
+                };
+                vec![
+                    f(key!("wizard-example-language"), &[&shown("language")]),
+                    f(key!("wizard-example-date"), &[date]),
+                    f(key!("wizard-example-decimal"), &[decimal]),
+                ]
+            }
+            Step::Reports => self.reports_example(),
+            Step::Review => Vec::new(),
+        }
+    }
+
+    /// The colour step's example: the chosen profile's rows by group, read from its data, and what it rests on.
+    fn colour_example(&self) -> Vec<String> {
+        let preselected = Draft::default()
+            .colour_value()
+            .map(|v| en(&v["name"]).to_owned())
+            .unwrap_or_default();
+        let mut out = Vec::new();
+        match self.colour_value() {
+            None => out.push(strings::text(key!("wizard-example-colour-none")).to_owned()),
+            Some(profile) => {
+                // One line per group, its functions and colours in the profile's order, each pair once.
+                let mut groups: Vec<(String, Vec<String>)> = Vec::new();
+                for row in profile["rows"].as_array().into_iter().flatten() {
+                    let pair = format!(
+                        "{} {}",
+                        en(&row["function"]),
+                        en(&row["colour_name"]).to_lowercase()
+                    );
+                    let group = en(&row["group"]).to_owned();
+                    match groups.iter_mut().find(|(g, _)| *g == group) {
+                        Some((_, pairs)) if pairs.contains(&pair) => {}
+                        Some((_, pairs)) => pairs.push(pair),
+                        None => groups.push((group, vec![pair])),
+                    }
+                }
+                for (group, pairs) in groups {
+                    out.push(strings::format(
+                        key!("wizard-example-colour-row"),
+                        &[&group, &pairs.join(", ")],
+                    ));
+                }
+                let standards = en(&profile["standards"]);
+                out.push(if profile["verified"] == json!(true) {
+                    strings::format(key!("wizard-example-colour-basis"), &[standards])
+                } else {
+                    strings::format(key!("wizard-example-colour-unverified"), &[standards])
+                });
+                out.push(strings::text(key!("wizard-example-on-cover")).to_owned());
+            }
+        }
+        out.push(strings::format(
+            key!("wizard-example-colour-preselected"),
+            &[&preselected],
+        ));
+        out
+    }
+
+    /// The numbering step's example: the tokens with their meaning, a device and a strip named by the formats, and
+    /// each cross-reference style on one place.
+    fn numbering_example(&self) -> Vec<String> {
+        let mut out = vec![
+            strings::text(key!("wizard-token-page")).to_owned(),
+            strings::text(key!("wizard-token-letter")).to_owned(),
+            strings::text(key!("wizard-token-counter")).to_owned(),
+        ];
+        let device = fill(
+            self.get("device_format"),
+            &[("page", "102"), ("letter", "K"), ("counter", "3")],
+        );
+        let strip = fill(
+            self.get("strip_format"),
+            &[("page", "102"), ("letter", "X"), ("counter", "1")],
+        );
+        out.push(strings::format(
+            key!("wizard-example-device"),
+            &[&format!("-{device}")],
+        ));
+        out.push(strings::format(
+            key!("wizard-example-strip"),
+            &[&format!("-{strip}")],
+        ));
+        if let Some(FieldKind::Choice(styles)) = field_meta("xref").map(|f| f.kind) {
+            for style in styles {
+                let ip = xref_format(style)["ip"].as_str().unwrap_or("").to_owned();
+                let place = fill(&ip, &[("page", "102"), ("row", "A"), ("column", "1")]);
+                let name = strings::text(Key::run_time(&format!("choice-xref-{style}")));
+                out.push(strings::format(key!("wizard-example-xref"), &[name, &place]));
+            }
+        }
+        out
+    }
+
+    /// The structure step's example: the nodes, then the page tree the sections make, with the report pages in
+    /// their sections.
+    fn structure_example(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        for (sign, field, text) in [
+            ("=", "function_node", key!("wizard-example-node-function")),
+            ("+", "location_node", key!("wizard-example-node-location")),
+        ] {
+            let code = self.get(field);
+            if !code.is_empty() {
+                out.push(strings::format(text, &[&format!("{sign}{code}")]));
+            }
+        }
+        let sections = match parse_sections(self.get("sections")) {
+            Ok(sections) => sections,
+            Err(why) => {
+                out.push(strings::text(why).to_owned());
+                return out;
+            }
+        };
+        let reports: &[(&str, u32, &str)] = if self.get("report_blocks") == "golden" {
+            &GOLDEN_REPORT_LAYOUT
+        } else {
+            &[]
+        };
+        let page = |folio: &u32, title: &str| format!("    {folio} {}", title.replace(" {n}", ""));
+        let outside: Vec<String> = reports
+            .iter()
+            .filter(|(_, folio, _)| !sections.iter().any(|s| s.first <= *folio && *folio <= s.last))
+            .map(|(_, folio, title)| page(folio, title))
+            .collect();
+        if !outside.is_empty() {
+            out.push(strings::text(key!("wizard-example-outside")).to_owned());
+            out.extend(outside);
+        }
+        for s in &sections {
+            out.push(strings::format(
+                key!("wizard-example-section"),
+                &[
+                    &s.number.to_string(),
+                    &s.title,
+                    &s.first.to_string(),
+                    &s.last.to_string(),
+                ],
+            ));
+            out.push(format!(
+                "    {}",
+                strings::format(key!("wizard-example-divider"), &[&s.first.to_string()])
+            ));
+            out.extend(
+                reports
+                    .iter()
+                    .filter(|(_, folio, _)| s.first <= *folio && *folio <= s.last)
+                    .map(|(_, folio, title)| page(folio, title)),
+            );
+        }
+        out
+    }
+
+    /// The reports step's example: each report with its page and what it lists, then what each check level finds.
+    fn reports_example(&self) -> Vec<String> {
+        let mut out: Vec<String> = if self.get("report_blocks") == "golden" {
+            GOLDEN_REPORT_LAYOUT
+                .iter()
+                .map(|(kind, folio, _)| {
+                    strings::format(
+                        key!("wizard-example-report"),
+                        &[
+                            &folio.to_string(),
+                            strings::text(Key::run_time(&format!("wizard-report-{kind}"))),
+                        ],
+                    )
+                })
+                .collect()
+        } else {
+            vec![strings::text(key!("wizard-example-reports-none")).to_owned()]
+        };
+        out.push(strings::text(key!("wizard-example-checks")).to_owned());
+        if let Some(FieldKind::Choice(levels)) = field_meta(CHECK_SCHEME_FIELD).map(|f| f.kind) {
+            out.extend(
+                levels
+                    .iter()
+                    .map(|level| strings::text(Key::run_time(&format!("wizard-check-{level}"))).to_owned()),
+            );
+        }
+        out
+    }
+}
+
 /// The sample project with the draft's settings applied, for the live preview (doc 16 section 9.2: "rendered with
 /// the current choices on a fork"). It is a separate read-only session; the project the user may have open is not
 /// touched.
@@ -1030,6 +1294,8 @@ struct Preview {
 /// The wizard while it is open: the step, the draft and the live preview.
 pub struct Wizard {
     pub(crate) step: Step,
+    /// The furthest step reached since the wizard opened: the steps before it are done.
+    pub(crate) furthest: Step,
     pub(crate) draft: Draft,
     pub(crate) preview_cover: bool,
     preview: Option<Preview>,
@@ -1052,8 +1318,9 @@ impl Wizard {
     pub fn new(draft: Draft, step: Step) -> Wizard {
         Wizard {
             step,
+            furthest: step,
             draft,
-            preview_cover: false,
+            preview_cover: step.example_on_cover().unwrap_or(false),
             preview: None,
             preview_rev: 0,
             error: None,
@@ -1090,6 +1357,38 @@ impl Wizard {
     /// The step on show.
     pub fn step(&self) -> Step {
         self.step
+    }
+
+    /// Whether `step` is done: the reader went past it, or the basic project is written.
+    pub fn is_done(&self, step: Step) -> bool {
+        self.finished.is_some() || step < self.furthest
+    }
+
+    /// Shows `step`: it is reached, and a step whose settings one example page shows turns to that page.
+    pub(crate) fn go_to(&mut self, step: Step) {
+        self.step = step;
+        self.furthest = self.furthest.max(step);
+        if let Some(cover) = step.example_on_cover() {
+            self.preview_cover = cover;
+        }
+    }
+
+    /// The worked example of the step on show ([`Draft::example`]), with `typed`, the text of a field still being
+    /// typed (field, text), in place of its value: a text the field refuses puts its reason first and leaves the
+    /// value as it was.
+    pub fn example(&self, typed: Option<(&str, &str)>) -> Vec<String> {
+        let Some((field, text)) = typed.filter(|(f, _)| *f != LOGO_FIELD) else {
+            return self.draft.example(self.step);
+        };
+        let mut draft = self.draft.clone();
+        match draft.set(field, text) {
+            Ok(()) => draft.example(self.step),
+            Err(why) => {
+                let mut out = vec![strings::text(why).to_owned()];
+                out.extend(self.draft.example(self.step));
+                out
+            }
+        }
     }
 
     /// The draft.
@@ -1237,13 +1536,120 @@ mod tests {
         for s in Step::ALL {
             assert!(strings::lookup(s.title_key().as_str()).is_some());
             assert!(strings::lookup(s.hint_key().as_str()).is_some());
+            assert!(strings::lookup(s.later_key().as_str()).is_some());
+        }
+        for (kind, _, _) in GOLDEN_REPORT_LAYOUT {
+            assert!(
+                strings::lookup(&format!("wizard-report-{kind}")).is_some(),
+                "{kind}"
+            );
+        }
+        if let Some(FieldKind::Choice(levels)) = field_meta(CHECK_SCHEME_FIELD).map(|f| f.kind) {
+            for level in levels {
+                assert!(
+                    strings::lookup(&format!("wizard-check-{level}")).is_some(),
+                    "{level}"
+                );
+            }
         }
         let mut keys: Vec<&str> = FIELDS.iter().map(|f| f.key).collect();
         keys.sort_unstable();
         keys.dedup();
         assert_eq!(keys.len(), FIELDS.len(), "field names are unique");
-        assert_eq!(Step::Review.number(), 11);
-        assert_eq!(Step::Colour.number(), 3);
+        // The steps are numbered without a gap.
+        let numbers: Vec<usize> = Step::ALL.iter().map(|s| s.number()).collect();
+        assert_eq!(numbers, (1..=Step::ALL.len()).collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn every_step_shows_what_its_settings_make() {
+        let mut d = Draft::default();
+        let lines = |d: &Draft, step| d.example(step).join("\n");
+        d.set("company_name", "Example Panels").unwrap();
+        assert!(lines(&d, Step::Company).contains("Company: Example Panels"));
+        // The colour profile's rows are read from its data, and change with the profile.
+        let sample = lines(&d, Step::Colour);
+        assert!(
+            sample.contains("24 VDC: Positive dark blue, Signal dark blue, 0V white"),
+            "{sample}"
+        );
+        d.set("colour", "en60204-machine").unwrap();
+        let machine = lines(&d, Step::Colour);
+        assert!(machine.contains("AC control: Control red"), "{machine}");
+        assert!(machine.contains("not yet checked"), "{machine}");
+        d.set("colour", "default").unwrap();
+        assert!(lines(&d, Step::Colour).contains("prints no colour table"));
+        d.set("csa_mains", "2.5").unwrap();
+        assert!(lines(&d, Step::Size).contains("0.75 mm² and a mains wire 2.5 mm²"));
+        let numbering = lines(&d, Step::Numbering);
+        assert!(
+            numbering.contains("The third contactor on page 102 is named -102K3."),
+            "{numbering}"
+        );
+        assert!(
+            numbering.contains("The first terminal strip on page 102 is named -X1021."),
+            "{numbering}"
+        );
+        assert!(
+            numbering.contains(
+                "QET style: a contact drawn on page 102 in row A, column 1 is referred to as 102-A1."
+            )
+        );
+        assert!(numbering.contains(
+            "EPLAN style: a contact drawn on page 102 in row A, column 1 is referred to as /102.A1."
+        ));
+        let structure = lines(&d, Step::Structure);
+        assert!(structure.contains("=P01: the function node"), "{structure}");
+        assert!(
+            structure.contains(
+                "Section 9, Nomenclature: pages 900 to 999\n    900 divider page\n    901 Partlist"
+            ),
+            "{structure}"
+        );
+        assert!(
+            structure.contains("Outside the sections\n    2 Table of Contents"),
+            "{structure}"
+        );
+        assert!(lines(&d, Step::Revisions).contains("reads V1.0"));
+        d.set("date_format", "iso8601").unwrap();
+        d.set("decimal", "comma").unwrap();
+        let formats = lines(&d, Step::Languages);
+        assert!(
+            formats.contains("2026-03-14") && formats.contains("1,5 mm²"),
+            "{formats}"
+        );
+        let reports = lines(&d, Step::Reports);
+        assert!(
+            reports.contains("Page 901, parts list: every part with its quantity"),
+            "{reports}"
+        );
+        assert!(reports.contains("Pre-delivery: "), "{reports}");
+        // Every step but the review has a result.
+        for step in Step::ALL {
+            assert_eq!(d.example(step).is_empty(), step == Step::Review, "{step:?}");
+        }
+    }
+
+    #[test]
+    fn the_example_follows_a_value_being_typed_and_says_why_one_is_refused() {
+        let mut w = Wizard::new(Draft::default(), Step::Numbering);
+        let typed = w
+            .example(Some(("device_format", "{page}-{letter}{counter}")))
+            .join("\n");
+        assert!(typed.contains("is named -102-K3."), "{typed}");
+        let half = w.example(Some(("device_format", "{page}{let"))).join("\n");
+        assert!(
+            half.starts_with(strings::text(key!("wizard-error-format"))),
+            "{half}"
+        );
+        assert!(half.contains("-102K3"), "the committed value stays: {half}");
+        // Going forward marks the steps passed as done, and the colour step turns the example to the cover page.
+        assert!(w.is_done(Step::Company) && !w.is_done(Step::Numbering));
+        w.go_to(Step::Colour);
+        assert!(w.preview_is_cover());
+        w.go_to(Step::Reports);
+        w.go_to(Step::Company);
+        assert!(w.is_done(Step::Structure) && !w.is_done(Step::Reports));
     }
 
     #[test]

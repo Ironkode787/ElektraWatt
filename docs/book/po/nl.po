@@ -2319,20 +2319,22 @@ msgstr ""
 #: src/how-to/application-window.md:79
 msgid ""
 "The wizard collects the conventions of your company and writes a **basic "
-"project**, from which new projects start. It has steps for the company, the "
+"project**, from which new projects start. It has ten steps: the company, the "
 "frame and title block, the colour profile, the size profile, identifiers and "
-"numbering, structure and sections, revisions, languages and formats, and "
-"reports and checks, and a review. A preview of the cover and of a sample "
-"page shows the current choices. The draft is kept in the configuration "
-"directory until you finish, and the basic project is written to a directory "
-"you choose and becomes the default for **New project**."
-msgstr ""
-
-#: src/how-to/application-window.md:85
-msgid "About"
+"numbering, structure and sections, revisions, languages and formats, reports "
+"and checks, and a review. Each step says what it is and where you can change "
+"it later, and its **Result** shows what your choices make, such as the name "
+"of the third contactor on page 102; the **Example** beside it shows a cover "
+"page and a schematic page with your choices. Your choices are kept in the "
+"configuration directory until you finish, and the basic project is written "
+"to a directory you choose and becomes the default for **New project**."
 msgstr ""
 
 #: src/how-to/application-window.md:87
+msgid "About"
+msgstr ""
+
+#: src/how-to/application-window.md:89
 msgid ""
 "**Help, About ElektraWatt** shows the version, the page-view renderer, the "
 "privacy state, the licence, the engineering-verification disclaimer, the "
