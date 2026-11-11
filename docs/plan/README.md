@@ -1,12 +1,12 @@
 # The plan
 
-**Done:** milestone **M2.5**, maintenance, closed on 2026-11-11. Its plan, its log and its exit record are in
-[m2.5.md](m2.5.md).
-**Next:** M2.5-Fix, a properly working program, release 0.2.0: the rows of [backlog.md](backlog.md). Then M3, new
-development.
+**Running:** milestone **M2.5-Fix**, a properly working program, release 0.2.0: its order, its rules and its log
+are in [m2.5-fix.md](m2.5-fix.md), its rows in [backlog.md](backlog.md).
+**Done:** M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](m2.5.md)). **Next:** M3, new development.
 
 | File | What it is |
 |---|---|
+| [m2.5-fix.md](m2.5-fix.md) | The running milestone: how a fix is made, the order of the rows, the log |
 | [m2.5.md](m2.5.md) | The maintenance milestone: principles, steps, assessment, what was cut and why, the exit record |
 | [backlog.md](backlog.md) | Open work, one row each, by milestone. A finished row is deleted |
 | [backlog-later.md](backlog-later.md) | Unscheduled rows for M3 and after: a seed for planning, not a commitment |
@@ -14,7 +14,7 @@ development.
 | [../../ROADMAP.md](../../ROADMAP.md) | The milestones by name and content |
 
 **How the plan is kept.**
-- A milestone has one file like [m2.5.md](m2.5.md): what it is for, its steps, and at the end what it did.
+- A milestone has one file like [m2.5-fix.md](m2.5-fix.md): what it is for, its steps, and at the end what it did.
 - Open work is a row of the backlog. There is no separate list of decisions: a decision that changes how something
   works is written into the document that describes it, and the commit message says why.
 - The plan carries no dates.

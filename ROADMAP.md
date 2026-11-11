@@ -30,7 +30,7 @@ that is running and the open work are in [docs/plan/](docs/plan/README.md).
 |---|---|
 | M0 to M2 | Closed: 0.1.0 was released on 2026-11-08 for Windows and Linux, unsigned and with no network code |
 | M2.5 | Closed on 2026-11-11: the maintenance step ([plan and exit record](docs/plan/m2.5.md)) |
-| M2.5-Fix | Next: the fixes that make the program work well in the hand ([backlog](docs/plan/backlog.md)) |
+| M2.5-Fix | Running since 2026-11-11: the fixes that make the program work well in the hand ([plan](docs/plan/m2.5-fix.md), [backlog](docs/plan/backlog.md)) |
 | M3 to M6, 1.x | Not started |
 
 What works today, in short: the desktop window opens, edits and checks a project, with navigators, table mode, a
