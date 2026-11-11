@@ -808,10 +808,8 @@ impl EditorView {
             {
                 action(events, "symbol.scratch", json!({}));
             }
-            // Close leaves the draft and its history kept; Discard draft is the explicit way to drop them.
-            if ribbon_button(ui, "symbol-close", "x", false, true, false, String::new()).clicked() {
-                action(events, "symbol.close", json!({}));
-            }
+            // Discard draft is the explicit way to drop the draft; Close editor, which keeps it, stands at the right
+            // end of the header below.
             if ribbon_button(
                 ui,
                 "symbol-discard-draft",
@@ -899,6 +897,20 @@ impl EditorView {
         ui.horizontal(|ui| {
             ui.strong(&symbol_name);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                // Close editor is the way back to the project: the editor's one primary button, in the corner the
+                // eye goes to for it (the owner's hands-on test of 0.1.0: it was squeezed between the bar's other
+                // commands). It keeps the draft and its history.
+                if components::button(
+                    ui,
+                    Kind::Primary,
+                    label(strings::Key::run_time("symbol-close")),
+                    true,
+                    0.0,
+                )
+                .clicked()
+                {
+                    action(events, "symbol.close", json!({}));
+                }
                 if button(ui, "symbol-fit") {
                     self.manual_view = false;
                     self.fitted = None;
