@@ -283,9 +283,13 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, preview: &mut PageView, events: &mu
                 }
             }
         });
+    // The Example takes the room the step's two reading measures leave beside the step list, so a wide window
+    // shows a larger page.
+    let form = 2.0 * t.size_text_measure + t.space_6 + 2.0 * t.space_4;
+    let example = (ui.available_width() - form).clamp(440.0, 900.0);
     Panel::right("wizard-preview")
         .resizable(true)
-        .default_size(440.0)
+        .default_size(example)
         .show(ui, |ui| {
             ui.add_space(t.space_3);
             ui.label(

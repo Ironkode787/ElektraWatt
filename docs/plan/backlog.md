@@ -11,11 +11,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The owner's hands-on test of 0.1.0-rc.3
 
-- FT-1629 `ew-viewmodel, ew-ui`: **Medium.** The company-standard wizard keeps referring to the sample project, which production software should not; each step explains its setting by itself and shows a worked example of what it produces (a designation, a wire number, a page, a report).
-- FT-1630 `ew-ui`: **Medium.** The company-standard wizard's buttons and layout look clunky; lay it out again to the design language (doc 16a).
-- FT-1631 `ew-viewmodel, ew-ui`: **Medium.** The wizard's colour-profile step: the chosen profile does not show in the preview, and nothing says what a profile does, which one is the default, or that it can be changed later and where.
-- FT-1632 `ew-viewmodel, ew-ui`: **Medium.** The wizard's identifiers and numbering step does not say which `{…}` tokens exist; list them, each with what it stands for, and show the pattern's result live.
-- FT-1633 `ew-viewmodel, content`: **Medium.** The wizard's reports and checks step describes its options in jargon a person cannot follow; say in plain words what each report makes and what each check finds, with an example.
 - FT-1634 `ew-viewmodel, ew-ui`: **Medium.** A project has a button to add a page but no way to add a section; add New section beside it and on the project tree's right-click menu.
 - FT-1635 `ew-ui`: **Medium.** The device browser stays in front: a click on the backdrop does not close it and it has no close button, so only Esc closes it; every overlay gets a close button and closes on a backdrop click.
 - FT-1636 `ew-viewmodel, ew-ui`: **Medium.** The device browser is clunky: no categories, no tree, and too little on screen; browse by a category tree with denser rows.
