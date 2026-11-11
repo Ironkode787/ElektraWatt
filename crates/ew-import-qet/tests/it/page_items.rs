@@ -7,7 +7,7 @@
 use ew_import_qet::QetProjectImporter;
 use ew_import_qet::decimal::Decimal;
 use ew_import_qet::ew_interop_api::ew_schema::{
-    FreeText, Graphic, GraphicShape, LibDocument, LineDash, PageItemKind, Primitive, Record, Representation,
+    FreeText, Graphic, GraphicShape, ImagePrim, LibDocument, LineDash, PageItemKind, Primitive, Record, Representation,
     SlotKind, TextAlign, base64_decode,
 };
 use ew_import_qet::ew_interop_api::{Code, ImportBatch, ImportInput};
@@ -352,17 +352,16 @@ fn an_element_prints_its_own_texts_and_no_tag_where_qet_prints_none() {
     assert_eq!(centred.align, Some(TextAlign::Centre));
 }
 
-#[test]
-fn a_title_block_logo_is_drawn_in_its_cell_from_the_same_asset_store() {
+/// The import of a project whose title block draws the logo `logo` (a `<logo>` resource named `mark`) in a
+/// cell of 40 × 20 px.
+fn logo_project(logo: &str) -> ImportBatch {
     let xml = format!(
         r#"<project version="0.100.0">
 <titleblocktemplates>
  <titleblocktemplate name="tb">
-  <logos><logo name="mark.png" storage="base64" type="png">
-{PNG}
-  </logo></logos>
+  <logos>{logo}</logos>
   <grid cols="40px;r100%;" rows="20;">
-   <logo name="" col="0" row="0" resource="mark.png"/>
+   <logo name="" col="0" row="0" resource="mark"/>
   </grid>
  </titleblocktemplate>
 </titleblocktemplates>
@@ -370,11 +369,14 @@ fn a_title_block_logo_is_drawn_in_its_cell_from_the_same_asset_store() {
 </project>"#
     );
     let input = ImportInput::new("logo.qet", xml.into_bytes()).unwrap();
-    let b = QetProjectImporter::new()
+    QetProjectImporter::new()
         .import(&input, &mut new_project_context())
-        .unwrap();
-    let image = b
-        .lib
+        .unwrap()
+}
+
+/// The image a title-block form of `b` draws.
+fn logo_image(b: &ImportBatch) -> &ImagePrim {
+    b.lib
         .iter()
         .filter_map(|d| match d {
             LibDocument::Form(f) => Some(&f.item.graphics),
@@ -385,9 +387,32 @@ fn a_title_block_logo_is_drawn_in_its_cell_from_the_same_asset_store() {
             Primitive::Image(i) => Some(i),
             _ => None,
         })
-        .expect("the logo is an image of the title block");
+        .expect("the logo is an image of the title block")
+}
+
+#[test]
+fn a_title_block_logo_in_svg_is_drawn_in_its_cell() {
+    // QET writes an SVG logo as the SVG element itself (`storage="xml"`): it is the asset, as written.
+    let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="20" height="10"><rect width="20" height="10"/></svg>"#;
+    let b = logo_project(&format!(
+        r#"<logo name="mark" storage="xml" type="svg">{svg}</logo>"#
+    ));
+    // Twice as wide as high in a 40 × 20 px cell: the whole cell (its height half its width, in whole nm).
+    let r = logo_image(&b).rect.0;
+    assert_eq!((r.min().x.0, r.min().y.0), (0, 0));
+    assert_eq!((r.max().x.0, r.max().y.0), (px("40"), px("40") / 2));
+    assert_eq!(b.assets, vec![svg.as_bytes().to_vec()]);
+}
+
+#[test]
+fn a_title_block_logo_is_drawn_in_its_cell_from_the_same_asset_store() {
+    let b = logo_project(&format!(
+        r#"<logo name="mark" storage="base64" type="png">
+{PNG}
+  </logo>"#
+    ));
     // A square picture in a 40 × 20 px cell: 20 × 20 px, centred.
-    let r = image.rect.0;
+    let r = logo_image(&b).rect.0;
     assert_eq!((r.min().x.0, r.min().y.0), (px("10"), 0));
     assert_eq!((r.max().x.0, r.max().y.0), (px("10") + px("20"), px("20")));
     assert_eq!(b.assets, vec![base64_decode(PNG).unwrap()]);

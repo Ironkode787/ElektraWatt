@@ -20,8 +20,10 @@
 //!   `%folio`, `%folio-id`, `%folio-total`, `%previous-folio-num`, `%next-folio-num`), every other variable
 //!   is filled with the diagram's value (its title-block attributes, then the project's title and
 //!   properties, then the diagram's own properties), and variables naming a local path print nothing
-//!   (reported). Font sizes become the styles `qet.<pt>` ([`styles`]). A logo stored as base64 becomes an
-//!   image in its cell, fitted and centred ([`logo_image`]); another is reported. Without an embedded template the shipped `ew.titleblock.qet-a4` (QET's default) applies.
+//!   (reported). Font sizes become the styles `qet.<pt>` ([`styles`]). A logo stored as base64 (a PNG) or
+//!   as XML (an SVG) becomes an image in its cell, fitted and centred ([`logo_image`]); one the asset rules
+//!   refuse is reported. Without an embedded template the shipped `ew.titleblock.qet-a4` (QET's default)
+//!   applies.
 //! - Forms are content-addressed: equal forms are one copy.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -625,9 +627,9 @@ fn title_block(
     Some(f)
 }
 
-/// The image of logo `name` of template `t` in the cell `(x0, y0, x1, y1)` px: its file (stored as base64,
-/// the form QET writes a PNG in) taken into the batch's assets ([`ItemsOut::store_image`]), drawn as large as
-/// the cell allows at the picture's own proportions and centred in it, as QET draws a logo.
+/// The image of logo `name` of template `t` in the cell `(x0, y0, x1, y1)` px: its file (stored as base64, the
+/// form QET writes a PNG in, or as XML, an SVG) taken into the batch's assets ([`ItemsOut::store_image`]),
+/// drawn as large as the cell allows at the picture's own proportions and centred in it, as QET draws a logo.
 fn logo_image(
     t: &TbTemplate,
     name: &str,
@@ -639,10 +641,12 @@ fn logo_image(
         .iter()
         .find(|(n, _, _)| n == name)
         .ok_or("the template has no such logo")?;
-    if storage != "base64" {
-        return Err(format!("a logo stored as {storage} is not read"));
-    }
-    let (asset, size) = assets.store_image(data)?;
+    let bytes = match storage.as_str() {
+        "base64" => ew_schema::base64_decode(data).map_err(|e| e.to_string())?,
+        "xml" => data.as_bytes().to_vec(),
+        _ => return Err(format!("a logo stored as {storage} is not read")),
+    };
+    let (asset, size) = assets.store_image(bytes)?;
     let (w, h) = size.ok_or("the image has no size of its own")?;
     let (w, h) = (i128::from(w.max(1)), i128::from(h.max(1)));
     // The cell in nm, and the picture scaled to fit it.

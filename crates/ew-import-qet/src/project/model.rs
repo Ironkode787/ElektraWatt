@@ -142,7 +142,8 @@ pub struct TbTemplate {
     pub rows: Vec<String>,
     /// The `<field>` and `<logo>` children of `<grid>`, document order.
     pub cells: Vec<TbCell>,
-    /// The `<logos><logo>` resources: `name` → (`storage`, the text, white space removed).
+    /// The `<logos><logo>` resources: `name` → (`storage`, the base64 text with white space removed, or for
+    /// `storage="xml"` the SVG element as written).
     pub logos: Vec<(String, String, String)>,
     /// 1-based line of the start tag.
     pub line: u32,

@@ -544,17 +544,16 @@ pub(crate) fn rounded(r: Rect, rx: i64, ry: i64) -> Vec<Pt2> {
 }
 
 impl ItemsOut {
-    /// Takes an image file given as base64 text (white space removed) into the batch's assets, once per
-    /// content, and returns its SHA-256 and its pixel size (`None` for an SVG without one). The bytes are held
-    /// to the limits an image given as data to `item.place` meets: at most 512 KiB, a known format, the pixel
-    /// limit; `import.apply` stores them as project assets. The one path for every image a QET project
-    /// brings (the diagram's images; a title-block logo).
+    /// Takes an image file into the batch's assets, once per content, and returns its SHA-256 and its pixel
+    /// size (`None` for an SVG without one). The bytes are held to the limits an image given as data to
+    /// `item.place` meets: at most 512 KiB, a known format, the pixel limit; `import.apply` stores them as
+    /// project assets. The one path for every image a QET project brings (the diagram's images; a title-block
+    /// logo, PNG or SVG).
     ///
     /// # Errors
     ///
-    /// The reason in words when the text is not base64 or the file is refused.
-    pub(crate) fn store_image(&mut self, base64: &str) -> Result<(Sha256, Option<(u32, u32)>), String> {
-        let bytes = ew_schema::base64_decode(base64).map_err(|e| e.to_string())?;
+    /// The reason in words when the file is refused.
+    pub(crate) fn store_image(&mut self, bytes: Vec<u8>) -> Result<(Sha256, Option<(u32, u32)>), String> {
         if bytes.len() > ew_schema::MAX_LOGO_BYTES {
             return Err(format!(
                 "the image file has {} bytes, more than the limit of {}",
@@ -581,7 +580,7 @@ impl ItemsOut {
 /// at `(x, y)`.
 fn image(i: &QetImage, out: &mut ItemsOut) -> Result<(Sha256, Bounds), String> {
     let (x, y) = i.x.zip(i.y).ok_or("bad x/y")?;
-    let (sha, size) = out.store_image(&i.data)?;
+    let (sha, size) = out.store_image(ew_schema::base64_decode(&i.data).map_err(|e| e.to_string())?)?;
     let (w, h) = size.ok_or("the image has no size of its own")?;
     let scale = i.scale.unwrap_or(Decimal::from_int(1));
     let corner = |pos: Decimal, len: u32, sign: i64| -> Result<Nm, String> {

@@ -994,7 +994,9 @@ variable has an EW xref-format token (FR-XRF-003):
   `%projectfilename` and `%savedfilepath` print nothing (EW-IMP-004). A logo stored as base64 (QET's form for a
   PNG) becomes an image primitive of the form, as large as its cell allows at the picture's proportions and
   centred, its bytes a project asset through the same path as a drawing's images (§4.13); a logo stored as XML
-  (an SVG) is not read (EW-IMP-004). A diagram without an embedded template gets the shipped
+  (an SVG) is the same, its asset the SVG element as the file writes it, drawn as vectors (a form names an asset
+  by hash alone, so the export takes an image's format from its bytes). A logo the asset rules refuse is
+  reported (EW-IMP-004) and its cell stays empty. A diagram without an embedded template gets the shipped
   `ew.titleblock.qet-a4` (QET's default template).
 
 ### 4.10 Fonts and text styles

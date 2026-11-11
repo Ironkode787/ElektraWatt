@@ -259,12 +259,21 @@ impl Reader<'_> {
                     named(l, "logo")
                         .map(|g| {
                             let attr = |n: &str| g.attribute(n).unwrap_or("").to_owned();
-                            let data = g
-                                .text()
-                                .unwrap_or("")
-                                .chars()
-                                .filter(|c| !c.is_ascii_whitespace());
-                            (attr("name"), attr("storage"), data.collect())
+                            // A logo stored as XML is the SVG element inside it, as written; any other is
+                            // the base64 text.
+                            let data = if g.attribute("storage") == Some("xml") {
+                                g.first_element_child()
+                                    .and_then(|svg| g.document().input_text().get(svg.range()))
+                                    .unwrap_or("")
+                                    .to_owned()
+                            } else {
+                                g.text()
+                                    .unwrap_or("")
+                                    .chars()
+                                    .filter(|c| !c.is_ascii_whitespace())
+                                    .collect()
+                            };
+                            (attr("name"), attr("storage"), data)
                         })
                         .collect()
                 })

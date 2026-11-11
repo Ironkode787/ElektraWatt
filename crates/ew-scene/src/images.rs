@@ -3,7 +3,9 @@
 
 //! Image items resolved for drawing: the display lists place an image by its asset's
 //! hash with **empty bytes** (the forms layer, symbol images); the export job, which is not a memoised query, resolves
-//! them here from the bytes the project holds before any renderer reads the list ([`resolve_images`]).
+//! them here from the bytes the project holds before any renderer reads the list ([`resolve_images`]). Such a
+//! placeholder names no format of its own (a symbol or a form refers to an asset by hash alone), so its format
+//! is the bytes' ([`ew_schema::sniff`]): a title-block logo may be an SVG.
 //!
 //! - **SVG** becomes vector paths ([`svg_items`]): the bytes pass the store's rejecter first
 //!   ([`ew_schema::svg_hazard`]), then usvg parses and normalises them (default features off: no text, no
@@ -358,7 +360,17 @@ fn resolve_items(items: &[Item], assets: &AssetBytes<'_>, report: &mut ImageRepo
                     out.push(item.clone());
                     continue;
                 };
-                match img.image.format {
+                // A symbol's or a form's image names only its asset, so its format is the bytes' own.
+                let format = if img.image.bytes.is_empty() {
+                    match ew_schema::sniff(&bytes).map(|(f, _)| f) {
+                        Ok(ew_schema::AssetFormat::Svg) => ImageFormat::Svg,
+                        Ok(ew_schema::AssetFormat::Jpeg) => ImageFormat::Jpeg,
+                        Ok(ew_schema::AssetFormat::Png) | Err(_) => img.image.format,
+                    }
+                } else {
+                    img.image.format
+                };
+                match format {
                     ImageFormat::Svg => match svg_items(&bytes, img.rect) {
                         Ok(svg) => {
                             report.vector += 1;
@@ -380,7 +392,7 @@ fn resolve_items(items: &[Item], assets: &AssetBytes<'_>, report: &mut ImageRepo
                         let mut resolved = img.clone();
                         resolved.image = Arc::new(ImageData {
                             sha256: img.image.sha256,
-                            format: img.image.format,
+                            format,
                             bytes,
                         });
                         out.push(Item {
@@ -483,6 +495,25 @@ mod tests {
                 format!("the SVG is refused: {}; {}", h.describe(), h.advice())
             );
         }
+    }
+
+    #[test]
+    fn a_form_image_whose_asset_is_an_svg_is_drawn_as_vectors() {
+        // A symbol's or form's image names only its asset (the placeholder says PNG): the bytes decide.
+        let svg: Arc<[u8]> = Arc::from(
+            &br#"<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4"/></svg>"#[..],
+        );
+        let placeholder = Arc::new(ImageData {
+            sha256: [1; 32],
+            format: ImageFormat::Png,
+            bytes: Arc::from(Vec::new()),
+        });
+        let list = DisplayList {
+            items: vec![Item::image(placeholder, rect(0, 0, 4_000, 4_000))],
+        };
+        let (out, report) = resolve_images(&list, &|_: &[u8; 32]| Some(Arc::clone(&svg)));
+        assert_eq!((report.vector, report.raster, report.issues.len()), (1, 0, 0));
+        assert!(matches!(out.items[0].kind, ItemKind::Group(_)));
     }
 
     #[test]
