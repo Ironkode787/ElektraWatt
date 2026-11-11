@@ -130,6 +130,28 @@ pub struct PropRow {
     pub route: EditRoute,
     /// Whether it is an outgoing identifier (FR-UI-044 rule 2).
     pub identifier: bool,
+    /// Where a person goes to see or change the source of a derived or inherited value, when it has one (doc 16
+    /// §6.2, "go to source"; FT-1651).
+    pub source: Option<SourceLink>,
+}
+
+/// The row that holds the source of a derived or inherited value (FT-1651): the cross-section of a wire from the
+/// size profile, a colour from a potential definition, a page's description from the project's.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum SourceLink {
+    /// A row of the sheet of the record `id`: a potential definition, a cable's conductor, the connection that holds
+    /// an override.
+    Record {
+        /// The record.
+        id: Uuid,
+        /// The row's key (`potential_def/props.colour`).
+        row: String,
+    },
+    /// A row of the project's sheet (`project/settings.colour_profile`).
+    Project {
+        /// The row's key.
+        row: String,
+    },
 }
 
 /// A row's value over the section's targets.
@@ -1300,6 +1322,7 @@ impl SectionCx<'_, '_> {
                 actions,
                 route,
                 identifier: spec.identifier,
+                source: None,
             },
             derived: false,
         });
@@ -1433,6 +1456,28 @@ fn part_function_row(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], built: &mut Vec<
     row.actions = Vec::new();
 }
 
+/// The Defined at row of one potential definition: its point as pages print it (`S51:1`), never its JSON; a
+/// junction keeps its text.
+fn definition_point_in_words(q: &Q, targets: &[Uuid], built: &mut [Built]) {
+    let [def] = targets else {
+        return;
+    };
+    let Some(label) = q
+        .potential_defs()
+        .get(Id::from_uuid(*def))
+        .and_then(|d| EndpointKey::of(&d.at))
+        .and_then(ew_derive::CpRef::of)
+        .map(|cp| cp_label(q, cp))
+    else {
+        return;
+    };
+    for b in built.iter_mut().filter(|b| b.row.path == "at") {
+        if let RowValue::One { text, .. } = &mut b.row.value {
+            text.clone_from(&label);
+        }
+    }
+}
+
 /// A configuration project's address profile is a choice of the profiles at hand (the built-ins and
 /// the project's copies) by their references, which `plc.set_profile` pins through
 /// [`Session::layout_edit`].
@@ -1542,6 +1587,7 @@ fn derived(
             actions,
             route,
             identifier,
+            source: None,
         },
         derived: true,
     }
@@ -1583,6 +1629,91 @@ fn potential_of(q: &Q, conn: &Connection) -> Option<ew_derive::PotentialId> {
         .into_iter()
         .filter_map(EndpointKey::of)
         .find_map(|at| partition.potential_at(at).map(|p| p.id))
+}
+
+/// The Potential row of a `kind` section whose targets end at `ends` (a wire's two ends, an interruption point's
+/// connection point): the name of the potential at each target, from its definition or from the connectivity;
+/// the definition is where its name, type and voltage are set (FT-1651).
+fn potential_row(q: &Q, cx: &SheetCx<'_>, kind: &str, ends: &[Vec<EndpointKey>]) -> Built {
+    let partition = q.get::<PotentialPartition>(());
+    let mut per = Vec::new();
+    let mut defs = BTreeSet::new();
+    for ends in ends {
+        let Some(p) = ends.iter().find_map(|at| partition.potential_at(*at)) else {
+            defs.insert(None);
+            per.push((
+                None,
+                Provenance::Derived {
+                    via: "connectivity".into(),
+                },
+            ));
+            continue;
+        };
+        let names = q.get::<PotentialNameOf>(p.id);
+        let via = match names.name.source {
+            NameSource::Def(def) => {
+                defs.insert(Some(def));
+                let at = q
+                    .potential_defs()
+                    .get(def)
+                    .and_then(|d| EndpointKey::of(&d.at))
+                    .and_then(ew_derive::CpRef::of)
+                    .map(|cp| cp_label(q, cp))
+                    .unwrap_or_default();
+                format!("potential definition at {at}")
+            }
+            _ => {
+                defs.insert(None);
+                "connectivity".to_owned()
+            }
+        };
+        per.push((
+            Some(Value::String(names.name.text.clone())),
+            Provenance::Derived { via },
+        ));
+    }
+    let (value, provenance) = merge(cx, &FieldType::Text, per);
+    let mut built = derived(
+        kind,
+        "potential",
+        None,
+        Category::Electrical,
+        FieldType::Text,
+        value,
+        provenance,
+        Vec::new(),
+    );
+    if let [Some(def)] = defs.into_iter().collect::<Vec<_>>().as_slice() {
+        built.row.source = Some(SourceLink::Record {
+            id: def.as_uuid(),
+            row: "potential_def/name".into(),
+        });
+    }
+    built
+}
+
+/// The connection points of the interruption point `f`; none for another function.
+fn ip_ends(q: &Q, f: Id<Function>) -> Vec<EndpointKey> {
+    if !q
+        .functions()
+        .get(f)
+        .is_some_and(|x| matches!(x.kind, ew_schema::FunctionKind::Ip(_)))
+    {
+        return Vec::new();
+    }
+    q.get::<ew_derive::FunctionCps>(f)
+        .iter()
+        .map(|cp| EndpointKey::Cp(f, cp.idx))
+        .collect()
+}
+
+/// The definitions of the potential at the first of `ends` that lies on one, in ID order.
+fn potential_defs_at(q: &Q, ends: &[EndpointKey]) -> Vec<Id<PotentialDef>> {
+    let partition = q.get::<PotentialPartition>(());
+    ends.iter()
+        .find_map(|at| partition.potential_at(*at))
+        .map(|p| p.defs.clone())
+        .unwrap_or_default()
 }
 
 impl Session {
@@ -1683,11 +1814,28 @@ impl Session {
                 Kind::Function => vec![Id::from_uuid(id)],
                 _ => Vec::new(),
             };
-            for f in functions {
+            for f in &functions {
                 reach.entry(Kind::Function).or_default().insert(f.as_uuid());
-                if let Some(d) = q.functions().get(f).and_then(|f| f.device) {
+                if let Some(d) = q.functions().get(*f).and_then(|f| f.device) {
                     reach.entry(Kind::Device).or_default().insert(d.as_uuid());
                 }
+            }
+            // A wire and an interruption point reach the definitions of their potential: its name, type and voltage
+            // are set there (FT-1651).
+            let ends: Vec<EndpointKey> = match kind {
+                Kind::Connection => q
+                    .connections()
+                    .get(Id::from_uuid(id))
+                    .map(|c| [&c.a, &c.b].into_iter().filter_map(EndpointKey::of).collect())
+                    .unwrap_or_default(),
+                _ => functions.iter().flat_map(|f| ip_ends(&q, *f)).collect(),
+            };
+            let defs = potential_defs_at(&q, &ends);
+            if !defs.is_empty() {
+                reach
+                    .entry(Kind::PotentialDef)
+                    .or_default()
+                    .extend(defs.iter().map(|d| d.as_uuid()));
             }
             picked.push(Picked {
                 kind,
@@ -1830,6 +1978,9 @@ impl Session {
         if kind == Kind::Function {
             part_function_row(q, cx, &targets, &mut built);
         }
+        if kind == Kind::PotentialDef {
+            definition_point_in_words(q, &targets, &mut built);
+        }
         if kind == Kind::PlcConfigProject && targets.len() == 1 {
             profile_chooser(q, &mut built);
         }
@@ -1892,6 +2043,15 @@ impl Session {
             Kind::Connection => Self::derived_rows_of_connection(q, cx, targets, jsons),
             Kind::Page => Self::derived_rows_of_page(q, cx, targets, jsons),
             Kind::Representation => Self::derived_rows_of_representation(q, cx, targets),
+            // An interruption point's potential, as a wire's.
+            Kind::Function => {
+                let ends: Vec<Vec<EndpointKey>> =
+                    targets.iter().map(|f| ip_ends(q, Id::from_uuid(*f))).collect();
+                if ends.iter().any(Vec::is_empty) {
+                    return Vec::new();
+                }
+                vec![potential_row(q, cx, "function", &ends)]
+            }
             _ => Vec::new(),
         }
     }
@@ -2059,28 +2219,37 @@ impl Session {
         // The connection points of the device's functions, one read-only row each with the label
         // the junction notation prints (`-X1:1/a`, `-102G1:−#1`), in natural order of the label; over several
         // devices the n-th rows merge.
-        let per_device: Vec<Vec<String>> = devices
+        // One device's row names its connection point too (`function`, `idx` and whether it is marked unused), so that
+        // it can be marked unused or used again (FT-1649).
+        let per_device: Vec<Vec<(String, Value)>> = devices
             .iter()
             .map(|d| {
-                let mut labels: Vec<String> = q
+                let mut labels: Vec<(String, Value)> = q
                     .idx()
                     .functions_of_device(*d)
                     .flat_map(|function| {
                         q.get::<ew_derive::FunctionCps>(function)
                             .iter()
                             .map(|cp| {
-                                cp_label(
+                                let label = cp_label(
                                     q,
                                     ew_derive::CpRef {
                                         function,
                                         idx: cp.idx,
                                     },
-                                )
+                                );
+                                let point = serde_json::json!({
+                                    "label": label,
+                                    "function": function.as_uuid().to_string(),
+                                    "idx": cp.idx,
+                                    "unused": cp.unused,
+                                });
+                                (label, point)
                             })
                             .collect::<Vec<_>>()
                     })
                     .collect();
-                labels.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
+                labels.sort_by(|(a, _), (b, _)| ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
                 labels
             })
             .collect();
@@ -2090,14 +2259,19 @@ impl Session {
                 .iter()
                 .map(|labels| {
                     (
-                        labels.get(n).map(|l| Value::String(l.clone())),
+                        labels.get(n).map(|(l, _)| Value::String(l.clone())),
                         Provenance::Derived {
                             via: "function definition".into(),
                         },
                     )
                 })
                 .collect();
-            let (value, provenance) = merge(cx, &FieldType::Text, per);
+            let (mut value, provenance) = merge(cx, &FieldType::Text, per);
+            if let ([labels], RowValue::One { json, .. }) = (per_device.as_slice(), &mut value)
+                && let Some((_, point)) = labels.get(n)
+            {
+                json.clone_from(point);
+            }
             out.push(derived(
                 "device",
                 &format!("cp[{n}]"),
@@ -2161,6 +2335,7 @@ impl Session {
             let mut per = Vec::new();
             let mut can_override = false;
             let mut can_reset = false;
+            let mut links: Vec<Option<SourceLink>> = Vec::new();
             for c in &conns {
                 let wires = wires_of(q, *c);
                 let first = wires.first().and_then(|(_, e)| get(e));
@@ -2191,6 +2366,12 @@ impl Session {
                     .and_then(|conn| potential_of(q, conn))
                     .map(|p| q.get::<PotentialNameOf>(p).name.text.clone())
                     .unwrap_or_else(|| "?".into());
+                // The source a person can go to: none for the wire's own override.
+                let link = (!matches!(&source, PropSource::Override(at) if at == c))
+                    .then(|| source_link(&source, name));
+                if !links.contains(&link) {
+                    links.push(link);
+                }
                 let provenance = match &source {
                     PropSource::Override(at) if at == c => {
                         can_reset = true;
@@ -2233,7 +2414,8 @@ impl Session {
                 EditRoute::FieldsSet { .. } => fields_set("connection", settable),
                 other => other,
             };
-            out.push(derived(
+            let varies = matches!(provenance, Provenance::Varies { .. });
+            let mut built = derived(
                 "connection",
                 name,
                 Some((path, route, false)),
@@ -2242,7 +2424,11 @@ impl Session {
                 value,
                 provenance,
                 actions,
-            ));
+            );
+            if let ([Some(link)], false) = (links.as_slice(), varies) {
+                built.row.source = Some(link.clone());
+            }
+            out.push(built);
         }
         // The wire number.
         let mut per = Vec::new();
@@ -2286,48 +2472,21 @@ impl Session {
             actions,
         ));
         // The potential.
-        let per: Vec<(Option<Value>, Provenance)> = conns
+        let ends: Vec<Vec<EndpointKey>> = conns
             .iter()
             .map(|c| {
-                let Some(p) = q.connections().get(*c).and_then(|conn| potential_of(q, conn)) else {
-                    return (
-                        None,
-                        Provenance::Derived {
-                            via: "connectivity".into(),
-                        },
-                    );
-                };
-                let names = q.get::<PotentialNameOf>(p);
-                let via = match names.name.source {
-                    NameSource::Def(def) => {
-                        let at = q
-                            .potential_defs()
-                            .get(def)
-                            .and_then(|d| EndpointKey::of(&d.at))
-                            .and_then(ew_derive::CpRef::of)
-                            .map(|cp| cp_label(q, cp))
-                            .unwrap_or_default();
-                        format!("potential definition at {at}")
-                    }
-                    _ => "connectivity".to_owned(),
-                };
-                (
-                    Some(Value::String(names.name.text.clone())),
-                    Provenance::Derived { via },
-                )
+                q.connections()
+                    .get(*c)
+                    .map(|conn| {
+                        [&conn.a, &conn.b]
+                            .into_iter()
+                            .filter_map(EndpointKey::of)
+                            .collect()
+                    })
+                    .unwrap_or_default()
             })
             .collect();
-        let (value, provenance) = merge(cx, &FieldType::Text, per);
-        out.push(derived(
-            "connection",
-            "potential",
-            None,
-            Category::Electrical,
-            FieldType::Text,
-            value,
-            provenance,
-            Vec::new(),
-        ));
+        out.push(potential_row(q, cx, "connection", &ends));
         out
     }
 
@@ -2369,7 +2528,8 @@ impl Session {
         if any_override {
             actions.push(RowAction::Reset);
         }
-        out.push(derived(
+        let inherited = matches!(provenance, Provenance::Inherited { .. });
+        let mut built = derived(
             "page",
             "description",
             Some(("description_override", editable("description_override"), false)),
@@ -2378,7 +2538,13 @@ impl Session {
             value,
             provenance,
             actions,
-        ));
+        );
+        if inherited {
+            built.row.source = Some(SourceLink::Project {
+                row: "project/master.description".into(),
+            });
+        }
+        out.push(built);
         out
     }
 
@@ -2790,6 +2956,41 @@ pub(crate) fn kind_plural(kind: &str) -> String {
         "structure_box" => "structure boxes".into(),
         "switch" | "box" => format!("{kind}es"),
         other => format!("{other}s"),
+    }
+}
+
+/// The row that holds the source of the wire property `name` (`csa`, `colour`, `shielded`) (FT-1651): the same
+/// property of the connection that holds the override, of the cable's core or of the potential definition; else the
+/// project's profile or wire default, where a profile is chosen when the value is the built-in default.
+fn source_link(source: &PropSource, name: &str) -> SourceLink {
+    let project = |row: &str| SourceLink::Project {
+        row: format!("project/settings.{row}"),
+    };
+    let profile = if name == "colour" {
+        "colour_profile"
+    } else {
+        "size_profile"
+    };
+    match source {
+        PropSource::Override(at) => SourceLink::Record {
+            id: at.as_uuid(),
+            row: format!("connection/derived.{name}"),
+        },
+        PropSource::Conductor(c) => SourceLink::Record {
+            id: c.as_uuid(),
+            row: format!("conductor/{name}"),
+        },
+        PropSource::PotentialDef(d) => SourceLink::Record {
+            id: d.as_uuid(),
+            row: match name {
+                "shielded" | "twisted" => format!("potential_def/props.flags.{name}"),
+                _ => format!("potential_def/props.{name}"),
+            },
+        },
+        PropSource::ColourRow { .. } => project("colour_profile"),
+        PropSource::SizeRow { .. } => project("size_profile"),
+        PropSource::ProjectDefault => project("wire_default"),
+        PropSource::BuiltIn { .. } => project(profile),
     }
 }
 

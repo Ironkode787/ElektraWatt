@@ -136,7 +136,7 @@ pub use preview::PreviewEntity;
 pub use project_diff::textconv;
 pub use properties::{
     CompanyColour, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SelectionWords,
-    SheetHeader, SheetSection, WireColours, WireEnd,
+    SheetHeader, SheetSection, SourceLink, WireColours, WireEnd,
 };
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};

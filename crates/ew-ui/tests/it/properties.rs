@@ -78,17 +78,33 @@ fn a_click_on_the_wire_marker_check_box_ticks_the_wire() {
     };
     assert!(!ticked(&h));
     let rev = h.state().shell().revision();
-    let boxes: Vec<_> = h
-        .get_all_by_role(egui::Role::CheckBox)
-        .filter(|n| {
-            n.accesskit_node()
-                .label()
-                .is_some_and(|l| l.contains("Wire marker"))
-        })
-        .collect();
-    assert_eq!(boxes.len(), 1, "one Wire marker check box");
-    boxes[0].click();
-    settle(&mut h);
+    let marker = |h: &Harness<'_, App>| {
+        h.get_all_by_role(egui::Role::CheckBox)
+            .filter(|n| {
+                n.accesskit_node()
+                    .label()
+                    .is_some_and(|l| l.contains("Wire marker"))
+            })
+            .count()
+    };
+    assert_eq!(marker(&h), 1, "one Wire marker check box");
+    // The wire's sheet runs on into its potential's definition: the box is brought into view first.
+    for scroll in [true, false] {
+        let node = h
+            .get_all_by_role(egui::Role::CheckBox)
+            .find(|n| {
+                n.accesskit_node()
+                    .label()
+                    .is_some_and(|l| l.contains("Wire marker"))
+            })
+            .expect("the Wire marker check box");
+        if scroll {
+            node.scroll_to_me();
+        } else {
+            node.click();
+        }
+        settle(&mut h);
+    }
     assert!(ticked(&h));
     assert_eq!(h.state().shell().revision(), rev.map(|r| r + 1));
     dispatch(&mut h, "edit.undo", json!({}));
@@ -1140,8 +1156,8 @@ fn the_label_column_gives_way_to_no_count_and_no_prose() {
         settle(&mut h);
         let line = ew_ui::theme::current(&h.ctx).size_control_inline;
         for (label, two) in [("Persoonsgegevens", false), ("Personen en organisaties", wraps)] {
-            // Each row's label cell: its width, its height, whether it elided (an elided label has its tooltip as its
-            // description), and the row's width.
+            // Each row's label cell: its width, its height, whether it elided (an elided label's tooltip, its
+            // description, starts with the whole label, before the row's explanation), and the row's width.
             let cells: Vec<(f32, f32, bool, f32)> = h
                 .get_all_by_role(egui::Role::Group)
                 .filter(|g| g.accesskit_node().label().as_deref() == Some(label))
@@ -1150,7 +1166,10 @@ fn the_label_column_gives_way_to_no_count_and_no_prose() {
                         n.accesskit_node().label().as_deref() == Some(label)
                             && g.rect().contains_rect(n.rect())
                     })?;
-                    let elided = cell.accesskit_node().description().is_some();
+                    let elided = cell
+                        .accesskit_node()
+                        .description()
+                        .is_some_and(|d| d.lines().next() == Some(label));
                     Some((
                         cell.rect().width(),
                         cell.rect().height(),
@@ -1296,8 +1315,12 @@ fn an_identifier_stays_whole_beside_its_chip_at_the_floor() {
         .get_all_by_role(egui::Role::Button)
         .find(|n| n.accesskit_node().label().as_deref() == Some("Kenmerkletter"))
         .expect("the label Kenmerkletter");
+    // The whole label first, then the row's explanation (FT-1648).
     assert_eq!(
-        cut.accesskit_node().description().as_deref(),
+        cut.accesskit_node()
+            .description()
+            .as_deref()
+            .and_then(|d| d.lines().next()),
         Some("Kenmerkletter")
     );
     assert!(cut.rect().height() <= line + 0.5, "one line: {:?}", cut.rect());

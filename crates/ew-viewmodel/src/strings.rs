@@ -492,12 +492,7 @@ pub fn field_label(kind: &str, path: &str) -> String {
     if let Some(label) = lookup(&own) {
         return format!("{label}{item}");
     }
-    let last = generic
-        .trim_end_matches("[]")
-        .rsplit(['.', '['])
-        .find(|s| !s.is_empty() && *s != "]")
-        .unwrap_or(&generic)
-        .trim_end_matches(']');
+    let last = last_member(&generic);
     let word = format!("field-word-{}", last.replace('_', "-"));
     // A list's item by its singular where the list has one ("Connection point 2").
     let singular = (!item.is_empty())
@@ -529,6 +524,49 @@ pub fn field_label(kind: &str, path: &str) -> String {
     }
     out.push_str(&item);
     out
+}
+
+/// The last member of a generic field path (`parts[].qty` gives `qty`, `levels[]` gives `levels`).
+fn last_member(generic: &str) -> &str {
+    generic
+        .trim_end_matches("[]")
+        .rsplit(['.', '['])
+        .find(|s| !s.is_empty() && *s != "]")
+        .unwrap_or(generic)
+        .trim_end_matches(']')
+}
+
+/// The keys of the explanation of the field `path` of `kind` (list indices allowed), in the order they are tried: the
+/// field's own `field-help-<kind>-<path>` (formed as [`field_label`]'s own key), then its last member's
+/// `field-help-word-<member>`, which every field of that name shares. A key holds no `$` (`$v` is `v`).
+fn field_help_keys(kind: &str, path: &str) -> [String; 2] {
+    let generic = generic_field_path(path).replace('$', "");
+    let last = last_member(&generic);
+    [
+        format!(
+            "field-help-{}-{}",
+            kind.replace('_', "-"),
+            generic.replace("[]", "-item").replace(['.', '_'], "-")
+        ),
+        format!("field-help-word-{}", last.replace('_', "-")),
+    ]
+}
+
+/// The explanation of the field `path` of `kind` in the UI language (FT-1648): what the value is, what changing it
+/// does and, for a derived value, where it comes from; the tooltip of the property row's label. `None` for a field
+/// without one.
+pub fn field_help(kind: &str, path: &str) -> Option<&'static str> {
+    field_help_keys(kind, path).iter().find_map(|k| lookup(k))
+}
+
+/// The explanation of the field `path` of `kind` in every shipped language, en-GB first, each as [`field_help`] picks
+/// it in that language.
+pub fn field_helps(kind: &str, path: &str) -> Vec<&'static str> {
+    let keys = field_help_keys(kind, path);
+    [en_gb(), nl_nl()]
+        .into_iter()
+        .filter_map(|l| keys.iter().find_map(|k| l.texts.get(k.as_str()).copied()))
+        .collect()
 }
 
 /// The word of a macro variable's type: the words `macro.insert`'s coercion refusals use for it (a

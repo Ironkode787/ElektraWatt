@@ -2419,7 +2419,7 @@ msgid ""
 "several steps."
 msgstr ""
 
-#: src/how-to/text-interface.md:38 src/reference/window/panels.md:79
+#: src/how-to/text-interface.md:38 src/reference/window/panels.md:83
 msgid "Terminal strips"
 msgstr ""
 
@@ -3478,80 +3478,86 @@ msgstr ""
 #: src/reference/window/panels.md:17
 msgid ""
 "The property grid: the members of the selection, by category, each editable "
-"in place. A row's menu holds the actions of that member, such as Choose part "
-"on the Parts row. View ▸ Panels ▸ Properties shows it; Edit ▸ Properties of "
-"selection moves the focus to it. See [Choose "
+"in place. A click on a category's header, or Enter on it, folds the "
+"category. The pointer resting on a row's label explains the row. A derived "
+"value's chip names where it comes from, such as the profile or the "
+"potential. A row's menu holds the actions of that member, such as Choose "
+"part on the Parts row, Go to source on a derived value, and Mark not used on "
+"a device's connection point. A wire and an interruption point show their "
+"potential's definition, where its type and voltage are set, or Define "
+"potential… when it has none. View ▸ Panels ▸ Properties shows it; Edit ▸ "
+"Properties of selection moves the focus to it. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:21
+#: src/reference/window/panels.md:25
 msgid "Find"
 msgstr ""
 
-#: src/reference/window/panels.md:23
+#: src/reference/window/panels.md:27
 msgid ""
 "The find pane: search texts, tags and fields of the project, and replace "
 "them. Open it with Edit ▸ Find… or Edit ▸ Find and replace…."
 msgstr ""
 
-#: src/reference/window/panels.md:26
+#: src/reference/window/panels.md:30
 msgid "Jobs"
 msgstr ""
 
-#: src/reference/window/panels.md:28
+#: src/reference/window/panels.md:32
 msgid ""
 "The jobs: the PDF exports that run in the background, with their progress "
 "and results. Open it with Output ▸ Jobs. See [Reports and "
 "PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:31
+#: src/reference/window/panels.md:35
 msgid "Preview"
 msgstr ""
 
-#: src/reference/window/panels.md:33
+#: src/reference/window/panels.md:37
 msgid ""
 "The preview of the open card: what a command, a quick fix or a paste would "
 "change, before you apply it."
 msgstr ""
 
-#: src/reference/window/panels.md:35
+#: src/reference/window/panels.md:39
 msgid "History"
 msgstr ""
 
-#: src/reference/window/panels.md:37
+#: src/reference/window/panels.md:41
 msgid ""
 "The undo steps of the project and the marker lines of exports and "
 "recoveries; undo to any step from here. Open it with View ▸ Panels ▸ History."
 msgstr ""
 
-#: src/reference/window/panels.md:40
+#: src/reference/window/panels.md:44
 msgid "Glossary"
 msgstr ""
 
-#: src/reference/window/panels.md:42
+#: src/reference/window/panels.md:46
 msgid ""
 "The terms of EW with their EPLAN and QElectroTech names. Open it with Help ▸ "
 "Glossary. See [EPLAN and EW](../../explanation/eplan-and-ew.md) and "
 "[QElectroTech and EW](../../explanation/qet-and-ew.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:45
+#: src/reference/window/panels.md:49
 msgid "Command bar"
 msgstr ""
 
-#: src/reference/window/panels.md:47
+#: src/reference/window/panels.md:51
 msgid ""
 "The tabs and groups of commands at the top of the window: Project, Page, "
 "Draw, Check, Output and View. View ▸ Layout ▸ Collapse command bar folds it "
 "to its tab row."
 msgstr ""
 
-#: src/reference/window/panels.md:50
+#: src/reference/window/panels.md:54
 msgid "Strip editor"
 msgstr ""
 
-#: src/reference/window/panels.md:52
+#: src/reference/window/panels.md:56
 msgid ""
 "The Terminal strips navigator in table mode for one strip: insert, delete "
 "and move terminals, add accessories and edit the cells of the terminal rows. "
@@ -3559,11 +3565,11 @@ msgid ""
 "strip and a cable](../../tutorials/terminal-strip-and-cable.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:56
+#: src/reference/window/panels.md:60
 msgid "Table mode"
 msgstr ""
 
-#: src/reference/window/panels.md:58
+#: src/reference/window/panels.md:62
 msgid ""
 "A navigator shown as a table: one row per record and a column per member, "
 "edited cell by cell; fill down, pattern fill and paste work on several cells "
@@ -3571,26 +3577,26 @@ msgid ""
 "and Output ▸ Import table… exchange the table with a spreadsheet."
 msgstr ""
 
-#: src/reference/window/panels.md:62
+#: src/reference/window/panels.md:66
 msgid "Navigators"
 msgstr ""
 
-#: src/reference/window/panels.md:64
+#: src/reference/window/panels.md:68
 msgid ""
 "A navigator lists one kind of record of the project. View ▸ Panels ▸ "
 "Navigators shows each one; clicking a row selects the record and opens its "
 "page."
 msgstr ""
 
-#: src/reference/window/panels.md:67
+#: src/reference/window/panels.md:71
 msgid "Pages"
 msgstr ""
 
-#: src/reference/window/panels.md:69
+#: src/reference/window/panels.md:73
 msgid "The pages in folio order, flat, by section or by structure."
 msgstr ""
 
-#: src/reference/window/panels.md:71
+#: src/reference/window/panels.md:75
 msgid ""
 "The two buttons beside the filter make a page and a section; a right click "
 "on a row offers the same. A section is a range of folios with a title, such "
@@ -3599,126 +3605,126 @@ msgid ""
 "in the tree, New page proposes its first free folio."
 msgstr ""
 
-#: src/reference/window/panels.md:71
+#: src/reference/window/panels.md:80
 msgid "Devices"
 msgstr ""
 
-#: src/reference/window/panels.md:73
+#: src/reference/window/panels.md:77
 msgid "The devices with their functions and representations."
 msgstr ""
 
-#: src/reference/window/panels.md:75
+#: src/reference/window/panels.md:79
 msgid "Connections"
 msgstr ""
 
-#: src/reference/window/panels.md:77
+#: src/reference/window/panels.md:81
 msgid "The connections, the wires drawn on the pages."
 msgstr ""
 
-#: src/reference/window/panels.md:81
+#: src/reference/window/panels.md:85
 msgid ""
 "The terminal strips with their terminals. Its table mode is the strip editor."
 msgstr ""
 
-#: src/reference/window/panels.md:83
+#: src/reference/window/panels.md:87
 msgid "Cables"
 msgstr ""
 
-#: src/reference/window/panels.md:85
+#: src/reference/window/panels.md:89
 msgid ""
 "The cables with their cores. See [A terminal strip and a "
 "cable](../../tutorials/terminal-strip-and-cable.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:87
+#: src/reference/window/panels.md:91
 msgid "PLC"
 msgstr ""
 
-#: src/reference/window/panels.md:89
+#: src/reference/window/panels.md:93
 msgid ""
 "The PLC configuration projects, stations, modules and channels, with their "
 "addresses."
 msgstr ""
 
-#: src/reference/window/panels.md:91
+#: src/reference/window/panels.md:95
 msgid "Potentials"
 msgstr ""
 
-#: src/reference/window/panels.md:93
+#: src/reference/window/panels.md:97
 msgid ""
 "The potentials with their definitions and members. See [Define a supply "
 "potential](../../how-to/define-supply-potential.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:96
+#: src/reference/window/panels.md:100
 msgid "Interruption points"
 msgstr ""
 
-#: src/reference/window/panels.md:98
+#: src/reference/window/panels.md:102
 msgid "The interruption points grouped by name, with their partners."
 msgstr ""
 
-#: src/reference/window/panels.md:100
+#: src/reference/window/panels.md:104
 msgid "Structure identifiers"
 msgstr ""
 
-#: src/reference/window/panels.md:102
+#: src/reference/window/panels.md:106
 msgid "The function and location nodes of the project's structure."
 msgstr ""
 
-#: src/reference/window/panels.md:104
+#: src/reference/window/panels.md:108
 msgid "Parts in use"
 msgstr ""
 
-#: src/reference/window/panels.md:106
+#: src/reference/window/panels.md:110
 msgid ""
 "The parts the project uses, with their devices. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:108
+#: src/reference/window/panels.md:112
 msgid "Report blocks"
 msgstr ""
 
-#: src/reference/window/panels.md:110
+#: src/reference/window/panels.md:114
 msgid ""
 "The report blocks: the generated pages such as the terminal diagram, the "
 "cable list and the parts list. See [Reports and "
 "PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:113
+#: src/reference/window/panels.md:117
 msgid "Unplaced devices"
 msgstr ""
 
-#: src/reference/window/panels.md:115
+#: src/reference/window/panels.md:119
 msgid ""
 "The devices of each layout space that have no place on a rail or the plate "
 "yet."
 msgstr ""
 
-#: src/reference/window/panels.md:117
+#: src/reference/window/panels.md:121
 msgid "Macros"
 msgstr ""
 
-#: src/reference/window/panels.md:119
+#: src/reference/window/panels.md:123
 msgid "The macros of every library tier and of the project."
 msgstr ""
 
-#: src/reference/window/panels.md:121
+#: src/reference/window/panels.md:125
 msgid "Libraries"
 msgstr ""
 
-#: src/reference/window/panels.md:123
+#: src/reference/window/panels.md:127
 msgid ""
 "The installed libraries and the project's library copies with their state."
 msgstr ""
 
-#: src/reference/window/panels.md:125
+#: src/reference/window/panels.md:129
 msgid "Messages"
 msgstr ""
 
-#: src/reference/window/panels.md:127
+#: src/reference/window/panels.md:131
 msgid ""
 "The findings of the project's checks, by severity and rule. Check ▸ Next "
 "finding and Check ▸ Previous finding walk them; Help ▸ Documentation on a "

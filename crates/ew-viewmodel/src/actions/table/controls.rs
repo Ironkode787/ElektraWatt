@@ -319,6 +319,20 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_props_mltext(p),
         ))),
     )),
+    // A connection point marked not used, or used again, from its Properties row and from the right-click menu
+    // over it on the page (FT-1649).
+    with_params(
+        "function:text, idx:uint, on?:bool",
+        hidden(act(
+            "cp.unused",
+            Command,
+            Menu::Edit,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_cp_unused(p),
+        )),
+    ),
     keeps_banner(hidden(in_properties(act(
         "preview.apply",
         Command,

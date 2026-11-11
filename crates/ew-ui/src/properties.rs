@@ -100,6 +100,10 @@ struct RowParts<'a> {
     t: &'a crate::theme::Tokens,
     row: &'a PropRow,
     label: &'a str,
+    /// What the row is and does (the label's tooltip, FT-1648).
+    help: Option<&'static str>,
+    /// The row has an actions menu (its "…" button).
+    menu: bool,
     value: &'a str,
     /// The row is a section's header row (no chip, no edit).
     header: bool,
@@ -170,9 +174,7 @@ impl PropertiesPane {
         let editing =
             props.edit().is_some() && (props.choices().is_none() || options) && props.popup().is_none();
         let headings = std::mem::take(&mut self.headings);
-        let heading_focused = ui
-            .memory(|m| m.focused())
-            .is_some_and(|f| headings.contains(&f));
+        let heading_focused = ui.memory(|m| m.focused()).is_some_and(|f| headings.contains(&f));
         if ours
             && !editing
             && !pane.has_focus()
@@ -277,7 +279,8 @@ impl PropertiesPane {
                                     .x
                             };
                             need = need.max(depth + width(label.clone()));
-                            self.value_needs.push(value_need(ui, &t, section, row));
+                            let menu = !row.actions.is_empty() || !shell.row_menu(&row.key).is_empty();
+                            self.value_needs.push(value_need(ui, &t, section, row, menu));
                         }
                     }
                 }
@@ -740,7 +743,10 @@ impl PropertiesPane {
             .max(galley.size().y + 2.0 * t.space_1)
             .max(value_height);
         let (rect, _) = ui.allocate_exact_size(Vec2::new(width, row_height), Sense::hover());
-        let group_id = Self::row_node(ui, row, rect, &label, description, events);
+        // A row with an entry in its actions menu (a row action, Go to source, Mark not used) has the "…" button and the
+        // right-click menu.
+        let menu = !row.actions.is_empty() || !shell.row_menu(&row.key).is_empty();
+        let group_id = Self::row_node(ui, row, menu, rect, &label, description, events);
         let selected = focused == Some(row.key.as_str());
         // The cursor row moved to (an arrow, Home, End) scrolls into view.
         if selected && self.cursor_shown.as_deref() != Some(row.key.as_str()) {
@@ -760,6 +766,8 @@ impl PropertiesPane {
             t: &t,
             row,
             label: &label,
+            help: ew_viewmodel::properties::row_help(section, row),
+            menu,
             value: &value,
             header,
             reason: &reason,
@@ -878,10 +886,12 @@ impl PropertiesPane {
     }
 
     /// The row's `Group` node over `rect`, named by the label with `description`; a right-click on the row opens its
-    /// actions menu. Returns the node's id.
+    /// actions menu when it has one (`menu`). Returns the node's id.
+    #[allow(clippy::too_many_arguments)]
     fn row_node(
         ui: &mut Ui,
         row: &PropRow,
+        menu: bool,
         rect: egui::Rect,
         label: &str,
         description: String,
@@ -901,7 +911,7 @@ impl PropertiesPane {
             i.pointer.button_clicked(egui::PointerButton::Secondary)
                 && i.pointer.interact_pos().is_some_and(|p| rect.contains(p))
         });
-        if right_click && !row.actions.is_empty() && ui.is_rect_visible(rect) {
+        if right_click && menu && ui.is_rect_visible(rect) {
             events.push(Event::Action("ui.focus", json!({"area": "properties"})));
             events.push(Event::Action("props.row", json!({"to": row.key})));
             events.push(Event::Action("props.row_menu", json!({})));
@@ -948,10 +958,15 @@ impl PropertiesPane {
             galley,
             t.text_secondary.color32(),
         );
-        let label_button = if elided {
-            label_button.tip(p.label)
-        } else {
-            label_button
+        // The tooltip explains the row (FT-1648), after the whole label when the label is cut.
+        let tip = match (elided, p.help) {
+            (true, Some(help)) => Some(format!("{}\n{help}", p.label)),
+            (true, None) => Some(p.label.to_owned()),
+            (false, help) => help.map(str::to_owned),
+        };
+        let label_button = match tip {
+            Some(tip) => label_button.tip(&tip),
+            None => label_button,
         };
         if label_button.clicked() {
             events.push(Event::Action("ui.focus", json!({"area": "properties"})));
@@ -966,7 +981,7 @@ impl PropertiesPane {
         // `space.4` padding. The row's "…" button sits over the cell's right end and only while it shows (the
         // cursor row, hover, focus) does the cell's text and chip make room for it.
         let actions_id = p.group_id.with("actions");
-        let actions_on = !row.actions.is_empty()
+        let actions_on = p.menu
             && (p.selected
                 || child.rect_contains_pointer(p.rect)
                 || child.memory(|m| m.has_focus(actions_id)));
@@ -982,7 +997,7 @@ impl PropertiesPane {
             } else {
                 Self::value_cell(child, shell, p, value_w, reserve, events)
             };
-        if !row.actions.is_empty() {
+        if p.menu {
             Self::actions_button(child, shell, p, value_rect, actions_id, actions_on, events);
         }
     }
@@ -1730,7 +1745,13 @@ fn actions_menu(
 /// A group's heading (doc 16a §6.8, the mockup's `.psec`): `size.row` high with `space.4` side padding, a chevron and
 /// the title in `type.small` SemiBold `color.text.secondary`, as written ("Main", not upper case); a button that
 /// collapses or expands the group on a click, and on Enter or Space while it has the focus. Returns its response.
-fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, shut: bool) -> egui::Response {
+fn group_heading(
+    ui: &mut Ui,
+    t: &crate::theme::Tokens,
+    title: &str,
+    key: &str,
+    shut: bool,
+) -> egui::Response {
     let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::hover());
     let id = ui.scope_id().with(("prop-group", key));
     let response = ui.interact(rect, id, Sense::click());
@@ -1840,8 +1861,14 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
 /// The widths the value cell of `row` needs to show its value whole and to show its first word whole, infinite when
 /// that first word is not an identifier: the
 /// text in `type.body` with the cell's `space.icon` padding on both sides and the provenance chip with its `space.2`
-/// gap when it shows, and the row's "…" button when it has actions (the cursor row's value stays whole).
-fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &PropRow) -> (f32, f32) {
+/// gap when it shows, and the row's "…" button when it has a menu (`menu`; the cursor row's value stays whole).
+fn value_need(
+    ui: &Ui,
+    t: &crate::theme::Tokens,
+    section: &SheetSection,
+    row: &PropRow,
+    menu: bool,
+) -> (f32, f32) {
     // A list's words (its item count, "4 elementen") summarise it; the label column never gives way to them.
     // A list field's only; a position's pair reads as words ("102-C7 · x 124.4 y 52.9 mm").
     if matches!(row.ty.inner(), FieldType::List(_)) {
@@ -1876,7 +1903,7 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
     };
     // The row's "…" button counts, so that the value stays whole on the cursor row too.
     let mut extra = 2.0 * t.space_icon;
-    if !row.actions.is_empty() {
+    if menu {
         extra += t.size_control_inline + t.space_1;
     }
     if !header && !matches!(row.provenance, Provenance::Authored) {

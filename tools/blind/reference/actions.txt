@@ -325,6 +325,7 @@ props.follow View "Go to the linked record" menu none shortcut "F" context prope
 props.action Command "Run a property action" menu none shortcut none context properties hidden params "row?:text, action:enum(edit|clear|override|reset|freeze|unfreeze)"
 props.list Command "Change a list property" menu none shortcut none context properties hidden params "row?:text, op:enum(add|remove|up|down)"
 props.mltext Command "Texts per language" menu none shortcut "Shift+Enter" context properties hidden params "row?:text, lang?:text, text?:text"
+cp.unused Command "Mark not used" menu none shortcut none context global hidden params "function:text, idx:uint, on?:bool"
 preview.apply Command "Apply the preview" menu none shortcut "Ctrl+Enter" context properties hidden params ""
 preview.cancel View "Cancel the preview" menu none shortcut none context properties hidden params ""
 preview.take_file View "Take the file's values" menu none shortcut none context global hidden params "on?:bool"

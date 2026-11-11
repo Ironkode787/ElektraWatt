@@ -22,7 +22,7 @@ use crate::strings::Key;
 use crate::{count_key, key};
 pub use ew_api::output::{
     Category, EditRoute, FieldReadOnly, FieldType, PropRow, PropertySheet, Provenance, RowAction, RowValue,
-    SheetSection,
+    SheetSection, SourceLink,
 };
 use serde_json::Value;
 
@@ -780,6 +780,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "overrides.show_marker",
         ],
     ),
+    // A wire's and an interruption point's potential: its name, the kind of signal and the voltage (FT-1651).
+    ("potential_def", &["name", "ptype", "voltage"]),
 ];
 
 /// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
@@ -978,6 +980,33 @@ pub fn row_label(section: &SheetSection, row: &PropRow) -> String {
     strings::field_label(&section.kind, &row.path_for_label())
 }
 
+/// Whether a row is one of a device's connection points (its value names the point: `function`, `idx`, `unused`).
+pub fn is_cp_row(row: &PropRow) -> bool {
+    row.key.starts_with("device/derived.cp[")
+}
+
+/// Writes a device's connection point marked not used as "<label> · not used" (FT-1649). The JSON value is unchanged.
+pub fn cps_in_words(sheet: &mut PropertySheet) {
+    for row in sheet
+        .sections
+        .iter_mut()
+        .flat_map(|s| s.rows.iter_mut())
+        .filter(|r| is_cp_row(r))
+    {
+        if let RowValue::One { json, text } = &mut row.value
+            && json.get("unused") == Some(&Value::Bool(true))
+        {
+            *text = strings::format(key!("props-cp-unused"), &[text]);
+        }
+    }
+}
+
+/// The explanation of a row in the UI language (FT-1648): what it is, what changing it does and, for a derived
+/// value, where it comes from (the tooltip of its label).
+pub fn row_help(section: &SheetSection, row: &PropRow) -> Option<&'static str> {
+    strings::field_help(&section.kind, &row.path_for_label())
+}
+
 /// Whether a row is a group header: a group or list without a route of its own whose members are editable.
 pub fn is_header(section: &SheetSection, row: &PropRow) -> bool {
     if !row.ty.is_container() || row.route.is_editable() || is_derived(row) {
@@ -1165,6 +1194,25 @@ pub fn ends_in_words(
             if let RowValue::One { text, .. } = &mut row.value {
                 *text = crate::status::end_words(end);
             }
+        }
+    }
+    // A potential definition's point: `ew-api` gives a connection point's label; a junction's in words, never its ID.
+    for row in sheet
+        .sections
+        .iter_mut()
+        .filter(|s| s.kind == "potential_def")
+        .flat_map(|s| s.rows.iter_mut())
+        .filter(|r| r.path == "at")
+    {
+        if let RowValue::One { json, text } = &mut row.value
+            && json.get("cp").is_none()
+        {
+            let end = if json.get("junction").is_some() {
+                ew_api::output::WireEnd::Junction
+            } else {
+                ew_api::output::WireEnd::Unknown
+            };
+            *text = crate::status::end_words(&end);
         }
     }
 }
@@ -1508,6 +1556,17 @@ pub enum RowMenuItem {
     AddPart,
     /// Edit part… on a Parts row that names a part: `part.edit`.
     EditPart,
+    /// Go to source on a derived or inherited row whose source is a row of a record or of the project (doc 16 §6.2,
+    /// FT-1651): that row, with the cursor on it.
+    GoToSource,
+    /// Define potential… on a Potential row of a potential without a definition: `potential.draw`'s form at the
+    /// wire's or the interruption point's point (FT-1651).
+    DefinePotential,
+    /// Mark not used (`on`) or Mark used on a device's connection point row: `cp.unused` (FT-1649).
+    CpUnused {
+        /// Whether the point is to be marked not used.
+        on: bool,
+    },
 }
 
 /// The label of an entry of the row's actions menu.
@@ -1518,6 +1577,10 @@ pub fn menu_label(item: RowMenuItem) -> &'static str {
         RowMenuItem::ChoosePart { .. } => strings::text(key!("action-part-choose")),
         RowMenuItem::AddPart => strings::text(key!("action-part-add")),
         RowMenuItem::EditPart => strings::text(key!("action-part-edit")),
+        RowMenuItem::GoToSource => strings::text(key!("props-action-go-to-source")),
+        RowMenuItem::DefinePotential => strings::text(key!("action-potential-draw")),
+        RowMenuItem::CpUnused { on: true } => strings::text(key!("action-cp-unused")),
+        RowMenuItem::CpUnused { on: false } => strings::text(key!("props-action-cp-used")),
     }
 }
 
@@ -1635,9 +1698,10 @@ pub fn chip_text(p: &Provenance) -> String {
 }
 
 /// The provenance chip's one word (doc 16a §6.8): the value's source, "page" for a value inherited from a page (or
-/// from a structure box on a page), "inherited" for any other inheritance, else the kind ("derived", "override",
-/// "frozen", "library", "generated", "varies"); an authored value has no chip (the word is empty). [`chip_text`] is
-/// the whole text (the tooltip and the accessible description).
+/// from a structure box on a page), "inherited" for any other inheritance; a derived value from a potential definition,
+/// a profile, a cable's core or a default by that source ("potential", "profile", "cable", "default"); else the kind
+/// ("derived", "override", "frozen", "library", "generated", "varies"); an authored value has no chip (the word is
+/// empty). [`chip_text`] is the whole text (the tooltip and the accessible description).
 pub fn chip_word(p: &Provenance) -> &'static str {
     match p {
         Provenance::Authored => "",
@@ -1645,6 +1709,17 @@ pub fn chip_word(p: &Provenance) -> &'static str {
             strings::text(key!("chip-word-page"))
         }
         Provenance::Inherited { .. } => strings::text(key!("chip-word-inherited")),
+        // A wire property names the level of the chain it comes from (FT-1651).
+        Provenance::Derived { via } if via.contains(" profile '") => strings::text(key!("chip-word-profile")),
+        Provenance::Derived { via } if via.starts_with("potential definition ") => {
+            strings::text(key!("chip-word-potential"))
+        }
+        Provenance::Derived { via } if via.starts_with("conductor ") => {
+            strings::text(key!("chip-word-cable"))
+        }
+        Provenance::Derived { via } if via == "project default" || via.starts_with("built-in default") => {
+            strings::text(key!("chip-word-default"))
+        }
         Provenance::Derived { .. } => strings::text(key!("chip-word-derived")),
         Provenance::Overridden { .. } => strings::text(key!("chip-word-override")),
         Provenance::Frozen { .. } => strings::text(key!("chip-word-frozen")),

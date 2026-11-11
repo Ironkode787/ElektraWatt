@@ -30,7 +30,7 @@ use crate::key;
 use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow,
     PropertiesState, PropertySheet, Provenance, RowAction, RowMenuItem, RowValue, SheetKey, SheetSection,
-    compose, filter_shown, find_row, is_derived, item_default, kind_plural, member_path, policy,
+    compose, filter_shown, find_row, is_cp_row, is_derived, item_default, kind_plural, member_path, policy,
     visible_rows,
 };
 use crate::strings;
@@ -374,6 +374,7 @@ impl ShellModel {
         crate::properties::command_choices_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);
         crate::properties::values_in_words(&mut sheet);
+        crate::properties::cps_in_words(&mut sheet);
         self.positions_in_words(&mut sheet, p.session.decimal_comma());
         crate::properties::header_in_words(&mut sheet);
         // The header's finding chips in the UI language, as the Messages detail renders
@@ -1863,6 +1864,19 @@ impl ShellModel {
                     self.act_part_choose(&params)
                 }
                 RowMenuItem::EditPart => self.act_part_edit(&Map::new()),
+                RowMenuItem::GoToSource => self.props_go_to_source(&row),
+                RowMenuItem::DefinePotential => self.act_potential_draw(&Map::new()),
+                RowMenuItem::CpUnused { on } => {
+                    let point = match self.props_find(&row).map(|(_, r)| r.value) {
+                        Some(RowValue::One { json, .. }) => json,
+                        _ => return failed(key!("error-no-row"), &[&row]),
+                    };
+                    let mut params = Map::new();
+                    params.insert("function".to_owned(), point["function"].clone());
+                    params.insert("idx".to_owned(), point["idx"].clone());
+                    params.insert("on".to_owned(), Value::Bool(on));
+                    self.act_cp_unused(&params)
+                }
             };
         }
         let Some(choices) = self.props.choices.take() else {
@@ -1886,9 +1900,12 @@ impl ShellModel {
 
     /// The entries of the actions menu of the row `key`: the row's actions, then Make variable
     /// when the row can be a macro variable (a row of one record with an action, not a derived value), then on a
-    /// Parts row Choose part…, Add part… and Edit part…; empty for a row that is not on show.
+    /// Parts row Choose part…, Add part… and Edit part…; then Go to source on a row whose value has a source to go to,
+    /// Define potential… on the Potential row of a potential no definition names, and Mark not used or Mark used on a
+    /// device's connection point; empty for a row that is not on show.
     pub fn row_menu(&self, key: &str) -> Vec<RowMenuItem> {
-        let Some((section, row)) = self.props_find(key) else {
+        // The window asks this of every row it draws: the row is borrowed, not cloned.
+        let Some((section, row)) = self.props.sheet().and_then(|sheet| find_row(sheet, key)) else {
             return Vec::new();
         };
         let mut out: Vec<RowMenuItem> = row.actions.iter().map(|a| RowMenuItem::Action(*a)).collect();
@@ -1905,7 +1922,172 @@ impl ShellModel {
                 out.push(RowMenuItem::EditPart);
             }
         }
+        // A derived or inherited value's source (FT-1651).
+        if row.source.is_some() {
+            out.push(RowMenuItem::GoToSource);
+        }
+        let writable = self.is_writable() && self.props.sheet().is_some_and(|s| s.read_only.is_none());
+        // The Potential row of a potential no definition names: Define potential… there (FT-1651).
+        if writable
+            && row.key.ends_with("/derived.potential")
+            && row.source.is_none()
+            && section.targets.len() == 1
+        {
+            out.push(RowMenuItem::DefinePotential);
+        }
+        // A device's connection point: Mark not used, or Mark used (FT-1649).
+        if let (true, RowValue::One { json, .. }) = (writable && is_cp_row(row), &row.value)
+            && let Some(unused) = json.get("unused").and_then(Value::as_bool)
+        {
+            out.push(RowMenuItem::CpUnused { on: !unused });
+        }
         out
+    }
+
+    /// Go to source (FT-1651): the row that holds the source of row `key`'s value, with the cursor on it; the sheet
+    /// shows the record or the project first when it does not show the row, and the row's category unfolds.
+    fn props_go_to_source(&mut self, key: &str) -> Outcome {
+        let Some((_, row)) = self.props_find(key) else {
+            return failed(key!("error-no-row"), &[key]);
+        };
+        let Some(link) = row.source else {
+            return Outcome::refused(key!("reason-action-not-offered"));
+        };
+        let (target, to) = match link {
+            ew_api::output::SourceLink::Record { id, row } => (Some(id), row),
+            ew_api::output::SourceLink::Project { row } => (None, row),
+        };
+        let shows = |s: &Self| {
+            s.props.sheet().is_some_and(|sheet| {
+                sheet.sections.iter().any(|sec| {
+                    target.is_none_or(|t| sec.targets.contains(&t)) && sec.rows.iter().any(|r| r.key == to)
+                })
+            })
+        };
+        if !shows(self) {
+            let out = match target {
+                Some(id) => self.act_select_set(
+                    &json!({ "ids": [id.to_string()] })
+                        .as_object()
+                        .cloned()
+                        .unwrap_or_default(),
+                ),
+                None => self.act_props_project(),
+            };
+            if out != Outcome::Done {
+                return out;
+            }
+            self.sync_properties();
+        }
+        let Some(sheet) = self.props.sheet.clone() else {
+            return Outcome::refused(key!("reason-no-sheet"));
+        };
+        let Some((section, found)) = find_row(&sheet, &to) else {
+            return failed(key!("error-no-row"), &[&to]);
+        };
+        let group = crate::properties::group_key(&section.kind, crate::properties::group_of(section, found));
+        if self.settings.properties_collapsed.contains(&group) {
+            self.settings.properties_collapsed.retain(|k| *k != group);
+            self.save_settings();
+        }
+        self.props.row = Some(to);
+        self.props.popup = None;
+        self.focus = Some(Focus::Properties);
+        Outcome::Done
+    }
+
+    /// Whether the connection point `idx` of the function `function` is marked not used (its override's `unused`).
+    pub fn cp_unused(&self, function: ew_api::output::Uuid, idx: u16) -> bool {
+        let Some(project) = &self.project else {
+            return false;
+        };
+        match project.session.stored_field("function", function, "cp_overrides") {
+            Some(Value::Array(overrides)) => overrides.iter().any(|o| {
+                o.get("idx").and_then(Value::as_u64) == Some(u64::from(idx))
+                    && o.get("unused") == Some(&Value::Bool(true))
+            }),
+            _ => false,
+        }
+    }
+
+    /// `cp.unused {function, idx, on?}` (Mark not used, Mark used; FT-1649): marks the connection point `idx` of
+    /// the function `function` as not used by design (`on`, else the other state), or as used again, in its
+    /// override (`cp_overrides[].unused`), as one `fields.set` and one undo step. Its unconnected-point finding
+    /// (EW-POT-009) then drops to an info.
+    pub(crate) fn act_cp_unused(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let function = match string_param(p, "function") {
+            Err(e) => return e,
+            Ok(None) => return failed(key!("error-missing-param"), &["function"]),
+            Ok(Some(f)) => f.to_owned(),
+        };
+        let Some(id) = ew_api::output::Uuid::parse_str(&function)
+            .ok()
+            .filter(|id| project.session.stored_field("function", *id, "id").is_some())
+        else {
+            return failed(key!("error-bad-param"), &["function"]);
+        };
+        let Some(idx) = p
+            .get("idx")
+            .and_then(Value::as_u64)
+            .and_then(|i| u16::try_from(i).ok())
+        else {
+            return failed(key!("error-bad-param"), &["idx"]);
+        };
+        let mut overrides = match project.session.stored_field("function", id, "cp_overrides") {
+            Some(Value::Array(a)) => a,
+            _ => Vec::new(),
+        };
+        let at = overrides
+            .iter()
+            .position(|o| o.get("idx").and_then(Value::as_u64) == Some(u64::from(idx)));
+        let now = at
+            .and_then(|i| overrides[i].get("unused"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let on = match p.get("on") {
+            None => !now,
+            Some(v) => match v.as_bool() {
+                Some(b) => b,
+                None => return failed(key!("error-bad-param"), &["on"]),
+            },
+        };
+        if on == now {
+            return Outcome::Done;
+        }
+        match at {
+            Some(i) if on => overrides[i]["unused"] = Value::Bool(true),
+            // Used again: the override goes when nothing else is left in it.
+            Some(i) => {
+                if let Some(o) = overrides[i].as_object_mut() {
+                    o.remove("unused");
+                    if o.len() == 1 {
+                        overrides.remove(i);
+                    }
+                }
+            }
+            None => {
+                overrides.push(json!({ "idx": idx, "unused": true }));
+                overrides.sort_by_key(|o| o.get("idx").and_then(Value::as_u64));
+            }
+        }
+        let value = if overrides.is_empty() {
+            Value::Null
+        } else {
+            Value::Array(overrides)
+        };
+        let cmd = AnyCommand {
+            name: "fields.set".into(),
+            params: json!({
+                "kind": "function",
+                "targets": [function],
+                "path": "cp_overrides",
+                "value": value,
+            }),
+        };
+        self.commit_from_host(&cmd)
     }
 
     /// `props.row_menu` (Shift+F10, the Menu key): the focused row's actions as a popup list; with the list open,

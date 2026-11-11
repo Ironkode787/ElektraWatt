@@ -550,6 +550,34 @@ pub fn pages_tree_menu(model: &ShellModel) -> Vec<ActionItem> {
         .collect()
 }
 
+/// The canvas context menu's entry for the connection point `cp` (its ID) under the pointer (FT-1649): "Mark -102F2:13
+/// not used", or "Mark -102F2:13 used" for a point marked not used (`cp.unused`), disabled with its reason in a
+/// read-only project; `None` for a point the page on show does not draw.
+pub fn cp_menu(model: &ShellModel, cp: ew_api::output::Uuid) -> Option<ActionItem> {
+    let point = model
+        .canvas()?
+        .page()
+        .tables
+        .cps
+        .iter()
+        .find(|c| c.id == cp)?
+        .clone();
+    let unused = model.cp_unused(point.function, point.idx);
+    let mut item = actions::item_of(actions::find("cp.unused")?, model);
+    item.params = serde_json::json!({
+        "function": point.function.to_string(),
+        "idx": point.idx,
+        "on": !unused,
+    });
+    let label = if unused {
+        key!("canvas-cp-used")
+    } else {
+        key!("canvas-cp-unused")
+    };
+    item.label = strings::format(label, &[&point.label]);
+    Some(item)
+}
+
 /// A navigator row's context menu: on a Potentials row with a definition point (`NavNode::define_at`),
 /// Define potential… at it (`potential.draw_row`), disabled with its reason in a read-only project. Empty when the row
 /// offers nothing: the window then opens no menu.

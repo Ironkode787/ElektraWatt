@@ -887,6 +887,8 @@ struct GroupView {
     last_press: Option<(f64, Pos2)>,
     /// Whether the open context menu was opened over an object (its selection commands) or over nothing (Paste);
     menu_over: bool,
+    /// The connection point the open context menu was opened over (its ID): the menu marks it not used or used.
+    menu_cp: Option<ew_viewmodel::ew_api::output::Uuid>,
     /// The page (session, folio) of the previous frame: a page change suppresses the pointer replay, a view or model
     /// change on the same page sends it again from the pointer's screen position.
     page: Option<(u64, String)>,
@@ -920,6 +922,7 @@ impl GroupView {
             pressed: false,
             last_press: None,
             menu_over: false,
+            menu_cp: None,
             page: None,
             model: None,
             view: None,
@@ -1878,6 +1881,7 @@ impl CanvasHost {
                     events.push(Event::Action("select.set", json!({"ids": [e.0.to_string()]})));
                 }
                 self.views[group].menu_over = over.is_some();
+                self.views[group].menu_cp = canvas.hovered_cp().map(|cp| cp.id);
                 open = Some(egui::SetOpenCommand::Bool(true));
             }
         } else if response.clicked() || response.secondary_clicked() {
@@ -1887,12 +1891,20 @@ impl CanvasHost {
             }
         }
         let over = self.views[group].menu_over;
+        let cp = self.views[group]
+            .menu_cp
+            .filter(|_| over)
+            .and_then(|cp| ew_viewmodel::command_bar::cp_menu(shell, cp));
         egui::Popup::context_menu(response)
             .id(id)
             .open_memory(open)
             .show(|ui| {
-                for item in ew_viewmodel::command_bar::canvas_menu(shell, over) {
-                    crate::menu::item(ui, &item, events);
+                // Over a connection point, Mark not used or Mark used first (FT-1649).
+                for item in cp
+                    .iter()
+                    .chain(&ew_viewmodel::command_bar::canvas_menu(shell, over))
+                {
+                    crate::menu::item(ui, item, events);
                 }
             });
     }

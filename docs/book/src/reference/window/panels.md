@@ -14,9 +14,13 @@ The canvas: the open pages as tabs, one or two groups side by side. The tools of
 
 ### Properties
 
-The property grid: the members of the selection, by category, each editable in place. A row's menu holds the actions
-of that member, such as Choose part on the Parts row. View ▸ Panels ▸ Properties shows it; Edit ▸ Properties of
-selection moves the focus to it. See [Choose parts](../../how-to/choose-parts.md).
+The property grid: the members of the selection, by category, each editable in place. A click on a category's header,
+or Enter on it, folds the category. The pointer resting on a row's label explains the row. A derived value's chip
+names where it comes from, such as the profile or the potential. A row's menu holds the actions of that member, such
+as Choose part on the Parts row, Go to source on a derived value, and Mark not used on a device's connection point. A
+wire and an interruption point show their potential's definition, where its type and voltage are set, or Define
+potential… when it has none. View ▸ Panels ▸ Properties shows it; Edit ▸ Properties of selection moves the focus to
+it. See [Choose parts](../../how-to/choose-parts.md).
 
 ### Find
 
