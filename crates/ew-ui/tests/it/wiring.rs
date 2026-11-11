@@ -59,7 +59,7 @@ fn connections(h: &Harness<'_, App>) -> Vec<ew_ui::ew_viewmodel::ew_api::output:
 }
 
 #[test]
-fn wr3_fr_ui_015_a_connection_drawn_from_the_keyboard_alone() {
+fn fr_ui_015_a_connection_drawn_from_the_keyboard_alone() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");
     let before = connections(&h);
@@ -158,7 +158,7 @@ fn the_junction_editor_popup_reorders_with_alt_down_and_closes_with_escape() {
 }
 
 #[test]
-fn wr10_the_wire_tool_reads_nothing_while_the_cursor_moves_in_the_window() {
+fn the_wire_tool_reads_nothing_while_the_cursor_moves_in_the_window() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");
     press(&mut h, Key::W);
@@ -351,7 +351,7 @@ fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
 /// the tooltip waits while the link preview shows (the rest opens the preview first) and shows once it is dismissed.
 /// The preview says, under its title, how to go there.
 #[test]
-fn ft902_a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
+fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     use egui_kittest::kittest::Queryable as _;
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");

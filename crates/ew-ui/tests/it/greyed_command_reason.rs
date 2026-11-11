@@ -35,7 +35,7 @@ fn toasts(h: &Harness<'_, App>) -> Vec<String> {
 /// FT-1028, ID-1107, in the window: the Output tab's Parts list button, clicked on 102 zoomed in, shows 901 fitted in
 /// the canvas with its page row marked in the page tree.
 #[test]
-fn ft1028_the_parts_list_button_shows_the_bom_fitted_with_its_row_marked() {
+fn the_parts_list_button_shows_the_bom_fitted_with_its_row_marked() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     for (action, params) in [
@@ -70,7 +70,7 @@ fn ft1028_the_parts_list_button_shows_the_bom_fitted_with_its_row_marked() {
 /// "a click on a disabled command-bar button shows its reason as a toast, as well as in its
 /// tooltip." On a section divider the Symbol button is greyed; a click on it runs nothing and the toast says why.
 #[test]
-fn ft1025_a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
+fn a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     let divider = h
@@ -108,7 +108,7 @@ fn ft1025_a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
 /// says why the drawing tools are greyed (the page type's reason, whole), where the user looks; on a schematic page
 /// it says the tool's hint again.
 #[test]
-fn ft1089_the_hud_gives_the_page_types_reason_while_no_tool_is_armed() {
+fn the_hud_gives_the_page_types_reason_while_no_tool_is_armed() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     let divider = h

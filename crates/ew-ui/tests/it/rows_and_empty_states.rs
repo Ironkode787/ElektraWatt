@@ -92,7 +92,7 @@ fn row_key(h: &Harness<'_, App>, role: NavRole, badge: Option<&str>) -> Option<S
 /// FT-1092 (play-test rv-vis-7, t0018): the Pending chip of the Properties header (whole at the floor, the
 /// glyph chip in a narrow pane) and the Messages header's "pending n" say what they count in a tooltip, whole.
 #[test]
-fn ft1092_the_pending_chips_and_the_messages_header_say_what_they_count() {
+fn the_pending_chips_and_the_messages_header_say_what_they_count() {
     const TIP: &str = "Findings on the page you are editing that wait until you leave it or run a check";
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, false);
@@ -171,7 +171,7 @@ fn ft1092_the_pending_chips_and_the_messages_header_say_what_they_count() {
 /// show is named with its severity word; the pending row carries a "Pending" status badge node; the header is one
 /// node named by the as-built sentence; the walker passes.
 #[test]
-fn dk10_messages_rows_badges_and_header() {
+fn messages_rows_badges_and_header() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, false);
     dispatch(&mut h, "messages.show", json!({"on": true}));
@@ -262,7 +262,7 @@ fn dk10_messages_rows_badges_and_header() {
 /// DK10: Fix… is disabled on a read-only project (doc 16a §6.24, §6.1). The finding with a quick fix is EW-CORE-023
 /// of a page description override (the MS3 script's), saved, then reopened read-only.
 #[test]
-fn dk10_fix_is_disabled_on_a_read_only_project() {
+fn fix_is_disabled_on_a_read_only_project() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
@@ -321,7 +321,7 @@ fn dk10_fix_is_disabled_on_a_read_only_project() {
 /// actions are named buttons (Redo to here on the undone entry, Undo to here on the others, Show changes); the marker
 /// line is a separator row named by its text; Show changes opens "Changes of step n" and Escape closes it.
 #[test]
-fn dk11_history_rows_actions_marker_and_show_changes() {
+fn history_rows_actions_marker_and_show_changes() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -464,7 +464,7 @@ fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
 /// DK6: a window's geometry recorded in the shell is written at the end of the window and read by the next
 /// start; a run that recorded none leaves no `[window]` table.
 #[test]
-fn dk6_the_window_geometry_survives_a_restart() {
+fn the_window_geometry_survives_a_restart() {
     use ew_ui::ew_viewmodel::window::WindowGeometry;
     let tmp = Tmp::new();
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());

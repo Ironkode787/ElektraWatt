@@ -3,13 +3,13 @@
 
 //! WP-S4.01 part 4 over Golden A (doc 20 §13, §14.1; the orchestrator's rulings 4 to 7):
 //!
-//! - `lb1_rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902`: -UC1 carries no rail or duct part use;
+//! - `rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902`: -UC1 carries no rail or duct part use;
 //!   its carrier lines give rows 24 and 25 at 1.71 m and 3.17 m; rows 22 to 25 print folio 902, and row 26 (the end
 //!   brackets, WP-S4.02 part 5) too; 27 rows.
-//! - `lb2_the_legend_of_the_plate_lists_31_rows_and_renumbers`: `enclosure_legend` (registered) over a block embedded
+//! - `the_legend_of_the_plate_lists_31_rows_and_renumbers`: `enclosure_legend` (registered) over a block embedded
 //!   on 902: -UC1, -UC1-plate, R1 … R3, D1 … D5, the twenty placements by DT, then the end brackets (WP-S4.02 EB-3:
 //!   quantity 4, no DT); placing F55 on R1 adds its row and renumbers the rows after it.
-//! - `lb4_a_free_graphic_on_902_is_counted_nowhere`: neither the BOM nor the legend nor `unplaced` (FR-LAY-008).
+//! - `a_free_graphic_on_902_is_counted_nowhere`: neither the BOM nor the legend nor `unplaced` (FR-LAY-008).
 //! - `the_carrier_lines_memoise_as_they_run_cold`: memo against cold (and the engine's oracle) over a carrier edit.
 
 use crate::golden_common;
@@ -98,7 +98,7 @@ fn m(text: &str) -> Dec3 {
 /// line (`LineSource::Carrier`) ... The lines come after the device's authored part uses"; ruling 7: the BOM prints
 /// 1.71 and 3.17; the folio rule "applies to the BOM's Folios cell only".
 #[test]
-fn lb1_rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902() {
+fn rails_and_ducts_come_from_the_carriers_and_rows_22_to_25_print_902() {
     let s = session(MemoMode::Off);
     let q = s.query();
     let uc1 = q.devices().get(dev("-UC1")).cloned().expect("-UC1");
@@ -228,7 +228,7 @@ fn qty(set: &RowSet, i: usize) -> String {
 /// at the query"; "the `enclosure_legend` report kind registered in `ew-reports` with rows from that query, tested at
 /// the row level and placed on no page").
 #[test]
-fn lb2_the_legend_of_the_plate_lists_31_rows_and_renumbers() {
+fn the_legend_of_the_plate_lists_31_rows_and_renumbers() {
     let mut s = session(MemoMode::Off);
     let q = s.query();
     let set = legend(&q);
@@ -321,7 +321,7 @@ fn lb2_the_legend_of_the_plate_lists_31_rows_and_renumbers() {
 
 /// LB-4 (FR-LAY-008): a free graphic on 902 appears in neither the BOM nor the legend nor `unplaced`.
 #[test]
-fn lb4_a_free_graphic_on_902_is_counted_nowhere() {
+fn a_free_graphic_on_902_is_counted_nowhere() {
     let mut s = session(MemoMode::Off);
     let before = s.query();
     let (bom, legend_rows, unplaced) = (

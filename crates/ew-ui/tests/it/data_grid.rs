@@ -198,7 +198,7 @@ fn gestures() -> Vec<(&'static str, Input)> {
 /// (click, Ctrl+click, Shift+click, double click, header clicks) dispatch the same actions with the same parameters as
 /// before the restyle: the log equals the expected log recorded from the as-built grid.
 #[test]
-fn dk9_every_key_dispatches_the_as_built_actions() {
+fn every_key_dispatches_the_as_built_actions() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     let mut log = String::new();
@@ -397,7 +397,7 @@ fn same_rect(a: egui::Rect, b: egui::Rect) -> bool {
 /// after a second click it paints `arrow-narrow-down`. A derived column's header paints `math-function` in
 /// `color.text.tertiary`.
 #[test]
-fn dk9_one_table_node_with_sort_buttons_and_the_sort_icon() {
+fn one_table_node_with_sort_buttons_and_the_sort_icon() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     let t = ew_ui::theme::current(&h.ctx);
@@ -495,7 +495,7 @@ fn dk9_one_table_node_with_sort_buttons_and_the_sort_icon() {
 /// DK9: the key column (Strip) keeps its place after End scrolls the grid right, and both before and after it paints
 /// its 1-px `color.table.frozen_edge` line at its right edge from the header to the last row on show.
 #[test]
-fn dk9_the_key_column_stays_and_paints_the_frozen_edge() {
+fn the_key_column_stays_and_paints_the_frozen_edge() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     let t = ew_ui::theme::current(&h.ctx);
@@ -533,7 +533,7 @@ fn dk9_the_key_column_stays_and_paints_the_frozen_edge() {
 /// key cell's left, just inside the grid's focus ring, inset `space.2` top and bottom; the cursor cell paints a 2-px `color.table.cursor` ring inside
 /// it while the grid has the keyboard and a 1-px `color.table.cursor_idle` ring once the focus is on the canvas.
 #[test]
-fn dk9_marked_rows_the_cursor_row_bar_and_the_cursor_ring() {
+fn marked_rows_the_cursor_row_bar_and_the_cursor_ring() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     let t = ew_ui::theme::current(&h.ctx);
@@ -613,7 +613,7 @@ fn dk9_marked_rows_the_cursor_row_bar_and_the_cursor_ring() {
 /// DK9: a double click on a writable cell opens the editor in the cell with the accent border: the panel fill inset
 /// `space.1`, a 1-px `color.accent` border inside and a 1-px ring outside, `radius.sm`; the editor has the keyboard.
 #[test]
-fn dk9_a_double_click_opens_the_editing_cell_with_the_accent_border() {
+fn a_double_click_opens_the_editing_cell_with_the_accent_border() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     let t = ew_ui::theme::current(&h.ctx);
@@ -670,7 +670,7 @@ fn dk9_a_double_click_opens_the_editing_cell_with_the_accent_border() {
 
 /// DK9: rows are `size.row` high and the header `size.table_header`, in Comfortable and Compact.
 #[test]
-fn dk9_row_and_header_heights_in_both_densities() {
+fn row_and_header_heights_in_both_densities() {
     for density in ["comfortable", "compact"] {
         let tmp = Tmp::new();
         let mut h = strips_in(&tmp, Some(density));
@@ -706,7 +706,7 @@ fn group_named(h: &Harness<'static, App>, name: &str) -> bool {
 /// with a filter without hits "Nothing matches "…"" and Clear filter, which clears it and brings the grid back; on a
 /// new project the Terminal strips table says "No terminal strips yet".
 #[test]
-fn ft532_table_mode_without_rows_shows_the_empty_state() {
+fn table_mode_without_rows_shows_the_empty_state() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     assert!(
@@ -800,7 +800,7 @@ fn ft532_table_mode_without_rows_shows_the_empty_state() {
 /// FT-532 (doc 16a §6.21): while the grid has the keyboard the focus ring of §6.1 (2-px `color.focus`, `radius.sm`)
 /// is drawn around the whole grid, inset 1 px into the pane; with the focus on the canvas it is gone.
 #[test]
-fn ft532_the_focus_ring_around_the_whole_grid() {
+fn the_focus_ring_around_the_whole_grid() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     let t = ew_ui::theme::current(&h.ctx);
@@ -831,7 +831,7 @@ fn ft532_the_focus_ring_around_the_whole_grid() {
 /// `arrow-right`, named "Move <column> left" and "… right"; the first movable column's left and the last one's right
 /// are disabled (the icon in `color.text.disabled`); no text button "Move left" or "Move right" is left.
 #[test]
-fn ft536_the_move_items_are_arrow_icon_buttons() {
+fn the_move_items_are_arrow_icon_buttons() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     let t = ew_ui::theme::current(&h.ctx);
@@ -1008,7 +1008,7 @@ fn the_scroll_handle_is_a_quiet_boundary_not_the_text_colour() {
 /// The Columns menu draws Export table… and Import table… from their predicates: enabled while the strips
 /// table is the one shown, disabled once a second table shows and neither is focused (the predicate's refusal).
 #[test]
-fn ft1167_export_and_import_table_follow_their_predicates() {
+fn export_and_import_table_follow_their_predicates() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     h.get_by_label("Columns").click();

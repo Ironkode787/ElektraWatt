@@ -1168,7 +1168,7 @@ fn the_stamp_check_finds_every_item_covering_the_box_exactly() {
 /// or an end, 1 nm outside and 1 nm inside the 10 × 10 box; a corner past the miter limit is bevelled and keeps to the
 /// disc.
 #[test]
-fn ft1059_the_stamp_check_reaches_a_miter_point_and_a_square_cap() {
+fn the_stamp_check_reaches_a_miter_point_and_a_square_cap() {
     use ew_dl::{Cap, Item, Path, PathEl, Stroke};
     use ew_units::{Nm, Pt2};
     let p = |x: i64, y: i64| Pt2::new(Nm(x), Nm(y));

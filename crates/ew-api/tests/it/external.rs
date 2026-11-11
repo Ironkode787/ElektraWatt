@@ -218,7 +218,7 @@ fn lines(s: &Session) -> Vec<(ew_model::AnyKey, String)> {
 /// XC-1: a second store's save that changes folio 106 is detected after quiescence and applied as one step "External
 /// change"; undo restores the pre-change model; saving after the undo writes the earlier state.
 #[test]
-fn xc1_a_colleague_s_save_is_applied_as_one_undoable_step() {
+fn a_colleague_s_save_is_applied_as_one_undoable_step() {
     let vfs = project();
     let c = clock();
     let mut s = open(&vfs, &c, 1);
@@ -273,7 +273,7 @@ fn xc1_a_colleague_s_save_is_applied_as_one_undoable_step() {
 /// XC-2: a local unsaved edit on folio 101 stays through the external change on 106, the project stays dirty, and the
 /// next save writes only the edit's file and passes D5.
 #[test]
-fn xc2_a_local_edit_survives_and_saves_alone() {
+fn a_local_edit_survives_and_saves_alone() {
     let vfs = project();
     let c = clock();
     let mut s = open(&vfs, &c, 1);
@@ -328,7 +328,7 @@ fn collided() -> (Arc<MemVfs>, Arc<ManualClock>, Session, String) {
 /// XC-3: a local and an external change of W20's colour collide: nothing applies, saves are refused, the collision
 /// names the field; choosing theirs, then (on a fresh collision) mine, gives the expected models in one step each.
 #[test]
-fn xc3_a_collision_is_held_until_mine_or_theirs_is_chosen() {
+fn a_collision_is_held_until_mine_or_theirs_is_chosen() {
     let (vfs, _c, mut s, w) = collided();
     assert_eq!(overrides(&s, &w)["colour"], json!(["BU"]), "nothing applied");
     let collisions = s.external_collisions().expect("held").to_vec();
@@ -381,7 +381,7 @@ fn xc3_a_collision_is_held_until_mine_or_theirs_is_chosen() {
 /// with the current model, so an edit made since the hold survives theirs, and a choice made for collisions that have
 /// changed since is refused and held with the new ones.
 #[test]
-fn xc3b_a_held_change_is_kept_and_merged_again_at_the_apply() {
+fn a_held_change_is_kept_and_merged_again_at_the_apply() {
     let (_vfs, c, mut s, w) = collided();
     let shown = s.external_collisions().expect("held").to_vec();
     for _ in 0..3 {
@@ -421,7 +421,7 @@ fn xc3b_a_held_change_is_kept_and_merged_again_at_the_apply() {
 /// XC-4: a git operation in progress (a test `index.lock`) defers detection until it is gone; the session's own save
 /// is never taken for an external change.
 #[test]
-fn xc4_a_git_operation_defers_detection_and_an_own_save_is_no_change() {
+fn a_git_operation_defers_detection_and_an_own_save_is_no_change() {
     let vfs = project();
     let c = clock();
     let mut s = open(&vfs, &c, 1);
@@ -457,7 +457,7 @@ fn xc4_a_git_operation_defers_detection_and_an_own_save_is_no_change() {
 /// XC-5: an incoming generation with a missing listed file applies nothing, keeps the edits and holds saves with D21's
 /// text; it applies once the file appears.
 #[test]
-fn xc5_an_unreadable_generation_holds_saves_until_it_reads() {
+fn an_unreadable_generation_holds_saves_until_it_reads() {
     let vfs = project();
     let c = clock();
     let mut s = open(&vfs, &c, 1);
@@ -499,7 +499,7 @@ fn xc5_an_unreadable_generation_holds_saves_until_it_reads() {
 /// XC-6: a crash after an applied external change with unsaved edits recovers the live model (D23): the journal's
 /// segment follows the incoming generation, and nothing is killed: the reopen runs over the leftover segment.
 #[test]
-fn xc6_a_crash_after_an_apply_recovers_the_live_model() {
+fn a_crash_after_an_apply_recovers_the_live_model() {
     let vfs = project();
     let c = clock();
     let mut s = open(&vfs, &c, 1);
@@ -543,7 +543,7 @@ fn xc6_a_crash_after_an_apply_recovers_the_live_model() {
 
 /// XC-7: a read-only session reloads on each of the holder's saves and writes nothing.
 #[test]
-fn xc7_a_read_only_follower_reloads_and_writes_nothing() {
+fn a_read_only_follower_reloads_and_writes_nothing() {
     let vfs = project();
     let c = clock();
     let mut holder = open(&vfs, &c, 1);
@@ -641,7 +641,7 @@ fn online(s: &Session) -> Vec<ew_api::checks::Finding> {
 /// EW-CORE-013 reports the group with the older UUIDv7 as keeper and the fix "Renumber the newer", which gives the
 /// other the next free counter, -102F4, in one undo step.
 #[test]
-fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
+fn ew_core_013_renumbers_the_newer_after_a_merge() {
     let vfs = project();
     let c = clock();
     let mut s = open(&vfs, &c, 1);
@@ -786,7 +786,7 @@ fn dg5_ew_core_013_renumbers_the_newer_after_a_merge() {
 /// XW-5 (D25, doc 05 §15 row 8): a sync client's unlisted `pages/<id> (conflicted copy).jsonl` is listed at open as
 /// EW-CORE-004 with its path, a warning the window counts in its banner; the project still opens for editing.
 #[test]
-fn xw5_a_conflicted_copy_is_listed_as_an_orphan_file() {
+fn a_conflicted_copy_is_listed_as_an_orphan_file() {
     let vfs = project();
     let page = golden()
         .into_keys()

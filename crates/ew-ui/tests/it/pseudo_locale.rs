@@ -47,9 +47,9 @@ fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
     h
 }
 
-/// The new-project flow of `part2.rs`: the start page's New project, the folder dialog, the built-in page.
+/// The new-project flow of `shell_frame.rs`: the start page's New project, the folder dialog, the built-in page.
 #[test]
-fn lo5_new_project_in_the_pseudo_locale() {
+fn new_project_in_the_pseudo_locale() {
     let tmp = Tmp::new();
     let dir = tmp.0.join("first.ew");
     let platform = Scripted::default();
@@ -136,7 +136,7 @@ fn the_fit_check_finds_two_siblings_that_overlap() {
 /// The place and wire flows of `place.rs`: a symbol picked, its ghost, the placement; the Wire tool, its start, its
 /// finish.
 #[test]
-fn lo5_place_and_wire_in_the_pseudo_locale() {
+fn place_and_wire_in_the_pseudo_locale() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
@@ -158,7 +158,7 @@ fn lo5_place_and_wire_in_the_pseudo_locale() {
 
 /// The terminal-strip flow of `table_mode.rs`: the strip editor on -X1031 and a cell of its grid.
 #[test]
-fn lo5_a_terminal_strip_in_the_pseudo_locale() {
+fn a_terminal_strip_in_the_pseudo_locale() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "strip.edit", json!({"strip": "-X1031"}));
@@ -176,7 +176,7 @@ fn lo5_a_terminal_strip_in_the_pseudo_locale() {
 
 /// The renumber flow of `preview_history.rs`: Renumber devices…, its dialog, the Preview tab, Apply.
 #[test]
-fn lo5_renumber_in_the_pseudo_locale() {
+fn renumber_in_the_pseudo_locale() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     support::page_based_numbering(&mut h);
@@ -193,7 +193,7 @@ fn lo5_renumber_in_the_pseudo_locale() {
 
 /// The export flow of `jobs.rs`: Export PDF through the save dialog, the job, its toast and the Jobs pane.
 #[test]
-fn lo5_export_pdf_in_the_pseudo_locale() {
+fn export_pdf_in_the_pseudo_locale() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let pdf: PathBuf = tmp.0.join("out.pdf");
@@ -223,7 +223,7 @@ fn lo5_export_pdf_in_the_pseudo_locale() {
 /// command bar's tabs ("Beeld", "Pagina") and the open preview card's Apply ("Toepassen") without a restart, and
 /// View ▸ Taal ▸ English brings them back.
 #[test]
-fn lo2_view_language_nederlands_and_back_in_the_window() {
+fn view_language_nederlands_and_back_in_the_window() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));

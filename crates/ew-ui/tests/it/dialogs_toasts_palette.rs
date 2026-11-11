@@ -309,7 +309,7 @@ fn opacity_at(h: &mut Harness<'_, App>, shown: f64, t: f64) -> Option<f32> {
 /// frame that first paints it and 1 at `motion.base`; 1 at the start of the fade out, `motion.base` before the 8 s,
 /// half way through it, and the toast is gone at the end.
 #[test]
-fn ft1027_a_toast_fades_in_and_out_over_motion_base_on_the_frame_clock() {
+fn a_toast_fades_in_and_out_over_motion_base_on_the_frame_clock() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -343,7 +343,7 @@ fn ft1027_a_toast_fades_in_and_out_over_motion_base_on_the_frame_clock() {
 /// "Hovering still pauses it." A hovered toast's clock stands still: it is on screen, unfaded, 20 s
 /// after it came; once the pointer leaves, its 8 s go on from where they stood.
 #[test]
-fn ft1027_hovering_a_toast_pauses_its_fade() {
+fn hovering_a_toast_pauses_its_fade() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -375,7 +375,7 @@ fn ft1027_hovering_a_toast_pauses_its_fade() {
 /// the canvas, a toast's Dismiss button that takes the keyboard focus keeps it (the canvas does not take it back each
 /// frame).
 #[test]
-fn ft1137_ft1171_a_toast_that_holds_the_keyboard_focus_is_paused() {
+fn a_toast_that_holds_the_keyboard_focus_is_paused() {
     for leave_canvas in [true, false] {
         let tmp = Tmp::new();
         let dir = tmp.golden("g.ew");
@@ -461,7 +461,7 @@ fn typing_in_a_navigator_filter_while_a_toast_shows_keeps_every_key() {
 /// FT-1195 (doc 16a §6.10): a toast of one long text (no title and line) wraps up to three rows and is cut with
 /// an ellipsis; its whole text is the tooltip under the pointer.
 #[test]
-fn ft1195_a_long_toast_is_cut_at_three_rows_with_its_whole_text_in_the_tooltip() {
+fn a_long_toast_is_cut_at_three_rows_with_its_whole_text_in_the_tooltip() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -505,7 +505,7 @@ fn ft1195_a_long_toast_is_cut_at_three_rows_with_its_whole_text_in_the_tooltip()
 /// A toast whose text is whole shows no tooltip under the pointer (it would only repeat
 /// the text); its accessible name stays "Notification".
 #[test]
-fn ft1144_a_toast_with_its_whole_text_shows_no_tooltip() {
+fn a_toast_with_its_whole_text_shows_no_tooltip() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -535,7 +535,7 @@ fn ft1144_a_toast_with_its_whole_text_shows_no_tooltip() {
 /// only after the pointer moved onto it); once the pointer moves onto it, it is paused and stays paused while the
 /// pointer is still.
 #[test]
-fn ft1088_a_toast_under_a_still_pointer_fades_on_time() {
+fn a_toast_under_a_still_pointer_fades_on_time() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));

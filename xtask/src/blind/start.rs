@@ -886,7 +886,7 @@ mod tests {
     /// A check run has no keeper whatever the flag says (its `run.json` is stateless); a gate or free run keeps
     /// the flag it was started with.
     #[test]
-    fn ft766_a_check_run_is_stateless_without_the_flag() {
+    fn a_check_run_is_stateless_without_the_flag() {
         let tmp = Tmp::new("start-ft766");
         let root = fake_repo(&tmp);
         std::fs::write(root.join("tools/blind/CHECKER.md"), "You check {run}.\n").unwrap();
@@ -1048,7 +1048,7 @@ mod tests {
     /// `.harness/start-project`; `resume` and a stateless call put it back after `work/` was deleted; the golden digest is
     /// the same at the start and after; the round and the hints reach the run.
     #[test]
-    fn ur1_a_brief_starts_on_a_copy_of_the_golden_project() {
+    fn a_brief_starts_on_a_copy_of_the_golden_project() {
         let tmp = Tmp::new("start-project");
         let root = fake_repo(&tmp);
         fake_brief(&root, "start = \"golden-a\"\nrounds = [\"R0\"]\n");
@@ -1117,7 +1117,7 @@ mod tests {
     /// UR-1, K8: a start project that cannot be made refuses the start whole and leaves no run folder; the copy is never
     /// made into a folder that names the fixture.
     #[test]
-    fn ur1_k8_a_start_project_that_cannot_be_made_refuses_the_start() {
+    fn k8_a_start_project_that_cannot_be_made_refuses_the_start() {
         let tmp = Tmp::new("start-project-k8");
         let root = fake_repo(&tmp);
         fake_brief(&root, "start = \"gp-ut\"\n");

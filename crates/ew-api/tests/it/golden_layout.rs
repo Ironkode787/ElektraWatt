@@ -3,14 +3,14 @@
 
 //! The layout queries over Golden A's test geometry (LQ-1 to LQ-5; doc 20 §13, U-50):
 //!
-//! - `lq1_golden_a_holds_the_layout`: one space for +J-E-2416, the enclosure -UC1 with one plate surface, the eight
+//! - `golden_a_holds_the_layout`: one space for +J-E-2416, the enclosure -UC1 with one plate surface, the eight
 //!   carriers (rails 1.71 m, ducts 3.17 m), the twenty placements; `Session::layout_spaces`.
-//! - `lq2_unplaced_is_the_five_devices_each_case_asserted`: `unplaced` is F55, E55, E56, S56, -201U9 and every other
+//! - `unplaced_is_the_five_devices_each_case_asserted`: `unplaced` is F55, E55, E56, S56, -201U9 and every other
 //!   device of the brief is out for its D8 case; a second space lists only its own location's devices.
-//! - `lq3_footprints_in_the_surface_frame`: the footprints of -102G1 and -X1031 (orchestrator ruling 1), the flip, a
+//! - `footprints_in_the_surface_frame`: the footprints of -102G1 and -X1031 (orchestrator ruling 1), the flip, a
 //!   screw part turned 90° on the surface, the unknown square.
-//! - `lq4_a_wider_part_widens_the_footprint_and_overlaps`: `part.assign` of a 27 mm part with `rail_offset` (9, 42.5).
-//! - `lq5_labels_follow_the_tag_and_no_layout_file_changes`: the two label modes; T55 → T57 on a saved copy of the
+//! - `a_wider_part_widens_the_footprint_and_overlaps`: `part.assign` of a 27 mm part with `rail_offset` (9, 42.5).
+//! - `labels_follow_the_tag_and_no_layout_file_changes`: the two label modes; T55 → T57 on a saved copy of the
 //!   fixture changes its label and no file under `layout/`.
 //! - `the_layout_queries_memoise_as_they_run_cold`: memo against cold (and the engine's oracle) over layout edits.
 
@@ -146,7 +146,7 @@ fn quarter(k: u8) -> Value {
 }
 
 #[test]
-fn lq1_golden_a_holds_the_layout() {
+fn golden_a_holds_the_layout() {
     let s = session(MemoMode::Off);
     let q = s.query();
     let location: Id<StructureNode> = record_id("structure", "+J-E-2416");
@@ -181,7 +181,7 @@ fn lq1_golden_a_holds_the_layout() {
 }
 
 #[test]
-fn lq2_unplaced_is_the_five_devices_each_case_asserted() {
+fn unplaced_is_the_five_devices_each_case_asserted() {
     let mut s = session(MemoMode::Off);
     let q = s.query();
     let unplaced = s.unplaced(space());
@@ -255,7 +255,7 @@ fn lq2_unplaced_is_the_five_devices_each_case_asserted() {
 /// (101, 675)–(171, 805) mm; -X1031 on R2 is (98.6, 444)–(202.6, 516) mm; the spec's (61, …)–(131, …) and (58.6, …)–
 /// (162.6, …) are the same rectangles as `rail_occupancy` intervals in `s` (R1 and R2 start at u = 40 mm).
 #[test]
-fn lq3_footprints_in_the_surface_frame() {
+fn footprints_in_the_surface_frame() {
     let mut s = session(MemoMode::Off);
     let q = s.query();
     let g1 = geometry(&q, placement("-102G1"));
@@ -319,7 +319,7 @@ fn placement_id(v: Option<Value>) -> Id<Placement> {
 /// the 18 mm part's clip point (D7): the footprint widens to s 149–176 mm (u 189–216, ruling 1) at the same pose and
 /// overlaps -102F2's interval (167–212).
 #[test]
-fn lq4_a_wider_part_widens_the_footprint_and_overlaps() {
+fn a_wider_part_widens_the_footprint_and_overlaps() {
     let mut s = session(MemoMode::Off);
     let q = s.query();
     let old: Id<Part> = q
@@ -372,7 +372,7 @@ fn lq4_a_wider_part_widens_the_footprint_and_overlaps() {
 /// The label of -X1031 on the panel page 902 in the two modes, and T55 renumbered to T57 (`fields.set` of its frozen
 /// tag) on a saved copy of the fixture: the label follows and no file under `layout/` changes (FR-LAY-006, D-02).
 #[test]
-fn lq5_labels_follow_the_tag_and_no_layout_file_changes() {
+fn labels_follow_the_tag_and_no_layout_file_changes() {
     let s = session(MemoMode::Off);
     let q = s.query();
     let label = |q: &Q, p: Id<Placement>, mode| q.get::<LayoutLabel>((p, page("902"), mode)).as_ref().clone();

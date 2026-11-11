@@ -284,7 +284,7 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_viewmodel::ew_a
 /// the label `ew-api` gives (`column-<navigator>-<key>`, else `column-<key>`); in nl-NL the window's tables show the
 /// Dutch headers and the Devices tree its badges in Dutch.
 #[test]
-fn ft1264_every_navigator_column_and_badge_reads_in_both_locales() {
+fn every_navigator_column_and_badge_reads_in_both_locales() {
     let (session, _) =
         ew_viewmodel::ew_api::Session::open_read_only(std::path::Path::new(crate::common::GOLDEN_A), "test")
             .unwrap();
@@ -376,7 +376,7 @@ fn ft1264_every_navigator_column_and_badge_reads_in_both_locales() {
 /// In nl-NL the Messages pane's group headers, its rule groups and its
 /// finding rows read in Dutch, the messages as the detail renders them, and so does the Properties pane's finding chip.
 #[test]
-fn ft1162_the_messages_rows_and_the_chip_read_in_dutch() {
+fn the_messages_rows_and_the_chip_read_in_dutch() {
     use ew_viewmodel::ew_api::checks::{CheckMode, messages};
     use ew_viewmodel::ew_api::output::NavRole;
     let tmp = Tmp::new("ft1162");
@@ -533,7 +533,7 @@ fn row_value(shell: &ShellModel, key: &str) -> (String, serde_json::Value) {
 /// A generated page's Properties show its Kind and its row source in words, in en-GB and
 /// nl-NL, never the JSON; the JSON values stay.
 #[test]
-fn ft1287_a_generated_page_shows_its_kind_and_source_in_words() {
+fn a_generated_page_shows_its_kind_and_source_in_words() {
     let tmp = Tmp::new("ft1287");
     let mut shell = tmp.shell("2");
     let mut said = Vec::new();
@@ -575,7 +575,7 @@ fn ft1287_a_generated_page_shows_its_kind_and_source_in_words() {
 
 /// The property grid's own parse error reads in the window's language, keyed with its argument.
 #[test]
-fn ft1493_a_grid_parse_error_reads_in_the_windows_language() {
+fn a_grid_parse_error_reads_in_the_windows_language() {
     let tmp = Tmp::new("ft1493");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
@@ -595,7 +595,7 @@ fn ft1493_a_grid_parse_error_reads_in_the_windows_language() {
 /// An enumerated row shows its value and its choices in the UI language's words, takes
 /// a word typed in them, and refuses another word naming the choices in words, in en-GB and nl-NL.
 #[test]
-fn ft1258_an_enumerated_row_reads_and_takes_its_words() {
+fn an_enumerated_row_reads_and_takes_its_words() {
     let tmp = Tmp::new("ft1258");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
@@ -973,7 +973,7 @@ fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
 /// ID-1439 (#6, #7): in Dutch the Messages header's sentence puts the count before "vrijgesteld" and
 /// "wachtend", the Preview's counts name items "elementen", and the action after the Preview's colon is in a sentence.
 #[test]
-fn id1439_the_messages_and_preview_headers_in_dutch() {
+fn the_messages_and_preview_headers_in_dutch() {
     let tmp = Tmp::new("id1439-headers-nl");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "view.language", json!({"value": "nl"}));
@@ -1025,7 +1025,7 @@ fn every_report_kind_has_its_words_in_both_locales() {
 /// FT-1364 (W50-F14): View ▸ Language takes the toasts on show off the screen, so none mixes the languages; the log
 /// keeps them, and choosing the language already on show keeps them.
 #[test]
-fn ft1364_a_language_switch_drops_the_toasts_on_show() {
+fn a_language_switch_drops_the_toasts_on_show() {
     let tmp = Tmp::new("ft1364");
     let mut shell = tmp.shell("102");
     done(&mut shell, "messages.check", json!({}));

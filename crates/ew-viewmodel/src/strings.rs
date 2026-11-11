@@ -867,7 +867,7 @@ mod tests {
     /// FT-1081 (doc 16a §8 item 7): a key has one name in every text, the form on its keycap. No text names
     /// the Escape key in full, and the long forms `short_display` shortens ("Arrow Up") stand in none.
     #[test]
-    fn ft1081_no_text_names_a_key_by_its_long_form() {
+    fn no_text_names_a_key_by_its_long_form() {
         for (key, text) in texts() {
             assert!(!names_key(text, "Escape"), "{key}: {text}");
             assert!(!text.contains("Arrow "), "{key}: {text}");
@@ -879,7 +879,7 @@ mod tests {
 
     /// The scan's word test: a name inside a word, a chord or a tag is no key's name.
     #[test]
-    fn ft964_the_scan_finds_a_key_name_only_as_a_word() {
+    fn the_scan_finds_a_key_name_only_as_a_word() {
         assert!(names_key("Click or Enter to place", "Enter"));
         assert!(names_key("Esc done", "Esc"));
         assert!(names_key("(R)", "R"));

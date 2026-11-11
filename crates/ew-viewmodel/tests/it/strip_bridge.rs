@@ -256,7 +256,7 @@ fn three_bridges(tmp: &Tmp) -> (ShellModel, Vec<TableRep>, Vec<u64>) {
 // PI10: three bridges join four terminals in one group
 
 #[test]
-fn pi10_three_bridges_join_four_terminals_in_one_group() {
+fn three_bridges_join_four_terminals_in_one_group() {
     assert_golden_endpoints();
     let tmp = Tmp::new("bridge-pi10");
     let mut s = actual_size(&tmp, "103");
@@ -625,7 +625,7 @@ fn folio_103_bridges_draw_on_terminals_placed_by_symbol() {
 /// is CP index 3, Bridge terminals on the pair is refused as "already bridged"; on the pair and a third terminal it
 /// draws one connection, into the same group, from the second terminal's shaft CP; the side-1 bridge stays as drawn.
 #[test]
-fn se12_a_part_added_after_a_partless_bridge_keeps_the_pair_bridged() {
+fn a_part_added_after_a_partless_bridge_keeps_the_pair_bridged() {
     let tmp = Tmp::new("bridge-partless-then-part");
     let mut s = actual_size(&tmp, "103");
     let reps = partless_strip(&mut s, 3);
@@ -718,7 +718,7 @@ fn strip_rows(s: &mut ShellModel, strip: &str, designations: &[&str]) -> Vec<Str
 /// `select.set` with `tag:` references (devices), by navigator marks (devices) and by functions, with one result each
 /// time; terminals of two strips refuse `reason-bridge-strips`.
 #[test]
-fn se10_bridge_terminals_by_reps_tags_marks_and_functions() {
+fn bridge_terminals_by_reps_tags_marks_and_functions() {
     let tmp = Tmp::new("bridge-se10");
     let mut s = actual_size(&tmp, "103");
     delete_connections(&mut s, &BR1);
@@ -768,7 +768,7 @@ fn se10_bridge_terminals_by_reps_tags_marks_and_functions() {
 /// SE11: two terminals whose function definition has no side-1 CP and that carry no part with a shaft-1
 /// entry refuse `reason-bridge-no-shaft` (the shaft half, part-placed terminals ending on the shaft CPs, is PI10).
 #[test]
-fn se11_terminals_without_a_shaft_or_a_side1_cp_refuse() {
+fn terminals_without_a_shaft_or_a_side1_cp_refuse() {
     // A function definition of Golden A with connection points and none of them on side 1.
     let def = {
         let (session, _) =

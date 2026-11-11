@@ -61,7 +61,7 @@ fn type_into_field(h: &mut Harness<'_, App>, label: &str, text: &str) {
 }
 
 #[test]
-fn pg5_ac28_w29_colour_through_the_editor_and_undo() {
+fn ac28_w29_colour_through_the_editor_and_undo() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     // W29 through `select.set` (the canvas picks by geometry since WP-S2.04 part 1, and the centre of a wire's
@@ -152,7 +152,7 @@ fn pg5_ac28_w29_colour_through_the_editor_and_undo() {
 }
 
 #[test]
-fn pg9_d06_the_description_override_from_the_keyboard() {
+fn d06_the_description_override_from_the_keyboard() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     // An empty selection shows the page on show.
@@ -243,7 +243,7 @@ fn pg9_d06_the_description_override_from_the_keyboard() {
 }
 
 #[test]
-fn pg11_the_window_fetches_a_sheet_once_per_key() {
+fn the_window_fetches_a_sheet_once_per_key() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     let calls = |h: &Harness<'_, App>| h.state().shell().session_calls();
@@ -570,7 +570,7 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
 /// FT-759 (rv-vis-2): the header's "N Warnings" chip is a button: a click opens Messages filtered to the record by
 /// its title, through the existing `messages.show` and `navigator.filter`.
 #[test]
-fn ft759_a_finding_chip_opens_messages_filtered_to_the_record() {
+fn a_finding_chip_opens_messages_filtered_to_the_record() {
     use ew_ui::ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
@@ -656,7 +656,7 @@ fn severity_word(severity: &str) -> &'static str {
 /// message" text; the row's
 /// actions are a popup menu anchored on its "…" button, whose items choose and which Escape closes.
 #[test]
-fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
+fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -842,7 +842,7 @@ fn ft530_header_severity_chips_and_the_actions_menu_on_the_dots_button() {
 /// twelve rows; typing keeps the rows whose label or value contains the text; a filter without hits says so with Clear
 /// filter.
 #[test]
-fn ft541_the_properties_filter_for_more_than_twelve_rows() {
+fn the_properties_filter_for_more_than_twelve_rows() {
     use ew_ui::ew_viewmodel::properties::{FILTER_ROWS, visible_rows};
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
@@ -1088,7 +1088,7 @@ fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
 /// a second line and its row grows. At the 1280 × 800 floor no label is cut: "Persoonsgegevens" whole on one line,
 /// "Personen en organisaties" on two; at 1920 × 1080 both stand on one line.
 #[test]
-fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
+fn the_label_column_gives_way_to_no_count_and_no_prose() {
     for (size, wraps) in [
         (egui::Vec2::new(1280.0, 800.0), true),
         (egui::Vec2::new(1920.0, 1080.0), false),
@@ -1143,7 +1143,7 @@ fn ft1413_the_label_column_gives_way_to_no_count_and_no_prose() {
 /// "inherited" chip, its Title) wrap at their words onto further lines, their rows growing, and none is cut; at
 /// 1920 × 1080 they stand on one line.
 #[test]
-fn ft1498_a_prose_value_wraps_and_is_never_cut() {
+fn a_prose_value_wraps_and_is_never_cut() {
     for (size, wraps) in [
         (egui::Vec2::new(1280.0, 800.0), true),
         (egui::Vec2::new(1920.0, 1080.0), false),
@@ -1218,7 +1218,7 @@ fn texts_in_row(h: &Harness<'_, App>, label: &str) -> Vec<(String, bool)> {
 /// row too: a placed terminal's derived Tag ("-X1031:71" beside "afgeleid") and two devices' mixed Tag
 /// ("‹verschilt› (2)" beside "verschilt"); the label column yields to them, its labels whole or cut, never the value.
 #[test]
-fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
+fn an_identifier_stays_whole_beside_its_chip_at_the_floor() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -1284,7 +1284,7 @@ fn id1427_an_identifier_stays_whole_beside_its_chip_at_the_floor() {
 /// ID-1427 (W52 F5): at the 1280 × 800 floor in Dutch the position row of -102F1's representation is whole: its grid
 /// cell and its millimetres with one decimal ("102-C7 · x 116.4 y 60.9 mm").
 #[test]
-fn id1427_the_position_row_is_whole_at_the_floor() {
+fn the_position_row_is_whole_at_the_floor() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "102");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -1316,7 +1316,7 @@ fn id1427_the_position_row_is_whole_at_the_floor() {
 /// At the 1280 × 800 floor in Dutch a one-word prose value ("Hoofdschakelaarkast", no digit) takes
 /// nothing from the labels: the label column keeps at least `size.property_label`.
 #[test]
-fn id1439_a_one_word_prose_value_takes_nothing_from_the_labels() {
+fn a_one_word_prose_value_takes_nothing_from_the_labels() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
     h.set_size(egui::Vec2::new(1280.0, 800.0));

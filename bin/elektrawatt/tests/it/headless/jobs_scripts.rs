@@ -87,7 +87,7 @@ fn export_steps(dir: &Path) -> Vec<(&'static str, Value)> {
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays() {
+fn the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays() {
     jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays_case(false);
 }
 
@@ -168,7 +168,7 @@ pub(crate) fn jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pd
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn jb7_the_recovery_script_is_byte_identical_twice() {
+fn the_recovery_script_is_byte_identical_twice() {
     jb7_the_recovery_script_is_byte_identical_twice_case(false);
 }
 
@@ -257,7 +257,7 @@ pub(crate) fn jb7_the_recovery_script_is_byte_identical_twice_case(twice: bool) 
 /// `jobs.wait` still writes its file, because the end of the run waits for its jobs; two runs give the same
 /// transcript and the same PDF (the golden digest), and no sibling is left.
 #[test]
-fn jb4_an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
+fn an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
     let tmp = Tmp::new();
     let mut transcripts = Vec::new();
     let mut pdfs = Vec::new();
@@ -303,7 +303,7 @@ fn jb4_an_export_that_did_not_wait_is_written_at_the_end_of_the_run() {
 /// the notification text as `error: …` on stderr and exits 1; the transcript's step itself is done, and two runs give
 /// the same transcript and the same stderr.
 #[test]
-fn jb5_an_export_that_did_not_wait_and_failed_exits_1_with_its_notification() {
+fn an_export_that_did_not_wait_and_failed_exits_1_with_its_notification() {
     let tmp = Tmp::new();
     let mut outputs = Vec::new();
     for side in ["a", "b"] {

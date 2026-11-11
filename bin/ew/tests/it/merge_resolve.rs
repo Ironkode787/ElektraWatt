@@ -88,7 +88,7 @@ fn result(o: &Output) -> (Option<i32>, String, String) {
 /// CR-1, CR-4: the project reports EW-CORE-011 once in release mode, an open error, which the release gate counts as
 /// a blocker (doc 15 §4.8: every open error-severity finding of the gate's report).
 #[test]
-fn cr1_cr4_ew_check_release_reports_ew_core_011_once_as_an_open_error() {
+fn ew_check_release_reports_ew_core_011_once_as_an_open_error() {
     let c = Copy::new();
     let o = c.ew(&["check", "--mode", "release", "--json"]);
     let report: serde_json::Value = serde_json::from_slice(&o.stdout).expect("JSON");
@@ -116,7 +116,7 @@ fn cr1_cr4_ew_check_release_reports_ew_core_011_once_as_an_open_error() {
 
 /// CR-4: the release gate of Golden A's open revision counts the EW-CORE-011 finding among its blockers.
 #[test]
-fn cr4_the_release_gate_is_blocked_by_ew_core_011() {
+fn the_release_gate_is_blocked_by_ew_core_011() {
     let c = Copy::new();
     let (session, report) = ew_api::Session::open_read_only(&c.project(), "test").expect("the copy opens");
     let gate = session
@@ -136,7 +136,7 @@ fn cr4_the_release_gate_is_blocked_by_ew_core_011() {
 /// `ew.merge-resolve-result/1`) or ours (BU), removes the conflict and saves page 102 canonically: Golden A's file with
 /// W20's csa 2.5 and the colour taken.
 #[test]
-fn cr3_merge_resolve_takes_a_side_and_saves_the_page_canonically() {
+fn merge_resolve_takes_a_side_and_saves_the_page_canonically() {
     let cases: [(&[&str], &str, &str, &str); 3] = [
         (
             &[
@@ -210,7 +210,7 @@ fn merge_resolve_without_a_match_exits_2_with_the_reason() {
 
 /// CR-3 in a session: `merge.resolve` is one undo step, the conflict and BU back after it.
 #[test]
-fn cr3_merge_resolve_in_a_session_is_one_undo_step() {
+fn merge_resolve_in_a_session_is_one_undo_step() {
     let c = Copy::new();
     let mut store = ew_api::StoreOptions::new("test");
     store.state_dir = None;

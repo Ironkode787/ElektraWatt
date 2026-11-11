@@ -644,7 +644,7 @@ mod tests {
     }
 
     #[test]
-    fn ft1082_a_cp_of_a_terminal_of_the_ghost_s_strip_is_no_hit() {
+    fn a_cp_of_a_terminal_of_the_ghost_s_strip_is_no_hit() {
         let mut t = tables();
         terminal_rep(&mut t, 1, true, &[(1, "-X1:1/a")]);
         t.cps[0].at = (0, 10 * G);
@@ -663,7 +663,7 @@ mod tests {
     }
 
     #[test]
-    fn ft1082_a_moved_terminal_s_strip_tag_is_its_labels_text_before_the_last_colon() {
+    fn a_moved_terminal_s_strip_tag_is_its_labels_text_before_the_last_colon() {
         let mut t = tables();
         terminal_rep(&mut t, 1, true, &[(1, "-X1:70/a"), (2, "-X1:70/b")]);
         terminal_rep(&mut t, 2, true, &[(3, "-X1:71/a"), (4, "-X2:71/b")]);

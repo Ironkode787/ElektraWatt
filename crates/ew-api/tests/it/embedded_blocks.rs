@@ -3,13 +3,13 @@
 
 //! WP-S4.01 part 4b over Golden A: every embedded report block drawn through one path (D16 to D18).
 //!
-//! - `lb3_part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title`
-//! - `lb6_a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold`,
-//!   `lb6_a_block_whose_rows_do_not_derive_draws_its_reason`, `lb6_the_tables_layer_does_not_depend_on_record_order`
-//! - `lb7_the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed` (WP-S4.02 EB-3: the end-bracket row
+//! - `part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title`
+//! - `a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold`,
+//!   `a_block_whose_rows_do_not_derive_draws_its_reason`, `the_tables_layer_does_not_depend_on_record_order`
+//! - `the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed` (WP-S4.02 EB-3: the end-bracket row
 //!   is row 31; the block holds 2 × 20 rows, asserted first)
-//! - `lb8_the_legend_exports_through_the_named_block_path_and_no_default_export_changes`
-//! - `lb9_part_data_on_201_and_202_draws_both_order_codes_with_no_overflow`
+//! - `the_legend_exports_through_the_named_block_path_and_no_default_export_changes`
+//! - `part_data_on_201_and_202_draws_both_order_codes_with_no_overflow`
 //! - `an_embedded_block_draws_no_back_links`
 //!
 //! Folio 1's byte equality (LB-6) and every other page's (LB-10) are the expected files of `page_output`; LP-5 with the
@@ -118,7 +118,7 @@ fn fixture_block(n: u128, source: ReportSource, page: Id<Page>, rect: Bounds) ->
 /// LB-3: "PART DATA on 902 lists exactly NSYPLA1074G and NSYPMM107 (no carrier line) and draws them under the title
 /// "PART DATA"" (the source through the surface view: the orchestrator's).
 #[test]
-fn lb3_part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title() {
+fn part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title() {
     let s = common::golden_session();
     let q = s.query();
     let (texts, findings) = tables(&q, "902");
@@ -157,7 +157,7 @@ fn numbers(range: std::ops::RangeInclusive<usize>) -> Vec<String> {
 /// Golden A's 31 rows as 20 + 11 (WP-S4.02 EB-3: the end brackets are row 31; ruling 7: the block's capacity is
 /// asserted first, at least 31); placing F55 on R1 draws 32 as 20 + 12 and renumbers; no text reports an overflow.
 #[test]
-fn lb7_the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed() {
+fn the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed() {
     let legend = block("legend-902");
     let rect = legend.embedded.as_ref().expect("embedded on 902").rect.0;
     let table = EmbeddedTable {
@@ -221,7 +221,7 @@ fn lb7_the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed() 
 /// kind, the description included (D18: the named-block path); the default blocks of `bom`, `cables`, `wires` and
 /// `terminals` are not embedded blocks, so those exports are unchanged (their bytes: `golden_csv`).
 #[test]
-fn lb8_the_legend_exports_through_the_named_block_path_and_no_default_export_changes() {
+fn the_legend_exports_through_the_named_block_path_and_no_default_export_changes() {
     let s = common::golden_session();
     let q = s.query();
     let legend = block("legend-902");
@@ -265,7 +265,7 @@ fn lb8_the_legend_exports_through_the_named_block_path_and_no_default_export_cha
 /// A42's LB-9 stop: "PART DATA's label : part number weights are 3 : 10" (at 1 : 3 the 35-character code
 /// overflows at the 1.8 mm floor).
 #[test]
-fn lb9_part_data_on_201_and_202_draws_both_order_codes_with_no_overflow() {
+fn part_data_on_201_and_202_draws_both_order_codes_with_no_overflow() {
     let s = common::golden_session();
     let q = s.query();
     for folio in ["201", "202"] {
@@ -288,7 +288,7 @@ fn lb9_part_data_on_201_and_202_draws_both_order_codes_with_no_overflow() {
 /// LB-6: a `wire_list` block (a kind that declares no layout) embedded on schematic page 101 draws every column under
 /// a header row (the orchestrator's), the rows its rect holds, and reports the rest.
 #[test]
-fn lb6_a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold() {
+fn a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold() {
     let batch = golden_common::batch();
     // 16.31–277.27 × 20.00–88.00 mm printed: 68 mm hold ten rows of 6.52 mm, a header and nine data rows.
     let wires = fixture_block(
@@ -336,7 +336,7 @@ fn lb6_a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot
 
 /// LB-6: a block whose rows do not derive draws its reason.
 #[test]
-fn lb6_a_block_whose_rows_do_not_derive_draws_its_reason() {
+fn a_block_whose_rows_do_not_derive_draws_its_reason() {
     let batch = golden_common::batch();
     let newer = fixture_block(
         2,
@@ -356,7 +356,7 @@ fn lb6_a_block_whose_rows_do_not_derive_draws_its_reason() {
 
 /// LB-6 and LB-10: the tables layers of the pages with embedded blocks do not depend on the record order.
 #[test]
-fn lb6_the_tables_layer_does_not_depend_on_record_order() {
+fn the_tables_layer_does_not_depend_on_record_order() {
     let a = common::golden_session();
     let batch = common::golden_batch();
     let (project, mut records) = common::split(&batch);

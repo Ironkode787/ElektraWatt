@@ -258,7 +258,7 @@ fn parts_import(size: Size) {
 /// ID-1278 ruling 13: the check down bites. Renumber pages… fits the 1280 × 720-point window at 300 % with its Primary
 /// and Cancel; in a window too short for it, its buttons are reported as leaving the window.
 #[test]
-fn ax3_a_footer_below_the_window_is_reported() {
+fn a_footer_below_the_window_is_reported() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, Size::At300);
     dispatch(&mut h, "pages.renumber", json!({}));
@@ -280,7 +280,7 @@ fn ax3_a_footer_below_the_window_is_reported() {
 /// The first run's steps are checked too. Its first step fits at 300 %; in a window too short for it, its
 /// Skip and Next are reported as leaving the window.
 #[test]
-fn ax3_a_first_run_footer_below_the_window_is_reported() {
+fn a_first_run_footer_below_the_window_is_reported() {
     let tmp = Tmp::new();
     let mut shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
     shell.start_first_run_if_needed();
@@ -310,49 +310,49 @@ fn at_both_sizes(flow: fn(Size)) {
 }
 
 #[test]
-fn ax3_new_project_at_300_and_with_14_pt_text() {
+fn new_project_at_300_and_with_14_pt_text() {
     at_both_sizes(new_project);
 }
 
 #[test]
-fn ax3_renumber_devices_and_pages_at_300_and_with_14_pt_text() {
+fn renumber_devices_and_pages_at_300_and_with_14_pt_text() {
     at_both_sizes(renumber);
 }
 
 #[test]
-fn ax3_the_print_pre_dialog_at_300_and_with_14_pt_text() {
+fn the_print_pre_dialog_at_300_and_with_14_pt_text() {
     at_both_sizes(print);
 }
 
 #[test]
-fn ax3_find_and_replace_at_300_and_with_14_pt_text() {
+fn find_and_replace_at_300_and_with_14_pt_text() {
     at_both_sizes(find_and_replace);
 }
 
 #[test]
-fn ax3_the_settings_switches_at_300_and_with_14_pt_text() {
+fn the_settings_switches_at_300_and_with_14_pt_text() {
     at_both_sizes(settings_switches);
 }
 
 #[test]
-fn ax3_the_first_run_steps_at_300_and_with_14_pt_text() {
+fn the_first_run_steps_at_300_and_with_14_pt_text() {
     at_both_sizes(first_run);
 }
 
 #[test]
-fn ax3_the_recovery_dialog_at_300_and_with_14_pt_text() {
+fn the_recovery_dialog_at_300_and_with_14_pt_text() {
     at_both_sizes(recovery);
 }
 
 #[test]
-fn ax3_the_parts_import_card_at_300_and_with_14_pt_text() {
+fn the_parts_import_card_at_300_and_with_14_pt_text() {
     at_both_sizes(parts_import);
 }
 
 /// AX-2: View ▸ UI scale and the first run's appearance step offer 250 % and 300 %; choosing either writes it to
 /// `settings.toml`, which reads it back.
 #[test]
-fn ax2_the_menu_and_the_first_run_offer_250_and_300_percent() {
+fn the_menu_and_the_first_run_offer_250_and_300_percent() {
     let tmp = Tmp::new();
     let config = tmp.config().config_dir.expect("a settings directory");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
@@ -431,7 +431,7 @@ fn ctrl_wheel_one_frame(h: &mut Harness<'_, App>) -> (f64, f64) {
 /// AX-4: with reduced motion egui's animation time is zero and a Ctrl+wheel line zooms to its whole factor (egui's
 /// `exp(scroll_zoom_speed × line_scroll_speed)`) in its own frame; without it egui spreads the step over frames.
 #[test]
-fn ax4_reduced_motion_stops_animation_and_the_zoom_jumps() {
+fn reduced_motion_stops_animation_and_the_zoom_jumps() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
     settle(&mut h);
@@ -468,7 +468,7 @@ fn ax4_reduced_motion_stops_animation_and_the_zoom_jumps() {
 /// ID-1278 ruling 12 (D14, doc 16 §10.4, doc 16a §4.12): with the setting unset, a canvas that draws on the
 /// GPU keeps motion, and a GPU start that fails (FR-UI-028's fallback to the CPU) leaves reduced motion on.
 #[test]
-fn ax4_a_failed_gpu_start_leaves_reduced_motion_on() {
+fn a_failed_gpu_start_leaves_reduced_motion_on() {
     use ew_ui::gpu::{AdapterSummary, DeviceKind, GpuApi, GpuError};
     let vulkan = || AdapterSummary {
         kind: DeviceKind::Discrete,
@@ -507,7 +507,7 @@ fn ax4_a_failed_gpu_start_leaves_reduced_motion_on() {
 /// AX-4: with the setting unset, the CPU canvas (View ▸ Use the CPU renderer for the canvas) turns reduced motion
 /// on; the setting, once set, decides.
 #[test]
-fn ax4_the_cpu_canvas_reduces_motion_while_the_setting_is_unset() {
+fn the_cpu_canvas_reduces_motion_while_the_setting_is_unset() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), None);
     settle(&mut h);

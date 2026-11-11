@@ -142,7 +142,7 @@ fn insert_and_read(shell: &mut ShellModel, key: &str, set: Option<&str>, typed: 
 /// value (`PSU-A`); a typed value is passed in `values` and survives a change of value set; inserted, the literal wins
 /// over the value set, the value set over the default, and the default applies without either.
 #[test]
-fn ft785_a_typed_value_wins_over_the_value_set_and_the_default() {
+fn a_typed_value_wins_over_the_value_set_and_the_default() {
     let tmp = Tmp::new("macro-values-785");
     let (t, lib) = user_library(&tmp.0);
     seed_macro(&tmp, &t, lib);
@@ -199,7 +199,7 @@ fn ft785_a_typed_value_wins_over_the_value_set_and_the_default() {
 /// A typed value that does not coerce (a tag counter of letters) shows the command's refusal under its field
 /// in words, without the variable's name; Apply fails with it and the card stays; clearing the value previews again.
 #[test]
-fn ft785_a_value_that_does_not_coerce_is_refused_under_its_field() {
+fn a_value_that_does_not_coerce_is_refused_under_its_field() {
     let tmp = Tmp::new("macro-values-785b");
     let (t, lib) = user_library(&tmp.0);
     seed_macro(&tmp, &t, lib);
@@ -287,7 +287,7 @@ fn detail(shell: &mut ShellModel, name: &str) -> ew_viewmodel::ew_api::output::M
 /// `Set 1`, `Set 2`, `Set 3`; a rename, a cell edit and a remove change the rows; Save writes the table's sets into the
 /// macro (its value sets equal the table). `value_sets` given to `macros.save` prefills the table.
 #[test]
-fn ft786_the_value_set_table_adds_renames_removes_and_saves() {
+fn the_value_set_table_adds_renames_removes_and_saves() {
     let tmp = Tmp::new("macro-values-786");
     let (t, _) = user_library(&tmp.0);
     let mut shell = shell_with(&tmp, "a", &t, "102");
@@ -353,7 +353,7 @@ fn ft786_the_value_set_table_adds_renames_removes_and_saves() {
 /// Save with a cell that does not coerce is refused in words naming the set and the variable, and a set
 /// without a name by its row number; the dialog stays with the refusal and nothing is written.
 #[test]
-fn ft786_an_invalid_cell_is_refused_naming_the_set_and_the_variable() {
+fn an_invalid_cell_is_refused_naming_the_set_and_the_variable() {
     let tmp = Tmp::new("macro-values-786b");
     let (t, _) = user_library(&tmp.0);
     let mut shell = shell_with(&tmp, "a", &t, "102");

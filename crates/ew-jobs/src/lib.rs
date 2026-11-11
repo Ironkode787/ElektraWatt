@@ -414,7 +414,7 @@ mod tests {
     }
 
     #[test]
-    fn jb1_progress_and_the_end_arrive_through_try_end_once() {
+    fn progress_and_the_end_arrive_through_try_end_once() {
         let gate = Gate::new();
         gate.hold("half");
         let (waker, wakes) = counting_waker();
@@ -467,7 +467,7 @@ mod tests {
     }
 
     #[test]
-    fn jb1_a_cancel_at_a_held_gate_gives_cancelled() {
+    fn a_cancel_at_a_held_gate_gives_cancelled() {
         let gate = Gate::new();
         gate.hold("page");
         let pages = Arc::new(AtomicU32::new(0));
@@ -500,7 +500,7 @@ mod tests {
     }
 
     #[test]
-    fn jb1_a_panicking_body_is_reported_and_the_spawning_thread_goes_on() {
+    fn a_panicking_body_is_reported_and_the_spawning_thread_goes_on() {
         let (waker, wakes) = counting_waker();
         let mut job: Job<u8> = Job::spawn(
             JobOptions {
@@ -525,7 +525,7 @@ mod tests {
     }
 
     #[test]
-    fn jb1_wait_returns_the_end_and_failures_carry_their_cause() {
+    fn wait_returns_the_end_and_failures_carry_their_cause() {
         let ok = Job::spawn(named("ok"), |_| Ok("x")).unwrap();
         assert_eq!(ok.wait(), JobEnd::Done("x"));
         let failed: Job<()> =
@@ -536,7 +536,7 @@ mod tests {
     }
 
     #[test]
-    fn jb1_the_thread_is_named_after_the_job() {
+    fn the_thread_is_named_after_the_job() {
         let job = Job::spawn(named("pdf"), |_| {
             Ok(std::thread::current().name().map(str::to_owned))
         })
@@ -545,7 +545,7 @@ mod tests {
     }
 
     #[test]
-    fn jb1_a_checkpoint_without_a_gate_or_a_hold_never_blocks() {
+    fn a_checkpoint_without_a_gate_or_a_hold_never_blocks() {
         let gate = Gate::new();
         gate.hold("other");
         let job = Job::spawn(
@@ -566,7 +566,7 @@ mod tests {
 
     /// A checkpoint that no job reaches fails the wait, naming the checkpoint, instead of hanging.
     #[test]
-    fn jb1_waiting_for_a_checkpoint_that_nothing_reaches_fails_naming_it() {
+    fn waiting_for_a_checkpoint_that_nothing_reaches_fails_naming_it() {
         let gate = Gate::new();
         gate.hold("written");
         let failure = catch_unwind(AssertUnwindSafe(|| {
@@ -580,7 +580,7 @@ mod tests {
     }
 
     #[test]
-    fn jb1_a_job_handle_and_a_gate_cross_threads() {
+    fn a_job_handle_and_a_gate_cross_threads() {
         fn send<T: Send>(_: &T) {}
         fn send_sync<T: Send + Sync>(_: &T) {}
         let job = Job::spawn(named("s"), |_| Ok(0u8)).unwrap();

@@ -450,7 +450,7 @@ fn entries(bytes: &[u8]) -> BTreeMap<String, Vec<u8>> {
 /// - RA-6: the record carries the sign-off as `approval`, the packs, the derivation profile, the content digest of g,
 ///   every page digest and the changed pages (every page: the first release has no earlier one).
 #[test]
-fn ra1_ra2_ra6_the_release_writes_the_archive_and_the_record() {
+fn the_release_writes_the_archive_and_the_record() {
     let (base, dir, mut s, integrity) = approved_copy("ra1");
     let root = base.join("archives");
     let (digest, g) = s.content_digest().expect("saved");
@@ -679,7 +679,7 @@ fn the_release_report_lists_the_waivers_in_force() {
 /// RA-5: two releases of the same saved state (two copies in directories of different names, one with one thread
 /// and one with four) write byte-identical archives: no clock, no locale, no hash-map order, no host path.
 #[test]
-fn ra5_two_releases_of_the_same_saved_state_write_the_same_bytes() {
+fn two_releases_of_the_same_saved_state_write_the_same_bytes() {
     let mut archives = Vec::new();
     for (tag, parallelism) in [("ra5a", Parallelism::Serial), ("ra5b", Parallelism::threads(4))] {
         let (base, _, mut s, integrity) = approved_copy(tag);
@@ -1141,7 +1141,7 @@ fn sweep(fault: fn(u64) -> Fault, in_worktree: bool) -> Seen {
 /// completed and discarded, and released; never one a discard keeps, since the run's record is durable before the
 /// archive has its name (FIX40a, finding 3: a crash right after the rename is discardable by this directory).
 #[test]
-fn ra3_a_kill_at_every_call_leaves_a_settled_or_incomplete_release() {
+fn a_kill_at_every_call_leaves_a_settled_or_incomplete_release() {
     let seen = sweep(|at| Fault::Kill { at }, true);
     assert!(seen.clean > 0, "{seen:?}");
     assert!(seen.completed > 0, "{seen:?}");
@@ -1154,7 +1154,7 @@ fn ra3_a_kill_at_every_call_leaves_a_settled_or_incomplete_release() {
 /// (the archive is synced and renamed before the stamp's save), and an open one has at most an incomplete release,
 /// which a run record of this directory proves its own.
 #[test]
-fn ra3_a_power_loss_at_every_call_never_loses_a_named_archive() {
+fn a_power_loss_at_every_call_never_loses_a_named_archive() {
     let seen = sweep(|at| Fault::PowerLoss { at, keep: 0 }, false);
     assert!(seen.clean > 0, "{seen:?}");
     assert!(seen.released > 0, "{seen:?}");
@@ -1165,7 +1165,7 @@ fn ra3_a_power_loss_at_every_call_never_loses_a_named_archive() {
 /// failed release leaves the revision open, no archive, no temp and no tag in place, the session saved; the next
 /// release in the same session succeeds.
 #[test]
-fn ra3_one_failing_call_cleans_up_what_the_run_created() {
+fn one_failing_call_cleans_up_what_the_run_created() {
     let image = approved_image();
     let mut failed = 0;
     for n in 1..2000 {
@@ -1222,7 +1222,7 @@ fn ra3_one_failing_call_cleans_up_what_the_run_created() {
 /// the archive of the run; both leave the revision open and the session saved, and the release succeeds once git
 /// does.
 #[test]
-fn ra3_a_git_failure_leaves_the_revision_open() {
+fn a_git_failure_leaves_the_revision_open() {
     let image = approved_image();
     for (fail_commit, fail_tag) in [(true, false), (false, true)] {
         let vfs = mem_vfs(&image);
@@ -1969,7 +1969,7 @@ fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
 /// the default archive root beside the project lies in the worktree and is flagged. Without `git` on the path, a
 /// release inside the worktree is refused before the archive.
 #[test]
-fn ra7_the_release_commits_and_tags_in_a_git_repository() {
+fn the_release_commits_and_tags_in_a_git_repository() {
     if git_in(Path::new("."), &["--version"]).is_none() {
         eprintln!("RA-7 skipped: no git executable on the path");
         return;
@@ -2227,7 +2227,7 @@ fn shipped_report_forms() -> (serde_json::Value, serde_json::Value) {
 /// re-derived from `project/` equal the frozen `reports/` entries. A copy of the release fixture gets a parts list on
 /// 901 first (the fixture itself is unchanged), so that the archive holds report rows.
 #[test]
-fn ru1_ru2_the_archive_reproduces_its_pdf_and_its_report_rows() {
+fn the_archive_reproduces_its_pdf_and_its_report_rows() {
     let base = ew_testdir::fresh_dir("ew-release-ru1");
     let dir = base.join("release-min");
     let state = base.join("state");

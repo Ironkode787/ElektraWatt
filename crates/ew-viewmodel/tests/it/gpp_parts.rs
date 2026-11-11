@@ -56,7 +56,7 @@ fn choices(s: &ShellModel) -> Vec<String> {
 /// chooser's options (`props.edit`, `props.input`, `props.choose`); the BOM lists them; a number that matches no
 /// copy answers with a sentence, never serde text.
 #[test]
-fn row1_parts_are_chosen_by_part_number_and_reach_the_bom() {
+fn parts_are_chosen_by_part_number_and_reach_the_bom() {
     let tmp = Tmp::new("gpp-parts-1");
     let mut s = golden(&tmp, "101");
     // Clear the three devices' parts first (an empty text is the empty list).
@@ -117,7 +117,7 @@ fn row1_parts_are_chosen_by_part_number_and_reach_the_bom() {
 /// designation, and the terminal carries the part (the run made a free device -103X1 and said nothing). Golden A's
 /// -X1031:1 is deleted and placed again from its part; a strip that does not exist fails and lists the strips.
 #[test]
-fn row2_a_terminal_part_joins_its_strip_with_its_designation_and_carries_the_part() {
+fn a_terminal_part_joins_its_strip_with_its_designation_and_carries_the_part() {
     let tmp = Tmp::new("gpp-parts-2");
     let mut s = golden(&tmp, "103");
     done(&mut s, "select.set", json!({"refs": ["tag:-X1031:1"]}));
@@ -197,7 +197,7 @@ const E55: &str = "85760c34-951e-5b8a-bbe2-3253c69e3db2";
 /// delete of its representation alone is EW-CORE-047. (Cycle 33 review finding 1: the run's -102G1 is kept now, as it
 /// carries the +24V and 0V definitions and a bond; this row runs on E55, which carries no such intent.)
 #[test]
-fn row5_deleting_the_last_representation_deletes_the_device_and_one_undo_restores_both() {
+fn deleting_the_last_representation_deletes_the_device_and_one_undo_restores_both() {
     let tmp = Tmp::new("gpp-parts-5");
     let mut s = golden(&tmp, "101");
     let g = core047(&tmp, &mut s);
@@ -271,7 +271,7 @@ fn connect_intent(tmp: &Tmp, s: &mut ShellModel) -> (Vec<String>, usize, Vec<Uui
 /// the +24V and 0V definitions and the 0V-PE bond, which a delete of the drawing must not drop unseen. The device is
 /// left to EW-CORE-047.
 #[test]
-fn row5_a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
+fn a_device_whose_cps_carry_potentials_and_a_bond_is_kept() {
     let tmp = Tmp::new("gpp-parts-5c");
     let mut s = golden(&tmp, "102");
     let (names_before, bonds_before, _) = connect_intent(&tmp, &mut s);
@@ -344,7 +344,7 @@ fn a_delete_toast_of_two_sentences_joins_them_with_one_space() {
 
 /// Finding 5's limit: a device with another representation keeps its device when one representation is deleted.
 #[test]
-fn row5_a_device_with_another_representation_is_kept() {
+fn a_device_with_another_representation_is_kept() {
     let tmp = Tmp::new("gpp-parts-5b");
     let mut s = golden(&tmp, "101");
     // A device that a page of Golden A draws more than once.
@@ -378,7 +378,7 @@ fn row5_a_device_with_another_representation_is_kept() {
 
 /// Finding 2, the run's own step: a new strip `-X??` and its first terminal placed from the part.
 #[test]
-fn row2_the_first_terminal_of_a_new_strip_from_its_part() {
+fn the_first_terminal_of_a_new_strip_from_its_part() {
     let tmp = Tmp::new("gpp-parts-2b");
     let mut s = golden(&tmp, "103");
     let qty = |bom: &[String]| -> String {

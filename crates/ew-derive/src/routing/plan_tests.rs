@@ -84,7 +84,7 @@ fn jobs(p: &PageGeometry) -> Vec<Uuid> {
 }
 
 #[test]
-fn rt6_a_crossing_is_taken_over_a_detour_of_more_than_six_steps_and_a_shorter_detour_over_a_crossing() {
+fn a_crossing_is_taken_over_a_detour_of_more_than_six_steps_and_a_shorter_detour_over_a_crossing() {
     // A U from (0, 0) down and back up to (20, 0) past a fixed wire at x = 10 that reaches down to `depth`: crossing
     // it at y = 1 costs 12; passing below it costs two steps more per step of depth.
     let case = |depth: i64| {
@@ -117,7 +117,7 @@ fn rt6_a_crossing_is_taken_over_a_detour_of_more_than_six_steps_and_a_shorter_de
 }
 
 #[test]
-fn rt4_a_supply_connection_claims_the_one_track_before_a_signal_connection() {
+fn a_supply_connection_claims_the_one_track_before_a_signal_connection() {
     // A one-track channel at y = 10 between two bodies; the signal wire is given first and could take it.
     let mut p = page();
     add_job(
@@ -166,7 +166,7 @@ fn walls() -> PageGeometry {
 }
 
 #[test]
-fn rt5_a_rip_up_round_routes_what_the_first_pass_failed() {
+fn a_rip_up_round_routes_what_the_first_pass_failed() {
     // B runs down a closed track at x = 10 from (10, −1) to (10, 21); A (the longer span, routed first) passes
     // through the track, in by a gap in its left wall at y = 10 and out by one in its right wall at y = 15, which
     // blocks B; A can also go round below the walls. The round rips A up, routes B and routes A round.
@@ -202,7 +202,7 @@ fn rt5_a_rip_up_round_routes_what_the_first_pass_failed() {
 }
 
 #[test]
-fn rt5_a_job_no_round_routes_is_unrouted_with_its_reason_and_nothing_drawn_through() {
+fn a_job_no_round_routes_is_unrouted_with_its_reason_and_nothing_drawn_through() {
     // C needs the same track as B and has no other: one of them stays unrouted, for the other wire, after a round.
     let mut p = walls();
     body(&mut p, 903, mm(19, 0), mm(21, 20));
@@ -222,7 +222,7 @@ fn rt5_a_job_no_round_routes_is_unrouted_with_its_reason_and_nothing_drawn_throu
 }
 
 #[test]
-fn rt3_three_mates_run_parallel_one_step_apart_in_their_order() {
+fn three_mates_run_parallel_one_step_apart_in_their_order() {
     // An L1 L2 L3 stack at the left edge to a breaker's three poles lower right.
     let mut p = page();
     for (k, phase) in [(0, 0u8), (1, 1), (2, 2)] {
@@ -254,7 +254,7 @@ fn rt3_three_mates_run_parallel_one_step_apart_in_their_order() {
 }
 
 #[test]
-fn rt2_the_plan_does_not_depend_on_the_order_of_the_lists_or_the_jobs() {
+fn the_plan_does_not_depend_on_the_order_of_the_lists_or_the_jobs() {
     let mut p = walls();
     add_job(
         &mut p,
@@ -426,7 +426,7 @@ proptest::proptest! {
     /// right, the connections between random CPs: every route the solve returns breaks no hard rule by the measures,
     /// and a sparse page (at most three connections among six symbols on a 6 × 6 lattice) is routed in full.
     #[test]
-    fn rt1_rt8_every_returned_route_keeps_the_hard_rules(
+    fn every_returned_route_keeps_the_hard_rules(
         cells in proptest::collection::btree_set((0i64..6, 0i64..6), 2..9),
         pairs in proptest::collection::vec((0usize..64, 0usize..64), 1..7),
     ) {
@@ -449,7 +449,7 @@ proptest::proptest! {
     /// from free CPs to the junctions. Every route the solve returns keeps measures (a) to (d), no junction has a
     /// fourth arm (g), and a connection whose stub a text crosses is not routed (§5.1 rule 4 has no exemption).
     #[test]
-    fn rt1_every_returned_route_keeps_the_hard_rules_among_texts_junctions_and_fixed_wires(
+    fn every_returned_route_keeps_the_hard_rules_among_texts_junctions_and_fixed_wires(
         cells in proptest::collection::btree_set((0i64..6, 0i64..6), 2..9),
         pairs in proptest::collection::vec((0usize..64, 0usize..64), 1..7),
         texts in proptest::collection::vec((0usize..64, 0usize..8), 1..7),

@@ -180,7 +180,7 @@ fn held_version(s: &mut ShellModel) -> String {
 }
 
 #[test]
-fn ps8_the_paste_choice_in_the_shell() {
+fn the_paste_choice_in_the_shell() {
     let tmp = Tmp::new("paste-choice");
     let t = tiers(&tmp.0);
     publish(&t, &tmp.0, "MCB 1P+N C10", false);

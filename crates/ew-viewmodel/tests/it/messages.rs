@@ -82,7 +82,7 @@ fn errors(shell: &ShellModel) -> usize {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The IP tool (as in `tests/part3.rs`)
+// The IP tool (as in `tests/it/ip_and_black_box.rs`)
 
 fn sheet(s: &ShellModel, p: (i64, i64)) -> (i64, i64) {
     s.canvas().unwrap().page().snapper.page_to_sheet(p)
@@ -123,7 +123,7 @@ fn arm_ip(s: &mut ShellModel, name: &str, k: (i64, i64), direction: &str) {
 // MS1: the pane, its rows and Enter
 
 #[test]
-fn ms1_the_pane_lists_the_findings_and_enter_opens_ef08() {
+fn the_pane_lists_the_findings_and_enter_opens_ef08() {
     let tmp = Tmp::new("msg-ms1");
     let mut shell = tmp.shell("102");
     let calls = shell.session_calls().navigator_table;
@@ -232,7 +232,7 @@ fn ef08_title() -> String {
 // MS2: pending (FR-UI-041, amended by D16)
 
 #[test]
-fn ms2_a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves() {
+fn a_new_unpaired_point_on_the_editing_page_is_pending_until_the_tab_moves() {
     let tmp = Tmp::new("msg-ms2");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "view.zoom_actual", json!({}));
@@ -310,7 +310,7 @@ fn count_in(text: &str, one: &str, many: &str) -> usize {
 /// the pending and the waived ones); the status bar adds the pending ones as their own part, so a count that changes
 /// when the tab leaves the page says why.
 #[test]
-fn ft710_the_toast_the_status_bar_and_the_chip_agree() {
+fn the_toast_the_status_bar_and_the_chip_agree() {
     let tmp = Tmp::new("msg-ft710");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "view.zoom_actual", json!({}));
@@ -393,7 +393,7 @@ fn ft710_the_toast_the_status_bar_and_the_chip_agree() {
 }
 
 #[test]
-fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
+fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
     let tmp = Tmp::new("msg-ms2b");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "view.zoom_actual", json!({}));
@@ -504,7 +504,7 @@ fn ms2_run_checks_ends_pending_and_a_conflict_is_never_pending() {
 // MS3: the quick fix (D10)
 
 #[test]
-fn ms3_the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
+fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
     let tmp = Tmp::new("msg-ms3");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     let page = common::page_id(&shell, "102");
@@ -580,7 +580,7 @@ fn ms3_the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
 }
 
 #[test]
-fn ms3_a_stale_card_previews_again_and_a_read_only_project_refuses() {
+fn a_stale_card_previews_again_and_a_read_only_project_refuses() {
     let tmp = Tmp::new("msg-ms3b");
     let mut ro = tmp.shell("102");
     done(&mut ro, "messages.show", json!({"on": true}));
@@ -613,7 +613,7 @@ fn ms3_a_stale_card_previews_again_and_a_read_only_project_refuses() {
 // MS4: F8, Shift+F8 and F1
 
 #[test]
-fn ms4_f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
+fn f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
     let tmp = Tmp::new("msg-ms4");
     let mut shell = tmp.shell("102");
     assert!(!shell.navigator_open(NavKind::Messages));
@@ -706,7 +706,7 @@ fn ms4_f8_walks_and_wraps_and_opens_the_pane_and_f1_opens_the_rule_page() {
 }
 
 #[test]
-fn ms4_f8_with_no_findings_on_show_refuses() {
+fn f8_with_no_findings_on_show_refuses() {
     let tmp = Tmp::new("msg-ms4b");
     let mut shell = tmp.shell("102");
     done(&mut shell, "messages.show", json!({"on": true}));
@@ -725,7 +725,7 @@ fn ms4_f8_with_no_findings_on_show_refuses() {
 /// `navigator.row {key}` to a finding under a collapsed group expands its path and puts the cursor on it; a key
 /// the filter hides is refused and leaves the collapsed groups as they were.
 #[test]
-fn ft528_navigator_row_into_a_collapsed_group_expands_its_path() {
+fn navigator_row_into_a_collapsed_group_expands_its_path() {
     let tmp = Tmp::new("msg-ft528");
     let mut shell = tmp.shell("102");
     done(&mut shell, "messages.show", json!({"on": true}));
@@ -795,7 +795,7 @@ fn ft528_navigator_row_into_a_collapsed_group_expands_its_path() {
 /// With the Messages pane closed, Run checks still reports what it found, errors and warnings always named
 /// (`Check: 0 errors, 1 warning`), and the summary text follows the singular and plural forms.
 #[test]
-fn ft549_check_reports_its_counts_with_the_pane_closed() {
+fn check_reports_its_counts_with_the_pane_closed() {
     let tmp = Tmp::new("msg-ft549");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut shell, "messages.check", json!({}));
@@ -825,7 +825,7 @@ fn a_finding_row_shows_its_subject_once() {
 /// FT-1140 (item 9): the detail block's message stands on its own line, so it starts with a capital (ID-1182,
 /// `strings::sentence_start`); the row keeps the rule's lowercase text.
 #[test]
-fn ft1140_the_detail_message_starts_with_a_capital() {
+fn the_detail_message_starts_with_a_capital() {
     let tmp = Tmp::new("msg-ft1140");
     let mut shell = tmp.shell("102");
     done(&mut shell, "messages.show", json!({"on": true}));

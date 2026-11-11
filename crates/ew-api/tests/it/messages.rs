@@ -53,7 +53,7 @@ fn provider_order(report: &[Finding]) -> Vec<String> {
 }
 
 #[test]
-fn ms1_the_rows_are_the_online_findings_under_their_severity_and_rule() {
+fn the_rows_are_the_online_findings_under_their_severity_and_rule() {
     let s = golden();
     assert_eq!(
         s.online_scheme().name,
@@ -159,7 +159,7 @@ fn ms1_the_rows_are_the_online_findings_under_their_severity_and_rule() {
 }
 
 #[test]
-fn ms1_ef08_is_an_error_row_that_opens_the_cable_on_its_page() {
+fn ef08_is_an_error_row_that_opens_the_cable_on_its_page() {
     let s = golden();
     let t = s.navigator_table(NavKind::Messages);
     let row = findings(&t)
@@ -193,7 +193,7 @@ fn ms1_ef08_is_an_error_row_that_opens_the_cable_on_its_page() {
 }
 
 #[test]
-fn ms1_keys_are_stable_across_a_revision_that_changes_no_finding() {
+fn keys_are_stable_across_a_revision_that_changes_no_finding() {
     let mut s = golden();
     let before = s.navigator_table(NavKind::Messages);
     let devices = s.navigator_table(NavKind::Devices);

@@ -914,7 +914,7 @@ fn assert_chips_apart(
 /// statistics shown and the anchor moved beside their panel, no chip covers the panel; no two chips intersect, with
 /// the statistics on and off.
 #[test]
-fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
+fn the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     let at = place_and_rest(&mut h);
@@ -999,7 +999,7 @@ fn ov2_the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
 /// options card stands, leaves the preview's chips no free candidate; each stands inside the canvas all the same
 /// (clamped), none cut at its edge.
 #[test]
-fn ft1079_the_preview_chips_stay_inside_the_canvas_at_the_floor() {
+fn the_preview_chips_stay_inside_the_canvas_at_the_floor() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     h.set_size(Vec2::new(1280.0, 800.0));

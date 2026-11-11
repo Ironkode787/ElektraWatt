@@ -181,7 +181,7 @@ fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
 /// The field shows the typed name after the focus leaves it, until a point takes it; empty, it shows
 /// the HUD's proposal as its hint.
 #[test]
-fn ft851_the_ip_name_field_keeps_the_typed_name_until_a_point_takes_it() {
+fn the_ip_name_field_keeps_the_typed_name_until_a_point_takes_it() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     press(&mut h, Key::P);
@@ -273,7 +273,7 @@ fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
 /// its title (its free area) places a point on the sheet beneath; while the tool's ghost is under the card the card is
 /// drawn at 40 % opacity and is no chip obstacle, and away from it the card is whole and an obstacle again.
 #[test]
-fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
+fn a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -358,7 +358,7 @@ fn ft1086_a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() 
 /// gap between the IP name's label and its field places a point on the sheet beneath; a click on the field does not.
 /// Folio 3, whose sheet is free beneath the band (103's routed wires run there, and a point is not placed on a wire).
 #[test]
-fn ft1115_a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
+fn a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "3");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -405,7 +405,7 @@ fn ft1115_a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
 /// FT-1077 at the floor: the Interruption point row of a placed point's function has no value, so its label
 /// runs across the value column and is whole; a row with a value keeps the label column (M39).
 #[test]
-fn ft1077_a_row_with_no_value_lets_its_label_run_across_the_value_column() {
+fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     h.set_size(egui::Vec2::new(1280.0, 800.0));

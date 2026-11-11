@@ -676,7 +676,7 @@ fn naive_defect(route: &[Pt2]) -> bool {
 }
 
 #[test]
-fn ft437_a_repeated_vertex_is_refused_by_draw_and_route() {
+fn a_repeated_vertex_is_refused_by_draw_and_route() {
     let (mut e, fa, fb) = two_devices();
     let dup = vec![pt(G, G), pt(2 * G, G), pt(2 * G, G), pt(4 * G, G)];
     // FT-864 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
@@ -694,7 +694,7 @@ fn ft437_a_repeated_vertex_is_refused_by_draw_and_route() {
 }
 
 #[test]
-fn ft437_a_route_that_doubles_back_is_refused() {
+fn a_route_that_doubles_back_is_refused() {
     let (mut e, fa, fb) = two_devices();
     // Right to 3G, back left to 2G, down, right, up into the CP: the second segment runs back over the first.
     let back = vec![
@@ -738,7 +738,7 @@ proptest::proptest! {
     /// them as given (a refused `connection.route` leaves the route as it was), and `geometry::route_defect`
     /// agrees with the oracle.
     #[test]
-    fn ft437_draw_and_route_accept_exactly_the_tidy_routes(
+    fn draw_and_route_accept_exactly_the_tidy_routes(
         inner in proptest::collection::vec((0i64..6, 0i64..4), 0..6),
     ) {
         let mut route = vec![pt(G, G)];

@@ -337,7 +337,7 @@ fn the_ui_scale_is_validated_and_persists() {
 /// WP-S2.17 DL7: `view.density` and `view.theme` write `settings.toml` and survive a restart; an unknown value fails
 /// with its reason and changes nothing.
 #[test]
-fn dl7_density_and_theme_round_trip_through_settings_toml() {
+fn density_and_theme_round_trip_through_settings_toml() {
     let tmp = Tmp::new(STEM);
     let config = tmp.config();
     let file = config.config_dir.clone().unwrap().join("settings.toml");

@@ -860,7 +860,7 @@ pub mod tests {
     /// BV10: `report connections`, `pages` and `pdf` serve a check run (the copies of the drafter's exports, and the
     /// path of the drafter's own PDF) and are refused to any other run.
     #[test]
-    fn bv10_the_checkers_reports_serve_a_check_run_only() {
+    fn the_checkers_reports_serve_a_check_run_only() {
         let f = fixture(Kind::Free);
         for which in ["connections", "pages", "pdf"] {
             assert_eq!(
@@ -1290,7 +1290,7 @@ pub mod tests {
 
     /// UR-5: in a round task the hand-back waits for the questionnaire (K7); a run of another task does not.
     #[test]
-    fn ur5_a_round_tasks_handback_waits_for_the_questionnaire() {
+    fn a_round_tasks_handback_waits_for_the_questionnaire() {
         let f = fixture(Kind::Brief);
         f.run.update(|j| j.rounds = vec!["R0".to_owned()]).unwrap();
         let all: Vec<String> = HANDBACK_HEADINGS.iter().map(|h| format!("## {h}\nx")).collect();

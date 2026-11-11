@@ -175,7 +175,7 @@ fn a_schematic_page_has_no_panel_tables() {
 /// order (ruling 9: PW-1's list read as a set) with their part, size and mount kind and their badges; after
 /// `layout.place` of F55 its row is gone in the same revision.
 #[test]
-fn pw1_the_unplaced_navigator_lists_the_five_devices() {
+fn the_unplaced_navigator_lists_the_five_devices() {
     use ew_api::output::NavKind;
     let mut s = golden_common::session(&golden_common::batch());
     let t = s.navigator_table(NavKind::Unplaced);

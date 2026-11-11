@@ -639,7 +639,7 @@ fn last_command(s: &ShellModel) -> (String, bool) {
 /// FT-673, the exchange flow: exchanging a symbol for a starter symbol the project lacks is one commit
 /// (`rep.exchange_symbol` with the symbol's copies), and one undo step takes the copies back with it.
 #[test]
-fn ft673_the_exchange_flow_embeds_its_symbol_in_the_same_undo_step() {
+fn the_exchange_flow_embeds_its_symbol_in_the_same_undo_step() {
     let tmp = Tmp::new("ft673-exchange");
     let mut s = new_project(&tmp);
     goto(&mut s, MULTI);
@@ -677,7 +677,7 @@ fn ft673_the_exchange_flow_embeds_its_symbol_in_the_same_undo_step() {
 /// FT-673, the IP tool: placing an interruption point in a new project is one commit (`ip.place` with the IP
 /// symbol's copies), and one undo step takes the copies back with it.
 #[test]
-fn ft673_the_ip_tool_embeds_its_symbol_in_the_same_undo_step() {
+fn the_ip_tool_embeds_its_symbol_in_the_same_undo_step() {
     let tmp = Tmp::new("ft673-ip");
     let mut s = new_project(&tmp);
     goto(&mut s, MULTI);
@@ -703,7 +703,7 @@ fn ft673_the_ip_tool_embeds_its_symbol_in_the_same_undo_step() {
 /// FT-673, P while routing: a wire ended in a new interruption point in a new project is one commit
 /// (`connection.draw_to_ip` with the IP symbol's copies), and one undo step takes the copies back with it.
 #[test]
-fn ft673_p_while_routing_embeds_the_ip_symbol_in_the_same_undo_step() {
+fn p_while_routing_embeds_the_ip_symbol_in_the_same_undo_step() {
     let tmp = Tmp::new("ft673-wire-ip");
     let mut s = new_project(&tmp);
     goto(&mut s, MULTI);
@@ -744,7 +744,7 @@ fn ft673_p_while_routing_embeds_the_ip_symbol_in_the_same_undo_step() {
 /// FT-673, `place.pick device=`: a contact the project lacks joined to a relay is one commit (`device.place` with
 /// the contact's copies), and one undo step takes the copies back with it.
 #[test]
-fn ft673_place_pick_device_embeds_the_contact_in_the_same_undo_step() {
+fn place_pick_device_embeds_the_contact_in_the_same_undo_step() {
     let tmp = Tmp::new("ft673-join");
     let mut s = new_project(&tmp);
     goto(&mut s, MULTI);

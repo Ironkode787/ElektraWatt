@@ -26,7 +26,7 @@ fn qty(shell: &ShellModel) -> String {
 }
 
 #[test]
-fn jb6_a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
+fn a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
     let tmp = Tmp::new("jb6-grid");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut s, "select.set", json!({"refs": terminals()}));
@@ -98,7 +98,7 @@ fn jb6_a_toasts_undo_works_from_the_log_and_expires_after_another_commit() {
 }
 
 #[test]
-fn jb6_the_toasts_of_a_closed_project_leave_the_screen_and_their_undo_expires() {
+fn the_toasts_of_a_closed_project_leave_the_screen_and_their_undo_expires() {
     let tmp = Tmp::new("jb6-close");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut s, "select.set", json!({"refs": terminals()}));

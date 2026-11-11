@@ -589,7 +589,7 @@ fn as3_auto_fill_refusals() {
 /// without room mints no placement, so the IDs of the fill and of the next command are those of a fill that never
 /// listed it.
 #[test]
-fn ft973_a_device_without_room_mints_no_placement() {
+fn a_device_without_room_mints_no_placement() {
     let placement_of = |e: &Engine, device: Id<Device>| -> Id<Placement> {
         rows::<Placement>(e)
             .into_iter()

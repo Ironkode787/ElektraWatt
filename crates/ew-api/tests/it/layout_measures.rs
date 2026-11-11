@@ -25,7 +25,7 @@ fn golden_copy() -> (Tmp, Session) {
 /// not touch the lamp's X1, the lamp's L feed runs along none of the switch's wires, and the heater's L feed does not
 /// pass through T55; the page breaks no hard rule.
 #[test]
-fn rg2_folio_101_s_pe_wire_lamp_feed_and_heater_feed_keep_clear() {
+fn folio_101_s_pe_wire_lamp_feed_and_heater_feed_keep_clear() {
     let (_tmp, s) = golden_copy();
     let pages = s.layout_report(Some("101")).unwrap();
     assert_eq!(pages.len(), 1);

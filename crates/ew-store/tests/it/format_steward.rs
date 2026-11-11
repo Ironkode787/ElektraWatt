@@ -39,7 +39,7 @@ fn folders(dir: &Path) -> Vec<PathBuf> {
 
 /// MG-6's steward half: the shipped chain, the released formats and the repository's corpus have no problem.
 #[test]
-fn mg6_the_shipped_chain_and_corpus_pass_the_steward_check() {
+fn the_shipped_chain_and_corpus_pass_the_steward_check() {
     let problems = steward_problems(RELEASED_FORMATS, FORMAT, &MIGRATIONS, &corpus());
     let words: Vec<String> = problems.iter().map(ToString::to_string).collect();
     assert!(words.is_empty(), "{words:#?}");
@@ -51,7 +51,7 @@ fn mg6_the_shipped_chain_and_corpus_pass_the_steward_check() {
 /// saves, and every untouched line of that file is written as it was, byte for byte, the edited record keeping its
 /// unknown members.
 #[test]
-fn ft96_untouched_lines_with_later_members_are_kept_byte_for_byte() {
+fn untouched_lines_with_later_members_are_kept_byte_for_byte() {
     use ew_model::{AnyRow, Op};
     use ew_store::ew_format::ew_schema::Device;
     use ew_store::ew_format::{FileHash, FilePath, Limits, MANIFEST, Manifest, sha256};

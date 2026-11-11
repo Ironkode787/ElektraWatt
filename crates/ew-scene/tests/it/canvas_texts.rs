@@ -398,7 +398,7 @@ fn a_tag_does_not_sit_on_a_wire() {
 /// The labels layer reports each tag's anchor where it prints, after the tag rule. The valve's
 /// tag that the wire would run through moves off it (here it turns about its anchor), and the reported anchor stands
 /// on the moved text's rectangle; the coils print no tag and report none, and no other layer reports tags. Golden A's
-/// folio 3, where the rule moves an anchor, is `ew-api`'s `ft771_tag_at_is_where_the_labels_layer_prints_the_tag`.
+/// folio 3, where the rule moves an anchor, is `ew-api`'s `tag_at_is_where_the_labels_layer_prints_the_tag`.
 #[test]
 fn the_labels_layer_reports_a_moved_tag_where_it_prints() {
     let (coil, valve) = (symbol(COIL), symbol(VALVE));

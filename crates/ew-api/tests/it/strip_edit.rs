@@ -141,7 +141,7 @@ fn run(s: &mut Session, cmd: &AnyCommand) {
 
 /// SE8: D8's three examples on -X1031, each one `fields.set` of `strip.groups` and one undo step.
 #[test]
-fn se8_group_labels_rewrite_the_groups() {
+fn group_labels_rewrite_the_groups() {
     let mut s = common::golden_session();
     let x = strip(&s, "-X1031");
     let before = groups(&s, x);
@@ -253,7 +253,7 @@ fn d13_terminal_properties_show_the_printed_label_and_the_group() {
 
 /// SE4: `bridge_groups` names BR1 to BR6 over the three strips as the wire list does.
 #[test]
-fn se4_bridge_groups_are_br1_to_br6() {
+fn bridge_groups_are_br1_to_br6() {
     let s = common::golden_session();
     let q = s.query();
     let groups = ew_reports::bridge_groups(&q);
@@ -274,7 +274,7 @@ fn se4_bridge_groups_are_br1_to_br6() {
 
 /// SE5: the resolver's kind filter, the long form and the ambiguity (D7).
 #[test]
-fn se5_the_part_resolver_filters_by_kind_and_lists_every_match() {
+fn the_part_resolver_filters_by_kind_and_lists_every_match() {
     let mut s = common::golden_session();
     let (bracket, bridge) = with_tbd_parts(&mut s);
     let x = strip(&s, "-X1031");
@@ -411,7 +411,7 @@ fn add_accessory_takes_the_one_copy_or_refuses() {
 
 /// SE7, D3: accessory rows after_seq 0, 20 and two at 4, placed and numbered; the remove and part edits.
 #[test]
-fn se7_accessory_rows_are_placed_and_numbered() {
+fn accessory_rows_are_placed_and_numbered() {
     let mut s = common::golden_session();
     let (bracket, bridge) = with_tbd_parts(&mut s);
     let x = strip(&s, "-X1031");
@@ -492,7 +492,7 @@ fn se7_accessory_rows_are_placed_and_numbered() {
 /// SE7: the strips table's nodes are in the provider's order (the `Order` sort): -X1031 1 to 20, -X1032, 1X1;
 /// every node of a strip carries the `strip` facet.
 #[test]
-fn se7_the_provider_order_and_the_strip_facet() {
+fn the_provider_order_and_the_strip_facet() {
     let s = common::golden_session();
     let t = s.navigator_table(NavKind::Strips);
     let strips: Vec<&str> = t

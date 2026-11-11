@@ -671,7 +671,7 @@ fn nightly_every_script_transcript_is_byte_identical_twice() {
             crate::create::scripts::a_table_script_runs_twice_identically_and_its_record_replays_case,
         ),
         (
-            "image::im2_an_image_is_placed_by_a_script_twice_identically_and_replays",
+            "image::an_image_is_placed_by_a_script_twice_identically_and_replays",
             crate::image::placement::im2_an_image_is_placed_by_a_script_twice_identically_and_replays_case,
         ),
         (
@@ -679,59 +679,59 @@ fn nightly_every_script_transcript_is_byte_identical_twice() {
             grid_properties::pg9_d06_headless_case,
         ),
         (
-            "headless::grid_properties::pg10_the_pilot_script_is_deterministic_and_replays",
+            "headless::grid_properties::the_pilot_script_is_deterministic_and_replays",
             grid_properties::pg10_the_pilot_script_is_deterministic_and_replays_case,
         ),
         (
-            "headless::grid_find::fr3_to_fr6_find_and_replace_headless_twice_and_replayed",
+            "headless::grid_find::find_and_replace_headless_twice_and_replayed",
             grid_find::fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case,
         ),
         (
-            "headless::grid_clipboard::cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed",
+            "headless::grid_clipboard::copy_into_a_new_project_headless_twice_and_replayed",
             grid_clipboard::cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case,
         ),
         (
-            "headless::jobs_scripts::jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays",
+            "headless::jobs_scripts::the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays",
             jobs_scripts::jb4_the_export_script_is_byte_identical_twice_writes_the_golden_pdf_and_replays_case,
         ),
         (
-            "headless::jobs_scripts::jb7_the_recovery_script_is_byte_identical_twice",
+            "headless::jobs_scripts::the_recovery_script_is_byte_identical_twice",
             jobs_scripts::jb7_the_recovery_script_is_byte_identical_twice_case,
         ),
         (
-            "headless::messages_scripts::ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice",
+            "headless::messages_scripts::view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice",
             messages_scripts::ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice_case,
         ),
         (
-            "headless::messages_scripts::ms2_messages_check_ends_pending_byte_identical_twice_and_replays",
+            "headless::messages_scripts::messages_check_ends_pending_byte_identical_twice_and_replays",
             messages_scripts::ms2_messages_check_ends_pending_byte_identical_twice_and_replays_case,
         ),
         (
-            "headless::messages_scripts::ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays",
+            "headless::messages_scripts::messages_fix_with_apply_is_byte_identical_twice_and_replays",
             messages_scripts::ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_case,
         ),
         (
-            "headless::preview_scripts::pv2_golden_b_script_is_byte_identical_twice_and_replays",
+            "headless::preview_scripts::golden_b_script_is_byte_identical_twice_and_replays",
             preview_scripts::pv2_golden_b_script_is_byte_identical_twice_and_replays_case,
         ),
         (
-            "headless::parts_scripts::ps1_the_part_dialog_script_is_deterministic",
+            "headless::parts_scripts::the_part_dialog_script_is_deterministic",
             parts_scripts::ps1_the_part_dialog_script_is_deterministic_case,
         ),
         (
-            "headless::parts_scripts::ps4_the_choose_script_is_deterministic_and_replays",
+            "headless::parts_scripts::the_choose_script_is_deterministic_and_replays",
             parts_scripts::ps4_the_choose_script_is_deterministic_and_replays_case,
         ),
         (
-            "headless::parts_scripts::ps5_the_editor_refusal_script_is_deterministic",
+            "headless::parts_scripts::the_editor_refusal_script_is_deterministic",
             parts_scripts::ps5_the_editor_refusal_script_is_deterministic_case,
         ),
         (
-            "headless::parts_scripts::ps7_the_fork_script_is_deterministic_and_replays",
+            "headless::parts_scripts::the_fork_script_is_deterministic_and_replays",
             parts_scripts::ps7_the_fork_script_is_deterministic_and_replays_case,
         ),
         (
-            "headless::parts_scripts::ps8_the_paste_choice_script_is_deterministic_and_replays",
+            "headless::parts_scripts::the_paste_choice_script_is_deterministic_and_replays",
             parts_scripts::ps8_the_paste_choice_script_is_deterministic_and_replays_case,
         ),
     ];

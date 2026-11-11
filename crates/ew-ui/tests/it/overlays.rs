@@ -215,7 +215,7 @@ fn crowded_tile(differs: &[bool], w: usize) -> Option<(usize, usize, usize)> {
 /// An 8 × 8 block (a short tag) is a crowded tile, 16 scattered pixels are not; FT-1350: so is one that
 /// straddles the corner of four tiles, 4 × 4 pixels in each.
 #[test]
-fn ov5_a_short_tag_is_a_crowded_tile() {
+fn a_short_tag_is_a_crowded_tile() {
     let (w, h) = (640, 700);
     let block = |x0: usize, y0: usize| {
         let mut tag = vec![false; w * h];
@@ -239,7 +239,7 @@ fn ov5_a_short_tag_is_a_crowded_tile() {
 /// casing on both sides, four 8-pixel handles with an accent rim and a white face), then with four highlights, a
 /// measurement and a Place ghost; each snapshot equal across two runs and to its blessed image.
 #[test]
-fn ov5_ov6_the_overlay_snapshots_of_folio_101() {
+fn the_overlay_snapshots_of_folio_101() {
     let tmp = Tmp::new();
     let mut shell = headless_101(&tmp);
     // The first representation of the page tables whose selection is one rectangle.
@@ -350,7 +350,7 @@ fn ov5_ov6_the_overlay_snapshots_of_folio_101() {
 /// one entity, the hover outline is drawn dashed in `canvas.hover` around the stack's first entity; a click selects
 /// it, a repeated click the next one, drawn in `canvas.selection`.
 #[test]
-fn ov7_the_pick_stacks_hover_outline_and_walk() {
+fn the_pick_stacks_hover_outline_and_walk() {
     let tmp = Tmp::new();
     let mut shell = headless_101(&tmp);
     let c = shell.canvas().unwrap();
@@ -434,7 +434,7 @@ fn ov7_the_pick_stacks_hover_outline_and_walk() {
 /// OV6 (model values): the highlight name chips of folio 101 are filled with their slot's hue, with a black label in
 /// `type.caption` SemiBold, radius 4 and 20 points high, and they keep off each other.
 #[test]
-fn ov6_the_highlight_name_chips_take_their_hue_and_a_black_label() {
+fn the_highlight_name_chips_take_their_hue_and_a_black_label() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
@@ -490,7 +490,7 @@ fn ov6_the_highlight_name_chips_take_their_hue_and_a_black_label() {
 /// at 1920 × 1080, with and without the find pane in the bottom dock, the name chips keep off each other, stand
 /// inside the page view and are never faded, and the page view ends above the status bar.
 #[test]
-fn ft1288_the_highlight_chips_stay_clear_in_a_short_window() {
+fn the_highlight_chips_stay_clear_in_a_short_window() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
@@ -551,7 +551,7 @@ fn ft1288_the_highlight_chips_stay_clear_in_a_short_window() {
 
 /// OV4, FT-390: the link preview popup has a named, non-focusable image node with the target's folio and cell.
 #[test]
-fn ov4_the_link_preview_has_a_named_region() {
+fn the_link_preview_has_a_named_region() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     let link = h
@@ -716,7 +716,7 @@ fn ft1091_the_link_preview_and_the_cp_tooltip_never_show_together() {
 /// space mid-sheet) overlaps the top left corner of the HUD and then of the zoom control; with the frames as
 /// obstacles the label moves to a free candidate (not faded) and no canvas chip stands on either.
 #[test]
-fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
+fn the_chips_keep_off_the_hud_and_the_zoom_control() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     // W49.3b-F7: the label ("Variant A · new F") is wider than the variant letter alone was; a wider window keeps
@@ -812,7 +812,7 @@ fn ov2_the_chips_keep_off_the_hud_and_the_zoom_control() {
 /// 25 % (a grid step under 4 points), and only in the session overlay: the page's display list, which print and PDF
 /// draw, does not change.
 #[test]
-fn ft705_free_cps_are_marked_open_on_screen_only() {
+fn free_cps_are_marked_open_on_screen_only() {
     let tmp = Tmp::new();
     let mut shell = headless_101(&tmp);
     let folios: Vec<String> = shell

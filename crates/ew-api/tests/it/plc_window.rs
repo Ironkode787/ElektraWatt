@@ -102,7 +102,7 @@ fn three(seed: u64) -> (Session, Uuid, Uuid, Uuid) {
 /// the card pin n + 1, and the addresses I0.0 … I0.7 and Q0.0 … Q0.7. PW-2: the first placement created `PLC1` with
 /// the TIA profile and the CPU as its `cpu`.
 #[test]
-fn pw1_pw2_a_cpu_and_two_cards_from_the_picker_give_a_station_modules_channels_and_addresses() {
+fn a_cpu_and_two_cards_from_the_picker_give_a_station_modules_channels_and_addresses() {
     let (s, cpu, di, dout) = three(11);
     let station = device(&s, cpu).aspects.plc_station.clone().expect("a station");
     assert_eq!(station.role, StationRole::Cpu);
@@ -162,7 +162,7 @@ fn pw1_pw2_a_cpu_and_two_cards_from_the_picker_give_a_station_modules_channels_a
 
 /// PW-2: a second CPU joins `PLC1` with the notice of D3.
 #[test]
-fn pw2_a_second_cpu_joins_plc1() {
+fn a_second_cpu_joins_plc1() {
     let (mut s, ..) = three(12);
     let part = library_part(&s, "EW-GEN-CPU-1");
     let copies = s.starter_embed_part(part, BLACKBOX).unwrap();
@@ -185,7 +185,7 @@ fn pw2_a_second_cpu_joins_plc1() {
 /// PW-3: a card placed without a station has no parent, its channels exist and its addresses are not derived; the
 /// notice reads "no PLC station: place a CPU first". With two stations a card stays unattached.
 #[test]
-fn pw3_a_card_without_one_station_stays_unattached() {
+fn a_card_without_one_station_stays_unattached() {
     let mut s = fresh(13);
     let part = library_part(&s, "EW-GEN-DI-1");
     let copies = s.starter_embed_part(part, BLACKBOX).unwrap().unwrap();
@@ -231,7 +231,7 @@ fn pw3_a_card_without_one_station_stays_unattached() {
 /// PW-4: each placement is one undo step; undo of the first removes the station and `PLC1` and nothing else; redo
 /// restores identical IDs.
 #[test]
-fn pw4_each_placement_is_one_undo_step() {
+fn each_placement_is_one_undo_step() {
     let (mut s, cpu, di, dout) = three(15);
     let full = s.world().model;
     for _ in 0..2 {
@@ -278,7 +278,7 @@ fn plc_row(s: &Session, station: Uuid, channel: Id<Channel>) -> ew_derive::PlcRo
 /// with the profile's example), each one undo step, and the rows of `PlcRows` follow. The property sheet of the
 /// selected channel shows the members with their `fields.set` routes.
 #[test]
-fn pw5_the_channel_members_through_fields_set_and_the_property_sheet() {
+fn the_channel_members_through_fields_set_and_the_property_sheet() {
     let (mut s, cpu, di, _) = three(16);
     let c0: Id<Channel> = ew_ids::v5::plc_channel_id(Id::<Device>::from_uuid(di), 0);
     set_channel(&mut s, c0, "symbol", json!("B1_Start")).unwrap();
@@ -331,7 +331,7 @@ fn pw5_the_channel_members_through_fields_set_and_the_property_sheet() {
 
 /// PW-6: renumbering the devices after PW-1 changes no address (FR-PLC-055).
 #[test]
-fn pw6_renumbering_changes_no_address() {
+fn renumbering_changes_no_address() {
     let (mut s, _, di, dout) = three(17);
     let before = (addresses(&s, di), addresses(&s, dout));
     s.execute(&AnyCommand {
@@ -353,7 +353,7 @@ fn pw6_renumbering_changes_no_address() {
 
 /// PW-8: two runs with one seed give the same model.
 #[test]
-fn pw8_twice_run_determinism() {
+fn twice_run_determinism() {
     let (a, ..) = three(18);
     let (b, ..) = three(18);
     assert!(a.world().model.content_eq(&b.world().model));

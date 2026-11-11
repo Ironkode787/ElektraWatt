@@ -51,7 +51,7 @@ fn cursor(s: &mut ShellModel, k: (i64, i64)) {
 /// With the default keymap the texts read as before; Enter rebound to F9 shows in the Measure and the Place
 /// hints, Escape rebound to F10 in the Place hint and, in its short form, in the Place HUD.
 #[test]
-fn ft964_a_rebound_key_shows_in_the_hints_and_the_hud() {
+fn a_rebound_key_shows_in_the_hints_and_the_hud() {
     let tmp = Tmp::new("ft964-rebind");
     let mut s = golden(&tmp);
     done(&mut s, "tool.measure", json!({}));
@@ -103,7 +103,7 @@ fn ft964_a_rebound_key_shows_in_the_hints_and_the_hud() {
 /// The toast of a placement that drew its proposed wires names the key of `canvas.activate_alt` from the
 /// keymap, as the hint does; "Alt+Click" stays. The toast with the key rebound is the default's with that key only.
 #[test]
-fn ft949_the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
+fn the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
     /// Places two contacts and a third between them that connects to both; the hint before the third's click and the
     /// toast after it.
     fn place_three(s: &mut ShellModel) -> (String, String) {
@@ -151,7 +151,7 @@ fn ft949_the_autoconnect_toast_takes_ctrl_enter_from_the_keymap() {
 
 /// A keymap file that is not TOML is refused whole, in words.
 #[test]
-fn ft850_a_keymap_file_that_is_not_toml_is_refused_in_words() {
+fn a_keymap_file_that_is_not_toml_is_refused_in_words() {
     let tmp = Tmp::new("ft850-import");
     let mut s = golden(&tmp);
     let bad = tmp.0.join("not-toml.toml");
@@ -194,7 +194,7 @@ fn the_link_previews_line_without_a_key_names_the_menu_path() {
 /// (`nav.follow`), the canvas's also once rebound (the keymap editor does not rebind `props.follow`, a key of the
 /// grid's own).
 #[test]
-fn ft1042_a_links_hint_takes_its_follow_key_from_the_keymap() {
+fn a_links_hint_takes_its_follow_key_from_the_keymap() {
     use ew_viewmodel::status::follow_hint;
     let tmp = Tmp::new("ft1042-hint");
     let mut s = golden(&tmp);

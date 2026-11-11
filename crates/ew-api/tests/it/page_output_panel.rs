@@ -3,7 +3,7 @@
 
 //! The panel page 902 of Golden A (acceptance LP-1 to LP-5):
 //!
-//! - `lp1_the_surface_view_round_trips_and_is_refused_elsewhere`: `page.surface_view.set` replaces 902's view in
+//! - `the_surface_view_round_trips_and_is_refused_elsewhere`: `page.surface_view.set` replaces 902's view in
 //!   place (one view, its ID kept) and the edit survives a save and a reopen of a fixture copy; a view on a schematic
 //!   page and a surface that does not exist are refused; a view with members this build does not know reads and writes
 //!   back unchanged.
@@ -13,11 +13,11 @@
 //!   instead.
 //! - `the_carriers_are_cut_around_the_labels_of_902`: no carrier stroke runs through a label's knockout box, and the
 //!   footprints and the labels stay whole (cycle 41's window check W41a).
-//! - `lp3_labels_print_in_the_device_style_turn_inside_or_take_a_leader`: the labels in `xref.device` at 1.83 mm em,
+//! - `labels_print_in_the_device_style_turn_inside_or_take_a_leader`: the labels in `xref.device` at 1.83 mm em,
 //!   none scaled; -101F1 turned inside its 1.8 mm footprint; the full mode; a 6 mm part takes a leader.
-//! - `lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record`: "Cabinet Layout · Scale 1:10", the
+//! - `the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record`: "Cabinet Layout · Scale 1:10", the
 //!   TOC row unchanged; 1:5 changes no layout record and keeps the label height.
-//! - `lp5_a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement`: the memo
+//! - `a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement`: the memo
 //!   counts and the pick.
 //!
 //! The display lists are in page coordinates; 902's frame maps the page to paper at 0.986282578 (offset 9.79 mm), and
@@ -263,7 +263,7 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
 /// schematic page and a missing surface are refused, each with its whole text; a view this build only partly knows
 /// writes back as read.
 #[test]
-fn lp1_the_surface_view_round_trips_and_is_refused_elsewhere() {
+fn the_surface_view_round_trips_and_is_refused_elsewhere() {
     let dir = ew_testdir::fresh_dir("ew-panel-lp1");
     copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
     let mut options = StoreOptions::new("panel-lp1");
@@ -640,7 +640,7 @@ fn the_carriers_are_cut_around_the_labels_of_902() {
 /// LP-3. The labels of 902 (orchestrator ruling 5: "the ink box uses ew-text's existing API: Shaped::advance() along
 /// the text; across it, cap_height + 0.1 mm per side, plus descent only for descender glyphs").
 #[test]
-fn lp3_labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
+fn labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let q = s.query();
@@ -741,7 +741,7 @@ fn lp3_labels_print_in_the_device_style_turn_inside_or_take_a_leader() {
 /// LP-4. The title block of 902 prints the scale; the TOC row of 902 keeps the plain title; 902 at 1:5 changes no
 /// layout record and keeps the label height.
 #[test]
-fn lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record() {
+fn the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let q = s.query();
@@ -816,7 +816,7 @@ fn lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record()
     );
     drop(q);
     // `fields.set` refuses a scale of 1:0 with `page.surface_view.set`'s text (a stored one is read and drawn
-    // 1:1: `ft1065_a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one`).
+    // 1:1: `a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one`).
     let zero = cmd(
         "fields.set",
         json!({"kind": "page", "path": "scale", "targets": [id_json(page("902"))], "value": {"one_to": 0}}),
@@ -835,7 +835,7 @@ fn lp4_the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record()
 /// surface at 1:1 on the page, as a page drawn not to scale, and its title block prints the plain title, with neither
 /// the suffix nor the scale.
 #[test]
-fn ft1065_a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one() {
+fn a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one() {
     let dir = ew_testdir::fresh_dir("ew-panel-scale-0");
     copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
     let pages = dir.join("pages");
@@ -919,7 +919,7 @@ fn pick(entities: &[(EntityRef, Rect)], at: Pt2) -> Option<EntityRef> {
 /// around the labels, so they read the labels' fit), and the second export equals the cold one; a press at a
 /// footprint's centre picks its placement.
 #[test]
-fn lp5_a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement() {
+fn a_move_rebuilds_only_902s_placement_label_and_carrier_layers_and_a_footprint_picks_its_placement() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     // The pick, as Golden A places them (the moved -102G1 below overlaps its neighbours).

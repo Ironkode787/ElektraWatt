@@ -559,7 +559,7 @@ mod tests {
 
     /// DK10: three distinct icon shapes and the words of the three severities; the group keys map to their severity.
     #[test]
-    fn dk10_three_distinct_shapes_words_and_group_keys() {
+    fn three_distinct_shapes_words_and_group_keys() {
         let ids: Vec<IconId> = ["error", "warning", "info"]
             .into_iter()
             .map(severity_icon_id)
@@ -585,7 +585,7 @@ mod tests {
     /// FT-1139 (item 8): the Pending chip's tooltip says what it counts, then lists its findings; another
     /// chip's lists them only.
     #[test]
-    fn ft1139_the_pending_tip_defines_then_lists() {
+    fn the_pending_tip_defines_then_lists() {
         let lines = [
             "EW-CORE-041: -K1 has no part".to_owned(),
             "EW-CORE-033: -3W1 has no length".to_owned(),

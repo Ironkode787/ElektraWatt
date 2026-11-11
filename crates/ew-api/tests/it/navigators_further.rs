@@ -93,7 +93,7 @@ fn assert_tree_contract(t: &NavTable) {
 }
 
 #[test]
-fn np1_connections_are_the_wire_list() {
+fn connections_are_the_wire_list() {
     let s = common::golden_session();
     let t = s.navigator_table(NavKind::Connections);
     assert_tree_contract(&t);
@@ -123,7 +123,7 @@ fn np1_connections_are_the_wire_list() {
 }
 
 #[test]
-fn np1_strips_are_the_terminal_diagrams() {
+fn strips_are_the_terminal_diagrams() {
     let s = common::golden_session();
     let t = s.navigator_table(NavKind::Strips);
     assert_tree_contract(&t);
@@ -185,7 +185,7 @@ fn np1_strips_are_the_terminal_diagrams() {
 }
 
 #[test]
-fn np1_cables_plc_potentials_parts() {
+fn cables_plc_potentials_parts() {
     let s = common::golden_session();
     // Cables: block 906's data rows, 3 cables and 13 cores, then a core's derived potential, its
     // shield flag and pair, empty on a cable row.
@@ -364,7 +364,7 @@ fn np1_cables_plc_potentials_parts() {
 }
 
 #[test]
-fn np1_ips_structure_blocks() {
+fn ips_structure_blocks() {
     let s = common::golden_session();
     // Interruption points: 48 functions under 26 names, 22 pairs and 4 external points.
     let t = s.navigator_table(NavKind::Ips);
@@ -472,7 +472,7 @@ fn np1_ips_structure_blocks() {
 }
 
 #[test]
-fn np2_connections_cover_every_wire_and_core_connection() {
+fn connections_cover_every_wire_and_core_connection() {
     let s = common::golden_session();
     let q = s.query();
     let t = s.navigator_table(NavKind::Connections);
@@ -544,7 +544,7 @@ fn np2_connections_cover_every_wire_and_core_connection() {
 }
 
 #[test]
-fn np3_members_of_24vdc_1_are_its_wire_list_connections() {
+fn members_of_24vdc_1_are_its_wire_list_connections() {
     let s = common::golden_session();
     let pots = s.navigator_table(NavKind::Potentials);
     let p = find(&pots, NavRole::Potential, "24VDC-1");

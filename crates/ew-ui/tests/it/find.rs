@@ -26,7 +26,7 @@ fn results(h: &Harness<'_, App>) -> usize {
 }
 
 #[test]
-fn fr3_find_and_replace_from_the_keyboard() {
+fn find_and_replace_from_the_keyboard() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "204");
     // Ctrl+H: find and replace below the page view, the focus in the pane and its text field.
@@ -139,7 +139,7 @@ fn fr3_find_and_replace_from_the_keyboard() {
 /// Ctrl+Enter with a text field focused does what it does with none: the first builds the replace card, the second
 /// applies it (it must not rebuild the card).
 #[test]
-fn fr3_ctrl_enter_in_a_focused_field_builds_then_applies() {
+fn ctrl_enter_in_a_focused_field_builds_then_applies() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "204");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
@@ -193,7 +193,7 @@ fn type_keys(h: &mut Harness<'_, App>, text: &str) {
 
 /// Tab in the search field moves the focus to "Replace with" and Shift+Tab back (keyboard parity).
 #[test]
-fn fr3_tab_and_shift_tab_move_between_the_find_fields() {
+fn tab_and_shift_tab_move_between_the_find_fields() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "204");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
@@ -216,7 +216,7 @@ fn fr3_tab_and_shift_tab_move_between_the_find_fields() {
 /// A click into the search field while the shell's focus is on the canvas hands the focus to the pane, so Tab moves
 /// to "Replace with" and does not reach the canvas's `tool.next_proposal` (a chord of the canvas context).
 #[test]
-fn fr3_tab_after_a_click_into_the_field_stays_in_the_pane() {
+fn tab_after_a_click_into_the_field_stays_in_the_pane() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "204");
     h.key_press_modifiers(Modifiers::COMMAND, Key::H);
@@ -254,7 +254,7 @@ fn options<'t>(h: &'t Harness<'_, App>) -> Vec<egui_kittest::Node<'t>> {
 /// AX-7: a result's accessible name is its line in plain text and its description the same line with the
 /// matches marked; a long list builds only the rows on show, and the cursor's row is built wherever it moves.
 #[test]
-fn ax7_results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
+fn results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "204");
     h.key_press_modifiers(Modifiers::COMMAND, Key::F);

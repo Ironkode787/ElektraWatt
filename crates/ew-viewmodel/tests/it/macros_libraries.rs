@@ -291,7 +291,7 @@ fn ui3_save_as_macro_writes_a_user_library_and_refuses_a_system_one() {
 /// FX38b: a name with no letter or digit gives no key and is refused in words before any write (the library
 /// directory is as it was); a typed key still saves it. FT-763: a Greek name is a key now, so the refused name is `--`.
 #[test]
-fn fx38b_a_name_that_gives_no_key_is_refused_before_any_write() {
+fn a_name_that_gives_no_key_is_refused_before_any_write() {
     let tmp = Tmp::new("macros-nokey");
     let (t, _) = user_library(&tmp.0);
     let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
@@ -345,7 +345,7 @@ fn a_refused_save_keeps_the_typed_name() {
 
 /// FX38b: Save with an empty library field and no writable library installed says so, not "no library called \"\"".
 #[test]
-fn fx38b_save_without_a_writable_library_names_the_reason() {
+fn save_without_a_writable_library_names_the_reason() {
     let tmp = Tmp::new("macros-nowritable");
     let t = common::library_tiers(&tmp.0);
     let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
@@ -443,7 +443,7 @@ fn ui4_update_refuses_without_an_update_and_badges_are_words() {
 
 /// FT-720(b): `navigator.show` of a navigator already docked behind another tab shows it.
 #[test]
-fn ft720b_navigator_show_shows_the_pane_asked_for() {
+fn navigator_show_shows_the_pane_asked_for() {
     let tmp = Tmp::new("macros-ft720b");
     let mut shell = tmp.shell_in(Mode::Gui, false, "102");
     done(&mut shell, "navigator.show", json!({"kind": "devices"}));
@@ -463,7 +463,7 @@ fn ft720b_navigator_show_shows_the_pane_asked_for() {
 /// directory the settings name stands under "Company", writable, in the Libraries navigator, and Save as macro…
 /// writes into it. A relative path is read against the settings' directory.
 #[test]
-fn ft754f_company_libraries_of_the_settings_are_the_company_tier() {
+fn company_libraries_of_the_settings_are_the_company_tier() {
     let tmp = Tmp::new("macros-company");
     let (t, _) = user_library(&tmp.0);
     let company = tmp.0.join("config-a").join("shared");
@@ -497,7 +497,7 @@ fn ft754f_company_libraries_of_the_settings_are_the_company_tier() {
 /// after the row's own actions, and choosing it remembers the row as a variable of the next save; a row of several
 /// records does not list it.
 #[test]
-fn ft754h_make_variable_is_in_the_row_menu() {
+fn make_variable_is_in_the_row_menu() {
     use ew_viewmodel::properties::RowMenuItem;
     let tmp = Tmp::new("macros-rowmenu");
     let (t, _) = user_library(&tmp.0);
@@ -564,7 +564,7 @@ fn card_copies(shell: &ShellModel) -> Vec<String> {
 /// insertion), Update… previews the copies named by `keys`, else the marked copies, else the copy under the cursor,
 /// else every copy with an update; Apply makes both copies current.
 #[test]
-fn ft754d_update_previews_keys_then_marked_then_cursor_then_all() {
+fn update_previews_keys_then_marked_then_cursor_then_all() {
     let tmp = Tmp::new("macros-update");
     let (t, _) = user_library(&tmp.0);
     let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");
@@ -655,7 +655,7 @@ fn detail_of(shell: &mut ShellModel, name: &str) -> ew_viewmodel::ew_api::output
 /// macro saved with an insertion point at the sheet's corner has its records right of and below the anchor, where the
 /// selection's own anchor puts it at the records' corner; a page macro saves the marked pages and lists as "Page".
 #[test]
-fn ft754b_save_as_macro_takes_kind_insertion_point_and_marked_pages() {
+fn save_as_macro_takes_kind_insertion_point_and_marked_pages() {
     let tmp = Tmp::new("macros-kind");
     let (t, _) = user_library(&tmp.0);
     let mut shell = shell_with(&tmp, "a", Mode::Gui, &t, "102");

@@ -9,9 +9,9 @@
 //! so the tests add a `plc_overview` block selecting -201U3 to the session.
 //!
 //! Tests:
-//! - `px3_the_box_of_201u3_on_201_lists_its_eight_channels_with_the_cells_of_folio_203`
-//! - `px3_a_module_selection_lists_that_module_only_and_a_station_selection_is_unchanged`
-//! - `px3_the_box_changes_no_potential`
+//! - `the_box_of_201u3_on_201_lists_its_eight_channels_with_the_cells_of_folio_203`
+//! - `a_module_selection_lists_that_module_only_and_a_station_selection_is_unchanged`
+//! - `the_box_changes_no_potential`
 
 use crate::golden_common;
 
@@ -95,7 +95,7 @@ fn rows(q: &Q, id: Id<ReportBlock>) -> Vec<Vec<String>> {
 /// numbers, symbols, function texts and states; the bound rows print the frame cells of their valves' coils on folio
 /// 203; the cells link to the bound CPs; nothing overflows and PART DATA still draws.
 #[test]
-fn px3_the_box_of_201u3_on_201_lists_its_eight_channels_with_the_cells_of_folio_203() {
+fn the_box_of_201u3_on_201_lists_its_eight_channels_with_the_cells_of_folio_203() {
     let block = overview_box(&["-201U3"]);
     let id = block.id;
     let s = session_with(block);
@@ -162,7 +162,7 @@ const EXPECTED_ROWS: [[&str; 6]; 8] = [
 /// PX-3: a selection naming a module lists that module's rows only; one naming the station lists all 56 (folio 908's
 /// block, unchanged).
 #[test]
-fn px3_a_module_selection_lists_that_module_only_and_a_station_selection_is_unchanged() {
+fn a_module_selection_lists_that_module_only_and_a_station_selection_is_unchanged() {
     let module = overview_box(&["-201U3"]);
     let station = overview_box(&["-201U1"]);
     let both = overview_box(&["-201U3", "-202U2"]);
@@ -183,7 +183,7 @@ fn px3_a_module_selection_lists_that_module_only_and_a_station_selection_is_unch
 /// PX-3: "drawing on it changes no potential": the box has no connection points, so Golden A's potential partition is
 /// the same with and without it.
 #[test]
-fn px3_the_box_changes_no_potential() {
+fn the_box_changes_no_potential() {
     let without = crate::common::golden_session();
     let with = session_with(overview_box(&["-201U3"]));
     let a = without.query().get::<PotentialPartition>(());

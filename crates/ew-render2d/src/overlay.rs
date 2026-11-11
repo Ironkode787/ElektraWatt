@@ -1448,7 +1448,7 @@ mod tests {
     }
 
     #[test]
-    fn ov3_the_scale_factor_is_the_whole_part_of_ppp() {
+    fn the_scale_factor_is_the_whole_part_of_ppp() {
         assert_eq!(mark_scale(1.0), 1);
         assert_eq!(mark_scale(1.5), 1);
         assert_eq!(mark_scale(2.0), 2);
@@ -1463,7 +1463,7 @@ mod tests {
     /// OV3: at ppp 1, 1.5, 2 and 3 the markers are `6s + 1` (cross, square) and `8s + 1` (ring) pixels, lines `s`
     /// pixels wide with `4s` dashes, the hover `s` with `4s` dashes, the cursor's arms `s` wide and `6s` long.
     #[test]
-    fn ov3_every_mark_follows_the_scale_rule() {
+    fn every_mark_follows_the_scale_rule() {
         for (ppp, s) in [(1.0, 1_i64), (1.5, 1), (2.0, 2), (3.0, 3)] {
             let v = view_at(ppp);
             let t = v.settled_transform();
@@ -1555,7 +1555,7 @@ mod tests {
     /// white casing on both sides and four 8-pixel handles on its corners, white with a selection-coloured rim; at ppp
     /// 2 everything doubles.
     #[test]
-    fn ov6_the_selection_has_a_casing_and_four_8_pixel_handles() {
+    fn the_selection_has_a_casing_and_four_8_pixel_handles() {
         let r = Rect::from_points(
             Pt2::new(Nm::from_mm(140), Nm::from_mm(100)),
             Pt2::new(Nm::from_mm(160), Nm::from_mm(110)),

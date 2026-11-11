@@ -651,7 +651,7 @@ mod tests {
     /// UR-3 (D7 to D9): a brief run's score decides each item with `check-brief`'s code on the same project, so the two
     /// decisions are equal; it gives the attempt and D9's counts.
     #[test]
-    fn ur3_a_brief_runs_score_decides_its_items_as_check_brief_does() {
+    fn a_brief_runs_score_decides_its_items_as_check_brief_does() {
         let (f, root) = brief_fixture();
         let fake = |args: &[&str]| -> Result<(Option<i32>, String)> {
             Ok((Some(0), if args[0] == "sql" { "n\n1\n" } else { "" }.to_owned()))
@@ -710,7 +710,7 @@ mod tests {
     /// UR-3: `stop` of a brief run writes the decisions, the attempt and the counts into `out/score.json` and
     /// `out/report.md`; a run without its copied `ew` decides no query (each fails).
     #[test]
-    fn ur3_stop_of_a_brief_run_writes_its_decisions() {
+    fn stop_of_a_brief_run_writes_its_decisions() {
         let (mut f, root) = brief_fixture();
         hand_back(&f);
         stop(&root, &f.run, &mut f.backend, "handback").unwrap();

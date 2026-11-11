@@ -552,7 +552,7 @@ mod tests {
 
     /// At the floor, a disabled click's title lays out whole on two rows in the text column, and a longer one
     /// is cut with an ellipsis after two rows. The toast as `toast` draws it is asserted in the window's tests
-    /// (`tests/it/part4_cards.rs`).
+    /// (`tests/it/dialogs_toasts_palette.rs`).
     #[test]
     fn the_title_wraps_up_to_two_rows() {
         let reason = strings::text(key!("reason-page-type-no-symbols-panel"));

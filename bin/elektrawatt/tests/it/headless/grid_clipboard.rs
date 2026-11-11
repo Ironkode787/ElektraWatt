@@ -109,7 +109,7 @@ fn content(s: &Session) -> (Vec<String>, Vec<(i64, i64)>, usize) {
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed() {
+fn copy_into_a_new_project_headless_twice_and_replayed() {
     cb5_cb8_copy_into_a_new_project_headless_twice_and_replayed_case(false);
 }
 
@@ -195,7 +195,7 @@ fn done(shell: &mut ShellModel, action: &str, params: Value) {
 /// the other as the system clipboard's text, with the junction and the three wires between them; "Copy tag list" of
 /// -101F1, S51 and F55 is `-101F1\nF55\nS51\n`.
 #[test]
-fn cb6_two_instances_and_the_tag_list() {
+fn two_instances_and_the_tag_list() {
     let tmp = Tmp::new();
     let golden = tmp.golden_dir("g.ew");
     let mut one = shell(&tmp, "one");

@@ -393,7 +393,7 @@ fn meets(a: Pt2, b: Pt2, lo: Pt2, hi: Pt2) -> bool {
 /// every cylinder body, and the two lines of a valve never meet; F1 runs up from port 2 of its valve in row H, past
 /// the process valve, left over the cylinder and down into A (the router's route).
 #[test]
-fn ft1315_the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
+fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let lines: Vec<(&str, &Connection)> = batch
@@ -465,7 +465,7 @@ fn ft1315_the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
 /// px, below the valve body, which ends at 40 px; no other valve representation moves it, so the spare valves on 204
 /// to 206 keep "Spare" at the symbol's (-30, 35) px.
 #[test]
-fn ft1323_the_process_tags_on_folio_203_sit_below_the_valve_body() {
+fn the_process_tags_on_folio_203_sit_below_the_valve_body() {
     let s = golden_common::session(&golden_common::batch());
     let q = s.query();
     let mut moved = Vec::new();

@@ -18,7 +18,7 @@
 //!
 //! One image per screen (test audit, 2026-10-29): each cropped screen is gated in light Comfortable, plus dark
 //! Compact for the DK12 panes. The theme tokens are gated by `theme.rs` (`dl2_the_dump_equals_the_blessed_file`,
-//! `dl2_density_changes_sizes_only`, `dl3_apply_maps_the_tokens_onto_egui`) and the whole window in light and dark at
+//! `density_changes_sizes_only`, `apply_maps_the_tokens_onto_egui`) and the whole window in light and dark at
 //! both densities by `main-*`, so a dark or Compact copy of every crop guards nothing more. Every image this file
 //! writes is gated: nothing is rendered for review only.
 
@@ -341,7 +341,7 @@ fn luma(image: &ew_render_cpu::RgbaImage, x: u32, y: u32) -> f32 {
 /// WP-S2.17 part 4 (CP6, CP9): the quit prompt over the toast, the app menu's File submenu, the command palette and
 /// the Preview tab with the property grid's "Preview open" strip, in light and dark, gated.
 #[test]
-fn part4_dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
+fn dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
     let dev = device();
     let mut failures = Vec::new();
     for theme in ["light", "dark"] {
@@ -472,7 +472,7 @@ fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
 /// cursor on the pending finding with its detail block) and the History panel (three steps, a save marker, one undone), each cropped to its pane,
 /// gated: all three in light Comfortable, the detail block in dark Compact.
 #[test]
-fn dk12_messages_and_history_in_light_with_one_dark_compact() {
+fn messages_and_history_in_light_with_one_dark_compact() {
     let dev = device();
     let mut failures = Vec::new();
     for (theme, density) in [("light", "comfortable"), ("dark", "compact")] {
@@ -637,7 +637,7 @@ fn drag(h: &mut Harness<'_, App>, from: egui::Pos2, by: egui::Vec2) {
 /// (`dk12-grid-edit-*`; the editor opens where the cursor is, so the cursor ring and the editor are two images).
 /// Cropped to the pane from its tool line to the grid's bottom, light Comfortable and dark Compact, gated.
 #[test]
-fn dk12_the_data_grid_in_light_comfortable_and_dark_compact() {
+fn the_data_grid_in_light_comfortable_and_dark_compact() {
     let dev = device();
     let mut failures = Vec::new();
     for (theme, density) in [("light", "comfortable"), ("dark", "compact")] {
@@ -1596,7 +1596,7 @@ fn the_save_tooltip_in_light() {
 /// Four window details, each in its own window on a fresh copy of Golden A (their
 /// edits would show in each other's crops), light Comfortable, gated.
 #[test]
-fn ft625_the_window_details_in_light() {
+fn the_window_details_in_light() {
     let dev = device();
     let mut failures = Vec::new();
     ft625_the_place_ghost_wires_and_hud_hint(&dev, &mut failures);
@@ -1674,7 +1674,7 @@ fn ft625_the_counted_toasts(dev: &ew_render2d::gpu::HeadlessDevice, failures: &m
             h.run_ok();
             h.run_ok();
             let image = offscreen::render(dev, &h.ctx, h.output(), &recorder);
-            // The toasts' area (`ew_ui`'s `notifications::TOASTS_AREA`, as `tests/it/part4_cards.rs` names it).
+            // The toasts' area (`ew_ui`'s `notifications::TOASTS_AREA`, as `tests/it/dialogs_toasts_palette.rs` names it).
             let area = egui::Id::unique("ew-toasts");
             let toasts = h.ctx.memory(|m| m.area_rect(area)).expect("the toasts' area");
             failures.extend(record(
@@ -1819,7 +1819,7 @@ fn ft625_the_potential_name_cell(dev: &ew_render2d::gpu::HeadlessDevice, failure
 /// snapshot of the page pane (800 x 560 points at ppp 1, the page fitted) with the merged potential's wires drawn over in
 /// `canvas.conflict`; the pixel on the middle of a conflict segment is that colour.
 #[test]
-fn ft675_the_conflict_overlay_in_light() {
+fn the_conflict_overlay_in_light() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
@@ -1896,7 +1896,7 @@ fn ft675_the_conflict_overlay_in_light() {
 /// A locked placement's lock icon on folio 902 (-102F1 locked, the view two steps in), cropped round
 /// the icon, at the 1280 × 800 floor and at the typical 1920 × 1080, light Comfortable at ppp 1 (gated).
 #[test]
-fn ft997_the_lock_icon_at_both_sizes() {
+fn the_lock_icon_at_both_sizes() {
     let dev = device();
     let mut failures = Vec::new();
     for (name, size) in [

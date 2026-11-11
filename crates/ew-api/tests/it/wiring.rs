@@ -78,7 +78,7 @@ fn polyline(item: &Item) -> Option<Vec<Pt2>> {
 }
 
 #[test]
-fn wr8_crossings_as_hops_change_only_the_wires_by_the_hop_arcs() {
+fn crossings_as_hops_change_only_the_wires_by_the_hop_arcs() {
     let mut s = golden_session();
     let page = page_of(&s, "103");
     let before = layers(&s, page);

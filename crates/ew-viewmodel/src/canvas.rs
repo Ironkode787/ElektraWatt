@@ -1302,7 +1302,7 @@ mod tests {
     }
 
     #[test]
-    fn ov4_a_symbol_key_names_the_cp_tooltips_kind() {
+    fn a_symbol_key_names_the_cp_tooltips_kind() {
         assert_eq!(symbol_name("ew.iec.terminal@qet10"), "terminal");
         assert_eq!(symbol_name("ew.iec.mcb-1pn@qet10"), "mcb-1pn");
         assert_eq!(symbol_name("plain"), "plain");

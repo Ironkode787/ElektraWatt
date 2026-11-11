@@ -38,7 +38,7 @@ fn merged_page() -> Vec<u8> {
 }
 
 #[test]
-fn cr1_a_conflict_record_opens_editable_in_its_table_and_saves_back_byte_identical() {
+fn a_conflict_record_opens_editable_in_its_table_and_saves_back_byte_identical() {
     let mut files = fixture();
     files.insert(PAGE.to_owned(), merged_page());
     let (vfs, root_dir) = mem_project_of(DirSync::Explicit, files);

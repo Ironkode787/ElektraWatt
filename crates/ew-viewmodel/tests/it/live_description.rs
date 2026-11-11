@@ -43,7 +43,7 @@ fn end_label(t: &PageTables, end: &TableEnd) -> Option<String> {
 }
 
 #[test]
-fn ax1_selecting_102f1_says_its_tag_kind_folio_connection_points_and_wires() {
+fn selecting_102f1_says_its_tag_kind_folio_connection_points_and_wires() {
     let tmp = Tmp::new("ax1-device");
     let mut shell = tmp.shell("102");
     done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
@@ -88,7 +88,7 @@ fn ax1_selecting_102f1_says_its_tag_kind_folio_connection_points_and_wires() {
 }
 
 #[test]
-fn ax1_a_wire_says_its_number_potential_and_ends() {
+fn a_wire_says_its_number_potential_and_ends() {
     let tmp = Tmp::new("ax1-wire");
     let mut shell = tmp.shell("102");
     let t = tables(&shell);
@@ -118,7 +118,7 @@ fn ax1_a_wire_says_its_number_potential_and_ends() {
 }
 
 #[test]
-fn ax1_a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
+fn a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
     let tmp = Tmp::new("ax1-item");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     // Golden A has no page item: a free text placed on 102.
@@ -157,7 +157,7 @@ fn ax1_a_page_item_says_its_kind_and_text_and_two_records_say_how_many() {
 /// ID-1278 ruling 11: a selected free text of two lines that holds a `"` is quoted on one `canvas live`
 /// line as the page items' texts are (a line break a space, a `"` a `'`); the live region keeps the text as it is.
 #[test]
-fn ax1_a_two_line_text_with_a_quote_stays_on_one_quoted_line() {
+fn a_two_line_text_with_a_quote_stays_on_one_quoted_line() {
     let tmp = Tmp::new("ax1-quote");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     let page = tables(&shell).page.to_string();
@@ -191,7 +191,7 @@ fn language(shell: &mut ShellModel, tag: &str) {
 /// of their own, not as "1 selected", in en-GB and nl-NL. The values are the page tables' and the Interruption points
 /// navigator's.
 #[test]
-fn ft1248_a_junction_an_interruption_point_and_a_structure_box_say_what_they_are() {
+fn a_junction_an_interruption_point_and_a_structure_box_say_what_they_are() {
     let tmp = Tmp::new("ft1248");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     let t = tables(&shell);
@@ -250,7 +250,7 @@ fn ft1248_a_junction_an_interruption_point_and_a_structure_box_say_what_they_are
 /// A wire that ends at a junction names that end "a junction", in en-GB and
 /// nl-NL; its other end is its connection point's label. A language switch words the live region again.
 #[test]
-fn ft1250_a_wire_to_a_junction_names_that_end_a_junction() {
+fn a_wire_to_a_junction_names_that_end_a_junction() {
     let tmp = Tmp::new("ft1250");
     let mut shell = tmp.shell("102");
     let t = tables(&shell);
@@ -289,7 +289,7 @@ fn ft1250_a_wire_to_a_junction_names_that_end_a_junction() {
 /// A device that is not placed and has no kind (no function, so neither a
 /// category text nor a key) says its tag and "Device", in en-GB and, after a language switch, nl-NL.
 #[test]
-fn ft1252_an_unplaced_device_without_a_kind_says_device() {
+fn an_unplaced_device_without_a_kind_says_device() {
     use ew_viewmodel::ew_api::{AnyCommand, StoreOptions};
     let tmp = Tmp::new("ft1252-device");
     // A copy of Golden A with one device more, made through the session.
@@ -334,7 +334,7 @@ fn ft1252_an_unplaced_device_without_a_kind_says_device() {
 /// An edit that keeps the selection (a new tag typed in Properties) words the live region again, as the
 /// `canvas live` line is.
 #[test]
-fn ft1251_a_rename_that_keeps_the_selection_words_the_live_region_again() {
+fn a_rename_that_keeps_the_selection_words_the_live_region_again() {
     let tmp = Tmp::new("ft1251");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));

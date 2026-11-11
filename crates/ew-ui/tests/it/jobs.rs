@@ -42,7 +42,7 @@ fn wait_jobs_then_settle(h: &mut Harness<'_, App>) {
 }
 
 #[test]
-fn jb4_the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
+fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let pdf = tmp.0.join("out.pdf");
@@ -87,7 +87,7 @@ fn jb4_the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
 }
 
 #[test]
-fn jb3_a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_field() {
+fn a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_field() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let pdf = tmp.0.join("held.pdf");
@@ -131,7 +131,7 @@ fn jb3_a_running_export_is_a_named_progress_indicator_with_cancel_and_the_job_fi
 }
 
 #[test]
-fn jb6_the_toasts_stack_and_the_log_opens_from_the_status_bar() {
+fn the_toasts_stack_and_the_log_opens_from_the_status_bar() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -173,7 +173,7 @@ fn jb6_the_toasts_stack_and_the_log_opens_from_the_status_bar() {
 }
 
 #[test]
-fn jb7_the_recovery_dialog_offers_recover_open_read_only_and_discard() {
+fn the_recovery_dialog_offers_recover_open_read_only_and_discard() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     {

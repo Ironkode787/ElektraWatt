@@ -56,7 +56,7 @@ fn all_texts(q: &Q) -> Vec<(Id<Device>, Vec<String>)> {
 /// the other modules keep their addresses, `channel_addresses` runs once (the module's own), and one undo restores
 /// every address.
 #[test]
-fn pa1_a_start_re_addresses_one_module_in_one_step() {
+fn a_start_re_addresses_one_module_in_one_step() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let u5 = device(&s, "-201U5");
@@ -89,7 +89,7 @@ fn pa1_a_start_re_addresses_one_module_in_one_step() {
 
 /// PA-1's refusals: a start of the other direction's area, and a text that is no start.
 #[test]
-fn pa1_a_start_of_the_wrong_area_is_refused() {
+fn a_start_of_the_wrong_area_is_refused() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let u5 = device(&s, "-201U5");
@@ -110,7 +110,7 @@ fn pa1_a_start_of_the_wrong_area_is_refused() {
 /// PA-3 (D8): `plc.set_profile` to IEC 61131-3 prints `%QX0.1` where TIA printed `Q0.1`; the model changes only in
 /// the configuration project's `profile`.
 #[test]
-fn pa3_the_iec_profile_changes_the_notation_only() {
+fn the_iec_profile_changes_the_notation_only() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let before_world = s.world();
@@ -154,7 +154,7 @@ fn pa3_the_iec_profile_changes_the_notation_only() {
 /// Doc 10 §2.5 (FX38a): under the IEC profile a channel address typed without its size (`%Q20.1`) is the bit
 /// `%QX20.1`; a unit address without its size (`%Q20`) is refused with the profile's example.
 #[test]
-fn pa3_the_iec_profile_reads_a_bit_without_its_size() {
+fn the_iec_profile_reads_a_bit_without_its_size() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let c = cfg(&s.query());
@@ -301,7 +301,7 @@ fn channel(q: &Q, module: Id<Device>, number: u16) -> Id<Channel> {
 /// `<device tag>` (or `<tag>:<slot>`) and its CP designation; the replay binds as the ID form does. An unknown or
 /// ambiguous name stops the replay and lists candidates.
 #[test]
-fn ft721_bind_channel_takes_tags() {
+fn bind_channel_takes_tags() {
     let batch = golden_common::batch();
     let mut s = golden_common::session(&batch);
     let f = plc_012(&s)

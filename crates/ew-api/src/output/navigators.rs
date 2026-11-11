@@ -3307,7 +3307,7 @@ mod tests {
     /// column of every navigator carries the route or the read-only reason of §8.2's precedence at column level
     /// ("derived" before "no command yet").
     #[test]
-    fn tb1_the_editable_columns_are_scalar_fields_set_routes_of_the_catalogue() {
+    fn the_editable_columns_are_scalar_fields_set_routes_of_the_catalogue() {
         use crate::output::{EditRoute, field_catalogue};
         let identifiers = [
             ("device", "terminal.designation"),

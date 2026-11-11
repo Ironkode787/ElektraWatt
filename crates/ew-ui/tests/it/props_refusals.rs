@@ -216,7 +216,7 @@ fn escape_in_an_editor_holding_an_error_cancels_the_edit() {
 /// A toast whose line is cut (a point with a long name refuses a second point on its
 /// spot) shows its whole text under the pointer in doc 16a §6.18's tooltip, `color.surface.inverse`.
 #[test]
-fn ft1144_a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
+fn a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
     use egui_kittest::kittest::{NodeT as _, Queryable as _};
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");

@@ -83,7 +83,7 @@ fn steps(shell: &ShellModel) -> usize {
 /// the last column and the table scrolls right: the key column (Strip) stays at the left edge while Terminal scrolls
 /// out and State comes into view; Home scrolls back.
 #[test]
-fn tb7_the_key_column_stays_while_the_table_scrolls_right() {
+fn the_key_column_stays_while_the_table_scrolls_right() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "x1031");
     // WP-S2.17 DK9: the columns start at `size.table_column` (110 px), so Strip and Terminal are on show in the pane.
@@ -133,7 +133,7 @@ fn tb7_the_key_column_stays_while_the_table_scrolls_right() {
 /// (the key column's is disabled), hides a column and moves another left. FT-523: the sorted header's name ends
 /// ", sorted ascending" or ", sorted descending".
 #[test]
-fn tb7_header_click_sorts_and_the_chooser_hides_and_orders() {
+fn header_click_sorts_and_the_chooser_hides_and_orders() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "x1031");
     h.get_by_label("Sort by Terminal").click();
@@ -190,7 +190,7 @@ fn tb7_header_click_sorts_and_the_chooser_hides_and_orders() {
 /// as one `fields.set` with 5 targets, a direct commit with the toast; Ctrl+Z undoes it in one step and restores 14 to
 /// 17.
 #[test]
-fn tb2_fill_down_from_the_keyboard_is_one_step() {
+fn fill_down_from_the_keyboard_is_one_step() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "x1031");
     // Twenty rows of `size.row` (28 points) need a taller window than 700 points to be all on show.
@@ -269,7 +269,7 @@ fn tb2_fill_down_from_the_keyboard_is_one_step() {
 /// pattern dialog with the keyboard in its field, typing `Spare_{n:02}` shows the first five values, Enter applies one
 /// `fields.set_many`.
 #[test]
-fn tb3_pattern_fill_from_the_keyboard() {
+fn pattern_fill_from_the_keyboard() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "x1031");
     h.get_by_label("Sort by Terminal").click_accesskit();
@@ -318,7 +318,7 @@ fn tb3_pattern_fill_from_the_keyboard() {
 /// the second cell ambiguous; Ctrl+Enter is refused while it blocks; an AccessKit click on the reading "1.5
 /// (decimal)" resolves it and Ctrl+Enter applies one command.
 #[test]
-fn tb4_paste_resolve_and_apply_without_a_pointer() {
+fn paste_resolve_and_apply_without_a_pointer() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "cables", "-106W1");
     h.get_by_label("Sort by Cable").click_accesskit();

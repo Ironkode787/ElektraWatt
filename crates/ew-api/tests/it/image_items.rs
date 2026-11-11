@@ -66,7 +66,7 @@ fn flat(items: &[Item], out: &mut Vec<Item>) {
 /// IM1: an SVG image item reaches the page's display list as paths (its fill, no image item is left) and the PDF
 /// as drawing operators (no image XObject); the item itself is the record's image with the asset's hash.
 #[test]
-fn im1_an_svg_image_item_is_vector_paths_in_the_display_list_and_the_pdf() {
+fn an_svg_image_item_is_vector_paths_in_the_display_list_and_the_pdf() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let page = ids["pages|101"].clone();
@@ -121,7 +121,7 @@ fn im1_an_svg_image_item_is_vector_paths_in_the_display_list_and_the_pdf() {
 
 /// IM1: a PNG image item stays an image item with the asset's bytes and is one image XObject in the PDF.
 #[test]
-fn im1_a_png_image_item_is_an_image_object() {
+fn a_png_image_item_is_an_image_object() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let page = ids["pages|101"].clone();
@@ -151,7 +151,7 @@ fn im1_a_png_image_item_is_an_image_object() {
 
 /// IM1: an asset the project does not hold is refused, and nothing is placed.
 #[test]
-fn im1_an_unknown_hash_is_refused() {
+fn an_unknown_hash_is_refused() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let page = ids["pages|101"].clone();

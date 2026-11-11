@@ -56,7 +56,7 @@ fn close(a: f32, b: f32) -> bool {
 /// is named by its short label and carries its shortcut; a click on each enabled plain or split button dispatches its
 /// action.
 #[test]
-fn cb2_the_tabs_and_the_draw_row_dispatch_their_actions() {
+fn the_tabs_and_the_draw_row_dispatch_their_actions() {
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     let list = h.get_by_role_and_label(egui::Role::TabList, "Command tabs");
@@ -130,7 +130,7 @@ fn cb2_the_tabs_and_the_draw_row_dispatch_their_actions() {
 /// CB3: Alt pressed and released alone opens the app menu, Escape closes it, F10 opens it; Ctrl+F1 collapses the bar
 /// to its tab row and restores it; F6 reaches the command bar, and there Right and Left step through the tabs.
 #[test]
-fn cb3_the_command_surface_from_the_keyboard() {
+fn the_command_surface_from_the_keyboard() {
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     assert!(
@@ -224,7 +224,7 @@ fn a_fitted_sheet_ends_above_the_hud() {
 /// the large and small buttons, the search field, the quick-access buttons, the HUD (36 high, 16 above the page
 /// view's bottom, centred on it) and a page view of at least 65 % of the width.
 #[test]
-fn cb4_the_geometry_at_1280_by_800_in_both_densities() {
+fn the_geometry_at_1280_by_800_in_both_densities() {
     for (density, bar, large_h, large_w, row) in [
         ("comfortable", 85.0, 46.0, 52.0, 52.0),
         ("compact", 69.0, 28.0, 0.0, 36.0),
@@ -317,7 +317,7 @@ fn cb4_the_geometry_at_1280_by_800_in_both_densities() {
 /// CB5: one HUD, a `Status` node named "Tool" whose value names the tool and the selection's keys; the tool strip
 /// is gone.
 #[test]
-fn cb5_one_hud_with_the_prompt_of_the_selection() {
+fn one_hud_with_the_prompt_of_the_selection() {
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     assert_eq!(
@@ -373,7 +373,7 @@ fn cb5_one_hud_with_the_prompt_of_the_selection() {
 
 /// CB8: the app button is named "Menu", described "ElektraWatt", carries F10 and opens the ten menus.
 #[test]
-fn cb8_the_app_button() {
+fn the_app_button() {
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     let app = support::bar_button(&h, "Menu");
@@ -395,7 +395,7 @@ fn cb8_the_app_button() {
 /// The window repaints when it gets the focus back (a native file dialog closed), so the status hint is
 /// never stale.
 #[test]
-fn ft514_a_repaint_when_the_window_gets_the_focus_back() {
+fn a_repaint_when_the_window_gets_the_focus_back() {
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     let before = h.state().focus_repaints();
@@ -423,7 +423,7 @@ fn ft514_a_repaint_when_the_window_gets_the_focus_back() {
 
 /// IC2: every icon key of the registry names an icon of the set, and every action placed on the bar has one.
 #[test]
-fn ic2_every_icon_key_resolves() {
+fn every_icon_key_resolves() {
     for a in ACTIONS {
         if let Some(key) = a.icon {
             assert!(IconId::from_key(key).is_some(), "{}: {key}", a.id);
@@ -437,7 +437,7 @@ fn ic2_every_icon_key_resolves() {
 /// FT-822 (play-test): the banner lies over the top edge of the canvas below the page tabs; showing and
 /// dismissing it moves neither the page view nor the command bar, so a click aimed before it appears still lands.
 #[test]
-fn ft822_the_banner_overlays_the_canvas_and_moves_nothing() {
+fn the_banner_overlays_the_canvas_and_moves_nothing() {
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     let (bar, _, pane) = h.state().command_surface_rects();
@@ -466,7 +466,7 @@ fn ft822_the_banner_overlays_the_canvas_and_moves_nothing() {
 /// In a 1000 × 700 window the View menu's every entry, the Show group's Grid, Frame statistics and the CPU
 /// canvas among them, lies inside the window, and Grid is reached and runs from it.
 #[test]
-fn ft1279_the_view_menu_fits_a_1000_by_700_window() {
+fn the_view_menu_fits_a_1000_by_700_window() {
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     h.set_size(Vec2::new(1000.0, 700.0));
@@ -520,7 +520,7 @@ fn ft1279_the_view_menu_fits_a_1000_by_700_window() {
 /// FT-1520 (doc 16a §6.13): View ▸ Show's switches draw only their check in the menu's check column, blank
 /// when off, never their icons: Grid (on) shows its check, Frame statistics (off) nothing.
 #[test]
-fn ft1520_view_show_switches_show_only_their_check() {
+fn view_show_switches_show_only_their_check() {
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
     assert!(h.state().shell().grid_on());

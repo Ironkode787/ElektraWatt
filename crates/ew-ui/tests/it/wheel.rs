@@ -122,7 +122,7 @@ fn canvas_centre(h: &Harness<'_, App>) -> egui::Pos2 {
 /// (a): egui's events of a mouse wheel of `(dx, dy)` lines with `m` held, as a backend sends them (the modifiers
 /// changed, then the wheel event with them; a line down is a negative `delta.y`), then the frames that settle it.
 #[test]
-fn ft895_the_wheel_table_by_egui_events() {
+fn the_wheel_table_by_egui_events() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     let mut table = Vec::new();
@@ -161,7 +161,7 @@ fn ft895_the_wheel_table_by_egui_events() {
 
 /// (b): the same through the visual driver's `scroll` step at the canvas's centre.
 #[test]
-fn ft895_the_wheel_table_by_the_visual_driver() {
+fn the_wheel_table_by_the_visual_driver() {
     let tmp = Tmp::new();
     let golden = tmp.golden("g.ew");
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
@@ -203,7 +203,7 @@ fn ft895_the_wheel_table_by_the_visual_driver() {
 /// With View ▸ Mouse wheel scrolls on, the plain vertical wheel scrolls three of egui's lines (32 mm
 /// at 100 %) and leaves the zoom, a line down showing more of the bottom; Ctrl with the wheel still zooms.
 #[test]
-fn ft1439_the_wheel_scrolls_by_the_preference() {
+fn the_wheel_scrolls_by_the_preference() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     let out = h

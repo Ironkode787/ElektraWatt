@@ -174,7 +174,7 @@ fn filtered(s: &ShellModel, filter: &str) -> Vec<(String, String)> {
 /// counts and structured values read in words in either language, never as JSON; a filter shows its rows with their
 /// parents, so the four parties' "Personal data" rows never stand alone (doc 16a §6.8).
 #[test]
-fn ft1357_the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
+fn the_project_sheet_reads_in_words_and_a_filter_keeps_the_parents() {
     let tmp = Tmp::new("ft1357");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut s, "props.show", json!({"on": true}));

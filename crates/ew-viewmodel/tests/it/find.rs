@@ -45,7 +45,7 @@ fn results(shell: &ShellModel) -> usize {
 /// FR3 (D16): 20 results on 204 to 206, 16 on 204 and 205; the replace previews 20 changes in the card, commits one
 /// `fields.set_many` (one undo step) and undo restores all 20.
 #[test]
-fn fr3_spare_is_twenty_results_and_one_previewed_replace() {
+fn spare_is_twenty_results_and_one_previewed_replace() {
     let tmp = Tmp::new("find-fr3");
     let mut shell = writable(&tmp, "204");
     spare(&mut shell, &["204", "205"], "Reserve");
@@ -115,7 +115,7 @@ fn fr3_spare_is_twenty_results_and_one_previewed_replace() {
 /// (added with `fields.set` first) replaced in its list, each one previewed transaction; "Murrelektronik" is found as
 /// the manufacturer of MICO 4.10 and not replaced.
 #[test]
-fn fr4_regex_technical_value_and_library_copy() {
+fn regex_technical_value_and_library_copy() {
     let tmp = Tmp::new("find-fr4");
     let mut shell = writable(&tmp, "204");
     spare(&mut shell, &["204", "205", "206"], "$1 (unused)");
@@ -214,7 +214,7 @@ fn fr4_regex_technical_value_and_library_copy() {
 /// FR5 (§7.5): Freeze on three devices of folio 102 is one `fields.set_many` through the card (rule 2); each tag then
 /// reads Frozen with its own text.
 #[test]
-fn fr5_freeze_on_three_devices_is_one_set_many_through_the_card() {
+fn freeze_on_three_devices_is_one_set_many_through_the_card() {
     let tmp = Tmp::new("find-fr5");
     let mut shell = writable(&tmp, "102");
     let refs = ["tag:-102F1", "tag:-102G1", "tag:-102F2"];
@@ -274,7 +274,7 @@ fn fr5_freeze_on_three_devices_is_one_set_many_through_the_card() {
 /// PG7 (§7.4): a stale replace card runs the search again with the same query, rebuilds the command and shows a fresh
 /// card that needs a second Apply, saying how many hits changed.
 #[test]
-fn pg7_a_stale_replace_card_runs_the_search_again() {
+fn a_stale_replace_card_runs_the_search_again() {
     let tmp = Tmp::new("find-pg7");
     let mut shell = spare_all_of_204_to_206(&tmp);
     done(&mut shell, "find.replace_all", json!({}));

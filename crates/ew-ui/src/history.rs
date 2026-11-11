@@ -504,7 +504,7 @@ mod tests {
 
     /// DK11: the state icons and the undone tone of doc 16a §6.24 in every theme.
     #[test]
-    fn dk11_state_icons_and_the_undone_tone() {
+    fn state_icons_and_the_undone_tone() {
         use crate::theme::{Density, Theme, tokens};
         for theme in Theme::ALL {
             let t = tokens(theme, Density::Comfortable);

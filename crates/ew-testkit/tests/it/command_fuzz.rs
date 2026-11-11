@@ -222,7 +222,7 @@ fn open_session_with(seed: u64, memo: MemoMode) -> Session {
     }
     let project = project.expect("the batch holds the project");
     // One waiver, so that `check.unwaive` has a record to remove from the first step on: Golden A
-    // itself holds none (W-1 is a test fixture, `ew-api/tests/checks_part5.rs`). Its fingerprint matches no finding.
+    // itself holds none (W-1 is a test fixture, `ew-api/tests/it/check_messages_waivers.rs`). Its fingerprint matches no finding.
     records.push(Record::Waiver(
         serde_json::from_value(serde_json::json!({
             "id": "0c5e5b2a-7d1f-5e3a-9b6c-4f2a1d8e7c90", "rule": "EW-CORE-041",
@@ -1329,7 +1329,7 @@ fn every_arm_commits_on_golden_a() {
 /// refusal takes, and the `page.surface_view.set` arm reaches the schema's minimum of a scale, with the "refuse"
 /// verdict. Each refusal is asserted whole; a committed step is undone.
 #[test]
-fn ft1064_the_star_and_scale_arms_reach_their_refusals() {
+fn the_star_and_scale_arms_reach_their_refusals() {
     let mut session = open_session_with(7, MemoMode::On);
     let fixture = Rc::new(Fixture::of(&session.query()));
     let live = Live::read(&session.query(), &fixture);
@@ -1461,7 +1461,7 @@ fn run_steps(session: &mut Session, steps: &[(&'static str, serde_json::Value)])
 /// no longer restates the command's rule (the step is `Either`); the step sequence the finding was about: a
 /// conductor added to a cable commits, and the same step on a device that is no cable is refused and changes nothing.
 #[test]
-fn ft469_conductor_add_commits_on_a_cable_and_is_refused_on_another_device() {
+fn conductor_add_commits_on_a_cable_and_is_refused_on_another_device() {
     let mut session = open_session_with(469, MemoMode::On);
     let fixture = Rc::new(Fixture::of(&session.query()));
     let live = Live::read(&session.query(), &fixture);
@@ -1586,7 +1586,7 @@ fn rep_move_of_a_surface_view_is_refused_and_of_a_free_text_commits() {
 /// the finding: the dotted structure box with a location and an external reference commits, a save and reload gives
 /// the same model, and after the undo a save and reload gives Golden A.
 #[test]
-fn ft468_a_structure_box_survives_a_save_and_reload() {
+fn a_structure_box_survives_a_save_and_reload() {
     let mut session = open_session(7);
     let initial = session.world().model.clone();
     let mut disk = roundtrip::Disk::new(468);

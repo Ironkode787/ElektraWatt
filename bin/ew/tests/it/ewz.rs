@@ -54,7 +54,7 @@ type Run = (Option<i32>, String, String, BTreeMap<String, Vec<u8>>);
 /// `verify-derived`, `query`, `layout`, `fmt --check`, `upgrade --check` as decision log ID-1230 ruling 5 adds it) gives the same
 /// exit code, stdout, stderr and output bytes on Golden A's `.ewz` as on its directory; nothing is written beside the archive. The runs go in parallel, each with its own output path.
 #[test]
-fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
+fn every_reader_gives_the_same_output_on_the_ewz() {
     let t = Tmp::new("ew-ewz");
     let dir = t.golden("J-E-2416.ew");
     let ewz = packed(&t, &dir);
@@ -145,7 +145,7 @@ fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
 /// (exit 2), `apply --preview`, `project assets purge --preview` and `import table` without `--apply` included, and the
 /// archive is unchanged.
 #[test]
-fn ez2_every_other_subcommand_refuses_the_ewz() {
+fn every_other_subcommand_refuses_the_ewz() {
     let t = Tmp::new("ew-ewz");
     let dir = t.golden("J-E-2416.ew");
     let ewz = packed(&t, &dir);
@@ -230,7 +230,7 @@ fn export_ewz_needs_out_and_is_deterministic() {
 /// EZ-3: `ew extract` writes into `<name>.ew` beside the archive or `--into`, byte-equal to the source; onto an
 /// existing directory it exits 2 and writes nothing.
 #[test]
-fn ez3_extract_into_a_new_folder_and_never_into_an_existing_one() {
+fn extract_into_a_new_folder_and_never_into_an_existing_one() {
     let t = Tmp::new("ew-ewz");
     let dir = t.golden("J-E-2416.ew");
     let source = tree(&dir);
@@ -292,7 +292,7 @@ fn ez3_extract_into_a_new_folder_and_never_into_an_existing_one() {
 /// EZ-4 through the CLI: a damaged or hostile archive is refused unread by every reader and by `ew extract`, in words,
 /// and nothing is written.
 #[test]
-fn ez4_a_refused_archive_is_named_and_nothing_is_written() {
+fn a_refused_archive_is_named_and_nothing_is_written() {
     let t = Tmp::new("ew-ewz");
     let dir = t.golden("J-E-2416.ew");
     let ewz = packed(&t, &dir);

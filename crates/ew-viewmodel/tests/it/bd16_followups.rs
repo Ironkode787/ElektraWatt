@@ -65,7 +65,7 @@ fn cp_labels(s: &ShellModel) -> Vec<String> {
 // Item 1: the two clamps of a terminal print distinct labels.
 
 #[test]
-fn item1_the_two_clamps_of_a_starter_terminal_print_distinct_labels() {
+fn the_two_clamps_of_a_starter_terminal_print_distinct_labels() {
     let tmp = Tmp::new("bd16-1");
     let mut s = new_project_with_strip(&tmp);
     place_terminal(&mut s, "101-D2", json!({}), json!({}));
@@ -82,7 +82,7 @@ fn item1_the_two_clamps_of_a_starter_terminal_print_distinct_labels() {
 // Item 2: the strip chooser's choice takes its own `designation`.
 
 #[test]
-fn item2_the_strip_choosers_designation_names_the_terminal() {
+fn the_strip_choosers_designation_names_the_terminal() {
     let tmp = Tmp::new("bd16-2");
     let mut s = new_project_with_strip(&tmp);
     // The drafter's call: the designation on the strip row's choice (the strip proposes `1`).
@@ -92,7 +92,7 @@ fn item2_the_strip_choosers_designation_names_the_terminal() {
 }
 
 #[test]
-fn item2_the_strip_rows_designation_wins_over_the_symbol_rows() {
+fn the_strip_rows_designation_wins_over_the_symbol_rows() {
     let tmp = Tmp::new("bd16-2b");
     let mut s = new_project_with_strip(&tmp);
     place_terminal(
@@ -140,7 +140,7 @@ fn select_only_rep(s: &mut ShellModel) {
 }
 
 #[test]
-fn item3_the_move_shifts_the_terminal_by_the_cursors_displacement_from_where_it_was_armed() {
+fn the_move_shifts_the_terminal_by_the_cursors_displacement_from_where_it_was_armed() {
     let tmp = Tmp::new("bd16-3");
     let mut s = new_project_with_strip(&tmp);
     place_terminal(&mut s, "101-D2", json!({}), json!({}));
@@ -185,7 +185,7 @@ fn rep_positions(s: &ShellModel) -> Vec<(EntityRef, (i64, i64))> {
 }
 
 #[test]
-fn item3_a_terminal_stacked_on_another_moves_off_it_by_keyboard_and_by_drag() {
+fn a_terminal_stacked_on_another_moves_off_it_by_keyboard_and_by_drag() {
     let tmp = Tmp::new("bd16-3b");
     let mut s = new_project_with_strip(&tmp);
     // The drafter's stack: two terminals on one point. Since FT-622 the Place tool puts the second two grid steps to the

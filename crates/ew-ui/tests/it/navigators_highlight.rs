@@ -47,7 +47,7 @@ fn px(img: &ew_render_cpu::RgbaImage, x: i64, y: i64) -> [u8; 4] {
 /// a hatch line in the full colour within 3 pixels), the hatch lines run at 45° (a full-colour pixel continues
 /// up-right, not down-right), and without the highlight the same pixels are as before.
 #[test]
-fn np3_the_highlight_is_composited_into_the_snapshot() {
+fn the_highlight_is_composited_into_the_snapshot() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
@@ -141,7 +141,7 @@ fn np3_the_highlight_is_composited_into_the_snapshot() {
 /// it; with Connections and Potentials open, a selection made on the canvas (W29 on 103) marks its row in both panes
 /// as selected tree items, with the focus left on the canvas.
 #[test]
-fn np3_np4_the_panes_highlight_and_follow_the_canvas() {
+fn the_panes_highlight_and_follow_the_canvas() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));

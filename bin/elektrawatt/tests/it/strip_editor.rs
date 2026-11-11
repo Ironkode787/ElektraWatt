@@ -81,7 +81,7 @@ fn rows_of(csv: &[Vec<String>], description: &str) -> Vec<Vec<String>> {
 }
 
 #[test]
-fn se6_end_brackets_and_bridges_give_the_oracle_rows_13_and_14() {
+fn end_brackets_and_bridges_give_the_oracle_rows_13_and_14() {
     let exe = bin_exe();
     let tmp = Tmp::new();
     let job = tmp.path("g.ew");

@@ -124,7 +124,7 @@ fn coil_state(s: &mut ShellModel, attach: bool) -> Uuid {
 /// any commit, in words that name the coil and the card by tag and carry no record ID; the same drop on the coil once
 /// it is on the card (PG2's path) still binds.
 #[test]
-fn fx38d_a_cp_off_the_card_is_refused_in_words() {
+fn a_cp_off_the_card_is_refused_in_words() {
     let tmp = Tmp::new("plcnav-fx38d");
     let mut s = new_project(&tmp);
     let coil = coil_state(&mut s, false);
@@ -177,7 +177,7 @@ fn fx38d_a_cp_off_the_card_is_refused_in_words() {
 /// `plc.bind_channel` (it moves from the card's pin, where N3 bound it, to the coil); the coil's CP prints Q0.0, and
 /// one undo restores the pin. A drop beside every CP is refused calmly.
 #[test]
-fn pg2_a_channel_dropped_on_a_cp_binds_it() {
+fn a_channel_dropped_on_a_cp_binds_it() {
     let tmp = Tmp::new("plcnav-pg2");
     let mut s = new_project(&tmp);
     let coil = pg2_state(&mut s);
@@ -228,7 +228,7 @@ fn pg2_a_channel_dropped_on_a_cp_binds_it() {
 /// PG5: a module's start typed into the property grid as the profile's text goes through `plc.set_start` (one undo
 /// step); its slot typed into the grid's Slot cell through `fields.set` on the module.
 #[test]
-fn pg5_the_start_and_slot_editors() {
+fn the_start_and_slot_editors() {
     let tmp = Tmp::new("plcnav-pg5");
     let mut s = new_project(&tmp);
     pg2_state(&mut s);
@@ -261,7 +261,7 @@ fn pg5_the_start_and_slot_editors() {
 /// PG4 in the filter: the PLC flags match the channel rows that carry them; in another navigator the same words stay
 /// plain text.
 #[test]
-fn pg4_the_plc_flags_are_flags_in_the_plc_navigator_only() {
+fn the_plc_flags_are_flags_in_the_plc_navigator_only() {
     for w in PLC_FLAGS {
         let q = Query::parse_for(NavKind::Plc, w);
         assert_eq!(q.flags, [w.to_owned()]);
@@ -277,7 +277,7 @@ fn pg4_the_plc_flags_are_flags_in_the_plc_navigator_only() {
 /// PG3 (FR-PLC-021): eight symbols pasted from a spreadsheet into the Symbol column of the grid are one command and
 /// one undo step; the pattern fill numbers them.
 #[test]
-fn pg3_pasting_eight_symbols_is_one_undo_step() {
+fn pasting_eight_symbols_is_one_undo_step() {
     let tmp = Tmp::new("plcnav-pg3");
     let mut s = new_project(&tmp);
     pg2_state(&mut s);
@@ -359,7 +359,7 @@ fn switch_state(s: &mut ShellModel) -> (String, String) {
 /// card's pin 3 with one `plc.bind_channel`: the pin prints the channel's address, the channel that N3 had bound there
 /// is named in the toast as unbound, and one undo restores both.
 #[test]
-fn ft753_a_device_wired_to_the_card_binds_the_card_pin() {
+fn a_device_wired_to_the_card_binds_the_card_pin() {
     let tmp = Tmp::new("plcnav-ft753-wired");
     let mut s = new_project(&tmp);
     let (card, switch) = switch_state(&mut s);
@@ -413,7 +413,7 @@ fn ft753_a_device_wired_to_the_card_binds_the_card_pin() {
 
 /// FT-753, wired to two pins: the drop binds nothing and asks, in words, for the card's pin meant.
 #[test]
-fn ft753_a_device_wired_to_two_card_pins_asks_which() {
+fn a_device_wired_to_two_card_pins_asks_which() {
     let tmp = Tmp::new("plcnav-ft753-two");
     let mut s = new_project(&tmp);
     let (card, switch) = switch_state(&mut s);
@@ -442,7 +442,7 @@ fn ft753_a_device_wired_to_two_card_pins_asks_which() {
 /// solenoid-position map) is attached to it at its first free position and bound where it was dropped: two commands,
 /// two undo steps, both named by the toast.
 #[test]
-fn ft753_a_valve_is_attached_to_a_valve_terminal_and_bound() {
+fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
     let tmp = Tmp::new("plcnav-ft753-attach");
     let mut s = new_project(&tmp);
     let part: serde_json::Value = serde_json::from_str(
@@ -523,7 +523,7 @@ fn ft753_a_valve_is_attached_to_a_valve_terminal_and_bound() {
 /// The PLC grid's key column is the address and the target follows it, so a narrow grid shows what a
 /// channel is and what it drives; the default table mode shows them first.
 #[test]
-fn ft757_the_grid_leads_with_address_and_target() {
+fn the_grid_leads_with_address_and_target() {
     let tmp = Tmp::new("plcnav-ft757-cols");
     let mut s = new_project(&tmp);
     pg2_state(&mut s);
@@ -540,7 +540,7 @@ fn ft757_the_grid_leads_with_address_and_target() {
 /// A channel that a drop on its card's pin unbinds is named in the toast by its address, not left unbound
 /// silently.
 #[test]
-fn ft757_a_displaced_channel_is_named() {
+fn a_displaced_channel_is_named() {
     let tmp = Tmp::new("plcnav-ft757-displaced");
     let mut s = new_project(&tmp);
     pg2_state(&mut s);
@@ -560,7 +560,7 @@ fn ft757_a_displaced_channel_is_named() {
 /// An edited row stays the cursor row after its commit re-sorts the grid (the window scrolls to the cursor
 /// row when its position changes), and the toast reads in sentence case.
 #[test]
-fn ft757_an_edited_row_keeps_the_cursor_and_the_toast_reads_in_sentence_case() {
+fn an_edited_row_keeps_the_cursor_and_the_toast_reads_in_sentence_case() {
     let tmp = Tmp::new("plcnav-ft757-edit");
     let mut s = new_project(&tmp);
     pg2_state(&mut s);
@@ -597,7 +597,7 @@ fn ft757_an_edited_row_keeps_the_cursor_and_the_toast_reads_in_sentence_case() {
 /// member names the navigator; the describe text carries the tree's roles and badges with no record ID, and in table
 /// mode the columns and the rows; showing the navigator reads one table, a filter reads none, a commit one more.
 #[test]
-fn pg6_transcript_and_counts() {
+fn transcript_and_counts() {
     let tmp = Tmp::new("plcnav-pg6");
     let mut s = new_project(&tmp);
     black_box(&mut s, "EW-GEN-CPU-1", (10, 10), (16, 18));
@@ -677,7 +677,7 @@ fn pg6_transcript_and_counts() {
 /// A configuration project's Address profile row in Properties is a chooser of the profiles at
 /// hand; choosing another pins it through `plc.set_profile`, one undo step.
 #[test]
-fn ft1448_the_address_profile_is_chosen_in_properties() {
+fn the_address_profile_is_chosen_in_properties() {
     use ew_viewmodel::properties::{FieldType, RowValue, find_row};
     // Golden A's configuration project PLC1.
     const PLC1: &str = "4a1d3ee5-9e34-5065-b364-09f61b6e7c30";

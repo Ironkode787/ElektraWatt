@@ -90,7 +90,7 @@ fn ends_at(
 // IB2: the IP tool
 
 #[test]
-fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
+fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     let tmp = Tmp::new("ip-tool");
     let mut s = actual_size(&tmp, "103");
     let before = ips(&tables(&s));
@@ -172,7 +172,7 @@ fn ib2_the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle(
 }
 
 #[test]
-fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
+fn the_name_proposal_is_the_potential_under_the_ghost_cp() {
     let tmp = Tmp::new("ip-potential");
     let mut s = actual_size(&tmp, "102");
     let t = tables(&s);
@@ -199,7 +199,7 @@ fn ib2_the_name_proposal_is_the_potential_under_the_ghost_cp() {
 }
 
 #[test]
-fn ib2_ending_a_wire_in_an_ip_is_one_transaction_and_one_undo_step() {
+fn ending_a_wire_in_an_ip_is_one_transaction_and_one_undo_step() {
     let tmp = Tmp::new("wire-ip");
     let mut s = actual_size(&tmp, "102");
     let before = tables(&s);
@@ -290,7 +290,7 @@ fn links_to(s: &ShellModel, folio: &str) -> usize {
 }
 
 #[test]
-fn ib3_continue_on_page_103_places_the_paired_ip_at_the_default_position() {
+fn continue_on_page_103_places_the_paired_ip_at_the_default_position() {
     let tmp = Tmp::new("continue");
     let mut s = actual_size(&tmp, "102");
     let paired = links_to(&s, "103");
@@ -366,7 +366,7 @@ fn xref_of_partner(s: &mut ShellModel, name: &str) -> String {
 }
 
 #[test]
-fn ib4_arrange_by_name_puts_l1_in_the_upper_slot() {
+fn arrange_by_name_puts_l1_in_the_upper_slot() {
     let tmp = Tmp::new("arrange");
     let mut s = actual_size(&tmp, "102");
     let t = tables(&s);
@@ -424,7 +424,7 @@ fn ib4_arrange_by_name_puts_l1_in_the_upper_slot() {
 // IB5, IB6: the black box tool and the grips
 
 #[test]
-fn ib5_the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() {
+fn the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_device() {
     let tmp = Tmp::new("box-tool");
     let mut s = actual_size(&tmp, "102");
     done(
@@ -532,7 +532,7 @@ fn ib5_the_black_box_tool_with_the_mico_part_gives_ten_cps_that_report_its_devic
 /// the opposite corner), the box follows the pointer from that corner, the first Escape drops the corner and says that
 /// a second one leaves the tool, and the second Escape leaves it for Select.
 #[test]
-fn ft714_the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
+fn the_black_box_shows_its_first_corner_and_escape_leaves_in_two_steps() {
     let tmp = Tmp::new("box-escape");
     let mut s = actual_size(&tmp, "102");
     done(
@@ -627,7 +627,7 @@ fn check_widened(s: &ShellModel, before: &TableRep, connected: usize) {
 }
 
 #[test]
-fn ib6_widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected() {
+fn widening_g1_by_two_grid_steps_keeps_its_cps_on_the_outline_and_connected() {
     let tmp = Tmp::new("grips");
     let mut s = actual_size(&tmp, "102");
     let t = tables(&s);
@@ -774,7 +774,7 @@ fn assert_armed_hint(s: &ShellModel) {
 }
 
 #[test]
-fn ft1093_the_black_box_picker_arms_the_tool_with_the_two_corner_hint() {
+fn the_black_box_picker_arms_the_tool_with_the_two_corner_hint() {
     let tmp = Tmp::new("box-hint-picker");
     let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.black_box", json!({}));
@@ -791,7 +791,7 @@ fn ft1093_the_black_box_picker_arms_the_tool_with_the_two_corner_hint() {
 }
 
 #[test]
-fn ft1093_the_black_box_tool_with_a_part_arms_with_the_two_corner_hint() {
+fn the_black_box_tool_with_a_part_arms_with_the_two_corner_hint() {
     let tmp = Tmp::new("box-hint-part");
     let mut s = actual_size(&tmp, "102");
     done(
@@ -803,7 +803,7 @@ fn ft1093_the_black_box_tool_with_a_part_arms_with_the_two_corner_hint() {
 }
 
 #[test]
-fn ft1093_place_pick_of_a_black_box_symbol_arms_with_the_two_corner_hint() {
+fn place_pick_of_a_black_box_symbol_arms_with_the_two_corner_hint() {
     let tmp = Tmp::new("box-hint-pick");
     let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.place", json!({}));
@@ -831,7 +831,7 @@ fn ft1093_place_pick_of_a_black_box_symbol_arms_with_the_two_corner_hint() {
 }
 
 #[test]
-fn ib7_the_tools_read_nothing_while_moving() {
+fn the_tools_read_nothing_while_moving() {
     let tmp = Tmp::new("words");
     let mut s = actual_size(&tmp, "103");
     done(&mut s, "tool.ip", json!({}));

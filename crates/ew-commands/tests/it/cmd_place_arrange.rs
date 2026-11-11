@@ -2399,7 +2399,7 @@ fn a_positional_contacts_endpoints_survive_a_pattern_re_index() {
 // FT-673: `copies` on rep.exchange_symbol
 
 #[test]
-fn ft673_exchange_embeds_its_copies_in_the_same_undo_step() {
+fn exchange_embeds_its_copies_in_the_same_undo_step() {
     type Symbols = ew_schema::LibCopy<SymbolDef>;
     let mut e = engine(exchange_model(|_| {}));
     let before = lines(e.model());

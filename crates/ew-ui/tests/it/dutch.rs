@@ -58,7 +58,7 @@ fn on_golden(tmp: &Tmp, scale: f32) -> Harness<'static, App> {
     h
 }
 
-/// The first-run flow of `part2.rs`, with Nederlands chosen on its first step: every later step is in Dutch.
+/// The first-run flow of `shell_frame.rs`, with Nederlands chosen on its first step: every later step is in Dutch.
 fn first_run(scale: f32) {
     let tmp = Tmp::new();
     let mut shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
@@ -104,7 +104,7 @@ fn first_run(scale: f32) {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The new-project flow of `part2.rs`: the start page's New project, the folder dialog, the built-in page.
+/// The new-project flow of `shell_frame.rs`: the start page's New project, the folder dialog, the built-in page.
 fn new_project(scale: f32) {
     let tmp = Tmp::new();
     let dir = tmp.0.join("first.ew");
@@ -249,7 +249,7 @@ fn settings(scale: f32) {
 }
 
 #[test]
-fn nl3_the_first_run_in_dutch_at_100_and_200() {
+fn the_first_run_in_dutch_at_100_and_200() {
     for scale in [1.0, 2.0] {
         println!("first_run at the UI scale {scale}");
         first_run(scale);
@@ -257,7 +257,7 @@ fn nl3_the_first_run_in_dutch_at_100_and_200() {
 }
 
 #[test]
-fn nl3_new_project_in_dutch_at_100_and_200() {
+fn new_project_in_dutch_at_100_and_200() {
     for scale in [1.0, 2.0] {
         println!("new_project at the UI scale {scale}");
         new_project(scale);
@@ -265,7 +265,7 @@ fn nl3_new_project_in_dutch_at_100_and_200() {
 }
 
 #[test]
-fn nl3_place_and_wire_in_dutch_at_100_and_200() {
+fn place_and_wire_in_dutch_at_100_and_200() {
     for scale in [1.0, 2.0] {
         println!("place_and_wire at the UI scale {scale}");
         place_and_wire(scale);
@@ -273,7 +273,7 @@ fn nl3_place_and_wire_in_dutch_at_100_and_200() {
 }
 
 #[test]
-fn nl3_a_terminal_strip_in_dutch_at_100_and_200() {
+fn a_terminal_strip_in_dutch_at_100_and_200() {
     for scale in [1.0, 2.0] {
         println!("terminal_strip at the UI scale {scale}");
         terminal_strip(scale);
@@ -281,7 +281,7 @@ fn nl3_a_terminal_strip_in_dutch_at_100_and_200() {
 }
 
 #[test]
-fn nl3_renumber_in_dutch_at_100_and_200() {
+fn renumber_in_dutch_at_100_and_200() {
     for scale in [1.0, 2.0] {
         println!("renumber at the UI scale {scale}");
         renumber(scale);
@@ -289,7 +289,7 @@ fn nl3_renumber_in_dutch_at_100_and_200() {
 }
 
 #[test]
-fn nl3_export_pdf_in_dutch_at_100_and_200() {
+fn export_pdf_in_dutch_at_100_and_200() {
     for scale in [1.0, 2.0] {
         println!("export_pdf at the UI scale {scale}");
         export_pdf(scale);
@@ -297,7 +297,7 @@ fn nl3_export_pdf_in_dutch_at_100_and_200() {
 }
 
 #[test]
-fn nl3_the_settings_surfaces_in_dutch_at_100_and_200() {
+fn the_settings_surfaces_in_dutch_at_100_and_200() {
     for scale in [1.0, 2.0] {
         println!("settings at the UI scale {scale}");
         settings(scale);

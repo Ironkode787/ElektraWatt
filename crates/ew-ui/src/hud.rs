@@ -450,7 +450,7 @@ mod tests {
     /// At the room where egui's greedy wrap leaves one word on the second row, the HUD's prompt takes
     /// a narrower room that keeps two rows, neither a single word; a prompt on one row keeps its room.
     #[test]
-    fn ft972_a_wrapped_prompt_balances_its_two_rows() {
+    fn a_wrapped_prompt_balances_its_two_rows() {
         let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
         let ctx = egui::Context::default();
         let prompt = "Not placed: 0V already has a source on page 102; press D for a target, or mark one source as the star";

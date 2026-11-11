@@ -128,7 +128,7 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
 /// still names the device and the way out (the open's finding count goes with the message), and it cannot be
 /// dismissed; it follows the UI language, and it goes when the project closes.
 #[test]
-fn id1427_the_damaged_copy_banner_stays_while_its_state_holds() {
+fn the_damaged_copy_banner_stays_while_its_state_holds() {
     let tmp = Tmp::new("id1427-damaged-banner");
     let (dir, _) = damaged_golden(&tmp);
     let mut s = ShellModel::new(
@@ -193,7 +193,7 @@ fn tree(dir: &std::path::Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
 /// A damaged library copy that no device names, here the form a page names, is named in the banner
 /// and the Save As refusal by its kind and by the record that names it, in both languages; nothing is written.
 #[test]
-fn ft1500_a_damaged_copy_a_page_names_is_named_with_its_page() {
+fn a_damaged_copy_a_page_names_is_named_with_its_page() {
     let tmp = Tmp::new("ft1500-form");
     let dir = golden_with_damaged(&tmp, "forms/81ee0d6d-6c0e-55e4-b7fd-1896f594051f.json");
     let before = tree(&dir);
@@ -236,7 +236,7 @@ fn ft1500_a_damaged_copy_a_page_names_is_named_with_its_page() {
 /// the project without it, which opens for editing, and its toast names the copy left out; the banner goes. The
 /// damaged project is never written.
 #[test]
-fn ft1500_save_as_leaves_out_a_damaged_copy_no_record_names() {
+fn save_as_leaves_out_a_damaged_copy_no_record_names() {
     let tmp = Tmp::new("ft1500-left-out");
     let file = "manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
     let dir = golden_with_damaged(&tmp, file);
@@ -327,7 +327,7 @@ fn every_damaged_copy_a_save_as_leaves_out_is_named() {
 /// open was refused before; Save As is refused in its words as for any copy a record names, nothing being
 /// written. Both languages.
 #[test]
-fn id1484_a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
+fn a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
     let tmp = Tmp::new("id1484-fluid");
     let dir = golden_with_damaged(&tmp, "fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json");
     let before = tree(&dir);
@@ -369,7 +369,7 @@ fn id1484_a_damaged_definition_copy_with_fluid_lines_opens_read_only() {
 /// F55 and saved) is named in the banner and the Save As refusal by its part number and its library, whole in both
 /// languages.
 #[test]
-fn ft1525_a_damaged_copy_of_an_installed_part_is_named_whole() {
+fn a_damaged_copy_of_an_installed_part_is_named_whole() {
     let tmp = Tmp::new("ft1525");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
     done(&mut s, "select.set", json!({ "refs": ["tag:F55"] }));

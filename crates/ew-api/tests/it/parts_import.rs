@@ -105,7 +105,7 @@ fn a_parts_table_above_the_size_limit_is_refused_before_it_is_read() {
 /// as the tables without it, through the user's path (`read_parts_tables`, which `parts.import` and `ew import parts`
 /// both call); the bootstrap's own reader stays strict.
 #[test]
-fn jb8_a_bom_prefixed_parts_table_imports_the_same_copies() {
+fn a_bom_prefixed_parts_table_imports_the_same_copies() {
     let dir = ew_testdir::fresh_dir("ew-parts-bom");
     let golden = golden_parts();
     let tables = golden.parent().unwrap();

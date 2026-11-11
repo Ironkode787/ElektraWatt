@@ -77,7 +77,7 @@ fn near(a: f32, b: f32, tolerance: f32) -> bool {
 /// the column, the status bar and the property label column at 1280 by 800; the first five rail entries in the
 /// mockup's order with History at the foot; the Project entry's segmented control.
 #[test]
-fn dk8_the_layout_matches_the_mockup() {
+fn the_layout_matches_the_mockup() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     let f = frame(&h);
@@ -153,7 +153,7 @@ fn dk8_the_layout_matches_the_mockup() {
 /// DK1, FT-338: every splitter handle is a named `Splitter` node ("Resize Pages and Properties"), the walker passes
 /// with no exception while every navigator is open, and each rail button is one Tab stop.
 #[test]
-fn dk1_named_splitters_and_the_walker_without_a_skip() {
+fn named_splitters_and_the_walker_without_a_skip() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     let names: Vec<String> = h
@@ -228,7 +228,7 @@ fn a_click_on_the_shown_entry_collapses_the_column() {
 
 /// DK2: the page rows' badges are named nodes after the row's text, never bracketed words.
 #[test]
-fn dk2_page_rows_carry_badge_nodes_not_bracketed_words() {
+fn page_rows_carry_badge_nodes_not_bracketed_words() {
     let tmp = Tmp::new();
     let h = window(&tmp);
     let shell = h.state().shell();
@@ -256,7 +256,7 @@ fn dk2_page_rows_carry_badge_nodes_not_bracketed_words() {
 /// DK3 in the window: the Main group first, no edit buttons, one actions button per row with actions, and the
 /// Advanced rows behind "Show advanced (n)".
 #[test]
-fn dk3_properties_main_first_and_advanced_on_demand() {
+fn properties_main_first_and_advanced_on_demand() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));
@@ -289,7 +289,7 @@ fn dk3_properties_main_first_and_advanced_on_demand() {
 /// DK4 in the window: "Ready" at the left, the zoom, the save state and the renderer in D12's order left to right; no
 /// page or language field; the findings field opens Messages.
 #[test]
-fn dk4_the_status_bar_fields_in_order() {
+fn the_status_bar_fields_in_order() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     let fields = ew_ui::ew_viewmodel::status::bar(h.state().shell(), false);
@@ -341,7 +341,7 @@ fn dk4_the_status_bar_fields_in_order() {
 /// The history panel from the keyboard alone. F6 reaches the panel; Down moves the row cursor to the
 /// older entry and Enter runs Undo to here on it; the header names the oldest step kept; the walker passes.
 #[test]
-fn ft519_the_history_panel_from_the_keyboard() {
+fn the_history_panel_from_the_keyboard() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     for text in ["one", "two", "three"] {
@@ -392,7 +392,7 @@ fn ft519_the_history_panel_from_the_keyboard() {
 /// with the Messages pane closed and its click opens the pane; the pane's own close button (in its header, the pane
 /// alone in the dock) closes it; the canvas keeps its zoom and centre through the open and the close.
 #[test]
-fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
+fn the_badge_opens_messages_and_its_close_button_closes_it() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     let messages = ew_ui::ew_viewmodel::navigators::NavKind::Messages;
@@ -433,7 +433,7 @@ fn fx38d_the_badge_opens_messages_and_its_close_button_closes_it() {
 /// A Jobs entry's title is inset from the pane's edge by `space.4`, as the other panes' rows are, not flush
 /// with it.
 #[test]
-fn ft1199_a_jobs_entry_is_inset_from_the_panes_edge() {
+fn a_jobs_entry_is_inset_from_the_panes_edge() {
     let tmp = Tmp::new();
     let pdf = tmp.0.join("out.pdf");
     let platform = Scripted::default();
@@ -468,7 +468,7 @@ fn ft1199_a_jobs_entry_is_inset_from_the_panes_edge() {
 /// At the 1280 × 800 floor the Messages dock grows with its list, so at least five rows of Golden
 /// A's findings are on show, and it stays within 40 % of the window's height.
 #[test]
-fn ft1415_messages_shows_five_rows_at_the_floor() {
+fn messages_shows_five_rows_at_the_floor() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     dispatch(&mut h, "messages.show", json!({"on": true}));

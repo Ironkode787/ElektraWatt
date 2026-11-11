@@ -96,7 +96,7 @@ fn place_ip(h: &mut Harness<'_, App>, name: &str) {
 /// MS5 (FR-UI-025, FR-UI-041; §7.3): the pane from the View menu, its named rows, its header and footer, the keyboard
 /// walk, the detail block with the Rule page link, and a pending row.
 #[test]
-fn ms5_the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
+fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     let tmp = Tmp::new();
     let platform = Scripted::default();
     let opened = platform.opened.clone();
@@ -328,7 +328,7 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
 /// a finding out of view is scrolled to as well (Golden A's findings, the window 1280 by 800; FX38d: the dock leaves the
 /// page view half the window, so a 640-high window shows too few rows).
 #[test]
-fn ft528_navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_into_view() {
+fn navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_into_view() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, Scripted::default());
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -530,7 +530,7 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
 /// cycle 42): the detail is as tall as its content, the list above it keeps at least two rows (was three), and only a
 /// still taller detail scrolls; never an ellipsis, a clipped line or a fixed pixel cap.
 #[test]
-fn ft915_the_lay_001_detail_shows_its_message_whole_at_the_floor_and_at_1920() {
+fn the_lay_001_detail_shows_its_message_whole_at_the_floor_and_at_1920() {
     for (w, hgt) in [(1280.0, 800.0), (1920.0, 1080.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, Scripted::default());
@@ -674,7 +674,7 @@ fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
 /// row keeps one line (a cut row has an ellipsis and its whole text in its tooltip). The detail block shows the rule's title and the message whole, wrapped to the pane's width
 /// and between the list and the footer, at the floor and at 1920 × 1080.
 #[test]
-fn ft1097_the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920() {
+fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920() {
     const TITLE: &str = "EW-POT-011 Junction feed ambiguous";
     // FT-1146 (item 10): the potential once, first; the row shows the message alone (it leads with its
     // subject).
@@ -850,7 +850,7 @@ fn a_finding_keeps_its_fix_badge_in_dutch() {
 /// FT-1186 (doc 16a §6.24): a group or rule row's count stands `space.2` after its name, at 1920 as at the floor, not
 /// at the row's far end.
 #[test]
-fn ft1186_a_group_rows_count_follows_its_name() {
+fn a_group_rows_count_follows_its_name() {
     for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(1280.0, 800.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, Scripted::default());

@@ -69,7 +69,7 @@ fn two_defs_permuted(at_a: &Value, at_b: &Value, swap: bool) -> Model {
 }
 
 #[test]
-fn ft587_definitions_rank_in_natural_order_not_in_id_order() {
+fn definitions_rank_in_natural_order_not_in_id_order() {
     // The definition at -K1 is first in natural order in both ID orders: its voltage applies, the text names
     // the other definition by its printed key, and both definitions are targets.
     let mut messages = Vec::new();
@@ -105,7 +105,7 @@ fn ft587_definitions_rank_in_natural_order_not_in_id_order() {
 }
 
 #[test]
-fn ft587_the_first_name_in_natural_order_wins_whatever_the_ids() {
+fn the_first_name_in_natural_order_wins_whatever_the_ids() {
     // Names rank first: "P2" sorts before "P10" in natural order (and after it in byte order).
     for swap in [false, true] {
         let m = two_defs_permuted(
@@ -157,7 +157,7 @@ fn attrs_finding(m: &Model) -> ew_checks::Finding {
 }
 
 #[test]
-fn ft588_an_undefined_potential_is_keyed_on_its_discriminator_member() {
+fn an_undefined_potential_is_keyed_on_its_discriminator_member() {
     for swap in [false, true] {
         let (m, pe) = role_conflict(swap, false);
         let f = attrs_finding(&m);
@@ -291,7 +291,7 @@ fn pot001_agreeing_definitions_have_no_finding() {
 /// The flow conflict names the pass-through function by its device tag, not by an ID, so the text
 /// is the same whichever IDs the records carry.
 #[test]
-fn ft587_the_flow_conflict_names_the_pass_through_by_its_tag() {
+fn the_flow_conflict_names_the_pass_through_by_its_tag() {
     let mut messages = Vec::new();
     for (a, b, pass) in [(0x1001, 0x1002, 0x1003), (0x1003, 0x1001, 0x1002)] {
         let mut fx = Fx::base();
@@ -539,7 +539,7 @@ fn pot014_cases() {
 }
 
 #[test]
-fn ft188_a_wire_note_in_a_bond_closure_is_reported_once() {
+fn a_wire_note_in_a_bond_closure_is_reported_once() {
     // Both potentials of the bond closure read the closure's physical wires; the note belongs to the potential
     // of the wire, and the bonded potential does not report it again.
     let m = conflict_fixture_bonded(0x6101, 0x6102, true);

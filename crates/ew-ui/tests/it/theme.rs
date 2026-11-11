@@ -41,7 +41,7 @@ fn bless() -> bool {
 // DL1
 
 #[test]
-fn dl1_contrast_is_wcag_2_1() {
+fn contrast_is_wcag_2_1() {
     let white = Rgba::hex(0xFFFFFF);
     assert!((contrast(Rgba::hex(0x0072B2), white) - 5.19).abs() <= 0.01);
     assert!((contrast(Rgba::hex(0x767676), white) - 4.54).abs() <= 0.01);
@@ -55,7 +55,7 @@ fn dl1_contrast_is_wcag_2_1() {
 }
 
 #[test]
-fn dl1_every_declared_pair_of_every_theme_meets_its_floor() {
+fn every_declared_pair_of_every_theme_meets_its_floor() {
     let mut failures = Vec::new();
     for t in all() {
         for pair in t.pairs() {
@@ -84,7 +84,7 @@ fn dl1_every_declared_pair_of_every_theme_meets_its_floor() {
 }
 
 #[test]
-fn dl1_the_ratios_of_doc_16a_section_4_5_are_recomputed() {
+fn the_ratios_of_doc_16a_section_4_5_are_recomputed() {
     let light = tokens(Theme::Light, Density::Comfortable);
     let dark = tokens(Theme::Dark, Density::Comfortable);
     let r = |t: &Tokens, a: &str, b: &str| {
@@ -107,7 +107,7 @@ fn dl1_the_ratios_of_doc_16a_section_4_5_are_recomputed() {
 }
 
 #[test]
-fn dl1_high_contrast_themes_have_no_translucency_and_no_shadow() {
+fn high_contrast_themes_have_no_translucency_and_no_shadow() {
     for theme in [Theme::HighContrastDark, Theme::HighContrastLight] {
         let t = tokens(theme, Density::Comfortable);
         for (name, value) in t.entries() {
@@ -155,7 +155,7 @@ fn dump() -> String {
 }
 
 #[test]
-fn dl2_every_alias_exists_in_every_theme_and_density() {
+fn every_alias_exists_in_every_theme_and_density() {
     let names = |t: &Tokens| t.entries().into_iter().map(|(n, _)| n).collect::<Vec<_>>();
     let reference = names(&tokens(Theme::Light, Density::Comfortable));
     let mut unique = reference.clone();
@@ -172,7 +172,7 @@ fn dl2_every_alias_exists_in_every_theme_and_density() {
 }
 
 #[test]
-fn dl2_the_dump_equals_the_blessed_file_and_is_deterministic() {
+fn the_dump_equals_the_blessed_file_and_is_deterministic() {
     let a = dump();
     assert_eq!(a, dump(), "two runs byte-identical");
     if bless() {
@@ -190,7 +190,7 @@ fn dl2_the_dump_equals_the_blessed_file_and_is_deterministic() {
 }
 
 #[test]
-fn dl2_density_changes_sizes_only() {
+fn density_changes_sizes_only() {
     for theme in Theme::ALL {
         let c = tokens(theme, Density::Comfortable);
         let k = tokens(theme, Density::Compact);
@@ -217,7 +217,7 @@ fn dl2_density_changes_sizes_only() {
 // DL3
 
 #[test]
-fn dl3_apply_maps_the_tokens_onto_egui() {
+fn apply_maps_the_tokens_onto_egui() {
     for t in all() {
         let ctx = egui::Context::default();
         apply(&t, &ctx);
@@ -280,7 +280,7 @@ fn dl3_apply_maps_the_tokens_onto_egui() {
 // DL5
 
 #[test]
-fn dl5_a_strong_label_is_laid_out_with_the_semibold_face() {
+fn a_strong_label_is_laid_out_with_the_semibold_face() {
     let ctx = egui::Context::default();
     ew_ui::app::setup(&ctx);
     let t = tokens(Theme::Light, Density::Comfortable);
@@ -486,7 +486,7 @@ fn check_block(t: &Tokens, properties: &BTreeMap<String, String>) -> usize {
 }
 
 #[test]
-fn dl8_the_tokens_equal_the_mockups_custom_properties() {
+fn the_tokens_equal_the_mockups_custom_properties() {
     let root = block(":root");
     let mut dark = root.clone();
     dark.extend(block("[data-theme=dark]"));
@@ -508,7 +508,7 @@ fn dl8_the_tokens_equal_the_mockups_custom_properties() {
 }
 
 #[test]
-fn dl8_g10_and_g15_equal_the_mockups_geometry() {
+fn g10_and_g15_equal_the_mockups_geometry() {
     let light = tokens(Theme::Light, Density::Comfortable);
     let compact = tokens(Theme::Light, Density::Compact);
     // G10: row height (via --row) and the property label column.

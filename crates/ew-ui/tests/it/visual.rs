@@ -140,7 +140,7 @@ fn a_scripts_ui_dismiss_with_the_app_menu_open_closes_only_the_menu() {
 
 /// BV2: the vocabulary's members and bounds (spec §4.1); the frame line's.
 #[test]
-fn bv2_the_inputs_check_their_members_and_bounds() {
+fn the_inputs_check_their_members_and_bounds() {
     let ok = |v: Value| parse_input(&obj(v)).unwrap();
     let err = |v: Value| parse_input(&obj(v)).unwrap_err();
     // The frame's edges are inside, one more is not.
@@ -245,7 +245,7 @@ fn bv2_the_inputs_check_their_members_and_bounds() {
 /// 101, shows 101: the driver pauses before a double click, so egui does not count it as a triple click with the one
 /// before (both ran a few frames apart).
 #[test]
-fn ft891_the_drivers_double_clicks_on_two_rows_open_both() {
+fn the_drivers_double_clicks_on_two_rows_open_both() {
     let tmp = Tmp::new();
     let mut d = golden_on_101(&tmp);
     let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "102"}));
@@ -343,7 +343,7 @@ fn shift_and_ctrl_clicks_mark_table_rows_and_ctrl_a_marks_them_all() {
 /// BV3: a click on a known button dispatches its action; a right click on a property row opens its menu; typing
 /// into a field sets it; a rubber band selects and a drag from a selected item moves the selection.
 #[test]
-fn bv3_clicks_right_clicks_typing_and_drags_reach_the_widgets() {
+fn clicks_right_clicks_typing_and_drags_reach_the_widgets() {
     let tmp = Tmp::new();
     let mut d = golden_on_101(&tmp);
     // The drags below aim at Fit page's view (the first view is fit-width).
@@ -426,7 +426,7 @@ fn bv3_clicks_right_clicks_typing_and_drags_reach_the_widgets() {
 /// BV4: the same script twice in fresh folders gives the same transcript (dispatch logs and states) and, on Windows,
 /// the same frames; the visual frame path reads no wall clock.
 #[test]
-fn bv4_the_same_script_twice_gives_the_same_logs_states_and_frames() {
+fn the_same_script_twice_gives_the_same_logs_states_and_frames() {
     let tmp = Tmp::new();
     let script = |dir: &Path| {
         vec![
@@ -476,7 +476,7 @@ fn bv4_the_same_script_twice_gives_the_same_logs_states_and_frames() {
 /// BV4: the canvas's dwells follow the frame clock: none while the pointer moves, one at 80 ms and one at 300 ms of
 /// frame time, however long the machine takes.
 #[test]
-fn bv4_the_dwells_follow_the_frame_clock() {
+fn the_dwells_follow_the_frame_clock() {
     let tmp = Tmp::new();
     let mut d = golden_on_101(&tmp);
     let dwells = |d: &mut Driver| actions(d).iter().filter(|a| *a == "canvas.dwell").count();
@@ -496,7 +496,7 @@ fn bv4_the_dwells_follow_the_frame_clock() {
 /// BV5 and BV6: the file dialogs are answered with `project` and `project.pdf` in the run's folder; an export runs to
 /// its end within the input that started it; the caret is drawn in every frame.
 #[test]
-fn bv5_bv6_dialogs_are_answered_and_an_export_ends_within_its_input() {
+fn dialogs_are_answered_and_an_export_ends_within_its_input() {
     let tmp = Tmp::new();
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
@@ -572,7 +572,7 @@ fn answer_open_names_the_file_of_the_next_open_dialog() {
 /// frame before and after half a second.
 #[cfg(windows)]
 #[test]
-fn bv5_the_caret_is_always_drawn() {
+fn the_caret_is_always_drawn() {
     let tmp = Tmp::new();
     let lines = vec![
         json!({"action": "file.new", "params": {"dir": tmp.0.join("p").to_string_lossy()}}),

@@ -351,7 +351,7 @@ mod tests {
     /// UR-5 (D11): a brief whose `task.toml` names rounds gets `ROUND.md` after its task sheet, with its digest and its
     /// placeholders; a brief without rounds and a check run of a round task do not; the prompt is byte-deterministic.
     #[test]
-    fn ur5_a_round_task_adds_the_round_prompt_after_the_sheet() {
+    fn a_round_task_adds_the_round_prompt_after_the_sheet() {
         let tmp = Tmp::new("compose-round");
         tree(&tmp);
         let toml = |rounds: &str| {

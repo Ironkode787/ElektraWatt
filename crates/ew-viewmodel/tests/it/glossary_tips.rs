@@ -86,7 +86,7 @@ fn tips(s: &ShellModel) -> Vec<(String, Option<NoteAction>)> {
 }
 
 #[test]
-fn gt1_folio_report_finds_the_interruption_point_whose_insert_arms_the_ip_tool_and_dutch_finds_it_too() {
+fn folio_report_finds_the_interruption_point_whose_insert_arms_the_ip_tool_and_dutch_finds_it_too() {
     let tmp = Tmp::new("gt1-glossary");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     assert!(!s.glossary_shown());
@@ -148,7 +148,7 @@ fn gt1_folio_report_finds_the_interruption_point_whose_insert_arms_the_ip_tool_a
 }
 
 #[test]
-fn gt2_with_origin_qet_a_line_onto_a_connection_point_shows_tip_1_once_and_convert_undoes_it_and_arms_wire() {
+fn with_origin_qet_a_line_onto_a_connection_point_shows_tip_1_once_and_convert_undoes_it_and_arms_wire() {
     let tmp = Tmp::new("gt2-tip1");
     let mut s = shell_with(&tmp, FROM_QET, "102");
     assert!(!s.can_undo());
@@ -325,7 +325,7 @@ fn a_generated_page_refuses_in_the_words_of_its_numbered_title() {
 }
 
 #[test]
-fn gt3_tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_or_another_origin() {
+fn tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_or_another_origin() {
     // Off by the setting, and off for a user who does not come from EPLAN or QET.
     for (n, settings) in [
         "version = 1\nfirst_run_done = true\ncomes_from = \"eplan\"\ntips = false\n",
@@ -425,7 +425,7 @@ fn gt3_tips_2_and_3_appear_once_each_on_their_refusals_and_never_with_tips_off_o
 
 /// A read-only project's refusal offers neither tip 2 nor tip 3 and leaves both unused.
 #[test]
-fn gt3_a_read_only_refusal_leaves_tips_2_and_3_unused() {
+fn a_read_only_refusal_leaves_tips_2_and_3_unused() {
     let tmp = Tmp::new("gt3-read-only");
     write_settings(&tmp, FROM_EPLAN);
     let mut s = tmp.shell_in(Mode::Headless, false, "102");
@@ -462,7 +462,7 @@ fn gt3_a_read_only_refusal_leaves_tips_2_and_3_unused() {
 /// An editing tool refused on a generated page, and the Pages navigator's reorder and move of one, offer tip
 /// 3 (once).
 #[test]
-fn gt3_a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
+fn a_tool_a_reorder_or_a_move_refused_on_a_generated_page_offers_tip_3() {
     let generated = "This page is generated from a report block.".to_owned();
     // The Wire tool on a generated page.
     let tmp = Tmp::new("gt3-tool");
@@ -540,7 +540,7 @@ fn the_six_dutch_choice_words_equal_their_siblings() {
 }
 
 #[test]
-fn gt3_table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3() {
+fn table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3() {
     let tmp = Tmp::new("gt3-table");
     let mut s = shell_with(&tmp, FROM_QET, "102");
     done(&mut s, "navigator.show", json!({"kind": "devices"}));
@@ -590,7 +590,7 @@ fn gt3_table_mode_refusals_on_a_tag_and_on_a_generated_page_offer_tips_2_and_3()
 }
 
 #[test]
-fn gt4_wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
+fn wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
     let tmp = Tmp::new("gt4-view");
     let mut s = tmp.shell("103");
     assert!(!s.wire_colours_on());
@@ -643,7 +643,7 @@ fn gt4_wire_colours_stroke_w29_in_dbu_and_stripe_w27_and_are_off_by_default() {
 
 /// A script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no overflow).
 #[test]
-fn ft1347_a_huge_glossary_step_stops_at_the_last_row() {
+fn a_huge_glossary_step_stops_at_the_last_row() {
     let tmp = Tmp::new("ft1347-glossary");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut s, "help.glossary", json!({}));

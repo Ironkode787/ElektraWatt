@@ -61,7 +61,7 @@ const FIRST_RUN_DONE: &str = "first_run_done = true\n";
 /// KM-1 (FR-UI-013): the KiCad-like preset in the window: A starts Place, G Move, W Wire and E focuses Properties on
 /// the canvas.
 #[test]
-fn km1_the_kicad_preset_binds_a_g_w_and_e_on_the_canvas() {
+fn the_kicad_preset_binds_a_g_w_and_e_on_the_canvas() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "first_run_done = true\nkeymap = \"kicad\"\n", None);
     for (key, action) in [
@@ -83,7 +83,7 @@ fn km1_the_kicad_preset_binds_a_g_w_and_e_on_the_canvas() {
 
 /// KM-1: in the EW preset A is not bound and I starts Place. KM-5 (D7): Ctrl+Shift+N runs Renumber devices….
 #[test]
-fn km1_km5_the_ew_preset_keeps_i_for_place_and_binds_ctrl_shift_n_to_renumber() {
+fn the_ew_preset_keeps_i_for_place_and_binds_ctrl_shift_n_to_renumber() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, FIRST_RUN_DONE, None);
     let log = actions_of(&mut h, Modifiers::NONE, Key::A);
@@ -100,7 +100,7 @@ fn km1_km5_the_ew_preset_keeps_i_for_place_and_binds_ctrl_shift_n_to_renumber() 
 
 /// KM-2: a user keymap's chord runs its action in the window, and the preset's key of that action no longer does.
 #[test]
-fn km2_a_user_binding_replaces_the_presets_in_the_window() {
+fn a_user_binding_replaces_the_presets_in_the_window() {
     let tmp = Tmp::new();
     let mut h = on_golden(
         &tmp,
@@ -120,7 +120,7 @@ fn km2_a_user_binding_replaces_the_presets_in_the_window() {
 /// KM-3 in the window: Record, then a pressed chord sets the binding; a conflict shows as an error line; the row of a
 /// canvas binding over a global one shows its shadowing; the walker passes with the editor open.
 #[test]
-fn km3_the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
+fn the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, FIRST_RUN_DONE, None);
     dispatch(&mut h, "help.shortcuts", json!({}));

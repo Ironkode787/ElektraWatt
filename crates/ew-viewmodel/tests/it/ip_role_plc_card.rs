@@ -68,7 +68,7 @@ fn source_on_101(tmp: &Tmp) -> ShellModel {
 }
 
 #[test]
-fn ft822_a_name_with_a_source_on_another_page_is_offered_as_a_target() {
+fn a_name_with_a_source_on_another_page_is_offered_as_a_target() {
     let tmp = Tmp::new("g40-offer");
     let mut s = source_on_101(&tmp);
     arm_ip(&mut s, "0V", 150.0);
@@ -89,7 +89,7 @@ fn ft822_a_name_with_a_source_on_another_page_is_offered_as_a_target() {
 }
 
 #[test]
-fn ft822_on_the_page_of_the_source_the_series_goes_on_as_before() {
+fn on_the_page_of_the_source_the_series_goes_on_as_before() {
     let tmp = Tmp::new("g40-series");
     let mut s = new_project(&tmp);
     arm_ip(&mut s, "24VDC-1", 150.0);
@@ -104,7 +104,7 @@ fn ft822_on_the_page_of_the_source_the_series_goes_on_as_before() {
 }
 
 #[test]
-fn ft822_the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
+fn the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
     let tmp = Tmp::new("g40-hud");
     let mut s = source_on_101(&tmp);
     arm_ip(&mut s, "0V", 150.0);
@@ -233,7 +233,7 @@ fn key_of(s: &ShellModel, id: &str) -> String {
 }
 
 #[test]
-fn ft822_choosing_source_for_a_proposed_name_offers_the_next_free_name() {
+fn choosing_source_for_a_proposed_name_offers_the_next_free_name() {
     let tmp = Tmp::new("g40-free");
     let mut s = source_on_101(&tmp);
     // No typed name: the proposal is the last committed name's series' first free name, 0V-1, with the quarter's role
@@ -253,7 +253,7 @@ fn ft822_choosing_source_for_a_proposed_name_offers_the_next_free_name() {
 }
 
 #[test]
-fn ft822_a_refused_arrow_keeps_its_ghost_and_says_why() {
+fn a_refused_arrow_keeps_its_ghost_and_says_why() {
     let tmp = Tmp::new("g40-refused");
     let mut s = source_on_101(&tmp);
     arm_ip(&mut s, "0V", 150.0);

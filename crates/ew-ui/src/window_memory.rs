@@ -237,7 +237,7 @@ mod tests {
     /// DK6: a normal window records its outer position and inner size; a maximised one keeps the last normal geometry
     /// with `maximized`; a harness without a monitor and a minimised window record nothing.
     #[test]
-    fn dk6_what_the_window_records() {
+    fn what_the_window_records() {
         let normal = observed(&info(false), 1.0, None).unwrap();
         assert_eq!(
             normal,
@@ -274,7 +274,7 @@ mod tests {
     /// (1920 × 1200 px) with its outer corner at (150, 75) px as 640 × 400 points at (50, 25); the window records the
     /// size in zoom-1 points and the position in pixels.
     #[test]
-    fn dk6_the_window_records_logical_size_and_physical_position() {
+    fn the_window_records_logical_size_and_physical_position() {
         let at_zoom_2 = ViewportInfo {
             monitor_size: Some(vec2(960.0, 540.0)),
             outer_rect: Some(Rect::from_min_size(pos2(50.0, 25.0), vec2(648.0, 419.5))),
@@ -300,7 +300,7 @@ mod tests {
     /// builder's guess (2200 points → 3300 px), the first frame moves it back to 2200 px, and it records 2200 px again:
     /// start after start, no drift and no shrink (it used to go 2200 → 3300 → 4950 px, then onto the primary).
     #[test]
-    fn dk6_a_round_trip_on_a_mixed_scale_desktop_keeps_the_place_and_the_size() {
+    fn a_round_trip_on_a_mixed_scale_desktop_keeps_the_place_and_the_size() {
         let monitors = desk(&[
             (0.0, 0.0, 1920.0, 1080.0, true),
             (1920.0, 0.0, 2560.0, 1440.0, false),
@@ -357,7 +357,7 @@ mod tests {
     /// first frame; a window already at its saved place does not move; no saved position runs the clamp on where the
     /// window opened.
     #[test]
-    fn dk6_the_first_frame_clamps_the_saved_position() {
+    fn the_first_frame_clamps_the_saved_position() {
         let monitors = desk(&[(0.0, 0.0, 1920.0, 1080.0, true)]);
         let to = first_frame_position(
             Some((-2400.0, 40.0)),
@@ -402,7 +402,7 @@ mod tests {
     /// R1-4: a window that opened on a monitor that is gone moves onto the primary one; one on any monitor
     /// (the left one at negative x included) stays; without a monitor list nothing moves.
     #[test]
-    fn dk6_the_first_frame_moves_an_off_screen_window_onto_the_primary_monitor() {
+    fn the_first_frame_moves_an_off_screen_window_onto_the_primary_monitor() {
         let primary = MonitorArea {
             x: 0.0,
             y: 0.0,
@@ -448,7 +448,7 @@ mod tests {
     /// 2880 × 1620 px at (0, 0); a window that opened at (-3000, 60) px, on a monitor that is gone, moves onto the
     /// primary at x = 0 and keeps its y; egui-winit maps the command back to physical pixels by `zoom × scale`.
     #[test]
-    fn dk6_the_first_frame_converts_physical_pixels_at_a_scale_and_a_zoom() {
+    fn the_first_frame_converts_physical_pixels_at_a_scale_and_a_zoom() {
         let monitors = desk(&[
             (2880.0, 0.0, 2560.0, 1440.0, false),
             (0.0, 0.0, 2880.0, 1620.0, true),
@@ -486,7 +486,7 @@ mod tests {
     /// its saved normal place and then maximises it. Saved un-maximised it only moves; at its place and maximised it
     /// only maximises; without a known position (Wayland) a maximised window is still maximised.
     #[test]
-    fn dk6_a_window_saved_maximised_is_placed_then_maximised() {
+    fn a_window_saved_maximised_is_placed_then_maximised() {
         let monitors = desk(&[(0.0, 0.0, 3840.0, 2160.0, true)]);
         let (scale, zoom) = (1.5, 1.0);
         let saved = WindowGeometry {
@@ -521,7 +521,7 @@ mod tests {
 
     /// DK6: the builder takes the saved geometry, the size raised to the minimum; without one it is unchanged.
     #[test]
-    fn dk6_the_builder_restores_the_saved_geometry() {
+    fn the_builder_restores_the_saved_geometry() {
         let saved = WindowGeometry {
             x: -300.0,
             y: 20.0,

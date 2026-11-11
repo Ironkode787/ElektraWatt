@@ -25,7 +25,7 @@ const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
 /// group; the Advanced rows stay out until `props.show_advanced {on: true}` (the window's half, no chip on an
 /// authored row and no edit button, is `ew-ui`'s `docks` test).
 #[test]
-fn dk3_the_groups_labels_and_advanced_rows() {
+fn the_groups_labels_and_advanced_rows() {
     let tmp = Tmp::new("docks-dk3");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     let mut seen_advanced = 0;
@@ -82,7 +82,7 @@ fn dk3_the_groups_labels_and_advanced_rows() {
 /// DK4: the status bar's fields in D12's order with "Ready" at the left, no page or language field; the findings only
 /// while Messages is open and as one field; the renderer in the warning tone with its tooltip on the CPU.
 #[test]
-fn dk4_the_status_bar_fields() {
+fn the_status_bar_fields() {
     let tmp = Tmp::new("docks-dk4");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     // A selection drawn on the canvas (a selection that draws nothing there is not counted).
@@ -129,7 +129,7 @@ fn dk4_the_status_bar_fields() {
 /// DK5: the default workspace is D10's (Pages over Properties at the left, 233 ‰; the page view 767 ‰), its file is
 /// deterministic and reads back equal; a workspace file written before the package loads with its panes in place.
 #[test]
-fn dk5_the_default_workspace_and_an_older_file() {
+fn the_default_workspace_and_an_older_file() {
     let layout = Layout::schematic();
     assert_eq!(
         layout.root,
@@ -175,7 +175,7 @@ fn dk5_the_default_workspace_and_an_older_file() {
 /// DK1's model half: the rail's entries in the mockup's order with Ctrl+1 to Ctrl+9, History at the foot, the right
 /// rail's two palettes; `rail.show` shows a navigator in the group and collapses the column on its own entry.
 #[test]
-fn dk1_the_rail_model_and_rail_show() {
+fn the_rail_model_and_rail_show() {
     let tmp = Tmp::new("docks-dk1");
     let mut shell = tmp.shell("101");
     let model = rail(&shell);
@@ -238,7 +238,7 @@ fn dk1_the_rail_model_and_rail_show() {
 
 /// FT-519's model half: `ui.focus {area: history}` while the panel is shown, and F6 reaches it.
 #[test]
-fn ft519_the_history_focus() {
+fn the_history_focus() {
     let tmp = Tmp::new("docks-ft519");
     let mut shell: ShellModel = tmp.shell("101");
     assert!(matches!(
@@ -262,7 +262,7 @@ fn ft519_the_history_focus() {
 /// keeps the rows whose label or value contains its text (case-folded), the row cursor moves among them, and a filter
 /// whose field is not on show hides nothing.
 #[test]
-fn ft541_props_filter_keeps_the_matching_rows_while_its_field_is_on_show() {
+fn props_filter_keeps_the_matching_rows_while_its_field_is_on_show() {
     use ew_viewmodel::properties::{FILTER_ROWS, groups, row_matches, visible_rows};
     let tmp = Tmp::new("docks-ft541");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
@@ -331,7 +331,7 @@ fn messages_shown(shell: &ShellModel) -> bool {
 /// front (it stays in the layout); a second one, Messages now in front, closes it (FX38d kept); F8 (`messages.next`,
 /// its key read from the keymap) brings it to front too.
 #[test]
-fn ft916_messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
+fn messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
     let tmp = Tmp::new("docks-ft916");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     let messages = PaneKind::Navigator(NavKind::Messages);
@@ -364,7 +364,7 @@ fn ft916_messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
 /// toggle), by its close control (`view.bottom_dock {on: false}`) and by Escape in the pane; opening and closing it,
 /// which shrinks and grows the canvas pane, never changes the zoom or the centre of the fitted page.
 #[test]
-fn fx38d_the_messages_dock_closes_and_keeps_the_zoom() {
+fn the_messages_dock_closes_and_keeps_the_zoom() {
     let tmp = Tmp::new("docks-fx38d");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     // The host's first size of the pane fits the page to it.
@@ -448,7 +448,7 @@ fn fx38d_the_messages_dock_closes_and_keeps_the_zoom() {
 /// findings field (its click is `messages.show {on: true}`, `ew-ui`'s `status_bar`), and only while the project is at
 /// the checked revision.
 #[test]
-fn fx38d_the_findings_field_after_a_check_opens_messages() {
+fn the_findings_field_after_a_check_opens_messages() {
     let tmp = Tmp::new("docks-fx38d-badge");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     let findings = |shell: &ShellModel| {

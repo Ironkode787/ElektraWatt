@@ -97,7 +97,7 @@ fn spans(items: &[RailItem]) -> Vec<(i128, i128, u128)> {
 /// SN-1 (FR-LAY-060): R2's four brackets attributed 1X1, 1X1, -X1031, -X1032; -X1032 moved to 222.6 mm (gap 60 mm ≥
 /// 20 mm) gives five; a strip without an end-bracket part use gives none; zero-width brackets join touching strips only.
 #[test]
-fn sn1_brackets_at_the_strip_boundaries() {
+fn brackets_at_the_strip_boundaries() {
     assert_eq!(
         spans(&r2()),
         vec![
@@ -175,7 +175,7 @@ fn free_lengths_of_golden_a() {
 /// SN-2 (free): F55 (18 mm, centre clip) at clip 158 mm lands at clip 52 mm (the left gap's end is nearer); at clip
 /// 320 mm it stays; a 300 mm part fits no gap.
 #[test]
-fn sn2_free_takes_the_nearest_gap() {
+fn free_takes_the_nearest_gap() {
     let f55 = new_item(180);
     let r = resolve(&r1(), L1, f55, mm10(1490), SnapMode::Free).unwrap();
     assert_eq!(
@@ -200,7 +200,7 @@ fn sn2_free_takes_the_nearest_gap() {
 /// SN-3 (push): F55 at clip 158 mm stays at 158 mm and moves -102F1, -102F2, T55 and S51 18 mm; a locked -102F2
 /// refuses; a 300 mm part pushes S51 past the rail end by 20 mm.
 #[test]
-fn sn3_push_moves_the_right_neighbours() {
+fn push_moves_the_right_neighbours() {
     let r = resolve(&r1(), L1, new_item(180), mm10(1490), SnapMode::Push).unwrap();
     assert_eq!(r.s_left, mm10(1490));
     assert_eq!(
@@ -250,7 +250,7 @@ fn sn3_push_moves_the_right_neighbours() {
 /// SN-4 (swap): -101F1 dropped onto -102F2 gives -102F2 153.5, -102F1 185, -101F1 203 mm (clip points) and moves
 /// nothing else; two equal neighbours exchange places; another rail and an empty spot refuse.
 #[test]
-fn sn4_swap_exchanges_within_the_segment() {
+fn swap_exchanges_within_the_segment() {
     let f1 = r1()[1];
     // Its centre over -102F2's centre (189.5 mm): left edge 180.5 mm.
     let r = resolve(&r1(), L1, f1, mm10(1805), SnapMode::Swap).unwrap();
@@ -305,7 +305,7 @@ fn sn4_swap_exchanges_within_the_segment() {
 /// SN-5 (clearance): an item with 5 mm pads keeps a 10 mm gap to a neighbour with the same pads; flipped pads swap;
 /// strips ignore pads.
 #[test]
-fn sn5_pads_space_the_items() {
+fn pads_space_the_items() {
     let padded = |n, s0, s1, pad: [i128; 2]| RailItem {
         pad: pad.map(|p| p * MM),
         ..dev(n, s0, s1)
@@ -337,7 +337,7 @@ fn sn5_pads_space_the_items() {
 /// SN-6 (strips): on R2 an 18 mm non-strip dropped at 200 mm lands at 208.6 mm (after -X1032's bracket); a 26 mm strip
 /// with a 10 mm bracket at 205 mm lands at 208.6 mm, joins the run and gives five brackets.
 #[test]
-fn sn6_strips_keep_their_brackets() {
+fn strips_keep_their_brackets() {
     let r = resolve(&r2(), L1, new_item(180), mm10(2000), SnapMode::Free).unwrap();
     assert_eq!(r.s_left, mm10(2086));
     let s = RailItem {

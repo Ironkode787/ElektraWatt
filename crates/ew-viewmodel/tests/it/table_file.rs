@@ -184,7 +184,7 @@ fn steps(shell: &ShellModel) -> usize {
 /// filter shows no row of another strip, so ruling 8's narrowing is not needed); a file with five changed labels opens
 /// the card with "5 changed"; Escape commits nothing; Accept commits one `fields.set_many`, one undo step.
 #[test]
-fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
+fn the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
     let tmp = Tmp::new("tw1");
     let mut shell = strips(&tmp);
     // Every row on show sits under the strip -X1031 (ruling 8).
@@ -305,7 +305,7 @@ fn tw1_the_export_is_the_clis_and_an_accepted_import_is_one_undo_step() {
 /// which keeps the project's value, so the file changes nothing and Apply is refused; with "Take the file's
 /// values" on, the bytes the card keeps are read again and Accept applies the file's value in one step.
 #[test]
-fn tw2_a_conflict_keeps_the_projects_value_until_the_switch_takes_the_files() {
+fn a_conflict_keeps_the_projects_value_until_the_switch_takes_the_files() {
     let tmp = Tmp::new("tw2");
     let mut shell = strips(&tmp);
     let out = tmp.0.join("x.xlsx");
@@ -359,7 +359,7 @@ fn tw2_a_conflict_keeps_the_projects_value_until_the_switch_takes_the_files() {
 /// TW-3: an edit while the export job runs applies at once and the file holds the revision the job started from; a
 /// cancel leaves no file and no sibling; a second export while one runs is refused.
 #[test]
-fn tw3_the_export_is_a_job_on_its_snapshot() {
+fn the_export_is_a_job_on_its_snapshot() {
     let tmp = Tmp::new("tw3");
     let mut shell = strips(&tmp);
     let gate = Gate::new();

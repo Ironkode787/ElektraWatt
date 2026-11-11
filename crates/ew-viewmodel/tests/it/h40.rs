@@ -71,7 +71,7 @@ fn parts_list_without_a_bom_block_is_refused_in_words() {
 /// tree", and "dismiss the earlier export toast". After a PDF export on 102, zoomed in, Parts list shows 901 at the
 /// fit zoom, marks its row (the row cursor on it) and leaves no export toast on screen.
 #[test]
-fn ft1028_parts_list_fits_the_page_selects_its_row_and_dismisses_the_export_toast() {
+fn parts_list_fits_the_page_selects_its_row_and_dismisses_the_export_toast() {
     let tmp = Tmp::new("h40-ft1028");
     let mut shell = tmp.shell("102");
     done(&mut shell, "view.zoom_in", json!({}));

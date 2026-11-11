@@ -303,7 +303,7 @@ mod tests {
     /// Every slot colour reaches 3:1 against the white sheet (NFR-A11Y-03; WCAG 2.1 relative luminance), and the
     /// slots keep their hatch angles.
     #[test]
-    fn ft506_every_slot_colour_is_at_least_3_to_1_on_white() {
+    fn every_slot_colour_is_at_least_3_to_1_on_white() {
         fn channel(v: u8) -> f64 {
             let c = f64::from(v) / 255.0;
             if c <= 0.039_28 {

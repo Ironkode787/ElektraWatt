@@ -1667,7 +1667,7 @@ mod tests {
 
     /// MG-5: `--check` writes nothing and exits 1 on the test fixture and 0 on Golden A (read only, no lock).
     #[test]
-    fn mg5_upgrade_check_exits_1_on_an_older_project_and_0_on_golden_a() {
+    fn upgrade_check_exits_1_on_an_older_project_and_0_on_golden_a() {
         let dir = setup_v0("upgrade-check");
         let before = upgrade_files(&dir);
         assert_eq!(
@@ -1762,7 +1762,7 @@ mod tests {
     /// MG-5: without a terminal or `--yes` it exits 2, and a word other than `upgrade` exits 1: nothing changed either
     /// way; the typed word upgrades.
     #[test]
-    fn mg5_upgrade_asks_on_a_terminal_and_refuses_without_one() {
+    fn upgrade_asks_on_a_terminal_and_refuses_without_one() {
         let dir = setup_v0("upgrade-ask");
         let before = upgrade_files(&dir);
         let project = dir.join("p.ew");
@@ -1805,7 +1805,7 @@ mod tests {
 
     /// MG-5: `--yes` writes the backup and saves; afterwards, and on a current project, there is nothing to upgrade.
     #[test]
-    fn mg5_upgrade_yes_backs_up_and_saves() {
+    fn upgrade_yes_backs_up_and_saves() {
         let dir = setup_v0("upgrade-yes");
         let project = dir.join("p.ew");
         let before = upgrade_files(&dir);

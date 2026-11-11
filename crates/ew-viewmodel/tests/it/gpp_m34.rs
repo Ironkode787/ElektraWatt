@@ -36,7 +36,7 @@ fn ghost(s: &ShellModel) -> Value {
 /// `terminal_designation` names the terminal's designation in `place.pick` (and `picker.choose`); `designation`, its
 /// old name, still does; given both, `terminal_designation` wins.
 #[test]
-fn ft543_terminal_designation_names_the_terminal_and_the_old_name_still_works() {
+fn terminal_designation_names_the_terminal_and_the_old_name_still_works() {
     let tmp = Tmp::new("m34-543");
     let mut s = golden(&tmp, "103");
     let pick = |s: &mut ShellModel, params: Value| {
@@ -66,7 +66,7 @@ fn ft543_terminal_designation_names_the_terminal_and_the_old_name_still_works() 
 /// A designation given to a device symbol in a project without strips (gpp-r2 sent `designation=S51` for a switch)
 /// is refused as a terminal with no strip, and the sentence says where a device's tag is set.
 #[test]
-fn ft543_a_designation_on_a_device_says_where_its_tag_is_set() {
+fn a_designation_on_a_device_says_where_its_tag_is_set() {
     let tmp = Tmp::new("m34-543b");
     let mut s = new_project(&tmp);
     for name in ["terminal_designation", "designation"] {
@@ -93,7 +93,7 @@ fn ft543_a_designation_on_a_device_says_where_its_tag_is_set() {
 /// A selected interruption point's grid has its name, direction, sort and star as editable rows of its function
 /// (`fields.set` `kind.ip.*`); typing a name renames it in one undo step, and the direction takes its words.
 #[test]
-fn ft399_an_interruption_point_is_renamed_and_redirected_from_the_grid() {
+fn an_interruption_point_is_renamed_and_redirected_from_the_grid() {
     let tmp = Tmp::new("m34-399");
     let mut s = golden(&tmp, "103");
     let (rep, name) = {
@@ -168,7 +168,7 @@ fn enter_k(s: &mut ShellModel, k: (i64, i64)) {
 /// The direction chosen once stays for every next placement, in the left quarter (which proposes a target) and the
 /// right one (a source) alike; setting an external reference makes the point a target.
 #[test]
-fn ft547_the_ip_tool_keeps_the_chosen_direction_and_an_external_point_is_a_target() {
+fn the_ip_tool_keeps_the_chosen_direction_and_an_external_point_is_a_target() {
     let tmp = Tmp::new("m34-547");
     let mut s = golden(&tmp, "102");
     done(&mut s, "view.zoom_actual", json!({}));
@@ -200,7 +200,7 @@ fn ft547_the_ip_tool_keeps_the_chosen_direction_and_an_external_point_is_a_targe
 /// Deleting an interruption point that has a wire at its connection point takes the wire with it, and the toast says
 /// so.
 #[test]
-fn ft547_deleting_an_ip_with_its_wire_says_so_in_the_toast() {
+fn deleting_an_ip_with_its_wire_says_so_in_the_toast() {
     let tmp = Tmp::new("m34-547b");
     let mut s = golden(&tmp, "103");
     let (rep, name, wire) = {
@@ -239,7 +239,7 @@ fn grid(s: &ShellModel, k: (i64, i64)) -> (i64, i64) {
 /// A plain commit, an Alt commit (the click's modifier and the keyboard's) and a terminal each say the placed tag and
 /// its frame cell in the toast; on a page without frame cells (Golden A's QET frames) the tag alone.
 #[test]
-fn ft546_every_place_commit_names_the_tag_and_the_cell() {
+fn every_place_commit_names_the_tag_and_the_cell() {
     let tmp = Tmp::new("m34-546");
     let mut s = new_project(&tmp);
     done(&mut s, "view.zoom_actual", json!({}));
@@ -289,7 +289,7 @@ fn ft546_every_place_commit_names_the_tag_and_the_cell() {
 /// While the ghost proposes wires, the transcript's ghost lists them, the HUD says how many and how to place without
 /// them (before any commit), and the commit connects exactly the wires the ghost listed.
 #[test]
-fn ft545_the_ghost_lists_the_wires_and_the_strip_says_how_to_place_without_them() {
+fn the_ghost_lists_the_wires_and_the_strip_says_how_to_place_without_them() {
     let tmp = Tmp::new("m34-545");
     let mut s = golden(&tmp, "101");
     done(

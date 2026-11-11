@@ -214,7 +214,7 @@ fn invalid_path(e: CmdError) -> (String, String) {
 /// EM-1 (D7): `embed_command` by reference embeds 2904602 with its manufacturer and its template FnDef in one
 /// command, and the command replays on a session with no library.
 #[test]
-fn em1_embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
+fn embedding_by_reference_carries_the_closure_and_replays_without_a_library() {
     let (_root, t, lib) = company("ew-api-em1");
     let project: ew_schema::Project = serde_json::from_str(PROJECT).unwrap();
     let mut s = Session::from_records(project.clone(), [], [], options(Some(t))).unwrap();
@@ -269,7 +269,7 @@ fn em1_embedding_by_reference_carries_the_closure_and_replays_without_a_library(
 
 /// EM-2: every rejection of `part.assign`, with its pointer.
 #[test]
-fn em2_every_rejection_of_part_assign_names_its_pointer() {
+fn every_rejection_of_part_assign_names_its_pointer() {
     let (_root, t, lib) = company("ew-api-em2");
     let mut s = golden(Some(t));
     let f55 = device(&s, "F55").as_uuid().to_string();
@@ -368,7 +368,7 @@ fn em2_every_rejection_of_part_assign_names_its_pointer() {
 /// EM-3 (D8, D10): assigning A9P52610 to F55 from the company library embeds the part and Schneider Electric's
 /// manufacturer copy, sets the part use and prints the manufacturer, the part number and the rating in the slots.
 #[test]
-fn em3_assigning_from_a_company_library_embeds_and_prints() {
+fn assigning_from_a_company_library_embeds_and_prints() {
     let (_root, t, lib) = company("ew-api-em3");
     let mut s = golden(Some(t));
     let f55 = device(&s, "F55");
@@ -406,7 +406,7 @@ fn em3_assigning_from_a_company_library_embeds_and_prints() {
 /// EM-4 (FR-PRT-023): replacing A9P52610 by another MCB across the devices that use it lists -101F1 in the preview and
 /// commits once.
 #[test]
-fn em4_replacing_a_part_across_devices_lists_them_and_commits_once() {
+fn replacing_a_part_across_devices_lists_them_and_commits_once() {
     let (_root, t, lib) = company("ew-api-em4");
     let mut s = golden(Some(t));
     let from = golden_copy("A9P52610");
@@ -450,7 +450,7 @@ fn em4_replacing_a_part_across_devices_lists_them_and_commits_once() {
 /// EM-5 (FR-PRT-014, D9): updating 2904602 with a description change is a patch; the plan shows the field diff and
 /// -102G1 before the commit; the library status says so before and after.
 #[test]
-fn em5_a_patch_update_shows_the_field_diff_and_the_device() {
+fn a_patch_update_shows_the_field_diff_and_the_device() {
     let (_root, t, lib) = company("ew-api-em5");
     let mut s = golden(Some(t));
     let (g1, item) = replace_2904602_on_g1(&mut s, lib);
@@ -517,7 +517,7 @@ fn em5_a_patch_update_shows_the_field_diff_and_the_device() {
 /// The library's next version of 2904602 names a manufacturer the project does not hold. The plan's
 /// `library.update` embeds it in the same command; the command without it is refused with the missing item listed.
 #[test]
-fn em9_an_update_embeds_the_new_versions_missing_closure_or_is_refused() {
+fn an_update_embeds_the_new_versions_missing_closure_or_is_refused() {
     let (_root, t, lib) = company("ew-api-em9");
     let mut s = golden(Some(t));
     let (_, item) = replace_2904602_on_g1(&mut s, lib);
@@ -589,7 +589,7 @@ fn rehashed(mut v: Value) -> Value {
 /// EM-6 (FR-SYM-016, D9): a symbol update that moves the anchor is minor and changes cross-reference texts, which the
 /// preview lists; one that removes a connected CP is refused with the list.
 #[test]
-fn em6_a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_cp() {
+fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_cp() {
     let mut s = golden(None);
     let old = held_symbol(&s, "ew.gen.ip@qet10");
     let mut moved = old.clone();
@@ -668,7 +668,7 @@ fn em6_a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connec
 
 /// EM-7 (doc 07 §4.5): a declared patch that removes a CP is classified major, whatever its version says.
 #[test]
-fn em7_a_declared_patch_that_removes_a_cp_is_major() {
+fn a_declared_patch_that_removes_a_cp_is_major() {
     let old = golden_part("2904602");
     let mut new = old.clone();
     new["version"] = json!("1.0.1");
@@ -835,7 +835,7 @@ fn library_update_refuses_what_it_cannot_update() {
 /// EM-8 (FR-PRT-034): deprecating A9P52610 with a successor; Golden A still opens unchanged with the library, and
 /// `library_status` offers the successor for -101F1 once it holds the library's copy.
 #[test]
-fn em8_a_deprecated_part_offers_its_successor() {
+fn a_deprecated_part_offers_its_successor() {
     let (_root, t, lib) = company("ew-api-em8");
     let item = item_of("A9P52610");
     {
@@ -949,7 +949,7 @@ fn symbol_key(d: &LibDocument) -> Option<String> {
 /// the held copies equal the bootstrap's (the committed fixture's), no copy has an update left and the valve of
 /// -201U3-Q1 prints its channel address Q0.1.
 #[test]
-fn ft698_update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
+fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
     let batch = golden_common::batch();
     let mut current = Vec::new();
     let mut lib = batch.lib.clone();

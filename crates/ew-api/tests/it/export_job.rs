@@ -47,7 +47,7 @@ fn pdf_job(name: &str, gate: Option<Gate>, job: ew_api::output::ExportJob) -> Jo
 }
 
 #[test]
-fn jb2_the_export_job_equals_the_synchronous_export_and_the_digest_and_keeps_its_snapshot() {
+fn the_export_job_equals_the_synchronous_export_and_the_digest_and_keeps_its_snapshot() {
     let tmp = Tmp::new("ew-api-job-bytes");
     let mut s = golden_copy(&tmp);
     let sync = s.export_pdf(&ExportOptions::default()).unwrap();
@@ -80,7 +80,7 @@ fn jb2_the_export_job_equals_the_synchronous_export_and_the_digest_and_keeps_its
 }
 
 #[test]
-fn jb2_a_cancel_at_the_held_page_gate_after_page_2_is_cancelled() {
+fn a_cancel_at_the_held_page_gate_after_page_2_is_cancelled() {
     let tmp = Tmp::new("ew-api-job-cancel");
     let s = golden_copy(&tmp);
     let gate = Gate::new();
@@ -106,7 +106,7 @@ fn jb2_a_cancel_at_the_held_page_gate_after_page_2_is_cancelled() {
 }
 
 #[test]
-fn jb2_a_selection_the_page_order_does_not_have_fails_with_its_cause() {
+fn a_selection_the_page_order_does_not_have_fails_with_its_cause() {
     let tmp = Tmp::new("ew-api-job-fail");
     let s = golden_copy(&tmp);
     let options = ExportOptions {
@@ -156,7 +156,7 @@ fn print_job(gate: Option<Gate>, job: ew_api::output::PrintSetJob) -> Job<ew_api
 /// PW-1 and PW-2 at the API: the job's set is `Session::print_set`'s, its PDF is `expected/print/sha256.txt`, and a
 /// job made before an edit builds the revision it was made on.
 #[test]
-fn pw1_the_print_job_builds_the_committed_print_set_of_its_revision() {
+fn the_print_job_builds_the_committed_print_set_of_its_revision() {
     let tmp = Tmp::new("ew-api-job-print");
     let mut s = golden_copy(&tmp);
     let sync = s.print_set(&section_1_on_a5()).unwrap();
@@ -183,7 +183,7 @@ fn pw1_the_print_job_builds_the_committed_print_set_of_its_revision() {
 
 /// PW-2 at the API: a cancel at the held gate ends the print job `Cancelled`.
 #[test]
-fn pw2_a_cancelled_print_job_is_cancelled() {
+fn a_cancelled_print_job_is_cancelled() {
     let tmp = Tmp::new("ew-api-job-print-cancel");
     let s = golden_copy(&tmp);
     let gate = Gate::new();

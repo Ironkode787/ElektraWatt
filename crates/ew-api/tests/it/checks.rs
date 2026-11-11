@@ -489,7 +489,7 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
 /// in the drafting scheme.
 ///
 /// EW-CORE-041 also reports two known deviations from EF-04 until their packages land: -XPE (EF-19, open in Golden A
-/// itself, which holds no waiver; the copy with W-1 in `checks_part5.rs` waives it) and the process valves -203Q1 to -203Q8 (supplied by others, exempt once
+/// itself, which holds no waiver; the copy with W-1 in `check_messages_waivers.rs` waives it) and the process valves -203Q1 to -203Q8 (supplied by others, exempt once
 /// `supply_scope` exists, FT-209, decision log ID-322).
 #[test]
 fn golden_a_ew_core_part3_reports_the_ef_rows() {

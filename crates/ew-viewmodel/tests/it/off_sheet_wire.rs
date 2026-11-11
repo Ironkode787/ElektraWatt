@@ -111,7 +111,7 @@ fn stretch(t: &PageTables) -> ((i64, i64), (i64, i64)) {
 }
 
 #[test]
-fn ft1049_the_place_tool_refuses_a_drop_on_the_edge_stretch_and_proposes_no_split() {
+fn the_place_tool_refuses_a_drop_on_the_edge_stretch_and_proposes_no_split() {
     let tmp = Tmp::new("ft1049-place");
     let mut s = fixture(&tmp);
     let t = tables(&s);
@@ -141,7 +141,7 @@ fn ft1049_the_place_tool_refuses_a_drop_on_the_edge_stretch_and_proposes_no_spli
 }
 
 #[test]
-fn ft1049_a_symbol_placed_there_by_a_command_is_treated_as_before() {
+fn a_symbol_placed_there_by_a_command_is_treated_as_before() {
     let tmp = Tmp::new("ft1049-command");
     let mut s = fixture(&tmp);
     let t = tables(&s);

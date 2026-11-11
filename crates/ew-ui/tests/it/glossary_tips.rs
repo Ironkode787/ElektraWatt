@@ -24,7 +24,7 @@ fn group(h: &Harness<'_, App>, name: &str) -> bool {
 }
 
 #[test]
-fn gt1_gt5_the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_in_english_and_dutch() {
+fn the_glossary_pane_is_named_and_folio_reports_insert_arms_the_ip_tool_in_english_and_dutch() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -104,7 +104,7 @@ fn field<'h>(h: &'h Harness<'_, App>) -> egui_kittest::Node<'h> {
 /// In the glossary's field Down and Up move a row cursor, its row alone selected for AccessKit, a new search
 /// starts it again, and Enter runs the cursor row's first enabled action (Insert arms the IP tool).
 #[test]
-fn ft1281_the_glossary_has_a_keyboard_row_cursor() {
+fn the_glossary_has_a_keyboard_row_cursor() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -291,7 +291,7 @@ fn f9_two_wires_on_one_path_are_drawn_side_by_side() {
 /// candidates and then stacked inward, inside the canvas, none faded while a free place exists; a code alone takes
 /// the rule's preferred anchor, above right of its stroke's middle.
 #[test]
-fn ft1277_the_wire_codes_stand_apart_by_the_chip_rule() {
+fn the_wire_codes_stand_apart_by_the_chip_rule() {
     use egui::{Pos2, Rect, Vec2};
     let canvas = Rect::from_min_size(Pos2::new(0.0, 0.0), Vec2::new(800.0, 600.0));
     let size = Vec2::new(36.0, 16.0);
@@ -317,7 +317,7 @@ fn ft1277_the_wire_codes_stand_apart_by_the_chip_rule() {
 /// (the device texts, the title block), of the HUD and the zoom control, of the other chips and of each other, at the
 /// floor and at 1920 × 1080; a code stands faded only where it has no free place.
 #[test]
-fn ft1345_the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
+fn the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -374,7 +374,7 @@ fn sha256(bytes: &[u8]) -> String {
 }
 
 #[test]
-fn gt4_the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off() {
+fn the_exported_pdf_is_the_golden_one_with_the_wire_colour_view_on_and_off() {
     let expected = std::fs::read_to_string(
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/expected/pdf/sha256.txt"),
     )

@@ -585,7 +585,7 @@ fn row_differences(s: &Session) -> Vec<String> {
 /// MC-4 (FR-MAC-004, FR-MAC-018): the valve-manifold page macro saved from folio 203, inserted with the value sets 1
 /// to 4 into Golden A without folios 203 to 206 and their devices, reproduces those folios.
 #[test]
-fn mc4_the_valve_manifold_macro_reproduces_folios_203_to_206() {
+fn the_valve_manifold_macro_reproduces_folios_203_to_206() {
     let (_root, t, lib) = user_library("ew-api-mc4");
     let original = golden(None);
     let mut s = golden(Some(t));
@@ -787,7 +787,7 @@ fn by_tag_now(q: &Q, tag: &str) -> Option<Id<Device>> {
 /// position (FI-07); with -201U3 and -201U4 moved to free positions the commit is one undo step that undoes
 /// exactly.
 #[test]
-fn mc5_a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
+fn a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
     let (_root, mut s, saved) = page_macro_session("ew-api-mc5");
     let cmd = s
         .insert_macro(
@@ -1299,7 +1299,7 @@ fn saved_twice(name: &str, spec: fn(&Session) -> MacroSpec, orient: Orient2) -> 
 
 /// MC-7: two runs save equal documents and compose equal commands, for the page macro and for the window macro at 90°.
 #[test]
-fn mc7_the_typicals_save_and_insert_deterministically() {
+fn the_typicals_save_and_insert_deterministically() {
     let strip = |mut v: Value| {
         for k in ["id", "library_id", "item_id", "sha256"] {
             v.as_object_mut().unwrap().remove(k);

@@ -493,7 +493,7 @@ fn move_tag(e: &mut Engine, rep: Id<Representation>) {
 /// box unturned (`ew_derive::text_frame`, tested through the page scene in `ew-api`'s `half_turned_black_box`). A
 /// second half turn gives back the record as it was before the first.
 #[test]
-fn ft867_a_half_turn_of_a_black_box_writes_no_text_override_and_a_second_gives_the_record_back() {
+fn a_half_turn_of_a_black_box_writes_no_text_override_and_a_second_gives_the_record_back() {
     for moved in [false, true] {
         let mut e = engine(texts_model());
         let (pos, spec) = play_box();

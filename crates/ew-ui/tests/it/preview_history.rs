@@ -29,7 +29,7 @@ fn group_named(h: &Harness<'_, App>, name: &str) -> bool {
 }
 
 #[test]
-fn pv2_renumber_devices_through_the_dialog_and_the_preview_tab() {
+fn renumber_devices_through_the_dialog_and_the_preview_tab() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -72,7 +72,7 @@ fn pv2_renumber_devices_through_the_dialog_and_the_preview_tab() {
 }
 
 #[test]
-fn pv3_the_grids_card_is_a_chip_while_the_tab_shows_it() {
+fn the_grids_card_is_a_chip_while_the_tab_shows_it() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -106,7 +106,7 @@ fn pv3_the_grids_card_is_a_chip_while_the_tab_shows_it() {
 }
 
 #[test]
-fn pv5_the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
+fn the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -143,7 +143,7 @@ fn pv5_the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
 /// (ruling 7; W50-F12): with one step the History dock is as high as its one row needs, at the floor and at 1920 × 1080,
 /// and the row reads in words: the command's title and its origin, not `fields.set` and `script ui-script`.
 #[test]
-fn ft1078_ft1362_a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
+fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -267,7 +267,7 @@ fn w31_7_an_undone_entry_offers_redo_to_here() {
 /// Show changes and on the Preview tab's card; the Properties header of two devices reads "2 apparaten"; the Preview
 /// tab's title has the action in a sentence after its colon.
 #[test]
-fn id1427_a_changed_records_line_reads_in_dutch() {
+fn a_changed_records_line_reads_in_dutch() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
@@ -307,7 +307,7 @@ fn id1427_a_changed_records_line_reads_in_dutch() {
 /// header opens it in place, so the headers below stay where they were (R1's second click hit the header the grown dock
 /// had moved under it), and a second click closes it again.
 #[test]
-fn id1497_the_preview_lists_open_in_place_and_name_the_new_folio() {
+fn the_preview_lists_open_in_place_and_name_the_new_folio() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));

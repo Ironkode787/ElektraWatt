@@ -985,7 +985,7 @@ mod tests {
 
     /// The HUD's short names; a key without one, and a chord's modifiers, as `display` shows them.
     #[test]
-    fn ft964_the_short_form_shortens_only_the_long_key_names() {
+    fn the_short_form_shortens_only_the_long_key_names() {
         assert_eq!(short_display("Escape"), "Esc");
         assert_eq!(short_display("Delete"), "Del");
         assert_eq!(short_display("Arrow Up"), "Up");

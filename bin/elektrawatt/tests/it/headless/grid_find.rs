@@ -120,7 +120,7 @@ fn steps(dir: &Path) -> Vec<(&'static str, Value)> {
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn fr3_to_fr6_find_and_replace_headless_twice_and_replayed() {
+fn find_and_replace_headless_twice_and_replayed() {
     fr3_to_fr6_find_and_replace_headless_twice_and_replayed_case(false);
 }
 

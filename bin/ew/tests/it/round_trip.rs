@@ -318,7 +318,7 @@ fn import(t: &Tmp, file: &Path, p: &Path, extra: &[&str]) -> String {
 /// `group`, `bridge_part`, `potential` not; `_ew_base` holds the 20 IDs and the three editable columns with the
 /// SHA-256 of its rows.
 #[test]
-fn rt1_the_strip_workbook_names_its_table_and_holds_its_base() {
+fn the_strip_workbook_names_its_table_and_holds_its_base() {
     let t = Tmp::new("ew-tables");
     let p = t.golden("J-E-2416.ew");
     let bytes = x1031(&t, &p, "x.xlsx");
@@ -377,7 +377,7 @@ fn rt1_the_strip_workbook_names_its_table_and_holds_its_base() {
 /// and change nothing; `--apply` changes exactly those five `function_text` fields and saves; `ew apply` of the
 /// preview's command, as a command log, makes the same change in another copy.
 #[test]
-fn rt2_five_labels_saved_by_excel_apply_in_one_step() {
+fn five_labels_saved_by_excel_apply_in_one_step() {
     let t = Tmp::new("ew-tables");
     let p = t.golden("J-E-2416.ew");
     let bytes = x1031(&t, &p, "x.xlsx");
@@ -465,7 +465,7 @@ fn rt2_five_labels_saved_by_excel_apply_in_one_step() {
 /// its ID); terminal 2's label changed in the project only is kept (EW-IMP-302); terminal 3's changed in both keeps
 /// the project's value (EW-IMP-304), and with `--take-file` takes the file's.
 #[test]
-fn rt3_deleted_rows_and_project_changes_are_kept() {
+fn deleted_rows_and_project_changes_are_kept() {
     let t = Tmp::new("ew-tables");
     let p = t.golden("J-E-2416.ew");
     let bytes = x1031(&t, &p, "x.xlsx");
@@ -544,7 +544,7 @@ fn rt3_deleted_rows_and_project_changes_are_kept() {
 /// Excel stored as the number 1.1 is EW-IMP-305 and imports "1.1"; an edited `_ew_base` falls back to two-way with one
 /// notice; a workbook of another project and a CSV without `--table` are refused in D11's words.
 #[test]
-fn rt4_read_only_cells_numbers_and_refusals() {
+fn read_only_cells_numbers_and_refusals() {
     let t = Tmp::new("ew-tables");
     let p = t.golden("J-E-2416.ew");
     let bytes = x1031(&t, &p, "x.xlsx");
@@ -668,7 +668,7 @@ fn commented(csv: &str, comments: [&str; 3], keep_id: bool) -> String {
 /// --apply` change exactly three `comment` fields; without the `id` column the rows match by station, slot and
 /// channel with the same result; the I/O list's workbook round-trips the same way.
 #[test]
-fn rt5_the_io_list_round_trips_by_id_and_by_point() {
+fn the_io_list_round_trips_by_id_and_by_point() {
     let t = Tmp::new("ew-tables");
     let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([

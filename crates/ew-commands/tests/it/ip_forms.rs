@@ -83,7 +83,7 @@ const TURNED: &str =
     "an interruption point's arrow points the way its signal flows: change its direction instead";
 
 #[test]
-fn ri1_a_point_takes_its_direction_s_form_unturned() {
+fn a_point_takes_its_direction_s_form_unturned() {
     let mut e = engine(model(true));
     // The source form for a source, the target form for a target.
     for (key, direction) in [
@@ -115,7 +115,7 @@ fn ri1_a_point_takes_its_direction_s_form_unturned() {
 }
 
 #[test]
-fn ri1_rep_transform_refuses_a_form_and_turns_any_other_symbol() {
+fn rep_transform_refuses_a_form_and_turns_any_other_symbol() {
     let mut e = engine(model(true));
     let r = e
         .execute(&place("ew.gen.ip@qet10", IpDirection::Source, Orient2::default()))
@@ -133,7 +133,7 @@ fn ri1_rep_transform_refuses_a_form_and_turns_any_other_symbol() {
 }
 
 #[test]
-fn ri1_continue_gives_the_partner_the_other_form() {
+fn continue_gives_the_partner_the_other_form() {
     let mut e = engine(model(true));
     let r = e
         .execute(&place("ew.gen.ip@qet10", IpDirection::Source, Orient2::default()))
@@ -162,7 +162,7 @@ fn direction(f: Id<Function>, to: &str) -> SetFields {
 }
 
 #[test]
-fn ri2_a_direction_change_swaps_the_form() {
+fn a_direction_change_swaps_the_form() {
     let mut e = engine(model(true));
     let r = e
         .execute(&place("ew.gen.ip@qet10", IpDirection::Source, Orient2::default()))
@@ -177,7 +177,7 @@ fn ri2_a_direction_change_swaps_the_form() {
 }
 
 #[test]
-fn ri2_without_the_twin_a_direction_change_is_refused_in_words() {
+fn without_the_twin_a_direction_change_is_refused_in_words() {
     let mut e = engine(model(false));
     let r = e
         .execute(&place("ew.gen.ip@qet10", IpDirection::Source, Orient2::default()))

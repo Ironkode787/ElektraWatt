@@ -115,7 +115,7 @@ fn taking_the_deleting_side_deletes_the_record_with_its_conflict() {
 
 /// CR-4: deleting the record removes its conflict in the same transaction; one undo restores both.
 #[test]
-fn cr4_deleting_a_record_removes_its_conflict_and_undo_restores_both() {
+fn deleting_a_record_removes_its_conflict_and_undo_restores_both() {
     let mut e = engine(colour_conflict());
     let before = lines(e.model());
     e.execute(&any(

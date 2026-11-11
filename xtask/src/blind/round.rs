@@ -227,7 +227,7 @@ mod tests {
     /// UR-4: `hint` prints the hints in order (K1), then K2; each hint given is a turn line; K3 without hints and in a
     /// check run; a visual run is served like a text run.
     #[test]
-    fn ur4_hints_come_in_order_and_are_recorded() {
+    fn hints_come_in_order_and_are_recorded() {
         let tmp = Tmp::new("round-hint");
         let run = test_run(&tmp);
         hints_file(&run, 2);
@@ -274,7 +274,7 @@ mod tests {
 
     /// UR-5: the figure of known answers is the known figure: all 4 and 2 give 75, the best 100, the worst 0.
     #[test]
-    fn ur5_the_pq_figure_is_sus_arithmetic() {
+    fn the_pq_figure_is_sus_arithmetic() {
         assert_eq!(pq_figure(&[4, 2, 4, 2, 4, 2, 4, 2, 4, 2]), 75.0);
         assert_eq!(pq_figure(&[5, 1, 5, 1, 5, 1, 5, 1, 5, 1]), 100.0);
         assert_eq!(pq_figure(&[1, 5, 1, 5, 1, 5, 1, 5, 1, 5]), 0.0);
@@ -297,7 +297,7 @@ mod tests {
     /// UR-5: the form is filed once (K4) into `questionnaire.json` with its figure; a form not filled is refused with
     /// K5, a second filing with K6.
     #[test]
-    fn ur5_the_questionnaire_is_filed_once_and_whole() {
+    fn the_questionnaire_is_filed_once_and_whole() {
         let tmp = Tmp::new("round-q");
         let run = test_run(&tmp);
         let k5 = "harness: the questionnaire has the answers Q1 to Q10, each 1 to 5, and B1 to B4, each one of its \

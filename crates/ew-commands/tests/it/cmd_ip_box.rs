@@ -799,7 +799,7 @@ fn reshape_to_a_triangle_moves_the_cp_of_the_vanished_edge_to_the_nearest_edge_w
 /// off the grid; widening it moves the right edge to a grid point and keeps the left vertices where they were, off
 /// the grid. A touched vertex off the grid is still refused.
 #[test]
-fn ft863_a_drifted_box_reshapes_with_its_untouched_vertices_kept() {
+fn a_drifted_box_reshapes_with_its_untouched_vertices_kept() {
     let mut e = engine(ip_model(|records| {
         for rec in records.iter_mut() {
             if let Record::Representation(r) = rec {
@@ -1016,7 +1016,7 @@ fn held_symbols(e: &Engine) -> usize {
 }
 
 #[test]
-fn ft673_draw_to_ip_embeds_its_copies_in_the_same_undo_step() {
+fn draw_to_ip_embeds_its_copies_in_the_same_undo_step() {
     let mut e = engine(ip_model(|_| {}));
     let before = lines(e.model());
     let symbols = held_symbols(&e);
@@ -1034,7 +1034,7 @@ fn ft673_draw_to_ip_embeds_its_copies_in_the_same_undo_step() {
 }
 
 #[test]
-fn ft673_ip_place_embeds_its_copies_in_the_same_undo_step() {
+fn ip_place_embeds_its_copies_in_the_same_undo_step() {
     let mut e = engine(ip_model(|_| {}));
     let before = lines(e.model());
     let symbols = held_symbols(&e);
@@ -1148,7 +1148,7 @@ fn draw_to_ip_cmd(
 /// `ip.place` and `connection.draw_to_ip` refuse a starred target or undirected point and a starred external point,
 /// in words, nothing made; a starred source is placed (and `ip.place` places an unstarred external point).
 #[test]
-fn ft980_ip_place_and_draw_to_ip_refuse_a_star_on_a_point_that_is_no_source_or_is_external() {
+fn ip_place_and_draw_to_ip_refuse_a_star_on_a_point_that_is_no_source_or_is_external() {
     type Make = fn(IpDirection, bool, Option<Id<ew_schema::ExternalRef>>) -> Box<dyn ew_commands::DynCommand>;
     let makers: [(&str, Make); 2] = [
         ("ip.place", |d, s, x| Box::new(place_ip_cmd(d, s, x))),
@@ -1194,7 +1194,7 @@ fn ft980_ip_place_and_draw_to_ip_refuse_a_star_on_a_point_that_is_no_source_or_i
 /// `connection.draw_to_ip` takes an external target as `ip.place` does: the point is external and wired, in
 /// one undo step; a missing external reference is not found.
 #[test]
-fn ft946_draw_to_ip_writes_the_external_target_in_one_undo_step() {
+fn draw_to_ip_writes_the_external_target_in_one_undo_step() {
     let mut e = engine(ip_model(|r| r.push(xref_record())));
     let before = lines(e.model());
     not_found(e.execute(&draw_to_ip_cmd(IpDirection::Source, false, Some(id(0xdeaf)))));
@@ -1222,7 +1222,7 @@ fn set_ips(
 /// `fields.set` refuses a star on a target point, a direction other than source on a starred point and a star on an
 /// external point, naming the point; a call over two points with one bad point writes nothing.
 #[test]
-fn ft980_fields_set_refuses_a_bad_star_naming_the_point() {
+fn fields_set_refuses_a_bad_star_naming_the_point() {
     let mut e = engine(star_model(false));
     e.execute(&set_ip(IP_B, "direction", serde_json::json!("target")))
         .unwrap();
@@ -1264,7 +1264,7 @@ fn set_many(edits: Vec<ew_commands::commands::SetFields>) -> ew_commands::comman
 /// `fields.set_many` judges each point after all of its entries: setting target and clearing the star passes;
 /// setting target alone on a starred point, or one bad point among two, refuses the whole call.
 #[test]
-fn ft980_fields_set_many_judges_each_point_after_all_its_entries() {
+fn fields_set_many_judges_each_point_after_all_its_entries() {
     let mut e = engine(star_model(true));
     let (rev, before) = (e.model().rev(), lines(e.model()));
     assert_eq!(
@@ -1297,7 +1297,7 @@ fn ft980_fields_set_many_judges_each_point_after_all_its_entries() {
 /// The star cleared first and the direction after passes as the other order does; a call that fixes one point
 /// (A's star cleared with its direction) and breaks another (B made a starred target) is refused whole, naming B.
 #[test]
-fn ft1063_fields_set_many_star_in_either_order_and_one_point_fixed_another_broken() {
+fn fields_set_many_star_in_either_order_and_one_point_fixed_another_broken() {
     let mut e = engine(star_model(true));
     let (rev, before) = (e.model().rev(), lines(e.model()));
     assert_eq!(

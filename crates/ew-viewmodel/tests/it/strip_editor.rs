@@ -47,7 +47,7 @@ const SEQ_1_TO_20: [&str; 20] = [
 /// on its first row; accessory rows are placed and numbered by D3 (`after_seq` 0, two at 4, 20); the read-only reasons
 /// of §6.2 refuse an edit of a Pos cell, an accessory row's cell and a Bridge part cell of a terminal without a bridge.
 #[test]
-fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
+fn order_sort_pos_cells_accessory_rows_and_reasons() {
     let tmp = Tmp::new("se7");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "strips"}));
@@ -174,7 +174,7 @@ fn se7_order_sort_pos_cells_accessory_rows_and_reasons() {
 /// the Properties Group row of the two terminals does the same; the Bridge part fill over BR1 is one `fields.set` of
 /// the carrier's part (D6).
 #[test]
-fn se8_group_labels_through_the_table_and_the_properties_row() {
+fn group_labels_through_the_table_and_the_properties_row() {
     let tmp = Tmp::new("se8");
     let mut shell = editor(&tmp, "-X1031");
     let before = strip_texts(&shell, "Group");
@@ -265,7 +265,7 @@ fn se8_group_labels_through_the_table_and_the_properties_row() {
 /// in three steps (inside bridge group BR5), undone by three undos; a move that takes :2 out of BR1 fails with
 /// EW-TERM-004 (CI-06, a prevent invariant). (Enter-to-place, §6.8, is descoped from part 1.)
 #[test]
-fn se9_insert_delete_and_move_rows() {
+fn insert_delete_and_move_rows() {
     let tmp = Tmp::new("se9");
     let mut shell = editor(&tmp, "-X1031");
     // Insert.
@@ -389,7 +389,7 @@ fn se9_insert_delete_and_move_rows() {
 
 /// SE9's context (§6.9): every gesture refuses `reason-not-strip-editor` while the Terminal strips navigator is closed.
 #[test]
-fn se9_gestures_need_the_strip_editor() {
+fn gestures_need_the_strip_editor() {
     let tmp = Tmp::new("se9-context");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     for (action, params) in [
@@ -548,7 +548,7 @@ fn an_untagged_strips_accessory_row_names_it_in_words() {
 /// In nl-NL the strip editor's columns, an accessory row's kind and the
 /// accessory toast read in Dutch; the strip editor finds its columns and rows by those words.
 #[test]
-fn ft1289_the_strip_editor_and_its_accessory_toast_read_in_dutch() {
+fn the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     let tmp = Tmp::new("ft1289");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut shell, "view.language", json!({"value": "nl"}));

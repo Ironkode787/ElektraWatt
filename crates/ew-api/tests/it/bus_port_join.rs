@@ -125,7 +125,7 @@ fn dp_master() -> BusPort {
 /// committed in its one undo step (undo removes the function and its port, redo restores identical IDs); the checks
 /// then report one EW-CORE-044 finding with discriminator `bus_address` for that port.
 #[test]
-fn bu7f_the_dp_port_symbol_on_the_generic_cpu_gets_its_port() {
+fn the_dp_port_symbol_on_the_generic_cpu_gets_its_port() {
     let mut s = fresh(41);
     let (cpu, notices) = place_cpu(&mut s);
     assert_eq!(ports(&s, cpu), [], "placing the CPU seeds no port");

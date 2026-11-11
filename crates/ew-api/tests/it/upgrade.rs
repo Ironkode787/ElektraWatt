@@ -219,7 +219,7 @@ fn consent_text() -> String {
 /// written, extracts byte-equal to the original folder, and the project is then saved in this version's format; a
 /// second save does not ask and writes no second backup.
 #[test]
-fn mg3_the_consented_save_writes_the_backup_first_and_then_the_project() {
+fn the_consented_save_writes_the_backup_first_and_then_the_project() {
     let (disk, current) = files_v0();
     let vfs = mem(&disk);
     let mut s = open(&vfs, 2);
@@ -289,7 +289,7 @@ fn mg3_the_consented_save_writes_the_backup_first_and_then_the_project() {
 /// MG-4: declining (no consent, the session closed) and a session closed between the consent and the save leave
 /// every project file byte-identical and write no backup; the next open asks again.
 #[test]
-fn mg4_declining_or_closing_before_the_save_changes_nothing() {
+fn declining_or_closing_before_the_save_changes_nothing() {
     let (disk, _) = files_v0();
     let vfs = mem(&disk);
     let mut s = open(&vfs, 2);

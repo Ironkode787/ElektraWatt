@@ -17,7 +17,7 @@ use crate::support::{GOLDEN_A, Tmp, copy_dir, path};
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
 
 #[test]
-fn pw1_the_print_dialog_builds_pr1s_set_and_escape_prints_nothing() {
+fn the_print_dialog_builds_pr1s_set_and_escape_prints_nothing() {
     let tmp = Tmp::new();
     let dir = tmp.path("J-E-2416.ew");
     copy_dir(Path::new(GOLDEN_A), &dir);

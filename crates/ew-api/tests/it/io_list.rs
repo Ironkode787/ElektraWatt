@@ -14,11 +14,11 @@
 //!   `include_deactivated: true` gives 56 (the 28 deactivated added in place)".
 //!
 //! Tests:
-//! - `px1_the_default_io_list_lists_28_rows_of_used_and_spare_channels`
-//! - `px1_include_deactivated_lists_56_rows_in_place`
-//! - `px1_a_parameter_that_is_not_a_boolean_gives_28_rows_and_one_note`
-//! - `px1_the_export_by_block_writes_the_header_and_28_rows`
-//! - `px1_the_rows_are_deterministic`
+//! - `the_default_io_list_lists_28_rows_of_used_and_spare_channels`
+//! - `include_deactivated_lists_56_rows_in_place`
+//! - `a_parameter_that_is_not_a_boolean_gives_28_rows_and_one_note`
+//! - `the_export_by_block_writes_the_header_and_28_rows`
+//! - `the_rows_are_deterministic`
 //! - `px1_56_rows_paginate_on_the_house_table_without_an_overflow`
 
 use crate::{common, golden_common};
@@ -124,7 +124,7 @@ fn first_used() -> Vec<String> {
 }
 
 #[test]
-fn px1_the_default_io_list_lists_28_rows_of_used_and_spare_channels() {
+fn the_default_io_list_lists_28_rows_of_used_and_spare_channels() {
     let (s, block) = golden_with_io_list();
     let q = s.query();
     let rows = printed(&q, block.id);
@@ -167,7 +167,7 @@ fn px1_the_default_io_list_lists_28_rows_of_used_and_spare_channels() {
 }
 
 #[test]
-fn px1_include_deactivated_lists_56_rows_in_place() {
+fn include_deactivated_lists_56_rows_in_place() {
     let (_, block) = golden_with_io_list();
     let s = golden_with_block(with_params(block.clone(), json!({"include_deactivated": true})));
     let q = s.query();
@@ -212,7 +212,7 @@ fn px1_include_deactivated_lists_56_rows_in_place() {
 }
 
 #[test]
-fn px1_a_parameter_that_is_not_a_boolean_gives_28_rows_and_one_note() {
+fn a_parameter_that_is_not_a_boolean_gives_28_rows_and_one_note() {
     let (_, block) = golden_with_io_list();
     for (value, shown) in [(json!("yes"), "\"yes\""), (json!(1), "1")] {
         let s = golden_with_block(with_params(block.clone(), json!({"include_deactivated": value})));
@@ -244,7 +244,7 @@ fn px1_a_parameter_that_is_not_a_boolean_gives_28_rows_and_one_note() {
 
 /// `ew export report --block 950 --format csv` (the CLI calls `row_export`): the header and the 28 rows.
 #[test]
-fn px1_the_export_by_block_writes_the_header_and_28_rows() {
+fn the_export_by_block_writes_the_header_and_28_rows() {
     let (s, block) = golden_with_io_list();
     let q = s.query();
     let out = row_export(&q, &RowExport::Report, Some(&FOLIO.to_string())).expect("the I/O list's rows");
@@ -265,7 +265,7 @@ fn px1_the_export_by_block_writes_the_header_and_28_rows() {
 }
 
 #[test]
-fn px1_the_rows_are_deterministic() {
+fn the_rows_are_deterministic() {
     let (s, block) = golden_with_io_list();
     let first = printed(&s.query(), block.id);
     assert_eq!(printed(&s.query(), block.id), first, "twice-run equal");

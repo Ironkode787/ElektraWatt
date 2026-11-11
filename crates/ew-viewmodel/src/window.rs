@@ -197,7 +197,7 @@ mod tests {
     /// DK6, layout 2: a primary 1920 × 1080 and a 2560 × 1440 monitor to its left (negative coordinates). A window on
     /// the left monitor stays there with its larger size; the maximised state is kept.
     #[test]
-    fn dk6_two_monitors_one_at_negative_coordinates() {
+    fn two_monitors_one_at_negative_coordinates() {
         let m = [
             area(0.0, 0.0, 1920.0, 1080.0),
             area(-2560.0, -200.0, 2560.0, 1440.0),
@@ -217,7 +217,7 @@ mod tests {
     /// DK6, layout 3: the secondary monitor the window was on is gone (a laptop off its dock): the window moves into the
     /// primary 1366 × 768 and shrinks to it.
     #[test]
-    fn dk6_the_monitor_it_was_on_is_gone() {
+    fn the_monitor_it_was_on_is_gone() {
         let m = [area(0.0, 0.0, 1366.0, 768.0)];
         let saved = WindowGeometry {
             maximized: true,
@@ -237,7 +237,7 @@ mod tests {
 
     /// The clamp is deterministic and idempotent over a grid of positions on every layout.
     #[test]
-    fn dk6_restore_is_idempotent() {
+    fn restore_is_idempotent() {
         let layouts: [&[MonitorArea]; 3] = [
             &[area(0.0, 0.0, 1920.0, 1080.0)],
             &[

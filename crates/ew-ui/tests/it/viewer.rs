@@ -532,7 +532,7 @@ fn tab_bar_back(h: &Harness<'_, App>) -> (bool, String, egui::Rect) {
 /// stands beside the page tabs, at the floor and at 1920 × 1080, enabled only with a step to go back to, its tooltip
 /// naming its key, and a click on it goes back.
 #[test]
-fn ft1435_a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
+fn a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     let start = folio(&h);

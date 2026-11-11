@@ -106,7 +106,7 @@ fn last(shell: &ShellModel) -> (String, Value) {
 /// 13 to 17 is one `fields.set` with the 5 terminals, a direct commit with the toast, one preview and one commit
 /// (headless: one `run_script`), and one undo step that restores terminals 14 to 17.
 #[test]
-fn tb2_fill_down_over_five_terminals_is_one_fields_set_and_one_undo_step() {
+fn fill_down_over_five_terminals_is_one_fields_set_and_one_undo_step() {
     let tmp = Tmp::new("tb2");
     let mut shell = strips(&tmp, "x1031");
     let order: Vec<String> = (1..=20).map(|n| n.to_string()).collect();
@@ -173,7 +173,7 @@ fn tb2_fill_down_over_five_terminals_is_one_fields_set_and_one_undo_step() {
 /// `fields.set_many`; the dialog shows the first five values; every pattern error refuses the whole fill, a counter
 /// that overflows or goes negative makes those cells invalid (the card).
 #[test]
-fn tb3_pattern_fill_over_the_twelve_spare_terminals_is_one_fields_set_many() {
+fn pattern_fill_over_the_twelve_spare_terminals_is_one_fields_set_many() {
     let tmp = Tmp::new("tb3");
     let mut shell = strips(&tmp, "x1031");
     let spare: Vec<String> = column(&shell, NavKind::Strips, "State")
@@ -326,7 +326,7 @@ fn a_doubling_prev_pattern_previews_five_rows_and_refuses_rows_that_grow_too_lon
 /// on one record with different values are invalid ("same record as row <n>"); Apply is refused until resolved or
 /// dropped; a paste is one command and one undo step.
 #[test]
-fn tb4_paste_maps_parses_and_refuses_as_specified() {
+fn paste_maps_parses_and_refuses_as_specified() {
     let tmp = Tmp::new("tb4");
     let mut shell = strips(&tmp, "x1031");
     let hide: Vec<String> = [
@@ -438,7 +438,7 @@ fn tb4_paste_maps_parses_and_refuses_as_specified() {
 /// TB4's numbers: `0,75` reads as 0.75 and `1,500` is ambiguous (the card with its two readings); `table.resolve`
 /// picks the decimal reading and Apply commits one command.
 #[test]
-fn tb4_an_ambiguous_number_is_resolved_on_the_card() {
+fn an_ambiguous_number_is_resolved_on_the_card() {
     let tmp = Tmp::new("tb4-num");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "cables"}));
@@ -512,7 +512,7 @@ fn tb4_an_ambiguous_number_is_resolved_on_the_card() {
 /// TB4's conflicts (D13): two wire-list rows of one connection pasted with different colours: the second is invalid
 /// ("same record as row <n>"); with the same colour they merge.
 #[test]
-fn tb4_two_rows_on_one_record_with_different_values_are_invalid() {
+fn two_rows_on_one_record_with_different_values_are_invalid() {
     let tmp = Tmp::new("tb4-same");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
@@ -611,7 +611,7 @@ fn tb5_the_policy() {
 /// potentials, and of the codes of two structure nodes, each opens the card with `reason-identifiers` and commits
 /// nothing.
 #[test]
-fn tb5_names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() {
+fn names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() {
     let tmp = Tmp::new("tb5-ident");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     for (kind, word, label, pattern) in [
@@ -663,7 +663,7 @@ fn tb5_names_of_two_potentials_and_codes_of_two_structure_nodes_open_the_card() 
 /// TB5's rule 1: a fill down over more than 500 device rows (a copy of Golden A with 501 devices more, made through
 /// the session) opens the card (`reason-bulk`).
 #[test]
-fn tb5_a_fill_over_more_than_500_rows_opens_the_card() {
+fn a_fill_over_more_than_500_rows_opens_the_card() {
     use ew_viewmodel::ew_api::{AnyCommand, Session, StoreOptions};
     let tmp = Tmp::new("tb5-bulk");
     let (mut session, _) = Session::open_read_only(std::path::Path::new(common::GOLDEN_A), "test").unwrap();
@@ -721,7 +721,7 @@ Strip\tPos\tTerminal\tFunction text\tGroup\tPart\tPotential\tSide 1 (clamp a)\tS
 /// pattern dialog), Pages in table mode, the refusal outside table mode, the six words and the 239 actions; switching
 /// to the table, moving the cell cursor and typing make no `navigator_table` call.
 #[test]
-fn tb8_describe_lines_words_and_counts() {
+fn describe_lines_words_and_counts() {
     for (id, keys) in [
         ("table.edit", &["F2"][..]),
         ("table.fill_down", &["Ctrl+D"]),
@@ -917,7 +917,7 @@ fn a_potential_without_a_definition_has_read_only_definition_cells() {
 /// A Type cell of the Potentials table that is no potential type is refused naming the types as
 /// they are typed (`L+`, not `l_plus`), in en-GB and nl-NL.
 #[test]
-fn ft1240_a_refused_potential_type_names_the_types_in_words() {
+fn a_refused_potential_type_names_the_types_in_words() {
     let tmp = Tmp::new("ft1240");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));

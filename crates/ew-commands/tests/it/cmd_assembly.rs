@@ -323,7 +323,7 @@ fn channel_id(device: Id<Device>, n: u16) -> Id<Channel> {
 
 /// Gives `DEV_102F2` the `plc_module` aspect and then the module part; returns the part step's receipt, in which
 /// N1 instantiates the channels. (The aspect comes first: a part with a PLC section given to a device without an
-/// aspect is normaliser N0's case, `cmd_plc_part1.rs`.)
+/// aspect is normaliser N0's case, `cmd_plc_aspects.rs`.)
 fn make_module(e: &mut Engine) -> Receipt {
     e.execute(&set_device(DEV_102F2, "plc_module", json!({})))
         .expect("plc_module");

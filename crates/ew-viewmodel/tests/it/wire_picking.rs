@@ -266,7 +266,7 @@ fn a_wire_through_a_symbol_is_clicked_and_the_symbol_still_drags_from_there() {
 /// FT-1438 (R0-F10): a click at the lamp E56's centre picks the lamp, never a wire through it; E56 selected by
 /// its tag is moved by Move as its symbol on the page shown, which the selection becomes.
 #[test]
-fn ft1438_a_symbol_s_body_wins_and_a_device_by_its_tag_moves() {
+fn a_symbol_s_body_wins_and_a_device_by_its_tag_moves() {
     let tmp = Tmp::new("ft1438");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
     let (lamp, centre) = {

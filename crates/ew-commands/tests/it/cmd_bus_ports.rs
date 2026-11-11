@@ -4,7 +4,7 @@
 //! WP-S1.21 part 4b in the engine: normaliser N5 `bus_ports` (§8a.2, D16; acceptance BU-7g to BU-7j). A part's bus
 //! ports go once to the device's port-less functions whose FnDef has contact kind `bus_port`, in list and ID order;
 //! a port is never rewritten or removed; a disagreement and a port of a newer format give the notices N5-b and N5-c.
-//! The window path with the starter parts (BU-7f) is `ew-api`'s `bus_part4b.rs`.
+//! The window path with the starter parts (BU-7f) is `ew-api`'s `bus_port_join.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -264,7 +264,7 @@ fn dp_master() -> BusPort {
 // BU-7j: the registry row
 
 #[test]
-fn bu7j_bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open() {
+fn bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open() {
     let at = |n: &str| {
         ORDER
             .iter()
@@ -282,7 +282,7 @@ fn bu7j_bus_ports_runs_after_module_pin_binding_and_before_revision_ensure_open(
 /// BU-7g: assigning the CPU to a black box with two DP-port functions gives the lower-ID function the port and leaves
 /// the other port-less, without a notice; the black box itself (no bus-port FnDef) gets nothing.
 #[test]
-fn bu7g_assign_gives_the_lower_id_function_the_port_and_a_device_without_one_gets_nothing() {
+fn assign_gives_the_lower_id_function_the_port_and_a_device_without_one_gets_nothing() {
     let mut e = engine(model());
     let r = e
         .execute(&assign(vec![DEV_BOX], CPU, AssignModeParam::Append, None))
@@ -367,7 +367,7 @@ fn ports_pair_in_list_order_with_functions_in_id_order() {
 /// role (notice N5-b), `replace_all` to a part without a bus section and `fields.set parts []` (no notice); after
 /// `fields.set bus_port null` an unrelated edit leaves the function port-less, and a new bus part seeds it again.
 #[test]
-fn bu7h_a_port_is_never_rewritten() {
+fn a_port_is_never_rewritten() {
     let mut e = engine(model());
     let (f, _) = place_port(&mut e, DEV_CPU);
     e.execute(&set(
@@ -451,7 +451,7 @@ fn a_joining_function_takes_a_removed_port_and_the_older_function_stays_port_les
 
 /// BU-7i: a port of a newer format seeds nothing, with notice N5-c.
 #[test]
-fn bu7i_a_port_of_a_newer_format_is_not_applied() {
+fn a_port_of_a_newer_format_is_not_applied() {
     let mut e = engine(model());
     let r = e
         .execute(&assign(vec![DEV_BOX], CPU_SX, AssignModeParam::Append, None))
@@ -466,7 +466,7 @@ fn bu7i_a_port_of_a_newer_format_is_not_applied() {
 
 /// BU-7i: a connector part's passive port with its termination on seeds `not_applicable` and `on`.
 #[test]
-fn bu7i_a_passive_connector_port_has_no_address_and_keeps_its_termination() {
+fn a_passive_connector_port_has_no_address_and_keeps_its_termination() {
     let mut e = engine(model());
     let r = e
         .execute(&assign(vec![DEV_PLUG], PLUG, AssignModeParam::Append, None))

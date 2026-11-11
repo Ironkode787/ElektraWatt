@@ -134,7 +134,7 @@ fn an_image_over_the_pixel_limit_is_kept_at_open_and_refused_at_insertion() {
 /// by its hash (`item.place {asset}`, `image.pick`), as its data and its file are; a project made from a template that
 /// holds it names it as an open does.
 #[test]
-fn ft1523_a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_template_copy() {
+fn a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_template_copy() {
     let tmp = Tmp::new("ft1523-held");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
     let (small, big) = (png(2, 1), png(65536, 32768));

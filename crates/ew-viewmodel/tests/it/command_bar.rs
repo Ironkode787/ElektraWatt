@@ -78,7 +78,7 @@ fn menu_places(model: &ShellModel) -> BTreeMap<&'static str, Vec<String>> {
 /// order; Draw holds Select, Place, Connect, Annotate and Arrange; no place is taken twice; at most two Large per
 /// group; every registry action appears exactly once in the app-menu tree.
 #[test]
-fn cb1_the_registry_places_every_command_once_and_the_app_menu_holds_every_action_once() {
+fn the_registry_places_every_command_once_and_the_app_menu_holds_every_action_once() {
     assert_eq!(
         Tab::ALL.map(Tab::word),
         ["project", "page", "draw", "check", "output", "view"]
@@ -192,7 +192,7 @@ fn w42b_the_wire_tool_is_called_wire_on_its_button_and_in_its_tooltip() {
 
 /// CB8: the Draw tab's Mirror button opens its two directions.
 #[test]
-fn cb8_the_draw_tab_mirror_opens_its_two_directions() {
+fn the_draw_tab_mirror_opens_its_two_directions() {
     let tmp = Tmp::new("cb8");
     let mut s = shell(&tmp);
     let bar = command_bar_of(&s, Tab::Draw);
@@ -217,7 +217,7 @@ fn cb8_the_draw_tab_mirror_opens_its_two_directions() {
 /// `view.command_tab` switches the bar's tab and `view.command_bar` collapses it, toggles without a parameter and
 /// refuses a bad one; the describe text follows (D15) and is the same twice (CB6).
 #[test]
-fn cb6_the_command_tab_and_the_collapse_reach_the_describe_text() {
+fn the_command_tab_and_the_collapse_reach_the_describe_text() {
     let tmp = Tmp::new("cb6");
     let mut s = shell(&tmp);
     let text = s.describe();
@@ -365,7 +365,7 @@ fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
 /// rotates"; with the pointer over a pick stack of n objects it is "n objects overlap here · click again to select the
 /// next" (FT-894's words).
 #[test]
-fn cb5_ft521_the_hud_prompts_the_selection_and_the_pick_stack() {
+fn the_hud_prompts_the_selection_and_the_pick_stack() {
     let tmp = Tmp::new("cb5");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
     let h = hud(&s);
@@ -411,7 +411,7 @@ fn cb5_ft521_the_hud_prompts_the_selection_and_the_pick_stack() {
 
 /// Arming Place names the tool and, once a symbol is picked and the pointer on the sheet, the target and the keys.
 #[test]
-fn cb5_arming_place_names_the_tool_the_target_and_its_keys() {
+fn arming_place_names_the_tool_the_target_and_its_keys() {
     let tmp = Tmp::new("cb5-place");
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     done(

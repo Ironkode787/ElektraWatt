@@ -972,7 +972,7 @@ mod tests {
     /// With `.bad-1` another file, `.bad-2` missing and `.bad-3` the same bytes, the file is named as
     /// `.bad-3` and not copied again into the gap; a new file takes the gap, the first free name.
     #[test]
-    fn ft849_a_copy_aside_once_finds_the_same_bytes_past_a_gap() {
+    fn a_copy_aside_once_finds_the_same_bytes_past_a_gap() {
         let dir = temp_dir("bad-gap");
         let file = dir.join("keymap.toml");
         std::fs::write(&file, "bad = [").unwrap();
@@ -1005,7 +1005,7 @@ mod tests {
     /// A `.bad-<n>` another instance made after the look is never replaced: the copy takes the
     /// next free name, the other files keep their bytes, and no temporary file is left.
     #[test]
-    fn ft1073_a_copy_aside_never_replaces_a_copy_made_meanwhile() {
+    fn a_copy_aside_never_replaces_a_copy_made_meanwhile() {
         let dir = temp_dir("bad-race");
         std::fs::write(dir.join("keymap.toml.bad-1"), "made meanwhile").unwrap();
         std::fs::write(dir.join("keymap.toml.bad-2"), "made meanwhile too").unwrap();
@@ -1277,7 +1277,7 @@ mod tests {
     /// AX-2: 250 % and 300 % are scales, each with its label, and `settings.toml` round-trips both; an unknown
     /// scale falls back to one.
     #[test]
-    fn ax2_the_scales_reach_300_percent_and_round_trip() {
+    fn the_scales_reach_300_percent_and_round_trip() {
         for scale in [2.5, 3.0] {
             assert!(scale_index(scale).is_some(), "{scale}");
             let s = Settings {
@@ -1350,7 +1350,7 @@ mod tests {
     /// DK6: `[window]` is written only once a window recorded it, read back equal, and a table this version
     /// cannot read is dropped without making the file bad; members of the table this version does not know are kept.
     #[test]
-    fn dk6_the_window_table() {
+    fn the_window_table() {
         type Case = (&'static str, fn(&str));
         let cases: [Case; 2] = [
             ("written once recorded, a bad table dropped", |c| {

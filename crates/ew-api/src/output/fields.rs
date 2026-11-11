@@ -2317,7 +2317,7 @@ mod tests {
     /// FT-1122 (item 4): the Parts row's choices take the place chooser's order, (maker, part number, copy),
     /// embedded and library parts alike: a library part sorts among the embedded ones, not after them.
     #[test]
-    fn ft1122_the_parts_row_takes_the_choosers_order() {
+    fn the_parts_row_takes_the_choosers_order() {
         let texts: Vec<String> = choices(&LibCx, &part_uses(), "", "")
             .into_iter()
             .map(|c| c.text)

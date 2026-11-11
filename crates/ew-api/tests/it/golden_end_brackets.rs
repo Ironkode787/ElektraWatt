@@ -3,15 +3,15 @@
 
 //! WP-S4.02 part 5 on Golden A (doc 20 §13, §14.1; the rulings of cycle 44): the end brackets in the outputs.
 //!
-//! - `eb1_row_26_counts_the_derived_brackets_and_prints_902`: row 26 reads quantity 4, its tags in ID-9's order and
+//! - `row_26_counts_the_derived_brackets_and_prints_902`: row 26 reads quantity 4, its tags in ID-9's order and
 //!   folio 902 (ruling 2), assembly row 20 too (ruling 3); a fourth strip placed in R2's run gives 5, the strip's
 //!   authored quantity no longer counting; removing -X1032's placement returns its line to its authored quantity and
 //!   its folio 103 beside 902; 27 rows throughout (AC-07).
-//! - `eb1_one_truth_every_reader_of_the_part_lines_follows`: the end-bracket lines are `GroupAccessory` lines, the
+//! - `one_truth_every_reader_of_the_part_lines_follows`: the end-bracket lines are `GroupAccessory` lines, the
 //!   parts list prints the derived quantity and the device list still lists 1X1's TBD part (ruling 4).
 //! - `eb2_902_draws_r2s_four_brackets_at_their_positions`: four rectangles in the footprints' pen, each with its strip's
 //!   placement, at [20, 30], [48.6, 58.6], [162.6, 172.6] and [198.6, 208.6] mm along R2, centred on its axis.
-//! - `eb4_golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs`: none on Golden A; -X1032 moved 5 mm
+//! - `golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs`: none on Golden A; -X1032 moved 5 mm
 //!   after -X1031 overlaps the bracket after -X1031; -X1032 at s = 544 mm passes the rail end by 10 mm (ruling 6), in
 //!   en-GB and nl-NL.
 //! - `eb_the_bracket_lines_memoise_as_they_run_cold`: memo against cold (and the engine's oracle) over the moves.
@@ -158,7 +158,7 @@ fn owned(v: &[&str]) -> Vec<String> {
 
 /// EB-1 (rulings 1 to 3).
 #[test]
-fn eb1_row_26_counts_the_derived_brackets_and_prints_902() {
+fn row_26_counts_the_derived_brackets_and_prints_902() {
     // Golden A as it is: row 26 reads 4, "-X1031, -X1032, 1X1", 902; assembly row 20 the same.
     let plain = golden_common::session(&golden_common::batch());
     let q = plain.query();
@@ -229,7 +229,7 @@ fn eb1_row_26_counts_the_derived_brackets_and_prints_902() {
 
 /// EB-1, ruling 4: one truth for every reader of `device_part_lines`.
 #[test]
-fn eb1_one_truth_every_reader_of_the_part_lines_follows() {
+fn one_truth_every_reader_of_the_part_lines_follows() {
     let s = golden_common::session(&golden_common::batch());
     let q = s.query();
     let bracket = part_of(&q, "TBD end bracket");
@@ -369,7 +369,7 @@ fn bracket_findings(s: &Session) -> Vec<(String, String)> {
 
 /// EB-4 (rulings 5 and 6).
 #[test]
-fn eb4_golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs() {
+fn golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs() {
     let mut s = golden_common::session(&golden_common::batch());
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
 
@@ -480,7 +480,7 @@ fn s10(s: &Session, key: &str) -> i64 {
 /// the rail end (one `bracket_outside`); with -X1032 locked it stays, the insert is not refused and the bracket after
 /// -X1031 overlaps it.
 #[test]
-fn ft1441_a_growing_strip_pushes_the_items_after_it() {
+fn a_growing_strip_pushes_the_items_after_it() {
     let fresh = || golden_common::session(&golden_common::batch());
     let mut s = fresh();
     assert_eq!((s10(&s, "-X1031"), s10(&s, "-X1032")), (586, 1726));
@@ -525,7 +525,7 @@ fn ft1441_a_growing_strip_pushes_the_items_after_it() {
 /// -X1031 (mode `replace`) widens the strip by 5.2 mm, and -X1032 moves from 172.6 to 177.8 mm in the same step, as
 /// one inserted terminal moves it.
 #[test]
-fn ft1497_a_part_change_that_widens_a_strips_terminal_pushes() {
+fn a_part_change_that_widens_a_strips_terminal_pushes() {
     let mut s = golden_common::session(&golden_common::batch());
     let q = s.query();
     let terminal = q
@@ -575,7 +575,7 @@ fn ft1497_a_part_change_that_widens_a_strips_terminal_pushes() {
 /// `bracket_outside`, the positions written); with 1X1 locked it stays, the insert is not refused and the bracket
 /// after 1X1 overlaps -X1031.
 #[test]
-fn ft1495_a_strip_turned_half_way_pushes_the_items_before_it() {
+fn a_strip_turned_half_way_pushes_the_items_before_it() {
     let turned = || {
         let mut s = golden_common::session(&golden_common::batch());
         run(

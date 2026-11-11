@@ -7,7 +7,7 @@
 //! 60). On R1 -101F1 (18 mm, s = 140), -102F1 (18 mm, s = 158) and -102F2 (45 mm, s = 189.5); on R2 the strip -X1031 (three
 //! 6.2 mm terminals, left end s = 58.6); on R3 the station -201U1 (50 mm, s = 45) and its modules -201U2 (position 1,
 //! s = 90), -201U3 (2, s = 130) and -201U4 (3, s = 170), 40 mm each. -F55 is mountable and unplaced. Golden A itself is
-//! checked by `ew-api`'s AC-21 subset (`checks_part5.rs`), whose pack list holds EW-LAYOUT.
+//! checked by `ew-api`'s AC-21 subset (`check_messages_waivers.rs`), whose pack list holds EW-LAYOUT.
 //!
 //! The rules run at the project scope (the orchestrator's ruling 1: "No new scope kind. The EW-LAY rules run at the
 //! project scope and enumerate the layout spaces, surfaces, carriers and placements through the layout queries").
@@ -250,7 +250,7 @@ const F55_UNPLACED: &str = "+J-E-2416-F55 is not placed in the layout of +J-E-24
 // LC-1, LC-7: EW-LAY-001 and its release severity
 
 #[test]
-fn lc1_the_unplaced_device_is_reported_and_placing_it_clears_it() {
+fn the_unplaced_device_is_reported_and_placing_it_clears_it() {
     let m = plate().build();
     let found = findings_of(&m, "EW-LAY-001");
     assert_eq!(found.len(), 1, "{found:#?}");
@@ -277,7 +277,7 @@ fn lc1_the_unplaced_device_is_reported_and_placing_it_clears_it() {
 }
 
 #[test]
-fn lc1_a_project_without_a_layout_space_reports_none() {
+fn a_project_without_a_layout_space_reports_none() {
     let m = devices_only().build();
     others_silent(&m, &[]);
 }
@@ -286,7 +286,7 @@ fn lc1_a_project_without_a_layout_space_reports_none() {
 /// is error and the filter lives in its `run()`"): the pre-delivery release run reports EW-LAY-001 at error, and a
 /// project without a layout space reports none.
 #[test]
-fn lc7_release_counts_the_unplaced_device_at_error_only_where_a_layout_space_exists() {
+fn release_counts_the_unplaced_device_at_error_only_where_a_layout_space_exists() {
     let m = plate().build();
     let q = ew_derive::Q::new(&m);
     let report = ew_checks::run(&q, &PRE_DELIVERY, CheckMode::Release);
@@ -309,7 +309,7 @@ fn lc7_release_counts_the_unplaced_device_at_error_only_where_a_layout_space_exi
 // LC-2: EW-LAY-003
 
 #[test]
-fn lc2_removing_the_other_part_changes_nothing_removing_the_placed_one_is_reported() {
+fn removing_the_other_part_changes_nothing_removing_the_placed_one_is_reported() {
     let mut fx = plate();
     fx.with_parts(U1, &[P_COUPLER]);
     others_silent(&fx.build(), &["EW-LAY-001"]);
@@ -343,7 +343,7 @@ fn lc2_removing_the_other_part_changes_nothing_removing_the_placed_one_is_report
 /// `layout.move` of the placement at its own pose with the primary part's copy (`ew-api`'s
 /// `golden_layout_assembly.rs` runs it and the finding clears).
 #[test]
-fn lc2_the_quick_fix_realises_the_primary_part() {
+fn the_quick_fix_realises_the_primary_part() {
     let mut fx = plate();
     fx.with_parts(U1, &[P_MOD]);
     let m = fx.build();
@@ -362,7 +362,7 @@ fn lc2_the_quick_fix_realises_the_primary_part() {
 // LC-3: EW-LAY-004
 
 #[test]
-fn lc3_a_device_of_another_location_placed_on_the_plate() {
+fn a_device_of_another_location_placed_on_the_plate() {
     let mut fx = plate();
     device(&mut fx, 0xda, "S", 1, LOC_206, &[P_MCB]);
     place(&mut fx, 0xfa, 0xda, Some(P_MCB), on(R1), rail_pose(400.0));
@@ -381,7 +381,7 @@ fn lc3_a_device_of_another_location_placed_on_the_plate() {
 // LC-4: EW-LAY-006
 
 #[test]
-fn lc4_the_wider_part_overlaps_its_neighbour() {
+fn the_wider_part_overlaps_its_neighbour() {
     // LQ-4's 27 mm part with its clip at (9, 42.5) at s = 158: 149 … 176 against -102F2's 167 … 212
     let mut fx = plate();
     fx.with_parts(F102, &[P_WIDE]);
@@ -399,7 +399,7 @@ fn lc4_the_wider_part_overlaps_its_neighbour() {
 }
 
 #[test]
-fn lc4_a_placement_over_a_duct_and_a_rail_across_a_duct() {
+fn a_placement_over_a_duct_and_a_rail_across_a_duct() {
     let mut fx = plate();
     // the screw part's footprint (300, 560)–(350, 680) crosses D4's (40, 580)–(610, 620)
     device(&mut fx, 0xdb, "E", 1, LOC, &[P_SCREW]);
@@ -426,7 +426,7 @@ fn lc4_a_placement_over_a_duct_and_a_rail_across_a_duct() {
 }
 
 #[test]
-fn lc4_two_placements_of_one_device_overlap() {
+fn two_placements_of_one_device_overlap() {
     // cycle 41's ruling 2: one device, one placement per part, 18 mm and 6.2 mm at s = 400 and s = 405 on R1
     let mut fx = plate();
     device(&mut fx, 0xdc, "K", 1, LOC, &[P_MCB, P_TERM]);
@@ -477,7 +477,7 @@ fn collisions(m: &ew_model::Model) -> Vec<ew_checks::Finding> {
 }
 
 #[test]
-fn lc4_five_thousand_footprints_at_one_spot_give_64_overlaps_and_one_summary() {
+fn five_thousand_footprints_at_one_spot_give_64_overlaps_and_one_summary() {
     // cycle 41's ruling 1: an output test, not a timing
     let m = screws(5000, |_| 0.0);
     let found = collisions(&m);
@@ -504,7 +504,7 @@ fn lc4_five_thousand_footprints_at_one_spot_give_64_overlaps_and_one_summary() {
 }
 
 #[test]
-fn lc4_five_thousand_touching_footprints_in_one_column_give_none() {
+fn five_thousand_touching_footprints_in_one_column_give_none() {
     // each 120 mm tall, one above the other: they touch and do not overlap
     let m = screws(5000, |i| 120.0 * i as f64);
     let found = collisions(&m);
@@ -515,7 +515,7 @@ fn lc4_five_thousand_touching_footprints_in_one_column_give_none() {
 // LC-5 and FT-845: EW-LAY-010
 
 #[test]
-fn lc5_profile_pose_footprint_strip_and_enclosure_limit() {
+fn profile_pose_footprint_strip_and_enclosure_limit() {
     let mut fx = plate();
     // a TS 32 rail with a TS 35 device on it
     carrier(
@@ -572,7 +572,7 @@ fn lc5_profile_pose_footprint_strip_and_enclosure_limit() {
 }
 
 #[test]
-fn ft845_the_geometry_cases_the_layout_queries_leave_to_the_rule() {
+fn the_geometry_cases_the_layout_queries_leave_to_the_rule() {
     let mut fx = plate();
     // on a duct
     device(&mut fx, 0xdc, "K", 1, LOC, &[P_MCB]);
@@ -668,7 +668,7 @@ fn d3_limits_a_second_space_and_a_second_plate() {
 // LC-6: EW-LAY-016
 
 #[test]
-fn lc6_swapping_two_modules_and_a_device_between_members() {
+fn swapping_two_modules_and_a_device_between_members() {
     let mut fx = plate();
     fx.rec_mut(&us(PL_U3))["pose"] = rail_pose(170.0);
     fx.rec_mut(&us(PL_U4))["pose"] = rail_pose(130.0);
@@ -735,7 +735,7 @@ fn bracketed(s1031: f64, s: f64) -> Fx {
 }
 
 #[test]
-fn eb4_a_bracket_overlapping_a_strip_in_its_run_and_a_placement() {
+fn a_bracket_overlapping_a_strip_in_its_run_and_a_placement() {
     // -X1031 [58.6, 77.2], -X1032 5 mm after it [82.2, 94.6]: one run, the bracket after -X1031 [77.2, 87.2] overlaps
     // -X1032. K9 [40, 58] under the run-start bracket [48.6, 58.6].
     let mut fx = bracketed(58.6, 82.2);
@@ -779,7 +779,7 @@ fn eb4_a_bracket_overlapping_a_strip_in_its_run_and_a_placement() {
 }
 
 #[test]
-fn eb4_a_bracket_overlapping_another_bracket_and_brackets_past_the_rail_ends() {
+fn a_bracket_overlapping_another_bracket_and_brackets_past_the_rail_ends() {
     // K9 [88.2, 106.2] between the strips makes two runs: the bracket after -X1031 [77.2, 87.2] overlaps the one before
     // -X1032 [82, 92], which overlaps K9, as does the one after -X1032 [104.4, 114.4].
     let mut fx = bracketed(58.6, 92.0);
@@ -819,7 +819,7 @@ fn eb4_a_bracket_overlapping_another_bracket_and_brackets_past_the_rail_ends() {
 }
 
 #[test]
-fn eb4_brackets_with_room_give_no_finding() {
+fn brackets_with_room_give_no_finding() {
     // -X1032 10 mm after -X1031: one bracket between, nothing overlaps, nothing leaves the rail.
     let m = bracketed(58.6, 87.2).build();
     assert_eq!(messages(&m, "EW-LAY-010"), Vec::<String>::new());
@@ -858,7 +858,7 @@ fn strip_with_bracket_of_no_width(s: f64, part: u128) -> Fx {
 /// `[-20, -20]` reads "before" though it has no length and no other bracket shares its point; the one after it
 /// `[-13.8, -13.8]` reads "after".
 #[test]
-fn eb4_the_run_start_bracket_of_no_width_reads_before_off_the_rail_start() {
+fn the_run_start_bracket_of_no_width_reads_before_off_the_rail_start() {
     let m = strip_with_bracket_of_no_width(-20.0, P_TERM).build();
     let mut found: Vec<(String, String)> = findings_of(&m, "EW-LAY-010")
         .into_iter()
@@ -889,7 +889,7 @@ fn eb4_the_run_start_bracket_of_no_width_reads_before_off_the_rail_start() {
 /// Ruling 12: a strip whose bracket part has no width gives two brackets at one start; their findings never
 /// share a fingerprint, and a zero-length bracket overlaps nothing.
 #[test]
-fn eb4_brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
+fn brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
     // Past R2's end (570 mm): both brackets [600, 600] leave the rail, the run-start one "before" its strip.
     let m = zero_width_strip(600.0).build();
     let mut found: Vec<(String, String)> = findings_of(&m, "EW-LAY-010")
@@ -927,7 +927,7 @@ fn eb4_brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
 /// each strip's bracket line counts its own brackets (the first 2, every other 1; the BOM row 201). The speed is not
 /// measured (owner's rule).
 #[test]
-fn eb4_a_rail_of_stacked_strips_gives_one_finding_per_bracket_and_its_bom_line() {
+fn a_rail_of_stacked_strips_gives_one_finding_per_bracket_and_its_bom_line() {
     const N: u32 = 200;
     let strip = |i: u32| 0x1000 + u128::from(i);
     let mut fx = plate();

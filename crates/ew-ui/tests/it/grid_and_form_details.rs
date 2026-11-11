@@ -34,7 +34,7 @@ fn strips(tmp: &Tmp) -> Harness<'static, App> {
 /// The tool line keeps `space.4` on both sides: the Columns button ends `space.4` inside the grid's pane, as
 /// the Table toggle starts `space.4` inside it.
 #[test]
-fn ft567_the_columns_button_keeps_space_4_from_the_pane_edge() {
+fn the_columns_button_keeps_space_4_from_the_pane_edge() {
     let tmp = Tmp::new();
     let mut h = strips(&tmp);
     let t = ew_ui::theme::current(&h.ctx);
@@ -92,7 +92,7 @@ fn combo_value(h: &Harness<'static, App>) -> String {
 /// A choice shows doc 16a §8's words ("Multi-line", "Location"), never the raw parameter value, and the action
 /// still gets the raw value.
 #[test]
-fn ft558_choices_show_display_words() {
+fn choices_show_display_words() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     done(h.state_mut().shell_mut(), "page.new", json!({}));
@@ -125,7 +125,7 @@ fn ft558_choices_show_display_words() {
 
 /// A yes-or-no field is a check box named by its label; checking it sets the field to `true`.
 #[test]
-fn ft558_booleans_are_check_boxes() {
+fn booleans_are_check_boxes() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     done(h.state_mut().shell_mut(), "pages.renumber", json!({}));
@@ -161,7 +161,7 @@ fn the_start_note_sits_with_start() {
 /// The form dialogs share one label column: every field starts at the same x in every form dialog, and the
 /// fields fill the body to the same right edge.
 #[test]
-fn ft566_one_label_column_and_full_width_fields() {
+fn one_label_column_and_full_width_fields() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     let mut edges = Vec::new();
@@ -192,7 +192,7 @@ fn ft566_one_label_column_and_full_width_fields() {
 
 /// The dock's "All tabs" button is a borderless 24-px icon button (doc 16a §6.3) that opens the list of tabs.
 #[test]
-fn ft562_all_tabs_is_a_subtle_icon_button() {
+fn all_tabs_is_a_subtle_icon_button() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     for action in ["messages.show", "history.show"] {
@@ -219,7 +219,7 @@ fn ft562_all_tabs_is_a_subtle_icon_button() {
 /// A dock tab's count chip stands off the chrome in every theme: a fill other than the chrome's, or (high
 /// contrast) a `color.border.default` outline; its text keeps the text contrast on that fill.
 #[test]
-fn ft561_the_count_chip_stands_off_the_chrome() {
+fn the_count_chip_stands_off_the_chrome() {
     use ew_ui::theme::{Density, Theme, contrast, tokens};
     for theme in [
         Theme::Light,
@@ -248,7 +248,7 @@ fn ft561_the_count_chip_stands_off_the_chrome() {
 /// `color.text.disabled` is at least 2:1 and under 3:1 on the panel in light and dark, so the disabled Primary (drawn
 /// as a Secondary) never reads as an enabled button.
 #[test]
-fn ft581_disabled_text_is_legible_and_distinct() {
+fn disabled_text_is_legible_and_distinct() {
     use ew_ui::theme::{Density, Theme, contrast, tokens};
     for theme in [Theme::Light, Theme::Dark] {
         let t = tokens(theme, Density::Comfortable);

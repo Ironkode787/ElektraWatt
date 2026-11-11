@@ -168,7 +168,7 @@ fn tag(e: &Engine, device: Id<Device>) -> String {
 /// FT-320 through `assembly.attach`: the valve moved from the module to a plain device leaves no channel bound to it,
 /// in the same step, with the notice; undo restores the binding.
 #[test]
-fn ft320_a_valve_attached_elsewhere_unbinds_its_coil_and_undo_restores_it() {
+fn a_valve_attached_elsewhere_unbinds_its_coil_and_undo_restores_it() {
     let mut e = engine(model_with(vec![], vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, valve, f) = add_valve(&mut e, 1);
@@ -197,7 +197,7 @@ fn ft320_a_valve_attached_elsewhere_unbinds_its_coil_and_undo_restores_it() {
 /// before the pairs. (`fields.set` does not set `parent`, `commands/fields.rs`: `assembly.attach` is the command path
 /// that moves a device; the rule sits in N2, so any other path that changes a parent unbinds alike.)
 #[test]
-fn ft320_a_valve_moved_to_another_module_rebinds_there() {
+fn a_valve_moved_to_another_module_rebinds_there() {
     let mut e = engine(model_with(vec![], vec![]));
     make_module(&mut e, MODULE_H1);
     make_module_on(&mut e, DEV_101F1, MODULE_H1);
@@ -223,7 +223,7 @@ fn ft320_a_valve_moved_to_another_module_rebinds_there() {
 /// A move within the module keeps the binding (`is_on_module`): the coil stays on its channel, and N2 says the map
 /// assigns another (the notice whole, ruling 8).
 #[test]
-fn ft320_a_move_within_the_module_keeps_the_binding() {
+fn a_move_within_the_module_keeps_the_binding() {
     let mut e = engine(model_with(vec![], vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, valve, f) = add_valve(&mut e, 1);
@@ -248,7 +248,7 @@ fn ft320_a_move_within_the_module_keeps_the_binding() {
 /// set as `IndexRead::DeviceChildren`). A move within the module prepared before a valve was added to the module is
 /// re-run at commit, and the re-run sees the new child.
 #[test]
-fn ft352_n2_reads_the_children_through_the_parent_index() {
+fn n2_reads_the_children_through_the_parent_index() {
     let mut e = engine(model_with(vec![], vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, valve, _) = add_valve(&mut e, 1);
@@ -276,7 +276,7 @@ fn ft352_n2_reads_the_children_through_the_parent_index() {
 /// module through a sub-assembly leaves the module when the sub-assembly is attached elsewhere; its coil is unbound in
 /// the same step, the notice names the valve and the moved sub-assembly, and undo restores the binding.
 #[test]
-fn ft953_a_moved_sub_assembly_unbinds_the_coils_of_its_descendants() {
+fn a_moved_sub_assembly_unbinds_the_coils_of_its_descendants() {
     let mut e = engine(model_with(vec![], vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, valve, f) = add_valve(&mut e, 1);
@@ -306,7 +306,7 @@ fn ft953_a_moved_sub_assembly_unbinds_the_coils_of_its_descendants() {
 /// parent come from the parent index, so an edit of an unrelated device leaves a prepared attach valid, while a
 /// child added to the parent invalidates it.
 #[test]
-fn ft955_an_unrelated_device_edit_leaves_a_prepared_attach_valid() {
+fn an_unrelated_device_edit_leaves_a_prepared_attach_valid() {
     let mut e = engine(model_with(vec![], vec![]));
     let preview = e
         .preview(&attach(DEV_102F2, DEV_X1031, Some(2)))
@@ -394,7 +394,7 @@ fn cp(idx: u16) -> Option<Endpoint> {
 /// Re-parted to a part whose pin map is "X2:{n+1}" instead of "{n+1}", every channel moves to the new pin;
 /// a channel bound elsewhere stays; undo restores the old pins.
 #[test]
-fn ft321_a_part_change_re_pins_the_channels() {
+fn a_part_change_re_pins_the_channels() {
     let mut e = engine(model_with(cards(), vec![]));
     make_module(&mut e, CARD_N);
     assert_eq!(pins(&e), [cp(10), cp(11), cp(12), cp(13)]);
@@ -410,7 +410,7 @@ fn ft321_a_part_change_re_pins_the_channels() {
 
 /// Re-parted to a part without a pin map, the channels on the old pins are unbound, each with the notice.
 #[test]
-fn ft321_a_part_without_pins_unbinds_the_channels() {
+fn a_part_without_pins_unbinds_the_channels() {
     let mut e = engine(model_with(cards(), vec![]));
     make_module(&mut e, CARD_N);
     let module = tag(&e, DEV_102F2);
@@ -426,7 +426,7 @@ fn ft321_a_part_without_pins_unbinds_the_channels() {
 /// 1's old pin); the last channel has no pin "5"… on the old card, but the new card has one; a pin another module's
 /// channel holds unbinds with N3's FR-PLC-005 notice.
 #[test]
-fn ft321_shifted_pins_re_pin_and_a_held_pin_unbinds() {
+fn shifted_pins_re_pin_and_a_held_pin_unbinds() {
     // a channel of another module that holds pin "5" (CP 14) of the main function (an import; FR-PLC-005)
     let holder: Record = Record::Channel(
         serde_json::from_value(json!({

@@ -148,7 +148,7 @@ fn the_second_of_two_projects_is_chosen_and_recovered() {
 }
 
 /// PV-10: with `PRIVACY.md` in the installation, About's and the first-run step's privacy buttons open it locally (the
-/// fall-back to the repository's copy when there is none is `part2.rs`'s).
+/// fall-back to the repository's copy when there is none is `shell_frame.rs`'s).
 #[test]
 fn the_privacy_buttons_open_the_bundled_privacy_md() {
     let tmp = Tmp::new();

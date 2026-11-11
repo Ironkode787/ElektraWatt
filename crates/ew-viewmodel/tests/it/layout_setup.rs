@@ -94,7 +94,7 @@ fn layout_group(shell: &ShellModel) -> Vec<(String, bool, Option<String>)> {
 }
 
 #[test]
-fn ps7_the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
+fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
     let tmp = Tmp::new("ps7");
     let mut s = tmp.shell_in(Mode::Headless, true, "902");
     let on = |b: &str| (b.to_owned(), true, None);
@@ -129,7 +129,7 @@ fn ps7_the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() 
 }
 
 #[test]
-fn ps2_draw_rail_gives_r1s_geometry_and_keeps_the_dominant_axis() {
+fn draw_rail_gives_r1s_geometry_and_keeps_the_dominant_axis() {
     let tmp = Tmp::new("ps2");
     let mut s = tmp.shell_in(Mode::Headless, true, "902");
     let before = ids(&s);
@@ -165,7 +165,7 @@ fn ps2_draw_rail_gives_r1s_geometry_and_keeps_the_dominant_axis() {
 }
 
 #[test]
-fn ps3_draw_duct_gives_d1_and_d2_with_backspace_a_double_click_and_enter() {
+fn draw_duct_gives_d1_and_d2_with_backspace_a_double_click_and_enter() {
     let tmp = Tmp::new("ps3");
     let mut s = tmp.shell_in(Mode::Headless, true, "902");
     let before = ids(&s);
@@ -245,7 +245,7 @@ fn select_drags_a_rail_on_the_grid_with_its_placements() {
 }
 
 #[test]
-fn ps1_create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure() {
+fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure() {
     let tmp = Tmp::new("ps1");
     let mut s = tmp.shell_in(Mode::Gui, true, "902");
     // +J-E-2416 has -UC1: the refusal stays under the fields.
@@ -354,7 +354,7 @@ fn ps1_create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosu
 /// row: the page takes the fitting scale in the same undo step as its view, and the plate lies inside the frame's
 /// drawing area. A second Surface edit keeps the scale.
 #[test]
-fn ft1016_a_new_projects_panel_page_takes_the_fitting_scale() {
+fn a_new_projects_panel_page_takes_the_fitting_scale() {
     let tmp = Tmp::new("ft1016");
     let mut s = new_project(&tmp);
     done(
@@ -460,7 +460,7 @@ fn unplaced_key(s: &ShellModel, label: &str) -> String {
 /// PS-6 (AS-3 through the window): R1 emptied, the four rail devices and E55 marked in Unplaced devices, Auto-fill rail
 /// in DT order gives -101F1, -102F1, -102F2 and -102G1 at clip 9, 27, 58.5 and 116 mm, and the toast names E55.
 #[test]
-fn ps6_auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
+fn auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
     let tmp = Tmp::new("ps6");
     let mut s = tmp.shell_in(Mode::Gui, true, "902");
     let t = panel(&s);
@@ -559,7 +559,7 @@ fn ps6_auto_fill_rail_fills_an_emptied_rail_1_with_the_marked_devices() {
 /// PS-5 through the grid: -102F1's Locked row, its Position row's refusals in words (a text that does not read, and one
 /// the command refuses, the old value kept), and R1's Length row.
 #[test]
-fn ps5_rows_commit_from_the_properties_grid() {
+fn rows_commit_from_the_properties_grid() {
     let tmp = Tmp::new("ps5");
     let mut s = tmp.shell_in(Mode::Headless, true, "902");
     let t = panel(&s);

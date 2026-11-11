@@ -35,7 +35,7 @@ fn at_of(line: &str) -> Option<(i64, i64)> {
 // Item 5: the page text's positions are the positions a click or the grid cursor reaches.
 
 #[test]
-fn item5_page_text_positions_are_the_click_positions_of_the_connection_points() {
+fn page_text_positions_are_the_click_positions_of_the_connection_points() {
     let tmp = Tmp::new("ft485-5");
     let mut s = golden(&tmp, "101");
     let text = page_text(&mut s, "101");
@@ -70,7 +70,7 @@ fn item5_page_text_positions_are_the_click_positions_of_the_connection_points() 
 // Item 4: a wire is picked from the text.
 
 #[test]
-fn item4_a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
+fn a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
     let tmp = Tmp::new("ft485-4");
     let mut s = golden(&tmp, "101");
     let text = page_text(&mut s, "101");
@@ -151,7 +151,7 @@ fn item4_a_wire_is_selected_by_its_printed_point_or_by_its_ends() {
 // Item 7: a wire end on a wire names the wire.
 
 #[test]
-fn item7_a_route_that_ends_on_a_wire_names_that_wire_by_its_ends() {
+fn a_route_that_ends_on_a_wire_names_that_wire_by_its_ends() {
     let tmp = Tmp::new("ft485-7");
     let mut s = golden(&tmp, "101");
     let text = page_text(&mut s, "101");
@@ -183,7 +183,7 @@ fn describe_line(s: &ShellModel, prefix: &str) -> Option<String> {
 // Items 9 and 10: Delete on a selection by reference.
 
 #[test]
-fn item10_delete_on_a_device_selected_by_tag_deletes_its_representations_on_the_page() {
+fn delete_on_a_device_selected_by_tag_deletes_its_representations_on_the_page() {
     let tmp = Tmp::new("ft485-10");
     let mut s = golden(&tmp, "101");
     let before = tables(&s);
@@ -216,7 +216,7 @@ fn item10_delete_on_a_device_selected_by_tag_deletes_its_representations_on_the_
 
 /// Off a schematic page the strip scheme's example is left out of the toast.
 #[test]
-fn ft893_the_new_strip_toast_off_a_schematic_page_has_no_example() {
+fn the_new_strip_toast_off_a_schematic_page_has_no_example() {
     let tmp = Tmp::new("ft893");
     let mut s = new_project(&tmp);
     done(
@@ -234,7 +234,7 @@ fn ft893_the_new_strip_toast_off_a_schematic_page_has_no_example() {
 }
 
 #[test]
-fn item9_an_unused_strip_is_listed_with_its_alias_and_deleted_by_delete() {
+fn an_unused_strip_is_listed_with_its_alias_and_deleted_by_delete() {
     let tmp = Tmp::new("ft485-9");
     let mut s = new_project(&tmp);
     done(&mut s, "strip.new", json!({"letter": "X"}));
@@ -274,7 +274,7 @@ fn item9_an_unused_strip_is_listed_with_its_alias_and_deleted_by_delete() {
 // Item 8: the external reference by the text the page prints.
 
 #[test]
-fn item8_ip_external_takes_the_printed_location_and_lists_the_labels_when_nothing_matches() {
+fn ip_external_takes_the_printed_location_and_lists_the_labels_when_nothing_matches() {
     let tmp = Tmp::new("ft485-8");
     let mut s = new_project(&tmp);
     done(
@@ -325,7 +325,7 @@ fn item8_ip_external_takes_the_printed_location_and_lists_the_labels_when_nothin
 /// FT-1131 (item 7): with no external reference the message names the command by its menu path, never its
 /// action ID, and its key only once the user binds one.
 #[test]
-fn ft1131_no_external_reference_names_the_menu_path_and_a_bound_key() {
+fn no_external_reference_names_the_menu_path_and_a_bound_key() {
     let tmp = Tmp::new("ft1131");
     let mut s = new_project(&tmp);
     done(&mut s, "tool.ip", json!({}));
@@ -356,7 +356,7 @@ fn ft1131_no_external_reference_names_the_menu_path_and_a_bound_key() {
 // Item 2: a frozen tag typed as it prints.
 
 #[test]
-fn item2_the_frozen_tag_takes_the_tag_as_the_page_prints_it() {
+fn the_frozen_tag_takes_the_tag_as_the_page_prints_it() {
     let tmp = Tmp::new("ft485-2");
     let mut s = golden(&tmp, "101");
     done(&mut s, "select.set", json!({"refs": ["tag:-101F1"]}));
@@ -390,7 +390,7 @@ fn item2_the_frozen_tag_takes_the_tag_as_the_page_prints_it() {
 // Item 3: autoconnect says what it does.
 
 #[test]
-fn item3_the_hint_offers_alt_and_the_toast_names_the_wires_a_placement_drew() {
+fn the_hint_offers_alt_and_the_toast_names_the_wires_a_placement_drew() {
     let tmp = Tmp::new("ft485-3");
     let mut s = golden(&tmp, "101");
     done(
@@ -436,7 +436,7 @@ fn item3_the_hint_offers_alt_and_the_toast_names_the_wires_a_placement_drew() {
 // Item 11: the export says what it wrote.
 
 #[test]
-fn item11_the_pdf_export_names_the_file_and_its_page_count() {
+fn the_pdf_export_names_the_file_and_its_page_count() {
     let tmp = Tmp::new("ft485-11");
     let mut s = new_project(&tmp);
     let path = tmp.0.join("set.pdf");

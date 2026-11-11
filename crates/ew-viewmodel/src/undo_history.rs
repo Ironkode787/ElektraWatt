@@ -236,7 +236,7 @@ mod tests {
 
     /// One row reads "1 step", two "2 steps"; no view, no header.
     #[test]
-    fn ft986_the_header_counts_one_step_in_the_singular() {
+    fn the_header_counts_one_step_in_the_singular() {
         let pane = |rows: Vec<HistoryRow>, cursor: usize| HistoryPane {
             view: Some((
                 1,

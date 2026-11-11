@@ -310,7 +310,7 @@ fn typing_over_a_pre_filled_field_replaces_it() {
 /// A configuration project's Address profile row reads the chosen profile's name, never its
 /// reference; hovered, its tooltip is the reference, the chooser's secondary line.
 #[test]
-fn ft1491_the_address_profile_row_shows_the_name_its_reference_in_the_tooltip() {
+fn the_address_profile_row_shows_the_name_its_reference_in_the_tooltip() {
     // Golden A's configuration project PLC1.
     const PLC1: &str = "4a1d3ee5-9e34-5065-b364-09f61b6e7c30";
     let tmp = Tmp::new();

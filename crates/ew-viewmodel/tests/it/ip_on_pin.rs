@@ -334,7 +334,7 @@ fn ghost_cp(s: &ShellModel) -> (i64, i64) {
 /// A point whose connection point lies on a junction, or strictly inside a wire, would sit on it
 /// without joining it: refused in words, nothing committed, the ghost kept; the HUD offers no connection there.
 #[test]
-fn ft948_a_point_on_a_junction_or_inside_a_wire_is_refused() {
+fn a_point_on_a_junction_or_inside_a_wire_is_refused() {
     const WORDS: &str = "Not placed: the point would sit on a wire without joining it; place it on a pin or a free grid point";
     let tmp = Tmp::new("ip-on-wire");
     let mut s = shell(&tmp, "102");
@@ -551,7 +551,7 @@ fn a_route_less_connection_to_a_point_on_a_pin_saves_and_reloads_byte_stable() {
 /// `propose` counts among the targets of the page), not the fallback name. The Wire tool's P, from that pin, names its
 /// end from the name just placed the same way.
 #[test]
-fn ft950_after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
+fn after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
     let tmp = Tmp::new("ip-pin-next-name");
     let mut s = shell(&tmp, "102");
     let pin = cp(&s, "-102F2:14");
@@ -601,7 +601,7 @@ fn ft950_after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
 /// A pin on a junction wins: a free contact moved so that its pin lies on a junction of
 /// 102, the point dropped there connects to the pin as on any pin.
 #[test]
-fn ft1074_a_pin_on_a_junction_wins() {
+fn a_pin_on_a_junction_wins() {
     let tmp = Tmp::new("ip-pin-junction");
     let mut s = shell(&tmp, "102");
     let t = tables(&s);
@@ -668,9 +668,9 @@ fn ft1074_a_pin_on_a_junction_wins() {
 /// whose coil lies off the sheet along the sheet's edge, the drawn end on the edge has no pin and no junction, and a
 /// point dropped there places free.
 #[test]
-fn ft1074_a_wires_bare_end_places_the_point_free() {
+fn a_wires_bare_end_places_the_point_free() {
     let tmp = Tmp::new("ip-bare-end");
-    let mut s = crate::ft1049_off_sheet::fixture(&tmp);
+    let mut s = crate::off_sheet_wire::fixture(&tmp);
     let t = tables(&s);
     let bare: Vec<(i64, i64)> = t
         .connections

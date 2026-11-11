@@ -60,7 +60,7 @@ const EXTERNAL_END: &str = "external end DP (+J-E-206 / JE-N1000-03)";
 /// DP, the cable -3W1, the plug -3X1 and the station port -201U1:DP; the external end is the IP, and the segment is
 /// on the logical net DP.
 #[test]
-fn bu2_one_segment_from_the_external_end_to_the_station_port() {
+fn one_segment_from_the_external_end_to_the_station_port() {
     let (ids, s) = golden();
     let q: Q = s.query();
     let pnet: Id<PhysicalNet> = id(&ids, "physical_nets|DP");
@@ -95,7 +95,7 @@ fn bu2_one_segment_from_the_external_end_to_the_station_port() {
 /// interruption point DP of folio 3), the station port -201U1:DP is its one member, and the partner is no device: it
 /// is in neither BOM.
 #[test]
-fn bu4_the_external_partner_is_the_master_and_in_no_bom() {
+fn the_external_partner_is_the_master_and_in_no_bom() {
     let (ids, s) = golden();
     let q: Q = s.query();
     let lnet: Id<LogicalNet> = id(&ids, "logical_nets|DP");
@@ -121,7 +121,7 @@ fn bu4_the_external_partner_is_the_master_and_in_no_bom() {
 /// BU-5's derived half (the page bytes are the committed expected files): the station port prints "Node TBD" and the
 /// plug's termination derives "Switch to "ON"" (drawn by no slot of folio 3 yet).
 #[test]
-fn bu5_the_port_texts() {
+fn the_port_texts() {
     let (ids, s) = golden();
     let q: Q = s.query();
     let functions = q.functions();
@@ -142,7 +142,7 @@ fn bu5_the_port_texts() {
 /// superseded. BU-3: with -3X1 Off, EW-BUS-004 reports one error on -3X1 (the switch prints "Switch to "OFF""), the
 /// info stays, and On again clears the error.
 #[test]
-fn bu6_ac31_the_bus_checks_on_golden_a() {
+fn ac31_the_bus_checks_on_golden_a() {
     let (ids, mut s) = golden();
     let report = s.check(&PRE_DELIVERY, CheckMode::Release);
     assert_eq!(

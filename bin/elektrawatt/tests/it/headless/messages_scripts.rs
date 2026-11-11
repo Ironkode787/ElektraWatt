@@ -145,7 +145,7 @@ fn run_flow(
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice() {
+fn view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice() {
     ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_identical_twice_case(false);
 }
 
@@ -266,7 +266,7 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays() {
+fn messages_check_ends_pending_byte_identical_twice_and_replays() {
     ms2_messages_check_ends_pending_byte_identical_twice_and_replays_case(false);
 }
 
@@ -317,7 +317,7 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays() {
+fn messages_fix_with_apply_is_byte_identical_twice_and_replays() {
     ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_case(false);
 }
 

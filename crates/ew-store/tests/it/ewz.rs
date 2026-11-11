@@ -47,7 +47,7 @@ fn pack_files(files: &BTreeMap<String, Vec<u8>>, git: &BTreeMap<String, Vec<u8>>
 /// `mimetype` is the first entry, stored, `manifest.json` the second, the rest in byte order; a stray, a foreign
 /// file, `.ew/`, a lock, a temp and `.git/` change nothing; extracting gives a directory byte-equal to the source.
 #[test]
-fn ez1_golden_a_packs_deterministically_and_extracts_to_its_source() {
+fn golden_a_packs_deterministically_and_extracts_to_its_source() {
     let base = ew_testdir::fresh_dir("ew-ewz-ez1");
     let source = base.join("J-E-2416.ew");
     ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &source);
@@ -222,7 +222,7 @@ fn names(vfs: &MemVfs) -> Vec<String> {
 /// EZ-3: extracting onto an existing directory or file is refused before anything is written; an existing staging
 /// directory is refused and not touched.
 #[test]
-fn ez3_an_existing_target_is_refused_and_nothing_is_written() {
+fn an_existing_target_is_refused_and_nothing_is_written() {
     let archive = small_ewz();
     let target = Path::new("/w/p.ew");
     let vfs = workdir();
@@ -270,7 +270,7 @@ fn ez3_an_existing_target_is_refused_and_nothing_is_written() {
 /// directory; without a fault the extract writes exactly the archive's files, durably (a power loss right after it
 /// keeps them).
 #[test]
-fn ez3_a_failure_at_each_call_leaves_no_target_and_no_staging() {
+fn a_failure_at_each_call_leaves_no_target_and_no_staging() {
     let archive = small_ewz();
     let target = Path::new("/w/p.ew");
     let vfs = workdir();
@@ -339,7 +339,7 @@ fn ez3_a_failure_at_each_call_leaves_no_target_and_no_staging() {
 /// The parent's sync fails and the move back fails too (the process is killed at the sync): the complete
 /// target stays, and the error says so instead of "nothing was extracted".
 #[test]
-fn ez3_a_failed_sync_and_a_failed_move_back_report_the_target_that_stays() {
+fn a_failed_sync_and_a_failed_move_back_report_the_target_that_stays() {
     let archive = small_ewz();
     let target = Path::new("/w/p.ew");
     let vfs = workdir();
@@ -527,7 +527,7 @@ fn ratio_201() -> Vec<u8> {
 /// stored entry, a listed file missing, a manifest that lists a path outside the project's files, and a Windows
 /// device name.
 #[test]
-fn ez4_hostile_archives_are_refused_unread() {
+fn hostile_archives_are_refused_unread() {
     let base = small_list(&[]);
     assert!(ewz::read(&written(&base)).is_ok(), "the unaltered archive reads");
 

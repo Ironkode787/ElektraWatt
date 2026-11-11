@@ -90,7 +90,7 @@ fn select(s: &mut ShellModel, tag: &str) {
 /// then every other offer, held copies before library parts; the detail names the template's function; Only parts
 /// that fit keeps the first two; the view In this project lists held copies only.
 #[test]
-fn ps1_f55_offers_the_same_function_first() {
+fn f55_offers_the_same_function_first() {
     let tmp = Tmp::new("part-sel-1");
     let mut s = golden(&tmp);
     select(&mut s, "F55");
@@ -158,7 +158,7 @@ fn ps1_f55_offers_the_same_function_first() {
 /// PS3: a favourite and the recently used parts persist in `settings.toml` and order the next shell's offers; a held
 /// copy records nothing; the favourite changes no project file.
 #[test]
-fn ps3_favourites_and_recent_persist() {
+fn favourites_and_recent_persist() {
     let tmp = Tmp::new("part-sel-3");
     let mut s = golden(&tmp);
     select(&mut s, "F55");
@@ -231,7 +231,7 @@ fn ps3_favourites_and_recent_persist() {
 /// without `copies`, the strip editor's Part cell on two marked terminals (replace_all) and a Bridge part cell
 /// (`fields.set`); each is one undo step.
 #[test]
-fn ps4_choosing_commits_one_command() {
+fn choosing_commits_one_command() {
     let tmp = Tmp::new("part-sel-4");
     let mut s = golden(&tmp);
     select(&mut s, "F55");
@@ -282,7 +282,7 @@ fn ps4_choosing_commits_one_command() {
 /// PS4's strip editor half: the Part cell on two marked terminals gives `replace_all` on both; the Bridge part cell
 /// presets the kind `accessory` and gives one `fields.set` on the group's carrier.
 #[test]
-fn ps4_the_strip_editor_cells_choose_parts() {
+fn the_strip_editor_cells_choose_parts() {
     let tmp = Tmp::new("part-sel-4s");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut s, "strip.edit", json!({ "strip": "-X1031" }));
@@ -350,7 +350,7 @@ fn ps4_the_strip_editor_cells_choose_parts() {
 /// PS5 in the shell: a field that does not parse prints its message under the field (`invalid`), Save is refused with
 /// it as the refusal line and the history is unchanged; an unchanged draft and a read-only project refuse.
 #[test]
-fn ps5_the_part_editor_refuses_with_a_message() {
+fn the_part_editor_refuses_with_a_message() {
     let tmp = Tmp::new("part-sel-5");
     let mut s = golden(&tmp);
     select(&mut s, "F55");
@@ -414,7 +414,7 @@ fn ps5_the_part_editor_refuses_with_a_message() {
 /// PS6 in the shell: an edit in place of Golden A's project-local copy opens the `part` card with the field diff, the
 /// device and the BOM rows; Apply is one step, undo restores.
 #[test]
-fn ps6_an_edit_in_place_is_previewed() {
+fn an_edit_in_place_is_previewed() {
     let tmp = Tmp::new("part-sel-6");
     let mut s = golden(&tmp);
     select(&mut s, "F55");
@@ -542,7 +542,7 @@ fn the_empty_search_says_it_once_and_chooses_nothing() {
 /// PS7 in the shell: a copy from a library forks: the card carries the fork note, Apply re-points F55 to the fork, and
 /// a second edit of the fork is in place.
 #[test]
-fn ps7_a_library_copy_forks() {
+fn a_library_copy_forks() {
     let tmp = Tmp::new("part-sel-7");
     let mut s = golden(&tmp);
     select(&mut s, "F55");

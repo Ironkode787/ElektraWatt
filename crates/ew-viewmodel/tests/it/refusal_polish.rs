@@ -49,7 +49,7 @@ fn key_of(s: &ShellModel, id: &str) -> String {
 /// '{base} is taken, so this point is {name}.'" A second source point after 0V is proposed as 0V-1: the HUD says so
 /// in the name's place, and so does the toast of its placement.
 #[test]
-fn ft1023_a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
+fn a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
     let tmp = Tmp::new("p45b-taken");
     let mut s = new_project(&tmp);
     done(&mut s, "tool.ip", json!({}));
@@ -111,7 +111,7 @@ fn refused(tmp: &Tmp) -> ShellModel {
 /// "a tool's refusal notice clears when the state it refused changes": a committed command, a Properties edit, a
 /// selection change.
 #[test]
-fn ft1032_a_commit_a_properties_edit_or_a_selection_change_clears_the_refusal() {
+fn a_commit_a_properties_edit_or_a_selection_change_clears_the_refusal() {
     type Change = fn(&mut ShellModel);
     let changes: [(&str, Change); 3] = [
         ("a committed command", |s| {
@@ -134,7 +134,7 @@ fn ft1032_a_commit_a_properties_edit_or_a_selection_change_clears_the_refusal() 
 
 /// "... undo or redo".
 #[test]
-fn ft1032_undo_and_redo_clear_the_refusal() {
+fn undo_and_redo_clear_the_refusal() {
     let tmp = Tmp::new("p45b-notice-undo");
     let mut s = refused(&tmp);
     // A step to undo that keeps Q9: a new terminal strip.
@@ -171,7 +171,7 @@ fn the_armed_ip_tools_hud_leads_with_its_name() {
 /// A greyed command's reason, clicked, is a toast whose line under the title starts with a
 /// capital ("Draw on a schematic page"); the toast's own text stays the reason.
 #[test]
-fn ft1075_a_greyed_commands_reason_reads_with_a_capital_under_its_title() {
+fn a_greyed_commands_reason_reads_with_a_capital_under_its_title() {
     let tmp = Tmp::new("p45b-reason-capital");
     let mut s = new_project(&tmp);
     let reason = ew_viewmodel::strings::text(ew_viewmodel::key!("reason-page-type-no-symbols"));

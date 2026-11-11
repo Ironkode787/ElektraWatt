@@ -233,7 +233,7 @@ fn pilot_steps(dir: &Path) -> Vec<(&'static str, Value)> {
 /// `nightly_every_script_transcript_is_byte_identical_twice` runs the body with `twice` true: a second run on an
 /// equal start and the byte-identical comparison of the two transcripts (test clean-up, 2026-10-30).
 #[test]
-fn pg10_the_pilot_script_is_deterministic_and_replays() {
+fn the_pilot_script_is_deterministic_and_replays() {
     pg10_the_pilot_script_is_deterministic_and_replays_case(false);
 }
 
@@ -407,7 +407,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
 
 /// §6.12: a counter collision on -102F1 is refused with the next free counter; the run stops at that step.
 #[test]
-fn pg8_a_counter_collision_stops_the_script_with_its_remedy() {
+fn a_counter_collision_stops_the_script_with_its_remedy() {
     let tmp = Tmp::new();
     let dir = tmp.golden_dir("collision.ew");
     let steps = vec![

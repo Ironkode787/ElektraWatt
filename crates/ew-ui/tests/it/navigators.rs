@@ -86,7 +86,7 @@ fn item_centre(h: &Harness<'_, App>, name: &str) -> Pos2 {
 /// and shows the chips as buttons named `Open 201-E4` and `Open 203-B4`; Enter opens 201; a selection made on the
 /// canvas marks the representation's row while the focus stays on the canvas.
 #[test]
-fn nv5_the_devices_pane_and_the_chip_line() {
+fn the_devices_pane_and_the_chip_line() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -174,7 +174,7 @@ fn nv5_the_devices_pane_and_the_chip_line() {
 /// NV7 in the window (D8): dragging 106 onto 103 in the Pages navigator opens the reorder card with "106 →
 /// 103, 103 → 106"; Apply commits one `page.reorder`; one undo restores the folios.
 #[test]
-fn nv7_dragging_106_before_103_opens_the_card_and_apply_commits() {
+fn dragging_106_before_103_opens_the_card_and_apply_commits() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     // Properties sits under Pages, so the page list has half the column; a taller window
@@ -217,7 +217,7 @@ fn nv7_dragging_106_before_103_opens_the_card_and_apply_commits() {
 /// representation) shows its function row with the badge `unplaced`; dragging the row onto the canvas of folio 102
 /// arms the Place tool with that function (`place.pick {function}`).
 #[test]
-fn nv9_an_unplaced_function_is_dragged_onto_the_canvas() {
+fn an_unplaced_function_is_dragged_onto_the_canvas() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let def = {
@@ -356,7 +356,7 @@ fn an_f2_refusal_shows_under_the_field_and_raises_no_banner() {
 /// WP-S2.07 CT4 in the window (FT-490): F2 on a Potentials row opens the inline editor on its name with the focus;
 /// typing (appended at the end) and Enter rename the definition; Delete on a row opens the delete card.
 #[test]
-fn ct4_f2_renames_a_potential_and_delete_opens_the_card() {
+fn f2_renames_a_potential_and_delete_opens_the_card() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
@@ -409,7 +409,7 @@ fn ct4_f2_renames_a_potential_and_delete_opens_the_card() {
 /// NV4 and NV11 in the window (§9 item 4, §11): the Devices pane paints at most the rows in view plus two; opening it
 /// makes one `navigator_table` call; scrolling makes none and builds no rows.
 #[test]
-fn nv11_scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
+fn scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     let calls = h.state().shell().session_calls().navigator_table;
@@ -449,7 +449,7 @@ fn nv11_scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
 /// at the two clicks before), so the second row never opened: the visual driver ran its script steps a few frames
 /// apart; it now pauses before a double click (`visual.rs`, `CLICK_PAUSE_S`).
 #[test]
-fn ft891_double_clicking_the_rows_of_100_and_101_shows_each_folio() {
+fn double_clicking_the_rows_of_100_and_101_shows_each_folio() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -544,7 +544,7 @@ fn marked_folios(h: &Harness<'_, App>) -> Vec<String> {
 /// "A single click on a page row opens that page." (doc 16a §6.6) "Ctrl-click and Shift-click mark rows without
 /// opening."
 #[test]
-fn ft1024_a_single_click_on_a_page_row_opens_it_and_ctrl_and_shift_click_only_mark() {
+fn a_single_click_on_a_page_row_opens_it_and_ctrl_and_shift_click_only_mark() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -662,7 +662,7 @@ fn cursor_k(h: &mut Harness<'_, App>, k: (i64, i64)) {
 /// starter coil attached to the card, the PLC navigator's row of the card's channel 0 dragged onto the coil's
 /// connection point binds it with one `plc.bind_channel`; the coil's CP then prints Q0.0.
 #[test]
-fn pg2_a_channel_row_dragged_onto_a_connection_point_binds_it() {
+fn a_channel_row_dragged_onto_a_connection_point_binds_it() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), None);
     h.set_size(egui::Vec2::new(1400.0, 1000.0));

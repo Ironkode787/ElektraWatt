@@ -718,7 +718,7 @@ type Case = (&'static str, Fx, Vec<(u128, u128)>);
 /// The ID-permutation test of every part-4 rule: swapping record IDs (pages, strips, terminals, connections,
 /// structure nodes, page items) changes no printed finding and no report order.
 #[test]
-fn part4_findings_do_not_follow_record_ids() {
+fn findings_do_not_follow_record_ids() {
     let mut two_texts = text_fx(Some("qet.9"));
     two_texts.push(json!({"$k": "page_item", "id": us(0x8601), "page": us(P1),
         "kind": {"free_text": {"text": {"en": "Other"}, "at": [0, 4_000_000], "style": "qet.7"}}}));

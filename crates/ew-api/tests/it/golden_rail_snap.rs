@@ -161,7 +161,7 @@ fn owned(v: &[(i128, i128, &str)]) -> Vec<(i128, i128, String)> {
 /// 1X1, 1X1, -X1031, -X1032, each the strip's "TBD end bracket" part use, and per strip as many as its authored
 /// quantity (1X1 × 2, -X1031 × 1, -X1032 × 1: row 26's 4); -X1032 moved to s = 222.6 mm gives five.
 #[test]
-fn sn1_golden_a_r2_has_four_brackets() {
+fn golden_a_r2_has_four_brackets() {
     let mut s = session();
     let four = owned(&[
         (200, 300, "1X1"),
@@ -346,7 +346,7 @@ fn sn3_push_on_r1() {
 /// SN-4 (swap): -101F1 dropped onto -102F2 gives -102F2 153.5, -102F1 185, -101F1 203 mm and moves nothing else;
 /// -201U3 and -201U4 on R3 swap to 148 and 108 mm; a swap onto another rail or onto an empty spot is refused.
 #[test]
-fn sn4_swap_on_r1_and_r3() {
+fn swap_on_r1_and_r3() {
     let mut s = session();
     mv(&mut s, placement("-101F1"), 1895, "swap").unwrap();
     let want: Vec<(String, i128)> = [
@@ -390,7 +390,7 @@ fn sn4_swap_on_r1_and_r3() {
 /// -X1032's run-end bracket; a 26 mm strip with a 10 mm bracket part (a copy of -X1032) dropped at left edge 205 mm lands at
 /// 208.6 mm, joins the run and R2 then has five brackets.
 #[test]
-fn sn6_strips_on_r2() {
+fn strips_on_r2() {
     let mut s = session();
     // F55's clip point is its centre: left edge 200 mm is clip 209 mm; 208.6 mm is clip 217.6 mm.
     place(&mut s, dev("F55"), "R2", 2090, "free").unwrap();

@@ -110,7 +110,7 @@ fn merged_sides() -> String {
 
 /// MD-5, MD-6: branch A adds W20's `colour` BU, branch B sets `csa` "2.5": exit 0 and the merged page, in both forms.
 #[test]
-fn md6_w20_merges_cleanly_to_csa_2_5_and_colour_bu_and_exits_0() {
+fn w20_merges_cleanly_to_csa_2_5_and_colour_bu_and_exits_0() {
     let t = Tree::new();
     let (base, ours, theirs) = clean_sides();
     let expected = merged_sides();
@@ -125,7 +125,7 @@ fn md6_w20_merges_cleanly_to_csa_2_5_and_colour_bu_and_exits_0() {
 /// MD-5, MD-6: the conflict variant (B also adds `colour` WH) writes one conflict record on `overrides.colour`, keeps
 /// BU in place and exits 1, in both forms.
 #[test]
-fn md6_the_w20_conflict_variant_writes_one_conflict_record_and_exits_1() {
+fn the_w20_conflict_variant_writes_one_conflict_record_and_exits_1() {
     let t = Tree::new();
     let (base, ours, _) = clean_sides();
     let theirs = page_with(r#""overrides":{"csa":"2.5","colour":["WH"],"show_marker":true}"#);
@@ -142,7 +142,7 @@ fn md6_the_w20_conflict_variant_writes_one_conflict_record_and_exits_1() {
 /// MD-6: the manifest merge gives the larger generation plus one, `merged: true` and no `base`; the page both
 /// branches changed is pending, a file one branch changed keeps that branch's hash.
 #[test]
-fn md6_the_manifest_merges_to_max_plus_one_merged_and_no_base() {
+fn the_manifest_merges_to_max_plus_one_merged_and_no_base() {
     let t = Tree::new();
     let base = std::fs::read_to_string(Path::new(GOLDEN_A).join("manifest.json")).unwrap();
     // A page's hash as the committed manifest holds it (it changes whenever Golden A's fixture is regenerated).
@@ -266,7 +266,7 @@ fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
 /// MD-5, ruling 6: a write that fails (the temporary file's name is taken by a folder) exits 129 and leaves `%A`
 /// byte-identical, the folder as it was.
 #[test]
-fn md5_a_failed_write_exits_129_and_leaves_a_byte_identical() {
+fn a_failed_write_exits_129_and_leaves_a_byte_identical() {
     let t = Tree::new();
     let (base, ours, theirs) = clean_sides();
     let tmp = t.0.join(".merge_file_a.tmp");
@@ -290,7 +290,7 @@ fn md5_a_failed_write_exits_129_and_leaves_a_byte_identical() {
 
 /// MD-5, ruling 6: a side that cannot be read exits 129 and leaves `%A` byte-identical.
 #[test]
-fn md5_a_side_that_cannot_be_read_exits_129() {
+fn a_side_that_cannot_be_read_exits_129() {
     let t = Tree::new();
     let missing = t.0.join("gone");
     let os_error = std::fs::File::open(&missing).unwrap_err();

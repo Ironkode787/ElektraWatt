@@ -775,7 +775,7 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
 /// for it (the canvas host then draws that frame on the CPU), records no fault and tells no banner, and the next frame
 /// renders on the GPU again; a lost device still ends the GPU path for the session with its banner.
 #[test]
-fn ft363_a_frame_beyond_the_limits_is_drawn_on_the_cpu_and_the_next_on_the_gpu() {
+fn a_frame_beyond_the_limits_is_drawn_on_the_cpu_and_the_next_on_the_gpu() {
     use ew_render2d::gpu::GpuError;
     use ew_ui::ew_viewmodel::{key, strings};
     let devices = devices();

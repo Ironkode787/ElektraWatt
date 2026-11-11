@@ -28,7 +28,7 @@ fn ids(entries: &[PaletteEntry]) -> Vec<&str> {
 }
 
 #[test]
-fn pl1_renum_ranks_both_renumber_actions_first_and_a_subsequence_still_finds() {
+fn renum_ranks_both_renumber_actions_first_and_a_subsequence_still_finds() {
     let tmp = Tmp::new("pal-pl1");
     let mut shell = tmp.shell_in(Mode::Gui, true, "103");
     let entries = query(&mut shell, "renum");
@@ -51,7 +51,7 @@ fn pl1_renum_ranks_both_renumber_actions_first_and_a_subsequence_still_finds() {
 }
 
 #[test]
-fn pl2_the_order_is_deterministic_ties_by_label_then_id_and_disabled_last() {
+fn the_order_is_deterministic_ties_by_label_then_id_and_disabled_last() {
     let tmp = Tmp::new("pal-pl2");
     let mut shell = tmp.shell_in(Mode::Gui, false, "103");
     for q in ["", "page", "re", "zoom", "save"] {
@@ -88,7 +88,7 @@ fn pl2_the_order_is_deterministic_ties_by_label_then_id_and_disabled_last() {
 /// PL-3 (NFR-UX-03): each NFR-DOC-05 term finds its EW action through a glossary alias, one row per term. A term the
 /// glossary maps to no listable action is listed here with `None` and fails nothing.
 #[test]
-fn pl3_each_glossary_term_finds_its_action() {
+fn each_glossary_term_finds_its_action() {
     let tmp = Tmp::new("pal-pl3");
     let mut shell = tmp.shell_in(Mode::Gui, true, "103");
     let rows: &[(&str, Option<&str>)] = &[
@@ -134,7 +134,7 @@ fn pl3_each_glossary_term_finds_its_action() {
 }
 
 #[test]
-fn pl4_an_empty_query_lists_the_recent_actions_first_and_a_shortcut_counts() {
+fn an_empty_query_lists_the_recent_actions_first_and_a_shortcut_counts() {
     let tmp = Tmp::new("pal-pl4");
     let mut shell = tmp.shell_in(Mode::Gui, false, "103");
     let run = |shell: &mut ShellModel, q: &str, id: &str| {
@@ -189,7 +189,7 @@ fn pl4_an_empty_query_lists_the_recent_actions_first_and_a_shortcut_counts() {
 }
 
 #[test]
-fn pl5_the_prefixes_find_pages_cells_objects_and_rules() {
+fn the_prefixes_find_pages_cells_objects_and_rules() {
     let tmp = Tmp::new("pal-pl5");
     let mut shell = tmp.shell_in(Mode::Gui, false, "101");
     // `#103` lists folio 103 first; Enter opens it.
@@ -278,7 +278,7 @@ fn the_search_without_a_prefix_finds_strips_cables_and_devices_by_tag() {
 }
 
 #[test]
-fn pl6_forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
+fn forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
     let tmp = Tmp::new("pal-pl6");
     let mut shell = tmp.shell_in(Mode::Gui, true, "103");
     // devices.renumber: Enter opens its form pre-filled from the defaults; Enter (submit) runs it.
@@ -358,7 +358,7 @@ fn pl6_forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
 /// FT-1174 (doc 16a §6.14, §9.3): a palette row's breadcrumb never repeats its label, and the Language and Page
 /// navigator order rows take an icon from the icon set.
 #[test]
-fn ft1174_the_breadcrumb_never_repeats_the_row_and_both_rows_have_icons() {
+fn the_breadcrumb_never_repeats_the_row_and_both_rows_have_icons() {
     let find = |id: &str| ACTIONS.iter().find(|a| a.id == id).expect(id);
     let language = find("view.language");
     assert_eq!(ew_viewmodel::actions::breadcrumb(language), "View · Language");

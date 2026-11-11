@@ -62,7 +62,7 @@ fn the_unplaced_navigator_and_the_layout_options_card() {
 /// FT-997 (doc 12 §12.1): Lock shows `lock` at the locked placement's top-right corner, standing on the
 /// footprint's top edge, `icon.sm` square and fixed on screen at another zoom; Unlock takes it away.
 #[test]
-fn ft997_a_locked_placement_shows_the_lock_icon() {
+fn a_locked_placement_shows_the_lock_icon() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "902");
     assert!(h.state_mut().canvas_host().lock_marks(0).is_empty());

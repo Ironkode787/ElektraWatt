@@ -230,7 +230,7 @@ mod tests {
 
     /// BV8: the required members, the two lists, the length and the frame rules are checked with their texts.
     #[test]
-    fn bv8_an_entry_is_checked() {
+    fn an_entry_is_checked() {
         let f = fixture(Kind::Free);
         let mut a = args("blocker", "discoverability");
         a.saw = None;
@@ -272,7 +272,7 @@ mod tests {
     /// BV8: entries are numbered, carry the turn and the step, are appended behind one header, need no note, and the
     /// category `missing-feature` is accepted; after the hand-back nothing more is logged.
     #[test]
-    fn bv8_a_text_run_logs_numbered_entries_behind_a_header() {
+    fn a_text_run_logs_numbered_entries_behind_a_header() {
         let mut f = fixture(Kind::Free);
         assert_eq!(
             friction(&f.run, &args("blocker", "missing-feature")).unwrap(),
@@ -309,7 +309,7 @@ mod tests {
     /// BV8: in a visual run the frame defaults to the newest, a named frame must exist, a region lies inside the
     /// frame, and the cap holds.
     #[test]
-    fn bv8_a_visual_run_refers_to_frames() {
+    fn a_visual_run_refers_to_frames() {
         let mut f = fixture(Kind::Free);
         f.run
             .update(|j| {

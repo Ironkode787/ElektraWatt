@@ -911,7 +911,7 @@ mod tests {
     /// A point strictly inside a wire (on a segment, at a bend, on a slanted segment) is on it; its
     /// ends, a point beside it and a point past its end are not.
     #[test]
-    fn ft948_a_point_inside_a_wire_is_on_it_its_ends_are_not() {
+    fn a_point_inside_a_wire_is_on_it_its_ends_are_not() {
         let line = [(0, 0), (100, 0), (100, 50), (200, 150)];
         assert!(inside_polyline(&line, (40, 0)), "on a segment");
         assert!(inside_polyline(&line, (100, 0)), "at a bend");

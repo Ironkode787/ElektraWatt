@@ -14,6 +14,6 @@ pub(crate) mod placement;
 /// IM2 per gate: one run of the script (the second run and the byte-identical comparison are the deep nightly's,
 /// `headless::nightly_every_script_transcript_is_byte_identical_twice`; test clean-up, 2026-10-30).
 #[test]
-fn im2_an_image_is_placed_by_a_script_twice_identically_and_replays() {
+fn an_image_is_placed_by_a_script_twice_identically_and_replays() {
     placement::im2_an_image_is_placed_by_a_script_twice_identically_and_replays_case(false);
 }

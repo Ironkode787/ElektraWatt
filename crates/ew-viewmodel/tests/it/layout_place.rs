@@ -169,7 +169,7 @@ const R1_SN3: [(&str, f64); 7] = [
 /// PW-1: the rows in `Unplaced` order (ruling 9) with their badges and drag sources; placing F55 removes its
 /// row in the same revision; the panel tables are fetched once per revision and folio, never for a schematic page.
 #[test]
-fn pw1_the_unplaced_devices_navigator_lists_the_five_devices() {
+fn the_unplaced_devices_navigator_lists_the_five_devices() {
     let tmp = Tmp::new("layout-pw1");
     let mut shell = writable(&tmp);
     done(&mut shell, "navigator.show", json!({"kind": "unplaced"}));
@@ -251,7 +251,7 @@ fn pw1_the_unplaced_devices_navigator_lists_the_five_devices() {
 /// FT-882 ("`ui.describe` names a surface view \"surface view\""): folio 902's view is described as one,
 /// never as an unknown item.
 #[test]
-fn ft882_describe_names_the_surface_view() {
+fn describe_names_the_surface_view() {
     let tmp = Tmp::new("layout-ft882");
     let mut shell = writable(&tmp);
     done(&mut shell, "page.describe", json!({"folio": "902"}));
@@ -268,7 +268,7 @@ fn ft882_describe_names_the_surface_view() {
 /// PW-1's empty states (doc 16a §6.17), whole: every device placed names the location; a project without a layout
 /// space says so.
 #[test]
-fn pw1_the_empty_states_name_the_location_or_the_missing_layout() {
+fn the_empty_states_name_the_location_or_the_missing_layout() {
     let tmp = Tmp::new("layout-pw1-empty");
     let mut shell = writable(&tmp);
     done(&mut shell, "navigator.show", json!({"kind": "unplaced"}));
@@ -371,7 +371,7 @@ fn pw1_the_empty_states_name_the_location_or_the_missing_layout() {
 /// PW-2: F55 dragged from the navigator onto Rail 1 between -101F1 and -102F1 with Ctrl held: the ghost moves four
 /// neighbours, the predicted poses are the committed ones (SN-3), and one undo restores all five.
 #[test]
-fn pw2_f55_pushed_onto_rail_1_by_a_drag() {
+fn f55_pushed_onto_rail_1_by_a_drag() {
     let tmp = Tmp::new("layout-pw2");
     let mut shell = writable(&tmp);
     let f55 = unplaced(&shell, "F55");
@@ -440,7 +440,7 @@ fn pw2_f55_pushed_onto_rail_1_by_a_drag() {
 /// PW-2 from the keyboard: Enter on the F55 row floats it at the start of Rail 1, the arrows step it by snap step,
 /// Enter drops it; with Push as the sticky mode the poses are SN-3's, in one undo step.
 #[test]
-fn pw2_f55_pushed_onto_rail_1_from_the_keyboard() {
+fn f55_pushed_onto_rail_1_from_the_keyboard() {
     let tmp = Tmp::new("layout-pw2-keys");
     let mut shell = writable(&tmp);
     done(&mut shell, "navigator.show", json!({"kind": "unplaced"}));
@@ -491,7 +491,7 @@ fn pw2_f55_pushed_onto_rail_1_from_the_keyboard() {
 /// PW-3: F55 over a TS 32 rail shows the command's refusal in the chip and commits nothing; F55 away from every rail
 /// gets the tool's text; E55 (screw-mounted) lands on the plate at the snapped point.
 #[test]
-fn pw3_refused_drops_and_a_plate_placement() {
+fn refused_drops_and_a_plate_placement() {
     let tmp = Tmp::new("layout-pw3");
     let mut shell = writable(&tmp);
     // The TS 32 rail fixture, below Rail 3.
@@ -583,7 +583,7 @@ fn pw3_refused_drops_and_a_plate_placement() {
 /// PW-4: near -102F2's end the left edge snaps to it (within 15 px, nearer than the grid point); Shift suspends the
 /// snap (0.1 mm); the 1 mm option changes the grid step.
 #[test]
-fn pw4_target_snapping_shift_and_the_grid_option() {
+fn target_snapping_shift_and_the_grid_option() {
     let tmp = Tmp::new("layout-pw4");
     let mut shell = writable(&tmp);
     let f55 = unplaced(&shell, "F55");
@@ -634,7 +634,7 @@ fn shell_failed_text(param: &str) -> String {
 /// PW-5: -201U9 dropped on Rail 3 without a modifier defaults to push at its member-order slot and gives AS-1's poses
 /// in one undo step; ruling 4: the whole rail equals what `layout.place_assembly` gives on another copy.
 #[test]
-fn pw5_an_assembly_member_defaults_to_push_at_its_slot() {
+fn an_assembly_member_defaults_to_push_at_its_slot() {
     let tmp = Tmp::new("layout-pw5");
     let mut shell = writable(&tmp);
     let u9 = unplaced(&shell, "-201U9");
@@ -685,7 +685,7 @@ fn pw5_an_assembly_member_defaults_to_push_at_its_slot() {
 /// PW-6: Tab and Shift+Tab cycle Rail 1's placements in carrier order with the live region's text; the HUD of a
 /// selected placement.
 #[test]
-fn pw6_tab_cycles_the_rail_with_the_live_region() {
+fn tab_cycles_the_rail_with_the_live_region() {
     let tmp = Tmp::new("layout-pw6-tab");
     let mut shell = writable(&tmp);
     let mut seen = Vec::new();
@@ -728,7 +728,7 @@ fn pw6_tab_cycles_the_rail_with_the_live_region() {
 /// PW-6: the arrows nudge (free stops with "Blocked by …", push pushes); R is refused on a rail in words, X flips;
 /// Lock and Unlock in the context menu; Delete removes the placement.
 #[test]
-fn pw6_nudge_turn_lock_and_delete_a_selected_placement() {
+fn nudge_turn_lock_and_delete_a_selected_placement() {
     let tmp = Tmp::new("layout-pw6-edit");
     let mut shell = writable(&tmp);
     let f1 = placement(&shell, "-102F1");
@@ -916,7 +916,7 @@ fn press_until_refused(shell: &mut ShellModel, action: &'static str) -> usize {
 /// layout place tool's ghost and for Select's drag of a placement alike; X then flips the same gesture. Other refusals
 /// still end their ghost.
 #[test]
-fn ft991_a_refused_turn_keeps_the_ghost_and_its_gesture() {
+fn a_refused_turn_keeps_the_ghost_and_its_gesture() {
     let tmp = Tmp::new("layout-ft991");
     let mut shell = writable(&tmp);
     let turn_refused = Outcome::Refused {
@@ -983,7 +983,7 @@ fn ft991_a_refused_turn_keeps_the_ghost_and_its_gesture() {
 /// with "At the rail end" and at a neighbour with "Blocked by -102G1", the ghost staying on Rail 1; a selected
 /// placement stops at the rail end in the same words.
 #[test]
-fn ft992_the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
+fn the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
     let tmp = Tmp::new("layout-ft992");
     let mut shell = writable(&tmp);
     let f55 = unplaced(&shell, "F55");
@@ -1031,7 +1031,7 @@ fn ft992_the_arrows_stop_a_floating_ghost_at_the_rail_end_and_at_a_neighbour() {
 /// Escape on a layout ghost drops it and returns to Select, as the schematic Place tool does; the
 /// hint says so.
 #[test]
-fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
+fn escape_drops_the_layout_ghost_and_returns_to_select() {
     let tmp = Tmp::new("layout-ft993");
     let mut shell = writable(&tmp);
     let f55 = unplaced(&shell, "F55");
@@ -1062,7 +1062,7 @@ fn ft993_escape_drops_the_layout_ghost_and_returns_to_select() {
 /// turn: E55 floating 30 mm right of -201U7's, -102G1's and -X1032's footprints, level with their tops, where an edge
 /// of a neighbour snaps it off the grid (a step from the pointer re-snapped it 0.5 mm further, or short).
 #[test]
-fn ft994_an_arrow_steps_a_turned_plate_ghost_one_grid_step() {
+fn an_arrow_steps_a_turned_plate_ghost_one_grid_step() {
     let tmp = Tmp::new("layout-ft994");
     let mut shell = writable(&tmp);
     done(&mut shell, "layout.options", json!({"grid": 1}));
@@ -1115,7 +1115,7 @@ fn ft994_an_arrow_steps_a_turned_plate_ghost_one_grid_step() {
 /// After a layout drop and after Select's drag of a placement, the HUD names no pick stack where the
 /// drop left the pointer; once the pointer moves it does again.
 #[test]
-fn ft995_after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
+fn after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
     let tmp = Tmp::new("layout-ft995");
     let mut shell = writable(&tmp);
     let f55 = unplaced(&shell, "F55");
@@ -1158,7 +1158,7 @@ fn ft995_after_a_drop_the_hud_names_no_stack_until_the_pointer_moves() {
 /// The HUD of a selected placement names only the keys it takes: X on a rail, R on the plate, Delete
 /// always.
 #[test]
-fn ft996_the_selected_placements_hud_names_only_its_keys() {
+fn the_selected_placements_hud_names_only_its_keys() {
     let tmp = Tmp::new("layout-ft996");
     let mut shell = writable(&tmp);
     select_placement(&mut shell, "S51");
@@ -1193,7 +1193,7 @@ fn ft996_the_selected_placements_hud_names_only_its_keys() {
 
 /// A nudge's "Blocked by T55" ends with the next action: Lock, Unlock and Enter each clear it.
 #[test]
-fn ft997_blocked_by_clears_on_lock_unlock_and_enter() {
+fn blocked_by_clears_on_lock_unlock_and_enter() {
     let tmp = Tmp::new("layout-ft997");
     let mut shell = writable(&tmp);
     select_placement(&mut shell, "-102F2");

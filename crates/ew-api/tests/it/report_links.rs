@@ -76,7 +76,7 @@ fn target(folio: &str, cell: Option<&str>) -> Target {
 /// to 101-B8; a row with two folios links each over its own folio's text; row 21's run "203–206" links its two ends;
 /// the layout objects' rows 22 to 26 link page 902.
 #[test]
-fn bl1_the_bom_folios_link_each_listed_folio() {
+fn the_bom_folios_link_each_listed_folio() {
     const FOLIOS: usize = 7;
     let s = common::golden_session();
     let q = s.query();
@@ -151,7 +151,7 @@ fn bl1_the_bom_folios_link_each_listed_folio() {
 /// D10: BOM rows 13 and 14, the PT 2.5-TWIN terminals placed through their strip, list folio 103 and link
 /// the page whole: the terminals have no representation of their own there.
 #[test]
-fn bl1_the_terminal_rows_link_their_strip_page() {
+fn the_terminal_rows_link_their_strip_page() {
     const FOLIOS: usize = 7;
     let s = common::golden_session();
     let q = s.query();
@@ -179,7 +179,7 @@ fn bl1_the_terminal_rows_link_their_strip_page() {
 /// D10: a folio link never picks a contact image. A contact image of -101F1 on 101 with an ID below every
 /// other representation's leaves the Folios link of -101F1's row on its main representation (101-B8).
 #[test]
-fn bl1_a_folio_link_skips_contact_images() {
+fn a_folio_link_skips_contact_images() {
     const FOLIOS: usize = 7;
     let golden = common::golden_session();
     let device = *golden_common::tags(&golden)
@@ -222,7 +222,7 @@ fn bl1_a_folio_link_skips_contact_images() {
 /// D10: a `parts_list` block links each row's device tag to the device's main representation, whole; a
 /// device without one (-UC1, its plate, the terminals) links nothing.
 #[test]
-fn bl3_a_parts_list_links_each_device_to_its_main_representation() {
+fn a_parts_list_links_each_device_to_its_main_representation() {
     let mut s = common::golden_session();
     let b = s
         .query()
@@ -274,7 +274,7 @@ fn bl3_a_parts_list_links_each_device_to_its_main_representation() {
 /// BL-1, R5: the whole-cell link of -101F1's "101" is on the text, so its box is the text's: on 901 the items that
 /// carry it are -101F1's Tags text and its Folios text, glyph runs both, and nothing else.
 #[test]
-fn bl1_the_folio_of_101f1_carries_its_link_on_its_text() {
+fn the_folio_of_101f1_carries_its_link_on_its_text() {
     let s = common::golden_session();
     let q = s.query();
     let f1 = block_rows(&q, "901")
@@ -300,7 +300,7 @@ fn bl1_the_folio_of_101f1_carries_its_link_on_its_text() {
 /// -UC1-plate, which have none; 908's connection-point links are one per bound channel row, and 908 links nothing
 /// else.
 #[test]
-fn bl2_the_toc_and_the_device_tag_overview_link_their_pages_and_devices() {
+fn the_toc_and_the_device_tag_overview_link_their_pages_and_devices() {
     let s = common::golden_session();
     let q = s.query();
     let order = q.get::<PageOrder>(());
@@ -355,7 +355,7 @@ fn bl2_the_toc_and_the_device_tag_overview_link_their_pages_and_devices() {
 /// representation; an open item links its page, else its first device's main representation, else nothing (the
 /// station address of -201U1:DP has neither).
 #[test]
-fn bl3_the_fixture_blocks_draw_their_links() {
+fn the_fixture_blocks_draw_their_links() {
     let mut s = common::golden_session();
     let b = s
         .query()

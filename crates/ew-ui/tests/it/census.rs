@@ -10,7 +10,7 @@
 //! the action registry and every submenu path in it; every `PaneKind` and `NavKind`, the Preview, History, Find and Messages panes with content;
 //! every `Dialog` variant (by a `match` without a wildcard arm, so a new variant does not compile until it is listed);
 //! the start page, the five first-run steps and the ten wizard steps. The creation forms are W49.2-F1's census
-//! (`window_check_w49_2.rs`): it opens every form whose action the source builds, settles on each (the six rules) and
+//! (`form_dialog_focus.rs`): it opens every form whose action the source builds, settles on each (the six rules) and
 //! checks its list with [`form_problems`].
 //!
 //! No step commits to disk: the dialogs are dismissed, the copies are dropped with their `Tmp`.
@@ -477,14 +477,14 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             h.set_size(egui::Vec2::new(1280.0, 800.0));
             h.run_ok();
             wait_for_page(&mut h);
-            let w20 = crate::window_check_w49_3::w20(&dir);
+            let w20 = crate::collision_dialog_focus::w20(&dir);
             dispatch(
                 &mut h,
                 "command.run",
                 json!({"cmd": "fields.set", "params": {"kind": "connection", "targets": [w20],
                     "path": "overrides.colour", "value": ["BU"]}}),
             );
-            crate::window_check_w49_3::colleague(tmp, &dir, "WH");
+            crate::collision_dialog_focus::colleague(tmp, &dir, "WH");
             dispatch(&mut h, "project.check_disk", json!({}));
             h
         }
@@ -1024,7 +1024,7 @@ fn the_walker_names_each_failing_node_in_words() {
 /// GT-3: the form census's source check names a form action it does not open (§5 U2).
 #[test]
 fn the_form_check_names_a_form_the_census_does_not_open() {
-    let built = crate::window_check_w49_2::form_actions();
+    let built = crate::form_dialog_focus::form_actions();
     assert!(built.contains("page.new"), "{built:?}");
     let mut opened = built.clone();
     opened.remove("page.new");

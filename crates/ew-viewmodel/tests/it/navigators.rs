@@ -649,7 +649,7 @@ fn ten_thousand_nodes_flatten_filter_and_sort() {
 /// A script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no
 /// overflow).
 #[test]
-fn ft1347_a_huge_navigator_step_stops_at_the_last_row() {
+fn a_huge_navigator_step_stops_at_the_last_row() {
     let tmp = Tmp::new("navigators");
     let mut shell = open(&tmp, false);
     let row = |s: &ShellModel| s.nav(NavKind::Devices).and_then(|n| n.cursor_key());

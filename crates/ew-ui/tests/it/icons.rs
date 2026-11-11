@@ -41,7 +41,7 @@ fn mesh(shapes: Vec<Shape>, ppp: f32) -> Mesh {
 /// IC3: every icon paints at 16, 20 and 24 px at ppp 1 and 2 without panic and within its rect (plus the
 /// anti-aliasing feather of one physical pixel).
 #[test]
-fn ic3_every_icon_paints_within_its_rect() {
+fn every_icon_paints_within_its_rect() {
     let color = Color32::from_rgb(0x3A, 0x43, 0x50);
     for (size, stroke) in [(16.0, 1.5), (20.0, 1.5), (24.0, 1.75)] {
         let rect = Rect::from_min_size(Pos2::new(10.0, 30.0), Vec2::splat(size));
@@ -67,7 +67,7 @@ fn ic3_every_icon_paints_within_its_rect() {
 /// IC6 (metrics): at 16 and 20 px with the 1.5-px stroke the paths carry exactly that stroke and the colour
 /// given (secondary at rest, accent when active: the caller's role colour), and the icon fills its square.
 #[test]
-fn ic6_icons_paint_at_the_mockup_metrics() {
+fn icons_paint_at_the_mockup_metrics() {
     // The role colours of the light theme (doc 16a §4.11: text.secondary at rest, accent when active).
     let light = ew_ui::theme::tokens(ew_ui::theme::Theme::Light, ew_ui::theme::Density::Comfortable);
     let secondary = light.text_secondary.color32();
@@ -118,7 +118,7 @@ fn a_wide_rect_centres_the_icon() {
 
 /// IC4: the About dialog's third-party notices list Tabler Icons with its licence.
 #[test]
-fn ic4_the_notices_list_tabler_icons() {
+fn the_notices_list_tabler_icons() {
     let notice = ew_viewmodel::about::NOTICE;
     assert!(notice.contains("Tabler Icons, version 3.50.0, licensed under the MIT License"));
     assert!(notice.contains("Copyright (c) 2020-2026"));
@@ -129,7 +129,7 @@ fn ic4_the_notices_list_tabler_icons() {
 /// Tabler 3.50.0 icon that no other concept uses ... Auto-fill keeps `wand`", and Rail and Duct the project's
 /// glyphs.
 #[test]
-fn ft1015_the_layout_commands_show_their_own_icons() {
+fn the_layout_commands_show_their_own_icons() {
     let icon = |id: &str| {
         ew_viewmodel::actions::find(id)
             .and_then(|a| a.icon)
@@ -153,7 +153,7 @@ fn ft1015_the_layout_commands_show_their_own_icons() {
 /// rail: a right-rail palette is the concept of the command it runs, a left-rail entry that of its pane. A key may
 /// serve two entries only when they are one concept: the list below, each with its reason.
 #[test]
-fn ft1015_no_icon_key_serves_two_concepts() {
+fn no_icon_key_serves_two_concepts() {
     use std::collections::{BTreeMap, BTreeSet};
     const SHARED: &[(&str, &[&str])] = &[
         // The Interruption points navigator and the tool that places one.

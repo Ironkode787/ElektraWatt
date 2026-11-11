@@ -75,7 +75,7 @@ fn catalogue_text() -> String {
 }
 
 #[test]
-fn pg1_the_catalogue_is_the_expected_one() {
+fn the_catalogue_is_the_expected_one() {
     let text = catalogue_text();
     if !Path::new(EXPECTED).exists() {
         std::fs::create_dir_all(Path::new(EXPECTED).parent().unwrap()).unwrap();
@@ -118,7 +118,7 @@ fn pg1_the_catalogue_is_the_expected_one() {
 }
 
 #[test]
-fn pg1_every_settable_path_maps_to_a_node_with_its_own_route() {
+fn every_settable_path_maps_to_a_node_with_its_own_route() {
     for (kind, paths) in SETTABLE {
         let name = kind.kind().name();
         let catalogue = field_catalogue(name).unwrap_or_else(|| panic!("{name} has a catalogue"));
@@ -188,7 +188,7 @@ fn pg1_every_settable_path_maps_to_a_node_with_its_own_route() {
 /// every command route is "no command"; the `HumanOnly` half (a registry in which `fields.set` is `HumanOnly`) is the
 /// unit test `a_human_only_fields_set_makes_every_row_read_only` of `output::fields`, which needs no command type.
 #[test]
-fn pg1_the_catalogue_follows_the_registry() {
+fn the_catalogue_follows_the_registry() {
     let empty = CommandRegistry::new();
     for k in catalogue_kinds() {
         let built = field_catalogue(k.name()).unwrap();
@@ -273,7 +273,7 @@ fn page(s: &Session, folio: &str) -> ew_derive::ew_ids::Uuid {
 }
 
 #[test]
-fn pg2_a_representation_reaches_three_sections_with_derived_rows() {
+fn a_representation_reaches_three_sections_with_derived_rows() {
     let s = golden();
     let f1 = device(&s, "-101F1");
     let rep = main_rep(&s, f1);
@@ -320,7 +320,7 @@ fn pg2_a_representation_reaches_three_sections_with_derived_rows() {
 }
 
 #[test]
-fn pg2_frozen_tags_wire_chips_and_the_page_description() {
+fn frozen_tags_wire_chips_and_the_page_description() {
     let s = golden();
     let s51 = device(&s, "S51");
     let sheet = s.property_sheet(&[s51]);
@@ -381,7 +381,7 @@ fn pg2_frozen_tags_wire_chips_and_the_page_description() {
 }
 
 #[test]
-fn pg2_mixed_and_missing_selections() {
+fn mixed_and_missing_selections() {
     let s = golden();
     let f1 = device(&s, "-101F1");
     let rep = main_rep(&s, f1);
@@ -420,7 +420,7 @@ fn pg2_mixed_and_missing_selections() {
 /// FT-1127 (item 5): an interruption point's Properties header names its kind in the navigators' words, not
 /// the raw kind word "representation".
 #[test]
-fn ft1127_an_interruption_points_header_names_its_kind_in_words() {
+fn an_interruption_points_header_names_its_kind_in_words() {
     let s = golden();
     let tables = s.page_tables("102").unwrap();
     let ip = tables
@@ -436,7 +436,7 @@ fn ft1127_an_interruption_points_header_names_its_kind_in_words() {
 /// A section lists its targets in label order (devices by tag, representations by their
 /// first CP's label, then place), never by ID alone, and a `‹varies›` value lists its texts in natural text order.
 #[test]
-fn ft439_targets_and_varied_texts_are_in_label_order() {
+fn targets_and_varied_texts_are_in_label_order() {
     let s = golden();
     let tables = s.page_tables("101").unwrap();
     let mut devices: Vec<ew_derive::ew_ids::Uuid> = tables.reps.iter().filter_map(|r| r.device).collect();
@@ -503,7 +503,7 @@ fn ft439_targets_and_varied_texts_are_in_label_order() {
 }
 
 #[test]
-fn pg2_the_project_has_its_settings_rows_and_d06_shows_its_finding() {
+fn the_project_has_its_settings_rows_and_d06_shows_its_finding() {
     let mut s = golden();
     let project = s.query().project().id.as_uuid();
     let sheet = s.property_sheet(&[project]);
@@ -580,7 +580,7 @@ fn the_frozen_tag_takes_the_printed_tag_as_text() {
 
 /// WP-S2.07 CT3 (FT-429): a cable's length is typed in metres or as its words, and shows as it is typed.
 #[test]
-fn ct3_the_cable_length_is_typed_in_metres_or_words() {
+fn the_cable_length_is_typed_in_metres_or_words() {
     let s = golden();
     let value = |text: &str| s.parse_field_input("device", "cable.length", text).unwrap().value;
     assert_eq!(value("12.5 m"), json!({"manual": 12_500_000_000_i64}));
@@ -620,7 +620,7 @@ fn ct3_the_cable_length_is_typed_in_metres_or_words() {
 // PG8: the editors on the project's data
 
 #[test]
-fn pg8_editors_parse_and_format_on_golden_a() {
+fn editors_parse_and_format_on_golden_a() {
     let s = golden();
     // Colours: the project's company code DBU, `BR` refused with the suggestion BN.
     assert_eq!(
@@ -678,7 +678,7 @@ fn pg8_editors_parse_and_format_on_golden_a() {
 }
 
 #[test]
-fn pg8_a_counter_collision_names_the_next_free_counter() {
+fn a_counter_collision_names_the_next_free_counter() {
     let mut s = golden();
     let f1 = device(&s, "-102F1");
     let cmd = AnyCommand {
@@ -713,7 +713,7 @@ fn the_command_meta_and_the_reference_resolver() {
 /// A bare tag resolves like `tag:<tag>` when one device prints it, a terminal as `TAG:pin` included; an
 /// ambiguous one is refused with a sentence naming the candidates, never guessed.
 #[test]
-fn ft544_a_bare_tag_is_a_reference() {
+fn a_bare_tag_is_a_reference() {
     let s = golden();
     assert_eq!(
         s.resolve_reference("-101F1").unwrap(),
@@ -957,7 +957,7 @@ fn page_item_property_sheet_multi_selection_keeps_members_and_missing_counts() {
 /// value the entry's function and designations as the part names them, never the integer; a function without the
 /// member (every one of Golden A) has no such row.
 #[test]
-fn ft670_a_templated_function_shows_its_part_function() {
+fn a_templated_function_shows_its_part_function() {
     let mut s = golden();
     let fixture: Value = serde_json::from_str(
         &std::fs::read_to_string(
@@ -1038,7 +1038,7 @@ fn ft670_a_templated_function_shows_its_part_function() {
 /// `<device>:<connection>`, not the record kind's internal name; a reference without a connection reads its device
 /// alone.
 #[test]
-fn ft1076_an_external_points_row_names_its_reference() {
+fn an_external_points_row_names_its_reference() {
     let s = golden();
     let q = s.query();
     let (point, reference) = q

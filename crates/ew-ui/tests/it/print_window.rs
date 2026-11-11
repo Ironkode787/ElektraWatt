@@ -177,7 +177,7 @@ fn shapes(h: &Harness<'_, App>) -> Vec<(egui::Shape, egui::Rect)> {
 /// §6.1's Error state (the field's boundary in `color.error`, the error icon before the sentence); the preview shows
 /// the empty state.
 #[test]
-fn ft1124_a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
+fn a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -230,7 +230,7 @@ fn ft1124_a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
 /// FT-1125 (doc 16a §6.12): the pre-dialog's first focus is its Primary, Print…, once the set is built. FT-1198 (doc 16a
 /// §6.1, §6.12): that first focus shows its focus ring: a `color.focus` stroke round the button, whole inside its clip.
 #[test]
-fn ft1125_ft1198_the_first_focus_is_print_and_shows_its_focus_ring() {
+fn the_first_focus_is_print_and_shows_its_focus_ring() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -266,7 +266,7 @@ fn ft1125_ft1198_the_first_focus_is_print_and_shows_its_focus_ring() {
 /// With paper A3 and no fit the preview draws the paper as a sheet: its whole edge (no clip cuts
 /// it) in `color.border.control`, which meets the non-text contrast on the dialog's surface (the theme's pairs).
 #[test]
-fn ft1126_the_preview_draws_the_papers_whole_edge() {
+fn the_preview_draws_the_papers_whole_edge() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -305,7 +305,7 @@ fn ft1126_the_preview_draws_the_papers_whole_edge() {
 /// 1920 × 1080, painted to `target/ew-ui-snapshots/print/` for the window check (not gated: no expected image). The
 /// building frame holds the job at a test gate, which a script cannot (a visual run waits for the build).
 #[test]
-fn pw4_the_visual_driver_paints_the_three_states_at_both_sizes() {
+fn the_visual_driver_paints_the_three_states_at_both_sizes() {
     let out = std::path::PathBuf::from(concat!(
         env!("CARGO_MANIFEST_DIR"),
         "/../../target/ew-ui-snapshots/print"

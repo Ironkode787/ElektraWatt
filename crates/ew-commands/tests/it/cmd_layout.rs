@@ -189,7 +189,7 @@ fn place(device: Id<Device>, on: PlaceOnParam, pose: Pose3) -> PlaceDevice {
 /// LM-2: one layout space per location, the second refused naming the first; a node that is not a location refused;
 /// the location's structure node cannot be deleted while the space exists, and can once it is gone.
 #[test]
-fn lm2_a_location_has_one_layout_space() {
+fn a_location_has_one_layout_space() {
     let mut e = engine(model());
     let r = e
         .execute(&CreateLayoutSpace {
@@ -260,7 +260,7 @@ fn lm2_a_location_has_one_layout_space() {
 /// whose device is the child carrying the plate, its frame at (50, 50, 0) mm and its usable rectangle (0, 0)–(650, 900)
 /// mm; a device without an enclosure part is refused with D6's text; a second enclosure in the space is refused.
 #[test]
-fn lm3_an_enclosure_brings_its_plate() {
+fn an_enclosure_brings_its_plate() {
     let mut e = engine(model());
     let space = made(
         e.execute(&CreateLayoutSpace {
@@ -323,7 +323,7 @@ fn lm3_an_enclosure_brings_its_plate() {
 /// are added; a profile that differs from the part's, a diagonal segment and the wrong parameters are refused at their
 /// pointer.
 #[test]
-fn lm4_carriers_are_axis_parallel() {
+fn carriers_are_axis_parallel() {
     let Layout {
         mut e, surface, rail, ..
     } = layout();
@@ -364,7 +364,7 @@ fn lm4_carriers_are_axis_parallel() {
 /// rail and the commit is one step (undone in one); with `rehome_to_surface` the placement moves to the plate at the
 /// equivalent surface pose (the 18 × 90 mm MCB at s = 96 mm on the rail from (20, 800) mm: origin (107, 755) mm).
 #[test]
-fn lm4_an_occupied_rail_goes_only_with_then() {
+fn an_occupied_rail_goes_only_with_then() {
     let Layout {
         mut e, surface, rail, ..
     } = layout();
@@ -426,7 +426,7 @@ fn lm4_an_occupied_rail_goes_only_with_then() {
 /// LM-5: place, move, lock and remove are one undo step each; `part` is the device's part, or for a device with an
 /// accessory and two mountable part uses the first mountable one.
 #[test]
-fn lm5_placements_are_one_step_each() {
+fn placements_are_one_step_each() {
     let Layout {
         mut e, surface, rail, ..
     } = layout();
@@ -605,7 +605,7 @@ fn a_part_that_does_not_mount_is_refused_on_a_surface() {
 /// carrier cannot go with its enclosure or space, and an enclosure's device cannot be deleted; the plate's device is
 /// unlinked from its surface.
 #[test]
-fn lm6_a_placement_never_outlives_its_device() {
+fn a_placement_never_outlives_its_device() {
     let Layout {
         mut e,
         space,
@@ -662,7 +662,7 @@ fn lm6_a_placement_never_outlives_its_device() {
 /// `replace_all` by a copy the device already uses removes the placed copy without adding one, and the placement keeps
 /// its `part` (EW-LAY-003 reports it).
 #[test]
-fn lm7_a_part_change_follows_the_placement() {
+fn a_part_change_follows_the_placement() {
     let Layout { mut e, rail, .. } = layout();
     let k1: Id<Placement> = made(
         e.execute(&place(DEV_K1, PlaceOnParam::Carrier(rail), at(50)))

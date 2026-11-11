@@ -30,7 +30,7 @@ fn choose(s: &mut ShellModel, filter: &str) {
 /// and choosing it arms Place. A direct `place.pick` still refuses with the sentence that names Insert ▸ Terminal
 /// strip.
 #[test]
-fn ft605_the_picker_opens_the_empty_strip_chooser_and_strip_new_fills_it() {
+fn the_picker_opens_the_empty_strip_chooser_and_strip_new_fills_it() {
     let tmp = Tmp::new("s207p2-605");
     let mut s = new_project(&tmp);
     assert_eq!(
@@ -57,7 +57,7 @@ fn ft605_the_picker_opens_the_empty_strip_chooser_and_strip_new_fills_it() {
 /// The PE terminal's symbol asks for its strip as the feed-through terminal does: picked without a strip it opens
 /// the strip chooser, and the chosen strip's terminal is armed.
 #[test]
-fn ft618_the_pe_terminal_opens_the_strip_chooser() {
+fn the_pe_terminal_opens_the_strip_chooser() {
     let tmp = Tmp::new("s207p2-618");
     let mut s = new_project(&tmp);
     done(&mut s, "strip.new", json!({}));
@@ -86,7 +86,7 @@ fn page_text(s: &mut ShellModel, folio: &str) -> String {
 /// The page description lists the bridges of the strips it draws, one `bridge` line per group with its terminals;
 /// a page without a bridged strip lists none, and a new bridge shows on the next description.
 #[test]
-fn ft621_the_page_description_lists_a_strips_bridges() {
+fn the_page_description_lists_a_strips_bridges() {
     let tmp = Tmp::new("s207p2-621");
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     let text = page_text(&mut s, "103");
@@ -128,7 +128,7 @@ fn editor(tmp: &Tmp, strip: &str) -> ShellModel {
 /// at `after_seq` 0 (Pos 0.1), on a later terminal directly before it (after the terminal before it and the accessories
 /// already there); one undo step each. Without `before` it goes after the row as built.
 #[test]
-fn ft600_add_accessory_before_the_first_terminal_in_table_mode() {
+fn add_accessory_before_the_first_terminal_in_table_mode() {
     let tmp = Tmp::new("s207p2-600");
     let mut s = editor(&tmp, "-X1031");
     let k1 = strip_row(&s, "Terminal", "1");

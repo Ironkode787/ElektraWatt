@@ -59,7 +59,7 @@ fn drawn(shell: &ShellModel, members: &[ew_viewmodel::ew_api::output::Uuid]) -> 
 /// connections of the wire-list rows whose potential is 24VDC-1; the describe lines; one `highlight_members` call per
 /// highlight and revision; pressing it again removes it; a fifth highlight replaces the first; other rows refuse.
 #[test]
-fn np3_highlighting_24vdc_1_from_the_potentials_navigator() {
+fn highlighting_24vdc_1_from_the_potentials_navigator() {
     let tmp = Tmp::new("nav2-hl");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
@@ -227,7 +227,7 @@ fn np3_highlighting_24vdc_1_from_the_potentials_navigator() {
 /// the pick stack and repeated clicks walk to W29 (FT-500, which closes deviation N30-3); every click marks the row of
 /// the wire it selects.
 #[test]
-fn np4_selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
+fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     let tmp = Tmp::new("nav2-sync");
     let mut shell = tmp.shell_in(Mode::Headless, false, "103");
     done(&mut shell, "navigator.show", json!({"kind": "connections"}));
@@ -332,7 +332,7 @@ fn np4_selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
 /// NP5 (FT-461's second half, §7.1): Structure ▸ New node with +J-E-2416 marked and kind `location` opens with the
 /// parent filled in; with kind `function` it is left empty.
 #[test]
-fn np5_new_structure_node_prefills_the_marked_parent() {
+fn new_structure_node_prefills_the_marked_parent() {
     let tmp = Tmp::new("nav2-struct");
     let mut shell = tmp.shell_in(Mode::Gui, true, "102");
     done(&mut shell, "navigator.show", json!({"kind": "structure"}));

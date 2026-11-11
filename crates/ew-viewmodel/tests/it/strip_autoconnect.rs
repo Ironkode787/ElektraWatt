@@ -94,7 +94,7 @@ fn toast(s: &ShellModel) -> String {
 }
 
 #[test]
-fn ft1082_a_terminal_placed_under_one_of_its_strip_is_not_connected_to_it() {
+fn a_terminal_placed_under_one_of_its_strip_is_not_connected_to_it() {
     let tmp = Tmp::new("ft1082-same");
     let mut s = feed(&tmp);
     let rev = s.revision();
@@ -113,7 +113,7 @@ fn ft1082_a_terminal_placed_under_one_of_its_strip_is_not_connected_to_it() {
 }
 
 #[test]
-fn ft1082_a_terminal_of_another_strip_in_that_line_is_proposed_and_connected() {
+fn a_terminal_of_another_strip_in_that_line_is_proposed_and_connected() {
     let tmp = Tmp::new("ft1082-other");
     let mut s = feed(&tmp);
     let hint = place(&mut s, terminal("-X1032", "90"), (60, 34), "canvas.activate");
@@ -172,7 +172,7 @@ fn drag_proposals(s: &mut ShellModel, from: (i64, i64), by: (i64, i64)) -> Optio
 }
 
 #[test]
-fn ft1082_a_terminal_moved_under_one_of_its_strip_proposes_nothing() {
+fn a_terminal_moved_under_one_of_its_strip_proposes_nothing() {
     let tmp = Tmp::new("ft1082-move");
     let mut s = feed(&tmp);
     // Terminal 71 of the strip and terminal 90 of -X1032 placed out of line, without autoconnect.

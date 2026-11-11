@@ -133,7 +133,7 @@ fn run_flow(
 /// PS1: F55's part dialog lists the 1P+N MCBs of the sample parts and the starter (same FnDef), then the 1P MCBs
 /// (same category), then the others; Only parts that fit keeps the five; Escape commits nothing.
 #[test]
-fn ps1_the_part_dialog_script_is_deterministic() {
+fn the_part_dialog_script_is_deterministic() {
     ps1_the_part_dialog_script_is_deterministic_case(false);
 }
 
@@ -173,7 +173,7 @@ pub(crate) fn ps1_the_part_dialog_script_is_deterministic_case(twice: bool) {
 /// PS4: F55's first use → EW-GEN-MCB-2 (`part.assign` replace with `copies`), then Add part… with a held copy; the
 /// record replays onto Golden A without a library.
 #[test]
-fn ps4_the_choose_script_is_deterministic_and_replays() {
+fn the_choose_script_is_deterministic_and_replays() {
     ps4_the_choose_script_is_deterministic_and_replays_case(false);
 }
 
@@ -205,7 +205,7 @@ pub(crate) fn ps4_the_choose_script_is_deterministic_and_replays_case(twice: boo
 /// PS5: the part editor's refusals: an empty manufacturer shows under its field and refuses Save; the history is
 /// unchanged.
 #[test]
-fn ps5_the_editor_refusal_script_is_deterministic() {
+fn the_editor_refusal_script_is_deterministic() {
     ps5_the_editor_refusal_script_is_deterministic_case(false);
 }
 
@@ -237,7 +237,7 @@ pub(crate) fn ps5_the_editor_refusal_script_is_deterministic_case(twice: bool) {
 /// PS7: a library copy forks: EW-GEN-MCB-2 on F55, Edit part…, a new description, Save: the card's fork note,
 /// Apply; the record replays onto Golden A without a library.
 #[test]
-fn ps7_the_fork_script_is_deterministic_and_replays() {
+fn the_fork_script_is_deterministic_and_replays() {
     ps7_the_fork_script_is_deterministic_and_replays_case(false);
 }
 
@@ -389,7 +389,7 @@ fn tags_and_versions(s: &Session) -> (Vec<String>, Vec<(String, String)>) {
 /// `adapt` arms the paste, which commits one `edit.paste` with `adapt`. The `--record` log replayed onto P2 as the
 /// setup left it gives the same tags and part versions (the pasted IDs are minted).
 #[test]
-fn ps8_the_paste_choice_script_is_deterministic_and_replays() {
+fn the_paste_choice_script_is_deterministic_and_replays() {
     ps8_the_paste_choice_script_is_deterministic_and_replays_case(false);
 }
 

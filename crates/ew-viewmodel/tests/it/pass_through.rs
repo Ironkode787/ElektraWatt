@@ -605,7 +605,7 @@ fn split_at_terminal_71(s: &ShellModel) -> Vec<[String; 2]> {
 /// FT-759 (rv-vis-2): a terminal dropped on a wire is split into it (normaliser 7, beside FX38c's through route, which
 /// connects a terminal already in line), and the placement toast says that it is in the circuit.
 #[test]
-fn ft759_a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
+fn a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
     let tmp = Tmp::new("ft759-drop");
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));
@@ -659,7 +659,7 @@ fn ft759_a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {
 /// `connect` hint), and the page draws it straight from the coil up to the switch; a terminal dropped on it is split
 /// into it as into a routed wire, and the toast says so.
 #[test]
-fn ft1020_a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
+fn a_terminal_dropped_on_an_autoconnected_wire_is_split_into_it() {
     let tmp = Tmp::new("ft1020-drop");
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     done(&mut s, "view.zoom_actual", json!({}));

@@ -44,7 +44,7 @@ fn last_status(shell: &ShellModel) -> String {
 }
 
 #[test]
-fn jb3_a_held_export_shows_running_and_the_job_field_and_a_cancel_leaves_no_file() {
+fn a_held_export_shows_running_and_the_job_field_and_a_cancel_leaves_no_file() {
     let tmp = Tmp::new("jb3");
     let mut s = small(&tmp, Mode::Headless);
     let gate = Gate::new();
@@ -88,7 +88,7 @@ fn jb3_a_held_export_shows_running_and_the_job_field_and_a_cancel_leaves_no_file
 }
 
 #[test]
-fn jb3_a_cancel_after_the_sibling_is_written_removes_it() {
+fn a_cancel_after_the_sibling_is_written_removes_it() {
     let tmp = Tmp::new("jb3-rename");
     let mut s = small(&tmp, Mode::Headless);
     let gate = Gate::new();
@@ -112,7 +112,7 @@ fn jb3_a_cancel_after_the_sibling_is_written_removes_it() {
 }
 
 #[test]
-fn jb3_a_panic_after_the_sibling_is_written_is_reported_and_leaves_no_file() {
+fn a_panic_after_the_sibling_is_written_is_reported_and_leaves_no_file() {
     let tmp = Tmp::new("jb3-panic");
     let mut s = small(&tmp, Mode::Headless);
     s.set_job_panic_for_tests(Some("sibling"));
@@ -166,7 +166,7 @@ fn p2_a_second_export_of_the_same_file_says_again() {
 }
 
 #[test]
-fn jb4_the_replace_rule_and_the_marker() {
+fn the_replace_rule_and_the_marker() {
     let tmp = Tmp::new("jb4");
     let mut s = small(&tmp, Mode::Headless);
     let target = tmp.0.join("out.pdf");
@@ -203,7 +203,7 @@ fn jb4_the_replace_rule_and_the_marker() {
 }
 
 #[test]
-fn jb4_the_window_path_asks_the_save_dialog_whose_answer_carries_replace() {
+fn the_window_path_asks_the_save_dialog_whose_answer_carries_replace() {
     let tmp = Tmp::new("jb4-window");
     let mut s = small(&tmp, Mode::Gui);
     done(&mut s, "file.export_pdf", json!({}));
@@ -215,7 +215,7 @@ fn jb4_the_window_path_asks_the_save_dialog_whose_answer_carries_replace() {
 }
 
 #[test]
-fn jb4_a_second_export_while_one_runs_is_refused() {
+fn a_second_export_while_one_runs_is_refused() {
     let tmp = Tmp::new("jb4-second");
     let mut s = small(&tmp, Mode::Headless);
     let gate = Gate::new();
@@ -251,7 +251,7 @@ fn jb4_a_second_export_while_one_runs_is_refused() {
 }
 
 #[test]
-fn jb5_a_target_in_a_missing_folder_fails_with_the_cause_and_the_remedy() {
+fn a_target_in_a_missing_folder_fails_with_the_cause_and_the_remedy() {
     let tmp = Tmp::new("jb5-missing");
     let mut s = small(&tmp, Mode::Headless);
     let target = tmp.0.join("missing").join("out.pdf");
@@ -273,7 +273,7 @@ fn jb5_a_target_in_a_missing_folder_fails_with_the_cause_and_the_remedy() {
 }
 
 #[test]
-fn jb5_a_failed_rename_removes_the_sibling() {
+fn a_failed_rename_removes_the_sibling() {
     let tmp = Tmp::new("jb5-rename");
     let mut s = small(&tmp, Mode::Headless);
     // The target is a folder: the sibling is written, the rename over the folder fails.
@@ -292,7 +292,7 @@ fn jb5_a_failed_rename_removes_the_sibling() {
 }
 
 #[test]
-fn jb5_a_result_after_an_edit_during_the_job_names_both_revisions() {
+fn a_result_after_an_edit_during_the_job_names_both_revisions() {
     let tmp = Tmp::new("jb5-rev");
     let mut s = small(&tmp, Mode::Headless);
     let gate = Gate::new();
@@ -332,7 +332,7 @@ fn jb5_a_result_after_an_edit_during_the_job_names_both_revisions() {
 }
 
 #[test]
-fn jb5_polling_takes_the_end_of_a_job_that_was_not_waited_for() {
+fn polling_takes_the_end_of_a_job_that_was_not_waited_for() {
     let tmp = Tmp::new("jb5-poll");
     let mut s = small(&tmp, Mode::Headless);
     let target = tmp.0.join("out.pdf");
@@ -363,7 +363,7 @@ fn jb5_polling_takes_the_end_of_a_job_that_was_not_waited_for() {
 /// §9 item 5: an export makes one `export_job` and no other `Session` call; polling, the log and the Jobs pane make
 /// none.
 #[test]
-fn jb9_the_exact_counts_of_an_export() {
+fn the_exact_counts_of_an_export() {
     let tmp = Tmp::new("jb9-counts");
     let mut s = small(&tmp, Mode::Headless);
     let before = s.session_calls();
@@ -387,7 +387,7 @@ fn jb9_the_exact_counts_of_an_export() {
 /// The notifications of a one-page project: an export's Open is refused headless, unknown entries and actions are
 /// named, and the log popup closes with Escape.
 #[test]
-fn jb6_the_log_popup_and_its_refusals() {
+fn the_log_popup_and_its_refusals() {
     let tmp = Tmp::new("jb6-log");
     let mut s = small(&tmp, Mode::Headless);
     done(
@@ -437,7 +437,7 @@ fn jb6_the_log_popup_and_its_refusals() {
 
 /// A window shell hands Open PDF to the window as a `file://` URL of the written file.
 #[test]
-fn jb6_open_pdf_in_the_window_is_a_file_url_request() {
+fn open_pdf_in_the_window_is_a_file_url_request() {
     let tmp = Tmp::new("jb6-open");
     let mut s = small(&tmp, Mode::Gui);
     let target = tmp.0.join("a b.pdf");
@@ -570,7 +570,7 @@ fn an_export_into_the_open_projects_folder_is_refused() {
 /// returned by `wait_jobs` (the headless runner prints it and exits 1), one text per end, in job order; an end a step
 /// waited for (`jobs.wait`, a waiting export) is not, and neither is a done one.
 #[test]
-fn ft513_wait_jobs_returns_the_unseen_failed_cancelled_and_panicked_ends() {
+fn wait_jobs_returns_the_unseen_failed_cancelled_and_panicked_ends() {
     let tmp = Tmp::new("ft513");
     let mut s = small(&tmp, Mode::Headless);
     // Failed: a target in a missing folder, its end taken at the end of the run.
@@ -629,7 +629,7 @@ fn ft513_wait_jobs_returns_the_unseen_failed_cancelled_and_panicked_ends() {
 /// A failed end that a step waited for is the step's outcome (or, for `jobs.wait`, its entry's), never an
 /// unseen failure; a done export is none either.
 #[test]
-fn ft513_a_waited_failure_and_a_done_export_are_not_unseen() {
+fn a_waited_failure_and_a_done_export_are_not_unseen() {
     let tmp = Tmp::new("ft513-seen");
     let mut s = small(&tmp, Mode::Headless);
     let missing = tmp.0.join("missing").join("out.pdf");
@@ -661,7 +661,7 @@ fn poll_to_the_end(s: &mut ShellModel) {
 /// R1-2 of cycle 31: a `jobs.wait` after a poll already took the failed or cancelled end still sees it, with and
 /// without `job`, so whether the runner's poll or the wait took the end does not change the run's outcome.
 #[test]
-fn ft513_a_wait_after_a_poll_took_the_end_still_sees_it() {
+fn a_wait_after_a_poll_took_the_end_still_sees_it() {
     let tmp = Tmp::new("ft513-polled");
     let mut s = small(&tmp, Mode::Headless);
     let missing = tmp.0.join("missing").join("out.pdf");
@@ -708,7 +708,7 @@ fn ft513_a_wait_after_a_poll_took_the_end_still_sees_it() {
 /// already took B's end (a) or B still runs (b): A's failure stays unseen in both, so the run reports the same text
 /// and the same exit status. A second `jobs.wait {}` then chooses A and sees its failure.
 #[test]
-fn ft513_jobs_wait_chooses_the_newest_job_no_step_waited_for_whatever_the_polls_took() {
+fn jobs_wait_chooses_the_newest_job_no_step_waited_for_whatever_the_polls_took() {
     let failed_text = "Export failed: the folder does not exist; check that the folder is writable and the file is \
                        not open in another program.";
     for polled in [true, false] {

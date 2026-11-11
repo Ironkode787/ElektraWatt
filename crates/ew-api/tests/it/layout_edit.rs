@@ -594,7 +594,7 @@ fn the_layout_rows_refusals_read_whole() {
 /// PS-5: Position on a rail and on the plate, Realised part, Rotation on the plate, a duct's Width and
 /// Height and the page's Datum each commit their command, and the row then reads the new value.
 #[test]
-fn ps5_position_realised_part_rotation_duct_size_and_datum_commit() {
+fn position_realised_part_rotation_duct_size_and_datum_commit() {
     let mut s = golden_common::session(&golden_common::batch());
     let f1 = uuid::<Placement>("placements", "-102F1");
     let cmd = edit(&s, "placement", f1, "position", "450").unwrap();
@@ -810,7 +810,7 @@ fn scale_of(s: &Session, page: Uuid) -> ew_schema::Scale {
 /// The Surface row of a new panel page (drawn not to scale) sends the fitting scale with the view
 /// and the datum centred at that scale, in one command; the page then keeps it. 902's own 1:10 is kept.
 #[test]
-fn ft1016_a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
+fn a_new_panel_page_takes_the_fitting_scale_with_its_surface() {
     let mut s = golden_common::session(&golden_common::batch());
     let p902 = s
         .page_rows()

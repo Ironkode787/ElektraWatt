@@ -418,7 +418,7 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
 /// each reported tag is the labels layer's anchor of its representation's tag, raised by the one text height of the
 /// tag style.
 #[test]
-fn ft771_tag_at_is_where_the_labels_layer_prints_the_tag() {
+fn tag_at_is_where_the_labels_layer_prints_the_tag() {
     let s = golden();
     let q = s.query();
     let order = q.get::<PageOrder>(());

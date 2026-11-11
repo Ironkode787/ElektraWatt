@@ -81,7 +81,7 @@ fn archive_of(dir: &Path) -> PathBuf {
 /// their own actions with parameters"): Approve, Release and Set author open with the gate's result in words, take
 /// their fields from parameters, refuse a wrong typed label (whole text, kept in the dialog) and close with `cancel`.
 #[test]
-fn ru3_the_revision_dialogs_open_fill_validate_and_cancel_headless() {
+fn the_revision_dialogs_open_fill_validate_and_cancel_headless() {
     let tmp = Tmp::new("revision-headless");
     let dir = fixture_copy(&tmp);
     let mut s = opened(ShellModel::new(Mode::Headless, config(&tmp)), &dir);
@@ -164,7 +164,7 @@ fn ru3_the_revision_dialogs_open_fill_validate_and_cancel_headless() {
 /// confirm of a headless shell and of a window a script drives (the visual driver's `ShellModel::new_scripted`) is
 /// refused with the person text and changes nothing.
 #[test]
-fn ru3_a_scripted_confirm_is_refused_with_the_whole_text() {
+fn a_scripted_confirm_is_refused_with_the_whole_text() {
     let tmp = Tmp::new("revision-scripted");
     let dir = fixture_copy(&tmp);
     for scripted in [
@@ -224,7 +224,7 @@ fn ru3_a_scripted_confirm_is_refused_with_the_whole_text() {
 /// takes"): the window's shell (`ShellModel::new(Mode::Gui, …)`) dispatches each dialog's confirm button, as the window
 /// does on a click (with the date it reads).
 #[test]
-fn ru3_a_person_at_the_window_approves_releases_and_withdraws() {
+fn a_person_at_the_window_approves_releases_and_withdraws() {
     let tmp = Tmp::new("revision-person");
     let dir = fixture_copy(&tmp);
     let mut s = opened(ShellModel::new(Mode::Gui, config(&tmp)), &dir);
@@ -659,7 +659,7 @@ fn ruling2_a_discard_cancelled_at_its_confirmation_keeps_the_archive() {
 /// ("Release"), not an ID. One toast points to Messages in its text"): a state directory whose release records
 /// cannot be read gives one warning under Warnings ▸ Release and one toast; an open without trouble shows none.
 #[test]
-fn ft842_the_release_warnings_show_once_in_messages() {
+fn the_release_warnings_show_once_in_messages() {
     let tmp = Tmp::new("revision-ft842");
     let dir = fixture_copy(&tmp);
     // No trouble: nothing in Messages, no toast.

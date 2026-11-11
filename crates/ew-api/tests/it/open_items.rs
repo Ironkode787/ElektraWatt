@@ -142,7 +142,7 @@ fn placeholder(what: &str, users: &str) -> Vec<String> {
 /// OI-1 (the ruling on stop 1): the 24 rows Golden A derives as checked in, whole and in ruling 8's order. -XPE is open
 /// (W-1 lives in a test copy only, WP-S1.16 §10.3) and the eight FIELD-203Q valves have no part until FT-209 (FT-638).
 #[test]
-fn oi1_golden_a_lists_its_24_open_items() {
+fn golden_a_lists_its_24_open_items() {
     let s = common::golden_session();
     let q = s.query();
     let set = kind_rows(&q);
@@ -214,7 +214,7 @@ fn oi1_golden_a_lists_its_24_open_items() {
 
 /// OI-2: a TBD channel address is listed once, by EW-PLC-015, and EW-CORE-044's finding for it is superseded.
 #[test]
-fn oi2_a_tbd_channel_address_is_listed_once() {
+fn a_tbd_channel_address_is_listed_once() {
     let batch = golden_common::batch();
     let mut done = false;
     let s = golden_common::session_with(&batch, |_, records| {
@@ -236,7 +236,7 @@ fn oi2_a_tbd_channel_address_is_listed_once() {
 
 /// OI-2 (the ruling on stop 1): with W-1 recorded on -XPE's EW-CORE-041 finding exactly the -XPE row leaves.
 #[test]
-fn oi2_the_waived_xpe_row_leaves() {
+fn the_waived_xpe_row_leaves() {
     let mut s = common::golden_session();
     let before = {
         let q = s.query();
@@ -264,7 +264,7 @@ fn oi2_the_waived_xpe_row_leaves() {
 
 /// OI-2 (ruling 4): with the release scheme `drafting` set by `project.checks.set` the list runs in that scheme.
 #[test]
-fn oi2_the_projects_release_scheme_applies() {
+fn the_projects_release_scheme_applies() {
     let mut s = common::golden_session();
     gui(
         &mut s,
@@ -399,7 +399,7 @@ fn new_placeholder(q: &Q, what: &str) -> ew_schema::LibCopy<ew_schema::Part> {
 /// cycle; a change of the page order (a new block before it, a drawn page reorder) leaves its rows as they are; -102G1
 /// given a TBD part adds one "TBD value" row and the block's pages follow in the same snapshot.
 #[test]
-fn oi3_the_open_items_block_paginates_inside_the_page_order() {
+fn the_open_items_block_paginates_inside_the_page_order() {
     let mut s = common::golden_session();
     let (form, section) = form_of_910(&s);
     run(
@@ -497,7 +497,7 @@ fn oi3_the_open_items_block_paginates_inside_the_page_order() {
 /// OI-3 (doc 09 §7 item 4): a project without open items gives no rows, and the block with `empty` "No entries"
 /// prints that one page.
 #[test]
-fn oi3_no_open_items_print_the_empty_page() {
+fn no_open_items_print_the_empty_page() {
     let mut s = Session::new_project(
         ProjectTemplate::Builtin,
         NewProjectKind::Schematic,

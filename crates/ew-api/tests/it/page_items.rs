@@ -107,7 +107,7 @@ fn structures(q: &Q) -> Structures {
 // PI2: structure boxes (FR-PRJ-020)
 
 #[test]
-fn pi2_a_structure_box_around_the_external_points_assigns_their_location() {
+fn a_structure_box_around_the_external_points_assigns_their_location() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let mut s = session(&batch);
@@ -219,7 +219,7 @@ fn pi2_a_structure_box_around_the_external_points_assigns_their_location() {
 
 /// A wire marker of an older file that lists a deleted connection loads, and the entry is ignored.
 #[test]
-fn pi2_a_stale_marker_entry_is_ignored() {
+fn a_stale_marker_entry_is_ignored() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let page: String = ids["pages|101"].clone();
@@ -255,7 +255,7 @@ fn ft468_store(vfs: &Arc<MemVfs>) -> StoreOptions {
 /// a reload, then a later save of its page's file by the reopened session and a second reload; each reload equals
 /// the saving session's model (`Model::content_eq`; a failure prints `Model::content_diff`).
 #[test]
-fn ft468_a_structure_box_with_a_location_and_an_external_reference_survives_save_and_reload() {
+fn a_structure_box_with_a_location_and_an_external_reference_survives_save_and_reload() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let page: String = ids["pages|202"].clone();
@@ -318,7 +318,7 @@ fn ft468_a_structure_box_with_a_location_and_an_external_reference_survives_save
 // PI3: bound texts (FR-SYM-024)
 
 #[test]
-fn pi3_a_bound_free_text_prints_the_title_block_value_and_follows_its_property() {
+fn a_bound_free_text_prints_the_title_block_value_and_follows_its_property() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let mut s = session(&batch);
@@ -372,7 +372,7 @@ fn pi3_a_bound_free_text_prints_the_title_block_value_and_follows_its_property()
 // PI4: graphics and texts without electrical meaning (FR-SYM-023)
 
 #[test]
-fn pi4_a_line_onto_a_cp_and_a_text_change_no_net_potential_or_wire() {
+fn a_line_onto_a_cp_and_a_text_change_no_net_potential_or_wire() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let mut s = session(&batch);
@@ -432,7 +432,7 @@ fn colour_of(q: &Q, c: Id<Connection>) -> Option<String> {
 }
 
 #[test]
-fn pi5_a_group_marker_prints_once_for_its_connections() {
+fn a_group_marker_prints_once_for_its_connections() {
     let batch = batch();
     let ids = ids_by_key(&batch);
     let mut s = session(&batch);
@@ -513,7 +513,7 @@ fn marked(s: &Session) -> BTreeSet<Id<Connection>> {
 }
 
 #[test]
-fn pi6_the_marker_modes_select_the_wires() {
+fn the_marker_modes_select_the_wires() {
     let batch = batch();
     let mut s = session(&batch);
     let as_built = marked(&s);

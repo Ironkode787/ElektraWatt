@@ -229,7 +229,7 @@ const STEP: i64 = 2_645_833;
 /// CB4 (FR-DEV-029): copying -102F1 on folio 102 and pasting it on 102 yields a device whose tag is -102F3 with part
 /// A9F78116 and no connection (its wires had an end outside).
 #[test]
-fn cb4_copy_and_paste_of_102f1_is_102f3_with_its_part_and_no_wire() {
+fn copy_and_paste_of_102f1_is_102f3_with_its_part_and_no_wire() {
     let tmp = Tmp::new("clip-cb4");
     let mut shell = writable(&tmp, "102");
     let rep = select_rep(&mut shell, "-102F1");
@@ -282,7 +282,7 @@ fn cb4_copy_and_paste_of_102f1_is_102f3_with_its_part_and_no_wire() {
 /// CB7: the paste tool: the ghost follows the pointer (no `Session` call), a dwell previews `edit.paste` once with the
 /// predicted tag, Escape ends the tool with the revision unchanged; the transcript, the describe lines and the counts.
 #[test]
-fn cb7_the_paste_tool_ghost_preview_and_escape() {
+fn the_paste_tool_ghost_preview_and_escape() {
     let tmp = Tmp::new("clip-cb7");
     let mut shell = writable(&tmp, "102");
     let rep = select_rep(&mut shell, "-102F1");
@@ -346,7 +346,7 @@ fn cb7_the_paste_tool_ghost_preview_and_escape() {
 /// CB7: duplicate floats a copy two grid steps right and down of the selection's anchor and leaves the clipboard as
 /// it was; Enter pastes it.
 #[test]
-fn cb7_duplicate_leaves_the_clipboard_and_starts_two_steps_off() {
+fn duplicate_leaves_the_clipboard_and_starts_two_steps_off() {
     let tmp = Tmp::new("clip-dup");
     let mut shell = writable(&tmp, "102");
     done(&mut shell, "clipboard.text", json!({"text": "-101F1\n"}));
@@ -373,7 +373,7 @@ fn cb7_duplicate_leaves_the_clipboard_and_starts_two_steps_off() {
 
 /// CB7: cut copies and deletes in one undo step; the clipboard keeps the fragment, and undo restores the records.
 #[test]
-fn cb7_cut_is_one_undo_step_and_the_clipboard_keeps_the_fragment() {
+fn cut_is_one_undo_step_and_the_clipboard_keeps_the_fragment() {
     let tmp = Tmp::new("clip-cut");
     let mut shell = writable(&tmp, "102");
     let rep = select_rep(&mut shell, "-102F2");
@@ -414,7 +414,7 @@ fn cb7_cut_is_one_undo_step_and_the_clipboard_keeps_the_fragment() {
 /// CB7: plain text and an empty clipboard are refused; a damaged fragment shows in the banner; copy without a selection
 /// is refused; the tag list goes to the clipboard as text.
 #[test]
-fn cb7_plain_text_is_refused_and_the_refusals() {
+fn plain_text_is_refused_and_the_refusals() {
     let tmp = Tmp::new("clip-refusals");
     let mut shell = writable(&tmp, "101");
     assert_eq!(
@@ -466,7 +466,7 @@ fn cb7_plain_text_is_refused_and_the_refusals() {
 
 /// CB8: the menu entries are disabled with their reason without a selection, and their chords are the canvas's own.
 #[test]
-fn cb8_menu_entries_and_chords() {
+fn menu_entries_and_chords() {
     use ew_viewmodel::actions::{Context, find};
     for (id, key) in [
         ("edit.cut", "Ctrl+X"),

@@ -1187,7 +1187,7 @@ mod tests {
     /// window's height, past the page view's half, while the split keeps its default share; a share the user dragged
     /// (300 : 700) stands.
     #[test]
-    fn ft1415_the_bottom_dock_grows_to_its_content_while_its_share_is_the_default() {
+    fn the_bottom_dock_grows_to_its_content_while_its_share_is_the_default() {
         let ctx = egui::Context::default();
         let messages = PaneKind::Navigator(NavKind::Messages);
         let shown = |bottom: u32| {

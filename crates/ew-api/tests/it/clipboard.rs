@@ -175,7 +175,7 @@ fn bless() -> bool {
 /// holds the device, its function, the representation, the potential definition at its CP, the part, symbol and FnDef
 /// copies and the two structure nodes, in that order, and no import lineage.
 #[test]
-fn cb1_the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
+fn the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
     let s = golden();
     let reps = reps_of(&s, "102", &["-102F1"]);
     let a = s.copy_fragment(&reps).unwrap();
@@ -229,7 +229,7 @@ fn cb1_the_fragment_of_102f1_is_byte_equal_and_matches_the_expected_file() {
 /// CB1: a terminal brings its strip device (with only the copied terminal), not the strip's other terminals: 1X1:1 on
 /// folio 101.
 #[test]
-fn cb1_a_terminal_brings_its_strip() {
+fn a_terminal_brings_its_strip() {
     let s = golden();
     let rep = terminal_1x1_1(&s);
     let terminal = rep.device.unwrap();
@@ -253,7 +253,7 @@ fn cb1_a_terminal_brings_its_strip() {
 /// CB1: copying -102G1 and -102F1 brings the junction where their wires meet and its three connections; a selected
 /// wire with one end outside is dropped and counted.
 #[test]
-fn cb1_internal_connections_and_junctions_come_along_and_an_outside_wire_is_dropped() {
+fn internal_connections_and_junctions_come_along_and_an_outside_wire_is_dropped() {
     let s = golden();
     let mut ids = reps_of(&s, "102", &["-102G1", "-102F1"]);
     let tables = s.page_tables("102").unwrap();
@@ -297,7 +297,7 @@ fn cb1_internal_connections_and_junctions_come_along_and_an_outside_wire_is_drop
 
 /// CB1: what is not copied: nothing, a device alone, generated content, two pages.
 #[test]
-fn cb1_the_copy_refusals() {
+fn the_copy_refusals() {
     let s = golden();
     assert_eq!(s.copy_fragment(&[]), Err(CopyError::Empty));
     let dev = s.resolve_reference("tag:-102F1").unwrap();
@@ -371,7 +371,7 @@ fn a_fragment_refusal_keeps_its_english_through_its_key() {
 
 /// CB2: every refusal of §8.3 on hostile input.
 #[test]
-fn cb2_every_refusal_of_the_parser() {
+fn every_refusal_of_the_parser() {
     let text = valid_text();
     assert_eq!(parse_fragment(&text).unwrap().records, 4);
     let record = text.lines().nth(2).unwrap().to_owned();
@@ -444,7 +444,7 @@ fn cb2_every_refusal_of_the_parser() {
 
 /// CB2: an unknown `$fragment` member is ignored (a later minor addition such as WP-S1.19's), CRLF line ends read, and a byte-order mark is skipped.
 #[test]
-fn cb2_an_unknown_header_member_is_ignored_and_crlf_reads() {
+fn an_unknown_header_member_is_ignored_and_crlf_reads() {
     let text = valid_text();
     let more = header_with(&text, |h| h["macro"] = json!({"name": "later"}));
     let a = parse_fragment(&more).unwrap();
@@ -481,7 +481,7 @@ impl Rng {
 
 /// CB2: random text and random mutations of a valid fragment never panic `parse_fragment`.
 #[test]
-fn cb2_random_text_never_panics_the_parser() {
+fn random_text_never_panics_the_parser() {
     let text = valid_text();
     let mut rng = Rng(0x5EED);
     let alphabet: Vec<char> = "{}[]\":,$kv0123456789abcdef-\\ \n\r#ewfragment".chars().collect();
@@ -511,7 +511,7 @@ fn cb2_random_text_never_panics_the_parser() {
 
 /// CB3: every rejection of §8.4 at its pointer.
 #[test]
-fn cb3_every_rejection_at_its_pointer() {
+fn every_rejection_at_its_pointer() {
     let mut s = golden();
     let frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
     let at = at_steps(&frag, (2, 2));
@@ -576,7 +576,7 @@ fn cb3_every_rejection_at_its_pointer() {
 
 /// CB3: a child device whose parent is not copied loses its parent, position and child scheme, with a notice.
 #[test]
-fn cb3_a_child_whose_parent_is_not_copied() {
+fn a_child_whose_parent_is_not_copied() {
     let mut s = golden();
     let child = s.resolve_reference("tag:-201U4-Q2").unwrap();
     assert_eq!(device(&s, child).tag.scheme, TagScheme::Child);
@@ -610,7 +610,7 @@ fn cb3_a_child_whose_parent_is_not_copied() {
 
 /// CB3: a fragment whose records carry an import lineage (one written elsewhere) pastes; the pasted records have none.
 #[test]
-fn cb3_an_import_lineage_is_dropped_not_refused() {
+fn an_import_lineage_is_dropped_not_refused() {
     let mut s = golden();
     let mut frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
     for r in frag["records"].as_array_mut().unwrap() {
@@ -624,7 +624,7 @@ fn cb3_an_import_lineage_is_dropped_not_refused() {
 /// CB3 and CB4: the held library copies are reused in the same project: -102F1 pasted on 102 is -102F3 with part
 /// A9F78116, no connection, and no copy is inserted.
 #[test]
-fn cb3_held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f3() {
+fn held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f3() {
     let mut s = golden();
     let frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
     let parts = s.query().parts().len();
@@ -649,7 +649,7 @@ fn cb3_held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f3() {
 /// CB3: in another project the copies are embedded in the paste's transaction, once, and one undo removes them with
 /// the records; a copy the target holds in another version is refused.
 #[test]
-fn cb3_copies_are_embedded_once_and_undone_with_the_records() {
+fn copies_are_embedded_once_and_undone_with_the_records() {
     let g = golden();
     let frag = fragment(&g, &reps_of(&g, "101", &["T55", "E55", "E56"]));
     let mut w = wizard(11);
@@ -701,7 +701,7 @@ fn cb3_copies_are_embedded_once_and_undone_with_the_records() {
 /// CB3: structure nodes rebind by aspect and path, else by an alias of the leaf code; an unmatched node clears the slot
 /// with a notice; no node is created.
 #[test]
-fn cb3_structure_rebinds_by_path_and_alias_or_clears() {
+fn structure_rebinds_by_path_and_alias_or_clears() {
     let g = golden();
     let frag = fragment(&g, &reps_of(&g, "102", &["-102F1"]));
     let mut w = wizard(12);
@@ -738,7 +738,7 @@ fn cb3_structure_rebinds_by_path_and_alias_or_clears() {
 /// CB3: the translation in grid steps is exact on the QET grid (`7_937_500/3` nm): -101F1, S51 and T55 sit at y grid
 /// indices 12, 14 and 22 (0, 2 and 1 mod 3); each pasted representation is at its index plus the steps on both axes.
 #[test]
-fn cb3_the_step_translation_is_exact_on_the_qet_grid() {
+fn the_step_translation_is_exact_on_the_qet_grid() {
     let mut s = golden();
     let reps = reps_of(&s, "101", &["-101F1", "S51", "T55"]);
     let tables = s.page_tables("101").unwrap();
@@ -773,7 +773,7 @@ fn cb3_the_step_translation_is_exact_on_the_qet_grid() {
 /// Effect 6: the copies are numbered in the fragment's position order, whatever IDs the session mints: two sessions
 /// with other ID seeds give the same tags at the same places, and of E55 and E56 the left one is numbered first.
 #[test]
-fn cb3_the_numbering_follows_the_fragment_order_not_the_minted_ids() {
+fn the_numbering_follows_the_fragment_order_not_the_minted_ids() {
     let g = golden();
     let frag = fragment(&g, &reps_of(&g, "101", &["T55", "E55", "E56"]));
     let placed = |seed: u64| {
@@ -902,7 +902,7 @@ fn in_cell_order(by_id: &[(i64, i64)]) -> bool {
 /// order: (17, 14) and (19, 14) share column 2 row B and come first, left before right, then (17, 46) in column 2 row
 /// F, then (29, 30) in column 4, then (41, 14) in column 6.
 #[test]
-fn ft456_new_devices_are_numbered_in_cell_order_not_id_order() {
+fn new_devices_are_numbered_in_cell_order_not_id_order() {
     let g = golden();
     let frag = five_breakers(&g);
     let want: BTreeMap<(i64, i64), u32> = [
@@ -926,7 +926,7 @@ fn ft456_new_devices_are_numbered_in_cell_order_not_id_order() {
 /// log) gives every breaker the number it had in the first session, also when the replay's IDs fall in another
 /// order (at least one of the replays below does).
 #[test]
-fn ft456_a_replay_numbers_the_new_devices_alike() {
+fn a_replay_numbers_the_new_devices_alike() {
     let g = golden();
     let frag = five_breakers(&g);
     let (first, first_order) = five_breakers_pasted(&frag, 7);
@@ -1353,7 +1353,7 @@ fn at_v0(text: &str) -> String {
 /// through the test chain to the current fragment's parameters and pastes; the shipped chain, which reaches no older
 /// format, refuses it with the text it always had, as it refuses an older record of the current format.
 #[test]
-fn mg6_ft403_an_older_fragment_pastes_through_the_test_chain() {
+fn an_older_fragment_pastes_through_the_test_chain() {
     use ew_api::window::parse_fragment_with;
     let older_text =
         "copied from an older ElektraWatt format; open and save that project with this version first";

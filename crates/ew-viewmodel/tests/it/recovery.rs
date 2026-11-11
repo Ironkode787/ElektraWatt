@@ -110,7 +110,7 @@ fn dialog_line(s: &ShellModel) -> String {
 }
 
 #[test]
-fn jb7_a_leftover_journal_opens_read_only_with_the_dialog_and_nothing_is_written_before_a_choice() {
+fn a_leftover_journal_opens_read_only_with_the_dialog_and_nothing_is_written_before_a_choice() {
     use ew_viewmodel::actions::find;
     let tmp = Tmp::new("jb7-dialog");
     let dir = crashed(&tmp);
@@ -151,7 +151,7 @@ fn jb7_a_leftover_journal_opens_read_only_with_the_dialog_and_nothing_is_written
 }
 
 #[test]
-fn jb7_recover_opens_the_project_editable_and_dirty_with_the_edits() {
+fn recover_opens_the_project_editable_and_dirty_with_the_edits() {
     let tmp = Tmp::new("jb7-recover");
     let dir = crashed(&tmp);
     let mut s = shell(&tmp, Mode::Headless);
@@ -177,7 +177,7 @@ fn jb7_recover_opens_the_project_editable_and_dirty_with_the_edits() {
 }
 
 #[test]
-fn jb7_open_read_only_keeps_the_journal_and_the_read_only_access() {
+fn open_read_only_keeps_the_journal_and_the_read_only_access() {
     let tmp = Tmp::new("jb7-keep");
     let dir = crashed(&tmp);
     let mut s = shell(&tmp, Mode::Headless);
@@ -213,7 +213,7 @@ fn jb7_open_read_only_keeps_the_journal_and_the_read_only_access() {
 }
 
 #[test]
-fn jb7_discard_asks_then_opens_editable_without_the_edits() {
+fn discard_asks_then_opens_editable_without_the_edits() {
     let tmp = Tmp::new("jb7-discard");
     let dir = crashed(&tmp);
     // The window: Discard… asks; Cancel returns to the recovery dialog; Discard deletes the journal.
@@ -239,7 +239,7 @@ fn jb7_discard_asks_then_opens_editable_without_the_edits() {
 }
 
 #[test]
-fn jb7_a_script_discards_with_confirm() {
+fn a_script_discards_with_confirm() {
     let tmp = Tmp::new("jb7-script");
     let dir = crashed(&tmp);
     let mut s = shell(&tmp, Mode::Headless);
@@ -260,7 +260,7 @@ fn jb7_a_script_discards_with_confirm() {
 }
 
 #[test]
-fn jb7_a_collision_with_a_save_of_another_session_fails_the_recovery_and_reopens_read_only() {
+fn a_collision_with_a_save_of_another_session_fails_the_recovery_and_reopens_read_only() {
     let tmp = Tmp::new("jb7-moved");
     let dir = crashed(&tmp);
     // Another session saves the same field meanwhile (it opens with the journal kept, as `ew` would).

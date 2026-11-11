@@ -146,7 +146,7 @@ const INSTANCE: Uuid = Uuid::from_u128(0x0190_0000_0000_7000_8000_0000_0000_0105
 /// save of the key is the next minor version of the same item. Inserted on a new folio 105, the conflicts list the
 /// pairings of L-1, N-1 and the second sources of 24VDC-1 … 4, which EW-CORE-052 refuses until they are resolved.
 #[test]
-fn mc1_mc3_the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
+fn the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
     let (_root, t, lib) = user_library("ew-api-mc1");
     let mut s = golden(Some(t));
     let saved = s.save_macro(lib, &psu_block(&s)).unwrap();
@@ -234,7 +234,7 @@ fn mc1_mc3_the_psu_block_saves_and_its_insertion_lists_the_conflicts() {
 /// MC-3: the supply and its breakers inserted on folio 105 yield -105G1, -105F1, -105F2 with the IDs
 /// v5(instance, local) (D13), one undo step, no conflict.
 #[test]
-fn mc3_the_psu_inserts_with_new_identities_and_derived_tags() {
+fn the_psu_inserts_with_new_identities_and_derived_tags() {
     let (_root, t, lib) = user_library("ew-api-mc3");
     let mut s = golden(Some(t));
     let saved = s.save_macro(lib, &psu_spec(&s)).unwrap();
@@ -283,7 +283,7 @@ fn mc3_the_psu_inserts_with_new_identities_and_derived_tags() {
 /// MC-2: page 206 saved as a page macro and inserted after 206 creates folio 207 with the module, its channels and
 /// the valves.
 #[test]
-fn mc2_a_page_macro_inserted_after_206_proposes_207() {
+fn a_page_macro_inserted_after_206_proposes_207() {
     let (_root, t, lib) = user_library("ew-api-mc2");
     let mut s = golden(Some(t));
     let p206 = page_of(&s, "206");
@@ -331,7 +331,7 @@ fn mc2_a_page_macro_inserted_after_206_proposes_207() {
 
 /// MC-6: the command carries the macro and replays from a command log on a session with no library.
 #[test]
-fn mc6_the_insertion_replays_with_no_library() {
+fn the_insertion_replays_with_no_library() {
     let (_root, t, lib) = user_library("ew-api-mc6");
     let mut s = golden(Some(t));
     let saved = s.save_macro(lib, &psu_spec(&s)).unwrap();
@@ -409,7 +409,7 @@ fn saved_bytes(name: &str) -> (SavedMacro, Value, AnyCommand) {
 
 /// MC-7: two runs save byte-equal macro documents and compose equal commands.
 #[test]
-fn mc7_save_and_insert_are_deterministic() {
+fn save_and_insert_are_deterministic() {
     let (a, doc_a, cmd_a) = saved_bytes("ew-api-mc7a");
     let (b, doc_b, cmd_b) = saved_bytes("ew-api-mc7b");
     assert_eq!((a.version, a.open_ends), (b.version, b.open_ends));

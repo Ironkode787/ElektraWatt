@@ -112,7 +112,7 @@ fn toasts(s: &ShellModel) -> Vec<String> {
 /// XW-1: an external change of a wire's colour on folio 106 shows the toast with its folio, Undo and Show changes;
 /// Show changes opens the history at its step; Undo takes it back, and a save then writes the earlier page.
 #[test]
-fn xw1_the_external_change_toast_offers_undo_and_show_changes() {
+fn the_external_change_toast_offers_undo_and_show_changes() {
     let tmp = Tmp::new("xw1");
     let dir = tmp.0.join("J-E-2416.ew");
     copy_dir(Path::new(GOLDEN_A), &dir);
@@ -155,7 +155,7 @@ fn xw1_the_external_change_toast_offers_undo_and_show_changes() {
 /// XW-2: the collision dialog lists W20's colour with base, mine and theirs; "Decide later" leaves the banner and a
 /// held save; "All theirs" applies in one step.
 #[test]
-fn xw2_the_collision_dialog_holds_saves_until_a_side_is_chosen() {
+fn the_collision_dialog_holds_saves_until_a_side_is_chosen() {
     let tmp = Tmp::new("xw2");
     let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
@@ -239,7 +239,7 @@ fn w20_overrides(dir: &Path) -> Value {
 /// A record the colleague deleted while this window changed it is one row for the whole record, each side
 /// in words: present at the base, changed here, deleted on disk.
 #[test]
-fn xw2b_a_deleted_record_shows_each_side_in_words() {
+fn a_deleted_record_shows_each_side_in_words() {
     let tmp = Tmp::new("xw2b");
     let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
@@ -258,7 +258,7 @@ fn xw2b_a_deleted_record_shows_each_side_in_words() {
 
 /// XW-3: a read-only window reloads on the holder's save and keeps its page and zoom.
 #[test]
-fn xw3_a_read_only_window_reloads_and_keeps_its_page_and_zoom() {
+fn a_read_only_window_reloads_and_keeps_its_page_and_zoom() {
     let tmp = Tmp::new("xw3");
     let dir = tmp.0.join("J-E-2416.ew");
     copy_dir(Path::new(GOLDEN_A), &dir);
@@ -286,7 +286,7 @@ fn xw3_a_read_only_window_reloads_and_keeps_its_page_and_zoom() {
 
 /// XW-4: a project under a test OneDrive variable shows the cloud banner; elsewhere none.
 #[test]
-fn xw4_a_cloud_synced_folder_shows_its_banner() {
+fn a_cloud_synced_folder_shows_its_banner() {
     let tmp = Tmp::new("xw4");
     let cloud = tmp.0.join("OneDrive");
     let inside = cloud.join("J-E-2416.ew");
@@ -313,7 +313,7 @@ fn xw4_a_cloud_synced_folder_shows_its_banner() {
 /// W49.3-F2: after Decide later, the held-saves banner stays through navigation and zoom and cannot be dismissed; its
 /// Choose… (`external.review`) reopens the dialog.
 #[test]
-fn xw2e_the_held_banner_stays_until_the_choice() {
+fn the_held_banner_stays_until_the_choice() {
     let tmp = Tmp::new("xw2e");
     let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
@@ -354,7 +354,7 @@ static CHAIN: Migrations = Migrations {
 /// XW-6: Export .ewz… writes the saved generation; Open with "Open read-only" opens it from memory; "Extract and open"
 /// refuses an existing folder; the upgrade dialog asks once (MG-3 through the window).
 #[test]
-fn xw6_export_and_open_ewz_and_the_upgrade_dialog() {
+fn export_and_open_ewz_and_the_upgrade_dialog() {
     let tmp = Tmp::new("xw6");
     let (mut s, dir) = writable(&tmp);
     let ewz = tmp.0.join("J-E-2416.ewz");
@@ -512,7 +512,7 @@ fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
 /// XW-7: in a temporary repository without the configuration the status bar says "Merge driver not configured"; Set
 /// up merge driver asks, then configures it, and the badge goes.
 #[test]
-fn xw7_the_driver_badge_appears_without_the_configuration_and_goes_after_setup() {
+fn the_driver_badge_appears_without_the_configuration_and_goes_after_setup() {
     let tmp = Tmp::new("xw7");
     let repo = tmp.0.join("repo");
     std::fs::create_dir_all(&repo).unwrap();
@@ -608,7 +608,7 @@ fn messages_of(s: &mut ShellModel, rule: &str) -> Vec<String> {
 /// The Messages pane lists EW-CORE-013 for a merged copy with a duplicated tag, on open and after a
 /// pull of that merge as an external change.
 #[test]
-fn xw8_the_messages_pane_lists_ew_core_013_after_a_merge() {
+fn the_messages_pane_lists_ew_core_013_after_a_merge() {
     let expected = vec![
         "=P01+J-E-2416-102F1: `=P01+J-E-2416-102F1` is printed by 2 devices after a merge; the oldest record keeps it, \
          and the other must change"
@@ -637,7 +637,7 @@ fn xw8_the_messages_pane_lists_ew_core_013_after_a_merge() {
 
 /// A held change whose disk goes back to the baseline (a pull undone) closes its dialog and banner.
 #[test]
-fn xw2c_the_collision_dialog_closes_when_the_disk_returns() {
+fn the_collision_dialog_closes_when_the_disk_returns() {
     let tmp = Tmp::new("xw2c");
     let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
@@ -668,7 +668,7 @@ fn xw2c_the_collision_dialog_closes_when_the_disk_returns() {
 /// A second external change while one is held rebuilds the dialog from the new collisions, mine chosen
 /// again, and nothing is lost: All theirs takes the second change's value, the local edit of another field stays.
 #[test]
-fn xw2d_a_second_change_while_held_rebuilds_the_dialog() {
+fn a_second_change_while_held_rebuilds_the_dialog() {
     let tmp = Tmp::new("xw2d");
     let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
@@ -710,7 +710,7 @@ fn xw2d_a_second_change_while_held_rebuilds_the_dialog() {
 /// W49.3-F3 to F5: the dialog's headings in Dutch, capitalised, with the kind and the field from the terminology; the
 /// intro counts a whole-record row as a record; All mine says the user's version was kept.
 #[test]
-fn xw2f_the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
+fn the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
     let tmp = Tmp::new("xw2f");
     let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");
@@ -754,7 +754,7 @@ fn xw2f_the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
 /// collisions keeps the way to the choice (Choose… stays on its banner), and its Dismiss brings the held banner back;
 /// `external.review` never opens over another dialog.
 #[test]
-fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
+fn a_mixed_choice_counts_what_came_from_disk() {
     let tmp = Tmp::new("xw2g");
     let (mut s, dir) = writable(&tmp);
     let (w20, w21) = (golden_id("connections|W20"), golden_id("connections|W21"));
@@ -810,7 +810,7 @@ fn xw2g_a_mixed_choice_counts_what_came_from_disk() {
 /// An external change that equals the session's edit (the same colour set on both sides) takes nothing and
 /// keeps nothing: its toast says so, never "applied: 0 records".
 #[test]
-fn xw2h_the_same_edit_on_both_sides_takes_nothing() {
+fn the_same_edit_on_both_sides_takes_nothing() {
     let tmp = Tmp::new("xw2h");
     let (mut s, dir) = writable(&tmp);
     let w20 = golden_id("connections|W20");

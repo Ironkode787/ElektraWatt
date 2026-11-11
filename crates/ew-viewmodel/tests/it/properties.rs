@@ -48,7 +48,7 @@ fn steps(shell: &ShellModel) -> usize {
 }
 
 #[test]
-fn pg3_varies_one_commit_per_edit_and_escape_reverts() {
+fn varies_one_commit_per_edit_and_escape_reverts() {
     let tmp = Tmp::new("props-pg3");
     let mut shell = writable(&tmp, "101");
     assert!(shell.properties_shown(), "the Schematic workspace has the grid");
@@ -99,7 +99,7 @@ fn pg3_varies_one_commit_per_edit_and_escape_reverts() {
 }
 
 #[test]
-fn pg4_a_wire_override_and_its_reset() {
+fn a_wire_override_and_its_reset() {
     let tmp = Tmp::new("props-pg4");
     let mut shell = writable(&tmp, "103");
     done(&mut shell, "select.set", json!({"ids": [W29]}));
@@ -151,7 +151,7 @@ fn terminals() -> Vec<String> {
 }
 
 #[test]
-fn pg6_twenty_terminals_get_a_part_in_one_command() {
+fn twenty_terminals_get_a_part_in_one_command() {
     let tmp = Tmp::new("props-pg6");
     let mut shell = writable(&tmp, "102");
     done(&mut shell, "select.set", json!({"refs": terminals()}));
@@ -235,7 +235,7 @@ fn a_step_that_leaves_a_card_names_it_in_pending() {
 }
 
 #[test]
-fn pg7_the_policy_card_and_its_stale_rule() {
+fn the_policy_card_and_its_stale_rule() {
     let tmp = Tmp::new("props-pg7");
     let mut shell = writable(&tmp, "102");
     // A tag-counter edit on two devices (on two pages): identifiers on several targets, the card.
@@ -338,7 +338,7 @@ fn pg7_the_policy_card_and_its_stale_rule() {
 }
 
 #[test]
-fn pg8_refusals_notes_and_read_only_rows() {
+fn refusals_notes_and_read_only_rows() {
     let tmp = Tmp::new("props-pg8");
     let mut shell = writable(&tmp, "102");
     done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
@@ -406,7 +406,7 @@ fn pg8_refusals_notes_and_read_only_rows() {
 }
 
 #[test]
-fn pg10_the_transcript_and_describe_members() {
+fn the_transcript_and_describe_members() {
     let tmp = Tmp::new("props-pg10");
     let mut shell = writable(&tmp, "101");
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
@@ -478,7 +478,7 @@ fn looks_like_uuid(s: &str) -> bool {
 }
 
 #[test]
-fn pg11_exact_counts_of_the_grid() {
+fn exact_counts_of_the_grid() {
     let tmp = Tmp::new("props-pg11");
     let mut shell = writable(&tmp, "101");
     let calls = |s: &ShellModel| s.session_calls().property_sheet;
@@ -720,7 +720,7 @@ fn a_read_only_project_offers_no_action() {
 /// PG1's wizard-project case: a new project has the five project settings rows with absent values, and a size
 /// profile set from the grid commits `project.settings.set` through the card.
 #[test]
-fn pg1_a_new_project_sets_its_size_profile_from_the_grid() {
+fn a_new_project_sets_its_size_profile_from_the_grid() {
     let tmp = Tmp::new("props-new");
     let mut shell = ShellModel::new(
         Mode::Headless,
@@ -773,7 +773,7 @@ fn pg1_a_new_project_sets_its_size_profile_from_the_grid() {
 
 /// PG7's bulk rule through the shell: an edit of 501 targets opens the card (`reason-bulk`).
 #[test]
-fn pg7_an_edit_of_501_targets_opens_the_card() {
+fn an_edit_of_501_targets_opens_the_card() {
     use ew_viewmodel::ew_api::{AnyCommand, Session, StoreOptions};
     let tmp = Tmp::new("props-501");
     // A copy of Golden A with 501 devices more, made through the session (no hand-edited file).
@@ -1025,7 +1025,7 @@ fn a_terminal_lists_its_connection_point_labels() {
 /// In a Dutch window a placed device's connection points are labelled in Dutch ("Aansluitpunt 1"),
 /// by `field_label`'s item rule, never the humanised English "Connection point 1".
 #[test]
-fn ft1531_a_dutch_window_labels_the_connection_points_in_dutch() {
+fn a_dutch_window_labels_the_connection_points_in_dutch() {
     let tmp = Tmp::new("props-ft1531");
     let mut shell = writable(&tmp, "101");
     done(&mut shell, "view.language", json!({"value": "nl"}));
@@ -1055,7 +1055,7 @@ fn ft1531_a_dutch_window_labels_the_connection_points_in_dutch() {
 /// `select.set` takes a bare tag as the page prints it, a terminal as `TAG:pin` included, and selects the
 /// same record as `tag:<tag>`; a tag no device prints fails with a sentence that lists the reference forms.
 #[test]
-fn ft544_select_set_takes_a_bare_tag() {
+fn select_set_takes_a_bare_tag() {
     let tmp = Tmp::new("props-ft544");
     let mut shell = writable(&tmp, "101");
     done(&mut shell, "select.set", json!({"refs": ["-101F1", "-X1032:5"]}));
@@ -1079,7 +1079,7 @@ fn ft544_select_set_takes_a_bare_tag() {
 /// A wire's Main rows hold "Wire marker" (`overrides.show_marker`) right after the cross-section and the
 /// colour; switching the marker mode to explicit reports how many wires carry a marker.
 #[test]
-fn ft554_wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
+fn wire_marker_beside_colour_and_the_mode_switch_counts_markers() {
     use ew_viewmodel::properties::{RowGroup, groups};
     let tmp = Tmp::new("props-ft554");
     let mut shell = writable(&tmp, "103");
@@ -1172,7 +1172,7 @@ fn a_refused_row_action_names_why_the_row_refuses_it() {
 /// A script's `step` near `i64::MAX` with the cursor past row 0 stops at the last row (no
 /// overflow).
 #[test]
-fn ft1347_a_huge_properties_step_stops_at_the_last_row() {
+fn a_huge_properties_step_stops_at_the_last_row() {
     let tmp = Tmp::new("props-ft1347");
     let mut shell = writable(&tmp, "101");
     done(&mut shell, "select.set", json!({"refs": ["tag:-101F1"]}));
@@ -1191,7 +1191,7 @@ fn ft1347_a_huge_properties_step_stops_at_the_last_row() {
 /// A representation's position reads in millimetres with its grid cell, never in nanometres;
 /// ID-1427 (W52 F5): with one decimal and the project's decimal separator.
 #[test]
-fn ft1043_a_representations_position_reads_in_millimetres_with_its_cell() {
+fn a_representations_position_reads_in_millimetres_with_its_cell() {
     let tmp = Tmp::new("props-ft1043");
     let mut shell = writable(&tmp, "102");
     let rep = shell

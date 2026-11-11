@@ -64,7 +64,7 @@ fn wait_print_bounded(s: &mut ShellModel, step: &str) {
 }
 
 #[test]
-fn pw2_an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() {
+fn an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() {
     let tmp = Tmp::new("pw2");
     let mut s = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "100");
     // Held after the writer: a hold stays across releases, so a hold at `page` would stop every page.
@@ -100,7 +100,7 @@ fn pw2_an_edit_while_the_set_builds_is_applied_and_the_set_keeps_its_revision() 
 }
 
 #[test]
-fn pw2_cancel_while_the_set_builds_closes_the_dialog_and_leaves_no_file() {
+fn cancel_while_the_set_builds_closes_the_dialog_and_leaves_no_file() {
     let tmp = Tmp::new("pw2-cancel");
     let mut s = tmp.shell("100");
     let before = files(&tmp.0);

@@ -237,7 +237,7 @@ fn a_page_without_a_view_deletes_nothing() {
 /// FT-882 (ID-1108: "a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
 /// with what the user can do"): a move of a selection that holds the surface view names the view and the true reason.
 #[test]
-fn ft882_a_move_of_a_selection_with_the_surface_view_names_it() {
+fn a_move_of_a_selection_with_the_surface_view_names_it() {
     let (mut e, view) = fx();
     let r = e.execute(&ew_commands::commands::MoveReps {
         routes: Vec::new(),
@@ -273,7 +273,7 @@ fn scale_of(m: &Model, page: Id<Page>) -> Scale {
 
 /// `page.surface_view.set` with a scale sets the page's scale and the view in one undo step.
 #[test]
-fn ft1016_a_surface_view_with_a_scale_sets_the_page_scale_in_one_step() {
+fn a_surface_view_with_a_scale_sets_the_page_scale_in_one_step() {
     let (mut e, _) = fx();
     assert_eq!(scale_of(e.model(), PAGE_902), Scale::NotToScale);
     let before = lines(e.model());
@@ -295,7 +295,7 @@ fn ft1016_a_surface_view_with_a_scale_sets_the_page_scale_in_one_step() {
 
 /// Without a scale the page keeps the one it has (a script's view set changes no scale).
 #[test]
-fn ft1016_a_surface_view_without_a_scale_keeps_the_page_scale() {
+fn a_surface_view_without_a_scale_keeps_the_page_scale() {
     let (mut e, _) = fx();
     let surface = the_surface(e.model());
     e.execute(&SetFields {
@@ -331,7 +331,7 @@ fn ft1016_a_surface_view_without_a_scale_keeps_the_page_scale() {
 
 /// A scale of 1:0 is refused, and nothing changes.
 #[test]
-fn ft1016_a_scale_of_one_to_zero_is_refused() {
+fn a_scale_of_one_to_zero_is_refused() {
     let (mut e, _) = fx();
     let before = lines(e.model());
     let surface = the_surface(e.model());
@@ -354,7 +354,7 @@ fn ft1016_a_scale_of_one_to_zero_is_refused() {
 /// The schema's minimum refuses a JSON `page.surface_view.set` with 1:0 before it runs, and
 /// `fields.set` and `fields.set_many` refuse a page scale of 1:0 at the value with the command's text; nothing changes.
 #[test]
-fn ft1065_a_scale_of_one_to_zero_is_refused_by_the_schema_and_by_fields_set() {
+fn a_scale_of_one_to_zero_is_refused_by_the_schema_and_by_fields_set() {
     let (mut e, _) = fx();
     let before = lines(e.model());
     let surface = the_surface(e.model());

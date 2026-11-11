@@ -112,7 +112,7 @@ fn copy_and_paste_events_run_the_table_actions() {
 /// (a click shows it in the group), Ctrl+`<n>` picks the n-th entry, and the Project entry's segmented control switches
 /// between Pages and Devices.
 #[test]
-fn ft509_every_tab_of_the_left_dock_is_reachable() {
+fn every_tab_of_the_left_dock_is_reachable() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     settle(&mut h);
@@ -196,7 +196,7 @@ fn strips_cell(shell: &ShellModel, key: &str, label: &str) -> String {
 /// position and set size), Down and Enter pick the second part (one `fields.set` of `strip.accessories`), and the list
 /// closes; the accessible-name walker after every step.
 #[test]
-fn se15_the_strip_editor_and_its_chooser_list() {
+fn the_strip_editor_and_its_chooser_list() {
     let tmp = Tmp::new();
     let mut h = window(&tmp);
     // A second end bracket, so that Add accessory has to ask.

@@ -115,7 +115,7 @@ fn core061(s: &Session) -> Vec<String> {
 
 /// TS-1: Golden A writes no member and keeps EF-12's two EW-CORE-061 findings.
 #[test]
-fn ts1_golden_a_has_no_member_and_keeps_its_two_findings() {
+fn golden_a_has_no_member_and_keeps_its_two_findings() {
     assert!(!project_text(Path::new(GOLDEN_A)).contains("text_styles"));
     let (golden, _) = Session::open_read_only(Path::new(GOLDEN_A), "ElektraWatt test").unwrap();
     assert_eq!(core061(&golden), ["cp.small", "marker"]);
@@ -123,7 +123,7 @@ fn ts1_golden_a_has_no_member_and_keeps_its_two_findings() {
 
 /// TS-2: a new project's `project.jsonl` holds exactly the two overrides, and they round-trip.
 #[test]
-fn ts2_a_new_project_writes_the_two_overrides() {
+fn a_new_project_writes_the_two_overrides() {
     let work = temp("ts2");
     let mut s = new_basic(1);
     let styles = ew_derive::text_styles(&s.query());
@@ -151,7 +151,7 @@ fn ts2_a_new_project_writes_the_two_overrides() {
 /// TS-2: with the new-project overrides, every wire marker and small pin number prints at 7 px in the export job's
 /// scenes, and EW-CORE-061 reports nothing (over Golden A's pages, which print both).
 #[test]
-fn ts2_the_new_project_overrides_print_markers_and_pin_numbers_at_7_px() {
+fn the_new_project_overrides_print_markers_and_pin_numbers_at_7_px() {
     let mut s = copy_of_golden(2);
     let before = run_sizes(&s);
     assert!(n(&before, PX5) > 0, "{before:?}");
@@ -169,7 +169,7 @@ fn ts2_the_new_project_overrides_print_markers_and_pin_numbers_at_7_px() {
 /// TS-3 (FR-SYM-013's acceptance): `tag.main` at 4 mm changes every device tag on every page in one undo step; undo
 /// restores; a size of 100 nm is refused at `/text_styles/tag.main/size`.
 #[test]
-fn ts3_a_tag_style_override_resizes_every_tag_in_one_undo_step() {
+fn a_tag_style_override_resizes_every_tag_in_one_undo_step() {
     let mut s = copy_of_golden(3);
     let before = run_sizes(&s);
     let tags = n(&before, PX13);
@@ -188,7 +188,7 @@ fn ts3_a_tag_style_override_resizes_every_tag_in_one_undo_step() {
 
 /// TS-5: an entry's unknown member is written back as read, through a save and a reopen.
 #[test]
-fn ts5_an_unknown_member_of_an_entry_survives_a_save() {
+fn an_unknown_member_of_an_entry_survives_a_save() {
     let work = temp("ts5");
     let mut s = new_basic(5);
     let value =
@@ -218,7 +218,7 @@ fn ts5_an_unknown_member_of_an_entry_survives_a_save() {
 /// TS-6: a company basic project without the member makes a project without it; `save_as_basic` of a new project
 /// keeps the overrides, and a project made from that basic project has them.
 #[test]
-fn ts6_a_basic_project_is_copied_as_it_is() {
+fn a_basic_project_is_copied_as_it_is() {
     let work = temp("ts6");
     let state = work.join("state");
     let copy = copy_of_golden(6);

@@ -16,7 +16,7 @@ use serde_json::json;
 /// Row 4: the very first pick of a black-box part on a new project (its FnDefs not yet embedded) arms the black box
 /// with the part's connection points, the same as a repeat pick.
 #[test]
-fn row4_the_first_black_box_from_a_part_has_its_connection_points() {
+fn the_first_black_box_from_a_part_has_its_connection_points() {
     let tmp = Tmp::new("m33-row4");
     let mut s = new_project(&tmp);
     // As the run's prelude: the part alone is embedded, its FnDef (ew.fn.blackbox) is not.
@@ -59,7 +59,7 @@ fn num001(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
 /// the one step that takes it; `props.accept_tag_proposal` gives the next free counter by online numbering, unfrozen,
 /// in one undo step, and the toast names the counter.
 #[test]
-fn row6_a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
+fn a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
     let tmp = Tmp::new("m33-row6");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     let before = num001(&tmp, &mut s);
@@ -104,7 +104,7 @@ fn row6_a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
 /// (`-Y1031` is counter 1, not 1031). Strips -X1031 and -X1032 of folio 103: -X1031 becomes -Y1031 and then -Y1032
 /// (counter 2), so the letter edit of -X1032 to Y collides with it and is refused with a proposal.
 #[test]
-fn row6_a_strip_tag_proposal_names_the_counter_not_the_page_digits() {
+fn a_strip_tag_proposal_names_the_counter_not_the_page_digits() {
     let tmp = Tmp::new("m33-row6-strip");
     let mut s = tmp.shell_in(Mode::Headless, true, "103");
     done(
@@ -143,7 +143,7 @@ fn row6_a_strip_tag_proposal_names_the_counter_not_the_page_digits() {
 /// refused letter edit of -102G1, then another device selected: `props.accept_tag_proposal` is refused and nothing is
 /// committed; a refused edit followed by any commit (the project changed) is refused too.
 #[test]
-fn row6_a_stale_tag_proposal_is_refused() {
+fn a_stale_tag_proposal_is_refused() {
     let tmp = Tmp::new("m33-row6-stale");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut s, "select.set", json!({"refs": ["tag:-102G1"]}));

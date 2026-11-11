@@ -320,7 +320,7 @@ fn the_file_menu_greys_out_what_needs_a_project() {
 /// FT-1112 (item 1): a menu names a key by its keycap form, as the tooltips do: Edit ▸ Delete reads "Del", not
 /// "Delete".
 #[test]
-fn ft1112_a_menu_names_its_key_by_the_keycap() {
+fn a_menu_names_its_key_by_the_keycap() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), None);
     settle(&mut h);

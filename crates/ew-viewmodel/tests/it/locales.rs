@@ -176,7 +176,7 @@ fn every_toast_ends_with_its_full_stop() {
 /// NL-1: every key of every shipped locale takes the arguments of its en-GB message, no more and
 /// no fewer, and a locale has no key en-GB lacks.
 #[test]
-fn nl1_every_message_takes_the_arguments_of_en_gb() {
+fn every_message_takes_the_arguments_of_en_gb() {
     let en = arguments(&shipped_file("en-GB"));
     let locales = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("locales");
     let mut differ = Vec::new();
@@ -532,7 +532,7 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
 /// messages, each Dutch term is used where its en-GB term is, and no rejected alternative is (one that is the Dutch
 /// term of another row, "kabel" for a cable, is that row's).
 #[test]
-fn nl2_the_terminology_table_is_followed() {
+fn the_terminology_table_is_followed() {
     let nl = shipped_file("nl-NL");
     let table = terms(&nl);
     let rows: Vec<String> = table.iter().map(|t| format!("{} = {}", t.en, t.nl)).collect();
@@ -659,7 +659,7 @@ fn messages_with(ftl: &str, prefix: &str) -> std::collections::BTreeMap<String, 
 /// message, so a right use elsewhere cannot hide a wrong one: each table term an en-GB heading holds (the longest
 /// first, a term inside a longer one not counted again) is its Dutch term in the nl-NL heading.
 #[test]
-fn nl2b_the_kind_and_field_headings_follow_the_table_each() {
+fn the_kind_and_field_headings_follow_the_table_each() {
     let nl_file = shipped_file("nl-NL");
     let mut table = terms(&nl_file);
     table.sort_by_key(|t| std::cmp::Reverse(t.en.len()));
@@ -688,7 +688,7 @@ fn nl2b_the_kind_and_field_headings_follow_the_table_each() {
 /// With NL-2 by whole words and Dutch compounds, the en-GB words stand as they were
 /// (English is never changed for a Dutch check) and the Dutch headings are compounds by the table.
 #[test]
-fn nl2c_the_wordings_the_stem_match_forced_are_back() {
+fn the_wordings_the_stem_match_forced_are_back() {
     let en = messages_with(&shipped_file("en-GB"), "");
     let nl = messages_with(&shipped_file("nl-NL"), "");
     let text = |m: &std::collections::BTreeMap<String, String>, k: &str| m.get(k).cloned().unwrap();
@@ -719,7 +719,7 @@ fn language_items(shell: &ShellModel) -> Vec<(String, Value, bool)> {
 /// LO-2's model half: View ▸ Language lists the languages under their own names with the current one checked, and
 /// `view.language` switches the menus at run time and back; an unknown value is refused in words.
 #[test]
-fn lo2_view_language_switches_the_menus_and_back() {
+fn view_language_switches_the_menus_and_back() {
     let tmp = Tmp::new("lo2");
     let mut shell = tmp.shell("102");
     let english = ("English".to_owned(), json!({"value": "en"}), true);
@@ -758,7 +758,7 @@ fn lo2_view_language_switches_the_menus_and_back() {
 /// and the en-GB text of a rule without one (starting with a capital); in English it is the finding's own
 /// message.
 #[test]
-fn lo4_the_messages_detail_follows_the_ui_language() {
+fn the_messages_detail_follows_the_ui_language() {
     let tmp = Tmp::new("lo4");
     let mut shell = tmp.shell("102");
     done(&mut shell, "messages.show", json!({"on": true}));
@@ -808,7 +808,7 @@ fn lo4_the_messages_detail_follows_the_ui_language() {
 /// FT-1482, beside LO-4: with the UI in Dutch a finding's quick fix is labelled in Dutch, in the Messages
 /// detail and in the table's fix cell; in English it is the fix's English label, the CLI's.
 #[test]
-fn lo4_the_quick_fix_label_follows_the_ui_language() {
+fn the_quick_fix_label_follows_the_ui_language() {
     let tmp = Tmp::new("lo4fix");
     let mut shell = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "102");
     // As MS3: page 102's own description gives EW-CORE-023's finding, whose fix drops it.
@@ -865,7 +865,7 @@ fn lo4_the_quick_fix_label_follows_the_ui_language() {
 /// a tutorial is a "zelfstudie" in the Dutch window, as Help ▸ Zelfstudies names it; the Properties card's title puts
 /// the command's title mid-sentence in Dutch (`IN_SENTENCE`), as the Preview tab does.
 #[test]
-fn ft53a_the_reworded_texts_in_both_languages() {
+fn the_reworded_texts_in_both_languages() {
     let texts = || {
         [
             strings::format(key!("refusal-import-unknown-kind"), &["X"]),

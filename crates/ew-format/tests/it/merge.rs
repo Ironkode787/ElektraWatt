@@ -61,7 +61,7 @@ fn merge_text(path: &str, o: &str, a: &str, b: &str) -> (String, usize) {
 // ---- MD-1: the record table -------------------------------------------------------------------------------------
 
 #[test]
-fn md1_a_record_on_one_side_only_is_kept() {
+fn a_record_on_one_side_only_is_kept() {
     let a = rec("connection", json!({"page": "p"}));
     assert_eq!(merged(None, Some(&a), None), (text(&a), None));
     assert_eq!(merged(None, None, Some(&a)), (text(&a), None));
@@ -69,7 +69,7 @@ fn md1_a_record_on_one_side_only_is_kept() {
 }
 
 #[test]
-fn md1_a_record_added_differently_on_both_sides_merges_per_member_with_an_empty_base() {
+fn a_record_added_differently_on_both_sides_merges_per_member_with_an_empty_base() {
     let a = rec("connection", json!({"page": "p", "overrides": {"csa": "1.5"}}));
     let b = rec("connection", json!({"number": 7, "overrides": {"csa": "2.5"}}));
     let (merged, conflict) = merged(None, Some(&a), Some(&b));
@@ -88,7 +88,7 @@ fn md1_a_record_added_differently_on_both_sides_merges_per_member_with_an_empty_
 }
 
 #[test]
-fn md1_a_record_deleted_on_one_side_and_unchanged_on_the_other_is_deleted() {
+fn a_record_deleted_on_one_side_and_unchanged_on_the_other_is_deleted() {
     let o = rec("connection", json!({"page": "p"}));
     assert_eq!(merged(Some(&o), None, None), (None, None));
     assert_eq!(merged(Some(&o), None, Some(&o)), (None, None));
@@ -96,7 +96,7 @@ fn md1_a_record_deleted_on_one_side_and_unchanged_on_the_other_is_deleted() {
 }
 
 #[test]
-fn md1_delete_modify_keeps_the_modified_side_with_a_conflict_of_its_changes() {
+fn delete_modify_keeps_the_modified_side_with_a_conflict_of_its_changes() {
     let o = rec("connection", json!({"page": "p", "overrides": {"csa": "1.5"}}));
     let b = rec(
         "connection",
@@ -119,7 +119,7 @@ fn md1_delete_modify_keeps_the_modified_side_with_a_conflict_of_its_changes() {
 }
 
 #[test]
-fn md1_disjoint_member_edits_on_both_sides_merge_cleanly() {
+fn disjoint_member_edits_on_both_sides_merge_cleanly() {
     let o = rec("connection", json!({"page": "p", "number": 1}));
     let a = rec("connection", json!({"page": "q", "number": 1}));
     let b = rec("connection", json!({"page": "p"}));
@@ -130,7 +130,7 @@ fn md1_disjoint_member_edits_on_both_sides_merge_cleanly() {
 }
 
 #[test]
-fn md1_an_atomic_member_changed_on_both_sides_conflicts_and_keeps_ours() {
+fn an_atomic_member_changed_on_both_sides_conflicts_and_keeps_ours() {
     let o = rec("connection", json!({"page": "p"}));
     let a = rec("connection", json!({"page": "q"}));
     let b = rec("connection", json!({}));
@@ -146,7 +146,7 @@ fn md1_an_atomic_member_changed_on_both_sides_conflicts_and_keeps_ours() {
 // ---- MD-1: the strategies ---------------------------------------------------------------------------------------
 
 #[test]
-fn md1_object_merges_the_overrides_member_by_member() {
+fn object_merges_the_overrides_member_by_member() {
     // AC-41's clean variant (D29): A adds colour BU, B sets csa 2.5.
     let o = rec(
         "connection",
@@ -173,7 +173,7 @@ fn md1_object_merges_the_overrides_member_by_member() {
 }
 
 #[test]
-fn md1_object_conflict_holds_only_the_conflicting_member() {
+fn object_conflict_holds_only_the_conflicting_member() {
     // AC-41's conflict variant: B also adds colour WH.
     let o = rec(
         "connection",
@@ -197,7 +197,7 @@ fn md1_object_conflict_holds_only_the_conflicting_member() {
 }
 
 #[test]
-fn md1_an_object_absent_on_one_side_counts_as_empty() {
+fn an_object_absent_on_one_side_counts_as_empty() {
     let o = rec("connection", json!({"overrides": {"csa": "1.5"}}));
     let a = rec("connection", json!({}));
     let b = rec(
@@ -214,7 +214,7 @@ fn md1_an_object_absent_on_one_side_counts_as_empty() {
 }
 
 #[test]
-fn md1_an_object_strategy_needs_the_member_at_the_base() {
+fn an_object_strategy_needs_the_member_at_the_base() {
     let o = rec("connection", json!({}));
     let a = rec("connection", json!({"overrides": {"csa": "1.5"}}));
     let b = rec("connection", json!({"overrides": {"colour": ["BU"]}}));
@@ -228,7 +228,7 @@ fn md1_an_object_strategy_needs_the_member_at_the_base() {
 }
 
 #[test]
-fn md1_below_an_object_members_are_atomic() {
+fn below_an_object_members_are_atomic() {
     let o = rec("connection", json!({"overrides": {"flags": {"shielded": true}}}));
     let a = rec(
         "connection",
@@ -245,7 +245,7 @@ fn md1_below_an_object_members_are_atomic() {
 }
 
 #[test]
-fn md1_an_enum_changed_to_different_variants_is_one_conflict_without_a_union() {
+fn an_enum_changed_to_different_variants_is_one_conflict_without_a_union() {
     let o = rec("connection", json!({"kind": {"bridge": {"group": 1}}}));
     let a = rec(
         "connection",
@@ -262,7 +262,7 @@ fn md1_an_enum_changed_to_different_variants_is_one_conflict_without_a_union() {
 }
 
 #[test]
-fn md1_keyed_cp_overrides_merge_by_idx_in_numeric_order() {
+fn keyed_cp_overrides_merge_by_idx_in_numeric_order() {
     let o = rec(
         "function",
         json!({"cp_overrides": [{"idx": 1, "alias": "A"}, {"idx": 9, "alias": "B"}]}),
@@ -288,7 +288,7 @@ fn md1_keyed_cp_overrides_merge_by_idx_in_numeric_order() {
 }
 
 #[test]
-fn md1_a_keyed_conflict_holds_ours_and_theirs_lists_as_merged() {
+fn a_keyed_conflict_holds_ours_and_theirs_lists_as_merged() {
     let o = rec(
         "function",
         json!({"cp_overrides": [{"idx": 1, "alias": "A"}, {"idx": 9, "alias": "B"}]}),
@@ -314,7 +314,7 @@ fn md1_a_keyed_conflict_holds_ours_and_theirs_lists_as_merged() {
 }
 
 #[test]
-fn md1_a_keyed_list_whose_keys_mix_integers_and_other_numbers_merges_atomically() {
+fn a_keyed_list_whose_keys_mix_integers_and_other_numbers_merges_atomically() {
     // 40 elements, more than a sort orders by insertion alone: `idx` 1 to 20 and 1.5 to 20.5, which no order sorts both
     // as numbers and as text (10 < 2.5 by text, 2.5 < 3 by number). The keys are neither all unsigned integers nor
     // all strings, so the list merges as one value.
@@ -343,7 +343,7 @@ fn md1_a_keyed_list_whose_keys_mix_integers_and_other_numbers_merges_atomically(
 }
 
 #[test]
-fn md1_keyed_tech_data_merges_by_key_in_byte_order() {
+fn keyed_tech_data_merges_by_key_in_byte_order() {
     let o = rec(
         "device",
         json!({"tech_data": [{"key": "curve", "value": "B"}, {"key": "i_out", "value": "6 A"}]}),
@@ -369,7 +369,7 @@ fn md1_keyed_tech_data_merges_by_key_in_byte_order() {
 }
 
 #[test]
-fn md1_a_part_s_keyed_tech_data_merges_by_key() {
+fn a_part_s_keyed_tech_data_merges_by_key() {
     // D13's `keyed(key)` names `tech_data` without a kind: a part's list merges as a device's does.
     let o = rec("part", json!({"tech_data": [{"key": "curve", "value": "B"}]}));
     let a = rec(
@@ -390,7 +390,7 @@ fn md1_a_part_s_keyed_tech_data_merges_by_key() {
 }
 
 #[test]
-fn md1_a_device_s_tag_and_the_project_s_settings_merge_member_by_member() {
+fn a_device_s_tag_and_the_project_s_settings_merge_member_by_member() {
     // MD-1's "each row": without its row, either member would merge atomically and conflict here.
     for (kind, member) in [("device", "tag"), ("project", "settings")] {
         let side = |x: u8, y: u8| rec(kind, json!({member: {"x": x, "y": y}}));
@@ -403,7 +403,7 @@ fn md1_a_device_s_tag_and_the_project_s_settings_merge_member_by_member() {
 }
 
 #[test]
-fn md1_keyed_parties_merge_by_role_in_ours_order_then_theirs_additions() {
+fn keyed_parties_merge_by_role_in_ours_order_then_theirs_additions() {
     let o = rec("project", json!({"parties": [{"role": "customer", "name": "c"}]}));
     let a = rec(
         "project",
@@ -426,7 +426,7 @@ fn md1_keyed_parties_merge_by_role_in_ours_order_then_theirs_additions() {
 }
 
 #[test]
-fn md1_two_parties_of_one_role_merge_the_member_atomically() {
+fn two_parties_of_one_role_merge_the_member_atomically() {
     let o = rec("project", json!({"parties": [{"role": "customer", "name": "c"}]}));
     let a = rec(
         "project",
@@ -446,7 +446,7 @@ fn md1_two_parties_of_one_role_merge_the_member_atomically() {
 }
 
 #[test]
-fn md1_a_set_keeps_both_sides_additions_less_either_sides_removals_sorted() {
+fn a_set_keeps_both_sides_additions_less_either_sides_removals_sorted() {
     let o = rec("structure_node", json!({"aliases": ["JE2416", "M"]}));
     let a = rec("structure_node", json!({"aliases": ["JE2416", "M", "ZZ"]}));
     let b = rec("structure_node", json!({"aliases": ["AA", "M"]}));
@@ -460,7 +460,7 @@ fn md1_a_set_keeps_both_sides_additions_less_either_sides_removals_sorted() {
 }
 
 #[test]
-fn md1_a_set_of_a_plain_list_keeps_ours_order_then_theirs_additions() {
+fn a_set_of_a_plain_list_keeps_ours_order_then_theirs_additions() {
     let o = rec("manufacturer", json!({"aliases": ["Schneider", "Merlin"]}));
     let a = rec("manufacturer", json!({"aliases": ["Schneider", "Merlin", "SE"]}));
     let b = rec("manufacturer", json!({"aliases": ["Telemecanique", "Schneider"]}));
@@ -477,7 +477,7 @@ fn md1_a_set_of_a_plain_list_keeps_ours_order_then_theirs_additions() {
 }
 
 #[test]
-fn md1_max_takes_the_later_edited_date_and_its_object_merges_beside_it() {
+fn max_takes_the_later_edited_date_and_its_object_merges_beside_it() {
     let o = rec(
         "project",
         json!({"master": {"description": "x", "edited": "2025-04-14"}}),
@@ -525,7 +525,7 @@ fn md1_max_takes_the_later_edited_date_and_its_object_merges_beside_it() {
 }
 
 #[test]
-fn md1_a_record_of_a_kind_this_reader_does_not_implement_merges_as_a_whole() {
+fn a_record_of_a_kind_this_reader_does_not_implement_merges_as_a_whole() {
     for kind in ["frobnicator", "comment"] {
         let o = rec(kind, json!({"x": 1, "y": 1}));
         let a = rec(kind, json!({"x": 2, "y": 1}));
@@ -905,7 +905,7 @@ fn mix(r: &Value, s: &Value, pick: &dyn Fn(usize) -> bool) -> Value {
 }
 
 #[test]
-fn md3_typed_records_and_documents_of_golden_a_merge_typed() {
+fn typed_records_and_documents_of_golden_a_merge_typed() {
     let mut by_kind: BTreeMap<String, Vec<Value>> = BTreeMap::new();
     for (path, bytes) in golden() {
         let text = String::from_utf8(bytes).expect("UTF-8");
@@ -958,7 +958,7 @@ fn md3_typed_records_and_documents_of_golden_a_merge_typed() {
 }
 
 #[test]
-fn md3_the_project_merges_typed_through_its_strategies() {
+fn the_project_merges_typed_through_its_strategies() {
     let files = golden();
     let text = String::from_utf8(files["project.jsonl"].clone()).expect("UTF-8");
     let line = text.lines().next().expect("the project line");
@@ -1060,7 +1060,7 @@ fn file_conflict(side: &str, text: &str) -> String {
 }
 
 #[test]
-fn md4_a_side_that_does_not_parse_keeps_the_other_with_one_file_level_conflict() {
+fn a_side_that_does_not_parse_keeps_the_other_with_one_file_level_conflict() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let broken = format!("{base}{{\"$k\":\"connection\",\r\n");
     assert_eq!(
@@ -1137,7 +1137,7 @@ fn rewritten() -> ew_format::Finding {
 /// cleanly, `colour` (both) keeps ours with one conflict record, the same as the merge driver's (MD-6); the file opens
 /// editable and is rewritten canonically.
 #[test]
-fn cr2_diff3_markers_on_w20_merge_to_one_conflict_record_and_the_clean_parts() {
+fn markers_on_w20_merge_to_one_conflict_record_and_the_clean_parts() {
     let file = page_with_hunk(
         r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#,
         Some(W20_OVERRIDES),
@@ -1184,7 +1184,7 @@ fn a_conflict_record_without_its_target_is_kept_verbatim_and_reported() {
 /// CR-2: without a base the hunk takes D18's no-base rule: ours kept, one conflict holding each member that differs
 /// whole, base `{}`.
 #[test]
-fn cr2_markers_without_a_base_keep_ours_with_a_conflict_of_every_differing_member() {
+fn markers_without_a_base_keep_ours_with_a_conflict_of_every_differing_member() {
     let ours = r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#;
     let file = page_with_hunk(
         ours,
@@ -1206,7 +1206,7 @@ fn cr2_markers_without_a_base_keep_ours_with_a_conflict_of_every_differing_membe
 /// CR-2: a side line that does not parse (torn) leaves the markers as they are: EW-CORE-006 on each marker line, the
 /// lines read as before (the torn one EW-CORE-005, W20 of both sides EW-CORE-009), read-only.
 #[test]
-fn cr2_a_torn_line_in_a_hunk_keeps_the_file_ew_core_006_and_read_only() {
+fn a_torn_line_in_a_hunk_keeps_the_file_ew_core_006_and_read_only() {
     let file = page_with_hunk(
         r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#,
         Some(W20_OVERRIDES),
@@ -1233,7 +1233,7 @@ fn cr2_a_torn_line_in_a_hunk_keeps_the_file_ew_core_006_and_read_only() {
 }
 
 #[test]
-fn md4_a_side_with_a_newer_record_or_format_keeps_the_other_side() {
+fn a_side_with_a_newer_record_or_format_keeps_the_other_side() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let (_, newer) = page_with(r#""$v":2,"overrides":{"csa":"2.5","show_marker":true}"#);
     assert_eq!(
@@ -1261,7 +1261,7 @@ fn md4_a_side_with_a_newer_record_or_format_keeps_the_other_side() {
 }
 
 #[test]
-fn md4_a_side_above_a_reader_limit_keeps_the_other_side() {
+fn a_side_above_a_reader_limit_keeps_the_other_side() {
     let (base, ours) = page_with(r#""overrides":{"csa":"1.5","colour":["BU"],"show_marker":true}"#);
     let deep = format!("{}1{}", "[".repeat(80), "]".repeat(80));
     let (_, theirs) = page_with(&format!(

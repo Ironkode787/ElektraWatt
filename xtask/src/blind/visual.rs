@@ -793,7 +793,7 @@ mod tests {
 
     /// BV2: each input checks its members and bounds with the driver's texts.
     #[test]
-    fn bv2_the_inputs_are_checked_with_the_drivers_texts() {
+    fn the_inputs_are_checked_with_the_drivers_texts() {
         let err = |v: Value| check_input(&obj(v)).unwrap_err();
         assert_eq!(
             err(json!({"input": "click", "x": 1536, "y": 0})),
@@ -870,7 +870,7 @@ mod tests {
     /// BV7: a batch is 1 to 12 inputs, waits at most 10 s, and holds no action line; the `key=value` form types the
     /// integer members.
     #[test]
-    fn bv7_the_batch_and_the_key_value_form() {
+    fn the_batch_and_the_key_value_form() {
         let line = r#"{"input":"click","x":10,"y":10}"#;
         let batch = |n: usize| vec![line; n].join("\n");
         assert_eq!(parse_inputs(&batch(12)).unwrap().len(), 12);
@@ -988,7 +988,7 @@ mod tests {
     /// BV7: every input of a batch is sent (a refused one too, no broken rule), the frame follows, `do` prints only
     /// the frame's path; a note is needed before the next `do`; looks and zooms are frames, three per turn.
     #[test]
-    fn bv7_a_visual_do_sends_every_input_and_prints_only_the_frame() {
+    fn a_visual_do_sends_every_input_and_prints_only_the_frame() {
         let mut f = visual_fixture();
         let batch = inputs(&[
             json!({"input": "click", "x": 5, "y": 50}),
@@ -1054,7 +1054,7 @@ mod tests {
     /// BV7: the input cap ends the run; the application closing ends it `app-closed`, after which a hand-back with
     /// the play-tester's eight headings is filed.
     #[test]
-    fn bv7_caps_and_the_closed_application_end_the_run() {
+    fn caps_and_the_closed_application_end_the_run() {
         let mut f = visual_fixture();
         f.run.update(|j| j.caps.steps = 2).unwrap();
         let three = inputs(&[

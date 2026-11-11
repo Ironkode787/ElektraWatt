@@ -98,7 +98,7 @@ fn terminals_of(h: &Harness<'_, App>, strip: &str) -> usize {
 }
 
 #[test]
-fn ax5_the_five_core_tasks_with_key_events_only() {
+fn the_five_core_tasks_with_key_events_only() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let pdf = tmp.0.join("out.pdf");

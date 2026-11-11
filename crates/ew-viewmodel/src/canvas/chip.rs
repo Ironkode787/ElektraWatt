@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[test]
-    fn ov2_the_preferred_anchor_is_above_right_8_points_off() {
+    fn the_preferred_anchor_is_above_right_8_points_off() {
         let p = place_chip(target(), SIZE, &canvas(), None);
         assert!(!p.faded);
         assert_eq!(p.rect.min, Pos2::new(208.0, 172.0));
@@ -194,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn ov2_each_fallback_in_order() {
+    fn each_fallback_in_order() {
         let c = candidates(target(), SIZE);
         // Above right taken: below right.
         let p = place_chip(target(), SIZE, &[c[0]], None);
@@ -211,7 +211,7 @@ mod tests {
     }
 
     #[test]
-    fn ov2_all_rejected_is_the_preferred_anchor_faded() {
+    fn all_rejected_is_the_preferred_anchor_faded() {
         let c = candidates(target(), SIZE);
         let p = place_chip(target(), SIZE, &c, None);
         assert!(p.faded);
@@ -234,7 +234,7 @@ mod tests {
     /// The frame-statistics panel, the tool HUD and the pointer's 16-point box are obstacles like any
     /// chip.
     #[test]
-    fn ov2_the_hud_is_an_obstacle() {
+    fn the_hud_is_an_obstacle() {
         // The statistics panel at the canvas's top right.
         let panel = Rect::from_min_max(Pos2::new(600.0, 12.0), Pos2::new(788.0, 140.0));
         let under_panel = Rect::point(Pos2::new(650.0, 135.0));
@@ -327,7 +327,7 @@ mod tests {
 
     /// The outside of the canvas: near the top-left corner the preferred anchor would leave it.
     #[test]
-    fn ov2_chips_stay_inside_the_canvas() {
+    fn chips_stay_inside_the_canvas() {
         let t = Rect::point(Pos2::new(4.0, 4.0));
         let p = place_chip(t, SIZE, &canvas(), None);
         assert_eq!(p.rect.min, Pos2::new(12.0, 12.0), "below right");
@@ -338,7 +338,7 @@ mod tests {
 
     /// Chips placed one after another, each an obstacle for the next, never intersect.
     #[test]
-    fn ov2_successive_chips_never_intersect() {
+    fn successive_chips_never_intersect() {
         let mut obstacles = canvas();
         let mut placed = Vec::new();
         for k in 0..4 {

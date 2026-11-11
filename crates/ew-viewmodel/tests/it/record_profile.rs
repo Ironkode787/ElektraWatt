@@ -52,7 +52,7 @@ fn open(tmp: &Tmp, dir: &Path, libraries: Option<LibraryTiers>) -> ShellModel {
 }
 
 #[test]
-fn ft1425_the_record_holds_the_embed_that_choosing_a_library_profile_runs() {
+fn the_record_holds_the_embed_that_choosing_a_library_profile_runs() {
     let tmp = Tmp::new("ft1425");
     let t = tiers(&tmp.0);
     let mut reg = Registry::open(&t).unwrap();

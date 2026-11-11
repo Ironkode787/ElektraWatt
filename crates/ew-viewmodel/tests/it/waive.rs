@@ -312,7 +312,7 @@ fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_decl
 /// keyed by one) adds the wires that end at it to the overlay, in the page's connection order; a point without wires
 /// is a closed ring one grid step across, centred on the point; nothing named, nothing drawn.
 #[test]
-fn ft696_a_named_connection_point_draws_its_wires_or_its_ring() {
+fn a_named_connection_point_draws_its_wires_or_its_ring() {
     let tmp = Tmp::new("ft696");
     let mut shell = tmp.shell_in(Mode::Gui, true, "103");
     let page = std::sync::Arc::clone(shell.canvas().expect("folio 103").page());
@@ -362,7 +362,7 @@ fn ft696_a_named_connection_point_draws_its_wires_or_its_ring() {
 /// `conflict_overlay`, exactly the wires of the connection point its discriminator names: the overlay is that of one
 /// point of the page, and no definition gives members.
 #[test]
-fn ft696_an_undefined_potential_s_finding_draws_its_named_point() {
+fn an_undefined_potential_s_finding_draws_its_named_point() {
     let tmp = Tmp::new("ft696-finding");
     let mut shell = without_b1(&tmp);
     // Each pass deletes the definition a potential row stands for; a merged potential's next one then shows.

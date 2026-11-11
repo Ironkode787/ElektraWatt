@@ -134,7 +134,7 @@ fn set_address(s: &mut Session, c: Id<Channel>, value: &str) {
 /// print I0.0 … I0.7 and the output card's Q0.0 … Q0.7 in the page's labels layer; `fields.set address "I4.0"` on
 /// channel 0 changes the print, undo restores it; an excluded address prints nothing.
 #[test]
-fn pt1_the_card_pins_print_their_channel_addresses() {
+fn the_card_pins_print_their_channel_addresses() {
     let mut s = fresh(21);
     place(&mut s, "EW-GEN-CPU-1", 1, false);
     let di = place(&mut s, "EW-GEN-DI-1", 2, true);
@@ -169,7 +169,7 @@ fn pt1_the_card_pins_print_their_channel_addresses() {
 
 /// The pin texts sit inside the box, 1 mm from their pin: a top pin's text below it, read bottom to top.
 #[test]
-fn pt1_a_pin_text_is_placed_inside_the_box_beside_its_pin() {
+fn a_pin_text_is_placed_inside_the_box_beside_its_pin() {
     let mut s = fresh(22);
     place(&mut s, "EW-GEN-CPU-1", 1, false);
     place(&mut s, "EW-GEN-DI-1", 2, true);
@@ -199,7 +199,7 @@ fn pt1_a_pin_text_is_placed_inside_the_box_beside_its_pin() {
 /// The restated PT-2: in a new project with the CPU and the output card, a starter coil attached to the card and
 /// bound to its channel 0 prints Q0.0 in its `PlcAddress` slot; `fields.set address` changes it and undo restores it.
 #[test]
-fn pt2_a_starter_coil_bound_to_an_output_channel_prints_its_address() {
+fn a_starter_coil_bound_to_an_output_channel_prints_its_address() {
     let mut s = fresh(23);
     place(&mut s, "EW-GEN-CPU-1", 1, false);
     let dout = place(&mut s, "EW-GEN-DO-1", 2, false);

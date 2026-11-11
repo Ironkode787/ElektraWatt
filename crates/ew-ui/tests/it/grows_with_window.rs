@@ -103,7 +103,7 @@ fn the_part_picker_grows_with_the_window() {
 /// Device from part keeps its width while the filter narrows its rows, and its window stays
 /// inside the app's window with `space.6` free on each side (its content inside `space.5` margins), at both sizes.
 #[test]
-fn id1439_the_part_picker_keeps_its_width_and_stays_inside_the_window() {
+fn the_part_picker_keeps_its_width_and_stays_inside_the_window() {
     for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, size);
@@ -141,7 +141,7 @@ fn id1439_the_part_picker_keeps_its_width_and_stays_inside_the_window() {
 /// ID-1427 (W52 F2, §6.22): in Device from part the part names are whole at the floor and at 1920, beside a part
 /// number as long as Golden A's "32P-VGL-R-…" order code: the table uses the space it has.
 #[test]
-fn id1427_part_names_are_whole_in_device_from_part() {
+fn part_names_are_whole_in_device_from_part() {
     for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, size);
@@ -186,7 +186,7 @@ fn id1427_part_names_are_whole_in_device_from_part() {
 /// edge (the picker now takes the width its columns need, so these stand whole), and the row's tooltip ends
 /// with the whole text.
 #[test]
-fn ft1143_a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip() {
+fn a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
     open_part_picker(&mut h);
@@ -241,7 +241,7 @@ fn ft1143_a_part_rows_function_is_cut_with_an_ellipsis_and_whole_in_its_tooltip(
 /// A part row's tooltip in Device from part is its description, its maker and part
 /// number, and its function in words, never a FnDef key.
 #[test]
-fn ft1514_a_part_rows_tooltip_ends_with_its_function_in_words() {
+fn a_part_rows_tooltip_ends_with_its_function_in_words() {
     use ew_viewmodel::{key, strings, tools::PickerRow};
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
@@ -307,7 +307,7 @@ fn selected_labels(h: &Harness<'_, App>) -> Vec<String> {
 /// The palette and the part picker tell AccessKit which row is selected, the cursor's
 /// row alone.
 #[test]
-fn ft1255_the_palette_and_the_picker_mark_their_selected_row() {
+fn the_palette_and_the_picker_mark_their_selected_row() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
     dispatch(&mut h, "tools.palette", json!({}));
@@ -578,7 +578,7 @@ fn the_strip_editor_shows_its_side_columns_at_1920() {
 /// ID-1427 (W52 F15): at 1920 the Libraries table shows its last column, State, without scrolling sideways: the left
 /// column grows by what the table lacks.
 #[test]
-fn id1427_the_libraries_table_shows_its_state_column_at_1920() {
+fn the_libraries_table_shows_its_state_column_at_1920() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "navigator.show", json!({"kind": "libraries"}));

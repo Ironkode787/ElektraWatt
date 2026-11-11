@@ -26,7 +26,7 @@ fn reps(h: &Harness<'_, App>) -> usize {
 }
 
 #[test]
-fn pl6_a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the_dwell() {
+fn a_terminal_joins_x1031_from_the_keyboard_with_the_predicted_tag_after_the_dwell() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     let before = reps(&h);
@@ -149,7 +149,7 @@ fn the_picker_filter_keeps_the_first_typed_character() {
 }
 
 #[test]
-fn pl8_exact_counts_of_place_move_and_the_picker_in_the_window() {
+fn exact_counts_of_place_move_and_the_picker_in_the_window() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     dispatch(&mut h, "place.pick", json!({"symbol": "ew.iec.mcb-1p@qet10"}));
@@ -324,7 +324,7 @@ fn a_double_click_with_the_wire_tool_is_its_finish() {
 /// on its empty state, which says why and offers New terminal strip; the button creates a strip, which the chooser
 /// lists as its current row, and choosing it arms the Place tool.
 #[test]
-fn ft605_a_terminal_without_strips_says_why_and_offers_a_new_strip() {
+fn a_terminal_without_strips_says_why_and_offers_a_new_strip() {
     use ew_ui::ew_viewmodel::shell::{Mode, ShellModel};
     use ew_ui::ew_viewmodel::tools::PickerMode;
     let tmp = Tmp::new();
@@ -395,7 +395,7 @@ fn chord_of(h: &Harness<'_, App>, id: &str) -> (Key, Modifiers) {
 /// The Device button (`tool.place_part`, Shift+I by default) opens a dialog titled "Insert device"; the
 /// Symbol tool (`tool.place`, I) keeps "Insert symbol". Both keys are read from the keymap.
 #[test]
-fn ft890_the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_symbol() {
+fn the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_symbol() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "101");
     let (key, mods) = chord_of(&h, "tool.place_part");
@@ -425,7 +425,7 @@ fn ft890_the_device_picker_is_titled_insert_device_and_the_symbol_picker_insert_
 /// from part… (its key from the keymap) filtered by `A9F78116` lists the project's own copy, which has no function
 /// template; choosing it asks for its symbol, and the MCB symbol places -102F1 with its part, in one undo step.
 #[test]
-fn ft1375_device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
+fn device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "102");
     // The place cursor starts at the middle of Fit page's view (the first view is fit-width).

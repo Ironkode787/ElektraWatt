@@ -147,7 +147,7 @@ fn manifest_on(vfs: &MemVfs, root: &Path) -> Manifest {
 /// MG-1 through the store: the `"0.0"` project opens editable and migrated, with no finding for the file a step
 /// changed; that file, and only it, is in the next save; the shipped chain is empty and refuses the open.
 #[test]
-fn mg1_an_older_project_opens_migrated_with_its_changed_files_dirty() {
+fn an_older_project_opens_migrated_with_its_changed_files_dirty() {
     let (vfs, root) = mem_of(files_v0());
     let Opened { store, model, report } = Store::open(&root, chain_options(&vfs, &CHAIN)).expect("opens");
     assert_eq!(report.access, Access::Edit);
@@ -177,7 +177,7 @@ fn mg1_an_older_project_opens_migrated_with_its_changed_files_dirty() {
 
 /// MG-2: a step that fails refuses the open with its file, line and pointer; nothing on disk changes.
 #[test]
-fn mg2_a_failing_step_refuses_the_open_and_changes_nothing() {
+fn a_failing_step_refuses_the_open_and_changes_nothing() {
     let (vfs, root) = mem_of(files_v0());
     let before = vfs.files(&root);
     let e = Store::open(&root, chain_options(&vfs, &FAILING)).expect_err("refused");

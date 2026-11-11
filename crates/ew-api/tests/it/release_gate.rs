@@ -103,7 +103,7 @@ fn open_revision(s: &Session) -> std::sync::Arc<Revision> {
 /// release` (with the integrity findings of opening) plus EW-REL-001 "checker not set"; it refuses. The gate runs on a
 /// read-only session (no lock); the label must be the open revision's.
 #[test]
-fn rg4_the_gate_on_golden_a_is_the_release_run_plus_checker_not_set() {
+fn the_gate_on_golden_a_is_the_release_run_plus_checker_not_set() {
     let (s, report) = Session::open_read_only(&golden(), "wp-s1-18-part3").expect("Golden A opens read-only");
     let integrity = ew_api::integrity_items(&report);
     let gate = s.release_gate("V2.0", &integrity).expect("the gate runs");
@@ -180,7 +180,7 @@ fn the_gate_needs_a_saved_generation_and_approval_the_write_lock() {
 /// - RG-5: the facade refuses `revision.approve` outside the approval, a script gets the exposure error, and a
 ///   `.ewcmd` line naming it is refused with the exposure error before any line runs.
 #[test]
-fn rg1_to_rg5_approve_the_saved_revision_bound_to_its_content() {
+fn approve_the_saved_revision_bound_to_its_content() {
     let copy = ew_testdir::fresh_dir("ew-part3-approve");
     let state = ew_testdir::fresh_dir("ew-part3-approve-state");
     common::copy_dir(&golden(), &copy);

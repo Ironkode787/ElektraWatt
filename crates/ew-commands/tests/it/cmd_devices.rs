@@ -562,7 +562,7 @@ fn assert_not_split(e: &Engine, r: &Receipt, wire: ew_ids::Id<Connection>, befor
 }
 
 #[test]
-fn ft1020_a_two_pin_symbol_or_a_terminal_dropped_on_an_unrouted_wire_does_not_split_it() {
+fn a_two_pin_symbol_or_a_terminal_dropped_on_an_unrouted_wire_does_not_split_it() {
     // The unrouted wire's straight line runs up from B's CP 0 at (0, 6G) to A's CP 1 at (0, 10 mm).
     let terminal = PlaceTarget::NewTerminal {
         strip: DEV_X1031,
@@ -579,7 +579,7 @@ fn ft1020_a_two_pin_symbol_or_a_terminal_dropped_on_an_unrouted_wire_does_not_sp
 }
 
 #[test]
-fn ft1020_an_unrouted_wire_is_split_nowhere() {
+fn an_unrouted_wire_is_split_nowhere() {
     // B at (4G, 6G): the retired provisional path drew the wire up to the corner (4G, 10 mm), then left to A's CP 1 at
     // (0, 10 mm). Neither leg is a wire now: a drop on either splits nothing.
     for at in [pt(0, 2 * G), pt(4 * G, 2 * G)] {
@@ -591,7 +591,7 @@ fn ft1020_an_unrouted_wire_is_split_nowhere() {
 }
 
 #[test]
-fn ft1020_a_routed_wire_drawn_on_the_line_of_a_wire_without_a_route_is_split_first() {
+fn a_routed_wire_drawn_on_the_line_of_a_wire_without_a_route_is_split_first() {
     // A routed wire along x = 0 from (0, 10 mm) to (0, 6G), with an ID above every minted one, under the hinted wire.
     let routed: ew_ids::Id<Connection> = id(u128::MAX - 1);
     let mut original = connection(routed, Some(PAGE_102), cp(FN_102G1, 0), cp(FN_T1, 1));

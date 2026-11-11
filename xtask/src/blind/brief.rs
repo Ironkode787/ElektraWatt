@@ -889,7 +889,7 @@ mod tests {
     /// BV9: a brief with two hard items, a drawing line in its prelude, an action ID in its text, an unknown `how`
     /// and an unmet requirement is not runnable, and each problem is named.
     #[test]
-    fn bv9_a_broken_brief_is_not_runnable_and_says_why() {
+    fn a_broken_brief_is_not_runnable_and_says_why() {
         let (tmp, dir) = copy_brief("brief-valve-switch");
         let acceptance = std::fs::read_to_string(dir.join("acceptance.toml")).unwrap();
         // Two hard items only: A3 to A6 become soft; A1 decides by a word that is not an output.
@@ -963,7 +963,7 @@ mod tests {
     /// UR-2: an `actions` item is met when its actions were done in that order (others between them allowed, an
     /// alternative joined by ` or ` counts), and not met when one is missing, refused or out of order.
     #[test]
-    fn ur2_actions_are_met_in_order_only() {
+    fn actions_are_met_in_order_only() {
         let want: Vec<String> = ["nav.follow or props.follow", "nav.back"]
             .map(str::to_owned)
             .to_vec();
@@ -1046,7 +1046,7 @@ mod tests {
     /// UR-2, D7: [`decide_items`] decides an `actions` item from the actions, a query item from its rows and an output
     /// item from the outputs, in the items' order.
     #[test]
-    fn ur2_decide_items_reads_the_actions_the_queries_and_the_outputs() {
+    fn decide_items_reads_the_actions_the_queries_and_the_outputs() {
         let tmp = crate::blind::testkit::Tmp::new("brief-decide");
         let acceptance: Acceptance = toml::from_str(
             "[[item]]\nid = \"A1\"\nkind = \"hard\"\nwhat = \"x\"\nhow = \"outcomes\"\nactions = [\"nav.follow\", \"nav.back\"]\n\n\
@@ -1120,7 +1120,7 @@ mod tests {
     /// reference solution from its start project. Needs `elektrawatt` and `ew` built in `target/debug`; without them
     /// the test says so and checks nothing.
     #[test]
-    fn ur8_the_usability_tasks_replay_on_the_build() {
+    fn the_usability_tasks_replay_on_the_build() {
         let root = crate::workspace_root();
         let bin = root.join("target/debug");
         let built = ["elektrawatt", "ew"]
@@ -1147,7 +1147,7 @@ mod tests {
 
     /// Two checks of one brief never share a scratch folder, in one process or under one parent.
     #[test]
-    fn bv9_every_check_gets_its_own_scratch_folder() {
+    fn every_check_gets_its_own_scratch_folder() {
         let parent = Path::new("parent");
         let (a, b) = (scratch(parent, "brief-x"), scratch(parent, "brief-x"));
         assert_ne!(a, b);
@@ -1163,7 +1163,7 @@ mod tests {
     /// so and checks nothing. Its scratch folders live in a temporary folder of its own, removed after it, so a parallel
     /// run shares none of them.
     #[test]
-    fn bv9_check_brief_replays_the_reference_solutions() {
+    fn check_brief_replays_the_reference_solutions() {
         let root = crate::workspace_root();
         let bin = root.join("target/debug");
         let built = ["elektrawatt", "ew"]

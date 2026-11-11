@@ -236,7 +236,7 @@ fn numbers(hits: &[PartHit]) -> Vec<&str> {
 
 /// IX-8, the first check: FTS5 and the trigram tokenizer are in the bundled SQLite.
 #[test]
-fn ix8_fts5_and_the_trigram_tokenizer_are_available() {
+fn fts5_and_the_trigram_tokenizer_are_available() {
     let c = rusqlite::Connection::open_in_memory().unwrap();
     let v: String = c.query_row("SELECT sqlite_version()", [], |r| r.get(0)).unwrap();
     assert!(
@@ -264,7 +264,7 @@ fn ix8_fts5_and_the_trigram_tokenizer_are_available() {
 
 /// IX-1: the part number in any spelling, a substring and words of the description find A9P52610.
 #[test]
-fn ix1_a_part_is_found_by_number_substring_and_description() {
+fn a_part_is_found_by_number_substring_and_description() {
     let f = Fixture::new("ew-library-ix1");
     let mut reg = f.open();
     let lib = company(&f, &mut reg);
@@ -305,7 +305,7 @@ fn ix1_a_part_is_found_by_number_substring_and_description() {
 /// IX-2: canonical JSONL, one changed line per changed part between two generations, the manifest last, and a writer
 /// killed between shard and manifest leaves the old generation readable.
 #[test]
-fn ix2_writes_are_canonical_and_a_killed_writer_leaves_the_old_generation() {
+fn writes_are_canonical_and_a_killed_writer_leaves_the_old_generation() {
     let f = Fixture::new("ew-library-ix2");
     let mut reg = f.open();
     let lib = company(&f, &mut reg);
@@ -567,7 +567,7 @@ fn an_index_failure_after_the_commit_is_reported_with_the_write() {
 /// IX-3: a deleted index is rebuilt with the same results; a truncated one is replaced; a changed library reindexes
 /// only itself.
 #[test]
-fn ix3_the_index_is_rebuilt_and_only_what_changed_is_reindexed() {
+fn the_index_is_rebuilt_and_only_what_changed_is_reindexed() {
     let f = Fixture::new("ew-library-ix3");
     let mut reg = f.open();
     company(&f, &mut reg);
@@ -676,7 +676,7 @@ fn ix3_the_index_is_rebuilt_and_only_what_changed_is_reindexed() {
 
 /// IX-4: system and community libraries refuse writes; the index lives in the cache directory only.
 #[test]
-fn ix4_read_only_tiers_and_no_sqlite_outside_the_cache() {
+fn read_only_tiers_and_no_sqlite_outside_the_cache() {
     let f = Fixture::new("ew-library-ix4");
     // A community pack and a shipped system library, written by hand.
     for (dir, key) in [
@@ -755,7 +755,7 @@ fn ix4_read_only_tiers_and_no_sqlite_outside_the_cache() {
 
 /// IX-5: for a 1P+N MCB function the MCB parts rank first, the others come back `compatible = false`.
 #[test]
-fn ix5_the_compatibility_filter_ranks_fitting_parts_first() {
+fn the_compatibility_filter_ranks_fitting_parts_first() {
     let f = Fixture::new("ew-library-ix5");
     let mut reg = f.open();
     company(&f, &mut reg);
@@ -833,7 +833,7 @@ fn ix5_the_compatibility_filter_ranks_fitting_parts_first() {
 /// that FnDef report `same_fndef` true and come first; the 1P parts stay `compatible` with `same_fndef` false and
 /// follow; the others are `compatible = false` and last. Without `fndef`, `same_fndef` is not reported (IX-5 holds).
 #[test]
-fn ps1_the_fndef_ranks_the_same_function_before_the_same_category() {
+fn the_fndef_ranks_the_same_function_before_the_same_category() {
     let f = Fixture::new("ew-library-ps1");
     let mut reg = f.open();
     company(&f, &mut reg);
@@ -885,7 +885,7 @@ fn ps1_the_fndef_ranks_the_same_function_before_the_same_category() {
 
 /// IX-6: deprecated and withdrawn parts are hidden unless asked for; the successor is reported.
 #[test]
-fn ix6_inactive_parts_are_hidden_and_the_successor_is_reported() {
+fn inactive_parts_are_hidden_and_the_successor_is_reported() {
     let f = Fixture::new("ew-library-ix6");
     let mut reg = f.open();
     let lib = company(&f, &mut reg);
@@ -914,7 +914,7 @@ fn ix6_inactive_parts_are_hidden_and_the_successor_is_reported() {
 
 /// IX-7: equal scores order by natural part number, manufacturer, library ID, item ID (X2 before X10).
 #[test]
-fn ix7_ties_order_by_natural_part_number() {
+fn ties_order_by_natural_part_number() {
     let f = Fixture::new("ew-library-ix7");
     let mut reg = f.open();
     company(&f, &mut reg);

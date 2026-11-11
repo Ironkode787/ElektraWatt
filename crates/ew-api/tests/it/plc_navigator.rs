@@ -57,7 +57,7 @@ fn set(s: &mut Session, targets: &[&NavNode], path: &str, value: Value) {
 /// `unplaced` badge on exactly the channels without a binding (the deactivated ones on Golden A, which no coil binds),
 /// beside `spare` on the 20 spare channels.
 #[test]
-fn pg1_the_tree_levels_and_badges() {
+fn the_tree_levels_and_badges() {
     let s = common::golden_session();
     let t = s.navigator_table(NavKind::Plc);
     let top: Vec<&NavNode> = t.nodes.iter().filter(|n| n.parent.is_none()).collect();
@@ -82,7 +82,7 @@ fn pg1_the_tree_levels_and_badges() {
 
 /// PG4: each facet on Golden A, then after the edit that sets it. FR-PLC-021: `spare` shows exactly 20 rows.
 #[test]
-fn pg4_each_facet_on_golden_a() {
+fn each_facet_on_golden_a() {
     let mut s = common::golden_session();
     let t = s.navigator_table(NavKind::Plc);
     assert_eq!(with(&t, "spare", "").len(), 20, "FR-PLC-021");
@@ -131,7 +131,7 @@ fn pg4_each_facet_on_golden_a() {
 /// target is a device tag (its main function); a slot a number, `<rack>.<slot>` or `auto`; a module's start the
 /// profile's start text for `plc.set_start`.
 #[test]
-fn pg5_the_typed_editors() {
+fn the_typed_editors() {
     let mut s = common::golden_session();
     let parse = |s: &Session, kind: &str, path: &str, text: &str| {
         s.parse_field_input(kind, path, text).map(|p| p.value)

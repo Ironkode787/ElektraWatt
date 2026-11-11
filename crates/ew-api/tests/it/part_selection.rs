@@ -224,7 +224,7 @@ fn f55_function(s: &Session) -> Uuid {
 /// copies first; the deprecated part is absent; the Golden A copies with a template (terminals, black boxes) rank
 /// `other`.
 #[test]
-fn ps1_f55_offers_the_same_function_first() {
+fn f55_offers_the_same_function_first() {
     let (_dir, t, _) = fixture("ew-api-ps1");
     let s = golden(Some(t));
     let q = PartOfferQuery {
@@ -280,7 +280,7 @@ fn ps1_f55_offers_the_same_function_first() {
 
 /// PS2: the text, the kind, the category, the deprecated parts, the views; a held library item is listed once.
 #[test]
-fn ps2_search_and_filters() {
+fn search_and_filters() {
     let (_dir, t, lib) = fixture("ew-api-ps2");
     let mut s = Session::new_project(
         ProjectTemplate::Builtin,
@@ -386,7 +386,7 @@ fn ps2_search_and_filters() {
 /// PS4: a choice compiles to one command: `part.assign` (replace, append, a held copy without `copies`) and the bridge
 /// part's `fields.set` with `copies`; each is one undo step.
 #[test]
-fn ps4_choosing_commits_one_command() {
+fn choosing_commits_one_command() {
     let (_dir, t, lib) = fixture("ew-api-ps4");
     let mut s = golden(Some(t));
     let f55 = device(&s, "F55");
@@ -531,7 +531,7 @@ fn field_error(e: PartDraftError) -> (String, &'static str, Vec<String>) {
 
 /// PS5: the draft refuses each case of D21 under its field and as the save's refusal; the history is unchanged.
 #[test]
-fn ps5_the_part_editor_refuses_with_a_message() {
+fn the_part_editor_refuses_with_a_message() {
     let s = wizard_with_parts();
     let copy = copy_of(&s, "5SY4204-7");
     let history = s.history().entries().len();
@@ -583,7 +583,7 @@ fn ps5_the_part_editor_refuses_with_a_message() {
 /// PS6: an edit in place: the plan's field diff, devices and BOM rows; one undo step; the copy ID, item ID and version
 /// unchanged and the hash recomputed.
 #[test]
-fn ps6_an_edit_in_place_is_previewed() {
+fn an_edit_in_place_is_previewed() {
     let mut s = golden(None);
     let copy = copy_of(&s, "5SY4204-7");
     let f55 = device(&s, "F55");
@@ -641,7 +641,7 @@ fn ps6_an_edit_in_place_is_previewed() {
 /// PS7: a copy from a library forks: the fork carries `fork_of`, F55's part use names it, the original stays, the
 /// Libraries status says Local fork; undo restores; a second edit of the fork is in place.
 #[test]
-fn ps7_a_library_copy_forks() {
+fn a_library_copy_forks() {
     let mut s = golden(None);
     let f55 = device(&s, "F55");
     let mcb = copy_of(&s, "5SY4204-7");
@@ -815,7 +815,7 @@ fn the_copy(s: &Session, copy: Uuid) -> (String, String) {
 /// (two commands, two undo steps; P1 holds 1.1.0). A version that drops a CP makes "Use the project's copy" major,
 /// and `edit.paste` refuses that `adapt` at `/adapt/0`.
 #[test]
-fn ps8_the_paste_choice_below_the_shell() {
+fn the_paste_choice_below_the_shell() {
     let (_dir, t, lib) = fixture("ew-api-ps8");
     let copy = v5::lib_copy_id::<Part>(lib, item(lib, "FX-MCB-1PN")).as_uuid();
     let mut p1 = holding_mcb(&t, lib);

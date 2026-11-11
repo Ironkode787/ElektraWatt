@@ -95,7 +95,7 @@ fn field(h: &Harness<'_, App>, name: &str, value: &str) -> bool {
 /// by column and row, a remove button per row) and Add value set adds a row; FT-785: the saved macro's card shows a
 /// field per variable labelled "<name> (<type>)", and a refused typed value shows the reason under it.
 #[test]
-fn ft785_ft786_the_card_and_the_table_render_their_fields() {
+fn the_card_and_the_table_render_their_fields() {
     let tmp = Tmp::new();
     let t = tiers(&tmp.0);
     Registry::open(&t)

@@ -682,7 +682,7 @@ type Case = (&'static str, Fx, Vec<(u128, u128)>);
 /// part copies, pages) changes no printed finding and no report order, so a fresh project, whose IDs are random,
 /// prints the same findings in the same order.
 #[test]
-fn part3_findings_do_not_follow_record_ids() {
+fn findings_do_not_follow_record_ids() {
     let cases: Vec<Case> = vec![
         (
             "EW-CORE-031",

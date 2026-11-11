@@ -86,7 +86,7 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
         "{text}"
     );
     // A black-box symbol row is enabled from WP-S2.04 part 3 (§9.5): choosing it arms the black box tool
-    // (`tests/part3.rs`).
+    // (`tests/it/ip_and_black_box.rs`).
     done(&mut s, "picker.filter", json!({"text": "blackbox"}));
     let line = describe_line(&s, "  row symbol \"blackbox\"");
     assert!(!line.contains("disabled"), "{line}");
@@ -910,7 +910,7 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
 /// parts first, then the libraries', each by (maker, part number). Placing a terminal from a library part embeds the
 /// part, which then stands among the project's own: the chooser opened again has the same rows, in that order.
 #[test]
-fn ft1087_the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one() {
+fn the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one() {
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("ft1087-order");
     let mut s = shell(&tmp, "103");
@@ -1040,7 +1040,7 @@ fn a_page_type_without_symbol_tools_refuses_the_editing_actions() {
 /// On each page kind without drawing tools, the Wire button's disabled reason names the kind in words; a
 /// generated section divider reaches the divider's text, not the generic "drawn pages" one.
 #[test]
-fn ft892_the_wire_buttons_disabled_reason_names_the_page_kind() {
+fn the_wire_buttons_disabled_reason_names_the_page_kind() {
     let tmp = Tmp::new("ft892");
     let mut s = shell(&tmp, "1");
     let wire = ew_viewmodel::actions::find("tool.wire").unwrap();
@@ -1145,7 +1145,7 @@ fn column_numbering(s: &mut ShellModel) {
 /// move of -101F1 to the right keeps a preview that names its tag change, and the page tables give the device's
 /// printed tag position (`TableRep::tag_at`), by its body.
 #[test]
-fn ft502_moving_an_existing_device_changes_its_tag_in_the_preview() {
+fn moving_an_existing_device_changes_its_tag_in_the_preview() {
     let tmp = Tmp::new("ft502");
     let mut s = shell(&tmp, "101");
     column_numbering(&mut s);

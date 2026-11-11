@@ -61,7 +61,7 @@ fn mark(s: &mut ShellModel, kind: &str, keys: &[String]) {
 /// Swapping WH and BN on -106W1 is one `fields.set_many` of the connections' `kind`, one undo step, and the cable
 /// diagram's rows follow: each core now runs where the other ran; the colours stay with the cores.
 #[test]
-fn ct1_swap_cores_moves_the_assignment_in_one_step() {
+fn swap_cores_moves_the_assignment_in_one_step() {
     let tmp = Tmp::new("s207p2-ct1");
     let mut s = cables(&tmp);
     let (wh_from, wh_to) = (cell(&s, "-106W1", "WH", "from"), cell(&s, "-106W1", "WH", "to"));
@@ -114,7 +114,7 @@ fn ct1_swap_cores_moves_the_assignment_in_one_step() {
 /// The core, shield and pair cells of a core row are editable in table mode (`fields.set` on the conductor); the
 /// potential cell is derived; a core row's length cell is read-only (the cable row carries it).
 #[test]
-fn ct2_core_shield_and_pair_are_edited_on_the_conductor() {
+fn core_shield_and_pair_are_edited_on_the_conductor() {
     let tmp = Tmp::new("s207p2-ct2");
     let mut s = cables(&tmp);
     done(&mut s, "navigator.table", json!({"kind": "cables"}));
@@ -156,7 +156,7 @@ fn ct2_core_shield_and_pair_are_edited_on_the_conductor() {
 
 /// The cable row's length is typed in metres: `12.5 m` sets a manual length; `missing` clears it.
 #[test]
-fn ct3_the_cable_length_is_typed_in_metres() {
+fn the_cable_length_is_typed_in_metres() {
     let tmp = Tmp::new("s207p2-ct3");
     let mut s = cables(&tmp);
     done(&mut s, "navigator.table", json!({"kind": "cables"}));
@@ -188,7 +188,7 @@ fn ct3_the_cable_length_is_typed_in_metres() {
 /// Delete in a navigator tree previews one `edit.delete` of the rows' records on the card (nothing committed); a
 /// group row refuses. In tree mode the navigator's Delete and F2 run `navigator.delete` and `navigator.rename`.
 #[test]
-fn ct4_tree_delete_opens_the_card() {
+fn tree_delete_opens_the_card() {
     let tmp = Tmp::new("s207p2-ct4d");
     let mut s = cables(&tmp);
     let wh = core_key(&s, "-106W1", "WH");
@@ -246,7 +246,7 @@ fn ct4_tree_delete_opens_the_card() {
 /// Potentials row it renames the potential definition; Escape (`cancel`) closes the editor; a row without a name
 /// refuses.
 #[test]
-fn ct4_f2_renames_pages_and_potentials() {
+fn f2_renames_pages_and_potentials() {
     let tmp = Tmp::new("s207p2-ct4r");
     let mut s = tmp.shell_in(Mode::Headless, true, "101");
     let key = s
@@ -360,7 +360,7 @@ fn device_key(s: &mut ShellModel, tag: &str) -> String {
 /// FT-633(a): F2 on a structure node opens its editor on the code; the typed code commits one `fields.set` of the
 /// node's `code` (the route the Properties grid edits it by) and undo restores it.
 #[test]
-fn ct4_f2_renames_a_structure_node_code() {
+fn f2_renames_a_structure_node_code() {
     let tmp = Tmp::new("s207p2-ct4s");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut s, "navigator.show", json!({"kind": "structure"}));
@@ -400,7 +400,7 @@ fn ct4_f2_renames_a_structure_node_code() {
 /// FT-633(b): F2 on a device row opens the inline field on the whole tag; a free tag renames it through the Properties
 /// grid's own rows (here the Counter row) in one commit and the field closes.
 #[test]
-fn ct4_f2_renames_a_device_tag() {
+fn f2_renames_a_device_tag() {
     let tmp = Tmp::new("s207p2-ct4t");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     done(&mut s, "navigator.show", json!({"kind": "devices"}));
@@ -428,7 +428,7 @@ fn ct4_f2_renames_a_device_tag() {
 /// commit (a counter collision, FR-NUM-029); a letter edit whose counter is taken shows the grid's proposal under the
 /// field, accepted in one step, which closes the field.
 #[test]
-fn ct4_f2_refuses_a_taken_device_tag_like_the_properties_grid() {
+fn f2_refuses_a_taken_device_tag_like_the_properties_grid() {
     let tmp = Tmp::new("s207p2-ct4x");
     let mut s = tmp.shell_in(Mode::Headless, true, "102");
     // The Properties grid's message for the same edit.

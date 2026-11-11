@@ -168,7 +168,7 @@ fn change_101f1(dir: &Path) {
 /// `--exit-code`); the same between a directory and its `.ewz`, which are equal; and between `git:HEAD` and the working
 /// copy in a temporary repository; `--json` validates against its result schema.
 #[test]
-fn dg1_ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
+fn ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
     let Some(r) = Repo::new("ew-dg1") else { return };
     let copy = r.0.join("copy.ew");
     crate::support::copy_dir(Path::new(GOLDEN_A), &copy);
@@ -262,7 +262,7 @@ merge=elektrawatt\nrules/** text eol=lf\nreports/*.sql text eol=lf\nassets/* bin
 /// DG-3: without a terminal or `--yes`, `ew git setup` exits 2 and changes nothing; with `--yes` it writes the four
 /// keys and the blocks, keeps a user's line outside the block, and is idempotent.
 #[test]
-fn dg3_git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
+fn git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
     let Some(r) = Repo::new("ew-dg3") else { return };
     std::fs::write(r.project().join(".gitattributes"), "*.png binary\n").unwrap();
     // A web app's manifest is no project folder.
@@ -343,7 +343,7 @@ fn dg3_git_setup_asks_writes_the_keys_and_the_blocks_and_is_idempotent() {
 
 /// DG-4: `--hooks` installs the hook and refuses to replace a foreign one, writing nothing then.
 #[test]
-fn dg4_the_hook_is_installed_and_a_foreign_one_is_kept() {
+fn the_hook_is_installed_and_a_foreign_one_is_kept() {
     let Some(r) = Repo::new("ew-dg4") else { return };
     let hook = r.repo().join(".git/hooks/post-merge");
     let _ = std::fs::remove_file(&hook);
@@ -497,7 +497,7 @@ fn cr1_project(dir: &Path) {
 
 /// DG-6: `ew check --integrity` exits 1 on CR-1's project for its conflict record and 0 on Golden A.
 #[test]
-fn dg6_the_integrity_check_fails_on_a_conflict_record_and_passes_golden_a() {
+fn the_integrity_check_fails_on_a_conflict_record_and_passes_golden_a() {
     let base = ew_testdir::fresh_dir("ew-dg6");
     let cr1 = base.join("cr1.ew");
     cr1_project(&cr1);
@@ -537,7 +537,7 @@ fn w20_line(page: &str) -> Value {
 /// The conflict variant (B also adds WH) leaves one conflict record, the project opens, and `ew merge resolve --take
 /// ours` makes it clean. Before setup, git's configuration has no driver (XW-7's status).
 #[test]
-fn dg7_ac41_merges_through_git_with_the_driver() {
+fn ac41_merges_through_git_with_the_driver() {
     let Some(r) = Repo::new("ew-dg7") else { return };
     assert_eq!(
         r.config("merge.elektrawatt.driver"),

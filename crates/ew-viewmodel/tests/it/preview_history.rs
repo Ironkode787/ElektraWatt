@@ -293,19 +293,19 @@ fn golden_b(mode: Mode) {
 
 /// PV2 headless: the renumber actions with their parameters.
 #[test]
-fn pv2_golden_b_headless() {
+fn golden_b_headless() {
     golden_b(Mode::Headless);
 }
 
 /// PV2 in the window's mode: the dialogs, their defaults and OK.
 #[test]
-fn pv2_golden_b_through_the_dialogs() {
+fn golden_b_through_the_dialogs() {
     golden_b(Mode::Gui);
 }
 
 /// PV2: a dialog keeps a refusal in its error line; headless a missing start or scheme fails naming it.
 #[test]
-fn pv2_the_dialogs_refuse_in_place_and_headless_names_the_missing_parameter() {
+fn the_dialogs_refuse_in_place_and_headless_names_the_missing_parameter() {
     let tmp = Tmp::new("pv2-refuse");
     let mut gui = tmp.shell_in(Mode::Gui, true, "101");
     done(&mut gui, "pages.renumber", json!({}));
@@ -354,7 +354,7 @@ fn pv2_the_dialogs_refuse_in_place_and_headless_names_the_missing_parameter() {
 /// PV3: every card origin opens in the Preview tab (the focus stays), its `card` line unchanged; a commit while it
 /// is open makes it stale; closing the tab cancels the card.
 #[test]
-fn pv3_every_origin_opens_the_tab_and_closing_it_cancels() {
+fn every_origin_opens_the_tab_and_closing_it_cancels() {
     let tmp = Tmp::new("pv3");
     let mut shell = tmp.shell_in(Mode::Headless, true, "102");
     // Properties: a tag counter on two devices.
@@ -548,7 +548,7 @@ fn edit_on(shell: &mut ShellModel, folio: &str, refs: Value, text: &str) -> Vec<
 /// a second 102 with its; redo returns to 102's step context; Undo to here walks back and restores the last step's
 /// context; the panel's rows and its row cursor.
 #[test]
-fn pv5_undo_and_redo_restore_the_page_view_and_selection() {
+fn undo_and_redo_restore_the_page_view_and_selection() {
     let tmp = Tmp::new("pv5");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
     let s101 = edit_on(&mut shell, "101", json!(["tag:-101F1"]), "one");
@@ -656,7 +656,7 @@ fn small(tmp: &Tmp, mode: Mode) -> ShellModel {
 /// PV5: the markers of an export and a save sit after the entry of their revision, newest first; the panel fetches
 /// one view per revision while open and none while closed (§9 item 5); moving its cursor calls nothing.
 #[test]
-fn pv5_markers_sit_at_their_revisions_and_the_counts_are_exact() {
+fn markers_sit_at_their_revisions_and_the_counts_are_exact() {
     let tmp = Tmp::new("pv5-markers");
     let mut s = small(&tmp, Mode::Headless);
     let calls = s.session_calls();
@@ -755,7 +755,7 @@ fn set_logo(s: &mut ShellModel, bytes: &[u8]) {
 /// empty plan refuses; `confirm` without the open dialog refuses `reason-no-purge-dialog`; headless the action
 /// refuses `reason-human-only`.
 #[test]
-fn pv6_the_purge_step() {
+fn the_purge_step() {
     let tmp = Tmp::new("pv6");
     let dir = tmp.0.join("small.ew");
     let mut s = small(&tmp, Mode::Gui);

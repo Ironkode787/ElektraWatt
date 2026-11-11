@@ -71,7 +71,7 @@ fn orthogonal(r: &[(i64, i64)]) -> bool {
 // The Wire tool (WR2, WR3's view-model part)
 
 #[test]
-fn wr2_the_wire_tool_draws_a_routed_connection_from_cp_to_cp_by_keyboard() {
+fn the_wire_tool_draws_a_routed_connection_from_cp_to_cp_by_keyboard() {
     let tmp = Tmp::new("wire");
     let mut s = actual_size(&tmp, "102");
     let (a, b) = (cp(&s, "-102F1:2"), cp(&s, "-102F2:24VDC#1"));
@@ -141,7 +141,7 @@ fn wr2_the_wire_tool_draws_a_routed_connection_from_cp_to_cp_by_keyboard() {
 }
 
 #[test]
-fn wr2_bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
+fn bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
     let tmp = Tmp::new("ends");
     let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.wire", json!({}));
@@ -330,7 +330,7 @@ fn ghost_cps(s: &ShellModel, p: (i64, i64)) -> Vec<(i64, i64)> {
 }
 
 #[test]
-fn wr4_a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commits_none() {
+fn a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commits_none() {
     let tmp = Tmp::new("auto");
     let mut s = actual_size(&tmp, "101");
     done(
@@ -731,7 +731,7 @@ fn card_line(s: &ShellModel) -> String {
 /// commits one `connection.route_many` (one undo step) and the toast says what it routed; a second Route page has
 /// nothing to do.
 #[test]
-fn rw1_route_page_previews_the_plan_and_applies_it_in_one_step() {
+fn route_page_previews_the_plan_and_applies_it_in_one_step() {
     let tmp = Tmp::new("rw1");
     let mut s = actual_size(&tmp, "103");
     coils_and_wires(
@@ -839,7 +839,7 @@ fn done_outcome(s: &mut ShellModel, action: &str) -> String {
 /// WP-S2.19 RW2 (D13): Route selection with one routed wire selected routes it again, in the card's one step; the
 /// page's other wires keep their routes.
 #[test]
-fn rw2_route_selection_re_routes_a_selected_wire_and_nothing_else() {
+fn route_selection_re_routes_a_selected_wire_and_nothing_else() {
     let tmp = Tmp::new("rw2");
     let mut s = actual_size(&tmp, "103");
     coils_and_wires(
@@ -917,7 +917,7 @@ fn route_selection_needs_a_selection() {
 // Route edit and the split on insert (WR5)
 
 #[test]
-fn wr5_a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire() {
+fn a_route_given_by_the_route_editor_and_a_contact_inserted_split_the_wire() {
     let tmp = Tmp::new("split");
     let mut s = actual_size(&tmp, "101");
     // W13: from J1 to E55:L, routed by Golden A's route tool.
@@ -1112,7 +1112,7 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
 // The junction sequence editor (WR7)
 
 #[test]
-fn wr7_the_junction_editor_lists_reorders_and_restyles() {
+fn the_junction_editor_lists_reorders_and_restyles() {
     let tmp = Tmp::new("junction");
     let mut s = actual_size(&tmp, "101");
     let f55 = cp(&s, "F55:2");
@@ -1222,7 +1222,7 @@ fn crossings_toggle_the_drawing_setting() {
 }
 
 #[test]
-fn wr10_the_wire_tool_routes_once_per_changed_target_and_reads_nothing() {
+fn the_wire_tool_routes_once_per_changed_target_and_reads_nothing() {
     let tmp = Tmp::new("counts");
     let mut s = actual_size(&tmp, "102");
     done(&mut s, "tool.wire", json!({}));
