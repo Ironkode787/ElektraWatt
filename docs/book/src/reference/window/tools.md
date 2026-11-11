@@ -5,7 +5,8 @@ Draw tab of the command bar holds the tools, and each is in the Draw menu at the
 Documentation with a tool active opens its section here.
 
 The keys of every tool are on the [keymap](../keymaps.md) page, for each keymap preset. A tool's own keys work only
-while it is active.
+while it is active. `Esc` or a right click on the page cancels what the active tool is doing, one step at a time,
+and ends at Select; with Select active, a right click opens the page's menu.
 
 ## Select
 

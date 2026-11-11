@@ -1226,6 +1226,63 @@ fn a_click_on_a_tool_s_symbol_in_the_insert_symbol_list_arms_the_tool() {
     d.shell_mut().shutdown();
 }
 
+/// The owner's hands-on test of 0.1.0: a right click should cancel whatever is active, as Escape does. With a
+/// symbol floating on the pointer and with a wire being drawn, a right click on the page dismisses one step; back at
+/// the Select tool it opens the page's menu and dismisses nothing.
+#[test]
+fn a_right_click_on_the_page_cancels_the_active_tool() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
+    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
+    d.settle();
+    let tool = |d: &mut Driver| {
+        state(d)["canvas"]["tool"]["name"]
+            .as_str()
+            .unwrap_or_default()
+            .to_owned()
+    };
+    let right = |at: (i64, i64)| Input::Click {
+        at,
+        button: PointerButton::Secondary,
+        mods: Modifiers::NONE,
+    };
+    let page = (900, 500);
+    // A symbol floating on the pointer.
+    d.input(&click(d.find("Symbol").unwrap()));
+    d.input(&Input::Type {
+        text: "fuse".to_owned(),
+    });
+    d.input(&key("enter"));
+    d.input(&Input::Hover { at: page });
+    d.settle();
+    assert_eq!(tool(&mut d), "place");
+    d.input(&right(page));
+    d.settle();
+    assert_eq!(tool(&mut d), "select");
+    assert_eq!(
+        state(&mut d)["canvas"]["selection"],
+        json!([]),
+        "nothing was placed"
+    );
+    // The Wire tool, armed.
+    d.input(&click(d.find("Wire").unwrap()));
+    d.input(&Input::Hover { at: page });
+    d.settle();
+    assert_eq!(tool(&mut d), "wire");
+    d.input(&right(page));
+    d.settle();
+    assert_eq!(tool(&mut d), "select");
+    // At the Select tool a right click is the page's menu, and no Escape.
+    let _ = actions(&mut d);
+    d.input(&right(page));
+    d.settle();
+    assert!(!actions(&mut d).contains(&"ui.dismiss".to_owned()));
+    d.shell_mut().shutdown();
+}
+
 /// The Select tool holds a connection point as it holds a shape (the owner's hands-on test: it could neither move nor
 /// delete one, nothing showed where a moved item would land, and the arrow keys did nothing). A drag moves the point
 /// on the connection grid, an arrow key moves it one grid step, Delete removes it; each is one undo step.

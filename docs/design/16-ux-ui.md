@@ -851,7 +851,9 @@ Delete keep the whole selection.
 ### 4.7 Context menus
 
 Context menus are composed from the registry by predicate, in a fixed group order: primary actions, navigation,
-edit, check, clipboard, help. Shift+F10 or the Menu key opens them from the keyboard. Example, right-click on
+edit, check, clipboard, help. Shift+F10 or the Menu key opens them from the keyboard. On the page a right click
+opens the menu only while Select is the active tool: with any other tool it is Escape (`ui.dismiss`), which cancels
+what the tool is doing one step at a time (the owner's hands-on test of 0.1.0). Example, right-click on
 -102F2 on folio 102:
 
 | Group | Entries |

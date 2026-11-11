@@ -1857,6 +1857,10 @@ impl CanvasHost {
     /// commands over an object (selecting it first when it is not selected) or Paste over nothing
     /// ([`ew_viewmodel::command_bar::canvas_menu`]); nothing opens when the menu would be empty. A disabled entry shows
     /// its reason in its tooltip; a click on an entry dispatches its action and closes the menu.
+    ///
+    /// With any other tool a right-click is Escape (the owner's hands-on test of 0.1.0: a right click should cancel
+    /// whatever is active, placing a device or drawing a wire): it dismisses as the key does, one step per click,
+    /// and the menu opens only once the Select tool is back.
     fn context_menu(
         &mut self,
         response: &egui::Response,
@@ -1878,6 +1882,9 @@ impl CanvasHost {
             }
         } else if response.clicked() || response.secondary_clicked() {
             open = Some(egui::SetOpenCommand::Bool(false));
+            if response.secondary_clicked() {
+                events.push(Event::Action("ui.dismiss", json!({})));
+            }
         }
         let over = self.views[group].menu_over;
         egui::Popup::context_menu(response)

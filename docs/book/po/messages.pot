@@ -2451,7 +2451,10 @@ msgstr ""
 #: src/reference/window/tools.md:7
 msgid ""
 "The keys of every tool are on the [keymap](../keymaps.md) page, for each "
-"keymap preset. A tool's own keys work only while it is active."
+"keymap preset. A tool's own keys work only while it is active. `Esc` or a "
+"right click on the page cancels what the active tool is doing, one step at a "
+"time, and ends at Select; with Select active, a right click opens the page's "
+"menu."
 msgstr ""
 
 #: src/reference/window/tools.md:10
