@@ -36,8 +36,7 @@ pub use ew_api::output::{Drawable, NaturalKey, NavKind, NavNode, NavRole, NavTab
 
 /// A table's identity in a cache key or stamp: a weak reference, compared by allocation. The weak reference keeps the
 /// allocation, so no later table takes its address while the key is held; an address alone is reused once the table
-/// is dropped (a library write drops the Macros table and fetches a new one of the same revision, cycle 42's CI
-/// failure), and a stale key then matched the new table.
+/// is dropped (a library write drops the Macros table and fetches a new one of the same revision), and a stale key then matched the new table.
 #[derive(Clone, Debug)]
 pub(crate) struct TableRef(Weak<NavTable>);
 
@@ -304,8 +303,8 @@ pub struct Navigator {
     pub descending: bool,
     /// The filter text.
     pub filter: String,
-    /// The key of the one strip whose rows the table shows (`strip.edit` on a strip without a tag yet, ID-1278 ruling
-    /// 7: by its ID, never by a filter built from its placeholder tag); cleared by a new filter and by leaving table
+    /// The key of the one strip whose rows the table shows (`strip.edit` on a strip without a tag yet, by its ID,
+    /// never by a filter built from its placeholder tag); cleared by a new filter and by leaving table
     /// mode.
     pub(crate) scope: Option<String>,
     /// The keys of the collapsed nodes (every node starts expanded).
@@ -812,7 +811,7 @@ mod tests {
         assert_eq!(rows[1].expanded, Some(true));
     }
 
-    /// Cycle 42's CI failure: a table dropped and replaced by a new one of the same revision (a library write drops
+    /// A table dropped and replaced by a new one of the same revision (a library write drops
     /// the Macros table) must not hit the cache of the old table's visible rows or keep the old stamp, even when the
     /// allocator hands the new table the old one's address (glibc does at once; the loop gives others the chance).
     #[test]
@@ -862,7 +861,7 @@ mod tests {
         (tokens, cells)
     }
 
-    /// FT-663 (§6.3): the sub-tokens of one typed word match within one cell; separate words may match different
+    /// The sub-tokens of one typed word match within one cell; separate words may match different
     /// cells.
     #[test]
     fn one_typed_word_matches_within_one_cell() {

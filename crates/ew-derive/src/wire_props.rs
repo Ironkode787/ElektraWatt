@@ -179,7 +179,7 @@ pub struct WirePropsMap {
 ///   (the PE colour row, the class of the non-PE potential, [`SizeRule::Bond`]).
 /// - **Merged 0 V/PE potential** (doc 08 §3.6, doc 16a §7.5). A potential without a
 ///   bond that holds a definition of type PE while another definition's type applies (two typed definitions
-///   merged by a plain wire: FT-587's natural order names it 0V and gives it type M) shows the PE colour, not the
+///   merged by a plain wire: the natural order names it 0V and gives it type M) shows the PE colour, not the
 ///   colour of its name: the level-3 colour comes from its PE definitions only, and levels 2 and 0 take the
 ///   colour of a PE potential. The cross-section and the class keep the applied type. EW-POT-001 reports the
 ///   type conflict (its canvas colour, which overrides this one, comes with the canvas's potential colours).

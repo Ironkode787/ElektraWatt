@@ -110,7 +110,7 @@ impl Rule for DeviceNotInSchematic {
         let idx = q.idx();
         let functions: Vec<Id<Function>> = idx.functions_of_device(device).collect();
         // Doc 15 §4.2: a *schematic* representation. A panel-front view, a contact image or a strip segment is a
-        // derived or layout view and does not draw the device in the schematic (finding 8). A graphic
+        // derived or layout view and does not draw the device in the schematic. A graphic
         // counts: a cable is drawn in the schematic as a graphic representation (Golden A's -106W1, -106W2, -3W1). A
         // representation type of a newer format counts, so that a newer file raises no finding this release cannot
         // judge.
@@ -261,8 +261,8 @@ fn ambiguous_groups(q: &Q) -> Vec<Finding> {
         };
         let flagged = count(&|i| i.star_source);
         let sources = count(&|i| i.direction == IpDirection::Source);
-        // FT-901: what is wrong and the way out, in words (no ID tie-break in the text; the derivation still pairs from
-        // the smallest ID until the user decides).
+        // What is wrong and the way out, in words (no ID tie-break in the text; the derivation still pairs
+        // from the smallest ID until the user decides).
         let (form, count, why) = if flagged > 1 {
             (
                 "flagged",
@@ -481,8 +481,8 @@ pub const XREF_CELL_INVALID: RuleMeta = RuleMeta {
 /// so the fingerprint stays when the target moves between "outside the frame" and "empty cell" or a
 /// renumber changes the printed item (doc 15 §2.5); shown on the page; the message starts with the printed
 /// item, "3-B0: empty cell", and offers the MF-13 quick fix `rep.set_anchor_policy` to the graphics centre.
-/// The note of decision log ID-199 (an auxiliary whose main function has no cross-reference main
-/// representation) is not reported yet.
+/// The note of an auxiliary whose main function has no cross-reference main
+/// representation is not reported yet.
 #[derive(Clone, Copy, Debug)]
 pub struct XrefCellInvalid;
 
@@ -843,7 +843,7 @@ const fn integrity(
 /// EW-CORE-008 "Dangling reference" (doc 15 §4.2): integrity, n r, error, project. The store reports the dangling
 /// references of opening a project ([`INTEGRITY`]); the registered rule
 /// [`DanglingReference`](crate::rules::device::DanglingReference) reports the frame defaults that name a form copy the
-/// project does not hold and the channels whose module is not a PLC module (FT-229).
+/// project does not hold and the channels whose module is not a PLC module.
 pub const DANGLING_REFERENCE: RuleMeta = integrity(
     "EW-CORE-008",
     "100008",
@@ -1052,7 +1052,7 @@ pub fn keeper_order(q: &Q, a: &Target, b: &Target) -> std::cmp::Ordering {
         .then_with(|| a.id.cmp(&b.id))
 }
 
-/// "Renumber the newer" (doc 15 §6.4; ruling 6): `numbering.renumber` scoped to the
+/// "Renumber the newer" (doc 15 §6.4): `numbering.renumber` scoped to the
 /// devices of a duplicated tag after the keeper (`group` in keeper order), each given the lowest counter its page and
 /// letter leave free, as one previewed command. `None` when the group holds fewer than two devices.
 pub fn renumber_newer(q: &Q, group: &[Target]) -> Option<QuickFix> {
@@ -1141,7 +1141,7 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> String {
 }
 
 /// The integrity rules EW-CORE-001 … 019 but 011 and 013 (doc 15 §4.2; detection in the store, doc 05 §6.3), which are
-/// the registered [`ConflictRecords`] since WP-S1.17 part 5 and [`MergeCollisions`] since part 8.
+/// the registered [`ConflictRecords`] and [`MergeCollisions`].
 /// They run on open (mode n, not
 /// modelled) and, where the catalogue lists `r`, in release mode; the engine does not run them:
 /// [`CheckReport::with_integrity`](crate::CheckReport::with_integrity) joins the store's findings.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The creation dialogs of FT-408 and FT-409 in the window (kittest, no rendering): Page ▸ New page and the page
+//! The creation dialogs in the window (kittest, no rendering): Page ▸ New page and the page
 //! navigator's New page with their fields (Enter creates, Escape cancels, a refusal stays in the dialog), the Insert
 //! entries for a structure node and an external reference, and the entries disabled without a project. Each walk
 //! ends with the accessible-name walker (`settle`).

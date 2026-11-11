@@ -219,7 +219,7 @@ pub fn counts(table: &NavTable, editing: Option<&str>) -> MessageCounts {
     c
 }
 
-/// A finding a check counts, as the check's toast compares two checks (ID-1497 (3)): its rule, subject and message.
+/// A finding a check counts, as the check's toast compares two checks: its rule, subject and message.
 pub type CountedFinding = (String, String, String);
 
 /// The findings [`counts`] counts in its errors, warnings and infos (open, not pending), as a set: the same findings in
@@ -265,8 +265,8 @@ pub fn is_release_note(node: &NavNode) -> bool {
     node.key == RELEASE_KEY || node.key.starts_with(&format!("{RELEASE_KEY}/"))
 }
 
-/// FT-842 (ruling 2: "each once as a Messages entry in words, with the file name only. The entry has
-/// severity Warning, and its rule column names the source in a word ("Release"), not an ID"): `table` with the
+/// Each once as a Messages entry in words, with the file name only. The entry has
+/// severity Warning, and its rule column names the source in a word ("Release"), not an ID: `table` with the
 /// release's housekeeping warnings `notes` under Warnings ▸ Release, after the rules of the check (the Warnings group
 /// is added when the check has none). The rows are finding rows (severity `warning`, state `open`) without a target,
 /// a page, a quick fix or a fingerprint: Enter opens nothing and the detail has no Waive. The top-level groups are

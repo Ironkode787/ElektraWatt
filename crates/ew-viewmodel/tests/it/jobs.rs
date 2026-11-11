@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.09 part 1 (§10.1): the PDF export as a job (JB3 to JB5), the notifications and their log (JB6), and the exact
+//! The PDF export as a job, the notifications and their log, and the exact
 //! counts of §9 item 5. The flows that need a held gate or a fault run with `ShellModel::set_job_gate_for_tests` and
 //! `set_job_panic_for_tests` (feature `testkit`). The byte checks against Golden A's digest are `ew-api`'s
 //! `tests/export_job.rs` (JB2) and `bin/elektrawatt`'s headless test; here a one-page project keeps the jobs short.
@@ -136,7 +136,7 @@ fn a_panic_after_the_sibling_is_written_is_reported_and_leaves_no_file() {
     s.shutdown();
 }
 
-/// P-2 (play-test rv-vis-5 t0085): a second export of the same file says "again", so the toast that replaces the
+/// A second export of the same file says "again", so the toast that replaces the
 /// first visibly changes; an export of another file does not. The log keeps the texts in order, newest first.
 #[test]
 fn p2_a_second_export_of_the_same_file_says_again() {
@@ -517,7 +517,7 @@ fn quit_keeps_the_end_of_an_export_that_wrote_its_file() {
     assert!(texts[0].starts_with("Exported out.pdf: "), "{texts:?}");
 }
 
-/// Review finding 5 of cycle 30: an export target inside the open project's folder is refused, with or without
+/// An export target inside the open project's folder is refused, with or without
 /// `replace`, and nothing there changes; a folder whose name only starts with the project's is not inside it.
 #[test]
 fn an_export_into_the_open_projects_folder_is_refused() {

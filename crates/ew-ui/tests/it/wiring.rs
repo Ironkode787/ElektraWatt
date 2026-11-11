@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 2 in the window without rendering (acceptance checks WR3 and WR10's window part): FR-UI-015's
+//! In the window without rendering: FR-UI-015's
 //! keyboard wiring on folio 102 (W, `]`, `[`, Enter) with exactly one new connection and one revision, the junction
 //! sequence editor popup driven by its keys, and the exact `Session` reads of the Wire tool in the window. The
 //! accessible-name walker runs after every step.
@@ -175,7 +175,7 @@ fn the_wire_tool_reads_nothing_while_the_cursor_moves_in_the_window() {
     assert_eq!(after.page_cps, calls.page_cps);
     assert_eq!(after.symbol_shape, calls.symbol_shape);
     // (Previews are not counted here: the window's dwell timer may fire between frames on a slow machine, a wall-clock
-    // matter ID-559 keeps out of the assertions; the view-model test counts them with the dwell as an action.)
+    // matter kept out of the assertions; the view-model test counts them with the dwell as an action.)
     assert_eq!(
         after.commit + after.execute_with,
         calls.commit + calls.execute_with
@@ -330,7 +330,7 @@ fn a_segment_drag_at_58_percent_moves_the_middle_segment() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Window check, item 6; WP-S2.19 D15: C turns connect on move off for the session, and on again; the status bar says
+/// C turns connect on move off for the session, and on again; the status bar says
 /// the state with the key.
 #[test]
 fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
@@ -347,8 +347,8 @@ fn c_turns_connect_on_move_off_and_on_and_the_status_bar_says_so() {
 }
 
 /// The pointer over a cross-reference label of folio 101 that leads to another page shows the pointing hand and
-/// the tooltip "Go to <its target's cell or folio>"; over empty sheet the cursor is the default one. FT-1091:
-/// the tooltip waits while the link preview shows (the rest opens the preview first) and shows once it is dismissed.
+/// the tooltip "Go to <its target's cell or folio>"; over empty sheet the cursor is the default one. The
+/// tooltip waits while the link preview shows (the rest opens the preview first) and shows once it is dismissed.
 /// The preview says, under its title, how to go there.
 #[test]
 fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
@@ -388,7 +388,7 @@ fn a_page_link_shows_the_pointing_hand_and_its_target_in_a_tooltip() {
     assert_eq!(underlines, 1, "the link's underline");
     // The tooltip says the gesture.
     let tip = format!("Click to go to {label}");
-    // FT-1091: the rest opens the link preview first, and the tooltip waits while it shows ...
+    // The rest opens the link preview first, and the tooltip waits while it shows ...
     let mut preview = false;
     for _ in 0..120 {
         h.hover_at(at);
@@ -515,7 +515,7 @@ fn hovering_a_fluid_line_names_its_kind() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-512, with WP-S2.17 part 5's tooltip (OV4, doc 16a §7.2): the pointer over a connection point of folio 101 shows
+/// With the tooltip (doc 16a §7.2): the pointer over a connection point of folio 101 shows
 /// a tooltip with the CP's label as `cp_label` prints it, its kind and its potential (`1X1:1/a · terminal · L`), and
 /// none once the pointer leaves it.
 #[test]

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.20 on Golden A (GA-1, step 5): the valves' port roles and internal coils (FL-2), the derived valve addresses
-//! from the coil functions (FL-5) and the function-text slot's process-tag fallback on folio 203 (D14).
+//! On Golden A: the valves' port roles and internal coils (FL-2), the derived valve addresses
+//! from the coil functions (FL-5) and the function-text slot's process-tag fallback on folio 203.
 
 use crate::golden_common;
 
@@ -388,7 +388,7 @@ fn meets(a: Pt2, b: Pt2, lo: Pt2, hi: Pt2) -> bool {
     a.x.min(b.x) <= hi.x && a.x.max(b.x) >= lo.x && a.y.min(b.y) <= hi.y && a.y.max(b.y) >= lo.y
 }
 
-/// FT-1315 (doc 20 ▲U-51): F1 to F16 carry stored routes on folio 203. Each starts and ends where its CPs are drawn,
+/// Doc 20 ▲U-51: F1 to F16 carry stored routes on folio 203. Each starts and ends where its CPs are drawn,
 /// runs orthogonally, is taken again by `connection.route` (its ends and the connection grid, D3), keeps clear of
 /// every cylinder body, and the two lines of a valve never meet; F1 runs up from port 2 of its valve in row H, past
 /// the process valve, left over the cylinder and down into A (the router's route).

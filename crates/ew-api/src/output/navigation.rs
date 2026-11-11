@@ -70,7 +70,7 @@ pub struct PageRow {
     pub location: Option<String>,
     /// Whether the page's connection grid is the QET grid `7_937_500/3` nm.
     pub qet_grid: bool,
-    /// The label of the revision that last changed the page (doc 15 §5.6, `last_changed_in`; WP-S1.18 part 2, the
+    /// The label of the revision that last changed the page (doc 15 §5.6, `last_changed_in`; the
     /// navigator's "Changed in" column); `None` without revisions.
     pub changed_in: Option<String>,
 }

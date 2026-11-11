@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Normaliser #13, solenoid binding (N2 = N-FL-3; doc 06 §3.2 row 13, doc 10 §3.3, doc 11 §4.2; FT-275,
+//! Normaliser #13, solenoid binding (N2 = N-FL-3; doc 06 §3.2 row 13, doc 10 §3.3, doc 11 §4.2;
 //! FR-PLC-051).
 //!
 //! A module whose part carries a solenoid-position map (`PlcSection.positions`, doc 10 §2.6) binds the coil
@@ -9,22 +9,22 @@
 //!
 //! - **Pairs.** For the valve child at position q (1-based; the map's index is p = q − 1; of two children at
 //!   one position the lower ID) and each map entry s: the channel number `ew_derive::solenoid_channel(s, p)`,
-//!   below the part's channel count, and the valve's coil CP by the rule of `ew_derive::solenoid_coil` (WP-S1.20
-//!   D5: the valve declares s when s is in `fluid.solenoids` of its valve part; the coil CP is the first
+//!   below the part's channel count, and the valve's coil CP by the rule of `ew_derive::solenoid_coil`
+//!   (the valve declares s when s is in `fluid.solenoids` of its valve part; the coil CP is the first
 //!   `ew_derive::coil_cp` among its functions in ID order). The single evaluation of the map is the one of
 //!   `ew_derive::SolenoidPositions`, so the derivation's step 4 and this normaliser agree.
 //! - **Trigger.** A pair is considered when its valve is new in the transaction, moved (parent or position
 //!   changed), changed its parts, or gained a function; or when the pair's channel is new in the
 //!   transaction (N1 created the module's channels after the valves existed, as the golden builder does).
 //!   Pairs of untouched valves and old channels are never reconsidered, so an explicit unbinding stays
-//!   (owner ruling, cycle 18: accepted as a deviation from FR-PLC-051, which the design pass rewords; a
+//!   (owner ruling: accepted as a deviation from FR-PLC-051, which the design pass rewords; a
 //!   moved valve whose coil stays bound elsewhere gets a notice).
 //! - **Effect.** The channel takes `binding = Cp(coil)` when the channel is unbound and no channel binds the
 //!   coil. An explicit binding wins: a coil that a channel already binds is left as it is (FR-PLC-051), and a
 //!   channel bound to something else keeps its binding while the coil stays unbound, with a notice (EW-FL-002
 //!   reports the unbound solenoid). A map entry that does not resolve at the position is noticed for a
 //!   triggered valve. Ties break by ID; the modules run in ID order.
-//! - **Leaving the module** (the orchestrator's). Before the pairs,
+//! - **Leaving the module.** Before the pairs,
 //!   every device of the transaction whose parent changed (by `assembly.attach`, a paste or any other path) is
 //!   checked: each channel bound to a CP of one of its functions whose module it is no longer on
 //!   (`commands::is_on_module`: the module itself or one of its descendants) is unbound in the same transaction, with

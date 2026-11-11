@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Per-project text styles through the session (ADR-0032; WP-S1.12 text styles, acceptance TS-1, TS-2, TS-3, TS-5,
-//! TS-6): the member in `project.jsonl`, the export job's scenes, EW-CORE-061 and `project.settings.set`.
+//! Per-project text styles through the session (ADR-0032): the member in `project.jsonl`, the export job's
+//! scenes, EW-CORE-061 and `project.settings.set`.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};

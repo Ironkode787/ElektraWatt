@@ -195,7 +195,7 @@ fn set_logo(s: &mut Session, bytes: &[u8]) {
     s.commit(p).unwrap();
 }
 
-/// FT-337 fix round, blocking item 1: logo X, logo Y, save, undo (X named again), crash: the recovery restores X's
+/// Logo X, logo Y, save, undo (X named again), crash: the recovery restores X's
 /// bytes and the next save writes its file.
 #[test]
 fn an_undone_logo_survives_a_crash_after_a_save() {
@@ -232,7 +232,7 @@ fn an_undone_logo_survives_a_crash_after_a_save() {
 
 #[test]
 fn a_failed_retry_keeps_the_newer_edits_dirty() {
-    // Review cycle 8, blocker 1, end to end: save 1 is incomplete (antivirus holds `manifest.json`); the
+    // End to end: save 1 is incomplete (antivirus holds `manifest.json`); the
     // edits after it must stay dirty when save 2 cannot complete save 1, and save 3 must write them, so that
     // a clean close (which deletes the journal) loses nothing.
     let vfs = Arc::new(MemVfs::new(DirSync::Explicit));
@@ -292,7 +292,7 @@ fn purge_cmd(listed: &[ew_api::Sha256]) -> AnyCommand {
     }
 }
 
-/// FT-380, end to end: an asset file that the undo history of the session still names is kept; a fresh session
+/// End to end: an asset file that the undo history of the session still names is kept; a fresh session
 /// purges it through the command's preview and commit (the files leave the manifest and the disk, the history gets a
 /// marker line, the session stays clean); a dirty session refuses the preview; a session without a project directory
 /// has nothing to purge.

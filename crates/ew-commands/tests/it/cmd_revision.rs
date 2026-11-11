@@ -232,7 +232,7 @@ fn create_parameters_are_closed() {
     }
 }
 
-/// Review ruling R4, on the typed member since WP-S1.18 part 1: once a revision has a release
+/// On the typed member: once a revision has a release
 /// record (written by `revision.release` later), a historic released revision is refused; an open one is still
 /// accepted.
 #[test]
@@ -300,8 +300,8 @@ fn a_released_revision_is_not_editable() {
     let err = e
         .execute(&set(&[v2, v1], "description", json!("rewritten")))
         .unwrap_err();
-    // FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
-    // with what the user can do")
+    // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
+    // with what the user can do
     match &err {
         CmdError::InvalidParams { message, .. } => assert_eq!(
             message,
@@ -529,8 +529,8 @@ fn create_prevents_a_label_out_of_format_or_order() {
     let mut e = engine(golden_model());
     let (rule, finding) = prevented(e.execute(&create("2", NewRevisionState::Open)).unwrap_err());
     assert_eq!(rule, LABEL_ORDER_RULE);
-    // FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
-    // with what the user can do")
+    // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
+    // with what the user can do
     assert_eq!(
         finding,
         "the label 2 is not in the project's revision label format V{major}.{minor}; give a label in that format; the \
@@ -568,7 +568,6 @@ fn fields_set_label_prevents_a_label_out_of_format_or_order() {
     let before = lines(e.model());
     let (rule, finding) = prevented(e.execute(&set(&[v2], "label", json!("2"))).unwrap_err());
     assert_eq!(rule, LABEL_ORDER_RULE);
-    // FT-909 (as above)
     assert_eq!(
         finding,
         "the label 2 is not in the project's revision label format V{major}.{minor}; give a label in that format; the \

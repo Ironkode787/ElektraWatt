@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 6 (§11), the data half: the Libraries navigator on Golden A shows its copies `SourceMissing` without
-//! libraries and `UpdateAvailable` with a fixture library (UI-4), tiers and states in words; the Macros navigator
-//! lists a saved macro under its tier and its detail lists the devices (UI-1); a new macro instance ID is
+//! The data half: the Libraries navigator on Golden A shows its copies `SourceMissing` without
+//! libraries and `UpdateAvailable` with a fixture library, tiers and states in words; the Macros navigator
+//! lists a saved macro under its tier and its detail lists the devices; a new macro instance ID is
 //! deterministic and skips held IDs.
 
 use crate::common::{Dir, tiers};
@@ -283,7 +283,7 @@ fn ui1_the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     let reference = detail.reference.clone().expect("installed");
     assert_eq!(reference.item, saved.reference.item);
     assert!(detail.extent.is_some());
-    // FT-754 (a): the thumbnail draws the macro on a blank page of a throwaway copy; the project is not touched.
+    // The thumbnail draws the macro on a blank page of a throwaway copy; the project is not touched.
     let pages = s.query().pages().iter().count();
     let thumb = s.macro_thumbnail(&m.key).expect("a thumbnail");
     assert_eq!(
@@ -346,7 +346,7 @@ fn ui1_the_macros_navigator_lists_a_saved_macro_and_its_detail() {
     assert!(m.badges.is_empty(), "a current copy has no badge: {:?}", m.badges);
     assert!(m.facets.contains(&("state".to_owned(), "current".to_owned())));
 
-    // FT-754 (e): re-saving the macro with a new description bumps its version; the held copy then reads Update
+    // Re-saving the macro with a new description bumps its version; the held copy then reads Update
     // available in both navigators, and Update… plans the macro copy. (Equal content keeps the hash: no update.)
     let spec = MacroSpec {
         description: MlText::neutral("Power supply, two output breakers"),

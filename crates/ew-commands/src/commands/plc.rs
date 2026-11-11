@@ -252,8 +252,8 @@ pub enum StartDir {
     Output,
 }
 
-/// `plc.set_start` (`SetStart`, doc 10 §3.9 `plc.set_start{modules, dir, spec}`, FR-PLC-013, FR-PLC-014; WP-S1.21
-/// D8): sets the start of one direction of one or more modules.
+/// `plc.set_start` (`SetStart`, doc 10 §3.9 `plc.set_start{modules, dir, spec}`, FR-PLC-013, FR-PLC-014):
+/// sets the start of one direction of one or more modules.
 ///
 /// `spec` is `auto` (the default: the module takes the first free range after the modules before it, algorithm A1),
 /// `excluded` (not addressed), `tbd` (an open item, reported by EW-PLC-015) or a start text in the notation of the
@@ -385,8 +385,8 @@ impl Command for SetStart {
     }
 }
 
-/// `plc.set_profile` (`SetProfile`, doc 10 §3.9 `plc.set_profile{cfg, profile}`, FR-PLC-008, FR-PLC-007; WP-S1.21
-/// D8): pins another address profile at hand on a configuration project.
+/// `plc.set_profile` (`SetProfile`, doc 10 §3.9 `plc.set_profile{cfg, profile}`, FR-PLC-008, FR-PLC-007):
+/// pins another address profile at hand on a configuration project.
 ///
 /// `profile` names a profile at hand, built in or held by the project as a `plc_profile` copy (a library's profile
 /// is embedded by the front end with `library.embed` first), by its reference `id@version` or its ID alone, without

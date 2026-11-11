@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 2 below the shell (acceptance check WR8, §8.6): crossings drawn as hops. `project.drawing.set
+//! Below the shell: crossings drawn as hops. `project.drawing.set
 //! {crossings: hops}` changes folio 103's display list only by the hop arcs of the rule (`ew_scene::hops`), the
 //! derived diff is empty and no connection changes; absent and `plain` draw Golden A's bytes.
 

@@ -428,7 +428,7 @@ impl Query<Cells> for Top {
     }
 }
 
-/// Probe 1 of the cycle 6 review: a dependency re-executes with a wider read set at a lower durability and
+/// A dependency re-executes with a wider read set at a lower durability and
 /// cuts off; the verified-green parent must take the lower durability, or the next drawing change skips it.
 #[test]
 fn a_green_memo_takes_the_durability_of_a_dependency_that_cut_off_lower() {
@@ -464,7 +464,7 @@ fn a_green_memo_takes_the_durability_of_a_dependency_that_cut_off_lower() {
     assert!(!memo);
 }
 
-/// Probe 2 of the cycle 6 review: an input moves from library to drawing durability with an unchanged
+/// An input moves from library to drawing durability with an unchanged
 /// value; the memo above the cut-off must become drawing-durable.
 #[test]
 fn a_green_memo_takes_the_durability_of_an_input_that_moved_lower() {
@@ -795,7 +795,7 @@ fn explain_keeps_64_reads_and_marks_the_rest_with_an_ellipsis() {
 proptest! {
     #![proptest_config(ProptestConfig { cases: 128, ..ProptestConfig::default() })]
 
-    /// R4 of WP-S1.22: `explain` changes nothing. Two stores run the same random steps; one also explains every
+    /// `explain` changes nothing. Two stores run the same random steps; one also explains every
     /// family at several keys before and after each step. Every read answers the same (and equals the cold
     /// computation), every memo state and statistic stays equal between the twins, and an explanation repeated
     /// without a step in between is the same.

@@ -60,7 +60,7 @@ pub struct Carrier {
 /// `bond_carrier(potential)`: see the module documentation. Policy Cold, note-free: only EW-POT-001 asks for it, and
 /// only on a potential whose member CPs carry both `M` and `PE`; the families it reads (partition, stitch graph, rail
 /// bonds, physical wires, wire numbers) are memoised themselves. (A `Memo` policy would add a family to the memo
-/// sweep of AC-16 and so change Golden A's acceptance report; WP-S1.16 part 1 keeps that report byte-equal.)
+/// sweep of AC-16 and so change Golden A's acceptance report.)
 #[derive(Debug)]
 pub struct BondCarrierQ;
 

@@ -83,11 +83,11 @@ pub(crate) fn bar_height(t: &Tokens, collapsed: bool) -> f32 {
 }
 
 /// The width of `text` in `font`.
-/// The share of the tab row the command search takes once that is wider than `size.search.width` (C40, FT-798).
+/// The share of the tab row the command search takes once that is wider than `size.search.width` (FT-798).
 pub(crate) const SEARCH_SHARE: f32 = 0.2;
 
 /// The command search's width in a tab row `row` wide: `size.search.width` at the floor, growing with the row
-/// ([`SEARCH_SHARE`]) to `size.search.max_width` (C40, FT-798; doc 16a §2: a floor width never caps one that should
+/// ([`SEARCH_SHARE`]) to `size.search.max_width` (FT-798; doc 16a §2: a floor width never caps one that should
 /// grow).
 pub(crate) fn search_width(t: &Tokens, row: f32) -> f32 {
     crate::dialog::grown(t.size_search_width, SEARCH_SHARE, row)
@@ -726,7 +726,7 @@ impl CommandBarHost {
             },
         )
         .tip(format!("{menu_name} (Alt)"));
-        // WP-S2.11 D3 (R3): the pop-up's expanded state with it.
+        // The pop-up's expanded state with it.
         let open = egui::Popup::is_id_open(ui.ctx(), app_menu_id());
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_description(name.to_owned());
@@ -879,7 +879,7 @@ impl CommandBarHost {
                 }
             },
         );
-        // The command search at the right end: a field that opens the palette anchored under it. C40 (FT-798): it grows
+        // The command search at the right end: a field that opens the palette anchored under it. FT-798: it grows
         // with the window, a share of the tab row, from `size.search.width` at the floor to `size.search.max_width`.
         let search_width = search_width(t, row.width());
         let search = Rect::from_min_size(
@@ -900,7 +900,7 @@ impl CommandBarHost {
         ui.ctx().accesskit_node_builder(response.id, |n| {
             n.set_placeholder(placeholder.clone());
             n.set_keyboard_shortcut(crate::keys::short_display(&palette_key));
-            // WP-S2.11 D3 (R5): the field holds no text of its own (it opens the palette).
+            // The field holds no text of its own (it opens the palette).
             n.set_value("");
         });
         let open = shell.palette().is_some();
@@ -1006,7 +1006,7 @@ fn command_row(ui: &mut Ui, t: &Tokens, model: &CommandBarModel, row: Rect, even
                     let Some((gi, bi)) = p.button else { continue };
                     let b = &model.groups[gi].buttons[bi];
                     let (response, chevron) = command_button(ui, t, b, p.rect);
-                    // FT-1025 (doc 16a §5.2): a click on a greyed command says why, as its tooltip does.
+                    // Doc 16a §5.2: a click on a greyed command says why, as its tooltip does.
                     if response.clicked() && !b.enabled {
                         say_why(b, events);
                     }
@@ -1123,7 +1123,7 @@ mod tests {
         assert_eq!(bar_height(&c, true), 33.0);
     }
 
-    /// C40 (FT-798): the search keeps `size.search.width` at the floor, grows with the row and stops at
+    /// FT-798: the search keeps `size.search.width` at the floor, grows with the row and stops at
     /// `size.search.max_width`.
     #[test]
     fn the_search_grows_with_the_row_between_its_tokens() {

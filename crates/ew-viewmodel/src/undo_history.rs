@@ -132,7 +132,7 @@ impl HistoryPane {
         ))
     }
 
-    /// FT-1362 (ruling 7; doc 16a §8): an entry's label in words, its command's title ("Create page" for
+    /// Doc 16a §8: an entry's label in words, its command's title ("Create page" for
     /// `page.create`).
     pub fn label_words(row: &HistoryRow) -> &str {
         crate::strings::command_title(&row.label)

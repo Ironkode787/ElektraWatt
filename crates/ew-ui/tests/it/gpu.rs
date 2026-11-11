@@ -487,8 +487,7 @@ fn while_preparing(
 }
 
 /// The GPU scene is keyed by (session, revision, folio): a new revision of the page on show stands in until it is
-/// ready, another folio or another project's session never does, and a late, older scene is dropped (the fix
-/// round of WP-S2.02 part 2).
+/// ready, another folio or another project's session never does, and a late, older scene is dropped.
 #[test]
 fn the_gpu_scene_is_keyed_by_session_revision_and_folio() {
     let tmp = Tmp::new();
@@ -653,8 +652,7 @@ fn red_outside(image: &RgbaImage, x_mm: (f64, f64), y_mm: (f64, f64)) -> usize {
 
 /// A page with a PNG item is drawn by the GPU path (routed such a page to the CPU tiles):
 /// the host keeps the GPU for it and the status bar names the GPU; the host's own path (worker, scene, render) draws
-/// the PNG's pixels inside the item's rectangle, also with the image inside a group, within the parity rule of
-/// WP-S2.02 §8 item 3 against the CPU tiles.
+/// the PNG's pixels inside the item's rectangle, also with the image inside a group, within the parity rule against the CPU tiles.
 #[test]
 fn a_page_with_a_png_item_is_drawn_by_the_gpu_path_with_its_pixels() {
     let devices = devices();
@@ -771,7 +769,7 @@ fn a_title_block_page_with_a_png_logo_is_drawn_by_the_gpu_path() {
     shell.shutdown();
 }
 
-/// FT-363 (GT-5): a frame whose target exceeds the device's limits is no fault. The host gives no texture
+/// A frame whose target exceeds the device's limits is no fault. The host gives no texture
 /// for it (the canvas host then draws that frame on the CPU), records no fault and tells no banner, and the next frame
 /// renders on the GPU again; a lost device still ends the GPU path for the session with its banner.
 #[test]

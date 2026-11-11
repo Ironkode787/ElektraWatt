@@ -240,8 +240,9 @@ pub(crate) fn cp_fluid_class(tx: &TxBuilder<'_>, f: Id<Function>, idx: u16) -> F
     fluid_port_class(&function, def.as_ref().map(|d| &d.item), &parts, idx)
 }
 
-/// What one end of a drawn connection is to WP-S1.20 §5 T1 to T3: whether it is fluid (`None`: neither, as an exempt
-/// CP, a junction without connections or an overview connection), and the fluid ports of its medium it reaches.
+/// What one end of a drawn connection is to the fluid rules: whether it is fluid (`None`: neither, as an
+/// exempt CP, a junction without connections or an overview connection), and the fluid ports of its medium
+/// it reaches.
 struct FluidEnd {
     fluid: Option<bool>,
     media: Vec<(ew_model::FluidMedium, Id<Function>, u16)>,
@@ -342,7 +343,7 @@ fn line_words(tx: &TxBuilder<'_>, id: Id<Connection>) -> Text {
     }
 }
 
-/// The refusals of WP-S1.20 §5 T1 to T3 before EW-INV-024 judges the drawn connection: a fluid line to an end that is
+/// The fluid refusals before EW-INV-024 judges the drawn connection: a fluid line to an end that is
 /// no fluid port, another kind (except an overview connection or a kind of a newer format) to a fluid end, and a fluid
 /// line between a hydraulic and a pneumatic or vacuum port. Every end kind is judged in words: a CP, a
 /// junction (by the connections at it) and a point on a connection (by its kind); the media are those the fluid lines
@@ -1048,7 +1049,7 @@ fn is_r0(o: &Orient2) -> bool {
     o.is_default()
 }
 
-/// The refusal of an interruption point's star (ID-1038's ruling (a)): a star source is a source point, and
+/// The refusal of an interruption point's star: a star source is a source point, and
 /// an external point never pairs, so it takes no star. `None` for an unstarred point and a starred source; the
 /// external refusal first, since clearing the star answers both.
 pub(crate) fn star_problem(direction: &IpDirection, star_source: bool, external: bool) -> Option<Text> {

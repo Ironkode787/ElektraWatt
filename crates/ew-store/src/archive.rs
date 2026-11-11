@@ -673,7 +673,7 @@ pub fn write_atomically(
         let _ = vfs.remove_file(&target);
         return Err(fail(io_err(WriteStep::Rename, root)(e), &run_record));
     }
-    // FIX40b (finding 2): the archive did not keep the temp's time. Until the record is rewritten it names another
+    // The archive did not keep the temp's time. Until the record is rewritten it names another
     // time, so the archive reads as foreign and is kept (the safe side); the rewrite makes the discard evidence true
     // again. If the rewrite fails, the record goes (the archive stays foreign and kept) and the caller reports it.
     let mut record_trouble = None;
@@ -1029,7 +1029,7 @@ mod tests {
         Ok(())
     }
 
-    /// FIX39a (finding 2): a `..` path, a `.` path and (on Windows) a case difference reach the project directory, and
+    /// A `..` path, a `.` path and (on Windows) a case difference reach the project directory, and
     /// are inside it; a sibling with the project's name as a prefix is not.
     #[test]
     fn inside_is_judged_on_normalised_paths() {
@@ -1054,7 +1054,7 @@ mod tests {
         }
     }
 
-    /// FIX39a (finding 2): a relative path is made absolute against the current directory before the comparison, and a
+    /// A relative path is made absolute against the current directory before the comparison, and a
     /// project given as `.` has a default archive root beside it.
     #[test]
     fn relative_paths_are_made_absolute() {
@@ -1141,7 +1141,7 @@ mod tests {
 
     /// The key of a path follows the directory, not its spelling (a `..` path reaches the same key); another
     /// directory of the same name has another key, and so has one whose name differs only in case on a case-sensitive
-    /// file system (the memory one): nothing is folded (finding 5).
+    /// file system (the memory one): nothing is folded.
     #[test]
     fn the_key_follows_the_directory() {
         let vfs = MemVfs::new(DirSync::Explicit);
@@ -1160,7 +1160,7 @@ mod tests {
         assert_eq!(path_text(&vfs, Path::new("/W/A/P.EW")), "/W/A/P.EW");
     }
 
-    /// FIX40a (finding 5): on the real file system the key is the directory's canonical path in the case the file
+    /// On the real file system the key is the directory's canonical path in the case the file
     /// system stores. Where names ignore case (Windows), another spelling of one directory reaches its key; where they
     /// do not, two directories whose names differ only in case have two keys.
     #[test]
@@ -1337,7 +1337,7 @@ mod tests {
         assert!(vfs.files(root).is_empty());
     }
 
-    /// FIX40a (finding 3): the run record is durable before the archive has its name. A kill or a power loss at every
+    /// The run record is durable before the archive has its name. A kill or a power loss at every
     /// call of the write, with hard links and without: whenever the archive is there after the restart, its record is
     /// there too and matches it (the archive, its SHA-256 and its modification time), so the directory's own leftover
     /// is discardable.
@@ -1485,7 +1485,7 @@ mod tests {
         }
     }
 
-    /// FIX40a (finding 4): on a file system without hard links the archive is created anew (never renamed over an
+    /// On a file system without hard links the archive is created anew (never renamed over an
     /// existing file) with the temp's modification time, which the record names; another copy's archive that appears
     /// between the write's checks and its placement is never replaced nor removed (the write reports it as existing and
     /// takes back its temp and its record).
@@ -1530,7 +1530,7 @@ mod tests {
         );
     }
 
-    /// FIX40a (finding 3): on the real file system the archive keeps the temp's modification time through the
+    /// On the real file system the archive keeps the temp's modification time through the
     /// hard-link rename (or the fallback), so the record written before the rename names the archive's time.
     #[test]
     fn the_record_names_the_archives_time_on_disk() {
@@ -1561,7 +1561,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&base);
     }
 
-    /// FIX40a (finding 9): a record written into a state directory that did not exist survives a power loss right after
+    /// A record written into a state directory that did not exist survives a power loss right after
     /// the write (the state directory's name is made durable through its parent).
     #[test]
     fn a_record_in_a_new_state_directory_is_durable() {
@@ -1575,7 +1575,7 @@ mod tests {
         assert_eq!(read_run_record(&vfs, &path), Some(record("run-1")));
     }
 
-    /// FIX40a (finding 2): the run records of a directory are those named by its key that read as its records.
+    /// The run records of a directory are those named by its key that read as its records.
     #[test]
     fn the_run_records_of_a_directory() {
         let vfs = MemVfs::new(DirSync::Explicit);
@@ -1704,7 +1704,7 @@ mod tests {
         }
     }
 
-    /// FIX40b (finding 1): on a file system without hard links, a placement whose write stops part-way (a full disk)
+    /// On a file system without hard links, a placement whose write stops part-way (a full disk)
     /// leaves no partial archive under the final name: the archive root is empty afterwards, the record is taken back
     /// and the release reports the failure.
     #[test]
@@ -1764,7 +1764,7 @@ mod tests {
         vfs
     }
 
-    /// FIX40b (finding 2): a file system that cannot set the archive's time keeps the archive (the write succeeds) and
+    /// A file system that cannot set the archive's time keeps the archive (the write succeeds) and
     /// the run record is rewritten with the archive's actual time, so the discard evidence stays true.
     #[test]
     fn an_archive_whose_time_cannot_be_set_is_kept_and_recorded() {
@@ -1789,7 +1789,7 @@ mod tests {
         assert_eq!(kept.sha256, hash_text(&sha256(&bytes)));
     }
 
-    /// FIX40b (finding 2): when rewriting the record fails too, the archive is kept, the record is removed (the archive
+    /// When rewriting the record fails too, the archive is kept, the record is removed (the archive
     /// is then foreign and kept by a discard, the safe side) and the write returns the trouble for the caller to report.
     #[test]
     fn a_record_that_cannot_be_rewritten_is_removed_and_reported() {

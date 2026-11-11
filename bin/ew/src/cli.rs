@@ -141,8 +141,8 @@ pub enum RevisionAction {
         /// The checker's party role (`--as`).
         role: String,
     },
-    /// `revision release <label> [--archive-dir <dir>]`: the atomic release with the as-built archive (WP-S1.18
-    /// part 4), or settling an incomplete one.
+    /// `revision release <label> [--archive-dir <dir>]`: the atomic release with the as-built archive,
+    /// or settling an incomplete one.
     Release {
         /// The open revision's label.
         label: String,
@@ -231,8 +231,7 @@ pub struct FmtArgs {
     pub project: Option<PathBuf>,
     /// List the files a format would rewrite and write nothing (`--check`, a reader).
     pub check: bool,
-    /// Discard the broken lines (EW-CORE-005 at line level) after an `.ewz` backup (`--repair`; WP-S1.17, decision log
-    /// ID-1185); never with `check`.
+    /// Discard the broken lines (EW-CORE-005 at line level) after an `.ewz` backup (`--repair`); never with `check`.
     pub repair: bool,
     /// Print the result as JSON (`--json`).
     pub json: bool,
@@ -619,7 +618,7 @@ pub struct CheckArgs {
     pub out: Option<PathBuf>,
     /// The language of the messages (`--lang`, a shipped language; default en-GB).
     pub lang: String,
-    /// Only the project-integrity check (`--integrity`, FT-191; WP-S1.17 D29).
+    /// Only the project-integrity check (`--integrity`, FT-191).
     pub integrity: bool,
     /// With `integrity`: the project counts as just merged (`--after-merge`).
     pub after_merge: bool,

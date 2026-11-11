@@ -97,7 +97,7 @@ impl ShellModel {
         let nav = self.navs.get(&NavKind::Messages)?;
         let key = nav.cursor_key()?;
         let mut d = nav.node_of(&key).and_then(|(_, n)| messages::detail(n))?;
-        // WP-S2.08 part 3 (D10, ruling 6): the message in the UI language, by `report::localise`'s rule
+        // The message in the UI language, by `report::localise`'s rule
         // (the rule's pattern of that language where it has one, the en-GB message otherwise), for the finding of the
         // online report with this fingerprint.
         let lang = strings::rule_language();
@@ -120,7 +120,7 @@ impl ShellModel {
                     .map(|q| ew_api::checks::messages::fix_label(q, lang));
             }
         }
-        // FT-1140 (item 9): the message stands on its own line, so it starts with a capital.
+        // The message stands on its own line, so it starts with a capital.
         d.message = strings::sentence_start(&d.message).into_owned();
         if d.waived {
             d.waiver = self
@@ -139,7 +139,7 @@ impl ShellModel {
         let Some(c) = self.canvas_of(group) else {
             return Vec::new();
         };
-        // WP-S4.02 part 3 (doc 16a §7.3): a refused layout drop's outline and cross, on the focused group.
+        // A refused layout drop's (doc 16a §7.3) outline and cross, on the focused group.
         if self.area().is_some_and(|a| a.focused == group) {
             let lines = self.tools.tool.conflict_lines();
             if !lines.is_empty() {
@@ -274,7 +274,7 @@ impl ShellModel {
             .as_ref()
             .filter(|(epoch, _)| *epoch == project.epoch)
             .map_or(&[][..], |(_, notes)| notes.as_slice());
-        // WP-S3.09 D9 d: the migration report, while it is the pane's choice and the project has an import.
+        // The migration report, while it is the pane's choice and the project has an import.
         let mut table = if state.migration && project.session.has_lineage() {
             project.session.migration_table()
         } else {
@@ -436,7 +436,7 @@ impl ShellModel {
                 .map(|project| counted(&Self::messages_table_of(project, &self.messages))),
         };
         if let Some((c, findings)) = counts {
-            // The last check of this project, which the toast's changes count from; C52-p5#2: only a check
+            // The last check of this project, which the toast's changes count from; only a check
             // of the same table, the same scheme and the migration report or not, so a switch reads as no change.
             let table = (
                 self.project
@@ -782,7 +782,7 @@ impl ShellModel {
             && now != rev
         {
             let text = format!("quick fix {rule}");
-            // WP-S2.09 part 3 (§8.4): the history panel shows the annotation as the entry's origin.
+            // The history panel shows the annotation as the entry's origin.
             self.note_history_origin(now, &text);
             self.messages.annotations.insert((epoch, now), text);
         }

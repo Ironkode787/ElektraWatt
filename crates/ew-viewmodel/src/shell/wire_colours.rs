@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 6 (D18, FR-UI-047): the wire-colour view's host duties. `view.wire_colours {on?}` (View ▸ Wire
+//! The wire-colour view's host duties (FR-UI-047). `view.wire_colours {on?}` (View ▸ Wire
 //! colours) switches the view, a session's view state like View ▸ Grid, off at start; [`ShellModel::wire_colour_overlay`]
 //! gives the strokes of a canvas group's shown page for the window's painter ([`crate::wire_colours`]).
 //!

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-439's guard: no shell output is ordered by UUID. One creating script runs twice on equal
+//! No shell output is ordered by UUID. One creating script runs twice on equal
 //! copies of Golden A, once with new IDs that ascend and once with new IDs that descend
 //! (`ShellModel::set_id_source_for_tests`), so every pair of records the script creates sorts the other way round by ID
 //! in the second run. The transcripts must be byte-identical with aliases in them, and each alias `@n` must name the
@@ -9,7 +9,7 @@
 //! UUID fails one of the two: a list printed in another order changes the bytes, and a list of records printed for the
 //! first time numbers its aliases the other way round.
 //!
-//! The script covers what FT-439 lists: three new devices with different part quantities in one property sheet
+//! The script covers three new devices with different part quantities in one property sheet
 //! ("set all" prints the first target's list), two placements selected together by a band, and a wire split by a new
 //! wire (the two halves and the junction) selected by a touching band.
 
@@ -314,7 +314,7 @@ fn run(
     (lines.join("\n").replace(&dir, "DIR"), prints, k)
 }
 
-/// Acceptance 1 and 4 of FT-439: under ascending and descending new IDs one creating script gives byte-identical
+/// Under ascending and descending new IDs one creating script gives byte-identical
 /// transcripts with aliases, and every alias names the same record in both runs.
 #[test]
 fn one_script_under_ascending_and_descending_ids_prints_the_same_bytes_and_records() {

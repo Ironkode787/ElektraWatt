@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.08 part 2 through the `ew` binary: `ew export table` and `ew import table`, the round trip of a navigator's
-//! table and of the I/O list (RT-1 to RT-6, D8, D11), over copies of Golden A.
+//! Through the `ew` binary: `ew export table` and `ew import table`, the round trip of a navigator's
+//! table and of the I/O list, over copies of Golden A.
 //!
 //! A workbook "saved by Excel" is the export with every inline string of every sheet moved into a shared-strings table
 //! (`t="s"` cells, as Excel writes them), the hidden sheets kept, and the test's cells replaced.

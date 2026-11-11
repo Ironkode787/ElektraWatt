@@ -37,8 +37,7 @@ pub struct PasteTool {
     tags: Vec<String>,
     /// The overlay of the last move, whose label a preview completes.
     last: Overlay,
-    /// The held copies of another version the paste uses as the project holds them (`edit.paste`'s `adapt`,
-    /// WP-S2.07 D22); empty for a plain paste.
+    /// The held copies of another version the paste uses as the project holds them (`edit.paste`'s `adapt`); empty for a plain paste.
     adapt: Vec<ew_api::output::Uuid>,
 }
 

@@ -149,7 +149,7 @@ pub(crate) fn icon_atom(id: IconId, size: f32, colour: Option<Rgba>, stroke: f32
     })
 }
 
-/// WP-S2.11 D3 (R3): a combo box's expanded state, which egui 0.37 does not give its node: open while its list
+/// A combo box's expanded state, which egui 0.37 does not give its node: open while its list
 /// shows. `combo` is the response `show_ui` returned (its ID is the combo button's).
 pub(crate) fn combo_expanded(ui: &Ui, combo: &Response) {
     let open = egui::ComboBox::is_open(ui.ctx(), combo.id);
@@ -989,7 +989,7 @@ pub(crate) fn inline_card(
         CardStatus::Failed(m) => strings::format(key!("card-strip-failed"), &[card.title, m]),
         _ => format!("{} · {}", card.title, card.summary),
     };
-    // WP-S2.09 part 3 (§8.1): while the Preview tab shows the card, the strip stands in for it.
+    // While the Preview tab shows the card, the strip stands in for it.
     if card.strip && card_strip(ui, shell, &strip_line, events) {
         return;
     }
@@ -1258,7 +1258,7 @@ mod tests {
         }
     }
 
-    /// Cycle 37 (window check): a tooltip is at most `size.tooltip.max` wide and [`TIP_MAX_LINES`] lines; a longer
+    /// A tooltip is at most `size.tooltip.max` wide and [`TIP_MAX_LINES`] lines; a longer
     /// text ends in "…", a short one is shown whole.
     #[test]
     fn a_long_tooltip_is_cut_to_eight_lines_ending_in_an_ellipsis() {
@@ -1287,7 +1287,7 @@ mod tests {
         assert_eq!((short.as_str(), short_elided), ("Wire", false));
     }
 
-    /// Cycle 33 ruling: a disabled Primary draws as a Secondary (panel fill, default border) with the disabled text
+    /// A disabled Primary draws as a Secondary (panel fill, default border) with the disabled text
     /// colour, in light and dark; enabled it keeps the accent fill.
     #[test]
     fn a_disabled_primary_draws_as_a_secondary_with_the_disabled_text() {

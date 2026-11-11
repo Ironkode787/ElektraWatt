@@ -66,7 +66,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
         PickerMode::BlackBox => strings::text(key!("picker-title-black-box")),
     };
     let t = crate::theme::current(ctx);
-    // ID-1427 (W52 F2): the table uses the space it has. The picker's content is as wide as its widest name, its part
+    // The table uses the space it has. The picker's content is as wide as its widest name, its part
     // number column and its function column need, at least its grown width; the window then keeps `space.6` free on
     // each side. Measured over the step's rows without the filter, and never narrower than the
     // width it opened at, so typing does not move the field.
@@ -134,7 +134,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 );
             }
             let mut filter = picker.filter.clone();
-            // Cycle 37 (window check W37): the focus is taken before the field reads this frame's input, so the key
+            // The focus is taken before the field reads this frame's input, so the key
             // typed in the frame that first shows the picker reaches the filter ("relay", not "elay"); it is asked for
             // again once the field is laid out, so it outlives the window's first (sizing) pass.
             let id = ui.make_persistent_id("picker-filter");
@@ -154,8 +154,8 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                 events.push(Event::Action("picker.filter", json!({ "text": filter })));
             }
             // A terminal chosen in a project without strips opens the strip chooser on an empty state that
-            // says why and offers New terminal strip (doc 16a §6.17), whose form offers the tag (ID-1181:
-            // `strip.new {dialog}`); its Create lists the new strip as the current row.
+            // says why and offers New terminal strip (doc 16a §6.17), whose form offers the tag
+            // (`strip.new {dialog}`); its Create lists the new strip as the current row.
             if picker.mode == PickerMode::Strip && picker.empty_text() == Some(key!("picker-empty-strips")) {
                 let new = crate::components::empty_state(
                     ui,
@@ -350,7 +350,7 @@ fn row_texts(
             } else {
                 strings::text(key!("picker-badge-starter"))
             };
-            // ID-1427 (W52 F16): the row names the symbol by its name in words ("Contact, changeover"), in both
+            // The row names the symbol by its name in words ("Contact, changeover"), in both
             // languages; a symbol without a name by the key's last segment without its grid variant
             // (`ew.iec.mcb-1p@qet10` → `mcb-1p`). The tooltip likewise, never the keys.
             let name = if s.name.is_empty() {
@@ -375,8 +375,8 @@ fn row_texts(
                 meta.push(' ');
                 meta.push_str(strings::text(key!("picker-main")));
             }
-            // The function in words, never an ID (in the tooltip too). FT-712:
-            // the description leads (the part number when the part has none), the part number follows it, and the
+            // The function in words, never an ID (in the tooltip too).
+            // The description leads (the part number when the part has none), the part number follows it, and the
             // tooltip starts with the whole description.
             // The part number and the rating tell two parts of one kind apart ("Fuse holder with
             // fuse link", "EW-GEN-FUS-1 · 4 A").

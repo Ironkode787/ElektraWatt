@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 3 in the window, on a writable copy of Golden A, folio 902: the Unplaced devices navigator's rows on
+//! In the window, on a writable copy of Golden A, folio 902: the Unplaced devices navigator's rows on
 //! show; the tool options card while F55 floats, its two segmented controls (tab lists "Placing mode" and "Grid step")
 //! sending `layout.options`; the card gone again when the tool ends. The placing flows themselves (the ghost against
 //! the commit) are the viewmodel's `tests/it/layout_place.rs`.
@@ -59,7 +59,7 @@ fn the_unplaced_navigator_and_the_layout_options_card() {
     assert_eq!(h.state().shell().layout_options().mode, SnapMode::Push);
 }
 
-/// FT-997 (doc 12 §12.1): Lock shows `lock` at the locked placement's top-right corner, standing on the
+/// Doc 12 §12.1: Lock shows `lock` at the locked placement's top-right corner, standing on the
 /// footprint's top edge, `icon.sm` square and fixed on screen at another zoom; Unlock takes it away.
 #[test]
 fn a_locked_placement_shows_the_lock_icon() {

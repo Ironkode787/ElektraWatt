@@ -4,9 +4,9 @@
 //! The property grid pane (spec §6.9): the shell's sheet drawn as the inline preview card, the header
 //! and one block per section with collapsible groups; each row its label, its value or editor, the provenance chip
 //! (an icon glyph and words, never colour alone) and its actions. The toast of a commit with several targets is one of
-//! the window's toasts since WP-S2.09 part 1 (`crate::notifications`).
+//! the window's toasts (`crate::notifications`).
 //!
-//! WP-S2.17 part 3 (D11; doc 16a §6.8): the header's title in `type.title` and its subtitle in `type.small`; the Main
+//! Doc 16a §6.8: the header's title in `type.title` and its subtitle in `type.small`; the Main
 //! group (the kind's primary fields) first, then the categories; the Advanced rows (`$v`, ids, source references) only
 //! after "Show advanced (n)" at the foot. A value cell edits in place (a click, with a hover border); an empty value
 //! shows an em dash; the provenance chip only for a value that is not authored, its whole text in the tooltip. The
@@ -45,7 +45,7 @@ const MAX_SHOWN: usize = 48;
 pub struct PropertiesPane {
     /// The editor's text (the shell's buffer is set from it).
     buffer: String,
-    /// The edit session the editor was opened for: the targets of the row's section and the row's key (W44.4 F-h: the
+    /// The edit session the editor was opened for: the targets of the row's section and the row's key (the
     /// same row of another selection is another session, whose buffer the editor takes afresh).
     editing: Option<(Vec<ew_viewmodel::ew_api::output::Uuid>, String)>,
     /// The multi-language popup's texts by language (`None`: neutral).
@@ -147,7 +147,7 @@ impl PropertiesPane {
     pub(crate) fn show(&mut self, ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let props = shell.properties();
         // An ended edit (committed, cancelled, or dropped by a selection change) ends the editor's session: the next
-        // editor takes the shell's buffer afresh (W44.4 F-h).
+        // editor takes the shell's buffer afresh.
         if props.edit().is_none() {
             self.editing = None;
         }
@@ -198,7 +198,7 @@ impl PropertiesPane {
                 return;
             };
             Self::header(ui, sheet, shell.editing_folio().as_deref(), events);
-            // FT-541 (doc 16a §6.8): "Filter properties" under the header while the open categories hold more than
+            // Doc 16a §6.8: "Filter properties" under the header while the open categories hold more than
             // twelve rows.
             let filter = shell.properties_filter().to_owned();
             if shell.properties_filter_shown() {
@@ -497,14 +497,14 @@ impl PropertiesPane {
     }
 
     /// The header (§6.2): title, subtitle, location, finding chips (doc 16a §6.8: the title in `type.title`, the
-    /// subtitle and the location in `type.small`, secondary; FT-530: one severity chip per finding at the right of the
+    /// subtitle and the location in `type.small`, secondary; one severity chip per finding at the right of the
     /// title line, its icon and word, the rule and message as the tooltip and in its node's name).
     fn header(ui: &mut Ui, sheet: &PropertySheet, editing: Option<&str>, events: &mut Vec<Event>) {
         let t = crate::theme::current(ui.ctx());
-        // Cycle 36 (window check W36): the chips are laid out first, at the right, and the title takes what is left,
+        // The chips are laid out first, at the right, and the title takes what is left,
         // ellipsised; the findings collapse into one count chip per severity ("3 Warnings", every rule and message in
         // its tooltip), so the header keeps its width whatever the count (doc 16a §6.8: "the findings badge").
-        // Cycle 37 (window check W37): always one chip per severity, also for one or two findings ("2 Warnings", not
+        // Always one chip per severity, also for one or two findings ("2 Warnings", not
         // "Warning Warning").
         // The chips never take the title's room. When the title at its full width and the chips
         // with their words do not fit the line, each severity becomes one glyph chip (its icon, and the count when
@@ -706,7 +706,7 @@ impl PropertiesPane {
             label_width = label_width.max((depth + natural).min(room));
         }
         let galley = Self::label_galley(ui, &t, &label, natural, label_width, depth);
-        // FT-1498 (doc 16a §6.8): a prose value too wide for its cell wraps at its words onto up to three
+        // Doc 16a §6.8: a prose value too wide for its cell wraps at its words onto up to three
         // lines and the row grows with it; only a longer one is cut, its whole text in the tooltip.
         let editing = props.edit().is_some_and(|e| e.row == row.key);
         let prose = (!editing && !header && !is_link(row))
@@ -1441,7 +1441,7 @@ impl PropertiesPane {
         // 1-px `color.accent` border and a 1-px accent ring, `radius.sm`, `space.icon` padding.
         let t = crate::theme::current(ui.ctx());
         let background = ui.painter().add(egui::Shape::Noop);
-        // Cycle 37 (window check): an editor opened on the stored value (Enter, F2, Edit) starts with the whole text
+        // An editor opened on the stored value (Enter, F2, Edit) starts with the whole text
         // selected, so typing replaces it ("-101K2" then "-101K1" gave "-101K2-101K1"); one opened by typing keeps
         // its caret after the typed text.
         // The selection is set once the field holds the focus (egui collapses a selection of an unfocused field).
@@ -1450,7 +1450,7 @@ impl PropertiesPane {
             Vec2::new(ui.available_width(), t.size_control_inline),
             TextEdit::singleline(&mut self.buffer)
                 .id(field_id)
-                // The padding is the frame's inner margin: egui drops `margin` when a frame is given (W44.4 F-f).
+                // The padding is the frame's inner margin: egui drops `margin` when a frame is given.
                 .frame(
                     egui::Frame::NONE
                         .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_icon), 0)),
@@ -1499,7 +1499,7 @@ impl PropertiesPane {
         if fresh {
             response.request_focus();
             // An editor opened on a row out of view (F2, `props.edit`) brings its row into view first, so the field
-            // and its choice list show by the row (W44.4 F-e).
+            // and its choice list show by the row.
             response.scroll_to_me(None);
         }
         if response.gained_focus() && edit.initial.as_deref() == Some(self.buffer.as_str()) {
@@ -1784,7 +1784,7 @@ fn severity_groups<'a>(
 /// The Properties label column's width in a row `row` wide whose widest label on show needs `need` and whose values
 /// need `values` (each with its chip, [`value_need`]).
 ///
-/// M39: `need`, never below `size.property_label` and never above half the row (ID-1419: a longer label wraps
+/// M39: `need`, never below `size.property_label` and never above half the row (a longer label wraps
 /// at its words; the floor wins in a row too narrow for both). W40b (the value column gets the width first): the
 /// column then gives way, down to half of `size.property_label` (below a label's widest word too), to the widest value
 /// it can make whole that way. Each value counts whole, or, when it is too
@@ -1805,7 +1805,7 @@ pub(crate) fn label_column(t: &crate::theme::Tokens, row: f32, need: f32, values
     if value <= 0.0 {
         return labels;
     }
-    // ID-1427 (W52 F3): an identifier keeps its width and its chip; the labels yield first, down to `least`, their
+    // An identifier keeps its width and its chip; the labels yield first, down to `least`, their
     // widest single word included (a word longer than its column is cut, its whole label in the tooltip).
     labels.min(inner - value).max(least)
 }
@@ -1829,7 +1829,7 @@ fn row_value(section: &SheetSection, row: &PropRow) -> String {
 /// gap when it shows, and the row's "…" button when it has actions (the cursor row's value stays whole).
 fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &PropRow) -> (f32, f32) {
     // A list's words (its item count, "4 elementen") summarise it; the label column never gives way to them.
-    // ID-1427 (W52 F5): a list field's only; a position's pair reads as words ("102-C7 · x 124.4 y 52.9 mm").
+    // A list field's only; a position's pair reads as words ("102-C7 · x 124.4 y 52.9 mm").
     if matches!(row.ty.inner(), FieldType::List(_)) {
         return (f32::INFINITY, f32::INFINITY);
     }
@@ -1849,7 +1849,7 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
     // The first word with the ellipsis that follows it when the rest is cut, for an identifier only (a word with a
     // digit: a tag, a part number, an order number). Prose ("Electrical Definition") takes nothing from the
     // labels; it elides with the whole value in its tooltip, and the labels stay whole.
-    // ID-1427 (W52 F4): a mixed value ("‹varies› (2)") counts whole, as an identifier does.
+    // A mixed value ("‹varies› (2)") counts whole, as an identifier does.
     let varies = matches!(row.value, RowValue::Varies { .. });
     let head = match shown.split_once(' ') {
         _ if varies => Some(shown.clone()),
@@ -1860,7 +1860,7 @@ fn value_need(ui: &Ui, t: &crate::theme::Tokens, section: &SheetSection, row: &P
         None if !shown.chars().any(|c| c.is_ascii_digit()) => return (f32::INFINITY, f32::INFINITY),
         None => Some(shown.clone()),
     };
-    // ID-1427 (W52 F3): the row's "…" button counts, so that the value stays whole on the cursor row too.
+    // The row's "…" button counts, so that the value stays whole on the cursor row too.
     let mut extra = 2.0 * t.space_icon;
     if !row.actions.is_empty() {
         extra += t.size_control_inline + t.space_1;

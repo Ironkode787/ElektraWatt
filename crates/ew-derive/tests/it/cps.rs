@@ -317,7 +317,7 @@ fn function_not_named_by_a_template_keeps_fndef_cps() {
     assert_eq!(out[0].discipline, Discipline::Bus);
 }
 
-// ---- FT-655: a function's template entry ----
+// ---- a function's template entry ----
 
 const FNDEF_COIL: u128 = 0x510;
 const FNDEF_CO: u128 = 0x511;
@@ -325,7 +325,7 @@ const PART_RELAY: u128 = 0x610;
 const PART_RELAY_SPARE: u128 = 0x611;
 
 /// A relay part with a coil and four changeover contacts of one FnDef, each contact a template entry naming three
-/// pattern CPs (WP-S2.18's EW-GEN-RLY-1 shape), and a second part whose template has one changeover contact only.
+/// pattern CPs (the EW-GEN-RLY-1 shape), and a second part whose template has one changeover contact only.
 fn with_relay() -> Fx {
     let mut fx = base();
     lib_fndef(
@@ -426,7 +426,7 @@ fn each_contact_of_one_fndef_takes_its_own_template_entry() {
 
 #[test]
 fn a_function_without_template_entry_takes_the_first_entry_of_its_fndef() {
-    // A file written before FT-655: as before, the first entry naming the FnDef.
+    // A file written before template entries: as before, the first entry naming the FnDef.
     let out = relay_cps(&[PART_RELAY], FNDEF_CO, None);
     assert_eq!(designations(&out), [(0, "11"), (1, "12"), (2, "14")]);
     let coil = relay_cps(&[PART_RELAY], FNDEF_COIL, None);

@@ -106,7 +106,7 @@ fn with_lib_bom(listed: bool) -> (Arc<MemVfs>, PathBuf) {
     (vfs, root)
 }
 
-/// The cargo-fuzz finding of cycle 22 (`fuzz/corpus/migration_chain/lib-document-bom`): a BOM before a library
+/// The cargo-fuzz finding (`fuzz/corpus/migration_chain/lib-document-bom`): a BOM before a library
 /// copy made the copy a JSON syntax error, so the function naming it refused the open (EW-INV-001, a dangling
 /// `def`). The BOM is a shape: the project opens for editing with the golden model, the save rewrites the copy
 /// canonically and the next open has nothing to report.

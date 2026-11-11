@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1019 on Golden A: the rows of panel page 902's Placement category in Properties read in the user's words, and
+//! On Golden A: the rows of panel page 902's Placement category in Properties read in the user's words, and
 //! the scale is typed as it shows.
 
 use crate::golden_common;

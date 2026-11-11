@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode in the window and FT-509: the platform's copy and paste events in a navigator's table
+//! Table mode in the window and the navigator group's menu: the platform's copy and paste events in a navigator's table
 //! run `table.copy` and `table.paste` (the TSV goes to the system clipboard), the table card in the navigator's pane
 //! with its Drop buttons and Apply, and the left dock's "All tabs" menu that reaches every navigator tab hidden behind
 //! the tab strip's overflow; the accessible-name walker after every step (`settle`).
@@ -108,7 +108,7 @@ fn copy_and_paste_events_run_the_table_actions() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-509, WP-S2.17 part 3 DK1: the navigator group draws no tab bar; every navigator is one named rail button away
+/// The navigator group draws no tab bar; every navigator is one named rail button away
 /// (a click shows it in the group), Ctrl+`<n>` picks the n-th entry, and the Project entry's segmented control switches
 /// between Pages and Devices.
 #[test]
@@ -190,7 +190,7 @@ fn strips_cell(shell: &ShellModel, key: &str, label: &str) -> String {
     t.nodes.iter().find(|x| x.key == key).expect("the row").cells[c].clone()
 }
 
-/// WP-S2.07 part 1 in the window (SE15's walker, §6.5): the strip editor on -X1031 is the Terminal strips grid; an
+/// In the window: the strip editor on -X1031 is the Terminal strips grid; an
 /// accessory row is a row of the grid (its cells named like a terminal row's); with two end-bracket parts in the
 /// project, Add accessory opens the chooser list (a `ListBox` named "Choose the part", its rows `ListBoxOption`s with
 /// position and set size), Down and Enter pick the second part (one `fields.set` of `strip.accessories`), and the list

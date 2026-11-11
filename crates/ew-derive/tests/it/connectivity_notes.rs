@@ -16,8 +16,8 @@
 //! - `rail_bonded_terminal_without_pe_cp_is_noted`: EW-TERM-005, no rail bond.
 //! - `unlocated_rail_bonded_terminals_do_not_bond`: EW-POT-008, no rail bond, in a project with two own locations.
 //! - `unlocated_rail_bonded_terminals_join_the_only_own_location` and `..._join_the_implicit_main_location`:
-//!   cycle 33 (G-PP ruling #20), one own location or none: the rail joins them, no EW-POT-008. A location an
-//!   external reference names is own while an own device or page uses it (finding 7).
+//!   one own location or none: the rail joins them, no EW-POT-008. A location an
+//!   external reference names is own while an own device or page uses it.
 //! - `scoped_pairing_without_the_node_pairs_project_wide_and_notes`: F13, pages without a location node.
 //! - `scoped_pairing_keeps_locations_apart`: F13, different location nodes do not pair, the same node does.
 
@@ -432,7 +432,7 @@ fn two_unlocated_terminals(mut fx: Fx) -> ew_model::Model {
     fx.build()
 }
 
-/// Amended by cycle 33 (G-PP ruling #20): with one own location (A), the unlocated terminals join A's rail; an
+/// With one own location (A), the unlocated terminals join A's rail; an
 /// external reference's location (B) is not an own location. No EW-POT-008.
 #[test]
 fn unlocated_rail_bonded_terminals_join_the_only_own_location() {
@@ -457,7 +457,7 @@ fn unlocated_rail_bonded_terminals_join_the_only_own_location() {
     assert!(notes_with(&mut q, "EW-POT-008", "").is_empty());
 }
 
-/// Cycle 33 review finding 7: a location that an external reference names is still own when an own device sits in
+/// A location that an external reference names is still own when an own device sits in
 /// it. With A and B (named by an external reference, holding the own device -K1) both own, the unlocated terminals
 /// join no rail and are noted (EW-POT-008), as with two own locations.
 #[test]
@@ -480,7 +480,7 @@ fn a_location_named_by_an_external_reference_and_used_by_an_own_device_is_own() 
     assert_eq!(subjects, BTreeSet::from([uid(0x4001), uid(0x4002)]));
 }
 
-/// Amended by cycle 33 (G-PP ruling #20): with no location node at all, the unlocated terminals join the implicit
+/// With no location node at all, the unlocated terminals join the implicit
 /// main location's rail.
 #[test]
 fn unlocated_rail_bonded_terminals_join_the_implicit_main_location() {

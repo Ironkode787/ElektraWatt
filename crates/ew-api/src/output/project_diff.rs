@@ -167,8 +167,8 @@ impl Session {
         named(&self.query(), value)
     }
 
-    /// Whether the current model holds a record with the ID `id`, of any kind (a reloaded window's selection, WP-S1.17
-    /// D24).
+    /// Whether the current model holds a record with the ID `id`, of any kind (a reloaded window's
+    /// selection).
     pub fn record_exists(&self, id: Uuid) -> bool {
         let q = self.query();
         ew_derive::ew_schema::Kind::ALL

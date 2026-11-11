@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The product glossary (WP-S2.08 D5 (b), FR-UI-045): `glossary/glossary.toml`, compiled in and parsed once. It is
+//! The product glossary (FR-UI-045): `glossary/glossary.toml`, compiled in and parsed once. It is
 //! the one source of the command palette's aliases ([`aliases_of`]), of the user guide's glossary page (`cargo xtask
 //! docs-gen` reads the same file) and of the glossary panel of a later part. A parse failure is a test failure
 //! (`the_shipped_glossary_parses`), never a run-time error: [`terms`] then holds no term.

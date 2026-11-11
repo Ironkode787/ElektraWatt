@@ -251,7 +251,7 @@ fn potential_names(s: &Session) -> Vec<String> {
     names
 }
 
-/// WP-S1.16 P1-2 (D2, D3): Golden A without its bond B1 (D-22: W27 is then a plain wire, 0 V and PE merge)
+/// Golden A without its bond B1 (D-22: W27 is then a plain wire, 0 V and PE merge)
 /// reports EW-POT-001 with the fix "Declare 0 V–PE bond (PELV)" on W27, the wire on the PE side; running the fix's
 /// command as `messages.fix` does leaves 0V and PE two potentials, no EW-POT-001 and EW-POT-002 satisfied by the one
 /// bond; undo brings the finding back.
@@ -490,7 +490,7 @@ fn golden_a_d21_unbonded_x1032_is_one_pe_island() {
 ///
 /// EW-CORE-041 also reports two known deviations from EF-04 until their packages land: -XPE (EF-19, open in Golden A
 /// itself, which holds no waiver; the copy with W-1 in `check_messages_waivers.rs` waives it) and the process valves -203Q1 to -203Q8 (supplied by others, exempt once
-/// `supply_scope` exists, FT-209, decision log ID-322).
+/// `supply_scope` exists, FT-209).
 #[test]
 fn golden_a_ew_core_part3_reports_the_ef_rows() {
     let batch = golden_common::batch();
@@ -547,7 +547,7 @@ fn golden_a_ew_core_part3_reports_the_ef_rows() {
     assert_eq!(subjects(&online, "EW-CORE-037"), Vec::<(String, String)>::new());
 }
 
-/// WP-S1.16 part 4 on Golden A (doc 20 §18.1): EF-12 is EW-CORE-061 twice (the styles `cp.small` and `marker`,
+/// On Golden A (doc 20 §18.1): EF-12 is EW-CORE-061 twice (the styles `cp.small` and `marker`,
 /// D-31), EF-18 is EW-RDS-003 once (T55, a temperature switch with the letter T); every other rule of pages, texts,
 /// designations and terminals reports nothing in the pre-delivery scheme, and the rule system itself (EW-CORE-083,
 /// -084) is quiet. Online in the drafting scheme EW-RDS-002 reports the two location codes with a separator

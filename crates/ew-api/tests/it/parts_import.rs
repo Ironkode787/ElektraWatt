@@ -101,7 +101,7 @@ fn a_parts_table_above_the_size_limit_is_refused_before_it_is_read() {
     );
 }
 
-/// JB8, FT-464: a `parts.csv` and sibling tables that a spreadsheet saved with a byte-order mark import the same copies
+/// A `parts.csv` and sibling tables that a spreadsheet saved with a byte-order mark import the same copies
 /// as the tables without it, through the user's path (`read_parts_tables`, which `parts.import` and `ew import parts`
 /// both call); the bootstrap's own reader stays strict.
 #[test]

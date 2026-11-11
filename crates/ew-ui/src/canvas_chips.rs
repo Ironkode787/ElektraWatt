@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The chips of a canvas (doc 16a §7.3 to §7.5): the tool overlay's labels (the Place ghost's one
-//! label with the tag it will get, FT-507; the measurement readout), the highlights' name chips and the kept
+//! label with the tag it will get; the measurement readout), the highlights' name chips and the kept
 //! preview's semantic ghost (its header with the command and status, one chip per changed tag or cross-reference
 //! text), each placed by `ew-viewmodel`'s one rule, [`place_chip`] (D13), in that order, so that a later chip
 //! keeps off the earlier ones.
@@ -193,8 +193,8 @@ impl Placer<'_> {
             &self.obstacles,
             self.pointer,
         );
-        // FT-1142 (doc 16a §7.4): where no candidate is free the chip stacks inward clear of the chips placed
-        // so far; FT-1079: where that finds no place it stands at the rule's first candidate, faded; that one
+        // Doc 16a §7.4: where no candidate is free the chip stacks inward clear of the chips placed
+        // so far; where that finds no place it stands at the rule's first candidate, faded; that one
         // may lie off the canvas, so the chip is moved in (its top left wins in a canvas too small for it).
         let placed: Vec<Rect> = self.out.iter().map(|c| c.rect).collect();
         let stacked = p
@@ -565,9 +565,9 @@ mod tests {
         );
     }
 
-    /// FT-1079 at the floor's canvas: the placer puts a chip whose every candidate is taken (the whole canvas is an
-    /// obstacle) inside the canvas, though its first candidate lies above the canvas's top left corner. FT-1142:
-    /// the chips that follow it at the same target stack inward (down from the top corner), clear of one
+    /// At the floor's canvas the placer puts a chip whose every candidate is taken (the whole canvas is an
+    /// obstacle) inside the canvas, though its first candidate lies above the canvas's top left corner.
+    /// The chips that follow it at the same target stack inward (down from the top corner), clear of one
     /// another and whole; where the canvas has no such place left the chip is faded, inside the canvas.
     #[test]
     fn the_placer_clamps_a_chip_with_no_free_candidate() {

@@ -1394,8 +1394,7 @@ fn a_base_that_does_not_read_follows_the_no_base_rule() {
 
 #[test]
 fn a_library_document_neither_side_reads_keeps_ours_and_holds_theirs() {
-    // D14's `$conflict` needs a readable ours: theirs goes in the file-level record, as for other files (decision log
-    // ID-1273).
+    // The `$conflict` record needs a readable ours: theirs goes in the file-level record, as for other files.
     let path = "lib/manufacturers/221fd06e-3263-5cab-bbb9-27aee71c8d79.json";
     let id = ew_format::ew_schema::conflict_file_id::<()>(path);
     let ours = "{\n  \"$k\": \"manufacturer\",\n<<<<<<< ours\n";
@@ -1705,7 +1704,7 @@ fn a_file_of_another_class_keeps_ours_when_both_sides_changed_it() {
     assert_eq!(merge_bytes(path, [b"o", b"o", b"b"], &limits), (b"b".to_vec(), 0));
 }
 
-// ---- cycle 50's FT batch ------------------------------------------------------------------
+// ---- binary and unreadable sides ------------------------------------------------------------
 
 #[test]
 fn a_side_that_is_not_utf8_is_a_binary_conflict_that_keeps_the_side_that_reads() {

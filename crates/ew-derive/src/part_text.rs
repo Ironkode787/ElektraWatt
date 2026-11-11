@@ -18,7 +18,7 @@
 //! # The manufacturer
 //!
 //! A part names its manufacturer by a `LibRef`, which resolves to the embedded manufacturer copy of `(library,
-//! item)` ([`manufacturer_name`]). Files written before WP-S1.19 part 3 carry no
+//! item)` ([`manufacturer_name`]). Older files carry no
 //! manufacturer copies; their references keep the name in the `key` member, which is the fallback.
 //!
 //! # Technical data
@@ -85,7 +85,7 @@ pub fn manufacturer_copy(q: &Q, m: &LibRef) -> Option<Arc<LibCopy<Manufacturer>>
 
 /// The printed name of a manufacturer reference: the name of the embedded manufacturer copy it
 /// resolves to (its neutral text, else its first language); without a copy, the `key` member a file written before
-/// WP-S1.19 part 3 keeps on the reference; else empty.
+/// manufacturer copies keeps on the reference; else empty.
 pub fn manufacturer_name(q: &Q, m: &LibRef) -> String {
     if let Some(copy) = manufacturer_copy(q, m) {
         return neutral(&copy.item.name);

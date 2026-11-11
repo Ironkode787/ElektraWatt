@@ -14,7 +14,7 @@
 //! | image | its asset in `rect`: a PNG or JPEG as an image item, an SVG as an image item too, which the export job and the renderers' resolver turn into vector paths ([`crate::images`], FR-SYM-025); the item carries the asset's hash and format and no bytes, as every image of a display list does |
 //! | structure box | its outline in the page's wire stroke width, dotted (0.5 mm on, 1 mm off) or dash-dot (4 mm on, 1 mm off, 0.5 mm on, 1 mm off); its caption in `tag.main` above the outline's top-left vertex (the smallest `y`, then `x`) |
 //!
-//! Items and boxes are drawn in ID order, each item tagged with its entity reference so that WP-S2.02's entity
+//! Items and boxes are drawn in ID order, each item tagged with its entity reference so that the entity
 //! rectangles pick it. A variant or shape this build does not type draws nothing.
 
 use std::sync::Arc;

@@ -5,7 +5,7 @@
 //! dropped on a connection point binds it with one `plc.bind_channel` (FR-PLC-020), a drop beside every CP is refused,
 //! the PLC flags filter the rows, and pasting eight symbols into the grid is one undo step (FR-PLC-021). A
 //! channel dropped on a field device wired to its card binds the card's pin, on a valve beside a valve terminal attaches
-//! and binds it, and on anything else is refused in words; FT-757: the grid leads with address and target, a displaced
+//! and binds it, and on anything else is refused in words; the grid leads with address and target, a displaced
 //! channel is named, an edited row keeps the cursor, the toast reads in sentence case. PG6: transcript and counts.
 
 use crate::common;
@@ -120,7 +120,7 @@ fn coil_state(s: &mut ShellModel, attach: bool) -> Uuid {
     coil.id
 }
 
-/// FX38d (window check W38): a channel dropped on a stand-alone coil (not on the card) is refused before
+/// A channel dropped on a stand-alone coil (not on the card) is refused before
 /// any commit, in words that name the coil and the card by tag and carry no record ID; the same drop on the coil once
 /// it is on the card (PG2's path) still binds.
 #[test]
@@ -355,7 +355,7 @@ fn switch_state(s: &mut ShellModel) -> (String, String) {
     (card, switch)
 }
 
-/// FT-753, wired: a channel dropped on a selector switch wired (through a terminal) to pin 3 of its card binds the
+/// Wired: a channel dropped on a selector switch wired (through a terminal) to pin 3 of its card binds the
 /// card's pin 3 with one `plc.bind_channel`: the pin prints the channel's address, the channel that N3 had bound there
 /// is named in the toast as unbound, and one undo restores both.
 #[test]
@@ -411,7 +411,7 @@ fn a_device_wired_to_the_card_binds_the_card_pin() {
     assert_eq!(address_at(&s, &format!("{card}:1")).as_deref(), Some("I0.0"));
 }
 
-/// FT-753, wired to two pins: the drop binds nothing and asks, in words, for the card's pin meant.
+/// Wired to two pins: the drop binds nothing and asks, in words, for the card's pin meant.
 #[test]
 fn a_device_wired_to_two_card_pins_asks_which() {
     let tmp = Tmp::new("plcnav-ft753-two");
@@ -438,7 +438,7 @@ fn a_device_wired_to_two_card_pins_asks_which() {
     );
 }
 
-/// FT-753, attachable: a valve not wired to a valve terminal (Golden A's sub-base part 533361, which has a
+/// Attachable: a valve not wired to a valve terminal (Golden A's sub-base part 533361, which has a
 /// solenoid-position map) is attached to it at its first free position and bound where it was dropped: two commands,
 /// two undo steps, both named by the toast.
 #[test]

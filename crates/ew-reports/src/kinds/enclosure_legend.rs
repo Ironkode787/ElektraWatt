@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012, WP-S4.01 D11; doc 12 §5.4, doc 09 §2.2;
+//! `enclosure_legend`: the layout legend of a mounting surface (FR-LAY-012; doc 12 §5.4, doc 09 §2.2;
 //! golden 902).
 
 use ew_derive::Q;
@@ -22,7 +22,7 @@ use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, Row, RowId, RowKey
 ///
 /// Printed (golden 902's `legend-902` block): the title "LEGEND", two flow columns, each with a header
 /// row, the position, DT, quantity and part number at weights 10 : 22 : 16 : 35. The quantity prints without its unit,
-/// and the manufacturer, description and unit stay in the rows and the CSV (the orchestrator's).
+/// and the manufacturer, description and unit stay in the rows and the CSV.
 #[derive(Clone, Copy, Debug)]
 pub struct EnclosureLegend;
 

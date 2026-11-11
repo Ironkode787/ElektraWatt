@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 6 (§11): the tables of the Macros and Libraries navigators and the macro detail.
+//! The tables of the Macros and Libraries navigators and the macro detail.
 //!
 //! **Libraries**: the installed libraries grouped by tier ("System", "Community", "Company", "User"), each
 //! with its version, licence, access and index state; then the group "In this project" (not a tier) with the
@@ -398,7 +398,7 @@ impl MacroDetail {
     }
 }
 
-/// A macro's thumbnail (FT-754 (a)): the macro inserted on a blank page of a throwaway copy of the
+/// A macro's thumbnail: the macro inserted on a blank page of a throwaway copy of the
 /// project, drawn as the page's sheet display list, and the region of the sheet its records cover.
 #[derive(Clone, Debug)]
 pub struct MacroThumbnail {
@@ -469,7 +469,7 @@ impl Session {
         Some(MacroDetail::of(&c, IN_PROJECT.to_owned(), None))
     }
 
-    /// The thumbnail of the macro a row key of the Macros navigator names (FT-754 (a); doc 16a's detail pane): the
+    /// The thumbnail of the macro a row key of the Macros navigator names (doc 16a's detail pane): the
     /// macro of an installed library inserted with its defaults on a new blank page (a window macro at a grid point
     /// 20 steps from the page's corner; a page macro's first page after it) on a throwaway engine over the current
     /// snapshot, without the prevent rules, so the session is never touched and a conflict does not stop the
@@ -618,7 +618,7 @@ impl Session {
         })
     }
 
-    /// A new macro instance ID for an insertion of the macro copy `copy` (WP-S1.19 §12 item 2: the shell mints it and
+    /// A new macro instance ID for an insertion of the macro copy `copy` (the shell mints it and
     /// the command log records it): `v5(copy, "instance" ‖ n)` for the first `n` from the number of instances the
     /// project holds whose ID it does not hold. Equal projects give equal IDs, so a script inserts the same records.
     pub fn next_macro_instance(&self, copy: Uuid) -> Uuid {
@@ -633,7 +633,7 @@ impl Session {
 
     /// Macros: tier → macro of every installed library, then "In this project" → the macro copies the
     /// project holds that no listed row names. A macro the project holds carries its copy's state as a badge
-    /// ([`Session::library_status`]: a re-saved macro reads "Update available", FT-754 (e)).
+    /// ([`Session::library_status`]: a re-saved macro reads "Update available").
     pub(super) fn macros_table(&self, q: &Q, b: &mut Builder) {
         let libs = self.libraries().libraries();
         let states: BTreeMap<Uuid, &'static str> = self
@@ -695,7 +695,7 @@ impl Session {
                 if matches!(lib.index, IndexState::Failed(_)) {
                     badges.push("index_failed".to_owned());
                 }
-                // WP-S7.03 T2: an address profile that does not render, as `ew lib list` notes it.
+                // An address profile that does not render, as `ew lib list` notes it.
                 let unreadable = crate::unreadable_profiles(self.libraries(), lib.id);
                 if !unreadable.is_empty() {
                     badges.push("profile_unreadable".to_owned());

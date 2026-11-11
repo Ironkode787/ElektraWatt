@@ -561,8 +561,8 @@ pub struct InsertMacro {
     pub instance: Id<MacroInstance>,
 }
 
-/// Whether an orientation is the default `r0` (omitted from the parameters, so a log written before FT-672 reads and
-/// writes unchanged).
+/// Whether an orientation is the default `r0` (omitted from the parameters, so a log written before the
+/// field existed reads and writes unchanged).
 fn is_r0(o: &Orient2) -> bool {
     o.is_default()
 }

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 1 on Golden A (doc 20 §13): the derived end brackets of R2 (SN-1), the free lengths of R1 and R2
-//! (D12), the carrier labels (D8, SN-7), and `layout.place` and `layout.move` with `mode` on R1, R2 and R3 (SN-2 to
+//! On Golden A (doc 20 §13): the derived end brackets of R2 (SN-1), the free lengths of R1 and R2,
+//! the carrier labels (SN-7), and `layout.place` and `layout.move` with `mode` on R1, R2 and R3 (SN-2 to
 //! SN-4, SN-6), every refusal text whole. Positions are clip points in tenths of a millimetre.
 
 use crate::golden_common;
@@ -333,7 +333,7 @@ fn sn3_push_on_r1() {
         json!({"placement": id_json(placement("-102F2")), "locked": true}),
     )
     .unwrap();
-    // Orchestrator ruling 6 (replaced): "locked placements other than the named one are never moved, as D5 says".
+    // Locked placements other than the named one are never moved.
     let refused = refusal(place(&mut s, dev("F55"), "R1", 1580, "push"));
     assert_eq!(refused, "Pushing would move -102F2, which is locked.");
 

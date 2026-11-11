@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 1 at the command layer: `layout.place` and `layout.move` with `mode` (D4, D5) on a fixture rail.
-//! Free, push and swap with every refusal text whole, one undo step per drop, clearance pads (SN-5), the read set that
-//! makes a neighbour's concurrent edit conflict (orchestrator ruling 1 of lane B42), and the property that the
-//! resolver a tool runs for its ghost gives exactly the committed poses (SN-7). Golden A's numbers (SN-1 to SN-4,
-//! SN-6) are `ew-api`'s `tests/it/golden_rail_snap.rs`.
+//! `layout.place` and `layout.move` with `mode` at the command layer, on a fixture rail.
+//! Free, push and swap with every refusal text whole, one undo step per drop, clearance pads, the read set
+//! that makes a neighbour's concurrent edit conflict, and the property that the
+//! resolver a tool runs for its ghost gives exactly the committed poses. Golden A's numbers
+//! are `ew-api`'s `tests/it/golden_rail_snap.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -299,7 +299,7 @@ fn push_inserts_and_moves_the_right_neighbours() {
     f.e.undo(&Origin::Gui).unwrap();
     assert_eq!(lines(f.e.model()), before, "one undo step restores every pose");
 
-    // Orchestrator ruling 6 (replaced): "locked placements other than the named one are never moved, as D5 says".
+    // Locked placements other than the named one are never moved.
     f.e.execute(&LockPlacement {
         placement: k3,
         locked: true,
@@ -335,9 +335,9 @@ fn push_inserts_and_moves_the_right_neighbours() {
     assert_eq!(refused, "-?B1 would pass the rail end by 50 mm.");
 }
 
-/// Orchestrator ruling 6 (replaced): "`layout.move` with no mode, or in free mode, moves the named placement whatever
+/// `layout.move` with no mode, or in free mode, moves the named placement whatever
 /// its lock … In push or swap, a locked named placement is refused with the whole text 'Unlock F55 to push or swap
-/// it.'"
+/// it.'
 #[test]
 fn a_locked_placement_moves_by_itself_only() {
     let mut f = fx();
@@ -463,10 +463,10 @@ fn clearance_pads_space_the_snapping() {
     assert_eq!(pads(&f.e).0, [0, 8 * MM as i128], "flipped, the pads swap");
 }
 
-/// Orchestrator ruling 1 (with a condition) of lane B42: "the command also reads, through `tx`, the carrier, every
+/// The command also reads, through `tx`, the carrier, every
 /// placement on it, and the strip and bracket rows the items came from, so that a concurrent edit of a neighbour on
-/// that rail is detected at merge". A push previewed before a neighbour moved under it re-runs at commit instead of
-/// applying the stale poses.
+/// that rail is detected at merge. A push previewed before a neighbour moved under it re-runs at commit
+/// instead of applying the stale poses.
 #[test]
 fn a_neighbours_concurrent_edit_conflicts_at_merge() {
     let mut f = fx();

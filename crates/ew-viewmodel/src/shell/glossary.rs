@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 6 (D16, FR-UI-045): the glossary pane. Help ▸ Glossary (`help.glossary`) opens the pane "Glossary"
+//! The glossary pane (FR-UI-045). Help ▸ Glossary (`help.glossary`) opens the pane "Glossary"
 //! in the bottom dock: one row per term of `glossary/glossary.toml` ([`crate::glossary::terms`], the source of the
 //! palette's aliases and of the user guide's page) with the EW term in the UI language, the EPLAN and the QET terms
 //! and the definition, and a row's actions as buttons.

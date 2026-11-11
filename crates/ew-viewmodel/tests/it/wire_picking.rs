@@ -4,7 +4,7 @@
 //! FT-500: every wire of a page can be picked by a click. Where routes run along one another or through symbol bodies
 //! (Golden A's folio 101 drew them so along the provisional path; its routed folio does not, so the tests give three
 //! wires those routes again, `common::provisional_overlap_on_101`), a click on a point of a wire's route that no other wire covers
-//! picks that wire (WP-S2.04 §6.6 as FT-500 amends it: a wire's line nearer than the centre of the representation
+//! picks that wire (FT-500: a wire's line nearer than the centre of the representation
 //! rectangle the press is in goes first), and a repeated click at one place walks the pick stack and wraps, so a
 //! wire that other wires cover for its whole length is reached too.
 

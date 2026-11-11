@@ -60,12 +60,12 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
     let keys = |id: &str| actions::find(id).unwrap().shortcut.to_vec();
     assert_eq!(keys("view.zoom_in"), ["Ctrl+Plus", "Ctrl+Equals"]);
     assert_eq!(keys("view.zoom_out"), ["Ctrl+Minus"]);
-    // KM-4 ruling: the physical digit key, so zoom to 100 % types on AZERTY too.
+    // The physical digit key, so zoom to 100 % types on AZERTY too.
     assert_eq!(keys("view.zoom_actual"), ["Ctrl+phys:Digit0"]);
     assert_eq!(keys("view.fit_page"), ["Home"]);
     assert_eq!(keys("view.pan_right"), ["Ctrl+Arrow Right"]);
-    // No shortcut is bound twice within a shell context (WP-S2.01 A1; a context's binding may shadow a global
-    // one) and none is Ctrl+Alt (the registry test of WP-S2.01 covers the rest).
+    // No shortcut is bound twice within a shell context (a context's binding may shadow a global
+    // one) and none is Ctrl+Alt (the registry test covers the rest).
     let all: Vec<(actions::Context, &str)> = ACTIONS
         .iter()
         .flat_map(|a| a.shortcut.iter().map(move |s| (a.context, *s)))
@@ -332,7 +332,7 @@ fn a8_the_transcript_and_the_describe_text_carry_the_canvas() {
     assert!(!describe.contains(&hovered.0.to_string()));
     assert!(hover_line.ends_with(&format!("{} mm", ew_viewmodel::canvas::mm3(hr.max().y.0))));
     if hovered == entity {
-        // The hover's box and the entity list's agree to the nm's rounding (a text of ID-1504's moved items sits off
+        // The hover's box and the entity list's agree to the nm's rounding (a text among the moved items sits off
         // the rational grid).
         let h = [hr.min().x.0, hr.min().y.0, hr.max().x.0, hr.max().y.0];
         let e = [r.min().x.0, r.min().y.0, r.max().x.0, r.max().y.0];

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! EW-RDS rules, pack EW-IEC81346 (doc 15 §4.2; numbering in doc 07; the parser and the identifier sets in
-//! `ew-rds`, ADR-0026). WP-S1.16 part 4 adds EW-RDS-001, -002, -003, -007, -009 and -010.
+//! `ew-rds`, ADR-0026). The rules are EW-RDS-001, -002, -003, -007, -009 and -010.
 //!
 //! # Determinism
 //!
@@ -48,8 +48,7 @@ pub const DUPLICATE_DESIGNATION: RuleMeta = RuleMeta {
 /// an unnumbered designation (it still contains `?`, EW-IMP-122) is skipped.
 ///
 /// One finding per duplicated designation, targets every device of the group, no discriminator, with the fix "Renumber
-/// the newer": the devices after the keeper of doc 15 §6.4 renumbered to free counters (decision log
-/// ID-1284 ruling 6).
+/// the newer": the devices after the keeper of doc 15 §6.4 renumbered to free counters.
 ///
 /// Deviations: the catalogue lists the scope as device, but the grouping is project-wide, so the rule is
 /// evaluated once in the project scope. Prevent mode is not declared at MVP (owner ruling; ADR-0009

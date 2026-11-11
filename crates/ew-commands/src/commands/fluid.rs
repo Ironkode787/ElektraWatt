@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fluid commands of WP-S1.20 (doc 11 §4.3): `valve.set_occupancy` (`SetValveOccupancy`, D9) and
-//! `fluid.port.close` (`ClosePort`, D10).
+//! The fluid commands (doc 11 §4.3): `valve.set_occupancy` (`SetValveOccupancy`) and
+//! `fluid.port.close` (`ClosePort`).
 
 use std::sync::Arc;
 
@@ -132,7 +132,7 @@ fn child_at(tx: &TxBuilder<'_>, module: Id<Device>, position: u32) -> Option<Arc
         .min_by_key(|d| d.id)
 }
 
-/// Removes a child of a module with its delete plan, with the notices of WP-S1.20 §5 T24.
+/// Removes a child of a module with its delete plan, with its notices.
 fn remove_child(
     tx: &mut TxBuilder<'_>,
     child: &Device,

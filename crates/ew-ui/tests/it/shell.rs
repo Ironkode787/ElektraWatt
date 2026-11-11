@@ -135,7 +135,7 @@ fn a_click_in_the_page_list_marks_and_enter_goes_to_that_page() {
         .unwrap();
     let name =
         ew_ui::ew_viewmodel::navigator::PageNavigator::accessible_name(&row, &rows, shell.current_page());
-    // A click marks the row and moves the cursor; since FT-1024 (doc 16a §6.6) it also opens
+    // A click marks the row and moves the cursor; (doc 16a §6.6) it also opens
     // the page.
     h.get_by_label(&name).click();
     settle(&mut h);
@@ -317,7 +317,7 @@ fn the_file_menu_greys_out_what_needs_a_project() {
     );
 }
 
-/// FT-1112 (item 1): a menu names a key by its keycap form, as the tooltips do: Edit ▸ Delete reads "Del", not
+/// A menu names a key by its keycap form, as the tooltips do: Edit ▸ Delete reads "Del", not
 /// "Delete".
 #[test]
 fn a_menu_names_its_key_by_the_keycap() {
@@ -397,7 +397,7 @@ fn the_zoom_is_set_when_the_setting_changes_not_every_frame() {
 // The one-frame "Exporting PDF…" label went with the export job; `tests/it/jobs.rs` holds the
 // window's export (the save dialog, the job, its progress and its end).
 
-/// WP-S2.08 part 1 (PL-6, PL-7): Enter on an action that needs parameters opens its inline form in the palette, named
+/// Enter on an action that needs parameters opens its inline form in the palette, named
 /// for the screen reader; Escape returns to the list; Enter in the form runs the action and closes the palette.
 #[test]
 fn the_palette_opens_a_parameter_form_and_runs_it_with_enter() {

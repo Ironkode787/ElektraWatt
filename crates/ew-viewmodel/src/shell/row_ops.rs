@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigator row operations of WP-S2.07 part 2 (§7): `cable.swap_cores` on the Cables navigator, and FT-490's
+//! The navigator row operations: `cable.swap_cores` on the Cables navigator, and FT-490's
 //! generic half, `navigator.delete` (Delete in a tree) and `navigator.rename` (F2 in a tree).
 //!
 //! - **Swap cores** (FR-CBL-016): exactly two marked core rows of one cable; one `fields.set_many` through
@@ -14,7 +14,7 @@
 //! - **Rename** (FT-490): the authored label of a Pages row (the page title) or a Potentials row (a defined
 //!   potential's name), through the row's editable route (`fields.set`, the text parsed by `parse_field_input`). Without
 //!   `text` it opens the row's inline editor on the current label; with `text` it commits; `cancel` closes the editor.
-//!   FT-633 adds a structure node's code (the same `fields.set` route the Properties grid edits it by) and a device's
+//!   It also takes a structure node's code (the same `fields.set` route the Properties grid edits it by) and a device's
 //!   tag, whose typed text goes through the Properties Tag field's own path (the Join proposal, the Letter or Counter
 //!   row with FR-NUM-029's refusal and proposal, else the frozen tag), its refusal shown under the inline field.
 //!   Other rows refuse `reason-nav-not-renamable`.
@@ -58,7 +58,7 @@ enum RenameRoute {
 }
 
 /// The rename route of a row of navigator `kind`: a page's title or a potential definition's name (FT-490), a
-/// structure node's code (FT-633(a), the route the Properties grid edits it by) or a device's tag (FT-633(b)).
+/// structure node's code (the route the Properties grid edits it by) or a device's tag.
 fn rename_route(kind: NavKind, node: Option<&NavNode>) -> Option<RenameRoute> {
     match (kind, node.map(|n| n.role)) {
         (NavKind::Pages, _) => Some(RenameRoute::Field("page", "title")),
@@ -261,7 +261,7 @@ impl ShellModel {
         let Some(key) = key else {
             return Outcome::refused(key!("reason-no-nav-row"));
         };
-        // FT-633(b): a device's tag goes through the Properties Tag field's own path.
+        // A device's tag goes through the Properties Tag field's own path.
         let (route_kind, path) = match route {
             RenameRoute::Field(k, p) => (k, p),
             RenameRoute::Tag(device) => return self.rename_tag(kind, key, device, text),
@@ -289,7 +289,7 @@ impl ShellModel {
                     })
                     .unwrap_or_default()
                 }
-                // FT-633(a): the code as the Properties grid shows it (the row's label is the designation).
+                // The code as the Properties grid shows it (the row's label is the designation).
                 (_, "structure_node") => self
                     .field_text(&targets, "structure_node/code")
                     .unwrap_or_else(|| node.label.clone()),
@@ -353,7 +353,7 @@ impl ShellModel {
         }
     }
 
-    /// FT-633(b): F2 on a device row. Without `text` it opens the inline field on the whole tag (`-K12`, the
+    /// F2 on a device row. Without `text` it opens the inline field on the whole tag (`-K12`, the
     /// Properties grid showing the device); with `text` the typed tag goes through the Properties Tag field's own
     /// path (`ShellModel::tag_rename_commit`): committed, the field closes; refused, it stays open on the typed text
     /// with the grid's refusal and proposal under it ([`ShellModel::nav_rename_error`]).

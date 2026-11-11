@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 4b in the view model (acceptance check PI7): the Text tool with its binding, text edit, the Graphic
+//! In the view model: the Text tool with its binding, text edit, the Graphic
 //! tool's six shapes with their Back and finish rules and their arc direction, the two tools' ghost lines and words,
 //! and their exact `Session` counts. Every test works on a writable temporary copy of Golden A.
 

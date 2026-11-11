@@ -241,7 +241,7 @@ fn ew_plc_001_reports_separate_overlaps_apart() {
 }
 
 /// FX38a: a group names five channels and counts the rest ("and 4 more channels"), in the rule text, the en-GB
-/// pattern (equal to it, as FT-724 holds for EW-POT-001) and the nl-NL pattern; every member stays a target.
+/// pattern (equal to it, as for EW-POT-001) and the nl-NL pattern; every member stays a target.
 #[test]
 fn ew_plc_001_names_five_channels_and_counts_the_rest() {
     let all: Vec<(u16, u32, u8)> = (0..8).map(|n| (n, 0, 3)).collect();

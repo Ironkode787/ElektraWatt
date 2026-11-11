@@ -975,8 +975,7 @@ pub struct OracleMismatch {
     pub cold: String,
 }
 
-/// `ew layout --json` ([`LAYOUT`]): the layout measures of one page or of every schematic page (
-/// decision log ID-1498).
+/// `ew layout --json` ([`LAYOUT`]): the layout measures of one page or of every schematic page.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct LayoutResult {

@@ -535,7 +535,7 @@ fn printed_style<'a>(table: &[EffectiveStyle], key: Option<&'a str>) -> &'a str 
 }
 
 /// The style a symbol's text slot prints with: its own `style` when that is a style of `table`, else the style bound
-/// to its kind (doc 20 §17.5; decision log ID-197, ID-227; the scene's `symbol::slot_style_key`).
+/// to its kind (doc 20 §17.5; the scene's `symbol::slot_style_key`).
 fn slot_style<'a>(table: &[EffectiveStyle], slot: &'a TextSlot) -> &'a str {
     match slot.style.as_ref().map(|s| s.as_str()) {
         Some(k) if is_style(table, k) => k,
@@ -1081,7 +1081,7 @@ pub enum TextOwner<'a> {
         /// Its name.
         device: &'a str,
     },
-    /// An interruption point's representation, named by the point's name (ID-1509 (7)).
+    /// An interruption point's representation, named by the point's name.
     Ip {
         /// The representation.
         rep: Id<Representation>,
@@ -1139,7 +1139,7 @@ pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<
 }
 
 /// EW-CORE-072: the junction `junction` in the frame cell `cell` joins four wires (measure (g)); on a page without a
-/// frame grid (`cell` empty) the junction is named by the folio `folio` (ID-1509 (7)). Targets the junction.
+/// frame grid (`cell` empty) the junction is named by the folio `folio`. Targets the junction.
 pub fn four_way_junction(page: Id<Page>, folio: &str, junction: Id<Junction>, cell: &str) -> Finding {
     let (place, subject, message) = if cell.is_empty() {
         (

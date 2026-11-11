@@ -136,7 +136,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         },
         // The keymap editor; import and export a keymap file beside Close.
         Dialog::Shortcuts => shortcuts_spec(),
-        // Quitting with an unsaved symbol draft asks Save symbol, Discard or Cancel; ID-1472: so does an editor
+        // Quitting with an unsaved symbol draft asks Save symbol, Discard or Cancel; so does an editor
         // action that drops the draft, in words of its own.
         Dialog::ConfirmDiscard {
             symbol: true,
@@ -333,7 +333,7 @@ fn check_scheme_spec(scheme: &str) -> DialogSpec {
         asks: true,
         ..small(
             strings::text(key!("confirm-check-scheme-title")).to_owned(),
-            // ID-1389 (W51 finding D): the scheme's word, as the wizard's choice shows it.
+            // The scheme's word, as the wizard's choice shows it.
             vec![strings::format(
                 key!("confirm-check-scheme-text"),
                 &[strings::text(Key::run_time(&format!(
@@ -553,7 +553,7 @@ fn reimport_spec(file: &str, summary: &str, rows: &[String], nothing: bool) -> D
         key!("reimport-card-apply"),
         DialogAnswer::Action("file.reimport_qet_apply", Value::Null),
     );
-    // ID-1427 (W52 F8): nothing to re-import, Apply disabled with its reason (as a table import's).
+    // Nothing to re-import, Apply disabled with its reason (as a table import's).
     if nothing {
         apply.disabled = Some(strings::text(key!("reason-table-import-nothing")).to_owned());
     }
@@ -668,7 +668,7 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
         form: true,
         ..small(
             strings::text(form.title_key).to_owned(),
-            // WP-S4.02 part 4 (§8): the Auto-fill rail dialog says which devices it fills with.
+            // The Auto-fill rail dialog says which devices it fills with.
             match form.action {
                 "layout.auto_fill_rail" => vec![model.fill_devices_text()],
                 "layout.enclosure_new" => model.enclosure_form_notes(),
@@ -711,7 +711,7 @@ fn revision_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogS
         form: true,
     };
     if form.action == "revision.incomplete" {
-        // Cycle 41, FIX41b ruling 2: "completing an incomplete release asks, like a release": the confirmation of
+        // Completing an incomplete release asks, like a release: the confirmation of
         // Complete release or Discard archive has Cancel as the Primary and its act as the danger button.
         if let Some(how) = model.settle_stage() {
             return DialogSpec {

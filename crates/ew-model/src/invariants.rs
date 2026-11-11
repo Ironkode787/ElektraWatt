@@ -98,8 +98,8 @@ pub const REVISION_IMMUTABLE: &str = "EW-INV-020";
 pub const LIB_REF_KEEP_ALIVE: &str = "EW-INV-021";
 /// EW-INV-022: the page of a page item or a structure box exists (ADR-0009 amendment 8).
 pub const ITEM_PAGE_EXISTS: &str = "EW-INV-022";
-/// EW-INV-023: every connection a wire marker lists exists and lies on the marker's page (
-/// ADR-0009 amendment 8).
+/// EW-INV-023: every connection a wire marker lists exists and lies on the marker's page
+/// (ADR-0009 amendment 8).
 pub const MARKER_CONNECTIONS: &str = "EW-INV-023";
 /// EW-INV-024: a fluid line joins fluid ports of one medium family only, and no other line ends at a fluid port
 /// (ADR-0009 amendment 9).
@@ -325,7 +325,7 @@ pub(crate) fn check_all(m: &Model, scope: &Scope) -> Vec<ModelError> {
 }
 
 /// The first of `violations`, every violation of a model's integrity check, that a dropped library copy does not
-/// explain (FT-1383), `None` when it explains them all: an EW-INV-001 whose keys include a copy in
+/// explain, `None` when it explains them all: an EW-INV-001 whose keys include a copy in
 /// `dropped` (the library copies a load could not read), or a violation whose keys include a record that refers to
 /// such a copy, the first key of that EW-INV-001 (EW-INV-024 on a fluid line ending at a function whose definition
 /// copy was dropped). The load ([`Model::from_records_missing`]) and the open-path fuzz oracle judge by it; no rule

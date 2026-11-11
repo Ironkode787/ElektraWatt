@@ -141,7 +141,7 @@ fn publish_creates_then_reuses_the_library_and_refuses_a_key_another_symbol_hold
     assert_eq!(updated["identity"], first["identity"]);
 }
 
-/// ID-1476 (M25-p6 nit, ID-1474's path): a draft that carries the identity of a published symbol under another key
+/// A draft that carries the identity of a published symbol under another key
 /// publishes a new symbol: `added`, a new identity printed, and the first symbol stays.
 #[test]
 fn publish_under_another_key_adds_a_symbol_with_a_new_identity() {

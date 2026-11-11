@@ -9,8 +9,8 @@
 //! pixels divided by the native scale). The position is in the desktop's uniform space, physical pixels on Windows and
 //! X11 (one space for monitors of different scales, where a logical position drifts); Wayland reports no position
 //! (see `ew_ui::window_memory`; macOS is not a supported platform). Whole numbers in the file. The position is
-//! the outer top-left corner (title bar included), the size the inner size. Until R2-1 (never released) `x`
-//! and `y` were points everywhere; such a value is read as physical pixels, and the window's first frame clamps it
+//! the outer top-left corner (title bar included), the size the inner size. An early (never released) version wrote `x`
+//! and `y` as points everywhere; such a value is read as physical pixels, and the window's first frame clamps it
 //! onto a monitor.
 //!
 //! **The clamp** ([`restore`]) is a pure function of the saved geometry and the monitors' areas: the size is at least

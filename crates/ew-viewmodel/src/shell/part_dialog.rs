@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4a (§9): the part selection dialog and the part editor.
+//! The part selection dialog and the part editor.
 //!
 //! **Choosing** (D16, D17, D19). `part.choose {target?, use?, add?}` opens [`Dialog::PartChoose`] for the property
 //! grid's devices (a part use `use` is replaced, `add` appends, a device without part uses appends), the strip editor's
@@ -31,10 +31,10 @@ use crate::properties::{CardOrigin, PartCard};
 use crate::strings;
 use crate::strings::Key;
 
-/// The result list shows this many rows at a time (WP-S2.06 D15's window).
+/// The result list shows this many rows at a time.
 pub const PART_ROWS: usize = 50;
 
-/// The part kinds of the layout tools: a device's part dialog offers one only where WP-S4.02 attaches it.
+/// The part kinds of the layout tools: a device's part dialog offers one only where panel layout attaches it.
 const LAYOUT_KIND_WORDS: [&str; 5] = ["enclosure", "mounting_plate", "rail", "duct", "end_bracket"];
 
 /// The part selection dialog's state (D19).
@@ -404,7 +404,7 @@ impl ShellModel {
             c.query.favourites = favourites;
             c.query.recent = recent;
             c.offers = project.session.part_offers(&c.query);
-            // A layout kind is offered to a device only where WP-S4.02
+            // A layout kind is offered to a device only where panel layout
             // attaches it (`chooser_layout_kinds`: an end bracket to a strip, an enclosure or a plate to a device
             // without a main function, never a rail or a duct).
             if let PartTarget::Devices { devices, .. } = &c.target {

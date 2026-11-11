@@ -126,7 +126,7 @@ impl Command for CreateDevice {
 pub enum PlaceTarget {
     /// A new device with a new main function; its counter comes from online numbering.
     NewDevice {
-        /// The letter code (the identifier-set lookup from the FnDef category is WP-S1.11).
+        /// The letter code (the identifier-set lookup from the FnDef category is not built yet).
         #[schemars(with = "IdentS")]
         letter: Ident,
         /// The FnDef copy; default the copy the symbol's `fndef` resolves to.
@@ -207,7 +207,7 @@ pub struct ConnectHint {
 /// `device.place` (`PlaceSymbol`, doc 06 §3.3): places a symbol and creates the device and function as the
 /// target requires.
 ///
-/// - `copies` (FT-656): library documents (`lib/` JSON form) embedded first, in the same transaction, as
+/// - `copies`: library documents (`lib/` JSON form) embedded first, in the same transaction, as
 ///   `part.assign` embeds its closure: each is checked as `library.embed` checks it, at `/copies/i`; a copy the
 ///   project holds with the same hash is skipped, one it holds with another hash is refused ("update from library
 ///   first", naming the item and the held version), the others are inserted. So a placement from a library is one
@@ -277,7 +277,7 @@ pub struct PlaceSymbol {
     /// Accepted autoconnect hints.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub connect: Vec<ConnectHint>,
-    /// The library documents to embed with the placement (`lib/` JSON form; FT-656): the symbol, the part and their
+    /// The library documents to embed with the placement (`lib/` JSON form): the symbol, the part and their
     /// closure as the caller resolved it; empty when the project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
@@ -291,7 +291,7 @@ impl Command for PlaceSymbol {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        // FT-656: the copies first, so that the symbol, the part and the FnDefs they bring resolve below.
+        // The copies first, so that the symbol, the part and the FnDefs they bring resolve below.
         embed_closure(Self::NAME, tx, &self.copies)?;
         let page = tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;
@@ -511,7 +511,7 @@ fn split_for_hint(
 ///
 /// The graphic representations on MultiLine and BusTopology pages (cable markers, the screen graphic) and
 /// the multi-line ones on Fluid pages (the CPX black boxes of a valve terminal drawn on its fluid pages) are
-/// the owner ruling that amends decision log ID-55: the reference drawings contain exactly these,
+/// the owner's ruling: the reference drawings contain exactly these,
 /// and Golden A's tables place them so (doc 20, build path (b)).
 pub fn allowed_rep_types(page: &PageType) -> Option<&'static [RepType]> {
     Some(match page {
@@ -585,7 +585,7 @@ fn zero() -> Pt2 {
 /// Routes follow: a connection with an end drawn by a moved representation has that end follow its CP's own
 /// displacement (`follow_end`); a connection with both ends moved keeps its shape vertex by vertex: an end vertex
 /// becomes its CP's new position, an interior coordinate equal to the old coordinate of an end CP moves with that
-/// CP, a coordinate on the grid moves by the same number of steps, and any other coordinate (the router of FT-18
+/// CP, a coordinate on the grid moves by the same number of steps, and any other coordinate (the router
 /// re-solves those later) by `round_half_away(k × num / den)` on that axis; a horizontal or vertical segment whose
 /// two coordinates part by 1 nm (two end CPs on one coordinate whose representations' grid indices differ in
 /// `k mod 3`) keeps its axis with a jog at the grid point nearest its middle. `steps` is exclusive with a non-zero
@@ -631,8 +631,8 @@ pub struct MoveReps {
     /// `connection.route` takes it (the Select tool's re-solve).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub routes: Vec<crate::commands::connection::RouteConnection>,
-    /// Autoconnect hints committed with the move, each a `device.place` hint naming its representation (WP-S2.19
-    /// D15: connect on move).
+    /// Autoconnect hints committed with the move, each a `device.place` hint naming its representation
+    /// (connect on move).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub connect: Vec<MoveHint>,
 }
@@ -1282,15 +1282,15 @@ impl Command for TransformReps {
 }
 
 /// The insertion point at which a black box of box `b` at `pos` keeps the centre of its bounding box when its
-/// orientation changes from `from` to `to` (see [`TransformReps`]), computed in whole grid half-steps (cycle 41
-/// review): `pos` and every point of the box under `from` and under `to` are snapped to grid indices first (a
-/// stored point lies within 1 nm of its grid point, a step is far longer), so the centre's offset is an exact
-/// number of half-steps on every grid, the rational QET grid included. A whole result is exact; a half one (a
-/// quarter turn of a box whose width plus height is odd) goes up toward an odd number of quarter turns of `to`
-/// and down toward an even one ([`Grid::index_of_half_steps`]), so every two quarter turns cancel: four turns
-/// bring the box back, a turn and its reverse too, two land where one half turn does, and the offset is the same
-/// wherever the box lies. The bounding box is the outline's, else the CPs'; `Ok(None)` when the box has neither
-/// (the insertion point stays). [`OutOfRange`] when a point of the box or the result leaves
+/// orientation changes from `from` to `to` (see [`TransformReps`]), computed in whole grid half-steps: `pos`
+/// and every point of the box under `from` and under `to` are snapped to grid indices first (a stored point
+/// lies within 1 nm of its grid point, a step is far longer), so the centre's offset is an exact number of
+/// half-steps on every grid, the rational QET grid included. A whole result is exact; a half one (a quarter
+/// turn of a box whose width plus height is odd) goes up toward an odd number of quarter turns of `to` and
+/// down toward an even one ([`Grid::index_of_half_steps`]), so every two quarter turns cancel: four turns
+/// bring the box back, a turn and its reverse too, two land where one half turn does, and the offset is the
+/// same wherever the box lies. The bounding box is the outline's, else the CPs'; `Ok(None)` when the box has
+/// neither (the insertion point stays). [`OutOfRange`] when a point of the box or the result leaves
 /// ±[`MAX_COORD`](crate::geometry::MAX_COORD).
 fn box_pivot(
     grid: Grid,
@@ -1408,7 +1408,7 @@ impl Command for SetAnchorPolicy {
 /// `box.black` (`PlaceBlackBox`, doc 06 §2.7, §3.1): places a black box, a function of kind `black_box`
 /// drawn with the black-box symbol and its page geometry.
 ///
-/// - `copies` (FT-656) as in `device.place`: embedded first, in the same transaction.
+/// - `copies` as in `device.place`: embedded first, in the same transaction.
 /// - The page and the symbol copy must exist (the built-in black-box symbol `ew.gen.blackbox` draws the
 ///   outline, CPs and inner graphics of `box`). The representation is `{functions: [f], page, symbol, pos,
 ///   orient, rep_type, box}`; `rep_type` defaults to the symbol's and must be one the page type allows (as
@@ -1454,7 +1454,7 @@ pub struct PlaceBlackBox {
     pub box_: Option<BoxSpec>,
     /// Which device the black box belongs to.
     pub target: PlaceTarget,
-    /// The library documents to embed with the placement (`lib/` JSON form; FT-656): the symbol, the part and their
+    /// The library documents to embed with the placement (`lib/` JSON form): the symbol, the part and their
     /// closure as the caller resolved it; empty when the project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
@@ -1468,7 +1468,7 @@ impl Command for PlaceBlackBox {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        // FT-656: the copies first, so that the symbol, the part and the FnDefs they bring resolve below.
+        // The copies first, so that the symbol, the part and the FnDefs they bring resolve below.
         embed_closure(Self::NAME, tx, &self.copies)?;
         let page = tx.require::<Page>(self.page)?;
         let symbol = tx.require::<LibCopy<SymbolDef>>(self.symbol)?;

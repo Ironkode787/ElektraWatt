@@ -362,7 +362,7 @@ fn stored_zip(data: &[u8], count: usize) -> Vec<u8> {
     ew_api::zip::write(&entries).unwrap()
 }
 
-/// M25-p2#3, SM25#1, SM25#3 and SM25#4: every symbol import passes WP-S3.09's front door under the element preset
+/// Every symbol import passes the front door under the element preset
 /// and is refused in words: a 10,000-level XML, and an archive past the preset's 16 MiB that the reader alone would
 /// read; a `.pxf` file opens through the EPLAN reader.
 #[test]
@@ -422,7 +422,7 @@ fn link(target: &std::path::Path, at: &std::path::Path, dir: bool) -> bool {
     made.is_ok()
 }
 
-/// ID-1461 and M25-p2#4: an SLK library reads only the tables of its `.sdb` folder beside it, and is refused in
+/// An SLK library reads only the tables of its `.sdb` folder beside it, and is refused in
 /// words otherwise: a missing folder or table, a parent path, and a linked table or folder.
 #[test]
 fn slk_reads_only_its_own_tables_beside_it() {

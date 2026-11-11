@@ -120,7 +120,7 @@ fn the_constructor_refuses_data_it_does_not_render() {
     }
 }
 
-/// WP-S1.21 PA-3: the IEC profile renders `%QX0.1` and `%IW64` and parses its own texts back (the prefix optional).
+/// The IEC profile renders `%QX0.1` and `%IW64` and parses its own texts back (the prefix optional).
 #[test]
 fn the_iec_profile_renders_and_parses_its_notation() {
     let p = &iec();
@@ -289,8 +289,8 @@ fn parse_and_example() {
     }
 }
 
-/// FX37a: a very long digit string is refused (the digit runs are capped at the width of a `u32`; no timing is
-/// asserted, owner's rule), and the longest byte numbers still parse.
+/// A very long digit string is refused (the digit runs are capped at the width of a `u32`; no timing is
+/// asserted), and the longest byte numbers still parse.
 #[test]
 fn a_ten_thousand_digit_address_is_refused() {
     let p = p();

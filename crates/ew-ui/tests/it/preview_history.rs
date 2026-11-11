@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.09 part 3 in the window (§10.3): Renumber devices… opens its dialog, OK opens the `bulk` card in the Preview
-//! tab with Golden B1's tag changes and Apply commits it (PV2); the property grid's card is a one-line chip while the
-//! tab shows it (PV3); the history panel lists the steps with Undo to here and Show changes (PV5); each followed by the
+//! In the window: Renumber devices… opens its dialog, OK opens the `bulk` card in the Preview
+//! tab with Golden B1's tag changes and Apply commits it; the property grid's card is a one-line chip while the
+//! tab shows it; the history panel lists the steps with Undo to here and Show changes; each followed by the
 //! accessible-name walker.
 
 use crate::support;
@@ -64,7 +64,7 @@ fn renumber_devices_through_the_dialog_and_the_preview_tab() {
     settle(&mut h);
     assert!(h.state().shell().properties().card().is_none());
     assert!(h.state().shell().can_undo() || before);
-    // Cycle 39 (FIX39b-1): the tab the card opened closes with it; no empty tab takes the canvas's height.
+    // The tab the card opened closes with it; no empty tab takes the canvas's height.
     assert!(!h.state().shell().preview_shown());
     assert!(!group_named(&h, "Preview"), "the Preview tab closed");
     assert!(!has_text(&h, "No preview is open"));
@@ -139,8 +139,8 @@ fn the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1078, as FT-567: the History header starts `space.4` inside the pane, as the Messages header does. FT-1362
-/// (ruling 7): with one step the History dock is as high as its one row needs, at the floor and at 1920 × 1080,
+/// The History header starts `space.4` inside the pane, as the Messages header does.
+/// With one step the History dock is as high as its one row needs, at the floor and at 1920 × 1080,
 /// and the row reads in words: the command's title and its origin, not `fields.set` and `script ui-script`.
 #[test]
 fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
@@ -263,7 +263,7 @@ fn w31_7_an_undone_entry_offers_redo_to_here() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1427 (W52 F6, F4): in Dutch the changed record's line reads in Dutch, its change word, its kind and its field: in
+/// In Dutch the changed record's line reads in Dutch, its change word, its kind and its field: in
 /// Show changes and on the Preview tab's card; the Properties header of two devices reads "2 apparaten"; the Preview
 /// tab's title has the action in a sentence after its colon.
 #[test]
@@ -337,7 +337,7 @@ fn the_preview_lists_open_in_place_and_name_the_new_folio() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Window check F2 of FIXR1 (doc 16a §6.23): while the Preview tab's lists are scrolled, a 1-px `color.border.subtle`
+/// Doc 16a §6.23: while the Preview tab's lists are scrolled, a 1-px `color.border.subtle`
 /// edge parts the rows passing under the fixed summary line from it; at rest the lists have none.
 #[test]
 fn the_scrolled_preview_lists_have_an_edge_under_the_summary_line() {

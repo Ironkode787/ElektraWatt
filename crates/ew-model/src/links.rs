@@ -33,7 +33,7 @@
 //! (successors, manufacturers) are not links; see [`NOT_LINKS`].
 //!
 //! One link is **load-tolerant** ([`LinkDecl::load_tolerant`]): `page_item.kind.wire_marker.connections[]`, the
-//! connections a wire marker lists (EW-INV-023, ADR-0009 amendment 8). A build from before WP-S2.04 part 4a kept
+//! connections a wire marker lists (EW-INV-023, ADR-0009 amendment 8). An older build kept
 //! page items verbatim and did not enforce the link, so a loaded project can hold a marker that lists a deleted
 //! connection or one on another page: that is a load finding, not a refusal (doc 05 §2.2). Its missing target is
 //! therefore not judged by EW-INV-001; EW-INV-023 judges the entries an edit adds. Its removal half is an ordinary
@@ -390,8 +390,8 @@ const MARKER_LIST_LINK: LinkDecl = LinkDecl {
     }))
 };
 
-/// The kinds of the records a placed macro creates and its `macro_instance` lists as members (doc 07 §4.6; WP-S1.19
-/// D13): the kinds a fragment carries, the pages of a page macro and the records that live in them or in the
+/// The kinds of the records a placed macro creates and its `macro_instance` lists as members (doc 07 §4.6):
+/// the kinds a fragment carries, the pages of a page macro and the records that live in them or in the
 /// device shards. The order is [`Kind`]'s; the first is the nominal `to` of the kind-erased link.
 pub const MACRO_MEMBER_KINDS: &[Kind] = &[
     Kind::Page,

@@ -213,15 +213,15 @@ fn parts_summary_901_derives_the_golden_tables_bom() {
             .map(|p| order.entry(*p).expect("in the page order").folio.clone())
             .collect()
     };
-    // WP-S4.01 part 4 (ruling 5 of cycle 41: "layout objects print the folios of the panel pages that show
-    // their surface"): the enclosure, the plate, the rail and the duct print 902.
+    // Layout objects print the folios of the panel pages that show
+    // their surface: the enclosure, the plate, the rail and the duct print 902.
     for i in 21..25 {
         assert_eq!(folios_of(i), ["902"], "row {}", i + 1);
     }
     assert_eq!(folios_of(25), ["902"]);
     assert_eq!(folios_of(26), ["103"]);
-    // Quantities: 1.71 m of rail and 3.17 m of duct, the carrier part lines of -UC1 (R1 … R3, D1 … D5; WP-S4.01 part 4,
-    // FT-205), 4 brackets, 6 bridges.
+    // Quantities: 1.71 m of rail and 3.17 m of duct, the carrier part lines of -UC1 (R1 … R3, D1 … D5), 4
+    // brackets, 6 bridges.
     let qty = |i: usize| match &rows.rows[i].cells[1] {
         Cell::Qty(q, _) => q.to_string(),
         other => panic!("not a quantity: {other:?}"),
@@ -384,8 +384,8 @@ fn printed(q: &Q, set: &RowSet, i: usize) -> Vec<String> {
     set.rows[i].cells.iter().map(|c| render(q, c, &opts)).collect()
 }
 
-/// The cover's colour and standard-size tables are rows of the profiles in the project settings (
-/// doc 20 §7.1, §7.2): the basis, the 15 colour rows, then the control and the mains sizes.
+/// The cover's colour and standard-size tables are rows of the profiles in the project settings
+/// (doc 20 §7.1, §7.2): the basis, the 15 colour rows, then the control and the mains sizes.
 #[test]
 fn the_cover_tables_follow_the_profiles() {
     let s = common::golden_session();
@@ -541,8 +541,8 @@ fn embedded_blocks_have_no_page_and_derive_part_data() {
         ["Order Code 1", "Order Code 2"].map(|l| Cell::Text(ew_derive::ew_mltext::MlText::neutral(l)))
     );
 
-    // Page 902 draws no representation; its surface view shows -UC1's plate, so the box sources -UC1 (
-    // LB-3): the enclosure and the plate, without the carrier lines of the rails and ducts.
+    // Page 902 draws no representation; its surface view shows -UC1's plate, so the box sources -UC1:
+    // the enclosure and the plate, without the carrier lines of the rails and ducts.
     let r902 = q.get::<BlockRows>(block("part-data-902"));
     assert!(r902.is_derived());
     assert_eq!(part_numbers(&r902), ["NSYPLA1074G", "NSYPMM107"]);

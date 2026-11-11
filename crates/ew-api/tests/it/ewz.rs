@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 2 in the session (D8, D9): `Session::export_ewz` packs the saved generation,
+//! In the session, `Session::export_ewz` packs the saved generation,
 //! never the dirty model, and says so; `Session::open_ewz` (and every reader through `Session::open_reader`) opens an
 //! `.ewz` read-only from memory; a refused archive is `OpenError::Ewz`, in words.
 

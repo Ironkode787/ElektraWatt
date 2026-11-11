@@ -550,7 +550,7 @@ fn hinted_wire_in(
     (e, wires[0], fa, fb)
 }
 
-/// FT-1020 under WP-S2.19 D3: `place` dropped a symbol on the hinted wire `wire`, which has no
+/// `place` dropped a symbol on the hinted wire `wire`, which has no
 /// route. An unrouted wire has no wire geometry (it is drawn as the dashed straight line between its ends), so
 /// normaliser 7 does not split it: no new part, and the wire is as it was.
 fn assert_not_split(e: &Engine, r: &Receipt, wire: ew_ids::Id<Connection>, before: &Connection) {

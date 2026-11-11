@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 2 (keymaps) in the window without rendering: KM-1 with the KiCad-like preset the keys A, G, W and E
-//! run Place, Move, Wire and Properties on the canvas (and A does nothing in the EW preset); KM-5 Ctrl+Shift+N runs
-//! Renumber devices…; KM-2 a user keymap's chord runs its action; KM-3 the editor records a pressed chord, shows a
+//! Keymaps in the window without rendering: with the KiCad-like preset the keys A, G, W and E
+//! run Place, Move, Wire and Properties on the canvas (and A does nothing in the EW preset); Ctrl+Shift+N runs
+//! Renumber devices…; a user keymap's chord runs its action; the editor records a pressed chord, shows a
 //! conflict as an error and a shadowing note. The accessible-name walker runs after every step.
 
 use crate::support;
@@ -164,7 +164,7 @@ fn the_editor_records_a_pressed_chord_and_shows_conflicts_and_shadowing() {
     );
 }
 
-/// FT-1130 (item 5): `ui.dismiss` from a key while the app menu is open closes the menu and nothing else, as
+/// `ui.dismiss` from a key while the app menu is open closes the menu and nothing else, as
 /// Escape does; with the menu closed the same key dismisses as before. A physical key of the user's keymap reaches the
 /// window's event loop with `ui.dismiss`; a logical key does too (the logical-key loop matches a `ui.dismiss` bound to
 /// a key other than Escape as the physical-key loop does).

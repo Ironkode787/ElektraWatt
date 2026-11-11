@@ -440,7 +440,7 @@ pub fn take_over(
         Err(TakeoverError::Lost) if left_by_a_crashed_takeover(vfs, &from, &to, &info) => {
             // A takeover that crashed between the hard link and the unlink of `rename_noreplace` left the
             // stale copy beside the lock, both with the stale record: every later takeover would lose to
-            // it (review cycle 8, 5(e)). The copy is redundant (the lock still holds the record): prune it
+            // it. The copy is redundant (the lock still holds the record): prune it
             // and try once more; a racing instance that wins instead makes this one lose as usual.
             match vfs.remove_file(&to) {
                 Ok(()) => {}

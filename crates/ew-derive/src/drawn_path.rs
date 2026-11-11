@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The path a connection is drawn along on its page (doc 06 §5.4), one rule for the page and the model (
-//! decision log ID-1104): the page scene (`ew-scene`, `route::connection_polyline`) draws a wire along it,
+//! The path a connection is drawn along on its page (doc 06 §5.4), one rule for the page and the model:
+//! the page scene (`ew-scene`, `route::connection_polyline`) draws a wire along it,
 //! normaliser 7 of `ew-commands` splits a connection under a dropped symbol along it (its ends placed by
 //! [`rep_cp_end`](crate::rep_cp_end)), and EW-TERM-006 names a terminal lying on a wire it does not join.
 //!

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The acceptance tests of the review cycle 5 findings F1-F5 and the decisions D2-D4: checked coordinates,
+//! Acceptance tests of checked coordinates,
 //! one-pass junction clean-up, collision-only renumbering, preview identity, transient delete planning,
 //! `fields.set` collisions, the connection grid and the cost of `edit.delete`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
@@ -567,7 +567,7 @@ fn d3_off_grid_positions_are_rejected() {
         rejection(e.execute(&route(vec![pt(G, G), pt(2 * G, G + 1), last]))),
         corner_off("x 15.9, y 7.9 mm")
     );
-    // FT-864 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+    // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres
     assert_eq!(
         rejection(e.execute(&route(vec![pt(2 * G, G), last]))),
         "the wire's start at x 15.9, y 7.9 mm on page 102 does not meet connection point -102K1:1 at x 7.9, y 7.9 mm; \
@@ -679,7 +679,7 @@ fn naive_defect(route: &[Pt2]) -> bool {
 fn a_repeated_vertex_is_refused_by_draw_and_route() {
     let (mut e, fa, fb) = two_devices();
     let dup = vec![pt(G, G), pt(2 * G, G), pt(2 * G, G), pt(4 * G, G)];
-    // FT-864 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+    // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres
     let expected = "the wire's corner at x 15.9, y 7.9 mm on page 102 repeats the corner before it; remove the duplicate corner";
     assert_eq!(rejection(e.execute(&draw_between(fa, fb, dup.clone()))), expected);
     let r = e
@@ -707,7 +707,6 @@ fn a_route_that_doubles_back_is_refused() {
     ];
     assert_eq!(
         rejection(e.execute(&draw_between(fa, fb, back))),
-        // FT-864 (as above)
         "the wire runs back over itself on page 102: its stretch from x 23.8, y 7.9 mm to x 15.9, y 7.9 mm lies on its \
          stretch from x 7.9, y 7.9 mm to x 23.8, y 7.9 mm; remove the stretch it runs back over"
     );

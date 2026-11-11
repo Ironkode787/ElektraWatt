@@ -21,8 +21,8 @@
 //!   (doc 09 §2.6, doc 15 §5.6; the no-digest branch, page digests do not exist yet): the current open
 //!   revision if it names the page in its `page_notes`; else the latest released revision whose changed
 //!   pages contain it (`release.changed_pages` if present, else the pages of its `page_notes`); else the
-//!   first (lowest ranked) revision. `release.changed_pages` is the typed release record's member (WP-S1.18
-//!   part 1, D2); a line whose entries are not page IDs does not load as a record.
+//!   first (lowest ranked) revision. `release.changed_pages` is the typed release record's member; a line
+//!   whose entries are not page IDs does not load as a record.
 //! - `revision.current.*`: the typed `revision` records (doc 03 §18): `label`, `date`, `state`
 //!   (printed as its stored name; a state of a newer format as its text), `author` and `checker`.
 //!   Withdrawal records (state `withdrawn`) are ignored, and so is the revision whose label a withdrawal
@@ -292,7 +292,7 @@ fn page_scope(out: &mut Out, q: &Q, project: &Project, page: PageRef) {
         PageRef::Drawn(id) => q.pages().get(id),
         PageRef::Divider(_) | PageRef::Generated { .. } => None,
     };
-    // WP-S4.01 D9 (FR-LAY-010): a page drawn to a scale 1:n prints "<title> · Scale 1:n" in its title block; the
+    // FR-LAY-010: a page drawn to a scale 1:n prints "<title> · Scale 1:n" in its title block; the
     // TOC keeps the plain title (it reads `PageTitle`), and a not-to-scale page is unchanged. A stored scale of 0 draws
     // at 1:1, so it prints neither the suffix nor `page.scale`.
     let title = q.get::<PageTitle>(page);

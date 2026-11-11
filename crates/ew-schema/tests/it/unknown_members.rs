@@ -208,10 +208,11 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
 /// PLC lines added five refusing enum wrappers and payloads (`address`, `output`, `slot`, `binding`,
 /// `comment`); the assembly line two multi-language `label`s, which are no extensible objects; the revision
 /// line two multi-language `description`s; the page-item lines seven enum wrappers (the
-/// five `kind` variants and two graphic `shape`s); WP-S1.19 part 1 three multi-language texts (the macro's `name`
-/// and `description`, a part fixture's `description`). The survivor floor was raised to the 298 objects counted
-/// then, so the new part, manufacturer, macro and macro-instance objects stay extensible. The waiver line (WP-S1.16
-/// part 5) adds one multi-language `reason`; its record and target objects keep unknown members. The bus lines
+/// five `kind` variants and two graphic `shape`s); the part, manufacturer and macro data three multi-language
+/// texts (the macro's `name` and `description`, a part fixture's `description`). The survivor floor was
+/// raised to the 298 objects counted then, so the new part, manufacturer, macro and macro-instance objects
+/// stay extensible. The waiver line adds one multi-language `reason`; its record and target objects keep
+/// unknown members. The bus lines
 ///  add three enum wrappers (a logical net's `master` endpoint, a port's `address` value and its
 /// `profibus` form); their ports and nets keep unknown members. The layout lines add four
 /// `Pose3` values (an enclosure's `pose`, a surface's `frame`, two placements' `pose`), which are atomic leaves

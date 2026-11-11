@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.09 part 1 in the window (§10.1): the save dialog's answer replaces an existing file through the export job
-//! (JB4); a running export is a named progress indicator with Cancel and, after 200 ms, the status bar's job field
-//! (JB3); the toasts stack and the notifications log opens from the status bar (JB6); the recovery dialog (JB7); each
-//! followed by the accessible-name walker (JB9).
+//! In the window: the save dialog's answer replaces an existing file through the export job;
+//! a running export is a named progress indicator with Cancel and, after 200 ms, the status bar's job field;
+//! the toasts stack and the notifications log opens from the status bar; the recovery dialog; each
+//! followed by the accessible-name walker.
 
 use crate::support;
 

@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The G-PP placement and interruption-point follow-ups of cycle 34, lane B34 (
-//! FT-547), through the text interface.
+//! The G-PP placement and interruption-point follow-ups, through the text interface.
 
 use crate::common;
 use ew_viewmodel::key;

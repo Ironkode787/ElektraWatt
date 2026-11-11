@@ -580,8 +580,8 @@ pub(crate) const LINE_NUDGE_NM: i64 = 2;
 /// `link_type` at QET position `(x, y)` px on a diagram with border `b`. QET's `convertPosition` takes the
 /// cell index as the ceiling of `(v − 20) / size`, so a point exactly on an inner column or row line belongs
 /// to the left column or the upper row, while EW's cell rule (floor) puts it right or below. Moving such an
-/// element a few nm left or up keeps its printed cross-reference cell as QET prints it (owner rulings,
-/// reviews of cycle 12; the derivation's cell rule stays).
+/// element a few nm left or up keeps its printed cross-reference cell as QET prints it (the derivation's
+/// cell rule stays).
 ///
 /// Only the elements whose cell a cross-reference prints move: **interruption points** (`next_report`,
 /// `previous_report`) and **masters and slaves** (`master`, `slave`, whose cells the slave and master

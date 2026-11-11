@@ -240,8 +240,7 @@ pub struct EmbeddedLayout {
 
 impl EmbeddedLayout {
     /// The default layout: every column of `columns` at weight 1 under a header row, no title, one flow column. A
-    /// table of a kind without a declared layout is unreadable without its column names (the orchestrator's ruling 2
-    /// of cycle 42).
+    /// table of a kind without a declared layout is unreadable without its column names.
     pub fn every_column(columns: &[ColumnDef]) -> EmbeddedLayout {
         EmbeddedLayout {
             columns: columns.iter().map(|c| (c.key.clone(), 1)).collect(),

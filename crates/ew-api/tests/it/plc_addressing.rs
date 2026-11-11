@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 3 on Golden A (acceptance PA-1, PA-3, PA-5, PA-6, AC-29; D8, D9, D10): the start command re-addresses
+//! On Golden A (AC-29): the start command re-addresses
 //! one module with one recompute of its channel addresses and one undo step; the profile command changes the printed
 //! notation and nothing else in the files; EW-PLC-012 reports the 28 coil bindings under the part map H1 and none
 //! under H2; the tag form of `plc.bind_channel`.

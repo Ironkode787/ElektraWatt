@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.22 part 2 through the `ew` binary: the page and row outputs (OU-1 to OU-4; OU-5 is the container job of
-//! CI-PR-05, OU-6's `--json` rules are in `tests/conventions.rs`).
+//! Through the `ew` binary: the page and row outputs (the container job is that of
+//! CI-PR-05, the `--json` rules are in `tests/conventions.rs`).
 //!
 //! The golden facts of the specification are checked against Golden A's committed files: folio 103's PNG bytes (and
 //! every folio's), the 56 channel rows of folio 908, the 44 wires and 6 bridges of the wire list, the three strips of
@@ -186,7 +186,7 @@ fn a_page_too_large_to_rasterise_is_refused_with_words() {
 // ---------------------------------------------------------------------------------------------------------
 // OU-2: `ew export png`
 
-/// OU-2 (FT-254): `ew export png --out <dir>` writes one PNG per folio of Golden A, each equal to its committed PNG,
+/// FT-254: `ew export png --out <dir>` writes one PNG per folio of Golden A, each equal to its committed PNG,
 /// on one thread and on four (`--threads` changes the speed only).
 #[test]
 fn export_png_writes_every_golden_png_in_one_and_four_threads() {
@@ -220,7 +220,7 @@ fn export_png_writes_every_golden_png_in_one_and_four_threads() {
     }
 }
 
-/// FT-1278 (GT-4's PNG half): the wire-colour view is a window state and never reaches an export. The view strokes
+/// The wire-colour view is a window state and never reaches an export. The view strokes
 /// folio 103's W29 in DBU and W27 green and yellow; `ew export png` of folio 103 holds no coloured pixel.
 #[test]
 fn export_png_holds_no_wire_colour_view() {
@@ -387,7 +387,7 @@ fn kind_csvs() -> Vec<&'static str> {
     kinds
 }
 
-/// RK-1, RK-2, RK-7 and the orchestrator's ruling 10: `ew export report --kind <kind> --format csv` writes
+/// `ew export report --kind <kind> --format csv` writes
 /// `expected/csv/<kind>.csv` byte for byte, twice the same.
 #[test]
 fn report_kind_writes_the_golden_kind_csvs() {
@@ -414,7 +414,7 @@ fn report_kind_writes_the_golden_kind_csvs() {
     }
 }
 
-/// RK-3 (the orchestrator's rulings 4 and 5): the refusals of the export by kind, each whole on stderr with
+/// The refusals of the export by kind, each whole on stderr with
 /// exit 2; the unknown-kind refusal lists the registered kinds, each of which but `terminal_diagram` exports.
 #[test]
 fn report_kind_refusals_and_every_listed_kind_exports() {
@@ -491,7 +491,7 @@ fn report_kind_refusals_and_every_listed_kind_exports() {
     }
 }
 
-/// RK-6 (the orchestrator's ruling 7): `--block 911 --format csv` prints the changed pages as folio 911
+/// `--block 911 --format csv` prints the changed pages as folio 911
 /// does (V1.0 empty, V2.0 "101, 106"); `--kind revision_overview` writes the same bytes.
 #[test]
 fn report_csv_of_folio_911_prints_the_changed_pages() {
@@ -827,7 +827,7 @@ fn print_refusals_are_whole_texts() {
             ),
         ),
     ];
-    // Ruling 4 of ID-1218: refused in words on other systems; on Windows it would open the print dialog, so the
+    // Refused in words on other systems; on Windows it would open the print dialog, so the
     // adapter's own tests cover it there.
     #[cfg(not(windows))]
     let cases = {

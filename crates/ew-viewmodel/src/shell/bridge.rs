@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host's duty of FT-411, widened by cycle 33 (G-PP ruling #4): Edit ▸ Bridge terminals,
+//! The tool host's duty of Edit ▸ Bridge terminals,
 //! the host command on the selection that draws page-less bridges between two or more selected terminals of one
 //! strip, consecutive in the strip's terminal order (BR1 over :1 to :4 is 1-2, 2-3, 3-4), in one undo step.
 //!

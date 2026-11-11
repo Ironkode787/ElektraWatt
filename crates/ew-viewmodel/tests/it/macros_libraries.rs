@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 6 (§11): the Macros and Libraries navigators in the shell on copies of Golden A with a fixture user
-//! library. UI-1 (the detail of the PSU macro), UI-2's model half (insert the PSU macro on folio 105 from the
+//! The Macros and Libraries navigators in the shell on copies of Golden A with a fixture user
+//! library. The detail of the PSU macro, the model half of inserting it (the PSU macro on folio 105 from the
 //! navigator: the card lists the conflicts, Apply is one undo step; the whole block with its interruption points lists
-//! the pairings and is refused by EW-CORE-052), UI-3 (Save as macro… writes into a user library, refuses a system
-//! library and refuses headless), UI-4's Update… (the bulk card of `library.update`), Make variable, and FT-720(b)
-//! (`navigator.show` shows the pane asked for).
+//! the pairings and is refused by EW-CORE-052), Save as macro… (writes into a user library, refuses a system
+//! library and refuses headless), Update… (the bulk card of `library.update`), Make variable, and `navigator.show`
+//! (shows the pane asked for).
 
 use crate::common;
 use ew_viewmodel::key;
@@ -86,7 +86,7 @@ fn reps_on_show(shell: &ShellModel) -> usize {
 }
 
 /// UI-1: the Macros navigator lists the saved PSU macro under "User" and its detail shows its name, version,
-/// library, its thumbnail drawn from the scene (FT-754 (a)) and its three devices.
+/// library, its thumbnail drawn from the scene and its three devices.
 #[test]
 fn ui1_the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     let tmp = Tmp::new("macros-ui1");
@@ -103,7 +103,7 @@ fn ui1_the_macros_navigator_shows_the_psu_macro_and_its_detail() {
     assert_eq!(d.library, "Mine");
     assert!(d.thumbnail.is_none(), "no stored thumbnail asset");
     assert_eq!(d.devices.len(), 3, "{:?}", d.devices);
-    // FT-754 (a): the detail's thumbnail is drawn from the scene.
+    // The detail's thumbnail is drawn from the scene.
     let th = shell.macro_thumbnail().expect("a drawn thumbnail");
     assert!(th.region[0] < th.region[2] && th.region[1] < th.region[3]);
     assert!(d.devices.iter().any(|x| x.starts_with("-G")), "{:?}", d.devices);
@@ -173,7 +173,7 @@ fn ui2_insert_the_psu_macro_on_folio_105_from_the_navigator() {
         panic!("a macro card: {:?}", card.origin)
     };
     assert!(card.preview.result.is_err(), "EW-CORE-052 refuses the block");
-    // FX38d (window check W38): the card leads with what blocks the apply in words, not with the rule code, which
+    // The card leads with what blocks the apply in words, not with the rule code, which
     // follows as secondary text; no conflict row repeats the lead.
     let lead = card.failed_lead().expect("the failed card's lead");
     assert!(
@@ -321,7 +321,7 @@ fn a_name_that_gives_no_key_is_refused_before_any_write() {
     assert_ne!(listing(&t.user), before, "a typed key saves the macro");
 }
 
-/// Cycle 39 (FIX39b-1, item 8): a refused save keeps the typed name in the dialog's Name field, with the reason under
+/// A refused save keeps the typed name in the dialog's Name field, with the reason under
 /// the fields (the window check's empty field came from a script step that passed the name as a parameter, not
 /// through the field).
 #[test]
@@ -441,7 +441,7 @@ fn ui4_update_refuses_without_an_update_and_badges_are_words() {
     );
 }
 
-/// FT-720(b): `navigator.show` of a navigator already docked behind another tab shows it.
+/// `navigator.show` of a navigator already docked behind another tab shows it.
 #[test]
 fn navigator_show_shows_the_pane_asked_for() {
     let tmp = Tmp::new("macros-ft720b");
@@ -459,7 +459,7 @@ fn navigator_show_shows_the_pane_asked_for() {
     );
 }
 
-/// FT-754 (f): the company libraries of the settings key `libraries.company` are the company tier: a library in a
+/// The company libraries of the settings key `libraries.company` are the company tier: a library in a
 /// directory the settings name stands under "Company", writable, in the Libraries navigator, and Save as macro…
 /// writes into it. A relative path is read against the settings' directory.
 #[test]
@@ -493,7 +493,7 @@ fn company_libraries_of_the_settings_are_the_company_tier() {
     assert!(m.starts_with("tier:company/"), "{m}");
 }
 
-/// FT-754 (h): Make variable is an entry of the property row's actions menu: the process tag row of -102G1 lists it
+/// Make variable is an entry of the property row's actions menu: the process tag row of -102G1 lists it
 /// after the row's own actions, and choosing it remembers the row as a variable of the next save; a row of several
 /// records does not list it.
 #[test]
@@ -560,7 +560,7 @@ fn card_copies(shell: &ShellModel) -> Vec<String> {
     ids
 }
 
-/// FT-754 (d), UI-4's Update…: with two macro copies that have an update (both macros re-saved after their
+/// Update…: with two macro copies that have an update (both macros re-saved after their
 /// insertion), Update… previews the copies named by `keys`, else the marked copies, else the copy under the cursor,
 /// else every copy with an update; Apply makes both copies current.
 #[test]
@@ -650,7 +650,7 @@ fn detail_of(shell: &mut ShellModel, name: &str) -> ew_viewmodel::ew_api::output
     shell.macro_detail().expect("the detail").clone()
 }
 
-/// FT-754 (b): Save as macro… takes a kind and an insertion point. The dialog offers the kind (window with a
+/// Save as macro… takes a kind and an insertion point. The dialog offers the kind (window with a
 /// selection, with the insertion point's fields) and page when only pages are marked (no insertion point); a window
 /// macro saved with an insertion point at the sheet's corner has its records right of and below the anchor, where the
 /// selection's own anchor puts it at the records' corner; a page macro saves the marked pages and lists as "Page".
@@ -741,7 +741,7 @@ fn save_as_macro_takes_kind_insertion_point_and_marked_pages() {
     );
     let d = detail_of(&mut shell, "Power supply page");
     assert_eq!(d.kind, "Page");
-    // Cycle 39 (FIX39b-1): the detail carries the macro's key, which the window shows after the kind.
+    // The detail carries the macro's key, which the window shows after the kind.
     assert_eq!(d.key, "power-supply-page");
     assert!(d.devices.iter().any(|x| x.starts_with("-G")), "{:?}", d.devices);
     // Folios by name.

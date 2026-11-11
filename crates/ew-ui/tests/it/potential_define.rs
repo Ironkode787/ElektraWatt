@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The G-PP triage's row 8 in the window, as amended by WP-S1.16 D4: in the Potentials table, a potential
+//! In the window: in the Potentials table, a potential
 //! known only at its connection points (its definition deleted) has editable Name and Type cells (their AccessKit
 //! names do not end ", read-only"); a double click on the Name opens the cell editor, and the typed name defines the
 //! potential in one step.
@@ -52,8 +52,7 @@ fn cell_name(shell: &ShellModel, node: u32, label: &str) -> String {
     format!("{head}, row {at} of {}", rows.len())
 }
 
-/// The Potentials table on show with 24VDC-4's definition deleted: the potential is known only at its connection points
-/// (FT-515's situation).
+/// The Potentials table on show with 24VDC-4's definition deleted: the potential is known only at its connection points.
 fn undefine_24vdc4(shell: &mut ShellModel) {
     done(shell, "navigator.show", json!({"kind": "potentials"}));
     done(shell, "navigator.table", json!({"kind": "potentials"}));
@@ -140,7 +139,7 @@ fn the_type_cell_of_an_undefined_potential_is_editable() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1239's row with a context menu, in the window `h` on a copy of Golden A: the Potentials table, 24VDC-4's
+/// The row with a context menu, in the window `h` on a copy of Golden A: the Potentials table, 24VDC-4's
 /// definition deleted, filtered to the first row with a point to define its potential at; the accessible name of its
 /// Potential cell and the point (the census opens its menu too).
 pub(crate) fn a_row_to_define(

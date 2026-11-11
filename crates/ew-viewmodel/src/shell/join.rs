@@ -15,7 +15,7 @@
 //!
 //! **The text interface (D4).** `place.pick device=<tag>` arms the join; `function=<tag>:<slot>` or
 //! `function=<tag>` arms `existing_function` (a tag with one unplaced function of the armed FnDef resolves to it,
-//! several are refused with their slots listed). A tag is read by FT-544's grammar (`Session::resolve_reference`: a
+//! several are refused with their slots listed). A tag is read by the reference grammar (`Session::resolve_reference`: a
 //! bare tag, `tag:`, `id:`); a UUID still works.
 
 use std::sync::Arc;
@@ -73,7 +73,7 @@ impl ShellModel {
         self.tools.tool.name() == "place" && self.tool_ghost().is_some_and(|g| g.joinable())
     }
 
-    /// The device a join names: a device's UUID, or a reference by FT-544's grammar (a bare tag such as `-101K1`,
+    /// The device a join names: a device's UUID, or a reference (a bare tag such as `-101K1`,
     /// `tag:`, `id:`) that resolves to a device.
     fn join_device_ref(&self, text: &str) -> Result<Uuid, String> {
         let Some(project) = &self.project else {

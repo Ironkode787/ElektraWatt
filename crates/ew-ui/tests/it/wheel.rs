@@ -38,7 +38,7 @@ struct Change {
 /// The table, from 100 % with the pointer at the canvas's centre: (modifiers, (dx, dy), zoom after in per cent, the
 /// centre's move in mm). The plain vertical wheel steps the zoom ladder three steps about the pointer (by design, not
 /// changed); Ctrl with the wheel is egui's continuous zoom, out for a line down, in for a line up (the play-test's "in
-/// both directions" did not reproduce); FT-895's fix: a sideways wheel and Shift with the wheel pan horizontally, three
+/// both directions" did not reproduce); a sideways wheel and Shift with the wheel pan horizontally, three
 /// of egui's lines (32 mm at 100 %), a line down or right showing more of the right (doc 16a §5.5 names no wheel).
 /// A row of the table: modifiers, the step `(dx, dy)`, the zoom after in per cent, the centre's move in mm.
 type Row = (&'static str, (i64, i64), i64, (i64, i64));

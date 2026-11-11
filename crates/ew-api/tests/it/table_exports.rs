@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.08 part 1 over Golden A in `ew-api`: the table writers behind the row exports (`row_output`), where the model
-//! can be changed or reloaded: TX-4 with a fixture whose -101F1 function text is a formula, TX-5 with the records
+//! Over Golden A in `ew-api`: the table writers behind the row exports (`row_output`), where the model
+//! can be changed or reloaded: a fixture whose -101F1 function text is a formula, the records
 //! shuffled (AC-14's seed), and the golden dialect through the table model.
 
 use crate::golden_common;

@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command surface in the window without rendering. CB2 (the tabs and the Draw row's buttons,
-//! each dispatching its action), CB3 (the keyboard: Alt, F10, Ctrl+F1, F6, Left and Right), CB4 (the geometry at
-//! 1280 by 800 in both densities), CB5 (one HUD with the selection's prompt, no tool strip), CB8 (the app button),
-//! FT-514 (a repaint when the window gets the focus back) and IC2 (every icon key of the registry resolves).
+//! The command surface in the window without rendering: the tabs and the Draw row's buttons,
+//! each dispatching its action; the keyboard (Alt, F10, Ctrl+F1, F6, Left and Right); the geometry at
+//! 1280 by 800 in both densities; one HUD with the selection's prompt, no tool strip; the app button;
+//! a repaint when the window gets the focus back; and every icon key of the registry resolves.
 
 use crate::support;
 
@@ -305,7 +305,7 @@ fn the_geometry_at_1280_by_800_in_both_densities() {
             close(hud.center().x, pane.center().x),
             "{density}: {hud:?} in {pane:?}"
         );
-        // WP-S2.17 part 3's default workspace (D10): the page view takes at least 65 % of the width.
+        // The default workspace: the page view takes at least 65 % of the width.
         assert!(
             pane.width() >= 0.65 * frame.width(),
             "{density}: the page view {pane:?}"
@@ -434,7 +434,7 @@ fn every_icon_key_resolves() {
     }
 }
 
-/// FT-822 (play-test): the banner lies over the top edge of the canvas below the page tabs; showing and
+/// The banner lies over the top edge of the canvas below the page tabs; showing and
 /// dismissing it moves neither the page view nor the command bar, so a click aimed before it appears still lands.
 #[test]
 fn the_banner_overlays_the_canvas_and_moves_nothing() {
@@ -517,7 +517,7 @@ fn the_view_menu_fits_a_1000_by_700_window() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1520 (doc 16a §6.13): View ▸ Show's switches draw only their check in the menu's check column, blank
+/// Doc 16a §6.13: View ▸ Show's switches draw only their check in the menu's check column, blank
 /// when off, never their icons: Grid (on) shows its check, Frame statistics (off) nothing.
 #[test]
 fn view_show_switches_show_only_their_check() {

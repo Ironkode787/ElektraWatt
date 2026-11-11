@@ -342,7 +342,7 @@ impl ShellModel {
 
     /// The route of an editable cell, or why it is read-only.
     /// Whether `text` means what cell (node `i`, column `col`) shows: the same text, or in an enumerated field's
-    /// column the same choice, by its code or by its words in a shipped language (ID-1392: such a cell reads
+    /// column the same choice, by its code or by its words in a shipped language (such a cell reads
     /// in the window's language, so a copy made in the other language pastes unchanged).
     fn same_cell(&self, view: &TableView, i: u32, col: usize, text: &str) -> bool {
         let Some(shown) = view.table.nodes[i as usize].cells.get(col) else {
@@ -808,7 +808,7 @@ impl ShellModel {
     /// `on` it toggles.
     pub(crate) fn act_navigator_table(&mut self, p: &Map<String, Value>) -> Outcome {
         let kind = or_return!(self.open_kind(p));
-        // WP-S2.09 part 2 meets WP-S2.06 part 3: the Messages pane's rows are read-only findings with their own
+        // The Messages pane's rows are read-only findings with their own
         // header, detail block and quick-fix card, so it has no table mode.
         if kind == NavKind::Messages {
             return failed(key!("error-nav-no-table"), &[kind.word()]);
@@ -1126,7 +1126,7 @@ impl ShellModel {
         let Some(view) = self.table_view(kind) else {
             return Outcome::Done;
         };
-        // A column is named by its key or by its header label. C53-fx#4: a label that heads more than one
+        // A column is named by its key or by its header label. A label that heads more than one
         // column (the Wires table's two "CP") names none; the refusal lists their keys.
         let labelled: Vec<usize> = (0..view.table.columns.len())
             .filter(|i| view.table.columns[*i].label.to_lowercase() == column.to_lowercase())

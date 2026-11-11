@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 45's Properties polish through the shell on temporary copies of Golden A: `props.follow` on a
+//! Properties polish through the shell on temporary copies of Golden A: `props.follow` on a
 //! placement's Device row and 902's Placement rows in words.
 
 use crate::common;
@@ -170,7 +170,7 @@ fn filtered(s: &ShellModel, filter: &str) -> Vec<(String, String)> {
         .collect()
 }
 
-/// FT-1357 and FT-1358 (ruling 8): the project's sheet is headed "Project", its yes and no, list
+/// The project's sheet is headed "Project", its yes and no, list
 /// counts and structured values read in words in either language, never as JSON; a filter shows its rows with their
 /// parents, so the four parties' "Personal data" rows never stand alone (doc 16a §6.8).
 #[test]

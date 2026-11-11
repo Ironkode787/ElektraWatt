@@ -40,7 +40,7 @@
 //!
 //! This crate has no Unicode dependency: the strict grammar is ASCII, and known codes match exactly. Pass
 //! NFC text (`ew_mltext::to_nfc`) as every `Ident` is; numbering rules (formats such as
-//! `{page}{letter}{counter}`) are WP-S1.11.
+//! `{page}{letter}{counter}`) are not handled here.
 //!
 //! # Example
 //!

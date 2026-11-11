@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 2 in the view model (acceptance checks WR2, WR4, WR5, WR7, the view-model part of WR9 and WR10): the
+//! In the view model: the
 //! Wire tool by keyboard (CP, junction and segment ends, bends, Backspace, the committed route equal to the ghost),
 //! FR-CON-006's drawing order, the autoconnect proposals of a placement and of a move, route edit (pointer and
 //! keyboard) and the split of a routed wire on insert, the junction sequence editor, the crossings setting, the
@@ -174,7 +174,7 @@ fn bends_back_junction_and_segment_ends_and_an_empty_grid_start() {
         .find(|j| j.style == "bevel" && j.wiring == "chain")
         .unwrap()
         .clone();
-    // WP-S2.19 D13 (RW4): a junction that already joins three wires is no end, and the hint says so.
+    // A junction that already joins three wires is no end, and the hint says so.
     assert!(junction.sequence.len() >= 3);
     cursor(&mut s, junction.at);
     // The snap falls past it: to a point on one of its wires or to the grid, never to the junction itself.
@@ -397,7 +397,7 @@ fn a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commit
         .clone();
     let centre = sheet(&s, ((c.body[0] + c.body[2]) / 2, (c.body[1] + c.body[3]) / 2));
     let right = sheet(&s, ((c.body[0] + c.body[2]) / 2 + g, (c.body[1] + c.body[3]) / 2));
-    // WP-S2.19 RM2 (D15): the contact moved a step right, off the facing CPs, connects nothing.
+    // The contact moved a step right, off the facing CPs, connects nothing.
     let n = tables(&s).connections.len();
     done(&mut s, "canvas.press", at(centre, json!({})));
     done(&mut s, "canvas.pointer", at(right, json!({})));
@@ -445,7 +445,7 @@ fn a_contact_between_two_facing_free_cps_proposes_two_connections_and_alt_commit
     assert_eq!(tables(&s).connections.len(), n, "connect on move off");
 }
 
-/// WP-S2.19 RM1 (D14): on an empty stretch of Golden A's folio 103, coils -103K1 and -103K2 side by side joined twice,
+/// On an empty stretch of Golden A's folio 103, coils -103K1 and -103K2 side by side joined twice,
 /// under the A2s and over the A1s, and -103K3 below between them. A drag of the first two four steps down would carry
 /// the lower wire through -103K3: the release re-solves it in the same undo step, and the upper wire, clean where it
 /// follows, keeps its vertices translated.
@@ -552,7 +552,7 @@ fn rm1_a_move_re_solves_a_followed_route_that_would_cross_a_symbol_and_keeps_a_c
     assert_eq!(wire(&s, "-103K1:A1").polyline, upper, "the undo restores both");
 }
 
-/// C53-rt#3 (D3, RM1): an unrouted connection's dashed line is no wire, so a moved wire whose followed route lies
+/// An unrouted connection's dashed line is no wire, so a moved wire whose followed route lies
 /// along it stays clean and keeps its route vertex for vertex. On folio 103, -103K1:A2 → -103K2:A2 is unrouted along
 /// row 24, and the routed -103K3:A1 → -103K4:A1 runs along row 24 between them; -103K4 moves one step right.
 #[test]
@@ -605,7 +605,7 @@ fn a_followed_route_along_an_unrouted_line_is_kept() {
     assert_eq!(routed(&s), expected, "followed, not routed again");
 }
 
-/// C53-rt#12 (ADR-0007 decision 4): a contact dragged onto a routed wire, its two CPs on the wire facing its ends,
+/// ADR-0007 decision 4: a contact dragged onto a routed wire, its two CPs on the wire facing its ends,
 /// lists no proposal, since a move never splits a wire; the release changes no connection.
 #[test]
 fn a_move_onto_a_wire_lists_no_split() {
@@ -646,7 +646,7 @@ fn a_move_onto_a_wire_lists_no_split() {
     assert_eq!(tables(&s).connections.len(), n, "no split, no wire");
 }
 
-/// ID-1509 (9), the window check's C2: the connect-on-move key pressed during a drag turns the state the move's prompt
+/// The connect-on-move key pressed during a drag turns the state the move's prompt
 /// shows at once and keeps its readout; no notice takes the prompt's place.
 #[test]
 fn the_connect_on_move_key_keeps_the_move_s_readout() {
@@ -726,7 +726,7 @@ fn card_line(s: &ShellModel) -> String {
     describe_line(s, "card ").expect("a card")
 }
 
-/// WP-S2.19 RW1 (D13, §12a): on folio 103 with two unrouted wires, one between two free coils and one from a CP whose
+/// On folio 103 with two unrouted wires, one between two free coils and one from a CP whose
 /// stub ends in another coil, Route page previews the plan, its lead and its unrouted row in en-GB and nl-NL; Apply
 /// commits one `connection.route_many` (one undo step) and the toast says what it routed; a second Route page has
 /// nothing to do.
@@ -745,7 +745,7 @@ fn route_page_previews_the_plan_and_applies_it_in_one_step() {
         "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 2 wires on folio 103: 1 \
          routed, 1 not routed.\" \"No route keeps clear of symbols: -103K3:A2 → -103K2:A2.\""
     );
-    // ID-1509 (9), the window check's C3: the card's title names the button.
+    // The card's title names the button.
     let title = |s: &ShellModel| s.properties().card().expect("the card").command().to_owned();
     assert_eq!(title(&s), "Route page");
     done(&mut s, "view.language", json!({"value": "nl"}));
@@ -781,7 +781,7 @@ fn route_page_previews_the_plan_and_applies_it_in_one_step() {
     );
 }
 
-/// ID-1509 (8), the window check's F2: a Route selection plan whose routes are the ones drawn opens no card and says
+/// A Route selection plan whose routes are the ones drawn opens no card and says
 /// so, in en-GB and nl-NL.
 #[test]
 fn route_selection_with_a_plan_that_changes_nothing_opens_no_card() {
@@ -836,7 +836,7 @@ fn done_outcome(s: &mut ShellModel, action: &str) -> String {
     }
 }
 
-/// WP-S2.19 RW2 (D13): Route selection with one routed wire selected routes it again, in the card's one step; the
+/// Route selection with one routed wire selected routes it again, in the card's one step; the
 /// page's other wires keep their routes.
 #[test]
 fn route_selection_re_routes_a_selected_wire_and_nothing_else() {
@@ -870,7 +870,7 @@ fn route_selection_re_routes_a_selected_wire_and_nothing_else() {
         "card ready \"connection.route_many\" targets 1 changes 1 tags 0 xrefs 0 route \"Route 1 wire on folio 103: 1 \
          routed, 0 not routed.\""
     );
-    // ID-1509 (9), the window check's C3: the card's title names the button.
+    // The card's title names the button.
     let card = s.properties().card().expect("the card").command().to_owned();
     assert_eq!(card, "Route selection");
     done(&mut s, "view.language", json!({"value": "nl"}));
@@ -897,7 +897,7 @@ fn route_selection_re_routes_a_selected_wire_and_nothing_else() {
     assert_eq!(others(&after), others(&before), "nothing else changes");
 }
 
-/// ID-1509 (8), C53-rt#6: Route selection needs a selected wire or symbol; with nothing selected it is refused,
+/// Route selection needs a selected wire or symbol; with nothing selected it is refused,
 /// whatever the page holds unrouted.
 #[test]
 fn route_selection_needs_a_selection() {
@@ -1258,7 +1258,7 @@ fn the_wire_tool_routes_once_per_changed_target_and_reads_nothing() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-423 in the view model: the rubber band of a move is the route the command stores
+// The rubber band of a move is the route the command stores
 
 #[test]
 fn the_rubber_band_of_a_move_is_the_route_rep_move_stores() {

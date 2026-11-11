@@ -329,7 +329,7 @@ fn s68_an_unplaced_terminal_row_is_dragged_onto_the_canvas() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Cycle 37 (window check W37): a device tag refused in the Devices navigator's F2 field shows its refusal under the
+/// A device tag refused in the Devices navigator's F2 field shows its refusal under the
 /// field only, not again as a banner.
 #[test]
 fn an_f2_refusal_shows_under_the_field_and_raises_no_banner() {
@@ -353,7 +353,7 @@ fn an_f2_refusal_shows_under_the_field_and_raises_no_banner() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// WP-S2.07 CT4 in the window (FT-490): F2 on a Potentials row opens the inline editor on its name with the focus;
+/// In the window (FT-490): F2 on a Potentials row opens the inline editor on its name with the focus;
 /// typing (appended at the end) and Enter rename the definition; Delete on a row opens the delete card.
 #[test]
 fn f2_renames_a_potential_and_delete_opens_the_card() {
@@ -442,7 +442,7 @@ fn scrolling_the_devices_pane_paints_the_rows_in_view_and_calls_nothing() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-891, proof (1): on Golden A's Pages navigator a double click on the row of folio 100 shows 100, and then one on
+/// On Golden A's Pages navigator a double click on the row of folio 100 shows 100, and then one on
 /// the row of 101 shows 101 (and so on), the rows themselves are right. Each double click is the visual driver's (a
 /// press and a release per frame, four frames of 1/60 s) or egui's four events in one frame, after a person's pause.
 /// Without the pause, a double click a few frames after another one is a triple click to egui (its click count looks
@@ -494,7 +494,7 @@ fn double_clicking_the_rows_of_100_and_101_shows_each_folio() {
         );
     }
     // The play-test's case: no pause after the double click on 102: egui counts a triple click, so the double click
-    // never reaches 103; since FT-1024 its single click opens 103 all the same.
+    // never reaches 103; its single click opens 103 all the same.
     double_click(&mut h, "102", false, 0.5);
     double_click(&mut h, "103", false, 0.0);
     assert_eq!(h.state().shell().current_folio(), Some("103"));
@@ -576,8 +576,8 @@ fn r30_double_clicking_a_paged_report_block_goes_to_its_first_folio() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp);
     // The command bar (85 px) is taller than the menu bar and the tool strip it replaced; at 700 px
-    // the virtualised pane no longer lays out the Wire List row at all, so this window is 800 px high; WP-S2.17 part 3
-    // (D10) gives the navigator half the column (Properties under it), so 1200 px.
+    // the virtualised pane no longer lays out the Wire List row at all, so this window is 800 px high; the default workspace
+    // gives the navigator half the column (Properties under it), so 1200 px.
     h.set_size(egui::Vec2::new(1000.0, 1200.0));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -658,7 +658,7 @@ fn cursor_k(h: &mut Harness<'_, App>, k: (i64, i64)) {
     dispatch(h, "cursor.set", json!({"x_mm": x, "y_mm": y}));
 }
 
-/// WP-S2.07 §8 (FR-PLC-020, PG2) in the window: in a new project with the generic CPU, the digital output card and a
+/// FR-PLC-020 in the window: in a new project with the generic CPU, the digital output card and a
 /// starter coil attached to the card, the PLC navigator's row of the card's channel 0 dragged onto the coil's
 /// connection point binds it with one `plc.bind_channel`; the coil's CP then prints Q0.0.
 #[test]

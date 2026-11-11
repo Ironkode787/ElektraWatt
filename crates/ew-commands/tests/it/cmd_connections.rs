@@ -319,7 +319,7 @@ fn draw_many_refuses_no_entry_and_a_bad_entry_whole() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// Cycle 33 review finding 10: the cost is interactive up to 500 entries and Bulk above (`BULK_ABOVE`); more than
+/// The cost is interactive up to 500 entries and Bulk above (`BULK_ABOVE`); more than
 /// 10,000 entries (`DRAW_MANY_MAX`) are refused at `/connections` and nothing is drawn.
 #[test]
 fn draw_many_cost_and_entry_limit() {
@@ -526,9 +526,9 @@ fn assigned_junction_refusal(first: Id<Connection>, second: Id<Connection>, gone
     }
 }
 
-/// FT-848 ("the junction refusal names the printed number, the counter only where the printed labels
-/// coincide"): the two members of one physical wire print the same number, so the refusal adds their counters; two
-/// wires that print different numbers are named by the printed numbers alone.
+/// The junction refusal names the printed number, the counter only where the printed labels
+/// coincide: the two members of one physical wire print the same number, so the refusal adds their counters;
+/// two wires that print different numbers are named by the printed numbers alone.
 #[test]
 fn a_junction_that_cannot_merge_two_assigned_numbers_names_the_printed_numbers() {
     assert_eq!(

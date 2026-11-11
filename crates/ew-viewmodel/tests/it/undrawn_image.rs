@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1378 as ruled by ID-1417: the pixel limit of a raster image applies at the gates that bring an image
+//! The pixel limit of a raster image applies at the gates that bring an image
 //! in, never at open. A project holding an image over the limit, which an earlier build took in, opens with the image
 //! kept, not drawn, and named in words; inserting such an image is refused.
 

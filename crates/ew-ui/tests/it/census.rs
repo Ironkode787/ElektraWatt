@@ -9,7 +9,7 @@
 //! The surfaces: folio 101 with a device and a wire selected (the cards show); the six command-bar tabs; every menu of
 //! the action registry and every submenu path in it; every `PaneKind` and `NavKind`, the Preview, History, Find and Messages panes with content;
 //! every `Dialog` variant (by a `match` without a wildcard arm, so a new variant does not compile until it is listed);
-//! the start page, the five first-run steps and the ten wizard steps. The creation forms are W49.2-F1's census
+//! the start page, the five first-run steps and the ten wizard steps. The creation forms have their own census
 //! (`form_dialog_focus.rs`): it opens every form whose action the source builds, settles on each (the six rules) and
 //! checks its list with [`form_problems`].
 //!
@@ -83,7 +83,7 @@ fn on_golden(tmp: &Tmp, name: &str) -> Harness<'static, App> {
     h
 }
 
-/// U2 of WP-S2.11 §5: each action of `built` (the source's form actions) that `opened` (the census's) lacks.
+/// Each action of `built` (the source's form actions) that `opened` (the census's) lacks.
 pub(crate) fn form_problems(opened: &BTreeSet<String>, built: &BTreeSet<String>) -> Vec<String> {
     built
         .difference(opened)
@@ -676,7 +676,7 @@ fn census_every_context_menu() {
 /// it.
 type ToolRow<'a> = (&'a str, &'a str, Vec<(&'a str, Value)>);
 
-/// FT-1444 (NFR-UX-07, doc 16 §10.5): every tool started on its page gives way to Select at Escape and leaves the
+/// NFR-UX-07, doc 16 §10.5: every tool started on its page gives way to Select at Escape and leaves the
 /// revision as it was. Each row starts one tool as a user does (its action, a picker's choice, a copied selection).
 #[test]
 fn every_tool_cancels_with_escape_and_changes_nothing() {
@@ -801,7 +801,7 @@ fn every_tool_cancels_with_escape_and_changes_nothing() {
     assert_eq!(problems, Vec::<String>::new(), "started: {started:?}");
 }
 
-/// FT-1444 (NFR-UX-07): the two tools Golden A cannot reach, on a fixture the test builds: a copy of Golden A with a
+/// NFR-UX-07: the two tools Golden A cannot reach, on a fixture the test builds: a copy of Golden A with a
 /// user library that holds a macro saved from folio 102 (installed, so the Macros navigator arms the macro tool on
 /// it) and a free text placed on folio 101 (F2 on it starts the text-edit tool). Each gives way to Select at Escape
 /// and leaves the revision as it was; with the sixteen of [`every_tool_cancels_with_escape_and_changes_nothing`] every

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `revision_overview`: the revisions and their changed pages (FR-REP-018, golden 911; doc 09 §2.4, doc 15 §5.6;
-//! WP-S1.18 part 2, D7 and FT-207).
+//! `revision_overview`: the revisions and their changed pages (FR-REP-018, golden 911; doc 09 §2.4, doc 15
+//! §5.6).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{Page, PartyRole, ReportBlock, Revision, RevisionState, Section};
@@ -170,7 +170,7 @@ mod tests {
         ew_model::Model::from_records(project, records, []).unwrap()
     }
 
-    /// FX37a: folio 911 lists the revisions in the project's label order (`Y < Z < AA < AB`), not the natural order
+    /// Folio 911 lists the revisions in the project's label order (`Y < Z < AA < AB`), not the natural order
     /// that puts `AA` before `Z`; a label outside the format comes first.
     #[test]
     fn the_rows_follow_the_project_label_order_past_z() {

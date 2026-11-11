@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The company-standard commands of FT-336: `project.company.set`, `project.frames.set`,
+//! The company-standard commands: `project.company.set`, `project.frames.set`,
 //! `project.languages.set` and `project.checks.set` (doc 16 §9.2 steps 1, 2, 8 and 9).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
@@ -257,7 +257,7 @@ fn company_set_stores_the_logo_as_an_asset_and_undoes() {
     assert_eq!(e.model().project().extra.get(COMPANY_MEMBER), None);
 }
 
-/// FT-337 fix round, item 3: picking again a logo whose bytes the model lost changes no row, but brings the asset
+/// Picking again a logo whose bytes the model lost changes no row, but brings the asset
 /// and leaves the project unsaved.
 #[test]
 fn a_logo_picked_again_without_row_changes_leaves_the_project_unsaved() {
@@ -290,7 +290,7 @@ fn a_logo_picked_again_without_row_changes_leaves_the_project_unsaved() {
     assert!(!e.is_dirty());
 }
 
-/// FT-337 fix round: a logo above 512 KiB is refused; one of exactly the limit passes.
+/// A logo above 512 KiB is refused; one of exactly the limit passes.
 #[test]
 fn company_set_refuses_a_logo_above_the_limit() {
     let mut e = engine(golden_model());
@@ -623,7 +623,7 @@ fn checks_set_takes_shipped_schemes_only_and_only_from_a_human() {
     assert_eq!(settings_member(&e, "checks"), None);
 }
 
-/// FT-404 (ADR-0008 amendment 3's note): a `project.checks.set` step records `HumanOnly`, and undo and redo refuse it
+/// ADR-0008 amendment 3's note: a `project.checks.set` step records `HumanOnly`, and undo and redo refuse it
 /// from every origin but the GUI and a confirmed CLI subcommand, with the session unchanged.
 #[test]
 fn checks_set_is_undone_and_redone_only_by_a_human() {

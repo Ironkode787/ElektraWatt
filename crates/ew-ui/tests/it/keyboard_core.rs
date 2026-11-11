@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 5b, acceptance check AX-5 (NFR-A11Y-01): the five core tasks on a copy of Golden A with key events
+//! NFR-A11Y-01: the five core tasks on a copy of Golden A with key events
 //! only: place a symbol (I, the picker by typing and arrows, Enter, Enter at the grid cursor), draw a
 //! wire (W, `]`, Enter, `]`, `]`, Enter), insert a terminal from the Terminal strips navigator (Ctrl+2; F6 and
 //! Shift+F6; Insert), renumber the devices through the palette and Ctrl+Enter (Ctrl+K, "renum", Enter; Tab and Space

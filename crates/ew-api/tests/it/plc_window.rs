@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 1 in the Session (acceptance PW-1 to PW-6, PW-8): the generic CPU and the two generic cards of the
+//! In the Session: the generic CPU and the two generic cards of the
 //! starter parts placed from the picker's command (`box.black` from the part, with the part's closure), normaliser N0
 //! giving them their PLC records, and the channel members edited through `fields.set` with the property sheet of a
 //! channel (selected through the API, `Session::property_sheet`).
@@ -396,8 +396,7 @@ fn bind_channel_takes_a_pin_of_a_black_box_card() {
         .expect("a black-box pin binds");
     assert_eq!(binding(&s, ch2), Some(ew_schema::Endpoint::Cp(function, idx)));
     assert_eq!(binding(&s, ch5), None);
-    // The displaced channel in words, no record ID; FT-952 ("N1's and N3's PLC notices drop their
-    // UUIDs and requirement IDs"): no requirement ID either.
+    // The displaced channel in words, no record ID, no requirement ID either.
     assert!(!format!("{:?}", receipt.outcome.notices).contains(&ch5.to_string()));
     let notice =
         "channel 5 of the same module was bound to this connection point and is now unbound".to_owned();

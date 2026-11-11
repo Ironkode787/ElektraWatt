@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 6 (§11): the host duties of the Macros and Libraries navigators, Save as macro… and Make variable.
+//! The host duties of the Macros and Libraries navigators, Save as macro… and Make variable.
 //!
 //! **Insert.** Enter on a macro row of the Macros navigator (or Draw ▸ Insert macro… with one under the cursor, or a
 //! drop of the row) arms the macro tool ([`crate::tools::MacroTool`]); its click asks for the host step `macro.place`,
@@ -41,7 +41,7 @@ use crate::tools::{MacroTool, PreviewState};
 /// The action of Save as macro… (its dialog dispatches it).
 const SAVE: &str = "macros.save";
 
-/// The kinds Save as macro… offers (FT-754 (b)).
+/// The kinds Save as macro… offers.
 pub(super) const MACRO_KINDS: [&str; 2] = ["window", "page"];
 
 /// A variable Make variable remembered for the next Save as macro… (doc 07 §2.7 `VarDef` with one binding).
@@ -63,7 +63,7 @@ type Thumbnail = Arc<MacroThumbnail>;
 /// The shell's macro state: the detail of the Macros navigator's cursor row, the variables of the next save.
 #[derive(Default, Debug)]
 pub(crate) struct MacroState {
-    /// The cursor row's key, its detail (`None`: no macro row) and its thumbnail (`None`: none drawn, FT-754 (a)).
+    /// The cursor row's key, its detail (`None`: no macro row) and its thumbnail (`None`: none drawn).
     detail: Option<(String, Option<Arc<MacroDetail>>, Option<Thumbnail>)>,
     /// The variables Make variable remembered.
     variables: Vec<MacroVariable>,
@@ -386,7 +386,7 @@ impl ShellModel {
         self.macros.detail.as_ref().and_then(|(_, d, _)| d.as_deref())
     }
 
-    /// The thumbnail of the macro under the Macros navigator's cursor (FT-754 (a): the macro drawn on a blank page of
+    /// The thumbnail of the macro under the Macros navigator's cursor (the macro drawn on a blank page of
     /// a throwaway copy, `Session::macro_thumbnail`); `None` when there is none, and the detail then says "No
     /// preview".
     pub fn macro_thumbnail(&self) -> Option<&MacroThumbnail> {
@@ -914,7 +914,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// The pages of a page macro (FT-754 (b)): the folios of `pages`, else the marked pages of the Pages navigator
+    /// The pages of a page macro: the folios of `pages`, else the marked pages of the Pages navigator
     /// (else its cursor's page), as page IDs in page order; generated pages refuse.
     fn macro_pages(&self, p: &Map<String, Value>) -> Result<Vec<Uuid>, Outcome> {
         let folios = super::table::list_param(p, "pages")?;
@@ -961,7 +961,7 @@ impl ShellModel {
 
     /// `macros.save {name?, key?, description?, library?, kind?, pages?, x_mm?, y_mm?, confirm?}` (Edit ▸ Save as
     /// macro…): writes the selection as a window macro, or pages as a page macro, into a writable library (by name,
-    /// key or ID; default the first writable one). `kind` is `window` or `page` (FT-754 (b)); without it a selection
+    /// key or ID; default the first writable one). `kind` is `window` or `page`; without it a selection
     /// of drawn records makes a window macro, and no selection or one of pages only (marking pages selects them) a
     /// page macro. A page macro's pages are
     /// `pages` (folios), else the marked pages (else the Pages cursor's page). A window macro's insertion point is
@@ -1256,7 +1256,7 @@ mod tests {
         assert_eq!(key_of("Schütz K1"), "schütz-k1");
         assert_eq!(key_of("  "), "");
         assert_eq!(key_of("--"), "");
-        // FIX39a (finding 8): a decomposed name (U + combining diaeresis) gives the composed name's key.
+        // A decomposed name (U + combining diaeresis) gives the composed name's key.
         assert_eq!(key_of("U\u{308}bersicht"), "übersicht");
         assert_eq!(key_of("Schu\u{308}tz K1"), key_of("Schütz K1"));
     }

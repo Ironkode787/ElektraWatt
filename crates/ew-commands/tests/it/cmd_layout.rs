@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.01 part 1 at the command layer: the `layout.*` commands of D6 (LM-2 to LM-6) and the part follow of D7 in
-//! `part.assign` (LM-7), each refusal with its text or pointer, each command one undo step.
+//! The `layout.*` commands at the command layer and the part follow in
+//! `part.assign`, each refusal with its text or pointer, each command one undo step.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -635,7 +635,7 @@ fn a_placement_never_outlives_its_device() {
     // the plate's device is unlinked from its surface; then -UC1 has no child, and its enclosure keeps it
     e.execute(&delete(DEV_PLATE)).unwrap();
     assert_eq!(get(&e, surface).unwrap().device, None, "unlinked");
-    // WP-S4.02 D7 (ruling 6): edit.delete refuses a plan that removes an enclosure's device before the model's forbid
+    // edit.delete refuses a plan that removes an enclosure's device before the model's forbid
     assert_eq!(
         reason(e.execute(&delete(DEV_UC1))),
         "-?UC1 carries an enclosure; delete the enclosure first."
@@ -711,7 +711,7 @@ fn a_part_change_follows_the_placement() {
     );
 }
 
-/// FIX40b (C40 review part 2, finding 6): `replace_all` that replaces two placed part uses of one device (-K2's TS 35
+/// `replace_all` that replaces two placed part uses of one device (-K2's TS 35
 /// MCBs, placed in the opposite order to its part uses) with one new copy moves only the placement of the first
 /// replaced part use in the device's part-use order; the other keeps its `part` (EW-LAY-003 reports it), so no two
 /// placements share a key (device, part, function). Undo restores both.

@@ -14,10 +14,10 @@
 //! A surface point `(u, v)` lands on the page at `x = datum.x + u·num/den`, `y = datum.y − v·num/den` (paper `y`
 //! points down, doc 12 §5.1), computed in i128 with one rounding to the nearest nanometre (half away from zero). A
 //! page of scale 1:n whose frame maps the page to paper at `f` (`page_to_sheet.scale_ppb / 10⁹`, 1 without a map)
-//! has `num/den = 1/(n·f)`, so that the stated scale holds on the printed sheet ([`Projection::on_sheet`]; cycle 41,
-//! review part 1, finding 5): on Golden A's frames (`f` = 0.986282578) a 750 mm edge at 1:10 is 76.043 mm on the
-//! page and 75.000 mm on paper. The datum stays in page coordinates. A page drawn not to scale draws the surface at
-//! 1:1 on the page.
+//! has `num/den = 1/(n·f)`, so that the stated scale holds on the printed sheet ([`Projection::on_sheet`]):
+//! on Golden A's frames (`f` = 0.986282578) a 750 mm edge at 1:10 is 76.043 mm on the page and 75.000 mm on
+//! paper. The datum stays in page coordinates. A page drawn not to scale draws the surface at 1:1 on the
+//! page.
 //!
 //! # Layers
 //!
@@ -39,8 +39,8 @@
 //! A label is printed in the text style [`LAYOUT_LABEL_STYLE`]
 //! (`xref.device`, 1.83 mm em printed, doc 20 §17.5), at its paper height at every scale: it is never scaled. Its ink
 //! box is the shaped text's advance along the text by the face's cap height across it, plus the descent only when the
-//! label has a descender glyph ([`has_descender`]), plus [`LABEL_PAD`] on every side (the orchestrator's ruling 5 of
-//! Ew-text's existing advance and vertical metrics, no new API). The fit test against the footprint's paper
+//! label has a descender glyph ([`has_descender`]), plus [`LABEL_PAD`] on every side (from `ew-text`'s
+//! existing advance and vertical metrics, no new API). The fit test against the footprint's paper
 //! rectangle takes the first of:
 //!
 //! 1. horizontal, centred on the footprint, when the box fits as it is;
@@ -51,7 +51,7 @@
 //!
 //! Balloons are 1.0 (doc 12 §5.2), so FR-LAY-062's last step is not built.
 //!
-//! # The knockout (window check W41a; the orchestrator's ruling 2)
+//! # The knockout
 //!
 //! Every placement label, inside its footprint or outside with a leader, clears the carriers under it: its
 //! **knockout box** is its ink box as placed ([`place_label`]: the advance along the text by the cap height across it,
@@ -187,8 +187,7 @@ pub struct PanelView {
     pub carriers: Vec<CarrierDraw>,
     /// The placements on the surface ([`Layer::Placements`](ew_dl::Layer::Placements)).
     pub placements: Vec<PlacementDraw>,
-    /// The derived end brackets on the surface's rails ([`Layer::Placements`](ew_dl::Layer::Placements), WP-S4.02
-    /// D13).
+    /// The derived end brackets on the surface's rails ([`Layer::Placements`](ew_dl::Layer::Placements)).
     pub brackets: Vec<BracketDraw>,
     /// The placements' labels ([`Layer::Labels`](ew_dl::Layer::Labels), and the knockout of
     /// [`Layer::Carriers`](ew_dl::Layer::Carriers)).
@@ -760,7 +759,7 @@ mod tests {
         assert_eq!((p.num, p.den), (1, 10), "reduced");
     }
 
-    /// Ruling 1 of cycle 41's fix round: the stated scale holds on paper.
+    /// The stated scale holds on paper.
     #[test]
     fn the_projection_divides_by_the_frames_sheet_factor() {
         const PPB: u32 = 986_282_578;

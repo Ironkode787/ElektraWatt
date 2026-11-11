@@ -13,8 +13,8 @@
 //! | the placements | `placements` | the placements on the surface's carriers and on the surface, `placement_geometry`; the end brackets of the surface's rails (`group_accessories`, `rail_occupancy` through `rail_items`) |
 //! | the labels | `labels` and `carriers` | the same placements, `layout_label`, [`ShapedText`] in the label style, the surface's usable polygon |
 //!
-//! The carriers layer reads the labels for their knockout boxes (the carriers are cut around the labels, cycle 41's
-//! window check W41a). So a `layout.move` rebuilds the `placements`, `labels` and `carriers` families of its page
+//! The carriers layer reads the labels for their knockout boxes (the carriers are cut around the labels).
+//! So a `layout.move` rebuilds the `placements`, `labels` and `carriers` families of its page
 //! only, never `surface`, `frame` or `tables` (LP-5 as built).
 
 use std::sync::Arc;

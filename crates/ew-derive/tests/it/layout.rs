@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout queries of WP-S4.01 part 2 on a small fixture: the mountable predicate case by case (D8), `unplaced`,
+//! The layout queries on a small fixture: the mountable predicate case by case, `unplaced`,
 //! `placement_geometry` on a horizontal and a vertical rail, flipped, on the surface turned 270°, unknown and on a
-//! duct (D5), `rail_occupancy` and `carrier_geometry`. Golden A's values are `ew-api`'s `tests/golden_layout.rs`.
+//! duct, `rail_occupancy` and `carrier_geometry`. Golden A's values are `ew-api`'s `tests/golden_layout.rs`.
 
 use crate::common;
 

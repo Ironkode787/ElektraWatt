@@ -36,7 +36,7 @@ use crate::tx::TxBuilder;
 ///   its right edge or a corner moves). A CP whose edge index no longer exists, or that
 ///   lay on no edge, moves to the nearest grid point on the nearest remaining edge (ties by the smaller edge index)
 ///   and leaves along that edge's outward normal, listed as a notice. On an edge that is neither horizontal nor
-///   vertical the grid point is the edge's first vertex (polygon outlines are a follow-up, WP-S2.04 §17.4 item 6),
+///   vertical the grid point is the edge's first vertex (polygon outlines are a follow-up),
 ///   also listed as a notice.
 /// - Inner graphics are kept. Routes of the connections on the page at the box's CPs follow each moved CP
 ///   (`geometry::follow_end`).

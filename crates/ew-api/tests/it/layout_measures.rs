@@ -21,7 +21,7 @@ fn golden_copy() -> (Tmp, Session) {
     (tmp, session)
 }
 
-/// WP-S2.19 RG2 on Golden A's routed folio 101 (rc.1's provisional drawing broke all three): the heater's PE wire does
+/// On Golden A's routed folio 101 (rc.1's provisional drawing broke all three): the heater's PE wire does
 /// not touch the lamp's X1, the lamp's L feed runs along none of the switch's wires, and the heater's L feed does not
 /// pass through T55; the page breaks no hard rule.
 #[test]
@@ -57,7 +57,7 @@ fn folio_101_s_pe_wire_lamp_feed_and_heater_feed_keep_clear() {
     assert_eq!(all.iter().find(|q| q.folio == "101"), Some(p));
 }
 
-/// ID-1509 (9), the window check's F4: a wire's words name each device by its tag with its prefix, also where a
+/// A wire's words name each device by its tag with its prefix, also where a
 /// frozen tag hides its sign on the page (folio 101's S51 and terminals 1X1).
 #[test]
 fn a_wire_s_words_name_each_device_with_its_tag_s_prefix() {
@@ -421,7 +421,7 @@ fn rk1_a_wire_through_a_text_fires_ew_core_070() {
     );
 }
 
-/// ID-1509 (7), C53-rt#4: a wire through an interruption point names the point in each language's words, never
+/// A wire through an interruption point names the point in each language's words, never
 /// "interruption point" in a Dutch message: EW-CORE-069 on a page, and EW-CORE-070's wording of a point's text.
 #[test]
 fn a_wire_through_an_interruption_point_names_it_in_each_language() {
@@ -521,7 +521,7 @@ fn rk1_a_four_way_junction_fires_ew_core_072() {
     );
 }
 
-/// ID-1509 (7), C53-rt#5: on a page without a frame grid EW-CORE-072 names the junction by its folio, in both
+/// On a page without a frame grid EW-CORE-072 names the junction by its folio, in both
 /// languages, with the folio as its subject.
 #[test]
 fn a_four_way_junction_off_a_frame_grid_is_named_by_its_folio() {

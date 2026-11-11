@@ -80,8 +80,7 @@ pub struct RailModel {
     pub right: Vec<RailButton>,
 }
 
-/// The left rail's entries (doc 16a §5.4, with Unplaced devices, Macros and Libraries after Report blocks, FT-486,
-/// FT-754 (g)): the word, the
+/// The left rail's entries (doc 16a §5.4, with Unplaced devices, Macros and Libraries after Report blocks): the word, the
 /// icon and the entry's pane, whose [`PaneKind::title_key`] is the entry's label ([`left_label`]). Project shows the
 /// Pages pane and, through its segmented control, the Devices navigator, so its label is its own.
 pub const LEFT: [(&str, &str, PaneKind); 13] = [
@@ -107,19 +106,19 @@ pub const LEFT: [(&str, &str, PaneKind); 13] = [
     ("ips", "ew-interruption-point", PaneKind::Navigator(NavKind::Ips)),
     ("parts", "packages", PaneKind::Navigator(NavKind::Parts)),
     ("blocks", "report", PaneKind::Navigator(NavKind::Blocks)),
-    // WP-S4.02 part 3 (doc 16 §5.2's row): the devices a layout space has not placed yet, the panel tools'
+    // The devices a layout space has not placed yet (doc 16 §5.2's row), the panel tools'
     // source, after Report blocks and without a Ctrl+<n> key.
     (
         "unplaced",
         "layout-dashboard",
         PaneKind::Navigator(NavKind::Unplaced),
     ),
-    // WP-S1.19 part 6 (FT-754 (g)): after Report blocks, without a Ctrl+<n> key (the ninth is the last).
+    // After Report blocks, without a Ctrl+<n> key (the ninth is the last).
     ("macros", "template", PaneKind::Navigator(NavKind::Macros)),
     ("libraries", "books", PaneKind::Navigator(NavKind::Libraries)),
 ];
 
-/// The right rail's palettes (doc 16a §5.6): until the palette panes are built (§7.1 of the WP-S2.17 specification),
+/// The right rail's palettes (doc 16a §5.6): until the palette panes are built,
 /// each opens its picker, the keyboard path the palettes keep.
 pub const RIGHT: [(&str, Key<'static>, &str, &str); 2] = [
     ("symbols", key!("rail-symbols"), "category", "tool.place"),

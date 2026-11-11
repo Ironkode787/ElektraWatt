@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The app menu (doc 16a §9.2; built the menu bar it replaces), drawn with egui on
-//! every operating system (native menus are FT-310): one button of the command bar opens the full tree, File, Edit,
+//! every operating system (not native menus): one button of the command bar opens the full tree, File, Edit,
 //! the six tabs' menus with their groups, Window and Help, generated from the action registry by
 //! `ew_viewmodel::actions::menu_model`. Each entry shows its accelerator, is greyed when disabled and gives its
 //! reason as the tooltip; a click is an [`Event::Action`]. Rows follow doc 16a §6.13. An enabled entry with a documentation topic ends its

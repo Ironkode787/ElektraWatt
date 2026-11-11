@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 4b in the view model: Select drags and the keyboard move of page items and structure boxes, one
+//! In the view model: Select drags and the keyboard move of page items and structure boxes, one
 //! `rep.move` for a representation, an item and a box, Delete of the three, the box's outline pick against a press
 //! inside it, the part-first arm with a part whose template needs two FnDefs, the failure that names a definition no
 //! library holds, and `page.describe`'s item and box lines. Every test works on a writable
@@ -15,7 +15,7 @@ use ew_viewmodel::ew_api::output::{PageTables, TableEnd, TableItem, TableRep, Ta
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 
-/// The fixture part `MICO 4.10 TWO` (WP-S2.04 part 4b's `ew-testkit` test writes it).
+/// The fixture part `MICO 4.10 TWO` (the `ew-testkit` test writes it).
 const TWO_FNDEF_PART: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../ew-api/tests/expected/two_fndef_part.json"

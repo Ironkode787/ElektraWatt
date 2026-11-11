@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host's duties of WP-S2.04 part 3 (§9): arming the IP tool and its keys and fields, the Wire tool's end in
+//! The tool host's duties: arming the IP tool and its keys and fields, the Wire tool's end in
 //! an interruption point (P while routing), continue and arrange, the black box tool, and the grips of a selected
 //! black box with their keyboard forms.
 //!
 //! **Reads.** The IP symbol and the external arrow are rows of the place catalogue (fetched once per (session,
 //! revision, folio)) and their shapes come through the per-revision shape cache (§6.2); a starter symbol the project
-//! lacks travels in the command's `copies`, as the picker's placements do (FT-656, FT-673: one undo step). The external
+//! lacks travels in the command's `copies`, as the picker's placements do (FT-656: one undo step). The external
 //! references are read from the session's query when the IP tool's
 //! field is set. Pointer and cursor moves of the IP and black box tools read nothing (§12 item 4).
 //!
@@ -405,9 +405,9 @@ impl ShellModel {
 
     /// Resolves an external reference by its ID (or alias, `id:<uuid>`), its label (`JE-N1000-03:L`, the device and
     /// the connection) or its label after the location the page prints (`+J-E-206 / JE-N1000-03:L`, the cross-reference
-    /// text of the external point followed by the connection; FT-485 item 8): by ID first; by label only when exactly
-    /// one reference (at that location, when one is named) has it (fix round, item 7). `Err` carries the outcome: a
-    /// text no reference has fails with a message that lists the labels the project has (item 8); a label two
+    /// text of the external point followed by the connection): by ID first; by label only when exactly
+    /// one reference (at that location, when one is named) has it. `Err` carries the outcome: a
+    /// text no reference has fails with a message that lists the labels the project has; a label two
     /// references share is refused with `reason-external-ambiguous`.
     pub(super) fn resolve_external(&self, s: &str) -> Result<IpExternal, Outcome> {
         let s = s.strip_prefix("id:").unwrap_or(s).trim();
@@ -447,7 +447,7 @@ impl ShellModel {
                 let mut labels: Vec<&str> = choices.iter().map(|(_, l)| l.as_str()).collect();
                 labels.dedup();
                 let known = if labels.is_empty() {
-                    // FT-1131 (item 7): the command by its menu path, and its key only when one is bound.
+                    // The command by its menu path, and its key only when one is bound.
                     let key = crate::command_bar::key_of(self, "external_ref.new");
                     if key.is_empty() {
                         strings::text(key!("external-none")).to_owned()
@@ -538,7 +538,7 @@ impl ShellModel {
     }
 
     /// The IP tool's click (a primary press or Enter) whose point's CP would lie on another interruption
-    /// point, or an external connection point's on a pin, is refused as FT-822's refused point is: nothing is
+    /// point, or an external connection point's on a pin, is refused: nothing is
     /// committed, the ghost stays where the click put it, the words stand in the HUD until the next canvas input and
     /// in a warning toast. `None` for every other event, tool or drop.
     pub(super) fn ip_drop_refused(&mut self, ev: &CanvasEvent) -> Option<Outcome> {

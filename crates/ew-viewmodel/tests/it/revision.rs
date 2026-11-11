@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.18 part 5 (RU-3): the revision dialogs of Check ▸ Revision on copies of `golden/fixtures/release-min` (one open
+//! RU-3: the revision dialogs of Check ▸ Revision on copies of `golden/fixtures/release-min` (one open
 //! revision V1.0 with its author; no finding but EW-REL-001 before the sign-off). The dialogs open, fill, validate and
 //! cancel in the headless shell through their own actions; a scripted confirm is refused with its whole text; a
 //! person at the window approves, releases and withdraws. The release's housekeeping warnings in Messages.
-//! Cycle 41, ruling 4: a scripted purge is refused. The fix round FIX41b: every refusal in words (ruling 1), the
-//! incomplete release's confirmations with the git consent (ruling 2), counts in their noun's number (ruling 4), the
-//! check messages without a command (ruling 5), the release's warnings with their cause in words (ruling 6).
+//! A scripted purge is refused. Every refusal in words, the
+//! incomplete release's confirmations with the git consent, counts in their noun's number, the
+//! check messages without a command, the release's warnings with their cause in words.
 
 use crate::common;
 
@@ -126,8 +126,8 @@ fn the_revision_dialogs_open_fill_validate_and_cancel_headless() {
     done(&mut s, "revision.approve", json!({ "cancel": true }));
     assert!(s.dialog().is_none(), "cancel closes the dialog");
 
-    // Release: refused by the gate's EW-REL-001 before the sign-off, so it shows the blocker and Close only. FIX41b
-    // ruling 4 ("counts take their noun's number": one finding) and ruling 5 ("the check messages name no command").
+    // Release: refused by the gate's EW-REL-001 before the sign-off, so it shows the blocker and Close only. Counts take their noun's number (one finding)
+    // and the check messages name no command.
     done(&mut s, "revision.release", json!({}));
     assert_eq!(
         dialog_text(&mut s),
@@ -369,7 +369,7 @@ fn incomplete_beside(tmp: &Tmp, dir: &Path, other: &Path) {
 /// that stopped before its stamp, here the archive of a released copy) is offered when the project opens: Not now (the
 /// Primary) and Complete release; no Discard archive, since no run record of this folder proves it its own.
 ///
-/// Cycle 41, FIX41b ruling 2 ("completing an incomplete release asks, like a release"): Complete release opens its
+/// Completing an incomplete release asks, like a release: Complete release opens its
 /// confirmation, Cancel the Primary and Complete release the danger button; outside a git repository it shows no
 /// consent toggle. A scripted shell's confirm is refused with the person text; the window's
 /// completes the release.
@@ -469,7 +469,7 @@ fn git_in(dir: &Path, args: &[&str]) -> Option<String> {
         .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
 }
 
-/// Cycle 41, FIX41b ruling 2 ("the consent passed is the toggle's value, never a constant `true`"): in a git repository
+/// The consent passed is the toggle's value, never a constant `true`: in a git repository
 /// the confirmation of Complete release shows the consent toggle, off; confirming with it off is refused with the
 /// whole text (the release would commit and tag), and nothing is committed or tagged; with it on the release completes
 /// and the tag is created. Skipped without a git executable on the path.
@@ -588,7 +588,7 @@ fn write_own_record(dir: &Path, state: &Path) {
     archive::write_run_record(vfs, state, &record).expect("the record");
     drop(session);
 }
-/// Cycle 41, FIX41b ruling 2 ("Discard archive also gets a danger confirmation with Cancel as the primary button"): a
+/// Discard archive also gets a danger confirmation with Cancel as the primary button: a
 /// provably own incomplete release offers Discard archive (the danger button of the offer), which opens its
 /// confirmation; cancelled there, the archive stays and the release is still incomplete.
 #[test]
@@ -654,9 +654,9 @@ fn ruling2_a_discard_cancelled_at_its_confirmation_keeps_the_archive() {
     s.shutdown();
 }
 
-/// FT-842 (ruling 2: "After a release, the window drains them and shows each once as a Messages entry in
+/// After a release, the window drains them and shows each once as a Messages entry in
 /// words, with the file name only. The entry has severity Warning, and its rule column names the source in a word
-/// ("Release"), not an ID. One toast points to Messages in its text"): a state directory whose release records
+/// ("Release"), not an ID. One toast points to Messages in its text: a state directory whose release records
 /// cannot be read gives one warning under Warnings ▸ Release and one toast; an open without trouble shows none.
 #[test]
 fn the_release_warnings_show_once_in_messages() {
@@ -739,9 +739,9 @@ fn the_release_warnings_show_once_in_messages() {
     s.shutdown();
 }
 
-/// Cycle 41, FIX41b ruling 1 ("words, not IDs, in every revision refusal"): the gate that cannot run on unsaved
+/// Words, not IDs, in every revision refusal: the gate that cannot run on unsaved
 /// changes, the checker of the author's party and a refused author each read as a whole text in words; the refused
-/// author goes through `command_failed` (ID-939's rule: the command by its title, the parameter by its field's words)
+/// author goes through `command_failed` (the command by its title, the parameter by its field's words)
 /// and stays in the dialog.
 #[test]
 fn ruling1_the_revision_refusals_read_in_words() {
@@ -787,7 +787,7 @@ fn ruling1_the_revision_refusals_read_in_words() {
     );
     assert_eq!(
         refusal,
-        // FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+        // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres
         "Set revision author: Role: the author is the checker's party; four eyes need another party: choose another \
          author"
     );
@@ -812,7 +812,7 @@ fn listed_count(list: &[String]) -> usize {
     }
 }
 
-/// Cycle 41, FIX41b rulings 1 and 4: on a copy of Golden A (V2.0 open, its author set, many errors) the blocked Approve
+/// On a copy of Golden A (V2.0 open, its author set, many errors) the blocked Approve
 /// names the four-eyes rule by its title and the count in the plural, and the blocked Release counts its findings in
 /// the plural (the approval's errors and the four-eyes finding). Golden A's totals are not pinned: the count is the
 /// dialog's own list.
@@ -855,7 +855,7 @@ fn ruling1_ruling4_golden_a_counts_its_blockers_in_words() {
     s.shutdown();
 }
 
-/// ID-1389 (W51 finding F): in nl-NL the Approve and Release dialogs list the gate's findings in Dutch, as Messages
+/// In nl-NL the Approve and Release dialogs list the gate's findings in Dutch, as Messages
 /// renders them, never the English message.
 #[test]
 fn the_revision_dialogs_list_the_findings_in_dutch() {
@@ -879,7 +879,7 @@ fn the_revision_dialogs_list_the_findings_in_dutch() {
     s.shutdown();
 }
 
-/// Cycle 41, ruling 4 ("the purge's origin": a scripted purge is refused): the scripted window opens the purge
+/// A scripted purge is refused: the scripted window opens the purge
 /// confirmation but its confirm is refused and deletes nothing; the headless shell refuses the action.
 #[test]
 fn ruling4_a_scripted_purge_is_refused() {

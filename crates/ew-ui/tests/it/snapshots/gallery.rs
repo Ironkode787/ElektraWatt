@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The component gallery of WP-S2.17 §5 item 7: the parts the tokens style, in their states, on one surface per theme
+//! The component gallery: the parts the tokens style, in their states, on one surface per theme
 //! (buttons rest, hovered-like selected, disabled and primary; a field; navigator-like rows with the cursor and a
 //! marked row; chips; a menu-like list; a dialog card with its elevation; a toast; the severity words). Everything is
 //! drawn from the tokens of the theme on show; nothing here is a design decision of its own.

@@ -60,8 +60,8 @@ fn import_error(e: &TableImportError) -> String {
 }
 
 impl ShellModel {
-    /// The navigator Export table… and Import table… read, for their predicate and their actions alike (ID-1224 ruling
-    /// 2): the focused one when it is in table mode (the Messages pane, focused, too: its action refuses as
+    /// The navigator Export table… and Import table… read, for their predicate and their actions alike:
+    /// the focused one when it is in table mode (the Messages pane, focused, too: its action refuses as
     /// `navigator.table` does), else the one navigator shown in table mode (in front in its pane, not behind another
     /// tab); with several shown and none of them focused, the reason says to click one. A table without a file form is
     /// refused.

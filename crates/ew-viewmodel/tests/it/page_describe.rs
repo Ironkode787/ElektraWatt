@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S6.13 part 1, acceptance check BD4: `page.describe` on a temporary copy of Golden A. The header counts of folios
+//! `page.describe` on a temporary copy of Golden A. The header counts of folios
 //! 101 to 103, the expected texts (`tests/expected/page_describe_10{1,2,3}.txt`, rewritten by `EW_BLESS=1`), no
 //! record ID anywhere in the text, and the refusals.
 //! Every test works on a read-only temporary copy of Golden A.

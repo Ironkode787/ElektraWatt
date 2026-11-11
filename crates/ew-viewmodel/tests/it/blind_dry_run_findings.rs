@@ -322,7 +322,7 @@ fn ip_external_takes_the_printed_location_and_lists_the_labels_when_nothing_matc
     );
 }
 
-/// FT-1131 (item 7): with no external reference the message names the command by its menu path, never its
+/// With no external reference the message names the command by its menu path, never its
 /// action ID, and its key only once the user binds one.
 #[test]
 fn no_external_reference_names_the_menu_path_and_a_bound_key() {

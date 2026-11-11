@@ -132,7 +132,7 @@ proptest! {
     }
 }
 
-/// WP-S3.09 IC-8: a lineage and its import run are written to `project.jsonl` and `imports/<run>.jsonl`, and read back
+/// A lineage and its import run are written to `project.jsonl` and `imports/<run>.jsonl`, and read back
 /// unchanged; a second write gives the same bytes.
 #[test]
 fn an_import_run_is_written_to_its_file_and_read_back() {

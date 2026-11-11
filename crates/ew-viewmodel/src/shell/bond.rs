@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Draw ▸ Bond (`bond.draw`, FT row 7 of the G-PP triage): the host action that declares a bond with `bond.create`
-//! (FT-164's command; doc 03 §9.6, doc 08 §3.7) on the page shown, previewed on a card and committed by Apply in one
+//! Draw ▸ Bond (`bond.draw`): the host action that declares a bond with `bond.create`
+//! (doc 03 §9.6, doc 08 §3.7) on the page shown, previewed on a card and committed by Apply in one
 //! undo step.
 //!
 //! **What it bonds.** Either the one selected connection, whose two ends become the bond's ends and which becomes
@@ -17,7 +17,7 @@
 //! commits the kept preview (`ShellModel::commit_kept`; headless one command-log line).
 //!
 //! Beside it, Draw ▸ Define potential… (`potential.draw`): `potential.define` at the selection's
-//! one point, with the name, type and voltage of its parameter form (WP-S2.08 D5 (a)).
+//! one point, with the name, type and voltage of its parameter form.
 
 use ew_api::AnyCommand;
 use ew_api::output::table_edit::potential_input;
@@ -254,7 +254,7 @@ impl ShellModel {
         self.commit_from_host(&cmd)
     }
 
-    /// The parameter form of `potential.draw` in the palette (WP-S2.08 D5 (a)), its name required.
+    /// The parameter form of `potential.draw` in the palette, its name required.
     fn open_potential_form(&mut self) -> Outcome {
         self.potential_at = None;
         let Some(meta) = crate::actions::find("potential.draw") else {

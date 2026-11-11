@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 5 in the view model (acceptance check IM2): the Image tool places an asset the project holds by two
+//! In the view model: the Image tool places an asset the project holds by two
 //! fine-snapped corners keeping the asset's aspect ratio; `image.pick`'s refusals and failures; Back and Escape;
 //! the ghost's transcript member and describe line; `page.describe`'s `image` item line; one
 //! undo step; and no `Session` read on pointer moves. Every test works on a writable temporary copy of Golden A (the
@@ -418,7 +418,7 @@ fn the_pixel_refusal_reads_in_a_dutch_window() {
     );
 }
 
-/// Cycle-29 review 6: a character device is no file to read: `metadata().len()` is 0 for `/dev/zero`, and reading it to
+/// A character device is no file to read: `metadata().len()` is 0 for `/dev/zero`, and reading it to
 /// the end would never finish. It is refused without being read, with `error-image-file`; nothing is armed and the model
 /// is untouched.
 #[cfg(unix)]
@@ -428,7 +428,7 @@ fn a_device_is_refused_without_being_read() {
     let mut s = actual_size(&tmp, "101");
     done(&mut s, "tool.image", json!({}));
     let revision = s.revision();
-    // No timer (FT-317 disallows `Instant::now`, tests included): a read that never ends is caught by nextest's timeout.
+    // No timer (`Instant::now` is disallowed, tests included): a read that never ends is caught by nextest's timeout.
     let message = failed_message(&mut s, "image.file", json!({ "path": "/dev/zero" }));
     assert_eq!(
         message,

@@ -14,7 +14,7 @@
 //!
 //! The Schematic workspace is the left column (the navigator group over the property grid) and
 //! the page view; the other navigators join the navigator group from the left rail, the bottom panes open below the
-//! page view. A workspace file written before WP-S2.17 loads as saved, its panes in their places; View ▸ Properties
+//! page view. A workspace file written before the properties grid loads as saved, its panes in their places; View ▸ Properties
 //! adds the grid under the Pages pane's column.
 
 use serde_json::{Map, Value, json};
@@ -85,7 +85,7 @@ impl PaneKind {
     ];
 
     /// The panes of the bottom dock (D14): they share one tab group below the page view (the
-    /// Messages navigator is one of them; part 3: the Preview tab and the history panel; WP-S2.08 part 6: the
+    /// Messages navigator is one of them, the Preview tab, the history panel and the
     /// glossary pane).
     pub const BOTTOM: [PaneKind; 6] = [
         PaneKind::Find,
@@ -873,7 +873,6 @@ mod tests {
                 r#"{"tabs":[{"pane":"page-view"},{"pane":"page-view"}]}"#,
                 "appears twice",
             ),
-            // `find` is a pane since WP-S2.05 part 2, `messages` since WP-S2.09 part 2.
             (r#"{"pane":"no-such-pane"}"#, "unknown pane"),
             (r#"{"pane":"pages","extra":1}"#, "unknown member"),
             (r#"{"tabs":[]}"#, "empty"),

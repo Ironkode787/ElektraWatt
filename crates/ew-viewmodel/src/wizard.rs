@@ -7,8 +7,7 @@
 //!
 //! **What is written.** The wizard builds a basic project (`Project.kind = Basic`) from the built-in one, and only
 //! through model commands (`Session::run_script`): the shipped frame and title-block forms (`library.embed`), the
-//! company (`project.company.set`: the panel-builder party, the title-block notice and the logo as a project asset,
-//! FT-337), the frame defaults (`project.frames.set`), the colour profile (the sample's convention or one of the
+//! company (`project.company.set`: the panel-builder party, the title-block notice and the logo as a project asset), the frame defaults (`project.frames.set`), the colour profile (the sample's convention or one of the
 //! shipped EN 60204-1 and IEC 60445 profiles), the size profile, the numbering schemes and the
 //! cross-reference format (`project.settings.set`), the languages and printed formats (`project.languages.set`),
 //! the structure nodes, the sections, the report blocks of the golden layout (`report_block.create`, each
@@ -1388,7 +1387,7 @@ mod tests {
         assert_eq!(*size, shipped);
     }
 
-    /// WP-S7.03 SC-4: the two company profile files are, byte for byte, the values of the sample project's
+    /// The two company profile files are, byte for byte, the values of the sample project's
     /// `project.jsonl` (compact, sorted keys), and the wizard's `sample` choices write them unchanged.
     #[test]
     fn the_company_profile_files_are_the_sample_projects_values() {

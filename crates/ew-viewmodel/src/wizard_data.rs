@@ -8,8 +8,7 @@
 //! `content/profiles/size/company.0.75-1.5.json`. The company-standard wizard starts from them (doc 16 section 9.2, steps 3 and 4), and with its
 //! defaults reproduces the sample project's settings, which a test checks against the sample project itself.
 //!
-//! Beside them, the content the wizard ships, compiled in from `content/`: the frame and title-block forms (step 2,
-//! FT-336), the colour profiles "EN 60204-1 machine" and "IEC 60445 installation" (step 3) and the golden
+//! Beside them, the content the wizard ships, compiled in from `content/`: the frame and title-block forms (step 2), the colour profiles "EN 60204-1 machine" and "IEC 60445 installation" (step 3) and the golden
 //! layout of the report blocks (step 9).
 
 /// The colour profile "DBU/WH 24 V" (IEC 60757 codes with the company code DBU; basis: company convention).

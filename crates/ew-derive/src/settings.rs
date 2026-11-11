@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Project settings members as queries: `settings_member(name)` (ARCH §6.4, ADR-0002 amendment 4, decision log
-//! ID-221 and ID-226).
+//! Project settings members as queries: `settings_member(name)` (ARCH §6.4, ADR-0002 amendment 4).
 //!
 //! The project row carries one revision stamp. A query that read it directly would be invalidated by every
 //! edit of the row, a colour-profile edit included. `settings_member(m)` is one projection memo per member
@@ -86,7 +85,7 @@ impl Member {
 /// - `numbering` ([`crate::NumberingSettings`]): `default` must name one of `schemes` (otherwise the
 ///   profile's scheme applies silently); every format must use only the known tokens
 ///   (an unknown one prints into tags); every scheme must be one that `device_tag` applies (the
-///   `SchemeNotApplied` rule of decision log ID-99: counter scope `"page"` and formats with `{page}`,
+///   `SchemeNotApplied` rule: counter scope `"page"` and formats with `{page}`,
 ///   `{letter}` and `{counter}`);
 /// - `xref_format`: the `XrefFormat` shape, its `structure` and `same_page` values, and only known tokens in
 ///   `ip`, `aux_to_main` and `main_to_aux`;

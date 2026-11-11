@@ -1,12 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 1, acceptance L1-3 through the store (ADR-0011 amendment 4, decision log ID-334: typing a
-//! member is additive within format 0.1). A build before part 1 kept a part copy's `mech` and `alternatives`
-//! in the part's `extra`, wrote them after the typed members in byte-wise order and took the copy hash over
-//! that text. This build opens such a project for editing with the members typed, reports the copy as not
-//! canonical (info) and its stored hash by EW-CORE-014, and its next save rewrites the copy canonically; the
-//! stored hash stays (accepted within 0.1), so EW-CORE-014 is all the reopened project reports.
+//! The typed part members through the store (ADR-0011 amendment 4: typing a
+//! member is additive within format 0.1). A build before the members were typed kept a part copy's `mech` and
+//! `alternatives` in the part's `extra`, wrote them after the typed members in byte-wise order and took the
+//! copy hash over that text. This build opens such a project for editing with the members typed, reports the
+//! copy as not canonical (info) and its stored hash by EW-CORE-014, and its next save rewrites the copy
+//! canonically; the stored hash stays (accepted within 0.1), so EW-CORE-014 is all the reopened project
+//! reports.
 
 // The writer's tests read the model untracked, ADR-0001 amendment 2.
 #![allow(clippy::disallowed_methods)]

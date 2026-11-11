@@ -38,7 +38,7 @@ pub struct FnCompat {
     pub contact_kind: ContactKind,
     /// `(library, item)` of the function's FnDef: a part whose function template declares
     /// that FnDef, at any version, ranks before the other compatible parts and reports [`PartHit::same_fndef`]; `None`
-    /// keeps WP-S1.19 D6's order and meaning unchanged.
+    /// keeps the order and meaning unchanged.
     pub fndef: Option<(Uuid, Uuid)>,
 }
 
@@ -250,7 +250,7 @@ mod tests {
         )
     }
 
-    /// IX-7 and the ruling on the quantum: two hits whose bm25 differ only below 10⁻⁶ order by the natural part
+    /// The quantum: two hits whose bm25 differ only below 10⁻⁶ order by the natural part
     /// number, not by the float.
     #[test]
     fn scores_that_differ_below_the_quantum_order_by_natural_part_number() {

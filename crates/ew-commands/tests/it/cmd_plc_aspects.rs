@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 1 in the engine: normaliser N0 (`plc_aspects`, D2 to D4) and the channel members through
-//! `fields.set` (D6). The window path with the starter parts (PW-1 to PW-6) is `ew-api`'s `plc_window.rs`.
+//! The PLC aspects in the engine: normaliser N0 (`plc_aspects`) and the channel members through
+//! `fields.set`. The window path with the starter parts is `ew-api`'s `plc_window.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 

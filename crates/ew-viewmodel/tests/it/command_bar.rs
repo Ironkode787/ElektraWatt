@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command surface's model. CB1 (the registry's placements and the app menu), CB6 (the describe
-//! lines, deterministic), CB8 (the Mirror split) and the HUD's prompts (CB5's model side,
-//! FT-521).
+//! The command surface's model: the registry's placements and the app menu, the describe
+//! lines (deterministic), the Mirror split and the HUD's prompts.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -25,7 +24,7 @@ use serde_json::json;
 const KEY_ONLY: &[&str] = &[
     "canvas.activate",
     "tool.back",
-    // WP-S2.07 part 1 (§6.9): the strip editor's row actions, reached through its row menu and keys.
+    // The strip editor's row actions, reached through its row menu and keys.
     "strip.insert",
     "strip.delete_rows",
     "strip.move",
@@ -170,7 +169,7 @@ fn the_registry_places_every_command_once_and_the_app_menu_holds_every_action_on
     s.shutdown();
 }
 
-/// W42b (doc 16a P7, one name per thing): the Wire tool is "Wire" on its button, in its tooltip ("Wire (W)", the
+/// One name per thing (doc 16a P7): the Wire tool is "Wire" on its button, in its tooltip ("Wire (W)", the
 /// registry label, which the menus and the palette carry too, and the key from the keymap).
 #[test]
 fn w42b_the_wire_tool_is_called_wire_on_its_button_and_in_its_tooltip() {
@@ -314,7 +313,7 @@ fn page_new_shows_the_new_page_with_nothing_selected() {
 /// A page chosen in the page list selects its page record, which draws nothing on the canvas: the
 /// canvas's HUD and status bar do not count it ("1 selected · Del deletes") and Edit ▸ Delete is not offered for it,
 /// while the selection itself stays (the page list's Delete deletes the page). A device drawn on the page is counted
-/// as before, also when it is selected by its tag (C53-fx#1: Delete deletes its representations on the page).
+/// as before, also when it is selected by its tag (Delete deletes its representations on the page).
 #[test]
 fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
     use ew_viewmodel::navigator::RowKind;
@@ -342,7 +341,7 @@ fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
         Err(key!("reason-nothing-selected")),
         "Delete is not offered for the page record"
     );
-    // C53-fx#1: a device selected by its tag and drawn on the page counts, as Delete takes it.
+    // A device selected by its tag and drawn on the page counts, as Delete takes it.
     done(&mut s, "select.set", json!({"refs": ["tag:-101F1"]}));
     assert_eq!(s.canvas_selected(), 1);
     assert_eq!((delete.enabled)(&s), Ok(()));
@@ -361,9 +360,9 @@ fn a_page_chosen_in_the_page_list_is_not_counted_on_the_canvas() {
     s.shutdown();
 }
 
-/// CB5's model side and FT-521: with Select and one selected object the prompt is "1 selected · Del deletes · R
+/// With Select and one selected object the prompt is "1 selected · Del deletes · R
 /// rotates"; with the pointer over a pick stack of n objects it is "n objects overlap here · click again to select the
-/// next" (FT-894's words).
+/// next".
 #[test]
 fn the_hud_prompts_the_selection_and_the_pick_stack() {
     let tmp = Tmp::new("cb5");

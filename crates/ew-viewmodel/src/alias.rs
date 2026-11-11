@@ -8,8 +8,8 @@
 //!
 //! **Printing.** Every hyphenated UUID the shell writes into a transcript line (`state`, `buffer`, `error`, `message`)
 //! or into the describe text is printed as its alias, minted or stable alike ([`alias_text`]). The table is numbered
-//! in the order of first appearance in that output, so one script on equal inputs prints the same aliases (ID-474's
-//! byte equality). It belongs to the shell model, lives for one session — in the headless mode the whole script run,
+//! in the order of first appearance in that output, so one script on equal inputs prints the same aliases (byte
+//! equality). It belongs to the shell model, lives for one session — in the headless mode the whole script run,
 //! across any project it opens or creates, so an earlier `@n` never names another record — and is stored nowhere.
 //! The model, the window's widgets and the `--record` log keep real UUIDs.
 //!

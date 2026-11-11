@@ -986,7 +986,7 @@ impl Session {
         let sha256 = Sha256(written.sha256);
         let run_record = written.run_record.clone();
         if let Some(e) = &written.record_trouble {
-            // FIX40b (finding 2): the archive is kept; only the discard evidence after a crash is lost.
+            // The archive is kept; only the discard evidence after a crash is lost.
             self.release_troubles.borrow_mut().push(ReleaseTrouble {
                 what: TroubleKind::RecordNotUpdated,
                 path: written.path.clone(),
@@ -1658,8 +1658,8 @@ impl Session {
 
     /// The git worktree and the tag that completing the incomplete release of `label` would commit and tag in, as
     /// [`Session::complete_release_as`] judges them; `None` outside a git worktree. The window asks for the person's
-    /// consent with it before it completes (FIX41b ruling 2: "completing an incomplete release asks, like a
-    /// release").
+    /// consent with it before it completes (completing an incomplete release asks, like a
+    /// release).
     ///
     /// # Errors
     ///
@@ -1793,7 +1793,7 @@ impl Session {
 mod tests {
     use super::*;
 
-    /// FIX39a (finding 6): every pack a gate can evaluate (the pack of every registered rule) has an ID and a version
+    /// Every pack a gate can evaluate (the pack of every registered rule) has an ID and a version
     /// that parse as an `Ident`, so [`Session::release_record`]'s `parse().ok()` never drops a pack from the record
     /// (and the approval's `ident()` never refuses one).
     #[test]

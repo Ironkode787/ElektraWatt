@@ -255,8 +255,8 @@ pub fn run_ending(
     }
     script_ended();
     // An export started with `wait: false` and never waited for ends here as if `jobs.wait` had followed: its file is
-    // written and its end recorded before the checks below, so two runs of the script give the same file (review
-    // finding 3 of cycle 30; `shutdown` would cancel it at a point that depends on timing).
+    // written and its end recorded before the checks below, so two runs of the script give the same file (`shutdown` would
+    // cancel it at a point that depends on timing).
     // An end of such a job that failed, was cancelled or panicked, and that no step waited for, is reported
     // like a failed step: its notification text on stderr and exit code 1.
     let unseen = shell.wait_jobs();

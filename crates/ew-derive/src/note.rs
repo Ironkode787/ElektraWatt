@@ -17,9 +17,8 @@
 //! re-notes. A memoised family keeps its notes with its value as a [`NoteSet`]: the notes its execution pushed
 //! itself, and **by reference** the note sets of the memoised values it read. A read of a memoised value adds
 //! one reference to the reader's notes, never a copy, so a per-key reader of a global value does not hold
-//! copies of the global value's notes and a memo hit costs one reference whatever the number of notes (review
-//! cycle 9, finding 3). The flattened set is the same as if every note had been copied: same order, no
-//! duplicates.
+//! copies of the global value's notes and a memo hit costs one reference whatever the number of notes. The
+//! flattened set is the same as if every note had been copied: same order, no duplicates.
 
 use std::collections::BTreeSet;
 use std::fmt;
@@ -76,7 +75,7 @@ pub enum DeriveNote {
         used: String,
     },
     /// A numbering scheme was not applied; the pinned profile's default scheme formats the tag instead
-    /// (until the numbering engine of WP-S1.11 numbers every scheme).
+    /// (until every scheme is numbered).
     SchemeNotApplied {
         /// The scheme key.
         scheme: String,
@@ -143,8 +142,8 @@ pub enum DeriveNote {
         /// What happened and which fallback applied, in English.
         detail: String,
     },
-    /// A wire marker lists a connection that does not exist or is not drawn on the marker's page (a file of a build
-    /// before WP-S2.04 part 4a, which kept page items verbatim): a load finding, not a refusal (ADR-0009 amendment
+    /// A wire marker lists a connection that does not exist or is not drawn on the marker's page (a file of
+    /// an older build, which kept page items verbatim): a load finding, not a refusal (ADR-0009 amendment
     /// 8). The derivation and the drawing ignore the entry; the next edit of the marker may write a clean list.
     StaleMarkerEntry {
         /// The marker (page item) ID.

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The play-test polish of cycle 45 in the view model: FT-1023 (a renamed interruption point says so) and
-//! FT-1032 (a stale refusal leaves the canvas hint). FT-1028's test is `h40.rs`'s.
+//! The play-test polish in the view model: a renamed interruption point says so, and
+//! a stale refusal leaves the canvas hint.
 
 use crate::common;
 
@@ -154,7 +154,7 @@ fn undo_and_redo_clear_the_refusal() {
     assert_eq!(s.tool_notice(), None, "redo");
 }
 
-/// ID-1139 (W45.2 F3): the IP tool armed with no pointer over the canvas leads its HUD with its proposed name, never
+/// The IP tool armed with no pointer over the canvas leads its HUD with its proposed name, never
 /// with an empty part (" · source: …").
 #[test]
 fn the_armed_ip_tools_hud_leads_with_its_name() {

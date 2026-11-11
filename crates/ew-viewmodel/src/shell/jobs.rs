@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell's part of WP-S2.09 part 1: the PDF export as a job (§6.3) with its entries and actions (§6.4), the
+//! The shell's part of the jobs and notifications: the PDF export as a job (§6.3) with its entries and actions (§6.4), the
 //! notifications and their log (§6.5), and the recovery dialog's answers (§6.6).
 //!
 //! **Threads.** The `Session` never leaves this thread: `file.export_pdf` takes `Session::export_job` (a snapshot) and
@@ -94,8 +94,7 @@ pub(crate) fn file_url_of(path: &Path) -> String {
 }
 
 /// The export target made absolute when the job starts (against the working directory), so the entry's path and
-/// Open PDF's `file://` URL name the written file even when a script passed a relative path (review finding 6 of
-/// cycle 30). A path `std::path::absolute` cannot handle (an empty one) stays as it is.
+/// Open PDF's `file://` URL name the written file even when a script passed a relative path. A path `std::path::absolute` cannot handle (an empty one) stays as it is.
 pub(super) fn absolute_target(path: PathBuf) -> PathBuf {
     std::path::absolute(&path).unwrap_or(path)
 }
@@ -209,7 +208,7 @@ impl ShellModel {
     // -----------------------------------------------------------------------------------------------------------
     // Notifications (§6.5)
 
-    /// Shows `text` as a toast of `key` and logs it (FT-485's toasts map to key `edit`); `undo` offers Undo of the step
+    /// Shows `text` as a toast of `key` and logs it (the toasts of edits map to key `edit`); `undo` offers Undo of the step
     /// just committed, valid while it is the next undo step.
     pub(super) fn notify_with(&mut self, text: String, key: &'static str, undo: bool) {
         let action = if undo {
@@ -497,8 +496,7 @@ impl ShellModel {
                 let now = current
                     .filter(|(epoch, rev)| *epoch == entry.epoch && *rev != entry.rev)
                     .map(|(_, rev)| rev);
-                // FT-485 item 11: the file's name (never its folder), the page count and the size. P-2 (play-test
-                // rv-vis-5): a file this session's log already names as exported says "again", so a second export
+                // The file's name (never its folder), the page count and the size. A file this session's log already names as exported says "again", so a second export
                 // visibly changes the toast it replaces.
                 let again = self.notes.entries().any(|n| {
                     n.key == "export"
@@ -820,7 +818,7 @@ impl ShellModel {
 mod tests {
     use super::*;
 
-    /// Review finding 6 of cycle 30: a relative target is made absolute when the job starts, so its `file://` URL is
+    /// A relative target is made absolute when the job starts, so its `file://` URL is
     /// the working directory's file, never `file:///out.pdf`.
     #[test]
     fn a_relative_target_gets_the_url_of_the_absolute_file() {

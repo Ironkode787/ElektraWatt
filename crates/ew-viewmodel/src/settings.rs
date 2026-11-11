@@ -6,12 +6,12 @@
 //! `version = 1`, `recent_projects` (at most [`MAX_RECENT`], most recent first, no duplicates), `ui_scale` (one
 //! of [`UI_SCALES`]) and, since part 2, the first-run answers and quick switches: `first_run_done`, `language`,
 //! `keymap`, `theme`, `density`, `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
-//! project `basic_project` (FR-PRJ-009), the active workspace `workspace` (FR-UI-002) and, since WP-S2.02 part 2,
-//! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer) and, since cycle 37, the
-//! author name `author_name` of the Waive prompt (written only once set) and, since WP-S2.07 part 4a (D18), the
+//! project `basic_project` (FR-PRJ-009), the active workspace `workspace` (FR-UI-002) and
+//! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer) and the
+//! author name `author_name` of the Waive prompt (written only once set) and the
 //! part dialog's `[parts] favourites` (sorted) and `recent` (most recent first, at most [`MAX_RECENT_PARTS`]), each a
-//! list of `<library ID>/<item ID>` texts, written only once set, and, since WP-S2.08 part 5 (D14), the minimum text size
-//! `min_font_pt` and `reduce_motion`, each written only once set, and, since part 6 (D17), the tips' switch `tips`
+//! list of `<library ID>/<item ID>` texts, written only once set, and the minimum text size
+//! `min_font_pt` and `reduce_motion`, each written only once set, and the tips' switch `tips`
 //! (written only when off) and `tips_seen` (the tips shown once, written only once one was). Unknown keys are kept
 //! and written back; a `toml::Table` holds them sorted, so the file is deterministic. An unreadable file yields
 //! the defaults and is copied to `settings.toml.bad-<n>`.
@@ -62,8 +62,7 @@ pub const DENSITIES: [&str; 2] = ["comfortable", "compact"];
 /// What the user comes from (first-run step 2, doc 16 section 9.1); the empty text is "not answered".
 pub const ORIGINS: [&str; 4] = ["eplan", "qet", "kicad", "other"];
 
-/// The values of `canvas_backend`: the switch rule decides (`auto`, the default), or always the CPU canvas (`cpu`;
-/// WP-S2.02 §7.2 row 2).
+/// The values of `canvas_backend`: the switch rule decides (`auto`, the default), or always the CPU canvas (`cpu`).
 pub const CANVAS_BACKENDS: [&str; 2] = ["auto", "cpu"];
 
 /// The name of the built-in workspace (doc 16 section 2.6) and the default of `workspace`.
@@ -408,8 +407,8 @@ impl Settings {
         Some(settings)
     }
 
-    /// The company library directories of the settings key `libraries.company` (`[libraries] company = [...]`,
-    /// WP-S1.19 D4), in order: the company tier. A relative path is read against `config_dir` (the settings'
+    /// The company library directories of the settings key `libraries.company` (`[libraries] company = [...]`),
+    /// in order: the company tier. A relative path is read against `config_dir` (the settings'
     /// directory) when there is one; a member that is not a text, and a malformed key, are left out. The key is
     /// kept and written back as it was (it is one of the kept keys, edited in the file).
     pub fn company_libraries(&self, config_dir: Option<&Path>) -> Vec<PathBuf> {
@@ -915,8 +914,7 @@ pub(crate) fn env_path(name: &str) -> Option<PathBuf> {
 }
 
 /// The settings directory: `EW_CONFIG_DIR` when set, else `%APPDATA%\ElektraWatt` on Windows and
-/// `$XDG_CONFIG_HOME/elektrawatt` (else `~/.config/elektrawatt`) on Linux and any other system (macOS is not supported,
-/// ID-880); `None` when the environment names none.
+/// `$XDG_CONFIG_HOME/elektrawatt` (else `~/.config/elektrawatt`) on Linux and any other system (macOS is not supported); `None` when the environment names none.
 pub fn default_config_dir() -> Option<PathBuf> {
     let var = env_path;
     if let Some(dir) = var("EW_CONFIG_DIR") {
@@ -1211,7 +1209,7 @@ mod tests {
         assert_eq!(loose.canvas_backend, "auto");
         let metal = Settings::parse("canvas_backend = \"metal\"\n").unwrap();
         assert_eq!(metal.canvas_backend, "auto");
-        // WP-S2.17 DL7: the density and the high-contrast themes round-trip; an unknown density falls back.
+        // The density and the high-contrast themes round-trip; an unknown density falls back.
         for (theme, density) in [("hc-light", "compact"), ("hc-dark", "comfortable")] {
             let s = Settings {
                 theme: theme.to_owned(),

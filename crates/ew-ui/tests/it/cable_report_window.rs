@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1371 and FT-1372 in the window (kittest, no rendering): the app menu's Draw ▸ Connect ▸ New cable…
+//! The cable form and the report block form in the window (kittest, no rendering): the app menu's Draw ▸ Connect ▸ New cable…
 //! opens its form, whose part list and Create make the cable; Output ▸ Report block… opens its form, whose Create adds
 //! the block's pages. Each walk ends with the accessible-name walker (`settle`).
 

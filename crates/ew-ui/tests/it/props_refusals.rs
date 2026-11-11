@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 46's window check W46.4 (kittest, no rendering), on a writable copy of Golden A: a Properties refusal shows
+//! Properties refusals (kittest, no rendering), on a writable copy of Golden A: a Properties refusal shows
 //! under its row only, never again as a banner, and the next refusal names its own point (F1); a banner the window
 //! raised for a failure gives way to the next failure, a banner of the shell's own does not; a new row error scrolls
 //! into view at the 1280 × 800 floor (F2); Escape in an editor holding an error cancels the edit (i3).
@@ -80,7 +80,7 @@ fn row_error(h: &Harness<'_, App>) -> Option<(String, String)> {
         .map(|(r, m)| (r.to_owned(), m.to_owned()))
 }
 
-/// W46.4 F1 (ruling 1): two successive star refusals on two points, typed into the editor, raise no banner; the pane's
+/// Two successive star refusals on two points, typed into the editor, raise no banner; the pane's
 /// error under the row is the second point's.
 #[test]
 fn two_refusals_on_two_points_show_under_the_row_and_raise_no_banner() {
@@ -104,7 +104,7 @@ fn two_refusals_on_two_points_show_under_the_row_and_raise_no_banner() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W46.4 F1 (ruling 2): a failure outside Properties replaces the banner the window raised for the last one; a banner
+/// A failure outside Properties replaces the banner the window raised for the last one; a banner
 /// the shell raised itself is not replaced.
 #[test]
 fn the_next_failure_replaces_the_windows_banner_not_the_shells() {
@@ -157,7 +157,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Rect, egui::Rect)> 
     out
 }
 
-/// W46.4 F2 (ruling 3): at the 1280 × 800 floor the refused Star source row's error line is drawn inside the pane's
+/// At the 1280 × 800 floor the refused Star source row's error line is drawn inside the pane's
 /// visible rectangle (its clip).
 #[test]
 fn at_the_floor_the_refused_rows_error_scrolls_into_view() {
@@ -182,7 +182,7 @@ fn at_the_floor_the_refused_rows_error_scrolls_into_view() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W46.4 i3 (ruling 4): Escape in an editor that holds an error closes the editor, leaves the value as it was and
+/// Escape in an editor that holds an error closes the editor, leaves the value as it was and
 /// sends no commit (no refusal).
 #[test]
 fn escape_in_an_editor_holding_an_error_cancels_the_edit() {
@@ -249,7 +249,7 @@ fn a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
     let inverse = ew_ui::theme::current(&h.ctx).surface_inverse.color32();
     let mut shown = false;
     h.hover_at(toast.center());
-    // Two seconds on the frame clock under a still pointer (a tooltip waits half a second), as the sibling FT-1144 test.
+    // Two seconds on the frame clock under a still pointer (a tooltip waits half a second), as the sibling test.
     let start = h.ctx.input(|i| i.time);
     for i in 0..40 {
         h.input_mut().time = Some(start + f64::from(i) * 0.05);

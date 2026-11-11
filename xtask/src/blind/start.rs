@@ -6,8 +6,7 @@
 //!
 //! The agent never needs the repository: the harness, the product binaries, the user guide, the starter content and
 //! the reference files are copied into the folder. The sample project is not: `EW_SAMPLE_DIR` points at an empty
-//! folder, and `golden/` is hashed here and again at `stop` (D16). A usability task's start project (
-//! which amends D16 in one point) is a copy of the golden project made here, never a path to the fixture.
+//! folder, and `golden/` is hashed here and again at `stop` (D16). A usability task's start project is a copy of the golden project made here, never a path to the fixture.
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -1147,7 +1146,7 @@ mod tests {
         assert!(!dest.exists());
     }
 
-    /// Cycle 39: a visual run started with `--window 1920x1080 --ppp 1` records both in `run.json` and passes them to
+    /// A visual run started with `--window 1920x1080 --ppp 1` records both in `run.json` and passes them to
     /// the spawned app; a default visual run records 1280 × 800 at 1.2 and adds no flag; a text run with `--window` is
     /// refused before anything is created.
     #[test]

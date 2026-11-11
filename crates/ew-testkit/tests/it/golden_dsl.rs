@@ -119,7 +119,7 @@ fn the_command_log_replays_and_every_step_undoes() {
         last = Some(restored.label);
     }
     // One undo step per command that changed the model: nine of the commands leave the model as it was (a
-    // value the record already had), so they leave no step: two from before, and since WP-S1.21 part 1 the
+    // value the record already had), so they leave no step: two from before, and the
     // `plc_module` aspect step of each of the seven modules, which normaliser N0 gave the aspect (and N1 the
     // channels) when `device.create` gave the device its module part. The last step undone is the
     // first command, `library.embed`, although the shell's project-local parts name the embedded function
@@ -307,7 +307,7 @@ fn the_logo_and_library_form_verbs_send_their_command_parameters() {
 /// library copies.
 ///
 /// On the same build: what path (b) issues and what it cannot write yet (no command), pinned so that a new command
-/// or a table change shows here (since FT-165 path (b) writes every record: nothing is left out); and FT-278's
+/// or a table change shows here (path (b) writes every record: nothing is left out); and the
 /// build half: the first command is the one `library.embed` of every non-local copy.
 #[test]
 fn path_b_equals_path_a_record_by_record_up_to_ids() {

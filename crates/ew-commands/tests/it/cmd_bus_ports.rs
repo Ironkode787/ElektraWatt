@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 4b in the engine: normaliser N5 `bus_ports` (§8a.2, D16; acceptance BU-7g to BU-7j). A part's bus
+//! The bus-port normaliser in the engine: N5 `bus_ports`. A part's bus
 //! ports go once to the device's port-less functions whose FnDef has contact kind `bus_port`, in list and ID order;
 //! a port is never rewritten or removed; a disagreement and a port of a newer format give the notices N5-b and N5-c.
-//! The window path with the starter parts (BU-7f) is `ew-api`'s `bus_port_join.rs`.
+//! The window path with the starter parts is `ew-api`'s `bus_port_join.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -313,10 +313,9 @@ fn a_port_function_joining_a_cpu_gets_its_uncarried_port() {
     assert_eq!(port(&e, first), Some(dp_master()), "unchanged");
 }
 
-/// BU-7g's `rep.join_device` clause, as the code stands: `rep.join_device` moves a function only as an auxiliary
-/// contact, so a DP-port function (no contact) cannot join a CPU that has no unplaced slot of its
-/// FnDef; the join is refused and N5 is not reached. Reported to the orchestrator (a contradiction between §8a.5
-/// BU-7g and WP-S2.18 D2).
+/// The `rep.join_device` clause of the bus-port join, as the code stands: `rep.join_device` moves a function
+/// only as an auxiliary contact, so a DP-port function (no contact) cannot join a CPU that has no unplaced
+/// slot of its FnDef; the join is refused and N5 is not reached.
 #[test]
 fn rep_join_device_refuses_a_port_function_onto_a_cpu_without_a_slot() {
     let mut e = engine(model());

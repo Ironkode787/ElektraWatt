@@ -9,8 +9,8 @@
 //! **This test pins a provisional rule (design decision 1).** Both layers take the main
 //! representation as the smallest-ID representation of the smallest-ID main function that is not a contact
 //! image (doc 03 §5.1). Doc 03 §8.2 step 4
-//! (lowest page order, row, column among the counted representation types) replaces that rule in
-//! WP-S1.11, and it must replace it in `ew_commands::numbering` and in `ew_derive::MainRep` in the same
+//! (lowest page order, row, column among the counted representation types) replaces that rule later, and it
+//! must replace it in `ew_commands::numbering` and in `ew_derive::MainRep` in the same
 //! change; this test is the guard that fails if only one of them moves.
 //!
 //! **Schemes.** The command layer numbers the default-scheme devices per (page of the main

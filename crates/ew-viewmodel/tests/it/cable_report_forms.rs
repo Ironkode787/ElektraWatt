@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1371 and FT-1372 on copies of Golden A, through the forms as the window shows them: Draw ▸ Connect ▸
+//! On copies of Golden A, through the forms as the window shows them: Draw ▸ Connect ▸
 //! New cable… creates a cable from its part with the part's cores, Connect cores… makes the selected wires its cores
 //! by order (one undo step; too few free cores refused in words), and Output ▸ Report block… adds a report block
 //! whose pages join the page order.
@@ -329,7 +329,7 @@ fn report_block_refuses_a_bad_kind_and_a_bad_folio_in_both_languages() {
     s.shutdown();
 }
 
-/// ID-1389 (W51 finding E): Report block… refuses first folio 102, which a page of Golden A holds, under the fields,
+/// Report block… refuses first folio 102, which a page of Golden A holds, under the fields,
 /// whole, in English and in Dutch, as New page… does; nothing is added.
 #[test]
 fn report_block_refuses_a_folio_a_page_holds_in_both_languages() {
@@ -378,7 +378,7 @@ fn holds_copy(s: &mut ShellModel, number: &str) -> bool {
     t.nodes.iter().any(|n| n.label.contains(number))
 }
 
-/// ID-1376 (C51-p4#3a): in a new project, New cable… with a cable part of an installed library embeds the part and
+/// In a new project, New cable… with a cable part of an installed library embeds the part and
 /// creates the cable in one transaction: one undo step takes both back, and no copy of the part is left.
 #[test]
 fn a_library_cable_part_is_embedded_with_its_cable_in_one_undo_step() {
@@ -412,7 +412,7 @@ fn a_library_cable_part_is_embedded_with_its_cable_in_one_undo_step() {
     s.shutdown();
 }
 
-/// Two cables that print one tag (two new cables each take the project's counter, FT-1406, so
+/// Two cables that print one tag (two new cables each take the project's counter, so
 /// they are given one frozen tag here); Connect cores… names each in its list by its part and its position, and
 /// refuses the bare tag in words, in both languages, instead of taking the first.
 #[test]

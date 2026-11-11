@@ -123,7 +123,7 @@ pub(crate) fn chooser(
         act -= 1;
     }
     let list_name = strings::text(key!("part-choose-list"));
-    // FT-1040 (doc 16a §2): the list takes the window's height as it grows, ten rows at the floor.
+    // Doc 16a §2: the list takes the window's height as it grows, ten rows at the floor.
     let height = crate::dialog::grown(t.size_row * 10.0, LIST_SHARE, ctx.content_rect().height());
     let list_id = ui.scope_id().with("part-choose-list");
     let list_rect = egui::Rect::from_min_size(ui.cursor().min, vec2(ui.available_width(), height));

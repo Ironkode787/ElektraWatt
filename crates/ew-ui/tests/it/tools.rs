@@ -409,7 +409,7 @@ fn a_group_hidden_while_a_press_is_held_drops_the_release() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-392 headless: `canvas.release` after the pressed group was hidden is dropped (it names a group that no longer
+/// Headless: `canvas.release` after the pressed group was hidden is dropped (it names a group that no longer
 /// exists and changes nothing), and the next press works as usual.
 #[test]
 fn a_release_after_the_pressed_group_was_hidden_is_dropped() {
@@ -754,7 +754,7 @@ fn a_stationary_click_keeps_the_place_ghost() {
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "place");
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    // Below right of the centre, so that the pan brings -102F2's body under the pointer (ID-1504's layout of 102).
+    // Below right of the centre, so that the pan brings -102F2's body under the pointer (the layout of 102).
     let pos = screen(&h, (w / 2 + 31_022_226, hh / 2 + 21_802_780));
     h.event(egui::Event::PointerMoved(pos));
     settle(&mut h);
@@ -795,7 +795,7 @@ fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {
     let tmp = Tmp::new();
     let mut h = quick_golden(&tmp, "102");
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    // Below right of the centre, so that the pan brings -102F2's body under the pointer (ID-1504's layout of 102).
+    // Below right of the centre, so that the pan brings -102F2's body under the pointer (the layout of 102).
     let pos = screen(&h, (w / 2 + 31_022_226, hh / 2 + 21_802_780));
     h.event(egui::Event::PointerMoved(pos));
     settle(&mut h);
@@ -908,7 +908,7 @@ fn assert_chips_apart(
     chips
 }
 
-/// FT-389, FT-507 and FT-508 (OV2): the Place ghost of a terminal on Golden A draws one label with
+/// The Place ghost of a terminal on Golden A draws one label with
 /// no tag added, even after a second rest (its tag in the change chip); the preview's change chip stands by
 /// the floating insertion point, off the label (the rule's next candidate), the header by it; with the frame
 /// statistics shown and the anchor moved beside their panel, no chip covers the panel; no two chips intersect, with
@@ -995,7 +995,7 @@ fn the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1079 at the floor: the Place ghost's anchor panned to the canvas's top left corner, where the tool
+/// At the floor the Place ghost's anchor panned to the canvas's top left corner, where the tool
 /// options card stands, leaves the preview's chips no free candidate; each stands inside the canvas all the same
 /// (clamped), none cut at its edge.
 #[test]
@@ -1202,9 +1202,9 @@ fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     let (text, frame) = &chips[1];
     assert!(text.contains("-101F1."), "{chips:?}");
     let anchor = drawn_of(&mut h, snap.page_to_sheet(tag_at));
-    // By the printed tag text, by the chip rule of WP-S2.17 D13 (one of its four candidates).
+    // By the printed tag text, by the chip rule (one of its four candidates).
     assert!(by_point(*frame, anchor), "{frame:?} by {anchor:?}");
-    // Not by the body's corner, where FT-389 put it.
+    // Not by the body's corner.
     let corner = drawn_of(&mut h, snap.page_to_sheet((rep.body[0], rep.body[1])));
     assert!(
         !by_point(*frame, corner),

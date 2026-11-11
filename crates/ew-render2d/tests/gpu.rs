@@ -290,7 +290,7 @@ fn gpu_image(d: &HeadlessDevice, list: &DisplayList, w: u32, h: u32) -> ew_rende
 }
 
 /// The clearly-ink pixels of `a` and how many of them have no pixel in `b`'s 3 × 3 neighbourhood with every channel
-/// within 128: the parity rule of WP-S2.02 §8 item 3, as `ew-ui`'s B2 tests apply it.
+/// within 128: the parity rule, as `ew-ui`'s B2 tests apply it.
 fn unmatched(a: &ew_render_cpu::RgbaImage, b: &ew_render_cpu::RgbaImage) -> (usize, usize) {
     let (w, h) = (i64::from(a.width), i64::from(a.height));
     let px = |img: &ew_render_cpu::RgbaImage, x: i64, y: i64| pixel(img, x as u32, y as u32);

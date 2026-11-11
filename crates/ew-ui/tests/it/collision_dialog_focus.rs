@@ -159,7 +159,7 @@ fn f1b_a_rebuilt_collision_dialog_takes_its_first_focus_again() {
     enter_applies_mine(&mut h, "a rebuilt dialog");
 }
 
-/// C50-p1#1 (W49.3b-N1): after Decide later, a save refused for the collisions shows its refusal in the banner with the
+/// After Decide later, a save refused for the collisions shows its refusal in the banner with the
 /// held saves' Choose… beside it, and Choose… opens the collision dialog again.
 #[test]
 fn a_refused_saves_banner_keeps_choose() {

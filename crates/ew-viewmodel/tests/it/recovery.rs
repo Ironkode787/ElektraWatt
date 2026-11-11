@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! JB7 (D7, §6.6; FR-UI-050's recovery half, FT-313's rest): a dirty session ended without a clean
+//! FR-UI-050's recovery half: a dirty session ended without a clean
 //! close (`shutdown`) leaves its journal; the next editing open shows the project read-only with the recovery dialog
 //! and writes nothing before a choice. Recover opens it editable and dirty with the edits, a notification and a
 //! marker; Open read-only keeps the journal and the read-only access; Discard… asks, then opens it editable without
@@ -333,7 +333,7 @@ fn has_995(s: &ShellModel) -> bool {
     s.page_labels().iter().any(|l| l == "995")
 }
 
-/// FT-499 (fixed in the cycle-30 review round): Save As closes the original cleanly once the copy exists, so the
+/// FT-499: Save As closes the original cleanly once the copy exists, so the
 /// edits that went into the copy leave no journal behind and the original reopens editable, without the recovery
 /// dialog and unchanged on disk.
 #[test]

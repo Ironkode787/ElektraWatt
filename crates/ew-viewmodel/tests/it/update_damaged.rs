@@ -276,8 +276,8 @@ fn ft1499_several_copies_update_every_one_a_library_holds_and_name_the_rest() {
     assert!(strings::set_locale("en"));
 }
 
-/// Two damaged copies a library holds, the starter part's and its manufacturer's (C53-p2's plural toast, C53-p4#2 and
-/// #4): both are written and the toast names each with the version written. Both languages.
+/// Two damaged copies a library holds, the starter part's and its manufacturer's:
+/// both are written and the toast names each with the version written. Both languages.
 #[test]
 fn ft1499_every_copy_written_is_named_with_its_version() {
     let tmp = Tmp::new("ft1499-two");

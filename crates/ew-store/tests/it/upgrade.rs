@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A project of an older format through the store (D11 and D3, decision log ID-1221 rulings 3, 4, 5
-//! and 7): the migrated open (MG-1), a migration that fails (MG-2), the consent gate of the first save, the unstable
-//! marker and its read side (SG-1). The `"0.0"` fixture is built here: a project record at `$v` 0 with its member's
-//! old name, a library copy no step changes, and a manifest of format `"0.0"` with a member the format step renames.
+//! A project of an older format through the store (the migrated open, a migration that fails, the
+//! consent gate of the first save, the unstable marker and its read side). The `"0.0"` fixture is built here:
+//! a project record at `$v` 0 with its member's old name, a library copy no step changes, and a manifest of
+//! format `"0.0"` with a member the format step renames.
 
 // The writer's tests read the model untracked, ADR-0001 amendment 2.
 #![allow(clippy::disallowed_methods)]
@@ -193,7 +193,7 @@ fn a_failing_step_refuses_the_open_and_changes_nothing() {
     assert_eq!(vfs.files(&root), before);
 }
 
-/// The consent gate (ruling 5): the first save refuses with `UpgradeConsent` and writes nothing; after
+/// The consent gate: the first save refuses with `UpgradeConsent` and writes nothing; after
 /// `confirm_upgrade` it writes this version's format, the manifest step's member and the migrated file, and nothing
 /// else; the reopened project is not migrated, and a second save writes nothing.
 #[test]
@@ -305,7 +305,7 @@ fn a_created_project_reports_its_unstable_marker() {
     }
 }
 
-/// SG-1's `unstable` clauses (ruling 7): nothing is marked while no format is released; with an injected released list
+/// The `unstable` clauses: nothing is marked while no format is released; with an injected released list
 /// that does not hold the format written, the save marks the manifest; a reader of that unreleased format opens it
 /// read-write and a released one read-only.
 #[test]

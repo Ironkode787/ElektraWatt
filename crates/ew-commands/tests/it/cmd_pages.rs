@@ -117,7 +117,7 @@ fn labelled(section: Option<Id<Section>>, number: u32, label: &str) -> CreatePag
     c
 }
 
-/// FT-459 (FR-PAG-012, FR-CHK-038): an explicit folio outside the section's range is refused with the range; a
+/// FR-PAG-012, FR-CHK-038: an explicit folio outside the section's range is refused with the range; a
 /// page in no section has no range.
 #[test]
 fn create_page_refuses_a_folio_outside_the_section_range() {
@@ -133,7 +133,7 @@ fn create_page_refuses_a_folio_outside_the_section_range() {
         .expect("no section, no range");
 }
 
-/// FT-459 (FR-PAG-009): the first folio of a section with a divider prints the divider; a sub-page of it does not.
+/// FR-PAG-009: the first folio of a section with a divider prints the divider; a sub-page of it does not.
 #[test]
 fn create_page_refuses_the_divider_folio() {
     let mut e = engine(golden_model());
@@ -154,7 +154,7 @@ fn create_page_refuses_the_divider_folio() {
         .expect("the next folio");
 }
 
-/// FT-459 (FR-REP-041): a folio a report block of the section generates is refused: the first folio, and with
+/// FR-REP-041: a folio a report block of the section generates is refused: the first folio, and with
 /// sub-page continuation its sub-pages; with next-folio continuation the first folio only; a block of another
 /// section and an embedded block refuse nothing.
 #[test]
@@ -227,7 +227,7 @@ fn create_page_names_the_first_of_several_refusals() {
     );
 }
 
-/// FT-459 (FR-PAG-012): two pages of a section may not print the same folio, whatever their numbers.
+/// FR-PAG-012: two pages of a section may not print the same folio, whatever their numbers.
 #[test]
 fn create_page_refuses_a_printed_folio_another_page_prints() {
     let mut e = engine(golden_model());
@@ -756,7 +756,7 @@ fn create_report_block_rejections() {
     assert!(matches!(e.execute(&bad_section), Err(CmdError::NotFound { .. })));
 }
 
-/// ID-1389 (W51 finding E): a page-oriented block whose generated pages a page of its section already holds is
+/// A page-oriented block whose generated pages a page of its section already holds is
 /// refused in the words of `page.create`: the first folio; with sub-page continuation a `<first>.<k>`; the first folio
 /// of another page-oriented block of the section. A block of another section and an embedded block refuse nothing.
 #[test]
@@ -850,7 +850,7 @@ fn set_fields_refuses_a_report_block_folio_a_page_holds() {
         .expect("a free folio");
 }
 
-/// ID-1427 (W52 F1): the divider page of a section holds the section's first folio against every command that sets a
+/// The divider page of a section holds the section's first folio against every command that sets a
 /// folio: `report_block.create` and `fields.set` of a block's first folio refuse it in `page.create`'s words for a
 /// page that exists, `page.renumber` and `page.create` name the divider. Nothing changes on a refusal.
 #[test]
@@ -937,7 +937,7 @@ fn renumber_refuses_a_folio_a_report_block_generates() {
     bulk(&mut e, &renumber(PageScope::Pages(vec![PAGE_101]), 170, 1, false)).expect("a free folio");
 }
 
-/// FT-1511 (S8): `page.renumber` refuses a new folio outside its section's folio range, as `page.create`
+/// `page.renumber` refuses a new folio outside its section's folio range, as `page.create`
 /// does; nothing changes on a refusal.
 #[test]
 fn renumber_refuses_a_folio_outside_its_section() {
@@ -958,7 +958,7 @@ fn renumber_refuses_a_folio_outside_its_section() {
     .expect("inside the range");
 }
 
-/// FT-1510 (S9): `fields.set` of a section's `divider` or `folio_range` refuses a divider onto a folio a
+/// `fields.set` of a section's `divider` or `folio_range` refuses a divider onto a folio a
 /// page of the section prints or a page-oriented report block of the section starts at; nothing changes on a refusal,
 /// and without a divider the range is free.
 #[test]

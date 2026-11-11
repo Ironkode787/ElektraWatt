@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cycle 39 (window check W39c2; doc 16a §2, the UI is not fitted to the floor): the Choose part dialog, the
+//! Doc 16a §2, the UI is not fitted to the floor: the Choose part dialog, the
 //! Device-from-part picker and the command palette grow with the window. Each is measured at the floor (1280 by 800)
 //! and at the typical size (1920 by 1080): wider at the typical size, a share of the window there, and never narrower
 //! than at the floor.
@@ -93,7 +93,7 @@ fn the_part_picker_grows_with_the_window() {
         },
         |h| field_width(h, "Filter by key, part number or function"),
     );
-    // ID-1427 (W52 F2): the picker takes the width its columns need, so it may be as wide at the floor as at 1920.
+    // The picker takes the width its columns need, so it may be as wide at the floor as at 1920.
     assert!(
         typical >= floor && typical >= 0.3 * 1920.0,
         "the picker's filter: {typical} at 1920 against {floor} at 1280"
@@ -138,7 +138,7 @@ fn the_part_picker_keeps_its_width_and_stays_inside_the_window() {
     }
 }
 
-/// ID-1427 (W52 F2, §6.22): in Device from part the part names are whole at the floor and at 1920, beside a part
+/// In Device from part (§6.22) the part names are whole at the floor and at 1920, beside a part
 /// number as long as Golden A's "32P-VGL-R-…" order code: the table uses the space it has.
 #[test]
 fn part_names_are_whole_in_device_from_part() {
@@ -182,7 +182,7 @@ fn part_names_are_whole_in_device_from_part() {
     }
 }
 
-/// FT-1143 at the floor: a part row's function text stays inside the row, never cut hard at the popup's
+/// At the floor a part row's function text stays inside the row, never cut hard at the popup's
 /// edge (the picker now takes the width its columns need, so these stand whole), and the row's tooltip ends
 /// with the whole text.
 #[test]
@@ -358,7 +358,7 @@ fn tokens() -> ew_ui::theme::Tokens {
     ew_ui::theme::tokens(ew_ui::theme::Theme::Light, ew_ui::theme::Density::Comfortable)
 }
 
-/// C40 (FT-798): the command search grows with the window from `size.search.width`, staying at the tab row's right
+/// FT-798: the command search grows with the window from `size.search.width`, staying at the tab row's right
 /// end.
 #[test]
 fn the_command_search_grows_with_the_window() {
@@ -395,7 +395,7 @@ fn open_mapping(path: &std::path::Path) -> impl Fn(&mut Harness<'_, App>) + '_ {
     }
 }
 
-/// C40 (FT-816 a): the parts import's column mapping card is a form that grows with the window when its samples need
+/// The parts import's column mapping card is a form that grows with the window when its samples need
 /// the room (a table with a long description): wider at 1920 than at the floor. Golden A's own table fits the form
 /// width at both sizes, so it is not stretched.
 #[test]
@@ -442,7 +442,7 @@ fn the_print_dialog_grows_with_the_window() {
 const LONG_TITLE: &str =
     "Power Supply 1 - Main Current with a deliberately long title that no small dialog can hold on one line";
 
-/// C40 (FT-816 a): the history's Show changes popup grows with the window when its lines need the room (a short
+/// The history's Show changes popup grows with the window when its lines need the room (a short
 /// list keeps the small width; past the grown width a line elides).
 #[test]
 fn the_show_changes_popup_grows_with_the_window() {
@@ -474,7 +474,7 @@ fn the_show_changes_popup_grows_with_the_window() {
     );
 }
 
-/// C40 (FT-798): at 1920 × 1080 no row of Golden A's Pages tree on show is cut (each button is as wide as its whole
+/// FT-798: at 1920 × 1080 no row of Golden A's Pages tree on show is cut (each button is as wide as its whole
 /// title), and the left column is wider than its share of the floor.
 #[test]
 fn no_pages_row_is_cut_at_1920() {
@@ -575,7 +575,7 @@ fn the_strip_editor_shows_its_side_columns_at_1920() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1427 (W52 F15): at 1920 the Libraries table shows its last column, State, without scrolling sideways: the left
+/// At 1920 the Libraries table shows its last column, State, without scrolling sideways: the left
 /// column grows by what the table lacks.
 #[test]
 fn the_libraries_table_shows_its_state_column_at_1920() {

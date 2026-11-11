@@ -8,8 +8,8 @@
 //! changed. A device that is merely touched (another field edited, a function or an auxiliary
 //! representation changed) is not a candidate. For each candidate that takes part in numbering
 //! ([`crate::numbering::numbered`]) and is placed, in the order of the anchor cells of the main
-//! representations ([`crate::numbering::PlaceKey`]: column, then row, ties by the anchor point; FR-NUM-028,
-//! FT-456), never in ID order (the IDs one transaction mints are not monotonic, so a replay would differ):
+//! representations ([`crate::numbering::PlaceKey`]: column, then row, ties by the anchor point; FR-NUM-028),
+//! never in ID order (the IDs one transaction mints are not monotonic, so a replay would differ):
 //!
 //! - without a counter, it gets the next free counter of its scope;
 //! - with a counter that another numbered device of the scope also holds, it gets the next free counter

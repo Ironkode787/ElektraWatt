@@ -420,7 +420,7 @@ impl PlaceTool {
                 "terminal",
                 strings::format(
                     key!("place-target-terminal"),
-                    // A strip without a tag yet in words; W49.3-F7: the terminal
+                    // A strip without a tag yet in words; the terminal
                     // first, then the strip it goes on.
                     &[
                         &if strip_tag.contains('?') {
@@ -438,8 +438,7 @@ impl PlaceTool {
     /// The insertion point of a placement at `at` (the orchestrator's ruling): a new terminal on a page point
     /// where a terminal of the same strip already sits moves to the right, two grid steps at a time, until the point
     /// is free (Golden A's 1X1 draws its three terminals of one cell 20 QET px apart). A terminal of the same strip is
-    /// told by [`is_strip_terminal`] (its connection points print `<strip>:…`; autoconnect tells it the same way,
-    /// FT-1082); every other target, and a terminal of another strip, stays at `at`.
+    /// told by [`is_strip_terminal`] (its connection points print `<strip>:…`; autoconnect tells it the same way); every other target, and a terminal of another strip, stays at `at`.
     fn stacked_pos(&self, cx: &ToolCx<'_>, at: (i64, i64)) -> (i64, i64) {
         let PlaceTarget::Terminal { strip_tag, .. } = &self.target else {
             return at;
@@ -657,8 +656,7 @@ impl PlaceTool {
     }
 
     /// Whether the placement at the current point would land on an identical twin. A terminal never does:
-    /// one of the same strip moves along it ([`Self::stacked_pos`]), and one of another strip may share the point
-    /// (FT-622's ruling).
+    /// one of the same strip moves along it ([`Self::stacked_pos`]), and one of another strip may share the point.
     fn on_twin(&self, cx: &ToolCx<'_>) -> bool {
         !self.ask
             && !matches!(self.target, PlaceTarget::Terminal { .. })
@@ -704,8 +702,7 @@ impl PlaceTool {
         }
     }
 
-    /// The designation of a `new_terminal` target, as the catalogue proposes it after an Undo or a Redo (
-    /// ID-1181): the tool stops asking for one.
+    /// The designation of a `new_terminal` target, as the catalogue proposes it after an Undo or a Redo: the tool stops asking for one.
     pub fn set_designation(&mut self, next: String) {
         if let PlaceTarget::Terminal { designation, .. } = &mut self.target {
             *designation = next;
@@ -804,7 +801,7 @@ impl Tool for PlaceTool {
                 ],
             )
         } else {
-            // FT-485 item 3: the proposals connect on commit unless Alt is held.
+            // The proposals connect on commit unless Alt is held.
             super::Hint::new(
                 key!("hint-place-proposals"),
                 &[

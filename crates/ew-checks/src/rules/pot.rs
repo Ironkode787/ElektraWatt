@@ -128,10 +128,10 @@ impl PotTargets {
 
 /// The targets of a potential (see [`PotTargets`]).
 ///
-/// The discriminator member of a potential without a definition is its first member CP in printed order (WP-S1.16
-/// D8): device CPs before interruption points, then `<tag>:<designation>` in natural order (D1's printed key), then
-/// the CP index, the CP ID only between two CPs that print alike on two functions. Before, it was the smallest CP ID,
-/// random in a new project. The potential is read as its own part of the partition.
+/// The discriminator member of a potential without a definition is its first member CP in printed order:
+/// device CPs before interruption points, then `<tag>:<designation>` in natural order (D1's printed key),
+/// then the CP index, the CP ID only between two CPs that print alike on two functions. Before, it was the
+/// smallest CP ID, random in a new project. The potential is read as its own part of the partition.
 pub(crate) fn potential_targets(q: &Q, p: PotentialId) -> PotTargets {
     let part = potential_part(q, p);
     let Some(potential) = part.get(p) else {
@@ -266,7 +266,7 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 detail,
             } if *code == meta.id && note_owner(q, p, &wires.wires, subject) == Some(p) => {
                 // EW-POT-011's message in plain words, from its Fluent pattern; the note's detail stays the
-                // derivation's own text. FT-1146 (item 10): the message leads with the potential, so the
+                // derivation's own text. The message leads with the potential, so the
                 // Messages row, which shows a subject the message leads with once, names it once.
                 if meta.id == JUNCTION_FEED_AMBIGUOUS.id {
                     let message = format!(
@@ -1254,7 +1254,7 @@ pub const PE_ISLAND: RuleMeta = RuleMeta {
 /// EW-POT-008 (doc 08 §8.1, FR-CHK-055), both halves:
 ///
 /// - **A rail-bonded terminal without a location**, from the `rail_terminal` notes (the terminal joins no location
-///   PE node; since cycle 33 only in a project with two or more own locations, else it joins the implicit main
+///   PE node; only in a project with two or more own locations, else it joins the implicit main
 ///   location). One finding per terminal, target the terminal.
 /// - **More than one PE potential in one location**: the PE potentials (final type PE) with a member CP
 ///   of a device in the location (its own location; without one, the location its rail would join,

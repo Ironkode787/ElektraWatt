@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 5 acceptance (macros, D12, D13): `Session::save_macro` of the PSU block of folio 102 and of the
-//! valve page 206 into a fixture user library (MC-1, MC-2), `insert_macro` with new identities and derived tags and
-//! `macro_conflicts` on the preview (MC-3), the replay of the command with no library (MC-6), twice-run determinism
-//! (MC-7), the variables, value sets and placeholder groups, the refusals of `macro.insert`, and the old and new
-//! fragment forms (ADR-0011 amendment 5). MC-4 and MC-5 (the valve typical of folios 203 to 206 with its value sets)
-//! are not built in this part.
+//! Macros: `Session::save_macro` of the PSU block of folio 102 and of the
+//! valve page 206 into a fixture user library, `insert_macro` with new identities and derived tags and
+//! `macro_conflicts` on the preview, the replay of the command with no library, twice-run determinism, the
+//! variables, value sets and placeholder groups, the refusals of `macro.insert`, and the old and new
+//! fragment forms (ADR-0011 amendment 5).
 
 use crate::common::{Dir, tiers};
 use crate::golden_common;

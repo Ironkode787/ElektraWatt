@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 3, EM-10 (D10): Golden A's manufacturer copies. The bootstrap emits one project-local
+//! Golden A's manufacturer copies. The bootstrap emits one project-local
 //! manufacturer copy per manufacturer name and the part references carry no `key`; every page, report and export
-//! derives exactly as from a file written before part 3, whose references keep the name in `key` and which holds no
-//! manufacturer copy (the readers' fallback). The committed outputs under `golden/J-E-2416/expected/` are unchanged
-//! (the page, PDF, PNG, CSV and acceptance tests compare them byte for byte).
+//! derives exactly as from a file written before manufacturer copies existed, whose references keep the name
+//! in `key` and which holds no manufacturer copy (the readers' fallback). The committed outputs under
+//! `golden/J-E-2416/expected/` are unchanged (the page, PDF, PNG, CSV and acceptance tests compare them byte
+//! for byte).
 
 use crate::golden_common;
 
@@ -15,8 +16,8 @@ use ew_derive::PageOrder;
 use ew_import_tables::ew_interop_api::ImportBatch;
 use ew_schema::{LibDocument, Sha256};
 
-/// The batch as a file written before WP-S1.19 part 3 holds it: no manufacturer copies, the name in each part
-/// reference's `key` member, the part hashes recomputed.
+/// The batch as a file written before manufacturer copies existed holds it: no manufacturer copies, the name
+/// in each part reference's `key` member, the part hashes recomputed.
 fn before_part_3(batch: &ImportBatch) -> ImportBatch {
     let mut old = batch.clone();
     let names: Vec<(ew_ids::Uuid, String)> = old

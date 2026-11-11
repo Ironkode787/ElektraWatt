@@ -33,7 +33,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_redo(),
         ),
     ),
-    // WP-S2.09 part 3 (§8.4): Edit, History.
+    // Edit, History.
     keeps_banner(with_params(
         "on?:bool",
         placed(

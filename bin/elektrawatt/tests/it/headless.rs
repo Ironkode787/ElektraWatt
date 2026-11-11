@@ -365,7 +365,7 @@ fn exit_codes_follow_the_spec() {
     assert!(stderr(&out).contains("usage"));
 }
 
-/// WP-S6.13 BD1: with `--keep-going` a refused step in the middle of a script does not end the run; every step has
+/// With `--keep-going` a refused step in the middle of a script does not end the run; every step has
 /// its line and the exit code is 1. Without the flag the run stops at the refusal, as it always did, and the lines it
 /// wrote are the same bytes. The flag belongs to the headless mode, and the usage text lists it.
 #[test]
@@ -482,7 +482,7 @@ fn version_and_help_work() {
     assert!(String::from_utf8_lossy(&out.stdout).contains("--headless"));
 }
 
-/// Review ruling 6 (data loss): a script that ends with unsaved changes exits 1 and keeps their journal; the next
+/// A script that ends with unsaved changes exits 1 and keeps their journal; the next
 /// open offers it. `app.quit` with `discard` ends a script that edits cleanly.
 #[test]
 fn a_script_that_ends_dirty_exits_one_and_keeps_the_journal() {
@@ -582,7 +582,7 @@ fn config_dir_keeps_the_resources_the_program_found() {
     assert_eq!(steps[1]["state"]["project"], "J-E-2416.ew");
 }
 
-/// Review ruling 7: without `EW_CONFIG_DIR` a headless run has no settings directory of its own choosing: it
+/// Without `EW_CONFIG_DIR` a headless run has no settings directory of its own choosing: it
 /// neither reads nor writes the user's, and `--config-dir` names one.
 #[test]
 fn a_headless_run_leaves_the_users_settings_alone() {
@@ -631,7 +631,7 @@ fn a_headless_run_leaves_the_users_settings_alone() {
 /// their `--record` replay); transcript determinism per gate is `the_transcript_is_deterministic` (A7), `it/canvas.rs`'s
 /// T7 for the snapshot bytes and `blind_replay`. This table runs each of those script tests with its second run on an
 /// equal start and the byte-identical comparison of the two transcripts, as each ran per gate before the test
-/// clean-up of 2026-10-30 (for PG10 the second run is the alias-substituted one of ID-630 (c)). One case per test,
+/// clean-up of 2026-10-30 (for the property grid script the second run is the alias-substituted one). One case per test,
 /// named as the test; a failing case prints its panic and its name, and the test fails naming every failed case.
 #[test]
 #[ignore = "deep run: each headless script run twice, byte-identical transcripts"]

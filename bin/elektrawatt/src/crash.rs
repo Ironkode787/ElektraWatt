@@ -4,7 +4,7 @@
 //! The local crash log (NFR-REL-13's 0.1.0 part). [`install`] runs first in `main`, for every mode:
 //! its panic hook appends one entry per panic to the process's log, `<state>/crashes/<yyyymmddThhmmssZ>-<pid>.log`
 //! (the process start in UTC; the file is created, user-only, at the first panic), and then calls the hook it replaced,
-//! so stderr keeps Rust's message. An entry holds the lines L1 to L7 of WP-S6.05 §5 and the frames of a forced
+//! so stderr keeps Rust's message. An entry holds its seven lines and the frames of a forced
 //! backtrace, and ends with an empty line; a panic that reaches `main`'s outer catch gets the end line [`ENDED_LINE`]
 //! after its entry ([`ended`]), which tells a crash from a panic caught on its way (a job, a rule run, a decoder). The
 //! lines stay English: support reads them. Nothing is ever sent.

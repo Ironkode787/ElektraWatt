@@ -64,7 +64,7 @@ fn type_into_field(h: &mut Harness<'_, App>, label: &str, text: &str) {
 fn ac28_w29_colour_through_the_editor_and_undo() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
-    // W29 through `select.set` (the canvas picks by geometry since WP-S2.04 part 1, and the centre of a wire's
+    // W29 through `select.set` (the canvas picks by geometry, and the centre of a wire's
     // rectangle need not lie on the wire).
     dispatch(&mut h, "select.set", json!({"ids": [W29]}));
     settle(&mut h);
@@ -327,7 +327,7 @@ fn a_boolean_row_is_a_checkbox() {
 fn a_choice_editor_option_is_picked_with_the_mouse() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
-    // WP-S2.17 (J32): at 1280 by 800 Properties is the lower half of the left column and the colour row sits in its
+    // At 1280 by 800 Properties is the lower half of the left column and the colour row sits in its
     // lower half, so the option list opens over the row, inside the window and above the status bar.
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
@@ -567,7 +567,7 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
     );
 }
 
-/// FT-759 (rv-vis-2): the header's "N Warnings" chip is a button: a click opens Messages filtered to the record by
+/// The header's "N Warnings" chip is a button: a click opens Messages filtered to the record by
 /// its title, through the existing `messages.show` and `navigator.filter`.
 #[test]
 fn a_finding_chip_opens_messages_filtered_to_the_record() {
@@ -651,7 +651,7 @@ fn severity_word(severity: &str) -> &'static str {
     }
 }
 
-/// FT-530 (doc 16a §6.8, §6.13, §6.16): the header's findings are severity chips, one named `Label` node per severity
+/// Doc 16a §6.8, §6.13, §6.16: the header's findings are severity chips, one named `Label` node per severity
 /// ("<n> <Word(s)>: <rule>: <message>; …") with each rule and message in the tooltip, no "[severity] rule
 /// message" text; the row's
 /// actions are a popup menu anchored on its "…" button, whose items choose and which Escape closes.
@@ -679,7 +679,7 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         "the finding's object has findings in the header"
     );
     let painted: Vec<String> = painted_texts(&h).into_iter().map(|(t, _)| t).collect();
-    // Cycle 37 (window check W37): one chip per severity with its count, also for one finding ("1 Warning").
+    // One chip per severity with its count, also for one finding ("1 Warning").
     for severity in ["error", "warning", "info"] {
         let of: Vec<_> = findings
             .iter()
@@ -749,7 +749,7 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
         .get_all_by_role(egui::Role::MenuItem)
         .filter_map(|n| n.accesskit_node().label().map(|l| (l, n.rect())))
         .collect();
-    // The row's actions, then Make variable (FT-754 (h)).
+    // The row's actions, then Make variable.
     let words: Vec<&str> = h
         .state()
         .shell()
@@ -838,7 +838,7 @@ fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
     }
 }
 
-/// FT-541 (doc 16a §6.8): "Filter properties" stands under the header only while the open categories hold more than
+/// Doc 16a §6.8: "Filter properties" stands under the header only while the open categories hold more than
 /// twelve rows; typing keeps the rows whose label or value contains the text; a filter without hits says so with Clear
 /// filter.
 #[test]
@@ -992,7 +992,7 @@ fn m33_a_refused_letter_edit_offers_use_tag_as_a_button() {
     );
 }
 
-/// Cycle 37 (window check): the Tag field opened on its value starts with the whole text selected, so typing replaces
+/// The Tag field opened on its value starts with the whole text selected, so typing replaces
 /// it instead of appending ("-101K2-101K1"); a field opened by typing keeps what was typed and appends to it.
 #[test]
 fn c37_typing_into_an_opened_field_replaces_its_text() {
@@ -1139,7 +1139,7 @@ fn the_label_column_gives_way_to_no_count_and_no_prose() {
     }
 }
 
-/// FT-1498 (doc 16a §6.8): at the 1280 × 800 floor folio 101's prose values (its Description beside its
+/// Doc 16a §6.8: at the 1280 × 800 floor folio 101's prose values (its Description beside its
 /// "inherited" chip, its Title) wrap at their words onto further lines, their rows growing, and none is cut; at
 /// 1920 × 1080 they stand on one line.
 #[test]
@@ -1214,7 +1214,7 @@ fn texts_in_row(h: &Harness<'_, App>, label: &str) -> Vec<(String, bool)> {
         .collect()
 }
 
-/// ID-1427 (W52 F3, F4): at the 1280 × 800 floor in Dutch an identifier stays whole beside its chip, on the cursor
+/// At the 1280 × 800 floor in Dutch an identifier stays whole beside its chip, on the cursor
 /// row too: a placed terminal's derived Tag ("-X1031:71" beside "afgeleid") and two devices' mixed Tag
 /// ("‹verschilt› (2)" beside "verschilt"); the label column yields to them, its labels whole or cut, never the value.
 #[test]
@@ -1281,7 +1281,7 @@ fn an_identifier_stays_whole_beside_its_chip_at_the_floor() {
     );
 }
 
-/// ID-1427 (W52 F5): at the 1280 × 800 floor in Dutch the position row of -102F1's representation is whole: its grid
+/// At the 1280 × 800 floor in Dutch the position row of -102F1's representation is whole: its grid
 /// cell and its millimetres with one decimal ("102-C7 · x 116.4 y 60.9 mm").
 #[test]
 fn the_position_row_is_whole_at_the_floor() {

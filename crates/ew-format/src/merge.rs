@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The three-way merge core (doc 05 §11.2, §11.3; ADR-0012 decisions 2 to 4; WP-S1.17 D2, D13, D14, D16, decision log
-//! ID-1268).
+//! The three-way merge core (doc 05 §11.2, §11.3; ADR-0012 decisions 2 to 4).
 //!
 //! - **One record** ([`merge_record`]): the core that the merge driver, the conflict-marker loader and the
 //!   external-change apply all call, on `serde_json::Value`. By the record table of doc 05 §11.2: a record on one side
@@ -786,8 +785,8 @@ fn merged_line(merged: &Value, sides: [Option<&ReadRecord<'_>>; 2]) -> (LineKey,
 }
 
 /// The line of a record-level conflict record ([`conflict_record`]), written through `ew-schema`'s [`Conflict`] so that
-/// its members are in D14's order (the `Value` sorts them) and the reader reads what the writer writes (decision log
-/// ID-1279); its compact JSON if it is not one.
+/// its members are in the documented order (the `Value` sorts them) and the reader reads what the writer
+/// writes; its compact JSON if it is not one.
 ///
 /// [`Conflict`]: ew_schema::Conflict
 fn conflict_line(conflict: &Value) -> (LineKey, String) {

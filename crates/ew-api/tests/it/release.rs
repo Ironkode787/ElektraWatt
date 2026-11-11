@@ -725,7 +725,7 @@ fn the_refusals_write_nothing() {
         s.release(&wrong, &integrity, &options(&NoGit, Some(&root))),
         Err(ReleaseError::Gate(ew_api::GateError::NotTheOpenRevision { .. }))
     ));
-    // Inside the project directory (ADR-0013), also through `..` or (on Windows) in another case (FIX39a finding 2).
+    // Inside the project directory (ADR-0013), also through `..` or (on Windows) in another case.
     let name = dir.file_name().expect("a name").to_string_lossy().into_owned();
     let mut insides = vec![
         dir.join("archives"),
@@ -1302,7 +1302,7 @@ fn with_description(bytes: &[u8], change: impl Fn(&mut serde_json::Value)) -> Ve
     archive::build(&all).expect("the archive builds")
 }
 
-/// FIX39a (finding 1): an archive of the label in a shared archive root that names another project or another
+/// An archive of the label in a shared archive root that names another project or another
 /// revision, or names none (damaged), is not this project's incomplete release: `discard` and `complete` are refused
 /// in words, and the archive and every temp in the root are kept byte for byte.
 #[test]
@@ -1647,7 +1647,7 @@ fn a_crashed_run_without_its_record_is_kept() {
     r.close();
 }
 
-/// FIX40a (finding 6): a run record whose SHA-256 is not the archive's, with the archive's modification time, is no
+/// A run record whose SHA-256 is not the archive's, with the archive's modification time, is no
 /// evidence: the discard keeps the archive and the record in words.
 #[test]
 fn a_record_of_other_bytes_with_the_same_time_is_kept() {
@@ -1679,7 +1679,7 @@ fn a_record_of_other_bytes_with_the_same_time_is_kept() {
     r.close();
 }
 
-/// FIX40a (finding 2): a run whose stamp's save was undecided (the process died after the intent; the record stays
+/// A run whose stamp's save was undecided (the process died after the intent; the record stays
 /// with the archive) is released by the next open's roll-forward, and that open removes the settled run's record. A
 /// restored pre-release copy of the directory at the same path (the same user's state directory) then finds the
 /// released archive as an incomplete release that no record proves its own, and its discard keeps it byte for byte.
@@ -1745,7 +1745,7 @@ fn a_rolled_forward_release_leaves_no_record_for_a_restored_copy() {
     panic!("the release made more than 2000 file-system calls");
 }
 
-/// FIX40a (finding 2): a stale record of this directory whose archive is gone is removed when the project opens for
+/// A stale record of this directory whose archive is gone is removed when the project opens for
 /// editing; a record of another directory and a record whose archive is still there are kept.
 #[test]
 fn the_open_removes_a_record_whose_archive_is_gone() {
@@ -1857,7 +1857,7 @@ fn two_copies_writing_at_once_keep_each_others_temps() {
     s.close();
 }
 
-/// FIX39a (finding 1) and FT-814: a discard of this directory's own crashed run (it died before creating the tag) keeps
+/// A discard of this directory's own crashed run (it died before creating the tag) keeps
 /// a tag of the label that is not its run's: one whose message does not carry the archive's SHA-256 (another
 /// project's in the same repository), or carries it without the run's mark (a copy's in another worktree of the same
 /// repository, whose archive at the same generation has the same bytes). It removes the archive, this directory's own
@@ -2078,7 +2078,7 @@ fn the_release_commits_and_tags_in_a_git_repository() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
-/// FIX40b (finding 2): on a file system without hard links that cannot set the archive's time (some SMB or FUSE
+/// On a file system without hard links that cannot set the archive's time (some SMB or FUSE
 /// mounts), the release goes on and keeps its archive. One failing call at a time over the run: whenever the release
 /// succeeds the archive is in place and the revision released; a run whose record could not be rewritten with the
 /// archive's time reports it as housekeeping trouble (and at least one call reaches that branch).
@@ -2134,7 +2134,7 @@ fn a_release_whose_archive_time_cannot_be_set_goes_on() {
 // ---------------------------------------------------------------------------------------------------------------
 // Part 5: the per-submission gate and the archive's use (D14, RU-1, RU-2)
 
-/// Cycle 41, ruling 1 ("the `HumanOnly` gate is per submission"): the release, the approval and the settling of an
+/// The `HumanOnly` gate is per submission: the release, the approval and the settling of an
 /// incomplete release judge the origin of the submission that asks, never the session's. A GUI session refuses every
 /// scripted submission (a command log, a script, MCP, a plugin) with the refusal a scripted session gets, and writes
 /// nothing; the confirmed submission of the same session completes.

@@ -230,8 +230,8 @@ pub(crate) fn structure_parent(dev: &Device) -> Option<Id<Device>> {
 /// 2. absent (inherit) on a terminal or a child-tag device: the strip's or the parent's resolved slot, so
 ///    `-X1031:1` and `-201U3-Q1` are designations inside their parent's structure;
 /// 3. absent on any other device: the slot of the structure box around its main representation when the box's
-///    `assigns` has a node or `none` for the aspect ([`SlotSource::StructureBox`]; `rep_structure_box`, FR-PRJ-020,
-///    WP-S2.04 §10.2), else the slot of the page of its main representation;
+///    `assigns` has a node or `none` for the aspect ([`SlotSource::StructureBox`]; `rep_structure_box`,
+///    FR-PRJ-020), else the slot of the page of its main representation;
 /// 4. an unplaced device with a parent device: the parent's resolved slot; else no node.
 ///
 /// **Cycles.** Steps 2 and 4 follow the device inheritance graph (terminal → strip, device → parent),

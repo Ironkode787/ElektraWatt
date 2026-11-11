@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The PLC normalisers beyond channel creation (lane C): N2 `solenoid_binding` (
-//! FR-PLC-051), N3 `module_pin_binding`, N1's kind change and its surplus notice with the
+//! The PLC normalisers beyond channel creation: N2 `solenoid_binding`
+//! (FR-PLC-051), N3 `module_pin_binding`, N1's kind change and its surplus notice with the
 //! Bulk command `plc.set_module_part` (FR-PLC-053).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
@@ -268,7 +268,7 @@ fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
     e.execute(&bind(channel_id(DEV_102F2, 2), Some((f, 0))))
         .expect("another channel takes the CP");
     let r = e.commit(preview).expect("commit");
-    // FT-952 ("N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
+    // N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do
     assert_eq!(
         r.outcome.notices,
         ["channel 2 of the same module was bound to this connection point and is now unbound"]
@@ -283,7 +283,7 @@ fn a_preview_of_a_binding_is_re_run_after_another_channel_took_the_cp() {
 }
 
 /// A move within the module re-evaluates the valve: a free coil binds at the new position; a bound coil
-/// keeps its channel, with a notice (owner ruling, cycle 18; EW-PLC-012 reports the deviation from the map,
+/// keeps its channel, with a notice (owner ruling; EW-PLC-012 reports the deviation from the map,
 /// doc 11 §4.2 N-FL-2).
 #[test]
 fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
@@ -505,7 +505,7 @@ fn n_fl_1_refuses_in_words_when_no_derived_function_id_is_free() {
     assert_eq!(functions_of(&e, v), before);
 }
 
-/// FT-1316 (FL-8, T24 whole): emptying a valve's position removes it with its two fluid lines and unbinds
+/// Emptying a valve's position removes it with its two fluid lines and unbinds
 /// the channel of its coil, each said in words; one undo step brings the valve, its lines and the binding back.
 #[test]
 fn emptying_a_valve_position_names_its_fluid_lines_and_the_unbound_channel() {
@@ -680,7 +680,6 @@ fn n3_reports_missing_held_and_unexpandable_pins() {
     assert_eq!(binding(&e, 1), None, "Out4 is held");
     assert_eq!(binding(&e, 2), None, "no CP is named Out5");
     assert_eq!(binding(&e, 3), None, "no CP is named Out6");
-    // FT-952 (as above)
     assert_eq!(
         r.outcome.notices,
         [
@@ -749,7 +748,7 @@ fn n1_applies_the_new_kind_to_existing_channels() {
         8,
         "no channel is created or removed"
     );
-    // FT-952 ("N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do")
+    // N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do
     let want: Vec<String> = (0..8)
         .map(|n| {
             let stays = if n == 3 { "bound to -102F2:GND" } else { "unbound" };
@@ -842,7 +841,7 @@ fn a_part_change_removes_surplus_channels_only_through_the_preview() {
     ));
     let preview = e.preview(&set_part(Some(NARROW))).expect("preview");
     assert_eq!(removed(&preview), channel_keys(4..8));
-    // FT-952 ("N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do"): the
+    // N1's and N3's PLC notices drop their UUIDs and requirement IDs and read as N2's do: the
     // bound channel names its binding in words
     let want: Vec<String> = (4..8)
         .map(|n| {
@@ -906,7 +905,6 @@ fn surplus_left_by_fields_set_is_removed_by_the_bulk_command_without_parts() {
         8,
         "fields.set removes nothing"
     );
-    // FT-952 (as above)
     assert_eq!(
         r.outcome.notices,
         [

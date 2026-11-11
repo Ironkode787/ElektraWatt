@@ -330,8 +330,8 @@ impl Q {
 
     /// In an incremental execution, drops the dependency on `F(key)` carried from the previous execution: the
     /// new value no longer relies on it (a page or function the hook removed from its value). A later read in
-    /// the same execution records it again. Cold, or in a non-incremental execution, it does nothing (review
-    /// cycle 10, finding 3: without it an incremental family kept every dependency it ever read).
+    /// the same execution records it again. Cold, or in a non-incremental execution, it does nothing
+    /// (without it an incremental family kept every dependency it ever read).
     pub(crate) fn forget<F: Query>(&self, key: &F::Key) {
         if let Some(store) = self.memo_store()
             && let Some(dep) = store.memo_key::<MemoOf<F>>(key)
@@ -484,7 +484,7 @@ impl Q {
     /// the frame it runs in (the request's, or the memo execution's): a value computed before the scope is a
     /// hit inside it, and a value computed inside it is a hit afterwards. A cold family evaluated inside the
     /// scope keeps the notes it pushed with its cached value, so a read outside the scope replays them as a
-    /// fresh evaluation would push them (review cycle 10, finding 1: a scope with a cache of its own evaluated
+    /// fresh evaluation would push them (a scope with a cache of its own evaluated
     /// every family it read again, once per scope).
     ///
     /// For the note-free connectivity families (ARCH §6.4): an incremental family whose hook re-reads only what
@@ -734,7 +734,7 @@ impl Q {
     /// the coarse [`DepKey::Reserved`] at `model.rev()`. Push invalidation touches it only when the reserved
     /// records themselves differ (a stamp change with equal content need not be pushed, `ew_memo::Db`), so a
     /// memo that reads them is not re-marked by every commit; a pull verification still sees the newer stamp
-    /// and re-executes. Revisions are typed records with their own table and stamps since FT-165
+    /// and re-executes. Revisions are typed records with their own table and stamps
     /// ([`Q::table`]).
     pub fn reserved(&self, kind: Kind) -> impl Iterator<Item = &serde_json::Value> + '_ {
         self.read(DepKey::Reserved, self.model.rev());
@@ -1130,7 +1130,7 @@ mod tests {
         INNER_RUNS.with(|c| c.set(0));
     }
 
-    /// Review cycle 10, finding 1: every detached scope had a cache of its own, so a family read by many
+    /// Every detached scope had a cache of its own, so a family read by many
     /// scopes was evaluated once per scope. Now it is evaluated once per request, its notes stay out of the
     /// detached scopes, and a read outside the scopes replays them.
     #[test]

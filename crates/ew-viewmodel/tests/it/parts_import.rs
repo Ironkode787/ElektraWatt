@@ -162,7 +162,7 @@ fn the_picker_lists_the_imported_parts_under_their_manufacturer_in_part_number_o
     done(&mut shell, "preview.apply", json!({}));
     done(&mut shell, "tool.place", json!({}));
     let picker = shell.picker().expect("the picker is open");
-    // FT-425 (CP5): grouped by manufacturer, in part-number order within one, the project's
+    // Grouped by manufacturer, in part-number order within one, the project's
     // own parts before the libraries'.
     let rows: Vec<(usize, &str, &str, bool)> = picker
         .rows
@@ -189,7 +189,7 @@ fn the_picker_lists_the_imported_parts_under_their_manufacturer_in_part_number_o
         keys, sorted,
         "the project's first, then manufacturer, then part-number order"
     );
-    // A header stands above the first part row of each manufacturer within its group and above no other row; FT-1513:
+    // A header stands above the first part row of each manufacturer within its group and above no other row;
     // the group's heading in words above the group's first part row.
     for (k, (i, m, _, l)) in rows.iter().enumerate() {
         let starts = k == 0 || rows[k - 1].3 != *l;
@@ -305,7 +305,7 @@ fn a_bad_table_is_refused_with_its_pointer_and_opens_no_card() {
     shell.shutdown();
 }
 
-/// A supplier's list with headers of its own (FT-649's fixture).
+/// A supplier's list with headers of its own.
 const SUPPLIER: &str = "Hersteller;Artikelnummer;Bezeichnung;Nennstrom\n\
                         Schneider Electric;A9F74210;Leitungsschutzschalter C10;10 A\n\
                         Phoenix Contact;3044102;Durchgangsklemme;\n";
@@ -366,7 +366,7 @@ fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
         }
     );
     assert!(shell.properties().card().is_none(), "no import card");
-    // Cycle 37 (window check W37): the card shows the refusal and the members in words; the describe line and the
+    // The card shows the refusal and the members in words; the describe line and the
     // outcome above keep the member names.
     assert_eq!(
         shell.parts_map().unwrap().error_text().as_deref(),
@@ -428,7 +428,7 @@ fn a_supplier_list_imports_after_mapping_and_its_map_is_saved() {
         text.contains("card ready \"parts.import\" created 2 skipped 0 errors 0"),
         "{text}"
     );
-    // Cycle 37 (window check W37): the Preview tab names the added parts by their numbers.
+    // The Preview tab names the added parts by their numbers.
     let parts: Vec<String> = shell
         .preview_pane()
         .entities()

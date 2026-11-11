@@ -65,8 +65,8 @@ fn generated() -> String {
                 "release": m.release.name(),
                 "waivable": m.waivable(),
                 "schemes": schemes,
-                // WP-S3.06 D8 and the orchestrator's ruling 6: "`\"open_item\": null` or
-                // `{\"category\": \"<words>\", \"discriminator\": \"<d>\" | null}` from `OPEN_ITEM_RULES`".
+                // `\"open_item\": null` or
+                // `{\"category\": \"<words>\", \"discriminator\": \"<d>\" | null}` from `OPEN_ITEM_RULES`.
                 "open_item": OPEN_ITEM_RULES.iter().find(|o| o.rule == m.id).map(|o| json!({
                     "category": o.category,
                     "discriminator": o.discriminator,

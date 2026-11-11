@@ -44,7 +44,7 @@ mod drawing;
 // External change, cloud folders, .ewz, the upgrade, the merge driver
 mod external;
 pub(crate) use external::collision_count;
-// FT-411, Edit ▸ Bridge terminals.
+// Edit ▸ Bridge terminals.
 mod bridge;
 // G-PP triage row 7: Draw ▸ Bond.
 mod bond;
@@ -68,7 +68,7 @@ mod messages;
 mod navigation;
 mod navigators;
 mod onboarding;
-// Swap cores, and Delete and F2 in navigator trees (§7, FT-490).
+// Swap cores, and Delete and F2 in navigator trees (FT-490).
 mod row_ops;
 // The strip editor's row gestures (§6.4, §6.5).
 mod strip_editor;
@@ -286,7 +286,7 @@ pub enum Dialog {
     },
     /// Help, Third-party notices.
     Notices,
-    /// Discard the journal of an earlier session that ended with unsaved changes (FT-313's first part): the
+    /// Discard the journal of an earlier session that ended with unsaved changes: the
     /// changes in it are lost.
     ConfirmJournalDiscard,
     /// Apply the check scheme to the finished basic project: `project.checks.set` is `HumanOnly`, so a
@@ -478,7 +478,7 @@ pub struct PaletteState {
     pub query: String,
     /// The index of the selected entry among the entries of the query.
     pub selected: usize,
-    /// The open parameter form (WP-S2.08 D5 (a)); the list is hidden while it is open.
+    /// The open parameter form; the list is hidden while it is open.
     pub form: Option<crate::palette::PaletteForm>,
 }
 
@@ -571,7 +571,7 @@ pub struct ShellModel {
     navs: std::collections::BTreeMap<crate::navigators::NavKind, crate::navigators::Navigator>,
     /// The Pages navigator in table mode, a generic navigator over `navigator_table(Pages)` (§8.1).
     pages_table: Option<crate::navigators::Navigator>,
-    /// WP-S2.07 part 2 (FT-490): the tree row whose label is being renamed.
+    /// FT-490: the tree row whose label is being renamed.
     rename: Option<NavRename>,
     /// The column mapping step of the parts import.
     parts_map: Option<PartsMap>,
@@ -609,7 +609,7 @@ pub struct ShellModel {
     /// The ID aliases `@n` of this session's machine text; never stored.
     aliases: std::cell::RefCell<crate::alias::AliasTable>,
     /// The source of new record IDs for the sessions the shell opens or creates: `None` (the system clock and OS
-    /// entropy) except in a test that replays one script under different IDs (FT-439's guard, feature `testkit`).
+    /// entropy) except in a test that replays one script under different IDs (feature `testkit`).
     id_source: Option<fn() -> Box<dyn IdSource + Send>>,
     /// The jobs (the PDF export) and the Jobs pane's entries.
     jobs: crate::jobs::JobsState,
@@ -884,7 +884,7 @@ mod choice_word_tests {
             if !nl.contains(key.as_str()) {
                 missing.insert(format!("nl-NL: {key}"));
             }
-            // The accessory has one English word, "End bracket" (16a §8 item 4); ID-1477 (1): the connection
+            // The accessory has one English word, "End bracket" (16a §8 item 4); the connection
             // grids read as the status bar writes them, "4 mm" and "QET 10 px".
             if !matches!(v.as_str(), "end_clamp" | "mm4" | "qet_10px") {
                 assert_eq!(choice_text(v), choice_words(v), "{v}");
@@ -975,7 +975,7 @@ impl ShellModel {
         };
         // The texts in the UI language of the settings.
         strings::set_locale(&settings.language);
-        // WP-S2.08 D8 (KM-2): a refused keymap file is kept aside with a banner, and the preset applies.
+        // A refused keymap file is kept aside with a banner, and the preset applies.
         let mut keymap_keep_file = false;
         let user_keymap = match &config.config_dir {
             Some(dir) => match keymaps::load_user_keymap(dir, &settings.keymap) {
@@ -1098,7 +1098,7 @@ impl ShellModel {
     }
 
     /// The origin of the shell's model commands, undo and redo: the GUI only in the window a person drives, else the
-    /// script's command log (`Origin::CmdLog`: the headless shell and a scripted window, cycle 41 ruling 1);
+    /// script's command log (`Origin::CmdLog`: the headless shell and a scripted window);
     /// `Session::undo` and `Session::redo` refuse a `HumanOnly` step from the latter, and every `HumanOnly`
     /// command submitted from it gets the exposure error.
     pub(super) fn origin(&self) -> Origin {
@@ -1387,7 +1387,7 @@ impl ShellModel {
     }
 
     /// Starts a new alias table: each headless script run starts one; a project opened or created within a run keeps
-    /// the run's table (ID-630 (b)).
+    /// the run's table.
     pub fn reset_aliases(&mut self) {
         self.aliases.get_mut().clear();
     }
@@ -1504,7 +1504,7 @@ impl ShellModel {
             self.tools.link_preview = None;
         }
         // A toast stays until it is dismissed, replaced by a toast of its key or pushed out by a fourth
-        // (and, in the window, for 8 seconds); a later commit only expires its Undo (WP-S2.05 §6.6's rule that the next
+        // (and, in the window, for 8 seconds); a later commit only expires its Undo (the rule that the next
         // committing action removed it gives way to the stack).
         // The project session and revision before the action, for the editing page (§7.2).
         let before = self.epoch_rev();
@@ -1580,7 +1580,7 @@ impl ShellModel {
     /// 3: on by default); the status bar says the new state with the key.
     pub(crate) fn act_tool_connect_on_move(&mut self, _p: &Map<String, Value>) -> Outcome {
         self.tools.connect_on_move = !self.tools.connect_on_move;
-        // ID-1509 (9), the window check's C2: during a move the move's own prompt says the new state, beside its
+        // During a move the move's own prompt says the new state, beside its
         // readout, so no notice takes its place.
         if matches!(self.tool_ghost(), Some(crate::tools::Ghost::Move { .. })) {
             return Outcome::Done;
@@ -1930,8 +1930,7 @@ impl ShellModel {
 
     /// The session options of the shell's own sessions: the origin is the GUI, new IDs from the system unless a test
     /// set a source (`set_id_source_for_tests`, feature `testkit`); the configuration's library tiers with the
-    /// company libraries of the settings key `libraries.company` after any the configuration names (
-    /// FT-754 (f)).
+    /// company libraries of the settings key `libraries.company` after any the configuration names.
     fn configured_libraries(&self) -> Option<ew_api::library::LibraryTiers> {
         let company = self.settings.company_libraries(self.config.config_dir.as_deref());
         let tiers = self.config.libraries.clone().or_else(|| {
@@ -1961,15 +1960,14 @@ impl ShellModel {
     }
 
     /// The source of new record IDs for every session the shell opens or creates from now on (feature `testkit`
-    /// only; `None`: the system clock and OS entropy, as in the product, which never sets one). FT-439's guard runs one
-    /// script under an ascending and a descending source: a shell output ordered by UUID then differs (decision log
-    /// ID-640). The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell.
+    /// only; `None`: the system clock and OS entropy, as in the product, which never sets one). A guard runs one
+    /// script under an ascending and a descending source: a shell output ordered by UUID then differs. The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell.
     #[cfg(feature = "testkit")]
     pub fn set_id_source_for_tests(&mut self, make: Option<IdSourceFactory>) {
         self.id_source = make;
     }
 
-    /// The open project's current snapshot (feature `testkit` only): WP-S2.11 D1's AC-28 flow compares the model's
+    /// The open project's current snapshot (feature `testkit` only): the AC-28 flow compares the model's
     /// records before an edit and after its undo.
     #[cfg(feature = "testkit")]
     pub fn world_for_tests(&self) -> Option<ew_api::World> {
@@ -2065,9 +2063,9 @@ impl ShellModel {
         // The revision dialogs' state and the release's warnings are the project's.
         self.revision = revision::RevisionState::default();
         self.messages.release_notes = None;
-        // WP-S3.09 D9 d: the migration report is the choice of the project it was made for.
+        // The migration report is the choice of the project it was made for.
         self.messages.migration = false;
-        // C52-p1#4, #2: the re-import's proposal and a waiting proposal or card are the project's.
+        // The re-import's proposal and a waiting proposal or card are the project's.
         self.import.reimport_proposal = None;
         self.import.reimport_waiting = None;
     }
@@ -2223,7 +2221,7 @@ impl ShellModel {
         }
     }
 
-    /// `library.update_damaged` (the damaged-copy banner's Update from library, FT-1499, ID-1486): every damaged library
+    /// `library.update_damaged` (the damaged-copy banner's Update from library, FT-1499): every damaged library
     /// copy an installed library holds is written from it, and the project opens again, writable when the integrity
     /// check passes, else read-only with its banner; a toast says what was updated and names the copies that were not.
     /// A refusal (another session holding the project among them) is a banner in words, nothing written.
@@ -2417,7 +2415,7 @@ impl ShellModel {
             self.dialog = Some(stashed);
             return Outcome::Done;
         }
-        // WP-S2.08 D5 (a): Escape in a parameter form returns to the palette's list.
+        // Escape in a parameter form returns to the palette's list.
         if self.close_palette_form() {
             return Outcome::Done;
         }
@@ -2599,8 +2597,7 @@ impl ShellModel {
         let Some(project) = &mut self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        // The `library.embed` that a `plc.set_profile` naming a library's profile runs first (WP-S7.03
-        // D8), an undo step of its own, joins the record before it, so the recorded script replays without the library.
+        // The `library.embed` that a `plc.set_profile` naming a library's profile runs first, an undo step of its own, joins the record before it, so the recorded script replays without the library.
         let embed = (cmd == "plc.set_profile")
             .then(|| params.get("profile").and_then(Value::as_str))
             .flatten()

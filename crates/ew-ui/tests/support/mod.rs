@@ -400,7 +400,7 @@ pub fn menu_entry_problems(
         .collect()
 }
 
-/// The walker on the surface on show, R1 to R6, with WP-S2.08's splitter count: every splitter handle of the dock and
+/// The walker on the surface on show, with the splitter count: every splitter handle of the dock and
 /// the canvas area is a named `Splitter` node.
 #[track_caller]
 pub fn assert_accessible(harness: &Harness<'_, App>) {
@@ -441,7 +441,7 @@ pub fn assert_accessible(harness: &Harness<'_, App>) {
     );
 }
 
-/// The fit check of WP-S2.08 D11 (NFR-I18N-02), beside [`assert_accessible`]: every visible labelled AccessKit node lies
+/// The fit check (NFR-I18N-02), beside [`assert_accessible`]: every visible labelled AccessKit node lies
 /// inside the window and inside its nearest bounded ancestor across (1 px slack), and no two interactive siblings
 /// overlap.
 ///
@@ -531,7 +531,7 @@ pub fn fit_problems<S>(harness: &Harness<'_, S>) -> Vec<String> {
     problems
 }
 
-/// ID-1278 ruling 13 (FR-UI-027): the buttons of the open dialog (its Primary and Cancel among
+/// FR-UI-027: the buttons of the open dialog (its Primary and Cancel among
 /// them) or of the first run's step on show lie inside the window down as well as across ([`fit_problems`] checks
 /// across only: a dialog grows down). A button is looked for in its own window only: the dialog's modal
 /// that holds its title (the first run's window), so a button of the same name elsewhere never stands in for it. A

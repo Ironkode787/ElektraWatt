@@ -226,7 +226,7 @@ pub fn cp_label(q: &Q, cp: CpRef) -> String {
             return short;
         };
         // A clamp letter that repeats on the function (a third-party FnDef naming clamp `a` on both sides; the
-        // starter `ew.fn.terminal` names side 2 `b` since FT-505) takes `#n` like a repeated device designation, the
+        // starter `ew.fn.terminal` names side 2 `b`) takes `#n` like a repeated device designation, the
         // n-th CP of that level and clamp in index order, so that each clamp prints a distinct label (`-X1:1/a#1`,
         // `-X1:1/a#2`).
         let mut same: Vec<u16> = cps

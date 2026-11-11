@@ -108,8 +108,8 @@ impl ReportKindDef for DeviceList {
     }
 }
 
-/// The part numbers of the device's own part uses (`LineSource::Device` and `LineSource::GroupAccessory`, WP-S4.02
-/// ruling 4), each once, in line order, joined by ", ".
+/// The part numbers of the device's own part uses (`LineSource::Device` and `LineSource::GroupAccessory`),
+/// each once, in line order, joined by ", ".
 fn parts_text(q: &Q, device: Id<Device>) -> String {
     let parts = q.parts();
     let mut numbers: Vec<String> = Vec::new();

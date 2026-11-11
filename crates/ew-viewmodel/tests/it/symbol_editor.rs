@@ -848,7 +848,7 @@ fn refusals_of_export_and_unknown_members_are_in_words() {
     shell.shutdown();
 }
 
-/// ID-1463 (M25-p3#5): Close leaves the view and keeps the draft with its history; Edit ▸ Symbol editor returns to it;
+/// Close leaves the view and keeps the draft with its history; Edit ▸ Symbol editor returns to it;
 /// only Discard drops it.
 #[test]
 fn closing_the_editor_keeps_the_draft_and_its_history_until_discarded() {
@@ -872,7 +872,7 @@ fn closing_the_editor_keeps_the_draft_and_its_history_until_discarded() {
     shell.shutdown();
 }
 
-/// M25-p3#7: an unedited new, forked or imported draft is no unsaved change, and an import is in no library yet.
+/// An unedited new, forked or imported draft is no unsaved change, and an import is in no library yet.
 #[test]
 fn the_draft_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored() {
     use ew_viewmodel::strings;
@@ -914,7 +914,7 @@ fn the_draft_state_says_unsaved_only_after_an_edit_and_saved_only_once_stored() 
     shell.shutdown();
 }
 
-/// M25-p3#11: an empty path is refused in words before any file system call, and a relative one resolves against the
+/// An empty path is refused in words before any file system call, and a relative one resolves against the
 /// default user library's folder, never the working directory.
 #[test]
 fn symbol_paths_are_refused_when_empty_and_resolve_against_the_user_library_folder() {
@@ -947,7 +947,7 @@ fn symbol_paths_are_refused_when_empty_and_resolve_against_the_user_library_fold
     shell.shutdown();
 }
 
-/// M25-p3#11: in the window a missing path asks the house picker.
+/// In the window a missing path asks the house picker.
 #[test]
 fn the_window_asks_the_pickers_for_a_missing_symbol_path() {
     use ew_viewmodel::shell::Prompt;
@@ -1005,7 +1005,7 @@ fn a_test_placement_shows_the_page_and_its_toast_returns_to_the_editor() {
     shell.shutdown();
 }
 
-/// M25-p3#6: the test copy's key is derived from its content, so placing again after a reopen embeds a new copy.
+/// The test copy's key is derived from its content, so placing again after a reopen embeds a new copy.
 #[test]
 fn a_test_copy_placed_again_after_reopening_the_project_takes_its_own_key() {
     let tmp = Tmp::new("symbol-reopen");
@@ -1158,7 +1158,7 @@ fn saving_a_published_draft_under_another_key_adds_a_symbol_and_says_so() {
     shell.shutdown();
 }
 
-/// M25-p5#5: the file picker offers exactly the extensions the editor reads: JSON, and every extension an importer
+/// The file picker offers exactly the extensions the editor reads: JSON, and every extension an importer
 /// takes (a file the JSON reader would refuse otherwise), `.pxf` among them.
 #[test]
 fn the_symbol_file_picker_offers_every_extension_an_importer_reads() {
@@ -1213,7 +1213,7 @@ fn the_picker_greys_a_published_symbol_on_another_grid_with_its_reason() {
         .expect("the published symbol is listed");
     let row = PickerRow::Symbol(i);
     assert!(picker.rows.contains(&row));
-    // M25-p7#3: both grids named as the status bar, New page and Properties name them.
+    // Both grids named as the status bar, New page and Properties name them.
     let words = "This symbol is drawn on the 4 mm connection grid, and this page uses QET 10 px. Place it on a page \
                  with its grid.";
     assert_eq!(picker.disabled_words(row).as_deref(), Some(words));
@@ -1331,7 +1331,7 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     shell.shutdown();
 }
 
-/// M25-p7#2 (ID-1477 (1)): the editor's offer for a draft saved to a library and unchanged since places the published
+/// The editor's offer for a draft saved to a library and unchanged since places the published
 /// symbol on a new page with its grid and selects it; for any other draft it is Test on a new page, and
 /// `symbol.new_page` is refused in words.
 #[test]
@@ -1463,7 +1463,7 @@ fn a_new_text_is_centred_in_the_style_chosen_last() {
     shell.shutdown();
 }
 
-/// ID-1483 (F2): an edit the reader refuses (a text with no characters) is refused in words, never the parser's.
+/// An edit the reader refuses (a text with no characters) is refused in words, never the parser's.
 #[test]
 fn an_edit_the_reader_refuses_is_refused_in_words() {
     let tmp = Tmp::new("symbol-edit-words");
@@ -1504,7 +1504,7 @@ fn save_without_a_folder_saves_to_the_default_user_library() {
     shell.shutdown();
 }
 
-/// ID-1476 (M25-p6#1): an editable copy of a starter symbol under its own key says nothing of a new symbol when saved:
+/// An editable copy of a starter symbol under its own key says nothing of a new symbol when saved:
 /// only its function definition took an identity of its own.
 #[test]
 fn saving_a_copy_under_its_own_key_announces_no_new_symbol() {
@@ -1542,7 +1542,7 @@ fn saving_a_copy_under_its_own_key_announces_no_new_symbol() {
     shell.shutdown();
 }
 
-/// ID-1476 (M25-p6 nits): the test copy's item IDs are v5 names whose parts are joined with U+001F (ADR-0004
+/// The test copy's item IDs are v5 names whose parts are joined with U+001F (ADR-0004
 /// amendment 4); a save whose owned function definition differs at its version is refused naming that definition.
 #[test]
 fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
@@ -1596,7 +1596,7 @@ fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
         .placement
         .unwrap();
     assert_eq!((place.tab, place.group), (Tab::Draw, Group::Place));
-    // M25-p7 (ruled): the button reads "Symbols", the editor's things; its tooltip and menu entry "Symbol editor…".
+    // The button reads "Symbols", the editor's things; its tooltip and menu entry "Symbol editor…".
     let bar = place.bar_label.unwrap();
     assert_eq!(ew_viewmodel::strings::text(bar), "Symbols");
     assert!(ew_viewmodel::strings::set_locale("nl"));
@@ -1618,7 +1618,7 @@ fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
     shell.shutdown();
 }
 
-/// ID-1463 (M25-p5 nit): the quit question's Save symbol saves the draft, then quits.
+/// The quit question's Save symbol saves the draft, then quits.
 #[test]
 fn the_quit_questions_save_symbol_saves_the_draft_and_quits() {
     use ew_viewmodel::shell::ConfirmAnswer;
@@ -1773,7 +1773,7 @@ fn the_same_content_placed_twice_reuses_one_copy() {
     assert_eq!(placed, 2);
 }
 
-/// M25-p4#6: the library writer's version refusals reach the window in words, in both languages: the symbol by its
+/// The library writer's version refusals reach the window in words, in both languages: the symbol by its
 /// name, the versions, no UUID.
 #[test]
 fn version_refusals_of_a_save_name_the_symbol_and_its_versions() {
@@ -1812,7 +1812,7 @@ fn version_refusals_of_a_save_name_the_symbol_and_its_versions() {
     shell.shutdown();
 }
 
-/// ID-1472 (M25-p5#6): `symbol.new` with `discard` starts a fresh draft; without a key or name it returns to the kept
+/// `symbol.new` with `discard` starts a fresh draft; without a key or name it returns to the kept
 /// one.
 #[test]
 fn a_new_symbol_with_discard_starts_a_fresh_draft() {
@@ -1829,7 +1829,7 @@ fn a_new_symbol_with_discard_starts_a_fresh_draft() {
     shell.shutdown();
 }
 
-/// ID-1472 (M25-p5#6 and the discard question's nit): in the window, New symbol over unsaved changes asks Save
+/// In the window, New symbol over unsaved changes asks Save
 /// symbol, Discard or Cancel in the house dialog, in words that match its buttons; a clean draft is replaced at once.
 #[test]
 fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {

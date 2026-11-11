@@ -76,19 +76,19 @@ pub struct PartLine {
 ///
 /// A missing device and a device that is not fitted have no lines. Otherwise one line per part use of the
 /// device (`Device.parts` order; for a strip placed on a rail, the part use that declares its end brackets gives a
-/// [`LineSource::GroupAccessory`] line whose quantity is the number of brackets attributed to the strip, WP-S4.02
-/// D13; a strip without a bracket on any rail keeps the authored quantity), then, for a strip device, one line of quantity 1 per strip accessory
-/// (mounting order), then one line of quantity 1 per bridge group of the strip that has a part
-/// ([`StripBridges`], group order), then, for the device of an enclosure, one **carrier line**
-/// per part ([`LineSource::Carrier`], WP-S4.01 D11 as amended by the orchestrator's ruling 5 of cycle 41): the
-/// carriers with a part on the enclosure's mounting surfaces that share a part copy (and variant) give one line,
-/// whose quantity is the sum of their path lengths in metres exact to the millimetre (summed in nanometres, rounded
-/// once, half up). A carrier without a derivable length (a path that breaks D5, a kind of a newer format; only
-/// loaded data has one, EW-LAY-010 reports it) adds nothing, and a line all of whose carriers lack a length stays
-/// with quantity 0 (ruling 6). The carrier lines come in the legend order of their first carrier (surfaces by ID,
-/// then rails before ducts, each top to bottom then left to right; [`crate::layout::carrier_order`]), after the
-/// device's own lines, so a reader of the first line keeps the device's own part. A line whose part copy is
-/// missing is dropped.
+/// [`LineSource::GroupAccessory`] line whose quantity is the number of brackets attributed to the strip; a
+/// strip without a bracket on any rail keeps the authored quantity), then, for a strip device, one line of
+/// quantity 1 per strip accessory (mounting order), then one line of quantity 1 per bridge group of the
+/// strip that has a part ([`StripBridges`], group order), then, for the device of an enclosure, one
+/// **carrier line** per part ([`LineSource::Carrier`]): the carriers with a part on the enclosure's mounting
+/// surfaces that share a part copy (and variant) give one line, whose quantity is the sum of their path
+/// lengths in metres exact to the millimetre (summed in nanometres, rounded once, half up). A carrier
+/// without a derivable length (a path that breaks D5, a kind of a newer format; only loaded data has one,
+/// EW-LAY-010 reports it) adds nothing, and a line all of whose carriers lack a length stays with quantity
+/// 0. The carrier lines come in the legend order of their first carrier (surfaces by ID, then rails before
+/// ducts, each top to bottom then left to right; [`crate::layout::carrier_order`]), after the device's own
+/// lines, so a reader of the first line keeps the device's own part. A line whose part copy is missing is
+/// dropped.
 #[derive(Debug)]
 pub struct DevicePartLines;
 
@@ -310,7 +310,7 @@ pub struct BomRow {
 ///    short tag, full tag and ID (natural order); the pages are those of the main representations of the devices
 ///    with a line other than an end-bracket line ([`LineSource::GroupAccessory`]) together with, for a line of a
 ///    layout object (the device of an enclosure or of a mounting surface, a carrier line, an end-bracket line), the
-///    panel-layout pages whose surface view shows its surface (FT-204: -UC1's rows print folio 902;
+///    panel-layout pages whose surface view shows its surface (-UC1's rows print folio 902;
 ///    An end-bracket line prints the panel pages of its rails and none of its strip's representation
 ///    pages, so row 26 prints 902), in page order. That is the Folios cell only: the order below
 ///    reads the representations alone. The covers of a configured row are the union of its configs' covers.

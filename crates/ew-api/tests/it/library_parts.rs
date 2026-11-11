@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.18 D6 in the Session: the system libraries' parts (the compiled-in generic starter parts) are listed for a
+//! In the Session: the system libraries' parts (the compiled-in generic starter parts) are listed for a
 //! new project, and choosing one in the Parts row is one `part.assign` that carries the part with its closure, so
 //! that the command replays without a library.
 
@@ -156,7 +156,7 @@ fn catalogue_order(s: &Session) -> Vec<(String, String, bool)> {
         .collect()
 }
 
-/// FT-1087 as FT-1375 amends it: the chooser lists the parts the project holds first, then those
+/// The chooser lists the parts the project holds first, then those
 /// of the libraries it does not, each by (maker, part number); embedding a part (here by the Parts row's
 /// `part.assign`, which carries the part with its closure) moves it to the front, among the project's own.
 #[test]

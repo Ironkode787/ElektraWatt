@@ -209,7 +209,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             }),
         ),
     )),
-    // WP-S2.17 part 3 (§4.3, D11, D15): the Advanced rows of the property grid, and the rails' own control.
+    // The Advanced rows of the property grid, and the rails' own control.
     with_params(
         "on?:bool",
         act(
@@ -234,7 +234,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_rail_show(p),
         )),
     ),
-    // WP-S2.09 part 1 (§6.8): View ▸ Jobs and View ▸ Notifications.
+    // View ▸ Jobs and View ▸ Notifications.
     keeps_banner(with_params(
         "on?:bool",
         placed(
@@ -295,7 +295,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     )),
-    // WP-S3.09 D9 d (T11): the Messages pane's choice of the migration report beside the project's scheme.
+    // The Messages pane's choice of the migration report beside the project's scheme.
     with_params(
         "on?:bool",
         hidden(act(
@@ -308,7 +308,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_messages_migration(p),
         )),
     ),
-    // WP-S2.09 part 2 (§7.6): View ▸ Messages, F8 and Shift+F8, the quick fix of a finding row.
+    // View ▸ Messages, F8 and Shift+F8, the quick fix of a finding row.
     with_params(
         "on?:bool",
         placed(
@@ -443,7 +443,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_wheel_scrolls(p),
         ),
     ),
-    // View ▸ Show tips, the setting `tips` (FR-UI-048), beside Reduce motion. FT-1367:
+    // View ▸ Show tips, the setting `tips` (FR-UI-048), beside Reduce motion, and
     // a switch of the View tab's Show group too, so its menu item is View ▸ Show ▸ Show tips.
     with_params(
         "on?:bool",
@@ -495,7 +495,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
-    // WP-S2.08 part 3 (D10, ruling 5): View ▸ Language switches the UI language at run time; `value` is a
+    // View ▸ Language switches the UI language at run time; `value` is a
     // value of the `language` setting.
     with_params(
         "value:text",
@@ -513,7 +513,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         )),
     ),
-    // WP-S2.17 part 2 (§4.3): the command bar's tab and its collapse (Ctrl+F1, a tab's double click), view actions.
+    // The command bar's tab and its collapse (Ctrl+F1, a tab's double click), view actions.
     keeps_banner(with_params(
         "tab:enum(project|page|draw|check|output|view)",
         needs_parameters(act(

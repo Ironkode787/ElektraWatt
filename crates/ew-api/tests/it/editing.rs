@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The public items of WP-S2.04 part 1 below the shell (§4.3, acceptance check PL1): the place catalogue on Golden A
+//! The public items below the shell: the place catalogue on Golden A
 //! and on a new project, the starter embedding, symbol shapes against the drawn CPs and `Orient2`, and the page
 //! tables of folios 101 to 103 against the golden tables, `cp_point` and the scene's wires.
 
@@ -168,7 +168,7 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
         .find(|p| p.part_number == "EW-GEN-CON-1")
         .expect("the generic contactor");
     assert_eq!(con.functions[1].kind_text, "NO contact 1-2");
-    // Cycle 37 (window check W37): a coil's category entry that repeats its CPs (`A1A2`) is dropped.
+    // A coil's category entry that repeats its CPs (`A1A2`) is dropped.
     assert_eq!(con.functions[0].fndef_key, "ew.fn.coil");
     assert_eq!(con.functions[0].kind_text, "Coil A1-A2");
     // The picker leads with the part's description in words.
@@ -331,7 +331,7 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
                 .collect();
             assert!(pos.windows(2).all(|w| w[0] < w[1]), "{}", cp.label);
         }
-        // Not the ID order of the tables before FT-439 (Golden A's v5 IDs are in no visible order).
+        // Not the ID order of the tables (Golden A's v5 IDs are in no visible order).
         assert!(
             !t.reps.windows(2).all(|w| w[0].id < w[1].id),
             "{folio}: the place order is not the ID order"
@@ -413,7 +413,7 @@ fn the_page_tables_of_folios_101_to_103_match_the_golden_tables_and_the_scene() 
     assert!(s.page_tables("no such folio").is_none());
 }
 
-/// FT-771 (GT-6): `TableRep::tag_at` stands where the scene prints the tag, after the tag rule
+/// `TableRep::tag_at` stands where the scene prints the tag, after the tag rule
 /// moved it, never at the tag slot's default: on every drawn page of Golden A (the rule moves tags on 102 and 106),
 /// each reported tag is the labels layer's anchor of its representation's tag, raised by the one text height of the
 /// tag style.

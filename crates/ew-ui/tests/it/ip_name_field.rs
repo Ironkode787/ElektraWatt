@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 3 in the window without rendering: the IP tool's name field in the tool strip keeps the canvas keys
+//! In the window without rendering: the IP tool's name field in the tool strip keeps the canvas keys
 //! (P, D, B) while it has the focus (the `text_edit_focused` gate of the key routing in `app.rs`), and Enter sends the
 //! name to the tool.
 
@@ -164,7 +164,7 @@ fn type_in_name_field(h: &mut Harness<'_, App>, text: &str) {
     settle(h);
 }
 
-/// The play-test of cycle 40 (finding 5): a name typed in Tool options and left by a click on the canvas, without
+/// A name typed in Tool options and left by a click on the canvas, without
 /// Enter, names the point that click places; the field empties (its own clear on the lost focus cancels nothing).
 #[test]
 fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
@@ -269,7 +269,7 @@ fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// FT-1086 at the floor: the IP tool's Tool options card takes the pointer only with its controls. A click on
+/// At the floor the IP tool's Tool options card takes the pointer only with its controls. A click on
 /// its title (its free area) places a point on the sheet beneath; while the tool's ghost is under the card the card is
 /// drawn at 40 % opacity and is no chip obstacle, and away from it the card is whole and an obstacle again.
 #[test]
@@ -354,7 +354,7 @@ fn a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1115 at the floor: the Tool options card's band takes the pointer only on its controls. A click in the
+/// At the floor the Tool options card's band takes the pointer only on its controls. A click in the
 /// gap between the IP name's label and its field places a point on the sheet beneath; a click on the field does not.
 /// Folio 3, whose sheet is free beneath the band (103's routed wires run there, and a point is not placed on a wire).
 #[test]
@@ -402,7 +402,7 @@ fn a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1077 at the floor: the Interruption point row of a placed point's function has no value, so its label
+/// At the floor the Interruption point row of a placed point's function has no value, so its label
 /// runs across the value column and is whole; a row with a value keeps the label column (M39).
 #[test]
 fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {

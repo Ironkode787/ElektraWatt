@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The store's half of an external change (doc 05 §9; WP-S1.17 D20, D21, D23, decision log ID-1284; see
+//! The store's half of an external change (doc 05 §9; see
 //! [`crate::external`]): the poll, the incoming read and the adoption of the incoming generation as the baseline.
 
 use std::io;

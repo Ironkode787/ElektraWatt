@@ -4,7 +4,7 @@
 //! The read-only viewer in the window without rendering (acceptance checks V10 to V12): the
 //! keyboard-only flow (Go to, links, Back, tabs, side by side, the navigator, the grid cursor and its AccessKit
 //! announcement) with the accessible-name walker after every step, the exact counts of the multi-canvas host, and
-//! FT-356's retention for hidden canvas tabs.
+//! the retention for hidden canvas tabs.
 
 use crate::support;
 
@@ -459,7 +459,7 @@ fn the_navigator_rows_are_built_once_per_revision_and_navigator_state() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// J32 (doc 16a §6.6, WP-S2.17 part 3's DK2 for the canvas tabs): no canvas tab's label carries a bracketed word; the
+/// Doc 16a §6.6, for the canvas tabs: no canvas tab's label carries a bracketed word; the
 /// badges are the page rows' caption chips painted inside the tab, and the accessible name reads them after a comma.
 #[test]
 fn j32_canvas_tab_badges_are_chips_not_bracketed_words() {

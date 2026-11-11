@@ -20,17 +20,17 @@ use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// The project-row member that holds the company data of a basic project until `Project` types it: an object
-/// `{"logo": <AssetRef>, "notice": <MlText>}` (the provisional source `title_block(page)` reads, doc 09 §2.6,
-/// decision log ID-40; an earlier `logo` form, a bare `"sha256:…"`, is still read). `project.company.set` writes
+/// `{"logo": <AssetRef>, "notice": <MlText>}` (the provisional source `title_block(page)` reads, doc 09 §2.6;
+/// an earlier `logo` form, a bare `"sha256:…"`, is still read). `project.company.set` writes
 /// `notice` and `logo` and keeps every other member.
 pub const COMPANY_MEMBER: &str = ew_schema::COMPANY_MEMBER;
 
 /// Brings the image file of `text` (base64, RFC 4648 §4) into the project's asset store: the one path of the company logo
 /// and of an image given as data to `item.place`. The text is checked against [`ew_schema::MAX_LOGO_BYTES`] before it is
 /// decoded, then decoded, sniffed (format, intrinsic size, the size limits, a raster image's pixel limit and, for an SVG,
-/// the rejecter of FT-383) and stored with the transaction ([`TxBuilder::put_asset`]). `what` names the file and the
-/// limit in the refusal text, in words (the logo, a company logo); every refusal is `InvalidParams` of `command` at
-/// `pointer`.
+/// the SVG rejecter) and stored with the transaction ([`TxBuilder::put_asset`]). `what` names the file and
+/// the limit in the refusal text, in words (the logo, a company logo); every refusal is `InvalidParams` of
+/// `command` at `pointer`.
 pub(crate) fn store_image(
     tx: &mut TxBuilder<'_>,
     command: &str,

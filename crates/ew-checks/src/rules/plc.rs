@@ -19,8 +19,8 @@
 //! # Prevent mode
 //!
 //! EW-PLC-001 and EW-PLC-007 carry the catalogue's prevent letter, so release mode reports them; their prevent
-//! evaluation (refusing the edit that creates an overlap or a duplicate symbol) is not built: WP-S1.21 §10.2 item 6
-//! admits no refusal beyond the address parse and the profile check in this package.
+//! evaluation (refusing the edit that creates an overlap or a duplicate symbol) is not built: no refusal is
+//! made beyond the address parse and the profile check.
 
 use std::collections::BTreeMap;
 

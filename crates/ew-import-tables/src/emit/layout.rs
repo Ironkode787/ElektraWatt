@@ -36,7 +36,7 @@ pub(crate) struct LayoutKeys {
     carriers: BTreeMap<String, (Id<Carrier>, bool)>,
 }
 
-/// Why a carrier path breaks WP-S4.01 D5 (a rail is two points on one horizontal or vertical line, a duct an
+/// Why a carrier path is not valid (a rail is two points on one horizontal or vertical line, a duct an
 /// orthogonal polyline), or `None`.
 pub fn path_problem(kind: &CarrierKind, path: &[Pt2]) -> Option<String> {
     match kind {

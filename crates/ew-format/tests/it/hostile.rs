@@ -200,7 +200,7 @@ fn invalid_utf8_is_a_syntax_error_kept_byte_for_byte() {
     );
 }
 
-/// WP-S1.17, decision log ID-1185 rulings 1 and 2: each quarantined line carries the kind of the finding that kept it;
+/// Each quarantined line carries the kind of the finding that kept it;
 /// a line that is not JSON or not UTF-8 is a broken line (EW-CORE-005 at line level), which alone does not set the
 /// loader's flag of findings beyond a repair.
 #[test]

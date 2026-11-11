@@ -74,8 +74,8 @@ const _: () = {
     send::<PrintSetJob>();
 };
 
-/// The print set of the session's current snapshot, built on another thread ([`Session::print_set_job`]; WP-S3.07
-/// ruling 2 of ID-1180): the `World`, the report engine and the asset bytes, as [`ExportJob`] holds them.
+/// The print set of the session's current snapshot, built on another thread ([`Session::print_set_job`]): the
+/// `World`, the report engine and the asset bytes, as [`ExportJob`] holds them.
 pub struct PrintSetJob {
     world: World,
     reports: Arc<dyn ReportPagesProvider>,

@@ -10,7 +10,7 @@
 //! maximised one keeps its last normal size and position with `maximized = true`.
 //!
 //! **Units.** The size is in points at the zoom 1 on every platform; the position is in the desktop's uniform space,
-//! physical pixels (macOS, with its global logical points of R3-2, is not a supported platform).
+//! physical pixels (macOS, with its global logical points, is not a supported platform).
 //!
 //! - *The size.* egui reports the window's rectangles in its points at the current zoom (the physical pixels divided
 //!   by the native scale times egui's zoom factor, which is the UI scale); the recorded size is the reported one times
@@ -29,7 +29,7 @@
 //!   [`egui::Context::set_zoom_factor`] at the start of the next pass), so a frame whose zoom differs from the previous
 //!   frame's records nothing.
 //!
-//! `[window] x/y` were points everywhere before R2-1 (never released); such a value is read as physical
+//! `[window] x/y` were once points everywhere (never released); such a value is read as physical
 //! pixels, and the clamp of the first frame keeps the window on a monitor whatever it is.
 //!
 //! **The clamp at start**. eframe 0.37 without its `persistence` feature knows no monitor before the window
@@ -353,7 +353,7 @@ mod tests {
         }
     }
 
-    /// A saved position on no monitor (a monitor gone, or a value from before R2-1 in points) is clamped on the
+    /// A saved position on no monitor (a monitor gone, or an older value in points) is clamped on the
     /// first frame; a window already at its saved place does not move; no saved position runs the clamp on where the
     /// window opened.
     #[test]

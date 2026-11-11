@@ -17,7 +17,7 @@ fn refused(shell: &mut ShellModel, cmd: &str, params: Value) -> String {
     }
 }
 
-/// FT-1241's refusal (a point that defines a potential already), a refusal with a folio, and one that names a position
+/// A refusal (a point that defines a potential already), a refusal with a folio, and one that names a position
 /// in words: each in Dutch in the Dutch window and in English in the English one.
 #[test]
 fn a_refused_command_shows_its_reason_in_the_window_language() {
@@ -104,7 +104,7 @@ fn the_api_s_own_refusals_show_in_the_window_language() {
     shell.shutdown();
 }
 
-/// ID-1509 (7), C53-rt#11: a route whose end misses its junction is refused with the junction in the window's own
+/// A route whose end misses its junction is refused with the junction in the window's own
 /// word for it, "aftakking" in Dutch.
 #[test]
 fn a_route_off_its_junction_is_refused_with_the_aftakking() {

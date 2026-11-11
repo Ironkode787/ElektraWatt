@@ -8,7 +8,7 @@
 //! surface nm: to the nearest snap line within reach (the usable area's edges; for a duct also those edges inset by
 //! half its width; the outlines of the ducts; the ends and axes of the rails), else to the plate grid (5 mm, or 1 mm by
 //! the tool option). Of the targets in reach the nearest wins, the grid included; at equal distance a duct edge or a
-//! usable edge before a rail's end or axis, before the grid (as ID-1044 orders the placing tool's targets). Shift
+//! usable edge before a rail's end or axis, before the grid (as the placing tool orders its targets). Shift
 //! suspends the lines (the grid stays).
 //!
 //! **The second point** is constrained to the dominant axis of the pointer's displacement from the first (a rail is

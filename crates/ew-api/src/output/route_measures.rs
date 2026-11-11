@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A page's geometry for the schematic router and its layout measures in words (decision log
-//! ID-1498): [`Session::page_geometry`] builds `ew_derive::routing`'s [`PageGeometry`] from the page tables
-//! ([`Session::page_tables`]), the labels layer's text boxes and the frame; [`Session::layout_report`] measures one
-//! page or every schematic page and names what it finds the way the page prints it, for `ew layout`.
+//! A page's geometry for the schematic router and its layout measures in words: [`Session::page_geometry`]
+//! builds `ew_derive::routing`'s [`PageGeometry`] from the page tables ([`Session::page_tables`]), the labels
+//! layer's text boxes and the frame; [`Session::layout_report`] measures one page or every schematic page and
+//! names what it finds the way the page prints it, for `ew layout`.
 //!
 //! - **Bodies:** each representation's body (`TableRep::body`) and a black box's outline by its bounds, as the Wire
 //!   tool's obstacles without their growth (`ew-viewmodel`'s `rep_rects`).
 //! - **Text boxes:** the labels layer's entity rectangles that are not a point of the page's representations, free
 //!   texts and structure boxes: every line of a tag, a slot or pin text and a cross-reference text the scene prints
-//!   for a representation, a free text's lines and a structure box's caption (ID-1502 (3)), in page coordinates. A
+//!   for a representation, a free text's lines and a structure box's caption, in page coordinates. A
 //!   wire marker's text moves with its wire and is left out.
 //! - **Frame bands:** the frame's outer rectangle outside its drawing area (`ew_scene::forms::FrameGeometry`), up to
 //!   four bands, as the Wire tool's `frame_rects` without its inset.
@@ -224,7 +224,7 @@ fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
         }
     }
     // The texts the labels layer draws for the page's representations, free texts and structure boxes (their
-    // captions); wire markers move with their wire and are left out (ID-1502 (3)).
+    // captions); wire markers move with their wire and are left out.
     let reps: BTreeSet<Uuid> = tables
         .reps
         .iter()
@@ -413,7 +413,7 @@ fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
 fn symbol_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
     let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
     let Some(r) = tables.reps.iter().find(|r| r.id == id) else {
-        // A free text or a structure box's caption (ID-1502 (3)).
+        // A free text or a structure box's caption.
         if let Some(t) = tables.items.iter().find(|i| i.id == id) {
             return format!("the free text \"{}\"", t.text.clone().unwrap_or_default());
         }
@@ -655,7 +655,7 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
             wire(o.connections[1]),
         ));
     }
-    // An interruption point by its name, which each language words itself (ID-1509 (7)).
+    // An interruption point by its name, which each language words itself.
     let ip_name = |rep: Uuid| {
         tables
             .reps
@@ -725,8 +725,8 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
 }
 
 impl Session {
-    /// `report` with the layout rules' findings of every schematic page joined (EW-CORE-067 to -070, -072 and -073;
-    /// WP-S2.19 D19), when the run evaluated one of them; the scheme, the severities and the waivers apply as
+    /// `report` with the layout rules' findings of every schematic page joined (EW-CORE-067 to -070, -072 and
+    /// -073), when the run evaluated one of them; the scheme, the severities and the waivers apply as
     /// [`CheckReport::with_layout_evidence`](crate::checks::CheckReport::with_layout_evidence) says.
     pub(crate) fn with_layout_findings(
         &self,

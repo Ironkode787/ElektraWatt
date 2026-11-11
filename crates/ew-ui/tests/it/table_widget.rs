@@ -29,7 +29,7 @@ fn table(tmp: &Tmp, kind: &str, filter: &str) -> Harness<'static, App> {
     done(shell, "navigator.show", json!({ "kind": kind }));
     done(shell, "navigator.table", json!({ "kind": kind }));
     if kind == "strips" {
-        // WP-S2.07's Pos column is hidden: these checks are WP-S2.06's grid in its as-built layout.
+        // The Pos column is hidden: these checks are of the grid in its as-built layout.
         done(shell, "table.columns", json!({"kind": kind, "hide": ["pos"]}));
     }
     done(shell, "navigator.filter", json!({"kind": kind, "text": filter}));
@@ -86,7 +86,7 @@ fn steps(shell: &ShellModel) -> usize {
 fn the_key_column_stays_while_the_table_scrolls_right() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "x1031");
-    // WP-S2.17 DK9: the columns start at `size.table_column` (110 px), so Strip and Terminal are on show in the pane.
+    // The columns start at `size.table_column` (110 px), so Strip and Terminal are on show in the pane.
     for name in [
         "Strip -X1031, row 1 of 20, read-only",
         "Terminal 1, row 1 of 20",
@@ -358,7 +358,7 @@ fn paste_resolve_and_apply_without_a_pointer() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// W31-3, restyled by WP-S2.17 DK9 (doc 16a §6.21): the header button covers its column, and its label (in
+/// Doc 16a §6.21: the header button covers its column, and its label (in
 /// `type.small` SemiBold) is painted within the column less its `space.4` padding, cut with an ellipsis when it is
 /// wider, never run into the next column.
 #[test]
@@ -367,7 +367,7 @@ fn w31_3_a_header_text_is_truncated_within_its_column() {
     let mut h = table(&tmp, "strips", "x1031");
     settle(&mut h);
     let t = ew_ui::theme::current(&h.ctx);
-    // WP-S2.17 DK9: columns start at `size.table_column`; the cell cursor brings Function text into view.
+    // Columns start at `size.table_column`; the cell cursor brings Function text into view.
     done(
         h.state_mut().shell_mut(),
         "table.cell",

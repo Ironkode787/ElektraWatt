@@ -243,7 +243,7 @@ fn copy_and_paste_of_102f1_is_102f3_with_its_part_and_no_wire() {
     done(&mut shell, "edit.paste_clip", json!({}));
     let target = sheet(&shell, rep_pos(&shell, &rep));
     // Twelve grid steps right: an empty spot beside the original, on no wire. (Six steps down, the copy's pins would lie
-    // on -102F1's own wire to the junction below it, which normaliser 7 splits into the copy, FT-1020.)
+    // on -102F1's own wire to the junction below it, which normaliser 7 splits into the copy.)
     done(
         &mut shell,
         "canvas.pointer",

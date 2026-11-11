@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 5 through the `ew` binary (D17, D19): a copy of Golden A whose page 102 holds
-//! MD-6's conflict record on W20's colour, ours BU and theirs WH, set on the copy by the test (Golden A's W20 has no
-//! colour). CR-1 and CR-4: `ew check --mode release` reports EW-CORE-011 once, an error that blocks the release gate;
+//! Through the `ew` binary: a copy of Golden A whose page 102 holds
+//! a conflict record on W20's colour, ours BU and theirs WH, set on the copy by the test (Golden A's W20 has no
+//! colour). `ew check --mode release` reports EW-CORE-011 once, an error that blocks the release gate;
 //! CR-3: `ew merge resolve` takes theirs or ours and saves the page canonically; in a session it is one undo step.
 //! Golden A is only read and copied.
 

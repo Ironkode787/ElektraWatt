@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 6 (§11) in the window, the value-set items: FT-785 (the macro card's ad-hoc value fields, labelled
-//! by variable and type, with the command's refusal of a typed value under its field) and FT-786 (Save as macro…'s
-//! value-set table: a header, one named field per cell, a remove button per row and "Add value set").
+//! The macro value-set items in the window: the macro card's ad-hoc value fields, labelled
+//! by variable and type, with the command's refusal of a typed value under its field, and Save as macro…'s
+//! value-set table: a header, one named field per cell, a remove button per row and "Add value set".
 
 use crate::support;
 
@@ -91,8 +91,8 @@ fn field(h: &Harness<'_, App>, name: &str, value: &str) -> bool {
     })
 }
 
-/// FT-786 in the window: the Save as macro… dialog shows the value-set table (the header, one field per cell named
-/// by column and row, a remove button per row) and Add value set adds a row; FT-785: the saved macro's card shows a
+/// In the window: the Save as macro… dialog shows the value-set table (the header, one field per cell named
+/// by column and row, a remove button per row) and Add value set adds a row; the saved macro's card shows a
 /// field per variable labelled "<name> (<type>)", and a refused typed value shows the reason under it.
 #[test]
 fn the_card_and_the_table_render_their_fields() {

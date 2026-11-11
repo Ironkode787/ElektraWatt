@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 6 in the window: the glossary pane in the bottom dock with its Insert button (GT-1) and the
-//! accessible-name walker over it (GT-5), and the wire-colour view, which the PDF export never sees (GT-4).
+//! In the window: the glossary pane in the bottom dock with its Insert button and the
+//! accessible-name walker over it, and the wire-colour view, which the PDF export never sees.
 
 use crate::support;
 
@@ -287,7 +287,7 @@ fn f9_two_wires_on_one_path_are_drawn_side_by_side() {
     assert_eq!(strokes[1].midpoint().unwrap().lane, 1);
 }
 
-/// FT-1277 (doc 16a §7.4): the code chips of wires whose middles fall together are placed apart, by the rule's
+/// Doc 16a §7.4: the code chips of wires whose middles fall together are placed apart, by the rule's
 /// candidates and then stacked inward, inside the canvas, none faded while a free place exists; a code alone takes
 /// the rule's preferred anchor, above right of its stroke's middle.
 #[test]
@@ -313,7 +313,7 @@ fn the_wire_codes_stand_apart_by_the_chip_rule() {
     );
 }
 
-/// FT-1345 (ruling 5; doc 16a §7.4): on folio 102 the wire codes keep clear of the drawing's printed texts
+/// Doc 16a §7.4: on folio 102 the wire codes keep clear of the drawing's printed texts
 /// (the device texts, the title block), of the HUD and the zoom control, of the other chips and of each other, at the
 /// floor and at 1920 × 1080; a code stands faded only where it has no free place.
 #[test]

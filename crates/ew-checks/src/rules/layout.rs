@@ -7,7 +7,7 @@
 //! # Scope
 //!
 //! Doc 15 gives these rules the scopes `space`, `surface` and `carrier`, which the engine does not have. As built they
-//! run at the **project** scope until space and surface scope kinds exist (the orchestrator's ruling 1):
+//! run at the **project** scope until space and surface scope kinds exist:
 //! each `run` enumerates the layout spaces, surfaces, carriers and placements through the layout queries of
 //! `ew_derive::layout` (none of them stores a value), and each finding names its own object as a target (the device,
 //! placement, carrier, layout space or enclosure), shown on the panel-layout page whose surface view shows it.
@@ -16,9 +16,9 @@
 //!
 //! Devices print by their full designation; parts by their part number; a carrier by its kind and its path's first and
 //! last points in millimetres with one decimal (`the rail at (40.0, 740.0)–(610.0, 740.0) mm`: carriers have no
-//! designation member, WP-S4.01 FP-5); a location by its `+` designation. IDs enter only targets and fingerprints.
-//! EW-LAY-010's end-bracket cases name a rail by its derived label in a sentence ("rail 2",
-//! WP-S4.02 D8) and print a length in millimetres without a trailing ".0" ("by 10 mm").
+//! designation member); a location by its `+` designation. IDs enter only targets and fingerprints.
+//! EW-LAY-010's end-bracket cases name a rail by its derived label in a sentence ("rail 2")
+//! and print a length in millimetres without a trailing ".0" ("by 10 mm").
 //! Every finding carries its message arguments; the en-GB patterns of `messages/en-GB/rules.ftl` render the messages
 //! byte for byte.
 //!
@@ -260,12 +260,12 @@ pub const UNPLACED_DEVICE: RuleMeta = RuleMeta {
 };
 
 /// EW-LAY-001: a mountable device of a location that has a layout space, without a placement (`unplaced(space)` of every
-/// layout space, WP-S4.01 D8, D12). Target the device, discriminator `unplaced`, no page (the device is drawn on no
+/// layout space). Target the device, discriminator `unplaced`, no page (the device is drawn on no
 /// layout page).
 ///
 /// "Counts at error only where a layout space exists" (doc 05 §14.1, LC-7) is a filter in this run, not a scheme
 /// condition: `unplaced` lists only the devices of a location with a layout space, so a project without one reports
-/// nothing and the release severity error applies to what is reported (the orchestrator's ruling 2).
+/// nothing and the release severity error applies to what is reported.
 #[derive(Clone, Copy, Debug)]
 pub struct UnplacedDevice;
 
@@ -519,9 +519,9 @@ fn judged(a: Item, b: Item) -> bool {
     }
 }
 
-/// The most overlap findings EW-LAY-006 lists per surface; past it one summary finding names the surface (cycle 41's
-/// ruling 1: "At most 64 overlap findings per surface ... When a 65th pair is found, the rule stops collecting pairs
-/// for that surface and adds one summary finding on the surface").
+/// The most overlap findings EW-LAY-006 lists per surface; past it one summary finding names the surface: at
+/// most 64 overlap findings per surface; when a 65th pair is found, the rule stops collecting pairs for that
+/// surface and adds one summary finding on the surface.
 pub const OVERLAPS_PER_SURFACE: usize = 64;
 
 /// The active set an item of the sweep joins.
@@ -554,10 +554,10 @@ fn partners(class: Class) -> &'static [Class] {
 }
 
 /// The active rectangles of one class during the sweep, ordered by y so that a query visits only the rectangles whose
-/// y interval really overlaps (cycle 41's ruling 1, its first option: "keep the active set ordered by y so only real
-/// y-overlaps are visited (O(n log n + k))"). An interval `[a0, a1)` overlaps `[b0, b1)` exactly when `a0` lies in
-/// `[b0, b1)` (the range query on `by_min`) or `b0` lies in `(a0, a1)` (the stabbing query on `tree`, a segment tree
-/// over the surface's y slots whose nodes hold the intervals they cover).
+/// y interval really overlaps (the active set is kept ordered by y so only real
+/// y-overlaps are visited, O(n log n + k)). An interval `[a0, a1)` overlaps `[b0, b1)` exactly when `a0`
+/// lies in `[b0, b1)` (the range query on `by_min`) or `b0` lies in `(a0, a1)` (the stabbing query on
+/// `tree`, a segment tree over the surface's y slots whose nodes hold the intervals they cover).
 struct Active {
     /// `(min y, index)` of each active rectangle.
     by_min: BTreeSet<(i128, usize)>,
@@ -689,7 +689,7 @@ fn surface_overlaps(items: Vec<(Rect, Item)>) -> (Vec<(Item, Item)>, bool) {
     (found, false)
 }
 
-/// The summary finding of a surface with more than [`OVERLAPS_PER_SURFACE`] overlaps (cycle 41's ruling 1): no count,
+/// The summary finding of a surface with more than [`OVERLAPS_PER_SURFACE`] overlaps: no count,
 /// so the sweep stops at the first pair past the cap.
 fn crowded_finding(q: &Q, surface: Id<MountingSurface>) -> Finding {
     let enclosure = q
@@ -784,7 +784,7 @@ impl Rule for Collision {
                         continue;
                     };
                     if px.device == py.device {
-                        // two placements of one device (one per part): cycle 41's ruling 2
+                        // two placements of one device (one per part)
                         let name = device_name(q, px.device);
                         let f = Finding::new(
                             &COLLISION,
@@ -893,7 +893,7 @@ pub const CARRIER_INCOMPATIBLE: RuleMeta = RuleMeta {
 /// - D3's MVP limits: a second layout space of one location (`spaces`), a second enclosure in one layout space
 ///   (`enclosures`), a second plate surface of one enclosure (`plates`); the record with the smallest ID is the one
 ///   the layout uses, every other is reported;
-/// - per derived end bracket of a rail (`group_accessories`, and part 5's ruling 5): one that overlaps
+/// - per derived end bracket of a rail (`group_accessories`): one that overlaps
 ///   another placement's footprint or a later bracket (`bracket_overlap`, naming the first of them in rail order; a
 ///   touch is no overlap), and one that leaves `[0, L]` (`bracket_outside`, its start before 0 first). Each targets
 ///   the strip it is attributed to and the strip's placement, its subject the strip, its discriminator the form and
@@ -1108,7 +1108,7 @@ fn placement_cases(q: &Q, pl: &Placement, out: &mut Vec<Finding>) {
             .arg("length", mm1(axis.length)),
         );
     }
-    // borrowed, not cloned per placement (cycle 41's ruling 1)
+    // borrowed, not cloned per placement
     let usable: &[Pt2] = q
         .table::<MountingSurface>()
         .get(geom.surface)
@@ -1146,7 +1146,7 @@ enum Overlapped<'b> {
 /// The work is O((P + B) log P) per rail, P placements and B brackets: both lists are in rail
 /// order, so one sweep drops the placements that end at or before a bracket's start and a binary search bounds those
 /// that start before its end; the later bracket it may overlap is the next one of non-zero length. A bracket of zero
-/// length overlaps nothing and still counts in the overflow case (ruling 12). No cap: at most two findings per bracket.
+/// length overlaps nothing and still counts in the overflow case. No cap: at most two findings per bracket.
 fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     if c.kind != CarrierKind::Rail {
         return;
@@ -1163,7 +1163,7 @@ fn bracket_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
     let rail =
         carrier_label(q, id).map_or_else(|| format!("the rail at {}", carrier_at(c)), |l| l.in_sentence());
     // A bracket is "before" its strip when it is its run's start bracket, as `brackets` made it, zero-length ones
-    // included: two zero-length brackets at one point read, and fingerprint, apart (ruling 12).
+    // included: two zero-length brackets at one point read, and fingerprint, apart.
     let side = |i: usize| match brackets.get(i).map(|b| b.role) {
         Some(BracketRole::RunStart) => "before",
         _ => "after",
@@ -1314,7 +1314,7 @@ fn carrier_cases(q: &Q, id: Id<Carrier>, c: &Carrier, out: &mut Vec<Finding>) {
         out.push(shown(f, q, Some(c.surface)));
         return;
     }
-    // borrowed, not cloned per carrier (cycle 41's ruling 1)
+    // borrowed, not cloned per carrier
     let usable: &[Pt2] = q
         .table::<MountingSurface>()
         .get(c.surface)

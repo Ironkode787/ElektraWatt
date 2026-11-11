@@ -8,7 +8,7 @@
 //!
 //! **The probe** (§7.6): on a drag of a selected representation it shows the ghost of the selected entities moved by
 //! the snapped grid offset, on `Dwell(80)` it previews `rep.move` by that offset, on release it commits the same
-//! command, on Escape it cancels. WP-S2.04's move gesture follows its pattern.
+//! command, on Escape it cancels. The move gesture follows its pattern.
 
 use std::cell::RefCell;
 use std::rc::Rc;

@@ -217,7 +217,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// FT-541 (doc 16a §6.8): whether the grid shows its filter field, the open categories holding more than twelve
+    /// Doc 16a §6.8: whether the grid shows its filter field, the open categories holding more than twelve
     /// rows.
     pub fn properties_filter_shown(&self) -> bool {
         self.props.sheet().is_some_and(|sheet| {
@@ -405,7 +405,7 @@ impl ShellModel {
     }
 
     /// A representation's position reads in millimetres, with its grid cell when the focused
-    /// canvas shows its page (`102-C5 · x 18.5 y 74.1 mm`), never in nanometres; ID-1427 (W52 F5): one decimal, as the
+    /// canvas shows its page (`102-C5 · x 18.5 y 74.1 mm`), never in nanometres; one decimal, as the
     /// status bar's, with the project's decimal separator (`comma`).
     fn positions_in_words(&self, sheet: &mut PropertySheet, comma: bool) {
         let page = self.canvas().map(|c| c.page());
@@ -589,7 +589,7 @@ impl ShellModel {
     }
 
     /// The drawn connection of the page shown whose ends the page text names `<a> -> <b>` (either way round; quotes
-    /// around an end are optional; FT-485 item 4): a wire whose drawn route another wire or a symbol's body covers
+    /// around an end are optional): a wire whose drawn route another wire or a symbol's body covers
     /// cannot be clicked, so `select.set` takes `wire:<a> -> <b>` beside the session's references. No such wire, or
     /// several, fail with a message.
     fn wire_of_page(&self, ends: &str) -> Result<EntityRef, Outcome> {
@@ -1018,7 +1018,7 @@ impl ShellModel {
         }
         // A word of an enumerated row is read back as its stored word.
         let typed = crate::properties::enum_value_of(&section.kind, &row, text);
-        // WP-S4.02 part 4 (ruling 3): a layout row compiles through `Session::layout_edit`.
+        // A layout row compiles through `Session::layout_edit`.
         if matches!(row.route, crate::properties::EditRoute::Command { .. }) {
             return self.commit_layout_row(&section, &row, &typed);
         }
@@ -1113,7 +1113,7 @@ impl ShellModel {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
-        // WP-S4.02 part 4 (ruling 3): a layout row's choice or toggle is its text.
+        // A layout row's choice or toggle is its text.
         if matches!(row.route, crate::properties::EditRoute::Command { .. }) {
             let text = match &value {
                 Value::String(s) => s.clone(),
@@ -1324,7 +1324,7 @@ impl ShellModel {
             Some(cmd) => (cmd.name, cmd.params),
             None => (name, params),
         };
-        // WP-S2.07 §8 (FT-429): a module's start typed as the profile's text or a keyword goes through
+        // FT-429: a module's start typed as the profile's text or a keyword goes through
         // `plc.set_start`, which reads it with the module's profile.
         let start_dir = match row.path.as_str() {
             "plc_module.start.input" => Some("input"),
@@ -1838,7 +1838,7 @@ impl ShellModel {
                     params.insert("row".to_owned(), Value::String(row));
                     self.act_props_make_variable(&params)
                 }
-                // WP-S2.07 part 4a (§9.4): the Parts row's Choose part…, Add part… and Edit part….
+                // The Parts row's Choose part…, Add part… and Edit part….
                 RowMenuItem::ChoosePart { first_use } => {
                     let mut params = Map::new();
                     if first_use {
@@ -1873,7 +1873,7 @@ impl ShellModel {
         }
     }
 
-    /// The entries of the actions menu of the row `key` (FT-754 (h)): the row's actions, then Make variable
+    /// The entries of the actions menu of the row `key`: the row's actions, then Make variable
     /// when the row can be a macro variable (a row of one record with an action, not a derived value), then on a
     /// Parts row Choose part…, Add part… and Edit part…; empty for a row that is not on show.
     pub fn row_menu(&self, key: &str) -> Vec<RowMenuItem> {
@@ -1884,7 +1884,7 @@ impl ShellModel {
         if !out.is_empty() && section.targets.len() == 1 && !row.path.starts_with("derived.") {
             out.push(RowMenuItem::MakeVariable);
         }
-        // WP-S2.07 part 4a (§9.4): an editable Parts row (a part-uses row) adds Choose part… (the first use when the
+        // An editable Parts row (a part-uses row) adds Choose part… (the first use when the
         // row names a part), Add part… and, when it names a part, Edit part….
         if row.ty.is_part_uses() && row.actions.contains(&RowAction::Edit) {
             let has_part = matches!(&row.value, RowValue::One { json, .. } if json.as_array().is_some_and(|a| !a.is_empty()));
@@ -1962,7 +1962,7 @@ impl ShellModel {
             RowAction::Clear | RowAction::Reset | RowAction::Unfreeze => {
                 self.commit_value(key, Value::Null, String::new(), Vec::new())
             }
-            // WP-S2.05 part 2 (§7.5): one `fields.set_many` entry per device, each with its own product designation.
+            // One `fields.set_many` entry per device, each with its own product designation.
             RowAction::Freeze if section.kind == "device" && section.targets.len() > 1 => {
                 self.freeze_devices(&section, &row)
             }

@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The page solve of WP-S2.19 §5 ([`route_page`]) and one route against a page as drawn ([`route_one`]): the search
-//! of [`super::route`] fed with a page's geometry under the hard rules of §5.1, the costs of §5.2, the order of §5.3,
-//! the mates of §5.4 and the areas and rip-up rounds of §5.5, deterministic (§5.6).
+//! The page solve ([`route_page`]) and one route against a page as drawn ([`route_one`]): the search
+//! of [`super::route`] fed with a page's geometry under the hard rules, the costs, the order,
+//! the mates and the areas and rip-up rounds, deterministic.
 //!
 //! **One job's request.** The ends are the connection's CPs (with their leaving directions) or junctions. Every
 //! representation's body and black-box outline grown by one grid step, and every text box grown by a quarter step,
@@ -576,7 +576,7 @@ fn mate_groups(page: &PageGeometry, jobs: &[Uuid], ends: &BTreeMap<Uuid, [End; 2
         .collect()
 }
 
-/// The page solve of WP-S2.19 §5 (see the module documentation): routes the connections `jobs` of `page` (the
+/// The page solve (see the module documentation): routes the connections `jobs` of `page` (the
 /// others are fixed), deterministic for any order of the geometry's lists and of the jobs. A job whose ends are not
 /// both on the page is left out; a job whose ends meet needs no route and is left out.
 pub fn route_page(page: &PageGeometry, jobs: &[Uuid]) -> RoutePlan {

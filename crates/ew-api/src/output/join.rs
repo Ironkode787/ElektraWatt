@@ -169,10 +169,10 @@ fn joinable_rep(q: &Q, device: Id<Device>) -> Option<(Id<Representation>, Id<Fun
 
 impl Session {
     /// The join that typing `text` into the Tag field of `device` proposes: `text` names another
-    /// existing device (FT-544's reference grammar: a bare tag such as `-K1`, `tag:`, `id:`), `device` has exactly one
-    /// function, no part and no other representation, and the named device takes the function's FnDef by D2's rule
-    /// (an unplaced function of it, else a contact joining a device whose family takes auxiliary functions). `None`
-    /// otherwise: the Tag field then keeps its other behaviour.
+    /// existing device (the reference grammar: a bare tag such as `-K1`, `tag:`, `id:`), `device` has exactly
+    /// one function, no part and no other representation, and the named device takes the function's FnDef by
+    /// D2's rule (an unplaced function of it, else a contact joining a device whose family takes auxiliary
+    /// functions). `None` otherwise: the Tag field then keeps its other behaviour.
     pub fn join_proposal(&self, device: Uuid, text: &str) -> Option<JoinProposal> {
         let target = self.resolve_reference(text.trim()).ok()?;
         let q = self.query();

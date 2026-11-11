@@ -381,7 +381,7 @@ fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-467 review: while a file dialog is open off the window's thread no input reaches the shell (a dialog that is not
+/// While a file dialog is open off the window's thread no input reaches the shell (a dialog that is not
 /// modal, as on Linux, would otherwise let edits be made that the answer's `discard` throws away unasked): a key, a
 /// menu action and a canvas click change nothing and dispatch nothing, the window keeps painting, and the answer then
 /// proceeds with the open.

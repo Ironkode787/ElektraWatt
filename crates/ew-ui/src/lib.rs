@@ -4,7 +4,7 @@
 //! egui widgets, canvas host, tools (state machines), command palette, keymaps and the action registry
 //! behind every menu.
 //!
-//! WP-S2.01 is the application shell: [`app::App`] paints the shell model of `ew-viewmodel` (menu bar, start page,
+//! The application shell: [`app::App`] paints the shell model of `ew-viewmodel` (menu bar, start page,
 //! the first-run screen, the company-standard wizard, the docked project view with the page list and the read-only
 //! page view, status bar, command palette, dialogs) and sends every input to `ShellModel::dispatch`; [`dock`]
 //! turns the toolkit-neutral layout of the workspaces into an egui_tiles tree and back; [`headless`] runs the same
@@ -84,6 +84,6 @@ pub mod theme;
 pub mod tool_view;
 mod value_table;
 pub mod visual;
-// WP-S2.17 part 3 (DK6): window memory.
+// Window memory.
 pub mod window_memory;
 mod wizard;

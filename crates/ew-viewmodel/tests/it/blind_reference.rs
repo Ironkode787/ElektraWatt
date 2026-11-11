@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S6.13 part 1, acceptance check BD3 (closes): the blind drafter's reference file is generated from
+//! The blind drafter's reference file is generated from
 //! this crate's registry and compared with the committed copy, so that a lane that adds an action or a signature
 //! without updating the harness's help fails here. `EW_BLESS=1` rewrites it:
 //!

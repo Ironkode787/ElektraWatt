@@ -283,8 +283,8 @@ pub(super) fn unit_symbol(unit: &OrderUnit) -> String {
 }
 
 /// The manufacturer cell of a manufacturer reference: the name of the embedded manufacturer copy, else the `key` a
-/// file written before WP-S1.19 part 3 keeps on the reference (`ew_derive::manufacturer_name`), else "manufacturer
-/// missing", never the item ID. A copy with an empty name prints its empty name.
+/// file written before the manufacturer copies keeps on the reference (`ew_derive::manufacturer_name`), else
+/// "manufacturer missing", never the item ID. A copy with an empty name prints its empty name.
 pub(super) fn manufacturer_cell(q: &Q, m: &LibRef) -> Cell {
     let name = manufacturer_name(q, m);
     if name.is_empty() && manufacturer_copy(q, m).is_none() {

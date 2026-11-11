@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 3 in the window (D10, D11, NFR-I18N-02). LO-5: in the pseudo-locale en-XA (every text accented,
+//! In the window (NFR-I18N-02): in the pseudo-locale en-XA (every text accented,
 //! 35 % longer and bracketed) the core flows of the kittest suite, with the setups of their tests (new project, place,
-//! wire, a terminal strip, renumber, export PDF), pass `assert_accessible` and `assert_fits` after each step. LO-2: View ▸
+//! wire, a terminal strip, renumber, export PDF), pass `assert_accessible` and `assert_fits` after each step. View ▸
 //! Language ▸ Nederlands switches the menus, the command bar and an open card without a restart, and back.
 
 use std::path::PathBuf;

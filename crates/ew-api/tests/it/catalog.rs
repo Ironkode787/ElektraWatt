@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 4 in the Session (D11): the column map saved per source key, the import into a project through
+//! In the Session: the column map saved per source key, the import into a project through
 //! `parts.import` (IM-1), and the import into a writable library (IM-6): a second import of a changed list updates
 //! in place, changed content under a held version is refused unless bumped, and the library lock is taken over only
 //! when it is stale and the caller says so. The parts are invented generic data and public catalogue numbers.

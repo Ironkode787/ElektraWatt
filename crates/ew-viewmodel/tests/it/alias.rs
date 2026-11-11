@@ -233,7 +233,7 @@ fn a_command_reference_alias_is_recorded_as_its_uuid() {
     shell.shutdown();
 }
 
-/// The table lives for the whole script run (ID-630 (b)): a project opened or created mid-run keeps the numbering, so
+/// The table lives for the whole script run: a project opened or created mid-run keeps the numbering, so
 /// an earlier alias still names its record (or names a record the new project lacks, refused); `run_stream` and `run`
 /// each start a fresh table.
 #[test]
@@ -294,7 +294,7 @@ fn the_table_lives_for_the_run_across_projects() {
     shell.shutdown();
 }
 
-/// FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres"): a command's
+/// A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres: a command's
 /// refusal shows its reason alone, never the error's Display form with the command's name before it.
 #[test]
 fn a_refused_command_shows_its_reason_alone() {

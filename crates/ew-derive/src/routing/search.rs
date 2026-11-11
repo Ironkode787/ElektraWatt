@@ -10,13 +10,12 @@
 //! their stubs), 4-neighbourhood, cost [`STEP_COST`] per step and [`BEND_COST`] per bend (2 and 8,
 //! today's ratio), [`RouteRequest::cross_cost`] more for each right-angle crossing of another wire
 //! ([`CROSSING_COST`] in a page solve) and [`MATE_STEP_COST`] instead of a step's cost beside a mate's route
-//! ([`RouteRequest::mates`], §5.4), no move back against the arriving heading (a U-turn would cost one bend only;
-//! FT-437). A node whose page point lies strictly inside an
-//! obstacle rectangle is blocked, and a move that runs through the open inside of one is not taken (a text
-//! thinner than a grid step lies between two nodes); the two ends, their nearest grid nodes and their stub nodes
-//! are never blocked, nor the move from a CP end to its stub but by a text across it ([`RouteRequest::texts`]:
-//! 1 rule 4 has no exemption). The nodes of the [`RouteRequest::reserved`] points
-//! (the other CPs and their stubs) are blocked. A CP end
+//! ([`RouteRequest::mates`], §5.4), no move back against the arriving heading (a U-turn would cost one bend
+//! only). A node whose page point lies strictly inside an obstacle rectangle is blocked, and a move that
+//! runs through the open inside of one is not taken (a text thinner than a grid step lies between two
+//! nodes); the two ends, their nearest grid nodes and their stub nodes are never blocked, nor the move from
+//! a CP end to its stub but by a text across it ([`RouteRequest::texts`]: 1 rule 4 has no exemption). The
+//! nodes of the [`RouteRequest::reserved`] points (the other CPs and their stubs) are blocked. A CP end
 //! (one with a leaving direction) first leaves one step along its direction (the stub) and is entered along the
 //! opposite of its direction; no move enters the first CP end's node nor leaves the second end's; a
 //! junction or split end (`dir: None`) has no such constraint. A first end without a direction may carry the
@@ -31,7 +30,7 @@
 //! out of it, lies inside one of those rectangles, so that a wire leaves and enters a CP straight out of its own box
 //! and texts and never across them.
 //!
-//! **Other wires** ([`RouteRequest::wires`], FT-706; FR-CON-031: a crossing is not a junction). The route
+//! **Other wires** ([`RouteRequest::wires`]; FR-CON-031: a crossing is not a junction). The route
 //! never runs on top of another connection's segment: a unit move parallel to a segment closer than one grid step
 //! (`⌊num/den⌋ − 1` nm, so that a coordinate 1 nm off a rational grid still parts by a step) whose extent overlaps
 //! it with a positive length is not taken, and the node of every vertex of another connection (its ends and
@@ -58,8 +57,8 @@ use std::collections::BinaryHeap;
 use ew_units::{Grid, Nm};
 
 /// The largest search area, in grid nodes, beyond which the router finds no route: 2¹⁸ = 262 144, an A0
-/// sheet (1189 × 841 mm) at a 2.5 mm grid (476 × 337 = 160 412 nodes) with room to spare (fix round of WP-S2.04
-/// part 2, item 3: the distance table is five states per node).
+/// sheet (1189 × 841 mm) at a 2.5 mm grid (476 × 337 = 160 412 nodes) with room to spare (the distance table
+/// is five states per node).
 pub const MAX_NODES: usize = 262_144;
 
 /// The cost of a unit step.
@@ -147,8 +146,8 @@ pub struct RouteRequest {
     /// on the page other than those of the two ends, inflated by one grid step.
     pub obstacles: Vec<[i64; 4]>,
     /// The text boxes `[x0, y0, x1, y1]` in page nm (any corner order, inflated as the caller inflates them), the
-    /// ends' own included: they block as the obstacles do, and the move from a CP end to its stub too (WP-S2.19 §5.1
-    /// rule 4 has no exemption). Empty: no text.
+    /// ends' own included: they block as the obstacles do, and the move from a CP end to its stub too (no
+    /// exemption). Empty: no text.
     pub texts: Vec<[i64; 4]>,
     /// The connection grid `(num, den)` nm.
     pub grid: (i64, i64),
@@ -169,8 +168,8 @@ pub struct RouteRequest {
     /// Points no route passes through, page nm: the page's other connection points and their stubs, kept for their
     /// own wires. The node nearest to each is blocked (but for the ends and their stubs).
     pub reserved: Vec<(i64, i64)>,
-    /// The extra cost of each right-angle crossing of one of [`wires`](Self::wires) (WP-S2.19 D6:
-    /// [`CROSSING_COST`]); 0: a crossing costs nothing more than its step.
+    /// The extra cost of each right-angle crossing of one of [`wires`](Self::wires) ([`CROSSING_COST`]); 0:
+    /// a crossing costs nothing more than its step.
     pub cross_cost: u32,
     /// The segments of the routes of this route's mates, page nm, each from its first vertex to its
     /// second in its route's direction: a unit move one grid step beside one, within its extent and in its heading,
@@ -1190,7 +1189,7 @@ mod tests {
 
     #[test]
     fn a_text_across_either_end_s_stub_leaves_no_route() {
-        // ID-1509 (§5.1 rule 4): a text between a CP and its stub node blocks the stub move as it blocks any other
+        // A text between a CP and its stub node blocks the stub move as it blocks any other
         // move; the stub node itself stays free. The same rectangle as an obstacle (a foreign body's margin) leaves
         // the stub move free, as before.
         let base = req(
@@ -1302,7 +1301,7 @@ mod tests {
         }
     }
 
-    /// The FT-706 violations of a route among the request's wires: a unit move on another wire's track that overlaps
+    /// The violations of a route among the request's wires: a unit move on another wire's track that overlaps
     /// it, or an interior node of the route on another wire's vertex. A CP end's stub move and stub node are exempt.
     fn violations(rq: &RouteRequest, r: &[(i64, i64)]) -> Vec<String> {
         let moves = unit_moves(r);
@@ -1355,7 +1354,7 @@ mod tests {
 
     #[test]
     fn a_route_never_runs_on_another_wire_s_track() {
-        // FT-706 friction 8: the L wire leaves its CP down and runs right at y = 2; the N wire from the next pole
+        // The L wire leaves its CP down and runs right at y = 2; the N wire from the next pole
         // would run on that track. It keeps one grid step off it (y = 1).
         let base = req(
             end(3, 0, Some(Heading::Down)),
@@ -1428,7 +1427,7 @@ mod tests {
 
     #[test]
     fn a_cp_leaves_its_own_box_and_texts_through_its_corridor() {
-        // FT-706 friction 7: the second end's CP sits on the top edge of its own box (inflated by a step) and leaves
+        // The second end's CP sits on the top edge of its own box (inflated by a step) and leaves
         // up through its own tag; the first end is below the box. The route goes round the box and comes down into
         // the CP through the tag, never across the box.
         let own_box = rect(-3, -1, 3, 9);
@@ -1461,7 +1460,7 @@ mod tests {
 
     #[test]
     fn the_end_devices_tag_blocks_the_last_leg_too() {
-        // FT-1085's case, a black box below the first end's pin with its tag up-left of the CP.
+        // A black box below the first end's pin with its tag up-left of the CP.
         // The tag of the device the run ends at is an obstacle on the last leg as on every other: without it the
         // tie rule turns at once, across the tag; with it the route runs down beside the tag and turns below it.
         let own_box = rect(2, -1, 12, 9);
@@ -1663,7 +1662,7 @@ mod tests {
     }
 
     proptest::proptest! {
-        /// FT-767, the converse of `every_found_route_is_clear`: a straight or L route between the ends that `clear`
+        /// The converse of `every_found_route_is_clear`: a straight or L route between the ends that `clear`
         /// accepts is one the router's search accepts. The search finds a route, and of least cost,
         /// so no dearer than that one. The start may lie on a reserved point, another wire's vertex or inside an
         /// obstacle, with and without a direction, with and without an arrival heading.

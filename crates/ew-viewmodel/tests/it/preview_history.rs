@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.09 part 3 (§10.3): the Preview tab (PV2, PV3), the renumber dialogs on Golden B (PV2), the history panel and
-//! context restore (PV5), the GUI purge step (PV6) and the exact counts of §9 item 5. Every test works on a copy of
+//! The Preview tab, the renumber dialogs on Golden B, the history panel and
+//! context restore, the GUI purge step and the exact counts of §9 item 5. Every test works on a copy of
 //! Golden A or on a new project; Golden A itself is only read.
 
 use crate::common;
@@ -209,7 +209,7 @@ fn golden_b(mode: Mode) {
     done(&mut shell, "preview.apply", json!({}));
     assert_eq!(history_cursor(&mut shell), cursor + 1, "one transaction");
     assert!(shell.properties().card().is_none());
-    // Cycle 39 (FIX39b-1): the tab the card opened closes with it.
+    // The tab the card opened closes with it.
     assert!(preview_section(&shell).is_empty() && !shell.preview_shown());
     done(&mut shell, "file.save", json!({}));
     assert_ne!(snapshot(&dir), before_b1);
@@ -434,7 +434,7 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
     assert!(!preview_section(&shell).iter().any(|l| l.starts_with("  more ")));
     assert_eq!(preview_section(&shell).last().unwrap(), "  page \"206\"");
     done(&mut shell, "preview.cancel", json!({}));
-    // Cycle 39 (FIX39b-1): the card opened the tab, so the tab closes with it.
+    // The card opened the tab, so the tab closes with it.
     assert!(!shell.preview_shown(), "the tab the card opened closes");
     assert!(preview_section(&shell).is_empty());
     done(&mut shell, "find.close", json!({}));
@@ -485,7 +485,7 @@ fn every_origin_opens_the_tab_and_closing_it_cancels() {
     s.shutdown();
 }
 
-/// Cycle 39 (FIX39b-1): the Preview tab a card opened closes when the card is applied or cancelled; a tab the user
+/// The Preview tab a card opened closes when the card is applied or cancelled; a tab the user
 /// opened by hand before the card stays, showing `preview none`.
 #[test]
 fn the_tab_a_card_opened_closes_with_the_card() {

@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.17 part 3 in the window without rendering: the rails, the docks and the default workspace (DK1, DK8), the
-//! named splitters, the page rows' badges (DK2), the property grid's groups (DK3's window half), the status
-//! bar (DK4's window half), the history panel from the keyboard (DK11's keyboard half) and the left column's
+//! In the window without rendering: the rails, the docks and the default workspace, the
+//! named splitters, the page rows' badges, the property grid's groups, the status
+//! bar, the history panel from the keyboard and the left column's
 //! collapse to its rail.
 
 use crate::support;
@@ -150,7 +150,7 @@ fn the_layout_matches_the_mockup() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// DK1, FT-338: every splitter handle is a named `Splitter` node ("Resize Pages and Properties"), the walker passes
+/// Every splitter handle is a named `Splitter` node ("Resize Pages and Properties"), the walker passes
 /// with no exception while every navigator is open, and each rail button is one Tab stop.
 #[test]
 fn named_splitters_and_the_walker_without_a_skip() {
@@ -388,7 +388,7 @@ fn the_history_panel_from_the_keyboard() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FX38d (play-test rv-vis-2 t0035–t0039): after Check project the status bar's findings field is there
+/// After Check project the status bar's findings field is there
 /// with the Messages pane closed and its click opens the pane; the pane's own close button (in its header, the pane
 /// alone in the dock) closes it; the canvas keeps its zoom and centre through the open and the close.
 #[test]

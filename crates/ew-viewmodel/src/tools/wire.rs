@@ -8,11 +8,11 @@
 //! **Targets** in priority order within 8 screen points of the pointer or the grid cursor: a connection point of the
 //! page tables, a junction, a point on a connection segment (the grid point of the segment nearest to the pointer
 //! that is not its connection's end, so a press beside a rail's end joins the rail at the next grid point along it
-//! rather than fixing a bend, FT-1084; a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
+//! rather than fixing a bend; a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
 //! `require_split_point` accepts), else the grid point. Alt suppresses the object snaps. Ties by the smaller
 //! distance, then for a CP the first in the page tables' order (natural label, its bytes, (y, x), ID), for a
 //! junction by the smaller ID (two junctions are never at one point); for a segment the larger connection ID,
-//! which is later in paint order (connections paint in ID order, so the one on top); WP-S2.02's pick breaks a tie
+//! which is later in paint order (connections paint in ID order, so the one on top); the pick breaks a tie
 //! the same way. This is a paint-order contract, not a creation-order guarantee: UUIDv7 IDs are not guaranteed to
 //! be chronological or monotonic within the clock's resolution or across clock movement. A split's halves meet
 //! at their junction, which is a target of its own before segments.
@@ -33,12 +33,10 @@
 //!
 //! The committed route is the fixed vertices joined with the router's route from the last fixed vertex to the end,
 //! exactly the ghost (the router never runs on replay); a free terminal in line between the last fixed vertex and the
-//! end is connected through on the direct route instead when nothing else is in its way (`through_route`, FT-705
-//! with FT-706). The connection kind is the page type's (doc 06 §2.2), given
+//! end is connected through on the direct route instead when nothing else is in its way (`through_route`). The connection kind is the page type's (doc 06 §2.2), given
 //! by the host ([`WireTool::with_kind`]): a wire on a multi-line page (`connection.draw`'s default, so no `kind` is
 //! sent), `overview` on single-line, overview and assembly-overview pages, a working fluid line (`{"fluid": {}}`) on a
-//! fluid page; on the other page types the host refuses `tool.wire` until their kinds are drawn (fix
-//! round of WP-S2.04 part 2, item 1).
+//! fluid page; on the other page types the host refuses `tool.wire` until their kinds are drawn.
 
 use ew_api::AnyCommand;
 use ew_api::geometry::Dir;
@@ -153,7 +151,7 @@ impl WireTarget {
 
     /// The label the transcript and the live region use: a CP's label; a junction `@` and its name (`@C11`, `@C11#2`
     /// when the cell holds several); a split point `@` and its cell, then the wire it splits by its two ends
-    /// (`@101-C12 F55:2 -> E55:L`, an end that is a junction by its name; FT-485 item 7: two wires can run through one
+    /// (`@101-C12 F55:2 -> E55:L`, an end that is a junction by its name; two wires can run through one
     /// cell); a grid point `None`.
     pub fn label(&self, cx: &ToolCx<'_>) -> Option<String> {
         let cell_of = |p: (i64, i64)| cx.page.cell_text(cx.snapper.page_to_sheet(p)).unwrap_or_default();
@@ -687,8 +685,8 @@ fn l_tail(
     vec![from, corner, to]
 }
 
-/// The direct route of a tail from `from` to `to` when it passes through a free representation in line (FT-705 with
-/// FT-706, the cycle-38 window-fix ruling): the router reserves every other CP and its stub, so it never routes into
+/// The direct route of a tail from `from` to `to` when it passes through a free representation in line: the
+/// router reserves every other CP and its stub, so it never routes into
 /// a free terminal and [`pass_through`] would never see one; a terminal standing in line between the ends is to be
 /// connected through, not avoided.
 ///
@@ -1272,7 +1270,7 @@ impl Tool for WireTool {
     }
 
     /// While the target is a junction that already joins three wires, the hint says it is no end; once a
-    /// click placed a bend, that a bend is placed (ID-1497 (11)); while no clear route is found, and after a wire drawn
+    /// click placed a bend, that a bend is placed; while no clear route is found, and after a wire drawn
     /// so until the next one starts, that the wire stays unrouted (not a refusal).
     fn status_hint(&self) -> super::Hint {
         if self.full_junction {

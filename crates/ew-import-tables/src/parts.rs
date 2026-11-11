@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Parts tables into an existing project (the golden-dialect slice of WP-S1.19a's parts import): the
+//! Parts tables into an existing project (the golden-dialect slice of the parts import): the
 //! `parts.csv` a person chose and, when they lie in the same folder, its sibling tables `part_cps.csv`,
 //! `part_templates.csv`, `cable_cores.csv` and `part_plc.csv`, read into project-local part copies exactly as the
 //! bootstrap mints them (`emit/parts.rs`): `library_id` = the project ID, `item_id = v5(ns, "parts|{key}")` in the

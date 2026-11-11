@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 2 at the command layer, on a fixture: `layout.place_assembly` and `layout.auto_fill` (D6),
-//! `layout.enclosure.create_from_part` and `layout.move {part}` (D7), the FT-840 edits and `edit.delete` on the layout
-//! kinds (FT-837). Every refusal is asserted whole; each command is one undo step. Golden A's numbers (AS-1 to AS-3)
-//! are `ew-api`'s `tests/it/golden_layout_assembly.rs`.
+//! The layout assembly commands at the command layer, on a fixture: `layout.place_assembly` and
+//! `layout.auto_fill`, `layout.enclosure.create_from_part` and `layout.move {part}`, the FT-840 edits and
+//! `edit.delete` on the layout kinds. Every refusal is asserted whole; each command is one undo step. Golden
+//! A's numbers are `ew-api`'s `tests/it/golden_layout_assembly.rs`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -397,7 +397,7 @@ fn as2_the_block_resolves_as_one_item() {
     assert_eq!(clip10(&f.e, k(1)), 1010, "pushed to the block's end, 92 mm");
 }
 
-/// AS-2 (fixture), ruling 5 (d): a member without a placed predecessor goes before its first placed successor; each
+/// A member without a placed predecessor goes before its first placed successor; each
 /// later member after its predecessor, pushing the rest; `s` is not needed.
 #[test]
 fn as2_members_join_the_placed_ones() {
@@ -412,7 +412,7 @@ fn as2_members_join_the_placed_ones() {
     assert_eq!(f.e.history().cursor(), cursor + 1, "one step");
 }
 
-/// Override 3 of lane E42: an insertion that pushes a member this command placed earlier re-poses it in memory; it is
+/// An insertion that pushes a member this command placed earlier re-poses it in memory; it is
 /// inserted once, at the pushed pose.
 #[test]
 fn override3_a_member_pushed_in_the_same_command_lands_once() {
@@ -474,7 +474,7 @@ fn as2_place_assembly_refusals() {
     assert_eq!(lines(f.e.model()), before, "nothing placed");
 }
 
-/// Override 2 of lane E42: a concurrent placement of a device the command places conflicts at merge, for
+/// A concurrent placement of a device the command places conflicts at merge, for
 /// `layout.place_assembly` and for `layout.auto_fill`, even on another rail.
 #[test]
 fn override2_a_concurrent_placement_of_a_member_conflicts() {
@@ -497,7 +497,7 @@ fn override2_a_concurrent_placement_of_a_member_conflicts() {
     );
 }
 
-/// AS-3 (fixture) and ruling 8: next-fit from the rail start in DT order; one notice per device not placed, in list
+/// Next-fit from the rail start in DT order; one notice per device not placed, in list
 /// order, with the table's texts; the outcome names the carrier.
 #[test]
 fn as3_auto_fill_next_fits_and_reports() {
@@ -585,7 +585,7 @@ fn as3_auto_fill_refusals() {
     );
 }
 
-/// FT-973 ("`layout.auto_fill` mints placement IDs after the fit, its output unchanged"): a device left
+/// `layout.auto_fill` mints placement IDs after the fit, its output unchanged: a device left
 /// without room mints no placement, so the IDs of the fill and of the next command are those of a fill that never
 /// listed it.
 #[test]
@@ -697,7 +697,7 @@ fn as4_a_large_fill_is_bulk() {
     );
 }
 
-/// The JSON form of a part copy in `lib/` form with its true hash (FT-656's pattern).
+/// The JSON form of a part copy in `lib/` form with its true hash (as for the placement commands' `copies`).
 fn copy_json(c: LibCopy<Part>) -> Value {
     let doc = LibDocument::Part(c);
     let hash = ew_commands::commands::library_copy_hash(&doc).expect("a known kind");
@@ -979,7 +979,7 @@ fn placement_of(e: &Engine, device: Id<Device>) -> Id<Placement> {
         .id
 }
 
-/// AS-7: `edit.delete` on the layout kinds with ruling 6's checks, each refusal whole; the model's cascades
+/// `edit.delete` on the layout kinds with its checks, each refusal whole; the model's cascades
 /// otherwise.
 #[test]
 fn as7_edit_delete_on_layout_kinds() {
@@ -1113,7 +1113,7 @@ fn as8_move_realises_another_part() {
     );
 }
 
-/// Cycle-42 review part 2, finding 1: a member that joins the assembly after the preview (K3 attached to A1 at
+/// A member that joins the assembly after the preview (K3 attached to A1 at
 /// position 4) changes the preview's reads (the `device_children` index of A1), so the commit re-runs the command
 /// and places the new member too, instead of applying the stale prepared ops.
 #[test]
@@ -1140,7 +1140,7 @@ fn finding1_a_concurrent_new_member_reruns_place_assembly() {
     }
 }
 
-/// Cycle-42 review part 2, finding 1: a device of the space that becomes unplaced after the preview (A1, whose
+/// A device of the space that becomes unplaced after the preview (A1, whose
 /// placement is removed) changes the default list's reads (the placement table), so the commit re-runs the fill and
 /// places it, first in DT order with its members.
 #[test]
@@ -1163,7 +1163,7 @@ fn finding1_a_concurrent_new_unplaced_device_reruns_auto_fill() {
     );
 }
 
-/// Cycle-42 review part 2, finding 1: a candidate re-tagged after the preview without a change to its own row (K4's
+/// A candidate re-tagged after the preview without a change to its own row (K4's
 /// page renumbered below K5's, so its page-based tag sorts first) changes the sort key's reads (the page table), so
 /// the commit re-runs the fill in the new DT order.
 #[test]

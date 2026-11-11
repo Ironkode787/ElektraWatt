@@ -701,7 +701,7 @@ mod tests {
         assert_eq!(flags("schema"), []);
     }
 
-    /// C43-p4#8b: the walk skips clap's help and version by their action, so a user flag with the id `version` and a
+    /// The walk skips clap's help and version by their action, so a user flag with the id `version` and a
     /// `SetTrue` action stays in it, and clap's own `--help` and `--version` do not.
     #[test]
     fn the_walk_keeps_a_user_flag_named_version() {

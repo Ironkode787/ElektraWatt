@@ -1104,7 +1104,7 @@ mod tests {
         }
     }
 
-    /// The usability tasks of WP-S2.12 (`tools/blind/tasks/brief-ut-*`), however many there are.
+    /// The usability tasks (`tools/blind/tasks/brief-ut-*`), however many there are.
     fn usability_tasks(root: &Path) -> Vec<String> {
         let mut out: Vec<String> = std::fs::read_dir(root.join("tools/blind/tasks"))
             .unwrap()
@@ -1155,10 +1155,10 @@ mod tests {
     }
 
     /// BV9 and the feasibility rule: the reference solutions replayed on the built product. Both briefs are runnable
-    /// (every hard item met, the soft ones met or marked infeasible): `brief-relays-valves` since WP-S2.18 part 1, whose
-    /// `place.pick function=<tag>:13-14` puts each relay's contact on its relay's auxiliary slot (
-    /// since FT-655 the contactor's contacts are template slots and `device=<tag>` fills the first, 1-2).
-    /// `brief-plc-io` since WP-S2.18 part 4.
+    /// (every hard item met, the soft ones met or marked infeasible): `brief-relays-valves`, whose
+    /// `place.pick function=<tag>:13-14` puts each relay's contact on its relay's auxiliary slot
+    /// (the contactor's contacts are template slots and `device=<tag>` fills the first, 1-2).
+    /// The other is `brief-plc-io`.
     /// Needs `elektrawatt` and `ew` built in `target/debug` (the workspace run builds them); without them the test says
     /// so and checks nothing. Its scratch folders live in a temporary folder of its own, removed after it, so a parallel
     /// run shares none of them.

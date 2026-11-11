@@ -344,7 +344,7 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
 
     /// `macro.insert`: inserts `m` on `page` (a window macro: its anchor at `at`, nm, a grid point of the
     /// page, turned by `orient` in the command's JSON form, `r0` … `m270`; a page macro: its pages after `page`, with
-    /// `at` `None` and `orient` `r0`). `r0` is left out of the parameters, as a log written before FT-672 has it.
+    /// `at` `None` and `orient` `r0`). `r0` is left out of the parameters, as an older log has it.
     ///
     /// # Errors
     ///
@@ -1732,7 +1732,8 @@ impl<'s, S: CommandSink + ?Sized> Builder<'s, S> {
         self.run("box.reshape", p).map(|_| ())
     }
 
-    // WP-S2.04 part 4a ---------------------------------------------------------------------------------------
+    // Placement and arrangement steps
+    // -------------------------------------------------------------------------
 
     /// `project.drawing.set` with `marker_mode` (FR-CON-024): `Some("all" | "deviations" | "explicit" | "none")`
     /// sets which wires carry a marker, `None` removes the member (the as-built `show_marker` rule).

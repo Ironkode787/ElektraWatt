@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The save's safeguards of WP-S1.17 part 1: a save refuses to overwrite or remove a file
-//! changed outside the session (D5, SG-3), a save after a text-conflicted manifest continues from the greatest
-//! generation of its sides (D6, SG-4), a move-aside that a retry or a roll-forward repeats leaves one stray of
-//! equal bytes (D7, SG-5), and the computed `min_reader` (D3).
+//! The save's safeguards: a save refuses to overwrite or remove a file
+//! changed outside the session, a save after a text-conflicted manifest continues from the greatest
+//! generation of its sides, a move-aside that a retry or a roll-forward repeats leaves one stray of
+//! equal bytes, and the computed `min_reader`.
 
 // The writer's tests read the model untracked, ADR-0001 amendment 2.
 #![allow(clippy::disallowed_methods)]

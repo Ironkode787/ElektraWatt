@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Revisions (doc 03 §18, doc 15 §5; FR-REV-001, FR-REV-002, FR-REV-005, FR-REV-009, FR-REV-012, FR-REV-021; FT-165,
-//! WP-S1.18 parts 1, 3 and 4): `revision.create` (`CreateRevision`), `revision.set_author` (`SetRevisionAuthor`),
+//! Revisions (doc 03 §18, doc 15 §5; FR-REV-001, FR-REV-002, FR-REV-005, FR-REV-009, FR-REV-012, FR-REV-021):
+//! `revision.create` (`CreateRevision`), `revision.set_author` (`SetRevisionAuthor`),
 //! `revision.withdraw` (`WithdrawRevision`), `revision.approve` (`ApproveRevision`) and `revision.release`
 //! (`ReleaseRevision`, the release's stamp), with the checks that `fields.set`, `edit.delete` and `page.delete` share.
 //!
@@ -79,12 +79,12 @@ pub struct RevisionPageNote {
 /// withdrawal record (EW-INV-017); state `open` while another revision is open (EW-INV-016); state `released`
 /// once a revision has a release record (the typed `release` member): a historic release precedes
 /// ElektraWatt's first release and never bypasses the release gate of `revision.release`. Prevented by
-/// **EW-REL-004** (the prevent half of the label rule, doc 15 §4.8 and §5.2; its release-gate half is WP-S1.18 part
-/// 3): a label that is not in the project's label format (`settings.revision_label`, absent meaning
-/// `V{major}.{minor}`); for an open revision, a label that does not follow every label in the format in natural
-/// order (the refusal names the next label); for a historic released revision, a label that does not precede the
-/// open revision's, so the open revision stays the last in order. A label format of a newer build is not judged.
-/// The command never changes an existing revision. Outcome: the revision.
+/// **EW-REL-004** (the prevent half of the label rule, doc 15 §4.8 and §5.2; its release-gate half is in the
+/// release gate): a label that is not in the project's label format (`settings.revision_label`, absent
+/// meaning `V{major}.{minor}`); for an open revision, a label that does not follow every label in the format
+/// in natural order (the refusal names the next label); for a historic released revision, a label that does
+/// not precede the open revision's, so the open revision stays the last in order. A label format of a newer
+/// build is not judged. The command never changes an existing revision. Outcome: the revision.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateRevision {
@@ -285,8 +285,7 @@ fn refuse_label_out_of_order(
 }
 
 /// `revision.set_author` (`SetRevisionAuthor`): sets the author of the open revision, the one
-/// path that writes it once the revision exists (`fields.set` refuses `author` and `checker`). The GUI's Revision ▸
-/// Set author dialog is WP-S1.18 part 5.
+/// path that writes it once the revision exists (`fields.set` refuses `author` and `checker`).
 ///
 /// `role` is the author's party role (FR-PRJ-003). Rejected: a revision that does not exist (at `/revision`); a
 /// released or withdrawn revision, which is immutable (at `/revision`, FR-REV-009); the checker's role (at `/role`,
@@ -330,8 +329,8 @@ impl Command for SetRevisionAuthor {
 }
 
 /// `revision.withdraw` (`WithdrawRevision`): withdraws a released revision (doc 15 §5.10, FR-REV-009).
-/// The CLI's `ew revision withdraw <label> --reason <text>` and the GUI's Revision ▸ Withdraw are WP-S1.18 parts 3
-/// and 5.
+/// The CLI's `ew revision withdraw <label> --reason <text>` and the GUI's Revision ▸ Withdraw are front ends
+/// of it.
 ///
 /// Adds a withdrawal record `Revision {label, state: withdrawn, withdraws: <revision>, reason}` with the ID
 /// `v5(revision, "withdrawal")` and the label of the revision it withdraws (EW-INV-017 lets a withdrawal record

@@ -10,7 +10,7 @@
 //! grid step at a time, inside the search area: a representation body (other than the ghost's own) stops it; a free
 //! CP whose direction is opposite to the ray's, at the walk point (equal grid indices on both axes), is a hit; a
 //! connection segment collinear with the ray at the walk point stops it (the line is occupied); a segment crossing
-//! the ray is passed. Several CPs at one walk point are hits in label order (the page tables' order, FT-439; never
+//! the ray is passed. Several CPs at one walk point are hits in label order (the page tables' order; never
 //! the v5 ID, which follows the minted function ID). A terminal's ghost CP never takes a CP of a terminal of its own
 //! strip as a hit: two terminals of one strip are joined by a bridge, never by a
 //! proposed wire; that terminal's body then stops the walk as any body does. The proposal of a ray is its
@@ -244,7 +244,7 @@ fn strictly_on(grid: PageGridMap, a: (i64, i64), b: (i64, i64), p: (i64, i64)) -
 }
 
 /// Whether a ghost CP lies strictly inside a segment that the scene's clamp drew along the sheet's edge, off its
-/// wire's path (ID-1148: [`TableConnection::off_sheet`](ew_api::output::TableConnection::off_sheet)): the
+/// wire's path ([`TableConnection::off_sheet`](ew_api::output::TableConnection::off_sheet)): the
 /// Place tool refuses that drop, because the symbol would look joined to a wire that does not run there. A CP at
 /// such a segment's end is not inside it.
 pub fn on_off_sheet_segment(cps: &[GhostCp], tables: &PageTables) -> bool {

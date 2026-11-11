@@ -6,7 +6,7 @@
 //! value as `Unknown`, writes byte-equal after `pin_of` and before the section's unknown members, omits an empty list,
 //! and refuses a group without one of its pins, naming the member.
 //!
-//! The orchestrator's ruling 1 of cycle 42, worded exactly: "`supply_groups` sits after `pin_of` and before the
+//! The order of the members, worded exactly: "`supply_groups` sits after `pin_of` and before the
 //! flattened `extra` of `PlcSection` ... Each group ends with its own flattened `extra` (`de_extra`), as `PlcSection`
 //! does, so an unknown member of a group round-trips".
 

@@ -134,8 +134,7 @@ pub fn compose(inp: &ComposeIn) -> Result<Composed> {
     {
         rels.push(format!("tools/blind/tasks/{}/acceptance.toml", inp.task));
     }
-    // A round task's persona reads the round prompt after the task sheet: the hints and the questionnaire (WP-S2.12
-    // D11).
+    // A round task's persona reads the round prompt after the task sheet: the hints and the questionnaire.
     if inp.kind == Kind::Brief
         && super::brief::task_toml(inp.root, inp.task)?.is_some_and(|t| !t.rounds.is_empty())
     {

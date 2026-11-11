@@ -17,8 +17,8 @@ use sha2::{Digest, Sha256};
 use super::view::{GoldenPage, golden_session};
 
 /// The glyphs the PDF writer drops because neither bundled font has them. The "∞" of the nine main-function
-/// cross-reference texts and the "−" and "⇄" of the report pages come from the symbol fallback face (
-/// ADR-0028 recommendation 3), so none is dropped.
+/// cross-reference texts and the "−" and "⇄" of the report pages come from the symbol fallback face
+/// (ADR-0028 recommendation 3), so none is dropped.
 pub const EXPECTED_DROPPED_NOTDEF_GLYPHS: usize = 0;
 
 /// The PDF page list of the golden project through the shipped export job (`ew_api::output::export_pages_with`: the
@@ -169,9 +169,9 @@ pub fn xref_counts(pages: &[GoldenPage]) -> (usize, usize, usize) {
     (linked, targets, external)
 }
 
-/// The report row links the generated pages draw other than the PLC overview's connection-point links (WP-S3.06
-/// D10, ruling 5), per folio in page order: every link of a drawn data row whose cell prints a text. Each is one link
-/// annotation of the PDF, so the PDF's links are the cross-reference items, the PLC overview rows and these.
+/// The report row links the generated pages draw other than the PLC overview's connection-point links, per
+/// folio in page order: every link of a drawn data row whose cell prints a text. Each is one link annotation
+/// of the PDF, so the PDF's links are the cross-reference items, the PLC overview rows and these.
 pub fn report_row_links(pages: &[GoldenPage]) -> Vec<(String, usize)> {
     pages
         .iter()

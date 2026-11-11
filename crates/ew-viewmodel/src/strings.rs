@@ -738,7 +738,7 @@ pub fn in_sentence(label: &str) -> String {
     }
 }
 
-/// A part of a message the window shows on its own line (ID-1182: a toast's line under its title, a
+/// A part of a message the window shows on its own line (a toast's line under its title, a
 /// Properties refusal), starting with a capital: the text of a command or a check stays lowercase after its title or
 /// its prefix (doc 16a §8.1), and the window capitalises where the part stands alone. A rule code first ("EW-CORE-052:
 /// ") is left as it is and the words after it start with the capital; a designation, a code or a digit first ("-K1
@@ -838,7 +838,7 @@ mod tests {
                 "EW-CORE-052: A second source of 0V",
             ),
             ("W464: a star source", "W464: a star source"),
-            // FT-1113 (item 2): a designation with a colon is no rule code, and a chain of codes is skipped.
+            // A designation with a colon is no rule code, and a chain of codes is skipped.
             ("-K1: the coil of the relay", "-K1: the coil of the relay"),
             (
                 "EW-CORE-052: EW-POT-011: a second source",
@@ -864,7 +864,7 @@ mod tests {
         })
     }
 
-    /// FT-1081 (doc 16a §8 item 7): a key has one name in every text, the form on its keycap. No text names
+    /// Doc 16a §8 item 7: a key has one name in every text, the form on its keycap. No text names
     /// the Escape key in full, and the long forms `short_display` shortens ("Arrow Up") stand in none.
     #[test]
     fn no_text_names_a_key_by_its_long_form() {
@@ -889,7 +889,7 @@ mod tests {
         assert!(!names_key("Click or {0} to place", "0"));
     }
 
-    /// Cycle 35 play-test: the preview card and chip name the command by its title, not its ID.
+    /// The preview card and chip name the command by its title, not its ID.
     #[test]
     fn the_preview_texts_name_the_command_by_its_title() {
         assert_eq!(command_title("device.place"), "Place device");
@@ -982,7 +982,7 @@ mod tests {
         assert_eq!(lookup("no-such-key"), None);
     }
 
-    /// Cycle 35 play-test: the refusal of a page type without symbols names the remedy, as the paste refusal does.
+    /// The refusal of a page type without symbols names the remedy, as the paste refusal does.
     #[test]
     fn the_page_type_refusal_names_the_remedy() {
         assert_eq!(
@@ -1102,7 +1102,7 @@ mod tests {
             ]
         );
         assert!(set_locale("nl"));
-        // C50-p5#6 and FIX50b's ruling 1: the Dutch compounds and words.
+        // The Dutch compounds and words.
         let members = [
             "wire_part",
             "symbol_cp",

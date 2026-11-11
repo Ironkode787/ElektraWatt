@@ -35,8 +35,7 @@ pub(crate) fn small_width(t: &crate::theme::Tokens, window: f32) -> f32 {
     grown(t.size_dialog_small, SMALL_SHARE, window)
 }
 
-/// The share of the window the print pre-dialog takes once that is wider than `size.dialog.preview` (WP-S3.07 part
-/// 3, ruling 4 of ID-1180: 1248 px at 1920).
+/// The share of the window the print pre-dialog takes once that is wider than `size.dialog.preview` (1248 px at 1920).
 pub(crate) const PREVIEW_SHARE: f32 = 0.65;
 
 /// The print pre-dialog's width in a window `window` wide: `size.dialog.preview`, growing with the window

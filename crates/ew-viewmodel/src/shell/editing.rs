@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host's duties of WP-S2.04 part 1 (§6.4, §7): the picker popup and its choices, the host commits (the
+//! The tool host's duties: the picker popup and its choices, the host commits (the
 //! starter embedding and `strip.new`), arming the Place and change-symbol tools, the transform keys, the keyboard
 //! move, Delete, and the selection after a commit.
 //!
@@ -376,7 +376,7 @@ impl ShellModel {
 
     /// The catalogue row of symbol `key` with the copy ID it has, or, for a starter symbol the project does not
     /// embed yet, the one its embedding gives it; and the library documents (`copies`) that the command using it
-    /// carries, so that the embedding is part of that command's transaction (FT-656, FT-673: one undo step, and the
+    /// carries, so that the embedding is part of that command's transaction (FT-656: one undo step, and the
     /// recorded command replays without a library). Nothing is committed here.
     pub(super) fn starter_row(&mut self, key: &str) -> Result<(CatalogueSymbol, Vec<Value>), Outcome> {
         let no_row = Outcome::refused(key!("reason-unknown-symbol"));
@@ -419,8 +419,8 @@ impl ShellModel {
     }
 
     /// Arms the Place tool (or, in exchange mode, the change-symbol tool) for `pick` of `cat`; `p` holds the
-    /// optional `letter`, `strip` and `designation`. A part's template function arms **part-first** (WP-S2.04 §7.1
-    /// as amended by the cycle-27 follow-up): the starter symbol and every FnDef the part's template needs are
+    /// optional `letter`, `strip` and `designation`. A part's template function arms **part-first**:
+    /// the starter symbol and every FnDef the part's template needs are
     /// embedded in one host commit before the tool arms; an FnDef neither the project nor the starter library holds
     /// fails the pick by name and arms nothing.
     /// The tag a new strip with letter `letter` would take from its first terminal placed on the page on show:
@@ -531,7 +531,7 @@ impl ShellModel {
         }
         // FT-656: what the project lacks travels in the placement itself, so that placing from the picker is one undo
         // step and the recorded command replays without a library: a starter symbol with its FnDef and, for a part's
-        // template function (part-first, WP-S2.04 §7.1 as amended by the cycle-27 follow-up), every FnDef the part's
+        // template function (part-first), every FnDef the part's
         // template needs and a library part's closure. The tool names a starter symbol by the copy ID its embedding
         // gives it.
         let copies: Vec<Value> = match (&self.project, part_copy) {
@@ -764,7 +764,7 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `picker.new_page` (ID-1477 (1)): the current row, a symbol on another connection grid than the page's, placed on
+    /// `picker.new_page`: the current row, a symbol on another connection grid than the page's, placed on
     /// a new page with its grid and selected; the picker closes.
     pub(crate) fn act_picker_new_page(&mut self) -> Outcome {
         let Some(picker) = &self.tools.picker else {
@@ -960,7 +960,7 @@ impl ShellModel {
                     .and_then(|u| self.project.as_ref()?.session.main_function(u))
                     .map(|(f, key)| (f.to_string(), key));
                 let function = main.as_ref().map_or(function, |(f, _)| f.as_str());
-                // WP-S2.06 part 1 (§6.7): without `symbol`, the drop of an unplaced function row takes the first
+                // Without `symbol`, the drop of an unplaced function row takes the first
                 // catalogue symbol that draws the function's FnDef (the Devices navigator's function row names it).
                 let symbol = symbol.or_else(|| {
                     let fndef = match &main {
@@ -1030,8 +1030,8 @@ impl ShellModel {
         if out != Outcome::Done {
             return out;
         }
-        // FT-485 item 1: the strip draws nothing until a terminal is placed, so the toast says where it shows. FT-893:
-        // its tag (`-X??` until then) is not shown; the toast says when it takes one, with the tag it would take from a
+        // The strip draws nothing until a terminal is placed, so the toast says where it shows. Its
+        // tag (`-X??` until then) is not shown; the toast says when it takes one, with the tag it would take from a
         // terminal on the page on show as the example. A frozen tag is its own from the start.
         self.sync_views();
         let given = frozen
@@ -1269,7 +1269,7 @@ impl ShellModel {
             .collect()
     }
 
-    /// C53-fx#1 (ID-1497 (8)): whether Delete on the schematic page shown has something of the selection to act on, as
+    /// Whether Delete on the schematic page shown has something of the selection to act on, as
     /// [`Self::act_delete_selection`] resolves it: what the page draws of it, a device no page draws (deleted itself),
     /// or a device or a function another page draws (refused with its own reason). A page chosen in the page list has
     /// none, so Edit ▸ Delete is not offered for it.
@@ -1288,14 +1288,14 @@ impl ShellModel {
     /// resolve.
     pub(crate) fn act_delete_selection(&mut self) -> Outcome {
         self.cancel_pending_move();
-        // FT-485 items 9 and 10: a device or a function selected by reference (`select.set` with `tag:…`) is deleted as
+        // A device or a function selected by reference (`select.set` with `tag:…`) is deleted as
         // the representations the page shown draws of it, as Cut takes it; a device that no page draws (an empty strip,
         // a device never placed) is deleted itself. A device drawn only on other pages is refused, never deleted there.
         let targets = self.copy_targets();
         let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
             return Outcome::refused(key!("reason-nothing-selected"));
         };
-        // WP-S4.02 part 3 (D10, E2-2): on a panel page the selected placements and carriers, without the undrawn-device
+        // On a panel page the selected placements and carriers, without the undrawn-device
         // step (a placement's device is never deleted by it).
         if page.panel.is_some() {
             let list: Vec<Value> = crate::tools::page_selection_kinds(&self.tools.selection, &page)

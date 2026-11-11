@@ -6,7 +6,7 @@
 //! # Why these must be bit-identical
 //!
 //! PDF and SVG exports are compared byte for byte across Windows and Linux (FR-OUT-019, NFR-REL-07;
-//! doc 09 §4.3; macOS was a third platform until ID-880, and the rules below hold for it too). A rotated
+//! doc 09 §4.3; macOS was once a third platform, and the rules below hold for it too). A rotated
 //! text anchor or an arc control point that differs in its last bit on one platform
 //! rounds to a different nanometre now and then, and the export hash breaks. Doc 09 §4.3 rule 4 therefore
 //! requires:
@@ -28,7 +28,7 @@
 //! # Angle sense
 //!
 //! A positive [`Angle2`] turns **counter-clockwise as seen by the viewer on the sheet**, and 0 is the +x
-//! direction (product-owner decision of 2026-10-18). Sheet y points down, so a turn by +90° maps
+//! direction (a fixed convention). Sheet y points down, so a turn by +90° maps
 //! `(x, y) → (y, −x)`: the +x axis goes to "up" on the sheet. This is the opposite sense of
 //! [`Orient2::R90`](ew_units::Orient2::R90), which is a quarter turn clockwise: `R90` equals a turn by −90°.
 //! QET arcs (0° at 3 o'clock, positive span counter-clockwise on screen; doc 14 §4.3) and DXF angles

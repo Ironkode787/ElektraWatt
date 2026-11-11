@@ -27,12 +27,12 @@
 //!   its atomic write through the seam (doc 05 §14).
 //! - **`.ewz` transport** ([`ewz`]): one verified generation packed as a deterministic ZIP, its strict reader and the
 //!   all-or-nothing extract into a new directory through the seam (doc 05 §12).
-//! - **Git** ([`git`]): the release's commit and tag through the `git` executable, never a shell (doc 05 §11.6;
-//!   WP-S1.18 D12).
+//! - **Git** ([`git`]): the release's commit and tag through the `git` executable, never a shell (doc 05
+//!   §11.6).
 //!
 //! - **Migrations** (§10.2): a project of an older format opens migrated in memory through the chain of
-//!   [`StoreOptions::migrations`], and its first save waits for the user's consent ([`Store::confirm_upgrade`];
-//!   WP-S1.17 D10, D11).
+//!   [`StoreOptions::migrations`], and its first save waits for the user's consent
+//!   ([`Store::confirm_upgrade`]).
 //!
 //! - **Cloud folders** ([`cloud`]): whether a project lies in a folder a sync client keeps (doc 05 §15).
 //! - **External change** ([`external`]): the manifest polled, the incoming generation read and merged three-way with

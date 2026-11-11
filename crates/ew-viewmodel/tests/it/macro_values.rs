@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 6 (§11), the value-set items: FT-785 (the macro card's ad-hoc values: a typed value is a literal of
+//! The value-set items: the macro card's ad-hoc values (a typed value is a literal of
 //! `macro.insert` that wins over the value set and the default; a value that does not coerce shows the command's
-//! refusal under its field) and FT-786 (Save as macro…'s value-set table: add, rename, remove, save; an invalid cell
+//! refusal under its field) and Save as macro…'s value-set table (add, rename, remove, save; an invalid cell
 //! is refused naming the set and the variable), in the shell on copies of Golden A with a fixture user library.
 
 use crate::common;

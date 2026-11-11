@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell model of WP-S2.01 part 2 on temporary directories: New project, the sample project, the
-//! QElectroTech import and the tutorials copy, the journal discard (FT-313's first part), first run, the
+//! The shell model on temporary directories: New project, the sample project, the
+//! QElectroTech import and the tutorials copy, the journal discard, first run, the
 //! company-standard wizard with its preview, workspaces, F1 and the quick switches.
 
 use ew_testdir::{CONTENT, GOLDEN_A, Tmp};
@@ -359,7 +359,7 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
         ["1 page, 0 devices, 0 connections; 0 errors, 0 warnings and 0 infos in the migration report"]
     );
     assert!(!dir.exists(), "the card writes nothing");
-    // ID-1389 (W51 findings A and B): the listed page in words; the confirmation's counts with their plurals.
+    // The listed page in words; the confirmation's counts with their plurals.
     let Some(ew_viewmodel::shell::Dialog::ImportQet { pages, .. }) = shell.dialog() else {
         panic!("the import card");
     };
@@ -398,7 +398,7 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
         Some("Imported example.qet: 1 page, 0 devices, 0 findings in the migration report.")
     );
     assert!(dir.join("manifest.json").is_file());
-    // WP-S3.09 D8, D9 d (T11): the new project opens on its migration report in Messages, a choice beside the
+    // The new project opens on its migration report in Messages, a choice beside the
     // project's scheme.
     assert!(shell.messages_shows_migration());
     assert_eq!(shell.messages_scheme(), Some("Migration report"));
@@ -580,7 +580,7 @@ fn the_import_card_waits_for_an_open_dialog() {
     assert_eq!(spec.title, "Import example.qet");
 }
 
-/// WP-S3.09 IC-4 (NFR-REL-12): an import whose job panics shows T1 in the banner, writes nothing, and the session goes
+/// NFR-REL-12: an import whose job panics shows T1 in the banner, writes nothing, and the session goes
 /// on: the next import opens its card.
 #[test]
 fn a_panicking_import_shows_t1_and_the_window_goes_on() {
@@ -609,7 +609,7 @@ fn a_panicking_import_shows_t1_and_the_window_goes_on() {
     assert!(shell.dialog().is_some(), "the next import opens its card");
 }
 
-/// WP-S3.09 IC-13 (D10 to D12): a changed file without a project UUID asks T6; the re-import card shows T8 and its
+/// A changed file without a project UUID asks T6; the re-import card shows T8 and its
 /// row; Cancel leaves the project as it was; Apply is one undo step; a file of another project is refused with T7.
 #[test]
 fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
@@ -690,7 +690,7 @@ fn a_qelectrotech_file_is_re_imported_into_the_open_project() {
     shell.shutdown();
 }
 
-/// ID-1427 (W52 F8): re-importing a file that matches the project says there is nothing to re-import, in both
+/// Re-importing a file that matches the project says there is nothing to re-import, in both
 /// languages, its Apply disabled with the reason, and Apply refused with the card kept; nothing is written.
 #[test]
 fn an_identical_re_import_says_there_is_nothing_to_re_import() {
@@ -1009,7 +1009,7 @@ fn an_import_that_cannot_be_read_fails_without_a_path() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// FT-313's first part: discarding the journal of an earlier session
+// Discarding the journal of an earlier session
 
 fn crash_with_an_edit(tmp: &Tmp, dir: &Path) {
     let mut crashed = tmp.shell();
@@ -1478,8 +1478,8 @@ fn every_choice_of_the_wizard_is_accepted_by_the_commands() {
 
 #[test]
 fn the_default_draft_reproduces_the_sample_projects_folio_102() {
-    // NFR-UX-08 in miniature: the defaults of the wizard with the pilot's text sizes ("As in the sample project",
-    // WP-S7.03 D11) are the sample project's conventions, so the settings commands of the draft change nothing, and
+    // NFR-UX-08 in miniature: the defaults of the wizard with the pilot's text sizes ("As in the sample project")
+    // are the sample project's conventions, so the settings commands of the draft change nothing, and
     // the preview page is the sample's own page.
     let tmp = Tmp::new(STEM);
     let mut shell = tmp.shell();
@@ -1853,7 +1853,7 @@ fn the_wizard_writes_the_logo_the_shipped_profile_and_the_report_blocks() {
     shell.shutdown();
 }
 
-/// FT-336 ruling: the check scheme is applied after finishing by `wizard.apply_check_scheme`, a confirmed action that
+/// The check scheme is applied after finishing by `wizard.apply_check_scheme`, a confirmed action that
 /// submits the `HumanOnly` command `project.checks.set`; the headless mode refuses it with the human-only reason.
 #[test]
 fn the_check_scheme_is_applied_after_finishing_by_a_person_only() {
@@ -2164,7 +2164,7 @@ fn the_documentation_url_points_into_the_installed_book() {
     );
 }
 
-/// WP-S7.05 D14, DC-11: in a Dutch window F1 opens the page of the Dutch book (`nl/` in the book) when the book has
+/// In a Dutch window F1 opens the page of the Dutch book (`nl/` in the book) when the book has
 /// it, else the English page; an English window opens the English page either way.
 #[test]
 fn f1_in_a_dutch_window_opens_the_dutch_page_when_the_book_has_it() {
@@ -2288,8 +2288,8 @@ fn quick_switches_validate_and_persist() {
     assert_eq!(again.settings().keymap, "kicad");
     assert_eq!(again.settings().theme, "light");
     assert!(again.settings().update_check);
-    // The describe text shows the quick switches and the privacy line of the start page. FT-1117 (item 3):
-    // the stored setting stays, unused: this version has no update check.
+    // The describe text shows the quick switches and the privacy line of the start page.
+    // The stored setting stays, unused: this version has no update check.
     let text = again.describe();
     assert!(text.contains("quick \"Keymap\": \"KiCad-like\""), "{text}");
     assert!(
@@ -2461,7 +2461,7 @@ fn no_uuid_reaches_the_describe_text_and_a_selection_prints_an_alias() {
     texts.push(sample.describe());
     // The tool framework: Select pressed and its rubber band, Measure armed on a connection point
     // and measuring. (The preview words `stale`, `failed`, `tags` and `xrefs` need a tool that previews, which only
-    // the test-only probe is: `tests/it/probe.rs` checks them; `junction`, a snap marker kind, comes with WP-S2.04's
+    // the test-only probe is: `tests/it/probe.rs` checks them; `junction`, a snap marker kind, comes with the
     // Wire tool and is checked above.)
     // An entity whose centre is no link (a press on a link follows it rather than selecting) and that is no
     // representation (a press on a representation drags it; on another entity it starts a band).

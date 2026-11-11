@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 2 (D7) in the view model: `ui.describe` reports the printed PLC address of the connection point under
+//! In the view model: `ui.describe` reports the printed PLC address of the connection point under
 //! the pointer. On a writable copy of Golden A a spare channel of a valve terminal is bound to a drawn port of one of
 //! its valves on folio 203; hovering that port prints `canvas hover cp "<label>" address "<address>"`, the address the
 //! page tables give the CP. No such line is printed before the binding.

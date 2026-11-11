@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Keyboard shortcuts of the keymap as egui shortcuts (spec section 5.3, UX/UI doc 16
-//! section 4.2; WP-S2.08 part 2, D6).
+//! section 4.2).
 //!
 //! The keymap writes bindings as text (`Ctrl+Shift+Z`, `Page Down`, `]`, `phys:BracketRight`); `Ctrl` is
 //! what egui calls `COMMAND`. Letters, digits and named keys match by logical key; a punctuation character and
@@ -164,13 +164,13 @@ pub fn chord_text(key: Key, physical: Option<Key>, modifiers: Modifiers) -> Opti
 }
 
 /// The text of a binding for display: a physical key reads as its key cap
-/// (`Ctrl+phys:Digit0` is "Ctrl+0", `phys:Minus` "-", KM-4 ruling): the window never prints the `phys:` grammar. The
+/// (`Ctrl+phys:Digit0` is "Ctrl+0", `phys:Minus` "-"): the window never prints the `phys:` grammar. The
 /// view-model's one display function, under [`short_display`]; only the keymap's findings show it as it is.
 pub use ew_viewmodel::keymap::display;
 
 /// A binding as every surface names it: the keycap form ("Esc", "Del", "Up", "Ctrl+Z") of the menus, the key chips,
-/// the palette, the keymap editor, the command bar, the tooltips and the hints (
-/// doc 16a §8 item 7).
+/// the palette, the keymap editor, the command bar, the tooltips and the hints
+/// (doc 16a §8 item 7).
 pub use ew_viewmodel::keymap::short_display;
 
 #[cfg(test)]
@@ -224,7 +224,7 @@ mod tests {
         assert!(shortcut_of(&Chord::parse("Win+E").unwrap()).is_none());
     }
 
-    /// KM-4 ruling: the window shows a physical digit or letter as its key cap, never the `phys:` grammar.
+    /// The window shows a physical digit or letter as its key cap, never the `phys:` grammar.
     #[test]
     fn a_physical_digit_displays_as_its_key_cap() {
         assert_eq!(display("Ctrl+phys:Digit0"), "Ctrl+0");

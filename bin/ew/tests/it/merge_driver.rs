@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 4b through the `ew` binary (D15, D29): `ew merge-driver` in a working tree that
-//! holds a copy of Golden A, as git runs it. MD-5: the exits 0 and 1, the four-argument form, an internal error's 129
-//! with `%A` byte-identical; MD-6: AC-41's driver half on W20 of page 102 and the manifest merge. Golden A is only
+//! Through the `ew` binary: `ew merge-driver` in a working tree that
+//! holds a copy of Golden A, as git runs it. The exits 0 and 1, the four-argument form, an internal error's 129
+//! with `%A` byte-identical; AC-41's driver half on W20 of page 102 and the manifest merge. Golden A is only
 //! read and copied.
 
 use std::path::{Path, PathBuf};
@@ -180,7 +180,7 @@ fn the_manifest_merges_to_max_plus_one_merged_and_no_base() {
     assert_eq!(merged, expected);
 }
 
-/// FT-1235 (RL-3): theirs' manifest names a format newer than this reader's: nothing is merged, `%A`
+/// Theirs' manifest names a format newer than this reader's: nothing is merged, `%A`
 /// stays ours byte for byte, the driver says so and exits 1. Ours' newer format (the working tree's manifest) keeps a
 /// page of that project as ours the same way.
 #[test]
@@ -263,7 +263,7 @@ fn a_library_document_this_reader_cannot_read_is_left_as_ours() {
     assert_eq!(merged, ours);
 }
 
-/// MD-5, ruling 6: a write that fails (the temporary file's name is taken by a folder) exits 129 and leaves `%A`
+/// A write that fails (the temporary file's name is taken by a folder) exits 129 and leaves `%A`
 /// byte-identical, the folder as it was.
 #[test]
 fn a_failed_write_exits_129_and_leaves_a_byte_identical() {
@@ -288,7 +288,7 @@ fn a_failed_write_exits_129_and_leaves_a_byte_identical() {
     assert!(tmp.is_dir());
 }
 
-/// MD-5, ruling 6: a side that cannot be read exits 129 and leaves `%A` byte-identical.
+/// A side that cannot be read exits 129 and leaves `%A` byte-identical.
 #[test]
 fn a_side_that_cannot_be_read_exits_129() {
     let t = Tree::new();
@@ -329,7 +329,7 @@ fn three_arguments_are_a_usage_error() {
     assert_eq!(merged, "a\n");
 }
 
-/// Decision log ID-1273: a `%P` under a top-level folder whose name begins with `-` is a path, not an option: the
+/// A `%P` under a top-level folder whose name begins with `-` is a path, not an option: the
 /// project in `-proj/` merges as in `proj/`.
 #[test]
 fn a_path_beginning_with_a_hyphen_merges() {

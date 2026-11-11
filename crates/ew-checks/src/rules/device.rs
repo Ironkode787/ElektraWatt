@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! EW-CORE device and part rules of the 04x block (doc 15 §4.2): EW-CORE-041 to -045 and -048,
-//! and EW-CORE-008's `form` half and `channel` half (FT-229, part 4). EW-CORE-047 is in [`core`](super::core).
+//! and EW-CORE-008's `form` half and `channel` half. EW-CORE-047 is in [`core`](super::core).
 //!
 //! # Determinism
 //!
@@ -141,7 +141,7 @@ fn missing_part_data(q: &Q, part: &Part) -> Vec<&'static str> {
 /// the copy, discriminator `part-data`.
 ///
 /// The catalogue's third condition, "no CP pattern", is not checked: Golden A's CPX modules (parts 195740 and 533361,
-/// black boxes) carry no CP pattern, and doc 20 §18.1 expects no EW-CORE-042 finding (WP-S1.16 part 3 report: which
+/// black boxes) carry no CP pattern, and doc 20 §18.1 expects no EW-CORE-042 finding (which
 /// parts a CP pattern is due for is open).
 #[derive(Clone, Copy, Debug)]
 pub struct IncompletePartData;
@@ -203,10 +203,11 @@ const PLACEHOLDER_NUMBER: &str = "TBD";
 /// EW-CORE-043: a placeholder part: a part copy whose part number is `TBD` (FR-CHK-034, D-04, EF-17). The schema has
 /// no typed placeholder marker on a part; Golden A's four placeholder parts carry the part number `TBD` (doc 20
 /// §14.1). One finding per placeholder copy, as EF-17 counts them: targets the copy and
-/// every device that uses it (a part use, or a carrier part line of its enclosure: WP-S4.01 part 4 moved -UC1's rail
-/// and duct from part uses to its carriers), the fingerprint keyed on the copy, discriminator `placeholder`. It is reported in the
-/// scope of the first of those devices by printed tag, so a further user of the part changes neither the count nor
-/// the fingerprint. A warning online, an error in release mode (an open item that blocks release).
+/// every device that uses it (a part use, or a carrier part line of its enclosure: -UC1's rail
+/// and duct are carriers, not part uses), the fingerprint keyed on the copy, discriminator `placeholder`. It
+/// is reported in the scope of the first of those devices by printed tag, so a further user of the part
+/// changes neither the count nor the fingerprint. A warning online, an error in release mode (an open item
+/// that blocks release).
 #[derive(Clone, Copy, Debug)]
 pub struct PlaceholderPart;
 
@@ -278,7 +279,7 @@ impl Rule for PlaceholderPart {
 
 /// The part copies EW-CORE-043 looks at for a device: its part uses ([`parts_of`]) and the parts of its carrier part
 /// lines (`LineSource::Carrier`: the rails and ducts of its enclosure), in the order of [`parts_of`]. A
-/// placeholder rail or duct reaches the BOM through the carriers since WP-S4.01 part 4, so it stays an open
+/// placeholder rail or duct reaches the BOM through the carriers, so it stays an open
 /// item that blocks release (EF-17), owned by the enclosure device.
 fn placeholder_candidates(q: &Q, device: &Device) -> Vec<(Id<Part>, std::sync::Arc<LibCopy<Part>>)> {
     let mut out = parts_of(q, device);
@@ -454,7 +455,7 @@ impl ContactCount {
 
 /// EW-CORE-045: the contact functions of a device (normally open, normally closed and change-over, by their function
 /// definitions' `contact_kind`) exceed, or differ in kind from, the contacts of the device's parts (`Part.contacts`,
-/// WP-S1.19 part 1; FR-CHK-036, STD XR-02). Every contact function of the device counts, the main one included,
+/// FR-CHK-036, STD XR-02). Every contact function of the device counts, the main one included,
 /// since each uses a contact of the part; a part's change-over contact serves a normally open or closed one. The
 /// contacts of every part use add up (an auxiliary contact block is a part use of the device); a device whose parts
 /// carry no contact data is not judged. One finding per device: target the device, discriminator `contacts`.
@@ -630,22 +631,21 @@ impl Rule for OrderCodesCover {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// EW-CORE-008, the `form` and `channel` (FT-229) halves
+// EW-CORE-008, the `form` and `channel` halves
 
 /// EW-CORE-008, the dangling references a loaded model can hold. An integrity rule of release mode: it runs in `ew
 /// check` and the release gate, not online. Two halves, by discriminator:
 ///
 /// - **`form`**: a page without a form of its own whose frame defaults (`settings.frames`, doc 03 §5.1)
-///   name a form copy the project does not hold, so its frame falls through to the next rule (decision log ID-547
-///   item 4). A page's own `form` is a checked link (`Model::from_records` refuses a dangling one); the frame
-///   defaults are a settings member that is not. Reported per stored page, as the cell grid resolves it
-///   (`FrameGridOf`): the entry of the page's type, then the default, whichever the resolution consults and finds
-///   missing. Target the page.
-/// - **`channel`** (FT-229): a PLC channel whose module carries no `plc_module` aspect, which an
+///   name a form copy the project does not hold, so its frame falls through to the next rule. A page's own
+///   `form` is a checked link (`Model::from_records` refuses a dangling one); the frame defaults are a
+///   settings member that is not. Reported per stored page, as the cell grid resolves it (`FrameGridOf`):
+///   the entry of the page's type, then the default, whichever the resolution consults and finds missing.
+///   Target the page.
+/// - **`channel`**: a PLC channel whose module carries no `plc_module` aspect, which an
 ///   older build that deleted the module's aspect leaves behind (a missing module is a checked link the model
 ///   refuses on open). Target the channel and the device, subject `<device tag>:<channel number>`. The delete quick
-///   fix of FT-229 waits for a command that deletes a channel (`edit.delete` does not take one; WP-S1.16 §11.2
-///   item 6).
+///   fix waits for a command that deletes a channel (`edit.delete` does not take one).
 /// - **`duplicate_number`**: a channel that shares its number with another channel of its
 ///   module (an import or a merge that bypassed the v5 rule of N1). The derivation and N1 keep one channel per
 ///   number, the one whose ID is `v5(module, "channel", number)`, else the lowest ID; every other channel of that

@@ -15,12 +15,12 @@
 //!
 //! Both write their file only as a new one (`create_new`, mode `0o600` on Unix), never through a name already taken.
 //!
-//! Part 3 adds the Linux portal adapter (`Portal`, D11: xdg-desktop-portal Print through `ashpd`, Linux only) and the
-//! [`Chain`] the window prints through: the adapters tried in order, a failure giving way to the
-//! next with one [`Fallback`] notice; on Linux the portal, `lp`, then the viewer; on Windows the Windows adapter,
-//! then the viewer; elsewhere the viewer.
+//! The crate also has the Linux portal adapter (`Portal`: xdg-desktop-portal Print through `ashpd`, Linux
+//! only) and the [`Chain`] the window prints through: the adapters tried in order, a failure giving way to
+//! the next with one [`Fallback`] notice; on Linux the portal, `lp`, then the viewer; on Windows the Windows
+//! adapter, then the viewer; elsewhere the viewer.
 //!
-//! Part 4 adds the Windows adapter (`Windows`, D12, Windows only): the Windows print dialog, or
+//! The crate also has the Windows adapter (`Windows`, Windows only): the Windows print dialog, or
 //! the printer [`PrintJob::printer`] names, then each placed page rendered in bands and sent through GDI. Its module
 //! is the product's one place of `unsafe` (doc 18 §11.2): the crate denies `unsafe_code`, and `cargo xtask
 //! check-unsafe` keeps the keyword in that file.
@@ -61,9 +61,9 @@ pub struct PrintJob {
     pub title: String,
     /// The print set's PDF.
     pub pdf: Vec<u8>,
-    /// The print set's pages (each with its placement), for the adapters that render (part 4).
+    /// The print set's pages (each with its placement), for the adapters that render.
     pub pages: Vec<PdfPage>,
-    /// The font files of the pages' glyph runs, for the adapters that render (ruling 8 of ID-1218: the binaries fill
+    /// The font files of the pages' glyph runs, for the adapters that render (the binaries fill
     /// it from `ew_api::output::font_bytes()`).
     pub fonts: BTreeMap<FontKey, FontBytes>,
     /// The printer; `None`: the default printer, or the one the dialog or viewer asks for.
@@ -160,7 +160,7 @@ pub enum PrintError {
         /// The portal's reason.
         reason: String,
     },
-    /// Printing through Windows failed (the Windows adapter, part 4).
+    /// Printing through Windows failed (the Windows adapter).
     Windows {
         /// What failed, in words ("the printer `office` could not be opened").
         what: String,
@@ -206,7 +206,7 @@ impl fmt::Display for PrintError {
 
 impl std::error::Error for PrintError {}
 
-/// One way to print: the OS's spooler, its PDF viewer, or (part 3 and 4) a dialog.
+/// One way to print: the OS's spooler, its PDF viewer, or a dialog.
 pub trait PrintAdapter {
     /// The adapter's name as `--via` takes it (`lp`, `viewer`, `windows`).
     fn name(&self) -> &'static str;

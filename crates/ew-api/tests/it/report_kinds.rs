@@ -1,23 +1,23 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.06 part 1 over Golden A: the list kinds `device_list` (D5) and `terminal_overview` (D6), the export by kind
-//! (D4), the block parameters (D9) and the revision overview's changed pages in the CSV (D11).
+//! Over Golden A: the list kinds `device_list` and `terminal_overview`, the export by kind, the block
+//! parameters and the revision overview's changed pages in the CSV.
 //!
 //! The kind CSVs `golden/J-E-2416/expected/csv/<kind>.csv` of every kind the export derives are
 //! written by the export by kind
 //! (`row_export(q, &RowExport::Kind(kind), None)`, what `ew export report --kind <kind> --format csv` prints);
 //! `EW_BLESS=1 cargo nextest run -p ew-api --all-features --test it -E 'test(/^report_kinds::/)'` rewrites them.
 //!
-//! The orchestrator's rulings of cycle 42 these tests rely on, quoted:
-//! - Ruling 1: "a strip with no segment representation prints the cell of its `MainRep` ..., which is the
+//! What these tests rely on, quoted:
+//! - "a strip with no segment representation prints the cell of its `MainRep` ..., which is the
 //!   \"101-D2\" RK-2 names; a strip with neither prints an empty cell".
-//! - Ruling 4: "`RowsError` gains four variants whose `Display` is D4's text exactly".
-//! - Ruling 5: "Every registered kind other than `terminal_diagram` exports (D4's refusal list is closed)".
-//! - Ruling 6: "`member` = `report block <first folio> params.<key>` ..., `detail` the lane's sentence".
-//! - Ruling 7: "`row_export` replaces the `pages` cell of every data row of a `revision_overview` row set with it,
+//! - "`RowsError` gains four variants whose `Display` is D4's text exactly".
+//! - "Every registered kind other than `terminal_diagram` exports (D4's refusal list is closed)".
+//! - "`member` = `report block <first folio> params.<key>` ..., `detail` the lane's sentence".
+//! - "`row_export` replaces the `pages` cell of every data row of a `revision_overview` row set with it,
 //!   for `--block` and `--kind` alike".
-//! - Ruling 10: "`expected/csv/io_list.csv` ...: the default `io_list` rows of Golden A (28 data rows, C42's PX-1),
+//! - "`expected/csv/io_list.csv` ...: the default `io_list` rows of Golden A (28 data rows, C42's PX-1),
 //!   written by `--kind io_list`".
 
 use std::collections::BTreeSet;

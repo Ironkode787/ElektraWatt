@@ -28,7 +28,7 @@
 //! ([`PartKey::Potential`]), of the potential of one endpoint ([`PartKey::Endpoint`]) or of the bonds
 //! ([`PartKey::Bonds`], [`PartKey::BondsOf`]) is invalidated only when an execution declares that part changed.
 //!
-//! - **Cold** (`run`, the oracle's reference) is the global algorithm of cycle 7: the whole stitch graph, one
+//! - **Cold** (`run`, the oracle's reference) is the global algorithm: the whole stitch graph, one
 //!   union-find over its nodes, the components shaped into the value.
 //! - **Incremental** (`run_incremental`, `component.rs`): the touched inputs (the pages whose local nets
 //!   changed, the functions whose links changed, the index families) give seed endpoints; the components that
@@ -472,7 +472,7 @@ pub(crate) fn bond_links(
         .collect()
 }
 
-/// The cold partition: the stitch graph built whole, one union-find over its nodes (the cycle-7 algorithm),
+/// The cold partition: the stitch graph built whole, one union-find over its nodes (the global algorithm),
 /// shaped into components.
 fn cold(q: &Q) -> Partition {
     let inputs = StitchInputs::read(q);

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4a in the window without rendering (PS9, NFR-A11Y-01): the part dialog by keyboard alone (typing
+//! In the window without rendering (NFR-A11Y-01): the part dialog by keyboard alone (typing
 //! searches, Down moves the active row, Enter chooses it) and its AccessKit tree (the result list a `ListBox` named
 //! "Parts" with `ListBoxOption` rows carrying position and set size, the star a button named "Favourite"); the part
 //! editor by keyboard alone (its fields named by their labels, Enter saves into the `part` card). The accessible-name

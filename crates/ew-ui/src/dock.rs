@@ -7,7 +7,7 @@
 //! files); this module builds the egui_tiles tree from it, shows the tree, and reads the user's changes (a
 //! splitter, a tab dragged to another place) back into a `Layout`.
 //!
-//! WP-S2.17 part 3 (doc 16a §5.4, §5.7): the tab group that holds the Pages pane (the navigator group) draws no tab
+//! Doc 16a §5.4, §5.7: the tab group that holds the Pages pane (the navigator group) draws no tab
 //! bar, the left rail chooses its pane; a pane outside a tab bar has the 32-px panel header ("PROJECT",
 //! "PROPERTIES"), which is also its drag handle; the page view and the panes of a tab bar have no heading. The Project
 //! entry's panes (Pages and Devices) carry the segmented control under their header. The splitters are named
@@ -232,8 +232,8 @@ impl Dock {
         let tokens = crate::theme::current(ui.ctx());
         let height = ui.available_height();
         self.collapse_left(collapsed);
-        // FX38d: the page view (the canvas and its tab bar) keeps at least half the window's client height (the
-        // default 1536 × 994 included); ID-743's 300-point least height gives way to it in a short window.
+        // The page view (the canvas and its tab bar) keeps at least half the window's client height (the
+        // default 1536 × 994 included); the 300-point least height gives way to it in a short window.
         let floor = ui.ctx().content_rect().height() / 2.0;
         // What each bottom pane's list needed in the last frame, taken once.
         let reports: BTreeMap<String, (f32, f32)> = PaneKind::BOTTOM
@@ -250,7 +250,7 @@ impl Dock {
             .collect();
         let (mut clamps, guessed) =
             self.keep_bottom_min(height, tokens.size_dock_bottom_min, floor, &reports);
-        // C40 (FT-798): the left column keeps its floor width and grows with a wide window while it has its default
+        // FT-798: the left column keeps its floor width and grows with a wide window while it has its default
         // share; display only, like the bottom clamp.
         let window = ui.ctx().content_rect().width();
         let lack = ui.ctx().data_mut(|d| {
@@ -356,7 +356,7 @@ impl Dock {
                 Header {
                     title: header_title(*pane, in_rail),
                     segmented,
-                    // FX38d (doc 16a §5.7): a bottom pane alone, without the tab row, carries the dock's close button
+                    // Doc 16a §5.7: a bottom pane alone, without the tab row, carries the dock's close button
                     // in its header.
                     close: PaneKind::BOTTOM.contains(pane),
                 },
@@ -365,11 +365,10 @@ impl Dock {
         chrome
     }
 
-    // W31-1, R2-2 of cycle 31
     /// Keeps the bottom dock (D14) at least `min` points tall on show: in the vertical split that holds the page
     /// view, the child that holds a bottom pane is shown with at least `min` of the split's height (the split's last
     /// shown height, `fallback` before the first frame), and never more than two thirds of it nor so much that the page
-    /// view's child falls under `floor` (half the window, FX38d), so the page view keeps its place. Display only: returns the shares it changed, which [`Dock::restore`] puts back after the frame, so
+    /// view's child falls under `floor` (half the window), so the page view keeps its place. Display only: returns the shares it changed, which [`Dock::restore`] puts back after the frame, so
     /// the user's shares stay the layout (no rewrite of the workspace file, no share that only ever grows). Other
     /// vertical splits (a column where Messages was docked) are left alone.
     /// The flag is true when a split had no last shown height, so `fallback` was used.
@@ -483,7 +482,7 @@ impl Dock {
         (clamps, guessed)
     }
 
-    // C40 (FT-798)
+    // FT-798
     /// Shows the left column (the child of a horizontal root split that holds the navigator group but not the page
     /// view) at least `want` points of the root's width (its last shown width, `fallback` before the first frame)
     /// while its share is the Schematic workspace's default ([`default_left_share`]): the default grows with the
@@ -584,10 +583,10 @@ impl Dock {
 const FLOOR_WIDTH: f32 = 1280.0;
 
 /// The share of every point a window is wider than the floor that the left column takes while it has its default
-/// share (C40, FT-798): `size.panel.left` at 1280, `size.panel.left_max` from about 1850.
+/// share (FT-798): `size.panel.left` at 1280, `size.panel.left_max` from about 1850.
 pub(crate) const LEFT_GROW: f32 = 0.35;
 
-/// The left column's least width on show in a window `window` wide while it has its default share (C40, FT-798; doc
+/// The left column's least width on show in a window `window` wide while it has its default share (FT-798; doc
 /// 16a §2: a floor width never caps one that should grow): `size.panel.left` at the floor and below, plus
 /// [`LEFT_GROW`] of every point beyond, never wider than `size.panel.left_max`.
 pub(crate) fn left_default_width(t: &crate::theme::Tokens, window: f32) -> f32 {
@@ -648,7 +647,7 @@ struct Clamp {
     shown: Vec<(TileId, f32)>,
 }
 
-/// The panes of a tab group, each with its tile, in tab order (FT-509's menu).
+/// The panes of a tab group, each with its tile, in tab order.
 fn tab_panes(tiles: &Tiles<PaneKind>, tabs: &Tabs) -> Vec<(TileId, PaneKind)> {
     tabs.children
         .iter()
@@ -707,7 +706,7 @@ struct Header {
     title: String,
     /// The Project entry's segmented control with the pane it shows chosen.
     segmented: Option<PaneKind>,
-    /// The bottom dock's close button at the header's right end (a bottom pane alone; FX38d).
+    /// The bottom dock's close button at the header's right end (a bottom pane alone).
     close: bool,
 }
 
@@ -859,7 +858,7 @@ impl DockBehavior<'_> {
             let response = tabs.interact(rect, id, Sense::click());
             let label = strings::text(key).to_owned();
             response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, chosen, &label));
-            // WP-S2.11 D3 (R4): a tab of the list says it is the chosen one.
+            // A tab of the list says it is the chosen one.
             ui.ctx()
                 .accesskit_node_builder(response.id, |n| n.set_selected(chosen));
             if chosen {
@@ -1218,7 +1217,7 @@ mod tests {
     }
 
     /// A short window then a tall one does not raise the share: on the tall frame the Messages pane
-    /// has its own share (350 of 1000) again, not the raised share of the short frame (FX38d: which leaves the page
+    /// has its own share (350 of 1000) again, not the raised share of the short frame (which leaves the page
     /// view half the window).
     #[test]
     fn a_short_then_tall_window_does_not_ratchet_the_share() {
@@ -1418,7 +1417,7 @@ mod tests {
         assert_eq!(Layout::parse(&text).unwrap().1, layout);
     }
 
-    /// FX38d: at a window of 1280 × 828 points the bottom dock's display clamp leaves the page view at least half the
+    /// At a window of 1280 × 828 points the bottom dock's display clamp leaves the page view at least half the
     /// window's height; the user's shares stay the layout.
     #[test]
     fn the_bottom_clamp_leaves_the_page_view_half_the_window() {
@@ -1445,7 +1444,7 @@ mod tests {
         dock.tree.tiles.rect(id).unwrap().width()
     }
 
-    /// C40 (FT-798): the Schematic workspace's left column keeps its share at the floor (`size.panel.left` and more)
+    /// FT-798: the Schematic workspace's left column keeps its share at the floor (`size.panel.left` and more)
     /// and is shown wider at 1920, display only (the layout stays the user's); a share the user dragged is shown as
     /// it is, at 1920 too.
     #[test]
@@ -1490,7 +1489,7 @@ mod tests {
         assert!((shown - 0.2 * 1920.0).abs() < 8.0, "the dragged share: {shown}");
     }
 
-    /// C40 (FT-798): the left column's least width is `size.panel.left` at the floor and below, grows with the
+    /// FT-798: the left column's least width is `size.panel.left` at the floor and below, grows with the
     /// window and stops at `size.panel.left_max`.
     #[test]
     fn the_left_default_width_runs_between_its_tokens() {

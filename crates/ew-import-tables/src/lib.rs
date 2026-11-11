@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden CSV bootstrap behind `ew import csv` (FR-IMP-022, WP-S3.05; doc 20 §3.2 build path (a)), the
+//! The golden CSV bootstrap behind `ew import csv` (FR-IMP-022; doc 20 §3.2 build path (a)), the
 //! round-trip table reader and translation tables (later work packages).
 //!
 //! [`TablesImporter`] reads the tables of `golden/J-E-2416/tables/` (schemas: `golden/J-E-2416/README.md`)
@@ -77,7 +77,7 @@ mod table;
 pub use csv::TableLimits;
 /// The importer's own check of a carrier path. `ew-derive`'s `check_path` is the rule; this crate may not
 /// depend on `ew-derive` (ci/dep-rules.toml), so it keeps a copy, and `ew-api`'s `golden_csv` test runs both over one
-/// set of paths and asserts they agree (part 4, finding 5).
+/// set of paths and asserts they agree.
 #[doc(hidden)]
 pub use emit::layout::path_problem as carrier_path_problem;
 /// The importer contract this crate implements, re-exported for hosts that reach the importer through
@@ -86,8 +86,8 @@ pub use ew_interop_api;
 pub use import::TablesImporter;
 pub use library::{BuiltinLibrary, LibraryError};
 pub use parts::{PARTS_FILE, PartsTables, SiblingTables, parse_parts_tables};
-/// The foreign colour notations and their IEC 60757 codes (doc 14 §4.12; the property grid's colour suggestions, WP-S2.05
-/// §4.2).
+/// The foreign colour notations and their IEC 60757 codes (doc 14 §4.12; the property grid's colour
+/// suggestions).
 pub use table::COLOUR_ALIASES;
 
 /// The importer ID, also `ImportLineage.importer` and the first component of the lineage namespace name

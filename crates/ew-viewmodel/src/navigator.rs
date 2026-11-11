@@ -3,7 +3,7 @@
 
 //! The page navigator (spec section 6.1; FR-PAG-024, the viewing part): the pages of the derived
 //! page order as a flat list, by section, or by structure (function, location, section), sorted by folio (page
-//! order) or by page type, with a filter and a row cursor. It replaces WP-S2.01's page list in the `pages` pane.
+//! order) or by page type, with a filter and a row cursor. It is the page list of the `pages` pane.
 //!
 //! The model reads the rows of `Session::page_rows`, which the shell fetches once per revision; the trees are
 //! derived from them on demand. **Node keys** are path strings, unique in every mode because a location or section

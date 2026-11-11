@@ -27,7 +27,7 @@
 //! inactive. **Pan** by `(dx, dy)` points moves the content with the pointer: the centre moves by
 //! `−d / points_per_nm`, rounded toward zero, then clamped.
 //!
-//! **Hover** (a placeholder until WP-S2.03's spatial index): of the page's entity rectangles
+//! **Hover** (a placeholder until a spatial index): of the page's entity rectangles
 //! (`DisplayList::entity_bounds`, computed once per page content), those that contain the pointer when inflated by
 //! 4 points; the one with the smallest area wins, ties to the later in paint order.
 
@@ -118,7 +118,7 @@ pub fn sort_links(links: &mut [PageLink], cells: Option<&PageCells>) {
     });
 }
 
-/// The grid points of a page on the sheet (WP-S2.02's grid overlay): point `k` of an axis lies at
+/// The grid points of a page on the sheet (the grid overlay): point `k` of an axis lies at
 /// `offset + scale × k × num / den`, rounded to the nearest nm.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct GridMap {
@@ -816,8 +816,7 @@ impl CanvasModel {
         }
     }
 
-    /// A new size of a pane already laid out (a dock opened, closed or dragged, the window resized). FT-769 (amending
-    /// FX38d): a view that is fitted and untouched (no zoom or pan since the last fit) fits the new pane again, so the
+    /// A new size of a pane already laid out (a dock opened, closed or dragged, the window resized). A view that is fitted and untouched (no zoom or pan since the last fit) fits the new pane again, so the
     /// whole page stays in view with a dock open; a view the user zoomed or panned keeps its zoom and centre, so the
     /// page shows more or less of itself and never shrinks with the pane.
     pub fn relayout(&mut self, pane: (f64, f64), ppp: f64) {
@@ -883,7 +882,7 @@ impl CanvasModel {
             .and_then(|i| self.page.cps.get(i))
     }
 
-    /// The tooltip of the connection point under the pointer (doc 16a §7.2; FT-512's tooltip half):
+    /// The tooltip of the connection point under the pointer (doc 16a §7.2):
     /// [`cp_tip`] of [`CanvasModel::hovered_cp`].
     pub fn hovered_cp_tip(&self) -> Option<String> {
         self.hovered_cp().map(|cp| cp_tip(&self.page, cp))
@@ -1038,7 +1037,7 @@ impl CanvasModel {
     }
 
     /// The view of a jump to the sheet point `p`: the zoom `max(previous, 2 × fit)` clamped, `p`
-    /// at the centre (clamped to the sheet). FT-1506 (doc 16a §5.5): the view stays on the sheet: where
+    /// at the centre (clamped to the sheet). The view (doc 16a §5.5) stays on the sheet: where
     /// centring `p` would show off-sheet space it stops at the sheet's edge and `p` stands off centre; along a side the
     /// sheet is smaller than the pane, the sheet is centred.
     pub fn jump_view(&mut self, p: (i64, i64), previous_zoom: f64) {

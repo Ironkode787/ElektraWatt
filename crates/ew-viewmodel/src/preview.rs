@@ -43,8 +43,7 @@ pub fn card_key(card: &Card) -> CardKey {
     )
 }
 
-/// The changed fields of a record of `kind` (its top-level members) in words for the Preview tab's row (
-/// FIX39b-1): each by its label in a sentence (`part_number` → "part number"); a library copy's content hash
+/// The changed fields of a record of `kind` (its top-level members) in words for the Preview tab's row: each by its label in a sentence (`part_number` → "part number"); a library copy's content hash
 /// (`sha256`) is no field to a reader: it is left out when another field changed, and reads "content" when it is the
 /// only change.
 pub fn field_words(kind: &str, fields: &[String]) -> Vec<String> {
@@ -52,7 +51,7 @@ pub fn field_words(kind: &str, fields: &[String]) -> Vec<String> {
     if !fields.is_empty() && fields.iter().all(hash) {
         return vec![crate::strings::text(key!("preview-field-content")).to_owned()];
     }
-    // ID-1427 (W52 F6): each field by the property grid's label in the UI language, in a sentence ("kenmerk").
+    // Each field by the property grid's label in the UI language, in a sentence ("kenmerk").
     fields
         .iter()
         .filter(|f| !hash(f))
@@ -92,7 +91,7 @@ pub struct PreviewPane {
     pub(crate) xrefs: Vec<XrefChange>,
     pub(crate) pages: Vec<(String, Option<String>)>,
     /// Whether the card chain opened the tab (it was not in the layout when the first card came): the tab then closes
-    /// when the last card is applied or cancelled; a tab the user opened by hand stays (FIX39b-1).
+    /// when the last card is applied or cancelled; a tab the user opened by hand stays.
     pub(crate) opened_by_card: bool,
 }
 

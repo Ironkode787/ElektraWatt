@@ -31,7 +31,7 @@ impl Strictness {
     /// `ew-schema` v0 has no typed `CheckSettings` yet (doc 15 §2.1; the settings of later work packages
     /// stay in `extra`), so this reads `settings.extra.checks.strictness`: `"strict"`, `"lenient"` or
     /// `{"lenient": {"since": "YYYY-MM-DD"}}`. Anything else, or nothing, is [`Strictness::Strict`]. The
-    /// read-through switches to the typed member when WP-S1.15 adds it.
+    /// read-through switches to the typed member when it is added.
     pub fn of(project: &Project) -> Strictness {
         let Some(value) = project
             .settings

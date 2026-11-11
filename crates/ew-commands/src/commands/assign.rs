@@ -50,7 +50,7 @@ pub enum AssignModeParam {
 ///   quantity); the variant is dropped. A device without a part use of `from` is refused.
 ///
 /// A placement of a device whose part copy leaves the device follows the one copy the command adds, in the same
-/// transaction (modes `replace` and `replace_all` when the device did not use the part before; WP-S4.01 D7,
+/// transaction (modes `replace` and `replace_all` when the device did not use the part before;
 /// FR-LAY-007). Otherwise it stays and EW-LAY-003 reports it: a mode that only removes the placed copy (the part was
 /// already used) is a removal, not a replacement (FR-LAY-059); `append` removes no copy; a placement that names no
 /// part (the primary) has nothing to follow. A placed strip whose terminal the change widened pushes the items after

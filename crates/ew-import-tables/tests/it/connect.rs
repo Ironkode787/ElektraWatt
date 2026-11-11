@@ -575,7 +575,7 @@ const ROUTE_REPS: &str = "key,functions,page,symbol,cell\n\
     -1F1,-1F1,101,ew.iec.mcb-1pn@qet10,B2\n\
     -2F1,-2F1,101,ew.iec.mcb-1pn@qet10,B4\n";
 
-/// FT-1315 (doc 20 ▲U-51): the `route` column gives the corners between the ends in cells; the stored route runs
+/// Doc 20 ▲U-51: the `route` column gives the corners between the ends in cells; the stored route runs
 /// from the CP of `a` through them to the CP of `b`.
 #[test]
 fn a_route_runs_from_cp_to_cp_through_its_corners() {

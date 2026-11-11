@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 1 in the view model (acceptance checks PL3, PL4, PL5 and the view-model part of PL7 and PL8): the
+//! In the view model: the
 //! picker and the starter embedding, the Place tool, moving by drag and by keys, transform and delete on a
 //! selection, change symbol, the transcript members and the describe lines with their 28 words, and the exact
 //! `Session` counts of pointer and cursor moves. Every test works on a writable temporary copy of Golden A.
@@ -85,7 +85,7 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
         text.contains("  row symbol \"mcb-1p\" embedded \"ew.iec.mcb-1p@qet10\""),
         "{text}"
     );
-    // A black-box symbol row is enabled from WP-S2.04 part 3 (§9.5): choosing it arms the black box tool
+    // A black-box symbol row is enabled: choosing it arms the black box tool
     // (`tests/it/ip_and_black_box.rs`).
     done(&mut s, "picker.filter", json!({"text": "blackbox"}));
     let line = describe_line(&s, "  row symbol \"blackbox\"");
@@ -98,7 +98,7 @@ fn the_picker_lists_the_grid_family_places_a_starter_symbol_in_one_step_and_disa
     done(&mut s, "picker.row", json!({"step": 5}));
     assert_eq!(s.picker().unwrap().row, n - 1);
     done(&mut s, "picker.row", json!({"to": 0}));
-    // Cycle 35 play-test: the signature's words work without `step`.
+    // The signature's words work without `step`.
     done(&mut s, "picker.row", json!({"to": "last"}));
     assert_eq!(s.picker().unwrap().row, n - 1);
     done(&mut s, "picker.row", json!({"to": "first"}));
@@ -596,7 +596,7 @@ fn the_place_label_names_a_strip_without_a_tag_in_words() {
         "{before:?}"
     );
     assert!(!before.iter().any(|l| l.contains('?')), "{before:?}");
-    // W49.3b-F7: once the preview predicts the strip's tag, the label names the strip by it, as one phrase.
+    // Once the preview predicts the strip's tag, the label names the strip by it, as one phrase.
     done(&mut s, "canvas.dwell", json!({"ms": 80}));
     let tag = ghost(&s)["tag"].as_str().expect("the predicted tag").to_owned();
     let strip = tag.rsplit_once(':').expect("<strip>:<terminal>").0.to_owned();
@@ -835,7 +835,7 @@ fn after_an_undo_the_place_tool_proposes_the_number_it_freed() {
     assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1032:8\""));
 }
 
-/// Cycle 36 (play-test rv-txt-2): a terminal placed from a part whose template names no clamps (EW-GEN-TRM-1) is named
+/// A terminal placed from a part whose template names no clamps (EW-GEN-TRM-1) is named
 /// by its own tag, the strip's and its designation (`-X1032:7`), in the page text and the placement's toast, not by the
 /// strip's tag alone; a clamped terminal of Golden A keeps `-X1031:<n>`.
 #[test]
@@ -869,7 +869,7 @@ fn a_terminal_placed_from_a_part_is_named_by_its_own_tag() {
     );
 }
 
-/// Cycle 36 (play-test rv-txt-2): while the strip chooser is open the hint says it waits for a strip, and a press on
+/// While the strip chooser is open the hint says it waits for a strip, and a press on
 /// the canvas starts no rubber band (refused with the reason, its release dropped); the chooser stays open and a
 /// chosen strip arms Place as before.
 #[test]
@@ -906,7 +906,7 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
     assert_ne!(state(&s)["status"][0], hint);
 }
 
-/// FT-1087 (play-test rv-vis-7, t0059) as FT-1375 amends it: the chooser lists the project's own
+/// The chooser lists the project's own
 /// parts first, then the libraries', each by (maker, part number). Placing a terminal from a library part embeds the
 /// part, which then stands among the project's own: the chooser opened again has the same rows, in that order.
 #[test]
@@ -972,7 +972,7 @@ fn the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one(
     s.shutdown();
 }
 
-/// Cycle 36 (play-test rv-txt-2): the picker's filter matches a part's description and category and a symbol's name
+/// The picker's filter matches a part's description and category and a symbol's name
 /// and keywords besides the keys, every typed token somewhere in the row: "relay" finds EW-GEN-RLY-1 ("Relay with
 /// four changeover contacts"), "relay changeover" too, "relay valve" nothing of it; "feed-through" (a keyword) finds
 /// the terminal symbol.
@@ -1141,7 +1141,7 @@ fn column_numbering(s: &mut ShellModel) {
     );
 }
 
-/// FT-502, the end-to-end flow of an existing device: with a numbering scheme that prints the column, the keyboard
+/// The end-to-end flow of an existing device: with a numbering scheme that prints the column, the keyboard
 /// move of -101F1 to the right keeps a preview that names its tag change, and the page tables give the device's
 /// printed tag position (`TableRep::tag_at`), by its body.
 #[test]
@@ -1198,7 +1198,7 @@ fn moving_an_existing_device_changes_its_tag_in_the_preview() {
     s.shutdown();
 }
 
-/// Cycle 37 (window check FX37b item 1): a contact placed from a starter part's auxiliary template entry (EW-GEN-CON-1,
+/// A contact placed from a starter part's auxiliary template entry (EW-GEN-CON-1,
 /// entry 4, letter K) before its coil gets a numbered tag like any placed device, never "-?K?": the device is placed
 /// through the contact (`numbering::main_rep`'s auxiliary fallback). Both paths that arm it: `place.pick` with the part,
 /// and the picker's part row chosen with `picker.choose`.

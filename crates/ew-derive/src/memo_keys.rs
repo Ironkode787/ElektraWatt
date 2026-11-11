@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The inputs of the memo engine and the page-level keys of push invalidation (ADR-0002 amendment 4,
-//! decision log ID-220 and ID-226; ARCH §6.2 "Additions after G-SP").
+//! ARCH §6.2 "Additions after G-SP").
 //!
 //! # Two kinds of keys
 //!
@@ -26,8 +26,7 @@
 //! shard, the coarse key of every index bucket the row feeds, the whole indexes it feeds, its table, and the
 //! project row when the row is the project. The reserved records carry no stamps (their stamp is the model
 //! revision, which every commit changes); they are touched only when they differ between `before` and
-//! `after`, so a commit does not re-mark every memo that reads them (review cycle 9, finding 4, when the
-//! title block still read the revisions as reserved records; they are typed since FT-165). A unit test
+//! `after`, so a commit does not re-mark every memo that reads them. A unit test
 //! checks the contract against `ew-model`'s own stamps: every row, bucket, index and table whose stamp a
 //! random commit changed is covered, and the reserved records are covered whenever they changed.
 
@@ -935,7 +934,7 @@ mod tests {
         );
     }
 
-    /// Cycle-29 review 4: an asset arrives without a row of the readers that depend on it (the file of an image item
+    /// An asset arrives without a row of the readers that depend on it (the file of an image item
     /// placed on another page), so a commit that grows the asset store touches `Read(Assets)` and nothing else, and
     /// its stamp changes with the insert only.
     #[test]

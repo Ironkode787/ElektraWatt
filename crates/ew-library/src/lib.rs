@@ -4,8 +4,6 @@
 //! Parts, symbol, form and macro libraries as canonical `.ewlib` text directories at every tier, a derived
 //! SQLite FTS5 index per user, and embedding used items into projects.
 //!
-//! WP-S1.19 part 2 (decisions D3 to D6):
-//!
 //! - **Tiers** ([`Tier`], [`LibraryTiers`]): system (the compiled-in [`starter`] as `ew-starter`, the
 //!   compiled-in generic parts `ew-starter-parts`, and `content/libraries/*.ewlib`), community (`<data dir>/packs`), company (the settings' paths), user
 //!   (`<data dir>/libraries`). System and community libraries refuse writes ([`LibraryError::ReadOnly`]).

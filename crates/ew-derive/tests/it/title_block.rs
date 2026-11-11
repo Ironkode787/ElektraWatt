@@ -205,7 +205,7 @@ fn logo_and_notice_come_from_the_provisional_company_data() {
     );
     assert_eq!(tb.get("project.notice"), Some(&TbValue::Ml(ml("<notice>"))));
 
-    // FT-337 fix round: the bare-hash form takes the format and size of the asset the model holds.
+    // The bare-hash form takes the format and size of the asset the model holds.
     let sha: ew_schema::Sha256 = common::sha(7).parse().expect("digest");
     let held = ew_schema::AssetRef {
         sha256: sha,

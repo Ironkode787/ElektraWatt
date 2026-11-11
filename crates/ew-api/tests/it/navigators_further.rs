@@ -137,7 +137,7 @@ fn strips_are_the_terminal_diagrams() {
         let strip = b.manual.include.as_slice()[0].as_uuid();
         blocks.insert(strip, block_rows(&s, key));
     }
-    // WP-S2.07 D2, D6 (SE7): `pos` after `strip`, `bridge_part` after `bridge`; the other columns are the diagram's.
+    // `pos` after `strip`, `bridge_part` after `bridge`; the other columns are the diagram's.
     let keys: Vec<&str> = t.columns.iter().map(|c| c.key.as_str()).collect();
     let pos = keys.iter().position(|k| *k == "pos").expect("a pos column");
     let bridge_part = keys

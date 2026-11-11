@@ -19,18 +19,17 @@ use crate::rowset::{Cell, CellType, ColumnDef, Row, RowId, RowKey, RowSet};
 ///
 /// Source devices: the block's `manual.include` devices, else the root ancestors of the devices drawn on the
 /// embedded page **and** the enclosure device of the surface the page's surface view shows (a test of
-/// the page's items, through `ew_derive::layout::page_surface`, which also requires a panel-layout page; the
-/// orchestrator's ruling 3 of cycle 42). A source with an assembly aspect that has configs lists one row per order code (doc 11
-/// §5.5 step 6, D-36): the config's label ("Order Code 1"; "Order Code n" when it has none), and the
-/// manufacturer, part number and description of its configured part, or the order code alone without one.
-/// Otherwise it lists the part lines of the device and of those descendants that have no representation of
-/// their own (a cabinet's mounting plate; a valve that the drawings show as its own symbol is not repeated in
-/// the box). Carrier lines (`LineSource::Carrier`, the rails and ducts) are left out: the legend on the same page
-/// lists every carrier (D16).
+/// the page's items, through `ew_derive::layout::page_surface`, which also requires a panel-layout page). A
+/// source with an assembly aspect that has configs lists one row per order code (doc 11 §5.5 step 6, D-36):
+/// the config's label ("Order Code 1"; "Order Code n" when it has none), and the manufacturer, part number
+/// and description of its configured part, or the order code alone without one. Otherwise it lists the part
+/// lines of the device and of those descendants that have no representation of their own (a cabinet's
+/// mounting plate; a valve that the drawings show as its own symbol is not repeated in the box). Carrier
+/// lines (`LineSource::Carrier`, the rails and ducts) are left out: the legend on the same page lists every
+/// carrier (D16).
 ///
-/// Printed (D16 as built): the title "PART DATA", no header, the label and the part number at weights 3 : 10 (at 1 : 3
-/// the 35-character order code on folios 201 and 202 overflows at the 1.8 mm floor; the orchestrator's ruling on
-/// the LB-9 stop of cycle 42).
+/// Printed: the title "PART DATA", no header, the label and the part number at weights 3 : 10 (at 1 : 3
+/// the 35-character order code on folios 201 and 202 overflows at the 1.8 mm floor).
 #[derive(Clone, Copy, Debug)]
 pub struct PartData;
 

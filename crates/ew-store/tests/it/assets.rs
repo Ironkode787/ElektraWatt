@@ -133,7 +133,7 @@ fn the_journal_restores_the_assets_of_a_transaction() {
     assert_eq!(asset.reference().format, AssetFormat::Svg);
 }
 
-/// FT-1378 as ruled by ID-1417: a raster image over the pixel limit, which an earlier build took in, is kept
+/// A raster image over the pixel limit, which an earlier build took in, is kept
 /// by an open and by a journal replay, never dropped: the limit is the gates' that bring an image in.
 #[test]
 fn an_image_over_the_pixel_limit_is_kept_by_the_open_and_the_journal() {

@@ -7,7 +7,7 @@
 //! The items are drawn in order above the hover and selection outlines and below the snap markers and the grid
 //! cursor: `ew-render2d`'s overlay module maps lines, polylines, rectangles, ghosts and markers to whole physical
 //! pixels for both canvas backends and the headless snapshot; the window draws the labels as chips in the chrome
-//! font, `ui.describe` lists them, and `canvas.snapshot` leaves them out. The tokens are provisional (WP-S2.08's
+//! font, `ui.describe` lists them, and `canvas.snapshot` leaves them out. The tokens are provisional (the
 //! theme replaces them); the shapes carry the meaning (NFR-A11Y-03).
 
 use std::sync::Arc;

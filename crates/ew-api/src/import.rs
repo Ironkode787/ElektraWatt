@@ -337,7 +337,7 @@ impl Imported {
     }
 
     /// The migration report of the import (findings grouped by code, doc 14 §2.5): the import run's entries and the
-    /// live findings of the `migration` scheme, one row per condition (WP-S3.09 D9 c: an entry its live counterpart
+    /// live findings of the `migration` scheme, one row per condition (an entry its live counterpart
     /// reports on the same records is left out, [`crate::checks::rules::imp::fold`]).
     pub fn migration_report(&self) -> migration::MigrationReport {
         let mut report = self.batch.report.clone();
@@ -1030,8 +1030,7 @@ pub fn migration_counts(session: &Session) -> (usize, usize, usize) {
 /// The lenient check findings of an imported model (doc 15 §10.2, doc 14 §2.5): the `migration` scheme of
 /// `ew-checks` (every rule of `pre-delivery` at its release severity, reporting prevent violations as
 /// findings) run over the session, its open findings grouped by rule in rule order, one message per finding.
-/// This replaces the hand-written duplicate checks of cycle 11; the import run's own
-/// findings stay in the importer's report.
+/// The import run's own findings stay in the importer's report.
 pub fn lenient_findings(session: &Session) -> Vec<migration::LiveGroup> {
     use std::collections::BTreeMap;
     let report = session.check(&crate::checks::MIGRATION, crate::checks::CheckMode::Release);

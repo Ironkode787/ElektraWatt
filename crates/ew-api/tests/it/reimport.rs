@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.09 step 6: a QET file re-imported into its lineage (D10 to D12, IC-12). The same file again is unchanged and
+//! A QET file re-imported into its lineage. The same file again is unchanged and
 //! writes nothing; a variant with one more terminal after an edit here adds the terminal and its wire and keeps the
 //! edit; a record changed on both sides is kept with EW-IMP-011, a record removed in the source is kept with
-//! EW-IMP-010; the IDs of unchanged source keys stay; a file of another project is refused (T7).
+//! EW-IMP-010; the IDs of unchanged source keys stay; a file of another project is refused.
 
 use std::path::Path;
 
@@ -339,7 +339,7 @@ fn the_same_file_after_a_removal_writes_nothing() {
     device(&s, "-K2");
 }
 
-/// ID-1389 (W51 finding C): a device the source renames is listed by the tag it has here, not by the source's new
+/// A device the source renames is listed by the tag it has here, not by the source's new
 /// label.
 #[test]
 fn a_device_changed_in_the_source_is_named_by_its_tag_here() {

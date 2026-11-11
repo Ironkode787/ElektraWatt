@@ -51,7 +51,7 @@ pub struct JunctionEditor {
 /// The name of junction `j` in the transcript and the describe text: the frame cell it lies in, with `#n` when the
 /// cell holds several junctions (`C11#2`), numbered by position (y, then x; ties by ID). Not by ID alone: the IDs one
 /// transaction mints are not in creation order (UUIDv7's random bits within one timestamp), so two runs of one script
-/// could swap the numbers (ID-474's byte equality). No UUID (`@n` comes).
+/// could swap the numbers (byte equality). No UUID (`@n` comes).
 pub fn junction_name(tables: &PageTables, j: EntityRef, cell_of: &dyn Fn((i64, i64)) -> String) -> String {
     let Some(row) = tables.junctions.iter().find(|x| x.id == j.0) else {
         return String::new();

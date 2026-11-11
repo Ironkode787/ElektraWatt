@@ -618,8 +618,7 @@ pub(crate) fn parse_line<'b>(bytes: &'b [u8], limits: &Limits) -> Result<(&'b st
 }
 
 /// A library document's bytes as the loader reads them (doc 05 §3.6): a leading BOM skipped, then UTF-8, the nesting
-/// depth, and JSON syntax with duplicate members rejected. The merge core reads its three inputs with it (decision log
-/// ID-1268 ruling 5).
+/// depth, and JSON syntax with duplicate members rejected. The merge core reads its three inputs with it.
 pub(crate) fn parse_document(bytes: &[u8], limits: &Limits) -> Result<Value, Fault> {
     let body = bytes.strip_prefix(&[0xEF, 0xBB, 0xBF]).unwrap_or(bytes);
     let text = std::str::from_utf8(body).map_err(|e| Fault {
@@ -695,8 +694,8 @@ impl<'a> Loader<'a> {
             .push(Finding::new(kind, Some(file.clone()), line, message));
     }
 
-    /// A library document a migration step changed that would end opaque refuses the open (ID-1230
-    /// ruling 2): kept by its hash only, it would never be written, and the step's change would be lost.
+    /// A library document a migration step changed that would end opaque refuses the open:
+    /// kept by its hash only, it would never be written, and the step's change would be lost.
     fn refuse_opaque(&mut self, path: &FilePath, message: String) {
         self.failed.get_or_insert(MigrationError {
             file: Some(path.clone()),
@@ -1350,7 +1349,7 @@ pub fn library_copy_hash(doc: &LibDocument) -> Option<[u8; 32]> {
     }
 }
 
-/// A library copy's `sha256` after its migration (doc 05 §10.2, ruling 3): a step
+/// A library copy's `sha256` after its migration (doc 05 §10.2): a step
 /// that changed the copy's item is not an edit, so when the item of `migrated` (its members without the copy envelope)
 /// differs from that of `before`, the same document before the chain, `migrated`'s `sha256` becomes
 /// [`library_copy_hash`] of its item after NFC normalisation, as the loader reads it. Else, or when `migrated` does not

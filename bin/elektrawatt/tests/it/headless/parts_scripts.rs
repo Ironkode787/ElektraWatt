@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4a headless (PS9): the part dialog's and the part editor's flows of PS1, PS4, PS5 and PS7 as
+//! The part dialog's and the part editor's flows, headless, as
 //! `ew.uiscript/1` scripts through the built binary, each on its own copy of Golden A with an empty `EW_DATA_DIR`
 //! (the shipped tier only: the compiled-in starter parts and the libraries of `EW_CONTENT_DIR`, the sample parts
 //! library among them) and its own `EW_CONFIG_DIR`. Per gate one run; the deep nightly runs each
 //! twice and compares the transcripts byte for byte. The `--record` log of each editing script, replayed onto a fresh
 //! copy by `Session::run_script` without any library (what `ew apply` runs), gives the saved project's records: the
 //! chosen part travels inside the command. The model half of each flow runs in `ew-viewmodel`'s
-//! `tests/part_selection.rs`. WP-S2.07 part 4b adds PS8's paste choice (two copies of Golden A over a user library
+//! `tests/part_selection.rs`. It also runs the paste choice (two copies of Golden A over a user library
 //! the test writes; the model half in `ew-viewmodel`'s `tests/paste_choice.rs`). A module of `tests/it/headless.rs`, whose
 //! `bin_exe` it uses.
 
@@ -382,7 +382,7 @@ fn tags_and_versions(s: &Session) -> (Vec<String>, Vec<(String, String)>) {
     (tags, versions)
 }
 
-/// PS8 headless (D22, FT-396): P1 (a copy of Golden A) holds FX-MCB-1PN 1.0.0 on F55, P2 holds 1.0.1 (a description
+/// Headless (FT-396): P1 (a copy of Golden A) holds FX-MCB-1PN 1.0.0 on F55, P2 holds 1.0.1 (a description
 /// change, a patch), both chosen through the part dialog by setup scripts over one user library written by the test.
 /// The flow: F55 copied in P1, pasted in P2: `edit.paste_clip` is refused with `reason-paste-versions` and the choice
 /// card lists the copy; Update the project's copy is refused (`reason-paste-update-older`); `paste.resolve` with

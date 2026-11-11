@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 2's acceptance (§7.4, IX-1 to IX-8): tiers, the `.ewlib` reader and writer, the lock, the index and
+//! Tiers, the `.ewlib` reader and writer, the lock, the index and
 //! search, over fixture libraries in a fresh temporary directory.
 
 use std::path::{Path, PathBuf};
@@ -455,7 +455,7 @@ fn versions_are_immutable_and_untyped_lines_survive_a_rewrite() {
     assert!(matches!(reg.write(lib, &[foreign]), Err(LibraryError::Format(_))));
 }
 
-/// Review C35 m1: a version older than the one held is refused (it would replace the newer version with another
+/// A version older than the one held is refused (it would replace the newer version with another
 /// content under an older `(item, version)`); nothing is written and the newer version stays.
 #[test]
 fn an_older_version_is_refused_as_a_downgrade() {
@@ -494,7 +494,7 @@ fn an_older_version_is_refused_as_a_downgrade() {
     assert_eq!(report.updated, [id(A9P52616)]);
 }
 
-/// Review C35 m3: a line this reader cannot type for an item being written refuses the write instead of leaving two
+/// A line this reader cannot type for an item being written refuses the write instead of leaving two
 /// lines for the item in the rewritten shard.
 #[test]
 fn an_untyped_line_of_an_item_being_written_refuses_the_write() {
@@ -535,7 +535,7 @@ fn an_untyped_line_of_an_item_being_written_refuses_the_write() {
     assert_eq!(std::fs::read_to_string(&shard).unwrap(), text);
 }
 
-/// Review C35 nit: a search-index failure after the manifest's rename does not make the committed write an error; it
+/// A search-index failure after the manifest's rename does not make the committed write an error; it
 /// is reported with the write, the lock is released, and the next open brings the index up to date.
 #[test]
 fn an_index_failure_after_the_commit_is_reported_with_the_write() {
@@ -1128,7 +1128,7 @@ fn the_shipped_starter_parts_library_has_the_derived_id() {
         ..f.tiers.clone()
     })
     .unwrap();
-    // The other shipped system libraries (WP-S7.03's sample parts) are listed beside them; the set grows.
+    // The other shipped system libraries (the sample parts) are listed beside them; the set grows.
     let keys: Vec<(String, Tier, bool)> = reg
         .libraries()
         .into_iter()

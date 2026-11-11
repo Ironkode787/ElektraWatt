@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 4b in the window without rendering (PI7, §10.5): the text popup takes the focus when the Text tool
+//! In the window without rendering: the text popup takes the focus when the Text tool
 //! opens it, Enter sends the text to the tool and places it, and Escape closes it without a commit. The Wire marker
 //! and Structure box tools arm on their shortcuts, and the marker's cross-section field in the tool strip sends
 //! `marker.fields`.

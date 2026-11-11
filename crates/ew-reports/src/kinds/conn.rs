@@ -40,8 +40,8 @@ pub(super) fn put(columns: &[ColumnDef], cells: &mut [Cell], key: &str, cell: Ce
     cells[i] = cell;
 }
 
-/// Whether a device has a row of its own in the device lists (`structure_overview`'s device rows, `device_list`;
-/// WP-S3.06 D5): every device that is not a terminal (the terminal reports list terminals).
+/// Whether a device has a row of its own in the device lists (`structure_overview`'s device rows,
+/// `device_list`): every device that is not a terminal (the terminal reports list terminals).
 pub(super) fn is_listed_device(dev: &Device) -> bool {
     dev.aspects.terminal.is_none()
 }

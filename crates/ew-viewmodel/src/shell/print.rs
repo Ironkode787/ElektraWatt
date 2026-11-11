@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.07 part 3 (D10, rulings 2 to 5): the print pre-dialog and its print job.
+//! The print pre-dialog and its print job.
 //!
 //! **The dialog.** `file.print` (Output ▸ Print…, Ctrl+P) opens [`Dialog::Print`] with its options, which its own
 //! parameters may set at once: the Range (All, Current page, Sections with their check list, Pages with a text field),

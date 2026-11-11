@@ -70,7 +70,7 @@ pub(super) fn run_sql(a: &SqlArgs) -> i32 {
     0
 }
 
-/// S1 of WP-S6.04 (D15): `ew sql`'s line when the statement panicked.
+/// `ew sql`'s line when the statement panicked.
 pub(super) const QUERY_PANICKED: &str = "error: the query stopped on an internal error; nothing was changed";
 
 /// Runs `ew sql`'s statement, `run`, inside `catch_unwind` (NFR-REL-12): its result, or the line to print

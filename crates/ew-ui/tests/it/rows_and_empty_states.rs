@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.17 parts 3 and 4, lane K32: the Messages and History rows in the design language (DK10, DK11) and the empty
-//! states of Messages, Find, History and the navigators (CP5), in the window without rendering.
+//! The Messages and History rows in the design language and the empty
+//! states of Messages, Find, History and the navigators, in the window without rendering.
 
 use crate::support;
 
@@ -89,7 +89,7 @@ fn row_key(h: &Harness<'_, App>, role: NavRole, badge: Option<&str>) -> Option<S
         .map(|n| n.key.clone())
 }
 
-/// FT-1092 (play-test rv-vis-7, t0018): the Pending chip of the Properties header (whole at the floor, the
+/// The Pending chip of the Properties header (whole at the floor, the
 /// glyph chip in a narrow pane) and the Messages header's "pending n" say what they count in a tooltip, whole.
 #[test]
 fn the_pending_chips_and_the_messages_header_say_what_they_count() {
@@ -124,7 +124,7 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
             glyph,
             "the glyph chip is the narrow one: {w} by {hgt}"
         );
-        // FT-1139 (item 8): the definition first, then the pending finding, "<rule>: <message>".
+        // The definition first, then the pending finding, "<rule>: <message>".
         let finding = chip
             .accesskit_node()
             .label()

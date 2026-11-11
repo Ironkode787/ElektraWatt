@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The visual play-test driver (BV2 to BV6): the input vocabulary's bounds, inputs that reach the
+//! The visual play-test driver: the input vocabulary's bounds, inputs that reach the
 //! window's widgets, equal dispatch logs and frames for equal scripts, the frame clock, the jobs and the file dialogs
 //! answered for the system, and the application closing.
 
@@ -241,7 +241,7 @@ fn the_inputs_check_their_members_and_bounds() {
     }
 }
 
-/// FT-891, proof (2): the driver's `double_click` on the Pages navigator's row of 100 shows 100, and the next one, on
+/// The driver's `double_click` on the Pages navigator's row of 100 shows 100, and the next one, on
 /// 101, shows 101: the driver pauses before a double click, so egui does not count it as a triple click with the one
 /// before (both ran a few frames apart).
 #[test]
@@ -637,7 +637,7 @@ fn typical() -> Geometry {
     Geometry::parse(Some("1920x1080"), Some("1")).unwrap()
 }
 
-/// Cycle 39: a run may choose its window size and scale. At 1920 × 1080 points and ppp 1 the frame is 1920 × 1108
+/// A run may choose its window size and scale. At 1920 × 1080 points and ppp 1 the frame is 1920 × 1108
 /// pixels (a 28-pixel strip), at ppp 2 3840 × 2216; the default stays 1536 × 994.
 #[test]
 fn the_geometry_sizes_the_frame() {
@@ -663,7 +663,7 @@ fn the_geometry_sizes_the_frame() {
     );
 }
 
-/// Cycle 39: an input at x = 1900 is inside a 1920-pixel frame and outside the default one, with the existing
+/// An input at x = 1900 is inside a 1920-pixel frame and outside the default one, with the existing
 /// out-of-frame text.
 #[test]
 fn coordinates_are_checked_against_the_runs_frame() {
@@ -680,7 +680,7 @@ fn coordinates_are_checked_against_the_runs_frame() {
     assert!(parse_frame(&zoom).is_err());
 }
 
-/// Cycle 39: at 1920 × 1080 points and ppp 1 a click at a widget's centre in that frame's pixels reaches the widget.
+/// At 1920 × 1080 points and ppp 1 a click at a widget's centre in that frame's pixels reaches the widget.
 #[test]
 fn a_click_at_the_typical_size_reaches_the_widget() {
     let tmp = Tmp::new();
@@ -701,7 +701,7 @@ fn a_click_at_the_typical_size_reaches_the_widget() {
     d.shell_mut().shutdown();
 }
 
-/// Cycle 39: a run at 1920 × 1080 points and ppp 1 names its geometry in the transcript's header, accepts an input at
+/// A run at 1920 × 1080 points and ppp 1 names its geometry in the transcript's header, accepts an input at
 /// x = 1900 and (where frames are painted) paints 1920 × 1108 pixels; at the default the header is unchanged.
 #[test]
 fn a_run_at_the_typical_size_paints_its_frame_and_names_it() {
@@ -781,7 +781,7 @@ fn the_driver_pins_the_minimum_text_size_and_reduced_motion() {
     assert!(d.shell_mut().reduce_motion());
 }
 
-/// WP-S2.10 review: named variants/pin controls and keyboard editing/creation use the real window.
+/// Named variants/pin controls and keyboard editing/creation use the real window.
 #[test]
 fn symbol_editor_accessible_controls_and_numeric_keyboard_creation() {
     use ew_ui::ew_viewmodel::shell::Outcome;
@@ -1670,7 +1670,7 @@ fn symbol_editor_drags_a_rectangle_and_hit_tests_the_drag_start() {
     d.shell_mut().shutdown();
 }
 
-/// ID-1477 (4), (9): with the Rectangle tool a press, drag and release draws a rectangle; the canvas keeps its place
+/// With the Rectangle tool a press, drag and release draws a rectangle; the canvas keeps its place
 /// when the connection point tool shows its fields, and its zoom as the drawing grows: the same drag again draws the
 /// same rectangle.
 #[test]
@@ -1729,7 +1729,7 @@ fn symbol_editor_draws_a_rectangle_by_drag_and_keeps_its_view() {
     d.shell_mut().shutdown();
 }
 
-/// ID-1483 (F6): at the 1280 × 800 floor the Library tab scrolls, and its fields keep clear of the scroll bar: they
+/// At the 1280 × 800 floor the Library tab scrolls, and its fields keep clear of the scroll bar: they
 /// are narrower than the same field on the Drawing tab, which does not scroll.
 #[test]
 fn symbol_editor_library_fields_keep_clear_of_the_scroll_bar() {
@@ -1747,7 +1747,7 @@ fn symbol_editor_library_fields_keep_clear_of_the_scroll_bar() {
     d.shell_mut().shutdown();
 }
 
-/// ID-1483 (F5): the refusal banner above the canvas neither re-fits nor moves the view: the same drag draws the same
+/// The refusal banner above the canvas neither re-fits nor moves the view: the same drag draws the same
 /// rectangle with the banner on show as without it.
 #[test]
 fn symbol_editor_refusal_banner_keeps_the_canvas_view() {
@@ -1804,7 +1804,7 @@ fn symbol_editor_refusal_banner_keeps_the_canvas_view() {
     d.shell_mut().shutdown();
 }
 
-/// ID-1483 (F2): with the Text tool and its field empty, a click on the canvas creates nothing and shows no error; it
+/// With the Text tool and its field empty, a click on the canvas creates nothing and shows no error; it
 /// marks the spot and puts the focus in the Text field, and the text typed is created there on Enter. Escape drops
 /// the mark.
 #[test]
@@ -1927,7 +1927,7 @@ fn symbol_editor_fields_commit_on_focus_loss_and_a_designation_is_retyped() {
     d.shell_mut().shutdown();
 }
 
-/// The brief (FIX25a's no shared key): an import through the window takes the file's name as its key, never the open
+/// An import through the window takes the file's name as its key, never the open
 /// draft's.
 #[test]
 fn symbol_editor_import_through_the_window_takes_the_file_name_as_its_key() {
@@ -1965,7 +1965,7 @@ fn symbol_editor_import_through_the_window_takes_the_file_name_as_its_key() {
     d.shell_mut().shutdown();
 }
 
-/// ID-1463 (doc 16a P8, P10): a key of the keymap chooses a tool, its tooltip names it, and a tool leaves the panel.
+/// Doc 16a P8, P10: a key of the keymap chooses a tool, its tooltip names it, and a tool leaves the panel.
 #[test]
 fn symbol_editor_tools_take_keys_of_the_keymap_and_leave_the_panel() {
     use ew_ui::ew_viewmodel::shell::Outcome;
@@ -2096,7 +2096,7 @@ fn symbol_editor_a_drag_of_a_coordinate_commits_once() {
     d.shell_mut().shutdown();
 }
 
-/// ID-1472 (M25-p5#6): the editor's bar has New symbol; over unsaved changes it asks in the house dialog, whose
+/// The editor's bar has New symbol; over unsaved changes it asks in the house dialog, whose
 /// Discard changes starts the fresh draft.
 #[test]
 fn symbol_editor_new_symbol_asks_before_it_drops_unsaved_changes() {

@@ -66,7 +66,7 @@ fn import_summary_with_content() {
     );
 }
 
-/// WP-S3.09 IC-6 (D8): with `--out` the import is written as a new project with its run under `imports/`; without it
+/// With `--out` the import is written as a new project with its run under `imports/`; without it
 /// nothing is written; a target that holds something is refused.
 #[test]
 fn import_qet_out_writes_a_project_with_its_run() {
@@ -124,8 +124,8 @@ fn import_qet_out_writes_a_project_with_its_run() {
     );
 }
 
-/// WP-S3.09 IC-12 (D10 to D12): `--into` prints T6 and T8 and the rows and writes nothing (T12); `--apply` commits and
-/// saves; the same file again is unchanged; a file of another project is refused with T7.
+/// `--into` prints the rows and writes nothing; `--apply` commits and
+/// saves; the same file again is unchanged; a file of another project is refused.
 #[test]
 fn import_qet_into_re_imports_into_the_earlier_import() {
     let t = Tmp::new("ew-cli-test");
@@ -501,7 +501,7 @@ fn check_uses_the_schemes_the_project_names() {
 /// A project naming a scheme this build does not ship (a newer writer, a hand edit) is
 /// checked with `pre-delivery` and a notice on stderr naming the scheme; the exit status is the check's own, the same
 /// as for the project without the slot. A shipped name in the other slot, or `--scheme`, prints no notice; only the
-/// slot for the run's mode is read (ruling 5).
+/// slot for the run's mode is read.
 #[test]
 fn check_notices_a_project_scheme_this_build_does_not_ship() {
     let t = Tmp::new("ew-cli-test");
@@ -557,7 +557,7 @@ fn check_notices_a_project_scheme_this_build_does_not_ship() {
         stderr.contains("project scheme 'live-2031' is not shipped by this build; using pre-delivery"),
         "{stderr}"
     );
-    // Only the slot for the run's mode is read (ruling 5): the release run ignores the unshipped online slot.
+    // Only the slot for the run's mode is read: the release run ignores the unshipped online slot.
     let (_, scheme, stderr) = run(&dir, &[]);
     assert_eq!(scheme, "pre-delivery");
     assert!(!stderr.contains("not shipped"), "{stderr}");
@@ -1546,8 +1546,7 @@ fn export_svg_replaces_the_set_and_keeps_other_files() {
 }
 
 /// `ew apply` refuses a project whose crashed session left a journal (exit 2, naming `ew recover` and no follow-up
-/// number: ruling 1 of the cycle-41 review's fix round, "`journal_refusal` names the command that now exists and no FT
-/// number"), and applies nothing.
+/// number), and applies nothing.
 #[test]
 fn apply_refuses_a_project_with_a_crashed_session_journal() {
     let t = Tmp::new("ew-cli-test");
@@ -1592,8 +1591,8 @@ fn apply_refuses_a_project_with_a_crashed_session_journal() {
     assert!(journal_files(&home) == journals, "the journal is still there");
 }
 
-/// Ruling 1 of the cycle-41 review's fix round: "add a whole-text test for one subcommand of each kind that prints it
-/// (`ew apply`, `ew import parts`, a human-only subcommand)." `ew import parts` refuses a project whose crashed session
+/// Each kind of subcommand that prints `journal_refusal`'s text (`ew apply`, `ew import parts`, a human-only
+/// subcommand) has a whole-text test. `ew import parts` refuses a project whose crashed session
 /// left a journal with `ew apply`'s text (exit 2, before the table is read) and writes nothing; the journal stays. The
 /// human-only kind is a unit test with the injected terminal (`cli/project_files.rs`).
 #[test]
@@ -1631,7 +1630,7 @@ fn import_parts_refuses_a_project_with_a_crashed_session_journal() {
     assert!(journal_files(&home) == journals, "the journal stays");
 }
 
-/// FT-336 (ruling 1, design-pass correction): `ew project checks set` submits the `HumanOnly` command
+/// `ew project checks set` submits the `HumanOnly` command
 /// `project.checks.set` only after a confirmation typed on a controlling terminal (doc 17 section 2.3, FR-EXT-030).
 /// Without a terminal (here: stdout captured, stdin empty or piped) it exits 2 before the project is opened: nothing
 /// changes, no lock, no journal. A scheme that does not ship exits 1 without asking; a usage error (no scheme, a
@@ -1809,11 +1808,11 @@ fn revision_commands_are_refused_off_a_terminal() {
 }
 
 /// The recorded logs replay through `ew apply`: one log on a copy of Golden A, applied once, of
-/// - WP-S2.04 part 4a (§12 item 2): `project.drawing.set` (`marker_mode`), `box.structure`, `item.place`,
+/// - `project.drawing.set` (`marker_mode`), `box.structure`, `item.place`,
 ///   `marker.place` and `rep.move`;
-/// - WP-S2.05 part 1, PG10 (§9 item 2): the property grid pilot's `--record` log (`pilot_log.rs`, which the headless
+/// - the property grid pilot's `--record` log (`pilot_log.rs`, which the headless
 ///   test of `elektrawatt` proves is the record of its script and replays in-process to the records it saved);
-/// - WP-S2.05 part 2, FR6 (§9 item 2): the find-and-replace script's `--record` log (`find_log.rs`: three
+/// - the find-and-replace script's `--record` log (`find_log.rs`: three
 ///   `fields.set_many` lines, which the headless test of `elektrawatt` proves is the record of its script).
 ///
 /// Every line applies and the saved records are those the same log gives in-process (the spec's replay path), the
@@ -1939,7 +1938,7 @@ fn the_recorded_logs_replay_through_ew_apply() {
     assert_eq!(saved_tables.structure_boxes.len(), 1);
 }
 
-/// A fresh saved project without parts (FT-410's import target).
+/// A fresh saved project without parts (the import target).
 fn parts_target(t: &Tmp, name: &str) -> PathBuf {
     saved_project(t, name, "3b9e51c4-8a27-7d10-b5f3-6c0a2e9d4f18")
 }
@@ -1977,7 +1976,7 @@ fn comparable_parts(dir: &std::path::Path) -> std::collections::BTreeMap<String,
     out
 }
 
-/// FT-410 acceptance a: `ew import parts` creates the golden project's 29 part copies, and the recorded command
+/// `ew import parts` creates the golden project's 29 part copies, and the recorded command
 /// replays through `ew apply` to the same bytes.
 #[test]
 fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
@@ -2029,7 +2028,7 @@ fn import_parts_creates_the_golden_part_copies_and_replays_through_apply() {
     );
 }
 
-/// FT-410 acceptance b: a second import skips every key and changes nothing.
+/// A second import skips every key and changes nothing.
 #[test]
 fn a_second_import_parts_skips_every_key() {
     let t = Tmp::new("ew-cli-test");
@@ -2061,7 +2060,7 @@ fn a_second_import_parts_skips_every_key() {
     );
 }
 
-/// FT-410 acceptance c: a refused table names its line and column and writes nothing.
+/// A refused table names its line and column and writes nothing.
 #[test]
 fn import_parts_refusals_name_line_and_column() {
     let t = Tmp::new("ew-cli-test");
@@ -2109,7 +2108,7 @@ fn import_parts_refusals_name_line_and_column() {
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
 }
 
-/// FT-504 (beside JB8's `ew-api` test): `ew import parts` with a `parts.csv` and sibling tables that a spreadsheet
+/// `ew import parts` with a `parts.csv` and sibling tables that a spreadsheet
 /// saved with a byte-order mark creates the same 29 part copies as the golden tables without it.
 #[test]
 fn import_parts_with_a_bom_prefixed_table_creates_the_same_copies() {
@@ -2208,9 +2207,9 @@ fn lib_create_list_search_and_rebuild() {
     let o = run(&["lib", "list", "--json"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let list: serde_json::Value = serde_json::from_str(&stdout(&o)).unwrap();
-    // CL-4 (WP-S1.22 D3 (d)): an object naming its schema, the libraries under `libraries`.
+    // An object naming its schema, the libraries under `libraries`.
     assert_eq!(list["$schema"], "ew.lib-list-result/1");
-    // The content's other system libraries (WP-S7.03's sample parts) are listed too; that set grows.
+    // The content's other system libraries (the sample parts) are listed too; that set grows.
     let rows: Vec<(String, String, bool)> = list["libraries"]
         .as_array()
         .unwrap()
@@ -2709,8 +2708,8 @@ fn swap_first_lines(project: &std::path::Path, rel: &str) {
 }
 
 /// FM-1 (FR-EXT-008): `ew fmt --check` on Golden A's copy exits 0; after two lines of `devices/71.jsonl` are swapped it
-/// exits 1 naming that file and writes nothing; `ew fmt` rewrites that file only (ruling 6 of cycle 41: "`ew fmt`
-/// writes only the rewrite set: save through the plan that starts from `Loaded.rewrite`, never `Changes::All`"); then
+/// exits 1 naming that file and writes nothing; `ew fmt` rewrites that file only (it saves through the plan that starts from
+/// `Loaded.rewrite`, never `Changes::All`); then
 /// `ew fmt --check` exits 0 and the files equal the original bytes. The manifest is a new generation by necessity; its
 /// file hashes equal the original ones.
 #[test]
@@ -2880,7 +2879,7 @@ fn fmt_keeps_unknown_members_and_quarantined_lines_verbatim() {
     assert!(tree(&broken) == before, "nothing is written");
 }
 
-/// C52-p4#1, #2 (FT-1383): a writer refused on a project whose damaged library copy a device uses names the
+/// FT-1383: a writer refused on a project whose damaged library copy a device uses names the
 /// device, the copy in words and the way out, and writes nothing.
 #[test]
 fn a_writer_names_the_damaged_copy_a_device_uses() {
@@ -3716,8 +3715,8 @@ fn recover_summarises_and_replays_a_crashed_session_journal() {
     );
 }
 
-/// Ruling 2 of cycle 41: "Replaying a segment whose base is not the open generation behaves exactly as the existing
-/// code does for that case today (refused or applied)". A crashed session set page 1's title; another session set the
+/// Replaying a segment whose base is not the open generation behaves exactly as the existing
+/// code does for that case today (refused or applied). A crashed session set page 1's title; another session set the
 /// same title and saved; `ew recover --replay` is refused (exit 1) and keeps the journal and the project unchanged.
 #[test]
 fn recover_refuses_a_replay_that_collides_with_a_later_save() {
@@ -3773,8 +3772,8 @@ fn recover_refuses_a_replay_that_collides_with_a_later_save() {
     assert!(journal_files(&home) == journals, "the journal is kept, unchanged");
 }
 
-/// Ruling 2 of cycle 41: "`ew recover` checks that it got edit access ... Then it refuses with exit 2 and the same
-/// text `ew apply` uses for a held lock; it never acts read-only." While this test process holds the project's lock,
+/// `ew recover` checks that it got edit access; if not, it refuses with exit 2 and the same
+/// text `ew apply` uses for a held lock; it never acts read-only. While this test process holds the project's lock,
 /// `ew recover` and `ew apply` exit 2 with the same text, `ew apply`'s as built: the read-only reason a second open
 /// sees, with the lock's holder (FR-COL-006); the crashed session's journal stays. The holder's user name
 /// holds a right-to-left override (U+202E), which the refusal prints escaped.

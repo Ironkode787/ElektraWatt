@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The navigators of WP-S2.06 part 1 on Golden A (acceptance checks NV3, NV5, NV7, NV8 and NV10's model half): the
+//! The navigators on Golden A: the
 //! Pages lines byte-equal to the as-built text, the filter as a superset of the as-built Pages filter, the Devices
 //! navigator with selection synchronisation both ways and the chip line, multi-selection and reorder of pages with the
 //! card, the New page pre-fill, the describe window and the transcript's `focus` values.
@@ -186,7 +186,7 @@ fn the_devices_navigator_describes_a_window_and_counts_its_table_calls() {
             "navigator \"Devices\" kind devices view tree sort \"Tag\" ascending filter \"\" rows {n} showing 1 to 50"
         )]
     );
-    // Cycle 37 (window check W37): a function row names the function's kind in words, never its FnDef key.
+    // A function row names the function's kind in words, never its FnDef key.
     let functions: Vec<String> = shell
         .nav(NavKind::Devices)
         .and_then(|n| n.table())

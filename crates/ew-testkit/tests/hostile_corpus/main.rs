@@ -2,11 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The hostile corpus test (NFR-SEC-02): every file of `crates/ew-testkit/hostile/` (its index is
-//! the folder's `README.md`) through the public entry point of its parser, the importers through WP-S3.09's front door,
-//! with its verdict asserted whole (a refusal's text, or the findings a reader reports) and at most 256 MiB of extra
-//! peak allocation each, counted by this binary's own global allocator ([`alloc`]). No time is asserted (owner's rule).
-//! The SQL files are `ew-sqlview`'s (`the_hostile_sql_corpus_is_refused_file_by_file`): SQLite allocates through its
-//! own allocator, not this one, and its limits are the sandbox's (`SQLITE_LIMIT_*`, the deadline).
+//! the folder's `README.md`) through the public entry point of its parser, the importers through their front
+//! door, with its verdict asserted whole (a refusal's text, or the findings a reader reports) and at most 256
+//! MiB of extra peak allocation each, counted by this binary's own global allocator ([`alloc`]). No time is
+//! asserted. The SQL files are `ew-sqlview`'s (`the_hostile_sql_corpus_is_refused_file_by_file`): SQLite
+//! allocates through its own allocator, not this one, and its limits are the sandbox's (`SQLITE_LIMIT_*`, the
+//! deadline).
 
 mod alloc;
 mod generate;

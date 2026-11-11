@@ -35,8 +35,7 @@ use serde_json::{Value, json};
 pub use ew_testdir::{CONTENT, GOLDEN_A, copy_dir};
 
 /// The first match in `text` of the UUID pattern `[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}`, if any: the
-/// check that no record ID reaches a transcript line or a describe text, which print the alias `@n` instead (
-/// decision log ID-630). Written here on its own, not with the printer's scanner, so that the two check each other.
+/// check that no record ID reaches a transcript line or a describe text, which print the alias `@n` instead. Written here on its own, not with the printer's scanner, so that the two check each other.
 pub fn first_uuid(text: &str) -> Option<&str> {
     const GROUPS: [usize; 5] = [8, 4, 4, 4, 12];
     let b = text.as_bytes();
@@ -283,7 +282,7 @@ pub fn placement_steps_with(
         let symbol = keys[r["symbol"].as_str().unwrap()].clone();
         let pos = (r["pos"][0].as_i64().unwrap(), r["pos"][1].as_i64().unwrap());
         let function = &all[r["functions"][0].as_str().unwrap()];
-        // Golden A's mains points are mirrored (E); ID-1504: 1X1's terminals are mirrored top to bottom
+        // Golden A's mains points are mirrored (E); 1X1's terminals are mirrored top to bottom
         // (G); everything else is placed in orientation A.
         let mirrored = function["kind"].get("ip").is_some() && orient_of(&r["orient"]) == 4;
         let flipped = function["kind"].get("ip").is_none() && orient_of(&r["orient"]) == 6;
@@ -643,7 +642,7 @@ pub fn wiring_steps_with(
             distance += 1;
         };
         // The first wire; a split point further than the stub is a bend of it (the bank's wires come in at the
-        // router's choice of corridor, cycle 39: the black boxes' captions are obstacles), so the wire runs there.
+        // router's choice of corridor: the black boxes' captions are obstacles), so the wire runs there.
         enter(&mut steps, at(f0));
         if distance > 1 {
             enter(&mut steps, stub);
@@ -960,7 +959,7 @@ pub fn start(exe: &Path, tmp: &Tmp) -> PathBuf {
         ]),
         None,
     ));
-    // WP-S2.04 part 3 (§13.6's start): the structure node +J-E-206 and Golden A's external references, created in
+    // The structure node +J-E-206 and Golden A's external references, created in
     // the session (the node's minted ID is read back here, so no script names it); the folio scripts name the
     // references by their printed text.
     let mut store = ew_ui::ew_viewmodel::ew_api::StoreOptions::new("test");
@@ -2114,7 +2113,7 @@ pub fn demo_103_bridges(tmp: &Tmp, job: &Path, strips: &DemoStrips) -> DemoBridg
 }
 
 // -------------------------------------------------------------------------------------------------------------------
-// The generators of the records no WP-S2.04 tool draws, the junction editor steps, the structure box and the marker
+// The generators of the records no tool draws, the junction editor steps, the structure box and the marker
 // tool.
 
 /// `num / den` floored, exact in `i128`.

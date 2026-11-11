@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 1 in the window without rendering (acceptance checks PL6 and PL8): AC-28's terminal step on folio
+//! In the window without rendering: AC-28's terminal step on folio
 //! 103 from the keyboard with the ghost's predicted tag after the window's dwell, the picker popup driven by keys,
 //! and the exact `Session` counts of the place tool, the picker and a move in the window. The accessible-name walker
 //! runs after every step.
@@ -95,7 +95,7 @@ fn the_picker_popup_is_driven_by_its_keys_and_floats_a_starter_symbol() {
     settle(&mut h);
     assert_eq!(h.state().shell().picker().unwrap().filter, "contact-no@");
     assert_eq!(h.state().shell().picker().unwrap().rows.len(), 1);
-    // Enter chooses the starter row: the symbol floats without a commit (FT-656: the placement embeds it, one undo
+    // Enter chooses the starter row: the symbol floats without a commit (the placement embeds it, one undo
     // step); the letter comes from its category (K for a contact of the identifier set).
     let rev = h.state().shell().revision();
     press(&mut h, Key::Enter);
@@ -110,8 +110,8 @@ fn the_picker_popup_is_driven_by_its_keys_and_floats_a_starter_symbol() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Cycle 37 (window check W37): the picker opened by `tool.place` takes the keyboard from the first key; text typed in
-/// the frame that first shows it reaches its filter field ("relay", not "elay"). Cycle 38 (window check W38): also with
+/// The picker opened by `tool.place` takes the keyboard from the first key; text typed in
+/// the frame that first shows it reaches its filter field ("relay", not "elay"). Also with
 /// a navigator focused (it paints before the picker and takes typed text as its type-ahead).
 #[test]
 fn the_picker_filter_keeps_the_first_typed_character() {
@@ -471,7 +471,7 @@ fn device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     let picker = h.state().shell().picker().expect("the picker");
     let rows: Vec<String> = picker.rows.iter().map(|r| picker.row_line(*r)).collect();
     assert_eq!(rows, ["row symbol \"mcb-1p\" embedded \"ew.iec.mcb-1p@qet10\""]);
-    // ID-1427 (W52 F16): the row names the symbol by its name in words, never by its key.
+    // The row names the symbol by its name in words, never by its key.
     assert!(
         h.query_by_label_contains("Miniature circuit breaker, 1 pole")
             .is_some(),

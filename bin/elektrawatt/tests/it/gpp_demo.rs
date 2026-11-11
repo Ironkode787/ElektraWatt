@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The G-PP rehearsal of WP-S2.04 §13.6: folios 101 to 103 drawn by generated UI scripts on a new project made by
+//! The G-PP rehearsal: folios 101 to 103 drawn by generated UI scripts on a new project made by
 //! the company-standard wizard, its 901 parts list and its PDF export checked against Golden A. Every step is a
 //! script through the built binary except the records no tool draws yet (typed tags, parts and a marker group the
 //! Marker tool's crossing line does not meet), which are `command.run` steps the Session executes; the test prints
@@ -519,7 +519,7 @@ fn gpp_rehearsal_draws_folios_101_to_103_saves_exports_and_lists_the_parts() {
     let (markers101, fallbacks101) = marker_steps(101, &tables101, map101);
     let (markers102, fallbacks102) = marker_steps(102, &tables102, map102);
     // E1/E2 of the review of round a28-r5: every 101 group is drawn by the tool, and the 102 fallback is the W20 to
-    // W23 group (found by their end labels as `marker_steps` finds its members); since ID-1504's layout of 102 one
+    // W23 group (found by their end labels as `marker_steps` finds its members); since the layout of 102 one
     // straight line crosses W24 and W25 alone, so the tool draws their group.
     assert!(
         fallbacks101.is_empty(),

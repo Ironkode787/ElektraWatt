@@ -501,7 +501,7 @@ pub const ARMS: &[Arm] = &[
         weight: 2,
         build: page_surface_view_set,
     },
-    // WP-S4.02 part 2 (D6, D7, D9, FT-840): appended last, for the same reason.
+    // FT-840: appended last, for the same reason.
     Arm {
         command: "layout.place_assembly",
         weight: 2,
@@ -532,7 +532,7 @@ pub const ARMS: &[Arm] = &[
         weight: 1,
         build: layout_surface_edit,
     },
-    // WP-S2.19 D12 (last, so that the arms before it keep their seeds in `every_arm_commits_on_golden_a`)
+    // Last, so that the arms before it keep their seeds in `every_arm_commits_on_golden_a`
     Arm {
         command: "connection.route_many",
         weight: 2,

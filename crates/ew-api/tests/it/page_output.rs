@@ -836,7 +836,7 @@ fn every_page_wire_of_the_golden_model_is_drawn() {
     });
 }
 
-/// WP-S2.02 A3 on a real page: `render_region` over the full rectangle of folio 103 at 150 dpi gives the bytes of
+/// On a real page: `render_region` over the full rectangle of folio 103 at 150 dpi gives the bytes of
 /// `render`, with and without culling, so the canvas's CPU path is the golden reference.
 #[test]
 fn the_full_region_of_folio_103_is_the_render_byte_for_byte() {

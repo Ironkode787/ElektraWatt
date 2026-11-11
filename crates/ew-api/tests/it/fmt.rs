@@ -173,8 +173,8 @@ fn open(vfs: &Arc<MemVfs>, pid: u32) -> Session {
     s
 }
 
-/// Ruling 6 of cycle 41: "`ew fmt` writes only the rewrite set: save through the plan that starts from `Loaded.rewrite`,
-/// never `Changes::All` ..., so a file already canonical is not rewritten."
+/// `ew fmt` writes only the rewrite set: save through the plan that starts from `Loaded.rewrite`,
+/// never `Changes::All` ..., so a file already canonical is not rewritten.
 #[test]
 fn a_format_rewrites_only_the_files_not_in_canonical_form() {
     let (disk, changed) = disordered();
@@ -269,11 +269,11 @@ fn after_crash(
     }
 }
 
-/// Ruling 1 of cycle 41: "`ew fmt` writes all-or-nothing through the store's existing atomic write path; a crash between
-/// files leaves either the old or the new bytes of each file, never a torn one (test it with the store's fault hook
-/// ...)". A process kill and a power loss (keeping 0, 1 or all pending name changes) at every file-system call of the
-/// format: each file holds its old or its new bytes, and after the next editing open the project is wholly generation 1
-/// (old) or wholly generation 2 (canonical).
+/// `ew fmt` writes all-or-nothing through the store's existing atomic write path; a crash between
+/// files leaves either the old or the new bytes of each file, never a torn one. A process kill and a power
+/// loss (keeping 0, 1 or all pending name changes) at every file-system call of the format: each file holds
+/// its old or its new bytes, and after the next editing open the project is wholly generation 1 (old) or
+/// wholly generation 2 (canonical).
 #[test]
 fn a_crash_at_every_call_of_a_format_leaves_the_old_or_the_new_generation() {
     let (disk, changed) = disordered();
@@ -538,7 +538,7 @@ fn without_a_broken_line_a_repair_writes_nothing() {
     assert_eq!(beside(&vfs), Vec::<String>::new());
 }
 
-/// ID-1185 rulings 1 and 8: a schema violation (EW-CORE-007) beside the broken line is reported as kept and written
+/// A schema violation (EW-CORE-007) beside the broken line is reported as kept and written
 /// back byte for byte; only the broken line goes.
 #[test]
 fn a_repair_keeps_a_schema_violation_byte_for_byte() {
@@ -775,7 +775,7 @@ fn a_repair_that_cannot_pack_the_backup_writes_nothing() {
     assert_eq!(beside(&vfs), Vec::<String>::new());
 }
 
-/// ID-1186 rulings 2 and 4: a listed file that changes on disk between the repair's open and its backup refuses the
+/// A listed file that changes on disk between the repair's open and its backup refuses the
 /// repair, with nothing written and the text saying to run it again; the rerun, in a new session, backs the file up as
 /// it is then.
 #[test]
@@ -814,7 +814,7 @@ fn a_file_changed_since_the_open_refuses_the_backup() {
     assert_eq!(packed.entries[&page], bytes, "the file as the rerun found it");
 }
 
-/// ID-1185 rulings 5 and 8: a file at the backup's name that does not hold this generation's pack refuses the repair
+/// A file at the backup's name that does not hold this generation's pack refuses the repair
 /// and stays; one that holds it byte for byte is reused. The project is edited by hand, so the pack is the one of its
 /// files as found.
 #[test]

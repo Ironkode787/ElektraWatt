@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `plc_overview`: the PLC overview, one row per channel of a station (FR-PLC-022, FR-REP-019; doc 10 §5;
-//! golden 908, 908.1, 908.2), and the PLC overview box of a module or station embedded on a page (FR-PLC-052; WP-S1.21
-//! part 5, PX-3).
+//! golden 908, 908.1, 908.2), and the PLC overview box of a module or station embedded on a page
+//! (FR-PLC-052).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, NaturalKey, natural_key};

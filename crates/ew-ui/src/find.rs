@@ -36,8 +36,7 @@ pub struct FindPane {
     folios: String,
     /// Whether the pane had the shell's focus in the last frame (the text field takes the focus when it gets it).
     was_ours: bool,
-    /// The width the first row's buttons took in the last frame, their gaps included: the fields share the rest
-    /// (W49.2-F4).
+    /// The width the first row's buttons took in the last frame, their gaps included: the fields share the rest.
     buttons: f32,
 }
 
@@ -115,7 +114,7 @@ impl FindPane {
             self.folios = f.folios().join(", ");
         }
         let card = has_find_card(shell);
-        // W49.2-F5 (doc 16a §4.9): the field rows and the status line at the header's inset, `space.4` each side.
+        // Doc 16a §4.9: the field rows and the status line at the header's inset, `space.4` each side.
         let inset = crate::theme::margin_px(crate::theme::current(ui.ctx()).space_4);
         let rows = egui::Frame::new().inner_margin(egui::Margin {
             left: inset,
@@ -129,7 +128,7 @@ impl FindPane {
                 ui.horizontal_wrapped(|ui| {
                     let gap = ui.spacing().item_spacing.x;
                     let fields = if f.replace_mode() { 2.0 } else { 1.0 };
-                    // W49.2-F4 (doc 16a §2, as ID-1276 ruling 8 for the folio field): the fields share what the row has
+                    // Doc 16a §2, as for the folio field: the fields share what the row has
                     // beside the buttons, so they grow with the pane; where that cannot show a field's placeholder (with
                     // a button's padding each side), each field takes a row of its own.
                     let row = ui.max_rect().width();
@@ -427,7 +426,7 @@ impl FindPane {
     /// The results: a list box of one line per hit, the matches bold and underlined, the cursor's line selected.
     fn results(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         let f = shell.find_state();
-        // WP-S2.17 part 4 (CP5, doc 16a §6.17; K32): before a search, and after one without hits, the empty state.
+        // Doc 16a §6.17: before a search, and after one without hits, the empty state.
         let Some(r) = f.results() else {
             crate::components::empty_state(
                 ui,

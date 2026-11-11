@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The generic starter parts of WP-S2.18 D5: their definitions and the generator of the system library
+//! The generic starter parts: their definitions and the generator of the system library
 //! `content/libraries/ew-starter-parts.ewlib`.
 //!
 //! [`parts`] defines the parts; `the_shipped_library_is_the_generated_one` writes them with the library writer into a
@@ -30,12 +30,11 @@ const ZERO: &str = "sha256:00000000000000000000000000000000000000000000000000000
 const NAME: &str = "ElektraWatt starter parts";
 const LICENCE: &str = "CC0-1.0";
 const VERSION: &str = "0.1.0";
-/// The library's version: 0.1.1 since FT-659 and FT-655 changed parts, 0.1.2 since FT-606 added the one-pole on/off
-/// switch EW-GEN-SW-1, 0.2.0 since WP-S1.21 D5 added the generic CPU EW-GEN-CPU-1, 0.2.1 since WP-S1.21 D17 gave
-/// it its DP port (a library refuses other content under a published version, doc 05 §13.1), 0.3.0 since WP-S4.02
-/// part 6 (D14) added the layout parts and the dimensions, 0.4.0 since WP-S1.20 D4 gave the valve its fluid section,
-/// 0.4.1 since FT-1204 moved the on/off switch to the manual-command category, class S, 0.5.0 since FT-1401
-/// added the generic cable EW-GEN-CBL-1.
+/// The library's version: 0.1.1 since two parts changed, 0.1.2 since the one-pole on/off switch EW-GEN-SW-1
+/// was added, 0.2.0 since the generic CPU EW-GEN-CPU-1 was added, 0.2.1 since it gained its DP port (a
+/// library refuses other content under a published version, doc 05 §13.1), 0.3.0 since the layout parts and
+/// the dimensions were added, 0.4.0 since the valve gained its fluid section, 0.4.1 since the on/off switch
+/// moved to the manual-command category, class S, 0.5.0 since the generic cable EW-GEN-CBL-1 was added.
 const LIBRARY_VERSION: &str = "0.5.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
@@ -180,13 +179,14 @@ fn range(from: u16, to: u16) -> Vec<u16> {
     (from..to).collect()
 }
 
-/// The generic starter parts of D5 (the MCB 3P and the valve 3/2 are de-scoped: the starter set has no FnDef or
-/// symbol for them), then the five layout parts of WP-S4.02 D14 (no template, no CP pattern).
+/// The generic starter parts (the MCB 3P and the valve 3/2 are de-scoped: the starter set has no FnDef or
+/// symbol for them), then the five layout parts (no template, no CP pattern).
 ///
 /// The relay and the contactor template their coil (the main function) and every contact (auxiliary functions,
-/// several entries of one FnDef): a function made from the template records its entry (`Function.template_entry`,
-/// FT-655), and the CP derivation pairs the entry's pattern CPs with the FnDef's CPs by position, so the relay's
-/// second changeover contact prints 21, 22 and 24. The contacts are also the contact image (`contacts`).
+/// several entries of one FnDef): a function made from the template records its entry
+/// (`Function.template_entry`), and the CP derivation pairs the entry's pattern CPs with the FnDef's CPs by
+/// position, so the relay's second changeover contact prints 21, 22 and 24. The contacts are also the contact
+/// image (`contacts`).
 fn defs() -> Vec<Def> {
     let relay_cps = cps(&[
         "A1", "A2", "11", "12", "14", "21", "22", "24", "31", "32", "34", "41", "42", "44",
@@ -787,7 +787,7 @@ fn the_shipped_library_is_the_generated_one() {
     );
 }
 
-/// Whether a part is a layout part of WP-S4.02 D14: an enclosure, a mounting plate, a rail, a duct or an end bracket.
+/// Whether a part is a layout part: an enclosure, a mounting plate, a rail, a duct or an end bracket.
 /// The layout tools use them; they carry no function template.
 fn is_layout(kind: &PartKind) -> bool {
     // the generic cable carries no template either: `the_generic_cable_has_its_cores` checks it
@@ -879,9 +879,9 @@ fn the_generic_manufacturer_constant_is_the_shipped_records_item() {
     }
 }
 
-/// D5: every part carries a description, the manufacturer "Generic", a part number of the fixed form, a function
+/// Every part carries a description, the manufacturer "Generic", a part number of the fixed form, a function
 /// template with one main function on starter FnDefs whose CP indices exist, and contacts whose CPs are in its CP
-/// pattern; no order data. The five layout parts of WP-S4.02 D14 have no function template and are skipped here
+/// pattern; no order data. The five layout parts have no function template and are skipped here
 /// (`the_layout_parts_read_back_from_the_shipped_files` checks them).
 #[test]
 fn every_generic_part_is_usable() {
@@ -1100,8 +1100,8 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
 }
 
 /// The generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
-/// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port, D17; 0.1.2 in 0.3.0 with its
-/// dimensions, D14; unchanged in 0.4.0, 0.4.1 and 0.5.0); the cards are modules of 8 channels each.
+/// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port; 0.1.2 in 0.3.0 with
+/// its dimensions; unchanged in 0.4.0, 0.4.1 and 0.5.0); the cards are modules of 8 channels each.
 #[test]
 fn the_generic_cpu_is_a_station_without_io() {
     assert_eq!(LIBRARY_VERSION, "0.5.0");
@@ -1134,7 +1134,7 @@ fn the_generic_cpu_is_a_station_without_io() {
     }
 }
 
-/// BU-7e: the generic CPU at 0.1.2 (its bus port from 0.1.1, D17; its dimensions, D14) carries one bus
+/// BU-7e: the generic CPU at 0.1.2 (its bus port from 0.1.1; its dimensions) carries one bus
 /// port `DP`, `profibus_dp`, `master`, with no port label, termination or other member; its CP pattern, function
 /// template and PLC section are 0.1.0's (the compact JSON of 0.1.0's members as `ew-starter-parts` 0.2.0 published
 /// them), and no other starter part has a bus section.
@@ -1182,9 +1182,9 @@ fn the_generic_cpu_has_its_dp_port() {
     }
 }
 
-/// WP-S1.20 D4 (FL-4's data): the stand-alone valve EW-GEN-VLV-1 (0.2.0) declares solenoid 14 in its fluid section;
-/// its coil is the physical A1, A2 of its main function on `ew.fn.valve-coil`, so it has no internal coil (D5), and the
-/// valve body takes the pattern's ports 1 to 5 (the former pattern CP "14" is gone).
+/// The stand-alone valve EW-GEN-VLV-1 (0.2.0) declares solenoid 14 in its fluid section;
+/// its coil is the physical A1, A2 of its main function on `ew.fn.valve-coil`, so it has no internal coil,
+/// and the valve body takes the pattern's ports 1 to 5 (the former pattern CP "14" is gone).
 #[test]
 fn the_stand_alone_valve_declares_its_solenoid_on_its_physical_coil() {
     let parts = parts();

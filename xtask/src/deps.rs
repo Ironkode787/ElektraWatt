@@ -468,7 +468,7 @@ pub fn check_confined_manifests(policy: &Policy, root: &Path) -> Result<Vec<Stri
     Ok(v)
 }
 
-/// The names an importer's source may not use (NFR-SEC-18, WP-S3.09 D5 a): importers read only the bytes they are given,
+/// The names an importer's source may not use (NFR-SEC-18): importers read only the bytes they are given,
 /// never a file, the network, a process or the environment.
 pub const IMPURE_NAMES: [&str; 7] = [
     "std::fs",
@@ -972,7 +972,7 @@ mod tests {
         assert!(!wildcard_match("rusqlite", "rusqlite2"));
     }
 
-    /// WP-S3.09 IC-5: a fixture crate that names `std::fs` fails the purity check, in code but not in a comment or a test
+    /// A fixture crate that names `std::fs` fails the purity check, in code but not in a comment or a test
     /// module; the workspace's importers pass it.
     #[test]
     fn the_importer_purity_check_finds_file_access_and_passes_the_workspace() {

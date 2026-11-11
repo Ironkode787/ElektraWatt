@@ -7,7 +7,7 @@
 //! It reads the three files under the reader's limits (doc 05 §3.6), makes `%P` project-relative, merges once through
 //! [`ew_api::merge_file`] and writes the result to `%A` all-or-nothing (a temporary file beside it, then a rename). It
 //! never runs git and takes no project lock: `%A` is git's temporary file, not a project file. Exit 0 clean, 1 with
-//! conflict records (or with `%A` left as ours when a side is newer than this reader, FT-1235, or holds a record it
+//! conflict records (or with `%A` left as ours when a side is newer than this reader, or holds a record it
 //! cannot read), 129 on a caught internal
 //! error (I/O, a panic in the merge) with `%A` as it was; a usage error
 //! exits 129 too, with clap's text.
@@ -218,9 +218,8 @@ mod tests {
         move |p| project_path(dir, p, limits)
     }
 
-    /// MD-5, ruling 6: a panic inside the merge is caught: exit 129, `%A` byte-identical, no temporary file left.
-    /// MD-5, ruling 6: a panic inside the merge is caught: exit 129, `%A` byte-identical, no temporary file left.
-    /// Decision log ID-1273: the guard covers everything from the reads to the write, the placing of `%P` in its
+    /// A panic inside the merge is caught: exit 129, `%A` byte-identical, no temporary file left.
+    /// The guard covers everything from the reads to the write, the placing of `%P` in its
     /// project (which reads the working tree's manifest) too: exit 129, `%A` byte-identical, no merge run.
     #[test]
     fn a_panic_in_or_before_the_merge_exits_129_and_leaves_a_as_it_was() {
@@ -256,7 +255,7 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    /// Decision log ID-1273, with the real core: a merge whose result would pass a reader limit leaves `%A` as ours and
+    /// With the real core: a merge whose result would pass a reader limit leaves `%A` as ours and
     /// exits 1; theirs survives in git's index. Theirs, a 100-byte line that does not parse, under a 64-byte line
     /// limit; then a record 4 deep under a depth limit of 4, changed at its leaf on both sides.
     #[test]
@@ -296,7 +295,7 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    /// Ruling 5: ours or theirs above the file limit leaves `%A` as it was with exit 1 and no merge; a base above it
+    /// Ours or theirs above the file limit leaves `%A` as it was with exit 1 and no merge; a base above it
     /// merges, past the limit, as a base that does not read (D18's no-base rule in the core).
     #[test]
     fn a_side_above_the_file_limit_is_left_conflicted() {
@@ -353,7 +352,7 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    /// Ruling 2: the longest prefix with a manifest wins; a path under none is kept whole with the reader's format.
+    /// The longest prefix with a manifest wins; a path under none is kept whole with the reader's format.
     #[test]
     fn the_project_path_is_the_longest_prefix_with_a_manifest() {
         let (dir, _) = setup("0.1");
@@ -377,7 +376,7 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
-    /// Decision log ID-1273 (doc 05 §3.6, NFR-SEC-16): the walk follows no link. `l.ew` links to the project `p.ew`
+    /// The walk follows no link (doc 05 §3.6, NFR-SEC-16). `l.ew` links to the project `p.ew`
     /// (a symbolic link; on Windows a junction, which needs no privilege): a path through it is under no project.
     #[test]
     fn the_walk_for_the_manifest_follows_no_link() {

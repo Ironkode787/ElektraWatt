@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.08 part 3 (D14) on copies of Golden A: `navigator.export_table` writes the Terminal strips table on
+//! On copies of Golden A: `navigator.export_table` writes the Terminal strips table on
 //! show byte for byte as `ew export table strips --strip -X1031` writes it (TW-1; the CLI's path, run here through the
 //! same `ew-api` calls on a reader session of the saved project), `navigator.import_table` of a file with five changed
 //! labels opens the card with "5 changed" and Accept commits one undo step, Escape nothing (TW-1); a cell changed in
@@ -682,7 +682,7 @@ fn a_stale_import_is_refused_and_the_card_stays() {
     shell.shutdown();
 }
 
-/// ID-1231 (ruling 2's "shown in table mode"): with the canvas focused, the one navigator shown in table mode
+/// With the canvas focused, the one navigator shown in table mode
 /// is the one exported; with two shown (Devices beside Pages, Terminal strips moved to the bottom dock) and none
 /// focused, the refusal says to click one; the focused one decides.
 #[test]

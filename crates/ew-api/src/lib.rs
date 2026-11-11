@@ -421,7 +421,7 @@ pub struct DamagedCopy {
     /// When [`DamagedCopy::left_out`]: every copy the open dropped that a Save As leaves out, each in words as
     /// [`DamagedCopy::words`] names the first, in key order; empty otherwise.
     pub left_out_words: Vec<Text>,
-    /// Whether an installed library holds a readable document of the copy the banner names (FT-1499, ID-1486; of any
+    /// Whether an installed library holds a readable document of the copy the banner names (FT-1499; of any
     /// copy the open dropped when [`DamagedCopy::left_out`], whose banner names them all): the banner then
     /// offers Update from library ([`Session::update_damaged_copies`]).
     pub in_library: bool,
@@ -778,7 +778,7 @@ impl Session {
         })
     }
 
-    /// The part search of WP-S1.19 D6 over [`Session::libraries`], with `held` filled from the project's part copies
+    /// The part search over [`Session::libraries`], with `held` filled from the project's part copies
     /// (their library and item IDs; the caller's own `held` entries are kept).
     pub fn part_search(&self, q: &library::PartQuery) -> Vec<library::PartHit> {
         let mut q = q.clone();
@@ -1478,8 +1478,8 @@ impl Session {
         }
     }
 
-    /// The document of `kind` and the library's name of the installed item whose copy ID is `copy` (
-    /// FT-1500): the words of a damaged copy, whose own file cannot be read.
+    /// The document of `kind` and the library's name of the installed item whose copy ID is `copy`: the
+    /// words of a damaged copy, whose own file cannot be read.
     fn installed_document(
         &self,
         kind: ew_schema::Kind,
@@ -1540,8 +1540,8 @@ impl Session {
         }
         let before = p.store.generation();
         let result = p.store.save(&model, Changes::Keys(&p.unsaved));
-        // Only edits that are on disk, or decided and durable in an intent, leave the dirty set (review
-        // cycle 8, blocker 1): never on the strength of an earlier save's outcome.
+        // Only edits that are on disk, or decided and durable in an intent, leave the dirty set:
+        // never on the strength of an earlier save's outcome.
         let on_disk = match &result {
             Ok(_) => true,
             Err(SaveError::Incomplete { generation, .. }) => *generation > before,
@@ -1640,7 +1640,7 @@ impl Session {
         &mut self,
         only: Option<&BTreeSet<ew_schema::Sha256>>,
     ) -> Result<(PurgePlan, SaveReport, Result<Receipt, CmdError>), PurgeError> {
-        // `HumanOnly` (owner ruling, 2026-10-23): judged before any file is touched, by the session's origin.
+        // `HumanOnly`: judged before any file is touched, by the session's origin.
         if !<PurgeAssets as ew_commands::Command>::meta()
             .exposure
             .allows(&self.submit_origin)

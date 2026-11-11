@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The reads the editing tools of the canvas prepare once per (revision, folio) or per symbol copy (
-//! D6, D8): what can be placed on a page ([`Session::place_catalogue`]), the `library.embed` parameters of a
+//! The reads the editing tools of the canvas prepare once per (revision, folio) or per symbol copy:
+//! what can be placed on a page ([`Session::place_catalogue`]), the `library.embed` parameters of a
 //! starter symbol ([`Session::starter_embed`]), a symbol copy's shape ([`Session::symbol_shape`]) and the records
 //! drawn on a page as tables ([`Session::page_tables`]). A tool never calls the `Session`: the shell's tool host
 //! fetches these and hands them to the tools, which compute with them and with the pure functions of
@@ -127,12 +127,12 @@ pub struct CataloguePart {
     pub rating: String,
     /// The template's functions, in template order; empty for a held copy without a function template.
     pub functions: Vec<CatalogueTemplateFn>,
-    /// The words the picker's filter matches besides the part number, the manufacturer and the FnDef keys (cycle 36:
-    /// "relay" found nothing): the description in every language and the category.
+    /// The words the picker's filter matches besides the part number, the manufacturer and the FnDef keys
+    /// ("relay" found nothing): the description in every language and the category.
     pub words: Vec<String>,
     /// The letter code the project's identifier set maps the part's own function category to (`G` for a power
-    /// supply), `None` when the part has no category or the set no mapping: a black box placed from the part takes it
-    /// (ID-1497 (7)).
+    /// supply), `None` when the part has no category or the set no mapping: a black box placed from the part
+    /// takes it.
     pub letter: Option<String>,
 }
 
@@ -673,20 +673,20 @@ impl Session {
     }
 
     /// The `library.embed` parameters (`{"copies": [...]}`) that make part copy `part`'s function template
-    /// placeable with the catalogue symbol `symbol` (WP-S2.04 §7.1 as amended by the part-first follow-up of cycle
-    /// 27): first the starter symbol `symbol` and its FnDef, each when `symbol` names a starter symbol and the
-    /// project does not embed it (as [`Session::starter_embed`] gives them), then, in template order, the FnDef of
-    /// every `function_template` entry that the project does not embed, taken from the starter library by the
-    /// entry's FnDef copy ID; no copy twice. `Ok(None)` when nothing is missing or the project has no part copy
-    /// `part`. `Err(keys)` when an entry's FnDef is neither embedded nor in the starter library: `keys` lists those
-    /// entries' FnDef keys in template order (the reference's `key` member, else the FnDef copy ID as lower-case
-    /// UUID text), and nothing is to be embedded.
+    /// placeable with the catalogue symbol `symbol`: first the starter symbol `symbol` and its FnDef, each
+    /// when `symbol` names a starter symbol and the project does not embed it (as [`Session::starter_embed`]
+    /// gives them), then, in template order, the FnDef of every `function_template` entry that the project
+    /// does not embed, taken from the starter library by the entry's FnDef copy ID; no copy twice. `Ok(None)`
+    /// when nothing is missing or the project has no part copy `part`. `Err(keys)` when an entry's FnDef is
+    /// neither embedded nor in the starter library: `keys` lists those entries' FnDef keys in template order
+    /// (the reference's `key` member, else the FnDef copy ID as lower-case UUID text), and nothing is to be
+    /// embedded.
     ///
-    /// `part` may name a system library's part the project does not hold (a catalogue row with `library`, WP-S2.18
-    /// D6): its closure (the part, its template FnDefs, its manufacturer; [`Session::embed_command`]'s reference form)
-    /// follows in the same parameters; a closure that does not resolve is `Err` with the library's message. The
-    /// picker sends the `copies` with the placement itself (`device.place` or `box.black`, FT-656), so the placement
-    /// is one undo step.
+    /// `part` may name a system library's part the project does not hold (a catalogue row with `library`):
+    /// its closure (the part, its template FnDefs, its manufacturer; [`Session::embed_command`]'s reference
+    /// form) follows in the same parameters; a closure that does not resolve is `Err` with the library's
+    /// message. The picker sends the `copies` with the placement itself (`device.place` or `box.black`,
+    /// FT-656), so the placement is one undo step.
     pub fn starter_embed_part(
         &self,
         part: Uuid,
@@ -817,7 +817,7 @@ impl Session {
 /// Every terminal strip of the project with its tag as `page` prints it and the next designation and sequence
 /// number, by tag, ties by ID.
 fn strips_of(q: &Q, page: Id<Page>) -> Vec<CatalogueStrip> {
-    // The decimal designations in use (ID-1181: the next one is the lowest number free, so a gap an Undo
+    // The decimal designations in use (the next one is the lowest number free, so a gap an Undo
     // left is filled), the width of the widest zero-padded spelling (so `01` is followed by `02`) and the largest
     // sequence number of each strip's terminals.
     let mut used: BTreeMap<Id<Device>, (BTreeSet<u64>, usize, u32)> = BTreeMap::new();
@@ -1447,8 +1447,8 @@ pub struct TableRep {
     pub body: [i64; 4],
     /// Where the printed tag text stands: the anchor of the symbol's tag slot where the scene prints it
     /// (visible by the representation's override, else its arrangement, else the slot's default; at the override's
-    /// position or the slot's, under the orientation, translated to the insertion point; FT-771: where the scene's tag
-    /// rule moved it, read from the page's labels layer), raised by the em height
+    /// position or the slot's, under the orientation, translated to the insertion point; where the scene's
+    /// tag rule moved it, read from the page's labels layer), raised by the em height
     /// of the slot's text style, so that it is at or above the top of the text whatever its vertical alignment (for
     /// text that reads horizontally); `None` for a representation that prints no tag (no device, an interruption
     /// point, no visible tag slot). A preview chip stands above it.
@@ -1705,7 +1705,7 @@ fn page_rect(q: &Q, page: PageRef) -> Rect {
 /// The page point of the tag text `rep` prints with `def`, by the scene's rules (`ew_scene::page`'s
 /// labels): the first tag slot, visible by the representation's override, else by its named arrangement, else by the
 /// slot's default; the override's position, else the slot's, placed in the representation's text frame
-/// (`ew_derive::text_frame`, FT-867: on a half-turned black box, as on the box unturned). With it the em height (nm)
+/// (`ew_derive::text_frame`: on a half-turned black box, as on the box unturned). With it the em height (nm)
 /// of the slot's text style in the project's table `styles`.
 fn tag_anchor(rep: &Representation, def: &SymbolDef, styles: &ew_text::TextStyleTable) -> Option<(Pt2, i64)> {
     let (i, slot) = def

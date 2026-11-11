@@ -81,7 +81,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 Menu::Project,
                 &[],
                 always,
-                // FT-466 moved it to File, Import; WP-S2.17 part 2 places it in Project, Import (its ID unchanged).
+                // It is in Project, Import (its ID unchanged).
                 None,
                 |s, p| s.act_import_qet(p),
             ),
@@ -137,7 +137,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "path?:path",
         placed(
-            // Cycle 32: both imports in one group, Import (the window check), the parts table first.
+            // Both imports in one group, Import, the parts table first.
             place(
                 Group::Import,
                 1,

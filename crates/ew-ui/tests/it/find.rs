@@ -407,7 +407,7 @@ fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
     }
 }
 
-/// FT-1343 (FT-1260's first edge): an action without a form that fails when the palette runs it raises a banner the
+/// An action without a form that fails when the palette runs it raises a banner the
 /// window reports as that action, so the action's next success clears it.
 #[test]
 fn a_palette_run_that_fails_is_cleared_by_the_actions_next_success() {
@@ -498,7 +498,7 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
     }
 }
 
-/// W49.2-F4 and F5: in replace mode the Find and Replace fields share what their row has beside the buttons, so a
+/// In replace mode the Find and Replace fields share what their row has beside the buttons, so a
 /// long replacement shows more of itself at 1920 × 1080 than at the floor (doc 16a §2: a floor fix scales, never caps);
 /// the fields and the buttons stay on one row ending at the pane's right inset, and the field rows start at the
 /// header's inset, `space.4` (16a §4.9). Every node fits at both sizes.

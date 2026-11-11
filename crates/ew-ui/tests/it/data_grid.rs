@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.17 part 3, acceptance check DK9: the data grid of doc 16a §6.21 on Golden A's Terminal strips navigator in
+//! The data grid of doc 16a §6.21 on Golden A's Terminal strips navigator in
 //! table mode. Every key and pointer gesture of §6.21 dispatches the actions it dispatched before the restyle (the log
 //! `tests/expected/table_keys.txt`, recorded from the as-built grid before the restyle; `EW_BLESS=1` rewrites it).
 //! The accessible-name walker runs after every step (`settle`).
@@ -48,7 +48,7 @@ fn strips_in(tmp: &Tmp, density: Option<&str>) -> Harness<'static, App> {
     done(shell, "props.show", json!({"on": false}));
     done(shell, "navigator.show", json!({"kind": "strips"}));
     done(shell, "navigator.table", json!({"kind": "strips"}));
-    // WP-S2.07's Pos column is hidden: these checks are WP-S2.06's grid in its as-built layout.
+    // The Pos column is hidden: these checks are of the grid in its as-built layout.
     done(shell, "table.columns", json!({"kind": "strips", "hide": ["pos"]}));
     done(
         shell,
@@ -560,8 +560,8 @@ fn marked_rows_the_cursor_row_bar_and_the_cursor_ring() {
         "row 3 is not marked"
     );
     // The cursor is in row 2, column Terminal. The bar sits inside the grid's focus ring (inset 1 px, `focus_width`
-    // wide): it starts at the ring's inner edge, in one place whether or not the grid has the keyboard (the cycle-33
-    // ruling).
+    // wide): it starts at the ring's inner edge, in one place whether or not the grid has the keyboard (the
+    // same as before).
     let key = cell(&h, "Strip", 2);
     let grid = h.get_by_label("Terminal strips table").rect();
     let inner = grid.left() + 1.0 + t.focus_width;
@@ -797,7 +797,7 @@ fn table_mode_without_rows_shows_the_empty_state() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-532 (doc 16a §6.21): while the grid has the keyboard the focus ring of §6.1 (2-px `color.focus`, `radius.sm`)
+/// Doc 16a §6.21: while the grid has the keyboard the focus ring of §6.1 (2-px `color.focus`, `radius.sm`)
 /// is drawn around the whole grid, inset 1 px into the pane; with the focus on the canvas it is gone.
 #[test]
 fn the_focus_ring_around_the_whole_grid() {
@@ -827,7 +827,7 @@ fn the_focus_ring_around_the_whole_grid() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-536 (doc 16a §6.21): the Columns menu's move items are 24-px icon buttons painting `arrow-left` and
+/// Doc 16a §6.21: the Columns menu's move items are 24-px icon buttons painting `arrow-left` and
 /// `arrow-right`, named "Move <column> left" and "… right"; the first movable column's left and the last one's right
 /// are disabled (the icon in `color.text.disabled`); no text button "Move left" or "Move right" is left.
 #[test]
@@ -1041,7 +1041,7 @@ fn export_and_import_table_follow_their_predicates() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1497 F1 (the fix round's window check): a column the grid scrolls into view (the cursor's cell, the cell editor)
+/// A column the grid scrolls into view (the cursor's cell, the cell editor)
 /// lands whole to the right of the frozen key column, and a column wider than the room lands with its left edge
 /// there: at the 1280 × 800 floor the Function text column's left edge (and the editor's first character) ended under
 /// the frozen Strip column. Every column in turn, from the far right back to the left and from the left out to the
@@ -1098,7 +1098,7 @@ fn a_column_scrolled_into_view_lands_right_of_the_frozen_column() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1497 (1), C53-fx#2: a one-character value and Enter in the next frame (as the visual driver sends `type` and
+/// A one-character value and Enter in the next frame (as the visual driver sends `type` and
 /// `key enter`) commits it: the frame the editor opens in leaves Enter to the editor, not to the grid, which still
 /// holds the focus there.
 #[test]

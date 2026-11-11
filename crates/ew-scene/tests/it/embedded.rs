@@ -321,8 +321,7 @@ fn rows_beyond_the_capacity_are_not_drawn_and_reported() {
 
 #[test]
 fn a_table_without_headers_draws_no_inner_grid_and_its_texts_inside_the_shadowed_box() {
-    // 201's PART DATA box: 16.31–89.38 × 16.31–52.85 mm printed, label and part number at 3 : 10 (the ruling on
-    // lane A42's LB-9 stop, cycle 42: "PART DATA's label : part number weights are 3 : 10").
+    // 201's PART DATA box: 16.31–89.38 × 16.31–52.85 mm printed, label and part number at 3 : 10.
     let v = EmbeddedView {
         rect: printed_rect(1_631, 1_631, 8_938, 5_285),
         content: EmbeddedContent::Table(EmbeddedTable {

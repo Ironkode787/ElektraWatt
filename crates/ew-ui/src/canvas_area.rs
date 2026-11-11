@@ -6,7 +6,7 @@
 //! container per tab group in a horizontal `Linear` container with equal shares.
 //!
 //! **The model is the one source of truth.** egui_tiles 0.18.0 cannot refuse a drop, so the tree is rebuilt from the
-//! model whenever the model's version changes and after any structural change the tree reports (ruling 4): a tab
+//! model whenever the model's version changes and after any structural change the tree reports: a tab
 //! dragged within or between the groups becomes `tab.move`, anything else (a third group, a vertical split) is
 //! discarded by the rebuild. A tab click is `tab.activate`, a close button `tab.activate` then `tab.close`. A splitter
 //! drag between the groups stays in the tree (its share is host state) and reaches the model only as each group's
@@ -15,7 +15,7 @@
 //! **Accessibility.** Each tab is a node with the role `Tab`, its title and then its badges after commas as the name
 //! ("101 Power Supply 1, QET grid"; the badges are painted as caption chips) and the `selected` state on the
 //! active one; its close button is named `Close <folio>`. egui_tiles 0.18.0 exposes no node for the tab bar, so the
-//! `TabList` role is a follow-up joined with FT-338 (the splitter names); the splitter between the groups has no
+//! `TabList` role is a follow-up joined with the splitter names; the splitter between the groups has no
 //! accessible name and is counted by [`CanvasAreaHost::splitter_count`].
 
 use egui::{Id, Response, Sense, Ui, Vec2, WidgetText, vec2};
@@ -224,7 +224,7 @@ impl CanvasAreaHost {
         };
         let tokens = crate::theme::current(ui.ctx());
         crate::splitter::show(ui, tree, &tokens, "canvas-area", &title);
-        // WP-S2.06 part 1 (§6.7): an unplaced function dropped from the Devices navigator arms the Place tool with it.
+        // An unplaced function dropped from the Devices navigator arms the Place tool with it.
         let released = ui.input(|i| i.pointer.any_released());
         if released
             && ui.rect_contains_pointer(drop_rect)
@@ -378,7 +378,7 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
         };
         let (title, badges, folio) =
             pane.map_or((String::new(), Vec::new(), String::new()), |p| self.title(p.0));
-        // WP-S2.17 (doc 16a §5.5, §6.4, the mockup's `.ctab`): the title in `type.small`, secondary on an inactive tab
+        // Doc 16a §5.5, §6.4, the mockup's `.ctab`: the title in `type.small`, secondary on an inactive tab
         // and primary SemiBold on the active one; the badges are the tree rows' caption chips after it (no bracketed
         // words), and the accessible name reads them after a comma ("101 Power Supply 1, QET grid").
         let t = crate::theme::current(ui.ctx());
@@ -398,7 +398,7 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
             .map(|b| crate::components::caption_chip_layout(ui, &t, b))
             .collect();
         let chips_w: f32 = chips.iter().map(|(_, s)| s.x + t.space_2).sum();
-        // X32b: `space.4` padding (doc 16a §5.5), the inset of the panel headers' titles, and `space.2` between the
+        // `space.4` padding (doc 16a §5.5), the inset of the panel headers' titles, and `space.2` between the
         // last chip and the close button.
         let margin = t.space_4;
         let close = Vec2::splat(self.close_button_outer_size());
@@ -411,7 +411,7 @@ impl Behavior<TabPane> for AreaBehavior<'_> {
             name.push_str(b);
         }
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, selected, &name));
-        // WP-S2.11 D3 (R4): a tab of the list says it is the chosen one.
+        // A tab of the list says it is the chosen one.
         ui.ctx()
             .accesskit_node_builder(response.id, |n| n.set_selected(selected));
         if !state.is_being_dragged {

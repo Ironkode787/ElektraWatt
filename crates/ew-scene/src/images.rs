@@ -16,7 +16,7 @@
 //! colour's alpha, group and path transforms. Approximated: a gradient fill or stroke paints the mean colour of its
 //! stops, and the even-odd fill rule is drawn non-zero (the display list has the non-zero rule only). Not drawn:
 //! text (an SVG logo's lettering must be converted to outlines), images inside the SVG, patterns, clip paths, masks
-//! and filters; [`SvgItems::skipped`] counts them. Ruled by decision log ID-576; the subset is a design-pass item.
+//! and filters; [`SvgItems::skipped`] counts them. The subset is a design-pass item.
 //!
 //! The parser is guarded twice: the rejecter refuses, besides scripts and external references, what the audit
 //! of usvg 0.48.1 and its dependencies found it cannot bear (deep nesting, reference cycles, expansion bombs,
@@ -759,7 +759,7 @@ mod path_bound_oracle {
         );
     }
 
-    /// The arc case of FT-470: one arc command of a tiny radius over a long chord is thousands of segments in usvg,
+    /// The arc case: one arc command of a tiny radius over a long chord is thousands of segments in usvg,
     /// and the bound covers them.
     #[test]
     fn a_tiny_radius_arc_is_thousands_of_usvg_segments() {

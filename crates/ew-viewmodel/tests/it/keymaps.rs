@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 2 (keymaps, D6 to D8) headless: KM-1 the preset files equal what the registry generates and the
-//! KiCad-like preset binds W, E, A and G on the canvas; KM-2 the user's `keymap.toml` replaces the preset's bindings of
+//! Keymaps, headless: the preset files equal what the registry generates and the
+//! KiCad-like preset binds W, E, A and G on the canvas; the user's `keymap.toml` replaces the preset's bindings of
 //! the actions it names, keeps unknown actions as unused, and a file with a conflict is refused with a banner while the
-//! preset applies; KM-3 the editor records, refuses a conflict, lists shadowing, resets and exports a file that imports
-//! back equal; KM-4 the conflict rules on both presets; KM-5 Ctrl+Shift+N is
-//! Renumber devices…; KM-6 the keymap sheet, which `cargo xtask gen` has this test write for the user guide (it sets
+//! preset applies; the editor records, refuses a conflict, lists shadowing, resets and exports a file that imports
+//! back equal; the conflict rules on both presets; Ctrl+Shift+N is
+//! Renumber devices…; the keymap sheet, which `cargo xtask gen` has this test write for the user guide (it sets
 //! `EW_REFERENCE_DIR`).
 
 use std::path::{Path, PathBuf};
@@ -218,11 +218,11 @@ fn the_editor_records_refuses_shadows_resets_and_round_trips() {
     let refusal = shell.keymap_editor().refusal.clone().unwrap();
     assert_eq!(refusal.action, "tool.wire");
     assert_eq!(refusal.chord, "M");
-    // W40a 5c: the refusal says what is in the way, not the double binding it prevented.
+    // The refusal says what is in the way, not the double binding it prevented.
     assert_eq!(refusal.errors, ["M is already Move in the canvas."]);
     let wire = actions::find("tool.wire").unwrap();
     assert_eq!(shell.shortcuts_of(wire), ["Ctrl+Shift+W"]);
-    // Cycle-40 review: a chord bound by physical key reads as its key cap, never in the `phys:` grammar.
+    // A chord bound by physical key reads as its key cap, never in the `phys:` grammar.
     refused(
         &mut shell,
         "keymap.record",
@@ -374,7 +374,7 @@ fn record_wire(shell: &mut ShellModel) {
     );
 }
 
-/// FIX40b (C40 review part 2, finding 8): a `keymap.toml` that is there but cannot be read (here a directory, which
+/// A `keymap.toml` that is there but cannot be read (here a directory, which
 /// no platform reads as a file: an error other than NotFound) is not treated as absent: the banner names the read
 /// error, the preset applies, the file is neither copied aside nor written over by the editor's next edit.
 #[test]
@@ -408,7 +408,7 @@ fn an_unreadable_user_keymap_is_reported_and_kept() {
     assert!(!dir.join("keymap.toml.bad-1").exists(), "not copied aside");
 }
 
-/// FIX40b (C40 review part 2, finding 8): a refused `keymap.toml` whose copy-aside fails (every `.bad-<n>` name is
+/// A refused `keymap.toml` whose copy-aside fails (every `.bad-<n>` name is
 /// taken) is reported as kept, and the editor's next edit does not write over it.
 #[test]
 fn a_refused_keymap_that_cannot_be_copied_aside_is_not_written_over() {
@@ -441,7 +441,7 @@ fn a_refused_keymap_that_cannot_be_copied_aside_is_not_written_over() {
     );
 }
 
-/// FIX40d (window check, finding 6): a refused file is copied aside once: the next start with the same bytes
+/// A refused file is copied aside once: the next start with the same bytes
 /// names the existing copy and makes none; a changed bad file gets a new copy. The user's file stays.
 #[test]
 fn a_refused_keymap_is_copied_aside_once() {

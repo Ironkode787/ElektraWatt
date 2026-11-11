@@ -908,7 +908,6 @@ fn wires_of(q: &Q, conn: Id<Connection>) -> Vec<Wire> {
     wires.into_iter().map(|(_, w)| w).collect()
 }
 
-// WP-S2.08 part 6 (D18)
 /// A company colour code the project's colour profile declares (FR-CON-019): its IEC 60757 base and its shade.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct CompanyColour {
@@ -932,9 +931,9 @@ pub struct WireColours {
 }
 
 impl Session {
-    /// The effective colours of `connections` and the profile's company codes, for the wire-colour view (WP-S2.08
-    /// D18). Reads memoised queries only; a connection that forms no physical wire, or whose colour is unset, is left
-    /// out.
+    /// The effective colours of `connections` and the profile's company codes, for the wire-colour view.
+    /// Reads memoised queries only; a connection that forms no physical wire, or whose colour is unset, is
+    /// left out.
     pub fn wire_colours(&self, connections: &[Uuid]) -> WireColours {
         let q = self.query();
         let mut out = WireColours::default();
@@ -1460,7 +1459,7 @@ fn profile_chooser(q: &Q, built: &mut [Built]) {
     }
 }
 
-/// ID-1389 (W51 finding G; doc 16a §8.5): the route points of connection `c` as the frame cells they lie in (`D5`), as
+/// Doc 16a §8.5: the route points of connection `c` as the frame cells they lie in (`D5`), as
 /// cross-references print them, never as nanometres; a point outside the frame grid by its two lengths.
 fn route_in_cells(q: &Q, c: Id<Connection>, built: &mut [Built]) {
     let Some(conn) = q.connections().get(c) else {
@@ -2415,7 +2414,7 @@ impl Session {
             ([one], None) if one.page_title.is_some() => one.page_title.clone().unwrap_or_default(),
             ([one], None) => {
                 let id = one.reach.get(&one.kind).and_then(|s| s.iter().next()).copied();
-                // FT-1127 (item 5): a representation without a device (an interruption point's) is named by
+                // A representation without a device (an interruption point's) is named by
                 // its function's kind in the navigators' words ("Interruption point"), not by the raw kind word.
                 let words = match one.reach.get(&Kind::Function) {
                     Some(fs) if one.kind == Kind::Representation && fs.len() == 1 => {
@@ -2519,7 +2518,7 @@ impl Session {
         {
             return parsed;
         }
-        // WP-S2.07 §8 (FT-429): the PLC grid's typed editors. A channel's address and a module's start as the
+        // FT-429: the PLC grid's typed editors. A channel's address and a module's start as the
         // profile's text or a keyword (the command reads it with the configuration project's profile), a channel's
         // target as a device tag (its main function), a module's slot as a number.
         if let Some(parsed) = self.plc_input(kind, row_path, text) {
@@ -2552,7 +2551,7 @@ impl Session {
 }
 
 impl Session {
-    /// The PLC typed editors of [`Session::parse_field_input`] (WP-S2.07 §8; FT-429, FT-690); `None` for another field
+    /// The PLC typed editors of [`Session::parse_field_input`] (FT-429); `None` for another field
     /// or a JSON object, the field's own form, parsed as before.
     fn plc_input(&self, kind: &str, row_path: &str, text: &str) -> Option<Result<ParsedInput, InputError>> {
         let t = text.trim();
@@ -2890,7 +2889,7 @@ mod tests {
         assert_eq!(built.row.actions, [RowAction::Freeze]);
     }
 
-    /// Cycle 33 review finding 13: a page item's kind in words from the object form and the string form.
+    /// A page item's kind in words from the object form and the string form.
     #[test]
     fn page_item_kinds_in_words() {
         use serde_json::json;
@@ -2959,7 +2958,7 @@ mod tests {
         assert_eq!(to, WireEnd::Unknown);
     }
 
-    /// FT-439, ruling 4: a connection's first wire has the smallest printed number (natural order), an unnumbered wire
+    /// A connection's first wire has the smallest printed number (natural order), an unnumbered wire
     /// comes after every numbered one; the carrier ID only breaks a tie.
     #[test]
     fn the_first_wire_has_the_smallest_printed_number_and_unnumbered_wires_come_last() {
@@ -2996,7 +2995,7 @@ mod tests {
         assert!(several > 0, "Golden A has connections of several numbered wires");
     }
 
-    /// FT-439, ruling 3: a function's label is its first connection point's label; a representation's is its first
+    /// A function's label is its first connection point's label; a representation's is its first
     /// function's; a device's is its tag.
     #[test]
     fn a_function_and_a_representation_are_labelled_by_their_first_connection_point() {

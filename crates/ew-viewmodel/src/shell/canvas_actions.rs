@@ -7,7 +7,7 @@
 //! The page content is fetched once per (revision, folio) at the end of a dispatch that changed either
 //! ([`ShellModel::sync_canvas`]): the sheet display list through the session's memo store, its entity rectangles and
 //! the page grid. Zoom, pan, pointer and resize steps never reach the session again (NFR-PERF-20: they re-execute
-//! no query; WP-S2.02 A9). View actions never touch the model (doc 16 section 1 rule 1).
+//! no query). View actions never touch the model (doc 16 section 1 rule 1).
 
 use serde_json::{Map, Value};
 
@@ -135,7 +135,7 @@ impl ShellModel {
     }
 
     /// Sets where the canvas draws: the one host-state setter of the shell (the backend is a fact about the host,
-    /// not a user action; WP-S2.02 section 6.1). Always [`CanvasBackend::Cpu`] in the headless mode.
+    /// not a user action). Always [`CanvasBackend::Cpu`] in the headless mode.
     pub fn set_canvas_backend(&mut self, backend: CanvasBackend) {
         self.view.backend = backend;
     }
@@ -289,8 +289,7 @@ impl ShellModel {
     }
 
     /// `canvas.pointer` on a group (default the focused one); the other group's pointer is cleared. With a point on
-    /// the focused group the active tool gets `PointerMove` with the optional `shift`, `ctrl` and `alt` (WP-S2.03
-    /// §7.9).
+    /// the focused group the active tool gets `PointerMove` with the optional `shift`, `ctrl` and `alt`.
     pub(crate) fn act_pointer(&mut self, p: &Map<String, Value>) -> Outcome {
         let out = self.set_pointer_of(p);
         if out != Outcome::Done {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The content audit of WP-S7.03 D1, D2 and D4 (NFR-LIC-06, NFR-LIC-07): every library document under `content/` and
+//! The content audit (NFR-LIC-06, NFR-LIC-07): every library document under `content/` and
 //! every copy under `golden/J-E-2416.ew/lib/` (the sample project ships, AC-40) carries an SPDX licence, the licence
 //! of its kind (doc 07 §3.8: CC0-1.0 for part facts, CC-BY-SA-4.0 for drawn content), allowed by its file's row of
 //! `ci/licence-map.toml` under `content/`, and a source. Every map expression and designation pattern of a shipped

@@ -3,7 +3,7 @@
 
 //! Normaliser #12, online wire numbering (doc 06 §3.2, FR-NUM-019, FR-NUM-021), v0 subset.
 //!
-//! The wire-numbering schemes arrive with WP-S1.11, so online wire numbering is off: a connection created
+//! The wire-numbering schemes are not built yet, so online wire numbering is off: a connection created
 //! by this transaction stays `NumberSpec::Unassigned` and prints "?". A new connection that carries an
 //! assigned counter (a split part copied from its original, a command that copied a record) is reset to
 //! `Unassigned`; a frozen number is an explicit user value and stays.

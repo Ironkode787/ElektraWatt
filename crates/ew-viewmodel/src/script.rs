@@ -686,7 +686,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("symbol", &Value::from(symbol)),
             member("unmapped", &Value::from(unmapped)),
         ]),
-        // WP-S2.04 part 3 (§9.6).
+        // The IP tool's ghost.
         Some(Ghost::Ip {
             name,
             direction,
@@ -713,7 +713,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("outline", &Value::from(outline)),
             member("cps", &Value::from(cps)),
         ]),
-        // WP-S2.04 part 4b (§10.7).
+        // The Text tool's ghost.
         Some(Ghost::Text { at_nm, text, bind }) => object(vec![
             member("kind", &Value::from("text")),
             member(
@@ -743,7 +743,7 @@ fn ghost_json(shell: &ShellModel) -> String {
             member("kind", &Value::from("structure_box")),
             member("outline", &Value::from(outline)),
         ]),
-        // WP-S2.04 part 5 (§11).
+        // The Image tool's ghost.
         Some(Ghost::Image { asset }) => object(vec![
             member("kind", &Value::from("image")),
             member("asset", &asset.map_or(Value::Null, Value::from)),
@@ -773,7 +773,7 @@ fn ghost_json(shell: &ShellModel) -> String {
                 member("refused", &refused.map_or(Value::Null, Value::from)),
             ])
         }
-        // WP-S4.02 part 4 (D11, ruling 4): `{"kind": "line", "carrier": "rail"|"duct", "from_nm", "to_nm"}`, surface nm;
+        // `{"kind": "line", "carrier": "rail"|"duct", "from_nm", "to_nm"}`, surface nm;
         // `to_nm` is null before the first click.
         Some(Ghost::Line { kind, from, to }) => {
             let n = |v: i128| Value::from(i64::try_from(v).unwrap_or(0));
@@ -1568,7 +1568,7 @@ mod tests {
         assert_eq!(end.exit_code(), 0);
     }
 
-    /// WP-S6.13 BD1: with `--keep-going` a refused step in the middle does not end the run; every step has its line
+    /// With `--keep-going` a refused step in the middle does not end the run; every step has its line
     /// and the exit code is 1. Without the flag the transcript is today's: it stops at the refusal.
     #[test]
     fn keep_going_runs_a_script_past_a_refused_step() {

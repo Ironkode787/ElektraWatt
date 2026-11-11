@@ -177,7 +177,7 @@ fn an_undefined_potential_is_keyed_on_its_discriminator_member() {
     }
 }
 
-/// WP-S1.16 P5-3 with D8: a typed waiver of EW-POT-001 on an undefined potential still waives the finding after a
+/// A typed waiver of EW-POT-001 on an undefined potential still waives the finding after a
 /// member joins the potential, because the fingerprint keys on the discriminator member; without the waiver the
 /// finding is open.
 #[test]
@@ -398,8 +398,8 @@ fn pot011_cases() {
                         "case {c}"
                     );
                     assert!(!f[0].discriminator.is_empty(), "case {c}");
-                    // Plain words from the Fluent pattern, never the derivation's arm-and-root text; FT-1146
-                    // (item 10): the potential once, first.
+                    // Plain words from the Fluent pattern, never the derivation's arm-and-root text:
+                    // the potential once, first.
                     let p = &f[0].subject;
                     assert_eq!(
                         f[0].message,
@@ -575,7 +575,7 @@ fn pot008_location_cases() {
     rule_table(
         "EW-POT-008",
         vec![
-            // Amended by cycle 33 (G-PP ruling #20): the warning stays in a project with two or more own locations.
+            // The warning stays in a project with two or more own locations.
             Case::reports(
                 "a rail-bonded terminal without a location is reported",
                 rail_model(None, Some(0x1001), true),
@@ -600,7 +600,7 @@ fn pot008_location_cases() {
     );
 }
 
-/// Cycle 33 (G-PP ruling #20), the -X1032:1-4 case of the G-PP run: in a project with one own location (an
+/// The -X1032:1-4 case: in a project with one own location (an
 /// external reference's location does not count), unlocated rail-bonded terminals belong to it: no EW-POT-008, and
 /// their PE connection points join one PE potential through the rail.
 #[test]
@@ -723,7 +723,7 @@ fn pot002_cases() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// WP-S1.16 part 1 (D2, D3): EW-POT-001's quick fix "Declare 0 V–PE bond (PELV)".
+// EW-POT-001's quick fix "Declare 0 V–PE bond (PELV)".
 
 const M_FN: u128 = 0x1001;
 const TERMINAL: u128 = 0x1002;
@@ -855,7 +855,7 @@ fn pe_members_against_m(n: u128) -> ew_checks::Finding {
     attrs_finding(&fx.build())
 }
 
-/// Cycle 37 (window check): EW-POT-001's message names at most three member CPs and then "and N more member CPs";
+/// EW-POT-001's message names at most three member CPs and then "and N more member CPs";
 /// the finding's `members` argument keeps every conflict, and nl-NL renders the same cut from the arguments. Three
 /// member CPs or fewer are all named, with no count.
 #[test]

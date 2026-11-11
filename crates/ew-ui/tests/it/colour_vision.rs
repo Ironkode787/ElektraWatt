@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The colour-vision test of WP-S2.08 D15 (acceptance check AX-6, NFR-A11Y-03, FR-UI-025; doc 16 §15.6): the four
+//! The colour-vision test (NFR-A11Y-03, FR-UI-025; doc 16 §15.6): the four
 //! highlight slots and the selection stay at least ΔE00 10 apart, pair by pair, as protanopes, deuteranopes and
 //! tritanopes see them (Machado et al. 2009, severity 1.0); the CIEDE2000 code meets Sharma, Wu and Dalal's test pairs;
 //! the slots' hatch angles are distinct, so a weak colour pair is still told apart by its pattern.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The row exports of a chosen report block (D8; FT-241's CSV half, FR-EXT-027):
+//! The row exports of a chosen report block (D8; FR-EXT-027):
 //! `ew export wires`, `ew export terminals [--strip <tag>]`, `--block <name or id>` on `bom`, `cables`, `wires` and
 //! `terminals`, `ew export report --block <name or id> --format csv|pdf`, and `ew export report --kind <kind>`, the
 //! whole-project rows of a registered kind ([`RowExport::Kind`]).
@@ -738,7 +738,7 @@ pub fn row_output(
     })
 }
 
-/// `meta` with the digest of the first table's `_ew_base` sheet when it has an editable column (D5; ID-1174 ruling 1:
+/// `meta` with the digest of the first table's `_ew_base` sheet when it has an editable column (D5:
 /// the writer takes no hash), on a clone.
 pub fn with_base_digest(meta: &WorkbookMeta, tables: &[Table]) -> WorkbookMeta {
     let mut meta = meta.clone();

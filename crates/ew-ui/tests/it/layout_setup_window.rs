@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 4 in the window, on a writable copy of Golden A, folio 902 (PS-7's kittest flows): Draw ▸ Layout's
+//! In the window, on a writable copy of Golden A, folio 902: Draw ▸ Layout's
 //! Duct button arming Draw duct with its options card; the Create enclosure dialog with its two choice lists and its
 //! refusal under the fields, and its Create disabled without a part; the Auto-fill rail dialog's line and its Fill
 //! button; Rail 1's Properties with its free length. The drawing, the commits and the poses are the viewmodel's
@@ -58,7 +58,7 @@ fn the_duct_button_arms_draw_duct_with_its_options_card() {
     );
 }
 
-/// ID-1139 (W45.2 F2): Draw duct armed after Draw rail sizes its own card: Golden A's duct part gives no size, so the
+/// Draw duct armed after Draw rail sizes its own card: Golden A's duct part gives no size, so the
 /// card shows Width and Height, each at least its desired width (48 px), and Height reads its value whole (60).
 #[test]
 fn the_duct_card_after_the_rail_card_keeps_its_fields_width() {
@@ -218,9 +218,8 @@ fn focused_field(h: &Harness<'_, App>) -> (String, egui::Rect) {
     )
 }
 
-/// W44.4 F-h: -102F1's Realised part edited, then the same row of -201U1's placement edited: the editor shows
-/// -201U1's own part, not -102F1's. Once with the first editor cancelled and frames between (W44.4 F-h's
-/// case), once with `select.set` on -201U1's placement and `props.edit` on the same row with no frame between, the
+/// -102F1's Realised part edited, then the same row of -201U1's placement edited: the editor shows
+/// -201U1's own part, not -102F1's. Once with the first editor cancelled and frames between, once with `select.set` on -201U1's placement and `props.edit` on the same row with no frame between, the
 /// first editor's field still focused: the field keeps its focus across the change and still shows -201U1's own part.
 #[test]
 fn the_editor_of_another_selection_shows_its_own_value() {
@@ -267,7 +266,7 @@ fn the_editor_of_another_selection_shows_its_own_value() {
     }
 }
 
-/// W44.4 F-f (doc 16a §6.8): the editor's text starts `space.icon` (6 px) inside the field.
+/// Doc 16a §6.8: the editor's text starts `space.icon` (6 px) inside the field.
 #[test]
 fn the_editors_text_is_padded_from_the_fields_edge() {
     let tmp = Tmp::new();
@@ -294,7 +293,7 @@ fn the_editors_text_is_padded_from_the_fields_edge() {
     assert!((at.x - rect.left() - 6.0).abs() < 1.0, "{at:?} in {rect:?}");
 }
 
-/// W44.4 F-d: a panel page's Surface, Label mode and Datum rows sit under their own heading, "Surface view".
+/// A panel page's Surface, Label mode and Datum rows sit under their own heading, "Surface view".
 #[test]
 fn the_surface_view_rows_have_their_own_heading() {
     let tmp = Tmp::new();
@@ -310,7 +309,7 @@ fn the_surface_view_rows_have_their_own_heading() {
     assert_eq!(headings, ["Placement", "Surface view"]);
 }
 
-/// W44.4 F-e: F2 (`props.edit`) on a row below the pane's fold scrolls the row into view, so its editor shows inside
+/// F2 (`props.edit`) on a row below the pane's fold scrolls the row into view, so its editor shows inside
 /// the pane.
 #[test]
 fn an_editor_opened_out_of_view_scrolls_into_view() {
@@ -382,7 +381,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
     out
 }
 
-/// FT-1284 (ruling 4, doc 16a §6.12): Create enclosure with its Create disabled at open (its part emptied
+/// Doc 16a §6.12: Create enclosure with its Create disabled at open (its part emptied
 /// before the first frame) and no text field gives its first focus to its first enabled control, the location list.
 #[test]
 fn create_enclosure_disabled_at_open_focuses_its_first_control() {

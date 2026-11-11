@@ -171,8 +171,8 @@ fn run_fmt_with(
     i32::from(a.check && !files.is_empty())
 }
 
-/// What `ew fmt` says on a project of an older format, which opens migrated and only `ew upgrade` writes (WP-S1.17
-/// D11), with its exit code: `--check` a needed change (1), `ew fmt` a refusal (2).
+/// What `ew fmt` says on a project of an older format, which opens migrated and only `ew upgrade` writes,
+/// with its exit code: `--check` a needed change (1), `ew fmt` a refusal (2).
 fn fmt_older(check: bool, dir: &Path, from: &str) -> (i32, String) {
     if check {
         (1, format!("fmt: {}", older_format(dir, from)))
@@ -213,10 +213,10 @@ fn fmt_origin() -> ew_api::Origin {
     }
 }
 
-/// `ew fmt --repair`: the refusals in ruling 3's order (an `.ewz`, a crashed session's
+/// `ew fmt --repair`: the refusals in their order (an `.ewz`, a crashed session's
 /// journal, any other finding that forces read-only, then the repair's own: a project that cannot be packed, the
 /// backup's name or folder, the content check), each before anything is written; then the backup and the one save
-/// (`ew_api::fmt::repair`), and the project opened again as an editor opens it (ruling 6): exit 0 when it opens editable
+/// (`ew_api::fmt::repair`), and the project opened again as an editor opens it: exit 0 when it opens editable
 /// with no EW-CORE-005 finding, else 2, the new generation kept. The discarded lines and the backup go to stdout (stderr
 /// with `--json`); the kept lines and the summary to stderr.
 fn run_repair(a: &FmtArgs, store: ew_api::StoreOptions, err: &mut dyn std::io::Write) -> i32 {
@@ -354,7 +354,7 @@ fn repair_outcome(
 
 /// What `ew fmt --repair` prints when it repaired: each discarded line (`file:line` and its text as shown, cut after 80
 /// characters, control characters escaped), then the backup's path with, when the backup holds files
-/// edited outside EW since the last save, how many (ruling 3: "as found: N files edited outside EW").
+/// edited outside EW since the last save, how many ("as found: N files edited outside EW").
 fn repair_report(discarded: &[DiscardedLine], backup: &Backup) -> Vec<String> {
     let mut lines: Vec<String> = discarded
         .iter()
@@ -564,7 +564,7 @@ fn run_recover_with(
         subcommand: "recover".to_owned(),
         confirmed: a.action == RecoverAction::Discard,
     };
-    // Ruling 2 of cycle 41: `ew recover` acts only with the lock; a read-only open is refused with `ew apply`'s text.
+    // `ew recover` acts only with the lock; a read-only open is refused with `ew apply`'s text.
     // The first open keeps the journal: `--replay` opens again to replay it once the upgrade has its consent.
     let opened = open_editing_to(
         &dir,
@@ -634,8 +634,8 @@ fn run_recover_with(
         RecoverAction::Replay => {
             say(output, errors, &summary(&info));
             // A project of an older format opens migrated and the journal replays onto it, as the
-            // crashed session had it; its save converts the project, so the upgrade's consent comes first (WP-S1.17
-            // D11). Without it the session closes with the journal kept as it was, nothing replayed.
+            // crashed session had it; its save converts the project, so the upgrade's consent comes first.
+            // Without it the session closes with the journal kept as it was, nothing replayed.
             if let Some(from) = &opened.migrated_from
                 && !a.yes
             {
@@ -1170,10 +1170,9 @@ mod tests {
         );
     }
 
-    /// FM-4 and ruling 3 of cycle 41 ("`--discard` without a terminal exits 2 and changes nothing, with a terminal and
-    /// a wrong word exits 1"; the injected terminal of `run_assets_purge_with`): the summary names the transactions;
-    /// off a terminal nothing is opened; a wrong word aborts; `discard` deletes the summarised journal only (ruling 2:
-    /// "`discard_recovery` removes **only the summarised segment**"), and the other is offered next.
+    /// `--discard` without a terminal exits 2 and changes nothing, with a terminal and
+    /// a wrong word exits 1 (the injected terminal of `run_assets_purge_with`): the summary names the transactions;
+    /// off a terminal nothing is opened; a wrong word aborts; `discard` deletes the summarised journal only, and the other is offered next.
     #[test]
     fn the_discard_needs_the_typed_word_and_deletes_one_journal() {
         let dir = setup("discard");
@@ -1253,8 +1252,8 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// Ruling 2 of cycle 41: "`ew recover` checks that it got edit access ... Then it refuses with exit 2 and the same
-    /// text `ew apply` uses for a held lock; it never acts read-only." An editor holds the lock: every action is
+    /// `ew recover` checks that it got edit access; if not, it refuses with exit 2 and the same
+    /// text `ew apply` uses for a held lock; it never acts read-only. An editor holds the lock: every action is
     /// refused and the journal stays; the refusal text is `read_only_refusal`'s, the one `ew apply` prints.
     #[test]
     fn recover_is_refused_while_another_session_holds_the_lock() {
@@ -1305,9 +1304,8 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// Ruling 1 of the cycle-41 review's fix round: "`journal_refusal` names the command that now exists and no FT
-    /// number ... add a whole-text test for one subcommand of each kind that prints it (`ew apply`, `ew import
-    /// parts`, a human-only subcommand)." The human-only kind: `project assets purge`, confirmed on the injected
+    /// `journal_refusal` names the command that now exists and no FT number; each kind of subcommand that prints it
+    /// (`ew apply`, `ew import parts`, a human-only subcommand) has a whole-text test. The human-only kind: `project assets purge`, confirmed on the injected
     /// terminal, opens through `open_for_writing_with` and refuses a project with a crashed
     /// session's journal before it asks: exit 2, nothing prompted, the journal unchanged. It prints
     /// `journal_refusal`'s text on stderr, which a unit test does not capture, so the text is asserted whole here;
@@ -1362,8 +1360,8 @@ mod tests {
 
     /// Once the backup exists, `--json` prints the result on every way out, with exit 2 where it is a failure,
     /// and the human text goes to stderr: a re-open that still finds something wrong (with `reopen_finding`), a save
-    /// incomplete after its commit point (with `save_error`, and `discarded` and `files` as the repair decided them,
-    /// C47-p3#1) and a save that failed before it (with `save_error`, `discarded` and `files` empty), each with and
+    /// incomplete after its commit point (with `save_error`, and `discarded` and `files` as the repair decided them)
+    /// and a save that failed before it (with `save_error`, `discarded` and `files` empty), each with and
     /// without `--json` (the faults the binary's tests cannot place).
     #[test]
     fn a_repair_with_a_backup_prints_its_result_on_every_way_out() {
@@ -1502,7 +1500,7 @@ mod tests {
         );
     }
 
-    /// WP-S1.17 ID-1186 rulings 3 and 4: the backup's line counts the files edited outside EW, without the clause when
+    /// The backup's line counts the files edited outside EW, without the clause when
     /// there are none, also for a backup reused; a file changed on disk between the repair's open and its backup
     /// refuses, saying to run the repair again (a race the binary's tests cannot place).
     #[test]
@@ -1845,7 +1843,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// FT-1154 (RL-2): with a released list that lacks this build's format, the save of `ew upgrade --yes`
+    /// With a released list that lacks this build's format, the save of `ew upgrade --yes`
     /// marks the manifest `unstable` and prints the warning on stderr, the exit code unchanged; with the format
     /// released, neither.
     #[test]

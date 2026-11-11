@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Online numbering of device counters, page-based scheme only (FR-NUM-007, FR-NUM-029). The full
-//! numbering engine with schemes, structure scopes and tombstones is WP-S1.11.
+//! numbering engine with schemes, structure scopes and tombstones is not built yet.
 //!
 //! **Scope.** The printed tag of the page-based scheme is `{page}{letter}{counter}`; the page is the page
 //! of the device's main representation. A counter is therefore unique per (page of the main

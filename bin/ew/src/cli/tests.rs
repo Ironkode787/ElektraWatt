@@ -64,7 +64,7 @@ fn index_warning_prints_the_index_error_only_when_there_is_one() {
     assert!(text.contains("disk full"), "{text}");
 }
 
-/// FIX40a (finding 8): the release run's record is kept per user, so the help names it as the person's own.
+/// The release run's record is kept per user, so the help names it as the person's own.
 #[test]
 fn the_help_names_the_release_record_as_the_users() {
     let mut cmd = super::command();
@@ -104,7 +104,7 @@ fn invalid(value: &str, flag: &str, message: &str) -> Result<Command, String> {
 }
 
 /// `ew print` lowers its flags, the platform's default adapter resolved (`lp` on Linux, `windows` on
-/// Windows, else the viewer; ruling 4 of ID-1218); `--out` excludes `--via` and `--printer`; `--sections` reaches
+/// Windows, else the viewer); `--out` excludes `--via` and `--printer`; `--sections` reaches
 /// `export png` too.
 #[test]
 fn print_lowers_its_flags_and_resolves_the_adapter() {
@@ -170,7 +170,7 @@ fn print_lowers_its_flags_and_resolves_the_adapter() {
             "ew print [OPTIONS] [project-dir]"
         )
     );
-    // Ruling 4 of ID-1218: `--via windows` with or without a printer on Windows, refused in words elsewhere.
+    // `--via windows` with or without a printer on Windows, refused in words elsewhere.
     let windows = p(&["print", "--via", "windows", "--printer", "office"]);
     #[cfg(windows)]
     {
@@ -208,8 +208,8 @@ fn print_lowers_its_flags_and_resolves_the_adapter() {
     );
 }
 
-/// What `ew print` says when a spooler took the set: through `lp`, or the Windows print spooler (ruling 4 of
-/// ID-1218), to the printer named or the default one.
+/// What `ew print` says when a spooler took the set: through `lp`, or the Windows print spooler,
+/// to the printer named or the default one.
 #[test]
 fn a_spooled_print_names_its_printer_and_its_way() {
     assert_eq!(
@@ -222,7 +222,7 @@ fn a_spooled_print_names_its_printer_and_its_way() {
     );
 }
 
-/// Cycle 43, ruling 4: a line without its subcommand prints the help on stderr and exits 2; `--help` and
+/// A line without its subcommand prints the help on stderr and exits 2; `--help` and
 /// `--version` print on stdout and exit 0, the version as `ew <version>`.
 #[test]
 fn help_and_version_are_clap_s() {
@@ -323,7 +323,7 @@ fn a_double_dash_word_in_a_hyphen_positional_is_a_mistyped_option() {
     assert_eq!(text, "-X1");
 }
 
-/// Decision log ID-1273: `merge-driver`'s help quotes doc 05 §11.1's three `.gitattributes` lines in full, as
+/// `merge-driver`'s help quotes doc 05 §11.1's three `.gitattributes` lines in full, as
 /// `ew git setup` will write them, and says its exits.
 #[test]
 fn merge_driver_s_help_quotes_the_attribute_lines_and_its_exits() {
@@ -356,7 +356,7 @@ fn merge_driver_s_help_quotes_the_attribute_lines_and_its_exits() {
     );
 }
 
-/// Decision log ID-1273 (ADR-0012 amendment 2): a usage error of `merge-driver` exits 129, which git reads as a
+/// A usage error of `merge-driver` exits 129 (ADR-0012 amendment 2), which git reads as a
 /// failure rather than as conflicts written; a usage error of every other command keeps 2, the help 0.
 #[test]
 fn a_usage_error_of_merge_driver_exits_129_and_of_another_command_2() {
@@ -373,7 +373,7 @@ fn a_usage_error_of_merge_driver_exits_129_and_of_another_command_2() {
     assert_eq!(code(&["frobnicate", "merge-driver"]), 2);
 }
 
-/// Decision log ID-1273: `merge-driver`'s positionals take a leading `-` (a `%P` under a folder such as `-old.ew`),
+/// `merge-driver`'s positionals take a leading `-` (a `%P` under a folder such as `-old.ew`),
 /// in both forms; three arguments are refused naming `<P>`, the argument the usage line shows as required.
 #[test]
 fn merge_driver_takes_a_leading_hyphen_and_names_a_missing_p() {
@@ -402,7 +402,7 @@ fn merge_driver_takes_a_leading_hyphen_and_names_a_missing_p() {
     );
 }
 
-/// Cycle 43, ruling 3: a valued flag takes the next word even when it starts with `-`; a second `--project` is an
+/// A valued flag takes the next word even when it starts with `-`; a second `--project` is an
 /// error, `--company` accumulates, another flag is last-wins; a bare `--` ends the options.
 #[test]
 fn the_grammar_of_values_repeats_and_the_option_end() {
@@ -1240,7 +1240,7 @@ fn row_export_forms() {
     );
 }
 
-/// WP-S3.06 D4 (the orchestrator's): `export report --kind <kind>` is CSV only and excludes
+/// `export report --kind <kind>` is CSV only and excludes
 /// `--block`; each refusal is the report layer's text, whole, given before the project opens.
 #[test]
 fn report_kind_forms_and_refusals() {
@@ -1264,7 +1264,7 @@ fn report_kind_forms_and_refusals() {
         )
     );
     let report = "ew export report <--block <block>|--kind <kind>> [project-dir]";
-    // WP-S3.06 D4's refusal, before the pages refusal.
+    // The `--kind` refusal, before the pages refusal.
     for args in [
         &["export", "report", "--kind", "device_list", "--block", "910"][..],
         &[

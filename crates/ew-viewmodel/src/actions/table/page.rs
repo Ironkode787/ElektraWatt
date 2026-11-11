@@ -20,7 +20,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             }),
         ),
     ),
-    // WP-S2.09 part 3 (§8.3): Page, Renumber pages…
+    // Page, Renumber pages…
     with_params(
         "section?:text, start?:uint, step?:uint, keep_gaps?:bool",
         placed(

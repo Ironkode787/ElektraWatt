@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.16 part 1, P1-1 (decision D1; doc 08 §3.5 step 2b): a potential with no definition and no source point
+//! Doc 08 §3.5 step 2b: a potential with no definition and no source point
 //! that is entered through a pass-through pair is named after its supply, `<root>/<tag>:<designation>`, before
 //! the fallback `<tag>:<designation>` of its first CP.
 //!

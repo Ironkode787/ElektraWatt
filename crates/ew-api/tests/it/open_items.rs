@@ -1,20 +1,20 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.06 part 2 over Golden A: the open-items list (`open_items`, D7, D8). The golden CSV
+//! Over Golden A: the open-items list (`open_items`). The golden CSV
 //! `golden/J-E-2416/expected/csv/open_items.csv` is one of the kind CSVs that `report_kinds.rs` checks.
 //!
-//! The orchestrator's rulings of cycle 42 these tests rely on, quoted:
-//! - Ruling 2: "`open_items` calls `run_rules` ... and keeps the findings that are `FindingState::Open` and
+//! What these tests rely on, quoted:
+//! - "`open_items` calls `run_rules` ... and keeps the findings that are `FindingState::Open` and
 //!   `open_item_of` some row".
-//! - Ruling 4: the release scheme that `project.checks.set` writes is the one the list runs in (so the settings member
+//! - The release scheme that `project.checks.set` writes is the one the list runs in (so the settings member
 //!   of the check layer and of the command layer agree).
-//! - Ruling 5: OI-3 "asserts, on Golden A with an `open_items` block, no cycle note, no `NotDerived::Cycle`, and no
+//! - OI-3 "asserts, on Golden A with an `open_items` block, no cycle note, no `NotDerived::Cycle`, and no
 //!   EW-CORE-083 finding whose subject names a table rule in the same snapshot's release run".
-//! - Ruling 8: "Order: the category's index in `OPEN_ITEM_RULES`, then `natural_key(subject)`, then the fingerprint".
-//! - The ruling on stop 1: "Bless `open_items.csv` with the 24 rows Golden A derives as checked in ... OI-1's test
-//!   asserts the 24 rows whole, in ruling 8's order, and that EW-PLC-012 and EW-POT-013 are absent. OI-2's waiver case
-//!   uses a fixture copy with W-1 recorded and asserts that exactly the -XPE row leaves."
+//! - "Order: the category's index in `OPEN_ITEM_RULES`, then `natural_key(subject)`, then the fingerprint".
+//! - On the golden file: "Bless `open_items.csv` with the 24 rows Golden A derives as checked in ... OI-1's
+//!   test asserts the 24 rows whole, in that order, and that EW-PLC-012 and EW-POT-013 are absent. OI-2's
+//!   waiver case uses a fixture copy with W-1 recorded and asserts that exactly the -XPE row leaves."
 
 use std::collections::BTreeSet;
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-706 (visual play-test, frictions 7 and 8): the Wire tool's auto-route keeps wires apart and out of
+//! The Wire tool's auto-route keeps wires apart and out of
 //! boxes. In a new project, the play-test's situation is built through the window's own path: a 1P+N breaker from
 //! its starter part, the power supply's black box from its part (two clicks), then the L wire from the breaker's
 //! first pole to the box's L and the N wire from its second pole to the box's N, each a click on the one CP and a
@@ -348,7 +348,7 @@ fn the_same_page_routes_the_same_wires() {
     assert_eq!(routes("ft706-det-a"), routes("ft706-det-b"));
 }
 
-/// WP-S2.19 D13 (RW3): without a clear route the ghost is the unrouted line, the hint says so, and the commit stores
+/// Without a clear route the ghost is the unrouted line, the hint says so, and the commit stores
 /// the wire unrouted; with a fixed bend, the bends and an L tail are the user's route.
 #[test]
 fn without_a_clear_route_the_wire_stays_unrouted_and_the_tool_says_so() {

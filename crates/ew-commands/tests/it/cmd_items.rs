@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 4a (acceptance PI8): `item.place`, `marker.place` and `box.structure` with every rejection, and
+//! `item.place`, `marker.place` and `box.structure` with every rejection, and
 //! the amendments `rep.move` (`items`), `edit.delete` and `fields.set` (the two kinds) and `project.drawing.set`
 //! (`marker_mode`).
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
@@ -672,7 +672,7 @@ fn marker_place_rejections() {
     .expect("a declared company code");
 }
 
-/// FT-451 (FR-CON-019): `fields.set` on a connection's `overrides.colour` refuses at `/value`, with
+/// FR-CON-019: `fields.set` on a connection's `overrides.colour` refuses at `/value`, with
 /// `marker.place`'s text, a code that is neither IEC 60757 nor a company code of the colour profile, and a
 /// foreign code; IEC codes, a declared company code and `null` pass; a refusal changes nothing.
 #[test]
@@ -721,7 +721,7 @@ fn fields_set_refuses_a_colour_the_profile_does_not_know() {
     assert_eq!(conn(&e, CON_W22).overrides.colour, None);
 }
 
-/// `fields.set` and `fields.set_many` on a conductor's `colour` apply FT-451's check with its texts, at
+/// `fields.set` and `fields.set_many` on a conductor's `colour` apply the same check with its texts, at
 /// `/value` (`/edits/0/value` for set_many); IEC codes, a declared company code and `null` pass; a refusal changes
 /// nothing.
 #[test]
@@ -972,8 +972,8 @@ fn rep_move_refuses_an_unknown_variant() {
     let CmdError::Rejected { reason, .. } = err else {
         panic!("{err:?}");
     };
-    // FT-882 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and
-    // ends with what the user can do")
+    // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and
+    // ends with what the user can do
     assert_eq!(
         reason,
         "a page item on page 101 is of a kind this build keeps as it is, so it cannot be moved; leave it out of the \

@@ -18,7 +18,7 @@
 //! keyboard pointer, the connection-point jumps, Enter as a click, Backspace as the tool's step back). Every input
 //! is a registry action on `ShellModel::dispatch`.
 //!
-//! **WP-S2.04 part 1** adds the tool keys and typed text ([`CanvasEvent::Key`], [`CanvasEvent::Text`]), the page
+//! It also holds the tool keys and typed text ([`CanvasEvent::Key`], [`CanvasEvent::Text`]), the page
 //! tables in the page content ([`CanvasPage::tables`]), the floating outline ([`OverlayItem::Paths`]), the fine
 //! snap ([`Snapper::snap_fine`]), the typed selection and the connection pick ([`selection_kinds`],
 //! [`ToolCx::pick`]), what a tool floats or drags ([`Ghost`], the transcript's `ghost`) and the host's preview
@@ -26,26 +26,26 @@
 //! ([`PlaceTool`]), Select's drag rows and keyboard move ([`move_keys`]), transforms and delete on a selection
 //! ([`transform`]) and change symbol ([`ExchangeTool`]).
 //!
-//! **WP-S2.04 part 2** adds wiring: the Wire tool ([`WireTool`]) with the router of `ew_api::routing`, the
+//! It also holds wiring: the Wire tool ([`WireTool`]) with the router of `ew_api::routing`, the
 //! autoconnect proposals of a floating or dragged symbol ([`autoconnect`]), route edit (Select's segment drag and
 //! [`RouteEditTool`]) and the junction sequence editor ([`JunctionEditor`]); a tool's route reaches the transcript
 //! through [`Tool::route_info`].
 //!
-//! **WP-S2.04 part 3** adds interruption points and black boxes: the IP tool ([`IpTool`]) with its naming and
+//! It also holds interruption points and black boxes: the IP tool ([`IpTool`]) with its naming and
 //! direction rules ([`ip`]), the Wire tool's end in an interruption point ([`WireTool::end_in_ip`]), the black box tool
 //! ([`BlackBoxTool`]) and the grips of a selected black box ([`black_box`]), which Select drags.
 //!
-//! **WP-S2.04 part 4b** adds page items and drawings: the Text tool ([`TextTool`]) with its six bindable names
+//! It also holds page items and drawings: the Text tool ([`TextTool`]) with its six bindable names
 //! ([`BINDABLE`]), text edit ([`TextEditTool`]), the Graphic tool ([`GraphicTool`], [`GraphicShape`]), the Wire
 //! marker tool ([`MarkerTool`], [`crossed_connections`]) and the Structure box tool ([`StructureBoxTool`]).
 //!
-//! **WP-S2.04 part 5** adds the Image tool ([`ImageTool`], [`ImageAsset`], [`fit_rect`]).
+//! It also holds the Image tool ([`ImageTool`], [`ImageAsset`], [`fit_rect`]).
 //!
-//! **WP-S4.02 part 3** adds placing on a panel page: the layout place tool ([`LayoutPlaceTool`]) and Select's drag
-//! of a placement, both over [`layout`]'s gesture, which resolves a drop with the commands' own resolver (D4), and the
+//! It also holds placing on a panel page: the layout place tool ([`LayoutPlaceTool`]) and Select's drag
+//! of a placement, both over [`layout`]'s gesture, which resolves a drop with the commands' own resolver, and the
 //! panel kinds of the selection ([`EntityKind::Placement`], [`EntityKind::Carrier`], [`page_entity_kind`]).
 //!
-//! **WP-S4.02 part 4** adds the set-up tools of a panel page: Draw rail ([`RailDrawTool`]) and Draw duct
+//! It also holds the set-up tools of a panel page: Draw rail ([`RailDrawTool`]) and Draw duct
 //! ([`DuctDrawTool`]) with their snapping ([`rail_draw`]) and the line ghost ([`Ghost::Line`]), and Select's drag of a
 //! carrier (`layout.carrier.edit`).
 
@@ -373,7 +373,6 @@ pub enum Ghost {
         /// The refusal's text, when the drop is refused.
         refused: Option<String>,
     },
-    // WP-S4.02 part 4 (D11, ruling 4)
     /// The Draw rail or Draw duct tool's line on a panel page: from the first point (a duct's last vertex) to the
     /// pointer, surface nm; before the first click only the pointer's point.
     Line {
@@ -508,7 +507,7 @@ pub trait Tool {
     }
 
     /// A sentence about what the tool proposes, said in the HUD and in the toast of the commit it makes (the
-    /// IP tool's "0V is taken, so this point is 0V-1."; the Place tool's terminal moved off its click point, FT-1208, at
+    /// IP tool's "0V is taken, so this point is 0V-1."; the Place tool's terminal moved off its click point, at
     /// the end of its toast only); `None` for most tools.
     fn proposal_note(&self) -> Option<String> {
         None
@@ -589,12 +588,12 @@ impl ToolCx<'_> {
     }
 
     /// The entity under `at`: the smallest entity rectangle containing it inflated by 4 points, ties to the later
-    /// in paint order (WP-S2.02's hover pick).
+    /// in paint order (the hover pick).
     pub fn entity_at(&self, at: (i64, i64)) -> Option<EntityRef> {
         crate::canvas::pick(&self.page.entities, Some(at), self.nm_of_points(HOVER_SLOP_PT)).map(|(e, _)| e)
     }
 
-    /// The entity under `at` by WP-S2.04 §6.6 as FT-500 amends it: the first of [`ToolCx::pick_stack`]. A press inside
+    /// The entity under `at` by the pick rule as FT-500 amends it: the first of [`ToolCx::pick_stack`]. A press inside
     /// a structure box away from its outline picks nothing. Without page tables, the rectangle pick of
     /// [`ToolCx::entity_at`].
     pub fn pick(&self, at: (i64, i64)) -> Option<EntityRef> {
@@ -620,7 +619,7 @@ impl ToolCx<'_> {
     }
 }
 
-/// The pick stack of a press at the sheet point `at` with the reach `reach` nm (4 points at the zoom; WP-S2.04 §6.6
+/// The pick stack of a press at the sheet point `at` with the reach `reach` nm (4 points at the zoom; the pick rule
 /// as FT-500 amends it): every entity a press there can pick, each once, in pick order.
 ///
 /// Three groups are formed: **R**, the entities that are neither connections nor structure boxes whose rectangle
@@ -630,7 +629,7 @@ impl ToolCx<'_> {
 /// whose closed outline passes within `reach` (the nearer first, then by ID). The stack is `C, R, B` when R is empty,
 /// or when R's first is a representation and the nearest connection's line is strictly nearer to `at` than the
 /// nearest centre of that representation's rectangles that contain `at`, unless `at` lies on the representation's body
-/// (the middle half of one of its rectangles each way, FT-1438: a lamp's centre picks the lamp, and a repeated click
+/// (the middle half of one of its rectangles each way: a lamp's centre picks the lamp, and a repeated click
 /// the wire through it); else `R, C, B`. A representation's rectangle
 /// is the bounding box of its drawing, so a press on a wire's drawn line inside it picks the wire, while a press at
 /// the representation's centre still picks the representation (FT-500: a provisional route that runs through a
@@ -884,8 +883,7 @@ pub fn segment_dist2(p: (i64, i64), a: (i64, i64), b: (i64, i64)) -> i128 {
     c2 / len2 + i128::from(c2 % len2 != 0)
 }
 
-/// The kind of a selected entity, resolved by the page tables (D14); page items and structure boxes
-/// join with WP-S2.04 part 4b.
+/// The kind of a selected entity, resolved by the page tables.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum EntityKind {
     /// A representation (movable).

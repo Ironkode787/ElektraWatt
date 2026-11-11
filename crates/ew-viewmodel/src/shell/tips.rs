@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 6 (D17, FR-UI-048): the three one-time tips for a user who comes from EPLAN or QET, each a toast with
+//! The three one-time tips (FR-UI-048) for a user who comes from EPLAN or QET, each a toast with
 //! one action of the registry.
 //!
 //! 1. A Line segment of the Graphic tool ending on a connection point: "Lines do not connect. Draw a wire instead."

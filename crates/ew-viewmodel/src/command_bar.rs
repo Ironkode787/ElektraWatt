@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command surface of WP-S2.17 part 2 (D3, doc 16a §5.2, §5.3, §5.5) in toolkit-neutral form: the command bar's
+//! The command surface (doc 16a §5.2, §5.3, §5.5) in toolkit-neutral form: the command bar's
 //! tabs and groups, the placement of an action in the bar, the bar's model for one tab, each tab's next step, and the
 //! tool HUD's model.
 //!
@@ -671,7 +671,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
             if stack > 1 {
                 strings::format(key!("hud-stack"), &[&stack.to_string()])
             } else if selected > 0 && model.selected_placements() > 0 {
-                // WP-S4.02 part 3 (doc 16a §5.5): a placement selected on a panel page, its keys from the keymap.
+                // A placement selected on a panel page (doc 16a §5.5), its keys from the keymap.
                 // Only the keys the selected placement takes: R on the plate, X on a rail, Delete always.
                 let delete = key_name(model, "edit.delete_selection");
                 let on_rail = model
@@ -698,7 +698,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
                     ],
                 )
             } else if let Some(reason) = crate::actions::page_type_reason(model) {
-                // FT-1089 (doc 16a P3): on a page that takes no symbols, with no tool armed, the reason stands
+                // Doc 16a P3: on a page that takes no symbols, with no tool armed, the reason stands
                 // where the user looks: the page type's, as a greyed drawing tool says it.
                 strings::text(reason).to_owned()
             } else {
@@ -801,8 +801,8 @@ pub fn hud(model: &ShellModel) -> HudModel {
             // A proposal other than its base's name says so in the name's place.
             let mut parts = vec![model.tool().proposal_note().unwrap_or(name)];
             // The role and the key that changes it ("0V · source: the wire continues at its targets · D: target"), so the next
-            // role is on screen; FT-899: the role says what it does, the key's part keeps the short next word.
-            // W42b, ID-1146: a star source is a source point (the tool shows a starred point as a source), so the
+            // role is on screen; the role says what it does, the key's part keeps the short next word.
+            // A star source is a source point (the tool shows a starred point as a source), so the
             // star's hint stands alone in the role's place.
             if let Some(d) = crate::tools::IpDir::from_word(direction) {
                 let role = if star { key!("hud-ip-star") } else { ip_role_key(d) };
@@ -868,7 +868,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
         Some(Ghost::Image { asset }) => {
             format!("{} \u{b7} {}", asset.unwrap_or_else(|| "-".to_owned()), hint())
         }
-        // WP-S4.02 part 3 (doc 16a §5.5): the placing prompt; a refused drop's text stands in its chip.
+        // The placing prompt (doc 16a §5.5); a refused drop's text stands in its chip.
         Some(Ghost::Layout { device, .. }) => strings::format(
             key!("hud-layout-place"),
             &[&device, &key_name(model, crate::tools::ESCAPE)],
@@ -878,7 +878,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
     };
     // A tool's refusal stands in the HUD in place of its prompt, also over a ghost (the stacked twin's
     // "An identical symbol already stands here"), until the next canvas input ends it.
-    // Cycle 39 (FIX39b-1): an open paste choice card's prompt stands in place of the tool's, following the card.
+    // An open paste choice card's prompt stands in place of the tool's, following the card.
     let prompt = match model.tool_notice() {
         Some(notice) => notice.to_owned(),
         None => model.card_prompt().unwrap_or(prompt),

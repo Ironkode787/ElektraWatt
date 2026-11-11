@@ -9,8 +9,7 @@
 //! the first-run flow, the wizard, or the project view (the page navigator, the canvas tabs and the focus, the page
 //! view and its canvas lines, the workspace and its layout), or the start page, the status bar, then the palette or a dialog, then the last documentation request.
 //! Directory names appear, paths never. The structural words are fixed English machine text; quoted text is user text
-//! (a label, a name). A record ID is printed as its alias `@n`, a value token like a number (
-//! FT-422; [`crate::alias`]): the hovered entity and the selection unquoted, an
+//! (a label, a name). A record ID is printed as its alias `@n`, a value token like a number ([`crate::alias`]): the hovered entity and the selection unquoted, an
 //! ID inside a quoted text inside the quotes; no UUID reaches the text.
 
 use ew_api::output::{PageTables, TableCp, TableEnd, TableRep};
@@ -96,7 +95,7 @@ fn start_page(model: &ShellModel, lines: &mut Vec<String>) {
         quick_label("keymap", &settings.keymap),
         quoted_list(KEYMAPS.iter().map(|k| quick_label("keymap", k)))
     ));
-    // FT-1117 (item 3): this version has no update check, whatever the stored setting says.
+    // This version has no update check, whatever the stored setting says.
     let privacy = strings::text(key!("start-update-check"));
     lines.push(format!("  label \"{privacy}\""));
 }
@@ -261,8 +260,7 @@ fn window_start(n: usize, cursor: Option<usize>) -> usize {
         .min(n.saturating_sub(NAV_WINDOW))
 }
 
-/// The navigator lines: the header, then one line per row on show; with more than 50 rows (WP-S2.06
-/// §6.10) the header ends with `showing <a> to <b>` and only the window around the cursor is printed.
+/// The navigator lines: the header, then one line per row on show; with more than 50 rows the header ends with `showing <a> to <b>` and only the window around the cursor is printed.
 fn navigator_lines(model: &ShellModel, lines: &mut Vec<String>) {
     let nav = model.navigator();
     let all = model.navigator_rows();
@@ -880,7 +878,7 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                     user(&card.preview.name),
                     user(message)
                 ));
-                // WP-S2.07 part 4b (§9.6): the paste choice card names its origin, its copies and its two choices.
+                // The paste choice card names its origin, its copies and its two choices.
                 if let crate::properties::CardOrigin::PasteVersions(choice) = &card.origin {
                     if let Some(last) = lines.last_mut() {
                         last.push_str(" paste");
@@ -944,7 +942,7 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                         line.push_str(" table");
                     }
                     lines.push(line);
-                    // WP-S2.07 part 4a (§9.6): the part card names its origin, the field diff, the devices, the BOM
+                    // The part card names its origin, the field diff, the devices, the BOM
                     // rows and a fork's note.
                     if let crate::properties::CardOrigin::Part(p) = &card.origin {
                         if let Some(last) = lines.last_mut() {
@@ -1571,7 +1569,7 @@ fn tool_lines(model: &ShellModel, lines: &mut Vec<String>) {
     ghost_lines(model, lines);
 }
 
-/// The lines of WP-S2.04 §7.7 after the tool lines: the picker while open (one line, then one line per row; the
+/// The lines after the tool lines: the picker while open (one line, then one line per row; the
 /// current row ends with `current`) and what the active tool floats or drags.
 fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if let Some(p) = model.picker() {
@@ -1635,7 +1633,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 line.push_str(&format!(" tag \"{t}\""));
             }
             lines.push(line);
-            // WP-S2.04 part 2 (§8.7): the autoconnect proposals while the ghost has any.
+            // The autoconnect proposals while the ghost has any.
             if !proposals.is_empty() {
                 lines.push(proposals_line(&proposals));
             }
@@ -1651,14 +1649,14 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 "canvas ghost move {count} steps {} {} readout \"{readout}\"",
                 steps.0, steps.1
             ));
-            // WP-S2.04 part 2 (§8.3): a move shows its proposals; WP-S2.19 D15: it connects them unless connect on
-            // move is off, the session's setting as the key turns it (ID-1509 (9)).
+            // A move shows its proposals; it connects them unless connect on
+            // move is off, the session's setting as the key turns it.
             if !proposals.is_empty() {
                 let connects = if model.connect_on_move() { "all" } else { "none" };
                 lines.push(format!("{} connect {connects}", proposals_line(&proposals)));
             }
         }
-        // WP-S2.05 part 3 (§8.8)
+        // The paste ghost.
         Some(crate::tools::Ghost::Paste {
             records,
             at_nm,
@@ -1685,7 +1683,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
                 "canvas ghost exchange symbol \"{symbol}\" unmapped {list}"
             ));
         }
-        // WP-S2.04 part 3 (§9.6): the IP tool's ghost (an external connection point names its reference) and the black
+        // The IP tool's ghost (an external connection point names its reference) and the black
         // box tool's rectangle.
         Some(crate::tools::Ghost::Ip {
             name,
@@ -1714,7 +1712,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(crate::tools::Ghost::Box { outline, cps }) => {
             lines.push(format!("canvas ghost box outline {outline} cps {cps}"));
         }
-        // WP-S2.04 part 4b (§10.7): the text tools' free text and the Graphic tool's shape.
+        // The text tools' free text and the Graphic tool's shape.
         Some(crate::tools::Ghost::Text { at_nm, text, bind }) => {
             let mut line = "canvas ghost item text".to_owned();
             if let Some((x, y)) = at_nm {
@@ -1746,7 +1744,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
         Some(crate::tools::Ghost::StructureBox { outline }) => {
             lines.push(format!("canvas ghost box outline {outline}"));
         }
-        // WP-S2.04 part 5 (§11): the Image tool's asset.
+        // The Image tool's asset.
         Some(crate::tools::Ghost::Image { asset }) => {
             let mut line = "canvas ghost item image".to_owned();
             if let Some(asset) = asset {
@@ -1778,7 +1776,7 @@ fn ghost_lines(model: &ShellModel, lines: &mut Vec<String>) {
             }
             lines.push(line);
         }
-        // WP-S4.02 part 4 (D11, ruling 4): the draw tools' line in surface mm: `canvas ghost line rail from 40 740 to
+        // The draw tools' line in surface mm: `canvas ghost line rail from 40 740 to
         // 610 740 mm`; before the first click only `at 40 740 mm`.
         Some(crate::tools::Ghost::Line { kind, from, to }) => {
             let mm = |v: i128| crate::canvas::mm3(i64::try_from(v).unwrap_or(0));
@@ -1810,7 +1808,7 @@ fn proposals_line(proposals: &[(String, Option<String>)]) -> String {
     line
 }
 
-/// The lines of WP-S2.04 part 2 (§8.7): the route the Wire tool draws, the junction sequence editor while open (one
+/// The lines of the wiring: the route the Wire tool draws, the junction sequence editor while open (one
 /// line, then one line per physical wire) and the crossings setting when it draws hops.
 fn wiring_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if let Some(r) = model.tool().route_info() {
@@ -2049,7 +2047,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 ));
             }
         }
-        // WP-S2.09 part 1 (§6.6): the time of the last change is the window's only (never in the transcript).
+        // The time of the last change is the window's only (never in the transcript).
         Dialog::Recovery {
             name,
             transactions,
@@ -2080,7 +2078,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 strings::text(key!("save-workspace-hint"))
             ));
         }
-        // WP-S2.09 part 3 (§8.6): at most 20 file names, then "and <n> more".
+        // At most 20 file names, then "and <n> more".
         Dialog::ConfirmPurge { files, .. } => {
             lines.push(format!(
                 "  label \"{}\"",
@@ -2097,7 +2095,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 ));
             }
         }
-        // WP-S2.07 part 4a (§9.6): the query, the window of results (50 rows, never the total) and the active row's
+        // The query, the window of results (50 rows, never the total) and the active row's
         // detail.
         Dialog::PartChoose(c) => part_choose_lines(model, c, lines),
         Dialog::PartEdit(e) => part_edit_lines(e, lines),
@@ -2119,7 +2117,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 }
             }
             for f in &form.fields {
-                // WP-S4.02 part 4 (ruling 7): a run-time choice by its words, never its value (an ID).
+                // A run-time choice by its words, never its value (an ID).
                 let value = f
                     .options
                     .iter()
@@ -2263,8 +2261,8 @@ const FRACTIONS: [i64; 31] = [
     30, 1, 31,
 ];
 
-/// A sheet point on the drawn polyline of `wire` that the Select tool's press picks as this wire (WP-S2.04 §6.6 as
-/// FT-500 amends it; FT-485 item 4), so a reader of the page text can hover, select or delete it: with the pick reach
+/// A sheet point on the drawn polyline of `wire` that the Select tool's press picks as this wire (the pick rule as
+/// FT-500 amends it), so a reader of the page text can hover, select or delete it: with the pick reach
 /// at 50 % zoom (else at 90 %), the wire is first in the pick stack there ([`crate::tools::pick_stack`]) and no other
 /// connection is in it, and no link is under it (a press on a link follows it). The candidates are the points at n/32 of each segment ([`FRACTIONS`]: the middle first, then
 /// outward), longer segments first (ties: the segment's order); `None` when no candidate is unambiguous (a provisional
@@ -2318,7 +2316,7 @@ pub(crate) fn terminal_in_sentence(tag: &str) -> String {
 
 /// A connection point's label (`-1A4:-#2`) as a sentence names it (FX38d): a designation the device
 /// shares between pins carries its position in words, "-1A4 pin - (2nd)", never the label's `#2`. Any other label
-/// (an unshared pin `-1A4:L+`, a terminal's clamp `-X1:1/a#2`, which FT-716's form names) is returned as it is; tags,
+/// (an unshared pin `-1A4:L+`, a terminal's clamp `-X1:1/a#2`) is returned as it is; tags,
 /// tables and printed labels keep the label.
 pub(crate) fn pin_in_sentence(label: &str) -> String {
     let Some((head, n)) = label.rsplit_once('#') else {
@@ -2336,7 +2334,7 @@ pub(crate) fn pin_in_sentence(label: &str) -> String {
 }
 
 /// The English ordinal suffixes, for a number ending in 1, 2 or 3 and for every other number (the teens 11 to 13
-/// take the last). English only for now: this table is what WP-S2.08 part 3 (the shell's Fluent tables) localises
+/// take the last). English only for now: this table is what the shell's Fluent tables localise
 /// (FT-752), where a language's ordinal rule replaces the choice in [`ordinal`].
 const ORDINAL_SUFFIXES: [&str; 4] = ["st", "nd", "rd", "th"];
 
@@ -2683,7 +2681,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
             "free_text" => "text",
             "wire_marker" => "marker",
             "image" => "image",
-            // FT-882 ("`ui.describe` names a surface view \"surface view\"")
+            // `ui.describe` names a surface view "surface view".
             "surface_view" => "surface view",
             _ => "unknown",
         };
@@ -2796,7 +2794,7 @@ pub fn describe(model: &ShellModel) -> String {
             strings::text(key!("palette-title")),
             palette.query
         ));
-        // WP-S2.08 D5 (a): an open parameter form replaces the list: its action, then one field line per row.
+        // An open parameter form replaces the list: its action, then one field line per row.
         if let Some(form) = &palette.form {
             let label = actions::find(form.action)
                 .map(|m| strings::text(Key::run_time(&m.label_key())))
@@ -2890,7 +2888,7 @@ mod tests {
         assert_eq!(terminal_in_sentence("-X1011:"), "-X1011:");
     }
 
-    // WP-S2.09 part 3 (§8.7): a list prints at most 20 lines, then `more <word> <n>`.
+    // A list prints at most 20 lines, then `more <word> <n>`.
     #[test]
     fn a_preview_list_prints_twenty_lines_then_more() {
         let items: Vec<u32> = (1..=23).collect();

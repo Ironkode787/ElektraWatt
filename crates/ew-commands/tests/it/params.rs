@@ -336,7 +336,6 @@ fn examples() -> Vec<(&'static str, Value)> {
                 "at": [7_937_500, 15_875_000], "angle": 90_000, "csa": "1.5", "colours": [["BK"], ["BU"]]}),
         ),
         ("parts.import", json!({"copies": [{"$k": "part"}]})),
-        // Cycle 33
         (
             "connection.draw_many",
             json!({"connections": [{"a": fn_a, "b": fn_b}]}),
@@ -374,7 +373,7 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"copy": PART_MCB.to_string(), "part": {"description": "MCB"}, "fork": DEV_T3.to_string(),
                 "copies": [{"$k": "manufacturer"}]}),
         ),
-        // WP-S4.01 part 1 (D6); the layout IDs are placeholders (resolving never reads the model)
+        // The layout IDs are placeholders (resolving never reads the model)
         (
             "layout.space.create",
             json!({"location": LOC.to_string(), "name": "Cabinet 1"}),
@@ -425,7 +424,6 @@ fn examples() -> Vec<(&'static str, Value)> {
             json!({"page": PAGE_101.to_string(), "surface": DEV_T2.to_string(),
                 "datum_at": [25_000_000, 167_000_000], "label_mode": "full"}),
         ),
-        // WP-S4.02 part 2 (D6, D7, FT-840)
         (
             "layout.place_assembly",
             json!({"device": DEV_102G1.to_string(), "carrier": {"carrier": DEV_T1.to_string()},

@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The typed part, manufacturer and macro data of WP-S1.19 part 1 (D2, D15, ADR-0011 amendment 4): the fixture
-//! copies of `common::lines::GOLDEN_LIB` parse into the typed members, a file written before part 1 (the
-//! members in `extra`, byte-wise) reads them typed, the project's `basic_project` round-trips, and the kind
-//! registry gives `macro_instance` rank 46 in its page's file while `placeholder_group` stays reserved.
+//! The typed part, manufacturer and macro data (ADR-0011 amendment 4): the fixture
+//! copies of `common::lines::GOLDEN_LIB` parse into the typed members, a file written before the members were
+//! typed (the members in `extra`, byte-wise) reads them typed, the project's `basic_project` round-trips, and
+//! the kind registry gives `macro_instance` rank 46 in its page's file while `placeholder_group` stays
+//! reserved.
 
 use crate::common;
 

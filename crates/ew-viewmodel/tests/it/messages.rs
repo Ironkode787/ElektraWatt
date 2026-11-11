@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel of WP-S2.09 part 2 on copies of Golden A (acceptance checks MS1's model half, MS2, MS3, MS4 and
-//! MS6's model half): the pane in the bottom dock with its header, rows and detail lines; Enter on EF-08 opening -3W1;
+//! The message panel on copies of Golden A: the pane in the bottom dock with its header, rows and detail lines; Enter on EF-08 opening -3W1;
 //! the pending rule of FR-UI-041 (a new unpaired interruption point on 101, the tab switch, Run checks, a conflict
 //! that is never pending); the quick fix of EW-CORE-023 as a previewed card with one undo step; F8 and Shift+F8; F1 on
 //! a finding; the exact counts of §7.5.
@@ -305,7 +304,7 @@ fn count_in(text: &str, one: &str, many: &str) -> usize {
         .unwrap_or(0)
 }
 
-/// FT-710 (rv-vis-1 frictions 18 and 23): the check's toast, the status bar and the Messages tab's count chip give
+/// The check's toast, the status bar and the Messages tab's count chip give
 /// the same numbers for the same scope, through one rule ([`MessageCounts::open`]: the project's open findings without
 /// the pending and the waived ones); the status bar adds the pending ones as their own part, so a count that changes
 /// when the tab leaves the page says why.
@@ -445,7 +444,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
              star"
         )
     );
-    // Cycle-40 review: the notice names the key the user has bound to `tool.ip_direction`.
+    // The notice names the key the user has bound to `tool.ip_direction`.
     done(&mut shell, "help.shortcuts", json!({}));
     done(
         &mut shell,
@@ -554,7 +553,7 @@ fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
         ew_viewmodel::script::card_summary(&shell).as_deref(),
         Some("1 change, 0 tags, 0 cross-reference texts")
     );
-    // WP-S2.09 part 3 (§8.1): the card opens in the Preview tab like every origin; the Messages pane stays docked.
+    // The card opens in the Preview tab like every origin; the Messages pane stays docked.
     assert!(shell.preview_shown());
     assert!(shell.navigator_open(ew_viewmodel::navigators::NavKind::Messages));
     // Apply: one transaction removes the finding; the origin annotation is kept for the history panel.
@@ -568,7 +567,7 @@ fn the_quick_fix_is_previewed_applied_in_one_step_and_undone() {
         shell.origin_annotation(shell.revision().unwrap()),
         Some("quick fix EW-CORE-023")
     );
-    // WP-S2.09 part 3 (§8.4): the history panel shows the annotation as the entry's origin.
+    // The history panel shows the annotation as the entry's origin.
     done(&mut shell, "history.show", json!({"on": true}));
     let entry = line(&shell, "  entry ");
     assert!(entry.contains(" origin \"quick fix EW-CORE-023\""), "{entry}");
@@ -804,7 +803,7 @@ fn check_reports_its_counts_with_the_pane_closed() {
     assert!(toast.contains("error") && toast.contains("warning"), "{toast}");
 }
 
-/// Cycle 39 (window check): EW-BUS-001's message leads with its subject, so Golden A's row shows the subject once
+/// EW-BUS-001's message leads with its subject, so Golden A's row shows the subject once
 /// ("=P01+...-201U1:DP: the station address is TBD; ..."), never "X: X: ...".
 #[test]
 fn a_finding_row_shows_its_subject_once() {
@@ -822,8 +821,8 @@ fn a_finding_row_shows_its_subject_once() {
     shell.shutdown();
 }
 
-/// FT-1140 (item 9): the detail block's message stands on its own line, so it starts with a capital (
-/// `strings::sentence_start`); the row keeps the rule's lowercase text.
+/// The detail block's message stands on its own line, so it starts with a capital
+/// (`strings::sentence_start`); the row keeps the rule's lowercase text.
 #[test]
 fn the_detail_message_starts_with_a_capital() {
     let tmp = Tmp::new("msg-ft1140");

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `numbering.renumber` (`RenumberDevices`, FR-NUM-008, FR-NUM-009), page-based scheme only. The scheme
-//! catalogue, structure scopes and tombstones are WP-S1.11.
+//! catalogue, structure scopes and tombstones are not built yet.
 
 use std::collections::{BTreeMap, BTreeSet};
 

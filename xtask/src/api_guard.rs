@@ -226,7 +226,7 @@ struct FormatReport {
     changes: Vec<Change>,
     /// A format that is not released: "nothing to compare".
     notes: Vec<String>,
-    /// S5, S6 and S7 of WP-S6.08 §8, one line each.
+    /// The failures, one line each.
     failure: Vec<String>,
 }
 
@@ -1186,7 +1186,7 @@ mod tests {
         );
     }
 
-    /// WP-S6.08 D29 (#4): a constraint of a `oneOf` branch (`additionalProperties`), of an `anyOf`
+    /// A constraint of a `oneOf` branch (`additionalProperties`), of an `anyOf`
     /// branch (`minProperties` changed, `maxProperties` added) and of a map's key schema (`propertyNames`' `pattern`)
     /// each fail with S5 under its own item.
     #[test]

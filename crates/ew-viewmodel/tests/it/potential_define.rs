@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! A drawn potential is named, typed and given its voltage in the Potentials table (G-PP triage row 8, amending
-//! ID-752): on a copy of Golden A whose 19 potential definitions are deleted (every potential is
+//! A drawn potential is named, typed and given its voltage in the Potentials table:
+//! on a copy of Golden A whose 19 potential definitions are deleted (every potential is
 //! then known only at its connection points, as on a freshly drawn folio), the Name cell of a row defines its
 //! potential with the typed name at the row's CP in one undo step, alone or with Type and Voltage typed in the same
 //! gesture; Type or Voltage typed without a name refuses with "Name the potential first" and creates nothing. Once L,
@@ -181,7 +181,7 @@ const W20_TO_W23: [(&str, &str); 4] = [
     ("junction 2", "-102F2:GND#2"),
 ];
 
-/// Done criterion of row 8 under FT-577 (P1-4): L, N, 24 V and 0 V of folios drawn without definitions print BK, BU,
+/// L, N, 24 V and 0 V of folios drawn without definitions print BK, BU,
 /// DBU and WH by the project's profile once they are named and typed in the Potentials table. Naming a row is one
 /// step, a `potential.define` at the CP with the typed name; Type and Voltage of the now defined row set its
 /// definition (`fields.set`, `fields.set_many` with the current); the markers read "2.5 BK BU" and "1.5 DBU DBU WH WH".

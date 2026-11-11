@@ -58,8 +58,8 @@ pub fn footer(step: FirstRunStep) -> Vec<(strings::Key<'static>, &'static str)> 
 pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let Some(run) = shell.first_run() else { return };
     let settings = shell.settings();
-    // C40: the reading measure, kept fixed on purpose (running text gets no easier to read wider). FT-1173
-    // (doc 16a §2): the heading, the texts, the choices and the buttons share that one column, centred in the window.
+    // The reading measure, kept fixed on purpose (running text gets no easier to read wider). Doc 16a §2:
+    // the heading, the texts, the choices and the buttons share that one column, centred in the window.
     let width = crate::theme::current(ui.ctx())
         .size_text_measure
         .min(ui.available_width());
@@ -90,7 +90,7 @@ pub(crate) fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                     });
                 }
                 FirstRunStep::Privacy => {
-                    // FT-1117 (item 3): this version has no update check, so no box for one.
+                    // This version has no update check, so no box for one.
                     ui.label(strings::text(key!("firstrun-text-privacy")));
                     if ui.button(strings::text(key!("about-privacy-button"))).clicked() {
                         events.push(Event::OpenPrivacy);

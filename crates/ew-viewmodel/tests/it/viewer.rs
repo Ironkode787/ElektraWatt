@@ -916,7 +916,7 @@ fn a_tab_moved_across_the_groups_takes_its_new_groups_pane() {
     shell.shutdown();
 }
 
-/// FT-524, FT-538 (the `v3` sighting): a killed test process leaves its directory behind with the project's lock in
+/// A killed test process leaves its directory behind with the project's lock in
 /// it; a later test process with the same PID used to adopt that directory (`create_dir_all`, and `Tmp::shell` skips
 /// the copy when the project exists), open the copy read-only and have its edits refused. A test directory is now
 /// always one this process created; the leftover is skipped and left alone.

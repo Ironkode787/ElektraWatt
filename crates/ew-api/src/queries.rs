@@ -7,8 +7,8 @@
 //! output type (`serde` and `schemars`, as D5 rules for the CLI's results) with `output_version` 1, and a golden
 //! example key on Golden A. A key is a reference of the `.ewcmd` grammar (`tag:`, `id:`, `folio:`, a bare tag),
 //! resolved by [`Session::resolve_reference`], or `-` for a query without a key. Every adapter checks the kind of
-//! the record its key resolves to and maps the user's key onto the memo family's key (project owner (delegated),
-//! cycle 41): `cell_of`, `xref_text_of` and `plc_address_text` go through the device's main representation or main
+//! the record its key resolves to and maps the user's key onto the memo family's key:
+//! `cell_of`, `xref_text_of` and `plc_address_text` go through the device's main representation or main
 //! function, `potential_name` and `wire_props_of` through a wire's potential, `wire_numbers` filters the project's
 //! numbers by the folio.
 //!

@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Golden A checks of the placement and arrangement commands of WP-S2.04 part 1 (row PL2 of the spec's test
-//! table): `rep.move` by grid steps, `rep.exchange_symbol`, the `new_terminal` and `from_part` targets, and the
-//! DSL verbs for them.
+//! Golden A checks of the placement and arrangement commands: `rep.move` by grid steps,
+//! `rep.exchange_symbol`, the `new_terminal` and `from_part` targets, and the DSL verbs for them.
 //!
 //! Every test edits a temporary COPY of `golden/J-E-2416.ew`; the committed directory is never opened for
 //! writing. The golden fixture holds no wire routes (the bootstrap writes connectivity only), so the tests that
@@ -34,7 +33,7 @@ const PAGE_102: &str = "4aa43308-d0d3-57ee-be0c-d9383f429f50";
 const PAGE_103: &str = "f239a42a-2ec8-574b-8086-d0fe72d1da6a";
 /// Terminal -X1031 (strip device, 20 terminals), letter X, structure of folio 103.
 const STRIP_X1031: &str = "d8221507-61e8-5141-a2cb-95300ef8a242";
-/// -XPE (`ew.iec.pe@qet10`) on folio 101: x index 33 (33 mod 3 = 0), moved there by ID-1504.
+/// -XPE (`ew.iec.pe@qet10`) on folio 101: x index 33 (33 mod 3 = 0).
 const REP_XPE: &str = "ec75639e-891f-58fd-8e73-3a43743f8573";
 /// F55 (`ew.iec.mcb-1pn@qet10`): x index 76 (mod 3 = 1).
 const REP_F55: &str = "8c4dbb72-b2ea-5ae7-9f5c-a84358d4f9fa";
@@ -209,7 +208,7 @@ fn assert_routes_meet_their_ends(s: &Session, page: Id<Page>) -> usize {
             Some(end_pos(&q, &c.b, page)),
             "{id}: route end"
         );
-        // A straight route between two CPs 1 nm apart across it keeps the router's 1 nm jog (ID-1509 (2)): no segment
+        // A straight route between two CPs 1 nm apart across it keeps the router's 1 nm jog: no segment
         // leans.
         for w in c.route.windows(2) {
             assert!(

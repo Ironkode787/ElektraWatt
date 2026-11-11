@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.19 D16 (RI1, RI2): EW's interruption-point forms. A point drawn with the source form (`ew.gen.ip`) or the
+//! EW's interruption-point forms. A point drawn with the source form (`ew.gen.ip`) or the
 //! target form (`ew.gen.ip-target`) is never turned and is drawn with its direction's form: `ip.place` and
 //! `rep.transform` refuse a contradiction in words, `ip.continue` gives the partner the other form, and a direction
 //! change swaps the form (normaliser 18), refused in words when the project does not hold the twin.

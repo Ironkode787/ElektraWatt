@@ -176,8 +176,7 @@ fn io_cause(kind: std::io::ErrorKind) -> &'static str {
     }
 }
 
-/// The release's housekeeping warning in words with the file name only, its cause from the error's kind
-/// (FIX41b ruling 6).
+/// The release's housekeeping warning in words with the file name only, its cause from the error's kind.
 pub(crate) fn trouble_text(t: &ReleaseTrouble) -> String {
     let key = match t.what {
         TroubleKind::RecordNotRemoved => key!("release-trouble-not-removed"),
@@ -230,7 +229,7 @@ fn waiver_words(report: &CheckReport, waiver: &str) -> String {
 }
 
 /// The approval's refusal in words: each [`ApproveError`] the window can meet has a text of its
-/// own, a waiver is named by its rule and object, a refused command goes through [`command_failed`] (ID-939's rule);
+/// own, a waiver is named by its rule and object, a refused command goes through [`command_failed`];
 /// the CLI keeps the `Display` texts. `report` is the gate's report the waivers are looked up in.
 fn approve_words(e: &ApproveError, report: Option<&CheckReport>, params: &Value) -> String {
     let reason = match e {
@@ -536,7 +535,7 @@ impl ShellModel {
         }
     }
 
-    /// Cycle 41, ruling 1: the confirm of a `HumanOnly` step is refused to every shell no person drives (the headless
+    /// The confirm of a `HumanOnly` step is refused to every shell no person drives (the headless
     /// shell, a window a script drives), with the whole text in words; the refusal stays in the dialog.
     fn person_gate(&mut self) -> Result<(), Outcome> {
         if self.person {
@@ -982,7 +981,7 @@ impl ShellModel {
     /// removes it and its tag (`Session::discard_incomplete_release_as`), each offered only when the release allows it.
     /// Not now (the Primary) closes the offer.
     ///
-    /// Cycle 41, FIX41b ruling 2 ("completing an incomplete release asks, like a release"): `how` without `confirm`
+    /// Completing an incomplete release asks, like a release: `how` without `confirm`
     /// opens its confirmation: completing shows the git consent toggle when the project folder is in a git repository
     /// (off, as the Release form's), discarding says what it deletes; each confirms with its danger button, Cancel is
     /// the Primary. The consent passed is the toggle's value, never a constant.
@@ -1156,8 +1155,8 @@ impl ShellModel {
         }
     }
 
-    /// Opens the confirmation of completing (`how` [`COMPLETE`]) or discarding the incomplete release in hand (FIX41b
-    /// ruling 2): what it does, the git consent toggle (off) when completing commits and tags in a git repository.
+    /// Opens the confirmation of completing (`how` [`COMPLETE`]) or discarding the incomplete release in hand:
+    /// what it does, the git consent toggle (off) when completing commits and tags in a git repository.
     fn open_settle(&mut self, how: &'static str) {
         let Some(found) = &self.revision.incomplete else {
             return;
@@ -1361,7 +1360,7 @@ impl ShellModel {
             .map(|_| ())
     }
 
-    /// A refused revision command, shown through [`command_failed`] (ID-939's rule: a refused parameter is named by its
+    /// A refused revision command, shown through [`command_failed`] (a refused parameter is named by its
     /// field's words); the refusal stays in the dialog.
     fn revision_command_failed(&mut self, e: &CmdError, cmd: &AnyCommand) -> Outcome {
         let message = refusal_text(command_failed(e, &cmd.params));
@@ -1371,7 +1370,7 @@ impl ShellModel {
 
 #[cfg(test)]
 mod tests {
-    //! Cycle 41, FIX41b: the revision dialogs' refusals and the release's warnings as whole texts in words.
+    //! The revision dialogs' refusals and the release's warnings as whole texts in words.
 
     use std::path::PathBuf;
 

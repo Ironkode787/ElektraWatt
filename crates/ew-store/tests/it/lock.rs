@@ -371,7 +371,7 @@ fn two_takeovers_one_winner() {
 
 #[test]
 fn a_takeover_that_crashed_after_its_hard_link_does_not_block_the_next_one() {
-    // Review cycle 8, 5(e): the rename without replacement is a hard link plus an unlink; a crash between
+    // The rename without replacement is a hard link plus an unlink; a crash between
     // the two leaves `.~ew.lock.stale-<session>` beside the lock, both the stale record. Every later
     // takeover used to lose to that copy.
     let s = Scratch::new();
@@ -394,7 +394,7 @@ fn a_takeover_that_crashed_after_its_hard_link_does_not_block_the_next_one() {
 
 #[test]
 fn one_project_through_two_paths_has_one_journal() {
-    // Review cycle 8, 5(c): the journal directory is keyed by the canonical project path.
+    // The journal directory is keyed by the canonical project path.
     let s = Scratch::new();
     let a = Store::open(&s.project, s.opts(1001, "<host>", &[])).unwrap();
     let dir = a

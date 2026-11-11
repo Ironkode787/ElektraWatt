@@ -17,12 +17,12 @@
 //! | floating | `Press` primary or `Activate`, the ghost's CP on another interruption point | floating | refused by the host ([`IpTool::refusal`]): nothing committed, the ghost stays |
 //! | floating | `Escape` | — | `None` (the host returns to Select) |
 //!
-//! **The name** is the typed one, unchanged; else a proposal from a base ([`proposal_base`], FT-950; an external point's
+//! **The name** is the typed one, unchanged; else a proposal from a base ([`proposal_base`]; an external point's
 //! is `IP`): the derived potential name of the page's CP that lies exactly under the ghost's CP when it is
 //! given (not a fallback), else the last name this tool or the Wire tool's P committed, else that potential's fallback
 //! name, else `IP`; then, while an interruption point of the project already has the proposal, the next name of its
 //! numbered series ([`next_in_series`]: `24VDC-1` → `24VDC-2`, `L` → `L-1`), so that only a typed name joins two points.
-//! **The direction** is `source` while the star is on (ID-1146: a star source is a source point; the chosen
+//! **The direction** is `source` while the star is on (a star source is a source point; the chosen
 //! direction is kept for after it), else the one D chose, else `target` for an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
 //! the typed name and the star are cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
@@ -949,7 +949,7 @@ mod tests {
         );
     }
 
-    /// FT-822's proposal against the project's sources and ID-1462's free name: a page `this` and another page `other`.
+    /// The proposal against the project's sources and the free name: a page `this` and another page `other`.
     #[test]
     fn the_proposal_reads_the_projects_sources() {
         let this = Uuid::from_u128(1);

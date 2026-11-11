@@ -13,7 +13,7 @@
 //! 1. the page of the wire's From end (the page order of the drawn pages),
 //! 2. the From end's frame cell, column then row,
 //! 3. the To end's page, then the To end's frame cell, column then row (the To page compares first: a wire to
-//!    another page sorts after the wires that stay on the From page; ruling of cycle 13),
+//!    another page sorts after the wires that stay on the From page),
 //! 4. among wires equal in all of these, what a person sees: the From end's CP
 //!    label, then the To end's CP label (natural order, as [`cp_label`] prints them), then the first route
 //!    vertex of the From end's constituent read from the From end (y, then x; a wire without one after those

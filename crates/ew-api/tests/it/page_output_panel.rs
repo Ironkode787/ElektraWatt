@@ -12,7 +12,7 @@
 //!   axis lines, the ducts with "40×60", every placement's footprint; a part with a `front_2d` drawing draws it
 //!   instead.
 //! - `the_carriers_are_cut_around_the_labels_of_902`: no carrier stroke runs through a label's knockout box, and the
-//!   footprints and the labels stay whole (cycle 41's window check W41a).
+//!   footprints and the labels stay whole.
 //! - `labels_print_in_the_device_style_turn_inside_or_take_a_leader`: the labels in `xref.device` at 1.83 mm em,
 //!   none scaled; -101F1 turned inside its 1.8 mm footprint; the full mode; a 6 mm part takes a leader.
 //! - `the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record`: "Cabinet Layout · Scale 1:10", the
@@ -258,8 +258,8 @@ fn assign_test_part(s: &mut Session, device: &str, key: &str, width: i64, front_
     );
 }
 
-/// LP-1. `page.surface_view.set` on 902 keeps its one view and that view's ID (a page holds at most one: the
-/// orchestrator's decision recorded with this part, "set replaces in place"); the edit is saved and read back; a
+/// LP-1. `page.surface_view.set` on 902 keeps its one view and that view's ID (a page holds at most one:
+/// "set replaces in place"); the edit is saved and read back; a
 /// schematic page and a missing surface are refused, each with its whole text; a view this build only partly knows
 /// writes back as read.
 #[test]
@@ -342,7 +342,7 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
     assert_eq!(serde_json::to_value(&record).expect("it writes"), line);
 }
 
-/// LP-2. Folio 902's surface, carriers and placements layers (orchestrator ruling 1: "draw from placement_geometry
+/// LP-2. Folio 902's surface, carriers and placements layers ("draw from placement_geometry
 /// and carrier_geometry; never re-derive geometry" — the expected footprints are `placement_geometry`'s, projected).
 #[test]
 fn lp2_902_draws_the_enclosure_the_plate_the_carriers_and_the_footprints() {
@@ -547,7 +547,7 @@ fn segments(els: &[PathEl]) -> Vec<(Pt2, Pt2)> {
     out
 }
 
-/// Cycle 41's window check W41a (ruling 2): on 902 no carrier stroke runs through a label's knockout box; the turned
+/// On 902 no carrier stroke runs through a label's knockout box; the turned
 /// labels of -101F1 and -102F1 cut their rail; the footprints stay whole rectangles.
 #[test]
 fn the_carriers_are_cut_around_the_labels_of_902() {
@@ -637,7 +637,7 @@ fn the_carriers_are_cut_around_the_labels_of_902() {
     }
 }
 
-/// LP-3. The labels of 902 (orchestrator ruling 5: "the ink box uses ew-text's existing API: Shaped::advance() along
+/// LP-3. The labels of 902 ("the ink box uses ew-text's existing API: Shaped::advance() along
 /// the text; across it, cap_height + 0.1 mm per side, plus descent only for descender glyphs").
 #[test]
 fn labels_print_in_the_device_style_turn_inside_or_take_a_leader() {

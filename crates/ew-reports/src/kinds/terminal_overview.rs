@@ -27,8 +27,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, LinkRef, LinkTarget, Row, RowId, 
 ///   joined by ", " (a terminal's part is its first part line, as `terminal_diagram`'s Part column).
 /// - `segments`: the frame cells (`103-A3`) of the strip's segment representations in drawing order (page order,
 ///   then row, then column, then ID), joined by ", "; a strip with no segment representation prints the cell of its
-///   main representation (the strip fallback of `MainRep`, its first placed terminal: Golden A's 1X1 prints `101-D2`;
-///   the orchestrator's ruling 1 of cycle 42), and a strip with neither prints nothing.
+///   main representation (the strip fallback of `MainRep`, its first placed terminal: Golden A's 1X1 prints
+///   `101-D2`), and a strip with neither prints nothing.
 #[derive(Clone, Copy, Debug)]
 pub struct TerminalOverview;
 

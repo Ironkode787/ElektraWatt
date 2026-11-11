@@ -180,7 +180,7 @@ impl ShellModel {
     /// How many selected items the canvas's status field and HUD count: the selection, or none while
     /// nothing of it is drawn on the focused group's page (a page chosen in the page list selects its page record,
     /// which draws nothing there). A device or a function selected by its tag counts where the page draws it, as
-    /// Delete takes it (C53-fx#1). The live region and the page list's Delete keep the whole selection.
+    /// Delete takes it. The live region and the page list's Delete keep the whole selection.
     pub fn canvas_selected(&self) -> usize {
         let n = self.tools.selection.items.len();
         let group = self.area.as_ref().map_or(0, |a| a.focused);
@@ -191,7 +191,7 @@ impl ShellModel {
         }
     }
 
-    /// C53-fx#1: whether the page shown draws something of the selection as Delete and Cut take it
+    /// Whether the page shown draws something of the selection as Delete and Cut take it
     /// ([`Self::copy_targets`]: a device or a function selected by its tag as its representations on the page).
     pub(crate) fn selection_drawn_here(&self) -> bool {
         let Some(page) = self.canvas().map(|c| Arc::clone(c.page())) else {
@@ -469,7 +469,7 @@ impl ShellModel {
             ToolOutput::Commit(cmd) => {
                 let cmd = self.without_held_copies(cmd);
                 self.tools.before_commit = self.canvas().map(|c| Arc::clone(&c.page().tables));
-                // FT-485 item 3: the wires a placement draws by its autoconnect hints, said in the toast.
+                // The wires a placement draws by its autoconnect hints, said in the toast.
                 let connects = self.autoconnect_words(cmd.as_ref());
                 // The pin the IP tool's point connects to, as its ghost named it before the commit.
                 let ip_pin = match self.tools.tool.ghost() {
@@ -582,7 +582,7 @@ impl ShellModel {
                     self.announce_tool();
                 }
                 // After Select commits a move or a transform, the selection is the moved representations (one
-                // selection change, no command; WP-S2.04 §6.4 item 3).
+                // selection change, no command).
                 if out == Outcome::Done
                     && self.tools.tool.name() == "select"
                     && matches!(cmd.name(), "rep.move" | "rep.transform")
@@ -640,7 +640,7 @@ impl ShellModel {
         }
     }
 
-    /// FT-656, FT-673: a placement (`device.place`, `box.black`, `ip.place`, `connection.draw_to_ip`) or an exchange
+    /// FT-656: a placement (`device.place`, `box.black`, `ip.place`, `connection.draw_to_ip`) or an exchange
     /// (`rep.exchange_symbol`) with the `copies` its tool armed with, less those the project holds now: the first
     /// placement embeds them, a later one carries none, and one after an undo of the first carries them again. Any
     /// other command is returned as it is.
@@ -878,7 +878,7 @@ impl ShellModel {
             Some(p.base_rev) == rev && p.name == name && p.command == json && p.result.is_ok()
         });
         let kept = if fresh { self.tools.preview.take() } else { None };
-        // Cycle 41, ruling 1: the submission's own origin (a scripted window submits as its command log).
+        // The submission's own origin (a scripted window submits as its command log).
         let origin = self.origin();
         let calls = &self.calls;
         let Some(project) = &mut self.project else {
@@ -1023,7 +1023,7 @@ impl ShellModel {
             if release && std::mem::take(&mut self.tools.drop_release) {
                 return Outcome::Done;
             }
-            // Cycle 36 (play-test rv-txt-2): while the strip chooser waits for a strip, a press on the canvas starts
+            // While the strip chooser waits for a strip, a press on the canvas starts
             // nothing (the Select tool under it began a rubber band); the hint says what is wanted, and the press's
             // release is dropped with it.
             if !release && self.strip_chooser_open() {
@@ -1104,7 +1104,7 @@ impl ShellModel {
                 if let Some(at) = target.at_nm {
                     view.jump_view(at, zoom);
                 }
-                // With no key, the command by its menu path, as FT-1131's `external-none` names one.
+                // With no key, the command by its menu path, as the `external-none` text names one.
                 let key = crate::command_bar::key_of(self, "nav.follow");
                 let go = if key.is_empty() {
                     strings::text(key!("link-preview-go-none")).to_owned()
@@ -1157,7 +1157,7 @@ impl ShellModel {
         if let Some(out) = self.enter_opens_junction() {
             return out;
         }
-        // WP-S4.02 part 3 (doc 12 §12.4): on a panel page, Enter with a placement selected focuses Properties.
+        // On a panel page (doc 12 §12.4), Enter with a placement selected focuses Properties.
         if self.tools.tool.name() == "select" && self.selected_placements() > 0 {
             // Enter is the next action; a nudge's "Blocked by T55" ends with it.
             self.tools.notice = None;
@@ -1263,7 +1263,7 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
                 &rejected_words(message, Some(&**text)),
             ],
         ),
-        // A refusal shows its reason, never the error's Display form ("<source>: <reason>"); FT-1337:
+        // A refusal shows its reason, never the error's Display form ("<source>: <reason>"), and
         // in the window's language
         CmdError::Rejected { reason, text, .. } => {
             failed(key!("error-command"), &[&rejected_words(reason, text.as_ref())])
@@ -1364,7 +1364,7 @@ fn command_error_text(e: &CmdError) -> (Key<'static>, Vec<String>) {
         },
         CmdError::NeedsPreview { command } => (key!("error-command-needs-preview"), vec![title(command)]),
         // A prevent rule's and the model's own words, after their rule code (`EW-CORE-052: …`), which the IP tool and
-        // the card read; FT-1488: in the window's language.
+        // the card read, in the window's language.
         CmdError::Prevented {
             rule,
             finding,

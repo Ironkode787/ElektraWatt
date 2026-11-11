@@ -5,8 +5,8 @@
 //! `Session::from_records`, for the connectivity acceptance tests. The recipe is the one of
 //! `tests/golden_csv.rs`.
 //!
-//! The bootstrap reads `colour_profile.csv` and `size_profile.csv` but does not emit them yet (decision log
-//! ID-90). [`with_profiles`] adds them to `ProjectSettings.extra` in the doc 03 §5.1 shape, as the importer
+//! The bootstrap reads `colour_profile.csv` and `size_profile.csv` but does not emit them yet.
+//! [`with_profiles`] adds them to `ProjectSettings.extra` in the doc 03 §5.1 shape, as the importer
 //! will once it emits them, so that the wire-property rules of doc 20 §7.1–§7.2 can be tested.
 
 use std::collections::BTreeMap;
@@ -188,7 +188,7 @@ fn split(line: &str) -> Vec<String> {
     out
 }
 
-/// Adds `colour_profile` and `size_profile` to `project`. The bootstrap emits both members since cycle 12
+/// Adds `colour_profile` and `size_profile` to `project`. The bootstrap emits both members
 /// (`ew-import-tables`), so on a project of the golden batch this changes nothing; it restores them on
 /// a project that lost them.
 pub fn with_profiles(project: &mut ew_schema::Project) {

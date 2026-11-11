@@ -129,7 +129,7 @@ fn a_forced_panic_writes_the_crash_log_and_the_next_start_offers_recovery() {
     assert_eq!(&lines[8 + frames..], ["Ended: this panic ended the session"]);
     assert!(text.ends_with("\n\nEnded: this panic ended the session\n"));
 
-    // The next start: the pending offer with S1, S3 and one S5 row, then Recover and WP-S2.09's recovery.
+    // The next start: the pending offer with S1, S3 and one S5 row, then Recover and the journal recovery.
     let next = [
         ("ui.describe", json!({})),
         ("startup.recover", json!({ "project": 1 })),

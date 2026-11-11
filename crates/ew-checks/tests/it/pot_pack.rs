@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The EW-POT rules of WP-S1.16 part 2 over small drawings: one positive and one negative fixture per rule
-//! (P2-1), and the note-once test of FT-188.
+//! The EW-POT rules over small drawings: one positive and one negative fixture per rule, and the note-once
+//! test.
 
 use crate::common;
 
@@ -204,7 +204,7 @@ fn default_coloured(def: &Value) -> Model {
 
 /// EW-POT-005 judges a colour the project chose, not the built-in default: 24 V and 0 V wires the program colours
 /// BU (L+, M, a DC signal; EN 60204-1 13.2.4) raise nothing in a project with N, typed with or without AC/DC
-/// (the cycle-35 play-test drew them from a power supply with no voltage or AC/DC set).
+/// (drawn from a power supply with no voltage or AC/DC set).
 #[test]
 fn pot005_the_built_in_bu_of_a_dc_control_wire_is_silent() {
     for def in [

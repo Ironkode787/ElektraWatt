@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The golden CSV bootstrap (`ew-import-tables`, WP-S3.05; doc 20 §3.2 path (a)) loads through
+//! The golden CSV bootstrap (`ew-import-tables`; doc 20 §3.2 path (a)) loads through
 //! `Session::from_records` with the model's integrity check, and the loaded model has the counts of doc 20.
 //! It lives here because importers may not depend on the model (ARCH §3 rule 4).
 
@@ -109,7 +109,7 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
     // doc 20 §8.2: 44 physical wires drawn as 72 connections (22 through IP pairs as two parts, 6 junction
     // arms that carry no wire ID), plus the 19 bridge connections of BR1 … BR6 (§8.3) and the two `Bus`
     // connections of the DP line (§11.1: the cable -3W1 on folio 3 and the page-less plug-on mating).
-    assert_eq!(n("connection"), 72 + 19 + 2 + 16); // WP-S1.20 GA-2: the fluid lines F1 to F16
+    assert_eq!(n("connection"), 72 + 19 + 2 + 16); // The fluid lines F1 to F16
     let wire_ids = batch
         .records
         .iter()
@@ -130,8 +130,8 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
     assert_eq!(n("plc_config_project"), 1);
     assert_eq!(n("channel"), 56);
     assert_eq!(n("device_link"), 8);
-    // doc 20 §16 and §17.3 (doc 03 §20): 11 page-oriented report blocks and 5 embedded ones (the legend on 902: WP-S4.01
-    // D17).
+    // doc 20 §16 and §17.3 (doc 03 §20): 11 page-oriented report blocks and 5 embedded ones (the legend on
+    // 902).
     assert_eq!(n("report_block"), 11 + 5);
     // doc 20 §14.1: 27 BOM rows, 23 with a part number and the 4 TBD test parts of rows 24–27; §14.2: the two
     // configured products of the assembly mode.
@@ -142,7 +142,7 @@ fn the_golden_batch_loads_with_the_counts_of_doc_20() {
         .count();
     assert_eq!(parts, 27 + 2);
     // Derived counts of the golden batch: doc 20 does not state them, they follow from its tables (functions: one
-    // per device function and interruption point, §6, §9, §15, and the 28 valve coils of §11.2, WP-S1.20 D4;
+    // per device function and interruption point, §6, §9, §15, and the 28 valve coils of §11.2;
     // representations: one per drawn symbol, §6.1, §9, §15). A change is a change of the fixture, never noise.
     let records = |f: fn(&Record) -> bool| batch.records.iter().filter(|r| f(r)).count();
     assert_eq!(records(|r| matches!(r, Record::Function(_))), 188);
@@ -180,7 +180,7 @@ fn source_key(r: &Record) -> Option<&str> {
     Some(s.key.as_str())
 }
 
-/// F1 (review cycle 6 C): every representation's derived anchor cell (`rep_anchor_cell`, from the symbol's
+/// Every representation's derived anchor cell (`rep_anchor_cell`, from the symbol's
 /// anchor policy, D-14) is the cell of its `representations.csv` row — for named, origin and graphic-centre
 /// anchors alike.
 #[test]
@@ -244,7 +244,7 @@ fn the_command_layer_anchor_cells_agree_on_golden_a() {
     }
 }
 
-/// F3 (review cycle 6 C): with the numbering settings of doc 20 §4.4 and the ▲U-34 frozen tags, every device's
+/// With the numbering settings of doc 20 §4.4 and the ▲U-34 frozen tags, every device's
 /// derived tag (`device_tag`, structure omitted) is its table key as doc 20 prints it: `-101F1`, `-X1031`,
 /// `S51`, `-201U3-Q1`, `-X1031:1`, `-XPE`, `-UC1-plate`.
 #[test]
@@ -277,7 +277,7 @@ fn every_device_tag_is_its_table_key() {
     );
 }
 
-/// F2 (review cycle 6 C): every connection endpoint CP exists among the derived CPs of its function
+/// Every connection endpoint CP exists among the derived CPs of its function
 /// (`function_cps`), and every `/b` endpoint of `connections.csv` is clamp b. Terminal functions are
 /// template-origin (their device carries PT 2.5-TWIN(-PE), whose template declares their FnDef with role main),
 /// so the part's CP pattern (a, b, c, s1, RF) defines their CP index space.

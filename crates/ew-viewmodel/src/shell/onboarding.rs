@@ -596,7 +596,7 @@ impl ShellModel {
                 }
                 self.banner = Some(strings::format(
                     key!("banner-check-scheme-applied"),
-                    // ID-1389 (W51 finding D): the scheme's word, as the question names it.
+                    // The scheme's word, as the question names it.
                     &[
                         strings::text(strings::Key::run_time(&format!("choice-check_scheme-{scheme}"))),
                         &name,

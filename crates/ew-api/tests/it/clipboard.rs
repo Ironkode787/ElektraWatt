@@ -442,7 +442,8 @@ fn every_refusal_of_the_parser() {
     assert!(invalid(parse_fragment("#ew-fragment v1\n")));
 }
 
-/// CB2: an unknown `$fragment` member is ignored (a later minor addition such as WP-S1.19's), CRLF line ends read, and a byte-order mark is skipped.
+/// CB2: an unknown `$fragment` member is ignored (a later minor addition such as macros), CRLF line ends
+/// read, and a byte-order mark is skipped.
 #[test]
 fn an_unknown_header_member_is_ignored_and_crlf_reads() {
     let text = valid_text();
@@ -629,7 +630,7 @@ fn held_copies_are_reused_and_cb4_the_paste_of_102f1_is_102f3() {
     let frag = fragment(&s, &reps_of(&s, "102", &["-102F1"]));
     let parts = s.query().parts().len();
     // Sixteen grid steps right: beside the original, on no wire. (Six steps down, or twelve right, the copy's pins would
-    // lie on a routed wire, which normaliser 7 splits into the copy, FT-1020.)
+    // lie on a routed wire, which normaliser 7 splits into the copy.)
     let receipt = paste(&mut s, "102", at_steps(&frag, (16, 0)), &frag).unwrap();
     assert_eq!(s.query().parts().len(), parts, "the part copy is reused");
     assert!(created(&receipt, Kind::Part).is_empty());
@@ -897,7 +898,7 @@ fn in_cell_order(by_id: &[(i64, i64)]) -> bool {
     by_id.windows(2).all(|w| key(w[0]) < key(w[1]))
 }
 
-/// FT-456 (FR-NUM-028): one transaction that creates several numbered devices numbers them in the order of their
+/// FR-NUM-028: one transaction that creates several numbered devices numbers them in the order of their
 /// anchor cells (column, then row; in one cell by position), not in the order of the IDs it mints nor in fragment
 /// order: (17, 14) and (19, 14) share column 2 row B and come first, left before right, then (17, 46) in column 2 row
 /// F, then (29, 30) in column 4, then (41, 14) in column 6.

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The interruption-point and black-box commands of WP-S2.04 part 3 (§5.1, §9.2, §9.4): `connection.draw_to_ip`,
+//! The interruption-point and black-box commands: `connection.draw_to_ip`,
 //! `ip.arrange` and `box.reshape`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
@@ -342,7 +342,7 @@ fn draw_to_ip_rejections_write_nothing() {
     // A route that does not end at the IP's CP (6 G).
     let mut cmd = good();
     cmd.route = vec![pt(0, 0), pt(5 * G, 0)];
-    // FT-864 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres")
+    // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres
     assert_eq!(
         rejection(e.execute(&cmd)),
         "the wire's end at x 39.7, y 0 mm on page 102 does not meet the connection point of interruption point \
@@ -795,7 +795,7 @@ fn reshape_to_a_triangle_moves_the_cp_of_the_vanished_edge_to_the_nearest_edge_w
     );
 }
 
-/// FT-863 ("`box.reshape` reshapes a drifted box's untouched vertices, the drift kept"): the box sits 1 nm
+/// `box.reshape` reshapes a drifted box's untouched vertices, the drift kept: the box sits 1 nm
 /// off the grid; widening it moves the right edge to a grid point and keeps the left vertices where they were, off
 /// the grid. A touched vertex off the grid is still refused.
 #[test]
@@ -987,7 +987,7 @@ fn fields_set_refuses_ip_members_on_other_functions_and_bad_values() {
 // ---------------------------------------------------------------------------------------------------------
 // `copies` on connection.draw_to_ip and ip.place
 
-/// The library of the FT-673 copies (another library than the fixture's, so the copy is a new item).
+/// The library of the copies (another library than the fixture's, so the copy is a new item).
 const LIBRARY_F673: Uuid = Uuid::from_u128(0xf673_0000);
 
 /// [`SYM_IP`] as a document of a new item of [`LIBRARY_F673`] (`lib/` JSON form, its copy identity as its ID and the
@@ -1063,7 +1063,7 @@ fn ip_place_embeds_its_copies_in_the_same_undo_step() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// A star source is a source point, and an external point takes no star; FT-946: an external
+// A star source is a source point, and an external point takes no star; an external
 // point at the end of a wire
 
 /// The refusal of a starred point with another direction.

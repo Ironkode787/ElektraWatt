@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.01 part 4b over Golden A: every embedded report block drawn through one path (D16 to D18).
+//! Every embedded report block of Golden A drawn through one path.
 //!
 //! - `part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title`
 //! - `a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold`,
 //!   `a_block_whose_rows_do_not_derive_draws_its_reason`, `the_tables_layer_does_not_depend_on_record_order`
-//! - `the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed` (WP-S4.02 EB-3: the end-bracket row
+//! - `the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed` (the end-bracket row
 //!   is row 31; the block holds 2 × 20 rows, asserted first)
 //! - `the_legend_exports_through_the_named_block_path_and_no_default_export_changes`
 //! - `part_data_on_201_and_202_draws_both_order_codes_with_no_overflow`
@@ -116,7 +116,7 @@ fn fixture_block(n: u128, source: ReportSource, page: Id<Page>, rect: Bounds) ->
 }
 
 /// LB-3: "PART DATA on 902 lists exactly NSYPLA1074G and NSYPMM107 (no carrier line) and draws them under the title
-/// "PART DATA"" (the source through the surface view: the orchestrator's).
+/// "PART DATA"" (the source through the surface view).
 #[test]
 fn part_data_on_902_lists_the_enclosure_and_the_plate_under_its_title() {
     let s = common::golden_session();
@@ -154,7 +154,7 @@ fn numbers(range: std::ops::RangeInclusive<usize>) -> Vec<String> {
 }
 
 /// LB-7: the legend block on 902 draws D17's rect with the title "LEGEND", two flow columns each with its header, and
-/// Golden A's 31 rows as 20 + 11 (WP-S4.02 EB-3: the end brackets are row 31; ruling 7: the block's capacity is
+/// Golden A's 31 rows as 20 + 11 (the end brackets are row 31; the block's capacity is
 /// asserted first, at least 31); placing F55 on R1 draws 32 as 20 + 12 and renumbers; no text reports an overflow.
 #[test]
 fn the_legend_on_902_draws_20_plus_11_rows_and_20_plus_12_with_f55_placed() {
@@ -286,7 +286,7 @@ fn part_data_on_201_and_202_draws_both_order_codes_with_no_overflow() {
 }
 
 /// LB-6: a `wire_list` block (a kind that declares no layout) embedded on schematic page 101 draws every column under
-/// a header row (the orchestrator's), the rows its rect holds, and reports the rest.
+/// a header row, the rows its rect holds, and reports the rest.
 #[test]
 fn a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hold() {
     let batch = golden_common::batch();
@@ -373,7 +373,7 @@ fn the_tables_layer_does_not_depend_on_record_order() {
     }
 }
 
-/// WP-S3.06 ruling 4: an embedded block draws no back-links. `parts_summary`, `toc` and
+/// An embedded block draws no back-links. `parts_summary`, `toc` and
 /// `structure_overview` blocks embedded on 101 have rows that link (their generated pages draw those links), and their
 /// boxes on 101 draw none.
 #[test]

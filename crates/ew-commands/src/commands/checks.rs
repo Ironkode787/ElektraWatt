@@ -20,7 +20,7 @@ use crate::text::text;
 use crate::tx::TxBuilder;
 
 /// The `ProjectSettings` member that holds the check settings (doc 03 §15 `CheckSettings`), kept in
-/// `ProjectSettings.extra` until WP-S1.15 types it.
+/// `ProjectSettings.extra` until it is typed.
 pub const CHECKS_MEMBER: &str = "checks";
 
 /// The shipped check schemes a project can name, in name order (doc 15 §4.9, `ew_checks::scheme::SCHEMES`; an
@@ -119,8 +119,8 @@ impl Command for SetCheckSchemes {
 /// The minimum length of a waiver's reason in characters, in every language it is given in (doc 15 §2.5).
 pub const WAIVER_REASON_MIN_CHARS: usize = 10;
 
-/// `check.waive` (`WaiveFinding`): records a waiver that accepts one finding (doc 15 §2.5, FR-CHK-009; WP-S1.16 D7,
-/// FT-494): `Waiver {rule, target: {finding}, reason, author, date}` with a new ID.
+/// `check.waive` (`WaiveFinding`): records a waiver that accepts one finding (doc 15 §2.5, FR-CHK-009):
+/// `Waiver {rule, target: {finding}, reason, author, date}` with a new ID.
 ///
 /// The finding is named by its rule ID and its fingerprint (32 hex digits, FR-CHK-044; stored in lower case). The
 /// author (the display name the GUI records) and the date are parameters: the command reads no clock and no

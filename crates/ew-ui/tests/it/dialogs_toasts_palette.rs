@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.17 part 4 in the window (§12.4): Escape closes every dialog without its action (CP1); the toasts stand at
-//! the canvas's top right, 300 px wide, newest on top (CP2, CP7); the palette lists its results with breadcrumbs and
-//! key chips (CP4); the empty states are named groups and a finished job carries its outcome badge (CP5); a
-//! stale card shows its "Stale" badge as a node, never a "[stale]" text (CP8). Each followed by the accessible-name
+//! In the window: Escape closes every dialog without its action; the toasts stand at
+//! the canvas's top right, 300 px wide, newest on top; the palette lists its results with breadcrumbs and
+//! key chips; the empty states are named groups and a finished job carries its outcome badge; a
+//! stale card shows its "Stale" badge as a node, never a "[stale]" text. Each followed by the accessible-name
 //! walker.
 
 use crate::support;
@@ -370,7 +370,7 @@ fn hovering_a_toast_pauses_its_fade() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1137 (doc 16a §6.10, "hovering or focusing one pauses it"): a toast whose Dismiss button holds the keyboard
+/// Doc 16a §6.10, "hovering or focusing one pauses it": a toast whose Dismiss button holds the keyboard
 /// focus is paused for as long as it holds it, the pointer away from it. Also while the shell's focus is on
 /// the canvas, a toast's Dismiss button that takes the keyboard focus keeps it (the canvas does not take it back each
 /// frame).
@@ -458,7 +458,7 @@ fn typing_in_a_navigator_filter_while_a_toast_shows_keeps_every_key() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1195 (doc 16a §6.10): a toast of one long text (no title and line) wraps up to three rows and is cut with
+/// Doc 16a §6.10: a toast of one long text (no title and line) wraps up to three rows and is cut with
 /// an ellipsis; its whole text is the tooltip under the pointer.
 #[test]
 fn a_long_toast_is_cut_at_three_rows_with_its_whole_text_in_the_tooltip() {
@@ -583,7 +583,7 @@ fn a_toast_under_a_still_pointer_fades_on_time() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// C46-p1#5 (as drawn): at the 1280 × 800 floor, a click on the greyed Symbol button of a panel layout page
+/// As drawn: at the 1280 × 800 floor, a click on the greyed Symbol button of a panel layout page
 /// shows a toast whose title stands whole on two rows (its text runs as drawn), never cut with an ellipsis.
 #[test]
 fn a_greyed_commands_toast_title_stands_whole_on_two_rows_at_the_floor() {

@@ -38,9 +38,8 @@
 //! `sans-serif` after it. A face without bytes in [`SvgOptions::faces`], or whose bytes the subsetter refuses
 //! (a CFF face, a malformed file), is named only and counted in [`SvgReport::named_fonts`].
 //!
-//! *As built:* the fonts were named only from cycle 14 (krilla's subsetter drops the `cmap`); the
-//! embedded subsets come from this crate's own subsetter, which keeps the glyph IDs and the `cmap` (WP-S3.07
-//! part 1). The other rows are as built in cycle 14.
+//! *As built:* the fonts were once only named (krilla's subsetter drops the `cmap`); the
+//! embedded subsets come from this crate's own subsetter, which keeps the glyph IDs and the `cmap`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{self, Write as _};

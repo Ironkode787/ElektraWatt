@@ -219,8 +219,7 @@ fn ft_356_a_page_pane_behind_another_tab_keeps_its_tiles_within_a_share() {
 }
 
 /// The CPU host keys its tile scene by (session, revision, folio) as well: a direct switch to another project at the
-/// same revision and folio is a new scene, and the old project's tiles never stand in (the fix round of WP-S2.02
-/// part 2).
+/// same revision and folio is a new scene, and the old project's tiles never stand in.
 #[test]
 fn a_project_switch_at_the_same_revision_and_folio_is_a_new_tile_scene() {
     let tmp = Tmp::new();
@@ -254,7 +253,7 @@ fn a_project_switch_at_the_same_revision_and_folio_is_a_new_tile_scene() {
     assert!(h.state().page_view_ready());
 }
 
-/// FT-524, FT-538 (this file's `b5_warp…` sighting): `view.cpu_canvas` saves `canvas_backend = "cpu"` at once, so a
+/// `view.cpu_canvas` saves `canvas_backend = "cpu"` at once, so a
 /// run of `b5_an_injected_device_loss…` killed between its two toggles leaves that setting in its directory. A later
 /// test process with the same PID used to adopt the directory, and its WARP adapter then drew on the CPU. A test
 /// directory is now always one this process created; the leftover is skipped and left alone.

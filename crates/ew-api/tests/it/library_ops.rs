@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 3 acceptance EM-1 to EM-8 (the reference form of the commands, D7 to D9): a fixture company library
+//! The reference form of the commands: a fixture company library
 //! with the golden parts 2904602 and A9P52610 (and an MCB A9P52616 made up for the replacement), their manufacturers;
 //! `Session::embed_command`, `assign_part`, `update_from_library` and `library_status` over it and over Golden A.
 
@@ -896,7 +896,7 @@ fn a_deprecated_part_offers_its_successor() {
     assert_eq!(part_uses(&s, f1), [copy_in(lib, A9P52616)]);
 }
 
-/// The 0.1.0 copies Golden A held before FT-698, by key, with their published hashes.
+/// The 0.1.0 copies Golden A held before the `plc_address` slot, by key, with their published hashes.
 const GOLDEN_PRE_FT698: [(&str, &str); 3] = [
     (
         "ew.iec.lamp@qet10",
@@ -912,7 +912,7 @@ const GOLDEN_PRE_FT698: [(&str, &str); 3] = [
     ),
 ];
 
-/// A 0.2.0 starter symbol of FT-698 as its 0.1.0 predecessor: the appended `plc_address` slot and its arrangement
+/// A 0.2.0 starter symbol as its 0.1.0 predecessor: the appended `plc_address` slot and its arrangement
 /// entries removed, the version and the hash of the item put back. The 5/2 valve's 0.3.0 also loses its
 /// function-text fallback and names its FnDef's 0.1 again.
 fn before_ft698(doc: &LibDocument) -> LibDocument {
@@ -942,7 +942,7 @@ fn symbol_key(d: &LibDocument) -> Option<String> {
     }
 }
 
-/// FT-698, the product path of Golden A's symbol change: over Golden A as it was (its lamp, position
+/// The product path of Golden A's symbol change: over Golden A as it was (its lamp, position
 /// switch and 5/2 valve at 0.1.0, rebuilt from the new copies and checked against the published hashes), the library
 /// status offers exactly those three copies an update, a minor one to the starter's 0.2.0 (the 5/2 valve a major one
 /// to its 0.3.0, which names the FnDef's 0.2); "update from library" updates them in one command, after which

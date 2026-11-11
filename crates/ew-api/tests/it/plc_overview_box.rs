@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 5, PX-3 over Golden A: the PLC overview box of a module embedded on an overview page (FR-PLC-052;
-//! doc 10 §5), drawn through WP-S4.01 part 4b's embedded path.
+//! Over Golden A: the PLC overview box of a module embedded on an overview page (FR-PLC-052;
+//! doc 10 §5), drawn through the embedded path.
 //!
 //! FR-PLC-052's acceptance: "The overview box of -201U3 shows Q0.0 … Q0.7; its four bound rows print the cells of their
 //! valves on folio 203; drawing on it changes no potential." Golden A has no such box (forbids adding one),

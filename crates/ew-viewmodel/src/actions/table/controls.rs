@@ -157,7 +157,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_props_row(p),
         ))),
     )),
-    // FT-541 (doc 16a §6.8): the filter field of a grid whose open categories hold more than twelve rows.
+    // Doc 16a §6.8: the filter field of a grid whose open categories hold more than twelve rows.
     keeps_banner(with_params(
         "text:text",
         hidden(in_properties(act(
@@ -350,7 +350,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_preview_take_file(p),
         )),
     )),
-    // WP-S2.09 part 3 (§8.1, §8.4): the Preview tab and the history panel's own moves.
+    // The Preview tab and the history panel's own moves.
     keeps_banner(with_params(
         "on?:bool",
         hidden(act(
@@ -417,7 +417,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_toast_dismiss(),
     ))),
-    // WP-S2.09 part 1 (§6.8): the jobs' and the notifications' own controls, and the recovery dialog's answers.
+    // The jobs' and the notifications' own controls, and the recovery dialog's answers.
     keeps_banner(with_params(
         "job?:uint",
         hidden(act(
@@ -637,7 +637,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_page_describe(p),
         )),
     ),
-    // WP-S2.07 part 4a (§9.4): the part selection dialog and the part editor.
+    // The part selection dialog and the part editor.
     with_params(
         "target?:enum(parts|bridge_part|accessory_part), use?:uint, add?:bool",
         act(
@@ -719,7 +719,6 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_part_save(),
     )),
-    // WP-S2.07 part 4b (§9.4)
     with_params(
         "choice:enum(adapt|update)",
         hidden(act(
@@ -937,7 +936,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     hidden(act("symbol.redo", View, Menu::Edit, &[], always, None, |s, p| {
         s.act_symbol("redo", p)
     })),
-    // ID-1463 (doc 16a P8): the editor's tool, also chosen by a key of the keymap.
+    // Doc 16a P8: the editor's tool, also chosen by a key of the keymap.
     with_params(
         "tool:enum(select|line|rectangle|circle|ellipse|arc|text|cp|slot|anchor|link|polyline|polygon)",
         hidden(act("symbol.tool", View, Menu::Edit, &[], always, None, |s, p| {
@@ -1028,7 +1027,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, p| s.act_symbol("scratch", p),
     )),
-    // M25-p7#2 (ID-1477 (1)): the editor's offer for a draft saved to a library and unchanged since.
+    // The editor's offer for a draft saved to a library and unchanged since.
     hidden(act(
         "symbol.new_page",
         Command,

@@ -591,7 +591,7 @@ mod tests {
         );
     }
 
-    /// The G-PP triage's row 8 as amended by WP-S1.16 D4: defining cells of one row compile to one
+    /// Defining cells of one row compile to one
     /// `potential.define` with the typed name and every value they set; Type or Voltage without a Name refuses with
     /// "Name the potential first"; with a cell of another row or a defined record each is a clash; a clear defines
     /// nothing.

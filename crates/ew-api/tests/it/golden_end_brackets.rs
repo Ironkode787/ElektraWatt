@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 5 on Golden A (doc 20 §13, §14.1; the rulings of cycle 44): the end brackets in the outputs.
+//! On Golden A (doc 20 §13, §14.1): the end brackets in the outputs.
 //!
-//! - `row_26_counts_the_derived_brackets_and_prints_902`: row 26 reads quantity 4, its tags in ID-9's order and
-//!   folio 902 (ruling 2), assembly row 20 too (ruling 3); a fourth strip placed in R2's run gives 5, the strip's
+//! - `row_26_counts_the_derived_brackets_and_prints_902`: row 26 reads quantity 4, its tags in the sign order
+//!   and folio 902, assembly row 20 too; a fourth strip placed in R2's run gives 5, the strip's
 //!   authored quantity no longer counting; removing -X1032's placement returns its line to its authored quantity and
 //!   its folio 103 beside 902; 27 rows throughout (AC-07).
 //! - `one_truth_every_reader_of_the_part_lines_follows`: the end-bracket lines are `GroupAccessory` lines, the
-//!   parts list prints the derived quantity and the device list still lists 1X1's TBD part (ruling 4).
+//!   parts list prints the derived quantity and the device list still lists 1X1's TBD part.
 //! - `eb2_902_draws_r2s_four_brackets_at_their_positions`: four rectangles in the footprints' pen, each with its strip's
 //!   placement, at [20, 30], [48.6, 58.6], [162.6, 172.6] and [198.6, 208.6] mm along R2, centred on its axis.
 //! - `golden_a_gives_no_bracket_finding_and_the_two_fixtures_give_theirs`: none on Golden A; -X1032 moved 5 mm
@@ -475,7 +475,7 @@ fn s10(s: &Session, key: &str) -> i64 {
     row.pose.t[0].0 * 10 / MM
 }
 
-/// FT-1441 (doc 12 §3.3's push), T3's case on R2 (570 mm): one PT 2.5-TWIN (5.2 mm) inserted into
+/// Doc 12 §3.3's push, on R2 (570 mm): one PT 2.5-TWIN (5.2 mm) inserted into
 /// -X1031 moves -X1032 from 172.6 to 177.8 mm in the same step, with no finding; 69 fit, 70 put -X1032's bracket past
 /// the rail end (one `bracket_outside`); with -X1032 locked it stays, the insert is not refused and the bracket after
 /// -X1031 overlaps it.
@@ -521,7 +521,7 @@ fn a_growing_strip_pushes_the_items_after_it() {
     );
 }
 
-/// FT-1497 (doc 12 §3.5): `part.assign` of a 10.4 mm copy of PT 2.5-TWIN onto one terminal of
+/// Doc 12 §3.5: `part.assign` of a 10.4 mm copy of PT 2.5-TWIN onto one terminal of
 /// -X1031 (mode `replace`) widens the strip by 5.2 mm, and -X1032 moves from 172.6 to 177.8 mm in the same step, as
 /// one inserted terminal moves it.
 #[test]
@@ -569,7 +569,7 @@ fn a_part_change_that_widens_a_strips_terminal_pushes() {
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
 }
 
-/// FT-1495 (doc 12 §3.4): -X1031 turned 180° in place on R2 (its clip point its right end, 162.6
+/// Doc 12 §3.4: -X1031 turned 180° in place on R2 (its clip point its right end, 162.6
 /// mm) grows left, so one terminal inserted into it moves 1X1, the strip before it, from 30 to 24.8 mm in the same
 /// step, with no finding, and -X1032 after it stays; five put 1X1's bracket 6 mm past the rail's start (one
 /// `bracket_outside`, the positions written); with 1X1 locked it stays, the insert is not refused and the bracket
@@ -655,7 +655,7 @@ fn first_terminal(q: &Q, strip: &str) -> Id<Device> {
         .expect("a terminal")
 }
 
-/// C53-p2#2 (doc 12 §3.4): one `part.assign` that widens a terminal of -X1031 and one of -X1032
+/// Doc 12 §3.4: one `part.assign` that widens a terminal of -X1031 and one of -X1032
 /// by 5.2 mm each cascades both pushes: -X1032 moves from 172.6 to 177.8 mm, and X33, placed 3 mm clear of the
 /// bracket after -X1032 (at 211.6 mm), moves to 219.0 mm, 10 mm after -X1032's new end at 209.0 mm, with no finding.
 /// Each push measured on the base snapshot left X33 at 216.0 mm, the bracket after -X1032 overlapping it.
@@ -710,7 +710,7 @@ fn a_part_change_that_widens_two_strips_on_one_rail_cascades_both_pushes() {
     assert_eq!(bracket_findings(&s), Vec::<(String, String)>::new());
 }
 
-/// C53-p2#3 (doc 12 §3.4): -X1031 turned 180° as in FT-1495, with an end bracket of 5 mm of its
+/// Doc 12 §3.4: -X1031 turned 180° as before, with an end bracket of 5 mm of its
 /// own while 1X1 keeps its 10 mm one. One terminal inserted into -X1031 moves 1X1 from 30 to 24.8 mm: the gap between
 /// the two strips is the bracket of 1X1, the strip on the left, as EW-LAY-010 judges it, so there is no finding.
 /// -X1031's own bracket in the mirrored frame left 1X1 at 29.8 mm, its bracket overlapping -X1031.

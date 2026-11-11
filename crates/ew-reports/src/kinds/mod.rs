@@ -14,8 +14,8 @@
 //! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview` and `io_list` (FR-PLC-023). From the tags and wire numbers:
 //! `numbering_report` (frozen values with their rule values, FR-REP-022). From the revision records:
 //! `revision_overview` (`revision_rows`). From the layout: `enclosure_legend`
-//! (`layout_legend`, registered, drawn on no page until part 4b). From the check engine:
-//! `open_items` (FR-REP-021, the open findings of the open-item rules, `ew_checks::open_items`; WP-S3.06 D7, D8: none
+//! (`layout_legend`, registered, drawn on no page). From the check engine:
+//! `open_items` (FR-REP-021, the open findings of the open-item rules, `ew_checks::open_items`; none
 //! of those rules reads the page order, so the list paginates inside it). Other schema kinds are not registered; their blocks
 //! report [`NotDerived::Unsupported`](crate::rowset::NotDerived::Unsupported).
 

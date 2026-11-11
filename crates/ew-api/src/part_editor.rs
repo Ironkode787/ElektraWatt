@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4a (D20, D21, FR-PRT-022): the part editor's draft. [`Session::part_draft`] reads a held part
+//! The part editor's draft (FR-PRT-022). [`Session::part_draft`] reads a held part
 //! copy into texts; [`Session::set_draft_field`] checks each field as it is typed; [`Session::part_edit_plan`] builds
 //! `part.edit_copy` (in place for a project-local copy, a fork of a copy from a library) with what the card shows: the
 //! field diff, the devices that use the copy and the component BOM rows that change, read from a preview on a fork of

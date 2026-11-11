@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip follow-ups of WP-S2.07 part 2, headless: a terminal chosen with no strip opens the strip chooser on its
+//! The strip follow-ups, headless: a terminal chosen with no strip opens the strip chooser on its
 //! empty state, the PE terminal asks for its strip, the page description lists a strip's bridges,
 //! table mode adds an accessory before the first terminal, and Enter on an unplaced terminal row
 //! arms the Place tool with its function (§6.8).

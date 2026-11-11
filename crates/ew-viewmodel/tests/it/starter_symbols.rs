@@ -355,7 +355,7 @@ fn every_starter_symbol_reaches_a_usable_device_from_the_picker() {
 }
 
 /// The letter a new project (identifier set EN 81346-2:2009) gives each generic starter part placed from the
-/// picker without a letter of its own: the selector switch and the one-pole on/off switch S (a manual command, FT-1204
+/// picker without a letter of its own: the selector switch and the one-pole on/off switch S (a manual command,
 /// by IEC 81346-2:2019), the valve's coil M (a solenoid actuator), not the switching device's Q or the
 /// relay's K.
 #[test]
@@ -636,7 +636,7 @@ fn last_command(s: &ShellModel) -> (String, bool) {
     (last.cmd, copies)
 }
 
-/// FT-673, the exchange flow: exchanging a symbol for a starter symbol the project lacks is one commit
+/// The exchange flow: exchanging a symbol for a starter symbol the project lacks is one commit
 /// (`rep.exchange_symbol` with the symbol's copies), and one undo step takes the copies back with it.
 #[test]
 fn the_exchange_flow_embeds_its_symbol_in_the_same_undo_step() {
@@ -674,7 +674,7 @@ fn the_exchange_flow_embeds_its_symbol_in_the_same_undo_step() {
     assert!(!symbol_held(&mut s, OTHER), "no copy stays behind");
 }
 
-/// FT-673, the IP tool: placing an interruption point in a new project is one commit (`ip.place` with the IP
+/// The IP tool: placing an interruption point in a new project is one commit (`ip.place` with the IP
 /// symbol's copies), and one undo step takes the copies back with it.
 #[test]
 fn the_ip_tool_embeds_its_symbol_in_the_same_undo_step() {
@@ -700,7 +700,7 @@ fn the_ip_tool_embeds_its_symbol_in_the_same_undo_step() {
     assert!(!symbol_held(&mut s, IP), "no copy stays behind");
 }
 
-/// FT-673, P while routing: a wire ended in a new interruption point in a new project is one commit
+/// P while routing: a wire ended in a new interruption point in a new project is one commit
 /// (`connection.draw_to_ip` with the IP symbol's copies), and one undo step takes the copies back with it.
 #[test]
 fn p_while_routing_embeds_the_ip_symbol_in_the_same_undo_step() {
@@ -741,7 +741,7 @@ fn p_while_routing_embeds_the_ip_symbol_in_the_same_undo_step() {
     assert!(!symbol_held(&mut s, IP), "no copy stays behind");
 }
 
-/// FT-673, `place.pick device=`: a contact the project lacks joined to a relay is one commit (`device.place` with
+/// `place.pick device=`: a contact the project lacks joined to a relay is one commit (`device.place` with
 /// the contact's copies), and one undo step takes the copies back with it.
 #[test]
 fn place_pick_device_embeds_the_contact_in_the_same_undo_step() {

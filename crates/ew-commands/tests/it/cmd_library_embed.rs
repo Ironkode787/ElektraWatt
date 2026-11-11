@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 1 (L1-4) at the command layer: `library.embed` of manufacturer and macro copies with the checks
+//! `library.embed` of manufacturer and macro copies with the checks
 //! of the other kinds, and the links of a `macro_instance` under `page.delete` and `edit.delete` (the page
 //! cascades, a deleted member is unlinked, undo restores both), and the normaliser's direct removals (a dissolved
 //! junction, a merged connection, an emptied wire marker) under `connection.delete`. No command creates an instance
@@ -169,8 +169,8 @@ fn library_embed_inserts_a_manufacturer_and_a_macro_copy_once_and_undo_removes_t
         .clone();
     assert_eq!(row.item.variables[0].bindings[0].record, id::<()>(LOCAL_G1));
     // Embedded already, at any version: refused, each kind on its own.
-    // FT-909 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
-    // with what the user can do")
+    // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres ... and ends
+    // with what the user can do
     for (again, want) in [
         (
             mfr_json,

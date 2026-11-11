@@ -207,7 +207,7 @@ fn a_cross_reference_drops_below_a_pin_text_it_would_overlap() {
     assert!(ya.1 < pb.1, "{ya:?}");
 }
 
-/// FT-1138 (item 6): a black box's caption that would stand over a neighbour box's pin text rises
+/// A black box's caption that would stand over a neighbour box's pin text rises
 /// `SLOT_TEXT_GAP` above it; the pin text stays 1 mm from its pin. The neighbour stands on the box's top edge, its
 /// one pin leaving down one grid step right of the box's left edge, where the caption starts.
 #[test]

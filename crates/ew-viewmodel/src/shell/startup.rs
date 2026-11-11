@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The start-up offer (D11; NFR-REL-13's "offer recovery at the next start", FR-UI-050's 0.1.0 part as
-//! ID-1247 reads it, doc 05 §8.3's start-up half).
+//! The start-up offer (NFR-REL-13's "offer recovery at the next start", FR-UI-050's 0.1.0 part,
+//! doc 05 §8.3's start-up half).
 //!
 //! At start (the window and the headless mode, not the smoke run) [`ShellModel::start_up`] makes the configuration
 //! directory, the state directory, its `journal/` and its `crashes/` user-only, prunes the crash logs (older than 30
@@ -10,7 +10,7 @@
 //! whose leftover journals hold unsaved transactions, skipping a project whose lock is live, and (b) the newest crash
 //! log that ends with the end line of a panic that ended its session ([`ENDED_LINE`]) and was not offered before. When
 //! either is there the offer is pending: the window shows it as a dialog; headless it blocks no other action and
-//! `ui.describe` lists it. `startup.recover {project}` opens a project as Open does (WP-S2.09's recovery dialog
+//! `ui.describe` lists it. `startup.recover {project}` opens a project as Open does (the recovery dialog
 //! follows), `startup.open_log_folder` and `startup.delete_log` act on the log, `startup.dismiss` closes the offer.
 //! When the offer closes, its log is renamed `<stem>.offered.log` and never offered again; the journals stay until
 //! they are recovered, discarded or pruned.

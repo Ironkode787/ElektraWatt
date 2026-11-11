@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S7.03 SC-3 in the Session: with the installation's system tier (`content/libraries`), the sample parts library's
+//! In the Session: with the installation's system tier (`content/libraries`), the sample parts library's
 //! 533361 placed under the generic CPU in a new project derives its eight output channels Q0.0 … Q0.7 from its PLC
 //! section (`bit_of = "n"`, the module's start), and the copy carries the section's `test` confidence.
 

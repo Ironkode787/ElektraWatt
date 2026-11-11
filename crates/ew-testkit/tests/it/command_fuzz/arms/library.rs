@@ -33,9 +33,9 @@ pub(super) fn named_through_lib_ref(q: &ew_derive::Q, id: ew_ids::Id<ew_schema::
             .any(|(_, p)| p.item.function_template.iter().any(|t| resolves(&t.fndef)))
 }
 
-/// The first half of the FT-316 shape: a symbol copy with a new lineage whose function definition is a new
-/// item the project does not embed. Well-formed: a `LibRef` to an item that is not embedded names nothing
-/// (NFR-REL-11). A later [`lib_ref_fndef_step`] embeds that function definition.
+/// The first half of the "embed then undo" shape: a symbol copy with a new lineage whose function definition
+/// is a new item the project does not embed. Well-formed: a `LibRef` to an item that is not embedded names
+/// nothing (NFR-REL-11). A later [`lib_ref_fndef_step`] embeds that function definition.
 pub fn lib_ref_symbol_step(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let (_, template) = rng.pick(&live.fixture.symbol_json)?;
     let mut template = template.clone();
@@ -76,11 +76,11 @@ pub(super) fn fndef_cps(copy: &Value) -> std::collections::BTreeSet<u16> {
         .collect()
 }
 
-/// The second half of the FT-316 shape: the function definition that a live `LibRef` names but the project
-/// does not embed, embedded with that lineage (from a template that has every CP the naming symbols draw), so
-/// the `LibRef` becomes a link. Undoing this embedding removes a copy that a record names, which the history
-/// path must allow: the undo-all oracle (e) restores the state before it (ADR-0009 amendment 7). Without such
-/// a `LibRef` the first half is built instead.
+/// The second half of the "embed then undo" shape: the function definition that a live `LibRef` names but the
+/// project does not embed, embedded with that lineage (from a template that has every CP the naming symbols
+/// draw), so the `LibRef` becomes a link. Undoing this embedding removes a copy that a record names, which
+/// the history path must allow: the undo-all oracle (e) restores the state before it (ADR-0009 amendment 7).
+/// Without such a `LibRef` the first half is built instead.
 pub fn lib_ref_fndef_step(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let Some(target) = rng.pick(&live.unembedded_fndef_refs) else {
         return lib_ref_symbol_step(live, rng);
@@ -146,7 +146,7 @@ pub(super) fn library_embed(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             Some(Step::cmd("library.embed", json!({"copies": [c.clone(), c]})))
         }
         5 => Some(Step::cmd("library.embed", json!({"copies": []}))),
-        // The FT-316 shape: a symbol naming a function definition that is not embedded, then (on a later step)
+        // A symbol naming a function definition that is not embedded, then (on a later step)
         // that function definition; the undo-all oracle undoes both.
         6 => lib_ref_symbol_step(live, rng),
         7 => lib_ref_fndef_step(live, rng),

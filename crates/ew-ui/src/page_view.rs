@@ -4,7 +4,7 @@
 //! The page view (spec section 5.3): the current page as the CPU renderer's
 //! image, read-only, fitted to the pane with its aspect ratio kept.
 //!
-//! Since WP-S2.02 the project view shows the page canvas ([`crate::canvas`]); this fitted image remains the
+//! The project view shows the page canvas ([`crate::canvas`]); this fitted image remains the
 //! company-standard wizard's live preview, and [`render_page`] the whole-page path of `view.snapshot` and `--smoke`.
 //!
 //! 1. On the UI thread, [`ShellModel::page_content`] gives the page's sheet display list through the session's memo

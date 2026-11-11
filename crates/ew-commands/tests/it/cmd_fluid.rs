@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fluid commands of WP-S1.20: the refusals of `connection.draw` at fluid ports (§5 T1 to T3, D11),
-//! `valve.set_occupancy` (D9, FL-8), `fluid.port.close` (D10), `fields.set` path `line_kind` (D18), normaliser N-FL-4
-//! `drives_link` (D15, FL-10) and `device.link`'s refusal T4.
+//! The fluid commands: the refusals of `connection.draw` at fluid ports,
+//! `valve.set_occupancy`, `fluid.port.close`, `fields.set` path `line_kind`, normaliser N-FL-4
+//! `drives_link` and `device.link`'s refusal.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 

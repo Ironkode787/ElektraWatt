@@ -215,7 +215,7 @@ impl Rule for FourEyes {
 }
 
 /// EW-REL-002 (doc 15 §4.8): a committed computation that a release output uses is stale. Registered so that the gate
-/// lists it; it reports nothing until committed routes, thermal results and frozen report snapshots exist (WP-S4.x):
+/// lists it; it reports nothing until committed routes, thermal results and frozen report snapshots exist:
 /// at MVP no committed computation has an input hash to compare.
 #[derive(Clone, Copy, Debug)]
 pub struct StaleCommitted;
@@ -230,8 +230,8 @@ impl Rule for StaleCommitted {
     }
 }
 
-/// EW-REL-004 (doc 15 §4.8, §5.2): [`label_order`]. Its prevent half is the commands' refusal (`CmdError::Prevented`,
-/// WP-S1.18 part 1), so [`Rule::prevent`] reports nothing here.
+/// EW-REL-004 (doc 15 §4.8, §5.2): [`label_order`]. Its prevent half is the commands' refusal
+/// (`CmdError::Prevented`), so [`Rule::prevent`] reports nothing here.
 #[derive(Clone, Copy, Debug)]
 pub struct LabelOrder;
 

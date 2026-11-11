@@ -9,7 +9,7 @@
 use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
-    // WP-S1.18 part 5 (§9): Check ▸ Revision, the revision dialogs; each answered by its own action with parameters
+    // Check ▸ Revision, the revision dialogs; each answered by its own action with parameters
     // (`confirm` submits the `HumanOnly` command, only from the window a person drives: ruling 1).
     // In the order of the workflow: the author, the sign-off, the release, a withdrawal.
     with_params(

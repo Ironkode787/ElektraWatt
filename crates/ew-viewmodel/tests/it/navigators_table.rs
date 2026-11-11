@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode of WP-S2.06 part 3 on copies of Golden A (acceptance checks TB1's reasons through the shell, TB2 to TB6,
-//! and TB8's model half): the Terminal strips table filtered `x1031` and sorted by Terminal, a cell edit, fill down
+//! Table mode on copies of Golden A: the Terminal strips table filtered `x1031` and sorted by Terminal, a cell edit, fill down
 //! (one `fields.set` with 5 targets, the toast, one undo step), pattern fill (`Spare_{n:02}` over the 12 spare
 //! terminals, one `fields.set_many`), paste from Excel (header and position mapping, quoting, an ambiguous number
 //! resolved on the card, read-only and past-the-end cells, same-record conflicts), the policy, copy and a paste back that
@@ -488,7 +487,7 @@ fn an_ambiguous_number_is_resolved_on_the_card() {
         "{cells:?}"
     );
     assert!(lines_with(&shell, "card ").iter().any(|l| l.ends_with(" table")));
-    // WP-S2.09 part 3 (§8.1): the table card opens in the Preview tab like every origin; it stays the navigator's.
+    // The table card opens in the Preview tab like every origin; it stays the navigator's.
     assert!(shell.preview_shown());
     // The text prints the gesture's title and the Preview tab's summary line, as the window shows them.
     let line = ew_viewmodel::script::card_summary(&shell).unwrap();
@@ -607,7 +606,7 @@ fn tb5_the_policy() {
     shell.shutdown();
 }
 
-/// TB5's rule 2 on §8.2's other identifiers (the orchestrator's ruling): a pattern fill of the names of two
+/// The rule for the other identifiers: a pattern fill of the names of two
 /// potentials, and of the codes of two structure nodes, each opens the card with `reason-identifiers` and commits
 /// nothing.
 #[test]
@@ -708,7 +707,7 @@ fn a_fill_over_more_than_500_rows_opens_the_card() {
 }
 
 /// The TSV of -X1032's five terminals with the header row (CRLF after every row).
-// WP-S2.07 part 1 (§6.1): the Pos and Bridge part columns.
+// The Pos and Bridge part columns.
 const EXPECTED_X1032: &str = "\
 Strip\tPos\tTerminal\tFunction text\tGroup\tPart\tPotential\tSide 1 (clamp a)\tSide 2 (clamp b)\tBridge\tBridge part\tState\r\n\
 -X1032\t1\t1\tPE\t\tPT 2.5-TWIN-PE\tPE\t-202U1:3 via -106W2 GNYE\tE55:PE\tBR6\t\tused\r\n\
@@ -817,7 +816,7 @@ fn describe_lines_words_and_counts() {
     shell.shutdown();
 }
 
-/// WP-S2.09 part 2 meets WP-S2.06 part 3: the Messages pane has no table mode (its rows are read-only findings with
+/// The Messages pane has no table mode (its rows are read-only findings with
 /// their own header, detail block and quick-fix card); `navigator.table` fails and changes nothing.
 #[test]
 fn the_messages_pane_has_no_table_mode() {
@@ -1127,7 +1126,7 @@ fn table_set_sets_the_marked_rows_and_takes_the_header_label() {
     shell.shutdown();
 }
 
-/// C53-fx#4: a header label that heads more than one column (the Connections table's From CP and To CP, both "CP")
+/// A header label that heads more than one column (the Connections table's From CP and To CP, both "CP")
 /// names none: `table.set` refuses it and lists their keys, in either case of the label.
 #[test]
 fn table_set_refuses_a_header_label_of_two_columns() {

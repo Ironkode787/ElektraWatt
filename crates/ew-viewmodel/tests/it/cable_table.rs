@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 2 (§7), headless: the edit-cable table (CT1 swap cores, CT2 the editable core columns, CT3 the length
-//! editor) and FT-490's generic half (CT4: Delete in a tree with the card, F2 rename on Pages and Potentials).
+//! Headless: the edit-cable table (swap cores, the editable core columns, the length
+//! editor) and the generic part (Delete in a tree with the card, F2 rename on Pages and Potentials).
 
 use crate::common;
 use ew_viewmodel::key;
@@ -357,7 +357,7 @@ fn device_key(s: &mut ShellModel, tag: &str) -> String {
         .unwrap_or_else(|| panic!("no device row {tag}"))
 }
 
-/// FT-633(a): F2 on a structure node opens its editor on the code; the typed code commits one `fields.set` of the
+/// F2 on a structure node opens its editor on the code; the typed code commits one `fields.set` of the
 /// node's `code` (the route the Properties grid edits it by) and undo restores it.
 #[test]
 fn f2_renames_a_structure_node_code() {
@@ -397,7 +397,7 @@ fn f2_renames_a_structure_node_code() {
     s.shutdown();
 }
 
-/// FT-633(b): F2 on a device row opens the inline field on the whole tag; a free tag renames it through the Properties
+/// F2 on a device row opens the inline field on the whole tag; a free tag renames it through the Properties
 /// grid's own rows (here the Counter row) in one commit and the field closes.
 #[test]
 fn f2_renames_a_device_tag() {
@@ -424,7 +424,7 @@ fn f2_renames_a_device_tag() {
     s.shutdown();
 }
 
-/// FT-633(b): a tag that names another device on the page is refused with the Properties grid's own message and no
+/// A tag that names another device on the page is refused with the Properties grid's own message and no
 /// commit (a counter collision, FR-NUM-029); a letter edit whose counter is taken shows the grid's proposal under the
 /// field, accepted in one step, which closes the field.
 #[test]

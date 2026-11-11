@@ -230,8 +230,8 @@ fn keys_take_every_reference_form_of_their_kind() {
 // The failure paths (QU-3's unresolvable key; D11's kinds, project owner (delegated) ruling 3)
 
 /// Every refusal names what went wrong in words: the replay's message for a key that names no record, and for a
-/// record of another kind what it is and what the query takes ("Every adapter checks the resolved record's kind",
-/// ruling 3 of cycle 41).
+/// record of another kind what it is and what the query takes ("Every adapter checks the resolved record's
+/// kind").
 #[test]
 fn refusals_name_the_key_and_what_the_query_takes() {
     let s = golden(MemoMode::On);
@@ -259,7 +259,7 @@ fn refusals_name_the_key_and_what_the_query_takes() {
         "`tag:-101F1` names device -101F1, which is not a PLC module; `channel_addresses` takes a PLC module \
          (`tag:-201U5`)"
     );
-    // FT-721's channel form is a command-log reference, not this key: a terminal is a device of another kind.
+    // The channel form is a command-log reference, not this key: a terminal is a device of another kind.
     assert_eq!(
         err("channel_addresses", "-X1031:5"),
         "`-X1031:5` names device -X1031:5, which is not a PLC module; `channel_addresses` takes a PLC module \
@@ -307,7 +307,7 @@ fn refusals_name_the_key_and_what_the_query_takes() {
 /// policy line, the dependencies (the tag specification, the identifier set and the numbering rule, the main
 /// representation on folio 101, the structure =P01 and +J-E-2416) and the provenance of the tag row's `via`. A fresh
 /// open prints a miss: the hit flag is read before the key is resolved ("explain reads memo_info and the trail before
-/// the value is computed and prints hit from that reading", ruling 1 of cycle 41).
+/// the value is computed and prints hit from that reading").
 #[test]
 fn explain_names_the_dependencies_of_a_device_tag() {
     let s = golden(MemoMode::On);
@@ -363,9 +363,9 @@ fn a_second_explain_in_one_session_is_a_hit() {
 }
 
 /// A composed query explains its outermost memoised family; a family whose policy is `Cold` prints its policy line
-/// only ("A family with Policy::Cold has no trail: print its policy line only", ruling 1 of cycle 41). `cell_of` backs
+/// only ("A family with Policy::Cold has no trail: print its policy line only"). `cell_of` backs
 /// the main-location row and prints its provenance; `wire_props_of` prints none ("no provenance line for it at
-/// MVP", ruling 2 of cycle 41).
+/// MVP").
 #[test]
 fn explain_of_a_cold_family_is_its_policy_line() {
     let s = golden(MemoMode::On);

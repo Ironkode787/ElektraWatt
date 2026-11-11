@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-516, WP-S2.09 part 2 headless (§9 items 1 and 3): the message panel's flows MS1 to MS4 as `ew.uiscript/1`
+//! The message panel's flows, headless, as `ew.uiscript/1`
 //! scripts through the built binary, each run twice on its own copy of Golden A with byte-identical transcripts: View ▸
 //! Messages (`messages.show`), F8 and Shift+F8 (`messages.next`, `messages.previous`) walking, wrapping and docking the
 //! closed pane, Enter (`navigator.open`) opening EF-08, a pending finding that `messages.check` ends, and the quick fix
@@ -195,8 +195,8 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
     );
     // Golden A's drafting findings (doc 20 §18.1): EF-08 and the EW-POT errors EF-01 (T55, S56) and EF-06 (W6,
     // 101.8), the 28 EW-PLC-012 coil bindings of EF-02; the warnings EF-09, EF-10 and EF-11, two
-    // each; the ten EW-NUM-001 infos; WP-S1.21 part 4: the TBD DP station address EF-03 (EW-BUS-001, an error) and
-    // EF-16 (EW-BUS-004, an info); WP-S4.01 part 5: EF-05's five EW-LAY-001 findings (warnings online).
+    // each; the ten EW-NUM-001 infos; the TBD DP station address EF-03 (EW-BUS-001, an error) and
+    // EF-16 (EW-BUS-004, an info); EF-05's five EW-LAY-001 findings (warnings online).
     assert_eq!(
         line(d, "  messages scheme "),
         "  messages scheme \"Drafting\" errors 33 warnings 50 infos 33 waived 0 pending 0"

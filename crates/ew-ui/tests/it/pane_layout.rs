@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Lane X32b of cycle 32: the pane-side defects of the window check, in the window without rendering (doc 16a v1.2
+//! The pane-side defects of the window check, in the window without rendering (doc 16a v1.2
 //! §5.4, §5.8, §6.6, §6.8, §6.21). Every navigator row keeps to its pane with its title ellipsised before right-aligned
 //! badges; the expanders are chevron buttons; the Properties value cell takes the rest of its row; a navigator's tool
 //! line is one row; the renderer field says why it is amber.

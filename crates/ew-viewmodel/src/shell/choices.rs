@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The closed sets of choices the window shows through `strings::choice_text` (WP-S2.11 §12's design note,
-//! decision log ID-1434): a form field's `choices` is a `&'static` [`ClosedChoices`], which only this module
+//! The closed sets of choices the window shows through `strings::choice_text`:
+//! a form field's `choices` is a `&'static` [`ClosedChoices`], which only this module
 //! can build, and the one `closed_choices!` invocation below defines every set and [`ALL`] from the same lines, so a
 //! set a form names is in [`ALL`] by construction and the choice-word test reads it. A run-time list (the project's
 //! locations, the enclosure parts) is an open set in a field's `options`, outside the type.

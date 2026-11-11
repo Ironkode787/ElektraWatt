@@ -276,7 +276,7 @@ impl MemoStore {
     /// cannot advance to an equal revision, so it starts a new, empty store at that snapshot. An older snapshot
     /// (another history) starts a new, empty store too.
     ///
-    /// There is deliberately no "move to any snapshot" (review, finding 10): verifying memos of one
+    /// There is deliberately no "move to any snapshot": verifying memos of one
     /// history by pull against the stamps of another compares incomparable revisions, which can find a stale
     /// memo green. A session that opens, recovers or reloads a project builds a new `MemoStore`.
     pub fn advance(&self, after: &Model, keys: &[AnyKey]) {
@@ -337,8 +337,9 @@ impl MemoStore {
         self.store().push_index_entries()
     }
 
-    /// The state and the dependency trail of the memo of `F(key)` (`ew_memo::Store::explain`; `ew query --explain`,
-    /// WP-S1.22 D12): read-only, nothing is computed. A family whose policy is [`Policy::Cold`](crate::Policy::Cold) has no memo.
+    /// The state and the dependency trail of the memo of `F(key)` (`ew_memo::Store::explain`;
+    /// `ew query --explain`): read-only, nothing is computed. A family whose policy is
+    /// [`Policy::Cold`](crate::Policy::Cold) has no memo.
     pub fn explain<F: Query>(&self, key: &F::Key) -> ew_memo::Explain<MemoInput> {
         self.store().explain::<MemoOf<F>>(key)
     }
@@ -414,7 +415,7 @@ mod tests {
         }
     }
 
-    /// Review cycle 10, finding 5 (the reviewer's probe): a producer whose notes change while its value and its
+    /// A producer whose notes change while its value and its
     /// declared parts do not. The part reader replays the producer's notes, so it depends on the notes part:
     /// it re-executes, and its notes equal a cold run's.
     #[test]

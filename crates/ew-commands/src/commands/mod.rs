@@ -135,7 +135,7 @@ commands! {
     connection::CreateBond,
     connection::DrawToIp,
     connection::ArrangeIps,
-    // Cycle 33: the chain of bridges of Edit ▸ Bridge terminals
+    // The chain of bridges of Edit ▸ Bridge terminals
     connection::ConnectMany,
     // A page's or a selection's routes in one step
     connection::RouteMany,
@@ -196,7 +196,6 @@ commands! {
     library_update::UpdateLibraryCopies,
     macro_insert::InsertMacro,
     join::JoinDevice,
-    // WP-S2.07 part 4a (D20)
     part_edit::EditPartCopy,
     layout::CreateLayoutSpace,
     layout::DeleteLayoutSpace,
@@ -209,7 +208,6 @@ commands! {
     layout::MovePlacement,
     layout::RemovePlacement,
     layout::LockPlacement,
-    // WP-S4.02 part 2 (D6, D7, FT-840)
     layout::PlaceAssembly,
     layout::AutoFill,
     layout::CreateEnclosureFromPart,

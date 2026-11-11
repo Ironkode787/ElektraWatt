@@ -196,7 +196,7 @@ struct Drafts(Result<Vec<SymbolDraft>, Error>);
 
 impl crate::import::FrontDoorOutput for Drafts {}
 
-/// One symbol import through WP-S3.09's front door under `Limits::element_definition()` (M25-p2#3): the sizes of
+/// One symbol import through the front door under `Limits::element_definition()`: the sizes of
 /// its inputs are checked before `run`, a size over the preset refused as `limit`, and a panic in `run` is refused
 /// in words, so the window keeps its draft. `file` names the source.
 fn front_door(
@@ -524,7 +524,7 @@ impl SymbolDraft {
                 .enumerate()
                 .map(|(i, e)| (format!("/function/cps/{i}"), e)),
         );
-        // And of every nested object that publishes with them (M25-p4#5).
+        // And of every nested object that publishes with them.
         for (i, p) in self.symbol.graphics.iter().enumerate() {
             let (tag, extra, stroke) = match p {
                 Primitive::Line(x) => ("line", &x.extra, x.stroke.as_ref()),
@@ -571,7 +571,7 @@ impl SymbolDraft {
         if let Some(r) = &self.function_ref {
             members.push(("/function_ref".into(), &r.extra));
         }
-        // ID-1476 (M25-p6 nit): a deprecation's object and its successor's reference in either meta's status.
+        // A deprecation's object and its successor's reference in either meta's status.
         for (owner, meta) in [("/symbol", &self.symbol.meta), ("/function", &self.function.meta)] {
             if let schema::ItemStatus::Deprecated(d) = &meta.status {
                 members.push((format!("{owner}/meta/status/deprecated"), &d.extra));
@@ -1133,7 +1133,7 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
             .unwrap_or(Path::new("."))
             .canonicalize()
             .map_err(input)?;
-        // NFR-SEC-18 as ID-1461 amends it: the `.sdb` folder and its tables are read as themselves, never through a
+        // NFR-SEC-18: the `.sdb` folder and its tables are read as themselves, never through a
         // link, whatever it points to.
         let link = |p: &Path| {
             std::fs::symlink_metadata(p)
@@ -1241,7 +1241,7 @@ fn eplan_drafts(
 mod tests {
     use super::*;
 
-    /// M25-p2#3: a panic inside a symbol import is the front door's refusal, in words.
+    /// A panic inside a symbol import is the front door's refusal, in words.
     #[test]
     fn a_panic_in_a_symbol_import_is_refused_in_words() {
         let e = front_door("x.edz", &[1], "eplan-input-limit", || panic!("decoder fault")).unwrap_err();

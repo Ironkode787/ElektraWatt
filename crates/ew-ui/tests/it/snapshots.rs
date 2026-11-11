@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Chrome snapshots of WP-S2.17 (§11 item 3, DL6, DK7): the main window on Golden A folio 101 at 1280 × 800 in
+//! Chrome snapshots: the main window on Golden A folio 101 at 1280 × 800 in
 //! light and dark at both densities, and the component gallery in the four themes, rendered offscreen (`offscreen`)
 //! and written as PNG files under `target/ew-ui-snapshots/` (or `EW_SNAPSHOT_DIR`) for the reviewer, who compares
 //! them with the mockup side by side.
@@ -202,9 +202,7 @@ fn the_main_window_in_light_and_dark_at_both_densities() {
 
 /// DK7's 300 % variant: the main window, light and Comfortable, at 1280 × 800 points on a 300 % display (3840 × 2400
 /// pixels). The setting `ui_scale` reaches 300 % too (`UI_SCALES`); this variant takes 300 % as the
-/// system's scale (egui's native pixels per point), which is how a 300 % display reaches the window. Gated since
-/// FT-537 (the orchestrator's ruling) and re-blessed with the main-window images; the test keeps its name from before
-/// the ruling.
+/// system's scale (egui's native pixels per point), which is how a 300 % display reaches the window. Gated and re-blessed with the main-window images; the test keeps its name from before.
 #[test]
 fn the_main_window_at_300_percent_for_review() {
     let dev = device();
@@ -216,7 +214,7 @@ fn the_main_window_at_300_percent_for_review() {
     drop(tmp);
 }
 
-/// Cycle 39: the main window at the typical size (doc 16a: 1920 × 1080), light and Comfortable at ppp 1, on the Golden
+/// The main window at the typical size (doc 16a: 1920 × 1080), light and Comfortable at ppp 1, on the Golden
 /// A copy like the 1280 × 800 images: what the layout does with the room a common display gives it.
 #[test]
 fn the_main_window_at_the_typical_size() {
@@ -338,7 +336,7 @@ fn luma(image: &ew_render_cpu::RgbaImage, x: u32, y: u32) -> f32 {
     0.2126 * f32::from(p[0]) + 0.7152 * f32::from(p[1]) + 0.0722 * f32::from(p[2])
 }
 
-/// WP-S2.17 part 4 (CP6, CP9): the quit prompt over the toast, the app menu's File submenu, the command palette and
+/// The quit prompt over the toast, the app menu's File submenu, the command palette and
 /// the Preview tab with the property grid's "Preview open" strip, in light and dark, gated.
 #[test]
 fn dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
@@ -650,7 +648,7 @@ fn the_data_grid_in_light_comfortable_and_dark_compact() {
                 ("props.show", json!({"on": false})),
                 ("navigator.show", json!({"kind": "strips"})),
                 ("navigator.table", json!({"kind": "strips"})),
-                // WP-S2.07's Pos column is hidden: this image is WP-S2.06's grid in its as-built layout.
+                // The Pos column is hidden: this image is of the grid in its as-built layout.
                 ("table.columns", json!({"kind": "strips", "hide": ["pos"]})),
                 ("navigator.filter", json!({"kind": "strips", "text": "x1031"})),
                 ("navigator.sort", json!({"kind": "strips", "by": "terminal"})),
@@ -1236,7 +1234,7 @@ fn cp9_the_quick_fix_card_and_the_table_card_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Doc 16a §6.4 (FT-540's restyle): the bottom dock with Messages and History open, History active, cropped to the
+/// Doc 16a §6.4: the bottom dock with Messages and History open, History active, cropped to the
 /// dock's tab bar, light Comfortable, gated.
 #[test]
 fn the_bottom_dock_tab_bar_in_light() {
@@ -1300,7 +1298,7 @@ fn the_bottom_dock_tab_bar_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Doc 16a §6.24 (FT-531's restyle): the chip line "Not on this page" with its pill jump chips, for -201U3 selected on
+/// Doc 16a §6.24: the chip line "Not on this page" with its pill jump chips, for -201U3 selected on
 /// folio 102 (its other representations are on 201 and 203), cropped to the chip line, light Comfortable, gated.
 #[test]
 fn the_chip_line_in_light() {
@@ -1468,7 +1466,7 @@ fn the_join_chooser_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Cycle 36 (window check W36, doc 16a §6.8): the Properties header of a changeover contact of a relay placed from
+/// Doc 16a §6.8: the Properties header of a changeover contact of a relay placed from
 /// EW-GEN-RLY-1 on folio 101, whose open findings are more than two: one count chip per severity at the right, the title kept whole at the left,
 /// the filter and the rows under it in place; cropped to the header and the first rows, light Comfortable, gated.
 #[test]
@@ -1550,7 +1548,7 @@ fn the_properties_header_with_many_findings_in_light() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// FT-597 (doc 16a §6.18): the quick-access Save button's tooltip, cropped to the button and the tooltip under it,
+/// Doc 16a §6.18: the quick-access Save button's tooltip, cropped to the button and the tooltip under it,
 /// light Comfortable, gated: the tooltip is drawn on `color.surface.inverse` with `color.text.on_inverse`.
 #[test]
 fn the_save_tooltip_in_light() {
@@ -1617,7 +1615,7 @@ fn ft625_the_place_ghost_wires_and_hud_hint(
         let theme = "light";
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         let pick = json!({"symbol": "ew.iec.contact-no@qet10", "letter": "K"});
-        // Two contacts one above the other without wires (as `gpp_m34`'s FT-545 test places them).
+        // Two contacts one above the other without wires (as `gpp_m34`'s test places them).
         for k in [(60, 38), (60, 52)] {
             act(&mut h, "place.pick", pick.clone());
             place_at(&mut h, k);

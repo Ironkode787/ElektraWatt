@@ -253,7 +253,7 @@ fn a_linked_cell_carries_a_link_source() {
     assert!(linked.iter().all(|i| matches!(i.kind, ItemKind::Glyphs(_))));
 }
 
-/// WP-S3.06 ruling 1 and 3: a link with a span is drawn over that span's glyphs only, as an invisible path after the
+/// A link with a span is drawn over that span's glyphs only, as an invisible path after the
 /// cell's text (the cross-reference item rule); the text itself carries no link. "101, 103" with a link per folio: the
 /// first box starts where the text starts, the second ends where it ends, and the two do not overlap.
 #[test]
@@ -309,7 +309,7 @@ fn a_span_link_covers_its_item_only() {
     assert!(pos(&|i| i.link == Some(ew_dl::Link::Source(d1))) > pos(&|i| std::ptr::eq(i, run)));
 }
 
-/// WP-S3.06 ruling 3: a cell that shrinks to fit draws its span boxes at the size the text was laid out
+/// A cell that shrinks to fit draws its span boxes at the size the text was laid out
 /// in. In the narrow Folio column a long folio list shrinks; the first span's box starts where the text starts, the
 /// last one's ends where it ends, and both run from the shrunk text's ascent to its descent.
 #[test]

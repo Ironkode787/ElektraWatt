@@ -245,8 +245,8 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
                 extra: Extra::new(),
             });
         }
-        // The ID `v5(device, entry)`; when that is a kept record (the old part's valve function at another entry,
-        // FT-1313), `v5` of it and the entry again, until a free one.
+        // The ID `v5(device, entry)`; when that is a kept record (the old part's valve function at another
+        // entry), `v5` of it and the entry again, until a free one.
         let index = u32::try_from(i).unwrap_or(u32::MAX);
         let mut id: Id<Function> = ew_ids::v5::template_function_id(dev.id, index);
         for _ in 0..FRESH_TRIES {

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The cycle-39 play-test's findings FT-822 and FT-823 in the view model (lane G40).
+//! The play-test's findings in the view model, FT-823 among them.
 //!
 //! The page-arrow tool offers the target role for a name whose source stands on another page (EW-CORE-052 is
 //! project-wide), its HUD names the role and the key that changes it, D goes on from the offered role, and a refused
@@ -133,7 +133,7 @@ fn the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
         prompt(&s),
         format!("0V \u{b7} source: the wire continues at its targets \u{b7} {d}: target")
     );
-    // W42b: with the star on, the star's hint stands alone in the role's place.
+    // With the star on, the star's hint stands alone in the role's place.
     done(&mut s, "tool.star_source", json!({}));
     assert_eq!(
         prompt(&s),
@@ -153,7 +153,7 @@ fn ghost_label(s: &ShellModel) -> String {
         .expect("the ghost's label")
 }
 
-/// W42b, re-pinned by FT-980 (a star source is a source point): with the star on the point is a source, the
+/// A star source is a source point: with the star on the point is a source, the
 /// HUD names the star source alone (no role beside it) and the ghost label says "0V star source"; D clears the star and
 /// steps on from source (target, undirected, then source with the star still off, no notice); the star turned on from
 /// another direction walks the point to source, and turned off gives back the direction it had before.

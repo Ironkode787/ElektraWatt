@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Creating pages, structure nodes and external references from the user interface (FT-408 and FT-409, the named
-//! scope items of WP-S2.06 built ahead of that package, decision log ID-619 and ID-623): `page.new`, `structure.new`
+//! Creating pages, structure nodes and external references from the user interface:
+//! `page.new`, `structure.new`
 //! and `external_ref.new`.
 //!
 //! **One path.** Each action builds one existing command (`page.create`, `structure.create_node`,
@@ -51,7 +51,7 @@ pub const PAGE_TYPES: &[&str] = &[
     "external_document",
 ];
 
-/// The connection grids `page.new` gives a page (ID-1477 (1)): the native 4 mm grid and QET's 10 px, as `Grid::MM4` and
+/// The connection grids `page.new` gives a page: the native 4 mm grid and QET's 10 px, as `Grid::MM4` and
 /// `Grid::QET_10PX`. The signature of the action lists the same words (a test compares them).
 pub const PAGE_GRIDS: &[&str] = &["mm4", "qet_10px"];
 
@@ -264,7 +264,7 @@ pub struct FormField {
     pub label_key: Key<'static>,
     /// The values a choice field offers, in order; empty for a free-text field.
     pub choices: &'static ClosedChoices,
-    /// WP-S4.02 part 4 (ruling 7): a choice list built at run time (the project's locations, the enclosure parts),
+    /// A choice list built at run time (the project's locations, the enclosure parts),
     /// each `(value, words)`: the action receives the value, the window shows the words. Empty for every other field.
     pub options: Vec<(String, String)>,
     /// The text of the field.
@@ -292,7 +292,7 @@ pub struct FormDialog {
     pub action: &'static str,
     /// The key of the dialog's title.
     pub title_key: Key<'static>,
-    /// The key of the button Enter presses (`Create`; WP-S2.09 part 3's renumber dialogs: `Renumber`).
+    /// The key of the button Enter presses (`Create`; the renumber dialogs: `Renumber`).
     pub ok_key: Key<'static>,
     /// The fields in order.
     pub fields: Vec<FormField>,
@@ -428,7 +428,7 @@ fn parse_folio(text: &str) -> Result<(u32, Option<String>), String> {
     Ok((number, (text.len() > digits.len()).then(|| text.to_owned())))
 }
 
-/// FT-1256 (doc 16a §8 item 5): a form's common refusal reasons, each with the key of what to do next.
+/// Doc 16a §8 item 5: a form's common refusal reasons, each with the key of what to do next.
 const NEXT_STEPS: [(Key<'static>, Key<'static>); 3] = [
     (key!("reason-read-only"), key!("form-step-read-only")),
     (key!("reason-no-page"), key!("form-step-no-page")),
@@ -698,7 +698,7 @@ impl ShellModel {
     // The actions
 
     /// `page.new {folio, type?, title?, section?, grid?}`: one `page.create` with the explicit folio and the
-    /// connection grid given, else the current page's (ID-1477 (1)), then the new page is shown.
+    /// connection grid given, else the current page's, then the new page is shown.
     pub(crate) fn act_page_new(&mut self, p: &Map<String, Value>) -> Outcome {
         let mut v = Vec::new();
         for f in PAGE_NEW.fields {
@@ -766,7 +766,7 @@ impl ShellModel {
             };
             params["grid"] = value;
         } else if let Some((num, den)) = current {
-            // M25-p7 nit: a current page on a grid neither choice names (an imported one) still gives its grid; the
+            // A current page on a grid neither choice names (an imported one) still gives its grid; the
             // dialog's field is then empty.
             params["grid"] = json!({"num": num, "den": den});
         }
@@ -795,7 +795,7 @@ impl ShellModel {
         out
     }
 
-    /// The parent the New structure node dialog proposes for a node of aspect `kind` (FT-461's second half, §7.1): the
+    /// The parent the New structure node dialog proposes for a node of aspect `kind`: the
     /// first marked node of the Structure identifiers navigator (else its cursor row) when that node's aspect is `kind`,
     /// by its designation when the designation names it, else by its ID; empty otherwise.
     pub fn new_structure_parent(&self, kind: &str) -> String {
@@ -836,7 +836,7 @@ impl ShellModel {
         let [kind, designation, parent] = <[String; 3]>::try_from(v).expect("three fields");
         for (name, value) in [("kind", &kind), ("designation", &designation)] {
             if value.is_empty() {
-                // WP-S2.06 part 2 (FT-461's second half): the dialog opens with the marked structure node as the parent
+                // The dialog opens with the marked structure node as the parent
                 // when its aspect is the chosen kind's.
                 if self.mode == Mode::Gui && !self.in_form_of(STRUCTURE_NEW.action) && parent.is_empty() {
                     let chosen = if kind.is_empty() {

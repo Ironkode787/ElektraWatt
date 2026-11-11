@@ -176,7 +176,7 @@ pub fn folio_101_is_placed_by_a_generated_script_twice_identically_and_replays_c
     s.close();
 }
 
-/// WP-S2.04 part 2's share of §13.6 (WR9): folio 101 placed, its golden tags typed (`fields.set` through `command.run`
+/// Folio 101 placed, its golden tags typed (`fields.set` through `command.run`
 /// on `tag:` references), its 21 connections and 2 junctions drawn with the Wire tool from the keyboard; two runs give
 /// byte-identical transcripts; the oracle: 17 representations, 21 drawn connections and 2 junctions, every
 /// connection's end labels and every junction's sequence (by far-end labels) as on Golden A; the `--record` log
@@ -403,7 +403,7 @@ pub fn folio_101_is_wired_by_a_generated_script_twice_identically_and_replays_ca
     s.close();
 }
 
-/// WP-S2.04 part 3's share of §13.6 (IB7): folio 102 placed by a generated script: its nine interruption points
+/// Folio 102 placed by a generated script: its nine interruption points
 /// with the IP tool, its two black boxes (-102G1, -102F2) with the black box tool from their parts and their CPs
 /// dragged along the outline to the golden points (Select's CP drag, `box.reshape`), its contact with the Place
 /// tool. Two runs give byte-identical transcripts without a UUID; the oracle: 12 representations, each the golden
@@ -581,7 +581,7 @@ pub fn folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_iden
     s.close();
 }
 
-/// WP-S2.04 part 4b's share of §13.6 (PI9): folio 101's structure box around the three external connection
+/// Folio 101's structure box around the three external connection
 /// points and its two marker groups (W4/W5 and W7/W9, 2.5 BK BU) appended to the wiring script of
 /// `folio_101_is_wired_by_a_generated_script_twice_identically_and_replays`; two runs give byte-identical
 /// transcripts without a UUID; the oracle: one structure box with the caption "External Connection

@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 4 (D12, rulings 3, 6 and 9) on Golden A: the Properties rows of the layout records and their one
-//! command each through `Session::layout_edit`: R1's and R2's rows with their free lengths (PS-5), Length lengthening
-//! R1, -102F1's Locked and Rotation rows, FT-840's `layout.space.edit`, `layout.enclosure.edit` and
-//! `layout.surface.edit`, the panel page's Surface view rows (PS-4) and the refusals in words.
+//! On Golden A: the Properties rows of the layout records and their one
+//! command each through `Session::layout_edit`: R1's and R2's rows with their free lengths, Length
+//! lengthening R1, -102F1's Locked and Rotation rows, `layout.space.edit`, `layout.enclosure.edit` and
+//! `layout.surface.edit`, the panel page's Surface view rows and the refusals in words.
 
 use crate::golden_common;
 
@@ -234,7 +234,7 @@ fn the_panel_pages_surface_view_rows_set_the_view() {
     );
     assert_eq!(view[0].1, "-UC1 plate");
     assert_eq!(view[1].1, "Abbreviated");
-    // W44.4 F-d: the three rows sit under their own category, Surface view.
+    // The three rows sit under their own category, Surface view.
     let categories: Vec<ew_api::output::Category> = s
         .property_sheet(&[page])
         .sections
@@ -436,7 +436,7 @@ fn two_uc1_plates_read_by_their_full_designations_and_the_choice_sets_the_one_ch
     );
 }
 
-/// C44-p4#6 (a hostile file): two surfaces of one enclosure read alike after the full designation too, so each gains
+/// A hostile file: two surfaces of one enclosure read alike after the full designation too, so each gains
 /// its ordinal in page order: 902 shows -UC1's plate, which reads "(1)"; the other, shown by no page, "(2)".
 #[test]
 fn two_surfaces_of_one_enclosure_read_with_their_ordinals() {
@@ -536,7 +536,7 @@ fn a_placements_device_is_a_link_its_parts_mount_and_its_label_comes_from_the_sh
     assert!(!keys.contains(&"placement/derived.label".to_owned()), "{keys:?}");
 }
 
-/// C44-p2#5 and p2#7: the rows' refusals in words, each whole; the enclosure's Position row asks for the three
+/// The rows' refusals in words, each whole; the enclosure's Position row asks for the three
 /// lengths it shows.
 #[test]
 fn the_layout_rows_refusals_read_whole() {

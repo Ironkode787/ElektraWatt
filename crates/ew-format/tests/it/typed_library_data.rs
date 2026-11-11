@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! The typed part, manufacturer and macro data of WP-S1.19 part 1 through the files (ADR-0011 amendment 4,
-//! decision log ID-334): the fixture copies of L1-2 are written and read back unchanged, each with the hash of its
-//! compact JSON; a `macro_instance` line lives in its page's file at rank 46; a file written before part 1, with
-//! the members in `extra`, reads typed and is rewritten canonically (L1-3).
+//! The typed part, manufacturer and macro data through the files (ADR-0011 amendment 4): the fixture copies
+//! are written and read back unchanged, each with the hash of its compact JSON; a `macro_instance` line lives
+//! in its page's file at rank 46; a file written before the members were typed, with the members in `extra`,
+//! reads typed and is rewritten canonically.
 
 use std::collections::BTreeMap;
 
@@ -39,7 +39,7 @@ fn lib_ref(item: &str) -> String {
     format!(r#"{{"library":"{LIB}","item":"{item}","version_req":"^1"}}"#)
 }
 
-/// One L1-2 fixture copy: its kind, copy ID, item ID and the compact JSON of its item, members in declaration
+/// One fixture copy: its kind, copy ID, item ID and the compact JSON of its item, members in declaration
 /// order (doc 07 §2.5).
 struct Fixture {
     kind: &'static str,
@@ -66,7 +66,7 @@ impl Fixture {
     }
 }
 
-/// The fixtures of L1-2: 2904602 with `mech` (W×H×D, `ts35x7_5`, rail offset), an alternative and a macro link;
+/// The fixtures: 2904602 with `mech` (W×H×D, `ts35x7_5`, rail offset), an alternative and a macro link;
 /// PT 2.5-TWIN with the clamp members; a contactor with two contacts; an enclosure, a duct, a rail and a mounting
 /// plate section; a configured product with components; a manufacturer and a macro.
 fn fixtures() -> Vec<Fixture> {
@@ -164,7 +164,7 @@ fn fixtures() -> Vec<Fixture> {
     ]
 }
 
-/// L1-2: every fixture copy is canonical, its `sha256` is the hash of its item's compact JSON, and it is written
+/// Every fixture copy is canonical, its `sha256` is the hash of its item's compact JSON, and it is written
 /// to `lib/<kind dir>/<copy id>.json` and read back unchanged, with no finding and nothing to rewrite.
 #[test]
 fn every_fixture_copy_round_trips_with_the_hash_of_its_compact_json() {
@@ -205,7 +205,7 @@ fn every_fixture_copy_round_trips_with_the_hash_of_its_compact_json() {
     }
 }
 
-/// L1-2: an unknown member in each new object of the fixtures (written last) survives a read and a write; the copy
+/// An unknown member in each new object of the fixtures (written last) survives a read and a write; the copy
 /// hash covers it, as the hash of the item's compact JSON.
 #[test]
 fn unknown_members_of_the_new_objects_survive_the_files() {
@@ -275,7 +275,7 @@ fn unknown_members_of_the_new_objects_survive_the_files() {
     }
 }
 
-/// L1-4, the file half: a `macro_instance` line lives in its page's file and is written at rank 46, after the
+/// The file half: a `macro_instance` line lives in its page's file and is written at rank 46, after the
 /// structure box (44) and the embedded report block (45), and reads back unchanged.
 #[test]
 fn a_macro_instance_line_round_trips_in_its_page_file_at_rank_46() {
@@ -298,9 +298,9 @@ fn a_macro_instance_line_round_trips_in_its_page_file_at_rank_46() {
     assert_eq!(record_line(&record(MACRO_INSTANCE)).unwrap(), MACRO_INSTANCE);
 }
 
-/// The 2904602 fixture as a build before part 1 wrote it: `mech`, `alternatives` and `macros` were unknown members,
-/// kept in the part's `extra` and written after the typed members in byte-wise order, the members of each in
-/// byte-wise order too; the copy hash was taken over that text.
+/// The 2904602 fixture as a build before the members were typed wrote it: `mech`, `alternatives` and `macros`
+/// were unknown members, kept in the part's `extra` and written after the typed members in byte-wise order,
+/// the members of each in byte-wise order too; the copy hash was taken over that text.
 fn written_before_part_one() -> (LibDocument, String) {
     let fixture = &fixtures()[0];
     let mut doc = fixture.doc();
@@ -319,9 +319,9 @@ fn written_before_part_one() -> (LibDocument, String) {
     (doc, text)
 }
 
-/// L1-3: the old file opens with the members typed, is reported not canonical (info) and rewritten at the next
-/// save; its stored `sha256`, taken over the byte-wise order, is reported by EW-CORE-014 (accepted within 0.1,
-/// decision log ID-334).
+/// The old file opens with the members typed, is reported not canonical (info) and rewritten at the next
+/// save; its stored `sha256`, taken over the byte-wise order, is reported by EW-CORE-014 (accepted within
+/// 0.1).
 #[test]
 fn a_part_written_before_part_one_reads_typed_and_is_rewritten_canonically() {
     let (old_doc, old_text) = written_before_part_one();
@@ -369,7 +369,7 @@ fn a_part_written_before_part_one_reads_typed_and_is_rewritten_canonically() {
     assert_eq!(again, loaded.lib[0]);
 }
 
-/// L1-3: when the byte-wise order of an old file already is the canonical one (a single new member after the last
+/// When the byte-wise order of an old file already is the canonical one (a single new member after the last
 /// typed one, itself with one member), the file reads clean and its hash still matches: nothing to rewrite.
 #[test]
 fn an_old_part_whose_order_agrees_reads_clean() {

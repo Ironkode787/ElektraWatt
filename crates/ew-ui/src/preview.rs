@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Preview tab (D11; FR-UI-022), restyled by WP-S2.17 part 4 (doc 16a §6.23).
+//! The Preview tab (D11; FR-UI-022), restyled to doc 16a §6.23.
 //!
 //! **The tab** shows the open card: a header row with "Preview: `<command>`", "as of rev `<r>`" and the Stale or Failed
 //! status badge at the left and Apply (Primary) and Cancel at the right, so the actions stay visible above long lists;
@@ -100,14 +100,14 @@ fn rows(t: &Tokens, shell: &ShellModel) -> [Vec<Row>; 4] {
         .iter()
         .map(|e| {
             // The change word in a 64-px column (padded to its width in the row's font).
-            // ID-1427 (W52 F6): the change word, the kind and the fields in the UI language.
+            // The change word, the kind and the fields in the UI language.
             let (change, kind) = ew_viewmodel::preview::entity_words(e);
             let mut r = vec![
                 (format!("{change} "), t.text_tertiary),
                 (format!("{kind} "), t.text_secondary),
                 (e.label.clone(), t.text_primary),
             ];
-            // Cycle 39 (FIX39b-1): the fields in words, a content hash left out (`field_words`).
+            // The fields in words, a content hash left out (`field_words`).
             let fields = ew_viewmodel::preview::field_words(&e.kind, &e.fields);
             if !fields.is_empty() {
                 r.push((format!(" ({})", fields.join(", ")), t.text_tertiary));
@@ -184,7 +184,7 @@ fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
     }
 }
 
-/// WP-S2.07 part 4b (D22, FT-396): the paste choice card's copies ("FX-MCB-1PN (Fixture): this project 1.1.0, pasted
+/// FT-396: the paste choice card's copies ("FX-MCB-1PN (Fixture): this project 1.1.0, pasted
 /// 1.0.0, patch"), one wrapped `type.small` label each, then its two choices as Secondary buttons, Use the project's
 /// copy first (`paste.resolve`); a disabled choice keeps its place and says why in its tooltip and under the buttons.
 fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &mut Vec<Event>) {
@@ -205,7 +205,7 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
     ui.add_space(t.space_2);
     ui.horizontal(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_2;
-        // Cycle 39 (FIX39b-1): the first enabled choice is the Primary button: Use the project's copy when it is
+        // The first enabled choice is the Primary button: Use the project's copy when it is
         // enabled (it changes no library copy and is one undo step), else Update the project's copy.
         let primary = if c.adapt.is_none() { "adapt" } else { "update" };
         for (word, key, reason) in [
@@ -239,7 +239,7 @@ fn paste_block(ui: &mut Ui, c: &ew_viewmodel::properties::PasteChoice, events: &
     }
 }
 
-/// WP-S1.19 part 6 (§11): a macro card's value set (a chooser of "Defaults" and the macro's value sets, which previews
+/// A macro card's value set (a chooser of "Defaults" and the macro's value sets, which previews
 /// the card again with `macros.value_set`) and its conflicts, shown open and also on a refused preview (the rule's
 /// text first), so the user decides on them before Apply.
 fn macro_block(ui: &mut Ui, m: &ew_viewmodel::properties::MacroInsert, events: &mut Vec<Event>) {
@@ -460,7 +460,7 @@ fn table_import(
             bottom: 0,
         })
         .show(ui, |ui| {
-            // FT-1149 (D14, TW-2): with a conflict the switch "Take the file's values" reads the file again.
+            // With a conflict the switch "Take the file's values" reads the file again.
             let switch = c.import.counts().conflicts > 0 || c.take_file;
             components::inline_card(ui, shell, card, events, |ui, events| {
                 let mut on = c.take_file;
@@ -534,7 +534,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             ui.add_space(pad);
             ui.spacing_mut().item_spacing.x = t.space_3;
             let command = card.command();
-            // Cycle 39 (FIX39b-1): a question card (the paste choice) previews nothing: its head is the command alone,
+            // A question card (the paste choice) previews nothing: its head is the command alone,
             // with no "Preview:" and no revision.
             let title = if choice {
                 command.to_owned()
@@ -584,7 +584,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             }
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.add_space(pad);
-                // Cycle 39 (FIX39b-1): a question card's answers are its choices; the head keeps Cancel only, with
+                // A question card's answers are its choices; the head keeps Cancel only, with
                 // no Apply that could never run.
                 if choice {
                     let cancel = components::button(
@@ -616,7 +616,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
             });
         };
         if let CardStatus::Failed(m) = &status {
-            // FX38d: the lead in words (a macro card: what blocks the apply); the rule code follows, secondary.
+            // The lead in words (a macro card: what blocks the apply); the rule code follows, secondary.
             let lead = card.failed_lead();
             let text = lead
                 .as_ref()

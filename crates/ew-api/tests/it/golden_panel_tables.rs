@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 3 (D9) on Golden A: `Session::panel_tables` of the panel page 902: the carriers by their labels, R2's
-//! end brackets (SN-1), the free lengths of R1 and R2 (D12), R1's items (SN-2), the five unplaced devices with their
-//! badges and mount kinds (PW-1's data), the slot of -201U9 on R3 (PW-5's data), the inverse projection of every
+//! On Golden A: `Session::panel_tables` of the panel page 902: the carriers by their labels, R2's
+//! end brackets, the free lengths of R1 and R2, R1's items, the five unplaced devices with their
+//! badges and mount kinds, the slot of -201U9 on R3, the inverse projection of every
 //! placement's clip point, and `None` for a schematic page.
 
 use crate::golden_common;

@@ -394,8 +394,8 @@ fn push(others: &[RailItem], length: i128, m: &RailItem, s_left: i128) -> Result
 /// items after it in rail order. Each item moves right only as far as its minimum gap to its moved left neighbour
 /// requires; the cascade stops at the first that need not move. Then the last moved item, with its rail-end gap when it
 /// is the last item of the rail, must end by `length`. `first_is_item`: `first` is the dropped item (a past-end refusal
-/// then names no neighbour). Push and swap run it, and so does a strip that grows by inserted terminals (`ew-commands`,
-/// FT-1441), with `first` the grown strip.
+/// then names no neighbour). Push and swap run it, and so does a strip that grows by inserted terminals
+/// (`ew-commands`), with `first` the grown strip.
 ///
 /// # Errors
 ///

@@ -125,7 +125,7 @@ fn shipped_file(locale: &str) -> String {
     std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
 }
 
-/// FT-1505 (doc 16a §8 item 5): in every shipped locale every whole toast text ends with its full stop. Exempt
+/// Doc 16a §8 item 5: in every shipped locale every whole toast text ends with its full stop. Exempt
 /// by name: the toasts' button and label words, and the fragments composed into another toast's sentence.
 #[test]
 fn every_toast_ends_with_its_full_stop() {
@@ -805,7 +805,7 @@ fn the_messages_detail_follows_the_ui_language() {
     shell.shutdown();
 }
 
-/// FT-1482, beside LO-4: with the UI in Dutch a finding's quick fix is labelled in Dutch, in the Messages
+/// With the UI in Dutch a finding's quick fix is labelled in Dutch, in the Messages
 /// detail and in the table's fix cell; in English it is the fix's English label, the CLI's.
 #[test]
 fn the_quick_fix_label_follows_the_ui_language() {
@@ -861,7 +861,7 @@ fn the_quick_fix_label_follows_the_ui_language() {
     shell.shutdown();
 }
 
-/// FT-1526, FT-1528 and FT-1529, whole in both languages: an imported record is "an item" / "een element";
+/// Whole in both languages: an imported record is "an item" / "een element";
 /// a tutorial is a "zelfstudie" in the Dutch window, as Help ▸ Zelfstudies names it; the Properties card's title puts
 /// the command's title mid-sentence in Dutch (`IN_SENTENCE`), as the Preview tab does.
 #[test]

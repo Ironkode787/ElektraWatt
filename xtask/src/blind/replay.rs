@@ -9,7 +9,7 @@
 //! when the run's own `transcript.jsonl` is at hand the normalised transcripts are compared and the differing lines are
 //! counted, as a report and not as a failure (a reviewed vocabulary change alters describe text without changing what the
 //! agent could do). R1 and R2 decide. A raw UUID in a replayed line is a product defect and fails the replay, naming the
-//! line (ID-630 (d)).
+//! line.
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -883,7 +883,7 @@ mod tests {
              {\"closed\":true,\"dispatched\":[],\"input\":{\"chord\":\"alt+f4\",\"input\":\"key\"},\"step\":2}\n"
         );
     }
-    /// Cycle 39: a visual recording replays at its run's window size and scale (a 1920 recording at 1920); at the
+    /// A visual recording replays at its run's window size and scale (a 1920 recording at 1920); at the
     /// default no flag is added.
     #[test]
     fn a_visual_replay_runs_at_the_recorded_geometry() {

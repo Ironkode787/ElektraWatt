@@ -40,7 +40,7 @@ pub const NOTICE: &str = include_str!("../../../NOTICE");
 
 /// The lines of the About dialog, in order (the title is the dialog's).
 pub fn about_lines(model: &ShellModel) -> Vec<String> {
-    // FT-1117 (item 3): this version has no update check, whatever the stored setting says.
+    // This version has no update check, whatever the stored setting says.
     let privacy = strings::text(key!("about-privacy"));
     vec![
         strings::format(key!("about-version"), &[&model.config().app_version]),

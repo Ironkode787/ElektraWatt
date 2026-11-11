@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The token module of WP-S2.17 part 1 (§12.1): DL1 the contrast lint of NFR-A11Y-04, DL2 the blessed dump
-//! (`tests/expected/tokens.txt`, rewritten by `EW_BLESS=1`), DL3 the mapping onto egui, DL5
-//! the SemiBold face, DL8 the token values of the approved mockup (read with `include_str!`).
+//! The token module: the contrast lint of NFR-A11Y-04, the blessed dump
+//! (`tests/expected/tokens.txt`, rewritten by `EW_BLESS=1`), the mapping onto egui,
+//! the SemiBold face, the token values of the approved mockup (read with `include_str!`).
 //!
 //! ```text
 //! EW_BLESS=1 cargo nextest run -p ew-ui --test it -E 'test(/^theme::/)'

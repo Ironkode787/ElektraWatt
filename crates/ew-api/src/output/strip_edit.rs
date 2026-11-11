@@ -184,7 +184,7 @@ pub struct BridgeRow {
 }
 
 impl Session {
-    /// Every bridge group of the project, in `BR<n>` order (WP-S2.07 D6's `bridge_groups`).
+    /// Every bridge group of the project, in `BR<n>` order (`bridge_groups`).
     pub fn bridges(&self) -> Vec<BridgeRow> {
         let q = self.query();
         let tag = |d: Id<Device>| {

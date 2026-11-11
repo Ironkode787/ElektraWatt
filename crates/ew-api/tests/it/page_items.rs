@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 4a on a copy of Golden A (acceptance checks PI2 to PI6, and the page tables of §4.3): structure
+//! On a copy of Golden A: structure
 //! boxes and `ip_structure`, bound free texts, graphics and texts without electrical meaning, group wire markers and
 //! the marker modes, the load finding of a stale marker entry, and the page tables' item and box rows.
 
@@ -249,7 +249,7 @@ fn ft468_store(vfs: &Arc<MemVfs>) -> StoreOptions {
     o
 }
 
-/// FT-468, the `fuzz-smoke` finding of CI run 40115388450 as a plain test (its input is
+/// A `fuzz-smoke` finding as a plain test (its input is
 /// `fuzz/regressions/command_sequence/structure-box-dropped-by-save`): the structure box of the finding, with a
 /// location assignment and an external reference on page 202 of a copy of Golden A, survives `Session::create` and
 /// a reload, then a later save of its page's file by the reopened session and a second reload; each reload equals

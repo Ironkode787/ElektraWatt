@@ -180,7 +180,7 @@ pub fn move_proposals(
     let ghost = super::autoconnect::moved_cps(tables, &delta);
     let mut found = super::autoconnect::proposals(&ghost, tables, moved, super::wire::drawing_area(cx), 0);
     // A move never splits an existing wire (ADR-0007 decision 4), so a split is no proposal of a move:
-    // the ghost lists only the wires the release makes (C53-rt#12).
+    // the ghost lists only the wires the release makes.
     found
         .list
         .retain(|p| matches!(p.target, super::autoconnect::ProposalTarget::Cp { .. }));

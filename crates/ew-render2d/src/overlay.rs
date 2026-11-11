@@ -15,11 +15,11 @@
 //! ghosts, the snap markers and last the cursor. The tool overlay's text labels are not drawn here: the
 //! window draws them as chips in its own font, and the headless snapshot leaves them out.
 //!
-//! **FT-391's scale rule**: every mark scales by the integer factor `s = max(1, ⌊ppp⌋)`
+//! **The scale rule**: every mark scales by the integer factor `s = max(1, ⌊ppp⌋)`
 //! ([`mark_scale`]): lines are `s` pixels wide with dashes of `4s` on and `4s` off, the grid cross and the junction
 //! square are `6s + 1` pixels, the CP ring `8s + 1`, the hover outline `s`, the selection outline `2s` with an
 //! `s`-pixel white casing on both sides and `8s`-pixel corner handles (white with an accent rim), and the grid cursor's
-//! arms `s` wide from `2s` to `8s` off its centre. At ppp 1 every mark keeps its size as built before part 5.
+//! arms `s` wide from `2s` to `8s` off its centre. At ppp 1 every mark keeps its size.
 //!
 //! The colours come from the caller's [`Theme`]: the window and the snapshot build it from the design language's
 //! canvas tokens (doc 16a §4.6); [`LIGHT`] and [`DARK`] hold the same values for callers without the token module.
@@ -88,7 +88,7 @@ pub const LIGHT: Theme = Theme {
     measure: rgb(0x1A, 0x1D, 0x21),
     rubber_band: ACCENT,
     casing: rgb(0xFF, 0xFF, 0xFF),
-    // FX38a: a subdued neutral ink (slate-400 #868E99, 3.3:1 on the white sheet), never the accent: an open CP
+    // A subdued neutral ink (slate-400 #868E99, 3.3:1 on the white sheet), never the accent: an open CP
     // must not read as a selection handle.
     open_cp: rgb(0x86, 0x8E, 0x99),
 };
@@ -100,7 +100,7 @@ pub const DARK: Theme = Theme {
     ..LIGHT
 };
 
-/// FT-391's integer scale factor of the overlay marks at `ppp` physical pixels per point: `max(1, ⌊ppp⌋)`, at most
+/// The integer scale factor of the overlay marks at `ppp` physical pixels per point: `max(1, ⌊ppp⌋)`, at most
 /// 16 (a value that is not finite counts as 1).
 pub fn mark_scale(ppp: f64) -> i64 {
     if ppp.is_finite() && ppp >= 1.0 {
@@ -134,7 +134,7 @@ pub const OPEN_CP_MIN_STEP_PT: f64 = 4.0;
 /// `s`-pixel rim; 5 pixels at scale 1).
 pub const OPEN_CP_PX: i64 = 5;
 
-/// The colour token of a tool line (provisional until WP-S2.08's theme).
+/// The colour token of a tool line (provisional until the theme).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ToolToken {
     /// The ghost of a drag.
@@ -272,7 +272,7 @@ pub struct OverlayInput<'a> {
     pub grid: Option<GridSpec>,
     /// The hovered entity's rectangle (sheet nm).
     pub hover: Option<Rect>,
-    /// The selected entities' rectangles (sheet nm); nothing passes any in WP-S2.02.
+    /// The selected entities' rectangles (sheet nm); nothing passes any yet.
     pub selected: &'a [Rect],
     /// The keyboard grid cursor (sheet nm), drawn above every other overlay.
     pub cursor: Option<(i64, i64)>,
@@ -1432,7 +1432,7 @@ mod tests {
     }
 
     // ---------------------------------------------------------------------------------------------------------------
-    // FT-391's scale rule and the selection of doc 16a §7.1 (acceptance checks OV3 and OV6)
+    // The scale rule and the selection of doc 16a §7.1
 
     fn view_at(ppp: f64) -> View {
         View { ppp, ..view(1.0) }

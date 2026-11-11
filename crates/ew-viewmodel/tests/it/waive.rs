@@ -308,7 +308,7 @@ fn the_conflict_overlay_lists_the_merged_potentials_wires_until_the_bond_is_decl
     shell.shutdown();
 }
 
-/// FT-696 (GT-6): a connection point an EW-POT-001 finding names (a potential without a definition is
+/// A connection point an EW-POT-001 finding names (a potential without a definition is
 /// keyed by one) adds the wires that end at it to the overlay, in the page's connection order; a point without wires
 /// is a closed ring one grid step across, centred on the point; nothing named, nothing drawn.
 #[test]
@@ -357,7 +357,7 @@ fn a_named_connection_point_draws_its_wires_or_its_ring() {
     shell.shutdown();
 }
 
-/// FT-696 (GT-6): a real EW-POT-001 finding on a potential without a definition (Golden A without B1 and
+/// A real EW-POT-001 finding on a potential without a definition (Golden A without B1 and
 /// without its potential definitions, so 0 V and PE merge with no definition to key them) draws, through
 /// `conflict_overlay`, exactly the wires of the connection point its discriminator names: the overlay is that of one
 /// point of the page, and no definition gives members.

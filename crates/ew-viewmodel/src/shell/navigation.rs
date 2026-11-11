@@ -282,7 +282,7 @@ impl ShellModel {
 
     /// Sets up the view state of the project just installed: its page rows, one tab on the first page, the canvas
     /// focused, the navigator reset, the cache emptied. The ID aliases stay: they live for the whole script run, so an
-    /// earlier `@n` never names another record (ID-630 (b)).
+    /// earlier `@n` never names another record.
     pub(super) fn install_view(&mut self) {
         self.navigator = PageNavigator::new();
         // A project's navigator states and chips go with it (the panes stay in the layout).
@@ -1343,7 +1343,7 @@ impl ShellModel {
     /// the cycle starts from the navigator, as before the command bar.
     pub(crate) fn act_focus_cycle(&mut self, step: isize) -> Outcome {
         let groups = self.area.as_ref().map_or(0, |a| a.groups.len());
-        // WP-S2.17 part 2 (doc 16a §5.9): the command bar first.
+        // The command bar first (doc 16a §5.9).
         let ring: Vec<Focus> = std::iter::once(Focus::CommandBar)
             .chain(std::iter::once(Focus::Navigator(
                 crate::navigators::NavKind::Pages,

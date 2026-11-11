@@ -553,7 +553,7 @@ fn frames_of(session: &Session) -> (Vec<String>, Vec<Option<ew_schema::FrameGrid
     (keys, grids, built_in)
 }
 
-/// FT-336 review ruling: a frame-defaults rule that names a copy the project does not hold falls through to the next
+/// A frame-defaults rule that names a copy the project does not hold falls through to the next
 /// rule, identically in the page output and the cell grid (one resolution, `ew_derive::frame_form_of`); a divider
 /// takes the `section_divider` entry.
 #[test]
@@ -602,7 +602,7 @@ fn a_missing_frame_copy_falls_through_in_the_page_output_and_the_cell_grid_alike
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// WP-S1.19 part 4 (D14): the basic project is recorded and saved
+// The basic project is recorded and saved
 
 /// The project line of a session.
 fn project_line(session: &Session) -> serde_json::Value {

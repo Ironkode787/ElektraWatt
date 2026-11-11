@@ -805,7 +805,7 @@ fn slot_values(q: &Q, page: Id<Page>, rep: &Representation, def: &SymbolDef) -> 
         let text = match &slot.kind {
             SlotKind::Tag => match (&f, device) {
                 (Some(f), _) if matches!(f.kind, FunctionKind::Ip(_)) => None,
-                // ID-162, ID-1151 (doc 08 §6.1, §6.7): a terminal's own representation prints its label, never
+                // Doc 08 §6.1, §6.7: a terminal's own representation prints its label, never
                 // the full tag.
                 (_, Some(_)) if label.is_some() => label.as_ref().map(|(l, _)| l.clone()),
                 // `tag_print` PerPage prints a strip's tag at its first segment on each page only.

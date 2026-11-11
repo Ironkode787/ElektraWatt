@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Wire numbers (doc 08 §5.2, doc 20 §8.1, FR-NUM-019, FR-NUM-028; FT-100) on synthetic models: devices with
+//! Wire numbers (doc 08 §5.2, doc 20 §8.1, FR-NUM-019, FR-NUM-028) on synthetic models: devices with
 //! one CP each, drawn at chosen cells of the QET frame, wired by single connections.
 //!
 //! - `column_comes_before_row`: the From end's cell is compared by column, then row.
@@ -10,7 +10,7 @@
 //!   From page, whatever the To cell.
 //! - `a_tie_is_decided_by_the_wire_id_and_keeps_its_range`: equal cells, labels and route, the wire ID decides,
 //!   `tie` gives the counter range of the group.
-//! - FT-440, the tie-break among equal cells: `the_from_label_decides_before_the_wire_id_and_the_to_label`,
+//! - The tie-break among equal cells: `the_from_label_decides_before_the_wire_id_and_the_to_label`,
 //!   `the_labels_compare_in_natural_order`, `the_to_label_decides_when_the_from_labels_are_equal`,
 //!   `the_first_route_vertex_decides_when_the_labels_are_equal` (y, then x, a wire without a route last) and
 //!   `the_route_is_read_from_the_from_end`.
@@ -19,7 +19,7 @@
 //! - `a_terminal_in_a_strip_segment_has_a_cell_for_the_orientation`: a wire from a segment-only terminal to a
 //!   device below it on one page starts at the terminal.
 //! - `counters_run_per_page_and_the_page_token_is_the_folio_label`.
-//! - `the_flow_distance_decides_before_the_anchor_cell`: FT-101 rule 2, a source feeds two wires in a chain.
+//! - `the_flow_distance_decides_before_the_anchor_cell`: rule 2, a source feeds two wires in a chain.
 //! - `an_entry_through_a_pass_through_has_distance_zero`: the downstream CP of a pass-through pair is the
 //!   entry of the potential behind it, so the wire from that CP starts there.
 //! - `duplicated_pins_of_a_black_box_cost_no_hop`: two equal pins of a black box share one distance.
@@ -27,8 +27,9 @@
 //! - `a_rail_bond_is_not_a_hop`: a CP reachable only through a rail bond has no distance, rule 3 decides.
 //! - `unreached_and_tied_ends_fall_to_the_anchor_cell`: no entry, and two ends at equal distance.
 //! - `a_bond_wire_falls_to_the_anchor_cell`: a wire between two potentials is not compared by distance.
-//! - FT-478, the orientation's step 3 without minted IDs: `the_orientation_tie_is_decided_by_the_cp_label_and_not_by_the_ids`
-//!   and `the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted`.
+//! - The orientation's step 3 without minted IDs:
+//!   `the_orientation_tie_is_decided_by_the_cp_label_and_not_by_the_ids` and
+//!   `the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted`.
 //! - `a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not`: `cp_label` of a terminal whose FnDef
 //!   repeats a clamp letter on one level (a third-party FnDef) prints `/a#1`, `/a#2`; distinct letters print
 //!   `/a`, `/b`.
@@ -481,7 +482,7 @@ fn a_terminal_in_a_strip_segment_has_a_cell_for_the_orientation() {
         for w in &q.get::<PhysicalWiresOf>(p.id).wires {
             let mut w = w.clone();
             orient_wire(&q, &mut w);
-            // The terminal, at the top, is From; before FT-100 it had no cell and lost the orientation.
+            // The terminal, at the top, is From; it once had no cell and lost the orientation.
             assert_eq!(w.ends[0].cp.function, id(0x4011), "{w:?}");
             assert_eq!(w.ends[1].cp.function, id(0x1001));
             checked += 1;
@@ -569,7 +570,7 @@ fn oriented(q: &Q) -> BTreeMap<u128, (CpRef, CpRef)> {
     out
 }
 
-/// FT-101, doc 08 §3.8 rule 2: on one page the end with the smaller flow distance is From, before the anchor
+/// Doc 08 §3.8 rule 2: on one page the end with the smaller flow distance is From, before the anchor
 /// cell decides. A source S (a source-output CP) in cell (8, D) feeds B in (2, A), and B feeds A in (0, A):
 /// by cell A and B would come first, by flow distance S → B and B → A.
 #[test]
@@ -934,7 +935,7 @@ fn the_cell_of_a_function_drawn_twice_is_its_smallest_not_its_first_minted() {
 }
 
 /// `cp_label` of a terminal: a FnDef that repeats a clamp letter on one level (a third-party
-/// FnDef; the starter `ew.fn.terminal` names side 2 `b` since FT-505) prints `#n` in CP index order, a FnDef with
+/// FnDef; the starter `ew.fn.terminal` names side 2 `b`) prints `#n` in CP index order, a FnDef with
 /// distinct letters prints the letters alone.
 #[test]
 fn a_repeated_clamp_letter_takes_a_suffix_and_distinct_letters_do_not() {

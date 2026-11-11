@@ -186,13 +186,13 @@ pub enum RailLocation {
     /// A location node: the terminal's own, or, for a terminal without one, the project's only own location.
     Node(Id<StructureNode>),
     /// The project's implicit main location: a terminal without a location in a project that has no own location
-    /// node (amended, G-PP ruling #20).
+    /// node.
     Main,
 }
 
 /// The project's own locations, in ID order: the location-aspect structure nodes that no external reference names
 /// (an external reference's location is another installation's, such as `+J-E-206`), or that an own device or page
-/// assigns as its location (cycle 33 review finding 7: a location both named by an external reference and holding
+/// assigns as its location (a location both named by an external reference and holding
 /// own devices or pages is own, so that a terminal without a location does not see two own rails where there is
 /// one). Reads the structure nodes, the external references, the devices and the pages whole.
 fn own_locations(q: &Q) -> Vec<Id<StructureNode>> {
@@ -249,13 +249,13 @@ pub struct RailTerminal {
     pub location: Option<Id<StructureNode>>,
     /// The location whose rail it joins: its own; without one, the project's only own location, or the implicit
     /// main location when the project has none; `None` (EW-POT-008) when it has none and the project has two or
-    /// more own locations (amended, G-PP ruling #20).
+    /// more own locations.
     pub rail: Option<RailLocation>,
     /// Its location could not be resolved (a structure cycle, noted as `cycle`): it joins nothing, unnoted.
     pub skipped: bool,
     /// Its EW-TERM-005 and EW-POT-008 notes, in the stitch graph's order.
     pub notes: Vec<DeriveNote>,
-    /// The cycle note, pushed by the stitch graph outside its notes (as the cycle-7 stitch graph did).
+    /// The cycle note, pushed by the stitch graph outside its notes (as the stitch graph always did).
     pub cycle: Option<DeriveNote>,
 }
 
@@ -305,7 +305,7 @@ impl Query for RailTerminalOf {
             }
             out.rail = match location {
                 Some(node) => Some(RailLocation::Node(node)),
-                // Amended by cycle 33 (G-PP ruling #20): without a location, the terminal belongs to the project's
+                // Without a location, the terminal belongs to the project's
                 // implicit main location while the project has at most one own location.
                 None => match own_locations(q).as_slice() {
                     [] => Some(RailLocation::Main),

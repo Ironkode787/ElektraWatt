@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The placement and arrangement commands of WP-S2.04 part 1 (§5.1, §5.2, §13.1 row PL2): the `from_part` and
+//! The placement and arrangement commands: the `from_part` and
 //! `new_terminal` targets of `device.place` and `box.black`, `rep.move` by grid steps, `rep.exchange_symbol` and
 //! `project.drawing.set`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
@@ -743,7 +743,7 @@ fn new_terminal_rejections() {
     assert_eq!(e.model().rev(), rev);
 }
 
-/// G-PP finding 2: a part-first terminal (`new_terminal` with `part`) is the terminal `terminal.add` creates, with
+/// A part-first terminal (`new_terminal` with `part`) is the terminal `terminal.add` creates, with
 /// the part use `{part, qty 1}`; a part whose main template entry is another FnDef than the symbol's, and a missing
 /// part copy, are refused and write nothing; without `part` the target serialises as before.
 #[test]
@@ -1007,7 +1007,7 @@ fn move_hints_make_their_wires_and_refuse_a_cp_in_words() {
     );
 }
 
-/// ID-1509 (6), ADR-0007 decision 4: a `connect` hint onto a point of a connection would split an existing wire, so
+/// ADR-0007 decision 4: a `connect` hint onto a point of a connection would split an existing wire, so
 /// the move refuses it in words and changes nothing.
 #[test]
 fn a_move_refuses_a_hint_that_would_split_a_wire() {
@@ -1199,15 +1199,15 @@ fn move_by_steps_rejections() {
         }),
         "/steps",
     );
-    // FT-864 ("a refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres, names ... a
-    // wire by its printed number"): a wire whose route the move takes outside the drawable range is named by its
-    // number.
+    // A refusal text is words, with no JSON pointer, UUID, requirement ID or nanometres, names ... a
+    // wire by its printed number: a wire whose route the move takes outside the drawable range is named by
+    // its number.
     let mut edge = engine(steps_model_at(Nm(ew_commands::geometry::MAX_COORD - 1)));
     assert_eq!(
         rejection(edge.execute(&steps_cmd(vec![REP_102F2, REP_T1], [0, 1]))),
         "the move takes the route of wire 102.1 outside the drawable range; move it less far"
     );
-    // FT-864 (as above): a move to another page that leaves one end of a wire behind names the wire.
+    // A move to another page that leaves one end of a wire behind names the wire.
     let mut split = engine(arrange_model(|_| {}));
     assert_eq!(
         rejection(split.execute(&delta_cmd(vec![REP_102F2], pt(0, 0), Some(PAGE_101)))),
@@ -2074,7 +2074,7 @@ proptest! {
     }
 }
 
-/// FT-1029, the shrunk case of [`route_ends_stay_on_their_connection_points`] (kept in `proptest-regressions/`): the
+/// The shrunk case of [`route_ends_stay_on_their_connection_points`] (kept in `proptest-regressions/`): the
 /// move of `REP_102G1` brings its CP onto the CP of `REP_T1` at the other end of the straight wire; the step of
 /// `REP_T1` that follows moves only that wire's end `a`, and end `b` stays on its CP.
 #[test]
@@ -2090,7 +2090,7 @@ fn a_route_whose_ends_met_moves_one_end_only() {
     assert_eq!(row(&e, CON_P3).route.last(), Some(&met[1]), "end b stays");
 }
 
-/// FT-1029 at the geometry: a one-vertex route whose end `a` moves gets its end `b` back where it was; a route whose
+/// At the geometry: a one-vertex route whose end `a` moves gets its end `b` back where it was; a route whose
 /// ends meet leaves along an L when one end moves on both axes.
 #[test]
 fn ends_that_meet_stay_two_vertices_and_leave_along_an_l() {
@@ -2126,9 +2126,9 @@ fn a_two_vertex_route_moved_at_one_end_keeps_its_far_end_with_a_dog_leg() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-656: `copies` on device.place and box.black
+// `copies` on device.place and box.black
 
-/// The library of the FT-656 copies (another library than the fixture's, so the copies are new items).
+/// The library of the `copies` (another library than the fixture's, so the copies are new items).
 const LIBRARY_F: u128 = 0xf656_0000;
 
 /// `doc` as a library document of item `item` of [`LIBRARY_F`]: the copy identity as its ID and the hash of its
@@ -2165,7 +2165,7 @@ fn fixture_doc(copy: Uuid) -> LibDocument {
         .expect("a fixture document")
 }
 
-/// The FT-656 closure of `part` drawn with a copy of `SYM_TWO`: a new symbol item and a new part item (the part's
+/// The closure of `part` drawn with a copy of `SYM_TWO`: a new symbol item and a new part item (the part's
 /// FnDefs are the fixture's, held already); the symbol's and the part's copy IDs and the documents.
 fn closure(part: Id<ew_schema::Part>, part_item: u128) -> (Id<SymbolDef>, Id<ew_schema::Part>, Vec<Value>) {
     let (symbol, s) = relineaged(&fixture_doc(SYM_TWO.as_uuid()), 0xf656_0001);
@@ -2291,7 +2291,7 @@ fn ft656_box_black_embeds_its_copies_in_the_same_undo_step() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// FT-655 and library.update: a positional template entry's CPs follow their pattern entries
+// library.update: a positional template entry's CPs follow their pattern entries
 
 /// The positional part's library and item; its copy ID is their copy identity (`library.update` checks it).
 const LIBRARY_POS: u128 = 0xf655_0000;

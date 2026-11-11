@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.09 part 3 headless (§9 items 1 and 3, §10.3 PV2, PV5, PV7): Golden B through the renumber actions and the
+//! Headless: Golden B through the renumber actions and the
 //! Preview tab, with the history panel open, as an `ew.uiscript/1` script through the built binary, run twice on its own
 //! copy of Golden A with byte-identical transcripts; the `--record` log replayed onto a fresh copy gives the records of
 //! the saved project. A module of `tests/it/headless.rs`, whose `bin_exe` it uses.

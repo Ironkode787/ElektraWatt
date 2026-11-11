@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4b at the command layer (D22, FT-396; PS8's command half): `edit.paste`'s optional `adapt` reuses a
+//! `edit.paste`'s optional `adapt` reuses a
 //! held library copy of another version instead of refusing ("Use the project's copy"), in one transaction and one undo
 //! step; it refuses a major change from the pasted version to the held one, a copy listed twice, and a copy the
 //! fragment does not carry at another version, each at `/adapt/<i>`; without `adapt` the old refusal holds; an empty
@@ -123,7 +123,7 @@ fn adapt_refuses_a_major_change_twice_listed_and_unrelated_copies() {
     let mut e = engine(model(&held));
     let (path, message) = refusal(&mut e, &paste(&pasted, &[held.id.cast()]));
     assert_eq!(path, "/adapt/0");
-    // The whole refusal, one sentence with single spaces (FIX39a finding 4).
+    // The whole refusal, one sentence with single spaces.
     assert_eq!(
         message,
         "the project's version of FX-MCB-1PN differs from the pasted one in a major way (CP 2 (N) disappears, \

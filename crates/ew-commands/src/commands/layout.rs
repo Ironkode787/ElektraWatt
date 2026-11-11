@@ -3,7 +3,7 @@
 
 //! The `layout.*` commands (doc 12 §3): layout spaces, enclosures with their plate, carriers and
 //! placements, each one undo step. A placement's pose is given explicitly and checked against its carrier kind's
-//! degrees of freedom (`ew_derive::layout`, D5); with WP-S4.02's `mode` (D4, D5) `layout.place` and `layout.move`
+//! degrees of freedom (`ew_derive::layout`); with `mode` `layout.place` and `layout.move`
 //! resolve the position on a rail in free, push or swap mode and write every moved neighbour in the same step.
 //!
 //! The deletes are `Bulk` (previewed on a fork first) when they remove or rehome more than [`LAYOUT_BULK_ABOVE`]
@@ -773,9 +773,9 @@ impl Command for DeleteEnclosure {
 /// vertical line, a duct an orthogonal polyline. A rail's profile comes from its part's rail section when it has one
 /// (a different `profile` is refused). Rejected: a surface or part copy that does not exist (`/surface`, `/part`);
 /// parameters of the other kind (`/params`); a profile that is not a rail profile, a duct length ≤ 0 (`/params/…`); a
-/// path of the wrong number of points, a segment without length or at another angle (`/path`). `copies` (
-/// FT-656's pattern) embeds library documents first, in the same transaction, as `device.place` does (`/copies/i`), so
-/// that a library rail or duct part can be used directly. Interactive. Outcome: the new carrier.
+/// path of the wrong number of points, a segment without length or at another angle (`/path`). `copies`
+/// embeds library documents first, in the same transaction, as `device.place` does (`/copies/i`), so that a
+/// library rail or duct part can be used directly. Interactive. Outcome: the new carrier.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AddCarrier {
@@ -1066,11 +1066,11 @@ struct Resolved {
     neighbours: Vec<(Id<Placement>, Pose3)>,
 }
 
-/// Records, through the transaction, the reads the rail's items come from (orchestrator ruling 1 of lane B42): the
+/// Records, through the transaction, the reads the rail's items come from: the
 /// carrier, every placement on it, their devices with their part copies, and the terminals of the strips with theirs.
 /// The items themselves are computed on the base snapshot ([`TxBuilder::base_model`], whose reads are not recorded),
 /// so these reads make a concurrent edit of a neighbour on the rail conflict at merge (ADR-0008). Called once per
-/// command with every device the command places or moves (lane E42, override 2): each one's part copies and its
+/// command with every device the command places or moves: each one's part copies and its
 /// placements (`placements_of_device`) are read too, so a concurrent placement of the same device conflicts as well.
 fn note_rail_reads(tx: &TxBuilder<'_>, carrier: Id<Carrier>, devices: &[&Device]) {
     let note_parts = |d: &Device| {
@@ -1129,7 +1129,7 @@ struct Wording<'n> {
     names: &'n BTreeMap<Id<Placement>, String>,
 }
 
-/// D5's refusal of a mode, in words: the rail by its label in a sentence ("rail 1", ruling 4), devices by their tags.
+/// D5's refusal of a mode, in words: the rail by its label in a sentence ("rail 1"), devices by their tags.
 fn snap_text(tx: &TxBuilder<'_>, q: &Q, w: &Wording<'_>, e: SnapError) -> Text {
     let item = w.item.clone();
     let swap = w.mode == PlaceMode::Swap;
@@ -1213,7 +1213,7 @@ fn drop_item(
     (item, ext)
 }
 
-/// The one resolver over a given item list (D4; lane E42's split of [`resolve_on_rail`]): [`resolve`] with its refusal
+/// The one resolver over a given item list (split out of [`resolve_on_rail`]): [`resolve`] with its refusal
 /// worded. `layout.place` and `layout.move` pass the rail's items from the base snapshot; `layout.place_assembly`
 /// passes its in-memory list, which holds the placements it has resolved so far in the same transaction.
 fn resolve_items(
@@ -1233,7 +1233,7 @@ fn resolve_items(
 /// snapshot (the same [`rail_items`] the tool's ghost reads), the placement's own extent from [`rail_extent`], then
 /// [`resolve_items`]; the pose's `t.x` is the intended clip point, turned into the footprint's left edge and back.
 ///
-/// **One placement per transaction** (part 1, finding 5): the items come from
+/// **One placement per transaction**: the items come from
 /// [`TxBuilder::base_model`], which does not see the writes pending in the same transaction. A command that resolves
 /// several placements in one transaction (`layout.place_assembly`) keeps its own in-memory item list and calls
 /// [`resolve_items`] with it instead.
@@ -1663,7 +1663,7 @@ pub(crate) fn follow_part_change(
         }
         left.push((p, old.copy, row.function));
     }
-    // FIX40b ruling (C40 review part 2, finding 6): only the first replaced part use's placements follow the new copy.
+    // Only the first replaced part use's placements follow the new copy.
     let Some(first) = before.iter().find(|c| left.iter().any(|(_, copy, _)| copy == *c)) else {
         return Ok(());
     };
@@ -1676,7 +1676,7 @@ pub(crate) fn follow_part_change(
     Ok(())
 }
 
-/// FT-1441 (doc 12 §3.3's push): after terminals were inserted into `strip`, each placement of the
+/// Doc 12 §3.3's push: after terminals were inserted into `strip`, each placement of the
 /// strip as a whole on a rail (turned 0°) that grew shifts the items after it on the rail by the overlap, cascading
 /// ([`cascade`] with the grown strip first), in the same transaction. The grown width is the strip's terminals as the
 /// transaction holds them, side by side; the positions and the other strips' widths are the transaction's too
@@ -1983,7 +1983,7 @@ fn has_children(q: &Q, device: Id<Device>) -> bool {
     q.idx().device_children(device).any(|c| c != device)
 }
 
-/// The root of the assembly a device belongs to (D6, ruling 5 (c)): the device when it has children, else its
+/// The root of the assembly a device belongs to: the device when it has children, else its
 /// parent; `None` for a device that is neither.
 fn assembly_root(q: &Q, device: &Device) -> Option<Id<Device>> {
     if has_children(q, device.id) {
@@ -1993,7 +1993,7 @@ fn assembly_root(q: &Q, device: &Device) -> Option<Id<Device>> {
     }
 }
 
-/// [`assembly_root`] read through the transaction (part 2, finding 1): the device's children through
+/// [`assembly_root`] read through the transaction: the device's children through
 /// the `device_children` index, so that a concurrent new member or a member re-parented away conflicts at merge
 /// (ADR-0008). The device row itself is the caller's `tx.get`, its parent the row's.
 fn assembly_root_tx(tx: &TxBuilder<'_>, device: &Device) -> Option<Id<Device>> {
@@ -2014,10 +2014,10 @@ fn note_members(tx: &TxBuilder<'_>, root: Id<Device>) {
 }
 
 /// Records, through the transaction, the inputs from which `layout.place_assembly` and `layout.auto_fill` choose and
-/// order their devices but which they compute on the base snapshot (cycle-42 review part 2, finding 1; ADR-0008:
+/// order their devices but which they compute on the base snapshot (ADR-0008:
 /// every lookup is recorded in the read set): `mountable(dev)`, `unplaced(space)` and its device lists, the location
 /// (`StructureOf`) and the sort keys (`DeviceTag`, the drawn page order). These derived inputs cannot be read through
-/// the transaction one by one, so the tables they are derived from are recorded whole (orchestrator ruling 1): a
+/// the transaction one by one, so the tables they are derived from are recorded whole: a
 /// spurious conflict only re-runs the command, a missed one would apply stale prepared ops. `placements` adds the
 /// placement table, which `unplaced(space)` reads for every device of the space.
 fn note_choice_reads(tx: &TxBuilder<'_>, placements: bool) {
@@ -2125,7 +2125,7 @@ impl Command for PlaceAssembly {
         let Some(root) = assembly_root_tx(tx, &device) else {
             return tx.reject(text!("refusal-layout-not-assembly", tag(tx, self.device)));
         };
-        // Finding 1 of cycle-42 review part 2: how the members are chosen and ordered is in the read set.
+        // How the members are chosen and ordered is in the read set.
         note_members(tx, root);
         note_choice_reads(tx, false);
         let order = member_order(&q, root);
@@ -2231,7 +2231,7 @@ impl Command for PlaceAssembly {
     }
 }
 
-/// `layout.place_assembly` when some members are on the rail (D6, ruling 5 (d), override 3): each new member, in member
+/// `layout.place_assembly` when some members are on the rail: each new member, in member
 /// order, is pushed in after its predecessor (its doubled centre the smallest value above the predecessor's, so that
 /// [`resolve`] starts it at the predecessor's end plus the minimum gap), else before its first placed successor; the
 /// in-memory list `mem` carries every member placed so far, so a member this command placed and a later insertion
@@ -2262,7 +2262,7 @@ fn insert_members(
             .iter()
             .rev()
             .find_map(|d| items_of(mem, d).into_iter().max_by_key(|i| (i.s1, i.s0)));
-        // Ruling 4 of WP-S4.02 part 3: the slot is `ew_derive::layout::member_slot`, which the layout tool's ghost reads.
+        // The slot is `ew_derive::layout::member_slot`, which the layout tool's ghost reads.
         let succ = match pred {
             Some(_) => None,
             None => order
@@ -2394,7 +2394,7 @@ impl Command for AutoFill {
         };
         let base_model = tx.base_model().clone();
         let q = Q::new(&base_model);
-        // Finding 1 of cycle-42 review part 2: the default list, the refusals' inputs and the sort keys are in the
+        // The default list, the refusals' inputs and the sort keys are in the
         // read set.
         note_choice_reads(tx, true);
         // the space through the transaction, so that a concurrent move of the rail conflicts
@@ -2500,7 +2500,7 @@ impl Command for AutoFill {
     }
 }
 
-/// Why `layout.auto_fill` does not place a listed device (ruling 8), after the tag and a colon: placed already, of
+/// Why `layout.auto_fill` does not place a listed device, after the tag and a colon: placed already, of
 /// another space, not mountable, or a mount kind the rail's profile refuses; `None` when it is a candidate.
 fn fill_refusal(
     tx: &TxBuilder<'_>,
@@ -2626,7 +2626,7 @@ fn one_of(part: Id<Part>) -> PartUse {
 ///
 /// `copies` (the `lib/` JSON form, as `device.place` takes them) are embedded first. Then, in order: the location's
 /// layout space (created without a name when the location has none); the enclosure device, tag letter U with the
-/// lowest counter `n ≥ 1` whose frozen tag `UC<n>` no device holds, frozen `UC<n>` (ruling 3: a page-less device is
+/// lowest counter `n ≥ 1` whose frozen tag `UC<n>` no device holds, frozen `UC<n>` (a page-less device is
 /// never numbered), its location the given one and its function `function`, one piece of `part`; when the part's
 /// enclosure section names a plate part, the plate device, a child of the enclosure device frozen `UC<n>-plate` with
 /// one piece of the plate part and the same structure; then the enclosure and its plate surface exactly as
@@ -2730,14 +2730,14 @@ impl Command for CreateEnclosureFromPart {
         }
         let plate = plate_copy_id(&section);
         if plate.is_some_and(|p| !tx.exists::<LibCopy<Part>>(p)) {
-            // The copy is not held, so its part number is not known here (lane E42: the brief's text named it).
+            // The copy is not held, so its part number is not known here.
             return tx.reject(text!("refusal-layout-plate-part-missing"));
         }
         let space = match existing {
             Some(s) => s,
             None => insert_space(tx, self.location, None)?,
         };
-        // Ruling 3 (override 1): the lowest n ≥ 1 whose frozen tag UC<n> no device holds.
+        // The lowest n ≥ 1 whose frozen tag UC<n> no device holds.
         let frozen: BTreeSet<String> = tx
             .iter::<Device>()
             .into_iter()
@@ -2872,7 +2872,7 @@ impl Command for EditLayoutSpace {
 }
 
 /// `layout.enclosure.edit` (`EditEnclosure`, FT-840): moves an enclosure in its layout space. The pose is a translation
-/// with the identity rotation at this version (ruling 7: bayed suites are 1.x). Nothing else changes. Rejected: an
+/// with the identity rotation at this version (bayed suites are 1.x). Nothing else changes. Rejected: an
 /// enclosure that does not exist (`/enclosure`); a turned pose. Interactive. Outcome: the enclosure.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

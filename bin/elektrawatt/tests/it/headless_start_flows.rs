@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! End-to-end tests of the headless mode for the actions of WP-S2.01 part 2 (FT-307 to FT-312, FT-313's first part):
+//! End-to-end tests of the headless mode for the start actions:
 //! New project, the sample project, the tutorials, the QElectroTech import, the journal discard, the first-run flow,
 //! the company-standard wizard with its preview snapshot compared with the committed golden PNGs, workspaces and F1.
 //! No window, no GPU, no display; the sample project and the starter content are named through the environment.
@@ -417,7 +417,7 @@ fn the_wizards_defaults_reproduce_the_sample_pages_and_a_choice_changes_the_prev
     assert!(read(&tmp.path("config"), "settings.toml").contains("company.ew"));
 }
 
-/// FT-336 ruling: the check scheme's `HumanOnly` command is never applied from a UI script: the headless mode refuses
+/// The check scheme's `HumanOnly` command is never applied from a UI script: the headless mode refuses
 /// `wizard.apply_check_scheme` (confirmed or not) with the human-only reason, which the transcript records, and the
 /// run ends with exit code 1.
 #[test]

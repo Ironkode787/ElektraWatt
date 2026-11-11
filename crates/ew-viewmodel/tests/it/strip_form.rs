@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-1090 (the cycle-46 play-test): a new terminal strip takes a tag when it is created. The picker's New
+//! A new terminal strip takes a tag when it is created. The picker's New
 //! terminal strip (`strip.new {"dialog": true}`) opens a creation form (doc 16a §6.12) titled "New terminal strip"
 //! with one Tag field holding the tag the strip would take from a terminal on the page on show; Create commits it,
 //! a changed tag frozen in the same commit (one Undo step), the example left as it is derived; Escape cancels. A bare

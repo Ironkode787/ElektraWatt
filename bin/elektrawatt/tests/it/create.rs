@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-408 and FT-409 through the built binary (the pilot's prerequisites `page.new`, `structure.new` and
-//! `external_ref.new`, decision log ID-619 and ID-623): no window, no GPU, no display.
+//! The pilot's prerequisites `page.new`, `structure.new` and
+//! `external_ref.new` through the built binary: no window, no GPU, no display.
 //!
 //! - **Pages.** On a new project (`file.new`) a script runs `page.new` for folios 101 to 103 and the describe text
 //!   lists the three; two runs give byte-identical transcripts and the `--record` log replays on a copy of the start
@@ -79,7 +79,7 @@ fn folio_start(tmp: &Tmp) -> PathBuf {
     )
 }
 
-/// FT-409's acceptance (b): folio 101's external points print the texts of the node and the reference the two actions
+/// Folio 101's external points print the texts of the node and the reference the two actions
 /// made.
 #[test]
 fn folio_101s_external_points_print_the_structure_node_and_the_external_reference() {
@@ -221,13 +221,13 @@ fn folio_101s_external_points_print_the_structure_node_and_the_external_referenc
     s.run_script(&log, "a.ewcmd").unwrap();
     assert_eq!(s.page_tables("101").unwrap().reps.len(), 17);
 }
-/// FT-408's acceptance (a): folios 101 to 103 on a new project.
+/// Folios 101 to 103 on a new project.
 #[test]
 fn page_new_creates_folios_101_to_103_twice_identically_and_the_record_replays() {
     scripts::page_new_creates_folios_101_to_103_twice_identically_and_the_record_replays_case(false);
 }
 
-/// WP-S2.06 part 1 through the built binary (acceptance checks NV5, NV7 and NV10; §9 items 1 and 2): a script on a
+/// Through the built binary: a script on a
 /// copy of Golden A opens the Devices navigator with folio 102 shown, marks -201U3 by type-ahead and Space (the chips
 /// 201-E4 and 203-B4), opens it (folio 201), reorders 106 before 103 through the card, and saves. Two runs give
 /// byte-identical transcripts without a UUID; the `--record` log holds one `page.reorder` and replays on a third copy
@@ -237,7 +237,7 @@ fn a_navigator_script_runs_twice_identically_and_its_record_replays() {
     scripts::a_navigator_script_runs_twice_identically_and_its_record_replays_case(false);
 }
 
-/// WP-S2.06 part 2 through the built binary (acceptance checks NP3 and NP6; §9 items 1 and 2): a script on a copy of
+/// Through the built binary: a script on a copy of
 /// Golden A opens the further navigators, highlights 24VDC-1 from the Potentials navigator (type-ahead, then
 /// `navigator.highlight` on the cursor row), shows folios 102 and 103 and clears the highlights. Two runs give
 /// byte-identical transcripts without a UUID; the canvas section names the highlight on both folios; the `--record`
@@ -247,7 +247,7 @@ fn a_highlight_script_runs_twice_identically_and_records_nothing() {
     scripts::a_highlight_script_runs_twice_identically_and_records_nothing_case(false);
 }
 
-/// WP-S2.06 part 3 through the built binary (acceptance checks TB2 and TB8; §9 items 1 and 2): a script on a copy of
+/// Through the built binary: a script on a copy of
 /// Golden A shows the Terminal strips navigator as a table filtered `x1031` and sorted by Terminal, sets terminal 13's
 /// function text to "Spare" by a cell edit, marks terminals 13 to 17 and fills down, copies the marked rows and saves.
 /// Two runs give byte-identical transcripts without a UUID; the `--record` log holds the two `fields.set` steps and

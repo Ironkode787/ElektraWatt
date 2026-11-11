@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host's duties of WP-S2.04 part 2 (§8): arming the Wire tool and the keyboard route editor, the junction
+//! The tool host's duties: arming the Wire tool and the keyboard route editor, the junction
 //! sequence editor popup and its commits, the crossings setting, and the Wire tool's live region.
 //!
 //! **Reads.** The junction editor reads the page tables the canvas already holds and `Session::junction_wires` once
@@ -131,8 +131,7 @@ impl ShellModel {
     /// The connection kind the Wire tool draws on the focused page (doc 06 §2.2): `Ok(None)` a wire on a multi-line
     /// page, `Ok(Some("overview"))` on a single-line (the MVP kind), overview or assembly-overview page,
     /// `Ok(Some("fluid"))` (a working line, `{"fluid": {}}`) on a fluid page; refused on a bus-topology
-    /// page (its `Bus` kind is not drawn by this package) and on every page type whose Wire tool creates nothing (fix
-    /// round of WP-S2.04 part 2, item 1).
+    /// page (its `Bus` kind is not drawn by this package) and on every page type whose Wire tool creates nothing..
     pub fn wire_kind(&self) -> Result<Option<&'static str>, Key<'static>> {
         match self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) {
             Some("multi_line") => Ok(None),
@@ -473,7 +472,7 @@ impl ShellModel {
                     Some((device, tag, card, card_tag, position)),
                 ),
                 // FX38d: refused here in words, by the rule the command applies (`is_on_module`), not left to the
-                // command's error with record IDs; FT-753: the words say what to do.
+                // command's error with record IDs; the words say what to do.
                 Some(OffCardBind::Neither {
                     device,
                     card,
@@ -601,8 +600,7 @@ impl ShellModel {
         self.route_card(ew_api::routing::RouteScope::Selection(ids))
     }
 
-    /// The selected connections and representations of the focused page, which Route selection routes (ID-1509 (8):
-    /// it needs one).
+    /// The selected connections and representations of the focused page, which Route selection routes (it needs one).
     pub(crate) fn route_selection_ids(&self) -> Vec<ew_api::output::Uuid> {
         self.canvas().map_or_else(Vec::new, |c| {
             selection_kinds(&self.tools.selection, &c.page().tables)

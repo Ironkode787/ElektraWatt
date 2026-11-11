@@ -436,7 +436,7 @@ pub(crate) fn segmented(ui: &mut Ui, name: &str, choices: &[(&str, bool)]) -> Op
         let response = ui.interact(rect, list.id.with(i), egui::Sense::click());
         let text = (*label).to_owned();
         response.widget_info(|| egui::WidgetInfo::selected(egui::Role::Tab, true, *chosen, &text));
-        // WP-S2.11 D3 (R4): a tab of the list says it is the chosen one.
+        // A tab of the list says it is the chosen one.
         let selected = *chosen;
         ui.ctx()
             .accesskit_node_builder(response.id, |n| n.set_selected(selected));

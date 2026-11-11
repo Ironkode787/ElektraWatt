@@ -136,7 +136,7 @@ pub(crate) fn symbol_copy(tx: &TxBuilder<'_>, id: ew_ids::Id<ew_schema::SymbolDe
     document_words(tx, Kind::Symbol, words)
 }
 
-/// Any record by the words of its kind (WP-S3.09 D12's EW-IMP-010 and EW-IMP-011, the re-import card's rows): a device
+/// Any record by the words of its kind (EW-IMP-010 and EW-IMP-011, the re-import card's rows): a device
 /// by its tag, a function or an interruption point, a page, a symbol, a wire or a junction as above, else its kind with
 /// its article (`a conductor`… `an enclosure`). Keyed, so the window shows it in its language.
 pub(crate) fn record(tx: &TxBuilder<'_>, key: ew_model::AnyKey) -> TextArg {
@@ -228,8 +228,8 @@ pub(crate) fn copy(tx: &TxBuilder<'_>, kind: Kind, name: Option<String>, version
 }
 
 /// A library document's kind, item words and version; `None` for a kind this build does not read. A document with
-/// a name of its own is named by it with its kind's word ("manufacturer Phoenix Contact (PXC)", "symbol Contactor",
-/// ID-1455); else by a part's number, else the item's key.
+/// a name of its own is named by it with its kind's word ("manufacturer Phoenix Contact (PXC)", "symbol
+/// Contactor"); else by a part's number, else the item's key.
 fn document_parts(doc: &ew_schema::LibDocument) -> Option<(Kind, Option<TextArg>, &str)> {
     use ew_derive::neutral;
     use ew_schema::LibDocument as D;
@@ -468,7 +468,7 @@ pub(crate) fn rep_type(t: &RepType) -> TextArg {
     }
 }
 
-/// A page of a kind, with its article ("a panel layout page", FT-1395, the window's own wording of the page type
+/// A page of a kind, with its article ("a panel layout page", the window's own wording of the page type
 /// choice): a kind of a newer format by its stored value.
 pub(crate) fn page_kind(kind: &PageType) -> TextArg {
     match kind {

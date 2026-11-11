@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The play-test of cycle 40 (finding 5): the name typed in Tool options (`ip.name`) names the next interruption
+//! The name typed in Tool options (`ip.name`) names the next interruption
 //! point, on the IP tool's click and on the Wire tool's P, which takes it after a switch of tools; a placed point
 //! takes it, so the one after is proposed again.
 
@@ -82,8 +82,7 @@ fn a_name_typed_with_the_ip_tool_names_the_end_of_the_next_wire_ended_with_p() {
     assert_ne!(names[0], "0V");
 }
 
-/// A name typed with the IP tool names the point its click places, across a switch of tools; the cycle-41 review
-/// (finding 3): `ip.name` with an empty or blank text cancels the typed name, across a switch of tools too, so the
+/// A name typed with the IP tool names the point its click places, across a switch of tools; `ip.name` with an empty or blank text cancels the typed name, across a switch of tools too, so the
 /// point the next click places takes its automatic name; a missing `text` still fails.
 #[test]
 fn a_typed_name_names_the_point_its_click_places_until_an_empty_or_blank_name_cancels_it() {

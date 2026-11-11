@@ -74,8 +74,8 @@ pub struct MacroDrag(pub String);
 #[derive(Clone, Debug)]
 pub struct DeviceDrag(pub String);
 
-/// What the rows on show were built for, with the language generation they were translated in (ID-1278 ruling 5:
-/// View ▸ Language rebuilds them).
+/// What the rows on show were built for, with the language generation they were translated in (View ▸ Language
+/// rebuilds them).
 #[derive(Clone, PartialEq, Debug)]
 struct Stamped(u64, Stamp);
 
@@ -338,7 +338,7 @@ impl NavigatorPane {
                 .show(ui, crate::messages::footer);
             if shell.messages_detail().is_some() {
                 let pane = ui.available_height();
-                // X32b, FT-915: the detail block is as tall as its content (measured on the last frame; half the pane
+                // The detail block is as tall as its content (measured on the last frame; half the pane
                 // until then), so its Rule page link and its wrapped message are not cut at the 1280 x 800 floor (doc
                 // 16a §2), but never so tall that fewer than two rows fit; beyond that it scrolls. No pixel cap: the
                 // split scales with the pane.
@@ -356,7 +356,7 @@ impl NavigatorPane {
                         // Scrolled inside the panel's own height: egui's default minimum of 64 points would grow the
                         // panel past `size` and push its top over the rows.
                         let inner = ui.available_height().max(0.0);
-                        // Cycle 37 (window check): the floating bar stays visible at rest when the text (measured on
+                        // The floating bar stays visible at rest when the text (measured on
                         // the last frame) is longer than the block's room by more than a point, so a cut message reads
                         // as one that scrolls (egui's dormant floating bar is invisible); it takes no width, and a
                         // block that fits but for rounding shows none.
@@ -467,7 +467,7 @@ impl NavigatorPane {
             }
             return;
         }
-        // WP-S2.17 part 4 (CP5, doc 16a §6.17; K32): an empty list says why and what to do, once its rows are built.
+        // Doc 16a §6.17: an empty list says why and what to do, once its rows are built.
         if visible.is_empty() {
             let built = if pages {
                 shell.has_project()
@@ -483,12 +483,12 @@ impl NavigatorPane {
         }
         // The cursor is scrolled into view when it moved to a row outside the rows on show (the first and last ones may
         // be cut).
-        // K32, FT-529: the rows on show end where this frame's list ends, not where last frame's did (the Messages detail
+        // The rows on show end where this frame's list ends, not where last frame's did (the Messages detail
         // block that opens with the cursor, or a shorter pane, shortens the list).
         let fits = (list_rect.height().max(0.0) / row_height(ui.ctx())).floor() as usize;
         let shown_end = self.view.end.min(self.view.start + fits);
         let inside = |i: usize| self.view.start < i && i + 1 < shown_end;
-        // W31-1, FT-529: a list that got shorter (the Messages detail block opened below it, a dock or the window made
+        // A list that got shorter (the Messages detail block opened below it, a dock or the window made
         // smaller) scrolls its cursor back into view, in every navigator.
         let shrunk = list_rect.height() + 0.5 < self.list_height;
         self.list_height = list_rect.height();
@@ -521,7 +521,7 @@ impl NavigatorPane {
             area = area.animated(false);
         }
         let kind = self.kind;
-        // WP-S2.07 part 2 (FT-490): the row whose label F2 is renaming.
+        // FT-490: the row whose label F2 is renaming.
         let renaming = shell.nav_rename().filter(|r| r.kind == kind).cloned();
         let mut painted = 0;
         let mut view = 0..0;
@@ -808,7 +808,6 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
         NavKind::Structure => (IconId::sitemap, key!("empty-nav-structure")),
         NavKind::Parts => (IconId::packages, key!("empty-nav-parts")),
         NavKind::Blocks => (IconId::report, key!("empty-nav-blocks")),
-        // WP-S1.19 part 6 (§11).
         NavKind::Macros => {
             return (
                 IconId::package,
@@ -980,8 +979,8 @@ fn row_ui(
                 }
                 None => false,
             };
-            // A finding row's severity icon; a pending one is muted. WP-S2.17 part 3 (doc 16a §6.24,
-            // K32): the icon and the word; a severity group row has its icon in place of the folder.
+            // A finding row's severity icon; a pending one is muted. Doc 16a §6.24:
+            // the icon and the word; a severity group row has its icon in place of the folder.
             if let Some(look) = row.finding {
                 crate::messages::severity_cell(ui, look);
             } else if kind == NavKind::Messages
@@ -993,7 +992,7 @@ fn row_ui(
                 };
                 crate::messages::severity_icon(ui, look);
             }
-            // WP-S2.17 part 3 (doc 16a §6.6): the current page in `type.body.strong`; the badges are chips after the
+            // Doc 16a §6.6: the current page in `type.body.strong`; the badges are chips after the
             // text, not bracketed words.
             let font = if row.current {
                 crate::theme::font(&t.type_body_strong)
@@ -1014,7 +1013,7 @@ fn row_ui(
             // `space.4` padding, the title cut with an ellipsis before them and whole in its tooltip. A finding's
             // `fix`, `waived` and `pending` are status badges (its severity word is the severity cell's); a Messages
             // rule row's finding count is a count badge; another navigator's badges are caption chips.
-            // FT-1186 (doc 16a §6.24): a Messages group or rule row's count stands `space.2` after its name, not at the
+            // Doc 16a §6.24: a Messages group or rule row's count stands `space.2` after its name, not at the
             // row's far end.
             let counts: Vec<usize> = if kind == NavKind::Messages && row.finding.is_none() {
                 row.badges
@@ -1183,7 +1182,7 @@ fn row_ui(
                 "navigator.select",
                 json!({"kind": word, "keys": [row.key]}),
             ));
-            // FT-1024 (doc 16a §6.6): a single click on a page row opens that page; Ctrl-click and Shift-click
+            // Doc 16a §6.6: a single click on a page row opens that page; Ctrl-click and Shift-click
             // only mark rows, and a double click still opens.
             if pages && row.openable {
                 open(events, kind, pages, &row.key, false);

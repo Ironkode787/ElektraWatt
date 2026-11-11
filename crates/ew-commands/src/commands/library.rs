@@ -187,7 +187,7 @@ impl Command for EmbedLibraryCopies {
                     text!("refusal-params-item-twice"),
                 ));
             }
-            // WP-S7.03 D8, T2: an address profile that does not render never reaches a project.
+            // An address profile that does not render never reaches a project.
             // Its frame by key, as `ew_derive::unreadable_profile` words it; the engine's reason as it prints.
             if let LibDocument::PlcProfile(c) = &doc
                 && let Err(reason) = ew_derive::address_profile(&c.item)

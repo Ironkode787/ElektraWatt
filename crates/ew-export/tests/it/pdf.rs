@@ -547,7 +547,7 @@ fn hostile_images_are_skipped_never_a_panic() {
     assert_eq!(out.report.fonts.len(), 1, "the text is drawn");
 }
 
-/// WP-S2.04 part 5 (IM1, FR-SYM-025): an SVG image item that the export job resolved (a group clipped to the image's
+/// FR-SYM-025: an SVG image item that the export job resolved (a group clipped to the image's
 /// rectangle holding the SVG's filled paths) is drawn as vector operators, with no image XObject and nothing counted
 /// as skipped; the unresolved SVG image item the page scene holds is never embedded as a raster, and a PNG item next
 /// to it is one image object.

@@ -480,7 +480,7 @@ fn an_old_revisions_file_loads_typed_and_is_rewritten_canonically() {
     assert!(again.rewrite.is_empty());
 }
 
-/// WP-S1.18 part 1 (RL-1): a line written while the release record and the sign-off were untyped members (in
+/// A line written while the release record and the sign-off were untyped members (in
 /// `extra`, byte-wise order) loads into the typed members, partial payloads included, without a finding and without a
 /// rewrite: it is already canonical and writes back byte for byte. With `purpose` (still untyped, sorting before
 /// them) it loads with the same values and its line is kept as a later minor wrote it, `purpose` last only in the
@@ -1012,7 +1012,7 @@ const ITEM_LINES: [&str; 6] = [
     r#"{"$k":"structure_box","id":"5a0c1e2d-3b4f-5a61-8000-000000000005","page":"8e41c0d2-1b7f-5a39-a6c4-0f5e2d913b7a","outline":[[20000000,40000000],[80000000,40000000],[80000000,64000000],[20000000,64000000]],"style":"dash_dot","caption":"External Connection","assigns":{"location":"a41f6c2d-8e05-5d97-b3c1-5f2e8a7d9c60"}}"#,
 ];
 
-/// The migration test of WP-S2.04 §10.1: a page file holding both kinds and an unknown `page_item` variant reads
+/// The migration test: a page file holding both kinds and an unknown `page_item` variant reads
 /// without a finding (typed records, the unknown variant kept as `PageItemKind::Unknown`) and its lines are written
 /// back byte for byte: nothing is quarantined or scheduled for a rewrite, and the line with the unknown variant is
 /// kept as it was read while its record is untouched.

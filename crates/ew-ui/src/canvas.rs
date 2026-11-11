@@ -33,7 +33,7 @@
 //!    target page drawn from the same tile pool) and, when View, Frame statistics is on, the statistics.
 //!
 //! **Design language** (doc 16a §7): the marks take the canvas tokens of the theme egui shows
-//! ([`canvas_theme`]) and FT-391's scale rule (`ew-render2d`'s overlay); the hover outline is drawn around the first
+//! ([`canvas_theme`]) and the scale rule of `ew-render2d`'s overlay; the hover outline is drawn around the first
 //! entity of the pick stack under the pointer (FT-500, doc 16a §6.25), never on a selected one; a connection point
 //! under the pointer shows a tooltip in the inverse style (doc 16a §6.18, §7.2); the statistics panel is a diagnostic
 //! chip at the canvas's top right (§7.7). Chrome drawn over the canvas (the tool HUD, the zoom control) reports its
@@ -91,7 +91,7 @@ pub(crate) const GROUPS: usize = 2;
 
 /// The hover outline of a canvas while the active tool shows the hover (§7.1): the hovered link's
 /// rectangle, else, while an entity is hovered, the rectangle of the first entity of the pick stack under the pointer
-/// (the one a click picks, FT-500; WP-S2.17 part 5, doc 16a §6.25), else the hovered entity's; none on a selected
+/// (the one a click picks, FT-500; doc 16a §6.25), else the hovered entity's; none on a selected
 /// entity (doc 16a §7.1: the selection only). While the Join chooser is open, its active row's object instead (doc 16a
 /// §6.22).
 pub fn hover_rect(shell: &ShellModel, group: usize, c: &CanvasModel) -> Option<SheetRect> {
@@ -262,7 +262,7 @@ fn composite_wire_colours(
             }
         };
     for s in strokes {
-        // W49.2 F9, FT-1283: a laned stroke is drawn on its path moved into its lanes, its corners joined.
+        // A laned stroke is drawn on its path moved into its lanes, its corners joined.
         let s = s.in_lanes(ppp / t.px_per_nm());
         if s.cased {
             for (a, b, _, _) in s.segments() {
@@ -375,8 +375,8 @@ fn paint_conflicts(
     }
 }
 
-/// Paints `IconId::lock` at the top-right corner of each locked placement's footprint on a panel page (doc 12 §12.1,
-/// FT-997): `icon.sm` in `color.text.secondary`, fixed on screen whatever the zoom, standing on the footprint's top
+/// Paints `IconId::lock` at the top-right corner of each locked placement's footprint on a panel page (doc 12 §12.1):
+/// `icon.sm` in `color.text.secondary`, fixed on screen whatever the zoom, standing on the footprint's top
 /// edge at its right end, so it covers none of the device's drawing or labels. An overlay of the window only: the
 /// page's output (SVG, PDF) has no lock. Returns the icons' frames in points.
 /// The hovered link's text underlined, as a link (doc 16a §7.2's hover, P4): a 1-px `canvas.hover` line
@@ -598,8 +598,8 @@ fn printed_texts(list: &ew_viewmodel::ew_api::output::ew_dl::DisplayList) -> Vec
 /// Paints the wire-colour view's codes of `strokes` (D18): each code as a canvas chip (`canvas.chip` at 94 % with
 /// `canvas.chip_text` in `type.caption`, `radius.sm`, `space.1` padding) over every stroke, placed by doc 16a §7.4's
 /// rule from the middle of its stroke in its lane, clear of the codes placed before it, of the chrome
-/// `obstacles` and the other chips, of the `pointer`'s box and of the page's printed texts (
-/// [`crate::canvas_chips::wire_code_chips`]); a code with no free place is drawn faded. Returns the codes' frames with
+/// `obstacles` and the other chips, of the `pointer`'s box and of the page's printed texts
+/// ([`crate::canvas_chips::wire_code_chips`]); a code with no free place is drawn faded. Returns the codes' frames with
 /// whether each is faded, and the printed texts' frames.
 #[allow(clippy::too_many_arguments)]
 fn paint_wire_codes(
@@ -631,7 +631,7 @@ fn paint_wire_codes(
     let nm_per_pt = f64::from(ppp) / t.px_per_nm();
     let mut codes = Vec::new();
     for s in strokes {
-        // W49.2 F9, FT-1283: on its own stroke, in its lane.
+        // On its own stroke, in its lane.
         let Some(mid) = s.in_lanes(nm_per_pt).midpoint() else {
             continue;
         };
@@ -881,8 +881,8 @@ struct GroupView {
     /// Whether the primary button went down on this canvas and has not come up yet (its release is the tool's).
     pressed: bool,
     /// The input time (egui's, seconds) and position of the last primary press: a second one within
-    /// [`DOUBLE_CLICK_S`] and 4 points is a double click, `tool.finish` for a tool that finishes on one (
-    /// measured by the window's input clock, never by the model; a test harness steps that clock, so a double click is
+    /// [`DOUBLE_CLICK_S`] and 4 points is a double click, `tool.finish` for a tool that finishes on one
+    /// (measured by the window's input clock, never by the model; a test harness steps that clock, so a double click is
     /// decided without a sleep).
     last_press: Option<(f64, Pos2)>,
     /// Whether the open context menu was opened over an object (its selection commands) or over nothing (Paste);
@@ -1215,7 +1215,7 @@ impl CanvasHost {
         let centre = rect.min + egui::Vec2::new(x as f32, y as f32) / ppp;
         let mut colour = tokens.accent;
         colour.a = (f32::from(colour.a) * opacity).round() as u8;
-        // FT-1506 (doc 16a §5.5): the ring runs under the page's texts: it is left out where it crosses one,
+        // Doc 16a §5.5: the ring runs under the page's texts: it is left out where it crosses one,
         // so it never covers a text.
         let radius = tokens.size_control_inline;
         let stroke = crate::theme::stroke(2.0 * tokens.focus_width, colour);
@@ -1338,7 +1338,7 @@ impl CanvasHost {
         self.cache.len()
     }
 
-    /// The bytes of cached tiles of scenes not drawn in the last frame (tests: FT-356's share).
+    /// The bytes of cached tiles of scenes not drawn in the last frame (for tests).
     pub fn hidden_bytes(&self) -> u64 {
         let visible: Vec<u64> = self.visible_scenes();
         self.cache.hidden_bytes(&visible)
@@ -1429,9 +1429,9 @@ impl CanvasHost {
             events,
         );
         self.context_menu(&response, shell, canvas, group, events);
-        // FT-512's tooltip half (doc 16a §7.2, §6.18): the connection point under the pointer names its printed label,
+        // Doc 16a §7.2, §6.18: the connection point under the pointer names its printed label,
         // its kind and its potential in a tooltip in the inverse style.
-        // FT-1091: the link preview popup and a hover tooltip never show at once; while the popup shows, the
+        // The link preview popup and a hover tooltip never show at once; while the popup shows, the
         // tooltip waits (the popup is the richer answer to the same hover, and the two overlapped over the sheet).
         let popup_shows = shell.link_preview().is_some();
         if let Some(tip) = canvas.hovered_cp_tip() {
@@ -1705,7 +1705,7 @@ impl CanvasHost {
     ) {
         let ours = shell.focus() == Some(Focus::Canvas(group));
         // A toast's control that holds the keyboard focus keeps it until the toast goes or Escape returns it.
-        // (Only while a toast is on show, and evaluated last, C52-p3#4: reading another widget's response is kept off
+        // (Only while a toast is on show, and evaluated last: reading another widget's response is kept off
         // every frame where the canvas would not take the focus anyway, a text field's included.)
         let toast_holds = || {
             !shell.notifications().visible().is_empty()

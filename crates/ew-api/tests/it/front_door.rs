@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.09 step 3: the one front door of every importer call (D4) and the importer contract (D3). IC-1: each new
-//! `Limits` member refuses the smallest input above it, naming the limit; IC-3: the four contract breaches; IC-4: an
+//! The one front door of every importer call and the importer contract: each new
+//! `Limits` member refuses the smallest input above it, naming the limit; the four contract breaches; an
 //! importer that panics.
 
 use ew_api::import::{

@@ -118,7 +118,7 @@ fn paper(mode: &DevMode) -> (u32, [i16; 4]) {
     )
 }
 
-/// Ruling 3 of ID-1218: a named size of D6 is asked for by its Windows paper and the orientation, A1 (no Windows
+/// A named size is asked for by its Windows paper and the orientation, A1 (no Windows
 /// paper) by its sides in 0.1 mm; the settings keep their own size and the printer's name, and a block shorter than
 /// its own size is refused.
 #[test]

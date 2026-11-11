@@ -4,7 +4,7 @@
 //! The copy hash of `library.embed` (`ew-commands`) agrees with the format reader's (`ew-format`,
 //! EW-CORE-014): both are the SHA-256 of the item's compact JSON (doc 05 §13.2). `ew-commands` may not
 //! depend on `ew-format` (ARCH §3), so the two functions are kept equal by this test, which sees both. The kinds
-//! and members typed by WP-S1.19 part 1 (manufacturer and macro copies, the new part members) hash alike too.
+//! and members of the library items (manufacturer and macro copies, the new part members) hash alike too.
 
 use std::path::Path;
 
@@ -77,8 +77,9 @@ fn a_changed_item_changes_both_hashes_alike() {
     );
 }
 
-/// The kinds and members of WP-S1.19 part 1: a manufacturer copy, a macro copy and a part with every new member hash
-/// alike in both crates, and the hash is the SHA-256 of the item's compact JSON in declaration order.
+/// The kinds and members of the library items: a manufacturer copy, a macro copy and a part with every new
+/// member hash alike in both crates, and the hash is the SHA-256 of the item's compact JSON in declaration
+/// order.
 #[test]
 fn the_part_one_kinds_and_members_hash_alike() {
     use sha2::Digest;

@@ -4,7 +4,7 @@
 //! The library reference form of the commands (D7). The session resolves a [`LibRef`] with its
 //! closure from [`Session::libraries`] and composes `library.embed`, `part.assign` and `library.update` with the
 //! documents; the commands never read a library, so a command log replays on a machine with no library installed.
-//! Also the library status of the held copies (FT-487's data) and the update plan the card shows (D9).
+//! Also the library status of the held copies and the update plan the card shows (D9).
 
 use std::collections::BTreeSet;
 
@@ -105,7 +105,7 @@ pub struct CpMap {
     pub map: Vec<(u16, u16)>,
 }
 
-/// The library state of one held copy (FT-487's data).
+/// The library state of one held copy.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum CopyState {
     /// The library's document has the held copy's hash (or a lower version).
@@ -209,7 +209,7 @@ pub struct VersionConflict {
     pub newer: bool,
 }
 
-/// The FnDefs and the manufacturer a part names, the FnDef a symbol names (FT-640's closure items), by (kind, copy ID).
+/// The FnDefs and the manufacturer a part names, the FnDef a symbol names, by (kind, copy ID).
 fn named_items(doc: &LibDocument) -> Vec<(Kind, Uuid)> {
     let copy = |r: &LibRef| -> Uuid {
         let id: Id<()> = ew_derive::ew_ids::v5::lib_copy_id(r.library.as_uuid(), r.item.as_uuid());
@@ -740,7 +740,7 @@ impl Session {
         AnyCommand::of(&cmd).map_err(ApiError::Cmd)
     }
 
-    /// The library state of every held copy that came from a library (FT-487's data), in kind then copy
+    /// The library state of every held copy that came from a library, in kind then copy
     /// ID order: a local fork; else the item as [`Session::libraries`] holds it now: missing, deprecated (with its
     /// successor), the held hash (current), or another version (update available, with the class of the change; a
     /// lower library version counts as current). Project-local copies (the project's own items, `library_id` = the

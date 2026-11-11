@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The command palette (spec section 5.3; FR-UI-012), restyled by WP-S2.17 part 4 (doc 16a §6.14);
-//! its behaviour is WP-S2.08 part 1's: Ctrl+K opens a popover with a search field; the shell ranks the entries
+//! The command palette (spec section 5.3; FR-UI-012), restyled to doc 16a §6.14;
+//! its behaviour: Ctrl+K opens a popover with a search field; the shell ranks the entries
 //! (`ew_viewmodel::palette`: fuzzy score, glossary aliases, recents, the prefixes `>`, `@`, `#`, `:` and `?`);
 //! disabled entries follow the enabled ones with their reason; Enter runs the selected enabled entry or opens its
 //! parameter form (one row per parameter, Enter runs it, Escape returns to the list); Escape closes the palette.
@@ -260,7 +260,7 @@ pub fn show(
                 }
                 // The list asks for its own rows' height (up to ten): an egui area lays out in the size it had the
                 // frame before, so without it a list that grows (a reopened palette, a shorter query) stayed as short
-                // as the previous one (WP-S2.08 part 1's window check).
+                // as the previous one.
                 let rows = entries.len().min(10) as f32;
                 ScrollArea::vertical()
                     .max_height(t.size_palette_row * 10.0)
@@ -277,7 +277,7 @@ pub fn show(
     });
 }
 
-/// The rows of an open parameter form (WP-S2.08 D5 (a)): the action's label, then per parameter its label and a
+/// The rows of an open parameter form: the action's label, then per parameter its label and a
 /// field (a check box for a `bool`, a list for an enumeration, a text field otherwise), then the last error. Enter
 /// runs the form (the palette's Enter); Escape returns to the list (`ui.dismiss`).
 fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, events: &mut Vec<Event>) {

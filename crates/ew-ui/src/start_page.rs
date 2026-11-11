@@ -136,7 +136,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 &KEYMAPS,
             );
             ui.add_space(16.0);
-            // FT-1117 (item 3): this version has no update check; FT-1197 (doc 16a §8 item 2): so
+            // This version has no update check (doc 16a §8 item 2), so
             // there is nothing to change, and no Change button.
             ui.weak(strings::text(key!("start-update-check")));
         });

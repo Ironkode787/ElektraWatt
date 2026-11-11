@@ -70,7 +70,7 @@ const LOC: u128 = 0x900;
 /// A second own location: added and removed by the edits (an unlocated rail-bonded terminal joins the
 /// only own location, and no rail once there are two).
 const LOC2: u128 = 0x901;
-/// An external reference naming LOC2: added and removed by the edits (cycle 33 review finding 7: a location an external
+/// An external reference naming LOC2: added and removed by the edits (a location an external
 /// reference names is not own unless an own device or page uses it).
 const EXT2: u128 = 0x902;
 const J1: u128 = 0x3001;
@@ -553,7 +553,7 @@ fn op_of(model: &Model, batch: &mut Batch, next: u128, act: &Act) -> Option<Op> 
                 }
             })
         }
-        // Cycle 33: a second own location added or removed (nothing is placed in it); kept while an external
+        // A second own location added or removed (nothing is placed in it); kept while an external
         // reference names it (ExternalRef.location is Forbid).
         13 => {
             let loc2: Id<StructureNode> = id(LOC2);
@@ -568,7 +568,7 @@ fn op_of(model: &Model, batch: &mut Batch, next: u128, act: &Act) -> Option<Op> 
                 })))),
             }
         }
-        // Cycle 33 review finding 7: an external reference naming LOC2 added or removed. While it exists, LOC2 is
+        // An external reference naming LOC2 added or removed. While it exists, LOC2 is
         // another installation's location (no own device or page uses it), so the unlocated rail-bonded terminals
         // join the only own location again.
         14 => {

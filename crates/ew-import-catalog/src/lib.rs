@@ -3,7 +3,7 @@
 
 //! Parts import from CSV and XLSX (MVP), BMEcat and ETIM xChange (1.x), behind `ew-interop-api`.
 //!
-//! WP-S1.19 part 4 (D11, FR-PRT-016): one general parts import for every supplier list.
+//! FR-PRT-016: one general parts import for every supplier list.
 //!
 //! - **The column map** ([`ColumnMap`]): `member ← header` for the members `manufacturer`, `part_number`,
 //!   `type_designation`, `order_number`, `gtin`, `description` (one column per language), `kind`, `unit`,

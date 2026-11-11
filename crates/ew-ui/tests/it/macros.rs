@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 6 in the window (§11): UI-1 (the Macros navigator's detail of the PSU macro: name, version, "No
-//! preview", its devices), UI-2 (insert the PSU macro on folio 105 from the navigator: the whole block's card lists
+//! In the window: the Macros navigator's detail of the PSU macro (name, version, "No
+//! preview", its devices); inserting the PSU macro on folio 105 from the navigator (the whole block's card lists
 //! the pairings of L-1 and N-1 and EW-CORE-052's refusal; the core macro's card has no conflicts and Apply is one undo
-//! step) as a kittest flow and its `ew.uiscript/1` twin, and UI-6 (the accessible-name walker of every settle).
+//! step) as a kittest flow and its `ew.uiscript/1` twin, and the accessible-name walker of every settle.
 //!
 //! The PSU macro is saved first through Save as macro… into a fixture user library on another copy of Golden A (no
 //! macro ships in `content/`); a headless script cannot save one (a library write is a front-end operation).
@@ -143,7 +143,7 @@ fn ui1_ui2_insert_the_psu_macro_on_folio_105_from_the_macros_navigator() {
     dispatch(&mut h, "page.goto", json!({"folio": "105"}));
     dispatch(&mut h, "navigator.show", json!({"kind": "macros"}));
     settle(&mut h);
-    // The navigator's header and (FT-754 (g)) the rail's entry.
+    // The navigator's header and the rail's entry.
     assert!(
         h.query_all_by_label("Macros").count() >= 1,
         "the Macros navigator"
@@ -152,7 +152,7 @@ fn ui1_ui2_insert_the_psu_macro_on_folio_105_from_the_macros_navigator() {
     dispatch(&mut h, "navigator.row", json!({"kind": "macros", "key": core}));
     settle(&mut h);
     assert!(group_named(&h, "PSU 24 V DC"), "the detail block");
-    // FT-754 (a): the thumbnail, an image named after the macro, in place of "No preview".
+    // The thumbnail, an image named after the macro, in place of "No preview".
     assert!(
         h.get_all_by_role(egui::Role::Image)
             .any(|n| n.accesskit_node().label().as_deref() == Some("Preview of PSU 24 V DC")),

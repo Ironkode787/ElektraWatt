@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The start-up dialog (FR-UI-050's 0.1.0 part): the unsaved work of an earlier session and the crash
-//! log of a session that ended with a panic, in the dialog frame of WP-S2.17 part 4 ([`crate::dialog`]). The title, the
+//! log of a session that ended with a panic, in the dialog frame ([`crate::dialog`]). The title, the
 //! crash line and the buttons are the offer's specification ([`StartupOffer::spec`], which `ui.describe` lists too);
 //! between them one row per project with its path under it (with several projects a choice, which the Primary Recover
 //! opens), and the refusal of the last answer. The Primary takes the first focus (doc 16a §6.12); Escape is

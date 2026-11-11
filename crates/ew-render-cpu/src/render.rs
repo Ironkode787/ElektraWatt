@@ -147,10 +147,10 @@ impl std::fmt::Display for RenderError {
 impl std::error::Error for RenderError {}
 
 /// What the renderer skipped (never a panic): fonts the resolver did not have, unresolved instances,
-/// and images it does not draw: an image without its bytes (the export job resolves them from the asset store,
-/// FT-384), an SVG image item (the export job turns SVG into paths first), and bytes that do not decode as a PNG or a
-/// JPEG within [`MAX_IMAGE_PIXELS`](crate::MAX_IMAGE_PIXELS) ([`decode_image`](crate::decode_image)). A PNG or JPEG
-/// image is drawn stretched over its rectangle.
+/// and images it does not draw: an image without its bytes (the export job resolves them from the asset
+/// store), an SVG image item (the export job turns SVG into paths first), and bytes that do not decode as a
+/// PNG or a JPEG within [`MAX_IMAGE_PIXELS`](crate::MAX_IMAGE_PIXELS)
+/// ([`decode_image`](crate::decode_image)). A PNG or JPEG image is drawn stretched over its rectangle.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct RenderReport {
     /// The fonts of skipped glyph runs, sorted and deduplicated.
@@ -267,8 +267,8 @@ pub fn render_placed(
     ))
 }
 
-/// Renders the device rows `first_row .. first_row + rows` of [`render_placed`]'s image at the same options (WP-S3.07
-/// D12, ruling 1 of ID-1218: the bands a printer is sent): the paper's full width, the same passes under the same
+/// Renders the device rows `first_row .. first_row + rows` of [`render_placed`]'s image at the same options
+/// (the bands a printer is sent): the paper's full width, the same passes under the same
 /// transforms translated up by `first_row` rows, the overlay's too. A band that would run past the paper's last row
 /// ends with it, so the band has `min(rows, paper rows − first_row)` rows and its memory is bounded by `rows`.
 ///

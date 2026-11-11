@@ -13,10 +13,10 @@
 //! junctions, potential definitions, page items and structure boxes. Another application sees JSON Lines after one
 //! comment line (FR-UI-040).
 //! Within v1 the `$fragment` header is open (a member this version does not know is ignored, room for later minor
-//! additions such as WP-S1.19's macros), while a `$node` line's members are closed (`id`, `aspect`, `path`,
+//! additions such as macros), while a `$node` line's members are closed (`id`, `aspect`, `path`,
 //! `aliases`; any other is refused).
 //!
-//! **Order** (§9 item 3; FT-439's rule that machine text is not ordered by UUID): records by (kind rank, position,
+//! **Order** (§9 item 3; machine text is not ordered by UUID): records by (kind rank, position,
 //! ID): a representation's insertion point (x, then y), a junction's point, a function's and a device's first copied
 //! representation, a connection's and a potential definition's end, a page item's anchor point (a graphic's first
 //! point, a text's or marker's `at`), a structure box's first outline vertex; library copies by (kind, part number or
@@ -216,7 +216,7 @@ fn older_format() -> crate::Text {
 /// line and a nesting of 64; every line strict JSON (repeated member names refused). Within v1 a header member this
 /// version does not know is ignored; a newer `format` or a record of a newer schema version is refused
 /// ([`FragmentError::Newer`]); an older `format`'s records and library copies, and a record of an older schema version,
-/// migrate through the shipped chain ([`MIGRATIONS`], FT-403, WP-S1.17 D12; a copy whose item a step changed takes its
+/// migrate through the shipped chain ([`MIGRATIONS`]; a copy whose item a step changed takes its
 /// migrated item's hash, as the loader does: [`rehash_migrated_copy`]), and what it does not reach is refused as
 /// [`FragmentError::Invalid`]; the parameters carry this version's format. A record must be of a pasted kind and read
 /// as a record; a library copy as a library document; IDs are distinct. Line ends may be CRLF (a clipboard may convert

@@ -106,8 +106,8 @@ fn the_catalogue_is_the_expected_one() {
     assert!(field_catalogue("macro").is_none());
     assert!(field_catalogue("manufacturer").is_none());
     assert!(field_catalogue("no_such_kind").is_none());
-    // An implemented kind has one: `waiver` since WP-S1.16 part 5 (its members are read-only, the commands
-    // check.waive and check.unwaive write it), `logical_net` and `physical_net` since WP-S1.21 part 4 (D11). The set
+    // An implemented kind has one: `waiver` (its members are read-only, the commands
+    // check.waive and check.unwaive write it), `logical_net` and `physical_net`. The set
     // grows, so its total is not pinned (CONTRIBUTING.md).
     for kind in ["waiver", "logical_net", "physical_net"] {
         assert!(
@@ -417,7 +417,7 @@ fn mixed_and_missing_selections() {
     assert_eq!(sheet.header.title, "2 devices");
 }
 
-/// FT-1127 (item 5): an interruption point's Properties header names its kind in the navigators' words, not
+/// An interruption point's Properties header names its kind in the navigators' words, not
 /// the raw kind word "representation".
 #[test]
 fn an_interruption_points_header_names_its_kind_in_words() {
@@ -558,7 +558,7 @@ fn the_project_has_its_settings_rows_and_d06_shows_its_finding() {
     assert!(sheet.header.findings.iter().all(|f| f.rule != "EW-CORE-023"));
 }
 
-/// FT-485 item 2: the frozen tag is typed as the page prints it.
+/// The frozen tag is typed as the page prints it.
 #[test]
 fn the_frozen_tag_takes_the_printed_tag_as_text() {
     let s = golden();
@@ -578,7 +578,7 @@ fn the_frozen_tag_takes_the_printed_tag_as_text() {
     ));
 }
 
-/// WP-S2.07 CT3 (FT-429): a cable's length is typed in metres or as its words, and shows as it is typed.
+/// FT-429: a cable's length is typed in metres or as its words, and shows as it is typed.
 #[test]
 fn the_cable_length_is_typed_in_metres_or_words() {
     let s = golden();
@@ -1083,7 +1083,7 @@ fn an_external_points_row_names_its_reference() {
     assert_eq!(text(&s), "JE-N1000-03");
 }
 
-/// WP-S1.20 D18 (FL-15): a fluid line's sheet has the row Line kind with its word and no Kind row of raw JSON; a wire
+/// A fluid line's sheet has the row Line kind with its word and no Kind row of raw JSON; a wire
 /// has no Line kind row.
 #[test]
 fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {

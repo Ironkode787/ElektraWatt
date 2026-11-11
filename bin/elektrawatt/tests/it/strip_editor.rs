@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 SE6, G-PP's H4 rows through the built binary. On a copy of Golden A (the three strips 1X1, -X1031 and
+//! G-PP's H4 rows through the built binary. On a copy of Golden A (the three strips 1X1, -X1031 and
 //! -X1032 with their terminals, parts and the TBD part copies of the task's prelude; the G-PP start of
 //! `tests/gpp_demo.rs` has no placed strip yet, so its tags print `-X??` until the folios are drawn), a headless
 //! script clears the strips' part uses (Golden A's stand-in for the end brackets and bridges), removes Golden A's

@@ -3,8 +3,7 @@
 
 //! The EW-CORE rules of cables, parts and devices (EW-CORE-031, -032, -034, -036, -037, -041 to
 //! -045, -048), EW-CORE-008's `form` half and the canonical finding order. One positive and one
-//! negative fixture per rule (P3-1), prevent rules refusing the candidate and only it, and the ID-permutation tests
-//! of WP-S1.16 §10.
+//! negative fixture per rule, prevent rules refusing the candidate and only it, and the ID-permutation tests.
 
 use crate::common;
 
@@ -602,7 +601,7 @@ fn core048_reports_children_not_covered_exactly_once() {
     assert!(findings_of(&assembly(&[&[0x101]], "components"), "EW-CORE-048").is_empty());
 }
 
-/// FT-368, EW-CORE-008 `form`: a page whose frame defaults name form copies the project does not hold is an error in
+/// EW-CORE-008 `form`: a page whose frame defaults name form copies the project does not hold is an error in
 /// release mode, one finding per page; frame defaults that name nothing are not reported.
 #[test]
 fn core008_reports_frame_defaults_naming_a_missing_form() {

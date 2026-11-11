@@ -140,7 +140,7 @@ impl FieldType {
     }
 
     /// Whether this is a list of part uses (a device's `parts`): its editor is the minimal part chooser (the G-PP
-    /// run's first finding, moved forward from WP-S2.07): the project's part copies by part number, quantity 1.
+    /// run's first finding): the project's part copies by part number, quantity 1.
     pub fn is_part_uses(&self) -> bool {
         matches!(self.inner(), FieldType::List(item) if matches!(&**item, FieldType::Group(c)
             if c.iter().any(|n| n.name == "part") && c.iter().any(|n| n.name == "qty")))
@@ -164,7 +164,7 @@ pub enum Category {
     Structure,
     /// Page placement and geometry.
     Placement,
-    /// A panel page's surface view: its surface, label mode and datum (W44.4 F-d).
+    /// A panel page's surface view: its surface, label mode and datum.
     SurfaceView,
     /// The terminal and strip aspects.
     Terminal,
@@ -309,7 +309,6 @@ pub enum EditRoute {
         /// The settings member.
         member: String,
     },
-    // WP-S4.02 part 4 (D12, ruling 3)
     /// A layout row: its text compiles through `Session::layout_edit` into exactly this one command (`layout.move`,
     /// `layout.carrier.edit`, `page.surface_view.set`, …), never `fields.set`.
     Command {
@@ -444,10 +443,10 @@ fn ref_name(node: &Value) -> Option<&str> {
 /// junction style) keep their JSON editor.
 const UNIT_VARIANT_GROUPS: &[&str] = &["FunctionKind"];
 
-/// The variants of an externally tagged enum whose every variant carries an object payload (`{"graphic": {…}}`,
-/// WP-S2.04 part 4a): a group of the variants, each optional (one is present); `None` for any other `oneOf`. With
-/// `units` (an enum of [`UNIT_VARIANT_GROUPS`]) its unit variants (a `const` word) are left out, so long as one variant
-/// carries a payload.
+/// The variants of an externally tagged enum whose every variant carries an object payload (`{"graphic":
+/// {…}}`): a group of the variants, each optional (one is present); `None` for any other `oneOf`. With
+/// `units` (an enum of [`UNIT_VARIANT_GROUPS`]) its unit variants (a `const` word) are left out, so long as
+/// one variant carries a payload.
 fn tagged_variants(root: &Value, branches: &[Value], depth: usize, units: bool) -> Option<Vec<FieldNode>> {
     let unit = |b: &Value| units && b.get("const").is_some_and(Value::is_string);
     let variants: Option<Vec<FieldNode>> = branches
@@ -601,7 +600,7 @@ const IDENTIFIERS: &[(&str, &str)] = &[
     ("connection", "number"),
     ("device", "plc_module.start"),
     ("device", "plc_module.slot"),
-    // WP-S2.06 part 3 (the orchestrator's ruling on §8.2): names that must be unique are identifiers.
+    // Names that must be unique are identifiers.
     ("potential_def", "name"),
     ("structure_node", "code"),
 ];
@@ -2314,7 +2313,7 @@ mod tests {
         }
     }
 
-    /// FT-1122 (item 4): the Parts row's choices take the place chooser's order, (maker, part number, copy),
+    /// The Parts row's choices take the place chooser's order, (maker, part number, copy),
     /// embedded and library parts alike: a library part sorts among the embedded ones, not after them.
     #[test]
     fn the_parts_row_takes_the_choosers_order() {

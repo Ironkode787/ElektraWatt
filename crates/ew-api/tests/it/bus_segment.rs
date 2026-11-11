@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 4 on Golden A (acceptance BU-2, BU-3, BU-4, BU-5, BU-6 = AC-31; D11, D12): the DP segment runs from
+//! On Golden A (AC-31): the DP segment runs from
 //! the external end over -3W1 and -3X1 to -201U1:DP; the external partner JE-N1000-03 is the master and in no BOM;
 //! EW-BUS-004 gives one info for the external end and no error while -3X1 is On, an error once it is Off; EW-BUS-001
 //! reports the TBD station address once (EF-03) and supersedes EW-CORE-044.

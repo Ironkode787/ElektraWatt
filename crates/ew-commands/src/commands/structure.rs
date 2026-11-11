@@ -171,8 +171,8 @@ impl Command for CreateSection {
 /// not listed twice); one of them must be `form` (else invalid at `/form`). A copy the project does not hold is
 /// embedded in the same transaction, so one undo step removes the block and the copies; a copy of an item it holds
 /// in the same version (the same `sha256`) is used as held; another version is rejected ("update from library" is
-/// a previewed command of its own, FR-PRT-014). The lookups are structural reads of the transaction (decision log
-/// ID-525), never derived queries.
+/// a previewed command of its own, FR-PRT-014). The lookups are structural reads of the transaction,
+/// never derived queries.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateReportBlock {

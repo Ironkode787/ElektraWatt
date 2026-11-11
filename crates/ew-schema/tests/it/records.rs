@@ -181,7 +181,7 @@ fn a_text_slot_style_is_optional_and_round_trips() {
 
 #[test]
 fn a_function_template_entry_is_optional_appended_and_round_trips() {
-    // FT-655 (ADR-0011 amendment 1): `Function.template_entry` is optional, written only when present, after the
+    // ADR-0011 amendment 1: `Function.template_entry` is optional, written only when present, after the
     // existing members and before unknown ones; a line without it (every file written before it) is unchanged.
     let plain = fill(
         r#"{"$k":"function","id":"@FN_S51","device":"@DEV_S51","def":"@FNDEF_MCB","role":"aux","source_ref":{"lineage":"@LIN","key":"k"}}"#,
@@ -423,7 +423,7 @@ fn a_revision_is_typed_and_lives_in_the_revisions_file() {
     assert!(!r.page_notes[1].description.is_empty());
 }
 
-/// The historic released revision of FT-165: no date is required, no release record, no archive.
+/// The historic released revision: no date is required, no release record, no archive.
 #[test]
 fn a_historic_released_revision_needs_only_label_and_state() {
     let line = fill(r#"{"$k":"revision","id":"@REV_V1","label":"V1.0","state":"released"}"#);
@@ -434,7 +434,7 @@ fn a_historic_released_revision_needs_only_label_and_state() {
     assert!(r.date.is_none() && r.author.is_none() && r.page_notes.is_empty() && r.extra.is_empty());
 }
 
-/// WP-S1.18 part 1 (D2, RL-1): `reason`, `release` and `sign_off` are typed, appended after the earlier members in
+/// `reason`, `release` and `sign_off` are typed, appended after the earlier members in
 /// byte order of their names; `purpose` (1.0) stays in `extra` and is written after them, nested unknown members of
 /// a page note too; `withdraws` (the ID of the withdrawn revision) is typed.
 #[test]

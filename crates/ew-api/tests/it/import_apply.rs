@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.09 step 4: a QET project becomes a project through `import.apply` (D7, D13). IC-6: the synthetic folios 101 to
+//! A QET project becomes a project through `import.apply`: the synthetic folios 101 to
 //! 103 written as a new project hold the batch's records, an import run under `imports/` and the lineage's `last_run`,
-//! and two imports with the same ID seed give the same bytes; IC-8: the run reads back unchanged after a save and a
+//! and two imports with the same ID seed give the same bytes; the run reads back unchanged after a save and a
 //! reopen; the import is one non-undoable checkpoint.
 
 use crate::golden_common::repo;

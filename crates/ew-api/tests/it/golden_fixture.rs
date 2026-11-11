@@ -173,7 +173,7 @@ fn the_fixture_opens_without_findings() {
     assert_eq!(model.table::<StructureNode>().len(), 4);
     assert_eq!(model.table::<ExternalRef>().len(), 4);
     assert_eq!(model.table::<Device>().len(), 68 + 28);
-    // WP-S1.20 GA-2: the fluid lines F1 to F16
+    // The fluid lines F1 to F16
     assert_eq!(model.table::<Connection>().len(), 72 + 19 + 2 + 16);
     assert_eq!(model.table::<Function>().len(), functions);
     assert_eq!(model.table::<Representation>().len(), representations);

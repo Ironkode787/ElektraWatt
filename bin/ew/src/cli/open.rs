@@ -31,8 +31,7 @@ pub(super) fn ewz_refusal(path: &Path) -> String {
 
 /// The explicit project, else the directory found from the current directory, for a reader (`check`, `sql`, the row
 /// and page exports, `export table`, `print`, `render`, `verify-derived`, `query`, `layout`, `fmt --check`, `upgrade
-/// --check`): an `.ewz` is taken as it is and opened read-only from memory by `Session::open_reader` (ID-1175 ruling
-/// 5).
+/// --check`): an `.ewz` is taken as it is and opened read-only from memory by `Session::open_reader`.
 pub(super) fn reader_dir(explicit: Option<&PathBuf>) -> Option<PathBuf> {
     match explicit {
         Some(d) => Some(d.clone()),
@@ -215,8 +214,7 @@ pub(super) fn open_editing_to(
 
 /// The refusal of every writer (`apply`, `fmt`, `recover`, `import parts`, the human-only subcommands) whose open went
 /// read-only (`ew recover` refuses a held lock with `ew apply`'s text). The reason is in words,
-/// those the window uses, with no session ID, process ID or `@` (the ruling WP-S1.22 §10.2 rule 3 needs for a
-/// changed text is ruling 1 of the cycle-42 FT batch).
+/// those the window uses, with no session ID, process ID or `@`.
 pub(super) fn read_only_refusal(dir: &Path, reason: &ew_api::ReadOnlyReason) -> String {
     format!(
         "error: {}: the project opens read-only: {}; nothing was written",
@@ -259,7 +257,7 @@ pub(super) fn older_format(dir: &Path, from: &str) -> String {
 
 /// The refusal of every writer (`apply`, `fmt`, `import parts`, the human-only subcommands) while a crashed session's
 /// journal holds unsaved changes, which a new save would hide (doc 05 section 8.3). It names the command that replays
-/// or discards them, `ew recover`, and no follow-up number (ruling 1 of its fix round).
+/// or discards them, `ew recover`, and no follow-up number.
 pub(super) fn journal_refusal(dir: &Path) -> String {
     format!(
         "error: {}: a crashed session left unsaved changes in its journal; replay or discard them first with `ew \

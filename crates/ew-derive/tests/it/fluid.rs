@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fluid side of WP-S1.20: the fluid partition `fluid_nets` (D12), which joins fluid lines and their junctions
+//! The fluid side: the fluid partition `fluid_nets`, which joins fluid lines and their junctions
 //! and leaves every electrical net as it is.
 
 use crate::common;

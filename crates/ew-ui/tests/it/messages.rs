@@ -325,7 +325,7 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
 }
 
 /// `navigator.row` to a finding under a collapsed group expands the path and scrolls the cursor row into view;
-/// a finding out of view is scrolled to as well (Golden A's findings, the window 1280 by 800; FX38d: the dock leaves the
+/// a finding out of view is scrolled to as well (Golden A's findings, the window 1280 by 800; the dock leaves the
 /// page view half the window, so a 640-high window shows too few rows).
 #[test]
 fn navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_into_view() {
@@ -468,8 +468,8 @@ fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
     assert!(shell.navigator_open(NavKind::Messages) && !shell.history_shown());
 }
 
-/// Cycle 37 (window check): Golden A's folio 103 without its bond B1 (0 V and PE merge, EW-POT-001 stands). The
-/// finding's message names three member CPs and counts the rest, and in a short dock (300 points; FX38d: in a window
+/// Golden A's folio 103 without its bond B1 (0 V and PE merge, EW-POT-001 stands). The
+/// finding's message names three member CPs and counts the rest, and in a short dock (300 points; in a window
 /// 900 high, as the dock leaves the page view half the window) its detail block scrolls to
 /// the message's last line above the footer instead of cutting it at the pane's edge.
 #[test]
@@ -524,10 +524,9 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
     );
 }
 
-/// FT-915 (W42a): with Golden A's first EW-LAY-001 finding selected, the detail block holds its message whole, wrapped
+/// With Golden A's first EW-LAY-001 finding selected, the detail block holds its message whole, wrapped
 /// to the pane's width, between the list and the footer, and the list keeps at least two whole rows; at the 1280 × 800
-/// floor (doc 16a §2: truncation is judged at the floor) and at 1920 × 1080. The ruling (project owner (delegated),
-/// cycle 42): the detail is as tall as its content, the list above it keeps at least two rows (was three), and only a
+/// floor (doc 16a §2: truncation is judged at the floor) and at 1920 × 1080. The detail is as tall as its content, the list above it keeps at least two rows (was three), and only a
 /// still taller detail scrolls; never an ellipsis, a clipped line or a fixed pixel cap.
 #[test]
 fn the_lay_001_detail_shows_its_message_whole_at_the_floor_and_at_1920() {
@@ -670,13 +669,13 @@ fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
     settle(h);
 }
 
-/// FT-1097 (play-test rv-vis-7, t0084): EW-POT-011's message is cut at the panel's edge. The finding's list
+/// EW-POT-011's message is cut at the panel's edge. The finding's list
 /// row keeps one line (a cut row has an ellipsis and its whole text in its tooltip). The detail block shows the rule's title and the message whole, wrapped to the pane's width
 /// and between the list and the footer, at the floor and at 1920 × 1080.
 #[test]
 fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920() {
     const TITLE: &str = "EW-POT-011 Junction feed ambiguous";
-    // FT-1146 (item 10): the potential once, first; the row shows the message alone (it leads with its
+    // The potential once, first; the row shows the message alone (it leads with its
     // subject).
     const MESSAGE: &str = "24VDC has a junction or a group of interruption points whose feed is unclear; draw one \
                            wire into it from the supply side";
@@ -732,7 +731,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
                 "{w}×{hgt}: {text:?} {rect:?} inside the pane {list:?} above the footer {footer:?}"
             );
         }
-        // The list row keeps one line. FT-1146 (item 10): with the potential named once it fits at the floor
+        // The list row keeps one line. With the potential named once it fits at the floor
         // too (it was cut there, its whole text in its tooltip).
         let cut = painted
             .iter()
@@ -847,7 +846,7 @@ fn a_finding_keeps_its_fix_badge_in_dutch() {
     );
 }
 
-/// FT-1186 (doc 16a §6.24): a group or rule row's count stands `space.2` after its name, at 1920 as at the floor, not
+/// Doc 16a §6.24: a group or rule row's count stands `space.2` after its name, at 1920 as at the floor, not
 /// at the row's far end.
 #[test]
 fn a_group_rows_count_follows_its_name() {

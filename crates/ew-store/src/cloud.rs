@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Cloud-synced folders (doc 05 §15 rows 7 to 11; ruling 10): whether a project lies
+//! Cloud-synced folders (doc 05 §15 rows 7 to 11): whether a project lies
 //! in a folder that a sync client (OneDrive, Dropbox, iCloud Drive, Google Drive, Box) keeps, from environment
 //! variables and paths only, with the standard library.
 //!
@@ -15,7 +15,7 @@
 //! The environment is the caller's: a program reads it at its boundary and passes it in (doc 18 §3.5).
 //!
 //! A path is inside a folder when it starts with it, component by component, as given (no link is resolved). Online-only
-//! placeholders (Files On-Demand, iCloud stubs) are not detected: de-scoped under WP-S1.17 §14.4.
+//! placeholders (Files On-Demand, iCloud stubs) are not detected.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};

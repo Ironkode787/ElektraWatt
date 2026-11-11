@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 2 in the Session: `SessionOptions.libraries`, `Session::libraries`, `Session::part_search` with the
+//! In the Session: `SessionOptions.libraries`, `Session::libraries`, `Session::part_search` with the
 //! project's held parts, the starter's library ID.
 
 use std::path::Path;

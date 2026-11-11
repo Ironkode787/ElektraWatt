@@ -76,7 +76,7 @@ fn form_value(h: &Harness<'static, App>, name: &str) -> String {
     }
 }
 
-/// The shown value of the open dialog's first combo box (New page's Type; ID-1477 (1): Connection grid follows it).
+/// The shown value of the open dialog's first combo box (New page's Type: Connection grid follows it).
 fn combo_value(h: &Harness<'static, App>) -> String {
     let combo = h
         .get_all_by_role(egui::Role::ComboBox)
@@ -138,7 +138,7 @@ fn booleans_are_check_boxes() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Window check F3 of FIXR1 (doc 16a §6.12): Renumber pages' "Section dividers keep their numbers." sits with Start,
+/// Doc 16a §6.12: Renumber pages' "Section dividers keep their numbers." sits with Start,
 /// the field it explains: its gap to Start is smaller than its gap to Step.
 #[test]
 fn the_start_note_sits_with_start() {
@@ -244,7 +244,7 @@ fn the_count_chip_stands_off_the_chrome() {
     }
 }
 
-/// FT-581 (ruling: the exemption stands): a disabled control's label stays legible but clearly under an enabled one:
+/// A disabled control's label stays legible but clearly under an enabled one:
 /// `color.text.disabled` is at least 2:1 and under 3:1 on the panel in light and dark, so the disabled Primary (drawn
 /// as a Secondary) never reads as an enabled button.
 #[test]

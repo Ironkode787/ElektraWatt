@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 3, EM-9 (FR-PRT-031, FT-323's marker): a rule that reads a library section whose confidence is not
+//! FR-PRT-031: a rule that reads a library section whose confidence is not
 //! `verified` marks its finding (`Finding.unverified_data`). The rule here is a fixture: the PLC and bus rules set the
-//! marker when WP-S1.21 builds them.
+//! marker once they are built.
 
 use crate::common;
 

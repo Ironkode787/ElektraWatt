@@ -121,7 +121,7 @@ impl Query for FunctionCps {
 }
 
 /// The potential roles that the supply groups of the device's PLC part give its pins (FR-PLC-024):
-/// pin designation → `L+` or `M`, in group order. The part is found by the rule of WP-S1.21 D2: the part use named by
+/// pin designation → `L+` or `M`, in group order. The part is found by this rule: the part use named by
 /// `plc_module.part_use`, else the first part use whose copy has a PLC section with at least one group.
 fn supply_roles(q: &Q, function: &Function) -> Vec<(String, PotentialType)> {
     let Some(device) = function.device.and_then(|d| q.devices().get(d)) else {
@@ -150,7 +150,7 @@ fn supply_roles(q: &Q, function: &Function) -> Vec<(String, PotentialType)> {
         .collect()
 }
 
-/// The supply-group fallback of a CP's potential role (the orchestrator's): a CP
+/// The supply-group fallback of a CP's potential role: a CP
 /// takes its role from its authored part-pattern CP, else from its definition CP (the instantiation above), else, when
 /// it has neither, from the first supply group of the device's PLC part that names its designation as `l_plus` (`L+`)
 /// or `m` (`M`). An authored role always wins. Applied to the CPs of every instantiation path (FnDef, template, black
@@ -225,7 +225,7 @@ fn fndef_cps(q: &Q, function: &Function) -> Vec<Cp> {
 /// `fn_cp` and the FnDef's internal links still name it (a relay's second changeover contact, pattern `[5, 6, 7]`,
 /// gets CPs 0, 1 and 2 printed "21", "22" and "24"). Otherwise (an empty `cps`, a missing FnDef copy, another
 /// count, an index outside the pattern) the pattern entries keep their own `idx` and merge with the FnDef CP of the
-/// same `idx`, as before FT-655; where the pattern's indices are the FnDef's, both readings agree. The entry choice
+/// same `idx`, as before; where the pattern's indices are the FnDef's, both readings agree. The entry choice
 /// and the pairing are `ew_schema::template_entry_of` and `TemplateFn::function_cps`, the one rule the importer,
 /// `library.update` and the place catalogue also read.
 fn template_cps(q: &Q, function: &Function) -> Option<Vec<Cp>> {

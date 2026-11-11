@@ -1189,7 +1189,7 @@ fn a_huge_properties_step_stops_at_the_last_row() {
 }
 
 /// A representation's position reads in millimetres with its grid cell, never in nanometres;
-/// ID-1427 (W52 F5): with one decimal and the project's decimal separator.
+/// with one decimal and the project's decimal separator.
 #[test]
 fn a_representations_position_reads_in_millimetres_with_its_cell() {
     let tmp = Tmp::new("props-ft1043");

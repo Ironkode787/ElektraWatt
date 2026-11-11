@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The G-PP blind-drafter run's findings of cycle 33, lane M33 (draft FT rows 4, 6 and 13), through the text
+//! The G-PP blind-drafter run's findings, through the text
 //! interface: a first black box from a part arms with its connection points, a tag-letter change takes the next free
 //! counter, and the marker tool takes a press and a release with no move between.
 
@@ -55,7 +55,7 @@ fn num001(tmp: &Tmp, s: &mut ShellModel) -> Vec<String> {
         .collect()
 }
 
-/// Row 6 (ruling: FR-NUM-029 kept): a tag-letter edit whose counter 1 is taken is refused with the proposed tag and
+/// FR-NUM-029 kept: a tag-letter edit whose counter 1 is taken is refused with the proposed tag and
 /// the one step that takes it; `props.accept_tag_proposal` gives the next free counter by online numbering, unfrozen,
 /// in one undo step, and the toast names the counter.
 #[test]
@@ -73,7 +73,7 @@ fn a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
         message.ends_with(". Use -102F3 to accept it: props.accept_tag_proposal takes it."),
         "the script's failure names the action: {message}"
     );
-    // Cycle 33 review finding 5: the window's text under the field names the tag, never the action ID.
+    // The window's text under the field names the tag, never the action ID.
     let (_, shown) = s.properties().error().expect("the refusal under the field");
     assert!(shown.ends_with(". Use -102F3 to accept it."), "{shown}");
     assert!(!shown.contains("props."), "{shown}");
@@ -99,7 +99,7 @@ fn a_refused_letter_edit_offers_the_next_free_counter_in_one_step() {
     );
 }
 
-/// Cycle 33 re-review item A: the toast's counter is the device's `tag.counter` after the proposal, never the
+/// The toast's counter is the device's `tag.counter` after the proposal, never the
 /// printed tag's trailing digits, which in the strip format `{letter}{page}{counter}` also hold the page
 /// (`-Y1031` is counter 1, not 1031). Strips -X1031 and -X1032 of folio 103: -X1031 becomes -Y1031 and then -Y1032
 /// (counter 2), so the letter edit of -X1032 to Y collides with it and is refused with a proposal.
@@ -139,7 +139,7 @@ fn a_strip_tag_proposal_names_the_counter_not_the_page_digits() {
     );
 }
 
-/// Cycle 33 review finding 6: a proposal is accepted only while its refusal is on show on the same revision. A
+/// A proposal is accepted only while its refusal is on show on the same revision. A
 /// refused letter edit of -102G1, then another device selected: `props.accept_tag_proposal` is refused and nothing is
 /// committed; a refused edit followed by any commit (the project changed) is refused too.
 #[test]
@@ -185,7 +185,7 @@ fn a_stale_tag_proposal_is_refused() {
     assert_eq!(s.revision(), rev, "nothing committed");
 }
 
-/// Cycle 33 review finding 12: `error-unknown-strip` never prints an empty strip list ("its strips are ."): a
+/// `error-unknown-strip` never prints an empty strip list ("its strips are ."): a
 /// terminal placed on a strip name in a project without strips is refused before the name is looked up
 /// (`reason-no-strip`, "create one"), so the unknown-strip text is reached only when the project has a strip.
 #[test]

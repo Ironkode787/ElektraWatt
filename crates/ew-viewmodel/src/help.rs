@@ -143,7 +143,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(TOOLS, "tool-duct-draw", "duct"),
     on(TOOLS, "tool-connect-on-move", "connect-while-moving"),
     on(TOOLS, "tool-route-edit", "edit-route"),
-    // WP-S2.19 D13 (C53-rt#19): the two route actions have their sections on the tools page.
+    // The two route actions have their sections on the tools page.
     on(TOOLS, "route-page", "route-page"),
     on(TOOLS, "route-selection", "route-selection"),
     on(TOOLS, "tool-ip", "interruption-point"),
@@ -194,7 +194,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(PANELS, "nav-messages", "messages"),
 ];
 
-/// The window reference pages of WP-S7.05 D8: the tools, the dialogs, the panes and navigators.
+/// The window reference pages: the tools, the dialogs, the panes and navigators.
 const TOOLS: &str = "reference/window/tools.md";
 const DIALOGS: &str = "reference/window/dialogs.md";
 const PANELS: &str = "reference/window/panels.md";
@@ -238,13 +238,12 @@ pub fn action_topic(action: &str) -> Option<&'static str> {
         "messages.show" => "nav-messages",
         "strip.edit" => "strip-editor",
         "navigator.table" => "table-mode",
-        // WP-S2.19 D13 (C53-rt#19).
         "route.page" => "route-page",
         "route.selection" => "route-selection",
         a if a.starts_with("symbol.") => "symbol-editor",
         a if a.starts_with("tool.") => return tool_topic(a),
         a if a.starts_with("view.workspace") => "workspaces",
-        // WP-S2.17 part 2 (CB1): every command of the command bar has a page; until the book has a command-bar
+        // Every command of the command bar has a page; until the book has a command-bar
         // section the project view's page explains the window it sits in.
         a if crate::actions::find(a).is_some_and(|m| m.placement.is_some()) => "project-view",
         _ => return None,
@@ -479,7 +478,7 @@ mod tests {
         }
     }
 
-    /// C53-rt#19: F1 on Route page and Route selection opens their sections of the tools page, not the
+    /// F1 on Route page and Route selection opens their sections of the tools page, not the
     /// project view's page.
     #[test]
     fn route_page_and_route_selection_open_their_sections() {
@@ -527,7 +526,7 @@ mod tests {
         assert_eq!(rule_page("EW-NONE-001"), None);
     }
 
-    /// WP-S7.05 D8, DC-3: every tool action, every pane kind and every navigator kind has a topic whose anchor is in
+    /// Every tool action, every pane kind and every navigator kind has a topic whose anchor is in
     /// the book (`every_anchor_resolves_in_the_book` checks the anchors), and so do the dialogs a test can build.
     #[test]
     fn every_tool_pane_navigator_and_dialog_has_a_topic() {

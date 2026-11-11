@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The toasts and the notifications log of the window (FR-UI-042, NFR-A11Y-04), restyled
-//! by WP-S2.17 part 4 (doc 16a §6.10).
+//! to doc 16a §6.10.
 //!
 //! **Toasts.** At most three, stacked at the canvas's top right, `space.4` from its edges (under the canvas tabs), the
 //! newest at the top: 300 px wide (`size.toast`; W40b: [`TOAST_SHARE`] of a wider window), `color.surface.raised`, `elevation.2`, `radius.lg`, `space.4` padding; three
@@ -41,7 +41,7 @@ fn action_link(ui: &mut Ui, t: &Tokens, shell: &ShellModel, n: &Notification, ev
         }
         return;
     }
-    // W49.3-F6 (doc 16a §6.10): two actions share one row while they fit, else the second wraps under the first.
+    // Doc 16a §6.10: two actions share one row while they fit, else the second wraps under the first.
     ui.horizontal_wrapped(|ui| {
         ui.spacing_mut().item_spacing.x = t.space_4;
         // W49.3b-N2: stacked, the links keep the text's row spacing, not a control's height.
@@ -223,7 +223,7 @@ fn toast(
                                 .accesskit_node_builder(response.id, |node| node.set_label(name));
                         }
                         (_, None) => {
-                            // FT-1195 (doc 16a §6.10): a long text wraps up to three rows, then is cut with an
+                            // Doc 16a §6.10: a long text wraps up to three rows, then is cut with an
                             // ellipsis; the whole text is the toast's tooltip.
                             let response = ui.add(
                                 egui::Label::new(line_job(
@@ -251,9 +251,9 @@ fn toast(
                 }
             });
         });
-    // A `Group` node over the card, named "Notification" (its text is the live region inside). FT-1144:
-    // hovering it shows the whole text in doc 16a §6.18's tooltip only when the title or the line is cut (
-    // ID-1139), unless a control inside shows its own tooltip.
+    // A `Group` node over the card, named "Notification" (its text is the live region inside).
+    // Hovering it shows the whole text in doc 16a §6.18's tooltip only when the title or the line is cut,
+    // unless a control inside shows its own tooltip.
     let text_w = text_width(t, width);
     let cut = match n.lines() {
         (title, Some(line)) => {
@@ -293,8 +293,8 @@ pub(crate) fn toast_anchor(t: &Tokens, ctx: &Context, canvas: Option<Rect>, bar_
     }
 }
 
-/// Whether the toasts stand at the canvas's bottom right rather than its top right (doc 16a §6.10; ID-1417,
-/// C52-p3#2), from whether they did in the last frame (`low`): while a tool other than Select is active (`working`), a
+/// Whether the toasts stand at the canvas's bottom right rather than its top right (doc 16a §6.10),
+/// from whether they did in the last frame (`low`): while a tool other than Select is active (`working`), a
 /// press in the canvas's top-right quarter, where the toasts would stand over the next placing, sends them low; they
 /// stay low until Select is back or a press elsewhere on the canvas. A pointer that only moves changes nothing, nor
 /// does a press on the stack (`stack`, last frame's: the toast's own action) or outside the canvas, so a toast the user
@@ -588,7 +588,7 @@ mod tests {
         assert_eq!(shown, (2, false, TITLE_ROWS, true, title.to_owned()));
     }
 
-    /// FT-1507 (W52 F12): the UI's faces carry the non-breaking hyphen, and a toast at the floor never breaks
+    /// The UI's faces carry the non-breaking hyphen, and a toast at the floor never breaks
     /// a tag at its hyphen: at every width of a narrowing column each row ends at a space or with the text, so no "-"
     /// is left alone on a row.
     #[test]

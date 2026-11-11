@@ -118,7 +118,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     if no_gpu && (headless || smoke.is_some()) {
         return Err("--no-gpu is for the window (the headless and smoke modes use no GPU)".to_owned());
     }
-    // WP-S6.13 part 4 (BV1): the visual driver is a headless mode; its frame options need it.
+    // The visual driver is a headless mode; its frame options need it.
     if visual && !headless {
         return Err("--visual needs --headless".to_owned());
     }
@@ -128,7 +128,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     if frames.is_some() && no_frames {
         return Err("--frames and --no-frames exclude each other".to_owned());
     }
-    // Cycle 39: a visual run's window size and scale (default 1280 × 800 points at 1.2).
+    // A visual run's window size and scale (default 1280 × 800 points at 1.2).
     let geometry = Geometry::parse(window.as_deref(), ppp.as_deref())?;
     if (window.is_some() || ppp.is_some()) && !visual {
         return Err("--window and --ppp need --visual".to_owned());
@@ -331,7 +331,7 @@ impl Platform for RfdPlatform {
         let (dialog, kind) = self.dialog(prompt);
         match spawn_pick(ctx, move || Self::run(dialog, kind)) {
             Ok(rx) => PickReply::Later(rx),
-            // Without a thread for it the dialog runs on the window's thread, as before FT-467.
+            // Without a thread for it the dialog runs on the window's thread.
             Err(_) => PickReply::Now(self.pick(prompt)),
         }
     }
@@ -448,7 +448,7 @@ fn locate_resources(exe: Option<&Path>) -> Resources {
             .map(|p| p.canonicalize().unwrap_or(p))
     };
     let notices = exe_dir.as_ref().map(|d| d.join("THIRD-PARTY-NOTICES.txt"));
-    // `PRIVACY.md` beside the executable (WP-S6.06 D3's tree), else the repository's in a development
+    // `PRIVACY.md` beside the executable, else the repository's in a development
     // build.
     let privacy = exe_dir
         .as_ref()
@@ -652,7 +652,7 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
         shell.start_first_run_if_needed();
     }
     let flags = Flags { no_gpu };
-    // WP-S2.17 part 3 (DK6): the last size, position and maximised state, restored.
+    // The last size, position and maximised state, restored.
     let viewport = ew_ui::window_memory::restore(
         egui::ViewportBuilder::default()
             .with_title(strings::text(key!("window-title-start")))
@@ -760,7 +760,7 @@ fn run(cli: Result<Cli, String>) -> i32 {
 mod tests {
     use super::*;
 
-    /// WP-S6.05 §5 L1 to L7: one entry, whole, with the frames trimmed and the empty line that ends it.
+    /// One entry, whole, with the frames trimmed and the empty line that ends it.
     #[test]
     fn a_crash_log_entry_has_its_seven_lines() {
         assert_eq!(
@@ -942,7 +942,7 @@ mod tests {
             }))
         );
         assert!(parse(&["--config-dir", "c"]).is_err());
-        // WP-S6.13 BD1: the flag belongs to the headless mode.
+        // The flag belongs to the headless mode.
         assert!(parse(&["--keep-going"]).is_err());
         assert!(parse(&["--smoke", "p.ew", "--keep-going"]).is_err());
         assert!(USAGE.contains("--keep-going"));
@@ -953,7 +953,7 @@ mod tests {
         assert!(parse(&["--headless", "--script", "s", "p.ew"]).is_err());
     }
 
-    /// WP-S6.13 part 4 BV1: `--visual` only with `--headless` (else a usage error, exit 2); `--frames` and
+    /// `--visual` only with `--headless` (else a usage error, exit 2); `--frames` and
     /// `--no-frames` only with `--visual`, and not together.
     #[test]
     fn the_visual_flags_belong_to_the_headless_mode() {
@@ -1005,7 +1005,7 @@ mod tests {
         assert!(USAGE.contains("--visual"));
     }
 
-    /// Cycle 39: `--window <W>x<H>` and `--ppp <n>` choose a visual run's window size and scale; each error names
+    /// `--window <W>x<H>` and `--ppp <n>` choose a visual run's window size and scale; each error names
     /// what is wrong.
     #[test]
     fn the_window_and_ppp_flags_choose_the_geometry() {

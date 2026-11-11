@@ -18,7 +18,7 @@ use serde_json::{Value, json};
 
 use crate::app::Event;
 
-/// The time of epoch milliseconds `ms` as `2026-10-28 14:03` (UTC, the recovery dialog's hover text since FT-503: the standard library has no local time zone and the
+/// The time of epoch milliseconds `ms` as `2026-10-28 14:03` (UTC, the recovery dialog's hover text: the standard library has no local time zone and the
 /// application takes no new dependency for one); `None` for 0 (unknown).
 fn utc_text(ms: u64) -> Option<String> {
     if ms == 0 {
@@ -96,7 +96,7 @@ fn name_field(
     (changed, enter)
 }
 
-/// Paints the open dialog, if any, in the dialog frame of WP-S2.17 part 4 ([`crate::dialog`]): the specification's
+/// Paints the open dialog, if any, in the dialog frame ([`crate::dialog`]): the specification's
 /// title, body and buttons, with each dialog's own content between the body and the footer. `form_key`: the frame
 /// took Ctrl+Enter for a form dialog, which submits it as Enter in its text field does.
 pub fn show(
@@ -148,12 +148,12 @@ pub fn show(
     let focus_primary = if matches!(d, Dialog::Print(_)) {
         ctx.memory(|m| m.focused().is_none())
     } else if let Dialog::Form(form) = d {
-        // W49.2-F1 (doc 16a §6.12): a form's first focus is its first text field, else its Primary, never a check box.
+        // Doc 16a §6.12: a form's first focus is its first text field, else its Primary, never a check box.
         just_opened && !form.fields.iter().any(|f| f.is_text())
     } else {
         just_opened && !has_field
     };
-    // FT-1284 (doc 16a §6.12): a form whose Primary is disabled at open and that has no text field gives its first
+    // Doc 16a §6.12: a form whose Primary is disabled at open and that has no text field gives its first
     // focus to its first control.
     let primary_disabled = spec.primary.disabled.is_some();
     let clicked = crate::dialog::show_sized(ctx, &spec, width, focus_primary, |ui| match d {
@@ -426,7 +426,7 @@ fn form_fields(
     let mut first = just_opened;
     // With no text field to take it, the first control takes the first focus while the Primary is disabled.
     let mut first_control = just_opened && primary_disabled && !form.fields.iter().any(|f| f.is_text());
-    // Cycle 39 (FIX39b-1): the label column is at least `size.dialog.label` and grows to the widest label, up to half
+    // The label column is at least `size.dialog.label` and grows to the widest label, up to half
     // the body; a label wider still wraps, so a label is never cut ("Library (cannot be undone)").
     let font = egui::TextStyle::Body.resolve(ui.style());
     let widest = form
@@ -481,7 +481,7 @@ fn form_fields(
                 }
                 crate::components::focus_ring(ui, &check, t.radius_sm);
             } else if !f.options.is_empty() {
-                // WP-S4.02 part 4 (ruling 7): a choice list built at run time, shown by its words.
+                // A choice list built at run time, shown by its words.
                 let shown = f
                     .options
                     .iter()
@@ -663,7 +663,7 @@ pub(crate) fn reflow(text: &str) -> String {
 mod tests {
     use super::{NoticeBlock, form_label_width, notice_blocks, reflow};
 
-    /// Cycle 39 (FIX39b-1): the label column grows to its widest label, keeps its floor, stops at half the body.
+    /// The label column grows to its widest label, keeps its floor, stops at half the body.
     #[test]
     fn form_label_column_fits_its_widest_label() {
         assert_eq!(form_label_width(120.0, 80.0, 400.0), 120.0, "the floor");

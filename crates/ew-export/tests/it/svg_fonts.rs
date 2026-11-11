@@ -265,7 +265,7 @@ fn a_face_without_usable_bytes_is_named_and_reported() {
         page(1, vec![text("Named", &regular, 20)]),
         page(2, vec![text("Again", &regular, 20)]),
     ];
-    // FT-1046 (coverage, ID-1138: "FT-1046's two cases are coverage tests that pass before the change"): a face of
+    // Coverage: a face of
     // a collection (`ttcf`) is refused by the subsetter like any other unusable bytes.
     let collection = Arc::<[u8]>::from(&b"ttcf\x00\x02\x00\x00\x00\x00\x00\x01\x00\x00\x00\x10"[..]);
     for data in [
@@ -288,7 +288,7 @@ fn a_face_without_usable_bytes_is_named_and_reported() {
             assert!(f.text.contains("font-family=\"Noto Sans, sans-serif\""));
         }
     }
-    // FT-1046 (coverage): a run glyph ID above 65535 is not a glyph of a TrueType face, so the subsetter refuses
+    // Coverage: a run glyph ID above 65535 is not a glyph of a TrueType face, so the subsetter refuses
     // the face, which is named only, though its bytes are the bundled face's.
     let mut run = (*bundled().shape("Named", &regular, None).run).clone();
     run.origin = Pt2::new(Nm::from_mm(20), Nm::from_mm(20));

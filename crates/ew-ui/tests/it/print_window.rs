@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.07 part 3 in the window (D10): the print pre-dialog's texts at the floor and at 1920,
+//! In the window: the print pre-dialog's texts at the floor and at 1920,
 //! each inside the dialog; the progress line while the set builds and Cancel ending it; the empty state with both
-//! print buttons disabled; Print… on a platform without printing says so in one toast (ruling 3's default). Every
+//! print buttons disabled; Print… on a platform without printing says so in one toast (by default). Every
 //! settle runs the accessible-name walker.
 
 use crate::support;
@@ -227,8 +227,8 @@ fn a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1125 (doc 16a §6.12): the pre-dialog's first focus is its Primary, Print…, once the set is built. FT-1198 (doc 16a
-/// §6.1, §6.12): that first focus shows its focus ring: a `color.focus` stroke round the button, whole inside its clip.
+/// Doc 16a §6.12: the pre-dialog's first focus is its Primary, Print…, once the set is built. Doc 16a
+/// §6.1, §6.12: that first focus shows its focus ring: a `color.focus` stroke round the button, whole inside its clip.
 #[test]
 fn the_first_focus_is_print_and_shows_its_focus_ring() {
     let tmp = Tmp::new();

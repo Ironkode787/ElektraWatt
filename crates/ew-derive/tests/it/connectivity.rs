@@ -611,8 +611,8 @@ fn queries_survive_a_device_parent_cycle() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Review cycle 7 A: duplicate pins (D2), pass-through terminals (D3), override provenance (F2), hub-arm
-// carrier (D1).
+// Duplicate pins, pass-through terminals, override provenance, hub-arm
+// carrier.
 
 const FNDEF_T: u128 = 0x520;
 const SYM_T: u128 = 0x530;
@@ -837,7 +837,7 @@ fn hub_arm_is_carried_by_the_connection_touching_its_end() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Review cycle 7 A, F9/F12: naming, feed ambiguity, rings, conflicts, hubs, pairing, property levels.
+// Naming, feed ambiguity, rings, conflicts, hubs, pairing, property levels.
 
 /// An interruption point `n` on `page` with the full spec `ip` (name, direction, sort, external ...).
 fn ip_spec(fx: &mut Fx, n: u128, page: u128, spec: Value) {

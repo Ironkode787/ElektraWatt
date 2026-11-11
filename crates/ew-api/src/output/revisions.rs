@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page digests and the page change status (doc 15 §5.6; WP-S1.18 part 2, D6 and D7; FR-REV-004, FR-REV-012,
+//! Page digests and the page change status (doc 15 §5.6; FR-REV-004, FR-REV-012,
 //! FR-REV-022).
 //!
 //! **The digest** ([`page_digest`], [`page_digests`]). The first 128 bits of the SHA-256 of

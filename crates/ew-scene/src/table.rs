@@ -420,7 +420,7 @@ mod tests {
     use ew_dl::ItemKind;
     use ew_text::{Shaped, bundled};
 
-    /// The oracle of C44-p3#1: the span box as it was computed before, with one shaping of the line's text up to each
+    /// The oracle: the span box as it was computed before, with one shaping of the line's text up to each
     /// span end.
     fn span_quad_per_end(
         fonts: &FontSet,
@@ -611,7 +611,7 @@ mod tests {
         assert_eq!(alone, [Nm(1_663_700), Nm(1_797_050), Nm(1_311_275)]);
     }
 
-    /// C44-p5#1 and #2: a span gives the same box whatever else its line holds: a "fi" ligature, a CJK character or a
+    /// A span gives the same box whatever else its line holds: a "fi" ligature, a CJK character or a
     /// combining mark later in the line change nothing.
     #[test]
     fn a_span_keeps_its_box_next_to_a_ligature_or_a_cjk_character() {

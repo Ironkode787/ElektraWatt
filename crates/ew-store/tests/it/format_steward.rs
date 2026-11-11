@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The steward's check and the fixture corpus job (WP-S1.17 D12 as decision log ID-1221 ruling 8 amends it): the
+//! The steward's check and the fixture corpus job (the
 //! check runs on the shipped constants and the repository's corpus `fixtures/format/`, and the corpus job opens, saves
 //! and compares each `fixtures/format/<format>/<project>/` with `<project>.expected/`. Both pass while nothing is
-//! released and the corpus is absent; WP-S6.08 adds `fixtures/format/0.1/` with the first release.
+//! released and the corpus is absent; the first release adds `fixtures/format/0.1/`.
 
 // The corpus is read from the repository directly, ADR-0001 amendment 2.
 #![allow(clippy::disallowed_methods)]
@@ -45,7 +45,7 @@ fn the_shipped_chain_and_corpus_pass_the_steward_check() {
     assert!(words.is_empty(), "{words:#?}");
 }
 
-/// FT-96 (RL-4; ADR-0011 amendment 1, doc 05 §10.3): a project of this format whose record lines
+/// ADR-0011 amendment 1, doc 05 §10.3: a project of this format whose record lines
 /// carry members this reader does not know, appended as a later additive release writes them (after a record's members,
 /// two of them out of byte order, and after a nested object's), opens; an edit of another record of the same file
 /// saves, and every untouched line of that file is written as it was, byte for byte, the edited record keeping its
@@ -126,7 +126,7 @@ fn untouched_lines_with_later_members_are_kept_byte_for_byte() {
     assert_eq!(&written[1..], &lines[1..]);
 }
 
-/// WP-S6.08 D30 (ADR-0011 amendment 1): a project of this format whose function lines carry a role
+/// ADR-0011 amendment 1: a project of this format whose function lines carry a role
 /// this reader does not know, its payload's members out of byte order (`zeta`, then `alpha`) as a later minor writes
 /// them, opens; an edit of one function saves, and every untouched line of that file is written as it was, byte for
 /// byte, while the edited function's line is the canonical one, its unknown role in byte order.

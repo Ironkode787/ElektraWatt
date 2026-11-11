@@ -334,7 +334,7 @@ fn the_ui_scale_is_validated_and_persists() {
     assert_eq!(again.settings().ui_scale, 1.5);
 }
 
-/// WP-S2.17 DL7: `view.density` and `view.theme` write `settings.toml` and survive a restart; an unknown value fails
+/// `view.density` and `view.theme` write `settings.toml` and survive a restart; an unknown value fails
 /// with its reason and changes nothing.
 #[test]
 fn density_and_theme_round_trip_through_settings_toml() {
@@ -499,8 +499,8 @@ fn recorded(shell: &ShellModel) -> Vec<(String, Value)> {
         .collect()
 }
 
-/// Review ruling 1: a step discarded by Open (or Open recent) leaves the record, so a reopen of the same
-/// directory does not put it into `--record` (spec section 6.4).
+/// A step discarded by Open (or Open recent) leaves the record, so a reopen of the same
+/// directory does not put it into `--record`.
 #[test]
 fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
     let tmp = Tmp::new(STEM);
@@ -545,7 +545,7 @@ fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
     shell.shutdown();
 }
 
-/// Review ruling 1: what is undone past a save is not what the disk holds; the record keeps the steps as saved.
+/// What is undone past a save is not what the disk holds; the record keeps the steps as saved.
 #[test]
 fn undo_past_a_save_does_not_lose_the_saved_steps_from_the_record() {
     let tmp = Tmp::new(STEM);
@@ -578,7 +578,7 @@ fn undo_past_a_save_does_not_lose_the_saved_steps_from_the_record() {
     shell.shutdown();
 }
 
-/// Review ruling 4: a recent entry goes only when its path is gone.
+/// A recent entry goes only when its path is gone.
 #[test]
 fn a_recent_entry_stays_when_the_open_fails_for_another_reason() {
     let tmp = Tmp::new(STEM);
@@ -610,7 +610,7 @@ fn a_recent_entry_stays_when_the_open_fails_for_another_reason() {
     );
 }
 
-/// Review ruling 6 (data loss): any exit while the project is dirty keeps the journal; a clean exit and an
+/// Data loss: any exit while the project is dirty keeps the journal; a clean exit and an
 /// explicit Discard remove it.
 #[test]
 fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
@@ -665,7 +665,7 @@ fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
     clean.shutdown();
 }
 
-/// Review ruling 9: Escape closes a popup or dialog and otherwise does nothing; the banner has a button.
+/// Escape closes a popup or dialog and otherwise does nothing; the banner has a button.
 #[test]
 fn escape_leaves_the_banner_alone() {
     let tmp = Tmp::new(STEM);
@@ -696,7 +696,7 @@ fn the_registry_flag_decides_whether_an_action_clears_the_banner() {
     assert_eq!(shell.banner(), None);
 }
 
-/// R1-5 (doc 16 "the same project twice"): two window instances on one settings file. B starts, then A starts,
+/// Doc 16 "the same project twice": two window instances on one settings file. B starts, then A starts,
 /// changes the theme and opens a project (written at once); A exits, then B exits with its window geometry. B merges
 /// only `[window]` into the file on disk, so A's theme and recent project stay; an exit with the geometry the file
 /// already holds writes nothing.

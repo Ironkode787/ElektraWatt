@@ -194,7 +194,7 @@ fn item_garbage_becomes_findings() {
     );
 }
 
-/// WP-S3.09 IC-5 (D5 c): a `.qet` that declares an external entity is refused before any byte of it is resolved.
+/// A `.qet` that declares an external entity is refused before any byte of it is resolved.
 #[test]
 fn an_external_entity_is_refused() {
     let xml = "<?xml version=\"1.0\"?><!DOCTYPE project [<!ENTITY e SYSTEM \"file:///etc/passwd\">]>\
@@ -206,7 +206,7 @@ fn an_external_entity_is_refused() {
     );
 }
 
-/// WP-S3.09 IC-5 (D5 c): an `xi:include` is never followed: it is unknown content, reported and dropped, and the
+/// An `xi:include` is never followed: it is unknown content, reported and dropped, and the
 /// rest of the folio imports.
 #[test]
 fn an_xinclude_is_reported_and_never_followed() {

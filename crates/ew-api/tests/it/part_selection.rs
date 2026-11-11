@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4a below the shell: the part selection dialog's offers (PS1, PS2; D17), the command a choice
-//! compiles to (PS4; D16) and the part editor's draft, refusals, in-place edit and fork (PS5 to PS7; D20, D21), over
+//! Below the shell: the part selection dialog's offers, the command a choice
+//! compiles to and the part editor's draft, refusals, in-place edit and fork, over
 //! Golden A and a project made by the wizard, with the fixture catalogue "Fixture parts" written into a temporary user
 //! tier. No test pins the number of offers or of starter parts: they assert named rows and their order.
 

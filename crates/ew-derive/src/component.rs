@@ -514,7 +514,7 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
     for page in pages {
         let new = inputs.pages.contains(&page).then(|| q.get::<PageLocalNets>(page));
         if new.is_none() {
-            // A deleted page: the partition no longer depends on its nets (review, finding 3).
+            // A deleted page: the partition no longer depends on its nets.
             q.forget::<PageLocalNets>(&page);
         }
         update_page(&mut w, page, new);
@@ -635,8 +635,7 @@ pub(crate) fn update(q: &Q, prev: &Partition, changes: Changes<'_>) -> Option<(P
         }
     }
     // The value depends on the links of the functions with a CP in the graph only (as the cold build reads
-    // them): a function that left the graph, or whose links this run read without keeping them, is forgotten
-    // (review, finding 3).
+    // them): a function that left the graph, or whose links this run read without keeping them, is forgotten.
     let read: Vec<Id<Function>> = cx.links.keys().copied().collect();
     drop(cx);
     for f in read.iter().chain(&unlinked) {
@@ -748,7 +747,7 @@ mod tests {
             .map_or(0, |m| m.dep_entries)
     }
 
-    /// Review cycle 10, finding 3: a page added and deleted again leaves no dependency of the partition, no
+    /// A page added and deleted again leaves no dependency of the partition, no
     /// memo of its nets and no registration behind.
     #[test]
     fn adding_and_deleting_a_page_leaves_nothing_behind() {

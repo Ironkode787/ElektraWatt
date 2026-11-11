@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.08 part 2 over Golden A in `ew-api`: the round trip's session calls (`table_export`, `table_import`,
-//! `apply_table_import`), where the undo step and the reader's bounds can be seen (RT-2, RT-6, D11).
+//! Over Golden A in `ew-api`: the round trip's session calls (`table_export`, `table_import`,
+//! `apply_table_import`), where the undo step and the reader's bounds can be seen.
 
 use crate::golden_common;
 

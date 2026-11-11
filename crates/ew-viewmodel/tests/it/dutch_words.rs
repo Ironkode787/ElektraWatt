@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The Dutch UI's fix round: the palette form's labels and the finding detail's kind from keys in
-//! both locales (rulings 1 and 3), the count texts (ruling 6) and a new terminal strip in words (ruling 7).
+//! both locales, the count texts and a new terminal strip in words.
 
 use std::collections::BTreeSet;
 
@@ -45,7 +45,7 @@ fn missing(wanted: &BTreeSet<String>) -> Vec<String> {
     out
 }
 
-/// A parameter's label as it was derived before ruling 1: the name with `_` as spaces, its first letter upper case.
+/// A parameter's label as it was derived before the labels came from keys: the name with `_` as spaces, its first letter upper case.
 fn derived(name: &str) -> String {
     let text = name.replace('_', " ");
     let mut chars = text.chars();
@@ -431,7 +431,7 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
             continue;
         };
         let text = messages::render(f, "nl-NL");
-        // The subject once (ID-1509 (9)): before the message unless the message names it.
+        // The subject once: before the message unless the message names it.
         let leads = ew_viewmodel::ew_api::output::names_subject(&f.subject, &text);
         let shown = if f.subject.is_empty() || leads {
             text
@@ -446,7 +446,7 @@ fn the_messages_rows_and_the_chip_read_in_dutch() {
     // One row as the Dutch reader sees it.
     let cable = "=P01+J-E-2416-3W1 heeft geen gerouteerde, handmatige of artikellengte";
     assert_eq!(rows.iter().filter(|r| *r == cable).count(), 1, "{rows:?}");
-    // ID-1509 (9), the window check's F3: a message that names its subject after a word shows it once.
+    // A message that names its subject after a word shows it once.
     let pe = "PE-draad 101.8 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij 1X1 \
               (de dimensioneringstabel is niet getoetst aan de norm)";
     assert_eq!(rows.iter().filter(|r| *r == pe).count(), 1, "{rows:?}");
@@ -650,7 +650,7 @@ fn an_enumerated_row_reads_and_takes_its_words() {
     shell.shutdown();
 }
 
-/// C50-p6#7 (T25): in nl-NL a fluid line's Line kind choices are the Dutch words, filtered by them:
+/// In nl-NL a fluid line's Line kind choices are the Dutch words, filtered by them:
 /// typing "Stuur" finds the pilot line ("Stuurleiding").
 #[test]
 fn a_fluid_line_kind_is_found_by_its_dutch_word() {
@@ -685,7 +685,7 @@ fn a_fluid_line_kind_is_found_by_its_dutch_word() {
     shell.shutdown();
 }
 
-/// ID-1389 (W51 finding G; doc 16a §6.8, §8.5): a fluid line's sheet shows its ends A and B as the device's tag and
+/// Doc 16a §6.8, §8.5: a fluid line's sheet shows its ends A and B as the device's tag and
 /// connection point, never JSON, and its route only under Advanced, as frame cells, never nanometres; in English and
 /// in Dutch.
 #[test]
@@ -762,7 +762,7 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
     shell.shutdown();
 }
 
-/// ID-1389 (W51 findings D, I, J, L) in both languages: the check-scheme question names the scheme's word; a page's
+/// In both languages: the check-scheme question names the scheme's word; a page's
 /// grid factor is a length, never a nanometre count; a panel page's Label mode and Surface read in words; a size takes
 /// the language's decimal separator.
 #[test]
@@ -836,7 +836,7 @@ fn the_scheme_grid_factor_surface_view_and_sizes_read_in_words() {
     shell.shutdown();
 }
 
-/// ID-1389 (W51 finding C): the orchestrator's Dutch word for word, and a re-import's member row quoting its
+/// The Dutch word for word, and a re-import's member row quoting its
 /// values in both languages.
 #[test]
 fn the_w51_dutch_texts_read_word_for_word() {
@@ -970,7 +970,7 @@ fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
     shell.shutdown();
 }
 
-/// ID-1439 (#6, #7): in Dutch the Messages header's sentence puts the count before "vrijgesteld" and
+/// In Dutch the Messages header's sentence puts the count before "vrijgesteld" and
 /// "wachtend", the Preview's counts name items "elementen", and the action after the Preview's colon is in a sentence.
 #[test]
 fn the_messages_and_preview_headers_in_dutch() {

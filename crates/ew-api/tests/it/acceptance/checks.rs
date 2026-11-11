@@ -330,9 +330,9 @@ pub fn all(r: &mut Runner) {
 
     // §19 rows gated M1.
     defects(r);
-    // WP-S1.18 part 5 (RU-4): AC-23 in two halves (D15).
+    // AC-23 in two halves.
     ac23(r);
-    // WP-S1.20 FL-13: AC-32's MVP part, at the end so that the earlier rows keep their shard.
+    // AC-32's MVP part, at the end so that the earlier rows keep their shard.
     r.entry(
         "AC-32",
         "MVP part: 28 valve children; 24 valve glyphs on 201 and 4 on -202U2 print 571334; 16 lines F1 to F16 reach 8 field devices; the 28 valves print their Q addresses",
@@ -820,11 +820,10 @@ fn ac06_tags(c: &Ctx) -> Outcome {
 /// The differences between the printed parts list and the table of doc 20 §14.1 that are accepted, as
 /// `(position, column, doc 20 prints, the parts list prints, why)`. Every other cell must be equal.
 ///
-/// - Row 26, tags: §14.1 lists "1X1, -X1031, -X1032"; the parts list sorts the tags in the order of the ID-9
-///   sign order, "-X1031, -X1032, 1X1".
+/// - Row 26, tags: §14.1 lists "1X1, -X1031, -X1032"; the parts list sorts the tags in the sign order,
+///   "-X1031, -X1032, 1X1".
 ///
-/// Row 26's folio is §14.1's 902 since WP-S4.02 part 5 derives the end brackets from R2's strips (
-/// ruling 1).
+/// Row 26's folio is §14.1's 902 since the end brackets are derived from R2's strips.
 const AC07_ACCEPTED: [(&str, &str, &str, &str); 1] =
     [("26", "Tags", "1X1, -X1031, -X1032", "-X1031, -X1032, 1X1")];
 
@@ -928,7 +927,7 @@ fn ac07_export_parts(_: &Ctx) -> Outcome {
 
 /// `ew export bom --mode assembly` against doc 20 §14.2: the library entry `ew export` calls, over the fixture,
 /// writes `expected/csv/bom_assembly.csv` byte for byte; rows 1-15 and 22-27 are those of the parts list (rows
-/// 22-27 renumbered 16-21, owner ruling ID-356), the two configured-product rows A1 and A2 of -201U1's assembly
+/// 22-27 renumbered 16-21), the two configured-product rows A1 and A2 of -201U1's assembly
 /// aspect replace rows 16-21, the column "Part number" prints the order codes, and the "Covers" column names
 /// the covered devices.
 fn ac07_export_assembly(_: &Ctx) -> Outcome {
@@ -2380,7 +2379,7 @@ fn doc20_numbers() -> BTreeMap<u32, String> {
 /// AC-09, D-09: the wire numbers of doc 20 §8.1 (FT-100): connection-oriented `{page}.{counter}`, counter scope
 /// page, W1 to W34 numbered and the ten cable cores W35 to W44 not (FR-NUM-019), numbers not printed on the
 /// pages. The numbers equal the "No." column of doc 20 §8.2, which holds the numbers this runner computes
-/// (section 8.1); since FT-101 (the flow-distance step of the orientation) there is no known deviation. The
+/// (section 8.1); with the flow-distance step of the orientation there is no known deviation. The
 /// same numbers come out of a model with reversed records.
 fn ac09_numbers(c: &Ctx) -> Outcome {
     let numbers_of = |s: &Session| -> Vec<(u32, Option<String>)> {
@@ -3788,7 +3787,7 @@ type Face = (String, u16, bool);
 /// name, each as an embedded subset that loads as a font (`ew_text::FontSet`, through skrifa) with that family's
 /// name and draws every character of the page's texts in that face with a glyph whose outline is the bundled
 /// face's (shaped through the subset's own `cmap`, no `.notdef`). The DXF half (AC1015 of folios 101–106,
-/// re-import within 0.01 mm; 1.0) is WP-S3.19's and is not checked here.
+/// re-import within 0.01 mm; 1.0) is not checked here.
 fn ac37_svg(c: &Ctx) -> Outcome {
     let options = svg_options();
     let out = match ew_export::svg(&c.pdf_pages, &options, None, Parallelism::Serial) {
@@ -3917,7 +3916,7 @@ fn svg_texts(doc: &str) -> Vec<(Face, String)> {
         .collect()
 }
 
-/// The `@font-face` rules of an SVG page's `<style>`, each in the form of WP-S3.07 D3, with the subset decoded.
+/// The `@font-face` rules of an SVG page's `<style>`, with the subset decoded.
 fn svg_font_faces(doc: &str) -> Result<Vec<(Face, Vec<u8>)>, String> {
     let (Some(a), Some(b)) = (doc.find("<style>"), doc.find("</style>")) else {
         return Err("no <style>".to_owned());
@@ -4044,8 +4043,8 @@ fn open_findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
         .collect()
 }
 
-/// The pre-delivery release report of Golden A with its profiles, computed once per process (the AC-24 rows of
-/// WP-S1.16 part 5 read it; the batch is the same for every run of the runner).
+/// The pre-delivery release report of Golden A with its profiles, computed once per process (the AC-24 rows
+/// read it; the batch is the same for every run of the runner).
 fn golden_report(c: &Ctx) -> &'static ew_api::checks::CheckReport {
     static REPORT: std::sync::OnceLock<ew_api::checks::CheckReport> = std::sync::OnceLock::new();
     REPORT.get_or_init(|| {
@@ -4790,7 +4789,7 @@ fn d22_pelv(c: &Ctx) -> Outcome {
 
 /// D-35: EW-CORE-065, the description lint of the EW-CORE pack's 1.0 content (doc 15 §4.2), over the part
 /// descriptions of Golden A, in a pre-delivery run with the 1.0 content enabled (the MVP schemes do not run
-/// it, owner ruling of cycle 14): EF-25 expects none (the seeded "10A C" of D-18 is a unit test of the rule).
+/// it): EF-25 expects none (the seeded "10A C" of D-18 is a unit test of the rule).
 fn d35(c: &Ctx) -> Outcome {
     use ew_api::checks::Release;
     let s = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));

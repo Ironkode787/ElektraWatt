@@ -371,9 +371,9 @@ fn the_backup_moves_past_a_taken_name_reuses_its_own_and_refuses_when_unwritable
     assert_eq!(beside(&vfs), ["p.pre-0.0.ewz"]);
 }
 
-/// Decision log ID-1230 ruling 4: an unsaved migration makes only an editing session dirty. A read-only migrated
+/// An unsaved migration makes only an editing session dirty. A read-only migrated
 /// session is not, so the purge's preview (a reader) lists instead of refusing as unsaved; an editing one is, and
-/// `ew fmt`'s format refuses it as unsaved before the store's consent gate (its words are FT-1148's).
+/// `ew fmt`'s format refuses it as unsaved before the store's consent gate.
 #[test]
 fn only_an_editing_migrated_session_is_dirty() {
     let (disk, _) = files_v0();

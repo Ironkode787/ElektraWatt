@@ -668,7 +668,7 @@ fn oracle_finds_no_mismatch_over_every_state() {
     );
 }
 
-/// The full oracle of the deep nightly (CI-N-02, FT-297; `.github/workflows/deep-nightly.yml`, run with
+/// The full oracle of the deep nightly (CI-N-02; `.github/workflows/deep-nightly.yml`, run with
 /// `--run-ignored all`): the same states, with every memoised read at every depth re-run cold.
 #[test]
 #[ignore = "deep run: the oracle on every read"]
@@ -735,7 +735,7 @@ fn oracle_finds_no_mismatch(oracle: Oracle, first: usize, last: usize) {
     );
 }
 
-/// Review cycle 10, finding 1: a cold `Q` (`MemoMode::Off`, `Session::query_over`, the oracle's cold twin)
+/// A cold `Q` (`MemoMode::Off`, `Session::query_over`, the oracle's cold twin)
 /// evaluates every (family, key) at most once, detached scopes included. Before the fix every detached scope
 /// had a cache of its own: one cold partition of the golden project evaluated `drawn_page_order` once per
 /// interruption point.
@@ -790,7 +790,7 @@ fn growth_counts(session: &Session) -> (usize, usize, usize, usize) {
     )
 }
 
-/// Review cycle 10, finding 3: 300 cycles of creating and deleting an empty page, the partition read after
+/// 300 cycles of creating and deleting an empty page, the partition read after
 /// each commit, then 20 cycles with every memoised family read for every key after each commit. Before the fix
 /// the incremental frames kept every dependency, part stamps were never pruned and the memos of deleted pages
 /// were never collected (the review's probe: partition dependencies 110 -> 410, `page_ids` dependencies

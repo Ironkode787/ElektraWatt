@@ -19,7 +19,7 @@
 //! - `the_row_texts_match_the_committed_files`: the printed rows of the six blocks as
 //!   `golden/J-E-2416/expected/rows/<block>.csv` (`EW_BLESS=1` rewrites them), over the golden tables with
 //!   the colour and size profiles of doc 20 §7.1, §7.2, which the page goldens do not have yet. Candidates
-//!   for the FT-10 approval, compared with doc 20 by hand (README, "Connectivity report rows").
+//!   for the approval, compared with doc 20 by hand (README, "Connectivity report rows").
 //! - `a_query_with_the_report_engine_paginates_the_connectivity_kinds`: the four kinds get their derived rows and
 //!   pages (907 in three) inside the pagination, equal to the rows of a `Q` without the engine.
 //! - `rows_and_pages_do_not_depend_on_the_order_they_are_read_in`: the order the queries and the records are read in

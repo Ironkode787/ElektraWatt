@@ -123,7 +123,7 @@
 //!   (drawn as in "Black boxes") in style `data.small`, inside the outline, [`PIN_TEXT_GAP`] from the pin along its
 //!   inward normal: a pin leaving up or down reads bottom to top (90°), its end towards the pin (aligned middle right
 //!   below a pin leaving up, middle left above a pin leaving down), but a text of signs only ("+", "−", no letter or
-//!   digit, FT-758: a turned "−" read as a tick) reads horizontally, centred on the pin at the same gap (aligned top
+//!   digit: a turned "−" read as a tick) reads horizontally, centred on the pin at the same gap (aligned top
 //!   centre below a pin leaving up, bottom centre above a pin leaving down); a pin leaving left or right reads
 //!   horizontally, its start towards the pin (middle left right of a pin leaving left, middle right left of a pin
 //!   leaving right). They print after the slot texts and never move; in the slot-text collision rules they are fixed
@@ -248,8 +248,8 @@ pub struct RepView {
     /// For a strip-segment representation ([`ew_schema::RepType::StripSegment`]): the terminals it draws, in drawing
     /// order (doc 08 §6.7, FR-TRM-011); empty otherwise. See the module documentation for their CPs.
     pub terminals: Vec<SegmentTerminal>,
-    /// For a black box: the derived texts printed beside its pins (the CP designations of FT-707 and the PLC
-    /// addresses of WP-S1.21 D7); empty otherwise. See the module documentation ("Pin texts").
+    /// For a black box: the derived texts printed beside its pins (the CP designations and the PLC
+    /// addresses); empty otherwise. See the module documentation ("Pin texts").
     pub pins: Vec<PinText>,
 }
 
@@ -425,10 +425,10 @@ pub struct PageView {
     pub strip_tags: Vec<StripTagView>,
 }
 
-/// A strip's tag printed once on a page that shows its terminals without a segment (doc 08 §6.7, decision log
-/// ID-1151): at the tag-slot anchor of `rep`, the strip's first terminal representation on the page whose tag slot is
-/// shown (`ew_derive::tag_slot_shown`), moved one connection-grid step up in the text's own frame, in the slot's style
-/// and horizontal alignment, bottom-aligned.
+/// A strip's tag printed once on a page that shows its terminals without a segment (doc 08 §6.7): at the
+/// tag-slot anchor of `rep`, the strip's first terminal representation on the page whose tag slot is shown
+/// (`ew_derive::tag_slot_shown`), moved one connection-grid step up in the text's own frame, in the slot's
+/// style and horizontal alignment, bottom-aligned.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct StripTagView {
     /// The terminal representation it stands at.
@@ -1419,7 +1419,7 @@ impl Builder<'_> {
                 stacks.push((entity, lines.iter().map(|&(_, i)| i).collect(), own));
             }
         }
-        // FT-1138 (item 6): a stack over another representation's pin text rises to the first place
+        // A stack over another representation's pin text rises to the first place
         // the tag rule judges free. A movable device tag does not count: it yields to the caption in its turn.
         if stacks.is_empty() {
             return;
@@ -1668,7 +1668,7 @@ impl Builder<'_> {
     /// horizontal cross-reference text that overlaps another slot text on the page (its own symbol's or another
     /// representation's) drops below the lowest of those texts, [`SLOT_TEXT_GAP`] apart, when it overlaps no
     /// slot text there; texts are taken in print order, each seeing the earlier ones where they ended. The black
-    /// boxes' pin texts (`pins`) are fixed obstacles of the cross-reference texts and, since FT-701, of the
+    /// boxes' pin texts (`pins`) are fixed obstacles of the cross-reference texts and of the
     /// technical-data texts: one that such a text overlaps sends it down like a slot text of the same
     /// representation does.
     fn place_slot_texts(&self, texts: &mut [SlotText<'_>], pins: &[(EntityRef, Rect)]) {
@@ -1685,7 +1685,7 @@ impl Builder<'_> {
             // collides (its author placed the texts), between representations also a gap below [`SLOT_TEXT_GAP`].
             // A technical-data text yields only to other representations' texts.
             // A pin text counts as a text of the same representation: only an overlap collides, and it sends the
-            // text further down; FT-701: so for a technical-data text too (`pin`).
+            // text further down; so for a technical-data text too (`pin`).
             let others = || {
                 boxes
                     .iter()
@@ -2339,7 +2339,7 @@ fn shifted(r: Rect, dx: Nm) -> Rect {
     )
 }
 
-/// The tag rule's free test (module documentation, "Device tags"; FT-1138's risen caption): what is
+/// The tag rule's free test (module documentation, "Device tags"): what is
 /// in the way of a place `b` of a text of `entity`, as the vertical extent of each text (`texts`: the boxes and their
 /// entities, but those `skip` names) and pin text there, and of each horizontal wire through it; `None` when another
 /// wire runs through it. Empty: the place is free. A text or pin text of `entity` is in the way when it overlaps the

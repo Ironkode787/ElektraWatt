@@ -1,8 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5;
-//! WP-S1.21 part 5, PX-1).
+//! `io_list`: the I/O assignment list, one row per channel of each station's modules (FR-PLC-023; doc 10 §5).
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
@@ -20,14 +19,14 @@ const INCLUDE_DEACTIVATED: &str = "include_deactivated";
 /// The I/O list.
 ///
 /// - **Stations:** the devices of the block's manual selection (`manual.include`) that carry a `plc_station` aspect,
-///   else every station; in the order of `ew_derive::stations` (configuration project, station order, ID; doc 10 §5,
-///   the orchestrator's ruling 10 of cycle 42).
+///   else every station; in the order of `ew_derive::stations` (configuration project, station order, ID; doc
+///   10 §5).
 /// - **Rows:** `plc_rows(station)`: the channels of every module in slot order, then by channel number. A channel
 ///   whose effective state is `deactivated` is left out unless the block parameter `params.include_deactivated` is
 ///   `true` (FR-PLC-023: "the same 28 rows ... 56 with the deactivated filter off"), read through `kind_params`:
 ///   a value that is not a boolean gives the default, `false`, and one `MalformedShim` note naming the
 ///   block and the key.
-/// - **Columns:** the 20 columns of FR-PLC-023 this build fills (ruling 4 (b) of cycle 42: passed terminals, signal
+/// - **Columns:** the 20 columns of FR-PLC-023 this build fills (passed terminals, signal
 ///   range and the safety address are added with their writers): configuration project, CPU, station, bus address
 ///   (the station's first bus port with an address: "TBD" for the open item, the PROFIBUS station number), slot
 ///   (`n` positional, `rack.slot` or `rack.slot.subslot`), module, part, channel number, designation, kind, address,
@@ -96,7 +95,7 @@ impl ReportKindDef for IoList {
     }
 }
 
-/// The stations of the block: the selected stations, else all, in `ew_derive::stations` order (ruling 10).
+/// The stations of the block: the selected stations, else all, in `ew_derive::stations` order.
 fn stations_of(q: &Q, block: &ReportBlock) -> Vec<Id<Device>> {
     let all = ew_derive::stations(q);
     let selected: Vec<Id<Device>> = block

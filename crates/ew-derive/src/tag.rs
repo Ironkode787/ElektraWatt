@@ -10,15 +10,15 @@
 //! ID, and the main representation is the smallest-ID representation that draws it, contact images
 //! excluded (doc 03 §5.1: a contact image never counts as the main representation). The richer rule of
 //! doc 03 §8.2 step 4 (lowest page order, row, column among the counted representation types) replaces
-//! both at once with WP-S1.11; `tests/agreement.rs` holds the two layers together until then.
+//! both at once; `tests/agreement.rs` holds the two layers together until then.
 //!
 //! **Schemes the command layer does not number.** The command layer numbers per (page of the main
 //! representation, letter) and nothing else. A scheme is therefore applied only when that makes
 //! its tags unique wherever the counters are: its counter scope is `"page"` and its format and every
 //! rule's format contain `{page}`, `{letter}` and `{counter}`. Any other scheme (from the project's
 //! settings or named by `TagScheme::Named`) is skipped with a [`DeriveNote::SchemeNotApplied`] and the
-//! pinned profile's default scheme formats the tag (until WP-S1.11 numbers every
-//! scheme).
+//! pinned profile's default scheme formats the tag (until every scheme is
+//! numbered).
 
 use std::collections::BTreeSet;
 use std::sync::Arc;

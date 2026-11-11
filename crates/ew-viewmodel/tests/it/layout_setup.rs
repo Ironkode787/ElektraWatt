@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 4 through the shell on temporary copies of Golden A: Draw ▸ Layout enabled on 902 and disabled on 101
-//! with its reason (PS-7); Draw rail giving R1's geometry with a diagonal second click (PS-2); Draw duct giving D1 and
-//! D2 with Backspace, a double click and Enter (PS-3); a carrier dragged by Select; the Create enclosure dialog on a
-//! new location of the project, its refusal on +J-E-2416, and a new panel page's Surface view centred (PS-1, the
-//! project path); Properties rows committed from the shell (PS-4, PS-5); Auto-fill rail's dialog and toast (PS-6).
+//! Through the shell on temporary copies of Golden A: Draw ▸ Layout enabled on 902 and disabled on 101
+//! with its reason; Draw rail giving R1's geometry with a diagonal second click; Draw duct giving D1 and
+//! D2 with Backspace, a double click and Enter; a carrier dragged by Select; the Create enclosure dialog on a
+//! new location of the project, its refusal on +J-E-2416, and a new panel page's Surface view centred (the
+//! project path); Properties rows committed from the shell; Auto-fill rail's dialog and toast.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -350,7 +350,7 @@ fn create_enclosure_on_a_new_location_and_its_refusal_on_one_with_an_enclosure()
     s.shutdown();
 }
 
-/// FT-1016 on a new project: the starter's enclosure on a new location, a new panel page and its Surface
+/// On a new project: the starter's enclosure on a new location, a new panel page and its Surface
 /// row: the page takes the fitting scale in the same undo step as its view, and the plate lies inside the frame's
 /// drawing area. A second Surface edit keeps the scale.
 #[test]
@@ -679,7 +679,7 @@ fn tiers_without_starter_parts(root: &Path) -> LibraryTiers {
     }
 }
 
-/// W44.2 F1: on a new project without a location, Project ▸ Enclosure… is disabled with its reason, and the action
+/// On a new project without a location, Project ▸ Enclosure… is disabled with its reason, and the action
 /// refuses with it; with a location the dialog opens, and Create is disabled while the part (or the location) is
 /// empty, each with its reason; Create then sends nothing. No enclosure part is installed here.
 #[test]
@@ -792,7 +792,7 @@ fn create_line(s: &ShellModel) -> String {
 /// On 902 at a scale of 1:4 000 000 000 with its datum 10⁹ mm away, every click lies far beyond the `i64`
 /// range on the surface; Draw rail's two clicks and Draw duct's finish are refused by the tool in words, before the
 /// command, and nothing panics ("The draw tools refuse a point outside the drawable range before they send
-/// the command"; ID-1113: the text reads "That point lies too far away to draw; check the page's scale and datum").
+/// the command"; the text reads "That point lies too far away to draw; check the page's scale and datum").
 #[test]
 fn far_points_of_the_draw_tools_are_refused_in_words() {
     let tmp = Tmp::new("far");
@@ -832,7 +832,7 @@ fn far_points_of_the_draw_tools_are_refused_in_words() {
     s.shutdown();
 }
 
-/// The draw tools' refusal of a point beyond the drawable range (the text ID-1113's), whole.
+/// The draw tools' refusal of a point beyond the drawable range, whole.
 const FAR_REFUSAL: &str = "That point lies too far away to draw; check the page's scale and datum";
 
 /// The texts of the draw tools' overlay labels.

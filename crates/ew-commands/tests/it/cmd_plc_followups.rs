@@ -1,20 +1,19 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 5, PX-4 (D13): the model follow-ups of N2 and N3, and their notices in words.
+//! The model follow-ups of N2 and N3, and their notices in words.
 //!
-//! - FT-320 (ruling 9 of cycle 42: "in N2 (`solenoid_binding`) ... so every path unbinds"): a valve that leaves its
+//! - A valve that leaves its
 //!   module by `assembly.attach` (to a plain device or another module) unbinds its coil in the same step; a move
 //!   within the module keeps it; undo restores it. (`fields.set` does not set `parent`.)
-//! - FT-352: N2 reads a module's children through the parent index, so a child added meanwhile invalidates a prepared
+//! - N2 reads a module's children through the parent index, so a child added meanwhile invalidates a prepared
 //!   transaction and the commit re-runs N2 over it.
-//! - FT-953: the unbind of FT-320 checks every descendant of a moved sub-assembly.
-//! - FT-955: `assembly.attach` reads the parent's children through the parent index, so an unrelated device edit
+//! - The unbind of a leaving valve checks every descendant of a moved sub-assembly.
+//! - `assembly.attach` reads the parent's children through the parent index, so an unrelated device edit
 //!   leaves a prepared attach valid.
-//! - FT-321: a module re-parted with `part.assign replace` re-pins its channels from the old part's pins to the new
+//! - A module re-parted with `part.assign replace` re-pins its channels from the old part's pins to the new
 //!   part's; no pin, or a pin another channel holds, unbinds with a notice; a channel bound elsewhere stays.
-//! - Ruling 8 ("rewrite every notice of the two files with `crate::words::device` and `crate::words::function` ...,
-//!   each text asserted whole"): every notice of N2 and N3, whole.
+//! - Every notice of N2 and N3, whole.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -164,8 +163,8 @@ fn tag(e: &Engine, device: Id<Device>) -> String {
 
 // ---------------------------------------------------------------------------------------------------------
 
-/// FT-320 through `assembly.attach`: the valve moved from the module to a plain device leaves no channel bound to it,
-/// in the same step, with the notice; undo restores the binding.
+/// Through `assembly.attach`: the valve moved from the module to a plain device leaves no channel bound to
+/// it, in the same step, with the notice; undo restores the binding.
 #[test]
 fn a_valve_attached_elsewhere_unbinds_its_coil_and_undo_restores_it() {
     let mut e = engine(model_with(vec![], vec![]));
@@ -191,7 +190,7 @@ fn a_valve_attached_elsewhere_unbinds_its_coil_and_undo_restores_it() {
     assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
 }
 
-/// FT-320 between two modules: the valve moved to position 1 of another valve-terminal module leaves its old channel
+/// Between two modules: the valve moved to position 1 of another valve-terminal module leaves its old channel
 /// unbound (with the notice) and binds on the new module's map channel in the same step, because the unbinding runs
 /// before the pairs. (`fields.set` does not set `parent`, `commands/fields.rs`: `assembly.attach` is the command path
 /// that moves a device; the rule sits in N2, so any other path that changes a parent unbinds alike.)
@@ -220,7 +219,7 @@ fn a_valve_moved_to_another_module_rebinds_there() {
 }
 
 /// A move within the module keeps the binding (`is_on_module`): the coil stays on its channel, and N2 says the map
-/// assigns another (the notice whole, ruling 8).
+/// assigns another (the notice whole).
 #[test]
 fn a_move_within_the_module_keeps_the_binding() {
     let mut e = engine(model_with(vec![], vec![]));
@@ -269,7 +268,7 @@ fn n2_reads_the_children_through_the_parent_index() {
 
 // ---------------------------------------------------------------------------------------------------------
 
-/// FT-953 ("FT-320's unbind checks every descendant of a moved sub-assembly"): a valve that sits on its
+/// The unbind checks every descendant of a moved sub-assembly: a valve that sits on its
 /// module through a sub-assembly leaves the module when the sub-assembly is attached elsewhere; its coil is unbound in
 /// the same step, the notice names the valve and the moved sub-assembly, and undo restores the binding.
 #[test]
@@ -299,7 +298,7 @@ fn a_moved_sub_assembly_unbinds_the_coils_of_its_descendants() {
     assert_eq!(binding(&e, 0), Some(Endpoint::Cp(f, 0)));
 }
 
-/// FT-955 ("`assembly.attach` reads only the parent's children", ADR-0008): the positions taken under the
+/// `assembly.attach` reads only the parent's children (ADR-0008): the positions taken under the
 /// parent come from the parent index, so an edit of an unrelated device leaves a prepared attach valid, while a
 /// child added to the parent invalidates it.
 #[test]
@@ -445,7 +444,7 @@ fn shifted_pins_re_pin_and_a_held_pin_unbinds() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Ruling 8: the other notices of N2 and N3, whole
+// The other notices of N2 and N3, whole
 
 /// N2: a map that gives no channel below the count at the position, and a map channel held by another binding.
 #[test]

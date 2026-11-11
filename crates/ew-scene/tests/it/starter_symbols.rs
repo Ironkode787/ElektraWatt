@@ -59,14 +59,14 @@ const LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
 const VERSION: &str = "0.1.0";
 /// The starter documents changed after their first publication on `main` (a published version is immutable; doc 07
 /// §3.1 classifies the change): key (both editions) → version. The `plc_address` slot, a
-/// minor change; FT-698: the same slot on the lamp, the position switch and the 5/2 valve; WP-S1.20 (cycle
-/// 50): the 5/2 valve's solenoid CP leaves its FnDef (major) and its symbol's function text falls back to the process
-/// tag (minor), the cylinder's ports gain their role (minor), the module overview's tag moves above the valve glyphs
-/// (minor); FT-1204: the one-pole on/off switch moves to the manual-command category, class S;
-/// The interruption point is redrawn with its arrow pointing right and its CP on the tail
-/// (major); ID-1502 (4): the strip segment's tag moves beside the strip, left of its first terminal (minor);
-/// No text of a symbol crosses a stub of its CPs, so the heater's technical data moves down one step
-/// (patch) and the three-phase motor's leads grow one step up, its pin texts beside them (its CPs move: major).
+/// minor change; the same slot on the lamp, the position switch and the 5/2 valve; the 5/2 valve's solenoid
+/// CP leaves its FnDef (major) and its symbol's function text falls back to the process tag (minor), the
+/// cylinder's ports gain their role (minor), the module overview's tag moves above the valve glyphs (minor);
+/// the one-pole on/off switch moves to the manual-command category, class S; The interruption point is
+/// redrawn with its arrow pointing right and its CP on the tail (major); the strip segment's tag moves beside
+/// the strip, left of its first terminal (minor); No text of a symbol crosses a stub of its CPs, so the
+/// heater's technical data moves down one step (patch) and the three-phase motor's leads grow one step up,
+/// its pin texts beside them (its CPs move: major).
 const BUMPED: &[(&str, &str)] = &[
     ("ew.fn.cylinder-double-acting", "0.1.1"),
     ("ew.fn.switch-1p", "0.1.1"),

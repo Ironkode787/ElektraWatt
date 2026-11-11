@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The status-bar model (spec section 5.3; WP-S2.02 part 1, spec section 6.5; UX/UI doc 16
+//! The status-bar model (UX/UI doc 16
 //! section 3.6).
 //!
 //! Left to right: the hint (the active tool's status hint, or the hovered link's target while the tool shows the
@@ -13,7 +13,7 @@
 //! empty, and while a job runs the job field. Without a project the page and save fields are left
 //! out; without a canvas the cursor, zoom and grid. These text fields stay the transcripts' `status` member.
 //!
-//! The window's status bar and the describe line follow WP-S2.17 D12 instead ([`bar`]): the state at the left, then
+//! The window's status bar and the describe line follow the order of [`bar`] instead: the state at the left, then
 //! the findings, the job, the selection, the cursor, the grid, the zoom, the save state, the renderer and the
 //! notifications, each with its emphasis.
 
@@ -316,7 +316,7 @@ pub fn fields(model: &ShellModel, hide_job: bool) -> Vec<String> {
     out
 }
 
-// WP-S2.17 part 3 (D12; doc 16a §5.8)
+// Doc 16a §5.8
 /// What a field of the status bar shows (D12's fields, in their order).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub enum StatusKind {
@@ -336,8 +336,7 @@ pub enum StatusKind {
     Zoom,
     /// Saved, unsaved changes or read-only.
     Save,
-    /// "Merge driver not configured" for a project in a git worktree without the driver (doc 05 §16; WP-S1.17 part
-    /// 7); a click sets it up.
+    /// "Merge driver not configured" for a project in a git worktree without the driver (doc 05 §16); a click sets it up.
     Driver,
     /// The canvas renderer.
     Renderer,
@@ -474,7 +473,7 @@ pub fn bar(model: &ShellModel, hide_job: bool) -> Vec<StatusField> {
                 ),
                 Tone::Normal,
             ),
-            // M25-p3#7: an unedited new or imported draft is in no library yet, not "Saved".
+            // An unedited new or imported draft is in no library yet, not "Saved".
             field(
                 StatusKind::Save,
                 strings::text(editor.state_key()).into(),
@@ -624,7 +623,7 @@ mod tests {
         );
     }
 
-    /// FT-1252 (D13's cases without a test): the `-one` counts, a wire with no number and no potential, the ends that
+    /// The `-one` counts, a wire with no number and no potential, the ends that
     /// are no labelled connection point, and the junction, interruption point and structure box without a
     /// folio, whole, in en-GB and nl-NL.
     #[test]

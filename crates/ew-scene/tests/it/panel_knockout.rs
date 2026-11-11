@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The knockout of a panel page's labels (WP-S4.01 D10 as built; cycle 41's window check W41a, the orchestrator's
-//! ruling 2): the carriers layer cuts a rail's outline and its axis around every label's knockout box, a horizontal
-//! label's and a turned one's alike, and the footprints and the labels stay whole.
+//! The knockout of a panel page's labels: the carriers layer cuts a rail's outline and its axis around every
+//! label's knockout box, a horizontal label's and a turned one's alike, and the footprints and the labels
+//! stay whole.
 //!
 //! - `the_carriers_are_cut_around_a_horizontal_and_a_turned_label`: no carrier stroke enters either box, the cuts end
 //!   on the boxes' edges, the footprints are whole rectangles and both labels print.
 //! - `a_carrier_without_labels_on_it_is_drawn_whole`: without labels the outline is one closed rectangle and the axis
 //!   one line, as before.
-//! - `end_brackets_draw_after_the_footprints_in_their_pen`: WP-S4.02 D13's brackets are rectangles in the footprints'
+//! - `end_brackets_draw_after_the_footprints_in_their_pen`: the brackets are rectangles in the footprints'
 //!   pen after the footprints, each with its strip's placement as its entity.
 
 use ew_dl::{DisplayList, EntityRef, ItemKind, Layer, Path, PathEl, Pen, Stroke};

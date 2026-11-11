@@ -378,8 +378,8 @@ pub fn take_over(dir: &Path, me: &Identity, policy: &LockPolicy) -> Result<(), L
 /// Whether the existing stale copy `target` is the leftover of a takeover that crashed after linking the lock to it
 /// and before unlinking the lock: the copy holds the stale bytes `found` and so does the lock `path` still. Pruning
 /// such a copy loses nothing. When the lock holds anything else, another takeover has already moved the stale lock
-/// aside and put its own live lock in place, which must not be renamed away (review C35 M2; `ew-store`'s
-/// `left_by_a_crashed_takeover`, review cycle 8 5(e)).
+/// aside and put its own live lock in place, which must not be renamed away (`ew-store`'s
+/// `left_by_a_crashed_takeover`).
 fn left_by_a_crashed_takeover(path: &Path, target: &Path, found: &Found) -> bool {
     let (Ok(lock), Ok(copy)) = (std::fs::read(path), std::fs::read(target)) else {
         return false;
@@ -578,7 +578,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    /// Review C35 M2: B read the stale lock S, then A moved S aside to `stale-<S>` and created its live lock. B's
+    /// B read the stale lock S, then A moved S aside to `stale-<S>` and created its live lock. B's
     /// rename meets the copy of S, but the lock no longer holds S: B must not prune the copy and rename A's live lock
     /// aside; it loses with `Locked` and A's lock stays as it is.
     #[test]
@@ -610,7 +610,7 @@ mod tests {
 
     /// The protocol assumes a contender's steps between its read of the stale lock and its create finish within the
     /// settle time (2 s in production). The race runs with 250 ms rather than [`quick`]'s 10 ms, which a loaded test
-    /// runner can exceed between two system calls (review C35 M2).
+    /// runner can exceed between two system calls.
     #[test]
     fn of_two_concurrent_takeovers_exactly_one_wins() {
         let policy = LockPolicy {

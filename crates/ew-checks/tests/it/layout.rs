@@ -9,8 +9,8 @@
 //! s = 90), -201U3 (2, s = 130) and -201U4 (3, s = 170), 40 mm each. -F55 is mountable and unplaced. Golden A itself is
 //! checked by `ew-api`'s AC-21 subset (`check_messages_waivers.rs`), whose pack list holds EW-LAYOUT.
 //!
-//! The rules run at the project scope (the orchestrator's ruling 1: "No new scope kind. The EW-LAY rules run at the
-//! project scope and enumerate the layout spaces, surfaces, carriers and placements through the layout queries").
+//! The rules run at the project scope (no new scope kind) and enumerate the layout spaces, surfaces,
+//! carriers and placements through the layout queries.
 
 use crate::common;
 
@@ -282,9 +282,9 @@ fn a_project_without_a_layout_space_reports_none() {
     others_silent(&m, &[]);
 }
 
-/// LC-7 (the orchestrator's ruling 2: "LC-7's release wording is a finding filter ... the rule's `release_severity`
-/// is error and the filter lives in its `run()`"): the pre-delivery release run reports EW-LAY-001 at error, and a
-/// project without a layout space reports none.
+/// LC-7: the release wording is a finding filter (the rule's `release_severity`
+/// is error and the filter lives in its `run()`): the pre-delivery release run reports EW-LAY-001 at error,
+/// and a project without a layout space reports none.
 #[test]
 fn release_counts_the_unplaced_device_at_error_only_where_a_layout_space_exists() {
     let m = plate().build();
@@ -339,7 +339,7 @@ fn removing_the_other_part_changes_nothing_removing_the_placed_one_is_reported()
     );
 }
 
-/// WP-S4.02 D7 (AS-8): when the device has a primary part, EW-LAY-003 offers "Realise the primary part":
+/// When the device has a primary part, EW-LAY-003 offers "Realise the primary part":
 /// `layout.move` of the placement at its own pose with the primary part's copy (`ew-api`'s
 /// `golden_layout_assembly.rs` runs it and the finding clears).
 #[test]
@@ -427,7 +427,7 @@ fn a_placement_over_a_duct_and_a_rail_across_a_duct() {
 
 #[test]
 fn two_placements_of_one_device_overlap() {
-    // cycle 41's ruling 2: one device, one placement per part, 18 mm and 6.2 mm at s = 400 and s = 405 on R1
+    // One device, one placement per part, 18 mm and 6.2 mm at s = 400 and s = 405 on R1
     let mut fx = plate();
     device(&mut fx, 0xdc, "K", 1, LOC, &[P_MCB, P_TERM]);
     place(&mut fx, 0xfc, 0xdc, Some(P_MCB), on(R1), rail_pose(400.0));
@@ -478,7 +478,7 @@ fn collisions(m: &ew_model::Model) -> Vec<ew_checks::Finding> {
 
 #[test]
 fn five_thousand_footprints_at_one_spot_give_64_overlaps_and_one_summary() {
-    // cycle 41's ruling 1: an output test, not a timing
+    // An output test, not a timing
     let m = screws(5000, |_| 0.0);
     let found = collisions(&m);
     assert_eq!(found.len(), 65, "64 pairs plus the summary");
@@ -512,7 +512,7 @@ fn five_thousand_touching_footprints_in_one_column_give_none() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// LC-5 and FT-845: EW-LAY-010
+// EW-LAY-010
 
 #[test]
 fn profile_pose_footprint_strip_and_enclosure_limit() {
@@ -756,7 +756,7 @@ fn a_bracket_overlapping_a_strip_in_its_run_and_a_placement() {
             "De eindsteun vóór +J-E-2416-X1031 overlapt +J-E-2416-K9 op rail 2.",
         ]
     );
-    // Each targets the strip and its placement; the bracket's side and start tell the two apart (ruling 12).
+    // Each targets the strip and its placement; the bracket's side and start tell the two apart.
     let mut found: Vec<(String, Vec<String>)> = findings_of(&m, "EW-LAY-010")
         .into_iter()
         .map(|f| {
@@ -886,7 +886,7 @@ fn the_run_start_bracket_of_no_width_reads_before_off_the_rail_start() {
     );
 }
 
-/// Ruling 12: a strip whose bracket part has no width gives two brackets at one start; their findings never
+/// A strip whose bracket part has no width gives two brackets at one start; their findings never
 /// share a fingerprint, and a zero-length bracket overlaps nothing.
 #[test]
 fn brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
@@ -921,7 +921,7 @@ fn brackets_of_no_width_never_share_a_fingerprint_and_overlap_nothing() {
     assert_eq!(messages(&m, "EW-LAY-010"), Vec::<String>::new());
 }
 
-/// Ruling 11: 200 strips stacked on one rail at s = 100 mm, each one 6.2 mm terminal declaring the 10 mm
+/// 200 strips stacked on one rail at s = 100 mm, each one 6.2 mm terminal declaring the 10 mm
 /// bracket. One run: its run-start bracket [90, 100] (the first strip's) and one bracket after each strip, all at
 /// [106.2, 116.2], each overlapping the next. EW-LAY-010 gives one finding per overlapping bracket (199, no cap), and
 /// each strip's bracket line counts its own brackets (the first 2, every other 1; the BOM row 201). The speed is not

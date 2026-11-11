@@ -499,7 +499,7 @@ pub enum MissingReason {
 /// The destination of one cell's link: the PDF turns it into a link annotation, the canvas into a jump.
 ///
 /// A link covers the whole cell's text (`item: None`) or one listed item of it (`item: Some(n)`, the n-th page of a
-/// [`Cell::Folios`] list; WP-S3.06 D10, ruling 1): the item's link covers only that item's printed span, and a page
+/// [`Cell::Folios`] list): the item's link covers only that item's printed span, and a page
 /// inside a printed run ("203–206": 204, 205) has no span and draws no link.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LinkRef {
@@ -546,6 +546,6 @@ pub enum LinkTarget {
     },
     /// A page.
     Page(PageRef),
-    /// One representation (a device's placement on a given page; ruling 2).
+    /// One representation (a device's placement on a given page).
     Rep(Id<Representation>),
 }

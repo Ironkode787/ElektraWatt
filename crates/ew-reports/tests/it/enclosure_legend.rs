@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `enclosure_legend` at the row level (D11; the orchestrator's ruling 4 of cycle 41: "registered in
-//! `ew-reports` with rows from that query, tested at the row level and placed on no page"): the cells of each row
-//! kind, a carrier without a derivable length, and the blocks that have no surface. Golden A's 30 rows are `ew-api`'s
-//! `tests/golden_layout_bom.rs`.
+//! `enclosure_legend` at the row level (registered in
+//! `ew-reports` with rows from that query, tested at the row level and placed on no page): the cells of each
+//! row kind, a carrier without a derivable length, and the blocks that have no surface. Golden A's 30 rows
+//! are `ew-api`'s `tests/golden_layout_bom.rs`.
 
 use ew_derive::Q;
 use ew_derive::ew_ids::Uuid;

@@ -1,11 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Page output: the export job of the session (doc 09 §4; ARCH §6.4, §8.4; decision log ID-125, ID-144,
-//! ID-344).
+//! Page output: the export job of the session (doc 09 §4; ARCH §6.4, §8.4).
 //!
-//! **The view.** `view.rs` owns the glue rules that fill `ew_scene::page::PageView` from `Q` (the rules that were
-//! test glue until cycle 14), one query family per part of the view. **The layers.** `layers.rs` builds one
+//! **The view.** `view.rs` owns the glue rules that fill `ew_scene::page::PageView` from `Q`, one query
+//! family per part of the view. **The layers.** `layers.rs` builds one
 //! memoised `page_display_list` family per layer over the parts that layer reads, so a wire edit never rebuilds
 //! the title block (the memo oracle and `tests/page_output_memo.rs` hold it).
 //!
@@ -16,9 +15,9 @@
 //!    selected page its memoised layers assembled into a page scene ([`page_scene`]);
 //! 2. the page phase on [`ew_export::par_map`] (scoped `std` threads, results by page index):
 //!    each page's layers mapped onto its sheet with their symbol instances inlined, the one list every writer draws,
-//!    and its image items resolved from the project's asset bytes ([`ExportAssets`], FT-384: an SVG asset becomes
+//!    and its image items resolved from the project's asset bytes ([`ExportAssets`]: an SVG asset becomes
 //!    vector paths through `ew_scene::images`, a PNG or JPEG image gets its bytes); this phase is not a memoised
-//!    query, so reading which assets the project holds here is outside the read rule of FT-382;
+//!    query, so reading which assets the project holds here is outside the read rule;
 //! 3. the writer: [`ew_export::pdf`] (PDF/A-2b, outline, `/PageLabels`, named destinations, links, subset fonts)
 //!    or [`ew_export::svg`] (one `<label>.svg` per page), with the bundled fonts only ([`font_bytes`]).
 //!
@@ -63,7 +62,7 @@ pub mod print;
 // `ew diff` and its textconv (D26, D27)
 mod project_diff;
 pub(crate) mod properties;
-// Page rasters (D7) and the row exports (D8); WP-S3.08 part 1: their XLSX and CSV presets.
+// Page rasters and the row exports: their XLSX and CSV presets.
 mod raster;
 mod rows;
 // Page digests and the page change status (D6, D7).
@@ -74,7 +73,7 @@ mod route_measures;
 mod scale_fit;
 // The strip editor's gestures (§4.2).
 mod strip_edit;
-// WP-S3.08 part 2 (D10; ruling 3): table mode's pure rule, moved down from the view model.
+// Table mode's pure rule, moved down from the view model.
 pub mod table_edit;
 // The table round trip.
 mod table_io;
@@ -97,8 +96,8 @@ pub use editing::{
     TableEnd, TableItem, TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map,
 };
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
-/// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl` (
-/// architecture §3 rule 7).
+/// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl`
+/// (architecture §3 rule 7).
 pub use ew_dl;
 pub use ew_export::{Parallelism, PdfDate, PdfReport, SvgFile, svg_file_name};
 pub use fields::{

@@ -261,8 +261,8 @@ impl Migration<'_> {
 /// A problem the steward's check finds.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum StewardProblem {
-    /// The format a build writes is not released, and the chain has no way to it from a released format (decision
-    /// log ID-1230 ruling 7: from each, not from the last one only).
+    /// The format a build writes is not released, and the chain has no way to it from a released format (from
+    /// each, not from the last one only).
     NoStep {
         /// The released format.
         from: String,
@@ -292,7 +292,7 @@ impl fmt::Display for StewardProblem {
     }
 }
 
-/// The steward's check (WP-S1.17 D12 as ruling 8 of decision log ID-1221 amends it): for the formats `released` so far
+/// The steward's check: for the formats `released` so far
 /// (oldest first), the format `format` a build writes, its migration `chain` and the fixture corpus at `corpus`
 /// (`fixtures/format/`): every released format without its folder `<corpus>/<format>/`, and, when `format` is not
 /// released, the missing way from each released format to `format`. Empty while

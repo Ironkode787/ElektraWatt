@@ -689,7 +689,6 @@ fn configured_rows_follow_the_assembly_config_order() {
     );
 }
 
-// WP-S2.07 part 1 (D6, SE4)
 /// A bridge connection `n` of `group` between CP 0 of the main functions of terminals `a` and `b` (function = device
 /// + 1), with `part` on `overrides.wire_part` when given.
 fn bridge(fx: &mut Fx, n: u128, group: u16, a: u128, b: u128, part: Option<u128>) {

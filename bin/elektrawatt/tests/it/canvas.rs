@@ -1,10 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The headless canvas through the built binary (acceptance checks A6 and A8; the viewer of
-//! WP-S2.03 part 1, V8; the tool framework of part 2, T7 and T8): no window, no GPU, no display. A7's transcripts are
-//! `it/headless.rs`'s and its snapshot bytes T7's; V6, V7 and T10's flows are `ew-viewmodel`'s tests and V12's two runs
-//! are A7's (test clean-up, 2026-10-30).
+//! The headless canvas through the built binary (the viewer and the tool framework): no window, no GPU, no display.
+//! The determinism of the transcripts is `it/headless.rs`'s and that of the snapshot bytes is tested here; the flows
+//! of the viewer and the tools are `ew-viewmodel`'s tests.
 //! Every test works on a temporary copy of Golden A with `EW_CONFIG_DIR` in a temporary directory; nothing is
 //! written into the repository.
 
@@ -645,9 +644,9 @@ fn t8_the_preview_snapshot_is_deterministic() {
     assert_eq!(steps[2]["reason"], "reason-no-preview");
 }
 
-/// WP-S2.04 part 1 through the built binary (acceptance check PL7 and part 1's share of §13.6): folio 101's
+/// Through the built binary: folio 101's
 /// representations placed by a UI script generated from Golden A's records on a new project made by the
-/// company-standard wizard, with the oracle of §13.6 (17 representations, each the golden symbol at the golden
+/// company-standard wizard, with its oracle (17 representations, each the golden symbol at the golden
 /// insertion point and orientation), and the `--record` log replayed by the session's command-log replay (what
 /// `ew apply` runs) giving equal records. Each test runs its script once per gate; the second run and the
 /// byte-identical comparison of the two transcripts the docs below name are the deep nightly's
@@ -661,7 +660,7 @@ mod folio_scripts {
         );
     }
 
-    /// WP-S2.04 part 2's share of §13.6 (WR9): folio 101 placed, its golden tags typed (`fields.set` through `command.run`
+    /// Folio 101 placed, its golden tags typed (`fields.set` through `command.run`
     /// on `tag:` references), its 21 connections and 2 junctions drawn with the Wire tool from the keyboard; two runs give
     /// byte-identical transcripts; the oracle: 17 representations, 21 drawn connections and 2 junctions, every
     /// connection's end labels and every junction's sequence (by far-end labels) as on Golden A; the `--record` log
@@ -673,7 +672,7 @@ mod folio_scripts {
         );
     }
 
-    /// WP-S2.04 part 3's share of §13.6 (IB7): folio 102 placed by a generated script: its nine interruption points
+    /// Folio 102 placed by a generated script: its nine interruption points
     /// with the IP tool, its two black boxes (-102G1, -102F2) with the black box tool from their parts and their CPs
     /// dragged along the outline to the golden points (Select's CP drag, `box.reshape`), its contact with the Place
     /// tool. Two runs give byte-identical transcripts without a UUID; the oracle: 12 representations, each the golden
@@ -685,7 +684,7 @@ mod folio_scripts {
         super::folio_cases::folio_102_ips_and_black_boxes_are_placed_by_a_generated_script_twice_identically_and_replays_case(false);
     }
 
-    /// WP-S2.04 part 4b's share of §13.6 (PI9): folio 101's structure box around the three external connection
+    /// Folio 101's structure box around the three external connection
     /// points and its two marker groups (W4/W5 and W7/W9, 2.5 BK BU) appended to the wiring script of
     /// `folio_101_is_wired_by_a_generated_script_twice_identically_and_replays`; two runs give byte-identical
     /// transcripts without a UUID; the oracle: one structure box with the caption "External Connection

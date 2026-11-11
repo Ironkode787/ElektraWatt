@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool host's duties of WP-S2.04 part 4b (§10.5, §10.7): arming the Text, Graphic, Wire marker and Structure box
-//! tools (and, from part 5, the Image tool with its asset, §11), the Text tool's binding, text edit (F2, and the window's double click on a selected free text), the text
+//! The tool host's duties: arming the Text, Graphic, Wire marker and Structure box
+//! tools (and the Image tool with its asset), the Text tool's binding, text edit (F2, and the window's double click on a selected free text), the text
 //! popup's content, the tools' strip fields, the marker mode action and the return to Select when an edit finishes.
 //!
 //! **Reads.** Arming and the pointer and cursor moves of the Text, Graphic, Wire marker and Structure box tools read

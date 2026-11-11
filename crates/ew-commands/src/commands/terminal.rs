@@ -434,7 +434,7 @@ impl Command for InsertTerminals {
                 );
             }
         }
-        // FT-641 (CI-06): new terminals inside a bridge group would split it.
+        // New terminals inside a bridge group would split it.
         if let Some(b) = self.before {
             let mut order: Vec<(u32, Id<Device>)> = tx
                 .terminals_of_strip(self.strip)
@@ -540,8 +540,7 @@ impl Command for InsertTerminals {
     }
 }
 
-/// `terminal.move`: terminals of one strip put before another terminal of the strip, or at its end (
-/// D4).
+/// `terminal.move`: terminals of one strip put before another terminal of the strip, or at its end.
 ///
 /// Let T be the strip's terminals in (`seq`, ID) order. The new order O is T without the moved terminals, with them
 /// (in their T order) inserted directly before `before` (absent: at the end). For every index i from the first to the
@@ -653,7 +652,7 @@ impl Command for MoveTerminals {
         let (Some(&first), Some(&last)) = (changed.first(), changed.last()) else {
             return Self::bad("/terminals", text!("refusal-terminal-move-unchanged"));
         };
-        // FT-641 (CI-06): a bridge group follows its terminals, so a move that keeps every group consecutive is
+        // A bridge group follows its terminals, so a move that keeps every group consecutive is
         // allowed; one that splits a group is refused, naming the group and the way out.
         let before_ids: Vec<Id<Device>> = current.iter().map(|(_, id)| *id).collect();
         let after_ids: Vec<Option<Id<Device>>> = order.iter().copied().map(Some).collect();

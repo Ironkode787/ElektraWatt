@@ -24,7 +24,7 @@
 //!   palette's aliases) gives `docs/book/src/reference/glossary.md`;
 //! - the JSON Schemas of the project format (`schemas/0.1/`, written by `ew-schema`) give one page per record kind
 //!   that has a schema under `reference/format/`, and its index of every kind;
-//! - the release and migration notes of the releases (`docs/release-notes/<X.Y.Z>.md`, WP-S6.08's) give one page per
+//! - the release and migration notes of the releases (`docs/release-notes/<X.Y.Z>.md`) give one page per
 //!   release under `reference/release-notes/`, newest first, with their relative links rewritten to the repository's
 //!   address, and the index of the releases;
 //!
@@ -51,7 +51,7 @@ use serde_json::{Map, Value};
 const SCHEMA_DIR: &str = "target/reference/commands";
 /// The rule catalogue snapshot of `ew-checks`.
 const CATALOGUE: &str = "target/reference/rules.json";
-/// The product glossary of `ew-viewmodel` (WP-S2.08 D5 (b)).
+/// The product glossary of `ew-viewmodel`.
 const GLOSSARY: &str = "crates/ew-viewmodel/glossary/glossary.toml";
 /// The generated glossary page, relative to [`BOOK_SRC`].
 const GLOSSARY_PAGE: &str = "reference/glossary.md";
@@ -83,7 +83,7 @@ const QUERIES_PAGE: &str = "reference/queries.md";
 const API_V1_PAGE: &str = "reference/api-v1.md";
 /// Generated format pages, relative to [`BOOK_SRC`].
 const FORMAT_DIR: &str = "reference/format";
-/// The release and migration notes, one `<X.Y.Z>.md` per release (WP-S6.08's), relative to the root.
+/// The release and migration notes, one `<X.Y.Z>.md` per release, relative to the root.
 const RELEASE_NOTES: &str = "docs/release-notes";
 /// Generated release-notes pages, relative to [`BOOK_SRC`].
 const RELEASE_NOTES_DIR: &str = "reference/release-notes";
@@ -2932,7 +2932,7 @@ mod tests {
         std::fs::remove_dir_all(&root).unwrap();
     }
 
-    /// C43-p7#2, p7#3: a built page that git tracks is a violation, whether or not a source gives it, and so is a
+    /// A built page that git tracks is a violation, whether or not a source gives it, and so is a
     /// document outside the book whose generated part differs (doc 04's crate table).
     #[test]
     fn check_fails_on_a_tracked_built_page_and_a_differing_generated_part() {

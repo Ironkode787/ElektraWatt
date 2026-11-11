@@ -81,7 +81,7 @@ fn ft1383_a_damaged_copy_a_device_names_opens_read_only_and_every_page_shows() {
     done(&mut s, "messages.check", json!({}));
 }
 
-/// C52-p4#1, #2: the read-only banner names the device, the damaged copy in words and the way out, and Save As
+/// The read-only banner names the device, the damaged copy in words and the way out, and Save As
 /// is refused in those words before it asks for a folder: a copy without the damaged file would not open. Nothing is
 /// written. Both languages.
 #[test]
@@ -124,7 +124,7 @@ fn ft1383_save_as_is_refused_and_the_banner_names_the_device_and_the_copy() {
     assert!(strings::set_locale("en"));
 }
 
-/// ID-1427 (W52 F7): the damaged copy's banner stays while the project is read-only for it: after a page change it
+/// The damaged copy's banner stays while the project is read-only for it: after a page change it
 /// still names the device and the way out (the open's finding count goes with the message), and it cannot be
 /// dismissed; it follows the UI language, and it goes when the project closes.
 #[test]
@@ -322,7 +322,7 @@ fn every_damaged_copy_a_save_as_leaves_out_is_named() {
     assert!(strings::set_locale("en"));
 }
 
-/// ID-1484 (FT-1383): a damaged definition copy whose functions end fluid lines (Golden A's pneumatic cylinders on
+/// FT-1383: a damaged definition copy whose functions end fluid lines (Golden A's pneumatic cylinders on
 /// folio 203, EW-INV-024 beside the EW-INV-001 that names the copy) opens read-only with FT-1383's banner, where the
 /// open was refused before; Save As is refused in its words as for any copy a record names, nothing being
 /// written. Both languages.

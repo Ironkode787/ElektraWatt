@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 4b in the view model (acceptance check PI10): `strip.bridge` (Edit ▸ Bridge terminals)
+//! In the view model: `strip.bridge` (Edit ▸ Bridge terminals)
 //! on the folio-103 demo variant, the bridge group the action derives, one undo step per bridge, and the refusals of
 //! a selection that is not terminals of one strip; and the chain over three or more terminals in one undo
 //! step and the side-1 end of terminals without a bridge shaft. Every test works on a writable temporary copy of
@@ -379,7 +379,7 @@ fn bridging_twice_is_refused() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// PI10, cycle 33: the selection must be two or more terminals of one strip
+// The selection must be two or more terminals of one strip
 
 #[test]
 fn the_selection_must_be_terminals_of_one_strip() {
@@ -426,7 +426,7 @@ fn the_selection_must_be_terminals_of_one_strip() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Cycle 33 (G-PP ruling #4): four terminals are one chain in one undo step
+// Four terminals are one chain in one undo step
 
 #[test]
 fn four_terminals_draw_the_chain_in_one_undo_step() {
@@ -505,7 +505,7 @@ fn a_chain_draws_only_the_pairs_not_bridged_yet() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Cycle 33 (G-PP ruling #4): terminals without a part shaft bridge at their lowest side-1 CP
+// Terminals without a part shaft bridge at their lowest side-1 CP
 
 /// A new strip on 103 with `n` terminals placed by symbol (no part, so no shaft): their page table rows, in
 /// designation order 1 to `n`.
@@ -620,7 +620,7 @@ fn folio_103_bridges_draw_on_terminals_placed_by_symbol() {
     assert_eq!(groups, [1, 2, 3], "each chain takes the next free group");
 }
 
-/// SE12 (replaces the cycle-33 pin of review finding 9): a bridge joins terminals, not CPs.
+/// A bridge joins terminals, not CPs.
 /// Two part-less terminals are bridged at their side-1 CP (index 0); once they carry PT 2.5-TWIN, whose shaft-1 entry
 /// is CP index 3, Bridge terminals on the pair is refused as "already bridged"; on the pair and a third terminal it
 /// draws one connection, into the same group, from the second terminal's shaft CP; the side-1 bridge stays as drawn.

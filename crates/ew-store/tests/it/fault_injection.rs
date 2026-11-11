@@ -577,7 +577,7 @@ fn transient_rename_failures_are_retried() {
 
 #[test]
 fn a_failed_retry_of_an_incomplete_save_is_not_reported_as_this_saves_incomplete() {
-    // Review cycle 8, blocker 1. Save 1 is incomplete (a held rename). Save 2 carries new edits and meets the
+    // Save 1 is incomplete (a held rename). Save 2 carries new edits and meets the
     // same held rename while completing save 1: it wrote nothing of its own, so it must not answer with save
     // 1's `Incomplete` (on which a caller counts its model as saved and clears its dirty set). Save 3, with
     // the dirty set kept, completes save 1 and writes the edits of save 2; after a clean close (which
@@ -720,7 +720,7 @@ fn crashed_incomplete_save(mode: DirSync) -> Crashed {
 
 #[test]
 fn behind_a_lock_that_looks_alive_a_read_only_open_reads_the_intent_after_the_wait() {
-    // Review cycle 8, major 4: where the process probe cannot tell that the writer died (Windows), its lock
+    // Where the process probe cannot tell that the writer died (Windows), its lock
     // stays non-stale for `lock.stale_after`. Openers then wait the 5 s for the save in progress, and read
     // the intent's generation in memory instead of failing with SaveInProgress. Nothing is written.
     for mode in MODES {
@@ -759,7 +759,7 @@ fn behind_a_lock_that_looks_alive_a_read_only_open_reads_the_intent_after_the_wa
 
 #[test]
 fn a_read_only_open_ignores_an_intent_not_above_the_manifest() {
-    // Review cycle 8, 5(a): `manifest.json.tmp-1` beside manifest generation 1 is a leftover, not a save in
+    // `manifest.json.tmp-1` beside manifest generation 1 is a leftover, not a save in
     // progress. Before the fix the read-only opener read it in memory (here: an intent that drops a page).
     let (vfs, root) = mem_project(DirSync::Explicit);
     let files = fixture();
@@ -811,7 +811,7 @@ fn base_member(manifest: &[u8]) -> String {
 
 #[test]
 fn a_crash_over_a_conflicted_manifest_rolls_forward() {
-    // Review cycle 8, 5(j) rework: a manifest with git conflict markers is a supported state (EW-CORE-001,
+    // A manifest with git conflict markers is a supported state (EW-CORE-001,
     // edit mode). A save over it records the raw hash of those bytes as its base; after a crash past the
     // data renames, the reopen compares raw bytes and rolls forward (it used to refuse: "based on
     // generation 0, but manifest.json is unreadable", leaving the project mixed and read-only for ever).
@@ -903,7 +903,7 @@ fn a_crash_over_a_conflicted_manifest_rolls_forward() {
 
 #[test]
 fn an_intent_whose_base_bytes_changed_is_not_rolled_forward() {
-    // Review cycle 8, 5(j) rework: the roll-forward compares the raw bytes of `manifest.json` with the
+    // The roll-forward compares the raw bytes of `manifest.json` with the
     // intent's recorded base. Different bytes (an external change after the save was decided), or no
     // recorded base while a manifest exists, are refused: EW-CORE-002, read-only, nothing touched (the
     // intent and its temps stay). In session the retry is refused the same way until the bytes are back.
@@ -1147,15 +1147,16 @@ fn symlinked_page_file_is_not_followed() {
 // ---------------------------------------------------------------------------------------------------------
 // The `LibRef` keep-alive and the journal (EW-INV-021, ADR-0009 amendment 7)
 
-/// The library and item of the FnDef copy of the FT-316 tests, and its copy ID `lib_copy_id(LIB_316,
-/// ITEM_316)` = `v5(NS_LIBCOPY, "<library>\u{1F}<item>")`; every test checks through the referrer index that
-/// a symbol's `LibRef` to the item resolves to it.
+/// The library and item of the FnDef copy of the `LibRef` keep-alive tests, and its copy ID
+/// `lib_copy_id(LIB_316, ITEM_316)` = `v5(NS_LIBCOPY, "<library>\u{1F}<item>")`; every test checks through
+/// the referrer index that a symbol's `LibRef` to the item resolves to it.
 const LIB_316: &str = "0190f316-0000-7000-8000-00000000a001";
 const ITEM_316: &str = "0190f316-0000-7000-8000-00000000a002";
 const FNDEF_316: &str = "4370a04b-c31e-5381-b458-6669a77cc71c";
 
-/// A symbol copy (the model's first, under the ID `0190f316-…-<n>`) whose `fndef` names the FT-316 item, and
-/// that item's FnDef copy (the model's first FnDef under the FT-316 lineage); both with their true hash.
+/// A symbol copy (the model's first, under the ID `0190f316-…-<n>`) whose `fndef` names the item `ITEM_316`,
+/// and that item's FnDef copy (the model's first FnDef under the lineage `LIB_316`); both with their true
+/// hash.
 fn lib_ref_rows(model: &Model, n: u32) -> (AnyRow, AnyRow) {
     fn id<T: std::str::FromStr>(s: &str) -> T {
         s.parse().unwrap_or_else(|_| panic!("an ID: {s}"))

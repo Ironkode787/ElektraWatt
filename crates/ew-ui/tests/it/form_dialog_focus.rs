@@ -192,8 +192,8 @@ fn check_form(h: &mut Harness<'_, App>, action: &str, params: Value) -> String {
 }
 
 /// Every form dialog of the shell, listed from the source, takes its first focus on its first text field,
-/// else on its Primary (doc 16a §6.12), and Enter on the fresh form submits it or is refused with its reason (ID-1276
-/// ruling 7), toggling no check box. Renumber devices… (no text field, two check boxes) opened on "Include frozen
+/// else on its Primary (doc 16a §6.12), and Enter on the fresh form submits it or is refused with its reason,
+/// toggling no check box. Renumber devices… (no text field, two check boxes) opened on "Include frozen
 /// tags" before: the first Enter toggled it, silently.
 #[test]
 fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {

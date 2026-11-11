@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The sample project's catalogue parts of WP-S7.03 D3 and D4: the generator of the system library
+//! The sample project's catalogue parts: the generator of the system library
 //! `content/libraries/ew-sample-parts.ewlib` from Golden A's part and manufacturer copies, read as bytes (Golden A is
 //! only read, and keeps its project-local copies unchanged).
 //!
@@ -13,8 +13,9 @@
 //!   print (the function definition's, or the function's alias); a decoration function (`ew.fn.graphic`, a cable's
 //!   drawing) is no function of the part;
 //! - the bus port the device's function holds (195740's DP slave port), as a bus section;
-//! - a function category where Golden A's copy has none and the part is one a black box places (2904602, MICO 4.10;
-//!   ID-1497), so that the box takes the category's letter;
+//! - a function category where Golden A's copy has none and the part is one a black box places (2904602, MICO
+//!   4.10),
+//!   so that the box takes the category's letter;
 //! - `meta.confidence` per section: `test` where doc 20 gives the value as a test input (the dimensions, ▲U-26; the
 //!   solenoid-position map H1 of 533361, ▲U-23; the FE pin of 550208, ▲U-18), `unverified` for the rest. No section
 //!   is `verified`: nobody checked a value against the maker's data.
@@ -321,7 +322,7 @@ fn documents() -> Vec<LibDocument> {
     docs
 }
 
-/// The function category a catalogue part gains (ID-1497 (7)): 2904602 is a power supply (`PowerSupplyAcDc`, G in
+/// The function category a catalogue part gains: 2904602 is a power supply (`PowerSupplyAcDc`, G in
 /// EN 81346-2:2009), MICO 4.10 an electronic load distribution that monitors and protects its channels
 /// (`ProtectionOvercurrent`, F).
 fn category_of(key: &str) -> Option<Value> {

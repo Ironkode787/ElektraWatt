@@ -527,7 +527,7 @@ impl Command for RenumberPages {
                 return tx.reject(text!("refusal-page-renumber-used", new.to_string()));
             }
         }
-        // A label that carries the printed folio of its parent (FT-460's `101.1`, an imported `101.1.1`, or
+        // A label that carries the printed folio of its parent (`101.1`, an imported `101.1.1`, or
         // the page's own label `101`) follows the number: in the same section, a label whose leading segment (up to
         // the first `.` or the end) is the printed old number gets the printed new number in its place. `101a` and
         // `1011.1` keep their label. Computed on the old state, so chained renumbers (101 to 102, 102 to 103) cannot
@@ -554,7 +554,7 @@ impl Command for RenumberPages {
                 .map_err(|_| CmdError::internal(format!("sub-page label `{text}` is not an identifier")))?;
             relabel.push((p.id, new_label));
         }
-        // ID-1427 (W52 F1): a page whose printed folio changes may not take the section's divider folio or
+        // A page whose printed folio changes may not take the section's divider folio or
         // a folio a page-oriented report block of the section generates, as `page.create` refuses it.
         let new_number: BTreeMap<Id<Page>, u32> = new_numbers.iter().copied().collect();
         for p in tx.iter::<Page>() {
@@ -604,8 +604,8 @@ impl Command for RenumberPages {
 /// The most pages `page.reorder` moves at once.
 const REORDER_MAX: usize = 1000;
 
-/// `page.reorder`: moves page records before another page of the same section, or to the section's end (FR-PAG-024,
-/// WP-S2.06 §5.1).
+/// `page.reorder`: moves page records before another page of the same section, or to the section's end
+/// (FR-PAG-024).
 ///
 /// The pages of the section (front matter when `before` is absent and `section` is absent or null) are ordered by
 /// (folio number, label in natural order, ID). The moved pages, taken in that order, are put as one block directly

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 4 in the engine (D11): `bus.logical_net.create`, `bus.physical_net.create` and the bus members
+//! The bus commands in the engine: `bus.logical_net.create`, `bus.physical_net.create` and the bus members
 //! through `fields.set` (a function's `bus_port`, a logical net's master and rate, a physical net's medium); an edit
 //! writes only values this build knows.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.

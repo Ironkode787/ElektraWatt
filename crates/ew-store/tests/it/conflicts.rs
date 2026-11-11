@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! CR-1 of WP-S1.17 part 5: a project whose page holds the conflict record the merge driver
-//! writes for W20 (MD-6) opens editable with the conflict in the model's own table, and a full save writes the page
+//! A project whose page holds the conflict record the merge driver
+//! writes for W20 opens editable with the conflict in the model's own table, and a full save writes the page
 //! back byte for byte, the conflict record last.
 
 // The writer's tests read the model untracked, ADR-0001 amendment 2.

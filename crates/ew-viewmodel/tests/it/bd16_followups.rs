@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Follow-ups of the first blind-drafter dry run (BD16) found while fixing FT-485 (lane O30): the two
+//! Follow-ups of the first blind-drafter dry run (BD16): the two
 //! clamps of a starter terminal print distinct labels, the strip chooser's `picker.choose` takes its own
 //! `designation`, and the keyboard move of a terminal placed through the text interface moves it by the grid
 //! cursor's displacement.
@@ -188,7 +188,7 @@ fn rep_positions(s: &ShellModel) -> Vec<(EntityRef, (i64, i64))> {
 fn a_terminal_stacked_on_another_moves_off_it_by_keyboard_and_by_drag() {
     let tmp = Tmp::new("bd16-3b");
     let mut s = new_project_with_strip(&tmp);
-    // The drafter's stack: two terminals on one point. Since FT-622 the Place tool puts the second two grid steps to the
+    // The drafter's stack: two terminals on one point. The Place tool puts the second two grid steps to the
     // right of the first, so it is moved back onto it (a stack of an older project, or of a move).
     place_terminal(&mut s, "101-D2", json!({}), json!({}));
     place_terminal(&mut s, "101-D2", json!({}), json!({}));

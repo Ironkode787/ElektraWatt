@@ -11,9 +11,9 @@
 //!   process tags, the "Spare" texts, the representations of the new pages and the report rows.
 //! - **MC-5.** The page macro inserted a second time with value set 1 lists the eight doubled addresses Q0.1, Q0.3 …
 //!   Q1.7 on the card and commits as one undo step.
-//! - **The window macro** "valve module typical" (one module with its valves and the `field` group) and FT-672: it
-//!   inserts at 90° with every representation turned about the anchor; the PSU block of 102 at 90° keeps its wires
-//!   on their CPs.
+//! - **The window macro** "valve module typical" (one module with its valves and the `field` group) and its
+//!   rotation: it inserts at 90° with every representation turned about the anchor; the PSU block of 102 at 90°
+//!   keeps its wires on their CPs.
 //! - **MC-7** for both: twice-run determinism of the saved documents and the composed commands.
 
 use crate::common::{self, Dir, tiers};
@@ -840,9 +840,9 @@ fn a_second_typical_lists_the_doubled_addresses_and_undoes_in_one_step() {
 }
 
 // ---------------------------------------------------------------------------------------------------------
-// Value set 4, the window macro and FT-672
+// Value set 4, the window macro and its rotation
 
-/// ID-1329 (FI-07): the valve module of a macro inserted at a position of -201U1 that a module holds is
+/// The valve module of a macro inserted at a position of -201U1 that a module holds is
 /// refused by EW-FL-013's prevent half, in its words, and nothing changes.
 #[test]
 fn a_macro_module_at_a_held_position_is_refused() {
@@ -1146,7 +1146,7 @@ fn a_window_macro_at_90_degrees_keeps_its_wires_on_their_cps() {
         }
         // every bend of a stored route is a turned bend, CP or junction of the saved block (a wire without a route
         // is drawn by the scene's router); a straight route whose turned ends lie 1 nm apart (a CP 1 nm off the
-        // rational grid) keeps a 1 nm jog, whose two points are not bends (ID-1504's straight routes on folio 102)
+        // rational grid) keeps a 1 nm jog, whose two points are not bends (the straight routes on folio 102)
         let jog = |i: usize| {
             let p = c.polyline[i];
             [i.checked_sub(1), Some(i + 1)]
@@ -1323,7 +1323,7 @@ fn the_typicals_save_and_insert_deterministically() {
     }
 }
 
-/// A command written before FT-672 (no `orient`) reads, writes back unchanged and inserts as before; a page macro
+/// A command written without `orient` reads, writes back unchanged and inserts as before; a page macro
 /// with an orientation is refused at `/orient`.
 #[test]
 fn a_log_without_orient_replays_unchanged_and_a_page_macro_takes_no_orient() {

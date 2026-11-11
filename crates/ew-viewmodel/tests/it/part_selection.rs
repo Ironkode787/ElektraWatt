@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4a through the text interface: the part dialog (D16 to D19) and the part editor (D20, D21) on
+//! Through the text interface: the part dialog and the part editor on
 //! writable copies of Golden A, with the compiled-in starter catalogue (the viewmodel names no schema types, so the
 //! fixture catalogue of §11.3 is written by the `ew-api` tests; these tests assert the starter's named rows). No test
 //! pins the number of offers: they assert named rows and their order.
@@ -520,7 +520,7 @@ fn a_part_dialog_offers_the_parts_its_device_kind_takes() {
     }
 }
 
-/// W45.1 F2: an empty search says so once, in the list and not in the dialog's body, and Choose is disabled
+/// An empty search says so once, in the list and not in the dialog's body, and Choose is disabled
 /// with its reason, since it has nothing to choose.
 #[test]
 fn the_empty_search_says_it_once_and_chooses_nothing() {

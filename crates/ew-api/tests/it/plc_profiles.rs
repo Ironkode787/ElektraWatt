@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S7.03 SC-7 (FR-PLC-008): a profile file put into a library is chosen by `plc.set_profile` without a code change.
+//! FR-PLC-008: a profile file put into a library is chosen by `plc.set_profile` without a code change.
 //! A fixture library holds a third absolute profile (`%Q0.1`-style, its own `profile.id`); the command-log line that
 //! pins it embeds it first (D8), Golden A's configuration project's channels then render in it, and the project,
 //! saved and reopened without the library, still renders them from its copy. T1 (a name at hand neither built in nor

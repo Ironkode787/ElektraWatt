@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.07 part 3, PW-1 headless: `file.print` with Range Sections 1, Paper A5 and Scale to fit builds the print set
+//! Headless: `file.print` with Range Sections 1, Paper A5 and Scale to fit builds the print set
 //! of PR-1 (its PDF is `golden/J-E-2416/expected/print/sha256.txt`), the preview's page 1 of 5 shows the stamp, and
 //! Escape (`ui.dismiss`) closes the dialog and prints nothing. The held-build flows (PW-2) are `ew-viewmodel`'s
 //! `tests/it/print.rs`. Golden A itself is only copied, never written.

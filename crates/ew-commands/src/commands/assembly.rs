@@ -334,7 +334,7 @@ impl Command for LinkDevices {
         }
         tx.require::<Device>(self.from)?;
         tx.require::<Device>(self.to)?;
-        // WP-S1.20 §5 T4 (FI-06): a valve does not drive a device of its own parent chain.
+        // A valve does not drive a device of its own parent chain.
         if self.kind == DeviceLinkKind::Drives {
             let mut at = self.from;
             while let Some(p) = tx.get::<Device>(at).and_then(|d| d.parent) {

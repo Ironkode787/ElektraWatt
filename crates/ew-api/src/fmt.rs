@@ -22,8 +22,8 @@
 //! order, before anything is written: a store whose files cannot be packed as found refuses (no manifest, an
 //! incomplete save, a listed file that cannot be read, a file changed on disk since the repair opened it, the entry
 //! cap); without a broken line nothing is written; the content check runs over the repair's rewrite set with the
-//! broken lines left out (only form may change elsewhere). Then the backup: the generation's files as found (decision
-//! log ID-1186), broken lines and edits outside ElektraWatt since the last save included, packed as an `.ewz` whose
+//! broken lines left out (only form may change elsewhere). Then the backup: the generation's files as found,
+//! broken lines and edits outside ElektraWatt since the last save included, packed as an `.ewz` whose
 //! manifest is the loaded one hashed to those bytes ([`ewz::pack_as_found`]; [`Backup::edited`] counts the files that
 //! differ from the generation as saved) and written into the project folder's parent as
 //! `<project folder>.before-repair-g<generation>.ewz` ([`backup_path`]), to a temporary name beside it, read back,
@@ -628,8 +628,8 @@ pub(crate) fn write_backup(vfs: &dyn Vfs, target: &Path, bytes: &[u8]) -> Result
         }
         // No rename without replacement on this file system (no hard links): the target's absence is checked
         // again and the temporary file, synced and read back, renamed onto it, so that a power loss leaves at most the
-        // temporary file, which a rerun removes. The race between the check and the rename is accepted, as ID-1175
-        // accepts it for the extract.
+        // temporary file, which a rerun removes. The race between the check and the rename is accepted, as it
+        // is for the extract.
         Err(e) if e.kind() == io::ErrorKind::Unsupported => {
             match vfs.stat(target) {
                 Ok(_) => {

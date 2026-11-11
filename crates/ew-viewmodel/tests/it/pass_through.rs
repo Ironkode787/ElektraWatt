@@ -186,8 +186,8 @@ fn wire(s: &mut ShellModel, from: (i64, i64), to: (i64, i64)) {
     click(s, to, false);
 }
 
-// The window turns the second of two presses within 0.5 s and 4 points into `tool.finish` (a double click,
-// WP-S2.04 §6.1). A click that ends a wire on a pin and a quick second one there to start the next wire are that
+// The window turns the second of two presses within 0.5 s and 4 points into `tool.finish` (a double click).
+// A click that ends a wire on a pin and a quick second one there to start the next wire are that
 // double click, and the Wire tool ignored it: the second wire was silently not drawn. The model takes a second
 // connection at a wired CP (`connection.draw` has no one-connection rule), so the wire is drawn.
 #[test]
@@ -234,8 +234,8 @@ fn a_double_click_on_the_pin_a_wire_just_ended_on_starts_the_next_wire_there() {
     assert_eq!(s.tool().state(), "armed");
 }
 
-// The cycle-38 window fix (W38, rv-vis-2): the router of FT-706 reserves every other CP and its stub, so a wire drawn
-// with two clicks from a contact to a coil went round a free terminal standing in line between them and FT-705's
+// The router reserves every other CP and its stub, so a wire drawn
+// with two clicks from a contact to a coil went round a free terminal standing in line between them and the
 // pass-through never saw it. The direct route through a free terminal in line is taken when nothing else is in its
 // way; elsewhere the router is unchanged.
 
@@ -395,8 +395,7 @@ fn a_direct_route_on_another_wire_s_track_is_left_to_the_router() {
     assert!(cp(&s, "-X1031:70/a").connections.is_empty());
 }
 
-// C39: a black box's caption is an obstacle to the router, the through route of the cycle-38 window
-// fix (FX38c) included. Beside the line the through route is still taken; standing on the line it is not.
+// A black box's caption is an obstacle to the router, the through route included. Beside the line the through route is still taken; standing on the line it is not.
 
 /// Draws a MICO 4.10 black box with the grid corners `a` and `b` (it grows until its CPs fit) and returns the page
 /// rectangles `[x0, y0, x1, y1]` of its texts left of its outline (up to its edge): its caption.
@@ -510,7 +509,7 @@ fn a_black_box_caption_on_the_line_turns_the_through_route_away() {
 }
 
 // An interruption point one step inside the drawing area, leaving towards the sheet's edge (Golden A's
-// folio 101 feeds before decision log ID-1502 (7) mirrored them, so the test mirrors one back), still turns on the
+// folio 101 feeds before they were mirrored, so the test mirrors one back), still turns on the
 // area's edge: the frame's inward step gives way on that side.
 #[test]
 fn an_interruption_point_at_the_area_edge_still_routes() {
@@ -602,7 +601,7 @@ fn split_at_terminal_71(s: &ShellModel) -> Vec<[String; 2]> {
     split
 }
 
-/// FT-759 (rv-vis-2): a terminal dropped on a wire is split into it (normaliser 7, beside FX38c's through route, which
+/// A terminal dropped on a wire is split into it (normaliser 7, beside the through route, which
 /// connects a terminal already in line), and the placement toast says that it is in the circuit.
 #[test]
 fn a_terminal_dropped_on_a_wire_says_it_is_in_the_circuit() {

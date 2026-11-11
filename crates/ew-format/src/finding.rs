@@ -60,8 +60,7 @@ pub enum FindingKind {
     /// `ew fmt --check`).
     NonCanonical,
     /// EW-CORE-019 (doc 05 §3.6): a hostile-input limit was exceeded; the file (or line) is not read
-    /// (error; read-only). The next free number of the integrity block of doc 15 §4.2, taken in review
-    /// cycle 8 for the design pass to record.
+    /// (error; read-only). The next free number of the integrity block of doc 15 §4.2.
     LimitExceeded,
     /// More findings than [`Limits::max_findings`](crate::Limits::max_findings); the rest are counted only
     /// (info).

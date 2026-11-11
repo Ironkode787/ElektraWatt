@@ -41,8 +41,8 @@ pub(crate) struct EditorView {
     zoom: f32,
     pan: Vec2,
     manual_view: bool,
-    /// The editor's size the view was last fitted at (ID-1477 (9)): the view fits again only at another size or on Fit,
-    /// never because the refusal banner shortens the canvas (ID-1483 (F5)).
+    /// The editor's size the view was last fitted at: the view fits again only at another size or on Fit,
+    /// never because the refusal banner shortens the canvas.
     fitted: Option<Vec2>,
     place: [f64; 2],
     draw_coordinates: [f64; 4],
@@ -187,7 +187,7 @@ fn field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
     });
     response.changed()
 }
-/// [`field`] for a text that may hold a line break, which Shift+Enter starts; Enter ends the entry (ID-1477 (2)).
+/// [`field`] for a text that may hold a line break, which Shift+Enter starts; Enter ends the entry.
 /// Returns the field's input and whether Enter ended the entry.
 fn lines_field(ui: &mut Ui, key: &str, value: &mut String) -> (egui::Id, bool) {
     let caption = ui.label(label(strings::Key::run_time(key)));
@@ -370,7 +370,7 @@ const ROLES: [&str; 13] = [
     "undefined",
 ];
 
-/// The role the letters typed into an open role list name (ID-1477 (8)): the role whose words they are, else the
+/// The role the letters typed into an open role list name: the role whose words they are, else the
 /// first whose words start with them, in any case; `None` for none.
 fn role_typed(typed: &str) -> Option<&'static str> {
     let typed = typed.trim().to_lowercase();
@@ -384,7 +384,7 @@ fn role_typed(typed: &str) -> Option<&'static str> {
         .or_else(|| ROLES.into_iter().find(|r| words(r).starts_with(&typed)))
 }
 
-/// WP-S2.11 D3 (R3): a combo box's node says whether its list shows.
+/// A combo box's node says whether its list shows.
 trait Expanded {
     fn expanded(self, ui: &Ui) -> Self;
 }
@@ -477,13 +477,13 @@ fn edit_text(value: &mut Value, text: &str) {
     *value = serde_json::to_value(typed).unwrap_or_default();
 }
 
-/// The key that starts a new line in a text that may hold one (ID-1477 (2)); Enter alone commits.
+/// The key that starts a new line in a text that may hold one; Enter alone commits.
 fn new_line_key() -> egui::KeyboardShortcut {
     egui::KeyboardShortcut::new(egui::Modifiers::SHIFT, egui::Key::Enter)
 }
 
 /// Whether Enter without Shift was pressed in the focused field `input`: the commit of a text that may hold a line
-/// break (ID-1477 (2)).
+/// break.
 fn enter_pressed(ui: &Ui, input: egui::Id) -> bool {
     ui.memory(|m| m.has_focus(input))
         && ui.input(|i| {
@@ -495,7 +495,7 @@ fn enter_pressed(ui: &Ui, input: egui::Id) -> bool {
 }
 
 // Keep an in-progress empty translation in the widget, committing on Enter/focus loss. A text that may hold a line
-// break (`lines`) takes it with Shift+Enter (ID-1477 (2)).
+// break (`lines`) takes it with Shift+Enter.
 fn text_field(ui: &mut Ui, key: &str, value: &mut Value, lines: bool) -> bool {
     let id = ui.make_persistent_id(key);
     let (source, mut buffer) = ui
@@ -540,7 +540,7 @@ fn text_field(ui: &mut Ui, key: &str, value: &mut Value, lines: bool) -> bool {
     commit
 }
 
-/// Whether a role list is open (ID-1477 (8)): the panel then ends in room for the list, so the list opens below its
+/// Whether a role list is open: the panel then ends in room for the list, so the list opens below its
 /// row, which the panel scrolls to its top.
 fn role_room_id() -> egui::Id {
     egui::Id::unique("symbol-role-room")
@@ -941,7 +941,7 @@ impl EditorView {
         let height = ui.available_height();
         ui.horizontal_top(|ui| {
             ui.allocate_ui_with_layout(Vec2::new(width,height),egui::Layout::top_down(egui::Align::Min),|ui| {
-                // ID-1483 (F6): the scroll bar takes its own room, so no field runs under it.
+                // The scroll bar takes its own room, so no field runs under it.
                 ui.spacing_mut().scroll.floating = false;
                 egui::ScrollArea::vertical().id_salt("symbol-properties-scroll").max_height(height).show(ui,|ui| {
                     ui.set_min_width(width - t.space_5);
@@ -1055,7 +1055,7 @@ impl EditorView {
                 let tools = TOOLS;
                 // The tool's own fields stand in a band of one height above the canvas, the same for
                 // every tool, so choosing a tool never moves or shrinks the canvas under the pointer.
-                // Its height holds a text of two lines, which the text tool's field may take (ID-1477 (2)).
+                // Its height holds a text of two lines, which the text tool's field may take.
                 let band = t.size_control + t.size_row;
                 let (band_rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), band), Sense::hover());
                 let mut band_ui = ui.new_child(egui::UiBuilder::new().max_rect(band_rect).layout(egui::Layout::left_to_right(egui::Align::Center)));
@@ -1066,7 +1066,7 @@ impl EditorView {
                 if self.tool == 6 {
                     let (input, entered) = ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| lines_field(ui,"symbol-text",&mut self.text)).inner;
                     text_input = Some(input);
-                    // ID-1483 (F2): the text typed after a click on the canvas is created at that click, on Enter.
+                    // The text typed after a click on the canvas is created at that click, on Enter.
                     if entered && !self.text.is_empty() && let Some(p) = self.text_mark.take() {
                         action(events,"symbol.draw",json!({"tool":TOOLS[6].0,"x":p[0],"y":p[1],"text":self.text}));
                     }
@@ -1096,7 +1096,7 @@ impl EditorView {
                 }
                 // Fit fills the canvas at every width (SM25 nit: a small import filled 60 px at 1920). It
                 // fits when the draft opens, when the canvas changes size and when Fit is chosen, never because the
-                // drawing changed; an empty draft shows the 40 mm square right and below its origin. ID-1483 (F5): the
+                // drawing changed; an empty draft shows the 40 mm square right and below its origin. The
                 // view stands on the canvas's bottom edge, which the refusal banner above it does not move.
                 if !self.manual_view && self.fitted != Some(view_size) && let Ok(g)=draft.preview(editor.variant) {
                     self.fitted = Some(view_size);
@@ -1185,7 +1185,7 @@ impl EditorView {
                             action(events,"symbol.path",json!({"points":self.vertices,"closed":self.tool==12}));self.vertices.clear();
                         }
                     }
-                    // ID-1483 (F2): with the Text field empty a click marks its spot and puts the focus in the field.
+                    // With the Text field empty a click marks its spot and puts the focus in the field.
                     else if self.tool == 6 && self.text.is_empty() {
                         self.text_mark = Some(p);
                         if let Some(input) = text_input { ui.memory_mut(|m| m.request_focus(input)); }
@@ -1223,7 +1223,7 @@ impl EditorView {
                         painter.rect_filled(r,t.radius_mark,if variant==editor.variant {t.canvas_selection.alpha(24).over(t.canvas_sheet).color32()} else {t.canvas_sheet.color32()});
                         let letter_at = r.left_top()+Vec2::new(t.space_2,t.space_1);
                         let letter_rect = painter.text(letter_at,egui::Align2::LEFT_TOP,&letter,theme::font(&t.type_small),t.canvas_sheet_line.color32());
-                        // ID-1483 (F4): the drawing, its texts included, fits inside its cell, right of its letter.
+                        // The drawing, its texts included, fits inside its cell, right of its letter.
                         let area = egui::Rect::from_min_max(Pos2::new(letter_rect.right()+t.space_2,r.top()+t.space_2),r.max-Vec2::splat(t.space_2));
                         if let Some(b) = drawn_bounds(draft,variant,&styles) {
                             let (origin,scale) = variant_view(b,area);
@@ -2061,7 +2061,7 @@ fn slot_placeholder(kind: &symbols::schema::SlotKind) -> String {
     .to_owned()
 }
 
-/// The bounds of variant `variant` in millimetres as [`paint`] draws it, its texts included (ID-1483 (F4)).
+/// The bounds of variant `variant` in millimetres as [`paint`] draws it, its texts included.
 fn drawn_bounds(draft: &SymbolDraft, variant: u8, styles: &symbols::TextStyleTable) -> Option<[f32; 4]> {
     let g = draft.preview(variant).ok()?;
     let b = symbols::preview_display_list(draft, &g, styles, &slot_placeholder)
@@ -2163,7 +2163,7 @@ fn align_position(word: &str) -> (usize, usize) {
         .unwrap_or((0, 0))
 }
 
-/// A text's alignment as two choices, left, centre or right and top, middle or bottom (ID-1477 (2)), named for the
+/// A text's alignment as two choices, left, centre or right and top, middle or bottom, named for the
 /// text `owner`. Returns whether it changed.
 fn align_control(ui: &mut Ui, value: &mut Value, owner: &str) -> bool {
     let (mut h, mut v) = align_position(value["align"].as_str().unwrap_or("top_left"));
@@ -2266,7 +2266,7 @@ fn slot_kind_control(ui: &mut Ui, index: &mut usize, pin: &mut u16) {
         });
     }
 }
-/// The bounds of graphic `index` in millimetres: as drawn, a text's glyphs included (ID-1477 (3)), else as the preview
+/// The bounds of graphic `index` in millimetres: as drawn, a text's glyphs included, else as the preview
 /// bounds it.
 fn graphic_bounds(draft: &SymbolDraft, index: usize, styles: &symbols::TextStyleTable) -> Option<[f32; 4]> {
     let mut d = draft.clone();
@@ -2286,7 +2286,7 @@ fn graphic_bounds(draft: &SymbolDraft, index: usize, styles: &symbols::TextStyle
     ])
 }
 /// The graphic under `p`: the smallest whose bounds (widened by `slop`) hold it, so a text is picked before the
-/// rectangle behind it (ID-1477 (3)); of equally small ones the topmost.
+/// rectangle behind it; of equally small ones the topmost.
 fn pick_graphic(draft: &SymbolDraft, p: Vec2, slop: f32, styles: &symbols::TextStyleTable) -> Option<usize> {
     (0..draft.symbol.graphics.len())
         .rev()
@@ -2557,7 +2557,7 @@ mod tests {
         assert_eq!(pick_graphic(&draft, Vec2::new(30.0, 30.0), 0.1, &styles), None);
     }
 
-    /// ID-1483 (F4): every variant, its large two-line text included, shows whole inside its cell, right of its
+    /// Every variant, its large two-line text included, shows whole inside its cell, right of its
     /// letter; the text's glyphs reach past the bounds of the geometry alone, which the strip fitted before.
     #[test]
     fn each_variant_with_its_texts_fits_inside_its_cell_right_of_its_letter() {

@@ -4,9 +4,9 @@
 //! The tool HUD and the zoom control over the canvas (doc 16a §5.5), from
 //! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred `space.5` above the page view's bottom edge: the active
 //! tool as an accent pill, the three quick tools (Wire, Symbol, Text), a divider and the prompt (the selection and its
-//! keys, the pick stack under the pointer, FT-521, or the tool's target and keys). It never takes the keyboard focus
+//! keys, the pick stack under the pointer, or the tool's target and keys). It never takes the keyboard focus
 //! and never covers the pointer: while the pointer is within 48 px of it, it stands 12 px under the canvas tab bar, and
-//! goes back once the pointer is more than 96 px away (ID-1497 (11)); it keeps clear of the toast stack.
+//! goes back once the pointer is more than 96 px away; it keeps clear of the toast stack.
 //! The zoom control is a column of three icon buttons at the bottom right. The HUD replaces the tool strip under the
 //! menu bar; the fields of the IP, Text, Wire marker and Structure box tools moved into the "Tool options" card at the
 //! page view's top left (`app.rs`).
@@ -63,7 +63,7 @@ pub(crate) fn hud_rect(t: &Tokens, pane: Rect, width: f32, raised: bool) -> Rect
     Rect::from_min_size(pos2(pane.center().x - width / 2.0, top), vec2(width, height))
 }
 
-/// The place of a HUD at `rect` beside the toast stack `toasts` (ID-1497 (11)): where they meet, the HUD sits above
+/// The place of a HUD at `rect` beside the toast stack `toasts`: where they meet, the HUD sits above
 /// the stack's top, or under its bottom where the page view `pane` has no room above it.
 pub(crate) fn clear_of_toasts(t: &Tokens, pane: Rect, rect: Rect, toasts: Option<Rect>) -> Rect {
     let Some(stack) = toasts.filter(|s| s.intersects(rect)) else {
@@ -106,7 +106,7 @@ pub(crate) fn show(
         + t.space_icon
         + prompt_size.x
         + t.space_4;
-    // Cycle 39 (FIX39b-1): the HUD never runs under the zoom column; past its room the prompt wraps onto a second
+    // The HUD never runs under the zoom column; past its room the prompt wraps onto a second
     // line within the pill's height and only then elides, whole in the HUD's accessible value and in a tooltip on the
     // prompt. The room grows with the page view (no fixed cap).
     let width = natural.min(max_width(&t, pane)).max(natural - prompt_size.x);
@@ -244,7 +244,7 @@ pub(crate) fn show(
 }
 
 /// The widest the HUD may be in the page view `pane`: centred, it keeps clear of the zoom column at the right (and
-/// as much at the left), with `space.2` between them (FIX39b-1).
+/// as much at the left), with `space.2` between them.
 pub(crate) fn max_width(t: &Tokens, pane: Rect) -> f32 {
     (pane.width() - 2.0 * (t.space_4 + t.size_control + t.space_2)).max(0.0)
 }
@@ -494,7 +494,7 @@ mod tests {
         assert!(one_row_kept);
     }
 
-    /// Cycle 39 (FIX39b-1): the widest HUD stays clear of the zoom column at any page view width; the room grows
+    /// The widest HUD stays clear of the zoom column at any page view width; the room grows
     /// with the page view (no cap chosen for the floor).
     #[test]
     fn the_widest_hud_keeps_clear_of_the_zoom_column() {

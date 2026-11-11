@@ -503,7 +503,7 @@ fn push_skip_without_walk() {
     assert_eq!(counters(&store, "sum").re_executions, 1);
 }
 
-/// Review cycle 9, finding 1: a reader whose memo dependency switched producer and cut off must settle the new
+/// A reader whose memo dependency switched producer and cut off must settle the new
 /// producer, or a change of the new producer's part is never pushed to it.
 #[test]
 fn a_switched_producer_is_settled_after_a_cut_off() {
@@ -530,7 +530,7 @@ fn a_switched_producer_is_settled_after_a_cut_off() {
     assert_eq!((top.push_skips, top.re_executions), (1, 0));
 }
 
-/// Review cycle 9, finding 4: only incremental families collect `via` keys.
+/// Only incremental families collect `via` keys.
 #[test]
 fn via_is_kept_for_incremental_families_only() {
     let (mut db, store) = setup();
@@ -544,7 +544,7 @@ fn via_is_kept_for_incremental_families_only() {
     }
 }
 
-/// Review cycle 9, finding 4: a commit does not walk again the readers of a memo whose pending mark already
+/// A commit does not walk again the readers of a memo whose pending mark already
 /// walked them; the values stay right.
 #[test]
 fn a_marked_memo_is_not_walked_again() {
@@ -564,7 +564,7 @@ fn a_marked_memo_is_not_walked_again() {
     read_all(&store, &db);
 }
 
-/// Review cycle 9, finding 4: a durability skip clears a reader's mark while its dependency stays marked;
+/// A durability skip clears a reader's mark while its dependency stays marked;
 /// the next commit that reaches the dependency must walk its readers again.
 #[test]
 fn a_durability_skip_keeps_marking_sound() {
@@ -670,7 +670,7 @@ fn run_unread_via_scenario(bump: bool) -> (i64, i64) {
     )
 }
 
-/// Review cycle 9: an incremental hook that leaves its `via` memo unread; a later real change must still
+/// An incremental hook that leaves its `via` memo unread; a later real change must still
 /// reach a reader of the family. With the epoch bump disabled the reader is stale.
 #[test]
 fn an_unread_via_memo_still_reaches_its_readers() {
@@ -730,7 +730,7 @@ impl Query<Rows> for RowValue {
     }
 }
 
-/// Review cycle 9, finding 5: a re-execution after a row moved page drops the old page's registration (the
+/// A re-execution after a row moved page drops the old page's registration (the
 /// registrations are kept with the memo, not recomputed in the new snapshot).
 #[test]
 fn a_moved_row_leaves_no_registration_behind() {
@@ -916,7 +916,7 @@ fn volatile_values_are_not_kept() {
     assert!(store.memo_info::<VA>(&1).is_none());
     assert!(store.memo_info::<VB>(&1).is_none());
     let (va, vb) = (store.total_stats().family("va"), store.total_stats().family("vb"));
-    // Review cycle 9, finding 11: the executions that caught the cycle are counted as volatile.
+    // The executions that caught the cycle are counted as volatile.
     assert!(va.volatile >= 1 && vb.volatile >= 1, "{va:?} {vb:?}");
     assert!(va.volatile <= va.re_executions && vb.volatile <= vb.re_executions);
 

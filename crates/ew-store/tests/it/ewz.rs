@@ -1,9 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 2, `.ewz` transport (D8, D9): EZ-1 (a deterministic pack of one verified
-//! generation that extracts to its source), EZ-3 (the extract, all or nothing) and EZ-4 (the reader's refusals); and the
-//! repair's pack of the files as found.
+//! The `.ewz` transport: a deterministic pack of one verified generation that extracts to its source, the
+//! extract (all or nothing) and the reader's refusals; and the repair's pack of the files as found.
 
 use std::collections::BTreeMap;
 use std::io;
@@ -17,7 +16,7 @@ use ew_store::{OpenMode, OsVfs, Store, StoreOptions, Vfs};
 
 use crate::common::{fixture, small_fixture, tree};
 
-/// The git files EZ-1 adds to its copy of Golden A (Golden A has none, ruling 8).
+/// The git files the pack test adds to its copy of Golden A (Golden A has none).
 fn git_files() -> BTreeMap<String, Vec<u8>> {
     BTreeMap::from([
         (
@@ -173,7 +172,7 @@ fn the_pack_as_found_is_the_verified_pack_until_a_file_is_edited() {
     let _ = std::fs::remove_dir_all(&base);
 }
 
-/// The ruling-3 bound inside `pack`: a project whose archive the reader would refuse is not packed, in words.
+/// The bound inside `pack`: a project whose archive the reader would refuse is not packed, in words.
 #[test]
 fn a_project_the_reader_would_refuse_is_not_packed() {
     let mut listed = small_fixture();

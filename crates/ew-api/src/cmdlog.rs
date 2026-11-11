@@ -351,8 +351,8 @@ impl Session {
                     .and_then(|preview| self.commit(preview))
             } else {
                 // A command whose cost depends on its parameters (`edit.delete`, `fields.set_many` above 500
-                // targets) is refused by `execute` as `NeedsPreview`: it runs as preview and commit too (WP-S2.05
-                // part 2), so a line is one undo step either way.
+                // targets) is refused by `execute` as `NeedsPreview`: it runs as preview and commit too, so a
+                // line is one undo step either way.
                 match self.execute_with(&cmd, submit.clone()) {
                     Err(CmdError::NeedsPreview { .. }) => self
                         .preview_with(&cmd, submit)

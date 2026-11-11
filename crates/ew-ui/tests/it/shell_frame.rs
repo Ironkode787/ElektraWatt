@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The shell frame of WP-S2.01 part 2 without rendering: the start page's new entries, the first-run flow, the
+//! The shell frame without rendering: the start page's new entries, the first-run flow, the
 //! company-standard wizard with its live preview, docking and workspaces, F1 and the complete About, and the
 //! journal discard banner, each followed by the accessible-name walker (ADR-0014 amendment 2).
 
@@ -132,8 +132,8 @@ fn the_quick_switches_and_the_privacy_link_change_settings() {
     h.get_by_label("EW").click();
     settle(&mut h);
     assert_eq!(h.state().shell().settings().keymap, "ew");
-    // FT-1197 (doc 16a §8 item 2): the line says this version has no update check, and no "Change" button stands
-    // beside it, since there is nothing to change. FT-1117 (item 3): the first run's privacy step says so
+    // Doc 16a §8 item 2: the line says this version has no update check, and no "Change" button stands
+    // beside it, since there is nothing to change. The first run's privacy step says so
     // too and sends no crash reports, with no box for one; the Privacy button stays.
     let _ = h.get_by_label("This version has no update check");
     assert!(h.query_by_label("Change").is_none());
@@ -202,7 +202,7 @@ fn the_first_run_flow_walks_its_steps_and_starts_with_the_sample() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1173 (doc 16a §2): a first-run step's heading, text, choices and buttons share the reading column
+/// Doc 16a §2: a first-run step's heading, text, choices and buttons share the reading column
 /// (`size.text.measure`, centred in the window): the heading, the first choice and Skip start at its left edge, Next
 /// ends at its right.
 #[test]
@@ -314,7 +314,7 @@ fn the_wizard_shows_a_preview_follows_a_typed_value_and_writes_the_basic_project
         h.query_by_label_contains("The company standard was written to company.ew")
             .is_some()
     );
-    // FT-336 ruling: the check scheme is applied after finishing, by a person, after a confirmation.
+    // The check scheme is applied after finishing, by a person, after a confirmation.
     h.get_by_label("Apply the check scheme").scroll_to_me();
     settle(&mut h);
     h.get_by_label("Apply the check scheme").click();
@@ -390,7 +390,7 @@ fn the_project_view_is_a_dock_and_a_changed_layout_becomes_the_workspace_file() 
     assert!(h.query_by_label("Page view").is_none());
     assert!(h.query_all_by_label("Properties").next().is_some());
     // View ▸ Properties closes the property grid: the two-pane layout this test drags. (A tab group nested
-    // in a split shows egui_tiles' unnamed tab-bar area, which the name walker counts with the splitters, FT-338.)
+    // in a split shows egui_tiles' unnamed tab-bar area, which the name walker counts with the splitters.)
     h.state_mut()
         .shell_mut()
         .dispatch("props.show", &serde_json::json!({"on": false}));
@@ -589,7 +589,7 @@ fn a_leftover_journal_is_discarded_from_the_banner() {
     let mut h = harness_with(gui_shell(&tmp), Scripted::default(), Some(dir));
     settle(&mut h);
     assert!(h.state().shell().can_discard_journal());
-    // The banner, and since WP-S2.09 part 1 the recovery dialog too, say it.
+    // The banner and the recovery dialog say it.
     assert!(
         h.query_all_by_label_contains("unsaved changes from a session that ended")
             .next()

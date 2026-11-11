@@ -284,7 +284,7 @@ fn contact(c: &SymbolRef, n: u128, x: i64, name: &str) -> RepView {
     }
 }
 
-/// FT-758 (play-test rv-vis-2, turn 15): three switches in a row, four grid steps apart. Their tags no longer run into
+/// Three switches in a row, four grid steps apart. Their tags no longer run into
 /// each other nor over a neighbour's CP designation; the first stays where the symbol puts it, and each tag stays
 /// beside its own symbol.
 #[test]
@@ -345,7 +345,7 @@ fn tags_with_room_stay_put() {
     }
 }
 
-/// FT-758 (play-test rv-vis-2, turn 33): a valve placed four grid steps right of a vertical wire would have its tag on
+/// A valve placed four grid steps right of a vertical wire would have its tag on
 /// the wire; the tag moves off it and stays beside its valve, clear of the valve's own texts.
 #[test]
 fn a_tag_does_not_sit_on_a_wire() {
@@ -594,7 +594,7 @@ fn a_risen_caption_clears_another_caption() {
     }
 }
 
-/// FT-701's rest (GT-7): a black box's pin text is a fixed obstacle of a technical-data text, as of a
+/// A black box's pin text is a fixed obstacle of a technical-data text, as of a
 /// cross-reference text. A valve's "24 V" placed over the box's pin text "Q0.2" drops below it, `SLOT_TEXT_GAP` apart;
 /// the pin text stays where it was.
 #[test]
@@ -667,7 +667,7 @@ fn captioned() -> RepView {
     black_box(&[(0, (20, 0), "up")], &[])
 }
 
-/// FT-772 (GT-7): a black box's caption stack that a stored wire crosses moves left in grid steps until
+/// A black box's caption stack that a stored wire crosses moves left in grid steps until
 /// no caption crosses it, every line by the same step, never past the outline's left edge. The wire runs down at grid
 /// x 47 from a box above to a box on the black box's top edge.
 #[test]
@@ -724,8 +724,9 @@ fn a_caption_stack_without_a_free_place_stays() {
 
 const IP: &str = include_str!("../../../../content/symbols/qet10/ew.gen.ip@qet10.json");
 
-/// FT-1436 (folio 101's "102-A1" of L-1 across N-1's wire): a cross-reference text that a horizontal wire runs through
-/// rises [`SLOT_TEXT_GAP`] above the wire, in its column; without the wire it stays where its symbol puts it.
+/// (Folio 101's "102-A1" of L-1 across N-1's wire.) A cross-reference text that a horizontal wire runs
+/// through rises [`SLOT_TEXT_GAP`] above the wire, in its column; without the wire it stays where its symbol
+/// puts it.
 #[test]
 fn a_cross_reference_rises_off_a_horizontal_wire() {
     let ip = symbol(IP);

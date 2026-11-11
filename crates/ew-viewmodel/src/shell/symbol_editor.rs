@@ -37,7 +37,7 @@ pub const TOOL_KEYS: [(&str, &str); 5] = [
     ("cp", "tool.ip"),
 ];
 
-/// The files the symbol editor opens or imports, as its file picker offers them (M25-p5#5): the authoring JSON,
+/// The files the symbol editor opens or imports, as its file picker offers them: the authoring JSON,
 /// QElectroTech elements and every EPLAN format `symbols::open` reads.
 pub const FILE_EXTENSIONS: [&str; 11] = [
     "json", "elmt", "edz", "pxf", "ema", "ems", "esl", "slk", "xml", "zip", "7z",
@@ -96,12 +96,11 @@ pub struct SymbolEditor {
     pub tool: &'static str,
     /// Last operation's error, also shown under the editor controls.
     pub error: Option<String>,
-    /// Whether that error is the page's other connection grid, which offers Place on a new page with its grid
-    /// (ID-1477 (1)).
+    /// Whether that error is the page's other connection grid, which offers Place on a new page with its grid.
     pub offer_new_page: bool,
     /// The draft as last published and the published symbol's picker address (`library:<library>:<item>`).
     published: Option<(SymbolDraft, String)>,
-    /// The text style last chosen for a text of the draft, which a new text takes (ID-1477 (2)).
+    /// The text style last chosen for a text of the draft, which a new text takes.
     pub text_style: Option<String>,
     /// Suggested writable library directory.
     pub directory: String,
@@ -153,8 +152,8 @@ impl SymbolEditor {
             key!("symbol-not-saved")
         }
     }
-    /// The picker address of the published symbol when the draft is saved to a library and unchanged since
-    /// (M25-p7#2): Place on a new page with its grid places it; otherwise the offer is Test on a new page.
+    /// The picker address of the published symbol when the draft is saved to a library and unchanged since:
+    /// Place on a new page with its grid places it; otherwise the offer is Test on a new page.
     pub fn published(&self) -> Option<&str> {
         self.published
             .as_ref()
@@ -188,7 +187,7 @@ impl SymbolEditor {
 pub const NEW_TEXT_STYLE: &str = "cp.small";
 
 /// The style of a free text of `after` that differs from the same text of `before`, or is new with a style: the style
-/// a person chose last (ID-1477 (2)).
+/// a person chose last.
 fn chosen_text_style(before: &SymbolDraft, after: &SymbolDraft) -> Option<String> {
     let styles = |d: &SymbolDraft| -> Vec<Option<String>> {
         serde_json::to_value(&d.symbol.graphics)
@@ -206,7 +205,7 @@ fn chosen_text_style(before: &SymbolDraft, after: &SymbolDraft) -> Option<String
         .and_then(|(_, s)| s.clone())
 }
 
-/// A text style's name in the window's words (ID-1477 (2)): `text-style-<key>`, else the key itself (a project's own
+/// A text style's name in the window's words: `text-style-<key>`, else the key itself (a project's own
 /// style).
 pub fn text_style_words(key: &str) -> String {
     strings::lookup(&format!("text-style-{}", key.replace(['.', '_'], "-")))
@@ -292,7 +291,7 @@ fn symbol_error(e: symbols::Error) -> String {
 }
 
 /// The error of an edit to the draft in the window's words.
-// ID-1483 (F2): an edit the reader refuses is refused in words, never in the parser's (a text with no
+// An edit the reader refuses is refused in words, never in the parser's (a text with no
 // characters, say).
 fn edit_error(e: symbols::Error) -> String {
     match e {
@@ -432,7 +431,7 @@ impl ShellModel {
         );
     }
 
-    /// `symbol.new_page` (M25-p7#2): the published symbol of a draft saved to a library and unchanged
+    /// `symbol.new_page`: the published symbol of a draft saved to a library and unchanged
     /// since, placed on a new page with its grid at 40/40 mm (Test on a new page's point) and selected, as the Insert
     /// symbol picker's offer places it; the editor steps aside as after a test placement. Any other draft is refused:
     /// its offer is Test on a new page.
@@ -480,7 +479,7 @@ impl ShellModel {
     }
 
     /// A new page with the connection grid `grid` (`{num, den}`), at the first free whole folio, titled `title`, then
-    /// shown: Test on a new page's and Place on a new page with its grid's page (ID-1477 (1)).
+    /// shown: Test on a new page's and Place on a new page with its grid's page.
     pub(crate) fn new_page_with_grid(&mut self, grid: Value, title: Option<String>) -> Result<(), String> {
         let labels = self.page_labels();
         let mut index = 1;
@@ -516,7 +515,7 @@ impl ShellModel {
             .then(|| self.symbol_path(text(p, "file"), key!("symbol-file-required")))
             .transpose()?;
         let directory_path = match action {
-            // A Library folder typed empty is refused; Save without one takes the editor's (ID-1477 (5)).
+            // A Library folder typed empty is refused; Save without one takes the editor's.
             "save" | "directory" => Some(self.symbol_path(
                 if action == "save" && text(p, "directory").is_empty() {
                     self.symbol_editor.as_ref().map_or("", |e| e.directory.as_str())
@@ -1195,7 +1194,7 @@ impl ShellModel {
                 .map_err(|e| e.to_string())?,
         };
         let before = draft.identity.clone();
-        // M25-p4#6: the writer's version refusals in words, the item named by the symbol, without its UUID.
+        // The writer's version refusals in words, the item named by the symbol, without its UUID.
         let fndef_item = draft.identity.as_ref().and_then(|i| i.fndef).map(|f| f.as_uuid());
         let name = name_words(&draft.symbol.name);
         let item = |id| {
@@ -1218,7 +1217,7 @@ impl ShellModel {
             e => symbol_error(e),
         })?;
         // A key other than the one the library holds for the draft's items published new ones.
-        // ID-1476 (M25-p6#1): only when the symbol's own identity changed, not when only an owned function
+        // Only when the symbol's own identity changed, not when only an owned function
         // definition took one.
         let symbol_of = |i: &Option<symbols::DraftIdentity>| i.as_ref().map(|i| i.symbol);
         let note = (before.is_some() && symbol_of(&before) != symbol_of(&draft.identity))
@@ -1235,7 +1234,7 @@ impl ShellModel {
             }
         }
         editor.directory = directory;
-        // M25-p7#2: the published symbol as the Insert symbol picker addresses it, while the draft is this one.
+        // The published symbol as the Insert symbol picker addresses it, while the draft is this one.
         editor.published = draft
             .identity
             .as_ref()
@@ -1269,7 +1268,7 @@ impl ShellModel {
                 .map_err(symbol_error)?;
         }
         // Each content placed embeds its own copies, after a draft edit, a reopen or a trimmed history too: the
-        // suffix is derived from the content (M25-p3#6).
+        // suffix is derived from the content.
         let suffix = content_suffix(&draft);
         draft.key = format!(
             "{}.test.{suffix}",

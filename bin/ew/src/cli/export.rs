@@ -401,7 +401,7 @@ pub(super) fn rows_refusal(e: &ew_api::output::RowsError) -> String {
 }
 
 /// `ew export report --format csv`: the rows of the block (or of the kind, `--kind`), then the `--json` result; its
-/// `block` is empty for `--kind` (the orchestrator's).
+/// `block` is empty for `--kind`.
 pub(super) fn finish_export_report_csv(
     a: &ExportArgs,
     r: &ew_api::output::RowsCsv,
@@ -517,7 +517,7 @@ pub(super) fn source_date_epoch() -> Option<std::ffi::OsString> {
     std::env::var_os("SOURCE_DATE_EPOCH").filter(|v| !v.is_empty())
 }
 
-// The program boundary: `$APPIMAGE` and `$APPDIR`, the AppImage this `ew` may run from (ID-1187's Linux package) and its
+// The program boundary: `$APPIMAGE` and `$APPDIR`, the AppImage this `ew` may run from (the Linux package) and its
 // mount, read once and passed in, so that `ew git setup` makes git run the AppImage and never its transient mount.
 #[allow(
     clippy::disallowed_methods,

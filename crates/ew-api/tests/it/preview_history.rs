@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The public items of WP-S2.09 part 3 below the shell (§4.2): `Session::preview_entities` on a fixture command of
-//! each change kind (acceptance check PV1) and on Golden B's two renumbers, and `Session::history_view` on a fixture
-//! history of four GUI steps, a script step and an external change (PV4).
+//! The public items below the shell: `Session::preview_entities` on a fixture command of
+//! each change kind and on Golden B's two renumbers, and `Session::history_view` on a fixture
+//! history of four GUI steps, a script step and an external change.
 
 use crate::golden_common;
 

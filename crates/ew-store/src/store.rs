@@ -228,7 +228,7 @@ pub enum OpenError {
     Migration(MigrationError),
     /// A read-only opener met a save in progress for longer than the wait (doc 05 §6.4: exit code 2).
     ///
-    /// Not returned by [`Store::open`] since review cycle 8: after [`StoreOptions::read_only_wait`] a
+    /// Not returned by [`Store::open`]: after [`StoreOptions::read_only_wait`] a
     /// read-only opener reads the intent's generation in memory instead (a crashed writer's lock stays
     /// non-stale for `lock.stale_after` where the process probe cannot tell, on Windows). Kept for the CLI's
     /// exit code until the design pass settles doc 05 §6.4.
@@ -361,8 +361,8 @@ pub enum SaveStep {
     Renames,
     /// Step 7: renaming the intent over `manifest.json`.
     Manifest,
-    /// The backup of a project of an older format, written before its first save (decision log
-    /// ID-1221 ruling 5): nothing of the project was written.
+    /// The backup of a project of an older format, written before its first save: nothing of the project was
+    /// written.
     Backup,
 }
 
@@ -581,7 +581,7 @@ enum Roll {
     NotRepairable(Vec<FilePath>),
     /// The bytes of `manifest.json` are not those the save was based on (the intent's [`BASE_MEMBER`]): the
     /// project changed after the save was decided, and completing it would overwrite that change. Nothing
-    /// is touched (EW-CORE-002, review cycle 8, 5(j)).
+    /// is touched (EW-CORE-002).
     BaseMoved(BaseMismatch),
 }
 
@@ -589,7 +589,7 @@ enum Roll {
 /// (`"base": "sha256:<hex>"`; absent when there was no manifest). The intent becomes `manifest.json`, so
 /// every manifest written by a save carries the hash of the one it replaced. The roll-forward compares raw
 /// bytes, never parsed generations: a conflicted or unparsable manifest whose bytes are unchanged rolls
-/// forward (review cycle 8, 5(j) rework, owner ruling).
+/// forward.
 pub const BASE_MEMBER: &str = "base";
 
 /// Why an intent is not completed: its recorded base and the `manifest.json` on disk, as `sha256:<hex>`
@@ -614,7 +614,7 @@ fn base_check(intent: &Manifest, on_disk: Option<String>) -> Option<BaseMismatch
 /// Whether `path` is a temp the save protocol creates (doc 05 §5.2 steps 4 and 5): the intent
 /// `manifest.json.tmp-<g>`, or `<file>.tmp-<g>` of a writer-owned file (a record file or a library
 /// document of a known directory). Other `*.tmp-*` names (a user's or another tool's) are not ours to
-/// delete (review cycle 8, 5(f)).
+/// delete.
 fn is_save_temp(path: &str) -> bool {
     match classify(path) {
         PathClass::Intent { .. } => true,
@@ -659,7 +659,7 @@ fn asset_of(path: &FilePath, hash: &[u8; 32], bytes: Option<&Vec<u8>>) -> Option
 }
 
 /// EW-CORE-002 for an interrupted save of generation `g` that is not applied because the manifest on disk
-/// is not its base (review cycle 8, 5(j)).
+/// is not its base.
 fn base_moved(g: u64, m: &BaseMismatch) -> Finding {
     let what = match (&m.recorded, &m.on_disk) {
         (None, _) => "its intent records no base manifest, but manifest.json exists".to_owned(),
@@ -1399,9 +1399,9 @@ impl Store {
                 }
             }
         } else {
-            // `ew fmt --repair` names a crashed session's journal before a finding that forces read-only (WP-S1.17
-            // ID-1185 ruling 3): a repair open that went read-only with the lock held read the leftovers, and
-            // summarises them as an editing open does, deleting and starting nothing.
+            // `ew fmt --repair` names a crashed session's journal before a finding that forces read-only: a
+            // repair open that went read-only with the lock held read the leftovers, and summarises them as
+            // an editing open does, deleting and starting nothing.
             if repair && self.holds_lock {
                 let generation = self.generation;
                 let mut keep: Vec<Segment> = self
@@ -1637,9 +1637,8 @@ impl Store {
     }
 
     /// Moves the file at `path`, which the baseline does not list, to a free [`FilePath::unlisted`] name
-    /// for a save of generation `g`, so that the save never renames over another user's file (review cycle
-    /// 8, owner ruling). The rename does not replace: a taken name is skipped. Returns the EW-CORE-004
-    /// finding naming the new path.
+    /// for a save of generation `g`, so that the save never renames over another user's file. The rename does
+    /// not replace: a taken name is skipped. Returns the EW-CORE-004 finding naming the new path.
     ///
     /// A retried save or roll-forward of the same generation can find the file again, restored by a sync client after
     /// the first move: when the new stray's bytes equal those of an older stray of the same file and
@@ -1760,7 +1759,7 @@ impl Store {
     ///
     /// [`OpenError::Exists`] when `root` already holds a project; I/O and lock errors; a save error as
     /// [`OpenError::Format`]; [`OpenError::Model`] for a model that fails its integrity check (a read-only project
-    /// whose damaged library copy a record names, FT-1383, ID-1418), before anything is written.
+    /// whose damaged library copy a record names), before anything is written.
     pub fn create(root: &Path, model: &Model, opts: StoreOptions) -> Result<Store, OpenError> {
         model.integrity_check().map_err(|error| OpenError::Model {
             error,
@@ -1791,8 +1790,8 @@ impl Store {
         let saved = store.save(model, Changes::All);
         store.all_assets = false;
         saved.map_err(|e| OpenError::Format(e.to_string()))?;
-        // Inside a git worktree the project gets the managed `.gitattributes` and `.gitignore` blocks (doc 05 §11.1,
-        // WP-S1.17 D28); they are not project data, so a failure to write them leaves the project as created.
+        // Inside a git worktree the project gets the managed `.gitattributes` and `.gitignore` blocks (doc 05
+        // §11.1); they are not project data, so a failure to write them leaves the project as created.
         if crate::git::worktree_root(&*vfs, root).is_ok_and(|w| w.is_some()) {
             let _ = crate::git::write_blocks(&*vfs, root);
         }
@@ -1893,8 +1892,8 @@ impl Store {
             });
         }
         // An earlier save that is still incomplete must complete first; when it cannot, this save writes
-        // nothing and says so with its own error, never with the earlier save's `Incomplete` (review cycle
-        // 8, blocker 1: the caller would count this model as saved).
+        // nothing and says so with its own error, never with the earlier save's `Incomplete` (the caller
+        // would count this model as saved).
         if self.pending.is_some() {
             if let Err(e) = self.retry_pending() {
                 return Err(match e {
@@ -2004,8 +2003,8 @@ impl Store {
             a.extra.remove(BASE_MEMBER);
             a == manifest
         });
-        // The raw bytes this save is based on, for the base check of a roll-forward (review cycle 8,
-        // 5(j) rework): absent when there is no manifest.
+        // The raw bytes this save is based on, for the base check of a roll-forward:
+        // absent when there is no manifest.
         if let Some(h) = &on_disk {
             manifest
                 .extra
@@ -2222,7 +2221,7 @@ impl Store {
             return done(self);
         }
         // Like the pre-check of a save, the roll-forward requires the raw manifest the save started from
-        // (its intent's recorded base, review cycle 8, 5(j)); otherwise an external change happened and
+        // (its intent's recorded base); otherwise an external change happened and
         // completing the save would overwrite it.
         match self.roll_forward(g) {
             Ok(Roll::Completed(_, moved)) => {
@@ -2606,12 +2605,12 @@ impl Store {
     /// Replays the leftover journal onto `model`, the generation just opened (doc 05 §8.2). The result is
     /// journalled in this session's segment, and the replayed leftover is deleted.
     ///
-    /// Recovery acts on one journal at a time and never deletes an unreplayed one (project owner (delegated),
-    /// 2026-10-31): only the summarised segment ([`Store::recovery`], the newest) is replayed and removed. The
-    /// other crashed sessions' segments stay on disk and are offered at the next open, newest first; they leave only
-    /// by their own replay or discard or by the age rule (`journal::KEEP_LEFTOVERS`). A segment whose base is not the
-    /// generation on disk replays with the collision check (the before-values of its operations against the model);
-    /// a collision refuses the replay. There is no merge of segments.
+    /// Recovery acts on one journal at a time and never deletes an unreplayed one: only the summarised
+    /// segment ([`Store::recovery`], the newest) is replayed and removed. The other crashed sessions'
+    /// segments stay on disk and are offered at the next open, newest first; they leave only by their own
+    /// replay or discard or by the age rule (`journal::KEEP_LEFTOVERS`). A segment whose base is not the
+    /// generation on disk replays with the collision check (the before-values of its operations against the
+    /// model); a collision refuses the replay. There is no merge of segments.
     ///
     /// # Errors
     ///
@@ -2877,7 +2876,7 @@ impl Store {
 
     /// The SHA-256 of the bytes of the project file `path` as this store loaded or last wrote them: a writer-owned
     /// file's raw hash (`Held::hash`) or an opaque file's; `None` for a file it holds no bytes of (not read at open).
-    /// The repair's backup compares the bytes on disk with it ([`crate::ewz::pack_as_found`], WP-S1.17 ID-1186).
+    /// The repair's backup compares the bytes on disk with it ([`crate::ewz::pack_as_found`]).
     pub(crate) fn loaded_hash(&self, path: &FilePath) -> Option<[u8; 32]> {
         match (self.disk.get(path), self.opaque.get(path)) {
             (Some(held), _) => Some(held.hash),
@@ -2916,8 +2915,8 @@ impl Store {
     }
 
     /// The per-user state directory ([`StoreOptions::state_dir`]); `None` when the store keeps nothing outside the
-    /// project (an in-memory or new project, a test). The release keeps its run records there ([`crate::archive`],
-    /// FT-814).
+    /// project (an in-memory or new project, a test). The release keeps its run records there
+    /// ([`crate::archive`]).
     pub fn state_dir(&self) -> Option<&Path> {
         self.opts.state_dir.as_deref()
     }
@@ -2977,8 +2976,8 @@ impl Store {
 
     /// The newest intent manifest above the current generation that is on disk (doc 05 §5.3): a save whose temps
     /// the store could not delete after a failure before its commit point. The next editing open rolls it forward
-    /// unless it is torn, so a caller that undoes side effects of a failed save (the release's archive and tag, WP-S1.18
-    /// D13) keeps them while this is `Some`.
+    /// unless it is torn, so a caller that undoes side effects of a failed save (the release's archive and
+    /// tag) keeps them while this is `Some`.
     ///
     /// # Errors
     ///

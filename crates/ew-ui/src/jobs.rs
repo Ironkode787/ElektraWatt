@@ -116,7 +116,7 @@ fn entry(ui: &mut Ui, e: &JobEntry, elapsed: Option<std::time::Duration>, events
                 }
             });
         }
-        // WP-S2.17 part 4 (doc 16a §6.19): a finished entry names its outcome as a status badge next to its
+        // Doc 16a §6.19: a finished entry names its outcome as a status badge next to its
         // result.
         JobStatus::Done { pages, kib, now } => {
             ui.horizontal_wrapped(|ui| {

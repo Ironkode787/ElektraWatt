@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.06 part 3 over Golden A: the report back-links drawn (FR-REP-042; D10, rulings 1 to 4).
+//! Over Golden A: the report back-links drawn (FR-REP-042).
 
 use std::collections::BTreeMap;
 use std::ops::Range;

@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 6 (§11, FR-MAC-006): what the Macros and Libraries navigators show besides their rows.
+//! FR-MAC-006: what the Macros and Libraries navigators show besides their rows.
 //!
 //! **The Libraries navigator** has an Update… button (Secondary) above its rows: `libraries.update` previews
 //! `library.update` of the marked copies, else the copy under the cursor, else every copy with an update, and opens
 //! the bulk card in the Preview tab. The rows' copy state is the API's column and badge, in words.
 //!
 //! **The Macros navigator** has a detail block under its rows for the macro under the cursor: its name
-//! (`type.body.strong`), version and library, description, the thumbnail (FT-754 (a): the macro drawn on a blank page
+//! (`type.body.strong`), version and library, description, the thumbnail (the macro drawn on a blank page
 //! of a throwaway copy, `ShellModel::macro_thumbnail`, rendered by the CPU renderer once per macro version and shown
 //! on the white sheet with a 1-px `color.border.default` frame; "No preview" when there is none), the devices, the
 //! variables and Insert macro… (Primary), which arms the macro tool. The thumbnail is an `Image` named "Preview of
@@ -152,7 +152,7 @@ fn thumbnail_height(cap: f32, lists: f32, floor: f32) -> f32 {
     (cap - lists).clamp(floor.min(THUMBNAIL_HEIGHT), THUMBNAIL_HEIGHT)
 }
 
-/// Paints a macro's thumbnail (FT-754 (a)) in a box of the block's width and [`THUMBNAIL_HEIGHT`]: the region of the
+/// Paints a macro's thumbnail in a box of the block's width and [`THUMBNAIL_HEIGHT`]: the region of the
 /// sheet the macro covers, rendered at the dpi that fits the box in physical pixels (12 to 300), centred on white
 /// with a 1-px `color.border.default` frame. The texture of the macro on show is kept in the context's memory (by copy,
 /// version, dpi and region).
@@ -281,7 +281,7 @@ fn macro_detail(
                 .wrap(),
             );
         };
-        // Cycle 39 (FIX39b-1): the key follows the name as secondary text (the Libraries navigator's copy detail
+        // The key follows the name as secondary text (the Libraries navigator's copy detail
         // shows name, kind and key); on the name's row, so the block keeps its height and its Insert button.
         ui.horizontal_wrapped(|ui| {
             ui.spacing_mut().item_spacing.x = t.space_2;
@@ -299,8 +299,8 @@ fn macro_detail(
         if !d.description.is_empty() {
             line(ui, &d.description, &t.type_small, t.text_primary);
         }
-        // Cycle 39 (FIX39b-1): the thumbnail and the lists scroll within half the navigator's room, so a long macro
-        // never pushes the Insert button out of the pane (at any window size; the room is the pane's). W40a 5f: the
+        // The thumbnail and the lists scroll within half the navigator's room, so a long macro
+        // never pushes the Insert button out of the pane (at any window size; the room is the pane's). The
         // thumbnail gives up height first (down to a token's worth), so the lists' lines show whole at the floor;
         // a list longer than the region scrolls with its bar on show.
         let cap = (room / 2.0).max(4.0 * t.size_control);

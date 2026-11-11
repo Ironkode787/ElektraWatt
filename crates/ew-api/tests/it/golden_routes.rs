@@ -9,9 +9,9 @@
 //!
 //! The layout of the routed pages, the bends and crossings per page (RG3), is in `golden/J-E-2416/expected/layout.txt`:
 //! a later change that raises a page's total fails, and no connection has more than four bends unless the file lists
-//! it with its reason from [`BENDS`] (ID-1509 (3)). The file also gives each page's text-on-text overlaps, held at
+//! it with its reason from [`BENDS`]. The file also gives each page's text-on-text overlaps, held at
 //! zero, and lists every connection whose detour (its drawn length over the Manhattan distance of its ends) is above
-//! 2, with its reason from [`DETOURS`] (decision log ID-1504 (4d)).
+//! 2, with its reason from [`DETOURS`].
 //!
 //! Bless (the tables, then the layout file):
 //! `EW_BLESS_GOLDEN_ROUTES=1 cargo nextest run -p ew-api --test it -E 'test(/^golden_routes::/)'`; then the
@@ -247,7 +247,7 @@ fn write_routes(routes: &BTreeMap<String, String>) {
         .expect("writing connections.csv");
 }
 
-/// Why a connection of Golden A runs more than twice the Manhattan distance of its ends (ID-1504 (4d)), by its words.
+/// Why a connection of Golden A runs more than twice the Manhattan distance of its ends, by its words.
 const DETOURS: &[(&str, &str)] = &[];
 
 /// Why a connection of Golden A bends more than four times (RG3), by its words.
@@ -397,7 +397,7 @@ fn golden_a_layout_never_gets_worse() {
         );
         assert_eq!(*overlaps, 0, "folio {folio}: texts overlap (ID-1504 (4a))");
     }
-    // A detour above 2 has its reason (ID-1504 (4d)), and so has a route of more than four bends (ID-1509 (3)).
+    // A detour above 2 has its reason, and so has a route of more than four bends.
     if let Some(line) = now.lines().find(|l| l.ends_with("(no reason given)")) {
         panic!("a route without its reason in DETOURS or BENDS: {line}");
     }

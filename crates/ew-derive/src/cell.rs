@@ -336,7 +336,7 @@ fn cell_of_page(q: &Q, page: Id<Page>, point: Pt2) -> Option<Cell> {
 
 /// The cell of `point` in `frame`; each coordinate is read on the connection grid `g` when it lies within
 /// the 1 nm rounding window of a grid position, else as stored (see the module documentation). `None`
-/// outside the drawing area (public for `ew-api`'s `PageCells`, WP-S2.03 §4.2, which evaluates it without
+/// outside the drawing area (public for `ew-api`'s `PageCells`, which evaluates it without
 /// a `Q`).
 pub fn cell_in_grid(frame: &FrameGrid, g: Grid, point: Pt2) -> Option<Cell> {
     let (a, b) = frame

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The play-test polish of cycle 45 in the window: FT-1025, a click on a greyed command says why.
+//! In the window: a click on a greyed command says why.
 
 use crate::support;
 
@@ -32,7 +32,7 @@ fn toasts(h: &Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// FT-1028, ID-1107, in the window: the Output tab's Parts list button, clicked on 102 zoomed in, shows 901 fitted in
+/// In the window: the Output tab's Parts list button, clicked on 102 zoomed in, shows 901 fitted in
 /// the canvas with its page row marked in the page tree.
 #[test]
 fn the_parts_list_button_shows_the_bom_fitted_with_its_row_marked() {
@@ -104,7 +104,7 @@ fn a_click_on_a_greyed_command_shows_its_reason_as_a_toast() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1089, ID-1183 (doc 16a P3): on a section divider, with the Select tool idle and nothing selected, the canvas HUD
+/// Doc 16a P3: on a section divider, with the Select tool idle and nothing selected, the canvas HUD
 /// says why the drawing tools are greyed (the page type's reason, whole), where the user looks; on a schematic page
 /// it says the tool's hint again.
 #[test]

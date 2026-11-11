@@ -9,7 +9,7 @@
 //! `tests/it/page_output.rs` and `tests/connectivity_reports.rs` (text CSV, frame geometry, PNG, PDF structure and
 //! SHA-256, report rows); they live in `tests/page_output/` and `tests/golden_common/` and are declared in `tests/it/main.rs`.
 //!
-//! The page output is the product's since cycle 15: the views, the per-layer page display lists and the
+//! The page output is the product's: the views, the per-layer page display lists and the
 //! PDF and SVG export are the session's export job (`ew_api::output`), which AC-13, AC-14, AC-15 and AC-17 run.
 //! The runner stays in this test crate for its shared helpers (`tests/page_output/`, `tests/golden_common/`); it
 //! moves to `ew-testkit` (`ew-testkit accept --gate`) with the golden builders.

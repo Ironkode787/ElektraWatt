@@ -5,7 +5,7 @@
 //! `ew-render-cpu` in bands of [`BAND_ROWS`] device rows and sent to a printer through GDI.
 //!
 //! Without a printer named, the Windows print dialog (`PrintDlgExW`) chooses the printer and its settings; its owner is
-//! a window of this process ([`Owner`], ruling 9), and its Cancel is [`PrintError::Cancelled`]. With a printer
+//! a window of this process ([`Owner`]), and its Cancel is [`PrintError::Cancelled`]. With a printer
 //! named, its device context is opened with
 //! its default settings and no dialog (`CreateDCW`). Then `StartDocW`, and per page: its paper and orientation asked
 //! for by `ResetDCW` (D6's named sizes as `dmPaperSize` where Windows has one, else `dmPaperWidth` and
@@ -84,7 +84,7 @@ impl Windows {
         Windows::default()
     }
 
-    /// The adapter writing its jobs to `output` (ruling 7 of ID-1218: a print to "Microsoft Print to PDF" without its
+    /// The adapter writing its jobs to `output` (a print to "Microsoft Print to PDF" without its
     /// save dialog).
     #[cfg(test)]
     fn to_file(output: PathBuf) -> Windows {
@@ -536,7 +536,7 @@ impl DevMode {
         Some(DevMode(words))
     }
 
-    /// Writes `bytes` at the byte offset `at` of the settings (a DEVMODEW field at its `offset_of!` position, FT-1151:
+    /// Writes `bytes` at the byte offset `at` of the settings (a DEVMODEW field at its `offset_of!` position:
     /// no view of the buffer as a DEVMODEW); every field lies inside the buffer, which is never shorter than one.
     fn put(&mut self, at: usize, bytes: &[u8]) {
         for (k, &b) in (at..).zip(bytes) {

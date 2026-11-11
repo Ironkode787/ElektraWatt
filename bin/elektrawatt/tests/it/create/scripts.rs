@@ -97,7 +97,7 @@ pub(crate) fn same_transcript(a: &str, b: &str) {
     assert_eq!(a, b, "two runs, one transcript");
 }
 
-/// FT-408's acceptance (a): folios 101 to 103 on a new project.
+/// Folios 101 to 103 on a new project.
 pub(crate) fn page_new_creates_folios_101_to_103_twice_identically_and_the_record_replays_case(twice: bool) {
     let tmp = Tmp::new();
     let start = new_project(&tmp, "start.ew", &[]);
@@ -196,7 +196,7 @@ pub(crate) fn page_titles(dir: &Path) -> Vec<(String, String)> {
     s.page_rows().into_iter().map(|r| (r.folio, r.title)).collect()
 }
 
-/// WP-S2.06 part 1 through the built binary (acceptance checks NV5, NV7 and NV10; §9 items 1 and 2): a script on a
+/// Through the built binary: a script on a
 /// copy of Golden A opens the Devices navigator with folio 102 shown, marks -201U3 by type-ahead and Space (the chips
 /// 201-E4 and 203-B4), opens it (folio 201), reorders 106 before 103 through the card, and saves. Two runs give
 /// byte-identical transcripts without a UUID; the `--record` log holds one `page.reorder` and replays on a third copy
@@ -287,7 +287,7 @@ pub(crate) fn a_navigator_script_runs_twice_identically_and_its_record_replays_c
     );
 }
 
-/// WP-S2.06 part 2 through the built binary (acceptance checks NP3 and NP6; §9 items 1 and 2): a script on a copy of
+/// Through the built binary: a script on a copy of
 /// Golden A opens the further navigators, highlights 24VDC-1 from the Potentials navigator (type-ahead, then
 /// `navigator.highlight` on the cursor row), shows folios 102 and 103 and clears the highlights. Two runs give
 /// byte-identical transcripts without a UUID; the canvas section names the highlight on both folios; the `--record`
@@ -375,7 +375,7 @@ pub(crate) fn strip_cells(dir: &Path) -> Vec<Vec<String>> {
     t.nodes.into_iter().map(|n| n.cells).collect()
 }
 
-/// WP-S2.06 part 3 through the built binary (acceptance checks TB2 and TB8; §9 items 1 and 2): a script on a copy of
+/// Through the built binary: a script on a copy of
 /// Golden A shows the Terminal strips navigator as a table filtered `x1031` and sorted by Terminal, sets terminal 13's
 /// function text to "Spare" by a cell edit, marks terminals 13 to 17 and fills down, copies the marked rows and saves.
 /// Two runs give byte-identical transcripts without a UUID; the `--record` log holds the two `fields.set` steps and

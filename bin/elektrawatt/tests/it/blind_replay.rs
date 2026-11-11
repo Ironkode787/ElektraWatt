@@ -407,7 +407,7 @@ fn a_stale_recording_is_skipped_with_its_reason() {
     assert_eq!(skipped.skipped, ["copy: the wizard's step order changed (WP-X)"]);
 }
 
-/// A raw UUID in any replayed line fails the check and names the line (ID-630 (d)).
+/// A raw UUID in any replayed line fails the check and names the line.
 #[test]
 fn a_raw_uuid_in_a_replayed_line_fails() {
     let all = recordings();

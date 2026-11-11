@@ -66,7 +66,7 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                         generation: l.generation,
                         index: index_state(&l.index),
                         path: l.path.as_ref().map(|p| p.display().to_string()),
-                        // WP-S7.03 T2: an address profile that does not render is left out of the profiles at hand.
+                        // An address profile that does not render is left out of the profiles at hand.
                         findings: l
                             .findings
                             .iter()

@@ -152,7 +152,7 @@ fn function_tag_forms_resolve_slots_and_refuse_with_reasons() {
         m.contains("has no unplaced") && m.contains(&format!("device={tag}")),
         "{m}"
     );
-    // An unknown tag says so (FT-544's grammar).
+    // An unknown tag says so.
     let m = failed(&mut s, "place.pick", json!({"symbol": NO, "function": "-101K99"}));
     assert!(
         m.contains("-101K99") && m.contains("no device prints this tag"),

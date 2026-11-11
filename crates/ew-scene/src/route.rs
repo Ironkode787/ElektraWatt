@@ -32,7 +32,7 @@ pub struct RouteEnd {
 /// The polyline of a connection from `a` to `b` (both ends included).
 ///
 /// - `stored` non-empty: `ew_derive::stored_path(a.pos, stored, b.pos)` (the stored route holds every vertex from
-///   end `a`'s point to end `b`'s, both included, WP-S2.19 D2; equal neighbours merged, a stale end joined by one
+///   end `a`'s point to end `b`'s, both included; equal neighbours merged, a stale end joined by one
 ///   straight segment), each point clamped into `page`, equal neighbours merged again. Collinear vertices are kept:
 ///   the model's route is authoritative and the user placed those vertices.
 /// - `stored` empty: the unrouted line `[a.pos, b.pos]`, clamped into `page`; `[a.pos]` where the ends

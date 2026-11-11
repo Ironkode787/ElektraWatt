@@ -347,7 +347,7 @@ static ITEM_STEP: Migrations = Migrations {
     formats: &[],
 };
 
-/// Decision log ID-1230 ruling 3: a step that changes a library copy's item is not an edit; the loader hashes the
+/// A step that changes a library copy's item is not an edit; the loader hashes the
 /// migrated item, so no EW-CORE-014 follows.
 #[test]
 fn a_step_that_changes_a_copys_item_rehashes_it() {
@@ -364,7 +364,7 @@ fn fndef_same(value: Value) -> Result<Value, MigrationError> {
     Ok(value)
 }
 
-/// Decision log ID-1250: a step that changes a library copy's `$v` only leaves its item and its hash alone, so a
+/// A step that changes a library copy's `$v` only leaves its item and its hash alone, so a
 /// stale hash on the copy still raises EW-CORE-014.
 #[test]
 fn a_stale_hash_on_an_item_no_step_changed_still_raises_ew_core_014() {
@@ -403,7 +403,7 @@ fn fndef_untyped(value: Value) -> Result<Value, MigrationError> {
     Ok(value)
 }
 
-/// Decision log ID-1230 ruling 2: a library document a step changed that would end opaque (of an unknown kind, with
+/// A library document a step changed that would end opaque (of an unknown kind, with
 /// no typed reading, or a duplicate) refuses the load, since its old bytes would stay under the new format.
 #[test]
 fn a_migrated_library_document_that_ends_opaque_refuses_the_load() {
@@ -486,7 +486,7 @@ impl Drop for Corpus {
     }
 }
 
-/// MG-6 as ruling 8 amends it: the steward's check on injected lists; with two released formats, a way from each.
+/// The steward's check on injected lists; with two released formats, a way from each.
 #[test]
 fn the_steward_check_bites_at_the_first_format_change() {
     let corpus = Corpus::with(&["0.0", "0.1"]);

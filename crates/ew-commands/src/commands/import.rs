@@ -316,7 +316,7 @@ pub fn plan_reimport(
             members,
         });
     }
-    // ID-1389 (W51 finding C): a record this project holds is named as it is here (a device by its tag, not the
+    // A record this project holds is named as it is here (a device by its tag, not the
     // source's new label); an added record with the records applied pending, and [`name_rows`] names it as committed.
     for row in rows.iter_mut().filter(|r| r.class != ReimportClass::Added) {
         row.record = crate::words::record(&tx, row.key);

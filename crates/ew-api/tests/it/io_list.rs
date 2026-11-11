@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 5, PX-1 over Golden A: the `io_list` report kind (FR-PLC-023; doc 10 §5).
+//! PX-1 over Golden A: the `io_list` report kind (FR-PLC-023; doc 10 §5).
 //!
-//! The orchestrator's rulings of cycle 42 that these tests rely on, quoted:
-//! - Ruling 4 (b): "the 20 that this build fills ..., the three added with their writers".
-//! - Ruling 5 (a): "read `extra.params.include_deactivated` provisionally as `parts_summary` reads `mode`, a value of
+//! What these tests rely on, quoted:
+//! - "the 20 that this build fills ..., the three added with their writers".
+//! - "read `extra.params.include_deactivated` provisionally as `parts_summary` reads `mode`, a value of
 //!   another type giving the default and one `DeriveNote::MalformedShim` naming the block and the key"; read through
-//!   `ew_reports::kind_params` since WP-S3.06 part 1, whose ruling 6 names the block "`report block <first folio>
+//!   `ew_reports::kind_params`, which names the block "`report block <first folio>
 //!   params.<key>`".
-//! - Ruling 10 (a): "`io_list` takes `ew_derive::stations(q)`'s order (configuration project, order, ID)".
-//! - ID-950 ruling 1 (PX-1 as ruled): "On Golden A the default gives 28 rows (8 used, 20 spare) and
+//! - "`io_list` takes `ew_derive::stations(q)`'s order (configuration project, order, ID)".
+//! - "On Golden A the default gives 28 rows (8 used, 20 spare) and
 //!   `include_deactivated: true` gives 56 (the 28 deactivated added in place)".
 //!
 //! Tests:

@@ -1,11 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The further navigators and highlighting of WP-S2.06 part 2 on Golden A (acceptance checks NP3's model half, NP4's
-//! model half and NP5): highlighting 24VDC-1 from the Potentials navigator (slot 0, its members'
+//! The further navigators and highlighting on Golden A: highlighting 24VDC-1 from the Potentials navigator (slot 0, its members'
 //! polylines on folios 102 and 103, the describe lines, one members call per revision, toggling off, a fifth highlight
 //! replacing the first), a canvas click on W29 marking its row in Connections and Potentials, the New structure node
-//! pre-fill (FT-461's second half) and R30 F9's opening of a report block.
+//! pre-fill and the opening of a report block.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -221,7 +220,7 @@ fn highlighting_24vdc_1_from_the_potentials_navigator() {
     shell.shutdown();
 }
 
-/// NP4 (§6.5), the model half: with Connections and Potentials open, selecting W29 on folio 103 from the canvas marks its
+/// With Connections and Potentials open, selecting W29 on folio 103 from the canvas marks its
 /// wire row in both (in Potentials under 24VDC-1), reveals them and leaves the focus on the canvas. On Golden A, W29's
 /// provisional route on 103 lies on other wires' routes end to end, so the first click there picks the first wire of
 /// the pick stack and repeated clicks walk to W29 (FT-500, which closes deviation N30-3); every click marks the row of
@@ -329,7 +328,7 @@ fn selecting_w29_on_the_canvas_marks_its_rows_in_both_navigators() {
     shell.shutdown();
 }
 
-/// NP5 (FT-461's second half, §7.1): Structure ▸ New node with +J-E-2416 marked and kind `location` opens with the
+/// Structure ▸ New node with +J-E-2416 marked and kind `location` opens with the
 /// parent filled in; with kind `function` it is left empty.
 #[test]
 fn new_structure_node_prefills_the_marked_parent() {

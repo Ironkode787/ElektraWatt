@@ -62,8 +62,7 @@ pub struct BannedFeature {
 /// A feature that must stay enabled somewhere in the resolved dependency graph whenever the crate is in it.
 ///
 /// For a feature that keeps the build free of a system library: without `wgpu-hal/gles`, `wayland-sys` loses
-/// its `dlopen` feature and its build script probes `pkg-config` for libwayland (WP-S2.01 spec section 4,
-/// rule 5: no system package on any CI image).
+/// its `dlopen` feature and its build script probes `pkg-config` for libwayland (no system package on any CI image).
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RequiredFeature {
@@ -289,7 +288,7 @@ fn shipping_graph_args(packages: &[&str]) -> Vec<String> {
 }
 
 /// The resolved graph of the shipped binaries for every target (`cargo tree --target all -e normal,build` over
-/// `packages`, C43-p2#7: a platform-gated dependency counts too), as a map
+/// `packages`: a platform-gated dependency counts too), as a map
 /// of package name to its enabled features.
 pub fn shipping_graph(
     root: &std::path::Path,

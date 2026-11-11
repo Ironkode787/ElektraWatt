@@ -26,7 +26,7 @@ use ew_store::{Access, BrokenLine, Changes, Opened, ReadOnlyReason, SaveError, S
 
 #[test]
 fn a_finding_beyond_the_cap_still_forces_read_only_and_quarantined_bytes_survive() {
-    // Review cycle 8, major 2: 1,001 duplicate lines fill the capped findings list, so the EW-CORE-005 of
+    // 1,001 duplicate lines fill the capped findings list, so the EW-CORE-005 of
     // the line after them (not UTF-8) is dropped from it; the session must still be read-only, and the
     // writer must put the line's bytes back, not U+FFFD.
     let (vfs, root) = mem_project(DirSync::Explicit);
@@ -83,7 +83,7 @@ fn a_finding_beyond_the_cap_still_forces_read_only_and_quarantined_bytes_survive
 
 #[test]
 fn a_save_moves_an_unlisted_file_aside_instead_of_overwriting_it() {
-    // Review cycle 8, major 3 (owner ruling): a colleague's `devices/<xx>.jsonl` that the manifest does not
+    // A colleague's `devices/<xx>.jsonl` that the manifest does not
     // list is EW-CORE-004 at open; a save that writes our own device into that shard moves the colleague's
     // file to `devices/<xx>.unlisted-2.jsonl` first and reports it, and the colleague's line survives.
     let (vfs, root) = mem_project(DirSync::Explicit);
@@ -168,7 +168,7 @@ fn a_save_moves_an_unlisted_file_aside_instead_of_overwriting_it() {
 
 #[test]
 fn an_editing_open_deletes_only_the_save_protocols_temps() {
-    // Review cycle 8, 5(f): `*.tmp-<n>` names that are not a temp of a writer-owned file or an intent belong
+    // `*.tmp-<n>` names that are not a temp of a writer-owned file or an intent belong
     // to someone else and stay.
     let (vfs, root) = mem_project(DirSync::Explicit);
     let shard = fixture()
@@ -229,7 +229,7 @@ fn repair_options(vfs: &Arc<MemVfs>, pid: u32) -> StoreOptions {
     o
 }
 
-/// ID-1185 rulings 2, 4 and 6: a repair open of a project whose only forcing findings are broken lines is editable and
+/// A repair open of a project whose only forcing findings are broken lines is editable and
 /// lists them from the store's own data; one save discards them, after which none is left and the shard holds its
 /// bytes before. A plain editing open of the same project stays read-only.
 #[test]
@@ -276,7 +276,7 @@ fn a_repair_open_lets_only_broken_lines_through_and_one_save_discards_them() {
     again.store.close();
 }
 
-/// ID-1185 rulings 3 and 4: a repair open still demotes for every other finding that forces read-only, also one beyond
+/// A repair open still demotes for every other finding that forces read-only, also one beyond
 /// the findings cap (1,001 broken lines fill the list before the conflict marker).
 #[test]
 fn a_repair_open_still_demotes_for_any_other_forcing_finding() {
@@ -488,7 +488,7 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
     opened.store.close();
 }
 
-/// ID-1484 (FT-1383): the damaged definition copy of Golden A's pneumatic cylinders, whose functions end the fluid
+/// The damaged definition copy of Golden A's pneumatic cylinders, whose functions end the fluid
 /// lines of folio 203, opens read-only: beside the EW-INV-001 that names the copy, the load tolerates the EW-INV-024 of
 /// those lines, whose records include a function that names the copy. The same damage beside a violation unrelated to
 /// it, a page whose location is not in the project, is still refused by that violation.

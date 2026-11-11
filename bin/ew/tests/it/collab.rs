@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 8 through the `ew` binary (D26 to D29): `ew diff` (DG-1), its textconv in `git
-//! log -p` (DG-2), `ew git setup` (DG-3, DG-4), `ew check --integrity` (DG-6) and AC-41 through the real git (DG-7).
+//! Through the `ew` binary: `ew diff`, its textconv in `git
+//! log -p`, `ew git setup`, `ew check --integrity` and AC-41 through the real git.
 //!
-//! Git runs only in fresh temporary repositories (ruling 8): `-C <dir>`, every repository-selecting variable of
+//! Git runs only in fresh temporary repositories: `-C <dir>`, every repository-selecting variable of
 //! `ew_api::git::ISOLATE` removed, the global configuration a file of the test's own folder and the system one off, a
 //! user set; a test skips with a message when git is absent. Golden A is only read and copied.
 

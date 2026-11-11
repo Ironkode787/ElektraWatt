@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.22 part 1 through the `ew` binary: the conventions of doc 17 §3.1 (`--project`, `--json`) and the published
-//! result schemas (CL-1 to CL-5, CL-7; CL-6 is in `tests/it/cli.rs`), with part 2's subcommands under the same rules
-//! (OU-6; their outputs are checked in `tests/outputs.rs`).
+//! The `ew` binary's conventions of doc 17 §3.1 (`--project`, `--json`) and the published
+//! result schemas (one of them is in `tests/it/cli.rs`), with the page and row output subcommands under the same rules
+//! (their outputs are checked in `tests/outputs.rs`).
 //!
 //! The result schemas under `bin/ew/schemas/` are an equality snapshot of `ew_api::cli_results::schema_files()`;
 //! `EW_CLI_BLESS=1 cargo nextest run -p ew --test it -E 'test(/^conventions::/)'` rewrites the directory. Every `--json` output is
@@ -24,8 +24,7 @@ use crate::support::{EwTmp, GOLDEN_A, GOLDEN_PARTS, GOLDEN_TABLES, Tmp, args, st
 const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/variants");
 const QET: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 
-/// A line that is not JSON after the first line of the project's first page file (`ew fmt --repair`'s case, WP-S1.17
-/// ID-1185), with the file's hash in the manifest as a save of those bytes writes it (`saved`), or written by hand, the
+/// A line that is not JSON after the first line of the project's first page file (`ew fmt --repair`'s case), with the file's hash in the manifest as a save of those bytes writes it (`saved`), or written by hand, the
 /// manifest untouched.
 fn with_a_broken_line(project: &Path, saved: bool) {
     use sha2::Digest;
@@ -264,7 +263,7 @@ fn project_flag_equals_the_positional_directory() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
 }
 
-/// CL-1, FT-249: `ew apply --project <dir> <file.ewcmd>` replays as the positional form does: equal stdout and exit
+/// `ew apply --project <dir> <file.ewcmd>` replays as the positional form does: equal stdout and exit
 /// code, and the two copies hold the same files afterwards.
 #[test]
 fn apply_with_the_project_flag_replays_as_the_positional_form() {
@@ -392,7 +391,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         (report.kind.as_str(), report.format.as_str()),
         ("plc_overview", "csv")
     );
-    // WP-S3.06 D4 and the orchestrator's ruling 2: `--kind` prints the kind, the rows and `"block": ""`.
+    // `--kind` prints the kind, the rows and `"block": ""`.
     let by_kind: results::ExportReportResult = json_twice(
         &t,
         &args([&"export", &"report", &p, &"--kind", &"device_list", &"--json"]),

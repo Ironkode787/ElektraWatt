@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 5 through the built binary (acceptance check IM2): a UI script brings a placeholder SVG into a copy
+//! Through the built binary: a UI script brings a placeholder SVG into a copy
 //! of Golden A, arms the Image tool, picks the asset and places it by two grid-cursor corners; the transcript has
 //! no UUID, the ghost member and describe line name the asset, `page.describe` lists
 //! the `image` item, the saved project holds it, and the `--record` log replayed on a third copy (the session's

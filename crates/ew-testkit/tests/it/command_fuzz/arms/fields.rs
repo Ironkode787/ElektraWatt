@@ -453,7 +453,7 @@ pub(super) fn edit_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         let target = json!({"kind": "device", "id": rng.uuid()});
         return Some(Step::cmd("edit.delete", json!({"targets": [target]})).refuse());
     }
-    // WP-S4.02 part 2 (FT-840): a layout record, drawn after the older branches.
+    // FT-840: a layout record, drawn after the older branches.
     if rng.chance(10)
         && let Some(step) = edit_delete_layout(live, rng)
     {

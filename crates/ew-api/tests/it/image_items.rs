@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 5 (acceptance IM1, FR-SYM-025): an image placed on a page of Golden A's import. An SVG logo is
+//! FR-SYM-025: an image placed on a page of Golden A's import. An SVG logo is
 //! vector paths in the page's display list and in the exported PDF (no raster image object for it); a PNG is an image
 //! object; an unknown hash is refused. The assets are placeholders written here (no company's artwork).
 

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 7 (D24, D25, the driver status): the window's half of collaboration.
+//! The driver status: the window's half of collaboration.
 //!
 //! - **External change** (doc 05 §9, §16): [`ShellModel::poll_disk`] polls the project on disk (the window every
 //!   [`ew_api::external::POLL_EVERY`] and when it regains the focus, never during a gesture; `project.check_disk` at
@@ -214,7 +214,7 @@ impl ShellModel {
             .is_some_and(|p| p.session.external_collisions().is_some())
     }
 
-    /// Whether the damaged-copy banner offers Update from library (`library.update_damaged`, FT-1499, ID-1486): the
+    /// Whether the damaged-copy banner offers Update from library (`library.update_damaged`, FT-1499): the
     /// open project is read-only for a damaged library copy and an installed library holds one the open dropped.
     pub fn damaged_update_offered(&self) -> bool {
         self.project
@@ -497,7 +497,7 @@ impl ShellModel {
             .as_ref()
             .is_some_and(|p| matches!(p.access, super::AccessMode::Edit));
         self.collab.driver_missing = edits && driver_missing(dir);
-        // ID-1427 (W52 F7): a damaged library copy's banner is a state banner too, while the project stays open.
+        // A damaged library copy's banner is a state banner too, while the project stays open.
         self.collab.damaged = self.project.as_ref().and_then(|p| {
             let integrity = matches!(p.access, super::AccessMode::ReadOnly { reason_key }
                 if reason_key == key!("readonly-integrity"));

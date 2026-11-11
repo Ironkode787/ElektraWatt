@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 2 on Golden A (doc 20 §13): `layout.place_assembly` beside `layout.place` with push on R3 (AS-1),
+//! On Golden A (doc 20 §13): `layout.place_assembly` beside `layout.place` with push on R3 (AS-1),
 //! the assembly -201U1 placed as one block on an emptied R3 in its member order (AS-2), `layout.auto_fill` on an
 //! emptied R1 with and without clearance pads (AS-3), and EW-LAY-003's quick fix run through the session (AS-8).
 //! Positions are clip points in tenths of a millimetre.

@@ -32,7 +32,7 @@
 //! names the item. Re-export the type, or the guard cannot cover it.
 //!
 //! The same file carries a `disallowed-types` list of the hash containers (`std::collections::HashMap` and
-//! `HashSet`, and `imbl`'s, [`DISALLOWED_TYPES`]: FT-271): their iteration order must not reach a persisted,
+//! `HashSet`, and `imbl`'s, [`DISALLOWED_TYPES`]): their iteration order must not reach a persisted,
 //! exported or printed sequence. It is static (not derived from `ew-model`).
 //!
 //! The `disallowed-methods` list also ends with the wall-clock, environment and randomness functions
@@ -257,7 +257,7 @@ pub struct RawReadPolicy {
     /// Reviewed false positives.
     #[serde(default)]
     pub allow: Vec<Allow>,
-    /// The asset-presence rule of FT-382 (`[raw_read.asset_presence]`).
+    /// The asset-presence rule (`[raw_read.asset_presence]`).
     #[serde(default)]
     pub asset_presence: Option<AssetPresencePolicy>,
 }

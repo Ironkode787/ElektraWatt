@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 2 through the `ew` binary (D8, D9): `ew export ewz`, every reader on an `.ewz`
-//! (EZ-2), every other subcommand's refusal of one, and `ew extract` (EZ-3, EZ-4).
+//! Through the `ew` binary: `ew export ewz`, every reader on an `.ewz`,
+//! every other subcommand's refusal of one, and `ew extract`.
 
 use std::collections::BTreeMap;
 use std::ffi::OsString;
@@ -50,8 +50,8 @@ fn names(dir: &Path) -> Vec<String> {
 /// (a file as `""`, a directory's files by name).
 type Run = (Option<i32>, String, String, BTreeMap<String, Vec<u8>>);
 
-/// EZ-2: every reader (`check`, `sql`, `sql dump`, the row and page exports, `export table`, `print`, `render`,
-/// `verify-derived`, `query`, `layout`, `fmt --check`, `upgrade --check` as decision log ID-1230 ruling 5 adds it) gives the same
+/// Every reader (`check`, `sql`, `sql dump`, the row and page exports, `export table`, `print`, `render`,
+/// `verify-derived`, `query`, `layout`, `fmt --check`, `upgrade --check`) gives the same
 /// exit code, stdout, stderr and output bytes on Golden A's `.ewz` as on its directory; nothing is written beside the archive. The runs go in parallel, each with its own output path.
 #[test]
 fn every_reader_gives_the_same_output_on_the_ewz() {
@@ -141,7 +141,7 @@ fn every_reader_gives_the_same_output_on_the_ewz() {
     );
 }
 
-/// EZ-2 and ID-1175 ruling 5: every subcommand that takes a project and is no reader refuses an `.ewz` with D9's text
+/// Every subcommand that takes a project and is no reader refuses an `.ewz` with its text
 /// (exit 2), `apply --preview`, `project assets purge --preview` and `import table` without `--apply` included, and the
 /// archive is unchanged.
 #[test]
@@ -189,7 +189,7 @@ fn every_other_subcommand_refuses_the_ewz() {
     assert!(!copy.exists());
 }
 
-/// D8: `ew export ewz` needs `--out` (ruling 5's text), packs the same bytes twice, and prints its JSON result.
+/// `ew export ewz` needs `--out`, packs the same bytes twice, and prints its JSON result.
 #[test]
 fn export_ewz_needs_out_and_is_deterministic() {
     let t = Tmp::new("ew-ewz");

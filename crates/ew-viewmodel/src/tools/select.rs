@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Select tool (`select`; WP-S2.03 §7.6 with WP-S2.04 §7.3's drag rows and keyboard move and §7.4's
-//! transforms; doc 06 §4.3).
+//! The Select tool (`select`; doc 06 §4.3).
 //!
-//! A press is classified by the pick of WP-S2.04 §6.6 in this order: a link; a segment of a **selected** connection
-//! that is neither its first nor its last segment (part 2, §8.4); a **movable** entity (a representation, and from
-//! WP-S2.04 part 4b a page item or a structure box); any other entity (a connection, a junction); empty canvas.
+//! A press is classified by the pick in this order: a link; a segment of a **selected** connection
+//! that is neither its first nor its last segment; a **movable** entity (a representation, a page
+//! item or a structure box); any other entity (a connection, a junction); empty canvas.
 //!
 //! | State | Event (condition) | Next | Output |
 //! |---|---|---|---|
@@ -34,16 +33,16 @@
 //! | any | `Activate` | idle | as a press and release at the grid cursor |
 //! | any | `Escape` | idle | `Cancel`, or `None` from idle |
 //!
-//! **WP-S2.04 part 3** (§9.4): with exactly one black box selected, a press within 4 points of one of its grips (a
+//! With exactly one black box selected, a press within 4 points of one of its grips (a
 //! vertex first, then a box CP, then an edge's midpoint) drags it (`dragging`): a move shows the reshaped outline, a
 //! dwell previews and a release after a move commits `box.reshape` (a grip without `cps`, so the CPs re-project; a
 //! CP with `cps`, the CP at the grid point of the outline nearest to the pointer); a release without a move is a
 //! click on the box; Escape cancels.
 //!
 //! Connections and junctions in a selection are never moved; the movable entities are representations, page items and
-//! structure boxes. Picking uses WP-S2.02's entity rectangles (an entity may have several: it lies inside a band
+//! structure boxes. Picking uses the entity rectangles (an entity may have several: it lies inside a band
 //! when all do, and touches it when one does) plus the exact segment distance of connections and structure-box
-//! outlines (§6.6). A release on empty canvas within 3 points clears the selection (Shift keeps it).
+//! outlines. A release on empty canvas within 3 points clears the selection (Shift keeps it).
 //!
 //! **FT-500** (picking where routes overlap). The pick is the first of the pick stack ([`super::pick_stack`]): a
 //! wire's drawn line goes before the representation rectangle the press is in when it is strictly nearer than that
@@ -57,7 +56,7 @@
 //! exception: a press on a symbol's **body**, the middle half of one of its representation's rectangles each way,
 //! picks the symbol before a wire under it even when the wire's line is nearer than the rectangle's centre; a repeated
 //! click walks on to the wire. Nearer the rectangle's outline, where wires meet the pins, the nearer of the wire and
-//! the centre goes first as before (WP-S2.04 §6.6's note, [`super::pick_stack`]).
+//! the centre goes first as before ([`super::pick_stack`]).
 
 use crate::key;
 use crate::strings::Key;

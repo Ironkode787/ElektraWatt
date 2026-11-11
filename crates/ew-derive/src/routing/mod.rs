@@ -52,9 +52,8 @@
 
 mod measures;
 mod page;
-// WP-S2.19 step 3: the page solve and one route against a page as drawn (§5).
+// The page solve and one route against a page as drawn.
 mod plan;
-// WP-S2.19 step 1: the single-connection search, moved from `ew_commands::route` unchanged.
 #[cfg(test)]
 mod plan_tests;
 mod search;

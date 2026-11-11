@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The page solve of WP-S2.19 §5 on hand-built and generated pages (§11.1 RT1 to RT6, RT8), judged by the layout
+//! The page solve on hand-built and generated pages, judged by the layout
 //! measures. Units are millimetres on a 1 mm grid.
 
 use ew_ids::Uuid;
@@ -312,7 +312,7 @@ fn g_a_job_that_would_be_a_junction_s_fourth_arm_is_unrouted() {
 
 #[test]
 fn a_job_whose_stub_a_text_crosses_is_unrouted_for_the_texts() {
-    // ID-1509 (§5.1 rule 4, C53-rt#1): the pin text of the next pole lies over a motor pole's stub, between the CP and
+    // The pin text of the next pole lies over a motor pole's stub, between the CP and
     // its stub node. The page solve leaves the wire unrouted with the reason "texts" and the Wire tool finds no route,
     // whichever end the CP is; the text's own representation is the CP's.
     let mut p = page();

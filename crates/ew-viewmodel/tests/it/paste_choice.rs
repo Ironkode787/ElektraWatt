@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.07 part 4b through the text interface (PS8's shell half; D22, FT-396): two copies of Golden A, P1 holding
+//! Through the text interface (FT-396): two copies of Golden A, P1 holding
 //! FX-MCB-1PN 1.0.0 on F55 and P2 holding 1.0.1 (a description change, a patch), each in its own shell over one user
 //! library "Fixture parts". The library is written by the parts import into a library (`catalog::import_into_library`),
 //! the second version by the same import bumped, so the viewmodel's tests name no schema type. F55 copied in P1 and
@@ -201,7 +201,7 @@ fn the_paste_choice_in_the_shell() {
         }
     );
     assert_ne!(p2.tool().name(), "paste", "no paste tool before the choice");
-    // Cycle 39 (FIX39b-1): the prompt is short, since the card holds the choice; the HUD shows the same text.
+    // The prompt is short, since the card holds the choice; the HUD shows the same text.
     let prompt = "Another version of FX-MCB-1PN (Fixture) is in the project; choose in the card below";
     assert_eq!(p2.status_fields(false)[0], prompt);
     assert_eq!(ew_viewmodel::command_bar::hud(&p2).prompt, prompt);
@@ -218,7 +218,7 @@ fn the_paste_choice_in_the_shell() {
             "choice update disabled: \"The pasted version is not newer than the project's\"",
         ]
     );
-    // Cycle 39 (FIX39b-1): the card's row says the change size in words; the describe line keeps the class word.
+    // The card's row says the change size in words; the describe line keeps the class word.
     let CardOrigin::PasteVersions(choice) = &p2.properties().card().unwrap().origin else {
         unreachable!()
     };
@@ -239,7 +239,7 @@ fn the_paste_choice_in_the_shell() {
     assert!(p2.preview_shown(), "the choice card opens the Preview tab");
     done(&mut p2, "paste.resolve", json!({"choice": "adapt"}));
     assert!(p2.properties().card().is_none(), "the card closes");
-    // Cycle 39 (FIX39b-1): the tab the card opened closes with it.
+    // The tab the card opened closes with it.
     assert!(!p2.preview_shown(), "the Preview tab closes with the card");
     place(&mut p2, pos);
     assert_eq!(commands(&p2).len(), steps + 1, "one command");
@@ -278,7 +278,7 @@ fn the_paste_choice_in_the_shell() {
     assert!(matches!(card.origin, CardOrigin::PasteUpdate { .. }));
     assert_eq!(card.preview.name, "library.update");
     assert_eq!(commands(&p1).len(), steps, "nothing committed before Apply");
-    // Cycle 39 (FIX39b-1): the HUD's prompt follows the card: the update card's own, not the choice's.
+    // The HUD's prompt follows the card: the update card's own, not the choice's.
     assert_eq!(
         ew_viewmodel::command_bar::hud(&p1).prompt,
         "Apply the update in the card below; the paste follows"
@@ -311,7 +311,7 @@ fn the_paste_choice_in_the_shell() {
     assert_eq!(held_version(&mut p1), "1.0.1", "the paste is its own undo step");
     done(&mut p1, "edit.undo", json!({}));
     assert_eq!(held_version(&mut p1), "1.0.0", "two undo steps");
-    // Cycle 39 (FIX39b-1): Cancel on the update card closes the tab the choice card opened and ends its prompt.
+    // Cancel on the update card closes the tab the choice card opened and ends its prompt.
     assert_eq!(
         p1.dispatch("edit.paste_clip", &json!({ "text": text })),
         Outcome::Refused {

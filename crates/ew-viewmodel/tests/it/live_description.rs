@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 5 (D13, AX-1; FR-UI-026, NFR-A11Y-02): one selected record is described in the canvas's live region
+//! FR-UI-026, NFR-A11Y-02: one selected record is described in the canvas's live region
 //! and in `ui.describe`'s `canvas live` line: a device by its tag, kind and folio with its connection points and
 //! wires, a wire by its number, potential and ends, a page item by its kind and text; two or more say how many. The
 //! expected values are read from the model through other public reads (the Devices navigator, the property sheet,

@@ -174,8 +174,8 @@ impl CheckReport {
 }
 
 impl CheckReport {
-    /// The report with EW-CORE-013's groups joined for merge evidence that the model does not hold (
-    /// decision log ID-1284): a merged manifest, a merge or rebase in progress, `ew check --integrity --after-merge`.
+    /// The report with EW-CORE-013's groups joined for merge evidence that the model does not hold:
+    /// a merged manifest, a merge or rebase in progress, `ew check --integrity --after-merge`.
     /// In a mode that runs EW-CORE-013 (online and release), when the run evaluated it without findings (the model holds
     /// no conflict record), every group of [`merge_collisions`](crate::rules::core::merge_collisions) joins the
     /// findings, the counts and the exit code; in another mode, or when the scheme switched the rule off, nothing
@@ -262,9 +262,9 @@ struct Waiver {
     finding: Option<Fingerprint>,
 }
 
-/// The waivers of the snapshot: the typed `waiver` records (doc 15 §2.5; typed within format 0.1 by WP-S1.16 D7,
-/// ID-334), matched by rule and fingerprint. A part target (1.0) and `expires` are not evaluated yet; a
-/// record without a parsable fingerprint matches nothing (EW-CORE-081 reports it).
+/// The waivers of the snapshot: the typed `waiver` records (doc 15 §2.5), matched by rule and fingerprint. A
+/// part target (1.0) and `expires` are not evaluated yet; a record without a parsable fingerprint matches
+/// nothing (EW-CORE-081 reports it).
 fn waivers(q: &Q) -> Vec<Waiver> {
     let mut out: Vec<Waiver> = q
         .table::<ew_derive::ew_schema::Waiver>()

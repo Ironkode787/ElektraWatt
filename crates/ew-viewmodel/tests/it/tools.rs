@@ -361,7 +361,7 @@ fn t6_enter_selects_and_measure_from_the_keyboard_alone() {
     for (_, p) in entity_points(shell.canvas().unwrap()) {
         done(&mut shell, "cursor.set", at(p, json!({})));
         let c = shell.canvas().unwrap();
-        // The hover's entity, where the Select tool's pick (WP-S2.04 §6.6 with FT-500) agrees with it.
+        // The hover's entity, where the Select tool's pick (with FT-500) agrees with it.
         let page = c.page();
         let slop = ew_viewmodel::canvas::HOVER_SLOP_PT / c.points_per_nm();
         if c.cursor_link().is_none()
@@ -662,7 +662,7 @@ fn t10_the_transcript_and_describe_members_of_the_tools() {
 fn t11_tool_events_on_a_cached_page_make_no_session_call() {
     let tmp = Tmp::new("tools-t11");
     let mut shell = tmp.shell("103");
-    // The property grid fetches a sheet per selection change (WP-S2.05 §9 item 4, its own exact counts in
+    // The property grid fetches a sheet per selection change (its own exact counts in
     // `tests/properties.rs`): closed here, so that the tool events alone are counted.
     done(&mut shell, "props.show", json!({"on": false}));
     done(&mut shell, "page.goto", json!({"folio": "102"}));

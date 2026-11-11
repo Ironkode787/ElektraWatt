@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S3.08 through the `ew` binary: the table writers behind every row export (part 1: TX-1 to TX-5, TX-7) and the
-//! golden files of D16 (the round trip's tests, part 2, are `round_trip`, with the helpers here).
+//! Through the `ew` binary: the table writers behind every row export and the
+//! golden files (the round trip's tests are `round_trip`, with the helpers here).
 //!
 //! The golden files (D16): `golden/J-E-2416/expected/xlsx/sha256.txt` (one line `<sha256>  <file>` per workbook) and
 //! one cell dump per workbook, `expected/xlsx/<name>.cells.txt` (each sheet read back through the round trip's reader,

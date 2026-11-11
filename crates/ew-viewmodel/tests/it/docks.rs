@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.17 part 3 through the shell on copies of Golden A: the property grid's groups (DK3), the status bar's fields
-//! (DK4), the default workspace and an older workspace file (DK5), the rail model and `rail.show` (DK1's model half),
-//! `props.show_advanced`, and the History focus of FT-519.
+//! Through the shell on copies of Golden A: the property grid's groups, the status bar's fields,
+//! the default workspace and an older workspace file, the rail model and `rail.show`,
+//! `props.show_advanced`, and the History focus.
 
 use crate::common;
 
@@ -185,7 +185,7 @@ fn the_rail_model_and_rail_show() {
     assert_eq!(model.left[8].shortcut, "Ctrl+9");
     assert!(model.left[9].shortcut.is_empty());
     assert!(model.left[0].active, "Project shows Pages");
-    // FT-754 (g): Macros and Libraries are rail entries; `rail.show` shows their navigators.
+    // Macros and Libraries are rail entries; `rail.show` shows their navigators.
     for (word, kind, label) in [
         ("macros", NavKind::Macros, "Macros"),
         ("libraries", NavKind::Libraries, "Libraries"),
@@ -236,7 +236,7 @@ fn the_rail_model_and_rail_show() {
     assert!(describe.contains("rail left \"Project\" (shown)"), "{describe}");
 }
 
-/// FT-519's model half: `ui.focus {area: history}` while the panel is shown, and F6 reaches it.
+/// `ui.focus {area: history}` while the panel is shown, and F6 reaches it.
 #[test]
 fn the_history_focus() {
     let tmp = Tmp::new("docks-ft519");
@@ -258,7 +258,7 @@ fn the_history_focus() {
     assert_eq!(shell.focus(), Some(Focus::History));
 }
 
-/// FT-541 (doc 16a §6.8): the filter field stands while the open categories hold more than twelve rows; `props.filter`
+/// Doc 16a §6.8: the filter field stands while the open categories hold more than twelve rows; `props.filter`
 /// keeps the rows whose label or value contains its text (case-folded), the row cursor moves among them, and a filter
 /// whose field is not on show hides nothing.
 #[test]
@@ -360,7 +360,7 @@ fn messages_show_and_next_bring_a_hidden_messages_tab_to_front() {
     assert!(in_front(&shell), "F8 brings Messages to front");
 }
 
-/// FX38d (play-test rv-vis-2 t0035–t0039): the Messages dock closes by the command that opened it (a
+/// The Messages dock closes by the command that opened it (a
 /// toggle), by its close control (`view.bottom_dock {on: false}`) and by Escape in the pane; opening and closing it,
 /// which shrinks and grows the canvas pane, never changes the zoom or the centre of the fitted page.
 #[test]
@@ -444,7 +444,7 @@ fn the_messages_dock_closes_and_keeps_the_zoom() {
     assert!(view(&shell).0 < fitted.0, "the fit to the smaller pane zooms out");
 }
 
-/// FX38d (play-test rv-vis-2 t0035): after Check project with the Messages pane closed, the status bar shows the
+/// After Check project with the Messages pane closed, the status bar shows the
 /// findings field (its click is `messages.show {on: true}`, `ew-ui`'s `status_bar`), and only while the project is at
 /// the checked revision.
 #[test]

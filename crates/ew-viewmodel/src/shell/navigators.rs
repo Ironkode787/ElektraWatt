@@ -245,13 +245,13 @@ impl ShellModel {
         }
     }
 
-    /// The action and parameters a keyboard shortcut bound to `action` runs with the current focus (WP-S2.07 part 1
-    /// ruling): Alt+Up and Alt+Down (`pages.move_up`, `pages.move_down`) run `strip.move {step: -1 | 1}` while the
+    /// The action and parameters a keyboard shortcut bound to `action` runs with the current focus:
+    /// Alt+Up and Alt+Down (`pages.move_up`, `pages.move_down`) run `strip.move {step: -1 | 1}` while the
     /// Terminal strips navigator has the focus; Delete and F2 (`table.clear`, `table.edit`) run `navigator.delete` and
     /// `navigator.rename` with the focused navigator's `kind` while it is not in table mode (FT-490);
     /// every other binding runs its own action without parameters.
     pub fn shortcut_action(&self, action: &'static str) -> (&'static str, Value) {
-        // ID-1463 (doc 16a P8): while the symbol editor shows, the main window's drawing keys choose its tools.
+        // Doc 16a P8: while the symbol editor shows, the main window's drawing keys choose its tools.
         if self.symbol_editor().is_some()
             && let Some((tool, _)) = crate::shell::symbol_editor::TOOL_KEYS
                 .iter()
@@ -260,7 +260,7 @@ impl ShellModel {
             return ("symbol.tool", json!({ "tool": tool }));
         }
         let strips = self.focused_navigator() == Some(NavKind::Strips);
-        // WP-S4.02 part 3 (doc 12 §12.4): on a panel page the canvas's Tab, R and X place, and the arrows nudge
+        // On a panel page (doc 12 §12.4) the canvas's Tab, R and X place, and the arrows nudge
         // a selected placement; each chord stays unique per context.
         if self.focused_navigator().is_none() && self.panel_tables().is_some() {
             // The arrows nudge a selected placement, or step a floating layout ghost (doc 12 §12.4).
@@ -279,7 +279,7 @@ impl ShellModel {
         match action {
             "pages.move_up" if strips => ("strip.move", json!({ "step": -1 })),
             "pages.move_down" if strips => ("strip.move", json!({ "step": 1 })),
-            // WP-S2.07 part 2 (FT-490): in tree mode, Delete and F2 delete and rename the rows.
+            // FT-490: in tree mode, Delete and F2 delete and rename the rows.
             "table.clear" | "table.edit"
                 if let Some(k) = self.focused_navigator()
                     && !self.generic(k).is_some_and(|n| n.table_mode.is_some()) =>
@@ -916,7 +916,7 @@ impl ShellModel {
             let layout = if kind == NavKind::Messages {
                 self.layout().with_bottom(pane)
             } else {
-                // FT-720(b): a navigator already docked becomes the shown tab of its group.
+                // A navigator already docked becomes the shown tab of its group.
                 self.layout().with_navigator(pane).showing(pane)
             };
             self.replace_layout(layout);

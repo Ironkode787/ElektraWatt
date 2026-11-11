@@ -165,7 +165,7 @@ impl CanvasBackend {
     }
 }
 
-/// The switch rule of WP-S2.02 §7.2 (see the module documentation for the rows and their order).
+/// The switch rule (see the module documentation for the rows and their order).
 pub fn choose(
     flags: Flags,
     setting: BackendSetting,

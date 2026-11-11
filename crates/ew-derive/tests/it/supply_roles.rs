@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 5, PX-2 (D13, FR-PLC-024): the supply groups of a card's PLC part give its pins the potential roles
+//! FR-PLC-024: the supply groups of a card's PLC part give its pins the potential roles
 //! `L+` and `M` when neither the part pattern nor the function definition gives them one.
 //!
-//! The orchestrator's ruling 2 of cycle 42, as amended after the Opus read: "A CP's role is: the authored CP role, else
+//! A CP's role is: the authored CP role, else
 //! the definition CP's role (the existing fallback ...), else the supply group's role. The group is read from the part
-//! copy the derivation already depends on, through the same memo input as the pins: no new memo key."
+//! copy the derivation already depends on, through the same memo input as the pins: no new memo key.
 //!
 //! - `a_black_box_card_takes_l_plus_and_m_from_its_supply_group`: pins "1" and "2" without a role get `L+` and `M`.
 //! - `an_authored_role_wins_over_the_supply_group`: a pattern role and an FnDef role are kept.

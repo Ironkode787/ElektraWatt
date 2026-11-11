@@ -335,8 +335,8 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
         j.child_exit = code;
         j.golden_changed = golden.is_err();
     })?;
-    // The score (§5.9): a gate run against its oracle, a brief run its acceptance list decided mechanically (WP-S2.12
-    // D7), any other run only its protocol; a check run has none.
+    // The score (§5.9): a gate run against its oracle, a brief run its acceptance list decided mechanically,
+    // any other run only its protocol; a check run has none.
     let scored = if check {
         None
     } else {

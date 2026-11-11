@@ -1,12 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.17 part 5, the canvas overlays (spec §9, acceptance checks §12.5): the CPU snapshots of folio 101 with a
+//! The canvas overlays: the CPU snapshots of folio 101 with a
 //! selection and four highlights, a measurement and a Place ghost, blessed under `tests/expected/canvas/` and equal
-//! across two runs (OV5); the selection's 2-pixel outline, white casing and four 8-pixel handles probed in the
-//! snapshot (OV6); the pick stack's hover outline and the walk (OV7); in the window, the highlight name chip's model
-//! values (OV6), the link preview's accessible node (OV4) and the chrome obstacles the chips keep off (OV2,
-//! FT-508).
+//! across two runs; the selection's 2-pixel outline, white casing and four 8-pixel handles probed in the
+//! snapshot; the pick stack's hover outline and the walk; in the window, the highlight name chip's model
+//! values, the link preview's accessible node and the chrome obstacles the chips keep off.
 //!
 //! `EW_BLESS=1` writes the blessed images. They are compared pixel by pixel with a channel tolerance of 4 and at most
 //! 0.05 % differing pixels (the CPU raster's text edges may differ by a unit between platforms).
@@ -212,7 +211,7 @@ fn crowded_tile(differs: &[bool], w: usize) -> Option<(usize, usize, usize)> {
     })
 }
 
-/// An 8 × 8 block (a short tag) is a crowded tile, 16 scattered pixels are not; FT-1350: so is one that
+/// An 8 × 8 block (a short tag) is a crowded tile, 16 scattered pixels are not; so is one that
 /// straddles the corner of four tiles, 4 × 4 pixels in each.
 #[test]
 fn a_short_tag_is_a_crowded_tile() {
@@ -346,7 +345,7 @@ fn the_overlay_snapshots_of_folio_101() {
     shell.shutdown();
 }
 
-/// OV7 (FT-500 kept, doc 16a §6.25): on folio 101, at a point of a wire's route where the pick stack holds more than
+/// FT-500, doc 16a §6.25: on folio 101, at a point of a wire's route where the pick stack holds more than
 /// one entity, the hover outline is drawn dashed in `canvas.hover` around the stack's first entity; a click selects
 /// it, a repeated click the next one, drawn in `canvas.selection`.
 #[test]
@@ -486,7 +485,7 @@ fn the_highlight_name_chips_take_their_hue_and_a_black_label() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1288 (W49.2 item 6): with four potentials of folio 103 highlighted, at 1280 × 720, at the 1280 × 800 floor and
+/// With four potentials of folio 103 highlighted, at 1280 × 720, at the 1280 × 800 floor and
 /// at 1920 × 1080, with and without the find pane in the bottom dock, the name chips keep off each other, stand
 /// inside the page view and are never faded, and the page view ends above the status bar.
 #[test]
@@ -549,7 +548,7 @@ fn the_highlight_chips_stay_clear_in_a_short_window() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// OV4, FT-390: the link preview popup has a named, non-focusable image node with the target's folio and cell.
+/// The link preview popup has a named, non-focusable image node with the target's folio and cell.
 #[test]
 fn the_link_preview_has_a_named_region() {
     let tmp = Tmp::new();
@@ -615,13 +614,13 @@ fn the_link_preview_has_a_named_region() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// FT-1091 (play-test rv-vis-7, t0009): the link preview popup and a hover tooltip never show at once. A
-/// connection point that stands on a link (24VDC-1 of folio 103, over 0VDC's link to cell 102-C15; FT-1436 moved
-/// folio 101's "102-A1" off N-1) is hovered until the rest opens the popup, and then for as long again: the connection
+/// The link preview popup and a hover tooltip never show at once. A
+/// connection point that stands on a link (24VDC-1 of folio 103, over 0VDC's link to cell 102-C15; folio 101's "102-A1"
+/// is off N-1) is hovered until the rest opens the popup, and then for as long again: the connection
 /// point's tooltip does not show while the popup does.
 ///
-/// No connection point of Golden A stands on a link since WP-S2.19 (the target form's connection point is at the
-/// arrow's tip, D16, and the slot texts keep clear of the points), so the case has no page to run on until a page is
+/// No connection point of Golden A stands on a link now (the target form's connection point is at the
+/// arrow's tip, and the slot texts keep clear of the points), so the case has no page to run on until a page is
 /// built for it (FT-1596).
 #[test]
 #[ignore = "FT-1596: no Golden A page has a connection point on a link since WP-S2.19 (D16)"]
@@ -711,7 +710,7 @@ fn ft1091_the_link_preview_and_the_cp_tooltip_never_show_together() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// OV2, OV6, FT-508: the window reports the tool HUD's and the zoom control's frames over the canvas
+/// The window reports the tool HUD's and the zoom control's frames over the canvas
 /// (`chrome_obstacles` holds both). The Place ghost is aimed so that its label's preferred spot (measured in free
 /// space mid-sheet) overlaps the top left corner of the HUD and then of the zoom control; with the frames as
 /// obstacles the label moves to a free candidate (not faded) and no canvas chip stands on either.

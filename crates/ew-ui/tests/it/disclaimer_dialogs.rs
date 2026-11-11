@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S6.04 D13 (NFR-COMP-04, SE-3): the Approve and the Release dialog end with the engineering-verification
+//! NFR-COMP-04: the Approve and the Release dialog end with the engineering-verification
 //! disclaimer, the About dialog's sentence, as their last line before the buttons, in English and in Dutch.
 
 use crate::support;

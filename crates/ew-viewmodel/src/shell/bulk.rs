@@ -123,7 +123,7 @@ impl ShellModel {
             return Some(lead.clone());
         }
         let records = card.preview.result.as_ref().map_or(0, |p| p.diff().len());
-        // Cycle 37 (window check W37): a count of one takes the singular ("1 item · 1 page").
+        // A count of one takes the singular ("1 item · 1 page").
         Some(strings::format(
             key!("preview-summary"),
             &[
@@ -689,7 +689,7 @@ impl ShellModel {
             let assets = plan.remove.iter().map(|f| f.sha256.to_string()).collect();
             return self.open_dialog(Dialog::ConfirmPurge { files, assets });
         }
-        // Cycle 41, ruling 4 ("the purge's origin"): judged per submission like the revision steps' (ruling 1). A
+        // The purge's origin is judged per submission like the revision steps'. A
         // window no person drives (the visual driver) opens and frames the confirmation, but its confirm is refused,
         // and the purge commits from `self.origin()`, never a hard-coded GUI origin.
         if !self.person {

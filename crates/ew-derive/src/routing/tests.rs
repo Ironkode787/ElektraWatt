@@ -357,7 +357,7 @@ fn e_a_slanted_crossing_at_the_record_limit_does_not_overflow() {
 }
 
 proptest::proptest! {
-    /// WP-S2.19 step 1: every route the search finds breaks no hard rule by the measures, an oracle
+    /// Every route the search finds breaks no hard rule by the measures, an oracle
     /// independent of the search: no touch of another CP (the reserved points), no run along another wire, no
     /// stretch inside an obstacle. The ends, their stubs and the stub moves are the search's own (never blocked), so
     /// the cases keep the obstacles, wires and reserved points off them.

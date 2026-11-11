@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.21 part 4b in the Session (acceptance BU-7f; §8a.2, D16, D17): the generic CPU placed from the picker gets
+//! In the Session, the generic CPU placed from the picker gets
 //! no bus port; the starter DP-port symbol placed onto it with `join_device` gets the CPU's DP port, typed, in the
 //! placement's one undo step, and the checks report its TBD station address once.
 

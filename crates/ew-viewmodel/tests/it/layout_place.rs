@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S4.02 part 3 through the shell on temporary copies of Golden A, folio 902 (the panel page of -UC1): the Unplaced
-//! devices navigator (PW-1: rows, badges, empty states, the fetch counter); F55 pushed onto Rail 1 by a drag and from
-//! the keyboard (PW-2: SN-3's poses, the ghost's predicted poses equal to the committed ones, one undo step); the
-//! refusals of a TS 32 rail, of a rail device off every rail, and E55 on the plate (PW-3); target snapping, Shift and the
-//! 1 mm grid (PW-4); -201U9's slot on Rail 3 against `layout.place_assembly` (PW-5, ruling 4); Tab and Shift+Tab, the
-//! live region, the nudges, R, X, Delete, Lock and Unlock (PW-6).
+//! Through the shell on temporary copies of Golden A, folio 902 (the panel page of -UC1): the Unplaced
+//! devices navigator (rows, badges, empty states, the fetch counter); F55 pushed onto Rail 1 by a drag and from
+//! the keyboard (SN-3's poses, the ghost's predicted poses equal to the committed ones, one undo step); the
+//! refusals of a TS 32 rail, of a rail device off every rail, and E55 on the plate; target snapping, Shift and the
+//! 1 mm grid; -201U9's slot on Rail 3 against `layout.place_assembly`; Tab and Shift+Tab, the
+//! live region, the nudges, R, X, Delete, Lock and Unlock.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -248,7 +248,7 @@ fn the_unplaced_devices_navigator_lists_the_five_devices() {
     shell.shutdown();
 }
 
-/// FT-882 ("`ui.describe` names a surface view \"surface view\""): folio 902's view is described as one,
+/// `ui.describe` names a surface view \"surface view\": folio 902's view is described as one,
 /// never as an unknown item.
 #[test]
 fn describe_names_the_surface_view() {
@@ -805,9 +805,6 @@ fn nudge_turn_lock_and_delete_a_selected_placement() {
     shell.shutdown();
 }
 
-// ---------------------------------------------------------------------------------------------------------------
-// Cycle-42 review part 3, finding 1
-
 /// A refused turn names the keymap's keys on every path: with `tool.rotate_cw` rebound to Q and `tool.mirror_x` to K,
 /// the rotate key on a rail reads the same whole text from `layout.rotate` on the selected placement (the shell), from
 /// the layout place tool's floating ghost and from Select's drag of a placement (the tools); the reason itself names
@@ -885,7 +882,7 @@ fn a_refused_turn_names_the_rebound_keys_on_every_path() {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Cycle 46: the placing tools' polish rows
+// The placing tools' polish rows
 
 /// The whole text of a refused turn with the default keymap.
 const TURN_TEXT: &str = "R turns a placement on the plate; X flips one on a rail.";

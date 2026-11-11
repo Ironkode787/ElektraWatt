@@ -424,7 +424,7 @@ pub(crate) fn cell_point(cell: (i64, i64), dx: i64, dy: i64) -> Option<Pt2> {
     Some(Pt2::new(px.at(x)?, px.at(y)?))
 }
 
-/// Why a table position cannot be placed. The bootstrap never snaps (doc 06 §5.7, decision log ID-54; doc 14
+/// Why a table position cannot be placed. The bootstrap never snaps (doc 06 §5.7; doc 14
 /// §9 strict mode): the row is dropped with EW-IMP-002.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum PlaceError {

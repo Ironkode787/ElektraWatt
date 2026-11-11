@@ -5,7 +5,7 @@
 //! a strip placed in line under terminal 1 was connected to it, shorting the two feed terminals; two terminals of a
 //! strip are joined by a bridge, never by a wire autoconnect proposes. A terminal of another strip, in the same
 //! geometry, is proposed and connected as before; a move of the terminal into that line proposes nothing either. The
-//! geometry is the play-test's (FT-705's fixture): a switch at grid index (60, 20) on a writable copy of Golden A's
+//! geometry is the play-test's: a switch at grid index (60, 20) on a writable copy of Golden A's
 //! folio 103, terminal 70 of -X1031 at (60, 28), the second terminal at (60, 34).
 
 use crate::common;

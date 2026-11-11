@@ -14,8 +14,8 @@
 //! notify    append a Change {rev, touched keys, touched pages} to the change feed
 //! ```
 //!
-//! The engine is the only place that constructs a [`TxBuilder`]. It runs synchronously: the job pool of
-//! WP-S1.05 will run previews on forks, with the same [`Preview`] and rebase check.
+//! The engine is the only place that constructs a [`TxBuilder`]. It runs synchronously: a job pool
+//! will run previews on forks, with the same [`Preview`] and rebase check.
 //!
 //! **Prevent rules.** The hook is a `Box<dyn PreventHook>`; the default [`NoPrevent`] accepts everything,
 //! because no prevent rule exists yet. `ew-checks` plugs in later: its hook builds the tracked query context
@@ -51,7 +51,7 @@ impl PreventHook for NoPrevent {
 }
 
 /// The current snapshot handed to readers: O(1) to take (ARCH §5.1 `Session::world`). The memo snapshot
-/// joins it with WP-S1.05.
+/// will join it.
 #[derive(Clone, Debug)]
 pub struct World {
     /// The model.

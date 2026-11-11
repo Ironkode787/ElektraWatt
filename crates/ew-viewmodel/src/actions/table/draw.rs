@@ -397,7 +397,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_text_input(p),
         ))),
     )),
-    // WP-S2.04 part 2 (wiring, §8.7): the Wire tool, the proposals' Tab, route edit, the junction sequence editor and
+    // The Wire tool, the proposals' Tab, route edit, the junction sequence editor and
     // the crossings setting. Begin.
     keeps_banner(in_canvas(placed(
         place(Group::Connect, 1, CommandSize::Large, Some(key!("bar-wire"))),
@@ -432,7 +432,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.send_proposal_key(),
     )))),
-    // WP-S4.02 part 3 (D4, D10; doc 12 §12.4): placing on a panel page. Tab, R, X and the arrows keep their bindings:
+    // Placing on a panel page (doc 12 §12.4). Tab, R, X and the arrows keep their bindings:
     // on a panel page the shell maps them to these hidden actions (`ShellModel::shortcut_action`); Shift+Tab is
     // `layout.previous`'s own canvas binding (ruling 5).
     with_params(
@@ -526,7 +526,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_layout_options(p),
         ))),
     ),
-    // WP-S4.02 part 4 (D10, D11, ruling 1): Draw ▸ Layout (Rail, Duct, Auto-fill rail…) on a panel layout page with a
+    // Draw ▸ Layout (Rail, Duct, Auto-fill rail…) on a panel layout page with a
     // surface view, the draw tools' options card, and Project ▸ Enclosure….
     keeps_banner(in_canvas(placed(
         place(Group::PanelLayout, 1, CommandSize::Small, Some(key!("bar-rail"))),
@@ -627,7 +627,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ))),
     // Route page and Route selection after Edit route, previewed (no default key); after Interruption,
-    // so the two stack in one column of their own (ID-1506 (6)). Each its own icon, neither the generated badge's
+    // so the two stack in one column of their own. Each its own icon, neither the generated badge's
     // (C1): the page as a whole, and a pull on the selected wires.
     keeps_banner(placed(
         place(Group::Connect, 7, CommandSize::Small, None),
@@ -713,7 +713,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     )),
     // End.
-    // WP-S2.04 part 3 (interruption points and black boxes, §9.6). Begin.
+    // Interruption points and black boxes.
     keeps_banner(in_canvas(placed(
         place(
             Group::Connect,
@@ -846,7 +846,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         |s, _| s.act_box_add_cp(),
     ))),
     // End.
-    // WP-S2.04 part 4b (text and graphic tools, §10.7). Begin.
+    // Text and graphic tools.
     keeps_banner(in_canvas(placed(
         place(Group::Annotate, 1, CommandSize::Large, None),
         "typography",
@@ -945,7 +945,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // Alt+Arrow Up and Alt+Arrow Down stay bound to `pages.move_up` and `pages.move_down` (the keymap test forbids a
     // second binding); while the Terminal strips navigator has the focus they run this action with `step` -1 or 1
-    // (`ShellModel::shortcut_action`, WP-S2.07 part 1 ruling).
+    // (`ShellModel::shortcut_action`).
     with_params(
         "step?:int, before?:text",
         in_navigator(act(
@@ -979,7 +979,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_strip_unbridge(),
     )),
-    // WP-S2.07 part 2 (§7, FR-CBL-016): swap two cores of one cable. The navigators have no row menu yet, so it sits
+    // Swap two cores of one cable (FR-CBL-016). The navigators have no row menu yet, so it sits
     // in the Edit menu with the strip editor's gestures.
     in_navigator(act(
         "cable.swap_cores",
@@ -1147,7 +1147,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     )),
     // End.
-    // WP-S2.04 part 5 (images, §11).
+    // Images.
     keeps_banner(in_canvas(with_icon(
         "file",
         act(
@@ -1202,7 +1202,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_wizard_open(),
         ),
     ),
-    // WP-S2.09 part 2 (§7.6): Tools ▸ Run checks.
+    // Tools ▸ Run checks.
     placed(
         place(Group::Run, 1, CommandSize::Large, Some(key!("bar-check-project"))),
         "list-check",
@@ -1216,7 +1216,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_messages_check(),
         ),
     ),
-    // WP-S2.09 part 3 (§8.3, §8.6): Tools, Renumber devices… and Purge unused images…
+    // Tools, Renumber devices… and Purge unused images…
     // Ctrl+Shift+N, doc 16 §4.4's shell binding.
     with_params(
         "scope?:enum(project|page|selection), scheme?:text, include_frozen?:bool, only_nonconforming?:bool",

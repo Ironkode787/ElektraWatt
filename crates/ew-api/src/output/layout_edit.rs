@@ -807,7 +807,7 @@ pub(crate) fn surface_view_rows(q: &Q, page: Id<Page>) -> Vec<PropRow> {
             Some("page.surface_view.set"),
         ));
     }
-    // The rows sit under their own heading, Surface view, not Placement (W44.4 F-d).
+    // The rows sit under their own heading, Surface view, not Placement.
     for r in &mut rows {
         r.category = Category::SurfaceView;
     }
@@ -832,7 +832,7 @@ fn scale_to_send(q: &Q, page: Id<Page>, surface: Id<MountingSurface>) -> Option<
 }
 
 /// The datum that centres the enclosure of `surface` (its outer rectangle, else the usable polygon's bounds) in the
-/// drawing area of `page`'s frame grid at `scale` (D12; the page's, or the one sent with the view, ID-1148; the grid
+/// drawing area of `page`'s frame grid at `scale` (D12; the page's, or the one sent with the view; the grid
 /// the page's cells read, the built-in default one on a page without a frame form); `None` without a frame
 /// grid: no centred datum is offered, and a page without a view then keeps the datum (0, 0), one with a view its own.
 pub(crate) fn centred_datum(
@@ -1148,8 +1148,8 @@ impl Session {
                         // A choice from the list is its value, the surface's ID; a typed text is its words, which
                         // must name one surface.
                         let surfaces = surfaces_in_order(&q);
-                        // The ID in any form `Uuid::parse_str` reads (upper case, braces, simple, padded:
-                        // C44-p6#5), compared as a UUID.
+                        // The ID in any form `Uuid::parse_str` reads (upper case, braces, simple, padded),
+                        // compared as a UUID.
                         let as_id = Uuid::parse_str(text.trim()).ok();
                         let by_id = as_id.and_then(|u| surfaces.iter().find(|(id, _)| id.as_uuid() == u));
                         let by_words: Vec<&(Id<MountingSurface>, String)> = surfaces

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 5 in the window (D14; AX-2 to AX-4; FR-UI-027, NFR-A11Y-04; rulings 4 to 7): View ▸ UI scale
+//! In the window (FR-UI-027, NFR-A11Y-04): View ▸ UI scale
 //! and the first run offer 250 % and 300 % and `settings.toml` keeps them; the in-window core dialogs (New project,
 //! Renumber devices…, Renumber pages…, the print pre-dialog, the find and replace pane, the settings switches, the
 //! first-run steps, the recovery dialog, the parts import card) pass `assert_accessible` and `assert_fits` at 300 % on a
@@ -465,7 +465,7 @@ fn reduced_motion_stops_animation_and_the_zoom_jumps() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// ID-1278 ruling 12 (D14, doc 16 §10.4, doc 16a §4.12): with the setting unset, a canvas that draws on the
+/// Doc 16 §10.4, doc 16a §4.12: with the setting unset, a canvas that draws on the
 /// GPU keeps motion, and a GPU start that fails (FR-UI-028's fallback to the CPU) leaves reduced motion on.
 #[test]
 fn a_failed_gpu_start_leaves_reduced_motion_on() {

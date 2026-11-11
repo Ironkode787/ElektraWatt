@@ -8,7 +8,7 @@
 //! `checkbox(`, `heading(`, `menu_button(`, `collapsing(`, `hint_text(` or `on_hover_text(`, a painter's `text(`
 //! (`painter().text(`, `painter.text(`), a constructor `RichText::new(`, `Button::new(` or `Label::new(`, or a
 //! `WidgetInfo` name (`WidgetInfo::labeled(`, `WidgetInfo::selected(`); every string literal inside its parentheses
-//! is checked (of `menu_button(` and `collapsing(` only the first argument, the title, not the closure: ID-1231),
+//! is checked (of `menu_button(` and `collapsing(` only the first argument, the title, not the closure),
 //! except the key of `key!`, `count_key!` and `Key::run_time`. A literal bound to a variable first and
 //! passed by name is out of its reach. A literal that holds only `format!` placeholders
 //! (`"{}"`, `"{a}{b}"`) passes; another passes when the allowlist holds it exactly as written in the source (one per

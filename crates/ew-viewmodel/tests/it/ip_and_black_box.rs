@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 3 in the view model (acceptance checks IB2 to IB6 and the view-model part of IB7): the IP tool's name
+//! In the view model: the IP tool's name
 //! proposal, series, direction default and keys; a wire ending in an interruption point as one transaction and one
 //! undo step; continue on another page (FR-XRF-014) and arrange by name (FR-XRF-013); the black box tool with a part's
 //! connection points (FR-DEV-013) and the grips that reshape a box (FR-DEV-039); the picker's black-box rows; the
@@ -122,8 +122,8 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     let ghost = canvas(&s)["ghost"].clone();
     assert_eq!(ghost["direction"], "target");
     assert_eq!(ghost["name"], "24VDC-1", "typed: no series");
-    // D goes on from the offered target: undirected; the star toggles, and walks the point to source (ID-1146:
-    // a star source is a source point).
+    // D goes on from the offered target: undirected; the star toggles, and walks the point to source (a star
+    // source is a source point).
     done(&mut s, "tool.ip_direction", json!({}));
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     done(&mut s, "tool.star_source", json!({}));

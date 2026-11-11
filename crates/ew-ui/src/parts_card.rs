@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The inline preview card of File, Import, Parts table…: a card floating at the top centre while the card's
-//! origin is an import. WP-S2.17 part 4 (doc 16a §6.9, §6.23): "Import parts" with its revision and the Stale or Failed
+//! origin is an import. Doc 16a §6.9, §6.23: "Import parts" with its revision and the Stale or Failed
 //! status badge, the counts of the preview ("parts.csv: 29 created, 0 skipped, 0 errors") as its summary, and Apply
 //! (Primary) and Cancel; `elevation.1`, as it floats.
 //!

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! ID-1462 (FIXIP53): an automatically named interruption point takes the first free name among the project's own
+//! An automatically named interruption point takes the first free name among the project's own
 //! interruption points, read from the model when it is named. A reopen (the session's memory gone), an undo that brings
 //! a point back and a paste of a point never make the next automatic name repeat one, so no automatic name joins two
 //! points: the point of the other page prints no cross-reference to them. Golden A's folios 102 and 103, on copies.

@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.08 part 1, the palette (FR-UI-012, NFR-UX-03), on Golden A: PL-1 ranking with the shortcut, PL-2
-//! determinism and the disabled tail, PL-3 the glossary aliases (one row per NFR-DOC-05 term), PL-4 the recents, PL-5
-//! the prefixes, PL-6 the parameter forms, and PL-7's describe lines of an open form.
+//! The palette (FR-UI-012, NFR-UX-03), on Golden A: ranking with the shortcut,
+//! determinism and the disabled tail, the glossary aliases (one row per NFR-DOC-05 term), the recents,
+//! the prefixes, the parameter forms, and the describe lines of an open form.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -355,7 +355,7 @@ fn forms_open_prefilled_run_with_enter_and_a_path_parameter_is_disabled() {
     shell.shutdown();
 }
 
-/// FT-1174 (doc 16a §6.14, §9.3): a palette row's breadcrumb never repeats its label, and the Language and Page
+/// Doc 16a §6.14, §9.3: a palette row's breadcrumb never repeats its label, and the Language and Page
 /// navigator order rows take an icon from the icon set.
 #[test]
 fn the_breadcrumb_never_repeats_the_row_and_both_rows_have_icons() {

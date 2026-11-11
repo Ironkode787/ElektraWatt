@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.16 part 5 on Golden A: the Fluent messages (P5-2), waiver recording with W-1 (P5-3) and the built-pack subset
-//! of AC-21 against `tests/expected/findings_mvp.csv` (P5-4, D10).
+//! On Golden A: the Fluent messages, waiver recording with W-1 and the built-pack subset
+//! of AC-21 against `tests/expected/findings_mvp.csv`.
 //!
 //! W-1 lives in a fixture built from a **copy** of the checked-in Golden A (`golden/J-E-2416.ew`): the test opens the
 //! copy, records W-1 with `check.waive` from the GUI origin, saves (the store writes `waivers.jsonl`) and reopens it.
@@ -17,10 +17,9 @@ use ew_api::checks::{self, CheckMode, CheckReport, Finding, FindingState, PRE_DE
 use ew_api::{AnyCommand, CmdError, Origin, Recovery, Session, SessionOptions, Submit};
 use ew_store::StoreOptions;
 
-/// The built packs of AC-21's subset (doc 15 §4): WP-S1.16's EW-CORE, EW-IEC81346 (EW-RDS and EW-NUM), EW-TERM and
-/// EW-POT, WP-S1.21 part 3's EW-PLC (EF-02 joins the subset), part 4's EW-BUS (EF-03 and EF-16 join it, D12) and
-/// WP-S4.01 part 5's EW-LAYOUT (EF-05 joins it; LC-7, the orchestrator's ruling 3: "AC-21's subset admits EW-LAYOUT")
-/// and WP-S1.20's EW-FL (EF-13 and EF-14 join it, FT-589's last rows: AC-21 compares the whole file).
+/// The built packs of AC-21's subset (doc 15 §4): EW-CORE, EW-IEC81346 (EW-RDS and EW-NUM), EW-TERM and
+/// EW-POT, EW-PLC (EF-02 joins the subset), EW-BUS (EF-03 and EF-16 join it), EW-LAYOUT (EF-05 joins it:
+/// "AC-21's subset admits EW-LAYOUT") and EW-FL (EF-13 and EF-14 join it: AC-21 compares the whole file).
 const FOUR_PACKS: [&str; 8] = [
     "EW-CORE",
     "EW-IEC81346",
@@ -323,7 +322,7 @@ fn ac21_four_pack_subset_equals_findings_mvp_csv() {
             "{rule} on {subject} is gone: update KNOWN_EXCESS and {ft}"
         );
     }
-    // WP-S1.20 (FT-589's last rows): no row is pending, AC-21 compares the whole file
+    // No row is pending, AC-21 compares the whole file
     assert!(pending.is_empty(), "{pending:?}");
     // The rule system is quiet (EW-CORE-083, -084 run and report nothing).
     for system in ["EW-CORE-083", "EW-CORE-084"] {

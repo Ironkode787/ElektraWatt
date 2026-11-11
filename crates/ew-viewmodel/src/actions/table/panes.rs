@@ -455,7 +455,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     )),
-    // WP-S1.19 part 6 (§11): Draw ▸ Insert macro… with the place tools; a macro row dropped on the canvas; the macro
+    // Draw ▸ Insert macro… with the place tools; a macro row dropped on the canvas; the macro
     // card's value set; Edit ▸ Save as macro…; the Libraries navigator's Update…; a property row's Make variable.
     with_params(
         "key?:text",
@@ -543,7 +543,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_props_make_variable(p),
         ))),
     ),
-    // WP-S2.07 §8 (FR-PLC-020): a channel row dropped on the canvas binds the channel to the connection point under
+    // A channel row dropped on the canvas (FR-PLC-020) binds the channel to the connection point under
     // the drop point with `plc.bind_channel`.
     with_params(
         "channel:ref, x_mm:mm, y_mm:mm, group?:uint",

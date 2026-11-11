@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The message panel's own parts of the navigator pane (§7.3, §7.4; restyled by WP-S2.17 part 3,
+//! The message panel's own parts of the navigator pane (§7.3, §7.4; restyled to
 //! doc 16a §6.24): the header with the scheme and one count badge per severity, the quick-fix card, the detail block
 //! of the cursor's finding with its Fix button and rule page link, the footer, and the severity icon and word of the
 //! finding rows (FR-UI-025: an icon, a colour and the word).
@@ -201,7 +201,7 @@ pub(crate) fn count_words(severity: &str, n: usize) -> String {
     strings::format(key!("props-findings-count"), &[&n.to_string(), words])
 }
 
-/// One chip for `findings.len()` findings of one severity (window check W36; cycle 37: always one chip per
+/// One chip for `findings.len()` findings of one severity (always one chip per
 /// severity): the icon and "<n> <Word(s)>" ("1 Warning", "3 Warnings"), a `Label` node named by that and each
 /// "<rule>: <message>", the same lines as the tooltip.
 pub(crate) fn severity_count_chip(ui: &mut Ui, severity: &str, findings: &[(&str, &str)]) -> egui::Response {
@@ -305,7 +305,7 @@ pub(crate) fn header(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 ui.painter().galley(rect.min, galley, colour.color32());
                 response
             };
-            // WP-S3.09 D9 d (T11): a project with an import offers its migration report beside its scheme.
+            // A project with an import offers its migration report beside its scheme.
             if shell.messages_offers_migration() {
                 let migration = shell.messages_shows_migration();
                 let choices = [
@@ -582,7 +582,7 @@ mod tests {
         assert_eq!(finding_badge("error"), None);
     }
 
-    /// FT-1139 (item 8): the Pending chip's tooltip says what it counts, then lists its findings; another
+    /// The Pending chip's tooltip says what it counts, then lists its findings; another
     /// chip's lists them only.
     #[test]
     fn the_pending_tip_defines_then_lists() {

@@ -3,7 +3,7 @@
 
 //! The project-creating and project-recovering actions of the shell: New project, Open
 //! sample project and Tutorials, Import QElectroTech project, and discarding the journal of an
-//! earlier session (FT-313's first part).
+//! earlier session.
 //!
 //! All of them end in a `Session` from `ew-api` that the shell holds like an opened project: a new project is
 //! `Session::new_project` followed by `Session::create` into the directory the user chose, an import is
@@ -618,7 +618,7 @@ impl ShellModel {
                 &strings::format_count(crate::count_key!("import-card-infos"), infos),
             ],
         );
-        // ID-1389 (W51 finding B): each listed page in words ("Page 1"), never its bare folio.
+        // Each listed page in words ("Page 1"), never its bare folio.
         let pages = session
             .page_labels()
             .iter()
@@ -858,7 +858,7 @@ impl ShellModel {
             Err(e) => return self.reimport_refused(&name, &e),
         };
         let n = |c: ReimportClass| reimport.plan.count(c).to_string();
-        // ID-1427 (W52 F8): a file that writes nothing says so, as a table import does, and its Apply is disabled.
+        // A file that writes nothing says so, as a table import does, and its Apply is disabled.
         let nothing = reimport.preview.is_none();
         // The file has not changed since its last import (records the user edited are kept, and
         // counted).
@@ -942,7 +942,7 @@ impl ShellModel {
         if !matches!(self.dialog, Some(Dialog::Reimport { .. })) {
             return Outcome::refused(key!("reason-no-reimport"));
         }
-        // ID-1427 (W52 F8): a re-import that writes nothing has no Apply; the card stays.
+        // A re-import that writes nothing has no Apply; the card stays.
         if matches!(self.dialog, Some(Dialog::Reimport { nothing: true, .. })) {
             return Outcome::refused(key!("reason-table-import-nothing"));
         }

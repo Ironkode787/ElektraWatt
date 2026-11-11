@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.17 part 4 headless (§12.4): CP1 every dialog specification has exactly one Primary that is never destructive
-//! and a title that ends with "?" exactly when it asks; CP3 the wording lint of §8 item 8 over the registry labels,
-//! the dialog specifications and the UI strings; CP4 the palette lists no action it cannot run from the window and
-//! gives each result its breadcrumb; FT-510's outcome words.
+//! Headless: every dialog specification has exactly one Primary that is never destructive
+//! and a title that ends with "?" exactly when it asks; the wording lint of §8 item 8 over the registry labels,
+//! the dialog specifications and the UI strings; the palette lists no action it cannot run from the window and
+//! gives each result its breadcrumb; the outcome words.
 
 use crate::common;
 use ew_viewmodel::strings::Key;
@@ -284,7 +284,7 @@ const OPENS_INPUT: &[&str] = &[
     "messages.waive",
     // J opens the Join chooser.
     "place.join",
-    // WP-S1.19 part 6 (§11): Insert macro… shows the Macros navigator (or floats the macro under its cursor), Save as
+    // Insert macro… shows the Macros navigator (or floats the macro under its cursor), Save as
     // macro… opens its dialog, Update… opens the bulk card.
     "macros.insert",
     "macros.save",
@@ -385,7 +385,7 @@ fn cp4_the_palette_lists_only_what_the_window_can_run_with_breadcrumbs() {
             panic!("a model command is listed: {}", e.id);
         };
         let meta = ACTIONS.iter().find(|m| m.id == *id).unwrap();
-        // WP-S2.08 D5 (a) supersedes P3 for actions that need parameters: they are listed, with a parameter form
+        // Actions that need parameters are listed, with a parameter form
         // or disabled with their reason.
         if let ew_viewmodel::palette::FormPlan::Disabled(_) = ew_viewmodel::palette::form_plan(meta) {
             assert!(
@@ -404,7 +404,7 @@ fn cp4_the_palette_lists_only_what_the_window_can_run_with_breadcrumbs() {
     assert_eq!(place.breadcrumb, "Draw · Place");
     let about = entries.iter().find(|e| e.id == "help.about").expect("About");
     assert_eq!(about.breadcrumb, "Help");
-    // WP-S2.08 D5 (a): every action that needs parameters is listed now (with a form, or disabled with its reason);
+    // Every action that needs parameters is listed (with a form, or disabled with its reason);
     // the hidden and headless-only ones stay out.
     let needs: Vec<&str> = ACTIONS
         .iter()

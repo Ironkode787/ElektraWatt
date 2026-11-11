@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The layout geometry of WP-S4.01 D5 and the compatibility table of doc 12 §3.3.
+//! The layout geometry and the compatibility table of doc 12 §3.3.
 
 use ew_schema::{CarrierKind, MechData, MountKind};
 use ew_units::{Nm, Pose3, Pt2, Quat9};

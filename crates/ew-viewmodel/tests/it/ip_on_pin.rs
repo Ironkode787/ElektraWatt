@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The delivery play-test of cycle 41 (rv-vis-5): an interruption point dropped so that its connection
+//! An interruption point dropped so that its connection
 //! point lies on a pin connects to it (FR-CON-003), in one undo step, as a symbol placed the same way
 //! does; Alt places it free; a drop on another interruption point, and an external point's on a pin, are refused in
 //! words.
@@ -181,7 +181,7 @@ fn assert_connects(s: &ShellModel, before: &PageTables, pin: &TableCp, name: &st
     );
 }
 
-/// The play-test's drop (ruling 1: option (c)): the "0V" point's CP on the free pin -102F2:14 (EF-09). The HUD says it
+/// The play-test's drop: the "0V" point's CP on the free pin -102F2:14 (EF-09). The HUD says it
 /// before the click, the dwell previews the connection, the click adds the point and one route-less connection in one
 /// undo step, the toast says it, and EW-POT-009 no longer reports the pin.
 #[test]
@@ -397,7 +397,7 @@ fn a_point_on_a_junction_or_inside_a_wire_is_refused() {
     }
 }
 
-/// FT-946 (ID-1019's ruling 3 b): an external connection point dropped on a pin connects to it as any point
+/// An external connection point dropped on a pin connects to it as any point
 /// does: the HUD says so, the click commits `connection.draw_to_ip` with the point's `external`, in one undo step, and
 /// the saved point is external; on a free grid point it still places.
 #[test]
@@ -418,7 +418,7 @@ fn an_external_point_on_a_pin_connects_to_it() {
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one commit");
     let name = added(&before, &s).0[0].ip.as_ref().unwrap().name.clone();
     assert_connects(&s, &before, &pin, &name);
-    // The toast names the external point so; FT-1129 (item 6): both sentences end with a full stop.
+    // The toast names the external point so; both sentences end with a full stop.
     let cell = {
         let (reps, _) = added(&before, &s);
         let page = s.canvas().unwrap().page();
@@ -465,7 +465,7 @@ fn an_external_point_on_a_pin_connects_to_it() {
     assert!(conns.is_empty());
 }
 
-/// FT-822's refusal holds for a drop on a pin: a source name that already has a source, dropped on a pin with the
+/// The IP tool's refusal holds for a drop on a pin: a source name that already has a source, dropped on a pin with the
 /// direction source, is refused by EW-CORE-052 in its words; nothing committed, the ghost kept.
 #[test]
 fn a_second_source_on_a_pin_keeps_ft822s_refusal() {
@@ -664,7 +664,7 @@ fn a_pin_on_a_junction_wins() {
     assert_connects(&s, &before, &pin, "J1074");
 }
 
-/// A wire's bare end is no wire's inside: on FT-1049's page, where the scene draws a wire
+/// A wire's bare end is no wire's inside: on a page where the scene draws a wire
 /// whose coil lies off the sheet along the sheet's edge, the drawn end on the edge has no pin and no junction, and a
 /// point dropped there places free.
 #[test]

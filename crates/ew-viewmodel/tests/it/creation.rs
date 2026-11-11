@@ -204,7 +204,7 @@ fn page_new_takes_a_connection_grid_and_properties_changes_an_empty_pages() {
     shell.shutdown();
 }
 
-/// M25-p7 nit: on a page whose grid is neither choice (an imported 5 mm one) New page still takes the current page's
+/// On a page whose grid is neither choice (an imported 5 mm one) New page still takes the current page's
 /// grid, in both front ends; the dialog's Connection grid field is then empty.
 #[test]
 fn page_new_on_a_page_of_another_grid_takes_that_grid() {
@@ -659,7 +659,7 @@ fn the_window_asks_for_the_fields_and_keeps_a_refusal_in_the_dialog() {
     shell.shutdown();
 }
 
-/// A form names a missing field by its label; FT-1256: a common refusal says what to do next (doc 16a §8
+/// A form names a missing field by its label; a common refusal says what to do next (doc 16a §8
 /// item 5); in both languages.
 #[test]
 fn a_form_names_the_missing_field_and_the_next_step() {

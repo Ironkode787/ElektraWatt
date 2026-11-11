@@ -346,7 +346,7 @@ fn the_errors_read_as_words() {
     );
 }
 
-// WP-S3.07 part 3 (D11, PW-3): the fallback chain.
+// The fallback chain.
 
 type Calls = std::sync::Arc<std::sync::Mutex<Vec<PrintJob>>>;
 
@@ -543,9 +543,10 @@ fn the_system_chain_is_portal_lp_viewer_on_linux_windows_viewer_on_windows_and_t
     assert_eq!(Chain::viewer(dir.0.clone(), "J-E-2416").names(), ["viewer"]);
 }
 
-/// FT-1111's child: run by [`a_portal_without_a_session_bus_fails_and_leaves_no_file`] (its one argument, the
-/// temporary folder, follows a `--`), it prints through the real portal adapter and asserts
-/// [`PrintError::Portal`]; run by the harness (no `--`), it does nothing. The session bus is the parent's to set.
+/// The child process of the portal test: run by [`a_portal_without_a_session_bus_fails_and_leaves_no_file`]
+/// (its one argument, the temporary folder, follows a `--`), it prints through the real portal adapter and
+/// asserts [`PrintError::Portal`]; run by the harness (no `--`), it does nothing. The session bus is the
+/// parent's to set.
 #[cfg(target_os = "linux")]
 #[test]
 fn portal_child() {
@@ -558,7 +559,7 @@ fn portal_child() {
     assert!(matches!(result, Err(PrintError::Portal { .. })), "{result:?}");
 }
 
-/// FT-1111 (item 3): the real portal adapter with `DBUS_SESSION_BUS_ADDRESS` at a missing socket fails with
+/// The real portal adapter with `DBUS_SESSION_BUS_ADDRESS` at a missing socket fails with
 /// [`PrintError::Portal`] and leaves its temporary folder empty: the print file is removed on that way out too. The
 /// child runs in its own process, so the variable reaches no other test; it is bounded in time, since how soon a
 /// connect to a missing socket fails is not known.

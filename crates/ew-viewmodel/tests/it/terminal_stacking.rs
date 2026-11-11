@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! FT-622 (the orchestrator's ruling): a terminal placed on a page point where a terminal of the same strip already
+//! A terminal placed on a page point where a terminal of the same strip already
 //! sits moves to the next free point to the right, two grid steps along, as Golden A's 1X1 draws its three terminals of
 //! one cell 20 QET px apart; a terminal of another strip is not moved.
 

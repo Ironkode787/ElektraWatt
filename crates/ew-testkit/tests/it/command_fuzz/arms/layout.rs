@@ -326,7 +326,7 @@ pub(super) fn layout_carrier_delete(live: &Live, rng: &mut SplitMix64) -> Option
 /// `layout.place`: a plain device on a rail at `s ∈ [0, L]` turned 0° or 180°, or on a plate turned `k · 90°` (either:
 /// the device may be placed already with its part and function, its part may not fit the profile); refused: a device
 /// or carrier that does not exist, `s` beyond the rail's end, a pose off the rail's axis, a duct. After a commit every
-/// placement has its device. WP-S4.02 part 1 (appended): with `mode` free or push on a rail (either: no gap may fit, a
+/// placement has its device. With `mode` free or push on a rail (either: no gap may fit, a
 /// push may pass the rail end or move a locked placement); refused: swap (a device on no rail swaps with nothing), push
 /// or swap on a surface.
 pub(super) fn layout_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
@@ -414,7 +414,7 @@ pub(super) fn layout_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 
 /// `layout.move`: along its rail within `[0, L]`, or on its plate (accepted); onto a plate (either: the device may be
 /// on that plate already with its part and function); refused: a placement that does not exist, `s` beyond its rail's
-/// end. WP-S4.02 part 1 (appended): along its rail with `mode` free, push or swap (either: a refusal of D5, a locked
+/// end. Along its rail with `mode` free, push or swap (either: a refusal, a locked
 /// placement); push or swap on its plate (refused). After a commit every placement has its device.
 pub(super) fn layout_move(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let l = &live.layout;
@@ -558,8 +558,9 @@ pub(super) fn assembly_rail(live: &Live, root: &str) -> Option<(Value, i64)> {
         .and_then(|p| p.rail.clone())
 }
 
-/// An assembly member for the WP-S4.02 part-2 arms, with the rail a member of its assembly sits on: mostly an unplaced
-/// member whose assembly has a member on a rail (what `setup_unplace_member` leaves), else any member.
+/// An assembly member for the assembly arms, with the rail a member of its assembly sits on: mostly an
+/// unplaced member whose assembly has a member on a rail (what `setup_unplace_member` leaves), else any
+/// member.
 pub(super) fn assembly_member(live: &Live, rng: &mut SplitMix64) -> Option<(Value, Option<(Value, i64)>)> {
     let placed: std::collections::BTreeSet<String> = live
         .layout

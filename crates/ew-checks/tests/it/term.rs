@@ -522,7 +522,7 @@ fn term006_a_terminal_lying_on_a_wire_it_does_not_join() {
     );
 }
 
-/// C45-p1#3 and #4: each branch of EW-TERM-006, with the whole finding. A horizontal wire (the
+/// Each branch of EW-TERM-006, with the whole finding. A horizontal wire (the
 /// horizontal lines), a slanted route segment (tested one by one), an L-shaped route, a cable core (no wire number:
 /// "?"); every wire routed, as an unrouted one is not seen; silent when the wire
 /// ends at another function of the terminal's device, or at a junction standing on the terminal's CP that a connection

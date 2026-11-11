@@ -3,7 +3,7 @@
 
 //! The egui frame over the shell model (spec section 5.3): the command bar with the app menu,
 //! the banner, the start page, the first-run screen, the wizard, or the docked project view (the
-//! page list and the page canvas of WP-S2.02, with the tool HUD and the zoom control over it), the status bar, the
+//! page list and the page canvas, with the tool HUD and the zoom control over it), the status bar, the
 //! palette and the dialogs, and the routing of keyboard shortcuts.
 //!
 //! The frame paints from `ShellModel`'s getters and sends everything the user does to `ShellModel::dispatch`
@@ -48,7 +48,7 @@ pub(crate) enum Event {
     PaletteQuery(String),
     /// An arrow key in the palette.
     PaletteMove(isize),
-    /// A row of the palette's parameter form changed (WP-S2.08 D5 (a)): its index and its text.
+    /// A row of the palette's parameter form changed: its index and its text.
     PaletteField(usize, String),
     /// An answer to the unsaved-changes dialog.
     Confirm(ConfirmAnswer),
@@ -242,7 +242,7 @@ pub struct App {
     toasts_low: bool,
     toast_stack: Option<egui::Rect>,
     /// The running jobs by number and the frame time (egui's `input.time`, seconds) the window first saw each (the
-    /// elapsed time and the 200 ms rule, §6.4; FT-570: the frame clock, like the toasts').
+    /// elapsed time and the 200 ms rule, §6.4; the frame clock, like the toasts').
     job_started: std::collections::BTreeMap<u64, f64>,
     /// Whether the shell has the window's repaint request as its jobs' waker.
     waker_set: bool,
@@ -259,7 +259,7 @@ pub struct App {
     title: String,
     palette_was_open: bool,
     /// The picker's step in the previous frame: `None` closed, else the part whose symbol it asks for. Its filter
-    /// field takes the focus when it opens and (ID-1497 (5)) when it moves on to a part's symbols.
+    /// field takes the focus when it opens and when it moves on to a part's symbols.
     picker_was_open: Option<Option<usize>>,
     /// The Join chooser's type-ahead text.
     chooser_typing: crate::chooser::TypeAhead,
@@ -514,7 +514,7 @@ impl App {
         }
     }
 
-    /// The bytes of cached tiles of scenes not drawn in the last frame (tests: FT-356's share).
+    /// The bytes of cached tiles of scenes not drawn in the last frame (for tests).
     #[doc(hidden)]
     pub fn canvas_hidden_bytes(&self) -> u64 {
         self.canvas.hidden_bytes()
@@ -605,10 +605,10 @@ impl App {
     }
 
     /// A failure or incomplete Cut refusal becomes a banner when the shell shows none of its own; a banner this raised
-    /// before is replaced by the new failure (W46.4 F1: a second refusal kept the first's banner, which named the wrong
+    /// before is replaced by the new failure (a second refusal kept the first's banner, which named the wrong
     /// point). One fact in one place (doc 16a P3): a refusal the navigator's inline field shows under itself (an F2
-    /// tag's, FT-633; cycle 37, window check W37) or that the Properties pane shows under a drawn row (`action` a
-    /// `props.*` one whose dispatch set the row's error; W46.4 F1) is not made a banner as well.
+    /// tag's) or that the Properties pane shows under a drawn row (`action` a
+    /// `props.*` one whose dispatch set the row's error) is not made a banner as well.
     ///
     /// A failure the open palette form shows under its fields is not made a banner either, and the
     /// banner this raised for an action's failure clears when that action next succeeds.
@@ -740,8 +740,8 @@ impl App {
                         {
                             events.push(Event::Action("file.discard_journal", Value::Null));
                         }
-                        // W49.3-F2 (doc 16a §6.11): the held-saves banner's one Primary reopens the choice; a message over
-                        // it (a refused save) keeps it (W49.3b-N1).
+                        // Doc 16a §6.11: the held-saves banner's one Primary reopens the choice; a message over
+                        // it (a refused save) keeps it.
                         if self.shell.external_choice_waiting()
                             && crate::components::button(
                                 ui,
@@ -827,7 +827,7 @@ impl App {
         // The switch rule (section 7.2): the setting is effective at once, a failure moves the canvas to the
         // CPU with one banner, and the status bar shows the result.
         self.canvas.update_backend(&mut self.shell);
-        // WP-S2.17 part 3 (DK6): the window's geometry, written at the end of the window.
+        // The window's geometry, written at the end of the window.
         crate::window_memory::remember(&ctx, &mut self.shell, &mut self.window_zoom);
         if ctx.input(|i| i.viewport().close_requested()) && !self.shell.should_quit() {
             ctx.send_viewport_cmd(ViewportCommand::CancelClose);
@@ -926,7 +926,7 @@ impl App {
         let form_key = matches!(self.shell.dialog(), Some(ew_viewmodel::shell::Dialog::Form(_)))
             && ctx.input_mut(|i| i.consume_key(Modifiers::COMMAND, Key::Enter));
         self.route_keys(&ctx, &mut events);
-        // Cycle 38 (window check W38): while the picker is open it owns the keyboard. The panes paint before it and
+        // While the picker is open it owns the keyboard. The panes paint before it and
         // a focused one (the navigator's type-ahead, a Properties row, the canvas) would take the frame's keys and
         // text first: the key typed in the frame that opens the picker went to the focused navigator ("elay" for
         // "relay"). The keyboard events are held back from the panes and handed to the picker when it paints.
@@ -1009,7 +1009,7 @@ impl App {
         }
         self.area_splitters = 0;
         if project_view && self.shell.symbol_editor().is_none() {
-            // WP-S2.17 part 3 (doc 16a §5.4, §5.6): the navigator rail at the left, the palettes rail at the right.
+            // Doc 16a §5.4, §5.6: the navigator rail at the left, the palettes rail at the right.
             for (side, left) in [("rail-left", true), ("rail-right", false)] {
                 let panel = if left {
                     Panel::left(side)
@@ -1164,7 +1164,7 @@ impl App {
         if let Some(banner) = self.banner_overlay(&ctx, &tokens, bar_bottom, &mut events) {
             anchor.y = anchor.y.max(banner.bottom() + tokens.space_4);
         }
-        // FT-1211 (doc 16a §6.10): while a tool works where the toasts stand, they move to the canvas's bottom right.
+        // Doc 16a §6.10: while a tool works where the toasts stand, they move to the canvas's bottom right.
         self.toasts_low = crate::notifications::toasts_low(
             self.toasts_low,
             self.shell.tool().name() != "select",
@@ -1196,7 +1196,7 @@ impl App {
         // below the Insert symbol picker too, which stands in the foreground and keeps its field clear.
         let under_modal =
             dialog_open || self.shell.picker().is_some() || ctx.memory(|m| m.top_modal_layer().is_some());
-        // FT-1027 (doc 16a §4.12, §6.10): each toast fades in and out over `motion.base` on the frame clock.
+        // Doc 16a §4.12, §6.10: each toast fades in and out over `motion.base` on the frame clock.
         let frame_time = ctx.input(|i| i.time);
         let fade = f64::from(tokens.motion_base) / 1000.0;
         // Hovering a toast pauses it (doc 16a §6.10): the clock of a toast the pointer was on in the last frame stands
@@ -1230,7 +1230,7 @@ impl App {
             &self.toast_opacity,
             &mut events,
         );
-        // FT-1088 (doc 16a §6.10): a hover pauses a toast only once the pointer has moved onto it (a
+        // Doc 16a §6.10: a hover pauses a toast only once the pointer has moved onto it (a
         // pointer-moved event in this frame) and keeps it paused while the pointer stays; a toast that appears under a
         // pointer at rest is not paused, so it fades on time. A toast that holds the keyboard focus
         // is paused too.
@@ -1301,8 +1301,8 @@ impl App {
         // shortly after, when the page's new tiles have had time to arrive.
         let marks_before = (self.shell.revision(), self.shell.tool_overlay().len());
         for event in events {
-            // FT-1130 (item 5): `ui.dismiss` while the app menu is open closes the menu and nothing else, as
-            // Escape does; FT-1205: so does any menu, a context menu among them.
+            // `ui.dismiss` while the app menu is open closes the menu and nothing else, as
+            // Escape does; so does any menu, a context menu among them.
             if matches!(event, Event::Action("ui.dismiss", _)) && menu_takes_dismiss(&ctx) {
                 continue;
             }
@@ -1439,7 +1439,7 @@ impl App {
         // The focused context's chords first, then the global ones; while the navigator has the
         // focus its own keys (arrows, Home, End, Enter) stay with it.
         let focused = match self.shell.focus() {
-            // ID-1463 (doc 16a P8): the symbol editor's drawing is a canvas; its tools take the canvas's keys.
+            // Doc 16a P8: the symbol editor's drawing is a canvas; its tools take the canvas's keys.
             _ if self.shell.symbol_editor().is_some() => Context::Canvas,
             Some(Focus::Navigator(_)) => Context::Navigator,
             Some(Focus::Canvas(_)) => Context::Canvas,
@@ -1456,7 +1456,7 @@ impl App {
                     .iter()
                     .any(|(_, action)| *action == b.action)
         };
-        // WP-S2.17 part 2 (doc 16a §5.9): on the command bar Left and Right move between the tabs.
+        // Doc 16a §5.9: on the command bar Left and Right move between the tabs.
         if self.shell.focus() == Some(Focus::CommandBar) && !palette_open {
             let step = ctx.input_mut(|i| {
                 if i.consume_key(Modifiers::NONE, Key::ArrowLeft) {
@@ -1637,7 +1637,7 @@ impl App {
                 } else {
                     self.shell.shortcut_action(binding.action)
                 };
-                // WP-S2.08 D3 (PL-4): a shortcut invocation counts for the palette's recents.
+                // A shortcut invocation counts for the palette's recents.
                 self.shell.note_shortcut_use(action);
                 events.push(Event::Action(action, params));
                 return;

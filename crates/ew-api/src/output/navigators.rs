@@ -21,7 +21,7 @@
 //! overview, PLC from the PLC overview, Parts in use from the parts summary in component mode, Structure identifiers
 //! from the structure overview's node rows, and Interruption points and Report blocks with their own columns. A data
 //! row without records (a heading) is never a table row. Part 2 also adds [`Session::highlight_members`] (§7.3).
-//! WP-S2.07 part 3 (§8) rebuilds PLC as the PLC navigator and grid: configuration project → station → module →
+//! PLC is the PLC navigator and grid: configuration project → station → module →
 //! channel from `plc_rows(station)`, with the grid's own columns, typed editors and facets.
 
 use std::collections::BTreeMap;
@@ -446,7 +446,7 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
     (NavKind::Strips, "state", "device", "state"),
     (NavKind::Cables, "colour", "conductor", "colour"),
     (NavKind::Cables, "cross_section", "conductor", "csa"),
-    // WP-S2.07 part 2 (§7, FR-CBL-016): a core's name (an identifier of its cable), shield and pair; a cable's length
+    // FR-CBL-016: a core's name (an identifier of its cable), shield and pair; a cable's length
     // through its typed editor (FT-429).
     (NavKind::Cables, "core", "conductor", "core"),
     (NavKind::Cables, "shield", "conductor", "shield"),
@@ -461,7 +461,7 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
     (NavKind::Potentials, "class", "potential_def", "circuit_class"),
     (NavKind::Potentials, "colour", "potential_def", "props.colour"),
     (NavKind::Potentials, "cross_section", "potential_def", "props.csa"),
-    // WP-S2.07 §8 (FR-PLC-021): a channel's members through `fields.set`; Address and Target through
+    // FR-PLC-021: a channel's members through `fields.set`; Address and Target through
     // their typed editors (`Session::parse_field_input`), Slot the module's through its typed editor.
     (NavKind::Plc, "slot", "device", "plc_module.slot"),
     (NavKind::Plc, "designation", "channel", "designation"),
@@ -569,7 +569,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             }
             c
         }
-        // WP-S2.07 part 2 (§7): the cable overview's columns (a core row's From and To are the far ends of its
+        // The cable overview's columns (a core row's From and To are the far ends of its
         // wires, as the cable diagram prints them), then a core's derived potential, its shield flag and pair.
         NavKind::Cables => {
             let mut c = kind_columns("cable_overview_diagrams");
@@ -974,7 +974,7 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
         }
         return Some(out);
     }
-    // Cycle 37 (window check W37): a last entry that only repeats the CP designations run together (a coil's
+    // A last entry that only repeats the CP designations run together (a coil's
     // `A1A2`) is dropped, and the entry before it leads, capitalised: `Coil A1-A2`, not `A1A2 coil A1-A2`.
     let joined: String = cps.concat();
     let mut out = if !joined.is_empty() && last.eq_ignore_ascii_case(&joined) {
@@ -1007,7 +1007,7 @@ pub(crate) fn kind_text(def: &FnDef, cps: &[String]) -> Option<String> {
 /// The display words of FnDef categories by their last two entries (FT-723), where the generic rule of [`kind_text`]
 /// reads poorly ("Generic decoration", "Point ip 1"): the entry before the last, the last entry, the words in sentence
 /// case, and whether the CP designations follow. Display text only: the FnDef keeps its category. English only for
-/// now: this table is what WP-S2.08 part 3 (the shell's Fluent tables) localises (FT-752).
+/// now: this table is what the shell's Fluent tables localise (FT-752).
 const KIND_WORDS: &[(&str, &str, &str, bool)] = &[
     ("Decoration", "Generic", "Decoration", false),
     ("Overview", "Generic", "Overview", false),
@@ -1047,9 +1047,9 @@ fn kind_words(before: &str, last: &str) -> Option<(&'static str, bool)> {
         .map(|(_, _, words, with_cps)| (*words, *with_cps))
 }
 
-/// A function's kind in the navigators' own words, without its CP designations ("Interruption point"; FT-1127,
-/// ID-1229 item 5): the [`KIND_WORDS`] entry of its FnDef's category; `None` for a category the table does not name
-/// or a missing FnDef copy.
+/// A function's kind in the navigators' own words, without its CP designations ("Interruption point"): the
+/// [`KIND_WORDS`] entry of its FnDef's category; `None` for a category the table does not name or a missing
+/// FnDef copy.
 pub(crate) fn function_kind_words(q: &Q, f: &Function) -> Option<&'static str> {
     let fndefs = q.fndefs();
     let def = fndefs
@@ -1329,7 +1329,7 @@ fn device_node(
         pages.sort();
         pages.dedup();
         facets.extend(pages.into_iter().map(|p| ("page".to_owned(), p)));
-        // Cycle 37 (window check W37): the function's kind in words (`Coil A1-A2`, `NO contact 13-14`), its FnDef key
+        // The function's kind in words (`Coil A1-A2`, `NO contact 13-14`), its FnDef key
         // only for a FnDef without a category (doc 16a P2); the order stays the FnDef key's.
         let label = q
             .functions()
@@ -1984,7 +1984,7 @@ fn cables_table(q: &Q, b: &mut Builder) {
     }
 }
 
-/// The PLC grid's columns (FR-PLC-021): the members of PBF §2.8 that WP-S1.21's model has. Rack, data
+/// The PLC grid's columns (FR-PLC-021): the members of PBF §2.8 that the model has. Rack, data
 /// type, safety and signal range have no member yet and are left out. The address is the key column and the
 /// target, symbol and function text follow it, so that a grid at the default rail width shows what a channel is
 /// and what it drives; station, slot and comment come last.
@@ -3017,8 +3017,7 @@ fn primary_drawables<K: Ord>(candidates: impl Iterator<Item = (K, String, Vec<Dr
 
 /// Whether a finding's `message` already names its `subject`, so that the Messages row shows the subject once: the
 /// message leads with it (then a colon, a space or nothing), or names it after a space, followed by the end, a space,
-/// a colon, a comma or a full stop ("Wire -G1:+ → -S1:1 has no route", the layout rules; ID-1509 (9), the window
-/// check's F3).
+/// a colon, a comma or a full stop ("Wire -G1:+ → -S1:1 has no route", the layout rules).
 pub fn names_subject(subject: &str, message: &str) -> bool {
     let ends = |rest: &str| rest.is_empty() || rest.starts_with([':', ' ', ',', '.']);
     message
@@ -3118,7 +3117,7 @@ fn finding_node(
         facets.push(("page".to_owned(), folio.to_lowercase()));
     }
     facets.push(("state".to_owned(), state.to_owned()));
-    // Cycle 39 (window check): a rule whose message already leads with its subject (EW-BUS-001, EW-CORE-033: "X: X has
+    // A rule whose message already leads with its subject (EW-BUS-001, EW-CORE-033: "X: X has
     // no ...") shows the subject once; the findings themselves, the CSV and the reports are unchanged.
     let label = if f.subject.is_empty() || names_subject(&f.subject, &f.message) {
         f.message.clone()
@@ -3160,7 +3159,7 @@ fn finding_node(
 mod tests {
     use super::*;
 
-    /// Cycle 39 (window check), ID-1509 (9) and the window check's F3: a message that leads with its subject, or
+    /// A message that leads with its subject, or
     /// names it after a word (the layout rules' "Wire <wire> has no route", in either language), is shown without
     /// the subject a second time; another message, a longer tag that only starts like the subject and a subject
     /// glued to a word keep the prefix.

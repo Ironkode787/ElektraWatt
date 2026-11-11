@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The strip editor of WP-S2.07 part 1 (§6) on copies of Golden A, headless: the `Order` sort, the `pos` cells and the
-//! accessory rows (SE7), the Group column and the Properties Group row (SE8), insert, delete and move (SE9), and the
-//! describe lines (SE14).
+//! The strip editor on copies of Golden A, headless: the `Order` sort, the `pos` cells and the
+//! accessory rows, the Group column and the Properties Group row, insert, delete and move, and the
+//! describe lines.
 
 use crate::common;
 use ew_viewmodel::key;
@@ -425,7 +425,7 @@ fn key(shell: &mut ShellModel, action: &'static str) -> &'static str {
     a
 }
 
-/// The WP-S2.07 part 1 ruling: Alt+Up and Alt+Down (`pages.move_up`, `pages.move_down`) run `strip.move` while the
+/// Alt+Up and Alt+Down (`pages.move_up`, `pages.move_down`) run `strip.move` while the
 /// Terminal strips navigator has the focus, one undo step each; elsewhere they keep `pages.move_*`.
 #[test]
 fn alt_arrows_move_strip_rows_while_the_strips_navigator_has_the_focus() {

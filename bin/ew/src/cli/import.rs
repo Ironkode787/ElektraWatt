@@ -6,7 +6,7 @@
 use super::*;
 
 /// `ew import table`'s line for a refused file: `error: ` and the refusal with its first letter in lower case, as every
-/// `ew` error line (S2 of WP-S6.04 for a read that panicked; ruling of C51-p1#2).
+/// `ew` error line (for a read that panicked).
 pub(super) fn import_table_error_line(e: &ew_api::output::TableImportError) -> String {
     let text = e.to_string();
     let mut chars = text.chars();

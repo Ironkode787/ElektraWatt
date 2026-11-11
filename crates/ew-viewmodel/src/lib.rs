@@ -2,13 +2,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Toolkit-agnostic panel models: navigator trees, table rows with edit-to-command mapping, property-grid
-//! rows with provenance and message lists, each with a revision stamp; and, since WP-S2.01 part 1, the model of
+//! rows with provenance and message lists, each with a revision stamp; and the model of
 //! the application shell.
 //!
 //! The shell ([`shell::ShellModel`]) holds all application state and has one mutating entry point,
 //! [`shell::ShellModel::dispatch`], over the action registry of [`actions`]. It reaches the project only through
 //! `ew_api::Session`. The egui frame (`ew-ui`) and the headless runner ([`script`]) drive the same `dispatch`.
-//! Since WP-S2.02 part 1 the shell holds the canvas model ([`canvas`]): zoom, pan, the pointer and the hover pick
+//! The shell holds the canvas model ([`canvas`]): zoom, pan, the pointer and the hover pick
 //! of the page on show. There is no egui, wgpu or winit here.
 
 #![forbid(unsafe_code)]
@@ -41,7 +41,7 @@ pub mod describe;
 pub mod dialogs;
 pub mod find;
 pub mod first_run;
-// WP-S2.08 part 1 (D5 (b)): the glossary file, the palette's aliases.
+// The glossary file, the palette's aliases.
 pub mod glossary;
 pub mod help;
 pub mod highlight;

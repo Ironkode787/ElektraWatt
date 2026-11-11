@@ -9,7 +9,7 @@
 //! `enabled` predicate that names the reason key of a refusal. [`menu_model`] builds the app menu from the
 //! registry, so the egui frame and the `ui.describe` text cannot disagree.
 //!
-//! WP-S2.17 part 2 (D3, doc 16a §9.2): the menus are the app menu's submenus, File, Edit, then one per command-bar
+//! The menus (doc 16a §9.2) are the app menu's submenus, File, Edit, then one per command-bar
 //! tab (Project, Page, Draw, Check, Output, View), then Window and Help; Insert became Draw and Tools dissolved. An
 //! action with a [`Placement`] is a command of the bar ([`crate::command_bar`]) and sits in its tab's menu under its
 //! group; a group of more than three commands is a submenu, a smaller one a separated block.
@@ -697,7 +697,7 @@ fn one_free_text(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// An editable page whose selection is two or more terminals of one strip not all bridged yet (Edit ▸ Bridge
-/// terminals; FT-411, §10.7).
+/// terminals).
 fn two_strip_terminals(m: &ShellModel) -> Result<(), Key<'static>> {
     // A writable project, not an editable page (the selection may be records).
     writable(m)?;
@@ -1029,7 +1029,7 @@ fn find_writable(m: &ShellModel) -> Result<(), Key<'static>> {
 ///  is a window of its own and needs neither.
 fn card_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     project_open(m)?;
-    // WP-S2.09 part 3 (§8.7): the Preview tab shows every card; WP-S2.06 part 3: a table card is in its navigator.
+    // The Preview tab shows every card: a table card is in its navigator.
     if m.properties_shown()
         || m.find_shown()
         || m.import_card_open()
@@ -1114,7 +1114,7 @@ fn editable_selection(m: &ShellModel) -> Result<(), Key<'static>> {
         };
     }
     editable_page(m)?;
-    // C53-fx#1 (ID-1497 (8)): a selection Delete has nothing of on this page (a page chosen in the page list) is not
+    // A selection Delete has nothing of on this page (a page chosen in the page list) is not
     // offered here.
     if m.selection().is_empty() || !m.delete_has_target() {
         Err(key!("reason-nothing-selected"))
@@ -1123,7 +1123,7 @@ fn editable_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// Save as macro… (FT-754 (b)): a page on show with something selected (a window macro) or pages
+/// Save as macro…: a page on show with something selected (a window macro) or pages
 /// marked in the Pages navigator (a page macro).
 fn macro_scope_shown(m: &ShellModel) -> Result<(), Key<'static>> {
     page_shown(m)?;
@@ -1258,7 +1258,7 @@ fn valid_type(ty: &str) -> bool {
     false
 }
 
-/// Parses a parameter signature by the grammar of WP-S6.13 §5.5.2:
+/// Parses a parameter signature by this grammar:
 ///
 /// ```text
 /// signature := "" | param (", " param)*
@@ -1465,7 +1465,6 @@ pub(crate) fn switch_on(model: &ShellModel, id: &str) -> Option<bool> {
         "jobs.show" => model.jobs_shown(),
         "notifications.show" => model.notifications().popup_open(),
         "messages.show" => model.navigator_open(crate::navigators::NavKind::Messages),
-        // WP-S3.09 D9 d.
         "messages.migration" => model.messages_shows_migration(),
         "history.show" => model.history_shown(),
         "preview.show" => model.preview_shown(),
@@ -1616,7 +1615,7 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 item.label = strings::lookup(&format!("tutorial-{name}"))
                     .unwrap_or(name)
                     .to_owned();
-                // ID-1427 (W52 F14, doc 16a §8.3): an entry that asks for a folder carries "…" (`act_tutorials`).
+                // Doc 16a §8.3: an entry that asks for a folder carries "…" (`act_tutorials`).
                 if matches!(*name, "first-page" | "reports-and-pdf") {
                     item.label.push('…');
                 }
@@ -1963,8 +1962,7 @@ mod tests {
 
     #[test]
     fn shortcuts_are_unique_and_never_ctrl_alt_letter() {
-        // Unique within a shell context (WP-S2.01 A1; a context's binding may shadow a global one, WP-S2.03
-        // §6.6): Shift+Enter finishes a tool in the canvas and opens the multilingual popup in the property grid.
+        // Unique within a shell context (a context's binding may shadow a global one): Shift+Enter finishes a tool in the canvas and opens the multilingual popup in the property grid.
         let mut seen: Vec<(Context, &str)> = Vec::new();
         for a in ACTIONS {
             for s in a.shortcut {

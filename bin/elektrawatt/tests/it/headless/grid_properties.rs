@@ -245,7 +245,7 @@ pub(crate) fn pg10_the_pilot_script_is_deterministic_and_replays_case(twice: boo
     let steps = all_done(&out_a);
     // No UUID in a transcript line. The second run names a record the transcript has printed by its alias: a
     // `select.set` `ids` step whose record an earlier line printed gets `@n` instead of the UUID; the transcripts stay
-    // byte-identical and its `--record` log holds the same UUIDs (ID-630 (c)).
+    // byte-identical and its `--record` log holds the same UUIDs.
     let text_a = String::from_utf8_lossy(&out_a.stdout).into_owned();
     crate::support::assert_no_uuid(&text_a);
     if twice {

@@ -8,8 +8,8 @@
 //!
 //! Only the shell (`ShellModel`'s `props.*` actions) calls the `Session`: once per sheet key for the sheet
 //! (`Session::property_sheet`), once per edit for its preview (`Session::preview_with`), then the commit. The card is
-//! the stand-in of WP-S2.09's preview tab (D5); the toast of a commit with several targets is a notification of the
-//! shell since WP-S2.09 part 1 (`crate::notifications`).
+//! the stand-in of the Preview tab; the toast of a commit with several targets is a notification of the
+//! shell (`crate::notifications`).
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -239,8 +239,7 @@ pub enum CardOrigin {
         /// The clipboard text of the pending paste.
         text: String,
     },
-    /// A table round trip's file read against a navigator's table (`navigator.import_table`, D14, ruling 6 of
-    /// ID-1224): the card in the Preview tab with the counts and the per-cell list; Apply commits the import's one
+    /// A table round trip's file read against a navigator's table (`navigator.import_table`): the card in the Preview tab with the counts and the per-cell list; Apply commits the import's one
     /// `fields.set_many`.
     TableImport(Box<TableImportCard>),
     /// Route page and Route selection (`route.page`, `route.selection`): the card in the Preview tab with the plan's
@@ -254,7 +253,7 @@ pub enum CardOrigin {
         page: String,
         /// How many wires the plan routes.
         routed: usize,
-        /// Whether Route selection opened it (else Route page): the card's title follows the button (ID-1509 (9)).
+        /// Whether Route selection opened it (else Route page): the card's title follows the button.
         selection: bool,
     },
 }
@@ -379,7 +378,7 @@ impl PasteChoice {
     }
 
     /// The card's text of one conflict (`FX-MCB-1PN (Fixture): this project 1.1.0, pasted 1.0.0, a data change`): the
-    /// change size in words (FIX39b-1), the describe line keeps the class word.
+    /// change size in words, the describe line keeps the class word.
     pub fn conflict_text(c: &PasteConflict) -> String {
         let size = match c.class {
             "major" => strings::text(key!("paste-class-major")),
@@ -590,8 +589,7 @@ pub struct PropertiesState {
     pub(crate) tag_proposal: Option<TagProposal>,
 }
 
-/// The proposal that comes with a tag-letter edit refused for a colliding counter (FR-NUM-029, ID-53; cycle 33 G-PP
-/// row 6): the same letter with the counter left to online numbering, which gives the next free one. Accepting it is
+/// The proposal that comes with a tag-letter edit refused for a colliding counter (FR-NUM-029): the same letter with the counter left to online numbering, which gives the next free one. Accepting it is
 /// one `fields.set_many` (the counter cleared, then the letter set), so the tag is not frozen.
 #[derive(Clone, PartialEq, Debug)]
 pub struct TagProposal {
@@ -711,7 +709,7 @@ pub fn categories(section: &SheetSection) -> Vec<(Category, Vec<&PropRow>)> {
     out
 }
 
-// WP-S2.17 part 3 (D11; doc 16a §6.8): Main and Advanced.
+// Main and Advanced (doc 16a §6.8).
 /// A group of rows in the grid: **Main** (the kind's primary fields, first and open) or one of the sheet's categories.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowGroup {
@@ -786,8 +784,7 @@ const PRIMARY: &[(&str, &[&str])] = &[
 
 /// The internal members shown only under Advanced, by the row's path: the record version, the ID, the source reference
 /// with its key and lineage, the tag counter, the form's UUID and the members of a page's connection
-/// grid, a fraction of nanometres (`num`, `den`) with no meaning to the user, whose row itself is a choice (ID-1477
-/// (1)), and a connection's route, drawn on the canvas.
+/// grid, a fraction of nanometres (`num`, `den`) with no meaning to the user, whose row itself is a choice, and a connection's route, drawn on the canvas.
 const ADVANCED: &[&str] = &[
     "$v",
     "id",
@@ -926,7 +923,7 @@ pub fn filtered<'r>(section: &SheetSection, rows: Vec<&'r PropRow>, filter: &str
         .collect()
 }
 
-/// FT-541 (doc 16a §6.8): the filter field "Filter properties" appears only when the open categories hold more than
+/// Doc 16a §6.8: the filter field "Filter properties" appears only when the open categories hold more than
 /// this many rows.
 pub const FILTER_ROWS: usize = 12;
 
@@ -1055,7 +1052,7 @@ pub fn member_path(route: &EditRoute) -> Option<String> {
     match route {
         EditRoute::FieldsSet { path, .. } => Some(path.clone()),
         EditRoute::SettingsMember { member } => Some(format!("settings.{member}")),
-        // WP-S4.02 part 4 (ruling 3): a layout row has no settable member; `Session::layout_edit` compiles its text.
+        // A layout row has no settable member; `Session::layout_edit` compiles its text.
         EditRoute::Command { .. } | EditRoute::ReadOnly(_) => None,
     }
 }
@@ -1064,8 +1061,8 @@ pub fn member_path(route: &EditRoute) -> Option<String> {
 /// re-exported under its old path.
 pub use ew_api::output::table_edit::compose;
 
-/// The kind's plural for the card and the toast (`devices`), in the UI language inside a sentence (FT-1479:
-/// `apparaten`).
+/// The kind's plural for the card and the toast (`devices`), in the UI language inside a sentence
+/// (`apparaten`).
 pub fn kind_plural(kind: &str, n: usize) -> String {
     if n == 1 {
         return strings::in_sentence(&strings::kind_heading(kind));
@@ -1074,7 +1071,7 @@ pub fn kind_plural(kind: &str, n: usize) -> String {
 }
 
 /// The header of a sheet's section of `n` records of `kind`: the kind in sentence case, singular for one,
-/// with the count ("Device (1)", "Devices (2)"), in the UI language ("Apparaat (1)"; FT-1411: "Apparaten
+/// with the count ("Device (1)", "Devices (2)"), in the UI language ("Apparaat (1)", "Apparaten
 /// (2)").
 pub fn section_header(kind: &str, n: usize) -> String {
     if n == 1 {
@@ -1122,7 +1119,7 @@ pub fn grid_in_words(sheet: &mut PropertySheet) {
             *text = crate::status::grid_words(num, den);
         }
     }
-    // ID-1389 (W51 finding I): the grid factor (`num`, nanometres) as a length in millimetres, never the count.
+    // The grid factor (`num`, nanometres) as a length in millimetres, never the count.
     for row in sheet
         .sections
         .iter_mut()
@@ -1437,7 +1434,7 @@ fn json_words(json: &Value) -> String {
 /// in the UI language ("Project", not `project`), a fluid line by its line kind ("Working line", "Werkleiding"), its
 /// ID row likewise, and a selection of several records by its count and kind ("2 apparaten").
 pub fn header_in_words(sheet: &mut PropertySheet) {
-    // ID-1427 (W52 F4): a selection of several records is titled by its first section's count and kind in the UI
+    // A selection of several records is titled by its first section's count and kind in the UI
     // language ("2 apparaten"), as the card lines are (FT52i), or by its count when it has no section.
     let picked: usize = sheet.header.kinds.iter().map(|(_, n)| n).sum();
     if picked > 1 {
@@ -1493,8 +1490,7 @@ pub fn value_text(row: &PropRow) -> String {
     }
 }
 
-/// One entry of a row's actions menu: a row action of the grid, the shell's Make variable (
-/// FT-754 (h)), which remembers the row's field as a variable of the next Save as macro…, or a Parts row's Choose
+/// One entry of a row's actions menu: a row action of the grid, the shell's Make variable, which remembers the row's field as a variable of the next Save as macro…, or a Parts row's Choose
 /// part…, Add part… and Edit part….
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum RowMenuItem {

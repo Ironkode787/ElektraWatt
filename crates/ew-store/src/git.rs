@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The git integration through the `git` executable: the release's commit of the project directory and its annotated
-//! tag `ew/rev/<label>` (doc 05 §14.1 steps 3 and 5), and the collaboration's git (doc 05 §9, §11;
-//! WP-S1.17 D20, D22, D26, D28): a git operation in progress, the commit checked out, the blobs of a revision, the merge
-//! driver's configuration, the managed `.gitattributes` and `.gitignore` blocks and the `post-merge` hook.
+//! tag `ew/rev/<label>` (doc 05 §14.1 steps 3 and 5), and the collaboration's git (doc 05 §9, §11): a git
+//! operation in progress, the commit checked out, the blobs of a revision, the merge driver's configuration,
+//! the managed `.gitattributes` and `.gitignore` blocks and the `post-merge` hook.
 //!
 //! **A process boundary.** Every call spawns `git -C <dir> …` with an argument vector (never a shell), standard error
 //! closed, the repository-selecting environment variables removed (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE`, …, so
@@ -565,7 +565,7 @@ pub enum ConfigScope {
 
 impl GitExe {
     /// Whether `key` is set in git's configuration as seen from `dir` (`git config [--global] --get <key>`), by its exit
-    /// status only: 0 set, 1 not set (WP-S1.17 part 7's driver status, D28).
+    /// status only: 0 set, 1 not set.
     ///
     /// # Errors
     ///
@@ -831,8 +831,8 @@ fn replace(vfs: &dyn Vfs, path: &Path, bytes: &[u8]) -> io::Result<()> {
 /// The longest hooks path [`GitExe::hooks_dir`] takes.
 pub const HOOKS_PATH_MAX: usize = 4096;
 
-/// The command by which git runs `ew` (D28), quoted for git's shell with `/` separators: the AppImage `appimage` with
-/// `ew` as its first argument when the executable `exe` runs from it (ID-1187's Linux package, whose `AppRun`
+/// The command by which git runs `ew`, quoted for git's shell with `/` separators: the AppImage `appimage`
+/// with `ew` as its first argument when the executable `exe` runs from it (the Linux package, whose `AppRun`
 /// dispatches `ew`: the executable lies in the AppImage's mount, which goes when it exits), else `exe`. The executable
 /// runs from the AppImage only when it lies under `appdir`, the mount the same runtime names (`$APPIMAGE` and `$APPDIR`):
 /// a program started from another AppImage (an editor's terminal) inherits both, and its `ew` is not under that mount.
@@ -1072,7 +1072,7 @@ mod tests {
         assert_eq!(vfs.read(&hook).unwrap(), b"#!/bin/sh\necho mine\n");
     }
 
-    /// C49-p9#5, #9: git's shell reads no `$`, backtick, `"` or `'` of the path, and an AppImage is named by `$APPIMAGE`
+    /// Git's shell reads no `$`, backtick, `"` or `'` of the path, and an AppImage is named by `$APPIMAGE`
     /// with `ew` as its first argument, never by its mount.
     #[test]
     fn the_ew_command_is_quoted_for_the_shell_and_names_the_appimage() {

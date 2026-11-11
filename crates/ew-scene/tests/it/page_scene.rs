@@ -677,7 +677,7 @@ fn wires_use_the_1_px_pen_on_the_qet_grid_and_the_house_pen_elsewhere() {
     assert!(stroke_widths(&wires.list).iter().all(|&w| w == 260_000));
 }
 
-/// WP-S1.20 D17 (FL-3): a fluid pilot or drain line is dashed 4:2 in the wire pen; a working, exhaust or flexible
+/// A fluid pilot or drain line is dashed 4:2 in the wire pen; a working, exhaust or flexible
 /// line is solid, as a wire is.
 #[test]
 fn fluid_pilot_and_drain_lines_are_dashed_and_working_lines_solid() {
@@ -718,7 +718,7 @@ fn fluid_pilot_and_drain_lines_are_dashed_and_working_lines_solid() {
     assert_eq!(dash_of(2), dashed);
 }
 
-/// WP-S2.19 D3 (RC2): a connection without a route is unrouted: the dashed straight line between its ends, in the
+/// A connection without a route is unrouted: the dashed straight line between its ends, in the
 /// thinnest pen, whatever its kind.
 #[test]
 fn an_unrouted_connection_is_the_dashed_straight_line_in_the_thinnest_pen() {
@@ -956,7 +956,7 @@ fn x_extent(list: &ew_dl::DisplayList) -> (i64, i64) {
     (*xs.iter().min().unwrap(), *xs.iter().max().unwrap())
 }
 
-/// WP-S2.04 part 3 (FR-DEV-039): a black box whose stored outline is not the symbol's rectangle draws that outline
+/// FR-DEV-039: a black box whose stored outline is not the symbol's rectangle draws that outline
 /// under a geometry key of its own; a box equal to the rectangle keeps the symbol's instance; two equal widened boxes
 /// share one geometry and two different ones do not.
 #[test]

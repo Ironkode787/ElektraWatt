@@ -4,7 +4,7 @@
 //! The UI fonts (spec section 5.3): egui's built-in fonts are off (`default_fonts` is not a
 //! feature of this build), and the bundled Noto Sans of `ew-text` becomes the proportional and monospace family.
 //! The face bytes come from `ew_api::output::font_bytes()`, the same set the PDF export embeds, so the screen and
-//! the paper use one font file (NFR-REL-11: no system fonts). WP-S2.17 part 1 adds Noto Sans SemiBold as the family
+//! the paper use one font file (NFR-REL-11: no system fonts). Noto Sans SemiBold is the family
 //! `semibold` for the chrome's emphasis (D8); it is not an export face.
 
 use std::sync::Arc;
@@ -85,8 +85,8 @@ pub fn definitions() -> FontDefinitions {
     defs
 }
 
-/// Whether the UI's own text faces, Noto Sans Regular and SemiBold, both carry `c` in their character maps (FT-1507:
-/// the non-breaking hyphen of a toast's tags).
+/// Whether the UI's own text faces, Noto Sans Regular and SemiBold, both carry `c` in their character maps (the
+/// non-breaking hyphen of a toast's tags).
 pub fn carries(c: char) -> bool {
     let definitions = definitions();
     [REGULAR, SEMIBOLD].iter().all(|name| {
@@ -160,7 +160,7 @@ mod tests {
         }
     }
 
-    /// FT-1095 (play-test rv-vis-7, t0044): a part cell showed a replacement character. Every character of
+    /// A part cell showed a replacement character. Every character of
     /// every text of the shipped content (`content/`: the starter library's symbols and function definitions, the
     /// starter parts and their manufacturer, the frames and the profiles) has a glyph in the bundled faces the UI
     /// draws with (Noto Sans, then Noto Sans Math, [`definitions`]), and none is U+FFFD, the character a lossy decoding

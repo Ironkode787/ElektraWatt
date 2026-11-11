@@ -850,7 +850,7 @@ struct TerminalsCli {
 
 /// `ew export report`.
 #[derive(Args, Debug)]
-// The group allows both so that the lowering refuses the pair in WP-S3.06 D4's words.
+// The group allows both so that the lowering refuses the pair in its own words.
 #[command(group(ArgGroup::new("rows").args(["block", "kind"]).required(true).multiple(true)))]
 struct ReportCli {
     /// The project directory.

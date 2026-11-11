@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.17 part 7 in the window's model (XW-1 to XW-4, XW-6, XW-7; D24, D25): the external
+//! The window's model of the external
 //! change's toast and collision dialog, the read-only reload, the cloud banner, Export and Open .ewz, the upgrade
 //! dialog and the merge driver's status. The external change is a colleague's save made by a session on a copy of the
 //! project, its changed files then copied into the live folder and `manifest.json` last. Golden A is only copied.
@@ -152,7 +152,7 @@ fn the_external_change_toast_offers_undo_and_show_changes() {
     }
 }
 
-/// XW-2: the collision dialog lists W20's colour with base, mine and theirs; "Decide later" leaves the banner and a
+/// The collision dialog lists W20's colour with base, mine and theirs; "Decide later" leaves the banner and a
 /// held save; "All theirs" applies in one step.
 #[test]
 fn the_collision_dialog_holds_saves_until_a_side_is_chosen() {
@@ -423,7 +423,7 @@ fn export_and_open_ewz_and_the_upgrade_dialog() {
     assert!(s.dialog().is_none(), "asked once");
 }
 
-/// FT-1154 (RL-2): with a released list that lacks this build's format, every save that writes marks the
+/// RL-2: with a released list that lacks this build's format, every save that writes marks the
 /// manifest `unstable` and shows S1 as its toast; with the format released, neither.
 #[test]
 fn a_save_in_an_unreleased_format_says_so_every_time() {
@@ -451,7 +451,7 @@ fn a_save_in_an_unreleased_format_says_so_every_time() {
     }
 }
 
-/// FT-1489 (RL-2): with a released list that lacks this build's format, Save As, a new project and the
+/// RL-2: with a released list that lacks this build's format, Save As, a new project and the
 /// wizard's basic project each write a manifest marked `unstable` and show S1 as their toast; with the format released,
 /// none does.
 #[test]
@@ -707,7 +707,7 @@ fn a_second_change_while_held_rebuilds_the_dialog() {
     );
 }
 
-/// W49.3-F3 to F5: the dialog's headings in Dutch, capitalised, with the kind and the field from the terminology; the
+/// The dialog's headings in Dutch, capitalised, with the kind and the field from the terminology; the
 /// intro counts a whole-record row as a record; All mine says the user's version was kept.
 #[test]
 fn the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
@@ -750,7 +750,7 @@ fn the_dialog_reads_in_words_and_all_mine_says_it_kept_yours() {
     );
 }
 
-/// W49.3b-N3, N1, C49-p10b#6: a mixed choice's toast counts the records taken from disk; a save refused for the
+/// A mixed choice's toast counts the records taken from disk; a save refused for the
 /// collisions keeps the way to the choice (Choose… stays on its banner), and its Dismiss brings the held banner back;
 /// `external.review` never opens over another dialog.
 #[test]

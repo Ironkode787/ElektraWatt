@@ -21,8 +21,7 @@
 //!
 //! **The strip chooser**. Choosing a terminal symbol without a strip turns the picker into its strip mode:
 //! one row per strip of the project (the catalogue's `strips`, by tag), each with the next free designation the
-//! placement proposes, then the strip's ID, which the printer names `@n` (`row strip "-X1031" terminal "21" @7`;
-//! FT-485 item 9); the filter matches the tag; Enter arms the Place tool with that strip.
+//! placement proposes, then the strip's ID, which the printer names `@n` (`row strip "-X1031" terminal "21" @7`); the filter matches the tag; Enter arms the Place tool with that strip.
 
 use crate::key;
 use crate::strings::Key;
@@ -189,7 +188,7 @@ impl Picker {
         if self.mode != PickerMode::Exchange {
             // The part rows grouped by manufacturer, under the manufacturer's header
             // ([`Picker::header_before`]); the filter matches the manufacturer too. One order,
-            // (manufacturer, part number), the catalogue's order within a tie; FT-1375: the project's own
+            // (manufacturer, part number), the catalogue's order within a tie; the project's own
             // copies before the libraries' parts.
             let mut parts: Vec<usize> = (0..self.catalogue.parts.len()).collect();
             parts.sort_by(|a, b| {
@@ -269,7 +268,7 @@ impl Picker {
 
     /// The string key of the text the picker shows instead of rows; `None` while it has rows. With a filter typed it
     /// is `picker-empty` ("Nothing matches the filter"); with the filter empty the list itself is empty, and the text
-    /// says what is missing for the mode (a fresh project has no part copies, so Device lists nothing). FT-1375:
+    /// says what is missing for the mode (a fresh project has no part copies, so Device lists nothing).
     /// Device from part's empty state names Choose part… as the next step (`picker-empty-parts-filter`).
     pub fn empty_text(&self) -> Option<Key<'static>> {
         if !self.rows.is_empty() {
@@ -327,7 +326,7 @@ impl Picker {
         match row {
             PickerRow::Symbol(i) => {
                 let s = self.catalogue.symbols.get(i)?;
-                // From WP-S2.04 part 3 a black-box row arms the black box tool (§9.5).
+                // A black-box row arms the black box tool.
                 if s.grid_mismatch.is_some() {
                     Some(key!("reason-symbol-grid"))
                 } else if !s.allowed {
@@ -349,7 +348,7 @@ impl Picker {
     }
 
     /// The words of the reason a row is disabled; `None` for an enabled row. A symbol on another connection grid
-    /// names both grids (SM25b m3) as the status bar does (M25-p7#3).
+    /// names both grids as the status bar does.
     pub fn disabled_words(&self, row: PickerRow) -> Option<String> {
         let reason = self.disabled(row)?;
         if let PickerRow::Symbol(i) = row
@@ -362,7 +361,7 @@ impl Picker {
 }
 
 /// Why a symbol on another connection grid cannot be placed on the page, both grids named as the status bar names
-/// them ("4 mm", "QET 10 px"; M25-p7#3, ruled), the words New page and Properties offer.
+/// them ("4 mm", "QET 10 px"), the words New page and Properties offer.
 pub(crate) fn grid_words([symbol, page]: [(u64, u64); 2]) -> String {
     let words = |(num, den): (u64, u64)| crate::status::grid_words(num as i64, den as i64);
     crate::strings::format(key!("reason-symbol-grid"), &[&words(symbol), &words(page)])

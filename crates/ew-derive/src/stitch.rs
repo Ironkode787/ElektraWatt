@@ -21,13 +21,12 @@
 //!
 //! - **IP pairing** (doc 03 §10, FR-XRF-007, FR-XRF-010). Points pair by (name, scope key); the scope
 //!   key is the node of the IP page's resolved structure in the aspect of `ip_pairing.scope` (none for
-//!   `project`). An absent `ip_pairing` setting means star mode, project scope (reading R-1 of the
-//!   WP-S1.07 report). Star mode: the star source (the point with `star_source`; else the lowest-ID
-//!   `Source` point, noted when there are two or more; else the smallest ID) pairs with every other
-//!   point. Chain mode: points ordered by (sort key, page order, anchor row, anchor column, ID) pair as
-//!   (1, 2), (3, 4), …. External points never pair. A point without a partner, a point without a CP, and
-//!   a point whose page lacks the node of a `function`/`location` scope (it joins the project-wide group)
-//!   are noted (EW-CORE-051).
+//!   `project`). An absent `ip_pairing` setting means star mode, project scope. Star mode: the star source
+//!   (the point with `star_source`; else the lowest-ID `Source` point, noted when there are two or more;
+//!   else the smallest ID) pairs with every other point. Chain mode: points ordered by (sort key, page
+//!   order, anchor row, anchor column, ID) pair as (1, 2), (3, 4), …. External points never pair. A point
+//!   without a partner, a point without a CP, and a point whose page lacks the node of a
+//!   `function`/`location` scope (it joins the project-wide group) are noted (EW-CORE-051).
 //! - **Shorts.** A FnDef link joins two instantiated CPs of the function when both indices exist. A
 //!   terminal function (contact kind `terminal`) whose FnDef declares no `PassThrough` link also joins all
 //!   its CPs of one level (doc 08 §6.2, "`Short` over all CPs of a level, shaft included"): a
@@ -123,7 +122,7 @@ pub enum EdgeKind {
     /// A `Bridge` connection.
     Bridge(Id<Connection>),
     /// A rail bond through the location PE node of `location` (a terminal without a location bonds on the implicit
-    /// main location or the only own location, amended by cycle 33; never when the project has two or more).
+    /// main location or the only own location; never when the project has two or more).
     RailBond {
         /// The location.
         location: RailLocation,
@@ -333,7 +332,7 @@ pub(crate) struct StitchBuild {
 }
 
 /// Builds the stitch graph from its inputs (doc 08 §3.3; the algorithm of the module documentation, in the
-/// node order of the cycle-7 graph).
+/// node order of the first version of the graph).
 pub(crate) fn build(q: &Q, inputs: &StitchInputs) -> StitchBuild {
     let mut b = Builder {
         cut: (*inputs.cut).clone(),

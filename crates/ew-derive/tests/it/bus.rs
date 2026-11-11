@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The bus queries of WP-S1.21 D11 (doc 10 §3.8, algorithm A5): `bus_segments(pnet)` and `net_members(lnet)`, on a
+//! The bus queries (doc 10 §3.8, algorithm A5): `bus_segments(pnet)` and `net_members(lnet)`, on a
 //! PROFIBUS line of four ports `F1 — F2 — F3 — F4` (cable W1 between F1 and F2, W2 between F3 and F4, F3 a passive
 //! plug on the physical net only) and a lone port F6 of the same net.
 

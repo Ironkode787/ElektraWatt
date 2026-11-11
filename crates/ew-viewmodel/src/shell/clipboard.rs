@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The clipboard actions of WP-S2.05 part 3 (spec §8.5 to §8.8): copy, cut, paste, duplicate, copy tag list and the
+//! The clipboard actions: copy, cut, paste, duplicate, copy tag list and the
 //! headless clipboard.
 //!
 //! **Reads** (§9 item 4): a copy is one `Session::copy_fragment`, a tag list one `Session::tag_list`, `edit.paste_clip`
@@ -330,15 +330,15 @@ impl ShellModel {
             reason: key!("reason-paste-versions"),
             origin: CardOrigin::PasteVersions(Box::new(choice)),
         });
-        // Cycle 39 (FIX39b-1): the HUD's prompt follows the card ([`ShellModel::card_prompt`]), short, since the card
+        // The HUD's prompt follows the card ([`ShellModel::card_prompt`]), short, since the card
         // holds the choice; a stale tool notice must not stand over it.
         self.tools.notice = None;
         self.tools.notice_sticky = false;
         Outcome::refused(key!("reason-paste-versions"))
     }
 
-    /// The prompt an open card of the paste choice puts in the HUD and the status hint in place of the tool's own
-    /// (FIX39b-1): the choice card names the copies and points at the card; the update card that "Update the
+    /// The prompt an open card of the paste choice puts in the HUD and the status hint in place of the tool's own:
+    /// the choice card names the copies and points at the card; the update card that "Update the
     /// project's copy" opened says the paste follows its Apply. `None` for any other card or none.
     pub fn card_prompt(&self) -> Option<String> {
         match &self.props.card()?.origin {

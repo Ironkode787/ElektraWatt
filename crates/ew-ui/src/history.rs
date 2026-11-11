@@ -5,7 +5,7 @@
 //! doc 16a §6.24 (DK11, DK12; lane K32).
 //!
 //! **The panel** lists the shell's history lines newest first ([`ew_viewmodel::undo_history::HistoryPane::lines`]).
-//! The header ("12 steps · cursor at 9", then FT-518's "oldest kept: step `<k>` · `<a>` MB of `<b>` MB") is in
+//! The header ("12 steps · cursor at 9", then "oldest kept: step `<k>` · `<a>` MB of `<b>` MB") is in
 //! `type.small` `color.text.secondary`. An entry is a `size.row` row: a 16-px state icon column (the current entry
 //! `arrow-right` in `color.accent`, an undone entry `arrow-back-up` in `color.history.undone`, a done entry none), the
 //! entry number right-aligned in a 28-px column (`type.small`, `color.text.tertiary`), the label in `type.body`
@@ -145,7 +145,7 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         };
         let t = theme::current(ui.ctx());
         if view.rows.is_empty() {
-            // WP-S2.17 part 4 (CP5, doc 16a §6.17): the empty state.
+            // Doc 16a §6.17: the empty state.
             components::empty_state(
                 ui,
                 IconId::history,
@@ -426,7 +426,7 @@ pub fn show_changes(ctx: &Context, shell: &ShellModel, events: &mut Vec<Event>) 
         .iter()
         .take(MAX_CHANGES)
         .map(|e| {
-            // ID-1427 (W52 F6): in the UI language, as the Preview tab's line.
+            // In the UI language, as the Preview tab's line.
             let (change, kind) = ew_viewmodel::preview::entity_words(e);
             let mut line = format!("{change} {kind} {}", e.label);
             let fields = ew_viewmodel::preview::field_words(&e.kind, &e.fields);

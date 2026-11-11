@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S1.19 part 4, the parts import (IM-1 to IM-6 at the importer's level; the saved map, the library write and the
+//! The parts import (at the importer's level; the saved map, the library write and the
 //! CLI are tested in `ew-api` and `ew`). The parts are public catalogue data of the golden project's manufacturers
 //! and invented generic parts.
 
@@ -710,7 +710,7 @@ fn an_entry_that_inflates_beyond_its_declared_size_is_refused() {
     );
 }
 
-/// Review C35 M1: a shared string is copied into every cell that names it. A workbook of about 2 KB (one 1 MB
+/// A shared string is copied into every cell that names it. A workbook of about 2 KB (one 1 MB
 /// shared string named by 1,000 cells) once parsed to a gigabyte of cells; the cells' text is now bounded by a
 /// multiple (8) of the unpacked sheet and shared-strings size, so it is refused within the hostile-input budget
 /// (doc 14 §11: 256 MB extra allocation). A real list repeating its texts through shared strings still reads.

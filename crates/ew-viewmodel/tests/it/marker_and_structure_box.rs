@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.04 part 4b in the view model (acceptance check PI7): the Wire marker tool's crossing order, fields and
+//! In the view model: the Wire marker tool's crossing order, fields and
 //! angle, the Structure box tool's rectangle, polygon and fields, the marker mode action, Escape and Back, the two
 //! tools' ghost lines and words, their exact `Session` counts, and the page change that ends every part-4b tool.
 //! Every test works on a writable temporary copy of Golden A.

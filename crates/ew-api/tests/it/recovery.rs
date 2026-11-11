@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The app's recovery path (`Session::open` with `Recovery::Apply`, doc 05 §8.2) with more than one crashed session's
-//! journal, a refused replay, the confirmed discard, and a reader that starts while a save is in progress (WP-S1.22
-//! part 3, rulings 2, 4 and 5 of cycle 41).
+//! journal, a refused replay, the confirmed discard, and a reader that starts while a save is in progress.
 
 // The tests count pages through the untracked readers (dev-dependency `ew-model/raw-read`).
 #![allow(clippy::disallowed_methods)]
@@ -130,7 +129,7 @@ fn crashed(vfs: &Arc<MemVfs>, pid: u32, secs: u64, cmd: &AnyCommand) -> String {
     new[0].clone()
 }
 
-/// Ruling 2 of cycle 41: "Recovery acts on one journal at a time and never deletes an unreplayed one ... the app's path
+/// "Recovery acts on one journal at a time and never deletes an unreplayed one ... the app's path
 /// (`ew-api` `Recovery::Apply`) shows the same." Two crashed sessions add page 5 (older) and page 6 (newer); each
 /// open with `Recovery::Apply` replays the newest journal left and keeps the other one, byte for byte.
 #[test]
@@ -192,7 +191,7 @@ fn the_app_path_recovers_one_journal_at_a_time() {
     s.close();
 }
 
-/// Ruling 4 of cycle 41: "`ew-api` reports a refused replay instead of dropping the `RecoverError`". Session A sets page
+/// "`ew-api` reports a refused replay instead of dropping the `RecoverError`". Session A sets page
 /// 2's title and crashes; session B sets the same title to another text and saves; the replay of A's journal collides:
 /// it is refused and reported, the disk state opens, the journal stays. Ruling 2: "`discard_recovery` removes **only
 /// the summarised segment**" (here the only one).
@@ -285,7 +284,7 @@ impl Clock for GateClock {
     }
 }
 
-/// Ruling 5 of cycle 41 (FM-7 as built): "a reader started while a save is in progress (`ew-store` `mem.rs`
+/// "a reader started while a save is in progress (`ew-store` `mem.rs`
 /// `Fault`/`hold`, in-process) waits and succeeds once the save completes during the wait". The writer's save of
 /// generation 2 is held at its manifest rename (an antivirus holds `manifest.json`); a reader opens behind the live
 /// writer and waits; the hold ends, the writer completes the save, and the reader reads generation 2.

@@ -495,8 +495,8 @@ pub(super) fn rep_join_device(live: &Live, rng: &mut SplitMix64) -> Option<Step>
     }
 }
 
-/// A contact symbol placed as a new device on a multi-line page (WP-S2.18 D3's source: one function, no part), and a
-/// device created with an unplaced main function of the same FnDef (a slot, D1).
+/// A contact symbol placed as a new device on a multi-line page (one function, no part), and a
+/// device created with an unplaced main function of the same FnDef (a slot).
 pub(super) fn join_setup(live: &Live, rng: &mut SplitMix64) -> Option<Vec<Step>> {
     let pages: Vec<&PageInfo> = live.page_info.iter().filter(|p| p.kind == "multi_line").collect();
     let page = *rng.pick(&pages)?;

@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Table mode's pure rule (§8.2, §8.3; moved down from the view model by WP-S3.08 D10, ID-1174
-//! ruling 3), so that the grid and the table round trip produce the same command for the same cells.
+//! Table mode's pure rule (§8.2, §8.3; moved down from the view model), so that the grid and the table round
+//! trip produce the same command for the same cells.
 //!
 //! **Editable cells** (§8.2): a column with a route of §8.2's table (`NavColumn::route`), on a row with records of the
 //! route's kind ([`row_targets`]). Every other cell is read-only with the first reason of: "derived", "generated", "no
@@ -147,8 +147,8 @@ pub const DEFINING_PATHS: [&str; 3] = ["name", "ptype", "voltage"];
 
 /// Where a cell of route (`kind`, `path`) on `node` defines the row's potential: a Potentials row of a potential
 /// known only at connection points (record kind `cp`, with its CP), the `potential_def` route of Name, Type or
-/// Voltage. `None` for every other cell (the other definition cells stay read-only with "no record of this kind",
-/// ID-752).
+/// Voltage. `None` for every other cell (the other definition cells stay read-only with "no record of this
+/// kind").
 pub fn define_point(node: &NavNode, kind: &str, path: &str) -> Option<DefineAt> {
     if kind != "potential_def"
         || !DEFINING_PATHS.contains(&path)
@@ -201,7 +201,7 @@ pub fn potential_input(kind: &str, path: &str, text: &str) -> (String, Option<(S
     }
 }
 
-/// The value type of a route's field, from WP-S2.05's catalogue.
+/// The value type of a route's field, from the catalogue.
 pub fn route_type(kind: &str, path: &str) -> Option<FieldType> {
     field_catalogue(kind)?
         .iter()
@@ -246,8 +246,8 @@ pub fn is_scalar(ty: &FieldType) -> bool {
     )
 }
 
-/// The PLC grid's cells whose field is not a scalar but has a typed editor in `Session::parse_field_input` (WP-S2.07
-/// §8): a channel's address and target, a module's slot.
+/// The PLC grid's cells whose field is not a scalar but has a typed editor in `Session::parse_field_input`: a
+/// channel's address and target, a module's slot.
 const TYPED_PLC: [(&str, &str); 3] = [
     ("channel", "address"),
     ("channel", "target"),
@@ -280,9 +280,9 @@ pub fn cell_reason_key(table: &NavTable, node: &NavNode, column: usize) -> Optio
     }
     match route_type(kind, path) {
         Some(ty) if is_scalar(&ty) => None,
-        // WP-S2.07 part 2 (§7, FT-429): a cable's length source has its typed editor (`parse_field_input`).
+        // FT-429: a cable's length source has its typed editor (`parse_field_input`).
         Some(_) if (kind.as_str(), path.as_str()) == ("device", "cable.length") => None,
-        // WP-S2.07 §8 (FT-429): the PLC grid's typed editors.
+        // FT-429: the PLC grid's typed editors.
         Some(_) if TYPED_PLC.contains(&(kind.as_str(), path.as_str())) => None,
         Some(_) => Some(ew_commands::text_key!("table-reason-property-grid")),
         None => Some(ew_commands::text_key!("table-reason-no-command")),
@@ -490,7 +490,7 @@ pub struct MemberBase {
 }
 
 /// The value a target's member gets from a leaf (`path` below `member`) or a whole value (`path == member`), composed
-/// onto `base` (WP-S2.05 §6.3's leaf rule): a text for a language object replaces the source language's text, and an
+/// onto `base` (the leaf rule): a text for a language object replaces the source language's text, and an
 /// empty text removes it (the last one, the value).
 pub fn compose_leaf(
     member: &str,

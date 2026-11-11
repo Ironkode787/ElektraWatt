@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! WP-S2.09 part 1 headless (§9 items 1 to 3, §10.1): the PDF export as a job (JB4, JB5's result line) and the
-//! journal recovery (JB7) as `ew.uiscript/1` scripts through the built binary, each run twice on its own copy of
+//! The headless PDF export as a job (its result line) and the
+//! journal recovery as `ew.uiscript/1` scripts through the built binary, each run twice on its own copy of
 //! Golden A with byte-identical transcripts; the export's PDF is the golden digest; the `--record` log of the export
 //! script replayed onto a fresh copy gives equal records. The flows with a held gate run in `ew-viewmodel`'s
 //! `tests/it/jobs.rs` (feature `testkit`). A module of `tests/it/headless.rs`, whose `bin_exe` it uses.
@@ -253,7 +253,7 @@ pub(crate) fn jb7_the_recovery_script_is_byte_identical_twice_case(twice: bool) 
     }
 }
 
-/// Review finding 3 of cycle 30: a script whose last step is an export that does not wait (`wait: false`) and has no
+/// A script whose last step is an export that does not wait (`wait: false`) and has no
 /// `jobs.wait` still writes its file, because the end of the run waits for its jobs; two runs give the same
 /// transcript and the same PDF (the golden digest), and no sibling is left.
 #[test]

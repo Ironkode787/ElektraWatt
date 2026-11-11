@@ -344,7 +344,7 @@ impl ShellModel {
                 } else {
                     key!("toast-strip-inserted")
                 };
-                // The terminal in words, as FT-1360's toast ("terminal 5 of -X1031").
+                // The terminal in words, as in the toast ("terminal 5 of -X1031").
                 let terminal = strings::format(
                     key!("accessory-at-terminal"),
                     &[&rows.words(s), &rows.node(i).label],

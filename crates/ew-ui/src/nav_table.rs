@@ -275,7 +275,7 @@ impl TableUi {
             let id = t.get_id(ui);
             t.show(ui, &mut delegate);
             // The strip editor's side columns in a wide window: the width its columns lack is reported, and
-            // the dock widens the left column by it (as far as its default share may grow). ID-1427 (W52 F15): the
+            // the dock widens the left column by it (as far as its default share may grow). The
             // Libraries table likewise, so that its State column (an unreadable library's reason) is in reach.
             if matches!(kind, NavKind::Strips | NavKind::Libraries) {
                 let widths = egui_table::TableState::load(ui.ctx(), id).map(|s| s.col_widths);
@@ -675,7 +675,7 @@ pub(crate) fn keys(ui: &Ui, nav: &Navigator, card: bool, events: &mut Vec<Event>
         return;
     };
     // The chooser list has the keys while it is open (`TableUi::chooser_list`).
-    // ID-1497 (1, C53-fx#2): so has the cell editor once an edit is open, also in the frame it opens in, while the
+    // So has the cell editor once an edit is open, also in the frame it opens in, while the
     // grid still holds the focus: the characters typed after the first ("Reserve" lost its "e" when this replaced the
     // buffer with it) and Enter, the arrows, Home, End and Ctrl+A (a "Q" and Enter in the next frame lost the Enter).
     if mode.chooser().is_some() || mode.edit().is_some() {
@@ -844,8 +844,8 @@ pub(crate) fn libraries_name_cap(t: &Tokens, pane: f32) -> f32 {
 }
 
 /// The width the Pages Title or the Libraries Name may not grow past in a grid `pane` wide whose other columns need
-/// `others` (C39, owner 2026-10-31: never a width chosen for the floor): the room the other columns leave, at least
-/// `size.table_column`, so that nothing is cut while the pane has room and the next column ("Changed in", FT-718;
+/// `others` (never a width chosen for the floor): the room the other columns leave, at least
+/// `size.table_column`, so that nothing is cut while the pane has room and the next column ("Changed in";
 /// Kind) still starts in view; past that the cell elides with its whole text in the tooltip and the grid
 /// scrolls sideways.
 pub(crate) fn fill_cap(t: &Tokens, pane: f32, others: f32) -> f32 {
@@ -1019,7 +1019,7 @@ impl Delegate<'_> {
             self.events
                 .push(Event::Action("table.commit", json!({"kind": word, "all": true})));
         } else if response.lost_focus() || (took && (enter || escape) && !response.has_focus()) {
-            // C53-fx#2: an Enter or Escape in the frame the editor took the focus in ends it too (egui counts no lost
+            // An Enter or Escape in the frame the editor took the focus in ends it too (egui counts no lost
             // focus for a field that had none at the frame's start).
             if escape {
                 self.events.push(Event::Action("ui.dismiss", Value::Null));
