@@ -65,7 +65,7 @@ use ew_api::output::ew_dl::{Destination, EntityRef};
 
 use super::black_box;
 use super::move_keys::{move_command, move_overlay, moved_set, readout, release_command, steps_between};
-use super::route_edit::{moved_route, route_command, segment_at, segment_overlay, segment_steps};
+use super::route_edit::{RoutePart, moved_part, part_at, part_overlay, part_steps, route_command};
 use super::transform::{selected_movable, selected_reps, transform_command};
 use super::wire::PageGridMap;
 use super::{
@@ -109,15 +109,15 @@ enum State {
         steps: (i64, i64),
         readout: String,
     },
-    /// A drag of a segment of a selected connection.
+    /// A drag of a segment or a bend of a selected connection.
     Segment {
         connection: EntityRef,
         mods: Mods,
-        /// The connection's deduplicated polyline and the dragged segment's index.
+        /// The connection's deduplicated polyline and the dragged part of it.
         line: Vec<(i64, i64)>,
-        seg: usize,
+        part: RoutePart,
         from: (i64, i64),
-        steps: i64,
+        steps: (i64, i64),
     },
     /// A drag of a grip of the selected black box: `to` the grid point it is at.
     Grip {
@@ -673,19 +673,24 @@ impl SelectTool {
             self.state = state;
             return ToolOutput::None;
         }
-        if let Some((connection, line, seg)) = segment_at(cx, at) {
+        // A segment or a bend of a selected connection, but not inside a representation's rectangle: there a drag
+        // moves the representation (FT-500), as it did before every segment could be dragged.
+        let stack = cx.pick_stack(at);
+        let in_rep = stack
+            .iter()
+            .any(|e| entity_kind(&cx.page.tables, *e) == Some(EntityKind::Rep));
+        if !in_rep && let Some((connection, line, part)) = part_at(cx, at) {
             self.origin = (cx.selection.generation, cx.page.rev);
             self.state = State::Segment {
                 connection,
                 mods,
                 line,
-                seg,
+                part,
                 from: at,
-                steps: 0,
+                steps: (0, 0),
             };
             return ToolOutput::None;
         }
-        let stack = cx.pick_stack(at);
         if let Some(&entity) = stack.first() {
             let tables = &cx.page.tables;
             let movable = |e: EntityRef| {
@@ -802,15 +807,20 @@ impl SelectTool {
                 connection,
                 mods: held,
                 line,
-                seg,
+                part,
                 from,
                 ..
             } => {
-                let k = segment_steps(cx, &line, seg, from, at);
+                let steps = part_steps(cx, &line, part, from, at);
                 let grid = PageGridMap::new(cx.page.tables.grid);
-                match moved_route(&line, seg, k, grid).filter(|_| k != 0) {
+                match moved_part(&line, part, steps, grid).filter(|_| steps != (0, 0)) {
                     Some(route) => ToolOutput::Commit(route_command(connection, &route)),
-                    None => self.click(last, connection, from, held, cx),
+                    // A press that did not move is a click where it was pressed, on what a click there picks: a
+                    // junction on the wire, the next wire of an overlap (FT-500's walk), else the wire itself.
+                    None => {
+                        let picked = cx.pick_stack(from).first().copied().unwrap_or(connection);
+                        self.click(last, picked, from, held, cx)
+                    }
                 }
             }
         }
@@ -824,17 +834,17 @@ impl SelectTool {
                 connection,
                 mods,
                 line,
-                seg,
+                part,
                 from,
                 ..
             } => {
-                let steps = segment_steps(cx, &line, seg, from, at);
-                let out = ToolOutput::Transient(segment_overlay(cx, &line, seg, steps));
+                let steps = part_steps(cx, &line, part, from, at);
+                let out = ToolOutput::Transient(part_overlay(cx, &line, part, steps));
                 self.state = State::Segment {
                     connection,
                     mods,
                     line,
-                    seg,
+                    part,
                     from,
                     steps,
                 };
@@ -1013,12 +1023,12 @@ impl Tool for SelectTool {
                 State::Segment {
                     connection,
                     line,
-                    seg,
+                    part,
                     steps,
                     ..
-                } if *steps != 0 => {
+                } if *steps != (0, 0) => {
                     let grid = PageGridMap::new(cx.page.tables.grid);
-                    match moved_route(line, *seg, *steps, grid) {
+                    match moved_part(line, *part, *steps, grid) {
                         Some(route) => ToolOutput::Preview(route_command(*connection, &route)),
                         None => ToolOutput::None,
                     }

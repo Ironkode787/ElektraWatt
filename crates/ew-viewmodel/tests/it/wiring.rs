@@ -1100,12 +1100,36 @@ fn route_edit_drags_a_middle_segment_of_a_selected_connection() {
         dragged,
         "the same route after a save and a reopen"
     );
-    // A press on the first segment of the selected connection is no segment drag: a click selects.
+    // The first segment drags too (the owner's hands-on test of 0.1.0: a route is edited with the mouse, on every
+    // section of the wire): its end stays on the connection point with a stub of one grid step, and the wire jogs
+    // after it. A press that does not move is a click, which selects.
     done(&mut s, "select.set", json!({"ids": [w.id.to_string()]}));
-    let first = sheet(&s, (pts[0].0, (pts[0].1 + new_row) / 2));
+    let mid = (pts[0].1 + new_row) / 2;
+    let first = sheet(&s, (pts[0].0, mid));
     done(&mut s, "canvas.press", at(first, json!({})));
-    assert_eq!(s.tool().state(), "pressed");
     done(&mut s, "canvas.release", at(first, json!({})));
+    assert_eq!(s.tool().state(), "idle");
+    assert_eq!(line(&reopened), dragged, "a click moves nothing");
+    let aside = sheet(&s, (sn.page_of_index(sn.grid_index_of(pts[0].0) + 2), mid));
+    done(&mut s, "canvas.press", at(first, json!({})));
+    done(&mut s, "canvas.pointer", at(aside, json!({})));
+    assert_eq!(s.tool().state(), "dragging");
+    done(&mut s, "canvas.release", at(aside, json!({})));
+    let jogged = line(tables(&s).connections.iter().find(|c| c.id == w.id).unwrap());
+    assert_eq!(
+        (jogged.first(), jogged.last()),
+        (dragged.first(), dragged.last()),
+        "the ends stay"
+    );
+    assert!(jogged.len() > dragged.len(), "a stub and a jog: {jogged:?}");
+    assert_eq!(
+        jogged[0].0, jogged[1].0,
+        "the stub leaves the end along the old segment"
+    );
+    assert!(
+        jogged.windows(2).all(|w| w[0].0 == w[1].0 || w[0].1 == w[1].1),
+        "a diagonal: {jogged:?}"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------------

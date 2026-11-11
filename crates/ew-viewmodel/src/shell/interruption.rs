@@ -859,14 +859,23 @@ impl ShellModel {
         self.commit_from_host(cmd.as_ref())
     }
 
-    /// The grips of a selected black box (§9.4): while Select is idle and exactly one black box is selected, the overlay
-    /// shows its grips and CPs; once that no longer holds, a grips overlay the host set is cleared (the end of every
-    /// dispatch).
+    /// The grips of a selected black box (§9.4) and the handles of a selected connection's line: while Select is idle
+    /// and exactly one black box or one connection is selected, the overlay shows the box's grips and CPs, or a
+    /// handle on every segment and bend of the wire (where a drag edits its route); once that no longer holds, a
+    /// grips overlay the host set is cleared (the end of every dispatch).
     pub(super) fn sync_box_grips(&mut self) {
         let idle = self.tools.tool.name() == "select" && self.tools.tool.state() == "idle";
         let want = if idle {
-            self.with_tool(|_, cx| selected_black_box(cx).map(|r| black_box::grips_overlay(cx, r)))
-                .flatten()
+            self.with_tool(|_, cx| {
+                selected_black_box(cx)
+                    .map(|r| black_box::grips_overlay(cx, r))
+                    .or_else(|| {
+                        crate::tools::route_edit::selected_connection(cx)
+                            .map(|c| crate::tools::route_edit::handles_overlay(cx, c))
+                    })
+                    .filter(|o| !o.items.is_empty())
+            })
+            .flatten()
         } else {
             None
         };

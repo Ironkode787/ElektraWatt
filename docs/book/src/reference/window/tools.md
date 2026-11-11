@@ -113,7 +113,13 @@ follows that setting.
 
 ## Edit route
 
-Changes the drawn route of a wire: drag a segment or a corner. Open it with Draw ▸ Connect ▸ Edit route.
+Changes the drawn route of a wire with the mouse. Select the wire: a handle shows on each of its segments and a
+dashed one on each bend. Drag a segment and it moves sideways; drag a bend and the corner moves. The wire stays
+right-angled and its ends stay on their connection points: a first or last segment that is dragged keeps a short
+stub at its end and jogs after it, so a straight wire dragged sideways goes round what was in its way. A dashed line
+shows the new route while you drag, and one undo takes the change back. A wire without a route, drawn dashed, takes
+its first route this way too. Draw ▸ Connect ▸ Edit route does the same from the keyboard: `Tab` chooses the
+segment, the arrow keys move it, `Enter` stores it.
 
 ## Route page
 

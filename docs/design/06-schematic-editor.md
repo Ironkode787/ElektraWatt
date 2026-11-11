@@ -788,7 +788,7 @@ each.
 
 *As built.* A placement is one transaction; placing a starter symbol first embeds it with its function definition as its own undo step (`library.embed`), so the first placement of a starter symbol is two steps and the next is one. A drag, each keyboard move (M, then the arrow keys and Enter), each rotate, mirror or variant press and each exchange is one step, with no coalescing. **A property edit is one commit:** the grid writes nothing while keys are typed and commits one `fields.set` (or one `project.settings.set` member, from its preview card) when the field is left or Enter is pressed, so the row "Edit one property field" holds without coalescing; a multi-selection edit is one command with every target; Enter without a change writes nothing. A commit on several records shows a toast whose Undo takes back that one step.
 
-*As built.* A wire drawn with bend clicks is one `connection.draw` at the final click (an end on a wire adds the junction and the split in the same transaction); a segment drag or a keyboard route edit is one `connection.route`; each junction reorder, style or wiring change is one `junction.edit`, with no coalescing (FT-372); the crossings toggle is one `project.drawing.set`. A replace of find and replace is one `fields.set_many` committed from its card, one undo step however many records it changes; Freeze on several devices likewise.
+*As built.* A wire drawn with bend clicks is one `connection.draw` at the final click (an end on a wire adds the junction and the split in the same transaction); a segment drag, a bend drag or a keyboard route edit is one `connection.route`; each junction reorder, style or wiring change is one `junction.edit`, with no coalescing (FT-372); the crossings toggle is one `project.drawing.set`. A replace of find and replace is one `fields.set_many` committed from its card, one undo step however many records it changes; Freeze on several devices likewise.
 
 ### 3.10 Online checks while drawing
 
@@ -991,6 +991,16 @@ stateDiagram-v2
 | Graphic, Text | Armed → Drawing/Typing → Committed | `item.place`; Text edit uses `fields.set` |
 | Image (part 5, open) | Planned placement flow | planned `item.place` path |
 | Route edit | Grip selected → Dragging segment (stays orthogonal) → Committed | `connection.route` |
+
+*As built (M2.5-Fix; the owner's hands-on test of 0.1.0: a route is edited with the mouse, by dots on the sections
+of the wire).* While Select is idle and one connection is selected, the page shows a handle on every axis-parallel
+segment of its line and a dashed one on every bend. A press on a segment of a selected connection drags it across
+itself; a press on a bend drags the corner, which moves its two segments. The ends never move: a first or last
+segment keeps a stub of one grid step at its end (none when it is no longer than a step) and jogs after it, so a
+straight wire becomes a bracket. An unrouted connection's dashed line drags the same way, and the release stores
+its first route. A press that does not move is a click on what a click there picks (a junction on the wire, the next
+wire of an overlap), and a press inside a representation's rectangle belongs to the representation. Before, only the
+segments between the first and the last moved, so a straight wire and an L had nothing to drag.
 | Measure | Armed → Measuring | none (transient) |
 | Pan, zoom | — | none |
 

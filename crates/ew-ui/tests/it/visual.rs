@@ -1283,6 +1283,101 @@ fn a_right_click_on_the_page_cancels_the_active_tool() {
     d.shell_mut().shutdown();
 }
 
+/// The owner's hands-on test of 0.1.0: Edit route should work with the mouse, by dots on the sections of a wire that
+/// are dragged. A selected wire shows a handle on each segment and bend, and a drag on a straight wire's line moves
+/// it sideways: the ends stay on their connection points, a stub leaves each, the route stays right-angled, and one
+/// undo takes it back.
+#[test]
+fn a_drag_on_a_selected_wire_edits_its_route_with_the_mouse() {
+    let tmp = Tmp::new();
+    let mut d = golden_on_101(&tmp);
+    let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
+    d.settle();
+    // The window's pixels of a sheet point, from two pointer positions the canvas reports.
+    let probe = |d: &mut Driver, at: (i64, i64)| {
+        d.input(&Input::Hover { at });
+        d.settle();
+        let p = state(d)["canvas"]["pointer_nm"].clone();
+        (p[0].as_i64().unwrap(), p[1].as_i64().unwrap())
+    };
+    let (f0, f1) = ((700, 400), (1000, 700));
+    let (s0, s1) = (probe(&mut d, f0), probe(&mut d, f1));
+    let pixel = |sheet: (i64, i64)| {
+        (
+            f0.0 + (sheet.0 - s0.0) * (f1.0 - f0.0) / (s1.0 - s0.0),
+            f0.1 + (sheet.1 - s0.1) * (f1.1 - f0.1) / (s1.1 - s0.1),
+        )
+    };
+    let step = pixel((s0.0 + 4_000_000, s0.1)).0 - f0.0;
+    let route = |d: &mut Driver, id: &str| -> Vec<(i64, i64)> {
+        let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+        tables
+            .connections
+            .iter()
+            .find(|c| c.id.to_string() == id)
+            .map(|c| c.polyline.clone())
+            .unwrap_or_default()
+    };
+    // The straight routed wires of the folio, the longest first; one of them lies clear of every symbol.
+    let mut straight: Vec<(String, Vec<(i64, i64)>)> = {
+        let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+        tables
+            .connections
+            .iter()
+            .filter(|c| c.stored_route && c.polyline.len() == 2)
+            .map(|c| (c.id.to_string(), c.polyline.clone()))
+            .collect()
+    };
+    let length = |l: &[(i64, i64)]| (l[1].0 - l[0].0).abs() + (l[1].1 - l[0].1).abs();
+    straight.sort_by_key(|(_, l)| std::cmp::Reverse(length(l)));
+    let mut edited = None;
+    for (id, line) in straight.into_iter().take(8) {
+        let _ = d.shell_mut().dispatch("select.set", &json!({ "ids": [id] }));
+        d.settle();
+        assert!(
+            !d.shell_mut().tool_overlay().items.is_empty(),
+            "a selected wire shows its handles"
+        );
+        let sheet =
+            |d: &mut Driver, p: (i64, i64)| d.shell_mut().canvas().unwrap().page().snapper.page_to_sheet(p);
+        let mid = ((line[0].0 + line[1].0) / 2, (line[0].1 + line[1].1) / 2);
+        let from = pixel(sheet(&mut d, mid));
+        // Sideways: across a vertical wire, down from a horizontal one, three grid steps.
+        let to = if line[0].0 == line[1].0 {
+            (from.0 + 3 * step, from.1)
+        } else {
+            (from.0, from.1 + 3 * step)
+        };
+        d.input(&Input::Drag {
+            from,
+            to,
+            button: PointerButton::Primary,
+            mods: Modifiers::NONE,
+        });
+        d.settle();
+        let after = route(&mut d, &id);
+        if after != line {
+            edited = Some((id, line, after));
+            break;
+        }
+    }
+    let (id, before, after) = edited.expect("a straight wire clear of the symbols, dragged");
+    assert_eq!(
+        (after.first(), after.last()),
+        (before.first(), before.last()),
+        "the ends stay"
+    );
+    assert!(after.len() > 2, "a jog: {after:?}");
+    assert!(
+        after.windows(2).all(|w| w[0].0 == w[1].0 || w[0].1 == w[1].1),
+        "a diagonal: {after:?}"
+    );
+    d.input(&key("ctrl+z"));
+    d.settle();
+    assert_eq!(route(&mut d, &id), before, "one undo");
+    d.shell_mut().shutdown();
+}
+
 /// The Select tool holds a connection point as it holds a shape (the owner's hands-on test: it could neither move nor
 /// delete one, nothing showed where a moved item would land, and the arrow keys did nothing). A drag moves the point
 /// on the connection grid, an arrow key moves it one grid step, Delete removes it; each is one undo step.
