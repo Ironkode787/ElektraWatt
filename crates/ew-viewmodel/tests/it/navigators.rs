@@ -484,7 +484,9 @@ fn pages_are_marked_and_reordered_through_one_previewed_command() {
 }
 
 /// NV8: Page ▸ New page proposes the next free folio after a page record and the section of the marked
-/// section node, else of the current page.
+/// section node, else of the current page. With a section node marked that the current page is not in, the folio is
+/// that section's first free one (FT-1634: a page for a section just made; the folio after the current page lies
+/// outside the marked section's range).
 #[test]
 fn new_page_proposes_the_next_free_folio_and_the_section() {
     let tmp = Tmp::new("navigators");
@@ -506,7 +508,14 @@ fn new_page_proposes_the_next_free_folio_and_the_section() {
         "navigator.select",
         json!({"kind": "pages", "keys": ["s:2"]}),
     );
-    assert_eq!(shell.new_page_proposal(), ("104".to_owned(), "2".to_owned()));
+    let (folio, section) = shell.new_page_proposal();
+    assert_eq!(section, "2");
+    let folio: u32 = folio.parse().unwrap();
+    assert!((200..300).contains(&folio), "a folio of section 2: {folio}");
+    assert!(
+        !shell.page_labels().iter().any(|l| *l == folio.to_string()),
+        "a free one"
+    );
     shell.shutdown();
 }
 

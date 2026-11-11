@@ -182,6 +182,18 @@ static PAGE_NEW: Spec = Spec {
     ],
 };
 
+/// New section's form (`section.new`), its number and folio range proposed.
+static SECTION_NEW: Spec = Spec {
+    action: "section.new",
+    title_key: key!("new-section-title"),
+    fields: &[
+        field("title", key!("form-title")),
+        field("first", key!("form-section-first")),
+        field("last", key!("form-section-last")),
+        field("number", key!("form-section")),
+    ],
+};
+
 static STRUCTURE_NEW: Spec = Spec {
     action: "structure.new",
     title_key: key!("new-structure-title"),
@@ -793,6 +805,86 @@ impl ShellModel {
             self.show_page_by_id(&id);
         }
         out
+    }
+
+    /// What New section proposes: the number after the highest section's, and the hundred of folios after the last
+    /// folio any section holds (the sections of a drawing set are hundreds by convention: 100 to 199, 200 to 299).
+    fn new_section_proposal(&self) -> (u32, u32, u32) {
+        let (mut number, mut end) = (0u32, 0u32);
+        if let Some(project) = &self.project {
+            for (_, s) in project.session.query().sections().iter() {
+                number = number.max(u32::from(s.number));
+                end = end.max(s.folio_range.1);
+            }
+        }
+        let first = (end / 100 + 1) * 100;
+        (number + 1, first, first + 99)
+    }
+
+    /// `section.new {title, first, last, number?}`: one `section.create` of the folio range `first` to `last`.
+    /// Without a range the window opens the form with the number and the range proposed.
+    pub(crate) fn act_section_new(&mut self, p: &Map<String, Value>) -> Outcome {
+        let mut v = Vec::new();
+        for f in SECTION_NEW.fields {
+            match text_param(p, f.name) {
+                Ok(t) => v.push(t),
+                Err(e) => return e,
+            }
+        }
+        let [title, first, last, number] = <[String; 4]>::try_from(v).expect("four fields");
+        let (next, from, to) = self.new_section_proposal();
+        if first.is_empty() || last.is_empty() {
+            if self.mode == Mode::Gui && !self.in_form_of(SECTION_NEW.action) {
+                let mut filled = p.clone();
+                for (name, typed, proposal) in [
+                    ("first", &first, from),
+                    ("last", &last, to),
+                    ("number", &number, next),
+                ] {
+                    if typed.is_empty() {
+                        filled.insert(name.into(), Value::String(proposal.to_string()));
+                    }
+                }
+                return self.open_dialog(Dialog::Form(SECTION_NEW.dialog(&filled)));
+            }
+            let missing = if first.is_empty() { "first" } else { "last" };
+            return self.form_missing(&SECTION_NEW, p, missing);
+        }
+        let whole = |name: &str, text: &str| {
+            text.parse::<u32>()
+                .map_err(|_| strings::format(key!("error-section-whole-number"), &[name, text]))
+        };
+        let parsed = whole("first", &first)
+            .and_then(|a| Ok((a, whole("last", &last)?)))
+            .and_then(|(a, b)| {
+                let n = if number.is_empty() {
+                    next
+                } else {
+                    whole("number", &number)?
+                };
+                let n = u16::try_from(n)
+                    .map_err(|_| strings::format(key!("error-section-whole-number"), &["number", &number]))?;
+                Ok((a, b, n))
+            });
+        let (first, last, number) = match parsed {
+            Ok(v) => v,
+            Err(message) => return self.form_failed(SECTION_NEW.action, message),
+        };
+        let mut params = json!({ "number": number, "folio_range": [first, last] });
+        if !title.is_empty() {
+            params["title"] = Value::String(title.clone());
+        }
+        let out = self.host_create("section.create", params);
+        if out == Outcome::Done {
+            self.notify(
+                strings::format(
+                    key!("toast-section-new"),
+                    &[&number.to_string(), &title, &first.to_string(), &last.to_string()],
+                ),
+                true,
+            );
+        }
+        self.form_done(SECTION_NEW.action, out)
     }
 
     /// The parent the New structure node dialog proposes for a node of aspect `kind`: the

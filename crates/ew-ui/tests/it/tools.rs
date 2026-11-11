@@ -908,98 +908,97 @@ fn assert_chips_apart(
     chips
 }
 
-/// The Place ghost of a terminal on Golden A draws one label with
-/// no tag added, even after a second rest (its tag in the change chip); the preview's change chip stands by
-/// the floating insertion point, off the label (the rule's next candidate), the header by it; with the frame
-/// statistics shown and the anchor moved beside their panel, no chip covers the panel; no two chips intersect, with
-/// the statistics on and off.
+/// The owner's hands-on test of 0.1.0 (FT-1637): "while a device is being placed its texts jitter around it as it
+/// moves, and the ghost reads Preview of Place device". The Place ghost of a terminal on Golden A shows one chip,
+/// its own label, and no preview chip; the label keeps its place while the pointer moves about the ghost's point
+/// without moving the ghost, and keeps the same place beside the ghost when the ghost moves a grid step; with the
+/// frame statistics shown and the ghost beside their panel, the label does not cover the panel.
 #[test]
-fn the_place_ghost_draws_its_tag_once_and_its_chips_keep_apart() {
+fn the_place_ghost_shows_one_label_that_stands_still_beside_it() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     let at = place_and_rest(&mut h);
-    // A second rest at the same point (the 300-ms dwell previews again): the label still names the tag once.
+    // A second rest at the same point (the 300-ms dwell previews again): still one label.
     dispatch(&mut h, "canvas.dwell", json!({"ms": 300}));
     settle(&mut h);
-    let tl = h
-        .state()
-        .shell()
-        .canvas()
-        .unwrap()
-        .page()
-        .snapper
-        .page_to_sheet(at);
+    let sheet = |h: &Harness<'_, App>, at: (i64, i64)| {
+        h.state()
+            .shell()
+            .canvas()
+            .unwrap()
+            .page()
+            .snapper
+            .page_to_sheet(at)
+    };
+    let ghost_at = |h: &Harness<'_, App>| match h.state().shell().tool_ghost() {
+        Some(Ghost::Place { at_nm: Some(at), .. }) => at,
+        other => panic!("a place ghost: {other:?}"),
+    };
+    let label = |h: &mut Harness<'_, App>| {
+        let all = assert_chips_apart(h, None);
+        assert_eq!(all.len(), 1, "one chip, the ghost's label: {all:?}");
+        assert_eq!(all[0].kind, ew_ui::canvas_chips::ChipKind::Label);
+        // A terminal's label names its strip and designation, which is its tag.
+        assert_eq!(all[0].text, "Variant A · terminal 30 on -X1031");
+        all[0].rect
+    };
     let (chips, stats) = h.state().preview_chips();
     assert!(stats.is_none());
-    assert!(chips.len() >= 2, "{chips:?}");
-    let all = assert_chips_apart(&mut h, None);
-    let labels: Vec<_> = all
-        .iter()
-        .filter(|c| c.kind == ew_ui::canvas_chips::ChipKind::Label)
-        .collect();
-    assert_eq!(labels.len(), 1, "one ghost label: {all:?}");
-    // A terminal's label names its strip and designation; its tag stands in the preview chip.
-    assert_eq!(labels[0].text, "Variant A · terminal 30 on -X1031");
+    assert!(chips.is_empty(), "no preview chip beside a ghost: {chips:?}");
+    let tl = sheet(&h, at);
     let anchor = drawn_of(&mut h, tl);
-    let (text, frame) = &chips[1];
-    assert!(text.contains("-X1031:30"), "{chips:?}");
-    assert!(by_point(*frame, anchor), "{frame:?} by {anchor:?}");
+    let first = label(&mut h);
+    assert!(!first.contains(anchor), "the label keeps off the ghost's point");
+    // The pointer about the ghost's point, on each side: the ghost stays, and so does its label.
+    for d in [
+        Vec2::new(2.0, -2.0),
+        Vec2::new(-2.0, 2.0),
+        Vec2::new(2.0, 2.0),
+        Vec2::new(-2.0, -2.0),
+    ] {
+        h.event(egui::Event::PointerMoved(anchor + d));
+        settle(&mut h);
+        assert_eq!(ghost_at(&h), at, "the ghost stays at its grid point");
+        assert_eq!(
+            label(&mut h),
+            first,
+            "the label stands still with the pointer at {d:?}"
+        );
+    }
+    // A grid step on: the label goes with the ghost, in the same place beside it.
+    h.key_press(Key::ArrowRight);
+    settle(&mut h);
+    let next = ghost_at(&h);
+    assert_ne!(next, at);
+    let next_sheet = sheet(&h, next);
+    let moved = drawn_of(&mut h, next_sheet) - anchor;
+    let second = label(&mut h);
     assert!(
-        !frame.intersects(labels[0].rect),
-        "the chip keeps off the ghost's label"
-    );
-    let head = chips[0].1;
-    assert_eq!(chips[0].0, "Preview of Place device", "{chips:?}");
-    // The header's target is the point 8 points left of the change's top-left corner: straight above the change
-    // where that is free; here the ghost's label takes that place, and the header takes the rule's next free one.
-    assert!(
-        by_point(head, frame.left_top() - Vec2::new(8.0, 0.0)),
-        "{head:?} by {frame:?}"
+        (second.min - first.min - moved).length() < 1.0,
+        "{second:?} is {first:?} moved by {moved:?}"
     );
 
-    // The statistics shown, and the view panned so that the anchor lies just left of their panel, level with its
-    // middle: the candidates right of the anchor fall on the panel, and the chips take the free ones. The panel is
-    // anchored at the canvas's top right and sized by its live text (frame rate and p99 timings, measured against
-    // the wall clock), so its left edge moves by a few points from frame to frame: the pan aims at the panel of one
-    // frame, and the checks read the panel, the chips and the anchor of one later frame, all drawn together.
+    // The statistics shown, and the view panned so that the ghost lies just left of their panel, level with its
+    // middle: the label's place right of the ghost falls on the panel, and the label takes a free one. The panel is
+    // sized by its live text, so the checks read the panel and the label of one later frame, drawn together.
     dispatch(&mut h, "view.frame_stats", json!({}));
     settle(&mut h);
     let panel = h.state().preview_chips().1.expect("the statistics panel");
+    let anchor = drawn_of(&mut h, next_sheet);
     let d = Pos2::new(panel.left() - 4.0, panel.center().y) - anchor;
     dispatch(&mut h, "view.pan", json!({"dx": d.x, "dy": d.y}));
     settle(&mut h);
-    let anchor = drawn_of(&mut h, tl);
-    let (chips, stats) = h.state().preview_chips();
-    let panel = stats.expect("the statistics panel");
-    assert!(chips.len() >= 2, "the preview is kept: {chips:?}");
-    // The setting holds in this frame: both candidates right of the anchor (8 points off, the change chip's size)
-    // fall on the panel, so the rule has to take a left one.
-    {
-        use ew_ui::ew_viewmodel::canvas::chip::{Pos2 as P, Rect as R, Vec2 as V, candidates};
-        let size = chips[1].1.size();
-        let c = candidates(R::point(P::new(anchor.x, anchor.y)), V::new(size.x, size.y));
-        for right in [&c[0], &c[1]] {
-            let r = egui::Rect::from_min_max(
-                Pos2::new(right.min.x, right.min.y),
-                Pos2::new(right.max.x, right.max.y),
-            );
-            assert!(
-                r.intersects(panel),
-                "the right-hand candidate {r:?} of the anchor {anchor:?} falls on the panel {panel:?}"
-            );
-        }
-    }
-    assert_chips_apart(&mut h, Some(panel));
-    assert!(by_point(chips[1].1, anchor), "still by the tag: {:?}", chips[1]);
-    assert!(chips[1].1.right() <= anchor.x, "a left candidate: {:?}", chips[1]);
+    let panel = h.state().preview_chips().1.expect("the statistics panel");
+    let all = assert_chips_apart(&mut h, Some(panel));
+    assert_eq!(all.len(), 1, "{all:?}");
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At the floor the Place ghost's anchor panned to the canvas's top left corner, where the tool
-/// options card stands, leaves the preview's chips no free candidate; each stands inside the canvas all the same
-/// (clamped), none cut at its edge.
+/// At the floor the Place ghost panned to the canvas's top left corner, where the tool options card
+/// stands, leaves its label no free candidate; it stands inside the canvas all the same (clamped), not cut at its
+/// edge.
 #[test]
-fn the_preview_chips_stay_inside_the_canvas_at_the_floor() {
+fn the_place_label_stays_inside_the_canvas_at_the_floor() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     h.set_size(Vec2::new(1280.0, 800.0));
@@ -1030,7 +1029,7 @@ fn the_preview_chips_stay_inside_the_canvas_at_the_floor() {
     settle(&mut h);
     settle(&mut h);
     let chips = h.state_mut().canvas_host().canvas_chips(0).to_vec();
-    assert!(chips.len() >= 2, "the preview is kept: {chips:?}");
+    assert!(!chips.is_empty(), "the ghost's label: {chips:?}");
     for c in &chips {
         assert!(
             canvas.contains_rect(c.rect),

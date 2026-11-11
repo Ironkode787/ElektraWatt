@@ -11,12 +11,8 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The owner's hands-on test of 0.1.0-rc.3
 
-- FT-1634 `ew-viewmodel, ew-ui`: **Medium.** A project has a button to add a page but no way to add a section; add New section beside it and on the project tree's right-click menu.
-- FT-1637 `ew-scene, ew-viewmodel`: While a device is being placed its texts jitter around it as it moves, and the ghost reads "Preview of Place device"; keep the texts still relative to the symbol and word the label properly.
-- FT-1639 `ew-ui`: **Medium.** The bar on the page shows buttons beside the active tool that cannot be reached, since the bar moves away as the pointer comes near; settle its purpose and design (an information strip with no buttons, or a tool bar that stays put).
 - FT-1640 `ew-ui`: **Medium.** The symbol editor is entered from a small button named "Symbols" on the Draw tab; give the editor an entry of its own, named Symbol editor, larger. It changes the Draw tab, so it goes with FT-1652 in one change that re-blesses the window's pictures once. (Its other half is done: Close editor is the editor's primary button, in the top right corner.)
 - FT-1645 `ew-import-qet`: **High.** An imported QET project's folios look nothing like the project in QET. The owner decided on 2026-11-11: full fidelity in this milestone. To build, by what a person sees (the comparison is in [m2.5-fix.md](m2.5-fix.md)): (a) every wire has the route QET drew, from the stored path or by QET's own rule; (b) free texts, shapes and images arrive as page items; (c) each element prints the texts QET prints and no generated tag; (d) the frame is numbered and placed as in QET, hidden where QET hides it, with the project's own title block; (e) QET's table pages show their tables; (f) page-link names and master and slave cross-references print. Done when the owner's private test project, folio by folio, reads as QET's own PDF of it does.
-- FT-1646 `ew-ui`: **Medium.** While an interruption point is placed and its name is typed, the small name window turns grey as if disabled.
 - FT-1648 `ew-viewmodel, ew-ui`: **Medium.** Properties rows do not say what they do; give every row a tooltip that explains it, in English and Dutch.
 - FT-1649 `ew-viewmodel`: **Medium.** A connection point cannot be marked as not used: Properties shows it but offers nothing; add the action there and on the point's right-click menu.
 - FT-1650 `ew-ui`: **Medium.** Properties sections do not fold: a click on the Placement section's header does nothing.
@@ -26,7 +22,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The persona round on rc.3
 
-- FT-1657 `ew-viewmodel`: **Medium.** FT-1621 re-dated (ID-1521): the interruption-point tool's direction (RP1, RP4): the status line says source and the point goes in as target; after one placement the tool renames itself "L1-1" and switches to target; D types into the Tool options name field when it has the focus.
 - FT-1658 `ew-viewmodel`: **Medium.** FT-1622 re-dated (ID-1521): adding a contact to an existing device (RP2, RP4): picking a contact of -102K1 from "In this project" makes a new device; Join on a placed contact is refused; deleting the extra device leaves an empty "-?K2"; Join's list shows the device twice per slot; the duplicate-designation finding's Fix does nothing visible.
 - FT-1659 `ew-viewmodel`: FT-1623 re-dated (ID-1521): a drag from a symbol's centre does nothing (only its edge grabs); a paste lands about 20 px from the click; the "4 Warnings" badge opens Messages filtered on "2 devices"; Esc leaves the coil tool armed (RP2, RP3).
 - FT-1660 `ew-viewmodel`: FT-1624 re-dated (ID-1521): the full-junction HUD reads as a refusal though the wire is made; an outgoing point's connection point one step behind its tip goes unseen; the auto-connect notice on placement is missed; the text interface gives Route page's result as bend counts only, not where a wire runs; the power supply's pin labels and the points' connection squares are tiny (RP1 to RP4).

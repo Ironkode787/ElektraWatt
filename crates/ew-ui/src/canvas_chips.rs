@@ -10,11 +10,13 @@
 //! **Obstacles**: the outside of the canvas, the frame-statistics panel, the chrome the caller reports
 //! over the canvas (the tool HUD, the zoom control and the tool options card,
 //! [`crate::canvas::CanvasHost::set_chrome_obstacles`]), the
-//! pointer's 16-point box, and every chip placed before. **Targets**: a label stands by its point; a highlight's
-//! name chip by the first vertex of its first drawn wire; a tag change by the printed tag text of the device's first
-//! representation on the page (`TableRep::tag_at`), else the top-left corner of its body, else the Place
-//! tool's floating insertion point; a cross-reference change by its representation's body; the header right above
-//! the first placed change (its target is a point 8 points left of that chip's top-left corner, so the rule's
+//! pointer's 16-point box, and every chip placed before. **Targets**: a label stands by its point, and the label
+//! of a floating shape (the Place ghost) by the shape's outline together with the pointer's reach around its
+//! point, so it stands still beside the shape while the pointer moves it ([`floating_target`], FT-1637); a
+//! highlight's name chip by the first vertex of its first drawn wire; a tag change by the printed tag text of
+//! the device's first representation on the page (`TableRep::tag_at`), else the top-left corner of its body (the
+//! change of a device the page does not draw yet has no chip: the floating shape's label names its tag); a
+//! cross-reference change by its representation's body; the header right above the first placed change (its target is a point 8 points left of that chip's top-left corner, so the rule's
 //! preferred anchor is straight above it); changes the page does not draw, and the header without a placed change,
 //! stack from the canvas's top-left corner, below the chrome there ([`clear_corner`]).
 //!
@@ -246,9 +248,23 @@ pub fn plan(ui: &Ui, input: &ChipInput<'_>, canvas: &CanvasModel, shell: &ShellM
         input.rect.min + Vec2::new(x as f32, y as f32) / input.ppp
     };
     if input.focused {
-        for item in &shell.tool_overlay().items {
+        let overlay = shell.tool_overlay();
+        let floating = floating_bounds(overlay, canvas, &screen);
+        for item in &overlay.items {
             if let OverlayItem::Label { at, text, .. } = item {
-                placer.put(ChipKind::Label, text.clone(), point(screen(*at)));
+                match floating {
+                    // The pointer moves the shape, so its box is inside the target already: the label keeps its
+                    // place beside the shape.
+                    Some(shape) => {
+                        let target = floating_target(shape, screen(*at), reach(canvas, &screen));
+                        let pointer = placer.pointer.take();
+                        placer.put(ChipKind::Label, text.clone(), to_vm(target));
+                        placer.pointer = pointer;
+                    }
+                    None => {
+                        placer.put(ChipKind::Label, text.clone(), point(screen(*at)));
+                    }
+                }
             }
         }
     }
@@ -272,6 +288,41 @@ pub fn plan(ui: &Ui, input: &ChipInput<'_>, canvas: &CanvasModel, shell: &ShellM
         preview(&mut placer, input, canvas, shell, &screen);
     }
     placer.out
+}
+
+/// The frame of the floating shape of `overlay` (its outline paths, the Place ghost), in points; `None` for an
+/// overlay without one.
+fn floating_bounds(
+    overlay: &tools::Overlay,
+    canvas: &CanvasModel,
+    screen: &dyn Fn((i64, i64)) -> Pos2,
+) -> Option<Rect> {
+    let snapper = &canvas.page().snapper;
+    let mut bounds: Option<Rect> = None;
+    for item in &overlay.items {
+        let OverlayItem::Paths { paths, transform } = item else {
+            continue;
+        };
+        for p in tools::paths_on_sheet(paths, *transform, snapper).iter().flatten() {
+            let p = screen(*p);
+            bounds = Some(bounds.map_or(Rect::from_min_max(p, p), |b| b.union(Rect::from_min_max(p, p))));
+        }
+    }
+    bounds
+}
+
+/// How far the pointer can stand from a floating shape's point, in points: half a step of the page's grid or the
+/// reach of a snap to a connection point, whichever is more, and half the pointer's box.
+fn reach(canvas: &CanvasModel, screen: &dyn Fn((i64, i64)) -> Pos2) -> f32 {
+    let snapper = &canvas.page().snapper;
+    let step = screen((snapper.sheet_of_index(1, 0), 0)).x - screen((snapper.sheet_of_index(0, 0), 0)).x;
+    (step.abs() / 2.0).max(tools::CP_SNAP_PT as f32) + vm::POINTER_BOX / 2.0
+}
+
+/// The target of a floating shape's label: the shape's frame `shape` and the square of `reach` around its point
+/// `at`. Both move with the shape alone, so the label stands still beside it whatever the pointer does inside.
+pub fn floating_target(shape: Rect, at: Pos2, reach: f32) -> Rect {
+    shape.union(Rect::from_center_size(at, Vec2::splat(2.0 * reach)))
 }
 
 /// The kept preview's chips (by the rule of D13).
@@ -312,21 +363,23 @@ fn preview(
                 .page_to_sheet((body[0].min(body[2]), body[1].min(body[3]))),
         )
     };
-    // A device the page does not draw yet (the Place tool's new device) stands by the floating insertion point.
-    let floating = match shell.tool_ghost() {
-        Some(tools::Ghost::Place { at_nm: Some(at), .. }) => Some([at.0, at.1, at.0, at.1]),
-        _ => None,
-    };
+    // The Place tool's floating shape names the tag of its new device in its own label, so a device the page does
+    // not draw yet gets no chip, and a preview that changes nothing else no header (FT-1637: three chips around
+    // one ghost, each keeping off the others and the pointer, jumped about as it moved).
+    let floating = matches!(
+        shell.tool_ghost(),
+        Some(tools::Ghost::Place { at_nm: Some(_), .. })
+    );
     let mut texts: Vec<(String, Option<Pos2>)> = Vec::new();
     for c in &p.derived.tags {
         let id = c.key.as_uuid();
-        let at = tables
-            .reps
-            .iter()
-            .find(|r| r.device == Some(id))
-            // By the printed tag text where the page tables give it, else by the body.
+        let rep = tables.reps.iter().find(|r| r.device == Some(id));
+        if floating && rep.is_none() {
+            continue;
+        }
+        // By the printed tag text where the page tables give it, else by the body.
+        let at = rep
             .map(|r| r.tag_at.map_or(r.body, |t| [t.0, t.1, t.0, t.1]))
-            .or(floating)
             .map(corner_of);
         // A strip without a tag yet reads in words, never as "-?X?".
         let before = shell.device_tag_label(id, &c.before);
@@ -347,6 +400,9 @@ fn preview(
     // -103S2) shows once.
     drop_repeats(&mut texts);
     texts.truncate(11);
+    if floating && texts.is_empty() && p.result.is_ok() && status == PreviewStatus::Ready {
+        return;
+    }
     let start = placer.out.len();
     // The placed changes first, by their targets.
     let mut frames: Vec<Option<Rect>> = vec![None; texts.len()];

@@ -686,9 +686,10 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
   `icon.sm` and its name (`color.accent` fill, `color.text.on_accent`, SemiBold), three quick tools as 28-px icon
   pills (Wire, Symbol, Text), a 1 × 16 px divider and the **prompt** in `type.small` at 80 % opacity: the selection
   and its keys with Select ("1 selected · Del deletes · R rotates"), the tool's target and keys otherwise
-  ("Place -X1031:21 · R rotates · V variant · Esc done"). It never takes focus and never covers the pointer: it
-  moves to 12 px under the tab bar while the pointer is within 48 px of it, and moves back only once the pointer is
-  more than 96 px away; while toasts show, it sits above the toast stack's top, or under its
+  ("Place -X1031:21 · R rotates · V variant · Esc done"). It never takes focus and it stays where it is, so its
+  buttons can be reached; a fit keeps the band it stands in clear of the sheet. (Until M2.5-Fix it moved under the
+  tab bar while the pointer was within 48 px of it, which put its own buttons out of reach: the owner's hands-on
+  test, FT-1639.) While toasts show, it sits above the toast stack's top, or under its
   bottom where the page view has no room above it. After a Wire click that placed a bend instead of ending on a
   connection point its prompt is "Bend placed: click a connection point to end the wire." It is the floating tool window of the
   owner's reference, reduced to what the running tool needs; the hint strip under the menu is removed.

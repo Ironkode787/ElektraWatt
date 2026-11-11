@@ -67,6 +67,7 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
     ];
     for (action, params) in [
         ("page.new", json!({})),
+        ("section.new", json!({})),
         ("structure.new", json!({})),
         ("external_ref.new", json!({})),
         ("pages.renumber", json!({})),
@@ -275,6 +276,7 @@ const OPENS_INPUT: &[&str] = &[
     "ip.continue_on",
     "tool.image",
     "structure.new",
+    "section.new",
     "external_ref.new",
     "devices.renumber",
     "project.purge_assets",

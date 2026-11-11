@@ -235,6 +235,7 @@ impl ShellModel {
             access: AccessMode::Edit,
             labels,
             rows: Vec::new(),
+            sections: Vec::new(),
         });
         self.install_view();
         self.settings.push_recent(&dir.to_string_lossy());
@@ -1043,6 +1044,7 @@ impl ShellModel {
                     access,
                     labels,
                     rows: Vec::new(),
+                    sections: Vec::new(),
                 });
                 self.install_view();
                 self.banner = Some(match banner {

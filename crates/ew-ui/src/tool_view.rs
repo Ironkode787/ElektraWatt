@@ -221,10 +221,10 @@ pub(crate) fn structure_box_fields(
 /// The IP tool's fields in the tool strip: the name (every change sends `ip.name`) and the external
 /// reference, offered by printed text (a choice sends `ip.external` with its ID, "none" with `null`).
 ///
-/// While it does not have the focus the field shows `typed`, the name typed for the next point
-/// that no point has taken yet ([`ShellModel::ip_typed_name`](ew_viewmodel::shell::ShellModel::ip_typed_name)), so it
-/// keeps the name after the focus leaves it and empties once a point takes it. Empty, it shows `proposal` (the
-/// HUD's name of the ghost) as its hint; with no proposal, no hint.
+/// While it does not have the focus the field shows `typed`, the name typed that is still to be used
+/// ([`ShellModel::ip_typed_name`](ew_viewmodel::shell::ShellModel::ip_typed_name)), so it keeps the name after the
+/// focus leaves it and after its source is placed (the target takes it too), and empties once it is taken. Empty,
+/// it shows `proposal` (the HUD's name of the ghost) as its hint; with no proposal, no hint.
 pub(crate) fn ip_fields(
     ui: &mut Ui,
     name: &mut String,

@@ -165,7 +165,7 @@ fn type_in_name_field(h: &mut Harness<'_, App>, text: &str) {
 }
 
 /// A name typed in Tool options and left by a click on the canvas, without
-/// Enter, names the point that click places; the field empties (its own clear on the lost focus cancels nothing).
+/// Enter, names the point that click places; the field keeps the name for the point's partner.
 #[test]
 fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
     let tmp = Tmp::new();
@@ -174,14 +174,143 @@ fn a_typed_name_left_by_a_click_on_the_canvas_names_the_placed_point() {
     assert_eq!(h.state().shell().tool().name(), "ip");
     type_in_name_field(&mut h, "0V");
     assert_eq!(click_canvas_centre(&mut h), vec!["0V".to_owned()]);
-    // The point took the typed name, so the field is empty again.
-    assert_eq!(name_field_text(&h).unwrap_or_default(), "");
+    assert_eq!(name_field_text(&h).as_deref(), Some("0V"));
 }
 
-/// The field shows the typed name after the focus leaves it, until a point takes it; empty, it shows
+/// The persona round on rc.3 (FT-1657): "after one placement the tool renames itself L1-1", and D typed into the
+/// name. A name typed once names a pair: the first point is the source, and the tool then floats the same name as
+/// a target, which the second click places. With the name typed and the pointer moved back to the sheet, D turns
+/// the direction and is not typed into the name.
+#[test]
+fn a_name_typed_once_names_the_source_and_its_target_and_d_on_the_sheet_turns_the_direction() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    press(&mut h, Key::P);
+    press(&mut h, Key::D);
+    while direction(&h) != "source" {
+        press(&mut h, Key::D);
+    }
+    type_in_name_field(&mut h, "FT1657");
+    assert!(h.ctx.text_edit_focused());
+    // The pointer back on the sheet: the keys are the tool's again.
+    let bounds = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas node")
+        .accesskit_node()
+        .raw_bounds()
+        .expect("bounds");
+    let centre = egui::pos2(
+        ((bounds.x0 + bounds.x1) / 2.0) as f32,
+        ((bounds.y0 + bounds.y1) / 2.0) as f32,
+    );
+    h.event(egui::Event::PointerMoved(centre));
+    settle(&mut h);
+    assert!(!h.ctx.text_edit_focused(), "the sheet takes the keys back");
+    press(&mut h, Key::D);
+    assert_eq!(ghost_name(&h), "FT1657", "D is not typed into the name");
+    assert_eq!(direction(&h), "target", "D turns the direction");
+    press(&mut h, Key::D);
+    press(&mut h, Key::D);
+    assert_eq!(direction(&h), "source");
+    // The source, then its partner: the same name, a target, without typing again.
+    assert_eq!(click_canvas_centre(&mut h), vec!["FT1657".to_owned()]);
+    assert_eq!(ghost_name(&h), "FT1657", "the tool keeps the name");
+    assert_eq!(
+        direction(&h),
+        "target",
+        "the name has its source: the next point is a target"
+    );
+    assert_eq!(name_field_text(&h).as_deref(), Some("FT1657"));
+    assert_eq!(h.state().shell().ip_typed_name(), Some("FT1657"));
+    h.event(egui::Event::PointerMoved(centre + egui::vec2(0.0, 80.0)));
+    settle(&mut h);
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: centre + egui::vec2(0.0, 80.0),
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
+    let mut pair: Vec<(String, String)> = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .filter_map(|r| r.ip.as_ref())
+        .filter(|ip| ip.name == "FT1657")
+        .map(|ip| (ip.name.clone(), ip.direction.clone()))
+        .collect();
+    pair.sort();
+    assert_eq!(
+        pair,
+        [
+            ("FT1657".to_owned(), "source".to_owned()),
+            ("FT1657".to_owned(), "target".to_owned())
+        ]
+    );
+    // The pair stands: the name is used up, and the next point gets a name of its own.
+    assert_eq!(h.state().shell().ip_typed_name(), None);
+    assert_eq!(name_field_text(&h).unwrap_or_default(), "");
+    assert_ne!(ghost_name(&h), "FT1657");
+}
+
+/// The owner's hands-on test of 0.1.0 (FT-1646): "while an interruption point is placed and its name is typed, the
+/// small name window turns grey as if disabled". The tool's ghost follows the pointer, and the card fades while
+/// the ghost is under it; with the pointer on the name field, and while the name is typed, the card is whole.
+#[test]
+fn the_tool_options_card_is_whole_while_its_name_field_is_used() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "103");
+    press(&mut h, Key::P);
+    settle(&mut h);
+    let t = ew_ui::theme::current(&h.ctx);
+    let fill = t.surface_panel.color32();
+    let field = h
+        .get_all_by_role(egui::Role::TextInput)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Interruption point name"))
+        .expect("the IP name field")
+        .rect();
+    h.event(egui::Event::PointerMoved(field.center()));
+    settle(&mut h);
+    settle(&mut h);
+    assert!(card_painted(&h, fill), "whole with the pointer on the field");
+    assert!(!card_painted(&h, fill.gamma_multiply(0.4)));
+    type_in_name_field(&mut h, "X1");
+    settle(&mut h);
+    assert!(card_painted(&h, fill), "whole while the name is typed");
+    assert!(!card_painted(&h, fill.gamma_multiply(0.4)));
+}
+
+/// Whether the frame paints the tool options card in `fill`: a filled rectangle of the card's width in that colour
+/// (the card's fill whole, or at 40 %).
+fn card_painted(h: &Harness<'_, App>, fill: egui::Color32) -> bool {
+    fn walk(shape: &egui::Shape, fill: egui::Color32, found: &mut bool) {
+        match shape {
+            egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, fill, found)),
+            egui::Shape::Rect(r) => {
+                *found |= r.fill == fill && r.rect.width() > 100.0 && r.rect.width() < 600.0
+            }
+            _ => {}
+        }
+    }
+    let mut found = false;
+    for c in &h.output().shapes {
+        walk(&c.shape, fill, &mut found);
+    }
+    found
+}
+
+/// The field shows the typed name after the focus leaves it and after a point takes it; empty, it shows
 /// the HUD's proposal as its hint.
 #[test]
-fn the_ip_name_field_keeps_the_typed_name_until_a_point_takes_it() {
+fn the_ip_name_field_keeps_the_typed_name_for_the_partner_point() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     press(&mut h, Key::P);
@@ -200,11 +329,11 @@ fn the_ip_name_field_keeps_the_typed_name_until_a_point_takes_it() {
     );
     assert_eq!(h.state().shell().ip_typed_name(), Some("X1"));
     assert_eq!(click_canvas_centre(&mut h), vec!["X1".to_owned()]);
-    assert_eq!(h.state().shell().ip_typed_name(), None);
+    assert_eq!(h.state().shell().ip_typed_name(), Some("X1"));
     assert_eq!(
-        name_field_text(&h).unwrap_or_default(),
-        "",
-        "a point took the name"
+        name_field_text(&h).as_deref(),
+        Some("X1"),
+        "the name stays for the partner"
     );
 }
 
@@ -285,23 +414,7 @@ fn a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
     let title = h.get_by_label("Tool options").rect();
     let card_fill = t.surface_panel.color32();
     let faded_fill = card_fill.gamma_multiply(0.4);
-    // The painted card: the largest filled rectangle in the card's fill colour, whole or at 40 %.
-    let painted = |h: &Harness<'_, App>, fill: egui::Color32| {
-        fn walk(shape: &egui::Shape, fill: egui::Color32, found: &mut bool) {
-            match shape {
-                egui::Shape::Vec(v) => v.iter().for_each(|s| walk(s, fill, found)),
-                egui::Shape::Rect(r) => {
-                    *found |= r.fill == fill && r.rect.width() > 100.0 && r.rect.width() < 600.0
-                }
-                _ => {}
-            }
-        }
-        let mut found = false;
-        for c in &h.output().shapes {
-            walk(&c.shape, fill, &mut found);
-        }
-        found
-    };
+    let painted = card_painted;
     // The pointer away from the card: the card is whole and a chip obstacle (the HUD, the zoom control, the card).
     let away = egui::pos2(title.right() + 300.0, title.center().y + 200.0);
     h.event(egui::Event::PointerMoved(away));

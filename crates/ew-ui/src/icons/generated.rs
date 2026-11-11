@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 109;
+pub const COUNT: usize = 110;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -75,6 +75,7 @@ pub enum IconId {
     filter,
     flip_vertical,
     folder,
+    folder_plus,
     grid_dots,
     highlight,
     highlight_off,
@@ -189,6 +190,7 @@ impl IconId {
         IconId::filter,
         IconId::flip_vertical,
         IconId::folder,
+        IconId::folder_plus,
         IconId::grid_dots,
         IconId::highlight,
         IconId::highlight_off,
@@ -303,6 +305,7 @@ pub const KEYS: [&str; COUNT] = [
     "filter",
     "flip-vertical",
     "folder",
+    "folder-plus",
     "grid-dots",
     "highlight",
     "highlight-off",
@@ -1312,6 +1315,23 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         C(3.895, 19.0, 3.0, 18.105, 3.0, 17.0),
         L(3.0, 6.0),
         C(3.0, 4.895, 3.895, 4.0, 5.0, 4.0),
+    ],
+    // folder-plus
+    &[
+        M(12.0, 19.0),
+        L(5.0, 19.0),
+        C(3.895, 19.0, 3.0, 18.105, 3.0, 17.0),
+        L(3.0, 6.0),
+        C(3.0, 4.895, 3.895, 4.0, 5.0, 4.0),
+        L(9.0, 4.0),
+        L(12.0, 7.0),
+        L(19.0, 7.0),
+        C(20.105, 7.0, 21.0, 7.895, 21.0, 9.0),
+        L(21.0, 12.5),
+        M(16.0, 19.0),
+        L(22.0, 19.0),
+        M(19.0, 16.0),
+        L(19.0, 22.0),
     ],
     // grid-dots
     &[

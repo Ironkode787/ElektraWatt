@@ -25,8 +25,11 @@
 //! **The direction** is `source` while the star is on (a star source is a source point; the chosen
 //! direction is kept for after it), else the one D chose, else `target` for an external point, else `source` in the right or bottom quarter of the page's drawing area and `target` in the left
 //! or top quarter ([`quarter_direction`]: the horizontal quarters first), else the last committed one. After a commit
-//! the typed name and the star are cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
-//! the host across tools); **the chosen direction stays** for the next placements (no flip after a placement)
+//! the star is cleared and the committed name and direction (an external point's are not) are remembered ([`IpMemory`], kept by
+//! the host across tools); **a typed name stays after its source is placed**, so the next click places the target
+//! of that name ([`propose`]: a name that has a source is offered as a target), and is cleared by any other point;
+//! **the chosen direction stays** for the next placements (no flip after a placement; a chosen `source` of a typed
+//! name does not, since the name has its source then)
 //! until D or `tool.ip_direction` chooses another, and setting an external reference clears it, so that the external
 //! point is a target.
 //!
@@ -107,9 +110,11 @@ pub struct IpMemory {
     pub last_name: Option<String>,
     /// The last committed direction.
     pub last_direction: IpDir,
-    /// The name typed in Tool options (`ip.name`) that no interruption point has taken yet: the next one the IP tool
-    /// or the Wire tool's P places takes it unchanged, then it is cleared (the play-test). It outlives a
-    /// switch of tools, so a name typed with the IP tool armed names the end of the next wire ended with P.
+    /// The name typed in Tool options (`ip.name`) that is still to be used: the next point the IP tool or the Wire
+    /// tool's P places takes it unchanged. A source the IP tool places leaves it standing, so the next click places
+    /// the target of that name and a pair needs its name typed once (FT-1657); any other point takes it, and it is
+    /// cleared (a name left standing would join the next wires to the pair unseen). It outlives a switch of tools,
+    /// so a name typed with the IP tool armed names the end of the next wire ended with P.
     pub typed: Option<String>,
 }
 
@@ -208,22 +213,13 @@ impl ProjectIps {
     pub fn has_source(&self, name: &str) -> bool {
         self.sources.iter().any(|(n, _)| n == name)
     }
-
-    /// Whether a source point named `name` stands on another page than `page`, and none on `page`.
-    pub fn source_elsewhere(&self, name: &str, page: Uuid) -> bool {
-        let on = |same: bool| {
-            self.sources
-                .iter()
-                .any(|(n, p)| n == name && (*p == page) == same)
-        };
-        on(false) && !on(true)
-    }
 }
 
 /// The name and direction an interruption point gets from the proposal `base`: `auto` is the direction the page's
 /// quarters or the memory give (`chosen` false) or the one D chose (`chosen` true). With `typed` the name is the
-/// user's, unchanged, and an automatic `source` whose name has a source on another page and none on this one, without a
-/// star, becomes `target` with that name: only a name the user gives joins two points. Otherwise the point
+/// user's, unchanged, and an automatic `source` whose name has a source in the project already, without a star,
+/// becomes `target` with that name (the first point of a name is its source, the next ones its targets, on the
+/// same page too): only a name the user gives joins two points. Otherwise the point
 /// keeps `auto` and takes the first name of the series that no interruption point of the project has
 /// ([`ProjectIps::free_name`]), read from the model at the moment of naming, so a reopen, an undo or a paste
 /// never repeats a name.
@@ -239,12 +235,11 @@ pub fn propose(
     if !typed {
         return (project.free_name(base, tables), auto);
     }
-    let direction =
-        if !chosen && !star && auto == IpDir::Source && project.source_elsewhere(base, tables.page) {
-            IpDir::Target
-        } else {
-            auto
-        };
+    let direction = if !chosen && !star && auto == IpDir::Source && project.has_source(base) {
+        IpDir::Target
+    } else {
+        auto
+    };
     (base.to_owned(), direction)
 }
 
@@ -865,9 +860,17 @@ impl Tool for IpTool {
                 self.memory.last_name = Some(name);
                 self.memory.last_direction = direction;
             }
-            // The chosen direction stays; the typed name is taken.
-            self.typed = None;
-            self.memory.typed = None;
+            // A typed name stays after its source, for the target (FT-1657: the tool renamed itself "L1-1" after
+            // the first "L1" and placed a second source); any other point takes it. A chosen direction stays, but
+            // not `source` for the name left standing, whose next point is its target.
+            if self.typed.is_some() && direction == IpDir::Source && self.external.is_none() {
+                if self.chosen == Some(IpDir::Source) {
+                    self.chosen = None;
+                }
+            } else {
+                self.typed = None;
+                self.memory.typed = None;
+            }
             self.star = false;
         }
     }
@@ -1010,7 +1013,14 @@ mod tests {
             ("L".to_owned(), IpDir::Source)
         );
         assert!(project.has_source("0V") && !project.has_source("L"));
-        assert!(project.source_elsewhere("0V", this) && !project.source_elsewhere("0V", other));
+        // A source on this page makes a typed point its target as well.
+        let mut same = ProjectIps::default();
+        same.add_source("L1", this);
+        same.add_name("L1");
+        assert_eq!(
+            p("L1", true, IpDir::Source, false, false, &same),
+            ("L1".to_owned(), IpDir::Target)
+        );
     }
 
     #[test]

@@ -20,6 +20,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             }),
         ),
     ),
+    // Page, New section…
+    with_params(
+        "title?:text, first:uint, last:uint, number?:uint",
+        placed(
+            place(Group::Pages, 4, CommandSize::Small, None),
+            "folder-plus",
+            act("section.new", Command, Menu::Page, &[], writable, None, |s, p| {
+                s.act_section_new(p)
+            }),
+        ),
+    ),
     // Page, Renumber pages…
     with_params(
         "section?:text, start?:uint, step?:uint, keep_gaps?:bool",

@@ -508,6 +508,7 @@ impl ShellModel {
     /// The New page pre-fill: the folio proposal and the section number text. The folio: when the current page
     /// is a page record with number k, the smallest integer n > k whose text is not a folio of the page labels; else
     /// empty. The section: of the marked or cursor section node of the Pages navigator, else the current page's.
+    /// With a section node chosen that the current page is not in, the folio is that section's first free one.
     pub fn new_page_proposal(&self) -> (String, String) {
         let rows = self.page_rows();
         let current = self
@@ -535,9 +536,27 @@ impl ShellModel {
             .iter()
             .find_map(|k| section_key(k))
             .or_else(|| self.navigator_row_key().and_then(|k| section_key(&k)));
-        let section = from_nav
-            .or_else(|| current.and_then(|r| r.section.as_ref().map(|(n, _)| n.to_string())))
-            .unwrap_or_default();
+        // A section chosen in the tree that the current page is not in (a section just made, still empty): its
+        // first free folio, since the page after the current one lies outside its range.
+        let own = current.and_then(|r| r.section.as_ref().map(|(n, _)| n.to_string()));
+        let folio = match (&from_nav, &self.project) {
+            (Some(chosen), Some(project)) if own.as_ref() != Some(chosen) => {
+                let labels = self.page_labels();
+                project
+                    .session
+                    .query()
+                    .sections()
+                    .iter()
+                    .find(|(_, s)| s.number.to_string() == *chosen)
+                    .and_then(|(_, s)| {
+                        (s.folio_range.0..=s.folio_range.1)
+                            .find(|n| !labels.iter().any(|l| *l == n.to_string()))
+                    })
+                    .map_or(folio, |n| n.to_string())
+            }
+            _ => folio,
+        };
+        let section = from_nav.or(own).unwrap_or_default();
         (folio, section)
     }
 

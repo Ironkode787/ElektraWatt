@@ -301,6 +301,9 @@ pub struct App {
     hud_rect: Option<egui::Rect>,
     /// The tool options card's rectangle in the last frame (where the ghost is under it).
     options_rect: Option<egui::Rect>,
+    /// The band of the tool options card's controls in the last frame: the card does not fade while the pointer is
+    /// on it.
+    options_band: Option<egui::Rect>,
     /// Whether the window had the operating system's focus in the last frame.
     window_focused: Option<bool>,
     /// How many times the window regained the focus and asked for the frames that repaint it (tests).
@@ -384,6 +387,7 @@ impl App {
             page_pane: None,
             hud_rect: None,
             options_rect: None,
+            options_band: None,
             window_focused: None,
             focus_repaints: 0,
             disk_polled: (0.0, ew_viewmodel::ew_api::external::POLL_EVERY.as_secs_f64()),
@@ -1708,6 +1712,7 @@ impl App {
             .map(|card| (card, self.shell.layout_options().grid_mm));
         if !(ip || text || marker || structure_box || layout.is_some() || draw.is_some()) {
             self.options_rect = None;
+            self.options_band = None;
             return None;
         }
         let t = crate::theme::current(ctx);
@@ -1723,11 +1728,19 @@ impl App {
             Some(ew_viewmodel::tools::Ghost::Ip { name, .. }) if ip && !name.is_empty() => Some(name),
             _ => None,
         };
-        // See below.
-        let faded = self
-            .options_rect
-            .zip(self.ghost_screen_point())
-            .is_some_and(|(rect, ghost)| rect.contains(ghost));
+        // See below. The card stays whole while it is being used: the pointer on its controls, or a field of it
+        // typed into (FT-1646: the ghost follows the pointer, so going to the name field to type put the ghost
+        // under the card and the card at 40 %, which read as a disabled field).
+        let in_use = ctx.text_edit_focused()
+            || self
+                .options_band
+                .zip(ctx.pointer_latest_pos())
+                .is_some_and(|(band, p)| band.contains(p));
+        let faded = !in_use
+            && self
+                .options_rect
+                .zip(self.ghost_screen_point())
+                .is_some_and(|(rect, ghost)| rect.contains(ghost));
         let at = egui::pos2(
             pane.left() + t.space_4,
             pane.top() + t.size_dock_tab_bar + t.space_4,
@@ -1829,6 +1842,21 @@ impl App {
             });
         // The controls stand over the frame, which was shown after them.
         ctx.move_to_top(band.response.layer_id);
+        // The keys go back to the tool when the pointer goes back to the sheet: with a name typed and the pointer
+        // moved to where the point goes, D turns the direction and is not typed into the name (FT-1657).
+        let to_sheet = ctx.input(|i| {
+            i.pointer.delta() != egui::Vec2::ZERO
+                && i.pointer
+                    .hover_pos()
+                    .is_some_and(|p| pane.contains(p) && !card.response.rect.contains(p))
+        });
+        if to_sheet
+            && ctx.text_edit_focused()
+            && let Some(focused) = ctx.memory(|m| m.focused())
+        {
+            ctx.memory_mut(|m| m.surrender_focus(focused));
+        }
+        self.options_band = Some(egui::Rect::from_min_size(band_at, band_size));
         self.options_rect = Some(card.response.rect);
         Some((card.response.rect, faded))
     }

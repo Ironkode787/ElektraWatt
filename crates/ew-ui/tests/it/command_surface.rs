@@ -556,40 +556,51 @@ fn view_show_switches_show_only_their_check() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The HUD moves under the tab bar while the pointer is within 48 px of its place at the bottom, and
-/// back only once the pointer is more than 96 px away, so it does not flip back and forth between the two.
+/// The owner's hands-on test of 0.1.0 (FT-1639): "the bar on the page shows buttons beside the active tool that
+/// cannot be reached, since the bar moves away as the pointer comes near". The HUD stays where it is while the
+/// pointer comes to it, and a click on its Wire button arms the Wire tool.
 #[test]
-fn the_hud_moves_up_near_the_pointer_and_back_only_far_from_it() {
+fn the_hud_stays_put_and_its_buttons_can_be_clicked() {
     let tmp = Tmp::new();
     let mut h = window(&tmp, "comfortable");
-    let (_, hud, pane) = h.state().command_surface_rects();
-    let (low, pane) = (hud.unwrap(), pane.unwrap());
-    let hud_at = |h: &mut Harness<'static, App>, p: egui::Pos2| {
-        h.hover_at(p);
-        settle(h);
-        h.state().command_surface_rects().1.unwrap()
-    };
-    let above = |d: f32| egui::pos2(low.center().x, low.top() - d);
-    assert_eq!(hud_at(&mut h, above(150.0)), low, "far: at the bottom");
-    let raised = hud_at(&mut h, above(40.0));
-    assert!(
-        raised.center().y < pane.center().y,
-        "within 48 px: raised {raised:?}"
-    );
+    let (_, hud, _) = h.state().command_surface_rects();
+    let low = hud.unwrap();
+    for d in [150.0, 40.0, 10.0, 0.0] {
+        h.hover_at(egui::pos2(low.center().x, low.top() - d));
+        settle(&mut h);
+        assert_eq!(
+            h.state().command_surface_rects().1.unwrap(),
+            low,
+            "the pointer {d} points above it"
+        );
+    }
+    assert_eq!(h.state().shell().tool().name(), "select");
+    // The HUD's Wire button: the one of that name inside the HUD's frame.
+    let wire = h
+        .query_all_by_label("Wire")
+        .map(|n| n.rect())
+        .find(|r| low.contains_rect(*r))
+        .expect("the HUD's Wire button");
+    h.hover_at(wire.center());
+    settle(&mut h);
     assert_eq!(
-        hud_at(&mut h, above(70.0)),
-        raised,
-        "between 48 and 96 px: still raised"
-    );
-    assert_eq!(
-        hud_at(&mut h, above(110.0)),
+        h.state().command_surface_rects().1.unwrap(),
         low,
-        "past 96 px: back at the bottom"
+        "the pointer on its button"
     );
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: wire.center(),
+            button: egui::PointerButton::Primary,
+            pressed,
+            modifiers: egui::Modifiers::NONE,
+        });
+    }
+    settle(&mut h);
     assert_eq!(
-        hud_at(&mut h, above(70.0)),
-        low,
-        "between 48 and 96 px from below: stays low"
+        h.state().shell().tool().name(),
+        "wire",
+        "the click reached the button"
     );
     h.state_mut().shell_mut().shutdown();
 }

@@ -249,8 +249,9 @@ impl PageNavigator {
         query.matches(&tokens, &facets, &label, &[])
     }
 
-    /// The full tree of the rows the filter keeps.
-    fn tree(&self, rows: &[PageRow]) -> Node {
+    /// The full tree of the rows the filter keeps; in the section view without a filter, also the `sections` that
+    /// hold no page yet, each in its place by number (a section just made shows at once).
+    fn tree(&self, rows: &[PageRow], sections: &[(u16, String)]) -> Node {
         let mut root = Node {
             key: String::new(),
             label: String::new(),
@@ -307,14 +308,30 @@ impl PageNavigator {
                 }
             }
         }
+        if self.mode == NavMode::Section && self.filter.is_empty() && self.sort == NavSort::Folio {
+            for (n, title) in sections {
+                let label = strings::format(key!("nav-section"), &[&n.to_string(), title]);
+                root.child(format!("s:{n}"), label, NodeAspect::Section);
+            }
+            // Front matter first, then the sections by number; a stable sort keeps what the page order gave.
+            let number = |key: &str| key.strip_prefix("s:").and_then(|n| n.parse::<u32>().ok());
+            root.nodes
+                .sort_by_key(|node| number(&node.key).map_or((0, 0), |n| (1, n)));
+        }
         root
     }
 
     /// The rows on show, in display order: the nodes and pages the filter keeps, children of collapsed nodes left
     /// out.
     pub fn visible(&self, rows: &[PageRow]) -> Vec<NavRow> {
+        self.visible_with(rows, &[])
+    }
+
+    /// [`PageNavigator::visible`] with the project's sections (number and title), so that the section view lists a
+    /// section without a page.
+    pub fn visible_with(&self, rows: &[PageRow], sections: &[(u16, String)]) -> Vec<NavRow> {
         let mut out = Vec::new();
-        self.flatten(&self.tree(rows), rows, 1, None, &mut out);
+        self.flatten(&self.tree(rows, sections), rows, 1, None, &mut out);
         out
     }
 

@@ -151,6 +151,10 @@ arrow's tip and belongs at the left edge. The name is above the arrow and the cr
 never rotated or mirrored: change the point's direction instead. While you draw a wire, the interruption point's key
 ends the wire in a point of the right form for that end.
 
+Type the name in Tool options, once for a pair: the first point of a name is its source, and the tool then floats
+the same name as its target, on this page or the next. After the target the name is used up, and each further point
+gets a name of its own until you type one.
+
 ## Interruption point direction
 
 Turns the interruption point that the tool floats to its next direction. Draw ▸ Connect ▸ Interruption point

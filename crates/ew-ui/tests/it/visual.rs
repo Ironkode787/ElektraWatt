@@ -2542,3 +2542,115 @@ fn the_wizard_shows_each_steps_result_by_clicks_and_keys_and_creates_the_standar
     assert!(shows(&d, "Apply the check level"), "{:?}", d.labels());
     d.shell_mut().shutdown();
 }
+
+/// The owner's hands-on test of 0.1.0 (FT-1634): "a project has a button to add a page but no way to add a
+/// section". The Pages panel's New section button opens the form with a number and a hundred of folios proposed;
+/// Create makes the section, which the tree then lists; a right click on a row of the tree offers New page… and
+/// New section…, and the entry opens the form again with the next proposal.
+#[test]
+fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() {
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
+    let _ = d.shell_mut().dispatch("file.new", &project);
+    d.settle();
+    let form = |d: &mut Driver| -> Vec<(String, String)> {
+        match d.shell_mut().dialog() {
+            Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+                assert_eq!(f.action, "section.new");
+                f.fields
+                    .iter()
+                    .map(|x| (x.name.to_owned(), x.value.clone()))
+                    .collect()
+            }
+            other => panic!("the New section form: {other:?}"),
+        }
+    };
+    let listed = |d: &Driver| d.labels().iter().any(|(l, _)| l.contains("Field wiring"));
+    assert!(!listed(&d));
+    d.input(&click(
+        d.find("New section")
+            .expect("the Pages panel's New section button"),
+    ));
+    d.settle();
+    let fields = form(&mut d);
+    let value = |name: &str| fields.iter().find(|(n, _)| n == name).unwrap().1.clone();
+    let (first, last, number): (u32, u32, u16) = (
+        value("first").parse().unwrap(),
+        value("last").parse().unwrap(),
+        value("number").parse().unwrap(),
+    );
+    assert!(
+        first % 100 == 0 && last == first + 99,
+        "a hundred of folios: {first} to {last}"
+    );
+    assert!(number >= 1);
+    // The title is the form's first field and has the focus.
+    d.input(&Input::Type {
+        text: "Field wiring".to_owned(),
+    });
+    d.input(&key("enter"));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none(), "Create closes the form");
+    let toast = state(&mut d)["toast"].to_string();
+    assert!(
+        toast.contains(&format!(
+            "Section {number} Field wiring made, folios {first} to {last}."
+        )),
+        "{toast}"
+    );
+    assert!(listed(&d), "the tree lists the section: {:?}", d.labels());
+    // The tree's right-click menu.
+    let row = d
+        .labels()
+        .into_iter()
+        .find(|(l, _)| l.contains("Field wiring"))
+        .unwrap_or_else(|| panic!("the section's row: {:?}", d.labels()))
+        .1;
+    d.input(&Input::Click {
+        at: row,
+        button: PointerButton::Secondary,
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    assert!(d.find("New page…").is_some(), "{:?}", d.labels());
+    d.input(&click(d.find("New section…").expect("the menu's New section…")));
+    d.settle();
+    let fields = form(&mut d);
+    let next = fields
+        .iter()
+        .find(|(n, _)| n == "first")
+        .unwrap()
+        .1
+        .parse::<u32>()
+        .unwrap();
+    assert!(
+        next > last,
+        "the next proposal lies after the section just made: {next}"
+    );
+    d.input(&key("escape"));
+    d.settle();
+    // The section chosen in the tree: New page proposes its first folio and its number.
+    d.input(&click(row));
+    d.settle();
+    d.input(&click(
+        d.find("New page").expect("the Pages panel's New page button"),
+    ));
+    d.settle();
+    match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+            let value = |name: &str| f.fields.iter().find(|x| x.name == name).unwrap().value.clone();
+            assert_eq!(
+                (value("folio"), value("section")),
+                (first.to_string(), number.to_string())
+            );
+        }
+        other => panic!("the New page form: {other:?}"),
+    }
+    d.input(&key("enter"));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none(), "the page is made");
+    assert_eq!(state(&mut d)["page"], first.to_string());
+    d.shell_mut().shutdown();
+}

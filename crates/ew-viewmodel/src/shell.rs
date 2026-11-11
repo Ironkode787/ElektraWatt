@@ -535,6 +535,9 @@ struct Project {
     labels: Vec<String>,
     /// The rows of the derived page order (`Session::page_rows`), once per revision.
     rows: Vec<PageRow>,
+    /// The sections by number with their titles, once per revision: the Pages tree lists a section that holds no
+    /// page yet (FT-1634).
+    sections: Vec<(u16, String)>,
 }
 
 /// All state of the application shell.
@@ -1878,6 +1881,7 @@ impl ShellModel {
             access,
             labels,
             rows: Vec::new(),
+            sections: Vec::new(),
         });
         // A project the start-up offer lists is no longer offered once it is open.
         self.opened_offered_project(dir);

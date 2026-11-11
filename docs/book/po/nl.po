@@ -3591,6 +3591,15 @@ msgid "The pages in folio order, flat, by section or by structure."
 msgstr ""
 
 #: src/reference/window/panels.md:71
+msgid ""
+"The two buttons beside the filter make a page and a section; a right click "
+"on a row offers the same. A section is a range of folios with a title, such "
+"as 100 to 199: New section proposes the next number and the next hundred, "
+"and the tree lists the section at once, still empty. With a section chosen "
+"in the tree, New page proposes its first free folio."
+msgstr ""
+
+#: src/reference/window/panels.md:71
 msgid "Devices"
 msgstr ""
 

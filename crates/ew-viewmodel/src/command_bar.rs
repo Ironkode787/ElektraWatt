@@ -535,6 +535,16 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
     items
 }
 
+/// The context menu of the Pages tree: what the project can gain there, New page… and New section… (FT-1634),
+/// each in the state of `model` (disabled with its reason in a read-only project).
+pub fn pages_tree_menu(model: &ShellModel) -> Vec<ActionItem> {
+    ["page.new", "section.new"]
+        .into_iter()
+        .filter_map(actions::find)
+        .map(|meta| actions::item_of(meta, model))
+        .collect()
+}
+
 /// A navigator row's context menu: on a Potentials row with a definition point (`NavNode::define_at`),
 /// Define potential… at it (`potential.draw_row`), disabled with its reason in a read-only project. Empty when the row
 /// offers nothing: the window then opens no menu.

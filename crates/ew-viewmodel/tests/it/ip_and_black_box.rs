@@ -147,10 +147,12 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     let placed = ip(&tables(&s), "24VDC-1", "source");
     assert_eq!(placed.pos, right);
     // The direction chosen with D stays after the commit (no flip after a placement), in either quarter; the
-    // star left it alone and is cleared, and the remembered name's series goes on to its first name that no point of
-    // the project has (24VDC-1 to 24VDC-4 stand in Golden A).
+    // star left it alone and is cleared. The typed name stays after its source (FT-1657); erased, the remembered
+    // name's series goes on to its first name that no point of the project has (24VDC-1 to 24VDC-4 stand in Golden A).
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     assert_eq!(canvas(&s)["ghost"]["star"], false);
+    assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-1");
+    done(&mut s, "ip.name", json!({"text": ""}));
     assert_eq!(canvas(&s)["ghost"]["name"], "24VDC-5");
     cursor(&mut s, left);
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");

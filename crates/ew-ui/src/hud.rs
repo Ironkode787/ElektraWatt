@@ -4,9 +4,10 @@
 //! The tool HUD and the zoom control over the canvas (doc 16a §5.5), from
 //! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred `space.5` above the page view's bottom edge: the active
 //! tool as an accent pill, the three quick tools (Wire, Symbol, Text), a divider and the prompt (the selection and its
-//! keys, the pick stack under the pointer, or the tool's target and keys). It never takes the keyboard focus
-//! and never covers the pointer: while the pointer is within 48 px of it, it stands 12 px under the canvas tab bar, and
-//! goes back once the pointer is more than 96 px away; it keeps clear of the toast stack.
+//! keys, the pick stack under the pointer, or the tool's target and keys). It never takes the keyboard focus and
+//! it stays where it is, so its buttons can be reached (FT-1639: it used to move under the tab bar as the pointer
+//! came near, which put its own buttons out of reach); a fit keeps the band it stands in clear of the sheet
+//! ([`fit_inset`]), and it keeps clear of the toast stack.
 //! The zoom control is a column of three icon buttons at the bottom right. The HUD replaces the tool strip under the
 //! menu bar; the fields of the IP, Text, Wire marker and Structure box tools moved into the "Tool options" card at the
 //! page view's top left (`app.rs`).
@@ -24,13 +25,6 @@ use serde_json::Value;
 use crate::app::Event;
 use crate::command_bar::{PROMPT_OPACITY, Spec, button_response, paint_icon, state_overlay};
 use crate::theme::{self, Tokens, TypeToken};
-
-/// How near the pointer may come to the HUD before it moves under the tab bar (doc 16a §5.5), points.
-const AVOID: f32 = 48.0;
-
-/// How far the pointer must go from the HUD's place at the bottom before it moves back there (with
-/// the gap between 48 and 96 px it does not flip back and forth), points.
-const RETURN: f32 = 96.0;
 
 /// The opacity of the HUD's divider (the mockup's `.hud .div`, a quarter of the text colour).
 const DIVIDER_OPACITY: f32 = 0.25;
@@ -51,15 +45,10 @@ pub(crate) fn fit_inset(t: &Tokens) -> f32 {
     t.size_control + 2.0 * t.space_2 + 2.0 * t.space_5
 }
 
-/// The HUD's rectangle of width `width` in the page view `pane` (doc 16a §5.5): centred, `space.5` above the bottom;
-/// `space.4` under the canvas tab bar when `raised`.
-pub(crate) fn hud_rect(t: &Tokens, pane: Rect, width: f32, raised: bool) -> Rect {
+/// The HUD's rectangle of width `width` in the page view `pane` (doc 16a §5.5): centred, `space.5` above the bottom.
+pub(crate) fn hud_rect(t: &Tokens, pane: Rect, width: f32) -> Rect {
     let height = t.size_control + 2.0 * t.space_2;
-    let top = if raised {
-        pane.top() + t.size_dock_tab_bar + t.space_4
-    } else {
-        pane.bottom() - t.space_5 - height
-    };
+    let top = pane.bottom() - t.space_5 - height;
     Rect::from_min_size(pos2(pane.center().x - width / 2.0, top), vec2(width, height))
 }
 
@@ -120,20 +109,7 @@ pub(crate) fn show(
     } else {
         (width, prompt_room)
     };
-    let lower = hud_rect(&t, pane, width, false);
-    // Raised while the pointer is within `AVOID` of the HUD's place at the bottom, back only once it is
-    // more than `RETURN` away.
-    let raised_id = Id::unique("tool-hud-raised");
-    let reach = if ctx.data(|d| d.get_temp::<bool>(raised_id)).unwrap_or(false) {
-        RETURN
-    } else {
-        AVOID
-    };
-    let raised = ctx
-        .pointer_hover_pos()
-        .is_some_and(|p| lower.expand(reach).contains(p));
-    ctx.data_mut(|d| d.insert_temp(raised_id, raised));
-    let rect = clear_of_toasts(&t, pane, hud_rect(&t, pane, width, raised), toasts);
+    let rect = clear_of_toasts(&t, pane, hud_rect(&t, pane, width), toasts);
     let mut value = h.tool_label.clone();
     if let Some(target) = &h.target {
         value.push(' ');
@@ -407,8 +383,12 @@ mod tests {
     fn the_hud_keeps_clear_of_the_toast_stack() {
         let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
         let pane = Rect::from_min_max(pos2(300.0, 140.0), pos2(1500.0, 900.0));
-        let low = hud_rect(&t, pane, 600.0, false);
-        let high = hud_rect(&t, pane, 600.0, true);
+        let low = hud_rect(&t, pane, 600.0);
+        // A HUD a tall stack pushed to the top of the page view.
+        let high = low.translate(egui::vec2(
+            0.0,
+            pane.top() + t.size_dock_tab_bar + t.space_4 - low.top(),
+        ));
         assert_eq!(clear_of_toasts(&t, pane, low, None), low);
         // A stack beside it: no move.
         let aside = Rect::from_min_max(pos2(1450.0, 200.0), pos2(1490.0, 400.0));
@@ -501,7 +481,7 @@ mod tests {
         let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
         for width in [600.0, 1000.0, 1600.0] {
             let pane = Rect::from_min_max(pos2(100.0, 50.0), pos2(100.0 + width, 750.0));
-            let hud = hud_rect(&t, pane, max_width(&t, pane), false);
+            let hud = hud_rect(&t, pane, max_width(&t, pane));
             let zoom = zoom_rect(&t, pane);
             assert!(
                 hud.right() + t.space_2 <= zoom.left() + 0.01,

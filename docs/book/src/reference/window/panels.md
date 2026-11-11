@@ -68,6 +68,11 @@ selects the record and opens its page.
 
 The pages in folio order, flat, by section or by structure.
 
+The two buttons beside the filter make a page and a section; a right click on a row offers the same. A section is a
+range of folios with a title, such as 100 to 199: New section proposes the next number and the next hundred, and the
+tree lists the section at once, still empty. With a section chosen in the tree, New page proposes its first free
+folio.
+
 ### Devices
 
 The devices with their functions and representations.

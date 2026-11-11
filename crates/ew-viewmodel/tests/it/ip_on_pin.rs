@@ -291,6 +291,9 @@ fn a_point_on_another_point_is_refused() {
     let pin = cp(&s, "-102F2:14");
     arm_on(&mut s, "0V", pin.at);
     done(&mut s, "canvas.activate", json!({}));
+    // Without the typed name (it stays for a source's target, whose form has its CP elsewhere) the ghost is the next
+    // point of the same form, on the point just placed.
+    done(&mut s, "ip.name", json!({"text": ""}));
     assert_eq!(
         ghost(&s)["connects"],
         Value::Null,
@@ -481,6 +484,10 @@ fn a_second_source_on_a_pin_keeps_ft822s_refusal() {
     let pin = cp(&s, "-102F2:14");
     arm_on(&mut s, &source, pin.at);
     done(&mut s, "tool.ip_direction", json!({"direction": "source"}));
+    // The name has its source, so the tool offered its target; the source's form has its CP at the tail: the ghost
+    // goes where that CP lies on the pin.
+    let pos = insertion_for(&mut s, pin.at);
+    cursor(&mut s, pos);
     assert_eq!(ghost(&s)["connects"], "-102F2:14");
     let before = tables(&s);
     let items = s.tool_overlay().items.len();

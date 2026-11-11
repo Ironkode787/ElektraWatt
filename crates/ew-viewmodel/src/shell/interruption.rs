@@ -379,8 +379,9 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// The name typed in the IP tool's name field (`ip.name`) that no interruption point has taken yet, which the field
-    /// shows; `None` when none is typed or a point took it.
+    /// The name typed in the IP tool's name field (`ip.name`) that is still to be used, which the field shows: it
+    /// stays after its source is placed, for the target, and is taken by any other point. `None` when none is
+    /// typed or a point took it.
     pub fn ip_typed_name(&self) -> Option<&str> {
         self.tools.ip_memory.typed.as_deref()
     }

@@ -201,7 +201,8 @@ impl ShellModel {
 
     /// The navigator's rows on show.
     pub fn navigator_rows(&self) -> Vec<NavRow> {
-        self.navigator.visible(self.page_rows())
+        let sections = self.project.as_ref().map_or(&[][..], |p| p.sections.as_slice());
+        self.navigator.visible_with(self.page_rows(), sections)
     }
 
     /// The key of the navigator's row cursor.
@@ -304,6 +305,7 @@ impl ShellModel {
         if let Some(p) = &mut self.project {
             p.labels = rows.iter().map(|r| r.folio.clone()).collect();
             p.rows = rows;
+            p.sections = ew_api::output::print::sections(&p.session.query());
         }
         self.focus = Some(Focus::Canvas(0));
         if let Some(first) = self.page_rows().first() {
@@ -320,6 +322,7 @@ impl ShellModel {
         let rows = p.session.page_rows();
         let old = std::mem::replace(&mut p.rows, rows);
         p.labels = p.rows.iter().map(|r| r.folio.clone()).collect();
+        p.sections = ew_api::output::print::sections(&p.session.query());
         self.count(|c| c.page_rows += 1);
         let rows = self.page_rows().to_vec();
         if rows.is_empty() {

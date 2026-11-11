@@ -250,6 +250,23 @@ impl NavigatorPane {
                         if button.clicked() {
                             events.push(Event::Action("page.new", Value::Null));
                         }
+                        // New section beside it (FT-1634): the same action as Page, New section.
+                        let new_section =
+                            ew_viewmodel::actions::find("section.new").map(|a| (a.enabled)(shell));
+                        let button = crate::components::icon_toggle(
+                            ui,
+                            crate::icons::IconId::folder_plus,
+                            strings::text(key!("nav-new-section")),
+                            matches!(new_section, Some(Ok(()))),
+                            None,
+                        );
+                        let button = match new_section {
+                            Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
+                            _ => button,
+                        };
+                        if button.clicked() {
+                            events.push(Event::Action("section.new", Value::Null));
+                        }
                     }
                     // The Table toggle (§8.1, `navigator.table`); the Messages pane
                     // has no table mode, so no toggle.
@@ -549,6 +566,17 @@ impl NavigatorPane {
                     );
                 }
                 view = range.clone();
+                // The Pages tree's right-click menu (FT-1634), the same on every row.
+                let menu = if pages {
+                    ew_viewmodel::command_bar::pages_tree_menu(shell)
+                } else {
+                    Vec::new()
+                };
+                let tree = Tree {
+                    cursor: cursor.as_deref(),
+                    visible: &visible,
+                    menu: &menu,
+                };
                 for row in &visible[range] {
                     painted += 1;
                     if let Some(r) = renaming.as_ref().filter(|r| r.key == row.key) {
@@ -560,7 +588,7 @@ impl NavigatorPane {
                         }
                         continue;
                     }
-                    row_ui(ui, kind, pages, row, cursor.as_deref(), &visible, events);
+                    row_ui(ui, kind, pages, row, &tree, events);
                 }
             });
             if self.scroll_area.0 != Some(shown.id) {
@@ -931,16 +959,21 @@ fn rename_error_ui(
     }
 }
 
+/// What every row of a tree is drawn against: the cursor's key, the rows on show (a drag of marked rows takes them
+/// all) and the right-click menu of the tree's rows (empty: none).
+struct Tree<'a> {
+    cursor: Option<&'a str>,
+    visible: &'a [ShownRow],
+    menu: &'a [ew_viewmodel::actions::ActionItem],
+}
+
 /// One row: its glyph, its text, its input, drag and drop, and its AccessKit node.
-fn row_ui(
-    ui: &mut Ui,
-    kind: NavKind,
-    pages: bool,
-    row: &ShownRow,
-    cursor: Option<&str>,
-    visible: &[ShownRow],
-    events: &mut Vec<Event>,
-) {
+fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'_>, events: &mut Vec<Event>) {
+    let Tree {
+        cursor,
+        visible,
+        menu,
+    } = *tree;
     let is_cursor = cursor == Some(row.key.as_str());
     let (glyph_clicked, response) = ui
         .horizontal(|ui| {
@@ -1100,6 +1133,13 @@ fn row_ui(
         };
         events.push(Event::Action(action.0, action.1));
         return;
+    }
+    if !menu.is_empty() {
+        response.context_menu(|ui| {
+            for item in menu {
+                crate::menu::item(ui, item, events);
+            }
+        });
     }
     // Drag sources.
     match &row.drag {

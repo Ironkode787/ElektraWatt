@@ -61,6 +61,8 @@ fn source_on_101(tmp: &Tmp) -> ShellModel {
         "no 0V source yet: the quarter gives source"
     );
     done(&mut s, "canvas.activate", json!({}));
+    // The name stays for the source's target; the scene ends without a typed name.
+    done(&mut s, "ip.name", json!({"text": ""}));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "page.goto", json!({"folio": "102"}));
@@ -88,8 +90,10 @@ fn a_name_with_a_source_on_another_page_is_offered_as_a_target() {
     assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("0V", "target"));
 }
 
+/// The persona round on rc.3 (FT-1657): after its source the typed name stays, and the tool floats its target, on
+/// the source's own page too; after the target the name is taken and the series goes on as before.
 #[test]
-fn on_the_page_of_the_source_the_series_goes_on_as_before() {
+fn on_the_page_of_the_source_the_target_follows_and_then_the_series_goes_on() {
     let tmp = Tmp::new("g40-series");
     let mut s = new_project(&tmp);
     arm_ip(&mut s, "24VDC-1", 150.0);
@@ -98,8 +102,16 @@ fn on_the_page_of_the_source_the_series_goes_on_as_before() {
     let g = ghost(&s);
     assert_eq!(
         (g["name"].as_str(), g["direction"].as_str()),
+        (Some("24VDC-1"), Some("target")),
+        "the name has its source: its target follows"
+    );
+    done(&mut s, "canvas.activate", json!({}));
+    done(&mut s, "cursor.set", json!({"x_mm": 330.0, "y_mm": 190.0}));
+    let g = ghost(&s);
+    assert_eq!(
+        (g["name"].as_str(), g["direction"].as_str()),
         (Some("24VDC-2"), Some("source")),
-        "the source stands on this page: the next source of the series"
+        "the pair stands: the next source of the series"
     );
 }
 

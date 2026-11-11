@@ -234,6 +234,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     dispatch(&mut h, "messages.show", json!({ "on": false }));
     for (action, params) in [
         ("page.new", json!({})),
+        ("section.new", json!({})),
         ("structure.new", json!({})),
         ("external_ref.new", json!({})),
         ("strip.new", json!({ "dialog": true })),

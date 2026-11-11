@@ -62,7 +62,9 @@ fn a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
         format!("0V \u{b7} source: the wire continues at its targets \u{b7} {d}: target")
     );
     done(&mut s, "canvas.activate", json!({}));
-    // The next proposal on the same page goes on from 0V, which has its source here.
+    // Without the typed name (it stays for the source's target) the next proposal on the same page goes on from 0V,
+    // which has its source here.
+    done(&mut s, "ip.name", json!({"text": ""}));
     done(&mut s, "cursor.set", json!({"x_mm": 330.0, "y_mm": 170.0}));
     let g = ghost(&s);
     assert_eq!(
