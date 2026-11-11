@@ -780,6 +780,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-grid-mismatch"));
         };
         self.tools.picker = None;
+        let back = self.current_folio().map(str::to_owned);
         if let Err(message) = self.new_page_with_grid(json!({"num": num, "den": den}), None) {
             return Outcome::Failed { message };
         }
@@ -794,6 +795,7 @@ impl ShellModel {
         ] {
             let out = self.dispatch(action, &params);
             if out != Outcome::Done {
+                self.take_back_new_page(back.as_deref());
                 return out;
             }
         }
@@ -803,6 +805,17 @@ impl ShellModel {
             return self.dispatch("select.set", &json!({ "ids": [id] }));
         }
         Outcome::Done
+    }
+
+    /// Takes back the page that Place on a new page with its grid made when the placement on it is refused (a
+    /// terminal in a project without a strip): the page was made for the symbol alone, and an empty page left behind
+    /// is a surprise. The page that was on show before, `back`, shows again.
+    pub(crate) fn take_back_new_page(&mut self, back: Option<&str>) {
+        let _ = self.dispatch("ui.dismiss", &json!({}));
+        let _ = self.dispatch("edit.undo", &json!({}));
+        if let Some(folio) = back {
+            let _ = self.dispatch("page.goto", &json!({ "folio": folio }));
+        }
     }
 
     /// `picker.choose`: the current row (§7.1).

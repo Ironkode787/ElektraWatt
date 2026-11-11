@@ -81,9 +81,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 - FT-1587 `ew-viewmodel`: The page's Properties badge read "1 Pending" while the Messages panel said "pending 8" and the status bar "8 pending on this page" (FIXR1's frame 06, cause unverified: perhaps only findings whose subject is the page).
 - FT-1546 `ew-viewmodel`: The terminal designation counter keeps a session memory (`crates/ew-viewmodel/src/tools/place.rs:786`) and can propose a designation already in use after it fills a gap (the command refuses it in words); read the strip again after each commit, as ID-1462 does for interruption points.
 - FT-1550 `ew-commands, ew-api`: `page.create` and the built-in template give a new page the QET 10 px grid, against FR-PAG-031, DEC-045 and doc 06 (new pages use the native grid); build FR-PAG-031's setting "grid for new pages", default native, and move the defaults with it (FT-458's ruling, ID-650).
-- FT-1563 `ew-viewmodel`: **Medium.** The symbol editor's open or import of a malformed symbol file and an export's file-system failure still show the reader's or the system's own message; key them as FIX25c keyed the editor's edits (`symbol-change-invalid`, ID-1483 F2).
-- FT-1564 `ew-ui`: The symbol editor's properties panel is a little wider on the Drawing tab than on Library, so the canvas shifts between tabs; one width on every tab (doc 16a).
-- FT-1565 `ew-viewmodel`: "Place on a new page with its grid" (the picker's `picker.new_page` and the editor's `symbol.new_page`) makes the page first; when the placement is then refused (a published terminal's `reason-no-strip`), the empty page is left behind; check the placement before the page, or undo the page with the refusal.
 - FT-1571 `ew-viewmodel`: The QElectroTech import card does not say that the starter library was not found; the user learns it only from the banner after Apply; the card names it before Apply (WP-S3.09 D8).
 
 ### Texts, and Dutch

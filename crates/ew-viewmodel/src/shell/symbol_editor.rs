@@ -330,6 +330,20 @@ fn symbol_error(e: symbols::Error) -> String {
     }
 }
 
+/// The error of reading or writing a symbol file in the window's words: the reader's or the system's own message
+/// (a parser's line and column, an operating system's error text) gives way to `words`, which say what a person
+/// can do; a refusal that is already in words stays.
+fn file_error(e: symbols::Error, words: strings::Key<'static>) -> String {
+    match e {
+        symbols::Error::Input(s)
+            if !(s.starts_with("symbol-") || s.starts_with("eplan-")) || s.contains(' ') =>
+        {
+            strings::text(words).to_owned()
+        }
+        e => symbol_error(e),
+    }
+}
+
 /// The error of an edit to the draft in the window's words.
 // An edit the reader refuses is refused in words, never in the parser's (a text with no
 // characters, say).
@@ -485,6 +499,7 @@ impl ShellModel {
             .ok_or_else(|| strings::text(key!("symbol-not-published")).to_owned())?
             .to_owned();
         let grid = json!(editor.draft.symbol.grid);
+        let back = self.current_folio().map(str::to_owned);
         self.new_page_with_grid(grid, None)?;
         let page = self.tools.last_primary.clone();
         // The editor steps aside first, as after a test placement: the Place tool works on the project's page.
@@ -499,11 +514,17 @@ impl ShellModel {
             ("cursor.set", json!({"x_mm": 40, "y_mm": 40})),
             ("canvas.activate", json!({})),
         ] {
-            match self.dispatch(action, &params) {
-                Outcome::Done => {}
-                Outcome::Failed { message } => return Err(message),
-                Outcome::Refused { reason_key } => return Err(strings::text(reason_key).to_owned()),
+            let refusal = match self.dispatch(action, &params) {
+                Outcome::Done => continue,
+                Outcome::Failed { message } => message,
+                Outcome::Refused { reason_key } => strings::text(reason_key).to_owned(),
+            };
+            // The page was made for this symbol alone: a refused placement takes it back.
+            self.take_back_new_page(back.as_deref());
+            if let Some(editor) = &mut self.symbol_editor {
+                editor.shown = true;
             }
+            return Err(refusal);
         }
         let placed = self
             .tools
@@ -619,7 +640,8 @@ impl ShellModel {
             "link" => Self::symbol_link(editor, p)?,
             "export" => {
                 let path = file_path.ok_or_else(damaged)?;
-                symbols::export(&editor.draft, &path).map_err(symbol_error)?;
+                symbols::export(&editor.draft, &path)
+                    .map_err(|e| file_error(e, key!("symbol-export-failed")))?;
                 editor.saved = Some(editor.draft.clone());
                 editor.stored = true;
             }
@@ -703,7 +725,8 @@ impl ShellModel {
             } else {
                 key.to_owned()
             };
-            candidates = symbols::open(&path, &key).map_err(symbol_error)?;
+            candidates =
+                symbols::open(&path, &key).map_err(|e| file_error(e, key!("symbol-file-unreadable")))?;
             candidates
                 .first()
                 .cloned()

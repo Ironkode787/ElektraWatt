@@ -1362,6 +1362,89 @@ fn a_symbol_on_another_grid_is_placed_on_a_new_page_with_its_grid() {
     shell.shutdown();
 }
 
+/// A symbol file that cannot be read and a draft that cannot be written are said in the window's words, never in
+/// the reader's (a line and a column) or the operating system's.
+#[test]
+fn a_bad_symbol_file_and_a_failed_export_are_said_in_words() {
+    let tmp = Tmp::new("symbol-file-words");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    let bad = tmp.0.join("bad.symbol.json");
+    std::fs::write(&bad, "{ \"format\": ").unwrap();
+    assert_eq!(
+        failed(&mut shell, "symbol.open", json!({ "file": bad })),
+        "Symbol editor: This file cannot be read as a symbol. It may be damaged, or not a symbol file."
+    );
+    drawn(&mut shell, "example.words", "Words");
+    // A folder that is a file: the system refuses the write.
+    let blocker = tmp.0.join("blocker");
+    std::fs::write(&blocker, "x").unwrap();
+    assert_eq!(
+        failed(
+            &mut shell,
+            "symbol.export",
+            json!({ "file": blocker.join("draft.symbol.json") })
+        ),
+        "Symbol editor: The draft could not be written to that file. Check that the folder exists and that you may \
+         write to it."
+    );
+    shell.shutdown();
+}
+
+/// Place on a new page with its grid makes the page for the symbol alone: when the placement is then refused (a
+/// terminal in a project without a terminal strip), the page is taken back, the page that was on show shows again,
+/// and the refusal is said in words. From the editor's offer and from the Insert symbol list.
+#[test]
+fn a_refused_placement_on_a_new_page_leaves_no_empty_page() {
+    let tmp = Tmp::new("symbol-new-page-refused");
+    let dir = tmp.0.join("project.ew");
+    let mut shell = tmp.empty_shell(Mode::Headless);
+    done(&mut shell, "file.new", json!({"dir":dir,"template":"builtin"}));
+    // A terminal symbol on the native grid, saved to a library; the project's page 1 is on the QET grid.
+    drawn(&mut shell, "example.terminal", "Clamp");
+    done(&mut shell, "symbol.function", json!({"key":"ew.fn.terminal"}));
+    done(
+        &mut shell,
+        "symbol.save",
+        json!({"directory": tmp.0.join("terminals.ewlib")}),
+    );
+    let labels =
+        |shell: &ShellModel| -> Vec<String> { shell.page_labels().iter().map(ToString::to_string).collect() };
+    let pages = labels(&shell);
+    let folio = pages[shell.page_index()].clone();
+    let refusal = failed(&mut shell, "symbol.new_page", json!({}));
+    assert!(
+        refusal.starts_with("Symbol editor: No terminal strip to add to"),
+        "{refusal}"
+    );
+    assert_eq!(labels(&shell), pages, "no page is left behind");
+    assert_eq!(
+        labels(&shell)[shell.page_index()],
+        folio,
+        "the page that was on show"
+    );
+    assert!(shell.symbol_editor().is_some_and(|e| e.error.is_some()));
+    // The same from the Insert symbol list's Place on a new page with its grid.
+    done(&mut shell, "symbol.close", json!({}));
+    done(&mut shell, "tool.place", json!({}));
+    let row = {
+        let picker = shell.picker().expect("the picker");
+        picker
+            .rows
+            .iter()
+            .position(|r| {
+                matches!(r, ew_viewmodel::tools::PickerRow::Symbol(i)
+                    if picker.catalogue.symbols[*i].grid_mismatch.is_some())
+            })
+            .expect("the library symbol on another grid")
+    };
+    done(&mut shell, "picker.row", json!({ "to": row }));
+    let out = shell.dispatch("picker.new_page", &json!({}));
+    assert_ne!(out, Outcome::Done);
+    assert_eq!(labels(&shell), pages, "no page is left behind");
+    assert_eq!(labels(&shell)[shell.page_index()], folio);
+    shell.shutdown();
+}
+
 /// The editor's offer for a draft saved to a library and unchanged since places the published
 /// symbol on a new page with its grid and selects it; for any other draft it is Test on a new page, and
 /// `symbol.new_page` is refused in words.

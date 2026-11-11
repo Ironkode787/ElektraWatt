@@ -1378,6 +1378,22 @@ fn a_drag_on_a_selected_wire_edits_its_route_with_the_mouse() {
     d.shell_mut().shutdown();
 }
 
+/// The editor's canvas stands still when the panel's tab changes: the panel has one width on every tab, with and
+/// without its scroll bar (a panel a little wider on Drawing than on Library moved the drawing sideways).
+#[test]
+fn symbol_editor_canvas_stands_still_across_the_panel_s_tabs() {
+    let tmp = Tmp::new();
+    let mut d = symbol_driver(&tmp, "example.tabs");
+    let canvas = |d: &Driver| d.find("Drawing of Drawn").expect("the canvas");
+    let at = canvas(&d);
+    for tab in ["Electrical data", "Library", "Drawing"] {
+        d.input(&click(d.find(tab).unwrap()));
+        d.settle();
+        assert_eq!(canvas(&d), at, "{tab}");
+    }
+    d.shell_mut().shutdown();
+}
+
 /// The Select tool holds a connection point as it holds a shape (the owner's hands-on test: it could neither move nor
 /// delete one, nothing showed where a moved item would land, and the arrow keys did nothing). A drag moves the point
 /// on the connection grid, an arrow key moves it one grid step, Delete removes it; each is one undo step.
