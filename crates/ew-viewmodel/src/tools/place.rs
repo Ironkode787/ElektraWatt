@@ -119,6 +119,8 @@ pub struct PlaceTool {
     word: &'static str,
     /// Whether a `new_terminal` target waits for its next designation.
     ask: bool,
+    /// Whether a commit counted the designation on and the host has not read the strip since ([`Self::take_counted`]).
+    counted: bool,
     /// Whether the page's type autoconnects (doc 06 §2.2).
     autoconnect: bool,
     /// How many times Tab was pressed since the ghost last moved.
@@ -202,6 +204,7 @@ impl PlaceTool {
             last: Overlay::default(),
             word: "",
             ask: false,
+            counted: false,
             autoconnect: false,
             cycle: 0,
             proposals: Proposals::default(),
@@ -702,6 +705,12 @@ impl PlaceTool {
         }
     }
 
+    /// Whether a commit counted the designation on since the last call: the host then reads the strip's lowest free
+    /// designation once (FT-1546), never over a designation the user gave.
+    pub fn take_counted(&mut self) -> bool {
+        std::mem::take(&mut self.counted)
+    }
+
     /// The designation of a `new_terminal` target, as the catalogue proposes it after an Undo or a Redo: the tool stops asking for one.
     pub fn set_designation(&mut self, next: String) {
         if let PlaceTarget::Terminal { designation, .. } = &mut self.target {
@@ -781,7 +790,10 @@ impl Tool for PlaceTool {
         }
         if let PlaceTarget::Terminal { designation, .. } = &mut self.target {
             match next_designation(designation) {
-                Some(next) => *designation = next,
+                Some(next) => {
+                    *designation = next;
+                    self.counted = true;
+                }
                 None => self.ask = true,
             }
         }
