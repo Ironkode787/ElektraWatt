@@ -279,6 +279,7 @@ error-join-slots = { $p0 } heeft { $p1 } ongeplaatste functies { $p2 }; noem een
 error-join-unknown-slot = { $p0 } heeft geen ongeplaatste functie { $p2 } op positie { $p1 }; zijn ongeplaatste posities: { $p3 }
 error-join-none = geen
 reason-rep-type-not-allowed = Het paginatype neemt dit symbool niet aan
+reason-rep-type-pages = Hoort op een pagina van het type { $p0 }
 reason-black-box-tool = Dit artikel wordt als black box geplaatst: gebruik het gereedschap Black box ({ $p0 })
 reason-black-box-tool-unbound = Dit artikel wordt als black box geplaatst: gebruik het gereedschap Black box
 reason-no-symbol-for-function = Geen symbool voor deze functie op deze pagina

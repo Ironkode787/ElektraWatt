@@ -414,6 +414,70 @@ fn the_aids_are_no_device_symbols() {
     }
 }
 
+/// The owner's hands-on test of 0.1.0: many starter symbols did nothing when clicked in the Insert symbol list (a
+/// choice was refused for want of a letter code, and the window shows no refusal). On a page of each type, every row
+/// of the list is greyed with its reason in words, or its choice arms a tool or opens a chooser; and what the program
+/// draws itself (a junction's dot, a cable's marker) is no row.
+#[test]
+fn every_row_of_the_insert_symbol_list_arms_a_tool_or_says_why_not() {
+    use ew_viewmodel::ew_api::output::PlacedBy;
+    let tmp = Tmp::new("starter-rows");
+    let mut s = new_project(&tmp);
+    for ty in [MULTI, FLUID, OVERVIEW, BUS] {
+        goto(&mut s, ty);
+        done(&mut s, "tool.place", json!({}));
+        let picker = s.picker().expect("the picker").clone();
+        assert!(!picker.rows.is_empty(), "{ty}");
+        for (k, row) in picker.rows.iter().enumerate() {
+            let line = picker.row_line(*row);
+            if let PickerRow::Symbol(i) = row {
+                assert_ne!(
+                    picker.catalogue.symbols[*i].placed_by,
+                    PlacedBy::Program,
+                    "{ty}: {line}"
+                );
+            }
+            if picker.disabled(*row).is_some() {
+                let words = picker.disabled_words(*row).unwrap_or_default();
+                assert!(!words.is_empty(), "{ty}: {line} is greyed without a reason");
+                continue;
+            }
+            done(&mut s, "tool.place", json!({}));
+            done(&mut s, "picker.row", json!({ "to": k }));
+            done(&mut s, "picker.choose", json!({}));
+            let tool = common::state(&s)["canvas"]["tool"]["name"].clone();
+            assert!(
+                tool != json!("select") || s.picker().is_some(),
+                "{ty}: {line} leaves the window as it was"
+            );
+            for _ in 0..2 {
+                let _ = s.dispatch("ui.dismiss", &json!({}));
+            }
+        }
+    }
+    // A wire marker and an interruption point arm their own tools.
+    goto(&mut s, MULTI);
+    for (symbol, tool) in [("wire-marker", "marker"), ("ip", "ip"), ("ip-target", "ip")] {
+        done(&mut s, "tool.place", json!({}));
+        let picker = s.picker().expect("the picker");
+        let key = format!("ew.gen.{symbol}@qet10");
+        let k = picker
+            .rows
+            .iter()
+            .position(|r| matches!(r, PickerRow::Symbol(i) if picker.catalogue.symbols[*i].key == key))
+            .unwrap_or_else(|| panic!("no row {key}"));
+        done(&mut s, "picker.row", json!({ "to": k }));
+        done(&mut s, "picker.choose", json!({}));
+        assert_eq!(
+            common::state(&s)["canvas"]["tool"]["name"],
+            json!(tool),
+            "{symbol}"
+        );
+        let _ = s.dispatch("ui.dismiss", &json!({}));
+    }
+    s.shutdown();
+}
+
 /// The text of the selection's Parts row.
 fn parts_text(s: &ShellModel) -> String {
     let sheet = s.properties().sheet().expect("a sheet");

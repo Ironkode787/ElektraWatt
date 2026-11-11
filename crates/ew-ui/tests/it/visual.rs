@@ -1188,6 +1188,44 @@ fn a_symbol_drawn_in_the_editor_reaches_the_library_a_page_and_the_picker() {
     d.shell_mut().shutdown();
 }
 
+/// The owner's hands-on test of 0.1.0: a click on Wire marker in the Insert symbol list did nothing. By the pointer:
+/// the row arms the Wire marker tool, and the Interruption point row the Interruption tool.
+#[test]
+fn a_click_on_a_tool_s_symbol_in_the_insert_symbol_list_arms_the_tool() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
+    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
+    d.settle();
+    for (typed, row, tool) in [
+        ("wire marker", "Wire marker", "marker"),
+        ("interruption point", "Interruption point", "ip"),
+    ] {
+        d.input(&click(d.find("Symbol").unwrap()));
+        d.input(&Input::Type {
+            text: typed.to_owned(),
+        });
+        d.settle();
+        // The list's row, not the left rail's button of a like name.
+        let rail = d.find("Symbol").unwrap().0 * 2;
+        let at = d
+            .labels()
+            .into_iter()
+            .find(|(l, at)| l.starts_with(row) && at.0 > rail)
+            .unwrap_or_else(|| panic!("no row {row}: {:?}", d.labels()))
+            .1;
+        d.input(&click(at));
+        d.settle();
+        assert_eq!(state(&mut d)["canvas"]["tool"]["name"], json!(tool), "{row}");
+        assert!(d.shell_mut().picker().is_none(), "{row}: the list stays open");
+        d.input(&key("escape"));
+        d.settle();
+    }
+    d.shell_mut().shutdown();
+}
+
 /// The Select tool holds a connection point as it holds a shape (the owner's hands-on test: it could neither move nor
 /// delete one, nothing showed where a moved item would land, and the arrow keys did nothing). A drag moves the point
 /// on the connection grid, an arrow key moves it one grid step, Delete removes it; each is one undo step.

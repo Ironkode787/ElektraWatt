@@ -484,6 +484,7 @@ mod tests {
             grid_mismatch: None,
             words: Vec::new(),
             name: "Miniature circuit breaker, 1-pole".to_owned(),
+            placed_by: Default::default(),
         };
         let catalogue = PlaceCatalogue {
             symbols: vec![symbol],

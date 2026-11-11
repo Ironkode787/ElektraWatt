@@ -15,7 +15,7 @@
 use std::sync::Arc;
 
 use ew_api::output::ew_dl::EntityRef;
-use ew_api::output::{CatalogueSymbol, PageTables, PlaceCatalogue, SymbolShape, Uuid};
+use ew_api::output::{CatalogueSymbol, PageTables, PlaceCatalogue, PlacedBy, SymbolShape, Uuid};
 use ew_api::{AnyCommand, Session};
 use serde_json::{Map, Value, json};
 
@@ -829,6 +829,21 @@ impl ShellModel {
         }
         match (mode, row) {
             (PickerMode::Exchange, PickerRow::Symbol(i)) => self.arm_exchange(cat, i),
+            // A symbol with a tool of its own arms that tool: a wire marker is drawn across its wires, an
+            // interruption point is placed with its name and direction.
+            (_, PickerRow::Symbol(i)) if cat.symbols[i].placed_by == PlacedBy::MarkerTool => {
+                self.tools.picker = None;
+                self.dispatch("tool.marker", &json!({}))
+            }
+            (_, PickerRow::Symbol(i)) if cat.symbols[i].placed_by == PlacedBy::InterruptionTool => {
+                self.tools.picker = None;
+                let incoming = cat.symbols[i].key.split('@').next() == Some("ew.gen.ip-target");
+                let direction = if incoming { "target" } else { "source" };
+                match self.dispatch("tool.ip", &json!({})) {
+                    Outcome::Done => self.dispatch("tool.ip_direction", &json!({ "direction": direction })),
+                    other => other,
+                }
+            }
             (_, PickerRow::Part(pi)) => {
                 if let Some(picker) = &mut self.tools.picker {
                     picker.choose_part(pi);

@@ -22,8 +22,8 @@ use ew_derive::ew_ids::{Id, Uuid, v5};
 use ew_derive::ew_rds::IdentifierSet;
 use ew_derive::ew_schema::{
     ConnectionKind, ContactKind, Device, Dir4, Endpoint, FnDef, Function, FunctionKind, IpDirection,
-    Junction, JunctionStyle, JunctionWiring, LibCopy, LibDocument, LibRef, LineKind, Page, Part, RepType,
-    Representation, SymbolDef,
+    Junction, JunctionStyle, JunctionWiring, LibCopy, LibDocument, LibRef, LineKind, Page, PageType, Part,
+    RepType, Representation, SymbolDef,
 };
 use ew_derive::ew_units::{Nm, Orient2, Pt2, Rect};
 use ew_derive::{
@@ -105,6 +105,37 @@ pub struct CatalogueSymbol {
     /// The symbol's name in words (M39: the Place HUD names it): its neutral text, else its first language's; empty
     /// when the symbol has no name.
     pub name: String,
+    /// How the symbol gets onto a page.
+    pub placed_by: PlacedBy,
+}
+
+/// How a symbol gets onto a page: what choosing it in the Insert symbol list does.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum PlacedBy {
+    /// As the representation of a device or a function: the Place tool, the black box tool, a terminal of a strip.
+    #[default]
+    Device,
+    /// By the Interruption tool (the function's category is `InterruptionPoint`).
+    InterruptionTool,
+    /// By the Wire marker tool (the starter's `ew.gen.wire-marker`).
+    MarkerTool,
+    /// By the program, with what it belongs to: a junction's dot or bevel, a cable's marker, the arrow of an
+    /// interruption point's external reference (the categories `Graphic` and `ExternalReference`).
+    Program,
+}
+
+/// Whether a page of type `page_type` takes a symbol of representation type `rep_type`, both in their JSON
+/// spellings (`fluid`, `multi_line`); an unknown word of either is not refused, as the command does not.
+pub fn page_type_takes(page_type: &str, rep_type: &str) -> bool {
+    let page: Option<PageType> = serde_json::from_value(serde_json::Value::String(page_type.to_owned())).ok();
+    let rep: Option<RepType> = serde_json::from_value(serde_json::Value::String(rep_type.to_owned())).ok();
+    match (
+        page.as_ref().and_then(ew_commands::commands::allowed_rep_types),
+        rep,
+    ) {
+        (Some(allowed), Some(rep)) => matches!(rep, RepType::Unknown(_)) || allowed.contains(&rep),
+        _ => true,
+    }
 }
 
 /// A part row of the place catalogue: an embedded part copy with a function template, or a system library's part the
@@ -431,7 +462,17 @@ fn symbol_row(
         .as_ref()
         .and_then(|d| d.item.meta.key.as_ref().map(|k| k.as_str().to_owned()))
         .unwrap_or_else(|| ref_key(&symbol.fndef));
+    // The category of the function says who puts the symbol on a page; of the program's own graphics the wire
+    // marker has a tool.
+    let placed_by = match def.as_ref().map(|d| d.item.category.0.as_str()) {
+        Some("InterruptionPoint") => PlacedBy::InterruptionTool,
+        Some("ExternalReference") => PlacedBy::Program,
+        Some("Graphic") if key.split('@').next() == Some("ew.gen.wire-marker") => PlacedBy::MarkerTool,
+        Some("Graphic") => PlacedBy::Program,
+        _ => PlacedBy::Device,
+    };
     CatalogueSymbol {
+        placed_by,
         key,
         copy,
         fndef_key,

@@ -27,7 +27,7 @@ use crate::key;
 use crate::strings::Key;
 use std::sync::Arc;
 
-use ew_api::output::{CatalogueSymbol, PlaceCatalogue};
+use ew_api::output::{CatalogueSymbol, PlaceCatalogue, PlacedBy};
 
 /// A symbol's plain name, as the picker shows it: the key's last segment without its grid
 /// variant (`ew.iec.mcb-1p@qet10` → `mcb-1p`).
@@ -176,6 +176,11 @@ impl Picker {
                     continue;
                 }
                 if self.mode == PickerMode::BlackBox && !s.black_box {
+                    continue;
+                }
+                // What the program draws with what it belongs to (a junction's dot, a cable's marker, the arrow
+                // of an external reference) is no row to place: chosen, it could only be refused.
+                if self.mode != PickerMode::Exchange && s.placed_by == PlacedBy::Program {
                     continue;
                 }
                 let mut texts = vec![s.key.as_str(), s.fndef_key.as_str()];
@@ -331,6 +336,13 @@ impl Picker {
                     Some(key!("reason-symbol-grid"))
                 } else if !s.allowed {
                     Some(key!("reason-rep-type-not-allowed"))
+                } else if self.mode != PickerMode::Exchange
+                    && s.placed_by == PlacedBy::Device
+                    && s.letter.is_none()
+                    && !s.terminal
+                {
+                    // A new device needs a letter code, and the symbol's category maps to none.
+                    Some(key!("reason-letter-needed"))
                 } else {
                     None
                 }
@@ -355,6 +367,23 @@ impl Picker {
             && let Some(grids) = self.catalogue.symbols.get(i).and_then(|s| s.grid_mismatch)
         {
             return Some(grid_words(grids));
+        }
+        // A symbol the page's type does not take names the page types that do, as New page lists them.
+        if reason == key!("reason-rep-type-not-allowed")
+            && let PickerRow::Symbol(i) = row
+            && let Some(s) = self.catalogue.symbols.get(i)
+        {
+            let types: Vec<String> = crate::shell::PAGE_TYPES
+                .iter()
+                .filter(|t| ew_api::output::page_type_takes(t, &s.rep_type))
+                .map(|t| crate::strings::choice_text(t))
+                .collect();
+            if !types.is_empty() {
+                return Some(crate::strings::format(
+                    key!("reason-rep-type-pages"),
+                    &[&types.join(", ")],
+                ));
+            }
         }
         Some(crate::strings::text(reason).to_owned())
     }

@@ -244,6 +244,7 @@ error-join-slots = { $p0 } has { $p1 } unplaced { $p2 } functions; name one of {
 error-join-unknown-slot = { $p0 } has no unplaced { $p2 } function in slot { $p1 }; its unplaced slots: { $p3 }
 error-join-none = none
 reason-rep-type-not-allowed = The page's type does not take this symbol
+reason-rep-type-pages = Goes on a page of type { $p0 }
 
 # FT-896: the way out with its key from the keymap; `-unbound` when the action has none.
 reason-black-box-tool = This part is placed as a black box: use the Black box tool ({ $p0 })
