@@ -448,3 +448,20 @@ fn display_list_maps_points_with_offset_and_lengths_without() {
     // The identity leaves a list unchanged.
     assert_eq!(SheetMap::IDENTITY.apply_display_list(&input, None), input);
 }
+
+/// A frame with a margin (an imported QET border 5 px from the origin, doc 14 §4.9): the outer rectangle and
+/// the title block start at the margin, the edges keep counting from the origin.
+#[test]
+fn a_margin_moves_the_outline_not_the_cells() {
+    let mut j = frame_json(true);
+    j["grid"]["header_band"] = json!({"num": 19843750, "den": 3});
+    j["grid"]["ew.frame.margin"] = json!(px(5).0);
+    let f: FormDef = serde_json::from_value(j).expect("frame form");
+    let g = FrameGeometry::of(&f, Some(&title_block())).expect("geometry");
+    assert_eq!(g.column_edges[0], px(25));
+    assert_eq!(g.row_edges[8], px(665));
+    assert_eq!(g.outer.min(), pt(px(5).0, px(5).0));
+    // The title block (1040 × 68 px) from the margin.
+    assert_eq!(g.outer.max(), pt(px(5).0 + 275_166_667, px(665).0 + 17_991_667));
+    assert_eq!(g.title_block_origin, Some(pt(px(5).0, px(665).0)));
+}

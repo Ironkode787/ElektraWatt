@@ -10,13 +10,15 @@
 //!   as the folio label. A printed folio already taken by an earlier diagram keeps its text, gets the
 //!   source key `qet:folio-order:<position>` and an EW-IMP-008 finding (the folio-uniqueness rule is a
 //!   prevent rule, relaxed in lenient mode).
-//! - **Frame.** The 17 × 60 px / 8 × 80 px border maps to the shipped `ew.frame.qet-a4-landscape-grid`
-//!   (doc 14 §4.2 "Frame"); other borders keep the default frame (EW-IMP-004, once per border).
+//! - **Frame and title block.** Each diagram's border and title-block template become forms of the
+//!   project's import library ([`super::frames`]).
+//! - **Tables.** QET's tables become report blocks; a folio holding only a table chain gives way to a
+//!   page-oriented block and gets no page record ([`super::tables`]).
 //! - **Lifting.** Title-block attributes and folio properties: the most frequent value of each name goes to
 //!   the project (`Project.extra["qet.titleblock"]`, `["qet.properties"]`); a page whose value differs keeps it
 //!   in `Page.extra` under the same member. A differing `author`, `date`, `indexrev` or custom property is an
 //!   EW-IMP-104 finding (D-05) naming the folios per value.
-//! - **Dropped content.** Free texts, shapes, images and tables have no record kind in schema v0: one
+//! - **Dropped content.** Free texts, shapes and images have no record kind in schema v0: one
 //!   EW-IMP-004 finding per folio with the counts.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -24,19 +26,17 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_ids::Id;
 use ew_interop_api::{Code, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
-use ew_schema::{Date, Folio, MasterData, Page, PageType, Project, Record, Scale};
+use ew_schema::{Date, Folio, FormDef, LibCopy, MasterData, Page, PageType, Project, Record, Scale};
 use ew_units::Grid;
 use serde_json::Value;
 
 use super::builtins::Builtins;
 use super::cx::{Findings, Ids};
 use super::model::{Border, QetDiagram, QetProject};
+use super::{frames, tables};
 
 /// The derivation profile of imported projects (the shipped profile, doc 20 §4.4).
 pub const DERIVATION_PROFILE: &str = "2027.1";
-
-/// The key of the shipped QET-compatible frame (doc 14 §4.2).
-pub const QET_FRAME_KEY: &str = "ew.frame.qet-a4-landscape-grid";
 
 /// One mapped diagram.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -59,6 +59,8 @@ pub struct PagesOut {
     pub records: Vec<Record>,
     /// Per diagram index.
     pub pages: Vec<PageInfo>,
+    /// The frame and title-block forms the pages use.
+    pub forms: Vec<LibCopy<FormDef>>,
 }
 
 /// The evaluated folio of a diagram: number, optional label, the printed text.
@@ -68,9 +70,7 @@ struct Evaluated {
     printed: String,
 }
 
-/// The title-block attributes whose per-folio conflicts are EW-IMP-104 (D-05).
-/// Whether a diagram border is QET's default A4 border (17 columns of 60 px, 8 rows of 80 px), the one the
-/// frame form [`QET_FRAME_KEY`] reproduces.
+/// Whether a diagram border is QET's default A4 border (17 columns of 60 px, 8 rows of 80 px).
 pub(crate) fn is_qet_border(b: &Border) -> bool {
     b.cols == Some(17)
         && b.rows == Some(8)
@@ -78,6 +78,7 @@ pub(crate) fn is_qet_border(b: &Border) -> bool {
         && b.rowsize.is_some_and(|r| r.to_plain_string() == "80")
 }
 
+/// The title-block attributes whose per-folio conflicts are EW-IMP-104 (D-05).
 const CONFLICT_NAMES: [&str; 3] = ["author", "date", "indexrev"];
 
 /// Evaluates the `folio` attribute of a diagram at `position` (1-based, in `order`) of `total`.
@@ -260,8 +261,6 @@ pub fn map(
         position[i] = p + 1;
     }
 
-    let frame = builtins.form(QET_FRAME_KEY).map(|c| c.id);
-    let mut other_borders: BTreeSet<String> = BTreeSet::new();
     let mut default_formula: Vec<String> = Vec::new();
     let mut printed_seen: BTreeSet<String> = BTreeSet::new();
     let mut evaluated = Vec::with_capacity(total);
@@ -336,26 +335,31 @@ pub fn map(
         ..
     } = lift("folio property", &props, &folios, |_| true, findings);
 
+    let frames = frames::build(
+        project,
+        ids,
+        Id::from_uuid(project_id.as_uuid()),
+        builtins,
+        used,
+        findings,
+    );
+    let facts: Vec<tables::DiagramFacts> = (0..total)
+        .map(|i| tables::DiagramFacts {
+            page: infos[i].id,
+            number: evaluated[i].0.number,
+            folio: infos[i].folio.clone(),
+            form: frames.per_diagram.get(i).copied().flatten(),
+        })
+        .collect();
+    let tables = tables::map(project, &facts, ids, findings);
+
     let mut records = Vec::with_capacity(total);
     for (i, d) in project.diagrams.iter().enumerate() {
+        if tables.replaced.contains(&i) {
+            continue;
+        }
         let (e, key) = &evaluated[i];
-        let b = d.border;
-        let qet_border = is_qet_border(&b);
-        let form = if qet_border {
-            if frame.is_some() {
-                used.insert(QET_FRAME_KEY.to_owned());
-            }
-            frame
-        } else {
-            other_borders.insert(format!(
-                "{}×{} / {}×{}",
-                b.cols.map_or("?".into(), |c| c.to_string()),
-                b.colsize.map_or("?".into(), |c| c.to_plain_string()),
-                b.rows.map_or("?".into(), |c| c.to_string()),
-                b.rowsize.map_or("?".into(), |c| c.to_plain_string()),
-            ));
-            None
-        };
+        let form = facts[i].form;
         let mut extra = BTreeMap::new();
         if let Some(m) = tb_pages.get(i).filter(|m| !m.is_empty()) {
             extra.insert("qet.titleblock".to_owned(), Value::Object(m.clone()));
@@ -393,7 +397,6 @@ pub fn map(
             (d.free_texts, "free texts"),
             (d.shapes, "shapes"),
             (d.images, "images"),
-            (d.tables, "tables"),
         ];
         if dropped.iter().any(|(n, _)| *n > 0) {
             let what = dropped
@@ -411,20 +414,7 @@ pub fn map(
             );
         }
     }
-    if frame.is_none() && project.diagrams.iter().any(|d| d.border.cols == Some(17)) {
-        findings.file_level(
-            Code::UNRESOLVED_REFERENCE,
-            Severity::Warning,
-            format!("built-in frame `{QET_FRAME_KEY}` not available; pages get the default frame"),
-        );
-    }
-    for b in &other_borders {
-        findings.file_level(
-            Code::DROPPED_BY_DESIGN,
-            Severity::Info,
-            format!("border {b} has no shipped frame; the default frame applies"),
-        );
-    }
+    records.extend(tables.records);
 
     // The project record.
     let mut pextra = BTreeMap::new();
@@ -499,7 +489,10 @@ pub fn map(
         supply: None,
         control_voltage: None,
         rated_consumption: None,
-        settings: Default::default(),
+        settings: ew_schema::ProjectSettings {
+            text_styles: frames::styles(&frames.sizes),
+            ..Default::default()
+        },
         languages: None,
         derivation_profile: Ident::from_input(DERIVATION_PROFILE)
             .unwrap_or_else(|_| unreachable!("a valid profile key")),
@@ -512,6 +505,7 @@ pub fn map(
         project,
         records,
         pages: infos,
+        forms: frames.forms,
     }
 }
 

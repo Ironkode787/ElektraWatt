@@ -907,6 +907,30 @@ variable has an EW xref-format token (FR-XRF-003):
   the reference); the history V1.0 → V2.0 is the MF-04 quick fix.
 - **Parties.** Cover texts and title-block cells naming parties stay text; EW-IMP-106 compares the title-block
   "Customer" value with the cover's and proposes role bindings (FR-PRJ-003, D-30).
+- **Frame, as built.** QET draws a diagram's border 5 px right of and below the scene origin
+  (`Diagram::margin`), its 20 px header bands inside it, then `cols × colsize` and `rows × rowsize`. The importer
+  keeps the scene origin as the page origin, so imported positions stay on the 10 px grid, and makes one frame form
+  per distinct border in the project's import library: the header band counts from the origin (25 px) and the
+  outer rectangle starts at the margin (the frame member `ew.frame.margin`), so a cell is the cell QET prints;
+  columns are numbered from 1, QET's default (QET keeps the start in its application settings, not in the
+  project); `displaycols` and `displayrows` both `false` hide the bands (one hidden band alone is reported and both
+  show). The sheet is A4, landscape unless the drawing is taller than wide, and the page maps to it as QET's PDF
+  export maps the scene: the border's corner on the sheet's corner, scaled to fit the border and title block one
+  pixel wider and higher. A title block QET draws at the right is drawn below. Counts and sizes outside 1 to 1000
+  and 1 to 10 000 px keep QET's default border (reported).
+- **Title block, as built.** The diagram's template becomes a title-block form as wide as the border; equal forms
+  are one copy, so the forms differ only where the folios' values differ. Columns resolve to whole px; QET's
+  `rowspan` and `colspan` count the cells beyond the first. Every cell's edges are drawn once; the outline is the
+  frame's. A field prints `label: value` when it shows its label, in the style `qet.<pt>` (a project text style
+  of `pt × 4/3` px em, ADR-0032), shrinking to a 0.5 mm cap height where QET adjusts (`hadjust`). Of the
+  translations the `en` one is taken, else the first. `%title`, `%folio`, `%folio-id`, `%folio-total`,
+  `%previous-folio-num` and `%next-folio-num` bind to `page.title`, `page.folio`, `doc.page_index`,
+  `doc.page_count`, `page.prev` and `page.next`; every other variable is filled with the diagram's value, from its
+  title-block attributes (`date="null"` is empty), then the project's title (`%projecttitle`) and properties, then
+  the diagram's properties, and an unknown variable stays as written, as in QET. `%projectpath`,
+  `%projectfilename` and `%savedfilepath` print nothing (EW-IMP-004). A logo is not imported yet: an import has no
+  path for asset bytes (EW-IMP-004). A diagram without an embedded template gets the shipped
+  `ew.titleblock.qet-a4` (QET's default template).
 
 ### 4.10 Fonts and text styles
 
@@ -995,6 +1019,16 @@ the recognisers of FR-IMP-017:
   table becomes an embedded report block. Pass P5 compares QET's nomenclature rows, evaluated by the importer from
   element information, with the derived BOM (EW-IMP-113: on the reference, rows -4W1 and -4X1 disappear and missing
   parts appear).
+- **`graphics_table`, as built.** A table holding a query heads a chain; a table naming it as `previous_table`
+  continues it on another folio. The view the query reads gives the kind: `project_summary_view` → `toc`,
+  `element_nomenclature_view` → `parts_list`, `wiring_list_view` → `wire_list`; any other query is not imported. The
+  block lists EW's own columns in EW's table style (one EW-IMP-004). When every folio of the chain holds nothing
+  but its table, those folios give way to one page-oriented block: first folio the head's, continuation
+  `next_folio` when QET's folios are consecutive (else sub-pages), the head's frame form, and the head's title,
+  where titles `T 1`, `T 2` … become `T {n}`; so the reader finds the same rows on the same folios when EW's pages
+  hold as many rows as QET's (a block that needs more pages takes the next folio numbers). Otherwise the block is
+  embedded in the head's folio in the head table's rectangle, and continuations elsewhere are reported. Pass P5 is
+  not built.
 - **Shapes, `<inputs>` and `<images>`** become `PageItem::Graphic`, `FreeText` and `Image` items; QET pen styles map
   to the dash patterns of 20 §17.4. A free text's `rotation` counts clockwise (Qt), so the importer stores it
   negated as an `Angle2`, which counts counter-clockwise as seen on the sheet (ADR-0005 amendment 2): QET 90°
@@ -1058,9 +1092,9 @@ interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strip
   once per family.
 - **Not imported yet** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101
  , rules R2/R3, structure nodes and EW-IMP-102, parts from element information,
-  text-to-data recognisers, `graphics_table` report blocks, free texts, shapes, images and
+  text-to-data recognisers, free texts, shapes, images and
   thumbnails, cables, conductor properties as potential definitions and overrides, chain mode and external points
- , title-block template forms, `<terminal_strips>` and their bridges, empty terminal
+ , title-block logos, `<terminal_strips>` and their bridges, empty terminal
   designations, and the exchange of QET-import symbols for starter symbols through `symbol-map.csv`
   ([23](23-symbol-coverage-pilot-corpus.md) M-01 to M-09). The import detections EW-IMP-105, EW-IMP-106, EW-IMP-110 and EW-IMP-112,
   EW-IMP-111, EW-IMP-114 and EW-IMP-121 are not built yet. A junction element is counted against the first

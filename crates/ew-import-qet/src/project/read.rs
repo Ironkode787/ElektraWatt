@@ -15,7 +15,7 @@ use roxmltree::Node;
 use super::cx::Findings;
 use super::model::{
     Border, DynText, EmbeddedDef, End, InstTerminal, QetConductor, QetDiagram, QetElement, QetProject,
-    Segment, TerminalRef, norm_uuid,
+    QetTable, Segment, TbCell, TbTemplate, TerminalRef, norm_uuid,
 };
 use crate::decimal::Decimal;
 use crate::element::{child, parse_xml};
@@ -82,6 +82,11 @@ pub fn read_project(xml: &str, findings: &mut Findings, limits: &Limits) -> Resu
                 project.diagrams.push(rd.diagram(node, index, findings));
             }
             "collection" => rd.collection(node, &mut project.definitions, findings),
+            "titleblocktemplates" => project.templates.extend(
+                node.children()
+                    .filter(|c| c.is_element() && c.tag_name().name() == "titleblocktemplate")
+                    .map(|c| rd.template(c)),
+            ),
             other => match unmapped_at.get(other) {
                 Some(&i) => project.unmapped_top_level[i].1 += 1,
                 None => {
@@ -125,7 +130,13 @@ impl Reader<'_> {
                 rows: unsigned(node.attribute("rows")),
                 rowsize: decimal(node.attribute("rowsize")),
                 height: decimal(node.attribute("height")),
+                display_cols: boolean(node.attribute("displaycols")),
+                display_rows: boolean(node.attribute("displayrows")),
             },
+            template_collection: node
+                .attribute("titleblocktemplateCollection")
+                .unwrap_or("")
+                .to_owned(),
             line: self.line(node),
             ..QetDiagram::default()
         };
@@ -159,7 +170,11 @@ impl Reader<'_> {
                 "inputs" => d.free_texts = d.free_texts.saturating_add(count(c, "input")),
                 "shapes" => d.shapes = d.shapes.saturating_add(count(c, "shape")),
                 "images" => d.images = d.images.saturating_add(count(c, "image")),
-                "tables" => d.tables = d.tables.saturating_add(count(c, "graphics_table")),
+                "tables" => d.tables.extend(
+                    c.children()
+                        .filter(|t| t.is_element() && t.tag_name().name() == "graphics_table")
+                        .map(|t| self.table(t)),
+                ),
                 other => {
                     if unknown.insert(other) {
                         let loc = findings.loc(folio, None, Some(self.line(c)));
@@ -174,6 +189,69 @@ impl Reader<'_> {
             }
         }
         d
+    }
+
+    /// One `<titleblocktemplate>`.
+    fn template(&self, node: Node<'_, '_>) -> TbTemplate {
+        let grid = child(node, "grid");
+        let list = |name: &str| -> Vec<String> {
+            grid.and_then(|g| g.attribute(name))
+                .unwrap_or("")
+                .split(';')
+                .map(str::trim)
+                .filter(|p| !p.is_empty())
+                .map(str::to_owned)
+                .collect()
+        };
+        let cells = grid
+            .map(|g| {
+                g.children()
+                    .filter(|c| c.is_element() && matches!(c.tag_name().name(), "field" | "logo"))
+                    .map(|c| {
+                        let n = |name: &str| unsigned(c.attribute(name)).unwrap_or(0);
+                        let flag = |name: &str| boolean(c.attribute(name)).unwrap_or(false);
+                        let attr = |name: &str| c.attribute(name).unwrap_or("").trim().to_owned();
+                        TbCell {
+                            row: n("row"),
+                            col: n("col"),
+                            rowspan: n("rowspan"),
+                            colspan: n("colspan"),
+                            logo: (c.tag_name().name() == "logo").then(|| attr("resource")),
+                            value: child(c, "value").map(translation).unwrap_or_default(),
+                            label: child(c, "label").map(translation).unwrap_or_default(),
+                            display_label: flag("displaylabel"),
+                            font_size: c.attribute("fontsize").and_then(|v| v.trim().parse().ok()),
+                            align: attr("align"),
+                            valign: attr("valign"),
+                            hadjust: flag("hadjust"),
+                        }
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        TbTemplate {
+            name: node.attribute("name").unwrap_or("").to_owned(),
+            cols: list("cols"),
+            rows: list("rows"),
+            cells,
+            line: self.line(node),
+        }
+    }
+
+    /// One `<graphics_table>`.
+    fn table(&self, node: Node<'_, '_>) -> QetTable {
+        QetTable {
+            uuid: node.attribute("uuid").and_then(norm_uuid),
+            rect: ["x", "y", "width", "height"].map(|a| decimal(node.attribute(a))),
+            query: child(node, "model")
+                .and_then(|m| child(m, "project_data_base_model"))
+                .and_then(|m| child(m, "query"))
+                .map(text),
+            previous: child(node, "previous_table")
+                .and_then(|p| p.attribute("uuid"))
+                .and_then(norm_uuid),
+            line: self.line(node),
+        }
     }
 
     /// One placed `<element>`; `None` (reported) when its position is unusable.
@@ -421,6 +499,31 @@ fn decimal(v: Option<&str>) -> Option<Decimal> {
     v.and_then(|v| Decimal::parse(v).ok())
 }
 
+/// An attribute `true` or `false`; `None` when absent or anything else.
+fn boolean(v: Option<&str>) -> Option<bool> {
+    match v.map(str::trim) {
+        Some("true") => Some(true),
+        Some("false") => Some(false),
+        _ => None,
+    }
+}
+
+/// The text of a `<value>` or `<label>` of a title-block cell: its `<translation lang="en">` (any case),
+/// else its first translation, else its own text. Not trimmed: QET prints the spaces it holds.
+fn translation(node: Node<'_, '_>) -> String {
+    let all: Vec<Node<'_, '_>> = node
+        .children()
+        .filter(|c| c.is_element() && c.tag_name().name() == "translation")
+        .collect();
+    all.iter()
+        .find(|t| t.attribute("lang").is_some_and(|l| l.eq_ignore_ascii_case("en")))
+        .or(all.first())
+        .map_or_else(
+            || node.text().unwrap_or("").trim().to_owned(),
+            |t| t.text().unwrap_or("").to_owned(),
+        )
+}
+
 /// An attribute as `u32`; `None` when absent or unparsable.
 fn unsigned(v: Option<&str>) -> Option<u32> {
     v.and_then(|v| v.trim().parse().ok())
@@ -577,13 +680,7 @@ mod tests {
             ]
         );
         assert_eq!(p.report_label.as_deref(), Some("%f-%l%c"));
-        assert_eq!(
-            p.unmapped_top_level,
-            vec![
-                ("titleblocktemplates".to_owned(), 1),
-                ("terminal_strips".to_owned(), 2)
-            ]
-        );
+        assert_eq!(p.unmapped_top_level, vec![("terminal_strips".to_owned(), 2)]);
         assert_eq!(p.diagrams.len(), 2);
 
         let d = &p.diagrams[0];
@@ -607,7 +704,7 @@ mod tests {
         assert_eq!(d.border.rows, Some(8));
         assert_eq!(d.border.rowsize, Some(dec("80")));
         assert_eq!(d.border.height, Some(dec("640")));
-        assert_eq!((d.free_texts, d.shapes, d.images, d.tables), (2, 1, 3, 1));
+        assert_eq!((d.free_texts, d.shapes, d.images, d.tables.len()), (2, 1, 3, 1));
 
         assert_eq!(d.elements.len(), 1);
         let e = &d.elements[0];

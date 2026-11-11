@@ -1069,7 +1069,7 @@ mod tests {
             colsize: Some(Decimal::from_int(60)),
             rows: Some(8),
             rowsize: Some(Decimal::from_int(80)),
-            height: None,
+            ..Border::default()
         }
     }
 

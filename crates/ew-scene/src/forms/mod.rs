@@ -10,7 +10,8 @@
 //!
 //! # Paint order
 //!
-//! 1. **Frame** (forms with a grid, [`FrameGeometry`]): the outer rectangle; with a title block, the
+//! 1. **Frame** (forms with a grid, [`FrameGeometry`]): the outer rectangle (from the margin,
+//!    [`EXTRA_MARGIN`]); with a title block, the
 //!    separator line along the drawing area's bottom edge; unless `ew.frame.show_grid` is `false`, the
 //!    header bands (the lines `y = band` and `x = band` across the frame, the column ticks in the top band
 //!    and the row ticks in the left band) and the labels, centred in the header cells in style
@@ -61,7 +62,7 @@ pub use bindings::{
     eval_visible_if, fill, ml_text,
 };
 pub use geometry::{
-    DEFAULT_FRAME_LINE, EXTRA_LINE_WIDTH, EXTRA_SHOW_GRID, FrameGeometry, title_block_origin,
+    DEFAULT_FRAME_LINE, EXTRA_LINE_WIDTH, EXTRA_MARGIN, EXTRA_SHOW_GRID, FrameGeometry, title_block_origin,
 };
 pub use sheet::{PPB_ONE, SheetMap};
 pub use text::{CELL_PADDING, ELLIPSIS, OverflowKind};
@@ -235,33 +236,29 @@ impl Lowerer<'_> {
         let line = |a: Pt2, b: Pt2| Item::path(Path::line(a, b), Some(stroke.clone()), None);
         self.push(Item::path(Path::rect(g.outer), Some(stroke.clone()), None));
         let (right, bottom) = (g.drawing_area.max().x, g.drawing_area.max().y);
+        let m = g.margin;
         if g.title_block_origin.is_some() {
-            self.push(line(
-                Pt2::new(Nm::ZERO, bottom),
-                Pt2::new(g.outer.max().x, bottom),
-            ));
+            self.push(line(Pt2::new(m, bottom), Pt2::new(g.outer.max().x, bottom)));
         }
-        if !g.show_grid || g.header_band == Nm::ZERO {
+        if !g.show_grid || g.header_band == m {
             return;
         }
         let h = g.header_band;
-        self.push(line(Pt2::new(Nm::ZERO, h), Pt2::new(right, h)));
-        self.push(line(Pt2::new(h, Nm::ZERO), Pt2::new(h, bottom)));
+        self.push(line(Pt2::new(m, h), Pt2::new(right, h)));
+        self.push(line(Pt2::new(h, m), Pt2::new(h, bottom)));
         let n = g.column_edges.len();
         for &x in g.column_edges.iter().take(n.saturating_sub(1)).skip(1) {
-            self.push(line(Pt2::new(x, Nm::ZERO), Pt2::new(x, h)));
+            self.push(line(Pt2::new(x, m), Pt2::new(x, h)));
         }
         let n = g.row_edges.len();
         for &y in g.row_edges.iter().take(n.saturating_sub(1)).skip(1) {
-            self.push(line(Pt2::new(Nm::ZERO, y), Pt2::new(h, y)));
+            self.push(line(Pt2::new(m, y), Pt2::new(h, y)));
         }
         let style = self.style(DEFAULT_STYLE_KEY, TextSite::GridLabel);
         let cols = g.column_edges.windows(2).zip(&g.column_labels);
-        let col_boxes =
-            cols.map(|(w, l)| (Rect::from_points(Pt2::new(w[0], Nm::ZERO), Pt2::new(w[1], h)), l));
+        let col_boxes = cols.map(|(w, l)| (Rect::from_points(Pt2::new(w[0], m), Pt2::new(w[1], h)), l));
         let rows = g.row_edges.windows(2).zip(&g.row_labels);
-        let row_boxes =
-            rows.map(|(w, l)| (Rect::from_points(Pt2::new(Nm::ZERO, w[0]), Pt2::new(h, w[1])), l));
+        let row_boxes = rows.map(|(w, l)| (Rect::from_points(Pt2::new(m, w[0]), Pt2::new(h, w[1])), l));
         let boxes: Vec<(Rect, &String)> = col_boxes.chain(row_boxes).collect();
         for (rect, label) in boxes {
             let spec = BoxSpec {

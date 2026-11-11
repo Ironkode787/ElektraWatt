@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The built-in starter documents a project import references by key: the interruption-point FnDef
-//! `ew.fn.ip`, the QET-compatible frame form and its title block. The host supplies them (`content/fndefs`,
+//! `ew.fn.ip` and QET's default title block. The host supplies them (`content/fndefs`,
 //! `content/forms`, `content/symbols/qet10`); the importer never reads files itself. Repeated from
 //! `ew-import-tables` in reduced form, because importers may not depend on each other.
 

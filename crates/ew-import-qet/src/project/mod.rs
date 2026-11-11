@@ -12,7 +12,8 @@
 //! 2. **Read** (`read`): the DOM into the owned `model::QetProject`.
 //! 3. **Definitions**: every embedded `<definition>` through the element reader (symbol + FnDef in the
 //!    per-project "QET import" library, black box with EW-IMP-119 where no semantics resolve).
-//! 4. **Pages** (`pages`): diagrams → pages, the project record, title-block lifting.
+//! 4. **Pages** (`pages`): diagrams → pages, frames and title blocks (`frames`), tables (`tables`), the
+//!    project record, title-block lifting.
 //! 5. **Elements** (`elements`): placed elements → devices, functions, representations; slaves → auxiliary
 //!    functions; folio reports → interruption points; terminal elements → strips and terminals
 //!    (`strips`); junction elements → junctions.
@@ -36,10 +37,12 @@ use crate::element::{ElementImport, ElementSource, LINEAGE_KEY, read_on_stack};
 pub(crate) mod builtins;
 pub(crate) mod cx;
 pub(crate) mod elements;
+pub(crate) mod frames;
 pub(crate) mod model;
 pub(crate) mod pages;
 pub(crate) mod read;
 pub(crate) mod strips;
+pub(crate) mod tables;
 pub(crate) mod wires;
 
 use builtins::Builtins;
@@ -61,8 +64,8 @@ pub fn new_project_context() -> ImportContext {
 /// The importer of `.qet` project files.
 ///
 /// It carries the built-in starter documents the batch may reference ([`QetProjectImporter::with_library`]):
-/// the interruption-point FnDef `ew.fn.ip` and the QET-compatible frame form. Without them, folio reports
-/// are dropped (EW-IMP-003) and pages get no frame form (the derivation layer's default frame applies).
+/// the interruption-point FnDef `ew.fn.ip` and QET's default title block. Without them, folio reports
+/// are dropped (EW-IMP-003) and a diagram without an embedded template gets no title block.
 #[derive(Clone, Debug, Default)]
 pub struct QetProjectImporter {
     builtins: Builtins,
@@ -268,6 +271,9 @@ impl QetProjectImporter {
             if let Some(f) = &el.fndef {
                 lib.insert((0, f.id.as_uuid()), LibDocument::Fndef(f.clone()));
             }
+        }
+        for f in &pages.forms {
+            lib.insert((2, f.id.as_uuid()), LibDocument::Form(f.clone()));
         }
         for d in self.builtins.closure(&used_builtins) {
             let key = match &d {

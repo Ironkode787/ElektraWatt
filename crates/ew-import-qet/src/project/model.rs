@@ -24,9 +24,12 @@ pub struct QetProject {
     pub report_label: Option<String>,
     /// The `<diagram>`s in document order.
     pub diagrams: Vec<QetDiagram>,
+    /// The embedded title-block templates (`/project/titleblocktemplates/titleblocktemplate`), document
+    /// order.
+    pub templates: Vec<TbTemplate>,
     /// The embedded element definitions of `/project/collection`, in document order.
     pub definitions: Vec<EmbeddedDef>,
-    /// Counts of top-level members the importer does not map (`titleblocktemplates`, `terminal_strips`, …),
+    /// Counts of top-level members the importer does not map (`terminal_strips`, …),
     /// as `(element name, count)` in document order of first occurrence.
     pub unmapped_top_level: Vec<(String, u32)>,
 }
@@ -64,6 +67,8 @@ pub struct QetDiagram {
     pub properties: Vec<(String, String)>,
     /// The border attributes of the `<diagram>`.
     pub border: Border,
+    /// `titleblocktemplateCollection`: `embedded` names a template of the project ("" when absent).
+    pub template_collection: String,
     /// The placed elements, document order.
     pub elements: Vec<QetElement>,
     /// The conductors, document order.
@@ -74,14 +79,14 @@ pub struct QetDiagram {
     pub shapes: u32,
     /// Number of images (`/diagram/images/image`).
     pub images: u32,
-    /// Number of tables (`/diagram/tables/graphics_table`).
-    pub tables: u32,
+    /// The tables (`/diagram/tables/graphics_table`), document order.
+    pub tables: Vec<QetTable>,
     /// 1-based line of the `<diagram>` start tag.
     pub line: u32,
 }
 
-/// The border attributes of a diagram (`cols colsize rows rowsize height`), each when present and
-/// parsable.
+/// The border attributes of a diagram (`cols colsize rows rowsize height displaycols displayrows`), each
+/// when present and parsable.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Border {
     /// `cols`.
@@ -94,6 +99,69 @@ pub struct Border {
     pub rowsize: Option<Decimal>,
     /// `height`, px.
     pub height: Option<Decimal>,
+    /// `displaycols`: `false` hides the column header band.
+    pub display_cols: Option<bool>,
+    /// `displayrows`: `false` hides the row header band.
+    pub display_rows: Option<bool>,
+}
+
+/// One `<titleblocktemplate>`: a grid of cells (doc 14 §4.9).
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct TbTemplate {
+    /// The `name` attribute.
+    pub name: String,
+    /// `<grid cols>` split at `;`, empty parts dropped (`46px`, `t15%`, `r100%`).
+    pub cols: Vec<String>,
+    /// `<grid rows>` split at `;`, empty parts dropped (`17`, px).
+    pub rows: Vec<String>,
+    /// The `<field>` and `<logo>` children of `<grid>`, document order.
+    pub cells: Vec<TbCell>,
+    /// 1-based line of the start tag.
+    pub line: u32,
+}
+
+/// One cell of a title-block template.
+#[derive(Clone, PartialEq, Debug, Default)]
+pub struct TbCell {
+    /// `row`, 0-based.
+    pub row: u32,
+    /// `col`, 0-based.
+    pub col: u32,
+    /// `rowspan`: the rows spanned **beyond** the first (QET's convention).
+    pub rowspan: u32,
+    /// `colspan`: the columns spanned beyond the first.
+    pub colspan: u32,
+    /// `Some(resource)` for a `<logo>`.
+    pub logo: Option<String>,
+    /// The `<value>` text: the `en` translation, else the first ("" when absent).
+    pub value: String,
+    /// The `<label>` text, chosen like `value`.
+    pub label: String,
+    /// `displaylabel="true"`.
+    pub display_label: bool,
+    /// `fontsize`, points, when it parses.
+    pub font_size: Option<u16>,
+    /// `align`: `left`, `center` or `right` ("" when absent).
+    pub align: String,
+    /// `valign`: `top`, `center` or `bottom` ("" when absent).
+    pub valign: String,
+    /// `hadjust="true"`: shrink to fit.
+    pub hadjust: bool,
+}
+
+/// One `<graphics_table>` of a diagram (QET's nomenclature and summary tables).
+#[derive(Clone, PartialEq, Debug)]
+pub struct QetTable {
+    /// The `uuid` attribute normalised by [`norm_uuid`].
+    pub uuid: Option<String>,
+    /// `x`, `y`, `width`, `height`, px.
+    pub rect: [Option<Decimal>; 4],
+    /// The model's `<query>` text; `None` on a table that continues another.
+    pub query: Option<String>,
+    /// `<previous_table uuid>` normalised: the table this one continues.
+    pub previous: Option<String>,
+    /// 1-based line of the start tag.
+    pub line: u32,
 }
 
 /// One placed `<element>` of a diagram.

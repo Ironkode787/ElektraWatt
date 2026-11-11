@@ -28,9 +28,11 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | `<diagram>` | `Page { kind: multi_line, grid: QET 10 px }` | source key `qet:folio:<printed folio>`, a repeated folio `qet:folio-order:<position>` (EW-IMP-008) |
 | `folio` attribute | `Folio.number` (whole numbers; `01` keeps its text as `Folio.label`), else leading digits + `Folio.label` | `%id`, `%total`, `%autonum` substituted; `%id/%total` prints the position only (EW-IMP-009); the folio key of source keys is the printed folio |
 | `title` | `Page.title` | |
-| border 17 × 60 px / 8 × 80 px | form `ew.frame.qet-a4-landscape-grid` | other borders: default frame (EW-IMP-004) |
+| border (`cols colsize rows rowsize displaycols displayrows`) | a frame form of the import library: columns from 1, the border 5 px from the page origin (`ew.frame.margin`), bands hidden when QET hides both, A4 fitted as QET's PDF export | doc 14 §4.9 |
+| `<titleblocktemplate>` named by the diagram | a title-block form of the import library: QET's grid and cells, folio variables bound to the page, other variables filled with the diagram's values, sizes as styles `qet.<pt>` | logos not imported (EW-IMP-004); without a template QET's default `ew.titleblock.qet-a4` |
+| `graphics_table` | `ReportBlock` (summary → TOC, nomenclature → parts list, wiring list → wire list): page-oriented in place of folios holding only the table chain, else embedded in the head's rectangle | other queries and continuations elsewhere: EW-IMP-004 (doc 14 §4.13) |
 | `author`, `date`, `indexrev`, other title-block attributes, folio properties | a value equal on **all** folios goes to `Project.extra["qet.titleblock"]` / `["qet.properties"]`; every other value stays in `Page.extra` (one pass, doc 14 §4.9) | differing `author`, `date`, `indexrev` and properties: EW-IMP-104 (D-05) |
-| free texts, shapes, images, `graphics_table` | not imported | no page-item or report-block mapping yet (EW-IMP-004 per folio) |
+| free texts, shapes, images | not imported | no page-item or report-block mapping yet (EW-IMP-004 per folio) |
 | embedded `<definition>` | `SymbolDef` + generated `FnDef` in the per-project "QET import" library | by the element reader; only definitions that placed elements use are embedded and reported |
 | element of link type `simple`, `master` | `Device` + main `Function` + `Representation` | keys `qet:el:<key>`, `…#fn`, `…#rep`; `<key>` is the UUID, `<uuid>#<folio key>#<n>` for a UUID repeated by copy-paste (EW-IMP-120; links prefer the copy on the same folio), `<folio key>#el#<n>` without UUID |
 | element of link type `thumbnail` | not imported (a graphic, doc 14 §4.3) | EW-IMP-004 |

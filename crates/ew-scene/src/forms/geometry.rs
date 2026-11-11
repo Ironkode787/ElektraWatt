@@ -15,19 +15,26 @@ pub const EXTRA_LINE_WIDTH: &str = "ew.frame.line_width";
 /// `FrameGrid.extra` member: `false` hides the header bands, ticks and labels while keeping the grid's
 /// geometry (the no-grid variant of FR-PAG-017). Default `true`.
 pub const EXTRA_SHOW_GRID: &str = "ew.frame.show_grid";
+/// `FrameGrid.extra` member: the frame's margin in nm, the distance of its outer rectangle from the page
+/// origin on both axes (a QET border lies 5 px from the scene origin, doc 14 §4.9). The header band and the
+/// column and row edges keep counting from the page origin, so the bands are `header_band − margin` thick.
+/// Default 0.
+pub const EXTRA_MARGIN: &str = "ew.frame.margin";
 /// The width of generated frame lines without [`EXTRA_LINE_WIDTH`]: the 0.26 mm house pen.
 pub const DEFAULT_FRAME_LINE: Nm = Pen::P026.width();
 
 /// The geometry of a frame form with a grid.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct FrameGeometry {
-    /// The frame's outer rectangle: from the origin to the grid's far edges, extended down (and right)
-    /// by the title block placed below the drawing area.
+    /// The frame's outer rectangle: from `(margin, margin)` to the grid's far edges, extended down (and
+    /// right) by the title block placed below the drawing area.
     pub outer: Rect,
     /// The drawing area: inside the header bands, above the title block.
     pub drawing_area: Rect,
-    /// The header band thickness (0 without bands).
+    /// Where the header bands end: the band thickness plus the margin (0 without bands).
     pub header_band: Nm,
+    /// The margin ([`EXTRA_MARGIN`]): where the outer rectangle starts on both axes.
+    pub margin: Nm,
     /// The `count + 1` column edges, left to right: `header + k × width`.
     pub column_edges: Vec<Nm>,
     /// The `count + 1` row edges, top to bottom: `header + k × height`.
@@ -36,7 +43,7 @@ pub struct FrameGeometry {
     pub column_labels: Vec<String>,
     /// The row labels.
     pub row_labels: Vec<String>,
-    /// Where the title block's origin (its top-left corner) lands: `(0, last row edge)`.
+    /// Where the title block's origin (its top-left corner) lands: `(margin, last row edge)`.
     pub title_block_origin: Option<Pt2>,
     /// Whether bands, ticks and labels are drawn ([`EXTRA_SHOW_GRID`]).
     pub show_grid: bool,
@@ -63,16 +70,27 @@ impl FrameGeometry {
         let right = *column_edges.last().unwrap_or(&Nm::ZERO);
         let bottom = *row_edges.last().unwrap_or(&Nm::ZERO);
         let (tb_w, tb_h) = title_block.map_or((Nm::ZERO, Nm::ZERO), |tb| (tb.sheet.width, tb.sheet.height));
-        let outer = Rect::from_points(Pt2::ORIGIN, Pt2::new(right.max(tb_w), bottom + tb_h));
+        let margin = grid
+            .extra
+            .get(EXTRA_MARGIN)
+            .and_then(Value::as_i64)
+            .filter(|&m| m > 0)
+            .map_or(Nm::ZERO, Nm)
+            .min(header_nm);
+        let outer = Rect::from_points(
+            Pt2::new(margin, margin),
+            Pt2::new(right.max(margin + tb_w), bottom + tb_h),
+        );
         Some(FrameGeometry {
             outer,
             drawing_area: Rect::from_points(Pt2::new(header_nm, header_nm), Pt2::new(right, bottom)),
             header_band: header_nm,
+            margin,
             column_edges,
             row_edges,
             column_labels: column_labels(grid),
             row_labels: row_labels(grid),
-            title_block_origin: title_block.map(|_| Pt2::new(Nm::ZERO, bottom)),
+            title_block_origin: title_block.map(|_| Pt2::new(margin, bottom)),
             show_grid: grid
                 .extra
                 .get(EXTRA_SHOW_GRID)
