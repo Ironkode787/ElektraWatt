@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 110;
+pub const COUNT: usize = 111;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -116,6 +116,7 @@ pub enum IconId {
     sparkles,
     sun_moon,
     table,
+    tag,
     template,
     text_size,
     trash,
@@ -231,6 +232,7 @@ impl IconId {
         IconId::sparkles,
         IconId::sun_moon,
         IconId::table,
+        IconId::tag,
         IconId::template,
         IconId::text_size,
         IconId::trash,
@@ -346,6 +348,7 @@ pub const KEYS: [&str; COUNT] = [
     "sparkles",
     "sun-moon",
     "table",
+    "tag",
     "template",
     "text-size",
     "trash",
@@ -2148,6 +2151,25 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(21.0, 10.0),
         M(10.0, 3.0),
         L(10.0, 21.0),
+    ],
+    // tag
+    &[
+        M(6.5, 7.5),
+        C(6.5, 8.052, 6.948, 8.5, 7.5, 8.5),
+        C(8.052, 8.5, 8.5, 8.052, 8.5, 7.5),
+        C(8.5, 6.948, 8.052, 6.5, 7.5, 6.5),
+        C(6.948, 6.5, 6.5, 6.948, 6.5, 7.5),
+        M(3.0, 6.0),
+        L(3.0, 11.172),
+        C(3.0, 11.702, 3.211, 12.211, 3.586, 12.586),
+        L(11.296, 20.296),
+        C(12.237, 21.237, 13.763, 21.237, 14.704, 20.296),
+        L(20.296, 14.704),
+        C(21.237, 13.763, 21.237, 12.237, 20.296, 11.296),
+        L(12.586, 3.586),
+        C(12.211, 3.211, 11.702, 3.0, 11.172, 3.0),
+        L(6.0, 3.0),
+        C(4.343, 3.0, 3.0, 4.343, 3.0, 6.0),
     ],
     // template
     &[

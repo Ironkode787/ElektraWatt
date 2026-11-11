@@ -160,6 +160,8 @@ fn no_icon_key_serves_two_concepts() {
         ("ew-interruption-point", &["pane ips", "tool.ip"]),
         // The Structure identifiers navigator and the command that adds one.
         ("sitemap", &["pane structure", "structure.new"]),
+        // The Terminal strips navigator and the command that places a terminal.
+        ("ew-terminal-strip", &["pane strips", "tool.place_terminal"]),
         // A QElectroTech project imported, and the same file imported again into its import.
         ("file-import", &["file.import_qet", "file.reimport_qet"]),
     ];

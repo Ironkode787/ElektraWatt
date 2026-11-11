@@ -2511,6 +2511,17 @@ msgid ""
 "▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md)."
 msgstr ""
 
+#: src/reference/window/tools.md:34
+msgid "Terminal"
+msgstr ""
+
+#: src/reference/window/tools.md:36
+msgid ""
+"Opens the device browser on its terminals: choose one, then the strip it "
+"joins or a new strip. Every other kind of part is one click away in the "
+"browser's tree. Draw ▸ Place ▸ Terminal…."
+msgstr ""
+
 #: src/reference/window/tools.md:31 src/explanation/eplan-and-ew.md:112
 msgid "Black box"
 msgstr ""
@@ -2804,7 +2815,7 @@ msgstr ""
 #: src/reference/window/tools.md:160
 msgid ""
 "Places a wire marker, the label that prints a wire's number or text on the "
-"wire. Open it with Draw ▸ Connect ▸ Wire marker."
+"wire. Open it with Draw ▸ Annotate ▸ Wire marker."
 msgstr ""
 
 #: src/reference/window/tools.md:163
@@ -4068,7 +4079,7 @@ msgid ""
 "the wire. **What differs:** in EW the value belongs to the wire itself, and "
 "the wire marker is only the label that shows it on the page; potentials and "
 "profiles give the default, and a value set on the wire is an override. **In "
-"the window:** **Draw ▸ Connect ▸ Wire marker**."
+"the window:** **Draw ▸ Annotate ▸ Wire marker**."
 msgstr ""
 
 #: src/explanation/eplan-and-ew.md:46 src/explanation/qet-and-ew.md:44
@@ -4345,7 +4356,7 @@ msgstr ""
 msgid ""
 "**The same:** a text on the wire shows its number or function. **What "
 "differs:** the number is a property of the wire, derived by the numbering "
-"scheme; the wire marker only shows it. **In the window:** **Draw ▸ Connect ▸ "
+"scheme; the wire marker only shows it. **In the window:** **Draw ▸ Annotate ▸ "
 "Wire marker**."
 msgstr ""
 

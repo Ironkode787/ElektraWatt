@@ -128,6 +128,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(TOOLS, "tool-measure", "measure"),
     on(TOOLS, "tool-place", "symbol"),
     on(TOOLS, "tool-place-part", "device-from-part"),
+    on(TOOLS, "tool-place-terminal", "terminal"),
     on(TOOLS, "tool-rotate-cw", "rotate-clockwise"),
     on(TOOLS, "tool-rotate-ccw", "rotate-counter-clockwise"),
     on(TOOLS, "tool-mirror-x", "mirror-left-to-right"),

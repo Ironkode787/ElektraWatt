@@ -11,13 +11,11 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The owner's hands-on test of 0.1.0-rc.3
 
-- FT-1640 `ew-ui`: **Medium.** The symbol editor is entered from a small button named "Symbols" on the Draw tab; give the editor an entry of its own, named Symbol editor, larger. It changes the Draw tab, so it goes with FT-1652 in one change that re-blesses the window's pictures once. (Its other half is done: Close editor is the editor's primary button, in the top right corner.)
 - FT-1645 `ew-import-qet`: **High.** An imported QET project's folios look nothing like the project in QET. The owner decided on 2026-11-11: full fidelity in this milestone. To build, by what a person sees (the comparison is in [m2.5-fix.md](m2.5-fix.md)): (a) every wire has the route QET drew, from the stored path or by QET's own rule; (b) free texts, shapes and images arrive as page items; (c) each element prints the texts QET prints and no generated tag; (d) the frame is numbered and placed as in QET, hidden where QET hides it, with the project's own title block; (e) QET's table pages show their tables; (f) page-link names and master and slave cross-references print. Done when the owner's private test project, folio by folio, reads as QET's own PDF of it does.
 - FT-1648 `ew-viewmodel, ew-ui`: **Medium.** Properties rows do not say what they do; give every row a tooltip that explains it, in English and Dutch.
 - FT-1649 `ew-viewmodel`: **Medium.** A connection point cannot be marked as not used: Properties shows it but offers nothing; add the action there and on the point's right-click menu.
 - FT-1650 `ew-ui`: **Medium.** Properties sections do not fold: a click on the Placement section's header does nothing.
 - FT-1651 `ew-viewmodel, ew-derive`: **Medium.** A wire from an off-page reference to a device gets BK 0.75 mm², shown as derived but not from what, and neither the reference nor the wire shows the voltage or the kind of signal or where to set them; only an override is offered. Show the source of a derived value and let the potential's voltage and signal kind be set from the wire and the reference.
-- FT-1652 `ew-ui`: **Medium.** Important parts such as the terminal strip have no button of their own; give the main kinds one each. The Wire marker tool is in the Draw menu only (Shift+W, and the Insert symbol list arms it): give it a button on the Draw tab in the same change, which re-blesses the window's pictures once.
 - FT-1656 `ew-ui`: **High.** The interface feels clunky and shows too little: a polish pass over the main window, the browsers, the panels and the dialogs for density and finish, judged at 1920 × 1080 (doc 16a).
 
 ### The persona round on rc.3

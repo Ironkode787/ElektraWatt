@@ -269,6 +269,7 @@ const OPENS_INPUT: &[&str] = &[
     "help.first_run",
     "tool.place",
     "tool.place_part",
+    "tool.place_terminal",
     "strip.new",
     "rep.exchange",
     "junction.open",

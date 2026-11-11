@@ -50,6 +50,21 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_open_picker(crate::tools::PickerMode::Parts),
         ),
     ))),
+    // Draw ▸ Place ▸ Terminal: the device browser on its Terminals category (FT-1652: the main kinds of parts have
+    // a button of their own); a terminal chosen there asks for its strip, as it does from Device.
+    keeps_banner(in_canvas(placed(
+        place(Group::Place, 3, CommandSize::Small, Some(key!("bar-terminal"))),
+        "ew-terminal-strip",
+        act(
+            "tool.place_terminal",
+            Command,
+            Menu::Draw,
+            &[],
+            editable_page,
+            None,
+            |s, _| s.act_open_picker_on(crate::tools::PickerMode::Parts, "Terminal"),
+        ),
+    ))),
     keeps_banner(with_params(
         "letter?:text, tag?:text, dialog?:bool",
         act(
@@ -1108,15 +1123,17 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     )),
     // The Wire marker and Structure box tools, their fields and the marker mode.
-    keeps_banner(in_canvas(with_icon(
-        "ew-cable",
+    keeps_banner(in_canvas(placed(
+        // "Marker" on the bar: no wider than Measure above it, so the group keeps its width.
+        place(Group::Annotate, 3, CommandSize::Small, Some(key!("bar-marker"))),
+        "tag",
         act(
             "tool.marker",
             Command,
             Menu::Draw,
             &["Shift+W"],
             editable_page,
-            grp(Group::Connect),
+            None,
             |s, _| s.act_tool_marker(),
         ),
     ))),

@@ -232,10 +232,16 @@ impl Group {
         format!("group-{}", self.word())
     }
 
-    /// Whether the group stays in the bar when the window is too narrow (doc 16a §5.2: Draw's Select, Place and
-    /// Connect never collapse into an overflow button).
+    /// Whether the group stays in the bar when the window is too narrow (doc 16a §5.2: Draw's Select and Place
+    /// never collapse into an overflow button).
     pub fn never_collapses(self) -> bool {
-        matches!(self, Group::Select | Group::Place | Group::Connect)
+        matches!(self, Group::Select | Group::Place)
+    }
+
+    /// Whether the group collapses only after every other one of its tab has (doc 16a §5.2: Draw's Connect, which
+    /// holds Wire; it gives way at the smallest window in a language of long words, and nowhere else).
+    pub fn collapses_last(self) -> bool {
+        matches!(self, Group::Connect)
     }
 }
 
@@ -286,7 +292,6 @@ pub const PENDING: &[(Group, u16, &str)] = &[
     (Group::Standards, 1, "Schemes"),
     (Group::Pages, 2, "Page properties"),
     (Group::Pages, 3, "Delete page"),
-    (Group::Place, 3, "Terminal"),
     (Group::Connect, 5, "Potential"),
     (Group::Arrange, 3, "Align"),
     (Group::Run, 2, "Check scheme"),

@@ -804,7 +804,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_keymap_export(p),
         )),
     ),
-    // The editor has a button on the Draw tab, whose Place group holds its menu entry and palette row.
+    // The editor has an entry of its own on the Draw tab, named for what it is and alone in its column (FT-1640: a
+    // button named "Symbols" under Black box was not found); the group's two Large buttons are Symbol and Device.
+    // The Place group holds its menu entry and palette row.
     with_params(
         "key?:text, name?:text, discard?:bool",
         placed(

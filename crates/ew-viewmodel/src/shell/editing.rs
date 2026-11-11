@@ -745,6 +745,16 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// [`ShellModel::act_open_picker`] on the tree's node of the function category `category` (`Terminal`): the
+    /// browser lists that kind alone, and every other is one click away in the tree.
+    pub(crate) fn act_open_picker_on(&mut self, mode: PickerMode, category: &str) -> Outcome {
+        let out = self.act_open_picker(mode);
+        if let Some(picker) = &mut self.tools.picker {
+            picker.set_node(crate::tools::Node::Category(category.to_owned()));
+        }
+        out
+    }
+
     /// `picker.filter {text}`.
     pub(crate) fn act_picker_filter(&mut self, p: &Map<String, Value>) -> Outcome {
         let text = match string_param(p, "text") {

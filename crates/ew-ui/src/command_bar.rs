@@ -9,8 +9,8 @@
 //!
 //! The layout is computed from the labels and the tokens only, never from a command's state, so the bar never
 //! reflows when a command is enabled, disabled or toggled. Groups that do not fit collapse from the right, each into
-//! one button that opens the group as a menu (Select, Place and Connect never collapse); what still does not fit
-//! goes into one "More" button.
+//! one button that opens the group as a menu (Select and Place never collapse, and Connect only after every other
+//! group has); what still does not fit goes into one "More" button.
 //!
 //! AccessKit: the bar is a `Toolbar` node, the tabs a `TabList` of `Tab` nodes, every group a `Group` node named by
 //! the group, every button named by its bar label and carrying its shortcut.
@@ -200,7 +200,8 @@ fn next_size(ui: &Ui, t: &Tokens, b: &CommandButton) -> Vec2 {
 }
 
 /// Lays out the command row of `model` in `row` (doc 16a §5.2): `space.3` gutters, the groups left to right with a
-/// 1-px divider between them, the next step at the right end; groups that do not fit collapse from the right.
+/// 1-px divider between them, the next step at the right end; groups that do not fit collapse from the right, a
+/// group that collapses last after the others.
 fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLayout {
     let cy = row.center().y;
     let next_size = model.next.as_ref().map(|b| next_size(ui, t, b));
@@ -220,7 +221,10 @@ fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLay
         widths + divider * model.groups.len().saturating_sub(1) as f32
     };
     let mut collapsed = vec![false; model.groups.len()];
-    for i in (0..model.groups.len()).rev() {
+    let mut order: Vec<usize> = (0..model.groups.len()).rev().collect();
+    // A stable sort: from the right, the groups that collapse last after the others.
+    order.sort_by_key(|&i| model.groups[i].group.collapses_last());
+    for i in order {
         if total(&collapsed) <= available {
             break;
         }

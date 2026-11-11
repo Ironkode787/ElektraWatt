@@ -1710,13 +1710,14 @@ fn the_editor_has_a_button_on_the_draw_tab_and_the_search_groups_it_there() {
         .placement
         .unwrap();
     assert_eq!((place.tab, place.group), (Tab::Draw, Group::Place));
-    // The button reads "Symbols", the editor's things; its tooltip and menu entry "Symbol editor…".
+    // The button is named "Symbol editor" (FT-1640: a button named "Symbols" was not found); its menu entry is
+    // "Symbol editor…".
     let bar = place.bar_label.unwrap();
-    assert_eq!(ew_viewmodel::strings::text(bar), "Symbols");
+    assert_eq!(ew_viewmodel::strings::text(bar), "Symbol editor");
     assert!(ew_viewmodel::strings::set_locale("nl"));
     let dutch = ew_viewmodel::strings::text(bar);
     assert!(ew_viewmodel::strings::set_locale("en"));
-    assert_eq!(dutch, "Symbolen");
+    assert_eq!(dutch, "Symbooleditor");
     assert_eq!(
         ew_viewmodel::strings::text(ew_viewmodel::key!("action-symbol-new")),
         "Symbol editor…"

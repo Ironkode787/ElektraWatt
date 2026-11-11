@@ -1124,7 +1124,7 @@ fn a_symbol_drawn_in_the_editor_reaches_the_library_a_page_and_the_picker() {
     assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
     d.settle();
     let toast = |d: &mut Driver| d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
-    d.input(&click(d.find("Symbols").unwrap()));
+    d.input(&click(d.find("Symbol editor").unwrap()));
     d.settle();
     // Nothing drawn yet: Save to library says why it saved nothing.
     d.input(&click(d.find("Save to library").unwrap()));
@@ -1208,12 +1208,12 @@ fn a_click_on_a_tool_s_symbol_in_the_insert_symbol_list_arms_the_tool() {
             text: typed.to_owned(),
         });
         d.settle();
-        // The list's row, not the left rail's button of a like name.
-        let rail = d.find("Symbol").unwrap().0 * 2;
+        // The list's row, not the left rail's button of a like name, nor the command bar's above the list.
+        let (rail, bar) = (d.find("Symbol").unwrap().0 * 2, d.find("Symbol").unwrap().1 + 40);
         let at = d
             .labels()
             .into_iter()
-            .find(|(l, at)| l.starts_with(row) && at.0 > rail)
+            .find(|(l, at)| l.starts_with(row) && at.0 > rail && at.1 > bar)
             .unwrap_or_else(|| panic!("no row {row}: {:?}", d.labels()))
             .1;
         // A click makes the row current; a double click chooses it.
@@ -2652,5 +2652,47 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
     d.settle();
     assert!(d.shell_mut().dialog().is_none(), "the page is made");
     assert_eq!(state(&mut d)["page"], first.to_string());
+    d.shell_mut().shutdown();
+}
+
+/// The owner's hands-on test of 0.1.0 (FT-1652, FT-1640): "important parts such as the terminal strip have no
+/// button of their own", the Wire marker was in the menu only, and the symbol editor hid behind a small button
+/// named "Symbols". On the Draw tab, at the floor: Terminal opens the device browser on its Terminals, Marker arms
+/// the Wire marker, and Symbol editor opens the editor.
+#[test]
+fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
+    use ew_ui::ew_viewmodel::tools::{Node, PickerRow};
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
+    let _ = d.shell_mut().dispatch("file.new", &project);
+    d.settle();
+    let press = |d: &mut Driver, label: &str| {
+        let at = d
+            .find(label)
+            .unwrap_or_else(|| panic!("the button {label}: {:?}", d.labels()));
+        d.input(&click(at));
+        d.settle();
+    };
+    press(&mut d, "Terminal");
+    let picker = d.shell_mut().picker().expect("the device browser").clone();
+    assert_eq!(picker.node, Node::Category("Terminal".to_owned()));
+    assert!(!picker.rows.is_empty(), "the starter parts hold a terminal");
+    for row in &picker.rows {
+        let PickerRow::Part(p) = row else {
+            panic!("{row:?} in the device browser")
+        };
+        assert_eq!(picker.catalogue.parts[*p].category, "Terminal");
+    }
+    d.input(&key("escape"));
+    d.settle();
+    assert!(d.shell_mut().picker().is_none());
+    press(&mut d, "Marker");
+    assert_eq!(d.shell_mut().tool().name(), "marker");
+    d.input(&key("escape"));
+    d.settle();
+    press(&mut d, "Symbol editor");
+    assert!(d.shell_mut().symbol_editor().is_some(), "the editor opens");
     d.shell_mut().shutdown();
 }

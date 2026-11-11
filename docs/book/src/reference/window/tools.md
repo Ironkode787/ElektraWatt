@@ -31,6 +31,11 @@ Places a device from a part of the library, so that the device has its part from
 row per part; a part with several functions opens to them with its arrow (or Right). Open it with Draw ▸ Place ▸
 Device from part…. See [Choose parts](../../how-to/choose-parts.md).
 
+## Terminal
+
+Opens the device browser on its terminals: choose one, then the strip it joins or a new strip. Every other kind of
+part is one click away in the browser's tree. Draw ▸ Place ▸ Terminal….
+
 ## Black box
 
 Draws a black box: a rectangle with connection points for a device that the library has no symbol for. Open it with
@@ -171,7 +176,7 @@ Star source.
 
 ## Wire marker
 
-Places a wire marker, the label that prints a wire's number or text on the wire. Open it with Draw ▸ Connect ▸ Wire
+Places a wire marker, the label that prints a wire's number or text on the wire. Open it with Draw ▸ Annotate ▸ Wire
 marker.
 
 ## Text

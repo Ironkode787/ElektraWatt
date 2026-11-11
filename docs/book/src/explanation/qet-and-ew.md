@@ -36,7 +36,7 @@ Choose part…**. See [Choose parts](../how-to/choose-parts.md).
 **EW term:** [Wire marker](../reference/glossary.md#wire-marker)
 
 **The same:** a text on the wire shows its number or function. **What differs:** the number is a property of the
-wire, derived by the numbering scheme; the wire marker only shows it. **In the window:** **Draw ▸ Connect ▸ Wire
+wire, derived by the numbering scheme; the wire marker only shows it. **In the window:** **Draw ▸ Annotate ▸ Wire
 marker**.
 
 ## Folio report
