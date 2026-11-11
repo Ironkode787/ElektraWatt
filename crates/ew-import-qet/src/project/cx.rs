@@ -9,8 +9,8 @@ use std::collections::BTreeMap;
 
 use ew_ids::{Id, Uuid, v5};
 use ew_interop_api::{Code, ReportEntry, Severity, SourceLocation, SourceRef};
-use ew_schema::{Function, ImportLineage, Junction, Page};
-use ew_units::Pt2;
+use ew_schema::{Dir4, Function, ImportLineage, Junction, Page};
+use ew_units::{Nm, Orient2, Pt2};
 
 use super::model::QetDiagram;
 
@@ -166,6 +166,26 @@ pub struct PlacedTerminal {
     pub local: Pt2,
     /// Its position on the page, nm: element position + orientation applied to `local`; `None` on overflow.
     pub page_pos: Option<Pt2>,
+    /// The direction a wire leaves it on the page (the definition's `orientation` turned with the element), for
+    /// QET's automatic conductor path; `None` when unknown.
+    pub dir: Option<Dir4>,
+}
+
+/// The direction `d` turned by the element orientation `o`; `None` for an unknown direction.
+pub fn turned(d: &Dir4, o: Orient2) -> Option<Dir4> {
+    let v = match d {
+        Dir4::Up => (0, -1),
+        Dir4::Right => (1, 0),
+        Dir4::Down => (0, 1),
+        Dir4::Left => (-1, 0),
+        Dir4::Unknown(_) => return None,
+    };
+    match o.apply(Pt2::new(Nm(v.0), Nm(v.1))) {
+        p if p.y.0 < 0 => Some(Dir4::Up),
+        p if p.x.0 > 0 => Some(Dir4::Right),
+        p if p.y.0 > 0 => Some(Dir4::Down),
+        _ => Some(Dir4::Left),
+    }
 }
 
 /// Where the wires of a placed element end.

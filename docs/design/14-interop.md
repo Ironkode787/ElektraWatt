@@ -815,6 +815,18 @@ texts) and 10 main/aux pairs on 9 devices (19 texts with 20 targets): 63 texts w
 - **Route.** Stored `<segment>`s are replayed from end 1 into `route` points. Conductors without segments get the
   path QET computes (ported profile algorithm), stored explicitly, so EW draws them exactly as QET did
   (FR-IMP-043).
+  *As built:* `<segment>`s are read directly under `<conductor>` (QET's form) and inside a `<segments>` wrapper.
+  Like QET, the importer sets stored segments aside when they do not end within 1 px of end 2 on both axes. QET's
+  automatic path is QET's `Conductor::generateConductorPath`, rewritten: each terminal is extended 10 px in the
+  direction it faces (its definition `orientation` turned with the element) and rounded onto the 10 px grid, and the
+  extensions are joined from left to right by one corner or a two-corner bridge on the 10 px grid. A corner keeps
+  an end's coordinate when it lies in the same QET px as that end, else it takes the nearest whole px. A stretch
+  that runs out and back over itself, and a vertex in the middle of a straight run, are removed. A terminal's page
+  position can be up to 2 nm off its whole px (§4.2), so the segment at an end may slant by that much. A
+  connection keeps a route only when that route is one `connection.route` accepts: every coordinate on the 10 px
+  grid or equal to an end's, and no segment over another. A stored path that fails this is replaced by the
+  automatic path with EW-IMP-009. When the automatic path fails too, the connection stays unrouted with
+  EW-IMP-009 and the reason. Two terminals that touch get the segment between them, or no route at one point.
 - **Properties.** A non-empty `num` → `NumberSpec::Frozen` (FR-IMP-012, 08 §5.3), an empty one → `Unassigned`; `conductor_color` and `conductor_section` →
   overrides, pruned by pass P2; colour text through the alias table (BR → BN proposed, §4.12); `function` and
   `tension_protocol` → `PotentialDef` candidates (pass P1); display attributes (`numsize`, `onetextperfolio`,
@@ -1047,8 +1059,7 @@ interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strip
 - **Not imported yet** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101
  , rules R2/R3, structure nodes and EW-IMP-102, parts from element information,
   text-to-data recognisers, `graphics_table` report blocks, free texts, shapes, images and
-  thumbnails, cables, conductor properties as potential definitions and overrides, QET's
-  auto-route (conductors without segments get EW's provisional route), chain mode and external points
+  thumbnails, cables, conductor properties as potential definitions and overrides, chain mode and external points
  , title-block template forms, `<terminal_strips>` and their bridges, empty terminal
   designations, and the exchange of QET-import symbols for starter symbols through `symbol-map.csv`
   ([23](23-symbol-coverage-pilot-corpus.md) M-01 to M-09). The import detections EW-IMP-105, EW-IMP-106, EW-IMP-110 and EW-IMP-112,

@@ -282,25 +282,27 @@ impl Reader<'_> {
     ) -> QetConductor {
         let line = self.line(node);
         let mut segments = Vec::new();
-        if let Some(s) = child(node, "segments") {
-            for seg in s
-                .children()
-                .filter(|c| c.is_element() && c.tag_name().name() == "segment")
-            {
-                match decimal(seg.attribute("length")) {
-                    Some(length) => segments.push(Segment {
-                        horizontal: seg.attribute("orientation") == Some("horizontal"),
-                        length,
-                    }),
-                    None => {
-                        let loc = findings.loc(folio, Some(format!("conductor {n}")), Some(self.line(seg)));
-                        findings.push(
-                            Code::MALFORMED_ITEM,
-                            Severity::Warning,
-                            loc,
-                            "segment dropped: bad length",
-                        );
-                    }
+        // QET writes `<segment>`s directly under `<conductor>`; some files wrap them in `<segments>`. Both are read,
+        // in document order.
+        let named = |c: &Node<'_, '_>, name: &str| c.is_element() && c.tag_name().name() == name;
+        let all = node.children().flat_map(|c| {
+            let wrapped = named(&c, "segments").then(|| c.children());
+            std::iter::once(c).chain(wrapped.into_iter().flatten())
+        });
+        for seg in all.filter(|c| named(c, "segment")) {
+            match decimal(seg.attribute("length")) {
+                Some(length) => segments.push(Segment {
+                    horizontal: seg.attribute("orientation") == Some("horizontal"),
+                    length,
+                }),
+                None => {
+                    let loc = findings.loc(folio, Some(format!("conductor {n}")), Some(self.line(seg)));
+                    findings.push(
+                        Code::MALFORMED_ITEM,
+                        Severity::Warning,
+                        loc,
+                        "segment dropped: bad length",
+                    );
                 }
             }
         }
@@ -839,6 +841,34 @@ mod tests {
         assert_eq!(entries[0].severity, Severity::Warning);
         assert_eq!(entries[0].message, "segment dropped: bad length");
         assert_eq!(entries[0].location.as_ref().unwrap().line, Some(4));
+    }
+
+    #[test]
+    fn segments_directly_under_the_conductor_are_read() {
+        // QET's own form: `<segment>`s are children of `<conductor>`, beside other children.
+        let xml = r#"<project><diagram folio="2"><conductors>
+<conductor num="1">
+<sequentialNumbers/>
+<segment orientation="vertical" length="20"/>
+<segment orientation="horizontal" length="-7.5"/>
+</conductor>
+</conductors></diagram></project>"#;
+        let (r, entries) = read(xml);
+        let c = &r.unwrap().diagrams[0].conductors[0];
+        assert!(entries.is_empty(), "{entries:?}");
+        assert_eq!(
+            c.segments,
+            vec![
+                Segment {
+                    horizontal: false,
+                    length: dec("20")
+                },
+                Segment {
+                    horizontal: true,
+                    length: dec("-7.5")
+                },
+            ]
+        );
     }
 
     #[test]

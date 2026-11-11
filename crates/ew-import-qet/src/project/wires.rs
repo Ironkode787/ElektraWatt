@@ -7,7 +7,8 @@
 //! by a per-folio integer terminal ID; the element mapper keys placed elements with
 //! [`element_keys`]/[`terminal_ids`], so this module resolves ends against the same keys. A conductor with an
 //! end that does not resolve to a connection point (or a junction) is dropped with EW-IMP-003; the others
-//! become connections whose IDs derive from the pair of end keys, so a re-import reproduces them.
+//! become connections whose IDs derive from the pair of end keys, so a re-import reproduces them. A connection's
+//! route is the conductor's stored path, else QET's automatic path ([`wire_route`]).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -15,7 +16,8 @@ use ew_ids::Id;
 use ew_interop_api::{Code, Severity};
 use ew_mltext::Ident;
 use ew_schema::{
-    Connection, ConnectionKind, Endpoint, Junction, JunctionStyle, JunctionWiring, NumberSpec, WireOverrides,
+    Connection, ConnectionKind, Dir4, Endpoint, Junction, JunctionStyle, JunctionWiring, NumberSpec,
+    WireOverrides,
 };
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::Value;
@@ -281,6 +283,12 @@ fn end_pos(r: &Resolved<'_>) -> Option<Pt2> {
     }
 }
 
+/// The page position of a resolved end with the direction a wire leaves it (a junction's: its terminal's).
+fn end_at(r: &Resolved<'_>) -> Option<(Pt2, Option<Dir4>)> {
+    let dir = r.placed.terminals.get(r.index).and_then(|t| t.dir.clone());
+    end_pos(r).map(|p| (p, dir))
+}
+
 /// The points of a conductor drawn from `start` through `segments`: the point after each segment. `None` when
 /// a length does not convert or the arithmetic overflows.
 fn points_of(start: Pt2, segments: &[Segment]) -> Option<Vec<Pt2>> {
@@ -298,33 +306,301 @@ fn points_of(start: Pt2, segments: &[Segment]) -> Option<Vec<Pt2>> {
     Some(points)
 }
 
-/// The route of a conductor drawn from `start` through `segments` to `end`, both ends included:
-/// `start`, the point after each segment but the last, then `end`; a coordinate that names the same QET px as an
-/// end's coordinate takes the end's exact value (the tables importer's rule), and equal neighbours are merged.
-/// Empty (the connection is unrouted) without segments, when an end's position is unknown, a length does not
-/// convert or the arithmetic overflows.
-fn route_of(start: Option<Pt2>, end: Option<Pt2>, segments: &[Segment]) -> Vec<Pt2> {
-    let (Some(a), Some(b)) = (start, end) else {
-        return Vec::new();
-    };
-    let mut points = match points_of(a, segments) {
-        Some(points) if !points.is_empty() => points,
-        _ => return Vec::new(),
-    };
-    points.pop();
-    let px = |v: Nm| Grid::QET_1PX.snap(v);
-    let snap = |v: Nm, ends: [Nm; 2]| ends.into_iter().find(|e| px(*e) == px(v)).unwrap_or(v);
-    let mut route: Vec<Pt2> = vec![a];
-    for p in points
-        .into_iter()
-        .map(|p| Pt2::new(snap(p.x, [a.x, b.x]), snap(p.y, [a.y, b.y])))
-        .chain(std::iter::once(b))
-    {
-        if route.last() != Some(&p) {
-            route.push(p);
-        }
+/// How far, in nm, the page position of a terminal on a whole QET px may lie from it: 1 nm from adding the rounded
+/// positions of element and terminal, 2 nm for an element nudged off a grid line (doc 14 §4.2). Two terminals QET
+/// draws on one line can therefore be that far apart across it, so a segment that leaves an end may slant by as much.
+const ROUNDING: i64 = 2;
+
+/// The whole QET px of `v` when `v` is within [`ROUNDING`] of it, else `v`.
+fn whole_px(v: Nm) -> Nm {
+    Grid::QET_1PX
+        .snap_point(v)
+        .filter(|s| (i128::from(s.0) - i128::from(v.0)).abs() <= i128::from(ROUNDING))
+        .unwrap_or(v)
+}
+
+/// The point `p` with each coordinate at its [`whole_px`].
+fn whole(p: Pt2) -> Pt2 {
+    Pt2::new(whole_px(p.x), whole_px(p.y))
+}
+
+/// The route through `points` (from `a`'s [`whole`] point to `b`'s), [`tidy`], with its first and last vertices put
+/// back at the ends' exact points `a` and `b`.
+fn finish(points: impl IntoIterator<Item = Pt2>, a: Pt2, b: Pt2) -> Vec<Pt2> {
+    let mut route = tidy(points);
+    if let Some(first) = route.first_mut() {
+        *first = a;
+    }
+    if let Some(last) = route.last_mut() {
+        *last = b;
     }
     route
+}
+
+/// The stored path of a conductor drawn from end 1 at `a` through `segments` to end 2 at `b`, both ends
+/// included: `a`, the point after each segment but the last, then `b`. A corner coordinate that names the same
+/// QET px as an end's coordinate takes that end's [`whole_px`] value (the tables importer's rule), any other the
+/// whole QET px nearest to it, and the route is [`finish`]ed. `None` (QET draws its automatic path) without segments,
+/// when the segments do not end within 1 px of `b` on both axes (QET's own coherence test,
+/// `Conductor::pathFromXml`), a length does not convert or the arithmetic overflows.
+fn stored_route(a: Pt2, b: Pt2, segments: &[Segment]) -> Option<Vec<Pt2>> {
+    let mut points = points_of(a, segments)?;
+    let last = points.pop()?;
+    // 3 × |Δ| nm ≤ 793 750: within one px (1 px = 793 750 / 3 nm).
+    let near = |u: Nm, v: Nm| (i128::from(u.0) - i128::from(v.0)).abs() * 3 <= 793_750;
+    if !(near(last.x, b.x) && near(last.y, b.y)) {
+        return None;
+    }
+    let (wa, wb) = (whole(a), whole(b));
+    let px = |v: Nm| Grid::QET_1PX.snap(v);
+    let snap = |v: Nm, ends: [Nm; 2]| {
+        ends.into_iter()
+            .find(|e| px(*e) == px(v))
+            .or_else(|| Grid::QET_1PX.snap_point(v))
+            .unwrap_or(v)
+    };
+    let corners = points
+        .into_iter()
+        .map(|p| Pt2::new(snap(p.x, [wa.x, wb.x]), snap(p.y, [wa.y, wb.y])));
+    let points = std::iter::once(wa).chain(corners).chain(std::iter::once(wb));
+    Some(finish(points, a, b))
+}
+
+/// `points` without a vertex equal to the one before it and without the middle vertex of three on one horizontal or
+/// vertical line: a spur that runs out and back (QET draws it over itself) goes, and a straight run is one segment.
+fn tidy(points: impl IntoIterator<Item = Pt2>) -> Vec<Pt2> {
+    let inline = |a: Pt2, b: Pt2, c: Pt2| (a.x == b.x && b.x == c.x) || (a.y == b.y && b.y == c.y);
+    let mut out: Vec<Pt2> = Vec::new();
+    for p in points {
+        while let [.., a, b] = out[..] {
+            if !inline(a, b, p) {
+                break;
+            }
+            out.pop();
+        }
+        if out.last() != Some(&p) {
+            out.push(p);
+        }
+    }
+    out
+}
+
+/// Why `route` (from `a` to `b`, [`tidy`]) is no route `connection.route` accepts on a QET page
+/// (`ew_commands::geometry::require_route`), in words, and is not drawn right-angled; `None` when it is one: every
+/// segment horizontal or vertical (within [`ROUNDING`]), every coordinate on the 10 px grid or equal to that
+/// coordinate of an end, and no segment running over another.
+fn route_problem(route: &[Pt2], a: Pt2, b: Pt2) -> Option<&'static str> {
+    let level = |u: Nm, v: Nm| (i128::from(u.0) - i128::from(v.0)).abs() <= i128::from(ROUNDING);
+    if route
+        .windows(2)
+        .any(|s| !level(s[0].x, s[1].x) && !level(s[0].y, s[1].y))
+    {
+        return Some("a segment is neither horizontal nor vertical");
+    }
+    let g = Grid::QET_10PX;
+    let fits = |v: Nm, ends: [Nm; 2]| ends.contains(&v) || g.snap_point(v) == Some(v);
+    if !route
+        .iter()
+        .all(|p| fits(p.x, [a.x, b.x]) && fits(p.y, [a.y, b.y]))
+    {
+        return Some("a corner is off the 10 px grid");
+    }
+    // Per line (horizontal or not, its constant coordinate at the whole px), the segments' intervals in order: one
+    // that starts before the furthest end so far runs over an earlier one.
+    let mut lines: BTreeMap<(bool, i64), Vec<(i64, i64)>> = BTreeMap::new();
+    for s in route.windows(2) {
+        let (h, at, u, v) = if level(s[0].y, s[1].y) {
+            (true, whole_px(s[0].y).0, s[0].x.0, s[1].x.0)
+        } else {
+            (false, whole_px(s[0].x).0, s[0].y.0, s[1].y.0)
+        };
+        lines.entry((h, at)).or_default().push((u.min(v), u.max(v)));
+    }
+    for spans in lines.values_mut() {
+        spans.sort_unstable();
+        let mut reach = i64::MIN;
+        for (lo, hi) in spans.iter() {
+            if *lo < reach {
+                return Some("a segment runs over another");
+            }
+            reach = reach.max(*hi);
+        }
+    }
+    None
+}
+
+/// A coordinate of QET's automatic path: nanometres for the route, hundredths of a QET px for QET's decisions.
+#[derive(Clone, Copy, Debug)]
+struct Coord {
+    nm: Nm,
+    cpx: i64,
+}
+
+/// `n / d` rounded half away from zero (C's `std::round` and Qt 6's `qRound`), `d > 0`.
+fn div_round(n: i64, d: i64) -> i64 {
+    let (q, r) = (n / d, n % d);
+    if 2 * r.abs() >= d { q + n.signum() } else { q }
+}
+
+impl Coord {
+    /// A page coordinate: exact in nm, in hundredths of a px rounded.
+    fn of(v: Nm) -> Coord {
+        let n = i128::from(v.0) * 300;
+        let q = (n + n.signum() * 793_750 / 2) / 793_750;
+        Coord {
+            nm: v,
+            // |q| ≤ |v|: always fits.
+            cpx: i64::try_from(q).unwrap_or_default(),
+        }
+    }
+
+    /// The point of the 10 px grid with index `k`; `None` on overflow.
+    fn grid(k: i64) -> Option<Coord> {
+        Some(Coord {
+            nm: Grid::QET_10PX.at(k)?,
+            cpx: k.checked_mul(1000)?,
+        })
+    }
+
+    /// `std::round((self ± 10 px) / 10) × 10`: QET's `Conductor::extendTerminal`.
+    fn extended(self, by: i64) -> Option<Coord> {
+        Coord::grid(div_round(self.cpx.checked_add(by * 100)?, 1000))
+    }
+
+    /// QET's whole px of this coordinate (`qRound`).
+    fn px(self) -> i64 {
+        div_round(self.cpx, 100)
+    }
+
+    /// The bridge line between `self` and `other`: `qRound(self + other) / 2`, then down to a multiple of 10 px.
+    fn bridge(self, other: Coord) -> Option<Coord> {
+        let mid = div_round(self.cpx.checked_add(other.cpx)?, 100) / 2;
+        Coord::grid(mid.div_euclid(10))
+    }
+}
+
+/// QET's automatic path of a conductor from the terminal at `p1` leaving towards `o1` to the terminal at `p2`
+/// leaving towards `o2` (QElectroTech, `sources/qetgraphicsitem/conductor.cpp`, `Conductor::generateConductorPath`
+/// and `Conductor::extendTerminal`, GPL-2.0-or-later, rewritten here): both terminals are extended by 10 px onto the
+/// 10 px grid, the path runs from the left extension to the right one by one corner or a two-corner bridge on the
+/// 10 px grid (QET's cases 1 to 4, which depend on whether it runs down or up and on the two orientations), and is
+/// expressed from terminal 1 to terminal 2. It is computed from the terminals' [`whole`] points and [`finish`]ed.
+/// `None` for an unknown direction or on overflow.
+fn auto_route(p1: Pt2, o1: &Dir4, p2: Pt2, o2: &Dir4) -> Option<Vec<Pt2>> {
+    type P = (Coord, Coord);
+    let extend = |(x, y): P, o: &Dir4| -> Option<P> {
+        Some(match o {
+            Dir4::Up => (x, y.extended(-10)?),
+            Dir4::Right => (x.extended(10)?, y),
+            Dir4::Down => (x, y.extended(10)?),
+            Dir4::Left => (x.extended(-10)?, y),
+            Dir4::Unknown(_) => return None,
+        })
+    };
+    let (w1, w2) = (whole(p1), whole(p2));
+    let (s1, s2) = (
+        (Coord::of(w1.x), Coord::of(w1.y)),
+        (Coord::of(w2.x), Coord::of(w2.y)),
+    );
+    let (n1, n2) = (extend(s1, o1)?, extend(s2, o2)?);
+    // The path always runs from left to right (after the extension).
+    let forward = n1.0.nm <= n2.0.nm;
+    let ((start0, start, od), (end, end0, oa)) = if forward {
+        ((s1, n1, o1), (n2, s2, o2))
+    } else {
+        ((s2, n2, o2), (n1, s1, o1))
+    };
+    let (n, e, s, w) = (Dir4::Up, Dir4::Right, Dir4::Down, Dir4::Left);
+    let mut points: Vec<P> = vec![start0, start];
+    // A vertical bridge at x between the two, unless they share a whole px of x.
+    let x_bridge = |points: &mut Vec<P>| -> Option<()> {
+        if start.0.px() != end.0.px() {
+            let x = start.0.bridge(end.0)?;
+            points.extend([(x, start.1), (x, end.1)]);
+        }
+        Some(())
+    };
+    let y_bridge = |points: &mut Vec<P>| -> Option<()> {
+        if start.1.px() != end.1.px() {
+            let y = start.1.bridge(end.1)?;
+            points.extend([(start.0, y), (end.0, y)]);
+        }
+        Some(())
+    };
+    if start.1.nm < end.1.nm {
+        // Running down.
+        if (*od == n && (*oa == s || *oa == w)) || (*od == e && *oa == w) {
+            x_bridge(&mut points)?;
+        } else if (*od == s && (*oa == n || *oa == e)) || (*od == w && *oa == e) {
+            y_bridge(&mut points)?;
+        } else if (*od == n || *od == e) && (*oa == n || *oa == e) {
+            points.push((end.0, start.1));
+        } else {
+            points.push((start.0, end.1));
+        }
+    } else if (*od == w && (*oa == e || *oa == s)) || (*od == n && *oa == s) {
+        // Running up (or level).
+        y_bridge(&mut points)?;
+    } else if (*od == e && (*oa == w || *oa == n)) || (*od == s && *oa == n) {
+        x_bridge(&mut points)?;
+    } else if (*od == w || *od == n) && (*oa == w || *oa == n) {
+        points.push((start.0, end.1));
+    } else {
+        points.push((end.0, start.1));
+    }
+    points.extend([end, end0]);
+    if !forward {
+        points.reverse();
+    }
+    Some(finish(
+        points.into_iter().map(|(x, y)| Pt2::new(x.nm, y.nm)),
+        p1,
+        p2,
+    ))
+}
+
+/// The route stored for a conductor whose ends are drawn at `a` and `b` (each with the direction a wire leaves it,
+/// when known), and a report message when it is not the path QET draws: the stored path replayed from end 1
+/// ([`stored_route`]), else QET's automatic path ([`auto_route`]); empty (the connection is unrouted) when neither is
+/// a valid route ([`route_problem`]). Ends at one [`whole`] point (terminals that touch) get no message.
+fn wire_route(
+    a: Option<(Pt2, Option<Dir4>)>,
+    b: Option<(Pt2, Option<Dir4>)>,
+    segments: &[Segment],
+) -> (Vec<Pt2>, Option<String>) {
+    let unrouted = |why: &str| (Vec::new(), Some(format!("wire left unrouted: {why}")));
+    let (Some((pa, da)), Some((pb, db))) = (a, b) else {
+        return unrouted("an end has no position on the page");
+    };
+    if whole(pa) == whole(pb) {
+        // Two terminals that touch: the one segment between their [`ROUNDING`] apart points, or nothing at one point
+        // (EW-CORE-073 asks no route of that).
+        let route = if pa == pb { Vec::new() } else { vec![pa, pb] };
+        return (route, None);
+    }
+    let mut set_aside = None;
+    if !segments.is_empty()
+        && let Some(route) = stored_route(pa, pb, segments)
+    {
+        match route_problem(&route, pa, pb) {
+            None => return (route, None),
+            Some(why) => set_aside = Some(why),
+        }
+    }
+    let (Some(da), Some(db)) = (da, db) else {
+        return unrouted(set_aside.unwrap_or("the direction of a terminal is unknown"));
+    };
+    let Some(route) = auto_route(pa, &da, pb, &db) else {
+        return unrouted(set_aside.unwrap_or("a coordinate is out of range"));
+    };
+    match (route_problem(&route, pa, pb), set_aside) {
+        (None, None) => (route, None),
+        (None, Some(why)) => (
+            route,
+            Some(format!("stored path not kept ({why}); QET's automatic path used")),
+        ),
+        (Some(why), _) => unrouted(set_aside.unwrap_or(why)),
+    }
 }
 
 /// The displacement from the first to the last point of a conductor drawn through `segments`, nm; `None`
@@ -630,6 +906,11 @@ fn map_conductors_counted(
                     }
                 },
             };
+            let (route, note) = wire_route(end_at(&e1), end_at(&e2), &c.segments);
+            if let Some(note) = note {
+                let loc = findings.loc(folio, item(), Some(c.line));
+                findings.push(Code::imp(9), Severity::Warning, loc, note);
+            }
 
             out.connections.push(Connection {
                 id: ids.id(&key),
@@ -637,7 +918,7 @@ fn map_conductors_counted(
                 a: e1.endpoint.clone(),
                 b: e2.endpoint.clone(),
                 page: Some(e1.placed.page),
-                route: route_of(end_pos(&e1), end_pos(&e2), &c.segments),
+                route,
                 kind: ConnectionKind::default(),
                 overrides: WireOverrides::default(),
                 number,
@@ -699,7 +980,7 @@ mod tests {
     use ew_ids::Uuid;
     use ew_interop_api::{Code, Severity};
     use ew_schema::{Function, Page};
-    use ew_units::{Grid, Nm};
+    use ew_units::Nm;
     use serde_json::json;
 
     use super::*;
@@ -758,6 +1039,7 @@ mod tests {
             uuid,
             local,
             page_pos: Some(Pt2::new(Nm(local.x.0 + 1000), Nm(local.y.0 + 2000))),
+            dir: Some(Dir4::Down),
         }
     }
 
@@ -1011,57 +1293,211 @@ mod tests {
         assert_eq!(distinct.len(), 3);
     }
 
+    /// The page point (x, y) px.
+    fn at(x: i64, y: i64) -> Pt2 {
+        Pt2::new(px(x), px(y))
+    }
+
+    fn seg(horizontal: bool, n: &str) -> Segment {
+        Segment {
+            horizontal,
+            length: Decimal::parse(n).unwrap(),
+        }
+    }
+
     #[test]
-    fn route_replays_segments_from_end_to_end() {
-        let (mut d, reg) = two_elements();
-        let mut c = cond(end_u(&uid(10), &uid(21)), end_u(&uid(11), &uid(22)));
-        c.segments = vec![
-            Segment {
-                horizontal: true,
-                length: Decimal::from_int(10),
-            },
-            Segment {
-                horizontal: false,
-                length: Decimal::from_int(10),
-            },
-        ];
-        d.conductors.push(c);
-        let (out, _) = run(&project(vec![d]), &reg);
-        let start = reg[&(0, uid(10))].terminals[1].page_pos.unwrap();
-        let step = Grid::QET_10PX.at(1).unwrap();
-        assert_eq!(step, px(10));
-        let end = reg[&(0, uid(11))].terminals[0].page_pos.unwrap();
+    fn stored_segments_are_replayed_from_end_1() {
+        // A's terminal at (100, 0) px, B's at (0, 50) px. A → B: down 20, left 100, down 30.
+        let (a, b) = (uid(10), uid(11));
+        let mut c = cond(end_u(&a, &uid(20)), end_u(&b, &uid(22)));
+        c.segments = vec![seg(false, "20"), seg(true, "-100"), seg(false, "30")];
+        // B → A: lengths that miss A by 0.4 px, within QET's tolerance; the corner takes A's x.
+        let mut back = cond(end_u(&b, &uid(22)), end_u(&a, &uid(20)));
+        back.segments = vec![seg(false, "-30"), seg(true, "100.4"), seg(false, "-20")];
+        let d = diagram(
+            vec![
+                element(Some(a.clone()), Vec::new()),
+                element(Some(b.clone()), Vec::new()),
+            ],
+            vec![c, back],
+        );
+        let mut reg = Registry::new();
+        let ta = vec![pterm_on_page(Some(uid(20)), 100, 0)];
+        reg.insert((0, a.clone()), placed(&a, func(100, vec![Some(0)]), ta));
+        let tb = vec![pterm_on_page(Some(uid(22)), 0, 50)];
+        reg.insert((0, b.clone()), placed(&b, func(101, vec![Some(0)]), tb));
+        let (out, f) = run(&project(vec![d]), &reg);
+        assert!(f.entries().is_empty(), "{:?}", f.entries());
         assert_eq!(
             out.connections[0].route,
-            vec![start, Pt2::new(Nm(start.x.0 + step.0), start.y), end]
+            vec![at(100, 0), at(100, 20), at(0, 20), at(0, 50)]
+        );
+        assert_eq!(
+            out.connections[1].route,
+            vec![at(0, 50), at(0, 20), at(100, 20), at(100, 0)]
         );
     }
 
     #[test]
-    fn route_is_empty_without_segments_or_on_overflow() {
-        let seg = |horizontal, n| Segment {
-            horizontal,
-            length: Decimal::from_int(n),
-        };
-        let o = Some(Pt2::ORIGIN);
-        assert!(route_of(o, o, &[]).is_empty());
-        assert!(route_of(None, o, &[seg(true, 1), seg(false, 1)]).is_empty());
-        assert!(route_of(o, None, &[seg(true, 1), seg(false, 1)]).is_empty());
-        assert!(
-            route_of(
-                Some(Pt2::new(Nm(i64::MAX), Nm(0))),
-                o,
-                &[seg(true, 1), seg(false, 1)]
-            )
-            .is_empty()
-        );
-        // One segment: the straight route between the ends; a corner within a QET px of an end takes its value.
-        let b = Pt2::new(px(1), Nm(0));
-        assert_eq!(route_of(o, Some(b), &[seg(true, 1)]), vec![Pt2::ORIGIN, b]);
-        let b = Pt2::new(Nm(px(10).0 + 1), Nm(px(10).0));
+    fn stored_path_rules() {
+        let (a, b) = (at(100, 0), at(0, 50));
+        // Lengths that miss end 2 by more than 1 px: QET sets them aside (no stored path).
+        assert_eq!(stored_route(a, b, &[seg(false, "50"), seg(true, "-102")]), None);
+        assert_eq!(stored_route(a, b, &[]), None);
+        let far = Pt2::new(Nm(i64::MAX), Nm(0));
+        assert_eq!(stored_route(far, b, &[seg(true, "1")]), None);
+        // An end 1 nm off its whole px: the corners take the whole px, the route still ends on the end; a stretch out
+        // and back is tidied away.
+        let a1 = Pt2::new(Nm(a.x.0 + 1), a.y);
+        let lengths = [
+            seg(false, "20"),
+            seg(false, "-10"),
+            seg(true, "-100"),
+            seg(false, "40"),
+        ];
         assert_eq!(
-            route_of(o, Some(b), &[seg(true, 10), seg(false, 10)]),
-            vec![Pt2::ORIGIN, Pt2::new(b.x, Nm(0)), b]
+            stored_route(a1, b, &lengths),
+            Some(vec![a1, Pt2::new(a.x, px(10)), Pt2::new(b.x, px(10)), b])
+        );
+        // An end at a fractional px: a corner within that px takes the end's exact value.
+        let a2 = Pt2::new(Decimal::parse("100.5").unwrap().px_to_nm().unwrap(), a.y);
+        assert_eq!(
+            stored_route(a2, b, &[seg(false, "20"), seg(true, "-100.5"), seg(false, "30")]),
+            Some(vec![a2, Pt2::new(a2.x, px(20)), Pt2::new(b.x, px(20)), b])
+        );
+    }
+
+    #[test]
+    fn route_problems_are_named() {
+        let (a, b) = (at(0, 0), at(100, 50));
+        assert_eq!(
+            route_problem(&[a, b], a, b),
+            Some("a segment is neither horizontal nor vertical")
+        );
+        let off = [a, at(55, 0), at(55, 50), b];
+        assert_eq!(route_problem(&off, a, b), Some("a corner is off the 10 px grid"));
+        // Out along y = 0, down, back along y = 50 past the start, up, and over the first segment again.
+        let around = [
+            at(0, 0),
+            at(100, 0),
+            at(100, 50),
+            at(-50, 50),
+            at(-50, 0),
+            at(50, 0),
+        ];
+        assert_eq!(
+            route_problem(&around, at(0, 0), at(50, 0)),
+            Some("a segment runs over another")
+        );
+        assert_eq!(route_problem(&[a, at(100, 0), b], a, b), None);
+    }
+
+    /// QET's automatic path for the terminal-orientation cases of `Conductor::generateConductorPath`, worked out by
+    /// hand: extend each terminal 10 px (rounded onto the 10 px grid), then join the extensions from left to right.
+    #[test]
+    fn automatic_path_follows_qets_rule() {
+        let (n, e, s, w) = (Dir4::Up, Dir4::Right, Dir4::Down, Dir4::Left);
+        let auto = |p1, o1: &Dir4, p2, o2: &Dir4| auto_route(p1, o1, p2, o2).unwrap();
+        // Straight: facing on one line; the bridge at x 150 lies on the line, so the route is one segment.
+        assert_eq!(
+            auto(at(100, 100), &e, at(200, 100), &w),
+            vec![at(100, 100), at(200, 100)]
+        );
+        // Facing, running down (case 3): extensions at x 110 and round(19.5) × 10 = 200, the bridge at
+        // (110 + 200) / 2 = 155 down to the grid: 150.
+        assert_eq!(
+            auto(at(100, 100), &e, at(205, 160), &w),
+            vec![at(100, 100), at(150, 100), at(150, 160), at(205, 160)]
+        );
+        // Facing, running up (case 4): the bridge at x 150.
+        assert_eq!(
+            auto(at(100, 160), &e, at(200, 100), &w),
+            vec![at(100, 160), at(150, 160), at(150, 100), at(200, 100)]
+        );
+        // Same side, both up, running down (case 2): over the top at the higher extension, y 90.
+        assert_eq!(
+            auto(at(100, 100), &n, at(200, 140), &n),
+            vec![at(100, 100), at(100, 90), at(200, 90), at(200, 140)]
+        );
+        // Same side, both down, running up (case 1): under the bottom at the lower extension, y 170.
+        assert_eq!(
+            auto(at(100, 160), &s, at(200, 100), &s),
+            vec![at(100, 160), at(100, 170), at(200, 170), at(200, 100)]
+        );
+        // Perpendicular, running down (case 1): down from the left terminal, then right.
+        assert_eq!(
+            auto(at(100, 100), &s, at(200, 160), &w),
+            vec![at(100, 100), at(100, 160), at(200, 160)]
+        );
+        // The same wire from the other end: the path is expressed from terminal 1 to terminal 2.
+        assert_eq!(
+            auto(at(200, 160), &w, at(100, 100), &s),
+            vec![at(200, 160), at(100, 160), at(100, 100)]
+        );
+        // Facing away on one line: QET draws the stubs over the line; the route is the line.
+        assert_eq!(
+            auto(at(100, 100), &w, at(200, 100), &e),
+            vec![at(100, 100), at(200, 100)]
+        );
+        // Facing, a terminal 1 nm off the line of the other (the rounding of its page position): QET's one
+        // vertical segment, slanting by that 1 nm.
+        let p1 = Pt2::new(Nm(px(440).0 + 1), px(360));
+        let route = auto(p1, &s, at(440, 368), &n);
+        assert_eq!(route, vec![p1, at(440, 368)]);
+        assert_eq!(route_problem(&route, p1, at(440, 368)), None);
+        let unknown = Dir4::Unknown(json!("x"));
+        assert_eq!(auto_route(at(0, 0), &n, at(10, 0), &unknown), None);
+    }
+
+    #[test]
+    fn wire_route_falls_back_to_the_automatic_path_or_leaves_the_wire_unrouted() {
+        let (a, b) = (at(100, 100), at(200, 160));
+        let (down, left) = (Some(Dir4::Down), Some(Dir4::Left));
+        let l_shape = vec![a, at(100, 160), b];
+        // Stored lengths that miss end 2: QET's automatic path, as QET draws it; no finding.
+        assert_eq!(
+            wire_route(
+                Some((a, down.clone())),
+                Some((b, left.clone())),
+                &[seg(true, "5")]
+            ),
+            (l_shape.clone(), None)
+        );
+        // A stored corner off the 10 px grid: the automatic path, with a finding.
+        let off = [seg(false, "25"), seg(true, "100"), seg(false, "35")];
+        let (route, note) = wire_route(Some((a, down.clone())), Some((b, left.clone())), &off);
+        assert_eq!(route, l_shape);
+        assert_eq!(
+            note.as_deref(),
+            Some("stored path not kept (a corner is off the 10 px grid); QET's automatic path used")
+        );
+        // Neither: unrouted, with the reason.
+        let (route, note) = wire_route(Some((a, None)), Some((b, left.clone())), &off);
+        assert!(route.is_empty());
+        assert_eq!(
+            note.as_deref(),
+            Some("wire left unrouted: a corner is off the 10 px grid")
+        );
+        let (route, note) = wire_route(Some((a, None)), Some((b, left.clone())), &[]);
+        assert!(route.is_empty());
+        assert_eq!(
+            note.as_deref(),
+            Some("wire left unrouted: the direction of a terminal is unknown")
+        );
+        // Terminals that touch: nothing to draw at one point, the 1 nm between them otherwise; nothing to report.
+        assert_eq!(
+            wire_route(Some((a, down.clone())), Some((a, left.clone())), &[]),
+            (Vec::new(), None)
+        );
+        let a1 = Pt2::new(Nm(a.x.0 + 1), a.y);
+        assert_eq!(
+            wire_route(Some((a1, down.clone())), Some((a, left)), &[]),
+            (vec![a1, a], None)
+        );
+        let (_, note) = wire_route(None, Some((b, down)), &[]);
+        assert_eq!(
+            note.as_deref(),
+            Some("wire left unrouted: an end has no position on the page")
         );
     }
 
@@ -1222,6 +1658,7 @@ mod tests {
             uuid,
             local: Pt2::ORIGIN,
             page_pos: Some(Pt2::new(px(x), px(y))),
+            dir: Some(Dir4::Down),
         }
     }
 

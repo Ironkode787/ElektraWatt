@@ -50,7 +50,7 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | instance dynamic texts, text groups | not imported | the symbol's slots print derived values |
 | conductor | `Connection { kind: wire }` between function CPs or junctions | ends by UUID, else per-folio terminal ID; a UUID repeated on the folio is decided by the route geometry, else the first copy (EW-IMP-120); unresolved or identical ends dropped (EW-IMP-003, lost) |
 | the imported model | lenient check findings of the `migration` scheme (EW-RDS-004, EW-TERM-002 and every other `pre-delivery` rule of `ew-checks`) in the migration report | `ew_api::import::lenient_findings` |
-| `<segment>`s | `Connection.route` (interior points) | conductors without segments get EW's provisional route (QET's auto-route not ported) |
+| `<segment>`s | `Connection.route` (interior points) | conductors without usable segments get QET's automatic path; a route `connection.route` would refuse is not stored (EW-IMP-009; doc 14 §4.7) |
 | `num` | `NumberSpec::Frozen` (non-empty), else `Unassigned` | |
 | `function`, `tension_protocol`, `conductor_color`, `conductor_section` | `Connection.extra["qet.*"]` | EW-IMP-008 per field; no potential definitions or wire overrides yet |
 | `titleblocktemplates`, `terminal_strips` (QET 0.100+ strips and bridges) and other top-level members | not imported | EW-IMP-004; bridges stored in `<terminal_strips>` are dropped (the pilot files have none) |
@@ -78,8 +78,8 @@ importer yet.
 
 Formula evaluation and EW-IMP-101; rule inference R2/R3 and `AdoptRule`; structure nodes and EW-IMP-102;
 parts from element information; text-to-data recognisers (EW-IMP-107/108); `graphics_table` → report blocks;
-free texts, shapes and images; cables; conductor properties → potential definitions and overrides; QET's
-auto-route; switching the project to chain mode; external connection points; title-block template forms; QET 0.100
+free texts, shapes and images; cables; conductor properties → potential definitions and overrides; switching the
+project to chain mode; external connection points; title-block template forms; QET 0.100
 `terminal_strips` data; empty terminal designations (MF-08 needs an empty designation, which `Ident` cannot
 hold); the starter-symbol exchange.
 

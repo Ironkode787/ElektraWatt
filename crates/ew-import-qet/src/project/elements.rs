@@ -35,7 +35,7 @@ use serde_json::Value;
 
 use super::Def;
 use super::builtins::Builtins;
-use super::cx::{ElementKey, Findings, Ids, Placed, PlacedTerminal, Registry, Target, element_keys};
+use super::cx::{ElementKey, Findings, Ids, Placed, PlacedTerminal, Registry, Target, element_keys, turned};
 use super::model::{Border, QetElement, QetProject, norm_uuid};
 use super::pages::{PagesOut, is_qet_border};
 use super::strips;
@@ -139,6 +139,7 @@ impl Elem<'_> {
                         .and_then(norm_uuid),
                     local: cp.pos,
                     page_pos,
+                    dir: turned(&cp.dir, self.orient),
                 }
             })
             .collect()
