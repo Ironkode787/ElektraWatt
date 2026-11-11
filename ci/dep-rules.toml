@@ -66,7 +66,7 @@ reason = "ARCH §3 rule 3 (GPU)"
 # allowed_kinds lists the dependency kinds (normal, dev, build) on which enabling the feature is fine.
 # WP-S2.01 part 1, spec section 4 rule 5: the application build needs no system package. wgpu-hal's `gles`
 # feature turns on `wayland-sys/dlopen`; without it wayland-sys' build script runs pkg-config for libwayland and
-# links it. `cargo xtask check-features` fails when either feature leaves the resolved graph while its crate is in it.
+# links it. The feature rule of `cargo xtask rules` fails when either feature leaves the resolved graph while its crate is in it.
 [[required_features]]
 crate = "eframe"
 feature = "clipboard"
@@ -101,7 +101,7 @@ feature = "testkit"
 allowed_kinds = ["dev"]
 
 # RD43 T1: the two test-only features above are on in every test build, so no package set compiles their crates (and
-# everything above them) a second way. `cargo xtask check-features` fails when a package whose test build reaches the
+# everything above them) a second way. The feature rule of `cargo xtask rules` fails when a package whose test build reaches the
 # crate does not request the feature on a dev edge, and names the line to add. The seeded ID source needs no rule:
 # it is the dev-only crate ew-testids (banned_crates), which changes no feature of ew-ids.
 [[uniform_test_features]]
@@ -184,11 +184,11 @@ only_direct_dependents = ["ew-api"]
 never_reached_from = ["@permissive"]
 reason = "ADR-0024 decision 4 (QET-derived code)"
 
-# `cargo xtask check-raw-read` (ADR-0001 amendment 2, decision log ID-50, FT-01) guards the raw readers that
+# The raw-read rule of `cargo xtask rules` (ADR-0001 amendment 2, decision log ID-50, FT-01) guards the raw readers that
 # ew-model declares under its `raw-read` feature, in two halves (details: the module doc of xtask/src/raw_read.rs).
 #
 # Calls: the workspace-root `clippy.toml` (`clippy_config`) is GENERATED from ew-model's own source by
-# `cargo xtask check-raw-read --bless` and lists every reader as a clippy `disallowed-methods` path
+# `cargo xtask gen` (its `lint-list` step) and lists every reader as a clippy `disallowed-methods` path
 # (`ew_model::Model::row`, ...), which clippy resolves through the type. The reader crates opt out with
 # `#![allow(clippy::disallowed_methods)]` at each target root; no other crate may. The check fails when the
 # committed file is missing, stale or hand-edited, when another `clippy.toml`/`.clippy.toml` shadows it, when

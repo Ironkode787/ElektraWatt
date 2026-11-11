@@ -11,7 +11,7 @@
 //! `EW_BLESS_GOLDEN_FIXTURE=1 cargo nextest run -p ew-api --test it --locked -E 'test(/^golden_fixture::/) and test(the_fixture_is_byte_identical_to_the_bootstrap)'`.
 
 // The tests count rows through the untracked readers (dev-dependency `ew-model/raw-read`; tests are exempt
-// from `cargo xtask check-raw-read`). The same allow covers the bless flag and the clock-named scratch directory
+// from the raw-read rule of `cargo xtask rules`). The same allow covers the bless flag and the clock-named scratch directory
 // (neither reaches a compared byte).
 #![allow(clippy::disallowed_methods)]
 

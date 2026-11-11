@@ -104,9 +104,9 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    Amendment 3's reason stands (no personal names or e-mail addresses in the public repository), but its means
    changes: the published sets of mozilla, google, bytecode-alliance, embark-studios, zcash and isrg (the
    cargo-vet registry names) are imported in `supply-chain/config.toml`, and `supply-chain/imports.lock` keeps
-   no auditor identity. `cargo xtask check-vet-imports` (CI-PR-09, `cargo xtask ci`) fails on any `who`, `notes`
+   no auditor identity. A check (CI-PR-09; cut until 1.0 with cargo vet) fails on any `who`, `notes`
    or `user-name` key, any e-mail-like token and any publisher comment that carries a name; after a `cargo vet`
-   run that fetches the sets, `cargo xtask check-vet-imports --bless` strips them and runs `cargo vet fmt`
+   run that fetches the sets, its bless step strips them and runs `cargo vet fmt`
    (publisher comments then show only the crates.io login, a handle). An imported audit stays traceable through
    its set name and `aggregated-from` URL. Only cargo-vet's built-in criteria count: no peer's custom criterion
    (google's `ub-risk-*` and crypto criteria, zcash's `crypto-reviewed` and `license-reviewed`) is mapped, and
@@ -115,7 +115,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    imported sets. The project's own audits keep amendment 3's `who` rule; an audit an agent performed says
    "AI-performed, owner-delegated (date)" in `notes` (19 §3.5). Unsoundness in code that is not compiled for
    ElektraWatt's targets and features does not block a `safe-to-deploy` audit; it is a caveat in the note. Decision 1's build-script control is made version-exact: `ci/build-scripts.allowlist`
-   lists `name@version`, so a new version of a crate with a build script fails `cargo xtask check-build-scripts`
+   lists `name@version`, so a new version of a crate with a build script fails that check (cut until 1.0)
    until its `build.rs` is read again and `--bless` re-versions the line; bless never adds a crate. Trade-off:
    the project now relies on other organisations' review (only for the built-in criteria and only for the
    versions they name), against hundreds of hours of duplicate review; the scrub is a second step after every

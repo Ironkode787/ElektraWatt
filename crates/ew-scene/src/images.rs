@@ -18,8 +18,8 @@
 //! text (an SVG logo's lettering must be converted to outlines), images inside the SVG, patterns, clip paths, masks
 //! and filters; [`SvgItems::skipped`] counts them. Ruled by decision log ID-576; the subset is a design-pass item.
 //!
-//! The parser is guarded twice: the rejecter refuses, besides scripts and external references, what the cargo-vet
-//! audit of usvg 0.48.1 and its dependencies found it cannot bear (deep nesting, reference cycles, expansion bombs,
+//! The parser is guarded twice: the rejecter refuses, besides scripts and external references, what the audit
+//! of usvg 0.48.1 and its dependencies found it cannot bear (deep nesting, reference cycles, expansion bombs,
 //! huge numbers, the constructs that panic it; [`ew_schema::svg_hazard`]), and the parse runs inside `catch_unwind`.
 //!
 //! Asset presence is read here, outside the memoised queries: the caller passes the bytes it holds.

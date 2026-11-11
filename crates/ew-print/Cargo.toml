@@ -12,8 +12,8 @@ repository.workspace = true
 publish = false
 
 # WP-S3.07 D12, ruling 6 of ID-1218: the workspace's lint set with `unsafe_code` at `deny` instead of `forbid`, so that
-# the Windows adapter's module alone may allow it (a `forbid` cannot be lifted); the crate and that file are listed in
-# ci/unsafe-allowlist.toml (`cargo xtask check-unsafe`). Keep the rest equal to the root Cargo.toml's lints.
+# the Windows adapter's module alone may allow it (a `forbid` cannot be lifted); the crate and that file are the only
+# exception to the workspace's `unsafe_code = "forbid"`. Keep the rest equal to the root Cargo.toml's lints.
 [lints.rust]
 unsafe_code = "deny"
 missing_docs = "warn"

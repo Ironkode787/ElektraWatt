@@ -43,7 +43,7 @@
 //!
 //! Only `ew-derive` (the tracked read layer), `ew-commands` (a transaction reads the `before` rows of its
 //! ops) and `ew-store` (the writer) may enable it on a normal dependency edge; any crate may enable it on a
-//! dev-dependency edge, for tests. `cargo xtask check-features` enforces this from the `[[banned_features]]`
+//! dev-dependency edge, for tests. The feature rule of `cargo xtask rules` enforces this from the `[[banned_features]]`
 //! table of `ci/dep-rules.toml`. Without the feature the accessors are crate-private, so this crate's own
 //! tests use them unchanged, and the part of the example below that reads rows runs only with the feature.
 //!

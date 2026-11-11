@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 # cargo-about configuration (NFR-LIC-08, ADR-0023): generates the third-party notice file from the dependency
-# graph with the template ci/third-party-notices.hbs. Run (CI-PR-09 runs the same command):
+# graph with the template ci/third-party-notices.hbs. Run:
 #     cargo about generate -o target/THIRD-PARTY-NOTICES.txt ci/third-party-notices.hbs
 # The release pipeline (CI-R-07, WP-S6.07) ships the generated file in every artefact.
 
@@ -23,7 +23,7 @@ accepted = [
 ]
 
 # The workspace's own crates are `publish = false`; they are not third-party components and are left out of the
-# notice file (their licences are checked by `cargo xtask check-licence-map`).
+# notice file (their licences are checked by the licence rule of `cargo xtask rules`).
 private = { ignore = true }
 
 # Dev-dependencies are never built into a shipped artefact, so they are not in the notice file; cargo-deny does not

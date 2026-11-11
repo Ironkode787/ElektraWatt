@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-anonymisation` and `denylist-hash`: the anonymisation guard of NFR-PRIV-09
+//! The confidential-token rule of `cargo xtask rules` and `denylist-hash`: the anonymisation guard of NFR-PRIV-09
 //! (docs/design/20-golden-project.md §3.5, 19 LR-12).
 //!
 //! Every committed text file is normalised (Unicode NFC, lower-case), split into words at every character that
@@ -164,7 +164,7 @@ pub fn phrase_digests(phrase: &str) -> Vec<(usize, usize, String)> {
 }
 
 /// The warning printed while `ci/denylist.sha256` has no entries: the guard cannot match anything then.
-pub const EMPTY_WARNING: &str = "check-anonymisation: WARNING: ci/denylist.sha256 has no entries; the guard is \
+pub const EMPTY_WARNING: &str = "anonymisation: WARNING: ci/denylist.sha256 has no entries; the guard is \
 inactive until the maintainers add hashes (owner action, NFR-PRIV-09)";
 
 /// Bytes at the start of a file that are searched for a NUL byte to recognise binary files.
@@ -267,7 +267,7 @@ mod tests {
         assert!(!v[0].to_lowercase().contains("acme"));
     }
 
-    /// `check` over a file decoded from raw bytes, as `check-anonymisation` does.
+    /// `check` over a file decoded from raw bytes, as the confidential-token rule does.
     fn check_bytes(path: &str, bytes: &[u8]) -> Vec<String> {
         let denylist = parse_denylist(ACME_PANELS).unwrap();
         let files: Vec<(String, String)> = decode(bytes).map(|t| (path.to_owned(), t)).into_iter().collect();
@@ -327,7 +327,7 @@ mod tests {
         assert_eq!(v.len(), 1, "{v:#?}");
         assert!(v[0].contains("has no entries"), "{v:#?}");
         assert!(
-            EMPTY_WARNING.starts_with("check-anonymisation: WARNING: ci/denylist.sha256 has no entries;"),
+            EMPTY_WARNING.starts_with("anonymisation: WARNING: ci/denylist.sha256 has no entries;"),
             "{EMPTY_WARNING}"
         );
     }

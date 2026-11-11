@@ -2387,7 +2387,7 @@ fn payload_text(payload: &(dyn std::any::Any + Send)) -> String {
         .unwrap_or_else(|| "(non-text panic payload)".to_owned())
 }
 
-/// The nightly body (`.github/workflows/fuzz.yml`): `EW_FUZZ_SEEDS` × `EW_FUZZ_STEPS` runs with every oracle,
+/// The long run (no workflow runs it until 1.0): `EW_FUZZ_SEEDS` × `EW_FUZZ_STEPS` runs with every oracle,
 /// the deep round trips and the costly cadences.
 ///
 /// A failing seed does not stop the others: its failure text (seed, step, oracle, command log) is a finding,

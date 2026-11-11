@@ -77,5 +77,5 @@ in its `run.json` (a reviewed one-line change) until the next live run replaces 
 ## Rules of the files
 
 Everything here is English, carries no customer or personal name, no address, no project or drawing number other than the
-golden project's placeholders, no e-mail address and no local path (`cargo xtask check-anonymisation`). The licences are
+golden project's placeholders, no e-mail address and no local path (the confidential-token rule of `cargo xtask rules`). The licences are
 in `ci/licence-map.toml`: CC-BY-4.0 for this folder, GPL-3.0-or-later for `reference/`.

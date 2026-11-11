@@ -93,12 +93,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 2. **"Does not compile" in practice** (2026-10-18, core team; ADR-0001 amendment 1;
    [architecture](../design/04-architecture.md) §3 rule 1). Rust cannot limit visibility to chosen crates, so
    decision 1's guarantee is carried by two facts: the raw read API of `ew-model` exists only with its cargo feature
-   `raw-read`, which only `ew-derive`, `ew-commands` and `ew-store` may enable (`cargo xtask check-features`); and a
+   `raw-read`, which only `ew-derive`, `ew-commands` and `ew-store` may enable (the feature rule of `cargo xtask rules`); and a
    query receives only `&Q`, which exposes tracked accessors and never the `Model` itself. A crate outside the
    dependency cone of those three cannot name the raw API at all. Because cargo features are additive, crates that
    depend on `ew-derive` compile with the raw API present; for them the guarantee rests on `Q` being the only handle
    a query gets, on review, and on oracle mode.
-   Since cycle 6 the source guard `cargo xtask check-raw-read` also covers them (ADR-0001 amendment 2).
+   Since cycle 6 the source guard, the raw-read rule of `cargo xtask rules`, also covers them (ADR-0001 amendment 2).
 3. **`ew-memo` v1 as built** (2026-10-19, core team; decision log ID-81 to ID-83, ID-95, ID-96;
    [architecture](../design/04-architecture.md) §6.2). Decision 4 is implemented with these precisions:
    - **Durability contract.** `advance(rev, d)` records `rev` as the last change of level `d` and of every less

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 # The texts of the shell in en-GB (WP-S2.08 D9): the source language and the fallback of every other. One message
-# per key; `{ $p0 }`, `{ $p1 }`, ... are the arguments of `strings::format`, always strings. `cargo xtask settle`
+# per key; `{ $p0 }`, `{ $p1 }`, ... are the arguments of `strings::format`, always strings. `cargo xtask gen`
 # generates `src/strings/keys.rs` from this file: the key list that `key!` checks at compile time.
 
 # Menus and submenus.

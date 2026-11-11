@@ -8,7 +8,7 @@ how things work today, and a design document explains why and what is intended.
 | You want to | Read |
 |---|---|
 | Know what is being worked on | [plan/README.md](plan/README.md), then the running milestone it names |
-| Change code | [CONTRIBUTING.md](../CONTRIBUTING.md), "The development loop"; then [architecture](design/04-architecture.md) and the design document of your area |
+| Change code | [CONTRIBUTING.md](../CONTRIBUTING.md), "The development loop"; then the header of the crate you change (`src/lib.rs`), which says what the crate is for. [Architecture](design/04-architecture.md) §3 has the crates and their layers; read another section of it, or the design document of your area, only for the question you have |
 | Understand the product | [Vision and scope](design/00-vision-and-scope.md), the [golden project](design/20-golden-project.md), the [user guide](book/src/introduction.md) |
 | Judge how the window should look and behave | [Design language](design/16a-design-language.md) and [UX and UI](design/16-ux-ui.md) |
 | Know why something was decided | The [ADR index](adr/README.md) |

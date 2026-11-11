@@ -151,7 +151,7 @@ be deleted and the surface stays without one. `placement.part` is not a link (D4
 and the table and index getters) is behind the cargo feature `raw-read` of `ew-model` (ARCH §3 rule 1, ADR-0002
 decision 1). `delete_plan` is part of it because its ops carry the current rows (`before`); `apply_with` and `apply_history`
 only consume ops and stay public. Only
-`ew-derive`, `ew-commands` and `ew-store` enable it on a normal dependency edge; `cargo xtask check-features`
+`ew-derive`, `ew-commands` and `ew-store` enable it on a normal dependency edge; the feature rule of `cargo xtask rules`
 enforces this. Prevent rules do not read the model directly: `PreventHook::check(&Model, &Model, &[AnyKey])`
 (base, candidate, touched keys) is implemented by `ew-api`, which builds the tracked query contexts of the base
 and the candidate model through `ew-derive` and calls the prevent rules of `ew-checks` with them (`ew-commands`

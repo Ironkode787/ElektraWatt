@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # The Linux builds in the digest-pinned `ubuntu:22.04` container (WP-S6.06 D6; NFR-MAINT-09, doc 18 §5.3): the
-# `c-only` job of ci.yml and the Linux jobs of package.yml (x86_64, and D16's aarch64 in the arm64 image). Runs inside
+# Linux jobs of package.yml (x86_64, and D16's aarch64 in the arm64 image). Runs inside
 # the container as root, from the checkout (mounted at its path on the runner, so the path remaps and the release
 # check see the runner's paths):
 #

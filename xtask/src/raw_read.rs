@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-raw-read`: the guard of ADR-0001 amendment 2 for the raw readers of
+//! The raw-read rule of `cargo xtask rules`: the guard of ADR-0001 amendment 2 for the raw readers of
 //! `ew-model`, driven by the `[raw_read]` section of `ci/dep-rules.toml`.
 //!
-//! `check-features` stops a crate from *requesting* the `raw-read` feature of `ew-model`, but cargo features
+//! The feature rule stops a crate from *requesting* the `raw-read` feature of `ew-model`, but cargo features
 //! are additive: a crate that depends on `ew-derive` is compiled with the raw readers present. This check
 //! closes the remainder. It has two halves: a type-aware list that clippy enforces, which this check
 //! generates and keeps current, and a few lexical rules that clippy cannot express.
@@ -69,7 +69,7 @@
 //!   `[features]` entry that forwards it, or a `[lints.clippy]` table (the workspace's
 //!   `[workspace.lints.clippy]`, checked once) that sets `disallowed_methods`, `disallowed_method`, `renamed_and_removed_lints`, `style` or
 //!   `all` to `allow`.
-//!   The first two duplicate part of `check-features` on purpose, as the ADR words it.
+//!   The first two duplicate part of the feature rule on purpose, as the ADR words it.
 //!
 //! A false positive gets an `[[raw_read.allow]]` entry (path, item, reason); an entry that suppresses nothing
 //! fails. Packages whose normal dependencies cannot reach the gated crate are not scanned (they cannot
@@ -129,7 +129,7 @@ const TEST_DIRS: [&str; 4] = ["tests", "benches", "examples", "target"];
 /// iteration order is unspecified, so it must not reach a persisted, exported or printed sequence.
 /// The persistent hash map and set of `imbl` (a dependency of three crates, doc 18 §3.5) are listed too: clippy
 /// ignores a path whose crate a package does not load, and warns about a path that does not resolve in one
-/// that does (which `cargo xtask ci` and the lint job turn into a failure). No workspace crate names
+/// that does (which `cargo xtask check` turns into a failure). No workspace crate names
 /// `hashbrown` directly; an entry for it belongs here when one does.
 pub const DISALLOWED_TYPES: [&str; 4] = [
     "imbl::HashMap",
@@ -156,9 +156,9 @@ const ENV_REASON: &str = "no environment access in model, derive, format or expo
 /// The reason clippy prints with a source of randomness.
 const RANDOM_REASON: &str = "no randomness in model, derive, format or export paths (doc 18 §3.5, determinism; FT-317): ew-ids is the one ID generator, tests seed a generator; allow with a one-line justification that reviewed the site";
 
-/// The reason clippy prints with a call of krilla's GIF or WebP image constructors: the cargo-vet audits
+/// The reason clippy prints with a call of krilla's GIF or WebP image constructors: the audits
 /// of gif 0.14.2, image-webp 0.2.4 and imagesize 0.14.0 rest on these paths never being reached.
-const KRILLA_DECODER_REASON: &str = "krilla's GIF and WebP decoders are audited as unreachable (FT-406, supply-chain/audits.toml): only PNG and JPEG reach krilla, after ew_render_cpu::decode_image; a new format needs a decision and a new audit";
+const KRILLA_DECODER_REASON: &str = "krilla's GIF and WebP decoders were audited as unreachable for 0.1.0: only PNG and JPEG reach krilla, after ew_render_cpu::decode_image; a new format needs a decision and a new audit";
 
 /// The randomly keyed hasher of the std hash containers, the generator of their iteration order: a `disallowed-types`
 /// entry after [`DISALLOWED_TYPES`]. The one use, the session ID of the lock, is a justified site.
@@ -169,7 +169,7 @@ const RANDOM_STATE_REASON: &str = "a randomly keyed hasher is a source of random
 
 /// The generators that the workspace's feature sets do not compile today: entries with `allow-invalid = true`, so
 /// that clippy accepts the path while it does not resolve and bans it once a crate enables the generator (the
-/// feature bans of `check-features` keep that from happening unseen).
+/// feature bans of the feature rule keep that from happening unseen).
 pub const OPTIONAL_METHODS: [(&str, &str); 5] = [
     ("uuid::Uuid::new_v4", RANDOM_REASON),
     ("uuid::Uuid::now_v7", CLOCK_REASON),
@@ -182,12 +182,12 @@ pub const OPTIONAL_METHODS: [(&str, &str); 5] = [
 /// configuration (doc 18 §3.5), after the raw readers: the path and the reason clippy prints.
 ///
 /// Only paths that resolve in every package that loads their crate are listed (clippy warns about one that does
-/// not, which the lint job turns into a failure, and ignores one whose crate a package does not load).
+/// not, which `cargo xtask check` turns into a failure, and ignores one whose crate a package does not load).
 /// Not listed, because they do not resolve under the workspace's feature sets: `Uuid::new_v4` and
 /// `Uuid::now_v7` (`uuid` has the `v5` feature only) and `rand::random`, `rand::rng` and `rand::random_range`
 /// (`rand` 0.10 without its `thread_rng` feature, which only `proptest` loads). A crate that enables a generator
-/// feature adds its path here. The last two entries are not about determinism: krilla's GIF and WebP image constructors, whose decoders the cargo-vet
-/// audits assume unreachable.
+/// feature adds its path here. The last two entries are not about determinism: krilla's GIF and WebP image constructors, whose decoders the audit
+/// of the decoders assumes unreachable.
 pub const DISALLOWED_METHODS: [(&str, &str); 13] = [
     ("std::time::SystemTime::now", CLOCK_REASON),
     ("std::time::Instant::now", CLOCK_REASON),
@@ -358,7 +358,7 @@ pub struct SourcePackage {
     pub files: Vec<(String, String)>,
     /// The package's `Cargo.toml` text (to locate manifest findings).
     pub manifest_text: String,
-    /// Declared dependencies and `[features]`, as `check-features` reads them.
+    /// Declared dependencies and `[features]`, as the feature rule reads them.
     pub manifest: features::Package,
     /// Whether the package's normal-dependency closure inside the workspace contains the gated crate. A
     /// package that cannot reach it cannot name its readers either, so it is not scanned.
@@ -2072,13 +2072,13 @@ pub fn run(root: &Path, bless: bool) -> Result<bool> {
                 std::fs::write(root.join(&policy.clippy_config), &text)
                     .with_context(|| format!("writing {}", policy.clippy_config))?;
                 println!(
-                    "check-raw-read: wrote {} ({entries} entries)",
+                    "raw-read: wrote {} ({entries} entries)",
                     policy.clippy_config
                 );
                 ws.clippy_config = Some(text);
             }
             Err(errors) => {
-                eprintln!("check-raw-read: cannot generate {}", policy.clippy_config);
+                eprintln!("raw-read: cannot generate {}", policy.clippy_config);
                 for e in errors {
                     eprintln!("  - {e}");
                 }
@@ -2089,12 +2089,12 @@ pub fn run(root: &Path, bless: bool) -> Result<bool> {
     let outcome = check_workspace(&policy, &packages, &ws);
     if outcome.violations.is_empty() {
         println!(
-            "check-raw-read: ok ({} gated items, {} packages scanned)",
+            "raw-read: ok ({} gated items, {} packages scanned)",
             outcome.gated_items, outcome.packages_scanned
         );
         Ok(true)
     } else {
-        eprintln!("check-raw-read: {} violation(s)", outcome.violations.len());
+        eprintln!("raw-read: {} violation(s)", outcome.violations.len());
         for v in &outcome.violations {
             eprintln!("  - {v}");
         }

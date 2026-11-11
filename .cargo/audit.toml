@@ -1,8 +1,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: CC0-1.0
 
-# cargo-audit configuration (NFR-SEC-11; WP-S6.07 D11): read by `cargo audit` and `cargo audit bin` in package.yml
-# and by the supply-chain job of ci.yml.
+# cargo-audit configuration (NFR-SEC-11; WP-S6.07 D11): read by `cargo audit` and `cargo audit bin` in package.yml.
 #
 # The waiver form: an advisory that cannot be fixed before a release is ignored here AND in deny.toml's
 # [advisories] `ignore`, each entry with a comment that gives the reason, the owner's handle and an expiry date at

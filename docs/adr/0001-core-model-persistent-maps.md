@@ -68,23 +68,23 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    only with the cargo feature **`raw-read`** of `ew-model`. `delete_plan` is gated because the `Op`s it returns
    carry row contents; `Model::apply` and `Model::apply_with` stay public. Only `ew-derive` (which builds the tracked context `Q` on it),
    `ew-commands` (`TxBuilder`, normalisers, validators) and `ew-store` (save, external-change diff) may enable it,
-   plus `ew-model`'s own tests. `cargo xtask check-features` enforces the list through a `[[banned_features]]`
+   plus `ew-model`'s own tests. The feature rule of `cargo xtask rules` enforces the list through a `[[banned_features]]`
    entry of `ci/dep-rules.toml` with `allowed_packages`. Every other crate reads through `Q` (queries) or
    `TxBuilder` (commands), as decision 3 says. Cargo features are additive, so a crate that depends on `ew-derive`
    is compiled with the raw API present: the feature check stops a crate from requesting it, and ADR-0002
    amendment 2 says what covers the rest. A source-level guard for that remainder (for example a per-crate clippy
    `disallowed-methods` list) is open (decision log §5.1, v0.5).
-2. **A source-level guard: `cargo xtask check-raw-read`** (2026-10-18, core team;
+2. **A source-level guard: the raw-read rule of `cargo xtask rules`** (2026-10-18, core team;
    [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-50; implementation tracked as task FT-01 of
    the work breakdown, cycle 6). The remainder that amendment 1 left
    open is closed by a source check rather than per-crate clippy configuration, which every new crate would have to
-   remember. `cargo xtask check-raw-read` fails when the Rust source of any workspace package other than `ew-model`,
+   remember. The raw-read rule of `cargo xtask rules` fails when the Rust source of any workspace package other than `ew-model`,
    `ew-derive`, `ew-commands` and `ew-store` invokes `raw_read!`, names the `raw-read` feature, or calls an item
    that `ew-model` declares only under that feature. Test code is exempt, as the feature rule's dev exemption is:
    the `tests/` and `benches/` directories and `#[cfg(test)]` items. The check takes the gated item names from
    `ew-model`'s own source, so a newly gated reader is covered without a list to maintain; a false positive gets an
-   allowlist entry with a reason in `ci/dep-rules.toml`, never an inline suppression. It runs in `cargo xtask ci`
-   beside `check-features` (CI-PR-09). *As implemented in cycle 6:* the check
+   allowlist entry with a reason in `ci/dep-rules.toml`, never an inline suppression. It runs in `cargo xtask rules`
+   beside the feature rule (CI-PR-09). *As implemented in cycle 6:* the check
    scans only packages whose normal-dependency closure reaches `ew-model`, because a package that cannot reach it
    cannot name the raw readers; its configuration and allowlist are the `[raw_read]` section and its
    `[[raw_read.allow]]` entries (path, item, reason) in `ci/dep-rules.toml`, where `exempt_packages = ["xtask"]`
@@ -100,7 +100,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    [architecture](../design/04-architecture.md) §3 rule 1; decision log ID-94; task FT-32). The lexical check of
    amendment 2 recognises a raw-read call by its method name, and the review showed that this misses gated names in
    method form (22 of 40), because a name such as `get` or `len` cannot be told apart from an unrelated method
-   without types. Calls are therefore checked by clippy, which resolves types: `cargo xtask check-raw-read`
+   without types. Calls are therefore checked by clippy, which resolves types: the raw-read rule of `cargo xtask rules`
    generates the workspace `clippy.toml` `disallowed-methods` list from `ew-model`'s gated items and fails when the
    committed file is not current, and the four reader crates (`ew-model`, `ew-derive`, `ew-commands`, `ew-store`)
    opt out with a crate-root `#![allow(clippy::disallowed_methods)]`. Amendment 2's objection to clippy

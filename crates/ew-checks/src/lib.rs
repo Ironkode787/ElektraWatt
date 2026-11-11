@@ -11,7 +11,7 @@
 //!   `run(&Q, &Scope) -> Vec<Finding>`, a pure function over the tracked-read context of `ew-derive`. A rule
 //!   whose modes include prevent also implements [`Rule::prevent`], which compares the base and the
 //!   candidate snapshot of a batch. Rules read through `Q` only: this crate does not enable `ew-model`'s
-//!   `raw-read` (ARCH §3 rule 1; `cargo xtask check-raw-read`).
+//!   `raw-read` (ARCH §3 rule 1; the raw-read rule of `cargo xtask rules`).
 //! - **Packs** are the `pack` field of the metadata; the [`rules()`] registry lists every shipped Rust rule in
 //!   ID order (ADR-0019 amendment 7). TOML packs, rhai and SQL rules, company and project packs follow.
 //! - **Schemes** ([`Scheme`]) select rules; the [`CheckMode`] decides which rules can run (online, or

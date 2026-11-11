@@ -33,7 +33,7 @@
 # staged README and the archive's root folder. The programs print the workspace version (CARGO_PKG_VERSION); the jobs
 # assert that they print the version of Cargo.toml and that `<v>` is that version, alone or followed by `-` (FT-1227).
 #
-# Same hardening as ci.yml (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment, the image by
+# Hardening (§5.4, NFR-SEC-19): actions pinned by commit SHA with a version comment, the image by
 # digest, every download by version and SHA-256, read-only default token, no secret, credentials not persisted by the
 # checkout. Policy data: ci/README.md.
 
@@ -68,11 +68,11 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: "0"
-  # Keep in step with rust-toolchain.toml and ci.yml.
+  # Keep in step with rust-toolchain.toml.
   RUST_TOOLCHAIN: "1.99.0"
   # The Linux build container of D6: ubuntu:22.04 (glibc 2.35, the oldest Supported Linux), pinned by the digest of
   # its multi-arch image index (Docker Hub, resolved 2026-11-03). Its libc6 is the version of packaging/components.toml's
-  # libc6-dev; update the tag, the digest and those versions together. The c-only job of ci.yml uses the same image.
+  # libc6-dev; update the tag, the digest and those versions together.
   LINUX_BUILD_IMAGE: ubuntu@sha256:076e7bf82319619f28dd0aa9c02ab34b055ad37100395b4f49a2ffba04fb5e11
 
 jobs:

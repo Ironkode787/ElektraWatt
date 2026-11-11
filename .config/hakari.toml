@@ -3,8 +3,8 @@
 
 # cargo-hakari (pinned in ci/README.md): the workspace-hack crate `ew-hack` unifies the features of the third-party
 # crates that the GPL members share, so building one package set after another no longer recompiles them with other
-# features (RD43 R17). `cargo xtask settle` regenerates it (the `hakari` step) after any manifest or lockfile change;
-# the supply-chain job and settle's `--check` run `cargo hakari generate --diff` and `cargo hakari manage-deps --dry-run`.
+# features (RD43 R17). `cargo xtask gen` regenerates it after any manifest or lockfile change;
+# `cargo xtask gen --check` (a rule of `cargo xtask rules`) runs `cargo hakari generate --diff` and `cargo hakari manage-deps --dry-run`.
 
 hakari-package = "ew-hack"
 dep-format-version = "4"

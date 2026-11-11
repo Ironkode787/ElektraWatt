@@ -324,7 +324,7 @@ pub fn all(r: &mut Runner) {
         "AC-39",
         "the anonymisation guard passes on golden/, docs/ and expected/",
         |_| {
-            na("the guard is `cargo xtask check-anonymisation` (the xtask crate, outside this test crate); the repository checks run it")
+            na("the guard is the confidential-token rule of `cargo xtask rules` (the xtask crate, outside this test crate); `cargo xtask check` runs it")
         },
     );
 
@@ -407,9 +407,8 @@ fn list(items: impl IntoIterator<Item = String>, limit: usize) -> String {
 }
 
 /// The environment variable that names a veraPDF XML report (`verapdf --format xml`) of the golden PDF exports.
-/// The `verapdf` job of `.github/workflows/ci.yml` (CI-N-09) writes the report and uploads it as the
-/// artifact `verapdf-report`; `EW_VERAPDF_REPORT=<report.xml> cargo xtask acceptance --milestone <report.md>`
-/// makes AC-13's veraPDF entry read it. Only the gate (`tests/acceptance.rs`, `gate`) reads the variable and
+/// Nothing in the repository runs veraPDF; a person who has run it sets the variable for the gate, and AC-13's
+/// veraPDF entry reads the report. Only the gate (`tests/acceptance.rs`, `gate`) reads the variable and
 /// passes the path in through [`super::runner::Options`]; the headless run passes none, so the committed
 /// headless report (and the ordinary test that compares with it) never depends on the environment.
 pub const VERAPDF_REPORT_ENV: &str = "EW_VERAPDF_REPORT";
@@ -424,7 +423,7 @@ fn ac13_verapdf(c: &Ctx) -> Outcome {
 pub fn verapdf_entry(report: Option<&std::path::Path>) -> Outcome {
     let Some(path) = report else {
         return na(
-            "veraPDF is an external tool that the runner does not run; the `verapdf` job of .github/workflows/ci.yml (CI-N-09) validates the exported PDFs against PDF/A-2b, and setting EW_VERAPDF_REPORT to the path of its XML report makes this entry read the result",
+            "veraPDF is an external tool that the runner does not run; setting EW_VERAPDF_REPORT to the path of a veraPDF XML report of the exported PDFs (PDF/A-2b) makes this entry read the result",
         );
     };
     match std::fs::read_to_string(path) {

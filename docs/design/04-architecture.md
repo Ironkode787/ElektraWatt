@@ -406,11 +406,11 @@ holds no edge to `ew-import-qet` (ADR-0024 decision 4, amendment 7).
    of a bare-hash logo reference, [project format](05-project-format-and-persistence.md) §10.3), safe today only because
    an asset becomes present only at open or through `project.company.set`, which also changes the project row. A future
    op-less `put_asset` path would break that argument, so the restriction is made **mechanical** by FT-382: a
-   `check-raw-read` rule that fails when non-test source of `ew-derive` reaches the model's asset accessors outside
+   raw-read rule of `cargo xtask rules` that fails when non-test source of `ew-derive` reaches the model's asset accessors outside
    an allowlisted site, with `Q::logo_asset` as the only `[[raw_read.allow]]`-style entry and its reason. If a second
    memoised reader is ever needed, asset presence becomes a tracked input of the memo engine (ADR-0002) instead of a
    second exception. Trade-off: one named exception until a guard exists, against gating bytes that cannot go stale.
-   *As built:* **the guard exists.** `check-raw-read`'s
+   *As built:* **the guard exists.** The raw-read rule's
    `[raw_read.asset_presence]` section flags `.asset(`, `.assets(`, `.has_asset(` and their `::` paths in non-test
    `ew-derive` source, with `Q::logo_asset` the only allowed site; a planted violation fails the check, so ID-575's
    exception is mechanical.

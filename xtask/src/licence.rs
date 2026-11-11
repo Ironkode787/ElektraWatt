@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-licence-map`: the licence-map and licence-boundary check of docs/design/19-open-source-governance.md
+//! The licence rule of `cargo xtask rules`: the licence-map and licence-boundary check of docs/design/19-open-source-governance.md
 //! §5.1 (rules LR-01 … LR-04, NFR-LIC-01, NFR-LIC-02, NFR-LIC-10, NFR-MAINT-02), driven by `ci/licence-map.toml`.
 //!
 //! The check runs in four parts over plain inputs, so the unit tests can seed violations on synthetic data:
@@ -13,7 +13,7 @@
 //! - [`check_boundary`]: the full dependency closure of every permissive crate has only allowlisted licences.
 //!
 //! The rule that only `ew-api` depends on `ew-import-qet`, and that neither `ew-plugin-host` nor a permissive
-//! crate reaches it (LR-04), is the `[[confined]]` rule of `ci/dep-rules.toml`, checked by `check-deps`.
+//! crate reaches it (LR-04), is the `[[confined]]` rule of `ci/dep-rules.toml`, checked by the crate-layer rule.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;

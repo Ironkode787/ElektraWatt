@@ -1621,7 +1621,7 @@ writes to the system and community tiers are refused.
   the **presence** of an asset can change without a revision, so no memoised query may read it, with one named
   exception, `Q::logo_asset`, which is safe today only because an asset becomes present at open or through
   `project.company.set`, which also changes the project row. The rule is mechanical:
-  `check-raw-read`'s `[raw_read.asset_presence]` flags the asset accessors in non-test `ew-derive`
+  the raw-read rule's `[raw_read.asset_presence]` flags the asset accessors in non-test `ew-derive`
   source, with that query as its one allowlisted site.
 - **What a save writes (as built).** The assets the records name (`Model::referenced_assets`: today the company logo
   of the project row, §10.3) that have no file on disk with that hash, through the **full save protocol** of §5: a temp

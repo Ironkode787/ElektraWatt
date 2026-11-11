@@ -11,9 +11,9 @@ xtask = "run --quiet --package xtask --"
 # after a change to the crate, 58 s with link.exe, 33 s with rust-lld). The MSVC libraries are still found
 # through the Visual Studio installation, as for link.exe.
 #
-# These are config rustflags, so the RUSTFLAGS environment variable replaces them. The workflows that build on
-# Windows set RUSTFLAGS: `ci.yml` workflow-wide (`-D warnings`) and `package.yml` in its `windows` job (`-D warnings`,
-# the static C runtime and the path remaps). So CI and the Windows release build keep link.exe. A local build with
+# These are config rustflags, so the RUSTFLAGS environment variable replaces them. The workflow that builds on
+# Windows sets RUSTFLAGS: `package.yml` in its `windows` job (`-D warnings`, the static C runtime and the path
+# remaps). So the Windows release build keeps link.exe. A local build with
 # RUSTFLAGS set links with link.exe too (and rebuilds everything when RUSTFLAGS changes).
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-Clinker=rust-lld.exe"]

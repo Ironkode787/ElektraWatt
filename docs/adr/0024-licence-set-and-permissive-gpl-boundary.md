@@ -115,7 +115,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    rule 6). GPL crates may depend directly on the permissive foundation crates `ew-units`, `ew-ids`, `ew-mltext`,
    `ew-rds`, `ew-schema` and `ew-dl` instead of reaching their types through re-exports. The boundary is unchanged,
    because every such edge points from the GPL layer into the permissive one. Each edge is drawn in the architecture
-   graph, which is the source, and listed in `ci/dep-rules.toml`, which `cargo xtask check-deps` enforces; the two
+   graph, which is the source, and listed in `ci/dep-rules.toml`, which the crate-layer rule of `cargo xtask rules` enforces; the two
    change in the same pull request. Decision 4 is untouched: only `ew-api` depends on `ew-import-qet`.
 6. **Tutorials are documentation** (2026-11-04, project owner (delegated); decision log ID-1330, WP-S7.05 §12 O3).
    Decision 1's row "Project-authored part facts, examples, tutorials, …" gives way for tutorials: they are

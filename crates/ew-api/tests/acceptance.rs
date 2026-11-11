@@ -555,7 +555,7 @@ fn the_verapdf_entry_reads_the_report_of_the_job() {
 /// that the committed headless report holds (the headless run passes no path whatever the environment says); with
 /// a path it reads the file, and an unreadable one fails.
 #[test]
-fn the_verapdf_entry_names_the_job_without_a_report() {
+fn the_verapdf_entry_is_not_applicable_without_a_report() {
     let (status, reason) = checks::verapdf_entry(None);
     assert_eq!(status, Status::NotApplicable);
     let committed = std::fs::read_to_string(committed_report()).unwrap();
@@ -565,7 +565,7 @@ fn the_verapdf_entry_names_the_job_without_a_report() {
         )),
         "the committed report holds the entry's text: {reason}"
     );
-    assert!(reason.contains(".github/workflows/ci.yml"), "{reason}");
+    assert!(reason.contains("EW_VERAPDF_REPORT"), "{reason}");
     let (status, reason) = checks::verapdf_entry(Some(std::path::Path::new("no/such/verapdf-report.xml")));
     assert_eq!(status, Status::Fail, "{reason}");
     assert!(reason.contains("cannot be read"), "{reason}");

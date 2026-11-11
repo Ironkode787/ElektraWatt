@@ -184,5 +184,5 @@ A pull request that changes the format ships, in the same change:
       (`fixtures/format/<version>/`, once it exists) opened and saved unchanged;
 - [ ] documentation: the field table of doc 03 or the owning feature document, and doc 05 if the
       registry, an encoding or an ownership rule changes;
-- [ ] `cargo xtask ci` green, including `check-licence-map` over `schemas/`;
+- [ ] `cargo xtask check` green, including the licence rule of `cargo xtask rules` over `schemas/`;
 - [ ] approval by the quarter's schema steward, who never approves their own format change.

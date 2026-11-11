@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
-# The string literals that may reach an egui text call in crates/ew-ui/src (`cargo xtask check-ui-strings`, WP-S2.08
+# The string literals that may reach an egui text call in crates/ew-ui/src (the UI-text rule of `cargo xtask rules`, WP-S2.08
 # D11): symbols, separators and digits only, never a word. One literal per line in its quotes, exactly as written in
 # the source.
 

@@ -11,7 +11,7 @@ description = "Golden builders, project generators, oracle comparator and accept
 repository.workspace = true
 publish = false
 
-# The workspace's lints with `unsafe_code` at deny (ci/unsafe-allowlist.toml, WP-S6.04 D7): the hostile corpus test's
+# The workspace's lints with `unsafe_code` at deny (WP-S6.04 D7): the hostile corpus test's
 # counting allocator, `tests/hostile_corpus/alloc.rs`, allows it; the library keeps `#![forbid(unsafe_code)]` (ID-1334).
 [lints.rust]
 unsafe_code = "deny"

@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-ui-strings` (NFR-I18N-02): no string literal reaches an egui text call in `crates/ew-ui/src`
+//! The UI-text rule of `cargo xtask rules` (NFR-I18N-02): no string literal reaches an egui text call in `crates/ew-ui/src`
 //! except the allowlist `ci/ui-strings-allow.txt`. Every shell text comes from a Fluent key (`strings::text`).
 //!
 //! The scan is lexical. A text call is a method `label(`, `button(`, `small_button(`, `selectable_label(`,
@@ -266,7 +266,7 @@ fn allowlist(text: &str) -> Vec<String> {
         .collect()
 }
 
-/// The violations of `check-ui-strings` in the repository at `root`: each literal with its file and line.
+/// The violations of the UI-text rule in the repository at `root`: each literal with its file and line.
 pub(crate) fn check(root: &Path) -> Result<Vec<String>> {
     let allow_path = root.join(ALLOW);
     let allow = allowlist(

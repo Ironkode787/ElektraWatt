@@ -35,19 +35,19 @@ pub struct Policy {
     /// Crates whose dependents are restricted.
     #[serde(default)]
     pub confined: Vec<Confined>,
-    /// Features that may only be enabled on the listed dependency kinds (`cargo xtask check-features`).
+    /// Features that may only be enabled on the listed dependency kinds (the feature rule of `cargo xtask rules`).
     #[serde(default)]
     pub banned_features: Vec<crate::features::BannedFeature>,
-    /// Features that must stay enabled when their crate is in the build (`cargo xtask check-features`).
+    /// Features that must stay enabled when their crate is in the build (the feature rule of `cargo xtask rules`).
     #[serde(default)]
     pub required_features: Vec<crate::features::RequiredFeature>,
-    /// Crates that may only be dev-dependencies (`cargo xtask check-features`).
+    /// Crates that may only be dev-dependencies (the feature rule of `cargo xtask rules`).
     #[serde(default)]
     pub banned_crates: Vec<String>,
-    /// Test-only features that every test build reaching their crate requests (`cargo xtask check-features`).
+    /// Test-only features that every test build reaching their crate requests (the feature rule of `cargo xtask rules`).
     #[serde(default)]
     pub uniform_test_features: Vec<crate::features::UniformTestFeature>,
-    /// The source-level guard for a gated feature's readers (`cargo xtask check-raw-read`).
+    /// The source-level guard for a gated feature's readers (the raw-read rule of `cargo xtask rules`).
     #[serde(default)]
     pub raw_read: Option<crate::raw_read::RawReadPolicy>,
 }

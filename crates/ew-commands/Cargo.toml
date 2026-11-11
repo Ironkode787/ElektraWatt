@@ -16,7 +16,7 @@ workspace = true
 
 [features]
 # The row dumps (`rows`), `Preview::ops` and `HistoryEntry::transaction` for tests (ARCH §3 rule 1, F9). Test-only
-# by policy: `cargo xtask check-features` allows it on dev-dependency edges only, and every package whose test build
+# by policy: the feature rule of `cargo xtask rules` allows it on dev-dependency edges only, and every package whose test build
 # reaches this crate requests it on one, so every test build compiles the crate the same way (ci/dep-rules.toml,
 # `[[uniform_test_features]]`).
 testkit = []
@@ -25,7 +25,7 @@ testkit = []
 # The tracked read layer; no query is used yet (previews and prevent rules read through it from WP-S1.05 on).
 ew-derive = { path = "../ew-derive" }
 # A transaction reads the `before` rows of its ops: the untracked read API (ARCH §3 rule 1, ADR-0001
-# amendment 1), allowed on this normal edge by `cargo xtask check-features`.
+# amendment 1), allowed on this normal edge by the feature rule of `cargo xtask rules`.
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 ew-schema = { path = "../ew-schema" }
 ew-ids = { path = "../ew-ids" }

@@ -20,8 +20,8 @@ ew-render-cpu = { path = "../ew-render-cpu" }
 # PDF/A-2b writer (ARCH §3, §8.4; ADR-0015 decision 5). Default features off: no built-in shaper (glyphs come shaped
 # from ew-text). `raster-images` on for PNG and JPEG image items (FT-406, decision log ID-605); it brings krilla's
 # png, zune-jpeg, gif, image-webp and imagesize decoders. Only PNG and JPEG reach krilla, after ew-render-cpu has
-# decoded them within its MAX_IMAGE_PIXELS; krilla's GIF and WebP paths are never called (`check-disallowed-methods`).
-# The versions of the decoders are governed by the committed lockfile with `--locked`, cargo-deny and cargo-vet.
+# decoded them within its MAX_IMAGE_PIXELS; krilla's GIF and WebP paths are never called (clippy's `disallowed-methods` list in clippy.toml).
+# The versions of the decoders are governed by the committed lockfile with `--locked` and cargo-deny.
 krilla = { version = "0.8.2", default-features = false, features = ["raster-images"] }
 ew-hack = { version = "0.1.0", path = "../ew-hack" }
 

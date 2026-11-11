@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 #
 # Anonymisation guard (NFR-PRIV-09, docs/design/20-golden-project.md §3.5, 19 LR-12), checked by
-# `cargo xtask check-anonymisation` over every committed text file.
+# the confidential-token rule of `cargo xtask rules` over every committed text file.
 #
 # Format: one lower-case hex SHA-256 digest per line; lines starting with `#` and blank lines are ignored.
 # Each digest is the hash of a forbidden word n-gram (n = 1, 2 or 3): the text is normalised to Unicode NFC,

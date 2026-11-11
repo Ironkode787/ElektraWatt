@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # The non-Rust components that the packaging downloads or takes from an image (WP-S6.06 D18): name, version, licence,
-# URL and SHA-256 of each. `.github/workflows/package.yml`, the `c-only` job of `ci.yml` and `ci/build-book.sh` read
+# URL and SHA-256 of each. `.github/workflows/package.yml` and `ci/build-book.sh` read
 # their pins from here (`python3 -I packaging/stage.py pin <name> [--field version|url|sha256]`), and WP-S6.07's SBOM
 # reads its components from here. They build, stage or check an artefact; NSIS's code alone reaches one, as the
 # setup's stub and its uninstaller. The container images stay in the workflows as `*_IMAGE` variables, pinned by
-# digest (`cargo xtask check-workflows`).
+# digest.
 #
 # A component that reaches an artefact may give `shipped_licence`, the licence of the part that ships where the
 # download holds more, and `no_notice`, why it needs no section in NOTICE (ci/sbom.py's notices refuse it otherwise).
@@ -68,7 +68,7 @@ version = "0.22.2"
 licence = "Apache-2.0 OR MIT"
 url = "https://github.com/rustsec/rustsec/releases/tag/cargo-audit%2Fv0.22.2"
 sha256 = ""
-checked_by = "taiki-e/install-action, which checks the release asset against the SHA-256 of its own manifest; the version of ci.yml's supply-chain job"
+checked_by = "taiki-e/install-action, which checks the release asset against the SHA-256 of its own manifest"
 used_for = "cargo audit on Cargo.lock and cargo audit bin on every shipped binary (WP-S6.07 D11)"
 
 [[component]]
@@ -77,7 +77,7 @@ version = "0.20.2"
 licence = "MIT OR Apache-2.0"
 url = "https://github.com/EmbarkStudios/cargo-deny/releases/tag/0.20.2"
 sha256 = ""
-checked_by = "taiki-e/install-action, which checks the release asset against the SHA-256 of its own manifest; the version of ci.yml's supply-chain job"
+checked_by = "taiki-e/install-action, which checks the release asset against the SHA-256 of its own manifest"
 used_for = "cargo deny check advisories on Cargo.lock in package.yml's linux job (WP-S6.07 D11)"
 
 [[component]]
@@ -95,7 +95,7 @@ version = "7.1.0"
 licence = "MIT"
 url = "https://github.com/actions/setup-python/tree/6d4fd22b20465ccc0f7354476588e8df7c9ca0e0"
 sha256 = ""
-checked_by = "pinned by its commit SHA in package.yml (cargo xtask check-workflows); stage.py's own tests compare its version comment and python-version with this list"
+checked_by = "pinned by its commit SHA in package.yml; stage.py's own tests compare its version comment and python-version with this list"
 used_for = "the Python of package.yml's windows job (FT-1225)"
 
 [[component]]
@@ -146,8 +146,8 @@ checked_by = "package.yml, sha256sum of the download before it is used (the date
 used_for = "the AppImage's runtime (D2, D10, ID-1275): the static type-2 runtime of tag 20251108 (commit dd6cebedcbddde9c82f89b011e8e1d40b6e43868), prepended to the squashfs image, aggregated with the payload and never linked into ElektraWatt. Its LICENSE file names MIT for the runtime and the libraries it links statically: musl libc (MIT), libfuse 3.15.0 (LGPL-2.1), squashfuse 0.5.2 (BSD-2-Clause), libzstd (BSD-3-Clause, of its BSD-3-Clause OR GPL-2.0-only) and zlib (Zlib); its Makefile also links mimalloc (MIT). NOTICE and packaging/linux/type2-runtime-notices.txt carry the notices"
 
 # FT-1222: the Linux container's apt reads the Ubuntu archive at this snapshot,
-# https://snapshot.ubuntu.com/ubuntu/<snapshot> (jammy and jammy-updates, main), in package.yml's linux job and in
-# ci.yml's c-only alike (ci/linux-container.sh). It serves gcc, libc6-dev and squashfs-tools at the versions above.
+# https://snapshot.ubuntu.com/ubuntu/<snapshot> (jammy and jammy-updates, main), in package.yml's linux job
+# (ci/linux-container.sh). It serves gcc, libc6-dev and squashfs-tools at the versions above.
 [apt]
 snapshot = "20261102T000000Z"
 

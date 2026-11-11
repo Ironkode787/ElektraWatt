@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! `check-features`: the feature bans of 18 §5.2 CI-PR-09, driven by `[[banned_features]]` and
+//! The feature rule of `cargo xtask rules`: the feature bans of 18 §5.2 CI-PR-09, driven by `[[banned_features]]` and
 //! `banned_crates` in `ci/dep-rules.toml`.
 //!
 //! Test-only and unsafe features (`ew-commands/testkit`, `ew-viewmodel/testkit`, `ew/test-confirm`, egui

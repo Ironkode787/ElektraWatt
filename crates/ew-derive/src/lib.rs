@@ -23,7 +23,7 @@
 //! # How "an untracked read does not compile" is kept (ARCH §3 rule 1, ADR-0002 amendment 2)
 //!
 //! - `ew-model`'s raw read API exists only with its `raw-read` feature, which this crate, `ew-commands`
-//!   and `ew-store` alone enable on normal edges (`cargo xtask check-features`).
+//!   and `ew-store` alone enable on normal edges (the feature rule of `cargo xtask rules`).
 //! - A query receives `&Q` and nothing else. `Q` owns its snapshot privately; no method or field of `Q`,
 //!   [`TableView`] or [`IdxView`] hands out the `Model`, a raw `Table`, a raw index or an `Op`, so code
 //!   holding only `&Q` cannot read untracked (the `compile_fail` example on [`Q`] and

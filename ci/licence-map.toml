@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 # The path-to-licence map of docs/design/19-open-source-governance.md §2.1 (ADR-0024 decision 1 and
-# amendment 2) in machine form, checked by `cargo xtask check-licence-map` (19 §5.1, rules LR-01 … LR-04).
+# amendment 2) in machine form, checked by the licence rule of `cargo xtask rules` (19 §5.1, rules LR-01 … LR-04).
 #
 # Every committed file except the licence texts under LICENSES/ must match at least one [[path]] glob. The
 # longest matching glob (in characters) wins; two different rules with the same length that both match a file

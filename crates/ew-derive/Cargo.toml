@@ -17,7 +17,7 @@ workspace = true
 [dependencies]
 # The untracked read API of ew-model (ARCH §3 rule 1, ADR-0001 amendment 1): ew-derive is the tracked read
 # layer, so it reads tables and indexes raw and records each read through `Q`'s tracker. Allowed on this
-# normal edge by `cargo xtask check-features` (ci/dep-rules.toml).
+# normal edge by the feature rule of `cargo xtask rules` (ci/dep-rules.toml).
 ew-model = { path = "../ew-model", features = ["raw-read"] }
 ew-memo = { path = "../ew-memo" }
 ew-plcaddr = { path = "../ew-plcaddr" }

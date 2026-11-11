@@ -241,7 +241,7 @@ impl AddressProfile {
         let unit = tokens(&self.render_unit);
         for body in bodies {
             for template in [&unit[..], &bare[..]] {
-                // No let chain: the permissive crates build on Rust 1.85 (the MSRV check in ci.yml's supply-chain job).
+                // No let chain: the permissive crates build on Rust 1.85 (the MSRV their manifests declare).
                 if let Some(p) = self
                     .match_tokens(template, body, Parsed::default())
                     .filter(|p| p.bit.is_none())

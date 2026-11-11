@@ -44,7 +44,7 @@ confidence-threshold = 0.93
 # The list is the project-wide policy; entries not used by the current graph are expected.
 unused-allowed-license = "allow"
 # The workspace's own crates are `publish = false`; their licences (GPL layer included) are checked by the
-# licence-map job of CI-PR-10 against ci/licence-map.toml, not here.
+# licence rule of `cargo xtask rules` against ci/licence-map.toml, not here.
 private = { ignore = true }
 
 [bans]

@@ -21,7 +21,7 @@ workspace = true
 # `ShellModel::set_job_gate_for_tests` and `set_job_panic_for_tests`, the held gate and the fault of `tests/jobs.rs`.
 # A non-dev edge must never request it: `ci/dep-rules.toml` bans it outside dev-dependencies, and every package whose
 # test build reaches this crate requests it on a dev edge, this crate's own tests included (`[[uniform_test_features]]`;
-# `cargo xtask check-features`). So the tests above need no `required-features` and are never skipped.
+# the feature rule of `cargo xtask rules`). So the tests above need no `required-features` and are never skipped.
 testkit = []
 
 [dependencies]
