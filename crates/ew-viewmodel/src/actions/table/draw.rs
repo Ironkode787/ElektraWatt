@@ -386,6 +386,15 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         slot(Menu::Edit),
         |s, _| s.act_copy_tags(),
     )),
+    in_canvas(act(
+        "edit.select_all",
+        View,
+        Menu::Edit,
+        &["Ctrl+A"],
+        page_shown,
+        slot(Menu::Edit),
+        |s, _| s.act_select_all(),
+    )),
     with_params(
         "text:text",
         headless(act(

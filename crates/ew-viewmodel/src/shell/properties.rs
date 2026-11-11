@@ -589,6 +589,28 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// `edit.select_all` (Ctrl+A on the canvas, doc 16 §4.6): every object the page shown draws, as a rubber band
+    /// around the whole page would take them (FT-1586).
+    pub(crate) fn act_select_all(&mut self) -> Outcome {
+        let Some(c) = self.canvas() else {
+            return Outcome::refused(key!("reason-no-page"));
+        };
+        let entities = &c.page().entities;
+        // In the band's reading order, so that a replay lists them as the window did.
+        let items = match entities.iter().map(|(_, r)| *r).reduce(|a, b| a.union(b)) {
+            Some(all) => crate::tools::band_selection(entities, all, true),
+            None => Vec::new(),
+        };
+        if self
+            .tools
+            .selection
+            .apply(&crate::tools::SelectionChange::Replace(items))
+        {
+            self.announce_selection();
+        }
+        Outcome::Done
+    }
+
     /// The drawn connection of the page shown whose ends the page text names `<a> -> <b>` (either way round; quotes
     /// around an end are optional): a wire whose drawn route another wire or a symbol's body covers
     /// cannot be clicked, so `select.set` takes `wire:<a> -> <b>` beside the session's references. No such wire, or

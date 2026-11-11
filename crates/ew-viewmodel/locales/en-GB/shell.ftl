@@ -2669,6 +2669,7 @@ action-edit-cut = Cut
 action-edit-copy = Copy
 action-edit-paste-clip = Paste
 action-edit-duplicate = Duplicate
+action-edit-select-all = Select all
 action-edit-copy-tags = Copy tag list
 action-clipboard-text = Set the clipboard text
 reason-cut-incomplete-items = Cut would lose page items or marker connections; include every marker wire or use Copy

@@ -2556,6 +2556,7 @@ action-edit-cut = Knippen
 action-edit-copy = Kopiëren
 action-edit-paste-clip = Plakken
 action-edit-duplicate = Dupliceren
+action-edit-select-all = Alles selecteren
 action-edit-copy-tags = Kenmerklijst kopiëren
 action-clipboard-text = De tekst van het klembord instellen
 reason-cut-incomplete-items = Knippen zou pagina-items of markeringsverbindingen verliezen; neem elke gemarkeerde draad mee of gebruik Kopiëren

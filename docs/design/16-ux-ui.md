@@ -841,13 +841,14 @@ a hard rule, bend more or stay unrouted are routed again in the same undo step.
 left-to-right drag draws a solid band that selects what it encloses; a right-to-left drag draws a dashed band that
 selects what it touches. An entity with several rectangles is enclosed only if all of them are inside the band and
 touched if any is. A click on empty canvas clears the selection (Shift keeps it). Selected items carry a 2-pixel solid
-blue outline (#0072B2). The live region says `<n> selected`. Not built: the rich announcement above, Ctrl+A, and undo
+blue outline (#0072B2). The live region says `<n> selected`. Not built: the rich announcement above and undo
 restoring the selection; they are follow-ups of WP-S2.04 and WP-S2.05 (specification WP-S2.03 §12).
-*As built.* Ctrl+A is built for a navigator's table only: it marks every row of the
-filtered table. The canvas's Ctrl+A is not built. The canvas's status field and HUD count a selection only when part
-of it is drawn on the page shown: a page chosen in the page list (its page record) or a device selected by its tag
-with nothing drawn there is not counted, and the HUD offers no Delete for it; the live region and the page list's
-Delete keep the whole selection.
+*As built.* Ctrl+A in a navigator's table marks every row of the filtered table; on the canvas (Edit ▸ Select all)
+it selects every object the page shown draws, as a band around the whole page would. A device or a function selected
+by its tag (the command search, `select.set tag:`) is outlined where the page draws it. The canvas's status field and
+HUD count a selection only when part of it is drawn on the page shown: a page chosen in the page list (its page
+record) or a device selected by its tag with nothing drawn there is not counted, and the HUD offers no Delete for it;
+the live region and the page list's Delete keep the whole selection.
 
 ### 4.7 Context menus
 

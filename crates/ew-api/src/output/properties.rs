@@ -2654,7 +2654,14 @@ impl Session {
                 .filter(|f| f.state == checks::FindingState::Open)
             {
                 let on_target = f.targets.iter().any(|t| targets.contains(&t.id.as_uuid()));
-                let on_page = f.page.is_some_and(|p| pages.contains(&p.as_uuid()));
+                // A finding is on a page where Messages and the status bar count it: its own page, else the page of
+                // its first drawn target (FT-1587: a page read "6 Pending" while the status bar said 9, the three
+                // "has no part" findings of its devices having no page of their own).
+                let on_page = !pages.is_empty()
+                    && !on_target
+                    && super::navigators::finding_page(q, &folios, f)
+                        .0
+                        .is_some_and(|(_, p)| pages.contains(&p));
                 if on_target || on_page {
                     findings.push((
                         f.rule.to_owned(),

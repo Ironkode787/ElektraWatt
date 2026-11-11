@@ -161,18 +161,31 @@ impl ShellModel {
         })
     }
 
-    /// The rectangles of the selected entities drawn on group `group`'s page (the `selected` outline).
+    /// The rectangles of the selected entities drawn on group `group`'s page (the `selected` outline). A device or a
+    /// function selected by its tag (the command search, `select.set tag:`) is outlined where the page draws it, as
+    /// Delete takes it (FT-1585: the status bar counted it and the page drew nothing).
     pub fn selected_rects(&self, group: usize) -> Vec<Rect> {
         let Some(c) = self.canvas_of(group) else {
             return Vec::new();
         };
-        if self.tools.selection.is_empty() {
+        let selection = &self.tools.selection;
+        if selection.is_empty() {
             return Vec::new();
         }
-        c.page()
-            .entities
+        let page = c.page();
+        let by_tag: Vec<EntityRef> = page
+            .tables
+            .reps
             .iter()
-            .filter(|(e, _)| self.tools.selection.contains(*e))
+            .filter(|r| {
+                r.device.is_some_and(|d| selection.contains(EntityRef(d)))
+                    || r.functions.iter().any(|f| selection.contains(EntityRef(*f)))
+            })
+            .map(|r| EntityRef(r.id))
+            .collect();
+        page.entities
+            .iter()
+            .filter(|(e, _)| selection.contains(*e) || by_tag.contains(e))
             .map(|(_, r)| *r)
             .collect()
     }
