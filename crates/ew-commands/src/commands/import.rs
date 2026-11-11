@@ -33,6 +33,9 @@ pub struct ApplyImport {
     pub records: Vec<Record>,
     /// The batch's library documents, in their `lib/` JSON form.
     pub lib: Vec<Value>,
+    /// The batch's image files, stored as project assets before the records (each sniffed, and a raster image held
+    /// to the pixel limit, as `item.place` takes an image).
+    pub assets: Vec<Vec<u8>>,
     /// The run as the host made it from the report; its `id` is minted here and its `record_hashes` written here.
     pub run: ImportRun,
     /// Whether the import makes an empty project's first state: a non-undoable checkpoint.
@@ -446,6 +449,16 @@ impl DynCommand for ApplyImport {
                 LibDocument::PlcProfile(c) => put_copy(tx, c, keep),
                 LibDocument::Unknown(_) => {}
             }
+        }
+        for bytes in &self.assets {
+            let refused = |e: ew_schema::AssetError| {
+                CmdError::rejected(
+                    Self::NAME,
+                    text!("refusal-params-detail", crate::error::asset_error_text(&e)),
+                )
+            };
+            let reference = tx.put_asset(bytes.clone()).map_err(refused)?;
+            ew_schema::pixel_limit(reference.format, reference.size).map_err(refused)?;
         }
         let run_id: Id<ImportRun> = tx.mint();
         let mut run = self.run.clone();

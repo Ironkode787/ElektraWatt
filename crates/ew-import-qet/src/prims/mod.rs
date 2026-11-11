@@ -94,6 +94,11 @@ pub struct PrimCtx<'a> {
     pub file: &'a str,
     /// The definition's path (`embed://…`), for [`SourceLocation::member`].
     pub member: Option<&'a str>,
+    /// Whether the placed elements own their texts (a definition read for a project, doc 14 §4.4.2): QET
+    /// prints an element's own texts, not its definition's, so a `dynamic_text` or `input` gives a hidden
+    /// slot in its import style (a representation shows it at the element's own text) or, for a plain text,
+    /// nothing. False for a standalone definition.
+    pub instance_texts: bool,
     /// Findings, in order; at most [`MAX_ENTRIES_PER_DEFINITION`].
     pub entries: Vec<ReportEntry>,
     /// Font families already reported as substituted in this definition (EW-IMP-006 once per family).
@@ -114,6 +119,7 @@ impl<'a> PrimCtx<'a> {
             origin_y,
             file,
             member,
+            instance_texts: false,
             entries: Vec::new(),
             reported_families: BTreeSet::new(),
             suppressed: (0, Severity::Info),

@@ -14,7 +14,7 @@
 //! [`Primitive::Text`] with `pos = (x, y)` relative to the hotspot, `text = MlText::neutral(text)`,
 //! `align = Align::BottomLeft` (QET draws static texts from their baseline origin; verify on the corpus),
 //! `angle = −rotation`, `style` from [`font_style`]. `extra`: `"qet.font"` = the raw `font` attribute if
-//! present; `"qet.color"` = the `color` attribute if it is present and not `black`, which is also reported
+//! present; `"qet.color"` = the `color` attribute if it is present and not black (`black`, `#000000`), which is also reported
 //! (EW-IMP-004, info: "text colour `<c>` dropped"). A missing `text` attribute is an empty text.
 //!
 //! # `dynamic_text`
@@ -57,6 +57,14 @@
 //! Slots get `visible = true`, `max_width = None`, and `extra["qet.style"]` when a size is given; a
 //! `rotate` attribute is kept as `extra["qet.rotate"]` (its string) on slots and static texts.
 //!
+//! # Definitions of a project ([`PrimCtx::instance_texts`])
+//!
+//! A placed QET element prints its own texts, not its definition's (doc 14 §4.4.2). Read for a project, a
+//! `UserText` dynamic text and an `input` without `tagg` give nothing, and every slot is hidden
+//! (`visible = false`), aligned [`INSTANCE_ALIGN`] and named by its import style (`style = qet.<size>…`, which
+//! the project import adds to the project's text styles); a representation shows the slot where its element's
+//! own text stands.
+//!
 //! # Fonts (doc 14 §4.10)
 //!
 //! See [`font_style`] and [`size_style`]. Each substituted family is reported **once per definition**
@@ -64,12 +72,17 @@
 
 use ew_interop_api::{Code, Severity};
 use ew_mltext::{Ident, MlText};
-use ew_schema::{Align, Extra, Primitive, SlotKind, TextPrim, TextSlot};
-use ew_units::Angle2;
+use ew_schema::{Align, Extra, Primitive, SlotKind, TextPrim, TextSlot, TextStyleSpec, TextWeight};
+use ew_units::{Angle2, Nm};
 use roxmltree::Node;
 
 use super::{ItemError, Parsed, PrimCtx};
 use crate::decimal::Decimal;
+
+/// The alignment of a slot read with [`PrimCtx::instance_texts`]: an element's own text moves the slot to a
+/// point on the middle of its first line's left end (the anchor a free text has too), whatever the definition
+/// said.
+pub const INSTANCE_ALIGN: Align = Align::MiddleLeft;
 
 /// Sets `extra[key]` to a string value.
 fn put(extra: &mut Extra, key: &str, value: &str) {
@@ -230,19 +243,63 @@ pub fn font_style(node: Node<'_, '_>, font: &str, ctx: &mut PrimCtx<'_>) -> Opti
         );
         return None;
     };
-    if f.family != DEFAULT_FAMILY && ctx.reported_families.insert(f.family.clone()) {
-        let table = if SUBSTITUTED_FAMILIES.contains(&f.family.as_str()) {
-            ""
-        } else {
-            " (not in the font table)"
-        };
-        let message = format!(
-            "font family \"{}\" substituted by {DEFAULT_FAMILY}{table}",
-            f.family
-        );
+    if let Some(message) = substitution(&f.family)
+        && ctx.reported_families.insert(f.family.clone())
+    {
         ctx.report(node, Code::FONT_SUBSTITUTED, Severity::Info, message);
     }
     Ident::from_input(&style_key(f.point_size, f.bold, f.italic)).ok()
+}
+
+/// The EW-IMP-006 message of a family that is substituted (`font family "<family>" substituted by Noto Sans`,
+/// plus ` (not in the font table)` for a family outside [`SUBSTITUTED_FAMILIES`]); `None` for
+/// [`DEFAULT_FAMILY`].
+pub fn substitution(family: &str) -> Option<String> {
+    if family == DEFAULT_FAMILY {
+        return None;
+    }
+    let table = if SUBSTITUTED_FAMILIES.contains(&family) {
+        ""
+    } else {
+        " (not in the font table)"
+    };
+    Some(format!(
+        "font family \"{family}\" substituted by {DEFAULT_FAMILY}{table}"
+    ))
+}
+
+/// The em height of a QET font of `point_size` points: QET draws a point as 4/3 px (96 per inch), and a px is
+/// `793_750 / 3` nm, so `point_size × 3_175_000 / 9` nm (9 pt → 3,175,000 nm, the `text.normal` of doc 20 §17.5);
+/// rounded once (the em the frame styles of a project import give a size too); `None` out of range.
+pub fn em_of(point_size: Decimal) -> Option<Nm> {
+    let scaled = point_size.mantissa().checked_mul(3_175_000)?;
+    let e = point_size.exp();
+    let (num, den) = if e >= 0 {
+        (scaled.checked_mul(10i128.checked_pow(u32::try_from(e).ok()?)?)?, 9)
+    } else {
+        (scaled, 10i128.checked_pow(e.unsigned_abs())?.checked_mul(9)?)
+    };
+    i64::try_from(crate::decimal::div_round_half_even(num, den))
+        .ok()
+        .map(Nm)
+}
+
+/// The project text style an import style key stands for (doc 14 §4.10): the inverse of [`style_key`],
+/// `qet.<size>[.b][.i]` → the em height of [`em_of`], bold for `.b`; italic is not a text-style property and
+/// is dropped. `None` for any other key or a size outside the text-style limits.
+pub fn style_spec(key: &str) -> Option<TextStyleSpec> {
+    let rest = key.strip_prefix("qet.")?;
+    let rest = rest.strip_suffix(".i").unwrap_or(rest);
+    let (size, bold) = match rest.strip_suffix(".b") {
+        Some(s) => (s, true),
+        None => (rest, false),
+    };
+    let size = em_of(Decimal::parse(size).ok()?).filter(|s| ew_schema::text_style_size_ok(*s))?;
+    Some(TextStyleSpec {
+        size,
+        weight: bold.then_some(TextWeight::Bold),
+        extra: Extra::new(),
+    })
 }
 
 /// The style of a legacy `size` attribute (points): `qet.<size>`; `None` (and an EW-IMP-004 info report) if
@@ -309,7 +366,7 @@ pub fn static_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) 
         put(&mut extra, "qet.font", font);
     }
     if let Some(colour) = node.attribute("color")
-        && colour != "black"
+        && !matches!(colour.to_ascii_lowercase().as_str(), "black" | "#000000")
     {
         ctx.unsupported(node, format!("text colour {colour} dropped"));
         put(&mut extra, "qet.color", colour);
@@ -347,6 +404,9 @@ pub fn dynamic_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed)
         put(&mut extra, "qet.uuid", uuid);
     }
     if text_from == "UserText" {
+        if ctx.instance_texts {
+            return Ok(());
+        }
         out.graphics.push(Primitive::Text(TextPrim {
             pos,
             text: MlText::neutral(child_text(node, "text")),
@@ -383,10 +443,14 @@ pub fn dynamic_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed)
         kind,
         pos,
         rot: angle,
-        align,
-        visible: true,
+        align: if ctx.instance_texts {
+            INSTANCE_ALIGN
+        } else {
+            align
+        },
+        visible: !ctx.instance_texts,
         max_width,
-        style: None,
+        style: style.filter(|_| ctx.instance_texts),
         fallback: None,
         extra,
     });
@@ -414,6 +478,9 @@ pub fn input(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) -> Res
         put(&mut extra, "qet.rotate", rotate);
     }
     let Some(kind) = kind else {
+        if ctx.instance_texts {
+            return Ok(());
+        }
         out.graphics.push(Primitive::Text(TextPrim {
             pos,
             text: MlText::neutral(node.attribute("text").unwrap_or("")),
@@ -431,10 +498,14 @@ pub fn input(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) -> Res
         kind,
         pos,
         rot: angle,
-        align: Align::TopLeft,
-        visible: true,
+        align: if ctx.instance_texts {
+            INSTANCE_ALIGN
+        } else {
+            Align::TopLeft
+        },
+        visible: !ctx.instance_texts,
         max_width: None,
-        style: None,
+        style: style.filter(|_| ctx.instance_texts),
         fallback: None,
         extra,
     });

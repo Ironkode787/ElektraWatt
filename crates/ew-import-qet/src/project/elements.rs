@@ -27,16 +27,17 @@ use ew_ids::Id;
 use ew_interop_api::{Code, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, LibCopy, Record,
-    Representation, SymbolDef, TagScheme, TagSign, TagSpec,
+    Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList, LibCopy,
+    Record, Representation, SlotKind, SlotOverride, SymbolDef, TagScheme, TagSign, TagSpec,
 };
-use ew_units::{Nm, Orient2, Pt2};
+use ew_units::{Angle2, Nm, Orient2, Pt2};
 use serde_json::Value;
 
 use super::Def;
 use super::builtins::Builtins;
 use super::cx::{ElementKey, Findings, Ids, Placed, PlacedTerminal, Registry, Target, element_keys, turned};
-use super::model::{Border, QetElement, QetProject, norm_uuid};
+use super::items;
+use super::model::{Border, QetElement, QetProject, TextAt, norm_uuid};
 use super::pages::{PagesOut, is_qet_border};
 use super::strips;
 use crate::decimal::Decimal;
@@ -71,6 +72,8 @@ pub struct ElementsOut {
     pub dropped: u32,
     /// Objects inferred (strips).
     pub inferred: u32,
+    /// The font-substitution messages already reported (EW-IMP-006 once per family).
+    pub fonts: BTreeSet<String>,
 }
 
 /// The fallback letter of an element without a usable label or `prefix` (EN 81346-2:2009 class A: no
@@ -78,7 +81,7 @@ pub struct ElementsOut {
 pub const FALLBACK_LETTER: &str = "A";
 
 /// EW-IMP-122 (proposed, the next free code of the doc 14 §2.5 catalogue): element without label; its tag
-/// keeps the prefix letter, and the import numbers it (`-1A1`).
+/// keeps the prefix letter without a number, and the page prints no tag for it, as QET prints none.
 pub const UNLABELED: Code = Code::imp(122);
 
 /// The element a link UUID names, seen from `from`: the copy on `from`'s folio when the UUID is repeated
@@ -288,6 +291,28 @@ fn info_extra(el: &QetElement, seen: &mut BTreeMap<String, u32>) -> Option<Value
     (!obj.is_empty()).then_some(Value::Object(obj))
 }
 
+/// QET's composite text `format` for `el`: every `%{name}` replaced by the element information `name` (empty
+/// when the element has none).
+fn composite(format: &str, el: &QetElement) -> String {
+    let mut out = String::new();
+    let mut rest = format;
+    while let Some(at) = rest.find("%{") {
+        out.push_str(&rest[..at]);
+        match rest[at + 2..].find('}') {
+            Some(end) => {
+                out.push_str(el.info(&rest[at + 2..at + 2 + end]).unwrap_or(""));
+                rest = &rest[at + 3 + end..];
+            }
+            None => {
+                out.push_str(&rest[at..]);
+                rest = "";
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// The first non-empty `UserText` dynamic text of `el`.
 pub(crate) fn user_text(el: &QetElement) -> Option<&str> {
     el.dyn_texts
@@ -345,6 +370,11 @@ pub(crate) struct Mx<'a, 'f> {
     pub(crate) out: ElementsOut,
     /// Element-information names kept as text, with counts.
     pub(crate) infos_seen: BTreeMap<String, u32>,
+    /// The elements (by `ek`) whose device tag and function text print exactly the label and the `function`
+    /// QET prints, so that their own texts of these may show the symbol's slots (doc 14 §4.4.2).
+    pub(crate) live: BTreeSet<String>,
+    /// The label of each slave's master, by the slave's `ek`.
+    pub(crate) master_label: BTreeMap<String, String>,
 }
 
 impl Mx<'_, '_> {
@@ -410,6 +440,7 @@ impl Mx<'_, '_> {
             extra,
         }));
         let page = self.inp.pages.pages[e.diagram].id;
+        let text_slots = self.own_texts(e, page);
         self.out.records.push(Record::Representation(Representation {
             id: ids.id(&rkey),
             v: 1,
@@ -421,7 +452,7 @@ impl Mx<'_, '_> {
             orient: e.orient,
             rep_type: e.symbol().item.rep_type.clone(),
             pin_map: Default::default(),
-            text_slots: Default::default(),
+            text_slots,
             arrangement: None,
             anchor: None,
             box_: None,
@@ -531,6 +562,11 @@ impl Mx<'_, '_> {
                 .or_else(|| e.el.info_nonempty("description"))
                 .map(MlText::neutral)
                 .unwrap_or_default();
+        // The tag prints the label as written (derived from it, or frozen with its sign) unless a structure
+        // prefix is split off; the function text is the `function` information when there is one.
+        if matches!(outcome, TagOutcome::Derived | TagOutcome::Frozen) && structure.is_none() {
+            self.live.insert(e.ek.clone());
+        }
         let device = self.device(&dkey, tag, function_text, None, DeviceAspects::default(), extra);
         self.function_and_rep(e, FnSpec::normal(e, def, device, FnRole::Main));
         if orphan {
@@ -542,6 +578,94 @@ impl Mx<'_, '_> {
                 "slave element without a linked master: own device, function promoted to main",
             );
         }
+    }
+
+    /// The texts element `e` prints (doc 14 §4.4.2): its own dynamic texts (QET 0.7+), else its old-style
+    /// `<inputs>`, each where QET draws it and in its import style. A label or `function` text of an element in
+    /// [`Mx::live`] shows the symbol's tag or function-text slot (the returned overrides); every other text
+    /// that is not empty becomes a free text on `page` (`qet:el:<ek>#text<n>`). The symbol's slots stay hidden
+    /// otherwise, so an element prints no text QET does not print.
+    fn own_texts(&mut self, e: &Elem<'_>, page: Id<ew_schema::Page>) -> KeyedList<SlotOverride> {
+        let texts: Vec<(String, &TextAt, Option<SlotKind>)> = if e.el.has_dyn_texts {
+            e.el.dyn_texts
+                .iter()
+                .filter_map(|t| {
+                    let info = t.info_name.as_deref().unwrap_or("");
+                    let (text, kind) = match t.text_from.as_str() {
+                        "UserText" => (t.text.clone(), None),
+                        "ElementInfo" => (
+                            match (info, self.master_label.get(&e.ek)) {
+                                // A slave prints its master's label (QET links the two).
+                                ("label", Some(m)) if e.el.info_nonempty("label").is_none() => m.clone(),
+                                _ => e.el.info(info).unwrap_or("").to_owned(),
+                            },
+                            match info {
+                                "label" => Some(SlotKind::Tag),
+                                "function" => Some(SlotKind::FunctionText),
+                                _ => None,
+                            },
+                        ),
+                        "CompositeText" => (composite(t.composite.as_deref().unwrap_or(""), e.el), None),
+                        _ => return None,
+                    };
+                    Some((text, &t.at, kind))
+                })
+                .collect()
+        } else {
+            e.el.inputs.iter().map(|i| (i.text.clone(), &i.at, None)).collect()
+        };
+        let live = self.live.contains(&e.ek);
+        let slots = &e.symbol().item.text_slots;
+        let mut overrides: Vec<SlotOverride> = Vec::new();
+        for (n, (raw, at, kind)) in texts.into_iter().enumerate() {
+            let (text, style, em) = items::qet_text(&raw, at.font.as_deref(), &mut self.out.fonts, self.findings);
+            if text.trim().is_empty() {
+                continue;
+            }
+            // A slot prints one line in its own style, so only a one-line text of that style shows it.
+            let slot = kind
+                .filter(|_| live && text.lines().count() == 1)
+                .and_then(|k| slots.iter().position(|s| s.kind == k && s.style == style))
+                .and_then(|i| u16::try_from(i).ok())
+                .filter(|i| !overrides.iter().any(|o| o.slot == *i));
+            for (i, line) in text.lines().enumerate() {
+                if line.trim().is_empty() {
+                    continue;
+                }
+                let Some((local, angle)) = items::text_anchor(at, i, em) else {
+                    self.at(e, Code::MALFORMED_ITEM, Severity::Warning, format!("element text {n} skipped: bad x/y"));
+                    break;
+                };
+                if let Some(slot) = slot {
+                    overrides.push(SlotOverride {
+                        slot,
+                        pos: Some(local),
+                        angle: Some(angle),
+                        visible: Some(true),
+                        extra: BTreeMap::new(),
+                    });
+                    continue;
+                }
+                let turned = e.orient.apply(local);
+                let (Some(x), Some(y)) = (e.pos.x.0.checked_add(turned.x.0), e.pos.y.0.checked_add(turned.y.0))
+                else {
+                    continue;
+                };
+                let turns = i32::from(e.orient.rotation()) * 1000;
+                let key = items::line_key(&format!("qet:el:{}#text{n}", e.ek), i);
+                let at = Pt2::new(Nm(x), Nm(y));
+                let angle = Angle2(angle.0.saturating_sub(turns));
+                self.out.records.push(Record::PageItem(ew_schema::PageItem {
+                    id: self.inp.ids.id(&key),
+                    v: 1,
+                    page,
+                    layer: None,
+                    kind: items::free_text(line.trim_end(), at, angle, style.clone()),
+                    extra: BTreeMap::new(),
+                }));
+            }
+        }
+        KeyedList::from_vec(overrides).unwrap_or_default()
     }
 
     /// Reports `e` as dropped and registers it so that its wires are reported as lost.
@@ -619,6 +743,8 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         findings,
         out: ElementsOut::default(),
         infos_seen: BTreeMap::new(),
+        live: BTreeSet::new(),
+        master_label: BTreeMap::new(),
     };
 
     // Pass 1: placed elements with a usable definition and position, and their project-wide keys (doc 14
@@ -801,8 +927,15 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
     }
 
     // Pass 3: slaves.
+    let label_of: BTreeMap<ElementKey, &str> = elems
+        .iter()
+        .filter_map(|m| Some(((m.diagram, m.key.clone()), m.el.info_nonempty("label")?)))
+        .collect();
     for (e, c) in elems.iter().zip(&classes) {
         let Class::Slave { master } = c else { continue };
+        if let Some(l) = label_of.get(master) {
+            mx.master_label.insert(e.ek.clone(), (*l).to_owned());
+        }
         let (Some(device), Some(def)) = (device_of.get(master).copied(), Mx::generated_def(e)) else {
             mx.drop_element(e, "its master or its function definition was not imported");
             continue;
@@ -833,11 +966,11 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         let loc = mx.findings.loc(Some(&folio), None, None);
         let text = if n == 1 {
             format!(
-                "1 element without label: its device tag carries the element prefix letter (else `{FALLBACK_LETTER}`) and is numbered on import"
+                "1 element without label: its device tag carries the element prefix letter (else `{FALLBACK_LETTER}`), has no number and is not printed"
             )
         } else {
             format!(
-                "{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`) and are numbered on import"
+                "{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`), have no number and are not printed"
             )
         };
         mx.findings.push(UNLABELED, Severity::Info, loc, text);

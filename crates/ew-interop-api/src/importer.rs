@@ -222,6 +222,9 @@ pub struct ImportBatch {
     /// Library documents (symbols, function definitions, forms) for the project's import library, sorted
     /// by kind, then copy ID.
     pub lib: Vec<LibDocument>,
+    /// The bytes of the image files the records' image items name by their SHA-256 (doc 05 §13.3), each once,
+    /// in the order of first use; the host stores them as project assets.
+    pub assets: Vec<Vec<u8>>,
     /// The report.
     pub report: ImportReport,
 }

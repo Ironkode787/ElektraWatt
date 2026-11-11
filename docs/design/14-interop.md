@@ -684,7 +684,7 @@ map one to one:
 | `arc x y width height start angle` | elliptic arc | degrees; 0° at 3 o'clock; positive span counter-clockwise on screen, so a point is `(cx + rx·cosθ, cy − ry·sinθ)`; the importer keeps `start` and `angle` as given, and lowering in `ew-scene` evaluates the arc with `ew-dl`'s deterministic trigonometry |
 | `polygon x1 … xn y1 … yn closed` | polyline or closed polygon | |
 | `text x y text size\|font color rotation` | static symbol text | font per §4.10; `rotation` is Qt's clockwise-positive angle and becomes the negated `Angle2` (counter-clockwise positive, [03](03-domain-model.md) §3.1; ADR-0005 amendment 2) |
-| `dynamic_text`, legacy `input tagg` | text slot | `label` → tag slot, `function` → function-text slot, `CompositeText` → slot with a format; `UserText` → static text |
+| `dynamic_text`, legacy `input tagg` | text slot | `label` → tag slot, `function` → function-text slot, `CompositeText` → slot with a format; `UserText` → static text. In a project the placed elements print their own texts instead (§4.4.2) |
 | `terminal x y orientation name type uuid` | connection point | index = definition order; designation = `name` (empty allowed); direction from `orientation`; `type` Generic, Inner or Outer kept |
 
 - **Style mini-language.** `line-style: normal|dashed|dotted|dashdotted`, `line-weight: none|thin|normal|hight|eleve`
@@ -749,11 +749,44 @@ map one to one:
    `-101f1`) is frozen rather than re-derived, and EW-IMP-009 never fires for a tag. EW-IMP-103 lists the frozen
    labels, strips excepted. A structure prefix (`+…-X1`) is kept in `Device.extra` until structure nodes are created
   . An element
-   without any label gets `TagSpec{letter: prefix attribute, else "A", counter: none}`, prints "?" (the derivation's
-   placeholder for an underivable token), and is reported once per folio as EW-IMP-122.
+   without any label gets `TagSpec{letter: prefix attribute, else "A", counter: none}`, so the device keeps an
+   identity, and is reported once per folio as EW-IMP-122. Its tag is not printed, because QET prints none: the
+   symbol's tag slot is hidden and only an element's own label text shows it (§4.4.2). Hiding the slot was taken
+   over a hidden slot per representation or a placeholder tag because the symbol of a project import shows no
+   text of its own anyway, so nothing is needed per unlabelled element.
 6. **Identifier set.** EN 81346-2:2009 single letters unless the letter analysis is explained only by IEC 60750, in
    which case that set is proposed (ADR-0026). The importer never switches to IEC 81346-2:2019; that is the
    previewed renumber of FR-NUM-014.
+
+#### 4.4.2 The texts an element prints
+
+QET prints a placed element's own texts, not its definition's: since 0.7 an element carries `<dynamic_texts>`
+(each bound to user text, an element information or a composite text, with its own position, font and rotation),
+and an older one `<inputs>` with the values of the definition's texts. The definition's dynamic texts are only the
+templates new elements copy.
+
+*As built.* A definition read for a project gives a symbol whose texts from `dynamic_text` and `input` print
+nothing: user texts and untagged inputs are left out, and every text slot is hidden, aligned middle-left and named
+by its import style (§4.10). Each placed element then prints its own texts, each where QET draws it:
+
+- **Where.** QET places a text item's box by its top-left corner and turns it about that corner. EW anchors the
+  text on the left end of a line's middle: the corner plus QET's 4 px text margin, plus 0.547 em down to the
+  middle of the first line (the ascent less half the cap height of the substituted families), plus 1.15 em per
+  further line (Qt's line spacing). A text of several lines becomes one text per line, so that its lines keep
+  QET's spacing. The offset turns with the text's rotation rounded to a quarter turn, then with the element.
+- **What.** A user text prints as written, an element information its value (a slave's label is its master's,
+  as QET links them), a composite text its format with each `%{name}` replaced by that information. Qt rich text
+  prints its plain text, one line per paragraph, in the size of its first span or body (§4.13).
+- **As a slot.** The label and the `function` text show the symbol's tag and function-text slot through a
+  slot override (position, angle, shown), so the printed tag stays the device's live tag. That needs a device
+  whose tag prints the label unchanged (a derived or frozen tag without a structure prefix), a symbol slot of
+  that kind in the text's own style, and a text of one line.
+- **Else as a free text** on the page (`qet:el:<key>#text<n>`), the nearest record the model has: it prints the
+  value as QET printed it but does not follow the element when it moves.
+- An element without its own texts prints none; an empty text prints nothing.
+
+The element information beyond the label stays in `Device.extra["qet.info"]` (EW-IMP-008), as before: it prints
+through the texts above, but parts, user properties and comments from it are not built yet (§4.16).
 
 ### 4.5 Master and slave → main and auxiliary functions
 
@@ -933,8 +966,10 @@ variable has an EW xref-format token (FR-XRF-003):
   `doc.page_count`, `page.prev` and `page.next`; every other variable is filled with the diagram's value, from its
   title-block attributes (`date="null"` is empty), then the project's title (`%projecttitle`) and properties, then
   the diagram's properties, and an unknown variable stays as written, as in QET. `%projectpath`,
-  `%projectfilename` and `%savedfilepath` print nothing (EW-IMP-004). A logo is not imported yet: an import has no
-  path for asset bytes (EW-IMP-004). A diagram without an embedded template gets the shipped
+  `%projectfilename` and `%savedfilepath` print nothing (EW-IMP-004). A logo stored as base64 (QET's form for a
+  PNG) becomes an image primitive of the form, as large as its cell allows at the picture's proportions and
+  centred, its bytes a project asset through the same path as a drawing's images (§4.13); a logo stored as XML
+  (an SVG) is not read (EW-IMP-004). A diagram without an embedded template gets the shipped
   `ew.titleblock.qet-a4` (QET's default template).
 
 ### 4.10 Fonts and text styles
@@ -951,6 +986,11 @@ variable has an EW xref-format token (FR-XRF-003):
 - One import text style per distinct (family, size, weight, italic) is created, named `qet.<size>[.b][.i]`. These
   styles are not bound to slot kinds (EW-IMP-114); "apply `tag.main`" restores one tag height (D-29).
 - Sizes stay in native points: QET 12 px → 9.00 pt native → 8.88 pt printed through the frame transform (20 §17.5).
+- *As built.* The project import adds each import style the drawing names (symbol texts and slots, free texts) to
+  the project's text styles (`settings.text_styles`, ADR-0032): `qet.<size>` has the em height of a QET font of
+  that many points, `size × 3,175,000 / 9` nm (QET draws a point as 4/3 px), bold for `.b`; italic is not a
+  text-style property and is dropped. Without them every import style was unknown and printed in `text.normal`,
+  so texts of 4 to 6 pt printed at 9 pt.
 
 ### 4.11 Strips, terminals and cables
 
@@ -1038,6 +1078,19 @@ the recognisers of FR-IMP-017:
   to the dash patterns of 20 §17.4. A free text's `rotation` counts clockwise (Qt), so the importer stores it
   negated as an `Angle2`, which counts counter-clockwise as seen on the sheet (ADR-0005 amendment 2): QET 90°
   becomes `Angle2(-90_000)`.
+
+  *As built* (`project/items.rs`). A free text is placed as an element's own text is (§4.4.2), one free text per
+  line; QET writes free texts as Qt rich text, whose paragraphs are the lines and whose first span or body sets the
+  size. A line, rectangle and polygon map to their graphic shapes, a square ellipse to a circle; a rectangle with
+  corner radii and any other ellipse become a polygon through 7 points per quarter (integer cosines, so the batch
+  is the same on every platform). Pen `SolidLine`, `DashLine`, `DotLine`, `DashDotLine` give solid, dashed,
+  dotted and dash-dot, `widthF` the stroke width (0: the page's wire stroke); a brush other than `NoBrush` fills.
+  An image is drawn in its picture's own pixel size scaled by `size` about its middle (QET turns and scales an
+  image about its centre); its bytes travel in the batch (`ImportBatch.assets`) and `import.apply` stores them as
+  project assets, as `item.place` takes an image (at most 512 KiB, a known format, the pixel limit; else the image
+  is left out with EW-IMP-002). What the records cannot carry is reported with EW-IMP-004 and the item kept: a pen
+  colour other than black, a dash-dot-dot pen (drawn dash-dot), another brush pattern (drawn solid), an image's
+  rotation. A thumbnail element is still not imported (§4.3).
 - **Layout pages** (FR-IMP-019): a page whose rectangles carry tag-like texts is offered as a layout page. Pass P6
   scores each text against derived tags: exact (-102G1), after identifier suppression ("X1031" → -X1031), and fuzzy
   within the same letter and number group (Levenshtein ≤ 1: "T51" → T55, folio 101's 5x group). Every binding is a
@@ -1097,9 +1150,8 @@ interruption points (§4.6), conductor ends (§4.7), title blocks (§4.9), strip
   once per family.
 - **Not imported yet** (each reported, mostly as EW-IMP-004 or EW-IMP-008 with counts): formulas and EW-IMP-101
  , rules R2/R3, structure nodes and EW-IMP-102, parts from element information,
-  text-to-data recognisers, free texts, shapes, images and
-  thumbnails, cables, conductor properties as potential definitions and overrides, chain mode and external points
- , title-block logos, `<terminal_strips>` and their bridges, empty terminal
+  text-to-data recognisers, thumbnails, cables, conductor properties as potential definitions and overrides,
+  chain mode and external points, `<terminal_strips>` and their bridges, empty terminal
   designations, and the exchange of QET-import symbols for starter symbols through `symbol-map.csv`
   ([23](23-symbol-coverage-pilot-corpus.md) M-01 to M-09). The import detections EW-IMP-105, EW-IMP-106, EW-IMP-110 and EW-IMP-112,
   EW-IMP-111, EW-IMP-114 and EW-IMP-121 are not built yet. A junction element is counted against the first

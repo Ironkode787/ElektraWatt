@@ -192,6 +192,7 @@ fn batch(records: Vec<Record>) -> ImportBatch {
     ImportBatch {
         records,
         lib: Vec::new(),
+        assets: Vec::new(),
         report: ImportReport::new("test", "1", SourceInfo::default()),
     }
 }

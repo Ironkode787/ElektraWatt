@@ -600,6 +600,7 @@ pub fn apply_command(
             .iter()
             .map(|d| serde_json::to_value(d).unwrap_or_default())
             .collect(),
+        assets: batch.assets.clone(),
         run,
         checkpoint,
         carried: std::collections::BTreeMap::new(),

@@ -155,9 +155,9 @@ pub fn map(project: &QetProject, facts: &[DiagramFacts], ids: &Ids, findings: &m
                 let d = &project.diagrams[i];
                 d.elements.is_empty()
                     && d.conductors.is_empty()
-                    && d.free_texts == 0
-                    && d.shapes == 0
-                    && d.images == 0
+                    && d.free_texts.is_empty()
+                    && d.shapes.is_empty()
+                    && d.images.is_empty()
                     && d.tables.len() == 1
             });
         let key = format!("qet:table:{}", head.uuid.as_deref().unwrap_or(&f.folio));

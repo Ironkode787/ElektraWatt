@@ -18,8 +18,7 @@
 //!   the project (`Project.extra["qet.titleblock"]`, `["qet.properties"]`); a page whose value differs keeps it
 //!   in `Page.extra` under the same member. A differing `author`, `date`, `indexrev` or custom property is an
 //!   EW-IMP-104 finding (D-05) naming the folios per value.
-//! - **Dropped content.** Free texts, shapes and images have no record kind in schema v0: one
-//!   EW-IMP-004 finding per folio with the counts.
+//! - **Free texts, shapes and images** are page items ([`super::items`]).
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -32,6 +31,7 @@ use serde_json::Value;
 
 use super::builtins::Builtins;
 use super::cx::{Findings, Ids};
+use super::items::ItemsOut;
 use super::model::{Border, QetDiagram, QetProject};
 use super::{frames, tables};
 
@@ -243,13 +243,15 @@ pub(crate) fn lift(
     }
 }
 
-/// Maps the diagrams of `project` to pages and builds the project record `project_id`.
+/// Maps the diagrams of `project` to pages and builds the project record `project_id`; title-block logos
+/// join `assets`.
 pub fn map(
     project: &QetProject,
     ids: &Ids,
     project_id: Id<Project>,
     builtins: &Builtins,
     used: &mut BTreeSet<String>,
+    assets: &mut ItemsOut,
     findings: &mut Findings,
 ) -> PagesOut {
     let total = project.diagrams.len();
@@ -341,6 +343,7 @@ pub fn map(
         Id::from_uuid(project_id.as_uuid()),
         builtins,
         used,
+        assets,
         findings,
     );
     let facts: Vec<tables::DiagramFacts> = (0..total)
@@ -393,26 +396,6 @@ pub fn map(
             source_ref: Some(ids.source_ref(key)),
             extra,
         }));
-        let dropped = [
-            (d.free_texts, "free texts"),
-            (d.shapes, "shapes"),
-            (d.images, "images"),
-        ];
-        if dropped.iter().any(|(n, _)| *n > 0) {
-            let what = dropped
-                .iter()
-                .filter(|(n, _)| *n > 0)
-                .map(|(n, w)| format!("{n} {w}"))
-                .collect::<Vec<_>>()
-                .join(", ");
-            let loc = findings.loc(Some(&infos[i].folio), None, Some(d.line));
-            findings.push(
-                Code::DROPPED_BY_DESIGN,
-                Severity::Info,
-                loc,
-                format!("{what} not imported (no page-item records yet)"),
-            );
-        }
     }
     records.extend(tables.records);
 

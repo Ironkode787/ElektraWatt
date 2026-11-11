@@ -175,17 +175,21 @@ pub fn read_element(
 ) -> Result<ElementImport, ImportError> {
     let depth = crate::xml::prescan(xml, limits)?;
     let library: Id<Library> = Id::from_uuid(project.as_uuid());
-    crate::xml::with_parser_stack(depth, || read_on_stack(xml, src, lineage, library, limits))
+    crate::xml::with_parser_stack(depth, || {
+        read_on_stack(xml, src, lineage, library, limits, false)
+    })
 }
 
 /// [`read_element`] after the pre-scan, on the parser thread (the project importer calls it for every
-/// embedded definition from inside its own parser thread).
+/// embedded definition from inside its own parser thread, with `instance_texts`: see
+/// [`PrimCtx::instance_texts`]).
 pub(crate) fn read_on_stack(
     xml: &str,
     src: &ElementSource<'_>,
     lineage: &LineageInfo,
     library: Id<Library>,
     limits: &Limits,
+    instance_texts: bool,
 ) -> Result<ElementImport, ImportError> {
     let doc = parse_xml(xml, limits)?;
     let root = doc.root_element();
@@ -205,6 +209,7 @@ pub(crate) fn read_on_stack(
 
     // Every finding goes through `ctx`: located by its line index and capped per definition.
     let mut ctx = PrimCtx::new(src.file(), src.path(), Decimal::ZERO, Decimal::ZERO);
+    ctx.instance_texts = instance_texts;
 
     // Names.
     let mut names: Vec<(LangTag, String)> = Vec::new();
@@ -551,6 +556,11 @@ impl QetElementImporter {
             let k = d.kind().map_or("?", |k| k.name());
             *report.stats.per_kind.entry(k.to_owned()).or_default() += 1;
         }
-        Ok(ImportBatch { records, lib, report })
+        Ok(ImportBatch {
+            records,
+            lib,
+            assets: Vec::new(),
+            report,
+        })
     }
 }

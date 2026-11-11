@@ -73,12 +73,12 @@ pub struct QetDiagram {
     pub elements: Vec<QetElement>,
     /// The conductors, document order.
     pub conductors: Vec<QetConductor>,
-    /// Number of free texts (`/diagram/inputs/input`).
-    pub free_texts: u32,
-    /// Number of shapes (`/diagram/shapes/shape`).
-    pub shapes: u32,
-    /// Number of images (`/diagram/images/image`).
-    pub images: u32,
+    /// The free texts (`/diagram/inputs/input`), document order.
+    pub free_texts: Vec<QetInput>,
+    /// The shapes (`/diagram/shapes/shape`), document order.
+    pub shapes: Vec<QetShape>,
+    /// The images (`/diagram/images/image`), document order.
+    pub images: Vec<QetImage>,
     /// The tables (`/diagram/tables/graphics_table`), document order.
     pub tables: Vec<QetTable>,
     /// 1-based line of the `<diagram>` start tag.
@@ -116,6 +116,8 @@ pub struct TbTemplate {
     pub rows: Vec<String>,
     /// The `<field>` and `<logo>` children of `<grid>`, document order.
     pub cells: Vec<TbCell>,
+    /// The `<logos><logo>` resources: `name` → (`storage`, the text, white space removed).
+    pub logos: Vec<(String, String, String)>,
     /// 1-based line of the start tag.
     pub line: u32,
 }
@@ -190,6 +192,11 @@ pub struct QetElement {
     pub infos: Vec<(String, String)>,
     /// `<dynamic_texts><dynamic_elmt_text>` in document order.
     pub dyn_texts: Vec<DynText>,
+    /// Whether the element has a `<dynamic_texts>` member (QET 0.7+ writes one on every element, empty or
+    /// not): its texts are then its own, not the definition's.
+    pub has_dyn_texts: bool,
+    /// The old-style `<inputs><input>` (QET 0.6 and older): the values of the definition's texts.
+    pub inputs: Vec<QetInput>,
     /// `<links_uuids><link_uuid uuid>` normalised by [`norm_uuid`] (non-UUIDs skipped), document order.
     pub links: Vec<String>,
     /// 1-based line of the `<element>` start tag.
@@ -231,6 +238,75 @@ pub struct DynText {
     pub text: String,
     /// The `<info_name>` child's text (trimmed), if present.
     pub info_name: Option<String>,
+    /// The `<composite_text>` child's text (QET's `%{name}` format), if present.
+    pub composite: Option<String>,
+    /// Where QET draws it: the top-left corner of its text box in element coordinates, size and turn.
+    pub at: TextAt,
+}
+
+/// The placement of a QET text item: the top-left corner of its text box, its font and its rotation.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct TextAt {
+    /// `x`, px; `None` when absent or unparsable.
+    pub x: Option<Decimal>,
+    /// `y`, px; `None` when absent or unparsable.
+    pub y: Option<Decimal>,
+    /// `rotation`, degrees clockwise (Qt); `None` when absent or unparsable (0).
+    pub rotation: Option<Decimal>,
+    /// The `font` attribute (`QFont::toString()`), if present.
+    pub font: Option<String>,
+}
+
+/// One free text: a diagram's `<input>` (an independent text) or an element's old-style `<input>`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct QetInput {
+    /// The `text` attribute ("" when absent).
+    pub text: String,
+    /// Where QET draws it.
+    pub at: TextAt,
+    /// 1-based line of the `<input>` start tag.
+    pub line: u32,
+}
+
+/// One diagram `<shape>` (`QetShapeItem`): its points and pen and brush, as written.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct QetShape {
+    /// `type`: `Line`, `Rectangle`, `Ellipse`, `Polygon` (or the older numbers 0 to 3).
+    pub kind: String,
+    /// `x1 y1 x2 y2` for a line, rectangle or ellipse; the `<points><point x y>` of a polygon; each point
+    /// `None` when a coordinate is missing or unparsable.
+    pub points: Vec<Option<(Decimal, Decimal)>>,
+    /// `rx`, `ry`: the corner radii of a rectangle, px (absent: 0).
+    pub radii: (Option<Decimal>, Option<Decimal>),
+    /// `closed="1"` (a polygon).
+    pub closed: bool,
+    /// `<pen style>` (`SolidLine`, `DashLine`, …; "" when absent).
+    pub pen_style: String,
+    /// `<pen widthF>`, px.
+    pub pen_width: Option<Decimal>,
+    /// `<pen color>` ("" when absent).
+    pub pen_color: String,
+    /// `<brush style>` (`NoBrush`, `SolidPattern`, …; "" when absent).
+    pub brush_style: String,
+    /// 1-based line of the `<shape>` start tag.
+    pub line: u32,
+}
+
+/// One diagram `<image>` (`DiagramImageItem`).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct QetImage {
+    /// `x`, `y`, px: the item position.
+    pub x: Option<Decimal>,
+    /// See `x`.
+    pub y: Option<Decimal>,
+    /// `size`: the scale (absent: 1).
+    pub scale: Option<Decimal>,
+    /// `rotation`, degrees (absent: 0).
+    pub rotation: Option<Decimal>,
+    /// The base64 text of the image file, white space removed.
+    pub data: String,
+    /// 1-based line of the `<image>` start tag.
+    pub line: u32,
 }
 
 /// One `<conductor>`.

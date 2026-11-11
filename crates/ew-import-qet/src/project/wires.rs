@@ -1027,6 +1027,8 @@ mod tests {
             terminals,
             infos: Vec::new(),
             dyn_texts: Vec::new(),
+            has_dyn_texts: false,
+            inputs: Vec::new(),
             links: Vec::new(),
             line: 1,
         }

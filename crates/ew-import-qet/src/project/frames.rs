@@ -20,8 +20,8 @@
 //!   `%folio`, `%folio-id`, `%folio-total`, `%previous-folio-num`, `%next-folio-num`), every other variable
 //!   is filled with the diagram's value (its title-block attributes, then the project's title and
 //!   properties, then the diagram's own properties), and variables naming a local path print nothing
-//!   (reported). Font sizes become the styles `qet.<pt>` ([`styles`]). A logo is not imported yet
-//!   (reported). Without an embedded template the shipped `ew.titleblock.qet-a4` (QET's default) applies.
+//!   (reported). Font sizes become the styles `qet.<pt>` ([`styles`]). A logo stored as base64 becomes an
+//!   image in its cell, fitted and centred ([`logo_image`]); another is reported. Without an embedded template the shipped `ew.titleblock.qet-a4` (QET's default) applies.
 //! - Forms are content-addressed: equal forms are one copy.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -30,8 +30,8 @@ use ew_ids::Id;
 use ew_interop_api::{Code, Severity};
 use ew_mltext::Ident;
 use ew_schema::{
-    Align, Bounds, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, ItemMeta, LibCopy,
-    LibItem, Library, Overflow, Primitive, SheetSpec, SheetTransform, ShrinkSpec, TextStyleSpec,
+    Align, Bounds, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, ImagePrim, ItemMeta,
+    LibCopy, LibItem, Library, Overflow, Primitive, SheetSpec, SheetTransform, ShrinkSpec, TextStyleSpec,
 };
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::{Value, json};
@@ -39,6 +39,7 @@ use sha2::Digest;
 
 use super::builtins::Builtins;
 use super::cx::{Findings, Ids};
+use super::items::ItemsOut;
 use super::model::{QetDiagram, QetProject, TbCell, TbTemplate};
 use crate::element::ITEM_VERSION;
 
@@ -86,23 +87,20 @@ fn px_grid(n: i64) -> Option<Grid> {
     .ok()
 }
 
-/// The style key of `pt` points.
+/// The style key of `pt` points: the import style of a regular QET font of that size
+/// ([`crate::prims::text::style_key`]), so a title block and a drawing share their styles.
 fn style_key(pt: u16) -> String {
-    format!("qet.{pt}")
+    crate::prims::text::style_key(crate::decimal::Decimal::from_int(i64::from(pt)), false, false)
 }
 
 /// The text styles of `sizes`: `qet.<pt>` with the em height of `pt` points on QET's 96 dpi scene
-/// (`pt × 4/3` px), for `ProjectSettings.text_styles`.
+/// ([`crate::prims::text::style_spec`]), for `ProjectSettings.text_styles`.
 pub fn styles(sizes: &BTreeSet<u16>) -> BTreeMap<Ident, TextStyleSpec> {
     sizes
         .iter()
         .filter_map(|&pt| {
-            // pt × 4/3 px × 793 750/3 nm = pt × 3 175 000/9 nm.
-            let em = (i64::from(pt) * 3_175_000 + 4) / 9;
-            Some((
-                Ident::from_input(&style_key(pt)).ok()?,
-                TextStyleSpec::of_size(Nm(em)),
-            ))
+            let key = style_key(pt);
+            Some((Ident::from_input(&key).ok()?, crate::prims::text::style_spec(&key)?))
         })
         .collect()
 }
@@ -178,13 +176,14 @@ fn size(d: Option<crate::decimal::Decimal>, default: i64) -> (i64, bool) {
     }
 }
 
-/// Builds the frames of `project`'s diagrams.
+/// Builds the frames of `project`'s diagrams; title-block logos join `assets`.
 pub fn build(
     project: &QetProject,
     ids: &Ids,
     library: Id<Library>,
     builtins: &Builtins,
     used: &mut BTreeSet<String>,
+    assets: &mut ItemsOut,
     findings: &mut Findings,
 ) -> Frames {
     let mut out = Frames::default();
@@ -242,7 +241,9 @@ pub fn build(
         let tb = match template {
             Some(t) => {
                 let ctx = context(project, d);
-                let made = title_block(t, width, &ctx, &mut out.sizes, &mut |m| report_once(findings, m));
+                let made = title_block(t, width, &ctx, &mut out.sizes, assets, &mut |m| {
+                    report_once(findings, m)
+                });
                 made.map(|f| {
                     let c = copy(ids, library, f);
                     (c.id, c.item.sheet.height, Some(c))
@@ -483,6 +484,7 @@ fn title_block(
     width: i64,
     ctx: &BTreeMap<String, Var>,
     sizes: &mut BTreeSet<u16>,
+    assets: &mut ItemsOut,
     report: &mut dyn FnMut(String),
 ) -> Option<FormDef> {
     let cols = column_widths(&t.cols, width);
@@ -547,6 +549,7 @@ fn title_block(
     }
     let mut f = form(FormKind::TitleBlock, px(tw), px(th));
     let mut segments: BTreeSet<((i64, i64), (i64, i64))> = BTreeSet::new();
+    let mut logos: Vec<Primitive> = Vec::new();
     for &(c0, r0, c1, r1, cell) in &regions {
         let (x0, y0, x1, y1) = (xs[c0], ys[r0], xs[c1 + 1], ys[r1 + 1]);
         // The edges inside the outline (the frame draws the outline).
@@ -564,9 +567,12 @@ fn title_block(
         }
         let Some(c) = cell else { continue };
         if let Some(logo) = &c.logo {
-            report(format!(
-                "the title-block logo `{logo}` is not imported yet; its cell stays empty"
-            ));
+            match logo_image(t, logo, (x0, y0, x1, y1), assets) {
+                Ok(image) => logos.push(image),
+                Err(why) => report(format!(
+                    "the title-block logo `{logo}` is not imported ({why}); its cell stays empty"
+                )),
+            }
             continue;
         }
         // QET prints `label: value` when the label is displayed.
@@ -608,8 +614,50 @@ fn title_block(
             extra: extra.into_iter().collect(),
         });
     }
-    f.graphics = segments.into_iter().filter_map(|(a, b)| line(a, b)).collect();
+    f.graphics = segments
+        .into_iter()
+        .filter_map(|(a, b)| line(a, b))
+        .chain(logos)
+        .collect();
     Some(f)
+}
+
+/// The image of logo `name` of template `t` in the cell `(x0, y0, x1, y1)` px: its file (stored as base64,
+/// the form QET writes a PNG in) taken into the batch's assets ([`ItemsOut::store_image`]), drawn as large as
+/// the cell allows at the picture's own proportions and centred in it, as QET draws a logo.
+fn logo_image(
+    t: &TbTemplate,
+    name: &str,
+    (x0, y0, x1, y1): (i64, i64, i64, i64),
+    assets: &mut ItemsOut,
+) -> Result<Primitive, String> {
+    let (_, storage, data) = t
+        .logos
+        .iter()
+        .find(|(n, _, _)| n == name)
+        .ok_or("the template has no such logo")?;
+    if storage != "base64" {
+        return Err(format!("a logo stored as {storage} is not read"));
+    }
+    let (asset, size) = assets.store_image(data)?;
+    let (w, h) = size.ok_or("the image has no size of its own")?;
+    let (w, h) = (i128::from(w.max(1)), i128::from(h.max(1)));
+    // The cell in nm, and the picture scaled to fit it.
+    let (cx0, cy0, cx1, cy1) = (px(x0).0, px(y0).0, px(x1).0, px(y1).0);
+    let (cw, ch) = (i128::from(cx1 - cx0), i128::from(cy1 - cy0));
+    let (dw, dh) = if cw * h <= ch * w {
+        (cw, cw * h / w)
+    } else {
+        (ch * w / h, ch)
+    };
+    let (dw, dh) = (i64::try_from(dw).map_err(|e| e.to_string())?, i64::try_from(dh).map_err(|e| e.to_string())?);
+    let (ox, oy) = (cx0 + (cx1 - cx0 - dw) / 2, cy0 + (cy1 - cy0 - dh) / 2);
+    let rect = Bounds::new(Pt2::new(Nm(ox), Nm(oy)), Pt2::new(Nm(ox + dw), Nm(oy + dh))).map_err(|e| e.to_string())?;
+    Ok(Primitive::Image(ImagePrim {
+        rect,
+        asset,
+        extra: Default::default(),
+    }))
 }
 
 /// QET's `valign` and `align` as an EW alignment (QET's defaults: centre, left).

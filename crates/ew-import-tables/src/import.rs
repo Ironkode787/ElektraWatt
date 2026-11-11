@@ -293,7 +293,12 @@ impl TablesImporter {
             .filter(|e| e.severity == Severity::Error && e.message.starts_with("row dropped"))
             .count() as u32;
         report.entries = entries;
-        Ok(ImportBatch { records, lib, report })
+        Ok(ImportBatch {
+            records,
+            lib,
+            assets: Vec::new(),
+            report,
+        })
     }
 }
 

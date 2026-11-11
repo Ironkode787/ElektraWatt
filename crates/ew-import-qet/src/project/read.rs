@@ -14,8 +14,8 @@ use roxmltree::Node;
 
 use super::cx::Findings;
 use super::model::{
-    Border, DynText, EmbeddedDef, End, InstTerminal, QetConductor, QetDiagram, QetElement, QetProject,
-    QetTable, Segment, TbCell, TbTemplate, TerminalRef, norm_uuid,
+    Border, DynText, EmbeddedDef, End, InstTerminal, QetConductor, QetDiagram, QetElement, QetImage,
+    QetInput, QetProject, QetShape, QetTable, Segment, TbCell, TbTemplate, TerminalRef, TextAt, norm_uuid,
 };
 use crate::decimal::Decimal;
 use crate::element::{child, parse_xml};
@@ -167,14 +167,22 @@ impl Reader<'_> {
                         n_conductors += 1;
                     }
                 }
-                "inputs" => d.free_texts = d.free_texts.saturating_add(count(c, "input")),
-                "shapes" => d.shapes = d.shapes.saturating_add(count(c, "shape")),
-                "images" => d.images = d.images.saturating_add(count(c, "image")),
-                "tables" => d.tables.extend(
-                    c.children()
-                        .filter(|t| t.is_element() && t.tag_name().name() == "graphics_table")
-                        .map(|t| self.table(t)),
-                ),
+                "inputs" => d.free_texts.extend(self.inputs(c)),
+                "shapes" => d.shapes.extend(named(c, "shape").map(|s| self.shape(s))),
+                "images" => d.images.extend(named(c, "image").map(|i| QetImage {
+                    x: decimal(i.attribute("x")),
+                    y: decimal(i.attribute("y")),
+                    scale: decimal(i.attribute("size")),
+                    rotation: decimal(i.attribute("rotation")),
+                    data: i
+                        .text()
+                        .unwrap_or("")
+                        .chars()
+                        .filter(|c| !c.is_ascii_whitespace())
+                        .collect(),
+                    line: self.line(i),
+                })),
+                "tables" => d.tables.extend(named(c, "graphics_table").map(|t| self.table(t))),
                 other => {
                     if unknown.insert(other) {
                         let loc = findings.loc(folio, None, Some(self.line(c)));
@@ -234,6 +242,17 @@ impl Reader<'_> {
             cols: list("cols"),
             rows: list("rows"),
             cells,
+            logos: child(node, "logos")
+                .map(|l| {
+                    named(l, "logo")
+                        .map(|g| {
+                            let attr = |n: &str| g.attribute(n).unwrap_or("").to_owned();
+                            let data = g.text().unwrap_or("").chars().filter(|c| !c.is_ascii_whitespace());
+                            (attr("name"), attr("storage"), data.collect())
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
             line: self.line(node),
         }
     }
@@ -314,18 +333,21 @@ impl Reader<'_> {
                     .collect()
             })
             .unwrap_or_default();
-        let dyn_texts = child(node, "dynamic_texts")
+        let dyn_node = child(node, "dynamic_texts");
+        let dyn_texts = dyn_node
             .map(|t| {
-                t.children()
-                    .filter(|c| c.is_element() && c.tag_name().name() == "dynamic_elmt_text")
+                named(t, "dynamic_elmt_text")
                     .map(|c| DynText {
                         text_from: c.attribute("text_from").unwrap_or("").to_owned(),
                         text: child(c, "text").map(text).unwrap_or_default(),
                         info_name: child(c, "info_name").map(text),
+                        composite: child(c, "composite_text").map(text),
+                        at: text_at(c),
                     })
                     .collect()
             })
             .unwrap_or_default();
+        let inputs = child(node, "inputs").map(|t| self.inputs(t)).unwrap_or_default();
         let links = child(node, "links_uuids")
             .map(|t| {
                 t.children()
@@ -345,9 +367,51 @@ impl Reader<'_> {
             terminals,
             infos,
             dyn_texts,
+            has_dyn_texts: dyn_node.is_some(),
+            inputs,
             links,
             line,
         })
+    }
+
+    /// The `<input>` children of `node`.
+    fn inputs(&self, node: Node<'_, '_>) -> Vec<QetInput> {
+        named(node, "input")
+            .map(|i| QetInput {
+                text: i.attribute("text").unwrap_or("").to_owned(),
+                at: text_at(i),
+                line: self.line(i),
+            })
+            .collect()
+    }
+
+    /// One diagram `<shape>`.
+    fn shape(&self, node: Node<'_, '_>) -> QetShape {
+        let point = |n: Node<'_, '_>, x: &str, y: &str| decimal(n.attribute(x)).zip(decimal(n.attribute(y)));
+        let kind = node.attribute("type").unwrap_or("").to_owned();
+        let points = if matches!(kind.as_str(), "Polygon" | "3") {
+            child(node, "points")
+                .map(|p| named(p, "point").map(|p| point(p, "x", "y")).collect())
+                .unwrap_or_default()
+        } else {
+            vec![point(node, "x1", "y1"), point(node, "x2", "y2")]
+        };
+        let pen = child(node, "pen");
+        let pen_attr = |name: &str| pen.and_then(|p| p.attribute(name)).unwrap_or("").to_owned();
+        QetShape {
+            points,
+            radii: (decimal(node.attribute("rx")), decimal(node.attribute("ry"))),
+            closed: matches!(node.attribute("closed"), Some("1" | "true")),
+            pen_style: pen_attr("style"),
+            pen_width: decimal(pen.and_then(|p| p.attribute("widthF"))),
+            pen_color: pen_attr("color"),
+            brush_style: child(node, "brush")
+                .and_then(|b| b.attribute("style"))
+                .unwrap_or("")
+                .to_owned(),
+            kind,
+            line: self.line(node),
+        }
     }
 
     /// One `<conductor>`.
@@ -480,13 +544,20 @@ fn properties(node: Node<'_, '_>) -> Vec<(String, String)> {
         .collect()
 }
 
-/// The number of child elements of `node` named `name`.
-fn count(node: Node<'_, '_>, name: &str) -> u32 {
-    let n = node
-        .children()
-        .filter(|c| c.is_element() && c.tag_name().name() == name)
-        .count();
-    u32::try_from(n).unwrap_or(u32::MAX)
+/// The child elements of `node` named `name`.
+fn named<'a, 'i>(node: Node<'a, 'i>, name: &'a str) -> impl Iterator<Item = Node<'a, 'i>> {
+    node.children()
+        .filter(move |c| c.is_element() && c.tag_name().name() == name)
+}
+
+/// The placement attributes `x y rotation font` of a text item.
+fn text_at(node: Node<'_, '_>) -> TextAt {
+    TextAt {
+        x: decimal(node.attribute("x")),
+        y: decimal(node.attribute("y")),
+        rotation: decimal(node.attribute("rotation")),
+        font: node.attribute("font").map(str::to_owned),
+    }
 }
 
 /// The trimmed text of `node` ("" when it has none).
@@ -704,7 +775,10 @@ mod tests {
         assert_eq!(d.border.rows, Some(8));
         assert_eq!(d.border.rowsize, Some(dec("80")));
         assert_eq!(d.border.height, Some(dec("640")));
-        assert_eq!((d.free_texts, d.shapes, d.images, d.tables.len()), (2, 1, 3, 1));
+        assert_eq!(
+            (d.free_texts.len(), d.shapes.len(), d.images.len(), d.tables.len()),
+            (2, 1, 3, 1)
+        );
 
         assert_eq!(d.elements.len(), 1);
         let e = &d.elements[0];

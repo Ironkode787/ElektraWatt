@@ -17,8 +17,9 @@
 //! 5. **Elements** (`elements`): placed elements → devices, functions, representations; slaves → auxiliary
 //!    functions; folio reports → interruption points; terminal elements → strips and terminals
 //!    (`strips`); junction elements → junctions.
-//! 6. **Conductors** (`wires`): connections between function CPs and junctions.
-//! 7. **Batch**: records sorted by kind rank, then ID; library documents deduplicated by copy ID and sorted.
+//! 6. **Page items** (`items`): free texts, shapes and images → page items, image bytes → batch assets.
+//! 7. **Conductors** (`wires`): connections between function CPs and junctions.
+//! 8. **Batch**: the import text styles the drawing names join the project's settings; records sorted by kind rank, then ID; library documents deduplicated by copy ID and sorted.
 //!
 //! The mapping table is in the crate README.
 
@@ -38,6 +39,7 @@ pub(crate) mod builtins;
 pub(crate) mod cx;
 pub(crate) mod elements;
 pub(crate) mod frames;
+pub(crate) mod items;
 pub(crate) mod model;
 pub(crate) mod pages;
 pub(crate) mod read;
@@ -194,7 +196,14 @@ impl QetProjectImporter {
                             message: e.to_string(),
                         }
                     })?;
-                    match read_on_stack(text, &src, &lineage, Id::from_uuid(project_id.as_uuid()), limits) {
+                    match read_on_stack(
+                        text,
+                        &src,
+                        &lineage,
+                        Id::from_uuid(project_id.as_uuid()),
+                        limits,
+                        true,
+                    ) {
                         Ok(el) => Some(el),
                         Err(e) => {
                             let loc = findings.loc(None, Some(d.path.clone()), Some(d.line));
@@ -214,16 +223,18 @@ impl QetProjectImporter {
         }
 
         let mut used_builtins: BTreeSet<String> = BTreeSet::new();
-        let pages = pages::map(
+        let mut items = items::ItemsOut::default();
+        let mut pages = pages::map(
             &project,
             &ids,
             project_id,
             &self.builtins,
             &mut used_builtins,
+            &mut items,
             &mut findings,
         );
         let counts = wires::conductor_counts(&project);
-        let mapped = elements::map(
+        let mut mapped = elements::map(
             &elements::Inputs {
                 project: &project,
                 pages: &pages,
@@ -238,24 +249,59 @@ impl QetProjectImporter {
         // The findings of the definitions that placed elements use (an unused definition in the collection
         // is not part of the drawing).
         // A font substitution is reported once per message (family), not once per definition (doc 14 §4.10).
-        let mut fonts_seen: BTreeSet<&str> = BTreeSet::new();
+        let mut fonts_seen = std::mem::take(&mut mapped.fonts);
         for path in &mapped.used_defs {
             if let Some(el) = defs.get(path).and_then(|d| d.import.as_ref()) {
                 for e in &el.entries {
-                    if e.code == Code::FONT_SUBSTITUTED && !fonts_seen.insert(e.message.as_str()) {
+                    if e.code == Code::FONT_SUBSTITUTED && !fonts_seen.insert(e.message.clone()) {
                         continue;
                     }
                     findings.entry(e.clone());
                 }
             }
         }
+        for d in &project.diagrams {
+            if let Some(p) = pages.pages.get(d.index) {
+                let page = (p.folio.as_str(), p.key.as_str());
+                items::map(d, p.id, page, &ids, &mut fonts_seen, &mut findings, &mut items);
+            }
+        }
         let wired = wires::map_conductors(&project, &mapped.registry, &ids, &mut findings);
 
-        records.push(Record::Project(pages.project.clone()));
         records.extend(pages.records.iter().cloned());
         records.extend(mapped.records);
+        records.extend(items.records);
         records.extend(wired.connections.into_iter().map(Record::Connection));
         records.extend(wired.junctions.into_iter().map(Record::Junction));
+
+        // The import text styles the drawing names (doc 14 §4.10), so that QET's text sizes print.
+        let used: BTreeSet<&str> = mapped
+            .used_defs
+            .iter()
+            .filter_map(|p| defs.get(p).and_then(|d| d.import.as_ref()))
+            .flat_map(|el| {
+                let def = &el.symbol.item;
+                let prims = def.graphics.iter().filter_map(|g| match g {
+                    ew_schema::Primitive::Text(t) => t.style.as_ref(),
+                    _ => None,
+                });
+                prims.chain(def.text_slots.iter().filter_map(|s| s.style.as_ref()))
+            })
+            .chain(records.iter().filter_map(|r| match r {
+                Record::PageItem(ew_schema::PageItem {
+                    kind: ew_schema::PageItemKind::FreeText(t),
+                    ..
+                }) => t.style.as_ref(),
+                _ => None,
+            }))
+            .map(Ident::as_str)
+            .collect();
+        for key in used {
+            if let (Ok(name), Some(spec)) = (Ident::from_input(key), crate::prims::text::style_spec(key)) {
+                pages.project.settings.text_styles.entry(name).or_insert(spec);
+            }
+        }
+        records.push(Record::Project(pages.project.clone()));
         records.sort_by_key(|r| (r.kind().and_then(|k| k.rank()), r.id()));
 
         // Library: the definitions that placed elements use, deduplicated by copy ID, and the built-ins.
@@ -319,6 +365,11 @@ impl QetProjectImporter {
         let (entries, suppressed) = findings.finish();
         report.entries = entries;
         report.stats.suppressed = suppressed;
-        Ok(ImportBatch { records, lib, report })
+        Ok(ImportBatch {
+            records,
+            lib,
+            assets: items.assets,
+            report,
+        })
     }
 }
