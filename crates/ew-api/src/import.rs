@@ -231,9 +231,19 @@ pub struct StarterLibrary {
 }
 
 impl StarterLibrary {
-    /// No documents.
-    pub fn empty() -> StarterLibrary {
-        StarterLibrary::default()
+    /// The documents compiled into the program: the starter symbols and FnDefs (`ew_library::starter`, the
+    /// interruption point `ew.fn.ip` among them) and QET's default title block. An import without a starter
+    /// content directory takes them, so that it keeps its folio reports, and with them their connections, and
+    /// frames a diagram without a template of its own.
+    pub fn compiled() -> StarterLibrary {
+        const QET_TITLE_BLOCK: &str = include_str!("../../../content/forms/ew.titleblock.qet-a4.json");
+        let docs = crate::library::starter::items()
+            .iter()
+            .map(|i| i.json)
+            .chain([QET_TITLE_BLOCK])
+            .filter_map(|json| LibDocument::from_json(json).ok())
+            .collect();
+        StarterLibrary { docs }
     }
 
     /// The documents of a starter content directory: every `*.json` of `fndefs`, `forms` and

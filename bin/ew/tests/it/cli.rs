@@ -217,13 +217,31 @@ fn import_qet_into_re_imports_into_the_earlier_import() {
     );
 }
 
+/// Two folios joined by a linked folio-report pair, each report wired to a lamp.
+const REPORTS: &str = r#"<project version="0.100" title="T">
+<diagram order="1" folio="1" title="A"><elements>
+<element type="embed://import/lamp.elmt" uuid="{00000000-0000-4000-8000-000000000001}" x="100" y="100" orientation="0"><terminals/></element>
+<element type="embed://import/next.elmt" uuid="{00000000-0000-4000-8000-000000000002}" x="300" y="100" orientation="0"><terminals/><links_uuids><link_uuid uuid="{00000000-0000-4000-8000-000000000003}"/></links_uuids></element>
+</elements><conductors><conductor element1="{00000000-0000-4000-8000-000000000001}" terminal1="{00000000-0000-4000-9000-000000000001}" element2="{00000000-0000-4000-8000-000000000002}" terminal2="{00000000-0000-4000-9000-000000000002}"/></conductors></diagram>
+<diagram order="2" folio="2" title="B"><elements>
+<element type="embed://import/previous.elmt" uuid="{00000000-0000-4000-8000-000000000003}" x="100" y="100" orientation="0"><terminals/><links_uuids><link_uuid uuid="{00000000-0000-4000-8000-000000000002}"/></links_uuids></element>
+<element type="embed://import/lamp.elmt" uuid="{00000000-0000-4000-8000-000000000004}" x="300" y="100" orientation="0"><terminals/></element>
+</elements><conductors><conductor element1="{00000000-0000-4000-8000-000000000003}" terminal1="{00000000-0000-4000-9000-000000000003}" element2="{00000000-0000-4000-8000-000000000004}" terminal2="{00000000-0000-4000-9000-000000000001}"/></conductors></diagram>
+<collection><category name="import">
+<element name="lamp.elmt"><definition type="element" version="0.100.0" link_type="simple" width="20" height="20" hotspot_x="10" hotspot_y="10"><description><terminal x="10" y="0" orientation="e" uuid="{00000000-0000-4000-9000-000000000001}"/></description></definition></element>
+<element name="next.elmt"><definition type="element" version="0.100.0" link_type="next_report" width="20" height="20" hotspot_x="10" hotspot_y="10"><description><terminal x="-10" y="0" orientation="w" uuid="{00000000-0000-4000-9000-000000000002}"/></description></definition></element>
+<element name="previous.elmt"><definition type="element" version="0.100.0" link_type="previous_report" width="20" height="20" hotspot_x="10" hotspot_y="10"><description><terminal x="10" y="0" orientation="e" uuid="{00000000-0000-4000-9000-000000000003}"/></description></definition></element>
+</category></collection></project>"#;
+
 #[test]
-fn import_without_content_warns() {
+fn import_without_content_keeps_folio_reports() {
+    // Without `--content` the import takes the compiled-in documents, so the folio reports and their wires stay.
     let t = Tmp::new("ew-cli-test");
-    let f = t.project();
+    let f = t.project_with(REPORTS);
     let o = ew(&["import".as_ref(), "qet".as_ref(), f.as_os_str()]);
-    assert_eq!(o.status.code(), Some(0));
-    assert!(String::from_utf8_lossy(&o.stderr).contains("warning: no starter content"));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(stdout(&o).contains(" 2 connections,"), "{}", stdout(&o));
+    assert!(stdout(&o).contains(" 0 lost connections"), "{}", stdout(&o));
 }
 
 #[test]

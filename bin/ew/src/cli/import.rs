@@ -422,12 +422,8 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
                 return 2;
             }
         },
-        None => {
-            eprintln!(
-                "warning: no starter content (--content or EW_CONTENT_DIR); folio reports are dropped and pages get the default frame"
-            );
-            StarterLibrary::empty()
-        }
+        // Without a content directory the import takes the compiled-in documents: no folio report is lost.
+        None => StarterLibrary::compiled(),
     };
     let bytes = match std::fs::read(&a.file) {
         Ok(b) => b,

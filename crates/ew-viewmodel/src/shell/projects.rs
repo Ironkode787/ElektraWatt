@@ -726,12 +726,12 @@ impl ShellModel {
             Some(content) => match StarterLibrary::from_dir(content) {
                 Ok(l) => (l, None),
                 Err(_) => (
-                    StarterLibrary::empty(),
+                    StarterLibrary::compiled(),
                     Some(strings::text(key!("banner-import-no-content"))),
                 ),
             },
             None => (
-                StarterLibrary::empty(),
+                StarterLibrary::compiled(),
                 Some(strings::text(key!("banner-import-no-content"))),
             ),
         }
