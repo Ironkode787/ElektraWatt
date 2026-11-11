@@ -1785,6 +1785,43 @@ mod tests {
     }
 
     #[test]
+    fn an_end_enclosed_by_other_wires_has_no_route() {
+        // Two draws of `a_found_route_keeps_off_other_wires`, in its terms: every node next to the CP end's stub is
+        // another wire's vertex (or the stub's only way on runs on a wire's track), so there is no route, and the
+        // result is the unrouted line between the ends.
+        type Case = (
+            (i64, i64, Option<usize>),
+            (i64, i64, Option<usize>),
+            Vec<(i64, i64, i64, bool)>,
+        );
+        let cases: [Case; 2] = [
+            (
+                (0, 0, None),
+                (1, 2, Some(1)),
+                vec![(7, 4, -6, true), (0, 3, 2, true)],
+            ),
+            (
+                (2, 5, Some(3)),
+                (0, 0, None),
+                vec![(3, 4, -2, true), (2, 0, 3, false)],
+            ),
+        ];
+        for ((fx, fy, fd), (tx, ty, td), ws) in cases {
+            let rq = RouteRequest {
+                wires: wires_of(&ws),
+                ..req(
+                    end(fx, fy, fd.map(|k| Heading::ALL[k])),
+                    end(tx, ty, td.map(|k| Heading::ALL[k])),
+                    vec![],
+                )
+            };
+            let routed = route(&rq);
+            assert!(routed.direct, "{:?}", routed.points);
+            assert_eq!(routed.points, vec![p(fx, fy), p(tx, ty)]);
+        }
+    }
+
+    #[test]
     fn a_stub_on_the_second_end_leaves_it() {
         // The first end's stub is the second end's node: the route starts there and may leave it, by the
         // search and by `clear` alike.
@@ -1821,8 +1858,9 @@ mod tests {
             let routed = route(&rq);
             proptest::prop_assert_eq!(routed.points.first(), Some(&p(fx, fy)));
             proptest::prop_assert_eq!(routed.points.last(), Some(&p(tx, ty)));
-            proptest::prop_assert!(orthogonal(&routed.points), "{:?}", routed.points);
+            // Without a route the result is the unrouted line between the ends, which is no wire and may lean.
             if !routed.direct {
+                proptest::prop_assert!(orthogonal(&routed.points), "{:?}", routed.points);
                 let v = violations(&rq, &routed.points);
                 proptest::prop_assert!(v.is_empty(), "{:?}: {:?}", routed.points, v);
             }

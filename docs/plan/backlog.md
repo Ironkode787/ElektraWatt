@@ -37,7 +37,7 @@ symbol editor and the QET import work without anything that stops the work. Its 
 - FT-1652 `ew-ui`: **Medium.** Important parts such as the terminal strip have no button of their own; give the main kinds one each.
 - FT-1653 `ew-viewmodel, content`: **High.** Many starter symbols do nothing when clicked in the symbol list; each one arms its placement or says in words why it cannot.
 - FT-1654 `ew-viewmodel, ew-derive`: **High.** Wire markers do not work in the window: clicking Wire marker in the symbol list does nothing, so there is no visible way to add one, and a wire's "Wire marker" check box has no visible effect.
-- FT-1655 `ew-derive`: **High.** The router draws a diagonal route when it finds no clear direction; a route is never diagonal: fall back to an orthogonal route with a finding.
+- FT-1655 `ew-derive`: **High.** The router draws a diagonal route when it finds no clear direction; a route is never diagonal: fall back to an orthogonal route with a finding. The property test `a_found_route_keeps_off_other_wires` then asserts a right-angled result for every request again, not only for a found route.
 - FT-1656 `ew-ui`: **High.** The interface feels clunky and shows too little: a polish pass over the main window, the browsers, the panels and the dialogs for density and finish, judged at 1920 × 1080 (doc 16a).
 
 ### The persona round on rc.3
@@ -49,7 +49,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### Wiring and routing
 
-- FT-1665 `ew-derive`: **Medium.** The router can return a route that runs on another wire: the property test `routing::search::tests::a_found_route_keeps_off_other_wires` fails for the case `fx = 0, fy = 0, tx = 1, ty = 2, fd = None, td = Some(1), ws = [(7, 4, -6, true), (0, 3, 2, true)]` and for `fx = 2, fy = 5, tx = 0, ty = 0, fd = Some(3), td = None, ws = [(3, 4, -2, true), (2, 0, 3, false)]` (found by random draws of the suite on 2026-11-10; it passes on most draws, so the suite fails now and then until this is fixed). Add the cases as fixed tests and fix the search.
 - FT-866 `ew-commands`: **Medium.** When the router falls back on a pin 1 nm off, the wire ends in a 1 nm segment, so P places the interruption point sideways. Seen with a row of adjacent interruption points one grid step apart; applies to symbol connection points too (FIXPT40, cycle 40).
 - FT-517 `The auto-route re-solve with FT-18 (WP-S2.04's router)`: Provisional routes that run along other wires end to end or through symbol bodies: on Golden A's folio 101 four wires (`-101F1:1 -> F55:1`, `S56:14 -> E56:X1`, `junction 2 -> S56:13`, `junction 2 -> T55:5`) lie on other wires for their whole length and are reached only by FT-500's repeated-click walk, and E55:L's wire appears …
 - FT-768 `ew-viewmodel`: **Medium.** Accidental series insertion: ID-888's through route takes any free representation in line, so a straight wire across an unwired fuse, contact or coil whose CPs face in and out inserts it in series, and going round it needs a bend. Watch for it in the next play-test, and decide whether a symbol other than a terminal should need …
