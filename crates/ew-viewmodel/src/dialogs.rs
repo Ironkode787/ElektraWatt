@@ -109,9 +109,9 @@ fn cancel() -> DialogButton {
     DialogButton::new(key!("dialog-cancel"), DialogAnswer::Dismiss)
 }
 
-/// The specification of `dialog` in the state of `model`.
-pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
-    let small = |title: String, body: Vec<String>, primary: DialogButton| DialogSpec {
+/// A small dialog (440 px) with `title`, `body` and `primary` alone, which a dialog's other buttons extend.
+fn small(title: String, body: Vec<String>, primary: DialogButton) -> DialogSpec {
+    DialogSpec {
         title,
         body,
         primary,
@@ -119,26 +119,13 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         danger: None,
         asks: false,
         form: false,
-    };
+    }
+}
+
+/// The specification of `dialog` in the state of `model`.
+pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
     match dialog {
-        Dialog::About => DialogSpec {
-            secondary: vec![
-                DialogButton::new(key!("about-privacy-button"), DialogAnswer::OpenPrivacy),
-                DialogButton::new(
-                    key!("about-notices-button"),
-                    DialogAnswer::Action("help.notices", Value::Null),
-                ),
-                DialogButton::new(
-                    key!("about-docs-button"),
-                    DialogAnswer::Action("help.documentation", json!({ "topic": "about" })),
-                ),
-            ],
-            ..small(
-                strings::text(key!("about-title")).to_owned(),
-                crate::about::about_lines(model),
-                close(),
-            )
-        },
+        Dialog::About => about_spec(model),
         Dialog::Notices => DialogSpec {
             form: true,
             ..small(
@@ -148,242 +135,40 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             )
         },
         // The keymap editor; import and export a keymap file beside Close.
-        Dialog::Shortcuts => DialogSpec {
-            form: true,
-            secondary: vec![
-                DialogButton::new(
-                    key!("action-keymap-import"),
-                    DialogAnswer::Action("keymap.import", Value::Null),
-                ),
-                DialogButton::new(
-                    key!("action-keymap-export"),
-                    DialogAnswer::Action("keymap.export", Value::Null),
-                ),
-            ],
-            ..small(
-                strings::text(key!("shortcuts-title")).to_owned(),
-                Vec::new(),
-                close(),
-            )
-        },
+        Dialog::Shortcuts => shortcuts_spec(),
         // Quitting with an unsaved symbol draft asks Save symbol, Discard or Cancel; ID-1472: so does an editor
         // action that drops the draft, in words of its own.
         Dialog::ConfirmDiscard {
             symbol: true,
             pending,
-        } => DialogSpec {
-            title: strings::format(
-                key!("symbol-confirm-title"),
-                &[&model
-                    .kept_symbol_editor()
-                    .map(|e| crate::shell::symbol_editor::name_words(&e.draft.symbol.name))
-                    .unwrap_or_default()],
-            ),
-            body: vec![
-                strings::text(if pending.action == "app.quit" {
-                    key!("symbol-confirm-text")
-                } else {
-                    key!("symbol-confirm-replace")
-                })
-                .to_owned(),
-            ],
-            primary: DialogButton::new(
-                key!("symbol-save-symbol"),
-                DialogAnswer::Confirm(ConfirmAnswer::Save),
-            ),
-            secondary: vec![DialogButton::new(
-                key!("dialog-cancel"),
-                DialogAnswer::Confirm(ConfirmAnswer::Cancel),
-            )],
-            danger: Some(DialogButton::new(
-                key!("symbol-discard"),
-                DialogAnswer::Confirm(ConfirmAnswer::Discard),
-            )),
-            asks: true,
-            form: false,
-        },
+        } => symbol_discard_spec(pending, model),
         // The quit and close prompt (doc 16a §6.12): Save, Cancel, and Don't save apart.
-        Dialog::ConfirmDiscard { .. } => DialogSpec {
-            title: strings::format(key!("confirm-title"), &[model.project_name().unwrap_or("")]),
-            body: vec![strings::text(key!("confirm-text")).to_owned()],
-            primary: DialogButton::new(key!("dialog-save"), DialogAnswer::Confirm(ConfirmAnswer::Save)),
-            secondary: vec![DialogButton::new(
-                key!("dialog-cancel"),
-                DialogAnswer::Confirm(ConfirmAnswer::Cancel),
-            )],
-            danger: Some(DialogButton::new(
-                key!("dialog-dont-save"),
-                DialogAnswer::Confirm(ConfirmAnswer::Discard),
-            )),
-            asks: true,
-            form: false,
-        },
-        Dialog::ConfirmCheckScheme { scheme } => DialogSpec {
-            secondary: vec![cancel()],
-            asks: true,
-            ..small(
-                strings::text(key!("confirm-check-scheme-title")).to_owned(),
-                // ID-1389 (W51 finding D): the scheme's word, as the wizard's choice shows it.
-                vec![strings::format(
-                    key!("confirm-check-scheme-text"),
-                    &[strings::text(Key::run_time(&format!(
-                        "choice-check_scheme-{scheme}"
-                    )))],
-                )],
-                DialogButton::new(
-                    key!("dialog-apply"),
-                    DialogAnswer::Action("wizard.apply_check_scheme", json!({ "confirm": true })),
-                ),
-            )
-        },
-        Dialog::ConfirmJournalDiscard => DialogSpec {
-            danger: Some(DialogButton::new(
-                key!("dialog-discard"),
-                DialogAnswer::Confirm(ConfirmAnswer::Discard),
-            )),
-            asks: true,
-            ..small(
-                strings::text(key!("confirm-journal-title")).to_owned(),
-                vec![strings::text(key!("confirm-journal-text")).to_owned()],
-                DialogButton::new(
-                    key!("dialog-cancel"),
-                    DialogAnswer::Confirm(ConfirmAnswer::Cancel),
-                ),
-            )
-        },
-        Dialog::ConfirmPurge { files, .. } => {
-            let mut body = vec![strings::text(key!("confirm-purge-text")).to_owned()];
-            if files.len() > PURGE_LISTED {
-                let more = (files.len() - PURGE_LISTED).to_string();
-                body.push(strings::format(key!("confirm-purge-more"), &[&more]));
-            }
-            DialogSpec {
-                danger: Some(DialogButton::new(
-                    key!("dialog-purge"),
-                    DialogAnswer::Action("project.purge_assets", json!({ "confirm": true })),
-                )),
-                asks: true,
-                ..small(
-                    strings::text(key!("confirm-purge-title")).to_owned(),
-                    body,
-                    cancel(),
-                )
-            }
-        }
+        Dialog::ConfirmDiscard { .. } => discard_spec(model),
+        Dialog::ConfirmCheckScheme { scheme } => check_scheme_spec(scheme),
+        Dialog::ConfirmJournalDiscard => journal_discard_spec(),
+        Dialog::ConfirmPurge { files, .. } => purge_spec(files),
         // Choose (Enter, the active row) and Cancel; the list and the filters are the dialog's.
         // W45.1 F2: an empty search is said once, in the list (not here); Choose is disabled while the list is
         // empty, with its reason.
-        Dialog::PartChoose(c) => {
-            let mut choose = DialogButton::new(
-                key!("dialog-part-choose-button"),
-                DialogAnswer::Action("part.pick", Value::Null),
-            );
-            if c.offers.is_empty() {
-                choose.disabled = Some(strings::text(key!("part-choose-nothing")).to_owned());
-            }
-            DialogSpec {
-                secondary: vec![cancel()],
-                form: true,
-                ..small(c.title(), Vec::new(), choose)
-            }
-        }
+        Dialog::PartChoose(c) => part_choose_spec(c),
         // Save (Enter) and Cancel; a fork says that the library is not changed.
-        Dialog::PartEdit(e) => {
-            let body = if e.draft.fork {
-                vec![strings::text(key!("part-edit-fork-note")).to_owned()]
-            } else {
-                Vec::new()
-            };
-            DialogSpec {
-                secondary: vec![cancel()],
-                form: true,
-                ..small(
-                    e.title(),
-                    body,
-                    DialogButton::new(
-                        key!("dialog-save"),
-                        DialogAnswer::Action("part.save", Value::Null),
-                    ),
-                )
-            }
-        }
+        Dialog::PartEdit(e) => part_edit_spec(e),
         // Apply (the choices, Enter), All mine, All theirs, Decide later (Escape); the list of
         // fields with base, mine and theirs is the dialog's.
-        Dialog::ExternalChange { rows } => DialogSpec {
-            secondary: vec![
-                DialogButton::new(
-                    key!("external-all-mine"),
-                    DialogAnswer::Action("external.apply", json!({ "take": "mine" })),
-                ),
-                DialogButton::new(
-                    key!("external-all-theirs"),
-                    DialogAnswer::Action("external.apply", json!({ "take": "theirs" })),
-                ),
-                DialogButton::new(key!("external-later"), DialogAnswer::Dismiss),
-            ],
-            asks: true,
-            form: true,
-            ..small(
-                strings::text(key!("external-title")).to_owned(),
-                vec![strings::format(
-                    if rows.len() == 1 {
-                        key!("external-text-one")
-                    } else {
-                        key!("external-text")
-                    },
-                    &[&crate::shell::collision_count(rows)],
-                )],
-                DialogButton::new(
-                    key!("external-apply"),
-                    DialogAnswer::Action("external.apply", Value::Null),
-                ),
-            )
-        },
+        Dialog::ExternalChange { rows } => {
+            external_change_spec(rows.len(), &crate::shell::collision_count(rows))
+        }
         // D11: Upgrade and save (Enter) or Cancel.
-        Dialog::ConfirmUpgrade { from } => DialogSpec {
-            secondary: vec![cancel()],
-            asks: true,
-            ..small(
-                strings::text(key!("upgrade-title")).to_owned(),
-                vec![
-                    strings::format(key!("upgrade-text"), &[from, ew_api::FORMAT]),
-                    strings::text(key!("upgrade-backup")).to_owned(),
-                ],
-                DialogButton::new(
-                    key!("upgrade-button"),
-                    DialogAnswer::Action("file.upgrade", Value::Null),
-                ),
-            )
-        },
+        Dialog::ConfirmUpgrade { from } => upgrade_spec(from),
         // The import card (Apply, Cancel) with its summary, its pages listed by the dialog; then the
         // checkpoint confirmation (Create project, Cancel).
         Dialog::ImportQet {
             file,
-            folder,
             summary,
             pages,
-            devices,
             confirm: false,
-        } => {
-            let _ = (folder, devices);
-            let mut body = vec![summary.clone()];
-            if pages.len() > IMPORT_PAGES_LISTED {
-                let more = (pages.len() - IMPORT_PAGES_LISTED).to_string();
-                body.push(strings::format(key!("import-card-more"), &[&more]));
-            }
-            DialogSpec {
-                secondary: vec![cancel()],
-                form: true,
-                ..small(
-                    strings::format(key!("import-card-title"), &[file]),
-                    body,
-                    DialogButton::new(
-                        key!("import-card-apply"),
-                        DialogAnswer::Action("file.import_qet_apply", Value::Null),
-                    ),
-                )
-            }
-        }
+            ..
+        } => import_card_spec(file, summary, pages),
         Dialog::ImportQet {
             file,
             folder,
@@ -391,124 +176,28 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             devices,
             confirm: true,
             ..
-        } => DialogSpec {
-            secondary: vec![cancel()],
-            asks: true,
-            ..small(
-                strings::format(key!("import-confirm-title"), &[file]),
-                vec![strings::format(
-                    key!("import-confirm-text"),
-                    &[
-                        folder,
-                        &strings::format_count(crate::count_key!("import-card-pages"), pages.len()),
-                        &strings::format_count(crate::count_key!("import-card-devices"), *devices),
-                    ],
-                )],
-                DialogButton::new(
-                    key!("import-confirm-create"),
-                    DialogAnswer::Action("file.import_qet_apply", json!({ "confirm": true })),
-                ),
-            )
-        },
+        } => import_confirm_spec(file, folder, pages, *devices),
         // The proposal T6 (Re-import, Cancel).
         Dialog::ReimportMatch {
             path,
             file,
             source,
             percent,
-        } => DialogSpec {
-            secondary: vec![cancel()],
-            asks: true,
-            ..small(
-                strings::text(key!("reimport-match-title")).to_owned(),
-                vec![strings::format(
-                    key!("reimport-match-text"),
-                    &[file, source, &percent.to_string()],
-                )],
-                DialogButton::new(
-                    key!("reimport-match-accept"),
-                    DialogAnswer::Action("file.reimport_qet", json!({ "file": path, "accept": true })),
-                ),
-            )
-        },
+        } => reimport_match_spec(path, file, source, *percent),
         // The re-import card (Apply, Cancel) with T8, its rows listed by the dialog.
         Dialog::Reimport {
             file,
             summary,
             rows,
             nothing,
-        } => {
-            let mut body = vec![summary.clone()];
-            if rows.len() > IMPORT_PAGES_LISTED {
-                let more = (rows.len() - IMPORT_PAGES_LISTED).to_string();
-                body.push(strings::format(key!("reimport-card-more"), &[&more]));
-            }
-            let mut apply = DialogButton::new(
-                key!("reimport-card-apply"),
-                DialogAnswer::Action("file.reimport_qet_apply", Value::Null),
-            );
-            // ID-1427 (W52 F8): nothing to re-import, Apply disabled with its reason (as a table import's).
-            if *nothing {
-                apply.disabled = Some(strings::text(key!("reason-table-import-nothing")).to_owned());
-            }
-            DialogSpec {
-                secondary: vec![cancel()],
-                form: true,
-                ..small(strings::format(key!("reimport-card-title"), &[file]), body, apply)
-            }
-        }
+        } => reimport_spec(file, summary, rows, *nothing),
         // D24: Extract and open (Enter), Open read-only, Cancel.
-        Dialog::OpenEwz { path, name } => DialogSpec {
-            secondary: vec![
-                DialogButton::new(
-                    key!("ewz-read-only"),
-                    DialogAnswer::Action("file.open_ewz", json!({ "path": path, "how": "read_only" })),
-                ),
-                cancel(),
-            ],
-            asks: true,
-            ..small(
-                strings::text(key!("ewz-title")).to_owned(),
-                vec![strings::format(key!("ewz-text"), &[name])],
-                DialogButton::new(
-                    key!("ewz-extract"),
-                    DialogAnswer::Action("file.open_ewz", json!({ "path": path, "how": "extract" })),
-                ),
-            )
-        },
+        Dialog::OpenEwz { path, name } => open_ewz_spec(path, name),
         // D28: Set up (Enter) or Cancel.
-        Dialog::ConfirmGitSetup { folder } => DialogSpec {
-            secondary: vec![cancel()],
-            asks: true,
-            ..small(
-                strings::text(key!("git-setup-title")).to_owned(),
-                vec![strings::format(key!("git-setup-text"), &[folder])],
-                DialogButton::new(
-                    key!("git-setup-button"),
-                    DialogAnswer::Action("git.setup", json!({ "confirm": true })),
-                ),
-            )
-        },
+        Dialog::ConfirmGitSetup { folder } => git_setup_spec(folder),
         // Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
         // buttons disabled, with the reason, until the set is built.
-        Dialog::Print(_) => {
-            let reason = model.print_disabled_reason();
-            let mut print = DialogButton::new(
-                key!("print-button"),
-                DialogAnswer::Action("print.send", json!({ "via": "printer" })),
-            );
-            let mut viewer = DialogButton::new(
-                key!("print-viewer-button"),
-                DialogAnswer::Action("print.send", json!({ "via": "viewer" })),
-            );
-            print.disabled.clone_from(&reason);
-            viewer.disabled = reason;
-            DialogSpec {
-                secondary: vec![viewer, cancel()],
-                form: true,
-                ..small(strings::text(key!("print-title")).to_owned(), Vec::new(), print)
-            }
-        }
+        Dialog::Print(_) => print_spec(model),
         // Recover, Open read-only (also Escape), Discard… apart; after a failed recovery Open read-only leads.
         Dialog::Recovery {
             name,
@@ -516,42 +205,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             base_matches,
             failed,
             ..
-        } => {
-            let mut body = vec![
-                strings::format(key!("recovery-text"), &[name]),
-                strings::format(key!("recovery-count"), &[&transactions.to_string()]),
-            ];
-            if !base_matches {
-                body.push(strings::text(key!("recovery-moved")).to_owned());
-            }
-            let keep = DialogButton::new(
-                key!("action-journal-keep"),
-                DialogAnswer::Action("journal.keep", Value::Null),
-            );
-            let (primary, secondary) = if failed.is_none() {
-                (
-                    DialogButton::new(
-                        key!("action-journal-recover"),
-                        DialogAnswer::Action("journal.recover", Value::Null),
-                    ),
-                    vec![keep],
-                )
-            } else {
-                (keep, Vec::new())
-            };
-            DialogSpec {
-                title: strings::text(key!("recovery-title")).to_owned(),
-                body,
-                primary,
-                secondary,
-                danger: Some(DialogButton::new(
-                    key!("recovery-discard"),
-                    DialogAnswer::Action("file.discard_journal", Value::Null),
-                )),
-                asks: true,
-                form: false,
-            }
-        }
+        } => recovery_spec(name, *transactions, *base_matches, failed.as_ref()),
         Dialog::GotoPage { .. } => DialogSpec {
             secondary: vec![cancel()],
             ..small(
@@ -569,27 +223,466 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             )
         },
         Dialog::Form(form) if form.action.starts_with("revision.") => revision_spec(form, model),
-        Dialog::Form(form) => DialogSpec {
-            secondary: vec![cancel()],
-            form: true,
-            ..small(
-                strings::text(form.title_key).to_owned(),
-                // WP-S4.02 part 4 (§8): the Auto-fill rail dialog says which devices it fills with.
-                match form.action {
-                    "layout.auto_fill_rail" => vec![model.fill_devices_text()],
-                    "layout.enclosure_new" => model.enclosure_form_notes(),
-                    _ => Vec::new(),
+        Dialog::Form(form) => form_spec(form, model),
+    }
+}
+
+/// About: the program's lines, Close, and the privacy statement, the notices and the documentation beside it.
+fn about_spec(model: &ShellModel) -> DialogSpec {
+    DialogSpec {
+        secondary: vec![
+            DialogButton::new(key!("about-privacy-button"), DialogAnswer::OpenPrivacy),
+            DialogButton::new(
+                key!("about-notices-button"),
+                DialogAnswer::Action("help.notices", Value::Null),
+            ),
+            DialogButton::new(
+                key!("about-docs-button"),
+                DialogAnswer::Action("help.documentation", json!({ "topic": "about" })),
+            ),
+        ],
+        ..small(
+            strings::text(key!("about-title")).to_owned(),
+            crate::about::about_lines(model),
+            close(),
+        )
+    }
+}
+
+/// Keyboard shortcuts: a form with Close, Import and Export.
+fn shortcuts_spec() -> DialogSpec {
+    DialogSpec {
+        form: true,
+        secondary: vec![
+            DialogButton::new(
+                key!("action-keymap-import"),
+                DialogAnswer::Action("keymap.import", Value::Null),
+            ),
+            DialogButton::new(
+                key!("action-keymap-export"),
+                DialogAnswer::Action("keymap.export", Value::Null),
+            ),
+        ],
+        ..small(
+            strings::text(key!("shortcuts-title")).to_owned(),
+            Vec::new(),
+            close(),
+        )
+    }
+}
+
+/// The symbol draft's unsaved changes: Save symbol, Cancel, and Discard apart, in the words of quitting or of the
+/// editor action `pending`.
+fn symbol_discard_spec(pending: &crate::shell::Pending, model: &ShellModel) -> DialogSpec {
+    DialogSpec {
+        title: strings::format(
+            key!("symbol-confirm-title"),
+            &[&model
+                .kept_symbol_editor()
+                .map(|e| crate::shell::symbol_editor::name_words(&e.draft.symbol.name))
+                .unwrap_or_default()],
+        ),
+        body: vec![
+            strings::text(if pending.action == "app.quit" {
+                key!("symbol-confirm-text")
+            } else {
+                key!("symbol-confirm-replace")
+            })
+            .to_owned(),
+        ],
+        primary: DialogButton::new(
+            key!("symbol-save-symbol"),
+            DialogAnswer::Confirm(ConfirmAnswer::Save),
+        ),
+        secondary: vec![DialogButton::new(
+            key!("dialog-cancel"),
+            DialogAnswer::Confirm(ConfirmAnswer::Cancel),
+        )],
+        danger: Some(DialogButton::new(
+            key!("symbol-discard"),
+            DialogAnswer::Confirm(ConfirmAnswer::Discard),
+        )),
+        asks: true,
+        form: false,
+    }
+}
+
+/// The project's unsaved changes: Save, Cancel, and Don't save apart.
+fn discard_spec(model: &ShellModel) -> DialogSpec {
+    DialogSpec {
+        title: strings::format(key!("confirm-title"), &[model.project_name().unwrap_or("")]),
+        body: vec![strings::text(key!("confirm-text")).to_owned()],
+        primary: DialogButton::new(key!("dialog-save"), DialogAnswer::Confirm(ConfirmAnswer::Save)),
+        secondary: vec![DialogButton::new(
+            key!("dialog-cancel"),
+            DialogAnswer::Confirm(ConfirmAnswer::Cancel),
+        )],
+        danger: Some(DialogButton::new(
+            key!("dialog-dont-save"),
+            DialogAnswer::Confirm(ConfirmAnswer::Discard),
+        )),
+        asks: true,
+        form: false,
+    }
+}
+
+/// Applying check scheme `scheme`: Apply or Cancel.
+fn check_scheme_spec(scheme: &str) -> DialogSpec {
+    DialogSpec {
+        secondary: vec![cancel()],
+        asks: true,
+        ..small(
+            strings::text(key!("confirm-check-scheme-title")).to_owned(),
+            // ID-1389 (W51 finding D): the scheme's word, as the wizard's choice shows it.
+            vec![strings::format(
+                key!("confirm-check-scheme-text"),
+                &[strings::text(Key::run_time(&format!(
+                    "choice-check_scheme-{scheme}"
+                )))],
+            )],
+            DialogButton::new(
+                key!("dialog-apply"),
+                DialogAnswer::Action("wizard.apply_check_scheme", json!({ "confirm": true })),
+            ),
+        )
+    }
+}
+
+/// Discarding the journal: Cancel the Primary, Discard apart.
+fn journal_discard_spec() -> DialogSpec {
+    DialogSpec {
+        danger: Some(DialogButton::new(
+            key!("dialog-discard"),
+            DialogAnswer::Confirm(ConfirmAnswer::Discard),
+        )),
+        asks: true,
+        ..small(
+            strings::text(key!("confirm-journal-title")).to_owned(),
+            vec![strings::text(key!("confirm-journal-text")).to_owned()],
+            DialogButton::new(
+                key!("dialog-cancel"),
+                DialogAnswer::Confirm(ConfirmAnswer::Cancel),
+            ),
+        )
+    }
+}
+
+/// Purging the unused image `files`: Cancel the Primary, Purge apart, the files past the listed ones counted.
+fn purge_spec(files: &[String]) -> DialogSpec {
+    let mut body = vec![strings::text(key!("confirm-purge-text")).to_owned()];
+    if files.len() > PURGE_LISTED {
+        let more = (files.len() - PURGE_LISTED).to_string();
+        body.push(strings::format(key!("confirm-purge-more"), &[&more]));
+    }
+    DialogSpec {
+        danger: Some(DialogButton::new(
+            key!("dialog-purge"),
+            DialogAnswer::Action("project.purge_assets", json!({ "confirm": true })),
+        )),
+        asks: true,
+        ..small(
+            strings::text(key!("confirm-purge-title")).to_owned(),
+            body,
+            cancel(),
+        )
+    }
+}
+
+/// Choose part: a form with Choose, disabled while the list is empty, and Cancel.
+fn part_choose_spec(c: &crate::shell::part_dialog::PartChooser) -> DialogSpec {
+    let mut choose = DialogButton::new(
+        key!("dialog-part-choose-button"),
+        DialogAnswer::Action("part.pick", Value::Null),
+    );
+    if c.offers.is_empty() {
+        choose.disabled = Some(strings::text(key!("part-choose-nothing")).to_owned());
+    }
+    DialogSpec {
+        secondary: vec![cancel()],
+        form: true,
+        ..small(c.title(), Vec::new(), choose)
+    }
+}
+
+/// Edit part: a form with Save and Cancel.
+fn part_edit_spec(e: &crate::shell::part_dialog::PartEditor) -> DialogSpec {
+    let body = if e.draft.fork {
+        vec![strings::text(key!("part-edit-fork-note")).to_owned()]
+    } else {
+        Vec::new()
+    };
+    DialogSpec {
+        secondary: vec![cancel()],
+        form: true,
+        ..small(
+            e.title(),
+            body,
+            DialogButton::new(
+                key!("dialog-save"),
+                DialogAnswer::Action("part.save", Value::Null),
+            ),
+        )
+    }
+}
+
+/// The external change colliding with unsaved edits in `rows` fields, `count` in words: a form with Apply, All mine,
+/// All theirs and Decide later.
+fn external_change_spec(rows: usize, count: &str) -> DialogSpec {
+    DialogSpec {
+        secondary: vec![
+            DialogButton::new(
+                key!("external-all-mine"),
+                DialogAnswer::Action("external.apply", json!({ "take": "mine" })),
+            ),
+            DialogButton::new(
+                key!("external-all-theirs"),
+                DialogAnswer::Action("external.apply", json!({ "take": "theirs" })),
+            ),
+            DialogButton::new(key!("external-later"), DialogAnswer::Dismiss),
+        ],
+        asks: true,
+        form: true,
+        ..small(
+            strings::text(key!("external-title")).to_owned(),
+            vec![strings::format(
+                if rows == 1 {
+                    key!("external-text-one")
+                } else {
+                    key!("external-text")
                 },
-                DialogButton {
-                    // W44.2 F1: Create enclosure's Create is disabled while its location or part is empty.
-                    disabled: match form.action {
-                        "layout.enclosure_new" => model.enclosure_create_reason(),
-                        _ => None,
-                    },
-                    ..DialogButton::new(form.ok_key, DialogAnswer::Submit)
+                &[count],
+            )],
+            DialogButton::new(
+                key!("external-apply"),
+                DialogAnswer::Action("external.apply", Value::Null),
+            ),
+        )
+    }
+}
+
+/// The upgrade of a project of format `from`: Upgrade and save or Cancel.
+fn upgrade_spec(from: &str) -> DialogSpec {
+    DialogSpec {
+        secondary: vec![cancel()],
+        asks: true,
+        ..small(
+            strings::text(key!("upgrade-title")).to_owned(),
+            vec![
+                strings::format(key!("upgrade-text"), &[from, ew_api::FORMAT]),
+                strings::text(key!("upgrade-backup")).to_owned(),
+            ],
+            DialogButton::new(
+                key!("upgrade-button"),
+                DialogAnswer::Action("file.upgrade", Value::Null),
+            ),
+        )
+    }
+}
+
+/// The import card of `file`: a form with its summary, the pages past the listed ones counted, Apply and Cancel.
+fn import_card_spec(file: &str, summary: &str, pages: &[String]) -> DialogSpec {
+    let mut body = vec![summary.to_owned()];
+    if pages.len() > IMPORT_PAGES_LISTED {
+        let more = (pages.len() - IMPORT_PAGES_LISTED).to_string();
+        body.push(strings::format(key!("import-card-more"), &[&more]));
+    }
+    DialogSpec {
+        secondary: vec![cancel()],
+        form: true,
+        ..small(
+            strings::format(key!("import-card-title"), &[file]),
+            body,
+            DialogButton::new(
+                key!("import-card-apply"),
+                DialogAnswer::Action("file.import_qet_apply", Value::Null),
+            ),
+        )
+    }
+}
+
+/// The import's checkpoint confirmation, the folder, pages and devices named: Create project or Cancel.
+fn import_confirm_spec(file: &str, folder: &str, pages: &[String], devices: usize) -> DialogSpec {
+    DialogSpec {
+        secondary: vec![cancel()],
+        asks: true,
+        ..small(
+            strings::format(key!("import-confirm-title"), &[file]),
+            vec![strings::format(
+                key!("import-confirm-text"),
+                &[
+                    folder,
+                    &strings::format_count(crate::count_key!("import-card-pages"), pages.len()),
+                    &strings::format_count(crate::count_key!("import-card-devices"), devices),
+                ],
+            )],
+            DialogButton::new(
+                key!("import-confirm-create"),
+                DialogAnswer::Action("file.import_qet_apply", json!({ "confirm": true })),
+            ),
+        )
+    }
+}
+
+/// The file at `path` matched to an earlier import: Re-import or Cancel.
+fn reimport_match_spec(path: &str, file: &str, source: &str, percent: u32) -> DialogSpec {
+    DialogSpec {
+        secondary: vec![cancel()],
+        asks: true,
+        ..small(
+            strings::text(key!("reimport-match-title")).to_owned(),
+            vec![strings::format(
+                key!("reimport-match-text"),
+                &[file, source, &percent.to_string()],
+            )],
+            DialogButton::new(
+                key!("reimport-match-accept"),
+                DialogAnswer::Action("file.reimport_qet", json!({ "file": path, "accept": true })),
+            ),
+        )
+    }
+}
+
+/// The re-import card of `file`: a form with its summary, the rows past the listed ones counted, Apply and Cancel.
+fn reimport_spec(file: &str, summary: &str, rows: &[String], nothing: bool) -> DialogSpec {
+    let mut body = vec![summary.to_owned()];
+    if rows.len() > IMPORT_PAGES_LISTED {
+        let more = (rows.len() - IMPORT_PAGES_LISTED).to_string();
+        body.push(strings::format(key!("reimport-card-more"), &[&more]));
+    }
+    let mut apply = DialogButton::new(
+        key!("reimport-card-apply"),
+        DialogAnswer::Action("file.reimport_qet_apply", Value::Null),
+    );
+    // ID-1427 (W52 F8): nothing to re-import, Apply disabled with its reason (as a table import's).
+    if nothing {
+        apply.disabled = Some(strings::text(key!("reason-table-import-nothing")).to_owned());
+    }
+    DialogSpec {
+        secondary: vec![cancel()],
+        form: true,
+        ..small(strings::format(key!("reimport-card-title"), &[file]), body, apply)
+    }
+}
+
+/// Opening the `.ewz` at `path`: Extract and open, Open read-only or Cancel.
+fn open_ewz_spec(path: &str, name: &str) -> DialogSpec {
+    DialogSpec {
+        secondary: vec![
+            DialogButton::new(
+                key!("ewz-read-only"),
+                DialogAnswer::Action("file.open_ewz", json!({ "path": path, "how": "read_only" })),
+            ),
+            cancel(),
+        ],
+        asks: true,
+        ..small(
+            strings::text(key!("ewz-title")).to_owned(),
+            vec![strings::format(key!("ewz-text"), &[name])],
+            DialogButton::new(
+                key!("ewz-extract"),
+                DialogAnswer::Action("file.open_ewz", json!({ "path": path, "how": "extract" })),
+            ),
+        )
+    }
+}
+
+/// Setting up the merge driver in `folder`: Set up or Cancel.
+fn git_setup_spec(folder: &str) -> DialogSpec {
+    DialogSpec {
+        secondary: vec![cancel()],
+        asks: true,
+        ..small(
+            strings::text(key!("git-setup-title")).to_owned(),
+            vec![strings::format(key!("git-setup-text"), &[folder])],
+            DialogButton::new(
+                key!("git-setup-button"),
+                DialogAnswer::Action("git.setup", json!({ "confirm": true })),
+            ),
+        )
+    }
+}
+
+/// Print: a form with Print…, Open in PDF viewer and Cancel.
+fn print_spec(model: &ShellModel) -> DialogSpec {
+    let reason = model.print_disabled_reason();
+    let mut print = DialogButton::new(
+        key!("print-button"),
+        DialogAnswer::Action("print.send", json!({ "via": "printer" })),
+    );
+    let mut viewer = DialogButton::new(
+        key!("print-viewer-button"),
+        DialogAnswer::Action("print.send", json!({ "via": "viewer" })),
+    );
+    print.disabled.clone_from(&reason);
+    viewer.disabled = reason;
+    DialogSpec {
+        secondary: vec![viewer, cancel()],
+        form: true,
+        ..small(strings::text(key!("print-title")).to_owned(), Vec::new(), print)
+    }
+}
+
+/// Recovering the journal of project `name`: its unsaved `transactions` counted, a moved project said; Recover,
+/// Open read-only, Discard… apart.
+fn recovery_spec(name: &str, transactions: usize, base_matches: bool, failed: Option<&String>) -> DialogSpec {
+    let mut body = vec![
+        strings::format(key!("recovery-text"), &[name]),
+        strings::format(key!("recovery-count"), &[&transactions.to_string()]),
+    ];
+    if !base_matches {
+        body.push(strings::text(key!("recovery-moved")).to_owned());
+    }
+    let keep = DialogButton::new(
+        key!("action-journal-keep"),
+        DialogAnswer::Action("journal.keep", Value::Null),
+    );
+    let (primary, secondary) = if failed.is_none() {
+        (
+            DialogButton::new(
+                key!("action-journal-recover"),
+                DialogAnswer::Action("journal.recover", Value::Null),
+            ),
+            vec![keep],
+        )
+    } else {
+        (keep, Vec::new())
+    };
+    DialogSpec {
+        title: strings::text(key!("recovery-title")).to_owned(),
+        body,
+        primary,
+        secondary,
+        danger: Some(DialogButton::new(
+            key!("recovery-discard"),
+            DialogAnswer::Action("file.discard_journal", Value::Null),
+        )),
+        asks: true,
+        form: false,
+    }
+}
+
+/// A form of an action's fields: its OK button submits them, beside Cancel.
+fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec {
+    DialogSpec {
+        secondary: vec![cancel()],
+        form: true,
+        ..small(
+            strings::text(form.title_key).to_owned(),
+            // WP-S4.02 part 4 (§8): the Auto-fill rail dialog says which devices it fills with.
+            match form.action {
+                "layout.auto_fill_rail" => vec![model.fill_devices_text()],
+                "layout.enclosure_new" => model.enclosure_form_notes(),
+                _ => Vec::new(),
+            },
+            DialogButton {
+                // W44.2 F1: Create enclosure's Create is disabled while its location or part is empty.
+                disabled: match form.action {
+                    "layout.enclosure_new" => model.enclosure_create_reason(),
+                    _ => None,
                 },
-            )
-        },
+                ..DialogButton::new(form.ok_key, DialogAnswer::Submit)
+            },
+        )
     }
 }
 

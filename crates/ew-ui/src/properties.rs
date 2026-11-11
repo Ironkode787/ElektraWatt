@@ -92,6 +92,35 @@ fn middle(text: &str) -> String {
     format!("{head}…{tail}")
 }
 
+/// What the parts of one row (its label, value cell, "…" button and error) share once the row is laid out.
+struct RowParts<'a> {
+    t: &'a crate::theme::Tokens,
+    row: &'a PropRow,
+    label: &'a str,
+    value: &'a str,
+    /// The row is a section's header row (no chip, no edit).
+    header: bool,
+    /// Why the value is read-only, if it is.
+    reason: &'a Option<String>,
+    /// The chip's whole text (its tooltip).
+    chip: &'a str,
+    show_chip: bool,
+    /// The chip's word: the source in one word.
+    word: &'static str,
+    /// The colour of tertiary parts (the chip, an empty value).
+    tertiary: crate::theme::Rgba,
+    /// The row's `Group` node.
+    group_id: egui::Id,
+    /// The whole row.
+    rect: egui::Rect,
+    /// The row is the cursor row.
+    selected: bool,
+    /// How a prose value too wide for one line wraps in its cell.
+    prose: Option<&'a Prose>,
+    /// The label runs on across the empty value cell.
+    label_across: bool,
+}
+
 impl PropertiesPane {
     /// A pane with no editor.
     pub fn new() -> PropertiesPane {
@@ -639,13 +668,7 @@ impl PropertiesPane {
             .error()
             .filter(|(r, _)| *r == row.key)
             .map(|(_, m)| m.to_owned());
-        let mut description = format!("{value}; {chip}");
-        if let Some(r) = &reason {
-            description.push_str(&format!("; {r}"));
-        }
-        if let Some(e) = &error {
-            description.push_str(&format!("; {e}"));
-        }
+        let description = Self::row_description(&value, &chip, reason.as_deref(), error.as_deref());
         // Doc 16a §6.8 (the mockup's `.prow`): rows of `size.row` with `space.4` side padding; the label left-aligned
         // in `type.small` and `color.text.secondary` in the `size.property_label` column, ellipsised with the whole
         // label in the tooltip; `space.3` to the value cell (`size.control.inline`); a nested row is indented by
@@ -682,8 +705,134 @@ impl PropertiesPane {
             let room = width - 2.0 * t.space_4 - t.space_3 - t.size_control_inline;
             label_width = label_width.max((depth + natural).min(room));
         }
+        let galley = Self::label_galley(ui, &t, &label, natural, label_width, depth);
+        // FT-1498 (doc 16a §6.8): a prose value too wide for its cell wraps at its words onto up to three
+        // lines and the row grows with it; only a longer one is cut, its whole text in the tooltip.
+        let editing = props.edit().is_some_and(|e| e.row == row.key);
+        let prose = (!editing && !header && !is_link(row))
+            .then(|| {
+                prose_layout(
+                    ui,
+                    &t,
+                    row,
+                    &value,
+                    width - 2.0 * t.space_4 - label_width - t.space_3,
+                )
+            })
+            .flatten();
+        let value_height = prose.as_ref().map_or(0.0, |p| p.height + 2.0 * t.space_1);
+        let row_height = t
+            .size_row
+            .max(galley.size().y + 2.0 * t.space_1)
+            .max(value_height);
+        let (rect, _) = ui.allocate_exact_size(Vec2::new(width, row_height), Sense::hover());
+        let group_id = Self::row_node(ui, row, rect, &label, description, events);
+        let selected = focused == Some(row.key.as_str());
+        // The cursor row moved to (an arrow, Home, End) scrolls into view.
+        if selected && self.cursor_shown.as_deref() != Some(row.key.as_str()) {
+            ui.scroll_to_rect(rect, None);
+            self.cursor_shown = Some(row.key.clone());
+        }
+        if selected {
+            Self::paint_cursor(ui, &t, rect);
+        }
+        // Tertiary parts on `color.accent.subtle` are drawn in `color.text.secondary` (§4.15).
+        let tertiary = if selected {
+            t.text_secondary
+        } else {
+            t.text_tertiary
+        };
+        let parts = RowParts {
+            t: &t,
+            row,
+            label: &label,
+            value: &value,
+            header,
+            reason: &reason,
+            chip: &chip,
+            show_chip,
+            // The chip's word: the source in one word, the whole text in the tooltip (doc 16a §6.8).
+            word: chip_word(&row.provenance),
+            tertiary,
+            group_id,
+            rect,
+            selected,
+            prose: prose.as_ref(),
+            // Where the label has run across the cell, the empty value's dash would overlap it.
+            label_across: valueless && label_width > label_column_width,
+        };
+        let mut child = ui.new_child(
+            egui::UiBuilder::new()
+                .max_rect(rect.shrink2(Vec2::new(t.space_4, 0.0)))
+                .accessibility_parent(group_id)
+                .layout(egui::Layout::left_to_right(egui::Align::Center)),
+        );
+        child.spacing_mut().interact_size.y = t.size_control_inline;
+        child.spacing_mut().item_spacing.x = t.space_3;
+        Self::label_button(&mut child, &parts, galley, label_width, depth, events);
+        // Where the value cell (or its editor) starts: the choice list's left edge.
+        let value_left = child.cursor().min.x;
+        if editing {
+            self.editor(&mut child, shell, row, &label, events);
+        } else {
+            Self::value_and_actions(&mut child, shell, &parts, events);
+        }
+        // Below the row: its error (§6.1: the icon and the message in `color.error`, `type.small`), its choices, the
+        // notes of the last commit, the popups.
+        if let Some(e) = error {
+            self.error_line(ui, props, &parts, e, events);
+        }
+        // A list with no match opens no popup. FT-1036: the list starts under the value cell.
+        if let Some(c) = props
+            .choices()
+            .filter(|c| c.row == row.key && !c.items.is_empty())
+        {
+            let anchor = egui::Rect::from_x_y_ranges(value_left..=rect.right() - t.space_4, rect.y_range());
+            self.choices(ui, &t, &label, &row.key, anchor, c, events);
+        } else if self.choices_rect.as_ref().is_some_and(|(r, _)| *r == row.key) {
+            self.choices_rect = None;
+        }
+        match props.popup() {
+            // The actions menu is a popup anchored on the row's "…" button (`actions_menu`), not drawn here.
+            Some(Popup::MlText { row: r }) if *r == row.key => {
+                self.mltext_popup(ui, sheet, row, events);
+            }
+            _ => {
+                self.mltext.clear();
+            }
+        }
+        if selected && !props.notes().is_empty() {
+            for n in props.notes() {
+                ui.label(RichText::new(strings::format(key!("props-notes"), &[n])).small());
+            }
+        }
+    }
+
+    /// The row node's description: the value and the chip's text, then the read-only reason and the error when the
+    /// row has them.
+    fn row_description(value: &str, chip: &str, reason: Option<&str>, error: Option<&str>) -> String {
+        let mut description = format!("{value}; {chip}");
+        if let Some(r) = &reason {
+            description.push_str(&format!("; {r}"));
+        }
+        if let Some(e) = &error {
+            description.push_str(&format!("; {e}"));
+        }
+        description
+    }
+
+    /// The label laid out in its column `label_width` wide after the indent `depth`: wrapped at its words onto two
+    /// lines when that makes it fit, else cut on one line.
+    fn label_galley(
+        ui: &Ui,
+        t: &crate::theme::Tokens,
+        label: &str,
+        natural: f32,
+        label_width: f32,
+        depth: f32,
+    ) -> std::sync::Arc<egui::Galley> {
         let mut job = egui::text::LayoutJob::single_section(
-            label.clone(),
+            label.to_owned(),
             egui::TextFormat::simple(crate::theme::font(&t.type_small), t.text_secondary.color32()),
         );
         // A label wraps at its words only; one with a word longer than its column is cut on one line (its
@@ -711,32 +860,24 @@ impl PropertiesPane {
         } else {
             egui::text::TextWrapping::truncate_at_width(label_width - depth)
         };
-        let galley = ui.painter().layout_job(job);
-        // FT-1498 (doc 16a §6.8): a prose value too wide for its cell wraps at its words onto up to three
-        // lines and the row grows with it; only a longer one is cut, its whole text in the tooltip.
-        let editing = props.edit().is_some_and(|e| e.row == row.key);
-        let prose = (!editing && !header && !is_link(row))
-            .then(|| {
-                prose_layout(
-                    ui,
-                    &t,
-                    row,
-                    &value,
-                    width - 2.0 * t.space_4 - label_width - t.space_3,
-                )
-            })
-            .flatten();
-        let value_height = prose.as_ref().map_or(0.0, |p| p.height + 2.0 * t.space_1);
-        let row_height = t
-            .size_row
-            .max(galley.size().y + 2.0 * t.space_1)
-            .max(value_height);
-        let (rect, _) = ui.allocate_exact_size(Vec2::new(width, row_height), Sense::hover());
+        ui.painter().layout_job(job)
+    }
+
+    /// The row's `Group` node over `rect`, named by the label with `description`; a right-click on the row opens its
+    /// actions menu. Returns the node's id.
+    fn row_node(
+        ui: &mut Ui,
+        row: &PropRow,
+        rect: egui::Rect,
+        label: &str,
+        description: String,
+        events: &mut Vec<Event>,
+    ) -> egui::Id {
         let group_id = ui.scope_id().with(("prop-row", &row.key));
         let group = ui.interact(rect, group_id, Sense::hover());
-        let name = label.clone();
+        let name = label.to_owned();
         group.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Group, true, &name));
-        let desc = description.clone();
+        let desc = description;
         ui.ctx().accesskit_node_builder(group_id, |n| {
             n.set_description(desc);
         });
@@ -751,44 +892,39 @@ impl PropertiesPane {
             events.push(Event::Action("props.row", json!({"to": row.key})));
             events.push(Event::Action("props.row_menu", json!({})));
         }
-        let selected = focused == Some(row.key.as_str());
-        // The cursor row moved to (an arrow, Home, End) scrolls into view.
-        if selected && self.cursor_shown.as_deref() != Some(row.key.as_str()) {
-            ui.scroll_to_rect(rect, None);
-            self.cursor_shown = Some(row.key.clone());
-        }
-        // The cursor row: the Selected state of a tree row (§6.6), `color.accent.subtle` and the 2-px accent bar.
-        if selected {
-            ui.painter()
-                .rect_filled(rect, crate::theme::SQUARE, t.accent_subtle.color32());
-            let bar = egui::Rect::from_min_max(
-                egui::pos2(rect.left(), rect.top() + t.space_1),
-                egui::pos2(rect.left() + t.focus_width, rect.bottom() - t.space_1),
-            );
-            ui.painter()
-                .rect_filled(bar, crate::theme::radius(t.radius_mark), t.accent.color32());
-        }
-        // Tertiary parts on `color.accent.subtle` are drawn in `color.text.secondary` (§4.15).
-        let tertiary = if selected {
-            t.text_secondary
-        } else {
-            t.text_tertiary
-        };
-        let mut child = ui.new_child(
-            egui::UiBuilder::new()
-                .max_rect(rect.shrink2(Vec2::new(t.space_4, 0.0)))
-                .accessibility_parent(group_id)
-                .layout(egui::Layout::left_to_right(egui::Align::Center)),
+        group_id
+    }
+
+    /// The cursor row: the Selected state of a tree row (§6.6), `color.accent.subtle` and the 2-px accent bar.
+    fn paint_cursor(ui: &Ui, t: &crate::theme::Tokens, rect: egui::Rect) {
+        ui.painter()
+            .rect_filled(rect, crate::theme::SQUARE, t.accent_subtle.color32());
+        let bar = egui::Rect::from_min_max(
+            egui::pos2(rect.left(), rect.top() + t.space_1),
+            egui::pos2(rect.left() + t.focus_width, rect.bottom() - t.space_1),
         );
-        child.spacing_mut().interact_size.y = t.size_control_inline;
-        child.spacing_mut().item_spacing.x = t.space_3;
+        ui.painter()
+            .rect_filled(bar, crate::theme::radius(t.radius_mark), t.accent.color32());
+    }
+
+    /// The label column: the laid-out label in a button `label_width` wide (indented by `depth`), its whole text in
+    /// the tooltip when it is cut; a click moves the cursor to the row.
+    fn label_button(
+        child: &mut Ui,
+        p: &RowParts<'_>,
+        galley: std::sync::Arc<egui::Galley>,
+        label_width: f32,
+        depth: f32,
+        events: &mut Vec<Event>,
+    ) {
+        let t = p.t;
         let (label_rect, label_button) = child.allocate_exact_size(
             Vec2::new(label_width, t.size_control_inline.max(galley.size().y)),
             Sense::click(),
         );
-        let label_name = middle(&label);
+        let label_name = middle(p.label);
         label_button
-            .widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, selected, &label_name));
+            .widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, true, p.selected, &label_name));
         let elided = galley.elided;
         child.painter().galley(
             egui::pos2(
@@ -799,325 +935,336 @@ impl PropertiesPane {
             t.text_secondary.color32(),
         );
         let label_button = if elided {
-            label_button.tip(&label)
+            label_button.tip(p.label)
         } else {
             label_button
         };
         if label_button.clicked() {
             events.push(Event::Action("ui.focus", json!({"area": "properties"})));
-            events.push(Event::Action("props.row", json!({"to": row.key})));
+            events.push(Event::Action("props.row", json!({"to": p.row.key})));
         }
-        // Where the value cell (or its editor) starts: the choice list's left edge.
-        let value_left = child.cursor().min.x;
-        // The chip's word: the source in one word, the whole text in the tooltip (doc 16a §6.8).
-        let word = chip_word(&row.provenance);
-        if editing {
-            self.editor(&mut child, shell, row, &label, events);
+    }
+
+    /// The value cell of a row that is not being edited (a checkbox or a value) and its "…" button.
+    fn value_and_actions(child: &mut Ui, shell: &ShellModel, p: &RowParts<'_>, events: &mut Vec<Event>) {
+        let (t, row) = (p.t, p.row);
+        // X32b (doc 16a §6.8, the mockup's `.prow`: `96px 1fr`): the value cell takes the rest of the row up to its
+        // `space.4` padding. The row's "…" button sits over the cell's right end and only while it shows (the
+        // cursor row, hover, focus) does the cell's text and chip make room for it.
+        let actions_id = p.group_id.with("actions");
+        let actions_on = !row.actions.is_empty()
+            && (p.selected
+                || child.rect_contains_pointer(p.rect)
+                || child.memory(|m| m.has_focus(actions_id)));
+        let reserve = if actions_on {
+            t.size_control_inline + t.space_1
         } else {
-            // X32b (doc 16a §6.8, the mockup's `.prow`: `96px 1fr`): the value cell takes the rest of the row up to its
-            // `space.4` padding. The row's "…" button sits over the cell's right end and only while it shows (the
-            // cursor row, hover, focus) does the cell's text and chip make room for it.
-            let actions_id = group_id.with("actions");
-            let actions_on = !row.actions.is_empty()
-                && (selected
-                    || child.rect_contains_pointer(rect)
-                    || child.memory(|m| m.has_focus(actions_id)));
-            let reserve = if actions_on {
-                t.size_control_inline + t.space_1
-            } else {
-                0.0
-            };
-            let value_w = child.available_width().max(t.size_control_inline);
-            let value_rect;
+            0.0
+        };
+        let value_w = child.available_width().max(t.size_control_inline);
+        let value_rect =
             if let (FieldType::Bool, true) = (row.ty.inner(), row.actions.contains(&RowAction::Edit)) {
-                // A checkbox (§6.5): a click sets the other value.
-                let area =
-                    egui::Rect::from_min_size(child.cursor().min, Vec2::new(value_w, t.size_control_inline));
-                value_rect = area;
-                let mut on = matches!(&row.value, RowValue::One { json, .. } if json.as_bool() == Some(true));
-                let was = on;
-                let response = child
-                    .scope_builder(
-                        egui::UiBuilder::new()
-                            .max_rect(area)
-                            .layout(egui::Layout::left_to_right(egui::Align::Center)),
-                        |ui| ui.checkbox(&mut on, ""),
-                    )
-                    .inner;
-                child.advance_cursor_after_rect(area);
-                let name = label.clone();
-                response.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, was, &name));
-                if on != was {
-                    events.push(Event::Action("ui.focus", json!({"area": "properties"})));
-                    events.push(Event::Action(
-                        "props.set",
-                        json!({"row": row.key, "value": if on { "yes" } else { "no" }}),
-                    ));
-                }
-                if show_chip {
-                    let chip_rect = crate::components::paint_provenance_chip(
-                        &child,
-                        &t,
-                        word,
-                        tertiary,
-                        egui::pos2(area.right() - t.space_icon - reserve, area.center().y),
-                    );
-                    child
-                        .interact(chip_rect, group_id.with("chip"), Sense::hover())
-                        .tip(&chip);
-                }
+                Self::bool_cell(child, p, value_w, reserve, events)
             } else {
-                // The value cell (the mockup's `.val`): a click edits in place; a transparent 1-px border that turns
-                // `color.border.control` on hover; `space.icon` padding; an empty value is an em dash in
-                // `color.text.tertiary`; the provenance chip at the cell's right end.
-                let editable = !header && row.actions.contains(&RowAction::Edit);
-                // A link row (Device) is a link in `color.accent` (doc 16a P4); a click follows it.
-                let link = !header && !editable && is_link(row);
-                let (cell, response) = child.allocate_exact_size(
-                    Vec2::new(
-                        value_w,
-                        t.size_control_inline
-                            .max(prose.as_ref().map_or(0.0, |p| p.height)),
-                    ),
-                    if editable || link {
-                        Sense::click()
-                    } else {
-                        Sense::hover()
-                    },
-                );
-                let shown = if value.is_empty() && !header {
-                    strings::text(key!("props-empty-value")).to_owned()
-                } else if prose.is_some() {
-                    value.clone()
-                } else {
-                    middle(&value)
-                };
-                // The cell's node: the value (a button while a click edits it), inside the row's group.
-                let cell_name = shown.clone();
-                let role = if editable {
-                    egui::Role::Button
-                } else if link {
-                    egui::Role::Link
-                } else {
-                    egui::Role::Label
-                };
-                response.widget_info(|| egui::WidgetInfo::labeled(role, true, &cell_name));
-                if editable && response.hovered() {
-                    child.painter().rect_stroke(
-                        cell,
-                        crate::theme::radius(t.radius_sm),
-                        crate::theme::stroke(t.border_width, t.border_control),
-                        egui::StrokeKind::Inside,
-                    );
-                }
-                value_rect = cell;
-                let mut text_right = cell.right() - t.space_icon - reserve;
-                let mut on_chip = false;
-                if show_chip {
-                    // Under a wrapped prose value the chip stands on its own line at the cell's right end.
-                    let at = match &prose {
-                        Some(_) => egui::pos2(cell.right() - t.space_icon, cell.bottom() - t.size_chip / 2.0),
-                        None => egui::pos2(text_right, cell.center().y),
-                    };
-                    let chip_rect = crate::components::paint_provenance_chip(&child, &t, word, tertiary, at);
-                    if prose.is_none() {
-                        text_right = chip_rect.left() - t.space_2;
-                    }
-                    on_chip = response.hover_pos().is_some_and(|p| chip_rect.contains(p));
-                }
-                let colour = if value.is_empty() {
-                    tertiary
-                } else if link {
-                    t.accent
-                } else {
-                    t.text_primary
-                };
-                // The value ellipsised at the chip (or the cell's end), the whole value in the tooltip.
-                let mut format = egui::TextFormat::simple(crate::theme::font(&t.type_body), colour.color32());
-                if link && response.hovered() {
-                    format.underline = crate::theme::stroke(t.border_width, t.accent);
-                    child.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
-                }
-                // Where the label has run across the cell, the empty value's dash would overlap it.
-                let painted = if valueless && label_width > label_column_width {
-                    String::new()
-                } else {
-                    shown.clone()
-                };
-                let mut job = egui::text::LayoutJob::single_section(painted, format);
-                let text_width = (text_right - cell.left() - t.space_icon).max(0.0);
-                job.wrap = match &prose {
-                    Some(p) => prose_wrapping(text_width, p.rows),
-                    None => egui::text::TextWrapping::truncate_at_width(text_width),
-                };
-                let galley = child.painter().layout_job(job);
-                let cut = galley.elided;
-                let top = match &prose {
-                    Some(_) => cell.top(),
-                    None => cell.center().y - galley.size().y / 2.0,
-                };
-                child.painter().galley(
-                    egui::pos2(cell.left() + t.space_icon, top),
-                    galley,
-                    colour.color32(),
-                );
-                // The tooltip: the chip's whole text over the chip, else a read-only value's reason, else a long
-                // value's whole text.
-                let long =
-                    (cut || (prose.is_none() && value.chars().count() > MAX_SHOWN)).then(|| value.clone());
-                let tip = if on_chip {
-                    Some(chip.clone())
-                } else if link {
-                    // The canvas link's hint: "Click or F: go to -201U7", the key from the keymap.
-                    Some(ew_viewmodel::status::follow_hint(shell, &value, "props.follow"))
-                } else if let Some(reference) = profile_reference(row) {
-                    // The Address profile row reads the profile's name; its reference, the
-                    // chooser's secondary line, is the tooltip.
-                    Some(reference)
-                } else if !editable && !header {
-                    reason.clone().or(long)
-                } else {
-                    long
-                };
-                let response = match tip {
-                    Some(tip) => response.tip(tip),
-                    None => response,
-                };
-                if response.clicked() {
-                    events.push(Event::Action("ui.focus", json!({"area": "properties"})));
-                    events.push(Event::Action("props.row", json!({"to": row.key})));
-                    if link {
-                        events.push(Event::Action("props.follow", json!({"row": row.key})));
-                    } else {
-                        events.push(Event::Action("props.edit", json!({})));
-                    }
-                }
+                Self::value_cell(child, shell, p, value_w, reserve, events)
+            };
+        if !row.actions.is_empty() {
+            Self::actions_button(child, shell, p, value_rect, actions_id, actions_on, events);
+        }
+    }
+
+    /// A checkbox (§6.5): a click sets the other value; the chip at the cell's right end. Returns the cell.
+    fn bool_cell(
+        child: &mut Ui,
+        p: &RowParts<'_>,
+        value_w: f32,
+        reserve: f32,
+        events: &mut Vec<Event>,
+    ) -> egui::Rect {
+        let (t, row) = (p.t, p.row);
+        let area = egui::Rect::from_min_size(child.cursor().min, Vec2::new(value_w, t.size_control_inline));
+        let mut on = matches!(&row.value, RowValue::One { json, .. } if json.as_bool() == Some(true));
+        let was = on;
+        let response = child
+            .scope_builder(
+                egui::UiBuilder::new()
+                    .max_rect(area)
+                    .layout(egui::Layout::left_to_right(egui::Align::Center)),
+                |ui| ui.checkbox(&mut on, ""),
+            )
+            .inner;
+        child.advance_cursor_after_rect(area);
+        let name = p.label.to_owned();
+        response.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, was, &name));
+        if on != was {
+            events.push(Event::Action("ui.focus", json!({"area": "properties"})));
+            events.push(Event::Action(
+                "props.set",
+                json!({"row": row.key, "value": if on { "yes" } else { "no" }}),
+            ));
+        }
+        if p.show_chip {
+            let chip_rect = crate::components::paint_provenance_chip(
+                child,
+                t,
+                p.word,
+                p.tertiary,
+                egui::pos2(area.right() - t.space_icon - reserve, area.center().y),
+            );
+            child
+                .interact(chip_rect, p.group_id.with("chip"), Sense::hover())
+                .tip(p.chip);
+        }
+        area
+    }
+
+    /// The value cell (the mockup's `.val`): a click edits in place; a transparent 1-px border that turns
+    /// `color.border.control` on hover; `space.icon` padding; an empty value is an em dash in
+    /// `color.text.tertiary`; the provenance chip at the cell's right end. Returns the cell.
+    fn value_cell(
+        child: &mut Ui,
+        shell: &ShellModel,
+        p: &RowParts<'_>,
+        value_w: f32,
+        reserve: f32,
+        events: &mut Vec<Event>,
+    ) -> egui::Rect {
+        let (t, row, value, header, prose) = (p.t, p.row, p.value, p.header, p.prose);
+        let editable = !header && row.actions.contains(&RowAction::Edit);
+        // A link row (Device) is a link in `color.accent` (doc 16a P4); a click follows it.
+        let link = !header && !editable && is_link(row);
+        let (cell, response) = child.allocate_exact_size(
+            Vec2::new(
+                value_w,
+                t.size_control_inline.max(prose.map_or(0.0, |p| p.height)),
+            ),
+            if editable || link {
+                Sense::click()
+            } else {
+                Sense::hover()
+            },
+        );
+        let shown = if value.is_empty() && !header {
+            strings::text(key!("props-empty-value")).to_owned()
+        } else if prose.is_some() {
+            value.to_owned()
+        } else {
+            middle(value)
+        };
+        // The cell's node: the value (a button while a click edits it), inside the row's group.
+        let cell_name = shown.clone();
+        let role = if editable {
+            egui::Role::Button
+        } else if link {
+            egui::Role::Link
+        } else {
+            egui::Role::Label
+        };
+        response.widget_info(|| egui::WidgetInfo::labeled(role, true, &cell_name));
+        if editable && response.hovered() {
+            child.painter().rect_stroke(
+                cell,
+                crate::theme::radius(t.radius_sm),
+                crate::theme::stroke(t.border_width, t.border_control),
+                egui::StrokeKind::Inside,
+            );
+        }
+        let mut text_right = cell.right() - t.space_icon - reserve;
+        let mut on_chip = false;
+        if p.show_chip {
+            // Under a wrapped prose value the chip stands on its own line at the cell's right end.
+            let at = match prose {
+                Some(_) => egui::pos2(cell.right() - t.space_icon, cell.bottom() - t.size_chip / 2.0),
+                None => egui::pos2(text_right, cell.center().y),
+            };
+            let chip_rect = crate::components::paint_provenance_chip(child, t, p.word, p.tertiary, at);
+            if prose.is_none() {
+                text_right = chip_rect.left() - t.space_2;
             }
-            if !row.actions.is_empty() {
-                // The actions menu: one "…" button on the cursor row, on hover and on focus.
-                let id = actions_id;
-                let r = egui::Rect::from_min_size(
-                    egui::pos2(value_rect.right() - t.size_control_inline, value_rect.top()),
-                    Vec2::splat(t.size_control_inline),
-                );
-                let name = strings::format(key!("props-row-menu"), &[&label]);
-                let response = crate::command_bar::button_response(
-                    &child,
-                    id,
-                    r,
-                    crate::command_bar::Spec {
-                        name: &name,
-                        shortcut: "",
-                        enabled: true,
-                        checked: None,
-                        sense: Sense::click(),
-                    },
-                );
-                if actions_on || response.has_focus() {
-                    crate::command_bar::state_overlay(&child, &t, &response, true, t.radius_sm);
-                    let icon = egui::Rect::from_center_size(r.center(), Vec2::splat(t.icon_sm));
-                    crate::command_bar::paint_icon(
-                        &child,
-                        "dots",
-                        icon,
-                        t.text_secondary.color32(),
-                        t.icon_stroke,
-                    );
-                }
-                let response = response.tip(&name);
-                let open = matches!(
-                    props.popup(),
-                    Some(ew_viewmodel::properties::Popup::Actions { row: r, .. }) if *r == row.key
-                );
-                if response.clicked() {
-                    events.push(Event::Action("ui.focus", json!({"area": "properties"})));
-                    if open {
-                        // A second click on "…" closes its menu.
-                        events.push(Event::Action("props.cancel", json!({})));
-                    } else {
-                        events.push(Event::Action("props.row", json!({"to": row.key})));
-                        events.push(Event::Action("props.row_menu", json!({})));
-                    }
-                } else if let Some(Popup::Actions { index, .. }) = props.popup().filter(|_| open) {
-                    actions_menu(&t, &response, &name, &shell.row_menu(&row.key), *index, events);
-                }
+            on_chip = response.hover_pos().is_some_and(|p| chip_rect.contains(p));
+        }
+        let colour = if value.is_empty() {
+            p.tertiary
+        } else if link {
+            t.accent
+        } else {
+            t.text_primary
+        };
+        // The value ellipsised at the chip (or the cell's end), the whole value in the tooltip.
+        let mut format = egui::TextFormat::simple(crate::theme::font(&t.type_body), colour.color32());
+        if link && response.hovered() {
+            format.underline = crate::theme::stroke(t.border_width, t.accent);
+            child.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+        }
+        // Where the label has run across the cell, the empty value's dash would overlap it.
+        let painted = if p.label_across {
+            String::new()
+        } else {
+            shown.clone()
+        };
+        let mut job = egui::text::LayoutJob::single_section(painted, format);
+        let text_width = (text_right - cell.left() - t.space_icon).max(0.0);
+        job.wrap = match prose {
+            Some(p) => prose_wrapping(text_width, p.rows),
+            None => egui::text::TextWrapping::truncate_at_width(text_width),
+        };
+        let galley = child.painter().layout_job(job);
+        let cut = galley.elided;
+        let top = match prose {
+            Some(_) => cell.top(),
+            None => cell.center().y - galley.size().y / 2.0,
+        };
+        child.painter().galley(
+            egui::pos2(cell.left() + t.space_icon, top),
+            galley,
+            colour.color32(),
+        );
+        // The tooltip: the chip's whole text over the chip, else a read-only value's reason, else a long
+        // value's whole text.
+        let long = (cut || (prose.is_none() && value.chars().count() > MAX_SHOWN)).then(|| value.to_owned());
+        let tip = if on_chip {
+            Some(p.chip.to_owned())
+        } else if link {
+            // The canvas link's hint: "Click or F: go to -201U7", the key from the keymap.
+            Some(ew_viewmodel::status::follow_hint(shell, value, "props.follow"))
+        } else if let Some(reference) = profile_reference(row) {
+            // The Address profile row reads the profile's name; its reference, the
+            // chooser's secondary line, is the tooltip.
+            Some(reference)
+        } else if !editable && !header {
+            p.reason.clone().or(long)
+        } else {
+            long
+        };
+        let response = match tip {
+            Some(tip) => response.tip(tip),
+            None => response,
+        };
+        if response.clicked() {
+            events.push(Event::Action("ui.focus", json!({"area": "properties"})));
+            events.push(Event::Action("props.row", json!({"to": row.key})));
+            if link {
+                events.push(Event::Action("props.follow", json!({"row": row.key})));
+            } else {
+                events.push(Event::Action("props.edit", json!({})));
             }
         }
-        // Below the row: its error (§6.1: the icon and the message in `color.error`, `type.small`), its choices, the
-        // notes of the last commit, the popups.
+        cell
+    }
+
+    /// The actions menu: one "…" button over the value cell's right end, drawn on the cursor row, on hover and on
+    /// focus; a click opens its menu (or closes it), and an open menu is drawn under it.
+    fn actions_button(
+        child: &Ui,
+        shell: &ShellModel,
+        p: &RowParts<'_>,
+        value_rect: egui::Rect,
+        actions_id: egui::Id,
+        actions_on: bool,
+        events: &mut Vec<Event>,
+    ) {
+        let (t, row) = (p.t, p.row);
+        let props = shell.properties();
+        let id = actions_id;
+        let r = egui::Rect::from_min_size(
+            egui::pos2(value_rect.right() - t.size_control_inline, value_rect.top()),
+            Vec2::splat(t.size_control_inline),
+        );
+        let name = strings::format(key!("props-row-menu"), &[p.label]);
+        let response = crate::command_bar::button_response(
+            child,
+            id,
+            r,
+            crate::command_bar::Spec {
+                name: &name,
+                shortcut: "",
+                enabled: true,
+                checked: None,
+                sense: Sense::click(),
+            },
+        );
+        if actions_on || response.has_focus() {
+            crate::command_bar::state_overlay(child, t, &response, true, t.radius_sm);
+            let icon = egui::Rect::from_center_size(r.center(), Vec2::splat(t.icon_sm));
+            crate::command_bar::paint_icon(child, "dots", icon, t.text_secondary.color32(), t.icon_stroke);
+        }
+        let response = response.tip(&name);
+        let open = matches!(
+            props.popup(),
+            Some(ew_viewmodel::properties::Popup::Actions { row: r, .. }) if *r == row.key
+        );
+        if response.clicked() {
+            events.push(Event::Action("ui.focus", json!({"area": "properties"})));
+            if open {
+                // A second click on "…" closes its menu.
+                events.push(Event::Action("props.cancel", json!({})));
+            } else {
+                events.push(Event::Action("props.row", json!({"to": row.key})));
+                events.push(Event::Action("props.row_menu", json!({})));
+            }
+        } else if let Some(Popup::Actions { index, .. }) = props.popup().filter(|_| open) {
+            actions_menu(t, &response, &name, &shell.row_menu(&row.key), *index, events);
+        }
+    }
+
+    /// The row's error under it, the icon at its first line, brought into view once when it is new; a refused
+    /// tag-letter edit's proposal as a button under it.
+    fn error_line(
+        &mut self,
+        ui: &mut Ui,
+        props: &ew_viewmodel::properties::PropertiesState,
+        p: &RowParts<'_>,
+        e: String,
+        events: &mut Vec<Event>,
+    ) {
+        let (t, row) = (p.t, p.row);
         // M39: the message wraps inside the panel (never cut at its edge), its icon at the first line.
-        if let Some(e) = error {
-            let shown = Some((row.key.clone(), e.clone()));
-            let line = ui.horizontal_top(|ui| {
-                ui.add_space(t.space_4);
-                let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
-                crate::icons::paint(
-                    ui.painter(),
-                    crate::icons::IconId::circle_x,
-                    r,
-                    t.error.color32(),
-                    t.icon_stroke,
-                );
-                ui.add(
-                    egui::Label::new(
-                        RichText::new(e)
-                            .font(crate::theme::font(&t.type_small))
-                            .color(t.error.color32()),
+        let shown = Some((row.key.clone(), e.clone()));
+        let line = ui.horizontal_top(|ui| {
+            ui.add_space(t.space_4);
+            let (r, _) = ui.allocate_exact_size(Vec2::splat(t.icon_sm), Sense::hover());
+            crate::icons::paint(
+                ui.painter(),
+                crate::icons::IconId::circle_x,
+                r,
+                t.error.color32(),
+                t.icon_stroke,
+            );
+            ui.add(
+                egui::Label::new(
+                    RichText::new(e)
+                        .font(crate::theme::font(&t.type_small))
+                        .color(t.error.color32()),
+                )
+                .wrap(),
+            );
+        });
+        // W46.4 F2: a new error brings its row and its line into view (at the 1280 × 800 floor it lay below the
+        // pane's edge); the pane's scrolling is the user's again after that.
+        if self.error_shown != shown {
+            ui.scroll_to_rect(p.rect.union(line.response.rect), None);
+            self.error_shown = shown;
+        }
+        // FR-NUM-029: a refused tag-letter edit offers its proposal as one button (G-PP row 6).
+        if let Some(prop) = props.tag_proposal().filter(|prop| prop.row == row.key) {
+            ui.horizontal(|ui| {
+                ui.add_space(t.space_4 + t.icon_sm);
+                // "Join -K1" is a Secondary button.
+                let clicked = match prop.join() {
+                    true => crate::components::button(
+                        ui,
+                        crate::components::Kind::Secondary,
+                        &prop.button_text(),
+                        true,
+                        0.0,
                     )
-                    .wrap(),
-                );
+                    .clicked(),
+                    false => ui.button(prop.button_text()).clicked(),
+                };
+                if clicked {
+                    events.push(Event::Action("props.accept_tag_proposal", json!({})));
+                }
             });
-            // W46.4 F2: a new error brings its row and its line into view (at the 1280 × 800 floor it lay below the
-            // pane's edge); the pane's scrolling is the user's again after that.
-            if self.error_shown != shown {
-                ui.scroll_to_rect(rect.union(line.response.rect), None);
-                self.error_shown = shown;
-            }
-            // FR-NUM-029: a refused tag-letter edit offers its proposal as one button (G-PP row 6).
-            if let Some(p) = props.tag_proposal().filter(|p| p.row == row.key) {
-                ui.horizontal(|ui| {
-                    ui.add_space(t.space_4 + t.icon_sm);
-                    // "Join -K1" is a Secondary button.
-                    let clicked = match p.join() {
-                        true => crate::components::button(
-                            ui,
-                            crate::components::Kind::Secondary,
-                            &p.button_text(),
-                            true,
-                            0.0,
-                        )
-                        .clicked(),
-                        false => ui.button(p.button_text()).clicked(),
-                    };
-                    if clicked {
-                        events.push(Event::Action("props.accept_tag_proposal", json!({})));
-                    }
-                });
-            }
-        }
-        // A list with no match opens no popup. FT-1036: the list starts under the value cell.
-        if let Some(c) = props
-            .choices()
-            .filter(|c| c.row == row.key && !c.items.is_empty())
-        {
-            let anchor = egui::Rect::from_x_y_ranges(value_left..=rect.right() - t.space_4, rect.y_range());
-            self.choices(ui, &t, &label, &row.key, anchor, c, events);
-        } else if self.choices_rect.as_ref().is_some_and(|(r, _)| *r == row.key) {
-            self.choices_rect = None;
-        }
-        match props.popup() {
-            // The actions menu is a popup anchored on the row's "…" button (`actions_menu`), not drawn here.
-            Some(Popup::MlText { row: r }) if *r == row.key => {
-                self.mltext_popup(ui, sheet, row, events);
-            }
-            _ => {
-                self.mltext.clear();
-            }
-        }
-        if selected && !props.notes().is_empty() {
-            for n in props.notes() {
-                ui.label(RichText::new(strings::format(key!("props-notes"), &[n])).small());
-            }
         }
     }
 

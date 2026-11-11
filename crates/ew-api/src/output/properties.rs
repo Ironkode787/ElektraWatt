@@ -1867,507 +1867,527 @@ impl Session {
         targets: &[Uuid],
         jsons: &[Value],
     ) -> Vec<Built> {
-        let source = cx.source.as_deref();
+        match kind {
+            Kind::Device => Self::derived_rows_of_device(q, cx, targets),
+            Kind::Connection => Self::derived_rows_of_connection(q, cx, targets, jsons),
+            Kind::Page => Self::derived_rows_of_page(q, cx, targets, jsons),
+            Kind::Representation => Self::derived_rows_of_representation(q, cx, targets),
+            _ => Vec::new(),
+        }
+    }
+
+    /// The edit route of a derived row's partner field `path` on a record of `kind`.
+    fn editable(kind: Kind, path: &str) -> EditRoute {
+        let exposure = |n: &str| {
+            ew_commands::CommandRegistry::builtin()
+                .get(n)
+                .map(|e| e.meta().exposure)
+        };
+        route_of(kind.name(), path, &exposure)
+    }
+
+    /// A device's derived rows: the tag, the structure per aspect, the main location and the connection points.
+    fn derived_rows_of_device(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
+        let editable = |path: &str| Self::editable(Kind::Device, path);
+        let mut out = Vec::new();
+        let devices: Vec<Id<Device>> = targets.iter().map(|t| Id::from_uuid(*t)).collect();
+        // The tag.
+        let mut per = Vec::new();
+        let mut products: BTreeSet<String> = BTreeSet::new();
+        let mut all_frozen = true;
+        let mut any_frozen = false;
+        for d in &devices {
+            let tag = q.get::<DeviceTag>(*d);
+            let text = device_tag_text(q, *d);
+            let provenance = tag_provenance(q, *d, tag.as_ref().as_ref());
+            if matches!(provenance, Provenance::Frozen { .. }) {
+                any_frozen = true;
+            } else {
+                all_frozen = false;
+            }
+            products.insert(
+                tag.as_ref()
+                    .as_ref()
+                    .map(|t| t.product.clone())
+                    .unwrap_or_default(),
+            );
+            per.push((Some(Value::String(text)), provenance));
+        }
+        let (mut value, provenance) = merge(cx, &FieldType::Ident, per);
+        // The value is the product designation (what Freeze writes), the text the displayed tag.
+        if let (RowValue::One { json, .. }, [product]) =
+            (&mut value, products.iter().collect::<Vec<_>>().as_slice())
+        {
+            *json = Value::String((*product).clone());
+        }
+        // One device's Tag field is typed into: an existing device's tag proposes Join,
+        // another text freezes the typed tag (the partner write, as Override would).
+        let mut actions = Vec::new();
+        if devices.len() == 1 {
+            actions.push(RowAction::Edit);
+        }
+        if any_frozen {
+            actions.push(RowAction::Unfreeze);
+        }
+        // Freeze on several devices is one `fields.set_many` with each device's own product designation (part 2,
+        // §7.5).
+        if !all_frozen {
+            actions.push(RowAction::Freeze);
+        }
+        out.push(derived(
+            "device",
+            "tag",
+            Some(("tag.frozen", editable("tag.frozen"), true)),
+            Category::Identity,
+            FieldType::Ident,
+            value,
+            provenance,
+            actions,
+        ));
+        // The structure, per aspect with a node on any target.
+        let structures: Vec<std::sync::Arc<ResolvedStructure>> =
+            devices.iter().map(|d| q.get::<StructureOf>(*d)).collect();
+        let aspects: BTreeSet<Aspect> = structures.iter().flat_map(|s| s.slots.keys().copied()).collect();
+        for aspect in aspects {
+            let member = member_of_aspect(aspect);
+            let mut per = Vec::new();
+            let mut explicit = false;
+            let mut inherited = false;
+            for (d, s) in devices.iter().zip(&structures) {
+                let Some(slot) = s.slots.get(&aspect) else {
+                    per.push((None, Provenance::Authored));
+                    continue;
+                };
+                let text = s.render_aspect(aspect, &RdsSyntax::default());
+                let provenance = match slot.source {
+                    SlotSource::Explicit => {
+                        explicit = true;
+                        Provenance::Authored
+                    }
+                    SlotSource::MainRepPage => {
+                        inherited = true;
+                        let folio = (*q.get::<MainRep>(*d))
+                            .and_then(|r| q.reps().get(r))
+                            .and_then(|r| folio_of(q, r.page))
+                            .unwrap_or_default();
+                        Provenance::Inherited {
+                            from: format!("page {folio}"),
+                        }
+                    }
+                    SlotSource::Parent => {
+                        inherited = true;
+                        let dev = q.devices().get(*d);
+                        let from = dev
+                            .and_then(|x| x.aspects.terminal.as_ref().map(|t| t.strip).or(x.parent))
+                            .map(|p| device_tag_text(q, p))
+                            .unwrap_or_default();
+                        Provenance::Inherited { from }
+                    }
+                    // The structure box around the main representation (FR-PRJ-020).
+                    SlotSource::StructureBox => {
+                        inherited = true;
+                        let folio = (*q.get::<MainRep>(*d))
+                            .and_then(|r| q.reps().get(r))
+                            .and_then(|r| folio_of(q, r.page))
+                            .unwrap_or_default();
+                        Provenance::Inherited {
+                            from: format!("structure box on page {folio}"),
+                        }
+                    }
+                };
+                per.push((Some(Value::String(text)), provenance));
+            }
+            let (value, provenance) = merge(cx, &FieldType::Text, per);
+            let mut actions = Vec::new();
+            if inherited {
+                actions.push(RowAction::Override);
+            }
+            if explicit {
+                actions.push(RowAction::Reset);
+            }
+            let path = format!("structure.{member}");
+            out.push(derived(
+                "device",
+                &format!("structure.{member}"),
+                Some((&path, editable(&path), false)),
+                Category::Structure,
+                FieldType::Slot,
+                value,
+                provenance,
+                actions,
+            ));
+        }
+        // The main location.
+        let per: Vec<(Option<Value>, Provenance)> = devices
+            .iter()
+            .map(|d| {
+                let loc = main_location(q, *d);
+                (loc.map(Value::String), Session::main_location_provenance())
+            })
+            .collect();
+        let (value, provenance) = merge(cx, &FieldType::Text, per);
+        out.push(derived(
+            "device",
+            "main_location",
+            None,
+            Category::Placement,
+            FieldType::Text,
+            value,
+            provenance,
+            Vec::new(),
+        ));
+        // The connection points of the device's functions, one read-only row each with the label
+        // the junction notation prints (`-X1:1/a`, `-102G1:−#1`), in natural order of the label; over several
+        // devices the n-th rows merge.
+        let per_device: Vec<Vec<String>> = devices
+            .iter()
+            .map(|d| {
+                let mut labels: Vec<String> = q
+                    .idx()
+                    .functions_of_device(*d)
+                    .flat_map(|function| {
+                        q.get::<ew_derive::FunctionCps>(function)
+                            .iter()
+                            .map(|cp| {
+                                cp_label(
+                                    q,
+                                    ew_derive::CpRef {
+                                        function,
+                                        idx: cp.idx,
+                                    },
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .collect();
+                labels.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
+                labels
+            })
+            .collect();
+        let rows = per_device.iter().map(Vec::len).max().unwrap_or(0);
+        for n in 0..rows {
+            let per: Vec<(Option<Value>, Provenance)> = per_device
+                .iter()
+                .map(|labels| {
+                    (
+                        labels.get(n).map(|l| Value::String(l.clone())),
+                        Provenance::Derived {
+                            via: "function definition".into(),
+                        },
+                    )
+                })
+                .collect();
+            let (value, provenance) = merge(cx, &FieldType::Text, per);
+            out.push(derived(
+                "device",
+                &format!("cp[{n}]"),
+                None,
+                Category::ConnectionPoints,
+                FieldType::Text,
+                value,
+                provenance,
+                Vec::new(),
+            ));
+        }
+        out
+    }
+
+    /// A connection's derived rows: the seven wire properties, the wire number and the potential.
+    fn derived_rows_of_connection(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], jsons: &[Value]) -> Vec<Built> {
         let fields_set = |kind: &str, path: &str| EditRoute::FieldsSet {
             kind: kind.to_owned(),
             path: path.to_owned(),
         };
-        let editable = |path: &str| {
-            let exposure = |n: &str| {
-                ew_commands::CommandRegistry::builtin()
-                    .get(n)
-                    .map(|e| e.meta().exposure)
-            };
-            route_of(kind.name(), path, &exposure)
-        };
+        let editable = |path: &str| Self::editable(Kind::Connection, path);
         let mut out = Vec::new();
-        match kind {
-            Kind::Device => {
-                let devices: Vec<Id<Device>> = targets.iter().map(|t| Id::from_uuid(*t)).collect();
-                // The tag.
-                let mut per = Vec::new();
-                let mut products: BTreeSet<String> = BTreeSet::new();
-                let mut all_frozen = true;
-                let mut any_frozen = false;
-                for d in &devices {
-                    let tag = q.get::<DeviceTag>(*d);
-                    let text = device_tag_text(q, *d);
-                    let provenance = tag_provenance(q, *d, tag.as_ref().as_ref());
-                    if matches!(provenance, Provenance::Frozen { .. }) {
-                        any_frozen = true;
-                    } else {
-                        all_frozen = false;
-                    }
-                    products.insert(
-                        tag.as_ref()
-                            .as_ref()
-                            .map(|t| t.product.clone())
-                            .unwrap_or_default(),
-                    );
-                    per.push((Some(Value::String(text)), provenance));
-                }
-                let (mut value, provenance) = merge(cx, &FieldType::Ident, per);
-                // The value is the product designation (what Freeze writes), the text the displayed tag.
-                if let (RowValue::One { json, .. }, [product]) =
-                    (&mut value, products.iter().collect::<Vec<_>>().as_slice())
-                {
-                    *json = Value::String((*product).clone());
-                }
-                // One device's Tag field is typed into: an existing device's tag proposes Join,
-                // another text freezes the typed tag (the partner write, as Override would).
-                let mut actions = Vec::new();
-                if devices.len() == 1 {
-                    actions.push(RowAction::Edit);
-                }
-                if any_frozen {
-                    actions.push(RowAction::Unfreeze);
-                }
-                // Freeze on several devices is one `fields.set_many` with each device's own product designation (part 2,
-                // §7.5).
-                if !all_frozen {
-                    actions.push(RowAction::Freeze);
-                }
-                out.push(derived(
-                    "device",
-                    "tag",
-                    Some(("tag.frozen", editable("tag.frozen"), true)),
-                    Category::Identity,
-                    FieldType::Ident,
-                    value,
-                    provenance,
-                    actions,
-                ));
-                // The structure, per aspect with a node on any target.
-                let structures: Vec<std::sync::Arc<ResolvedStructure>> =
-                    devices.iter().map(|d| q.get::<StructureOf>(*d)).collect();
-                let aspects: BTreeSet<Aspect> =
-                    structures.iter().flat_map(|s| s.slots.keys().copied()).collect();
-                for aspect in aspects {
-                    let member = member_of_aspect(aspect);
-                    let mut per = Vec::new();
-                    let mut explicit = false;
-                    let mut inherited = false;
-                    for (d, s) in devices.iter().zip(&structures) {
-                        let Some(slot) = s.slots.get(&aspect) else {
-                            per.push((None, Provenance::Authored));
-                            continue;
-                        };
-                        let text = s.render_aspect(aspect, &RdsSyntax::default());
-                        let provenance = match slot.source {
-                            SlotSource::Explicit => {
-                                explicit = true;
-                                Provenance::Authored
-                            }
-                            SlotSource::MainRepPage => {
-                                inherited = true;
-                                let folio = (*q.get::<MainRep>(*d))
-                                    .and_then(|r| q.reps().get(r))
-                                    .and_then(|r| folio_of(q, r.page))
-                                    .unwrap_or_default();
-                                Provenance::Inherited {
-                                    from: format!("page {folio}"),
-                                }
-                            }
-                            SlotSource::Parent => {
-                                inherited = true;
-                                let dev = q.devices().get(*d);
-                                let from = dev
-                                    .and_then(|x| x.aspects.terminal.as_ref().map(|t| t.strip).or(x.parent))
-                                    .map(|p| device_tag_text(q, p))
-                                    .unwrap_or_default();
-                                Provenance::Inherited { from }
-                            }
-                            // The structure box around the main representation (FR-PRJ-020).
-                            SlotSource::StructureBox => {
-                                inherited = true;
-                                let folio = (*q.get::<MainRep>(*d))
-                                    .and_then(|r| q.reps().get(r))
-                                    .and_then(|r| folio_of(q, r.page))
-                                    .unwrap_or_default();
-                                Provenance::Inherited {
-                                    from: format!("structure box on page {folio}"),
-                                }
-                            }
-                        };
-                        per.push((Some(Value::String(text)), provenance));
-                    }
-                    let (value, provenance) = merge(cx, &FieldType::Text, per);
-                    let mut actions = Vec::new();
-                    if inherited {
-                        actions.push(RowAction::Override);
-                    }
-                    if explicit {
-                        actions.push(RowAction::Reset);
-                    }
-                    let path = format!("structure.{member}");
-                    out.push(derived(
-                        "device",
-                        &format!("structure.{member}"),
-                        Some((&path, editable(&path), false)),
-                        Category::Structure,
-                        FieldType::Slot,
-                        value,
-                        provenance,
-                        actions,
-                    ));
-                }
-                // The main location.
-                let per: Vec<(Option<Value>, Provenance)> = devices
-                    .iter()
-                    .map(|d| {
-                        let loc = main_location(q, *d);
-                        (loc.map(Value::String), Session::main_location_provenance())
-                    })
-                    .collect();
-                let (value, provenance) = merge(cx, &FieldType::Text, per);
-                out.push(derived(
-                    "device",
-                    "main_location",
-                    None,
-                    Category::Placement,
-                    FieldType::Text,
-                    value,
-                    provenance,
-                    Vec::new(),
-                ));
-                // The connection points of the device's functions, one read-only row each with the label
-                // the junction notation prints (`-X1:1/a`, `-102G1:−#1`), in natural order of the label; over several
-                // devices the n-th rows merge.
-                let per_device: Vec<Vec<String>> = devices
-                    .iter()
-                    .map(|d| {
-                        let mut labels: Vec<String> = q
-                            .idx()
-                            .functions_of_device(*d)
-                            .flat_map(|function| {
-                                q.get::<ew_derive::FunctionCps>(function)
-                                    .iter()
-                                    .map(|cp| {
-                                        cp_label(
-                                            q,
-                                            ew_derive::CpRef {
-                                                function,
-                                                idx: cp.idx,
-                                            },
-                                        )
-                                    })
-                                    .collect::<Vec<_>>()
-                            })
-                            .collect();
-                        labels.sort_by(|a, b| ew_mltext::natural_cmp(a, b).then_with(|| a.cmp(b)));
-                        labels
-                    })
-                    .collect();
-                let rows = per_device.iter().map(Vec::len).max().unwrap_or(0);
-                for n in 0..rows {
-                    let per: Vec<(Option<Value>, Provenance)> = per_device
-                        .iter()
-                        .map(|labels| {
-                            (
-                                labels.get(n).map(|l| Value::String(l.clone())),
-                                Provenance::Derived {
-                                    via: "function definition".into(),
-                                },
-                            )
-                        })
-                        .collect();
-                    let (value, provenance) = merge(cx, &FieldType::Text, per);
-                    out.push(derived(
-                        "device",
-                        &format!("cp[{n}]"),
-                        None,
-                        Category::ConnectionPoints,
-                        FieldType::Text,
-                        value,
-                        provenance,
-                        Vec::new(),
-                    ));
-                }
-            }
-            Kind::Connection => {
-                let conns: Vec<Id<Connection>> = targets.iter().map(|t| Id::from_uuid(*t)).collect();
-                let numbers = q.get::<WireNumbers>(());
-                // The seven wire properties.
-                type Getter = fn(&ew_derive::EffectiveProps) -> Option<(Value, PropSource)>;
-                macro_rules! prov {
-                    ($p:expr) => {
-                        $p.as_ref().and_then(|p| {
-                            serde_json::to_value(&p.value)
-                                .ok()
-                                .map(|v| (v, p.source.clone()))
-                        })
-                    };
-                }
-                let props: [(&str, &str, FieldType, Getter); 7] = [
-                    ("csa", "overrides.csa", FieldType::Csa, |e| prov!(e.csa)),
-                    ("colour", "overrides.colour", FieldType::Colour, |e| {
-                        prov!(e.colour)
-                    }),
-                    (
-                        "wire_part",
-                        "overrides.wire_part",
-                        FieldType::Link { kind: "part".into() },
-                        |e| prov!(e.wire_part),
-                    ),
-                    ("insulation", "overrides.insulation", FieldType::Ident, |e| {
-                        prov!(e.insulation)
-                    }),
-                    ("function", "overrides.function", FieldType::Ident, |e| {
-                        prov!(e.function)
-                    }),
-                    ("shielded", "overrides.flags.shielded", FieldType::Bool, |e| {
-                        prov!(e.shielded)
-                    }),
-                    ("twisted", "overrides.flags.twisted", FieldType::Bool, |e| {
-                        prov!(e.twisted)
-                    }),
-                ];
-                for (name, path, ty, get) in props {
-                    let mut per = Vec::new();
-                    let mut can_override = false;
-                    let mut can_reset = false;
-                    for c in &conns {
-                        let wires = wires_of(q, *c);
-                        let first = wires.first().and_then(|(_, e)| get(e));
-                        // Two wires with different values: varies.
-                        let distinct: BTreeSet<String> = wires
-                            .iter()
-                            .map(|(_, e)| get(e).map_or_else(|| "null".into(), |(v, _)| v.to_string()))
-                            .collect();
-                        let Some((value, source)) = first else {
-                            per.push((None, Provenance::Authored));
-                            can_override = true;
-                            continue;
-                        };
-                        if distinct.len() > 1 {
-                            per.push((
-                                Some(Value::String(format!("‹{}›", distinct.len()))),
-                                Provenance::Varies {
-                                    count: distinct.len(),
-                                },
-                            ));
-                            can_override = true;
-                            continue;
-                        }
-                        let class = wires.first().and_then(|(_, e)| e.class.clone());
-                        let potential = q
-                            .connections()
-                            .get(*c)
-                            .and_then(|conn| potential_of(q, conn))
-                            .map(|p| q.get::<PotentialNameOf>(p).name.text.clone())
-                            .unwrap_or_else(|| "?".into());
-                        let provenance = match &source {
-                            PropSource::Override(at) if at == c => {
-                                can_reset = true;
-                                Provenance::Overridden {
-                                    note: "override (CDP)".into(),
-                                }
-                            }
-                            PropSource::Override(at) => {
-                                can_override = true;
-                                let on = numbers
-                                    .number(*at)
-                                    .map_or_else(|| "another connection".to_owned(), |n| n.label.clone());
-                                Provenance::Overridden {
-                                    note: format!("override on {on}"),
-                                }
-                            }
-                            other => {
-                                can_override = true;
-                                Provenance::Derived {
-                                    via: prop_via(q, other, &potential, class.as_ref()),
-                                }
-                            }
-                        };
-                        per.push((Some(value), provenance));
-                    }
-                    let (value, provenance) = merge(cx, &ty, per);
-                    let mut actions = Vec::new();
-                    if can_override {
-                        actions.push(RowAction::Override);
-                    }
-                    if can_reset {
-                        actions.push(RowAction::Reset);
-                    }
-                    let settable = if name == "shielded" || name == "twisted" {
-                        "overrides.flags"
-                    } else {
-                        path
-                    };
-                    let route = match editable(settable) {
-                        EditRoute::FieldsSet { .. } => fields_set("connection", settable),
-                        other => other,
-                    };
-                    out.push(derived(
-                        "connection",
-                        name,
-                        Some((path, route, false)),
-                        Category::Electrical,
-                        ty,
-                        value,
-                        provenance,
-                        actions,
-                    ));
-                }
-                // The wire number.
-                let mut per = Vec::new();
-                let mut any_frozen = false;
-                let mut any_free = false;
-                for (c, j) in conns.iter().zip(jsons) {
-                    let printed = wire_number_text(q, *c);
-                    let frozen = j.get("number").and_then(|n| n.get("frozen")).is_some();
-                    if frozen {
-                        any_frozen = true;
-                    } else if printed != "?" {
-                        any_free = true;
-                    }
-                    let provenance = if frozen {
-                        Provenance::Frozen {
-                            note: "frozen".into(),
-                        }
-                    } else {
-                        Provenance::Derived {
-                            via: "wire numbering".into(),
-                        }
-                    };
-                    per.push((Some(Value::String(printed)), provenance));
-                }
-                let (value, provenance) = merge(cx, &FieldType::Ident, per);
-                let mut actions = Vec::new();
-                if any_free && conns.len() == 1 {
-                    actions.push(RowAction::Freeze);
-                }
-                if any_frozen {
-                    actions.push(RowAction::Unfreeze);
-                }
-                out.push(derived(
-                    "connection",
-                    "number",
-                    Some(("number", editable("number"), true)),
-                    Category::Identity,
-                    FieldType::Ident,
-                    value,
-                    provenance,
-                    actions,
-                ));
-                // The potential.
-                let per: Vec<(Option<Value>, Provenance)> = conns
-                    .iter()
-                    .map(|c| {
-                        let Some(p) = q.connections().get(*c).and_then(|conn| potential_of(q, conn)) else {
-                            return (
-                                None,
-                                Provenance::Derived {
-                                    via: "connectivity".into(),
-                                },
-                            );
-                        };
-                        let names = q.get::<PotentialNameOf>(p);
-                        let via = match names.name.source {
-                            NameSource::Def(def) => {
-                                let at = q
-                                    .potential_defs()
-                                    .get(def)
-                                    .and_then(|d| EndpointKey::of(&d.at))
-                                    .and_then(ew_derive::CpRef::of)
-                                    .map(|cp| cp_label(q, cp))
-                                    .unwrap_or_default();
-                                format!("potential definition at {at}")
-                            }
-                            _ => "connectivity".to_owned(),
-                        };
-                        (
-                            Some(Value::String(names.name.text.clone())),
-                            Provenance::Derived { via },
-                        )
-                    })
-                    .collect();
-                let (value, provenance) = merge(cx, &FieldType::Text, per);
-                out.push(derived(
-                    "connection",
-                    "potential",
-                    None,
-                    Category::Electrical,
-                    FieldType::Text,
-                    value,
-                    provenance,
-                    Vec::new(),
-                ));
-            }
-            Kind::Page => {
-                let project_description = ml_text(
-                    &serde_json::to_value(&q.project().master.description).unwrap_or(Value::Null),
-                    source,
-                );
-                let mut per = Vec::new();
-                let mut any_override = false;
-                for (t, j) in targets.iter().zip(jsons) {
-                    let tb = q.get::<TitleBlockValues>(PageRef::Drawn(Id::from_uuid(*t)));
-                    let text = match tb.get("page.description") {
-                        Some(TbValue::Ml(m)) => {
-                            ml_text(&serde_json::to_value(m).unwrap_or(Value::Null), source)
-                        }
-                        Some(TbValue::Text(s)) => s.clone(),
-                        _ => String::new(),
-                    };
-                    let overridden = j
-                        .get("description_override")
-                        .is_some_and(|o| !o.is_null() && !ml_text(o, source).is_empty());
-                    let provenance = if overridden {
-                        any_override = true;
-                        Provenance::Overridden {
-                            note: format!("override · project description is '{project_description}'"),
-                        }
-                    } else {
-                        Provenance::Inherited {
-                            from: "project description".into(),
-                        }
-                    };
-                    per.push((Some(Value::String(text)), provenance));
-                }
-                let (value, provenance) = merge(cx, &FieldType::MlText, per);
-                let mut actions = vec![RowAction::Override];
-                if any_override {
-                    actions.push(RowAction::Reset);
-                }
-                out.push(derived(
-                    "page",
-                    "description",
-                    Some(("description_override", editable("description_override"), false)),
-                    Category::Texts,
-                    FieldType::MlText,
-                    value,
-                    provenance,
-                    actions,
-                ));
-            }
-            Kind::Representation => {
-                let per: Vec<(Option<Value>, Provenance)> = targets
-                    .iter()
-                    .map(|t| {
-                        let x = q.get::<XrefTextOf>(Id::from_uuid(*t));
-                        (
-                            (!x.text.is_empty()).then(|| Value::String(x.text.clone())),
-                            Provenance::Derived {
-                                via: "cross-reference format".into(),
-                            },
-                        )
-                    })
-                    .collect();
-                let (value, provenance) = merge(cx, &FieldType::Text, per);
-                out.push(derived(
-                    "representation",
-                    "xref",
-                    None,
-                    Category::Texts,
-                    FieldType::Text,
-                    value,
-                    provenance,
-                    Vec::new(),
-                ));
-            }
-            _ => {}
+        let conns: Vec<Id<Connection>> = targets.iter().map(|t| Id::from_uuid(*t)).collect();
+        let numbers = q.get::<WireNumbers>(());
+        // The seven wire properties.
+        type Getter = fn(&ew_derive::EffectiveProps) -> Option<(Value, PropSource)>;
+        macro_rules! prov {
+            ($p:expr) => {
+                $p.as_ref().and_then(|p| {
+                    serde_json::to_value(&p.value)
+                        .ok()
+                        .map(|v| (v, p.source.clone()))
+                })
+            };
         }
+        let props: [(&str, &str, FieldType, Getter); 7] = [
+            ("csa", "overrides.csa", FieldType::Csa, |e| prov!(e.csa)),
+            ("colour", "overrides.colour", FieldType::Colour, |e| {
+                prov!(e.colour)
+            }),
+            (
+                "wire_part",
+                "overrides.wire_part",
+                FieldType::Link { kind: "part".into() },
+                |e| prov!(e.wire_part),
+            ),
+            ("insulation", "overrides.insulation", FieldType::Ident, |e| {
+                prov!(e.insulation)
+            }),
+            ("function", "overrides.function", FieldType::Ident, |e| {
+                prov!(e.function)
+            }),
+            ("shielded", "overrides.flags.shielded", FieldType::Bool, |e| {
+                prov!(e.shielded)
+            }),
+            ("twisted", "overrides.flags.twisted", FieldType::Bool, |e| {
+                prov!(e.twisted)
+            }),
+        ];
+        for (name, path, ty, get) in props {
+            let mut per = Vec::new();
+            let mut can_override = false;
+            let mut can_reset = false;
+            for c in &conns {
+                let wires = wires_of(q, *c);
+                let first = wires.first().and_then(|(_, e)| get(e));
+                // Two wires with different values: varies.
+                let distinct: BTreeSet<String> = wires
+                    .iter()
+                    .map(|(_, e)| get(e).map_or_else(|| "null".into(), |(v, _)| v.to_string()))
+                    .collect();
+                let Some((value, source)) = first else {
+                    per.push((None, Provenance::Authored));
+                    can_override = true;
+                    continue;
+                };
+                if distinct.len() > 1 {
+                    per.push((
+                        Some(Value::String(format!("‹{}›", distinct.len()))),
+                        Provenance::Varies {
+                            count: distinct.len(),
+                        },
+                    ));
+                    can_override = true;
+                    continue;
+                }
+                let class = wires.first().and_then(|(_, e)| e.class.clone());
+                let potential = q
+                    .connections()
+                    .get(*c)
+                    .and_then(|conn| potential_of(q, conn))
+                    .map(|p| q.get::<PotentialNameOf>(p).name.text.clone())
+                    .unwrap_or_else(|| "?".into());
+                let provenance = match &source {
+                    PropSource::Override(at) if at == c => {
+                        can_reset = true;
+                        Provenance::Overridden {
+                            note: "override (CDP)".into(),
+                        }
+                    }
+                    PropSource::Override(at) => {
+                        can_override = true;
+                        let on = numbers
+                            .number(*at)
+                            .map_or_else(|| "another connection".to_owned(), |n| n.label.clone());
+                        Provenance::Overridden {
+                            note: format!("override on {on}"),
+                        }
+                    }
+                    other => {
+                        can_override = true;
+                        Provenance::Derived {
+                            via: prop_via(q, other, &potential, class.as_ref()),
+                        }
+                    }
+                };
+                per.push((Some(value), provenance));
+            }
+            let (value, provenance) = merge(cx, &ty, per);
+            let mut actions = Vec::new();
+            if can_override {
+                actions.push(RowAction::Override);
+            }
+            if can_reset {
+                actions.push(RowAction::Reset);
+            }
+            let settable = if name == "shielded" || name == "twisted" {
+                "overrides.flags"
+            } else {
+                path
+            };
+            let route = match editable(settable) {
+                EditRoute::FieldsSet { .. } => fields_set("connection", settable),
+                other => other,
+            };
+            out.push(derived(
+                "connection",
+                name,
+                Some((path, route, false)),
+                Category::Electrical,
+                ty,
+                value,
+                provenance,
+                actions,
+            ));
+        }
+        // The wire number.
+        let mut per = Vec::new();
+        let mut any_frozen = false;
+        let mut any_free = false;
+        for (c, j) in conns.iter().zip(jsons) {
+            let printed = wire_number_text(q, *c);
+            let frozen = j.get("number").and_then(|n| n.get("frozen")).is_some();
+            if frozen {
+                any_frozen = true;
+            } else if printed != "?" {
+                any_free = true;
+            }
+            let provenance = if frozen {
+                Provenance::Frozen {
+                    note: "frozen".into(),
+                }
+            } else {
+                Provenance::Derived {
+                    via: "wire numbering".into(),
+                }
+            };
+            per.push((Some(Value::String(printed)), provenance));
+        }
+        let (value, provenance) = merge(cx, &FieldType::Ident, per);
+        let mut actions = Vec::new();
+        if any_free && conns.len() == 1 {
+            actions.push(RowAction::Freeze);
+        }
+        if any_frozen {
+            actions.push(RowAction::Unfreeze);
+        }
+        out.push(derived(
+            "connection",
+            "number",
+            Some(("number", editable("number"), true)),
+            Category::Identity,
+            FieldType::Ident,
+            value,
+            provenance,
+            actions,
+        ));
+        // The potential.
+        let per: Vec<(Option<Value>, Provenance)> = conns
+            .iter()
+            .map(|c| {
+                let Some(p) = q.connections().get(*c).and_then(|conn| potential_of(q, conn)) else {
+                    return (
+                        None,
+                        Provenance::Derived {
+                            via: "connectivity".into(),
+                        },
+                    );
+                };
+                let names = q.get::<PotentialNameOf>(p);
+                let via = match names.name.source {
+                    NameSource::Def(def) => {
+                        let at = q
+                            .potential_defs()
+                            .get(def)
+                            .and_then(|d| EndpointKey::of(&d.at))
+                            .and_then(ew_derive::CpRef::of)
+                            .map(|cp| cp_label(q, cp))
+                            .unwrap_or_default();
+                        format!("potential definition at {at}")
+                    }
+                    _ => "connectivity".to_owned(),
+                };
+                (
+                    Some(Value::String(names.name.text.clone())),
+                    Provenance::Derived { via },
+                )
+            })
+            .collect();
+        let (value, provenance) = merge(cx, &FieldType::Text, per);
+        out.push(derived(
+            "connection",
+            "potential",
+            None,
+            Category::Electrical,
+            FieldType::Text,
+            value,
+            provenance,
+            Vec::new(),
+        ));
+        out
+    }
+
+    /// A page's derived row: the description, inherited from the project's or overridden.
+    fn derived_rows_of_page(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid], jsons: &[Value]) -> Vec<Built> {
+        let source = cx.source.as_deref();
+        let editable = |path: &str| Self::editable(Kind::Page, path);
+        let mut out = Vec::new();
+        let project_description = ml_text(
+            &serde_json::to_value(&q.project().master.description).unwrap_or(Value::Null),
+            source,
+        );
+        let mut per = Vec::new();
+        let mut any_override = false;
+        for (t, j) in targets.iter().zip(jsons) {
+            let tb = q.get::<TitleBlockValues>(PageRef::Drawn(Id::from_uuid(*t)));
+            let text = match tb.get("page.description") {
+                Some(TbValue::Ml(m)) => ml_text(&serde_json::to_value(m).unwrap_or(Value::Null), source),
+                Some(TbValue::Text(s)) => s.clone(),
+                _ => String::new(),
+            };
+            let overridden = j
+                .get("description_override")
+                .is_some_and(|o| !o.is_null() && !ml_text(o, source).is_empty());
+            let provenance = if overridden {
+                any_override = true;
+                Provenance::Overridden {
+                    note: format!("override · project description is '{project_description}'"),
+                }
+            } else {
+                Provenance::Inherited {
+                    from: "project description".into(),
+                }
+            };
+            per.push((Some(Value::String(text)), provenance));
+        }
+        let (value, provenance) = merge(cx, &FieldType::MlText, per);
+        let mut actions = vec![RowAction::Override];
+        if any_override {
+            actions.push(RowAction::Reset);
+        }
+        out.push(derived(
+            "page",
+            "description",
+            Some(("description_override", editable("description_override"), false)),
+            Category::Texts,
+            FieldType::MlText,
+            value,
+            provenance,
+            actions,
+        ));
+        out
+    }
+
+    /// A representation's derived row: the cross-reference text.
+    fn derived_rows_of_representation(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
+        let mut out = Vec::new();
+        let per: Vec<(Option<Value>, Provenance)> = targets
+            .iter()
+            .map(|t| {
+                let x = q.get::<XrefTextOf>(Id::from_uuid(*t));
+                (
+                    (!x.text.is_empty()).then(|| Value::String(x.text.clone())),
+                    Provenance::Derived {
+                        via: "cross-reference format".into(),
+                    },
+                )
+            })
+            .collect();
+        let (value, provenance) = merge(cx, &FieldType::Text, per);
+        out.push(derived(
+            "representation",
+            "xref",
+            None,
+            Category::Texts,
+            FieldType::Text,
+            value,
+            provenance,
+            Vec::new(),
+        ));
         out
     }
 
