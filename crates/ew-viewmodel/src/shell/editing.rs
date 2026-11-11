@@ -1803,7 +1803,16 @@ impl ShellModel {
         let _ = self.with_tool(|t, _| {
             if let Some(p) = t.as_any_mut().and_then(|a| a.downcast_mut::<PlaceTool>()) {
                 p.set_strip_tag(tag);
-                if reread {
+                // Every number below the strip's lowest free one is in use, so a counter that stepped onto one
+                // (after it filled a gap: 3 placed between 1, 2 and 4 counts on to 4) takes the lowest free
+                // instead (FT-1546). A counter above it counts on, as the user typed it.
+                let taken = || match (p.target(), next.parse::<u64>()) {
+                    (PlaceTarget::Terminal { designation, .. }, Ok(free)) => designation
+                        .parse::<u64>()
+                        .is_ok_and(|d| designation.bytes().all(|b| b.is_ascii_digit()) && d < free),
+                    _ => false,
+                };
+                if reread || taken() {
                     p.set_designation(next);
                 }
             }

@@ -742,6 +742,34 @@ fn a_refused_commit_keeps_the_designation_and_a_non_decimal_one_asks_again() {
     assert_eq!(tables(&s).reps.len(), count + 1);
 }
 
+/// FT-1546: the counter fills a gap and then skips the designations in use. -X1031's lowest free designation is 21;
+/// with 22 placed first, the tool proposes 21, and after placing it proposes 23, not 22 (which the command refuses).
+#[test]
+fn the_terminal_counter_skips_a_designation_in_use_after_filling_a_gap() {
+    let tmp = Tmp::new("gap");
+    let mut s = shell(&tmp, "103");
+    let first = sheet(&s, grid_point(&s, (70, 40)));
+    let second = sheet(&s, grid_point(&s, (76, 40)));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031", "designation": "22"}),
+    );
+    done(&mut s, "canvas.press", at(first, json!({})));
+    done(&mut s, "ui.dismiss", json!({}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1031"}),
+    );
+    assert!(describe_line(&s, "canvas ghost place").contains("strip \"-X1031:21\""));
+    let count = tables(&s).reps.len();
+    done(&mut s, "canvas.press", at(second, json!({})));
+    assert_eq!(tables(&s).reps.len(), count + 1);
+    let line = describe_line(&s, "canvas ghost place");
+    assert!(line.contains("strip \"-X1031:23\""), "{line}");
+}
+
 /// A terminal symbol without a strip opens the picker's strip chooser (every strip of the project by tag, the
 /// next free designation proposed); a strip made while it is open is listed and current; the tag comes from the model.
 #[test]
