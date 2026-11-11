@@ -122,10 +122,18 @@ impl Measures {
 /// The measures of `page` (see the module documentation of [`crate::routing`]).
 pub fn measure(page: &PageGeometry) -> Measures {
     let lines: Vec<Vec<Point>> = page.connections.iter().map(|c| clean(&c.polyline)).collect();
+    // The representations that draw a connection point: only their bodies are what (c) keeps wires out of.
+    let with_cps: BTreeSet<Uuid> = page.cps.iter().map(|cp| cp.rep).collect();
     let mut m = Measures::default();
     for (c, line) in page.connections.iter().zip(&lines) {
         touches(page, c, line, &mut m.touches);
-        through(page, c, line, &mut m.through_bodies, &mut m.through_texts);
+        through(
+            page,
+            (c, line),
+            &with_cps,
+            &mut m.through_bodies,
+            &mut m.through_texts,
+        );
         let bends = bend_count(line);
         if bends > 0 {
             m.bends.push(Bends {
@@ -384,12 +392,12 @@ fn minus_escape(
     (lo < hi).then_some((lo, hi))
 }
 
-/// (c) and (d): the bodies and texts `line` runs through, a body of a representation `c` ends at less the escapes of
-/// its end CPs there.
+/// (c) and (d): the bodies of representations in `with_cps` and the texts `line` runs through, a body of a
+/// representation `c` ends at less the escapes of its end CPs there.
 fn through(
     page: &PageGeometry,
-    c: &DrawnConnection,
-    line: &[Point],
+    (c, line): (&DrawnConnection, &[Point]),
+    with_cps: &BTreeSet<Uuid>,
     bodies: &mut Vec<Through>,
     texts: &mut Vec<Through>,
 ) {
@@ -418,7 +426,7 @@ fn through(
         if a == b {
             continue;
         }
-        for body in &page.bodies {
+        for body in page.bodies.iter().filter(|b| with_cps.contains(&b.rep)) {
             let mut span = inside(a, b, body.rect);
             for &(rep, p, v) in &escapes {
                 if rep == body.rep {

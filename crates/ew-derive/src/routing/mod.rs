@@ -33,6 +33,8 @@
 //!   along its own ends' escapes: for a connection point the connection ends at, the ray from its point along its
 //!   leaving direction is that end's escape, and the part of a segment on it does not count inside the bodies of the
 //!   representation that draws that point. One item per (connection, representation), with every stretch inside.
+//!   Only a representation that draws a connection point counts: a mark without one (a cable or wire marker, a
+//!   QET cross-section mark) is drawn across its wires on purpose.
 //! - **(d) Through a text.** A segment runs through a text box of a representation (a tag, a slot or pin text, a
 //!   cross-reference text; one box per line). No escape applies. One item per (connection, representation).
 //! - **(g) Four-way junction.** A junction has as many arms as there are distinct directions in which the

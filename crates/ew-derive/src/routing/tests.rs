@@ -172,11 +172,14 @@ fn c_a_wire_through_a_body_is_named_and_its_own_escape_is_not() {
         },
     ];
     assert_eq!(measure(&page).through_bodies, vec![]);
-    // A body of a third symbol in the way.
+    // A mark without connection points in the way (a cable marker drawn across its wires) does not count.
     page.bodies.push(Body {
         rep: id(102),
         rect: rect(mm(16, -2), mm(24, 2)),
     });
+    assert_eq!(measure(&page).through_bodies, vec![]);
+    // A third symbol in the way, which draws a connection point.
+    page.cps.push(cp(12, mm(20, -2), Dir4::Up, 102, &[]));
     assert_eq!(
         measure(&page).through_bodies,
         vec![Through {
