@@ -1089,7 +1089,7 @@ the recognisers of FR-IMP-017:
   *As built:* not yet; a mark arrives as a placed element that prints its own texts (QET users write cable tags,
   part texts and core colours on it). It has no terminals, and EW-CORE-069 counts only the bodies of
   representations that draw a connection point, so the marks QET draws across their wires raise no "wire through
-  a symbol" (417 such findings on the pilot's reference project before).
+  a symbol" (417 such findings on one pilot project before).
 - Converted texts are removed from the page in the same transaction and listed (EW-IMP-107), with a revert action.
   The conversion of the reference's four marker groups into ten CDPs is MF-07.
 - **Colour aliases.** The shipped table maps foreign colour notations to IEC 60757: BR → BN, SW → BK, BL → BU,

@@ -630,7 +630,7 @@ pub struct ImportQetArgs {
     /// The QElectroTech project file.
     #[arg(value_name = "file.qet")]
     pub file: PathBuf,
-    /// The starter content directory.
+    /// The starter content directory (default: `EW_CONTENT_DIR`, else the documents compiled into the program).
     #[arg(
         long,
         value_name = "dir",

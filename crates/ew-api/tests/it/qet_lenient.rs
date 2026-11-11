@@ -491,14 +491,23 @@ fn a_folio_report_pair_gets_one_name() {
             folio(
                 "2",
                 "B",
-                vec![el(PREVIOUS, t.clone(), 100, 100).label("1-C3").text("L-9").link(&s)],
+                vec![
+                    el(PREVIOUS, t.clone(), 100, 100)
+                        .label("1-C3")
+                        .text("L-9")
+                        .link(&s),
+                ],
             ),
         ],
     );
     let imported = import(&text);
     let found = ips(&imported);
     assert!(found.iter().all(|(n, _, _)| n == "L-9"), "{found:?}");
-    assert!(entries(&imported, "EW-IMP-115").is_empty(), "{}", all_entries(&imported));
+    assert!(
+        entries(&imported, "EW-IMP-115").is_empty(),
+        "{}",
+        all_entries(&imported)
+    );
 
     // Case 4: a source label that is not an identifier (a tab inside) falls through to the target label.
     let text = qet(
@@ -790,9 +799,17 @@ fn a_page_rule_label_on_two_elements_prints_twice_as_qet_prints_it() {
     let imported = import(&text);
     let tags: Vec<_> = devices(&imported)
         .iter()
-        .map(|d| (d.tag.counter, d.tag.frozen.as_ref().map(|f| f.text.as_str().to_owned())))
+        .map(|d| {
+            (
+                d.tag.counter,
+                d.tag.frozen.as_ref().map(|f| f.text.as_str().to_owned()),
+            )
+        })
         .collect();
-    assert_eq!(tags, [(None, Some("1K1".to_owned())), (None, Some("1K1".to_owned()))]);
+    assert_eq!(
+        tags,
+        [(None, Some("1K1".to_owned())), (None, Some("1K1".to_owned()))]
+    );
     assert!(
         imported.live.iter().any(|g| g.rule == "EW-RDS-004"),
         "{:?}",
