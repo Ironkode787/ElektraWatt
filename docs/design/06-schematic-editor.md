@@ -667,7 +667,10 @@ and one main function of the chosen symbol's function definition.
   connections. It sets the chosen overrides (cross-section, colour) on each crossed connection and creates one
   `WireMarker` page item that positions the group (FR-CON-023). The marker's text is derived: the cross-section at
   the left, one colour code per conductor ("2.5 BK BU"). The project's marker mode decides which connections show
-  markers (all, deviations, explicit overrides, none; FR-CON-024). In modes that show markers for connections
+  markers (all, deviations, explicit overrides, none; FR-CON-024). *As built:* a wire whose Wire marker box is
+  ticked (`overrides.show_marker`) always prints a marker, except in the mode none: with the mode absent (Per wire,
+  a new project's) it prints the cross-section and colour the wire states itself, and what the wire is where it
+  states neither; in a rule mode the tick adds the wire to those the rule selects. In modes that show markers for connections
   without a `WireMarker` item, the scene places them at a derived position. A group marker over several connections
   is one `PageItem::WireMarker{connections}`, whose list order is the printed order ([03](03-domain-model.md) §6,
   FR-CON-039). Colour fields accept only IEC 60757 codes and profile-declared company codes such as DBU

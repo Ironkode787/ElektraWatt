@@ -76,8 +76,8 @@
 //!   drawn by the scene at the side of their representation.
 //! - **Wire markers** (`ew_derive::connection_marker`): with the project's `marker_mode`
 //!   absent, connections with `overrides.show_marker` print the explicit cross-section and the colour codes (their
-//!   file spelling, `GNYE`), joined by a space; in a mode, the connections the mode selects print their effective
-//!   values. A connection a wire-marker item lists prints no marker of its own: the item prints the group.
+//!   file spelling, `GNYE`), joined by a space, and their effective values where they state neither; in a mode, the
+//!   connections the mode selects and those with `show_marker` print their effective values (`none`: no marker). A connection a wire-marker item lists prints no marker of its own: the item prints the group.
 //! - **Page items and structure boxes** ([`page_items`], [`page_boxes`]): a drawn page's items and
 //!   boxes in ID order; with texts, a free text prints its text or its bound value (`ew_derive::free_text`), a wire
 //!   marker its group text and whether it is shown (`ew_derive::group_marker`), a box its caption

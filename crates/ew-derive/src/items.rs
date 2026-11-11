@@ -390,11 +390,15 @@ pub fn marker_mode(q: &Q) -> Option<MarkerMode> {
     q.get::<DrawingSettingsQ>(()).marker_mode
 }
 
-/// Whether a connection would show a marker of its own in `mode` (`None`: the as-built `show_marker` rule).
+/// Whether a connection would show a marker of its own in `mode` (`None`: the as-built `show_marker` rule). A wire
+/// whose `show_marker` is set shows its marker in every mode but `None`, which draws no marker at all: the mode's
+/// rule adds wires, it never takes the tick of one wire away (the tick did nothing in a mode, to the eye a dead
+/// check box).
 pub fn shows_marker(q: &Q, c: &Connection, mode: Option<MarkerMode>) -> bool {
     match mode {
         None => c.overrides.show_marker,
         Some(MarkerMode::None) => false,
+        Some(_) if c.overrides.show_marker => true,
         Some(MarkerMode::Explicit) => c.overrides.csa.is_some() || c.overrides.colour.is_some(),
         Some(MarkerMode::All) => effective(q, c.id).is_some(),
         Some(MarkerMode::Deviations) => {
@@ -411,8 +415,9 @@ pub fn shows_marker(q: &Q, c: &Connection, mode: Option<MarkerMode>) -> bool {
 }
 
 /// The marker text of a connection drawn on its own, or `None` when it shows no marker: with the mode absent the
-/// as-built text of a connection whose `show_marker` is set, in a mode the effective text of a connection the mode
-/// selects; never for a connection a wire-marker item lists (`grouped`).
+/// as-built text of a connection whose `show_marker` is set (what the wire states itself; for a wire that states
+/// neither a cross-section nor a colour, what it is, so that a ticked wire always prints a marker), in a mode the
+/// effective text of a connection the mode selects; never for a connection a wire-marker item lists (`grouped`).
 pub fn connection_marker(q: &Q, c: &Connection, grouped: bool) -> Option<String> {
     if grouped {
         return None;
@@ -422,7 +427,9 @@ pub fn connection_marker(q: &Q, c: &Connection, grouped: bool) -> Option<String>
         return None;
     }
     Some(match mode {
-        None => explicit_marker_text(c),
+        None => Some(explicit_marker_text(c))
+            .filter(|t| !t.is_empty())
+            .unwrap_or_else(|| effective_marker_text(q, c.id)),
         Some(_) => effective_marker_text(q, c.id),
     })
 }

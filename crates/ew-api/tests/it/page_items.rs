@@ -431,6 +431,75 @@ fn colour_of(q: &Q, c: Id<Connection>) -> Option<String> {
         .and_then(|p| ew_derive::colour_text(&p.value))
 }
 
+/// A wire's Wire marker tick always prints a marker (the owner's hands-on test of 0.1.0: the check box had no
+/// visible effect). With the project's mode absent, a wire that states neither a cross-section nor a colour prints
+/// what it is; in a rule mode the tick adds the wire to those the rule selects; `none` draws no marker at all.
+#[test]
+fn a_ticked_wire_always_prints_a_marker() {
+    let batch = batch();
+    let ids = ids_by_key(&batch);
+    let mut s = session(&batch);
+    let p101: Id<Page> = id(&ids, "pages|101");
+    // A wire of folio 101 that prints no marker and states no cross-section or colour of its own.
+    let (plain, what_it_is) = {
+        let q = s.query();
+        let wire = q
+            .get::<PageConnectionsOf>(p101)
+            .iter()
+            .find(|c| {
+                let o = &c.connection.overrides;
+                c.marker.is_none()
+                    && !o.show_marker
+                    && o.csa.is_none()
+                    && o.colour.is_none()
+                    && !ew_derive::effective_marker_text(&q, c.connection.id).is_empty()
+            })
+            .map(|c| c.connection.id)
+            .expect("a plain wire on folio 101");
+        (wire, ew_derive::effective_marker_text(&q, wire))
+    };
+    let labels_before = texts(&s.query(), p101, Layer::Labels);
+    let tick = |s: &mut Session, on: bool| {
+        run(
+            s,
+            "fields.set",
+            json!({"kind": "connection", "targets": [plain.to_string()], "path": "overrides.show_marker", "value": on}),
+        );
+    };
+    tick(&mut s, true);
+    assert_eq!(
+        markers(&s.query(), p101)[&plain].as_deref(),
+        Some(what_it_is.as_str())
+    );
+    let labels = texts(&s.query(), p101, Layer::Labels);
+    assert_eq!(
+        labels.iter().filter(|t| **t == what_it_is).count(),
+        labels_before.iter().filter(|t| **t == what_it_is).count() + 1,
+        "the page prints the marker: {labels:?}"
+    );
+    // In the rule modes the tick adds the wire; without it the rules decide; `none` draws nothing.
+    for (mode, ticked, unticked) in [
+        ("explicit", true, false),
+        ("deviations", true, false),
+        ("all", true, true),
+        ("none", false, false),
+    ] {
+        run(&mut s, "project.drawing.set", json!({ "marker_mode": mode }));
+        assert_eq!(
+            markers(&s.query(), p101)[&plain].is_some(),
+            ticked,
+            "{mode}, ticked"
+        );
+        tick(&mut s, false);
+        assert_eq!(
+            markers(&s.query(), p101)[&plain].is_some(),
+            unticked,
+            "{mode}, not ticked"
+        );
+        tick(&mut s, true);
+    }
+}
+
 #[test]
 fn a_group_marker_prints_once_for_its_connections() {
     let batch = batch();

@@ -60,6 +60,43 @@ fn type_into_field(h: &mut Harness<'_, App>, label: &str, text: &str) {
     settle(h);
 }
 
+/// The owner's hands-on test of 0.1.0: a wire's Wire marker check box had no visible effect. A click on it commits
+/// the tick as one undo step (that the ticked wire then prints its marker, whatever it states itself, is
+/// `a_ticked_wire_always_prints_a_marker` of `ew-api`).
+#[test]
+fn a_click_on_the_wire_marker_check_box_ticks_the_wire() {
+    let tmp = Tmp::new();
+    let mut h = support::on_golden(&tmp, "103");
+    dispatch(&mut h, "select.set", json!({"ids": [W29]}));
+    dispatch(&mut h, "props.show", json!({"on": true}));
+    settle(&mut h);
+    let key = "connection/overrides.show_marker";
+    let ticked = |h: &Harness<'_, App>| {
+        let sheet = h.state().shell().properties().sheet().expect("a sheet");
+        let (_, r) = find_row(sheet, key).unwrap_or_else(|| panic!("no row {key}"));
+        matches!(&r.value, RowValue::One { json, .. } if json == &json!(true))
+    };
+    assert!(!ticked(&h));
+    let rev = h.state().shell().revision();
+    let boxes: Vec<_> = h
+        .get_all_by_role(egui::Role::CheckBox)
+        .filter(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.contains("Wire marker"))
+        })
+        .collect();
+    assert_eq!(boxes.len(), 1, "one Wire marker check box");
+    boxes[0].click();
+    settle(&mut h);
+    assert!(ticked(&h));
+    assert_eq!(h.state().shell().revision(), rev.map(|r| r + 1));
+    dispatch(&mut h, "edit.undo", json!({}));
+    settle(&mut h);
+    assert!(!ticked(&h));
+    h.state_mut().shell_mut().shutdown();
+}
+
 #[test]
 fn ac28_w29_colour_through_the_editor_and_undo() {
     let tmp = Tmp::new();
