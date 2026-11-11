@@ -139,7 +139,7 @@ fn the_placement_rows_of_902_read_in_words_and_the_scale_edits_as_it_shows() {
     assert_eq!(
         advanced,
         pairs(&[
-            ("Form", "c80af135-34f8-574c-8f52-756bd24c7bd0"),
+            ("Form", "Frame QET A4 landscape grid"),
             ("Connection grid", "QET 10 px"),
             ("Grid step divisor", "3"),
             ("Grid step multiplier", "7.9375 mm"),

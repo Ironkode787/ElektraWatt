@@ -53,11 +53,11 @@ fn a_click_on_a_category_header_folds_it() {
     last_placement(&h).click();
     settle(&mut h);
     assert_eq!(collapsed(&h), ["representation/placement"]);
-    assert!(!drawn(&h, "Pos"), "the folded rows go");
+    assert!(!drawn(&h, "Orientation"), "the folded rows go");
     last_placement(&h).click();
     settle(&mut h);
     assert!(collapsed(&h).is_empty());
-    assert!(drawn(&h, "Pos"));
+    assert!(drawn(&h, "Orientation"));
     // From the keyboard: Enter and Space on the focused header.
     last_placement(&h).focus();
     settle(&mut h);
@@ -74,7 +74,7 @@ fn a_click_on_a_category_header_folds_it() {
     dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
     settle(&mut h);
     assert_eq!(collapsed(&h), ["representation/placement"]);
-    assert!(!drawn(&h, "Pos"));
+    assert!(!drawn(&h, "Orientation"));
     h.state_mut().shell_mut().shutdown();
 }
 

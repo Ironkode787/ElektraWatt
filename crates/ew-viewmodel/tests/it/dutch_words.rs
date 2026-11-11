@@ -755,7 +755,7 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
         "Route 3: H5",
         "Route 4: F5",
         "Route 5: F5",
-        "Source ref: ",
+        "Source reference: ",
         "Key: connections|F6",
         "Lineage: import_lineage",
     ];

@@ -127,7 +127,7 @@ fn f55_offers_the_same_function_first() {
     assert_eq!(
         lines(&s, "detail "),
         [format!(
-            "detail \"ElektraWatt starter parts (system) · version {version} · released · functions ew.fn.mcb-1pn\""
+            "detail \"ElektraWatt starter parts (system) · version {version} · released · functions 1P+N MCB 1-2-N-N\""
         )]
     );
     // Only parts that fit.
@@ -145,7 +145,7 @@ fn f55_offers_the_same_function_first() {
     assert_eq!(results(&s), ["PT 2.5-TWIN", "PT 2.5-TWIN-PE"]);
     assert_eq!(
         lines(&s, "detail "),
-        ["detail \"In this project · version 1.0.0 · released · functions ew.fn.terminal\""]
+        ["detail \"In this project · version 1.0.0 · released · functions Feed-through terminal a-b-c-s1\""]
     );
     // Escape closes the dialog without a step.
     let n = steps(&s);

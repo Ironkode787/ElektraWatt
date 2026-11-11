@@ -139,7 +139,14 @@ fn ctrl_a_on_the_page_selects_everything_it_draws() {
     d.input(&key("ctrl+a"));
     d.settle();
     let s = d.shell_mut();
-    let mut drawn: Vec<_> = s.canvas().unwrap().page().entities.iter().map(|(e, _)| *e).collect();
+    let mut drawn: Vec<_> = s
+        .canvas()
+        .unwrap()
+        .page()
+        .entities
+        .iter()
+        .map(|(e, _)| *e)
+        .collect();
     drawn.sort();
     drawn.dedup();
     let mut selected = s.selection().items.clone();
@@ -214,7 +221,9 @@ fn a_symbols_properties_name_its_symbol_and_definition_in_words() {
         )
     };
     // F55's symbol: the outline its device draws, found by the tag.
-    let _ = d.shell_mut().dispatch("select.set", &json!({"refs": ["tag:F55"]}));
+    let _ = d
+        .shell_mut()
+        .dispatch("select.set", &json!({"refs": ["tag:F55"]}));
     d.settle();
     let rect = d.shell_mut().selected_rects(0)[0];
     let _ = d.shell_mut().dispatch("select.set", &json!({"refs": []}));
@@ -239,7 +248,9 @@ fn state(d: &mut Driver) -> serde_json::Value {
 fn choose_part_names_a_parts_functions_in_words() {
     let tmp = Tmp::new();
     let mut d = golden_on_101(&tmp);
-    let _ = d.shell_mut().dispatch("select.set", &json!({"refs": ["tag:F55"]}));
+    let _ = d
+        .shell_mut()
+        .dispatch("select.set", &json!({"refs": ["tag:F55"]}));
     d.settle();
     assert_eq!(
         d.shell_mut().dispatch("part.choose", &json!({"use": 0})),

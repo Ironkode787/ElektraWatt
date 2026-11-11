@@ -576,8 +576,11 @@ impl Session {
                         .map(|c| c.designation.as_str().to_owned())
                         .collect();
                     if cps.is_empty() {
-                        let mut own: Vec<(u16, String)> =
-                            def.cps.iter().map(|c| (c.idx, c.designation.as_str().to_owned())).collect();
+                        let mut own: Vec<(u16, String)> = def
+                            .cps
+                            .iter()
+                            .map(|c| (c.idx, c.designation.as_str().to_owned()))
+                            .collect();
                         own.sort();
                         cps = own.into_iter().map(|(_, d)| d).collect();
                     }

@@ -40,7 +40,7 @@ fn the_placement_rows_of_902_read_in_words() {
         })
         .collect();
     let want: Vec<(String, String)> = [
-        ("page/form", "c80af135-34f8-574c-8f52-756bd24c7bd0"),
+        ("page/form", "Frame QET A4 landscape grid"),
         ("page/grid", ""),
         ("page/grid.den", "3"),
         ("page/grid.num", "7937500"),
