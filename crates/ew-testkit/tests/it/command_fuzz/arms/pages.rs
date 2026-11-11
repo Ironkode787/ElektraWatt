@@ -222,20 +222,33 @@ pub(super) fn page_delete(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
 }
 
 pub(super) fn section_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
-    let number = live.section_info.iter().map(|s| s.number).max().unwrap_or(0) + 1;
-    let free_from = live.section_info.iter().map(|s| s.range.1).max().unwrap_or(0) + 1;
+    // A section that ends at the last folio leaves no free range after it: no step then.
+    let number = live
+        .section_info
+        .iter()
+        .map(|s| s.number)
+        .max()
+        .unwrap_or(0)
+        .checked_add(1)?;
+    let free_from = live
+        .section_info
+        .iter()
+        .map(|s| s.range.1)
+        .max()
+        .unwrap_or(0)
+        .checked_add(1)?;
     match rng.below(10) {
         // The command refuses: the range starts after it ends.
         0 => Some(Step::cmd(
             "section.create",
-            json!({"number": number, "folio_range": [free_from + 50, free_from]}),
+            json!({"number": number, "folio_range": [free_from.checked_add(50)?, free_from]}),
         )),
         // The command refuses: a number a section has.
         1 => {
             let s = rng.pick(&live.section_info)?;
             Some(Step::cmd(
                 "section.create",
-                json!({"number": s.number, "folio_range": [free_from, free_from + 9]}),
+                json!({"number": s.number, "folio_range": [free_from, free_from.checked_add(9)?]}),
             ))
         }
         // The command refuses: overlaps the range of a section.
@@ -243,12 +256,12 @@ pub(super) fn section_create(live: &Live, rng: &mut SplitMix64) -> Option<Step> 
             let s = rng.pick(&live.section_info)?;
             Some(Step::cmd(
                 "section.create",
-                json!({"number": number, "folio_range": [s.range.0, s.range.0 + 3]}),
+                json!({"number": number, "folio_range": [s.range.0, s.range.0.checked_add(3)?]}),
             ))
         }
         _ => {
-            let from = free_from + u32::try_from(rng.below(40)).unwrap_or(0);
-            let to = from + u32::try_from(rng.below(50)).unwrap_or(0);
+            let from = free_from.checked_add(u32::try_from(rng.below(40)).unwrap_or(0))?;
+            let to = from.checked_add(u32::try_from(rng.below(50)).unwrap_or(0))?;
             Some(
                 Step::cmd(
                     "section.create",

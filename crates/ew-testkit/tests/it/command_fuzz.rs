@@ -40,7 +40,7 @@
 //!   no `EW-TERM-002` finding that the initial project did not have;
 //! - (d) `ew_api::verify::verify_derived` is clean (every `verify_every` steps and at the end);
 //! - (e) at the end, undo until it refuses: the model equals the initial model (`Model::content_eq`), and a run
-//!   that saved saves once more and reloads the initial model. The `library.embed` arm builds the FT-316 shape
+//!   that saved saves once more and reloads the initial model. The `library.embed` arm builds this shape
 //!   ("embed then undo": a symbol whose function definition is not embedded, then that function definition),
 //!   whose undo removes a copy that a `LibRef` names; `embed_then_undo_of_a_named_fndef_restores_golden_a` runs
 //!   it deterministically;
@@ -183,8 +183,8 @@ fn gen_step(
 // The session and the oracles
 
 /// The repository root: the nearest ancestor of this package's manifest directory that holds the golden
-/// project. The test crate sits two levels below it (`crates/ew-testkit`), the cargo-fuzz crate (`fuzz/`,
-/// FT-297), which includes these modules, one level below it.
+/// project. The test crate sits two levels below it (`crates/ew-testkit`), the cargo-fuzz crate (`fuzz/`),
+/// which includes these modules, one level below it.
 pub fn repo() -> std::path::PathBuf {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     manifest
@@ -195,7 +195,7 @@ pub fn repo() -> std::path::PathBuf {
 }
 
 /// The import batch of path (a), made once per process: a session is opened per seed (and, in the cargo-fuzz
-/// target of FT-297, per input), and the import of the golden tables is the same every time.
+/// target, per input), and the import of the golden tables is the same every time.
 fn golden_batch() -> &'static ew_import_tables::ew_interop_api::ImportBatch {
     static BATCH: std::sync::OnceLock<ew_import_tables::ew_interop_api::ImportBatch> =
         std::sync::OnceLock::new();
@@ -1238,7 +1238,7 @@ fn every_arm_commits_on_golden_a() {
                     }
                 }
             }
-            // A setup chain (`arms::setup_chain_of`, WP-S4.01: a space, an enclosure part, an enclosure, a rail, a
+            // A setup chain (`arms::setup_chain_of`: a space, an enclosure part, an enclosure, a rail, a
             // placement) builds each step on the records the previous one created.
             for build in arms::setup_chain_of(arm.command).unwrap_or_default() {
                 let live = Live::read(&session.query(), &fixture);
@@ -1456,10 +1456,11 @@ fn run_steps(session: &mut Session, steps: &[(&'static str, serde_json::Value)])
         .collect()
 }
 
-/// FT-469 (`fuzz/regressions/command_sequence/non-cable-refusal-picked-a-cable`): the arm's "not a cable" refusal of
-/// `conductor.add` picked a cable, which the command accepts, and the run reported the commit as a finding. The arm
-/// no longer restates the command's rule (the step is `Either`); the step sequence the finding was about: a
-/// conductor added to a cable commits, and the same step on a device that is no cable is refused and changes nothing.
+/// The regression `fuzz/regressions/command_sequence/non-cable-refusal-picked-a-cable`: the arm's "not a
+/// cable" refusal of `conductor.add` picked a cable, which the command accepts, and the run reported the
+/// commit as a finding. The arm no longer restates the command's rule (the step is `Either`); the step
+/// sequence the finding was about: a conductor added to a cable commits, and the same step on a device that
+/// is no cable is refused and changes nothing.
 #[test]
 fn conductor_add_commits_on_a_cable_and_is_refused_on_another_device() {
     let mut session = open_session_with(469, MemoMode::On);
@@ -1581,7 +1582,7 @@ fn rep_move_of_a_surface_view_is_refused_and_of_a_free_text_commits() {
     assert_eq!(done, [false, true]);
 }
 
-/// FT-468 (`fuzz/regressions/command_sequence/structure-box-dropped-by-save`, CI run 40115388450): a save dropped
+/// The regression `fuzz/regressions/command_sequence/structure-box-dropped-by-save`: a save dropped
 /// the page items and structure boxes, so the round trip after a `box.structure` lost the box. The step sequence of
 /// the finding: the dotted structure box with a location and an external reference commits, a save and reload gives
 /// the same model, and after the undo a save and reload gives Golden A.
@@ -1654,9 +1655,9 @@ fn device_create_with_a_valve_part_counts_its_valve_functions() {
 /// Deep nightly finding (`fuzz/regressions/command_sequence/valve-add-plc-module-part-attached-to-station`,
 /// seed 365 072 220 161, step 2): `valve.add` on Golden A's -203Q1 with the electronic module part 533361, whose PLC
 /// section has the role module, committed, and normaliser N0 made the new device a PLC module and attached it to the
-/// project's only station, as WP-S1.21 D4 says for a module without a station ancestor; the arm expected a child of
-/// -203Q1. The input (the finding's seed, a tape that draws the finding's step first) replays and passes the arm's
-/// oracle, which accepts N0's attachment.
+/// project's only station, as is the rule for a module without a station ancestor; the arm expected a child
+/// of -203Q1. The input (the finding's seed, a tape that draws the finding's step first) replays and passes
+/// the arm's oracle, which accepts N0's attachment.
 #[test]
 fn valve_add_of_a_plc_module_part_is_attached_to_the_station() {
     replay_drawing(
@@ -1729,7 +1730,7 @@ fn valve_add_with_a_valve_part_counts_its_valve_functions() {
     );
 }
 
-/// The placement and arrangement steps of WP-S2.04 on Golden A: the `from_part` and `new_terminal` targets of
+/// The placement and arrangement steps on Golden A: the `from_part` and `new_terminal` targets of
 /// `device.place`, the `from_part` target of `box.black`, `rep.move` by grid steps, `rep.exchange_symbol`,
 /// `project.drawing.set`, `connection.draw_to_ip`, `ip.arrange` and `box.reshape` are all generated, and each kind
 /// commits at least once and is refused at least once where the arm builds refusals (the invariants are checked by
@@ -2039,7 +2040,7 @@ fn project_tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
     out
 }
 
-/// WP-S4.01 LM-1 at the command level (NFR-REL-16): random sequences of the eleven `layout.*` commands, on a space,
+/// At the command level (NFR-REL-16): random sequences of the eleven `layout.*` commands, on a space,
 /// an enclosure, a rail and a placement that the setup chain makes, with undos between them and an incremental save
 /// every five steps, leave the same files byte for byte as a full save of the final model (`Session::create` in a new
 /// folder). The manifest, which counts generations, and the lock file are not compared.
@@ -2190,7 +2191,7 @@ fn the_round_trip_oracle_prints_the_project_row_lines() {
     assert!(err.contains("FT-468"), "{err}");
 }
 
-/// FT-316 on the shape the `library.embed` arm builds ("embed then undo"): a symbol whose function definition
+/// On the shape the `library.embed` arm builds ("embed then undo"): a symbol whose function definition
 /// is not embedded, then that function definition, both commit as the arm says, with a save in between; undoing
 /// both restores Golden A (the undo-all oracle (e)), although the second undo removes a copy that the symbol
 /// names, and a save after the undo reloads Golden A.
@@ -2282,6 +2283,10 @@ fn table_import_oracles_hold() {
 
 // ---------------------------------------------------------------------------------------------------------
 // The nightly body
+
+/// The wall-clock budget of [`fuzz_long`] without `EW_FUZZ_BUDGET_SECS`: the deep run gives it five minutes, which
+/// stays inside the test's timeout.
+const DEFAULT_BUDGET_SECS: usize = 300;
 
 /// The seeds of `EW_FUZZ_SEEDS`: a comma list of numbers or ranges (`a..b` excludes `b`, `a..=b` includes it).
 fn parse_seeds(list: &str) -> Vec<u64> {
@@ -2379,11 +2384,11 @@ fn payload_text(payload: &(dyn std::any::Any + Send)) -> String {
 ///
 /// A failing seed does not stop the others: its failure text (seed, step, oracle, command log) is a finding,
 /// the run goes on, and the test fails at the end if there was one. With `EW_FUZZ_REPORT=<file>` the findings
-/// file is written first and rewritten after every seed (see [`write_report`]). With `EW_FUZZ_BUDGET_SECS=<n>`
-/// no new seed starts after `n` seconds of wall clock (the run is then `status: budget`, not a failure: the
+/// file is written first and rewritten after every seed (see [`write_report`]). No new seed starts after
+/// `EW_FUZZ_BUDGET_SECS` seconds of wall clock, [`DEFAULT_BUDGET_SECS`] without it (the run is then `status: budget`, not a failure: the
 /// seeds run are listed, and the seed list is deterministic, so the next night's range continues it).
 #[test]
-#[ignore = "deep run: the long fuzz (EW_FUZZ_SEEDS, EW_FUZZ_STEPS)"]
+#[ignore = "deep run: the long fuzz (EW_FUZZ_SEEDS, EW_FUZZ_STEPS, EW_FUZZ_BUDGET_SECS)"]
 fn fuzz_long() {
     let seeds: Vec<u64> = match std::env::var("EW_FUZZ_SEEDS") {
         Ok(list) => parse_seeds(&list),
@@ -2399,7 +2404,9 @@ fn fuzz_long() {
         import_weight: env_usize("EW_FUZZ_IMPORT_WEIGHT").unwrap_or(default.import_weight),
         ..default
     };
-    let budget = env_usize("EW_FUZZ_BUDGET_SECS").map(|s| std::time::Duration::from_secs(s as u64));
+    let budget = std::time::Duration::from_secs(
+        env_usize("EW_FUZZ_BUDGET_SECS").unwrap_or(DEFAULT_BUDGET_SECS) as u64,
+    );
     let report_path = std::env::var_os("EW_FUZZ_REPORT").map(std::path::PathBuf::from);
     let started = std::time::Instant::now();
     let mut total = FuzzStats::default();
@@ -2409,7 +2416,7 @@ fn fuzz_long() {
         write_report(p, "running", &seeds, steps, &done, &findings, &total);
     }
     for &seed in &seeds {
-        if budget.is_some_and(|b| started.elapsed() >= b) {
+        if started.elapsed() >= budget {
             status = "budget";
             break;
         }
