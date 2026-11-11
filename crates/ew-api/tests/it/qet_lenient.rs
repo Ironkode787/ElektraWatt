@@ -773,6 +773,33 @@ fn duplicate_printed_tags_are_lenient_findings() {
     assert_eq!(group.count, 1, "{:?}", group.messages);
 }
 
+#[test]
+fn a_page_rule_label_on_two_elements_prints_twice_as_qet_prints_it() {
+    // `-1K1` fits the page rule on folio 1, but two derived tags with one counter would print as two numbers.
+    let text = qet(
+        r#"version="0.100""#,
+        &[folio(
+            "1",
+            "A",
+            vec![
+                el(SIMPLE, uuid(1), 100, 100).label("-1K1"),
+                el(SIMPLE, uuid(2), 100, 200).label("-1K1"),
+            ],
+        )],
+    );
+    let imported = import(&text);
+    let tags: Vec<_> = devices(&imported)
+        .iter()
+        .map(|d| (d.tag.counter, d.tag.frozen.as_ref().map(|f| f.text.as_str().to_owned())))
+        .collect();
+    assert_eq!(tags, [(None, Some("1K1".to_owned())), (None, Some("1K1".to_owned()))]);
+    assert!(
+        imported.live.iter().any(|g| g.rule == "EW-RDS-004"),
+        "{:?}",
+        imported.live
+    );
+}
+
 /// An entry about an emitted record names it as its target: a frozen tag, a label kept as text and a slave
 /// without master their device, a repeated folio its page; an entry about dropped content names none.
 #[test]

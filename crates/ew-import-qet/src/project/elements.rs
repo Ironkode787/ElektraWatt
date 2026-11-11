@@ -427,6 +427,8 @@ pub(crate) struct Mx<'a, 'f> {
     pub(crate) master_label: BTreeMap<String, String>,
     /// Where each master and linked slave prints its cross-reference, by its `ek`.
     pub(crate) xref_place: BTreeMap<String, XrefPlace>,
+    /// The labels (trimmed) that several elements of their own devices carry.
+    pub(crate) shared_labels: BTreeSet<String>,
 }
 
 impl Mx<'_, '_> {
@@ -576,12 +578,27 @@ impl Mx<'_, '_> {
         };
         let folio = self.folio(e.diagram).to_owned();
         let label = e.el.info("label").unwrap_or("");
-        let (tag, structure, outcome) = infer_tag(label, &folio, &e.el.prefix);
+        let (mut tag, mut structure, mut outcome) = infer_tag(label, &folio, &e.el.prefix);
+        let shared = outcome == TagOutcome::Derived && self.shared_labels.contains(label.trim());
+        if shared {
+            // Two derived tags with one counter would print as two numbers; QET prints the label twice.
+            (tag, structure, outcome) = infer_tag(label, "", &e.el.prefix);
+        }
         let mut extra = BTreeMap::new();
         let dkey = format!("qet:el:{}", e.ek);
         let device_id: Id<Device> = self.inp.ids.id(&dkey);
         match outcome {
             TagOutcome::Derived => {}
+            TagOutcome::Frozen if shared => self.at_device(
+                e,
+                device_id,
+                Code::imp(103),
+                Severity::Info,
+                format!(
+                    "label `{}` is carried by several elements; kept as frozen tag, so that each prints it as QET does",
+                    label.trim()
+                ),
+            ),
             TagOutcome::Frozen => self.at_device(
                 e,
                 device_id,
@@ -960,6 +977,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         live: BTreeSet::new(),
         master_label: BTreeMap::new(),
         xref_place: BTreeMap::new(),
+        shared_labels: BTreeSet::new(),
     };
 
     // Pass 1: placed elements with a usable definition and position, and their project-wide keys (doc 14
@@ -1119,6 +1137,21 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         };
         mx.xref_place.insert(e.ek.clone(), place);
     }
+
+    // The labels several devices carry.
+    let mut label_count: BTreeMap<&str, u32> = BTreeMap::new();
+    for (e, c) in elems.iter().zip(&classes) {
+        if matches!(c, Class::Device | Class::OrphanSlave)
+            && let Some(l) = e.el.info_nonempty("label")
+        {
+            *label_count.entry(l.trim()).or_default() += 1;
+        }
+    }
+    mx.shared_labels = label_count
+        .into_iter()
+        .filter(|(_, n)| *n > 1)
+        .map(|(l, _)| l.to_owned())
+        .collect();
 
     // Pass 2: devices (masters first, so slaves find their device).
     let mut unlabeled: BTreeMap<usize, u32> = BTreeMap::new();
