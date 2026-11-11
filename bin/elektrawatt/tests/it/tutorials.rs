@@ -602,23 +602,46 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
         .collect();
     assert_eq!(picked, [r#"["Assign part on 1"]"#; 4]);
     let [preview, imported, wired, end] = <[String; 4]>::try_from(describes(&transcript)).unwrap();
+    // Step 1: the card says what its button makes, gives its verdict and lists the kinds of findings.
     assert_eq!(
-        lines_of(&preview, &["label \"1 page,"]),
+        lines_of(
+            &preview,
+            &[
+                "label \"Create project makes",
+                "label \"The file was",
+                "group \"",
+                "kind \""
+            ]
+        )
+        .into_iter()
+        .skip_while(|l| !l.starts_with("label"))
+        .collect::<Vec<_>>(),
         [
-            "label \"1 page, 4 devices, 3 connections; 3 errors, 8 warnings and 5 infos in the migration report\""
+            "label \"Create project makes a new project in the folder lamp-circuit.ew, with 1 page, 4 devices and 3 connections.\"",
+            "label \"The file was imported. 7 points are worth a look, and none stops you from working.\"",
+            "group \"Worth a look\"",
+            "kind \"4 × Device without part\"",
+            "kind \"2 × Unconnected CP\"",
+            "kind \"1 × Element without function semantics\"",
+            "group \"For your information\"",
+            "kind \"2 × Label kept as a frozen tag\"",
+            "kind \"2 × Tag deviates from the scheme\"",
+            "kind \"1 × Font substituted\"",
+            "kind \"1 × Default folio-index formula\"",
+            "kind \"1 × Unlabelled element, tag synthesised\"",
         ]
     );
     let report = ["messages scheme", "row level 2 rule"];
     assert_eq!(
         lines_of(&imported, &report),
         [
-            "messages scheme \"Migration report\" errors 3 warnings 8 infos 5 waived 0 pending 0",
-            "row level 2 rule \"EW-CORE-073 Unrouted wire\" badge \"3\" expanded",
+            "messages scheme \"Migration report\" errors 0 warnings 7 infos 7 waived 0 pending 0",
             "row level 2 rule \"EW-CORE-041 Device without part\" badge \"4\" expanded",
-            "row level 2 rule \"EW-IMP-008 Value kept as foreign or opaque text\" badge \"1\" expanded",
             "row level 2 rule \"EW-IMP-119 Element without function semantics\" badge \"1\" expanded",
             "row level 2 rule \"EW-POT-009 Unconnected CP\" badge \"2\" expanded",
+            "row level 2 rule \"EW-IMP-006 Font substituted\" badge \"1\" expanded",
             "row level 2 rule \"EW-IMP-103 Label kept as a frozen tag\" badge \"2\" expanded",
+            "row level 2 rule \"EW-IMP-117 Default folio-index formula\" badge \"1\" expanded",
             "row level 2 rule \"EW-IMP-122 Unlabelled element, tag synthesised\" badge \"1\" expanded",
             "row level 2 rule \"EW-NUM-001 Tag deviates from the scheme\" badge \"2\" expanded",
         ]
@@ -626,15 +649,16 @@ fn tutorial_6_importing_a_qelectrotech_project_runs_as_its_page_says() {
     // Step 4: the return wire drawn, the Messages pane on the project's own scheme, and EW-POT-009 gone.
     assert_eq!(
         lines_of(&wired, &["messages scheme", "row level 2 rule \"EW-POT-009"]),
-        ["messages scheme \"Drafting\" errors 0 warnings 2 infos 5 waived 0 pending 4"]
+        ["messages scheme \"Drafting\" errors 0 warnings 1 infos 7 waived 0 pending 4"]
     );
     assert_eq!(
         lines_of(&end, &report),
         [
-            "messages scheme \"Migration report\" errors 0 warnings 2 infos 5 waived 0 pending 0",
-            "row level 2 rule \"EW-IMP-008 Value kept as foreign or opaque text\" badge \"1\" expanded",
+            "messages scheme \"Migration report\" errors 0 warnings 1 infos 7 waived 0 pending 0",
             "row level 2 rule \"EW-IMP-119 Element without function semantics\" badge \"1\" expanded",
+            "row level 2 rule \"EW-IMP-006 Font substituted\" badge \"1\" expanded",
             "row level 2 rule \"EW-IMP-103 Label kept as a frozen tag\" badge \"2\" expanded",
+            "row level 2 rule \"EW-IMP-117 Default folio-index formula\" badge \"1\" expanded",
             "row level 2 rule \"EW-IMP-122 Unlabelled element, tag synthesised\" badge \"1\" expanded",
             "row level 2 rule \"EW-NUM-001 Tag deviates from the scheme\" badge \"2\" expanded",
         ]

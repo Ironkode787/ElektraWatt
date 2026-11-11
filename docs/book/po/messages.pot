@@ -742,66 +742,64 @@ msgstr ""
 #: src/tutorials/import-qet.md:18
 msgid ""
 "Choose **Project ▸ Import QElectroTech project…**, pick `lamp-circuit.qet`, "
-"and name the new project's folder `lamp-circuit.ew`. The import's preview "
-"says what it will create: \"1 page, 4 devices, 3 connections; 3 errors, 8 "
-"warnings and 5 infos in the migration report\". Nothing is written yet."
+"and name the new project's folder `lamp-circuit.ew`. The import's card says "
+"what it will make: \"Create project makes a new project in the folder "
+"lamp-circuit.ew, with 1 page, 4 devices and 3 connections.\" Its verdict "
+"follows: \"The file was imported. 7 points are worth a look, and none stops "
+"you from working.\" Under **Worth a look** and **For your information** it "
+"lists the kinds of findings, each with its count. Nothing is written yet."
 msgstr ""
 
-#: src/tutorials/import-qet.md:22
+#: src/tutorials/import-qet.md:24
 msgid ""
-"Choose **Apply** in the preview. EW creates the project and opens it. The "
+"Choose **Create project**. EW creates the project and opens it. The folio "
+"looks as it did in QElectroTech: the frame and the title block, the labels "
+"S1 and G1, and the three conductors where QElectroTech drew them. The "
 "Messages pane shows the **Migration report**, chosen in its header beside "
-"the project's own scheme: 3 errors, 8 warnings and 5 infos."
+"the project's own scheme: no errors, 7 warnings and 7 infos."
 msgstr ""
 
-#: src/tutorials/import-qet.md:25
+#: src/tutorials/import-qet.md:28
 msgid ""
 "Read the report, rule by rule. Some findings are the record of the import, "
 "and stay:"
 msgstr ""
 
-#: src/tutorials/import-qet.md:26
-msgid ""
-"EW-IMP-008: the folio-report format of QElectroTech is kept as text; EW's "
-"own cross-reference format applies."
-msgstr ""
-
-#: src/tutorials/import-qet.md:27
+#: src/tutorials/import-qet.md:29
 msgid ""
 "EW-IMP-119: the supply's element has no meaning EW knows, so G1 came in as a "
 "generic black box."
 msgstr ""
 
-#: src/tutorials/import-qet.md:28
+#: src/tutorials/import-qet.md:30
 msgid ""
 "EW-IMP-103 and EW-NUM-001: the labels S1 and G1 are kept as frozen tags, "
 "because they do not follow the project's numbering."
 msgstr ""
 
-#: src/tutorials/import-qet.md:30
-msgid ""
-"EW-IMP-122: the lamp and the earth had no label, so EW gave them the tags "
-"-1A1 and -1X1."
-msgstr ""
-
 #: src/tutorials/import-qet.md:32
 msgid ""
-"The others are live checks of the project, and yours to fix: EW-CORE-073 "
-"says that the file's three conductors have no route, so they are drawn as "
-"dashed lines; EW-POT-009 says that the lamp's pin X2 and the supply's pin - "
-"are not connected; and EW-CORE-041 says that none of the four devices has a "
-"part."
+"EW-IMP-122: the lamp and the earth had no label. EW gave them the tags -1A1 "
+"and -1X1, and the page prints no tag for them, as QElectroTech printed none."
+msgstr ""
+
+#: src/tutorials/import-qet.md:34
+msgid ""
+"EW-IMP-117: the file uses QElectroTech's default cross-reference formula."
 msgstr ""
 
 #: src/tutorials/import-qet.md:35
-msgid ""
-"Choose **Draw ▸ Connect ▸ Route page**. The preview says \"Route 3 wires on "
-"folio 1: 3 routed, 0 not routed.\" Choose **Apply**: the three wires are "
-"drawn along their routes, the toast says \"Routed 3 wires on folio 1.\", and "
-"the three EW-CORE-073 errors are gone."
+msgid "EW-IMP-006: the file's font, Sans Serif, is printed in Noto Sans."
 msgstr ""
 
-#: src/tutorials/import-qet.md:38
+#: src/tutorials/import-qet.md:37
+msgid ""
+"The others are live checks of the project, and yours to fix: EW-POT-009 says "
+"that the lamp's pin X2 and the supply's pin - are not connected; and "
+"EW-CORE-041 says that none of the four devices has a part."
+msgstr ""
+
+#: src/tutorials/import-qet.md:39
 msgid ""
 "Choose **Draw ▸ Connect ▸ Wire** (`W`). Click the lamp's pin X2, at its "
 "bottom, then the supply's pin -, at the bottom of G1: the return wire is "
@@ -809,43 +807,49 @@ msgid ""
 "you edit, the Messages pane shows the project's own scheme, drafting."
 msgstr ""
 
-#: src/tutorials/import-qet.md:41
+#: src/tutorials/import-qet.md:42
 msgid ""
-"Click the lamp -1A1 and choose **Edit ▸ Choose part…**. Type `lamp`, choose "
+"Click the lamp and choose **Edit ▸ Choose part…**. Type `lamp`, choose "
 "**EW-GEN-LMP-1**, and confirm with **Choose**. The lamp has its part."
 msgstr ""
 
-#: src/tutorials/import-qet.md:44
+#: src/tutorials/import-qet.md:45
 msgid ""
 "Click the switch S1, choose **Edit ▸ Choose part…**, type `on/off` and "
 "choose **EW-GEN-SW-1**."
 msgstr ""
 
-#: src/tutorials/import-qet.md:45
+#: src/tutorials/import-qet.md:46
 msgid ""
 "Click the supply G1, choose **Edit ▸ Choose part…**, type `power supply` and "
 "choose **EW-GEN-PSU-1**."
 msgstr ""
 
-#: src/tutorials/import-qet.md:46
+#: src/tutorials/import-qet.md:47
 msgid ""
-"Click the earth -1X1, choose **Edit ▸ Choose part…**, type `earth` and "
-"choose **EW-GEN-TRM-2**. Every device has its part, and EW-CORE-041 is gone."
+"Click the earth, choose **Edit ▸ Choose part…**, type `earth` and choose "
+"**EW-GEN-TRM-2**. Every device has its part, and EW-CORE-041 is gone."
 msgstr ""
 
-#: src/tutorials/import-qet.md:48
+#: src/tutorials/import-qet.md:49
 msgid ""
 "Choose **Check ▸ Run checks** (`F7`). The Messages pane shows the migration "
-"report again, with no error, 2 warnings (EW-IMP-008 and EW-IMP-119) and 5 "
-"infos (EW-IMP-103 twice, EW-IMP-122 and EW-NUM-001 twice): the record of the "
-"import, nothing left to fix."
+"report again, with no error, 1 warning (EW-IMP-119) and 7 infos (EW-IMP-006, "
+"EW-IMP-103 twice, EW-IMP-117, EW-IMP-122 and EW-NUM-001 twice): the record "
+"of the import, nothing left to fix."
 msgstr ""
 
-#: src/tutorials/import-qet.md:56
+#: src/tutorials/import-qet.md:58
 msgid ""
-"**Project ▸ Import QElectroTech project…** previews an import before it "
-"writes anything, and makes a new EW project of its own; the QElectroTech "
-"file is not changed."
+"**Project ▸ Import QElectroTech project…** says what an import will make "
+"before it writes anything, and makes a new EW project of its own; the "
+"QElectroTech file is not changed."
+msgstr ""
+
+#: src/tutorials/import-qet.md:60
+msgid ""
+"The folios arrive as QElectroTech drew them: the wires on their paths, the "
+"texts, shapes and images, the frame and the title block."
 msgstr ""
 
 #: src/tutorials/import-qet.md:58

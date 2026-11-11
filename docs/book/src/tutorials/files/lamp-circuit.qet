@@ -16,7 +16,9 @@
         <elementInformations>
           <elementInformation name="label" show="1">S1</elementInformation>
         </elementInformations>
-        <dynamic_texts/>
+        <dynamic_texts>
+          <dynamic_elmt_text x="6" y="-12" rotation="0" uuid="00000000-0000-4000-8000-000000000111" font="Sans Serif,9,-1,5,50,0,0,0,0,0" text_from="ElementInfo" Halignment="AlignLeft" Valignment="AlignTop" text_width="-1" frame="false" keep_visual_rotation="false"><text>S1</text><info_name>label</info_name></dynamic_elmt_text>
+        </dynamic_texts>
         <texts_groups/>
         <links_uuids/>
       </element>
@@ -27,7 +29,9 @@
         </terminals>
         <inputs/>
         <elementInformations/>
-        <dynamic_texts/>
+        <dynamic_texts>
+          <dynamic_elmt_text x="12" y="-8" rotation="0" uuid="00000000-0000-4000-8000-000000000211" font="Sans Serif,9,-1,5,50,0,0,0,0,0" text_from="ElementInfo" Halignment="AlignLeft" Valignment="AlignTop" text_width="-1" frame="false" keep_visual_rotation="false"><text></text><info_name>label</info_name></dynamic_elmt_text>
+        </dynamic_texts>
         <texts_groups/>
         <links_uuids/>
       </element>
@@ -41,7 +45,9 @@
         <elementInformations>
           <elementInformation name="label" show="1">G1</elementInformation>
         </elementInformations>
-        <dynamic_texts/>
+        <dynamic_texts>
+          <dynamic_elmt_text x="4" y="-28" rotation="0" uuid="00000000-0000-4000-8000-000000000311" font="Sans Serif,9,-1,5,50,0,0,0,0,0" text_from="ElementInfo" Halignment="AlignLeft" Valignment="AlignTop" text_width="-1" frame="false" keep_visual_rotation="false"><text>G1</text><info_name>label</info_name></dynamic_elmt_text>
+        </dynamic_texts>
         <texts_groups/>
         <links_uuids/>
       </element>
@@ -51,7 +57,9 @@
         </terminals>
         <inputs/>
         <elementInformations/>
-        <dynamic_texts/>
+        <dynamic_texts>
+          <dynamic_elmt_text x="12" y="-6" rotation="0" uuid="00000000-0000-4000-8000-000000000411" font="Sans Serif,9,-1,5,50,0,0,0,0,0" text_from="ElementInfo" Halignment="AlignLeft" Valignment="AlignTop" text_width="-1" frame="false" keep_visual_rotation="false"><text></text><info_name>label</info_name></dynamic_elmt_text>
+        </dynamic_texts>
         <texts_groups/>
         <links_uuids/>
       </element>
@@ -75,6 +83,7 @@
             <line x1="0" y1="8" x2="0" y2="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
             <terminal x="0" y="-20" orientation="n" name="1" type="Generic" uuid="00000000-0000-4000-8000-000000000101"/>
             <terminal x="0" y="20" orientation="s" name="2" type="Generic" uuid="00000000-0000-4000-8000-000000000102"/>
+            <dynamic_text x="6" y="-12" rotation="0" uuid="00000000-0000-4000-8000-000000000111" font="Sans Serif,9,-1,5,50,0,0,0,0,0" text_from="ElementInfo" Halignment="AlignLeft" Valignment="AlignTop" text_width="-1" frame="false" z="5"><text></text><info_name>label</info_name></dynamic_text>
           </description>
         </definition>
       </element>
@@ -91,6 +100,7 @@
             <line x1="0" y1="8" x2="0" y2="20" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
             <terminal x="0" y="-20" orientation="n" name="X1" type="Generic" uuid="00000000-0000-4000-8000-000000000201"/>
             <terminal x="0" y="20" orientation="s" name="X2" type="Generic" uuid="00000000-0000-4000-8000-000000000202"/>
+            <dynamic_text x="12" y="-8" rotation="0" uuid="00000000-0000-4000-8000-000000000211" font="Sans Serif,9,-1,5,50,0,0,0,0,0" text_from="ElementInfo" Halignment="AlignLeft" Valignment="AlignTop" text_width="-1" frame="false" z="5"><text></text><info_name>label</info_name></dynamic_text>
           </description>
         </definition>
       </element>
@@ -107,6 +117,7 @@
             <terminal x="0" y="20" orientation="s" name="-" type="Generic" uuid="00000000-0000-4000-8000-000000000302"/>
             <line x1="15" y1="0" x2="20" y2="0" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
             <terminal x="20" y="0" orientation="e" name="PE" type="Generic" uuid="00000000-0000-4000-8000-000000000303"/>
+            <dynamic_text x="4" y="-28" rotation="0" uuid="00000000-0000-4000-8000-000000000311" font="Sans Serif,9,-1,5,50,0,0,0,0,0" text_from="ElementInfo" Halignment="AlignLeft" Valignment="AlignTop" text_width="-1" frame="false" z="5"><text></text><info_name>label</info_name></dynamic_text>
           </description>
         </definition>
       </element>
@@ -121,6 +132,7 @@
             <line x1="-5" y1="4" x2="5" y2="4" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
             <line x1="-2" y1="8" x2="2" y2="8" antialias="false" style="line-style:normal;line-weight:normal;filling:none;color:black"/>
             <terminal x="0" y="-20" orientation="n" name="PE" type="Generic" uuid="00000000-0000-4000-8000-000000000401"/>
+            <dynamic_text x="12" y="-6" rotation="0" uuid="00000000-0000-4000-8000-000000000411" font="Sans Serif,9,-1,5,50,0,0,0,0,0" text_from="ElementInfo" Halignment="AlignLeft" Valignment="AlignTop" text_width="-1" frame="false" z="5"><text></text><info_name>label</info_name></dynamic_text>
           </description>
         </definition>
       </element>
