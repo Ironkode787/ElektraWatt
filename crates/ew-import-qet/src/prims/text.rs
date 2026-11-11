@@ -73,7 +73,7 @@
 use ew_interop_api::{Code, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{Align, Extra, Primitive, SlotKind, TextPrim, TextSlot, TextStyleSpec, TextWeight};
-use ew_units::{Angle2, Nm};
+use ew_units::{Angle2, Nm, Pt2};
 use roxmltree::Node;
 
 use super::{ItemError, Parsed, PrimCtx};
@@ -374,15 +374,45 @@ pub fn static_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed) 
         ctx.unsupported(node, format!("text colour {colour} dropped"));
         put(&mut extra, "qet.color", colour);
     }
-    out.graphics.push(Primitive::Text(TextPrim {
-        pos,
-        text: MlText::neutral(node.attribute("text").unwrap_or("")),
-        style,
-        align: Align::BottomLeft,
-        angle,
-        extra,
-    }));
+    // QET writes the baseline of the first line; each further line stands one line spacing lower in the text's
+    // own frame. One text per line keeps that spacing, as a page's free texts do.
+    let spacing = crate::decimal::div_round_half_even(
+        i128::from(node_em(node).0) * crate::project::items::HALF_LINE_PER_MILLE * 2,
+        1000,
+    );
+    let quarters =
+        u8::try_from(crate::decimal::div_round_half_even(-i128::from(angle.0), 90_000).rem_euclid(4))
+            .unwrap_or(0);
+    let turn = crate::project::elements::orientation(quarters);
+    for (i, line) in node.attribute("text").unwrap_or("").split('\n').enumerate() {
+        let down = i64::try_from(spacing * i128::try_from(i).unwrap_or(i128::MAX))
+            .map_err(|_| ItemError("text: too many lines".to_owned()))?;
+        let offset = turn.apply(Pt2::new(Nm(0), Nm(down)));
+        let (Some(x), Some(y)) = (pos.x.0.checked_add(offset.x.0), pos.y.0.checked_add(offset.y.0)) else {
+            return Err(ItemError("text: line out of range".to_owned()));
+        };
+        out.graphics.push(Primitive::Text(TextPrim {
+            pos: Pt2::new(Nm(x), Nm(y)),
+            text: MlText::neutral(line.trim_end_matches('\r')),
+            style: style.clone(),
+            align: Align::BottomLeft,
+            angle,
+            extra: extra.clone(),
+        }));
+    }
     Ok(())
+}
+
+/// The em height of a text node's font: its `font`, else its legacy `size`, else QET's default 9 pt.
+fn node_em(node: Node<'_, '_>) -> Nm {
+    let size = match (node.attribute("font"), node.attribute("size")) {
+        (Some(font), _) => parse_qt_font(font).map(|f| f.point_size),
+        (None, Some(size)) => Decimal::parse(size.trim()).ok(),
+        (None, None) => None,
+    };
+    size.and_then(em_of)
+        .or_else(|| em_of(Decimal::from_int(crate::project::items::DEFAULT_POINT_SIZE)))
+        .unwrap_or(Nm::ZERO)
 }
 
 /// `dynamic_text`.
@@ -572,6 +602,34 @@ mod tests {
         assert_eq!(text_of(&out).text, MlText::neutral(""));
         let (r, ..) = run(r#"<text x="0" y="0" rotation="zz"/>"#, static_text);
         assert!(r.is_err());
+    }
+
+    #[test]
+    fn a_static_text_of_two_lines_keeps_its_first_baseline_and_qets_line_spacing() {
+        // 9 pt: an em of 3,175,000 nm and a line spacing of 1.15 em, 3,651,250 nm, downward in the text's frame.
+        let font = r#"font="Sans Serif,9,-1,5,50,0,0,0,0,0""#;
+        for (rotation, step) in [("0", (0, 3_651_250)), ("90", (-3_651_250, 0))] {
+            let xml = format!(r#"<text x="10" y="20" rotation="{rotation}" {font} text="AB&#xa;CD"/>"#);
+            let (r, out, _) = run(&xml, static_text);
+            r.unwrap();
+            let texts: Vec<&TextPrim> = out
+                .graphics
+                .iter()
+                .filter_map(|g| match g {
+                    Primitive::Text(t) => Some(t),
+                    _ => None,
+                })
+                .collect();
+            assert_eq!(texts.len(), 2, "rotation {rotation}");
+            assert_eq!(texts[0].text, MlText::neutral("AB"));
+            assert_eq!(texts[1].text, MlText::neutral("CD"));
+            assert_eq!(texts[0].pos, Pt2::new(px("10"), px("20")), "rotation {rotation}");
+            assert_eq!(
+                texts[1].pos,
+                Pt2::new(Nm(px("10").0 + step.0), Nm(px("20").0 + step.1)),
+                "rotation {rotation}"
+            );
+        }
     }
 
     #[test]
