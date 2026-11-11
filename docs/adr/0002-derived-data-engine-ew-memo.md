@@ -249,7 +249,7 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
      default) or `Oracle` (every memoised read also runs cold); `Session::query` hands out a memoised `Q`, a commit
      advances the store with the touched keys of its change feed, and `query_over(model)` stays cold. Every
      `Memo` and `Memo + LRU` family is memoised, those of `ew-reports` included. The default rests on
-     `crates/ew-api/tests/memo_oracle.rs`: over 16 edit states of the golden project (moves on and across pages,
+     `crates/ew-api/tests/it/memo_oracle.rs`: over 16 edit states of the golden project (moves on and across pages,
      wires, a delete, an override, a rename, renumbers, undo and redo, a colour-profile edit) it reads every key of
      every memoised family twice through memoising `Q`s and once cold, comparing values and notes, and runs the
      same states in `Oracle` mode sampled at `OneIn(8)`; a nightly or release run at `Oracle::Every` is FT-113.
@@ -371,8 +371,8 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    - **Caches outside equality.** The pairing, the rail joins and the flow keep in their values the inputs their
      hooks compare; these caches are excluded from equality, so they never defeat a cut-off. The flow's notes
      became `conflicts` in its value, reported by `flow_notes`.
-   - **Evidence.** `crates/ew-api/tests/memo_oracle.rs` covers 20 edit states; the property test
-     `crates/ew-derive/tests/incremental_partition.rs` compares the incremental with the cold partition over 36
+   - **Evidence.** `crates/ew-api/tests/it/memo_oracle.rs` covers 20 edit states; the property test
+     `crates/ew-derive/tests/it/incremental_partition.rs` compares the incremental with the cold partition over 36
      generated cases; an engine test pins amendment 5's mark-epoch rule for an incremental execution that leaves a
      `via` memo unread. The review's eight groups of adversarial probes (splits, joins, page delete, undo and redo
      across a split, bridge re-add, star and chain pairing, rename and delete, bond via moves, a flow direction flip,

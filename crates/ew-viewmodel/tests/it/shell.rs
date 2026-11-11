@@ -3,41 +3,28 @@
 
 //! Shell-model transitions on a temporary copy of Golden A (acceptance checks A2, A3, A9).
 
-use crate::common::{copy_dir, refused};
-use ew_testdir as fresh_dir;
+use crate::common::refused;
+use ew_testdir::Tmp;
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_viewmodel::ew_api::Session;
 use ew_viewmodel::shell::{AccessMode, Dialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const VERSION: &str = "0.0.0-test";
 
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
+/// The directory stem of this module's temporary directories.
+const STEM: &str = "ew-vm-test";
 
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(fresh_dir::fresh_dir("ew-vm-test"))
-    }
-
-    fn config(&self) -> ShellConfig {
-        ShellConfig::in_dir(&self.0.join("config"), VERSION)
-    }
-
-    /// A copy of Golden A inside this directory.
-    fn golden(&self, name: &str) -> PathBuf {
-        let target = self.0.join(name);
-        copy_dir(Path::new(GOLDEN_A), &target);
-        target
-    }
+/// The shell configuration of a temporary directory.
+trait ConfigTmp {
+    fn config(&self) -> ShellConfig;
 }
 
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
+impl ConfigTmp for Tmp {
+    fn config(&self) -> ShellConfig {
+        ShellConfig::in_dir(&self.0.join("config"), VERSION)
     }
 }
 
@@ -47,7 +34,7 @@ fn open(shell: &mut ShellModel, dir: &Path) -> Outcome {
 
 #[test]
 fn the_shell_starts_on_the_start_page_and_opens_a_project() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("J-E-2416.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert!(!shell.has_project());
@@ -87,7 +74,7 @@ fn the_shell_starts_on_the_start_page_and_opens_a_project() {
 
 #[test]
 fn page_navigation_has_bounds_and_reasons() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
@@ -130,7 +117,7 @@ fn page_navigation_has_bounds_and_reasons() {
 
 #[test]
 fn edits_undo_redo_save_and_close() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
@@ -187,7 +174,7 @@ fn edits_undo_redo_save_and_close() {
 
 #[test]
 fn the_gui_asks_instead_of_failing() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
     // Open without a directory is a prompt for the window.
@@ -232,13 +219,13 @@ fn the_gui_asks_instead_of_failing() {
 
 #[test]
 fn a_second_shell_opens_a_held_project_read_only() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let mut first = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut first, &dir);
     assert_eq!(first.access(), Some(AccessMode::Edit));
 
-    let other = Tmp::new();
+    let other = Tmp::new(STEM);
     let mut second = ShellModel::new(Mode::Headless, other.config());
     assert_eq!(open(&mut second, &dir), Outcome::Done);
     assert!(matches!(second.access(), Some(AccessMode::ReadOnly { .. })));
@@ -262,7 +249,7 @@ fn a_second_shell_opens_a_held_project_read_only() {
 
 #[test]
 fn save_as_writes_a_new_project_directory() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let target = tmp.0.join("copy.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
@@ -297,7 +284,7 @@ fn save_as_writes_a_new_project_directory() {
 
 #[test]
 fn a_failed_open_leaves_no_path_in_the_message_and_drops_a_recent() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
@@ -331,7 +318,7 @@ fn a_failed_open_leaves_no_path_in_the_message_and_drops_a_recent() {
 
 #[test]
 fn the_ui_scale_is_validated_and_persists() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert_eq!(shell.settings().ui_scale, 1.0);
     assert_eq!(
@@ -351,7 +338,7 @@ fn the_ui_scale_is_validated_and_persists() {
 /// with its reason and changes nothing.
 #[test]
 fn dl7_density_and_theme_round_trip_through_settings_toml() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let config = tmp.config();
     let file = config.config_dir.clone().unwrap().join("settings.toml");
     let mut shell = ShellModel::new(Mode::Headless, config);
@@ -395,7 +382,7 @@ fn dl7_density_and_theme_round_trip_through_settings_toml() {
 
 #[test]
 fn a_corrupted_settings_file_raises_a_banner_and_keeps_a_copy() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let config = tmp.config();
     let dir = config.config_dir.clone().unwrap();
     std::fs::create_dir_all(&dir).unwrap();
@@ -411,7 +398,7 @@ fn a_corrupted_settings_file_raises_a_banner_and_keeps_a_copy() {
 
 #[test]
 fn palette_lists_disabled_entries_last_with_their_reason() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert_eq!(
         shell.dispatch("tools.palette", &json!({"query": "save"})),
@@ -450,7 +437,7 @@ fn palette_lists_disabled_entries_last_with_their_reason() {
 /// A9: a script cannot run a command that the exposure class refuses, and a bad command changes nothing.
 #[test]
 fn command_run_refuses_what_a_script_may_not_run() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
@@ -516,7 +503,7 @@ fn recorded(shell: &ShellModel) -> Vec<(String, Value)> {
 /// directory does not put it into `--record` (spec section 6.4).
 #[test]
 fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
@@ -561,7 +548,7 @@ fn a_discarded_step_leaves_the_record_when_the_directory_is_reopened() {
 /// Review ruling 1: what is undone past a save is not what the disk holds; the record keeps the steps as saved.
 #[test]
 fn undo_past_a_save_does_not_lose_the_saved_steps_from_the_record() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
@@ -594,7 +581,7 @@ fn undo_past_a_save_does_not_lose_the_saved_steps_from_the_record() {
 /// Review ruling 4: a recent entry goes only when its path is gone.
 #[test]
 fn a_recent_entry_stays_when_the_open_fails_for_another_reason() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     open(&mut shell, &dir);
@@ -627,7 +614,7 @@ fn a_recent_entry_stays_when_the_open_fails_for_another_reason() {
 /// explicit Discard remove it.
 #[test]
 fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("g.ew");
     let run = json!({"cmd": "page.create", "params": {"number": 993}});
 
@@ -681,7 +668,7 @@ fn the_journal_survives_a_shutdown_while_the_project_is_dirty() {
 /// Review ruling 9: Escape closes a popup or dialog and otherwise does nothing; the banner has a button.
 #[test]
 fn escape_leaves_the_banner_alone() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     shell.show_banner("note");
     assert_eq!(shell.dispatch("ui.dismiss", &Value::Null), Outcome::Done);
@@ -695,7 +682,7 @@ fn escape_leaves_the_banner_alone() {
 #[test]
 fn the_registry_flag_decides_whether_an_action_clears_the_banner() {
     use ew_viewmodel::actions::find;
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let mut shell = ShellModel::new(Mode::Headless, tmp.config());
     assert!(find("help.about").unwrap().keeps_banner);
     assert!(!find("settings.set").unwrap().keeps_banner);
@@ -717,7 +704,7 @@ fn the_registry_flag_decides_whether_an_action_clears_the_banner() {
 fn a_window_exit_merges_only_its_geometry_into_the_settings_on_disk() {
     use ew_viewmodel::settings::{FILE_NAME, Settings};
     use ew_viewmodel::window::WindowGeometry;
-    let tmp = Tmp::new();
+    let tmp = Tmp::new(STEM);
     let dir = tmp.golden("r15.ew");
     let mut b = ShellModel::new(Mode::Gui, tmp.config());
     let mut a = ShellModel::new(Mode::Gui, tmp.config());

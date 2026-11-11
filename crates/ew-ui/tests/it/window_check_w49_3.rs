@@ -14,12 +14,13 @@ use std::path::Path;
 use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT as _;
+use ew_testdir::copy_dir;
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
 use ew_ui::ew_viewmodel::shell::Dialog;
 use ew_ui::ew_viewmodel::strings;
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, copy_dir, dispatch, harness, settle, wait_for_page};
+use support::{Scripted, Tmp, dispatch, harness, settle, wait_for_page};
 
 /// W20's ID, from its source key in the project's page files.
 pub(crate) fn w20(dir: &Path) -> String {

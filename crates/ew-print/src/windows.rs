@@ -18,7 +18,7 @@
 //! [`PrintJob::monochrome`] the bands are drawn from the lists `ew_render_cpu::monochrome` gives, the greying the PDF
 //! uses; the driver's colour setting is left as it is. A failure aborts the document. The print set's PDF is not used.
 //!
-//! The product's one place of `unsafe` (doc 18 §11.2, NFR-SEC-04; `ci/unsafe-allowlist.toml`): each block is one
+//! The product's one place of `unsafe` (doc 18 §11.2, NFR-SEC-04): each block is one
 //! system call, or one view of a buffer, with its `SAFETY:` comment; what a call allocates is owned by a guard that
 //! frees it once ([`Dc`], [`Global`], [`Com`]).
 

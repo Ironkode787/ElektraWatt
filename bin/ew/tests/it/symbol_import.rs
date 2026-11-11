@@ -4,11 +4,11 @@
 //! `ew symbol import` refuses a hostile EPLAN input in words with exit 2 (SM25#1, SM25#3) and reads a `.pxf` file
 //! as PXF (SM25#4).
 
-use crate::tables::{Tmp, args, stderr, stdout};
+use crate::support::{EwTmp, Tmp, args, stderr, stdout};
 
 #[test]
 fn hostile_eplan_input_is_refused_in_words_and_pxf_is_read() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-tables");
     let deep = t.0.join("deep.xml");
     std::fs::write(
         &deep,

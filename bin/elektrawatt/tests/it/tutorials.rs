@@ -25,7 +25,7 @@ use support::{CONTENT, Tmp, USER_DIRS};
 /// The book's directory.
 const BOOK: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/book");
 
-/// The path of the `elektrawatt` binary under test (nextest sets it at run time; see `tests/headless.rs`).
+/// The path of the `elektrawatt` binary under test (nextest sets it at run time; see `tests/it/headless.rs`).
 // Allowed: the program boundary of a test — nextest's binary path is read once, never persisted or printed.
 #[allow(clippy::disallowed_methods)]
 fn bin_exe() -> PathBuf {

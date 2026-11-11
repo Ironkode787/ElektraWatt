@@ -394,7 +394,7 @@ fn the_zoom_is_set_when_the_setting_changes_not_every_frame() {
     assert_eq!(h.ctx.zoom_factor(), 1.5);
 }
 
-// The one-frame "Exporting PDF…" label went with the export job; `tests/jobs.rs` holds the
+// The one-frame "Exporting PDF…" label went with the export job; `tests/it/jobs.rs` holds the
 // window's export (the save dialog, the job, its progress and its end).
 
 /// WP-S2.08 part 1 (PL-6, PL-7): Enter on an action that needs parameters opens its inline form in the palette, named

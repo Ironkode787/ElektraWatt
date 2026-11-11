@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! WP-S1.22 part 1 through the `ew` binary: the conventions of doc 17 §3.1 (`--project`, `--json`) and the published
-//! result schemas (CL-1 to CL-5, CL-7; CL-6 is in `tests/cli.rs`), with part 2's subcommands under the same rules
+//! result schemas (CL-1 to CL-5, CL-7; CL-6 is in `tests/it/cli.rs`), with part 2's subcommands under the same rules
 //! (OU-6; their outputs are checked in `tests/outputs.rs`).
 //!
 //! The result schemas under `bin/ew/schemas/` are an equality snapshot of `ew_api::cli_results::schema_files()`;
@@ -12,140 +12,17 @@
 //! prints the same bytes.
 
 use std::collections::BTreeMap;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
 
 use ew_api::cli_results as results;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+use crate::support::{EwTmp, GOLDEN_A, GOLDEN_PARTS, GOLDEN_TABLES, Tmp, args, stderr, stdout, tree};
+
 const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/variants");
-const GOLDEN_PARTS: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../golden/J-E-2416/tables/parts.csv"
-);
-const GOLDEN_TABLES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/tables");
-const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 const QET: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
-
-/// A fresh temporary directory with its own user, data and cache directories, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-conventions"))
-    }
-
-    /// `ew` with the user directories, `EW_DATA_DIR` and `EW_CACHE_DIR` inside this directory, no starter content
-    /// unless `content`, no display and no `SOURCE_DATE_EPOCH`.
-    fn ew_with(&self, args: &[OsString], content: bool) -> Output {
-        let mut cmd = Command::new(bin_exe());
-        cmd.args(args);
-        isolate(&mut cmd, &self.0);
-        if content {
-            cmd.env("EW_CONTENT_DIR", CONTENT);
-        }
-        cmd.output().unwrap()
-    }
-
-    fn ew(&self, args: &[OsString]) -> Output {
-        self.ew_with(args, false)
-    }
-
-    /// The OS state directory of [`Tmp::ew_with`]'s user directories, where a writer keeps its journal.
-    fn state_dir(&self) -> PathBuf {
-        let home = self.0.join("home");
-        if cfg!(windows) {
-            home.join("localappdata").join("ElektraWatt").join("state")
-        } else {
-            home.join("xdg_state_home").join("elektrawatt")
-        }
-    }
-
-    /// A copy of Golden A named `name`.
-    fn golden(&self, name: &str) -> PathBuf {
-        let copy = self.0.join(name);
-        copy_dir(Path::new(GOLDEN_A), &copy);
-        copy
-    }
-
-    /// A small saved project: one page, no report blocks.
-    fn tiny(&self, name: &str) -> PathBuf {
-        let project = serde_json::from_str(
-            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
-        )
-        .unwrap();
-        let mut session =
-            ew_api::Session::from_records(project, [], [], ew_api::SessionOptions::default()).unwrap();
-        session
-            .execute(&ew_api::AnyCommand {
-                name: "page.create".into(),
-                params: serde_json::json!({"number": 1, "title": "Cover"}),
-            })
-            .unwrap();
-        let dir = self.0.join(name);
-        let mut store = ew_api::StoreOptions::new("test");
-        store.state_dir = None;
-        session.create(&dir, store).unwrap();
-        session.close();
-        dir
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-/// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one); the `ewz` module
-/// shares it.
-// The program boundary of a test: the path only chooses which binary runs; no compared result depends on it.
-#[allow(clippy::disallowed_methods)]
-pub(super) fn bin_exe() -> PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_ew")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
-}
-
-/// Isolates `cmd` under `root`: no display, no starter content and no `SOURCE_DATE_EPOCH`; the user directories, the
-/// data directory and the cache directory inside `root`.
-pub(super) fn isolate(cmd: &mut Command, root: &Path) {
-    cmd.env_remove("DISPLAY")
-        .env_remove("WAYLAND_DISPLAY")
-        .env_remove("SOURCE_DATE_EPOCH")
-        .env_remove("EW_CONTENT_DIR")
-        .env("EW_DATA_DIR", root.join("data"))
-        .env("EW_CACHE_DIR", root.join("cache"));
-    for d in [
-        "HOME",
-        "USERPROFILE",
-        "LOCALAPPDATA",
-        "APPDATA",
-        "XDG_STATE_HOME",
-        "XDG_DATA_HOME",
-        "XDG_CONFIG_HOME",
-    ] {
-        let dir = root.join("home").join(d.to_ascii_lowercase());
-        std::fs::create_dir_all(&dir).unwrap();
-        cmd.env(d, &dir);
-    }
-}
-
-pub(super) fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
-}
 
 /// A line that is not JSON after the first line of the project's first page file (`ew fmt --repair`'s case, WP-S1.17
 /// ID-1185), with the file's hash in the manifest as a save of those bytes writes it (`saved`), or written by hand, the
@@ -177,37 +54,6 @@ fn with_a_broken_line(project: &Path, saved: bool) {
         .unwrap();
     }
     std::fs::write(&file, new).unwrap();
-}
-
-/// Every file of a directory tree with its bytes, by relative path.
-pub(super) fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
-    fn go(dir: &Path, base: &Path, out: &mut BTreeMap<String, Vec<u8>>) {
-        for e in std::fs::read_dir(dir).unwrap() {
-            let p = e.unwrap().path();
-            if p.is_dir() {
-                go(&p, base, out);
-            } else {
-                let rel = p.strip_prefix(base).unwrap().to_string_lossy().replace('\\', "/");
-                out.insert(rel, std::fs::read(&p).unwrap());
-            }
-        }
-    }
-    let mut out = BTreeMap::new();
-    go(dir, dir, &mut out);
-    out
-}
-
-/// The arguments: words and paths.
-pub(super) fn args<const N: usize>(items: [&dyn AsRef<OsStr>; N]) -> Vec<OsString> {
-    items.iter().map(|a| a.as_ref().to_owned()).collect()
-}
-
-pub(super) fn stdout(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stdout).into_owned()
-}
-
-pub(super) fn stderr(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stderr).into_owned()
 }
 
 /// The result schemas by file name, as `ew-api` generates them.
@@ -300,7 +146,7 @@ pub(super) fn assert_result<T: Serialize + DeserializeOwned>(out: &str, name: &s
 /// compared off a terminal (both forms exit 2 before the project is opened).
 #[test]
 fn project_flag_equals_the_positional_directory() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-conventions");
     let p = t.golden("J-E-2416.ew");
     let tiny = t.tiny("tiny.ew");
     let sqlite = t.0.join("p.sqlite");
@@ -422,7 +268,7 @@ fn project_flag_equals_the_positional_directory() {
 /// code, and the two copies hold the same files afterwards.
 #[test]
 fn apply_with_the_project_flag_replays_as_the_positional_form() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-conventions");
     let a = t.golden("a.ew");
     let b = t.golden("b.ew");
     let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
@@ -457,7 +303,7 @@ fn json_twice<T: Serialize + DeserializeOwned>(t: &Tmp, args: &[OsString], name:
 /// its published schema, round-trips through its type and repeats byte for byte.
 #[test]
 fn every_reading_json_result_validates_round_trips_and_repeats() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-conventions");
     let p = t.golden("J-E-2416.ew");
     let tiny = t.tiny("tiny.ew");
     let check: results::CheckResult = json_twice(&t, &args([&"check", &p, &"--json"]), results::CHECK, 1);
@@ -706,7 +552,7 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
 /// equal fresh targets print the same bytes (a library created with a new ID is the exception: its ID is new).
 #[test]
 fn every_writing_json_result_validates_and_round_trips() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-conventions");
     // `apply` on two copies.
     let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
     let mut outs = Vec::new();
@@ -932,7 +778,7 @@ fn every_writing_json_result_validates_and_round_trips() {
 /// error.
 #[test]
 fn json_is_the_alias_of_format_json() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-conventions");
     let p = t.golden("J-E-2416.ew");
     let json = t.ew(&args([&"check", &p, &"--json"]));
     let format = t.ew(&args([&"check", &p, &"--format", &"json"]));
@@ -960,7 +806,7 @@ fn json_is_the_alias_of_format_json() {
 /// naming it.
 #[test]
 fn registry_subcommands_print_the_registries_files() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-conventions");
     let commands: BTreeMap<String, String> = ew_commands::CommandRegistry::builtin()
         .schema_files()
         .into_iter()

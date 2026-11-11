@@ -1712,7 +1712,7 @@ fn repo_target(target: &str, base: &str) -> String {
 // ---------------------------------------------------------------------------------------------------------------
 // Rules
 
-/// The rule catalogue snapshot: a mirror of the JSON that `crates/ew-checks/tests/catalogue.rs` writes (the licence
+/// The rule catalogue snapshot: a mirror of the JSON that `crates/ew-checks/tests/it/catalogue.rs` writes (the licence
 /// boundary keeps the real types out). Every struct denies unknown fields, so a new catalogue field fails docs-gen
 /// until it is mirrored here.
 #[derive(Deserialize)]

@@ -41,7 +41,7 @@ automod.workspace = true
 ew-commands = { path = "../../crates/ew-commands", features = ["testkit"] }
 # The fresh temporary directory of the tests (FT-1039; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../../crates/ew-testdir" }
-# tests/cli.rs: the SHA-256 of `ew export pdf` against `expected/pdf/sha256.txt` (G-M1-01).
+# tests/it/cli.rs: the SHA-256 of `ew export pdf` against `expected/pdf/sha256.txt` (G-M1-01).
 sha2 = { workspace = true }
 # tests/conventions.rs (WP-S1.22 part 1, CL-2): an independent JSON Schema validator (draft 2020-12; MIT OR
 # Apache-2.0) that checks every `--json` output against its committed file under `schemas/`, and the result types'

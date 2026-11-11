@@ -9,7 +9,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Output;
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+use crate::support::GOLDEN_A;
+
 /// Page 102 in the project, and in the working tree (the project in `proj/`).
 const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
 const REPO_PAGE: &str = "proj/J-E-2416.ew/pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
@@ -21,7 +22,7 @@ struct Tree(PathBuf);
 impl Tree {
     fn new() -> Tree {
         let root = ew_testdir::fresh_dir("ew-merge-driver");
-        super::conventions::copy_dir(Path::new(GOLDEN_A), &root.join("proj/J-E-2416.ew"));
+        crate::support::copy_dir(Path::new(GOLDEN_A), &root.join("proj/J-E-2416.ew"));
         Tree(root)
     }
 
@@ -41,7 +42,7 @@ impl Tree {
     }
 
     fn run(&self, args: &[String]) -> Output {
-        std::process::Command::new(super::conventions::bin_exe())
+        std::process::Command::new(crate::support::bin_exe())
             .arg("merge-driver")
             .args(args)
             .current_dir(&self.0)

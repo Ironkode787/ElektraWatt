@@ -9,8 +9,6 @@
 //! ID-90). [`with_profiles`] adds them to `ProjectSettings.extra` in the doc 03 §5.1 shape, as the importer
 //! will once it emits them, so that the wire-property rules of doc 20 §7.1–§7.2 can be tested.
 
-#![allow(dead_code)]
-
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 

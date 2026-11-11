@@ -1311,7 +1311,7 @@ mod tests {
     /// terminal, opens through `open_for_writing_with` and refuses a project with a crashed
     /// session's journal before it asks: exit 2, nothing prompted, the journal unchanged. It prints
     /// `journal_refusal`'s text on stderr, which a unit test does not capture, so the text is asserted whole here;
-    /// `ew apply` and `ew import parts` assert the same text through the binary (`tests/cli.rs`).
+    /// `ew apply` and `ew import parts` assert the same text through the binary (`tests/it/cli.rs`).
     #[test]
     fn a_human_only_subcommand_refuses_a_crashed_session_journal() {
         let dir = setup("human-only");
@@ -1340,7 +1340,7 @@ mod tests {
     }
 
     /// The texts of a replay the journal itself refuses (a control sequence from the journal is escaped) and of the
-    /// further journals; the collisions' text is asserted through the binary (`tests/cli.rs`).
+    /// further journals; the collisions' text is asserted through the binary (`tests/it/cli.rs`).
     #[test]
     fn refusal_and_further_texts() {
         assert_eq!(

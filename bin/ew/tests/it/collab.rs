@@ -14,7 +14,8 @@ use std::process::{Command, Output, Stdio};
 
 use serde_json::{Value, json};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+use crate::support::GOLDEN_A;
+
 /// Page 102.
 const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
 
@@ -81,7 +82,7 @@ impl Repo {
         ] {
             assert!(r.git(args).status.success(), "git {args:?}");
         }
-        super::conventions::copy_dir(Path::new(GOLDEN_A), &r.project());
+        crate::support::copy_dir(Path::new(GOLDEN_A), &r.project());
         r.commit("Golden A");
         Some(r)
     }
@@ -115,7 +116,7 @@ impl Repo {
     }
 
     fn ew<S: AsRef<OsStr>>(&self, args: &[S]) -> Output {
-        let mut cmd = Command::new(super::conventions::bin_exe());
+        let mut cmd = Command::new(crate::support::bin_exe());
         cmd.args(args).current_dir(self.repo());
         self.env(&mut cmd);
         cmd.output().unwrap()
@@ -170,7 +171,7 @@ fn change_101f1(dir: &Path) {
 fn dg1_ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
     let Some(r) = Repo::new("ew-dg1") else { return };
     let copy = r.0.join("copy.ew");
-    super::conventions::copy_dir(Path::new(GOLDEN_A), &copy);
+    crate::support::copy_dir(Path::new(GOLDEN_A), &copy);
     change_101f1(&copy);
     let golden = Path::new(GOLDEN_A);
     let plain = r.ew(&[OsStr::new("diff"), golden.as_os_str(), copy.as_os_str()]);
@@ -235,7 +236,7 @@ fn dg1_ew_diff_prints_the_changed_part_with_the_tags_of_each_side() {
 
 /// The `ew` under test as git's shell reads it.
 fn quoted_exe() -> String {
-    let exe = super::conventions::bin_exe().to_string_lossy().replace('\\', "/");
+    let exe = crate::support::bin_exe().to_string_lossy().replace('\\', "/");
     format!("'{}'", exe.replace('\'', "'\\''"))
 }
 
@@ -444,7 +445,7 @@ fn git_setup_from_an_appimage_names_the_appimage() {
         return;
     };
     let image = r.0.join("Apps").join("Editor.AppImage");
-    let exe = super::conventions::bin_exe();
+    let exe = crate::support::bin_exe();
     let quoted_image = format!("'{}'", image.to_string_lossy().replace('\\', "/"));
     let elsewhere = r.0.join("mount");
     for (appdir, command) in [
@@ -480,7 +481,7 @@ fn git_setup_from_an_appimage_names_the_appimage() {
 fn cr1_project(dir: &Path) {
     const OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
     const CONFLICT: &str = r#"{"$k":"conflict","id":"1c5963b7-6c34-53d6-8fa6-9d02d4629711","kind":"connection","base":{"overrides":{}},"ours":{"overrides":{"colour":["BU"]}},"theirs":{"overrides":{"colour":["WH"]}}}"#;
-    super::conventions::copy_dir(Path::new(GOLDEN_A), dir);
+    crate::support::copy_dir(Path::new(GOLDEN_A), dir);
     let page = std::fs::read_to_string(dir.join(PAGE)).unwrap();
     let w20 = page
         .lines()
@@ -501,7 +502,7 @@ fn dg6_the_integrity_check_fails_on_a_conflict_record_and_passes_golden_a() {
     let cr1 = base.join("cr1.ew");
     cr1_project(&cr1);
     let run = |dir: &Path| {
-        Command::new(super::conventions::bin_exe())
+        Command::new(crate::support::bin_exe())
             .args([OsStr::new("check"), OsStr::new("--integrity"), dir.as_os_str()])
             .current_dir(&base)
             .output()

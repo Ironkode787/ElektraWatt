@@ -3,7 +3,7 @@
 
 //! The golden PDF (doc 20 §3.3 "PDF structure"): the page list and options of the golden project through the
 //! shipped export job (`ew_api::output`), the committed structure file's text and the SHA-256. Shared by
-//! `tests/page_output.rs` and the acceptance runner.
+//! `tests/it/page_output.rs` and the acceptance runner.
 
 use std::collections::BTreeMap;
 
@@ -46,13 +46,11 @@ pub fn pdf_options(q: &Q) -> PdfOptions {
 }
 
 /// The SVG options of the golden export (used by the acceptance runner, AC-14): the shipped job's.
-#[allow(dead_code)]
 pub fn svg_options() -> SvgOptions {
     output::svg_options(false)
 }
 
 /// The SHA-256 over an SVG export: every file as its name, a newline, its text, in page order.
-#[allow(dead_code)]
 pub fn svg_sha256(out: &SvgOutput) -> String {
     let mut h = Sha256::new();
     for f in &out.files {

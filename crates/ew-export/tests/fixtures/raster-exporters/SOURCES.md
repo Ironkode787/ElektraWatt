@@ -6,8 +6,7 @@ SPDX-License-Identifier: CC0-1.0
 # Real exporter raster corpus (FT-436)
 
 The eight files come from Wikimedia Commons, each public domain or CC0 as its file page states; they are kept byte
-for byte; metadata was checked for personal data; `crates/ew-export/tests/raster_exporters.rs` and
-`crates/ew-api/tests/raster_exporters.rs` assert each file's verdict.
+for byte; metadata was checked for personal data; `crates/ew-export/tests/it/raster_exporters.rs` asserts each file's verdict.
 
 | Path | Producer | Construct | Source | Licence | Verdict |
 |---|---|---|---|---|---|

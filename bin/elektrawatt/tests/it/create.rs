@@ -23,8 +23,7 @@
 
 use crate::support;
 
-#[path = "../create/scripts.rs"]
-mod scripts;
+pub(crate) mod scripts;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -36,7 +35,7 @@ use serde_json::{Value, json};
 use support::{SheetMap, golden_reps, placement_steps};
 
 /// The folio-101 start of §13.6 on a project whose structure the two actions made: the page, the strip and the IP
-/// symbols as in `canvas.rs`'s start, the location `+J-E-206` and its external reference `JE-N1000-03`.
+/// symbols as in `it/canvas.rs`'s start, the location `+J-E-206` and its external reference `JE-N1000-03`.
 fn folio_start(tmp: &Tmp) -> PathBuf {
     let embed = |files: &[&str]| -> Value {
         let copies: Vec<Value> = files

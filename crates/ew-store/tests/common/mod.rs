@@ -4,8 +4,6 @@
 //! Shared helpers of the `ew-store` integration tests: the golden project in a [`MemVfs`], store options
 //! with a fixed identity, reopening after a crash, and a deterministic edit batch.
 
-#![allow(dead_code)] // each test file uses a different subset
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;

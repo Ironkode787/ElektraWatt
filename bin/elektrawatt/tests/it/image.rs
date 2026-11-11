@@ -7,11 +7,9 @@
 //! the `image` item, the saved project holds it, and the `--record` log replayed on a third copy (the session's
 //! command-log replay, what `ew apply` runs) gives the same item. Golden A itself is only copied, never written.
 
-use crate::support;
 use crate::support::bin_exe;
 
-#[path = "../image/placement.rs"]
-mod placement;
+pub(crate) mod placement;
 
 /// IM2 per gate: one run of the script (the second run and the byte-identical comparison are the deep nightly's,
 /// `headless::nightly_every_script_transcript_is_byte_identical_twice`; test clean-up, 2026-10-30).

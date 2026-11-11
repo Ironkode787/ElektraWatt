@@ -542,7 +542,7 @@ fn t8_the_window_reports_the_rest_and_shows_the_popup() {
 fn t11_exact_counts_of_tool_events_in_the_window() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
-    // The property grid fetches a sheet per selection change (its counts in `tests/properties.rs`): closed
+    // The property grid fetches a sheet per selection change (its counts in `tests/it/properties.rs`): closed
     // here, so that the tool events alone are counted.
     dispatch(&mut h, "props.show", json!({"on": false}));
     dispatch(&mut h, "tab.new", json!({}));

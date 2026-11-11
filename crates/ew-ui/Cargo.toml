@@ -54,7 +54,7 @@ ew-hack = { version = "0.1.0", path = "../ew-hack" }
 [dev-dependencies]
 automod.workspace = true
 # Interaction tests and the accessible-name walker, without rendering (no snapshot or wgpu feature: WP-S2.17 D7 would
-# bring packages beyond the spec's, see the part 1 report; the chrome snapshots use `tests/offscreen`).
+# bring packages beyond the spec's, see the part 1 report; the chrome snapshots use `tests/it/snapshots/offscreen.rs`).
 egui_kittest = { version = "=0.37.0", default-features = false }
 # WP-S2.09 part 1: the window's running export is held at a gate (`ShellModel::set_job_gate_for_tests`, feature
 # `testkit`, dev-only by `ci/dep-rules.toml`); the normal edge above is the same package.

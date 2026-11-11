@@ -4,16 +4,14 @@
 //! Test support of the shell tests: a temporary copy of Golden A, a harness around the application frame without
 //! rendering, a scripted file dialog, and the accessibility walker (ADR-0014 amendment 2, NFR-A11Y-02).
 
-#![allow(dead_code, missing_docs)]
+#![allow(missing_docs)]
 
 pub mod colour;
 
 use std::cell::RefCell;
 use std::collections::VecDeque;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::OnceLock;
-use std::sync::atomic::AtomicU32;
 use std::time::Duration;
 
 use egui::Vec2;
@@ -23,83 +21,41 @@ use ew_ui::app::{App, Pick, Platform, setup};
 use ew_ui::ew_viewmodel::shell::{Mode, Outcome, Prompt, Resources, ShellConfig, ShellModel};
 use ew_ui::ew_viewmodel::{key, strings};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
+/// The temporary directory of a test ([`ew_testdir::Tmp`], reached through `Deref`: `dir()`, `path()`, `golden()` and
+/// the public path `.0`), with the shell configurations of the tests.
+pub struct Tmp(ew_testdir::Tmp);
 
-static COUNTER: AtomicU32 = AtomicU32::new(0);
+impl std::ops::Deref for Tmp {
+    type Target = ew_testdir::Tmp;
 
-/// A fresh temporary directory, removed on drop.
-pub struct Tmp(pub PathBuf);
+    fn deref(&self) -> &ew_testdir::Tmp {
+        &self.0
+    }
+}
 
 impl Tmp {
     pub fn new() -> Tmp {
-        Tmp(fresh_dir(&std::env::temp_dir(), "ew-ui-test", &COUNTER))
+        Tmp(ew_testdir::Tmp::new("ew-ui-test"))
+    }
+
+    /// The directory `dir`, which the caller made fresh, removed on drop.
+    pub fn from_dir(dir: PathBuf) -> Tmp {
+        Tmp(ew_testdir::Tmp(dir))
     }
 
     pub fn config(&self) -> ShellConfig {
-        ShellConfig::in_dir(&self.0.join("config"), "0.0.0-test")
+        ShellConfig::in_dir(&self.0.0.join("config"), "0.0.0-test")
     }
 
     /// The configuration with the sample project and the starter content of the source tree as resources.
     pub fn config_with_resources(&self) -> ShellConfig {
         self.config().with_resources(Resources {
-            sample_dir: Some(PathBuf::from(GOLDEN_A)),
-            content_dir: Some(PathBuf::from(CONTENT)),
+            sample_dir: Some(PathBuf::from(ew_testdir::GOLDEN_A)),
+            content_dir: Some(PathBuf::from(ew_testdir::CONTENT)),
             docs_dir: None,
             notices_file: None,
             privacy_file: None,
         })
-    }
-
-    /// A copy of Golden A in this directory, written from the bytes the test binary read once ([`golden_files`]):
-    /// every test gets its own files, so no test sees another's edits.
-    pub fn golden(&self, name: &str) -> PathBuf {
-        let target = self.0.join(name);
-        for (rel, bytes) in golden_files() {
-            let path = target.join(rel);
-            if let Some(parent) = path.parent() {
-                std::fs::create_dir_all(parent).unwrap();
-            }
-            std::fs::write(&path, bytes).unwrap();
-        }
-        target
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-/// A new, empty directory `<parent>/<stem>-<pid>-<n>` that this call created: the shared helper
-/// [`ew_testdir::fresh_dir_in`].
-pub fn fresh_dir(parent: &Path, stem: &str, counter: &AtomicU32) -> PathBuf {
-    ew_testdir::fresh_dir_in(parent, stem, counter)
-}
-
-/// The files of Golden A (path relative to the project directory, bytes), read once per test binary and only read:
-/// `golden/J-E-2416.ew` is never opened for writing or locked, the tests open their own copies.
-fn golden_files() -> &'static [(PathBuf, Vec<u8>)] {
-    static FILES: OnceLock<Vec<(PathBuf, Vec<u8>)>> = OnceLock::new();
-    FILES.get_or_init(|| {
-        let mut files = Vec::new();
-        read_dir_into(Path::new(GOLDEN_A), Path::new(""), &mut files);
-        files
-    })
-}
-
-fn read_dir_into(dir: &Path, rel: &Path, out: &mut Vec<(PathBuf, Vec<u8>)>) {
-    // Sorted, so that the copies are written in one order on every platform.
-    let mut entries: Vec<_> = std::fs::read_dir(dir).unwrap().map(Result::unwrap).collect();
-    entries.sort_by_key(std::fs::DirEntry::file_name);
-    for entry in entries {
-        let rel = rel.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            read_dir_into(&entry.path(), &rel, out);
-        } else {
-            out.push((rel, std::fs::read(entry.path()).unwrap()));
-        }
     }
 }
 
@@ -243,19 +199,6 @@ pub fn edit_toast(harness: &mut Harness<'_, App>) {
         "props.set",
         serde_json::json!({"row": "device/function_text", "value": "Spare"}),
     );
-}
-
-/// A copy of the directory `from` at `to`.
-pub fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap().map(Result::unwrap) {
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
 }
 
 /// The window on a writable copy of Golden A with folio `folio` on show and its image arrived.

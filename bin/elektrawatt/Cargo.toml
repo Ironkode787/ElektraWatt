@@ -52,7 +52,7 @@ ew-testkit = { path = "../../crates/ew-testkit" }
 # The fresh temporary directory of the tests (FT-1039; dev-only edge, `[allowed_dev_edges]`).
 ew-testdir = { path = "../../crates/ew-testdir" }
 serde_json = "1.0.154"
-# tests/headless.rs: the 150 dpi snapshot against golden/J-E-2416/expected/png and the exported PDF's digest.
+# tests/it/headless.rs: the 150 dpi snapshot against golden/J-E-2416/expected/png and the exported PDF's digest.
 png = "0.18.1"
 # tests/it/app_icon.rs: the application icon's PNG rendered from its SVG (WP-S6.06 §13 O5, ID-1280): the SVG path of
 # ew-scene and the CPU renderer (dev-only edges, `[allowed_dev_edges]`; no new package).

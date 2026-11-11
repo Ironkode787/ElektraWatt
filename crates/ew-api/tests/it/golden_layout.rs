@@ -383,7 +383,7 @@ fn lq5_labels_follow_the_tag_and_no_layout_file_changes() {
     );
 
     let dir = ew_testdir::fresh_dir("ew-golden-layout-lq5");
-    copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
+    ew_testdir::copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
     let layout_files = || read_dir_bytes(&dir.join("layout"));
     let before = layout_files();
     assert_eq!(before.len(), 1, "one layout file");
@@ -407,19 +407,6 @@ fn lq5_labels_follow_the_tag_and_no_layout_file_changes() {
     s.save().expect("the copy saves");
     assert_eq!(layout_files(), before, "no file under layout/ changed");
     let _ = std::fs::remove_dir_all(&dir);
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.path().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
 }
 
 fn read_dir_bytes(dir: &Path) -> BTreeMap<String, Vec<u8>> {

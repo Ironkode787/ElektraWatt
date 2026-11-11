@@ -17,8 +17,6 @@ use ew_store::{OpenMode, OsVfs, Store, StoreOptions, Vfs};
 
 use crate::common::{fixture, small_fixture, tree};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
 /// The git files EZ-1 adds to its copy of Golden A (Golden A has none, ruling 8).
 fn git_files() -> BTreeMap<String, Vec<u8>> {
     BTreeMap::from([
@@ -28,19 +26,6 @@ fn git_files() -> BTreeMap<String, Vec<u8>> {
         ),
         (".gitignore".to_owned(), b".~ew.lock\n.ew/\n".to_vec()),
     ])
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
 }
 
 /// A read-only store of the project at `dir` on the real file system (no lock, no journal).
@@ -65,7 +50,7 @@ fn pack_files(files: &BTreeMap<String, Vec<u8>>, git: &BTreeMap<String, Vec<u8>>
 fn ez1_golden_a_packs_deterministically_and_extracts_to_its_source() {
     let base = ew_testdir::fresh_dir("ew-ewz-ez1");
     let source = base.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &source);
+    ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &source);
     for (name, data) in git_files() {
         std::fs::write(source.join(name), data).unwrap();
     }
@@ -146,7 +131,7 @@ fn ez1_golden_a_packs_deterministically_and_extracts_to_its_source() {
 fn the_pack_as_found_is_the_verified_pack_until_a_file_is_edited() {
     let base = ew_testdir::fresh_dir("ew-ewz-as-found");
     let source = base.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &source);
+    ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &source);
     for (name, data) in git_files() {
         std::fs::write(source.join(name), data).unwrap();
     }

@@ -54,8 +54,8 @@ fails when it differs from the sources, and it also runs in `cargo xtask check`.
 When a command or a rule changes, regenerate the sources first, then the pages:
 
 ```console
-$ EW_COMMANDS_BLESS=1 cargo test -p ew-commands --test schemas
-$ EW_CHECKS_BLESS=1 cargo test -p ew-checks --test catalogue
+$ EW_COMMANDS_BLESS=1 cargo test -p ew-commands --test it schemas::
+$ EW_CHECKS_BLESS=1 cargo test -p ew-checks --test it catalogue::
 $ cargo xtask docs-gen
 ```
 

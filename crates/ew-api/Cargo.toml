@@ -67,11 +67,11 @@ ew-commands = { path = "../ew-commands", features = ["testkit"] }
 ew-testids = { path = "../ew-testids" }
 # `tests/golden_csv.rs` compares the derived anchor cells, CPs and tags of the loaded golden model with its tables.
 ew-model = { path = "../ew-model", features = ["raw-read"] }
-# tests/page_output.rs: page display lists, PNG and PDF of the golden folios (WP-S3.04).
+# tests/it/page_output.rs: page display lists, PNG and PDF of the golden folios (WP-S3.04).
 ew-render-cpu = { path = "../ew-render-cpu" }
 ew-ids = { path = "../ew-ids" }
 png = "0.18.1"
-# tests/page_output.rs: inflates the PDF content streams to read the line widths (doc 20 §17.4).
+# tests/it/page_output.rs: inflates the PDF content streams to read the line widths (doc 20 §17.4).
 flate2 = "1.1.10"
 insta = { version = "1.49.0", default-features = false }
 # tests/it/drawn_path_agreement.rs: the scene's path between any two ends is ew-derive's (decision log ID-1110).

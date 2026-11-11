@@ -4,8 +4,6 @@
 //! The golden CSV bootstrap as a session, shared by the report tests (the same loading as
 //! `tests/golden_csv.rs`).
 
-#![allow(dead_code)]
-
 use std::path::{Path, PathBuf};
 
 use ew_api::library::LibraryTiers;
@@ -132,19 +130,7 @@ pub fn tiers(root: &Path) -> LibraryTiers {
     }
 }
 
-/// Copies the directory `from` (recursively) to `to`.
-pub fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
+pub use ew_testdir::copy_dir;
 
 /// A new schematic project from the built-in template with the IDs of the seed `seed`.
 pub fn new_project(seed: u64) -> Session {

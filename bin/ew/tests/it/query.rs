@@ -4,47 +4,10 @@
 //! `ew query` and `ew queries` on a copy of Golden A: the text and the `--json` result,
 //! the failure paths, the registry's snapshot, determinism and `--project`.
 
-use std::ffi::OsString;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
-
 use ew_api::cli_results as results;
 use serde_json::{Value, json};
 
-use super::conventions::{args, bin_exe, copy_dir, isolate, stderr, stdout, tree};
-
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-/// A fresh temporary directory with its own user directories, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-query"))
-    }
-
-    /// `ew` in this directory with its user directories inside it, no starter content, no display and no
-    /// `SOURCE_DATE_EPOCH`.
-    fn ew(&self, args: &[OsString]) -> Output {
-        let mut cmd = Command::new(bin_exe());
-        cmd.args(args).current_dir(&self.0);
-        isolate(&mut cmd, &self.0);
-        cmd.output().unwrap()
-    }
-
-    /// A copy of Golden A.
-    fn golden(&self) -> PathBuf {
-        let copy = self.0.join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &copy);
-        copy
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
+use crate::support::{EwTmp, Tmp, args, stderr, stdout, tree};
 
 /// `schema` compiled by the independent validator under the name `url`.
 fn compile(url: &str, schema: Value) -> (boon::Schemas, boon::SchemaIndex) {
@@ -89,8 +52,8 @@ fn assert_query_result(out: &str) -> results::QueryResult {
 /// `ew.query-result/1` object, whose `output` holds both and whose `explain` is null without `--explain`.
 #[test]
 fn device_tag_prints_its_text_and_its_json_result() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-query");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([&"query", &p, &"device_tag", &"tag:-101F1"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(stdout(&o), "full       =P01+J-E-2416-101F1\ndisplayed  -101F1\n");
@@ -139,8 +102,8 @@ fn device_tag_prints_its_text_and_its_json_result() {
 /// `output` of its `--json` result validates against the entry's own output schema.
 #[test]
 fn every_example_validates_against_its_output_schema() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-query");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([&"queries", &"--json"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let list: Value = serde_json::from_str(&stdout(&o)).unwrap();
@@ -166,8 +129,8 @@ fn every_example_validates_against_its_output_schema() {
 /// kind is named in words ("Every adapter checks the resolved record's kind").
 #[test]
 fn failures_exit_2_with_their_message() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-query");
+    let p = t.golden("J-E-2416.ew");
     let missing = t.0.join("no-such-project");
     for (cmd, message) in [
         (
@@ -240,7 +203,7 @@ fn failures_exit_2_with_their_message() {
 /// per entry, name, key and description separated by tabs.
 #[test]
 fn queries_prints_the_committed_registry() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-query");
     let o = t.ew(&args([&"queries", &"--json"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(stdout(&o), results::to_text(&results::queries()));
@@ -265,8 +228,8 @@ fn queries_prints_the_committed_registry() {
 /// writes nothing into it.
 #[test]
 fn two_runs_print_the_same_text_and_write_nothing() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-query");
+    let p = t.golden("J-E-2416.ew");
     let before = tree(&p);
     for cmd in [
         args([&"query", &p, &"device_tag", &"tag:-101F1", &"--explain"]),
@@ -292,8 +255,8 @@ fn two_runs_print_the_same_text_and_write_nothing() {
 /// D3's message.
 #[test]
 fn project_flag_equals_the_positional_directory() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-query");
+    let p = t.golden("J-E-2416.ew");
     let positional = t.ew(&args([&"query", &p, &"cell_of", &"tag:-101F1", &"--explain"]));
     let flag = t.ew(&args([
         &"query",

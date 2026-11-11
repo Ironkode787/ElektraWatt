@@ -10,23 +10,12 @@ use std::path::Path;
 
 use egui_kittest::Harness;
 use egui_kittest::kittest::NodeT as _;
+use ew_testdir::copy_dir;
 use ew_ui::app::App;
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness, settle};
 
 const RELEASE_MIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/fixtures/release-min");
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap().map(Result::unwrap) {
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
-}
 
 /// The texts of the window's last frame (each node's label, then its value; a label is often its value too) in the
 /// order AccessKit lists them.

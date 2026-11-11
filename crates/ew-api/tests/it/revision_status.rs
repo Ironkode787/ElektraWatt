@@ -3,7 +3,7 @@
 
 //! Page digests, the page change status, the revision overview and the
 //! `{page.last_changed_in}` placeholder over Golden A (acceptance PD-1 to PD-4; PD-5 is the golden page output of
-//! `tests/page_output.rs` and the headless report).
+//! `tests/it/page_output.rs` and the headless report).
 
 use crate::common;
 

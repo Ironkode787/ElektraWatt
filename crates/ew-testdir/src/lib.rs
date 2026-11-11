@@ -56,7 +56,8 @@ impl Drop for Tmp {
 ///
 /// When a directory cannot be read or created or a file cannot be copied: a test cannot go on without its files.
 pub fn copy_dir(from: &Path, to: &Path) {
-    let fail = |what: &str, path: &Path, e: std::io::Error| -> ! { panic!("cannot {what} {}: {e}", path.display()) };
+    let fail =
+        |what: &str, path: &Path, e: std::io::Error| -> ! { panic!("cannot {what} {}: {e}", path.display()) };
     if let Err(e) = std::fs::create_dir_all(to) {
         fail("create", to, e);
     }

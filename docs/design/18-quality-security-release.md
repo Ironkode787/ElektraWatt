@@ -282,7 +282,7 @@ fuzz_target!(|input: (u8, Vec<FuzzCmd>)| {
 The corpus starts from the AC-16 script, the Golden B steps and the Golden C fix script. PR runs use no sanitizer,
 for throughput. Nightly runs use AddressSanitizer, because the dependency closure contains `unsafe` code.
 
-*As built.* The fuzzer is the test directory `crates/ew-testkit/tests/command_fuzz/`. A seeded SplitMix64 generator picks
+*As built.* The fuzzer is the test directory `crates/ew-testkit/tests/it/command_fuzz/`. A seeded SplitMix64 generator picks
 its targets by index into the live records read through `Session::query` (so the no-op rule of §3.3 holds by
 construction) and drives the registered commands over Golden A with the oracle on: hand arms build well-formed steps
 and deep states, and a schema-driven arm builds a step for every registered command from its parameter schema. The

@@ -17,12 +17,13 @@ use std::path::Path;
 use egui::Key;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
+use ew_testdir::copy_dir;
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::ew_viewmodel::shell::{Dialog, Mode, Outcome, ShellModel};
 use ew_ui::ew_viewmodel::strings;
 use serde_json::{Value, json};
-use support::{Scripted, Tmp, copy_dir, dispatch, harness, on_golden, settle, wait_for_page};
+use support::{Scripted, Tmp, dispatch, harness, on_golden, settle, wait_for_page};
 
 const VIEWMODEL_SRC: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../ew-viewmodel/src");
 const RELEASE_MIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/fixtures/release-min");

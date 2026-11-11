@@ -6,40 +6,17 @@
 //! PE wire through the lamp's X1, and the lamp's L feed along the switch's wires. Named items only, never totals. The
 //! layout rules of §9 (EW-CORE-067 to -070, -072 and -073) on hand-built pages and on Golden A (RK1, RK2).
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_api::Session;
 use ew_api::output::LayoutError;
-
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-/// A temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
+use ew_testdir::Tmp;
 
 /// A read-only session on a temporary copy of Golden A (the committed project is only copied).
 fn golden_copy() -> (Tmp, Session) {
-    let tmp = Tmp(ew_testdir::fresh_dir("ew-api-layout"));
+    let tmp = Tmp::new("ew-api-layout");
     let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &dir);
     let session = Session::open_read_only(&dir, "ElektraWatt test").unwrap().0;
     (tmp, session)
 }

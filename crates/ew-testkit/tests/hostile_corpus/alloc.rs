@@ -4,7 +4,7 @@
 //! The counting allocator of the hostile corpus test: the system allocator, with the bytes
 //! live and their peak counted, so that the test bounds each refusal's extra peak allocation (NFR-SEC-02). It is this
 //! test binary's global allocator only; `ew-testkit`'s library keeps `#![forbid(unsafe_code)]`, and this is the one file
-//! of the crate that `ci/unsafe-allowlist.toml` lists. No time is measured (owner's rule).
+//! of the crate that its manifest lowers to `deny`. No time is measured (owner's rule).
 
 #![allow(unsafe_code)]
 

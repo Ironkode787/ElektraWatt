@@ -10,9 +10,8 @@
 use std::path::Path;
 use std::process::{Command, Output};
 
-use super::conventions::{bin_exe, copy_dir, isolate};
+use crate::support::{GOLDEN_A, bin_exe, copy_dir, isolate};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const PAGE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../docs/book/src/tutorials/headless-workflow.md"

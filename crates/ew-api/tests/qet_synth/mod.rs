@@ -22,8 +22,6 @@
 //! from a counter (deterministic), element UUIDs are written upper case on every other element while all
 //! references are lower case, so the importer's normalisation is exercised.
 
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 

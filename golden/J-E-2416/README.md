@@ -598,13 +598,13 @@ black box) and "supplied by others" for the process valves -203Q1 … -203Q8 (FR
 ## Expected page output (candidates)
 
 `expected/` holds what the page output of the golden model must reproduce (doc 20 §3.1, §3.3). It is **generated**,
-never edited by hand, by `crates/ew-api/tests/page_output.rs`, through the session's export job (`ew_api::output`,
+never edited by hand, by `crates/ew-api/tests/it/page_output.rs`, through the session's export job (`ew_api::output`,
 FT-59: the product's page views and one memoised `page_display_list` family per layer; since cycle 15 no page view is
 test glue):
 
 ```text
-EW_BLESS=1 cargo nextest run -p ew-api --test page_output     # rewrites expected/ from the model
-cargo nextest run -p ew-api --test page_output                # compares (no EW_BLESS)
+EW_BLESS=1 cargo nextest run -p ew-api --test it page_output::     # rewrites expected/ from the model
+cargo nextest run -p ew-api --test it page_output::                # compares (no EW_BLESS)
 ```
 
 - `text/<folio>.csv`: every glyph run of every exported layer on the sheet, in paint order, one file per folio of
@@ -632,8 +632,8 @@ cargo nextest run -p ew-api --test page_output                # compares (no EW_
   (§3.3 "PDF structure"; 246 links: one per listed cross-reference item (64), one per bound channel row of
   the PLC overview to its coil (28, doc 10 §5) and 154 report row links (WP-S3.06 part 3: the TOC's 36 page links,
   the parts list's 52 and the device tag overview's 66; the count is computed from the page views by
-  `tests/page_output.rs`)); `pdf/sha256.txt` holds the SHA-256 of the whole PDF, which
-  `ew export pdf golden/J-E-2416.ew --out <file>` writes byte for byte (G-M1-01; `bin/ew/tests/cli.rs` runs it on
+  `tests/it/page_output.rs`)); `pdf/sha256.txt` holds the SHA-256 of the whole PDF, which
+  `ew export pdf golden/J-E-2416.ew --out <file>` writes byte for byte (G-M1-01; `bin/ew/tests/it/cli.rs` runs it on
   one and four threads with no display, no starter content and empty user directories). Re-blessed in cycle 15: the
   PDF's document ID is the export job's, the hash of `ew-pdf/1 <project id> <profile> <date> all ew <version>
   sha256:<digest>` (doc 09 §4.3 rule 2; the digest covers the sheet display lists of every page and the bundled font
@@ -846,7 +846,7 @@ commands do not take. The commands mint their own IDs, so path (b) agrees with p
 its command log (`Built::command_log`, doc 17 §3.5) replays with `ew apply` to the same model.
 
 The builder never injects a record. What no command writes yet would be left out and listed (`Built::unwritten`,
-pinned by `crates/ew-testkit/tests/golden_dsl.rs`); since cycle 17 the list is empty: `revision.create` writes the
+pinned by `crates/ew-testkit/tests/it/golden_dsl.rs`); since cycle 17 the list is empty: `revision.create` writes the
 historic released V1.0 and the open V2.0 with its page notes (FT-165). 609 commands build the project (25 command
 names; about two seconds in a debug build). The same test file checks that path (b) holds the records of path (a) record for record, up to the
 IDs the commands minted (`source_ref` aside, the import lineage being path (a)'s own).
@@ -878,7 +878,7 @@ built (`crates/ew-api/src/cmdlog.rs`):
   of lines committed before it).
 - `ew apply [<project>] <file.ewcmd> [--preview] [--one-step]` (cycle 15, FT-156) replays a log on a project
   directory and saves it; `--preview` prints the changed records, tags and cross-references and saves nothing;
-  `--one-step` saves only when every line commits. `bin/ew/tests/cli.rs` previews and applies
+  `--one-step` saves only when every line commits. `bin/ew/tests/it/cli.rs` previews and applies
   `b2-renumber-pages.ewcmd` on a copy of the fixture.
 - `Session::run_script(&CmdLog, file)` replays a log: each line commits as its own transaction with origin
   `cmdlog:<file>` (bulk commands as preview then commit), so one `undo` takes back one line. Every command is
@@ -889,11 +889,11 @@ built (`crates/ew-api/src/cmdlog.rs`):
 
 | File | Doc 20 | State |
 |---|---|---|
-| `b2-renumber-pages.ewcmd` | §2.2 step B2: `page.renumber` of section 1 from 101 (folio 106 becomes 104) | tested by `crates/ew-api/tests/golden_b.rs`: exactly the 2 tags (-106W1, -106W2) and 14 cross-reference texts of §2.2 change, the page order follows, the topology (potential partition, 91 connection records) is identical, one undo restores the records byte for byte |
-| `b1-page-based-tags.ewcmd` | §2.2 step B1: `project.settings.set` drops the strip rule of `settings.numbering`, then `numbering.renumber` of the project with `include_frozen: true` (and `only_nonconforming`, see below) | tested by `crates/ew-api/tests/golden_b.rs`, alone and followed by B2: the 10 rows of the tag map hold, no cross-reference text changes, the topology is identical, one undo per line returns to Golden A byte for byte |
+| `b2-renumber-pages.ewcmd` | §2.2 step B2: `page.renumber` of section 1 from 101 (folio 106 becomes 104) | tested by `crates/ew-api/tests/it/golden_b.rs`: exactly the 2 tags (-106W1, -106W2) and 14 cross-reference texts of §2.2 change, the page order follows, the topology (potential partition, 91 connection records) is identical, one undo restores the records byte for byte |
+| `b1-page-based-tags.ewcmd` | §2.2 step B1: `project.settings.set` drops the strip rule of `settings.numbering`, then `numbering.renumber` of the project with `include_frozen: true` (and `only_nonconforming`, see below) | tested by `crates/ew-api/tests/it/golden_b.rs`, alone and followed by B2: the 10 rows of the tag map hold, no cross-reference text changes, the topology is identical, one undo per line returns to Golden A byte for byte |
 | `c-fix.ewcmd` | §20.2, the steps that existing commands can do (see "Golden C as built") | replayed over the private reference import by `crates/ew-api/tests/golden_c.rs` (corpus-gated): all 49 lines commit |
 | `ac16-freshness.ewcmd` | §21 AC-16: `fields.set` renames T55 to T57 (`tag.frozen`), `rep.move` moves -102F2 by one frame cell (15.875 mm), `page.renumber` makes folio 103 folio 104, `project.settings.set` sets the 24 V DC positive colour row to RD ("Red") | run edit by edit by the acceptance runner (`crates/ew-api/tests/acceptance/freshness.rs`) with the oracle on: one commit per line, the outputs that each edit affects change and nothing else, `ew verify-derived` (`ew_api::verify`) finds no difference after each edit, four undos restore the records byte for byte |
-| `gp-ut.ewcmd` | §2 GP-UT, the start of the usability tasks (doc 16 §19.3; WP-S2.12 D6): one `edit.delete` of -102F1 and the wires W21 and W25, whose delete plan takes along the device's function, representation, placement and the potential +24V-F at its terminal 2, the wires W20 and W24, the junction segments J3.1 and J4.1 and the junctions J3 and J4 (R0's and R1's form; R2's binding line is task T10's prelude) | tested by `bin/ew/tests/cli.rs` (`apply_of_gp_ut_removes_102f1_and_its_four_wires_only`): `ew apply` on a copy removes exactly those 13 records and changes no other record line; `cargo xtask blind` makes the start project `gp-ut` with it |
+| `gp-ut.ewcmd` | §2 GP-UT, the start of the usability tasks (doc 16 §19.3; WP-S2.12 D6): one `edit.delete` of -102F1 and the wires W21 and W25, whose delete plan takes along the device's function, representation, placement and the potential +24V-F at its terminal 2, the wires W20 and W24, the junction segments J3.1 and J4.1 and the junctions J3 and J4 (R0's and R1's form; R2's binding line is task T10's prelude) | tested by `bin/ew/tests/it/cli.rs` (`apply_of_gp_ut_removes_102f1_and_its_four_wires_only`): `ew apply` on a copy removes exactly those 13 records and changes no other record line; `cargo xtask blind` makes the start project `gp-ut` with it |
 
 **Step B1 as built.** `include_frozen: true` unfreezes the frozen devices that the scheme numbers (`TagSpec.frozen`
 is cleared), and dropping the strip rule makes -X1031 and -X1032 print -103X1 and -103X2. 1X1 has no strip segment
@@ -1013,7 +1013,7 @@ common-key counts, so a shrinking key set fails). The differences, by class:
 `cargo xtask acceptance [--milestone] <report.md>` runs the gate-M1 runner (doc 20 §21, §22; doc 18 §3.10) over the
 golden project with the oracle on and writes a Markdown table with one row per named check, a JUnit file
 (`target/nextest/ci/junit.xml`, nextest profile `ci`) and the exit status. It runs the `#[ignore]`d test `gate` of
-`crates/ew-api/tests/acceptance.rs` (about 2 minutes in a debug build); a stale report is deleted first.
+`crates/ew-api/tests/it/acceptance.rs` (about 2 minutes in a debug build); a stale report is deleted first.
 
 A row has one of four statuses:
 
@@ -1035,7 +1035,7 @@ The ordinary tests of the file run the runner once, without the raster compariso
 its report with the committed `expected/acceptance_headless.md` (so two runs must print the same text); they also keep
 `expected/csv/` current:
 
-    EW_BLESS=1 cargo nextest run -p ew-api --test acceptance --locked -E 'test(headless_report) | test(expected_csv)'
+    EW_BLESS=1 cargo nextest run -p ew-api --test it acceptance:: --locked -E 'test(headless_report) | test(expected_csv)'
 
 `expected/csv/` holds the report rows of the acceptance pairs (doc 20 §3.1): `terminals_1X1.csv`,
 `terminals_X1031.csv`, `terminals_X1032.csv` (903 … 905), `cables.csv` (906), `wires.csv` (907),
@@ -1043,7 +1043,7 @@ its report with the committed `expected/acceptance_headless.md` (so two runs mus
 mode), byte-equal to `expected/rows/<folio>.csv` (`rows/901.assembly.csv` for the assembly list). The runner
 compares the derived rows with them. Since cycle 14 the exports `ew export cables` (`cables.csv`) and
 `ew export bom --mode parts` (`bom_parts.csv`) write these files byte for byte through the same CSV writer
-(`ew_reports::csv`); the runner calls the library entry over the committed fixture, `bin/ew/tests/cli.rs` runs the
+(`ew_reports::csv`); the runner calls the library entry over the committed fixture, `bin/ew/tests/it/cli.rs` runs the
 binary. Since cycle 15 `ew export bom --mode assembly` writes `bom_assembly.csv` (§14.2): -201U1's typed assembly aspect
 (`tables/assembly_configs.csv`, D-41) replaces rows 16-21 by A1 and A2, rows 22-27 renumber 16-21, and the "Covers"
 column names the covered devices; `crates/ew-api/tests/export_bom.rs` and the AC-07 assembly entry test it.

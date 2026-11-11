@@ -12,7 +12,7 @@
 //! mismatches that the session's own oracle found while the sweep ran ([`MemoMode::Oracle`](crate::MemoMode)).
 //! The acceptance runner calls it after each scripted edit of AC-16, the CLI after opening a project.
 //!
-//! `tests/memo_oracle.rs` (`every_family_the_store_memoises_is_swept`) checks after a workload over the golden
+//! `tests/it/memo_oracle.rs` (`every_family_the_store_memoises_is_swept`) checks after a workload over the golden
 //! project that every family holding memos in the session's store is among the families the sweep read.
 
 use std::collections::{BTreeMap, BTreeSet};

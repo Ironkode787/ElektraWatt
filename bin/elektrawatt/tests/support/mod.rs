@@ -23,9 +23,7 @@
 //! golden styles and wiring ([`junction_style_steps`]), the structure box around the external points
 //! ([`structure_box_steps`]), the four marker groups through the Marker tool ([`marker_steps`]) and the pages'
 //! cross-reference texts ([`xref_texts`]). The script runs, the temporary directory and the start project are here
-//! too, shared by `canvas.rs`, `create.rs` and `gpp_demo.rs`.
-
-#![allow(dead_code)]
+//! too, shared by `it/canvas.rs`, `it/create.rs` and `gpp_demo.rs`.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -34,8 +32,7 @@ use std::process::{Command, Output, Stdio};
 use ew_ui::ew_viewmodel::ew_api::{AnyCommand, Session};
 use serde_json::{Value, json};
 
-/// The committed fixture of Golden A.
-pub const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+pub use ew_testdir::{CONTENT, GOLDEN_A, copy_dir};
 
 /// The first match in `text` of the UUID pattern `[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}`, if any: the
 /// check that no record ID reaches a transcript line or a describe text, which print the alias `@n` instead (FT-422,
@@ -743,60 +740,33 @@ pub fn golden_wiring(folio: u32) -> WiringOracle {
 // The script runs and the project start: the temporary directory, the headless runs, the wizard
 // and the start project the folio tests and the G-PP rehearsal share.
 
-/// The content tree of the source repository (the starter library of `file.new` and the wizard).
-pub const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
-
-/// A fresh temporary directory, removed on drop.
-pub struct Tmp(PathBuf);
+/// A fresh temporary directory, removed on drop ([`ew_testdir::Tmp`]).
+pub struct Tmp(ew_testdir::Tmp);
 
 impl Tmp {
     /// A new directory under the system temporary directory.
     pub fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-place-test"))
+        Tmp(ew_testdir::Tmp::new("ew-place-test"))
     }
 
     /// A path inside the directory.
     pub fn path(&self, name: &str) -> PathBuf {
-        self.0.join(name)
+        self.0.path(name)
     }
 
     /// The directory.
     pub fn dir(&self) -> &Path {
-        &self.0
+        self.0.dir()
     }
 
     /// A copy of Golden A named `J-E-2416.ew` in a subdirectory `sub` of the directory.
     pub fn golden(&self, sub: &str) -> PathBuf {
-        let target = self.0.join(sub).join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &target);
-        target
+        self.0.golden(&format!("{sub}/J-E-2416.ew"))
     }
 
     /// A copy of Golden A at `name` in the directory.
     pub fn golden_dir(&self, name: &str) -> PathBuf {
-        let target = self.path(name);
-        copy_dir(Path::new(GOLDEN_A), &target);
-        target
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-/// Copies the directory tree `from` to `to`.
-pub fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
+        self.0.golden(name)
     }
 }
 

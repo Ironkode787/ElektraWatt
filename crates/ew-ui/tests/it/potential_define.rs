@@ -17,7 +17,7 @@ use ew_ui::ew_viewmodel::shell::{Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, done, harness, settle, wait_for_page};
 
-/// The four pointer events of a double click at `at`, all in one frame (as `tests/data_grid.rs` gives them).
+/// The four pointer events of a double click at `at`, all in one frame (as `tests/it/data_grid.rs` gives them).
 fn double_click(h: &mut Harness<'static, App>, at: egui::Pos2) {
     h.input_mut().events.push(egui::Event::PointerMoved(at));
     h.run_ok();

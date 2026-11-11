@@ -53,8 +53,7 @@ impl Scratch {
         let project = base.join("J-E-2416.ew");
         let state = base.join("state");
         std::fs::create_dir_all(&state).unwrap();
-        let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416.ew");
-        copy_dir(&fixture, &project);
+        ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &project);
         // Whole seconds: the lock record and file times are compared at second precision.
         // The start of the test's manual clock; every compared time is derived from it.
         let whole = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
@@ -124,19 +123,6 @@ impl Drop for Scratch {
 fn set_mtime(path: &Path, t: SystemTime) {
     let f = std::fs::File::options().write(true).open(path).unwrap();
     f.set_modified(t).unwrap();
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let dest = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &dest);
-        } else {
-            std::fs::copy(entry.path(), dest).unwrap();
-        }
-    }
 }
 
 fn locked_by(opened: &Opened) -> ew_store::LockInfo {

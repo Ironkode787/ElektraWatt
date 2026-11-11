@@ -4,8 +4,6 @@
 //! Shared helpers of the tool-framework tests: temporary copies of Golden A, dispatch with checks,
 //! points of a page.
 
-#![allow(dead_code)]
-
 use std::path::{Path, PathBuf};
 
 use ew_viewmodel::canvas::{CanvasModel, HOVER_SLOP_PT, pick, rect_centre};
@@ -13,7 +11,7 @@ use ew_viewmodel::script;
 use ew_viewmodel::shell::{Dialog, FormDialog, Mode, Outcome, ShellConfig, ShellModel};
 use serde_json::{Value, json};
 
-pub const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+pub use ew_testdir::{GOLDEN_A, copy_dir};
 
 pub use ew_testdir as fresh_dir;
 
@@ -70,19 +68,6 @@ impl Tmp {
 impl Drop for Tmp {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-pub fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
     }
 }
 

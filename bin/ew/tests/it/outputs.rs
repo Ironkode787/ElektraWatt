@@ -11,43 +11,11 @@
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::Output;
 
-use super::conventions::{args, bin_exe, copy_dir, isolate, stderr, stdout};
+use crate::support::{EwTmp, GOLDEN_A, Tmp, args, stderr, stdout};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
-
-/// A fresh temporary directory with its own user directories, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-outputs"))
-    }
-
-    /// `ew` in this directory with its user directories inside it, no starter content, no display and no
-    /// `SOURCE_DATE_EPOCH`.
-    fn ew(&self, args: &[OsString]) -> Output {
-        let mut cmd = Command::new(bin_exe());
-        cmd.args(args).current_dir(&self.0);
-        isolate(&mut cmd, &self.0);
-        cmd.output().unwrap()
-    }
-
-    /// A copy of Golden A.
-    fn golden(&self) -> PathBuf {
-        let copy = self.0.join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &copy);
-        copy
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
 
 /// A committed expected file.
 fn expected(rel: &str) -> Vec<u8> {
@@ -104,8 +72,8 @@ fn block_id(first_folio: u32) -> String {
 /// doubles both pixel dimensions.
 #[test]
 fn render_writes_the_golden_png_of_folio_103() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let out = t.0.join("out.png");
     let o = t.ew(&args([
         &"render", &p, &"--page", &"103", &"--png", &"--out", &out,
@@ -136,8 +104,8 @@ fn render_writes_the_golden_png_of_folio_103() {
 /// OU-1: an unknown folio exits 2 naming it and writes nothing; a `--dpi` outside 72 to 600 is a usage error.
 #[test]
 fn render_refuses_an_unknown_folio_and_a_bad_resolution() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([&"render", &p, &"--page", &"999", &"--png"]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
@@ -159,7 +127,7 @@ fn render_refuses_an_unknown_folio_and_a_bad_resolution() {
 
 /// A copy of Golden A whose A3 frame forms declare a sheet of `width` × `height` millimetres.
 fn golden_with_sheet(t: &Tmp, width_mm: i64, height_mm: i64) -> PathBuf {
-    let p = t.golden();
+    let p = t.golden("J-E-2416.ew");
     let a3 = r#""sheet": {"width": 297000000, "height": 210000000}"#;
     let wide = format!(
         r#""sheet": {{"width": {}, "height": {}}}"#,
@@ -182,7 +150,7 @@ fn golden_with_sheet(t: &Tmp, width_mm: i64, height_mm: i64) -> PathBuf {
 /// writes nothing.
 #[test]
 fn a_page_too_large_to_rasterise_is_refused_with_words() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-outputs");
     let p = golden_with_sheet(&t, 4_000, 2_000);
     let o = t.ew(&args([&"render", &p, &"--page", &"103", &"--png"]));
     assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
@@ -202,7 +170,7 @@ fn a_page_too_large_to_rasterise_is_refused_with_words() {
     );
     assert!(!dir.exists());
 
-    let t = Tmp::new();
+    let t = Tmp::new("ew-outputs");
     let p = golden_with_sheet(&t, 20_000, 20_000);
     let o = t.ew(&args([
         &"render", &p, &"--page", &"103", &"--png", &"--dpi", &"72",
@@ -222,8 +190,8 @@ fn a_page_too_large_to_rasterise_is_refused_with_words() {
 /// on one thread and on four (`--threads` changes the speed only).
 #[test]
 fn export_png_writes_every_golden_png_in_one_and_four_threads() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let committed = files(&Path::new(EXPECTED).join("png"));
     for threads in ["1", "4"] {
         let dir = t.0.join(format!("png-{threads}"));
@@ -256,8 +224,8 @@ fn export_png_writes_every_golden_png_in_one_and_four_threads() {
 /// folio 103's W29 in DBU and W27 green and yellow; `ew export png` of folio 103 holds no coloured pixel.
 #[test]
 fn export_png_holds_no_wire_colour_view() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let dir = t.0.join("png-103");
     let o = t.ew(&args([&"export", &"png", &p, &"--out", &dir, &"--pages", &"103"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
@@ -285,8 +253,8 @@ fn export_png_holds_no_wire_colour_view() {
 /// replaced as a whole.
 #[test]
 fn export_png_refuses_a_directory_with_another_file() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let dir = t.0.join("mixed");
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("notes.txt"), "keep me").unwrap();
@@ -317,8 +285,8 @@ fn export_png_refuses_a_directory_with_another_file() {
 /// 908 to 908.2; by the block's ID it writes the same.
 #[test]
 fn report_csv_writes_the_56_channel_rows_of_folio_908() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([
         &"export",
         &"report",
@@ -340,8 +308,8 @@ fn report_csv_writes_the_56_channel_rows_of_folio_908() {
 /// 908,908.1,908.2`.
 #[test]
 fn report_pdf_writes_the_block_folios_only() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let report = t.0.join("report.pdf");
     let o = t.ew(&args([
         &"export",
@@ -377,8 +345,8 @@ fn report_pdf_writes_the_block_folios_only() {
 /// OU-3: `--format xlsx` without `--out` exits 2 asking for the file; an unknown block exits 2 naming it.
 #[test]
 fn report_refuses_xlsx_without_a_file_and_an_unknown_block() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([
         &"export",
         &"report",
@@ -423,8 +391,8 @@ fn kind_csvs() -> Vec<&'static str> {
 /// `expected/csv/<kind>.csv` byte for byte, twice the same.
 #[test]
 fn report_kind_writes_the_golden_kind_csvs() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     for kind in kind_csvs() {
         let o = t.ew(&args([
             &"export",
@@ -450,8 +418,8 @@ fn report_kind_writes_the_golden_kind_csvs() {
 /// exit 2; the unknown-kind refusal lists the registered kinds, each of which but `terminal_diagram` exports.
 #[test]
 fn report_kind_refusals_and_every_listed_kind_exports() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([
         &"export",
         &"report",
@@ -527,8 +495,8 @@ fn report_kind_refusals_and_every_listed_kind_exports() {
 /// does (V1.0 empty, V2.0 "101, 106"); `--kind revision_overview` writes the same bytes.
 #[test]
 fn report_csv_of_folio_911_prints_the_changed_pages() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([
         &"export",
         &"report",
@@ -560,8 +528,8 @@ fn report_csv_of_folio_911_prints_the_changed_pages() {
 /// second check finds nothing to rewrite; `"Assembly"` (a value outside the kind) exports the component rows.
 #[test]
 fn block_params_survive_a_save_and_a_wrong_value_gives_the_default() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let file = p.join("report-blocks.jsonl");
     let text = std::fs::read_to_string(&file).unwrap();
     let id = block_id(901);
@@ -607,8 +575,8 @@ fn block_params_survive_a_save_and_a_wrong_value_gives_the_default() {
 /// OU-4: `ew export wires` equals `expected/csv/wires.csv` (44 wires and 6 bridges).
 #[test]
 fn export_wires_equals_the_golden_wire_list() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([&"export", &"wires", &p]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let want = expected_text("csv/wires.csv");
@@ -627,8 +595,8 @@ fn export_wires_equals_the_golden_wire_list() {
 /// strips 1X1, -X1031 and -X1032 follow each other, each after a heading row, with the rows of its committed file.
 #[test]
 fn export_terminals_writes_one_strip_or_every_strip() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([&"export", &"terminals", &p, &"--strip", &"-X1031"]));
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(stdout(&o), expected_text("csv/terminals_X1031.csv"));
@@ -655,8 +623,8 @@ fn export_terminals_writes_one_strip_or_every_strip() {
 /// OU-4: a strip that is not there exits 2 naming it; a block of another kind exits 2 naming its kind.
 #[test]
 fn row_exports_refuse_an_unknown_strip_and_a_block_of_another_kind() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([&"export", &"terminals", &p, &"--strip", &"-X9"]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
@@ -689,8 +657,8 @@ fn row_exports_refuse_an_unknown_strip_and_a_block_of_another_kind() {
 /// equals the default cable list.
 #[test]
 fn a_named_block_equals_the_default_one() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let id = block_id(901);
     for mode in ["parts", "assembly"] {
         let default = t.ew(&args([&"export", &"bom", &p, &"--mode", &mode]));
@@ -723,8 +691,8 @@ fn json(o: &Output) -> serde_json::Value {
 #[test]
 fn print_of_golden_a_section_1_on_a5_is_the_committed_print_set() {
     use sha2::{Digest, Sha256};
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let out = t.0.join("p.pdf");
     let o = t.ew(&args([
         &"print",
@@ -796,7 +764,7 @@ fn print_of_golden_a_section_1_on_a5_is_the_committed_print_set() {
 /// names it, on stderr and in the result.
 #[test]
 fn print_of_an_a3_page_on_a4_is_scaled_or_clipped_with_a_notice() {
-    let t = Tmp::new();
+    let t = Tmp::new("ew-outputs");
     let p = golden_with_sheet(&t, 420, 297);
     let out = t.0.join("a3.pdf");
     let o = t.ew(&args([
@@ -819,8 +787,8 @@ fn print_of_an_a3_page_on_a4_is_scaled_or_clipped_with_a_notice() {
 /// refuses `--pages` beside it the same way.
 #[test]
 fn print_refusals_are_whole_texts() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let out = t.0.join("r.pdf");
     let usage = |message: &str, usage: &str| {
         format!("error: {message}\n\nUsage: {usage}\n\nFor more information, try '--help'.\n")
@@ -885,8 +853,8 @@ fn print_refusals_are_whole_texts() {
 /// `--sections` on `export pdf`: the section's pages with its divider, the same PDF as the same folios listed.
 #[test]
 fn export_pdf_takes_sections() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-outputs");
+    let p = t.golden("J-E-2416.ew");
     let a = t.0.join("a.pdf");
     let b = t.0.join("b.pdf");
     let o = t.ew(&args([&"export", &"pdf", &p, &"--sections", &"1", &"--out", &a]));

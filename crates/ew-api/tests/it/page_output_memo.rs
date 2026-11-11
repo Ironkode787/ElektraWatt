@@ -6,7 +6,7 @@
 //!
 //! Each test exports the golden project once through the session's memo store, commits one edit and exports
 //! again; the commit statistics of the memo store say which layer families ran again, and the second export
-//! equals a cold export of the edited model. The memo oracle (`tests/memo_oracle.rs`, the sweep of
+//! equals a cold export of the edited model. The memo oracle (`tests/it/memo_oracle.rs`, the sweep of
 //! `ew_api::verify`) compares every layer with its cold value at every state of its edit sequence.
 
 use crate::golden_common;

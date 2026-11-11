@@ -83,19 +83,6 @@ fn unique_dir(tag: &str) -> PathBuf {
     ew_testdir::fresh_dir(&format!("ew-golden-fixture-{tag}"))
 }
 
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.path().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
-}
-
 #[test]
 fn the_fixture_is_byte_identical_to_the_bootstrap() {
     let generated = generate();
@@ -171,7 +158,7 @@ fn the_fixture_opens_without_findings() {
 
     let copy = unique_dir("copy");
     let state = unique_dir("state");
-    copy_dir(&fixture_dir(), &copy);
+    ew_testdir::copy_dir(&fixture_dir(), &copy);
 
     let mut opts = StoreOptions::new("test");
     opts.state_dir = Some(state.clone());

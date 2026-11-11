@@ -9,7 +9,7 @@
 //! writing. The golden fixture holds no wire routes (the bootstrap writes connectivity only), so the tests that
 //! follow routes give the wires of the representations they move a route first, with `connection.route`.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use ew_api::{AnyCommand, CmdError, Receipt, Recovery, Session, SessionOptions, StoreOptions};
@@ -21,12 +21,10 @@ use ew_schema::{
     Connection, ConnectionKind, Device, Endpoint, Extra, FnRole, Function, FunctionKind, IpDirection, IpSpec,
     Kind, LibDocument, Page, Part, PartUse, Representation, Sha256, TemplateFn,
 };
+use ew_testdir::{CONTENT, Tmp};
 use ew_testkit::golden::dsl::{Builder, Done, End, IpEnd};
 use ew_units::{Grid, Nm, Pt2};
 use serde_json::{Value, json};
-
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-const CONTENT: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../content");
 
 // ---------------------------------------------------------------------------------------------------------
 // Golden A: the records the checks name (folios 101, 102 and 103; UUIDs of the committed fixture)
@@ -74,40 +72,11 @@ fn id<T>(s: &str) -> Id<T> {
 // ---------------------------------------------------------------------------------------------------------
 // A temporary copy of Golden A
 
-/// A temporary directory, removed when dropped (declare it before the session that uses it).
-struct Work(PathBuf);
-
-impl Work {
-    fn new() -> Work {
-        Work(ew_testdir::fresh_dir("ew-testkit-place-arrange"))
-    }
-}
-
-impl Drop for Work {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).expect("a directory");
-    for entry in std::fs::read_dir(from).expect("a readable directory") {
-        let entry = entry.expect("an entry");
-        let target = to.join(entry.file_name());
-        if entry.file_type().expect("a file type").is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).expect("a copied file");
-        }
-    }
-}
-
 /// A session over a copy of Golden A in `work`.
-fn open_copy(work: &Work, seed: u64) -> Session {
-    let dir = work.0.join("golden.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+fn open_copy(work: &Tmp, seed: u64) -> Session {
+    let dir = work.golden("golden.ew");
     let mut store = StoreOptions::new("ElektraWatt test");
-    store.state_dir = Some(work.0.join("state"));
+    store.state_dir = Some(work.path("state"));
     let options = SessionOptions {
         ids: Some(ew_testids::seeded_ids(seed)),
         ..SessionOptions::default()
@@ -266,7 +235,7 @@ fn stepped(pos: Pt2, steps: [i64; 2]) -> Pt2 {
 
 #[test]
 fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
-    let work = Work::new();
+    let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 1);
     let page: Id<Page> = id(PAGE_101);
     let reps: Vec<Id<Representation>> = [REP_XPE, REP_F55, REP_S51].map(id).to_vec();
@@ -343,7 +312,7 @@ fn rep_move_by_steps_lands_on_the_grid_where_one_nm_delta_cannot() {
 
 #[test]
 fn rep_move_by_steps_refuses_a_delta_or_a_page_beside_it() {
-    let work = Work::new();
+    let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 2);
     let before = lines(&s);
     for params in [
@@ -435,7 +404,7 @@ fn symbol_json(item: Uuid, key: &str, fndef_item: Uuid, cps: &[(u16, u16, [i64; 
 #[test]
 fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
     const G: i64 = 7_937_500;
-    let work = Work::new();
+    let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 3);
     let page: Id<Page> = id(PAGE_101);
     let (rep_id, function_id): (Id<Representation>, Id<Function>) = (id(REP_E56), id(FN_E56));
@@ -550,7 +519,7 @@ fn exchange_symbol_on_e56_keeps_its_connections_and_follows_the_new_cps() {
 
 #[test]
 fn new_terminal_adds_one_terminal_to_strip_x1031_with_the_next_sequence_number() {
-    let work = Work::new();
+    let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 4);
     let strip_id: Id<Device> = id(STRIP_X1031);
     let strip = device(&s, strip_id);
@@ -628,7 +597,7 @@ fn new_terminal_adds_one_terminal_to_strip_x1031_with_the_next_sequence_number()
 
 #[test]
 fn from_part_gives_a_device_with_a_black_box_and_a_contact_that_is_not_drawn() {
-    let work = Work::new();
+    let work = Tmp::new("ew-testkit-place-arrange");
     let mut s = open_copy(&work, 5);
     // The copy of MICO 4.10 with a second template entry: the black box, then a normally open contact
     // (`ew.fn.contact-no`) on the pattern CPs "13" and "14" (4 and 5). The starter content holds the FnDef; the
@@ -786,7 +755,7 @@ fn check_fixture(name: &str, doc: &LibDocument) {
 
 #[test]
 fn the_two_fndef_part_fixtures_are_current() {
-    let work = Work::new();
+    let work = Tmp::new("ew-testkit-place-arrange");
     let s = open_copy(&work, 6);
     // The starter FnDefs the fixtures' template entries name, as `library.embed` takes one.
     let starter_ref = |key: &str| -> ew_schema::LibRef {

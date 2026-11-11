@@ -2071,10 +2071,7 @@ pub fn run(root: &Path, bless: bool) -> Result<bool> {
                 let entries = text.lines().filter(|l| l.contains("{ path = ")).count();
                 std::fs::write(root.join(&policy.clippy_config), &text)
                     .with_context(|| format!("writing {}", policy.clippy_config))?;
-                println!(
-                    "raw-read: wrote {} ({entries} entries)",
-                    policy.clippy_config
-                );
+                println!("raw-read: wrote {} ({entries} entries)", policy.clippy_config);
                 ws.clippy_config = Some(text);
             }
             Err(errors) => {

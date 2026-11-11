@@ -5,7 +5,7 @@
 
 /// "error: <dir>: the project opens read-only: <reason>; nothing was
 /// written", each reason in the window's words; text from the system is printed escaped. The held lock is
-/// `tests/cli.rs`'s `recover_and_apply_refuse_a_held_lock_with_the_same_text`.
+/// `tests/it/cli.rs`'s `recover_and_apply_refuse_a_held_lock_with_the_same_text`.
 #[test]
 fn a_read_only_refusal_words_each_reason() {
     use ew_api::ReadOnlyReason as R;

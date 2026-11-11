@@ -16,5 +16,5 @@ slow-timeout = { period = "60s", terminate-after = 2 }
 # The long tests: the acceptance run, the command fuzzer, the memo oracle and the page output take about two minutes
 # on a busy machine.
 [[profile.default.overrides]]
-filter = 'binary(acceptance) or binary(command_fuzz) or binary(memo_oracle) or binary(page_output)'
+filter = 'test(/^(acceptance|command_fuzz|memo_oracle|page_output)::/)'
 slow-timeout = { period = "60s", terminate-after = 10 }

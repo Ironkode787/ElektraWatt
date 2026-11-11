@@ -23,11 +23,11 @@ pub(crate) const REFERENCE_DIR: &str = "target/reference";
 /// The tests that write the reference: the package, then the arguments that choose the test target and the test.
 const REFERENCE: &[(&str, &[&str])] = &[
     // commands/: one parameter schema per command and index.json
-    ("ew-commands", &["--test", "schemas"]),
+    ("ew-commands", &["--test", "it", "schemas::"]),
     // rules.json
-    ("ew-checks", &["--test", "catalogue"]),
+    ("ew-checks", &["--test", "it", "catalogue::"]),
     // keymap-sheet.json
-    ("ew-viewmodel", &["--test", "keymaps", "the_keymap_sheet"]),
+    ("ew-viewmodel", &["--test", "it", "keymaps::the_keymap_sheet"]),
     // cli.json
     ("ew", &["--bin", "ew", "catalogue::tests::the_cli_reference"]),
     // results/: one schema per `--json` result and index.json
@@ -167,7 +167,9 @@ fn blind_reference(root: &Path) -> Result<bool> {
             "-p",
             "ew-viewmodel",
             "--test",
-            "blind_reference",
+            "it",
+            "--",
+            "blind_reference::",
         ])
         .status()
         .context("running the blind reference test")?

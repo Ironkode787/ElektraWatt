@@ -1,0 +1,5179 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The checks of the acceptance runner (doc 20 §21 AC-01 … AC-14, AC-18, AC-20, AC-37's SVG half; §19 rows gated
+//! M1).
+//!
+//! Every entry says what it compared and what is left out. A criterion whose feature does not exist yet is
+//! `not_built` (it blocks the gate like a failure); one that cannot be evaluated headless or at this delivery
+//! is `not_applicable` with the reason; none is skipped silently. A part of a criterion that holds while
+//! another part is missing is its own entry.
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::str::FromStr;
+
+use ew_api::checks::{CheckMode, PRE_DELIVERY};
+use ew_api::{BomMode, Export, Recovery, Session, SessionOptions};
+use ew_derive::{
+    DeviceTag, PageOrder, PageRef, PotentialNameOf, PotentialPartition, RepAnchorCell, TitleBlockValues,
+    WireNumbers, XrefTextOf,
+};
+use ew_export::Parallelism;
+use ew_ids::Id;
+use ew_scene::page::page_scene;
+use ew_schema::{Device, Record, Representation};
+use sha2::{Digest, Sha256};
+
+use ew_store::StoreOptions;
+
+use super::freshness;
+use super::report::{Outcome, Status, fail, na, not_built, pass};
+use super::runner::{Ctx, Runner};
+use crate::golden_common::{self, all_props, repo, rows_csv, rows_of, run_log, tags, texts, xrefs};
+use crate::golden_files::{decode_rgba, differing_percent, frame_figure_errors, frame_json, page_png};
+use crate::pdf_support::{
+    pdf_options, pdf_pages, report_row_link_count, structure_text, svg_options, svg_sha256, xref_counts,
+};
+use crate::view::golden_session;
+
+/// The folios of doc 20 §5 in page order (36 pages): the stored pages, the dividers and the generated report
+/// pages with their continuation folios.
+const SECTION_5_FOLIOS: [&str; 36] = [
+    "1", "2", "2.1", "3", "100", "101", "102", "103", "106", "200", "201", "202", "203", "204", "205", "206",
+    "900", "901", "901.1", "902", "903", "904", "905", "906", "907", "907.1", "907.2", "908", "908.1",
+    "908.2", "909", "910", "910.1", "910.2", "910.3", "911",
+];
+
+/// The folios of AC-02: 1, 3, 100–106, 200–206 and 900 (the stored and divider pages of that range).
+const AC_02_FOLIOS: [&str; 15] = [
+    "1", "3", "100", "101", "102", "103", "106", "200", "201", "202", "203", "204", "205", "206", "900",
+];
+
+/// The title-block cells AC-04 binds on every page (doc 20 §17.2): the exact text each prints.
+const TITLE_BLOCK_VALUES: [&str; 6] = [
+    "Revision: V2.0",
+    "=P01",
+    "+J-E-2416",
+    "Object: J-E-2416",
+    "Creation: 03-03-2025",
+    "Saved: 14-04-2025",
+];
+
+/// The expected CSV of the report rows (`expected/csv/<name>.csv`) and the report block that derives them
+/// (`901.assembly`: the parts summary 901 in assembly mode, the rows of `ew export bom --mode assembly`).
+pub const ROW_PAIRS: [(&str, &str); 8] = [
+    ("terminals_1X1", "903"),
+    ("terminals_X1031", "904"),
+    ("terminals_X1032", "905"),
+    ("cables", "906"),
+    ("wires", "907"),
+    ("potentials", "909"),
+    ("bom_parts", "901"),
+    ("bom_assembly", "901.assembly"),
+];
+
+pub fn all(r: &mut Runner) {
+    // AC-01 ... AC-13
+    r.entry(
+        "AC-01",
+        "frame, grid and title-block geometry equals expected/geometry/frame.json",
+        ac01_frame,
+    );
+    r.entry("AC-01", "the printed frame equals the figures of §17.1", |_| {
+        let errors = frame_figure_errors();
+        if errors.is_empty() {
+            pass("outer frame, header band, column width, row height, first column edge and drawing area within 0.01 mm")
+        } else {
+            fail(errors.join("; "))
+        }
+    });
+    r.entry(
+        "AC-01",
+        "the written PDF's vector content of every page equals the frame geometry within 0.2 mm",
+        ac01_pdf_vectors,
+    );
+    r.entry(
+        "AC-02",
+        "every representation anchors in the cell of representations.csv",
+        ac02_anchor_cells,
+    );
+    r.entry(
+        "AC-02",
+        "text of folios 1, 3, 100-106, 200-206, 900 equals expected/text",
+        ac02_texts,
+    );
+    r.entry(
+        "AC-02",
+        "raster of those folios within 0.5 % of expected/png",
+        ac02_raster,
+    );
+    r.entry("AC-03", "page order equals the 36 folios of §5", ac03_pages);
+    r.entry(
+        "AC-04",
+        "every page prints the bound title-block values",
+        ac04_title_blocks,
+    );
+    r.entry(
+        "AC-05",
+        "the interruption-point texts equal §15 (22 pairs, 44 texts)",
+        ac05_ip_texts,
+    );
+    r.entry(
+        "AC-05",
+        "the 9 main and 10 auxiliary texts equal §15 by value",
+        ac05_main_aux,
+    );
+    r.entry(
+        "AC-05",
+        "63 linked texts with 64 targets, 4 external texts, \"3-B2\"",
+        ac05_counts,
+    );
+    r.entry(
+        "AC-06",
+        "every device tag equals its table key; no stale token in any page text",
+        ac06_tags,
+    );
+    r.entry(
+        "AC-06",
+        "every printed occurrence of a tag is identical, the PDF text layer included",
+        ac06_text_layer,
+    );
+    r.entry(
+        "AC-07",
+        "folio 901 holds the 27 rows of §14.1 over 901 and 901.1",
+        ac07_bom,
+    );
+    r.entry(
+        "AC-07",
+        "bom export --mode parts equals folio 901 and the 27 rows of §14.1",
+        ac07_export_parts,
+    );
+    r.entry(
+        "AC-07",
+        "bom export --mode assembly equals §14.2",
+        ac07_export_assembly,
+    );
+    r.entry(
+        "AC-08",
+        "folios 903-905 equal expected/csv, designations unique per strip",
+        ac08_terminals,
+    );
+    r.entry(
+        "AC-09",
+        "folio 907 equals expected/csv/wires.csv: 44 wires, 6 bridges",
+        ac09_wire_rows,
+    );
+    r.entry(
+        "AC-09",
+        "every wire has an effective size and colour",
+        ac09_properties,
+    );
+    r.entry("AC-09", "every wire has a wire number", ac09_numbers);
+    r.entry(
+        "AC-10",
+        "the potential partition holds the 19 potentials of §7.3 and bond B1",
+        ac10_partition,
+    );
+    r.entry("AC-10", "folio 909 equals expected/csv/potentials.csv", |c| {
+        row_pair(c, "potentials")
+    });
+    r.entry(
+        "AC-11",
+        "folio 906 equals expected/csv/cables.csv: 3 cables, 13 cores",
+        ac11_cables,
+    );
+    r.entry("AC-11", "export cables equals §10", ac11_export);
+    r.entry(
+        "AC-12",
+        "folio 1 prints the colour and size tables generated from the profiles",
+        ac12_tables,
+    );
+    r.entry(
+        "AC-12",
+        "changing the 24 V colour updates every affected wire and folio 907",
+        ac12_colour,
+    );
+    r.entry("AC-12", "the colour change is one commit", ac12_one_commit);
+    r.entry(
+        "AC-13",
+        "PDF structure equals expected/pdf (outline, links, page labels, fonts, SHA-256)",
+        ac13_structure,
+    );
+    r.entry(
+        "AC-13",
+        "text extraction of the PDF keeps spaces",
+        ac13_text_extraction,
+    );
+    r.entry("AC-13", "PDF/A-2b validated in process by krilla", ac13_pdfa);
+    r.entry("AC-13", "veraPDF cross-check of PDF/A-2b", ac13_verapdf);
+
+    // The SQL half of the acceptance pairs (doc 20 §3.1 `acceptance/*.sql`, doc 18 §3.10 steps 2 and 3): the
+    // SQL runs under the `ew sql` sandbox profile over the projection of the profiled model.
+    for (id, names) in SQL_PAIRS {
+        r.entry(
+            id,
+            &format!(
+                "acceptance SQL over the api_v1 views equals expected/csv: {}",
+                names.join(", ")
+            ),
+            |c| match c.sql() {
+                Ok(p) => match names.iter().try_for_each(|n| sql_pair(p, n)) {
+                    Ok(()) => pass(format!(
+                        "acceptance/{}.sql over the api_v1 views returns expected/csv/{}.csv row by row",
+                        names.join(".sql, acceptance/"),
+                        names.join(".csv, expected/csv/")
+                    )),
+                    Err(e) => fail(e),
+                },
+                Err(e) => fail(format!("the SQL projection did not build: {e}")),
+            },
+        );
+    }
+
+    // AC-18, AC-20: Golden B and the D-01 replay.
+    r.entry("AC-18", "step B1: the ten tags of the tag map", ac18_b1);
+    r.entry(
+        "AC-18",
+        "step B2: 2 tags and 14 cross-reference texts, same topology, undo restores the records",
+        ac18_b2,
+    );
+    r.entry(
+        "AC-18",
+        "step B2: the preview lists the folio change as one page record",
+        ac18_preview,
+    );
+    r.entry(
+        "AC-18",
+        "step B2: the preview lists the 2 tag and 14 cross-reference changes",
+        ac18_derived_preview,
+    );
+    r.entry(
+        "AC-18",
+        "step B2: no orphan reference and the same interruption-point pairing after the commit",
+        ac18_orphans_pairing,
+    );
+    r.entry(
+        "AC-20",
+        "renumbering folio 3 to 4 updates -3W1, -3X1 and \"3-B2\" everywhere; undo restores",
+        ac20_folio_3_to_4,
+    );
+    r.entry(
+        "AC-20",
+        "renumbering folio 3 to 4 writes only that page's file",
+        ac20_write_set,
+    );
+
+    // The other criteria of gate G-M1 (doc 20 §22).
+    r.entry(
+        "AC-14",
+        "PDF, SVG, CSV and JSONL are byte-identical across record shuffles",
+        ac14_shuffle,
+    );
+    r.entry(
+        "AC-14",
+        "SVG and the parallel export are byte-identical to the serial export",
+        ac14_parallel,
+    );
+    r.entry(
+        "AC-15",
+        "build path (a), the CSV bootstrap, equals path (c), the checked-in fixture",
+        |_| na("evaluated by tests/golden_fixture.rs (byte-identical regeneration), not by this runner"),
+    );
+    r.entry(
+        "AC-15",
+        "the acceptance SQL returns the same expected CSVs over path (a) and over path (c), the checked-in fixture",
+        ac15_sql_paths,
+    );
+    r.entry(
+        "AC-15",
+        "the shipped PDF export over path (c), the checked-in fixture, writes the PDF of path (a)",
+        ac15_export_paths,
+    );
+    r.entry(
+        "AC-15",
+        "build path (b), the builder DSL, produces the same expected CSVs",
+        ac15_builder_path,
+    );
+    ac16(r);
+    if r.perf() {
+        r.entry(
+            "AC-17",
+            "opening the golden project takes at most 0.5 s",
+            ac17_open,
+        );
+        r.entry("AC-17", "a full check takes at most 2 s", |_| {
+            not_built("the pre-delivery pack is incomplete (the remaining rules are FT-192, `ew check` offline mode FT-191), so a full-check time would not be the time of doc 20 §18")
+        });
+        r.entry("AC-17", "exporting the PDF takes at most 3 s", ac17_pdf);
+    } else {
+        r.entry("AC-17", "open <= 0.5 s, check <= 2 s, PDF export <= 3 s", |_| {
+            na("measured at milestone deliveries (cargo xtask acceptance --milestone, release profile)")
+        });
+    }
+    r.entry(
+        "AC-31",
+        "EW-BUS-004: no error with -3X1 On and one info for the external end, an error with -3X1 Off; JE-N1000-03 is the master and absent from the BOM",
+        ac31,
+    );
+    r.entry(
+        "AC-37",
+        "SVG half: every page keeps its text as <text> and embeds the font faces it names",
+        ac37_svg,
+    );
+    r.entry(
+        "AC-39",
+        "the anonymisation guard passes on golden/, docs/ and expected/",
+        |_| {
+            na("the guard is the confidential-token rule of `cargo xtask rules` (the xtask crate, outside this test crate); `cargo xtask check` runs it")
+        },
+    );
+
+    // §19 rows gated M1.
+    defects(r);
+    // WP-S1.18 part 5 (RU-4): AC-23 in two halves (D15).
+    ac23(r);
+    // WP-S1.20 FL-13: AC-32's MVP part, at the end so that the earlier rows keep their shard.
+    r.entry(
+        "AC-32",
+        "MVP part: 28 valve children; 24 valve glyphs on 201 and 4 on -202U2 print 571334; 16 lines F1 to F16 reach 8 field devices; the 28 valves print their Q addresses",
+        ac32,
+    );
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Helpers
+
+/// Reads the committed expected file under `golden/J-E-2416/expected`.
+fn expected(path: &str) -> Result<Vec<u8>, String> {
+    let p = repo().join("golden/J-E-2416/expected").join(path);
+    std::fs::read(&p).map_err(|e| format!("expected/{path}: {e}"))
+}
+
+/// A comparison with a committed file that never blesses.
+fn same_as_expected(path: &str, bytes: &[u8]) -> Result<(), String> {
+    if expected(path)? == bytes {
+        Ok(())
+    } else {
+        Err(format!("expected/{path} differs from the generated output"))
+    }
+}
+
+/// The rows of a CSV text (the golden dialect: quoted fields, doubled quotes, LF line ends).
+fn csv_rows(text: &str) -> Vec<Vec<String>> {
+    let mut rows = Vec::new();
+    let mut row = Vec::new();
+    let mut field = String::new();
+    let mut quoted = false;
+    let mut chars = text.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' if quoted && chars.peek() == Some(&'"') => {
+                field.push('"');
+                chars.next();
+            }
+            '"' => quoted = !quoted,
+            ',' if !quoted => row.push(std::mem::take(&mut field)),
+            '\n' if !quoted => {
+                row.push(std::mem::take(&mut field));
+                rows.push(std::mem::take(&mut row));
+            }
+            c => field.push(c),
+        }
+    }
+    rows
+}
+
+/// The (layer, text, y in mm) of every glyph run of a text CSV.
+pub(super) fn runs(csv: &str) -> Vec<(String, String, f64)> {
+    csv_rows(csv)
+        .into_iter()
+        .skip(1)
+        .map(|r| (r[1].clone(), r[3].clone(), r[5].parse().unwrap_or(0.0)))
+        .collect()
+}
+
+/// The ID of the record with source key `key`.
+fn id_of<T>(c: &Ctx, key: &str) -> Id<T> {
+    Id::from_str(c.ids.get(key).unwrap_or_else(|| panic!("no record `{key}`"))).unwrap()
+}
+
+fn list(items: impl IntoIterator<Item = String>, limit: usize) -> String {
+    let all: Vec<String> = items.into_iter().collect();
+    if all.len() <= limit {
+        all.join(", ")
+    } else {
+        format!("{}, and {} more", all[..limit].join(", "), all.len() - limit)
+    }
+}
+
+/// The environment variable that names a veraPDF XML report (`verapdf --format xml`) of the golden PDF exports.
+/// Nothing in the repository runs veraPDF; a person who has run it sets the variable for the gate, and AC-13's
+/// veraPDF entry reads the report. Only the gate (`tests/it/acceptance.rs`, `gate`) reads the variable and
+/// passes the path in through [`super::runner::Options`]; the headless run passes none, so the committed
+/// headless report (and the ordinary test that compares with it) never depends on the environment.
+pub const VERAPDF_REPORT_ENV: &str = "EW_VERAPDF_REPORT";
+
+/// AC-13's veraPDF entry: the verdict of the veraPDF report of the run's options when there is one, else not
+/// applicable (the tool is external and is not run by the runner itself).
+fn ac13_verapdf(c: &Ctx) -> Outcome {
+    verapdf_entry(c.verapdf.as_deref())
+}
+
+/// The outcome of AC-13's veraPDF entry for the report path of the run, if any.
+pub fn verapdf_entry(report: Option<&std::path::Path>) -> Outcome {
+    let Some(path) = report else {
+        return na(
+            "veraPDF is an external tool that the runner does not run; setting EW_VERAPDF_REPORT to the path of a veraPDF XML report of the exported PDFs (PDF/A-2b) makes this entry read the result",
+        );
+    };
+    match std::fs::read_to_string(path) {
+        Ok(text) => verapdf_outcome(&text),
+        Err(e) => fail(format!(
+            "{VERAPDF_REPORT_ENV} names a report that cannot be read: {e}"
+        )),
+    }
+}
+
+/// The attribute `name="value"` of one opening tag.
+fn xml_attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
+    let key = format!(" {name}=\"");
+    let start = tag.find(&key)? + key.len();
+    let len = tag[start..].find('"')?;
+    Some(&tag[start..start + len])
+}
+
+/// The opening tags `<name ...>` of a document, without the brackets (a scan, not an XML parser: the report is
+/// the machine-readable output of veraPDF, whose tags carry the verdict in attributes).
+fn xml_open_tags<'a>(text: &'a str, name: &str) -> Vec<&'a str> {
+    let open = format!("<{name}");
+    let mut tags = Vec::new();
+    let mut rest = text;
+    while let Some(at) = rest.find(&open) {
+        let after = &rest[at + open.len()..];
+        let Some(end) = after.find('>') else { break };
+        if after.starts_with(|c: char| c.is_whitespace() || c == '>' || c == '/') {
+            tags.push(&after[..end]);
+        }
+        rest = &after[end..];
+    }
+    tags
+}
+
+/// The verdict of a veraPDF XML report, by the rules of `ci/verapdf-check.py` (which the job runs): at least one
+/// job; each job validated against a PDF/A-2B profile and `isCompliant="true"`; the batch summary has no file that
+/// failed to parse, was encrypted, ran out of memory or hit a veraPDF exception, and counts as many compliant files
+/// as jobs and none non-compliant.
+pub fn verapdf_outcome(text: &str) -> Outcome {
+    let mut wrong = Vec::new();
+    let jobs = xml_open_tags(text, "job").len();
+    let reports = xml_open_tags(text, "validationReport");
+    if jobs == 0 {
+        wrong.push("the report has no job".to_owned());
+    }
+    if reports.len() != jobs {
+        wrong.push(format!(
+            "{jobs} job(s) but {} validation report(s)",
+            reports.len()
+        ));
+    }
+    for report in &reports {
+        let profile = xml_attr(report, "profileName").unwrap_or("");
+        if !profile.to_ascii_lowercase().replace('-', "").contains("2b") {
+            wrong.push(format!("validated against `{profile}`, not PDF/A-2B"));
+        }
+        if xml_attr(report, "isCompliant") != Some("true") {
+            wrong.push("a file is not compliant".to_owned());
+        }
+    }
+    match xml_open_tags(text, "batchSummary").first() {
+        None => wrong.push("the report has no batch summary".to_owned()),
+        Some(summary) => {
+            for name in ["failedToParse", "encrypted", "outOfMemory", "veraExceptions"] {
+                if xml_attr(summary, name) != Some("0") {
+                    wrong.push(format!(
+                        "batch summary: {name}={}",
+                        xml_attr(summary, name).unwrap_or("missing")
+                    ));
+                }
+            }
+        }
+    }
+    match xml_open_tags(text, "validationReports").first() {
+        None => wrong.push("the report has no validationReports count".to_owned()),
+        Some(counts) => {
+            let (compliant, non, failed) = (
+                xml_attr(counts, "compliant"),
+                xml_attr(counts, "nonCompliant"),
+                xml_attr(counts, "failedJobs"),
+            );
+            if compliant != Some(jobs.to_string().as_str()) || non != Some("0") || failed != Some("0") {
+                wrong.push(format!(
+                    "counts: compliant={} nonCompliant={} failedJobs={} for {jobs} job(s)",
+                    compliant.unwrap_or("missing"),
+                    non.unwrap_or("missing"),
+                    failed.unwrap_or("missing")
+                ));
+            }
+        }
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "veraPDF reports {jobs} golden PDF export(s) compliant with PDF/A-2B and no file failed to parse (read from {VERAPDF_REPORT_ENV}; the job's own verdict is ci/verapdf-check.py)"
+        ))
+    } else {
+        fail(format!("veraPDF cross-check failed: {}", list(wrong, 4)))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// AC-01 … AC-13
+
+fn ac01_frame(_: &Ctx) -> Outcome {
+    match same_as_expected("geometry/frame.json", frame_json().as_bytes()) {
+        Ok(()) => pass(
+            "the frame forms (grid, no grid, cover) and the QET title block print the committed figures (exact, stricter than 0.2 mm)",
+        ),
+        Err(e) => fail(e),
+    }
+}
+
+fn ac02_anchor_cells(c: &Ctx) -> Outcome {
+    let rows = golden_common::table("representations.csv");
+    let q = c.oracle.query();
+    let mut wrong = Vec::new();
+    let mut checked = 0;
+    for r in &c.batch.records {
+        let ew_schema::Record::Representation(rep) = r else {
+            continue;
+        };
+        let key = golden_common::source_key(r)
+            .and_then(|k| k.strip_prefix("representations|"))
+            .expect("a source key");
+        let want = &rows[key]["cell"];
+        let got = q
+            .get::<RepAnchorCell>(rep.id)
+            .as_ref()
+            .as_ref()
+            .map(ToString::to_string);
+        if got.as_deref() != Some(want.as_str()) {
+            wrong.push(format!("{key}: table {want}, derived {got:?}"));
+        }
+        checked += 1;
+    }
+    if checked != rows.len() {
+        return fail(format!("{checked} representations, {} table rows", rows.len()));
+    }
+    if wrong.is_empty() {
+        pass(format!("all {checked} anchor cells equal their table cells"))
+    } else {
+        fail(format!("{} of {checked} off: {}", wrong.len(), list(wrong, 3)))
+    }
+}
+
+fn ac02_texts(c: &Ctx) -> Outcome {
+    let mut differing = Vec::new();
+    for folio in AC_02_FOLIOS {
+        let Some(csv) = c.text.get(folio) else {
+            differing.push(format!("{folio} (not generated)"));
+            continue;
+        };
+        if let Err(e) = same_as_expected(&format!("text/{folio}.csv"), csv.as_bytes()) {
+            differing.push(format!("{folio}: {e}"));
+        }
+    }
+    if differing.is_empty() {
+        pass(format!(
+            "{} folios: strings, anchors (3 decimals) and sizes equal the committed text CSVs",
+            AC_02_FOLIOS.len()
+        ))
+    } else {
+        fail(list(differing, 4))
+    }
+}
+
+fn ac02_raster(c: &Ctx) -> Outcome {
+    if !c.raster {
+        return na("the raster comparison was switched off for this run (Options::raster)");
+    }
+    let mut worst: Option<(f64, String)> = None;
+    for g in c
+        .pages
+        .iter()
+        .filter(|g| AC_02_FOLIOS.contains(&g.entry.folio.as_str()))
+    {
+        let scene = page_scene(&g.view, ew_text::bundled(), ew_text::builtin());
+        let bytes = page_png(&scene);
+        let committed = match expected(&format!("png/{}.png", g.entry.folio)) {
+            Ok(b) => b,
+            Err(e) => return fail(e),
+        };
+        let (w0, h0, a) = decode_rgba(&committed);
+        let (w1, h1, b) = decode_rgba(&bytes);
+        if (w0, h0) != (w1, h1) {
+            return fail(format!("folio {}: size differs", g.entry.folio));
+        }
+        let pct = differing_percent(&a, &b, 16);
+        if worst.as_ref().is_none_or(|w| pct > w.0) {
+            worst = Some((pct, g.entry.folio.clone()));
+        }
+    }
+    let worst = worst.expect("the AC-02 folios exist");
+    if worst.0 <= 0.5 {
+        pass(format!(
+            "{} folios within the 0.5 % tolerance (worst {:.3} % on folio {}); the PNGs are candidates awaiting the FT-10 approval",
+            AC_02_FOLIOS.len(),
+            worst.0,
+            worst.1
+        ))
+    } else {
+        fail(format!(
+            "folio {}: {:.3} % of the pixels differ",
+            worst.1, worst.0
+        ))
+    }
+}
+
+fn ac03_pages(c: &Ctx) -> Outcome {
+    let q = c.oracle.query();
+    let derived: Vec<String> = q
+        .get::<PageOrder>(())
+        .entries
+        .iter()
+        .map(|e| e.folio.clone())
+        .collect();
+    if derived == SECTION_5_FOLIOS {
+        return pass("36 folios in the order of §5; Prev/Next follow the order by construction");
+    }
+    let missing: Vec<String> = SECTION_5_FOLIOS
+        .iter()
+        .filter(|f| !derived.iter().any(|d| d == *f))
+        .map(|f| (*f).to_owned())
+        .collect();
+    let extra: Vec<String> = derived
+        .iter()
+        .filter(|d| !SECTION_5_FOLIOS.contains(&d.as_str()))
+        .cloned()
+        .collect();
+    fail(format!(
+        "{} folios derived against 36 in §5; missing {}{} (908.1, 908.2: no PLC channel records, FT-111)",
+        derived.len(),
+        list(missing, 6),
+        if extra.is_empty() {
+            String::new()
+        } else {
+            format!("; unexpected {}", list(extra, 6))
+        }
+    ))
+}
+
+fn ac04_title_blocks(c: &Ctx) -> Outcome {
+    let mut missing: BTreeMap<&str, Vec<&str>> = BTreeMap::new();
+    for (folio, csv) in &c.text {
+        let cells: BTreeSet<String> = runs(csv)
+            .into_iter()
+            .filter(|(layer, _, y)| layer == "frame" && *y > 180.0)
+            .map(|(_, text, _)| text)
+            .collect();
+        for want in TITLE_BLOCK_VALUES {
+            if !cells.contains(want) {
+                missing.entry(want).or_default().push(folio);
+            }
+        }
+    }
+    if missing.is_empty() {
+        pass(format!("all {} pages print the six bound values", c.text.len()))
+    } else {
+        fail(
+            missing
+                .iter()
+                .map(|(want, folios)| format!("\"{want}\" missing on {} pages", folios.len()))
+                .collect::<Vec<_>>()
+                .join("; "),
+        )
+    }
+}
+
+/// The interruption-point table of doc 20 §15: (name, source folio, target folio, printed at source, printed at
+/// target).
+fn section_15_pairs() -> Vec<(String, String, String, String, String)> {
+    let doc = std::fs::read_to_string(repo().join("docs/design/20-golden-project.md")).expect("doc 20");
+    let start = doc
+        .find("**Interruption points (22 pairs):**")
+        .expect("the §15 table");
+    let end = doc[start..]
+        .find("**External connection points")
+        .expect("its end")
+        + start;
+    doc[start..end]
+        .lines()
+        .filter(|l| l.starts_with("| ") && !l.starts_with("| Name") && !l.starts_with("|---"))
+        .map(|l| {
+            let cells: Vec<&str> = l.trim_matches('|').split('|').map(str::trim).collect();
+            let folio = |cell: &str| cell.split('-').next().unwrap().to_owned();
+            (
+                cells[0].to_owned(),
+                folio(cells[1]),
+                folio(cells[2]),
+                cells[3].to_owned(),
+                cells[4].to_owned(),
+            )
+        })
+        .collect()
+}
+
+fn ac05_ip_texts(c: &Ctx) -> Outcome {
+    let q = c.memoised.query();
+    let pairs = section_15_pairs();
+    if pairs.len() != 22 {
+        return fail(format!("{} pairs parsed from §15, 22 expected", pairs.len()));
+    }
+    let mut wrong = Vec::new();
+    for (name, source, target, at_source, at_target) in &pairs {
+        for (folio, want) in [(source, at_source), (target, at_target)] {
+            let key = format!("representations|{name}@{folio}");
+            let Some(id) = c.ids.get(&key) else {
+                wrong.push(format!("{name}@{folio}: no such interruption point"));
+                continue;
+            };
+            let got = q.get::<XrefTextOf>(Id::<Representation>::from_str(id).unwrap());
+            if got.text != *want {
+                wrong.push(format!("{name}@{folio}: \"{}\", §15 says \"{want}\"", got.text));
+            }
+        }
+    }
+    if wrong.is_empty() {
+        pass("44 texts equal the \"Printed at source / target\" columns of §15")
+    } else {
+        fail(format!("{} of 44 differ: {}", wrong.len(), list(wrong, 3)))
+    }
+}
+
+fn ac05_counts(c: &Ctx) -> Outcome {
+    let (linked, targets, external) = xref_counts(&c.pages);
+    let q = c.memoised.query();
+    let main = q.get::<XrefTextOf>(id_of(c, "representations|-201U1"));
+    let mut wrong = Vec::new();
+    if (linked, targets, external) != (63, 64, 4) {
+        wrong.push(format!(
+            "{linked} linked texts with {targets} targets and {external} external, expected 63, 64, 4"
+        ));
+    }
+    if main.text != "\u{221e} 3-B2, 106-G3" {
+        wrong.push(format!(
+            "-201U1 prints \"{}\", expected \"\u{221e} 3-B2, 106-G3\"",
+            main.text
+        ));
+    }
+    if wrong.is_empty() {
+        pass(
+            "63 linked texts with 64 link targets and 4 external texts on the drawn pages; -201U1 prints 3-B2",
+        )
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+fn ac06_tags(c: &Ctx) -> Outcome {
+    let q = c.oracle.query();
+    let mut wrong = Vec::new();
+    let mut checked = 0;
+    for r in &c.batch.records {
+        let ew_schema::Record::Device(dev) = r else {
+            continue;
+        };
+        let key = golden_common::source_key(r).expect("a source key");
+        let key = key
+            .strip_prefix("devices|")
+            .or_else(|| key.strip_prefix("terminals|"))
+            .expect("a device key");
+        let tag = q.get::<DeviceTag>(dev.id);
+        let short = tag.as_ref().as_ref().map(|t| t.short());
+        if short.as_deref() != Some(key) {
+            wrong.push(format!("{key}: derived {short:?}"));
+        }
+        checked += 1;
+    }
+    let stale = ["-4W1", "-4X1", "T51", "JE2416"];
+    let mut found = Vec::new();
+    for (folio, csv) in &c.text {
+        for (_, text, _) in runs(csv) {
+            if stale.iter().any(|s| text.contains(s)) || text == "BR" {
+                found.push(format!("{folio}: \"{text}\""));
+            }
+        }
+    }
+    if wrong.is_empty() && found.is_empty() {
+        pass(format!(
+            "{checked} devices print their table key; no \"-4W1\", \"-4X1\", \"T51\", \"JE2416\" or core colour \"BR\" in any page text"
+        ))
+    } else {
+        fail(format!(
+            "{} tags differ ({}); {} stale tokens ({})",
+            wrong.len(),
+            list(wrong, 3),
+            found.len(),
+            list(found, 3)
+        ))
+    }
+}
+
+/// The differences between the printed parts list and the table of doc 20 §14.1 that are accepted, as
+/// `(position, column, doc 20 prints, the parts list prints, why)`. Every other cell must be equal.
+///
+/// - Row 26, tags: §14.1 lists "1X1, -X1031, -X1032"; the parts list sorts the tags in the order of the ID-9
+///   sign order, "-X1031, -X1032, 1X1".
+///
+/// Row 26's folio is §14.1's 902 since WP-S4.02 part 5 derives the end brackets from R2's strips (FT-204; ID-1081,
+/// ruling 1).
+const AC07_ACCEPTED: [(&str, &str, &str, &str); 1] =
+    [("26", "Tags", "1X1, -X1031, -X1032", "-X1031, -X1032, 1X1")];
+
+/// Folio 901 equals the 27 rows of doc 20 §14.1 (`expected/parts_list_14_1.csv`, generated from the doc by
+/// `tables_from_doc20.py`) over 901 and 901.1, cell by cell, but for the accepted differences.
+fn ac07_bom(c: &Ctx) -> Outcome {
+    let q = c.rows_q();
+    let set = rows_of(&q, &c.batch, "901");
+    let n = set.rows.len();
+    let pages = q
+        .get::<ew_reports::BlockPages>((golden_common::block(&c.batch, "901"), 0))
+        .len();
+    if n != 27 || pages != 2 {
+        return fail(format!(
+            "{n} rows over {pages} page(s), §14.1 has 27 over 2 (901 and 901.1, the 4 TBD rows 24-27 on the second)"
+        ));
+    }
+    let rows: Vec<Vec<String>> = (0..n).map(|i| golden_common::texts(&q, &set, i)).collect();
+    compare_14_1(
+        &rows,
+        "27 rows over 901 and 901.1 equal expected/parts_list_14_1.csv (§14.1)",
+    )
+}
+
+/// The 27 printed rows (one text per column, no leading `row` cell) against doc 20 §14.1, cell by cell, but for
+/// the accepted differences. `what` starts the reason of a pass.
+fn compare_14_1(got_rows: &[Vec<String>], what: &str) -> Outcome {
+    let want = match expected("parts_list_14_1.csv") {
+        Ok(bytes) => csv_rows(&String::from_utf8_lossy(&bytes)),
+        Err(e) => return fail(e),
+    };
+    if got_rows.len() + 1 != want.len() {
+        return fail(format!("{} rows, §14.1 has {}", got_rows.len(), want.len() - 1));
+    }
+    let header = &want[0];
+    let mut wrong = Vec::new();
+    let mut accepted = 0;
+    for (expect, got) in want.iter().skip(1).zip(got_rows) {
+        for (col, name) in header.iter().enumerate() {
+            let (e, g) = (expect[col].as_str(), got.get(col).map_or("", String::as_str));
+            if e == g {
+                continue;
+            }
+            if AC07_ACCEPTED.contains(&(expect[0].as_str(), name.as_str(), e, g)) {
+                accepted += 1;
+            } else {
+                wrong.push(format!(
+                    "row {} {name}: §14.1 \"{e}\", printed \"{g}\"",
+                    expect[0]
+                ));
+            }
+        }
+    }
+    if wrong.is_empty() {
+        let plural = if accepted == 1 { "" } else { "s" };
+        pass(format!(
+            "{what} in every cell but {accepted} accepted difference{plural} (row 26: its tags in the ID-9 sign order)"
+        ))
+    } else {
+        fail(format!(
+            "{} cells differ from §14.1: {}",
+            wrong.len(),
+            list(wrong, 4)
+        ))
+    }
+}
+
+/// The committed fixture `golden/J-E-2416.ew` opened read-only, as `ew export` opens a project (build path (c)).
+fn fixture_session() -> Result<Session, String> {
+    let dir = repo().join("golden/J-E-2416.ew");
+    Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "export")
+        .map(|(s, _)| s)
+        .map_err(|e| format!("golden/J-E-2416.ew does not open: {e}"))
+}
+
+/// `ew export bom --mode parts`: the library entry `ew export` calls, over the fixture, writes
+/// `expected/csv/bom_parts.csv` byte for byte, and its 27 rows equal §14.1 (the accepted differences of folio
+/// 901 apply).
+fn ac07_export_parts(_: &Ctx) -> Outcome {
+    let text = match fixture_session().and_then(|s| {
+        s.export_csv(Export::Bom(BomMode::Component))
+            .map_err(|e| e.to_string())
+    }) {
+        Ok(t) => t,
+        Err(e) => return fail(e),
+    };
+    if let Err(e) = same_as_expected("csv/bom_parts.csv", text.as_bytes()) {
+        return fail(format!("export bom --mode parts: {e}"));
+    }
+    // Rows: `row`, then the 8 printed columns.
+    let rows: Vec<Vec<String>> = csv_rows(&text)
+        .into_iter()
+        .skip(1)
+        .map(|r| r.into_iter().skip(1).collect())
+        .collect();
+    compare_14_1(
+        &rows,
+        "export bom --mode parts equals expected/csv/bom_parts.csv and its 27 rows equal §14.1",
+    )
+}
+
+/// `ew export bom --mode assembly` against doc 20 §14.2: the library entry `ew export` calls, over the fixture,
+/// writes `expected/csv/bom_assembly.csv` byte for byte; rows 1-15 and 22-27 are those of the parts list (rows
+/// 22-27 renumbered 16-21, owner ruling ID-356), the two configured-product rows A1 and A2 of -201U1's assembly
+/// aspect replace rows 16-21, the column "Part number" prints the order codes, and the "Covers" column names
+/// the covered devices.
+fn ac07_export_assembly(_: &Ctx) -> Outcome {
+    let (parts, text) = match fixture_session().and_then(|s| {
+        let parts = s
+            .export_csv(Export::Bom(BomMode::Component))
+            .map_err(|e| e.to_string())?;
+        let assembly = s
+            .export_csv(Export::Bom(BomMode::Assembly))
+            .map_err(|e| e.to_string())?;
+        Ok((parts, assembly))
+    }) {
+        Ok(t) => t,
+        Err(e) => return fail(e),
+    };
+    let mut wrong = Vec::new();
+    if let Err(e) = same_as_expected("csv/bom_assembly.csv", text.as_bytes()) {
+        wrong.push(format!("export bom --mode assembly: {e}"));
+    }
+    let header: Vec<String> = csv_rows(&text).into_iter().next().unwrap_or_default();
+    let want_header = [
+        "row",
+        "Pos",
+        "Qty",
+        "Unit",
+        "Manufacturer",
+        "Part number",
+        "Description",
+        "Tags",
+        "Folios",
+        "Covers",
+    ];
+    if header != want_header {
+        wrong.push(format!("header {header:?}"));
+    }
+    // Rows: the printed columns without `row`.
+    let rows: Vec<Vec<String>> = csv_rows(&text)
+        .into_iter()
+        .skip(1)
+        .map(|r| r.into_iter().skip(1).collect())
+        .collect();
+    let component: Vec<Vec<String>> = csv_rows(&parts)
+        .into_iter()
+        .skip(1)
+        .map(|r| r.into_iter().skip(1).collect())
+        .collect();
+    if rows.len() != 15 + 2 + 6 || component.len() != 27 {
+        wrong.push(format!(
+            "{} rows, §14.2 has 23 (rows 1-15, A1, A2, rows 22-27); the parts list has {}",
+            rows.len(),
+            component.len()
+        ));
+        return fail(list(wrong, 3));
+    }
+    // Rows 1-15 and 22-27 equal the parts list, an empty Covers cell appended; 22-27 print 16-21.
+    for (i, (got, want)) in rows[..15]
+        .iter()
+        .zip(&component[..15])
+        .chain(rows[17..].iter().zip(&component[21..]))
+        .enumerate()
+    {
+        let mut want = want.clone();
+        want[0] = (i + 1).to_string();
+        want.push(String::new());
+        if *got != want {
+            wrong.push(format!("row {}: {:?}", got[0], &got[..5]));
+        }
+    }
+    let want_a = [
+        (
+            "A1",
+            "1",
+            "set",
+            "Festo",
+            "51E-F13GCQP-D+H2GG",
+            "CPX terminal (order code 1)",
+        ),
+        (
+            "A2",
+            "1",
+            "set",
+            "Festo",
+            "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS",
+            "MPA valve terminal (order code 2)",
+        ),
+    ];
+    for (row, want) in rows[15..17].iter().zip(want_a) {
+        let got = (
+            row[0].as_str(),
+            row[1].as_str(),
+            row[2].as_str(),
+            row[3].as_str(),
+            row[4].as_str(),
+            row[5].as_str(),
+        );
+        if got != want || row[6] != "-201U1" || row[7] != "201" {
+            wrong.push(format!("row {}: {:?}", row[0], &row[..8]));
+        }
+    }
+    let covers = (rows[15][8].as_str(), rows[16][8].as_str());
+    if covers.0 != "-201U1"
+        || !covers.1.contains("-201U2")
+        || !covers.1.contains("-202U3")
+        || !covers.1.contains("-201U3-Q1")
+    {
+        wrong.push(format!("Covers {covers:?}"));
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "export bom --mode assembly writes expected/csv/bom_assembly.csv: A1 and A2 replace rows 16-21 as in §14.2 (Part number = order code; Covers \"{}\" and \"{}\"), rows 22-27 renumber 16-21",
+            covers.0, covers.1
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// `ew export cables`: the library entry `ew export` calls, over the fixture, writes `expected/csv/cables.csv`
+/// byte for byte (the cable list of doc 20 §10: 3 cables, 13 cores).
+fn ac11_export(_: &Ctx) -> Outcome {
+    match fixture_session().and_then(|s| s.export_csv(Export::Cables).map_err(|e| e.to_string())) {
+        Err(e) => fail(e),
+        Ok(text) => match same_as_expected("csv/cables.csv", text.as_bytes()) {
+            Ok(()) => pass(format!(
+                "export cables writes expected/csv/cables.csv byte for byte: {} lines (3 cables, 13 cores)",
+                text.lines().count()
+            )),
+            Err(e) => fail(format!("export cables: {e}")),
+        },
+    }
+}
+
+fn ac08_terminals(c: &Ctx) -> Outcome {
+    let mut bad = Vec::new();
+    for (name, _) in &ROW_PAIRS[..3] {
+        if let Err(e) = row_pair_text(&c.batch, &c.rows_q(), name)
+            .and_then(|t| same_as_expected(&format!("csv/{name}.csv"), t.as_bytes()))
+        {
+            bad.push(e);
+        }
+    }
+    // Designations are unique per strip.
+    let q = c.oracle.query();
+    let mut seen: BTreeMap<Id<Device>, BTreeSet<String>> = BTreeMap::new();
+    let mut duplicates = Vec::new();
+    for (_, dev) in q.devices().iter() {
+        let Some(t) = &dev.aspects.terminal else { continue };
+        if !seen
+            .entry(t.strip)
+            .or_default()
+            .insert(t.designation.as_str().to_owned())
+        {
+            duplicates.push(format!("{} on {}", t.designation.as_str(), t.strip));
+        }
+    }
+    if bad.is_empty() && duplicates.is_empty() {
+        pass(
+            "3, 20 and 5 terminal rows equal the committed CSVs (hand-compared with §9, differences in the README); designations unique per strip",
+        )
+    } else {
+        fail(format!("{}; duplicates: {}", list(bad, 3), list(duplicates, 3)))
+    }
+}
+
+/// The derived rows of a report block as CSV text, for `expected/csv/<name>.csv`.
+pub fn row_pair_text(
+    batch: &ew_import_tables::ew_interop_api::ImportBatch,
+    q: &ew_derive::Q,
+    name: &str,
+) -> Result<String, String> {
+    let (_, block) = ROW_PAIRS
+        .iter()
+        .find(|(n, _)| *n == name)
+        .ok_or_else(|| format!("no row pair {name}"))?;
+    if *block == "901.assembly" {
+        return ew_reports::export::export_csv(q, Export::Bom(BomMode::Assembly)).map_err(|e| e.to_string());
+    }
+    Ok(rows_csv(q, &rows_of(q, batch, block)))
+}
+
+/// The acceptance SQL/CSV pairs by criterion: `acceptance/<name>.sql` returns `expected/csv/<name>.csv`.
+pub const SQL_PAIRS: [(&str, &[&str]); 4] = [
+    ("AC-08", &["terminals_1X1", "terminals_X1031", "terminals_X1032"]),
+    ("AC-09", &["wires"]),
+    ("AC-10", &["potentials"]),
+    ("AC-11", &["cables"]),
+];
+
+/// The result of `acceptance/<name>.sql` over `projection` as CSV, under the `ew sql` sandbox profile.
+fn sql_csv(projection: &ew_api::sql::Projection, name: &str) -> Result<String, String> {
+    let path = repo().join(format!("golden/J-E-2416/acceptance/{name}.sql"));
+    let sql = std::fs::read_to_string(&path).map_err(|e| format!("acceptance/{name}.sql: {e}"))?;
+    projection
+        .reader(ew_api::sql::Profile::EW_SQL)
+        .and_then(|r| r.query(&sql))
+        .map(|set| set.to_csv())
+        .map_err(|e| format!("acceptance/{name}.sql: {e}"))
+}
+
+/// `acceptance/<name>.sql` over `projection` returns `expected/csv/<name>.csv` (row by row: the whole text).
+fn sql_pair(projection: &ew_api::sql::Projection, name: &str) -> Result<(), String> {
+    let got = sql_csv(projection, name)?;
+    let want = String::from_utf8(expected(&format!("csv/{name}.csv"))?).map_err(|e| e.to_string())?;
+    match want.lines().zip(got.lines()).position(|(a, b)| a != b) {
+        None if want == got => Ok(()),
+        None => Err(format!(
+            "acceptance/{name}.sql returns {} lines, expected/csv/{name}.csv has {}",
+            got.lines().count(),
+            want.lines().count()
+        )),
+        Some(i) => Err(format!(
+            "acceptance/{name}.sql differs from expected/csv/{name}.csv at line {}",
+            i + 1
+        )),
+    }
+}
+
+/// AC-15 for the SQL half (doc 20 §3.2): the projection of path (a), the CSV bootstrap the runner builds,
+/// and of path (c), the checked-in fixture `golden/J-E-2416.ew` opened read-only, return the same expected
+/// CSVs.
+fn ac15_sql_paths(c: &Ctx) -> Outcome {
+    let a = match c.sql() {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the SQL projection of path (a) did not build: {e}")),
+    };
+    let dir = repo().join("golden/J-E-2416.ew");
+    let fixture = match Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "acceptance") {
+        Ok((s, _)) => s,
+        Err(e) => return fail(format!("golden/J-E-2416.ew does not open: {e}")),
+    };
+    let checks = fixture.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
+    let fc = match fixture.sql_projection(Some(&checks)) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the SQL projection of path (c) did not build: {e}")),
+    };
+    let names: Vec<&str> = SQL_PAIRS.iter().flat_map(|(_, n)| n.iter().copied()).collect();
+    for name in &names {
+        if let Err(e) = sql_pair(a, name) {
+            return fail(format!("path (a): {e}"));
+        }
+        if let Err(e) = sql_pair(&fc, name) {
+            return fail(format!("path (c): {e}"));
+        }
+    }
+    pass(format!(
+        "the {} acceptance SQL files return the same expected CSVs over both paths; path (b) is the next entry",
+        names.len()
+    ))
+}
+
+/// One command of the builder DSL on `session`: a bulk command as preview and commit.
+fn run_json(
+    session: &mut Session,
+    name: &str,
+    params: serde_json::Value,
+) -> Result<ew_testkit::golden::dsl::Done, String> {
+    let cmd = ew_api::AnyCommand {
+        name: name.to_owned(),
+        params,
+    };
+    let bulk = session
+        .registry()
+        .get(name)
+        .is_some_and(|e| e.meta().cost == ew_commands::Cost::Bulk);
+    let receipt = if bulk {
+        session.preview(&cmd).and_then(|p| session.commit(p))
+    } else {
+        session.execute(&cmd)
+    };
+    receipt
+        .map(|r| ew_testkit::golden::dsl::Done {
+            primary: r.outcome.primary,
+            created: r.created,
+        })
+        .map_err(|e| format!("{e:?}"))
+}
+
+/// AC-15 path (b) (doc 20 §3.2): the builder DSL of `ew-testkit` builds Golden A through commands
+/// only, from the project shell (the project row and the project-local parts; the non-local library copies
+/// come from `library.embed`, FT-278), with the bootstrap
+/// batch as its typed description; the acceptance SQL over the built project must return the expected CSVs
+/// (by content: the commands mint their own IDs).
+fn ac15_builder_path(c: &Ctx) -> Outcome {
+    let shell = ew_testkit::golden::shell(&c.batch);
+    let mut session = match Session::from_records(
+        shell.project,
+        [],
+        shell.lib,
+        SessionOptions {
+            ids: Some(Box::new(ew_testkit::synth::SynthSource::new(1))),
+            memo: ew_api::MemoMode::Off,
+            ..SessionOptions::default()
+        },
+    ) {
+        Ok(s) => s,
+        Err(e) => return fail(format!("the project shell is not a valid model: {e:?}")),
+    };
+    let built = match ew_testkit::golden::build(&c.batch, &mut |name: &str, params| {
+        run_json(&mut session, name, params)
+    }) {
+        Ok(b) => b,
+        Err(e) => return fail(format!("path (b) stopped at a command: {e}")),
+    };
+    let checks = session.check(&PRE_DELIVERY, CheckMode::Release);
+    let projection = match session.sql_projection(Some(&checks)) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the SQL projection of path (b) did not build: {e}")),
+    };
+    let names: Vec<&str> = SQL_PAIRS.iter().flat_map(|(_, n)| n.iter().copied()).collect();
+    let differing: Vec<&str> = names
+        .iter()
+        .copied()
+        .filter(|n| sql_pair(&projection, n).is_err())
+        .collect();
+    // Doc 20 §3.2 compares every expected CSV: the six SQL results and both parts lists (`ew export bom
+    // --mode parts|assembly`).
+    let mut boms_differ = Vec::new();
+    for (mode, file) in [
+        (BomMode::Component, "bom_parts.csv"),
+        (BomMode::Assembly, "bom_assembly.csv"),
+    ] {
+        match session.export_csv(Export::Bom(mode)) {
+            Ok(t) if same_as_expected(&format!("csv/{file}"), t.as_bytes()).is_ok() => {}
+            Ok(_) => boms_differ.push(file),
+            Err(e) => return fail(format!("{file} of path (b) does not export: {e}")),
+        }
+    }
+    // A representation the command layer refuses must never degrade path (b) silently.
+    let refused: Vec<String> = built
+        .unwritten
+        .iter()
+        .filter(|(k, _)| k.starts_with("representation (refused"))
+        .map(|(k, n)| format!("{n} × {k}"))
+        .collect();
+    let shell = "the project row (except 4 settings members and the supply origin) and the project-local parts \
+                 come from the shell";
+    let copies = ew_testkit::golden::embedded_copies(&c.batch).len();
+    let not_built = if built.unwritten.is_empty() {
+        let revisions = built.by_command.get("revision.create").copied().unwrap_or(0);
+        format!("no record is left unwritten (the {revisions} revisions by revision.create, FT-165); {shell}")
+    } else {
+        format!(
+            "not built by any command yet: {} (not compared by any expected CSV); {shell}",
+            built.unwritten_summary()
+        )
+    };
+    let commands = built.script.len();
+    let mut problems = Vec::new();
+    if !differing.is_empty() {
+        problems.push(format!(
+            "acceptance/{}.sql differ from expected/csv",
+            differing.join(".sql, acceptance/")
+        ));
+    }
+    if !boms_differ.is_empty() {
+        problems.push(format!(
+            "export bom differs from expected/csv/{}",
+            boms_differ.join(", expected/csv/")
+        ));
+    }
+    if !refused.is_empty() {
+        problems.push(format!("the command layer refused {}", refused.join("; ")));
+    }
+    if problems.is_empty() {
+        return pass(format!(
+            "{commands} commands from the project shell (the {copies} non-local library copies by library.embed, \
+             the valve-terminal assembly by assembly.attach, valve.add and fields.set, the 56 channels by \
+             normaliser N1 and plc.bind_channel); the {} acceptance SQL files \
+             and export bom --mode parts and --mode assembly return expected/csv; {not_built}",
+            names.len()
+        ));
+    }
+    fail(format!(
+        "{commands} commands from the project shell; {}; {not_built}",
+        problems.join("; ")
+    ))
+}
+
+fn row_pair(c: &Ctx, name: &str) -> Outcome {
+    match row_pair_text(&c.batch, &c.rows_q(), name)
+        .and_then(|t| same_as_expected(&format!("csv/{name}.csv"), t.as_bytes()))
+    {
+        Ok(()) => pass(format!(
+            "the derived rows equal expected/csv/{name}.csv (the SQL half is a separate entry)"
+        )),
+        Err(e) => fail(e),
+    }
+}
+
+fn ac09_wire_rows(c: &Ctx) -> Outcome {
+    let q = c.rows_q();
+    let set = rows_of(&q, &c.batch, "907");
+    let data = set
+        .rows
+        .iter()
+        .filter(|r| r.kind == ew_reports::RowKind::Data)
+        .count();
+    if data != 44 + 6 {
+        return fail(format!(
+            "{data} data rows, §8.2 and §8.3 have 44 wires and 6 bridges"
+        ));
+    }
+    match row_pair(c, "wires") {
+        (Status::Pass, _) => pass("44 wire rows and 6 bridge rows equal expected/csv/wires.csv"),
+        other => other,
+    }
+}
+
+fn ac09_properties(c: &Ctx) -> Outcome {
+    let q = golden_common::plain(&c.profiled);
+    let n = all_props(&q).len();
+    if n == 44 {
+        pass("44 wires have an effective size and colour")
+    } else {
+        fail(format!(
+            "{n} wires have an effective size and colour, expected 44"
+        ))
+    }
+}
+
+fn ac10_partition(c: &Ctx) -> Outcome {
+    let q = c.oracle.query();
+    let part = q.get::<PotentialPartition>(());
+    let n = part.potential_count();
+    let bonds = q.bonds().len();
+    let mut wrong = Vec::new();
+    if n != 19 {
+        wrong.push(format!(
+            "{n} potentials, §7.3 has 19 (the PROFIBUS DP potential needs the Bus connections, FT-105)"
+        ));
+    }
+    if bonds != 1 {
+        wrong.push(format!("{bonds} bonds, expected B1 only"));
+    }
+    if wrong.is_empty() {
+        pass("19 potentials and bond B1")
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+fn ac11_cables(c: &Ctx) -> Outcome {
+    let q = c.rows_q();
+    let set = rows_of(&q, &c.batch, "906");
+    let cores = set.column("core").expect("the core column");
+    let n_cores = (0..set.rows.len())
+        .filter(|i| set.rows[*i].kind == ew_reports::RowKind::Data && !texts(&q, &set, *i)[cores].is_empty())
+        .count();
+    let cables = set
+        .rows
+        .iter()
+        .filter(|r| r.kind == ew_reports::RowKind::Data)
+        .count()
+        - n_cores;
+    if (cables, n_cores) != (3, 13) {
+        return fail(format!("{cables} cables and {n_cores} cores, expected 3 and 13"));
+    }
+    match row_pair(c, "cables") {
+        (Status::Pass, _) => pass("3 cables and 13 cores equal expected/csv/cables.csv"),
+        other => other,
+    }
+}
+
+/// Folio 1's colour and size tables are generated from the profiles of the project settings: every text the
+/// profiles give for the cover (the voltage class, function, potential type and colour name of each colour
+/// row, the size of each size row, the standards text of the profile and the note of §7.2) is printed outside
+/// the frame layer.
+fn ac12_tables(c: &Ctx) -> Outcome {
+    let runs_outside_the_frame: Vec<String> = runs(&c.text["1"])
+        .into_iter()
+        .filter(|(layer, _, _)| layer != "frame")
+        .map(|(_, text, _)| text)
+        .collect();
+    let printed: BTreeSet<&str> = runs_outside_the_frame.iter().map(String::as_str).collect();
+    // A text with a character the default font lacks (the minus of "signal \u{2212}") is printed in several runs
+    // (the symbol fallback font): the runs of the cover joined in paint order must contain it.
+    let joined = runs_outside_the_frame.concat();
+    let (colour, size) = golden_common::profiles_json();
+    let en = |v: &serde_json::Value| v["en"].as_str().unwrap_or_default().to_owned();
+    let mut want: Vec<String> = Vec::new();
+    let rows = colour["rows"].as_array().map_or(&[][..], Vec::as_slice);
+    for row in rows {
+        for key in ["group", "function", "potential_type", "colour_name"] {
+            want.push(en(&row[key]));
+        }
+    }
+    let sizes = size["rows"].as_array().map_or(&[][..], Vec::as_slice);
+    for row in sizes {
+        want.push(format!("{} mm²", row["csa"].as_str().unwrap_or_default()));
+    }
+    want.push(en(&colour["standards"]));
+    want.push("If size or sign is not indicated in diagram, standard size or sign is to be used.".to_owned());
+    want.sort();
+    want.dedup();
+    let missing: Vec<String> = want
+        .iter()
+        .filter(|w| !printed.contains(w.as_str()) && !joined.contains(w.as_str()))
+        .cloned()
+        .collect();
+    if printed.is_empty() {
+        fail("folio 1 prints only its frame and title block: the cover tables are not drawn")
+    } else if missing.is_empty() {
+        pass(format!(
+            "folio 1 prints the {} colour rows, the {} size tables, the standards text of the profile and the note",
+            rows.len(),
+            sizes.len()
+        ))
+    } else {
+        fail(format!("folio 1 does not print {}", list(missing, 4)))
+    }
+}
+
+fn ac12_colour(c: &Ctx) -> Outcome {
+    let before_q = golden_common::plain(&c.profiled);
+    let before = all_props(&before_q);
+    let rows_before = rows_csv(&before_q, &rows_of(&before_q, &c.batch, "907"));
+    let after_session = golden_common::session_with(&c.batch, |p, _| {
+        let (mut colour, size) = golden_common::profiles_json();
+        colour["rows"][0]["colour"] = serde_json::json!(["RD"]);
+        p.settings.extra.insert("colour_profile".into(), colour);
+        p.settings.extra.insert("size_profile".into(), size);
+    });
+    let after_q = golden_common::plain(&after_session);
+    let after = all_props(&after_q);
+    let rows_after = rows_csv(&after_q, &rows_of(&after_q, &c.batch, "907"));
+    let mut changed = 0;
+    let mut wrong = Vec::new();
+    for (w, b) in &before {
+        let a = &after[w];
+        if matches!(&b.1, ew_derive::PropSource::ColourRow { row: 0, .. }) {
+            if a.0 == "RD" {
+                changed += 1;
+            } else {
+                wrong.push(format!("wire {w} kept {}", a.0));
+            }
+        } else if a != b {
+            wrong.push(format!("wire {w} changed without taking row 0"));
+        }
+    }
+    if rows_before == rows_after {
+        wrong.push("folio 907 prints the same rows after the change".into());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{changed} wires take the new colour and nothing else changes; folio 907's rows follow (recomputed from the edited profile)"
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+fn ac13_structure(c: &Ctx) -> Outcome {
+    let mut wrong = Vec::new();
+    let structure = structure_text(&c.pdf_pages, &c.pdf);
+    if let Err(e) = same_as_expected("pdf/structure.json", structure.as_bytes()) {
+        wrong.push(e);
+    }
+    let sha = format!("{:x}\n", Sha256::digest(&c.pdf.bytes));
+    if let Err(e) = same_as_expected("pdf/sha256.txt", sha.as_bytes()) {
+        wrong.push(e);
+    }
+    let r = &c.pdf.report;
+    // 64 cross-reference items (doc 20 §15), 28 PLC overview rows linked to their coils (doc 10 §5) and the report
+    // row links the generated pages draw, counted from the page views.
+    let rows = report_row_link_count(&c.pages);
+    let want = 64 + 28 + rows;
+    if r.links != want || r.plain_text_links != 0 {
+        wrong.push(format!(
+            "{} links and {} plain-text links, expected {want} and 0",
+            r.links, r.plain_text_links
+        ));
+    }
+    if !r.missing_fonts.is_empty() || r.dropped_notdef_glyphs != 0 {
+        wrong.push(format!(
+            "{} missing fonts, {} dropped glyphs",
+            r.missing_fonts.len(),
+            r.dropped_notdef_glyphs
+        ));
+    }
+    if structure.contains("Tahoma") {
+        wrong.push("a Tahoma font is embedded".into());
+    }
+    let labels: Vec<&str> = c.pdf_pages.iter().map(|p| p.label.as_str()).collect();
+    let order: Vec<&str> = c.pages.iter().map(|g| g.entry.folio.as_str()).collect();
+    if labels != order {
+        wrong.push("the page labels differ from the folio labels of page_order".into());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{0} pages: outline, {want} links (64 cross-reference items, 28 PLC overview rows, {rows} report row links), page labels = folio labels, embedded fonts and SHA-256 equal the committed files; no Tahoma (the folio count of AC-03 is a separate entry)",
+            c.pdf_pages.len()
+        ))
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Golden B and the folio replay
+
+fn ac18_b2(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let before = s.world();
+    let records_before = ew_commands::rows::model_lines(&before.model).expect("records");
+    let (tags_before, xrefs_before) = (tags(&s), xrefs(&s));
+    let (partition, wires) = {
+        let q = s.query();
+        (
+            q.get::<PotentialPartition>(()),
+            q.connections()
+                .iter()
+                .map(|(_, w)| (**w).clone())
+                .collect::<Vec<_>>(),
+        )
+    };
+    let text = match std::fs::read_to_string(golden_common::variant("b2-renumber-pages.ewcmd")) {
+        Ok(t) => t,
+        Err(e) => return fail(format!("variants/b2-renumber-pages.ewcmd: {e}")),
+    };
+    if let Err(e) = run_log(&mut s, &text, "b2-renumber-pages.ewcmd") {
+        return fail(e);
+    }
+    let tag_changes = tags_before
+        .iter()
+        .filter(|(id, old)| tags(&s)[*id] != **old)
+        .count();
+    let xref_changes = {
+        let after = xrefs(&s);
+        xrefs_before
+            .iter()
+            .filter(|(id, old)| after[*id] != **old)
+            .count()
+    };
+    let topology = {
+        let q = s.query();
+        *q.get::<PotentialPartition>(()) == *partition
+            && q.connections()
+                .iter()
+                .map(|(_, w)| (**w).clone())
+                .collect::<Vec<_>>()
+                == wires
+    };
+    let steps = s.history().entries().len();
+    let undone = s.undo(&ew_api::Origin::Gui).is_ok()
+        && ew_commands::rows::model_lines(&s.world().model).expect("records") == records_before;
+    let mut wrong = Vec::new();
+    if tag_changes != 2 {
+        wrong.push(format!("{tag_changes} tags change, expected 2"));
+    }
+    if xref_changes != 14 {
+        wrong.push(format!(
+            "{xref_changes} cross-reference texts change, expected 14"
+        ));
+    }
+    if !topology {
+        wrong.push("the topology changed".into());
+    }
+    if steps != 1 || !undone {
+        wrong.push("one undo does not restore the records byte for byte".into());
+    }
+    if wrong.is_empty() {
+        pass(
+            "folio 106 becomes 104: 2 tags and 14 texts change, same potentials and connections, one undo restores the records",
+        )
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+/// The tag map of doc 20 §2.2 step B1: (Golden A, Golden B) for the ten devices that change.
+const B1_TAG_MAP: [(&str, &str); 10] = [
+    ("S51", "-101S1"),
+    ("F55", "-101F2"),
+    ("T55", "-101T1"),
+    ("E55", "-101E1"),
+    ("S56", "-101S2"),
+    ("1X1", "-101X1"),
+    ("-XPE", "-101X2"),
+    ("-X1031", "-103X1"),
+    ("-X1032", "-103X2"),
+    ("E56", "-101E2"),
+];
+
+/// Replays step B1 (`variants/b1-page-based-tags.ewcmd`) and compares the tags of the non-terminal devices
+/// with the ten rows of doc 20 §2.2: exactly those change, to those values; no cross-reference text changes.
+fn ac18_b1(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let terminals: BTreeSet<Id<Device>> = {
+        let q = s.query();
+        q.devices()
+            .iter()
+            .filter(|(_, d)| d.aspects.terminal.is_some())
+            .map(|(id, _)| id)
+            .collect()
+    };
+    let (tags_before, xrefs_before) = (tags(&s), xrefs(&s));
+    let text = match std::fs::read_to_string(golden_common::variant("b1-page-based-tags.ewcmd")) {
+        Ok(t) => t,
+        Err(e) => return fail(format!("variants/b1-page-based-tags.ewcmd: {e}")),
+    };
+    if let Err(e) = run_log(&mut s, &text, "b1-page-based-tags.ewcmd") {
+        return fail(e);
+    }
+    let tags_after = tags(&s);
+    let changed: BTreeMap<&str, &str> = tags_before
+        .iter()
+        .filter(|(id, old)| !terminals.contains(*id) && tags_after[*id] != **old)
+        .map(|(id, old)| (old.as_str(), tags_after[id].as_str()))
+        .collect();
+    let mut wrong = Vec::new();
+    for (a, b) in B1_TAG_MAP {
+        match changed.get(a) {
+            Some(got) if *got == b => {}
+            Some(got) => wrong.push(format!("{a} becomes {got}, expected {b}")),
+            None => wrong.push(format!("{a} does not change, expected {b}")),
+        }
+    }
+    for (a, got) in &changed {
+        if !B1_TAG_MAP.iter().any(|(x, _)| x == a) {
+            wrong.push(format!("{a} becomes {got}, not in the tag map"));
+        }
+    }
+    if xrefs(&s) != xrefs_before {
+        wrong.push("cross-reference texts changed".into());
+    }
+    if wrong.is_empty() {
+        pass("the ten tags of the tag map change and nothing else; no cross-reference text changes")
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+/// Replays "renumber folio 3 as 4" (D-01, AC-20).
+/// What replaying "renumber folio 3 as 4" changed.
+struct Folio3To4 {
+    tags: Vec<(String, String)>,
+    xref_changes: usize,
+    main_text: String,
+    undone: bool,
+}
+
+fn folio_3_to_4(c: &Ctx) -> Result<Folio3To4, String> {
+    let mut s = golden_common::session(&c.batch);
+    let records_before = ew_commands::rows::model_lines(&s.world().model).expect("records");
+    let (tags_before, xrefs_before) = (tags(&s), xrefs(&s));
+    let page = &c.ids["pages|3"];
+    let log = format!(
+        "{{\"$schema\":\"ew.cmdlog/1\",\"label\":\"D-01\"}}\n{{\"cmd\":\"page.renumber\",\"params\":{{\"scope\":{{\"pages\":[\"{page}\"]}},\"start\":4,\"step\":1}}}}\n"
+    );
+    run_log(&mut s, &log, "d-01.ewcmd")?;
+    let tags_after = tags(&s);
+    let mut changed: Vec<(String, String)> = tags_before
+        .iter()
+        .filter(|(id, old)| tags_after[*id] != **old)
+        .map(|(id, old)| (old.clone(), tags_after[id].clone()))
+        .collect();
+    changed.sort();
+    let xrefs_after = xrefs(&s);
+    let xref_changes = xrefs_before
+        .iter()
+        .filter(|(id, old)| xrefs_after[*id] != **old)
+        .count();
+    let main: Id<Representation> = id_of(c, "representations|-201U1");
+    let main_text = xrefs_after.get(&main).cloned().unwrap_or_default();
+    let undone = s.undo(&ew_api::Origin::Gui).is_ok()
+        && ew_commands::rows::model_lines(&s.world().model).expect("records") == records_before;
+    Ok(Folio3To4 {
+        tags: changed,
+        xref_changes,
+        main_text,
+        undone,
+    })
+}
+
+fn ac20_folio_3_to_4(c: &Ctx) -> Outcome {
+    match folio_3_to_4(c) {
+        Err(e) => fail(e),
+        Ok(Folio3To4 {
+            tags,
+            xref_changes,
+            main_text: main,
+            undone,
+        }) => {
+            let mut wrong = Vec::new();
+            if tags
+                != [
+                    ("-3W1".to_owned(), "-4W1".to_owned()),
+                    ("-3X1".to_owned(), "-4X1".to_owned()),
+                ]
+            {
+                wrong.push(format!("tags changed: {tags:?}"));
+            }
+            if main != "\u{221e} 4-B2, 106-G3" {
+                wrong.push(format!("-201U1 prints \"{main}\""));
+            }
+            if !undone {
+                wrong.push("undo does not restore the records".into());
+            }
+            if wrong.is_empty() {
+                pass(format!(
+                    "-3W1 and -3X1 become -4W1 and -4X1, {xref_changes} cross-reference text(s) follow (\"3-B2\" becomes \"4-B2\"), undo restores the records"
+                ))
+            } else {
+                fail(wrong.join("; "))
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// §19: the defect regression rows gated M1
+
+fn defects(r: &mut Runner) {
+    r.entry_from(
+        "D-01",
+        "renumber folio 3 as 4: -4W1, -4X1 and \"4-B2\" everywhere, undo restores",
+        (
+            "AC-20",
+            "renumbering folio 3 to 4 updates -3W1, -3X1 and \"3-B2\" everywhere; undo restores",
+        ),
+        "",
+    );
+    r.entry_from(
+        "D-01",
+        "renumbering writes only that page's file",
+        ("AC-20", "renumbering folio 3 to 4 writes only that page's file"),
+        "",
+    );
+    r.entry("D-03", "no output prints the structure alias JE2416", |c| {
+        let hits: Vec<String> = c
+            .text
+            .iter()
+            .filter(|(_, csv)| runs(csv).iter().any(|(_, t, _)| t.contains("JE2416")))
+            .map(|(f, _)| f.clone())
+            .collect();
+        if hits.is_empty() {
+            pass("no page text contains \"JE2416\"")
+        } else {
+            fail(format!("\"JE2416\" printed on {}", list(hits, 5)))
+        }
+    });
+    r.entry(
+        "D-03",
+        "the numbering report lists the frozen tags (EF-15)",
+        d03_frozen,
+    );
+    r.entry_from(
+        "D-04",
+        "the parts list holds the 27 rows of §14.1",
+        ("AC-07", "folio 901 holds the 27 rows of §14.1 over 901 and 901.1"),
+        "",
+    );
+    r.entry_from(
+        "D-05",
+        "V2.0 on every page",
+        ("AC-04", "every page prints the bound title-block values"),
+        "Folio 911 (the revision overview) lists V1.0 released and V2.0 open with its changed pages 101 and 106 (WP-S1.18 part 2, FT-207).",
+    );
+    r.entry(
+        "D-05",
+        "no page record holds a revision value; the revisions are typed records",
+        d05_no_page_revision,
+    );
+    r.entry("D-06", "the project description is one text on every page", |c| {
+        let want = "Description: Expansion Control Cabinets";
+        let off: Vec<String> = c
+            .text
+            .iter()
+            .filter(|(_, csv)| {
+                !runs(csv)
+                    .iter()
+                    .any(|(layer, t, y)| layer == "frame" && *y > 180.0 && t == want)
+            })
+            .map(|(f, _)| f.clone())
+            .collect();
+        if off.is_empty() {
+            pass(format!("all {} pages print \"{want}\"", c.text.len()))
+        } else {
+            fail(format!("not printed on {}", list(off, 5)))
+        }
+    });
+    r.entry(
+        "D-06",
+        "an override set on 101 changes the description of 101 only",
+        d06_override,
+    );
+    r.entry(
+        "D-06",
+        "an override is reported as info (EW-CORE-023)",
+        d06_override_info,
+    );
+    r.entry(
+        "D-06",
+        "an override is reported as info and shown in the property grid",
+        |_| {
+            na(
+                "a G-M2 entry since the readiness ruling ID-422: the property grid (FR-UI-009) comes with the UI at M-PP; the info half is the entry above (EW-CORE-023)",
+            )
+        },
+    );
+    r.entry_from(
+        "D-07",
+        "outline, 64 cross-reference links and page labels",
+        (
+            "AC-13",
+            "PDF structure equals expected/pdf (outline, links, page labels, fonts, SHA-256)",
+        ),
+        "",
+    );
+    r.entry(
+        "D-08",
+        "W29 takes 0.75 DBU from the profile, W20 1.5 mm2 from its CDP and DBU from the profile",
+        d08,
+    );
+    r.entry_from(
+        "D-09",
+        "W1-W34 are numbered, unique and stable; the cable cores are not numbered",
+        ("AC-09", "every wire has a wire number"),
+        "",
+    );
+    r.entry("D-10", "-202U2 carries 4 valves", |c| {
+        let q = c.oracle.query();
+        let parent: Id<Device> = id_of(c, "devices|-202U2");
+        let n = q.idx().device_children(parent).count();
+        if n == 4 {
+            pass("-202U2 has 4 child valves (the rendering of folio 202 is covered by AC-02)")
+        } else {
+            fail(format!("-202U2 has {n} children, expected 4"))
+        }
+    });
+    r.entry(
+        "D-11",
+        "an empty terminal designation is rejected (parameter layer or invariant)",
+        |c| set_designation(c, "terminals|-X1031:8", "", true),
+    );
+
+    r.entry(
+        "D-12",
+        "a duplicate designation is rejected by the invariant",
+        |c| set_designation(c, "terminals|-X1031:3", "4", false),
+    );
+    r.entry(
+        "D-12",
+        "swapping two designations in one transaction is accepted",
+        d12_swap,
+    );
+    r.entry(
+        "D-13",
+        "T55 and S56 switch the neutral: EW-POT-013 reports both (EF-01)",
+        d13,
+    );
+    r.entry("D-14", "the bus port prints \"3-B2\", never \"3-B0\"", |c| {
+        let q = c.memoised.query();
+        let text = q
+            .get::<XrefTextOf>(id_of(c, "representations|-201U1"))
+            .text
+            .clone();
+        if text.contains("3-B2") && !text.contains("3-B0") {
+            pass(format!("-201U1 prints \"{text}\""))
+        } else {
+            fail(format!("-201U1 prints \"{text}\""))
+        }
+    });
+    r.entry(
+        "D-14",
+        "forcing an anchor that leaves the bus port's graphics reports \"3-B0: empty cell\"",
+        d14_anchor,
+    );
+    r.entry(
+        "D-15",
+        "a TBD channel address is an open item that blocks release (EW-PLC-015, superseding EW-CORE-044)",
+        d15,
+    );
+    r.entry(
+        "D-15",
+        "the TBD DP station address blocks release and prints \"Node TBD\" (EW-BUS-001 superseding EW-CORE-044, EF-03)",
+        d15_bus,
+    );
+    r.entry(
+        "D-16",
+        "the FE pins fed from PE are reported (EW-POT-003, EF-10)",
+        d16,
+    );
+    r.entry("D-17", "core colour BN is printed, never BR", |c| {
+        let q = c.rows_q();
+        let set = rows_of(&q, &c.batch, "906");
+        let colour = set.column("colour").expect("the colour column");
+        let colours: BTreeSet<String> = (0..set.rows.len())
+            .map(|i| texts(&q, &set, i)[colour].clone())
+            .collect();
+        if colours.contains("BN") && !colours.contains("BR") {
+            pass("folio 906 prints core colour BN and no BR")
+        } else {
+            fail(format!("colours on 906: {colours:?}"))
+        }
+    });
+    r.entry(
+        "D-17",
+        "strict import rejects \"BR\"; lenient import keeps it as a foreign code with the quick fix \"use BN\"",
+        d17_modes,
+    );
+    r.entry(
+        "D-18",
+        "the typed ratings and manufacturer names print on folios 101 and 102",
+        |c| {
+            let want = ["C10", "C4", "B16", "15 \u{00b0}C", "Murrelektronik", "Eaton"];
+            let printed: BTreeSet<String> = ["101", "102"]
+                .iter()
+                .flat_map(|f| runs(&c.text[*f]).into_iter().map(|(_, t, _)| t))
+                .collect();
+            let missing: Vec<&str> = want
+                .iter()
+                .copied()
+                .filter(|w| !printed.iter().any(|p| p.contains(w)))
+                .collect();
+            if missing.is_empty() {
+                pass("all six values print")
+            } else {
+                fail(format!("not printed on 101/102: {}", missing.join(", ")))
+            }
+        },
+    );
+    r.entry(
+        "D-19",
+        "the supply without a cable and -3W1 without a length are reported (EF-07, EF-08)",
+        d19,
+    );
+    r.entry(
+        "D-20",
+        "W13/W14 are a star at F55:2, W7/W8 a chain on -101F1:1",
+        d20,
+    );
+    r.entry(
+        "D-21",
+        "clearing rail_bonded on -X1032 isolates its PE (EW-POT-008, the MVP part)",
+        d21,
+    );
+    r.entry("D-22", "the 0 V to PE connection is the bond B1", |c| {
+        let q = c.oracle.query();
+        let bonds = q.bonds().len();
+        if bonds == 1 {
+            pass("the model holds exactly one bond, B1 (the connectivity test bond_b1_links_0v_and_pe checks its ends)")
+        } else {
+            fail(format!("{bonds} bonds, expected B1 only"))
+        }
+    });
+    r.entry(
+        "D-22",
+        "replacing B1 by a plain wire is reported (EW-POT-001)",
+        d22_plain_wire,
+    );
+    r.entry(
+        "D-22",
+        "a PELV potential without exactly one 0 V-PE bond is reported",
+        d22_pelv,
+    );
+    r.entry("D-24", "24VDC-1, 0V and PE carry their IP names as aliases", d24);
+    r.entry(
+        "D-27",
+        "28 valve child tags and 8 field devices with process tags in +FIELD",
+        d27,
+    );
+    r.entry(
+        "D-29",
+        "every device tag prints in the style tag.main (9.62 pt)",
+        d29,
+    );
+    r.entry("D-30", "the title block binds the end user", |c| {
+        let want = "End user: <end user>";
+        let off: Vec<String> = c
+            .text
+            .iter()
+            .filter(|(_, csv)| !runs(csv).iter().any(|(l, t, _)| l == "frame" && t == want))
+            .map(|(f, _)| f.clone())
+            .collect();
+        if off.is_empty() {
+            pass(format!("all {} title blocks print \"{want}\"", c.text.len()))
+        } else {
+            fail(format!("not printed on {}", list(off, 5)))
+        }
+    });
+    r.entry("D-30", "the cover binds the customer", d30_cover);
+    r.entry(
+        "D-33",
+        "\"SK 3110.000\" keeps its space and physical page 6 is labelled \"101\"",
+        |c| {
+            let space = runs(&c.text["101"]).iter().any(|(_, t, _)| t == "SK 3110.000");
+            let label = c.pdf_pages.get(5).map(|p| p.label.as_str());
+            let mut wrong = Vec::new();
+            if !space {
+                wrong.push("folio 101 prints no \"SK 3110.000\"".to_owned());
+            }
+            if label != Some("101") {
+                wrong.push(format!("physical page 6 is labelled {label:?}"));
+            }
+            if wrong.is_empty() {
+                pass("both hold")
+            } else {
+                fail(wrong.join("; "))
+            }
+        },
+    );
+    r.entry(
+        "D-31",
+        "the 3.70 pt styles cp.small and marker are reported (EW-CORE-061, EF-12)",
+        d31,
+    );
+    r.entry("D-35", "BOM descriptions per §14, ratings only at symbols", d35);
+    r.entry("D-36", "assembly rows A1 and A2, order code on folio 3", |c| {
+        // Rows A1 and A2 (the export, §14.2) and the order code of the CPX terminal on folio 3 (§11.1: the text
+        // "Festo / 51E-F13GCQP-D+H2GG / CPX FB13 / Node TBD" is rendered from the assembly's order code 1).
+        let (assembly, why) = ac07_export_assembly(c);
+        let on_folio_3 = runs(&c.text["3"])
+            .iter()
+            .any(|(_, t, _)| t.contains("51E-F13GCQP-D+H2GG"));
+        match (assembly, on_folio_3) {
+            (Status::Pass, true) => pass(
+                "rows A1 and A2 replace rows 16-21 (assembly export) and folio 3 prints order code 1 \"51E-F13GCQP-D+H2GG\" from -201U1's assembly aspect",
+            ),
+            (Status::Pass, false) => fail("folio 3 does not print the order code 51E-F13GCQP-D+H2GG"),
+            (_, _) => fail(format!("assembly export: {why}")),
+        }
+    });
+    // Doc 20 §19: the profile names its basis ("company convention") and declares DBU a company code (profile
+    // metadata); the cover prints the standards text of U-35, not the basis note.
+    r.entry("D-37", "profiles name their basis; the cover prints it", |c| {
+        let (colour, _) = golden_common::profiles_json();
+        let basis = colour["basis"].as_str().unwrap_or_default();
+        let note = colour["basis_note"]["en"].as_str().unwrap_or_default();
+        let standards = colour["standards"]["en"].as_str().unwrap_or_default();
+        let dbu = colour["codes"]
+            .as_array()
+            .and_then(|codes| codes.iter().find(|c| c["code"] == "DBU"));
+        let printed: Vec<String> = runs(&c.text["1"])
+            .into_iter()
+            .filter(|(layer, _, _)| layer != "frame")
+            .map(|(_, t, _)| t)
+            .collect();
+        let mut wrong = Vec::new();
+        if basis != "company_convention" || !note.starts_with("company convention") {
+            wrong.push(format!("the profile's basis is `{basis}`, expected the company convention"));
+        }
+        if dbu.is_none_or(|d| d["base"] != "BU") {
+            wrong.push("DBU is not declared a company code on BU".to_owned());
+        }
+        if standards.is_empty() || !printed.iter().any(|t| t == standards) {
+            wrong.push(format!("the cover does not print the standards text \"{standards}\""));
+        }
+        if printed.iter().any(|t| t.contains(note)) {
+            wrong.push("the cover prints the basis note, which is metadata".to_owned());
+        }
+        if wrong.is_empty() {
+            pass(format!(
+                "the colour profile's basis is {basis} with DBU declared a company code on BU; the cover prints \"{standards}\" and keeps the basis note as metadata (U-35)"
+            ))
+        } else {
+            fail(wrong.join("; "))
+        }
+    });
+    r.entry(
+        "D-38",
+        "the 1.5 mm² PE wire W6 is reported; at 2.5 mm² it clears (EW-POT-006, EF-06)",
+        d38,
+    );
+    r.entry(
+        "D-41",
+        "one assembly -201U1 with children on both pages, break marks",
+        d41_assembly,
+    );
+    r.entry(
+        "D-42",
+        "one strip -X1031 with segments at 103-A3 and 103-A10",
+        d42,
+    );
+}
+
+/// D-17 (doc 20 §19, doc 14 §4.12, doc 15 §2.6): the golden tables with core -106W1:BN coloured "BR". A strict
+/// import refuses the row with the importer's finding (EW-IMP-002 naming EW-CORE-031); a lenient one keeps
+/// `ColourCode::Foreign("BR")` and reports EW-IMP-008 with the quick fix "use BN", a declarative `fields.set`
+/// that the session applies through the command surface, after which the core is BN.
+fn d17_modes(_: &Ctx) -> Outcome {
+    use ew_import_tables::ew_interop_api::{Code, ImportMode, Severity};
+    let row = "-106W1:BN,-106W1,BN,BN,,,";
+    let foreign = "-106W1:BN,-106W1,BN,BR,,,";
+    let key = "conductors|-106W1:BN";
+    let colour_of = |b: &ew_import_tables::ew_interop_api::ImportBatch| {
+        b.records.iter().find_map(|r| match r {
+            Record::Conductor(c) if golden_common::source_key(r) == Some(key) => Some(c.colour.clone()),
+            _ => None,
+        })
+    };
+    let mut wrong = Vec::new();
+    // Strict.
+    let strict = match golden_common::batch_with("conductors.csv", row, foreign, ImportMode::Strict) {
+        Ok(b) => b,
+        Err(e) => return fail(format!("strict import: {e}")),
+    };
+    let refused = strict.report.entries.iter().find(|e| {
+        e.code == Code::MALFORMED_ITEM && e.severity == Severity::Error && e.message.contains("`BR`")
+    });
+    match refused {
+        None => wrong.push("the strict import reports no EW-IMP-002 error naming `BR`".to_owned()),
+        Some(e) if !e.message.contains("EW-CORE-031") => wrong.push(format!(
+            "the strict finding does not name EW-CORE-031: {}",
+            e.message
+        )),
+        Some(_) => {}
+    }
+    if colour_of(&strict).is_some() {
+        wrong.push("the strict import keeps the conductor -106W1:BN".to_owned());
+    }
+    if strict.report.with_code(Code::FOREIGN_VALUE).next().is_some() {
+        wrong.push("the strict import keeps a foreign value (EW-IMP-008)".to_owned());
+    }
+    // Lenient.
+    let lenient = match golden_common::batch_with("conductors.csv", row, foreign, ImportMode::Lenient) {
+        Ok(b) => b,
+        Err(e) => return fail(format!("lenient import: {e}")),
+    };
+    let kept = colour_of(&lenient)
+        .flatten()
+        .map(|c| serde_json::to_value(&c).unwrap_or_default());
+    if kept != Some(serde_json::json!([{"foreign": "BR"}])) {
+        wrong.push(format!("the lenient import keeps the colour {kept:?}"));
+    }
+    let findings: Vec<_> = lenient.report.with_code(Code::FOREIGN_VALUE).collect();
+    let fix = match findings.as_slice() {
+        [f] => f.fix.clone(),
+        _ => {
+            wrong.push(format!("{} EW-IMP-008 findings, expected 1", findings.len()));
+            None
+        }
+    };
+    let Some(fix) = fix else {
+        wrong.push("the EW-IMP-008 finding offers no quick fix".to_owned());
+        return fail(list(wrong, 4));
+    };
+    if fix.label != "use BN" || fix.command != "fields.set" {
+        wrong.push(format!("the quick fix is \"{}\" ({})", fix.label, fix.command));
+    }
+    // The quick fix through the command surface.
+    let mut s = golden_common::session(&lenient);
+    if let Err(e) = s.execute(&ew_api::AnyCommand {
+        name: fix.command.clone(),
+        params: fix.params.clone(),
+    }) {
+        return fail(format!("the quick fix was rejected: {e:?}"));
+    }
+    let id: Id<ew_schema::Conductor> = match lenient.records.iter().find_map(|r| match r {
+        Record::Conductor(c) if golden_common::source_key(r) == Some(key) => Some(c.id),
+        _ => None,
+    }) {
+        Some(id) => id,
+        None => return fail("the lenient batch has no conductor -106W1:BN"),
+    };
+    let fixed = s
+        .query()
+        .conductors()
+        .get(id)
+        .and_then(|c| c.colour.clone())
+        .map(|c| serde_json::to_value(&c).unwrap_or_default());
+    if fixed != Some(serde_json::json!(["BN"])) {
+        wrong.push(format!("after the quick fix the core is {fixed:?}"));
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "strict import refuses \"BR\" (EW-IMP-002, EW-CORE-031); lenient keeps it as a foreign code with EW-IMP-008 and the quick fix \"{}\" ({} {}), which the session applies: the core is BN",
+            fix.label, fix.command, fix.params
+        ))
+    } else {
+        fail(list(wrong, 4))
+    }
+}
+
+/// D-41 (doc 20 §19, FR-DEV-022, FR-DEV-023): -201U1 is one assembly (the typed aspect with order codes 1
+/// and 2) whose 11 children are drawn on both 201 and 202; its order codes cover the head, the children and
+/// the 28 valves once each; and the overview's break marks are generated: right after -201U9 on 201, left
+/// before -202U1 on 202, in the page views that the PDF and PNG are drawn from.
+fn d41_assembly(c: &Ctx) -> Outcome {
+    let q = c.oracle.query();
+    let head: Id<Device> = id_of(c, "devices|-201U1");
+    let Some(dev) = q.devices().get(head) else {
+        return fail("no device -201U1");
+    };
+    let Some(assembly) = dev.aspects.assembly.clone() else {
+        return fail("-201U1 carries no assembly aspect");
+    };
+    let mut wrong = Vec::new();
+    let codes: Vec<&str> = assembly.configs.iter().map(|c| c.order_code.as_str()).collect();
+    if codes != ["51E-F13GCQP-D+H2GG", "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"] {
+        wrong.push(format!("order codes {codes:?}"));
+    }
+    if dev.extra.contains_key("assembly") {
+        wrong.push("the assembly is kept in `extra`".to_owned());
+    }
+    // Children and their pages.
+    let children: Vec<Id<Device>> = q.idx().device_children(head).collect();
+    let mut pages = BTreeSet::new();
+    for child in &children {
+        if let Some(r) = (*q.get::<ew_derive::MainRep>(*child)).and_then(|rep| q.reps().get(rep)) {
+            pages.insert(r.page);
+        }
+    }
+    let p201: Id<ew_schema::Page> = id_of(c, "pages|201");
+    let p202: Id<ew_schema::Page> = id_of(c, "pages|202");
+    if children.len() != 11 || pages != BTreeSet::from([p201, p202]) {
+        wrong.push(format!("{} children on {} pages", children.len(), pages.len()));
+    }
+    // One identity: every member covered once.
+    let mut descendants: BTreeSet<Id<Device>> = BTreeSet::from([head]);
+    let mut stack = vec![head];
+    while let Some(d) = stack.pop() {
+        for ch in q.idx().device_children(d) {
+            if descendants.insert(ch) {
+                stack.push(ch);
+            }
+        }
+    }
+    let covered: Vec<Id<Device>> = assembly
+        .configs
+        .iter()
+        .flat_map(|c| c.covers.iter().copied())
+        .collect();
+    let distinct: BTreeSet<Id<Device>> = covered.iter().copied().collect();
+    if distinct.len() != covered.len() || distinct != descendants || descendants.len() != 1 + 11 + 28 {
+        wrong.push(format!(
+            "the order codes cover {} devices ({} distinct), the assembly has {}",
+            covered.len(),
+            distinct.len(),
+            descendants.len()
+        ));
+    }
+    // Break marks: derived, and in the page views.
+    let marks = q.get::<ew_derive::AssemblyBreakMarks>(());
+    let got: BTreeSet<(Id<ew_schema::Page>, Id<Representation>, ew_derive::BreakSide)> =
+        marks.iter().map(|m| (m.page, m.rep, m.side)).collect();
+    let want = BTreeSet::from([
+        (
+            p201,
+            id_of::<Representation>(c, "representations|-201U9"),
+            ew_derive::BreakSide::Right,
+        ),
+        (
+            p202,
+            id_of::<Representation>(c, "representations|-202U1"),
+            ew_derive::BreakSide::Left,
+        ),
+    ]);
+    if got != want {
+        wrong.push(format!(
+            "{} break marks, not right after -201U9 and left before -202U1",
+            got.len()
+        ));
+    }
+    let drawn: usize = c
+        .pages
+        .iter()
+        .filter(|g| g.entry.folio == "201" || g.entry.folio == "202")
+        .map(|g| g.view.break_marks.len())
+        .sum();
+    if drawn != 2 {
+        wrong.push(format!("the page views of 201 and 202 draw {drawn} break marks"));
+    }
+    if wrong.is_empty() {
+        pass(
+            "-201U1 is one assembly (order codes 1 and 2 covering the head, its 11 children on 201 and 202 and the 28 valves once each); break marks generated right after -201U9 on 201 and left before -202U1 on 202",
+        )
+    } else {
+        fail(list(wrong, 4))
+    }
+}
+
+/// The main and auxiliary texts of doc 20 §15 ("Main ↔ auxiliary references"): what each main prints after
+/// "∞" and what each auxiliary prints in brackets.
+fn section_15_main_aux() -> Vec<String> {
+    let doc = std::fs::read_to_string(repo().join("docs/design/20-golden-project.md")).expect("doc 20");
+    let start = doc
+        .find("**Main \u{2194} auxiliary references")
+        .expect("the §15 table");
+    let mut out = Vec::new();
+    for line in doc[start..].lines().skip(1) {
+        if line.starts_with("---") {
+            break;
+        }
+        if !line.starts_with("| -") {
+            continue;
+        }
+        let cells: Vec<&str> = line.trim_matches('|').split('|').map(str::trim).collect();
+        let main = cells[1];
+        let mut aux = cells[2].replace("**", "");
+        while let (Some(open), Some(close)) = (aux.find('('), aux.find(')')) {
+            aux.replace_range(open..=close, "");
+        }
+        let aux: Vec<&str> = aux.split(',').map(str::trim).filter(|a| !a.is_empty()).collect();
+        out.push(format!("\u{221e} {}", aux.join(", ")));
+        out.extend(aux.iter().map(|_| format!("({main})")));
+    }
+    out.sort();
+    out
+}
+
+fn ac05_main_aux(c: &Ctx) -> Outcome {
+    let want = section_15_main_aux();
+    if want.len() != 19 {
+        return fail(format!("{} texts parsed from §15, 19 expected", want.len()));
+    }
+    let mut got: Vec<String> = Vec::new();
+    for g in &c.pages {
+        for r in &g.view.reps {
+            for v in &r.slots {
+                if !v.item_links.is_empty() && (v.text.starts_with('\u{221e}') || v.text.starts_with('(')) {
+                    got.push(v.text.clone());
+                }
+            }
+        }
+    }
+    got.sort();
+    if got == want {
+        pass("the 9 main texts (\"\u{221e} ...\") and 10 auxiliary texts (\"(...)\") equal §15 as a multiset")
+    } else {
+        let missing: Vec<String> = want.iter().filter(|w| !got.contains(w)).cloned().collect();
+        let extra: Vec<String> = got.iter().filter(|g| !want.contains(g)).cloned().collect();
+        fail(format!(
+            "{} printed, 19 in §15; missing {}; unexpected {}",
+            got.len(),
+            list(missing, 4),
+            list(extra, 4)
+        ))
+    }
+}
+
+/// The "No." column of doc 20 §8.2 (`expected/wire_numbers_8_2.csv`, written from the document by
+/// `tools/tables_from_doc20.py`): wire number to its printed number.
+fn doc20_numbers() -> BTreeMap<u32, String> {
+    let text = std::fs::read_to_string(repo().join("golden/J-E-2416/expected/wire_numbers_8_2.csv"))
+        .expect("expected/wire_numbers_8_2.csv (run tools/tables_from_doc20.py)");
+    text.lines()
+        .skip(1)
+        .map(|l| {
+            let (w, no) = l.split_once(',').expect("wire,no");
+            (
+                w.trim_start_matches('W').parse().expect("a wire number"),
+                no.to_owned(),
+            )
+        })
+        .collect()
+}
+
+/// AC-09, D-09: the wire numbers of doc 20 §8.1 (FT-100): connection-oriented `{page}.{counter}`, counter scope
+/// page, W1 to W34 numbered and the ten cable cores W35 to W44 not (FR-NUM-019), numbers not printed on the
+/// pages. The numbers equal the "No." column of doc 20 §8.2, which holds the numbers this runner computes
+/// (section 8.1); since FT-101 (the flow-distance step of the orientation) there is no known deviation. The
+/// same numbers come out of a model with reversed records.
+fn ac09_numbers(c: &Ctx) -> Outcome {
+    let numbers_of = |s: &Session| -> Vec<(u32, Option<String>)> {
+        let q = golden_common::plain(s);
+        let n = q.get::<WireNumbers>(());
+        (1..=44u32)
+            .map(|w| {
+                let id: Id<ew_schema::Connection> = id_of(c, &format!("connections|W{w}"));
+                (w, n.number(id).map(|x| x.label.clone()))
+            })
+            .collect()
+    };
+    let q = golden_common::plain(&c.profiled);
+    let got = numbers_of(&c.profiled);
+    let mut wrong = Vec::new();
+    let doc = doc20_numbers();
+    let mut labels = BTreeSet::new();
+    let mut per_page: BTreeMap<String, Vec<u32>> = BTreeMap::new();
+    for (w, label) in &got {
+        match (*w <= 34, label) {
+            (true, Some(l)) => {
+                let (page, counter) = l.split_once('.').unwrap_or((l, ""));
+                match doc.get(w) {
+                    Some(d) if d == l => {}
+                    Some(d) => wrong.push(format!("W{w} is {l}, doc 20 §8.2 has {d}")),
+                    None => wrong.push(format!("doc 20 §8.2 has no number for W{w}")),
+                }
+                if !labels.insert(l.clone()) {
+                    wrong.push(format!("{l} is given twice"));
+                }
+                if let Ok(n) = counter.parse::<u32>() {
+                    per_page.entry(page.to_owned()).or_default().push(n);
+                }
+            }
+            (true, None) => wrong.push(format!("W{w} has no number")),
+            (false, Some(l)) => wrong.push(format!("the cable core W{w} is numbered {l}")),
+            (false, None) => {}
+        }
+    }
+    for (page, mut counters) in per_page {
+        counters.sort_unstable();
+        if counters != (1..=counters.len() as u32).collect::<Vec<_>>() {
+            wrong.push(format!("the counters of folio {page} are {counters:?}, not 1..n"));
+        }
+    }
+    // The 907 rows print the same numbers, wire by wire.
+    let rows = rows_of(&q, &c.batch, "907");
+    let no = rows.column("no").expect("the No. column");
+    for (w, label) in &got {
+        let id: Id<ew_schema::Connection> = id_of(c, &format!("connections|W{w}"));
+        let printed = rows
+            .rows
+            .iter()
+            .position(|r| r.id == ew_reports::RowId::entity(id))
+            .map(|i| texts(&q, &rows, i)[no].clone());
+        if printed.as_deref() != Some(label.as_deref().unwrap_or("")) {
+            wrong.push(format!(
+                "folio 907 prints {printed:?} for W{w}, the query gives {label:?}"
+            ));
+        }
+    }
+    // Stable: record order does not matter.
+    let reversed = golden_common::session_with(&c.batch, |p, r| {
+        golden_common::with_profiles(p);
+        r.reverse();
+    });
+    if numbers_of(&reversed) != got {
+        wrong.push("a model with reversed records numbers the wires differently".to_owned());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "W1-W34 carry {} unique `{{page}}.{{counter}}` numbers (counters 1..n per page) equal to the \"No.\" column of doc 20 §8.2, with no known deviation (the From ends follow the flow-distance step, FT-101); W35-W44 (cable cores) none; folio 907 prints them; the same numbers with reversed records",
+            labels.len()
+        ))
+    } else {
+        fail(list(wrong, 4))
+    }
+}
+
+/// D-22: dropping the bond record leaves W27 a plain wire between 0V and PE, so one potential holds two
+/// potential types; EW-POT-001 reports it. Golden A itself is clean (checked first).
+fn d22_plain_wire(c: &Ctx) -> Outcome {
+    let findings = |s: &Session| -> Vec<String> {
+        s.check(&PRE_DELIVERY, CheckMode::Release)
+            .findings
+            .iter()
+            .filter(|f| f.rule == "EW-POT-001" && f.is_open())
+            .map(|f| f.message.clone())
+            .collect()
+    };
+    // The same construction for both models: the golden records with the profiles.
+    let clean = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
+    let baseline = findings(&clean);
+    if !baseline.is_empty() {
+        return fail(format!(
+            "Golden A with its bond already reports EW-POT-001: {}",
+            list(baseline, 2)
+        ));
+    }
+    let bond = c.ids["bonds|B1"].clone();
+    let edited = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        records.retain(|r| !matches!(r, Record::Bond(b) if b.id.to_string() == bond));
+    });
+    let reported = findings(&edited);
+    if reported.is_empty() {
+        fail("without B1, W27 joins 0V and PE and EW-POT-001 reports nothing")
+    } else {
+        pass(format!(
+            "Golden A is clean; without B1, W27 joins 0V and PE and EW-POT-001 reports {} type conflict(s)",
+            reported.len()
+        ))
+    }
+}
+
+fn ac13_pdfa(c: &Ctx) -> Outcome {
+    let options = pdf_options(&c.memoised.query());
+    if options.conformance == ew_export::Conformance::PdfA2b && c.pdf.bytes.starts_with(b"%PDF-") {
+        pass(format!(
+            "the {}-page PDF was written under Conformance::PdfA2b, which makes krilla's A2_B archival validator check the document (it refuses an invalid one)",
+            c.pdf_pages.len()
+        ))
+    } else {
+        fail(format!(
+            "the golden PDF is written with conformance {:?}",
+            options.conformance
+        ))
+    }
+}
+
+/// A unique scratch directory under the system temp directory.
+fn scratch_dir(tag: &str) -> std::path::PathBuf {
+    ew_testdir::fresh_dir(&format!("ew-acceptance-{tag}"))
+}
+
+fn ac17_open(_: &Ctx) -> Outcome {
+    let copy = scratch_dir("open");
+    let state = scratch_dir("open-state");
+    ew_testdir::copy_dir(&repo().join("golden/J-E-2416.ew"), &copy);
+    let mut options = StoreOptions::new("acceptance");
+    options.state_dir = Some(state.clone());
+    let started = std::time::Instant::now();
+    let opened = Session::open(&copy, options, SessionOptions::default(), Recovery::Keep);
+    let elapsed = started.elapsed();
+    let outcome = match opened {
+        Ok((session, _)) => {
+            session.close();
+            if elapsed.as_secs_f64() <= 0.5 {
+                pass(format!(
+                    "opened in {:.3} s on this machine (the baseline machine is the reference)",
+                    elapsed.as_secs_f64()
+                ))
+            } else {
+                fail(format!(
+                    "opened in {:.3} s, the limit is 0.5 s",
+                    elapsed.as_secs_f64()
+                ))
+            }
+        }
+        Err(e) => fail(format!("the fixture does not open: {e:?}")),
+    };
+    let _ = std::fs::remove_dir_all(&copy);
+    let _ = std::fs::remove_dir_all(&state);
+    outcome
+}
+
+/// AC-17's PDF export: `ew export pdf` of the checked-in fixture, the shipped export job (opened outside the
+/// measurement).
+fn ac17_pdf(_: &Ctx) -> Outcome {
+    let session = match fixture_session() {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
+    let started = std::time::Instant::now();
+    let out = session.export_pdf(&ew_api::output::ExportOptions::default());
+    let elapsed = started.elapsed().as_secs_f64();
+    match out {
+        Ok(o) if elapsed <= 3.0 => pass(format!("{} pages exported in {elapsed:.3} s", o.pages)),
+        Ok(o) => fail(format!(
+            "{} pages exported in {elapsed:.3} s, the limit is 3 s",
+            o.pages
+        )),
+        Err(e) => fail(format!("the export failed: {e}")),
+    }
+}
+
+/// AC-15 and G-M1-01: the shipped export job over build path (c), the checked-in fixture opened as `ew export pdf`
+/// opens it, writes the PDF of path (a), the bootstrapped model (`expected/pdf/sha256.txt`), with the bundled
+/// fonts only.
+fn ac15_export_paths(_: &Ctx) -> Outcome {
+    let session = match fixture_session() {
+        Ok(s) => s,
+        Err(e) => return fail(e),
+    };
+    let out = match session.export_pdf(&ew_api::output::ExportOptions::default()) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("the export failed: {e}")),
+    };
+    let sha = format!("{:x}\n", Sha256::digest(&out.bytes));
+    let mut wrong = Vec::new();
+    if let Err(e) = same_as_expected("pdf/sha256.txt", sha.as_bytes()) {
+        wrong.push(e);
+    }
+    let bundled: BTreeSet<_> = ew_text::bundled().faces().map(|f| f.key).collect();
+    if out.report.fonts.iter().any(|k| !bundled.contains(k)) || !out.report.missing_fonts.is_empty() {
+        wrong.push("a font that is not bundled is embedded or missing".to_owned());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "Session::export_pdf over golden/J-E-2416.ew (read-only, as ew export pdf opens it) writes the {} pages of the PDF of expected/pdf/sha256.txt, embedding {} bundled faces and nothing else",
+            out.pages,
+            out.report.fonts.len()
+        ))
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+/// The `page.renumber` command of Golden B step B2 with the section resolved against the session.
+fn b2_command(s: &Session) -> ew_api::AnyCommand {
+    let q = s.query();
+    let section = q
+        .sections()
+        .iter()
+        .find(|(_, sec)| sec.number == 1)
+        .map(|(id, _)| id)
+        .expect("section 1");
+    ew_api::AnyCommand {
+        name: "page.renumber".into(),
+        params: serde_json::json!({
+            "scope": {"section": section},
+            "start": 101,
+            "step": 1,
+            "keep_gaps": false
+        }),
+    }
+}
+
+fn ac18_preview(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let cmd = b2_command(&s);
+    let preview = match s.preview(&cmd) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the preview failed: {e:?}")),
+    };
+    let diff = preview.diff();
+    let kinds: Vec<String> = diff
+        .changes
+        .iter()
+        .map(|ch| format!("{:?} {:?} {:?}", ch.change, ch.key.0, ch.fields))
+        .collect();
+    let committed = s.world().rev.0;
+    if diff.len() == 1 && diff.changes[0].key.0 == ew_schema::Kind::Page && committed == 0 {
+        pass(format!(
+            "the preview changes one page record ({}) and commits nothing",
+            kinds[0]
+        ))
+    } else {
+        fail(format!(
+            "the preview lists {} changes: {}",
+            diff.len(),
+            list(kinds, 4)
+        ))
+    }
+}
+
+/// Step B2's preview with its derived diff (`Session::derived_diff`): exactly the two tags -106W1, -106W2
+/// and 14 cross-reference texts "106-…" → "104-…", nothing committed.
+fn ac18_derived_preview(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let cmd = b2_command(&s);
+    let preview = match s.preview(&cmd) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the preview failed: {e:?}")),
+    };
+    let d = s.derived_diff(&preview);
+    let mut wrong = Vec::new();
+    let mut tags: Vec<(&str, &str)> = d
+        .tags
+        .iter()
+        .map(|t| (t.before.as_str(), t.after.as_str()))
+        .collect();
+    tags.sort_unstable();
+    if tags != [("-106W1", "-104W1"), ("-106W2", "-104W2")] {
+        wrong.push(format!("the tag changes are {tags:?}"));
+    }
+    if d.xrefs.len() != 14 {
+        wrong.push(format!(
+            "{} cross-reference texts change, expected 14",
+            d.xrefs.len()
+        ));
+    }
+    if let Some(x) = d
+        .xrefs
+        .iter()
+        .find(|x| !x.before.contains("106-") || x.after != x.before.replace("106-", "104-"))
+    {
+        wrong.push(format!("{:?} becomes {:?}", x.before, x.after));
+    }
+    if s.world().rev.0 != 0 {
+        wrong.push("the preview committed".into());
+    }
+    if wrong.is_empty() {
+        pass(
+            "the derived diff of the preview lists -106W1 → -104W1, -106W2 → -104W2 and 14 texts \"106-…\" → \"104-…\"; nothing is committed",
+        )
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+/// The 24 V colour change of AC-12 as one command: `project.settings.set` of the colour profile with row 0
+/// (24 V DC positive) set to RD, previewed and committed as one undo step; the wires that take row 0 follow,
+/// nothing else changes, folio 907's rows follow, and one undo restores the wire colours.
+fn ac12_one_commit(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session_with_profiles(&c.batch);
+    let before = all_props(&golden_common::plain(&s));
+    let rows_before = {
+        let q = golden_common::plain(&s);
+        rows_csv(&q, &rows_of(&q, &c.batch, "907"))
+    };
+    let (mut colour, _) = golden_common::profiles_json();
+    colour["rows"][0]["colour"] = serde_json::json!(["RD"]);
+    let cmd = ew_api::AnyCommand {
+        name: "project.settings.set".into(),
+        params: serde_json::json!({"member": "colour_profile", "value": colour}),
+    };
+    let preview = match s.preview(&cmd) {
+        Ok(p) => p,
+        Err(e) => return fail(format!("the preview failed: {e:?}")),
+    };
+    let mut wrong = Vec::new();
+    if preview.diff().len() != 1 || preview.diff().changes[0].key.0 != ew_schema::Kind::Project {
+        wrong.push(format!(
+            "the preview changes {} records, expected the project record only",
+            preview.diff().len()
+        ));
+    }
+    if let Err(e) = s.commit(preview) {
+        return fail(format!("the commit failed: {e:?}"));
+    }
+    if s.history().entries().len() != 1 {
+        wrong.push(format!("{} undo steps, expected 1", s.history().entries().len()));
+    }
+    let after = all_props(&golden_common::plain(&s));
+    let mut changed = 0;
+    for (w, b) in &before {
+        let a = &after[w];
+        if matches!(&b.1, ew_derive::PropSource::ColourRow { row: 0, .. }) {
+            if a.0 == "RD" {
+                changed += 1;
+            } else {
+                wrong.push(format!("wire {w} kept {}", a.0));
+            }
+        } else if a != b {
+            wrong.push(format!("wire {w} changed without taking row 0"));
+        }
+    }
+    let rows_after = {
+        let q = golden_common::plain(&s);
+        rows_csv(&q, &rows_of(&q, &c.batch, "907"))
+    };
+    if rows_after == rows_before {
+        wrong.push("folio 907 prints the same rows after the commit".into());
+    }
+    if s.undo(&ew_api::Origin::Gui).is_err() || all_props(&golden_common::plain(&s)) != before {
+        wrong.push("one undo does not restore the wire colours".into());
+    }
+    if changed == 0 {
+        wrong.push("no wire takes row 0".into());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "one project.settings.set commit (one undo step, the project record only): {changed} wires take RD, nothing else changes, folio 907 follows, one undo restores"
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// The link targets (representation, page) of every cross-reference text, by representation.
+/// The link targets of one cross-reference text: (representation, page).
+type LinkTargets = Vec<(Id<Representation>, Id<ew_schema::Page>)>;
+
+fn xref_links(s: &Session) -> BTreeMap<Id<Representation>, LinkTargets> {
+    let q = s.query();
+    q.reps()
+        .ids()
+        .map(|id| {
+            let t = q.get::<XrefTextOf>(id);
+            (id, t.links.iter().map(|l| (l.rep, l.page)).collect())
+        })
+        .collect()
+}
+
+fn ac18_orphans_pairing(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let before = xref_links(&s);
+    let cmd = b2_command(&s);
+    let result = s.preview(&cmd).and_then(|p| s.commit(p));
+    if let Err(e) = result {
+        return fail(format!("step B2 failed: {e:?}"));
+    }
+    let mut wrong = Vec::new();
+    if let Err(e) = s.world().model.integrity_check() {
+        wrong.push(format!("integrity check: {e:?}"));
+    }
+    if xref_links(&s) != before {
+        wrong.push("the link targets of the cross-reference texts changed".to_owned());
+    }
+    if wrong.is_empty() {
+        pass(
+            "the model's integrity check (every reference resolves) holds, and all interruption-point and main/auxiliary link targets are the same records",
+        )
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+fn ac20_write_set(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let dir = scratch_dir("write-set");
+    let state = scratch_dir("write-set-state");
+    let mut options = StoreOptions::new("acceptance");
+    options.state_dir = Some(state.clone());
+    let outcome = (|| -> Outcome {
+        if let Err(e) = s.create(&dir, options) {
+            return fail(format!("the session cannot be saved as a project: {e:?}"));
+        }
+        let page = &c.ids["pages|3"];
+        let log = format!(
+            "{{\"$schema\":\"ew.cmdlog/1\"}}\n{{\"cmd\":\"page.renumber\",\"params\":{{\"scope\":{{\"pages\":[\"{page}\"]}},\"start\":4,\"step\":1}}}}\n"
+        );
+        if let Err(e) = run_log(&mut s, &log, "d-01.ewcmd") {
+            return fail(e);
+        }
+        match s.save() {
+            Ok(report) => {
+                let written: Vec<&str> = report.written.iter().map(|p| p.as_str()).collect();
+                let want = format!("pages/{page}.jsonl");
+                if written == [want.as_str()] && report.removed.is_empty() {
+                    pass(format!(
+                        "the save writes {want} only (and {} the manifest)",
+                        if report.manifest_written {
+                            "rewrites"
+                        } else {
+                            "leaves"
+                        }
+                    ))
+                } else {
+                    fail(format!(
+                        "the save writes {written:?} and removes {:?}",
+                        report.removed
+                    ))
+                }
+            }
+            Err(e) => fail(format!("the save failed: {e:?}")),
+        }
+    })();
+    s.close();
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+    outcome
+}
+
+fn d06_override(c: &Ctx) -> Outcome {
+    let title = |s: &Session, folio: &str| {
+        let q = s.query();
+        let page: Id<ew_schema::Page> = id_of(c, &format!("pages|{folio}"));
+        q.get::<TitleBlockValues>(PageRef::Drawn(page))
+            .get("page.description")
+            .cloned()
+    };
+    let mut s = golden_common::session(&c.batch);
+    let (b101, b102) = (title(&s, "101"), title(&s, "102"));
+    let cmd = ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({
+            "kind": "page",
+            "targets": [c.ids["pages|101"]],
+            "path": "description_override",
+            "value": {"en": "Override text"},
+        }),
+    };
+    if let Err(e) = s.execute(&cmd) {
+        return fail(format!("the override was rejected: {e:?}"));
+    }
+    let (a101, a102) = (title(&s, "101"), title(&s, "102"));
+    if a101 != b101 && a101.is_some() && a102 == b102 {
+        pass("the description of 101 becomes the override; 102 keeps the project description")
+    } else {
+        fail(format!(
+            "description of 101: {b101:?} then {a101:?}; of 102: {b102:?} then {a102:?}"
+        ))
+    }
+}
+
+fn d08(c: &Ctx) -> Outcome {
+    let q = golden_common::plain(&c.profiled);
+    let props = all_props(&q);
+    let wire = |n: u32| &props[&c.ids[&format!("connections|W{n}")]];
+    let (w29, w20) = (wire(29), wire(20));
+    let mut wrong = Vec::new();
+    if w29.0 != "DBU" || w29.2 != "0.75" || !matches!(w29.1, ew_derive::PropSource::ColourRow { .. }) {
+        wrong.push(format!("W29 is {} {} ({:?})", w29.2, w29.0, w29.1));
+    }
+    if w20.2 != "1.5" || !matches!(w20.3, ew_derive::PropSource::Override(_)) || w20.0 != "DBU" {
+        wrong.push(format!("W20 is {} {} ({:?}, {:?})", w20.2, w20.0, w20.3, w20.1));
+    }
+    if wrong.is_empty() {
+        pass(
+            "W29 0.75 DBU from the profile; W20 1.5 mm2 from its CDP, DBU from the profile (the explain output and the one-commit update of folios 1 and 907 are AC-12)",
+        )
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+/// D-12: -X1031:3 and -X1031:4 swap designations in one `terminal.designate` transaction; the prevent rule
+/// EW-TERM-002 sees only the final state, so no temporary name is needed (FR-TRM-022).
+fn d12_swap(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let (k3, k4) = ("terminals|-X1031:3", "terminals|-X1031:4");
+    let cmd = ew_api::AnyCommand {
+        name: "terminal.designate".into(),
+        params: serde_json::json!({"assignments": [
+            {"terminal": c.ids[k3], "designation": "4"},
+            {"terminal": c.ids[k4], "designation": "3"},
+        ]}),
+    };
+    let before = s.world().rev;
+    if let Err(e) = s.execute(&cmd) {
+        return fail(format!("the swap was refused with {} ({e})", error_kind(&e)));
+    }
+    let after = s.world().rev;
+    let q = s.query();
+    let designation = |key: &str| {
+        q.devices()
+            .get(id_of::<Device>(c, key))
+            .and_then(|d| d.aspects.terminal.as_ref())
+            .map(|t| t.designation.as_str().to_owned())
+            .unwrap_or_default()
+    };
+    let (d3, d4) = (designation(k3), designation(k4));
+    let undo_steps = s.history().entries().len();
+    if d3 == "4" && d4 == "3" && after > before && undo_steps == 1 {
+        pass(
+            "one terminal.designate transaction swaps -X1031:3 and -X1031:4 (one undo step); EW-TERM-002 accepts the final state",
+        )
+    } else {
+        fail(format!(
+            "after the swap -X1031:3 is `{d3}` and -X1031:4 is `{d4}` ({undo_steps} undo steps)"
+        ))
+    }
+}
+
+/// The name of a command error's kind.
+fn error_kind(e: &ew_api::CmdError) -> &'static str {
+    use ew_api::CmdError;
+    match e {
+        CmdError::UnknownCommand { .. } => "UnknownCommand",
+        CmdError::InvalidParams { .. } => "InvalidParams",
+        CmdError::NotFound { .. } => "NotFound",
+        CmdError::Rejected { .. } => "Rejected",
+        CmdError::Exposure { .. } => "Exposure",
+        CmdError::NeedsPreview { .. } => "NeedsPreview",
+        CmdError::Prevented { .. } => "Prevented",
+        CmdError::Model(ew_model::ModelError::Invariant { .. }, _) => "Model(Invariant)",
+        CmdError::Model(ew_model::ModelError::Prevented { .. }, _) => "Model(Prevented)",
+        CmdError::Model(..) => "Model(other)",
+        _ => "other",
+    }
+}
+
+/// Sets the designation of a terminal through `fields.set` and expects a refusal: an invariant or a prevent
+/// rule, and with `params_layer` also the parameter layer (`InvalidParams`: parameter validation is part of the
+/// command discipline, ADR-0008). An acceptance, or any other error, is a failure.
+fn set_designation(c: &Ctx, key: &str, value: &str, params_layer: bool) -> Outcome {
+    use ew_api::CmdError;
+    use ew_model::ModelError;
+    let mut s = golden_common::session(&c.batch);
+    let cmd = ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({
+            "kind": "device",
+            "targets": [c.ids[key]],
+            "path": "terminal.designation",
+            "value": value,
+        }),
+    };
+    let Err(e) = s.execute(&cmd) else {
+        return fail(format!("`{value}` was accepted for {key}, expected a refusal"));
+    };
+    let layer = match &e {
+        CmdError::Model(ModelError::Invariant { id, .. }, _) => Some(format!("the invariant {id}")),
+        CmdError::Model(ModelError::Prevented { rule, .. }, _) | CmdError::Prevented { rule, .. } => {
+            Some(format!("the prevent rule {rule}"))
+        }
+        CmdError::Rejected { source, .. } => Some(format!("the command's own rule ({source})")),
+        CmdError::InvalidParams { path, .. } if params_layer => {
+            Some(format!("the parameter layer (InvalidParams at {path})"))
+        }
+        _ => None,
+    };
+    match layer {
+        Some(layer) => pass(format!("{key}: designation `{value}` is refused by {layer}")),
+        None => fail(format!(
+            "{key}: designation `{value}` is refused with {}, not by an invariant or a prevent rule ({e:?})",
+            error_kind(&e)
+        )),
+    }
+}
+
+fn d24(c: &Ctx) -> Outcome {
+    let q = c.oracle.query();
+    let want: [(&str, Vec<&str>); 3] = [
+        (
+            "24VDC-1",
+            vec!["24VDC-AIR1", "24VDC-AIR2", "24VDC-AIR3", "24VDC-AIR4"],
+        ),
+        (
+            "0V",
+            vec!["0VDC", "0VDC-AIR1", "0VDC-AIR2", "0VDC-AIR3", "0VDC-AIR4"],
+        ),
+        (
+            "PE",
+            vec![
+                "J-E-206-PE",
+                "PE-1.1",
+                "PE-1.2",
+                "PE-1.3",
+                "PE-1.4",
+                "PE-AIR1",
+                "PE-AIR2",
+            ],
+        ),
+    ];
+    let mut wrong = Vec::new();
+    for (name, aliases) in want {
+        let Some(p) = ew_derive::potential_named(&q, name) else {
+            wrong.push(format!("no potential {name}"));
+            continue;
+        };
+        let got: BTreeSet<String> = q.get::<PotentialNameOf>(p).aliases.iter().cloned().collect();
+        let want: BTreeSet<String> = aliases.iter().map(|a| (*a).to_owned()).collect();
+        if got != want {
+            wrong.push(format!("{name}: aliases {got:?}"));
+        }
+    }
+    if wrong.is_empty() {
+        pass(
+            "24VDC-1 with AIR1-AIR4, 0V with 0VDC and AIR1-AIR4, PE with its 7 aliases (the canonical name and aliases of folio 909 are in AC-10)",
+        )
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+fn d27(c: &Ctx) -> Outcome {
+    let q = c.oracle.query();
+    let mut children = 0;
+    let mut field = 0;
+    let mut not_in_field = Vec::new();
+    for (id, dev) in q.devices().iter() {
+        let tag = q.get::<DeviceTag>(id);
+        let Some(tag) = tag.as_ref() else { continue };
+        let short = tag.short();
+        if short.starts_with("-20") && short.contains("U") && short.contains("-Q") && dev.parent.is_some() {
+            children += 1;
+        }
+        if dev.process_tag.is_some() {
+            field += 1;
+            if !tag.full.contains("+FIELD") {
+                not_in_field.push(short);
+            }
+        }
+    }
+    if (children, field) == (28, 8) && not_in_field.is_empty() {
+        pass("28 valve child tags (-201U3-Q1 ...) and 8 field devices with process tags in +FIELD")
+    } else {
+        fail(format!(
+            "{children} valve child tags and {field} process-tag devices ({} outside +FIELD)",
+            not_in_field.len()
+        ))
+    }
+}
+
+fn d29(c: &Ctx) -> Outcome {
+    let q = c.oracle.query();
+    let tags: BTreeSet<String> = q
+        .devices()
+        .ids()
+        .filter_map(|id| q.get::<DeviceTag>(id).as_ref().as_ref().map(|t| t.short()))
+        .collect();
+    let mut sizes: BTreeSet<String> = BTreeSet::new();
+    let mut seen = 0;
+    for folio in ["101", "202", "203", "204", "205", "206"] {
+        for row in csv_rows(&c.text[folio]).into_iter().skip(1) {
+            if row[1] == "labels" && tags.contains(&row[3]) {
+                seen += 1;
+                sizes.insert(row[6].clone());
+            }
+        }
+    }
+    if seen > 0 && sizes == BTreeSet::from(["9.62".to_owned()]) {
+        pass(format!(
+            "{seen} printed device tags on 101, 202 and 203-206 are all 9.62 pt"
+        ))
+    } else {
+        fail(format!("{seen} printed device tags with sizes {sizes:?}"))
+    }
+}
+
+fn d42(c: &Ctx) -> Outcome {
+    let q = c.oracle.query();
+    let rep = |key: &str| -> Option<(String, String)> {
+        let id = Id::<Representation>::from_str(c.ids.get(key)?).ok()?;
+        let r = q.reps().get(id)?;
+        let page = q.pages().get(r.page)?;
+        let cell = q.get::<RepAnchorCell>(id).as_ref().as_ref()?.to_string();
+        Some((page.folio.number.to_string(), cell))
+    };
+    let strips = q
+        .devices()
+        .iter()
+        .filter(|(_, d)| d.aspects.strip.is_some())
+        .count();
+    let got = [rep("representations|-X1031"), rep("representations|-X1031.2")];
+    let want = Some(("103".to_owned(), "A3".to_owned()));
+    let want2 = Some(("103".to_owned(), "A10".to_owned()));
+    if got[0] == want && got[1] == want2 {
+        pass(format!(
+            "one device -X1031 (of {strips} strips) with segments at 103-A3 and 103-A10 (the single BOM row is part of D-04)"
+        ))
+    } else {
+        fail(format!("segments at {got:?}"))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The written PDF read back (FR-OUT-008; doc 18 §3.9) and the export determinism of AC-14
+
+/// The tolerance of doc 18 §3.9 for the vector content of the PDF (AC-01), mm.
+const PDF_TOLERANCE_MM: f64 = 0.2;
+
+/// The pages of the written PDF as the in-repo reader reads them back (`pdf_read.rs`).
+fn read_back(c: &Ctx) -> Result<&[crate::pdf_read::PageRead], String> {
+    let pages = c
+        .pdf_read
+        .as_deref()
+        .map_err(|e| format!("the written PDF does not read back: {e}"))?;
+    if pages.len() != c.pages.len() {
+        return Err(format!(
+            "the PDF has {} pages, the page order {}",
+            pages.len(),
+            c.pages.len()
+        ));
+    }
+    Ok(pages)
+}
+
+/// The glyph runs of a folio's text CSV, in drawing order.
+fn printed_runs(c: &Ctx, folio: &str) -> Vec<String> {
+    c.text
+        .get(folio)
+        .map(|csv| runs(csv).into_iter().map(|r| r.1).collect())
+        .unwrap_or_default()
+}
+
+/// The comparison of one page's text layer with the glyph runs it prints: equal run by run and character by
+/// character, so a lost, unmapped (U+FFFD) or merged space is a mismatch. Empty when they agree.
+pub fn text_layer_mismatches(
+    folio: &str,
+    printed: &[String],
+    read: &[crate::pdf_read::TextRun],
+) -> Vec<String> {
+    if read.len() != printed.len() {
+        return vec![format!(
+            "{folio}: {} text objects, {} printed runs",
+            read.len(),
+            printed.len()
+        )];
+    }
+    read.iter()
+        .zip(printed)
+        .enumerate()
+        .find(|(_, (r, p))| r.text != **p)
+        .map(|(i, (r, p))| format!("{folio}: run {} reads {:?}, the page prints {p:?}", i + 1, r.text))
+        .into_iter()
+        .collect()
+}
+
+/// AC-13, FR-OUT-008, D-33: the text layer of every page, read through the fonts' ToUnicode maps, equals
+/// the glyph runs the page prints ([`text_layer_mismatches`]).
+fn ac13_text_extraction(c: &Ctx) -> Outcome {
+    let pages = match read_back(c) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
+    let (mut total, mut spaced) = (0, 0);
+    let mut wrong = Vec::new();
+    for (g, page) in c.pages.iter().zip(pages) {
+        wrong.extend(text_layer_mismatches(
+            &g.entry.folio,
+            &printed_runs(c, &g.entry.folio),
+            &page.runs,
+        ));
+        total += page.runs.len();
+        spaced += page.runs.iter().filter(|r| r.text.contains(' ')).count();
+    }
+    let sk = c
+        .pages
+        .iter()
+        .zip(pages)
+        .find(|(g, _)| g.entry.folio == "101")
+        .is_some_and(|(_, p)| p.runs.iter().any(|r| r.text.contains("SK 3110.000")));
+    if !sk {
+        wrong.push("folio 101 does not read \"SK 3110.000\"".into());
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{} pages: the text layer, read back from the content streams through the ToUnicode maps, equals the {total} printed glyph runs in order ({spaced} with spaces, kept as U+0020); folio 101 reads \"SK 3110.000\" (D-33)",
+            pages.len()
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// The tokens that must not be printed anywhere (doc 20 §19: D-01, D-03, D-17 and the old tag of T55).
+const STALE_TOKENS: [&str; 4] = ["-4W1", "-4X1", "T51", "JE2416"];
+
+/// The occurrences of `tag` in `text` on token boundaries: the characters before and after are neither
+/// alphanumeric nor `-`, so "-K1" is not counted inside "-K10" or inside "-201U3-K1".
+pub fn count_tag(text: &str, tag: &str) -> usize {
+    let bound = |c: Option<char>| c.is_none_or(|c| !c.is_alphanumeric() && c != '-');
+    text.match_indices(tag)
+        .filter(|(i, _)| bound(text[..*i].chars().next_back()) && bound(text[i + tag.len()..].chars().next()))
+        .count()
+}
+
+/// The per-tag comparison of one page: every tag occurs in the text layer as often as the page prints it
+/// (on token boundaries), and no stale token is in the text layer. The mismatches and the number of
+/// printed occurrences.
+pub fn tag_mismatches(
+    folio: &str,
+    tags: &BTreeSet<String>,
+    printed: &[String],
+    read: &[crate::pdf_read::TextRun],
+) -> (Vec<String>, usize) {
+    let mut wrong = Vec::new();
+    let mut occurrences = 0;
+    for tag in tags {
+        let n_printed: usize = printed.iter().map(|t| count_tag(t, tag)).sum();
+        let n_read: usize = read.iter().map(|r| count_tag(&r.text, tag)).sum();
+        if n_printed != n_read {
+            wrong.push(format!(
+                "{folio}: {tag} printed {n_printed} times, read {n_read} times"
+            ));
+        }
+        occurrences += n_printed;
+    }
+    for r in read {
+        if STALE_TOKENS.iter().any(|s| r.text.contains(s)) || r.text == "BR" {
+            wrong.push(format!("{folio}: stale \"{}\" in the text layer", r.text));
+        }
+    }
+    (wrong, occurrences)
+}
+
+/// AC-06: the PDF text equals the page text through AC-13's entry; this one counts every device tag on token
+/// boundaries per page in both and scans the text layer for stale tokens ([`tag_mismatches`]).
+fn ac06_text_layer(c: &Ctx) -> Outcome {
+    let pages = match read_back(c) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
+    let q = c.oracle.query();
+    let mut tags = BTreeSet::new();
+    for r in &c.batch.records {
+        if let ew_schema::Record::Device(dev) = r
+            && let Some(t) = q.get::<DeviceTag>(dev.id).as_ref().as_ref()
+        {
+            tags.insert(t.short());
+        }
+    }
+    let (mut occurrences, mut on_pages) = (0, 0);
+    let mut wrong = Vec::new();
+    for (g, page) in c.pages.iter().zip(pages) {
+        let (w, n) = tag_mismatches(
+            &g.entry.folio,
+            &tags,
+            &printed_runs(c, &g.entry.folio),
+            &page.runs,
+        );
+        wrong.extend(w);
+        occurrences += n;
+        on_pages += usize::from(n > 0);
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "the PDF text equals the page text (AC-13 entry); counted on token boundaries, the {occurrences} printed occurrences of the {} device tags on {on_pages} pages occur as often per tag and page in the PDF text layer, and no stale token is in it",
+            tags.len()
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// An expected frame line of `expected/geometry/frame.json`, mm.
+pub type Line = ((f64, f64), (f64, f64));
+
+/// The lines `frame.json`'s figures put on a sheet (doc 20 §17.1; `ew_scene::forms` paint order 1): the
+/// outer rectangle, the title-block separator and, when the form shows its grid, the two header-band lines
+/// and the interior column and row ticks.
+pub fn frame_lines(fig: &serde_json::Value, show_grid: bool) -> Option<Vec<Line>> {
+    let n = |v: &serde_json::Value| v.as_f64();
+    let r = |k: &str| -> Option<(f64, f64, f64, f64)> {
+        let o = &fig[k];
+        Some((n(&o["x0"])?, n(&o["y0"])?, n(&o["x1"])?, n(&o["y1"])?))
+    };
+    let (x0, y0, x1, y1) = r("outer")?;
+    let mut lines = vec![
+        ((x0, y0), (x1, y0)),
+        ((x1, y0), (x1, y1)),
+        ((x1, y1), (x0, y1)),
+        ((x0, y1), (x0, y0)),
+    ];
+    if let Some((_, ty, _, _)) = r("title_block") {
+        lines.push(((x0, ty), (x1, ty)));
+    }
+    if show_grid {
+        let (dx0, dy0, dx1, dy1) = r("drawing_area")?;
+        lines.push(((x0, dy0), (dx1, dy0)));
+        lines.push(((dx0, y0), (dx0, dy1)));
+        let edges = |k: &str| -> Option<Vec<f64>> { fig[k].as_array()?.iter().map(n).collect() };
+        let cols = edges("column_edges")?;
+        let rows = edges("row_edges")?;
+        for &x in cols.iter().take(cols.len().saturating_sub(1)).skip(1) {
+            lines.push(((x, y0), (x, dy0)));
+        }
+        for &y in rows.iter().take(rows.len().saturating_sub(1)).skip(1) {
+            lines.push(((x0, y), (dx0, y)));
+        }
+    }
+    Some(lines)
+}
+
+fn dist(a: (f64, f64), b: (f64, f64)) -> f64 {
+    (a.0 - b.0).hypot(a.1 - b.1)
+}
+
+/// The larger endpoint distance between a line and a segment, in the better of the two directions.
+fn deviation(l: &Line, s: &crate::pdf_read::Segment) -> f64 {
+    let fwd = dist(l.0, s.a).max(dist(l.1, s.b));
+    let back = dist(l.0, s.b).max(dist(l.1, s.a));
+    fwd.min(back)
+}
+
+/// The comparison of one page of the written PDF with its frame form's figures in `frame.json`: the
+/// mismatches, the number of frame lines compared and the largest endpoint deviation of a matched line.
+pub fn frame_mismatches(
+    folio: &str,
+    page: &crate::pdf_read::PageRead,
+    fig: &serde_json::Value,
+    show_grid: bool,
+) -> (Vec<String>, usize, f64) {
+    let tol = PDF_TOLERANCE_MM;
+    let mut wrong = Vec::new();
+    let (mut checked, mut worst) = (0usize, 0.0f64);
+    let (Some(lines), Some(width), Some(sw), Some(sh)) = (
+        frame_lines(fig, show_grid),
+        fig["line_width"].as_f64(),
+        fig["sheet"]["width"].as_f64(),
+        fig["sheet"]["height"].as_f64(),
+    ) else {
+        return (
+            vec![format!("{folio}: frame.json has no figures for its form")],
+            0,
+            0.0,
+        );
+    };
+    if (page.width_mm - sw).abs() > tol || (page.height_mm - sh).abs() > tol {
+        wrong.push(format!(
+            "{folio}: media box {:.3} x {:.3} mm, sheet {sw} x {sh} mm",
+            page.width_mm, page.height_mm
+        ));
+    }
+    for l in &lines {
+        let best = page
+            .segments
+            .iter()
+            .map(|s| (deviation(l, s), s))
+            .min_by(|a, b| a.0.total_cmp(&b.0));
+        match best {
+            Some((d, s)) if d <= tol => {
+                worst = worst.max(d);
+                if (s.width - width).abs() > 0.01 {
+                    wrong.push(format!(
+                        "{folio}: the line {l:?} is {:.3} mm wide, the frame {width} mm",
+                        s.width
+                    ));
+                }
+            }
+            Some((d, _)) => wrong.push(format!("{folio}: the line {l:?} is {d:.3} mm off")),
+            None => wrong.push(format!("{folio}: no stroked segment")),
+        }
+        checked += 1;
+    }
+    // The stroked lines of the form's own graphics (the cover's rules and project data box, `graphics` in
+    // frame.json) are expected too, each with its own width.
+    let own: Vec<(Line, f64)> = fig["graphics"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(|g| {
+                    let n = |k: &str| g[k].as_f64();
+                    Some((((n("x0")?, n("y0")?), (n("x1")?, n("y1")?)), n("width")?))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    for (l, w) in &own {
+        let best = page
+            .segments
+            .iter()
+            .map(|s| (deviation(l, s), s))
+            .min_by(|a, b| a.0.total_cmp(&b.0));
+        match best {
+            Some((d, s)) if d <= tol => {
+                worst = worst.max(d);
+                if (s.width - w).abs() > 0.01 {
+                    wrong.push(format!(
+                        "{folio}: the graphic line {l:?} is {:.3} mm wide, expected {w} mm",
+                        s.width
+                    ));
+                }
+            }
+            Some((d, _)) => wrong.push(format!("{folio}: the graphic line {l:?} is {d:.3} mm off")),
+            None => wrong.push(format!("{folio}: no stroked segment")),
+        }
+        checked += 1;
+    }
+    // The reverse direction: a stroked segment in the header bands or on the outer frame is a frame line.
+    // A segment along the drawing area's edge (a report table's border, the separator) is not judged.
+    let r = |k: &str| {
+        let o = &fig[k];
+        [&o["x0"], &o["y0"], &o["x1"], &o["y1"]].map(|v| v.as_f64().unwrap_or(f64::NAN))
+    };
+    let (outer, area, tb) = (r("outer"), r("drawing_area"), r("title_block"));
+    let inside = |b: [f64; 4], p: (f64, f64)| {
+        p.0 > b[0] + tol && p.0 < b[2] - tol && p.1 > b[1] + tol && p.1 < b[3] - tol
+    };
+    let in_band = |p: (f64, f64)| {
+        p.0 >= outer[0] - tol
+            && p.0 <= outer[2] + tol
+            && p.1 >= outer[1] - tol
+            && p.1 <= outer[3] + tol
+            && !inside(area, p)
+            && !inside(tb, p)
+    };
+    for s in &page.segments {
+        let mid = ((s.a.0 + s.b.0) / 2.0, (s.a.1 + s.b.1) / 2.0);
+        let near_area = mid.0 >= area[0] - tol
+            && mid.0 <= area[2] + tol
+            && mid.1 >= area[1] - tol
+            && mid.1 <= area[3] + tol;
+        if in_band(s.a)
+            && in_band(s.b)
+            && in_band(mid)
+            && !near_area
+            && !lines.iter().any(|l| deviation(l, s) <= tol)
+            && !own.iter().any(|(l, _)| deviation(l, s) <= tol)
+        {
+            wrong.push(format!(
+                "{folio}: an extra line from ({:.3}, {:.3}) to ({:.3}, {:.3}) mm in the frame bands",
+                s.a.0, s.a.1, s.b.0, s.b.1
+            ));
+        }
+    }
+    (wrong, checked, worst)
+}
+
+/// The figures of `expected/geometry/frame.json`.
+pub fn frame_figures_json() -> Result<serde_json::Value, String> {
+    expected("geometry/frame.json")
+        .and_then(|b| serde_json::from_slice(&b).map_err(|e| format!("frame.json: {e}")))
+}
+
+/// AC-01 (doc 18 §3.9 "Frame geometry"): on every page of the written PDF, each line of the page's frame
+/// form in `expected/geometry/frame.json` is a stroked segment within 0.2 mm (both endpoints) with the
+/// frame's line width, the media box is the sheet, and no other line lies in the header bands or on the
+/// outer frame ([`frame_mismatches`]). `frame.json` holds the title block's bounding box only, so no check
+/// compares the title block's inner lines; AC-04 checks the title-block texts.
+fn ac01_pdf_vectors(c: &Ctx) -> Outcome {
+    let pages = match read_back(c) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
+    let frame = match frame_figures_json() {
+        Ok(v) => v,
+        Err(e) => return fail(e),
+    };
+    let (mut lines_checked, mut worst) = (0usize, 0.0f64);
+    // Lines per page → pages: the formula of the line count.
+    let mut per_page: BTreeMap<usize, usize> = BTreeMap::new();
+    let mut wrong = Vec::new();
+    for (g, page) in c.pages.iter().zip(pages) {
+        let folio = &g.entry.folio;
+        let Some(view) = &g.view.frame else {
+            wrong.push(format!("{folio}: no frame form"));
+            continue;
+        };
+        let key = view.form.meta.key.as_ref().map_or("", |k| k.as_str());
+        let show_grid = ew_scene::forms::FrameGeometry::of(&view.form, view.title_block.as_deref())
+            .is_some_and(|g| g.show_grid);
+        let (w, n, d) = frame_mismatches(folio, page, &frame[key], show_grid);
+        wrong.extend(w);
+        lines_checked += n;
+        *per_page.entry(n).or_default() += 1;
+        worst = worst.max(d);
+    }
+    let formula: Vec<String> = per_page
+        .iter()
+        .rev()
+        .map(|(lines, pages)| format!("{pages} pages × {lines}"))
+        .collect();
+    if wrong.is_empty() {
+        pass(format!(
+            "{} pages: the {lines_checked} frame lines of expected/geometry/frame.json ({}: outer frame and title-block separator, plus header bands and grid ticks on a page whose form shows the grid, plus the stroked lines of the form's own graphics: the cover's two rules and project data box) are stroked in the PDF within 0.2 mm (largest endpoint deviation {worst:.3} mm) at the frame's line width; media boxes equal the sheet; no other line in the bands; no check compares the title block's inner lines (frame.json holds its bounding box only)",
+            pages.len(),
+            formula.join(" + ")
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// The seed of the record shuffle of AC-14.
+const SHUFFLE_SEED: u64 = 0x5eed_ac14;
+
+/// Two SVG exports are the same files; an export that failed is a mismatch, never an agreement.
+pub fn same_svg(
+    a: &Result<ew_export::SvgOutput, ew_export::SvgError>,
+    b: &Result<ew_export::SvgOutput, ew_export::SvgError>,
+) -> Result<(), String> {
+    match (a, b) {
+        (Ok(a), Ok(b)) if a == b => Ok(()),
+        (Ok(_), Ok(_)) => Err("the SVG files differ".to_owned()),
+        (Err(e), _) | (_, Err(e)) => Err(format!("the SVG export failed: {e}")),
+    }
+}
+
+/// Every `href` of an SVG export whose file is not in the export or whose fragment is not an `id` of that
+/// file (written once), and every id written twice in one file.
+pub fn svg_dangling(out: &ew_export::SvgOutput) -> Vec<String> {
+    let ids = |text: &str, id: &str| text.matches(&format!(" id=\"{id}\"")).count();
+    let mut bad = Vec::new();
+    for f in &out.files {
+        for rest in f.text.split("href=\"").skip(1) {
+            let h = &rest[..rest.find('"').unwrap_or(rest.len())];
+            let (file, fragment) = h.split_once('#').map_or((h, None), |(a, b)| (a, Some(b)));
+            match out.files.iter().find(|g| g.name == file) {
+                None => bad.push(format!("{}: {h} (no such file)", f.name)),
+                Some(g) => {
+                    if let Some(id) = fragment
+                        && ids(&g.text, id) != 1
+                    {
+                        bad.push(format!("{}: {h} (no such id)", f.name));
+                    }
+                }
+            }
+        }
+        for rest in f.text.split(" id=\"").skip(1) {
+            let id = &rest[..rest.find('"').unwrap_or(rest.len())];
+            if ids(&f.text, id) != 1 {
+                bad.push(format!("{}: id {id} written twice", f.name));
+            }
+        }
+    }
+    bad.sort();
+    bad.dedup();
+    bad
+}
+
+/// The files of a directory tree by their path relative to `base`, with `/` separators.
+fn read_tree(
+    dir: &std::path::Path,
+    base: &std::path::Path,
+    out: &mut BTreeMap<String, Vec<u8>>,
+) -> Result<(), String> {
+    for e in std::fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))? {
+        let path = e.map_err(|e| e.to_string())?.path();
+        if path.is_dir() {
+            read_tree(&path, base, out)?;
+        } else {
+            let rel = path
+                .strip_prefix(base)
+                .map_err(|e| e.to_string())?
+                .to_string_lossy()
+                .replace('\\', "/");
+            out.insert(rel, std::fs::read(&path).map_err(|e| e.to_string())?);
+        }
+    }
+    Ok(())
+}
+
+/// The bytes a save writes: the session saved as a new project (`Session::create`) into a scratch
+/// directory, read back file by file (without the session lock file).
+fn saved_files(s: &mut Session, tag: &str) -> Result<BTreeMap<String, Vec<u8>>, String> {
+    let dir = scratch_dir(tag);
+    let state = scratch_dir(&format!("{tag}-state"));
+    let mut options = StoreOptions::new("acceptance");
+    options.state_dir = Some(state.clone());
+    let out = s
+        .create(&dir, options)
+        .map_err(|e| format!("the save failed: {e:?}"))
+        .and_then(|()| {
+            let mut files = BTreeMap::new();
+            read_tree(&dir, &dir, &mut files)?;
+            // The session lock is the open session's runtime state (session id, user, host), not saved
+            // project content (doc 05).
+            files.remove(ew_store::ew_format::LOCK);
+            Ok(files)
+        });
+    let _ = std::fs::remove_dir_all(&dir);
+    let _ = std::fs::remove_dir_all(&state);
+    out
+}
+
+/// AC-14 (platform-neutral half): the golden model loaded with its records in a shuffled order writes the
+/// same PDF, SVG, text and report CSVs and saved project files (JSONL and manifest, through
+/// `Session::create`) as in file order. This run compares on its own platform; the gate platform of doc 20
+/// §21 (M1) is Linux, and the cross-platform digests are MVP.
+fn ac14_shuffle(c: &Ctx) -> Outcome {
+    let mut base = golden_session(None);
+    let mut shuffled = golden_session(Some(SHUFFLE_SEED));
+    let qs = shuffled.query();
+    let mut wrong = Vec::new();
+    let pages_s = pdf_pages(&qs, Parallelism::Serial);
+    let pdf_s = ew_export::pdf(&pages_s, &pdf_options(&qs), &c.fonts, None);
+    match &pdf_s {
+        Ok(o) if o.bytes == c.pdf.bytes => {}
+        Ok(_) => wrong.push("the PDF differs".to_owned()),
+        Err(e) => wrong.push(format!("the shuffled PDF is not written: {e}")),
+    }
+    let svg = |pages: &[ew_export::PdfPage]| ew_export::svg(pages, &svg_options(), None, Parallelism::Serial);
+    if let Err(e) = same_svg(&svg(&pages_s), &svg(&c.pdf_pages)) {
+        wrong.push(e);
+    }
+    let text_s: BTreeMap<String, String> = qs
+        .get::<PageOrder>(())
+        .entries
+        .iter()
+        .map(|e| {
+            let scene = ew_api::output::page_scene(&qs, e);
+            (e.folio.clone(), crate::golden_files::text_csv(&scene))
+        })
+        .collect();
+    if text_s != c.text {
+        wrong.push("the page text CSVs differ".to_owned());
+    }
+    let (pb, ps) = (golden_common::plain(&base), golden_common::plain(&shuffled));
+    for (name, _) in ROW_PAIRS {
+        match (
+            row_pair_text(&c.batch, &pb, name),
+            row_pair_text(&c.batch, &ps, name),
+        ) {
+            (Ok(a), Ok(b)) if a == b => {}
+            _ => wrong.push(format!("the report CSV {name} differs")),
+        }
+    }
+    drop(qs);
+    let (fb, fs) = (
+        saved_files(&mut base, "ac14-file-order"),
+        saved_files(&mut shuffled, "ac14-shuffled"),
+    );
+    let saved = match (&fb, &fs) {
+        (Ok(a), Ok(b)) if a == b => a.len(),
+        (Ok(a), Ok(b)) => {
+            let names: BTreeSet<&String> = a.keys().chain(b.keys()).collect();
+            let differing: Vec<String> = names
+                .into_iter()
+                .filter(|n| a.get(*n) != b.get(*n))
+                .map(|n| {
+                    let line = |m: &BTreeMap<String, Vec<u8>>| {
+                        m.get(n).map(|v| {
+                            String::from_utf8_lossy(v)
+                                .lines()
+                                .map(str::to_owned)
+                                .collect::<Vec<_>>()
+                        })
+                    };
+                    match (line(a), line(b)) {
+                        (Some(x), Some(y)) => {
+                            let i = x
+                                .iter()
+                                .zip(&y)
+                                .position(|(p, q)| p != q)
+                                .unwrap_or(x.len().min(y.len()));
+                            let cut = |v: &[String]| {
+                                v.get(i).map_or(String::new(), |l| l.chars().take(160).collect())
+                            };
+                            format!("{n} line {}: {:?} vs {:?}", i + 1, cut(&x), cut(&y))
+                        }
+                        _ => format!("{n} (only in one save)"),
+                    }
+                })
+                .collect();
+            wrong.push(format!("the saved project files differ: {}", list(differing, 3)));
+            0
+        }
+        (Err(e), _) | (_, Err(e)) => {
+            wrong.push(e.clone());
+            0
+        }
+    };
+    if wrong.is_empty() {
+        pass(format!(
+            "on the platform of this run, the model loaded with its records shuffled (seed {SHUFFLE_SEED:#x}) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the {} SVG files, the {} page text CSVs, the {} report CSVs and the {saved} files a save writes (JSONL and manifest) of the file-order load byte for byte (gate platform Linux; across Windows and Linux at MVP)",
+            c.pdf_pages.len(),
+            c.text.len(),
+            ROW_PAIRS.len(),
+        ))
+    } else {
+        fail(wrong.join("; "))
+    }
+}
+
+/// AC-14, FR-OUT-013, FR-OUT-019: the SVG export (one file per page from the page scene the PDF draws, every
+/// glyph run as `<text>`, every link resolving) and the page phase of the shipped export job
+/// (`ew_api::output::export_pages_with`, `par_map`) on 2 and 8 threads give the bytes of the serial export.
+fn ac14_parallel(c: &Ctx) -> Outcome {
+    let serial = ew_export::svg(&c.pdf_pages, &svg_options(), None, Parallelism::Serial);
+    let Ok(out) = &serial else {
+        return fail(same_svg(&serial, &serial).err().unwrap_or_default());
+    };
+    let runs: usize = c.text.values().map(|csv| runs(csv).len()).sum();
+    let mut wrong = Vec::new();
+    if out.files.len() != c.pdf_pages.len() {
+        wrong.push(format!(
+            "{} SVG files for {} pages",
+            out.files.len(),
+            c.pdf_pages.len()
+        ));
+    }
+    let r = &out.report;
+    if r.texts != runs || !r.missing_fonts.is_empty() || r.dropped_notdef_glyphs != 0 {
+        wrong.push(format!(
+            "{} <text> elements for {runs} printed runs, {} missing faces, {} dropped glyphs",
+            r.texts,
+            r.missing_fonts.len(),
+            r.dropped_notdef_glyphs
+        ));
+    }
+    if r.links != c.pdf.report.links || r.plain_text_links != c.pdf.report.plain_text_links {
+        wrong.push(format!(
+            "{} SVG links and {} plain, the PDF {} and {}",
+            r.links, r.plain_text_links, c.pdf.report.links, c.pdf.report.plain_text_links
+        ));
+    }
+    let dangling = svg_dangling(out);
+    if !dangling.is_empty() {
+        wrong.push(format!("dangling links: {}", list(dangling, 3)));
+    }
+    let hrefs: usize = out.files.iter().map(|f| f.text.matches("href=\"").count()).sum();
+    let view = golden_session(None);
+    let q = view.query();
+    let options = pdf_options(&q);
+    for threads in [2, 8] {
+        let p = Parallelism::threads(threads);
+        // The shipped export job (`ew_api::output::export_pages_with`): its page phase on `par_map`.
+        let pages = pdf_pages(&q, p);
+        if pages != c.pdf_pages {
+            wrong.push(format!("{threads} threads: the page display lists differ"));
+            continue;
+        }
+        match ew_export::pdf(&pages, &options, &c.fonts, None) {
+            Ok(o) if o.bytes == c.pdf.bytes => {}
+            Ok(_) => wrong.push(format!("{threads} threads: the PDF differs")),
+            Err(e) => wrong.push(format!("{threads} threads: {e}")),
+        }
+        if let Err(e) = same_svg(&ew_export::svg(&pages, &svg_options(), None, p), &serial) {
+            wrong.push(format!("{threads} threads: {e}"));
+        }
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{} SVG files (one per page, {} glyph runs as <text>, {} links as in the PDF, all {hrefs} hrefs resolve to a file and an id; SHA-256 {}); the shipped export job (ew_api::output, the page phase on par_map) on 2 and 8 threads gives the serial display lists, PDF and SVG byte for byte",
+            out.files.len(),
+            r.texts,
+            r.links,
+            svg_sha256(out)
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// A font face as an SVG page names it: family (without the generic fallback), CSS weight, italic.
+type Face = (String, u16, bool);
+
+/// AC-37, SVG half (MVP; FR-OUT-013; SV-1, SV-3): the SVG export keeps every printed glyph run
+/// as `<text>` (the runs of AC-14), and every page's `<style>` declares exactly the faces its `<text>` elements
+/// name, each as an embedded subset that loads as a font (`ew_text::FontSet`, through skrifa) with that family's
+/// name and draws every character of the page's texts in that face with a glyph whose outline is the bundled
+/// face's (shaped through the subset's own `cmap`, no `.notdef`). The DXF half (AC1015 of folios 101–106,
+/// re-import within 0.01 mm; 1.0) is WP-S3.19's and is not checked here.
+fn ac37_svg(c: &Ctx) -> Outcome {
+    let options = svg_options();
+    let out = match ew_export::svg(&c.pdf_pages, &options, None, Parallelism::Serial) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("the SVG export failed: {e}")),
+    };
+    let runs: usize = c.text.values().map(|csv| runs(csv).len()).sum();
+    let mut wrong = Vec::new();
+    let r = &out.report;
+    if r.texts != runs || !r.missing_fonts.is_empty() || !r.named_fonts.is_empty() {
+        wrong.push(format!(
+            "{} <text> elements for {runs} printed runs, {} missing faces, {} faces named only",
+            r.texts,
+            r.missing_fonts.len(),
+            r.named_fonts.len()
+        ));
+    }
+    let faces: BTreeMap<Face, &[u8]> = options
+        .faces
+        .values()
+        .filter_map(|f| Some(((f.family.clone(), f.weight, f.italic), f.data.as_deref()?)))
+        .collect();
+    let mut texts = 0;
+    let mut rules = 0;
+    let mut folio_103 = Vec::new();
+    for f in &out.files {
+        let named = svg_texts(&f.text);
+        texts += named.len();
+        let declared = match svg_font_faces(&f.text) {
+            Ok(d) => d,
+            Err(e) => {
+                wrong.push(format!("{}: {e}", f.name));
+                continue;
+            }
+        };
+        rules += declared.len();
+        let names: BTreeSet<&Face> = named.iter().map(|(k, _)| k).collect();
+        let decl: Vec<&Face> = declared.iter().map(|(k, _)| k).collect();
+        if decl.iter().copied().collect::<BTreeSet<_>>() != names || decl.len() != names.len() {
+            wrong.push(format!(
+                "{} declares {} for the faces {}",
+                f.name,
+                face_list(decl.iter().copied()),
+                face_list(names.iter().copied())
+            ));
+            continue;
+        }
+        if f.name == "103.svg" {
+            folio_103 = decl.iter().map(|k| face_name(k)).collect();
+        }
+        for (key, subset) in &declared {
+            let Some(face) = faces.get(key) else {
+                wrong.push(format!(
+                    "{} declares {}, which is not a bundled face",
+                    f.name,
+                    face_name(key)
+                ));
+                continue;
+            };
+            let chars: BTreeSet<char> = named
+                .iter()
+                .filter(|(k, _)| k == key)
+                .flat_map(|(_, t)| t.chars())
+                .filter(|c| !c.is_whitespace())
+                .collect();
+            if let Err(e) = subset_draws(subset, face, &key.0, &chars) {
+                wrong.push(format!("{}, {}: {e}", f.name, face_name(key)));
+            }
+        }
+    }
+    if texts != r.texts {
+        wrong.push(format!("{texts} <text> elements read back, {} written", r.texts));
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "{} SVG files keep the {} printed glyph runs as <text> (AC-14's); each page's <style> declares exactly the faces its <text> elements name ({rules} @font-face subsets over the pages; folio 103: {}), each subset loads as a font of its family and draws every character of its page's texts with the bundled face's outline through its own cmap; no face is named only. The DXF half (AC1015, 1.0) is WP-S3.19's and not checked here",
+            out.files.len(),
+            r.texts,
+            folio_103.join(", ")
+        ))
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+/// A face as (family, CSS weight, italic) in words: "Noto Sans 400".
+fn face_name(k: &Face) -> String {
+    format!("{} {}{}", k.0, k.1, if k.2 { " italic" } else { "" })
+}
+
+fn face_list<'a>(faces: impl Iterator<Item = &'a Face>) -> String {
+    let all: Vec<String> = faces.map(face_name).collect();
+    if all.is_empty() {
+        "none".to_owned()
+    } else {
+        all.join(", ")
+    }
+}
+
+/// The `<text>` elements of an SVG page: the face each names (family without the generic fallback, weight, italic)
+/// and its text, unescaped.
+fn svg_texts(doc: &str) -> Vec<(Face, String)> {
+    doc.split("<text")
+        .skip(1)
+        .filter_map(|el| {
+            let end = el.find('>')?;
+            let open = &el[..end];
+            let attr = |name: &str| {
+                let key = format!(" {name}=\"");
+                let v = &open[open.find(&key)? + key.len()..];
+                Some(v[..v.find('"')?].to_owned())
+            };
+            let family = attr("font-family")?;
+            let family = family.strip_suffix(", sans-serif").unwrap_or(&family).to_owned();
+            let weight = attr("font-weight").map_or(Some(400), |w| w.parse().ok())?;
+            let italic = attr("font-style").is_some_and(|s| s == "italic");
+            let body = &el[end + 1..el.find("</text>")?];
+            let body = body
+                .replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&quot;", "\"")
+                .replace("&apos;", "'")
+                .replace("&amp;", "&");
+            Some(((family, weight, italic), body))
+        })
+        .collect()
+}
+
+/// The `@font-face` rules of an SVG page's `<style>`, each in the form of WP-S3.07 D3, with the subset decoded.
+fn svg_font_faces(doc: &str) -> Result<Vec<(Face, Vec<u8>)>, String> {
+    let (Some(a), Some(b)) = (doc.find("<style>"), doc.find("</style>")) else {
+        return Err("no <style>".to_owned());
+    };
+    let mut out = Vec::new();
+    for rule in doc[a + 7..b].lines().filter(|l| l.starts_with("@font-face")) {
+        let parsed = (|| {
+            let rest = rule.strip_prefix("@font-face { font-family: \"")?;
+            let (family, rest) = rest.split_once("\"; font-weight: ")?;
+            let (weight, rest) = rest.split_once("; font-style: ")?;
+            let (slope, rest) = rest.split_once("; src: url(data:font/ttf;base64,")?;
+            let data = rest.strip_suffix(") format(\"truetype\"); }")?;
+            let italic = match slope {
+                "normal" => false,
+                "italic" => true,
+                _ => return None,
+            };
+            Some(((family.to_owned(), weight.parse().ok()?, italic), unbase64(data)?))
+        })();
+        out.push(parsed.ok_or_else(|| format!("an @font-face rule not in D3's form: {:.80}", rule))?);
+    }
+    Ok(out)
+}
+
+/// RFC 4648 base64 (padded, no line breaks) back to bytes; `None` for any other character.
+fn unbase64(s: &str) -> Option<Vec<u8>> {
+    let value = |c: u8| match c {
+        b'A'..=b'Z' => Some(c - b'A'),
+        b'a'..=b'z' => Some(c - b'a' + 26),
+        b'0'..=b'9' => Some(c - b'0' + 52),
+        b'+' => Some(62),
+        b'/' => Some(63),
+        _ => None,
+    };
+    if !s.len().is_multiple_of(4) {
+        return None;
+    }
+    let mut out = Vec::with_capacity(s.len() / 4 * 3);
+    for chunk in s.as_bytes().chunks(4) {
+        let pad = chunk.iter().rev().take_while(|&&c| c == b'=').count();
+        let mut n = 0u32;
+        for &c in chunk {
+            n = (n << 6) | if c == b'=' { 0 } else { u32::from(value(c)?) };
+        }
+        out.extend_from_slice(&n.to_be_bytes()[1..4 - pad.min(2)]);
+    }
+    Some(out)
+}
+
+/// The outline record of every glyph of a TrueType font (from its `loca` and `glyf`), by glyph ID.
+fn glyph_records(font: &[u8]) -> Option<Vec<&[u8]>> {
+    let word = |d: &[u8], at: usize| Some(u32::from_be_bytes(d.get(at..at + 4)?.try_into().ok()?));
+    let half = |d: &[u8], at: usize| Some(u16::from_be_bytes(d.get(at..at + 2)?.try_into().ok()?));
+    let table = |tag: &[u8; 4]| {
+        (0..usize::from(half(font, 4)?)).find_map(|i| {
+            let r = 12 + 16 * i;
+            (font.get(r..r + 4)? == tag).then(|| {
+                let (o, l) = (word(font, r + 8)? as usize, word(font, r + 12)? as usize);
+                font.get(o..o + l)
+            })?
+        })
+    };
+    let (head, maxp, loca, glyf) = (table(b"head")?, table(b"maxp")?, table(b"loca")?, table(b"glyf")?);
+    let long = half(head, 50)? == 1;
+    let at = |i: usize| {
+        if long {
+            word(loca, 4 * i).map(|v| v as usize)
+        } else {
+            half(loca, 2 * i).map(|v| 2 * usize::from(v))
+        }
+    };
+    (0..usize::from(half(maxp, 4)?))
+        .map(|i| glyf.get(at(i)?..at(i + 1)?))
+        .collect()
+}
+
+/// Whether the subset loads as a font of `family` and draws every character of `chars`, shaped through the
+/// subset's own `cmap` (no symbol fallback), with the outline record of the bundled `face`.
+fn subset_draws(subset: &[u8], face: &[u8], family: &str, chars: &BTreeSet<char>) -> Result<(), String> {
+    let set = ew_text::FontSet::new(vec![ew_text::FontSource::from_vec(
+        subset.to_vec(),
+        ew_text::Family::Default,
+        ew_text::Weight::Regular,
+        false,
+    )])
+    .map_err(|e| format!("the subset does not load: {e:?}"))?;
+    let info = set.faces().next().ok_or("the subset has no face")?;
+    if info.family_name != family {
+        return Err(format!("the subset's family is {}", info.family_name));
+    }
+    let text: String = chars.iter().collect();
+    let shaped = set.shape(
+        &text,
+        &ew_text::TextStyle::regular(ew_dl::ew_units::Nm::from_mm(3)),
+        None,
+    );
+    if !shaped.missing.is_empty() {
+        return Err(format!("no glyph for {:?}", shaped.missing));
+    }
+    let (ours, theirs) = (
+        glyph_records(subset).ok_or("the subset's glyphs do not read")?,
+        glyph_records(face).ok_or("the face's glyphs do not read")?,
+    );
+    for g in &shaped.run.glyphs {
+        let i = g.id as usize;
+        match (ours.get(i), theirs.get(i)) {
+            _ if g.id == 0 => return Err("a character draws .notdef".to_owned()),
+            (Some(a), Some(b)) if a == b && !a.is_empty() => {}
+            (Some(a), Some(b)) if a == b && a.is_empty() => {
+                return Err(format!("glyph {} has no outline in the face", g.id));
+            }
+            _ => return Err(format!("glyph {} is not the face's outline", g.id)),
+        }
+    }
+    Ok(())
+}
+
+/// The open findings of `rule` in a pre-delivery release run of a session.
+fn open_findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
+    s.check(&PRE_DELIVERY, CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == rule && f.is_open())
+        .collect()
+}
+
+/// The pre-delivery release report of Golden A with its profiles, computed once per process (the AC-24 rows of
+/// WP-S1.16 part 5 read it; the batch is the same for every run of the runner).
+fn golden_report(c: &Ctx) -> &'static ew_api::checks::CheckReport {
+    static REPORT: std::sync::OnceLock<ew_api::checks::CheckReport> = std::sync::OnceLock::new();
+    REPORT.get_or_init(|| {
+        golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p))
+            .check(&PRE_DELIVERY, CheckMode::Release)
+    })
+}
+
+/// The open findings of `rule` in [`golden_report`], as `severity subject`, sorted.
+fn golden_rows(c: &Ctx, rule: &str) -> Vec<String> {
+    let mut out: Vec<String> = golden_report(c)
+        .findings
+        .iter()
+        .filter(|f| f.rule == rule && f.is_open())
+        .map(|f| format!("{} {}", f.severity, f.subject))
+        .collect();
+    out.sort();
+    out
+}
+
+/// One AC-24 comparison of the open findings of `rule` on Golden A with doc 20 §18.1 (`want` as `severity
+/// subject`, any order); on a match, `why` with the first message.
+fn golden_ef(c: &Ctx, rule: &str, want: &[&str], why: &str) -> Result<String, Outcome> {
+    let got = golden_rows(c, rule);
+    let mut want: Vec<String> = want.iter().map(|w| (*w).to_owned()).collect();
+    want.sort();
+    if got != want {
+        return Err(fail(format!(
+            "{rule} reports {}, expected {}",
+            list(got, 12),
+            list(want, 12)
+        )));
+    }
+    let first = golden_report(c)
+        .findings
+        .iter()
+        .find(|f| f.rule == rule && f.is_open())
+        .map(|f| f.message.clone())
+        .unwrap_or_default();
+    Ok(format!("{why}; e.g. \"{first}\""))
+}
+
+/// D-13 (doc 20 §19): EF-01, EW-POT-013 on T55 and S56 as errors. The A-R rewiring is not a fixture yet; the
+/// 2-pole switch in L and N that is not reported is a table test of the rule.
+fn d13(c: &Ctx) -> Outcome {
+    match golden_ef(
+        c,
+        "EW-POT-013",
+        &["error T55", "error S56"],
+        "EW-POT-013 reports T55 and S56 as errors (EF-01; the unreported 2-pole switch in L and N is a table test of the rule, the A-R rewiring is not a fixture yet)",
+    ) {
+        Ok(why) => pass(why),
+        Err(o) => o,
+    }
+}
+
+/// D-15, the MVP part: a `Tbd` channel address is a typed open item; EW-PLC-015 reports it as an error in release mode
+/// and supersedes EW-CORE-044's finding for the same value (PA-4). The TBD DP station address (EF-03,
+/// EW-BUS-001) is the entry [`d15_bus`].
+fn d15(c: &Ctx) -> Outcome {
+    for rule in ["EW-CORE-044", "EW-PLC-015"] {
+        let before = golden_rows(c, rule);
+        if !before.is_empty() {
+            return fail(format!("Golden A already reports {rule}: {}", list(before, 3)));
+        }
+    }
+    let mut done = false;
+    let s = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        for r in records.iter_mut() {
+            if let Record::Channel(ch) = r
+                && !done
+            {
+                ch.address = ew_schema::AddrSpec::Tbd;
+                done = true;
+            }
+        }
+    });
+    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
+    let open: Vec<&ew_api::checks::Finding> = report
+        .findings
+        .iter()
+        .filter(|f| (f.rule == "EW-CORE-044" || f.rule == "EW-PLC-015") && f.is_open())
+        .collect();
+    match open.as_slice() {
+        [f] if f.rule == "EW-PLC-015"
+            && f.severity == ew_api::checks::Severity::Error
+            && f.message.contains("is TBD; enter it before release")
+            && report.exit_code() == 1 =>
+        {
+            pass(format!(
+                "Golden A is clean; a channel address set to TBD makes EW-PLC-015 report one error, \"{}\", EW-CORE-044's finding is superseded, and the release check exits 1 (the TBD DP station address, EF-03, is the bus entry of D-15)",
+                f.message
+            ))
+        }
+        other => fail(format!(
+            "with a TBD address EW-PLC-015 and EW-CORE-044 report {}",
+            list(
+                other
+                    .iter()
+                    .map(|f| format!("{} {} {}", f.rule, f.severity, f.message)),
+                3
+            )
+        )),
+    }
+}
+
+/// D-15, the bus part: the DP station address of -201U1 is the open item `Tbd`; EW-BUS-001
+/// reports it once as an error (EF-03), EW-CORE-044's finding for it is superseded, and folio 3 prints "Node TBD".
+fn d15_bus(c: &Ctx) -> Outcome {
+    if let Err(o) = golden_ef(c, "EW-CORE-044", &[], "EW-CORE-044 reports nothing (superseded)") {
+        return o;
+    }
+    let why = match golden_ef(
+        c,
+        "EW-BUS-001",
+        &["error =P01+J-E-2416-201U1:DP"],
+        "EW-BUS-001 reports the TBD station address of -201U1:DP as an error (EF-03), EW-CORE-044's finding is superseded",
+    ) {
+        Ok(why) => why,
+        Err(o) => return o,
+    };
+    if !printed_runs(c, "3").iter().any(|t| t == "Node TBD") {
+        return fail("folio 3 does not print \"Node TBD\"".to_owned());
+    }
+    pass(format!("{why}; folio 3 prints \"Node TBD\""))
+}
+
+/// AC-32, MVP part (FL-13, FL-11): the 28 valve children of the seven modules (`valve_slots`); folio 201 draws
+/// 24 valve glyphs and folio 202 four, on -202U2, each printing the part number 571334; the 16 fluid lines F1 to F16
+/// join the eight used valves to their field devices, the tracked target of each (8 distinct devices); every valve
+/// prints the Q address of its coil's channel (`plc_address_text`).
+fn ac32(c: &Ctx) -> Outcome {
+    let s = golden_common::session(&c.batch);
+    let q = s.query();
+    let mut valves: Vec<Id<Device>> = Vec::new();
+    for (module, _) in q.devices().iter() {
+        for slot in &q.get::<ew_derive::ValveSlots>(module).slots {
+            if let ew_derive::ValveSlot::Valve { device, .. } = slot {
+                valves.push(*device);
+            }
+        }
+    }
+    if valves.len() != 28 {
+        return fail(format!("{} valve children, not 28", valves.len()));
+    }
+    let glyphs = |folio: &str| -> Vec<String> {
+        let page: Id<ew_schema::Page> = id_of(c, &format!("pages|{folio}"));
+        ew_api::output::page_valve_glyphs(&q, page)
+            .into_iter()
+            .flat_map(|g| g.glyphs)
+            .map(|g| match g {
+                ew_scene::page::ValveGlyph::Valve { part_number, .. } => part_number,
+                other => format!("{other:?}"),
+            })
+            .collect()
+    };
+    let (g201, g202) = (glyphs("201"), glyphs("202"));
+    if g201.len() != 24 || g202.len() != 4 || g201.iter().chain(&g202).any(|t| t != "571334") {
+        return fail(format!("folio 201 draws {g201:?}, folio 202 {g202:?}"));
+    }
+    let lines: Vec<&str> = q
+        .connections()
+        .iter()
+        .filter(|(_, x)| matches!(x.kind, ew_schema::ConnectionKind::Fluid(_)))
+        .filter_map(|(id, _)| {
+            c.ids
+                .iter()
+                .find(|(_, v)| **v == id.to_string())
+                .map(|(k, _)| k.as_str())
+        })
+        .collect();
+    let mut keys: Vec<&str> = lines
+        .iter()
+        .filter_map(|k| k.strip_prefix("connections|"))
+        .collect();
+    keys.sort_by_key(|k| k[1..].parse::<u32>().unwrap_or(0));
+    let want: Vec<String> = (1..=16).map(|n| format!("F{n}")).collect();
+    if keys != want {
+        return fail(format!("the fluid lines are {keys:?}"));
+    }
+    let targets: BTreeSet<Id<Device>> = valves
+        .iter()
+        .filter_map(|v| ew_derive::reached_device(&q, *v))
+        .collect();
+    if targets.len() != 8 {
+        return fail(format!("the lines reach {} field devices, not 8", targets.len()));
+    }
+    let tracked = valves
+        .iter()
+        .filter(|v| ew_derive::reached_device(&q, **v).is_some())
+        .all(|v| ew_derive::tracked_target(&q, *v) == ew_derive::reached_device(&q, *v));
+    if !tracked {
+        return fail("a used valve's tracked target is not the field device its lines reach".to_owned());
+    }
+    let addresses: Vec<String> = valves
+        .iter()
+        .filter_map(|v| {
+            q.idx()
+                .functions_of_device(*v)
+                .find_map(|f| q.get::<ew_derive::PlcAddressText>(f).text.clone())
+        })
+        .filter(|t| t.starts_with('Q'))
+        .collect();
+    if addresses.len() != 28 {
+        return fail(format!("{} valves print a Q address, not 28", addresses.len()));
+    }
+    pass(format!(
+        "28 valve children; 24 glyphs on 201 and 4 on 202 print 571334; F1 to F16 reach {} field devices, each the tracked target of its valve; 28 Q addresses",
+        targets.len()
+    ))
+}
+
+/// The external end of the DP segment as EW-BUS-004 prints it.
+const DP_EXTERNAL_END: &str = "external end DP (+J-E-206 / JE-N1000-03)";
+
+/// AC-31 (BU-3, BU-4, BU-6): on Golden A EW-BUS-004 reports no error and one info for the external
+/// end; with -3X1 Off it reports an error on -3X1; the master of the logical net DP is the external partner
+/// JE-N1000-03 (`net_members`; the network list report is not built), which is no device and in neither BOM.
+fn ac31(c: &Ctx) -> Outcome {
+    let want_info = vec![format!("info {DP_EXTERNAL_END}")];
+    let on = golden_rows(c, "EW-BUS-004");
+    if on != want_info {
+        return fail(format!("with -3X1 On EW-BUS-004 reports {}", list(on, 4)));
+    }
+    let mut s = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
+    let q = s.query();
+    let lnet: Id<ew_schema::LogicalNet> = id_of(c, "logical_nets|DP");
+    let master = match q.get::<ew_derive::NetMembersOf>(lnet).master {
+        Some(ew_derive::NetMaster::External { external, .. }) => {
+            ew_derive::external_partner_text(&q, external)
+        }
+        other => return fail(format!("the master of DP is {other:?}, not the external partner")),
+    };
+    if !master.ends_with("JE-N1000-03") {
+        return fail(format!("the master of DP is {master}"));
+    }
+    if s.resolve_reference("JE-N1000-03").is_ok() {
+        return fail("JE-N1000-03 is a device of the project".to_owned());
+    }
+    for mode in [BomMode::Component, BomMode::Assembly] {
+        match s.export_csv(Export::Bom(mode)) {
+            Ok(bom) if !bom.contains("JE-N1000-03") => {}
+            Ok(_) => return fail(format!("the {mode:?} BOM lists JE-N1000-03")),
+            Err(e) => return fail(format!("the {mode:?} BOM: {e:?}")),
+        }
+    }
+    let plug: Id<ew_schema::Function> = id_of(c, "functions|-3X1");
+    if let Err(e) = s.execute(&ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({
+            "kind": "function", "targets": [plug.to_string()], "path": "bus_port.termination", "value": "off",
+        }),
+    }) {
+        return fail(format!("-3X1 Off: {e:?}"));
+    }
+    let off = s.check(&PRE_DELIVERY, CheckMode::Release);
+    let mut got: Vec<String> = off
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-BUS-004" && f.is_open())
+        .map(|f| format!("{} {}", f.severity, f.subject))
+        .collect();
+    got.sort();
+    let mut want = vec![
+        "error =P01+J-E-2416-3X1".to_owned(),
+        format!("info {DP_EXTERNAL_END}"),
+    ];
+    want.sort();
+    if got != want {
+        return fail(format!("with -3X1 Off EW-BUS-004 reports {}", list(got, 4)));
+    }
+    pass(format!(
+        "with -3X1 On EW-BUS-004 reports one info, \"{DP_EXTERNAL_END}\", and no error; with -3X1 Off one error on -3X1 and the info; the master of DP is the external partner {master}, no device and in neither BOM"
+    ))
+}
+
+/// D-16: EF-10, EW-POT-003 on the CPX pins -201U1:3 and -202U1:3 (FE in the part data, fed from PE).
+fn d16(c: &Ctx) -> Outcome {
+    match golden_ef(
+        c,
+        "EW-POT-003",
+        &["warning -201U1:3", "warning -202U1:3"],
+        "EW-POT-003 reports -201U1:3 and -202U1:3 as warnings (EF-10; EW-PLC-013 supersedes it at 1.0)",
+    ) {
+        Ok(why) => pass(why),
+        Err(o) => o,
+    }
+}
+
+/// D-19: EF-07 (EW-CORE-034, the external connection +J-E-206 → 1X1 without a cable) and EF-08 (EW-CORE-033,
+/// -3W1 without a length, an error that blocks release).
+fn d19(c: &Ctx) -> Outcome {
+    let ef07 = match golden_ef(
+        c,
+        "EW-CORE-034",
+        &["warning +J-E-206 → 1X1"],
+        "EW-CORE-034 reports +J-E-206 → 1X1 (EF-07)",
+    ) {
+        Ok(why) => why,
+        Err(o) => return o,
+    };
+    let ef08 = match golden_ef(
+        c,
+        "EW-CORE-033",
+        &["error =P01+J-E-2416-3W1"],
+        "EW-CORE-033 reports -3W1 as an error (EF-08)",
+    ) {
+        Ok(why) => why,
+        Err(o) => return o,
+    };
+    if golden_report(c).exit_code() != 1 {
+        return fail("the release check of Golden A does not exit 1");
+    }
+    pass(format!("{ef07}; {ef08}; the release check exits 1"))
+}
+
+/// D-21, the MVP part: rail-bonded terminals join the location's PE node; clearing `rail_bonded` on the -X1032
+/// terminals cuts their PE off, so +J-E-2416 holds two PE potentials and EW-POT-008 warns once (the continuity
+/// through carriers, EW-POT-007, is 1.0).
+fn d21(c: &Ctx) -> Outcome {
+    let before = golden_rows(c, "EW-POT-008");
+    if !before.is_empty() {
+        return fail(format!(
+            "Golden A already reports EW-POT-008: {}",
+            list(before, 3)
+        ));
+    }
+    let strip = c.ids["devices|-X1032"].clone();
+    let s = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        for r in records.iter_mut() {
+            if let Record::Device(d) = r
+                && let Some(t) = d.aspects.terminal.as_mut()
+                && t.strip.to_string() == strip
+            {
+                t.rail_bonded = false;
+            }
+        }
+    });
+    let islands = open_findings(&s, "EW-POT-008");
+    match islands.as_slice() {
+        [f] if f.subject == "+J-E-2416" && f.message.starts_with("+J-E-2416 holds 2 PE potentials: ") => {
+            pass(format!(
+                "Golden A is clean (1X1:PE and -X1032 share one PE potential); clearing rail_bonded on -X1032 makes EW-POT-008 report one warning: \"{}\"",
+                f.message
+            ))
+        }
+        other => fail(format!(
+            "without rail bonding EW-POT-008 reports {}",
+            list(other.iter().map(|f| format!("{}: {}", f.subject, f.message)), 3)
+        )),
+    }
+}
+
+/// D-31: EF-12, EW-CORE-061 on the two text styles below the minimum printed height.
+fn d31(c: &Ctx) -> Outcome {
+    match golden_ef(
+        c,
+        "EW-CORE-061",
+        &["warning cp.small", "warning marker"],
+        "EW-CORE-061 reports the styles cp.small and marker (EF-12)",
+    ) {
+        Ok(why) => pass(why),
+        Err(o) => o,
+    }
+}
+
+/// D-38: EF-06, EW-POT-006 on W6 (numbered 101.8); W6 at 2.5 mm² clears it.
+fn d38(c: &Ctx) -> Outcome {
+    let ef06 = match golden_ef(
+        c,
+        "EW-POT-006",
+        &["error 101.8"],
+        "EW-POT-006 reports W6 (101.8) as an error (EF-06)",
+    ) {
+        Ok(why) => why,
+        Err(o) => return o,
+    };
+    let w6 = c.ids["connections|W6"].clone();
+    let s = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        for r in records.iter_mut() {
+            if let Record::Connection(w) = r
+                && w.id.to_string() == w6
+            {
+                w.overrides.csa = Some(ew_schema::Csa::Mm2("2.5".parse().expect("a decimal")));
+            }
+        }
+    });
+    let left = open_findings(&s, "EW-POT-006");
+    if left.is_empty() {
+        pass(format!("{ef06}; W6 at 2.5 mm² clears it"))
+    } else {
+        fail(format!(
+            "W6 at 2.5 mm² still reports {}",
+            list(left.iter().map(|f| f.message.clone()), 2)
+        ))
+    }
+}
+
+/// The frozen tags of doc 20 §18.1 EF-15, by device key.
+const EF_15: [&str; 7] = ["S51", "F55", "T55", "E55", "S56", "E56", "1X1"];
+
+/// Whether a JSON value names a per-page revision member at any depth: `revision`, `rev` or QET's
+/// `indexrev` (an imported title-block value, doc 14 §4.9).
+fn names_a_revision(v: &serde_json::Value) -> bool {
+    match v {
+        serde_json::Value::Object(m) => m
+            .iter()
+            .any(|(k, v)| matches!(k.as_str(), "revision" | "rev" | "indexrev") || names_a_revision(v)),
+        serde_json::Value::Array(items) => items.iter().any(names_a_revision),
+        _ => false,
+    }
+}
+
+/// D-05, the second clause of doc 20 §19 ("Page has no revision field"): the page schema has no revision
+/// member, no page record of the golden project keeps one among its unknown members (`extra`, where an
+/// importer keeps a per-page title-block value), and the revision history is the typed records V1.0
+/// (released) and V2.0 (open), none kept untyped. The printed label is the first D-05 entry's.
+fn d05_no_page_revision(c: &Ctx) -> Outcome {
+    let schema = ew_schema::kind_schema(ew_schema::Kind::Page).unwrap_or_default();
+    let in_schema: Vec<String> = schema["properties"]
+        .as_object()
+        .map(|m| m.keys().filter(|k| k.contains("rev")).cloned().collect())
+        .unwrap_or_default();
+    let mut on_pages = Vec::new();
+    let mut history = Vec::new();
+    let mut unknown = 0usize;
+    for r in &c.batch.records {
+        match r {
+            Record::Page(p) => {
+                let extra = serde_json::to_value(&p.extra).unwrap_or_default();
+                if names_a_revision(&extra) {
+                    on_pages.push(p.id.to_string());
+                }
+            }
+            Record::Revision(v) => {
+                let state = serde_json::to_value(&v.state).unwrap_or_default();
+                history.push(format!("{} {}", v.label.as_str(), state.as_str().unwrap_or("?")));
+            }
+            Record::Unknown(v) if v.get("$k").and_then(serde_json::Value::as_str) == Some("revision") => {
+                unknown += 1;
+            }
+            _ => {}
+        }
+    }
+    history.sort();
+    let want = ["V1.0 released", "V2.0 open"];
+    if !in_schema.is_empty() {
+        return fail(format!(
+            "the page schema has revision members: {}",
+            in_schema.join(", ")
+        ));
+    }
+    if !on_pages.is_empty() {
+        return fail(format!("pages with a revision value: {}", list(on_pages, 5)));
+    }
+    if unknown > 0 || history != want {
+        return fail(format!(
+            "the revision history is {} typed record(s) {history:?} and {unknown} untyped; expected {want:?}",
+            history.len()
+        ));
+    }
+    pass(format!(
+        "the page schema has no revision member and no page record keeps one in `extra`; the revision history \
+         is the typed records {} and no revision record is untyped (the printed label: the entry above)",
+        want.join(" and ")
+    ))
+}
+
+/// The frozen tags that are ▲U-34 test inputs (doc 20 §2.1 rule 1: -XPE, -UC1 and -UC1-plate are frozen too,
+/// standing in for per-class numbering rules that are not modelled). They deviate from the page rule as the
+/// seven of EF-15 do, so EW-NUM-001 reports them as well: EF-15 counts 10.
+const U_34_FROZEN: [&str; 3] = ["-XPE", "-UC1", "-UC1-plate"];
+
+/// D-03: EW-NUM-001 reports the frozen tags of EF-15 at info with their rule-derived values, and the
+/// numbering report (FR-REP-022) lists them. The ▲U-34 frozen inputs are listed apart in the reason.
+fn d03_frozen(c: &Ctx) -> Outcome {
+    let s = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
+    let findings = open_findings(&s, "EW-NUM-001");
+    let dev = |key: &str| -> Id<Device> { id_of(c, &format!("devices|{key}")) };
+    let expected: BTreeSet<Id<Device>> = EF_15.iter().chain(U_34_FROZEN.iter()).map(|k| dev(k)).collect();
+    let mut wrong = Vec::new();
+    let mut reported: BTreeSet<Id<Device>> = BTreeSet::new();
+    for f in &findings {
+        let Some(t) = f.targets.first() else { continue };
+        reported.insert(t.id.cast());
+        if f.severity != ew_api::checks::Severity::Info {
+            wrong.push(format!("{} is reported at {}, not info", f.subject, f.severity));
+        }
+        if !f
+            .message
+            .contains("frozen, deviates from scheme (rule-derived value")
+        {
+            wrong.push(format!("{}: {}", f.subject, f.message));
+        }
+    }
+    if reported != expected {
+        let name = |d: &Id<Device>| -> String {
+            c.ids
+                .iter()
+                .find(|(k, v)| k.starts_with("devices|") && **v == d.to_string())
+                .map_or_else(
+                    || d.to_string(),
+                    |(k, _)| k.trim_start_matches("devices|").to_owned(),
+                )
+        };
+        wrong.push(format!(
+            "EW-NUM-001 reports {}, expected {}",
+            list(reported.iter().map(name), 12),
+            list(expected.iter().map(name), 12)
+        ));
+    }
+    // The numbering report lists the same devices, each "deviates".
+    let q = golden_common::plain(&s);
+    let block = q
+        .report_blocks()
+        .get(golden_common::block(&c.batch, "907"))
+        .expect("block 907");
+    let set = ew_reports::ReportKindDef::rows(&ew_reports::kinds::NumberingReport, &q, block);
+    let listed: BTreeSet<Id<Device>> = set
+        .rows
+        .iter()
+        .filter_map(|r| match r.cells.first() {
+            Some(ew_reports::Cell::Tag(d)) => Some(*d),
+            _ => None,
+        })
+        .collect();
+    let status = set.column("status").expect("the status column");
+    let deviating = (0..set.rows.len())
+        .filter(|i| texts(&q, &set, *i)[status] == "deviates")
+        .count();
+    if listed != expected || deviating != expected.len() {
+        wrong.push(format!(
+            "the numbering report lists {} frozen tags ({deviating} deviating), expected {}",
+            listed.len(),
+            expected.len()
+        ));
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "EW-NUM-001 reports the 10 frozen tags of EF-15 at info as \"frozen, deviates from scheme\" with their rule-derived values, and the numbering report (FR-REP-022) lists them: {} and the 3 ▲U-34 frozen test inputs {}",
+            EF_15.join(", "),
+            U_34_FROZEN.join(", ")
+        ))
+    } else {
+        fail(list(wrong, 4))
+    }
+}
+
+/// D-06: an override set on folio 101 is reported by EW-CORE-023 at info, naming the page; Golden A has none.
+fn d06_override_info(c: &Ctx) -> Outcome {
+    let mut s = golden_common::session(&c.batch);
+    let before = open_findings(&s, "EW-CORE-023");
+    if !before.is_empty() {
+        return fail(format!("Golden A already reports {} override(s)", before.len()));
+    }
+    let cmd = ew_api::AnyCommand {
+        name: "fields.set".into(),
+        params: serde_json::json!({
+            "kind": "page",
+            "targets": [c.ids["pages|101"]],
+            "path": "description_override",
+            "value": {"en": "Override text"},
+        }),
+    };
+    if let Err(e) = s.execute(&cmd) {
+        return fail(format!("the override was rejected: {e:?}"));
+    }
+    let page: Id<ew_schema::Page> = id_of(c, "pages|101");
+    let after = open_findings(&s, "EW-CORE-023");
+    match after.as_slice() {
+        [f] if f.severity == ew_api::checks::Severity::Info && f.page == Some(page) => pass(format!(
+            "Golden A reports none; after the override EW-CORE-023 reports one info on folio 101: \"{}\" (quick fix \"{}\")",
+            f.message,
+            f.fix.as_ref().map_or("", |x| x.label.as_str())
+        )),
+        other => fail(format!(
+            "after the override EW-CORE-023 reports {:?}",
+            other
+                .iter()
+                .map(|f| (&f.severity, &f.message))
+                .collect::<Vec<_>>()
+        )),
+    }
+}
+
+/// D-14 (restated by the owner): `rep.set_anchor_policy` gives the bus port -201U1#bus a
+/// named anchor two columns left of its graphics; -201U1 then prints "3-B0", EW-CORE-053 reports "3-B0: empty
+/// cell", and its quick fix (the graphics centre) restores "3-B2". Golden A reports no EW-CORE-053 finding, and
+/// the override is the representation's own: no other representation's cross-reference text changes. The real
+/// instance of the defect is Golden C's MF-13 (QET's element origin).
+fn d14_anchor(c: &Ctx) -> Outcome {
+    let main: Id<Representation> = id_of(c, "representations|-201U1");
+    let port = c.ids["representations|-201U1#bus"].clone();
+    let texts_of = |s: &Session| -> BTreeMap<Id<Representation>, String> {
+        let q = s.query();
+        let ids: Vec<Id<Representation>> = q.reps().ids().collect();
+        ids.into_iter()
+            .map(|r| (r, q.get::<XrefTextOf>(r).text.clone()))
+            .collect()
+    };
+    let mut s = golden_common::session(&c.batch);
+    let baseline = open_findings(&s, "EW-CORE-053");
+    if !baseline.is_empty() {
+        return fail(format!(
+            "Golden A already reports EW-CORE-053: {}",
+            list(baseline.iter().map(|f| f.message.clone()), 3)
+        ));
+    }
+    let before = texts_of(&s);
+    // The QET frame's column is 60 px (6 grid steps of 7937500/3 nm); the symbol's graphics centre is
+    // (3968750, 5291666) nm (`SymbolDef::graphic_centre`).
+    let named = serde_json::json!({"named": [3_968_750 - 2 * 15_875_000, 5_291_666]});
+    let cmd = ew_api::AnyCommand {
+        name: "rep.set_anchor_policy".into(),
+        params: serde_json::json!({"reps": [port], "anchor": named}),
+    };
+    if let Err(e) = s.execute(&cmd) {
+        return fail(format!("rep.set_anchor_policy was rejected: {e:?}"));
+    }
+    let after = texts_of(&s);
+    let changed: Vec<Id<Representation>> = after
+        .iter()
+        .filter(|(r, t)| before.get(r) != Some(t))
+        .map(|(r, _)| *r)
+        .collect();
+    let forced = after.get(&main).cloned().unwrap_or_default();
+    let findings = open_findings(&s, "EW-CORE-053");
+    let Some(f) = findings
+        .iter()
+        .find(|f| f.message.starts_with("3-B0: empty cell"))
+    else {
+        return fail(format!(
+            "with the named anchor -201U1 prints \"{forced}\" and EW-CORE-053 reports {}",
+            list(findings.iter().map(|f| f.message.clone()), 3)
+        ));
+    };
+    let Some(fix) = f.fix.clone() else {
+        return fail("the EW-CORE-053 finding offers no quick fix");
+    };
+    if let Err(e) = s.execute(&ew_api::AnyCommand {
+        name: fix.command.clone(),
+        params: fix.params.clone(),
+    }) {
+        return fail(format!("the quick fix was rejected: {e:?}"));
+    }
+    let fixed = s.query().get::<XrefTextOf>(main).text.clone();
+    let left = open_findings(&s, "EW-CORE-053");
+    if findings.len() == 1 && changed == vec![main] && fixed.contains("3-B2") && left.is_empty() {
+        pass(format!(
+            "Golden A reports none; a named anchor two columns left of the bus port's graphics makes -201U1 print \"{forced}\" (no other cross-reference text changes) and EW-CORE-053 report \"3-B0: empty cell\" (warning); its quick fix \"{}\" restores \"{fixed}\"",
+            fix.label
+        ))
+    } else {
+        fail(format!(
+            "{} finding(s) with the named anchor, {} cross-reference text(s) changed; after the quick fix -201U1 prints \"{fixed}\" and {} finding(s) remain",
+            findings.len(),
+            changed.len(),
+            left.len()
+        ))
+    }
+}
+
+/// D-20: the wire list's Via column names the junction by its place and wiring and the daisy chains: W13 and
+/// W14 a star at F55:2 (J1 at 101-C11), W7 and W8 a chain on -101F1:1, W20 and W21 a chain on -102F1:1 (J3),
+/// W24 and W25 a chain on -102F1:2 (J4), W22 and W27 a star at -102G1:−#1 (J5), W23 and W26 a star at
+/// -102G1:−#2 (J6). The drawn dots and bevels (the other half of the criterion) are not checked here.
+fn d20(c: &Ctx) -> Outcome {
+    let q = golden_common::plain(&c.profiled);
+    let rows = rows_of(&q, &c.batch, "907");
+    let via = rows.column("via").expect("the Via column");
+    let via_of = |w: u32| -> String {
+        let id: Id<ew_schema::Connection> = id_of(c, &format!("connections|W{w}"));
+        rows.rows
+            .iter()
+            .position(|r| r.id == ew_reports::RowId::entity(id))
+            .map(|i| texts(&q, &rows, i)[via].clone())
+            .unwrap_or_default()
+    };
+    let want = [
+        (13, "101-C11 ", "star at F55:2"),
+        (14, "101-C11 ", "star at F55:2"),
+        (7, "", "chain on -101F1:1"),
+        (8, "", "chain on -101F1:1"),
+        (20, "102-C7 ", "chain on -102F1:1"),
+        (21, "102-C7 ", "chain on -102F1:1"),
+        (24, "102-D8 ", "chain on -102F1:2"),
+        (25, "102-D8 ", "chain on -102F1:2"),
+        (22, "102-D8 ", "star at -102G1:−#1"),
+        (27, "102-D8 ", "star at -102G1:−#1"),
+        (23, "102-C9 ", "star at -102G1:−#2"),
+        (26, "102-C9 ", "star at -102G1:−#2"),
+    ];
+    let mut wrong = Vec::new();
+    let mut shown = Vec::new();
+    for (w, style, wiring) in want {
+        let text = via_of(w);
+        if !(text.contains(style) && text.contains(wiring)) {
+            wrong.push(format!("W{w} prints \"{text}\", expected \"{style}{wiring}\""));
+        }
+        shown.push(format!("W{w} \"{text}\""));
+    }
+    if wrong.is_empty() {
+        pass(format!(
+            "folio 907 prints {} (the drawn dots and bevels are not checked by this entry)",
+            shown.join(", ")
+        ))
+    } else {
+        fail(list(wrong, 12))
+    }
+}
+
+/// D-22: without B1, the PELV potential 0V has no 0 V–PE bond, and EW-POT-002 reports it; Golden A is clean.
+fn d22_pelv(c: &Ctx) -> Outcome {
+    let clean = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
+    let baseline = open_findings(&clean, "EW-POT-002");
+    if !baseline.is_empty() {
+        return fail(format!(
+            "Golden A with its bond already reports EW-POT-002: {}",
+            list(baseline.iter().map(|f| f.message.clone()), 2)
+        ));
+    }
+    let bond = c.ids["bonds|B1"].clone();
+    let edited = golden_common::session_with(&c.batch, |p, records| {
+        golden_common::with_profiles(p);
+        records.retain(|r| !matches!(r, Record::Bond(b) if b.id.to_string() == bond));
+    });
+    let reported = open_findings(&edited, "EW-POT-002");
+    match reported.as_slice() {
+        [f] if f.severity == ew_api::checks::Severity::Error => pass(format!(
+            "Golden A is clean; without B1 EW-POT-002 reports one error: \"{}\"",
+            f.message
+        )),
+        other => fail(format!(
+            "without B1 EW-POT-002 reports {}",
+            list(other.iter().map(|f| f.message.clone()), 3)
+        )),
+    }
+}
+
+/// D-35: EW-CORE-065, the description lint of the EW-CORE pack's 1.0 content (doc 15 §4.2), over the part
+/// descriptions of Golden A, in a pre-delivery run with the 1.0 content enabled (the MVP schemes do not run
+/// it, owner ruling of cycle 14): EF-25 expects none (the seeded "10A C" of D-18 is a unit test of the rule).
+fn d35(c: &Ctx) -> Outcome {
+    use ew_api::checks::Release;
+    let s = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
+    if s.check(&PRE_DELIVERY, CheckMode::Release)
+        .rules
+        .iter()
+        .any(|m| m.id == "EW-CORE-065")
+    {
+        return fail("the MVP pre-delivery scheme runs the 1.0 rule EW-CORE-065");
+    }
+    let found: Vec<ew_api::checks::Finding> = s
+        .check(&PRE_DELIVERY.with_content(Release::V1_0), CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == "EW-CORE-065" && f.is_open())
+        .collect();
+    if found.is_empty() {
+        pass(
+            "with the 1.0 content enabled, EW-CORE-065 reports no part description of Golden A (EF-25): the descriptions of §14.1 hold no ratings, which the technical data carries and the symbols print (D-18); the MVP schemes do not run it; the 27-row parts list is D-04",
+        )
+    } else {
+        fail(format!(
+            "EW-CORE-065 reports {} part description(s) where EF-25 expects none: {}",
+            found.len(),
+            list(found.iter().map(|f| f.message.clone()), 6)
+        ))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// AC-16: the freshness script (the run is `freshness.rs`)
+
+fn ac16_step(c: &Ctx, index: usize) -> Outcome {
+    match freshness::run(c) {
+        Err(e) => fail(e.clone()),
+        Ok(run) => {
+            let step = &run.steps[index];
+            if step.problems.is_empty() {
+                pass(step.note.clone())
+            } else {
+                fail(list(step.problems.clone(), 3))
+            }
+        }
+    }
+}
+
+fn ac16(r: &mut Runner) {
+    r.entry(
+        "AC-16",
+        "the script variants/ac16-freshness.ewcmd: 4 edits, one commit each, undo restores the records",
+        |c| match freshness::run(c) {
+            Err(e) => fail(e.clone()),
+            Ok(run) => match &run.script {
+                Ok(note) => pass(note.clone()),
+                Err(e) => fail(e.clone()),
+            },
+        },
+    );
+    r.entry(
+        "AC-16",
+        "rename T55: every affected output follows in its commit",
+        |c| ac16_step(c, 0),
+    );
+    r.entry(
+        "AC-16",
+        "move -102F2 by one cell: every affected output follows in its commit",
+        |c| ac16_step(c, 1),
+    );
+    r.entry(
+        "AC-16",
+        "renumber folio 103 to 104: every affected output follows in its commit",
+        |c| ac16_step(c, 2),
+    );
+    r.entry(
+        "AC-16",
+        "change the 24 V DC colour: every affected output follows in its commit",
+        |c| ac16_step(c, 3),
+    );
+    r.entry("AC-16", "verify-derived is clean and the memoised outputs equal the cold ones after every edit, with the oracle on", |c| match freshness::run(c) {
+        Err(e) => fail(e.clone()),
+        Ok(run) => {
+            let v = &run.verified;
+            if v.problems.is_empty() {
+                pass(format!(
+                    "after each of the 4 edits, {} keys of {} memoised families equal their cold recomputation (two passes), and the oracle found no mismatch",
+                    v.keys, v.families
+                ))
+            } else {
+                fail(list(v.problems.clone(), 3))
+            }
+        }
+    });
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// D-30: customer and end user on the cover
+
+/// The text CSV of one folio of `s`, as the page output generates it.
+fn folio_text(s: &Session, folio: &str) -> Result<String, String> {
+    let q = s.query();
+    q.get::<PageOrder>(())
+        .entries
+        .iter()
+        .find(|e| e.folio == folio)
+        .map(|e| crate::golden_files::text_csv(&ew_api::output::page_scene(&q, e)))
+        .ok_or_else(|| format!("folio {folio} is not drawn"))
+}
+
+/// The value a frame-layer text row of a text CSV prints next to `label`: the run to the right of the label's
+/// run within 2 mm of its line.
+fn cover_value(csv: &str, label: &str) -> Option<String> {
+    let rows: Vec<(String, String, f64, f64)> = csv_rows(csv)
+        .into_iter()
+        .skip(1)
+        .map(|r| {
+            (
+                r[1].clone(),
+                r[3].clone(),
+                r[4].parse().unwrap_or(0.0),
+                r[5].parse().unwrap_or(0.0),
+            )
+        })
+        .collect();
+    let (_, _, x, y) = rows.iter().find(|r| r.0 == "frame" && r.1 == label)?;
+    rows.iter()
+        .filter(|r| r.0 == "frame" && r.2 > *x && (r.3 - y).abs() <= 2.0)
+        .min_by(|a, b| a.2.total_cmp(&b.2))
+        .map(|r| r.1.clone())
+}
+
+/// The cover (folio 1) prints the customer in the cell bound to the customer role and the end user in the one
+/// bound to the end-user role (FR-PRJ-003, doc 20 §4.2): the golden placeholders, and, with each party renamed
+/// in turn, only the cells of that role follow (the title block binds the end user, ▲U-01).
+fn d30_cover(c: &Ctx) -> Outcome {
+    use ew_schema::PartyRole;
+    let customer = "Company / Customer";
+    let end_user = "End User";
+    let base = c.text["1"].as_str();
+    let mut wrong = Vec::new();
+    for (label, want) in [
+        (customer, "<customer>"),
+        (end_user, "<end user>"),
+        ("Engineer", "<engineer>"),
+    ] {
+        let got = cover_value(base, label);
+        if got.as_deref() != Some(want) {
+            wrong.push(format!(
+                "the cover prints {got:?} for \"{label}\", expected \"{want}\""
+            ));
+        }
+    }
+    let renamed = |role: PartyRole, name: &str| -> Result<String, String> {
+        let s = golden_common::session_with(&c.batch, |p, _| {
+            for party in p.parties.iter_mut().filter(|x| x.role == role) {
+                party.name = ew_mltext::MlText::neutral(name);
+            }
+        });
+        folio_text(&s, "1")
+    };
+    match renamed(PartyRole::Customer, "<customer B>") {
+        Err(e) => wrong.push(e),
+        Ok(t) => {
+            if cover_value(&t, customer).as_deref() != Some("<customer B>") {
+                wrong
+                    .push("renaming the customer does not change the \"Company / Customer\" cell".to_owned());
+            }
+            if cover_value(&t, end_user).as_deref() != Some("<end user>")
+                || !t.contains("End user: <end user>")
+            {
+                wrong.push("renaming the customer changes a cell bound to the end user".to_owned());
+            }
+        }
+    }
+    match renamed(PartyRole::EndUser, "<end user B>") {
+        Err(e) => wrong.push(e),
+        Ok(t) => {
+            if cover_value(&t, end_user).as_deref() != Some("<end user B>")
+                || !t.contains("End user: <end user B>")
+            {
+                wrong.push(
+                    "renaming the end user does not change the \"End User\" cell and the title block"
+                        .to_owned(),
+                );
+            }
+            if cover_value(&t, customer).as_deref() != Some("<customer>") {
+                wrong.push("renaming the end user changes the \"Company / Customer\" cell".to_owned());
+            }
+        }
+    }
+    if wrong.is_empty() {
+        pass(
+            "the cover prints <customer> in \"Company / Customer\" and <end user> in \"End User\"; renaming the customer changes only the customer cell, renaming the end user changes the \"End User\" cell and the title block",
+        )
+    } else {
+        fail(list(wrong, 3))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// AC-23 (RU-4): the release in two halves
+
+/// A git port for a project outside any worktree: it never looks at the disk (the release fixture's copy lies in a
+/// fresh scratch directory, never in a repository).
+struct NoGit;
+
+impl ew_api::git::Git for NoGit {
+    fn worktree(
+        &self,
+        _: &dyn ew_api::Vfs,
+        _: &std::path::Path,
+    ) -> std::io::Result<Option<std::path::PathBuf>> {
+        Ok(None)
+    }
+    fn available(&self) -> Result<(), ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn commit_dir(
+        &self,
+        _: &std::path::Path,
+        _: &str,
+    ) -> Result<ew_api::git::Committed, ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn tag_exists(&self, _: &std::path::Path, _: &str) -> Result<bool, ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn tag_message(&self, _: &std::path::Path, _: &str) -> Result<Option<String>, ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn tag(&self, _: &std::path::Path, _: &str, _: &str) -> Result<(), ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+    fn delete_tag(&self, _: &std::path::Path, _: &str) -> Result<(), ew_api::git::GitError> {
+        Err(ew_api::git::GitError::Missing)
+    }
+}
+
+fn ac23(r: &mut Runner) {
+    r.entry(
+        "AC-23",
+        "the release of V2.0 on Golden A is refused with the release run's errors plus EW-REL-001 \"checker not set\"",
+        |_| ac23_refusal(),
+    );
+    r.entry(
+        "AC-23",
+        "the release fixture is approved and released through the confirmed revision approve and revision release paths",
+        |_| ac23_success(),
+    );
+}
+
+/// D15's refusal half: the release gate on Golden A (opened read-only, as RG-4) refuses V2.0 with exactly the open
+/// errors of `ew check --scheme pre-delivery --mode release` (with the integrity findings of opening) plus EW-REL-001
+/// "checker not set" (doc 20 §18.3's 42 errors when AC-21 passes).
+fn ac23_refusal() -> Outcome {
+    let dir = repo().join("golden/J-E-2416.ew");
+    let (s, report) = match Session::open_read_only(&dir, env!("CARGO_PKG_VERSION")) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("golden/J-E-2416.ew does not open read-only: {e}")),
+    };
+    let integrity = ew_api::integrity_items(&report);
+    let gate = match s.release_gate("V2.0", &integrity) {
+        Ok(g) => g,
+        Err(e) => {
+            s.close();
+            return fail(format!("the gate does not run: {e}"));
+        }
+    };
+    let check = s
+        .check(&PRE_DELIVERY, CheckMode::Release)
+        .with_integrity(integrity);
+    s.close();
+    let errors: Vec<String> = ew_api::checks::blockers(&check)
+        .iter()
+        .map(|f| format!("{} {}", f.rule, f.subject))
+        .collect();
+    let blockers = gate.blockers();
+    let (rel, others): (Vec<&&ew_api::checks::Finding>, Vec<&&ew_api::checks::Finding>) =
+        blockers.iter().partition(|f| f.rule.starts_with("EW-REL"));
+    let refused: Vec<String> = others
+        .iter()
+        .map(|f| format!("{} {}", f.rule, f.subject))
+        .collect();
+    if refused != errors {
+        return fail(format!(
+            "the gate's errors are not the release run's: {} against {}",
+            refused.len(),
+            errors.len()
+        ));
+    }
+    match rel.as_slice() {
+        [f] if f.rule == ew_api::FOUR_EYES_RULE && f.message.contains("checker not set") => pass(format!(
+            "the gate refuses V2.0 with the {} errors of the pre-delivery release run plus EW-REL-001 \"{}\"",
+            errors.len(),
+            f.message
+        )),
+        _ => fail(format!(
+            "the gate's EW-REL findings are not EW-REL-001 \"checker not set\" alone: {:?}",
+            rel.iter().map(|f| f.message.clone()).collect::<Vec<_>>()
+        )),
+    }
+}
+
+/// D15's success half (Golden A-R's release is FT-666): a copy of `golden/fixtures/release-min` is approved by the
+/// checker (the confirmed `revision approve`) and released (the confirmed `revision release`) with the release
+/// gate passing; the written archive reads back with its project verified.
+fn ac23_success() -> Outcome {
+    let base = scratch_dir("ac23");
+    let dir = base.join("release-min");
+    ew_testdir::copy_dir(&repo().join("golden/fixtures/release-min"), &dir);
+    let outcome = ac23_release(&base, &dir);
+    let _ = std::fs::remove_dir_all(&base);
+    outcome
+}
+
+fn ac23_release(base: &std::path::Path, dir: &std::path::Path) -> Outcome {
+    let mut options = StoreOptions::new("acceptance");
+    options.state_dir = Some(base.join("state"));
+    let (mut s, report) = match Session::open(dir, options, SessionOptions::default(), Recovery::Keep) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("the release fixture does not open: {e:?}")),
+    };
+    let integrity = ew_api::integrity_items(&report);
+    let confirmed = |subcommand: &str| ew_api::Origin::Cli {
+        subcommand: subcommand.to_owned(),
+        confirmed: true,
+    };
+    let approval = ew_api::Approval {
+        label: "V1.0".into(),
+        checker: ew_api::PartyRole::Checker,
+        date: ew_api::catalog::Date::new(2026, 3, 2).expect("a date"),
+        waivers_ack: Vec::new(),
+    };
+    if let Err(e) = s.approve_as(&confirmed("revision approve"), &approval, &integrity) {
+        s.close();
+        return fail(format!("the approval is refused: {e}"));
+    }
+    if let Err(e) = s.save() {
+        s.close();
+        return fail(format!("the sign-off does not save: {e:?}"));
+    }
+    let gate = match s.release_gate("V1.0", &integrity) {
+        Ok(g) => g,
+        Err(e) => {
+            s.close();
+            return fail(format!("the gate does not run after the approval: {e}"));
+        }
+    };
+    if !gate.passes() {
+        s.close();
+        return fail(format!("the gate still has {} blockers", gate.blockers().len()));
+    }
+    let root = base.join("archives");
+    let release = ew_api::ReleaseOptions {
+        archive_root: Some(&root),
+        git: &NoGit,
+        git_consent: false,
+        parallelism: Parallelism::Serial,
+    };
+    let context = ew_api::ReleaseContext {
+        label: "V1.0".into(),
+        date: ew_api::catalog::Date::new(2026, 3, 9).expect("a date"),
+    };
+    let released = s.release_as(&confirmed("revision release"), &context, &integrity, &release);
+    s.close();
+    let released = match released {
+        Ok(r) => r,
+        Err(e) => return fail(format!("the release is refused: {e}")),
+    };
+    let opened = match Session::open_archive(&released.archive, env!("CARGO_PKG_VERSION")) {
+        Ok(o) => o,
+        Err(e) => return fail(format!("the archive does not open: {e}")),
+    };
+    let Some(pdf) = opened.archived_pdf().map(|(name, _)| name.to_owned()) else {
+        return fail("the archive holds no PDF".to_owned());
+    };
+    pass(format!(
+        "the checker approved V1.0 with the gate passing but for EW-REL-001; the release wrote {} (generation {}, with {pdf}) and stamped generation {}; the archive opens read-only with its release context",
+        released
+            .archive
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+        released.generation,
+        released.stamped
+    ))
+}

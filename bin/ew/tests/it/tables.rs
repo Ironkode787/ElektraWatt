@@ -11,129 +11,17 @@
 //! and `io_list.excel-nl.csv` (`round_trip`). They are new files beside the eight CSVs, whose bytes do not move.
 //! `EW_BLESS=1 cargo nextest run -p ew --all-features --test it -E 'test(/^(tables|round_trip)::/)'` rewrites them.
 
-use std::ffi::{OsStr, OsString};
-use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::ffi::OsString;
+use std::path::Path;
 
 use ew_api::catalog::{SourceFormat, table_limits};
 use ew_api::output::sheet::{SheetTable, read_sheet, sheet_names};
 use ew_api::zip::{ZipLimits, read as unzip};
 use sha2::{Digest, Sha256};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+use crate::support::{EwTmp, GOLDEN_A, Tmp, args, stderr, stdout};
+
 pub(crate) const EXPECTED: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/expected");
-
-/// A fresh temporary directory with its own user directories, removed on drop.
-pub(crate) struct Tmp(pub(crate) PathBuf);
-
-impl Tmp {
-    pub(crate) fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-tables"))
-    }
-
-    /// `ew` in this directory with its user directories inside it, no starter content, no display and
-    /// `SOURCE_DATE_EPOCH` as given (unset by default).
-    pub(crate) fn ew_at(&self, args: &[OsString], epoch: Option<&str>) -> Output {
-        let mut cmd = Command::new(bin_exe());
-        cmd.args(args)
-            .current_dir(&self.0)
-            .env_remove("DISPLAY")
-            .env_remove("WAYLAND_DISPLAY")
-            .env_remove("SOURCE_DATE_EPOCH")
-            .env_remove("EW_CONTENT_DIR")
-            .env("EW_DATA_DIR", self.0.join("data"))
-            .env("EW_CACHE_DIR", self.0.join("cache"));
-        if let Some(e) = epoch {
-            cmd.env("SOURCE_DATE_EPOCH", e);
-        }
-        for d in [
-            "HOME",
-            "USERPROFILE",
-            "LOCALAPPDATA",
-            "APPDATA",
-            "XDG_STATE_HOME",
-            "XDG_DATA_HOME",
-            "XDG_CONFIG_HOME",
-        ] {
-            let dir = self.0.join("home").join(d.to_ascii_lowercase());
-            std::fs::create_dir_all(&dir).unwrap();
-            cmd.env(d, &dir);
-        }
-        cmd.output().unwrap()
-    }
-
-    pub(crate) fn ew(&self, args: &[OsString]) -> Output {
-        self.ew_at(args, None)
-    }
-
-    /// A copy of Golden A.
-    pub(crate) fn golden(&self) -> PathBuf {
-        self.golden_as("J-E-2416.ew")
-    }
-
-    /// A copy of Golden A named `name`.
-    pub(crate) fn golden_as(&self, name: &str) -> PathBuf {
-        let copy = self.0.join(name);
-        copy_dir(Path::new(GOLDEN_A), &copy);
-        copy
-    }
-
-    /// Runs `ew <args> --out <dir>/<file>` and returns the file's bytes, after a successful run.
-    pub(crate) fn written(&self, args: &[OsString], file: &str) -> Vec<u8> {
-        let out = self.0.join(file);
-        let mut all: Vec<OsString> = args.to_vec();
-        all.push("--out".into());
-        all.push(out.clone().into_os_string());
-        let o = self.ew(&all);
-        assert_eq!(o.status.code(), Some(0), "{args:?}: {}", stderr(&o));
-        assert_eq!(stdout(&o), format!("export written to {}\n", out.display()));
-        assert!(
-            !self.0.join(format!("{file}.tmp")).exists(),
-            "no temporary file is left"
-        );
-        std::fs::read(&out).unwrap()
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-/// The path of the `ew` binary under test (nextest's run-time path, else the compile-time one).
-// The program boundary of a test: the path only chooses which binary runs; no compared result depends on it.
-#[allow(clippy::disallowed_methods)]
-fn bin_exe() -> PathBuf {
-    std::env::var_os("NEXTEST_BIN_EXE_ew")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from(env!("CARGO_BIN_EXE_ew"))) // bin-exe-fallback
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for e in std::fs::read_dir(from).unwrap() {
-        let e = e.unwrap();
-        let target = to.join(e.file_name());
-        if e.file_type().unwrap().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).unwrap();
-        }
-    }
-}
-
-pub(crate) fn args<const N: usize>(items: [&dyn AsRef<OsStr>; N]) -> Vec<OsString> {
-    items.iter().map(|a| a.as_ref().to_owned()).collect()
-}
-
-pub(crate) fn stdout(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stdout).into_owned()
-}
-
-pub(crate) fn stderr(o: &Output) -> String {
-    String::from_utf8_lossy(&o.stderr).into_owned()
-}
 
 // The program boundary of a test: `EW_BLESS=1` rewrites the golden files instead of comparing them.
 #[allow(clippy::disallowed_methods)]
@@ -194,8 +82,8 @@ pub(crate) fn part(bytes: &[u8], name: &str) -> String {
 /// twice gives the same bytes (TX-5, RT-6).
 #[test]
 fn the_workbooks_are_the_committed_digests_and_dumps() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let runs: [(&str, Vec<OsString>); 5] = [
         ("bom_parts", args([&"export", &"bom", &p, &"--format", &"xlsx"])),
         ("wires", args([&"export", &"wires", &p, &"--format", &"xlsx"])),
@@ -249,8 +137,8 @@ fn the_workbooks_are_the_committed_digests_and_dumps() {
 /// the block of folio 907 and every column read-only; there is no `_ew_base`.
 #[test]
 fn the_wire_list_workbook_reads_back_as_the_golden_wire_list() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let bytes = t.written(&args([&"export", &"wires", &p, &"--format", &"xlsx"]), "w.xlsx");
     let want = csv_table(&std::fs::read_to_string(Path::new(EXPECTED).join("csv/wires.csv")).unwrap());
     let got = sheet(&bytes, None);
@@ -292,8 +180,8 @@ fn the_wire_list_workbook_reads_back_as_the_golden_wire_list() {
 /// terminal diagrams give one sheet per strip; `ew sql` writes the query's rows.
 #[test]
 fn the_row_exports_and_sql_write_workbooks() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let bom = t.written(&args([&"export", &"bom", &p, &"--format", &"xlsx"]), "b.xlsx");
     let want = csv_table(&std::fs::read_to_string(Path::new(EXPECTED).join("csv/bom_parts.csv")).unwrap());
     let got = sheet(&bom, None);
@@ -377,8 +265,8 @@ fn the_row_exports_and_sql_write_workbooks() {
 /// committed files hold LF, as the repository's `eol=lf` stores every text file.
 #[test]
 fn the_bom_presets_are_the_committed_files() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let mut texts = Vec::new();
     for preset in ["excel-nl", "excel-en", "rfc4180"] {
         let o = t.ew(&args([&"export", &"bom", &p, &"--preset", &preset]));
@@ -452,8 +340,8 @@ fn the_bom_presets_are_the_committed_files() {
 /// guarded.
 #[test]
 fn formula_text_is_never_a_formula() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let query = "SELECT '=HYPERLINK(\"x\")' AS t, '-3X1' AS tag, -1.5 AS n";
     let out = t.0.join("f.xlsx");
     let o = t.ew(&args([&"sql", &p, &query, &"--format", &"xlsx", &"--out", &out]));
@@ -491,8 +379,8 @@ fn formula_text_is_never_a_formula() {
 /// TX-5: with `SOURCE_DATE_EPOCH` set, `docProps/core.xml` carries that date; without it, the model's date.
 #[test]
 fn the_workbook_date_is_the_export_date() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let out = t.0.join("d.xlsx");
     let run = args([&"export", &"wires", &p, &"--format", &"xlsx", &"--out", &out]);
     let o = t.ew_at(&run, Some("1767225600"));
@@ -513,8 +401,8 @@ fn the_workbook_date_is_the_export_date() {
 /// TX-7: every `--json` export result names the format, the preset of a CSV and the revision.
 #[test]
 fn the_json_results_name_format_preset_and_revision() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let json = |run: Vec<OsString>| -> serde_json::Value {
         let o = t.ew(&run);
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));

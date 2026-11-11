@@ -12,7 +12,7 @@ live here. The specification is `docs/plan/specs/WP-S6.13-blind-drafter-harness.
 | `HELP.md` | The protocol as the agent reads it (composed into the prompt, printed by `{blind} help`) |
 | `PLAYTESTER.md`, `HELP-VISUAL.md` | A visual run's (`--senses visual`) play-tester prompt and its harness help (front matter `prompt`, `version`): `compose` uses them in place of `BLIND_DRAFTER.md` and `HELP.md`, and `{blind} help` prints `HELP-VISUAL.md` alone (WP-S6.13 part 4) |
 | `personas/first-timer.md` | The play-tester persona of part 4: an electrician new to ECAD, who reads every label and opens the guide when lost |
-| `reference/actions.txt` | The action registry with the parameter signatures, **generated** by `EW_BLESS=1 cargo nextest run -p ew-viewmodel --test blind_reference`; the harness reads it, and a test fails when the product and they differ |
+| `reference/actions.txt` | The action registry with the parameter signatures, **generated** by `cargo xtask gen`; the harness reads it, and a test fails when the product and they differ |
 | `tasks/<task>/` | A task: `task.md`, `prelude.uiscript`, and for the self-test `agent.jsonl`; a gate task also `prelude.toml` (the class of each prelude step), `gaps.toml` (the checks an open follow-up blocks) and `oracle/` |
 | `tasks/gpp-101-103/oracle/` | `counts.toml` (the exact counts and the marker texts, with their sources), `bom.csv` (doc 20 §14.1 restricted to folios 101 to 103 with the demo variant's quantities), `rows.sql` (the read-only queries) and `rows/*.csv` (the expected rows); **made by `bless-oracle`** from a temporary copy of Golden A, never edited by hand except `counts.toml` |
 | `tasks/gpp-101-103/task.md` | The G-PP job sheet, an extract of doc 20 (the tables of folios 101 to 103); `<!-- folio N -->` blocks are left out of the composed prompt for folios not in `--folios` |
@@ -69,7 +69,7 @@ and every accepted step and goes on when the outcomes repeat; otherwise the run 
 `cargo xtask blind selftest` builds `elektrawatt` and `ew`, plays the scripted agent of `tasks/selftest/agent.jsonl`
 through the real keeper and the copied binaries, stops the run, blesses it as `recordings/selftest/` (`ci = "pr"`) and
 replays it twice in fresh folders; it then plays the same agent with `--stateless` and compares the files, the transcript
-and the outcomes. `bin/elektrawatt/tests/blind_replay.rs` replays the committed recording in CI. **A change of the
+and the outcomes. `bin/elektrawatt/tests/it/blind_replay.rs` replays the committed recording in CI. **A change of the
 product that breaks the recording is repaired in the same change by running the self-test again; the self-test recording
 is never marked stale.** Another recording that no longer replays after an intended change gets `"stale": "<reason>"`
 in its `run.json` (a reviewed one-line change) until the next live run replaces it.

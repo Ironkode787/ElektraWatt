@@ -6,51 +6,23 @@
 //! `Cancelled`; a job made before an edit exports the earlier revision (snapshot isolation). The job runs on a thread
 //! of `ew_jobs`, so the snapshot crosses threads and no `Session` call happens there.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use ew_api::ew_jobs::{Gate, Job, JobEnd, JobOptions, Progress};
 use ew_api::output::ExportOptions;
 use ew_api::{AnyCommand, Recovery, Session, SessionOptions, StoreOptions};
+use ew_testdir::Tmp;
 use sha2::{Digest, Sha256};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const DIGEST: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../golden/J-E-2416/expected/pdf/sha256.txt"
 );
 
-/// A temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new(tag: &str) -> Tmp {
-        Tmp(ew_testdir::fresh_dir(&format!("ew-api-job-{tag}")))
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
-
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).unwrap();
-    for entry in std::fs::read_dir(from).unwrap() {
-        let entry = entry.unwrap();
-        let target = to.join(entry.file_name());
-        if entry.file_type().unwrap().is_dir() {
-            copy_dir(&entry.path(), &target);
-        } else {
-            std::fs::copy(entry.path(), target).unwrap();
-        }
-    }
-}
-
 /// An editing session on a copy of Golden A (the committed project is only read, never opened).
 fn golden_copy(tmp: &Tmp) -> Session {
     let dir = tmp.0.join("J-E-2416.ew");
-    copy_dir(Path::new(GOLDEN_A), &dir);
+    ew_testdir::copy_dir(Path::new(ew_testdir::GOLDEN_A), &dir);
     let mut store = StoreOptions::new("0.0.0-test");
     store.state_dir = Some(tmp.0.join("state"));
     let (session, report) = Session::open(&dir, store, SessionOptions::default(), Recovery::Keep).unwrap();
@@ -76,7 +48,7 @@ fn pdf_job(name: &str, gate: Option<Gate>, job: ew_api::output::ExportJob) -> Jo
 
 #[test]
 fn jb2_the_export_job_equals_the_synchronous_export_and_the_digest_and_keeps_its_snapshot() {
-    let tmp = Tmp::new("bytes");
+    let tmp = Tmp::new("ew-api-job-bytes");
     let mut s = golden_copy(&tmp);
     let sync = s.export_pdf(&ExportOptions::default()).unwrap();
     let expected = std::fs::read_to_string(DIGEST).unwrap();
@@ -109,7 +81,7 @@ fn jb2_the_export_job_equals_the_synchronous_export_and_the_digest_and_keeps_its
 
 #[test]
 fn jb2_a_cancel_at_the_held_page_gate_after_page_2_is_cancelled() {
-    let tmp = Tmp::new("cancel");
+    let tmp = Tmp::new("ew-api-job-cancel");
     let s = golden_copy(&tmp);
     let gate = Gate::new();
     gate.hold("page");
@@ -135,7 +107,7 @@ fn jb2_a_cancel_at_the_held_page_gate_after_page_2_is_cancelled() {
 
 #[test]
 fn jb2_a_selection_the_page_order_does_not_have_fails_with_its_cause() {
-    let tmp = Tmp::new("fail");
+    let tmp = Tmp::new("ew-api-job-fail");
     let s = golden_copy(&tmp);
     let options = ExportOptions {
         pages: ew_api::output::PageSelection::parse("nope").unwrap(),
@@ -185,7 +157,7 @@ fn print_job(gate: Option<Gate>, job: ew_api::output::PrintSetJob) -> Job<ew_api
 /// job made before an edit builds the revision it was made on.
 #[test]
 fn pw1_the_print_job_builds_the_committed_print_set_of_its_revision() {
-    let tmp = Tmp::new("print");
+    let tmp = Tmp::new("ew-api-job-print");
     let mut s = golden_copy(&tmp);
     let sync = s.print_set(&section_1_on_a5()).unwrap();
     let job = s.print_set_job(&section_1_on_a5());
@@ -212,7 +184,7 @@ fn pw1_the_print_job_builds_the_committed_print_set_of_its_revision() {
 /// PW-2 at the API: a cancel at the held gate ends the print job `Cancelled`.
 #[test]
 fn pw2_a_cancelled_print_job_is_cancelled() {
-    let tmp = Tmp::new("print-cancel");
+    let tmp = Tmp::new("ew-api-job-print-cancel");
     let s = golden_copy(&tmp);
     let gate = Gate::new();
     gate.hold("page");

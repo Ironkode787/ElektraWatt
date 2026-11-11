@@ -28,8 +28,8 @@
 //!    when they differ.
 //!
 //! The work is proportional to the touched components and their pages, not to the project. The oracle
-//! compares the result with the cold algorithm (`crates/ew-api/tests/memo_oracle.rs`, the property test of
-//! `crates/ew-derive/tests/incremental_partition.rs`).
+//! compares the result with the cold algorithm (`crates/ew-api/tests/it/memo_oracle.rs`, the property test of
+//! `crates/ew-derive/tests/it/incremental_partition.rs`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;

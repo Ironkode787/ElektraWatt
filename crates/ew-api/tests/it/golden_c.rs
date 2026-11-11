@@ -23,10 +23,7 @@
 #![allow(clippy::disallowed_methods)]
 
 use crate::golden_common;
-#[path = "../page_output/golden_files.rs"]
-#[allow(dead_code)]
-mod golden_files;
-use crate::view;
+use crate::{golden_files, view};
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;

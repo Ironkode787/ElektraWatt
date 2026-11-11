@@ -15,7 +15,8 @@ use ew_api::output::sheet::{read_rows, sheet_names};
 use ew_api::zip::{Method, ZipLimits, read as unzip, write as zip};
 use sha2::{Digest, Sha256};
 
-use crate::tables::{Tmp, args, golden_file, sheet, stderr, stdout};
+use crate::support::{EwTmp, Tmp, args, stderr, stdout};
+use crate::tables::{golden_file, sheet};
 
 /// The columns of the Terminal strips table, as `ew export table strips` heads them.
 const STRIP_HEADERS: [&str; 13] = [
@@ -318,8 +319,8 @@ fn import(t: &Tmp, file: &Path, p: &Path, extra: &[&str]) -> String {
 /// SHA-256 of its rows.
 #[test]
 fn rt1_the_strip_workbook_names_its_table_and_holds_its_base() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let bytes = x1031(&t, &p, "x.xlsx");
     let limits = table_limits();
     assert_eq!(
@@ -377,8 +378,8 @@ fn rt1_the_strip_workbook_names_its_table_and_holds_its_base() {
 /// preview's command, as a command log, makes the same change in another copy.
 #[test]
 fn rt2_five_labels_saved_by_excel_apply_in_one_step() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let bytes = x1031(&t, &p, "x.xlsx");
     let main = sheet(&bytes, None);
     let labels = ["Valve 1", "Valve 2", "Valve 3", "Valve 4", "Valve 5"];
@@ -447,7 +448,7 @@ fn rt2_five_labels_saved_by_excel_apply_in_one_step() {
     assert_eq!(other, [], "no other record changes");
 
     // The command, replayed by `ew apply` as a command log.
-    let q = t.golden_as("q.ew");
+    let q = t.golden("q.ew");
     let log = format!(
         "{}\n{}\n",
         serde_json::json!({"$schema": ew_api::CMDLOG_SCHEMA, "label": "round trip"}),
@@ -465,8 +466,8 @@ fn rt2_five_labels_saved_by_excel_apply_in_one_step() {
 /// the project's value (EW-IMP-304), and with `--take-file` takes the file's.
 #[test]
 fn rt3_deleted_rows_and_project_changes_are_kept() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let bytes = x1031(&t, &p, "x.xlsx");
     let main = sheet(&bytes, None);
     let label = |row: usize| cell_ref(&main.headers, "Function text", row + 1);
@@ -544,8 +545,8 @@ fn rt3_deleted_rows_and_project_changes_are_kept() {
 /// notice; a workbook of another project and a CSV without `--table` are refused in D11's words.
 #[test]
 fn rt4_read_only_cells_numbers_and_refusals() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let bytes = x1031(&t, &p, "x.xlsx");
     let main = sheet(&bytes, None);
     let at = |header: &str| cell_ref(&main.headers, header, 2);
@@ -668,8 +669,8 @@ fn commented(csv: &str, comments: [&str; 3], keep_id: bool) -> String {
 /// channel with the same result; the I/O list's workbook round-trips the same way.
 #[test]
 fn rt5_the_io_list_round_trips_by_id_and_by_point() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     let o = t.ew(&args([
         &"export",
         &"report",
@@ -728,7 +729,7 @@ fn rt5_the_io_list_round_trips_by_id_and_by_point() {
     );
     let before = records(&p);
     for (name, keep_id) in [("by-id", true), ("by-point", false)] {
-        let copy = t.golden_as(&format!("{name}.ew"));
+        let copy = t.golden(&format!("{name}.ew"));
         let file = put(
             &t,
             &format!("{name}.csv"),
@@ -747,7 +748,7 @@ fn rt5_the_io_list_round_trips_by_id_and_by_point() {
     }
 
     // The workbook: the same three cells, saved by Excel.
-    let copy = t.golden_as("xlsx.ew");
+    let copy = t.golden("xlsx.ew");
     let bytes = t.written(
         &args([
             &"export",
@@ -785,8 +786,8 @@ fn rt5_the_io_list_round_trips_by_id_and_by_point() {
 /// `--strip` on another navigator and an unknown strip are refused in D8's words.
 #[test]
 fn every_table_navigator_exports_and_the_others_are_refused() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-tables");
+    let p = t.golden("J-E-2416.ew");
     for kind in ew_api::output::TABLE_NAVIGATORS {
         let word = kind.word();
         let run = args([&"export", &"table", &word, &p, &"--format", &"xlsx"]);

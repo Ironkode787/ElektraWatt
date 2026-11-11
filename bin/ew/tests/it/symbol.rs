@@ -8,7 +8,7 @@ use std::path::Path;
 
 use serde_json::{Value, json};
 
-use crate::tables::{Tmp, args, stderr, stdout};
+use crate::support::{EwTmp, Tmp, args, stderr, stdout};
 
 /// A valid one-pin draft keyed `key`, from the template.
 fn valid(tmp: &Tmp, key: &str) -> Value {
@@ -27,7 +27,7 @@ fn write(path: &Path, value: &Value) {
 
 #[test]
 fn template_schema_and_validate_exit_as_documented() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new("ew-tables");
     let o = tmp.ew(&args([&"symbol", &"template", &"example.contact", &"Contact"]));
     assert_eq!(o.status.code(), Some(0));
     let template: Value = serde_json::from_str(&stdout(&o)).unwrap();
@@ -64,7 +64,7 @@ fn template_schema_and_validate_exit_as_documented() {
 
 #[test]
 fn import_takes_the_file_name_as_its_key_unless_one_is_given() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new("ew-tables");
     let file = tmp.0.join("contact no.elmt");
     std::fs::write(
         &file,
@@ -92,7 +92,7 @@ fn import_takes_the_file_name_as_its_key_unless_one_is_given() {
 
 #[test]
 fn publish_creates_then_reuses_the_library_and_refuses_a_key_another_symbol_holds() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new("ew-tables");
     let library = tmp.0.join("symbols.ewlib");
     let file = tmp.0.join("contact.symbol.json");
     let publish = |file: &Path| tmp.ew(&args([&"symbol", &"publish", &file, &"--library", &library]));
@@ -145,7 +145,7 @@ fn publish_creates_then_reuses_the_library_and_refuses_a_key_another_symbol_hold
 /// publishes a new symbol: `added`, a new identity printed, and the first symbol stays.
 #[test]
 fn publish_under_another_key_adds_a_symbol_with_a_new_identity() {
-    let tmp = Tmp::new();
+    let tmp = Tmp::new("ew-tables");
     let library = tmp.0.join("symbols.ewlib");
     let file = tmp.0.join("contact.symbol.json");
     let publish = |file: &Path| tmp.ew(&args([&"symbol", &"publish", &file, &"--library", &library]));

@@ -16,9 +16,9 @@ workspace = true
 
 [features]
 # Test-only (WP-S2.03 §7.6): `ShellModel::set_tool_for_tests`, which installs a tool outside the registry, so that the
-# probe tool of `tests/probe.rs` can exercise the commit path that no shipped tool takes; and (FT-439)
-# `ShellModel::set_id_source_for_tests`, the ID source of `tests/replay_order.rs`; and (WP-S2.09 part 1)
-# `ShellModel::set_job_gate_for_tests` and `set_job_panic_for_tests`, the held gate and the fault of `tests/jobs.rs`.
+# probe tool of `tests/it/probe.rs` can exercise the commit path that no shipped tool takes; and (FT-439)
+# `ShellModel::set_id_source_for_tests`, the ID source of `tests/it/replay_order.rs`; and (WP-S2.09 part 1)
+# `ShellModel::set_job_gate_for_tests` and `set_job_panic_for_tests`, the held gate and the fault of `tests/it/jobs.rs`.
 # A non-dev edge must never request it: `ci/dep-rules.toml` bans it outside dev-dependencies, and every package whose
 # test build reaches this crate requests it on a dev edge, this crate's own tests included (`[[uniform_test_features]]`;
 # the feature rule of `cargo xtask rules`). So the tests above need no `required-features` and are never skipped.

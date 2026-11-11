@@ -7,83 +7,33 @@
 use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
 
-use super::conventions::{args, bin_exe, copy_dir, isolate, stderr, stdout, tree};
+use crate::support::{EwTmp, GOLDEN_PARTS, Tmp, args, stderr, stdout, tree};
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
 const VARIANTS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416/variants");
-const GOLDEN_PARTS: &str = concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/../../golden/J-E-2416/tables/parts.csv"
-);
-
-/// A fresh temporary directory with its own user directories, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-ewz"))
-    }
-
-    /// `ew` in this directory with its user directories inside it, no starter content, no display and no
-    /// `SOURCE_DATE_EPOCH`.
-    fn ew(&self, args: &[OsString]) -> Output {
-        let mut cmd = Command::new(bin_exe());
-        cmd.args(args).current_dir(&self.0);
-        isolate(&mut cmd, &self.0);
-        cmd.output().unwrap()
-    }
-
-    /// A copy of Golden A.
-    fn golden(&self) -> PathBuf {
-        let copy = self.0.join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &copy);
-        copy
-    }
-
-    /// Golden A's copy packed with `ew export ewz` into `J-E-2416.ewz`.
-    fn packed(&self, project: &Path) -> PathBuf {
-        let ewz = self.0.join("J-E-2416.ewz");
-        let o = self.ew(&args([&"export", &"ewz", &project, &"--out", &ewz]));
-        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        assert_eq!(
-            stdout(&o),
-            format!(".ewz written to {}: generation 1, 183 files\n", ewz.display())
-        );
-        ewz
-    }
-
-    /// A small saved project `tiny.ew` (one page, no report blocks) and its `.ewz` `tiny.ewz`.
-    fn tiny(&self) -> (PathBuf, PathBuf) {
-        let project = serde_json::from_str(
-            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
+/// Golden A's copy packed with `ew export ewz` into `J-E-2416.ewz`.
+fn packed(t: &Tmp, project: &Path) -> PathBuf {
+    let ewz = t.path("J-E-2416.ewz");
+    let o = t.ew(&args([&"export", &"ewz", &project, &"--out", &ewz]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert_eq!(
+        stdout(&o),
+        format!(
+            ".ewz written to {}: generation 1, 183 files
+",
+            ewz.display()
         )
-        .unwrap();
-        let mut session =
-            ew_api::Session::from_records(project, [], [], ew_api::SessionOptions::default()).unwrap();
-        session
-            .execute(&ew_api::AnyCommand {
-                name: "page.create".into(),
-                params: serde_json::json!({"number": 1, "title": "Cover"}),
-            })
-            .unwrap();
-        let dir = self.0.join("tiny.ew");
-        let mut store = ew_api::StoreOptions::new("test");
-        store.state_dir = None;
-        session.create(&dir, store).unwrap();
-        session.close();
-        let ewz = self.0.join("tiny.ewz");
-        let o = self.ew(&args([&"export", &"ewz", &dir, &"--out", &ewz]));
-        assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-        (dir, ewz)
-    }
+    );
+    ewz
 }
 
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
+/// A small saved project `tiny.ew` (one page, no report blocks) and its `.ewz` `tiny.ewz`.
+fn tiny_and_ewz(t: &Tmp) -> (PathBuf, PathBuf) {
+    let dir = t.tiny("tiny.ew");
+    let ewz = t.path("tiny.ewz");
+    let o = t.ew(&args([&"export", &"ewz", &dir, &"--out", &ewz]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    (dir, ewz)
 }
 
 /// The names directly in `dir`.
@@ -105,10 +55,10 @@ type Run = (Option<i32>, String, String, BTreeMap<String, Vec<u8>>);
 /// exit code, stdout, stderr and output bytes on Golden A's `.ewz` as on its directory; nothing is written beside the archive. The runs go in parallel, each with its own output path.
 #[test]
 fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
-    let t = Tmp::new();
-    let dir = t.golden();
-    let ewz = t.packed(&dir);
-    let (tiny, tiny_ewz) = t.tiny();
+    let t = Tmp::new("ew-ewz");
+    let dir = t.golden("J-E-2416.ew");
+    let ewz = packed(&t, &dir);
+    let (tiny, tiny_ewz) = tiny_and_ewz(&t);
     let outs = t.0.join("outs");
     std::fs::create_dir_all(&outs).unwrap();
     // The words of the line after `ew`: `{p}` is Golden A, `{tiny}` the small project (for the memo oracle's cold
@@ -196,9 +146,9 @@ fn ez2_every_reader_gives_the_same_output_on_the_ewz() {
 /// archive is unchanged.
 #[test]
 fn ez2_every_other_subcommand_refuses_the_ewz() {
-    let t = Tmp::new();
-    let dir = t.golden();
-    let ewz = t.packed(&dir);
+    let t = Tmp::new("ew-ewz");
+    let dir = t.golden("J-E-2416.ew");
+    let ewz = packed(&t, &dir);
     let before = std::fs::read(&ewz).unwrap();
     let log = Path::new(VARIANTS).join("b2-renumber-pages.ewcmd");
     let refusal = format!(
@@ -242,8 +192,8 @@ fn ez2_every_other_subcommand_refuses_the_ewz() {
 /// D8: `ew export ewz` needs `--out` (ruling 5's text), packs the same bytes twice, and prints its JSON result.
 #[test]
 fn export_ewz_needs_out_and_is_deterministic() {
-    let t = Tmp::new();
-    let dir = t.golden();
+    let t = Tmp::new("ew-ewz");
+    let dir = t.golden("J-E-2416.ew");
     let o = t.ew(&args([&"export", &"ewz", &dir]));
     assert_eq!(o.status.code(), Some(2));
     assert_eq!(
@@ -251,8 +201,8 @@ fn export_ewz_needs_out_and_is_deterministic() {
         "error: `ew export ewz` writes a file: give `--out <file.ewz>`\n\nUsage: ew export ewz [OPTIONS] \
          [project-dir]\n\nFor more information, try '--help'.\n"
     );
-    let first = std::fs::read(t.packed(&dir)).unwrap();
-    let second = std::fs::read(t.packed(&dir)).unwrap();
+    let first = std::fs::read(packed(&t, &dir)).unwrap();
+    let second = std::fs::read(packed(&t, &dir)).unwrap();
     assert_eq!(first, second, "the same project gives the same bytes");
     let json = t.0.join("j.ewz");
     let o = t.ew(&args([
@@ -281,10 +231,10 @@ fn export_ewz_needs_out_and_is_deterministic() {
 /// existing directory it exits 2 and writes nothing.
 #[test]
 fn ez3_extract_into_a_new_folder_and_never_into_an_existing_one() {
-    let t = Tmp::new();
-    let dir = t.golden();
+    let t = Tmp::new("ew-ewz");
+    let dir = t.golden("J-E-2416.ew");
     let source = tree(&dir);
-    let ewz = t.packed(&dir);
+    let ewz = packed(&t, &dir);
 
     // The default target is Golden A's copy itself: refused, nothing written.
     let o = t.ew(&args([&"extract", &ewz]));
@@ -343,9 +293,9 @@ fn ez3_extract_into_a_new_folder_and_never_into_an_existing_one() {
 /// and nothing is written.
 #[test]
 fn ez4_a_refused_archive_is_named_and_nothing_is_written() {
-    let t = Tmp::new();
-    let dir = t.golden();
-    let ewz = t.packed(&dir);
+    let t = Tmp::new("ew-ewz");
+    let dir = t.golden("J-E-2416.ew");
+    let ewz = packed(&t, &dir);
     let mut bytes = std::fs::read(&ewz).unwrap();
     // An entry the manifest does not list: `project.jsonl` renamed in both of its headers.
     let from = b"project.jsonl";

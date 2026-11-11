@@ -12,7 +12,8 @@ use std::process::Output;
 
 use ew_api::Conflict;
 
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
+use crate::support::GOLDEN_A;
+
 /// Page 102.
 const PAGE: &str = "pages/4aa43308-d0d3-57ee-be0c-d9383f429f50.jsonl";
 const W20_OVERRIDES: &str = r#""overrides":{"csa":"1.5","show_marker":true}"#;
@@ -42,7 +43,7 @@ impl Copy {
     fn new() -> Copy {
         let root = ew_testdir::fresh_dir("ew-merge-resolve");
         let project = root.join("J-E-2416.ew");
-        super::conventions::copy_dir(Path::new(GOLDEN_A), &project);
+        crate::support::copy_dir(Path::new(GOLDEN_A), &project);
         std::fs::write(
             project.join(PAGE),
             format!("{}{CONFLICT}\n", page_with(&colour("BU"))),
@@ -60,7 +61,7 @@ impl Copy {
     }
 
     fn ew(&self, args: &[&str]) -> Output {
-        std::process::Command::new(super::conventions::bin_exe())
+        std::process::Command::new(crate::support::bin_exe())
             .args(args)
             .arg(self.project())
             .current_dir(&self.0)

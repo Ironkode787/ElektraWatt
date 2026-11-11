@@ -9,8 +9,15 @@ mod common;
 mod golden_common;
 #[path = "../qet_synth/mod.rs"]
 mod qet_synth;
+// The bless flag only chooses whether a committed file is rewritten; the compared result never depends on it.
+#[allow(clippy::disallowed_methods)]
+#[path = "../page_output/golden_files.rs"]
+mod golden_files;
+#[path = "../page_output/pdf_read.rs"]
+mod pdf_read;
+#[path = "../page_output/pdf_support.rs"]
+mod pdf_support;
 #[path = "../page_output/view.rs"]
-#[allow(dead_code)]
 mod view;
 
 // Every other file of tests/it is a module (automod 1.0, sorted by name).

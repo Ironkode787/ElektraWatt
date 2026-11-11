@@ -148,19 +148,6 @@ fn findings_mvp_csv_holds_doc20_section_18_1() {
 // ---------------------------------------------------------------------------------------------------------
 // The W-1 fixture
 
-fn copy_dir(from: &Path, to: &Path) {
-    std::fs::create_dir_all(to).expect("a directory");
-    for e in std::fs::read_dir(from).expect("a readable directory") {
-        let e = e.expect("an entry");
-        let target = to.join(e.file_name());
-        if e.path().is_dir() {
-            copy_dir(&e.path(), &target);
-        } else {
-            std::fs::copy(e.path(), &target).expect("a copied file");
-        }
-    }
-}
-
 fn open(dir: &Path, state: &Path) -> Session {
     let mut options = StoreOptions::new("wp-s1-16-part5");
     options.state_dir = Some(state.to_path_buf());
@@ -193,7 +180,7 @@ fn waive(fingerprint: &str) -> AnyCommand {
 fn golden_a_with_w1(tag: &str) -> (PathBuf, PathBuf) {
     let copy = ew_testdir::fresh_dir(&format!("ew-part5-{tag}"));
     let state = ew_testdir::fresh_dir(&format!("ew-part5-{tag}-state"));
-    copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &copy);
+    ew_testdir::copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &copy);
     let mut s = open(&copy, &state);
     let fp = xpe(&s.check(&PRE_DELIVERY, CheckMode::Release))
         .fingerprint

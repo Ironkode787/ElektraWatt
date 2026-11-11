@@ -5,53 +5,16 @@
 //! heater's PE wire touching the lamp's X1 and the lamp's feed along the switch's wires, its line of counts agrees
 //! with the `--json` result, and a folio that names no page is refused in words. Named items only, never totals.
 
-use std::ffi::OsString;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::path::Path;
 
 use ew_api::cli_results as results;
 
-use super::conventions::{bin_exe, copy_dir, stderr, stdout};
-
-const GOLDEN_A: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../golden/J-E-2416.ew");
-
-/// A fresh temporary directory, removed on drop.
-struct Tmp(PathBuf);
-
-impl Tmp {
-    fn new() -> Tmp {
-        Tmp(ew_testdir::fresh_dir("ew-layout"))
-    }
-
-    /// `ew` in this directory with its user directories inside it and no starter content.
-    fn ew(&self, args: &[&str]) -> Output {
-        let mut cmd = Command::new(bin_exe());
-        cmd.args(args.iter().map(OsString::from))
-            .current_dir(&self.0)
-            .env_remove("EW_CONTENT_DIR")
-            .env("EW_DATA_DIR", self.0.join("data"))
-            .env("EW_CACHE_DIR", self.0.join("cache"));
-        cmd.output().unwrap()
-    }
-
-    /// A copy of Golden A, by its path as text.
-    fn golden(&self) -> String {
-        let copy = self.0.join("J-E-2416.ew");
-        copy_dir(Path::new(GOLDEN_A), &copy);
-        copy.to_string_lossy().into_owned()
-    }
-}
-
-impl Drop for Tmp {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.0);
-    }
-}
+use crate::support::{EwTmp, Tmp, stderr, stdout};
 
 #[test]
 fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-layout");
+    let p = t.golden("J-E-2416.ew").to_string_lossy().into_owned();
     let o = t.ew(&["layout", &p, "--page", "101"]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let text = stdout(&o);
@@ -92,8 +55,8 @@ fn folio_101_routed_names_no_touch_overlap_or_symbol_crossed() {
 
 #[test]
 fn every_drawn_page_gets_a_line_of_counts_and_an_unknown_folio_is_refused() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-layout");
+    let p = t.golden("J-E-2416.ew").to_string_lossy().into_owned();
     let o = t.ew(&["layout", &p]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let heads: Vec<String> = stdout(&o)
@@ -119,8 +82,8 @@ fn every_drawn_page_gets_a_line_of_counts_and_an_unknown_folio_is_refused() {
 /// routed and saved, so a second run has nothing to do; `--dry-run` writes nothing; an unknown folio is refused in words.
 #[test]
 fn route_routes_a_page_saves_it_and_then_has_nothing_to_do() {
-    let t = Tmp::new();
-    let p = t.golden();
+    let t = Tmp::new("ew-layout");
+    let p = t.golden("J-E-2416.ew").to_string_lossy().into_owned();
     // `connections|DP.1`, the bus cable's hop on folio 3, without a route.
     let log = Path::new(&p).with_file_name("unroute.ewcmd");
     std::fs::write(
