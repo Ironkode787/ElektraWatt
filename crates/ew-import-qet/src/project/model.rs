@@ -268,6 +268,8 @@ pub struct DynText {
     pub composite: Option<String>,
     /// Where QET draws it: the top-left corner of its text box in element coordinates, size and turn.
     pub at: TextAt,
+    /// `text_width`, px, when greater than 0: the width of the text's box; otherwise the box fits the text.
+    pub width: Option<Decimal>,
 }
 
 /// The placement of a QET text item: the top-left corner of its text box, its font and its rotation.

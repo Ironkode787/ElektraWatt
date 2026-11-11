@@ -8,7 +8,7 @@ use ew_import_qet::QetProjectImporter;
 use ew_import_qet::decimal::Decimal;
 use ew_import_qet::ew_interop_api::ew_schema::{
     FreeText, Graphic, GraphicShape, LibDocument, LineDash, PageItemKind, Primitive, Record, Representation,
-    SlotKind, base64_decode,
+    SlotKind, TextAlign, base64_decode,
 };
 use ew_import_qet::ew_interop_api::{Code, ImportBatch, ImportInput};
 use ew_import_qet::project::new_project_context;
@@ -65,6 +65,15 @@ fn project() -> String {
             r#"<elementInformation name="comment">Pump left</elementInformation>"#,
             &format!(
                 r#"<dynamic_elmt_text text_from="ElementInfo" x="20" y="30" rotation="0" font="{FONT9}"><text/><info_name>comment</info_name></dynamic_elmt_text>"#
+            ),
+        ),
+        // An information text aligned right in a box 90 px wide.
+        element(
+            "10000000-0000-4000-8000-000000000004",
+            700,
+            r#"<elementInformation name="comment">Valve right</elementInformation>"#,
+            &format!(
+                r#"<dynamic_elmt_text text_from="ElementInfo" x="20" y="30" rotation="0" font="{FONT9}" text_width="90" Halignment="AlignRight"><text/><info_name>comment</info_name></dynamic_elmt_text>"#
             ),
         ),
     ]
@@ -330,6 +339,17 @@ fn an_element_prints_its_own_texts_and_no_tag_where_qet_prints_none() {
         )
     );
     assert_eq!(comment.style.as_ref().map(|s| s.as_str()), Some("qet.9"));
+    assert_eq!(comment.align, None);
+    // In a box of fixed width QET 0.100 centres the text whatever its alignment: on 700 + 20 + 90 / 2.
+    let centred = text(&b, "Valve right");
+    assert_eq!(
+        (centred.at.x.0, centred.at.y.0),
+        (
+            px("700") + px("20") + px("45"),
+            px("100") + px("30") + px("4") + MIDDLE9
+        )
+    );
+    assert_eq!(centred.align, Some(TextAlign::Centre));
 }
 
 #[test]

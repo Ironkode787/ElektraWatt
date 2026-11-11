@@ -359,6 +359,8 @@ impl Reader<'_> {
                         info_name: child(c, "info_name").map(text),
                         composite: child(c, "composite_text").map(text),
                         at: text_at(c),
+                        width: decimal(c.attribute("text_width"))
+                            .filter(|w| !w.is_zero() && !w.is_negative()),
                     })
                     .collect()
             })

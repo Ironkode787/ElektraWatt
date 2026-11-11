@@ -26,7 +26,7 @@ use ew_interop_api::{Code, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     Bounds, FreeText, Graphic, GraphicShape, GraphicStroke, ImageItem, LineDash, PageItem, PageItemKind,
-    Record, Sha256, ShapeCircle, ShapeLine, ShapePoints, ShapeRect,
+    Record, Sha256, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, TextAlign,
 };
 use ew_units::{Angle2, Nm, Pt2, Rect};
 use sha2::Digest;
@@ -156,13 +156,18 @@ pub(crate) fn rich_text(raw: &str) -> Option<(String, Option<Decimal>, bool)> {
 /// `y` is missing or out of range. A text of several lines is placed line by line, so that its lines keep
 /// QET's spacing whatever EW's line spacing is.
 pub(crate) fn text_anchor(at: &TextAt, line: usize, em: Nm) -> Option<(Pt2, Angle2)> {
+    text_anchor_across(at, line, em, margin_nm()?)
+}
+
+/// [`text_anchor`] for a line drawn from `across` nm right of the box's left edge instead of from the margin.
+pub(crate) fn text_anchor_across(at: &TextAt, line: usize, em: Nm, across: i128) -> Option<(Pt2, Angle2)> {
     let margin = margin_nm()?;
     let line = i128::try_from(line).ok()?;
     let em = i128::from(em.0);
     let down = margin
         + div_round_half_even(em * LINE_MIDDLE_PER_MILLE, 1000)
         + div_round_half_even(em * HALF_LINE_PER_MILLE * 2 * line, 1000);
-    text_point(at, margin, down)
+    text_point(at, across, down)
 }
 
 /// [`TEXT_MARGIN_PX`] in nm.
@@ -170,16 +175,45 @@ fn margin_nm() -> Option<i128> {
     Some(i128::from(Decimal::from_int(TEXT_MARGIN_PX).px_to_nm().ok()?.0))
 }
 
+/// The average advance of a character of a label, per mille of the em (digits, capitals and signs of the
+/// substituted families), for a box whose width the import does not know.
+pub const ADVANCE_PER_MILLE: i128 = 550;
+
+/// Where an element text's lines stand across its box: the distance from the box's left edge to the point a
+/// line is anchored at, nm, and the line's alignment there. QET 0.100 lays an element text out centred in its
+/// box (its `Halignment` only keeps the box's anchor when the text changes), so a box of fixed `width` px
+/// (QET's `text_width`) holds its lines centred; any other box fits its text, whose lines start at the left
+/// margin.
+pub(crate) fn line_place(width: Option<Decimal>) -> Option<(i128, TextAlign)> {
+    match width {
+        Some(width) => Some((
+            div_round_half_even(i128::from(width.px_to_nm().ok()?.0), 2),
+            TextAlign::Centre,
+        )),
+        None => Some((margin_nm()?, TextAlign::Left)),
+    }
+}
+
+/// The middle across of an element text's box, nm from its left edge: half its fixed `width` px, else the
+/// margin and half the longest line of `text` at [`ADVANCE_PER_MILLE`] of the em per character.
+pub(crate) fn box_middle(width: Option<Decimal>, text: &str, em: Nm) -> Option<i128> {
+    if let Some(width) = width {
+        return Some(div_round_half_even(i128::from(width.px_to_nm().ok()?.0), 2));
+    }
+    let chars = text.lines().map(|l| l.chars().count()).max().unwrap_or(0);
+    let chars = i128::try_from(chars).ok()?;
+    Some(margin_nm()? + div_round_half_even(i128::from(em.0) * ADVANCE_PER_MILLE * chars, 2000))
+}
+
 /// Where QET draws the cross-reference of a master or slave whose label text item is `at` with `lines` lines
-/// of em `em`: the left end of the cross-reference's text, `gap` px below the item's box (`above`: above it),
-/// in the label's frame, and the label's angle. The point is the top of the text below the box and its bottom
-/// above it, inside the cross-reference item's own margin; the box is the text and the margin on each side.
-/// QET centres the cross-reference under the label; EW has no text widths on import, so it starts where
-/// the label starts.
+/// of em `em`: the point the cross-reference's text is centred on, `gap` px below the item's box (`above`:
+/// above it), `middle` nm right of the box's left edge ([`box_middle`]), in the label's frame, and the label's
+/// angle. The point is the top of the text below the box and its bottom above it, inside the
+/// cross-reference item's own margin; the box is the text and the margin on each side.
 pub(crate) fn below_text(
     at: &TextAt,
-    lines: usize,
-    em: Nm,
+    (lines, em): (usize, Nm),
+    middle: i128,
     gap: Decimal,
     above: bool,
 ) -> Option<(Pt2, Angle2)> {
@@ -192,7 +226,7 @@ pub(crate) fn below_text(
     } else {
         height + gap + margin
     };
-    text_point(at, margin, down)
+    text_point(at, middle, down)
 }
 
 /// The point `(right, down)` nm from the top-left corner of text item `at`, turned with the item by its
@@ -232,15 +266,22 @@ pub(crate) fn line_key(key: &str, line: usize) -> String {
     }
 }
 
-/// A free text of `text` at `at` (page coordinates) and `angle` (taken into 0 … 360°), in `style`.
-pub(crate) fn free_text(text: &str, at: Pt2, angle: Angle2, style: Option<Ident>) -> PageItemKind {
+/// A free text of `text` at `at` (page coordinates) and `angle` (taken into 0 … 360°), in `style`, aligned
+/// `align` there (left is written as absent).
+pub(crate) fn free_text(
+    text: &str,
+    at: Pt2,
+    angle: Angle2,
+    style: Option<Ident>,
+    align: TextAlign,
+) -> PageItemKind {
     PageItemKind::FreeText(FreeText {
         text: MlText::neutral(text),
         bind: None,
         at,
         angle: Angle2(angle.0.rem_euclid(360_000)),
         style,
-        align: None,
+        align: (align != TextAlign::Left).then_some(align),
         extra: Default::default(),
     })
 }
@@ -285,7 +326,7 @@ pub(crate) fn map(
                 ids,
                 page,
                 &key,
-                free_text(line.trim_end(), at, angle, style.clone()),
+                free_text(line.trim_end(), at, angle, style.clone(), TextAlign::Left),
             ));
         }
     }

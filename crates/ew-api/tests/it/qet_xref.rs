@@ -11,7 +11,7 @@ use ew_api::Session;
 use ew_api::import::{Imported, StarterLibrary, import_qet};
 use ew_api::output::page_view;
 use ew_derive::{PageOrder, PageRef};
-use ew_schema::{FunctionKind, Record, SlotKind};
+use ew_schema::{Align, FunctionKind, LibDocument, Record, SlotKind};
 
 /// A definition `name` of link type `link` with kind `kind`: one terminal and a label text.
 fn def(name: &str, link: &str, kind: &str) -> String {
@@ -186,6 +186,42 @@ fn a_coil_and_its_contacts_print_each_others_positions() {
     assert!(folio1.contains(&"2-D5\n2-F7".to_owned()), "{folio1:?}");
     let folio2 = shown(s, "2", &SlotKind::Xref);
     assert_eq!(folio2.iter().filter(|t| *t == "(1-C3)").count(), 2, "{folio2:?}");
+}
+
+#[test]
+fn a_cross_reference_is_centred_under_its_label_text() {
+    // The coil and both contacts print the label "-K1" in 7 pt from (-30, 0) px in a box that fits the text:
+    // QET centres the cross-reference under that box, whose middle is the 4 px margin and half the label,
+    // 3 characters of 0.55 em of a 7 pt font (2,469,444 nm). The coil's list (`displayhas="contacts"`) has
+    // its texts 28 px further right, after the contacts QET draws before them.
+    let imported = import();
+    let b = &imported.batch;
+    let middle = px(-30) + px(4) + (2_469_444 * 550 * 3 + 1000) / 2000;
+    let mut centred = Vec::new();
+    for r in &b.records {
+        let Record::Representation(rep) = r else { continue };
+        let Some(symbol) = b.lib.iter().find_map(|d| match d {
+            LibDocument::Symbol(s) if s.id.as_uuid() == rep.symbol.as_uuid() => Some(&s.item),
+            _ => None,
+        }) else {
+            continue;
+        };
+        for o in &rep.text_slots {
+            let slot = &symbol.text_slots[usize::from(o.slot)];
+            // A report's cross-reference stands where its label text stands, aligned as that text.
+            if slot.kind == SlotKind::Xref && slot.align != Align::MiddleLeft {
+                assert_eq!(slot.align, Align::TopCentre);
+                centred.extend(o.pos.map(|p| p.x.0));
+            }
+        }
+    }
+    centred.sort_unstable();
+    assert_eq!(centred, [middle, middle, middle + px(28)]);
+}
+
+/// `v` px in nm.
+fn px(v: i64) -> i64 {
+    v * 793_750 / 3
 }
 
 #[test]

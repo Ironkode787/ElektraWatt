@@ -29,7 +29,7 @@ use ew_mltext::{Ident, MlText};
 use ew_schema::{
     Align, Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList,
     LibCopy, Record, Representation, SlotKind, SlotOverride, SymbolDef, TagScheme, TagSign, TagSpec,
-    TextSlot,
+    TextAlign, TextSlot,
 };
 use ew_units::{Angle2, Nm, Orient2, Pt2};
 use serde_json::Value;
@@ -86,12 +86,20 @@ pub struct ElementsOut {
 }
 
 /// Where a master or a slave prints its cross-reference against its label text (QET's `<xref>` of the
-/// master's type): `gap` px below the label's box, or above it.
+/// master's type): `gap` px below the label's box, or above it, its text centred `right` px right of the
+/// box's middle.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) struct XrefPlace {
     gap: Decimal,
     above: bool,
+    right: Decimal,
 }
+
+/// How far right of the middle of a master's label QET's contact list (`displayhas="contacts"`) has the middle
+/// of its position texts, px. QET centres the list's box under the label; each row draws its contact in the
+/// 30 px before its text (which the import does not draw), and the box adds 30 px before the rows and 4 px
+/// after them (`CrossRefItem::drawAsContacts`): the texts' middle is (30 + 30 − 4) / 2 px right of the box's.
+const CONTACT_TEXT_SHIFT_PX: i64 = 28;
 
 /// The point size QET draws a master's or slave's cross-reference in (`QETApp::diagramTextsFont(5)`).
 const XREF_POINT_SIZE: i64 = 5;
@@ -645,8 +653,9 @@ impl Mx<'_, '_> {
         page: Id<ew_schema::Page>,
         ip_name: Option<&str>,
     ) -> KeyedList<SlotOverride> {
-        // (text, where, slot kind, whether the slot shows whatever the text, whether it is the label text)
-        type Text<'t> = (String, &'t TextAt, Option<SlotKind>, bool, bool);
+        // (text, where, slot kind, whether the slot shows whatever the text, whether it is the label text, the
+        // box's fixed width)
+        type Text<'t> = (String, &'t TextAt, Option<SlotKind>, bool, bool, Option<Decimal>);
         let texts: Vec<Text<'_>> = if e.el.has_dyn_texts {
             e.el.dyn_texts
                 .iter()
@@ -691,30 +700,48 @@ impl Mx<'_, '_> {
                         }
                         _ => return None,
                     };
-                    Some((text, &t.at, kind, derived, label))
+                    Some((text, &t.at, kind, derived, label, t.width))
                 })
                 .collect()
         } else {
             e.el.inputs
                 .iter()
-                .map(|i| (i.text.clone(), &i.at, None, false, false))
+                .map(|i| (i.text.clone(), &i.at, None, false, false, None))
                 .collect()
         };
         let live = self.live.contains(&e.ek);
         // QET hangs a master's or slave's cross-reference on its first label text.
         let mut place = self.xref_place.get(&e.ek).copied();
         let mut overrides: Vec<SlotOverride> = Vec::new();
-        for (n, (raw, at, kind, derived, label)) in texts.into_iter().enumerate() {
+        for (n, (raw, at, kind, derived, label, width)) in texts.into_iter().enumerate() {
             let (text, style, em) =
                 items::qet_text(&raw, at.font.as_deref(), &mut self.out.fonts, self.findings);
-            if label && let Some(p) = place.take() {
-                self.xref_below(e, at, text.lines().count().max(1), em, p, &mut overrides);
+            let Some((across, align)) = items::line_place(width) else {
+                continue;
+            };
+            let slot_align = if align == TextAlign::Centre {
+                Align::Centre
+            } else {
+                INSTANCE_ALIGN
+            };
+            if label
+                && let Some(p) = place.take()
+                && let Some(middle) = items::box_middle(width, &text, em)
+            {
+                self.xref_below(
+                    e,
+                    at,
+                    (text.lines().count().max(1), em),
+                    middle,
+                    p,
+                    &mut overrides,
+                );
             }
             if derived
                 && let Some(kind) = &kind
-                && let Some((local, angle)) = items::text_anchor(at, 0, em)
+                && let Some((local, angle)) = items::text_anchor_across(at, 0, em, across)
                 && let Some(slot) = self
-                    .slot_for(e, kind, style.clone(), INSTANCE_ALIGN)
+                    .slot_for(e, kind, style.clone(), slot_align.clone())
                     .filter(|i| !overrides.iter().any(|o| o.slot == *i))
             {
                 overrides.push(shown(slot, local, angle));
@@ -723,18 +750,25 @@ impl Mx<'_, '_> {
             if text.trim().is_empty() {
                 continue;
             }
-            let slots = &e.symbol().item.text_slots;
-            // A slot prints one line in its own style, so only a one-line text of that style shows it.
-            let slot = kind
-                .filter(|_| live && text.lines().count() == 1)
-                .and_then(|k| slots.iter().position(|s| s.kind == k && s.style == style))
-                .and_then(|i| u16::try_from(i).ok())
-                .filter(|i| !overrides.iter().any(|o| o.slot == *i));
+            // A slot prints one line in its own style, so only a one-line text of that style shows it; a line
+            // aligned otherwise than the symbol's slots takes a slot of its own alignment.
+            let slot = match kind.filter(|_| live && text.lines().count() == 1) {
+                Some(k) if slot_align == INSTANCE_ALIGN => e
+                    .symbol()
+                    .item
+                    .text_slots
+                    .iter()
+                    .position(|s| s.kind == k && s.style == style)
+                    .and_then(|i| u16::try_from(i).ok()),
+                Some(k) => self.slot_for(e, &k, style.clone(), slot_align.clone()),
+                None => None,
+            }
+            .filter(|i| !overrides.iter().any(|o| o.slot == *i));
             for (i, line) in text.lines().enumerate() {
                 if line.trim().is_empty() {
                     continue;
                 }
-                let Some((local, angle)) = items::text_anchor(at, i, em) else {
+                let Some((local, angle)) = items::text_anchor_across(at, i, em, across) else {
                     self.at(
                         e,
                         Code::MALFORMED_ITEM,
@@ -769,7 +803,7 @@ impl Mx<'_, '_> {
                     v: 1,
                     page,
                     layer: None,
-                    kind: items::free_text(line.trim_end(), at, angle, style.clone()),
+                    kind: items::free_text(line.trim_end(), at, angle, style.clone(), align.clone()),
                     extra: BTreeMap::new(),
                 }));
             }
@@ -808,13 +842,14 @@ impl Mx<'_, '_> {
     }
 
     /// Shows the cross-reference slot of master or slave `e` where QET draws it against its label text `at`
-    /// (`lines` lines of em `em`), as `place` says, in QET's 5 pt.
+    /// (`lines` lines of em `em`): centred under (or above) the box's middle `middle` nm from its left edge, as
+    /// `place` says, in QET's 5 pt.
     fn xref_below(
         &mut self,
         e: &Elem<'_>,
         at: &TextAt,
-        lines: usize,
-        em: Nm,
+        lines: (usize, Nm),
+        middle: i128,
         place: XrefPlace,
         overrides: &mut Vec<SlotOverride>,
     ) {
@@ -825,11 +860,19 @@ impl Mx<'_, '_> {
         ))
         .ok();
         let align = if place.above {
-            Align::BottomLeft
+            Align::BottomCentre
         } else {
-            Align::TopLeft
+            Align::TopCentre
         };
-        if let Some((local, angle)) = items::below_text(at, lines, em, place.gap, place.above)
+        let Some(middle) = place
+            .right
+            .px_to_nm()
+            .ok()
+            .and_then(|r| middle.checked_add(i128::from(r.0)))
+        else {
+            return;
+        };
+        if let Some((local, angle)) = items::below_text(at, lines, middle, place.gap, place.above)
             && let Some(slot) = self
                 .slot_for(e, &SlotKind::Xref, style, align)
                 .filter(|i| !overrides.iter().any(|o| o.slot == *i))
@@ -1061,11 +1104,17 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
             XrefPlace {
                 gap: props.map_or(Decimal::ZERO, |x| x.slave_offset),
                 above: props.is_some_and(|x| x.slave_pos == "AlignTop"),
+                right: Decimal::ZERO,
             }
         } else {
             XrefPlace {
                 gap: Decimal::ZERO,
                 above: false,
+                right: if props.is_some_and(|x| x.display == "contacts") {
+                    Decimal::from_int(CONTACT_TEXT_SHIFT_PX)
+                } else {
+                    Decimal::ZERO
+                },
             }
         };
         mx.xref_place.insert(e.ek.clone(), place);
