@@ -650,7 +650,7 @@ fn unlabelled_elements_are_reported_with_their_own_code() {
     assert_eq!(
         entries(&imported, "EW-IMP-122"),
         [
-            "1 element without label: its device tag carries the element prefix letter (else `A`) and is numbered on import"
+            "1 element without label: its device tag carries the element prefix letter (else `A`) and is numbered on import; the page prints no tag for it, as QET prints none"
         ],
         "{}",
         all_entries(&imported)
@@ -679,7 +679,7 @@ fn unlabelled_elements_are_reported_with_their_own_code() {
     assert_eq!(
         entries(&imported, "EW-IMP-122"),
         [
-            "2 elements without label: device tags carry the element prefix letter (else `A`) and are numbered on import"
+            "2 elements without label: device tags carry the element prefix letter (else `A`) and are numbered on import; the page prints no tag for them, as QET prints none"
         ],
         "{}",
         all_entries(&imported)

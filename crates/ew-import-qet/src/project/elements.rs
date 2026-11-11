@@ -81,7 +81,7 @@ pub struct ElementsOut {
 pub const FALLBACK_LETTER: &str = "A";
 
 /// EW-IMP-122 (proposed, the next free code of the doc 14 §2.5 catalogue): element without label; its tag
-/// keeps the prefix letter without a number, and the page prints no tag for it, as QET prints none.
+/// keeps the prefix letter, the import numbers it (`-1A1`), and the page prints no tag for it, as QET prints none.
 pub const UNLABELED: Code = Code::imp(122);
 
 /// The element a link UUID names, seen from `from`: the copy on `from`'s folio when the UUID is repeated
@@ -693,9 +693,10 @@ impl Mx<'_, '_> {
     }
 }
 
-/// The width of QET's frame headers, px: the row header on the left and the column header on top
-/// (`BorderTitleBlock`), so column `k` starts at `20 + k × colsize` and row `k` at `20 + k × rowsize`.
-const QET_HEADER_PX: i64 = 20;
+/// Where QET's first column and row start, px: the border sits 5 px from the scene origin
+/// (`Diagram::margin`) and its header bands are 20 px wide (`BorderTitleBlock`), so column `k` starts at
+/// `25 + k × colsize` and row `k` at `25 + k × rowsize` (the frame of doc 14 §4.2 as built).
+const QET_GRID_ORIGIN_PX: i64 = 25;
 
 /// How far an element lying on a frame line moves up or left, in nm: one past the 1 nm window in which the
 /// cell rule of `ew-derive` reads a coordinate as the exact grid position.
@@ -703,7 +704,7 @@ pub(crate) const LINE_NUDGE_NM: i64 = 2;
 
 /// The nudge `(dx, dy)` in nm (each 0 or [`LINE_NUDGE_NM`], to subtract) of an element of link type
 /// `link_type` at QET position `(x, y)` px on a diagram with border `b`. QET's `convertPosition` takes the
-/// cell index as the ceiling of `(v − 20) / size`, so a point exactly on an inner column or row line belongs
+/// cell index as the ceiling of `(v − 25) / size`, so a point exactly on an inner column or row line belongs
 /// to the left column or the upper row, while EW's cell rule (floor) puts it right or below. Moving such an
 /// element a few nm left or up keeps its printed cross-reference cell as QET prints it (the derivation's
 /// cell rule stays).
@@ -725,7 +726,7 @@ pub(crate) fn qet_cell_nudge(link_type: &str, x: Decimal, y: Decimal, b: &Border
         (1..count).any(|k| {
             Decimal::from_int(i64::from(k))
                 .checked_mul(size)
-                .and_then(|l| l.checked_add(Decimal::from_int(QET_HEADER_PX)))
+                .and_then(|l| l.checked_add(Decimal::from_int(QET_GRID_ORIGIN_PX)))
                 .is_ok_and(|line| line == v)
         })
     };
@@ -966,11 +967,11 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         let loc = mx.findings.loc(Some(&folio), None, None);
         let text = if n == 1 {
             format!(
-                "1 element without label: its device tag carries the element prefix letter (else `{FALLBACK_LETTER}`), has no number and is not printed"
+                "1 element without label: its device tag carries the element prefix letter (else `{FALLBACK_LETTER}`) and is numbered on import; the page prints no tag for it, as QET prints none"
             )
         } else {
             format!(
-                "{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`), have no number and are not printed"
+                "{n} elements without label: device tags carry the element prefix letter (else `{FALLBACK_LETTER}`) and are numbered on import; the page prints no tag for them, as QET prints none"
             )
         };
         mx.findings.push(UNLABELED, Severity::Info, loc, text);
@@ -1213,17 +1214,17 @@ mod tests {
     #[test]
     fn an_element_on_a_row_line_moves_into_the_upper_row() {
         let b = qet_border();
-        // y = 260 px = 20 + 3 × 80 lies on the line between rows C and D; QET prints C.
+        // y = 265 px = 25 + 3 × 80 lies on the line between rows C and D; QET prints C.
         assert_eq!(
-            qet_cell_nudge("next_report", px("135"), px("260"), &b),
+            qet_cell_nudge("next_report", px("135"), px("265"), &b),
             (0, LINE_NUDGE_NM)
         );
         assert_eq!(
-            qet_cell_nudge("next_report", px("135"), px("580.0"), &b),
+            qet_cell_nudge("next_report", px("135"), px("585.0"), &b),
             (0, LINE_NUDGE_NM)
         );
-        // Inside a row, on the frame edges (20, 660) and in the header band: no move.
-        for y in ["261", "259.5", "20", "660", "10"] {
+        // Inside a row, on the frame edges (25, 665) and in the header band: no move.
+        for y in ["266", "264.5", "25", "665", "10"] {
             assert_eq!(
                 qet_cell_nudge("next_report", px("135"), px(y), &b),
                 (0, 0),
@@ -1235,16 +1236,16 @@ mod tests {
     #[test]
     fn an_element_on_a_column_line_moves_into_the_left_column() {
         let b = qet_border();
-        // x = 920 px = 20 + 15 × 60 lies on the line between columns 15 and 16; QET prints 15.
+        // x = 925 px = 25 + 15 × 60 lies on the line between columns 15 and 16; QET prints 15.
         assert_eq!(
-            qet_cell_nudge("next_report", px("920"), px("130"), &b),
+            qet_cell_nudge("next_report", px("925"), px("130"), &b),
             (LINE_NUDGE_NM, 0)
         );
         assert_eq!(
-            qet_cell_nudge("next_report", px("920"), px("260"), &b),
+            qet_cell_nudge("next_report", px("925"), px("265"), &b),
             (LINE_NUDGE_NM, LINE_NUDGE_NM)
         );
-        for x in ["921", "20", "1040", "0"] {
+        for x in ["926", "25", "1045", "0"] {
             assert_eq!(
                 qet_cell_nudge("next_report", px(x), px("130"), &b),
                 (0, 0),
@@ -1257,7 +1258,7 @@ mod tests {
             ..qet_border()
         };
         assert_eq!(
-            qet_cell_nudge("next_report", px("920"), px("260"), &other),
+            qet_cell_nudge("next_report", px("925"), px("265"), &other),
             (0, 0)
         );
     }
@@ -1265,15 +1266,15 @@ mod tests {
     #[test]
     fn only_elements_with_a_printed_cell_move() {
         let b = qet_border();
-        // A terminal, a simple element and an element without link type on the row line y = 260 px keep
+        // A terminal, a simple element and an element without link type on the row line y = 265 px keep
         // their exact position, so their connection points stay on the 10 px grid.
         for link in ["terminal", "simple", ""] {
-            assert_eq!(qet_cell_nudge(link, px("920"), px("260"), &b), (0, 0), "{link}");
+            assert_eq!(qet_cell_nudge(link, px("925"), px("265"), &b), (0, 0), "{link}");
         }
         // Interruption points, masters and slaves move: a cross-reference prints their cell.
         for link in ["previous_report", "next_report", "master", "slave"] {
             assert_eq!(
-                qet_cell_nudge(link, px("920"), px("260"), &b),
+                qet_cell_nudge(link, px("925"), px("265"), &b),
                 (LINE_NUDGE_NM, LINE_NUDGE_NM),
                 "{link}"
             );
@@ -1283,7 +1284,7 @@ mod tests {
     /// The nudged coordinate lies outside the 1 nm snap window of the line and above it.
     #[test]
     fn the_nudge_leaves_the_snap_window_of_the_cell_rule() {
-        for v in ["260", "580", "920"] {
+        for v in ["265", "585", "925"] {
             let rounded = i128::from(px(v).px_to_nm().unwrap().0);
             let exact_num = v.parse::<i128>().unwrap() * 793_750; // exact line = exact_num / 3 nm
             assert!(

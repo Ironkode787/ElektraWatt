@@ -32,7 +32,7 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | `<titleblocktemplate>` named by the diagram | a title-block form of the import library: QET's grid and cells, folio variables bound to the page, other variables filled with the diagram's values, sizes as styles `qet.<pt>` | logos not imported (EW-IMP-004); without a template QET's default `ew.titleblock.qet-a4` |
 | `graphics_table` | `ReportBlock` (summary → TOC, nomenclature → parts list, wiring list → wire list): page-oriented in place of folios holding only the table chain, else embedded in the head's rectangle | other queries and continuations elsewhere: EW-IMP-004 (doc 14 §4.13) |
 | `author`, `date`, `indexrev`, other title-block attributes, folio properties | a value equal on **all** folios goes to `Project.extra["qet.titleblock"]` / `["qet.properties"]`; every other value stays in `Page.extra` (one pass, doc 14 §4.9) | differing `author`, `date`, `indexrev` and properties: EW-IMP-104 (D-05) |
-| free texts, shapes, images | not imported | no page-item or report-block mapping yet (EW-IMP-004 per folio) |
+| free texts, shapes, images | page items: free text, graphic, image (`project/items.rs`, doc 14 §4.13) | image bytes as project assets; what an item cannot carry (pen colour, dash-dot-dot, brush pattern, image rotation) EW-IMP-004 |
 | embedded `<definition>` | `SymbolDef` + generated `FnDef` in the per-project "QET import" library | by the element reader; only definitions that placed elements use are embedded and reported |
 | element of link type `simple`, `master` | `Device` + main `Function` + `Representation` | keys `qet:el:<key>`, `…#fn`, `…#rep`; `<key>` is the UUID, `<uuid>#<folio key>#<n>` for a UUID repeated by copy-paste (EW-IMP-120; links prefer the copy on the same folio), `<folio key>#el#<n>` without UUID |
 | element of link type `thumbnail` | not imported (a graphic, doc 14 §4.3) | EW-IMP-004 |
@@ -41,15 +41,15 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | element of link type `terminal` | terminal `Device` (`kind: terminal`, `Terminal { strip, seq, designation }`) in a strip `Device` (`Strip` aspect) | see "Strips" |
 | element with one terminal, no label, ≥ 3 conductors | `Junction { style: dot, wiring: star }` | EW-IMP-118 |
 | element without definition or position | dropped (EW-IMP-003) | its wires are lost connections |
-| element position `x`, `y` | `Representation.pos`, exact (`793 750 / 3` nm per px) | on QET's default border, an element whose cell a cross-reference prints (an **interruption point** `next_report`/`previous_report`, a **master** or a **slave**) exactly on an inner column or row line (`x = 20 + k × 60`, `y = 20 + k × 80` px) moves 2 nm left or up: QET's `convertPosition` puts a line point into the left column or upper row (ceiling), EW's cell rule into the right column or lower row, and 2 nm leave the cell rule's 1 nm snap window, so the cells its cross-references print are QET's (owner rulings, reviews of cycle 12). Every other element (terminals, simple elements) keeps its exact position, so its connection points stay on the 10 px grid (FR-IMP-008, 0 nm deviation). A cell-boundary policy for imported projects is the proper home of this rule (ADR-0027 open item, FT-179) |
+| element position `x`, `y` | `Representation.pos`, exact (`793 750 / 3` nm per px) | on QET's default border, an element whose cell a cross-reference prints (an **interruption point** `next_report`/`previous_report`, a **master** or a **slave**) exactly on an inner column or row line (`x = 25 + k × 60`, `y = 25 + k × 80` px; the border sits 5 px from the scene origin) moves 2 nm left or up: QET's `convertPosition` puts a line point into the left column or upper row (ceiling), EW's cell rule into the right column or lower row, and 2 nm leave the cell rule's 1 nm snap window, so the cells its cross-references print are QET's (owner rulings, reviews of cycle 12). Every other element (terminals, simple elements) keeps its exact position, so its connection points stay on the 10 px grid (FR-IMP-008, 0 nm deviation). A cell-boundary policy for imported projects is the proper home of this rule (ADR-0027 open item, FT-179) |
 | `orientation` 0–3 | `Orient2` R0, R90, R180, R270 (clockwise) | |
 | `label` (rule R1 `-{page}{letter}{counter}` on its own folio, upper-case letters, counter without leading zeros) | derived `TagSpec { letter, counter }` | labels EW would print differently (`-101K01`, `-101f1`) stay frozen |
 | any other `label` | `FrozenTag { text, sign }` (sign hidden without a leading `-`) | EW-IMP-103 (strips excluded) |
 | `label` with structure prefix (`+…-X1`) | product part as above, prefix in `Device.extra["qet.structure"]` | structure nodes not created (gap) |
-| no `label` | `TagSpec { letter: prefix attribute, else "A", counter: none }`, numbered on import (`-1A1`) | EW-IMP-122 (proposed new code: element without label) count per folio |
+| no `label` | `TagSpec { letter: prefix attribute, else "A", counter: none }`, numbered on import (`-1A1`); no tag printed | EW-IMP-122 (proposed new code: element without label) count per folio |
 | `function` (else `description`) | `Device.function_text` | |
 | other element information (`manufacturer`, `designation`, `comment`, `formula` …) | `Device.extra["qet.info"]` (slaves: `Function.extra`) | EW-IMP-008 per name with a count; parts, tech data and formulas not mapped |
-| instance dynamic texts, text groups | not imported | the symbol's slots print derived values |
+| instance dynamic texts, old-style `<inputs>` | each where QET draws it: the tag or function-text slot shown by a slot override where the tag prints the label unchanged, else a free text (doc 14 §4.4.2) | the symbol's own dynamic texts print nothing in a project; text groups not read |
 | conductor | `Connection { kind: wire }` between function CPs or junctions | ends by UUID, else per-folio terminal ID; a UUID repeated on the folio is decided by the route geometry, else the first copy (EW-IMP-120); unresolved or identical ends dropped (EW-IMP-003, lost) |
 | the imported model | lenient check findings of the `migration` scheme (EW-RDS-004, EW-TERM-002 and every other `pre-delivery` rule of `ew-checks`) in the migration report | `ew_api::import::lenient_findings` |
 | `<segment>`s | `Connection.route` (interior points) | conductors without usable segments get QET's automatic path; a route `connection.route` would refuse is not stored (EW-IMP-009; doc 14 §4.7) |
@@ -80,7 +80,7 @@ importer yet.
 
 Formula evaluation and EW-IMP-101; rule inference R2/R3 and `AdoptRule`; structure nodes and EW-IMP-102;
 parts from element information; text-to-data recognisers (EW-IMP-107/108); `graphics_table` → report blocks;
-free texts, shapes and images; cables; conductor properties → potential definitions and overrides; switching the
+thumbnails; cables; conductor properties → potential definitions and overrides; switching the
 project to chain mode; external connection points; title-block template forms; QET 0.100
 `terminal_strips` data; empty terminal designations (MF-08 needs an empty designation, which `Ident` cannot
 hold); the starter-symbol exchange.

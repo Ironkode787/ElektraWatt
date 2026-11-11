@@ -647,7 +647,7 @@ rejected (§14).
 - **Grid-line positions.** On QET's default border (17 × 60 px columns,
   8 × 80 px rows, 20 px headers), an element whose cell a cross-reference prints (an interruption point
   `next_report`/`previous_report`, a master or a slave) that lies exactly on an inner column or row line
-  (x = 20 + k × 60, y = 20 + k × 80 px) moves 2 nm left or up. QET's `convertPosition` takes the ceiling, so a line
+  (x = 25 + k × 60, y = 25 + k × 80 px: the border sits 5 px from the scene origin) moves 2 nm left or up. QET's `convertPosition` takes the ceiling, so a line
   point belongs to the left column or upper row; EW's cell rule (floor, unchanged) would put it right or below, and
   2 nm leave the cell rule's 1 nm snap window, so the printed cells are QET's (Golden C: 102-C15, 103-G6, (202-E1)).
   Every other element (terminals, simple elements) keeps its exact position. This is an exception to FR-IMP-008's
@@ -749,8 +749,8 @@ map one to one:
    `-101f1`) is frozen rather than re-derived, and EW-IMP-009 never fires for a tag. EW-IMP-103 lists the frozen
    labels, strips excepted. A structure prefix (`+…-X1`) is kept in `Device.extra` until structure nodes are created
   . An element
-   without any label gets `TagSpec{letter: prefix attribute, else "A", counter: none}`, so the device keeps an
-   identity, and is reported once per folio as EW-IMP-122. Its tag is not printed, because QET prints none: the
+   without any label gets `TagSpec{letter: prefix attribute, else "A", counter: none}` (numbered on import), so
+   the device keeps an identity, and is reported once per folio as EW-IMP-122. Its tag is not printed, because QET prints none: the
    symbol's tag slot is hidden and only an element's own label text shows it (§4.4.2). Hiding the slot was taken
    over a hidden slot per representation or a placeholder tag because the symbol of a project import shows no
    text of its own anyway, so nothing is needed per unlabelled element.
