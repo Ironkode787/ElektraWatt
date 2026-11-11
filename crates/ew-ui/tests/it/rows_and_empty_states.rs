@@ -96,6 +96,8 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
     const TIP: &str = "Findings on the page you are editing that wait until you leave it or run a check";
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, false);
+    // Folio 102, whose page draws findings of one other severity only, so that the header has room for whole chips.
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
     place_ip(&mut h, "K32PEND");
@@ -109,13 +111,14 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
         h.set_size(egui::Vec2::new(width, 800.0));
         settle(&mut h);
         settle(&mut h);
+        // The page's chip: the pending findings of what the page draws (FT-1587), as many as the status bar counts.
+        let pending = |l: &str| {
+            l.split_once(" Pending: EW-")
+                .is_some_and(|(n, _)| n.parse::<usize>().is_ok())
+        };
         let chip = h
             .get_all_by_role(egui::Role::Button)
-            .find(|n| {
-                n.accesskit_node()
-                    .label()
-                    .is_some_and(|l| l.starts_with("1 Pending: EW-"))
-            })
+            .find(|n| n.accesskit_node().label().is_some_and(|l| pending(&l)))
             .unwrap_or_else(|| panic!("the Pending chip at {width}"));
         let bounds = chip.accesskit_node().raw_bounds().expect("bounds");
         let (w, hgt) = (bounds.x1 - bounds.x0, bounds.y1 - bounds.y0);
@@ -124,13 +127,16 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
             glyph,
             "the glyph chip is the narrow one: {w} by {hgt}"
         );
-        // The definition first, then the pending finding, "<rule>: <message>".
-        let finding = chip
+        // The definition first, then the pending findings, "<rule>: <message>" a line each.
+        let findings = chip
             .accesskit_node()
             .label()
-            .and_then(|l| l.strip_prefix("1 Pending: ").map(str::to_owned))
-            .expect("the chip names its finding");
-        let tip = format!("{TIP}\n{finding}");
+            .and_then(|l| {
+                l.split_once(" Pending: ")
+                    .map(|(_, f)| f.replace("; EW-", "\nEW-"))
+            })
+            .expect("the chip names its findings");
+        let tip = format!("{TIP}\n{findings}");
         assert!(h.query_by_label(&tip).is_none(), "no tooltip before the hover");
         chip.hover();
         h.run_steps(40);

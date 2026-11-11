@@ -1095,29 +1095,31 @@ fn c37_typing_into_an_opened_field_replaces_its_text() {
     assert_eq!(edit.buffer, "-102G8");
 }
 
-/// At the floor (1280 by 800) the page's warning chip keeps its count and word ("1 Warning",
+/// At the floor (1280 by 800) the page's warning chip keeps its count and word ("2 Warnings",
 /// not the icon alone) while the title elides, and the chip stands inside the pane's gutter (its right edge with the
-/// filter field's), never clipped by the pane's edge.
+/// filter field's), never clipped by the pane's edge. Folio 102, whose findings are warnings only (one chip).
 #[test]
 fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
     let tmp = Tmp::new();
-    let mut h = support::on_golden(&tmp, "101");
+    let mut h = support::on_golden(&tmp, "102");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
     settle(&mut h);
     settle(&mut h);
-    let chip = h
+    // The page's chip counts the warnings of what it draws, as Messages filtered to the page lists them (FT-1587).
+    let (chip, words) = h
         .get_all_by_role(egui::Role::Button)
-        .find(|n| {
-            n.accesskit_node()
-                .label()
-                .is_some_and(|l| l.starts_with("1 Warning: "))
+        .find_map(|n| {
+            let label = n.accesskit_node().label()?;
+            let (words, _) = label.split_once(": ")?;
+            let (count, word) = words.split_once(' ')?;
+            (count.parse::<usize>().is_ok() && word.starts_with("Warning"))
+                .then(|| (n.rect(), words.to_owned()))
         })
-        .expect("the page's warning chip")
-        .rect();
+        .expect("the page's warning chip");
     let tokens = ew_ui::theme::current(&h.ctx);
     let word = h.ctx.fonts_mut(|f| {
         f.layout_no_wrap(
-            "1 Warning".to_owned(),
+            words,
             ew_ui::theme::font(&tokens.type_caption),
             egui::Color32::WHITE,
         )

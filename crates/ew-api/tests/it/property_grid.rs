@@ -375,9 +375,13 @@ fn frozen_tags_wire_chips_and_the_page_description() {
         }
     );
     assert_eq!(d.path, "description_override");
-    // Page 101 holds the supply's external connection, which has no cable (EW-CORE-034, doc 20 EF-07).
+    // Page 101 holds the supply's external connection, which has no cable (EW-CORE-034, doc 20 EF-07). The header
+    // also counts the findings of what the page draws, where Messages and the status bar place them (FT-1587): a
+    // device's "has no part" has no page of its own.
     let rules: Vec<&str> = sheet.header.findings.iter().map(|f| f.rule.as_str()).collect();
-    assert_eq!(rules, ["EW-CORE-034"], "{:?}", sheet.header.findings);
+    for rule in ["EW-CORE-034", "EW-CORE-041"] {
+        assert!(rules.contains(&rule), "{rule}: {:?}", sheet.header.findings);
+    }
 }
 
 #[test]
