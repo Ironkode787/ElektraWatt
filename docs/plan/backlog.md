@@ -12,10 +12,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 ### The owner's hands-on test of 0.1.0-rc.3
 
 - FT-1645 `ew-import-qet`: **High.** An imported QET project's folios look nothing like the project in QET. The owner decided on 2026-11-11: full fidelity in this milestone. To build, by what a person sees (the comparison is in [m2.5-fix.md](m2.5-fix.md)): (a) every wire has the route QET drew, from the stored path or by QET's own rule; (b) free texts, shapes and images arrive as page items; (c) each element prints the texts QET prints and no generated tag; (d) the frame is numbered and placed as in QET, hidden where QET hides it, with the project's own title block; (e) QET's table pages show their tables; (f) page-link names and master and slave cross-references print. Done when the owner's private test project, folio by folio, reads as QET's own PDF of it does.
-- FT-1648 `ew-viewmodel, ew-ui`: **Medium.** Properties rows do not say what they do; give every row a tooltip that explains it, in English and Dutch.
-- FT-1649 `ew-viewmodel`: **Medium.** A connection point cannot be marked as not used: Properties shows it but offers nothing; add the action there and on the point's right-click menu.
-- FT-1650 `ew-ui`: **Medium.** Properties sections do not fold: a click on the Placement section's header does nothing.
-- FT-1651 `ew-viewmodel, ew-derive`: **Medium.** A wire from an off-page reference to a device gets BK 0.75 mm², shown as derived but not from what, and neither the reference nor the wire shows the voltage or the kind of signal or where to set them; only an override is offered. Show the source of a derived value and let the potential's voltage and signal kind be set from the wire and the reference.
 - FT-1656 `ew-ui`: **High.** The interface feels clunky and shows too little: a polish pass over the main window, the browsers, the panels and the dialogs for density and finish, judged at 1920 × 1080 (doc 16a).
 
 ### The persona round on rc.3
@@ -50,11 +46,12 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The window: feedback and dead ends
 
+- FT-1668 `ew-api`: Properties labels made by machine from field names read "Pos", "Orient", "Ptype"; give them words in both languages (found while every row got its explanation, FT-1648).
+- FT-1669 `ew-scene`: A connection point marked not used shows no mark on the page (doc 06 defines none); decide the mark and draw it.
 - FT-926 `ew-viewmodel, ew-ui`: **Medium.** A PLC card gets its addresses only once a CPU is placed, and nothing says so: the PLC panel reads "No PLC cards yet" with the card drawn and selected, and the card's properties offer no address field; say in the panel and on the card that a card needs a CPU, and how to add one (FT-823's area) (play-test rv-vis-5, cycle 41).
 - FT-927 `ew-viewmodel, ew-ui`: The command search finds nothing for "PLC" (only fuzzy hits such as "Properties of selection"), and the PLC panel sits behind an unlabelled chip icon on the left rail (play-test rv-vis-5, cycle 41).
 - FT-928 `ew-viewmodel, ew-ui`: **Medium.** A placement that places nothing gives no message: Device, typing "CPU", Enter and two corner clicks left nothing on the sheet and no reason (with FT-896) (play-test rv-vis-5, cycle 41).
 - FT-929 `ew-ui`: The Tool options panel lies over the sheet and hides the terminals where the user wants to click (play-test rv-vis-5, cycle 41).
-- FT-930 `ew-ui`: The hint bar moves from the bottom to the top of the sheet and covers the drawing there (play-test rv-vis-5, cycle 41).
 - FT-981 `ew-ui`: The tool options card covers the sheet's column header and top-left corner at both sizes (doc 16a §5.2) (W42b, cycle 42).
 - FT-614 `WP-S2.03`: Symbols are tiny at the default fit zoom (69 % on a new page in the 1536 × 994 frame): review the opening zoom of a page with few symbols.
 - FT-824 `ew-ui`: Opening a page from the Pages list: a click or a double-click on a row does nothing; only Enter or Page ▸ Go to opens it (rv-vis-3b t0003, t0060).
