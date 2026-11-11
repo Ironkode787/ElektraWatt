@@ -11,7 +11,7 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The owner's hands-on test of 0.1.0-rc.3
 
-- FT-1645 `ew-import-qet`: **High.** An imported QET project's folios look nothing like the project in QET. The owner decided on 2026-11-11: full fidelity in this milestone. To build, by what a person sees (the comparison is in [m2.5-fix.md](m2.5-fix.md)): (a) every wire has the route QET drew, from the stored path or by QET's own rule; (b) free texts, shapes and images arrive as page items; (c) each element prints the texts QET prints and no generated tag; (d) the frame is numbered and placed as in QET, hidden where QET hides it, with the project's own title block; (e) QET's table pages show their tables; (f) page-link names and master and slave cross-references print. Done when the owner's private test project, folio by folio, reads as QET's own PDF of it does.
+- FT-1645 `ew-import-qet, ew-scene`: What an imported QET folio still shows differently, after the full-fidelity work of M2.5-Fix: a master's contact list has no contact symbols and its rows stand closer than QET's 10 px (the scene has no list drawing and the text style no line height); `displayhas="cross"` and `snapto="bottom"` cross-references print as a list, with a report entry; QET's folio list arrives as EW's own table of contents; an element's `mirror` is not read (QET 0.100 writes none; newer versions do); fonts are substituted, so texts sit slightly lower.
 - FT-1656 `ew-ui`: **High.** The interface feels clunky and shows too little: a polish pass over the main window, the browsers, the panels and the dialogs for density and finish, judged at 1920 × 1080 (doc 16a).
 
 ### The persona round on rc.3
@@ -32,7 +32,7 @@ symbol editor and the QET import work without anything that stops the work. Its 
 - FT-1433 `ew-viewmodel`: A device dropped on a wire connects into it without asking ("behind my back"); show the proposals and ask, or say so in the toast, after R1's record for ADR-0007 (R0-F4, Nielsen 2; R0 P-7).
 - FT-1434 `ew-derive`: The router's provisional routes jog, take a rectangular detour on a straight vertical connection and run over existing wires (R0-F5, Nielsen 2; R0 P-8).
 - FT-1545 `ew-viewmodel`: A target placed by the page's quarters no longer pairs with a source on its own since ID-1462 (the user types the name or uses Continue on page…); watch it in R1 and decide whether the quarters propose the source's name as a typed one.
-- FT-1579 `ew-api`: Routing at an import's front door (a project imported without routes routed once on import, previewed), WP-S2.19 OQ5.
+- FT-1579 `ew-api`: Routing at an import's front door for `ew import csv`, whose `route` column is optional (a QET import needs none any more: every wire arrives routed).
 - FT-1588 `ew-derive`: Wire markers are no obstacles for the router or measure (d), since they move with their wire; place them clear of other wires and texts after routing (ID-1502 (3)).
 - FT-1589 `ew-derive`: A layout measure for a route over the frame bands; the router already blocks them (WP-S2.19 §5.1 rule 5).
 - FT-1590 `ew-derive`: QET-grid connection points can sit 1 nm off a grid line, so the exact measures miss an overlap 1 nm off.
@@ -94,6 +94,7 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### Checks, reports and the format
 
+- FT-1670 `ew`: `ew render` sums up a page's findings as "(unresolved wire ends, unknown styles, overflowing table texts)" whatever they are; on an imported folio they were fifteen title-block fields the file leaves empty. Say what they are.
 - FT-1662 `ew-viewmodel, ew-api`: **Medium.** Nothing refreshes the project lock while a project is open: `Session::heartbeat` has no caller in the window or the CLI, so after an hour another session may take the lock as stale (doc 05 §7.2). Call it on the heartbeat interval.
 - FT-1663 `ew-api`: The session's change feed (`Session::drain_changes`) is filled on every commit and never drained by the window, so it grows for as long as a project is open. Drain it, or stop filling it where nothing reads it.
 - FT-1664 `ew-api, ew-checks`: `ew verify-derived` does not sweep the memoised check findings (`check_findings` of `ew-checks`), and its guard test does not show the gap because the golden workload runs no check through the memo store. Sweep the family, and run the checks in the guard's workload.
