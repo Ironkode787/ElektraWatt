@@ -31,7 +31,7 @@ pub(crate) struct EditorView {
     /// (F2).
     text_mark: Option<[f64; 2]>,
     vertices: Vec<[f64; 2]>,
-    selected: Option<usize>,
+    selected: Option<Selected>,
     move_start: Option<Pos2>,
     advanced: String,
     text: String,
@@ -1122,28 +1122,44 @@ impl EditorView {
                 for p in self.vertices.windows(2) {painter.line_segment([origin+Vec2::new(p[0][0] as f32,p[0][1] as f32)*self.zoom,origin+Vec2::new(p[1][0] as f32,p[1][1] as f32)*self.zoom],Stroke::new(t.border_width,t.canvas_selection.color32()));}
                 if editor.variant != 0 { painter.text(rect.left_top()+Vec2::splat(t.space_3),egui::Align2::LEFT_TOP,label(strings::Key::run_time("symbol-edit-a")),theme::font(&t.type_body),t.canvas_selection.color32()); }
                 if editor.variant == 0 && self.tool == 0 {
+                    // The reach of a point (a connection point, a link point) for picking and outlining, in mm.
+                    let (zoom, reach) = (self.zoom, (t.space_2 + 4.0) / self.zoom);
                     if response.clicked() && let Some(pointer)=response.interact_pointer_pos() {
-                        self.selected=pick_graphic(draft,(pointer-origin)/self.zoom,t.space_2/self.zoom,&styles);
+                        self.selected=pick_item(draft,(pointer-origin)/zoom,t.space_2/zoom,reach,&styles);
                     }
-                    // M25-p3#3: a drag moves the shape under its start, which it selects; a drag that starts on no
-                    // shape moves nothing.
+                    // A drag moves the item under its start, which it selects; a drag that starts on no item moves
+                    // nothing.
                     if response.drag_started_by(egui::PointerButton::Primary) {
                         let press = ui.input(|i| i.pointer.press_origin());
                         self.move_start = None;
-                        if let Some(start) = press && let Some(index) = pick_graphic(draft,(start-origin)/self.zoom,t.space_2/self.zoom,&styles) {
-                            self.selected = Some(index);
+                        if let Some(start) = press && let Some(item) = pick_item(draft,(start-origin)/zoom,t.space_2/zoom,reach,&styles) {
+                            self.selected = Some(item);
                             self.move_start = Some(start);
                         }
                     }
-                    if let Some(index)=self.selected && let Some(bounds)=graphic_bounds(draft,index,&styles) {
-                        let lo=origin+Vec2::new(bounds[0],bounds[1])*self.zoom;
-                        let hi=origin+Vec2::new(bounds[2],bounds[3])*self.zoom;
-                        painter.rect_stroke(egui::Rect::from_two_pos(lo,hi).expand(t.space_1),t.radius_none,Stroke::new(t.border_width,t.canvas_selection.color32()),egui::StrokeKind::Outside);
+                    if let Some(item)=self.selected && let Some(bounds)=item_bounds(draft,item,reach,&styles) {
+                        let lo=origin+Vec2::new(bounds[0],bounds[1])*zoom;
+                        let hi=origin+Vec2::new(bounds[2],bounds[3])*zoom;
+                        let outline=egui::Rect::from_two_pos(lo,hi).expand(t.space_1);
+                        painter.rect_stroke(outline,t.radius_none,Stroke::new(t.border_width,t.canvas_selection.color32()),egui::StrokeKind::Outside);
+                        // The move a drag makes, on the item's own step: the connection grid for a connection point.
+                        let step = item.step_nm(draft);
+                        let moved = |start: Pos2, end: Pos2| {
+                            let d=(end-start)/zoom;
+                            let on=|v: f32| (f64::from(v)*1e6/step as f64).round() as i64*step;
+                            (on(d.x),on(d.y))
+                        };
+                        // While the drag lasts, the ghost: the item's outline where a release would put it.
+                        if let Some(start) = self.move_start && response.dragged_by(egui::PointerButton::Primary) && let Some(now) = response.interact_pointer_pos() {
+                            let (dx,dy) = moved(start,now);
+                            if dx!=0||dy!=0 {
+                                let by=Vec2::new(dx as f32,dy as f32)/1e6*zoom;
+                                painter.rect_stroke(outline.translate(by),t.radius_none,Stroke::new(t.focus_width,t.canvas_snap.color32()),egui::StrokeKind::Outside);
+                            }
+                        }
                         if response.drag_stopped_by(egui::PointerButton::Primary) && let Some(start) = self.move_start.take() && let Some(end) = response.interact_pointer_pos() {
-                            let delta=(end-start)/self.zoom;
-                            let dx=(f64::from(delta.x)*2.0).round() as i64*500_000;
-                            let dy=(f64::from(delta.y)*2.0).round() as i64*500_000;
-                            if dx!=0||dy!=0 { let mut d=serde_json::to_value(draft).unwrap_or_default();translate_graphic(&mut d["symbol"]["graphics"][index],dx,dy);action(events,"symbol.replace",json!({"document":d})); }
+                            let (dx,dy) = moved(start,end);
+                            if dx!=0||dy!=0 { let mut d=serde_json::to_value(draft).unwrap_or_default();translate_item(&mut d,item,dx,dy);action(events,"symbol.replace",json!({"document":d})); }
                         }
                     }
                 }
@@ -1416,15 +1432,35 @@ impl EditorView {
             return;
         };
         let mut changed = false;
+        // Delete removes the selected item, whatever its kind, and an arrow key moves it by its own step (the
+        // connection grid for a connection point); both while no field is typed into.
         if self.panel == 0
             && !ui.ctx().text_edit_focused()
-            && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete))
-            && let Some(index) = self.selected.take()
-            && let Some(graphics) = doc["symbol"]["graphics"].as_array_mut()
-            && index < graphics.len()
+            && let Some(item) = self.selected
         {
-            graphics.remove(index);
-            changed = true;
+            let (list, index) = item.place();
+            if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete)) {
+                if let Some(items) = doc["symbol"][list].as_array_mut()
+                    && index < items.len()
+                {
+                    items.remove(index);
+                    changed = true;
+                }
+                self.selected = None;
+            } else {
+                let step = item.step_nm(draft);
+                for (key, dx, dy) in [
+                    (egui::Key::ArrowLeft, -step, 0),
+                    (egui::Key::ArrowRight, step, 0),
+                    (egui::Key::ArrowUp, 0, -step),
+                    (egui::Key::ArrowDown, 0, step),
+                ] {
+                    if ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, key)) {
+                        translate_item(&mut doc, item, dx, dy);
+                        changed = true;
+                    }
+                }
+            }
         }
         changed |= text_field(ui, "symbol-name", &mut doc["symbol"]["name"], false);
         if self.panel == 2 {
@@ -1511,13 +1547,13 @@ impl EditorView {
             {
                 for i in 0..draft.symbol.graphics.len() {
                     if ui
-                        .selectable_label(self.selected == Some(i), graphic_title(i))
+                        .selectable_label(self.selected == Some(Selected::Graphic(i)), graphic_title(i))
                         .clicked()
                     {
-                        self.selected = Some(i);
+                        self.selected = Some(Selected::Graphic(i));
                     }
                 }
-                if let Some(i) = self.selected
+                if let Some(Selected::Graphic(i)) = self.selected
                     && let Some(value) = doc["symbol"]["graphics"].get_mut(i)
                 {
                     let owner = graphic_title(i);
@@ -2299,6 +2335,129 @@ fn pick_graphic(draft: &SymbolDraft, p: Vec2, slop: f32, styles: &symbols::TextS
         .min_by(|a, b| a.0.total_cmp(&b.0))
         .map(|(_, i)| i)
 }
+/// What the Select tool holds: an item of the drawing, by the list of the symbol it is in and its place there.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Selected {
+    Graphic(usize),
+    Cp(usize),
+    Slot(usize),
+    Link(usize),
+}
+
+impl Selected {
+    /// The member of the symbol that lists the item, and the item's place in it.
+    fn place(self) -> (&'static str, usize) {
+        match self {
+            Selected::Graphic(i) => ("graphics", i),
+            Selected::Cp(i) => ("cps", i),
+            Selected::Slot(i) => ("text_slots", i),
+            Selected::Link(i) => ("link_points", i),
+        }
+    }
+
+    /// The step a move of the item keeps to, in nanometres: the connection grid for a connection point (it must stay
+    /// on it), 1 mm for a text slot, 0.5 mm for a graphic and a link point, as a click with each tool snaps.
+    fn step_nm(self, draft: &SymbolDraft) -> i64 {
+        match self {
+            Selected::Cp(_) => draft.symbol.grid.at(1).map_or(4_000_000, |n| n.0),
+            Selected::Slot(_) => 1_000_000,
+            Selected::Graphic(_) | Selected::Link(_) => 500_000,
+        }
+    }
+}
+
+/// A point of the symbol in millimetres.
+fn mm(p: symbols::units::Pt2) -> Vec2 {
+    Vec2::new(p.x.0 as f32 / 1e6, p.y.0 as f32 / 1e6)
+}
+
+/// The bounds of an item in millimetres: a graphic's and a text slot's as drawn, a connection point's and a link
+/// point's the square of half-side `reach` around it.
+fn item_bounds(
+    draft: &SymbolDraft,
+    item: Selected,
+    reach: f32,
+    styles: &symbols::TextStyleTable,
+) -> Option<[f32; 4]> {
+    let around = |p: Vec2| [p.x - reach, p.y - reach, p.x + reach, p.y + reach];
+    match item {
+        Selected::Graphic(i) => graphic_bounds(draft, i, styles),
+        // By its place in the list, as the document's array has it (the set's own `get` is by pin index).
+        Selected::Cp(i) => draft
+            .symbol
+            .cps
+            .iter()
+            .as_slice()
+            .get(i)
+            .map(|c| around(mm(c.pos))),
+        Selected::Link(i) => draft.symbol.link_points.get(i).map(|l| around(mm(l.pos))),
+        Selected::Slot(i) => {
+            let slot = draft.symbol.text_slots.get(i)?;
+            let mut d = draft.clone();
+            d.symbol.graphics.clear();
+            d.symbol.text_slots = vec![slot.clone()];
+            d.symbol.link_points.clear();
+            let drawn = d
+                .preview(0)
+                .ok()
+                .and_then(|g| symbols::preview_display_list(&d, &g, styles, &slot_placeholder).bounds());
+            Some(match drawn {
+                Some(b) => [
+                    b.min().x.0 as f32 / 1e6,
+                    b.min().y.0 as f32 / 1e6,
+                    b.max().x.0 as f32 / 1e6,
+                    b.max().y.0 as f32 / 1e6,
+                ],
+                None => around(mm(slot.pos)),
+            })
+        }
+    }
+}
+
+/// The item under `p` for the Select tool: the nearest connection point or link point within `reach` (they lie on
+/// the lines that lead to them, so they come first), else the topmost visible text slot whose text holds `p`, else
+/// the graphic [`pick_graphic`] gives.
+fn pick_item(
+    draft: &SymbolDraft,
+    p: Vec2,
+    slop: f32,
+    reach: f32,
+    styles: &symbols::TextStyleTable,
+) -> Option<Selected> {
+    let near = |q: Vec2| Some((q - p).length()).filter(|d| *d <= reach);
+    let cps = draft
+        .symbol
+        .cps
+        .iter()
+        .enumerate()
+        .filter_map(|(i, c)| Some((near(mm(c.pos))?, Selected::Cp(i))));
+    let links = draft
+        .symbol
+        .link_points
+        .iter()
+        .enumerate()
+        .filter_map(|(i, l)| Some((near(mm(l.pos))?, Selected::Link(i))));
+    if let Some((_, point)) = cps.chain(links).min_by(|a, b| a.0.total_cmp(&b.0)) {
+        return Some(point);
+    }
+    let holds =
+        |b: [f32; 4]| p.x >= b[0] - slop && p.y >= b[1] - slop && p.x <= b[2] + slop && p.y <= b[3] + slop;
+    (0..draft.symbol.text_slots.len())
+        .rev()
+        .filter(|i| draft.symbol.text_slots[*i].visible)
+        .find(|i| item_bounds(draft, Selected::Slot(*i), reach, styles).is_some_and(holds))
+        .map(Selected::Slot)
+        .or_else(|| pick_graphic(draft, p, slop, styles).map(Selected::Graphic))
+}
+
+/// Moves an item of the document by (`dx`, `dy`) nanometres.
+fn translate_item(doc: &mut Value, item: Selected, dx: i64, dy: i64) {
+    let (list, index) = item.place();
+    if let Some(v) = doc["symbol"][list].get_mut(index) {
+        translate_graphic(v, dx, dy);
+    }
+}
+
 fn translate_graphic(v: &mut Value, dx: i64, dy: i64) {
     fn points(v: &mut Value, dx: i64, dy: i64) {
         if let Some(a) = v.as_array_mut() {

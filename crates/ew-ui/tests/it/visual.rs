@@ -1188,6 +1188,55 @@ fn a_symbol_drawn_in_the_editor_reaches_the_library_a_page_and_the_picker() {
     d.shell_mut().shutdown();
 }
 
+/// The Select tool holds a connection point as it holds a shape (the owner's hands-on test: it could neither move nor
+/// delete one, nothing showed where a moved item would land, and the arrow keys did nothing). A drag moves the point
+/// on the connection grid, an arrow key moves it one grid step, Delete removes it; each is one undo step.
+#[test]
+fn symbol_editor_select_moves_nudges_and_deletes_a_connection_point() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    assert_eq!(d.shell_mut().dispatch("symbol.new", &json!({})), Outcome::Done);
+    d.settle();
+    let points = |d: &mut Driver| -> Vec<(i64, i64)> {
+        let draft = &d.shell_mut().symbol_editor().unwrap().draft;
+        draft.symbol.cps.iter().map(|c| (c.pos.x.0, c.pos.y.0)).collect()
+    };
+    let grid = 4_000_000;
+    d.input(&click(d.find("Connection point").unwrap()));
+    d.input(&click((763, 315)));
+    let placed = points(&mut d);
+    assert_eq!(placed.len(), 1);
+    d.input(&click(d.find("Select").unwrap()));
+    // A drag to the right moves it by whole grid steps, along x only.
+    d.input(&Input::Drag {
+        from: (763, 315),
+        to: (843, 317),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    let dragged = points(&mut d);
+    assert!(dragged[0].0 > placed[0].0, "{dragged:?} after {placed:?}");
+    assert_eq!(
+        ((dragged[0].0 - placed[0].0) % grid, dragged[0].1),
+        (0, placed[0].1)
+    );
+    // An arrow key moves the selected point one grid step.
+    d.input(&key("arrowdown"));
+    assert_eq!(points(&mut d), [(dragged[0].0, dragged[0].1 + grid)]);
+    d.input(&key("ctrl+z"));
+    assert_eq!(points(&mut d), dragged);
+    // Delete removes it, and one undo brings it back.
+    d.input(&key("delete"));
+    assert!(points(&mut d).is_empty());
+    d.input(&key("ctrl+z"));
+    assert_eq!(points(&mut d), dragged);
+    d.input(&key("ctrl+z"));
+    assert_eq!(points(&mut d), placed);
+    d.shell_mut().shutdown();
+}
+
 #[test]
 fn symbol_editor_numeric_properties_commit_complete_text_as_one_undo() {
     use ew_ui::ew_viewmodel::shell::Outcome;

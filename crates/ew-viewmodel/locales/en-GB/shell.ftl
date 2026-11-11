@@ -5231,7 +5231,7 @@ symbol-slot-pin-number = Pin number
 action-symbol-map-cp = Map a symbol connection point to a function pin
 
 symbol-pin-ordinal = { $p0 } ({ $p1 })
-symbol-select-hint = Select a shape to edit, drag to move, or press Delete to remove it.
+symbol-select-hint = Click to select. Drag or arrow keys move, Delete removes.
 symbol-circle-hint = Click the centre, then a point on the circle.
 symbol-bounds-hint = Click opposite corners of the bounding box. Set arc angles in Drawing.
 symbol-point-hint = Click where to place the item.

@@ -16,8 +16,12 @@ ellipse, arc, polyline and polygon. Press **F1** in the editor to open this refe
 Text fields can show tags, function text, technical data, pin designations or cross-references.
 **Advanced document** exposes the complete draft, including other slot types, styles and arrangements.
 The circle tool takes a centre and a point on its circumference; arcs and ellipses take opposite bounding-box
-corners. Arc creation angles are whole degrees; negative sweep reverses direction. Select a shape and press
-**Delete** to remove it, or drag it to move it; either change takes one undo step. Numeric property edits commit
+corners. Arc creation angles are whole degrees; negative sweep reverses direction. A line, a rectangle, a circle,
+an ellipse and an arc are drawn by two clicks or by one drag. With **Select**, click a shape, a connection point,
+a text slot or a link point to select it; drag it or press an arrow key to move it, and press **Delete** to
+remove it. While you drag, an outline shows where the item will land. A connection point moves on the connection
+grid, a text slot in steps of 1 mm, a shape and a link point in steps of 0.5 mm. Each change takes one undo
+step. Numeric property edits commit
 when you press Enter or leave the field, so partially typed coordinates do not reshape the drawing.
 Selected rectangles, circles, ellipses and polygons have **Fill shape**. Text and text slots have a **Text style**
 list showing the project's style sizes; choose a larger style when connection numbers need to match other labels.

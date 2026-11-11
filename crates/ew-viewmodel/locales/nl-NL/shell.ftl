@@ -4984,7 +4984,7 @@ symbol-slot-pin-number = Pinnummer
 action-symbol-map-cp = Een symboolaansluitpunt aan een functiepin toewijzen
 
 symbol-pin-ordinal = { $p0 } ({ $p1 })
-symbol-select-hint = Selecteer een vorm om te bewerken, sleep om te verplaatsen of druk op Delete om te verwijderen.
+symbol-select-hint = Klik om te selecteren. Slepen of pijltoetsen verplaatsen, Delete verwijdert.
 symbol-circle-hint = Klik op het middelpunt en daarna op een punt op de cirkel.
 symbol-bounds-hint = Klik op tegenoverliggende hoeken van het kader. Stel booghoeken in bij Tekenen.
 symbol-point-hint = Klik waar u het object wilt plaatsen.
