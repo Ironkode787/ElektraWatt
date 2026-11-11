@@ -1741,9 +1741,12 @@ impl App {
                 .options_rect
                 .zip(self.ghost_screen_point())
                 .is_some_and(|(rect, ghost)| rect.contains(ghost));
+        // Right under the tab bar, one row high: a fitted page's margin and its frame's band of column numbers hold
+        // it, so it covers none of the drawing (FT-929, FT-981: with its title and `space.4` padding it lay over
+        // the sheet's top left, where terminals are clicked).
         let at = egui::pos2(
             pane.left() + t.space_4,
-            pane.top() + t.size_dock_tab_bar + t.space_4,
+            pane.top() + t.size_dock_tab_bar + t.space_1,
         );
         let App {
             ip_name,
@@ -1753,21 +1756,17 @@ impl App {
             structure_location,
             ..
         } = self;
-        // Only the controls take the pointer. The card is two layers: its frame and title, which
-        // let the pointer through to the canvas beneath (a click on them reaches the sheet), and, over it, a band
-        // holding the controls, which are the card's only interactive part. While the tool's ghost is under the card
-        // (by the rect the last frame drew, so the card never flips) it is drawn at 40 % and is no chip obstacle.
+        // Only the controls take the pointer. The card is two layers: its frame, which lets the pointer through to
+        // the canvas beneath (a click on it reaches the sheet), and, over it, a band holding the controls, which are
+        // the card's only interactive part; the fields carry their own labels, so the card has no title. While the
+        // tool's ghost is under the card (by the rect the last frame drew, so the card never flips) it is drawn at
+        // 40 % and is no chip obstacle.
         let opacity = if faded { OPTIONS_FADED_OPACITY } else { 1.0 };
-        let title = strings::text(key!("hud-tool-options"));
-        let title_font = crate::theme::font(&t.type_body_strong);
-        let title_size = ctx.fonts_mut(|f| {
-            f.layout_no_wrap(title.to_owned(), title_font.clone(), crate::theme::NONE)
-                .size()
-        });
-        let frame = crate::components::card_frame(&t).shadow(crate::theme::shadow(&t.elevation_1));
+        let frame = crate::components::card_frame(&t)
+            .inner_margin(egui::Margin::same(crate::theme::margin_px(t.space_2)))
+            .shadow(crate::theme::shadow(&t.elevation_1));
         let margin = frame.total_margin();
-        let gap = ctx.global_style().spacing.item_spacing.y;
-        let band_at = at + egui::vec2(margin.left, margin.top + title_size.y + gap);
+        let band_at = at + egui::vec2(margin.left, margin.top);
         // The areas are named per tool, so a tool's card sizes itself on a sizing pass rather than inheriting
         // the last tool's size as its bound.
         let id = egui::Id::unique(("tool-options", tool));
@@ -1829,14 +1828,9 @@ impl App {
             .order(egui::Order::Middle)
             .show(ctx, |ui| {
                 ui.set_opacity(opacity);
-                // A card of doc 16a §6.9 (panel fill, a 1-px border, `radius.md`, `space.4` padding,
-                // the title in `type.body.strong`) with `elevation.1`, as it floats over the canvas.
+                // A card of doc 16a §6.9 (panel fill, a 1-px border, `radius.md`) with `elevation.1`, as it floats
+                // over the canvas, and `space.2` padding around its one row.
                 frame.show(ui, |ui| {
-                    ui.label(
-                        egui::RichText::new(title)
-                            .font(title_font)
-                            .color(t.text_primary.color32()),
-                    );
                     ui.allocate_space(band_size);
                 });
             });

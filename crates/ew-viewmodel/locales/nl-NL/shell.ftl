@@ -755,7 +755,6 @@ hud-ip-target = doel: gevoed door zijn bron
 hud-ip-undirected = zonder richting: koppelt in beide richtingen
 hud-ip-star = sterbron: voedt elk punt met deze naam
 ghost-ip-star = { $p0 } sterbron
-hud-tool-options = Gereedschapsopties
 zoom-control = Zoom
 action-tools-palette = Opdrachtpalet
 action-help-shortcuts = Sneltoetsen

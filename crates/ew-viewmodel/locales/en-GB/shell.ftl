@@ -793,7 +793,6 @@ hud-ip-star = star source: feeds every point of the name
 
 # W42b: the IP tool's ghost label of a starred point ("<name> <direction>" otherwise).
 ghost-ip-star = { $p0 } star source
-hud-tool-options = Tool options
 zoom-control = Zoom
 action-tools-palette = Command palette
 action-help-shortcuts = Keyboard shortcuts

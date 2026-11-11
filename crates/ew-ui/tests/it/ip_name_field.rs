@@ -399,8 +399,9 @@ fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
 }
 
 /// At the floor the IP tool's Tool options card takes the pointer only with its controls. A click on
-/// its title (its free area) places a point on the sheet beneath; while the tool's ghost is under the card the card is
-/// drawn at 40 % opacity and is no chip obstacle, and away from it the card is whole and an obstacle again.
+/// its frame (its free area, left of its first control) places a point on the sheet beneath; while the tool's ghost is
+/// under the card the card is drawn at 40 % opacity and is no chip obstacle, and away from it the card is whole and an
+/// obstacle again.
 #[test]
 fn a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
     let tmp = Tmp::new();
@@ -411,7 +412,16 @@ fn a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
     assert_eq!(h.state().shell().tool().name(), "ip");
     settle(&mut h);
     let t = ew_ui::theme::current(&h.ctx);
-    let title = h.get_by_label("Tool options").rect();
+    let label = h
+        .get_all_by_role(egui::Role::Label)
+        .find(|n| n.accesskit_node().value().as_deref() == Some("Interruption point name"))
+        .expect("the IP name's label")
+        .rect();
+    // The frame's padding left of the band, a point wide.
+    let title = egui::Rect::from_center_size(
+        egui::pos2(label.left() - t.space_2 / 2.0, label.center().y),
+        egui::Vec2::splat(1.0),
+    );
     let card_fill = t.surface_panel.color32();
     let faded_fill = card_fill.gamma_multiply(0.4);
     let painted = card_painted;
