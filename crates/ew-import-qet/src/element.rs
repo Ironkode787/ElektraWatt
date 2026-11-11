@@ -175,9 +175,7 @@ pub fn read_element(
 ) -> Result<ElementImport, ImportError> {
     let depth = crate::xml::prescan(xml, limits)?;
     let library: Id<Library> = Id::from_uuid(project.as_uuid());
-    crate::xml::with_parser_stack(depth, || {
-        read_on_stack(xml, src, lineage, library, limits, false)
-    })
+    crate::xml::with_parser_stack(depth, || read_on_stack(xml, src, lineage, library, limits, false))
 }
 
 /// [`read_element`] after the pre-scan, on the parser thread (the project importer calls it for every

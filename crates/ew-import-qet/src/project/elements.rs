@@ -27,8 +27,8 @@ use ew_ids::Id;
 use ew_interop_api::{Code, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList, LibCopy,
-    Record, Representation, SlotKind, SlotOverride, SymbolDef, TagScheme, TagSign, TagSpec,
+    Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList,
+    LibCopy, Record, Representation, SlotKind, SlotOverride, SymbolDef, TagScheme, TagSign, TagSpec,
 };
 use ew_units::{Angle2, Nm, Orient2, Pt2};
 use serde_json::Value;
@@ -612,13 +612,17 @@ impl Mx<'_, '_> {
                 })
                 .collect()
         } else {
-            e.el.inputs.iter().map(|i| (i.text.clone(), &i.at, None)).collect()
+            e.el.inputs
+                .iter()
+                .map(|i| (i.text.clone(), &i.at, None))
+                .collect()
         };
         let live = self.live.contains(&e.ek);
         let slots = &e.symbol().item.text_slots;
         let mut overrides: Vec<SlotOverride> = Vec::new();
         for (n, (raw, at, kind)) in texts.into_iter().enumerate() {
-            let (text, style, em) = items::qet_text(&raw, at.font.as_deref(), &mut self.out.fonts, self.findings);
+            let (text, style, em) =
+                items::qet_text(&raw, at.font.as_deref(), &mut self.out.fonts, self.findings);
             if text.trim().is_empty() {
                 continue;
             }
@@ -633,7 +637,12 @@ impl Mx<'_, '_> {
                     continue;
                 }
                 let Some((local, angle)) = items::text_anchor(at, i, em) else {
-                    self.at(e, Code::MALFORMED_ITEM, Severity::Warning, format!("element text {n} skipped: bad x/y"));
+                    self.at(
+                        e,
+                        Code::MALFORMED_ITEM,
+                        Severity::Warning,
+                        format!("element text {n} skipped: bad x/y"),
+                    );
                     break;
                 };
                 if let Some(slot) = slot {
@@ -647,8 +656,10 @@ impl Mx<'_, '_> {
                     continue;
                 }
                 let turned = e.orient.apply(local);
-                let (Some(x), Some(y)) = (e.pos.x.0.checked_add(turned.x.0), e.pos.y.0.checked_add(turned.y.0))
-                else {
+                let (Some(x), Some(y)) = (
+                    e.pos.x.0.checked_add(turned.x.0),
+                    e.pos.y.0.checked_add(turned.y.0),
+                ) else {
                     continue;
                 };
                 let turns = i32::from(e.orient.rotation()) * 1000;

@@ -275,7 +275,10 @@ pub fn em_of(point_size: Decimal) -> Option<Nm> {
     let scaled = point_size.mantissa().checked_mul(3_175_000)?;
     let e = point_size.exp();
     let (num, den) = if e >= 0 {
-        (scaled.checked_mul(10i128.checked_pow(u32::try_from(e).ok()?)?)?, 9)
+        (
+            scaled.checked_mul(10i128.checked_pow(u32::try_from(e).ok()?)?)?,
+            9,
+        )
     } else {
         (scaled, 10i128.checked_pow(e.unsigned_abs())?.checked_mul(9)?)
     };
@@ -443,11 +446,7 @@ pub fn dynamic_text(node: Node<'_, '_>, ctx: &mut PrimCtx<'_>, out: &mut Parsed)
         kind,
         pos,
         rot: angle,
-        align: if ctx.instance_texts {
-            INSTANCE_ALIGN
-        } else {
-            align
-        },
+        align: if ctx.instance_texts { INSTANCE_ALIGN } else { align },
         visible: !ctx.instance_texts,
         max_width,
         style: style.filter(|_| ctx.instance_texts),

@@ -169,18 +169,20 @@ impl Reader<'_> {
                 }
                 "inputs" => d.free_texts.extend(self.inputs(c)),
                 "shapes" => d.shapes.extend(named(c, "shape").map(|s| self.shape(s))),
-                "images" => d.images.extend(named(c, "image").map(|i| QetImage {
-                    x: decimal(i.attribute("x")),
-                    y: decimal(i.attribute("y")),
-                    scale: decimal(i.attribute("size")),
-                    rotation: decimal(i.attribute("rotation")),
-                    data: i
-                        .text()
-                        .unwrap_or("")
-                        .chars()
-                        .filter(|c| !c.is_ascii_whitespace())
-                        .collect(),
-                    line: self.line(i),
+                "images" => d.images.extend(named(c, "image").map(|i| {
+                    QetImage {
+                        x: decimal(i.attribute("x")),
+                        y: decimal(i.attribute("y")),
+                        scale: decimal(i.attribute("size")),
+                        rotation: decimal(i.attribute("rotation")),
+                        data: i
+                            .text()
+                            .unwrap_or("")
+                            .chars()
+                            .filter(|c| !c.is_ascii_whitespace())
+                            .collect(),
+                        line: self.line(i),
+                    }
                 })),
                 "tables" => d.tables.extend(named(c, "graphics_table").map(|t| self.table(t))),
                 other => {

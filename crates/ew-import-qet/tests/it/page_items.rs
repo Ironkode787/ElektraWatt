@@ -14,7 +14,8 @@ use ew_import_qet::ew_interop_api::{Code, ImportBatch, ImportInput};
 use ew_import_qet::project::new_project_context;
 
 /// A 1 × 1 PNG.
-const PNG: &str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+const PNG: &str =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
 const FONT9: &str = "Sans Serif,9,-1,5,50,0,0,0,0,0";
 
@@ -206,7 +207,10 @@ fn shapes_become_graphics_on_their_points() {
             _ => None,
         })
         .unwrap();
-    assert_eq!((line.0.a.x.0, line.0.a.y.0, line.0.b.x.0), (px("10"), px("20"), px("110")));
+    assert_eq!(
+        (line.0.a.x.0, line.0.a.y.0, line.0.b.x.0),
+        (px("10"), px("20"), px("110"))
+    );
     assert_eq!(line.1.dash, LineDash::Dashed);
     assert_eq!(line.1.stroke.as_ref().map(|s| s.width.0), Some(px("2")));
     let rect = g
@@ -227,7 +231,10 @@ fn shapes_become_graphics_on_their_points() {
             _ => None,
         })
         .unwrap();
-    assert_eq!((circle.0.centre.x.0, circle.0.centre.y.0, circle.0.r.0), (px("70"), px("40"), px("10")));
+    assert_eq!(
+        (circle.0.centre.x.0, circle.0.centre.y.0, circle.0.r.0),
+        (px("70"), px("40"), px("10"))
+    );
     assert_eq!(circle.1.dash, LineDash::Dotted);
     let polygons: Vec<&Vec<_>> = g
         .iter()
@@ -237,11 +244,18 @@ fn shapes_become_graphics_on_their_points() {
         })
         .collect();
     // The triangle as drawn, and the rounded rectangle through its corners within its box.
-    assert!(polygons.iter().any(|p| p.len() == 3 && p[1].x.0 == px("10") && p[1].y.0 == 0));
+    assert!(
+        polygons
+            .iter()
+            .any(|p| p.len() == 3 && p[1].x.0 == px("10") && p[1].y.0 == 0)
+    );
     let rounded = polygons.iter().find(|p| p.len() > 3).unwrap();
     assert_eq!(rounded.iter().map(|p| p.x.0).min(), Some(px("200")));
     assert_eq!(rounded.iter().map(|p| p.y.0).max(), Some(px("90")));
-    assert!(!rounded.iter().any(|p| p.x.0 == px("200") && p.y.0 == px("30")), "the corner is rounded");
+    assert!(
+        !rounded.iter().any(|p| p.x.0 == px("200") && p.y.0 == px("30")),
+        "the corner is rounded"
+    );
 }
 
 #[test]
@@ -289,7 +303,11 @@ fn an_element_prints_its_own_texts_and_no_tag_where_qet_prints_none() {
         .position(|s| s.kind == SlotKind::Tag)
         .unwrap();
     assert!(!symbol.text_slots[tag].visible);
-    assert!(free_texts(&b).iter().all(|t| t.text.as_neutral() != Some("Template")));
+    assert!(
+        free_texts(&b)
+            .iter()
+            .all(|t| t.text.as_neutral() != Some("Template"))
+    );
     let by_x = |x: &str| reps(&b).into_iter().find(|r| r.pos.x.0 == px(x)).unwrap();
     // The unlabelled element shows no slot and no text of its own.
     assert!(by_x("100").text_slots.is_empty());
@@ -298,12 +316,18 @@ fn an_element_prints_its_own_texts_and_no_tag_where_qet_prints_none() {
     assert_eq!(usize::from(shown.slot), tag);
     assert_eq!(shown.visible, Some(true));
     let pos = shown.pos.unwrap();
-    assert_eq!((pos.x.0, pos.y.0), (px("5") + px("4"), px("-30") + px("4") + MIDDLE9));
+    assert_eq!(
+        (pos.x.0, pos.y.0),
+        (px("5") + px("4"), px("-30") + px("4") + MIDDLE9)
+    );
     // The information text prints its value at (500 + 20, 100 + 30) px, the margin, the line's middle.
     let comment = text(&b, "Pump left");
     assert_eq!(
         (comment.at.x.0, comment.at.y.0),
-        (px("500") + px("20") + px("4"), px("100") + px("30") + px("4") + MIDDLE9)
+        (
+            px("500") + px("20") + px("4"),
+            px("100") + px("30") + px("4") + MIDDLE9
+        )
     );
     assert_eq!(comment.style.as_ref().map(|s| s.as_str()), Some("qet.9"));
 }

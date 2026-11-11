@@ -80,9 +80,7 @@ pub(crate) fn qet_text(
     {
         findings.file_level(Code::FONT_SUBSTITUTED, Severity::Info, message);
     }
-    let size = html
-        .and_then(|(s, _)| s)
-        .or(f.as_ref().map(|f| f.point_size));
+    let size = html.and_then(|(s, _)| s).or(f.as_ref().map(|f| f.point_size));
     let Some(size) = size else {
         return (text, None, default());
     };
@@ -121,7 +119,10 @@ pub(crate) fn rich_text(raw: &str) -> Option<(String, Option<Decimal>, bool)> {
         let Some(p) = piece.rfind("<p") else { continue };
         let inner = &piece[p..];
         let inner = &inner[inner.find('>').map_or(inner.len(), |i| i + 1)..];
-        let inner = inner.replace("<br />", "\n").replace("<br/>", "\n").replace("<br>", "\n");
+        let inner = inner
+            .replace("<br />", "\n")
+            .replace("<br/>", "\n")
+            .replace("<br>", "\n");
         let mut text = String::new();
         let mut in_tag = false;
         for c in inner.chars() {
@@ -169,10 +170,7 @@ pub(crate) fn text_anchor(at: &TextAt, line: usize, em: Nm) -> Option<(Pt2, Angl
         Nm(i64::try_from(margin).ok()?),
         Nm(i64::try_from(down).ok()?),
     ));
-    let point = Pt2::new(
-        Nm(x.0.checked_add(offset.x.0)?),
-        Nm(y.0.checked_add(offset.y.0)?),
-    );
+    let point = Pt2::new(Nm(x.0.checked_add(offset.x.0)?), Nm(y.0.checked_add(offset.y.0)?));
     Some((point, Angle2(rotation.checked_neg()?)))
 }
 
@@ -237,11 +235,22 @@ pub(crate) fn map(
                 continue;
             }
             let Some((at, angle)) = text_anchor(&t.at, i, em) else {
-                note(findings, t.line, format!("text {n}"), Code::MALFORMED_ITEM, "free text skipped: bad x/y".into());
+                note(
+                    findings,
+                    t.line,
+                    format!("text {n}"),
+                    Code::MALFORMED_ITEM,
+                    "free text skipped: bad x/y".into(),
+                );
                 break;
             };
             let key = line_key(&format!("qet:item:{folio_key}#text{n}"), i);
-            out.records.push(item(ids, page, &key, free_text(line.trim_end(), at, angle, style.clone())));
+            out.records.push(item(
+                ids,
+                page,
+                &key,
+                free_text(line.trim_end(), at, angle, style.clone()),
+            ));
         }
     }
     for (n, s) in d.shapes.iter().enumerate() {
@@ -254,7 +263,13 @@ pub(crate) fn map(
                 let key = format!("qet:item:{folio_key}#shape{n}");
                 out.records.push(item(ids, page, &key, PageItemKind::Graphic(g)));
             }
-            Err(m) => note(findings, s.line, what, Code::MALFORMED_ITEM, format!("shape skipped: {m}")),
+            Err(m) => note(
+                findings,
+                s.line,
+                what,
+                Code::MALFORMED_ITEM,
+                format!("shape skipped: {m}"),
+            ),
         }
     }
     for (n, i) in d.images.iter().enumerate() {
@@ -262,7 +277,13 @@ pub(crate) fn map(
         match image(i, out) {
             Ok((sha, rect)) => {
                 if i.rotation.is_some_and(|r| !r.is_zero()) {
-                    note(findings, i.line, what, Code::DROPPED_BY_DESIGN, "image rotation dropped: an image item is not turned".into());
+                    note(
+                        findings,
+                        i.line,
+                        what,
+                        Code::DROPPED_BY_DESIGN,
+                        "image rotation dropped: an image item is not turned".into(),
+                    );
                 }
                 let key = format!("qet:item:{folio_key}#image{n}");
                 let kind = PageItemKind::Image(ImageItem {
@@ -272,7 +293,13 @@ pub(crate) fn map(
                 });
                 out.records.push(item(ids, page, &key, kind));
             }
-            Err(m) => note(findings, i.line, what, Code::MALFORMED_ITEM, format!("image skipped: {m}")),
+            Err(m) => note(
+                findings,
+                i.line,
+                what,
+                Code::MALFORMED_ITEM,
+                format!("image skipped: {m}"),
+            ),
         }
     }
 }
@@ -365,7 +392,10 @@ fn graphic(s: &QetShape) -> Result<(Graphic, Vec<String>), String> {
             LineDash::Solid
         }
     };
-    if !matches!(s.pen_color.to_ascii_lowercase().as_str(), "" | "#000000" | "#ff000000" | "black") {
+    if !matches!(
+        s.pen_color.to_ascii_lowercase().as_str(),
+        "" | "#000000" | "#ff000000" | "black"
+    ) {
         notes.push(format!("pen colour {} drawn black", s.pen_color));
     }
     let fill = match s.brush_style.as_str() {
@@ -478,7 +508,9 @@ fn image(i: &QetImage, out: &mut ItemsOut) -> Result<(Sha256, Bounds), String> {
     let (w, h) = size.ok_or("the image has no size of its own")?;
     let scale = i.scale.unwrap_or(Decimal::from_int(1));
     let corner = |pos: Decimal, len: u32, sign: i64| -> Result<Nm, String> {
-        let half = Decimal::from_int(i64::from(len)).half().map_err(|e| e.to_string())?;
+        let half = Decimal::from_int(i64::from(len))
+            .half()
+            .map_err(|e| e.to_string())?;
         let reach = half
             .checked_mul(scale)
             .and_then(|r| r.checked_mul(Decimal::from_int(sign)))
@@ -501,7 +533,12 @@ mod tests {
     fn an_ellipse_outline_touches_its_box_on_four_sides() {
         let r = Rect::from_points(Pt2::new(Nm(0), Nm(0)), Pt2::new(Nm(400), Nm(200)));
         let p = rounded(r, 200, 100);
-        for want in [Pt2::new(Nm(0), Nm(100)), Pt2::new(Nm(200), Nm(0)), Pt2::new(Nm(400), Nm(100)), Pt2::new(Nm(200), Nm(200))] {
+        for want in [
+            Pt2::new(Nm(0), Nm(100)),
+            Pt2::new(Nm(200), Nm(0)),
+            Pt2::new(Nm(400), Nm(100)),
+            Pt2::new(Nm(200), Nm(200)),
+        ] {
             assert!(p.contains(&want), "{want:?} in {p:?}");
         }
         assert!(p.iter().all(|q| r.contains(*q)), "{p:?}");
