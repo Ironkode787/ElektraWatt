@@ -606,31 +606,60 @@ impl ShellModel {
         if self.banner.as_deref() == Some(importing.as_str()) {
             self.banner = None;
         }
-        // Each count with its plural form ("1 page").
+        // What Create project makes: the folder and each count with its plural form ("1 page").
         let summary = strings::format(
-            key!("import-card-summary"),
+            key!("import-card-does"),
             &[
+                &dir_name(&dir),
                 &strings::format_count(crate::count_key!("import-card-pages"), counts.pages),
                 &strings::format_count(crate::count_key!("import-card-devices"), counts.devices),
                 &strings::format_count(crate::count_key!("import-card-connections"), counts.connections),
-                &strings::format_count(crate::count_key!("import-card-errors"), errors),
-                &strings::format_count(crate::count_key!("import-card-warnings"), warnings),
-                &strings::format_count(crate::count_key!("import-card-infos"), infos),
             ],
         );
-        // Each listed page in words ("Page 1"), never its bare folio.
-        let pages = session
-            .page_labels()
-            .iter()
-            .map(|folio| strings::format(key!("import-card-page"), &[folio]))
-            .collect();
+        // The verdict: what the findings as a whole ask of the reader.
+        let points = |n: usize| strings::format_count(crate::count_key!("import-card-points"), n);
+        let verdict = if errors > 0 {
+            strings::format(key!("import-card-verdict-errors"), &[&points(errors)])
+        } else if warnings > 0 {
+            strings::format(key!("import-card-verdict-warnings"), &[&points(warnings)])
+        } else {
+            strings::text(key!("import-card-verdict-clean")).to_owned()
+        };
+        // The kinds of findings under what they ask: one row per rule, its count and its title in the window's
+        // language, the most frequent first.
+        let kinds = ew_api::import::migration_kinds(&session);
+        let groups = [
+            (ew_api::checks::Severity::Error, key!("import-card-group-errors")),
+            (
+                ew_api::checks::Severity::Warning,
+                key!("import-card-group-warnings"),
+            ),
+            (ew_api::checks::Severity::Info, key!("import-card-group-infos")),
+        ]
+        .into_iter()
+        .filter_map(|(severity, heading)| {
+            let rows: Vec<String> = kinds
+                .iter()
+                .filter(|k| k.severity == severity)
+                .map(|k| {
+                    let title = ew_api::checks::messages::title(&k.rule, strings::rule_language())
+                        .or_else(|| ew_api::checks::rule(&k.rule).map(|r| r.meta().title.to_owned()))
+                        .unwrap_or_else(|| k.rule.clone());
+                    strings::format(key!("import-card-row"), &[&k.count.to_string(), &title])
+                })
+                .collect();
+            (!rows.is_empty()).then(|| super::ImportGroup {
+                heading: strings::text(heading).to_owned(),
+                rows,
+            })
+        })
+        .collect();
         let card = Dialog::ImportQet {
             file: name.clone(),
-            folder: dir_name(&dir),
             summary,
-            pages,
-            devices: counts.devices,
-            confirm: false,
+            verdict,
+            note: library_note.map(str::to_owned),
+            groups,
         };
         // A dialog open when the job ends stays; the card waits until it closes (`poll_import`).
         let waiting = if self.dialog.is_some() {
@@ -648,22 +677,15 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `file.import_qet_apply {confirm?}` (the import card's Apply): the checkpoint confirmation T4 (in the
-    /// window a question, headless the `confirm` parameter), then the project written into the chosen folder and
-    /// opened. Without an import card it is refused.
+    /// `file.import_qet_apply {confirm}` (the import card's Create project): the project written into the chosen
+    /// folder and opened. The card says what is made, so its button is the confirmation and sends `confirm`; a
+    /// script names it too. Without an import card it is refused.
     pub(crate) fn act_import_qet_apply(&mut self, p: &Map<String, Value>) -> Outcome {
-        let Some(Dialog::ImportQet { file, confirm, .. }) = self.dialog.as_mut() else {
+        let Some(Dialog::ImportQet { file, .. }) = self.dialog.as_ref() else {
             return Outcome::refused(key!("reason-no-import"));
         };
         if !flag(p, "confirm") {
-            return match self.mode {
-                Mode::Headless => failed(key!("error-import-confirm"), &[file]),
-                Mode::Gui => {
-                    *confirm = true;
-                    self.dialog_gen += 1;
-                    Outcome::Done
-                }
-            };
+            return failed(key!("error-import-confirm"), &[file]);
         }
         // The project open now (it stayed editable while the importer ran) asks again before it closes; the
         // question replaces the card, and Cancel returns to it.

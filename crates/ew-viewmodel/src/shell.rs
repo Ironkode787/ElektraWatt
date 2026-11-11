@@ -265,6 +265,15 @@ pub struct Pending {
     pub params: Value,
 }
 
+/// A group of the import card: the kinds of findings of one severity.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ImportGroup {
+    /// The group's heading: what its findings ask of the reader.
+    pub heading: String,
+    /// One row per kind, the most frequent first: the count and the rule's title.
+    pub rows: Vec<String>,
+}
+
 /// A dialog of the shell.
 #[derive(Clone, PartialEq, Debug)]
 pub enum Dialog {
@@ -347,21 +356,21 @@ pub enum Dialog {
         /// The older format.
         from: String,
     },
-    /// Project ▸ Import ▸ QElectroTech project: the import card (its summary and pages, Apply or Cancel),
-    /// then the checkpoint confirmation (`confirm`: Create project or Cancel). Cancel writes nothing.
+    /// Project ▸ Import ▸ QElectroTech project: the import card. It says what Create project makes, gives a verdict
+    /// and lists the kinds of findings by what they ask of the reader; Create project or Cancel, which writes
+    /// nothing. (The owner's hands-on test of 0.1.0: the card listed counts and page numbers without a conclusion,
+    /// and its button was "Apply".)
     ImportQet {
         /// The source's file name.
         file: String,
-        /// The chosen folder's name.
-        folder: String,
-        /// The summary line (T5).
+        /// What the import makes, in words: the folder and the counts of pages, devices and wires.
         summary: String,
-        /// The folios of the imported pages, in page order.
-        pages: Vec<String>,
-        /// The imported devices.
-        devices: usize,
-        /// Whether the confirmation is shown.
-        confirm: bool,
+        /// The verdict, in words.
+        verdict: String,
+        /// A note the reader needs before creating the project (the starter library was not found).
+        note: Option<String>,
+        /// The kinds of findings, grouped by what they ask of the reader.
+        groups: Vec<ImportGroup>,
     },
     /// Project ▸ Import ▸ Re-import QElectroTech project: a file matched to an earlier import by its
     /// items (T6): Re-import or Cancel.

@@ -101,6 +101,22 @@ impl DialogSpec {
 /// The most pages the import card lists, and the most rows the re-import card lists, before its "and N more" line.
 pub const IMPORT_PAGES_LISTED: usize = 12;
 
+/// The kinds of findings the import card lists per group; the rest is counted in one line ([`import_more_kinds`]).
+pub const IMPORT_KINDS_LISTED: usize = 5;
+
+/// The line that counts the kinds of a group beyond [`IMPORT_KINDS_LISTED`]; `None` when all are listed.
+pub fn import_more_kinds(group: &crate::shell::ImportGroup) -> Option<String> {
+    let more = group
+        .rows
+        .len()
+        .checked_sub(IMPORT_KINDS_LISTED)
+        .filter(|n| *n > 0)?;
+    Some(strings::format_count(
+        crate::count_key!("import-card-more-kinds"),
+        more,
+    ))
+}
+
 fn close() -> DialogButton {
     DialogButton::new(key!("dialog-close"), DialogAnswer::Dismiss)
 }
@@ -160,23 +176,15 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         }
         // D11: Upgrade and save (Enter) or Cancel.
         Dialog::ConfirmUpgrade { from } => upgrade_spec(from),
-        // The import card (Apply, Cancel) with its summary, its pages listed by the dialog; then the
-        // checkpoint confirmation (Create project, Cancel).
+        // The import card (Create project, Cancel): what is made, the verdict, a note; its groups of findings are
+        // listed by the dialog.
         Dialog::ImportQet {
             file,
             summary,
-            pages,
-            confirm: false,
-            ..
-        } => import_card_spec(file, summary, pages),
-        Dialog::ImportQet {
-            file,
-            folder,
-            pages,
-            devices,
-            confirm: true,
-            ..
-        } => import_confirm_spec(file, folder, pages, *devices),
+            verdict,
+            note,
+            groups,
+        } => import_card_spec(file, summary, verdict, note.as_deref(), !groups.is_empty()),
         // The proposal T6 (Re-import, Cancel).
         Dialog::ReimportMatch {
             path,
@@ -480,11 +488,18 @@ fn upgrade_spec(from: &str) -> DialogSpec {
 }
 
 /// The import card of `file`: a form with its summary, the pages past the listed ones counted, Apply and Cancel.
-fn import_card_spec(file: &str, summary: &str, pages: &[String]) -> DialogSpec {
-    let mut body = vec![summary.to_owned()];
-    if pages.len() > IMPORT_PAGES_LISTED {
-        let more = (pages.len() - IMPORT_PAGES_LISTED).to_string();
-        body.push(strings::format(key!("import-card-more"), &[&more]));
+fn import_card_spec(
+    file: &str,
+    summary: &str,
+    verdict: &str,
+    note: Option<&str>,
+    findings: bool,
+) -> DialogSpec {
+    let mut body = vec![summary.to_owned(), verdict.to_owned()];
+    body.extend(note.map(str::to_owned));
+    // Where the findings are read in full, once the project exists.
+    if findings {
+        body.push(strings::text(key!("import-card-where")).to_owned());
     }
     DialogSpec {
         secondary: vec![cancel()],
@@ -492,29 +507,6 @@ fn import_card_spec(file: &str, summary: &str, pages: &[String]) -> DialogSpec {
         ..small(
             strings::format(key!("import-card-title"), &[file]),
             body,
-            DialogButton::new(
-                key!("import-card-apply"),
-                DialogAnswer::Action("file.import_qet_apply", Value::Null),
-            ),
-        )
-    }
-}
-
-/// The import's checkpoint confirmation, the folder, pages and devices named: Create project or Cancel.
-fn import_confirm_spec(file: &str, folder: &str, pages: &[String], devices: usize) -> DialogSpec {
-    DialogSpec {
-        secondary: vec![cancel()],
-        asks: true,
-        ..small(
-            strings::format(key!("import-confirm-title"), &[file]),
-            vec![strings::format(
-                key!("import-confirm-text"),
-                &[
-                    folder,
-                    &strings::format_count(crate::count_key!("import-card-pages"), pages.len()),
-                    &strings::format_count(crate::count_key!("import-card-devices"), devices),
-                ],
-            )],
             DialogButton::new(
                 key!("import-confirm-create"),
                 DialogAnswer::Action("file.import_qet_apply", json!({ "confirm": true })),

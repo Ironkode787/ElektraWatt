@@ -532,8 +532,13 @@ transaction, `import.apply` (origin `import`, not in the public command catalogu
 documents, creates or updates the lineage, runs the normalisers, checks the structural invariants without the
 prevent hook, so prevent violations stay as findings, and writes the run. **Into a new project:** `ew import qet
 <file> --out <dir>` writes the project after the report; in the window the import card is a modal (not the Preview
-tab's card) with the counts and the pages, Apply asks the checkpoint confirmation and the unsaved-changes question
-for whatever project is open then, and Cancel writes nothing. **Re-import:** `ew import qet <file> --into <project>`
+tab's card). It says what its button makes (a new project in the chosen folder, with its pages, devices and
+connections), gives a verdict (everything imported; points worth a look; points that need a fix), names a missing
+starter library, and lists the kinds of findings of the migration report under what they ask of the reader (Needs a
+fix, Worth a look, For your information), each kind with its count and the rule's title, the most frequent first.
+Its button is Create project, which is the confirmation (a script passes `confirm`), then the unsaved-changes
+question for whatever project is open then; Cancel writes nothing. (Until M2.5-Fix the card showed counts of
+errors, warnings and infos and a list of page numbers, its button was Apply, and a second dialog asked again.) **Re-import:** `ew import qet <file> --into <project>`
 prints the classes and writes nothing, `--apply` commits and saves; the window's re-import card lists the rows, and
 Apply is one undo step.
 

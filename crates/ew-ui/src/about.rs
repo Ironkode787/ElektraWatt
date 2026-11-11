@@ -256,22 +256,30 @@ pub fn show(
                 });
         }
         Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup { .. } => {}
-        // The import card lists the imported pages under its summary.
-        Dialog::ImportQet {
-            pages,
-            confirm: false,
-            ..
-        } => {
+        // The import card lists the kinds of findings under what they ask of the reader: a heading per group, then
+        // one row per kind, the first few of each group.
+        Dialog::ImportQet { groups, .. } => {
             let t = crate::theme::current(ui.ctx());
-            for page in pages.iter().take(ew_viewmodel::dialogs::IMPORT_PAGES_LISTED) {
-                ui.label(
-                    egui::RichText::new(page)
-                        .font(crate::theme::font(&t.type_small))
-                        .color(t.text_secondary.color32()),
-                );
+            for group in groups {
+                ui.add_space(t.space_2);
+                ui.label(egui::RichText::new(&group.heading).strong());
+                for row in group.rows.iter().take(ew_viewmodel::dialogs::IMPORT_KINDS_LISTED) {
+                    ui.label(
+                        egui::RichText::new(row)
+                            .font(crate::theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    );
+                }
+                if let Some(more) = ew_viewmodel::dialogs::import_more_kinds(group) {
+                    ui.label(
+                        egui::RichText::new(more)
+                            .font(crate::theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    );
+                }
             }
         }
-        Dialog::ImportQet { .. } | Dialog::ReimportMatch { .. } => {}
+        Dialog::ReimportMatch { .. } => {}
         // The re-import card lists its rows under T8.
         Dialog::Reimport { rows, .. } => {
             let t = crate::theme::current(ui.ctx());

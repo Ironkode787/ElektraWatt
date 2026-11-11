@@ -2002,14 +2002,18 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  label \"{}\"", user(line)));
             }
         }
-        // The import card's summary and its listed pages; the confirmation's paragraph.
-        Dialog::ImportQet { pages, confirm, .. } => {
+        // The import card's paragraphs, then its groups of findings as the dialog lists them.
+        Dialog::ImportQet { groups, .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));
             }
-            if !confirm {
-                for page in pages.iter().take(crate::dialogs::IMPORT_PAGES_LISTED) {
-                    lines.push(format!("  page \"{}\"", user(page)));
+            for group in groups {
+                lines.push(format!("  group \"{}\"", user(&group.heading)));
+                for row in group.rows.iter().take(crate::dialogs::IMPORT_KINDS_LISTED) {
+                    lines.push(format!("    kind \"{}\"", user(row)));
+                }
+                if let Some(more) = crate::dialogs::import_more_kinds(group) {
+                    lines.push(format!("    more \"{}\"", user(&more)));
                 }
             }
         }

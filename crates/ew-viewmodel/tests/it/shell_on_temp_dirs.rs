@@ -340,6 +340,83 @@ fn example_qet(tmp: &Tmp) -> PathBuf {
     qet
 }
 
+/// The import card says, before the project is created, that the starter library was not found (it was said only by
+/// the banner afterwards), and it groups the migration report's findings by what they ask of the reader: a heading
+/// per severity, one row per kind with its count and the rule's title, the most frequent first.
+#[test]
+fn the_import_card_names_a_missing_library_and_groups_its_findings() {
+    let tmp = Tmp::new("import-card-groups");
+    let qet = tmp.0.join("lamp-circuit.qet");
+    std::fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/book/src/tutorials/files/lamp-circuit.qet"),
+        &qet,
+    )
+    .unwrap();
+    let dir = tmp.0.join("imported.ew");
+    // A shell without the starter content.
+    let config = ShellConfig::in_dir(&tmp.0.join("config"), VERSION).with_resources(Resources {
+        content_dir: None,
+        ..resources()
+    });
+    let mut shell = ShellModel::new(Mode::Headless, config);
+    done(
+        &mut shell,
+        "file.import_qet",
+        json!({ "file": path(&qet), "dir": path(&dir) }),
+    );
+    let dialog = shell.dialog().expect("the import card").clone();
+    let spec = ew_viewmodel::dialogs::spec(&dialog, &shell);
+    let missing = "The starter library was not found; symbols the project refers to may be missing.";
+    assert!(spec.body.iter().any(|l| l == missing), "{:?}", spec.body);
+    assert!(
+        spec.body[0]
+            .starts_with("Create project makes a new project in the folder imported.ew, with 1 page, "),
+        "{:?}",
+        spec.body
+    );
+    assert_eq!(spec.primary.label, "Create project");
+    let Dialog::ImportQet { groups, verdict, .. } = &dialog else {
+        panic!("the import card");
+    };
+    // The headings in the order of what they ask, each kind as "<count> × <rule's title>".
+    let known = ["Needs a fix", "Worth a look", "For your information"];
+    let headings: Vec<&str> = groups.iter().map(|g| g.heading.as_str()).collect();
+    assert!(!headings.is_empty(), "the tutorial's file has findings");
+    let order: Vec<usize> = headings
+        .iter()
+        .map(|h| {
+            known
+                .iter()
+                .position(|k| k == h)
+                .unwrap_or_else(|| panic!("heading {h}"))
+        })
+        .collect();
+    assert!(order.windows(2).all(|w| w[0] < w[1]), "{headings:?}");
+    for group in groups {
+        let counts: Vec<usize> = group
+            .rows
+            .iter()
+            .map(|r| {
+                let (count, title) = r.split_once(" × ").unwrap_or_else(|| panic!("row {r}"));
+                assert!(
+                    !title.is_empty() && !title.starts_with("EW-"),
+                    "a title in words: {r}"
+                );
+                count.parse().unwrap_or_else(|_| panic!("row {r}"))
+            })
+            .collect();
+        assert!(counts.windows(2).all(|w| w[0] >= w[1]), "{:?}", group.rows);
+    }
+    // The verdict follows the most severe group.
+    let expected = if headings[0] == known[0] {
+        "The file was imported, but "
+    } else {
+        "The file was imported. "
+    };
+    assert!(verdict.starts_with(expected), "{verdict}");
+    shell.shutdown();
+}
+
 #[test]
 fn a_qelectrotech_project_is_imported_into_a_new_directory() {
     let tmp = Tmp::new(STEM);
@@ -351,34 +428,26 @@ fn a_qelectrotech_project_is_imported_into_a_new_directory() {
         "file.import_qet",
         json!({ "file": path(&qet), "dir": path(&dir) }),
     );
-    // The import card with T5's summary; nothing is written before Apply and its confirmation.
+    // The import card says what Create project makes, each count with its plural, and gives its verdict; its
+    // button is named for what it does. Nothing is written before it.
     let spec = ew_viewmodel::dialogs::spec(shell.dialog().expect("the import card"), &shell);
     assert_eq!(spec.title, "Import example.qet");
     assert_eq!(
         spec.body,
-        ["1 page, 0 devices, 0 connections; 0 errors, 0 warnings and 0 infos in the migration report"]
-    );
-    assert!(!dir.exists(), "the card writes nothing");
-    // The listed page in words; the confirmation's counts with their plurals.
-    let Some(ew_viewmodel::shell::Dialog::ImportQet { pages, .. }) = shell.dialog() else {
-        panic!("the import card");
-    };
-    assert_eq!(pages, &["Page 1".to_owned()]);
-    let confirm = ew_viewmodel::shell::Dialog::ImportQet {
-        file: "example.qet".into(),
-        folder: "imported.ew".into(),
-        summary: String::new(),
-        pages: pages.clone(),
-        devices: 1,
-        confirm: true,
-    };
-    assert_eq!(
-        ew_viewmodel::dialogs::spec(&confirm, &shell).body,
         [
-            "The import creates a new project in imported.ew with 1 page and 1 device. It cannot be undone: delete the \
-             folder to discard it."
+            "Create project makes a new project in the folder imported.ew, with 1 page, 0 devices and 0 connections.",
+            "Everything in the file was imported."
         ]
     );
+    assert_eq!(spec.primary.label, "Create project");
+    assert!(!dir.exists(), "the card writes nothing");
+    // A file without findings lists no group.
+    let Some(ew_viewmodel::shell::Dialog::ImportQet { groups, note, .. }) = shell.dialog() else {
+        panic!("the import card");
+    };
+    assert!(groups.is_empty(), "{groups:?}");
+    // This shell finds the starter library, so the card has no note about it.
+    assert_eq!(note, &None);
     match run(&mut shell, "file.import_qet_apply", json!({})) {
         Outcome::Failed { message } => assert_eq!(
             message,
@@ -441,11 +510,13 @@ fn a_migration_report_row_previews_its_quick_fix() {
         json!({ "file": path(&qet), "dir": path(&dir) }),
     );
     done(&mut shell, "file.import_qet_apply", json!({ "confirm": true }));
-    // The banner's count is the report's (3 errors, 8 warnings and 5 infos: the file's three conductors
-    // have no route, EW-CORE-073).
-    assert_eq!(
-        shell.banner(),
-        Some("Imported lamp-circuit.qet: 1 page, 4 devices, 16 findings in the migration report.")
+    // The banner counts the migration report's findings (how many depends on what the importer maps, which
+    // grows: the count is not pinned).
+    let banner = shell.banner().unwrap_or_default().to_owned();
+    assert!(
+        banner.starts_with("Imported lamp-circuit.qet: 1 page, 4 devices, ")
+            && banner.ends_with(" findings in the migration report."),
+        "{banner}"
     );
     assert!(shell.messages_shows_migration());
     done(&mut shell, "messages.show", json!({"on": true}));
@@ -515,7 +586,6 @@ fn apply_asks_again_about_changes_made_while_the_importer_ran() {
     assert!(gui.is_dirty());
     assert!(gui.wait_jobs().is_empty());
     assert!(matches!(gui.dialog(), Some(Dialog::ImportQet { .. })));
-    done(&mut gui, "file.import_qet_apply", json!({}));
     done(&mut gui, "file.import_qet_apply", json!({ "confirm": true }));
     assert!(
         matches!(gui.dialog(), Some(Dialog::ConfirmDiscard { .. })),

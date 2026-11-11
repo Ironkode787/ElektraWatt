@@ -1027,6 +1027,50 @@ pub fn migration_counts(session: &Session) -> (usize, usize, usize) {
     (count(S::Error), count(S::Warning), count(S::Info))
 }
 
+/// One kind of finding of a migration report: the rule, its severity and how many open findings it has.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct MigrationKind {
+    /// The rule's identifier (`EW-IMP-005`, `EW-POT-009`).
+    pub rule: String,
+    /// The severity of its findings.
+    pub severity: crate::checks::Severity,
+    /// How many open findings it has.
+    pub count: usize,
+}
+
+/// The open findings of a project's migration report by rule: errors first, then warnings, then infos, and within a
+/// severity the rule with the most findings first, ties by the rule's identifier. The import card groups them.
+pub fn migration_kinds(session: &Session) -> Vec<MigrationKind> {
+    use crate::checks::Severity as S;
+    use std::collections::BTreeMap;
+    let report = session.check(&crate::checks::MIGRATION, crate::checks::CheckMode::Release);
+    let mut kinds: BTreeMap<(u8, &'static str), usize> = BTreeMap::new();
+    let rank = |s: S| match s {
+        S::Error => 0,
+        S::Warning => 1,
+        S::Info => 2,
+    };
+    for f in report.findings.iter().filter(|f| f.is_open()) {
+        *kinds.entry((rank(f.severity), f.rule)).or_default() += 1;
+    }
+    let mut out: Vec<MigrationKind> = kinds
+        .into_iter()
+        .map(|((rank, rule), count)| MigrationKind {
+            rule: rule.to_owned(),
+            severity: [S::Error, S::Warning, S::Info][usize::from(rank)],
+            count,
+        })
+        .collect();
+    out.sort_by(|a, b| {
+        (rank(a.severity), std::cmp::Reverse(a.count), &a.rule).cmp(&(
+            rank(b.severity),
+            std::cmp::Reverse(b.count),
+            &b.rule,
+        ))
+    });
+    out
+}
+
 /// The lenient check findings of an imported model (doc 15 §10.2, doc 14 §2.5): the `migration` scheme of
 /// `ew-checks` (every rule of `pre-delivery` at its release severity, reporting prevent violations as
 /// findings) run over the session, its open findings grouped by rule in rule order, one message per finding.

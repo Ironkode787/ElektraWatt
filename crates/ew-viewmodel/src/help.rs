@@ -567,11 +567,10 @@ mod tests {
             Dialog::ConfirmUpgrade { from: text() },
             Dialog::ImportQet {
                 file: text(),
-                folder: text(),
                 summary: text(),
-                pages: Vec::new(),
-                devices: 0,
-                confirm: false,
+                verdict: text(),
+                note: None,
+                groups: Vec::new(),
             },
             Dialog::ReimportMatch {
                 path: text(),
