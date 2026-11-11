@@ -905,15 +905,15 @@ impl EditorView {
                 }
             });
         });
-        // P3 (SM25b m2): a refusal that Validation lists, issue by issue, shows there only; any other shows here, once.
+        // Why the last action did nothing, under the symbol's name on every tab: a click on Save to library or Test
+        // on a new page that is refused must answer where the eye is. (Validation lists the same issues on the
+        // Drawing tab as a standing list; a refusal shown only there read as a button that does nothing.)
         let issues: Vec<String> = draft
             .validate()
             .iter()
             .map(|i| strings::format(strings::Key::run_time(i.code), &[&i.detail]))
             .collect();
-        if let Some(error) = &editor.error
-            && !error.lines().all(|line| issues.iter().any(|i| i == line))
-        {
+        if let Some(error) = &editor.error {
             ui.colored_label(t.error.color32(), error);
             // A page on another connection grid offers a new page with the symbol's grid. M25-p7#2: a draft
             // saved to a library and unchanged places the published symbol; any other is tested, each under its own
@@ -1147,16 +1147,17 @@ impl EditorView {
                         }
                     }
                 }
-                // Press, drag and release draws a rectangle (two clicks still do): the press is its first
-                // corner, the release its second, each on the 0.5 mm step.
+                // Press, drag and release draws a shape of two points (a line, a rectangle, a circle, an ellipse, an
+                // arc), as two clicks do: the press is its first point, the release its second, each on the 0.5 mm
+                // step. (A drag drew a rectangle only; with Line it did nothing.)
                 let on_step = |pos: Pos2| { let at=(pos-origin)/self.zoom; [(f64::from(at.x)*2.0).round()/2.0,(f64::from(at.y)*2.0).round()/2.0] };
-                if editor.variant == 0 && self.tool == 2 {
+                if editor.variant == 0 && (1..=5).contains(&self.tool) {
                     if response.drag_started_by(egui::PointerButton::Primary) && let Some(press) = ui.input(|i| i.pointer.press_origin()) {
                         self.start = Some(on_step(press));
                     }
                     if response.drag_stopped_by(egui::PointerButton::Primary) && let Some(end) = response.interact_pointer_pos() && let Some(start) = self.start.take() {
                         let p = on_step(end);
-                        if p != start { action(events,"symbol.draw",json!({"tool":tools[2].0,"x":start[0],"y":start[1],"x2":p[0],"y2":p[1]})); }
+                        if p != start { action(events,"symbol.draw",json!({"tool":tools[self.tool].0,"x":start[0],"y":start[1],"x2":p[0],"y2":p[1],"start":self.arc_angles[0],"sweep":self.arc_angles[1]})); }
                     }
                 }
                 if let Some(mark) = self.text_mark {

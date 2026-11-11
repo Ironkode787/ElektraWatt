@@ -31,7 +31,7 @@ with a test copy, ready to wire.
    The validation says "Connection point 1 is off the connection grid. Move it onto the grid before saving." Press
    `Ctrl+Z` to undo the change. Fine drawing coordinates, such as 0.5 mm, remain valid.
 8. In **Library**, type `symbols.ewlib` as the **Library folder** and choose **Save to library**: a name without a
-   folder is a library in your user library folder. The status bar says **Saved**.
+   folder is a library in your user library folder. A message says where the symbol was saved.
 9. Under **Open or import**, type `power.symbol.json` as the **Symbol file** and choose **Export draft**; it is written
    beside the library. The file is the portable draft, with the identity the save gave it.
 10. Choose **Test on a new page**.
@@ -42,7 +42,7 @@ with a test copy, ready to wire.
 ## What you learnt
 
 - The symbol editor keeps its own draft and undo history; saving it to a library does not change placed copies.
-  Increase the symbol's version before you save changed content under the same key.
+  A changed symbol is saved as the next version, 1.0.1 after 1.0.0.
 - Connection points must lie on the 4 mm connection grid; the editor refuses to save a point off it, and says which.
 - **Close editor** keeps the draft and its undo history: **Draw ▸ Place ▸ Symbol editor…** returns to it. In a later session,
   open `power.symbol.json` under **Open or import**: its next save updates the same symbol.

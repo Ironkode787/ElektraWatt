@@ -37,11 +37,15 @@ The window remembers that folder. Its symbols appear under **Draw ▸ Place ▸ 
 the page must use the symbol's connection grid. Already embedded copies stay at their existing version until
 you explicitly update them. Repeated placement keeps the authored outline and pins.
 An assigned existing function definition stays referenced and its semantics cannot be edited in place; any
-later compatible version of it is accepted. A new symbol has no key until you give it one. The first save
-gives the draft its own identity, and later saves of that draft update the same symbol: increase the version
-when changing previously published content. The symbol's own function definition keeps its version while it is
-unchanged. A library that already holds the key for a different symbol refuses the save: choose another key, or
-fork that symbol under its own key to change it. Saving a draft under another key than its symbol's makes a new
+later compatible version of it is accepted. A new symbol takes its key from its name (`user.power-block` for
+**Power block**), and the key follows the name until you type one in **Library**. The first save
+gives the draft its own identity, and later saves of that draft update the same symbol: changed content is saved
+as the next patch version (1.0.1 after 1.0.0), and a version you type below the library's is refused. The
+symbol's own function definition keeps its version while it is
+unchanged. A library that already holds a key you typed for a different symbol refuses the save: choose another
+key, or fork that symbol under its own key to change it; a key made from the name takes the next free number
+instead (`user.power-block-2`). A save says where the symbol went, and a refused one says why under the symbol's
+name. Saving a draft under another key than its symbol's makes a new
 symbol, and a message says so; the symbol with the earlier key stays. **Export draft** writes portable JSON to a
 new file, including incomplete work; an existing file is never overwritten. Leave **Symbol file** empty to
 choose the file in a file dialog, and choose **Choose folder…** to pick the library folder; an empty **Library

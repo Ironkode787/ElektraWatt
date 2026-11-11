@@ -1116,9 +1116,11 @@ fn the_symbol_editors_tool_buttons_name_their_keys() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// SM25b m2 (doc 16a P3): a Save refused off the grid says so once, in Validation: no banner and no header line.
+/// A Save refused off the grid answers the click under the symbol's name and stands in Validation's list: twice,
+/// and no banner as well. (The owner's hands-on test: with the reason only in the list at the foot of the panel,
+/// Save to library read as a button that does nothing.)
 #[test]
-fn the_symbol_editors_off_grid_refusal_shows_once() {
+fn the_symbol_editors_refusal_answers_the_click_under_the_name() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "g.ew");
     for (action, params) in [
@@ -1140,7 +1142,7 @@ fn the_symbol_editors_off_grid_refusal_shows_once() {
     let shell = h.state().shell();
     assert_eq!(shell.symbol_editor().unwrap().error.as_deref(), Some(text));
     assert_eq!(shell.banner(), None);
-    assert_eq!(h.query_all_by_label_contains(text).count(), 1);
+    assert_eq!(h.query_all_by_label_contains(text).count(), 2);
     h.state_mut().shell_mut().shutdown();
 }
 

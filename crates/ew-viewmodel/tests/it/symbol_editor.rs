@@ -732,25 +732,56 @@ fn a_second_symbol_saved_on_the_same_key_is_refused_and_the_first_stays() {
     shell.shutdown();
 }
 
+/// A person names a symbol and never has to give it a key: a new draft's key is made from its name and follows the
+/// name until a key is typed; Save to library then saves, and a second symbol of the same name takes the next free
+/// key instead of a refusal.
 #[test]
-fn a_new_symbol_has_no_shared_default_key() {
-    let tmp = Tmp::new("symbol-no-default-key");
+fn a_new_symbol_takes_its_key_from_its_name() {
+    let tmp = Tmp::new("symbol-key-from-name");
     let mut shell = tmp.empty_shell(Mode::Headless);
+    let key = |shell: &ShellModel| shell.symbol_editor().unwrap().draft.key.clone();
+    let rename = |shell: &mut ShellModel, name: &str, typed: Option<&str>| {
+        let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
+        doc["symbol"]["name"] = json!({"en": name});
+        if let Some(k) = typed {
+            doc["key"] = json!(k);
+        }
+        done(shell, "symbol.replace", json!({"document": doc}));
+    };
     done(&mut shell, "symbol.new", json!({}));
+    assert_eq!(key(&shell), "user.new-symbol");
+    assert!(!shell.symbol_editor().unwrap().dirty(), "the key is no edit");
+    let line = json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4});
+    done(&mut shell, "symbol.draw", line.clone());
+    // The key follows the name, a typed key stays, and an emptied one is made from the name again.
+    rename(&mut shell, "Pump 3 (spare)", None);
+    assert_eq!(key(&shell), "user.pump-3-spare");
+    rename(&mut shell, "Pump", Some("acme.pump"));
+    rename(&mut shell, "Pump station", None);
+    assert_eq!(key(&shell), "acme.pump");
+    rename(&mut shell, "Pump station", Some(""));
+    assert_eq!(key(&shell), "user.pump-station");
+    // Save saves, and says where the symbol went.
+    let library = json!({"directory": tmp.0.join("symbols.ewlib")});
+    done(&mut shell, "symbol.save", library.clone());
+    assert_eq!(
+        shell.toast().map(|t| t.text.clone()).as_deref(),
+        Some("Saved Pump station to the library My symbols. Draw ▸ Symbol places it on a page.")
+    );
+    let first = shell.symbol_editor().unwrap().draft.identity.clone();
+    // A second new symbol of the same name is a second symbol.
     done(
         &mut shell,
-        "symbol.draw",
-        json!({"tool":"line","x":0,"y":0,"x2":0,"y2":4}),
+        "symbol.new",
+        json!({"discard": true, "name": "Pump station"}),
     );
-    assert_eq!(shell.symbol_editor().unwrap().draft.key, "");
-    assert_eq!(
-        failed(
-            &mut shell,
-            "symbol.save",
-            json!({"directory":tmp.0.join("symbols.ewlib")})
-        ),
-        "Symbol editor: Give the symbol a key."
-    );
+    done(&mut shell, "symbol.draw", line);
+    assert_eq!(key(&shell), "user.pump-station");
+    done(&mut shell, "symbol.save", library);
+    assert_eq!(key(&shell), "user.pump-station-2");
+    assert!(!shell.symbol_editor().unwrap().dirty());
+    assert_ne!(shell.symbol_editor().unwrap().draft.identity, first);
+    // A copy of a library symbol still needs the key the person gives it.
     assert_eq!(
         failed(
             &mut shell,
@@ -1538,12 +1569,15 @@ fn saving_a_copy_under_its_own_key_announces_no_new_symbol() {
         after.map(|i| i.symbol),
         "the symbol kept its own"
     );
-    assert_eq!(shell.toast().map(|t| t.text.clone()), None);
+    assert_eq!(
+        shell.toast().map(|t| t.text.clone()).as_deref(),
+        Some("Saved Contact, normally open to the library My symbols. Draw ▸ Symbol places it on a page.")
+    );
     shell.shutdown();
 }
 
 /// The test copy's item IDs are v5 names whose parts are joined with U+001F (ADR-0004
-/// amendment 4); a save whose owned function definition differs at its version is refused naming that definition.
+/// amendment 4); a save whose owned function definition differs at its version takes the next patch version.
 #[test]
 fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
     use ew_viewmodel::ew_api::{output::Uuid, symbols};
@@ -1557,11 +1591,8 @@ fn the_test_copys_ids_join_their_parts_with_the_unit_separator() {
     let mut doc = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
     doc["function"]["cps"][0]["designation"] = json!("A1");
     done(&mut shell, "symbol.replace", json!({"document": doc}));
-    assert_eq!(
-        failed(&mut shell, "symbol.save", library),
-        "Symbol editor: The library holds the function definition of Five at version 1.0.0 with other content. Give \
-         the change a new version."
-    );
+    done(&mut shell, "symbol.save", library);
+    assert_eq!(shell.symbol_editor().unwrap().draft.version, "1.0.1");
     done(&mut shell, "symbol.scratch", json!({}));
     done(&mut shell, "file.save", json!({}));
     shell.shutdown();
@@ -1773,8 +1804,8 @@ fn the_same_content_placed_twice_reuses_one_copy() {
     assert_eq!(placed, 2);
 }
 
-/// The library writer's version refusals reach the window in words, in both languages: the symbol by its
-/// name, the versions, no UUID.
+/// A changed symbol saves under the next patch version and the toast names it. A typed older version stays refused,
+/// in words, in both languages: the symbol by its name, the versions, no UUID.
 #[test]
 fn version_refusals_of_a_save_name_the_symbol_and_its_versions() {
     use ew_viewmodel::strings;
@@ -1788,26 +1819,31 @@ fn version_refusals_of_a_save_name_the_symbol_and_its_versions() {
         "symbol.draw",
         json!({"tool":"line","x":4,"y":0,"x2":4,"y2":4}),
     );
+    done(&mut shell, "symbol.save", library.clone());
+    assert_eq!(shell.symbol_editor().unwrap().draft.version, "1.0.1");
+    assert!(!shell.symbol_editor().unwrap().dirty());
     assert_eq!(
-        failed(&mut shell, "symbol.save", library.clone()),
-        "Symbol editor: The library holds the symbol Versions block at version 1.0.0 with other content. Give the \
-         change a new version."
+        shell.toast().map(|t| t.text.clone()).as_deref(),
+        Some(
+            "Saved Versions block as version 1.0.1 to the library My symbols. Draw ▸ Symbol places it on a page."
+        )
     );
-    assert!(strings::set_locale("nl"));
-    let dutch = failed(&mut shell, "symbol.save", library.clone());
-    assert!(strings::set_locale("en"));
-    assert_eq!(
-        dutch,
-        "Symbooleditor: De bibliotheek bevat het symbool Versions block al in versie 1.0.0 met andere inhoud. Geef de \
-         wijziging een nieuwe versie."
-    );
+    // A typed older version stays refused, in words, in both languages.
     let mut older = serde_json::to_value(&shell.symbol_editor().unwrap().draft).unwrap();
     older["version"] = json!("0.9.0");
     done(&mut shell, "symbol.replace", json!({"document": older}));
     assert_eq!(
-        failed(&mut shell, "symbol.save", library),
-        "Symbol editor: The library holds the symbol Versions block at the newer version 1.0.0; version 0.9.0 would \
-         replace it. Give the change a version above 1.0.0."
+        failed(&mut shell, "symbol.save", library.clone()),
+        "Symbol editor: The library holds the symbol Versions block at the newer version 1.0.1; version 0.9.0 would \
+         replace it. Give the change a version above 1.0.1."
+    );
+    assert!(strings::set_locale("nl"));
+    let dutch = failed(&mut shell, "symbol.save", library);
+    assert!(strings::set_locale("en"));
+    assert_eq!(
+        dutch,
+        "Symbooleditor: De bibliotheek bevat het symbool Versions block in de nieuwere versie 1.0.1; versie 0.9.0 zou \
+         die vervangen. Geef de wijziging een versie hoger dan 1.0.1."
     );
     shell.shutdown();
 }
@@ -1824,7 +1860,8 @@ fn a_new_symbol_with_discard_starts_a_fresh_draft() {
     assert_eq!(shell.symbol_editor().unwrap().draft.key, "example.kept");
     done(&mut shell, "symbol.new", json!({"discard": true}));
     let editor = shell.symbol_editor().unwrap();
-    assert!(editor.draft.symbol.graphics.is_empty() && editor.draft.key.is_empty());
+    assert!(editor.draft.symbol.graphics.is_empty());
+    assert_eq!(editor.draft.key, "user.new-symbol");
     assert!(!editor.dirty() && !editor.can_undo());
     shell.shutdown();
 }
@@ -1862,7 +1899,7 @@ fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
         Outcome::Done
     );
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Discard), Outcome::Done);
-    assert!(shell.symbol_editor().unwrap().draft.key.is_empty());
+    assert_eq!(shell.symbol_editor().unwrap().draft.key, "user.new-symbol");
     // Save symbol saves the draft first, then starts the fresh one.
     drawn(&mut shell, "example.ask", "Ask block");
     done(&mut shell, "symbol.directory", json!({"directory": "ask.ewlib"}));
@@ -1872,7 +1909,7 @@ fn new_symbol_over_unsaved_changes_asks_save_discard_or_cancel() {
     );
     assert_eq!(shell.answer_confirm(ConfirmAnswer::Save), Outcome::Done);
     assert!(shell.dialog().is_none());
-    assert!(shell.symbol_editor().unwrap().draft.key.is_empty());
+    assert_eq!(shell.symbol_editor().unwrap().draft.key, "user.new-symbol");
     assert!(tmp.0.join("config").join("libraries").join("ask.ewlib").is_dir());
     // A clean draft asks nothing.
     assert_eq!(shell.ask_symbol_discard("symbol.new", fresh), Outcome::Done);

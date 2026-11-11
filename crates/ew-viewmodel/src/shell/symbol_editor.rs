@@ -4,7 +4,7 @@
 //! The symbol editor's independent draft, history and GUI/headless actions.
 
 use super::{Mode, Outcome, Prompt, ShellModel, failed};
-use crate::notifications::{NoteAction, Validity};
+use crate::notifications::{NoteAction, NoteTone, Validity};
 use crate::{key, strings};
 use ew_api::symbols::{self, SymbolDraft};
 use serde_json::{Map, Value, json};
@@ -112,8 +112,42 @@ pub struct SymbolEditor {
     pub functions: Vec<SymbolFunctionChoice>,
 }
 
+/// The key a draft takes from its name while the user has given it none: `user.` and the name's letters and digits
+/// in lower case, every other run of characters one hyphen (`New symbol` gives `user.new-symbol`).
+fn key_of_name(name: &str) -> String {
+    let mut slug = String::new();
+    for c in name.chars() {
+        if c.is_ascii_alphanumeric() {
+            slug.push(c.to_ascii_lowercase());
+        } else if !slug.is_empty() && !slug.ends_with('-') {
+            slug.push('-');
+        }
+    }
+    let slug: String = slug.chars().take(100).collect();
+    let slug = slug.trim_end_matches('-');
+    format!("user.{}", if slug.is_empty() { "symbol" } else { slug })
+}
+
+/// The version after `version` by its last number (`1.0.0` gives `1.0.1`); `None` for a version that does not end
+/// in a number.
+fn next_patch(version: &str) -> Option<String> {
+    let (head, last) = version.rsplit_once('.')?;
+    let next = last.parse::<u32>().ok()?.checked_add(1)?;
+    Some(format!("{head}.{next}"))
+}
+
+/// Whether the draft's key is the one its name gives, in a draft that no library holds yet: such a key follows the
+/// name and gives way to a free one when the library holds it for another symbol.
+fn key_from_name(draft: &SymbolDraft) -> bool {
+    draft.identity.is_none() && draft.key == key_of_name(&name_words(&draft.symbol.name))
+}
+
 impl SymbolEditor {
-    fn new(draft: SymbolDraft, directory: String) -> Self {
+    fn new(mut draft: SymbolDraft, directory: String) -> Self {
+        // A person names a symbol; its key is made from the name until they type one (the Library tab).
+        if draft.key.is_empty() && draft.identity.is_none() {
+            draft.key = key_of_name(&name_words(&draft.symbol.name));
+        }
         Self {
             generation: 0,
             draft: draft.clone(),
@@ -168,7 +202,13 @@ impl SymbolEditor {
     pub fn can_redo(&self) -> bool {
         !self.redo.is_empty()
     }
-    fn replace(&mut self, draft: SymbolDraft) {
+    fn replace(&mut self, mut draft: SymbolDraft) {
+        // A key made from the name follows a new name; a key left empty is made from the name again.
+        if draft.identity.is_none()
+            && (draft.key.is_empty() || (draft.key == self.draft.key && key_from_name(&self.draft)))
+        {
+            draft.key = key_of_name(&name_words(&draft.symbol.name));
+        }
         if self.draft == draft {
             return;
         }
@@ -1205,7 +1245,28 @@ impl ShellModel {
             };
             strings::format(kind, &[&name])
         };
-        draft.publish(&mut registry, target).map_err(|e| match e {
+        // Save saves. A key made from the name that the library holds for another symbol takes the next free number,
+        // and a changed symbol whose version the library already holds takes the next patch version: neither is a
+        // reason to send a person to the Library tab.
+        let (from_name, base) = (key_from_name(&draft), draft.key.clone());
+        let version = draft.version.clone();
+        let (mut number, mut tries) = (1_u32, 0_u32);
+        let published = loop {
+            tries += 1;
+            match draft.publish(&mut registry, target) {
+                Err(symbols::Error::KeyTaken { .. }) if from_name && tries < 1000 => {
+                    number += 1;
+                    draft.key = format!("{base}-{number}");
+                }
+                Err(symbols::Error::Library(ew_api::library::LibraryError::Immutable { .. }))
+                    if tries < 1000 && next_patch(&draft.version).is_some() =>
+                {
+                    draft.version = next_patch(&draft.version).unwrap_or_default();
+                }
+                other => break other,
+            }
+        };
+        published.map_err(|e| match e {
             symbols::Error::Library(ew_api::library::LibraryError::Immutable { item: id, version }) => {
                 strings::format(key!("symbol-version-taken"), &[&item(id), &version])
             }
@@ -1222,17 +1283,26 @@ impl ShellModel {
         let symbol_of = |i: &Option<symbols::DraftIdentity>| i.as_ref().map(|i| i.symbol);
         let note = (before.is_some() && symbol_of(&before) != symbol_of(&draft.identity))
             .then(|| strings::format(key!("symbol-saved-new"), &[&draft.key]));
+        let library = registry
+            .libraries()
+            .into_iter()
+            .find(|l| l.id == target)
+            .map(|l| l.name)
+            .unwrap_or_default();
         self.config.libraries = Some(tiers);
         if let Some(project) = &mut self.project {
             *project.session.libraries_mut() = registry;
         }
-        // The draft's history publishes the same items from now on.
+        // The draft's history publishes the same items from now on, under the key the library took.
         let history = editor.undo.iter_mut().chain(editor.redo.iter_mut());
         for d in history.chain([&mut editor.draft]) {
-            if d.key == draft.key {
+            if d.key == draft.key || d.key == base {
+                d.key.clone_from(&draft.key);
                 d.identity.clone_from(&draft.identity);
             }
         }
+        editor.draft.version.clone_from(&draft.version);
+        let saved_version = (draft.version != version).then(|| draft.version.clone());
         editor.directory = directory;
         // The published symbol as the Insert symbol picker addresses it, while the draft is this one.
         editor.published = draft
@@ -1248,9 +1318,14 @@ impl ShellModel {
         }
         self.save_settings();
         self.libraries_changed();
-        if let Some(note) = note {
-            self.notify(note, false);
-        }
+        // What was saved where, and how it gets onto a page: the click's answer.
+        self.notify_toned(
+            note.unwrap_or_else(|| match &saved_version {
+                Some(v) => strings::format(key!("symbol-saved-version"), &[&name, &library, v]),
+                None => strings::format(key!("symbol-saved-to"), &[&name, &library]),
+            }),
+            NoteTone::Success,
+        );
         Ok(())
     }
 

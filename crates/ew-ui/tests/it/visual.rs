@@ -1111,6 +1111,83 @@ fn symbol_editor_pointer_tools_dispatch_the_drawing_tool_name() {
     d.shell_mut().shutdown();
 }
 
+/// The owner's hands-on flow of 0.1.0, by the pointer alone and without typing a key: a rectangle, a line and a
+/// connection point drawn in the editor, Save to library, Test on a new page, and the saved symbol in the Insert symbol picker.
+/// Each click answers on the window: a refusal under the symbol's name, a save and a placement in a message.
+#[test]
+fn a_symbol_drawn_in_the_editor_reaches_the_library_a_page_and_the_picker() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
+    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
+    d.settle();
+    let toast = |d: &mut Driver| d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    d.input(&click(d.find("Symbols").unwrap()));
+    d.settle();
+    // Nothing drawn yet: Save to library says why it saved nothing.
+    d.input(&click(d.find("Save to library").unwrap()));
+    d.settle();
+    assert_eq!(
+        d.shell_mut().symbol_editor().unwrap().error.as_deref(),
+        Some("Draw at least one graphic before saving.")
+    );
+    d.input(&click(d.find("Rectangle").unwrap()));
+    d.input(&Input::Drag {
+        from: (688, 352),
+        to: (838, 501),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    // A drag draws a line as it draws a rectangle.
+    d.input(&click(d.find("Line").unwrap()));
+    d.input(&Input::Drag {
+        from: (688, 352),
+        to: (838, 501),
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    d.input(&click(d.find("Connection point").unwrap()));
+    d.input(&click((763, 315)));
+    d.settle();
+    {
+        let draft = &d.shell_mut().symbol_editor().unwrap().draft;
+        assert_eq!((draft.symbol.graphics.len(), draft.symbol.cps.len()), (2, 1));
+    }
+    d.input(&click(d.find("Save to library").unwrap()));
+    d.settle();
+    assert_eq!(d.shell_mut().symbol_editor().unwrap().error, None);
+    assert!(
+        toast(&mut d).starts_with("Saved New symbol to the library My symbols."),
+        "{}",
+        toast(&mut d)
+    );
+    d.input(&click(d.find("Test on a new page").unwrap()));
+    d.settle();
+    assert!(
+        toast(&mut d).starts_with("Test copy placed on page"),
+        "{}",
+        toast(&mut d)
+    );
+    assert_eq!(
+        state(&mut d)["canvas"]["selection"].as_array().map(Vec::len),
+        Some(1)
+    );
+    // The saved symbol is in the Insert symbol picker, under its name and its library.
+    d.input(&click(d.find("Symbol").unwrap()));
+    d.input(&Input::Type {
+        text: "New sym".to_owned(),
+    });
+    d.settle();
+    assert!(
+        d.labels().iter().any(|(l, _)| l.contains("My symbols")),
+        "{:?}",
+        d.labels()
+    );
+    d.shell_mut().shutdown();
+}
+
 #[test]
 fn symbol_editor_numeric_properties_commit_complete_text_as_one_undo() {
     use ew_ui::ew_viewmodel::shell::Outcome;
@@ -2110,6 +2187,7 @@ fn symbol_editor_new_symbol_asks_before_it_drops_unsaved_changes() {
     d.settle();
     assert!(d.shell_mut().dialog().is_none());
     let editor = d.shell_mut().symbol_editor().unwrap();
-    assert!(editor.draft.key.is_empty() && editor.draft.symbol.graphics.is_empty());
+    assert!(editor.draft.symbol.graphics.is_empty());
+    assert_eq!(editor.draft.key, "user.new-symbol");
     d.shell_mut().shutdown();
 }

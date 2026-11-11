@@ -938,7 +938,7 @@ msgstr ""
 msgid ""
 "In **Library**, type `symbols.ewlib` as the **Library folder** and choose "
 "**Save to library**: a name without a folder is a library in your user "
-"library folder. The status bar says **Saved**."
+"library folder. A message says where the symbol was saved."
 msgstr ""
 
 #: src/tutorials/symbol-editor.md:35
@@ -957,8 +957,8 @@ msgstr ""
 #: src/tutorials/symbol-editor.md:44
 msgid ""
 "The symbol editor keeps its own draft and undo history; saving it to a "
-"library does not change placed copies. Increase the symbol's version before "
-"you save changed content under the same key."
+"library does not change placed copies. A changed symbol is saved as the next "
+"version, 1.0.1 after 1.0.0."
 msgstr ""
 
 #: src/tutorials/symbol-editor.md:46
