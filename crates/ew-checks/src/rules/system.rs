@@ -145,16 +145,22 @@ pub(crate) fn pack_findings(tables: &[DataTable]) -> (Vec<Finding>, Vec<&'static
     for (pack, file, error, mut rules) in broken {
         rules.sort_unstable();
         rules.dedup();
-        out.push(Finding::new(
-            &PACK_NOT_EVALUATED,
-            [],
-            file,
-            pack,
-            format!(
-                "pack {pack} was not evaluated in full: its data table {file} does not load ({error}); {} did not run",
-                rules.join(", ")
-            ),
-        ));
+        out.push(
+            Finding::new(
+                &PACK_NOT_EVALUATED,
+                [],
+                file,
+                pack,
+                format!(
+                    "pack {pack} was not evaluated in full: its data table {file} does not load ({error}); {} did not run",
+                    rules.join(", ")
+                ),
+            )
+            .arg("pack", pack)
+            .arg("file", file)
+            .arg("error", error)
+            .arg("rules", rules.join(", ")),
+        );
     }
     skipped.sort_unstable();
     skipped.dedup();
@@ -236,6 +242,9 @@ fn not_evaluated(q: &Q, rule: &'static RuleMeta, scope: &Scope) -> Finding {
             rule.id
         ),
     )
+    .arg("form", "scope")
+    .arg("rule", rule.id)
+    .arg("scope", text)
 }
 
 /// `rule.run(q, scope)` with a panic caught and reported as EW-CORE-083 (P4-3).
@@ -263,6 +272,8 @@ pub(crate) fn prevent_caught(rule: &dyn Rule, before: &Q, after: &Q, touched: &T
                     rule.meta().id
                 ),
             )
+            .arg("form", "prevent")
+            .arg("rule", rule.meta().id)
             .with_severity(Severity::Error),
         ],
     }

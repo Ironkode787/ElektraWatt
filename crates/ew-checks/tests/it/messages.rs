@@ -68,20 +68,111 @@ fn every_rule_has_its_message_title_and_hint_in_en_gb() {
             assert!(has(m.id, Some("hint"), lang), "{lang} has no hint for {}", m.id);
         }
     }
+    // FT-680: every other shipped language has the title and the hint of every rule, and the pattern of every rule
+    // whose en-GB message has one (the rule tables check that a finding carries its arguments, `assert_messages`).
     for lang in LANGUAGES.iter().filter(|l| **l != DEFAULT_LANGUAGE) {
-        let absent: Vec<&str> = rules()
+        let absent: Vec<String> = rules()
             .iter()
             .map(|r| r.meta().id)
-            .filter(|id| !has(id, Some("title"), lang) || !has(id, Some("hint"), lang))
+            .flat_map(|id| {
+                [Some("title"), Some("hint"), Some("value")]
+                    .into_iter()
+                    .filter(move |attr| has(id, *attr, DEFAULT_LANGUAGE) && !has(id, *attr, lang))
+                    .map(move |attr| format!("{id} {}", attr.unwrap_or_default()))
+            })
             .collect();
-        if !absent.is_empty() {
-            println!(
-                "warning: {lang} has no title or hint for {} rules (en-GB is used until 1.0): {}",
-                absent.len(),
-                absent.join(", ")
+        assert!(absent.is_empty(), "{lang} lacks: {absent:#?}");
+    }
+}
+
+/// FT-680: the rule system's own findings (a rule that stopped with an internal error, a pack whose data table does
+/// not load), which no fixture raises, word their English and their Dutch from their arguments.
+#[test]
+fn nl_nl_words_the_rule_system_s_findings() {
+    let scope = by_hand(
+        "EW-CORE-083",
+        "",
+        "rule EW-POT-006 could not be evaluated for the project: it stopped with an internal error, so its findings \
+         there are missing; report the defect",
+        &[("form", "scope"), ("rule", "EW-POT-006"), ("scope", "the project")],
+    );
+    assert_eq!(
+        render(&scope, "nl-NL"),
+        "regel EW-POT-006 kon niet worden beoordeeld voor het project: hij stopte met een interne fout, dus zijn \
+         bevindingen daar ontbreken; meld het defect"
+    );
+    let edit = by_hand(
+        "EW-CORE-083",
+        "",
+        "rule EW-POT-006 could not validate the edit: it stopped with an internal error, so the edit is not committed; \
+         report the defect",
+        &[("form", "prevent"), ("rule", "EW-POT-006")],
+    );
+    assert!(render(&edit, "nl-NL").starts_with("regel EW-POT-006 kon de bewerking niet toetsen"));
+    let pack = by_hand(
+        "EW-CORE-084",
+        "",
+        "pack EW-POT was not evaluated in full: its data table data/pe_sizing.toml does not load (`rows` is missing); \
+         EW-POT-006 did not run",
+        &[
+            ("pack", "EW-POT"),
+            ("file", "data/pe_sizing.toml"),
+            ("error", "`rows` is missing"),
+            ("rules", "EW-POT-006"),
+        ],
+    );
+    assert!(render(&pack, "nl-NL").starts_with("pakket EW-POT is niet volledig beoordeeld"));
+}
+
+/// FT-912: every word a rule prints where a record has no name of its own (the en-GB messages `word-…`) has its text in
+/// every shipped language, and a Dutch pattern prints the Dutch words and decimal commas.
+#[test]
+fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
+    let (_, en) = SOURCES[0];
+    let words: Vec<&str> = en
+        .lines()
+        .filter(|l| l.starts_with("word-"))
+        .filter_map(|l| l.split_whitespace().next())
+        .collect();
+    assert!(words.contains(&"word-a-location"), "{words:?}");
+    for (lang, source) in SOURCES {
+        for w in &words {
+            assert!(
+                source.lines().any(|l| l.starts_with(&format!("{w} = "))),
+                "{lang} lacks {w}"
             );
         }
     }
+    // EW-LAY-001 of a device without designation outside a location without codes; EW-POT-006's cross-sections.
+    let unplaced = by_hand(
+        "EW-LAY-001",
+        "",
+        "a device without designation is not placed in the layout of a location; place it on a rail or on the mounting \
+         plate",
+        &[("device", "a device without designation"), ("location", "a location")],
+    );
+    assert_eq!(
+        render(&unplaced, "nl-NL"),
+        "een apparaat zonder aanduiding is niet geplaatst in de layout van een locatie; plaats het op een rail of op de \
+         montageplaat"
+    );
+    let pe = by_hand(
+        "EW-POT-006",
+        "",
+        "PE wire 101.3 has 1.5 mm², below the 2.5 mm² required for the 2.5 mm² line conductors at -X1:PE",
+        &[
+            ("wire", "101.3"),
+            ("pe", "1.5"),
+            ("required", "2.5"),
+            ("line", "2.5"),
+            ("at", "-X1:PE"),
+            ("verified", "yes"),
+        ],
+    );
+    assert_eq!(
+        render(&pe, "nl-NL"),
+        "PE-draad 101.3 heeft 1,5 mm², minder dan de 2,5 mm² die nodig is voor de lijngeleiders van 2,5 mm² bij -X1:PE"
+    );
 }
 
 /// Every message of every resource names a registered rule or an integrity rule, once; a language never has a pattern (a value) that en-GB
@@ -481,6 +572,7 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
         "attrs",
         &format!("{}; and 2 more member CPs", en.join("; ")),
         &[
+            ("form", "attrs"),
             ("conflicts", &en.join("; ")),
             ("conflict_list", &en.join("\n")),
             ("more", "2"),
@@ -497,6 +589,7 @@ fn nl_nl_words_the_uniqueness_rules_the_bus_ends_and_the_conflicts() {
         "attrs",
         "something else",
         &[
+            ("form", "attrs"),
             ("conflicts", "something else"),
             ("conflict_list", "something else"),
             ("more", "none"),

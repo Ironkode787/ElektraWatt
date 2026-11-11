@@ -133,6 +133,7 @@ impl Rule for TerminalWithoutDesignation {
                     full_tag(q, t, &strip_tag),
                     format!("a terminal of {strip_tag} has no designation"),
                 )
+                .arg("strip", strip_tag.clone())
             })
             .collect()
     }
@@ -153,13 +154,16 @@ impl Rule for TerminalWithoutDesignation {
                     return None;
                 }
                 let strip_tag = full_tag(after, strip, "the strip");
-                Some(Finding::new(
-                    &TERMINAL_WITHOUT_DESIGNATION,
-                    [Target::new(Kind::Device, id)],
-                    "",
-                    full_tag(after, id, &strip_tag),
-                    format!("a terminal of {strip_tag} has no designation"),
-                ))
+                Some(
+                    Finding::new(
+                        &TERMINAL_WITHOUT_DESIGNATION,
+                        [Target::new(Kind::Device, id)],
+                        "",
+                        full_tag(after, id, &strip_tag),
+                        format!("a terminal of {strip_tag} has no designation"),
+                    )
+                    .arg("strip", strip_tag),
+                )
             })
             .collect()
     }
@@ -387,13 +391,17 @@ impl Rule for RailBondingOnNonPe {
                     ..
                 } = note
                 {
-                    out.push(Finding::new(
-                        &RAIL_BONDING_ON_NON_PE,
-                        [Target::new(Kind::Device, t)],
-                        "",
-                        full_tag(q, t, "terminal"),
-                        detail.clone(),
-                    ));
+                    let tag = full_tag(q, t, "terminal");
+                    out.push(
+                        Finding::new(
+                            &RAIL_BONDING_ON_NON_PE,
+                            [Target::new(Kind::Device, t)],
+                            "",
+                            tag.clone(),
+                            detail.clone(),
+                        )
+                        .arg("terminal", tag),
+                    );
                 }
             }
         }
@@ -472,7 +480,8 @@ impl Rule for SpareWiredOnFieldSide {
                 "field-side",
                 tag.clone(),
                 format!("spare terminal {tag} is wired on its field side; wire it on the other side or clear its spare state"),
-            ));
+            )
+            .arg("terminal", tag));
         }
         out
     }
@@ -569,11 +578,23 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
     let mut out = Vec::new();
     for s in &shapes {
         let mut why: Vec<String> = Vec::new();
+        // Each reason's arguments of the rule's pattern: whether it holds, its values, and the separator before it.
+        let mut words: Vec<(&'static str, String)> = Vec::new();
+        let mut reason = |why: &mut Vec<String>, names: [&'static str; 3], value: String, text: String| {
+            let [held, sep, arg] = names;
+            words.push((sep, if why.is_empty() { "" } else { "; " }.to_owned()));
+            words.push((held, "yes".to_owned()));
+            words.push((arg, value));
+            why.push(text);
+        };
         if s.positions.windows(2).any(|w| w[1] != w[0] + 1) {
-            why.push("its terminals are not consecutive".to_owned());
+            let text = "its terminals are not consecutive".to_owned();
+            reason(&mut why, ["gap", "sep_gap", "gap_value"], String::new(), text);
         }
         if s.shafts.len() > 1 {
-            why.push(format!("it runs over {} shafts", s.shafts.len()));
+            let n = s.shafts.len().to_string();
+            let text = format!("it runs over {n} shafts");
+            reason(&mut why, ["shafts", "sep_shafts", "shaft_count"], n, text);
         }
         if !s.other_strips.is_empty() {
             let mut names: Vec<String> = s
@@ -589,7 +610,9 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
                 .collect();
             names.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.cmp(b)));
             names.dedup();
-            why.push(format!("it reaches {}", names.join(", ")));
+            let list = names.join(", ");
+            let text = format!("it reaches {list}");
+            reason(&mut why, ["reaches", "sep_reaches", "reached"], list, text);
         }
         let (Some(lo), Some(hi)) = (s.positions.first(), s.positions.last()) else {
             continue;
@@ -605,16 +628,14 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
             .collect();
         overlaps.sort_unstable();
         if !overlaps.is_empty() {
-            let list: Vec<String> = overlaps.iter().map(u16::to_string).collect();
-            why.push(format!(
-                "it overlaps bridge group {} on its shaft",
-                list.join(", ")
-            ));
+            let list = overlaps.iter().map(u16::to_string).collect::<Vec<_>>().join(", ");
+            let text = format!("it overlaps bridge group {list} on its shaft");
+            reason(&mut why, ["overlaps", "sep_overlaps", "overlapped"], list, text);
         }
         if why.is_empty() {
             continue;
         }
-        out.push(Finding::new(
+        let mut f = Finding::new(
             &BRIDGE_GROUP_INVALID,
             s.connections.iter().map(|c| Target::new(Kind::Connection, *c)),
             format!("group-{}", s.group),
@@ -625,7 +646,16 @@ fn bridge_findings(q: &Q, strip: Id<Device>) -> Vec<Finding> {
                 s.group,
                 why.join("; ")
             ),
-        ));
+        )
+        .arg("group", s.group.to_string())
+        .arg("strip", strip_tag.clone());
+        for held in ["gap", "shafts", "reaches", "overlaps"] {
+            f = f.arg(held, "no");
+        }
+        for (k, v) in words {
+            f = f.arg(k, v);
+        }
+        out.push(f);
     }
     out
 }
@@ -928,6 +958,8 @@ impl Rule for TerminalOnUnjoinedWire {
                             "{subject} lies on wire {wire} without joining it; connect it to the wire or move it"
                         ),
                     )
+                    .arg("terminal", subject)
+                    .arg("wire", wire)
                     .on_page(page),
                 )
             })

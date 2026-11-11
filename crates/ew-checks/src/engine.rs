@@ -437,6 +437,7 @@ fn run_rules(
                         w.id, w.rule
                     ),
                 )
+                .arg("form", "unmatched")
                 .with_severity(mode.severity(meta081, meta081.severity))
             } else {
                 Finding::new(
@@ -452,8 +453,12 @@ fn run_rules(
                         mode.name()
                     ),
                 )
+                .arg("form", "not-evaluated")
+                .arg("scheme", scheme.name.to_string())
+                .arg("mode", mode.name())
                 .with_severity(Severity::Info)
             };
+            let f = f.arg("waiver", w.id.clone()).arg("rule", w.rule.to_string());
             findings.push(f);
         }
     }

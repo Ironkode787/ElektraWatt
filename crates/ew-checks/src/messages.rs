@@ -23,6 +23,15 @@
 //!
 //! The bundles do not insert Unicode isolation marks (`set_use_isolating(false)`): the arguments are tags and names
 //! in the project's own text, and isolation marks would break the byte equality of P5-2.
+//!
+//! Two functions let a pattern of another language word an argument as that language does:
+//!
+//! - `DECIMAL($x)` writes the decimal points of a printed number (`1.5 mm²`, `40.0`) as the language writes them
+//!   (`1,5 mm²` in nl-NL); a pattern wraps every argument that holds a measured value, never a wire number or a
+//!   version.
+//! - `WORD($x)` writes the words a rule prints where a record has no name of its own ("a location", "a device without
+//!   designation"; each piece of a comma list and each end of a wire `a–b` alone) in the language: the en-GB resource's messages `word-…` hold
+//!   those words, and the language's messages of the same ID its own.
 
 use std::sync::OnceLock;
 
@@ -64,6 +73,28 @@ fn bundle(lang: &str) -> Option<&'static Bundle> {
                 b.set_use_isolating(false);
                 // NUMBER(…, type: "ordinal") of a pin's position
                 let _ = b.add_builtins();
+                let tag: &'static str = *tag;
+                let _ = b.add_function("DECIMAL", move |positional, _| match positional.first() {
+                    Some(FluentValue::String(s)) => decimal(tag, s).into(),
+                    Some(other) => other.clone(),
+                    None => FluentValue::None,
+                });
+                let _ = b.add_function("WORD", move |positional, _| match positional.first() {
+                    Some(FluentValue::String(s)) => s
+                        .split(", ")
+                        .map(|piece| {
+                            piece
+                                .split('–')
+                                .map(|end| word(tag, end).unwrap_or_else(|| end.to_owned()))
+                                .collect::<Vec<_>>()
+                                .join("–")
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                        .into(),
+                    Some(other) => other.clone(),
+                    None => FluentValue::None,
+                });
                 let resource = match FluentResource::try_new((*source).to_owned()) {
                     Ok(r) => r,
                     Err((r, _)) => r,
@@ -94,19 +125,41 @@ pub fn resource_errors() -> Vec<(&'static str, String)> {
 /// The arguments a pattern reads as numbers (an ordinal through `NUMBER(…, type: "ordinal")`).
 const NUMBER_ARGS: &[&str] = &["cp_nth"];
 
-/// The decimal arguments of a rule, by rule ID: written with the decimal separator of the language
-/// ([`DECIMAL_COMMA`]). EW-POT-006's cross-sections in mm²; EW-LAY-010's lengths in mm, its point lists
-/// (`rail`, `at`) keeping their notation.
-const DECIMAL_ARGS: &[(&str, &[&str])] = &[
-    (crate::rules::pot::PE_UNDERSIZED.id, &["pe", "required", "line"]),
-    (
-        crate::rules::layout::CARRIER_INCOMPATIBLE.id,
-        &["s", "length", "from", "to", "by"],
-    ),
-];
-
 /// The shipped languages that write a decimal comma (`1,5 mm²`).
 const DECIMAL_COMMA: &[&str] = &["nl-NL"];
+
+/// `text` with each decimal point between two digits written as `lang` writes it (`DECIMAL`).
+fn decimal(lang: &str, text: &str) -> String {
+    if !DECIMAL_COMMA.iter().any(|l| l.eq_ignore_ascii_case(lang)) {
+        return text.to_owned();
+    }
+    let chars: Vec<char> = text.chars().collect();
+    chars
+        .iter()
+        .enumerate()
+        .map(|(i, c)| {
+            let digit = |j: Option<usize>| j.and_then(|j| chars.get(j)).is_some_and(char::is_ascii_digit);
+            if *c == '.' && digit(i.checked_sub(1)) && digit(Some(i + 1)) {
+                ','
+            } else {
+                *c
+            }
+        })
+        .collect()
+}
+
+/// The words of `lang` for `value` when `value` is the en-GB text of a message `word-…` (`WORD`); else `None`.
+fn word(lang: &str, value: &str) -> Option<String> {
+    let id = SOURCES[0].lines().find_map(|l| {
+        let (id, text) = l.split_once(" = ")?;
+        (id.starts_with("word-") && text == value).then_some(id)
+    })?;
+    let b = bundle(lang)?;
+    let pattern = b.get_message(id)?.value()?;
+    let mut errors = Vec::new();
+    let text = b.format_pattern(pattern, None, &mut errors);
+    errors.is_empty().then(|| text.into_owned())
+}
 
 /// The arguments of a finding as Fluent arguments (every value a string, but [`NUMBER_ARGS`] as numbers).
 fn fluent_args(f: &Finding) -> FluentArgs<'_> {
@@ -131,15 +184,6 @@ pub fn format(f: &Finding, lang: &str) -> Option<String> {
     let id = message_id(f.rule);
     let pattern = b.get_message(&id)?.value()?;
     let mut args = fluent_args(f);
-    if DECIMAL_COMMA.iter().any(|l| l.eq_ignore_ascii_case(lang))
-        && let Some((_, names)) = DECIMAL_ARGS.iter().find(|(rule, _)| *rule == f.rule)
-    {
-        for (k, v) in &f.args {
-            if names.contains(k) {
-                args.set(*k, v.replace('.', ","));
-            }
-        }
-    }
     // EW-CORE-013 carries the uniqueness finding it reports by that finding's arguments, its discriminator naming the
     // rule: the finding is worded by that rule's pattern where it has one, else stays the en-GB `collision`.
     if f.rule == crate::rules::core::MERGE_COLLISION.id {

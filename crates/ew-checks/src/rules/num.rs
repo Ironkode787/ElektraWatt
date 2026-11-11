@@ -155,6 +155,9 @@ impl Rule for FrozenValueDeviates {
                     format!("wire {text}"),
                     format!("wire number {text}: frozen, deviates from the rule ({derived})"),
                 )
+                .arg("number", text)
+                .arg("derived", if rule.is_empty() { "none" } else { "value" })
+                .arg("rule", rule)
             })
             .collect()
     }

@@ -38,7 +38,7 @@ fn end_name(q: &Q, f: Id<Function>) -> String {
 /// selector `end` (`named` a tagged port or a bare interface, `connector` an untagged connector, `device` an untagged
 /// device's interface, `ip` an interruption point, `segment` an end without either) and the argument `port` (the
 /// printed name, interface or interruption point name; empty for the words alone).
-fn end_words(q: &Q, f: Id<Function>) -> (String, &'static str, String) {
+pub(crate) fn end_words(q: &Q, f: Id<Function>) -> (String, &'static str, String) {
     let Some(function) = q.functions().get(f) else {
         return ("a segment end".to_owned(), "segment", String::new());
     };

@@ -399,13 +399,13 @@ fn pot011_cases() {
                     );
                     assert!(!f[0].discriminator.is_empty(), "case {c}");
                     // Plain words from the Fluent pattern, never the derivation's arm-and-root text:
-                    // the potential once, first.
+                    // the potential once, first; then which junction, where, and the wires that meet there (FT-933).
                     let p = &f[0].subject;
                     assert_eq!(
                         f[0].message,
                         format!(
-                            "{p} has a junction or a group of interruption points whose feed is unclear; \
-                             draw one wire into it from the supply side"
+                            "{p}: it is unclear which wire feeds the junction on folio 1 (wires 1.1); draw one wire \
+                             into it from the supply side"
                         ),
                         "case {c}"
                     );
@@ -418,8 +418,8 @@ fn pot011_cases() {
                     assert_eq!(
                         nl,
                         format!(
-                            "{p} heeft een knooppunt of een groep onderbrekingspunten waarvan de voeding niet \
-                             duidelijk is; teken één draad ernaartoe vanaf de voedingszijde"
+                            "{p}: het is niet duidelijk welke draad de aftakking op folio 1 voedt (draden 1.1); teken \
+                             één draad ernaartoe vanaf de voedingszijde"
                         ),
                         "case {c}"
                     );

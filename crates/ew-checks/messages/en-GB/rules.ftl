@@ -37,7 +37,15 @@ rule-ew-core-007 =
     .title = Schema violation
     .hint = Correct the line in a text editor by the format's reference, or restore it from git.
 
-rule-ew-core-008 =
+rule-ew-core-008 = { $form ->
+        [duplicate_number] { $module } holds a second channel numbered { $number }; the module keeps one channel per number, so this one prints nowhere
+        [channel] channel { $channel } belongs to { $module }, which is not a PLC module; delete the channel or make { $module } a module again
+       *[form] folio { $page }: { $names ->
+            [both] the frame for page type { $type } names form copy { $type_copy }, and the default frame names form copy { $default_copy }
+            [type] the frame for page type { $type } names form copy { $type_copy }
+           *[default] the default frame names form copy { $default_copy }
+        }, which the project does not hold; the page takes the next frame
+    }
     .title = Dangling reference
     .hint = Restore the referenced record, or remove the reference with the quick fix.
 
@@ -49,7 +57,36 @@ rule-ew-core-010 =
     .title = Record in the wrong file
     .hint = Save the project: the save moves the record to its file.
 
-rule-ew-core-011 =
+rule-ew-core-011 = { $form ->
+        [file] { $file ->
+            [page] the file of folio { $name }
+            [layout] the layout file of { $name }
+            [a-layout] a layout file
+            [a-page] a page file
+            [import] an import's file
+           *[path] { $name }
+        }: the merge could not read { $side ->
+            [ours] ours
+            [theirs] theirs
+           *[other] one side
+        }; its lines are held in a conflict record
+       *[record] { $target ->
+            [project] the project
+            [device] device { $tag }
+            [page] folio { $page }
+            [a-page] a page
+            [function] a function of device { $tag }
+            [a-function] a function
+            [connection-on] connection from { $from } to { $to } on folio { $page }
+            [connection] connection from { $from } to { $to }
+            [a-connection] a connection
+           *[other] a { $kind }
+        }: { $side ->
+            [ours-deleted] ours deleted it and theirs changed { $members }
+            [theirs-deleted] theirs deleted it and ours changed { $members }
+           *[differ] ours and theirs differ in { $members }
+        }
+    }
     .title = Conflict records present
     .hint = Take ours or theirs for each conflict with ew merge resolve, or delete the record that conflicts.
 
@@ -81,31 +118,50 @@ rule-ew-core-019 =
     .title = Reader limit exceeded
     .hint = Split or repair the file outside ElektraWatt, and check where the project came from.
 
-rule-ew-core-021 =
+rule-ew-core-021 = folio { $page } lies outside the folio range { $from }–{ $to } of section { $section }; renumber the page or move it to the section whose range holds { $number }
     .title = Folio outside its section
     .hint = Renumber the page into its section's folio range, or move it to the section that owns the range.
 
-rule-ew-core-022 =
+rule-ew-core-022 = folio { $page } is printed by { $count } pages ({ $kinds }); give each page its own folio
     .title = Folio collision
     .hint = Give one of the pages another folio; two pages never share a folio.
 
-rule-ew-core-023 =
+rule-ew-core-023 = folio { $page } overrides the project description in its title block with "{ $text }"
     .title = Title-block override
     .hint = Remove the override to print the bound project value again, or keep it if the page needs its own text.
 
-rule-ew-core-025 =
+rule-ew-core-025 = the table of contents did not settle its page count; it uses { $pages } pages and its last page lists every remaining row
     .title = TOC fixpoint not reached
     .hint = Shorten the generated table of contents or its page entries so that its page count settles.
 
-rule-ew-core-026 =
+rule-ew-core-026 = { $family ->
+        [terminal_diagram] strip { $device } is in no terminal diagram
+        [cable_overview_diagrams] cable { $device } is in no cable overview and diagrams
+       *[plc_overview] PLC station { $device } is in no PLC overview
+    }: no report block of that kind covers it; add one or include it
     .title = Report coverage gap
     .hint = Add a report block of that kind, or exclude the records from the report on purpose.
 
-rule-ew-core-031 =
+rule-ew-core-031 = core { $core } has the colour { $colour }: { $codes } is not an IEC 60757 code or a company code of the colour profile
     .title = Invalid core colour
     .hint = Choose a colour code of the core colour standard, for example BN instead of BR.
 
-rule-ew-core-032 =
+rule-ew-core-032 = core { $core } { $form ->
+        [foreign] is not a core of the cable part { $part }
+       *[differs] differs from the core { $def } of the cable part { $part }: { $colour ->
+            [yes] { $sep_colour }colour { $colour_core } ≠ { $colour_part }
+           *[no] {""}
+        }{ $csa ->
+            [yes] { $sep_csa }cross-section { $csa_core } ≠ { $csa_part }
+           *[no] {""}
+        }{ $kind ->
+            [yes] { $sep_kind }kind { $kind_core } ≠ { $kind_part }
+           *[no] {""}
+        }{ $pair ->
+            [yes] { $sep_pair }pair { $pair_core } ≠ { $pair_part }
+           *[no] {""}
+        }
+    }
     .title = Core differs from the part
     .hint = Use the core as the cable part defines it, or choose the part that has this core.
 
@@ -120,11 +176,11 @@ rule-ew-core-034 = the external connection { $connection } has no cable: { $coun
     .title = External connection without cable
     .hint = Add the cable that leaves the location and assign its cores to the wires.
 
-rule-ew-core-036 =
+rule-ew-core-036 = core { $core } is assigned to { $count } wires ({ $wires }); a core carries one wire
     .title = Core assigned twice
     .hint = Assign the core to one connection only, or use another core of the cable.
 
-rule-ew-core-037 =
+rule-ew-core-037 = shield { $core } is connected at neither end; connect it at one end or both
     .title = Shield not connected
     .hint = Connect the shield to an earthing point, or mark it as not connected on purpose.
 
@@ -132,7 +188,11 @@ rule-ew-core-041 = { $device } has no part; assign one, or mark it as supplied b
     .title = Device without part
     .hint = Assign a part from the library, or mark the device as supplied by others.
 
-rule-ew-core-042 =
+rule-ew-core-042 = part { $part } of { $device } has no { $missing ->
+        [description] description
+        [manufacturer] manufacturer
+       *[both] description, no manufacturer
+    }
     .title = Incomplete part data
     .hint = Complete the part's data in the library and update the embedded copy.
 
@@ -140,23 +200,45 @@ rule-ew-core-043 = placeholder part "{ $part }" (part number TBD) is used by { $
     .title = Placeholder part
     .hint = Replace the placeholder with the real part before the release.
 
-rule-ew-core-044 =
+rule-ew-core-044 = { $form ->
+        [bus] { $end ->
+            [connector] a connector
+            [device] a device:{ $port }
+            [ip] end { $port }
+            [segment] a segment end
+           *[named] { $port }
+        }: the station address is TBD; enter it before release
+        [start] { $module }: the { $which ->
+            [input] input
+           *[output] output
+        } start address is TBD; enter it before release
+       *[channel] { $module }: the address of channel { $number } is TBD; enter it before release
+    }
     .title = Open Tbd value
     .hint = Enter the value that is still marked TBD before the release.
 
-rule-ew-core-045 =
+rule-ew-core-045 = { $device } uses { $need_no } NO, { $need_nc } NC, { $need_co } changeover contacts; its parts have { $have_no } NO, { $have_nc } NC, { $have_co } changeover
     .title = Auxiliary contacts exceed the part
     .hint = Remove contacts from the drawing, or choose a part with enough main and auxiliary contacts.
 
-rule-ew-core-047 =
+rule-ew-core-047 = { $device } has { $part ->
+        [yes] a part but no representation on any page; the parts list still counts it
+       *[no] no representation on any page
+    }
     .title = Device not in the schematic
     .hint = Place a representation of the device in the schematic, or delete the device.
 
-rule-ew-core-048 =
+rule-ew-core-048 = { $device } is covered by { $form ->
+        [covered-twice] { $count } order codes of { $assembly }; its parts would print { $count } times
+       *[uncovered] no order code of { $assembly }; the assembly BOM lists its own parts beside the configured products
+    }
     .title = Order codes do not cover the children
     .hint = Add the missing children to an order code of the assembly, or remove them from the assembly.
 
-rule-ew-core-051 =
+rule-ew-core-051 = interruption point { $name } { $form ->
+        [no-cp] has no connection point; it pairs with nothing
+       *[unpaired] has no partner; its wire stays open-ended
+    }
     .title = Unpaired interruption point
     .hint = Place the matching interruption point with the same name, or remove this one.
 
@@ -167,7 +249,10 @@ rule-ew-core-052 = interruption point { $name }: { $form ->
     .title = Ambiguous interruption point
     .hint = Keep one source per name: set the other sources to target, or flag exactly one point as the star source.
 
-rule-ew-core-053 =
+rule-ew-core-053 = { $item }: { $form ->
+        [outside] outside the frame (the target's anchor has no cell)
+       *[empty] empty cell (cell { $cell } holds no graphics of the target; its anchor policy places the anchor outside them)
+    }
     .title = Cross-reference cell invalid
     .hint = Restore the default anchor policy, or move the anchor into a cell that holds the graphics.
 
@@ -175,11 +260,14 @@ rule-ew-core-061 = text style { $style } prints with a cap height of { $height }
     .title = Text below minimum height
     .hint = Enlarge the text style, or change the texts to a style that prints at least at the minimum height.
 
-rule-ew-core-063 =
+rule-ew-core-063 = a text on folio { $page } has the size { $style }, which no text style binds; give it a text style
     .title = Unstyled text size
     .hint = Give the text one of the project's text styles instead of a free size.
 
-rule-ew-core-065 =
+rule-ew-core-065 = description "{ $text }" of part { $part }{ $form ->
+        [rating] {" "}holds the rating { $matches }: move it to the technical data
+       *[unit-format] : unit formatting { $matches } (a space between number and unit, units as written in SI)
+    }
     .title = Description lint
     .hint = Move ratings and technical data out of the description into their typed fields.
 
@@ -211,7 +299,7 @@ rule-ew-core-070 = Wire { $wire } runs through { $owner ->
     .title = Wire through a text
     .hint = Route the wire again with Route selection, or move the text.
 
-rule-ew-core-071 =
+rule-ew-core-071 = a graphic line ends on { $cp }, which joins nothing electrically; draw a connection instead
     .title = Graphic line on a CP
     .hint = Replace the graphic line by a connection, so that it takes part in the connectivity.
 
@@ -226,15 +314,21 @@ rule-ew-core-073 = Wire { $wire } has no route: Route page draws it.
     .title = Unrouted wire
     .hint = Run Route page or Route selection, or draw the wire's route with Edit route.
 
-rule-ew-core-081 =
+rule-ew-core-081 = waiver { $waiver } for { $rule } { $form ->
+        [not-evaluated] was not evaluated: the rule did not run in scheme { $scheme } ({ $mode } mode)
+       *[unmatched] matches no finding; remove it or correct its target
+    }
     .title = Waiver matches nothing
     .hint = Remove the waiver, or correct its target to the finding it was meant for.
 
-rule-ew-core-083 =
+rule-ew-core-083 = rule { $rule } { $form ->
+        [prevent] could not validate the edit: it stopped with an internal error, so the edit is not committed; report the defect
+       *[scope] could not be evaluated for { $scope }: it stopped with an internal error, so its findings there are missing; report the defect
+    }
     .title = Rule not evaluated
     .hint = Report the defect; the rule's findings in that scope are missing until it is fixed.
 
-rule-ew-core-084 =
+rule-ew-core-084 = pack { $pack } was not evaluated in full: its data table { $file } does not load ({ $error }); { $rules } did not run
     .title = Rule pack not evaluated
     .hint = Restore the pack's data file or trust the project, so that the pack can run.
 
@@ -362,7 +456,10 @@ rule-ew-num-001 = { $frozen }: frozen, deviates from scheme (rule-derived value 
     .title = Tag deviates from the scheme
     .hint = Unfreeze the tag to take the derived value, or keep it frozen if the deviation is intended.
 
-rule-ew-num-002 =
+rule-ew-num-002 = wire number { $number }: frozen, deviates from the rule ({ $derived ->
+        [none] the rule derives no number for the wire
+       *[value] rule-derived value { $rule }
+    })
     .title = Frozen value deviates
     .hint = Unfreeze the value to take the derived one, or keep it frozen if the deviation is intended.
 
@@ -461,12 +558,15 @@ rule-ew-bus-004 = { $form ->
 
 ## EW-POT: potentials
 
-rule-ew-pot-001 = { $conflicts }{ $more ->
-        [none] {""}
-       *[other] ; and { $more } more member CPs
-    }{ $hint ->
-        [bond] ; declare the bond with Draw ▸ Connect ▸ Bond
-       *[none] {""}
+rule-ew-pot-001 = { $form ->
+        [flow] pass-through of function { $device } joins type { $from } and type { $to } without a converting function
+       *[attrs] { $conflicts }{ $more ->
+            [none] {""}
+           *[other] ; and { $more } more member CPs
+        }{ $hint ->
+            [bond] ; declare the bond with Draw ▸ Connect ▸ Bond
+           *[none] {""}
+        }
     }
     .title = Type or voltage conflict
     .hint = Separate the potentials, correct the definition, or declare the bond that joins them.
@@ -477,7 +577,13 @@ rule-ew-pot-001 = { $conflicts }{ $more ->
     .conflict-role = member CP { $subject } has role { $value }; the defined type { $applied } applies
     .conflict-roles = member roles { $value } meet { $applied }; the first in role order applies
 
-rule-ew-pot-002 =
+rule-ew-pot-002 = { $form ->
+        [selv] SELV potential { $potential } is bonded to PE ({ $count } 0 V–PE bond(s)); a SELV circuit must not be earthed
+       *[pelv] PELV potential { $potential } { $bonds ->
+            [none] has no 0 V–PE bond
+           *[some] has { $count } 0 V–PE bonds
+        }; a PELV circuit needs exactly one (declare the bond on the 0 V–PE wire)
+    }
     .title = PELV or SELV bonding
     .hint = Declare exactly one 0 V–PE bond for a PELV potential, and none for a SELV potential.
 
@@ -493,7 +599,10 @@ rule-ew-pot-003 = { $cp_shared ->
     .title = FE pin on PE
     .hint = Declare an FE–PE bond, or connect the pin to functional earth.
 
-rule-ew-pot-004 =
+rule-ew-pot-004 = wire { $wire } is GNYE on the potential { $potential }{ $typed ->
+        [yes] {" "}(type { $type })
+       *[no] {""}
+    }; GNYE is reserved for protective conductors
     .title = GNYE on a non-PE potential
     .hint = Use green-yellow only for protective conductors; give the wire another colour.
 
@@ -511,7 +620,13 @@ rule-ew-pot-006 = PE wire { $wire } has { $pe } mm², below the { $required } mm
     .title = PE undersized
     .hint = Increase the protective conductor's cross-section to the required size.
 
-rule-ew-pot-008 =
+rule-ew-pot-008 = { $form ->
+        [terminal] { $detail }
+       *[island] { $location ->
+            [main] the main location
+           *[node] { $node }
+        } holds { $count } PE potentials: { $potentials }; join them through a bonded rail or a PE wire
+    }
     .title = PE island
     .hint = Connect the PE potentials of the location, for example through the rail bonding of the terminals.
 
@@ -530,22 +645,36 @@ rule-ew-pot-009 = { $cp_shared ->
     .title = Unconnected CP
     .hint = Connect the connection point, or mark it unused.
 
-rule-ew-pot-011 = { $potential } has a junction or a group of interruption points whose feed is unclear; draw one wire into it from the supply side
+rule-ew-pot-011 = { $potential }: it is unclear which wire feeds { $place ->
+        [junction] the junction { $at ->
+            [cell] at { $cell } on folio { $page }
+           *[folio] on folio { $page }
+        } (wires { $wires })
+        [ip] the interruption points { $group } (wires { $wires })
+       *[other] a junction or a group of interruption points
+    }; draw one wire into it from the supply side
     .title = Junction feed ambiguous
     .hint = Draw the junction so that one end feeds it, or set its wiring order.
 
-rule-ew-pot-012 =
+rule-ew-pot-012 = { $form ->
+        [ring] the connection closes a ring in the drawing graph; it is the highest ID of the ring and forms no physical wire
+       *[other] { $detail }
+    }
     .title = Ring in the drawing graph
     .hint = Remove the wire that closes the ring, or confirm that the ring is intended.
 
-rule-ew-pot-013 = { $device } switches the neutral { $from } → { $to }{ $loads ->
-        [one] ; load { $load } stays connected to { $line }
-       *[none] {""}
-    }.
+rule-ew-pot-013 = { $device } { $form ->
+        [isolating] is an N-isolating terminal on { $from } → { $to }
+       *[switching] switches the neutral { $from } → { $to }{ $loads ->
+            [one] ; load { $load } stays connected to { $line }
+            [many] ; { $stranded }
+           *[none] {""}
+        }.
+    }
     .title = N switching
     .hint = Move the contact into the line conductor, or use a device that opens L and N together.
 
-rule-ew-pot-014 =
+rule-ew-pot-014 = { $detail }
     .title = Physical-wire conflict
     .hint = Give the physical wire one set of properties, or split it into separate wires.
 
@@ -553,11 +682,19 @@ rule-ew-pot-015 = wire number { $number } is printed on { $count } wires; a wire
     .title = Wire-number conflict
     .hint = Give the wires of one potential the same wire number, or separate the potentials.
 
-rule-ew-pot-016 =
+rule-ew-pot-016 = the override { $member ->
+        [csa] cross-section { $value }
+        [colour] colour { $value }
+        [wire_part] wire part
+        [insulation] insulation
+        [function] wire function
+        [shielded] shielded
+       *[twisted] twisted
+    } of wire { $wire } equals the value below it in the inheritance chain; remove the override
     .title = Redundant override
     .hint = Remove the override; it sets the value the wire takes anyway.
 
-rule-ew-pot-017 =
+rule-ew-pot-017 = the definitions of one potential name it { $names }; the first in natural order ({ $first }) applies
     .title = Two potential names
     .hint = Keep one definition of the potential, or rename the interruption points to one name.
 
@@ -575,11 +712,11 @@ rule-ew-pot-021 = { $cp_shared ->
 
 ## EW-RDS (EW-IEC81346): reference designations
 
-rule-ew-rds-001 =
+rule-ew-rds-001 = { $device } does not parse as an IEC 81346 designation: { $detail }
     .title = Designation does not parse
     .hint = Correct the designation to the reference designation syntax of IEC 81346.
 
-rule-ew-rds-002 =
+rule-ew-rds-002 = the structure code { $code } contains separator characters; tools that read exported designations may split it into several levels
     .title = Separator in a structure code
     .hint = Remove the separator from the code, or use a structure level instead.
 
@@ -594,21 +731,27 @@ rule-ew-rds-004 = `{ $tag }` is printed by { $count } devices
     .title = Duplicate designation
     .hint = Give one of the devices another designation.
 
-rule-ew-rds-007 =
+rule-ew-rds-007 = { $device }: the letter code { $letter } uses reserved letters: { $reasons }
     .title = Reserved letters
     .hint = Avoid the letters I and O in a letter code; choose another letter.
 
-rule-ew-rds-009 =
+rule-ew-rds-009 = the { $what } { $text } of { $device } contains non-Latin characters that look like Latin ones: { $chars }; search and cross-references cannot find it; retype it in Latin letters
     .title = Confusable character
     .hint = Replace the character by its plain Latin form.
 
-rule-ew-rds-010 =
+rule-ew-rds-010 = the structure codes { $codes } differ only in separators or case; merge them into one node and keep the other spellings as aliases
     .title = Structure-code variants
     .hint = Merge the structure nodes whose codes differ only in spelling.
 
 ## EW-REL: the release gate
 
-rule-ew-rel-001 =
+rule-ew-rel-001 = revision { $revision }: { $form ->
+        [author] author not set; set it with Check ▸ Revision ▸ Set revision author…
+        [checker] checker not set; the checker approves the revision
+        [four-eyes] the checker is the author ({ $role }); four eyes need another party
+        [sign-off] sign-off missing; the checker approves the saved revision
+       *[stale] the sign-off does not match the saved content (edited after approval); approve it again
+    }
     .title = Four eyes
     .hint = Set the author, then let another party approve the saved revision; approve again after a content edit.
 
@@ -616,13 +759,16 @@ rule-ew-rel-002 =
     .title = Stale committed computation
     .hint = Recompute the stale result and commit it again before the release.
 
-rule-ew-rel-004 =
+rule-ew-rel-004 = revision { $revision }: { $form ->
+        [format] the label is not in the project's revision label format { $pattern }
+       *[order] the open revision's label does not follow { $later } of revision { $id }; revision labels increase, the open revision last
+    }
     .title = Revision label order
     .hint = Give the revision a label in the project's label format that follows every earlier label.
 
 ## EW-TERM: terminals
 
-rule-ew-term-001 =
+rule-ew-term-001 = a terminal of { $strip } has no designation
     .title = Terminal without designation
     .hint = Give the terminal a designation.
 
@@ -644,19 +790,31 @@ rule-ew-term-002 = { $form ->
     .title = Duplicate designation
     .hint = Renumber the strip, or give one of the terminals another designation.
 
-rule-ew-term-003 =
+rule-ew-term-003 = spare terminal { $terminal } is wired on its field side; wire it on the other side or clear its spare state
     .title = Spare wired on the field side
     .hint = Remove the field-side wire, or make the terminal a used terminal.
 
-rule-ew-term-004 =
+rule-ew-term-004 = bridge group { $group } of { $strip } is invalid: { $gap ->
+        [yes] { $sep_gap }its terminals are not consecutive
+       *[no] {""}
+    }{ $shafts ->
+        [yes] { $sep_shafts }it runs over { $shaft_count } shafts
+       *[no] {""}
+    }{ $reaches ->
+        [yes] { $sep_reaches }it reaches { $reached }
+       *[no] {""}
+    }{ $overlaps ->
+        [yes] { $sep_overlaps }it overlaps bridge group { $overlapped } on its shaft
+       *[no] {""}
+    }; a bridge group runs over consecutive terminals of one strip on one shaft
     .title = Bridge group invalid
     .hint = Bridge only neighbouring terminals of one strip, or move the terminals together.
 
-rule-ew-term-005 =
+rule-ew-term-005 = rail_bonded is set but the terminal has no PE CP; it joins no location PE node
     .title = Rail bonding on a non-PE terminal
     .hint = Clear the rail bonding, or make the terminal a PE terminal.
 
-rule-ew-term-006 =
+rule-ew-term-006 = { $terminal } lies on wire { $wire } without joining it; connect it to the wire or move it
     .title = Terminal on a wire it does not join
     .hint = Connect the terminal into the wire, or move it off the wire.
 
@@ -783,3 +941,38 @@ fix-unfreeze-tag = Unfreeze the tag
 fix-realise-primary-part = Realise the primary part
 fix-rebind-map-channel = Rebind to the map's channel
 fix-declare-pelv-bond = Declare 0 V–PE bond (PELV)
+
+# The words a rule prints where a record has no name of its own (FT-912): a pattern of another language wraps an
+# argument that may hold them in WORD(…), which prints that language's message of the same ID instead.
+word-device = device
+word-cable = cable
+word-without-a-tag = without a tag
+word-a-junction = a junction
+word-assembly = assembly
+word-a-location = a location
+word-a-device-without-designation = a device without designation
+word-a-missing-part = a missing part
+word-an-unknown-profile = an unknown profile
+word-a-placement = a placement
+word-none = none
+word-terminal = terminal
+word-strip = strip
+word-another-strip = another strip
+word-valve = valve
+word-the-valve = the valve
+word-a-device = a device
+word-a-module = a module
+word-a-part = a part
+word-a-configuration-project = a configuration project
+word-no-address = no address
+word-a-role-of-a-newer-format = a role of a newer format
+word-junction = junction
+word-a-drawn-page = a drawn page
+word-a-section-divider = a section divider
+word-a-report-page = a report page
+word-the-strip = the strip
+word-a-device-that-is-not-a-terminal = a device that is not a terminal
+word-the-project = the project
+word-a-page = a page
+word-a-logical-bus-net = a logical bus net
+word-a-physical-bus-net = a physical bus net

@@ -105,6 +105,11 @@ impl Rule for FolioOutsideSection {
                     section.number
                 ),
             )
+            .arg("page", folio.to_string())
+            .arg("from", lo.to_string())
+            .arg("to", hi.to_string())
+            .arg("section", section.number.to_string())
+            .arg("number", n.to_string())
             .on_page(id),
         ]
     }
@@ -184,7 +189,10 @@ fn collision_finding(label: &str, pages: &[(Target, Origin)]) -> Finding {
             pages.len(),
             kinds.join(", ")
         ),
-    );
+    )
+    .arg("page", label)
+    .arg("count", pages.len().to_string())
+    .arg("kinds", kinds.join(", "));
     match pages
         .iter()
         .find_map(|(t, _)| (t.kind == Kind::Page).then_some(t.id))
@@ -296,7 +304,8 @@ impl Rule for TocFixpoint {
                  remaining row",
                 order.toc_pages
             ),
-        )]
+        )
+        .arg("pages", order.toc_pages.to_string())]
     }
 }
 
@@ -429,6 +438,8 @@ impl Rule for ReportCoverageGap {
                     tag.clone(),
                     format!("{entity} {tag} is in no {block}: no report block of that kind covers it; add one or include it"),
                 )
+                .arg("family", disc)
+                .arg("device", tag)
             })
             .collect()
     }
@@ -696,6 +707,8 @@ impl Rule for UnstyledTextSize {
                     format!("folio {folio}: {style}"),
                     format!("a text on folio {folio} has the size {style}, which no text style binds; give it a text style"),
                 )
+                .arg("page", folio.to_string())
+                .arg("style", style)
                 .on_page(page)
             })
             .collect()
@@ -808,6 +821,7 @@ impl Rule for GraphicLineOnCp {
                         "a graphic line ends on {label}, which joins nothing electrically; draw a connection instead"
                     ),
                 )
+                .arg("cp", label)
                 .on_page(page)
             })
             .collect()

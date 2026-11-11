@@ -131,13 +131,17 @@ impl Rule for DeviceNotInSchematic {
         } else {
             format!("{tag} has a part but no representation on any page; the parts list still counts it")
         };
-        vec![Finding::new(
-            &DEVICE_NOT_IN_SCHEMATIC,
-            [Target::new(Kind::Device, device)],
-            "",
-            tag,
-            message,
-        )]
+        vec![
+            Finding::new(
+                &DEVICE_NOT_IN_SCHEMATIC,
+                [Target::new(Kind::Device, device)],
+                "",
+                tag.clone(),
+                message,
+            )
+            .arg("device", tag)
+            .arg("part", if d.parts.is_empty() { "no" } else { "yes" }),
+        ]
     }
 }
 
@@ -186,6 +190,8 @@ impl Rule for UnpairedInterruptionPoint {
                 format!("interruption point {name}"),
                 message,
             )
+            .arg("form", discriminator.to_owned())
+            .arg("name", name.to_owned())
         };
         let mut out = Vec::new();
         for (f, info) in &pairing.ips {
@@ -426,6 +432,8 @@ impl Rule for TitleBlockOverride {
                     "folio {folio} overrides the project description in its title block with \"{shown}\""
                 ),
             )
+            .arg("page", folio.to_string())
+            .arg("text", shown)
             .on_page(page)
             .with_fix(QuickFix {
                 label: "drop override".to_owned(),
@@ -514,6 +522,10 @@ impl Rule for XrefCellInvalid {
                 else {
                     continue;
                 };
+                let (form, cell_text) = match &t.cell {
+                    None => ("outside", String::new()),
+                    Some(cell) => ("empty", cell.to_string()),
+                };
                 let message = match &t.cell {
                     None => format!("{item}: outside the frame (the target's anchor has no cell)"),
                     Some(cell) => {
@@ -538,6 +550,9 @@ impl Rule for XrefCellInvalid {
                     item.to_owned(),
                     message,
                 )
+                .arg("item", item.to_owned())
+                .arg("form", form)
+                .arg("cell", cell_text)
                 .with_fix(QuickFix {
                     label: "anchor at the graphics centre".to_owned(),
                     key: Some("fix-anchor-graphics-centre"),
@@ -698,28 +713,40 @@ impl Rule for DescriptionLint {
             let subject = part.part_number.as_str().to_owned();
             let shown = texts.first().copied().unwrap_or_default();
             if !ratings.is_empty() {
-                out.push(Finding::new(
-                    &DESCRIPTION_LINT,
-                    [Target::new(Kind::Part, id)],
-                    "rating",
-                    subject.clone(),
-                    format!(
-                        "description \"{shown}\" of part {subject} holds the rating {}: move it to the technical data",
-                        quoted(&ratings)
-                    ),
-                ));
+                out.push(
+                    Finding::new(
+                        &DESCRIPTION_LINT,
+                        [Target::new(Kind::Part, id)],
+                        "rating",
+                        subject.clone(),
+                        format!(
+                            "description \"{shown}\" of part {subject} holds the rating {}: move it to the technical data",
+                            quoted(&ratings)
+                        ),
+                    )
+                    .arg("form", "rating")
+                    .arg("text", shown)
+                    .arg("part", subject.clone())
+                    .arg("matches", quoted(&ratings)),
+                );
             }
             if !formats.is_empty() {
-                out.push(Finding::new(
-                    &DESCRIPTION_LINT,
-                    [Target::new(Kind::Part, id)],
-                    "unit-format",
-                    subject.clone(),
-                    format!(
-                        "description \"{shown}\" of part {subject}: unit formatting {} (a space between number and unit, units as written in SI)",
-                        quoted(&formats)
-                    ),
-                ));
+                out.push(
+                    Finding::new(
+                        &DESCRIPTION_LINT,
+                        [Target::new(Kind::Part, id)],
+                        "unit-format",
+                        subject.clone(),
+                        format!(
+                            "description \"{shown}\" of part {subject}: unit formatting {} (a space between number and unit, units as written in SI)",
+                            quoted(&formats)
+                        ),
+                    )
+                    .arg("form", "unit-format")
+                    .arg("text", shown)
+                    .arg("part", subject.clone())
+                    .arg("matches", quoted(&formats)),
+                );
             }
         }
         out
@@ -887,31 +914,44 @@ impl Rule for ConflictRecords {
                 ConflictBody::Record {
                     kind, ours, theirs, ..
                 } => {
-                    let target = conflict_target(q, kind, id.cast());
+                    let (target, words) = conflict_target(q, kind, id.cast());
                     let members = conflict.member_paths().join(", ");
-                    let message = match (ours.as_str(), theirs.as_str()) {
-                        (Some(DELETED_SIDE), _) => {
-                            format!("{target}: ours deleted it and theirs changed {members}")
-                        }
-                        (_, Some(DELETED_SIDE)) => {
-                            format!("{target}: theirs deleted it and ours changed {members}")
-                        }
-                        _ => format!("{target}: ours and theirs differ in {members}"),
+                    let (side, message) = match (ours.as_str(), theirs.as_str()) {
+                        (Some(DELETED_SIDE), _) => (
+                            "ours-deleted",
+                            format!("{target}: ours deleted it and theirs changed {members}"),
+                        ),
+                        (_, Some(DELETED_SIDE)) => (
+                            "theirs-deleted",
+                            format!("{target}: theirs deleted it and ours changed {members}"),
+                        ),
+                        _ => ("differ", format!("{target}: ours and theirs differ in {members}")),
                     };
                     let targets = Kind::from_name(kind).map(|k| Target::new(k, id));
-                    Finding::new(&CONFLICT_RECORDS, targets, "record", target, message)
+                    let mut f = Finding::new(&CONFLICT_RECORDS, targets, "record", target, message)
+                        .arg("form", "record")
+                        .arg("side", side)
+                        .arg("members", members);
+                    for (name, value) in words {
+                        f = f.arg(name, value);
+                    }
+                    f
                 }
                 ConflictBody::File { path, side, .. } => {
-                    let held = match side {
-                        ConflictSide::Ours => "ours",
-                        ConflictSide::Theirs => "theirs",
-                        ConflictSide::Unknown(_) => "one side",
+                    let (held, side) = match side {
+                        ConflictSide::Ours => ("ours", "ours"),
+                        ConflictSide::Theirs => ("theirs", "theirs"),
+                        ConflictSide::Unknown(_) => ("one side", "other"),
                     };
-                    let file = conflict_file(q, path);
+                    let (file, file_form, name) = conflict_file(q, path);
                     let message = format!(
                         "{file}: the merge could not read {held}; its lines are held in a conflict record"
                     );
                     Finding::new(&CONFLICT_RECORDS, [], "file", file, message)
+                        .arg("form", "file")
+                        .arg("side", side)
+                        .arg("file", file_form)
+                        .arg("name", name)
                 }
             });
         }
@@ -1074,8 +1114,9 @@ pub fn renumber_newer(q: &Q, group: &[Target]) -> Option<QuickFix> {
 }
 
 /// The file of a file-level conflict, in words: a page's file by its folio, a layout file by its space's name; any
-/// other file (a root file, a device shard) by its path, which names no record.
-fn conflict_file(q: &Q, path: &str) -> String {
+/// other file (a root file, a device shard) by its path, which names no record. With the selector and the name of the
+/// rule's pattern.
+fn conflict_file(q: &Q, path: &str) -> (String, &'static str, String) {
     let id = |dir: &str| {
         path.strip_prefix(dir)?
             .strip_suffix(".jsonl")?
@@ -1084,26 +1125,28 @@ fn conflict_file(q: &Q, path: &str) -> String {
             .map(Id::<()>::from_uuid)
     };
     if let Some(page) = id("pages/").and_then(|p| q.pages().get(p.cast())) {
-        return format!("the file of folio {}", folio_label(page));
+        let folio = folio_label(page).to_string();
+        return (format!("the file of folio {folio}"), "page", folio);
     }
     if let Some(space) = id("layout/").and_then(|s| q.table::<LayoutSpace>().get(s.cast())) {
         if let Some(name) = &space.name {
-            return format!("the layout file of {name}");
+            return (format!("the layout file of {name}"), "layout", name.to_string());
         }
-        return "a layout file".to_owned();
+        return ("a layout file".to_owned(), "a-layout", String::new());
     }
     match path.split_once('/') {
-        Some(("pages", _)) => "a page file".to_owned(),
-        Some(("layout", _)) => "a layout file".to_owned(),
-        Some(("imports", _)) => "an import's file".to_owned(),
-        _ => path.to_owned(),
+        Some(("pages", _)) => ("a page file".to_owned(), "a-page", String::new()),
+        Some(("layout", _)) => ("a layout file".to_owned(), "a-layout", String::new()),
+        Some(("imports", _)) => ("an import's file".to_owned(), "import", String::new()),
+        _ => (path.to_owned(), "path", path.to_owned()),
     }
 }
 
 /// The record a conflict targets, in words: the project, a device by its tag, a page by its folio, a connection by its
-/// ends and folio, a function by its device; any other record by its kind.
-fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> String {
-    let device = |d: Id<Device>| format!("device {}", full_tag(q, d, "without a tag"));
+/// ends and folio, a function by its device; any other record by its kind. With the arguments of the rule's pattern:
+/// the selector `target` and the names it words.
+fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> (String, Vec<(&'static str, String)>) {
+    let tag = |d: Id<Device>| full_tag(q, d, "without a tag");
     let end = |e: &Endpoint| match e {
         Endpoint::Cp(f, idx) => ew_derive::cp_label(
             q,
@@ -1114,30 +1157,53 @@ fn conflict_target(q: &Q, kind: &str, id: Id<()>) -> String {
         ),
         _ => "a junction".to_owned(),
     };
-    match Kind::from_name(kind) {
-        Some(Kind::Project) => "the project".to_owned(),
-        Some(Kind::Device) => device(id.cast()),
-        Some(Kind::Page) => q
-            .pages()
-            .get(id.cast())
-            .map_or_else(|| "a page".to_owned(), |p| format!("folio {}", folio_label(p))),
+    let kind_words = kind.replace('_', " ");
+    let (en, target, mut args): (String, &str, Vec<(&'static str, String)>) = match Kind::from_name(kind) {
+        Some(Kind::Project) => ("the project".to_owned(), "project", vec![]),
+        Some(Kind::Device) => {
+            let t = tag(id.cast());
+            (format!("device {t}"), "device", vec![("tag", t)])
+        }
+        Some(Kind::Page) => match q.pages().get(id.cast()) {
+            Some(p) => {
+                let folio = folio_label(p).to_string();
+                (format!("folio {folio}"), "page", vec![("page", folio)])
+            }
+            None => ("a page".to_owned(), "a-page", vec![]),
+        },
         Some(Kind::Function) => match q.functions().get(id.cast()).and_then(|f| f.device) {
-            Some(d) => format!("a function of {}", device(d)),
-            None => "a function".to_owned(),
+            Some(d) => {
+                let t = tag(d);
+                (format!("a function of device {t}"), "function", vec![("tag", t)])
+            }
+            None => ("a function".to_owned(), "a-function", vec![]),
         },
         Some(Kind::Connection) => match q.table::<Connection>().get(id.cast()) {
             Some(c) => {
-                let page = c
-                    .page
-                    .and_then(|p| q.pages().get(p))
-                    .map(|p| format!(" on folio {}", folio_label(p)))
-                    .unwrap_or_default();
-                format!("connection from {} to {}{page}", end(&c.a), end(&c.b))
+                let (from, to) = (end(&c.a), end(&c.b));
+                match c.page.and_then(|p| q.pages().get(p)) {
+                    Some(p) => {
+                        let folio = folio_label(p).to_string();
+                        (
+                            format!("connection from {from} to {to} on folio {folio}"),
+                            "connection-on",
+                            vec![("from", from), ("to", to), ("page", folio)],
+                        )
+                    }
+                    None => (
+                        format!("connection from {from} to {to}"),
+                        "connection",
+                        vec![("from", from), ("to", to)],
+                    ),
+                }
             }
-            None => "a connection".to_owned(),
+            None => ("a connection".to_owned(), "a-connection", vec![]),
         },
-        _ => format!("a {}", kind.replace('_', " ")),
-    }
+        _ => (format!("a {kind_words}"), "other", vec![]),
+    };
+    args.push(("target", target.to_owned()));
+    args.push(("kind", kind_words));
+    (en, args)
 }
 
 /// The integrity rules EW-CORE-001 … 019 but 011 and 013 (doc 15 §4.2; detection in the store, doc 05 §6.3), which are

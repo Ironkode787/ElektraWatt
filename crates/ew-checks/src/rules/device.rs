@@ -166,13 +166,22 @@ impl Rule for IncompletePartData {
             }
             let tag = full_tag(q, device, "device");
             let number = part.item.part_number.as_str();
-            out.push(Finding::new(
-                &INCOMPLETE_PART_DATA,
-                [Target::new(Kind::Device, device), Target::new(Kind::Part, id)],
-                "part-data",
-                tag.clone(),
-                format!("part {number} of {tag} has no {}", missing.join(", no ")),
-            ));
+            let which = match missing.as_slice() {
+                [one] => *one,
+                _ => "both",
+            };
+            out.push(
+                Finding::new(
+                    &INCOMPLETE_PART_DATA,
+                    [Target::new(Kind::Device, device), Target::new(Kind::Part, id)],
+                    "part-data",
+                    tag.clone(),
+                    format!("part {number} of {tag} has no {}", missing.join(", no ")),
+                )
+                .arg("part", number)
+                .arg("device", tag)
+                .arg("missing", which),
+            );
         }
         out
     }
@@ -359,13 +368,19 @@ impl Rule for OpenTbdValue {
                 continue;
             };
             let name = crate::rules::bus::port_name(q, function, port);
-            out.push(Finding::new(
-                &OPEN_TBD_VALUE,
-                [Target::new(Kind::Device, device), Target::new(Kind::Function, f)],
-                "bus_address",
-                name.clone(),
-                format!("{name}: the station address is TBD; enter it before release"),
-            ));
+            let (_, end, words) = crate::rules::bus::end_words(q, f);
+            out.push(
+                Finding::new(
+                    &OPEN_TBD_VALUE,
+                    [Target::new(Kind::Device, device), Target::new(Kind::Function, f)],
+                    "bus_address",
+                    name.clone(),
+                    format!("{name}: the station address is TBD; enter it before release"),
+                )
+                .arg("form", "bus")
+                .arg("end", end)
+                .arg("port", words),
+            );
         }
         let Some(module) = q.devices().get(device).and_then(|d| d.aspects.plc_module.clone()) else {
             return out;
@@ -373,26 +388,36 @@ impl Rule for OpenTbdValue {
         let tag = full_tag(q, device, "module");
         for (which, spec) in [("input", &module.start.input), ("output", &module.start.output)] {
             if *spec == AddrSpec::Tbd {
-                out.push(Finding::new(
-                    &OPEN_TBD_VALUE,
-                    [Target::new(Kind::Device, device)],
-                    format!("start.{which}"),
-                    tag.clone(),
-                    format!("{tag}: the {which} start address is TBD; enter it before release"),
-                ));
+                out.push(
+                    Finding::new(
+                        &OPEN_TBD_VALUE,
+                        [Target::new(Kind::Device, device)],
+                        format!("start.{which}"),
+                        tag.clone(),
+                        format!("{tag}: the {which} start address is TBD; enter it before release"),
+                    )
+                    .arg("form", "start")
+                    .arg("module", tag.clone())
+                    .arg("which", which),
+                );
             }
         }
         let channels = q.get::<ChannelsByModule>(());
         let table = q.table::<ew_derive::ew_schema::Channel>();
         for (number, id) in channels.of_module(device) {
             if table.get(id).is_some_and(|c| c.address == AddrSpec::Tbd) {
-                out.push(Finding::new(
-                    &OPEN_TBD_VALUE,
-                    [Target::new(Kind::Device, device), Target::new(Kind::Channel, id)],
-                    "address",
-                    tag.clone(),
-                    format!("{tag}: the address of channel {number} is TBD; enter it before release"),
-                ));
+                out.push(
+                    Finding::new(
+                        &OPEN_TBD_VALUE,
+                        [Target::new(Kind::Device, device), Target::new(Kind::Channel, id)],
+                        "address",
+                        tag.clone(),
+                        format!("{tag}: the address of channel {number} is TBD; enter it before release"),
+                    )
+                    .arg("form", "channel")
+                    .arg("module", tag.clone())
+                    .arg("number", number.to_string()),
+                );
             }
         }
         out
@@ -505,17 +530,26 @@ impl Rule for ContactsExceedPart {
             return Vec::new();
         }
         let tag = full_tag(q, device, "device");
-        vec![Finding::new(
-            &CONTACTS_EXCEED_PART,
-            [Target::new(Kind::Device, device)],
-            "contacts",
-            tag.clone(),
-            format!(
-                "{tag} uses {} contacts; its parts have {}",
-                need.text(),
-                have.text()
-            ),
-        )]
+        vec![
+            Finding::new(
+                &CONTACTS_EXCEED_PART,
+                [Target::new(Kind::Device, device)],
+                "contacts",
+                tag.clone(),
+                format!(
+                    "{tag} uses {} contacts; its parts have {}",
+                    need.text(),
+                    have.text()
+                ),
+            )
+            .arg("device", tag)
+            .arg("need_no", need.no.to_string())
+            .arg("need_nc", need.nc.to_string())
+            .arg("need_co", need.co.to_string())
+            .arg("have_no", have.no.to_string())
+            .arg("have_nc", have.nc.to_string())
+            .arg("have_co", have.co.to_string()),
+        ]
     }
 }
 
@@ -586,7 +620,7 @@ impl Rule for OrderCodesCover {
             }
         }
         let tag = full_tag(q, head, "assembly");
-        let mut rows: Vec<(String, Id<Device>, &'static str, String)> = Vec::new();
+        let mut rows: Vec<(String, Id<Device>, &'static str, String, u32)> = Vec::new();
         let with_parts = |d: Id<Device>| q.devices().get(d).is_some_and(|x| !x.parts.is_empty());
         for d in std::iter::once(head).chain(descendants(q, head)) {
             let n = covered.get(&d).copied().unwrap_or(0);
@@ -599,6 +633,7 @@ impl Rule for OrderCodesCover {
                     format!(
                         "{child} is covered by {n} order codes of {tag}; its parts would print {n} times"
                     ),
+                    n,
                 ));
             } else if n == 0 && d != head && with_parts(d) {
                 rows.push((
@@ -608,6 +643,7 @@ impl Rule for OrderCodesCover {
                     format!(
                         "{child} is covered by no order code of {tag}; the assembly BOM lists its own parts beside the configured products"
                     ),
+                    n,
                 ));
             }
         }
@@ -617,14 +653,18 @@ impl Rule for OrderCodesCover {
                 .then_with(|| a.1.cmp(&b.1))
         });
         rows.into_iter()
-            .map(|(subject, d, disc, message)| {
+            .map(|(subject, d, disc, message, n)| {
                 Finding::new(
                     &ORDER_CODES_COVER,
                     [Target::new(Kind::Device, head), Target::new(Kind::Device, d)],
                     disc,
-                    subject,
+                    subject.clone(),
                     message,
                 )
+                .arg("form", disc)
+                .arg("device", subject)
+                .arg("assembly", tag.clone())
+                .arg("count", n.to_string())
             })
             .collect()
     }
@@ -682,16 +722,21 @@ fn duplicate_numbers(q: &Q) -> Vec<Finding> {
                 continue;
             }
             let subject = format!("{tag}:{number}");
-            out.push(Finding::new(
-                &DANGLING_REFERENCE,
-                [Target::new(Kind::Channel, id), Target::new(Kind::Device, module)],
-                "duplicate_number",
-                subject.clone(),
-                format!(
-                    "{tag} holds a second channel numbered {number}; the module keeps one channel per number, so this \
-                     one prints nowhere"
-                ),
-            ));
+            out.push(
+                Finding::new(
+                    &DANGLING_REFERENCE,
+                    [Target::new(Kind::Channel, id), Target::new(Kind::Device, module)],
+                    "duplicate_number",
+                    subject.clone(),
+                    format!(
+                        "{tag} holds a second channel numbered {number}; the module keeps one channel per number, so \
+                         this one prints nowhere"
+                    ),
+                )
+                .arg("form", "duplicate_number")
+                .arg("module", tag.clone())
+                .arg("number", number.to_string()),
+            );
         }
     }
     out
@@ -732,6 +777,9 @@ fn orphan_channels(q: &Q) -> Vec<Finding> {
                      module again"
                 ),
             )
+            .arg("form", "channel")
+            .arg("channel", subject)
+            .arg("module", tag)
         })
         .collect()
 }
@@ -767,19 +815,28 @@ fn dangling_frame_forms(q: &Q) -> Vec<Finding> {
             .iter()
             .find(|e| e.page_type == type_name)
             .and_then(|e| e.form);
+        let mut type_copy = String::new();
         match entry {
             Some(f) if held(f) => continue,
-            Some(f) => missing.push(format!("the frame for page type {type_name} names form copy {f}")),
+            Some(f) => {
+                type_copy = f.to_string();
+                missing.push(format!("the frame for page type {type_name} names form copy {f}"));
+            }
             None => {}
         }
+        let mut default_copy = String::new();
         if let Some(f) = settings.default
             && !held(f)
         {
+            default_copy = f.to_string();
             missing.push(format!("the default frame names form copy {f}"));
         }
-        if missing.is_empty() {
-            continue;
-        }
+        let names = match (type_copy.is_empty(), default_copy.is_empty()) {
+            (true, true) => continue,
+            (false, false) => "both",
+            (false, true) => "type",
+            (true, false) => "default",
+        };
         out.push(
             Finding::new(
                 &DANGLING_REFERENCE,
@@ -791,6 +848,12 @@ fn dangling_frame_forms(q: &Q) -> Vec<Finding> {
                     missing.join(", and ")
                 ),
             )
+            .arg("form", "form")
+            .arg("page", folio.to_string())
+            .arg("names", names)
+            .arg("type", type_name)
+            .arg("type_copy", type_copy)
+            .arg("default_copy", default_copy)
             .on_page(id),
         );
     }

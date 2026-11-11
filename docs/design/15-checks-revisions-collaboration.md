@@ -505,6 +505,13 @@ rule-ew-pot-013 = { $device } switches the neutral { $from } → { $to }; { $loa
   by icu per output language (FR-I18N-009).
 - **Languages.** en-GB is mandatory and the fallback; nl-NL is complete at MVP (FR-UI-032). CI fails when a rule
   lacks its message or `.title` (NFR-I18N-02).
+
+  *As built (M2.5-Fix).* Every registered rule has its `.title`, `.hint` and, where its findings carry arguments, its
+  pattern in nl-NL, and every finding of a rule table carries its arguments; the message test fails otherwise. The
+  EW-IMP findings are the exception: their message is the text the importer stored in the project. Arguments stay
+  printed text; a pattern writes a measured value with `DECIMAL($x)` (the language's decimal separator) and a name
+  that may be a fallback ("a location", "a device without designation") with `WORD($x)`, whose words are the
+  messages `word-…` of each language.
 - **F1 help.** F1 on a finding opens `docs` in the bundled offline documentation (FR-CHK-015, FR-UI-031): what is
   checked and why, the standard by number and clause without copied text, a golden example, quick fixes and waiver
   guidance (NFR-DOC-02). CI fails when the page is missing. Company packs ship `docs/<rule>.md`, which EW renders to

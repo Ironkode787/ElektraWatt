@@ -318,6 +318,7 @@ fn a_waiver_matches_by_fingerprint_and_an_unmatched_one_is_reported() {
     assert_eq!(report.counts.errors, 0);
     assert_eq!(report.counts.infos, 1, "EW-CORE-081 for the second waiver");
     assert!(report.findings.iter().any(|f| f.rule == "EW-CORE-081"));
+    assert_messages(&report.findings);
     assert_eq!(report.exit_code(), 0);
 }
 
@@ -361,6 +362,7 @@ fn a_waiver_for_a_rule_that_did_not_run_is_not_evaluated() {
         .filter(|f| f.rule == "EW-CORE-081")
         .collect();
     assert_eq!(f.len(), 2, "{f:#?}");
+    assert_messages(&report.findings);
     for x in &f {
         assert!(x.message.contains("not evaluated"), "{}", x.message);
         assert!(x.discriminator.starts_with("not-evaluated"));

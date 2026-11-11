@@ -76,16 +76,31 @@ pub fn findings_of(m: &Model, rule: &str) -> Vec<ew_checks::Finding> {
     found
 }
 
-/// Asserts that every finding with message arguments renders its message byte for byte from the en-GB pattern.
+/// Asserts that every finding carries its message arguments and renders its message byte for byte from the en-GB
+/// pattern, and that every other shipped language renders it from its own pattern (FT-680). An EW-IMP finding is the
+/// exception: its message is the text the importer stored in the project.
 pub fn assert_messages(findings: &[ew_checks::Finding]) {
-    for f in findings.iter().filter(|f| !f.args.is_empty()) {
+    use ew_checks::messages::{DEFAULT_LANGUAGE, LANGUAGES, format};
+    for f in findings
+        .iter()
+        .filter(|f| !ew_checks::rules::imp::IMP.iter().any(|m| m.id == f.rule))
+    {
         assert_eq!(
-            ew_checks::messages::format(f, ew_checks::messages::DEFAULT_LANGUAGE).as_deref(),
+            format(f, DEFAULT_LANGUAGE).as_deref(),
             Some(f.message.as_str()),
             "the en-GB pattern of {} does not render its message from {:?}",
             f.rule,
             f.args
         );
+        for lang in LANGUAGES {
+            assert!(
+                format(f, lang).is_some(),
+                "{lang} does not word {}'s finding {:?} from {:?}",
+                f.rule,
+                f.message,
+                f.args
+            );
+        }
     }
 }
 

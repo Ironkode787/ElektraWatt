@@ -86,7 +86,7 @@ fn ew_core_011_reports_each_conflict_in_words_as_a_release_error() {
 }
 
 /// A conflict on a connection whose end is a junction names that end in words, in en-GB
-/// and in nl-NL (whose message falls back to en-GB's words, FT-680).
+/// and in nl-NL (FT-680, FT-912).
 #[test]
 fn ew_core_011_names_a_junction_end_in_words() {
     let mut fx = Fx::base();
@@ -105,11 +105,16 @@ fn ew_core_011_names_a_junction_end_in_words() {
         .filter(|f| f.rule == "EW-CORE-011")
         .collect();
     assert_eq!(found.len(), 1, "{found:#?}");
-    for lang in ["en-GB", "nl-NL"] {
-        assert_eq!(
-            ew_checks::render(&found[0], lang),
+    for (lang, text) in [
+        (
+            "en-GB",
             "connection from a junction to -1K4097:1 on folio 1: ours and theirs differ in wire_colour",
-            "{lang}"
-        );
+        ),
+        (
+            "nl-NL",
+            "verbinding van een aftakking naar -1K4097:1 op folio 1: onze en hun versie verschillen in wire_colour",
+        ),
+    ] {
+        assert_eq!(ew_checks::render(&found[0], lang), text, "{lang}");
     }
 }

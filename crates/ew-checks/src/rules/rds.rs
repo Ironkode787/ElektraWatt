@@ -219,16 +219,42 @@ impl Rule for DesignationDoesNotParse {
         let Err(e) = parse_strict(&tag.full, &RdsSyntax::default(), &known_codes(q)) else {
             return Vec::new();
         };
-        vec![Finding::new(
-            &DESIGNATION_DOES_NOT_PARSE,
-            [Target::new(Kind::Device, device)],
-            "parse",
-            tag.full.clone(),
-            format!(
-                "{} does not parse as an IEC 81346 designation: {}",
-                tag.full, e.kind
+        // The parser's reason by a selector, its character apart, so each language words it.
+        use ew_derive::ew_rds::ParseErrorKind as K;
+        let (reason, c) = match e.kind {
+            K::Empty => ("empty", None),
+            K::MissingPrefix => ("prefix", None),
+            K::UnexpectedCharacter(c) => ("unexpected", Some(c)),
+            K::EmptyLevel => ("empty-level", None),
+            K::InvalidCharacter(c) => ("invalid", Some(c)),
+            K::Whitespace => ("whitespace", None),
+            K::AspectOrder => ("order", None),
+            K::RepeatedAspect => ("repeated", None),
+            K::EmptyConnectionPoint => ("empty-cp", None),
+            K::ConnectionPointWithoutProduct => ("cp-without-product", None),
+            K::EmptySignal => ("empty-signal", None),
+            _ => ("other", None),
+        };
+        vec![
+            Finding::new(
+                &DESIGNATION_DOES_NOT_PARSE,
+                [Target::new(Kind::Device, device)],
+                "parse",
+                tag.full.clone(),
+                format!(
+                    "{} does not parse as an IEC 81346 designation: {}",
+                    tag.full, e.kind
+                ),
+            )
+            .arg("device", tag.full.clone())
+            .arg("detail", e.kind.to_string())
+            .arg("reason", reason)
+            .arg("char", c.map(|c| format!("{c:?}")).unwrap_or_default())
+            .arg(
+                "code",
+                c.map(|c| format!("{:04X}", u32::from(c))).unwrap_or_default(),
             ),
-        )]
+        ]
     }
 }
 
@@ -292,6 +318,7 @@ impl Rule for SeparatorInCode {
                          designations may split it into several levels"
                     ),
                 )
+                .arg("code", text)
             })
             .collect()
     }
@@ -442,32 +469,69 @@ impl Rule for ReservedLetters {
         let Ok(letter) = d.tag.letter.as_str().parse::<LetterCode>() else {
             return Vec::new();
         };
+        // Each reason in English, with the arguments of its piece of the pattern: the letters I or O (`io`, in letter
+        // order, then their count) and the reserved class letter (`class`), any other reason by `other`.
+        let mut io: Vec<String> = Vec::new();
+        let mut class = String::new();
+        let mut other = "no";
         let reasons: Vec<String> = set
             .reserved_letter_findings(letter)
             .into_iter()
             .map(|r| match r {
-                ReservedLetter::IOrO { letter: c, .. } => format!("{c} is not used in letter codes"),
+                ReservedLetter::IOrO { letter: c, .. } => {
+                    io.push(c.to_string());
+                    format!("{c} is not used in letter codes")
+                }
                 ReservedLetter::ReservedClass(c) => {
+                    class.push(c);
                     format!("the identifier set {} reserves the class letter {c}", set.key())
                 }
-                _ => "the identifier set reserves it".to_owned(),
+                _ => {
+                    other = "yes";
+                    "the identifier set reserves it".to_owned()
+                }
             })
             .collect();
         if reasons.is_empty() {
             return Vec::new();
         }
         let tag = full_tag(q, device, "device");
-        vec![Finding::new(
-            &RESERVED_LETTERS,
-            [Target::new(Kind::Device, device)],
-            "reserved",
-            tag.clone(),
-            format!(
-                "{tag}: the letter code {} uses reserved letters: {}",
-                letter.as_str(),
-                reasons.join("; ")
-            ),
-        )]
+        let reasons_text = reasons.join("; ");
+        vec![
+            Finding::new(
+                &RESERVED_LETTERS,
+                [Target::new(Kind::Device, device)],
+                "reserved",
+                tag.clone(),
+                format!(
+                    "{tag}: the letter code {} uses reserved letters: {reasons_text}",
+                    letter.as_str(),
+                ),
+            )
+            .arg("device", tag)
+            .arg("letter", letter.as_str().to_owned())
+            .arg("reasons", reasons_text)
+            .arg(
+                "io_form",
+                match io.len() {
+                    0 => "none",
+                    1 => "one",
+                    _ => "many",
+                },
+            )
+            .arg(
+                "class_form",
+                match (class.is_empty(), io.is_empty()) {
+                    (true, _) => "none",
+                    (false, true) => "alone",
+                    (false, false) => "after",
+                },
+            )
+            .arg("io", io.join(", "))
+            .arg("class", class)
+            .arg("other", other)
+            .arg("set", set.key().to_string()),
+        ]
     }
 }
 
@@ -550,8 +614,8 @@ fn latin_lookalike(c: char) -> Option<char> {
 
 /// The confusable characters of `text`: `None` unless the text has a non-ASCII character and every one of them has a
 /// Latin look-alike (its skeleton is pure ASCII: a tag typed on a Cyrillic keyboard); then the look-alikes as
-/// `U+XXXX (looks like Y)`, in text order. A genuinely non-Latin identifier gives `None`.
-fn confusables(text: &str) -> Option<Vec<String>> {
+/// `(U+XXXX, Y)`, in text order. A genuinely non-Latin identifier gives `None`.
+fn confusables(text: &str) -> Option<Vec<(String, char)>> {
     let foreign: Vec<char> = text.chars().filter(|c| !c.is_ascii()).collect();
     if foreign.is_empty() {
         return None;
@@ -559,7 +623,7 @@ fn confusables(text: &str) -> Option<Vec<String>> {
     let mut out = Vec::new();
     for c in foreign {
         let latin = latin_lookalike(c)?;
-        out.push(format!("U+{:04X} (looks like {latin})", c as u32));
+        out.push((format!("U+{:04X}", c as u32), latin));
     }
     Some(out)
 }
@@ -586,17 +650,42 @@ fn confusable_findings(q: &Q, device: Id<Device>, d: &Device) -> Vec<Finding> {
             continue;
         };
         let tag = tag.get_or_insert_with(|| full_tag(q, device, "device")).clone();
-        out.push(Finding::new(
-            &CONFUSABLE_CHARACTER,
-            [Target::new(Kind::Device, device)],
-            what,
-            tag.clone(),
-            format!(
-                "the {what} {text} of {tag} contains non-Latin characters that look like Latin ones: {}; search and \
-                 cross-references cannot find it; retype it in Latin letters",
-                chars.join(", ")
-            ),
-        ));
+        // In English each as `U+XXXX (looks like Y)`; for the other languages as `U+XXXX → Y`.
+        let lookalikes = chars
+            .iter()
+            .map(|(code, latin)| format!("{code} → {latin}"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let chars: Vec<String> = chars
+            .iter()
+            .map(|(code, latin)| format!("{code} (looks like {latin})"))
+            .collect();
+        out.push(
+            Finding::new(
+                &CONFUSABLE_CHARACTER,
+                [Target::new(Kind::Device, device)],
+                what,
+                tag.clone(),
+                format!(
+                    "the {what} {text} of {tag} contains non-Latin characters that look like Latin ones: {}; search \
+                     and cross-references cannot find it; retype it in Latin letters",
+                    chars.join(", ")
+                ),
+            )
+            .arg("what", what)
+            .arg(
+                "kind",
+                match what {
+                    "letter code" => "letter",
+                    "frozen tag" => "frozen",
+                    _ => "designation",
+                },
+            )
+            .arg("text", text.clone())
+            .arg("device", tag.clone())
+            .arg("chars", chars.join(", "))
+            .arg("lookalikes", lookalikes),
+        );
     }
     out
 }
@@ -726,6 +815,7 @@ impl Rule for StructureCodeVariants {
                         texts.join(", ")
                     ),
                 )
+                .arg("codes", texts.join(", "))
             })
             .collect()
     }

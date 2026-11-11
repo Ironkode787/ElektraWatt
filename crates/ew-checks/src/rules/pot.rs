@@ -265,24 +265,137 @@ fn wire_note_findings(q: &Q, meta: &'static RuleMeta, p: PotentialId) -> Vec<Fin
                 subject,
                 detail,
             } if *code == meta.id && note_owner(q, p, &wires.wires, subject) == Some(p) => {
-                // EW-POT-011's message in plain words, from its Fluent pattern; the note's detail stays the
-                // derivation's own text. The message leads with the potential, so the
-                // Messages row, which shows a subject the message leads with once, names it once.
+                // EW-POT-011's message in plain words, from its Fluent pattern: which junction or group of
+                // interruption points, where, and the wires that meet there (FT-933); the note's detail stays the
+                // derivation's own text. The message leads with the potential, so the Messages row, which shows a
+                // subject the message leads with once, names it once.
                 if meta.id == JUNCTION_FEED_AMBIGUOUS.id {
+                    let (place, args) = feed_place(q, &wires.wires, subject);
                     let message = format!(
-                        "{name} has a junction or a group of interruption points whose feed is unclear; \
-                         draw one wire into it from the supply side"
+                        "{name}: it is unclear which wire feeds {place}; draw one wire into it from the supply side"
                     );
-                    return Some(
-                        pt.finding(meta, &[], subject.clone(), name.clone(), message)
-                            .arg("potential", name.clone()),
-                    );
+                    let mut f = pt
+                        .finding(meta, &[], subject.clone(), name.clone(), message)
+                        .arg("potential", name.clone());
+                    for (k, v) in args {
+                        f = f.arg(k, v);
+                    }
+                    return Some(f);
                 }
-                Some(pt.finding(meta, &[], subject.clone(), name.clone(), detail.clone()))
+                // The derivation's text of the other notes in English, with the words of each language's pattern:
+                // the wire or connection the note is about, and its form.
+                let (form, about) = if meta.id == RING_IN_DRAWING_GRAPH.id {
+                    ("ring", connection_text(q, subject))
+                } else if detail.contains(" names conductor ") {
+                    ("conductor", carrier_wire_text(q, &wires.wires, subject))
+                } else if detail.contains(" overrides a value ") {
+                    ("override", carrier_wire_text(q, &wires.wires, subject))
+                } else {
+                    ("other", String::new())
+                };
+                Some(
+                    pt.finding(meta, &[], subject.clone(), name.clone(), detail.clone())
+                        .arg("detail", detail.clone())
+                        .arg("form", form)
+                        .arg("wire", about),
+                )
             }
             _ => None,
         })
         .collect()
+}
+
+/// A connection by its ends as messages print a wire without a number (`-X1:1–-K1:A1`), a junction end as
+/// `junction`; empty for a subject that names no connection.
+fn connection_text(q: &Q, subject: &str) -> String {
+    let Ok(uuid) = subject.parse::<ew_derive::ew_ids::Uuid>() else {
+        return String::new();
+    };
+    let Some(c) = q.connections().get(Id::<Connection>::from_uuid(uuid)) else {
+        return String::new();
+    };
+    let end = |e: &ew_derive::ew_schema::Endpoint| match EndpointKey::of(e) {
+        Some(EndpointKey::Cp(f, i)) => cp_label(q, CpRef::new(f, i)),
+        _ => "junction".to_owned(),
+    };
+    format!("{}–{}", end(&c.a), end(&c.b))
+}
+
+/// The wire whose carrier connection `subject` names, as [`wire_text`] prints it, else the connection by its ends.
+fn carrier_wire_text(q: &Q, wires: &[PhysicalWire], subject: &str) -> String {
+    wires
+        .iter()
+        .find(|w| w.constituents.iter().any(|c| c.to_string() == subject))
+        .map_or_else(|| connection_text(q, subject), |w| wire_text(q, w))
+}
+
+/// EW-POT-011's place in English (`the junction at H16 on folio 101 (wires 101.3, 101.4)`), with the arguments of the
+/// rule's pattern: the selector `place` (`junction`, `ip`, `other`), `cell` (empty without a frame grid), `page`,
+/// `group` (the interruption points' name) and `wires` (the wires that meet there, in natural order).
+fn feed_place(q: &Q, wires: &[PhysicalWire], subject: &str) -> (String, Vec<(&'static str, String)>) {
+    let uuid = subject.parse::<ew_derive::ew_ids::Uuid>().ok();
+    let wire_of = |c: Id<Connection>| {
+        wires
+            .iter()
+            .find(|w| w.constituents.contains(&c))
+            .map_or_else(|| connection_text(q, &c.to_string()), |w| wire_text(q, w))
+    };
+    let listed = |conns: Vec<Id<Connection>>| {
+        let mut out: Vec<String> = conns.into_iter().map(wire_of).collect();
+        out.sort_by(|a, b| natural_cmp(a, b).then_with(|| a.cmp(b)));
+        out.dedup();
+        out.join(", ")
+    };
+    let folio = |p: Id<Page>| q.pages().get(p).map(|p| ew_derive::folio_label(p).to_string());
+    if let Some(j) = uuid.and_then(|u| q.junctions().get(Id::from_uuid(u)))
+        && let Some(page) = folio(j.page)
+    {
+        let cell = q
+            .get::<ew_derive::CellOf>((j.page, j.at))
+            .as_ref()
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_default();
+        let list = listed(j.sequence.clone());
+        let at = if cell.is_empty() {
+            format!("the junction on folio {page}")
+        } else {
+            format!("the junction at {cell} on folio {page}")
+        };
+        return (
+            format!("{at} (wires {list})"),
+            vec![
+                ("place", "junction".to_owned()),
+                ("at", if cell.is_empty() { "folio" } else { "cell" }.to_owned()),
+                ("cell", cell),
+                ("page", page),
+                ("wires", list),
+            ],
+        );
+    }
+    let f: Option<Id<Function>> = uuid.map(Id::from_uuid);
+    if let Some((f, FunctionKind::Ip(ip))) = f.and_then(|f| q.functions().get(f).map(|x| (f, x.kind.clone())))
+    {
+        let conns: Vec<Id<Connection>> = q
+            .idx()
+            .connected_cps_of_function(f)
+            .iter()
+            .flat_map(|(_, c)| c.iter().copied())
+            .collect();
+        let list = listed(conns);
+        return (
+            format!("the interruption points {} (wires {list})", ip.name),
+            vec![
+                ("place", "ip".to_owned()),
+                ("group", ip.name.to_string()),
+                ("wires", list),
+            ],
+        );
+    }
+    (
+        "a junction or a group of interruption points".to_owned(),
+        vec![("place", "other".to_owned())],
+    )
 }
 
 /// The potential that reports a wire note about `subject`: of the potentials the subject lies in (a wire's
@@ -413,6 +526,7 @@ impl Rule for TypeOrVoltageConflict {
                     potential_name(q, p),
                     message,
                 )
+                .arg("form", "attrs")
                 .arg("conflicts", shown)
                 // The shown conflicts one per line, which `messages::format` words one by one.
                 .arg("conflict_list", pieces.join("\n"))
@@ -448,7 +562,11 @@ impl Rule for TypeOrVoltageConflict {
                     "pass-through of function {tag} joins type {} and type {} without a converting function",
                     c.a_type, c.b_type
                 ),
-            ));
+            )
+            .arg("form", "flow")
+            .arg("device", tag)
+            .arg("from", c.a_type.to_string())
+            .arg("to", c.b_type.to_string()));
         }
         out
     }
@@ -654,13 +772,19 @@ impl Rule for PelvSelvBonding {
         };
         let pt = potential_targets(q, p);
         let bond_targets: Vec<Target> = bonds.iter().map(|b| Target::new(Kind::Bond, *b)).collect();
-        vec![pt.finding(
-            &PELV_SELV_BONDING,
-            &bond_targets,
-            format!("{discriminator}{}", pt.suffix),
-            potential_name(q, p),
-            message,
-        )]
+        vec![
+            pt.finding(
+                &PELV_SELV_BONDING,
+                &bond_targets,
+                format!("{discriminator}{}", pt.suffix),
+                potential_name(q, p),
+                message,
+            )
+            .arg("form", discriminator)
+            .arg("potential", potential_name(q, p))
+            .arg("count", bonds.len().to_string())
+            .arg("bonds", if bonds.is_empty() { "none" } else { "some" }),
+        ]
     }
 }
 
@@ -830,6 +954,10 @@ impl Rule for GnyeOnNonPe {
                         type_suffix(ptype.as_ref())
                     ),
                 )
+                .arg("wire", text)
+                .arg("potential", name.clone())
+                .arg("typed", if ptype.is_some() { "yes" } else { "no" })
+                .arg("type", ptype.as_ref().map(|t| format!("{t:?}")).unwrap_or_default())
             })
             .collect()
     }
@@ -1287,13 +1415,27 @@ impl Rule for PeIsland {
                     ..
                 } = note
                 {
-                    out.push(Finding::new(
-                        &PE_ISLAND,
-                        [Target::new(Kind::Device, id)],
-                        "",
-                        full_tag(q, id, "terminal"),
-                        detail.clone(),
-                    ));
+                    // The derivation's text in English; the other languages word it from the terminal and the
+                    // number of own locations the text names.
+                    let tag = full_tag(q, id, "terminal");
+                    let locations = detail
+                        .split_once(" the project has ")
+                        .and_then(|(_, rest)| rest.split_whitespace().next())
+                        .unwrap_or_default()
+                        .to_owned();
+                    out.push(
+                        Finding::new(
+                            &PE_ISLAND,
+                            [Target::new(Kind::Device, id)],
+                            "",
+                            tag.clone(),
+                            detail.clone(),
+                        )
+                        .arg("form", "terminal")
+                        .arg("detail", detail.clone())
+                        .arg("terminal", tag)
+                        .arg("locations", locations),
+                    );
                 }
             }
         }
@@ -1355,6 +1497,11 @@ fn pe_islands(q: &Q) -> Vec<Finding> {
                     names.join(", ")
                 ),
             )
+            .arg("form", "island")
+            .arg("location", if node.is_some() { "node" } else { "main" })
+            .arg("node", text.clone())
+            .arg("count", names.len().to_string())
+            .arg("potentials", names.join(", "))
             .keyed_on(&key),
         );
     }
@@ -1683,6 +1830,10 @@ impl Rule for NSwitching {
                             name.clone(),
                             format!("{name} is an N-isolating terminal on {up} → {down}"),
                         )
+                        .arg("form", "isolating")
+                        .arg("device", name.clone())
+                        .arg("from", up.clone())
+                        .arg("to", down.clone())
                         .with_severity(Severity::Info),
                     );
                     continue;
@@ -1707,23 +1858,33 @@ impl Rule for NSwitching {
                     name.clone(),
                     format!("{name} switches the neutral {up} → {down}{tail}."),
                 );
-                // The pattern covers no stranded load and one; with more the finding keeps its en-GB text only.
+                // Several stranded loads by their English sentences, and as `load → line` pairs for the other
+                // languages.
                 let finding = match loads.as_slice() {
                     [] => finding.arg("loads", "none"),
                     [(load, line)] => finding
                         .arg("loads", "one")
                         .arg("load", load.clone())
                         .arg("line", line.clone()),
-                    _ => finding,
+                    _ => finding
+                        .arg("loads", "many")
+                        .arg("stranded", tail.trim_start_matches("; ").to_owned())
+                        .arg(
+                            "pairs",
+                            loads
+                                .iter()
+                                .map(|(load, line)| format!("{load} → {line}"))
+                                .collect::<Vec<_>>()
+                                .join("; "),
+                        ),
                 };
-                out.push(if loads.len() > 1 {
+                out.push(
                     finding
-                } else {
-                    finding
+                        .arg("form", "switching")
                         .arg("device", name.clone())
                         .arg("from", up.to_string())
-                        .arg("to", down.to_string())
-                });
+                        .arg("to", down.to_string()),
+                );
             }
         }
         out
@@ -1946,12 +2107,13 @@ impl Rule for RedundantOverride {
             let below = wire_props_below_overrides(q, p, &w);
             let s = &w.override_sources;
             let text = wire_text(q, &w);
-            let mut redundant: Vec<(&str, Option<Id<Connection>>, String)> = Vec::new();
+            // Each redundant member, its source, its English words and its value (empty for a member without one).
+            let mut redundant: Vec<(&str, Option<Id<Connection>>, String, String)> = Vec::new();
             let same = |a: Option<String>, b: Option<String>| a.is_some() && a == b;
             if o.csa.is_some() && props.csa.as_ref().map(|x| &x.value) == below.csa.as_ref().map(|x| &x.value)
             {
                 let v = o.csa.as_ref().and_then(csa_text).unwrap_or_default();
-                redundant.push(("csa", s.csa, format!("cross-section {v}")));
+                redundant.push(("csa", s.csa, format!("cross-section {v}"), v));
             }
             if o.colour.is_some()
                 && same(
@@ -1960,41 +2122,46 @@ impl Rule for RedundantOverride {
                 )
             {
                 let v = o.colour.as_ref().and_then(colour_text).unwrap_or_default();
-                redundant.push(("colour", s.colour, format!("colour {v}")));
+                redundant.push(("colour", s.colour, format!("colour {v}"), v));
             }
             if o.wire_part.is_some()
                 && props.wire_part.as_ref().map(|x| &x.value) == below.wire_part.as_ref().map(|x| &x.value)
             {
-                redundant.push(("wire_part", s.wire_part, "wire part".to_owned()));
+                redundant.push(("wire_part", s.wire_part, "wire part".to_owned(), String::new()));
             }
             if o.insulation.is_some()
                 && props.insulation.as_ref().map(|x| &x.value) == below.insulation.as_ref().map(|x| &x.value)
             {
-                redundant.push(("insulation", s.insulation, "insulation".to_owned()));
+                redundant.push(("insulation", s.insulation, "insulation".to_owned(), String::new()));
             }
             if o.function.is_some()
                 && props.function.as_ref().map(|x| &x.value) == below.function.as_ref().map(|x| &x.value)
             {
-                redundant.push(("function", s.function, "wire function".to_owned()));
+                redundant.push(("function", s.function, "wire function".to_owned(), String::new()));
             }
             if o.flags.shielded && below.shielded.as_ref().is_some_and(|x| x.value) {
-                redundant.push(("shielded", s.shielded, "shielded".to_owned()));
+                redundant.push(("shielded", s.shielded, "shielded".to_owned(), String::new()));
             }
             if o.flags.twisted && below.twisted.as_ref().is_some_and(|x| x.value) {
-                redundant.push(("twisted", s.twisted, "twisted".to_owned()));
+                redundant.push(("twisted", s.twisted, "twisted".to_owned(), String::new()));
             }
-            for (member, source, what) in redundant {
+            for (member, source, what, value) in redundant {
                 let at = source.unwrap_or(w.id);
-                out.push(Finding::new(
-                    &REDUNDANT_OVERRIDE,
-                    [Target::new(Kind::Connection, at)],
-                    member,
-                    text.clone(),
-                    format!(
-                        "the override {what} of wire {text} equals the value below it in the inheritance chain; \
-                         remove the override"
-                    ),
-                ));
+                out.push(
+                    Finding::new(
+                        &REDUNDANT_OVERRIDE,
+                        [Target::new(Kind::Connection, at)],
+                        member,
+                        text.clone(),
+                        format!(
+                            "the override {what} of wire {text} equals the value below it in the inheritance chain; \
+                             remove the override"
+                        ),
+                    )
+                    .arg("member", member)
+                    .arg("value", value)
+                    .arg("wire", text.clone()),
+                );
             }
         }
         out
@@ -2051,17 +2218,21 @@ impl Rule for TwoPotentialNames {
             return Vec::new();
         }
         let pt = potential_targets(q, p);
-        vec![pt.finding(
-            &TWO_POTENTIAL_NAMES,
-            &[],
-            "names".to_owned(),
-            names[0].clone(),
-            format!(
-                "the definitions of one potential name it {}; the first in natural order ({}) applies",
-                names.join(", "),
-                names[0]
-            ),
-        )]
+        vec![
+            pt.finding(
+                &TWO_POTENTIAL_NAMES,
+                &[],
+                "names".to_owned(),
+                names[0].clone(),
+                format!(
+                    "the definitions of one potential name it {}; the first in natural order ({}) applies",
+                    names.join(", "),
+                    names[0]
+                ),
+            )
+            .arg("names", names.join(", "))
+            .arg("first", names[0].clone()),
+        ]
     }
 }
 

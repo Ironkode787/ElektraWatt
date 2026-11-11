@@ -133,15 +133,21 @@ fn colour_finding(q: &Q, id: Id<Conductor>, c: &Conductor, declared: &BTreeSet<S
         .map(|b| format!("\"{b}\""))
         .collect::<Vec<_>>()
         .join(", ");
-    Some(Finding::new(
-        &INVALID_CORE_COLOUR,
-        [Target::new(Kind::Conductor, id)],
-        "colour",
-        core.clone(),
-        format!(
-            "core {core} has the colour {shown}: {codes} is not an IEC 60757 code or a company code of the colour profile"
-        ),
-    ))
+    Some(
+        Finding::new(
+            &INVALID_CORE_COLOUR,
+            [Target::new(Kind::Conductor, id)],
+            "colour",
+            core.clone(),
+            format!(
+                "core {core} has the colour {shown}: {codes} is not an IEC 60757 code or a company code of the colour \
+                 profile"
+            ),
+        )
+        .arg("core", core)
+        .arg("colour", shown)
+        .arg("codes", codes),
+    )
 }
 
 /// EW-CORE-031: a cable core whose colour holds a code that is neither an IEC 60757 code nor a company code the
@@ -226,10 +232,21 @@ fn cable_part(q: &Q, cable: Id<Device>) -> Option<(Id<Part>, std::sync::Arc<LibC
     })
 }
 
-/// The members in which a conductor differs from its core definition, as `member: conductor ≠ part` texts. A member
-/// the conductor leaves unset (unknown) is not compared.
-fn core_differences(c: &Conductor, def: &CableCore) -> Vec<String> {
+/// The members in which a conductor differs from its core definition, as `member: conductor ≠ part` texts, with the
+/// arguments of the rule's pattern: per member (`colour`, `csa`, `kind`, `pair`) `yes` or `no`, the two values, and
+/// the separator before it. A member the conductor leaves unset (unknown) is not compared.
+fn core_differences(c: &Conductor, def: &CableCore) -> (Vec<String>, Vec<(&'static str, String)>) {
     let mut out = Vec::new();
+    let mut args = Vec::new();
+    let mut add =
+        |out: &mut Vec<String>, names: [&'static str; 4], ours: String, part: String, text: String| {
+            let [member, sep, a, b] = names;
+            args.push((sep, if out.is_empty() { "" } else { ", " }.to_owned()));
+            args.push((member, "yes".to_owned()));
+            args.push((a, ours));
+            args.push((b, part));
+            out.push(text);
+        };
     if let Some(colour) = &c.colour
         && def.colour.as_ref() != Some(colour)
     {
@@ -237,26 +254,57 @@ fn core_differences(c: &Conductor, def: &CableCore) -> Vec<String> {
             .colour
             .as_ref()
             .map_or_else(|| "none".to_owned(), colour_spec_text);
-        out.push(format!("colour {} ≠ {part}", colour_spec_text(colour)));
+        let ours = colour_spec_text(colour);
+        let text = format!("colour {ours} ≠ {part}");
+        add(
+            &mut out,
+            ["colour", "sep_colour", "colour_core", "colour_part"],
+            ours,
+            part,
+            text,
+        );
     }
     if let Some(csa) = &c.csa
         && def.csa.as_ref() != Some(csa)
     {
         let text = |x: &ew_derive::ew_schema::Csa| csa_text(x).unwrap_or_else(|| "?".to_owned());
         let part = def.csa.as_ref().map_or_else(|| "none".to_owned(), text);
-        out.push(format!("cross-section {} ≠ {part}", text(csa)));
+        let ours = text(csa);
+        let text = format!("cross-section {ours} ≠ {part}");
+        add(
+            &mut out,
+            ["csa", "sep_csa", "csa_core", "csa_part"],
+            ours,
+            part,
+            text,
+        );
     }
     if c.shield != def.shield {
         let word = |s: bool| if s { "shield" } else { "core" };
-        out.push(format!("kind {} ≠ {}", word(c.shield), word(def.shield)));
+        let text = format!("kind {} ≠ {}", word(c.shield), word(def.shield));
+        let (ours, part) = (word(c.shield).to_owned(), word(def.shield).to_owned());
+        add(
+            &mut out,
+            ["kind", "sep_kind", "kind_core", "kind_part"],
+            ours,
+            part,
+            text,
+        );
     }
     if let Some(pair) = c.pair
         && def.pair != Some(pair)
     {
         let part = def.pair.map_or_else(|| "none".to_owned(), |p| p.to_string());
-        out.push(format!("pair {pair} ≠ {part}"));
+        let text = format!("pair {pair} ≠ {part}");
+        add(
+            &mut out,
+            ["pair", "sep_pair", "pair_core", "pair_part"],
+            pair.to_string(),
+            part,
+            text,
+        );
     }
-    out
+    (out, args)
 }
 
 /// EW-CORE-032: a core of a cable whose part defines cable cores (`sections.cable_cores`, FR-CBL-004) that differs
@@ -284,27 +332,44 @@ impl Rule for CoreDiffersFromPart {
         for (id, c) in conductors_of(q, cable) {
             let core = core_text(q, &c);
             let def = part.item.sections.cable_cores.iter().find(|d| d.core == c.core);
-            let message = match def {
-                None => format!("core {core} is not a core of the cable part {number}"),
+            let (message, words) = match def {
+                None => (
+                    format!("core {core} is not a core of the cable part {number}"),
+                    vec![("form", "foreign".to_owned())],
+                ),
                 Some(def) => {
-                    let diffs = core_differences(&c, def);
+                    let (diffs, mut words) = core_differences(&c, def);
                     if diffs.is_empty() {
                         continue;
                     }
-                    format!(
-                        "core {core} differs from the core {} of the cable part {number}: {}",
-                        def.core.as_str(),
-                        diffs.join(", ")
+                    words.push(("form", "differs".to_owned()));
+                    words.push(("def", def.core.as_str().to_owned()));
+                    (
+                        format!(
+                            "core {core} differs from the core {} of the cable part {number}: {}",
+                            def.core.as_str(),
+                            diffs.join(", ")
+                        ),
+                        words,
                     )
                 }
             };
-            out.push(Finding::new(
+            let mut f = Finding::new(
                 &CORE_DIFFERS_FROM_PART,
                 [Target::new(Kind::Conductor, id), Target::new(Kind::Part, part_id)],
                 "core",
-                core,
+                core.clone(),
                 message,
-            ));
+            )
+            .arg("core", core)
+            .arg("part", number.clone());
+            for member in ["colour", "csa", "kind", "pair"] {
+                f = f.arg(member, "no");
+            }
+            for (name, value) in words {
+                f = f.arg(name, value);
+            }
+            out.push(f);
         }
         out
     }
@@ -572,6 +637,9 @@ fn twice_finding(q: &Q, id: Id<Conductor>, c: &Conductor) -> Option<Finding> {
                 labels.join(", ")
             ),
         )
+        .arg("core", core)
+        .arg("count", wires.len().to_string())
+        .arg("wires", labels.join(", "))
         .keyed_on(&[Target::new(Kind::Conductor, id)]),
     )
 }
@@ -697,6 +765,7 @@ impl Rule for ShieldNotConnected {
                     core.clone(),
                     format!("shield {core} is connected at neither end; connect it at one end or both"),
                 )
+                .arg("core", core)
             })
             .collect()
     }

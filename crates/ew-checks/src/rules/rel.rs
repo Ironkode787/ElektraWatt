@@ -100,8 +100,11 @@ pub fn four_eyes(q: &Q, input: &GateInput) -> Vec<Finding> {
     let label = r.label.as_str();
     let subject = format!("revision {label}");
     let target = [Target::new(Kind::Revision, r.id)];
-    let finding =
-        |disc: &str, message: String| Finding::new(&FOUR_EYES, target, disc, subject.clone(), message);
+    let finding = |disc: &str, message: String| {
+        Finding::new(&FOUR_EYES, target, disc, subject.clone(), message)
+            .arg("form", disc.to_owned())
+            .arg("revision", label.to_owned())
+    };
     let mut out = Vec::new();
     if r.author.is_none() {
         out.push(finding(
@@ -114,13 +117,16 @@ pub fn four_eyes(q: &Q, input: &GateInput) -> Vec<Finding> {
             "checker",
             format!("revision {label}: checker not set; the checker approves the revision"),
         )),
-        (Some(a), Some(c)) if a == c => out.push(finding(
-            "four-eyes",
-            format!(
-                "revision {label}: the checker is the author ({}); four eyes need another party",
-                role(c)
-            ),
-        )),
+        (Some(a), Some(c)) if a == c => out.push(
+            finding(
+                "four-eyes",
+                format!(
+                    "revision {label}: the checker is the author ({}); four eyes need another party",
+                    role(c)
+                ),
+            )
+            .arg("role", role(c)),
+        ),
         _ => {}
     }
     if !out.is_empty() {
@@ -162,17 +168,22 @@ pub fn label_order(q: &Q) -> Vec<Finding> {
     let mut out = Vec::new();
     for r in &current {
         if format.order_key(r.label.as_str()).is_none() {
-            out.push(Finding::new(
-                &LABEL_ORDER,
-                [Target::new(Kind::Revision, r.id)],
-                "format",
-                format!("revision {}", r.label),
-                format!(
-                    "revision {}: the label is not in the project's revision label format {}",
-                    r.label,
-                    format.pattern()
-                ),
-            ));
+            out.push(
+                Finding::new(
+                    &LABEL_ORDER,
+                    [Target::new(Kind::Revision, r.id)],
+                    "format",
+                    format!("revision {}", r.label),
+                    format!(
+                        "revision {}: the label is not in the project's revision label format {}",
+                        r.label,
+                        format.pattern()
+                    ),
+                )
+                .arg("form", "format")
+                .arg("revision", r.label.to_string())
+                .arg("pattern", format.pattern().to_string()),
+            );
         }
     }
     let open = current.iter().find(|r| r.is_open());
@@ -184,17 +195,23 @@ pub fn label_order(q: &Q) -> Vec<Finding> {
             .filter(|(k, _)| *k >= key)
             .max_by_key(|(k, r)| (*k, r.id));
         if let Some((_, r)) = later {
-            out.push(Finding::new(
-                &LABEL_ORDER,
-                [Target::new(Kind::Revision, open.id)],
-                "order",
-                format!("revision {}", open.label),
-                format!(
-                    "revision {}: the open revision's label does not follow {} of revision {}; revision labels \
-                     increase, the open revision last",
-                    open.label, r.label, r.id
-                ),
-            ));
+            out.push(
+                Finding::new(
+                    &LABEL_ORDER,
+                    [Target::new(Kind::Revision, open.id)],
+                    "order",
+                    format!("revision {}", open.label),
+                    format!(
+                        "revision {}: the open revision's label does not follow {} of revision {}; revision labels \
+                         increase, the open revision last",
+                        open.label, r.label, r.id
+                    ),
+                )
+                .arg("form", "order")
+                .arg("revision", open.label.to_string())
+                .arg("later", r.label.to_string())
+                .arg("id", r.id.to_string()),
+            );
         }
     }
     out
