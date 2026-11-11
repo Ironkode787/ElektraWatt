@@ -651,6 +651,13 @@ impl NavigatorPane {
             crate::components::empty_state(ui, IconId::ew_terminal_strip, &line, &sentence, None);
             return;
         }
+        // The PLC navigator with cards drawn but no CPU says that a card waits for one.
+        if self.kind == NavKind::Plc
+            && let Some((line, sentence)) = shell.plc_empty()
+        {
+            crate::components::empty_state(ui, IconId::cpu, &line, &sentence, None);
+            return;
+        }
         let (icon, line, sentence) = empty_texts(self.kind);
         crate::components::empty_state(ui, icon, line, sentence, None);
     }

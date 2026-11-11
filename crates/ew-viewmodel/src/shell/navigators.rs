@@ -219,6 +219,19 @@ impl ShellModel {
         )
     }
 
+    /// The line and sentence of the PLC navigator's empty state while PLC cards wait for a CPU: "No CPU yet", the
+    /// cards' tags and how to place a CPU; `None` without such a card (FT-926: the panel read "No PLC cards yet" with
+    /// a card drawn, because a card is listed under its CPU).
+    pub fn plc_empty(&self) -> Option<(String, String)> {
+        let cards = self.project.as_ref()?.session.plc_cards_without_cpu();
+        (!cards.is_empty()).then(|| {
+            (
+                crate::strings::text(key!("empty-nav-plc-no-cpu")).to_owned(),
+                crate::strings::format(key!("empty-nav-plc-no-cpu-text"), &[&cards.join(", ")]),
+            )
+        })
+    }
+
     /// [`ShellModel::generic`], mutable.
     pub(super) fn generic_mut(&mut self, kind: NavKind) -> Option<&mut Navigator> {
         match kind {

@@ -739,6 +739,23 @@ impl Session {
         b.finish(kind, rev)
     }
 
+    /// The short tags of the PLC cards that wait for a CPU, in natural order: the devices with `plc_module` and no
+    /// station, which the PLC table cannot list because a card is listed under its station (FT-926).
+    pub fn plc_cards_without_cpu(&self) -> Vec<String> {
+        let q = self.query();
+        let mut out: Vec<(NaturalKey, String)> = q
+            .devices()
+            .iter()
+            .filter(|(id, d)| d.aspects.plc_module.is_some() && ew_derive::station_of(&q, *id).is_none())
+            .map(|(id, _)| {
+                let tag = short_tag(&q, id);
+                (natural_key(&tag), tag)
+            })
+            .collect();
+        out.sort();
+        out.into_iter().map(|(_, t)| t).collect()
+    }
+
     /// The Messages table of the migration report (d, T11): the tree of [`Session::navigator_table`]'s
     /// Messages from a run of the `migration` scheme at the release mode, the import runs' findings among the live
     /// ones.

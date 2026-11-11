@@ -97,7 +97,7 @@ impl ShellModel {
         let (prefix, rest) = split_prefix(query);
         match prefix {
             Prefix::Actions => {
-                let mut entries = self.action_entries(rest, |_| true, true);
+                let mut entries = self.action_entries(rest, |_| true, true, true);
                 // Without a prefix the search ("commands and devices") also finds the devices, terminal
                 // strips and cables whose tag holds the query, after the actions.
                 if !query.trim_start().starts_with('>') {
@@ -110,18 +110,21 @@ impl ShellModel {
             Prefix::Cell => self.cell_entries(rest),
             Prefix::Help => {
                 let mut entries = self.rule_entries(rest);
-                entries.extend(self.action_entries(rest, |m| m.category == Menu::Help, false));
+                entries.extend(self.action_entries(rest, |m| m.category == Menu::Help, false, false));
                 entries
             }
         }
     }
 
-    /// The listable actions that pass `keep`, ranked; `recents` puts the recent ones first for an empty query.
+    /// The listable actions that pass `keep`, ranked; `recents` puts the recent ones first for an empty query; with
+    /// `panels` and a query, the left rail's panels rank among them by their names (FT-927: "PLC" found nothing, the
+    /// panel being reachable only by its icon and View ▸ Navigators).
     fn action_entries(
         &self,
         query: &str,
         keep: impl Fn(&ActionMeta) -> bool,
         recents: bool,
+        panels: bool,
     ) -> Vec<PaletteEntry> {
         let mut ranked: Vec<Ranked> = Vec::new();
         for meta in ACTIONS
@@ -164,6 +167,31 @@ impl ShellModel {
                 },
                 rank,
             });
+        }
+        if panels && !query.is_empty() {
+            let state = actions::find("rail.show").map_or(Ok(()), |m| (m.enabled)(self));
+            let breadcrumb = format!(
+                "{} · {}",
+                strings::text(Menu::View.label_key()),
+                strings::text(actions::Submenu::Navigators.label_key())
+            );
+            for button in crate::rail::rail(self).left {
+                let Some(rank) = rank(query, &button.label, [], button.word, 0, state.is_ok()) else {
+                    continue;
+                };
+                ranked.push(Ranked {
+                    entry: PaletteEntry {
+                        run: PaletteRun::Panel(button.word),
+                        label: button.label,
+                        id: button.word.to_owned(),
+                        shortcut: button.shortcut,
+                        enabled: state.is_ok(),
+                        reason: state.err().map(|k| strings::text(k).to_owned()),
+                        breadcrumb: breadcrumb.clone(),
+                    },
+                    rank,
+                });
+            }
         }
         sort(&mut ranked);
         let mut entries: Vec<PaletteEntry> = ranked.into_iter().map(|r| r.entry).collect();
@@ -383,7 +411,7 @@ impl ShellModel {
                     },
                     None => Outcome::refused(key!("reason-parameters-later")),
                 },
-                PaletteRun::Rule(_) => Outcome::refused(key!("reason-no-project")),
+                PaletteRun::Rule(_) | PaletteRun::Panel(_) => Outcome::refused(key!("reason-no-project")),
                 _ => Outcome::refused(key!("reason-parameters-later")),
             };
         }
@@ -422,6 +450,19 @@ impl ShellModel {
                     return out;
                 }
                 self.dispatch("navigator.filter", &json!({ "kind": "messages", "text": id }))
+            }
+            PaletteRun::Panel(word) => {
+                self.palette = None;
+                // `rail.show` on the entry shown collapses the column, as a click on its rail button does; a panel
+                // chosen by name is shown, never hidden.
+                let shown = crate::rail::rail(self)
+                    .left
+                    .iter()
+                    .any(|b| b.word == word && b.active);
+                if shown && !self.rail_collapsed() {
+                    return Outcome::Done;
+                }
+                self.dispatch("rail.show", &json!({ "pane": word }))
             }
         }
     }

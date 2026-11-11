@@ -1908,6 +1908,9 @@ pub enum PaletteRun {
     },
     /// A rule of the `?` prefix: its ID; Enter shows Messages filtered to it (`messages.show`, `navigator.filter`).
     Rule(String),
+    /// A panel of the left rail by its word (`plc`): Enter shows it (`rail.show`), and leaves it open when it is
+    /// shown already.
+    Panel(&'static str),
 }
 
 #[cfg(test)]

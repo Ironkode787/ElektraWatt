@@ -91,6 +91,10 @@ fn row(ui: &mut egui::Ui, t: &Tokens, entry: &PaletteEntry, query: &str, selecte
         PaletteRun::Action(id) => ew_viewmodel::actions::find(id)
             .and_then(|m| m.icon)
             .and_then(IconId::from_key),
+        PaletteRun::Panel(word) => ew_viewmodel::rail::LEFT
+            .iter()
+            .find(|(w, ..)| w == word)
+            .and_then(|(_, icon, _)| IconId::from_key(icon)),
         _ => None,
     };
     if let Some(id) = icon {
