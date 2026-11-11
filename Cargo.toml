@@ -2,14 +2,11 @@
 # SPDX-License-Identifier: CC0-1.0
 
 # The ElektraWatt cargo workspace. Crate layout and dependency rules: docs/design/04-architecture.md §3;
-# the rules are enforced by `cargo xtask check-deps` against ci/dep-rules.toml.
+# `cargo xtask rules` enforces them against ci/dep-rules.toml.
 
 [workspace]
 resolver = "3"
 members = ["crates/*", "bin/*", "xtask"]
-# The cargo-fuzz crate builds on a nightly toolchain with sanitizer instrumentation and is its own workspace
-# (fuzz/Cargo.toml, FT-297): `cargo build --workspace` and `cargo xtask ci` on the stable toolchain never see it.
-exclude = ["fuzz"]
 
 [workspace.package]
 version = "0.1.0"
@@ -19,14 +16,13 @@ edition = "2024"
 rust-version = "1.85"
 repository = "https://github.com/Ironkode787/ElektraWatt"
 
-# Only the development tools (xtask) use external crates so far. Product crates get theirs with their own
-# work packages.
+# The versions that more than one member shares; a crate used by one member is pinned in that member's manifest.
 [workspace.dependencies]
 anyhow = "1.0.104"
 # Declares the tests/it modules of each test binary (automod::dir!).
 automod = "1.0.17"
 cargo_metadata = "0.23.1"
-# The XLSX reader of the parts import (ew-import-catalog, WP-S1.19 part 4, D11): miniz_oxide inflates the archive's
+# The XLSX reader of the parts import (ew-import-catalog): miniz_oxide inflates the archive's
 # entries with an output cap, quick-xml streams the workbook's XML. Both at the versions the graph already holds
 # (png's miniz_oxide, wayland-scanner's quick-xml) and with no feature beyond those the graph enables: a ZIP crate
 # would turn on flate2's zlib-rs backend, through which krilla compresses, and change the PDF bytes.
@@ -42,8 +38,8 @@ unicode-normalization = "0.1.26"
 unsafe_code = "forbid"
 missing_docs = "warn"
 
-# A small, deliberate set on top of clippy's defaults. CI runs clippy with `-D warnings`, so each `warn`
-# below blocks a merge.
+# A small, deliberate set on top of clippy's defaults. `cargo xtask check` runs clippy with `-D warnings`, so each
+# `warn` below fails the check.
 [workspace.lints.clippy]
 # No debugging leftovers in committed code.
 dbg_macro = "warn"
@@ -55,27 +51,38 @@ undocumented_unsafe_blocks = "warn"
 # Leaking resources is never intended.
 mem_forget = "warn"
 
-# The anonymisation guard (`cargo xtask check-anonymisation`) hashes every word n-gram of the repository (about
-# 2.5 million SHA-256 digests). The hashing code is generic and is instantiated inside xtask, so xtask itself is
-# optimised in the dev profile; that keeps the guard at a few seconds. Product crates are unaffected.
-# Dependencies build at opt-level 1 in dev and test builds: the test suite runs about 20 % faster (workspace nextest
-# 180 s -> 143 s) for about 50 s more on a clean build (cycle 36, measured on the owner's machine). The workspace's
-# own crates stay at opt-level 0.
-# Dependencies also build without debug info (owner, 2026-10-31); the workspace's own crates take the debug info that
-# `CARGO_PROFILE_DEV_DEBUG` sets: none in local builds (ID-1440), line tables in CI. Every test binary's PDB had
-# carried the line tables of the whole dependency tree (wgpu, naga, egui, windows), about 285 MB each and 83 of a
-# lane's 111 GB of `target`. Panic messages keep their file and line without debug info (`#[track_caller]` locations).
+# The workspace's own crates build at opt-level 1 in dev and test builds. Most tests open the golden project, and
+# loading and deriving it in unoptimised code was most of their time: the tests of ew-viewmodel ran in 71 s instead of
+# 157 s with the crates below it optimised (2026-11-11, one run). Debug assertions and overflow checks stay on.
+[profile.dev]
+opt-level = 1
+
+# The three crates where most edits happen stay at opt-level 0, which compiles fastest; their own code is not where
+# the tests spend their time.
+[profile.dev.package.ew-api]
+opt-level = 0
+
+[profile.dev.package.ew-viewmodel]
+opt-level = 0
+
+[profile.dev.package.ew-ui]
+opt-level = 0
+
+# Dependencies build at opt-level 1 too, and without debug info: every test binary's PDB had carried the line tables
+# of the whole dependency tree (wgpu, naga, egui, windows), about 285 MB each. The workspace's own crates take the
+# debug info that `CARGO_PROFILE_DEV_DEBUG` sets (none in `.claude/settings.json`); a panic message keeps its file and
+# line without it.
 [profile.dev.package."*"]
 opt-level = 1
 debug = false
 
-# kurbo stays at opt-level 0, kept for portability (macOS is no longer a CI or supported platform, ID-880): on
-# macOS, LLVM's optimiser merges a `sin` and a `cos` of one angle into Apple's `__sincos_stret`, whose last bit can
-# differ, and the icon generator's arcs-to-cubics coordinates (rounded to 1/1000) then differ from the committed
-# table (historical: CI on the cycle-36 delivery, the former test-macos and test-macos-all-features jobs).
+# kurbo stays at opt-level 0: an optimiser may merge a `sin` and a `cos` of one angle into one call whose last bit
+# differs (seen on macOS), and the icon generator's coordinates then differ from the committed table.
 [profile.dev.package.kurbo]
 opt-level = 0
 
+# The confidential-token rule of `cargo xtask rules` hashes every word n-gram of the repository (about 2.5 million
+# SHA-256 digests) inside xtask; optimised, it takes a few seconds.
 [profile.dev.package.xtask]
 opt-level = 2
 
