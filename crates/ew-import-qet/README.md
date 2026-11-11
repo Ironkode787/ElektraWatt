@@ -24,7 +24,7 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | file | `ImportLineage` anchored `QetProjectUuid` (QET 0.200+ `<project uuid>`), else `FirstImportSha256`; project ID `v5(ns, "qet:project")` unless the context names one | doc 14 §2.3 |
 | `<project title>` | `Project.master.description` | |
 | project property `saveddate` (ISO date) | `Project.master.edited` | other properties in `Project.extra["qet.project_properties"]`; `savedfilepath` dropped (a local path, EW-IMP-004) |
-| `<newdiagrams><report label>` | `Project.extra["qet.report_label"]` | EW's default xref format applies (EW-IMP-008); `%f` also EW-IMP-117 |
+| `<newdiagrams><report label>`, `<xrefs><xref>` | `ProjectSettings.extra["xref_format"]`: `ip` the report label, `aux_to_main` the `slave_label`, `main_to_aux` one position per line | what EW cannot print as QET does is EW-IMP-009; `%f` also EW-IMP-117 (doc 14 §4.8) |
 | `<diagram>` | `Page { kind: multi_line, grid: QET 10 px }` | source key `qet:folio:<printed folio>`, a repeated folio `qet:folio-order:<position>` (EW-IMP-008) |
 | `folio` attribute | `Folio.number` (whole numbers; `01` keeps its text as `Folio.label`), else leading digits + `Folio.label` | `%id`, `%total`, `%autonum` substituted; `%id/%total` prints the position only (EW-IMP-009); the folio key of source keys is the printed folio |
 | `title` | `Page.title` | |
@@ -36,8 +36,8 @@ it cannot map as `EW-IMP` findings. It never aborts on an item; only an unreadab
 | embedded `<definition>` | `SymbolDef` + generated `FnDef` in the per-project "QET import" library | by the element reader; only definitions that placed elements use are embedded and reported |
 | element of link type `simple`, `master` | `Device` + main `Function` + `Representation` | keys `qet:el:<key>`, `…#fn`, `…#rep`; `<key>` is the UUID, `<uuid>#<folio key>#<n>` for a UUID repeated by copy-paste (EW-IMP-120; links prefer the copy on the same folio), `<folio key>#el#<n>` without UUID |
 | element of link type `thumbnail` | not imported (a graphic, doc 14 §4.3) | EW-IMP-004 |
-| element of link type `slave` linked to a master | auxiliary `Function` of the master's device + `Representation` | no master: own device, promoted to main (EW-IMP-116) |
-| `next_report` / `previous_report` | interruption point (`ew.fn.ip`, `Source` / `Target`) + `Representation` | a linked pair gets one name: source label, target label, source `UserText`, target `UserText`; differing end names: EW-IMP-115 with both texts; no name: one `IP-<folio>-<n>` per pair (EW-IMP-115); several pairs of one name: `IpSpec.sort` 2i / 2i + 1 and EW-IMP-115 (the project needs chain mode) |
+| element of link type `slave` linked to a master | auxiliary `Function` of the master's device + `Representation` | no master: own device, promoted to main (EW-IMP-116); a master and a linked slave print their cross-reference under the label text (doc 14 §4.5) |
+| `next_report` / `previous_report` | interruption point (`ew.fn.ip`, `Source` / `Target`) + `Representation` | a linked pair gets one name: source label, target label, source `UserText`, target `UserText`; differing end names: EW-IMP-115 with both texts; no name: one `IP-<folio>-<n>` per pair (EW-IMP-115); several pairs of one name: `IpSpec.sort` 2i / 2i + 1, the project in chain mode and EW-IMP-115; an unlinked report whose name other reports share: its own `IP-<folio>-<n>` (EW-IMP-115), so it stays unpaired. The label text shows a cross-reference slot, the name text the function-text slot (doc 14 §4.6) |
 | element of link type `terminal` | terminal `Device` (`kind: terminal`, `Terminal { strip, seq, designation }`) in a strip `Device` (`Strip` aspect) | see "Strips" |
 | element with one terminal, no label, ≥ 3 conductors | `Junction { style: dot, wiring: star }` | EW-IMP-118 |
 | element without definition or position | dropped (EW-IMP-003) | its wires are lost connections |
@@ -80,8 +80,7 @@ importer yet.
 
 Formula evaluation and EW-IMP-101; rule inference R2/R3 and `AdoptRule`; structure nodes and EW-IMP-102;
 parts from element information; text-to-data recognisers (EW-IMP-107/108); `graphics_table` → report blocks;
-thumbnails; cables; conductor properties → potential definitions and overrides; switching the
-project to chain mode; external connection points; title-block template forms; QET 0.100
+thumbnails; cables; conductor properties → potential definitions and overrides; external connection points; title-block template forms; QET 0.100
 `terminal_strips` data; empty terminal designations (MF-08 needs an empty designation, which `Ident` cannot
 hold); the starter-symbol exchange.
 

@@ -15,7 +15,8 @@ use roxmltree::Node;
 use super::cx::Findings;
 use super::model::{
     Border, DynText, EmbeddedDef, End, InstTerminal, QetConductor, QetDiagram, QetElement, QetImage,
-    QetInput, QetProject, QetShape, QetTable, Segment, TbCell, TbTemplate, TerminalRef, TextAt, norm_uuid,
+    QetInput, QetProject, QetShape, QetTable, QetXref, Segment, TbCell, TbTemplate, TerminalRef, TextAt,
+    norm_uuid,
 };
 use crate::decimal::Decimal;
 use crate::element::{child, parse_xml};
@@ -70,6 +71,15 @@ pub fn read_project(xml: &str, findings: &mut Findings, limits: &Limits) -> Resu
             .and_then(|n| child(n, "report"))
             .and_then(|n| n.attribute("label"))
             .map(str::to_owned),
+        xrefs: child(root, "newdiagrams")
+            .and_then(|n| child(n, "xrefs"))
+            .map(|n| {
+                n.children()
+                    .filter(|c| c.is_element() && c.tag_name().name() == "xref")
+                    .map(xref)
+                    .collect()
+            })
+            .unwrap_or_default(),
         ..QetProject::default()
     };
 
@@ -550,6 +560,27 @@ fn properties(node: Node<'_, '_>) -> Vec<(String, String)> {
         .collect()
 }
 
+/// One `<xref>`, with QET's defaults (`XRefProperties::fromXml`) for what it does not say.
+fn xref(node: Node<'_, '_>) -> QetXref {
+    let attr = |name: &str, default: &str| node.attribute(name).unwrap_or(default).to_owned();
+    QetXref {
+        kind: attr("type", ""),
+        master_label: attr("master_label", "%f-%l%c"),
+        slave_label: attr("slave_label", "(%f-%l%c)"),
+        display: attr("displayhas", "cross"),
+        snap_to: attr("snapto", "label"),
+        slave_pos: attr("xrefpos", "AlignBottom"),
+        slave_offset: decimal(node.attribute("slave_offset")).unwrap_or(Decimal::ZERO),
+        prefixes: ["power", "delay", "switch"]
+            .into_iter()
+            .filter_map(|k| {
+                let v = node.attribute(format!("{k}prefix").as_str())?;
+                (!v.is_empty()).then(|| (k.to_owned(), v.to_owned()))
+            })
+            .collect(),
+    }
+}
+
 /// The child elements of `node` named `name`.
 fn named<'a, 'i>(node: Node<'a, 'i>, name: &'a str) -> impl Iterator<Item = Node<'a, 'i>> {
     node.children()
@@ -677,6 +708,10 @@ mod tests {
  </properties>
  <newdiagrams>
   <report label="%f-%l%c"/>
+  <xrefs>
+   <xref type="coil" master_label="%F-%l%c" displayhas="contacts" slave_offset="3" delayprefix="D:" powerprefix=""/>
+   <xref type="protection"/>
+  </xrefs>
  </newdiagrams>
  <titleblocktemplates><template name="a"/></titleblocktemplates>
  <diagram order="2" title="First" folio="1" author="A" date="2026-01-01" plant="P" displayAt="bottom" cols="17" colsize="60.5" rows="8" rowsize="80" height="640">
@@ -757,6 +792,27 @@ mod tests {
             ]
         );
         assert_eq!(p.report_label.as_deref(), Some("%f-%l%c"));
+        // What an `<xref>` does not say is QET's default.
+        let coil = &p.xrefs[0];
+        assert_eq!(
+            (
+                coil.kind.as_str(),
+                coil.master_label.as_str(),
+                coil.slave_label.as_str()
+            ),
+            ("coil", "%F-%l%c", "(%f-%l%c)")
+        );
+        assert_eq!(
+            (
+                coil.display.as_str(),
+                coil.snap_to.as_str(),
+                coil.slave_pos.as_str()
+            ),
+            ("contacts", "label", "AlignBottom")
+        );
+        assert_eq!(coil.slave_offset, Decimal::from_int(3));
+        assert_eq!(coil.prefixes, vec![("delay".to_owned(), "D:".to_owned())]);
+        assert_eq!(p.xrefs[1].display, "cross");
         assert_eq!(p.unmapped_top_level, vec![("terminal_strips".to_owned(), 2)]);
         assert_eq!(p.diagrams.len(), 2);
 

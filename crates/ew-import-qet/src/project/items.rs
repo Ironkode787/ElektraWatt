@@ -156,18 +156,54 @@ pub(crate) fn rich_text(raw: &str) -> Option<(String, Option<Decimal>, bool)> {
 /// `y` is missing or out of range. A text of several lines is placed line by line, so that its lines keep
 /// QET's spacing whatever EW's line spacing is.
 pub(crate) fn text_anchor(at: &TextAt, line: usize, em: Nm) -> Option<(Pt2, Angle2)> {
-    let x = at.x?.px_to_nm().ok()?;
-    let y = at.y?.px_to_nm().ok()?;
-    let margin = i128::from(Decimal::from_int(TEXT_MARGIN_PX).px_to_nm().ok()?.0);
+    let margin = margin_nm()?;
     let line = i128::try_from(line).ok()?;
     let em = i128::from(em.0);
     let down = margin
         + div_round_half_even(em * LINE_MIDDLE_PER_MILLE, 1000)
         + div_round_half_even(em * HALF_LINE_PER_MILLE * 2 * line, 1000);
+    text_point(at, margin, down)
+}
+
+/// [`TEXT_MARGIN_PX`] in nm.
+fn margin_nm() -> Option<i128> {
+    Some(i128::from(Decimal::from_int(TEXT_MARGIN_PX).px_to_nm().ok()?.0))
+}
+
+/// Where QET draws the cross-reference of a master or slave whose label text item is `at` with `lines` lines
+/// of em `em`: the left end of the cross-reference's text, `gap` px below the item's box (`above`: above it),
+/// in the label's frame, and the label's angle. The point is the top of the text below the box and its bottom
+/// above it, inside the cross-reference item's own margin; the box is the text and the margin on each side.
+/// QET centres the cross-reference under the label; EW has no text widths on import, so it starts where
+/// the label starts.
+pub(crate) fn below_text(
+    at: &TextAt,
+    lines: usize,
+    em: Nm,
+    gap: Decimal,
+    above: bool,
+) -> Option<(Pt2, Angle2)> {
+    let margin = margin_nm()?;
+    let gap = i128::from(gap.px_to_nm().ok()?.0);
+    let lines = i128::try_from(lines).ok()?;
+    let height = 2 * margin + div_round_half_even(i128::from(em.0) * HALF_LINE_PER_MILLE * 2 * lines, 1000);
+    let down = if above {
+        -(gap + margin)
+    } else {
+        height + gap + margin
+    };
+    text_point(at, margin, down)
+}
+
+/// The point `(right, down)` nm from the top-left corner of text item `at`, turned with the item by its
+/// rotation rounded to a quarter turn, and the item's angle (see [`text_anchor`]).
+fn text_point(at: &TextAt, right: i128, down: i128) -> Option<(Pt2, Angle2)> {
+    let x = at.x?.px_to_nm().ok()?;
+    let y = at.y?.px_to_nm().ok()?;
     let rotation = at.rotation.unwrap_or(Decimal::ZERO).deg_to_angle().ok()?.0;
     let quarters = u8::try_from(div_round_half_even(i128::from(rotation), 90_000).rem_euclid(4)).ok()?;
     let offset = orientation(quarters).apply(Pt2::new(
-        Nm(i64::try_from(margin).ok()?),
+        Nm(i64::try_from(right).ok()?),
         Nm(i64::try_from(down).ok()?),
     ));
     let point = Pt2::new(Nm(x.0.checked_add(offset.x.0)?), Nm(y.0.checked_add(offset.y.0)?));

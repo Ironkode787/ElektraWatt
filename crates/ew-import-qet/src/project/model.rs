@@ -22,6 +22,9 @@ pub struct QetProject {
     pub properties: Vec<(String, String)>,
     /// `/project/newdiagrams/report/@label`, the folio-report cross-reference format (`%f-%l%c`).
     pub report_label: Option<String>,
+    /// `/project/newdiagrams/xrefs/xref`: the master and slave cross-reference settings per master type,
+    /// document order.
+    pub xrefs: Vec<QetXref>,
     /// The `<diagram>`s in document order.
     pub diagrams: Vec<QetDiagram>,
     /// The embedded title-block templates (`/project/titleblocktemplates/titleblocktemplate`), document
@@ -32,6 +35,29 @@ pub struct QetProject {
     /// Counts of top-level members the importer does not map (`terminal_strips`, …),
     /// as `(element name, count)` in document order of first occurrence.
     pub unmapped_top_level: Vec<(String, u32)>,
+}
+
+/// One `<xref>` of `<newdiagrams><xrefs>`: how the masters of one type (`coil`, `protection`,
+/// `commutator`) and their slaves print their cross-references. A missing attribute is QET's default.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct QetXref {
+    /// `type`: the master type (the definition's `kindInformation` `type`).
+    pub kind: String,
+    /// `master_label` (default `%f-%l%c`): the position of each slave at the master.
+    pub master_label: String,
+    /// `slave_label` (default `(%f-%l%c)`): the position of the master at a slave.
+    pub slave_label: String,
+    /// `displayhas` (default `cross`): `cross` or `contacts`.
+    pub display: String,
+    /// `snapto` (default `label`): `label` (under the master's label) or `bottom` (at the folio's bottom).
+    pub snap_to: String,
+    /// `xrefpos` (QET's `Qt::Alignment` key, default `AlignBottom`): where a slave's text stands against
+    /// its label.
+    pub slave_pos: String,
+    /// `slave_offset`, px (default 0): the gap between a slave's label and its text.
+    pub slave_offset: Decimal,
+    /// The non-empty `powerprefix`, `delayprefix` and `switchprefix`, as `(name, text)`.
+    pub prefixes: Vec<(String, String)>,
 }
 
 /// One embedded element definition of the collection.

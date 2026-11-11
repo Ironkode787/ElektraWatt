@@ -455,6 +455,19 @@ pub(crate) fn read_on_stack(
     })
 }
 
+impl ElementImport {
+    /// Appends `slots` to the symbol's text slots and hashes the symbol again: the slots a project's placed
+    /// elements need beyond the definition's own (the cross-reference and interruption-point name slots of
+    /// doc 14 §4.6, in the styles the elements print them in).
+    pub(crate) fn add_slots(&mut self, slots: Vec<ew_schema::TextSlot>) {
+        if slots.is_empty() {
+            return;
+        }
+        self.symbol.item.text_slots.extend(slots);
+        self.symbol.sha256 = item_sha256(&self.symbol.item);
+    }
+}
+
 /// The importer of standalone `.elmt` element definition files.
 ///
 /// A file imported without a target lineage starts a new one anchored on the file's SHA-256

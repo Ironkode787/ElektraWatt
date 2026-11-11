@@ -797,6 +797,14 @@ through the texts above, but parts, user properties and comments from it are not
 - An orphan slave becomes a device whose single function is promoted to `Main` (EW-IMP-116); EW's "one main
   function per device" invariant holds by construction.
 - More slaves than the definition's `max_slaves` are kept and reported.
+- *As built.* The cross-references print where QET draws them, through a cross-reference slot the import adds
+  to the symbol (hidden, in QET's 5 pt) and shows on each representation. A master lists its slaves' positions
+  one per line directly under its first label text (QET's `snapto="label"`); a linked slave prints its master's
+  position under its label text, or above it for `xrefpos="AlignTop"`, `slave_offset` px away, as the `<xref>` of
+  its master's type says. What differs from QET: the text starts where the label starts, where QET centres it
+  under the label (the import knows no text widths); a master prints positions only, without QET's contact
+  glyphs, terminal names and prefixes; `displayhas="cross"`, `snapto="bottom"` and a slave beside its label print
+  as this list under the label, each reported once per type (EW-IMP-009).
 
 ### 4.6 Folio reports → interruption points
 
@@ -821,7 +829,17 @@ importer reconstructs QET's pairs exactly:
    name gets one synthesised name `IP-{folio}-{n}` for both ends (EW-IMP-115). Several pairs that share a name get
    `IpSpec.sort` 2i and 2i+1 and an EW-IMP-115 saying the project needs chain mode. The conductor `function` of the
    specified step 2 is not read yet. On the third pilot project this pairing moved two pairs that only
-   shared a name into separate potentials (214 → 212 potentials), which is the correct result.
+   shared a name into separate potentials (214 → 212 potentials), which is the correct result. When pairs
+   share a name the import sets the project's `ip_pairing` to chain mode, so that EW pairs exactly QET's links.
+   An unlinked report keeps its own text as its name only when no other report has that name; otherwise it
+   gets a name of its own (`IP-{folio}-{n}`, EW-IMP-115) and its text prints as written, so it stays
+   unpaired, as in QET.
+
+   *As built, printing.* A report keeps its definition's drawing. The text QET binds to its `label` (which QET
+   fills with the partner's position by the report formula) shows the symbol's cross-reference slot, in that
+   text's own style and place; a text that is the pair's name shows the function-text slot, which prints the
+   interruption point's name. The import adds both slots to the symbol, hidden, and shows them per
+   representation. The position stored in the file is not read: EW derives it.
 6. **External ends.** A report whose partner is missing but which sits inside or next to a dashed external box with
    a target text gets the proposal `IpSpec.external = Some(ExternalRef)`, the reference parsed from the box text
    (REF-018, FR-PRJ-021). Golden A has four external points: J-E-206-L, J-E-206-N and J-E-206-PE at 101-G0 (box
@@ -904,6 +922,13 @@ variable has an EW xref-format token (FR-XRF-003):
 - `formula` is kept next to the resolved label, and "convert to EW numbering rule" is offered (FR-IMP-010).
 - A project still on the default `%f-%l%c` prints "6-A1" for folio 102, exactly as QET did; EW-IMP-117 offers the
   switch to `{page}`.
+- *As built.* The import writes the project's `xref_format` when the file has a `<report>` or an `<xrefs>`
+  (else the profile's format applies): `ip` is the report label, `aux_to_main` the `slave_label` and
+  `main_to_aux` `{list}` with one item per line (matrix 1 per row, no limit), as QET draws its contact lists.
+  QET's variables are EW tokens as written; what a file leaves out is QET's default (`%f-%l%c`,
+  `(%f-%l%c)`). EW has one item format for interruption points and master lists, so a `master_label` other
+  than the report label is reported (EW-IMP-009), and so is every type whose formulas differ from the ones most
+  types share.
 
 ### 4.9 Folios, sections and title blocks
 

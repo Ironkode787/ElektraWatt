@@ -246,6 +246,21 @@ impl QetProjectImporter {
             &mut used_builtins,
             &mut findings,
         );
+        if mapped.chain_pairs {
+            pages.project.settings.ip_pairing = Some(ew_schema::IpPairing {
+                mode: ew_schema::IpPairingMode::Chain,
+                scope: ew_schema::IpPairingScope::Project,
+                extra: BTreeMap::new(),
+            });
+        }
+        // The slots placed elements show beyond their symbols' own (cross-references, folio-report names).
+        for def in defs.values_mut() {
+            if let Some(el) = def.import.as_mut()
+                && let Some(slots) = mapped.extra_slots.get(&el.symbol.id.as_uuid())
+            {
+                el.add_slots(slots.clone());
+            }
+        }
         // The findings of the definitions that placed elements use (an unused definition in the collection
         // is not part of the drawing).
         // A font substitution is reported once per message (family), not once per definition (doc 14 §4.10).

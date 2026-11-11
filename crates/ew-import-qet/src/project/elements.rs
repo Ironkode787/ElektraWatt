@@ -23,12 +23,13 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_ids::Id;
+use ew_ids::{Id, Uuid};
 use ew_interop_api::{Code, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
-    Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList,
+    Align, Device, DeviceAspects, FnRole, FrozenTag, Function, FunctionKind, IpDirection, IpSpec, KeyedList,
     LibCopy, Record, Representation, SlotKind, SlotOverride, SymbolDef, TagScheme, TagSign, TagSpec,
+    TextSlot,
 };
 use ew_units::{Angle2, Nm, Orient2, Pt2};
 use serde_json::Value;
@@ -42,6 +43,7 @@ use super::pages::{PagesOut, is_qet_border};
 use super::strips;
 use crate::decimal::Decimal;
 use crate::element::ElementImport;
+use crate::prims::text::INSTANCE_ALIGN;
 
 /// The inputs of the element mapper.
 pub struct Inputs<'a> {
@@ -74,6 +76,46 @@ pub struct ElementsOut {
     pub inferred: u32,
     /// The font-substitution messages already reported (EW-IMP-006 once per family).
     pub fonts: BTreeSet<String>,
+    /// The hidden text slots the placed elements need beyond their symbol's own, by symbol copy ID, in the
+    /// order their indices count on from the symbol's slots (doc 14 §4.6): a folio report's cross-reference
+    /// and name, a master's or slave's cross-reference, each in the style the element prints it in.
+    pub extra_slots: BTreeMap<Uuid, Vec<TextSlot>>,
+    /// Whether several explicit QET pairs share a name, so that the project must pair in chain mode to keep
+    /// them (doc 14 §4.6).
+    pub chain_pairs: bool,
+}
+
+/// Where a master or a slave prints its cross-reference against its label text (QET's `<xref>` of the
+/// master's type): `gap` px below the label's box, or above it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) struct XrefPlace {
+    gap: Decimal,
+    above: bool,
+}
+
+/// The point size QET draws a master's or slave's cross-reference in (`QETApp::diagramTextsFont(5)`).
+const XREF_POINT_SIZE: i64 = 5;
+
+/// The override that shows `slot` at `pos` turned to `angle`.
+fn shown(slot: u16, pos: Pt2, angle: Angle2) -> SlotOverride {
+    SlotOverride {
+        slot,
+        pos: Some(pos),
+        angle: Some(angle),
+        visible: Some(true),
+        extra: BTreeMap::new(),
+    }
+}
+
+/// The master type of `e`: its definition's `kindInformation` `type` ("" when it has none).
+fn kind_type<'e>(e: &Elem<'e>) -> &'e str {
+    e.import
+        .fndef
+        .as_ref()
+        .and_then(|f| f.item.extra.get("qet.kind"))
+        .and_then(|k| k.get("type"))
+        .and_then(Value::as_str)
+        .unwrap_or("")
 }
 
 /// The fallback letter of an element without a usable label or `prefix` (EN 81346-2:2009 class A: no
@@ -375,6 +417,8 @@ pub(crate) struct Mx<'a, 'f> {
     pub(crate) live: BTreeSet<String>,
     /// The label of each slave's master, by the slave's `ek`.
     pub(crate) master_label: BTreeMap<String, String>,
+    /// Where each master and linked slave prints its cross-reference, by its `ek`.
+    pub(crate) xref_place: BTreeMap<String, XrefPlace>,
 }
 
 impl Mx<'_, '_> {
@@ -426,6 +470,10 @@ impl Mx<'_, '_> {
         let fkey = format!("qet:el:{}#fn", e.ek);
         let rkey = format!("qet:el:{}#rep", e.ek);
         let fid = ids.id(&fkey);
+        let ip_name = match &kind {
+            FunctionKind::Ip(ip) => Some(ip.name.as_str().to_owned()),
+            _ => None,
+        };
         self.out.records.push(Record::Function(Function {
             id: fid,
             v: 1,
@@ -440,7 +488,7 @@ impl Mx<'_, '_> {
             extra,
         }));
         let page = self.inp.pages.pages[e.diagram].id;
-        let text_slots = self.own_texts(e, page);
+        let text_slots = self.own_texts(e, page, ip_name.as_deref());
         self.out.records.push(Record::Representation(Representation {
             id: ids.id(&rkey),
             v: 1,
@@ -585,14 +633,38 @@ impl Mx<'_, '_> {
     /// [`Mx::live`] shows the symbol's tag or function-text slot (the returned overrides); every other text
     /// that is not empty becomes a free text on `page` (`qet:el:<ek>#text<n>`). The symbol's slots stay hidden
     /// otherwise, so an element prints no text QET does not print.
-    fn own_texts(&mut self, e: &Elem<'_>, page: Id<ew_schema::Page>) -> KeyedList<SlotOverride> {
-        let texts: Vec<(String, &TextAt, Option<SlotKind>)> = if e.el.has_dyn_texts {
+    ///
+    /// Cross-references (doc 14 §4.6): a folio report (`ip_name`, its interruption point's name) shows the
+    /// cross-reference slot where its label text stands, which QET fills with its partner's position, and
+    /// the name slot where a text of its name stands. A master or slave in [`Mx::xref_place`] shows the
+    /// cross-reference slot below (or above) its label text, in QET's 5 pt. These slots show whatever the
+    /// stored text says, because the printed text is derived.
+    fn own_texts(
+        &mut self,
+        e: &Elem<'_>,
+        page: Id<ew_schema::Page>,
+        ip_name: Option<&str>,
+    ) -> KeyedList<SlotOverride> {
+        // (text, where, slot kind, whether the slot shows whatever the text, whether it is the label text)
+        type Text<'t> = (String, &'t TextAt, Option<SlotKind>, bool, bool);
+        let texts: Vec<Text<'_>> = if e.el.has_dyn_texts {
             e.el.dyn_texts
                 .iter()
                 .filter_map(|t| {
                     let info = t.info_name.as_deref().unwrap_or("");
-                    let (text, kind) = match t.text_from.as_str() {
-                        "UserText" => (t.text.clone(), None),
+                    let label = match t.text_from.as_str() {
+                        "ElementInfo" => info == "label",
+                        "CompositeText" => t.composite.as_deref().is_some_and(|c| c.contains("%{label}")),
+                        _ => false,
+                    };
+                    let (text, kind, derived) = match t.text_from.as_str() {
+                        "UserText" if ip_name.is_some_and(|n| n == t.text.trim()) => {
+                            (t.text.clone(), Some(SlotKind::FunctionText), true)
+                        }
+                        "UserText" => (t.text.clone(), None, false),
+                        "ElementInfo" if ip_name.is_some() && info == "label" => {
+                            (String::new(), Some(SlotKind::Xref), true)
+                        }
                         "ElementInfo" => (
                             match (info, self.master_label.get(&e.ek)) {
                                 // A slave prints its master's label (QET links the two).
@@ -604,28 +676,46 @@ impl Mx<'_, '_> {
                                 "function" => Some(SlotKind::FunctionText),
                                 _ => None,
                             },
+                            false,
                         ),
-                        "CompositeText" => (composite(t.composite.as_deref().unwrap_or(""), e.el), None),
+                        "CompositeText" => {
+                            (composite(t.composite.as_deref().unwrap_or(""), e.el), None, false)
+                        }
                         _ => return None,
                     };
-                    Some((text, &t.at, kind))
+                    Some((text, &t.at, kind, derived, label))
                 })
                 .collect()
         } else {
             e.el.inputs
                 .iter()
-                .map(|i| (i.text.clone(), &i.at, None))
+                .map(|i| (i.text.clone(), &i.at, None, false, false))
                 .collect()
         };
         let live = self.live.contains(&e.ek);
-        let slots = &e.symbol().item.text_slots;
+        // QET hangs a master's or slave's cross-reference on its first label text.
+        let mut place = self.xref_place.get(&e.ek).copied();
         let mut overrides: Vec<SlotOverride> = Vec::new();
-        for (n, (raw, at, kind)) in texts.into_iter().enumerate() {
+        for (n, (raw, at, kind, derived, label)) in texts.into_iter().enumerate() {
             let (text, style, em) =
                 items::qet_text(&raw, at.font.as_deref(), &mut self.out.fonts, self.findings);
+            if label && let Some(p) = place.take() {
+                self.xref_below(e, at, text.lines().count().max(1), em, p, &mut overrides);
+            }
+            if derived
+                && let Some(kind) = &kind
+                && let Some((local, angle)) = items::text_anchor(at, 0, em)
+                && let Some(slot) = self
+                    .slot_for(e, kind, style.clone(), INSTANCE_ALIGN)
+                    .filter(|i| !overrides.iter().any(|o| o.slot == *i))
+            {
+                overrides.push(shown(slot, local, angle));
+                continue;
+            }
             if text.trim().is_empty() {
                 continue;
             }
+            let slots = &e.symbol().item.text_slots;
             // A slot prints one line in its own style, so only a one-line text of that style shows it.
             let slot = kind
                 .filter(|_| live && text.lines().count() == 1)
@@ -677,6 +767,67 @@ impl Mx<'_, '_> {
             }
         }
         KeyedList::from_vec(overrides).unwrap_or_default()
+    }
+
+    /// The index of a hidden slot of `kind` in `style` aligned `align` on the symbol of `e`: the symbol's own,
+    /// else one added to [`ElementsOut::extra_slots`] (which every element of that symbol shares); `None` past
+    /// `u16` slots.
+    fn slot_for(&mut self, e: &Elem<'_>, kind: &SlotKind, style: Option<Ident>, align: Align) -> Option<u16> {
+        let fits = |s: &TextSlot| s.kind == *kind && s.style == style && s.align == align && !s.visible;
+        let own = &e.symbol().item.text_slots;
+        if let Some(i) = own.iter().position(fits) {
+            return u16::try_from(i).ok();
+        }
+        let extra = self.out.extra_slots.entry(e.symbol().id.as_uuid()).or_default();
+        let i = match extra.iter().position(fits) {
+            Some(i) => i,
+            None => {
+                extra.push(TextSlot {
+                    kind: kind.clone(),
+                    pos: Pt2::new(Nm(0), Nm(0)),
+                    rot: Angle2::default(),
+                    align,
+                    visible: false,
+                    max_width: None,
+                    style,
+                    fallback: None,
+                    extra: BTreeMap::new(),
+                });
+                extra.len() - 1
+            }
+        };
+        u16::try_from(own.len() + i).ok()
+    }
+
+    /// Shows the cross-reference slot of master or slave `e` where QET draws it against its label text `at`
+    /// (`lines` lines of em `em`), as `place` says, in QET's 5 pt.
+    fn xref_below(
+        &mut self,
+        e: &Elem<'_>,
+        at: &TextAt,
+        lines: usize,
+        em: Nm,
+        place: XrefPlace,
+        overrides: &mut Vec<SlotOverride>,
+    ) {
+        let style = Ident::from_input(&crate::prims::text::style_key(
+            Decimal::from_int(XREF_POINT_SIZE),
+            false,
+            false,
+        ))
+        .ok();
+        let align = if place.above {
+            Align::BottomLeft
+        } else {
+            Align::TopLeft
+        };
+        if let Some((local, angle)) = items::below_text(at, lines, em, place.gap, place.above)
+            && let Some(slot) = self
+                .slot_for(e, &SlotKind::Xref, style, align)
+                .filter(|i| !overrides.iter().any(|o| o.slot == *i))
+        {
+            overrides.push(shown(slot, local, angle));
+        }
     }
 
     /// Reports `e` as dropped and registers it so that its wires are reported as lost.
@@ -757,6 +908,7 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
         infos_seen: BTreeMap::new(),
         live: BTreeSet::new(),
         master_label: BTreeMap::new(),
+        xref_place: BTreeMap::new(),
     };
 
     // Pass 1: placed elements with a usable definition and position, and their project-wide keys (doc 14
@@ -879,6 +1031,37 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
             _ => Class::Device,
         })
         .collect();
+
+    // Where masters and linked slaves print their cross-references: a master directly under its label, a
+    // slave as the `<xref>` of its master's type says (QET's defaults when the project has none for it).
+    let index_of: BTreeMap<ElementKey, usize> = elems
+        .iter()
+        .enumerate()
+        .map(|(i, e)| ((e.diagram, e.key.clone()), i))
+        .collect();
+    for (e, c) in elems.iter().zip(&classes) {
+        let master = match c {
+            Class::Device if e.import.link_type == "master" => e,
+            Class::Slave { master } => match index_of.get(master) {
+                Some(&i) => &elems[i],
+                None => continue,
+            },
+            _ => continue,
+        };
+        let props = inp.project.xrefs.iter().find(|x| x.kind == kind_type(master));
+        let place = if matches!(c, Class::Slave { .. }) {
+            XrefPlace {
+                gap: props.map_or(Decimal::ZERO, |x| x.slave_offset),
+                above: props.is_some_and(|x| x.slave_pos == "AlignTop"),
+            }
+        } else {
+            XrefPlace {
+                gap: Decimal::ZERO,
+                above: false,
+            }
+        };
+        mx.xref_place.insert(e.ek.clone(), place);
+    }
 
     // Pass 2: devices (masters first, so slaves find their device).
     let mut unlabeled: BTreeMap<usize, u32> = BTreeMap::new();
@@ -1008,7 +1191,10 @@ pub fn map(inp: &Inputs<'_>, used: &mut BTreeSet<String>, findings: &mut Finding
 ///    reported (EW-IMP-115).
 /// 3. **Groups**: a name shared by several pairs keeps QET's explicit pairs in chain order: pair `i` of the
 ///    name (document order of the sources) gets `IpSpec.sort` 2i on the source and 2i + 1 on the target,
-///    and EW-IMP-115 reports that the pairing needs chain mode.
+///    the project pairs in chain mode ([`ElementsOut::chain_pairs`]) and EW-IMP-115 says so.
+///
+/// An unlinked report keeps its own text as its name only when no other report has that name; otherwise it
+/// gets a synthesised name of its own (EW-IMP-115), so that it stays unpaired, as in QET.
 fn map_reports(
     mx: &mut Mx<'_, '_>,
     elems: &[Elem<'_>],
@@ -1070,10 +1256,15 @@ fn map_reports(
 
     // 2. Names.
     let mut name_of: BTreeMap<usize, Ident> = BTreeMap::new();
+    // Per folio: the names synthesised, and how many of them for reports without any text.
     let mut synthesized: BTreeMap<usize, u32> = BTreeMap::new();
-    let mut synth = |mx: &Mx<'_, '_>, d: usize| -> Ident {
+    let mut nameless: BTreeMap<usize, u32> = BTreeMap::new();
+    let mut synth = |mx: &Mx<'_, '_>, d: usize, without_text: bool| -> Ident {
         let n = synthesized.entry(d).or_default();
         *n += 1;
+        if without_text {
+            *nameless.entry(d).or_default() += 1;
+        }
         Ident::from_input(&format!("IP-{}-{n}", mx.folio(d)))
             .unwrap_or_else(|_| Ident::from_input("IP").unwrap_or_else(|_| unreachable!("an identifier")))
     };
@@ -1090,7 +1281,7 @@ fn map_reports(
             .into_iter()
             .flatten()
             .find_map(|n| Ident::from_input(&n).ok())
-            .unwrap_or_else(|| synth(mx, elems[s].diagram));
+            .unwrap_or_else(|| synth(mx, elems[s].diagram, true));
         if let (Some(a), Some(b)) = (own(s), own(t))
             && a != b
         {
@@ -1107,10 +1298,40 @@ fn map_reports(
         name_of.insert(s, name.clone());
         name_of.insert(t, name);
     }
+    // An unlinked report stays unpaired, as in QET: it keeps its own text as its name only when no other
+    // report has that name, else it gets a name of its own and its text prints as written.
+    let paired_names: BTreeSet<String> = name_of.values().map(|n| n.as_str().to_owned()).collect();
+    let mut unlinked_names: BTreeMap<String, u32> = BTreeMap::new();
     for &(i, _) in &reports {
-        if let std::collections::btree_map::Entry::Vacant(v) = name_of.entry(i) {
-            v.insert(valid(own(i)).unwrap_or_else(|| synth(mx, elems[i].diagram)));
+        if !name_of.contains_key(&i)
+            && let Some(n) = valid(own(i))
+        {
+            *unlinked_names.entry(n.as_str().to_owned()).or_default() += 1;
         }
+    }
+    for &(i, _) in &reports {
+        if name_of.contains_key(&i) {
+            continue;
+        }
+        let name = match valid(own(i)) {
+            Some(n) if !paired_names.contains(n.as_str()) && unlinked_names.get(n.as_str()) == Some(&1) => n,
+            Some(n) => {
+                let name = synth(mx, elems[i].diagram, false);
+                mx.at(
+                    &elems[i],
+                    Code::imp(115),
+                    Severity::Warning,
+                    format!(
+                        "folio report `{}` is linked to no other report in QET but shares its name with other reports; named `{}` so that it stays unpaired",
+                        n.as_str(),
+                        name.as_str()
+                    ),
+                );
+                name
+            }
+            None => synth(mx, elems[i].diagram, true),
+        };
+        name_of.insert(i, name);
     }
 
     // 3. Chain order for names shared by several pairs.
@@ -1131,11 +1352,12 @@ fn map_reports(
             sort_of.insert(s, 2 * k);
             sort_of.insert(t, 2 * k + 1);
         }
+        mx.out.chain_pairs = true;
         mx.findings.file_level(
             Code::imp(115),
             Severity::Warning,
             format!(
-                "interruption-point name `{name}` has {} explicit QET pairs: chain order set (sort 2i, 2i + 1); the project needs chain mode",
+                "interruption-point name `{name}` has {} explicit QET pairs: chain order set (sort 2i, 2i + 1) and the project pairs in chain mode",
                 pairs.len()
             ),
         );
@@ -1182,7 +1404,7 @@ fn map_reports(
             },
         );
     }
-    for (d, n) in synthesized {
+    for (d, n) in nameless {
         let folio = mx.folio(d).to_owned();
         let loc = mx.findings.loc(Some(&folio), None, None);
         mx.findings.push(

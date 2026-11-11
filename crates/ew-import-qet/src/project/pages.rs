@@ -429,22 +429,9 @@ pub fn map(
     if !kept.is_empty() {
         pextra.insert("qet.project_properties".to_owned(), Value::Object(kept));
     }
-    if let Some(label) = &project.report_label {
-        pextra.insert("qet.report_label".to_owned(), Value::String(label.clone()));
-        if label.contains("%f") {
-            findings.file_level(
-                Code::imp(117),
-                Severity::Info,
-                format!("folio reports use QET's folio-index variable `%f` (`{label}`)"),
-            );
-        }
-        findings.file_level(
-            Code::FOREIGN_VALUE,
-            Severity::Warning,
-            format!(
-                "folio-report cross-reference format `{label}` kept as text; EW's default format applies"
-            ),
-        );
+    let mut settings_extra = BTreeMap::new();
+    if let Some(format) = xref_format(project, findings) {
+        settings_extra.insert("xref_format".to_owned(), format);
     }
     for (name, n) in &project.unmapped_top_level {
         findings.file_level(
@@ -474,6 +461,7 @@ pub fn map(
         rated_consumption: None,
         settings: ew_schema::ProjectSettings {
             text_styles: frames::styles(&frames.sizes),
+            extra: settings_extra,
             ..Default::default()
         },
         languages: None,
@@ -490,6 +478,85 @@ pub fn map(
         pages: infos,
         forms: frames.forms,
     }
+}
+
+/// The project's cross-reference format (`settings.xref_format`, doc 14 §4.8) from QET's own formulas, so that
+/// a position prints as in QET: the folio-report `label` is the interruption-point item, the `slave_label` the
+/// auxiliary's text and the `master_label` the items a master lists, one per line, as QET draws its contacts.
+/// QET's variables (`%F`, `%f`, `%l`, `%c`, `%M`, `%LM`) are EW tokens as they stand. A file with neither
+/// `<report>` nor `<xrefs>` gives `None` (the profile's format applies); what one leaves out is QET's default.
+///
+/// EW has one format for all masters, so the formulas most `<xref>` types share apply; every other type, a
+/// `master_label` other than the report label, the prefixes, a cross display, the folio-bottom place and a
+/// slave position other than below or above are reported (EW-IMP-009).
+fn xref_format(project: &QetProject, findings: &mut Findings) -> Option<Value> {
+    if project.report_label.is_none() && project.xrefs.is_empty() {
+        return None;
+    }
+    let ip = project
+        .report_label
+        .clone()
+        .unwrap_or_else(|| "%f-%l%c".to_owned());
+    // The formulas most types share; a tie goes to the type written first.
+    let shared = |x: &super::model::QetXref| (x.master_label.clone(), x.slave_label.clone());
+    let mut best: Option<((String, String), usize)> = None;
+    for x in &project.xrefs {
+        let n = project.xrefs.iter().filter(|y| shared(y) == shared(x)).count();
+        if best.as_ref().is_none_or(|(_, m)| n > *m) {
+            best = Some((shared(x), n));
+        }
+    }
+    let (master, slave) = best.map_or_else(|| (ip.clone(), "(%f-%l%c)".to_owned()), |(f, _)| f);
+    let mut deviate = |message: String| findings.file_level(Code::imp(9), Severity::Warning, message);
+    for x in &project.xrefs {
+        let what = format!("masters of type `{}`", x.kind);
+        if shared(x) != (master.clone(), slave.clone()) {
+            deviate(format!(
+                "{what} use their own cross-reference formulas `{}` and `{}`; they print with `{master}` and `{slave}`, which most types use",
+                x.master_label, x.slave_label
+            ));
+        }
+        if x.display != "contacts" {
+            deviate(format!(
+                "{what} show their contacts as a cross in QET; they print as a list of positions"
+            ));
+        }
+        if x.snap_to != "label" {
+            deviate(format!(
+                "{what} print their cross-reference at the folio's bottom in QET; it prints under the label"
+            ));
+        }
+        if !matches!(x.slave_pos.as_str(), "AlignBottom" | "AlignTop") {
+            deviate(format!(
+                "slaves of {what} print their master's position beside the label in QET; it prints under the label"
+            ));
+        }
+        for (kind, text) in &x.prefixes {
+            deviate(format!(
+                "{what}: the {kind}-contact prefix `{text}` is not printed"
+            ));
+        }
+    }
+    if !project.xrefs.is_empty() && master != ip {
+        deviate(format!(
+            "masters list their contacts with `{master}` in QET; they print with the folio-report format `{ip}`"
+        ));
+    }
+    if let Some(f) = [&ip, &slave].into_iter().find(|f| f.contains("%f")) {
+        findings.file_level(
+            Code::imp(117),
+            Severity::Info,
+            format!("cross-references use QET's folio-index variable `%f` (`{f}`)"),
+        );
+    }
+    Some(serde_json::json!({
+        "name": "QElectroTech",
+        "key": "qet-import",
+        "ip": ip,
+        "aux_to_main": slave,
+        "main_to_aux": "{list}",
+        "matrix": {"per_row": 1, "max": 0, "overflow": "…"},
+    }))
 }
 
 #[cfg(test)]
