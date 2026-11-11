@@ -654,8 +654,11 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `props.category`: `category` (its word, of the focused row's section; else the focused row's) and `expanded`
-    /// (else it toggles). Collapse states persist per (kind, category) in the settings file.
+    /// `props.category`: `category` (its word) of the section of record kind `kind` (else of the focused row's
+    /// section; else the focused row's category) and `expanded` (else it toggles). Collapse states persist per (kind,
+    /// category) in the settings file. A click on a category's header names its section: a selected symbol shows a
+    /// device's, a function's and a representation's section, and the header clicked is not the focused row's
+    /// (FT-1650).
     pub(crate) fn act_props_category(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(sheet) = self.props.sheet.clone() else {
             return Outcome::refused(key!("reason-no-sheet"));
@@ -672,6 +675,14 @@ impl ShellModel {
                 None => {
                     return Outcome::refused(key!("reason-no-row"));
                 }
+            },
+        };
+        let section = match string_param(p, "kind") {
+            Err(e) => return e,
+            Ok(None) => section,
+            Ok(Some(kind)) => match sheet.sections.iter().find(|s| s.kind == kind) {
+                Some(s) => s,
+                None => return failed(key!("error-bad-param"), &["kind"]),
             },
         };
         let group = match string_param(p, "category") {

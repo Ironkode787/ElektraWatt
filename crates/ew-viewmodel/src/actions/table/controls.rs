@@ -171,7 +171,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ))),
     )),
     keeps_banner(with_params(
-        "category:text, expanded?:bool",
+        "category:text, kind?:text, expanded?:bool",
         hidden(in_properties(act(
             "props.category",
             View,

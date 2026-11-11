@@ -79,6 +79,9 @@ pub struct PropertiesPane {
     field_last: bool,
     /// The row error last brought into view, (row key, message): a new error scrolls its line into view once.
     error_shown: Option<(String, String)>,
+    /// The categories' headers drawn in the last frame: while one of them has the keyboard focus the pane leaves it
+    /// there, so that Enter or Space folds the category.
+    headings: Vec<egui::Id>,
 }
 
 /// `text` ellipsised in the middle at [`MAX_SHOWN`] characters.
@@ -166,7 +169,16 @@ impl PropertiesPane {
         let options = props.choices().is_some_and(|c| c.kind == ChoiceKind::Options);
         let editing =
             props.edit().is_some() && (props.choices().is_none() || options) && props.popup().is_none();
-        if ours && !editing && !pane.has_focus() && !ui.ctx().text_edit_focused() && shell.dialog().is_none()
+        let headings = std::mem::take(&mut self.headings);
+        let heading_focused = ui
+            .memory(|m| m.focused())
+            .is_some_and(|f| headings.contains(&f));
+        if ours
+            && !editing
+            && !pane.has_focus()
+            && !heading_focused
+            && !ui.ctx().text_edit_focused()
+            && shell.dialog().is_none()
         {
             pane.request_focus();
         }
@@ -292,11 +304,13 @@ impl PropertiesPane {
                             if !shut && rows.is_empty() {
                                 continue;
                             }
-                            if group_heading(ui, &t, group.title(), &key, shut) {
+                            let heading = group_heading(ui, &t, group.title(), &key, shut);
+                            self.headings.push(heading.id);
+                            if heading.clicked() {
                                 events.push(Event::Action("ui.focus", json!({"area": "properties"})));
                                 events.push(Event::Action(
                                     "props.category",
-                                    json!({"category": group.word(), "expanded": shut}),
+                                    json!({"category": group.word(), "kind": section.kind, "expanded": shut}),
                                 ));
                             }
                             if shut {
@@ -1715,8 +1729,8 @@ fn actions_menu(
 
 /// A group's heading (doc 16a §6.8, the mockup's `.psec`): `size.row` high with `space.4` side padding, a chevron and
 /// the title in `type.small` SemiBold `color.text.secondary`, as written ("Main", not upper case); a button that
-/// collapses or expands the group; `true` when clicked.
-fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, shut: bool) -> bool {
+/// collapses or expands the group on a click, and on Enter or Space while it has the focus. Returns its response.
+fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, shut: bool) -> egui::Response {
     let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), t.size_row), Sense::hover());
     let id = ui.scope_id().with(("prop-group", key));
     let response = ui.interact(rect, id, Sense::click());
@@ -1748,7 +1762,7 @@ fn group_heading(ui: &mut Ui, t: &crate::theme::Tokens, title: &str, key: &str, 
             egui::StrokeKind::Inside,
         );
     }
-    response.clicked()
+    response
 }
 
 /// The header's findings by severity, most severe first (`error`, `warning`, then every other severity as `info`),
