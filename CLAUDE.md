@@ -19,7 +19,8 @@ cargo xtask rules                               # the repository rules alone
 ```
 
 - Run `check` on the crates you changed and the crates that show the change. The whole workspace (`check` without
-  `-p`, about twelve minutes) runs at the start and the end of a milestone and before a release, not per change.
+  `-p`, about seven minutes) runs at the start and the end of a milestone and before a release, not per change.
+  The deep run (the slow tests, about eight minutes; CONTRIBUTING.md, "Tests") runs at the same moments.
 - There is no CI until 1.0 (owner, 2026-11-08). `check` is the check.
 - No performance tests and no timing assertions during development (owner, 2026-10-22); a performance claim is
   marked "not measured".

@@ -27,7 +27,7 @@ cargo xtask rules                               # the repository rules alone, in
 - **`check`** formats every Rust file, runs clippy with warnings as errors and the tests of the crates you name,
   with all features, and then the repository rules. Name the crates you changed and the crates that show the
   change (a command usually shows in `ew-api` and `ew-viewmodel`). Without `-p` it takes the whole workspace,
-  about twelve minutes: do that before a release, not for every change.
+  about seven minutes: do that before a release, not for every change.
 - **`gen`** rewrites every file that is generated from code or data. Run it after you change a command, a check
   rule, a text key, a keymap, an icon or a library symbol, and commit what it changed with your change.
 - **`rules`** checks the crate layers and the licence boundary, test-only features, raw reads of the model,
