@@ -2021,21 +2021,28 @@ fn is_line_kind(section: &ew_viewmodel::ew_api::output::SheetSection, row: &Prop
 /// A severity's glyph chip: the severity's subtle fill, its icon, and the count in `type.caption` when more
 /// than one; named like the count chip ("2 Warnings: <rule>: <message>; …"), every finding in its tooltip.
 /// The actions of a click on a Properties finding chip: Messages opens, filtered to the record
-/// ([`findings_filter`]).
-fn findings_events(header: &ew_viewmodel::ew_api::output::SheetHeader) -> [Event; 2] {
+/// ([`findings_filter`]), at its first row, so the most severe findings are in view (FT-1659: the list kept its
+/// cursor on an info below them, and the error the chip counted stood above the pane's top).
+fn findings_events(header: &ew_viewmodel::ew_api::output::SheetHeader) -> [Event; 3] {
     [
         Event::Action("messages.show", json!({"on": true})),
         Event::Action(
             "navigator.filter",
             json!({"kind": "messages", "text": findings_filter(header)}),
         ),
+        Event::Action("navigator.row", json!({"kind": "messages", "to": "first"})),
     ]
 }
 
 /// The Messages filter of a sheet's record: a page by its folio facet (`page:101`; its title "101 Control" is in no
-/// finding's text), any other record by its title (a device's tag, a wire's number).
+/// finding's text), any other record by its title (a device's tag, a wire's number). Several records have no filter
+/// (FT-1659: the title "2 devices" is in no finding's text, so the chip of four warnings opened "Nothing matches"); the
+/// chip's tooltip lists their findings.
 pub(crate) fn findings_filter(header: &ew_viewmodel::ew_api::output::SheetHeader) -> String {
-    let page = header.items == 1 && header.kinds.iter().any(|(k, n)| k == "page" && *n == 1);
+    if header.items != 1 {
+        return String::new();
+    }
+    let page = header.kinds.iter().any(|(k, n)| k == "page" && *n == 1);
     match header.title.split_whitespace().next() {
         Some(folio) if page => format!("page:{folio}"),
         _ => header.title.clone(),

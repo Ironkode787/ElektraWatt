@@ -189,7 +189,9 @@ pub(crate) fn show(
                                     );
                                     let glyph = match row.value {
                                         ChooserValue::NewDevice => IconId::plus,
-                                        ChooserValue::Join { .. } => IconId::circuit_switch_open,
+                                        ChooserValue::Join { .. } | ChooserValue::JoinRep { .. } => {
+                                            IconId::circuit_switch_open
+                                        }
                                     };
                                     icons::paint(
                                         ui.painter(),

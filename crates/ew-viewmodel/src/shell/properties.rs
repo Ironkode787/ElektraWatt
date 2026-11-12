@@ -1669,23 +1669,8 @@ impl ShellModel {
             self.props.error = None;
             self.props.tag_proposal = None;
             let toast = if proposal.join {
-                // "Joined -K1 (NO contact 13-14) at 102-C4".
                 let rep = proposal.params["rep"].as_str().and_then(|r| r.parse().ok());
-                let joined = rep.and_then(|r| self.project.as_ref()?.session.joined_text(r));
-                // What the removed source device carried goes with it; the toast names it.
-                joined.map(|j| {
-                    // FT-1483: the function's kind in the window's language.
-                    let kind = super::navigators::kind_words(&j.kind).unwrap_or_else(|| j.kind.clone());
-                    let text = strings::format(key!("toast-joined"), &[&j.tag, &kind, &j.place]);
-                    if notices.is_empty() {
-                        text
-                    } else {
-                        strings::format(
-                            key!("toast-joined-dropped"),
-                            &[strings::without_stop(&text), &notices.join("; ")],
-                        )
-                    }
-                })
+                rep.and_then(|r| self.joined_toast(r, &notices))
             } else {
                 Some(strings::format(
                     key!("toast-tag-proposal"),
@@ -1775,9 +1760,26 @@ impl ShellModel {
         Some((message, proposal))
     }
 
+    /// The toast after `rep` joined a device: "Joined -K1 (NO contact 13-14) at 102-C4", then what the removed
+    /// source device carried (`notices`); `None` for a representation that draws no function of a device.
+    pub(super) fn joined_toast(&self, rep: ew_api::output::Uuid, notices: &[String]) -> Option<String> {
+        let j = self.project.as_ref()?.session.joined_text(rep)?;
+        // FT-1483: the function's kind in the window's language.
+        let kind = super::navigators::kind_words(&j.kind).unwrap_or_else(|| j.kind.clone());
+        let text = strings::format(key!("toast-joined"), &[&j.tag, &kind, &j.place]);
+        Some(if notices.is_empty() {
+            text
+        } else {
+            strings::format(
+                key!("toast-joined-dropped"),
+                &[strings::without_stop(&text), &notices.join("; ")],
+            )
+        })
+    }
+
     /// One command through the grid's commit path: a fresh preview, then [`ShellModel::commit_kept`]; with the
     /// notices of the command's outcome (what it dropped instead of refusing), read on its preview.
-    fn run_logged_or_commit(
+    pub(super) fn run_logged_or_commit(
         &mut self,
         name: &str,
         params: &Value,

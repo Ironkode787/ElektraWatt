@@ -50,26 +50,26 @@ page "101" "Power Supply 1 - Main Current" reps 17 connections 21 junctions 2
     cp "N-1" at 270.744 166.362 mm wires 1 potential "N-1"
   rep ip "L-1" direction source continues "102-A1" cell "101-H16" symbol "ew.gen.ip@qet10" variant "A" at 273.353 176.801 mm
     cp "L-1" at 270.744 176.801 mm wires 1 potential "L-1"
-  wire "-101F1:1" -> "F55:1" route stored bends 2 at 176.801 33.276 mm
-  wire "-101F1:2" -> "L-1" route stored bends 1 at 208.115 176.801 mm
-  wire "-101F1:N#1" -> "F55:N#1" route stored bends 4 at 179.410 38.495 mm
-  wire "-101F1:N#2" -> "N-1" route stored bends 1 at 212.029 166.362 mm
+  wire "-101F1:1" -> "F55:1" route stored bends 2 via 145.486,33.276 208.115,33.276 mm at 176.801 33.276 mm
+  wire "-101F1:2" -> "L-1" route stored bends 1 via 145.486,176.801 mm at 208.115 176.801 mm
+  wire "-101F1:N#1" -> "F55:N#1" route stored bends 4 via 153.315,38.495 205.505,38.495 205.505,35.885 215.944,35.885 mm at 179.410 38.495 mm
+  wire "-101F1:N#2" -> "N-1" route stored bends 1 via 153.315,166.362 mm at 212.029 166.362 mm
   wire "1X1:1/a" -> "S51:2" route stored bends 0 at 46.324 69.809 mm
-  wire "1X1:2/a" -> "S51:4" route stored bends 2 at 51.543 77.638 mm
-  wire "1X1:PE/a" -> "-XPE:PE" route stored bends 2 at 77.638 82.857 mm
-  wire "E55:PE" -> "PE-1.1" route stored bends 2 at 231.601 129.829 mm
-  wire "F55:2" -> junction 1 route stored bends 2 at 208.115 58.066 mm
-  wire "F55:N#2" -> junction 2 route stored bends 2 at 226.382 60.676 mm
-  wire "J-E-206-L" -> "1X1:1/b" route stored bends 1 at 46.324 115.476 mm
-  wire "J-E-206-N" -> "1X1:2/b" route stored bends 1 at 51.543 120.695 mm
-  wire "J-E-206-PE" -> "1X1:PE/b" route stored bends 1 at 59.371 125.915 mm
-  wire "S51:1" -> "-101F1:1" route stored bends 2 at 46.324 42.409 mm
-  wire "S51:3" -> "-101F1:N#1" route stored bends 2 at 51.543 41.431 mm
+  wire "1X1:2/a" -> "S51:4" route stored bends 2 via 51.543,69.809 51.543,69.809 mm at 51.543 77.638 mm
+  wire "1X1:PE/a" -> "-XPE:PE" route stored bends 2 via 59.371,82.857 95.905,82.857 mm at 77.638 82.857 mm
+  wire "E55:PE" -> "PE-1.1" route stored bends 2 via 231.601,108.952 231.601,150.705 mm at 231.601 129.829 mm
+  wire "F55:2" -> junction 1 route stored bends 2 via 208.115,64.590 195.067,64.590 mm at 208.115 58.066 mm
+  wire "F55:N#2" -> junction 2 route stored bends 2 via 215.944,54.152 226.382,54.152 mm at 226.382 60.676 mm
+  wire "J-E-206-L" -> "1X1:1/b" route stored bends 1 via 46.324,140.267 mm at 46.324 115.476 mm
+  wire "J-E-206-N" -> "1X1:2/b" route stored bends 1 via 51.543,150.705 mm at 51.543 120.695 mm
+  wire "J-E-206-PE" -> "1X1:PE/b" route stored bends 1 via 59.371,161.143 mm at 59.371 125.915 mm
+  wire "S51:1" -> "-101F1:1" route stored bends 2 via 46.324,38.495 145.486,38.495 mm at 46.324 42.409 mm
+  wire "S51:3" -> "-101F1:N#1" route stored bends 2 via 51.543,35.885 153.315,35.885 mm at 51.543 41.431 mm
   wire "S56:14" -> "E56:X1" route stored bends 0 at 242.039 102.429 mm
-  wire "T55:3" -> "E55:N" route stored bends 4 at 200.286 97.210 mm
-  wire junction 1 -> "E55:L" route stored bends 3 at 210.725 91.990 mm
-  wire junction 1 -> "E56:X2" route stored bends 2 at 195.067 93.295 mm
-  wire junction 2 -> "S56:13" route stored bends 1 at 242.039 77.638 mm
-  wire junction 2 -> "T55:5" route stored bends 3 at 215.944 64.590 mm
+  wire "T55:3" -> "E55:N" route stored bends 4 via 210.725,77.638 200.286,77.638 200.286,116.781 210.725,116.781 mm at 200.286 97.210 mm
+  wire junction 1 -> "E55:L" route stored bends 3 via 202.896,67.200 202.896,80.248 210.725,80.248 mm at 210.725 91.990 mm
+  wire junction 1 -> "E56:X2" route stored bends 2 via 195.067,119.391 242.039,119.391 mm at 195.067 93.295 mm
+  wire junction 2 -> "S56:13" route stored bends 1 via 242.039,67.200 mm at 242.039 77.638 mm
+  wire junction 2 -> "T55:5" route stored bends 3 via 221.163,67.200 221.163,64.590 210.725,64.590 mm at 215.944 64.590 mm
   junction 1 cell "101-C11" at 195.067 67.200 mm style dot wiring star sequence "F55:2" "E55:L" "E56:X2"
   junction 2 cell "101-C13" at 226.382 67.200 mm style dot wiring star sequence "F55:N#2" "T55:5" "S56:13"

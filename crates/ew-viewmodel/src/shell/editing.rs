@@ -687,12 +687,20 @@ impl ShellModel {
             .project
             .as_ref()
             .is_some_and(|p| p.session.auxiliary_fndef(shape.fndef));
+        // A part's function that a device of the part has unplaced fills that device (FT-1658).
+        let slot = match &target {
+            PlaceTarget::Part { part, template, .. } => part.parse::<Uuid>().ok().map(|p| (p, *template)),
+            _ => None,
+        };
         self.activate_tool(Box::new(
             PlaceTool::new(shape, target)
                 .with_autoconnect(autoconnect)
                 .with_joinable(joinable)
                 .with_copies(copies),
         ));
+        if let Some((part, template)) = slot {
+            self.join_template_slot(part, template);
+        }
         Outcome::Done
     }
 
@@ -741,7 +749,16 @@ impl ShellModel {
         let folio = self.current_folio().unwrap_or_default().to_owned();
         self.palette = None;
         self.tools.junction_editor = None;
-        self.tools.picker = Some(Picker::new(mode, &folio, cat));
+        let slots = self.template_slots();
+        let mut picker = Picker::new(mode, &folio, cat);
+        for (p, part) in picker.catalogue.parts.iter().enumerate() {
+            for (k, f) in part.functions.iter().enumerate() {
+                if let Some((_, tag, _)) = slots.get(&(part.copy, f.index)) {
+                    picker.joins.insert((p, k), tag.clone());
+                }
+            }
+        }
+        self.tools.picker = Some(picker);
         Outcome::Done
     }
 
@@ -1482,9 +1499,10 @@ impl ShellModel {
     }
 
     /// The devices that deleting the representations `reps` leaves without any representation, in ID order: every
-    /// function of the device is drawn only by `reps`. A device is kept (its functions stay unplaced, as before, and
-    /// EW-CORE-047 reports it) when it has a function `reps` do not draw, a terminal or strip role, child devices, or
-    /// a cable, assembly or PLC aspect, or when one of its functions carries intent beyond the deleted drawing: a
+    /// function of the device is drawn only by `reps` or by nothing. A device is kept (its functions stay unplaced, as
+    /// before, and EW-CORE-047 reports it) when another representation draws one of its functions, when it has a
+    /// terminal or strip role, child devices, or a cable, assembly or PLC aspect, or when one of its functions
+    /// carries intent beyond the deleted drawing: a
     /// potential definition or a bond at one of its CPs, or a connection that is page-less or drawn on a page other
     /// than the deleted representations' pages. Deleting the device would drop or cascade that intent unseen.
     fn devices_left_undrawn(&self, reps: &[EntityRef]) -> Vec<EntityRef> {
@@ -1546,11 +1564,11 @@ impl ShellModel {
             {
                 continue;
             }
-            let all_gone = idx.functions_of_device(id).all(|f| {
-                functions.contains(&f)
-                    && idx.reps_of_function(f).all(|r| deleted.contains(&r))
-                    && !carries_intent(f)
-            });
+            // A function no representation draws (a part's other contacts) is no other role (FT-1658: a relay
+            // placed by one contact and deleted left `-?K2` with its four unplaced contacts).
+            let all_gone = idx
+                .functions_of_device(id)
+                .all(|f| idx.reps_of_function(f).all(|r| deleted.contains(&r)) && !carries_intent(f));
             if all_gone {
                 out.push(EntityRef(id.as_uuid()));
             }

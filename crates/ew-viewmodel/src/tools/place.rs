@@ -243,6 +243,11 @@ impl PlaceTool {
         self.transient(cx)
     }
 
+    /// The target "New device" restores while a join is armed.
+    pub fn base(&self) -> Option<&PlaceTarget> {
+        self.base.as_ref()
+    }
+
     /// The Join chooser's "New device" row: the target before the first join comes back; answers the new overlay.
     pub fn unjoin(&mut self, cx: &ToolCx<'_>) -> ToolOutput {
         if let Some(base) = self.base.take() {

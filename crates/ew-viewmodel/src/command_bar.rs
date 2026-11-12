@@ -466,7 +466,8 @@ pub const SELECTION_GROUPS: [Group; 1] = [Group::Arrange];
 
 /// The canvas context menu: over an object, the commands the command bar offers for the selection (the
 /// buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then its
-/// other variants), then Define potential… over a wire, a junction or a terminal, then Delete; over nothing,
+/// other variants), then Define potential… over a wire, a junction or a terminal, Join device… over one placed symbol of
+/// a device, then Delete; over nothing,
 /// Paste when it is enabled. Empty when there is nothing to offer: the window then opens no menu. A disabled entry
 /// carries its reason, as the bar's button does. No action of its own.
 pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
@@ -515,6 +516,10 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
     // Over a wire, a junction or a terminal, Define potential… at its point.
     if model.potential_point().is_ok() {
         items.extend(actions::find("potential.draw").map(|meta| actions::item_of(meta, model)));
+    }
+    // Over one placed symbol of a device, Join device… (FT-1658: J alone was the way, and only while placing).
+    if model.join_rep().is_some() {
+        items.extend(actions::find("place.join").map(|meta| actions::item_of(meta, model)));
     }
     items.extend(actions::find("edit.delete_selection").map(|meta| actions::item_of(meta, model)));
     items

@@ -355,11 +355,16 @@ fn row_texts(picker: &Picker, row: PickerRow) -> RowTexts {
                 library,
             }
         }
+        // A function a device of the part has unplaced names that device, as the Place ghost then does.
         PickerRow::PartFn(p, k) => RowTexts {
             name: function_line(picker, p, k),
             number: String::new(),
             rating: String::new(),
-            library: String::new(),
+            library: picker
+                .joins
+                .get(&(p, k))
+                .map(|tag| strings::format(key!("place-target-join"), &[tag]))
+                .unwrap_or_default(),
         },
         PickerRow::Strip(k) => {
             let st = &picker.catalogue.strips[k];

@@ -39,25 +39,25 @@ page "102" "Power Supply 2 - Control Current" reps 12 connections 19 junctions 4
     cp "24VDC-2" at 255.087 166.362 mm wires 1 potential "24VDC-2"
   rep ip "24VDC-1" direction source continues "103-A1" cell "102-H15" symbol "ew.gen.ip@qet10" variant "A" at 257.696 176.801 mm
     cp "24VDC-1" at 255.087 176.801 mm wires 1 potential "24VDC-1"
-  wire "-102F1:2" -> junction 4 route stored bends 1 at 132.438 90.686 mm
-  wire "-102F2:Out1" -> "24VDC-1" route stored bends 1 at 200.286 176.801 mm
-  wire "-102F2:Out2" -> "24VDC-2" route stored bends 1 at 202.896 166.362 mm
-  wire "-102F2:Out3" -> "24VDC-3" route stored bends 1 at 205.505 155.924 mm
-  wire "-102F2:Out4" -> "24VDC-4" route stored bends 1 at 208.115 145.486 mm
+  wire "-102F1:2" -> junction 4 route stored bends 1 via 124.610,90.686 mm at 132.438 90.686 mm
+  wire "-102F2:Out1" -> "24VDC-1" route stored bends 1 via 145.486,176.801 mm at 200.286 176.801 mm
+  wire "-102F2:Out2" -> "24VDC-2" route stored bends 1 via 150.705,166.362 mm at 202.896 166.362 mm
+  wire "-102F2:Out3" -> "24VDC-3" route stored bends 1 via 155.924,155.924 mm at 205.505 155.924 mm
+  wire "-102F2:Out4" -> "24VDC-4" route stored bends 1 via 161.143,145.486 mm at 208.115 145.486 mm
   wire "-102G1:+#1" -> junction 1 route stored bends 0 at 124.610 62.959 mm
-  wire "-102G1:+#2" -> junction 1 route stored bends 1 at 127.545 64.590 mm
-  wire "-102G1:PE" -> "PE-1.2" route stored bends 1 at 195.067 25.447 mm
-  wire "-102G1:−#1" -> junction 3 route stored bends 2 at 150.705 77.638 mm
-  wire "-102G1:−#2" -> junction 2 route stored bends 2 at 152.010 64.590 mm
-  wire "L-1" -> "-102G1:L" route stored bends 1 at 81.552 30.666 mm
-  wire "N-1" -> "-102G1:N" route stored bends 1 at 84.162 20.228 mm
+  wire "-102G1:+#2" -> junction 1 route stored bends 1 via 129.829,64.590 mm at 127.545 64.590 mm
+  wire "-102G1:PE" -> "PE-1.2" route stored bends 1 via 135.048,25.447 mm at 195.067 25.447 mm
+  wire "-102G1:−#1" -> junction 3 route stored bends 2 via 135.048,67.200 150.705,67.200 mm at 150.705 77.638 mm
+  wire "-102G1:−#2" -> junction 2 route stored bends 2 via 140.267,64.590 155.924,64.590 mm at 152.010 64.590 mm
+  wire "L-1" -> "-102G1:L" route stored bends 1 via 124.610,30.666 mm at 81.552 30.666 mm
+  wire "N-1" -> "-102G1:N" route stored bends 1 via 129.829,20.228 mm at 84.162 20.228 mm
   wire junction 1 -> "-102F1:1" route stored bends 0 at 124.610 68.178 mm
   wire junction 2 -> "-102F2:GND#2" route stored bends 0 at 155.924 84.162 mm
   wire junction 2 -> "0VDC" route stored bends 0 at 205.505 67.200 mm
   wire junction 3 -> "-102F2:GND#1" route stored bends 0 at 150.705 98.514 mm
   wire junction 3 -> "PE-0VDC" route stored bends 0 at 202.896 88.076 mm
   wire junction 4 -> "-102F2:24VDC#1" route stored bends 0 at 140.267 99.819 mm
-  wire junction 4 -> "-102F2:24VDC#2" route stored bends 1 at 145.486 99.819 mm
+  wire junction 4 -> "-102F2:24VDC#2" route stored bends 1 via 145.486,90.686 mm at 145.486 99.819 mm
   junction 1 cell "102-C7" at 124.610 64.590 mm style bevel wiring chain sequence "-102G1:+#1" "-102F1:1" "-102G1:+#2"
   junction 2 cell "102-C9" at 155.924 67.200 mm style bevel wiring star sequence "-102G1:−#2" "-102F2:GND#2" "0VDC"
   junction 3 cell "102-D8" at 150.705 88.076 mm style bevel wiring star sequence "-102G1:−#1" "-102F2:GND#1" "PE-0VDC"

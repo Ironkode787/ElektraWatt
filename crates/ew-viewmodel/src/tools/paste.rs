@@ -5,8 +5,9 @@
 //! the grid cursor and is pasted with one `edit.paste`.
 //!
 //! State `floating` (not sticky). `PointerMove` or `CursorMove` → `Transient`: one ghost rectangle per ghost entry of
-//! the fragment at the snapped anchor (the grid point, never a connection point: `snap_grid`), a label `paste <n>
-//! records` with the dropped connections, and after a preview the predicted tags; `Dwell` of 80 ms and more →
+//! the fragment, its middle at the point and its anchor snapped to the grid (never to a connection point:
+//! `snap_grid`; Duplicate starts with the anchor at its point), a label `paste <n> records` with the dropped
+//! connections, and after a preview the predicted tags; `Dwell` of 80 ms and more →
 //! `Preview(edit.paste {page, at, fragment})` (the semantic ghost: the derived diff's tags); `Press` or `Activate` →
 //! `Commit`, after which the host returns to Select with the pasted representations selected; `Escape` answers
 //! nothing, so the Escape chain ends the tool (the revision is unchanged). The tool reads no `Session`: the fragment was
@@ -69,10 +70,34 @@ impl PasteTool {
     /// Moves the ghost's anchor to the page point `page` (duplicate's start, two grid steps right and down of the
     /// copied anchor), snapped to the grid.
     pub fn start_at(&mut self, page: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
-        self.moved(cx.snapper.page_to_sheet(page), cx)
+        self.anchor_at(cx.snapper.page_to_sheet(page), cx)
     }
 
+    /// The fragment's middle relative to its anchor (page nm): the centre of its ghost rectangles' bounds.
+    fn middle(&self) -> (i64, i64) {
+        let g = &self.fragment.ghost;
+        let (Some(x0), Some(y0), Some(x1), Some(y1)) = (
+            g.iter().map(|r| r[0].min(r[2])).min(),
+            g.iter().map(|r| r[1].min(r[3])).min(),
+            g.iter().map(|r| r[0].max(r[2])).max(),
+            g.iter().map(|r| r[1].max(r[3])).max(),
+        ) else {
+            return (0, 0);
+        };
+        (x0 / 2 + x1 / 2, y0 / 2 + y1 / 2)
+    }
+
+    /// The pointer or the grid cursor at the sheet point `at`: the fragment floats with its middle there, snapped to
+    /// the grid (FT-1659: it hung from its top-left corner, so a paste landed below and right of the click).
     fn moved(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
+        let page = cx.snapper.sheet_to_page(at);
+        let (mx, my) = self.middle();
+        let anchor = (page.0.saturating_sub(mx), page.1.saturating_sub(my));
+        self.anchor_at(cx.snapper.page_to_sheet(anchor), cx)
+    }
+
+    /// The anchor at the sheet point `at`, snapped to the grid.
+    fn anchor_at(&mut self, at: (i64, i64), cx: &ToolCx<'_>) -> ToolOutput {
         let s = cx.snapper.snap_grid(at);
         let next = Some((s.at_nm, s.page_nm));
         if next != self.at {

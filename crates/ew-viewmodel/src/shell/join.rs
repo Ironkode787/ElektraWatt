@@ -13,11 +13,18 @@
 //! "slot 13-14", then the devices that take auxiliary functions). Enter (`chooser.choose`) arms the row's target, the
 //! ghost label reads `join -K1`; "New device" restores the target before the join.
 //!
+//! **After placing (D3).** J (and Join device… in the page's right-click menu) with the Select tool and one placed
+//! symbol selected opens the chooser of the devices it can join, its own left out; Enter is `rep.join_device`.
+//! **From a part.** A part's function that a device of the part has unplaced arms the join of that device
+//! ([`ShellModel::template_slots`]); "New device" is the part's new device, which also comes back once the device has
+//! no more of that function.
+//!
 //! **The text interface (D4).** `place.pick device=<tag>` arms the join; `function=<tag>:<slot>` or
 //! `function=<tag>` arms `existing_function` (a tag with one unplaced function of the armed FnDef resolves to it,
 //! several are refused with their slots listed). A tag is read by the reference grammar (`Session::resolve_reference`: a
 //! bare tag, `tag:`, `id:`); a UUID still works.
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use ew_api::output::{PlaceCatalogue, Uuid};
@@ -48,7 +55,9 @@ impl ShellModel {
     /// §6.22, §7.1): the row's device's first representation on the focused page (in the page table's order); none
     /// for "New device" or a device not drawn on this page.
     pub fn chooser_object(&self) -> Option<ew_api::output::ew_dl::EntityRef> {
-        let ChooserValue::Join { device, .. } = &self.chooser()?.current()?.value else {
+        let (ChooserValue::Join { device, .. } | ChooserValue::JoinRep { device, .. }) =
+            &self.chooser()?.current()?.value
+        else {
             return None;
         };
         let device = Uuid::parse_str(device).ok()?;
@@ -71,6 +80,36 @@ impl ShellModel {
     /// Whether the active Place tool offers the Join chooser (its symbol's FnDef can be an auxiliary function).
     pub(crate) fn place_joinable(&self) -> bool {
         self.tools.tool.name() == "place" && self.tool_ghost().is_some_and(|g| g.joinable())
+    }
+
+    /// The placed symbol J offers to join another device (FT-1658: J on a placed contact was refused as "not a
+    /// contact"): with the Select tool active, the one representation selected on the page shown, which draws one
+    /// function of a device; with that device and the function's FnDef.
+    pub(crate) fn join_rep(&self) -> Option<(Uuid, Uuid, Uuid)> {
+        if self.tools.tool.name() != "select" {
+            return None;
+        }
+        let page = self.canvas()?.page();
+        let mut reps = page.tables.reps.iter().filter(|r| {
+            self.tools
+                .selection
+                .items
+                .contains(&ew_api::output::ew_dl::EntityRef(r.id))
+        });
+        let (Some(rep), None) = (reps.next(), reps.next()) else {
+            return None;
+        };
+        let device = rep.device?;
+        let [function] = rep.functions.as_slice() else {
+            return None;
+        };
+        let q = self.project.as_ref()?.session.query();
+        let fndef = q
+            .functions()
+            .get(function.to_string().parse().ok()?)?
+            .def
+            .as_uuid();
+        Some((rep.id, device, fndef))
     }
 
     /// The device a join names: a device's UUID, or a reference (a bare tag such as `-101K1`,
@@ -208,6 +247,9 @@ impl ShellModel {
     /// `place.join` (J): opens the Join chooser of the active Place tool: "New device", then the devices the symbol
     /// can join. The active row is the current target's.
     pub(crate) fn act_place_join(&mut self) -> Outcome {
+        if let Some((rep, own, fndef)) = self.join_rep() {
+            return self.open_rep_join(rep, own, fndef);
+        }
         if !self.place_joinable() {
             return Outcome::refused(key!("reason-join-not-auxiliary"));
         }
@@ -264,6 +306,47 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// J with one placed symbol selected: the Join chooser of the devices it can join, one row per device (its first
+    /// slot, else auxiliary), its own device left out; Enter joins it with `rep.join_device`, its wires kept.
+    fn open_rep_join(&mut self, rep: Uuid, own: Uuid, fndef: Uuid) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let mut rows: Vec<ChooserRow> = Vec::new();
+        for c in project.session.join_candidates(fndef).rows {
+            let device = c.device.to_string();
+            let listed = rows
+                .iter()
+                .any(|r| matches!(&r.value, ChooserValue::JoinRep { device: d, .. } if *d == device));
+            if c.device == own || listed {
+                continue;
+            }
+            rows.push(ChooserRow {
+                name: c.tag,
+                kind: if c.function.is_some() {
+                    strings::format(key!("chooser-kind-slot"), &[&c.slot])
+                } else {
+                    strings::text(key!("chooser-kind-auxiliary")).to_owned()
+                },
+                value: ChooserValue::JoinRep {
+                    rep: rep.to_string(),
+                    device,
+                },
+            });
+        }
+        if rows.is_empty() {
+            return Outcome::refused(key!("reason-join-no-device"));
+        }
+        self.palette = None;
+        self.tools.picker = None;
+        self.tools.chooser = Some(Chooser::new(
+            strings::text(key!("chooser-join-question")).to_owned(),
+            rows,
+            0,
+        ));
+        Outcome::Done
+    }
+
     /// `chooser.row {step | to}`: Up and Down (`step` −1, 1, wrapping), Home (`to` 0), End (`to` −1).
     pub(crate) fn act_chooser_row(&mut self, p: &Map<String, Value>) -> Outcome {
         let step = p.get("step").and_then(Value::as_i64);
@@ -310,6 +393,16 @@ impl ShellModel {
         };
         self.tools.chooser = None;
         let out = match row.value {
+            ChooserValue::JoinRep { rep, device } => {
+                let params = serde_json::json!({ "rep": rep, "device": device });
+                let (outcome, notices) = self.run_logged_or_commit("rep.join_device", &params, None);
+                if outcome == Outcome::Done
+                    && let Some(toast) = rep.parse().ok().and_then(|r| self.joined_toast(r, &notices))
+                {
+                    self.notify(toast, true);
+                }
+                return outcome;
+            }
             ChooserValue::NewDevice => self.with_tool(|t, cx| {
                 t.as_any_mut()
                     .and_then(|a| a.downcast_mut::<PlaceTool>())
@@ -353,8 +446,57 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// The unplaced template functions of the project's devices, by (part copy, template entry): the device a
+    /// placement of that entry of that part fills, as its ID text, its tag and that function's ID text; of several
+    /// devices the first in natural tag order. A contact of -102K1's part picked in the device browser fills -102K1's
+    /// free contact instead of making a second relay (FT-1658).
+    pub(crate) fn template_slots(&self) -> BTreeMap<(Uuid, u16), (String, String, String)> {
+        let mut out = BTreeMap::new();
+        let Some(project) = &self.project else {
+            return out;
+        };
+        let session = &project.session;
+        let q = session.query();
+        let idx = q.idx();
+        let mut found: Vec<((Uuid, u16), String, String, String)> = Vec::new();
+        for (id, f) in q.functions().iter() {
+            let (Some(device), Some(entry)) = (f.device, f.template_entry) else {
+                continue;
+            };
+            if idx.reps_of_function(id).next().is_some() {
+                continue;
+            }
+            let Some(part) = q.devices().get(device).and_then(|d| d.parts.first()) else {
+                continue;
+            };
+            let (device, function) = (device.as_uuid(), id.as_uuid());
+            // A slot as `device.place`'s `existing_function` takes it: a normal function (no black box).
+            if !session
+                .unplaced_slots(device, f.def.as_uuid())
+                .iter()
+                .any(|(s, _)| *s == function)
+            {
+                continue;
+            }
+            let tag = session.device_tag(device).unwrap_or_default();
+            found.push((
+                (part.part.copy.as_uuid(), entry),
+                tag,
+                device.to_string(),
+                function.to_string(),
+            ));
+        }
+        found.sort_by(|a, b| super::interruption::natural_cmp(&a.1, &b.1).then_with(|| a.2.cmp(&b.2)));
+        for (key, tag, device, function) in found {
+            out.entry(key).or_insert((device, tag, function));
+        }
+        out
+    }
+
     /// A join target after a commit (D1, sticky): its slots and tag as the project has them now. The slots it had
-    /// that are still unplaced keep their order (a chosen slot stays first until it is filled); new ones follow.
+    /// that are still unplaced keep their order (a chosen slot stays first until it is filled); new ones follow. A
+    /// join a part's placement made goes back to placing a new device of the part once the part's slots are filled:
+    /// the part has no more of that function.
     pub(super) fn refresh_join_target(&mut self) {
         let Some((device, fndef, before)) = self.place_tool().and_then(|p| match p.target() {
             PlaceTarget::Join { device, slots, .. } => Some((device.clone(), p.shape().fndef, slots.clone())),
@@ -370,11 +512,57 @@ impl ShellModel {
             .into_iter()
             .map(|(f, _)| f.to_string())
             .collect();
+        let filled = !before.is_empty() && now.is_empty();
         let mut slots: Vec<String> = before.into_iter().filter(|f| now.contains(f)).collect();
         slots.extend(now.into_iter().filter(|f| !slots.contains(f)).collect::<Vec<_>>());
         let tag = project.session.device_tag(id);
+        if filled
+            && self
+                .place_tool()
+                .is_some_and(|p| matches!(p.base(), Some(PlaceTarget::Part { .. })))
+        {
+            let out = self.with_tool(|t, cx| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<PlaceTool>())
+                    .map(|p| p.unjoin(cx))
+            });
+            if let Some(Some(ToolOutput::Transient(o))) = out {
+                self.tools.overlay = o;
+            }
+            return;
+        }
         if let Some(p) = self.place_tool() {
             p.set_join_state(slots, tag);
+        }
+    }
+
+    /// Arms the active Place tool, just armed for a part's template entry `template` of part copy `part`, with the
+    /// join of the device that has that entry unplaced ([`Self::template_slots`]); the part's placement stays its
+    /// "New device" (J). Nothing changes when no device has it.
+    pub(super) fn join_template_slot(&mut self, part: Uuid, template: u16) {
+        let Some((device, tag, function)) = self.template_slots().remove(&(part, template)) else {
+            return;
+        };
+        let fndef = self.place_tool().map(|p| p.shape().fndef);
+        let mut slots: Vec<String> = match (fndef, device.parse::<Uuid>(), &self.project) {
+            (Some(fndef), Ok(id), Some(project)) => project
+                .session
+                .unplaced_slots(id, fndef)
+                .into_iter()
+                .map(|(f, _)| f.to_string())
+                .filter(|f| *f != function)
+                .collect(),
+            _ => Vec::new(),
+        };
+        slots.insert(0, function);
+        let target = PlaceTarget::Join { device, tag, slots };
+        let out = self.with_tool(|t, cx| {
+            t.as_any_mut()
+                .and_then(|a| a.downcast_mut::<PlaceTool>())
+                .map(|p| p.join(target, cx))
+        });
+        if let Some(Some(ToolOutput::Transient(o))) = out {
+            self.tools.overlay = o;
         }
     }
 }

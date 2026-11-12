@@ -1419,7 +1419,7 @@ impl CanvasHost {
             self.no_canvas(ui, rect, shell);
             return;
         };
-        let finishes = shell.tool().finishes_on_double_click();
+        let finishes = shell.finishes_on_double_click();
         self.map_input(
             ui,
             &response,

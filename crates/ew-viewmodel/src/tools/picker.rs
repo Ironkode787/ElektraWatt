@@ -8,8 +8,9 @@
 //! hits under the filter. Its rows ([`Picker::rows`]) are those of the chosen node: the symbol rows (the plain name,
 //! [`symbol_name`], with the badge `embedded` or `starter`, then the `<key>`), then one row per part
 //! ([`PickerRow::Part`]); a part with a function template opens ([`Picker::set_open`]) to one row per function
-//! (`<n> of <count> <fndef> [main]`), and choosing the part itself places its main function. The filter matches
-//! case-folded substrings of the key, the part number, the manufacturer, the FnDef keys, a symbol's name and keywords
+//! (`<n> of <count> <fndef> [main]`), and choosing the part itself places its main function. A function that a device
+//! of the part has unplaced fills that device ([`Picker::joins`]; its row says so) instead of making a new one. The
+//! filter matches case-folded substrings of the key, the part number, the manufacturer, the FnDef keys, a symbol's name and keywords
 //! and a part's description and category, every typed token somewhere in the row, across the categories. Up, Down,
 //! Home and End move the row; Enter chooses; Escape or a click beside the browser closes it.
 //!
@@ -31,7 +32,7 @@
 
 use crate::key;
 use crate::strings::Key;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_api::output::{CatalogueSymbol, PlaceCatalogue, PlacedBy, SymbolShape};
@@ -193,6 +194,9 @@ pub struct Picker {
     pub open: BTreeSet<usize>,
     /// The shape of what the current row places, for the browser's picture; the host sets it after each change.
     pub preview: Option<Arc<SymbolShape>>,
+    /// The tag of the device each function of a part fills, by (part, function) indices into the catalogue: a device
+    /// of the part that has the function unplaced (the host's `template_slots`, set when the browser opens).
+    pub joins: BTreeMap<(usize, usize), String>,
 }
 
 impl Picker {
@@ -211,6 +215,7 @@ impl Picker {
             nodes: Vec::new(),
             open: BTreeSet::new(),
             preview: None,
+            joins: BTreeMap::new(),
         };
         p.refilter();
         p
@@ -598,14 +603,18 @@ impl Picker {
             PickerRow::PartFn(p, k) => {
                 let part = &self.catalogue.parts[p];
                 let f = &part.functions[k];
-                format!(
+                let mut line = format!(
                     "row part \"{}\" function {} of {} \"{}\"{}",
                     part.part_number,
                     k + 1,
                     part.functions.len(),
                     f.fndef_key,
                     if f.main { " main" } else { "" }
-                )
+                );
+                if let Some(tag) = self.joins.get(&(p, k)) {
+                    line.push_str(&format!(" joins \"{tag}\""));
+                }
+                line
             }
             // A part with a function template reads as the function choosing it places, then `open` or `closed`
             // when it opens to its functions.

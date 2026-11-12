@@ -737,13 +737,16 @@ fn page_describable(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
-/// The Place tool is active and its symbol can be an auxiliary function (J offers the Join chooser).
+/// The Place tool is active and its symbol can be an auxiliary function, or the Select tool holds one placed symbol of
+/// a device (J offers the Join chooser).
 fn place_joinable(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;
-    if m.place_joinable() {
+    if m.place_joinable() || m.join_rep().is_some() {
         Ok(())
-    } else {
+    } else if m.tool().name() == "place" {
         Err(key!("reason-join-not-auxiliary"))
+    } else {
+        Err(key!("reason-join-select"))
     }
 }
 

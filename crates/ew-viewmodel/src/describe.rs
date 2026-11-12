@@ -2627,7 +2627,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
             let (a, b) = (end_text(&c.a), end_text(&c.b));
             // The vertices where the drawn polyline turns (a stored route is drawn as stored, so a vertex
             // it runs straight through is no bend).
-            let bends = c
+            let corners: Vec<(i64, i64)> = c
                 .polyline
                 .windows(3)
                 .filter(|w| {
@@ -2638,7 +2638,23 @@ pub fn page_describe(page: &CanvasPage) -> String {
                     i128::from(u.0) * i128::from(v.1) != i128::from(u.1) * i128::from(v.0)
                         || i128::from(u.0) * i128::from(v.0) + i128::from(u.1) * i128::from(v.1) < 0
                 })
-                .count();
+                .map(|w| w[1])
+                .collect();
+            let bends = corners.len();
+            // Where the wire runs: its corners in order from its first end, as `x,y` in sheet mm (FT-1660: the bend
+            // count alone did not say whether a route ran round a symbol or along another wire).
+            let via = if corners.is_empty() {
+                String::new()
+            } else {
+                let points: Vec<String> = corners
+                    .iter()
+                    .map(|p| {
+                        let s = page.snapper.page_to_sheet(*p);
+                        format!("{},{}", mm3(s.0), mm3(s.1))
+                    })
+                    .collect();
+                format!(" via {} mm", points.join(" "))
+            };
             let route = if c.stored_route { "stored" } else { "unrouted" };
             // A point that picks this wire and nothing else (item 4), where there is one.
             let point =
@@ -2648,7 +2664,7 @@ pub fn page_describe(page: &CanvasPage) -> String {
                 b.clone(),
                 c.stored_route,
                 bends,
-                format!("  wire {a} -> {b} route {route} bends {bends}{point}"),
+                format!("  wire {a} -> {b} route {route} bends {bends}{via}{point}"),
             )
         })
         .collect();

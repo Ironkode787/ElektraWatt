@@ -982,6 +982,7 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         menu,
     } = *tree;
     let is_cursor = cursor == Some(row.key.as_str());
+    let mut fix_clicked = false;
     let (glyph_clicked, response) = ui
         .horizontal(|ui| {
             // The row's `space.4` padding (doc 16a §6.6), then 20 px of indent per level.
@@ -1076,7 +1077,16 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                     if kind != NavKind::Messages {
                         crate::components::caption_chip(ui, b);
                     } else if let Some(status) = crate::messages::finding_badge(code) {
-                        crate::components::status_badge(ui, status);
+                        let badge = crate::components::status_badge(ui, status);
+                        // The Fix badge opens the finding's quick fix, as the detail's Fix… does (FT-1658: a click
+                        // on it did nothing, and the error stayed).
+                        if status == crate::components::Badge::Fix {
+                            let button = ui.interact(badge.rect, badge.id.with("fix"), Sense::click());
+                            button.widget_info(|| {
+                                egui::WidgetInfo::labeled(egui::Role::Button, true, status.word())
+                            });
+                            fix_clicked |= button.on_hover_cursor(egui::CursorIcon::PointingHand).clicked();
+                        }
                     }
                 }
                 ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
@@ -1139,6 +1149,14 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
             ("navigator.toggle", json!({"kind": word, "key": row.key}))
         };
         events.push(Event::Action(action.0, action.1));
+        return;
+    }
+    if fix_clicked {
+        events.push(Event::Action(
+            "navigator.row",
+            json!({"kind": word, "key": row.key}),
+        ));
+        events.push(Event::Action("messages.fix", json!({"key": row.key})));
         return;
     }
     if !menu.is_empty() {

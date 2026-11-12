@@ -22,6 +22,13 @@ pub enum ChooserValue {
         /// The unplaced function the row fills (a slot), `None` for a new auxiliary function.
         function: Option<String>,
     },
+    /// An existing device that a placed representation joins (`rep.join_device`; J with one symbol selected).
+    JoinRep {
+        /// The representation's ID text.
+        rep: String,
+        /// The device's ID text.
+        device: String,
+    },
 }
 
 /// One row of a chooser list.

@@ -6,6 +6,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use ew_derive::{DeviceTag, Q};
 use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_schema::{Device, Page, TagScheme};
@@ -75,9 +76,9 @@ impl Default for RenumberOptions {
 /// after the drawn devices. Counters held by devices of the group outside the scope
 /// are reserved. Then, in order:
 ///
-/// - `only_nonconforming`: a device keeps its counter unless it has none or shares it with an earlier
-///   device of the group (or a reserved one); those get the lowest free counter, one that no device of
-///   the group keeps and no earlier device was given;
+/// - `only_nonconforming`: a device keeps its counter unless it has none, shares it with an earlier
+///   device of the group (or a reserved one) or prints the tag a device keeping a frozen tag prints; those get the
+///   lowest free counter, one that no device of the group keeps and no earlier device was given;
 /// - else with `close_gaps` (the default): each device gets the lowest counter that is neither reserved
 ///   nor given to an earlier device, so the group reads 1, 2, 3 … in position order;
 /// - else: as `only_nonconforming` (a device keeps a counter that is not reserved and not taken by an
@@ -145,6 +146,17 @@ impl Command for RenumberDevices {
             }
             DeviceScope::Project => tx.iter::<Device>().into_iter().map(|d| d.id).collect(),
         };
+        // The full tags that devices keeping a frozen tag print: a device in scope that prints one of them gives its
+        // counter up and takes a free one (FT-1658: "Renumber the newer" of a duplicate whose keeper is frozen
+        // changed nothing, the frozen tag being no counter).
+        let q = Q::new(tx.base_model());
+        let full = |d: Id<Device>| q.get::<DeviceTag>(d).as_ref().as_ref().map(|t| t.full.clone());
+        let frozen: BTreeSet<String> = tx
+            .iter::<Device>()
+            .into_iter()
+            .filter(|d| d.tag.frozen.is_some() && !(self.include_frozen && in_scope.contains(&d.id)))
+            .filter_map(|d| full(d.id))
+            .collect();
         // Numbered devices by (scope, letter), with the position of the main representation: a placed device in its
         // page's scope, a cable on no page in the project's. A cable placed through its first core
         // has no representation; it follows the drawn devices of its page, and the project's cables follow one
@@ -171,14 +183,23 @@ impl Command for RenumberDevices {
         let mut assignments: Vec<(Id<Device>, u32)> = Vec::new();
         for ((scope, letter), mut members) in groups {
             members.sort();
-            let reserved: BTreeSet<u32> = numbering::devices_in_scope(tx, &letter, scope)
+            let mut reserved: BTreeSet<u32> = numbering::devices_in_scope(tx, &letter, scope)
                 .into_iter()
                 .filter(|(d, _)| !in_scope.contains(d))
                 .filter_map(|(_, c)| c)
                 .collect();
             let counters: Vec<(Id<Device>, Option<u32>)> = members
                 .iter()
-                .map(|(_, _, d)| (*d, tx.get::<Device>(*d).and_then(|dev| dev.tag.counter)))
+                .map(|(_, _, d)| {
+                    let counter = tx.get::<Device>(*d).and_then(|dev| dev.tag.counter);
+                    let clash = !frozen.is_empty() && full(*d).is_some_and(|t| frozen.contains(&t));
+                    if !clash {
+                        return (*d, counter);
+                    }
+                    // The counter that prints the frozen tag is the frozen device's.
+                    reserved.extend(counter);
+                    (*d, None)
+                })
                 .collect();
             assignments.extend(assign_counters(&counters, &reserved, &self.options));
         }

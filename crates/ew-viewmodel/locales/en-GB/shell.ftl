@@ -277,6 +277,8 @@ reason-no-picker = The picker is not open
 # WP-S2.18 part 1.
 reason-no-chooser = No chooser is open
 reason-join-not-auxiliary = Only a contact joins an existing device as an auxiliary function; this symbol is not one
+reason-join-select = Select one placed symbol to join it to another device, or press J while placing a contact
+reason-join-no-device = No other device can take this symbol's function: a contact joins a relay or a contactor, any function a device whose part lists it unplaced
 chooser-join-question = Join device
 chooser-new-device = New device
 chooser-kind-slot = slot { $p0 }

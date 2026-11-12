@@ -1301,7 +1301,9 @@ and "pending n" in `color.text.tertiary`; the polite live value stays the as-bui
 rule ID and title in `type.body.strong`; the kind and severity in `type.small` `color.text.secondary`; the message in
 `type.body`; "Quick fix: <label>" in `type.small` with **Fix…** as a Secondary button (disabled on a read-only project,
 with the reason as tooltip, §6.1); **Rule page** as a link in `color.accent`. The quick-fix card is §6.23's inline
-card. The footer sentence ("Checks support, but do not replace, engineering verification.") is `type.caption`
+card. A finding row's Fix status badge is a button too: a click opens the same card for that row (FT-1658: it was a
+label, and a click on it did nothing). A Properties finding chip opens Messages filtered to the record at its first
+row; with several records selected it opens Messages without a filter (FT-1659). The footer sentence ("Checks support, but do not replace, engineering verification.") is `type.caption`
 `color.text.tertiary`.
 
 **History rows** (the History panel, WP-S2.09 part 3; newest first, as built): `size.row` list rows: a 16-px state

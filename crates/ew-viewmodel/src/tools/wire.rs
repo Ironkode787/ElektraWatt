@@ -6,7 +6,7 @@
 //! `connection.draw` with the route the ghost showed.
 //!
 //! **Targets** in priority order within 8 screen points of the pointer or the grid cursor: a connection point of the
-//! page tables, a junction, a point on a connection segment (the grid point of the segment nearest to the pointer
+//! page tables (anywhere on an interruption point's arrow, its one CP), a junction, a point on a connection segment (the grid point of the segment nearest to the pointer
 //! that is not its connection's end, so a press beside a rail's end joins the rail at the next grid point along it
 //! rather than fixing a bend; a coordinate of the segment that is off the grid is the segment's own, the CP-exact coordinate
 //! `require_split_point` accepts), else the grid point. Alt suppresses the object snaps. Ties by the smaller
@@ -260,6 +260,24 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
         if d <= limit && best.is_none_or(|(bd, _)| d < bd) {
             best = Some((d, cp));
         }
+    }
+    // An interruption point's arrow stands for its one connection point, which sits a grid step behind the tip
+    // (FT-1660: a click on the arrow of an outgoing point snapped to the grid beside it, and no wire reached it).
+    if best.is_none() {
+        let inside = |r: &&ew_api::output::TableRep| {
+            let (a, b) = (
+                cx.snapper.page_to_sheet((r.body[0], r.body[1])),
+                cx.snapper.page_to_sheet((r.body[2], r.body[3])),
+            );
+            (a.0.min(b.0)..=a.0.max(b.0)).contains(&at.0) && (a.1.min(b.1)..=a.1.max(b.1)).contains(&at.1)
+        };
+        best = tables
+            .reps
+            .iter()
+            .filter(|r| r.ip.is_some())
+            .find(inside)
+            .and_then(|r| tables.cps.iter().find(|cp| cp.rep == r.id))
+            .map(|cp| (0, cp));
     }
     if let Some((_, cp)) = best {
         return WireTarget::Cp {
@@ -1276,11 +1294,12 @@ impl Tool for WireTool {
         }
     }
 
-    /// While the target is a junction that already joins three wires, the hint says it is no end; once a
-    /// click placed a bend, that a bend is placed; while no clear route is found, and after a wire drawn
-    /// so until the next one starts, that the wire stays unrouted (not a refusal).
+    /// While a wire is drawn to a junction that already joins three wires, the hint says it is no end (not before the
+    /// wire starts: a wire just ended on a wire left the pointer on the junction it made, and the hint read as a
+    /// refusal of that wire, FT-1660); once a click placed a bend, that a bend is placed; while no clear route is
+    /// found, and after a wire drawn so until the next one starts, that the wire stays unrouted (not a refusal).
     fn status_hint(&self) -> super::Hint {
-        if self.full_junction {
+        if self.full_junction && matches!(self.state, State::Routing { .. }) {
             return super::Hint::plain(key!("hint-wire-full-junction"));
         }
         // Once a click placed a bend instead of ending on a connection point, the hint says so and what

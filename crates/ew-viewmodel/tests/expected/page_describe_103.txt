@@ -117,26 +117,26 @@ page "103" "Power Supply 3 - Control Current Distribution" reps 23 connections 2
     cp "PE-1.3" at 122.000 150.705 mm wires 1 potential "PE"
   rep ip "PE-1.4" direction target continues "106-A1" cell "103-G6" symbol "ew.gen.ip-target@qet10" variant "A" at 108.952 155.924 mm
     cp "PE-1.4" at 108.952 155.924 mm wires 1 potential "PE"
-  wire "-X1031:1/b" -> "24VDC-AIR1" route stored bends 3 at 101.124 32.787 mm
-  wire "-X1031:11/b" -> "0VDC-AIR1" route stored bends 3 at 226.382 32.787 mm
-  wire "-X1031:12/b" -> "0VDC-AIR2" route stored bends 1 at 225.892 54.152 mm
-  wire "-X1031:13/b" -> "0VDC-AIR3" route stored bends 1 at 210.725 46.324 mm
-  wire "-X1031:14/b" -> "0VDC-AIR4" route stored bends 3 at 206.810 51.543 mm
-  wire "-X1031:2/b" -> "24VDC-AIR2" route stored bends 1 at 99.982 54.152 mm
-  wire "-X1031:3/b" -> "24VDC-AIR3" route stored bends 1 at 93.295 46.324 mm
-  wire "-X1031:4/b" -> "24VDC-AIR4" route stored bends 3 at 89.381 51.543 mm
-  wire "-X1032:1/a" -> "PE-AIR2" route stored bends 3 at 59.371 152.010 mm
-  wire "-X1032:3/a" -> "PE-AIR1" route stored bends 3 at 76.170 127.219 mm
-  wire "-X1032:3/b" -> "PE-1.3" route stored bends 3 at 103.733 161.143 mm
-  wire "-X1032:4/b" -> "PE-1.4" route stored bends 3 at 102.510 150.705 mm
-  wire "0VDC" -> "-X1031:11/a" route stored bends 1 at 110.257 20.228 mm
-  wire "24VDC-1" -> "-X1031:1/a" route stored bends 1 at 51.216 30.666 mm
-  wire "24VDC-2" -> "-X1031:5/a" route stored bends 3 at 54.152 24.224 mm
-  wire "24VDC-3" -> "-X1031:7/a" route stored bends 3 at 48.770 88.076 mm
-  wire "24VDC-4" -> "-X1031:9/a" route stored bends 3 at 59.371 89.707 mm
-  wire "PE-0VDC" -> "-X1032:2/a" route stored bends 3 at 53.908 150.705 mm
-  wire "PE-1.1" -> "-X1032:1/b" route stored bends 5 at 114.172 135.048 mm
-  wire "PE-1.2" -> "-X1032:2/b" route stored bends 5 at 106.343 140.267 mm
+  wire "-X1031:1/b" -> "24VDC-AIR1" route stored bends 3 via 72.419,48.933 101.124,48.933 101.124,25.447 mm at 101.124 32.787 mm
+  wire "-X1031:11/b" -> "0VDC-AIR1" route stored bends 3 via 182.020,48.933 226.382,48.933 226.382,25.447 mm at 226.382 32.787 mm
+  wire "-X1031:12/b" -> "0VDC-AIR2" route stored bends 1 via 184.629,54.152 mm at 225.892 54.152 mm
+  wire "-X1031:13/b" -> "0VDC-AIR3" route stored bends 1 via 187.239,46.324 mm at 210.725 46.324 mm
+  wire "-X1031:14/b" -> "0VDC-AIR4" route stored bends 3 via 189.848,51.543 223.772,51.543 223.772,35.885 mm at 206.810 51.543 mm
+  wire "-X1031:2/b" -> "24VDC-AIR2" route stored bends 1 via 75.028,54.152 mm at 99.982 54.152 mm
+  wire "-X1031:3/b" -> "24VDC-AIR3" route stored bends 1 via 77.638,46.324 mm at 93.295 46.324 mm
+  wire "-X1031:4/b" -> "24VDC-AIR4" route stored bends 3 via 80.248,51.543 98.514,51.543 98.514,35.885 mm at 89.381 51.543 mm
+  wire "-X1032:1/a" -> "PE-AIR2" route stored bends 3 via 72.419,132.438 59.371,132.438 59.371,158.534 mm at 59.371 152.010 mm
+  wire "-X1032:3/a" -> "PE-AIR1" route stored bends 3 via 77.638,127.219 54.152,127.219 54.152,140.267 mm at 76.170 127.219 mm
+  wire "-X1032:3/b" -> "PE-1.3" route stored bends 3 via 77.638,161.143 129.829,161.143 129.829,150.705 mm at 103.733 161.143 mm
+  wire "-X1032:4/b" -> "PE-1.4" route stored bends 3 via 80.248,150.705 114.172,150.705 114.172,155.924 mm at 102.510 150.705 mm
+  wire "0VDC" -> "-X1031:11/a" route stored bends 1 via 182.020,20.228 mm at 110.257 20.228 mm
+  wire "24VDC-1" -> "-X1031:1/a" route stored bends 1 via 72.419,30.666 mm at 51.216 30.666 mm
+  wire "24VDC-2" -> "-X1031:5/a" route stored bends 3 via 54.152,67.200 54.152,22.838 82.857,22.838 mm at 54.152 24.224 mm
+  wire "24VDC-3" -> "-X1031:7/a" route stored bends 3 via 56.762,88.076 56.762,25.447 88.076,25.447 mm at 48.770 88.076 mm
+  wire "24VDC-4" -> "-X1031:9/a" route stored bends 3 via 59.371,122.000 59.371,28.057 93.295,28.057 mm at 59.371 89.707 mm
+  wire "PE-0VDC" -> "-X1032:2/a" route stored bends 3 via 56.762,150.705 56.762,129.829 75.028,129.829 mm at 53.908 150.705 mm
+  wire "PE-1.1" -> "-X1032:1/b" route stored bends 5 via 127.219,140.267 127.219,135.048 101.124,135.048 101.124,148.096 72.419,148.096 mm at 114.172 135.048 mm
+  wire "PE-1.2" -> "-X1032:2/b" route stored bends 5 via 114.172,145.486 114.172,140.267 98.514,140.267 98.514,153.315 75.028,153.315 mm at 106.343 140.267 mm
   bridge "BR1" "-X1031:1" "-X1031:2" "-X1031:3" "-X1031:4"
   bridge "BR2" "-X1031:5" "-X1031:6"
   bridge "BR3" "-X1031:7" "-X1031:8"

@@ -79,6 +79,15 @@ impl ShellModel {
         self.tools.tool.as_ref()
     }
 
+    /// Whether the window sends a double click's second press as `tool.finish` (`Tool::finishes_on_double_click`).
+    /// The Select tool finishes only with a free text selected, which the double click opens: on a symbol the second
+    /// press stays a press, so a drag started right after the click that selected it moves it (FT-1659: a drag from
+    /// the lamp's centre just after selecting it there did nothing).
+    pub fn finishes_on_double_click(&self) -> bool {
+        self.tools.tool.finishes_on_double_click()
+            && (self.tools.tool.name() != "select" || self.text_edit_target().is_ok())
+    }
+
     /// The active-tool replacement generation; ordinary events and field edits leave it unchanged.
     pub fn tool_epoch(&self) -> u64 {
         self.tool_epoch
