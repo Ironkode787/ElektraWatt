@@ -2339,6 +2339,51 @@ fn sourceless(q: &Q, p: PotentialId) -> bool {
     loads > 0
 }
 
+/// The loads on `p`, as pairs of the CP on `p` and the potential of the other CP, where that one differs from `p`.
+fn load_sides(q: &Q, p: PotentialId) -> Vec<(Id<Function>, u16, PotentialId)> {
+    let part = potential_part(q, p);
+    let Some(potential) = part.get(p) else {
+        return Vec::new();
+    };
+    let functions: BTreeSet<Id<Function>> = potential.cps.iter().map(|c| c.function).collect();
+    let mut out = Vec::new();
+    for f in functions {
+        let Some(cps) = two_terminal(q, f) else {
+            continue;
+        };
+        for (here, there) in [(cps[0], cps[1]), (cps[1], cps[0])] {
+            if !potential.cps.contains(&CpRef::new(f, here)) {
+                continue;
+            }
+            if let Some(other) = potential_id_at(q, EndpointKey::Cp(f, there))
+                && other != p
+            {
+                out.push((f, here, other));
+            }
+        }
+    }
+    out
+}
+
+/// Whether the sourceless `p` lies in a series chain of loads between two potentials that have a source (FT-681: two
+/// coils in series between + and −): the loads on `p`, and on the sourceless potentials they lead to, reach at least
+/// two distinct potentials with a source on their other sides.
+fn returned_in_series(q: &Q, p: PotentialId) -> bool {
+    let mut seen = BTreeSet::from([p]);
+    let mut queue = vec![p];
+    let mut sources = BTreeSet::new();
+    while let Some(at) = queue.pop() {
+        for (_, _, other) in load_sides(q, at) {
+            if !sourceless(q, other) {
+                sources.insert(other);
+            } else if seen.insert(other) {
+                queue.push(other);
+            }
+        }
+    }
+    sources.len() >= 2
+}
+
 /// EW-POT-021: a load fed on one side whose other side reaches no source, an unreturned coil (doc 08 §3.6).
 /// `scope` is a potential with no source (`sourceless`: unreached by the flow, no CP with a potential role, only
 /// two-terminal loads besides terminals and interruption points), for example the A2 net of two valve coils that was
@@ -2347,7 +2392,8 @@ fn sourceless(q: &Q, p: PotentialId) -> bool {
 /// sides both have no source is left out (not fed at all); an unconnected CP has no potential (EW-POT-009). A return
 /// inside a module counts as returned: the module's declared link puts the CP in the module's potential, which holds
 /// a module CP and so is not judged. The flow alone cannot decide this: a supply whose CP data declares no source
-/// output (the starter PSU, Golden A's -102G1) leaves its whole DC side unreached.
+/// output (the starter PSU, Golden A's -102G1) leaves its whole DC side unreached. A potential between loads in series
+/// is returned through them when they lead to two distinct potentials with a source ([`returned_in_series`]).
 #[derive(Clone, Copy, Debug)]
 pub struct LoadNotReturned;
 
@@ -2360,48 +2406,32 @@ impl Rule for LoadNotReturned {
         let Scope::Potential(p) = *scope else {
             return Vec::new();
         };
-        if !sourceless(q, p) {
+        if !sourceless(q, p) || returned_in_series(q, p) {
             return Vec::new();
         }
-        let part = potential_part(q, p);
-        let Some(potential) = part.get(p) else {
-            return Vec::new();
-        };
         let name = potential_name(q, p);
         let mut out = Vec::new();
-        let functions: BTreeSet<Id<Function>> = potential.cps.iter().map(|c| c.function).collect();
-        for f in functions {
-            let Some(cps) = two_terminal(q, f) else {
+        for (f, here, other) in load_sides(q, p) {
+            if sourceless(q, other) {
                 continue;
-            };
-            for (here, there) in [(cps[0], cps[1]), (cps[1], cps[0])] {
-                if !potential.cps.contains(&CpRef::new(f, here)) {
-                    continue;
-                }
-                let Some(other) = potential_id_at(q, EndpointKey::Cp(f, there)) else {
-                    continue;
-                };
-                if other == p || sourceless(q, other) {
-                    continue;
-                }
-                let label = cp_label(q, CpRef::new(f, here));
-                let pin = PinWords::of(q, CpRef::new(f, here), &label);
-                out.push(
-                    pin.args(Finding::new(
-                        &LOAD_NOT_RETURNED,
-                        [Target::new(Kind::Function, f)],
-                        here.to_string(),
-                        label.clone(),
-                        format!(
-                            "{} is on {name}, which reaches no supply: the load is fed but not returned; \
-                             connect it to the return conductor (0 V, N)",
-                            pin.sentence
-                        ),
-                    ))
-                    .arg("cp", label)
-                    .arg("potential", name.clone()),
-                );
             }
+            let label = cp_label(q, CpRef::new(f, here));
+            let pin = PinWords::of(q, CpRef::new(f, here), &label);
+            out.push(
+                pin.args(Finding::new(
+                    &LOAD_NOT_RETURNED,
+                    [Target::new(Kind::Function, f)],
+                    here.to_string(),
+                    label.clone(),
+                    format!(
+                        "{} is on {name}, which reaches no supply: the load is fed but not returned; \
+                         connect it to the return conductor (0 V, N)",
+                        pin.sentence
+                    ),
+                ))
+                .arg("cp", label)
+                .arg("potential", name.clone()),
+            );
         }
         out
     }

@@ -597,16 +597,7 @@ const SYM_DC: u128 = 0x519;
 /// `returned` links the A2 net to the supply's −; `fed` = false leaves out the supply (the A1 net has no source).
 fn coils(returned: bool, fed: bool) -> Model {
     let mut fx = Fx::base();
-    fx.fndef_with(
-        FNDEF_DC,
-        SYM_DC,
-        &[
-            (0, "+", json!({"potential_role": "l_plus"})),
-            (1, "-", json!({"potential_role": "m"})),
-        ],
-        &json!([]),
-        &none(),
-    );
+    dc_supply(&mut fx);
     fx.func(0x1002, P1);
     fx.func(0x1003, P1);
     fx.conn(0x2002, P1, cp(0x1002), cp(0x1003), &none());
@@ -618,6 +609,33 @@ fn coils(returned: bool, fed: bool) -> Model {
     if returned {
         fx.conn(0x2004, P1, Ep::Cp(0x1003, 1), Ep::Cp(0x1001, 1), &none());
     }
+    fx.build()
+}
+
+/// The function definition of the DC supply of [`coils`] and [`series`].
+fn dc_supply(fx: &mut Fx) {
+    fx.fndef_with(
+        FNDEF_DC,
+        SYM_DC,
+        &[
+            (0, "+", json!({"potential_role": "l_plus"})),
+            (1, "-", json!({"potential_role": "m"})),
+        ],
+        &json!([]),
+        &none(),
+    );
+}
+
+/// Two coils in series across the supply 0x1001: + to -K4098's A1, its A2 to -K4099's A1, that coil's A2 to −.
+fn series() -> Model {
+    let mut fx = Fx::base();
+    dc_supply(&mut fx);
+    fx.func_of(0x1001, FNDEF_DC, SYM_DC, P1);
+    fx.func(0x1002, P1);
+    fx.func(0x1003, P1);
+    fx.conn(0x2001, P1, cp(0x1001), cp(0x1002), &none());
+    fx.conn(0x2002, P1, Ep::Cp(0x1002, 1), cp(0x1003), &none());
+    fx.conn(0x2003, P1, Ep::Cp(0x1003, 1), Ep::Cp(0x1001, 1), &none());
     fx.build()
 }
 
@@ -650,6 +668,10 @@ fn pot021_cases() {
             ),
             Case::silent("the A2 net linked to the supply's −", coils(true, true)),
             Case::silent("no supply at all: unfed, not unreturned", coils(false, false)),
+            Case::silent(
+                "two loads in series between + and −: the middle net is returned through the second (FT-681)",
+                series(),
+            ),
             Case::silent(
                 "a two-pin black-box supply is neither a load nor a source (FT-1398)",
                 black_box_circuit(),

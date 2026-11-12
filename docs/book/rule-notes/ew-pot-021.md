@@ -5,7 +5,8 @@ source: no supply reaches it, its type is not PE or FE, no connection point on i
 on it besides terminals and interruption points is such a load. Each load is reported once. A load with no source on
 either side is left out, and an unconnected pin is EW-POT-009's. A black box (an imported element whose function the
 importer could not read, such as a two-pin supply from QElectroTech) is neither a load nor a source: a potential that
-holds one is not judged.
+holds one is not judged. Loads in series are returned through each other: the net between two coils in series from
++ to − is not reported, since its loads lead to two different potentials with a source.
 
 ## Why
 
