@@ -24,7 +24,8 @@ the statement that no employer is involved. No new item is asked for 0.2.0.
 | Candidate | Cut from | Checklist | State |
 |---|---|---|---|
 | `v0.2.0-rc.1` | `release/0.2`, the commit the tag names | [`checklist-rc.1.md`](checklist-rc.1.md) | Not promoted: the owner's hands-on test gave 28 findings, four of them major |
-| `v0.2.0-rc.2` | `release/0.2`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | Cut; waits for the owner's hands-on test |
+| `v0.2.0-rc.2` | `release/0.2`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | No downloads: its release build failed at the Windows setup (the icon's path in the setup's script) |
+| `v0.2.0-rc.3` | `release/0.2`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut; waits for the owner's hands-on test |
 
 Before the first cut, on the tip that the release branch starts from: the whole workspace passed
 (`cargo xtask check`), the deep run passed, and a persona round of four picture-led runs was triaged (the log's
@@ -34,7 +35,7 @@ again and both runs were repeated there.
 The second candidate holds the fixes for the owner's 28 findings (the log's entries "The second candidate"). Before
 its cut two picture-led runs walked the fixed flows; what they found that would have stopped the owner again was
 fixed, the rest is a row of the later backlog. The whole workspace and the deep run passed on the release branch's
-tip.
+tip. The third candidate is the second with the setup's script put right.
 
 ## 3. Known when the candidate was cut
 
@@ -43,7 +44,7 @@ round before 0.2.0", and the release notes' section 7. The two rows the round ma
 points (the tool for a newcomer, the texts of points placed close together), were fixed before the cut on the
 owner's word; what is left of them is a row of the later backlog.
 
-For the second candidate: the same section of the backlog, the release notes' section 7 (it gained what the fixes
+For the second and the third candidate: the same section of the backlog, the release notes' section 7 (it gained what the fixes
 left: a terminal row's undo steps, the cable warning on a supply's entry, the offered potential's need of a known
 supply, the built-in template's pages without a frame), and three things that only a real desktop shows (the
 checklist's RC-05). The owner's test says whether an open row holds the release.
