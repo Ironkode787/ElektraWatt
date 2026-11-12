@@ -19,7 +19,11 @@ Shift+F10 or the menu key opens the same menu for the selection.
 - On a relay's coil: Add contact, one entry per free contact of the relay by name; it floats the contact's symbol for
   a click. On a contact: Go to coil.
 - On a symbol of a device: Join device…, Choose part…, Edit symbol and Copy and edit.
-- On an interruption point: Go to partner, Direction: Source or Target, and Continue on page….
+- On an interruption point: Supply comes in here…, Go to partner, Direction: Source or Target, and Continue on page….
+  Supply comes in here… says that the supply enters here from another drawing set (L1, L2, L3, N, PE from another
+  drawing): its form proposes where the supply comes from and the device there, and one Apply marks every selected
+  point; the points then print where they come from and are no longer reported as unpaired. On a marked point the
+  entry reads Remove the supply mark. The same link stands under the point's name in Properties.
 - On the title block: Title block fields…. On an empty spot: Paste, Page properties, New page… and Print wire numbers.
 
 An entry that cannot be used now is greyed out, and its tooltip says why.

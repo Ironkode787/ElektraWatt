@@ -1575,6 +1575,9 @@ pub struct TableIp {
     /// Where it continues: its printed cross-reference to its partners, as the canvas prints it; empty for
     /// a point without a partner.
     pub continuation: String,
+    /// Whether it is an external point: it names an external reference (a supply coming in from another drawing
+    /// set, FT-1699).
+    pub external: bool,
 }
 
 /// A black box's geometry, absolute on the page.
@@ -1908,6 +1911,7 @@ impl Session {
                     name: ip.name.as_str().to_owned(),
                     direction: ip_direction_word(&ip.direction),
                     continuation: q.get::<ew_derive::XrefTextOf>(rid).text.clone(),
+                    external: ip.external.is_some(),
                 }),
                 _ => None,
             });

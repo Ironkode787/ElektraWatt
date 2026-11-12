@@ -694,8 +694,14 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     ("device", "position", "assembly.attach", None),
     ("project", "supply.origin.source", "project.supply.set", None),
     ("representation", "anchor", "rep.set_anchor_policy", None),
-    // An external connection point's target is chosen when it is placed (the IP tool's external field).
-    ("function", "kind.ip.external", "ip.place", Some("the canvas")),
+    // An external connection point's target is chosen when it is placed (the IP tool's external field); a placed
+    // point is marked as where the supply comes in by `ip.supply_in` (FT-1699).
+    (
+        "function",
+        "kind.ip.external",
+        "ip.supply_in",
+        Some("Supply comes in here… on the point"),
+    ),
 ];
 
 /// The confirmed step of a `HumanOnly` command that the table does not name.

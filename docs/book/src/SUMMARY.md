@@ -61,6 +61,7 @@
     - [`ip.arrange`](reference/commands/ip.arrange.md)
     - [`ip.continue`](reference/commands/ip.continue.md)
     - [`ip.place`](reference/commands/ip.place.md)
+    - [`ip.supply_in`](reference/commands/ip.supply_in.md)
     - [`item.place`](reference/commands/item.place.md)
     - [`junction.edit`](reference/commands/junction.edit.md)
     - [`layout.auto_fill`](reference/commands/layout.auto_fill.md)

@@ -8,9 +8,9 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_rds::Aspect;
 use ew_schema::{
-    ContinuationPolicy, EmbedSpec, EmptyPolicy, ExternalRef, Extra, FormDef, GroupSpec, Kind, LibCopy,
-    LibDocument, ManualSelection, Open, Page, ReportBlock, ReportSource, Section, Set, SortKey,
-    StructureNode,
+    ContinuationPolicy, EmbedSpec, EmptyPolicy, ExternalRef, Extra, FormDef, Function, FunctionKind,
+    GroupSpec, Kind, LibCopy, LibDocument, ManualSelection, Open, Page, ReportBlock, ReportSource, Section,
+    Set, SortKey, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -401,5 +401,163 @@ impl Command for CreateExternalRef {
             extra: Extra::new(),
         })?;
         Ok(Outcome::primary((Kind::ExternalRef, id.cast())))
+    }
+}
+
+/// `ip.supply_in` (`MarkSupplyIn`, FT-1699): the interruption points `points` are where the supply comes into the
+/// drawing set from another one (L1, L2, L3, N, PE from another drawing): each becomes an external point of one
+/// external reference, the device `device` at the location node coded `location`, in one transaction.
+///
+/// The location node is the first location node of that code, else a new top-level one; the reference is the first of
+/// that location and device without a connection or another project, else a new one. The project's supply takes it as
+/// its origin (`supply.origin.source`) when the project has a supply without one. With `remove`, the points lose
+/// their external reference instead (the node and the reference stay). Nothing is stored that the format did not
+/// hold: an external point is `ip.external` naming an `ExternalRef` (doc 03 §6, FR-XRF-012). Rejected: a target that
+/// is no interruption point; a starred point (an external point takes no star); `location` or `device` missing
+/// without `remove`. Outcome: the reference (none with `remove`).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MarkSupplyIn {
+    /// The interruption points' functions.
+    #[schemars(with = "Vec<UuidS>")]
+    pub points: Vec<Id<Function>>,
+    /// The code of the location the supply comes from.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub location: Option<Ident>,
+    /// The device there that feeds the points.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub device: Option<Ident>,
+    /// Takes the mark off the points.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub remove: bool,
+}
+
+impl Command for MarkSupplyIn {
+    const NAME: &'static str = "ip.supply_in";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.points.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/points",
+                text!("refusal-supply-in-no-point"),
+            ));
+        }
+        for p in &self.points {
+            let f = tx.require::<Function>(*p)?;
+            let FunctionKind::Ip(ip) = &f.kind else {
+                return tx.reject(text!("refusal-supply-in-not-ip"));
+            };
+            if !self.remove
+                && let Some(problem) =
+                    crate::commands::connection::star_problem(&ip.direction, ip.star_source, true)
+            {
+                return tx.reject(text!(
+                    "refusal-fields-ip-star",
+                    crate::words::interruption_point(tx, *p),
+                    problem
+                ));
+            }
+        }
+        if self.remove {
+            for p in &self.points {
+                tx.update::<Function>(*p, |f| {
+                    if let FunctionKind::Ip(ip) = &mut f.kind {
+                        ip.external = None;
+                    }
+                })?;
+            }
+            return Ok(Outcome::default());
+        }
+        let (Some(code), Some(device)) = (&self.location, &self.device) else {
+            let path = if self.location.is_none() {
+                "/location"
+            } else {
+                "/device"
+            };
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                path,
+                text!("refusal-supply-in-missing"),
+            ));
+        };
+        let location = Open::Known(Aspect::Location);
+        let found = tx
+            .iter::<StructureNode>()
+            .iter()
+            .find(|n| n.aspect == location && n.code == *code)
+            .map(|n| n.id);
+        let node = match found {
+            Some(id) => id,
+            None => {
+                let id: Id<StructureNode> = tx.mint();
+                tx.insert(StructureNode {
+                    id,
+                    v: 1,
+                    aspect: location,
+                    code: code.clone(),
+                    aliases: Set::default(),
+                    parent: None,
+                    description: MlText::default(),
+                    order: 0,
+                    source_ref: None,
+                    extra: Extra::new(),
+                })?;
+                id
+            }
+        };
+        let found = tx
+            .iter::<ExternalRef>()
+            .iter()
+            .find(|x| {
+                x.location == node && x.device == *device && x.connection.is_none() && x.project.is_none()
+            })
+            .map(|x| x.id);
+        let external = match found {
+            Some(id) => id,
+            None => {
+                let id: Id<ExternalRef> = tx.mint();
+                tx.insert(ExternalRef {
+                    id,
+                    v: 1,
+                    project: None,
+                    location: node,
+                    device: device.clone(),
+                    connection: None,
+                    source_ref: None,
+                    extra: Extra::new(),
+                })?;
+                id
+            }
+        };
+        for p in &self.points {
+            tx.update::<Function>(*p, |f| {
+                if let FunctionKind::Ip(ip) = &mut f.kind {
+                    ip.external = Some(external);
+                }
+            })?;
+        }
+        let mut project = (*tx.project()).clone();
+        if let Some(supply) = project.supply.as_mut()
+            && supply.origin.as_ref().and_then(|o| o.source).is_none()
+        {
+            supply
+                .origin
+                .get_or_insert_with(|| ew_schema::SupplyOrigin {
+                    upstream_rating: None,
+                    ik_max: None,
+                    source: None,
+                    extra: Extra::new(),
+                })
+                .source = Some(external);
+            tx.set_project(project)?;
+        }
+        Ok(Outcome::primary((Kind::ExternalRef, external.cast())))
     }
 }

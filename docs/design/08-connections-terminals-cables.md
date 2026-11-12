@@ -1350,6 +1350,13 @@ derivation profiles keep wire numbers and properties byte-identical across EW re
    excluded from machine export (FR-CHK-017).
 6. **Wires to an external connection point** print the external target as their From end ("+J-E-206 /
    JE-N1000-03 (L)"). They are field wiring and are excluded from machine export by default.
+   *As built (FT-1699).* A placed point becomes one by Supply comes in here… (`ip.supply_in`): the supply that
+   enters a drawing set by interruption points (L1, L2, L3, N, PE from another drawing) is an external reference, no
+   flag of its own. One transaction makes the location node where the project lacks one of that code, the reference
+   (reused for the same location and device), sets every point's `ip.external`, and the supply's
+   `origin.source` where the project has a supply without one; `remove` clears the points' `ip.external`. The
+   points then pair with nothing (no EW-CORE-051); their wires are an external connection, which EW-CORE-034 asks
+   to be a cable's cores.
 7. **A core whose wire continues** through an IP as a `Wire` connection on another page is still a core. The `Wire`
    constituent inherits the conductor and must not override its colour (EW-POT-014).
 8. **A bridge between two defined potentials** merges them and raises EW-POT-001 if their types differ. It is never
