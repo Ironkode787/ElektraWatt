@@ -661,7 +661,10 @@ and one main function of the chosen symbol's function definition.
   on the tail and the CP one grid step left of the tip, leaving left; the target form (`ew.gen.ip-target` 0.1.0), the
   wire on the tip and the CP at the tip, leaving right; each with its `@qet10` twin. The name sits above the arrow and
   the cross-reference below it: right-aligned at the tip on a source, left-aligned at the tail on a target, so that it
-  runs into the sheet. A point drawn with these forms is never turned: its form is
+  runs into the sheet. Where the point's own wire runs through that place (it leaves the tail and turns down under
+  the arrow), the cross-reference takes the free side: in line with the arrow beyond its tip, else before its tail,
+  else above the name (`ew_scene::page`, "Slot text collisions" rule 5; the tool's footprint keeps the place below,
+  since the wire is not drawn when the point is placed). A point drawn with these forms is never turned: its form is
   its direction's (an undirected point takes either), D swaps the form with the direction (source and target, to
   and fro; undirected is a choice of a placed point's Direction in Properties, since D on a point the tool had
   already made a target used to give an undirected one), and the rotate and mirror

@@ -962,3 +962,97 @@ fn a_cross_reference_rises_at_most_three_times() {
     let (four, bare) = arrow_label(27, &rows, (Vec::new(), Vec::new()));
     assert_eq!(four, bare, "a fourth wire: it stays");
 }
+
+const IP_TARGET: &str = include_str!("../../../../content/symbols/qet10/ew.gen.ip-target@qet10.json");
+
+/// Whether the segment `a`–`b` (grid) meets the inside of `r`.
+fn crosses(r: Rect, a: (i64, i64), b: (i64, i64)) -> bool {
+    let (x0, x1) = (g(a.0.min(b.0)), g(a.0.max(b.0)));
+    let (y0, y1) = (g(a.1.min(b.1)), g(a.1.max(b.1)));
+    x0 < r.max().x.0 && r.min().x.0 < x1.max(x0 + 1) && y0 < r.max().y.0 && r.min().y.0 < y1.max(y0 + 1)
+}
+
+/// The cross-reference "102-A1" of a point of `symbol_text` at grid (40, 27) wired along `path` (grid, from the
+/// point's CP to a black box's CP at its end), and without the wire.
+fn point_label(symbol_text: &str, path: &[(i64, i64)]) -> (Rect, Rect) {
+    let s = symbol(symbol_text);
+    let point = RepView {
+        rep: rep(0x21, s.id, 40, 27, json!({})),
+        symbol: Some(s.def.clone()),
+        slots: vec![value(slot(&s, &SlotKind::Xref), "102-A1")],
+        terminals: Vec::new(),
+        pins: Vec::new(),
+    };
+    let (ex, ey) = path[path.len() - 1];
+    let (px, py) = path[path.len() - 2];
+    // The box's CP faces the wire's last stretch.
+    let dir = if py < ey {
+        "up"
+    } else if py > ey {
+        "down"
+    } else if px < ex {
+        "left"
+    } else {
+        "right"
+    };
+    let end = boxed(0x15, (ex - 1, ey - 1), (2, 2), &[(0, (1, 1), dir)], &[], None);
+    let bare = run(
+        &runs(&view(vec![point.clone(), end.clone()], Vec::new())),
+        0x21,
+        "102-A1",
+    )
+    .rect;
+    let wire = routed(0x45, (0x1021, 0), (0x1015, 0), &path[1..path.len() - 1]);
+    let shown = run(&runs(&view(vec![point, end], vec![wire])), 0x21, "102-A1").rect;
+    (shown, bare)
+}
+
+/// (FT-1699: "+Supply / -X0" of a supply's entry printed across its own wire.) A point's cross-reference that its own
+/// wire runs through takes the free side: a wire that leaves the tail and turns down under the arrow sends it beyond
+/// the tip, in line with the arrow; a target's wire that leaves the tip and turns down sends it before the tail. A
+/// wire that leaves upwards or sideways does not run through it, and it stays where its symbol puts it.
+#[test]
+fn a_points_cross_reference_stands_clear_of_its_own_wire() {
+    let (tip, tail) = (g(40), g(40) - 1_984_375);
+    // Down: from the tail, down, under the arrow, down.
+    let down = [(39, 27), (39, 28), (40, 28), (40, 34)];
+    let (shown, bare) = point_label(IP, &down);
+    assert!(
+        down.windows(2).any(|w| crosses(bare, w[0], w[1])),
+        "the case: the wire runs through {bare:?}"
+    );
+    assert!(
+        down.windows(2).all(|w| !crosses(shown, w[0], w[1])),
+        "clear of the wire: {shown:?}"
+    );
+    assert!(shown.min().x.0 > tip, "beyond the tip: {shown:?}");
+    assert!(
+        shown.min().y.0 < g(27) && g(27) < shown.max().y.0,
+        "in line with the arrow: {shown:?}"
+    );
+    // Up and sideways: the wire does not run through the text; it stays.
+    for path in [
+        vec![(39, 27), (39, 26), (40, 26), (40, 20)],
+        vec![(39, 27), (32, 27)],
+    ] {
+        let (shown, bare) = point_label(IP, &path);
+        assert!(
+            path.windows(2).all(|w| !crosses(bare, w[0], w[1])),
+            "the case: {path:?}"
+        );
+        assert_eq!(shown, bare, "it stays: {path:?}");
+    }
+    // A target's wire leaves the tip and turns down through its text: the tip's side is the wire's, so before the
+    // tail.
+    let target = [(40, 27), (41, 27), (41, 34)];
+    let (shown, bare) = point_label(IP_TARGET, &target);
+    assert!(
+        target.windows(2).any(|w| crosses(bare, w[0], w[1])),
+        "the case: the wire runs through {bare:?}"
+    );
+    assert!(shown.max().x.0 < tail, "before the tail: {shown:?}");
+    assert!(
+        shown.min().y.0 < g(27) && g(27) < shown.max().y.0,
+        "in line with the arrow: {shown:?}"
+    );
+}

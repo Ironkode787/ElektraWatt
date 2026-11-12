@@ -77,8 +77,8 @@
 //!   A text that lists several items carries one link per item ([`SlotValue::item_links`]): an invisible
 //!   path item over the item's glyph span (the pen travel of the text up to the item's ends), after the text's
 //!   own items, with the text's entity and a [`Link::Source`].
-//! - **Slot text collisions**. A cross-reference slot (`xref`) without a position override follows rules 1
-//!   and 2, a technical-data slot without one rule 3; every other text stays where its symbol puts it. A black box's
+//! - **Slot text collisions**. A cross-reference slot (`xref`) without a position override follows rules 1,
+//!   2, 4 and 5, a technical-data slot without one rule 3; every other text stays where its symbol puts it. A black box's
 //!   pin texts ("Pin texts" below) take part as fixed obstacles of the cross-reference texts. (1) A list of
 //!   several lines aligned to the middle keeps its first line where a one-line text would sit and grows downward in
 //!   its own frame (a coil's contact mirror never climbs into the technical data above it). (2) A horizontal one
@@ -94,7 +94,12 @@
 //!   (4) A horizontal cross-reference text that a horizontal wire runs through (on folio 101 the "102-A1" of
 //!   L-1 stood across N-1's wire, by N-1's own "102-A1") rises [`SLOT_TEXT_GAP`] above what is in its way, at most
 //!   three times, to the first place the device-tag rule judges free and that overlaps no other representation's
-//!   symbol body, inside the page's drawing area; without one it stays. Printed text order
+//!   symbol body, inside the page's drawing area; without one it stays. (5) Before rule 4, the horizontal
+//!   cross-reference text of a symbol with one CP (an interruption point, an external connection point) that its own
+//!   wire runs through (the wire leaves the point's tail and turns down under the arrow: "+Supply / -X0" stood across
+//!   it) takes the first place that rule 4's free test passes, inside the drawing area: in line with the symbol,
+//!   [`SLOT_TEXT_GAP`] beyond its right edge (an arrow's tip), left-aligned; in line before its left edge,
+//!   right-aligned; centred above its other texts (the point's name). Without one it stays. Printed text order
 //!   and every other position are unchanged. The rules run after "Black-box captions" and "Device tags" below and
 //!   see those texts where they ended.
 //! - **Black-box captions**. A black box's tag, part-number and manufacturer texts without a position or
@@ -1279,6 +1284,7 @@ impl Builder<'_> {
         self.place_tags_off_own_mark(view, &mut texts);
         self.place_tags(view, &mut texts, &pin_boxes);
         self.place_slot_texts(&mut texts, &pin_boxes);
+        self.place_point_xrefs_off_own_wire(view, &mut texts, &pin_boxes);
         self.place_xrefs_off_wires(view, &mut texts, &pin_boxes);
         for t in texts.iter().filter(|t| t.tag) {
             self.out.tags.entry(t.entity.0).or_insert(t.at);
@@ -1858,6 +1864,105 @@ impl Builder<'_> {
                         Pt2::new(r.max().x, r.max().y + dy),
                     )
                 });
+            }
+        }
+    }
+
+    /// The own-wire rule of a point's cross-reference text (module documentation, "Slot text collisions" rule 5): the
+    /// horizontal cross-reference text of a symbol with one CP (an interruption point, an external connection point)
+    /// that its own wire runs through takes the first free place of: in line with the symbol beyond its right edge
+    /// (an arrow's tip), in line before its left edge, centred above its other texts; free as rule 4 judges it, inside
+    /// the drawing area. Without a free place it stays.
+    fn place_point_xrefs_off_own_wire(
+        &self,
+        view: &PageView,
+        texts: &mut [SlotText<'_>],
+        pins: &[(EntityRef, Rect)],
+    ) {
+        let points: Vec<&RepView> = view
+            .reps
+            .iter()
+            .filter(|rv| rv.symbol.as_ref().is_some_and(|d| d.cps.len() == 1))
+            .collect();
+        if points.is_empty() || !texts.iter().any(|t| t.xref && t.angle == Angle2::ZERO) {
+            return;
+        }
+        let cps = cp_map(view);
+        let page = page_rect(view);
+        let wires = page_wires(view);
+        let bodies = symbol_bodies(view);
+        let area = drawing_area(view);
+        let mut boxes: Vec<Option<Rect>> = texts
+            .iter()
+            .map(|t| self.text_box(&t.spec(false), t.xref))
+            .collect();
+        let entities: Vec<EntityRef> = texts.iter().map(|t| t.entity).collect();
+        for i in 0..texts.len() {
+            if !texts[i].xref || texts[i].angle != Angle2::ZERO {
+                continue;
+            }
+            let entity = entities[i];
+            let Some(rv) = points.iter().find(|rv| EntityRef(rv.rep.id.as_uuid()) == entity) else {
+                continue;
+            };
+            let Some(own) = boxes[i] else { continue };
+            // The point's own wires, as the page draws them (routed connections, as `page_wires`).
+            let own_wires: Vec<(Pt2, Pt2)> = sorted_connections(view)
+                .into_iter()
+                .filter(|cv| !cv.connection.route.is_empty())
+                .filter(|cv| {
+                    [&cv.connection.a, &cv.connection.b]
+                        .iter()
+                        .any(|e| matches!(e, Endpoint::Cp(f, _) if rv.rep.functions.contains(f)))
+                })
+                .filter_map(|cv| polyline_of(view, &cps, &cv.connection, page))
+                .flat_map(|pts| pts.windows(2).map(|w| (w[0], w[1])).collect::<Vec<_>>())
+                .collect();
+            if !own_wires.iter().any(|&w| wire_through(own, w)) {
+                continue;
+            }
+            let Some(body) = bodies.iter().find(|(e, _)| *e == entity).map(|(_, b)| *b) else {
+                continue;
+            };
+            let middle = Nm(body.min().y.0 + (body.max().y.0 - body.min().y.0) / 2);
+            let top = (0..texts.len())
+                .filter(|&k| k != i && entities[k] == entity)
+                .filter_map(|k| boxes[k].map(|b| b.min().y))
+                .chain([body.min().y])
+                .min()
+                .unwrap_or(body.min().y);
+            let centre = Nm(body.min().x.0 + (body.max().x.0 - body.min().x.0) / 2);
+            let places = [
+                (Pt2::new(body.max().x + SLOT_TEXT_GAP, middle), Align::MiddleLeft),
+                (Pt2::new(body.min().x - SLOT_TEXT_GAP, middle), Align::MiddleRight),
+                (Pt2::new(centre, top - SLOT_TEXT_GAP), Align::BottomCentre),
+            ];
+            for (at, align) in places {
+                let spec = TextSpec {
+                    at,
+                    align: &align,
+                    ..texts[i].spec(false)
+                };
+                let Some(b) = self.text_box(&spec, true) else {
+                    continue;
+                };
+                let inside = area.min().x <= b.min().x
+                    && b.max().x <= area.max().x
+                    && area.min().y <= b.min().y
+                    && b.max().y <= area.max().y;
+                let free = with_bodies(
+                    in_the_way(b, entity, (&boxes, &entities), |k| k == i, pins, &wires),
+                    b,
+                    entity,
+                    &bodies,
+                )
+                .is_some_and(|w| w.is_empty());
+                if inside && free && !overlaps(b, body) {
+                    texts[i].at = at;
+                    texts[i].align = align;
+                    boxes[i] = Some(b);
+                    break;
+                }
             }
         }
     }
