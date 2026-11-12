@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-12T02:50:05+01:00\n"
+"POT-Creation-Date: 2026-11-12T03:27:21+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1136,24 +1136,25 @@ msgstr ""
 #: src/tutorials/headless-workflow.md:99
 msgid ""
 "The second line, on the standard error stream, counts remarks about the "
-"rendering of single pages. They do not stop the export. The directory of "
-"`--out` must exist, which is why you made `out` first."
+"rendering of single pages and says what they are: here, fields of the title "
+"blocks that the project leaves empty. They do not stop the export. The "
+"directory of `--out` must exist, which is why you made `out` first."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:102
+#: src/tutorials/headless-workflow.md:103
 msgid ""
 "`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
 "to select folios; this writes the pages numbered 101 to 106 that exist:"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:111
+#: src/tutorials/headless-workflow.md:112
 msgid ""
 "The directory now holds `101.svg`, `102.svg`, `103.svg` and `106.svg`. `ew` "
 "replaces the directory as a whole, so it must hold SVG files only; a stale "
 "page of an earlier export cannot remain in it."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:114
+#: src/tutorials/headless-workflow.md:115
 msgid ""
 "The same export always gives the same bytes. The only date in the output "
 "comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
@@ -1161,20 +1162,20 @@ msgid ""
 "changes the speed and never the result."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:118
+#: src/tutorials/headless-workflow.md:119
 msgid "Step 3: export the cable list and the bill of materials"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:120
+#: src/tutorials/headless-workflow.md:121
 msgid "Two more exports write the rows of a report as CSV:"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:129
+#: src/tutorials/headless-workflow.md:130
 msgid ""
 "Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:131
+#: src/tutorials/headless-workflow.md:132
 msgid ""
 "```text\n"
 "row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
@@ -1184,14 +1185,14 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:138
+#: src/tutorials/headless-workflow.md:139
 msgid ""
 "The cable `-3W1` says \"length missing\": it is the finding of step 1, seen "
 "from the other side. The cables `-106W1` and `-106W2` take their length from "
 "their part."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:141
+#: src/tutorials/headless-workflow.md:142
 msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
@@ -1199,17 +1200,17 @@ msgid ""
 "so the CSV equals what the drawing prints."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:145
+#: src/tutorials/headless-workflow.md:146
 msgid "Step 4: ask the project questions with SQL"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:147
+#: src/tutorials/headless-workflow.md:148
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:149
+#: src/tutorials/headless-workflow.md:150
 msgid ""
 "```console\n"
 "$ ew sql golden/J-E-2416.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
@@ -1219,14 +1220,14 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:156
+#: src/tutorials/headless-workflow.md:157
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
 "lengths come from:"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:159
+#: src/tutorials/headless-workflow.md:160
 msgid ""
 "```console\n"
 "$ ew sql golden/J-E-2416.ew \"SELECT tag, cores, length_source FROM "
@@ -1239,18 +1240,18 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:168
+#: src/tutorials/headless-workflow.md:169
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
 "the exit code is 2."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:171
+#: src/tutorials/headless-workflow.md:172
 msgid "What you have done"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:173
+#: src/tutorials/headless-workflow.md:174
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, and queried the project "
@@ -1259,24 +1260,24 @@ msgid ""
 "display."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:177
+#: src/tutorials/headless-workflow.md:178
 msgid "Where to go next"
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:179
+#: src/tutorials/headless-workflow.md:180
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
 "the rules that `ew check` runs."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:181
+#: src/tutorials/headless-workflow.md:182
 msgid ""
 "[How-to guides](../how-to/index.md) for single tasks, such as checking a "
 "project in a CI job, will follow this tutorial."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:183
+#: src/tutorials/headless-workflow.md:184
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."

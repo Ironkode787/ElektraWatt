@@ -1567,14 +1567,16 @@ msgstr ""
 #: src/tutorials/headless-workflow.md:99
 msgid ""
 "The second line, on the standard error stream, counts remarks about the "
-"rendering of single pages. They do not stop the export. The directory of "
-"`--out` must exist, which is why you made `out` first."
+"rendering of single pages and says what they are: here, fields of the title "
+"blocks that the project leaves empty. They do not stop the export. The "
+"directory of `--out` must exist, which is why you made `out` first."
 msgstr ""
 "De tweede regel, op de standaardfoutuitvoer, telt opmerkingen over het "
-"weergeven van afzonderlijke pagina's. Ze houden de export niet tegen. De map "
-"van `--out` moet bestaan; daarom hebt u eerst `out` gemaakt."
+"weergeven van afzonderlijke pagina's en zegt wat ze zijn: hier velden van de "
+"titelblokken die het project leeg laat. Ze houden de export niet tegen. De "
+"map van `--out` moet bestaan; daarom hebt u eerst `out` gemaakt."
 
-#: src/tutorials/headless-workflow.md:102
+#: src/tutorials/headless-workflow.md:103
 msgid ""
 "`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
 "to select folios; this writes the pages numbered 101 to 106 that exist:"
@@ -1583,7 +1585,7 @@ msgstr ""
 "met `--pages`; dit schrijft de pagina's met de nummers 101 tot en met 106 "
 "die bestaan:"
 
-#: src/tutorials/headless-workflow.md:111
+#: src/tutorials/headless-workflow.md:112
 msgid ""
 "The directory now holds `101.svg`, `102.svg`, `103.svg` and `106.svg`. `ew` "
 "replaces the directory as a whole, so it must hold SVG files only; a stale "
@@ -1593,7 +1595,7 @@ msgstr ""
 "de map als geheel, dus ze mag alleen SVG-bestanden bevatten; een oude pagina "
 "van een eerdere export kan er niet in achterblijven."
 
-#: src/tutorials/headless-workflow.md:114
+#: src/tutorials/headless-workflow.md:115
 msgid ""
 "The same export always gives the same bytes. The only date in the output "
 "comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
@@ -1605,21 +1607,21 @@ msgstr ""
 "die zet, nooit uit de klok van uw computer; `--threads <n>` verandert de "
 "snelheid en nooit het resultaat."
 
-#: src/tutorials/headless-workflow.md:118
+#: src/tutorials/headless-workflow.md:119
 msgid "Step 3: export the cable list and the bill of materials"
 msgstr "Stap 3: de kabellijst en de stuklijst exporteren"
 
-#: src/tutorials/headless-workflow.md:120
+#: src/tutorials/headless-workflow.md:121
 msgid "Two more exports write the rows of a report as CSV:"
 msgstr "Nog twee exports schrijven de rijen van een rapport als CSV:"
 
-#: src/tutorials/headless-workflow.md:129
+#: src/tutorials/headless-workflow.md:130
 msgid ""
 "Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
 msgstr ""
 "Open `out/cables.csv` in een teksteditor of een spreadsheet. Het begint zo:"
 
-#: src/tutorials/headless-workflow.md:131
+#: src/tutorials/headless-workflow.md:132
 msgid ""
 "```text\n"
 "row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
@@ -1635,7 +1637,7 @@ msgstr ""
 "data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,\"-X1031, -X1032\",-201U1,from part\n"
 "```"
 
-#: src/tutorials/headless-workflow.md:138
+#: src/tutorials/headless-workflow.md:139
 msgid ""
 "The cable `-3W1` says \"length missing\": it is the finding of step 1, seen "
 "from the other side. The cables `-106W1` and `-106W2` take their length from "
@@ -1645,7 +1647,7 @@ msgstr ""
 "de andere kant gezien. De kabels `-106W1` en `-106W2` nemen hun lengte van "
 "hun artikel."
 
-#: src/tutorials/headless-workflow.md:141
+#: src/tutorials/headless-workflow.md:142
 msgid ""
 "`--mode` of `ew export bom` is `parts` (the default; every component part) "
 "or `assembly`, which replaces the parts a configured product covers by one "
@@ -1658,11 +1660,11 @@ msgstr ""
 "eigen rapportpagina van het project, dus de CSV is gelijk aan wat de "
 "tekening afdrukt."
 
-#: src/tutorials/headless-workflow.md:145
+#: src/tutorials/headless-workflow.md:146
 msgid "Step 4: ask the project questions with SQL"
 msgstr "Stap 4: het project vragen stellen met SQL"
 
-#: src/tutorials/headless-workflow.md:147
+#: src/tutorials/headless-workflow.md:148
 msgid ""
 "`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
 "named `api_v1_...`:"
@@ -1670,7 +1672,7 @@ msgstr ""
 "`ew sql` voert één alleen-lezen `SELECT` uit op de SQL-views van het "
 "project, die `api_v1_...` heten:"
 
-#: src/tutorials/headless-workflow.md:149
+#: src/tutorials/headless-workflow.md:150
 msgid ""
 "```console\n"
 "$ ew sql golden/J-E-2416.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
@@ -1686,7 +1688,7 @@ msgstr ""
 "1 rows\n"
 "```"
 
-#: src/tutorials/headless-workflow.md:156
+#: src/tutorials/headless-workflow.md:157
 msgid ""
 "The result is CSV with a header line, on the standard output; the row count "
 "goes to the standard error stream. Ask for the cables and where their "
@@ -1696,7 +1698,7 @@ msgstr ""
 "rijen gaat naar de standaardfoutuitvoer. Vraag naar de kabels en waar hun "
 "lengtes vandaan komen:"
 
-#: src/tutorials/headless-workflow.md:159
+#: src/tutorials/headless-workflow.md:160
 msgid ""
 "```console\n"
 "$ ew sql golden/J-E-2416.ew \"SELECT tag, cores, length_source FROM "
@@ -1718,7 +1720,7 @@ msgstr ""
 "3 rows\n"
 "```"
 
-#: src/tutorials/headless-workflow.md:168
+#: src/tutorials/headless-workflow.md:169
 msgid ""
 "`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
 "and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
@@ -1728,11 +1730,11 @@ msgstr ""
 "`SELECT`, `WITH` en `VALUES` worden uitgevoerd; al het andere, zoals "
 "`ATTACH`, wordt geweigerd en de afsluitcode is 2."
 
-#: src/tutorials/headless-workflow.md:171
+#: src/tutorials/headless-workflow.md:172
 msgid "What you have done"
 msgstr "Wat u hebt gedaan"
 
-#: src/tutorials/headless-workflow.md:173
+#: src/tutorials/headless-workflow.md:174
 msgid ""
 "You checked a project and read the exit code, wrote its pages as PDF and "
 "SVG, exported a cable list and a bill of materials, and queried the project "
@@ -1746,11 +1748,11 @@ msgstr ""
 "draaien in een script of een CI-taak, omdat ze het project lezen zonder het "
 "te vergrendelen en nooit een beeldscherm nodig hebben."
 
-#: src/tutorials/headless-workflow.md:177
+#: src/tutorials/headless-workflow.md:178
 msgid "Where to go next"
 msgstr "Waar u verder kunt"
 
-#: src/tutorials/headless-workflow.md:179
+#: src/tutorials/headless-workflow.md:180
 msgid ""
 "The [command reference](../reference/commands/index.md) lists the commands "
 "that change a project, and the [rule reference](../reference/rules/index.md) "
@@ -1760,7 +1762,7 @@ msgstr ""
 "een project veranderen, en de [regelnaslag](../reference/rules/index.md) de "
 "regels die `ew check` uitvoert."
 
-#: src/tutorials/headless-workflow.md:181
+#: src/tutorials/headless-workflow.md:182
 msgid ""
 "[How-to guides](../how-to/index.md) for single tasks, such as checking a "
 "project in a CI job, will follow this tutorial."
@@ -1768,7 +1770,7 @@ msgstr ""
 "[Instructies](../how-to/index.md) voor losse taken, zoals een project "
 "controleren in een CI-taak, volgen na deze zelfstudie."
 
-#: src/tutorials/headless-workflow.md:183
+#: src/tutorials/headless-workflow.md:184
 msgid ""
 "The [explanation](../explanation/index.md) section links the design of the "
 "model and of the check engine."

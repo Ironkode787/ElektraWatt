@@ -1633,3 +1633,34 @@ fn box_of(points: &[(f64, f64)]) -> (f64, f64, f64, f64) {
             (b.0.min(p.0), b.1.min(p.1), b.2.max(p.0), b.3.max(p.1))
         })
 }
+
+/// The command line's line about the page findings says what they are (FT-1670): an imported folio's empty
+/// title-block fields were summed up as "unresolved wire ends, unknown styles, overflowing table texts".
+#[test]
+fn the_page_findings_summary_names_their_kinds() {
+    use ew_api::output::{PageFindingAt, page_findings_summary};
+    use ew_scene::forms::{BindingFinding, CellOwner, CellRef, FormFinding};
+    let empty = |index| PageFindingAt {
+        folio: "1".into(),
+        finding: PageFinding::Form(FormFinding::Binding {
+            cell: CellRef {
+                owner: CellOwner::TitleBlock,
+                index,
+            },
+            finding: BindingFinding::Unresolved {
+                placeholder: "{page.title}".into(),
+            },
+        }),
+    };
+    let end = PageFindingAt {
+        folio: "1".into(),
+        finding: PageFinding::UnresolvedEnd {
+            connection: Id::from_uuid(Uuid::from_u128(1)),
+        },
+    };
+    assert_eq!(page_findings_summary(&[]), None);
+    assert_eq!(
+        page_findings_summary(&[empty(0), end, empty(1)]).as_deref(),
+        Some("3 page findings: 2 empty fields in a frame or title block, 1 unresolved wire end")
+    );
+}

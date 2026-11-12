@@ -93,11 +93,12 @@ cross-reference links:
 ```console
 $ ew export pdf golden/J-E-2416.ew --out out/J-E-2416.pdf
 PDF written to out/J-E-2416.pdf: 36 pages, 246 links
-112 page findings (unresolved wire ends, unknown styles, overflowing table texts)
+112 page findings: 112 empty fields in a frame or title block
 ```
 
-The second line, on the standard error stream, counts remarks about the rendering of single pages. They do not stop
-the export. The directory of `--out` must exist, which is why you made `out` first.
+The second line, on the standard error stream, counts remarks about the rendering of single pages and says what
+they are: here, fields of the title blocks that the project leaves empty. They do not stop the export. The
+directory of `--out` must exist, which is why you made `out` first.
 
 `ew export svg` writes one SVG file per page into a directory. Use `--pages` to select folios; this writes the pages
 numbered 101 to 106 that exist:
@@ -105,7 +106,7 @@ numbered 101 to 106 that exist:
 ```console
 $ ew export svg golden/J-E-2416.ew --out out/svg --pages 101-106
 SVG written to out/svg: 4 files
-12 page findings (unresolved wire ends, unknown styles, overflowing table texts)
+12 page findings: 12 empty fields in a frame or title block
 ```
 
 The directory now holds `101.svg`, `102.svg`, `103.svg` and `106.svg`. `ew` replaces the directory as a whole, so it

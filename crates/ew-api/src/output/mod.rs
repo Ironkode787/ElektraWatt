@@ -383,6 +383,74 @@ pub struct PageFindingAt {
     pub finding: PageFinding,
 }
 
+/// What `findings` are, for a command line: "15 page findings: 15 empty fields in a frame or title block", the kinds
+/// in the order they first occur; `None` for no findings.
+pub fn page_findings_summary(findings: &[PageFindingAt]) -> Option<String> {
+    if findings.is_empty() {
+        return None;
+    }
+    use ew_scene::forms::FormFinding as F;
+    use ew_scene::table::TableFinding as T;
+    let mut kinds: Vec<((&str, &str), usize)> = Vec::new();
+    for f in findings {
+        let kind = match &f.finding {
+            PageFinding::Form(F::Binding {
+                finding: ew_scene::forms::BindingFinding::UnsupportedFilter { .. },
+                ..
+            }) => (
+                "field with a filter this version does not apply",
+                "fields with a filter this version does not apply",
+            ),
+            PageFinding::Form(F::Binding { .. }) => (
+                "empty field in a frame or title block",
+                "empty fields in a frame or title block",
+            ),
+            PageFinding::Form(F::TitleBlockMissing) => ("missing title block", "missing title blocks"),
+            PageFinding::Form(F::UnknownAlign { .. }) => {
+                ("unknown text alignment", "unknown text alignments")
+            }
+            PageFinding::Form(F::UnknownStyle { .. })
+            | PageFinding::UnknownStyle { .. }
+            | PageFinding::UnknownSlotStyle { .. } => ("unknown text style", "unknown text styles"),
+            PageFinding::Form(F::MissingGlyphs { .. })
+            | PageFinding::MissingGlyphs { .. }
+            | PageFinding::Table(T::MissingGlyphs { .. }) => (
+                "text with characters the fonts lack",
+                "texts with characters the fonts lack",
+            ),
+            PageFinding::Form(F::Overflow { .. }) | PageFinding::Table(T::Overflow { .. }) => {
+                ("text too long for its cell", "texts too long for their cells")
+            }
+            PageFinding::Table(T::TooManyRows { .. }) => {
+                ("table with more rows than fit", "tables with more rows than fit")
+            }
+            PageFinding::MissingSymbol { .. } => (
+                "symbol not drawn for want of its copy",
+                "symbols not drawn for want of their copy",
+            ),
+            PageFinding::UnresolvedEnd { .. } => ("unresolved wire end", "unresolved wire ends"),
+            PageFinding::ConflictingLinks { .. } => {
+                ("text with conflicting links", "texts with conflicting links")
+            }
+            PageFinding::Image(_) => ("image not drawn", "images not drawn"),
+        };
+        match kinds.iter_mut().find(|(k, _)| *k == kind) {
+            Some((_, n)) => *n += 1,
+            None => kinds.push((kind, 1)),
+        }
+    }
+    let what: Vec<String> = kinds
+        .iter()
+        .map(|((one, many), n)| format!("{n} {}", if *n == 1 { one } else { many }))
+        .collect();
+    let noun = if findings.len() == 1 {
+        "finding"
+    } else {
+        "findings"
+    };
+    Some(format!("{} page {noun}: {}", findings.len(), what.join(", ")))
+}
+
 /// The pages of an export, ready for a writer.
 #[derive(Clone, PartialEq, Debug)]
 pub struct ExportPages {

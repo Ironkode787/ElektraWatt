@@ -498,11 +498,8 @@ pub(super) fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, b
             folios.join(", ")
         );
     }
-    if !pdf.findings.is_empty() {
-        eprintln!(
-            "{} page findings (unresolved wire ends, unknown styles, overflowing table texts)",
-            pdf.findings.len()
-        );
+    if let Some(findings) = ew_api::output::page_findings_summary(&pdf.findings) {
+        eprintln!("{findings}");
     }
     0
 }
@@ -763,7 +760,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                     pdf.pages,
                     pdf.report.links
                 ),
-                pdf.findings.len(),
+                ew_api::output::page_findings_summary(&pdf.findings),
             )
         }
         PageFormat::Svg => {
@@ -791,7 +788,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
             }
             (
                 format!("SVG written to {}: {} files", a.out.display(), svg.files.len()),
-                svg.findings.len(),
+                ew_api::output::page_findings_summary(&svg.findings),
             )
         }
         PageFormat::Png => {
@@ -830,15 +827,15 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                     png.files.len(),
                     a.dpi
                 ),
-                png.findings.len(),
+                ew_api::output::page_findings_summary(&png.findings),
             )
         }
     };
     if !a.json {
         println!("{written}");
     }
-    if findings > 0 {
-        eprintln!("{findings} page findings (unresolved wire ends, unknown styles, overflowing table texts)");
+    if let Some(findings) = findings {
+        eprintln!("{findings}");
     }
     0
 }
@@ -895,11 +892,8 @@ pub(super) fn run_render(a: &RenderArgs) -> i32 {
             a.dpi
         );
     }
-    if !png.findings.is_empty() {
-        eprintln!(
-            "{} page findings (unresolved wire ends, unknown styles, overflowing table texts)",
-            png.findings.len()
-        );
+    if let Some(findings) = ew_api::output::page_findings_summary(&png.findings) {
+        eprintln!("{findings}");
     }
     0
 }

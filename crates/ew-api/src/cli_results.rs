@@ -659,7 +659,7 @@ pub struct ExportPdfResult {
     pub pages: usize,
     /// The links (cross-references and outline targets).
     pub links: usize,
-    /// The page findings (unresolved wire ends, unknown styles, overflowing table texts).
+    /// The number of page findings.
     pub findings: usize,
 }
 
