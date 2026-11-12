@@ -23,7 +23,7 @@ version: 7
 # The harness: how to work with it
 
 You work with ElektraWatt through one program, `«run»\bin/xtask.exe blind`, and nothing else. You never see a picture: you read text, and
-you act through the application's own actions. `«run»\bin/xtask.exe blind help` prints this text, the application's vocabulary and every
+you act through the application's own actions. `«run»\bin/xtask.exe blind help` prints this text and every
 action with its parameters, a page at a time: each page ends with the line that names the next (`«run»\bin/xtask.exe blind help 2`, …).
 
 ## The commands

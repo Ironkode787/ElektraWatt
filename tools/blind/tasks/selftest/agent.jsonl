@@ -24,7 +24,7 @@
 {"note":"patience 9 flow 9 The page navigator and the page walk work."}
 {"do":[{"action":"tools.company_standard"}],"expect":["tools.company_standard done"]}
 {"note":"patience 9 flow 9 The wizard opened."}
-{"look":{"sections":["wizard"]},"expect":["The sample project is not installed"]}
+{"look":{"sections":["wizard"]},"expect":["The example pages do not come with this installation"]}
 {"do":[{"action":"wizard.cancel"}],"expect":["wizard.cancel done"]}
 {"note":"patience 9 flow 9 The wizard's preview needs the sample project, which a run does not have: as designed."}
 {"do":[{"action":"file.save"},{"action":"file.export_pdf","params":{"path":"selftest.pdf"}}],"expect":["file.save done","file.export_pdf done"]}
