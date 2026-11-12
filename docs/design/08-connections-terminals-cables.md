@@ -386,12 +386,15 @@ potential_flow(potential):                              // memo per potential; t
   "230 VAC" is AC from 50 to 250 V, "400 VAC" is AC above 250 V up to 1,000 V. These bounds are the company
   profile's choice (the ELV and LV limits), not quoted standard text.
 - **Conflicts.** Two types or voltages meeting in one potential produce EW-POT-001 (FR-CHK-028). So do a defined
-  type that contradicts a member CP role (compatible roles excepted: FE on PE or PEN, PE or N on PEN), definitions that disagree on voltage, environment or class, and a
+  type that contradicts a member CP role (compatible roles excepted: FE on PE or PEN, PE or N on PEN, L on any one
+  phase L1, L2 or L3, as a single-phase input fed from one phase; FT-1701), definitions that disagree on voltage,
+  environment or class, and a
   pass-through pair whose two reached sides have different types without a converting function. They are errors; the
   first definition in natural order still gives the value. Nothing merges silently.
   *As built (round):* member roles that disagree on a potential without a
   definition are ranked by a fixed role order (PE, PEN, FE, N, L1, L2, L3, L, L+, L−, M, signal, undefined), never by
-  CP or ID order, and the finding targets every member function; the definition half still follows ID order.
+  CP or ID order, and the finding targets every member function; the definition half still follows ID order. A role
+  compatible with the first by the list above (an L pin beside an L1 pin) is no conflict there either.
   *As built.* A potential's definitions are **ranked** by natural order of the
   name, then the defining point's printed text (`<tag>:<designation>` of its CP; a junction's after every CP's), then
   the ID, which decides only between two definitions that print alike. The first applies its values and names the

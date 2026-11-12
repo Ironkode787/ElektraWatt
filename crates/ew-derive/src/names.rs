@@ -504,12 +504,13 @@ pub(crate) fn member_roles(q: &Q, p: &Potential) -> Vec<(CpRef, PotentialType)> 
         .collect()
 }
 
-/// Whether a member CP `role` is compatible with the type `defined` by a definition (doc 08 §3.7): equal
-/// values, an FE role on a PE or PEN potential (a separate check, EW-POT-003), and a PE or N role on a PEN
-/// potential.
+/// Whether a member CP `role` is compatible with the type `defined` by a definition or by a member role of a lower
+/// [`role_rank`] (doc 08 §3.7): equal values, an FE role on a PE or PEN potential (a separate check, EW-POT-003), a
+/// PE or N role on a PEN potential, and an L role on one phase, L1, L2 or L3 (a single-phase input fed from one phase,
+/// FT-1701).
 fn role_compatible(defined: &PotentialType, role: &PotentialType) -> bool {
-    use PotentialType::{Fe, N, Pe, Pen};
-    defined == role || matches!((defined, role), (Pe | Pen, Fe) | (Pen, Pe | N))
+    use PotentialType::{Fe, L, L1, L2, L3, N, Pe, Pen};
+    defined == role || matches!((defined, role), (Pe | Pen, Fe) | (Pen, Pe | N) | (L1 | L2 | L3, L))
 }
 
 /// The rank of a member CP role when the roles of a potential disagree (the lowest applies): the protective
@@ -537,7 +538,8 @@ fn role_rank(role: &PotentialType) -> u8 {
 }
 
 /// The type from member CP roles: the first role in [`role_rank`] order (two newer-format roles by their
-/// text); every other distinct role is a conflict. The source is the first member CP with that role.
+/// text); every other distinct role that is not [`role_compatible`] with it is a conflict. The source is the first
+/// member CP with that role.
 fn role_type(q: &Q, p: &Potential, conflicts: &mut Vec<String>) -> Option<Attr<PotentialType>> {
     let roles = member_roles(q, p);
     let key = |r: &PotentialType| (role_rank(r), format!("{r:?}"));
@@ -547,7 +549,7 @@ fn role_type(q: &Q, p: &Potential, conflicts: &mut Vec<String>) -> Option<Attr<P
         .cloned()?;
     let others: BTreeSet<String> = roles
         .iter()
-        .filter(|(_, r)| *r != applied)
+        .filter(|(_, r)| !role_compatible(&applied, r))
         .map(|(_, r)| format!("{r:?}"))
         .collect();
     if !others.is_empty() {
