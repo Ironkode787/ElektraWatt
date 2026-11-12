@@ -1049,6 +1049,9 @@ next placing, sends the toasts to the canvas's bottom right, `space.4` above the
 the canvas; moving the pointer, or pressing on the stack itself, moves nothing, so a toast the user reaches for never
 moves away.
 
+*As built.* **In the symbol editor** the toasts stand at the top right of its drawing, `space.4` under the editor's
+header row, so a save's toast never covers Close editor (FT-1714).
+
 ### 6.11 Banners
 
 A banner is for a state of the whole project (read-only, recovery pending, integrity findings, GPU fallback): full

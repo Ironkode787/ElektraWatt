@@ -1054,6 +1054,62 @@ fn symbol_editor_save_refuses_off_grid_pin_in_words_and_saves_fine_graphics() {
     d.shell_mut().shutdown();
 }
 
+/// FT-1714: right after Save to library, a click on Close editor closes the editor; the save's toast stands clear of
+/// the button, at the 1280 floor and at 1920 × 1080.
+#[test]
+fn symbol_editor_close_editor_is_clickable_right_after_a_save() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    for (name, geometry) in [
+        ("1280", Geometry::DEFAULT),
+        (
+            "1920",
+            Geometry {
+                width: 1920,
+                height: 1080,
+                ..Geometry::DEFAULT
+            },
+        ),
+    ] {
+        let tmp = Tmp::new();
+        let library = tmp.0.join("saved.ewlib");
+        let mut d = Driver::with_geometry(tmp.config(), None, tmp.0.clone(), geometry).unwrap();
+        d.enable_accesskit();
+        for (action, params) in [
+            ("symbol.new", json!({"key":"example.saved","name":"Saved"})),
+            (
+                "symbol.draw",
+                json!({"tool":"line","x":0,"y":0,"x2":8,"y2":0}),
+            ),
+            (
+                "symbol.cp",
+                json!({"idx":1,"designation":"1","x":4,"y":0,"direction":"up"}),
+            ),
+        ] {
+            assert_eq!(d.shell_mut().dispatch(action, &params), Outcome::Done);
+        }
+        d.settle();
+        d.input(&click(d.find("Library").unwrap()));
+        d.input(&click(d.find("Library folder").unwrap()));
+        d.input(&key("ctrl+a"));
+        d.input(&Input::Type {
+            text: library.to_string_lossy().into_owned(),
+        });
+        d.input(&click(d.find("Save to library").unwrap()));
+        assert!(library.is_dir(), "{name}: saved");
+        assert!(
+            d.shell_mut().notifications().newest_visible().is_some(),
+            "{name}: the save's toast"
+        );
+        d.input(&Input::Wait { ms: 300 });
+        d.input(&click(d.find("Close editor").unwrap()));
+        assert!(
+            d.shell_mut().symbol_editor().is_none(),
+            "{name}: Close editor closed the editor"
+        );
+        d.shell_mut().shutdown();
+    }
+}
+
 #[test]
 fn symbol_editor_pointer_tools_dispatch_the_drawing_tool_name() {
     use ew_ui::ew_viewmodel::shell::Outcome;

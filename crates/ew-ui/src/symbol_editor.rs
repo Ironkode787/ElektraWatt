@@ -60,6 +60,9 @@ pub(crate) struct EditorView {
     snap_off: bool,
     /// The drawing grid lines, shapes, texts and link points snap to: an index into [`SNAP_STEPS`].
     snap_step: usize,
+    /// The bottom of the header row (the symbol's name, Close editor) in the last frame: the toasts stand below it
+    /// (FT-1714).
+    pub(crate) header_bottom: Option<f32>,
 }
 
 /// FT-1690: the drawing grids offered, each as nanometres per steps (0.5, 1, 2 and 4 mm and QElectroTech's 10 px), the
@@ -977,7 +980,7 @@ impl EditorView {
         let view_size = ui.available_size();
         let symbol_name = display_text(&serde_json::to_value(&draft.symbol.name).unwrap_or_default());
         // P3: the saved state and the grid are the status bar's; the header names the symbol and the error, once.
-        ui.horizontal(|ui| {
+        let header = ui.horizontal(|ui| {
             ui.strong(&symbol_name);
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 // Close editor is the way back to the project: the editor's one primary button, in the corner the
@@ -1002,6 +1005,7 @@ impl EditorView {
                 self.snap_control(ui, draft);
             });
         });
+        self.header_bottom = Some(header.response.rect.bottom());
         // Why the last action did nothing, under the symbol's name on every tab: a click on Save to library or Test
         // on a new page that is refused must answer where the eye is. (Validation lists the same issues on the
         // Drawing tab as a standing list; a refusal shown only there read as a button that does nothing.)
