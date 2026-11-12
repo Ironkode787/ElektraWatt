@@ -66,6 +66,8 @@ pub struct Scripted {
     pub asked: Rc<RefCell<Vec<Prompt>>>,
     /// The URLs the frame asked the system browser to open.
     pub opened: Rc<RefCell<Vec<String>>>,
+    /// The written files the frame asked the system's file opener to open.
+    pub opened_files: Rc<RefCell<Vec<PathBuf>>>,
 }
 
 impl Platform for Scripted {
@@ -76,6 +78,11 @@ impl Platform for Scripted {
 
     fn open_url(&mut self, url: &str) -> bool {
         self.opened.borrow_mut().push(url.to_owned());
+        true
+    }
+
+    fn open_file(&mut self, file: &std::path::Path) -> bool {
+        self.opened_files.borrow_mut().push(file.to_path_buf());
         true
     }
 }

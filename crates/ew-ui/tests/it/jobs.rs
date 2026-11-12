@@ -72,17 +72,17 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     dispatch(&mut h, "jobs.show", json!({}));
     settle(&mut h);
     assert!(h.query_by_label(&format!("36 pages, {kib} KiB")).is_some());
-    // Open PDF: the toast's and the pane's buttons both hand the file to the system's viewer.
+    // Open PDF (FT-1689): the toast's and the pane's buttons each hand the written file, by its path, to the system's
+    // file opener; no URL goes to the browser.
     let opens = h.get_all_by_label("Open").count();
     assert_eq!(opens, 2, "the toast's and the pane's");
-    h.get_all_by_label("Open").next().unwrap().click();
-    settle(&mut h);
-    let opened = platform.opened.borrow().clone();
-    assert_eq!(opened.len(), 1, "{opened:?}");
-    assert!(
-        opened[0].starts_with("file://") && opened[0].ends_with("/out.pdf"),
-        "{opened:?}"
-    );
+    for i in 0..2 {
+        h.get_all_by_label("Open").nth(i).unwrap().click();
+        settle(&mut h);
+    }
+    let files = platform.opened_files.borrow().clone();
+    assert_eq!(files, [pdf.clone(), pdf.clone()]);
+    assert!(platform.opened.borrow().is_empty(), "{:?}", platform.opened.borrow());
     h.state_mut().shell_mut().shutdown();
 }
 

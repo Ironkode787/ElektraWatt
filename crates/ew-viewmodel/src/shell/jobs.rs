@@ -80,8 +80,8 @@ fn number_list(numbers: &[u64]) -> String {
     }
 }
 
-/// The `file://` URL of a written file (Open PDF): the path's characters outside the unreserved set percent-encoded,
-/// so nothing in a folder name can leave the URL.
+/// The `file://` URL of a local file or folder (the privacy file, the log folder): the path's characters outside the
+/// unreserved set percent-encoded, so nothing in a folder name can leave the URL.
 pub(crate) fn file_url_of(path: &Path) -> String {
     let path = path.to_string_lossy().replace('\\', "/");
     let path = path.strip_prefix("//?/").unwrap_or(&path);
@@ -94,7 +94,7 @@ pub(crate) fn file_url_of(path: &Path) -> String {
 }
 
 /// The export target made absolute when the job starts (against the working directory), so the entry's path and
-/// Open PDF's `file://` URL name the written file even when a script passed a relative path. A path `std::path::absolute` cannot handle (an empty one) stays as it is.
+/// Open PDF's path name the written file even when a script passed a relative path. A path `std::path::absolute` cannot handle (an empty one) stays as it is.
 pub(super) fn absolute_target(path: PathBuf) -> PathBuf {
     std::path::absolute(&path).unwrap_or(path)
 }
@@ -176,8 +176,9 @@ impl ShellModel {
         &self.markers
     }
 
-    /// The `file://` URL the window must hand to the system opener (Open PDF), taken once.
-    pub fn take_open_request(&mut self) -> Option<String> {
+    /// The written file the window must hand to the system's file opener (Open PDF), taken once: its path, never a
+    /// `file://` URL (FT-1689: the URL handed to Windows' URL handler opened nothing).
+    pub fn take_open_request(&mut self) -> Option<PathBuf> {
         self.jobs.open_request.take()
     }
 
@@ -292,7 +293,7 @@ impl ShellModel {
             Some(NoteAction::Open) => match (self.mode, entry.open_path(action)) {
                 (Mode::Headless, _) => Outcome::refused(key!("reason-no-opener")),
                 (Mode::Gui, Some(path)) => {
-                    self.jobs.open_request = Some(file_url_of(path));
+                    self.jobs.open_request = Some(path.clone());
                     Outcome::Done
                 }
                 (Mode::Gui, None) => Outcome::refused(key!("reason-action-expired")),
@@ -683,7 +684,7 @@ impl ShellModel {
         if self.mode == Mode::Headless {
             return Outcome::refused(key!("reason-no-opener"));
         }
-        self.jobs.open_request = Some(file_url_of(&entry.path));
+        self.jobs.open_request = Some(entry.path.clone());
         Outcome::Done
     }
 
