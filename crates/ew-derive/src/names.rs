@@ -510,7 +510,11 @@ pub(crate) fn member_roles(q: &Q, p: &Potential) -> Vec<(CpRef, PotentialType)> 
 /// FT-1701).
 fn role_compatible(defined: &PotentialType, role: &PotentialType) -> bool {
     use PotentialType::{Fe, L, L1, L2, L3, N, Pe, Pen};
-    defined == role || matches!((defined, role), (Pe | Pen, Fe) | (Pen, Pe | N) | (L1 | L2 | L3, L))
+    defined == role
+        || matches!(
+            (defined, role),
+            (Pe | Pen, Fe) | (Pen, Pe | N) | (L1 | L2 | L3, L)
+        )
 }
 
 /// The rank of a member CP role when the roles of a potential disagree (the lowest applies): the protective
