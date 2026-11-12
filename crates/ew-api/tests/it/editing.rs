@@ -157,7 +157,12 @@ fn the_catalogue_of_folio_102_keeps_the_grid_family_and_maps_the_letters() {
             if let Some(key) = &f.symbol {
                 let r = row(key);
                 // A black box on its own FnDef (the supply's) is drawn by the black box frame (FT-682).
-                assert!(r.fndef_key == f.fndef_key || r.black_box, "{} {}", r.fndef_key, f.fndef_key);
+                assert!(
+                    r.fndef_key == f.fndef_key || r.black_box,
+                    "{} {}",
+                    r.fndef_key,
+                    f.fndef_key
+                );
                 assert!(r.allowed);
             }
         }
