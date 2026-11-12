@@ -50,10 +50,10 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_open_picker(crate::tools::PickerMode::Parts),
         ),
     ))),
-    // Draw ▸ Place ▸ Terminal…: its own small form (strip, kind, how many, from which number; FT-1695), then the Place
-    // tool floating the first terminal; a click lays the row. Terminals are placed this way only.
+    // Draw ▸ Place ▸ Terminal…: its own small form (strip, kind, part, how many, from which number; FT-1695), then the
+    // Place tool floating the first terminal; a click lays the row. Terminals are placed this way only.
     keeps_banner(with_params(
-        "strip?:text, kind?:text, count?:uint, from?:text",
+        "strip?:text, kind?:text, part?:text, count?:uint, from?:text",
         in_canvas(placed(
             place(Group::Place, 3, CommandSize::Small, Some(key!("bar-terminal"))),
             "ew-terminal-strip",

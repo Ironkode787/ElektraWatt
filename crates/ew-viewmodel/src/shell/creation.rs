@@ -486,6 +486,10 @@ impl ShellModel {
                 super::cables::retype(self.project.as_ref().map(|p| &p.session), wires, form);
             }
         }
+        // Terminal…'s Kind and Part follow each other.
+        if self.in_form_of("tool.place_terminal") {
+            self.terminal_form_follow(name);
+        }
     }
 
     /// Sets the first-column text (`column` `None`, a rename) or a cell of row `row` of the open form's table, and
