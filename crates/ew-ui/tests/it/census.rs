@@ -579,7 +579,7 @@ fn census_every_dialog() {
 #[test]
 fn census_every_context_menu() {
     use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
-    use ew_ui::ew_viewmodel::command_bar::canvas_menu;
+    use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
     let mut census = Census::default();
     // The centre of an object's rectangle whose pick is that object, on the page on show; `only` narrows the objects.
     let object = |h: &Harness<'_, App>, only: &dyn Fn(String) -> bool| {
@@ -599,7 +599,8 @@ fn census_every_context_menu() {
     // A right click at `at`; the menu's first entry shows.
     let open = |h: &mut Harness<'_, App>, at: egui::Pos2, over: bool, census: &mut Census, surface: &str| {
         crate::tools::right_click(h, at);
-        let first = canvas_menu(h.state().shell(), over)
+        let spot = if over { MenuSpot::Object } else { MenuSpot::Sheet };
+        let first = canvas_menu(h.state().shell(), spot)
             .first()
             .map(|i| i.label.clone())
             .expect("a menu");

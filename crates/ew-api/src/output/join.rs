@@ -327,6 +327,43 @@ impl Session {
         out.sort_by(|a, b| natural_cmp(&a.1, &b.1).then_with(|| a.0.cmp(&b.0)));
         out
     }
+
+    /// Whether `function` is a coil (`Some(true)`) or a contact, NO, NC or change-over (`Some(false)`), by its FnDef's
+    /// contact kind; `None` for anything else or a missing function (the canvas menu's Add contact and Go to coil,
+    /// FT-1693).
+    pub fn coil_or_contact(&self, function: Uuid) -> Option<bool> {
+        let q = self.query();
+        let def = q.functions().get(Id::<Function>::from_uuid(function))?.def;
+        match q.fndefs().get(def)?.item.contact_kind {
+            ContactKind::Coil => Some(true),
+            ContactKind::No | ContactKind::Nc | ContactKind::Co => Some(false),
+            _ => None,
+        }
+    }
+
+    /// The unplaced contacts of `device` as `(function, slot)`, in slot order: its normal functions without a
+    /// representation whose FnDef is a NO, NC or change-over contact (a relay's free contacts, FT-1693).
+    pub fn unplaced_contacts(&self, device: Uuid) -> Vec<(Uuid, String)> {
+        let q = self.query();
+        let idx = q.idx();
+        let mut out: Vec<(Uuid, String)> = idx
+            .functions_of_device(Id::from_uuid(device))
+            .filter(|f| {
+                q.functions().get(*f).is_some_and(|r| {
+                    r.kind == FunctionKind::Normal
+                        && q.fndefs().get(r.def).is_some_and(|d| {
+                            matches!(
+                                d.item.contact_kind,
+                                ContactKind::No | ContactKind::Nc | ContactKind::Co
+                            )
+                        })
+                }) && idx.reps_of_function(*f).next().is_none()
+            })
+            .map(|f| (f.as_uuid(), slot_of(&q, f)))
+            .collect();
+        out.sort_by(|a, b| natural_cmp(&a.1, &b.1).then_with(|| a.0.cmp(&b.0)));
+        out
+    }
 }
 
 #[cfg(test)]

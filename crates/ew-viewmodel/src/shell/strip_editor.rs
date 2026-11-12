@@ -177,7 +177,7 @@ impl ShellModel {
     }
 
     /// The strip of a device: itself when it is a strip, its strip when it is a terminal.
-    fn strip_of_device(&self, d: Uuid) -> Option<Uuid> {
+    pub(super) fn strip_of_device(&self, d: Uuid) -> Option<Uuid> {
         let project = self.project.as_ref()?;
         let q = project.session.query();
         let device = q.devices().get(d.to_string().parse().ok()?)?;

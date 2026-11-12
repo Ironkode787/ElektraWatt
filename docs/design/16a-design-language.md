@@ -1112,6 +1112,31 @@ a submenu. Hover and keyboard highlight use the hover overlay, not the accent; a
 icon column. Separators are 1-px `color.border.subtle` lines with `space.2` above and below. Disabled items keep their
 place and show their reason as tooltip.
 
+**The right-click menu is the quick way to what fits the thing under the pointer** (FT-1693). One rule: its first
+entries are what fits the thing, by what it is; then the general ones. A right-click on an object with the Select tool
+selects it first; a right-click on an empty spot clears the selection. Shift+F10 or the menu key opens the same menu
+at the selection while the canvas has the keys. Every entry calls an action the window has elsewhere, aimed at the
+thing; one that cannot run now is disabled with its reason, as the command row's buttons are. The canvas's entries:
+
+| Under the pointer | First entries |
+|---|---|
+| A connection point | Mark not used, or Mark used |
+| One wire | Edit route, Wire marker, Define potential…, Cable… (a core's own cable), Print wire numbers (checked when on) |
+| Several selected wires | Make cable from the selection… |
+| A junction | Define potential… |
+| An interruption point | Go to partner (its cross-reference's cell; disabled while it has none), Direction: Source, Direction: Target (the current one checked), Continue on page… |
+| A terminal | Add terminal (its strip, its own kind, the next free number, floating at the pointer), Edit strip, Define potential… |
+| A symbol of a device | on a coil Add contact per free contact of its device by name (each floats its symbol; disabled with the way round when there is none), on a contact Go to coil; Join device…; Choose part…; Edit symbol (disabled with the reason a symbol can only be copied), Copy and edit; Define potential… on a symbol of one connection point |
+| A placement of a panel page | Turn, Flip, Lock or Unlock, Delete (and nothing general) |
+| The frame or the title block | Title block fields…, then an empty spot's entries |
+| An empty spot | Paste, Page properties, New page…, Print wire numbers (not on a panel page) |
+
+After an object's own entries come the command row's selection commands (the Arrange group: Rotate, Mirror,
+Renumber devices…), then Cut, Copy, Paste, Delete and Properties of selection. A navigator's row offers what the
+same thing offers on the page: a Potentials row Define potential…, a Terminal strips row of a strip Add terminal and
+Edit strip; the Pages tree New page… and New section…. Not yet offered: a strip's accessories (the strip editor's), and
+the rows of the Devices, Cables and PLC navigators.
+
 ### 6.14 The command palette
 
 Opened by Ctrl+K, Ctrl+Shift+P or the command search field: 560 px wide, anchored under the search field (or centred

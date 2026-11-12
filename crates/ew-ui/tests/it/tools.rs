@@ -1241,7 +1241,8 @@ pub(crate) fn right_click(h: &mut Harness<'_, App>, pos: Pos2) {
 }
 
 /// A right-click on an object selects it and opens the menu of the bar's selection commands and Delete at the
-/// pointer; an entry runs its action and closes the menu; a right-click on nothing offers Paste.
+/// pointer; an entry runs its action and closes the menu; a right-click on nothing offers Paste and clears the
+/// selection.
 #[test]
 fn a_right_click_opens_the_canvas_context_menu() {
     use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
@@ -1297,5 +1298,6 @@ fn a_right_click_opens_the_canvas_context_menu() {
     assert!(h.state().shell().canvas().unwrap().hover().is_none());
     assert!(h.query_by_label_contains("Paste").is_some(), "Paste over nothing");
     assert!(h.query_by_label("Delete").is_none());
+    assert!(h.state().shell().selection().items.is_empty());
     h.state_mut().shell_mut().shutdown();
 }

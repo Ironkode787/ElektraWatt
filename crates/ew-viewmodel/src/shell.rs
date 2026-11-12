@@ -38,6 +38,8 @@ mod creation;
 // The closed sets of a form field's choices.
 pub mod choices;
 mod clipboard;
+// The canvas context menu's entries that fit the thing under the pointer (FT-1693).
+mod context_menu;
 pub mod symbol_editor;
 // The text and graphic tools' host duties.
 mod drawing;

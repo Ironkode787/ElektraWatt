@@ -548,6 +548,15 @@ impl ShellModel {
         self.edit_target(&Map::new()).ok()?.folder.err()
     }
 
+    /// Why Edit symbol cannot open the symbol `p` names (`symbol`: its key, copy ID or library address): its library
+    /// is read-only, the project alone holds it, or it is not found; `None` when it can (the canvas menu, FT-1693).
+    pub(super) fn symbol_edit_reason(&self, p: &Map<String, Value>) -> Option<String> {
+        match self.edit_target(p) {
+            Ok(t) => t.folder.err(),
+            Err(why) => Some(why),
+        }
+    }
+
     /// `symbol.edit` and, with `copy`, `symbol.copy_edit` (FT-1694): the symbol editor on the symbol of the browser's
     /// current row (or the one `symbol` names), the browser closed. Edit symbol opens the symbol itself, under its own
     /// key, saving to its library (a new version there); a symbol of a read-only library, or one the project alone

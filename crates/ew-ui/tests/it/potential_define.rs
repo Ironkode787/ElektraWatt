@@ -321,18 +321,12 @@ fn define_potentials_type_is_chosen_from_a_list() {
         .click();
     settle(&mut h);
     for word in ["None", "L1", "N", "PE", "L-", "M"] {
-        assert!(
-            h.query_all_by_label(word).next().is_some(),
-            "{word} is a choice"
-        );
+        assert!(h.query_all_by_label(word).next().is_some(), "{word} is a choice");
     }
     h.get_by_label("L+").click();
     settle(&mut h);
     let form = h.state().shell().palette().and_then(|p| p.form.clone());
-    assert_eq!(
-        form.map(|f| f.fields[1].value.clone()).as_deref(),
-        Some("l_plus")
-    );
+    assert_eq!(form.map(|f| f.fields[1].value.clone()).as_deref(), Some("l_plus"));
     h.key_press(egui::Key::Enter);
     settle(&mut h);
     let shell = h.state().shell();

@@ -909,8 +909,11 @@ struct GroupView {
     /// (measured by the window's input clock, never by the model; a test harness steps that clock, so a double click is
     /// decided without a sleep).
     last_press: Option<(f64, Pos2)>,
-    /// Whether the open context menu was opened over an object (its selection commands) or over nothing (Paste);
-    menu_over: bool,
+    /// Where the open context menu was opened: over an object, the frame or an empty spot (FT-1693).
+    menu_spot: ew_viewmodel::command_bar::MenuSpot,
+    /// Where the open context menu stands when Shift+F10 or the menu key opened it (the selection's middle); `None`
+    /// when a right-click opened it at the pointer.
+    menu_at: Option<Pos2>,
     /// The connection point the open context menu was opened over (its ID): the menu marks it not used or used.
     menu_cp: Option<ew_viewmodel::ew_api::output::Uuid>,
     /// The page (session, folio) of the previous frame: a page change suppresses the pointer replay, a view or model
@@ -945,7 +948,8 @@ impl GroupView {
             drawn: false,
             pressed: false,
             last_press: None,
-            menu_over: false,
+            menu_spot: ew_viewmodel::command_bar::MenuSpot::Sheet,
+            menu_at: None,
             menu_cp: None,
             page: None,
             model: None,
@@ -1884,10 +1888,12 @@ impl CanvasHost {
         );
     }
 
-    /// The canvas context menu: a right-click with the Select tool opens, at the pointer, the selection's
-    /// commands over an object (selecting it first when it is not selected) or Paste over nothing
-    /// ([`ew_viewmodel::command_bar::canvas_menu`]); nothing opens when the menu would be empty. A disabled entry shows
-    /// its reason in its tooltip; a click on an entry dispatches its action and closes the menu.
+    /// The canvas context menu (FT-1693): a right-click with the Select tool opens, at the pointer, what fits the
+    /// thing under it ([`ew_viewmodel::command_bar::canvas_menu`]): over an object, selected first when it is not, its
+    /// own entries and then the general ones; over the title block its fields; over an empty spot Paste, the page's
+    /// properties and New page (the selection cleared, so Properties shows the page). Shift+F10 or the menu key opens
+    /// the same menu at the selection while the canvas has the keys. A disabled entry shows its reason in its tooltip;
+    /// a click on an entry dispatches its action and closes the menu.
     ///
     /// With any other tool a right-click is Escape (the owner's hands-on test of 0.1.0: a right click should cancel
     /// whatever is active, placing a device or drawing a wire): it dismisses as the key does, one step per click,
@@ -1900,41 +1906,73 @@ impl CanvasHost {
         group: usize,
         events: &mut Vec<Event>,
     ) {
+        use ew_viewmodel::command_bar::{MenuSpot, canvas_menu, menu_spot};
         let id = response.id.with("context-menu");
         let mut open = None;
-        if response.secondary_clicked() && shell.tool().name() == "select" {
+        let select = shell.tool().name() == "select";
+        let keys = select
+            && shell.focus() == Some(Focus::Canvas(group))
+            && !shell.selection().items.is_empty()
+            && response.ctx.input_mut(|i| {
+                i.consume_key(Modifiers::SHIFT, Key::F10) || i.consume_key(Modifiers::NONE, Key::Menu)
+            });
+        if response.secondary_clicked() && select {
             let over = canvas.hover().map(|(e, _)| e);
-            if !ew_viewmodel::command_bar::canvas_menu(shell, over.is_some()).is_empty() {
-                if let Some(e) = over.filter(|e| !shell.selection().items.contains(e)) {
-                    events.push(Event::Action("select.set", json!({"ids": [e.0.to_string()]})));
+            let spot = menu_spot(canvas, over);
+            if !canvas_menu(shell, spot).is_empty() {
+                match over.filter(|_| spot == MenuSpot::Object) {
+                    Some(e) if !shell.selection().items.contains(&e) => {
+                        events.push(Event::Action("select.set", json!({"ids": [e.0.to_string()]})));
+                    }
+                    None if !shell.selection().items.is_empty() => {
+                        events.push(Event::Action("select.set", json!({"ids": []})));
+                    }
+                    _ => {}
                 }
-                self.views[group].menu_over = over.is_some();
+                self.views[group].menu_spot = spot;
                 self.views[group].menu_cp = canvas.hovered_cp().map(|cp| cp.id);
+                self.views[group].menu_at = None;
                 open = Some(egui::SetOpenCommand::Bool(true));
             }
+        } else if keys {
+            // At the first selected object's middle, as the pointer would stand.
+            let page = canvas.page();
+            self.views[group].menu_at = page
+                .entities
+                .iter()
+                .find(|(e, _)| shell.selection().items.contains(e))
+                .map(|(_, r)| ew_viewmodel::canvas::rect_centre(*r))
+                .map(|(x, y)| {
+                    let (px, py) = view_of(canvas).transform().to_screen((x as f64, y as f64));
+                    let ppp = canvas.ppp();
+                    response.rect.min + egui::vec2((px / ppp) as f32, (py / ppp) as f32)
+                })
+                .or(Some(response.rect.center()));
+            self.views[group].menu_spot = MenuSpot::Object;
+            self.views[group].menu_cp = None;
+            open = Some(egui::SetOpenCommand::Bool(true));
         } else if response.clicked() || response.secondary_clicked() {
             open = Some(egui::SetOpenCommand::Bool(false));
             if response.secondary_clicked() {
                 events.push(Event::Action("ui.dismiss", json!({})));
             }
         }
-        let over = self.views[group].menu_over;
+        let spot = self.views[group].menu_spot;
         let cp = self.views[group]
             .menu_cp
-            .filter(|_| over)
+            .filter(|_| spot == MenuSpot::Object)
             .and_then(|cp| ew_viewmodel::command_bar::cp_menu(shell, cp));
-        egui::Popup::context_menu(response)
-            .id(id)
-            .open_memory(open)
-            .show(|ui| {
-                // Over a connection point, Mark not used or Mark used first (FT-1649).
-                for item in cp
-                    .iter()
-                    .chain(&ew_viewmodel::command_bar::canvas_menu(shell, over))
-                {
-                    crate::menu::item(ui, item, events);
-                }
-            });
+        let popup = egui::Popup::context_menu(response).id(id).open_memory(open);
+        let popup = match self.views[group].menu_at {
+            Some(at) => popup.at_position(at),
+            None => popup,
+        };
+        popup.show(|ui| {
+            // Over a connection point, Mark not used or Mark used first (FT-1649).
+            for item in cp.iter().chain(&canvas_menu(shell, spot)) {
+                crate::menu::item(ui, item, events);
+            }
+        });
     }
 
     /// The sheet point (nm) under the screen position `pos` (points), with the model's exact view.

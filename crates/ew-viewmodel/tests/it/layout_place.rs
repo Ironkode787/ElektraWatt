@@ -13,7 +13,7 @@ use ew_viewmodel::key;
 
 use common::{Tmp, at, done, refused, state};
 use ew_viewmodel::actions::ActionItem;
-use ew_viewmodel::command_bar::{canvas_menu, hud};
+use ew_viewmodel::command_bar::{MenuSpot, canvas_menu, hud};
 use ew_viewmodel::ew_api::output::{PanelTables, Uuid};
 use ew_viewmodel::navigators::NavKind;
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
@@ -785,7 +785,7 @@ fn nudge_turn_lock_and_delete_a_selected_placement() {
     assert_eq!(panel(&shell).placement(f1).unwrap().pose.2, 2);
     // Lock, then the menu offers Unlock.
     let labels = |shell: &ShellModel| -> Vec<(String, &'static str)> {
-        canvas_menu(shell, true)
+        canvas_menu(shell, MenuSpot::Object)
             .into_iter()
             .map(|i: ActionItem| (i.label, i.id))
             .filter(|(_, id)| id.starts_with("layout.") || *id == "edit.delete_selection")
