@@ -41,7 +41,9 @@ impl Query for CheckOf {
         // rule that reads nothing else of a deleted page or device goes with it instead of staying in the store.
         let live = match scope {
             Scope::Page(p) => q.pages().contains(*p),
-            Scope::Strip(d) | Scope::Device(d) | Scope::Cable(d) | Scope::Module(d) => q.devices().contains(*d),
+            Scope::Strip(d) | Scope::Device(d) | Scope::Cable(d) | Scope::Module(d) => {
+                q.devices().contains(*d)
+            }
             Scope::Cfg(c) => q.table::<ew_derive::ew_schema::PlcConfigProject>().contains(*c),
             Scope::Lnet(n) => q.table::<ew_derive::ew_schema::LogicalNet>().contains(*n),
             Scope::Pnet(n) => q.table::<ew_derive::ew_schema::PhysicalNet>().contains(*n),

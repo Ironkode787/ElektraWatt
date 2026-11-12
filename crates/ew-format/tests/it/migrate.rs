@@ -260,7 +260,11 @@ fn a_kind_step_runs_between_the_format_steps_at_the_format_it_names() {
     };
     let record = json!({"$k": "project", "$v": 0, "id": "7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37", "trace": []});
     let trace = |from: &str| {
-        let migrated = TWO_HOPS.towards(from, "c").unwrap().record(record.clone()).unwrap();
+        let migrated = TWO_HOPS
+            .towards(from, "c")
+            .unwrap()
+            .record(record.clone())
+            .unwrap();
         migrated["trace"].clone()
     };
     assert_eq!(trace("a"), json!(["format a-b", "kind", "format b-c"]));
