@@ -713,7 +713,9 @@ fn l_tail(
 ///
 /// The direct route is the straight run between aligned ends, else the L of [`l_tail`]. It is taken when
 /// [`pass_through`]'s rule finds at least one representation passed on it (the CPs of `own` and at the two ends not
-/// counted), every passed CP lying on the route itself (not beside it, a jog away), and the router's own tests
+/// counted), every one passed a terminal (a fuse, a contact or a coil standing in line is gone round, not put in series
+/// by accident: dropped on a wire it is put in series), every passed CP lying on the route itself (not beside it, a
+/// jog away), and the router's own tests
 /// ([`clear_one`]: the page's bodies and texts, other wires, other CPs and stubs) find it clear with the passed
 /// representations' bodies, texts and CPs left out. Otherwise `None`, and the router runs as before.
 fn through_route(
@@ -728,12 +730,11 @@ fn through_route(
     }
     let direct = clean(l_tail((from, from_dir, arrive), t, to.dir()));
     let found = passes(cx, own, [from, t], &direct)?;
-    // In line: the route runs over the passed CPs themselves, not beside them.
-    if found
-        .passes
-        .iter()
-        .any(|(entry, exit)| entry.proj != entry.cp.at || exit.proj != exit.cp.at)
-    {
+    // In line: the route runs over the passed CPs themselves, not beside them; and every one passed is a terminal.
+    let terminal = |rep: Uuid| cx.page.tables.reps.iter().any(|r| r.id == rep && r.terminal);
+    if found.passes.iter().any(|(entry, exit)| {
+        entry.proj != entry.cp.at || exit.proj != exit.cp.at || !terminal(entry.cp.rep)
+    }) {
         return None;
     }
     let mut through: Vec<Uuid> = found.passes.iter().map(|(entry, _)| entry.cp.rep).collect();

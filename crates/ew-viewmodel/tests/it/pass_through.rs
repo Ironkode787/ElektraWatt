@@ -329,6 +329,28 @@ fn a_terminal_one_step_off_the_line_is_routed_around() {
     assert!(cp(&s, "-X1031:70/a").connections.is_empty());
 }
 
+/// A straight wire across a free coil standing in line put the coil in series by accident (FT-768): only a terminal is
+/// connected through; any other symbol in line is gone round, and is put in series by dropping it on a wire.
+#[test]
+fn two_clicks_across_a_free_coil_in_line_go_round_it() {
+    let tmp = Tmp::new("ft768-coil");
+    let mut s = circuit_with(&tmp, &[], (60, 30));
+    place(
+        &mut s,
+        json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}),
+        (60, 44),
+    );
+    let (switch, far) = (cp(&s, "-103S1:14"), cp(&s, "-103K2:A1"));
+    assert_eq!(switch.at.0, far.at.0, "the coil -103K1 stands in line");
+    let before = tables(&s);
+    done(&mut s, "tool.wire", json!({}));
+    click(&mut s, switch.at, false);
+    click(&mut s, far.at, false);
+    assert_eq!(new_ends(&before, &s), [pair("-103S1:14", "-103K2:A1")]);
+    assert!(cp(&s, "-103K1:A1").connections.is_empty());
+    assert!(cp(&s, "-103K1:A2").connections.is_empty());
+}
+
 #[test]
 fn two_terminals_in_line_are_both_passed() {
     let tmp = Tmp::new("fx38c-two");

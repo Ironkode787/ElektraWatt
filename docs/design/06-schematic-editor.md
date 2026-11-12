@@ -1138,7 +1138,9 @@ grid step, their texts (tags, slot texts, pin texts) grown by a quarter step, th
 area, the vertices and tracks of the other wires (a right-angle crossing stays allowed) and every other CP with its
 stub; the two ends' own rectangles block except along a CP's escape corridor. The tool tries the passes Clear, then
 without the texts, then the bodies alone, each in an area of 4 and then 16 grid steps around the ends, after the
-direct route through a free representation in line; only without any route does it leave the connection unrouted and say so.
+direct route through a free terminal in line (only a terminal: a fuse, a contact or a coil standing in line is gone
+round, and is put in series by dropping it on a wire, §5.3); only without any route does it leave the connection
+unrouted and say so.
 
 Under [ADR-0033](../adr/0033-schematic-routing-model.md), this section's router is replaced by the page router of the
 WP-S2.19 specification §5: the search moves to
