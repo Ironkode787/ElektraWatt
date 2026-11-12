@@ -770,7 +770,7 @@ impl ShellModel {
         let found = project.session.layout_locations().into_iter().find(|(id, code)| {
             id.to_string() == location || *code == location || code.trim_start_matches('+') == location
         });
-        let Some((location_id, _)) = found else {
+        let Some((location_id, location_code)) = found else {
             let message = strings::format(key!("error-no-location"), &[&location]);
             return self.form_failed(ACTION, message);
         };
@@ -795,10 +795,23 @@ impl ShellModel {
             params["copies"] = Value::Array(offer.copies);
         }
         let before = project.session.surface_choices();
+        let words = if offer.description.is_empty() {
+            offer.number.clone()
+        } else {
+            offer.description.clone()
+        };
         let out = self.host_create("layout.enclosure.create_from_part", params);
         let out = self.layout_form_done(ACTION, out);
         if out == Outcome::Done {
-            self.show_new_surface(page, &before);
+            let shown = self.show_new_surface(page, &before);
+            // One toast for the step (FT-1719); it replaces the toast of an earlier step. Its Undo takes back the
+            // enclosure, so it is offered only when the plate shown on the page is not the newer step.
+            let key = if shown {
+                key!("toast-enclosure-new-shown")
+            } else {
+                key!("toast-enclosure-new")
+            };
+            self.notify(strings::format(key, &[&words, &location_code]), !shown);
         }
         out
     }
@@ -806,24 +819,26 @@ impl ShellModel {
     /// After Enclosure… on a panel layout page that shows no enclosure yet, the page shows the new enclosure's
     /// mounting plate, centred at its fitting scale, as the page's Surface row would (one more undo step, FT-1687): the
     /// person lands where the rails, ducts and devices are drawn. Another page, or one that shows a plate already,
-    /// is left as it is.
-    fn show_new_surface(&mut self, page: Option<Uuid>, before: &[(Uuid, String)]) {
-        let Some(page) = page else { return };
+    /// is left as it is. Whether the page now shows the plate.
+    fn show_new_surface(&mut self, page: Option<Uuid>, before: &[(Uuid, String)]) -> bool {
+        let Some(page) = page else { return false };
         let panel = self
             .page_rows()
             .get(self.page_index())
             .is_some_and(|r| r.kind == "panel_layout");
         if !panel || self.panel_tables().is_some() {
-            return;
+            return false;
         }
-        let Some(project) = &self.project else { return };
+        let Some(project) = &self.project else {
+            return false;
+        };
         let Some((surface, _)) = project
             .session
             .surface_choices()
             .into_iter()
             .find(|(id, _)| !before.iter().any(|(b, _)| b == id))
         else {
-            return;
+            return false;
         };
         let edit = ew_api::output::LayoutEdit {
             kind: "page".to_owned(),
@@ -831,8 +846,9 @@ impl ShellModel {
             row: "derived.surface".to_owned(),
             text: surface.to_string(),
         };
-        if let Ok(cmd) = project.session.layout_edit(&edit) {
-            let _ = self.run_commit(&cmd);
+        match project.session.layout_edit(&edit) {
+            Ok(cmd) => self.run_commit(&cmd) == Outcome::Done,
+            Err(_) => false,
         }
     }
 

@@ -160,6 +160,22 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
         h.state().shell().panel_tables().is_some(),
         "the page shows the enclosure's plate"
     );
+    // FT-1719: one toast, the enclosure's; the location node's toast before it is gone from the screen.
+    assert!(
+        h.query_all_by_label_contains("Created the enclosure")
+            .next()
+            .is_some_and(|n| n
+                .accesskit_node()
+                .label()
+                .is_some_and(|l| l.ends_with("at +K1; the page shows its mounting plate."))),
+        "the enclosure's toast"
+    );
+    assert!(
+        h.query_all_by_label_contains("Created the location node")
+            .next()
+            .is_none(),
+        "the location node's toast is replaced"
+    );
     assert!(
         rail_reason(&h).ends_with("\"Rail\" enabled"),
         "{}",
@@ -169,6 +185,63 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
         !support::bar_button(&h, "Rail").accesskit_node().is_disabled(),
         "the Rail button"
     );
+}
+
+/// FT-1719: Enclosure… on a schematic page toasts the new enclosure with its Undo, which takes the enclosure back: a
+/// second Create at the same location is not refused ("already has enclosure").
+#[test]
+fn enclosure_toasts_the_new_enclosure_and_its_undo_takes_it_back() {
+    let tmp = Tmp::new();
+    let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
+    let mut h = support::harness_with(shell, support::Scripted::default(), None);
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.new",
+        json!({"dir": tmp.0.join("p.ew"), "template": "builtin"}),
+    );
+    dispatch(
+        &mut h,
+        "structure.new",
+        json!({"kind": "location", "designation": "K1"}),
+    );
+    let create = |h: &mut Harness<'_, App>| {
+        support::open_menu(h, &["Project", "Setup"]);
+        support::menu_node(h, "Enclosure…").click();
+        settle(h);
+        h.get_by_label("Create").click();
+        settle(h);
+        assert!(
+            h.state().shell().dialog().is_none(),
+            "{:?}",
+            h.state().shell().dialog()
+        );
+    };
+    create(&mut h);
+    let toast = h
+        .query_all_by_label_contains("Created the enclosure")
+        .next()
+        .and_then(|n| n.accesskit_node().label())
+        .expect("the enclosure's toast");
+    assert!(toast.ends_with(" at +K1."), "{toast}");
+    assert!(
+        h.query_all_by_label_contains("Created the location node")
+            .next()
+            .is_none(),
+        "the location node's toast is replaced"
+    );
+    // The toast's own Undo, not the command bar's.
+    let toast_rect = h
+        .get_all_by_role(egui::Role::Group)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Notification"))
+        .expect("the toast's node")
+        .rect();
+    h.get_all_by_role(egui::Role::Button)
+        .find(|n| n.accesskit_node().label().as_deref() == Some("Undo") && toast_rect.contains_rect(n.rect()))
+        .expect("the toast's Undo")
+        .click();
+    settle(&mut h);
+    create(&mut h);
 }
 
 #[test]

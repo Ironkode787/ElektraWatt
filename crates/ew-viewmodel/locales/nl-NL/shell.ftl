@@ -3874,6 +3874,9 @@ auto-fill-devices-marked-one = Vult met het apparaat dat in Ongeplaatste apparat
 error-no-rail = De pagina heeft geen rail; teken er eerst een.
 toast-auto-fill = { $p0 } geplaatst op { $p1 }.
 toast-auto-fill-left = { $p0 } geplaatst op { $p1 }; { $p2 }.
+# FT-1719
+toast-enclosure-new = Kast { $p0 } bij { $p1 } gemaakt.
+toast-enclosure-new-shown = Kast { $p0 } bij { $p1 } gemaakt; de pagina toont de montageplaat.
 enclosure-new-no-location = Het project heeft nog geen locatie; voeg er eerst een toe met { $p0 }.
 enclosure-new-no-part = Er staat geen kastartikel in het project of in een geïnstalleerde bibliotheek; typ een artikelnummer.
 auto-fill-devices = { $p0 } apparaten
