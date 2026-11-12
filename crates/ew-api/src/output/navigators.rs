@@ -912,13 +912,15 @@ fn sorted(mut v: Vec<Keyed>) -> Vec<Drawable> {
         .collect()
 }
 
-/// The label of a representation row, and where a drawable sits (the Placed on column): `<folio>-<cell>`, the folio
-/// alone without a cell.
-fn rep_label(d: &Drawable) -> String {
-    if d.cell.is_empty() {
-        d.folio.clone()
-    } else {
-        format!("{}-{}", d.folio, d.cell)
+impl Drawable {
+    /// The label of a representation row, and where a drawable sits (the Placed on column, a row menu's Go to):
+    /// `<folio>-<cell>`, the folio alone without a cell.
+    pub fn place(&self) -> String {
+        if self.cell.is_empty() {
+            self.folio.clone()
+        } else {
+            format!("{}-{}", self.folio, self.cell)
+        }
     }
 }
 
@@ -1373,7 +1375,7 @@ fn device_node(
                 Some(fnode),
                 NavRole::Representation,
                 &format!("representation:{}", x.record),
-                rep_label(&x),
+                x.place(),
                 badges,
                 vec![x.record],
                 vec![x.clone()],
@@ -2230,7 +2232,7 @@ fn plc_table(q: &Q, b: &mut Builder) {
                     channel_kind_word(&r.kind).to_owned(),
                     r.text.process_tag.clone().unwrap_or_default(),
                     r.state.name().to_owned(),
-                    page.as_ref().map(rep_label).unwrap_or_default(),
+                    page.as_ref().map(Drawable::place).unwrap_or_default(),
                     station_tag.clone(),
                     slot_text(&r.slot),
                     comment,
@@ -3104,7 +3106,7 @@ fn finding_node(
         Some((folio, u)) => primary
             .iter()
             .find(|d| d.page == *u)
-            .map_or_else(|| folio.clone(), rep_label),
+            .map_or_else(|| folio.clone(), Drawable::place),
         None => String::new(),
     };
     let waived = matches!(f.state, crate::checks::FindingState::Waived { .. });

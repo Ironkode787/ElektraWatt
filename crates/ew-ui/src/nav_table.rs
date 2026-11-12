@@ -101,11 +101,12 @@ impl TableUi {
         &mut self,
         ui: &mut Ui,
         nav: &Navigator,
-        writable: bool,
+        shell: &ew_viewmodel::shell::ShellModel,
         preview: Option<Result<Vec<String>, String>>,
         focus: (egui::Id, bool),
         events: &mut Vec<Event>,
     ) -> bool {
+        let writable = ew_viewmodel::actions::find("table.edit").is_some_and(|a| (a.enabled)(shell).is_ok());
         let (table_id, ours) = focus;
         let kind = nav.kind;
         let (Some(table), Some(mode)) = (nav.table(), nav.table_mode()) else {
@@ -223,6 +224,7 @@ impl TableUi {
             edit: edit_cell,
             fresh,
             commit_hint: ew_viewmodel::navigators::table::commit_all_hint(nav),
+            shell,
             writable,
             buffer: &mut self.buffer,
             edit_id: table_id.with("edit"),
@@ -892,6 +894,8 @@ struct Delegate<'a> {
     fresh: bool,
     /// What the editor says while more than one row is marked ("Ctrl+Enter sets all 12 marked rows.").
     commit_hint: Option<String>,
+    /// The shell, for a row's context menu.
+    shell: &'a ew_viewmodel::shell::ShellModel,
     /// Whether the project is writable (a double click edits).
     writable: bool,
     buffer: &'a mut String,
@@ -1270,15 +1274,23 @@ impl TableDelegate for Delegate<'_> {
         };
         let word = self.kind.word();
         let key = column.key.clone();
-        // The row's context menu, when the row offers an action (Define potential… on a Potentials row).
-        let menu = ew_viewmodel::command_bar::navigator_row_menu(self.kind, node, self.writable);
-        if !menu.is_empty() {
-            let events = &mut *self.events;
-            response.context_menu(|ui| {
-                for item in &menu {
-                    crate::menu::item(ui, item, events);
+        // The row's context menu, when the row offers an action (`navigator_row_menu`), built only while it opens or
+        // is open. The right-click selects the row first, as a click does (a page row: opens its page), unless it is
+        // marked already, so the entries act on it.
+        if response.secondary_clicked() || response.context_menu_opened() {
+            let menu = ew_viewmodel::command_bar::navigator_row_menu(self.shell, self.kind, node);
+            if !menu.is_empty() {
+                if response.secondary_clicked() && !self.marked.contains(&node.key) {
+                    let page = node.role == NavRole::Page;
+                    crate::navigator::select_row(self.kind, &node.key, page, self.events);
                 }
-            });
+                let events = &mut *self.events;
+                response.context_menu(|ui| {
+                    for item in &menu {
+                        crate::menu::item(ui, item, events);
+                    }
+                });
+            }
         }
         if response.double_clicked() {
             if self.writable && reason.is_none() {

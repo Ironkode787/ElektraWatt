@@ -508,10 +508,10 @@ pub fn menu_spot(
 /// first what fits the thing by what it is, then the general entries.
 ///
 /// - Over an object: the entries that fit it (`ShellModel::menu_fits`: a wire's, an interruption point's, a
-///   terminal's, a device's), then the commands the command bar offers for the selection (the buttons of
-///   [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then its other
-///   variants), then Cut, Copy, Paste, Delete and Properties of selection. Over a placement of a panel page: Turn,
-///   Flip, Lock or Unlock, and Delete.
+///   terminal's, a device's), then, where the selection holds a symbol, the commands the command bar offers for it
+///   (the buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then
+///   its other variants), then Cut, Copy, Paste, Delete and Properties of selection. Over a placement of a panel
+///   page: Turn, Flip, Lock or Unlock, and Delete.
 /// - Over the frame or the title block: Title block fields…, then what an empty spot offers.
 /// - Over an empty spot: Paste, Page properties, New page… and, on a page that is not a panel layout, Print wire
 ///   numbers.
@@ -550,7 +550,18 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot) -> Vec<ActionItem> {
     }
     let bar = command_bar_of(model, Tab::Draw);
     let mut items = model.menu_fits();
-    for g in bar.groups.iter().filter(|g| SELECTION_GROUPS.contains(&g.group)) {
+    // Rotate, Mirror and Renumber devices… act on symbols: a selection without one (wires, a junction, a text) is
+    // not offered them.
+    let symbols = model.canvas().is_some_and(|c| {
+        tools::selection_kinds(model.selection(), &c.page().tables)
+            .iter()
+            .any(|(_, k)| *k == tools::EntityKind::Rep)
+    });
+    for g in bar
+        .groups
+        .iter()
+        .filter(|g| symbols && SELECTION_GROUPS.contains(&g.group))
+    {
         for b in &g.buttons {
             let variants = match &b.kind {
                 ButtonKind::Menu(_) => continue,
@@ -582,9 +593,15 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot) -> Vec<ActionItem> {
     items
 }
 
-/// The context menu of the Pages tree: what the project can gain there, New page… and New section… (FT-1634),
-/// each in the state of `model` (disabled with its reason in a read-only project).
-pub fn pages_tree_menu(model: &ShellModel) -> Vec<ActionItem> {
+/// The context menu of the Pages tree's row `row`: on a page, what the Page tab offers for it (FT-1693,
+/// `ShellModel::page_row_fits`); elsewhere what the project can gain there, New page… and New section… (FT-1634). Each
+/// in the state of `model` (disabled with its reason in a read-only project).
+pub fn pages_tree_menu(model: &ShellModel, row: &crate::shell::ShownRow) -> Vec<ActionItem> {
+    if row.role == crate::navigators::NavRole::Page.word() {
+        let mut items = Vec::new();
+        model.page_row_fits(&row.key, &mut items);
+        return items;
+    }
     ["page.new", "section.new"]
         .into_iter()
         .filter_map(actions::find)
@@ -622,14 +639,16 @@ pub fn cp_menu(model: &ShellModel, cp: ew_api::output::Uuid) -> Option<ActionIte
 
 /// A navigator row's context menu, what the same thing offers on the page: on a Potentials row with a definition
 /// point (`NavNode::define_at`), Define potential… at it (`potential.draw_row`); on a Terminal strips row of a strip,
-/// Add terminal and Edit strip (FT-1707). Each disabled with its reason in a read-only project. Empty when the row
-/// offers nothing: the window then opens no menu.
+/// Add terminal and Edit strip (FT-1707); on a device's, a PLC channel's, a cable's and a page's row their entries
+/// (FT-1693, `ShellModel::row_fits`). Each disabled with its reason where it cannot run. Empty when the row offers
+/// nothing: the window then opens no menu.
 pub fn navigator_row_menu(
+    model: &ShellModel,
     kind: crate::navigators::NavKind,
     node: &crate::navigators::NavNode,
-    writable: bool,
 ) -> Vec<ActionItem> {
     use crate::navigators::{NavKind, NavRole};
+    let writable = model.read_only_reason().is_none();
     let item = |id: &'static str, params: serde_json::Value, label: Key<'static>| ActionItem {
         id,
         params,
@@ -653,7 +672,7 @@ pub fn navigator_row_menu(
                 item("strip.edit", strip, key!("canvas-edit-strip")),
             ]
         }
-        _ => Vec::new(),
+        _ => model.row_fits(kind, node),
     }
 }
 

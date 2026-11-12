@@ -20,13 +20,15 @@
 //! under the fields, a success closes the form with a toast.
 
 use ew_api::output::Uuid;
+use ew_api::output::ew_dl::{Destination, EntityRef};
 use serde_json::{Map, Value};
 
 use super::{Dialog, FormDialog, FormField, Mode, Outcome, ShellModel, failed};
+use crate::canvas::PageId;
 use crate::key;
 use crate::strings;
 use crate::strings::Key;
-use crate::tools::{EntityKind, selection_kinds};
+use crate::tools::{EntityKind, SelectionChange, selection_kinds};
 
 /// The action of New cable….
 const NEW: &str = "cable.new";
@@ -171,6 +173,33 @@ impl ShellModel {
             .collect();
         wires.sort();
         wires.into_iter().map(|(_, id)| id).collect()
+    }
+
+    /// Shows the page of `cable`'s first wire in the focused tab, as a jump, with the cable's wires there selected
+    /// (Cable… from a Cables row). A cable without a wire is refused in words.
+    fn show_cable_wires(&mut self, cable: Uuid) -> Result<(), Outcome> {
+        let Some(project) = &self.project else {
+            return Err(Outcome::refused(key!("reason-no-project")));
+        };
+        let wires = project.session.cable_wires(cable);
+        let Some(page) = wires.first().and_then(|(w, _)| project.session.wire_page(*w)) else {
+            return Err(Outcome::refused(key!("reason-cable-no-wire")));
+        };
+        let on_page: Vec<EntityRef> = wires
+            .iter()
+            .filter(|(w, _)| project.session.wire_page(*w) == Some(page))
+            .map(|(w, _)| EntityRef(*w))
+            .collect();
+        let page = PageId(Destination::Page(page));
+        if let Some(g) = self.area.as_ref().map(|a| a.focused)
+            && self.current_page() != Some(page)
+        {
+            self.jump_to(g, page);
+        }
+        if self.tools.selection.apply(&SelectionChange::Replace(on_page)) {
+            self.announce_selection();
+        }
+        Ok(())
     }
 
     /// `cable.connect_cores {cable}` (Draw ▸ Connect ▸ Connect cores…): the selected wires become cores of
@@ -326,8 +355,17 @@ impl ShellModel {
     /// a typed tag of another existing cable puts the wires in that cable; a tag other than the proposal is frozen.
     /// `cores` is the form's table, or a text of cores in the wires' order (`BU BN`); absent, each wire keeps its core
     /// or takes the next free one. A new cable is one undo step; an existing cable that gains cores is two. No wire
-    /// selected, a type, a core or a tag the form does not take: refused in words.
+    /// selected, a type, a core or a tag the form does not take: refused in words. With `cable` (its ID, a Cables row's
+    /// Cable…, FT-1693) the page of its first wire shows first, the cable's wires there selected.
     pub(crate) fn act_cable_from_wires(&mut self, p: &Map<String, Value>) -> Outcome {
+        if let Some(cable) = given(p, "cable") {
+            let Ok(cable) = cable.parse::<Uuid>() else {
+                return failed(key!("error-bad-param"), &["cable"]);
+            };
+            if let Err(out) = self.show_cable_wires(cable) {
+                return out;
+            }
+        }
         let wires = self.selected_wires();
         if wires.is_empty() {
             return Outcome::refused(key!("reason-cores-no-wires"));

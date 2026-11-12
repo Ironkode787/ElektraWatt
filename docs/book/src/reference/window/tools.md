@@ -9,22 +9,28 @@ while it is active. `Esc` or a right click on the page cancels what the active t
 and ends at Select; with Select active, a right click opens the page's menu.
 
 The page's menu is the quick way to what fits the thing under the pointer: its first entries are that thing's, then
-come the general ones (Cut, Copy, Paste, Delete, Properties of selection). A right click selects the thing first;
-Shift+F10 or the menu key opens the same menu for the selection.
+come the general ones (Rotate, Mirror and Renumber devices… on a symbol; Cut, Copy, Paste, Delete, Properties of
+selection). A right click selects the thing first; Shift+F10 or the menu key opens the same menu for the selection.
 
-- On a wire: Edit route, Wire marker, Define potential…, Cable… and Print wire numbers. On several selected wires:
-  Make cable from the selection….
+- On a wire: Edit route, Wire marker, Define potential…, Cable… and Print wire numbers; a wire does not turn, so
+  there is no Rotate or Mirror. On several selected wires: Make cable from the selection….
 - On a terminal: Add terminal (the strip's next number, floating at the pointer) and Edit strip, which opens the strip
   editor. A strip's row in the Terminal strips navigator offers the same two.
 - On a relay's coil: Add contact, one entry per free contact of the relay by name; it floats the contact's symbol for
   a click. On a contact: Go to coil.
-- On a symbol of a device: Join device…, Choose part…, Edit symbol and Copy and edit.
+- On a symbol of a device: Join device… (only where another device can take it, such as a contact another relay
+  has free), Choose part…, Edit symbol and Copy and edit.
 - On an interruption point: Supply comes in here…, Go to partner, Direction: Source or Target, and Continue on page….
   Supply comes in here… says that the supply enters here from another drawing set (L1, L2, L3, N, PE from another
   drawing): its form proposes where the supply comes from and the device there, and one Apply marks every selected
   point; the points then print where they come from and are no longer reported as unpaired. On a marked point the
   entry reads Remove the supply mark. The same link stands under the point's name in Properties.
 - On the title block: Title block fields…. On an empty spot: Paste, Page properties, New page… and Print wire numbers.
+
+A navigator's row offers what the same thing offers on the page; a right click on a row selects it first. A device's
+row offers Go to (its first placement), its symbol's entries and Properties of selection; a cable's row Cable… and Go
+to; a page's row Open page in a new tab, Title block fields…, Page properties, New page… and Delete page (the right
+click opens the page). See [Navigators](panels.md#navigators).
 
 An entry that cannot be used now is greyed out, and its tooltip says why.
 

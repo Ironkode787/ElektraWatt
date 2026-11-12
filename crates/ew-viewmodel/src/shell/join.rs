@@ -309,11 +309,12 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// J with one placed symbol selected: the Join chooser of the devices it can join, one row per device (its first
-    /// slot, else auxiliary), its own device left out; Enter joins it with `rep.join_device`, its wires kept.
-    fn open_rep_join(&mut self, rep: Uuid, own: Uuid, fndef: Uuid) -> Outcome {
+    /// The devices the placed symbol `rep` (of device `own`, drawing a function of FnDef `fndef`) can join, one row per
+    /// device (its first slot, else auxiliary), its own device left out: the rows of [`Self::open_rep_join`]'s chooser,
+    /// and whether the canvas menu offers Join device… (FT-1693).
+    pub(crate) fn rep_join_rows(&self, rep: Uuid, own: Uuid, fndef: Uuid) -> Vec<ChooserRow> {
         let Some(project) = &self.project else {
-            return Outcome::refused(key!("reason-no-project"));
+            return Vec::new();
         };
         let mut rows: Vec<ChooserRow> = Vec::new();
         for c in project.session.join_candidates(fndef).rows {
@@ -337,6 +338,16 @@ impl ShellModel {
                 },
             });
         }
+        rows
+    }
+
+    /// J with one placed symbol selected: the Join chooser of the devices it can join ([`Self::rep_join_rows`]);
+    /// Enter joins it with `rep.join_device`, its wires kept.
+    fn open_rep_join(&mut self, rep: Uuid, own: Uuid, fndef: Uuid) -> Outcome {
+        if self.project.is_none() {
+            return Outcome::refused(key!("reason-no-project"));
+        }
+        let rows = self.rep_join_rows(rep, own, fndef);
         if rows.is_empty() {
             return Outcome::refused(key!("reason-join-no-device"));
         }
