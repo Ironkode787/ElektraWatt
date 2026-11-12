@@ -454,6 +454,19 @@ fn ft1660_a_wire_ended_on_a_wire_leaves_no_refusal_in_the_bar() {
 /// step behind the tip), so no wire reached it: the arrow ends the wire on its connection point.
 #[test]
 fn ft1660_a_click_on_an_interruption_points_arrow_ends_the_wire_on_it() {
+    wire_to_the_arrow(0);
+}
+
+/// A click two pixels beyond the arrow's tip, in line with a wire coming to it, placed a bend and the wire went on
+/// (the persona round before 0.2.0): the arrow counts with the snap's reach around it, as a connection point does.
+#[test]
+fn a_click_just_beyond_the_arrows_tip_ends_the_wire_on_it_too() {
+    wire_to_the_arrow(2);
+}
+
+/// A wire from a coil to an outgoing interruption point, ended by a click `beyond` pixels right of the arrow's tip:
+/// it ends on the point's connection point.
+fn wire_to_the_arrow(beyond: i64) {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
     place_relay(&mut d, (930, 620));
@@ -487,8 +500,9 @@ fn ft1660_a_click_on_an_interruption_points_arrow_ends_the_wire_on_it() {
     d.input(&click(d.find("Wire").unwrap()));
     d.settle();
     // From the coil to the arrow's tip, its insertion point.
-    for p in [coil, ip.pos] {
+    for (p, dx) in [(coil, 0), (ip.pos, beyond)] {
         let at = page_pixel(&mut d, &pixel, p);
+        let at = (at.0 + dx, at.1);
         d.input(&Input::Hover { at });
         d.input(&click(at));
         d.settle();

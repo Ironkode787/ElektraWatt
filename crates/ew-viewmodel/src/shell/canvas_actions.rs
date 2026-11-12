@@ -266,6 +266,13 @@ impl ShellModel {
                 }
             }
         }
+        // A Route page or Route selection card draws its plan on the canvas, and its panel takes room from the
+        // canvas: the planned routes stay in view, or the card would list a plan nobody can judge.
+        if let Some((min, max)) = bounds(&self.route_preview(g))
+            && let Some(c) = self.canvas_mut(g)
+        {
+            c.show_rect(min, max);
+        }
         Outcome::Done
     }
 
@@ -388,4 +395,13 @@ impl ShellModel {
         }
         Outcome::Done
     }
+}
+
+/// The rectangle around every point of `lines` (sheet nm); `None` without a point.
+fn bounds(lines: &[Vec<(i64, i64)>]) -> Option<((i64, i64), (i64, i64))> {
+    let mut points = lines.iter().flatten();
+    let first = *points.next()?;
+    Some(points.fold((first, first), |(min, max), p| {
+        ((min.0.min(p.0), min.1.min(p.1)), (max.0.max(p.0), max.1.max(p.1)))
+    }))
 }

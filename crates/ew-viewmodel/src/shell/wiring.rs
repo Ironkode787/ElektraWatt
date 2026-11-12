@@ -699,9 +699,17 @@ impl ShellModel {
                 };
                 strings::format(key, &[&wire])
             })
-            .collect();
+            .collect::<Vec<String>>();
+        // Where the plan routes nothing new, no card opens: the message then says why each wire stays unrouted, as
+        // the card would. (It gave the counts alone, "0 routed, 2 not routed", and no wire to look at.)
+        let with_reasons = |lead: String| Outcome::Failed {
+            message: std::iter::once(lead)
+                .chain(rows.iter().cloned())
+                .collect::<Vec<_>>()
+                .join(" "),
+        };
         let Some(params) = route_many_params(&plan) else {
-            return Outcome::Failed { message: lead };
+            return with_reasons(lead);
         };
         // A plan whose routes are the ones drawn changes nothing, so it opens no card.
         let unchanged = self.canvas().is_some_and(|c| {
@@ -715,7 +723,7 @@ impl ShellModel {
         });
         if unchanged {
             if !plan.unrouted.is_empty() {
-                return Outcome::Failed { message: lead };
+                return with_reasons(lead);
             }
             self.notify(strings::format(key!("toast-route-unchanged"), &[]), false);
             return Outcome::Done;

@@ -805,6 +805,26 @@ impl CanvasModel {
         self.update_hover();
     }
 
+    /// Brings the sheet rectangle from `min` to `max` into view. Nothing changes while the pane shows it whole;
+    /// else it is centred, at the current zoom where it fits the pane with [`FIT_MARGIN_PT`] around it, zoomed out to
+    /// fit where it does not. The view is then the user's own: a later pane size keeps it.
+    pub fn show_rect(&mut self, min: (i64, i64), max: (i64, i64)) {
+        let [x0, y0, x1, y1] = self.view_nm();
+        if min.0 >= x0 && min.1 >= y0 && max.0 <= x1 && max.1 <= y1 {
+            return;
+        }
+        let pt = self.points_per_nm() / self.zoom;
+        let fit = |pane: f64, side: i64| (pane - 2.0 * FIT_MARGIN_PT) / (side.max(1) as f64 * pt);
+        let whole = fit(self.pane.0, max.0 - min.0).min(fit(self.pane.1, max.1 - min.1));
+        if whole.is_finite() && whole > 0.0 && whole < self.zoom {
+            self.zoom = clamp_zoom(whole);
+        }
+        self.centre = (min.0 / 2 + max.0 / 2, min.1 / 2 + max.1 / 2);
+        self.clamp_centre();
+        self.fitted = false;
+        self.update_hover();
+    }
+
     /// The pointer is at sheet point `p` (`None`: it left the pane).
     pub fn set_pointer(&mut self, p: Option<(i64, i64)>) {
         self.pointer = p;

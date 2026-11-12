@@ -1081,6 +1081,9 @@ impl EditorView {
                     // The text typed after a click on the canvas is created at that click, on Enter.
                     if entered && !self.text.is_empty() && let Some(p) = self.text_mark.take() {
                         action(events,"symbol.draw",json!({"tool":TOOLS[6].0,"x":p[0],"y":p[1],"text":self.text}));
+                        // The field empties for the next label, so the next click marks its spot and takes the typing
+                        // again. Left full, each further click stamped the same text and the typing went nowhere.
+                        self.text.clear();
                     }
                 }
                 if self.tool == 10 { ui_band.allocate_ui_with_layout(Vec2::new(field_width * 2.0, band), egui::Layout::left_to_right(egui::Align::Center), |ui| field(ui,"symbol-name",&mut self.link_name)); }

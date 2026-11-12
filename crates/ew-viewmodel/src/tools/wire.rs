@@ -263,13 +263,18 @@ pub fn resolve_target(cx: &ToolCx<'_>, at: (i64, i64), alt: bool) -> WireTarget 
     }
     // An interruption point's arrow stands for its one connection point, which sits a grid step behind the tip
     // (FT-1660: a click on the arrow of an outgoing point snapped to the grid beside it, and no wire reached it).
+    // The arrow counts with the snap's reach around it, as a connection point does: a click on its very tip, in
+    // line with the wire coming down to it, is a click on the arrow.
     if best.is_none() {
+        let slop = i64::try_from(reach).unwrap_or(i64::MAX);
         let inside = |r: &&ew_api::output::TableRep| {
             let (a, b) = (
                 cx.snapper.page_to_sheet((r.body[0], r.body[1])),
                 cx.snapper.page_to_sheet((r.body[2], r.body[3])),
             );
-            (a.0.min(b.0)..=a.0.max(b.0)).contains(&at.0) && (a.1.min(b.1)..=a.1.max(b.1)).contains(&at.1)
+            let within =
+                |lo: i64, hi: i64, v: i64| (lo.saturating_sub(slop)..=hi.saturating_add(slop)).contains(&v);
+            within(a.0.min(b.0), a.0.max(b.0), at.0) && within(a.1.min(b.1), a.1.max(b.1), at.1)
         };
         best = tables
             .reps

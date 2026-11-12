@@ -774,10 +774,11 @@ fn route_page_previews_the_plan_and_applies_it_in_one_step() {
         .map(|c| c.stored_route)
         .collect();
     assert_eq!(routed.iter().filter(|r| **r).count(), 1, "{routed:?}");
-    // The unroutable wire stays; only it is left, so Route page previews it again and routes none.
+    // The unroutable wire stays; only it is left, so Route page routes none, opens no card, and says why, as the
+    // card did.
     assert_eq!(
         done_outcome(&mut s, "route.page"),
-        "Route 1 wire on folio 103: 0 routed, 1 not routed."
+        "Route 1 wire on folio 103: 0 routed, 1 not routed. No route keeps clear of symbols: -103K3:A2 → -103K2:A2."
     );
 }
 

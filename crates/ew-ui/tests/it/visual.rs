@@ -2181,14 +2181,9 @@ fn symbol_editor_text_click_with_an_empty_field_marks_the_spot_for_the_text_type
         (&marked[0]["text"], &marked[0]["align"]),
         (&json!({"en": "K1"}), &json!("centre"))
     );
-    // The same click with the field filled creates the text there at once: the mark was the click's own point.
-    d.input(&click(spot));
-    d.settle();
-    let both = texts(&mut d);
-    assert_eq!(both.len(), 2, "{both:?}");
-    assert_eq!(both[1]["pos"], marked[0]["pos"]);
-    // Escape drops a mark: the text typed afterwards is created nowhere, and the tool stays. The Text field is the
-    // rightmost widget named Text above the canvas (the tool's button and the field's caption are left of it).
+    // The Text field is the rightmost widget named Text above the canvas (the tool's button and the field's caption
+    // are left of it). It is empty again after the label; a text typed into it first is created by the click at
+    // once, at the click's own point: the mark was that point.
     let field = |d: &Driver| {
         d.labels()
             .into_iter()
@@ -2197,6 +2192,15 @@ fn symbol_editor_text_click_with_an_empty_field_marks_the_spot_for_the_text_type
             .max_by_key(|at| at.0)
             .unwrap()
     };
+    d.input(&click(field(&d)));
+    d.input(&Input::Type { text: "K1".into() });
+    d.input(&key("tab"));
+    d.input(&click(spot));
+    d.settle();
+    let both = texts(&mut d);
+    assert_eq!(both.len(), 2, "{both:?}");
+    assert_eq!(both[1]["pos"], marked[0]["pos"]);
+    // Escape drops a mark: the text typed afterwards is created nowhere, and the tool stays.
     d.input(&click(field(&d)));
     d.input(&key("ctrl+a"));
     d.input(&key("backspace"));
@@ -2838,5 +2842,105 @@ fn route_page_draws_its_planned_routes_on_the_canvas_until_apply_or_cancel() {
     d.input(&click(d.find("Cancel").expect("the card's Cancel")));
     d.settle();
     assert!(ghosts(&mut d).is_empty());
+    d.shell_mut().shutdown();
+}
+
+/// Route page's Preview panel takes half the canvas at the smallest window. The view then moves to the planned
+/// routes, so the plan can be judged before Apply: it kept the sheet's top in view, and wires low on the sheet, the
+/// very ones planned, lay under the panel (the persona round before 0.2.0).
+#[test]
+fn route_pages_planned_routes_stay_in_view_when_its_panel_opens() {
+    use ew_render2d::overlay::{ToolMark, ToolToken};
+    let tmp = Tmp::new();
+    let mut d = golden_on_101(&tmp);
+    // The three routed wires that lie lowest on the sheet lose their routes.
+    let ids: Vec<String> = {
+        let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+        let mut routed: Vec<(i64, String)> = tables
+            .connections
+            .iter()
+            .filter(|c| c.stored_route)
+            .map(|c| {
+                (
+                    c.polyline.iter().map(|p| p.1).max().unwrap_or(0),
+                    c.id.to_string(),
+                )
+            })
+            .collect();
+        routed.sort();
+        routed.into_iter().rev().take(3).map(|(_, id)| id).collect()
+    };
+    for id in &ids {
+        let unrouted = json!({"cmd": "connection.route", "params": {"connection": id, "route": []}});
+        assert_eq!(
+            d.shell_mut().dispatch("command.run", &unrouted),
+            ew_ui::ew_viewmodel::shell::Outcome::Done
+        );
+    }
+    d.settle();
+    d.input(&click(d.find("Route page").expect("the Route page button")));
+    d.settle();
+    let group = d.shell_mut().area().unwrap().focused;
+    let planned: Vec<(i64, i64)> = ew_ui::tool_view::marks_of(d.shell_mut(), group)
+        .into_iter()
+        .filter_map(|m| match m {
+            ToolMark::Polyline {
+                points,
+                token: ToolToken::Ghost,
+                ..
+            } => Some(points),
+            _ => None,
+        })
+        .flatten()
+        .collect();
+    assert!(!planned.is_empty(), "the card plans routes");
+    let [x0, y0, x1, y1] = d.shell_mut().canvas().unwrap().view_nm();
+    for p in &planned {
+        assert!(
+            p.0 >= x0 && p.0 <= x1 && p.1 >= y0 && p.1 <= y1,
+            "the planned point {p:?} is in the view {:?}",
+            [x0, y0, x1, y1]
+        );
+    }
+    d.shell_mut().shutdown();
+}
+
+/// The symbol editor's Text tool, one label after another, as a person does it: click the spot, type, Enter, and
+/// again. The field kept the first text, so the second click stamped "L1" again and the typing went nowhere (the
+/// persona round before 0.2.0); it empties after each label.
+#[test]
+fn symbol_editor_text_tool_takes_one_label_after_another() {
+    use ew_ui::ew_viewmodel::shell::Outcome;
+    let tmp = Tmp::new();
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    assert_eq!(
+        d.shell_mut()
+            .dispatch("symbol.new", &json!({"key":"example.labels","name":"Labels"})),
+        Outcome::Done
+    );
+    d.settle();
+    d.input(&click(d.find("Text").unwrap()));
+    for (at, text) in [((700, 400), "L1"), ((800, 400), "L2"), ((900, 400), "L3")] {
+        d.input(&click(at));
+        d.input(&Input::Type {
+            text: text.to_owned(),
+        });
+        d.input(&key("enter"));
+        d.settle();
+    }
+    let texts: Vec<String> =
+        serde_json::to_value(&d.shell_mut().symbol_editor().unwrap().draft.symbol.graphics)
+            .unwrap()
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|g| g["text"]["text"]["en"].as_str().map(str::to_owned))
+            .collect();
+    assert_eq!(
+        texts,
+        ["L1", "L2", "L3"],
+        "one label per click, each with its own text"
+    );
     d.shell_mut().shutdown();
 }
