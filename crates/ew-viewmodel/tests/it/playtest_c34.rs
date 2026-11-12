@@ -18,10 +18,10 @@ fn new_project(tmp: &Tmp) -> ShellModel {
     s
 }
 
-/// Places a strip terminal at cell `cell` through the symbol picker and the strip chooser.
+/// Places a strip terminal at cell `cell` through the device browser's terminal part and the strip chooser.
 fn place_terminal(s: &mut ShellModel, cell: &str) {
-    done(s, "tool.place", json!({}));
-    done(s, "picker.filter", json!({"text": "iec.terminal@"}));
+    done(s, "tool.place_part", json!({}));
+    done(s, "picker.filter", json!({"text": "EW-GEN-TRM-1"}));
     done(s, "picker.choose", json!({}));
     done(s, "picker.choose", json!({}));
     done(s, "nav.goto", json!({ "text": cell }));

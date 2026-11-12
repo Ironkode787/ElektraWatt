@@ -972,7 +972,7 @@ fn the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one(
             })
             .collect()
     };
-    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "tool.place_part", json!({}));
     let before = rows(&s);
     let held_before = |n: &str| before.iter().any(|r| r.1 == n && r.3);
     assert!(!held_before("EW-GEN-TRM-1"), "the library part is not held yet");
@@ -997,7 +997,7 @@ fn the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one(
     let here = sheet(&s, grid_point(&s, (82, 40)));
     click(&mut s, here, json!({}));
     done(&mut s, "ui.dismiss", json!({}));
-    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "tool.place_part", json!({}));
     let after = rows(&s);
     assert!(
         after.iter().any(|r| r.1 == "EW-GEN-TRM-1" && r.3),
@@ -1020,7 +1020,8 @@ fn the_picker_filter_matches_descriptions_names_and_keywords_by_token() {
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("picker-words");
     let mut s = shell(&tmp, "101");
-    done(&mut s, "tool.place", json!({}));
+    // The parts are the device browser's (FT-1696).
+    done(&mut s, "tool.place_part", json!({}));
     let rows = |s: &ShellModel| -> (Vec<String>, Vec<String>) {
         let p = s.picker().expect("the picker");
         let (mut parts, mut symbols) = (Vec::new(), Vec::new());
@@ -1040,15 +1041,15 @@ fn the_picker_filter_matches_descriptions_names_and_keywords_by_token() {
     }
     done(&mut s, "picker.filter", json!({"text": "relay valve"}));
     assert!(!rows(&s).0.iter().any(|n| n == "EW-GEN-RLY-1"), "{:?}", rows(&s));
-    done(&mut s, "picker.filter", json!({"text": "feed-through"}));
-    let (_, symbols) = rows(&s);
-    assert!(
-        symbols.iter().any(|k| k == "ew.iec.terminal@qet10"),
-        "{symbols:?}"
-    );
     // The keys still match as before.
     done(&mut s, "picker.filter", json!({"text": "rly"}));
     assert!(rows(&s).0.iter().any(|n| n == "EW-GEN-RLY-1"));
+    // A symbol's keyword ("actuator", not in the coil's name) finds it in the symbol browser.
+    done(&mut s, "ui.dismiss", json!({}));
+    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "picker.filter", json!({"text": "actuator"}));
+    let (_, symbols) = rows(&s);
+    assert!(symbols.iter().any(|k| k == "ew.iec.coil@qet10"), "{symbols:?}");
 }
 
 #[test]
@@ -1281,7 +1282,7 @@ fn a_contact_placed_from_a_part_before_its_coil_gets_a_numbered_tag() {
     // The picker's part row.
     let tmp = Tmp::new("part-aux-row");
     let mut s = shell(&tmp, "101");
-    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "tool.place_part", json!({}));
     done(&mut s, "picker.filter", json!({"text": "EW-GEN-CON-1"}));
     // The part's row opens to its functions.
     done(&mut s, "picker.open", json!({}));
@@ -1343,7 +1344,7 @@ fn a_part_row_carries_its_rating() {
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("picker-rating");
     let mut s = shell(&tmp, "101");
-    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "tool.place_part", json!({}));
     done(&mut s, "picker.filter", json!({"text": "EW-GEN-FUS-1"}));
     let p = s.picker().expect("the picker");
     let ratings: Vec<(String, String)> = p

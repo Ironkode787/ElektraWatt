@@ -16,7 +16,8 @@
 //! **The command** is `box.black {page, symbol: the black-box symbol, pos: the top-left corner, box: {outline: the
 //! rectangle relative to pos (v0 top-left, then clockwise), cps}, target}`. **Default CPs** for a part target: the
 //! template entry's CPs in template order, the first `⌈n/2⌉` on the top edge and the rest on the bottom edge, left to
-//! right, leaving up and down; when an edge is too short the rectangle grows to the right until they fit one grid step
+//! right, leaving up and down; an entry with a source's outputs among its CPs (a power supply's + and −) has its inputs
+//! on the top edge and its outputs on the bottom one (FT-1702); when an edge is too short the rectangle grows to the right until they fit one grid step
 //! apart with one grid step to spare at each corner. On a wider box the CPs of an edge spread over its drawn length:
 //! one common pitch, the largest whole number of grid steps that fits `m + 1` times into the edge, the group
 //! centred (half a step to the left when it cannot be centred exactly). Without a part, no CPs.
@@ -61,6 +62,8 @@ pub enum BoxTarget {
         number: String,
         /// The entry's CPs in template order: (function CP index, designation).
         cps: Vec<(u16, String)>,
+        /// The function CP indices among them that are a source's outputs, laid along the bottom edge.
+        outputs: Vec<u16>,
     },
 }
 
@@ -71,9 +74,16 @@ pub type BoxCpAt = (u16, (i64, i64), Dir);
 /// direction)`.
 pub type BoxLayout = ((i64, i64), Vec<(i64, i64)>, Vec<(u16, (i64, i64), Dir)>);
 
-/// The box with corners `a` and `b` (page nm, grid points) and the CPs `cps` laid out on its top and bottom edges;
-/// `None` for a rectangle without height, or without width when no CP widens it.
-pub fn layout(grid: PageGridMap, a: (i64, i64), b: (i64, i64), cps: &[(u16, String)]) -> Option<BoxLayout> {
+/// The box with corners `a` and `b` (page nm, grid points) and the CPs `cps` laid out on its top and bottom edges:
+/// with some but not all of them among `outputs` (a source's outputs) the others on top and those below, else the first
+/// half on top; `None` for a rectangle without height, or without width when no CP widens it.
+pub fn layout(
+    grid: PageGridMap,
+    a: (i64, i64),
+    b: (i64, i64),
+    cps: &[(u16, String)],
+    outputs: &[u16],
+) -> Option<BoxLayout> {
     let (ax, bx) = (grid.index(a.0), grid.index(b.0));
     let (ay, by) = (grid.index(a.1), grid.index(b.1));
     let (kx0, mut kx1) = (ax.min(bx), ax.max(bx));
@@ -82,7 +92,14 @@ pub fn layout(grid: PageGridMap, a: (i64, i64), b: (i64, i64), cps: &[(u16, Stri
         return None;
     }
     let n = cps.len();
-    let top = n.div_ceil(2);
+    let out = |c: &&(u16, String)| outputs.contains(&c.0);
+    let below = cps.iter().filter(out).count();
+    let (cps, top): (Vec<&(u16, String)>, usize) = if below > 0 && below < n {
+        let inputs = cps.iter().filter(|c| !out(c));
+        (inputs.chain(cps.iter().filter(out)).collect(), n - below)
+    } else {
+        (cps.iter().collect(), n.div_ceil(2))
+    };
     let bottom = n - top;
     if n > 0 {
         let need = i64::try_from(top.max(bottom)).unwrap_or(i64::MAX / 2) + 1;
@@ -178,6 +195,14 @@ impl BlackBoxTool {
         }
     }
 
+    /// The target's source outputs among its CPs (FT-1702).
+    fn outputs(&self) -> &[u16] {
+        match &self.target {
+            BoxTarget::Part { outputs, .. } => outputs,
+            BoxTarget::NewDevice { .. } => &[],
+        }
+    }
+
     /// The target's label text (`new F`, `part MICO 4.10`).
     fn label(&self) -> String {
         match &self.target {
@@ -191,7 +216,13 @@ impl BlackBoxTool {
         let State::Outline { first, at } = self.state else {
             return None;
         };
-        layout(PageGridMap::new(cx.page.tables.grid), first, at, self.cps())
+        layout(
+            PageGridMap::new(cx.page.tables.grid),
+            first,
+            at,
+            self.cps(),
+            self.outputs(),
+        )
     }
 
     /// The `box.black` of the current rectangle.
@@ -631,7 +662,8 @@ mod tests {
     fn the_default_cps_go_half_on_top_and_grow_the_rectangle() {
         let g = PageGridMap::new((1_000_000, 1));
         let cps: Vec<(u16, String)> = (0..7).map(|i| (i, i.to_string())).collect();
-        let (pos, outline, laid) = layout(g, (2_000_000, 3_000_000), (4_000_000, 9_000_000), &cps).unwrap();
+        let (pos, outline, laid) =
+            layout(g, (2_000_000, 3_000_000), (4_000_000, 9_000_000), &cps, &[]).unwrap();
         assert_eq!(pos, (2_000_000, 3_000_000));
         // Four on top need five grid steps of width: the rectangle grew from two to five.
         assert_eq!(
@@ -642,9 +674,12 @@ mod tests {
         assert_eq!(laid[3], (3, (4_000_000, 0), Dir::Up));
         assert_eq!(laid[4], (4, (1_000_000, 6_000_000), Dir::Down));
         assert_eq!(laid[6], (6, (3_000_000, 6_000_000), Dir::Down));
-        assert!(layout(g, (0, 0), (5_000_000, 0), &cps).is_none(), "no height");
         assert!(
-            layout(g, (0, 0), (0, 5_000_000), &[]).is_none(),
+            layout(g, (0, 0), (5_000_000, 0), &cps, &[]).is_none(),
+            "no height"
+        );
+        assert!(
+            layout(g, (0, 0), (0, 5_000_000), &[], &[]).is_none(),
             "no width and no CP"
         );
     }
@@ -656,7 +691,7 @@ mod tests {
         let g = PageGridMap::new((1_000_000, 1));
         let cps: Vec<(u16, String)> = (0..5).map(|i| (i, i.to_string())).collect();
         // Twelve steps wide: three on top at pitch 3 (12 / 4), from 3; two below at pitch 4 (12 / 3), from 4.
-        let (_, outline, laid) = layout(g, (0, 0), (12_000_000, 6_000_000), &cps).unwrap();
+        let (_, outline, laid) = layout(g, (0, 0), (12_000_000, 6_000_000), &cps, &[]).unwrap();
         assert_eq!(outline[1], (12_000_000, 0), "the drawn width is kept");
         let xs: Vec<(i64, Dir)> = laid.iter().map(|(_, p, d)| (p.0 / 1_000_000, *d)).collect();
         assert_eq!(

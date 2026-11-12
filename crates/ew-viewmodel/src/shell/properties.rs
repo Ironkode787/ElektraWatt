@@ -2046,6 +2046,37 @@ impl ShellModel {
         Outcome::Done
     }
 
+    /// FT-1704: the point on the page on show (page nm) of the connection point whose row of a device's Properties
+    /// has the cursor (a row the person chose, not the first row on show), which the canvas rings in the selection
+    /// colour: which "+" of a power supply a row names is then answered by looking. `None` for any other row, or when
+    /// the point is drawn on another page.
+    pub fn properties_cp_point(&self) -> Option<(i64, i64)> {
+        let key = self.props.moved_row()?;
+        if self.properties_row().as_deref() != Some(key) {
+            return None;
+        }
+        let row = self
+            .props
+            .sheet()?
+            .sections
+            .iter()
+            .flat_map(|s| &s.rows)
+            .find(|r| r.key == key && is_cp_row(r))?;
+        let RowValue::One { json, .. } = &row.value else {
+            return None;
+        };
+        let function = json.get("function")?.as_str()?;
+        let idx = json.get("idx")?.as_u64()?;
+        let canvas = self.canvas()?;
+        canvas
+            .page()
+            .tables
+            .cps
+            .iter()
+            .find(|c| u64::from(c.idx) == idx && c.function.to_string() == function)
+            .map(|c| c.at)
+    }
+
     /// Whether the connection point `idx` of the function `function` is marked not used (its override's `unused`).
     pub fn cp_unused(&self, function: ew_api::output::Uuid, idx: u16) -> bool {
         let Some(project) = &self.project else {

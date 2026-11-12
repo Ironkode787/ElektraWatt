@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The device and symbol browser (the picker): one overlay of the tool host for what can be placed on the focused page
-//! (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). Its tree ([`Picker::nodes`]) is
+//! (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). The symbol browser
+//! ([`PickerMode::Place`]) lists the symbols, drawings without a part, but the terminals; the device browser
+//! ([`PickerMode::Parts`]) lists the parts with their functions (FT-1696). Its tree ([`Picker::nodes`]) is
 //! All, In this project, then one node per function category with words ([`category_words`]; the first level of a
 //! symbol's FnDef category, of a part's own category or its main function's), then Other, each with the count of its
 //! hits under the filter. Its rows ([`Picker::rows`]) are those of the chosen node: the symbol rows (the plain name,
@@ -47,7 +49,8 @@ pub fn symbol_name(key: &str) -> &str {
 /// What the picker was opened for.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum PickerMode {
-    /// Insert ▸ Symbol: symbols and parts.
+    /// Insert ▸ Symbol: the symbols, drawings without a part, but the terminals (FT-1696: a part is the device
+    /// browser's; FT-1695: Terminal… places a terminal).
     Place,
     /// Insert ▸ Device from part: parts only.
     Parts,
@@ -149,6 +152,17 @@ pub fn category_words(key: &str) -> Option<&'static str> {
         return None;
     }
     crate::strings::lookup(&format!("function-category-{key}"))
+}
+
+/// The function categories the browser's tree names in words (each `function-category-<key>` text), as (key, words)
+/// sorted by the words: the categories a symbol drawn in the symbol editor can be listed under (FT-1691).
+pub fn function_categories() -> Vec<(&'static str, &'static str)> {
+    let mut out: Vec<(&str, &str)> = crate::strings::source_keys("function-category-")
+        .into_iter()
+        .filter_map(|k| Some((k, category_words(k)?)))
+        .collect();
+    out.sort_by_cached_key(|(_, words)| words.to_lowercase());
+    out
 }
 
 /// The terminal placement a strip chooser was opened for: the terminal symbol and the parameters of the choice that
@@ -307,6 +321,10 @@ impl Picker {
                 if self.mode != PickerMode::Exchange && s.placed_by == PlacedBy::Program {
                     continue;
                 }
+                // A terminal is placed through Terminal…, its strip, kind and count asked first (FT-1695).
+                if self.mode == PickerMode::Place && s.terminal {
+                    continue;
+                }
                 let mut texts = vec![s.key.as_str(), s.fndef_key.as_str()];
                 texts.extend(s.words.iter().map(String::as_str));
                 if hits(&texts) {
@@ -318,7 +336,9 @@ impl Picker {
                 }
             }
         }
-        if self.mode != PickerMode::Exchange {
+        // The parts are the device browser's (and the black boxes'); the symbol browser lists symbols alone, so that
+        // each thing stands in one browser (FT-1696).
+        if matches!(self.mode, PickerMode::Parts | PickerMode::BlackBox) {
             // One order, (manufacturer, part number), the catalogue's order within a tie; the project's own
             // copies before the libraries' parts.
             let mut parts: Vec<usize> = (0..self.catalogue.parts.len()).collect();

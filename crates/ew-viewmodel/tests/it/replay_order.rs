@@ -386,9 +386,7 @@ fn ascending_c() -> Box<dyn IdSource + Send> {
 fn coincident_steps(dir: &str) -> Vec<(String, Value)> {
     let terminal = |designation: &str| {
         vec![
-            ("tool.place", json!({})),
-            ("picker.filter", json!({"text": "iec.terminal@"})),
-            ("picker.choose", json!({})),
+            ("place.pick", json!({"symbol": "ew.iec.terminal@qet10"})),
             ("picker.choose", json!({ "designation": designation })),
             ("nav.goto", json!({"text": "199-D2"})),
             ("canvas.activate", json!({"alt": true})),

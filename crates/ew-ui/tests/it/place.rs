@@ -349,10 +349,10 @@ fn a_terminal_without_strips_says_why_and_offers_a_new_strip() {
     let mut h: Harness<'static, App> = support::harness_with(shell, Scripted::default(), None);
     settle(&mut h);
     wait_for_page(&mut h);
-    dispatch(&mut h, "tool.place", json!({}));
-    dispatch(&mut h, "picker.filter", json!({"text": "ew.iec.terminal@"}));
+    dispatch(&mut h, "tool.place_part", json!({}));
+    dispatch(&mut h, "picker.filter", json!({"text": "EW-GEN-TRM-1"}));
     settle(&mut h);
-    // Chosen in the picker, the terminal opens the empty strip chooser instead of doing nothing.
+    // Chosen in the device browser, the terminal part opens the empty strip chooser instead of doing nothing.
     dispatch(&mut h, "picker.choose", json!({}));
     settle(&mut h);
     let picker = h.state().shell().picker().expect("the strip chooser is open");

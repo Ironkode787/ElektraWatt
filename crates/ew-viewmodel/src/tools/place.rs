@@ -136,6 +136,10 @@ pub struct PlaceTool {
     /// The library documents the placement embeds (FT-656): the starter symbol, its FnDef and a part's closure the
     /// project lacked when the tool armed. The host sends only those the project still lacks.
     copies: Vec<Value>,
+    /// How many terminals one click lays in a row (Terminal…'s count, FT-1695); 1 for every other placement.
+    row: u32,
+    /// Whether a commit was made and the host has not taken the rest of its row ([`Self::take_row_rest`]).
+    row_due: bool,
 }
 
 /// Whether `p` lies inside the polygon (even-odd rule, the boundary inside), exactly in `i128`.
@@ -212,6 +216,24 @@ impl PlaceTool {
             joinable: false,
             base: None,
             copies: Vec::new(),
+            row: 1,
+            row_due: false,
+        }
+    }
+
+    /// The tool laying `row` terminals with one click (FT-1695).
+    pub fn with_row(mut self, row: u32) -> PlaceTool {
+        self.row = row.max(1);
+        self
+    }
+
+    /// How many more terminals the last commit's row takes (0 for a single placement or when already taken); the
+    /// host commits them at the same point.
+    pub fn take_row_rest(&mut self) -> u32 {
+        if std::mem::take(&mut self.row_due) {
+            self.row - 1
+        } else {
+            0
         }
     }
 
@@ -794,6 +816,7 @@ impl Tool for PlaceTool {
             return;
         }
         if let PlaceTarget::Terminal { designation, .. } = &mut self.target {
+            self.row_due = true;
             match next_designation(designation) {
                 Some(next) => {
                     *designation = next;

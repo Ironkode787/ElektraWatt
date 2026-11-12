@@ -691,7 +691,7 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
 - Both remain egui_tiles panes: the rail is a view of the left tab group whose own tab bar is not drawn, so docking,
   the workspace file `ew.workspace/1` and its determinism stay as built (doc 16 §2.5).
 
-*As built.* The rails are egui side panels outside the dock, views of the view model's rail state, not a view of the left tab group: the dock's tab bars are hidden through egui_tiles' own switch, so the workspace file stays as built. The right rail's Symbols and Parts open the existing pickers. The dock tabs' restyle of §6.4 is not built.
+*As built.* The rails are egui side panels outside the dock, views of the view model's rail state, not a view of the left tab group: the dock's tab bars are hidden through egui_tiles' own switch, so the workspace file stays as built. The right rail's Symbol browser and Device browser open the symbol and the device browser (FT-1696). The dock tabs' restyle of §6.4 is not built.
 
 ### 5.5 Centre: canvas tabs, canvas, HUD
 

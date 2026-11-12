@@ -422,6 +422,18 @@ pub fn source_text(key: &str) -> Option<&'static str> {
     en_gb().texts.get(key).copied()
 }
 
+/// The rest of every source-language key that starts with `prefix`, in key order (`function-category-` gives the
+/// function categories that have words).
+pub fn source_keys(prefix: &str) -> Vec<&'static str> {
+    en_gb()
+        .texts
+        .range::<str, _>((std::ops::Bound::Included(prefix), std::ops::Bound::Unbounded))
+        .map(|(k, _)| *k)
+        .take_while(|k| k.starts_with(prefix))
+        .map(|k| &k[prefix.len()..])
+        .collect()
+}
+
 /// The text of `key` in the UI language (en-GB where it has none), or `None` for a key that has none.
 pub fn lookup(key: &str) -> Option<&'static str> {
     current()

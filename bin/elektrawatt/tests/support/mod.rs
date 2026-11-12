@@ -352,6 +352,29 @@ fn part_number(id: &str) -> String {
     doc["part_number"].as_str().unwrap().to_owned()
 }
 
+/// The function CP indices of the first template entry of Golden A's part copy `id` that are a source's outputs
+/// (its FnDef's `source_output` points): the black box tool lays them along the bottom edge.
+fn part_outputs(id: &str) -> Vec<u16> {
+    let read =
+        |path: &Path| -> Value { serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap() };
+    let part = read(&Path::new(GOLDEN_A).join("lib/parts").join(format!("{id}.json")));
+    let item = &part["function_template"][0]["fndef"]["item"];
+    let fndefs = std::fs::read_dir(Path::new(GOLDEN_A).join("lib/fndefs")).unwrap();
+    fndefs
+        .map(|e| read(&e.unwrap().path()))
+        .find(|f| &f["item_id"] == item)
+        .map(|f| {
+            f["cps"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter(|c| c["source_output"] == true)
+                .map(|c| c["idx"].as_u64().unwrap() as u16)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 /// A press, a move and a release of the pointer from `from` to `to` (page nm), with the Select tool.
 fn drag(map: SheetMap, from: (i64, i64), to: (i64, i64)) -> Vec<(String, Value)> {
     let (a, b) = (map.mm(from), map.mm(to));
@@ -408,7 +431,8 @@ fn black_box_steps(
     // The tool's default layout (the template's CPs in index order, which is the golden template order).
     let cps: Vec<(u16, String)> = golden.iter().map(|(i, _)| (*i, i.to_string())).collect();
     let g = PageGridMap::new(grid);
-    let (origin, _, laid) = layout(g, pos, far, &cps).expect("the default layout");
+    let outputs = part_outputs(device["parts"][0]["part"]["copy"].as_str().unwrap());
+    let (origin, _, laid) = layout(g, pos, far, &cps, &outputs).expect("the default layout");
     let mut current: Vec<(u16, (i64, i64))> = laid
         .iter()
         .map(|(i, p, _)| (*i, (origin.0 + p.0, origin.1 + p.1)))

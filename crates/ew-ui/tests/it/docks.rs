@@ -105,7 +105,7 @@ fn the_layout_matches_the_mockup() {
     }
     let right = rail_buttons(&h, false);
     let names: Vec<&str> = right.iter().map(|(n, _)| n.as_str()).collect();
-    assert_eq!(names, ["Symbols", "Parts"]);
+    assert_eq!(names, ["Symbol browser", "Device browser"]);
     for (name, r) in &right {
         assert!(near(r.center().x, f.right() - 20.0, 1.0), "{name} {r:?}");
     }

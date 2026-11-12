@@ -15,9 +15,9 @@ use ew_viewmodel::shell::{Mode, ShellModel};
 use ew_viewmodel::tools::PickerMode;
 use serde_json::json;
 
-/// Opens the picker filtered to `filter` and chooses its first row.
+/// Opens the device browser filtered to `filter` and chooses its first row.
 fn choose(s: &mut ShellModel, filter: &str) {
-    done(s, "tool.place", json!({}));
+    done(s, "tool.place_part", json!({}));
     done(s, "picker.filter", json!({ "text": filter }));
     done(s, "picker.choose", json!({}));
 }
@@ -36,7 +36,7 @@ fn the_picker_opens_the_empty_strip_chooser_and_strip_new_fills_it() {
         refused(&mut s, "place.pick", json!({"symbol": "ew.iec.terminal@qet10"})),
         "reason-no-strip"
     );
-    choose(&mut s, "ew.iec.terminal@");
+    choose(&mut s, "EW-GEN-TRM-1");
     let p = s.picker().expect("the strip chooser");
     assert_eq!(p.mode, PickerMode::Strip);
     assert!(p.rows.is_empty());
