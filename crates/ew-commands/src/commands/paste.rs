@@ -1033,6 +1033,13 @@ impl Insertion<'_> {
             nodes,
             same_project: self.fragment.project.as_uuid() == tx.project().id.as_uuid(),
         };
+        // The new IDs of the pasted devices (effect 6).
+        let pasted_devices: BTreeSet<Uuid> = plan
+            .ids
+            .iter()
+            .filter(|((k, _), _)| *k == Kind::Device)
+            .map(|(_, new)| *new)
+            .collect();
         // The page kinds of the new pages, for their representations.
         let mut new_pages: BTreeMap<Uuid, PageType> = BTreeMap::new();
         // Effects 3 and 4 on each record's JSON, then the typed record.
@@ -1129,8 +1136,12 @@ impl Insertion<'_> {
                             d.tag.scheme = TagScheme::Default;
                         }
                     }
-                    // Effect 6: the copies are numbered by the target's normalisers.
-                    if !self.keep_counter.contains(&old) {
+                    // Effect 6: the copies are numbered by the target's normalisers. A child tag counts under its
+                    // parent, which online numbering does not number: a child whose parent comes along keeps its
+                    // counter under the new parent, as `macro.insert` keeps it (FT-743).
+                    let parent_pasted = d.tag.scheme == TagScheme::Child
+                        && d.parent.is_some_and(|p| pasted_devices.contains(&p.as_uuid()));
+                    if !self.keep_counter.contains(&old) && !parent_pasted {
                         d.tag.counter = None;
                     }
                     if !self.keep_frozen {

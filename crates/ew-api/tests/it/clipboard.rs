@@ -609,6 +609,40 @@ fn a_child_whose_parent_is_not_copied() {
     );
 }
 
+/// FT-743: a child device pasted with its parent keeps its counter under the new parent, as `macro.insert` keeps it,
+/// so the pasted valve prints a whole tag, not "Q?".
+#[test]
+fn a_child_pasted_with_its_parent_keeps_its_counter() {
+    let mut s = golden();
+    let child = s.resolve_reference("tag:-201U4-Q2").unwrap();
+    let parent = device(&s, child).parent.expect("a parent").as_uuid();
+    let (folio, reps) = s
+        .page_labels()
+        .into_iter()
+        .find_map(|f| {
+            let t = s.page_tables(&f)?;
+            let of = |d: Uuid| t.reps.iter().find(|r| r.device == Some(d)).map(|r| r.id);
+            Some((f, vec![of(parent)?, of(child)?]))
+        })
+        .expect("-201U4 and -201U4-Q2 are drawn on one page");
+    let counter = device(&s, child).tag.counter;
+    let frag = fragment(&s, &reps);
+    let receipt = paste(&mut s, &folio, at_steps(&frag, (0, 8)), &frag).unwrap();
+    let new = created(&receipt, Kind::Device);
+    let pasted_child = new
+        .iter()
+        .copied()
+        .find(|d| device(&s, *d).tag.scheme == TagScheme::Child)
+        .expect("the pasted child");
+    let d = device(&s, pasted_child);
+    assert!(d.parent.is_some_and(|p| new.contains(&p.as_uuid())), "under the pasted parent");
+    assert_eq!(d.tag.counter, counter, "the counter kept");
+    let q = s.query();
+    let tag = q.get::<ew_derive::DeviceTag>(Id::from_uuid(pasted_child));
+    let full = tag.as_ref().as_ref().map(|t| t.full.to_string()).unwrap_or_default();
+    assert!(!full.is_empty() && !full.contains('?'), "{full}");
+}
+
 /// CB3: a fragment whose records carry an import lineage (one written elsewhere) pastes; the pasted records have none.
 #[test]
 fn an_import_lineage_is_dropped_not_refused() {
