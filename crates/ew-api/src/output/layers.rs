@@ -39,7 +39,7 @@ use ew_schema::PageType;
 use super::panel::{Parts, panel_view};
 use super::view::{
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageJunctionsOf,
-    PageRepsOf, PageSlotsOf, PageTableOf, generic_symbols, page_boxes, page_break_marks, page_grid,
+    PageRepsOf, PageSlotsOf, PageTableOf, page_boxes, page_break_marks, page_grid,
     page_items, page_strip_tags, page_uuid, page_valve_glyphs,
 };
 
@@ -69,7 +69,6 @@ fn base_view(page: PageRef) -> PageView {
         reps: Vec::new(),
         connections: Vec::new(),
         junctions: Vec::new(),
-        wire_marker: None,
         table: None,
         embedded: Vec::new(),
         break_marks: Vec::new(),
@@ -157,7 +156,6 @@ fn layer_view(q: &Q, page: PageRef, layer: Layer) -> Option<PageView> {
             v.reps = reps_with_slots(q, p);
             v.connections = (*q.get::<PageConnectionsOf>(p)).clone();
             v.junctions = (*q.get::<PageJunctionsOf>(p)).clone();
-            v.wire_marker = generic_symbols().wire_marker.clone();
             v.items = page_items(q, p, true);
             v.structure_boxes = page_boxes(q, p, true);
             v.strip_tags = page_strip_tags(q, p);
@@ -331,7 +329,6 @@ pub fn page_view(q: &Q, entry: &PageEntry) -> PageView {
     let mut v = base_view(page);
     v.kind = page_kind(entry);
     v.grid = page_grid(q, page);
-    v.wire_marker = generic_symbols().wire_marker.clone();
     let bindings = q.get::<PageBindingsOf>(page);
     v.frame = q
         .get::<PageFrameOf>(page)

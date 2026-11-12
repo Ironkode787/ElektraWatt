@@ -498,14 +498,14 @@ fn the_display_list_of_folio_101_is_stable() {
             labels glyphs f4fdc202 "J-E-206-L" origin=(11070828,130271044) size=2381250 angle=0
             labels glyphs f4fdc202 "+J-E-206 / JE-N1000-03" origin=(3590132,136160140) size=2381250 angle=0
             labels glyphs 66c620c1 "1X1" origin=(29106813,75721369) size=3439583 angle=0
-            labels instance 09ed5beb sym=04b0176e variant=D translate=(42333333,68791667)
-            labels glyphs 09ed5beb "2.5" origin=(42805614,69725646) size=1322917 angle=90000
-            labels instance 17b31bbc sym=04b0176e variant=A translate=(93927083,26458333)
-            labels glyphs 17b31bbc "2.5" origin=(92993104,26930614) size=1322917 angle=0
-            labels instance 628881aa sym=04b0176e variant=D translate=(37041667,60854167)
-            labels glyphs 628881aa "2.5" origin=(37513948,61788146) size=1322917 angle=90000
-            labels instance ce52ac00 sym=04b0176e variant=A translate=(87312500,29104167)
-            labels glyphs ce52ac00 "2.5" origin=(86378521,29576448) size=1322917 angle=0
+            labels path 09ed5beb els=2 first=(40833333,68791667) last=(43833333,68791667) stroke=264583 fill=-
+            labels glyphs 09ed5beb "2.5" origin=(44833333,69263948) size=1322917 angle=0
+            labels path 17b31bbc els=2 first=(93927083,24958333) last=(93927083,27958333) stroke=264583 fill=-
+            labels glyphs 17b31bbc "2.5" origin=(92993104,23570718) size=1322917 angle=0
+            labels path 628881aa els=2 first=(35541667,60854167) last=(38541667,60854167) stroke=264583 fill=-
+            labels glyphs 628881aa "2.5" origin=(39541667,61326448) size=1322917 angle=0
+            labels path ce52ac00 els=2 first=(87312500,27604167) last=(87312500,30604167) stroke=264583 fill=-
+            labels glyphs ce52ac00 "2.5" origin=(86378521,26216552) size=1322917 angle=0
             "#);
     });
 }
@@ -646,7 +646,6 @@ fn hostile_view() -> PageView {
         reps,
         connections,
         junctions: Vec::new(),
-        wire_marker: None,
         table: None,
         embedded: Vec::new(),
         break_marks: Vec::new(),

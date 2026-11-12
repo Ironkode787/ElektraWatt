@@ -10,15 +10,14 @@ use std::sync::Arc;
 use ew_dl::{Brush, EntityRef, ItemKind, Layer};
 use ew_ids::Uuid;
 use ew_scene::items::{DASH_DOT, DOTTED, ItemView, StructureBoxView};
-use ew_scene::page::{PageView, SymbolRef, page_display_list, page_scene, wire_stroke};
-use ew_schema::{LibCopy, LibDocument, PageItem, StructureBox};
+use ew_scene::page::{PageView, page_display_list, page_scene, wire_stroke};
+use ew_schema::{PageItem, StructureBox};
 use ew_text::{builtin, bundled};
 use ew_units::{Grid, Nm};
 use serde_json::{Value, json};
 
 use crate::common::blank_page;
 
-const MARKER: &str = include_str!("../../../../content/symbols/qet10/ew.gen.wire-marker@qet10.json");
 const PAGE: u128 = 0x100;
 
 fn uuid(n: u128) -> String {
@@ -66,19 +65,8 @@ fn sbox(n: u128, style: &str, caption: &str) -> StructureBoxView {
     }
 }
 
-fn marker_symbol() -> SymbolRef {
-    match LibDocument::from_json(MARKER).unwrap() {
-        LibDocument::Symbol(LibCopy { id, item, .. }) => SymbolRef {
-            id,
-            def: Arc::new(item),
-        },
-        _ => panic!("a symbol"),
-    }
-}
-
 fn view(items: Vec<ItemView>, structure_boxes: Vec<StructureBoxView>) -> PageView {
     PageView {
-        wire_marker: Some(marker_symbol()),
         items,
         structure_boxes,
         ..blank_page(PAGE)
@@ -182,7 +170,7 @@ fn graphics_and_box_outlines_are_drawn_in_the_symbols_layer() {
     );
 }
 
-/// The free text, the shown marker group (symbol and text) and the caption are drawn in the labels layer; the hidden
+/// The free text, the shown marker group (its line and text) and the caption are drawn in the labels layer; the hidden
 /// group and the empty caption draw nothing.
 #[test]
 fn texts_markers_and_captions_are_drawn_in_the_labels_layer() {
@@ -204,8 +192,8 @@ fn texts_markers_and_captions_are_drawn_in_the_labels_layer() {
         .list
         .items
         .iter()
-        .find(|i| i.entity == entity(0x14) && matches!(i.kind, ItemKind::Instance(_)));
-    assert!(marker.is_some(), "the marker symbol under the group text");
+        .find(|i| i.entity == entity(0x14) && matches!(i.kind, ItemKind::Path(_)));
+    assert!(marker.is_some(), "the marker's line across its wires");
     // Text items carry the texts.
     let texts: Vec<String> = l
         .list
