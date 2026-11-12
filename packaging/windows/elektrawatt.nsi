@@ -50,8 +50,11 @@ InstallDirRegKey HKCU "${UNINSTALL_KEY}" "InstallLocation"
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
 
-!define MUI_ICON "${__FILEDIR__}\..\..\assets\icons\app\elektrawatt.ico"
-!define MUI_UNICON "${__FILEDIR__}\..\..\assets\icons\app\elektrawatt.ico"
+; Relative to this script's folder, where makensis reads from wherever it is started: `${__FILEDIR__}` is the script's
+; folder as it was named on the command line, so with a relative script path it was looked up from inside that folder
+; a second time and the setup did not compile (the release build of v0.2.0-rc.2).
+!define MUI_ICON "..\..\assets\icons\app\elektrawatt.ico"
+!define MUI_UNICON "..\..\assets\icons\app\elektrawatt.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\elektrawatt.exe"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
