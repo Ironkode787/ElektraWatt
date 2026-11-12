@@ -14,6 +14,8 @@
 //! - An empty or absent member matches anything. `ptype` matches when the list holds the potential's type;
 //!   `ac_dc` is equal; `u_min <= voltage <= u_max` (inclusive).
 //! - A constrained field the potential does not know (no voltage, no AC/DC, no type) does not match.
+//! - A phase (type L1, L2 or L3) is a conductor of an AC supply: without an AC/DC of its own it matches as AC, and
+//!   without a known voltage its circuit class is mains (`attrs_of`, `own_class`; FT-1688).
 //! - `discipline` and `analogue` match only when the potential has that attribute. No potential has either in
 //!   this phase, so a selector that constrains one never matches.
 //! - Colour rows: the row with the most constrained fields wins, ties go to the first row. Class rules: the
@@ -54,30 +56,48 @@ pub struct Attrs {
     pub ac_dc: Option<AcDc>,
 }
 
+/// Whether a potential type is a phase of an AC supply (L1, L2, L3; IEC 60445).
+fn is_phase(t: Option<&PotentialType>) -> bool {
+    matches!(
+        t,
+        Some(PotentialType::L1 | PotentialType::L2 | PotentialType::L3)
+    )
+}
+
 /// The final attributes of a potential: the flow values, else its own (`potential_attrs`; none for an unknown
-/// ID).
+/// ID). A phase (L1, L2, L3) that says neither AC nor DC is AC (FT-1688): a phase is a conductor of an AC supply.
 pub(crate) fn attrs_of(q: &Q, id: PotentialId) -> Attrs {
-    if let Some(e) = q.get::<PotentialFlow>(id).as_ref() {
-        return Attrs {
+    let mut attrs = if let Some(e) = q.get::<PotentialFlow>(id).as_ref() {
+        Attrs {
             ptype: e.ptype.as_ref().map(|a| a.value.clone()),
             voltage: e.voltage.as_ref().map(|a| a.value),
             ac_dc: e.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
-        };
+        }
+    } else {
+        let own = q.get::<PotentialAttrsOf>(id);
+        Attrs {
+            ptype: own.ptype.as_ref().map(|a| a.value.clone()),
+            voltage: own.voltage.as_ref().map(|a| a.value),
+            ac_dc: own.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
+        }
+    };
+    if attrs.ac_dc.is_none() && is_phase(attrs.ptype.as_ref()) {
+        attrs.ac_dc = Some(AcDc::Ac);
     }
-    let own = q.get::<PotentialAttrsOf>(id);
-    Attrs {
-        ptype: own.ptype.as_ref().map(|a| a.value.clone()),
-        voltage: own.voltage.as_ref().map(|a| a.value),
-        ac_dc: own.env.as_ref().and_then(|a| a.value.ac_dc.clone()),
-    }
+    attrs
 }
 
-/// The circuit class a potential's own definition gives it, if any.
+/// The circuit class a potential's own definition gives it, if any; a phase (L1, L2, L3) whose voltage is not
+/// known is of the mains class (FT-1688: a potential given the type L1 took the control circuit's 0.75 mm²).
 pub(crate) fn own_class(q: &Q, id: PotentialId) -> Option<CircuitClass> {
-    q.get::<PotentialAttrsOf>(id)
-        .circuit_class
+    let own = q.get::<PotentialAttrsOf>(id);
+    own.circuit_class
         .as_ref()
         .map(|c| c.value.clone())
+        .or_else(|| {
+            let attrs = attrs_of(q, id);
+            (is_phase(attrs.ptype.as_ref()) && attrs.voltage.is_none()).then_some(CircuitClass::Mains)
+        })
 }
 
 /// `ProfileSelect` (doc 03 §5.1).

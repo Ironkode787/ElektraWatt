@@ -617,6 +617,16 @@ rows = [ { class = "control", csa = "0.75" }, { class = "mains", csa = "1.5" } ]
   the company profile do. Overlapping rows that disagree are a profile error, reported when the profile is loaded,
   never at query time. The `group` and `function` fields only lay out the cover table. Switched potentials use the
   row of their base type, so N switched is BU.
+- **A phase is AC mains.** A potential of type L1, L2 or L3 is a phase of an AC supply: when it states no AC or DC
+  it matches as AC, and when its voltage is not known its circuit class is mains (as a class of its own definition
+  would be). A wire given only the type L1 therefore takes the mains cross-section (1.5 mm² built in) and the phase's
+  colour of the colour profile (IEC 60445: BN), not the control circuit's 0.75 mm² (FT-1688). A phase with a known
+  voltage below 50 V is matched by the class rules as before.
+- **Which value wins** (FT-1688, as built): the wire's own override (level 7), else the core of its cable (level 6,
+  the conductor's colour and cross-section), else its potential's definition (level 3), else the profile rows of
+  its potential's type, AC/DC, voltage and class (level 2), else the project default (level 1), else the built-in
+  default of the class (level 0). A new wire carries no value of its own, so it follows its potential's type until a
+  person sets one.
 - **PE class rule.** A PE wire takes the highest circuit class at its two ends, ranked Mains > Control > Analogue >
   Bus, with Pe ignored. At a device end the class comes from the device's own potentials. At a terminal end it comes
   from the potentials on the terminal's strip. W6
@@ -724,6 +734,10 @@ and the built-in defaults stay code; "No size profile ships" above now reads "no
   §3.5). Golden A uses "only explicit overrides", so exactly the four reference groups print: "2.5 BK BU" below and
   above S51, "1.5 DBU DBU WH WH" below -102G1 and "1.5 DBU DBU" above -102F2. Only the cross-sections of these ten
   wires are level 7; their colours are level 2, so EW-POT-016 stays silent (MF-07 counts 10 CDPs).
+- **How a marker prints** (FT-1706). A marker stands clear of its wires, as drawing practice has it: a short line
+  across the wires it marks, 1.5 mm past the outer ones, and its text 1 mm beyond the line's end: right of a line
+  across vertical wires, reading upwards from the top of a line across horizontal ones (a group marker turned 90°),
+  and above the line across a single horizontal wire (a ticked wire's own marker). No wire runs through the text.
 - **Quick fixes.**
   - "Remove override". It is offered when an override equals the value below it (EW-POT-016, info). The QET import
     drops such overrides directly (FR-IMP-012).
