@@ -1218,9 +1218,10 @@ pub(crate) fn section_header(
 }
 
 /// The way out of a floating overlay (FT-1635), one behaviour for every overlay of the window: a backdrop over the
-/// whole window under it catches a click beside the overlay, which is `ui.dismiss` as Escape is, so the click
-/// reaches nothing under it. `dim` paints it in `color.backdrop` (the browser), else it is clear. Called in each frame
-/// the overlay is drawn; the overlay itself stands in [`egui::Order::Foreground`], above the backdrop.
+/// whole window under it catches a click beside the overlay, which is `ui.dismiss` as Escape is (but only closes a
+/// list open in the overlay, FT-1693), so the click reaches nothing under it. `dim` paints it in `color.backdrop` (the
+/// browser), else it is clear. Called in each frame the overlay is drawn; the overlay itself stands in
+/// [`egui::Order::Foreground`], above the backdrop.
 pub(crate) fn overlay_backdrop(ctx: &egui::Context, id: egui::Id, dim: bool, events: &mut Vec<Event>) {
     let t = theme::current(ctx);
     let rect = ctx.content_rect();
@@ -1236,9 +1237,11 @@ pub(crate) fn overlay_backdrop(ctx: &egui::Context, id: egui::Id, dim: bool, eve
             }
             response
         });
-    // Above every other middle-order area (the HUD, the zoom control), so a click beside the overlay closes it.
+    // Above every other middle-order area (the HUD, the zoom control), so a click beside the overlay closes it. A
+    // click beside an open list of the overlay (a form's Type) closes the list only, which the list does itself.
     ctx.move_to_top(shown.response.layer_id);
-    if shown.inner.clicked() || shown.inner.secondary_clicked() {
+    let list_open = egui::Popup::is_any_open(ctx);
+    if (shown.inner.clicked() || shown.inner.secondary_clicked()) && !list_open {
         events.push(Event::Action("ui.dismiss", json!({})));
     }
 }

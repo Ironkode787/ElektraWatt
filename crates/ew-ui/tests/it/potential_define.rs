@@ -342,6 +342,53 @@ fn define_potentials_type_is_chosen_from_a_list() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1693: a click beside Define potential…'s open Type list closes the list only: the form stays with the name
+/// typed (it closed the whole form, and the name was lost).
+#[test]
+fn a_click_beside_an_open_list_closes_the_list_not_the_form() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    let shell = h.state_mut().shell_mut();
+    done(shell, "page.goto", json!({"folio": "102"}));
+    let wire = shell.canvas().unwrap().page().tables.connections[0]
+        .id
+        .to_string();
+    done(shell, "select.set", json!({"ids": [wire]}));
+    h.state_mut().dispatch_from_window("potential.draw", &json!({}));
+    settle(&mut h);
+    h.state_mut().shell_mut().set_palette_field(0, "FEED-L");
+    settle(&mut h);
+    h.get_by_role_and_label(egui::accesskit::Role::ComboBox, "Type")
+        .click();
+    settle(&mut h);
+    assert!(h.query_by_label("L+").is_some(), "the list is open");
+    // Beside the palette and the list: near the window's bottom left corner.
+    let beside = egui::pos2(40.0, h.ctx.content_rect().bottom() - 40.0);
+    h.event(egui::Event::PointerMoved(beside));
+    h.run_ok();
+    for pressed in [true, false] {
+        h.event(egui::Event::PointerButton {
+            pos: beside,
+            button: PointerButton::Primary,
+            pressed,
+            modifiers: Modifiers::NONE,
+        });
+    }
+    h.run_ok();
+    settle(&mut h);
+    assert!(h.query_by_label("L+").is_none(), "the list closed");
+    let form = h.state().shell().palette().and_then(|p| p.form.clone());
+    assert_eq!(
+        form.map(|f| f.fields[0].value.clone()).as_deref(),
+        Some("FEED-L"),
+        "the form stays with its name"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// Escape in a context menu closes the menu and nothing else: the selection stays, as Escape in the
 /// app menu does.
 #[test]
