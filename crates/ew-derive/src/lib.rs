@@ -200,8 +200,8 @@ pub use structure::{
     ResolvedStructure, SlotSource, StructureOf, StructurePath,
 };
 pub use tag::{
-    DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, cable_core_page, rule_product,
-    strip_format,
+    DeviceTag, DisplayedTag, MainFunction, MainRep, Tag, TagSource, cable_core_page, numbering_format,
+    rule_product,
 };
 pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, text_frame};
 pub use title_block::{

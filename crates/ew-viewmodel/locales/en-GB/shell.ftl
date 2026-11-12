@@ -557,6 +557,8 @@ potential-offer-title = Potential { $p0 }?
 potential-offer-title-new = New potential { $p0 }?
 potential-offer-role = { $p0 } has the role { $p1 }
 potential-offer-coil = { $p0 } returns a coil fed from { $p1 }
+potential-offer-title-type = Type { $p0 }?
+potential-offer-type = The name { $p0 } says the type; the type gives the wire its colour and cross-section
 potential-offer-accept = Accept
 potential-offer-decline = Decline
 reason-no-potential-offer = No potential is offered for the selection
@@ -5208,7 +5210,10 @@ form-cable-core = Core
 error-cable-type = "{ $p0 }" is not a cable type. Write it as 3G1.5 or 4x0.75, or give a cable part's number.
 error-cable-core-unknown = The cable has no core { $p0 }: its cores are { $p1 }.
 error-cable-core-twice = Core { $p0 } is given to two wires: give each wire its own core.
-toast-cable-wires = Cable { $p0 } now has these wires as its cores: { $p1 }.
+toast-cable-wires = Cable { $p0 } made from { $p1 }.
+toast-cable-wires-changed = Cable { $p0 } now carries { $p1 }.
+cable-wires-count = { $p0 } wires
+cable-wires-count-one = 1 wire
 
 # FT-1372 (ID-1362): Output ▸ Reports ▸ Report block….
 action-report-block-new = Report block…

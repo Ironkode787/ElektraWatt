@@ -15,18 +15,14 @@ use serde_json::json;
 
 use crate::wires_and_cables::{click, key, new_project, page_pixel, tables, two_wires};
 
-/// A new project with the two relays, their feeds defined as L1 (type L1) and, when n_typed, N (type N), and a wire from -1K1:A2 to
-/// -1K2:A2 drawn with the Wire tool; that wire's window pixel.
-fn a2_wire(tmp: &Tmp, n_typed: bool) -> (Driver, (i64, i64)) {
+/// A new project with the two relays fed from the points L1 and N, the feed wires given the potentials `feeds` (the
+/// wire, the name, the type), and a wire from -1K1:A2 to -1K2:A2 drawn with the Wire tool; the driver, that wire's
+/// window pixel and the L1 feed wire's (the one ending at -1K1:A1).
+fn a2_wire(tmp: &Tmp, feeds: &[(usize, &str, &str)]) -> (Driver, (i64, i64), (i64, i64)) {
     let mut d = new_project(tmp);
     let pixel = two_wires(&mut d);
     let t = tables(&mut d);
     // The feeds' types, as Define potential… sets them (not under test).
-    let feeds: &[(usize, &str, &str)] = if n_typed {
-        &[(0, "L1", "l1"), (1, "N", "n")]
-    } else {
-        &[(0, "L1", "l1")]
-    };
     for &(wire, name, ty) in feeds {
         let id = t.connections[wire].id.to_string();
         let shell = d.shell_mut();
@@ -58,15 +54,28 @@ fn a2_wire(tmp: &Tmp, n_typed: bool) -> (Driver, (i64, i64)) {
         .iter()
         .find(|c| c.polyline.contains(&a) || c.polyline.contains(&b))
         .expect("the A2 wire");
-    let (p, q) = wire
-        .polyline
-        .windows(2)
-        .map(|s| (s[0], s[1]))
-        .max_by_key(|(p, q)| (p.0 - q.0).abs() + (p.1 - q.1).abs())
-        .expect("a segment");
+    let longest = |c: &ew_ui::ew_viewmodel::ew_api::output::TableConnection| {
+        c.polyline
+            .windows(2)
+            .map(|s| (s[0], s[1]))
+            .max_by_key(|(p, q)| (p.0 - q.0).abs() + (p.1 - q.1).abs())
+            .expect("a segment")
+    };
+    let (p, q) = longest(wire);
     let on = page_pixel(&mut d, &pixel, ((2 * p.0 + q.0) / 3, (2 * p.1 + q.1) / 3));
-    (d, on)
+    let a1 = t.cps.iter().find(|c| c.label == "-1K1:A1").expect("-1K1:A1");
+    let feed = t
+        .connections
+        .iter()
+        .find(|c| a1.connections.contains(&c.id))
+        .expect("the L1 feed wire");
+    let (p, q) = longest(feed);
+    let l1 = page_pixel(&mut d, &pixel, ((p.0 + q.0) / 2, (p.1 + q.1) / 2));
+    (d, on, l1)
 }
+
+/// Both feeds typed by Define potential….
+const TYPED: &[(usize, &str, &str)] = &[(0, "L1", "l1"), (1, "N", "n")];
 
 /// The card on show, if any: its title and why, as it prints them, while its Accept and Decline buttons show.
 fn card(d: &mut Driver) -> Option<(String, String)> {
@@ -78,7 +87,7 @@ fn card(d: &mut Driver) -> Option<(String, String)> {
 #[test]
 fn a_reasoned_potential_is_offered_at_the_wire_and_accept_defines_it() {
     let tmp = Tmp::new();
-    let (mut d, on) = a2_wire(&tmp, true);
+    let (mut d, on, _) = a2_wire(&tmp, TYPED);
     assert_eq!(card(&mut d), None, "nothing selected, nothing offered");
     d.input(&click(on));
     d.settle();
@@ -108,7 +117,7 @@ fn a_reasoned_potential_is_offered_at_the_wire_and_accept_defines_it() {
 #[test]
 fn a_declined_offer_does_not_come_back_for_that_wire() {
     let tmp = Tmp::new();
-    let (mut d, on) = a2_wire(&tmp, true);
+    let (mut d, on, _) = a2_wire(&tmp, TYPED);
     d.input(&click(on));
     d.settle();
     assert!(card(&mut d).is_some());
@@ -130,12 +139,12 @@ fn a_declined_offer_does_not_come_back_for_that_wire() {
     d.shell_mut().shutdown();
 }
 
-/// FT-1700, widened: with no named potential of type N in the project (the N feed is a point's name, no type), the A2
-/// wire is still offered N, as a new potential of that type; Accept defines it with the type.
+/// FT-1700, widened: with no potential of type N in the project (the N feed defined as NX, no type), the A2 wire is
+/// still offered N, as a new potential of that type; Accept defines it with the type.
 #[test]
 fn without_a_named_potential_of_the_type_a_new_one_is_offered() {
     let tmp = Tmp::new();
-    let (mut d, on) = a2_wire(&tmp, false);
+    let (mut d, on, _) = a2_wire(&tmp, &[(0, "L1", "l1"), (1, "NX", "")]);
     d.input(&click(on));
     d.settle();
     let (title, why) = card(&mut d).expect("the card");
@@ -148,4 +157,46 @@ fn without_a_named_potential_of_the_type_a_new_one_is_offered() {
     assert_eq!(last.cmd, "potential.define");
     assert_eq!(last.params["ptype"].as_str(), Some("n"));
     shell.shutdown();
+}
+
+/// A play-tester of the second candidate: the coils fed from the points L1 and N, which name their potentials but give
+/// them no type, and the A2 wire selected: no card (the feed's potential had no type). A name that is a type's own
+/// word counts as that type: the A2 wire is offered the existing N, fed from L1; and the L1 wire, clicked, is offered
+/// its type ("Type L1?"), which Accept sets in one step, keeping its name.
+#[test]
+fn a_feed_named_by_a_types_word_gives_the_offer_and_its_own_type() {
+    let tmp = Tmp::new();
+    let (mut d, on, at) = a2_wire(&tmp, &[]);
+    d.input(&click(on));
+    d.settle();
+    assert_eq!(
+        card(&mut d),
+        Some((
+            "Potential N?".to_owned(),
+            "-1K1:A2 returns a coil fed from L1".to_owned()
+        ))
+    );
+    d.input(&key("escape"));
+    d.settle();
+    // The L1 feed wire, clicked by the pointer.
+    d.input(&Input::Hover { at });
+    d.input(&click(at));
+    d.settle();
+    let (title, why) = card(&mut d).expect("the type is offered");
+    assert_eq!(title, "Type L1?");
+    assert!(why.contains("L1") && why.contains("colour"), "{why}");
+    let steps = d.shell_mut().recorded_commands().len();
+    d.input(&click(d.find("Accept").expect("Accept")));
+    d.settle();
+    let shell = d.shell_mut();
+    assert_eq!(shell.recorded_commands().len(), steps + 1, "one step");
+    let last = shell.recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "potential.define");
+    assert_eq!(
+        (last.params["name"].as_str(), last.params["ptype"].as_str()),
+        (Some("L1"), Some("l1"))
+    );
+    d.settle();
+    assert_eq!(card(&mut d), None, "typed now: nothing more to offer");
+    d.shell_mut().shutdown();
 }

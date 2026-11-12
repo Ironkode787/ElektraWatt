@@ -122,8 +122,11 @@ pub(crate) fn text_fields(ui: &mut Ui, current_bind: Option<&str>, events: &mut 
     crate::components::combo_expanded(ui, &combo.response);
 }
 
-/// The Wire marker tool's fields in the tool strip: the cross-section and the colours, each sent by
-/// Enter as `marker.fields` with its member (`""` clears it).
+/// The Wire marker tool's fields in the tool strip: the cross-section and the colours, each sent as `marker.fields`
+/// with its member (`""` clears it) when it loses the focus, by Enter, Tab, a click on another field or the pointer
+/// going back to the sheet, as Properties takes a typed value (an earlier version sent it on Enter only, so a value
+/// left by a click was lost and the marker printed the wire's own cross-section): what the fields show is what the
+/// marker prints.
 pub(crate) fn marker_fields(
     ui: &mut Ui,
     csa: &mut String,
@@ -138,7 +141,7 @@ pub(crate) fn marker_fields(
         let edit = ui.add(egui::TextEdit::singleline(buffer).desired_width(120.0));
         let label = strings::text(label_key).to_owned();
         edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
-        if edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+        if edit.lost_focus() {
             let mut params = serde_json::Map::new();
             params.insert(member.to_owned(), serde_json::json!(buffer.trim()));
             events.push(crate::app::Event::Action(

@@ -723,10 +723,10 @@ msgid ""
 "proposes the tag -1W1 and lists the two wires with the core each gets. Type "
 "`3G1.5` as the **Type**, a three-core cable of 1.5 mm² whose last core is "
 "green-yellow: the first wire gets the core BN, the second BU. Choose "
-"**Apply**. The toast says \"Cable -1W1 now has these wires as its cores: "
-"2\": the cable is made with its three cores and the two field wires are its "
-"cores, in one step that one Undo takes back. The cable takes its page number "
-"from its first core, and the wires take the cores' 1.5 mm² and colours."
+"**Apply**. The toast says \"Cable -1W1 made from 2 wires\": the cable is "
+"made with its three cores and the two field wires are its cores, in one step "
+"that one Undo takes back. The cable takes its page number from its first "
+"core, and the wires take the cores' 1.5 mm² and colours."
 msgstr ""
 "Klik op de velddraad van -1X1:1 en Shift-klik daarna op de velddraad van "
 "-1X1:2. Kies **Tekenen ▸ Verbinden ▸ Kabel…** (**Kabel** op het tabblad "
@@ -734,10 +734,10 @@ msgstr ""
 "met de ader die elk krijgt. Typ `3G1.5` als **Type**, een kabel met drie "
 "aders van 1,5 mm² waarvan de laatste ader groen-geel is: de eerste draad "
 "krijgt de ader BN, de tweede BU. Kies **Toepassen**. De notificatie zegt "
-"\"Kabel -1W1 heeft nu deze draden als aders: 2\": de kabel is gemaakt met "
-"zijn drie aders en de twee velddraden zijn zijn aders, in één stap die één "
-"keer Ongedaan maken terugneemt. De kabel krijgt zijn paginanummer van zijn "
-"eerste ader, en de draden krijgen de 1,5 mm² en de kleuren van de aders."
+"\"Kabel -1W1 gemaakt van 2 draden\": de kabel is gemaakt met zijn drie aders "
+"en de twee velddraden zijn zijn aders, in één stap die één keer Ongedaan "
+"maken terugneemt. De kabel krijgt zijn paginanummer van zijn eerste ader, en "
+"de draden krijgen de 1,5 mm² en de kleuren van de aders."
 
 #: src/tutorials/terminal-strip-and-cable.md:37
 msgid ""
@@ -3535,16 +3535,19 @@ msgid ""
 "Places a wire marker, the label that prints the cross-section and colours of "
 "the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
 "a line across the wires, type the cross-section and the colours in the "
-"tool's fields if they are to change, and press Enter. A colour is a code in "
-"any case (`BK`, `bk`), two codes of one wire (`GN+YE` or `GNYE`), a company "
-"code of the project's colour profile, or a colour's name from that profile; "
-"one colour is every marked wire's, and a list (`BK, BU`) gives each wire its "
-"own in the order the line crosses them. A colour the project does not know "
-"is refused with the codes it knows. The marker prints a short line across "
-"the wires and its text beyond the line's end, clear of the wires."
+"tool's fields if they are to change, and press Enter. The fields may be "
+"filled before or after the line: a field takes its value when you leave it "
+"(Enter, Tab, a click on the other field or back on the page), and the marker "
+"prints what the fields show. A colour is a code in any case (`BK`, `bk`), "
+"two codes of one wire (`GN+YE` or `GNYE`), a company code of the project's "
+"colour profile, or a colour's name from that profile; one colour is every "
+"marked wire's, and a list (`BK, BU`) gives each wire its own in the order "
+"the line crosses them. A colour the project does not know is refused with "
+"the codes it knows. The marker prints a short line across the wires and its "
+"text beyond the line's end, clear of the wires."
 msgstr ""
 
-#: src/reference/window/tools.md:226
+#: src/reference/window/tools.md:228
 msgid ""
 "The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire "
 "numbers**, a setting of the project that the PDF and print follow too: each "
@@ -3554,62 +3557,62 @@ msgid ""
 "and core name it."
 msgstr ""
 
-#: src/reference/window/tools.md:231
+#: src/reference/window/tools.md:233
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:233
+#: src/reference/window/tools.md:235
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:235
+#: src/reference/window/tools.md:237
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:237
+#: src/reference/window/tools.md:239
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:240 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:242 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:242
+#: src/reference/window/tools.md:244
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:245
+#: src/reference/window/tools.md:247
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:247
+#: src/reference/window/tools.md:249
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:249
+#: src/reference/window/tools.md:251
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:251
+#: src/reference/window/tools.md:253
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:254
+#: src/reference/window/tools.md:256
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:256
+#: src/reference/window/tools.md:258
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -3617,11 +3620,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:259
+#: src/reference/window/tools.md:261
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:261
+#: src/reference/window/tools.md:263
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 

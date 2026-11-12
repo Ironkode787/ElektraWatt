@@ -550,6 +550,8 @@ potential-offer-title = Potentiaal { $p0 }?
 potential-offer-title-new = Nieuwe potentiaal { $p0 }?
 potential-offer-role = { $p0 } heeft de rol { $p1 }
 potential-offer-coil = { $p0 } is de terugleiding van een spoel gevoed uit { $p1 }
+potential-offer-title-type = Type { $p0 }?
+potential-offer-type = De naam { $p0 } noemt het type; het type geeft de draad zijn kleur en doorsnede
 potential-offer-accept = Accepteren
 potential-offer-decline = Afwijzen
 reason-no-potential-offer = Voor de selectie wordt geen potentiaal voorgesteld
@@ -4952,7 +4954,10 @@ form-cable-core = Ader
 error-cable-type = "{ $p0 }" is geen kabeltype. Schrijf het als 3G1.5 of 4x0.75, of geef het artikelnummer van een kabel.
 error-cable-core-unknown = De kabel heeft geen ader { $p0 }: zijn aders zijn { $p1 }.
 error-cable-core-twice = Ader { $p0 } is aan twee draden gegeven: geef elke draad een eigen ader.
-toast-cable-wires = Kabel { $p0 } heeft nu deze draden als aders: { $p1 }.
+toast-cable-wires = Kabel { $p0 } gemaakt van { $p1 }.
+toast-cable-wires-changed = Kabel { $p0 } bevat nu { $p1 }.
+cable-wires-count = { $p0 } draden
+cable-wires-count-one = 1 draad
 
 # FT-1372 (ID-1362): Uitvoer ▸ Rapporten ▸ Rapportblok….
 action-report-block-new = Rapportblok…

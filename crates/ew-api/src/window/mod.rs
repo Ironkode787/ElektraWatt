@@ -18,7 +18,7 @@ mod plc_bind;
 // Wire colours as a person types them.
 mod typed;
 
-pub use cable_form::{CableForm, CableRefused, TypeCore, assign_cores};
+pub use cable_form::{CableForm, CableRefused, TypeCore};
 pub use clipboard::{
     CopiedFragment, CopyError, FRAGMENT_HEADER, FragmentError, ParsedFragment, parse_fragment,
     parse_fragment_with,

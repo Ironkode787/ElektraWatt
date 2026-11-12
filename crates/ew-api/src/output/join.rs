@@ -241,10 +241,10 @@ impl Session {
         q.devices().contains(id).then(|| tag_of(&q, id))
     }
 
-    /// The numbering format a new terminal strip of letter `letter` takes (`{page}{letter}{counter}`;
-    /// `ew_derive::strip_format`).
-    pub fn strip_format(&self, letter: &str) -> String {
-        ew_derive::strip_format(&self.query(), letter)
+    /// The numbering format a new device with the aspect `aspect` (`strip`, `cable`) and the letter `letter` takes
+    /// (`{page}{letter}{counter}`; `ew_derive::numbering_format`).
+    pub fn numbering_format(&self, aspect: &str, letter: &str) -> String {
+        ew_derive::numbering_format(&self.query(), aspect, letter)
     }
 
     /// What a symbol drawing the FnDef copy `fndef` can join: whether the FnDef can be an auxiliary

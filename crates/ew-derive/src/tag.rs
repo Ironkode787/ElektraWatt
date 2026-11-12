@@ -340,9 +340,9 @@ pub fn rule_product(q: &Q, device: Id<Device>) -> Option<(String, TagSource)> {
     Some((product, source))
 }
 
-/// The numbering format a new terminal strip of letter `letter` takes (a device with the `strip` aspect, the default
-/// scheme and no kind): the applied scheme's first matching rule's format, else the scheme's.
-pub fn strip_format(q: &Q, letter: &str) -> String {
+/// The numbering format a new device with the aspect `aspect` (`strip`, `cable`) and the letter `letter` takes (the
+/// default scheme and no kind): the applied scheme's first matching rule's format, else the scheme's.
+pub fn numbering_format(q: &Q, aspect: &str, letter: &str) -> String {
     let settings = q.get::<profile::NumberingSettingsOf>(());
     let scheme = applied_scheme(q, settings.as_ref().as_ref(), None);
     scheme
@@ -350,7 +350,7 @@ pub fn strip_format(q: &Q, letter: &str) -> String {
         .iter()
         .find(|r| {
             let s = &r.select;
-            s.aspect.as_deref().is_none_or(|a| a == "strip")
+            s.aspect.as_deref().is_none_or(|a| a == aspect)
                 && s.letter.as_deref().is_none_or(|l| l == letter)
                 && s.kind.is_none()
         })

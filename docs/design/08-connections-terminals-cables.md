@@ -334,8 +334,11 @@ an undefined one.
   the name; where it has none, the offer is a new potential of that type named by the type's printed word (`0V` for
   M, `N`, `PE`, `L+`, with `-2`, `-3` where another potential bears it); two or more offer nothing
   (`Session::potential_offer`). A part's coil voltage (`coil_voltage`, 24 V) does not say AC or DC, so a coil whose
-  A1 has no type gives no reason. A declined offer is not shown again for that wire
-  in the session.
+  A1 has no type gives no reason. A potential without a type whose name (steps 1 to 2b) is a type's own word (`N`,
+  `PE`, `L1`, `L2`, `L3`, `L`, `L+`, `L-`, `M`, `0V`) counts as that type, for a coil's feed ("fed from L1") and for
+  the project's potentials of a type; such a potential, its wire selected, is itself offered the type ("Type L1?"),
+  since the type gives its wires their colour and cross-section, and Accept defines it with its name and that type.
+  A declined offer is not shown again for that wire in the session.
 - **Aliases.** Every other distinct IP name on the potential is an alias, in natural order (FR-CON-012, D-24).
 - **Signals** take the first IP name inside them.
 - **Bond paths.** IPs that lie on a bond's `via` path are named on the bond, not on either potential. "PE-0VDC"
@@ -1061,7 +1064,13 @@ one of the wires already belongs to), its type as a person writes it (`3G1.5`: t
 `4x0.75`: no green-yellow; or a cable part's number) and the wires with the core each gets, which can be changed. A
 written type gives HD 308 S2's harmonised colours up to five cores (`2x` BN BU, `3x` BN BK GY, `4x` BU BN BK GY, `3G`
 BN BU GNYE, `4G` BN BK GY GNYE, `5G` BN BK GY BU GNYE) and numbered black cores beyond, each core with the written
-cross-section, so the wires print the core's values (level 6 of §4.1), not their potential's. Apply on a new cable is
+cross-section, so the wires print the core's values (level 6 of §4.1), not their potential's. The tag proposed is the
+one the cable takes: the scheme's format for a device with the `cable` aspect on the page shown, not the strips'
+format. A wire without a core takes one by what its potential says it is: its type, or without one a name (from a
+definition, a source point or the supply) that is a type's own word (`N`, `PE`, `L1`, `L2`, `L3`, `L`, `L+`, `L-`, `M`,
+`0V`). An N takes the blue core and a PE the green-yellow one (a PE with no green-yellow core left takes none); the
+other wires take the cores left in the selection's order, never the green-yellow one. Retyping the type assigns the
+same way. Apply on a new cable is
 one `cable.create` whose conductors list their wires (one undo step). On a selection that holds a cable's wire the
 same form opens that cable: a wire added takes a free core, a core emptied takes the wire out, a changed type sets the
 cores' cross-section; that is one `fields.set_many`, and one `conductor.add` more when the cable gains cores. A typed

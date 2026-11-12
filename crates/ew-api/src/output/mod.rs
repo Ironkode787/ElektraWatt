@@ -137,6 +137,7 @@ pub use navigators::{
 };
 pub use panel::{PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
 pub use potential_offer::PotentialOffer;
+pub(crate) use potential_offer::said_type;
 pub use preview::PreviewEntity;
 pub use project_diff::textconv;
 pub use properties::{

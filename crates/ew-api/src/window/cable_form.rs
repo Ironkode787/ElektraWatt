@@ -10,8 +10,10 @@
 //!   green-yellow last; each core takes the written cross-section. A part's cores are the part's, as New cable…
 //!   makes them.
 //! - **The rows** are the wires with the core each gets ([`Session::cable_form`]): the cores of the cable one of the
-//!   wires already belongs to, then the other wires; a wire keeps its core, a new one takes the type's next free core.
-//!   A row whose core is emptied leaves the cable.
+//!   wires already belongs to, then the other wires; a wire keeps its core. A new one takes a core by what its
+//!   potential says it is ([`Session::assign_cores`]: its type, or without one a name that is a type's own word, `N`,
+//!   `PE`, `L1`…): an N the blue core, a PE the green-yellow one, and the others, in the rows' order, the type's next
+//!   free core that is not green-yellow (HD 308 S2). A row whose core is emptied leaves the cable.
 //! - **Apply** ([`Session::cable_apply`]): a new cable is one `cable.create` whose conductors list their wires (one
 //!   transaction, one undo step); an existing cable is one `fields.set_many` (its tag, its cores' cross-section and
 //!   colour where the type changes them, the wires that change core or leave) and, for cores the cable does not have
@@ -20,8 +22,9 @@
 use std::collections::BTreeSet;
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{ColourSpec, Conductor, Connection, ConnectionKind, Csa, Device};
+use ew_derive::ew_schema::{ColourSpec, Conductor, Connection, ConnectionKind, Csa, Device, PotentialType};
 use ew_derive::ew_units::Dec3;
+use ew_derive::{EndpointKey, PotentialPartition};
 use serde_json::{Value, json};
 
 use crate::output::Uuid;
@@ -293,8 +296,26 @@ impl Session {
             cable,
             tag,
             type_text,
-            rows: assign_cores(&cores, &rows),
+            rows: self.assign_cores(&cores, &rows),
         }
+    }
+
+    /// The rows with their cores (module documentation): a row keeps a core of `cores` it has; a row without one whose
+    /// wire's potential says N takes the blue core, one that says PE the green-yellow core, and every other row, in
+    /// order, the next core of `cores` no row has that is not green-yellow; with none left a row stays without, and a PE
+    /// row without a free green-yellow core stays without.
+    pub fn assign_cores(&self, cores: &[TypeCore], rows: &[(Uuid, String)]) -> Vec<(Uuid, String)> {
+        let q = self.query();
+        let partition = q.get::<PotentialPartition>(());
+        let said: Vec<Option<PotentialType>> = rows
+            .iter()
+            .map(|(w, _)| {
+                let wire = q.connections().get(Id::<Connection>::from_uuid(*w))?;
+                let p = partition.potential_at(EndpointKey::of(&wire.a)?)?;
+                crate::output::said_type(&q, p.id)
+            })
+            .collect();
+        assign_cores(cores, rows, &said)
     }
 
     /// The command or commands of the Cable form (module documentation): the cable `cable` (none: a new one), the tag
@@ -431,28 +452,53 @@ impl Session {
     }
 }
 
-/// The rows with their cores: a row keeps a core of `cores` it has, and a row without one takes the next of `cores`
-/// no row has; with none left it stays without.
-pub fn assign_cores(cores: &[TypeCore], rows: &[(Uuid, String)]) -> Vec<(Uuid, String)> {
+/// [`Session::assign_cores`] with the type each row's potential says, `said`, in the rows' order.
+fn assign_cores(
+    cores: &[TypeCore],
+    rows: &[(Uuid, String)],
+    said: &[Option<PotentialType>],
+) -> Vec<(Uuid, String)> {
+    let is = |t: &TypeCore, codes: &[&str]| t.colour.iter().map(String::as_str).eq(codes.iter().copied());
+    let green_yellow = |t: &TypeCore| is(t, &["GN", "YE"]);
+    let mut out: Vec<(Uuid, String)> = rows.to_vec();
     let mut taken: BTreeSet<String> = rows
         .iter()
         .filter(|(_, c)| cores.iter().any(|t| t.core == *c))
         .map(|(_, c)| c.clone())
         .collect();
-    rows.iter()
-        .map(|(w, c)| {
-            if taken.contains(c) {
-                return (*w, c.clone());
+    // The N and PE rows first, on their own cores; then the others in order on what is left.
+    let mut others: Vec<usize> = Vec::new();
+    for (i, (_, c)) in rows.iter().enumerate() {
+        if taken.contains(c) {
+            continue;
+        }
+        out[i].1 = String::new();
+        let said = said.get(i).cloned().flatten();
+        let own = match said {
+            Some(PotentialType::N) => cores.iter().find(|t| is(t, &["BU"]) && !taken.contains(&t.core)),
+            Some(PotentialType::Pe) => cores.iter().find(|t| green_yellow(t) && !taken.contains(&t.core)),
+            _ => None,
+        };
+        match own {
+            Some(t) => {
+                taken.insert(t.core.clone());
+                out[i].1 = t.core.clone();
             }
-            let next = cores
-                .iter()
-                .find(|t| !taken.contains(&t.core))
-                .map(|t| t.core.clone())
-                .unwrap_or_default();
-            taken.insert(next.clone());
-            (*w, next)
-        })
-        .collect()
+            // A PE is never put on another core's colour.
+            None if said == Some(PotentialType::Pe) => {}
+            None => others.push(i),
+        }
+    }
+    for i in others {
+        if let Some(t) = cores
+            .iter()
+            .find(|t| !green_yellow(t) && !taken.contains(&t.core))
+        {
+            taken.insert(t.core.clone());
+            out[i].1 = t.core.clone();
+        }
+    }
+    out
 }
 
 #[cfg(test)]
@@ -486,8 +532,42 @@ mod tests {
         let (a, b, c) = (Uuid::from_u128(1), Uuid::from_u128(2), Uuid::from_u128(3));
         let rows = vec![(a, "BU".to_owned()), (b, String::new()), (c, String::new())];
         assert_eq!(
-            assign_cores(&t, &rows),
+            assign_cores(&t, &rows, &[None, None, Some(PotentialType::Pe)]),
             [(a, "BU".to_owned()), (b, "BN".to_owned()), (c, "GNYE".to_owned())]
+        );
+    }
+
+    /// HD 308 S2: an N takes the blue core and a PE the green-yellow one, wherever they stand in the rows; the others
+    /// take what is left in order, never the green-yellow core.
+    #[test]
+    fn n_takes_blue_pe_green_yellow_and_the_others_what_is_left() {
+        use PotentialType::{L1, N, Pe};
+        let (a, b, c) = (Uuid::from_u128(1), Uuid::from_u128(2), Uuid::from_u128(3));
+        let empty = |ws: &[Uuid]| ws.iter().map(|w| (*w, String::new())).collect::<Vec<_>>();
+        let cores = |rows: Vec<(Uuid, String)>| rows.into_iter().map(|r| r.1).collect::<Vec<_>>();
+        let three = written_cores(3, true, Dec3(1_500));
+        assert_eq!(
+            cores(assign_cores(
+                &three,
+                &empty(&[a, b, c]),
+                &[Some(N), Some(Pe), Some(L1)]
+            )),
+            ["BU", "GNYE", "BN"]
+        );
+        let two = written_cores(2, false, Dec3(1_500));
+        assert_eq!(
+            cores(assign_cores(&two, &empty(&[a, b]), &[None, Some(N)])),
+            ["BN", "BU"]
+        );
+        assert_eq!(
+            cores(assign_cores(&two, &empty(&[a, b]), &[Some(N), None])),
+            ["BU", "BN"]
+        );
+        // A wire of no known type never takes the green-yellow core.
+        let pe = written_cores(2, true, Dec3(1_500));
+        assert_eq!(
+            cores(assign_cores(&pe, &empty(&[a, b]), &[None, None])),
+            ["BN", ""]
         );
     }
 }
