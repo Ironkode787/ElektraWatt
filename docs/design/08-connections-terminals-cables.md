@@ -330,8 +330,11 @@ an undefined one.
   *As built (FT-1700).* A potential named only by step 3 may be **offered** a name, never given one: the window
   shows a card at the selected wire, and Accept is an ordinary `potential.define`. It reasons only from a member CP's
   own `potential_role`, or from the A2 of a coil whose A1 is on a potential of type L+ (A2 is then M) or of one phase
-  (A2 is then N); every such CP must agree, and the project must hold exactly one potential of that type named by
-  steps 1 to 2b, whose name is offered (`Session::potential_offer`). A declined offer is not shown again for that wire
+  (A2 is then N); every such CP must agree. The project's one potential of that type named by steps 1 to 2b gives
+  the name; where it has none, the offer is a new potential of that type named by the type's printed word (`0V` for
+  M, `N`, `PE`, `L+`, with `-2`, `-3` where another potential bears it); two or more offer nothing
+  (`Session::potential_offer`). A part's coil voltage (`coil_voltage`, 24 V) does not say AC or DC, so a coil whose
+  A1 has no type gives no reason. A declined offer is not shown again for that wire
   in the session.
 - **Aliases.** Every other distinct IP name on the potential is an alias, in natural order (FR-CON-012, D-24).
 - **Signals** take the first IP name inside them.

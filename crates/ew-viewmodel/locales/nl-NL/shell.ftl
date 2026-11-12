@@ -546,6 +546,7 @@ reason-potential-point = Selecteer één draad, aftakking of klem
 action-potential-draw-row = Potentiaal definiëren…
 action-potential-offer = Op de voorgestelde potentiaal antwoorden
 potential-offer-title = Potentiaal { $p0 }?
+potential-offer-title-new = Nieuwe potentiaal { $p0 }?
 potential-offer-role = { $p0 } heeft de rol { $p1 }
 potential-offer-coil = { $p0 } is de terugleiding van een spoel gevoed uit { $p1 }
 potential-offer-accept = Accepteren

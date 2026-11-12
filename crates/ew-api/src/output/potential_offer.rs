@@ -7,9 +7,11 @@
 //! Only what is safe to reason: a connection point on the wire's potential whose own role says its type (a part's or a
 //! function definition's `potential_role`: the − of a DC supply is M, an N or PE pin), or the A2 of a coil whose A1 is
 //! on a potential of type L+ (A2 is then the 0 V, M) or of one phase (A2 is then the N). Every such point of the
-//! potential must agree on one type, and the project must hold exactly one named potential of that type (named by a
-//! definition, a source interruption point or the supply, not by the fallback); its name is the offer. Anything else
-//! offers nothing.
+//! potential must agree on one type. When the project holds exactly one named potential of that type (named by a
+//! definition, a source interruption point or the supply, not by the fallback), its name is the offer; when it holds
+//! none, the offer is a new potential of that type named by the type's printed word ([`new_name`]: `0V` for M, `N`,
+//! `PE`, `L+`, …), with `-2`, `-3`… where another potential bears the word. Several named potentials of the type, or a
+//! type without a printed word (signal), offer nothing.
 
 use std::collections::BTreeSet;
 
@@ -34,6 +36,27 @@ pub struct PotentialOffer {
     /// For a coil's A2, the name of the potential on its A1 (`24VDC`); `None` where the point's own role gives the
     /// type.
     pub fed_from: Option<String>,
+    /// Whether the name is a new potential's (the project has no named potential of the type), not an existing one's.
+    pub new: bool,
+}
+
+/// The name a new potential of `ptype` takes: the type's printed word, `0V` for M; `None` for a type without one.
+fn new_name(ptype: &PotentialType) -> Option<&'static str> {
+    use PotentialType::{Fe, L, L1, L2, L3, LMinus, LPlus, M, N, Pe, Pen};
+    Some(match ptype {
+        L1 => "L1",
+        L2 => "L2",
+        L3 => "L3",
+        L => "L",
+        N => "N",
+        Pe => "PE",
+        Pen => "PEN",
+        Fe => "FE",
+        LPlus => "L+",
+        LMinus => "L-",
+        M => "0V",
+        _ => return None,
+    })
 }
 
 /// Whether `name` is only the fallback name of a potential.
@@ -121,11 +144,20 @@ impl Session {
             .map(|n| n.text)
             .collect();
         let mut names = names.into_iter();
-        let (Some(name), None) = (names.next(), names.next()) else {
-            return None;
+        let (name, new) = match (names.next(), names.next()) {
+            (Some(name), None) => (name, false),
+            (None, _) => {
+                let word = new_name(&ptype)?;
+                let name = std::iter::once(word.to_owned())
+                    .chain((2..).map(|n| format!("{word}-{n}")))
+                    .find(|n| ew_derive::potential_named(&q, n).is_none())?;
+                (name, true)
+            }
+            _ => return None,
         };
         Some(PotentialOffer {
             name,
+            new,
             ptype: serde_json::to_value(&ptype).ok()?.as_str()?.to_owned(),
             cp: cp_label(&q, cp),
             fed_from,
