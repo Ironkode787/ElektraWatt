@@ -129,6 +129,8 @@ fn supply_comes_in_here_marks_the_points_and_their_findings_go() {
     assert!(t.reps.iter().filter_map(|r| r.ip.as_ref()).all(|ip| ip.external));
     let after = findings(&mut d);
     assert!(!has(&after, "EW-CORE-051"), "{after:?}");
+    // The points' reference stands clear of their wires, which leave the tail and turn down under the arrow.
+    assert!(!has(&after, "EW-CORE-070"), "{after:?}");
     // Undo brings the findings back.
     d.input(&key("escape"));
     d.input(&key("ctrl+z"));
