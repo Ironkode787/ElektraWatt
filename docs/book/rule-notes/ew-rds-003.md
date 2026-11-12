@@ -1,7 +1,7 @@
 ## What it checks
 
 A device whose letter code does not match its category in the project's identifier set: its part's category where the
-part has one, else the category of its main function. A contactor's main function is its coil, but its part is filed
+part has one and the device is no black box, else the category of its main function. A contactor's main function is its coil, but its part is filed
 as a contactor, so it takes Q, as the device browser offers it. The finding suggests the set's letter. Left out: terminals, devices without a main function, black boxes and overview
 definitions, and categories the set does not map. The shipped identifier sets are not verified against the standard,
 and the message says so. One finding per device.
