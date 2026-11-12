@@ -158,9 +158,15 @@ fn every_templated_sample_part_places_on_its_starter_symbol() {
             .into_iter()
             .filter(|r| before.iter().all(|b| b.id != r.id))
             .collect();
+        // A black box on its own FnDef (the supply's) is drawn by the black box frame.
+        let drawn_by = |r: &TableRep| {
+            let own: Value = serde_json::from_str(starter::item(fndef).map_or("{}", |i| i.json)).unwrap();
+            let frame = own["contact_kind"] == "black_box" && symbol_fndef(&r.symbol_key) == "ew.fn.blackbox";
+            symbol_fndef(&r.symbol_key) == *fndef || frame
+        };
         let rep = new
             .iter()
-            .find(|r| symbol_fndef(&r.symbol_key) == *fndef)
+            .find(|r| drawn_by(r))
             .unwrap_or_else(|| panic!("{number}: no symbol of {fndef} placed: {new:?}"));
         placed.push((
             number.clone(),

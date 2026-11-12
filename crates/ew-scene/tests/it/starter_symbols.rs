@@ -55,7 +55,8 @@ const INTERRUPTION_POINTS: [&str; 3] = ["ew.gen.ip", "ew.gen.ip-target", "ew.gen
 const QET_SUFFIX: &str = "@qet10";
 /// The ElektraWatt builtin library (`library_id` of every starter document).
 const LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
-/// The FnDefs no symbol draws: the internal solenoid coil is drawn in its valve's symbol.
+/// The FnDefs no symbol draws: the internal solenoid coil is drawn in its valve's symbol. A black-box FnDef (the
+/// supply's, which declares its source outputs) is drawn by the black box frame and needs no symbol of its own.
 const UNDRAWN_FNDEFS: &[&str] = &["ew.fn.valve-solenoid"];
 /// House pen width of the pen-independent tolerance of on-outline checks, in nm (native edition).
 const OUTLINE_TOL: i64 = 1000;
@@ -661,7 +662,8 @@ fn fndef_references() {
     for fd in &l.fndefs {
         let who = fd.who();
         let def = &fd.copy.item;
-        if !referenced.contains(fd.key.as_str()) && !UNDRAWN_FNDEFS.contains(&fd.key.as_str()) {
+        let black_box = def.contact_kind == ew_schema::ContactKind::BlackBox;
+        if !referenced.contains(fd.key.as_str()) && !UNDRAWN_FNDEFS.contains(&fd.key.as_str()) && !black_box {
             problems.push(format!("{who}: orphan, no symbol references it"));
         }
         let mut seen = BTreeSet::new();

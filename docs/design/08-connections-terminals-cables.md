@@ -1518,7 +1518,11 @@ The fifteen rows this document proposed are in [02a](02a-requirements-core.md):
 15. **Source output CPs.** `potential_flow` roots only the output CPs of source functions (§3.6), but `CpDef`
     ([07](07-symbols-parts-macros.md) §2.4) could not say which CPs are outputs. Without that, -102G1:L would root
     L-1 and hide -101F1 as its protective device. **Resolved:** `CpDef.source_output: bool` is added (03 §7, 07
-    §2.4), set on PSU +/− and transformer secondaries in the starter library.
+    §2.4), set on PSU +/− and transformer secondaries in the starter library. *As built:* the supply is a black box
+    whose CPs come from its part's pattern, so its FnDef `ew.fn.psu-ac-dc` (contact kind black box) declares the
+    seven CPs with + and − as source outputs, and the template pairs the pattern with them; EW-GEN-PSU-1 and Golden
+    A's -102G1 use it, so the flow reaches +24V and +24V-F from -102G1 (FT-682). The four outputs of -102F2 (MICO
+    4.10, a black box that declares no pass-through) stay unreached.
 16. **Override granularity of the golden markers.** This document, [06](06-schematic-editor.md) OQ8 and FR-IMP-012
     store only the cross-section on W4, W5, W7, W9 and W20–W25, while earlier drafts of [03](03-domain-model.md)
     §9.5, [20](20-golden-project.md) §8.2, its D-08 test and the FR-CON-017 criterion read as if the colour were

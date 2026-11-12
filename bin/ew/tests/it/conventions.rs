@@ -738,7 +738,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         results::EXPORT_EWZ,
         0,
     );
-    assert_eq!((r.generation, r.files), (1, 183), "{r:?}");
+    assert_eq!((r.generation, r.files), (1, 184), "{r:?}");
     let into = t.0.join("extracted.ew");
     let mut outs = Vec::new();
     for _ in 0..2 {
@@ -746,7 +746,7 @@ fn every_writing_json_result_validates_and_round_trips() {
         let o = t.ew(&args([&"extract", &ewz, &"--into", &into, &"--json"]));
         assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
         let r: results::ExtractResult = assert_result(&stdout(&o), results::EXTRACT);
-        assert_eq!((r.generation, r.files), (1, 183), "{r:?}");
+        assert_eq!((r.generation, r.files), (1, 184), "{r:?}");
         outs.push(stdout(&o));
     }
     assert_eq!(outs[0], outs[1]);

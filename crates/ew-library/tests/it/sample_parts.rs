@@ -34,8 +34,16 @@ use serde_json::{Value, json};
 const KEY: &str = "ew-sample-parts";
 const NAME: &str = "Sample project parts";
 const LICENCE: &str = "CC0-1.0";
-/// The version of every item and of the library: 0.1.0, the first published content.
+/// The version of every item that has not changed since the first published content.
 const VERSION: &str = "0.1.0";
+/// The library's version: 0.1.1 since the supply 2904602 names the starter FnDef that declares its + and - as source
+/// outputs (FT-682).
+const LIBRARY_VERSION: &str = "0.1.1";
+
+/// The version of part `key`: the next one for a part changed after its first publication.
+fn part_version(key: &str) -> &'static str {
+    if key == "2904602" { "0.1.1" } else { VERSION }
+}
 const ZERO: &str = "sha256:0000000000000000000000000000000000000000000000000000000000000000";
 
 /// The ID of the library: `v5(SYSTEM_LIBRARY, "ew-sample-parts")`, as the starter parts'.
@@ -280,7 +288,7 @@ fn documents() -> Vec<LibDocument> {
         o.insert("id".into(), json!(item.to_string()));
         o.insert("library_id".into(), json!(lib.to_string()));
         o.insert("item_id".into(), json!(item.to_string()));
-        o.insert("version".into(), json!(VERSION));
+        o.insert("version".into(), json!(part_version(key)));
         o.insert("sha256".into(), json!(ZERO));
         let maker = &makers[p["manufacturer"]["item"].as_str().unwrap()];
         v["manufacturer"] =
@@ -418,7 +426,7 @@ fn the_shipped_library_is_the_generated_one() {
     let dir = root.join("company").join("ew-sample-parts.ewlib");
     std::fs::create_dir_all(&dir).unwrap();
     let mut manifest = LibManifest::new(library(), KEY, NAME, LICENCE);
-    manifest.version = VERSION.to_owned();
+    manifest.version = LIBRARY_VERSION.to_owned();
     std::fs::write(dir.join("library.json"), manifest.to_text()).unwrap();
     let mut reg = Registry::open(&tiers(&root, Vec::new(), vec![root.join("company")])).unwrap();
     reg.write(library(), &documents()).unwrap();
@@ -589,7 +597,7 @@ fn the_system_tier_finds_the_library_and_resolves_its_parts() {
             info.version.as_str(),
             info.licence.as_str()
         ),
-        (library(), NAME, Tier::System, VERSION, LICENCE)
+        (library(), NAME, Tier::System, LIBRARY_VERSION, LICENCE)
     );
     assert_eq!(info.findings, Vec::<String>::new());
     for doc in documents() {

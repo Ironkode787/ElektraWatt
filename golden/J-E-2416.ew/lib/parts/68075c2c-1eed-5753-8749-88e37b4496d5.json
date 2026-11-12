@@ -4,7 +4,7 @@
   "library_id": "d76f5765-c456-5393-935c-4cec32a87b01",
   "item_id": "801e4bf5-b638-575e-81cb-175e0345d825",
   "version": "1.0.0",
-  "sha256": "sha256:9d07691faf6c3ae7a74ffa088780b4b0f352cf430511583b521cf6faf31eca89",
+  "sha256": "sha256:c4e4635d904862efca510eb1694d346e57e50b54d16593be856558c98379a072",
   "meta": {"key": "2904602", "licence": "CC0-1.0", "sources": ["golden.table:parts|2904602"]},
   "manufacturer": {
     "library": "d76f5765-c456-5393-935c-4cec32a87b01",
@@ -30,9 +30,9 @@
     {
       "fndef": {
         "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
-        "item": "8f2f5a49-a5bc-5d27-815c-47dd24106efb",
+        "item": "019de5a6-ca42-5fe3-9d58-a78501a2f377",
         "version_req": "^0.1",
-        "key": "ew.fn.blackbox"
+        "key": "ew.fn.psu-ac-dc"
       },
       "main": true,
       "cps": [0, 1, 2, 3, 4, 5, 6]

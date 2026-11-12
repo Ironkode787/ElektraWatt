@@ -2392,7 +2392,7 @@ fn returned_in_series(q: &Q, p: PotentialId) -> bool {
 /// sides both have no source is left out (not fed at all); an unconnected CP has no potential (EW-POT-009). A return
 /// inside a module counts as returned: the module's declared link puts the CP in the module's potential, which holds
 /// a module CP and so is not judged. The flow alone cannot decide this: a supply whose CP data declares no source
-/// output (the starter PSU, Golden A's -102G1) leaves its whole DC side unreached. A potential between loads in series
+/// output (an imported black box) leaves its whole DC side unreached. A potential between loads in series
 /// is returned through them when they lead to two distinct potentials with a source ([`returned_in_series`]).
 #[derive(Clone, Copy, Debug)]
 pub struct LoadNotReturned;

@@ -36,7 +36,7 @@ const VERSION: &str = "0.1.0";
 /// the dimensions were added, 0.4.0 since the valve gained its fluid section, 0.4.1 since the on/off switch
 /// moved to the manual-command category, class S, 0.5.0 since the generic cable EW-GEN-CBL-1 was added, 0.5.1 since
 /// the contactor is filed as a contactor ([`own_category`]), 0.6.0 since the three-pole MCB EW-GEN-MCB-3 and the
-/// 3/2 solenoid valve EW-GEN-VLV-2 were added.
+/// 3/2 solenoid valve EW-GEN-VLV-2 were added and the supply's outputs became sources (unreleased, still 0.6.0).
 const LIBRARY_VERSION: &str = "0.6.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
@@ -53,7 +53,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-MCB-2", "0.1.1"),
     ("EW-GEN-FUS-1", "0.1.1"),
     ("EW-GEN-SW-1", "0.1.2"),
-    ("EW-GEN-PSU-1", "0.1.1"),
+    ("EW-GEN-PSU-1", "0.1.2"),
     ("EW-GEN-DI-1", "0.1.1"),
     ("EW-GEN-DO-1", "0.1.1"),
     ("EW-GEN-TRM-1", "0.1.1"),
@@ -400,7 +400,8 @@ fn defs() -> Vec<Def> {
                 ("-", Some("m")),
                 ("-", Some("m")),
             ],
-            template: vec![("ew.fn.blackbox", true, range(0, 7))],
+            // A black box whose FnDef declares + and - as source outputs, so the potential flow starts there (FT-682)
+            template: vec![("ew.fn.psu-ac-dc", true, range(0, 7))],
             contacts: Vec::new(),
             tech: vec![
                 ("input_voltage", q("230", "V")),
@@ -1071,7 +1072,7 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
         ("EW-GEN-SW-1", "0.1.2", 18000000, 85000000, 70000000),
         ("EW-GEN-RLY-1", "0.1.2", 27000000, 80000000, 70000000),
         ("EW-GEN-CON-1", "0.1.3", 45000000, 85000000, 80000000),
-        ("EW-GEN-PSU-1", "0.1.1", 60000000, 90000000, 110000000),
+        ("EW-GEN-PSU-1", "0.1.2", 60000000, 90000000, 110000000),
         ("EW-GEN-CPU-1", "0.1.2", 100000000, 100000000, 75000000),
         ("EW-GEN-DI-1", "0.1.1", 25000000, 100000000, 75000000),
         ("EW-GEN-DO-1", "0.1.1", 25000000, 100000000, 75000000),

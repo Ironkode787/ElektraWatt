@@ -336,9 +336,19 @@ fn catalogue_part(
             if t.main && main_category.is_none() {
                 main_category = def.as_ref().map(|d| d.item.category.0.as_str().to_owned());
             }
+            // A black box on its own FnDef (the supply's, which declares its source outputs) is drawn by the black
+            // box frame, whatever FnDef the frame's symbol names (read from the starter while not embedded).
+            let is_black_box = def
+                .clone()
+                .or_else(|| fndef_of(q, &t.fndef))
+                .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox);
             let symbol = rows
                 .iter()
                 .find(|(r, f)| *f == def_id && r.allowed)
+                .or_else(|| {
+                    rows.iter()
+                        .find(|(r, _)| is_black_box && r.black_box && r.allowed)
+                })
                 .map(|(r, _)| r.key.clone());
             // The CPs a function placed from the entry gets: the rule `function_cps` derives.
             let pattern: Vec<u16> = part.cp_pattern.iter().map(|c| c.idx).collect();

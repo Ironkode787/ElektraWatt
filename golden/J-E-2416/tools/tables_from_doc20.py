@@ -1276,7 +1276,7 @@ def build_part_cps_templates(part_keys):
     # the role: 550208 is the power block of -201U1 and -202U1, whose main function is the overview module
     # (doc 20 section 6.1 rows 19 and 28), so its black box is an auxiliary function.
     templates = [
-        ("2904602", "ew.fn.blackbox", 7, "true"),
+        ("2904602", "ew.fn.psu-ac-dc", 7, "true"),
         ("MICO 4.10", "ew.fn.blackbox", 10, "true"),
         ("550208", "ew.fn.blackbox", 6, "false"),
         ("PT 2.5-TWIN", "ew.fn.terminal", 4, "true"),
@@ -2007,6 +2007,7 @@ SYMBOL = {
     "ew.fn.lamp": "ew.iec.lamp@qet10",
     "ew.fn.pe": "ew.iec.pe@qet10",
     "ew.fn.blackbox": "ew.gen.blackbox@qet10",
+    "ew.fn.psu-ac-dc": "ew.gen.blackbox@qet10",
     "ew.fn.graphic": "ew.gen.cable-marker@qet10",
     "ew.fn.dp-connector": "ew.bus.dp-connector@qet10",
     "ew.fn.dp-port": "ew.bus.dp-port@qet10",
@@ -2076,7 +2077,8 @@ MAIN_FNDEF = {
     "1X1": "ew.fn.strip-segment",
     "-X1031": "ew.fn.strip-segment",
     "-X1032": "ew.fn.strip-segment",
-    "-102G1": "ew.fn.blackbox",
+    # FT-682: the supply's black box on the starter FnDef whose + and - are source outputs, so the flow reaches 24 V
+    "-102G1": "ew.fn.psu-ac-dc",
     "-102F1": "ew.fn.mcb-1p",
     "-102F2": "ew.fn.blackbox",
     "-106W1": "ew.fn.graphic",

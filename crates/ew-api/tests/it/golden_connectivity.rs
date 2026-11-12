@@ -1028,8 +1028,11 @@ fn flow_matches_doc_08_section_3_6() {
         let want: BTreeSet<String> = want.iter().map(|d| (*d).to_owned()).collect();
         assert_eq!(got, want, "loads of {name}");
     }
-    // Documented gap: the golden PSU has no source-output data, so flow does not reach the 24 V potentials.
-    for name in ["+24V", "+24V-F", "24VDC-1", "24VDC-2", "24VDC-3", "24VDC-4"] {
+    // The supply's + and − are source outputs (FT-682): the flow starts at -102G1 and passes -102F1. The four outputs
+    // of -102F2 (MICO 4.10, a black box that declares no pass-through) stay unreached.
+    assert_eq!(entry("+24V").distance, Some(0));
+    assert_eq!(entry("+24V-F").distance, Some(1));
+    for name in ["24VDC-1", "24VDC-2", "24VDC-3", "24VDC-4"] {
         assert_eq!(entry(name).distance, None, "{name}");
     }
 }
