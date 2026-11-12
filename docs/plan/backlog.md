@@ -17,34 +17,24 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 After an hour on an imported project of their own. All of it goes into the second candidate (the owner's word).
 
-- FT-1684 `ew-viewmodel, ew-ui`: **Major.** The Wire marker tool does not mark: with two sources and two wires no marker appears, and Enter with cross-section 1.5 and colour BK gives "invalid parameters at /colours"; the error stays after the colour is taken out again.
-- FT-1685 `ew-viewmodel, ew-ui, ew-commands`: **Major.** Making a cable from wires cannot be found: it is in the main menu only, not on the Draw tab, and a right click on several selected wires offers nothing. Two wires put into a 1.5 mm² cable keep markers that say 0.75. The tutorial is out of date. The owner's word: the whole cable flow is clunky and needs a redesign; the command row should hold every such command, nobody should have to go through the menus.
-- FT-1686 `ew-viewmodel, ew-ui, ew-import-qet`: **Major.** In an imported QElectroTech project the title block's fields (description, drawing, revision and the others at the foot of the page) cannot be edited; a right click on the title block with Edit is wanted.
-- FT-1687 `ew-viewmodel, ew-ui, docs/book`: **Major.** No way is in sight to make a panel layout page, and the help and the tutorials do not mention one, so the panel layout could not be tried.
-- FT-1688 `ew-commands, ew-viewmodel`: **Minor.** A wire whose potential is given the type L1 stays 0.75 mm² BK, though the standard in use gives L1 its colour and 1.5 mm²: a wire's cross-section and colour do not follow its potential's type.
-- FT-1689 `ew-ui`: **Minor.** Open on the toast of a finished PDF export does nothing.
-- FT-1690 `ew-ui, ew-viewmodel`: **Missing.** The symbol editor has no grid choices: other snap steps, snapping on and off, an easy way to change the grid; connection points should snap to the pages' connection grid.
-- FT-1691 `ew-ui, ew-library`: **Missing.** A symbol drawn in the editor cannot be given a category: it always lands under "Assemblies and black boxes".
 - FT-1692 `ew-scene, ew-viewmodel`: **Missing.** No way is in sight to print the wire numbers on the wires.
 - FT-1693 `ew-ui, ew-viewmodel`: **General.** The right-click menu should be the quick way to what fits the thing under the pointer: a terminal strip offers a new terminal and the strip editor, a relay coil its contacts, several selected wires a cable, the title block its fields, a symbol its editor. The owner asks for this to be expanded throughout.
-- FT-1694 `ew-ui, ew-viewmodel`: The device and symbol browsers have no easy way to edit an element or to copy and edit one (into the symbol editor).
-- FT-1695 `ew-ui, ew-viewmodel`: Terminal on the Draw tab only opens the symbol browser; it should have a small interface of its own, and the terminals should leave the symbol browser.
-- FT-1696 `ew-ui, ew-viewmodel`: The difference between the symbol browser and the device browser is not clear (they seem to open the same library, the symbol browser with more in it), and the right rail calls its panes Parts and Symbols where the Draw tab says Device and Symbol.
-- FT-1697 `content`: Relay coils are drawn as resistors, not as coils.
 - FT-1698 `ew-ui, ew-viewmodel`: Define potential asks for the type as typed text; a list as in Properties would show the choices.
 - FT-1699 `ew-checks, ew-viewmodel`: An interruption point cannot be marked as a mains source, so the supply that enters by one stays an error until it is waived.
 - FT-1700 `ew-derive, ew-viewmodel`: A wire's potential could be reasoned: a wire on A2 of a 24 V relay is 0VDC. The window should offer such a suggestion to accept or decline.
 - FT-1701 `ew-checks`: A power supply's L pin on a wire of L1 is reported as an error ("expected L, got L1"): right to the letter, wrong in sense.
-- FT-1702 `content`: The power supply symbol has one "+" at the top of its box instead of at the bottom with the others.
-- FT-1703 `ew-ui`: The tools of the symbol editor have no tooltips; a short line on what each does is wanted.
-- FT-1704 `ew-ui, ew-viewmodel`: Selecting a connection point in a part's Properties does not show it on the drawing, so which "+" of the power supply is meant stays unclear.
-- FT-1705 `ew-commands, ew-viewmodel`: A waiver demands a reason of at least 10 characters; the owner wants no minimum, and reason and author optional.
-- FT-1706 `ew-scene`: Wire markers look scruffy: the wire runs through the marker's text.
 - FT-1707 `ew-ui, ew-viewmodel`: The strip editor is hidden in the menus; it should be a right click on a terminal strip away.
-- FT-1708 `ew-viewmodel, ew-ui`: Importing a QElectroTech project belongs under File, Open; and opening an .ewz is a separate entry there for no reason a user sees.
-- FT-1709 `docs/book`: The tutorials hold one that runs the command line on the sample project, which no user of the window needs there.
-- FT-1710 `bin/elektrawatt, packaging`: On Windows the program has no icon, a console window opens before the application does, and the window's icon looks like a swastika from a distance and is not the mark of the ElektraWatt menu button.
-- FT-1711 `ew-ui, ew-viewmodel, docs`: The line and the bar that say the checks support and do not replace engineering verification are to go: the owner wants no such disclaimers in the window.
+
+Found by the lanes while fixing the rows above; fixed with them where it is cheap, else moved to Later.
+
+- FT-1712 `ew-viewmodel`: A row of terminals laid by Terminal… is one undo step per terminal, and one more for a new strip; the toast's Undo takes back the last terminal only. One step for the row is wanted.
+- FT-1713 `ew-scene, ew-viewmodel`: A terminal placed from the device browser's terminal part prints its tag and number twice, with no side a or b.
+- FT-1714 `ew-ui`: The symbol editor's toast after a save covers Close editor for some seconds.
+- FT-1715 `ew-viewmodel, docs/book`: Help ▸ Tutorials does not list the symbol editor's tutorial.
+- FT-1716 `ew-viewmodel, ew-import-qet`: A panel layout page made with New page in an imported QElectroTech project has no frame.
+- FT-1717 `xtask, tools/blind`: `cargo xtask blind selftest` fails at its call 27: it expects the wizard to say that the sample project is not installed.
+- FT-1718 `ew-viewmodel`: Title block fields… does not hold the title block's Author and Checked, which come from the revision (Check ▸ Revision); the fixed texts of an imported custom QElectroTech template cannot be edited at all.
+- FT-1719 `ew-viewmodel`: After Enclosure… the toast with its Open link is replaced at once by the structure node's toast.
 
 ### The persona round before 0.2.0
 
