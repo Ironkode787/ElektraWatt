@@ -159,7 +159,11 @@ fn mm2(csa: &Csa) -> Option<String> {
 impl Session {
     /// The page the connection `wire` is drawn on, if any.
     pub fn wire_page(&self, wire: Uuid) -> Option<Uuid> {
-        let page = self.query().connections().get(Id::<Connection>::from_uuid(wire))?.page?;
+        let page = self
+            .query()
+            .connections()
+            .get(Id::<Connection>::from_uuid(wire))?
+            .page?;
         Some(page.as_uuid())
     }
 
@@ -256,7 +260,11 @@ impl Session {
                     on.sort();
                     rows.extend(on.into_iter().map(|w| (w, conductor.core.as_str().to_owned())));
                 }
-                (self.device_tag(c).unwrap_or_default(), self.cable_type_text(c), rows)
+                (
+                    self.device_tag(c).unwrap_or_default(),
+                    self.cable_type_text(c),
+                    rows,
+                )
             }
             None => {
                 let csa = wires
@@ -358,9 +366,7 @@ impl Session {
         };
         let q = self.query();
         let mut edits: Vec<Value> = Vec::new();
-        let edit = |kind: &str, target: String, path: &str, value: Value| {
-            json!({"kind": kind, "targets": [target], "path": path, "value": value})
-        };
+        let edit = |kind: &str, target: String, path: &str, value: Value| json!({"kind": kind, "targets": [target], "path": path, "value": value});
         if let Some(tag) = frozen_tag {
             edits.push(edit("device", cable.to_string(), "tag.frozen", tag));
         }
@@ -379,10 +385,15 @@ impl Session {
         // The wires that change core or leave the cable.
         let mut added: Vec<Value> = Vec::new();
         for (wire, core) in rows {
-            let now = q.connections().get(Id::<Connection>::from_uuid(*wire)).map(|c| c.kind.clone());
+            let now = q
+                .connections()
+                .get(Id::<Connection>::from_uuid(*wire))
+                .map(|c| c.kind.clone());
             let target = if core.is_empty() {
                 match now {
-                    Some(ConnectionKind::Core(x)) if existing.iter().any(|c| c.id == x) => ConnectionKind::Wire,
+                    Some(ConnectionKind::Core(x)) if existing.iter().any(|c| c.id == x) => {
+                        ConnectionKind::Wire
+                    }
                     _ => continue,
                 }
             } else if let Some(c) = existing.iter().find(|c| c.core.as_str() == core) {
@@ -455,7 +466,10 @@ mod tests {
         assert_eq!(cores("2g1.5"), ["BN", "GNYE"]);
         assert_eq!(cores("4x0.75"), ["BU", "BN", "BK", "GY"]);
         assert_eq!(cores("7G1.5"), ["1", "2", "3", "4", "5", "6", "GNYE"]);
-        assert_eq!(written_type("3G1.5").map(|t| t.2.to_string()), Some("1.5".to_owned()));
+        assert_eq!(
+            written_type("3G1.5").map(|t| t.2.to_string()),
+            Some("1.5".to_owned())
+        );
         for not in ["", "G1.5", "3G", "3Y1.5", "0x1.5", "1G1.5", "3x0"] {
             assert_eq!(written_type(not), None, "{not}");
         }

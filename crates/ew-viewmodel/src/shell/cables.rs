@@ -284,9 +284,18 @@ pub(super) fn retype(session: Option<&ew_api::Session>, form: &mut super::FormDi
         .rows
         .iter()
         .enumerate()
-        .map(|(i, r)| (Uuid::from_u128(i as u128), r.cells.first().cloned().unwrap_or_default()))
+        .map(|(i, r)| {
+            (
+                Uuid::from_u128(i as u128),
+                r.cells.first().cloned().unwrap_or_default(),
+            )
+        })
         .collect();
-    for (row, (_, core)) in table.rows.iter_mut().zip(ew_api::window::assign_cores(&cores, &rows)) {
+    for (row, (_, core)) in table
+        .rows
+        .iter_mut()
+        .zip(ew_api::window::assign_cores(&cores, &rows))
+    {
         if let Some(cell) = row.cells.first_mut() {
             *cell = core;
         }
@@ -304,7 +313,10 @@ impl ShellModel {
             .wire_page(wire)
             .and_then(|p| self.page_rows().iter().find(|r| r.id == p))
             .and_then(|r| project.session.connection_words(&r.folio, wire))
-            .map_or_else(|| wire.to_string(), |t| super::tools::rejected_words("", Some(&t)))
+            .map_or_else(
+                || wire.to_string(),
+                |t| super::tools::rejected_words("", Some(&t)),
+            )
     }
 
     /// `cable.from_wires {tag?, type?, cores?}` (Draw ▸ Connect ▸ Cable…, FT-1685): the selected wires as the cores of

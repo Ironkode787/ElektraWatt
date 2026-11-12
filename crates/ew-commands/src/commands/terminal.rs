@@ -10,8 +10,8 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     Cable, ColourSpec, Conductor, Connection, ConnectionKind, Csa, Device, DeviceAspects, DeviceKind, Extra,
-    FnDef, FnRole, FrozenTag, Function, FunctionKind, Kind, LevelSpec, LibCopy, Part, PartUse, StructureAssignment,
-    TagSpec, Terminal,
+    FnDef, FnRole, FrozenTag, Function, FunctionKind, Kind, LevelSpec, LibCopy, Part, PartUse,
+    StructureAssignment, TagSpec, Terminal,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

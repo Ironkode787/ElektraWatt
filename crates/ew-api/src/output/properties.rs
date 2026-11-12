@@ -556,7 +556,10 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
         Kind::StructureNode => SheetCx::new(q).node_path(Id::from_uuid(id)).unwrap_or_default(),
         // A core by its cable's tag and its identification (`-1W1 BN`).
         Kind::Conductor => {
-            let cable = json.get("cable").and_then(Value::as_str).and_then(|c| Uuid::parse_str(c).ok());
+            let cable = json
+                .get("cable")
+                .and_then(Value::as_str)
+                .and_then(|c| Uuid::parse_str(c).ok());
             let core = json.get("core").and_then(Value::as_str).unwrap_or_default();
             match cable {
                 Some(c) => format!("{} {core}", device_tag_text(q, Id::from_uuid(c))),
