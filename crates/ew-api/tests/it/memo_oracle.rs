@@ -22,8 +22,9 @@
 //!   oracle re-running one memoised read in 64 cold (a fixed, deterministic sample); no mismatch and no cycle. Per
 //!   gate the value equality of every family and key is `memo_equals_cold_over_every_state`'s; this test checks
 //!   the engine's own oracle path (one sampled run instead of five shards at one in eight). Its
-//!   `#[ignore]`d twin `oracle_finds_no_mismatch_over_every_state_on_every_read` re-runs every read in one run
-//!   (the deep nightly).
+//!   `#[ignore]`d twins `oracle_on_every_read_over_the_first_half_of_the_states` and
+//!   `oracle_on_every_read_over_the_second_half_of_the_states` re-run every read, in two shards that run side by
+//!   side (the deep run).
 //! - `every_family_the_store_memoises_is_swept`: after the states and a sweep, every family holding memos in
 //!   the session's store is one the sweep read (a memoised family that `ew verify-derived` misses fails here).
 //! - `a_cold_q_evaluates_every_query_once` (review, finding 1): a cold `Q` evaluates each (family,
@@ -670,12 +671,20 @@ fn oracle_finds_no_mismatch_over_every_state() {
     );
 }
 
-/// The full oracle of the deep nightly (CI-N-02; `.github/workflows/deep-nightly.yml`, run with
-/// `--run-ignored all`): the same states, with every memoised read at every depth re-run cold.
+/// The full oracle of the deep run: the same states, with every memoised read at every depth re-run cold. Two
+/// shards, so that they run side by side: one test over all the states came to nine minutes beside the other slow
+/// tests, near the ten the runner allows (the second shard replays the first one's states without checking them).
 #[test]
-#[ignore = "deep run: the oracle on every read"]
-fn oracle_finds_no_mismatch_over_every_state_on_every_read() {
-    oracle_finds_no_mismatch(Oracle::Every, 1, STATES);
+#[ignore = "deep run: the oracle on every read, the first half of the states"]
+fn oracle_on_every_read_over_the_first_half_of_the_states() {
+    oracle_finds_no_mismatch(Oracle::Every, 1, STATES / 2);
+}
+
+/// The second shard of [`oracle_on_every_read_over_the_first_half_of_the_states`].
+#[test]
+#[ignore = "deep run: the oracle on every read, the second half of the states"]
+fn oracle_on_every_read_over_the_second_half_of_the_states() {
+    oracle_finds_no_mismatch(Oracle::Every, STATES / 2 + 1, STATES);
 }
 
 /// The oracle over the states `first..=last`; the states before `first` are replayed with the same reads and
