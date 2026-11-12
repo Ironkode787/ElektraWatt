@@ -36,7 +36,8 @@ This channel also receives Code of Conduct reports until the conduct contacts ar
 
 | Version | Supported |
 |---|---|
-| 0.1.x | Yes, until the next minor release (0.2.0) |
+| 0.2.x | Yes, until the next minor release (0.3.0) |
+| 0.1.x | No |
 | Earlier development builds | No |
 
 Before 1.0 only the latest 0.x release is supported. From 1.0, the latest minor gets all fixes, and each minor gets
@@ -44,7 +45,7 @@ security and data-loss fixes for 6 months after its successor ships. There is no
 
 ## Verifying a download
 
-ElektraWatt 0.1.0 is not signed. Each release carries `SHA256SUMS`, the SHA-256 checksum of each of its files. The
+No release before 1.0 is signed. Each release carries `SHA256SUMS`, the SHA-256 checksum of each of its files. The
 commands to check a file against it are in the install guide's section
 [Verify a download](docs/book/src/how-to/install.md#verify-a-download).
 

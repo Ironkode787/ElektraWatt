@@ -25,7 +25,7 @@ parley = { version = "0.12.0", default-features = false, features = ["std"] }
 fontique = { version = "0.12.0", default-features = false, features = ["std"] }
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 sha2 = { workspace = true }
-ew-hack = { version = "0.1.0", path = "../ew-hack" }
+ew-hack = { version = "0.2.0", path = "../ew-hack" }
 
 [dev-dependencies]
 insta = { version = "1.49.0", default-features = false }

@@ -15,4 +15,4 @@ publish = false
 workspace = true
 
 [dependencies]
-ew-hack = { version = "0.1.0", path = "../ew-hack" }
+ew-hack = { version = "0.2.0", path = "../ew-hack" }

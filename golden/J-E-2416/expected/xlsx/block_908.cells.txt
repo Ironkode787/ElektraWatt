@@ -63,7 +63,7 @@ table	block:18d6bd10-4543-5dba-a5bd-1f6e47e1a83c
 rev	0
 generation	1
 locale	neutral
-ew	0.1.0
+ew	0.2.0
 column	module	Module	Ident	false
 column	part	Part	Ident	false
 column	address	Address	Address	false

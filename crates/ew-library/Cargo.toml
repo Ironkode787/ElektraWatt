@@ -25,7 +25,7 @@ rusqlite = { version = "0.40.2", default-features = false, features = ["bundled"
 # Library record lines, `library.json` and the index columns of typed values. Never with `preserve_order`.
 serde = { workspace = true }
 serde_json = "1.0.154"
-ew-hack = { version = "0.1.0", path = "../ew-hack" }
+ew-hack = { version = "0.2.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true

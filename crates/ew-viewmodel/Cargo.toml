@@ -34,7 +34,7 @@ toml = { workspace = true }
 # compiled into the binary. `unic-langid` names a bundle's language, at the version fluent-bundle itself uses.
 fluent-bundle = { version = "=0.16.0", default-features = false }
 unic-langid = { version = "=0.9.6", default-features = false }
-ew-hack = { version = "0.1.0", path = "../ew-hack" }
+ew-hack = { version = "0.2.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true

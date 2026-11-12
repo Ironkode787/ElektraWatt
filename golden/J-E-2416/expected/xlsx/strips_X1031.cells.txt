@@ -27,7 +27,7 @@ table	nav:strips/d8221507-61e8-5141-a2cb-95300ef8a242
 rev	0
 generation	1
 locale	neutral
-ew	0.1.0
+ew	0.2.0
 column	strip	Strip	Text	false
 column	pos	Pos	Text	false
 column	terminal	Terminal	Text	true
