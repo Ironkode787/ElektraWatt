@@ -238,6 +238,7 @@ picker-title = Symbool invoegen
 picker-title-device = Apparaat invoegen
 picker-title-exchange = Symbool wisselen
 picker-filter-hint = Zoek op naam, artikelnummer en trefwoord
+picker-no-picture = Nog geen symbool: kies er een om dit artikel te plaatsen
 picker-badge-embedded = ingesloten
 picker-badge-starter = starter
 picker-badge-library = bibliotheek

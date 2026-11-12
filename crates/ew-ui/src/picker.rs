@@ -782,6 +782,14 @@ fn picture(ui: &Ui, t: &Tokens, rect: egui::Rect, shape: Option<&ew_viewmodel::e
         egui::StrokeKind::Inside,
     );
     let Some(shape) = shape else {
+        // A part without a symbol of its own: the box says so instead of standing empty.
+        painter.text(
+            rect.center(),
+            egui::Align2::CENTER_CENTER,
+            strings::text(key!("picker-no-picture")),
+            theme::font(&t.type_small),
+            t.text_tertiary.color32(),
+        );
         return;
     };
     // The bounds of the outline and the connection points, in nm.

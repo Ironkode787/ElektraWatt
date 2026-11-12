@@ -289,6 +289,9 @@ impl PropertiesPane {
             egui::ScrollArea::vertical()
                 .auto_shrink([false, false])
                 .show(ui, |ui| {
+                    // Rows of `size.row`, as the trees beside them have: no gap between rows (the grid stood at
+                    // 32 points a row where the navigators stand at 28, FT-1656).
+                    ui.spacing_mut().item_spacing.y = 0.0;
                     for section in &sheet.sections {
                         if sheet.sections.len() > 1 {
                             ui.label(

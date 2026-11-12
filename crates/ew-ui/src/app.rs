@@ -1726,9 +1726,11 @@ impl App {
         let text_bind = if text { self.shell.text_bind() } else { None };
         // The IP name field shows the typed name, else the ghost's proposal as its hint.
         let ip_typed = self.shell.ip_typed_name().map(str::to_owned);
-        let ip_proposal = match self.shell.tool_ghost() {
-            Some(ew_viewmodel::tools::Ghost::Ip { name, .. }) if ip && !name.is_empty() => Some(name),
-            _ => None,
+        let (ip_proposal, ip_external) = match self.shell.tool_ghost() {
+            Some(ew_viewmodel::tools::Ghost::Ip { name, external, .. }) if ip => {
+                (Some(name).filter(|n| !n.is_empty()), external)
+            }
+            _ => (None, None),
         };
         // See below. The card stays whole while it is being used: the pointer on its controls, or a field of it
         // typed into (FT-1646: the ghost follows the pointer, so going to the name field to type put the ghost
@@ -1792,6 +1794,7 @@ impl App {
                             ip_name,
                             ip_typed.as_deref(),
                             ip_proposal.as_deref(),
+                            ip_external.as_deref(),
                             &externals,
                             events,
                         );

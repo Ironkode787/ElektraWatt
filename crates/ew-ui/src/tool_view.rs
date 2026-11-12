@@ -195,7 +195,10 @@ pub(crate) fn structure_box_fields(
         }
     }
     if !externals.is_empty() {
-        let combo = egui::ComboBox::from_label(strings::text(key!("action-ip-external")))
+        // The label before its field, as every other field of the card reads.
+        let label = strings::text(key!("action-ip-external"));
+        ui.label(label);
+        let combo = egui::ComboBox::from_id_salt("structure-box-external")
             .icon(crate::components::combo_chevron)
             .selected_text("…")
             .show_ui(ui, |ui| {
@@ -214,6 +217,9 @@ pub(crate) fn structure_box_fields(
                     }
                 }
             });
+        combo
+            .response
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label));
         crate::components::combo_expanded(ui, &combo.response);
     }
 }
@@ -230,6 +236,7 @@ pub(crate) fn ip_fields(
     name: &mut String,
     typed: Option<&str>,
     proposal: Option<&str>,
+    external: Option<&str>,
     externals: &[(String, String)],
     events: &mut Vec<crate::app::Event>,
 ) {
@@ -270,9 +277,12 @@ pub(crate) fn ip_fields(
         ));
     }
     if !externals.is_empty() {
-        let combo = egui::ComboBox::from_label(strings::text(key!("action-ip-external")))
+        // The label before its field, and the field shows the reference on the ghost ("-" for none).
+        let label = strings::text(key!("action-ip-external"));
+        ui.label(label);
+        let combo = egui::ComboBox::from_id_salt("ip-external")
             .icon(crate::components::combo_chevron)
-            .selected_text("…")
+            .selected_text(external.unwrap_or("-"))
             .show_ui(ui, |ui| {
                 if ui.selectable_label(false, "-").clicked() {
                     events.push(crate::app::Event::Action(
@@ -289,6 +299,9 @@ pub(crate) fn ip_fields(
                     }
                 }
             });
+        combo
+            .response
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, label));
         crate::components::combo_expanded(ui, &combo.response);
     }
 }

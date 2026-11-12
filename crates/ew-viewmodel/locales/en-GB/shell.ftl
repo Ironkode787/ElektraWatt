@@ -200,6 +200,7 @@ picker-title = Insert symbol
 picker-title-device = Insert device
 picker-title-exchange = Change symbol
 picker-filter-hint = Search names, part numbers and keywords
+picker-no-picture = No symbol yet: choose one to place this part
 picker-badge-embedded = embedded
 picker-badge-starter = starter
 picker-badge-library = library

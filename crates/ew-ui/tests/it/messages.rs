@@ -879,7 +879,10 @@ fn a_group_rows_count_follows_its_name() {
             .unwrap_or_else(|| panic!("{} painted", row.label));
         let (_, badge, _) = texts
             .iter()
-            .filter(|(s, r, _)| *s == count && (r.center().y - name.center().y).abs() < 4.0)
+            // On the name's row and right of it: a value of another pane can stand at the same height.
+            .filter(|(s, r, _)| {
+                *s == count && (r.center().y - name.center().y).abs() < 4.0 && r.left() >= name.right()
+            })
             .min_by(|a, b| a.1.left().total_cmp(&b.1.left()))
             .expect("its count painted on its row");
         // The badge is `size.badge` wide at least, its number centred in it; the name's button keeps its padding.
