@@ -18,7 +18,7 @@ workspace = true
 # The raw deflate of the writer and the reader (WP-S1.18 D11, WP-S3.08 D3): already in the graph through
 # ew-import-catalog and png (decision log ID-827, ID-1145); no ZIP crate.
 miniz_oxide.workspace = true
-ew-hack = { version = "0.1.0", path = "../ew-hack" }
+ew-hack = { version = "0.2.0", path = "../ew-hack" }
 
 [dev-dependencies]
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }

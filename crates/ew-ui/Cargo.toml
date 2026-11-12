@@ -43,7 +43,7 @@ skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 # WP-S6.13 part 4: a visual run's frame line carries its PNG's SHA-256 (the dev-dependency below, promoted; already
 # in the graph through ew-api, no new package).
 sha2 = { workspace = true }
-ew-hack = { version = "0.1.0", path = "../ew-hack" }
+ew-hack = { version = "0.2.0", path = "../ew-hack" }
 
 [dev-dependencies]
 automod.workspace = true
