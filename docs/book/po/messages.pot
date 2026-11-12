@@ -2,10 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-12T14:32:22+01:00\n"
-=======
-"POT-Creation-Date: 2026-11-12T14:47:34+01:00\n"
->>>>>>> aa180ad10 (feat(potentials): offer a reasoned potential at an unnamed wire, Accept or Decline (FT-1700))
+"POT-Creation-Date: 2026-11-12T15:00:50+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
