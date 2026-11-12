@@ -37,8 +37,18 @@ impl Query for CheckOf {
 
     fn run(q: &Q, key: &(&'static str, Scope)) -> Arc<Vec<Finding>> {
         let (id, scope) = key;
+        // A scope whose record is gone gives no findings. Reading the record also ties the memo to it, so the memo of a
+        // rule that reads nothing else of a deleted page or device goes with it instead of staying in the store.
+        let live = match scope {
+            Scope::Page(p) => q.pages().contains(*p),
+            Scope::Strip(d) | Scope::Device(d) | Scope::Cable(d) | Scope::Module(d) => q.devices().contains(*d),
+            Scope::Cfg(c) => q.table::<ew_derive::ew_schema::PlcConfigProject>().contains(*c),
+            Scope::Lnet(n) => q.table::<ew_derive::ew_schema::LogicalNet>().contains(*n),
+            Scope::Pnet(n) => q.table::<ew_derive::ew_schema::PhysicalNet>().contains(*n),
+            Scope::Project | Scope::Potential(_) => true,
+        };
         let mut out = match rule(id) {
-            Some(r) if r.meta().scope == scope.kind() => run_caught(r, q, scope),
+            Some(r) if live && r.meta().scope == scope.kind() => run_caught(r, q, scope),
             _ => Vec::new(),
         };
         sort_findings(&mut out);
