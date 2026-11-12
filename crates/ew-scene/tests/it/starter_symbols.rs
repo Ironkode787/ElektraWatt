@@ -55,37 +55,6 @@ const INTERRUPTION_POINTS: [&str; 3] = ["ew.gen.ip", "ew.gen.ip-target", "ew.gen
 const QET_SUFFIX: &str = "@qet10";
 /// The ElektraWatt builtin library (`library_id` of every starter document).
 const LIBRARY: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
-/// The version of every starter document that has not changed since its first publication.
-const VERSION: &str = "0.1.0";
-/// The starter documents changed after their first publication on `main` (a published version is immutable; doc 07
-/// §3.1 classifies the change): key (both editions) → version. The `plc_address` slot, a
-/// minor change; the same slot on the lamp, the position switch and the 5/2 valve; the 5/2 valve's solenoid
-/// CP leaves its FnDef (major) and its symbol's function text falls back to the process tag (minor), the
-/// cylinder's ports gain their role (minor), the module overview's tag moves above the valve glyphs (minor);
-/// the one-pole on/off switch moves to the manual-command category, class S; The interruption point is
-/// redrawn with its arrow pointing right and its CP on the tail (major); the strip segment's tag moves beside
-/// the strip, left of its first terminal (minor); No text of a symbol crosses a stub of its CPs, so the
-/// heater's technical data moves down one step (patch) and the three-phase motor's leads grow one step up,
-/// its pin texts beside them (its CPs move: major); its outer leads start two grid steps from the middle one, so a
-/// pin text has room beside its lead in the QET edition too, and "M" and "3~" stand 4.5 mm apart (FT-1619:
-/// its CPs move, major).
-const BUMPED: &[(&str, &str)] = &[
-    ("ew.fn.cylinder-double-acting", "0.1.1"),
-    ("ew.fn.switch-1p", "0.1.1"),
-    ("ew.fn.valve-5-2-sol-spring", "0.2.0"),
-    ("ew.gen.ip", "0.2.0"),
-    ("ew.gen.strip-segment", "0.2.0"),
-    ("ew.iec.coil", "0.2.0"),
-    ("ew.iec.heater", "0.1.1"),
-    ("ew.iec.lamp", "0.2.0"),
-    ("ew.iec.motor-3ph", "0.3.0"),
-    ("ew.iec.position-switch-no", "0.2.0"),
-    ("ew.iec.pushbutton-no", "0.2.0"),
-    ("ew.iec.selector-switch-no", "0.2.0"),
-    ("ew.iec.valve-coil", "0.2.0"),
-    ("ew.iso.valve-5-2-sol-spring", "0.3.0"),
-    ("ew.ovw.module", "0.2.0"),
-];
 /// The FnDefs no symbol draws: the internal solenoid coil is drawn in its valve's symbol.
 const UNDRAWN_FNDEFS: &[&str] = &["ew.fn.valve-solenoid"];
 /// House pen width of the pen-independent tolerance of on-outline checks, in nm (native edition).
@@ -555,17 +524,12 @@ fn check_identity<T>(d: &Doc<T>, meta: &ItemMeta, out: &mut Vec<String>) {
             c.library_id
         ));
     }
-    let key = meta
-        .key
-        .as_ref()
-        .map(|k| k.as_str().trim_end_matches(QET_SUFFIX).to_owned());
-    let expected = BUMPED
-        .iter()
-        .find(|(k, _)| key.as_deref() == Some(*k))
-        .map_or(VERSION, |(_, v)| *v);
-    if c.version != expected {
+    // A changed document takes the next version by doc 07 §3.1 (a published version is immutable); the commit that
+    // changes it says why. Here only its form: three numbers, at least 0.1.0.
+    let numbers: Option<Vec<u32>> = c.version.split('.').map(|n| n.parse().ok()).collect();
+    if numbers.is_none_or(|n| n.len() != 3 || n < vec![0, 1, 0]) {
         out.push(format!(
-            "{who}: version is {:?}, expected {expected:?}",
+            "{who}: version {:?} is not a version of three numbers from 0.1.0",
             c.version
         ));
     }

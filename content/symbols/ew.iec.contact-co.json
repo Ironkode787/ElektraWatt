@@ -3,8 +3,8 @@
   "id": "69085337-eff9-55aa-a98f-c42c43e9c511",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b628ca8f-9f29-5f06-87e9-b0b859f90399",
-  "version": "0.1.0",
-  "sha256": "sha256:8b70fd35be2786dfacdca81778723d9fbd60777cc4fefa02d619a840c676dee7",
+  "version": "0.1.1",
+  "sha256": "sha256:493579ca2ceace6bd232311a7183914bbdbc2fa682b5011e6f2376f48957e591",
   "meta": {
     "key": "ew.iec.contact-co",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Contact, changeover"
+    "en": "Contact, changeover",
+    "nl": "Wisselcontact"
   },
   "keywords": [
     "changeover",

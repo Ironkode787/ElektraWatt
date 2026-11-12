@@ -3,8 +3,8 @@
   "id": "90f74504-f4d3-5b05-a1c4-6ffe08ac1069",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "a64442c6-047e-50b8-b0fb-c76a308f1f06",
-  "version": "0.1.0",
-  "sha256": "sha256:2deea0b29e6db5069bcb1bb34a5e9e46c7dfc6ab6dccb2d4af7c67fa741d4693",
+  "version": "0.1.1",
+  "sha256": "sha256:1b9e3b621d2a3dfa2d504957bbd37ea39b783b82df48b00d4635c523f4b2d5e1",
   "meta": {
     "key": "ew.iec.resistor@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Resistor"
+    "en": "Resistor",
+    "nl": "Weerstand"
   },
   "keywords": [
     "resistor"

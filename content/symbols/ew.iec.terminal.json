@@ -3,8 +3,8 @@
   "id": "fb0c6a31-2c09-5f3d-8bb0-43a12041a33a",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "e44d6631-d463-5c0f-be60-229bf365904b",
-  "version": "0.1.0",
-  "sha256": "sha256:cad83892bf9b05dd22581579c24d231164c93f75573347fb687153ff9e1c56f4",
+  "version": "0.1.1",
+  "sha256": "sha256:eb040e49f748fd6d0956bfbc3e4e402e7e7c9421a441db94e6cd391dc3453c16",
   "meta": {
     "key": "ew.iec.terminal",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Terminal"
+    "en": "Terminal",
+    "nl": "Klem"
   },
   "keywords": [
     "feed-through",

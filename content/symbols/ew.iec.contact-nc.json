@@ -3,8 +3,8 @@
   "id": "06d60cbd-5314-57cc-bfce-1a8cdfea1181",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "5687f9e2-a637-5a87-898e-9d537ad435cf",
-  "version": "0.1.0",
-  "sha256": "sha256:38ee7b5b0480f9fb20df775e69c4c368d3eb385ffcbd3949e7f33a9e76999541",
+  "version": "0.1.1",
+  "sha256": "sha256:98f5cb206a0975936a2ed8a22860afd098493c8c6920c85e6a0f8ac2444b24fe",
   "meta": {
     "key": "ew.iec.contact-nc",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Contact, normally closed"
+    "en": "Contact, normally closed",
+    "nl": "Verbreekcontact"
   },
   "keywords": [
     "break",

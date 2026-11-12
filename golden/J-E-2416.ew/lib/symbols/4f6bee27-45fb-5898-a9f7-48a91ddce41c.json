@@ -3,15 +3,15 @@
   "id": "4f6bee27-45fb-5898-a9f7-48a91ddce41c",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "323c7992-8e12-5e74-ab40-2344bd35c743",
-  "version": "0.1.0",
-  "sha256": "sha256:b7a290bf8ff551d9b9f2c64057eb2d84a4aa1546f25db6207932bce538ff496f",
+  "version": "0.1.1",
+  "sha256": "sha256:046ab9d5fc4794724d26bba727320eaf5f8d51100b4aa81ec6cbef017bce7d6c",
   "meta": {
     "key": "ew.gen.external-arrow@qet10",
     "licence": "CC-BY-SA-4.0",
     "sources": ["ew.original"],
     "status": "draft"
   },
-  "name": {"en": "External connection arrow"},
+  "name": {"en": "External connection arrow", "nl": "Pijl van een externe aansluiting"},
   "keywords": ["arrow", "external", "reference"],
   "fndef": {
     "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",

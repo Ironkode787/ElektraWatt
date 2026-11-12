@@ -3,10 +3,10 @@
   "id": "342746cd-bc7f-5f9e-9e52-24f1771ad142",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c5dc0120-e3f3-5206-8563-1ceb55004d08",
-  "version": "0.1.0",
-  "sha256": "sha256:9b94753ef9be66b2f685739dfd5e38c58c55013c8e43ebf64bf8d62bd9f4c0c3",
+  "version": "0.1.1",
+  "sha256": "sha256:39d76a2535ebdad8a4ca2eda30f75f9cd4ae0e33a43d31e26c2cc6adab680d79",
   "meta": {"key": "ew.gen.ip-target@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
-  "name": {"en": "Interruption point, incoming"},
+  "name": {"en": "Interruption point, incoming", "nl": "Onderbrekingspunt, inkomend"},
   "keywords": ["interruption", "ip", "reference", "target"],
   "fndef": {
     "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",

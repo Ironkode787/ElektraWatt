@@ -138,7 +138,7 @@ fn ui4_golden_a_copies_have_no_source_without_libraries() {
     assert!(lamp.badges.is_empty());
     assert_eq!(cell(&t, lamp, "state"), "Current");
     assert_eq!(cell(&t, lamp, "kind"), "Symbol");
-    assert_eq!(cell(&t, lamp, "version"), "0.2.0");
+    assert_eq!(cell(&t, lamp, "version"), "0.2.1");
     assert!(!cell(&t, lamp, "used_by").is_empty(), "{lamp:?}");
     // The copy is listed by its name in words, not its key
     let copy = row(&t, NavRole::LibCopy, "Title block QET A4");

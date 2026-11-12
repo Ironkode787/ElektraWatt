@@ -3,8 +3,8 @@
   "id": "910b3784-95b2-50a6-af5d-d3e0bdd51271",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c0dedc82-6bdf-5b56-8911-a4871c827294",
-  "version": "0.2.0",
-  "sha256": "sha256:bbd7003f1659f4d79da954a72fe4a5de86cf98347ae4f468ab7a7047342f3715",
+  "version": "0.2.1",
+  "sha256": "sha256:aac457126f30b22b181d9bf72c3f29c5614fb251331e7ae5d8b45f374808f3c6",
   "meta": {
     "key": "ew.iec.lamp",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Lamp"
+    "en": "Lamp",
+    "nl": "Lamp"
   },
   "keywords": [
     "lamp",

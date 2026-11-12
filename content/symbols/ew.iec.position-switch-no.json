@@ -3,8 +3,8 @@
   "id": "491078b6-57b5-51ab-a256-f1936894fe92",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "7d40db56-40ab-5425-b993-d94ee239e7a9",
-  "version": "0.2.0",
-  "sha256": "sha256:ae6689aa52740e99e38f22dca13c21c0a3847074bee7ac4c7eb7feb55db2b0ce",
+  "version": "0.2.1",
+  "sha256": "sha256:84c36e63c148e78ee2a57e160cab433a4950aad9ccaa70e88d27a4a1e1208fbf",
   "meta": {
     "key": "ew.iec.position-switch-no",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Position switch, normally open, roller"
+    "en": "Position switch, normally open, roller",
+    "nl": "Eindschakelaar, maakcontact, rol"
   },
   "keywords": [
     "door",

@@ -103,8 +103,10 @@ pub struct CatalogueSymbol {
     /// keywords.
     pub words: Vec<String>,
     /// The symbol's name in words (M39: the Place HUD names it): its neutral text, else its first language's; empty
-    /// when the symbol has no name.
+    /// when the symbol has no name. A window shows [`CatalogueSymbol::name_text`] in its own language.
     pub name: String,
+    /// The symbol's name in every language it has.
+    pub name_text: ew_derive::ew_mltext::MlText,
     /// How the symbol gets onto a page.
     pub placed_by: PlacedBy,
     /// The first level of its FnDef's category (`ProtectionOvercurrent`, the browser's tree node); empty when the
@@ -517,6 +519,7 @@ fn symbol_row(
         allowed: rep_type_allowed(page, &symbol.rep_type),
         grid_mismatch: None,
         name: ml_texts(&symbol.name).into_iter().next().unwrap_or_default(),
+        name_text: symbol.name.clone(),
         words: ml_texts(&symbol.name)
             .into_iter()
             .chain(symbol.keywords.as_slice().iter().map(|k| k.as_str().to_owned()))

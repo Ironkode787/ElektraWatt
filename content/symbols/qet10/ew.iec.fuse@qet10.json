@@ -3,8 +3,8 @@
   "id": "3a823ea9-a3a0-558b-8529-5b66b06050b2",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c5520c3c-c42c-568d-9f48-e30c1f5a8cf7",
-  "version": "0.1.0",
-  "sha256": "sha256:430289f2c591a87d9bf1b856a2ee208af121889a000741968f5c4ad55109be24",
+  "version": "0.1.1",
+  "sha256": "sha256:f1dd1c97ccfbea058a8a373928dfccb0cfa06e9781e7260be140996848356d01",
   "meta": {
     "key": "ew.iec.fuse@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Fuse"
+    "en": "Fuse",
+    "nl": "Zekering"
   },
   "keywords": [
     "fuse",

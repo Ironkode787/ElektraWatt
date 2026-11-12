@@ -3,8 +3,8 @@
   "id": "9c36198a-738b-584f-b596-0168ed291786",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "3318e8c0-b20d-56e5-b5cd-6c168a93be63",
-  "version": "0.2.0",
-  "sha256": "sha256:2ce1bc0d5ad7939f4f9acea37d470294cec9a9e6d65db9717cbf7f2f98caa203",
+  "version": "0.2.1",
+  "sha256": "sha256:f4d5f442950b1c495b73c824327beff9fccb8b07491dac85827465d64feff31f",
   "meta": {
     "key": "ew.iec.selector-switch-no@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Selector switch, normally open"
+    "en": "Selector switch, normally open",
+    "nl": "Keuzeschakelaar, maakcontact"
   },
   "keywords": [
     "no",

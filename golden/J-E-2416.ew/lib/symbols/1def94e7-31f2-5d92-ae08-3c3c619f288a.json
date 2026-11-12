@@ -3,15 +3,15 @@
   "id": "1def94e7-31f2-5d92-ae08-3c3c619f288a",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "a96d61c0-7bf2-5cb2-9f5a-c315638c17c2",
-  "version": "0.1.0",
-  "sha256": "sha256:a3b10ee2d85500f0fc52e20b8809a3f56bf18389624a73d49ac34792d08c2129",
+  "version": "0.1.1",
+  "sha256": "sha256:9619feb0db4298078478a16da36f61de50f0cfd98bbdf24e021c345bcb135797",
   "meta": {
     "key": "ew.iso.cylinder-double-acting@qet10",
     "licence": "CC-BY-SA-4.0",
     "sources": ["ew.original"],
     "status": "draft"
   },
-  "name": {"en": "Cylinder, double-acting"},
+  "name": {"en": "Cylinder, double-acting", "nl": "Cilinder, dubbelwerkend"},
   "keywords": ["actuator", "cylinder", "double-acting", "pneumatic"],
   "rep_type": "fluid",
   "fndef": {

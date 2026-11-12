@@ -3,10 +3,10 @@
   "id": "d5dded4b-3f82-5e9b-a047-36a1c8603b95",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "3ec3decc-c165-5fcd-b9a5-01ca8e345c4d",
-  "version": "0.1.0",
-  "sha256": "sha256:a260dfe82a938edf05f0e171e1ede3506a4a01d9009074e55aeb3293e713c0a1",
+  "version": "0.1.1",
+  "sha256": "sha256:3bfd252510173019ebcf98a3a91d80303ad8687871ecd289ca955e6e7ab3cca2",
   "meta": {"key": "ew.iec.mcb-1pn@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
-  "name": {"en": "Miniature circuit breaker, 1 pole and neutral"},
+  "name": {"en": "Miniature circuit breaker, 1 pole and neutral", "nl": "Installatieautomaat, 1-polig met nul"},
   "keywords": ["breaker", "mcb", "overcurrent"],
   "fndef": {
     "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",

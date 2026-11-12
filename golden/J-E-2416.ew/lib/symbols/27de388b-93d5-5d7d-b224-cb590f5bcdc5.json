@@ -3,15 +3,15 @@
   "id": "27de388b-93d5-5d7d-b224-cb590f5bcdc5",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "ae948a66-e07b-55fa-b47d-4fb2e8f02873",
-  "version": "0.3.0",
-  "sha256": "sha256:2fc31aea67a024cbe444720162cfc81dcb559226732740f1799dbe32f6e93d85",
+  "version": "0.3.1",
+  "sha256": "sha256:d3344927d664eb8de5b963562ecee693860084f88e4c6eadfcfab350f632c232",
   "meta": {
     "key": "ew.iso.valve-5-2-sol-spring@qet10",
     "licence": "CC-BY-SA-4.0",
     "sources": ["ew.original"],
     "status": "draft"
   },
-  "name": {"en": "5/2 valve, solenoid and spring"},
+  "name": {"en": "5/2 valve, solenoid and spring", "nl": "5/2-ventiel, magneet en veer"},
   "keywords": ["5/2", "pneumatic", "solenoid", "valve"],
   "rep_type": "fluid",
   "fndef": {

@@ -876,6 +876,7 @@ mod tests {
             grid_mismatch: None,
             words: Vec::new(),
             name: "Miniature circuit breaker, 1-pole".to_owned(),
+            name_text: Default::default(),
             placed_by: Default::default(),
             category: "ProtectionOvercurrent".to_owned(),
         };

@@ -3,10 +3,10 @@
   "id": "b0f8e0f4-e86d-579b-ab03-d70fe1df2041",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b16abfcc-ea37-5856-851f-da7c75e188f7",
-  "version": "0.2.0",
-  "sha256": "sha256:dab75274ac6ea9b9eb6547ebe99dd96d608ddd681a3dfaef333807b9faeecc3f",
+  "version": "0.2.1",
+  "sha256": "sha256:b3f761b12dbd8f3222b63c7998edb89417dfee2b8b23b46ccb041d50661cd95a",
   "meta": {"key": "ew.iec.lamp@qet10", "licence": "CC-BY-SA-4.0", "sources": ["ew.original"], "status": "draft"},
-  "name": {"en": "Lamp"},
+  "name": {"en": "Lamp", "nl": "Lamp"},
   "keywords": ["lamp", "light", "load"],
   "fndef": {
     "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",

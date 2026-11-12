@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "e3e8e09c-84e4-5733-b360-e5f2edb060ca",
   "version": "0.3.0",
-  "sha256": "sha256:ba324c6e2f7e8c3989364067ec2766775bd54296ace65c3937f5ec3fdd8545dd",
+  "sha256": "sha256:0bcffe4fe44e2690c184227893b6d2fb92f83a224ae6919f7c9495f7cc915ecc",
   "meta": {
     "key": "ew.iec.motor-3ph@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Motor, three-phase"
+    "en": "Motor, three-phase",
+    "nl": "Motor, driefasen"
   },
   "keywords": [
     "motor",

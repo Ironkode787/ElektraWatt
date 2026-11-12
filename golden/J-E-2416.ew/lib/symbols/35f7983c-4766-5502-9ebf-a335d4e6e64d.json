@@ -3,15 +3,15 @@
   "id": "35f7983c-4766-5502-9ebf-a335d4e6e64d",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "509ced12-ef7f-506c-94af-3810c0e8e6cd",
-  "version": "0.2.0",
-  "sha256": "sha256:f13025b88e3fee8d492030041afa1211c6c256ce97ea3d9d4edd335172d31de6",
+  "version": "0.2.1",
+  "sha256": "sha256:95e6f4761e0982a3288765db2483ceb04eedb69592dc4f0aa66c239289ecd57b",
   "meta": {
     "key": "ew.gen.strip-segment@qet10",
     "licence": "CC-BY-SA-4.0",
     "sources": ["ew.original"],
     "status": "draft"
   },
-  "name": {"en": "Terminal strip segment"},
+  "name": {"en": "Terminal strip segment", "nl": "Klemmenstrooksegment"},
   "keywords": ["segment", "strip", "terminal"],
   "rep_type": "strip_segment",
   "fndef": {

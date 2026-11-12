@@ -3,8 +3,8 @@
   "id": "64aba25b-8862-5a5f-b632-223294705dc7",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b1057f75-bba8-5767-8b57-58c39a3f88fe",
-  "version": "0.1.0",
-  "sha256": "sha256:a55f5bc792f2512b3e1329a2efd7090f570470b98da9cd092863d155f6d7cfb8",
+  "version": "0.1.1",
+  "sha256": "sha256:43f44fe4bdf0b6a20c0a944da4ce5c697ee99f04d37d288f34cdc47d120e4f02",
   "meta": {
     "key": "ew.iec.mcb-1pn",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Miniature circuit breaker, 1 pole and neutral"
+    "en": "Miniature circuit breaker, 1 pole and neutral",
+    "nl": "Installatieautomaat, 1-polig met nul"
   },
   "keywords": [
     "breaker",

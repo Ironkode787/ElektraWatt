@@ -3,8 +3,8 @@
   "id": "0e563b3e-89d1-5bc1-a53b-80434634f351",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "a21f5c2e-e4d9-570f-8544-ef43626d108e",
-  "version": "0.1.0",
-  "sha256": "sha256:8117691567a734a1ec0654faca1fec2bc571f898ed145eda625d9aa00f8dc014",
+  "version": "0.1.1",
+  "sha256": "sha256:55804fe4892274df7a5340c81472c62d75bd6591bbd9af23f27c7d9d9908b7a1",
   "meta": {
     "key": "ew.bus.dp-connector",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Bus connector, PROFIBUS DP"
+    "en": "Bus connector, PROFIBUS DP",
+    "nl": "Busconnector, PROFIBUS DP"
   },
   "keywords": [
     "bus",

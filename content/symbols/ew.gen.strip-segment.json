@@ -3,8 +3,8 @@
   "id": "068ab0fa-8482-55cc-a37a-a4dd8e6fc3ab",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "5e0004dd-1cdb-5b98-87cf-4c0e787d2be7",
-  "version": "0.2.0",
-  "sha256": "sha256:e0c9bcb6ce912738d97fdadf7f8182d0572704254cfad8cbb18660d9a2666013",
+  "version": "0.2.1",
+  "sha256": "sha256:02375dfa0b8ff07c82060475a4e2807d65188ef561956e0e52f566e99ebddef8",
   "meta": {
     "key": "ew.gen.strip-segment",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Terminal strip segment"
+    "en": "Terminal strip segment",
+    "nl": "Klemmenstrooksegment"
   },
   "keywords": [
     "segment",

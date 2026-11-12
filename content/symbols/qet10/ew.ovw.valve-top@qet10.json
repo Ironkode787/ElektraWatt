@@ -3,8 +3,8 @@
   "id": "98298804-bd11-54b8-aa55-8c26b16e27ea",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c242012c-d7d6-55ed-9ff9-e7a96d0477f6",
-  "version": "0.1.0",
-  "sha256": "sha256:e42587484a48c373b03bba94054df183ec8aab6f7771b4f024997c100b98a845",
+  "version": "0.1.1",
+  "sha256": "sha256:df495031a25deceb5723a25d8e15d3ebeb876f0e9f05983182a8ba4e37e6677a",
   "meta": {
     "key": "ew.ovw.valve-top@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Overview valve, top view"
+    "en": "Overview valve, top view",
+    "nl": "Overzichtsventiel, bovenaanzicht"
   },
   "keywords": [
     "overview",

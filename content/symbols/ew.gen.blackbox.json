@@ -3,8 +3,8 @@
   "id": "2c451cf5-c022-5716-b314-7defbf574f21",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "0f72d20c-8a4f-5f42-bc24-0a1224fad631",
-  "version": "0.1.0",
-  "sha256": "sha256:882e9d5e4ba6dfa9c079a9bfd6714372e5bee4ad8d0bd6d363bd3e1206b98f79",
+  "version": "0.1.1",
+  "sha256": "sha256:43bd95fe6e69e4e6160b1f020784f897f320edf1f72588d8f1762d8eaf3a8a10",
   "meta": {
     "key": "ew.gen.blackbox",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Black-box frame"
+    "en": "Black-box frame",
+    "nl": "Black-boxkader"
   },
   "keywords": [
     "black-box",

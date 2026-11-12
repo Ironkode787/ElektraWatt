@@ -3,8 +3,8 @@
   "id": "f8e64dbf-afdf-5d0a-ba77-52dd63714645",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "bec7edb6-3ceb-5d63-bbcb-baca0a4f31f3",
-  "version": "0.2.0",
-  "sha256": "sha256:6186c1c4890dded7af996490baeeef278f8ab77347713650c0d025cfe68a0b4e",
+  "version": "0.2.1",
+  "sha256": "sha256:7f8dae271767f33ecf0f77c469e011135147acb289bb7371670f37145dcdcd0a",
   "meta": {
     "key": "ew.gen.ip@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Interruption point"
+    "en": "Interruption point",
+    "nl": "Onderbrekingspunt"
   },
   "keywords": [
     "interruption",

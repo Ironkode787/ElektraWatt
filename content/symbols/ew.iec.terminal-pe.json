@@ -3,8 +3,8 @@
   "id": "1b079945-899a-58a0-8e94-d661841e31f5",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "1d2d8963-3115-5a07-a173-4028ff9794bb",
-  "version": "0.1.0",
-  "sha256": "sha256:ad7db3e628ac861c6172537191bb5a77a21f4db0e80713d7f63e86c52885e070",
+  "version": "0.1.1",
+  "sha256": "sha256:e91aa4499446167f8ee6f124e22e2d88a1a5a0388512c1389ff92669f4367c95",
   "meta": {
     "key": "ew.iec.terminal-pe",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Terminal, protective earth"
+    "en": "Terminal, protective earth",
+    "nl": "Klem, beschermingsaarde"
   },
   "keywords": [
     "earth",

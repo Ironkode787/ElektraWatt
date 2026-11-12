@@ -3,8 +3,8 @@
   "id": "9a687b31-0aeb-50bb-8a13-f27a843b8a9f",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "ac15c1df-5e94-5194-9e57-c804f7f87226",
-  "version": "0.1.1",
-  "sha256": "sha256:af3f592f11f64714ff5ef9a941d71f6f98467f36e762c20dcbe3254fb027396a",
+  "version": "0.1.2",
+  "sha256": "sha256:867e16afa8d47bd90b18cfb0a50ad1c916843662952583c269b33ffe95e0bd88",
   "meta": {
     "key": "ew.iec.heater@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Heater"
+    "en": "Heater",
+    "nl": "Verwarmingselement"
   },
   "keywords": [
     "heater",

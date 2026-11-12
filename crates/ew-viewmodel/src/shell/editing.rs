@@ -305,8 +305,14 @@ impl ShellModel {
         {
             return Some(Arc::clone(cat));
         }
-        let cat = self.project.as_ref()?.session.place_catalogue(&key.2)?;
+        let mut cat = self.project.as_ref()?.session.place_catalogue(&key.2)?;
         self.count(|c| c.place_catalogue += 1);
+        // A symbol's name in the window's language (FT-1530).
+        for s in &mut cat.symbols {
+            if !s.name_text.is_empty() {
+                s.name = super::symbol_editor::name_words(&s.name_text);
+            }
+        }
         let cat = Arc::new(cat);
         self.tools.catalogue = Some((key, Arc::clone(&cat)));
         Some(cat)

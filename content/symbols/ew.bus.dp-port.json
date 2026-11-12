@@ -3,8 +3,8 @@
   "id": "e5facb3d-8843-5655-837c-fb9ff74d7d53",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "7543ab74-b0cc-5044-bf17-49dcb800dcd0",
-  "version": "0.1.0",
-  "sha256": "sha256:664362eadb273799903303af3319f18790297f7d419abc78a437d9215c659092",
+  "version": "0.1.1",
+  "sha256": "sha256:ecb8e22b0a6096adf116e794cf6432666aaa9807c03d275b6875b5bc6c48561e",
   "meta": {
     "key": "ew.bus.dp-port",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Bus port, PROFIBUS DP"
+    "en": "Bus port, PROFIBUS DP",
+    "nl": "Buspoort, PROFIBUS DP"
   },
   "keywords": [
     "bus",

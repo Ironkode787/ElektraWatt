@@ -3,8 +3,8 @@
   "id": "d727496a-97bc-5ce3-9878-885f46993f16",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "2d8497b2-fdde-58a7-b895-069533b58292",
-  "version": "0.1.0",
-  "sha256": "sha256:50b954496c3fee1939f490666dd7b2bea229995743a29d369b140973682bd616",
+  "version": "0.1.1",
+  "sha256": "sha256:ac624b4f99f764511736cda104429d9dbcef00bf48937fc052f9e93a04db34b6",
   "meta": {
     "key": "ew.gen.external-arrow",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "External connection arrow"
+    "en": "External connection arrow",
+    "nl": "Pijl van een externe aansluiting"
   },
   "keywords": [
     "arrow",

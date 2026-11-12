@@ -3,8 +3,8 @@
   "id": "99d4d384-9818-568f-a584-010d4223daff",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "e3b8a91f-ef11-5919-8fa5-a9bbbb205c13",
-  "version": "0.2.0",
-  "sha256": "sha256:9554ae949d9aae37d8eb83d8e3c295ae2b05994f0f5036a13d040dd94cf1394c",
+  "version": "0.2.1",
+  "sha256": "sha256:f4ee6c5bb48e51b086bdcebe78839a654ec33832ae447b3247e4aa8ababa5992",
   "meta": {
     "key": "ew.iec.pushbutton-no",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Push-button, normally open"
+    "en": "Push-button, normally open",
+    "nl": "Drukknop, maakcontact"
   },
   "keywords": [
     "no",

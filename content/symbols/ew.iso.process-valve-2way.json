@@ -3,8 +3,8 @@
   "id": "0c537e81-73c1-5ca4-b372-671fe25ef984",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "ec485dc8-9367-5dbd-ac70-2ccb630ad08d",
-  "version": "0.1.0",
-  "sha256": "sha256:59c1ad29e54955737097baef5e03fbe75fc297f10d20726b3d7c043ce05028e0",
+  "version": "0.1.1",
+  "sha256": "sha256:8a6a1dfedcff13fb68158f8528b652c3f92bcb15e38402d7245b62191599bf79",
   "meta": {
     "key": "ew.iso.process-valve-2way",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Process valve, 2-way"
+    "en": "Process valve, 2-way",
+    "nl": "Procesafsluiter, 2-weg"
   },
   "keywords": [
     "2-way",

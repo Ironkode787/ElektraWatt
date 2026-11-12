@@ -3,8 +3,8 @@
   "id": "64b7fec8-ad40-5ef3-9551-85ff00bde324",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "a4ee00d4-6a65-53d1-a9a2-ffed8c1933ca",
-  "version": "0.1.0",
-  "sha256": "sha256:8ddfef11d241bcd10d4614d9076951510b362fe8b108857570ab63129f990061",
+  "version": "0.1.1",
+  "sha256": "sha256:45cd6310d5c4faebd397709bc34b0d1ba840e57bda036e3a54f1e932b7acf518",
   "meta": {
     "key": "ew.iec.contact-no",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Contact, normally open"
+    "en": "Contact, normally open",
+    "nl": "Maakcontact"
   },
   "keywords": [
     "contact",

@@ -3,8 +3,8 @@
   "id": "5155ea05-117c-5816-bec0-1e3876b92f67",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "5a311abc-755b-5a96-a8d6-928b26c16667",
-  "version": "0.1.0",
-  "sha256": "sha256:b86d5c06cffeb24a0780cf508024ab987ff9b8bfa0a8f3a197582f1871a8e6f0",
+  "version": "0.1.1",
+  "sha256": "sha256:aaf23b8b30e928f11ebfa85d9caa4c51624ebab6c6b716384a24dad46e87bf48",
   "meta": {
     "key": "ew.iec.switch-1p",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Switch, 1 pole, on/off, manual actuator"
+    "en": "Switch, 1 pole, on/off, manual actuator",
+    "nl": "Schakelaar, 1-polig, aan/uit, handbediend"
   },
   "keywords": [
     "manual",

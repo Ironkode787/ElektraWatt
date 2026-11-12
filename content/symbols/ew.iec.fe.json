@@ -3,8 +3,8 @@
   "id": "36b1632c-308f-5bb0-9f9d-efec9121d2c8",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "b6fa4e0f-15f4-5b0c-b897-bdc664bc14b1",
-  "version": "0.1.0",
-  "sha256": "sha256:c3c28116f75b2008a4720224ff277d7c4838b2cadcc685663a24f6e4be8a867c",
+  "version": "0.1.1",
+  "sha256": "sha256:78577d29971fc05149a3df90fbb5d2970f6ca96df639f32ee79a2275619dc8b5",
   "meta": {
     "key": "ew.iec.fe",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Functional earth"
+    "en": "Functional earth",
+    "nl": "Functionele aarde"
   },
   "keywords": [
     "earth",

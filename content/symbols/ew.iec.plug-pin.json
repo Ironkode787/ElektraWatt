@@ -3,8 +3,8 @@
   "id": "611824e9-fd95-51cd-9b02-29cac91a3502",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "07af65e4-71d5-50ca-aae9-ed2513db4672",
-  "version": "0.1.0",
-  "sha256": "sha256:2cdf90d772e1c5739d0d786ed06b503004296e268e9c432ae825ae114f771135",
+  "version": "0.1.1",
+  "sha256": "sha256:623af14a783d9bbc9941a3d1a0c4412b6424fc5b5b967f1e0758c9e70c32e0a4",
   "meta": {
     "key": "ew.iec.plug-pin",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Plug pin"
+    "en": "Plug pin",
+    "nl": "Stekkerpen"
   },
   "keywords": [
     "connector",

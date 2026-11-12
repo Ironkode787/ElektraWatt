@@ -3,8 +3,8 @@
   "id": "e75d3a5c-6b4b-52af-a1a4-0c3de62674e6",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "9ee97e04-d5e6-59ed-8685-52bdceb940ad",
-  "version": "0.1.0",
-  "sha256": "sha256:c2eb84fc9dde9170e74cb002dbe8e92a6fd324227d97902063c1936c57c10d13",
+  "version": "0.1.1",
+  "sha256": "sha256:769e58f4afefa5b57e1f056bf32138bf6c1637c6a39333c981e86113bb1cd17f",
   "meta": {
     "key": "ew.iec.switch-2p-manual",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Switch, 2 poles, manual actuator"
+    "en": "Switch, 2 poles, manual actuator",
+    "nl": "Schakelaar, 2-polig, handbediend"
   },
   "keywords": [
     "disconnector",

@@ -3,8 +3,8 @@
   "id": "ea073951-c09d-543d-9dc9-76352c148495",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "1c0a08d1-df27-5eb7-ab54-2d12d75117eb",
-  "version": "0.1.0",
-  "sha256": "sha256:a16303c74bf3453123a2b1d92d9fd52548699e9e2679bf1a81dc691b755c1d93",
+  "version": "0.1.1",
+  "sha256": "sha256:1859b4061fe34da782ff7e64b94bc9db8d2b798f0f6208f639cda72e77b9d7c1",
   "meta": {
     "key": "ew.iec.thermostat-nc",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Thermostat contact, normally closed"
+    "en": "Thermostat contact, normally closed",
+    "nl": "Thermostaatcontact, verbreekcontact"
   },
   "keywords": [
     "nc",

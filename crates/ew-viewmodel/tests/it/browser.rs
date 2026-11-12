@@ -88,6 +88,25 @@ fn a_part_is_one_row_that_opens_to_its_functions_and_places_its_main_function() 
     s.shutdown();
 }
 
+/// FT-1530: in a Dutch window a starter symbol is named in Dutch.
+#[test]
+fn a_starter_symbol_is_named_in_the_windows_language() {
+    let tmp = Tmp::new("browser-dutch");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    assert!(ew_viewmodel::strings::set_locale("nl"));
+    done(&mut s, "tool.place", json!({}));
+    let p = s.picker().expect("the browser");
+    let name = p
+        .catalogue
+        .symbols
+        .iter()
+        .find(|x| x.key == "ew.iec.contact-no@qet10")
+        .map(|x| x.name.clone());
+    assert_eq!(name.as_deref(), Some("Maakcontact"));
+    s.shutdown();
+    assert!(ew_viewmodel::strings::set_locale("en"));
+}
+
 /// FT-1667: the starter contactor is under Contactors with the letter Q (IEC 81346-2), not under Relays with K.
 #[test]
 fn the_starter_contactor_is_under_contactors_with_the_letter_q() {

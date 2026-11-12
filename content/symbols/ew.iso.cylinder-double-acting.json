@@ -3,8 +3,8 @@
   "id": "196326c5-5e19-5fcb-a517-f6f52087fe43",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "03799d6f-5a61-52ca-a71f-f32115fe047e",
-  "version": "0.1.0",
-  "sha256": "sha256:2a0452d2df4a11969e4a2b65c54c68502caaf6451c8847c793dbbe193718c8fb",
+  "version": "0.1.1",
+  "sha256": "sha256:89f83323e1c6d945cb8a73461eb9e6313ce98bb2852ff5fc645d83d43aaade2d",
   "meta": {
     "key": "ew.iso.cylinder-double-acting",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Cylinder, double-acting"
+    "en": "Cylinder, double-acting",
+    "nl": "Cilinder, dubbelwerkend"
   },
   "keywords": [
     "actuator",

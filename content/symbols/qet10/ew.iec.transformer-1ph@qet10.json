@@ -3,8 +3,8 @@
   "id": "28d03957-d8ac-5f96-ad48-22645501210d",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c2ec65cb-4074-5a11-b7b0-322418f090d5",
-  "version": "0.1.0",
-  "sha256": "sha256:6cd49bc613d1edbf36b3334df795a01ca7a2801d87b8dc01384df356081dd1cc",
+  "version": "0.1.1",
+  "sha256": "sha256:303003a6f1084db66cd886bae02696e2e662dc03e9308486b9fe2173159735cc",
   "meta": {
     "key": "ew.iec.transformer-1ph@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Transformer, single-phase"
+    "en": "Transformer, single-phase",
+    "nl": "Transformator, eenfase"
   },
   "keywords": [
     "source",

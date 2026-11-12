@@ -3,8 +3,8 @@
   "id": "5811ca09-3d26-5848-9a43-0e2eda03c613",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "dd36eb84-d1d1-5718-b238-cdb2076b6b8e",
-  "version": "0.2.0",
-  "sha256": "sha256:6854ca886641a7d0611a2dd8d547baa0d0c782aab60ea3eb60834f7aa0db76a2",
+  "version": "0.2.1",
+  "sha256": "sha256:6fa4a1e7221abb98b6505763ce5c2f85396245c224445602de9b1d70d115a803",
   "meta": {
     "key": "ew.iec.valve-coil@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Coil of a solenoid valve"
+    "en": "Coil of a solenoid valve",
+    "nl": "Spoel van een magneetventiel"
   },
   "keywords": [
     "actuator",

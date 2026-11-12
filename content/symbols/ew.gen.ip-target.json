@@ -3,8 +3,8 @@
   "id": "54b25705-84b6-51af-90d2-490e16bb7c4a",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "c69dac64-15cc-515c-8959-a3e6f8b40b72",
-  "version": "0.1.0",
-  "sha256": "sha256:31ec30f727ab642fba701d13d5d77b1ad2df63dfe535b5f920f7917e228ec008",
+  "version": "0.1.1",
+  "sha256": "sha256:54d234b67cce156a6bb8bb6a861b13dda633d0f8d37e9db22c1160008a75d301",
   "meta": {
     "key": "ew.gen.ip-target",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Interruption point, incoming"
+    "en": "Interruption point, incoming",
+    "nl": "Onderbrekingspunt, inkomend"
   },
   "keywords": [
     "interruption",

@@ -3,8 +3,8 @@
   "id": "2f8f5bcb-e81e-512a-8144-438221e80d34",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "bfa00dcb-aec4-57c3-9da2-94660a467231",
-  "version": "0.1.0",
-  "sha256": "sha256:a5eec7509d450fd231471590b7e11ca77c5f912d2f6ecb12782604734591ef3a",
+  "version": "0.1.1",
+  "sha256": "sha256:d30b4ebbc0324deca8226da115bfc4879c1ba549a2162747fe98a71a36e39bc3",
   "meta": {
     "key": "ew.gen.cable-marker",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Cable marker"
+    "en": "Cable marker",
+    "nl": "Kabelmarkering"
   },
   "keywords": [
     "cable",

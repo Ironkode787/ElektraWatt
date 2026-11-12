@@ -922,6 +922,8 @@ const GOLDEN_PRE_FT698: [(&str, &str); 3] = [
 /// function-text fallback and names its FnDef's 0.1 again.
 fn before_ft698(doc: &LibDocument) -> LibDocument {
     let mut v = serde_json::to_value(doc).unwrap();
+    // The Dutch name came later still (FT-1530).
+    v["name"].as_object_mut().unwrap().remove("nl");
     if v["fndef"]["version_req"] == json!("^0.2") {
         v["fndef"]["version_req"] = json!("^0.1");
     }
@@ -984,16 +986,16 @@ fn update_from_library_brings_golden_a_symbols_to_the_plc_address_slot() {
         .collect();
     let valve = device(&s, "-201U3-Q1");
     assert!(!slot_texts(&s, valve).iter().any(|t| t == "Q0.1"));
-    // The 5/2 valve's update is the major one to 0.3.0
+    // The 5/2 valve's update is the major one to 0.3.1 (0.3.0 and its Dutch name)
     let target = |copy: Uuid| {
         let valve = current.iter().any(|d| {
             matches!(d, LibDocument::Symbol(c) if c.id.as_uuid() == copy)
                 && symbol_key(d).as_deref() == Some("ew.iso.valve-5-2-sol-spring@qet10")
         });
         if valve {
-            ("0.3.0", ChangeClass::Major)
+            ("0.3.1", ChangeClass::Major)
         } else {
-            ("0.2.0", ChangeClass::Minor)
+            ("0.2.1", ChangeClass::Minor)
         }
     };
     for c in s.library_status() {

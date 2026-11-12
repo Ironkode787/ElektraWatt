@@ -3,8 +3,8 @@
   "id": "d6a9fa36-ffc4-5a46-b9bf-3b1707a83d80",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "8e2bd37c-548c-5e79-abb1-4d84bb349763",
-  "version": "0.2.0",
-  "sha256": "sha256:7726c1777ef5bf7a259380f07bef5c79f31802c391dcddbf8f9ee543ee35747f",
+  "version": "0.2.1",
+  "sha256": "sha256:f15668c4b4fed62f9877651957cf48b98f84f72e13ec86ed614f2f1f7748660c",
   "meta": {
     "key": "ew.ovw.module",
     "licence": "CC-BY-SA-4.0",
@@ -14,7 +14,8 @@
     "status": "draft"
   },
   "name": {
-    "en": "Overview module"
+    "en": "Overview module",
+    "nl": "Overzichtsmodule"
   },
   "keywords": [
     "module",
