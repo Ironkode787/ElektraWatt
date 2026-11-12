@@ -156,6 +156,18 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
         "een apparaat zonder aanduiding is niet geplaatst in de layout van een locatie; plaats het op een rail of op de \
          montageplaat"
     );
+    // FT-1600: a connection's junction end, and an end on another page, in Dutch.
+    let unrouted = by_hand(
+        "EW-CORE-073",
+        "",
+        "Wire the junction in C11 → a connection point of another page has no route: Route page draws it.",
+        &[("wire", "the junction in C11 → a connection point of another page")],
+    );
+    assert_eq!(
+        render(&unrouted, "nl-NL"),
+        "Draad de aftakking in C11 → een aansluitpunt van een andere pagina heeft geen route: Pagina routeren tekent \
+         hem."
+    );
     let pe = by_hand(
         "EW-POT-006",
         "",

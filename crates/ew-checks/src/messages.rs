@@ -30,7 +30,8 @@
 //!   (`1,5 mm²` in nl-NL); a pattern wraps every argument that holds a measured value, never a wire number or a
 //!   version.
 //! - `WORD($x)` writes the words a rule prints where a record has no name of its own ("a location", "a device without
-//!   designation"; each piece of a comma list and each end of a wire `a–b` alone) in the language: the en-GB resource's messages `word-…` hold
+//!   designation", "the junction in C11"; each piece of a comma list and each end of a connection `a → b` or a wire
+//!   `a–b` alone) in the language: the en-GB resource's messages `word-…` hold
 //!   those words, and the language's messages of the same ID its own.
 
 use std::sync::OnceLock;
@@ -80,18 +81,16 @@ fn bundle(lang: &str) -> Option<&'static Bundle> {
                     None => FluentValue::None,
                 });
                 let _ = b.add_function("WORD", move |positional, _| match positional.first() {
-                    Some(FluentValue::String(s)) => s
-                        .split(", ")
-                        .map(|piece| {
-                            piece
-                                .split('–')
-                                .map(|end| word(tag, end).unwrap_or_else(|| end.to_owned()))
-                                .collect::<Vec<_>>()
-                                .join("–")
-                        })
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                        .into(),
+                    Some(FluentValue::String(s)) => {
+                        // Each piece of a list, each end of a connection (`a → b`) and of a wire (`a–b`) alone.
+                        let words = |text: &str, sep: &str, inner: &dyn Fn(&str) -> String| {
+                            text.split(sep).map(inner).collect::<Vec<_>>().join(sep)
+                        };
+                        let end = |e: &str| word(tag, e).unwrap_or_else(|| e.to_owned());
+                        let wire = |w: &str| word(tag, w).unwrap_or_else(|| words(w, "–", &end));
+                        let connection = |c: &str| words(c, " → ", &wire);
+                        words(s, ", ", &connection).into()
+                    }
                     Some(other) => other.clone(),
                     None => FluentValue::None,
                 });
@@ -148,16 +147,30 @@ fn decimal(lang: &str, text: &str) -> String {
         .collect()
 }
 
-/// The words of `lang` for `value` when `value` is the en-GB text of a message `word-…` (`WORD`); else `None`.
+/// The words of `lang` for `value` when `value` is the en-GB text of a message `word-…` (`WORD`); else `None`. A word
+/// with one argument (`the junction in { $at }`) matches its text around the argument.
 fn word(lang: &str, value: &str) -> Option<String> {
+    let mut args = FluentArgs::new();
     let id = SOURCES[0].lines().find_map(|l| {
         let (id, text) = l.split_once(" = ")?;
-        (id.starts_with("word-") && text == value).then_some(id)
+        if !id.starts_with("word-") {
+            return None;
+        }
+        if text == value {
+            return Some(id);
+        }
+        let (before, rest) = text.split_once("{ $")?;
+        let (name, after) = rest.split_once(" }")?;
+        let arg = value.strip_prefix(before)?.strip_suffix(after)?;
+        (!arg.is_empty()).then(|| {
+            args.set(name.to_owned(), arg.to_owned());
+            id
+        })
     })?;
     let b = bundle(lang)?;
     let pattern = b.get_message(id)?.value()?;
     let mut errors = Vec::new();
-    let text = b.format_pattern(pattern, None, &mut errors);
+    let text = b.format_pattern(pattern, Some(&args), &mut errors);
     errors.is_empty().then(|| text.into_owned())
 }
 

@@ -754,9 +754,8 @@ fn view_language_switches_the_menus_and_back() {
     shell.shutdown();
 }
 
-/// LO-4: with the UI in Dutch the Messages detail shows the nl-NL text of a Golden A rule that has one (EW-POT-013)
-/// and the en-GB text of a rule without one (starting with a capital); in English it is the finding's own
-/// message.
+/// LO-4: with the UI in Dutch the Messages detail shows the nl-NL text of every rule that reports on the page
+/// (EW-POT-013 word for word); in English it is the finding's own message.
 #[test]
 fn the_messages_detail_follows_the_ui_language() {
     let tmp = Tmp::new("lo4");
@@ -780,26 +779,28 @@ fn the_messages_detail_follows_the_ui_language() {
         shell.messages_detail().unwrap().message
     };
     let pot = first("EW-POT-013");
-    // A finding whose rule has no nl-NL message (FT-680: the rules beyond the twelve of Golden A).
-    let other = table
+    // The first finding of every rule on the page: each reads in Dutch (FT-680).
+    let mut rules = std::collections::BTreeSet::new();
+    let others: Vec<_> = table
         .nodes
         .iter()
-        .find(|n| {
-            n.role == NavRole::Finding
-                && !ew_viewmodel::ew_api::checks::messages::has(&n.cells[1], Some("value"), "nl-NL")
-        })
-        .expect("a finding of a rule without a Dutch message")
-        .clone();
+        .filter(|n| n.role == NavRole::Finding && rules.insert(n.cells[1].clone()))
+        .cloned()
+        .collect();
     assert_eq!(detail(&mut shell, &pot.key), pot.cells[2]);
     done(&mut shell, "view.language", json!({"value": "nl"}));
     assert_eq!(
         detail(&mut shell, &pot.key),
         "S56 schakelt de nulleider N-55 → N-55S; belasting E56 blijft verbonden met L-55."
     );
-    assert_eq!(
-        detail(&mut shell, &other.key),
-        strings::sentence_start(&other.cells[2])
-    );
+    for other in &others {
+        assert_ne!(
+            detail(&mut shell, &other.key),
+            strings::sentence_start(&other.cells[2]),
+            "{} reads in Dutch",
+            other.cells[1]
+        );
+    }
     done(&mut shell, "view.language", json!({"value": "en"}));
     assert_eq!(detail(&mut shell, &pot.key), pot.cells[2]);
     shell.shutdown();

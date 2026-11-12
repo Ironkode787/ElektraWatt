@@ -976,3 +976,5 @@ word-the-project = the project
 word-a-page = a page
 word-a-logical-bus-net = a logical bus net
 word-a-physical-bus-net = a physical bus net
+word-the-junction-in = the junction in { $at }
+word-a-connection-point-of-another-page = a connection point of another page

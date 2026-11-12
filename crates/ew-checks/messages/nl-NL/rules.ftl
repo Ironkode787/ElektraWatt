@@ -273,7 +273,7 @@ rule-ew-core-065 = omschrijving "{ $text }" van artikel { $part }{ $form ->
     .title = Technische gegevens in de omschrijving
     .hint = Verplaats nominale waarden en technische gegevens uit de omschrijving naar hun eigen velden.
 
-rule-ew-core-067 = Draad { $wire } loopt door { $point ->
+rule-ew-core-067 = Draad { WORD($wire) } loopt door { $point ->
         [junction] de aftakking in { $pin }
         [junction-off-grid] een aftakking
        *[cp] { $pin }
@@ -281,18 +281,18 @@ rule-ew-core-067 = Draad { $wire } loopt door { $point ->
     .title = Draad door een aansluitpunt
     .hint = Routeer de draad opnieuw met Selectie routeren, of wijzig zijn route met Route bewerken zodat hij vrij blijft van het punt.
 
-rule-ew-core-068 = Draad { $wire } loopt over { $other } op folio { $page }.
+rule-ew-core-068 = Draad { WORD($wire) } loopt over { WORD($other) } op folio { $page }.
     .title = Draad over een andere draad
     .hint = Routeer een van de draden opnieuw met Selectie routeren, zodat elke draad een eigen lijn heeft.
 
-rule-ew-core-069 = Draad { $wire } loopt door { $symbol ->
+rule-ew-core-069 = Draad { WORD($wire) } loopt door { $symbol ->
         [ip] onderbrekingspunt { WORD($device) }
        *[device] { WORD($device) }
     }.
     .title = Draad door een symbool
     .hint = Routeer de draad opnieuw met Selectie routeren, of verplaats het symbool uit de weg.
 
-rule-ew-core-070 = Draad { $wire } loopt door { $owner ->
+rule-ew-core-070 = Draad { WORD($wire) } loopt door { $owner ->
         [free-text] de vrije tekst "{ $text }"
         [structure-box] het bijschrift "{ $text }" van een structuurkader
         [ip] de tekst "{ $text }" van onderbrekingspunt { WORD($device) }
@@ -312,7 +312,7 @@ rule-ew-core-072 = { $place ->
     .title = Vierwegaftakking
     .hint = Verplaats één tak naar een eigen aftakking een rasterstap verder, zodat elke aftakking drie draden verbindt.
 
-rule-ew-core-073 = Draad { $wire } heeft geen route: Pagina routeren tekent hem.
+rule-ew-core-073 = Draad { WORD($wire) } heeft geen route: Pagina routeren tekent hem.
     .title = Draad zonder route
     .hint = Gebruik Pagina routeren of Selectie routeren, of teken de route van de draad met Route bewerken.
 
@@ -575,7 +575,7 @@ rule-ew-pot-002 = { $form ->
        *[pelv] PELV-potentiaal { $potential } { $bonds ->
             [none] heeft geen 0 V–PE-verbinding
            *[some] heeft { $count } 0 V–PE-verbindingen
-        }; een PELV-stroomkring heeft er precies één nodig (declareer de verbinding op de 0 V–PE-draad)
+        }; een PELV-stroomkring heeft er precies één nodig (declareer de potentiaalverbinding op de 0 V–PE-draad)
     }
     .title = 0 V–PE-verbinding bij PELV of SELV
     .hint = Definieer precies één 0 V–PE-verbinding voor een PELV-potentiaal, en geen voor een SELV-potentiaal.
@@ -587,21 +587,21 @@ rule-ew-pot-003 = { $cp_shared ->
     .title = FE-pen op PE
     .hint = Declareer een FE–PE-verbinding of sluit de pen aan op functionele aarde.
 
-rule-ew-pot-004 = draad { $wire } is GNYE op potentiaal { $potential }{ $typed ->
+rule-ew-pot-004 = draad { WORD($wire) } is GNYE op potentiaal { $potential }{ $typed ->
         [yes] {" "}(type { $type })
        *[no] {""}
     }; GNYE is voorbehouden aan beschermingsleiders
     .title = GNYE op een potentiaal die geen PE is
     .hint = Gebruik groen-geel alleen voor beschermingsleiders; geef de draad een andere kleur.
 
-rule-ew-pot-005 = draad { $wire } is BU op de potentiaal { $potential }{ $type ->
+rule-ew-pot-005 = draad { WORD($wire) } is BU op de potentiaal { $potential }{ $type ->
         [none] {""}
        *[other] {" "}(type { $type })
     }; in een project met een nulleider markeert BU de nulleider
     .title = BU op een geleider die geen N is
     .hint = Gebruik een andere kleur voor de draad, of een kabel waarvan de blauwe ader de nulleider voert.
 
-rule-ew-pot-006 = PE-draad { $wire } heeft { DECIMAL($pe) } mm², minder dan de { DECIMAL($required) } mm² die nodig is voor de lijngeleiders van { DECIMAL($line) } mm² bij { $at }{ $verified ->
+rule-ew-pot-006 = PE-draad { WORD($wire) } heeft { DECIMAL($pe) } mm², minder dan de { DECIMAL($required) } mm² die nodig is voor de lijngeleiders van { DECIMAL($line) } mm² bij { $at }{ $verified ->
         [yes] {""}
        *[no] {" "}(de dimensioneringstabel is niet getoetst aan de norm)
     }
@@ -677,7 +677,7 @@ rule-ew-pot-016 = de overschrijving { $member ->
         [function] draadfunctie
         [shielded] afgeschermd
        *[twisted] getwist
-    } van draad { $wire } is gelijk aan de waarde eronder in de overervingsketen; verwijder de overschrijving
+    } van draad { WORD($wire) } is gelijk aan de waarde eronder in de overervingsketen; verwijder de overschrijving
     .title = Overbodige overschrijving
     .hint = Verwijder de overschrijving; ze zet de waarde die de draad toch al krijgt.
 
@@ -826,7 +826,7 @@ rule-ew-term-005 = { WORD($terminal) } is met de rail verbonden maar heeft geen 
     .title = Railverbinding op een klem die geen PE is
     .hint = Wis de railverbinding, of maak de klem een PE-klem.
 
-rule-ew-term-006 = { WORD($terminal) } ligt op draad { $wire } zonder die te verbinden; sluit de klem op de draad aan of verplaats haar
+rule-ew-term-006 = { WORD($terminal) } ligt op draad { WORD($wire) } zonder die te verbinden; sluit de klem op de draad aan of verplaats haar
     .title = Klem op een draad die hij niet verbindt
     .hint = Neem de klem op in de draad, of haal hem van de draad af.
 
@@ -987,3 +987,5 @@ word-the-project = het project
 word-a-page = een pagina
 word-a-logical-bus-net = een logisch busnet
 word-a-physical-bus-net = een fysiek busnet
+word-the-junction-in = de aftakking in { $at }
+word-a-connection-point-of-another-page = een aansluitpunt van een andere pagina
