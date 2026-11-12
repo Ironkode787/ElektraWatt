@@ -211,7 +211,13 @@ impl PropertiesPane {
                 ui.label(strings::text(key!("props-empty")));
                 return;
             };
-            Self::header(ui, sheet, shell.editing_folio().as_deref(), events);
+            Self::header(
+                ui,
+                sheet,
+                shell.editing_folio().as_deref(),
+                shell.supply_in_item(),
+                events,
+            );
             // Doc 16a §6.8: "Filter properties" under the header while the open categories hold more than
             // twelve rows.
             let filter = shell.properties_filter().to_owned();
@@ -519,7 +525,13 @@ impl PropertiesPane {
     /// The header (§6.2): title, subtitle, location, finding chips (doc 16a §6.8: the title in `type.title`, the
     /// subtitle and the location in `type.small`, secondary; one severity chip per finding at the right of the
     /// title line, its icon and word, the rule and message as the tooltip and in its node's name).
-    fn header(ui: &mut Ui, sheet: &PropertySheet, editing: Option<&str>, events: &mut Vec<Event>) {
+    fn header(
+        ui: &mut Ui,
+        sheet: &PropertySheet,
+        editing: Option<&str>,
+        link: Option<ew_viewmodel::actions::ActionItem>,
+        events: &mut Vec<Event>,
+    ) {
         let t = crate::theme::current(ui.ctx());
         // The chips are laid out first, at the right, and the title takes what is left,
         // ellipsised; the findings collapse into one count chip per severity ("3 Warnings", every rule and message in
@@ -567,7 +579,9 @@ impl PropertiesPane {
         // a chip at the right end is never clipped by the pane's edge.
         egui::Frame::new()
             .inner_margin(egui::Margin::symmetric(crate::theme::margin_px(t.space_4), 0))
-            .show(ui, |ui| Self::header_lines(ui, sheet, &groups, compact, events));
+            .show(ui, |ui| {
+                Self::header_lines(ui, sheet, &groups, compact, link.as_ref(), events)
+            });
         ui.separator();
     }
 
@@ -578,6 +592,7 @@ impl PropertiesPane {
         sheet: &PropertySheet,
         groups: &[(&str, Vec<(&str, &str)>)],
         compact: bool,
+        link: Option<&ew_viewmodel::actions::ActionItem>,
         events: &mut Vec<Event>,
     ) {
         let t = crate::theme::current(ui.ctx());
@@ -627,6 +642,17 @@ impl PropertiesPane {
             );
             if ui.add(link).clicked() {
                 events.push(Event::Action("page.title_block", json!({})));
+            }
+        }
+        // An interruption point's sheet links Supply comes in here…, or Remove the supply mark (FT-1699).
+        if let Some(item) = link.filter(|i| sheet.read_only.is_none() && i.enabled) {
+            let link = egui::Link::new(
+                RichText::new(&item.label)
+                    .font(crate::theme::font(&t.type_small))
+                    .color(t.accent.color32()),
+            );
+            if ui.add(link).clicked() {
+                events.push(Event::Action(item.id, item.params.clone()));
             }
         }
         if let Some(r) = &sheet.read_only {

@@ -8,7 +8,8 @@
 //! - **One wire:** Edit route, Wire marker, Define potential…, Cable… (its cable where it is a core), Print wire
 //!   numbers. **Several wires:** Make cable from the selection….
 //! - **A junction:** Define potential….
-//! - **An interruption point:** Go to its partner, Direction: Source and Direction: Target, Continue on page….
+//! - **An interruption point:** Supply comes in here… (Remove the supply mark on a marked point; several points
+//!   selected offer it alone, for them all), Go to its partner, Direction: Source and Direction: Target, Continue on page….
 //! - **A terminal:** Add terminal (its strip's next free number, of its own kind, floating at the pointer), Edit strip,
 //!   Define potential….
 //! - **A symbol of a device:** on a coil Add contact per free contact of its device (each floats its symbol), on a
@@ -59,6 +60,8 @@ impl ShellModel {
             return out;
         }
         let [(e, kind)] = kinds.as_slice() else {
+            // Several interruption points: Supply comes in here… for them all (FT-1699).
+            out.extend(self.supply_in_item());
             return out;
         };
         match kind {
@@ -93,9 +96,11 @@ impl ShellModel {
         })
     }
 
-    /// Go to its partner, the two directions, Continue on page….
+    /// Supply comes in here…, Go to its partner, the two directions, Continue on page….
     fn ip_fits(&self, rep: &TableRep, out: &mut Vec<ActionItem>) {
-        match self.rep_link(rep) {
+        out.extend(self.supply_in_item());
+        let external = rep.ip.as_ref().is_some_and(|ip| ip.external);
+        match self.rep_link(rep).filter(|_| !external) {
             Some((params, cell)) => out.extend(self.aimed(
                 "nav.follow",
                 params,
@@ -104,7 +109,13 @@ impl ShellModel {
             None => out.extend(self.menu_item("nav.follow").map(|mut i| {
                 i.label = strings::text(key!("canvas-go-partner-none")).to_owned();
                 i.enabled = false;
-                i.reason = Some(strings::text(key!("reason-ip-no-partner")).to_owned());
+                // An external point (the supply coming in, FT-1699) continues in another drawing set.
+                let reason = if external {
+                    key!("reason-ip-external")
+                } else {
+                    key!("reason-ip-no-partner")
+                };
+                i.reason = Some(strings::text(reason).to_owned());
                 i
             })),
         }

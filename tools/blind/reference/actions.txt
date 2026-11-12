@@ -171,6 +171,7 @@ tool.ip_direction View "Interruption point direction" menu "Draw" shortcut "D" c
 tool.star_source View "Star source" menu "Draw" shortcut none context canvas params ""
 ip.name View "Interruption point name" menu none shortcut none context canvas hidden params "text:text"
 ip.external View "External reference" menu none shortcut none context canvas hidden params "external:text"
+ip.supply_in Command "Supply comes in here…" menu "Draw" shortcut none context canvas params "location?:text, device?:text, remove?:bool"
 ip.continue_on Command "Continue on page…" menu "Draw" shortcut none context canvas params "folio?:text, x_mm?:mm, y_mm?:mm"
 ip.arrange_selected Command "Arrange interruption points" menu "Draw" shortcut none context canvas params "by?:enum(name|potential), chain_order?:bool"
 box.grip Command "Move a black box grip" menu none shortcut none context canvas hidden params "grip:uint"

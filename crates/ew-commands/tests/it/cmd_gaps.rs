@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `box.black`, `bond.create` and `external_ref.create`.
+//! `box.black`, `bond.create`, `external_ref.create` and `ip.supply_in`.
 // A reader of ew-model's raw API (ADR-0001 amendment 2): the workspace clippy.toml guard does not apply here.
 #![allow(clippy::disallowed_methods)]
 
@@ -11,7 +11,8 @@ use common::fixture::*;
 use common::*;
 use ew_commands::CmdError;
 use ew_commands::commands::{
-    CreateBond, CreateExternalRef, EndpointParam, KindName, PlaceBlackBox, PlaceTarget, SetFields,
+    CreateBond, CreateExternalRef, EndpointParam, KindName, MarkSupplyIn, PlaceBlackBox, PlaceTarget,
+    SetFields,
 };
 use ew_ids::Id;
 use ew_schema::{
@@ -271,4 +272,50 @@ fn external_ref_device_is_editable_with_fields_set() {
     })
     .expect("fields.set device");
     assert_eq!(row(&e, x).device, ident("JE-N2000-01"));
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// ip.supply_in
+
+/// The external reference of interruption point `f`, if any.
+fn external_of(e: &ew_commands::Engine, f: Id<Function>) -> Option<Id<ExternalRef>> {
+    match &row(e, f).kind {
+        FunctionKind::Ip(ip) => ip.external,
+        _ => None,
+    }
+}
+
+/// FT-1699: two points marked as where the supply comes in become external points of one new reference at a new
+/// location node, in one undo step; a second mark of the same place reuses both; the mark comes off again; a
+/// target that is no interruption point is refused.
+#[test]
+fn ip_supply_in_marks_the_points_with_one_external_reference() {
+    let mut e = engine(golden_model());
+    let mark = |points: Vec<Id<Function>>| MarkSupplyIn {
+        points,
+        location: Some(ident("Supply")),
+        device: Some(ident("-X0")),
+        remove: false,
+    };
+    let r = e.execute(&mark(vec![FN_IP_101, FN_IP_102])).expect("ip.supply_in");
+    let x = row(&e, primary::<ExternalRef>(&r));
+    assert_eq!(x.device, ident("-X0"));
+    assert_eq!(row(&e, x.location).code, ident("Supply"));
+    assert_eq!(external_of(&e, FN_IP_101), Some(x.id));
+    assert_eq!(external_of(&e, FN_IP_102), Some(x.id));
+    // The same place again: the same reference (and nothing changes).
+    let again = e.execute(&mark(vec![FN_IP_101])).expect("again");
+    assert_eq!(primary::<ExternalRef>(&again), x.id);
+    e.undo(&ew_commands::Origin::Gui).unwrap();
+    assert_eq!(external_of(&e, FN_IP_101), None, "one undo step");
+    e.execute(&mark(vec![FN_IP_101])).expect("mark");
+    let off = MarkSupplyIn {
+        points: vec![FN_IP_101],
+        location: None,
+        device: None,
+        remove: true,
+    };
+    e.execute(&off).expect("remove");
+    assert_eq!(external_of(&e, FN_IP_101), None);
+    rejected(e.execute(&mark(vec![FN_101F1])));
 }

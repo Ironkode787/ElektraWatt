@@ -40,6 +40,8 @@ pub mod choices;
 mod clipboard;
 // The canvas context menu's entries that fit the thing under the pointer (FT-1693).
 mod context_menu;
+// Supply comes in here… on interruption points (FT-1699).
+mod supply_in;
 pub mod symbol_editor;
 // The text and graphic tools' host duties.
 mod drawing;

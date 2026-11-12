@@ -1124,7 +1124,8 @@ thing; one that cannot run now is disabled with its reason, as the command row's
 | One wire | Edit route, Wire marker, Define potential…, Cable… (a core's own cable), Print wire numbers (checked when on) |
 | Several selected wires | Make cable from the selection… |
 | A junction | Define potential… |
-| An interruption point | Go to partner (its cross-reference's cell; disabled while it has none), Direction: Source, Direction: Target (the current one checked), Continue on page… |
+| An interruption point | Supply comes in here… (Remove the supply mark on a marked point), Go to partner (its cross-reference's cell; disabled while it has none or the point is external), Direction: Source, Direction: Target (the current one checked), Continue on page… |
+| Several interruption points | Supply comes in here… for them all |
 | A terminal | Add terminal (its strip, its own kind, the next free number, floating at the pointer), Edit strip, Define potential… |
 | A symbol of a device | on a coil Add contact per free contact of its device by name (each floats its symbol; disabled with the way round when there is none), on a contact Go to coil; Join device…; Choose part…; Edit symbol (disabled with the reason a symbol can only be copied), Copy and edit; Define potential… on a symbol of one connection point |
 | A placement of a panel page | Turn, Flip, Lock or Unlock, Delete (and nothing general) |

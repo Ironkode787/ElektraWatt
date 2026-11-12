@@ -119,6 +119,7 @@ commands! {
     structure::CreateSection,
     structure::CreateReportBlock,
     structure::CreateExternalRef,
+    structure::MarkSupplyIn,
     device::CreateDevice,
     device::PlaceSymbol,
     device::MoveReps,
