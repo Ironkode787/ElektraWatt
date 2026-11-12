@@ -9,8 +9,8 @@
 //!
 //! The layout is computed from the labels and the tokens only, never from a command's state, so the bar never
 //! reflows when a command is enabled, disabled or toggled. Groups that do not fit collapse from the right, each into
-//! one button that opens the group as a menu (Select and Place never collapse, and Connect only after every other
-//! group has); what still does not fit goes into one "More" button.
+//! one button that opens the group as a menu (Select and Place never collapse, and Annotate, then Connect only after
+//! every other group has); what still does not fit goes into one "More" button.
 //!
 //! AccessKit: the bar is a `Toolbar` node, the tabs a `TabList` of `Tab` nodes, every group a `Group` node named by
 //! the group, every button named by its bar label and carrying its shortcut.

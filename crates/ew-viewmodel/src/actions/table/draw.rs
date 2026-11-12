@@ -1124,6 +1124,24 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_cable_connect_cores(p),
         )),
     ),
+    // Draw ▸ Connect ▸ Cable… (FT-1685): the selected wires as a cable's cores in one form, on the bar after Route
+    // selection, in a column of its own.
+    with_params(
+        "tag?:text, type?:text, cores?:json",
+        in_canvas(placed(
+            place(Group::Connect, 9, CommandSize::Small, Some(key!("bar-cable"))),
+            "ew-cable",
+            act(
+                "cable.from_wires",
+                Command,
+                Menu::Draw,
+                &[],
+                selection_editable,
+                grp(Group::Connect),
+                |s, p| s.act_cable_from_wires(p),
+            ),
+        )),
+    ),
     // Define potential… from a Potentials row's context menu, at the row's point.
     keeps_banner(with_params(
         "row:text",

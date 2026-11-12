@@ -1823,6 +1823,8 @@ refusal-terminal-move-splits-group = de verplaatsing zou brugroep { $p0 } splits
 refusal-conductor-not-cable = het apparaat is geen kabel; kies een apparaat met het aspect kabel
 refusal-conductor-add-none = geef ten minste één ader om toe te voegen
 refusal-conductor-core-used = ader { $p0 } wordt al gebruikt in de kabel; kies een andere
+refusal-conductor-wire-kind = alleen een draad of de ader van een kabel kan een ader worden; een brug of buslijn niet
+refusal-conductor-wire-twice = een draad kan maar één ader zijn; hij staat bij twee
 refusal-terminal-seq-overflow = de volgnummers zouden 4294967295 passeren; voeg in op een lagere positie
 refusal-terminal-designation-twice = aanduiding { $p0 } wordt twee keer gegeven; kies een andere
 refusal-terminal-move-twice = klem { $p0 } staat twee keer in de lijst
@@ -3655,6 +3657,7 @@ form-value-set-remove = Waardenset { $p0 } verwijderen
 form-value-set-new = Set { $p0 }
 form-value-sets-none = Nog geen variabelen: Variabel maken op een eigenschapsrij voegt een kolom toe.
 form-value-cell = { $p0 }, waardenset { $p1 }
+form-table-cell = { $p0 }, { $p1 }
 error-value-set-name = Waardenset { $p0 } heeft een naam nodig.
 macro-failed-value = De macro kan niet worden ingevoegd met de waarde die voor { $p0 } is getypt.
 error-value-set = Waardenset “{ $p0 }”: { $p1 }
@@ -4884,6 +4887,20 @@ toast-cable-new = Kabel { $p0 } gemaakt met { $p1 }.
 toast-cable-new-cores = { $p0 } aders
 toast-cable-new-cores-one = 1 ader
 toast-cores-connected = Draden verbonden met de aders van { $p1 }: { $p0 }.
+
+# FT-1685: Tekenen ▸ Verbinden ▸ Kabel…: de geselecteerde draden als aders van een kabel, in één formulier.
+action-cable-from-wires = Kabel…
+bar-cable = Kabel
+form-cable-tag = Kenmerk
+form-cable-type = Type
+form-cable-type-note = Zoals 3G1.5 (de laatste ader groen-geel) of 4x0.75, of het artikelnummer van een kabel
+form-cable-cores = Aders
+form-cable-wire = Draad
+form-cable-core = Ader
+error-cable-type = "{ $p0 }" is geen kabeltype. Schrijf het als 3G1.5 of 4x0.75, of geef het artikelnummer van een kabel.
+error-cable-core-unknown = De kabel heeft geen ader { $p0 }: zijn aders zijn { $p1 }.
+error-cable-core-twice = Ader { $p0 } is aan twee draden gegeven: geef elke draad een eigen ader.
+toast-cable-wires = Kabel { $p0 } heeft nu deze draden als aders: { $p1 }.
 
 # FT-1372 (ID-1362): Uitvoer ▸ Rapporten ▸ Rapportblok….
 action-report-block-new = Rapportblok…

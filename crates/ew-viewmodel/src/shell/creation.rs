@@ -320,6 +320,7 @@ impl FormDialog {
     pub fn note(&self, field: &str) -> Option<&'static str> {
         match (self.action, field) {
             ("pages.renumber", "start") => Some(strings::text(key!("form-renumber-start-note"))),
+            ("cable.from_wires", "type") => Some(strings::text(key!("form-cable-type-note"))),
             _ => None,
         }
     }
@@ -332,6 +333,11 @@ impl FormDialog {
 pub struct FormTable {
     /// The action parameter the table carries (`value_sets`).
     pub name: &'static str,
+    /// The key of the table's heading (`Value sets`).
+    pub heading_key: Key<'static>,
+    /// Whether the rows are given (the Cable form's wires): no row is added or removed and the first column is not
+    /// edited.
+    pub fixed: bool,
     /// The key of the first column's header (`Value set`).
     pub key_label: Key<'static>,
     /// The columns after the first: the variable's name and its type's word (`number`), which types the cells.
@@ -472,6 +478,10 @@ impl ShellModel {
                 f.value = value.to_owned();
             }
             form.error = None;
+            // Cable…'s cores follow its type.
+            if form.action == "cable.from_wires" && name == "type" {
+                super::cables::retype(self.project.as_ref().map(|p| &p.session), form);
+            }
         }
     }
 

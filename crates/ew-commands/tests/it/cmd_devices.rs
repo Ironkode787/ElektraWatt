@@ -17,7 +17,7 @@ use ew_commands::commands::{
 use ew_commands::{AnyCommand, CmdError, Engine, Receipt};
 use ew_model::{Entity, Model};
 use ew_schema::{
-    AnchorPolicy, Cable, Conductor, Connection, Device, DeviceAspects, DeviceKind, Function, Kind, LibCopy,
+    AnchorPolicy, Cable, Conductor, Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Function, Kind, LibCopy,
     NumberSpec, PartRef, PartUse, Record, Representation, SymbolDef,
 };
 use ew_units::{Orient2, Pt2};
@@ -86,6 +86,7 @@ fn conductor_spec(core: &str) -> ConductorSpec {
         csa: None,
         shield: false,
         pair: None,
+        wires: vec![],
     }
 }
 
@@ -926,6 +927,7 @@ fn cable_cmd(cores: &[&str]) -> CreateCable {
         cable: Cable::default(),
         conductors: cores.iter().map(|c| conductor_spec(c)).collect(),
         copies: vec![],
+        frozen_tag: None,
     }
 }
 
@@ -968,6 +970,32 @@ fn create_cable_letter_defaults_to_w_and_rejects_duplicate_cores() {
     // No conductors is fine.
     let r = e.execute(&cable_cmd(&[])).unwrap();
     assert_eq!(r.created.len(), 1);
+}
+
+/// The wires a conductor lists become its core in the creating transaction (FT-1685: the Cable form makes the cable
+/// and puts the wires in it in one step); a wire listed twice is refused and nothing changes.
+#[test]
+fn create_cable_makes_the_listed_wires_its_cores() {
+    let wire: ew_ids::Id<Connection> = id(0x4100);
+    let model = golden_with(|r| {
+        r.push(Record::Connection(connection(
+            wire,
+            Some(PAGE_102),
+            cp(FN_102G1, 0),
+            cp(FN_T1, 1),
+        )))
+    });
+    let mut e = engine(model);
+    let mut twice = cable_cmd(&["BN", "BU"]);
+    twice.conductors[0].wires = vec![wire];
+    twice.conductors[1].wires = vec![wire];
+    rejected(e.execute(&twice));
+    assert_eq!(e.model().rev().0, 0);
+    let mut cmd = cable_cmd(&["BN", "BU"]);
+    cmd.conductors[1].wires = vec![wire];
+    let r = e.execute(&cmd).unwrap();
+    let conductors: Vec<ew_ids::Id<Conductor>> = created(&r, Kind::Conductor);
+    assert_eq!(row(&e, wire).kind, ConnectionKind::Core(conductors[1]));
 }
 
 #[test]

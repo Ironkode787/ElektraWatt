@@ -1131,6 +1131,8 @@ impl ShellModel {
                 error: None,
                 table: Some(FormTable {
                     name: "value_sets",
+                    heading_key: key!("form-value-sets"),
+                    fixed: false,
                     key_label: key!("form-value-set-name"),
                     columns,
                     rows,

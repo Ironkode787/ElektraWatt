@@ -440,23 +440,19 @@ fn tutorial_1_a_first_schematic_page_runs_as_its_page_says() {
 }
 
 /// Tutorial 2 (D10, DC-6): on tutorial 1's project, a strip with two terminals, the cabinet and the field
-/// side wired, a cable from the starter set's part with the field wires as its cores (its tag from its first core's
-/// page), its length set, the strip editor and the Cables navigator read, checked and saved: every step done,
-/// the end state the page names, and the lint.
+/// side wired, the field wires made a cable 3G1.5 by Cable… (its tag from its first core's page), its length set,
+/// the strip editor and the Cables navigator read, checked and saved: every step done, the end state the page names,
+/// and the lint.
 #[test]
 fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     let tmp = Tmp::new();
     all_done(&run_tutorial(&tmp, "first-page"));
     let transcript = all_done(&run_tutorial(&tmp, "terminal-strip-and-cable"));
-    // The toasts that steps 6 and 7 quote.
-    let [created, connected, describe] = <[String; 3]>::try_from(describes(&transcript)).unwrap();
-    assert_eq!(
-        lines_of(&created, &["toast"]),
-        ["toast \"Created cable -W1 with 3 cores.\" undo"]
-    );
+    // The toast that step 6 quotes.
+    let [connected, describe] = <[String; 2]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
         lines_of(&connected, &["toast"]),
-        ["toast \"Wires connected to the cores of -1W1: 2.\" undo"]
+        ["toast \"Cable -1W1 now has these wires as its cores: 2.\" undo"]
     );
     assert_eq!(
         lines_of(

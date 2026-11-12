@@ -456,7 +456,7 @@ impl ShellModel {
     /// the strip's numbering format (`Session::strip_format`) with the lowest counter no device of that letter prints
     /// on the page (FR-NUM-007 fills gaps). `None` off a schematic page or on a folio that is not a whole number, where
     /// the scheme's `{page}` is not the folio as written.
-    fn strip_tag_example(&self, letter: &str) -> Option<String> {
+    pub(super) fn strip_tag_example(&self, letter: &str) -> Option<String> {
         let row = self.page_rows().get(self.page_index())?;
         if !matches!(row.kind.as_str(), "multi_line" | "single_line")
             || row.folio.is_empty()

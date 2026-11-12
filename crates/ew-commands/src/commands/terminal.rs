@@ -10,7 +10,7 @@ use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
 use ew_schema::{
     Cable, ColourSpec, Conductor, Connection, ConnectionKind, Csa, Device, DeviceAspects, DeviceKind, Extra,
-    FnDef, FnRole, Function, FunctionKind, Kind, LevelSpec, LibCopy, Part, PartUse, StructureAssignment,
+    FnDef, FnRole, FrozenTag, Function, FunctionKind, Kind, LevelSpec, LibCopy, Part, PartUse, StructureAssignment,
     TagSpec, Terminal,
 };
 use schemars::JsonSchema;
@@ -714,6 +714,11 @@ pub struct ConductorSpec {
     /// Twisted pair number.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pair: Option<u8>,
+    /// The drawn connections that become this core, in the same transaction (the Cable form, FT-1685): each a
+    /// wire, or a core of any cable, which then leaves its core.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<UuidS>")]
+    pub wires: Vec<Id<Connection>>,
 }
 
 fn w() -> Ident {
@@ -722,9 +727,10 @@ fn w() -> Ident {
 
 /// `cable.create`: a cable device with its conductors (doc 03 §12).
 ///
-/// Creates `Device {tag: {letter, counter}, parts, function_text, structure, cable}` (no function) and one
-/// `Conductor {cable, core, colour, csa, shield, pair}` per spec, in order. Rejected: two specs with the
-/// same core. Outcome: the cable device.
+/// Creates `Device {tag: {letter, counter, frozen}, parts, function_text, structure, cable}` (no function) and one
+/// `Conductor {cable, core, colour, csa, shield, pair}` per spec, in order; the `wires` of a spec become that core.
+/// Rejected: two specs with the same core; a listed connection that is neither a wire nor a core, or listed twice.
+/// Outcome: the cable device.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CreateCable {
@@ -755,6 +761,9 @@ pub struct CreateCable {
     /// cable part and its closure; empty when the project holds them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<Value>,
+    /// A frozen product designation, set in the creating commit (a tag typed in the Cable form).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub frozen_tag: Option<FrozenTag>,
 }
 
 impl Command for CreateCable {
@@ -775,7 +784,10 @@ impl Command for CreateCable {
         tx.insert(Device {
             id,
             v: 1,
-            tag: TagSpec::new(self.letter.clone(), self.counter),
+            tag: TagSpec {
+                frozen: self.frozen_tag.clone(),
+                ..TagSpec::new(self.letter.clone(), self.counter)
+            },
             kind: None,
             parent: None,
             position: None,
@@ -797,8 +809,9 @@ impl Command for CreateCable {
     }
 }
 
-/// `conductor.add`: conductors of an existing cable. Rejected: the device has no cable aspect; a core
-/// already used in the cable or twice in the list. Outcome: the first new conductor.
+/// `conductor.add`: conductors of an existing cable; the `wires` of a spec become that core. Rejected: the device
+/// has no cable aspect; a core already used in the cable or twice in the list; a listed connection that is neither
+/// a wire nor a core, or listed twice. Outcome: the first new conductor.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AddConductors {
@@ -854,12 +867,23 @@ fn check_distinct_cores(
     Ok(())
 }
 
-/// Inserts one conductor of `cable` per spec, in order; returns the first new one.
+/// Inserts one conductor of `cable` per spec, in order, and makes each spec's `wires` that core; returns the first
+/// new one.
 fn insert_conductors(
     tx: &mut TxBuilder<'_>,
     cable: Id<Device>,
     specs: &[ConductorSpec],
 ) -> Result<Option<Id<Conductor>>, CmdError> {
+    let mut listed = BTreeSet::new();
+    for wire in specs.iter().flat_map(|s| &s.wires) {
+        let conn = tx.require::<Connection>(*wire)?;
+        if !matches!(conn.kind, ConnectionKind::Wire | ConnectionKind::Core(_)) {
+            return tx.reject(text!("refusal-conductor-wire-kind"));
+        }
+        if !listed.insert(*wire) {
+            return tx.reject(text!("refusal-conductor-wire-twice"));
+        }
+    }
     let mut first = None;
     for spec in specs {
         let id: Id<Conductor> = tx.mint();
@@ -875,6 +899,9 @@ fn insert_conductors(
             source_ref: None,
             extra: Extra::new(),
         })?;
+        for wire in &spec.wires {
+            tx.update::<Connection>(*wire, |c| c.kind = ConnectionKind::Core(id))?;
+        }
         first.get_or_insert(id);
     }
     Ok(first)
