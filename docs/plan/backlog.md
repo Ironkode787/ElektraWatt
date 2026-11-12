@@ -18,11 +18,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 After an hour on an imported project of their own. All of it goes into the second candidate (the owner's word).
 
 - FT-1693 `ew-ui, ew-viewmodel`: **General.** The right-click menu should be the quick way to what fits the thing under the pointer: a terminal strip offers a new terminal and the strip editor, a relay coil its contacts, several selected wires a cable, the title block its fields, a symbol its editor. The owner asks for this to be expanded throughout.
-- FT-1698 `ew-ui, ew-viewmodel`: Define potential asks for the type as typed text; a list as in Properties would show the choices.
-- FT-1699 `ew-checks, ew-viewmodel`: An interruption point cannot be marked as a mains source, so the supply that enters by one stays an error until it is waived.
-- FT-1700 `ew-derive, ew-viewmodel`: A wire's potential could be reasoned: a wire on A2 of a 24 V relay is 0VDC. The window should offer such a suggestion to accept or decline.
-- FT-1701 `ew-checks`: A power supply's L pin on a wire of L1 is reported as an error ("expected L, got L1"): right to the letter, wrong in sense.
-- FT-1707 `ew-ui, ew-viewmodel`: The strip editor is hidden in the menus; it should be a right click on a terminal strip away.
 
 
 ### The persona round before 0.2.0
