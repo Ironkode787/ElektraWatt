@@ -119,8 +119,10 @@ impl Session {
     /// and after [`external::QUIESCENCE`] while it answers [`DiskPoll::Settling`]; never while a gesture is in progress
     /// (D22: the apply waits until it ends). A quiet change is read read-only and merged with the session's model per
     /// record against the baseline; without a collision it is applied as one step, with collisions it is held, and an
-    /// unreadable one holds saves. A read-only session reloads ([`Session::reload`]).
+    /// unreadable one holds saves. A read-only session reloads ([`Session::reload`]). The lock's heartbeat rides on
+    /// the poll ([`Session::heartbeat_if_due`]).
     pub fn poll_disk(&mut self) -> DiskPoll {
+        self.heartbeat_if_due();
         let Some(p) = self.persistence.as_mut() else {
             return DiskPoll::Unchanged;
         };

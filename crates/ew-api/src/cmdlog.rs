@@ -308,6 +308,7 @@ impl Session {
         }
         let mut receipts = Vec::with_capacity(log.lines.len());
         for (line, cmd) in &log.lines {
+            self.heartbeat_if_due();
             let name = self
                 .registry()
                 .get(&cmd.name)

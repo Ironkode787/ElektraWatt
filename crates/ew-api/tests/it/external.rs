@@ -810,3 +810,35 @@ fn a_conflicted_copy_is_listed_as_an_orphan_file() {
     assert_eq!(orphans[0].severity, ew_api::checks::Severity::Warning);
     s.close();
 }
+
+/// The lock's modification time in the in-memory folder.
+fn lock_time(vfs: &Arc<MemVfs>) -> std::time::SystemTime {
+    let lock = ew_store::join(&root(), ".~ew.lock");
+    vfs.stat(&lock).expect("the lock").modified.expect("a time")
+}
+
+/// The window's disk poll and a command log's lines refresh the lock once [`ew_store::HEARTBEAT`] has passed, so a
+/// project kept open is not taken over as stale after an hour (FT-1662).
+#[test]
+fn the_disk_poll_and_a_command_log_keep_the_lock_fresh() {
+    let vfs = project();
+    let clock = clock();
+    let mut s = open(&vfs, &clock, 1);
+    let opened = lock_time(&vfs);
+    clock.advance(ew_store::HEARTBEAT - Duration::from_secs(1));
+    s.poll_disk();
+    assert_eq!(lock_time(&vfs), opened, "not yet due");
+    clock.advance(Duration::from_secs(1));
+    s.poll_disk();
+    assert_eq!(lock_time(&vfs), opened + ew_store::HEARTBEAT);
+    clock.advance(ew_store::HEARTBEAT);
+    let log = ew_api::CmdLog::parse(concat!(
+        r#"{"$schema":"ew.cmdlog/1","label":"test log"}"#,
+        "\n",
+        r#"{"cmd":"page.create","params":{"number":9001}}"#,
+        "\n"
+    ))
+    .expect("a log");
+    s.run_script(&log, "x.ewcmd").expect("the log runs");
+    assert_eq!(lock_time(&vfs), opened + ew_store::HEARTBEAT * 2);
+}

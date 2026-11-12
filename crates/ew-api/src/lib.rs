@@ -470,6 +470,8 @@ struct Persistence {
     backup: Option<std::path::PathBuf>,
     /// The external-change state: the held change, the cloud rechecks.
     watch: external_change::Watch,
+    /// When the lock was last refreshed (at the open, then by [`Session::heartbeat_if_due`]).
+    beat: std::time::SystemTime,
     /// The library copies the open dropped as damaged (a loader finding names the file, the model lacks the copy), in
     /// key order; none for a project Save As wrote.
     dropped: Vec<AnyKey>,
@@ -1098,6 +1100,7 @@ impl Session {
         let mut session = Session::new(model, options);
         let dropped = dropped_copies(&session.query(), &report);
         session.persistence = Some(Persistence {
+            beat: store.now(),
             store,
             unsaved,
             recovered,
@@ -1314,6 +1317,7 @@ impl Session {
         let model = self.engine.model().clone();
         let store = Store::create(dir, &model, store)?;
         let previous = self.persistence.replace(Persistence {
+            beat: store.now(),
             store,
             unsaved: BTreeSet::new(),
             recovered: false,
@@ -1613,6 +1617,19 @@ impl Session {
         match &mut self.persistence {
             Some(p) => p.store.heartbeat(),
             None => Ok(LockState::NotHeld),
+        }
+    }
+
+    /// The heartbeat when [`ew_store::HEARTBEAT`] has passed since the last one: what the window's disk poll and a
+    /// command log's lines call, so that a project open for an hour keeps its lock (doc 05 §7.2). An I/O error leaves
+    /// the lock held, to be tried again at the next call.
+    pub(crate) fn heartbeat_if_due(&mut self) {
+        let Some(p) = self.persistence.as_mut() else {
+            return;
+        };
+        let now = p.store.now();
+        if now.duration_since(p.beat).is_ok_and(|d| d >= ew_store::HEARTBEAT) && p.store.heartbeat().is_ok() {
+            p.beat = now;
         }
     }
 

@@ -923,7 +923,8 @@ app_version, started_at}` with a format number, the session ID and the PID's sta
 ### 7.2 Heartbeat and lock loss
 
 - **Heartbeat.** The holder refreshes the lock's modification time every 5 minutes (`File::set_modified`) and
-  re-reads the session ID.
+  re-reads the session ID. *As built:* the session refreshes it once 5 minutes have passed since the last refresh,
+  checked at each disk poll of the window (every 3 s) and before each line of a command log (`ew apply`).
 - **Lock loss.** If the session ID is no longer its own, the holder has lost the lock (FR-COL-026). It
   switches to read-only at once. Its unsaved changes stay in memory and in the journal, and it offers "Save a Copy"
   or "Merge into current" (the external-change flow, then re-acquiring the lock if it is free).
