@@ -100,9 +100,9 @@ use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_units::Grid;
 use ew_derive::{
     DisplayedTag, FunctionCps, GeneratedPage, MainRep, PageOrder, PageRef, PlcAddressText, Policy, Q, Query,
-    RepAnchorCell, TbValue, TitleBlockValues, XrefTextOf, box_caption, connection_marker, frame_form_of,
-    free_text, group_marker, grouped_connections, main_part, manufacturer_name, order_code_part,
-    order_code_text, tech_data_text,
+    RepAnchorCell, TbValue, TitleBlockValues, XrefTextOf, box_caption, connection_marker, connection_number,
+    frame_form_of, free_text, group_marker, grouped_connections, main_part, manufacturer_name,
+    order_code_part, order_code_text, tech_data_text,
 };
 use ew_dl::Destination;
 use ew_reports::render::{RenderOptions, folios_printed, render};
@@ -382,7 +382,8 @@ impl Query for PageSlotsOf {
     }
 }
 
-/// `page_connections(page)`: the connections drawn on a page with their wire-marker texts.
+/// `page_connections(page)`: the connections drawn on a page with their wire-marker texts and, when the project prints
+/// them, their wire numbers.
 #[derive(Debug)]
 pub struct PageConnectionsOf;
 
@@ -400,9 +401,11 @@ impl Query for PageConnectionsOf {
                 continue;
             };
             let marker = connection_marker(q, &c, grouped.contains(&cid));
+            let number = connection_number(q, cid);
             out.push(ConnectionView {
                 connection: c,
                 marker,
+                number,
             });
         }
         Arc::new(out)

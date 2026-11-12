@@ -767,6 +767,20 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_crossings(p),
         ),
     )),
+    // Draw ▸ Connect ▸ Print wire numbers (FT-1692), beside the crossings and the wire markers: every wire's number
+    // on the page, the PDF and print.
+    keeps_banner(with_params(
+        "on?:bool",
+        act(
+            "project.wire_numbers",
+            Command,
+            Menu::Draw,
+            &[],
+            writable,
+            grp(Group::Connect),
+            |s, p| s.act_wire_numbers(p),
+        ),
+    )),
     // End.
     // Interruption points and black boxes.
     keeps_banner(in_canvas(placed(

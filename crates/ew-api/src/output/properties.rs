@@ -2452,11 +2452,16 @@ impl Session {
         let mut any_frozen = false;
         let mut any_free = false;
         for (c, j) in conns.iter().zip(jsons) {
-            let printed = wire_number_text(q, *c);
+            // A cable's core has no wire number (FR-NUM-019): its cable and core name it (`-1W1 BN`), never `?`.
+            let core = match q.connections().get(*c).map(|conn| conn.kind.clone()) {
+                Some(ew_schema::ConnectionKind::Core(x)) => record_title(q, x.as_uuid(), None),
+                _ => None,
+            };
+            let printed = core.clone().unwrap_or_else(|| wire_number_text(q, *c));
             let frozen = j.get("number").and_then(|n| n.get("frozen")).is_some();
             if frozen {
                 any_frozen = true;
-            } else if printed != "?" {
+            } else if printed != "?" && core.is_none() {
                 any_free = true;
             }
             let provenance = if frozen {

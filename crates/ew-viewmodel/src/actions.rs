@@ -1481,6 +1481,7 @@ pub(crate) fn switch_on(model: &ShellModel, id: &str) -> Option<bool> {
         "help.glossary" => model.glossary_shown(),
         "view.wire_colours" => model.wire_colours_on(),
         "project.crossings" => model.crossings_hops(),
+        "project.wire_numbers" => model.wire_numbers_on(),
         // The command bar's collapse.
         "view.command_bar" => model.command_bar_collapsed(),
         "props.show_advanced" => model.properties_show_advanced(),

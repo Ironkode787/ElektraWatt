@@ -340,6 +340,7 @@ action-junction-member = Move a junction member
 action-junction-style = Junction style
 action-junction-wiring = Junction wiring
 action-project-crossings = Show crossings as hops
+action-project-wire-numbers = Print wire numbers
 tool-wire = Wire
 tool-route_edit = Edit route
 hint-wire-armed = Click or { $p0 } on a connection point, a junction or a wire to start
