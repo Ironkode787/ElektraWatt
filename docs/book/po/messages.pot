@@ -72,39 +72,43 @@ msgstr ""
 msgid "Choose parts"
 msgstr ""
 
-#: src/SUMMARY.md:23 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:23 src/how-to/panel-layout.md:1
+msgid "Draw a panel layout"
+msgstr ""
+
+#: src/SUMMARY.md:24 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:25 src/SUMMARY.md:27 src/reference/index.md:1
+#: src/SUMMARY.md:26 src/SUMMARY.md:28 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:28 src/reference/window/tools.md:1
+#: src/SUMMARY.md:29 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:29 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:30 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:30 src/reference/window/panels.md:1
+#: src/SUMMARY.md:31 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:31 src/reference/symbol-editor.md:1
+#: src/SUMMARY.md:32 src/reference/symbol-editor.md:1
 msgid "Symbol editor and automated authoring"
 msgstr ""
 
-#: src/SUMMARY.md:33 src/SUMMARY.md:35 src/explanation/index.md:1
+#: src/SUMMARY.md:34 src/SUMMARY.md:36 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:36 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:37 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:37 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:38 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -226,7 +230,8 @@ msgstr ""
 #: src/introduction.md:35
 msgid ""
 "**A task at hand:** the how-to guides, among them [Choose "
-"parts](how-to/choose-parts.md) and [Upgrade a "
+"parts](how-to/choose-parts.md), [Draw a panel "
+"layout](how-to/panel-layout.md) and [Upgrade a "
 "project](how-to/upgrade-a-project.md)."
 msgstr ""
 
@@ -1038,23 +1043,29 @@ msgstr ""
 
 #: src/how-to/index.md:21
 msgid ""
+"[Draw a panel layout](panel-layout.md): a panel layout page, its enclosure "
+"and mounting plate, rails and ducts, and the devices placed on them."
+msgstr ""
+
+#: src/how-to/index.md:23
+msgid ""
 "[Upgrade a project](upgrade-a-project.md): what a release reads and writes, "
 "opening a project of an older format, the backup of the first save, `ew "
 "upgrade`, and what changes in the format from 0.1.0."
 msgstr ""
 
-#: src/how-to/index.md:24
+#: src/how-to/index.md:26
 msgid ""
 "More follow the [command-line how-to](headless-workflow.md), for example "
 "replaying a command log with `ew apply`, checking a project in a CI job, and "
 "exporting for a single page range."
 msgstr ""
 
-#: src/how-to/index.md:27
+#: src/how-to/index.md:29
 msgid "Writing a how-to guide"
 msgstr ""
 
-#: src/how-to/index.md:29
+#: src/how-to/index.md:31
 msgid ""
 "A guide names its goal in the title (\"Export one page range as SVG\"), "
 "lists what you need, gives numbered steps and ends when the goal is met. "
@@ -2227,6 +2238,95 @@ msgid ""
 "part](../reference/window/dialogs.md#edit-part) changes the project's copy, "
 "and the [glossary](../reference/glossary.md#part) relates EW's part to "
 "EPLAN's article and QElectroTech's manufacturer reference."
+msgstr ""
+
+#: src/how-to/panel-layout.md:3
+msgid ""
+"A panel layout page shows an enclosure's mounting plate to scale, with its "
+"rails, its wiring ducts and the devices placed on them. The devices are the "
+"project's own: a device of the schematic is placed once, and the panel "
+"layout, the parts list and the enclosure legend read it from there."
+msgstr ""
+
+#: src/how-to/panel-layout.md:7
+msgid "Make the page"
+msgstr ""
+
+#: src/how-to/panel-layout.md:9
+msgid ""
+"Choose **Page ▸ New page…**, set **Type** to Panel layout, give the page a "
+"title such as \"Panel layout\", and choose **Create**. The page opens empty; "
+"the Draw tab's Rail and Duct say what is missing."
+msgstr ""
+
+#: src/how-to/panel-layout.md:11
+msgid ""
+"An enclosure belongs to a location (`+K1`). If the project has none yet, add "
+"one with **Project ▸ Setup ▸ Structure node…**: kind Location, designation "
+"`K1`."
+msgstr ""
+
+#: src/how-to/panel-layout.md:14
+msgid "Add the enclosure"
+msgstr ""
+
+#: src/how-to/panel-layout.md:16
+msgid ""
+"Choose **Project ▸ Setup ▸ Enclosure…**. The dialog proposes the page's "
+"location and the first enclosure part of the project or of an installed "
+"library, such as \"Wall enclosure 600 × 800 × 250 mm\"; choose another from "
+"the lists if you like, then **Create**. The page now shows the enclosure and "
+"its mounting plate, centred and at the scale that fits the page. Another "
+"plate goes on the page through the page's **Surface** row in Properties."
+msgstr ""
+
+#: src/how-to/panel-layout.md:22
+msgid "Rails and ducts"
+msgstr ""
+
+#: src/how-to/panel-layout.md:24
+msgid ""
+"Choose **Draw ▸ Rail** and click the rail's start and end on the plate (a "
+"rail runs across or up and down); the tool's card offers the rail part and "
+"the grid step. Draw as many rails as the cabinet needs."
+msgstr ""
+
+#: src/how-to/panel-layout.md:26
+msgid ""
+"Choose **Draw ▸ Duct** and draw the ducts the same way; the card asks for a "
+"duct's size when its part gives none."
+msgstr ""
+
+#: src/how-to/panel-layout.md:28
+msgid "Place the devices"
+msgstr ""
+
+#: src/how-to/panel-layout.md:30
+msgid ""
+"Show **View ▸ Panels ▸ Navigators ▸ Unplaced devices**. It lists the devices "
+"of the page's location that have no place yet. A device without a location "
+"is not listed: give it the location in Properties, under Structure."
+msgstr ""
+
+#: src/how-to/panel-layout.md:32
+msgid ""
+"Drag a device from the list onto a rail, or select its row, press `Enter` "
+"and click the place. On a rail it snaps to its neighbour, the rail's ends or "
+"the plate grid; a device mounted by screws goes on the plate."
+msgstr ""
+
+#: src/how-to/panel-layout.md:34
+msgid ""
+"To fill a rail at once, select the rail and choose **Draw ▸ Auto-fill "
+"rail…**: it places the devices you marked in the list, or every unplaced "
+"device that fits, in the order of the schematic or of their tags, and a "
+"toast says what did not fit."
+msgstr ""
+
+#: src/how-to/panel-layout.md:38
+msgid ""
+"The tools are described one by one in the [tool "
+"reference](../reference/window/tools.md): Place device, Rail and Duct."
 msgstr ""
 
 #: src/how-to/upgrade-a-project.md:3

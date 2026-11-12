@@ -100,7 +100,13 @@ fn the_layout_group_is_enabled_on_a_panel_page_and_says_why_not_elsewhere() {
     let on = |b: &str| (b.to_owned(), true, None);
     assert_eq!(layout_group(&s), [on("Rail"), on("Duct"), on("Auto-fill rail")]);
     done(&mut s, "page.goto", json!({"folio": "101"}));
-    let off = |b: &str| (b.to_owned(), false, Some("Open a panel layout page".to_owned()));
+    let off = |b: &str| {
+        (
+            b.to_owned(),
+            false,
+            Some("Open a panel layout page; make one with New page… and the type Panel layout".to_owned()),
+        )
+    };
     assert_eq!(
         layout_group(&s),
         [off("Rail"), off("Duct"), off("Auto-fill rail")]

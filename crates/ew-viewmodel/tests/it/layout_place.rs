@@ -360,7 +360,7 @@ fn the_empty_states_name_the_location_or_the_missing_layout() {
     );
     assert_eq!(
         ew_viewmodel::strings::text(key!("reason-no-panel-page")),
-        "Open a panel layout page"
+        "Open a panel layout page; make one with New page… and the type Panel layout"
     );
     shell.shutdown();
 }

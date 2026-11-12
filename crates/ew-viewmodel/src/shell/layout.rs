@@ -794,8 +794,43 @@ impl ShellModel {
         if !offer.copies.is_empty() {
             params["copies"] = Value::Array(offer.copies);
         }
+        let before = project.session.surface_choices();
         let out = self.host_create("layout.enclosure.create_from_part", params);
-        self.layout_form_done(ACTION, out)
+        let out = self.layout_form_done(ACTION, out);
+        if out == Outcome::Done {
+            self.show_new_surface(page, &before);
+        }
+        out
+    }
+
+    /// After Enclosure… on a panel layout page that shows no enclosure yet, the page shows the new enclosure's
+    /// mounting plate, centred at its fitting scale, as the page's Surface row would (one more undo step, FT-1687): the
+    /// person lands where the rails, ducts and devices are drawn. Another page, or one that shows a plate already,
+    /// is left as it is.
+    fn show_new_surface(&mut self, page: Option<Uuid>, before: &[(Uuid, String)]) {
+        let Some(page) = page else { return };
+        let panel = self.page_rows().get(self.page_index()).is_some_and(|r| r.kind == "panel_layout");
+        if !panel || self.panel_tables().is_some() {
+            return;
+        }
+        let Some(project) = &self.project else { return };
+        let Some((surface, _)) = project
+            .session
+            .surface_choices()
+            .into_iter()
+            .find(|(id, _)| !before.iter().any(|(b, _)| b == id))
+        else {
+            return;
+        };
+        let edit = ew_api::output::LayoutEdit {
+            kind: "page".to_owned(),
+            target: page,
+            row: "derived.surface".to_owned(),
+            text: surface.to_string(),
+        };
+        if let Ok(cmd) = project.session.layout_edit(&edit) {
+            let _ = self.run_commit(&cmd);
+        }
     }
 
     /// The Create enclosure dialog: the location (the given one, else the focused page's, else the first)
