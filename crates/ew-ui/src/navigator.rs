@@ -29,6 +29,7 @@
 //! **Table mode**. Every pane has a Table toggle beside its filter (`navigator.table`); a navigator
 //! in table mode is drawn by `nav_table` as an egui_table on the same focusable node, then with the role `Table`.
 
+use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use egui::{Key, Modifiers, PointerButton, Sense, Ui};
@@ -561,16 +562,29 @@ impl NavigatorPane {
                     );
                 }
                 view = range.clone();
-                // The Pages tree's right-click menu (FT-1634), the same on every row.
+                // The Pages tree's right-click menu (FT-1634), the same on every row; another tree's row has its own
+                // (`navigator_row_menu`: a strip's Add terminal and Edit strip, FT-1707).
                 let menu = if pages {
                     ew_viewmodel::command_bar::pages_tree_menu(shell)
                 } else {
                     Vec::new()
                 };
+                let nodes = shell.nav(kind).and_then(|n| n.table()).filter(|_| !pages);
+                let writable = shell.read_only_reason().is_none();
+                let row_menus: BTreeMap<&str, Vec<ew_viewmodel::actions::ActionItem>> = visible
+                    [range.clone()]
+                .iter()
+                .filter_map(|r| {
+                    let node = nodes?.nodes.iter().find(|n| n.key == r.key)?;
+                    let items = ew_viewmodel::command_bar::navigator_row_menu(kind, node, writable);
+                    (!items.is_empty()).then_some((r.key.as_str(), items))
+                })
+                .collect();
                 let tree = Tree {
                     cursor: cursor.as_deref(),
                     visible: &visible,
                     menu: &menu,
+                    row_menus: &row_menus,
                 };
                 for row in &visible[range] {
                     painted += 1;
@@ -967,6 +981,8 @@ struct Tree<'a> {
     cursor: Option<&'a str>,
     visible: &'a [ShownRow],
     menu: &'a [ew_viewmodel::actions::ActionItem],
+    /// The rows with a menu of their own, by key (used where `menu` is empty).
+    row_menus: &'a BTreeMap<&'a str, Vec<ew_viewmodel::actions::ActionItem>>,
 }
 
 /// One row: its glyph, its text, its input, drag and drop, and its AccessKit node.
@@ -975,7 +991,12 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         cursor,
         visible,
         menu,
+        row_menus,
     } = *tree;
+    let menu = match row_menus.get(row.key.as_str()) {
+        Some(own) if menu.is_empty() => own.as_slice(),
+        _ => menu,
+    };
     let is_cursor = cursor == Some(row.key.as_str());
     let mut fix_clicked = false;
     let (glyph_clicked, response) = ui

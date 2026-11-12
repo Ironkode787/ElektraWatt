@@ -357,10 +357,7 @@ fn form_rows(ui: &mut egui::Ui, t: &Tokens, form: &PaletteForm, opened: bool, ev
                     .icon(crate::components::combo_chevron)
                     .show_ui(ui, |ui| {
                         for choice in &choices {
-                            if ui
-                                .selectable_label(f.value == *choice, words(choice))
-                                .clicked()
-                            {
+                            if ui.selectable_label(f.value == *choice, words(choice)).clicked() {
                                 events.push(Event::PaletteField(i, (*choice).to_owned()));
                             }
                         }

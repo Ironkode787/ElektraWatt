@@ -19,9 +19,9 @@ known by its connection points and has a fallback name until you define it.
    - the **Draw** menu, under **Connect**, beside **Bond**;
    - a right-click on the item, then **Define potential…**;
    - the command palette (`Ctrl+K`): type `potential`, `supply` or `voltage`, then press Enter.
-3. In the form, type the **Name** (`24VDC-1`). The **Type** and the **Voltage** may stay empty; type them as the
-   pages print them: `L+`, `L-`, `L1`, `N`, `PE` for the type, and `24 V DC` or `230 V AC` for the voltage. `DC` or
-   `AC` in the voltage also sets the current.
+3. In the form, type the **Name** (`24VDC-1`). The **Type** and the **Voltage** may stay empty; choose the type from
+   its list, the words Properties shows (`L+`, `L-`, `L1`, `N`, `PE`, …), and type the voltage as the pages print it:
+   `24 V DC` or `230 V AC`. `DC` or `AC` in the voltage also sets the current.
 4. Press Enter. The potential is defined in one step: **Undo** takes it back.
 
 When nothing, or more than one item, is selected, **Define potential…** is greyed out and its tooltip says what to

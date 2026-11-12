@@ -8,6 +8,22 @@ The keys of every tool are on the [keymap](../keymaps.md) page, for each keymap 
 while it is active. `Esc` or a right click on the page cancels what the active tool is doing, one step at a time,
 and ends at Select; with Select active, a right click opens the page's menu.
 
+The page's menu is the quick way to what fits the thing under the pointer: its first entries are that thing's, then
+come the general ones (Cut, Copy, Paste, Delete, Properties of selection). A right click selects the thing first;
+Shift+F10 or the menu key opens the same menu for the selection.
+
+- On a wire: Edit route, Wire marker, Define potential…, Cable… and Print wire numbers. On several selected wires:
+  Make cable from the selection….
+- On a terminal: Add terminal (the strip's next number, floating at the pointer) and Edit strip, which opens the strip
+  editor. A strip's row in the Terminal strips navigator offers the same two.
+- On a relay's coil: Add contact, one entry per free contact of the relay by name; it floats the contact's symbol for
+  a click. On a contact: Go to coil.
+- On a symbol of a device: Join device…, Choose part…, Edit symbol and Copy and edit.
+- On an interruption point: Go to partner, Direction: Source or Target, and Continue on page….
+- On the title block: Title block fields…. On an empty spot: Paste, Page properties, New page… and Print wire numbers.
+
+An entry that cannot be used now is greyed out, and its tooltip says why.
+
 ## Select
 
 Selects, moves and opens what you click: a click selects one item, a drag draws a selection band, a double click

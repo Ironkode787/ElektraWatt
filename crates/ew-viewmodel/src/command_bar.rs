@@ -467,19 +467,73 @@ pub fn command_bar(model: &ShellModel) -> CommandBarModel {
 /// The Draw tab's groups whose commands act on the selection: the canvas context menu offers them.
 pub const SELECTION_GROUPS: [Group; 1] = [Group::Arrange];
 
-/// The canvas context menu: over an object, the commands the command bar offers for the selection (the
-/// buttons of [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then its
-/// other variants), then Define potential… over a wire, a junction or a terminal, Join device… over one placed symbol of
-/// a device, then Delete; over nothing,
-/// Paste when it is enabled. Empty when there is nothing to offer: the window then opens no menu. A disabled entry
-/// carries its reason, as the bar's button does. No action of its own.
-pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
-    if !over_object {
-        return actions::find("edit.paste_clip")
-            .map(|meta| actions::item_of(meta, model))
-            .filter(|item| item.enabled)
-            .into_iter()
-            .collect();
+/// Where a right-click on the canvas fell, as the window saw it when the menu opened (FT-1693).
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum MenuSpot {
+    /// An object, which the click selected.
+    Object,
+    /// The frame or the title block: the sheet outside the frame grid's drawing area.
+    Frame,
+    /// An empty spot of the page.
+    #[default]
+    Sheet,
+}
+
+/// The spot of a right-click on `canvas` at its pointer over the entity `over`: an object when the page holds it as
+/// a record, else the frame when the pointer is on one of the page's frame bands (the title block and its texts among
+/// them), else the sheet.
+pub fn menu_spot(
+    canvas: &crate::canvas::CanvasModel,
+    over: Option<ew_api::output::ew_dl::EntityRef>,
+) -> MenuSpot {
+    let page = canvas.page();
+    if over.is_some_and(|e| tools::page_entity_kind(page, e).is_some()) {
+        return MenuSpot::Object;
+    }
+    let on_frame = canvas.pointer().is_some_and(|p| {
+        let (x, y) = page.snapper.sheet_to_page(p);
+        page.geometry
+            .frame_bands
+            .iter()
+            .any(|[x0, y0, x1, y1]| (*x0..=*x1).contains(&x) && (*y0..=*y1).contains(&y))
+    });
+    if on_frame {
+        MenuSpot::Frame
+    } else {
+        MenuSpot::Sheet
+    }
+}
+
+/// The canvas context menu, the quick way to what fits the thing under the pointer (FT-1693, doc 16a §6.13). One rule:
+/// first what fits the thing by what it is, then the general entries.
+///
+/// - Over an object: the entries that fit it (`ShellModel::menu_fits`: a wire's, an interruption point's, a
+///   terminal's, a device's), then the commands the command bar offers for the selection (the buttons of
+///   [`SELECTION_GROUPS`], in the bar's order and as a collapsed group lists them: a split button, then its other
+///   variants), then Cut, Copy, Paste, Delete and Properties of selection. Over a placement of a panel page: Turn,
+///   Flip, Lock or Unlock, and Delete.
+/// - Over the frame or the title block: Title block fields…, then what an empty spot offers.
+/// - Over an empty spot: Paste, Page properties, New page… and, on a page that is not a panel layout, Print wire
+///   numbers.
+///
+/// An entry that cannot run now is disabled and carries its reason, as the bar's button does. No action of its own.
+pub fn canvas_menu(model: &ShellModel, spot: MenuSpot) -> Vec<ActionItem> {
+    let item = |id: &str| model.menu_item(id);
+    if spot != MenuSpot::Object {
+        let mut items = Vec::new();
+        if spot == MenuSpot::Frame {
+            items.extend(item("page.title_block"));
+        }
+        items.extend(item("edit.paste_clip"));
+        items.extend(item("props.focus").map(|mut i| {
+            i.label = strings::text(key!("canvas-page-properties")).to_owned();
+            i
+        }));
+        items.extend(item("page.new"));
+        if model.canvas().is_some_and(|c| c.page().panel.is_none()) {
+            items.extend(item("project.wire_numbers"));
+        }
+        return items;
     }
     // Over a placement on a panel page, Turn, Flip, Lock or Unlock, and Delete.
     if model.selected_placements() > 0 {
@@ -495,7 +549,7 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
             .collect();
     }
     let bar = command_bar_of(model, Tab::Draw);
-    let mut items = Vec::new();
+    let mut items = model.menu_fits();
     for g in bar.groups.iter().filter(|g| SELECTION_GROUPS.contains(&g.group)) {
         for b in &g.buttons {
             let variants = match &b.kind {
@@ -516,15 +570,15 @@ pub fn canvas_menu(model: &ShellModel, over_object: bool) -> Vec<ActionItem> {
             items.extend(variants.iter().filter(|v| v.id != b.id).cloned());
         }
     }
-    // Over a wire, a junction or a terminal, Define potential… at its point.
-    if model.potential_point().is_ok() {
-        items.extend(actions::find("potential.draw").map(|meta| actions::item_of(meta, model)));
+    for id in [
+        "edit.cut",
+        "edit.copy",
+        "edit.paste_clip",
+        "edit.delete_selection",
+        "props.focus",
+    ] {
+        items.extend(item(id));
     }
-    // Over one placed symbol of a device, Join device… (FT-1658: J alone was the way, and only while placing).
-    if model.join_rep().is_some() {
-        items.extend(actions::find("place.join").map(|meta| actions::item_of(meta, model)));
-    }
-    items.extend(actions::find("edit.delete_selection").map(|meta| actions::item_of(meta, model)));
     items
 }
 
@@ -566,27 +620,41 @@ pub fn cp_menu(model: &ShellModel, cp: ew_api::output::Uuid) -> Option<ActionIte
     Some(item)
 }
 
-/// A navigator row's context menu: on a Potentials row with a definition point (`NavNode::define_at`),
-/// Define potential… at it (`potential.draw_row`), disabled with its reason in a read-only project. Empty when the row
+/// A navigator row's context menu, what the same thing offers on the page: on a Potentials row with a definition
+/// point (`NavNode::define_at`), Define potential… at it (`potential.draw_row`); on a Terminal strips row of a strip,
+/// Add terminal and Edit strip (FT-1707). Each disabled with its reason in a read-only project. Empty when the row
 /// offers nothing: the window then opens no menu.
 pub fn navigator_row_menu(
     kind: crate::navigators::NavKind,
     node: &crate::navigators::NavNode,
     writable: bool,
 ) -> Vec<ActionItem> {
-    if kind != crate::navigators::NavKind::Potentials || node.define_at.is_none() {
-        return Vec::new();
-    }
-    vec![ActionItem {
-        id: "potential.draw_row",
-        params: serde_json::json!({ "row": node.key }),
-        label: strings::text(key!("action-potential-draw-row")).to_owned(),
+    use crate::navigators::{NavKind, NavRole};
+    let item = |id: &'static str, params: serde_json::Value, label: Key<'static>| ActionItem {
+        id,
+        params,
+        label: strings::text(label).to_owned(),
         shortcut: String::new(),
         enabled: writable,
         reason: (!writable).then(|| strings::text(key!("reason-read-only")).to_owned()),
         checked: false,
         topic: None,
-    }]
+    };
+    match (kind, node.role, node.records.first()) {
+        (NavKind::Potentials, _, _) if node.define_at.is_some() => vec![item(
+            "potential.draw_row",
+            serde_json::json!({ "row": node.key }),
+            key!("action-potential-draw-row"),
+        )],
+        (NavKind::Strips, NavRole::Strip, Some(strip)) => {
+            let strip = serde_json::json!({ "strip": strip.to_string() });
+            vec![
+                item("tool.place_terminal", strip.clone(), key!("canvas-add-terminal")),
+                item("strip.edit", strip, key!("canvas-edit-strip")),
+            ]
+        }
+        _ => Vec::new(),
+    }
 }
 
 /// The quick-access buttons of the tab row (doc 16a §5.2).

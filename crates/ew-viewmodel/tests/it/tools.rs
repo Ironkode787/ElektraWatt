@@ -761,43 +761,74 @@ fn t11_tool_events_on_a_cached_page_make_no_session_call() {
     shell.shutdown();
 }
 
-/// The canvas context menu over an object lists the command bar's selection commands (the Arrange group, a
-/// split button followed by its other variant) and Delete, in the bar's order and the registry's words; over nothing
-/// it offers Paste only when Paste is enabled. On a read-only project every entry is disabled and says why.
+/// The canvas context menu (FT-1693) over an object lists what fits it first (a fuse of a device: Choose part…, Edit
+/// symbol, Copy and edit), then the command bar's selection commands (the Arrange group, a split button followed by its
+/// other variant), then Cut, Copy, Paste, Delete and Properties, in the registry's words; over nothing it offers Paste,
+/// Page properties and New page…, over the frame Title block fields… first. On a read-only project the editing entries
+/// are disabled and say why.
 #[test]
-fn the_canvas_context_menu_offers_the_bar_selection_commands_and_delete() {
-    use ew_viewmodel::command_bar::canvas_menu;
+fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_the_general_ones() {
+    use ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
     use ew_viewmodel::shell::Mode;
     let tmp = Tmp::new("ctx-menu");
     let mut shell = tmp.shell_in(Mode::Headless, true, "103");
     // The window selects the object under the pointer before it opens the menu (M39: Delete needs a selection).
     done(&mut shell, "page.goto", json!({"folio": "102"}));
     done(&mut shell, "select.set", json!({"refs": ["tag:-102F1"]}));
-    let labels = |s: &ShellModel, over: bool| -> Vec<(String, bool)> {
-        canvas_menu(s, over)
+    // As a right-click selects it: the symbol the page draws of it.
+    let device = shell.selection().items[0].0;
+    let rep = shell
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.device == Some(device) || r.functions.contains(&device))
+        .expect("a symbol of -102F1")
+        .id;
+    done(&mut shell, "select.set", json!({"ids": [rep.to_string()]}));
+    let labels = |s: &ShellModel, spot: MenuSpot| -> Vec<(String, bool)> {
+        canvas_menu(s, spot)
             .into_iter()
             .map(|i| (i.label, i.enabled))
             .collect()
     };
-    let words: Vec<String> = labels(&shell, true).into_iter().map(|(l, _)| l).collect();
-    assert_eq!(
-        words,
-        [
-            "Rotate clockwise",
-            "Mirror left to right",
-            "Mirror top to bottom",
-            "Renumber devices…",
-            "Delete"
-        ]
-    );
-    assert!(labels(&shell, true).iter().all(|(_, enabled)| *enabled));
-    // Nothing under the pointer: Paste, as it is enabled on a writable page.
-    let paste: Vec<String> = labels(&shell, false).into_iter().map(|(l, _)| l).collect();
-    assert_eq!(paste, ["Paste"]);
+    let words: Vec<String> = labels(&shell, MenuSpot::Object)
+        .into_iter()
+        .map(|(l, _)| l)
+        .collect();
+    let first = |w: &str| words.iter().position(|l| l == w).unwrap_or(usize::MAX);
+    for (fits, general) in [("Choose part…", "Rotate clockwise"), ("Copy and edit", "Cut")] {
+        assert!(first(fits) < first(general), "{fits} before {general}: {words:?}");
+    }
+    assert!(words.ends_with(&[
+        "Rotate clockwise".to_owned(),
+        "Mirror left to right".to_owned(),
+        "Mirror top to bottom".to_owned(),
+        "Renumber devices…".to_owned(),
+        "Cut".to_owned(),
+        "Copy".to_owned(),
+        "Paste".to_owned(),
+        "Delete".to_owned(),
+        "Properties of selection".to_owned(),
+    ]));
+    // Nothing under the pointer: Paste, the page's properties, New page…; on the frame Title block fields… first.
+    let sheet: Vec<String> = labels(&shell, MenuSpot::Sheet)
+        .into_iter()
+        .map(|(l, _)| l)
+        .collect();
+    assert_eq!(sheet[..3], ["Paste", "Page properties", "New page…"]);
+    let frame = labels(&shell, MenuSpot::Frame);
+    assert_eq!(frame[0], ("Title block fields…".to_owned(), true));
     shell.shutdown();
     let tmp = Tmp::new("ctx-menu-ro");
     let mut shell = tmp.shell_in(Mode::Headless, false, "103");
-    for item in canvas_menu(&shell, true) {
+    for item in canvas_menu(&shell, MenuSpot::Object)
+        .into_iter()
+        .chain(canvas_menu(&shell, MenuSpot::Sheet))
+        .filter(|i| ["Delete", "Cut", "Rotate clockwise", "New page…"].contains(&i.label.as_str()))
+    {
         assert!(!item.enabled, "{}", item.label);
         assert!(
             item.reason.as_deref().is_some_and(|r| !r.is_empty()),
@@ -805,7 +836,5 @@ fn the_canvas_context_menu_offers_the_bar_selection_commands_and_delete() {
             item.label
         );
     }
-    // Paste is disabled there, so nothing is offered over nothing: no menu opens.
-    assert!(canvas_menu(&shell, false).is_empty());
     shell.shutdown();
 }
