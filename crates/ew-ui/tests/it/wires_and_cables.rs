@@ -75,7 +75,9 @@ fn tables(d: &mut Driver) -> std::sync::Arc<ew_ui::ew_viewmodel::ew_api::output:
 
 /// Clicks the widget named `label`, selects its text, types `text` and presses Enter.
 fn fill(d: &mut Driver, label: &str, text: &str) {
-    d.input(&click(d.find(label).unwrap_or_else(|| panic!("no widget {label:?}"))));
+    d.input(&click(
+        d.find(label).unwrap_or_else(|| panic!("no widget {label:?}")),
+    ));
     d.input(&key("ctrl+a"));
     d.input(&typed(text));
     d.input(&key("enter"));
@@ -161,10 +163,21 @@ fn banner(d: &mut Driver) -> String {
 /// Drags the Marker tool across every wire of the page, halfway down; returns the end of the drag.
 fn mark_across(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) -> (i64, i64) {
     let t = tables(d);
-    let ys: Vec<i64> = t.connections.iter().flat_map(|c| c.polyline.iter().map(|p| p.1)).collect();
+    let ys: Vec<i64> = t
+        .connections
+        .iter()
+        .flat_map(|c| c.polyline.iter().map(|p| p.1))
+        .collect();
     let mid_y = (ys.iter().min().unwrap() + ys.iter().max().unwrap()) / 2;
-    let xs: Vec<i64> = t.connections.iter().flat_map(|c| c.polyline.iter().map(|p| p.0)).collect();
-    let (x0, x1) = (xs.iter().min().unwrap() - 4_000_000, xs.iter().max().unwrap() + 4_000_000);
+    let xs: Vec<i64> = t
+        .connections
+        .iter()
+        .flat_map(|c| c.polyline.iter().map(|p| p.0))
+        .collect();
+    let (x0, x1) = (
+        xs.iter().min().unwrap() - 4_000_000,
+        xs.iter().max().unwrap() + 4_000_000,
+    );
     // Marker on the Draw tab, or Wire marker in its Annotate group's menu where the window folds the group.
     let marker = match d.find("Marker") {
         Some(at) => at,
@@ -284,7 +297,9 @@ fn select_both(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) {
 /// The core cell of the Cable form's row `i`.
 fn core_cell(d: &mut Driver, i: usize) -> String {
     match d.shell_mut().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.table.as_ref().unwrap().rows[i].cells[0].clone(),
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => {
+            f.table.as_ref().unwrap().rows[i].cells[0].clone()
+        }
         other => panic!("not the Cable form: {other:?}"),
     }
 }
@@ -307,7 +322,10 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     d.input(&typed("3G1.5"));
     d.settle();
     // The type's cores: the first wire BN, the second BU; the second takes GNYE instead.
-    assert_eq!((core_cell(&mut d, 0), core_cell(&mut d, 1)), ("BN".to_owned(), "BU".to_owned()));
+    assert_eq!(
+        (core_cell(&mut d, 0), core_cell(&mut d, 1)),
+        ("BN".to_owned(), "BU".to_owned())
+    );
     let cell = starting_with(&d, "Core, ");
     let second = d
         .labels()
@@ -321,7 +339,11 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     d.settle();
     d.input(&click(d.find("Apply").unwrap()));
     d.settle();
-    assert!(d.shell_mut().dialog().is_none(), "the form is closed: {}", banner(&mut d));
+    assert!(
+        d.shell_mut().dialog().is_none(),
+        "the form is closed: {}",
+        banner(&mut d)
+    );
     let added = &d.shell_mut().recorded_commands()[steps..];
     assert_eq!(added.len(), 1, "one step");
     assert_eq!(added[0].cmd, "cable.create");
@@ -329,7 +351,10 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     let t = tables(&mut d);
     let wire = |i: usize| json!([t.connections[i].id.to_string()]);
     assert_eq!(
-        conductors.iter().map(|c| (c["core"].clone(), c["csa"].clone(), c["wires"].clone())).collect::<Vec<_>>(),
+        conductors
+            .iter()
+            .map(|c| (c["core"].clone(), c["csa"].clone(), c["wires"].clone()))
+            .collect::<Vec<_>>(),
         [
             (json!("BN"), json!("1.5"), wire(0)),
             (json!("BU"), json!("1.5"), json!([])),
@@ -345,7 +370,12 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     d.settle();
     {
         use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
-        let sheet = d.shell_mut().properties().sheet().expect("the wire's properties").clone();
+        let sheet = d
+            .shell_mut()
+            .properties()
+            .sheet()
+            .expect("the wire's properties")
+            .clone();
         let text = |key: &str| match find_row(&sheet, key).map(|(_, r)| r.value.clone()) {
             Some(RowValue::One { text, .. }) => text,
             other => panic!("{key}: {other:?}"),
@@ -368,8 +398,9 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     select_both(&mut d, &pixel);
     d.input(&click(d.find("Cable").unwrap()));
     d.settle();
-    assert_eq!((core_cell(&mut d, 0), core_cell(&mut d, 1)), ("BN".to_owned(), "GNYE".to_owned()));
+    assert_eq!(
+        (core_cell(&mut d, 0), core_cell(&mut d, 1)),
+        ("BN".to_owned(), "GNYE".to_owned())
+    );
     d.shell_mut().shutdown();
 }
-
-

@@ -301,9 +301,11 @@ fn slot_texts_print_their_values_with_links_and_markers_their_text() {
     // The marker sits on the longest segment of an L whose long leg is horizontal: not turned.
     assert_eq!(runs[2].2, Angle2::ZERO);
     // The marker's line across the wire is drawn before its text (FT-1706).
-    assert!(labels.list.items.iter().any(
-        |i| matches!(i.kind, ItemKind::Path(_)) && i.entity == Some(EntityRef(Uuid::from_u128(0x23)))
-    ));
+    assert!(
+        labels.list.items.iter().any(
+            |i| matches!(i.kind, ItemKind::Path(_)) && i.entity == Some(EntityRef(Uuid::from_u128(0x23)))
+        )
+    );
 }
 
 /// The em size of the run printing `text` on the labels layer of `v`.

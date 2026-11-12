@@ -158,8 +158,8 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                     |ui| {
                         ui.set_min_size(size);
                         if table.fixed {
-                            let (rect, _) =
-                                ui.allocate_exact_size(egui::vec2(key_width, t.size_row), egui::Sense::hover());
+                            let (rect, _) = ui
+                                .allocate_exact_size(egui::vec2(key_width, t.size_row), egui::Sense::hover());
                             ui.painter().text(
                                 egui::pos2(rect.left() + t.space_4, rect.center().y),
                                 egui::Align2::LEFT_CENTER,
@@ -180,7 +180,10 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                         for (c, ((col, ty), value)) in table.columns.iter().zip(&row.cells).enumerate() {
                             let mut text = value.clone();
                             let (name, hint) = if table.fixed {
-                                (strings::format(key!("form-table-cell"), &[col, &row.key]), String::new())
+                                (
+                                    strings::format(key!("form-table-cell"), &[col, &row.key]),
+                                    String::new(),
+                                )
                             } else {
                                 (
                                     strings::format(key!("form-value-cell"), &[col, &index]),

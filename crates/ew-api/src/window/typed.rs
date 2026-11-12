@@ -70,7 +70,12 @@ impl Session {
 fn colour_names(profile: &Value) -> Vec<(String, Vec<String>)> {
     let mut out = Vec::new();
     let mut seen = BTreeSet::new();
-    for row in profile.get("rows").and_then(Value::as_array).into_iter().flatten() {
+    for row in profile
+        .get("rows")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
         let codes: Option<Vec<String>> = row
             .get("colour")
             .and_then(Value::as_array)
@@ -79,7 +84,11 @@ fn colour_names(profile: &Value) -> Vec<(String, Vec<String>)> {
             continue;
         };
         let names = row.get("colour_name").and_then(Value::as_object);
-        for name in names.into_iter().flat_map(|n| n.values()).filter_map(Value::as_str) {
+        for name in names
+            .into_iter()
+            .flat_map(|n| n.values())
+            .filter_map(Value::as_str)
+        {
             let name = name.trim().to_lowercase();
             if seen.insert(name.clone()) {
                 out.push((name, codes.clone()));

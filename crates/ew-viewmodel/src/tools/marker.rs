@@ -181,6 +181,9 @@ fn midpoint(a: (i64, i64), b: (i64, i64)) -> (i64, i64) {
     )
 }
 
+/// A crossing line's ends (page nm).
+type Line = ((i64, i64), (i64, i64));
+
 /// The marker tool's state.
 #[derive(Clone, PartialEq, Eq, Debug)]
 enum State {
@@ -205,9 +208,9 @@ pub struct MarkerTool {
     /// How many connections the crossing line meets now (the ghost's count while crossing).
     crossed: usize,
     /// The last crossing line (page nm), kept so the typing overlay draws it after a field change.
-    line: Option<((i64, i64), (i64, i64))>,
+    line: Option<Line>,
     /// The typing state and its line while its commit runs, given back when the host refuses it.
-    pending: Option<(State, Option<((i64, i64), (i64, i64))>)>,
+    pending: Option<(State, Option<Line>)>,
 }
 
 impl MarkerTool {

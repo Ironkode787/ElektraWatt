@@ -39,8 +39,8 @@ use ew_schema::PageType;
 use super::panel::{Parts, panel_view};
 use super::view::{
     PageBindingsOf, PageConnectionsOf, PageCpTargetsOf, PageEmbeddedOf, PageFrameOf, PageJunctionsOf,
-    PageRepsOf, PageSlotsOf, PageTableOf, page_boxes, page_break_marks, page_grid,
-    page_items, page_strip_tags, page_uuid, page_valve_glyphs,
+    PageRepsOf, PageSlotsOf, PageTableOf, page_boxes, page_break_marks, page_grid, page_items,
+    page_strip_tags, page_uuid, page_valve_glyphs,
 };
 
 /// One layer of one page: the display list in page coordinates, the symbol geometry its instances name and the

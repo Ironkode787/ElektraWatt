@@ -17,8 +17,8 @@ use ew_commands::commands::{
 use ew_commands::{AnyCommand, CmdError, Engine, Receipt};
 use ew_model::{Entity, Model};
 use ew_schema::{
-    AnchorPolicy, Cable, Conductor, Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Function, Kind, LibCopy,
-    NumberSpec, PartRef, PartUse, Record, Representation, SymbolDef,
+    AnchorPolicy, Cable, Conductor, Connection, ConnectionKind, Device, DeviceAspects, DeviceKind, Function,
+    Kind, LibCopy, NumberSpec, PartRef, PartUse, Record, Representation, SymbolDef,
 };
 use ew_units::{Orient2, Pt2};
 

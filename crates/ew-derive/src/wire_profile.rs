@@ -58,10 +58,7 @@ pub struct Attrs {
 
 /// Whether a potential type is a phase of an AC supply (L1, L2, L3; IEC 60445).
 fn is_phase(t: Option<&PotentialType>) -> bool {
-    matches!(
-        t,
-        Some(PotentialType::L1 | PotentialType::L2 | PotentialType::L3)
-    )
+    matches!(t, Some(PotentialType::L1 | PotentialType::L2 | PotentialType::L3))
 }
 
 /// The final attributes of a potential: the flow values, else its own (`potential_attrs`; none for an unknown
@@ -91,13 +88,10 @@ pub(crate) fn attrs_of(q: &Q, id: PotentialId) -> Attrs {
 /// known is of the mains class (FT-1688: a potential given the type L1 took the control circuit's 0.75 mm²).
 pub(crate) fn own_class(q: &Q, id: PotentialId) -> Option<CircuitClass> {
     let own = q.get::<PotentialAttrsOf>(id);
-    own.circuit_class
-        .as_ref()
-        .map(|c| c.value.clone())
-        .or_else(|| {
-            let attrs = attrs_of(q, id);
-            (is_phase(attrs.ptype.as_ref()) && attrs.voltage.is_none()).then_some(CircuitClass::Mains)
-        })
+    own.circuit_class.as_ref().map(|c| c.value.clone()).or_else(|| {
+        let attrs = attrs_of(q, id);
+        (is_phase(attrs.ptype.as_ref()) && attrs.voltage.is_none()).then_some(CircuitClass::Mains)
+    })
 }
 
 /// `ProfileSelect` (doc 03 §5.1).
