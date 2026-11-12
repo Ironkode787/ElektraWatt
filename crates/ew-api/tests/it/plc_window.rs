@@ -274,6 +274,39 @@ fn plc_row(s: &Session, station: Uuid, channel: Id<Channel>) -> ew_derive::PlcRo
         .expect("the channel's row")
 }
 
+/// A card's channel bound to the card's own pin has no target (no tracing yet, doc 10 §3.5): it is used once a wire
+/// reaches the pin and spare before, where it printed "used" with the card as its target and EW-POT-009 called the
+/// pin unconnected (FT-903).
+#[test]
+fn a_card_channel_is_used_once_a_wire_reaches_its_pin() {
+    let (mut s, cpu, di, dout) = three(29);
+    let channel = |m: Uuid, n: u16| ew_ids::v5::plc_channel_id(Id::<Device>::from_uuid(m), n);
+    let states = |s: &Session| -> Vec<&'static str> {
+        s.query()
+            .get::<PlcRows>(Id::from_uuid(cpu))
+            .iter()
+            .map(|r| r.state.name())
+            .collect()
+    };
+    assert!(states(&s).iter().all(|st| *st == "spare"), "{:?}", states(&s));
+    let row = plc_row(&s, cpu, channel(di, 0));
+    assert_eq!(row.target_device, None);
+    let pin = |m: Uuid| match binding(&s, channel(m, 0)) {
+        Some(ew_schema::Endpoint::Cp(f, idx)) => json!({"cp": {"function": f.to_string(), "idx": idx}}),
+        other => panic!("channel 0 is bound to its pin: {other:?}"),
+    };
+    let (a, b) = (pin(di), pin(dout));
+    s.execute(&AnyCommand {
+        name: "connection.draw".into(),
+        params: json!({"a": a, "b": b}),
+    })
+    .expect("a wire between the two pins");
+    for m in [di, dout] {
+        assert_eq!(plc_row(&s, cpu, channel(m, 0)).state.name(), "used");
+        assert_eq!(plc_row(&s, cpu, channel(m, 1)).state.name(), "spare");
+    }
+}
+
 /// PW-5: `fields.set` on a channel: symbol, comment, state, the address forms (a manual address refused for I4.9
 /// with the profile's example), each one undo step, and the rows of `PlcRows` follow. The property sheet of the
 /// selected channel shows the members with their `fields.set` routes.

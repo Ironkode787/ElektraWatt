@@ -1126,7 +1126,10 @@ impl Query for ChannelTargets {
                     Some(Endpoint::Cp(f, _)) => Some(*f),
                     _ => None,
                 };
-                let function = c.target.or(bound).filter(|f| functions.contains(*f));
+                // A pin of the module itself is no target: the target lies behind the pin, where tracing would find
+                // it (doc 10 §3.5, not built).
+                let direct = bound.filter(|f| functions.get(*f).is_some_and(|f| f.device != Some(*key)));
+                let function = c.target.or(direct).filter(|f| functions.contains(*f));
                 ChannelTarget {
                     channel: c.id,
                     function,
@@ -1313,6 +1316,8 @@ impl Query for ChannelStates {
                         DeviceState::NotFitted => EffectiveState::Deactivated,
                         _ => EffectiveState::Used,
                     }
+                } else if own_pin_wired(q, *key, c) {
+                    EffectiveState::Used
                 } else if c.binding.is_none() && claimed.contains(&c.number) {
                     EffectiveState::Reserved
                 } else {
@@ -1322,6 +1327,18 @@ impl Query for ChannelStates {
             })
             .collect();
         Arc::new(out)
+    }
+}
+
+/// Whether `channel` is bound to a pin of its own module (`module`) and a wire reaches that pin: the channel without a
+/// target that counts as used until tracing finds what the wire leads to (doc 10 §3.2 step 3).
+fn own_pin_wired(q: &Q, module: Id<Device>, channel: &Channel) -> bool {
+    match channel.binding {
+        Some(Endpoint::Cp(f, idx)) => {
+            q.functions().get(f).is_some_and(|f| f.device == Some(module))
+                && q.idx().connections_at_cp(f, idx).next().is_some()
+        }
+        _ => false,
     }
 }
 

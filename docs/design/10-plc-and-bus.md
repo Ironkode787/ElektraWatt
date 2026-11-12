@@ -635,7 +635,9 @@ read it), so a valve moved to another
 module and a duplicate channel never make a channel `Reserved`. Only an unbound channel reaches step 4, so the case
 "bound to c" cannot arise there. On Golden A under H1 no channel is claimed and the counts stay 8 used, 20 spare and
 28 deactivated (tested under H1 and H2, memoised against cold). EW-FL-002, which step 4 names, and EW-PLC-012 are not
-built (FT-192).
+built (FT-192). A channel bound to a pin of its own module (N3) has no target until tracing is built (§3.5), so step
+3 does not apply to it: it is `Used` when a wire ends at the pin, else it takes step 4 or 5. Before this a card's 16
+channels printed "used", with the card itself as their target, while EW-POT-009 called their pins unconnected.
 
 ### 3.3 Binding and normalisers
 
@@ -777,7 +779,8 @@ fn channel_targets(q: &Q, module: Id<Device>) -> Arc<TargetMap> {
   of a terminal on a traced path shows the channel address.
 
 At MVP only `Direct` and `Manual` targets exist. This covers every channel of the golden project, because all of
-them are internal valve-coil channels.
+them are internal valve-coil channels. A channel bound to its own module's pin has no target (the `Traced` branch is
+not built); its state follows §3.2.
 
 ### 3.6 Representations
 
