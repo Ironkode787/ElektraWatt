@@ -4108,6 +4108,9 @@ auto-fill-devices-marked-one = Fills with the device marked in Unplaced devices.
 error-no-rail = The page has no rail; draw one first.
 toast-auto-fill = Placed { $p0 } on { $p1 }.
 toast-auto-fill-left = Placed { $p0 } on { $p1 }; { $p2 }.
+# FT-1719: Project ▸ Enclosure…'s toast: the part's words and the location (+K1).
+toast-enclosure-new = Created the enclosure { $p0 } at { $p1 }.
+toast-enclosure-new-shown = Created the enclosure { $p0 } at { $p1 }; the page shows its mounting plate.
 enclosure-new-no-location = The project has no location yet; add one with { $p0 } first.
 enclosure-new-no-part = No enclosure part is in the project or an installed library; type a part number.
 auto-fill-devices = { $p0 } devices
