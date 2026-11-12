@@ -12,7 +12,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 ### The owner's hands-on test of 0.1.0-rc.3
 
 - FT-1645 `ew-import-qet, ew-scene`: What an imported QET folio still shows differently, after the full-fidelity work of M2.5-Fix: a master's contact list has no contact symbols and its rows stand closer than QET's 10 px (the scene has no list drawing and the text style no line height); `displayhas="cross"` and `snapto="bottom"` cross-references print as a list, with a report entry; QET's folio list arrives as EW's own table of contents; an element's `mirror` is not read (QET 0.100 writes none; newer versions do); fonts are substituted, so texts sit slightly lower.
-- FT-1656 `ew-ui`: **High.** The interface feels clunky and shows too little: a polish pass over the main window, the browsers, the panels and the dialogs for density and finish, judged at 1920 × 1080 (doc 16a).
 
 ### Wiring and routing
 
@@ -40,7 +39,7 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The window: feedback and dead ends
 
-- FT-1673 `ew-render2d, ew-text`: The pin labels of a black box (the power supply) and the squares of open connection points are tiny on the page (the persona round, RP1 to RP4). Both come from tokens that every page picture and the sample depend on (the built-in text-style table, ADR-0032; the square of doc 16a): decide the sizes in the finish pass (FT-1656) and re-bless once.
+- FT-1673 `ew-render2d, ew-text`: The pin labels of a black box (the power supply) and the squares of open connection points are tiny on the page (the persona round, RP1 to RP4). Both come from tokens that every page picture and the sample depend on (the built-in text-style table, ADR-0032; the square of doc 16a): decide the sizes and re-bless once.
 - FT-1671 `ew-viewmodel`: Choose part shows a part's tier as "(system)", a debug name; give the tiers words.
 - FT-1672 `ew-viewmodel`: The PLC panel lists no cards once a project has two or more CPUs.
 - FT-1669 `ew-scene`: A connection point marked not used shows no mark on the page (doc 06 defines none); decide the mark and draw it.
