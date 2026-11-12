@@ -1188,8 +1188,10 @@ impl ShellModel {
             return self.act_props_focus();
         }
         // The keyboard route editor commits without a grid cursor (its segment stays where it is), and so does the paste
-        // tool (its ghost stays where duplicate or the pointer put it).
-        if matches!(self.tools.tool.name(), "route_edit" | "paste" | "layout_place")
+        // tool (its ghost stays where duplicate or the pointer put it), and so does the Wire marker typing over the
+        // wires a dragged line crossed (FT-1684: Enter placed nothing after a drag by the pointer).
+        let marker_typing = self.tools.tool.name() == "marker" && self.tools.tool.state() == "typing";
+        if (marker_typing || matches!(self.tools.tool.name(), "route_edit" | "paste" | "layout_place"))
             && self.canvas().and_then(CanvasModel::cursor).is_none()
         {
             return self.send_tool(&CanvasEvent::Activate);

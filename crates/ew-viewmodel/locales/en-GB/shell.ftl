@@ -590,6 +590,7 @@ marker-crossed = { $p0 } crossed
 hint-marker-armed = Press and drag (or { $p0 }, move, { $p0 }) across the wires to mark; { $p1 } ends
 hint-marker-crossing = Release (or { $p0 }) to take the crossed wires
 hint-marker-typing = Set the cross-section and colours if wanted; { $p0 } places the marker; { $p1 } cancels
+error-marker-colour = "{ $p0 }" is not a colour this project knows. Type a colour code ({ $p1 }) or a colour's name from the colour profile; one colour for all wires, or one per wire, as BK, BU.
 hint-structure-box-armed = Click or { $p0 } at the first corner; { $p1 } ends
 hint-structure-box-outline = Click or { $p0 } at the next corner; { $p1 } or a double click closes the box (two corners: a rectangle)
 hint-structure-box-typing = Set the style, caption, location and external point; { $p0 } places the box; { $p1 } cancels

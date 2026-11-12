@@ -189,8 +189,13 @@ Star source.
 
 ## Wire marker
 
-Places a wire marker, the label that prints a wire's number or text on the wire. Open it with Draw ▸ Annotate ▸ Wire
-marker.
+Places a wire marker, the label that prints the cross-section and colours of the wires it marks. Open it with
+**Marker** on the Draw tab or Shift+W. Drag a line across the wires, type the cross-section and the colours in the
+tool's fields if they are to change, and press Enter. A colour is a code in any case (`BK`, `bk`), two codes of one
+wire (`GN+YE` or `GNYE`), a company code of the project's colour profile, or a colour's name from that profile; one
+colour is every marked wire's, and a list (`BK, BU`) gives each wire its own in the order the line crosses them. A
+colour the project does not know is refused with the codes it knows. The marker prints a short line across the wires
+and its text beyond the line's end, clear of the wires.
 
 ## Text
 

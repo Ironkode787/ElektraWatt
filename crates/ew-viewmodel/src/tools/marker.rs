@@ -33,7 +33,9 @@
 //! | armed | `Escape` | — | `None` (the host returns to Select) |
 //!
 //! **The fields.** `marker.fields` sets the cross-section (`csa`) and the colours (each entry one or two codes); the
-//! ghost says them (`2.5 BK BU`). The angle is 90° when every crossed segment is horizontal, else 0.
+//! ghost says them (`2.5 BK BU`). One colour typed for several crossed wires is every wire's colour (FT-1684). The
+//! angle is 90° when every crossed segment is horizontal, else 0. A commit the host refuses gives the typing state
+//! back, so the fields can be corrected and Enter pressed again.
 
 use crate::key;
 use ew_api::AnyCommand;
@@ -204,6 +206,8 @@ pub struct MarkerTool {
     crossed: usize,
     /// The last crossing line (page nm), kept so the typing overlay draws it after a field change.
     line: Option<((i64, i64), (i64, i64))>,
+    /// The typing state and its line while its commit runs, given back when the host refuses it.
+    pending: Option<(State, Option<((i64, i64), (i64, i64))>)>,
 }
 
 impl MarkerTool {
@@ -215,6 +219,7 @@ impl MarkerTool {
             colours: Vec::new(),
             crossed: 0,
             line: None,
+            pending: None,
         }
     }
 
@@ -326,8 +331,15 @@ impl MarkerTool {
         if let Some(csa) = &self.csa {
             params.insert("csa".into(), Value::from(csa.clone()));
         }
-        if !self.colours.is_empty() {
-            params.insert("colours".into(), json!(self.colours));
+        // One colour for several wires is every wire's.
+        match self.colours.as_slice() {
+            [] => {}
+            [one] => {
+                params.insert("colours".into(), json!(vec![one; connections.len()]));
+            }
+            all => {
+                params.insert("colours".into(), json!(all));
+            }
         }
         Box::new(AnyCommand {
             name: "marker.place".into(),
@@ -419,6 +431,7 @@ impl MarkerTool {
             return ToolOutput::None;
         };
         let (connections, at, angle) = (connections.clone(), *at, *angle);
+        self.pending = Some((self.state.clone(), self.line));
         self.state = State::Armed { at: Some(at) };
         self.crossed = 0;
         self.line = None;
@@ -518,6 +531,15 @@ impl Tool for MarkerTool {
                 State::Armed { .. } => ToolOutput::None,
             },
             _ => ToolOutput::None,
+        }
+    }
+
+    fn on_commit(&mut self, done: bool) {
+        if let Some((state, line)) = self.pending.take()
+            && !done
+        {
+            self.state = state;
+            self.line = line;
         }
     }
 

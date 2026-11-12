@@ -580,6 +580,7 @@ marker-crossed = { $p0 } gekruist
 hint-marker-armed = Druk en sleep (of { $p0 }, verplaats, { $p0 }) over de draden om te markeren; { $p1 } stopt
 hint-marker-crossing = Laat los (of { $p0 }) om de gekruiste draden te nemen
 hint-marker-typing = Stel desgewenst de doorsnede en aderkleuren in; { $p0 } plaatst de markering; { $p1 } annuleert
+error-marker-colour = "{ $p0 }" is geen kleur die dit project kent. Typ een kleurcode ({ $p1 }) of de naam van een kleur uit het kleurprofiel; één kleur voor alle draden, of één per draad, zoals BK, BU.
 hint-structure-box-armed = Klik of { $p0 } op de eerste hoek; { $p1 } stopt
 hint-structure-box-outline = Klik of { $p0 } op de volgende hoek; { $p1 } of dubbelklikken sluit het kader (twee hoeken: een rechthoek)
 hint-structure-box-typing = Stel de stijl, het bijschrift, de locatie en het externe punt in; { $p0 } plaatst het kader; { $p1 } annuleert
