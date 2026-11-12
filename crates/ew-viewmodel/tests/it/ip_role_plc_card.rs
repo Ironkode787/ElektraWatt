@@ -125,15 +125,10 @@ fn the_hud_names_the_role_and_d_goes_on_from_the_offered_one() {
     let prompt = |s: &ShellModel| ew_viewmodel::command_bar::hud(s).prompt;
     assert_eq!(
         prompt(&s),
-        format!("0V \u{b7} target: fed by its source \u{b7} {d}: undirected")
+        format!("0V \u{b7} target: fed by its source \u{b7} {d}: source")
     );
-    // D goes on from the offered target, not from the quarter's source.
-    done(&mut s, "tool.ip_direction", json!({}));
-    assert_eq!(ghost(&s)["direction"], "undirected");
-    assert_eq!(
-        prompt(&s),
-        format!("0V \u{b7} undirected: pairs either way \u{b7} {d}: source")
-    );
+    // D goes on from the offered target, not from the quarter's source: the bar names the direction D gives, and D
+    // gives it.
     done(&mut s, "tool.ip_direction", json!({}));
     let g = ghost(&s);
     assert_eq!(
@@ -167,7 +162,7 @@ fn ghost_label(s: &ShellModel) -> String {
 
 /// A star source is a source point: with the star on the point is a source, the
 /// HUD names the star source alone (no role beside it) and the ghost label says "0V star source"; D clears the star and
-/// steps on from source (target, undirected, then source with the star still off, no notice); the star turned on from
+/// steps on from source (target, source, target, with the star still off, no notice); the star turned on from
 /// another direction walks the point to source, and turned off gives back the direction it had before.
 #[test]
 fn w42b_a_starred_point_is_named_the_star_source_alone_in_every_direction() {
@@ -209,20 +204,20 @@ fn w42b_a_starred_point_is_named_the_star_source_alone_in_every_direction() {
             (
                 "target".to_owned(),
                 false,
-                format!("0V \u{b7} target: fed by its source \u{b7} {d}: undirected"),
+                format!("0V \u{b7} target: fed by its source \u{b7} {d}: source"),
                 "0V target".to_owned()
-            ),
-            (
-                "undirected".to_owned(),
-                false,
-                format!("0V \u{b7} undirected: pairs either way \u{b7} {d}: source"),
-                "0V undirected".to_owned()
             ),
             (
                 "source".to_owned(),
                 false,
                 format!("0V \u{b7} source: the wire continues at its targets \u{b7} {d}: target"),
                 "0V source".to_owned()
+            ),
+            (
+                "target".to_owned(),
+                false,
+                format!("0V \u{b7} target: fed by its source \u{b7} {d}: source"),
+                "0V target".to_owned()
             ),
         ]
     );

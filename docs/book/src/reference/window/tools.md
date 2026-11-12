@@ -158,12 +158,18 @@ ends the wire in a point of the right form for that end.
 
 Type the name in the field Interruption point name at the page's top left, once for a pair: the first point of a
 name is its source, and the tool then floats the same name as its target, on this page or the next. After the target the name is used up, and each further point
-gets a name of its own until you type one.
+gets a name of its own until you type one. When you choose the tool from the Draw tab or the menu, the field has
+the keys: type the name and press Enter, then click where the point goes.
+
+A point keeps room for its texts: where its name or its cross-reference would print over another interruption
+point's, it is not placed, and the message says so. Three grid steps below or above the other point is clear;
+points side by side are clear when their texts are. Hold Alt to place it anyway.
 
 ## Interruption point direction
 
-Turns the interruption point that the tool floats to its next direction. Draw ▸ Connect ▸ Interruption point
-direction.
+Turns the interruption point that the tool floats from source to target, or back. Draw ▸ Connect ▸ Interruption
+point direction. An undirected point, which pairs either way, is a choice of a placed point's Direction in its
+properties.
 
 The point takes the form of its new direction: the wire moves from the tail to the tip, or back. Changing the
 direction of a placed point in its properties does the same, and is refused when the project does not hold the other

@@ -414,6 +414,7 @@ reason-ip-tool-only = Alleen tijdens het plaatsen van een onderbrekingspunt
 reason-ip-not-placed = Het onderbrekingspunt is niet geplaatst
 notice-ip-not-placed = Niet geplaatst: { $p0 }
 notice-ip-on-ip = Niet geplaatst: het onderbrekingspunt { $p0 } staat hier al; plaats het op een pin of een vrij rasterpunt
+notice-ip-too-close = Niet geplaatst: te dicht bij het onderbrekingspunt { $p0 }, hun namen en verwijzingen zouden over elkaar heen staan. Plaats het daar vrij van (drie rasterstappen eronder of erboven), of houd Alt ingedrukt om het toch te plaatsen
 notice-ip-on-wire = Niet geplaatst: het punt zou op een draad liggen zonder ermee te verbinden; plaats het op een pin of een vrij rasterpunt
 notice-ip-second-source = Niet geplaatst: { $p0 } heeft al een bron op pagina { $p1 }; druk op { $p2 } voor een doel, of markeer één bron als de ster
 notice-ip-second-source-unbound = Niet geplaatst: { $p0 } heeft al een bron op pagina { $p1 }; gebruik { $p2 } voor een doel, of markeer één bron als de ster

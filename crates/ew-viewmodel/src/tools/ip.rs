@@ -8,7 +8,7 @@
 //! |---|---|---|---|
 //! | floating | `PointerMove` or `CursorMove` to p | floating | `Transient`: the IP symbol's outline at the grid point nearest to p, a `cp` marker, a label `<name> <direction>` |
 //! | floating | `Key(RotateCw, RotateCcw, MirrorX, MirrorY, NextVariant)` | floating | the orientation as the Place tool turns it; `Transient` |
-//! | floating | `Key(ToggleDirection)` (D) | floating | the direction source → target → undirected → source; on a starred point the star is cleared and D steps on from source; `Transient` |
+//! | floating | `Key(ToggleDirection)` (D) | floating | the direction source ⇄ target (an undirected point becomes a source); on a starred point the star is cleared and D steps on from source; `Transient` |
 //! | floating | `Key(ToggleStar)` | floating | the star source toggled (the host refuses it for an external point); while it is on the point is a source, the chosen direction kept for after it; `Transient` |
 //! | floating | `Text(s)` (`ip.name`) | floating | the name is `s`; `Transient` |
 //! | floating | `Dwell { ms ≥ 80 }` | floating | `Preview` of the command a click commits |
@@ -31,7 +31,10 @@
 //! **the chosen direction stays** for the next placements (no flip after a placement; a chosen `source` of a typed
 //! name does not, since the name has its source then)
 //! until D or `tool.ip_direction` chooses another, and setting an external reference clears it, so that the external
-//! point is a target.
+//! point is a target. **A typed name that has no source** starts with its source where no direction is chosen and
+//! only the last point's direction says target (the middle of the page): a new pair begins with its source. **Room for the
+//! texts:** a point whose arrow, name or cross-reference would print over another point's ([`ip_footprint`]) is
+//! refused with the reason, unless Alt is held.
 //!
 //! **External connection points** (FR-XRF-012): while the host has set an external reference, the ghost and the
 //! commit use the external-arrow symbol the host gives, `ip.place` and `connection.draw_to_ip` carry `external`, and
@@ -59,6 +62,42 @@ use super::{
 };
 use crate::canvas::CanvasPage;
 use crate::key;
+
+/// The footprint of an interruption point whose arrow's tip is at `tip` (sheet nm), as three rectangles
+/// `[x0, y0, x1, y1]`: the arrow, the name above it and the cross-reference below it (doc 06: the name centred over
+/// the arrow, the reference right-aligned at the tip on a source and left-aligned at the tail on a target). The
+/// texts are measured by rule of thumb, 1.4 mm a character at their 2.5 mm height, and the reference is given the
+/// room of a folio and a cell ("102-B0") whether the point has a partner yet or not: it gets one. Two points whose
+/// footprints meet print over each other.
+fn ip_footprint(tip: (i64, i64), target: bool, name: &str) -> [[i64; 4]; 3] {
+    const MM: i64 = 1_000_000;
+    let (x, y) = tip;
+    let half = (i64::try_from(name.chars().count())
+        .unwrap_or(i64::MAX / MM)
+        .max(2)
+        * 14
+        * MM
+        / 10)
+        / 2;
+    let reference = if target {
+        [x - 4 * MM, x + 5 * MM]
+    } else {
+        [x - 9 * MM, x]
+    };
+    [
+        [x - 4 * MM, y - 3 * MM / 2, x, y + 3 * MM / 2],
+        [x - 2 * MM - half, y - 9 * MM / 2, x - 2 * MM + half, y - 2 * MM],
+        [reference[0], y + 2 * MM, reference[1], y + 9 * MM / 2],
+    ]
+}
+
+/// Whether any rectangle of `a` overlaps any of `b` (edges that only touch do not).
+fn footprints_meet(a: &[[i64; 4]; 3], b: &[[i64; 4]; 3]) -> bool {
+    a.iter().any(|p| {
+        b.iter()
+            .any(|q| p[0] < q[2] && q[0] < p[2] && p[1] < q[3] && q[1] < p[3])
+    })
+}
 
 /// The direction of an interruption point.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -92,12 +131,14 @@ impl IpDir {
         }
     }
 
-    /// D's next direction: source → target → undirected → source.
+    /// D's next direction: source and target, to and fro; an undirected point becomes a source. (D went on to
+    /// undirected after target. A person who pressed D for "target" on a point the tool had already made a target
+    /// got an undirected one, whose arrow takes its wire at the tail: the persona round before 0.2.0. Undirected
+    /// is a choice of the point's Direction in Properties.)
     pub fn next(self) -> IpDir {
         match self {
             IpDir::Source => IpDir::Target,
-            IpDir::Target => IpDir::Undirected,
-            IpDir::Undirected => IpDir::Source,
+            IpDir::Target | IpDir::Undirected => IpDir::Source,
         }
     }
 }
@@ -584,6 +625,23 @@ impl IpTool {
         // A typed name is the user's: the series rule never changes it (a second target of a star source shares the
         // name on purpose).
         if let Some(typed) = &self.typed {
+            // A name nobody feeds yet starts with its source where only the last point's direction says target (the
+            // middle of the page, where the quarters say nothing): after a target, a new name typed for the next
+            // point was offered as a target without a source, an error the moment it was placed.
+            let by_place = pos
+                .zip(self.area)
+                .and_then(|(p, a)| quarter_direction(p, a))
+                .is_some();
+            let auto = if !chosen
+                && !by_place
+                && !self.star
+                && auto == IpDir::Target
+                && !self.project.has_source(typed)
+            {
+                IpDir::Source
+            } else {
+                auto
+            };
             let (name, direction) = propose(typed, true, auto, chosen, self.star, &self.project, tables);
             return (name, direction, None);
         }
@@ -632,28 +690,51 @@ impl IpTool {
         if let Some(name) = ip_name {
             return DropOn::Refused(crate::strings::format(key!("notice-ip-on-ip"), &[&name]));
         }
+        // Room for the texts: a point prints its name above its arrow and its reference below, so a point placed in
+        // another's footprint prints over it, and a click on the arrow then follows the reference lying on it. Alt
+        // places it anyway.
+        let crowded = if self.suppressed {
+            None
+        } else {
+            let (name, direction) = self.resolve(cx, Some(pos));
+            let here = ip_footprint(cx.snapper.page_to_sheet(pos), direction == IpDir::Target, &name);
+            tables.reps.iter().find_map(|r| {
+                let ip = r.ip.as_ref()?;
+                let there = ip_footprint(
+                    cx.snapper.page_to_sheet(r.pos),
+                    r.symbol_key.contains("ip-target"),
+                    &ip.name,
+                );
+                footprints_meet(&here, &there).then(|| ip.name.clone())
+            })
+        };
+        let crowded = crowded
+            .map(|name| DropOn::Refused(crate::strings::format(key!("notice-ip-too-close"), &[&name])));
         // A pin always wins; without one, a point on a junction or strictly inside a wire would sit on it without
         // joining it, so it is refused. A wire's bare end is no wire's inside: the point places free.
         let Some(pin) = under.first() else {
             if on_wire(tables, c) {
                 return DropOn::Refused(crate::strings::text(key!("notice-ip-on-wire")).to_owned());
             }
-            return DropOn::Free;
+            return crowded.unwrap_or(DropOn::Free);
         };
         if self.suppressed {
             DropOn::Free
         } else {
-            DropOn::Pin((*pin).clone())
+            crowded.unwrap_or_else(|| DropOn::Pin((*pin).clone()))
         }
     }
 
-    /// The words of the refusal of a click at the press point `at` (sheet nm; `None` for Enter at the current point),
+    /// The words of the refusal of a click at the press point `at` (sheet nm, and whether Alt is held; `None` for Enter
+    /// at the current point),
     /// with the overlay there (the ghost stays); `None` when the click commits. The host asks before it sends the
     /// click.
-    pub fn refusal(&mut self, at: Option<(i64, i64)>, cx: &ToolCx<'_>) -> Option<(String, Overlay)> {
-        if let Some(at) = at {
+    pub fn refusal(&mut self, at: Option<((i64, i64), bool)>, cx: &ToolCx<'_>) -> Option<(String, Overlay)> {
+        if let Some((at, alt)) = at {
             let s = cx.snapper.snap_grid(at);
             self.at = Some((s.at_nm, s.page_nm));
+            // The press's own Alt decides, as it does for the commit that follows.
+            self.suppressed = alt;
         }
         let (_, pos) = self.at?;
         match self.drop_on(cx, pos) {
@@ -814,7 +895,7 @@ impl Tool for IpTool {
             }
             CanvasEvent::Key(ToolKey::ToggleDirection) => {
                 // D goes on from the direction the ghost shows (a target offered for a name that has a
-                // source elsewhere turns undirected, then source). On a starred point (a source) D clears the
+                // source elsewhere turns source). On a starred point (a source) D clears the
                 // star and steps on from source; the star stays off when D comes back to source.
                 let _ = self.refresh(cx);
                 self.star = false;
@@ -1026,7 +1107,7 @@ mod tests {
     #[test]
     fn d_cycles_the_three_directions() {
         assert_eq!(IpDir::Source.next(), IpDir::Target);
-        assert_eq!(IpDir::Target.next(), IpDir::Undirected);
+        assert_eq!(IpDir::Target.next(), IpDir::Source);
         assert_eq!(IpDir::Undirected.next(), IpDir::Source);
     }
 }

@@ -662,8 +662,16 @@ and one main function of the chosen symbol's function definition.
   wire on the tip and the CP at the tip, leaving right; each with its `@qet10` twin. The name sits above the arrow and
   the cross-reference below it: right-aligned at the tip on a source, left-aligned at the tail on a target, so that it
   runs into the sheet. A point drawn with these forms is never turned: its form is
-  its direction's (an undirected point takes either), D swaps the form with the direction, and the rotate and mirror
-  keys are not offered. `ip.place` refuses a turned form ("an interruption point's arrow points the way its signal
+  its direction's (an undirected point takes either), D swaps the form with the direction (source and target, to
+  and fro; undirected is a choice of a placed point's Direction in Properties, since D on a point the tool had
+  already made a target used to give an undirected one), and the rotate and mirror
+  keys are not offered. The tool takes the name first when it is chosen from the bar or a menu (the name field has
+  the keys; chosen by its key with the pointer on the sheet, the keys stay with the tool), a typed name without a
+  source starts with its source where the page's quarters say nothing, and a point whose arrow, name or
+  cross-reference would print over another point's is refused with the reason, Alt placing it anyway: the name
+  stands above the arrow and the cross-reference below, each as wide as its text, so a point in another's footprint
+  prints over it (the footprint is reckoned by rule of thumb, 1.4 mm a character, and the cross-reference's room is
+  kept before the point has a partner). `ip.place` refuses a turned form ("an interruption point's arrow points the way its signal
   flows: change its direction instead") and the other direction's form ("a source interruption point is drawn with
   the outgoing arrow, a target with the incoming arrow"); `rep.transform` refuses the first; `ip.continue` gives the
   partner the other form and refuses in words when the project lacks it; a direction change swaps the form by row 18.

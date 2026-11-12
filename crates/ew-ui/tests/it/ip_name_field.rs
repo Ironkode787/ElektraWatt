@@ -211,8 +211,7 @@ fn a_name_typed_once_names_the_source_and_its_target_and_d_on_the_sheet_turns_th
     assert_eq!(ghost_name(&h), "FT1657", "D is not typed into the name");
     assert_eq!(direction(&h), "target", "D turns the direction");
     press(&mut h, Key::D);
-    press(&mut h, Key::D);
-    assert_eq!(direction(&h), "source");
+    assert_eq!(direction(&h), "source", "and back");
     // The source, then its partner: the same name, a target, without typing again.
     assert_eq!(click_canvas_centre(&mut h), vec!["FT1657".to_owned()]);
     assert_eq!(ghost_name(&h), "FT1657", "the tool keeps the name");

@@ -516,3 +516,139 @@ fn wire_to_the_arrow(beyond: i64) {
     assert_eq!(cp.connections.len(), 1, "the wire ends on the point");
     d.shell_mut().shutdown();
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// The persona round before 0.2.0: interruption points for a newcomer
+
+/// The interruption points of the page shown: each one's name, direction and insertion point (page nm).
+fn points(d: &mut Driver) -> Vec<(String, String, (i64, i64))> {
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    tables
+        .reps
+        .iter()
+        .filter_map(|r| {
+            r.ip.as_ref()
+                .map(|ip| (ip.name.clone(), ip.direction.clone(), r.pos))
+        })
+        .collect()
+}
+
+/// The direction the tool's ghost shows.
+fn ghost_direction(d: &mut Driver) -> String {
+    match d.shell_mut().tool_ghost() {
+        Some(ew_ui::ew_viewmodel::tools::Ghost::Ip { direction, .. }) => direction.to_owned(),
+        other => panic!("no interruption point ghost: {other:?}"),
+    }
+}
+
+/// A person chooses Interruption on the Draw tab and types the name at once: "24V", Enter, then clicks where the
+/// point goes. The letters went to the canvas and were lost, Enter placed a point named IP at the grid cursor, and
+/// the click placed its target. The name box takes the keys when the tool is chosen from the bar: one point, named
+/// as typed, a source.
+#[test]
+fn the_name_typed_right_after_choosing_the_tool_is_the_points_name() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Interruption").unwrap()));
+    d.settle();
+    d.input(&typed("24V"));
+    d.input(&key("enter"));
+    d.settle();
+    assert_eq!(points(&mut d), [], "Enter ends the name; it places nothing");
+    d.input(&Input::Hover { at: (930, 520) });
+    d.settle();
+    d.input(&click((930, 520)));
+    d.settle();
+    let placed = points(&mut d);
+    assert_eq!(placed.len(), 1, "{placed:?}");
+    assert_eq!((placed[0].0.as_str(), placed[0].1.as_str()), ("24V", "source"));
+    d.shell_mut().shutdown();
+}
+
+/// D turns a point's direction between source and target, to and fro: the bar names the one D gives, and D gives
+/// it. (After target came undirected, so D on a point the tool had already made a target gave an arrow that takes
+/// its wire at the tail.) A new name typed after a target, in the middle of the page, starts with its source.
+#[test]
+fn d_turns_source_and_target_to_and_fro_and_a_new_name_starts_with_its_source() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Interruption").unwrap()));
+    d.settle();
+    d.input(&typed("24V"));
+    d.input(&key("enter"));
+    d.input(&Input::Hover { at: (930, 520) });
+    d.settle();
+    d.input(&click((930, 520)));
+    d.settle();
+    // The name stays after its source: the next point of it is its target, in the middle of the page too.
+    d.input(&Input::Hover { at: (930, 420) });
+    d.settle();
+    assert_eq!(ghost_direction(&mut d), "target");
+    d.input(&click((930, 420)));
+    d.settle();
+    // Another name, typed into the box: nobody feeds it yet, so the point offered is its source, though the last
+    // point placed was a target.
+    d.input(&click(d.find("Interruption point name").unwrap()));
+    d.input(&key("ctrl+a"));
+    d.input(&typed("0V"));
+    d.input(&key("enter"));
+    d.input(&Input::Hover { at: (1030, 620) });
+    d.settle();
+    assert_eq!(ghost_direction(&mut d), "source");
+    // D gives the other direction, and D again gives this one back.
+    d.input(&key("d"));
+    d.settle();
+    assert_eq!(ghost_direction(&mut d), "target");
+    d.input(&key("d"));
+    d.settle();
+    assert_eq!(ghost_direction(&mut d), "source");
+    d.shell_mut().shutdown();
+}
+
+/// Two points two grid steps apart print their names and references over each other, and a click on such an arrow
+/// follows the reference lying on it. The tool keeps the texts' room: a point nearer than 10 mm to another is
+/// not placed, with the reason and the way round it, and Alt places it anyway.
+#[test]
+fn a_point_too_close_to_another_is_not_placed_and_says_why() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&click(d.find("Interruption").unwrap()));
+    d.settle();
+    d.input(&Input::Hover { at: (930, 520) });
+    d.settle();
+    d.input(&click((930, 520)));
+    d.settle();
+    let first = points(&mut d);
+    assert_eq!(first.len(), 1, "{first:?}");
+    // 8 mm below the first: two steps of the 4 mm grid.
+    let pixel = pixel_map(&mut d);
+    let below = page_pixel(&mut d, &pixel, (first[0].2.0, first[0].2.1 + 8_000_000));
+    d.input(&Input::Hover { at: below });
+    d.settle();
+    d.input(&click(below));
+    d.settle();
+    assert_eq!(points(&mut d).len(), 1, "the second point is not placed");
+    let said = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        said.contains("too close to the interruption point") && said.contains("hold Alt"),
+        "{said:?}"
+    );
+    // 12 mm below is clear of the first point's texts.
+    let clear = page_pixel(&mut d, &pixel, (first[0].2.0, first[0].2.1 + 12_000_000));
+    d.input(&Input::Hover { at: clear });
+    d.settle();
+    d.input(&click(clear));
+    d.settle();
+    assert_eq!(points(&mut d).len(), 2);
+    // Alt places a point in the texts' room after all.
+    d.input(&Input::Hover { at: below });
+    d.settle();
+    d.input(&Input::Click {
+        at: below,
+        button: PointerButton::Primary,
+        mods: Modifiers::ALT,
+    });
+    d.settle();
+    assert_eq!(points(&mut d).len(), 3);
+    d.shell_mut().shutdown();
+}

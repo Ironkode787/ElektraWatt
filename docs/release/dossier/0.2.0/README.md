@@ -33,8 +33,9 @@ repeated there.
 ## 3. Known when the candidate was cut
 
 The open rows of [`docs/plan/backlog.md`](../../../plan/backlog.md), section "The persona round before 0.2.0", and
-the release notes' section 7. The two marked High are about interruption points: the tool for a newcomer, and
-the texts of points placed close together. The owner's test says whether they hold the release.
+the release notes' section 7. The two rows the round marked High, both about interruption points (the tool for a
+newcomer, the texts of points placed close together), were fixed before the cut on the owner's word; what is left
+of them is a row of the later backlog. The owner's test says whether an open row holds the release.
 
 ## 4. The go
 
