@@ -1,0 +1,500 @@
+{
+  "$k": "symbol",
+  "id": "9e706736-e854-5dc9-8034-dd77814c2588",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "39e39fb6-3a66-5b1b-beb0-aca515690cc3",
+  "version": "0.1.0",
+  "sha256": "sha256:09e5f25c60865b86f9d1b076ddb25763d05e9d61b4b762c7d51aed44614b3d2c",
+  "meta": {
+    "key": "ew.iso.valve-3-2-sol-spring@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "3/2 valve, solenoid and spring",
+    "nl": "3/2-ventiel, magneet en veer"
+  },
+  "keywords": [
+    "3/2",
+    "pneumatic",
+    "solenoid",
+    "valve"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "8bbf76f0-7b3d-5fa1-a7a4-e321d4bdf02e",
+    "version_req": "^0.1",
+    "key": "ew.fn.valve-3-2-sol-spring"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            10583333,
+            10583333
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            10583333,
+            0
+          ],
+          [
+            21166667,
+            10583333
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          15875000,
+          0
+        ],
+        "to": [
+          15875000,
+          -2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          13229167,
+          10583333
+        ],
+        "to": [
+          13229167,
+          13229167
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          18520833,
+          10583333
+        ],
+        "to": [
+          18520833,
+          13229167
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          15875000,
+          0
+        ],
+        "to": [
+          18520833,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            17859375,
+            9260417
+          ],
+          [
+            18851562,
+            9260417
+          ],
+          [
+            18520833,
+            10583333
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          13229167,
+          10583333
+        ],
+        "to": [
+          13229167,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          11906250,
+          7937500
+        ],
+        "to": [
+          14552083,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2645833,
+          10583333
+        ],
+        "to": [
+          5291667,
+          0
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            4630208,
+            1322917
+          ],
+          [
+            5622396,
+            1322917
+          ],
+          [
+            5291667,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          7937500,
+          10583333
+        ],
+        "to": [
+          7937500,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          6614583,
+          7937500
+        ],
+        "to": [
+          9260417,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -5291667,
+            2645833
+          ],
+          [
+            0,
+            7937500
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -5291667,
+          7937500
+        ],
+        "to": [
+          0,
+          2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -7937500,
+            3968750
+          ],
+          [
+            -5291667,
+            6614583
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            21166667,
+            5291667
+          ],
+          [
+            21828125,
+            3968750
+          ],
+          [
+            23151042,
+            6614583
+          ],
+          [
+            24473958,
+            3968750
+          ],
+          [
+            25796875,
+            6614583
+          ],
+          [
+            26458333,
+            5291667
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        13229167,
+        13229167
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        15875000,
+        -2645833
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        18520833,
+        13229167
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -7937500,
+        -661458
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -7937500,
+        9260417
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        13890625,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        16536458,
+        -1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        19182292,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        -7937500,
+        1984375
+      ],
+      "align": "bottom_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      10583333,
+      5291667
+    ]
+  }
+}

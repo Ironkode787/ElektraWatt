@@ -1,0 +1,42 @@
+{
+  "$k": "fndef",
+  "id": "97f5cfa8-61b5-51c4-b836-8ef88849826e",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "8bbf76f0-7b3d-5fa1-a7a4-e321d4bdf02e",
+  "version": "0.1.0",
+  "sha256": "sha256:08c73d45ef1b45e29ca45676f31398bb294fdfb926ea2b6a7726e6c903e7a32e",
+  "meta": {
+    "key": "ew.fn.valve-3-2-sol-spring",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveDirectional",
+    "Valve32",
+    "SolenoidSpring"
+  ],
+  "contact_kind": "valve",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    }
+  ]
+}

@@ -35,8 +35,9 @@ const VERSION: &str = "0.1.0";
 /// library refuses other content under a published version, doc 05 §13.1), 0.3.0 since the layout parts and
 /// the dimensions were added, 0.4.0 since the valve gained its fluid section, 0.4.1 since the on/off switch
 /// moved to the manual-command category, class S, 0.5.0 since the generic cable EW-GEN-CBL-1 was added, 0.5.1 since
-/// the contactor is filed as a contactor ([`own_category`]).
-const LIBRARY_VERSION: &str = "0.5.1";
+/// the contactor is filed as a contactor ([`own_category`]), 0.6.0 since the three-pole MCB EW-GEN-MCB-3 and the
+/// 3/2 solenoid valve EW-GEN-VLV-2 were added.
+const LIBRARY_VERSION: &str = "0.6.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -187,8 +188,7 @@ fn range(from: u16, to: u16) -> Vec<u16> {
     (from..to).collect()
 }
 
-/// The generic starter parts (the MCB 3P and the valve 3/2 are de-scoped: the starter set has no FnDef or
-/// symbol for them), then the five layout parts (no template, no CP pattern).
+/// The generic starter parts, then the five layout parts (no template, no CP pattern).
 ///
 /// The relay and the contactor template their coil (the main function) and every contact (auxiliary functions,
 /// several entries of one FnDef): a function made from the template records its entry
@@ -280,6 +280,19 @@ fn defs() -> Vec<Def> {
             tech: vec![("characteristic", json!("C")), ("rated_current", q("10", "A"))],
             plc: None,
             mech: ts35("36", "85", "70"),
+            sections: None,
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-MCB-3",
+            kind: None,
+            description: "Miniature circuit breaker, 3 poles",
+            cps: cps(&["1", "2", "3", "4", "5", "6"]),
+            template: vec![("ew.fn.mcb-3p", true, range(0, 6))],
+            contacts: Vec::new(),
+            tech: vec![("characteristic", json!("C")), ("rated_current", q("16", "A"))],
+            plc: None,
+            mech: ts35("54", "85", "70"),
             sections: None,
             unit: None,
         },
@@ -414,6 +427,23 @@ fn defs() -> Vec<Def> {
             mech: None,
             // Solenoid 14 is the physical coil A1, A2 (no internal coil)
             sections: Some(json!({"fluid": {"solenoids": ["14"]}})),
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-VLV-2",
+            kind: None,
+            description: "Solenoid valve 3/2, normally closed, spring return",
+            cps: cps(&["A1", "A2", "1", "2", "3"]),
+            template: vec![
+                ("ew.fn.valve-coil", true, vec![0, 1]),
+                ("ew.fn.valve-3-2-sol-spring", false, range(2, 5)),
+            ],
+            contacts: Vec::new(),
+            tech: vec![("coil_voltage", q("24", "V"))],
+            plc: None,
+            mech: None,
+            // Solenoid 12 (it connects 1 to 2) is the physical coil A1, A2
+            sections: Some(json!({"fluid": {"solenoids": ["12"]}})),
             unit: None,
         },
         Def {

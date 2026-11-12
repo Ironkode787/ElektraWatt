@@ -69,6 +69,7 @@ const PATHS: &[(&str, Path)] = &[
     ("ew.iec.lamp@qet10", Path::Part("EW-GEN-LMP-1", 0, MULTI)),
     ("ew.iec.mcb-1p@qet10", Path::Part("EW-GEN-MCB-1", 0, MULTI)),
     ("ew.iec.mcb-1pn@qet10", Path::Part("EW-GEN-MCB-2", 0, MULTI)),
+    ("ew.iec.mcb-3p@qet10", Path::Part("EW-GEN-MCB-3", 0, MULTI)),
     ("ew.iec.motor-3ph@qet10", Path::Part("EW-GEN-MOT-1", 0, MULTI)),
     ("ew.iec.pe@qet10", Path::Device("PE", MULTI)),
     ("ew.iec.plug-pin@qet10", Path::Device("X", MULTI)),
@@ -91,6 +92,10 @@ const PATHS: &[(&str, Path)] = &[
     ("ew.iec.valve-coil@qet10", Path::Part("EW-GEN-VLV-1", 0, MULTI)),
     ("ew.iso.cylinder-double-acting@qet10", Path::Device("M", FLUID)),
     ("ew.iso.process-valve-2way@qet10", Path::Device("Q", FLUID)),
+    (
+        "ew.iso.valve-3-2-sol-spring@qet10",
+        Path::Part("EW-GEN-VLV-2", 1, FLUID),
+    ),
     (
         "ew.iso.valve-5-2-sol-spring@qet10",
         Path::Part("EW-GEN-VLV-1", 1, FLUID),

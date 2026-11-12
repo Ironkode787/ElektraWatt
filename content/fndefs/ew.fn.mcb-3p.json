@@ -1,0 +1,77 @@
+{
+  "$k": "fndef",
+  "id": "6f5b5053-3cf9-5895-a949-e104d1341eac",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "215b802d-2300-540a-a3fa-99852aeff34a",
+  "version": "0.1.0",
+  "sha256": "sha256:6a21ea4ae5167fd26c016099e532fc023393e7521ff8d6d0e7c9d715a24176ae",
+  "meta": {
+    "key": "ew.fn.mcb-3p",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ProtectionOvercurrent",
+    "MCB",
+    "3P"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1"
+    },
+    {
+      "idx": 1,
+      "designation": "2"
+    },
+    {
+      "idx": 2,
+      "designation": "3"
+    },
+    {
+      "idx": 3,
+      "designation": "4"
+    },
+    {
+      "idx": 4,
+      "designation": "5"
+    },
+    {
+      "idx": 5,
+      "designation": "6"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    },
+    {
+      "a": 2,
+      "b": 3,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    },
+    {
+      "a": 4,
+      "b": 5,
+      "kind": {
+        "pass_through": {
+          "opens": true
+        }
+      }
+    }
+  ]
+}
