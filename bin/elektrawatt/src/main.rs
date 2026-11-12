@@ -280,6 +280,12 @@ impl RfdPlatform {
                     .add_filter("EWZ", &["ewz"]),
                 DialogKind::File,
             ),
+            // File ▸ Import…: a QElectroTech project or a project archive, both offered at once.
+            Prompt::OpenImport => (
+                base.set_title(strings::text(key!("prompt-import-title")))
+                    .add_filter(strings::text(key!("prompt-import-filter")), &["qet", "ewz"]),
+                DialogKind::File,
+            ),
             // The symbol editor's file and library folder.
             Prompt::OpenSymbol => (
                 base.set_title(strings::text(key!("prompt-open-symbol-title")))

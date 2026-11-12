@@ -11,6 +11,9 @@ EW, start with a [tutorial](../tutorials/index.md) instead.
   the command palette, workspaces, the first-run setup, the company-standard wizard and F1.
 - [Draw a page from the text interface](text-interface.md): reading a page as text, placing, autoconnect, frozen tags,
   terminal strips, external points, wires and junctions, delete and export, without a screen.
+- [Use the command line on the golden project](headless-workflow.md): the `ew` program checks a project, writes its
+  pages as PDF and SVG, exports the cable list and the bill of materials, and queries it in SQL. You need a checkout
+  of the repository and the `ew` program.
 - [Define a supply potential](define-supply-potential.md): a potential's name, type and voltage from a selected wire,
   junction or terminal.
 - [Choose parts](choose-parts.md): a device's part from the property grid or the part selection, a device placed
@@ -18,7 +21,7 @@ EW, start with a [tutorial](../tutorials/index.md) instead.
 - [Upgrade a project](upgrade-a-project.md): what a release reads and writes, opening a project of an older format,
   the backup of the first save, `ew upgrade`, and what changes in the format from 0.1.0.
 
-More follow the headless workflow of the [first tutorial](../tutorials/headless-workflow.md), for example replaying a
+More follow the [command-line how-to](headless-workflow.md), for example replaying a
 command log with `ew apply`, checking a project in a CI job, and exporting for a single page range.
 
 ## Writing a how-to guide

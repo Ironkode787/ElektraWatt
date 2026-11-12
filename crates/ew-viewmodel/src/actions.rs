@@ -140,12 +140,11 @@ pub enum Submenu {
 
 /// The tutorials of the guide in its order: each its page's name, which `help.tutorials` takes as
 /// `tutorial` and whose label is `tutorial-<name>`.
-pub const TUTORIALS: [&str; 5] = [
+pub const TUTORIALS: [&str; 4] = [
     "first-page",
     "terminal-strip-and-cable",
     "reports-and-pdf",
     "import-qet",
-    "headless-workflow",
 ];
 
 impl Submenu {
@@ -2019,9 +2018,11 @@ mod tests {
             m.items().iter().map(|i| i.id).collect()
         };
         let file = ids(Menu::File);
-        for id in ["file.new", "file.open_sample", "file.discard_journal"] {
+        for id in ["file.new", "file.open_sample", "file.discard_journal", "file.import"] {
             assert!(file.contains(&id), "{id} in File");
         }
+        // An `.ewz` opens through File ▸ Import…, not an entry of its own (FT-1708).
+        assert!(!file.contains(&"file.open_ewz"), "no Open .ewz… in File");
         // The imports and the company standard sit in the Project tab's menu.
         let project = ids(Menu::Project);
         for id in ["tools.company_standard", "file.import_qet", "parts.import"] {
@@ -2094,6 +2095,7 @@ mod tests {
             ("navigator.export_table", "path"),
             ("navigator.import_table", "path"),
             ("file.import_qet", "file"),
+            ("file.import", "file"),
             ("help.tutorials", "dir"),
             ("wizard.finish", "dir"),
             ("image.file", "path"),

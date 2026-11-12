@@ -15,7 +15,7 @@ symbol wired to the supply's PE terminal. One conductor is missing on purpose: t
 
 ## Steps
 
-1. Choose **Project ▸ Import QElectroTech project…**, pick `lamp-circuit.qet`, and name the new project's
+1. Choose **File ▸ Import…**, pick `lamp-circuit.qet`, and name the new project's
    folder `lamp-circuit.ew`.
    The import's card says what it will make: "Create project makes a new project in the folder lamp-circuit.ew, with
    1 page, 4 devices and 3 connections." Its verdict follows: "The file was imported. 7 points are worth a look, and
@@ -55,7 +55,7 @@ symbol wired to the supply's PE terminal. One conductor is missing on purpose: t
 
 ## What you learnt
 
-- **Project ▸ Import QElectroTech project…** says what an import will make before it writes anything, and makes a
+- **File ▸ Import…** says what an import will make before it writes anything, and makes a
   new EW project of its own; the QElectroTech file is not changed.
 - The folios arrive as QElectroTech drew them: the wires on their paths, the texts, shapes and images, the frame
   and the title block.

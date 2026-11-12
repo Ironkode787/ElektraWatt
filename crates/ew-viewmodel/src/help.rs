@@ -222,7 +222,7 @@ pub fn action_topic(action: &str) -> Option<&'static str> {
     Some(match action {
         "file.new" => "new-project",
         "file.open_sample" => "sample-project",
-        "file.import_qet" => "import-qet",
+        "file.import_qet" | "file.import" => "import-qet",
         "file.discard_journal" => "recovery",
         "tools.palette" => "command-palette",
         "tools.company_standard" => "company-standard-wizard",

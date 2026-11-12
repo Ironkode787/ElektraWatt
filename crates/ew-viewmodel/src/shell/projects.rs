@@ -331,7 +331,7 @@ impl ShellModel {
     /// `help.tutorials {tutorial?, dir?}` (Help ▸ Tutorials): each tutorial its own start with its
     /// page: `first-page` a new project from the basic project, `reports-and-pdf` (and no `tutorial`, the tutorials
     /// page) a copy of the sample project, the others their page alone (they start from the first tutorial's project,
-    /// a QElectroTech file or a terminal).
+    /// or a QElectroTech file).
     pub(crate) fn act_tutorials(&mut self, p: &Map<String, Value>) -> Outcome {
         let tutorial = match string_param(p, "tutorial") {
             Err(e) => return e,
@@ -445,6 +445,30 @@ impl ShellModel {
                 epoch,
                 self.revision(),
             ));
+        }
+    }
+
+    /// `file.import {file?}` (File ▸ Import…): one file dialog for a QElectroTech project (`.qet`), whose import it
+    /// starts (`file.import_qet`), and a project archive (`.ewz`), whose Open .ewz dialog it opens (`file.open_ewz`);
+    /// any other file is refused in words.
+    pub(crate) fn act_import(&mut self, p: &Map<String, Value>) -> Outcome {
+        let file = match string_param(p, "file") {
+            Err(e) => return e,
+            Ok(Some(file)) => file.to_owned(),
+            Ok(None) => return self.need_path("file.import", Prompt::OpenImport, "file", p),
+        };
+        let extension = std::path::Path::new(&file)
+            .extension()
+            .map(|e| e.to_string_lossy().to_ascii_lowercase());
+        let mut params = p.clone();
+        match extension.as_deref() {
+            Some("qet") => self.act_import_qet(&params),
+            Some("ewz") => {
+                params.remove("file");
+                params.insert("path".to_owned(), Value::String(file));
+                self.act_open_ewz(&params)
+            }
+            _ => Outcome::refused(key!("reason-import-kind")),
         }
     }
 

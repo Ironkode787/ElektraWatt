@@ -44,24 +44,24 @@ msgstr ""
 msgid "Draw a six-pin power block"
 msgstr ""
 
-#: src/SUMMARY.md:13 src/tutorials/headless-workflow.md:1
-msgid "A first headless run on the golden project"
-msgstr ""
-
-#: src/SUMMARY.md:15 src/SUMMARY.md:17 src/how-to/index.md:1
+#: src/SUMMARY.md:14 src/SUMMARY.md:16 src/how-to/index.md:1
 msgid "How-to guides"
 msgstr ""
 
-#: src/SUMMARY.md:18 src/how-to/install.md:1
+#: src/SUMMARY.md:17 src/how-to/install.md:1
 msgid "Install ElektraWatt"
 msgstr ""
 
-#: src/SUMMARY.md:19 src/how-to/application-window.md:1
+#: src/SUMMARY.md:18 src/how-to/application-window.md:1
 msgid "Use the application window"
 msgstr ""
 
-#: src/SUMMARY.md:20 src/how-to/text-interface.md:1
+#: src/SUMMARY.md:19 src/how-to/text-interface.md:1
 msgid "Draw a page from the text interface"
+msgstr ""
+
+#: src/SUMMARY.md:20 src/how-to/headless-workflow.md:1
+msgid "Use the command line on the golden project"
 msgstr ""
 
 #: src/SUMMARY.md:21 src/how-to/define-supply-potential.md:1
@@ -342,12 +342,10 @@ msgid ""
 "installed and an empty folder."
 msgstr ""
 
-#: src/tutorials/index.md:27
+#: src/tutorials/index.md:28
 msgid ""
-"[A first headless run on the golden project](headless-workflow.md): check a "
-"project, write its pages as PDF and SVG, export the cable list and the bill "
-"of materials, and query it with SQL, all from the terminal with the `ew` "
-"program. You need a checkout of the repository and the `ew` program."
+"The `ew` command-line program has a how-to of its own: [Use the command line "
+"on the golden project](../how-to/headless-workflow.md)."
 msgstr ""
 
 #: src/tutorials/index.md:31
@@ -739,13 +737,13 @@ msgstr ""
 
 #: src/tutorials/import-qet.md:18
 msgid ""
-"Choose **Project ▸ Import QElectroTech project…**, pick `lamp-circuit.qet`, "
-"and name the new project's folder `lamp-circuit.ew`. The import's card says "
-"what it will make: \"Create project makes a new project in the folder "
-"lamp-circuit.ew, with 1 page, 4 devices and 3 connections.\" Its verdict "
-"follows: \"The file was imported. 7 points are worth a look, and none stops "
-"you from working.\" Under **Worth a look** and **For your information** it "
-"lists the kinds of findings, each with its count. Nothing is written yet."
+"Choose **File ▸ Import…**, pick `lamp-circuit.qet`, and name the new "
+"project's folder `lamp-circuit.ew`. The import's card says what it will "
+"make: \"Create project makes a new project in the folder lamp-circuit.ew, "
+"with 1 page, 4 devices and 3 connections.\" Its verdict follows: \"The file "
+"was imported. 7 points are worth a look, and none stops you from working.\" "
+"Under **Worth a look** and **For your information** it lists the kinds of "
+"findings, each with its count. Nothing is written yet."
 msgstr ""
 
 #: src/tutorials/import-qet.md:24
@@ -838,9 +836,8 @@ msgstr ""
 
 #: src/tutorials/import-qet.md:58
 msgid ""
-"**Project ▸ Import QElectroTech project…** says what an import will make "
-"before it writes anything, and makes a new EW project of its own; the "
-"QElectroTech file is not changed."
+"**File ▸ Import…** says what an import will make before it writes anything, "
+"and makes a new EW project of its own; the QElectroTech file is not changed."
 msgstr ""
 
 #: src/tutorials/import-qet.md:60
@@ -990,297 +987,6 @@ msgid ""
 "compatibility."
 msgstr ""
 
-#: src/tutorials/headless-workflow.md:3
-msgid ""
-"In this tutorial you use the `ew` command-line program on the golden "
-"project: you check the project, write its pages as PDF and SVG, export the "
-"cable list and the bill of materials, and ask the project questions in SQL. "
-"Nothing needs the desktop application, and nothing leaves your machine: `ew` "
-"never uses the network."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:7
-msgid ""
-"The golden project, `J-E-2416`, is an anonymised control-cabinet project "
-"that EW uses as its acceptance target. Where a real project names a customer "
-"or a person, it holds a placeholder such as `<customer>`. You only read it "
-"here; none of the steps changes it."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:11
-msgid "Before you start"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:13
-msgid "You need:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:15
-msgid ""
-"a checkout of the ElektraWatt repository, which holds the project in "
-"`golden/`;"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:16
-msgid ""
-"the `ew` program, built from the checkout with `cargo build --release -p "
-"ew`. It is then `target/release/ew` (`target\\release\\ew.exe` on Windows). "
-"The examples write plain `ew`; put the program on your `PATH` or type its "
-"path."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:20
-msgid ""
-"Run every command from the root of the checkout. Check that `ew` works; it "
-"prints its name and its version:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:26
-msgid "Then make a directory for the results:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:32
-msgid "Where the project comes from"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:34
-msgid ""
-"The folder `golden/J-E-2416/tables/` holds the project as plain CSV tables: "
-"one file per kind of record (devices, terminals, connections, pages and so "
-"on). The importer of the `ew-import-tables` crate turns these tables into "
-"project records, and the checked-in project `golden/J-E-2416.ew` is "
-"generated from the same tables. The [golden "
-"README](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
-"describes the tables and their format."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:40
-msgid ""
-"**Not built yet.** The importer is a library today. The `ew import csv` "
-"subcommand that will run it from the terminal does not exist yet, so this "
-"tutorial starts from the checked-in project. When the subcommand exists, "
-"this step will become a command line."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:44
-msgid ""
-"A project is a directory, here `golden/J-E-2416.ew`. Every `ew` command that "
-"works on a project takes it as its first argument."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:47
-msgid "Step 1: check the project"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:49
-msgid ""
-"`ew check` runs the check rules over the project and prints what it finds, "
-"one finding per line:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:58
-msgid "The first lines are the findings, for example:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:64
-msgid ""
-"Each line gives the severity, the rule ID, the rule's six-digit code, the "
-"thing the finding is about and a message. The last line counts the findings, "
-"and the standard error stream repeats the count with the scheme's name. The "
-"golden project holds deliberate defects, so it reports errors: the cable "
-"`-3W1`, for one, has no length, so a cable list cannot be complete."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:69
-msgid "Look at the exit code:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:76
-msgid ""
-"`ew` exits with 0 when the project has no unwaived errors, 1 when it has "
-"some and 2 when it could not run the check at all (a project that cannot be "
-"opened, a wrong option). A script should treat 2 as a failure of the tooling "
-"and 1 as an answer about the drawing. The exit codes of every subcommand are "
-"in [doc 17 "
-"§3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes)."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:81
-msgid ""
-"Each rule has a page in the reference: "
-"[`EW-CORE-033`](../reference/rules/ew-core-033.md) is the cable without a "
-"length, and [`EW-NUM-001`](../reference/rules/ew-num-001.md) is the "
-"information that a frozen device tag differs from what the numbering scheme "
-"would give."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:85
-msgid ""
-"`ew check` takes a scheme and a mode. The default is the `pre-delivery` "
-"scheme in `release` mode; `--format json` and `--format md` change the "
-"output, and `--out <file>` writes it to a file."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:88
-msgid "Step 2: write the pages as PDF and SVG"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:90
-msgid ""
-"`ew export pdf` writes every page of the project into one PDF/A-2b file, "
-"with an outline, page labels and cross-reference links:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:99
-msgid ""
-"The second line, on the standard error stream, counts remarks about the "
-"rendering of single pages and says what they are: here, fields of the title "
-"blocks that the project leaves empty. They do not stop the export. The "
-"directory of `--out` must exist, which is why you made `out` first."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:103
-msgid ""
-"`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
-"to select folios; this writes the pages numbered 101 to 106 that exist:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:112
-msgid ""
-"The directory now holds `101.svg`, `102.svg`, `103.svg` and `106.svg`. `ew` "
-"replaces the directory as a whole, so it must hold SVG files only; a stale "
-"page of an earlier export cannot remain in it."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:115
-msgid ""
-"The same export always gives the same bytes. The only date in the output "
-"comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
-"when you set it, never from the clock of your machine; `--threads <n>` "
-"changes the speed and never the result."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:119
-msgid "Step 3: export the cable list and the bill of materials"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:121
-msgid "Two more exports write the rows of a report as CSV:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:130
-msgid ""
-"Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:132
-msgid ""
-"```text\n"
-"row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
-"heading,Cable overview,,,,,,,\n"
-"data,-3W1,6XV1830-0EH10,,,,,,length missing\n"
-"data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,\"-X1031, -X1032\",-201U1,from part\n"
-"```"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:139
-msgid ""
-"The cable `-3W1` says \"length missing\": it is the finding of step 1, seen "
-"from the other side. The cables `-106W1` and `-106W2` take their length from "
-"their part."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:142
-msgid ""
-"`--mode` of `ew export bom` is `parts` (the default; every component part) "
-"or `assembly`, which replaces the parts a configured product covers by one "
-"row for the product. Both write the rows of the project's own report page, "
-"so the CSV equals what the drawing prints."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:146
-msgid "Step 4: ask the project questions with SQL"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:148
-msgid ""
-"`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
-"named `api_v1_...`:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:150
-msgid ""
-"```console\n"
-"$ ew sql golden/J-E-2416.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
-"count(*)\n"
-"28\n"
-"1 rows\n"
-"```"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:157
-msgid ""
-"The result is CSV with a header line, on the standard output; the row count "
-"goes to the standard error stream. Ask for the cables and where their "
-"lengths come from:"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:160
-msgid ""
-"```console\n"
-"$ ew sql golden/J-E-2416.ew \"SELECT tag, cores, length_source FROM "
-"api_v1_cable ORDER BY tag\"\n"
-"tag,cores,length_source\n"
-"-106W1,5,part\n"
-"-106W2,5,part\n"
-"-3W1,3,missing\n"
-"3 rows\n"
-"```"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:169
-msgid ""
-"`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
-"and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
-"the exit code is 2."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:172
-msgid "What you have done"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:174
-msgid ""
-"You checked a project and read the exit code, wrote its pages as PDF and "
-"SVG, exported a cable list and a bill of materials, and queried the project "
-"in SQL, all from the terminal. The same commands run in a script or a CI "
-"job, because they read the project without locking it and never need a "
-"display."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:178
-msgid "Where to go next"
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:180
-msgid ""
-"The [command reference](../reference/commands/index.md) lists the commands "
-"that change a project, and the [rule reference](../reference/rules/index.md) "
-"the rules that `ew check` runs."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:182
-msgid ""
-"[How-to guides](../how-to/index.md) for single tasks, such as checking a "
-"project in a CI job, will follow this tutorial."
-msgstr ""
-
-#: src/tutorials/headless-workflow.md:184
-msgid ""
-"The [explanation](../explanation/index.md) section links the design of the "
-"model and of the check engine."
-msgstr ""
-
 #: src/how-to/index.md:3
 msgid ""
 "A how-to guide helps you reach one goal that you already understand: short "
@@ -1311,37 +1017,44 @@ msgstr ""
 
 #: src/how-to/index.md:14
 msgid ""
+"[Use the command line on the golden project](headless-workflow.md): the `ew` "
+"program checks a project, writes its pages as PDF and SVG, exports the cable "
+"list and the bill of materials, and queries it in SQL. You need a checkout "
+"of the repository and the `ew` program."
+msgstr ""
+
+#: src/how-to/index.md:17
+msgid ""
 "[Define a supply potential](define-supply-potential.md): a potential's name, "
 "type and voltage from a selected wire, junction or terminal."
 msgstr ""
 
-#: src/how-to/index.md:16
+#: src/how-to/index.md:19
 msgid ""
 "[Choose parts](choose-parts.md): a device's part from the property grid or "
 "the part selection, a device placed from its part, and where the parts are "
 "listed."
 msgstr ""
 
-#: src/how-to/index.md:18
+#: src/how-to/index.md:21
 msgid ""
 "[Upgrade a project](upgrade-a-project.md): what a release reads and writes, "
 "opening a project of an older format, the backup of the first save, `ew "
 "upgrade`, and what changes in the format from 0.1.0."
 msgstr ""
 
-#: src/how-to/index.md:21
+#: src/how-to/index.md:24
 msgid ""
-"More follow the headless workflow of the [first "
-"tutorial](../tutorials/headless-workflow.md), for example replaying a "
-"command log with `ew apply`, checking a project in a CI job, and exporting "
-"for a single page range."
+"More follow the [command-line how-to](headless-workflow.md), for example "
+"replaying a command log with `ew apply`, checking a project in a CI job, and "
+"exporting for a single page range."
 msgstr ""
 
-#: src/how-to/index.md:24
+#: src/how-to/index.md:27
 msgid "Writing a how-to guide"
 msgstr ""
 
-#: src/how-to/index.md:26
+#: src/how-to/index.md:29
 msgid ""
 "A guide names its goal in the title (\"Export one page range as SVG\"), "
 "lists what you need, gives numbered steps and ends when the goal is met. "
@@ -1732,17 +1445,19 @@ msgstr ""
 
 #: src/how-to/application-window.md:41
 msgid ""
-"**File, Import QElectroTech project...** asks for the `.qet` file and then "
-"for a new, empty directory. The importer reads the file into a new project "
-"and writes it to the directory; a banner counts the pages and the findings "
-"of the migration report."
+"**File, Import...**, beside **Open...**, asks for a `.qet` file and then for "
+"a new, empty directory. The importer reads the file into a new project and "
+"writes it to the directory; a banner counts the pages and the findings of "
+"the migration report. The same entry takes a project archive (`.ewz`): it "
+"asks whether to extract it into a new folder and open that, or to open it "
+"read-only."
 msgstr ""
 
-#: src/how-to/application-window.md:45
+#: src/how-to/application-window.md:46
 msgid "Unsaved changes and recovery"
 msgstr ""
 
-#: src/how-to/application-window.md:47
+#: src/how-to/application-window.md:48
 msgid ""
 "Closing, quitting or opening another project with unsaved changes asks "
 "whether to save, discard or cancel. If the application ends while a project "
@@ -1752,22 +1467,22 @@ msgid ""
 "the project for editing."
 msgstr ""
 
-#: src/how-to/application-window.md:52
+#: src/how-to/application-window.md:53
 msgid "Command palette"
 msgstr ""
 
-#: src/how-to/application-window.md:54
+#: src/how-to/application-window.md:55
 msgid ""
 "`Ctrl+K` (or `Ctrl+Shift+P`) opens the palette: type a part of a name and "
 "press `Enter` to run the selected entry. Disabled entries are listed last "
 "with the reason. `Escape` closes it."
 msgstr ""
 
-#: src/how-to/application-window.md:57
+#: src/how-to/application-window.md:58
 msgid "Keyboard shortcuts"
 msgstr ""
 
-#: src/how-to/application-window.md:59
+#: src/how-to/application-window.md:60
 msgid ""
 "**Help, Keyboard shortcuts** lists the bindings of the EW preset. `F1` opens "
 "this guide at the page of what has the focus: an open dialog, the palette, "
@@ -1776,11 +1491,11 @@ msgid ""
 "on the item opens the page of that item."
 msgstr ""
 
-#: src/how-to/application-window.md:63
+#: src/how-to/application-window.md:64
 msgid "Workspaces"
 msgstr ""
 
-#: src/how-to/application-window.md:65
+#: src/how-to/application-window.md:66
 msgid ""
 "The project view is a dock: drag the border between two panes to resize "
 "them, and drag a pane's title onto another pane to rearrange or tab it. The "
@@ -1790,11 +1505,11 @@ msgid ""
 "the layout is saved a second after its last change."
 msgstr ""
 
-#: src/how-to/application-window.md:70
+#: src/how-to/application-window.md:71
 msgid "First-run setup"
 msgstr ""
 
-#: src/how-to/application-window.md:72
+#: src/how-to/application-window.md:73
 msgid ""
 "On the first start the application asks for the language and what you come "
 "from (EPLAN, QElectroTech, KiCad or other), says what it does with your data "
@@ -1804,11 +1519,11 @@ msgid ""
 "First-run setup** runs it again. Nothing in it makes a network connection."
 msgstr ""
 
-#: src/how-to/application-window.md:77
+#: src/how-to/application-window.md:78
 msgid "Company-standard wizard"
 msgstr ""
 
-#: src/how-to/application-window.md:79
+#: src/how-to/application-window.md:80
 msgid ""
 "The wizard collects the conventions of your company and writes a **basic "
 "project**, from which new projects start. It has ten steps: the company, the "
@@ -1822,11 +1537,11 @@ msgid ""
 "to a directory you choose and becomes the default for **New project**."
 msgstr ""
 
-#: src/how-to/application-window.md:87
+#: src/how-to/application-window.md:88
 msgid "About"
 msgstr ""
 
-#: src/how-to/application-window.md:89
+#: src/how-to/application-window.md:90
 msgid ""
 "**Help, About ElektraWatt** shows the version, the page-view renderer, the "
 "privacy state, the licence, the engineering-verification disclaimer, the "
@@ -2041,6 +1756,297 @@ msgstr ""
 msgid ""
 "`file.save` saves. `file.export_pdf` with a file name writes the PDF; the "
 "toast names the file, its page count and its size."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:3
+msgid ""
+"Here you use the `ew` command-line program on the golden project: you check "
+"the project, write its pages as PDF and SVG, export the cable list and the "
+"bill of materials, and ask the project questions in SQL. Nothing needs the "
+"desktop application, and nothing leaves your machine: `ew` never uses the "
+"network."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:7
+msgid ""
+"The golden project, `J-E-2416`, is an anonymised control-cabinet project "
+"that EW uses as its acceptance target. Where a real project names a customer "
+"or a person, it holds a placeholder such as `<customer>`. You only read it "
+"here; none of the steps changes it."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:11
+msgid "Before you start"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:13
+msgid "You need:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:15
+msgid ""
+"a checkout of the ElektraWatt repository, which holds the project in "
+"`golden/`;"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:16
+msgid ""
+"the `ew` program, built from the checkout with `cargo build --release -p "
+"ew`. It is then `target/release/ew` (`target\\release\\ew.exe` on Windows). "
+"The examples write plain `ew`; put the program on your `PATH` or type its "
+"path."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:20
+msgid ""
+"Run every command from the root of the checkout. Check that `ew` works; it "
+"prints its name and its version:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:26
+msgid "Then make a directory for the results:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:32
+msgid "Where the project comes from"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:34
+msgid ""
+"The folder `golden/J-E-2416/tables/` holds the project as plain CSV tables: "
+"one file per kind of record (devices, terminals, connections, pages and so "
+"on). The importer of the `ew-import-tables` crate turns these tables into "
+"project records, and the checked-in project `golden/J-E-2416.ew` is "
+"generated from the same tables. The [golden "
+"README](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
+"describes the tables and their format."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:40
+msgid ""
+"**Not built yet.** The importer is a library today. The `ew import csv` "
+"subcommand that will run it from the terminal does not exist yet, so this "
+"guide starts from the checked-in project. When the subcommand exists, this "
+"step will become a command line."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:44
+msgid ""
+"A project is a directory, here `golden/J-E-2416.ew`. Every `ew` command that "
+"works on a project takes it as its first argument."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:47
+msgid "Step 1: check the project"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:49
+msgid ""
+"`ew check` runs the check rules over the project and prints what it finds, "
+"one finding per line:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:58
+msgid "The first lines are the findings, for example:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:64
+msgid ""
+"Each line gives the severity, the rule ID, the rule's six-digit code, the "
+"thing the finding is about and a message. The last line counts the findings, "
+"and the standard error stream repeats the count with the scheme's name. The "
+"golden project holds deliberate defects, so it reports errors: the cable "
+"`-3W1`, for one, has no length, so a cable list cannot be complete."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:69
+msgid "Look at the exit code:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:76
+msgid ""
+"`ew` exits with 0 when the project has no unwaived errors, 1 when it has "
+"some and 2 when it could not run the check at all (a project that cannot be "
+"opened, a wrong option). A script should treat 2 as a failure of the tooling "
+"and 1 as an answer about the drawing. The exit codes of every subcommand are "
+"in [doc 17 "
+"§3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes)."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:81
+msgid ""
+"Each rule has a page in the reference: "
+"[`EW-CORE-033`](../reference/rules/ew-core-033.md) is the cable without a "
+"length, and [`EW-NUM-001`](../reference/rules/ew-num-001.md) is the "
+"information that a frozen device tag differs from what the numbering scheme "
+"would give."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:85
+msgid ""
+"`ew check` takes a scheme and a mode. The default is the `pre-delivery` "
+"scheme in `release` mode; `--format json` and `--format md` change the "
+"output, and `--out <file>` writes it to a file."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:88
+msgid "Step 2: write the pages as PDF and SVG"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:90
+msgid ""
+"`ew export pdf` writes every page of the project into one PDF/A-2b file, "
+"with an outline, page labels and cross-reference links:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:99
+msgid ""
+"The second line, on the standard error stream, counts remarks about the "
+"rendering of single pages and says what they are: here, fields of the title "
+"blocks that the project leaves empty. They do not stop the export. The "
+"directory of `--out` must exist, which is why you made `out` first."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:103
+msgid ""
+"`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
+"to select folios; this writes the pages numbered 101 to 106 that exist:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:112
+msgid ""
+"The directory now holds `101.svg`, `102.svg`, `103.svg` and `106.svg`. `ew` "
+"replaces the directory as a whole, so it must hold SVG files only; a stale "
+"page of an earlier export cannot remain in it."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:115
+msgid ""
+"The same export always gives the same bytes. The only date in the output "
+"comes from the project, or from the environment variable `SOURCE_DATE_EPOCH` "
+"when you set it, never from the clock of your machine; `--threads <n>` "
+"changes the speed and never the result."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:119
+msgid "Step 3: export the cable list and the bill of materials"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:121
+msgid "Two more exports write the rows of a report as CSV:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:130
+msgid ""
+"Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:132
+msgid ""
+"```text\n"
+"row,Cable,Cable type,Core,Colour,mm²,From,To,Length\n"
+"heading,Cable overview,,,,,,,\n"
+"data,-3W1,6XV1830-0EH10,,,,,,length missing\n"
+"data,-106W1,NEBU-G78W5-K-2-N-LE5,,,,\"-X1031, -X1032\",-201U1,from part\n"
+"```"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:139
+msgid ""
+"The cable `-3W1` says \"length missing\": it is the finding of step 1, seen "
+"from the other side. The cables `-106W1` and `-106W2` take their length from "
+"their part."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:142
+msgid ""
+"`--mode` of `ew export bom` is `parts` (the default; every component part) "
+"or `assembly`, which replaces the parts a configured product covers by one "
+"row for the product. Both write the rows of the project's own report page, "
+"so the CSV equals what the drawing prints."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:146
+msgid "Step 4: ask the project questions with SQL"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:148
+msgid ""
+"`ew sql` runs one read-only `SELECT` over the project's SQL views, which are "
+"named `api_v1_...`:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:150
+msgid ""
+"```console\n"
+"$ ew sql golden/J-E-2416.ew \"SELECT count(*) FROM api_v1_terminal\"\n"
+"count(*)\n"
+"28\n"
+"1 rows\n"
+"```"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:157
+msgid ""
+"The result is CSV with a header line, on the standard output; the row count "
+"goes to the standard error stream. Ask for the cables and where their "
+"lengths come from:"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:160
+msgid ""
+"```console\n"
+"$ ew sql golden/J-E-2416.ew \"SELECT tag, cores, length_source FROM "
+"api_v1_cable ORDER BY tag\"\n"
+"tag,cores,length_source\n"
+"-106W1,5,part\n"
+"-106W2,5,part\n"
+"-3W1,3,missing\n"
+"3 rows\n"
+"```"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:169
+msgid ""
+"`ew sql schema` prints every view with its columns. Only `SELECT`, `WITH` "
+"and `VALUES` statements run; anything else, such as `ATTACH`, is refused and "
+"the exit code is 2."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:172
+msgid "What you have done"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:174
+msgid ""
+"You checked a project and read the exit code, wrote its pages as PDF and "
+"SVG, exported a cable list and a bill of materials, and queried the project "
+"in SQL, all from the terminal. The same commands run in a script or a CI "
+"job, because they read the project without locking it and never need a "
+"display."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:178
+msgid "Where to go next"
+msgstr ""
+
+#: src/how-to/headless-workflow.md:180
+msgid ""
+"The [command reference](../reference/commands/index.md) lists the commands "
+"that change a project, and the [rule reference](../reference/rules/index.md) "
+"the rules that `ew check` runs."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:182
+msgid ""
+"More [how-to guides](index.md) for single tasks, such as checking a project "
+"in a CI job, will follow this one."
+msgstr ""
+
+#: src/how-to/headless-workflow.md:183
+msgid ""
+"The [explanation](../explanation/index.md) section links the design of the "
+"model and of the check engine."
 msgstr ""
 
 #: src/how-to/define-supply-potential.md:3
@@ -2286,7 +2292,7 @@ msgstr ""
 #: src/how-to/upgrade-a-project.md:30
 msgid ""
 "To go back, keep the backup: it is the whole project in one file. **File ▸ "
-"Open .ewz…** opens it read-only, or extracts it into a new folder beside it, "
+"Import…** opens it read-only, or extracts it into a new folder beside it, "
 "which the earlier release opens."
 msgstr ""
 
@@ -3082,7 +3088,7 @@ msgstr ""
 msgid ""
 "An `.ewz` archive of a project: Extract and open unpacks it into a new "
 "folder beside it, Open read-only opens it without unpacking. Open it with "
-"File ▸ Open .ewz…."
+"File ▸ Import…, which takes a QElectroTech project as well."
 msgstr ""
 
 #: src/reference/window/dialogs.md:74

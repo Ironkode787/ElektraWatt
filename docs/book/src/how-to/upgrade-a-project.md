@@ -27,7 +27,7 @@ format, the current one, and reads that format and every older one it has a migr
    project folder, then saves the project in the current format. If a file of that name already holds something
    else, the backup takes the next free name (`.pre-<old format>-2.ewz` and so on).
 
-To go back, keep the backup: it is the whole project in one file. **File ▸ Open .ewz…** opens it read-only, or
+To go back, keep the backup: it is the whole project in one file. **File ▸ Import…** opens it read-only, or
 extracts it into a new folder beside it, which the earlier release opens.
 
 ## Upgrade from the terminal

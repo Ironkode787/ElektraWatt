@@ -445,8 +445,10 @@ pub enum Prompt {
     OpenTable,
     /// An `.ewz` file name (File ▸ Export .ewz…).
     SaveEwz,
-    /// An existing `.ewz` (File ▸ Open .ewz…).
+    /// An existing `.ewz` (`file.open_ewz`).
     OpenEwz,
+    /// An existing QElectroTech project or `.ewz` (File ▸ Import…).
+    OpenImport,
     /// A symbol file to open or import in the symbol editor.
     OpenSymbol,
     /// A symbol authoring file name (the symbol editor's Export draft).

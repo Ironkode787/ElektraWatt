@@ -1,6 +1,6 @@
-# A first headless run on the golden project
+# Use the command line on the golden project
 
-In this tutorial you use the `ew` command-line program on the golden project: you check the project, write its pages
+Here you use the `ew` command-line program on the golden project: you check the project, write its pages
 as PDF and SVG, export the cable list and the bill of materials, and ask the project questions in SQL. Nothing needs
 the desktop application, and nothing leaves your machine: `ew` never uses the network.
 
@@ -38,7 +38,7 @@ project records, and the checked-in project `golden/J-E-2416.ew` is generated fr
 and their format.
 
 > **Not built yet.** The importer is a library today. The `ew import csv` subcommand that will run it from the terminal
-> does not exist yet, so this tutorial starts from the checked-in project. When the subcommand exists, this step will
+> does not exist yet, so this guide starts from the checked-in project. When the subcommand exists, this step will
 > become a command line.
 
 A project is a directory, here `golden/J-E-2416.ew`. Every `ew` command that works on a project takes it as its first
@@ -179,6 +179,5 @@ because they read the project without locking it and never need a display.
 
 - The [command reference](../reference/commands/index.md) lists the commands that change a project, and the
   [rule reference](../reference/rules/index.md) the rules that `ew check` runs.
-- [How-to guides](../how-to/index.md) for single tasks, such as checking a project in a CI job, will follow this
-  tutorial.
+- More [how-to guides](index.md) for single tasks, such as checking a project in a CI job, will follow this one.
 - The [explanation](../explanation/index.md) section links the design of the model and of the check engine.
