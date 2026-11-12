@@ -762,7 +762,11 @@ fn a_target_that_names_no_device_is_refused_in_the_window_language() {
     done(&mut s, "navigator.table", json!({"kind": "plc", "on": true}));
     let (_, label) = channel_rows(&s).first().cloned().unwrap();
     let refusal = |s: &mut ShellModel| {
-        done(s, "table.cell", json!({"kind": "plc", "row": label, "column": "target"}));
+        done(
+            s,
+            "table.cell",
+            json!({"kind": "plc", "row": label, "column": "target"}),
+        );
         done(s, "table.input", json!({"text": "-Q99"}));
         match s.dispatch("table.commit", &json!({})) {
             ew_viewmodel::shell::Outcome::Failed { message } => message,

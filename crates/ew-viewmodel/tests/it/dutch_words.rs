@@ -620,7 +620,9 @@ fn a_grid_parse_error_reads_in_the_windows_language() {
 fn an_unresolved_reference_reads_in_the_windows_language() {
     let tmp = Tmp::new("ft1553");
     let mut shell = tmp.shell_in(Mode::Headless, true, "101");
-    let failed = |shell: &mut ShellModel, action: &str, params: serde_json::Value| match shell.dispatch(action, &params) {
+    let failed = |shell: &mut ShellModel, action: &str, params: serde_json::Value| match shell
+        .dispatch(action, &params)
+    {
         ew_viewmodel::shell::Outcome::Failed { message } => message,
         other => panic!("{other:?}"),
     };
@@ -639,9 +641,18 @@ fn an_unresolved_reference_reads_in_the_windows_language() {
     );
     done(&mut shell, "view.language", json!({ "value": "en" }));
     assert!(en.0.contains("`tag:-Q99`: no device prints this tag"), "{en:?}");
-    assert!(en.1.starts_with("`-Q99`: no device prints this tag; a reference is a tag"), "{en:?}");
-    assert!(nl.0.contains("`tag:-Q99`: geen apparaat drukt dit kenmerk af"), "{nl:?}");
-    assert!(nl.1.starts_with("`-Q99`: geen apparaat drukt dit kenmerk af; een verwijzing is"), "{nl:?}");
+    assert!(
+        en.1.starts_with("`-Q99`: no device prints this tag; a reference is a tag"),
+        "{en:?}"
+    );
+    assert!(
+        nl.0.contains("`tag:-Q99`: geen apparaat drukt dit kenmerk af"),
+        "{nl:?}"
+    );
+    assert!(
+        nl.1.starts_with("`-Q99`: geen apparaat drukt dit kenmerk af; een verwijzing is"),
+        "{nl:?}"
+    );
     shell.shutdown();
 }
 
@@ -1262,8 +1273,16 @@ fn ft1554_the_live_description_and_the_library_kinds_read_in_dutch() {
     for locale in ["en", "nl"] {
         done(&mut shell, "view.language", json!({ "value": locale }));
         let live = ew_viewmodel::status::selection_text(&shell);
-        let t = shell.nav(NavKind::Libraries).and_then(|n| n.table()).cloned().unwrap();
-        let kind = t.columns.iter().position(|c| c.key == "kind").expect("the kind column");
+        let t = shell
+            .nav(NavKind::Libraries)
+            .and_then(|n| n.table())
+            .cloned()
+            .unwrap();
+        let kind = t
+            .columns
+            .iter()
+            .position(|c| c.key == "kind")
+            .expect("the kind column");
         let kinds: BTreeSet<String> = t
             .nodes
             .iter()
@@ -1278,7 +1297,14 @@ fn ft1554_the_live_description_and_the_library_kinds_read_in_dutch() {
     assert!(seen[1].0.contains("NC-thermostaat 5-3"), "{:?}", seen[1]);
     assert!(seen[0].1.contains("Function definition"), "{:?}", seen[0].1);
     assert!(seen[1].1.contains("Functiedefinitie"), "{:?}", seen[1].1);
-    for english in ["Part", "Symbol", "Function definition", "Form", "Manufacturer", "PLC profile"] {
+    for english in [
+        "Part",
+        "Symbol",
+        "Function definition",
+        "Form",
+        "Manufacturer",
+        "PLC profile",
+    ] {
         assert!(!seen[1].1.contains(english), "{english} in {:?}", seen[1].1);
     }
 }
@@ -1289,7 +1315,11 @@ fn ft1554_the_part_function_row_reads_in_dutch() {
     let tmp = Tmp::new("ft1554-part");
     let mut s = crate::common::new_project(&tmp);
     let before = crate::common::tables(&s).reps.clone();
-    done(&mut s, "place.pick", json!({"part": "EW-GEN-MCB-2", "template": 0}));
+    done(
+        &mut s,
+        "place.pick",
+        json!({"part": "EW-GEN-MCB-2", "template": 0}),
+    );
     let p = crate::common::grid_point(&s, (40, 20));
     crate::common::click_at(&mut s, p);
     done(&mut s, "tool.select", json!({}));

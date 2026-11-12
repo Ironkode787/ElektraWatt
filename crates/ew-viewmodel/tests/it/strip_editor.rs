@@ -628,6 +628,12 @@ fn a_strip_gestures_refusal_reads_in_dutch() {
     let nl = refusal(&mut shell);
     done(&mut shell, "view.language", json!({ "value": "en" }));
     shell.shutdown();
-    assert!(en.contains("the project has no part `4711` of kind end bracket"), "{en}");
-    assert!(nl.contains("het project heeft geen artikel `4711` van soort eindsteun"), "{nl}");
+    assert!(
+        en.contains("the project has no part `4711` of kind end bracket"),
+        "{en}"
+    );
+    assert!(
+        nl.contains("het project heeft geen artikel `4711` van soort eindsteun"),
+        "{nl}"
+    );
 }

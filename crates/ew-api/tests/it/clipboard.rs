@@ -635,11 +635,18 @@ fn a_child_pasted_with_its_parent_keeps_its_counter() {
         .find(|d| device(&s, *d).tag.scheme == TagScheme::Child)
         .expect("the pasted child");
     let d = device(&s, pasted_child);
-    assert!(d.parent.is_some_and(|p| new.contains(&p.as_uuid())), "under the pasted parent");
+    assert!(
+        d.parent.is_some_and(|p| new.contains(&p.as_uuid())),
+        "under the pasted parent"
+    );
     assert_eq!(d.tag.counter, counter, "the counter kept");
     let q = s.query();
     let tag = q.get::<ew_derive::DeviceTag>(Id::from_uuid(pasted_child));
-    let full = tag.as_ref().as_ref().map(|t| t.full.to_string()).unwrap_or_default();
+    let full = tag
+        .as_ref()
+        .as_ref()
+        .map(|t| t.full.to_string())
+        .unwrap_or_default();
     assert!(!full.is_empty() && !full.contains('?'), "{full}");
 }
 

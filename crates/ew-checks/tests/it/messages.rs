@@ -94,7 +94,11 @@ fn nl_nl_words_the_rule_system_s_findings() {
         "",
         "rule EW-POT-006 could not be evaluated for the project: it stopped with an internal error, so its findings \
          there are missing; report the defect",
-        &[("form", "scope"), ("rule", "EW-POT-006"), ("scope", "the project")],
+        &[
+            ("form", "scope"),
+            ("rule", "EW-POT-006"),
+            ("scope", "the project"),
+        ],
     );
     assert_eq!(
         render(&scope, "nl-NL"),
@@ -149,7 +153,10 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
         "",
         "a device without designation is not placed in the layout of a location; place it on a rail or on the mounting \
          plate",
-        &[("device", "a device without designation"), ("location", "a location")],
+        &[
+            ("device", "a device without designation"),
+            ("location", "a location"),
+        ],
     );
     assert_eq!(
         render(&unplaced, "nl-NL"),

@@ -695,7 +695,7 @@ mod tests {
         assert_eq!(
             read(),
             [
-                "-K1, Coil A1-A2, folio 102, 1 aansluitpunt, 1 draad",
+                "-K1, Spoel A1-A2, folio 102, 1 aansluitpunt, 1 draad",
                 "-K2, Apparaat",
                 "Ongenummerde draad, een aansluitpunt naar een uiteinde van een nieuwere indeling",
                 "7, L1, -K1:A1 naar een aftakking",

@@ -74,7 +74,7 @@ fn bundle(lang: &str) -> Option<&'static Bundle> {
                 b.set_use_isolating(false);
                 // NUMBER(…, type: "ordinal") of a pin's position
                 let _ = b.add_builtins();
-                let tag: &'static str = *tag;
+                let tag: &'static str = tag;
                 let _ = b.add_function("DECIMAL", move |positional, _| match positional.first() {
                     Some(FluentValue::String(s)) => decimal(tag, s).into(),
                     Some(other) => other.clone(),

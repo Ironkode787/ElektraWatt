@@ -197,7 +197,10 @@ fn router_routes() -> (BTreeMap<String, String>, Vec<String>) {
                 .get(&id.to_string())
                 .cloned()
                 .unwrap_or_else(|| id.to_string());
-            let words = s.connection_words(folio, *id).map(|t| t.to_string()).unwrap_or_default();
+            let words = s
+                .connection_words(folio, *id)
+                .map(|t| t.to_string())
+                .unwrap_or_default();
             let why = match why {
                 Unrouted::Wires => "wires",
                 Unrouted::Symbols => "symbols",
@@ -296,7 +299,10 @@ fn detours(s: &ew_api::Session, folio: &str) -> Vec<(String, i64)> {
             .windows(2)
             .map(|w| (w[0].0 - w[1].0).abs() + (w[0].1 - w[1].1).abs())
             .sum();
-        let words = s.connection_words(folio, c.id).map(|t| t.to_string()).unwrap_or_default();
+        let words = s
+            .connection_words(folio, c.id)
+            .map(|t| t.to_string())
+            .unwrap_or_default();
         out.push((words, (length * 10 + span / 2) / span));
     }
     out

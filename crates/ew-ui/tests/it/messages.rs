@@ -677,8 +677,9 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
     const TITLE: &str = "EW-POT-011 Junction feed ambiguous";
     // The potential once, first; the row shows the message alone (it leads with its
     // subject).
-    const MESSAGE: &str = "24VDC has a junction or a group of interruption points whose feed is unclear; draw one \
-                           wire into it from the supply side";
+    // Which junction, where, and its wires (FT-933).
+    const MESSAGE: &str = "24VDC: it is unclear which wire feeds the junction at C11 on folio 101 (wires 101.15, \
+                           101.16, 101.17); draw one wire into it from the supply side";
     for (w, hgt) in [(1280.0, 800.0), (1920.0, 1080.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, Scripted::default());
@@ -731,8 +732,8 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
                 "{w}×{hgt}: {text:?} {rect:?} inside the pane {list:?} above the footer {footer:?}"
             );
         }
-        // The list row keeps one line. With the potential named once it fits at the floor
-        // too (it was cut there, its whole text in its tooltip).
+        // The list row keeps one line: whole at 1920; at the floor the message that names the junction, its place
+        // and its wires (FT-933) is cut there, its whole text in its tooltip and in the detail above.
         let cut = painted
             .iter()
             .filter(|(t, r, _)| t == &row.label && r.bottom() <= list.bottom() + 0.5)
@@ -740,8 +741,8 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
             .collect::<Vec<_>>();
         assert_eq!(
             cut,
-            [false],
-            "{w}×{hgt}: the row {:?} is painted once, whole",
+            [w < 1920.0],
+            "{w}×{hgt}: the row {:?} is painted once",
             row.label
         );
         h.state_mut().shell_mut().shutdown();

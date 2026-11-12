@@ -664,7 +664,10 @@ fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_
             piece.starts_with("interruption point ") && piece.ends_with(&format!(": {wire}")),
             "{piece}"
         );
-        assert!(!piece.contains("fn_cp") && !piece.contains("without a device"), "{piece}");
+        assert!(
+            !piece.contains("fn_cp") && !piece.contains("without a device"),
+            "{piece}"
+        );
     }
 }
 
