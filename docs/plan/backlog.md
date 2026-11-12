@@ -17,7 +17,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 After an hour on an imported project of their own. All of it goes into the second candidate (the owner's word).
 
-- FT-1692 `ew-scene, ew-viewmodel`: **Missing.** No way is in sight to print the wire numbers on the wires.
 - FT-1693 `ew-ui, ew-viewmodel`: **General.** The right-click menu should be the quick way to what fits the thing under the pointer: a terminal strip offers a new terminal and the strip editor, a relay coil its contacts, several selected wires a cable, the title block its fields, a symbol its editor. The owner asks for this to be expanded throughout.
 - FT-1698 `ew-ui, ew-viewmodel`: Define potential asks for the type as typed text; a list as in Properties would show the choices.
 - FT-1699 `ew-checks, ew-viewmodel`: An interruption point cannot be marked as a mains source, so the supply that enters by one stays an error until it is waived.
