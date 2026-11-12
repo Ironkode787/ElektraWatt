@@ -67,7 +67,7 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
     settle(&mut h);
     support::wait_for_page(&mut h);
     settle(&mut h);
-    assert_eq!(printed(&mut h, "project.drawing_id"), "");    // Properties of the page links the form; it lists the fields the title block prints, the description first.
+    assert_eq!(printed(&mut h, "project.drawing_id"), ""); // Properties of the page links the form; it lists the fields the title block prints, the description first.
     h.get_by_label("Title block fields…").click();
     settle(&mut h);
     let Some(Dialog::Form(form)) = h.state().shell().dialog() else {
@@ -178,10 +178,7 @@ fn the_title_block_form_names_the_revision_s_author_and_where_checked_comes_from
         "{:?}",
         h.state().shell().dialog()
     );
-    assert_eq!(
-        printed(&mut h, "revision.current.author.name"),
-        "Drafting office"
-    );
+    assert_eq!(printed(&mut h, "revision.current.author.name"), "Drafting office");
     h.state_mut().shell_mut().shutdown();
 }
 
