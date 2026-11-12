@@ -416,8 +416,71 @@ impl ShellModel {
         }
     }
 
-    /// `part.choose {target?, use?, add?}` (§9.4): opens the part dialog for its target.
+    /// The terminals of strip `strip` without a part, in their order on the strip.
+    pub(crate) fn strip_terminals_without_part(&self, strip: Uuid) -> Vec<Uuid> {
+        let Some(project) = &self.project else {
+            return Vec::new();
+        };
+        let q = project.session.query();
+        let mut terminals: Vec<(u32, Uuid)> = q
+            .devices()
+            .iter()
+            .filter(|(_, d)| d.parts.is_empty())
+            .filter_map(|(id, d)| {
+                let t = d
+                    .aspects
+                    .terminal
+                    .as_ref()
+                    .filter(|t| t.strip.as_uuid() == strip)?;
+                Some((t.seq, id.as_uuid()))
+            })
+            .collect();
+        terminals.sort_unstable();
+        terminals.into_iter().map(|(_, id)| id).collect()
+    }
+
+    /// The terminals of strip `strip` (its ID) without a part as `part.choose`'s target (a strip's row, FT-1695).
+    fn strip_terminals_target(&self, strip: &str) -> Result<Target, Outcome> {
+        let terminals = strip
+            .parse()
+            .map(|s| self.strip_terminals_without_part(s))
+            .map_err(|_| failed(key!("error-bad-param"), &["strip"]))?;
+        let Some(&first) = terminals.first() else {
+            return Err(Outcome::refused(key!("reason-strip-all-parts")));
+        };
+        let tag = self.tag_of(first);
+        Ok(Target {
+            text: if terminals.len() == 1 {
+                tag.clone()
+            } else {
+                strings::format(
+                    key!("part-choose-target-devices"),
+                    &[&terminals.len().to_string()],
+                )
+            },
+            function: self
+                .project
+                .as_ref()
+                .and_then(|p| p.session.main_function(first))
+                .map(|f| f.0),
+            target: PartTarget::Devices {
+                devices: terminals,
+                mode: AssignMode::ReplaceAll,
+            },
+            tag: Some(tag),
+            kinds: Vec::new(),
+        })
+    }
+
+    /// `part.choose {target?, use?, add?, strip?}` (§9.4): opens the part dialog for its target; `strip` (its ID), for
+    /// the strip's terminals without a part.
     pub(crate) fn act_part_choose(&mut self, p: &Map<String, Value>) -> Outcome {
+        if let Some(strip) = or_return!(string_param(p, "strip")) {
+            return match self.strip_terminals_target(strip) {
+                Ok(t) => self.open_part_chooser(t),
+                Err(e) => e,
+            };
+        }
         let want = or_return!(string_param(p, "target"));
         let use_ = match p.get("use") {
             None => None,
@@ -462,6 +525,11 @@ impl ShellModel {
         let Some(t) = target else {
             return Outcome::refused(key!("reason-part-choose-target"));
         };
+        self.open_part_chooser(t)
+    }
+
+    /// Opens the part dialog for `t` with its offers.
+    fn open_part_chooser(&mut self, t: Target) -> Outcome {
         let chooser = PartChooser {
             target: t.target,
             target_text: t.text,

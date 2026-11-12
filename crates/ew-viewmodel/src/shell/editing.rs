@@ -35,7 +35,8 @@ enum Pick {
     Symbol(usize),
     /// A template function: the part's and the function's indices.
     PartFn(usize, usize),
-    /// A part without a function template with a symbol row: the part's and the symbol's indices.
+    /// A part without a function template with a symbol row, or a terminal's part drawn by the kind Terminal… chose:
+    /// the part's and the symbol's indices.
     PartSymbol(usize, usize),
     /// Another representation of a function, with a symbol row.
     Function(String, usize),
@@ -47,6 +48,9 @@ enum Pick {
 /// `designation`, its old name (the old name invited a device tag).
 const TERMINAL_DESIGNATION: [&str; 2] = ["terminal_designation", "designation"];
 
+/// Terminal…'s Part "No part" (a form sends no empty field).
+const NO_PART: &str = "none";
+
 /// The most terminals one click of Terminal…'s Place lays in a row (FT-1695).
 const TERMINAL_ROW_MAX: u32 = 100;
 
@@ -55,6 +59,63 @@ fn terminal_designation(p: &Map<String, Value>) -> Result<Option<&str>, Outcome>
     match string_param(p, TERMINAL_DESIGNATION[0])? {
         Some(d) => Ok(Some(d)),
         None => string_param(p, TERMINAL_DESIGNATION[1]),
+    }
+}
+
+/// The page's terminal kinds, Terminal…'s Kind: its terminal symbols a device places, allowed and on its grid, by their
+/// names ("Terminal" before "Terminal, protective earth").
+fn terminal_kinds(cat: &PlaceCatalogue) -> Vec<&CatalogueSymbol> {
+    let mut kinds: Vec<&CatalogueSymbol> = cat
+        .symbols
+        .iter()
+        .filter(|s| s.terminal && s.placed_by == PlacedBy::Device && s.allowed && s.grid_mismatch.is_none())
+        .collect();
+    kinds.sort_by(|a, b| a.name.cmp(&b.name));
+    kinds
+}
+
+/// The function definition of the main function of the catalogue's part `i` (its first where none is marked); `None`
+/// without a template.
+fn part_fndef(cat: &PlaceCatalogue, i: usize) -> Option<&str> {
+    let functions = &cat.parts.get(i)?.functions;
+    functions
+        .iter()
+        .find(|f| f.main)
+        .or(functions.first())
+        .map(|f| f.fndef_key.as_str())
+}
+
+/// The catalogue's parts of terminal kind `kind`, by their indices: a part is of a kind when its main function is the
+/// function definition the kind's symbol draws (never by its part number).
+fn kind_parts<'a>(cat: &'a PlaceCatalogue, kind: &'a CatalogueSymbol) -> impl Iterator<Item = usize> + 'a {
+    (0..cat.parts.len()).filter(move |&i| part_fndef(cat, i) == Some(kind.fndef_key.as_str()))
+}
+
+/// A terminal part in Terminal…'s Part list as the part dialog names it: `<part number> (<maker>) · <description>`,
+/// without the parts it lacks.
+fn terminal_part_words(cat: &PlaceCatalogue, i: usize) -> String {
+    let part = &cat.parts[i];
+    let mut words = part.part_number.clone();
+    if !part.manufacturer.is_empty() {
+        words.push_str(&format!(" ({})", part.manufacturer));
+    }
+    if !part.description.is_empty() {
+        words.push_str(&format!(" \u{b7} {}", part.description));
+    }
+    words
+}
+
+/// Adds part `copy` to Terminal…'s Part list `options` where it is missing: a strip's held part without a function
+/// template, which the proposal may name.
+fn offer_part(cat: &PlaceCatalogue, options: &mut Vec<(String, String)>, copy: Option<Uuid>) {
+    let Some(copy) = copy.map(|c| c.to_string()) else {
+        return;
+    };
+    if options.iter().any(|(v, _)| *v == copy) {
+        return;
+    }
+    if let Some(i) = cat.parts.iter().position(|r| r.copy.to_string() == copy) {
+        options.push((copy, terminal_part_words(cat, i)));
     }
 }
 
@@ -1202,26 +1263,20 @@ impl ShellModel {
         out
     }
 
-    /// `tool.place_terminal {strip?, kind?, count?, from?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the window without
-    /// parameters its small form asks which strip (one of the project's, or `new`: a new strip with the tag it will
-    /// take), which kind of terminal (the page's terminal symbols: feed-through, PE…), how many and from which number
-    /// (empty: the strip's next free one). Place then arms the Place tool with the first terminal floating; a click
-    /// places the row, each terminal on the next free point two grid steps right of the one before (`place.pick`'s
-    /// `count`). Headless, the parameters left out take the form's defaults.
+    /// `tool.place_terminal {strip?, kind?, part?, count?, from?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the window
+    /// without parameters its small form asks which strip (one of the project's, or `new`: a new strip with the tag it
+    /// will take), which kind of terminal (the page's terminal symbols: feed-through, PE…), which part (No part, or a
+    /// terminal part of the kinds: [`Self::terminal_part_proposal`] proposes one, and a part chosen sets its kind), how
+    /// many and from which number (empty: the strip's next free one). Place then arms the Place tool with the first
+    /// terminal floating; a click places the row, each terminal on the next free point two grid steps right of the one
+    /// before (`place.pick`'s `count`), each with the part in the step that places it. Headless, the parameters left
+    /// out take the form's defaults.
     pub(crate) fn act_place_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "tool.place_terminal";
         let Some(cat) = self.catalogue() else {
             return Outcome::refused(key!("reason-no-catalogue"));
         };
-        // The page's terminal symbols by their names ("Terminal" before "Terminal, protective earth").
-        let mut kinds: Vec<&CatalogueSymbol> = cat
-            .symbols
-            .iter()
-            .filter(|s| {
-                s.terminal && s.placed_by == PlacedBy::Device && s.allowed && s.grid_mismatch.is_none()
-            })
-            .collect();
-        kinds.sort_by(|a, b| a.name.cmp(&b.name));
+        let kinds = terminal_kinds(&cat);
         if kinds.is_empty() {
             return Outcome::refused(key!("reason-no-terminal-kind"));
         }
@@ -1236,6 +1291,24 @@ impl ShellModel {
                 .map(|st| (st.id.to_string(), crate::navigators::strip_label(&st.tag)))
                 .collect();
             strips.push(("new".to_owned(), new_words));
+            // The Part: No part, then every terminal part of the kinds; it proposes the first strip's and kind's.
+            let mut parts = vec![(
+                NO_PART.to_owned(),
+                strings::text(key!("draw-options-no-part")).to_owned(),
+            )];
+            parts.extend(
+                (0..cat.parts.len())
+                    .filter(|&i| {
+                        kinds
+                            .iter()
+                            .any(|k| part_fndef(&cat, i) == Some(k.fndef_key.as_str()))
+                    })
+                    .map(|i| (cat.parts[i].copy.to_string(), terminal_part_words(&cat, i))),
+            );
+            let strip = Self::catalogue_strip(&cat, &strips[0].0).map(|i| cat.strips[i].id);
+            let proposal = self.terminal_part_proposal(&cat, strip, kinds[0]);
+            offer_part(&cat, &mut parts, proposal);
+            let proposal = proposal.map_or_else(|| NO_PART.to_owned(), |c| c.to_string());
             let field = |name, label_key, options: Vec<(String, String)>, value: String| super::FormField {
                 name,
                 label_key,
@@ -1260,6 +1333,7 @@ impl ShellModel {
                         kinds.iter().map(|s| (s.key.clone(), s.name.clone())).collect(),
                         kinds[0].key.clone(),
                     ),
+                    field("part", key!("form-terminal-part"), parts, proposal),
                     field("count", key!("form-terminal-count"), Vec::new(), "1".to_owned()),
                     field("from", key!("form-terminal-from"), Vec::new(), String::new()),
                 ],
@@ -1273,9 +1347,45 @@ impl ShellModel {
             Some(Value::Number(n)) => n.to_string(),
             _ => String::new(),
         };
-        let kind = Some(text("kind"))
+        let mut strip = Some(text("strip")).filter(|s| !s.is_empty()).unwrap_or_else(|| {
+            cat.strips
+                .first()
+                .map_or_else(|| "new".to_owned(), |st| st.id.to_string())
+        });
+        let mut kind = Some(text("kind"))
             .filter(|k| !k.is_empty())
             .unwrap_or_else(|| kinds[0].key.clone());
+        // The part (its copy ID or its part number; `none` or empty: none): a terminal part of one of the kinds, whose
+        // kind it sets (a held part without a function template keeps the kind given). Left out, the form's proposal.
+        let part = match p.get("part") {
+            Some(_) if matches!(text("part").as_str(), "" | NO_PART) => None,
+            Some(_) => {
+                let given = text("part");
+                let found = cat
+                    .parts
+                    .iter()
+                    .position(|r| r.copy.to_string() == given || r.part_number == given)
+                    .and_then(|i| {
+                        let Some(fndef) = part_fndef(&cat, i) else {
+                            return Some((cat.parts[i].copy, kind.clone()));
+                        };
+                        let k = kinds
+                            .iter()
+                            .find(|k| k.key == kind && k.fndef_key == fndef)
+                            .or_else(|| kinds.iter().find(|k| k.fndef_key == fndef))?;
+                        Some((cat.parts[i].copy, k.key.clone()))
+                    });
+                let Some((copy, k)) = found else {
+                    return self.form_failed(ACTION, strings::format(key!("error-terminal-part"), &[&given]));
+                };
+                kind = k;
+                Some(copy)
+            }
+            None => kinds.iter().find(|k| k.key == kind).and_then(|k| {
+                let strip = Self::catalogue_strip(&cat, &strip).map(|i| cat.strips[i].id);
+                self.terminal_part_proposal(&cat, strip, k)
+            }),
+        };
         let Some(symbol) = cat
             .symbols
             .iter()
@@ -1301,11 +1411,6 @@ impl ShellModel {
         if count > 1 && !from.is_empty() && crate::tools::next_designation(&from).is_none() {
             return self.form_failed(ACTION, strings::format(key!("error-terminal-from"), &[&from]));
         }
-        let mut strip = Some(text("strip")).filter(|s| !s.is_empty()).unwrap_or_else(|| {
-            cat.strips
-                .first()
-                .map_or_else(|| "new".to_owned(), |st| st.id.to_string())
-        });
         let mut cat = cat;
         if strip == "new" {
             let made = self.act_strip_new(&Map::new());
@@ -1325,8 +1430,116 @@ impl ShellModel {
             params.insert(TERMINAL_DESIGNATION[0].into(), Value::String(from));
         }
         self.tools.picker = None;
-        let out = self.arm(cat, Pick::Symbol(symbol), &params);
+        // Every terminal of the row carries the part, in the step that places it.
+        let pick = match part.and_then(|copy| cat.parts.iter().position(|r| r.copy == copy)) {
+            Some(pi) => Pick::PartSymbol(pi, symbol),
+            None => Pick::Symbol(symbol),
+        };
+        let out = self.arm(cat, pick, &params);
         self.form_done(ACTION, out)
+    }
+
+    /// The part Terminal… proposes for a terminal of kind `kind` on strip `strip` (`None`: a new strip), by its copy ID:
+    /// the part of the strip's last terminal of that kind where the catalogue offers it for the kind (or holds it
+    /// without a function template), else the kind's starter part, else its first part (the project's own come
+    /// first); `None` where no part is of the kind.
+    fn terminal_part_proposal(
+        &self,
+        cat: &PlaceCatalogue,
+        strip: Option<Uuid>,
+        kind: &CatalogueSymbol,
+    ) -> Option<Uuid> {
+        let parts: Vec<Uuid> = kind_parts(cat, kind).map(|i| cat.parts[i].copy).collect();
+        let last = strip.zip(self.project.as_ref()).and_then(|(strip, project)| {
+            let session = &project.session;
+            let q = session.query();
+            q.devices()
+                .iter()
+                .filter_map(|(id, d)| {
+                    let t = d
+                        .aspects
+                        .terminal
+                        .as_ref()
+                        .filter(|t| t.strip.as_uuid() == strip)?;
+                    Some((
+                        t.seq,
+                        id.as_uuid(),
+                        d.parts.first().map(|u| u.part.copy.as_uuid()),
+                    ))
+                })
+                .filter(|(_, id, _)| {
+                    session
+                        .main_function(*id)
+                        .is_some_and(|(_, k)| k == kind.fndef_key)
+                })
+                .max_by_key(|(seq, ..)| *seq)
+                .and_then(|(.., part)| part)
+        });
+        let starter = ew_api::library::starter_parts_library();
+        // A held part without a function template cannot be of another kind.
+        let untyped = |c: &Uuid| cat.parts.iter().any(|r| r.copy == *c && r.functions.is_empty());
+        last.filter(|c| parts.contains(c) || untyped(c))
+            .or_else(|| {
+                kind_parts(cat, kind)
+                    .find(|&i| cat.parts[i].library.is_some_and(|(l, _)| l == starter))
+                    .map(|i| cat.parts[i].copy)
+            })
+            .or_else(|| parts.first().copied())
+    }
+
+    /// Terminal…'s form after a choice (`changed`, the field's name): a part chosen sets the kind it draws; another
+    /// strip or kind proposes its part again (FT-1695), so that Kind and Part never contradict each other.
+    pub(super) fn terminal_form_follow(&mut self, changed: &str) {
+        let Some(cat) = self.catalogue() else { return };
+        let Some(super::Dialog::Form(form)) = &self.dialog else {
+            return;
+        };
+        let value = |name: &str| {
+            form.fields
+                .iter()
+                .find(|f| f.name == name)
+                .map(|f| f.value.clone())
+                .unwrap_or_default()
+        };
+        let (strip, kind, part) = (value("strip"), value("kind"), value("part"));
+        let kinds = terminal_kinds(&cat);
+        let (name, new) = match changed {
+            "part" if part != NO_PART => {
+                let fndef = cat
+                    .parts
+                    .iter()
+                    .position(|r| r.copy.to_string() == part)
+                    .and_then(|i| part_fndef(&cat, i));
+                let fits = |k: &CatalogueSymbol| Some(k.fndef_key.as_str()) == fndef;
+                if kinds.iter().any(|k| k.key == kind && fits(k)) {
+                    return;
+                }
+                let Some(k) = kinds.iter().find(|k| fits(k)) else {
+                    return;
+                };
+                ("kind", k.key.clone())
+            }
+            "strip" | "kind" => {
+                let Some(k) = kinds.iter().find(|k| k.key == kind) else {
+                    return;
+                };
+                let strip = Self::catalogue_strip(&cat, &strip).map(|i| cat.strips[i].id);
+                let proposal = self.terminal_part_proposal(&cat, strip, k);
+                (
+                    "part",
+                    proposal.map_or_else(|| NO_PART.to_owned(), |c| c.to_string()),
+                )
+            }
+            _ => return,
+        };
+        if let Some(super::Dialog::Form(form)) = &mut self.dialog
+            && let Some(f) = form.fields.iter_mut().find(|f| f.name == name)
+        {
+            if name == "part" {
+                offer_part(&cat, &mut f.options, new.parse().ok());
+            }
+            f.value = new;
+        }
     }
 
     /// The transform keys (§7.4, §7.2): `Key(k)` to the active tool; with Select, V on several representations is

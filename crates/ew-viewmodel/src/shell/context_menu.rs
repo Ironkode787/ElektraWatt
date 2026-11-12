@@ -10,8 +10,8 @@
 //! - **A junction:** Define potential….
 //! - **An interruption point:** Supply comes in here… (Remove the supply mark on a marked point; several points
 //!   selected offer it alone, for them all), Go to its partner, Direction: Source and Direction: Target, Continue on page….
-//! - **A terminal:** Add terminal (its strip's next free number, of its own kind, floating at the pointer), Edit strip,
-//!   Define potential….
+//! - **A terminal:** Add terminal (its strip's next free number, of its own kind and part, floating at the pointer),
+//!   Choose part…, Edit strip, Define potential…. **Several terminals:** Choose part… for them all.
 //! - **A symbol of a device:** on a coil Add contact per free contact of its device (each floats its symbol), on a
 //!   contact Go to coil; Join device… where another device can take it; Choose part…; Edit symbol and Copy and edit;
 //!   Define potential… on a symbol of one connection point.
@@ -71,6 +71,13 @@ impl ShellModel {
                     i
                 }));
             }
+            return out;
+        }
+        // Several terminals: Choose part… for them all.
+        let terminal =
+            |e: &ew_api::output::ew_dl::EntityRef| tables.reps.iter().any(|r| r.id == e.0 && r.terminal);
+        if kinds.len() > 1 && kinds.iter().all(|(e, k)| *k == EntityKind::Rep && terminal(e)) {
+            out.extend(self.menu_item("part.choose"));
             return out;
         }
         let [(e, kind)] = kinds.as_slice() else {
@@ -153,16 +160,26 @@ impl ShellModel {
         out.extend(self.menu_item("ip.continue_on"));
     }
 
-    /// Add terminal to its strip, Edit strip, Define potential….
+    /// Add terminal to its strip (of its kind and its part), Choose part…, Edit strip, Define potential….
     fn terminal_fits(&self, rep: &TableRep, out: &mut Vec<ActionItem>) {
         if let Some(strip) = rep.device.and_then(|d| self.strip_of_device(d)) {
             let mut params = json!({ "strip": strip.to_string() });
             if !rep.symbol_key.is_empty() {
                 params["kind"] = Value::String(rep.symbol_key.clone());
             }
+            // Its part; without one, Terminal…'s proposal.
+            let part = self.project.as_ref().zip(rep.device).and_then(|(p, d)| {
+                let q = p.session.query();
+                let device = q.devices().get(d.to_string().parse().ok()?)?;
+                device.parts.first().map(|u| u.part.copy.as_uuid())
+            });
+            if let Some(part) = part {
+                params["part"] = Value::String(part.to_string());
+            }
             let label = strings::text(key!("canvas-add-terminal")).to_owned();
             out.extend(self.aimed("tool.place_terminal", params, label));
         }
+        out.extend(self.menu_item("part.choose"));
         let label = strings::text(key!("canvas-edit-strip")).to_owned();
         out.extend(self.aimed("strip.edit", json!({}), label));
         if self.potential_point().is_ok() {

@@ -639,9 +639,9 @@ pub fn cp_menu(model: &ShellModel, cp: ew_api::output::Uuid) -> Option<ActionIte
 
 /// A navigator row's context menu, what the same thing offers on the page: on a Potentials row with a definition
 /// point (`NavNode::define_at`), Define potential… at it (`potential.draw_row`); on a Terminal strips row of a strip,
-/// Add terminal and Edit strip (FT-1707); on a device's, a PLC channel's, a cable's and a page's row their entries
-/// (FT-1693, `ShellModel::row_fits`). Each disabled with its reason where it cannot run. Empty when the row offers
-/// nothing: the window then opens no menu.
+/// Add terminal, Choose part for its terminals without one and Edit strip (FT-1707); on a device's, a PLC channel's, a
+/// cable's and a page's row their entries (FT-1693, `ShellModel::row_fits`). Each disabled with its reason where it
+/// cannot run. Empty when the row offers nothing: the window then opens no menu.
 pub fn navigator_row_menu(
     model: &ShellModel,
     kind: crate::navigators::NavKind,
@@ -666,9 +666,17 @@ pub fn navigator_row_menu(
             key!("action-potential-draw-row"),
         )],
         (NavKind::Strips, NavRole::Strip, Some(strip)) => {
+            let bare = model.strip_terminals_without_part(*strip).len();
             let strip = serde_json::json!({ "strip": strip.to_string() });
+            let mut choose = item("part.choose", strip.clone(), key!("action-part-choose"));
+            choose.label = strings::format_count(crate::count_key!("canvas-choose-part-strip"), bare);
+            if bare == 0 && choose.enabled {
+                choose.enabled = false;
+                choose.reason = Some(strings::text(key!("reason-strip-all-parts")).to_owned());
+            }
             vec![
                 item("tool.place_terminal", strip.clone(), key!("canvas-add-terminal")),
+                choose,
                 item("strip.edit", strip, key!("canvas-edit-strip")),
             ]
         }
