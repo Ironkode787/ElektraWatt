@@ -48,23 +48,8 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### Texts, and Dutch
 
-- FT-1551 `ew-viewmodel, ew-api`: The script reference resolver's reasons reach the PLC target cell in English in a Dutch window; key them.
-- FT-1552 `ew-viewmodel`: A `SchemaError`'s window text carries its JSON Pointer; name the field in words.
-- FT-1553 `ew-viewmodel`: The command-log errors of `run_logged` and the wizard are English in a Dutch window; key the ones a person can reach.
-- FT-1554 `ew-viewmodel, ew-api`: The grid's "Part function" row, the live description and the place catalogue show a generic kind in English; word them as FT-1483 does, and the Libraries kind column too.
-- FT-1555 `ew-viewmodel`: `StripEditError` passes its English to the window, and a Dutch window's yes/no editor refuses "ja"; key the one and accept the other.
-- FT-1556 `ew-commands`: The attached-records refusal shows the raw member name ("pin fn_cp 0") and "a function without a device" for an interruption point's pins; name them in words.
-- FT-1557 `ew-viewmodel`: `image.pick`'s refusal of an over-limit image names it by its `sha256:` hash, as its missing-asset error does; name the image by its file name where the project knows it.
-- FT-912 `ew-checks`: English fallback words ("an unknown profile", "a location", "a device without designation", "a missing part") and "40.0"-style decimals print inside the nl-NL rule messages, across all rules (`layout.rs`, `cable.rs`, `pot.rs`) (the review's part-3 finding 3, cycle 41).
-- FT-968 `ew-checks`: EW-CORE-052's new hint has no nl-NL text (P42, cycle 42).
-- FT-680 `ew-checks`: Nl-NL Fluent messages beyond the twelve rules Golden A reports (WP-S1.16 part 5 de-scoped them by its §13.1 rule; the other rules fall back to en-GB): titles, hints and value patterns for every registered rule, with P5-1's completeness test extended to nl-NL.
-- FT-1570 `ew-api`: The update's failed-save refusal carries an English detail into a Dutch window, as the purge refusal does; key the detail.
-- FT-1600 `ew-api`: A connection's `{wire}` words with a junction end read "the junction in C11 → …" in English in every language (`connection_words`); give the junction end its words per language, as the rule messages do.
-- FT-924 `ew-commands, ew-derive`: A device cloned without online numbering prints "-X?33" (B42, cycle 42).
-- FT-743 `ew-commands`: `edit.paste` leaves child counters unassigned (a pasted valve prints "Q?") where `macro.insert` keeps them when the parent comes along.
-- FT-933 `ew-checks`: EW-POT-011's message "Junction feed ambiguous" names no wire, page or place; say which wires feed which junction or group of interruption points, and where (play-test rv-vis-5, cycle 41).
-- FT-1661 `docs/book`: The guide's Dutch translation leaves 4 of the 183 messages of the introduction and the tutorials untranslated, so `ci/translation-status.py` exits 1 on 0.1.0's commit (RC-06); translate them.
-
+- FT-1674 `ew-import-qet, ew-checks`: The 21 EW-IMP rules of a migration report read in English in a Dutch window: their message is the importer's own text, stored in the project. Wording them per language needs their arguments stored instead, which changes the format.
+- FT-1675 `ew-checks, ew-viewmodel`: Three texts name a thing by its ID or path: EW-REL-004 prints a revision's ID, EW-CORE-008 a form copy's ID, and the refusal of `image.file` the file's path; name them in words.
 ### Symbols, parts and content
 
 - FT-1667 `content`: The starter contactor EW-GEN-CON-1 is filed as a relay (its category is its coil's), so the browser lists it under Relays and nothing under Contactors. Decide its category, and with it its letter (K or Q), in the starter parts.
