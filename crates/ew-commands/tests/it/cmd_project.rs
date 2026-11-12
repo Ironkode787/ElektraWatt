@@ -901,7 +901,10 @@ fn fields_set_on_the_project_refuses_other_members_targets_and_values() {
         );
     }
     let project_row = e.model().project();
-    assert_eq!(project_row.master.drawing_id.as_ref().map(|d| d.as_str()), Some("D-0001"));
+    assert_eq!(
+        project_row.master.drawing_id.as_ref().map(|d| d.as_str()),
+        Some("D-0001")
+    );
     assert_eq!(project_row.parties.len(), 1);
     let other = id::<ew_schema::Project>(0x4fe).to_string();
     assert!(matches!(

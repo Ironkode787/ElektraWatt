@@ -842,10 +842,7 @@ pub(super) fn check_waive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             "check.waive",
             params("EW-CORE-041", &rng.word(31), reason),
         )),
-        2 => Some(Step::cmd(
-            "check.waive",
-            params("EW-CORE-041", &hex(rng), "x"),
-        )),
+        2 => Some(Step::cmd("check.waive", params("EW-CORE-041", &hex(rng), "x"))),
         3 => {
             let (_, rule, fingerprint) = rng.pick(&live.waivers)?;
             Some(Step::cmd(

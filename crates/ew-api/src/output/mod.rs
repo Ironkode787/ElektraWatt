@@ -155,11 +155,11 @@ pub use strip_edit::{
     ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word,
     accessory_part_kinds,
 };
-pub use title_block_fields::TitleBlockFacts;
 pub use table_io::{
     CellOutcome, ImportCell, ImportTableOptions, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
     TableImportError, guard_table_read,
 };
+pub use title_block_fields::TitleBlockFacts;
 pub use view::{
     FrameForms, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf, PageSlotsOf, PageTableOf,
     page_destination, page_items, page_uuid, page_valve_glyphs,

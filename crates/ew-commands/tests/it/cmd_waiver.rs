@@ -76,7 +76,8 @@ fn waive_takes_no_reason_and_no_author() {
     let params = bare.as_object_mut().unwrap();
     params.remove("reason");
     params.remove("author");
-    e.execute(&waive(bare)).expect("a waiver without reason and author commits");
+    e.execute(&waive(bare))
+        .expect("a waiver without reason and author commits");
     let [w] = waivers(&e).try_into().expect("one waiver");
     assert!(w.reason.is_empty());
     assert_eq!(w.author, None);

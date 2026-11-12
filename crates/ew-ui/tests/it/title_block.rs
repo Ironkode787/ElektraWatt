@@ -102,7 +102,14 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
     let typed: Vec<(&str, &str)> = form
         .fields
         .iter()
-        .filter(|f| ["project.drawing_id", "party.end_user.name", "revision.current.label"].contains(&f.name))
+        .filter(|f| {
+            [
+                "project.drawing_id",
+                "party.end_user.name",
+                "revision.current.label",
+            ]
+            .contains(&f.name)
+        })
         .map(|f| (f.name, f.value.as_str()))
         .collect();
     assert_eq!(
@@ -115,7 +122,11 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
     );
     h.key_press(Key::Enter);
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     // The page prints the new values at once.
     assert_eq!(printed(&mut h, "project.drawing_id"), "D-0001");
     assert_eq!(printed(&mut h, "party.end_user.name"), "Plant operator");
@@ -123,7 +134,13 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
     // The fields' step is one undo step (the revision its own).
     let shell = h.state_mut().shell_mut();
     assert_eq!(
-        shell.recorded_commands().iter().rev().take(2).map(|c| c.cmd.as_str()).collect::<Vec<_>>(),
+        shell
+            .recorded_commands()
+            .iter()
+            .rev()
+            .take(2)
+            .map(|c| c.cmd.as_str())
+            .collect::<Vec<_>>(),
         ["revision.create", "fields.set_many"]
     );
     shell.shutdown();

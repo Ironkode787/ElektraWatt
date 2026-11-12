@@ -2025,7 +2025,12 @@ mod tests {
             m.items().iter().map(|i| i.id).collect()
         };
         let file = ids(Menu::File);
-        for id in ["file.new", "file.open_sample", "file.discard_journal", "file.import"] {
+        for id in [
+            "file.new",
+            "file.open_sample",
+            "file.discard_journal",
+            "file.import",
+        ] {
             assert!(file.contains(&id), "{id} in File");
         }
         // An `.ewz` opens through File ▸ Import…, not an entry of its own (FT-1708).

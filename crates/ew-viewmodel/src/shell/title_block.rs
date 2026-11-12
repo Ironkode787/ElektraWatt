@@ -39,7 +39,11 @@ enum Source {
 /// The title-block paths the form edits, each with its label and its source (doc 09 §2.6's paths): the one list.
 const FIELDS: &[(&str, Key<'static>, Source)] = &[
     ("page.title", key!("field-word-title"), Source::PageText("title")),
-    ("page.description", key!("field-word-description"), Source::Description),
+    (
+        "page.description",
+        key!("field-word-description"),
+        Source::Description,
+    ),
     (
         "project.description",
         key!("titleblock-project-description"),
@@ -80,16 +84,36 @@ const FIELDS: &[(&str, Key<'static>, Source)] = &[
         key!("field-word-edited"),
         Source::ProjectDate("master.edited"),
     ),
-    ("party.customer.name", key!("choice-customer"), Source::Party("customer")),
-    ("party.end_user.name", key!("choice-end-user"), Source::Party("end_user")),
+    (
+        "party.customer.name",
+        key!("choice-customer"),
+        Source::Party("customer"),
+    ),
+    (
+        "party.end_user.name",
+        key!("choice-end-user"),
+        Source::Party("end_user"),
+    ),
     (
         "party.panel_builder.name",
         key!("choice-panel-builder"),
         Source::Party("panel_builder"),
     ),
-    ("party.author.name", key!("choice-author"), Source::Party("author")),
-    ("party.checker.name", key!("choice-checker"), Source::Party("checker")),
-    ("party.engineer.name", key!("choice-engineer"), Source::Party("engineer")),
+    (
+        "party.author.name",
+        key!("choice-author"),
+        Source::Party("author"),
+    ),
+    (
+        "party.checker.name",
+        key!("choice-checker"),
+        Source::Party("checker"),
+    ),
+    (
+        "party.engineer.name",
+        key!("choice-engineer"),
+        Source::Party("engineer"),
+    ),
     (
         "revision.current.label",
         key!("titleblock-revision"),
@@ -117,7 +141,7 @@ impl ShellModel {
                     || facts.open_revision.is_some()
                     || !facts.has_revisions;
                 writable.then(|| FormField {
-                    name: *name,
+                    name,
                     label_key: *label_key,
                     choices: &super::choices::NONE,
                     options: Vec::new(),
@@ -183,7 +207,12 @@ impl ShellModel {
                     edits.push(edit("page", &page, "description_override", or_null(&text)));
                 }
                 Source::Description => {
-                    edits.push(edit("project", &project, "master.description", Value::String(text)));
+                    edits.push(edit(
+                        "project",
+                        &project,
+                        "master.description",
+                        Value::String(text),
+                    ));
                 }
                 Source::ProjectText(member) => {
                     edits.push(edit("project", &project, member, Value::String(text)));
@@ -191,10 +220,8 @@ impl ShellModel {
                 Source::ProjectIdent(member) => edits.push(edit("project", &project, member, or_null(&text))),
                 Source::ProjectDate(member) => {
                     if !text.is_empty() && text.parse::<ew_api::catalog::Date>().is_err() {
-                        let message = strings::format(
-                            key!("error-titleblock-date"),
-                            &[strings::text(f.label_key)],
-                        );
+                        let message =
+                            strings::format(key!("error-titleblock-date"), &[strings::text(f.label_key)]);
                         return self.form_failed(TITLE_BLOCK, message);
                     }
                     edits.push(edit("project", &project, member, or_null(&text)));

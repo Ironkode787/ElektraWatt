@@ -809,7 +809,10 @@ impl ShellModel {
     /// is left as it is.
     fn show_new_surface(&mut self, page: Option<Uuid>, before: &[(Uuid, String)]) {
         let Some(page) = page else { return };
-        let panel = self.page_rows().get(self.page_index()).is_some_and(|r| r.kind == "panel_layout");
+        let panel = self
+            .page_rows()
+            .get(self.page_index())
+            .is_some_and(|r| r.kind == "panel_layout");
         if !panel || self.panel_tables().is_some() {
             return;
         }

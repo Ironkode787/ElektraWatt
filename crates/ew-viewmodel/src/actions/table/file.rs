@@ -49,15 +49,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // An `.ewz`, asking Extract and open or Open read-only; File ▸ Import… reaches it.
     with_params(
         "path?:path, how?:enum(extract|read_only), discard?:bool",
-        act(
-            "file.open_ewz",
-            Command,
-            Menu::File,
-            &[],
-            always,
-            None,
-            |s, p| s.act_open_ewz(p),
-        ),
+        act("file.open_ewz", Command, Menu::File, &[], always, None, |s, p| {
+            s.act_open_ewz(p)
+        }),
     ),
     with_params(
         "index:uint, discard?:bool",
