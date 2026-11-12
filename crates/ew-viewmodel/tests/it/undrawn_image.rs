@@ -164,14 +164,14 @@ fn a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_template
                     .to_owned()
         }
     );
+    // `image.pick` names the image by where it shows, never by its hash (FT-1557).
     done(&mut s, "tool.image", json!({}));
     assert_eq!(
         s.dispatch("image.pick", &json!({ "asset": hash })),
         Outcome::Failed {
-            message: format!(
-                "The image {hash} is not accepted: the png image is 65536 × 32768 pixels, more than a drawing can \
-                 show (at most 16777216 pixels and 65535 on a side); scale it down and add it again."
-            )
+            message: "The image on folio 101 is not accepted: the png image is 65536 × 32768 pixels, more than a \
+                      drawing can show (at most 16777216 pixels and 65535 on a side); scale it down and add it again."
+                .to_owned()
         }
     );
     assert_eq!(s.tool().state(), "picking", "the tool is unchanged");
@@ -194,11 +194,10 @@ fn a_held_image_over_the_limit_is_refused_by_its_hash_and_named_after_a_template
     assert_eq!(
         s.dispatch("image.pick", &json!({ "asset": hash })),
         Outcome::Failed {
-            message: format!(
-                "De afbeelding {hash} wordt niet aanvaard: de png-afbeelding is 65536 × 32768 pixels, meer dan een \
-                 tekening kan tonen (ten hoogste 16777216 pixels en 65535 per zijde); verklein haar en voeg haar \
-                 opnieuw toe."
-            )
+            message: "De afbeelding op folio 101 wordt niet aanvaard: de png-afbeelding is 65536 × 32768 pixels, meer \
+                      dan een tekening kan tonen (ten hoogste 16777216 pixels en 65535 per zijde); verklein haar en \
+                      voeg haar opnieuw toe."
+                .to_owned()
         }
     );
     done(&mut s, "view.language", json!({ "value": "en" }));

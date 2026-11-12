@@ -648,7 +648,11 @@ impl ShellModel {
             .unrouted
             .iter()
             .map(|(id, reason)| {
-                let wire = session.connection_words(&folio, *id).unwrap_or_default();
+                // The connection's ends in the window's language (FT-1600).
+                let wire = session
+                    .connection_words(&folio, *id)
+                    .map(|t| super::tools::rejected_words("", Some(&t)))
+                    .unwrap_or_default();
                 let key = match reason {
                     Unrouted::Wires => key!("route-reason-wires"),
                     Unrouted::Symbols => key!("route-reason-symbols"),

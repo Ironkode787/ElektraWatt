@@ -751,3 +751,28 @@ fn the_address_profile_is_chosen_in_properties() {
         Some("plc.set_profile")
     );
 }
+
+/// FT-1551: a target typed into the PLC grid that names no device is refused in the window's language, the reference
+/// resolver's reason included.
+#[test]
+fn a_target_that_names_no_device_is_refused_in_the_window_language() {
+    let tmp = Tmp::new("plcnav-ft1551");
+    let mut s = new_project(&tmp);
+    pg2_state(&mut s);
+    done(&mut s, "navigator.table", json!({"kind": "plc", "on": true}));
+    let (_, label) = channel_rows(&s).first().cloned().unwrap();
+    let refusal = |s: &mut ShellModel| {
+        done(s, "table.cell", json!({"kind": "plc", "row": label, "column": "target"}));
+        done(s, "table.input", json!({"text": "-Q99"}));
+        match s.dispatch("table.commit", &json!({})) {
+            ew_viewmodel::shell::Outcome::Failed { message } => message,
+            other => panic!("{other:?}"),
+        }
+    };
+    let en = refusal(&mut s);
+    assert!(en.contains("`-Q99`: no device prints this tag"), "{en}");
+    done(&mut s, "view.language", json!({ "value": "nl" }));
+    let nl = refusal(&mut s);
+    done(&mut s, "view.language", json!({ "value": "en" }));
+    assert!(nl.contains("`-Q99`: geen apparaat drukt dit kenmerk af"), "{nl}");
+}

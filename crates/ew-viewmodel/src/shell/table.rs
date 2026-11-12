@@ -229,7 +229,9 @@ impl ShellModel {
             Err(StripEditError::Refused(reason_key)) => Err(Outcome::Refused {
                 reason_key: Key::run_time(reason_key),
             }),
-            Err(StripEditError::Invalid(message)) => Err(Outcome::Failed { message }),
+            Err(StripEditError::Invalid(message)) => Err(Outcome::Failed {
+                message: super::tools::rejected_words("", Some(&message)),
+            }),
             Err(StripEditError::Ambiguous(choices)) => Err(failed(
                 key!("error-accessory-part-ambiguous"),
                 &[&choices
@@ -394,7 +396,9 @@ impl ShellModel {
             Err(StripEditError::Refused(key)) => {
                 CellValue::Invalid(strings::text(Key::run_time(key)).to_owned())
             }
-            Err(StripEditError::Invalid(message)) => CellValue::Invalid(message),
+            Err(StripEditError::Invalid(message)) => {
+                CellValue::Invalid(super::tools::rejected_words("", Some(&message)))
+            }
             Err(StripEditError::Ambiguous(choices)) => {
                 CellValue::Ambiguous(choices.into_iter().map(|c| (c.text, c.value)).collect())
             }

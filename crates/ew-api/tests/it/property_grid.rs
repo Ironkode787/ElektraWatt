@@ -707,10 +707,10 @@ fn the_command_meta_and_the_reference_resolver() {
         ew_api::Cost::Bulk
     );
     assert!(s.command_meta("no.such").is_none());
-    let err = s.resolve_reference("tag:-999Z9").unwrap_err();
+    let err = s.resolve_reference("tag:-999Z9").unwrap_err().to_string();
     assert!(err.contains("no device prints this tag"), "{err}");
     assert!(s.resolve_reference("folio:101").is_ok());
-    let err = s.resolve_reference("bogus").unwrap_err();
+    let err = s.resolve_reference("bogus").unwrap_err().to_string();
     assert!(err.contains("a reference is a tag"), "{err}");
 }
 
@@ -727,7 +727,7 @@ fn a_bare_tag_is_a_reference() {
         s.resolve_reference("-X1032:5").unwrap(),
         s.resolve_reference("tag:-X1032:5").unwrap()
     );
-    let err = s.resolve_reference("-999Z9").unwrap_err();
+    let err = s.resolve_reference("-999Z9").unwrap_err().to_string();
     assert!(err.contains("no device prints this tag"), "{err}");
     // Two devices frozen to the same text print the same tag: refused, and the sentence names the candidates.
     let mut s = s;
@@ -740,7 +740,7 @@ fn a_bare_tag_is_a_reference() {
         };
         s.execute(&cmd).unwrap();
     }
-    let err = s.resolve_reference("-K9").unwrap_err();
+    let err = s.resolve_reference("-K9").unwrap_err().to_string();
     eprintln!("{err}");
     assert!(
         err.starts_with("`-K9` is ambiguous: 2 devices print this tag ("),

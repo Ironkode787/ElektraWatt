@@ -91,8 +91,11 @@ fn words_text(words: &SelectionWords) -> String {
             cps,
             wires,
         } => {
-            let kind = kind
+            // The function's kind in the window's language (FT-1554).
+            let worded = kind.as_deref().and_then(strings::kind_words);
+            let kind = worded
                 .as_deref()
+                .or(kind.as_deref())
                 .unwrap_or_else(|| strings::text(key!("announce-device-kind")));
             let head = match folio {
                 Some(folio) => strings::format(key!("announce-device"), &[tag, kind, folio]),

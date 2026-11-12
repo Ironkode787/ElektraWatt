@@ -614,6 +614,37 @@ fn a_grid_parse_error_reads_in_the_windows_language() {
     shell.shutdown();
 }
 
+/// FT-1553, FT-1551: a command whose reference names no record (the command log's path of `command.run`) and a
+/// selection by an unknown tag are refused in the window's language.
+#[test]
+fn an_unresolved_reference_reads_in_the_windows_language() {
+    let tmp = Tmp::new("ft1553");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "101");
+    let failed = |shell: &mut ShellModel, action: &str, params: serde_json::Value| match shell.dispatch(action, &params) {
+        ew_viewmodel::shell::Outcome::Failed { message } => message,
+        other => panic!("{other:?}"),
+    };
+    let run = json!({"cmd": "fields.set", "params": {
+        "kind": "device", "targets": [{"ref": "tag:-Q99"}], "path": "function_text", "value": {"en": "x"}
+    }});
+    let select = json!({"refs": ["-Q99"]});
+    let en = (
+        failed(&mut shell, "command.run", run.clone()),
+        failed(&mut shell, "select.set", select.clone()),
+    );
+    done(&mut shell, "view.language", json!({ "value": "nl" }));
+    let nl = (
+        failed(&mut shell, "command.run", run),
+        failed(&mut shell, "select.set", select),
+    );
+    done(&mut shell, "view.language", json!({ "value": "en" }));
+    assert!(en.0.contains("`tag:-Q99`: no device prints this tag"), "{en:?}");
+    assert!(en.1.starts_with("`-Q99`: no device prints this tag; a reference is a tag"), "{en:?}");
+    assert!(nl.0.contains("`tag:-Q99`: geen apparaat drukt dit kenmerk af"), "{nl:?}");
+    assert!(nl.1.starts_with("`-Q99`: geen apparaat drukt dit kenmerk af; een verwijzing is"), "{nl:?}");
+    shell.shutdown();
+}
+
 /// An enumerated row shows its value and its choices in the UI language's words, takes
 /// a word typed in them, and refuses another word naming the choices in words, in en-GB and nl-NL.
 #[test]
@@ -1216,6 +1247,68 @@ fn ft1483_kinds_tiers_and_block_kinds_read_in_dutch() {
             ),
         ]
     );
+}
+
+/// FT-1554: the live description of a selected device and the Libraries kind column read in Dutch: a function's kind by
+/// the generic rule, a library copy's kind by its record kind's words.
+#[test]
+fn ft1554_the_live_description_and_the_library_kinds_read_in_dutch() {
+    use ew_viewmodel::navigators::NavRole;
+    let tmp = Tmp::new("ft1554");
+    let mut shell = tmp.shell_in(Mode::Headless, true, "102");
+    done(&mut shell, "select.set", json!({"refs": ["T55"]}));
+    done(&mut shell, "navigator.show", json!({ "kind": "libraries" }));
+    let mut seen = Vec::new();
+    for locale in ["en", "nl"] {
+        done(&mut shell, "view.language", json!({ "value": locale }));
+        let live = ew_viewmodel::status::selection_text(&shell);
+        let t = shell.nav(NavKind::Libraries).and_then(|n| n.table()).cloned().unwrap();
+        let kind = t.columns.iter().position(|c| c.key == "kind").expect("the kind column");
+        let kinds: BTreeSet<String> = t
+            .nodes
+            .iter()
+            .filter(|n| n.role == NavRole::LibCopy)
+            .map(|n| n.cells[kind].clone())
+            .collect();
+        seen.push((live, kinds));
+    }
+    done(&mut shell, "view.language", json!({ "value": "en" }));
+    shell.shutdown();
+    assert!(seen[0].0.contains("NC thermostat 5-3"), "{:?}", seen[0]);
+    assert!(seen[1].0.contains("NC-thermostaat 5-3"), "{:?}", seen[1]);
+    assert!(seen[0].1.contains("Function definition"), "{:?}", seen[0].1);
+    assert!(seen[1].1.contains("Functiedefinitie"), "{:?}", seen[1].1);
+    for english in ["Part", "Symbol", "Function definition", "Form", "Manufacturer", "PLC profile"] {
+        assert!(!seen[1].1.contains(english), "{english} in {:?}", seen[1].1);
+    }
+}
+
+/// FT-1554: a function placed from a part's template shows its Part function row in the window's language.
+#[test]
+fn ft1554_the_part_function_row_reads_in_dutch() {
+    let tmp = Tmp::new("ft1554-part");
+    let mut s = crate::common::new_project(&tmp);
+    let before = crate::common::tables(&s).reps.clone();
+    done(&mut s, "place.pick", json!({"part": "EW-GEN-MCB-2", "template": 0}));
+    let p = crate::common::grid_point(&s, (40, 20));
+    crate::common::click_at(&mut s, p);
+    done(&mut s, "tool.select", json!({}));
+    let tables = crate::common::tables(&s);
+    let rep = tables
+        .reps
+        .iter()
+        .find(|r| !before.iter().any(|b| b.id == r.id))
+        .expect("the placed breaker");
+    let function = rep.functions[0].to_string();
+    done(&mut s, "select.set", json!({ "ids": [function] }));
+    let mut seen = Vec::new();
+    for locale in ["en", "nl"] {
+        done(&mut s, "view.language", json!({ "value": locale }));
+        seen.push(row_value(&s, "function/template_entry").0);
+    }
+    done(&mut s, "view.language", json!({ "value": "en" }));
+    s.shutdown();
+    assert_ne!(seen[0], seen[1], "{seen:?}");
 }
 
 /// The Blocks navigator words a block's kind code in its kind column, and in its title and label

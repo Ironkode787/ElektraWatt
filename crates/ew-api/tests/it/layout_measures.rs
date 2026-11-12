@@ -67,7 +67,7 @@ fn a_wire_s_words_name_each_device_with_its_tag_s_prefix() {
         .parse()
         .expect("an ID");
     assert_eq!(
-        s.connection_words("101", w4).as_deref(),
+        s.connection_words("101", w4).map(|t| t.to_string()).as_deref(),
         Some("-1X1:1/a → -S51:2")
     );
 }

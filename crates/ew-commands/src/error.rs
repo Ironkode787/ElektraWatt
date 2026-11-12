@@ -378,9 +378,11 @@ fn serde_want(want: &str) -> crate::text::TextArg {
 }
 
 /// A violation of the value encodings, by key: every [`ew_schema::SchemaError`], its English the
-/// error's own text.
+/// error's own text. A JSON Pointer is an argument of its own key, `refusal-words-pointer`, so the window names the
+/// member in words (FT-1552); its English is the pointer.
 pub fn schema_error_text(e: &ew_schema::SchemaError) -> Text {
     use ew_schema::SchemaError as E;
+    let pointer = |p: &String| text!("refusal-words-pointer", p);
     match e {
         E::Float => text!("refusal-schema-float"),
         E::IntegerOutOfRange => text!("refusal-schema-integer-range"),
@@ -402,16 +404,16 @@ pub fn schema_error_text(e: &ew_schema::SchemaError) -> Text {
             expected.to_string()
         ),
         E::Json { message } => text!("refusal-schema-json", message),
-        E::DuplicateMember { path, key } => text!("refusal-schema-duplicate-member", key, path),
-        E::UnsortedList { path } => text!("refusal-schema-unsorted", path),
-        E::DuplicateKey { path, key } => text!("refusal-schema-duplicate-key", key, path),
+        E::DuplicateMember { path, key } => text!("refusal-schema-duplicate-member", key, pointer(path)),
+        E::UnsortedList { path } => text!("refusal-schema-unsorted", pointer(path)),
+        E::DuplicateKey { path, key } => text!("refusal-schema-duplicate-key", key, pointer(path)),
         E::MalformedVariant(m) => text!(
             "refusal-schema-malformed-variant",
             &m.variant,
-            &m.path,
+            pointer(&m.path),
             &m.message
         ),
-        E::Invalid { path, message } => text!("refusal-schema-invalid", message, path),
+        E::Invalid { path, message } => text!("refusal-schema-invalid", message, pointer(path)),
         E::CompanyCodeIsIec(code) => text!("refusal-schema-company-code-iec", code),
     }
 }

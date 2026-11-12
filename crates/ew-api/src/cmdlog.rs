@@ -85,6 +85,9 @@ pub enum CmdLogError {
         line: usize,
         /// What is wrong.
         message: String,
+        /// What is wrong by key, for the window's language; `None` for a tag form of `plc.bind_channel`, which
+        /// only a script writes.
+        text: Option<crate::Text>,
         /// How many lines were committed before it.
         committed: usize,
     },
@@ -114,6 +117,7 @@ impl fmt::Display for CmdLogError {
                 line,
                 message,
                 committed,
+                ..
             } => write!(
                 f,
                 "command log, line {line}: reference: {message} ({committed} earlier lines committed)"
@@ -310,10 +314,12 @@ impl Session {
                 .map_or(cmd.name.as_str(), |e| e.meta().name);
             let params = self
                 .resolve_refs(&cmd.params)
-                .and_then(|p| self.tag_forms(name, p))
-                .map_err(|message| CmdLogError::Reference {
+                .map_err(|t| (t.to_string(), Some(t)))
+                .and_then(|p| self.tag_forms(name, p).map_err(|m| (m, None)))
+                .map_err(|(message, text)| CmdLogError::Reference {
                     line: *line,
                     message,
+                    text,
                     committed: receipts.len(),
                 })?;
             let cmd = AnyCommand {
@@ -380,54 +386,53 @@ impl Session {
     ///
     /// # Errors
     ///
-    /// The reason the reference names no record, or more than one.
-    pub fn resolve_reference(&self, text: &str) -> Result<ew_derive::ew_ids::Uuid, String> {
+    /// The reason the reference names no record, or more than one, by key (its English the command log's message).
+    pub fn resolve_reference(&self, text: &str) -> Result<ew_derive::ew_ids::Uuid, crate::Text> {
         self.reference_target(text).map(|id| id.as_uuid())
     }
 
     /// [`Session::resolve_reference`] as the record's ID.
-    fn reference_target(&self, text: &str) -> Result<AnyId, String> {
+    fn reference_target(&self, text: &str) -> Result<AnyId, crate::Text> {
         match text.split_once(':') {
             Some(("id", uuid)) => {
                 let id: AnyId = serde_json::from_value(Value::String(uuid.to_owned()))
-                    .map_err(|_| format!("`{text}`: not a UUID"))?;
+                    .map_err(|_| api_text!("refusal-ref-not-uuid", text))?;
                 if !record_exists(&self.query(), id) {
-                    return Err(format!("`{text}`: the project has no such record"));
+                    return Err(api_text!("refusal-ref-no-record", text));
                 }
                 Ok(id)
             }
             Some(("section", number)) => {
                 let number: u16 = number
                     .parse()
-                    .map_err(|_| format!("`{text}`: a section number is a whole number"))?;
+                    .map_err(|_| api_text!("refusal-ref-section-number", text))?;
                 let q = self.query();
                 q.sections()
                     .iter()
                     .find(|(_, s)| s.number == number)
                     .map(|(id, _)| id.cast())
-                    .ok_or_else(|| format!("`{text}`: the project has no section {number}"))
+                    .ok_or_else(|| api_text!("refusal-ref-no-section", text, number.to_string()))
             }
             Some(("tag", tag)) => self.tag_target(tag, text),
             Some(("folio", label)) => {
                 let q = self.query();
                 let order = q.get::<PageOrder>(());
-                unique(
-                    order.entries.iter().filter_map(|e| match e.page {
-                        PageRef::Drawn(id) if e.folio == label => Some(id),
-                        _ => None,
-                    }),
-                    text,
-                    "drawn page has this folio label",
-                )
-                .map(|id| id.cast())
+                let mut pages = order.entries.iter().filter_map(|e| match e.page {
+                    PageRef::Drawn(id) if e.folio == label => Some(id),
+                    _ => None,
+                });
+                let Some(first) = pages.next() else {
+                    return Err(api_text!("refusal-ref-no-folio", text));
+                };
+                match pages.count() {
+                    0 => Ok(first.cast()),
+                    more => Err(api_text!("refusal-ref-folio-many", text, (more + 1).to_string())),
+                }
             }
             // A bare tag (`-101Q1`, a CP as `-X1031:5`) stands for `tag:<tag>` when one device prints it.
             _ => self.tag_target(text, text).map_err(|reason| {
-                if reason.contains("no device prints this tag") {
-                    format!(
-                        "`{text}`: no device prints this tag; a reference is a tag (`-101Q1`, a terminal as \
-                         `-X1031:5`), `tag:<tag>`, `section:<number>`, `folio:<label>` or `id:<uuid>`"
-                    )
+                if reason.key() == "refusal-ref-no-tag" {
+                    api_text!("refusal-ref-no-tag-forms", text)
                 } else {
                     reason
                 }
@@ -437,7 +442,7 @@ impl Session {
 
     /// The one device whose derived tag prints `tag` (short form or full designation). When several do, the
     /// error names their full designations, so the caller can pick one; it never guesses.
-    fn tag_target(&self, tag: &str, text: &str) -> Result<AnyId, String> {
+    fn tag_target(&self, tag: &str, text: &str) -> Result<AnyId, crate::Text> {
         let q = self.query();
         let mut matches: Vec<(AnyId, String)> = q
             .devices()
@@ -449,20 +454,21 @@ impl Session {
             })
             .collect();
         match matches.len() {
-            0 => Err(format!("`{text}`: no device prints this tag")),
+            0 => Err(api_text!("refusal-ref-no-tag", text)),
             1 => Ok(matches.remove(0).0),
             n => {
                 // Each candidate by its full designation and its ID, so a duplicate designation still names
                 // which record is meant.
-                let mut names: Vec<String> = matches
+                matches.sort_by(|a, b| (&a.1, a.0.as_uuid()).cmp(&(&b.1, b.0.as_uuid())));
+                let names = matches
                     .into_iter()
-                    .map(|(id, full)| format!("{full} as `id:{}`", id.as_uuid()))
+                    .map(|(id, full)| api_text!("refusal-ref-candidate", full, id.as_uuid().to_string()))
                     .collect();
-                names.sort();
-                Err(format!(
-                    "`{text}` is ambiguous: {n} devices print this tag ({}); name one by its full designation \
-                     or its `id:<uuid>`",
-                    names.join(", ")
+                Err(api_text!(
+                    "refusal-ref-ambiguous",
+                    text,
+                    n.to_string(),
+                    ew_commands::comma_joined(names).unwrap_or_else(|| api_text!("refusal-serde-other", ""))
                 ))
             }
         }
@@ -470,17 +476,19 @@ impl Session {
 
     /// `params` with every `{"ref": …}` replaced by what it names in the current model; `Err` with the
     /// reason a reference cannot be resolved.
-    fn resolve_refs(&self, params: &Value) -> Result<Value, String> {
+    fn resolve_refs(&self, params: &Value) -> Result<Value, crate::Text> {
         match params {
             Value::Object(map) if map.len() == 1 && map.contains_key("ref") => {
                 let Some(text) = map["ref"].as_str() else {
-                    return Err("`ref` is a text `<kind>:<value>`".into());
+                    return Err(api_text!("refusal-ref-not-text"));
                 };
                 let id = self.reference_target(text)?;
                 match text.split_once(':') {
                     // An `id:` reference stands for its own text, as written.
                     Some(("id", uuid)) => Ok(Value::String(uuid.to_owned())),
-                    _ => serde_json::to_value(id).map_err(|e| format!("`{text}`: {e}")),
+                    _ => {
+                        serde_json::to_value(id).map_err(|e| api_text!("refusal-serde-other", e.to_string()))
+                    }
                 }
             }
             Value::Object(map) => map
@@ -537,7 +545,7 @@ impl Session {
     /// The channel `<module tag>#<number>` or `<module tag>:<designation>` names.
     fn channel_by_name(&self, q: &Q, text: &str) -> Result<Id<Channel>, String> {
         let module_of = |tag: &str| -> Result<Id<Device>, String> {
-            let id: Id<Device> = self.tag_target(tag, text)?.cast();
+            let id: Id<Device> = self.tag_target(tag, text).map_err(|t| t.to_string())?.cast();
             if q.devices()
                 .get(id)
                 .is_some_and(|d| d.aspects.plc_module.is_some())
@@ -599,13 +607,13 @@ impl Session {
     fn function_by_name(&self, q: &Q, text: &str, designation: Option<&str>) -> Result<Id<Function>, String> {
         let (device, tag, slot): (Id<Device>, &str, Option<&str>) = match self.tag_target(text, text) {
             Ok(id) => (id.cast(), text, None),
-            Err(whole) => match text.rsplit_once(':') {
-                Some((tag, slot)) if !tag.is_empty() && !slot.is_empty() => (
+            Err(whole) => match (whole.to_string(), text.rsplit_once(':')) {
+                (whole, Some((tag, slot))) if !tag.is_empty() && !slot.is_empty() => (
                     self.tag_target(tag, text).map_err(|_| whole)?.cast(),
                     tag,
                     Some(slot),
                 ),
-                _ => return Err(whole),
+                (whole, _) => return Err(whole),
             },
         };
         let mut functions: Vec<(String, Id<Function>)> = q
@@ -678,21 +686,6 @@ fn candidates(items: impl Iterator<Item = String>) -> String {
 /// Whether `text` is a UUID (the ID form of a parameter).
 fn is_uuid(text: &str) -> bool {
     ew_derive::ew_ids::Uuid::parse_str(text.trim()).is_ok()
-}
-
-/// The single item of `items`; an error naming `text` when there is none or more than one.
-fn unique<T>(mut items: impl Iterator<Item = T>, text: &str, what: &str) -> Result<T, String> {
-    let Some(first) = items.next() else {
-        return Err(format!("`{text}`: no {what}"));
-    };
-    let more = items.count();
-    if more > 0 {
-        return Err(format!(
-            "`{text}`: {} matches (more than one {what}); use `id:<uuid>`",
-            more + 1
-        ));
-    }
-    Ok(first)
 }
 
 /// Whether the project holds a record with this ID: the project record or a row of any table.

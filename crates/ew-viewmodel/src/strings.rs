@@ -695,6 +695,55 @@ pub fn choice_words(value: &str) -> String {
         .unwrap_or_default()
 }
 
+/// A function's kind text in the UI language: its longest leading words that `ew-api`'s
+/// `KIND_WORDS` give ("Two-way process valve" of "Two-way process valve 1-2") by their `kind-words-<words>` text, the
+/// CP designations after them kept; else the generic rule's words ([`generic_kind_words`], FT-1483); `None` when
+/// neither has a text. Every place that shows a function's kind reads it here: the Devices and Libraries navigators,
+/// the Part function row, the live description, the device browser (FT-1554).
+pub fn kind_words(text: &str) -> Option<String> {
+    let words: Vec<&str> = text.split(' ').collect();
+    let leading = (1..=words.len()).rev().find_map(|n| {
+        let slug: String = words[..n]
+            .join(" ")
+            .to_lowercase()
+            .split(|c: char| !c.is_alphanumeric())
+            .filter(|w| !w.is_empty())
+            .collect::<Vec<_>>()
+            .join("-");
+        let head = lookup(&format!("kind-words-{slug}"))?;
+        Some(
+            std::iter::once(head)
+                .chain(words[n..].iter().copied())
+                .collect::<Vec<_>>()
+                .join(" "),
+        )
+    });
+    leading.or_else(|| generic_kind_words(&words))
+}
+
+/// The generic rule's kind text in the UI language (FT-1483): its first two words are the FnDef
+/// category's last two segments ("NO contact 13-14", "Changeover contact 11-12-14"), or its one segment before the CP
+/// designations ("Coil A1-A2"), each by its `kind-segment-<segment>` text, two of them joined by `kind-generic` (a Dutch
+/// segment carries its own joint: "NO-contact", "Wisselcontact"); a segment without a text is shown as written. `None`
+/// when the first word has no text and the second none either.
+fn generic_kind_words(words: &[&str]) -> Option<String> {
+    let segment = |w: &str| lookup(&format!("kind-segment-{}", w.to_lowercase()));
+    let first = segment(words.first()?);
+    let second = words.get(1).and_then(|w| segment(w));
+    let (head, rest) = match (first, second) {
+        (Some(a), Some(b)) => (format(key!("kind-generic"), &[a, b]), &words[2..]),
+        (Some(a), None) => (a.trim_end().to_owned(), &words[1..]),
+        (None, Some(b)) => (std::format!("{} {b}", words[0]), &words[2..]),
+        (None, None) => return None,
+    };
+    Some(
+        std::iter::once(sentence_start(&head).into_owned())
+            .chain(rest.iter().map(|w| (*w).to_owned()))
+            .collect::<Vec<_>>()
+            .join(" "),
+    )
+}
+
 /// A record kind as a heading in the UI language (`Potential definition`, `Potentiaaldefinitie`): its
 /// `record-kind-<kind>` text, else [`kind_label`] with a capital.
 pub fn kind_heading(kind: &str) -> String {

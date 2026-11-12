@@ -825,7 +825,8 @@ fn picture(ui: &Ui, t: &Tokens, rect: egui::Rect, shape: Option<&ew_viewmodel::e
 /// `strings::choice_words`).
 fn function_words(kind_text: &str, fndef_key: &str) -> String {
     if kind_text != fndef_key {
-        return kind_text.to_owned();
+        // The kind in the window's language (FT-1554).
+        return strings::kind_words(kind_text).unwrap_or_else(|| kind_text.to_owned());
     }
     // The last fallback: the key's last segment through the shell's choice words.
     strings::choice_words(&ew_viewmodel::tools::symbol_name(fndef_key).replace('-', "_"))

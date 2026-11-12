@@ -72,7 +72,7 @@ impl std::fmt::Display for ApiError {
             }
             ApiError::Cmd(e) => write!(f, "{e}"),
             ApiError::Strip(crate::output::StripEditError::Refused(key)) => f.write_str(key),
-            ApiError::Strip(crate::output::StripEditError::Invalid(m)) => f.write_str(m),
+            ApiError::Strip(crate::output::StripEditError::Invalid(m)) => write!(f, "{m}"),
             ApiError::Strip(crate::output::StripEditError::Ambiguous(c)) => {
                 write!(f, "{} parts fit; choose one", c.len())
             }

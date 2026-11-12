@@ -591,7 +591,7 @@ impl Cx<'_> {
 
     /// The record the key names, checked to be of a kind `accept` takes.
     fn record(&self, key: &str) -> Result<(Uuid, Rec), String> {
-        let uuid = self.session.resolve_reference(key)?;
+        let uuid = self.session.resolve_reference(key).map_err(|t| t.to_string())?;
         Ok((uuid, rec(&self.q, uuid)))
     }
 

@@ -1304,6 +1304,14 @@ pub(super) fn command_failed(e: &CmdError, params: &Value) -> Outcome {
 /// itself a text in the same language; a refusal without a key (one of the API's own) as its English `reason`.
 pub(crate) fn rejected_words(reason: &str, text: Option<&ew_api::Text>) -> String {
     fn words(t: &ew_api::Text) -> String {
+        // A JSON Pointer names its member in words, as an invalid parameter does (FT-1552).
+        if let ("refusal-words-pointer", [ew_api::TextArg::Plain(pointer)]) = (t.key(), t.args()) {
+            return param_words(&Value::Null, pointer);
+        }
+        // A part kind by its choice's words (FT-1555).
+        if let ("refusal-words-part-kind", [ew_api::TextArg::Plain(kind)]) = (t.key(), t.args()) {
+            return strings::in_sentence(&strings::choice_text(kind));
+        }
         let args: Vec<String> = t
             .args()
             .iter()
@@ -1534,6 +1542,26 @@ mod ft779 {
             nl,
             vec!["functie -Q1 heeft geen buspoort; stel eerst `bus_port` in".to_owned()]
         );
+    }
+
+    /// FT-1552: a schema violation inside a refusal names its member in words, never its JSON Pointer; the CLI's
+    /// English keeps the pointer.
+    #[test]
+    fn a_schema_violation_names_its_member_in_words() {
+        // `schema_error_text` of `SchemaError::UnsortedList { path: "/ports/1" }`.
+        let violation = keyed(
+            "refusal-schema-unsorted",
+            vec![keyed("refusal-words-pointer", vec!["/ports/1".into()]).into()],
+        );
+        let e = CmdError::invalid_params(
+            "parts.import",
+            "/copy",
+            keyed("refusal-params-detail", vec![violation.into()]),
+        );
+        assert!(e.to_string().contains("\"/ports/1\""), "{e}");
+        let shown = message(command_failed(&e, &Value::Null));
+        assert!(!shown.contains("/ports"), "{shown}");
+        assert!(shown.contains("Ports, item 2"), "{shown}");
     }
 
     /// Another crate's error under `refusal-params-detail` (here serde's) reads in a

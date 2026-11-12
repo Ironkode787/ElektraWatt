@@ -218,6 +218,7 @@ fn a_missing_id_reference_stops_with_exit_2_and_counts_the_committed_lines() {
             line,
             message,
             committed,
+            ..
         } => {
             assert_eq!((*line, *committed), (3, 1));
             assert!(message.contains(missing), "{message}");
@@ -410,6 +411,7 @@ fn tag_and_folio_references_name_exactly_one_device_or_drawn_page() {
             line,
             message,
             committed,
+            ..
         } => {
             assert_eq!((*line, *committed), (3, 1));
             assert!(

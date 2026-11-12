@@ -333,7 +333,7 @@ fn the_part_resolver_filters_by_kind_and_lists_every_match() {
         })
         .unwrap_err();
     assert!(
-        matches!(err, StripEditError::Invalid(ref m) if m.contains("533356")),
+        matches!(err, StripEditError::Invalid(ref m) if m.to_string().contains("533356")),
         "{err:?}"
     );
     // Two TBD copies of one kind: ambiguous, both listed with the long form.

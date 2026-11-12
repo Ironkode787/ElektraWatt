@@ -806,21 +806,10 @@ fn open_error_key(e: &OpenError) -> Key<'static> {
     }
 }
 
-/// The reason key of a save error (its `Display` carries file system paths that a transcript must not).
+/// The reason key of a save error (its `Display` carries file system paths that a transcript must not):
+/// `ew_api::save_error_text`'s.
 fn save_error_key(e: &SaveError) -> Key<'static> {
-    match e {
-        SaveError::ReadOnly(_) => key!("saveerr-read-only"),
-        SaveError::LockLost(_) => key!("saveerr-lock-lost"),
-        SaveError::ExternalChange { .. } => key!("saveerr-external"),
-        SaveError::Failed { .. } => key!("saveerr-failed"),
-        SaveError::Incomplete { .. } => key!("saveerr-incomplete"),
-        SaveError::PendingIncomplete { .. } => key!("saveerr-pending"),
-        SaveError::GenerationLimit => key!("saveerr-generation-limit"),
-        // A held external change.
-        SaveError::ExternalCollisions => key!("saveerr-external-collisions"),
-        SaveError::ExternalUnreadable => key!("saveerr-external-unreadable"),
-        _ => key!("saveerr-other"),
-    }
+    Key::run_time(ew_api::save_error_text(e).key())
 }
 
 #[cfg(test)]
@@ -2635,6 +2624,15 @@ impl ShellModel {
             Err(CmdLogError::Failed { error, .. } | CmdLogError::Refused { error, .. }) => {
                 tools::command_failed(&error, &params)
             }
+            // An unresolved reference by its reason in the window's language (FT-1553).
+            Err(CmdLogError::Reference {
+                message,
+                text: Some(why),
+                ..
+            }) => failed(
+                key!("error-command"),
+                &[&tools::rejected_words(&message, Some(&why))],
+            ),
             Err(e) => failed(key!("error-command"), &[&e.to_string()]),
         };
         if committed && outcome == Outcome::Done {

@@ -114,7 +114,12 @@ pub(super) fn run_route(a: &RouteArgs) -> i32 {
         let Some(plan) = session.route_plan(&folio, &scope) else {
             continue;
         };
-        let words = |id| session.connection_words(&folio, id).unwrap_or_default();
+        let words = |id| {
+            session
+                .connection_words(&folio, id)
+                .map(|t| t.to_string())
+                .unwrap_or_default()
+        };
         let page = page_result(&folio, &plan, words);
         text.push_str(&page_text(&page, &plan));
         if !a.dry_run

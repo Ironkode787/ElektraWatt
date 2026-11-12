@@ -380,32 +380,40 @@ fn cell_text(q: &Q, page: Id<ew_derive::ew_schema::Page>, p: (i64, i64)) -> Stri
 }
 
 /// A connection of `tables` named by its ends (`-E55:PE → -X1:PE`, `the junction in C11 → E56:X2`); empty for one
-/// the page does not draw.
+/// the page does not draw. Its English is the rule messages' argument (whose patterns word the ends, FT-1600).
 fn connection_text(q: &Q, tables: &PageTables, id: Uuid) -> String {
+    connection_words_text(q, tables, id)
+        .map(|t| t.to_string())
+        .unwrap_or_default()
+}
+
+/// [`connection_text`] by key, in the reader's language; `None` for a connection the page does not draw.
+fn connection_words_text(q: &Q, tables: &PageTables, id: Uuid) -> Option<crate::Text> {
     let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
-    let end = |e: &TableEnd| match e {
-        TableEnd::Cp { function, idx } => tables
-            .cps
-            .iter()
-            .find(|cp| cp.function == *function && cp.idx == *idx)
-            .map_or_else(
-                || "a connection point of another page".to_owned(),
-                |cp| cp_text(q, cp),
-            ),
-        TableEnd::Junction { id } => match tables.junctions.iter().find(|j| j.id == *id) {
-            Some(j) => match cell_text(q, page, j.at) {
-                c if c.is_empty() => "a junction".to_owned(),
-                c => format!("the junction in {c}"),
+    let end = |e: &TableEnd| -> crate::TextArg {
+        match e {
+            TableEnd::Cp { function, idx } => tables
+                .cps
+                .iter()
+                .find(|cp| cp.function == *function && cp.idx == *idx)
+                .map_or_else(
+                    || api_text!("refusal-words-cp-other-page").into(),
+                    |cp| cp_text(q, cp).into(),
+                ),
+            TableEnd::Junction { id } => match tables.junctions.iter().find(|j| j.id == *id) {
+                Some(j) => match cell_text(q, page, j.at) {
+                    c if c.is_empty() => api_text!("refusal-words-a-junction").into(),
+                    c => api_text!("refusal-words-junction-in", c).into(),
+                },
+                None => api_text!("refusal-words-a-junction").into(),
             },
-            None => "a junction".to_owned(),
-        },
+        }
     };
     tables
         .connections
         .iter()
         .find(|c| c.id == id)
-        .map(|c| format!("{} → {}", end(&c.a), end(&c.b)))
-        .unwrap_or_default()
+        .map(|c| api_text!("refusal-words-connection", end(&c.a), end(&c.b)))
 }
 
 /// The owner `id` of a body or a text box of `tables` in words: a representation's device tag as the page prints it,
@@ -768,10 +776,9 @@ impl Session {
 
     /// The connection `id` of the page labelled `folio` named by its ends, as `ew layout` names it
     /// (`E55:PE → PE-1.1`); `None` for an unknown folio or a connection the page does not draw.
-    pub fn connection_words(&self, folio: &str, id: Uuid) -> Option<String> {
+    pub fn connection_words(&self, folio: &str, id: Uuid) -> Option<crate::Text> {
         let tables = self.page_tables(folio)?;
-        let text = connection_text(&self.query(), &tables, id);
-        (!text.is_empty()).then_some(text)
+        connection_words_text(&self.query(), &tables, id)
     }
 
     /// The geometry of the page labelled `folio` as the schematic router and the layout measures read it, in page nm

@@ -788,7 +788,9 @@ impl ShellModel {
             };
             match project.session.resolve_reference(&format!("section:{section}")) {
                 Ok(id) => params["section"] = Value::String(id.to_string()),
-                Err(message) => return self.form_failed(PAGE_NEW.action, message),
+                Err(why) => {
+                    return self.form_failed(PAGE_NEW.action, super::tools::rejected_words("", Some(&why)));
+                }
             }
         } else if let Some(id) = section_of(self, number) {
             // A new page belongs to the section whose folio range holds its number (window check, item 7): a sub-page

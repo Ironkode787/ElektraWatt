@@ -156,6 +156,8 @@ pub fn asset_ref_of(bytes: &[u8]) -> Result<AssetRef, AssetError> {
 /// An image of the project that no drawing shows ([`Session::undrawn_images`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct UndrawnImage {
+    /// Its hash, which names the asset; a text names the image by where it shows, never by the hash.
+    pub sha256: Sha256,
     /// Whether it is the company logo.
     pub logo: bool,
     /// The folios of the pages whose image items show it, in page order.
@@ -483,6 +485,24 @@ const INTEGRITY_RUN: checks::Scheme = checks::Scheme {
     content: checks::Release::Mvp,
 };
 
+/// A save error by key, in the reader's language (its `Display` carries file system paths a person's text must not):
+/// the window's save refusals and the details of the purge's and the update's (FT-1570).
+pub fn save_error_text(e: &SaveError) -> Text {
+    match e {
+        SaveError::ReadOnly(_) => api_text!("saveerr-read-only"),
+        SaveError::LockLost(_) => api_text!("saveerr-lock-lost"),
+        SaveError::ExternalChange { .. } => api_text!("saveerr-external"),
+        SaveError::Failed { .. } => api_text!("saveerr-failed"),
+        SaveError::Incomplete { .. } => api_text!("saveerr-incomplete"),
+        SaveError::PendingIncomplete { .. } => api_text!("saveerr-pending"),
+        SaveError::GenerationLimit => api_text!("saveerr-generation-limit"),
+        // A held external change.
+        SaveError::ExternalCollisions => api_text!("saveerr-external-collisions"),
+        SaveError::ExternalUnreadable => api_text!("saveerr-external-unreadable"),
+        _ => api_text!("saveerr-other"),
+    }
+}
+
 /// A purge refusal by key, which the window renders in its language; its English is the store's own text,
 /// [`PurgeError`]'s.
 pub fn purge_refusal(e: &PurgeError) -> Text {
@@ -500,7 +520,7 @@ pub fn purge_refusal(e: &PurgeError) -> Text {
         PurgeError::Stale(hashes) if hashes.len() == 1 => api_text!("refusal-purge-stale-one"),
         PurgeError::Stale(hashes) => api_text!("refusal-purge-stale", hashes.len().to_string()),
         PurgeError::Io { .. } => api_text!("refusal-purge-unreadable"),
-        PurgeError::Save { error, .. } => api_text!("refusal-purge-save", error.to_string()),
+        PurgeError::Save { error, .. } => api_text!("refusal-purge-save", save_error_text(error)),
         PurgeError::HumanOnly => api_text!("refusal-purge-human-only"),
     }
 }
@@ -706,6 +726,7 @@ impl Session {
                 continue;
             };
             let image = found.entry(sha).or_insert_with(|| UndrawnImage {
+                sha256: sha,
                 logo: false,
                 folios: Vec::new(),
                 width,
@@ -1474,7 +1495,7 @@ impl Session {
                 Err(api_text!("refusal-update-copies-findings"))
             }
             Err(ew_store::SaveError::ReadOnly(_)) => Err(api_text!("refusal-update-copies-read-only")),
-            Err(e) => Err(api_text!("refusal-update-copies-save", e.to_string())),
+            Err(e) => Err(api_text!("refusal-update-copies-save", save_error_text(&e))),
         }
     }
 

@@ -120,7 +120,10 @@ impl ShellModel {
         };
         let id = match text.trim().parse::<Uuid>() {
             Ok(id) => id,
-            Err(_) => project.session.resolve_reference(text.trim())?,
+            Err(_) => project
+                .session
+                .resolve_reference(text.trim())
+                .map_err(|why| super::tools::rejected_words("", Some(&why)))?,
         };
         if project.session.device_tag(id).is_none() {
             return Err(strings::format(key!("error-join-not-device"), &[text]));

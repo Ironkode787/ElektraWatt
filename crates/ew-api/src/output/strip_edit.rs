@@ -111,8 +111,8 @@ pub enum StripEdit {
 pub enum StripEditError {
     /// A reason key of §6.10 (`reason-no-accessory-part`, `table-no-bridge`).
     Refused(&'static str),
-    /// A sentence, for the error line or the card.
-    Invalid(String),
+    /// A sentence by key, for the error line or the card, in the window's language (FT-1555).
+    Invalid(crate::Text),
     /// Several part copies fit (D7): every one as a choice, its value the text `id:<uuid>` that resolves to it.
     Ambiguous(Vec<FieldChoice>),
 }
@@ -295,7 +295,7 @@ impl Session {
                     params,
                 });
             }
-            [] => return Err(StripEditError::Invalid("nothing to edit".into())),
+            [] => return Err(StripEditError::Invalid(api_text!("refusal-strip-nothing"))),
             _ => {}
         }
         let sheet = SheetCx::new(&q);
@@ -322,7 +322,7 @@ impl Session {
                 StripEdit::AccessoryPart { strip, index, part } => {
                     let list = accessories_of(&q, &mut work, *strip)?;
                     let entry = list.get_mut(*index as usize).ok_or_else(|| {
-                        StripEditError::Invalid(format!("the strip has no accessory {index}"))
+                        StripEditError::Invalid(api_text!("refusal-strip-no-accessory", index.to_string()))
                     })?;
                     let kind = entry
                         .get("kind")
@@ -330,7 +330,7 @@ impl Session {
                         .unwrap_or_default()
                         .to_owned();
                     if part.trim().is_empty() {
-                        return Err(StripEditError::Invalid("an accessory needs a part".into()));
+                        return Err(StripEditError::Invalid(api_text!("refusal-strip-accessory-part")));
                     }
                     let copy = resolve(&cx, part, accessory_part_kinds(&kind))?;
                     entry["part"] = json!({ "copy": copy });
@@ -342,8 +342,9 @@ impl Session {
                     part,
                 } => {
                     if !ACCESSORY_KINDS.contains(&kind.as_str()) {
-                        return Err(StripEditError::Invalid(format!(
-                            "`{kind}` is not one of {}",
+                        return Err(StripEditError::Invalid(api_text!(
+                            "refusal-strip-accessory-kind",
+                            kind,
                             ACCESSORY_KINDS.join(", ")
                         )));
                     }
@@ -368,8 +369,9 @@ impl Session {
                     let list = accessories_of(&q, &mut work, *strip)?;
                     let n = list.len();
                     if let Some(bad) = indexes.iter().find(|i| **i as usize >= n) {
-                        return Err(StripEditError::Invalid(format!(
-                            "the strip has no accessory {bad}"
+                        return Err(StripEditError::Invalid(api_text!(
+                            "refusal-strip-no-accessory",
+                            bad.to_string()
                         )));
                     }
                     let keep: Vec<Value> = list
@@ -381,9 +383,7 @@ impl Session {
                     *list = keep;
                 }
                 StripEdit::Insert { .. } | StripEdit::Move { .. } => {
-                    return Err(StripEditError::Invalid(
-                        "an insert or a move is a gesture of its own".into(),
-                    ));
+                    return Err(StripEditError::Invalid(api_text!("refusal-strip-gesture-alone")));
                 }
             }
         }
@@ -421,11 +421,15 @@ impl ParseCx for WithPending<'_> {
 fn resolve(cx: &dyn ParseCx, text: &str, kinds: &[&str]) -> Result<String, StripEditError> {
     match find_part(cx, text, Some(kinds)) {
         Ok(id) => Ok(id),
-        Err(PartMiss::Unknown(t)) => Err(StripEditError::Invalid(format!(
-            "the project has no part `{t}` of kind {}",
-            kinds.join(" or ")
-        ))),
-        Err(PartMiss::Invalid(m)) => Err(StripEditError::Invalid(m.to_string())),
+        Err(PartMiss::Unknown(t)) => {
+            // A part kind by its own key, so the window names it in words.
+            let kind = |k: &str| api_text!("refusal-words-part-kind", k);
+            Err(StripEditError::Invalid(match kinds {
+                [a, b] => api_text!("refusal-strip-no-part-either", t, kind(a), kind(b)),
+                _ => api_text!("refusal-strip-no-part", t, kind(&kinds.join(", "))),
+            }))
+        }
+        Err(PartMiss::Invalid(m)) => Err(StripEditError::Invalid(m)),
         Err(PartMiss::Ambiguous(hits)) => Err(StripEditError::Ambiguous(choices(hits))),
     }
 }
@@ -486,7 +490,7 @@ fn accessories_of<'w>(q: &Q, work: &'w mut Work, strip: Uuid) -> Result<&'w mut 
         .devices()
         .get(id)
         .and_then(|d| d.aspects.strip.clone())
-        .ok_or_else(|| StripEditError::Invalid("the device is not a terminal strip".into()))?;
+        .ok_or_else(|| StripEditError::Invalid(api_text!("refusal-strip-not-strip")))?;
     let list: Vec<Value> = aspect
         .accessories
         .iter()
@@ -502,8 +506,8 @@ fn accessories_of<'w>(q: &Q, work: &'w mut Work, strip: Uuid) -> Result<&'w mut 
 fn group_label(q: &Q, work: &mut Work, terminals: &[Uuid], label: &str) -> Result<(), StripEditError> {
     let mut by_strip: Vec<(Id<Device>, Vec<u32>)> = Vec::new();
     for t in terminals {
-        let (strip, seq) =
-            terminal_of(q, *t).ok_or_else(|| StripEditError::Invalid("the row is not a terminal".into()))?;
+        let (strip, seq) = terminal_of(q, *t)
+            .ok_or_else(|| StripEditError::Invalid(api_text!("refusal-strip-not-terminal")))?;
         match by_strip.iter_mut().find(|(s, _)| *s == strip) {
             Some((_, seqs)) => seqs.push(seq),
             None => by_strip.push((strip, vec![seq])),
@@ -519,7 +523,7 @@ fn group_label(q: &Q, work: &mut Work, terminals: &[Uuid], label: &str) -> Resul
                     .devices()
                     .get(strip)
                     .and_then(|d| d.aspects.strip.as_ref().map(|a| a.groups.clone()))
-                    .ok_or_else(|| StripEditError::Invalid("the terminal's strip is not a strip".into()))?;
+                    .ok_or_else(|| StripEditError::Invalid(api_text!("refusal-strip-terminal-strip")))?;
                 work.order.push((0, work.groups.len()));
                 work.groups.push((strip, groups));
                 work.groups.len() - 1
@@ -740,15 +744,15 @@ fn insert(
         .get(strip_id)
         .is_some_and(|d| d.aspects.strip.is_some())
     {
-        return Err(StripEditError::Invalid(
-            "the device is not a terminal strip".into(),
-        ));
+        return Err(StripEditError::Invalid(api_text!("refusal-strip-not-strip")));
     }
     if count == 0 {
-        return Err(StripEditError::Invalid("insert at least one terminal".into()));
+        return Err(StripEditError::Invalid(api_text!("refusal-strip-insert-count")));
     }
     if designation.is_some() && count != 1 {
-        return Err(StripEditError::Invalid("a designation names one terminal".into()));
+        return Err(StripEditError::Invalid(api_text!(
+            "refusal-strip-designation-one"
+        )));
     }
     let terminals = strip_terminals(q, strip_id);
     let reference = before

@@ -348,7 +348,7 @@ fn ft1499_other_integrity_findings_refuse_the_update() {
 }
 
 /// The save fails (the manifest changed on disk after the open): the update is refused in words, whole in both
-/// languages, and nothing more is written.
+/// languages, the save's reason included and no file name in it (FT-1570), and nothing more is written.
 #[test]
 fn ft1499_a_save_that_fails_refuses_the_update() {
     let tmp = Tmp::new("ft1499-save");
@@ -358,13 +358,12 @@ fn ft1499_a_save_that_fails_refuses_the_update() {
     for (locale, message) in [
         (
             "en",
-            "Update from library is refused: the update could not be written: the project changed on disk \
-             (manifest.json); merge the change first.",
+            "Update from library is refused: the update could not be written: the project changed on disk.",
         ),
         (
             "nl",
-            "Bijwerken vanuit de bibliotheek is geweigerd: het bijwerken kon niet worden weggeschreven: the project \
-             changed on disk (manifest.json); merge the change first.",
+            "Bijwerken vanuit de bibliotheek is geweigerd: het bijwerken kon niet worden weggeschreven: het project \
+             is op schijf gewijzigd.",
         ),
     ] {
         damage(&file);

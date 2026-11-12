@@ -134,7 +134,7 @@ fn tag_edit_of(shown: &str, letter: &str, counter: &str, typed: &str) -> Option<
 /// The sentence of a strip edit's refusal (the Group row's error line).
 fn message_of(result: &Result<AnyCommand, ew_api::output::StripEditError>) -> String {
     match result {
-        Err(ew_api::output::StripEditError::Invalid(m)) => m.clone(),
+        Err(ew_api::output::StripEditError::Invalid(m)) => super::tools::rejected_words("", Some(m)),
         Err(ew_api::output::StripEditError::Refused(k)) => strings::text(Key::run_time(k)).to_owned(),
         Err(ew_api::output::StripEditError::Ambiguous(c)) => {
             c.iter().map(|x| x.text.as_str()).collect::<Vec<_>>().join("; ")
@@ -374,6 +374,24 @@ impl ShellModel {
         crate::properties::command_choices_in_words(&mut sheet);
         crate::properties::report_source_in_words(&mut sheet);
         crate::properties::values_in_words(&mut sheet);
+        // FT-1554: the Part function row's kind in the window's language, as the navigators word it.
+        for row in sheet
+            .sections
+            .iter_mut()
+            .flat_map(|s| &mut s.rows)
+            .filter(|r| r.path == "template_entry")
+        {
+            let words = |t: &mut String| {
+                if let Some(w) = strings::kind_words(t) {
+                    *t = w;
+                }
+            };
+            match &mut row.value {
+                RowValue::One { text, .. } => words(text),
+                RowValue::Varies { texts, .. } => texts.iter_mut().for_each(words),
+                RowValue::Absent => {}
+            }
+        }
         crate::properties::cps_in_words(&mut sheet);
         self.positions_in_words(&mut sheet, p.session.decimal_comma());
         crate::properties::header_in_words(&mut sheet);
@@ -557,7 +575,11 @@ impl ShellModel {
                     };
                     match project.session.resolve_reference(&format!("id:{text}")) {
                         Ok(u) => items.push(EntityRef(u)),
-                        Err(m) => return Outcome::Failed { message: m },
+                        Err(why) => {
+                            return Outcome::Failed {
+                                message: super::tools::rejected_words("", Some(&why)),
+                            };
+                        }
                     }
                 }
             }
@@ -575,7 +597,11 @@ impl ShellModel {
                     }
                     match project.session.resolve_reference(text) {
                         Ok(u) => items.push(EntityRef(u)),
-                        Err(m) => return Outcome::Failed { message: m },
+                        Err(why) => {
+                            return Outcome::Failed {
+                                message: super::tools::rejected_words("", Some(&why)),
+                            };
+                        }
                     }
                 }
             }
@@ -1765,7 +1791,7 @@ impl ShellModel {
     pub(super) fn joined_toast(&self, rep: ew_api::output::Uuid, notices: &[String]) -> Option<String> {
         let j = self.project.as_ref()?.session.joined_text(rep)?;
         // FT-1483: the function's kind in the window's language.
-        let kind = super::navigators::kind_words(&j.kind).unwrap_or_else(|| j.kind.clone());
+        let kind = strings::kind_words(&j.kind).unwrap_or_else(|| j.kind.clone());
         let text = strings::format(key!("toast-joined"), &[&j.tag, &kind, &j.place]);
         Some(if notices.is_empty() {
             text

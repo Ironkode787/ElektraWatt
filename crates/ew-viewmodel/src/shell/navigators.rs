@@ -1521,7 +1521,11 @@ impl ShellModel {
                     };
                     match project.session.resolve_reference(&format!("section:{n}")) {
                         Ok(id) => params["section"] = Value::String(id.to_string()),
-                        Err(message) => return Outcome::Failed { message },
+                        Err(why) => {
+                            return Outcome::Failed {
+                                message: super::tools::rejected_words("", Some(&why)),
+                            };
+                        }
                     }
                 }
             }
@@ -1657,54 +1661,6 @@ fn json_map(v: Value) -> Map<String, Value> {
         Value::Object(m) => m,
         _ => Map::new(),
     }
-}
-
-/// A function's kind text in the UI language: its longest leading words that `ew-api`'s
-/// `KIND_WORDS` give ("Two-way process valve" of "Two-way process valve 1-2") by their `kind-words-<words>` text, the
-/// CP designations after them kept; else the generic rule's words ([`generic_kind_words`], FT-1483); `None` when
-/// neither has a text.
-pub(super) fn kind_words(text: &str) -> Option<String> {
-    let words: Vec<&str> = text.split(' ').collect();
-    let leading = (1..=words.len()).rev().find_map(|n| {
-        let slug: String = words[..n]
-            .join(" ")
-            .to_lowercase()
-            .split(|c: char| !c.is_alphanumeric())
-            .filter(|w| !w.is_empty())
-            .collect::<Vec<_>>()
-            .join("-");
-        let head = strings::lookup(&format!("kind-words-{slug}"))?;
-        Some(
-            std::iter::once(head)
-                .chain(words[n..].iter().copied())
-                .collect::<Vec<_>>()
-                .join(" "),
-        )
-    });
-    leading.or_else(|| generic_kind_words(&words))
-}
-
-/// The generic rule's kind text in the UI language (FT-1483): its first two words are the FnDef
-/// category's last two segments ("NO contact 13-14", "Changeover contact 11-12-14"), or its one segment before the CP
-/// designations ("Coil A1-A2"), each by its `kind-segment-<segment>` text, two of them joined by `kind-generic` (a Dutch
-/// segment carries its own joint: "NO-contact", "Wisselcontact"); a segment without a text is shown as written. `None`
-/// when the first word has no text and the second none either.
-fn generic_kind_words(words: &[&str]) -> Option<String> {
-    let segment = |w: &str| strings::lookup(&format!("kind-segment-{}", w.to_lowercase()));
-    let first = segment(words.first()?);
-    let second = words.get(1).and_then(|w| segment(w));
-    let (head, rest) = match (first, second) {
-        (Some(a), Some(b)) => (strings::format(key!("kind-generic"), &[a, b]), &words[2..]),
-        (Some(a), None) => (a.trim_end().to_owned(), &words[1..]),
-        (None, Some(b)) => (format!("{} {b}", words[0]), &words[2..]),
-        (None, None) => return None,
-    };
-    Some(
-        std::iter::once(strings::sentence_start(&head).into_owned())
-            .chain(rest.iter().map(|w| (*w).to_owned()))
-            .collect::<Vec<_>>()
-            .join(" "),
-    )
 }
 
 /// A library row's tier, access and index state in the UI language (FT-1483): the tier by its facet, the access
@@ -1843,12 +1799,24 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             .and_then(|i| node.cells.get(i))
             .is_some_and(|c| c == "Function definition");
         if (node.role == NavRole::Function || (node.role == NavRole::LibCopy && fndef))
-            && let Some(words) = kind_words(&node.label)
+            && let Some(words) = strings::kind_words(&node.label)
         {
             let english = std::mem::replace(&mut node.label, words.clone());
             for cell in node.cells.iter_mut().filter(|c| **c == english) {
                 *cell = words.clone();
             }
+        }
+        // A library copy's kind column by its record kind's words (FT-1554): its last `kind` facet names it.
+        if node.role == NavRole::LibCopy
+            && let Some(record) = node
+                .facets
+                .iter()
+                .rev()
+                .find(|(f, _)| f == "kind")
+                .map(|(_, v)| v.clone())
+            && let Some(cell) = kind.and_then(|i| node.cells.get_mut(i))
+        {
+            *cell = strings::kind_heading(&record);
         }
         for (i, prefix) in &closed {
             if let Some(cell) = node.cells.get_mut(*i)

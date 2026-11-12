@@ -1487,6 +1487,11 @@ pub(crate) fn run_commands(
                 ew_api::CmdLogError::Refused { error, .. } | ew_api::CmdLogError::Failed { error, .. } => {
                     crate::shell::tools::command_error_words(error)
                 }
+                ew_api::CmdLogError::Reference {
+                    message,
+                    text: Some(t),
+                    ..
+                } => crate::shell::tools::rejected_words(message, Some(t)),
                 other => other.to_string(),
             };
             strings::format(key!("wizard-error-command"), &[cmd, &why])

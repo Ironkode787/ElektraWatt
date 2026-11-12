@@ -426,9 +426,21 @@ impl ShellModel {
         };
         // A held image over the pixel limit is refused as `image.file` refuses it.
         if let Err(e) = ew_api::pixel_limit(reference.format, reference.size) {
-            // In the window's language, as `image.file`'s refusal.
+            // In the window's language, as `image.file`'s refusal; the image by where it shows (the company logo,
+            // the first folio of a page that shows it), never by its hash (FT-1557): the project keeps no file name.
             let why = super::tools::rejected_words(&e.to_string(), Some(&ew_api::asset_error_text(&e)));
-            return failed(key!("error-image-refused"), &[text, &why]);
+            let shown = project
+                .session
+                .undrawn_images()
+                .into_iter()
+                .find(|i| i.sha256 == sha256);
+            return match shown {
+                Some(i) if i.logo => failed(key!("error-image-held-refused-logo"), &[&why]),
+                Some(i) if !i.folios.is_empty() => {
+                    failed(key!("error-image-held-refused-on"), &[&i.folios[0], &why])
+                }
+                _ => failed(key!("error-image-held-refused"), &[&why]),
+            };
         }
         let asset = ImageAsset {
             hash: sha256.to_string(),

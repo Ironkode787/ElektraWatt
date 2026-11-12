@@ -403,7 +403,9 @@ impl ShellModel {
             StripEditError::Refused(reason_key) => Outcome::Refused {
                 reason_key: Key::run_time(reason_key),
             },
-            StripEditError::Invalid(message) => Outcome::Failed { message },
+            StripEditError::Invalid(message) => Outcome::Failed {
+                message: super::tools::rejected_words("", Some(&message)),
+            },
             StripEditError::Ambiguous(choices) => failed(
                 key!("error-accessory-part-ambiguous"),
                 &[&choices
@@ -485,7 +487,11 @@ impl ShellModel {
                     reason_key: Key::run_time(reason_key),
                 };
             }
-            Err(StripEditError::Invalid(message)) => return Outcome::Failed { message },
+            Err(StripEditError::Invalid(message)) => {
+                return Outcome::Failed {
+                    message: super::tools::rejected_words("", Some(&message)),
+                };
+            }
             Err(StripEditError::Ambiguous(_)) => return failed(key!("error-bad-param"), &["rows"]),
         };
         let out = self.run_commit(&cmd);
@@ -663,7 +669,11 @@ impl ShellModel {
                     reason_key: Key::run_time(reason_key),
                 };
             }
-            Err(StripEditError::Invalid(message)) => return Outcome::Failed { message },
+            Err(StripEditError::Invalid(message)) => {
+                return Outcome::Failed {
+                    message: super::tools::rejected_words("", Some(&message)),
+                };
+            }
             Err(StripEditError::Ambiguous(choices)) => {
                 let list = choices
                     .iter()

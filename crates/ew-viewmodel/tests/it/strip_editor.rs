@@ -610,3 +610,24 @@ fn the_strip_editor_and_its_accessory_toast_read_in_dutch() {
     );
     shell.shutdown();
 }
+
+/// FT-1555: a strip gesture's refusal reads in the window's language, the part kind in words.
+#[test]
+fn a_strip_gestures_refusal_reads_in_dutch() {
+    let tmp = Tmp::new("ft1555-strip");
+    let mut shell = editor(&tmp, "-X1031");
+    let refusal = |shell: &mut ShellModel| match shell.dispatch(
+        "strip.add_accessory",
+        &json!({"kind": "end_clamp", "part": "4711"}),
+    ) {
+        Outcome::Failed { message } => message,
+        other => panic!("{other:?}"),
+    };
+    let en = refusal(&mut shell);
+    done(&mut shell, "view.language", json!({ "value": "nl" }));
+    let nl = refusal(&mut shell);
+    done(&mut shell, "view.language", json!({ "value": "en" }));
+    shell.shutdown();
+    assert!(en.contains("the project has no part `4711` of kind end bracket"), "{en}");
+    assert!(nl.contains("het project heeft geen artikel `4711` van soort eindsteun"), "{nl}");
+}

@@ -2784,7 +2784,7 @@ impl Session {
                 let q = self.query();
                 let id = match self.resolve_reference(t) {
                     Ok(id) => id,
-                    // The script references' resolver words its reasons in English (`cmdlog`).
+                    // The script references' resolver words its reasons by key (`cmdlog`), in the window's language.
                     Err(reason) => {
                         return Some(Err(InputError::Invalid(api_text!(
                             "refusal-input-detail",

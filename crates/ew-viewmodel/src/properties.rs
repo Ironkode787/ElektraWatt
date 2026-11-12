@@ -1314,10 +1314,20 @@ pub fn enum_value_of<'t>(kind: &str, row: &PropRow, text: &'t str) -> std::borro
 /// The stored word of a value of the field `path` of `kind`, of type `ty`, that `text` names in the UI language's
 /// words, else `text` as typed: what [`enum_value_of`] reads for a row and a table cell for its column's field.
 pub fn enum_word_of<'t>(kind: &str, path: &str, ty: &FieldType, text: &'t str) -> std::borrow::Cow<'t, str> {
+    let typed = text.trim();
+    // A yes or no row takes the words it shows ("ja", "nee"; FT-1555).
+    if matches!(ty.inner(), FieldType::Bool) {
+        return if typed.eq_ignore_ascii_case(strings::text(key!("props-yes"))) {
+            "yes".into()
+        } else if typed.eq_ignore_ascii_case(strings::text(key!("props-no"))) {
+            "no".into()
+        } else {
+            text.into()
+        };
+    }
     let FieldType::Enum { options } = ty.inner() else {
         return text.into();
     };
-    let typed = text.trim();
     options
         .iter()
         .find(|o| strings::field_choice_text(kind, path, o).eq_ignore_ascii_case(typed))
