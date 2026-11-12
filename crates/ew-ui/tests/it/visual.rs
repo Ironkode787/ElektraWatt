@@ -1076,10 +1076,7 @@ fn symbol_editor_close_editor_is_clickable_right_after_a_save() {
         d.enable_accesskit();
         for (action, params) in [
             ("symbol.new", json!({"key":"example.saved","name":"Saved"})),
-            (
-                "symbol.draw",
-                json!({"tool":"line","x":0,"y":0,"x2":8,"y2":0}),
-            ),
+            ("symbol.draw", json!({"tool":"line","x":0,"y":0,"x2":8,"y2":0})),
             (
                 "symbol.cp",
                 json!({"idx":1,"designation":"1","x":4,"y":0,"direction":"up"}),

@@ -282,27 +282,27 @@ fn each_tutorial_has_its_own_start() {
         .collect();
     // The guide's tutorials, each with its start; the list grows with the guide (FT-1715).
     for item in [
-            (
-                "A first schematic page with potentials…".to_owned(),
-                json!({"tutorial": "first-page"})
-            ),
-            (
-                "A terminal strip and a cable".to_owned(),
-                json!({"tutorial": "terminal-strip-and-cable"})
-            ),
-            (
-                "Reports and PDF…".to_owned(),
-                json!({"tutorial": "reports-and-pdf"})
-            ),
-            (
-                "Importing a QElectroTech project".to_owned(),
-                json!({"tutorial": "import-qet"})
-            ),
-            (
-                "Draw a six-pin power block".to_owned(),
-                json!({"tutorial": "symbol-editor"})
-            ),
-        ] {
+        (
+            "A first schematic page with potentials…".to_owned(),
+            json!({"tutorial": "first-page"}),
+        ),
+        (
+            "A terminal strip and a cable".to_owned(),
+            json!({"tutorial": "terminal-strip-and-cable"}),
+        ),
+        (
+            "Reports and PDF…".to_owned(),
+            json!({"tutorial": "reports-and-pdf"}),
+        ),
+        (
+            "Importing a QElectroTech project".to_owned(),
+            json!({"tutorial": "import-qet"}),
+        ),
+        (
+            "Draw a six-pin power block".to_owned(),
+            json!({"tutorial": "symbol-editor"}),
+        ),
+    ] {
         assert!(items.contains(&item), "{item:?} in {items:?}");
     }
     let first = tmp.0.join("first.ew");
