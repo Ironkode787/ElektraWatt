@@ -3433,6 +3433,13 @@ canvas-cursor-live-link = , link to { $p0 }
 
 # Creating pages, structure nodes and external references (FT-408, FT-409).
 action-page-new = New page…
+action-page-title-block = Title block fields…
+titleblock-title = Title block fields
+titleblock-project-description = Project description
+titleblock-revision = Revision
+reason-titleblock-fixed = This page's title block prints only fixed texts of its form, no field of the project's data
+error-titleblock-date = Type { $p0 } as a date, such as 2026-11-12, or leave it empty.
+error-titleblock-revision = A revision keeps its label; type one.
 action-structure-new = Structure node…
 action-external-ref-new = External reference…
 new-page-title = New page

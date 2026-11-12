@@ -299,6 +299,12 @@ fn writable(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// The project can be written and shows a page (Title block fields…).
+fn writable_page(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    has_pages(m)
+}
+
 /// The project can be written and has an open revision (Approve, Release, Set author).
 fn open_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;

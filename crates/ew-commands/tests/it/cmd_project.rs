@@ -881,11 +881,28 @@ fn fields_set_on_the_project_refuses_other_members_targets_and_values() {
         &mut e,
         &any(
             "fields.set",
-            json!({"kind": "project", "targets": [project], "path": "master.object_id", "value": "X"}),
+            json!({"kind": "project", "targets": [project], "path": "supply", "value": "X"}),
         ),
     );
     assert_eq!(path, "/path");
     assert!(message.contains("settable: master.description"), "{message}");
+    // The master data a title block prints and the parties are settable (FT-1686).
+    for (member, value) in [
+        ("master.drawing_id", json!("D-0001")),
+        ("master.created", json!("2026-11-12")),
+        ("parties", json!([{"role": "end_user", "name": "Plant operator"}])),
+    ] {
+        commit(
+            &mut e,
+            &any(
+                "fields.set",
+                json!({"kind": "project", "targets": [project], "path": member, "value": value}),
+            ),
+        );
+    }
+    let project_row = e.model().project();
+    assert_eq!(project_row.master.drawing_id.as_ref().map(|d| d.as_str()), Some("D-0001"));
+    assert_eq!(project_row.parties.len(), 1);
     let other = id::<ew_schema::Project>(0x4fe).to_string();
     assert!(matches!(
         e.preview(&any(

@@ -63,9 +63,10 @@ use crate::tx::TxBuilder;
 /// `fields.set_many` that clears the star and sets the direction to target passes), a starred point with another
 /// direction or a starred external point refuses the whole call, naming the first such point.
 ///
-/// The project row (kind `project`, its one ID as the target) takes `master.description`, the project
-/// description that title blocks and bound free texts print (FR-SYM-024); the other project members
-/// keep their own commands.
+/// The project row (kind `project`, its one ID as the target) takes its master data (`master.description`, the project
+/// description that title blocks and bound free texts print, FR-SYM-024; the long description, the document title, the
+/// project reference, the drawing ID, the object ID, the manufacturing year, the created and edited dates) and its
+/// `parties` as a whole, every one a title block prints (FT-1686); the other project members keep their own commands.
 ///
 /// The PLC kinds: a channel's `designation`, `address`, `state`, `symbol`, `comment` and
 /// `target`; a configuration project's `name` (unique, as `plc.config_project.create` requires; its profile
@@ -183,7 +184,21 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
         &["code", "aliases", "description", "order"],
     ),
     (KindName::Section, &["title", "divider", "folio_range"]),
-    (KindName::Project, &["master.description"]),
+    (
+        KindName::Project,
+        &[
+            "master.description",
+            "master.long_description",
+            "master.document_title",
+            "master.project_ref",
+            "master.drawing_id",
+            "master.object_id",
+            "master.manufacturing_year",
+            "master.created",
+            "master.edited",
+            "parties",
+        ],
+    ),
     (
         KindName::ReportBlock,
         &[

@@ -26,6 +26,13 @@ The fields of an action that needs values before it runs, such as Page ▸ New p
 node… and Project ▸ Setup ▸ External reference…. The primary button runs the action with the values; Cancel
 changes nothing.
 
+Page ▸ Title block fields…, also a link under the page's name in Properties, lists every field the page's title
+block prints from the project's data, in the title block's order: the page's title and description, the project
+reference, the drawing and object IDs, the dates, the parties' names and the revision. Apply writes each changed
+field where its value comes from in one undo step: the description to the page when the page overrides it, else to
+the project; a revision label typed in a project without a revision makes that revision. A text the title block's
+form holds itself (the fixed texts of an imported QElectroTech template) is not a field.
+
 ## Purge unused images
 
 Lists the image files that no page uses any more and deletes them on Purge. Undo does not bring them back. Open it

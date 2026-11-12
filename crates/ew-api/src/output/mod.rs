@@ -77,6 +77,8 @@ mod strip_edit;
 pub mod table_edit;
 // The table round trip.
 mod table_io;
+// What the window's Title block fields form reads of a page (FT-1686).
+mod title_block_fields;
 mod view;
 
 use std::collections::BTreeMap;
@@ -153,6 +155,7 @@ pub use strip_edit::{
     ACCESSORY_KINDS, BridgeRow, StripCell, StripEdit, StripEditError, accessory_kind_word,
     accessory_part_kinds,
 };
+pub use title_block_fields::TitleBlockFacts;
 pub use table_io::{
     CellOutcome, ImportCell, ImportTableOptions, TABLE_NAVIGATORS, TableApplyError, TableError, TableImport,
     TableImportError, guard_table_read,

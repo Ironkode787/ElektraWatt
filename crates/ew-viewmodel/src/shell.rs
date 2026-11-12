@@ -79,6 +79,7 @@ mod parts;
 mod projects;
 mod properties;
 mod table_file;
+mod title_block;
 pub(crate) mod tools;
 // The history panel and context restore.
 mod undo_panel;

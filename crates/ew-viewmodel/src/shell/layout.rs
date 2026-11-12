@@ -573,7 +573,7 @@ fn draw_kind(name: &str) -> Option<&'static str> {
 
 impl ShellModel {
     /// The page the focused canvas shows, by ID; `None` without one.
-    fn focused_page_id(&self) -> Option<Uuid> {
+    pub(super) fn focused_page_id(&self) -> Option<Uuid> {
         match self.current_page()? {
             crate::canvas::PageId(ew_api::output::ew_dl::Destination::Page(id)) => Some(id),
             _ => None,
