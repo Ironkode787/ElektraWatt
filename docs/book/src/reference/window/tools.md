@@ -21,20 +21,27 @@ Measure.
 
 ## Symbol
 
-Places a symbol from the library: double-click the symbol in the browser (its categories at the left, a picture of
-the chosen row at the right), then click where it goes; each click places one more until you finish. Open it with
-Draw ▸ Place ▸ Symbol…. See [A first schematic page](../../tutorials/first-page.md).
+Places a symbol from the library. A symbol is a drawing without a part; the symbol browser lists the symbols alone
+(the parts are the device browser's, the terminals Terminal's). Double-click the symbol in the browser (its
+categories at the left, a picture of the chosen row at the right), then click where it goes; each click places one
+more until you finish. Under the picture, **Edit symbol** opens the symbol in the symbol editor, where its next
+version is saved to its library; a symbol of a read-only library (the starter's) or one only the project holds offers
+**Copy and edit** alone, which opens a copy that is saved to your own library. Open it with Draw ▸ Place ▸ Symbol….
+See [A first schematic page](../../tutorials/first-page.md).
 
 ## Device from part
 
-Places a device from a part of the library, so that the device has its part from the start. The browser lists one
-row per part; a part with several functions opens to them with its arrow (or Right). Open it with Draw ▸ Place ▸
-Device from part…. See [Choose parts](../../how-to/choose-parts.md).
+Places a device from a part of the library, so that the device has its part from the start. A device is a part of
+the catalogue with its functions. The browser lists one row per part; a part with several functions opens to them
+with its arrow (or Right). Edit symbol and Copy and edit act on the symbol of the chosen row, as in the symbol
+browser. Open it with Draw ▸ Place ▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md).
 
 ## Terminal
 
-Opens the device browser on its terminals: choose one, then the strip it joins or a new strip. Every other kind of
-part is one click away in the browser's tree. Draw ▸ Place ▸ Terminal….
+Asks which strip (one of the project's, or a new strip with the tag it will take), which kind of terminal
+(feed-through, protective earth and the others of the page's library), how many and from which number (empty: the
+strip's next free number). Place then floats the first terminal; one click lays the whole row, each terminal two grid
+steps right of the one before. Draw ▸ Place ▸ Terminal….
 
 ## Black box
 

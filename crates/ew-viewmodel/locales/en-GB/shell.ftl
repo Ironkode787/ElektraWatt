@@ -198,6 +198,9 @@ announce-place = Place { $p0 }: { $p1 }, variant { $p2 }, at { $p3 }
 announce-place-no-cell = Place { $p0 }: { $p1 }, variant { $p2 }
 picker-title = Insert symbol
 picker-title-device = Insert device
+# FT-1696: the line under each browser's title: what it lists, and where the other thing is.
+picker-head-symbol = A symbol is a drawing without a part. To place a part with its functions, use Device.
+picker-head-device = A device is a part of the catalogue with its functions. To draw without a part, use Symbol.
 picker-title-exchange = Change symbol
 picker-filter-hint = Search names, part numbers and keywords
 picker-no-picture = No symbol yet: choose one to place this part
@@ -3463,6 +3466,18 @@ form-project = Other project
 new-strip-title = New terminal strip
 form-tag = Tag
 error-strip-tag = "{ $p0 }" is not a tag. Type the tag as the page is to print it, such as { $p1 }.
+# FT-1695: Draw ▸ Place ▸ Terminal…'s form.
+terminal-form-title = Place terminals
+form-terminal-strip = Strip
+form-terminal-strip-new = New strip ({ $p0 })
+form-terminal-strip-new-plain = New strip
+form-terminal-kind = Kind
+form-terminal-count = How many
+form-terminal-from = From number
+reason-no-terminal-kind = No terminal can be placed on this page
+error-terminal-kind = That kind of terminal cannot be placed on this page. Choose one of the list.
+error-terminal-count = How many: give a whole number from 1 to { $p1 }, not "{ $p0 }".
+error-terminal-from = From number: a row of terminals counts on from a number, not "{ $p0 }". Place one terminal, or give a number.
 error-folio-number = A folio starts with its number: "{ $p0 }" does not.
 error-page-type = "{ $p0 }" is not a page type; use one of: { $p1 }.
 error-page-grid = "{ $p0 }" is not a connection grid; use one of: { $p1 }.
@@ -3563,13 +3578,13 @@ error-purge = The purge was refused: { $p0 }
 
 # WP-S2.17 part 3: the rails, Properties' Main and Advanced, the status bar (doc 16a §5.4, §5.8, §6.8).
 rail-project = Project
-rail-symbols = Symbols
-rail-parts = Parts
+rail-symbols = Symbol browser
+rail-parts = Device browser
 rail-pages = Pages
 rail-devices = Devices
 rail-views = Pages or devices
 action-rail-show = Show navigator
-reason-rail-no-palettes = The palettes are not built yet; Symbols and Parts open their pickers
+reason-rail-no-palettes = The palettes are not built yet; these buttons open the symbol browser and the device browser
 category-main = Main
 action-props-show-advanced = Show advanced properties
 props-show-advanced = Show advanced ({ $p0 })
@@ -5239,6 +5254,11 @@ symbol-scratch = Test on a new page
 action-symbol-new = Symbol editor…
 action-symbol-open = Open symbol…
 action-symbol-fork = Fork symbol…
+# FT-1694: the browsers' Edit symbol and Copy and edit.
+action-symbol-edit = Edit symbol
+action-symbol-copy-edit = Copy and edit
+symbol-edit-read-only = { $p0 } is read-only. Copy and edit makes a copy of the symbol in your own library.
+symbol-edit-project-only = Only this project holds the symbol. Copy and edit makes a copy of it in your own library.
 action-symbol-close = Close symbol editor
 action-symbol-replace = Replace symbol draft
 action-symbol-undo = Undo symbol edit
@@ -5410,6 +5430,26 @@ symbol-bounds-hint = Click opposite corners of the bounding box. Set arc angles 
 symbol-point-hint = Click where to place the item.
 symbol-anchor-hint = Click the point used to locate cross-references in the page grid.
 symbol-link-hint = Name a mechanical link point, then click its position.
+# FT-1703: the line under each drawing tool's name in its tooltip: what it does and how.
+symbol-tip-select = Click an item to select it; drag it or use the arrow keys to move it, Delete removes it
+symbol-tip-line = Drag, or click two points
+symbol-tip-rectangle = Drag from corner to corner, or click two corners
+symbol-tip-circle = Click the centre, then a point on the circle; or drag
+symbol-tip-ellipse = Drag across its box, or click two opposite corners
+symbol-tip-arc = Drag across its box, or click two corners; set its angles on the Drawing tab
+symbol-tip-text = Click where the text goes, type it and press Enter
+symbol-tip-cp = Give the pin's designation and direction, then click; it lands on the connection grid
+symbol-tip-slot = Choose the text field (the tag, a pin number), then click where the page writes it
+symbol-tip-anchor = Click the point that cross-references locate the symbol by
+symbol-tip-link = Name a mechanical link point, then click where it goes
+symbol-tip-polyline = Click each corner; double-click the last one to finish
+symbol-tip-polygon = Click each corner; double-click the last one to close the shape
+# FT-1690: the editor's drawing grid, beside Fit drawing.
+symbol-snap = Snap to grid
+symbol-snap-step = Drawing grid
+symbol-snap-tip = The step lines, shapes and texts snap to. Connection points always keep to the connection grid ({ $p0 }).
+# FT-1691: the category the browsers list a drawn symbol under.
+symbol-category = Category
 symbol-fill = Fill shape
 symbol-text-style = Text style
 symbol-style-default = Default for this field

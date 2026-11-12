@@ -1392,7 +1392,7 @@ fn a_bad_symbol_file_and_a_failed_export_are_said_in_words() {
 
 /// Place on a new page with its grid makes the page for the symbol alone: when the placement is then refused (a
 /// terminal in a project without a terminal strip), the page is taken back, the page that was on show shows again,
-/// and the refusal is said in words. From the editor's offer and from the Insert symbol list.
+/// and the refusal is said in words. (The Insert symbol list offers no terminal: Terminal… places those, FT-1695.)
 #[test]
 fn a_refused_placement_on_a_new_page_leaves_no_empty_page() {
     let tmp = Tmp::new("symbol-new-page-refused");
@@ -1423,25 +1423,6 @@ fn a_refused_placement_on_a_new_page_leaves_no_empty_page() {
         "the page that was on show"
     );
     assert!(shell.symbol_editor().is_some_and(|e| e.error.is_some()));
-    // The same from the Insert symbol list's Place on a new page with its grid.
-    done(&mut shell, "symbol.close", json!({}));
-    done(&mut shell, "tool.place", json!({}));
-    let row = {
-        let picker = shell.picker().expect("the picker");
-        picker
-            .rows
-            .iter()
-            .position(|r| {
-                matches!(r, ew_viewmodel::tools::PickerRow::Symbol(i)
-                    if picker.catalogue.symbols[*i].grid_mismatch.is_some())
-            })
-            .expect("the library symbol on another grid")
-    };
-    done(&mut shell, "picker.row", json!({ "to": row }));
-    let out = shell.dispatch("picker.new_page", &json!({}));
-    assert_ne!(out, Outcome::Done);
-    assert_eq!(labels(&shell), pages, "no page is left behind");
-    assert_eq!(labels(&shell)[shell.page_index()], folio);
     shell.shutdown();
 }
 

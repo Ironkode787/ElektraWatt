@@ -426,7 +426,7 @@ The IEC 81346 prefixes that appear in tags:
 
 | Term | Definition | EPLAN | QElectroTech | Defined in |
 |---|---|---|---|---|
-| **Rail (UI)** | A narrow column of icon entries at a window edge that chooses what its panel shows: the left rail the navigators (Project to Structure, History at the foot), the right rail Symbols and Parts. | — | — | [16a §5.4](16a-design-language.md) |
+| **Rail (UI)** | A narrow column of icon entries at a window edge that chooses what its panel shows: the left rail the navigators (Project to Structure, History at the foot), the right rail the Symbol browser and the Device browser. | — | — | [16a §5.4](16a-design-language.md) |
 | **Rail bonding** | The joining of adjacent terminals by the rail or a bridge into one potential. | Bridging by rail | — | [08 §3.7](08-connections-terminals-cables.md) |
 | **Rail cut length** | A derived length of a DIN rail that fits a terminal strip and its accessories. | Rail length | — | [13 §6.2](13-manufacturing-outputs.md) |
 | **Record kind** | A type of persisted record (device, page, connection) with a rank and file placement in the kind registry. | — | — | [05 §2.2](05-project-format-and-persistence.md) |

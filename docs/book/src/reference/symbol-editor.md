@@ -11,8 +11,9 @@ in parentheses, so two terminals both named N remain distinguishable. Function c
 and source library. In **Library**, **Fork existing symbol** searches project and installed-library symbols by name
 or key; each choice shows its source and grid. **Create editable copy** leaves the original unchanged.
 The command bar and status bar follow the active symbol; library paths and publication settings live in **Library**.
-The ribbon uses the same small icons, labels and selected state as the main window. **More shapes** contains
-ellipse, arc, polyline and polygon. Press **F1** in the editor to open this reference.
+The ribbon uses the same small icons, labels and selected state as the main window; each tool's tooltip says what
+it does and how ("Line: drag, or click two points"). **More shapes** contains ellipse, arc, polyline and polygon.
+Press **F1** in the editor to open this reference.
 Text fields can show tags, function text, technical data, pin designations or cross-references.
 **Advanced document** exposes the complete draft, including other slot types, styles and arrangements.
 The circle tool takes a centre and a point on its circumference; arcs and ellipses take opposite bounding-box
@@ -20,7 +21,7 @@ corners. Arc creation angles are whole degrees; negative sweep reverses directio
 an ellipse and an arc are drawn by two clicks or by one drag. With **Select**, click a shape, a connection point,
 a text slot or a link point to select it; drag it or press an arrow key to move it, and press **Delete** to
 remove it. While you drag, an outline shows where the item will land. A connection point moves on the connection
-grid, a text slot in steps of 1 mm, a shape and a link point in steps of 0.5 mm. Each change takes one undo
+grid; a text slot, a shape and a link point move by the drawing grid's step. Each change takes one undo
 step. Numeric property edits commit
 when you press Enter or leave the field, so partially typed coordinates do not reshape the drawing.
 Selected rectangles, circles, ellipses and polygons have **Fill shape**. Text and text slots have a **Text style**
@@ -30,7 +31,15 @@ list showing the project's style sizes; choose a larger style when connection nu
 move the symbol's insertion origin. Place it on the left edge for a supply block. **Link point** instead adds a
 named attachment position for a mechanical link; it does not create an electrical connection.
 
-Native connections must lie on the 4 mm grid. Drawing clicks snap to 0.5 mm; text clicks to 1 mm.
+Native connections must lie on the 4 mm grid. In the editor's header, beside **Fit drawing**, **Drawing grid**
+chooses the step that lines, shapes, texts and link points snap to (0.5, 1, 2 or 4 mm, or QET 10 px; 0.5 mm at
+first), and **Snap to grid** turns that snapping off. The canvas draws the drawing grid's dots and, larger, the
+connection grid's. A connection point keeps to the connection grid whatever is chosen. The choice stays for the
+session.
+
+**Category**, under the name on the Drawing and Library tabs, is where the symbol browser and the device browser
+list the symbol, in their words ("Relays", "Power supplies"); a new symbol starts under "Assemblies and black boxes".
+A symbol with an assigned library function takes that function's category.
 Numeric pin edits remain exactly as entered: a pin at 4.5 mm is visibly invalid and blocks publication.
 See the
 [design standard](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/07a-symbol-design-standard.md)

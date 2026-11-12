@@ -106,7 +106,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
                             table(ui, &t, picker, pane, events);
                         });
                         column(ui, Vec2::new(detail_w, rest.y), |ui| {
-                            detail(ui, &t, picker, events);
+                            detail(ui, &t, shell, picker, events);
                         });
                     });
                 });
@@ -208,11 +208,18 @@ fn header(ui: &mut Ui, shell: &ShellModel, picker: &Picker, events: &mut Vec<Eve
         PickerMode::BlackBox => strings::text(key!("picker-title-black-box")),
     };
     components::overlay_title(ui, title, shell, events);
-    // The symbol choice of a part without a symbol says why it asks, under its title.
-    if picker.part.is_some() {
+    // The symbol choice of a part without a symbol says why it asks, under its title; the symbol and the device
+    // browser each say in one line what they list and where the other thing is (FT-1696).
+    let note = match picker.mode {
+        _ if picker.part.is_some() => Some(key!("picker-part-symbol-note")),
+        PickerMode::Place => Some(key!("picker-head-symbol")),
+        PickerMode::Parts => Some(key!("picker-head-device")),
+        _ => None,
+    };
+    if let Some(note) = note {
         ui.add(
             egui::Label::new(
-                RichText::new(strings::text(key!("picker-part-symbol-note")))
+                RichText::new(strings::text(note))
                     .font(theme::font(&t.type_small))
                     .color(t.text_secondary.color32()),
             )
@@ -650,7 +657,7 @@ fn table_header(ui: &mut Ui, t: &Tokens, headers: &[&str; 4], columns: &[f32; 3]
 /// What the current row places: the picture, its name, part number and ratings, its connection points, the reason
 /// of a greyed row and the Primary Place (Change symbol, Choose a symbol…); for a symbol on another connection grid
 /// Place on a new page with its grid.
-fn detail(ui: &mut Ui, t: &Tokens, picker: &Picker, events: &mut Vec<Event>) {
+fn detail(ui: &mut Ui, t: &Tokens, shell: &ShellModel, picker: &Picker, events: &mut Vec<Event>) {
     let Some(&row) = picker.rows.get(picker.row) else {
         return;
     };
@@ -714,6 +721,7 @@ fn detail(ui: &mut Ui, t: &Tokens, picker: &Picker, events: &mut Vec<Event>) {
         if components::button(ui, Kind::Secondary, new_page, true, 0.0).clicked() {
             events.push(Event::Action("picker.new_page", json!({})));
         }
+        edit_buttons(ui, t, shell, picker, row, events);
         return;
     }
     let place = match (picker.mode, row) {
@@ -734,6 +742,63 @@ fn detail(ui: &mut Ui, t: &Tokens, picker: &Picker, events: &mut Vec<Event>) {
     };
     if button.clicked() {
         events.push(Event::Action("picker.choose", json!({})));
+    }
+    edit_buttons(ui, t, shell, picker, row, events);
+}
+
+/// FT-1694: Edit symbol and Copy and edit under the detail of a row that places a symbol (not in the strip chooser
+/// or a part's symbol choice). Edit symbol is greyed with the reason where the symbol's library is read-only or the
+/// project alone holds it; either asks first when the symbol editor's kept draft has unsaved changes.
+fn edit_buttons(
+    ui: &mut Ui,
+    t: &Tokens,
+    shell: &ShellModel,
+    picker: &Picker,
+    row: PickerRow,
+    events: &mut Vec<Event>,
+) {
+    if picker.part.is_some() || picker.mode == PickerMode::Strip || picker.row_symbol(row).is_none() {
+        return;
+    }
+    let refusal = shell.symbol_edit_refusal();
+    ui.add_space(t.space_2);
+    ui.horizontal_wrapped(|ui| {
+        let edit = components::button(
+            ui,
+            Kind::Secondary,
+            strings::text(key!("action-symbol-edit")),
+            refusal.is_none(),
+            0.0,
+        );
+        let edit = match &refusal {
+            Some(why) => edit.disabled_tip(why.as_str()),
+            None => edit,
+        };
+        if edit.clicked() {
+            events.push(Event::SymbolAsk("symbol.edit", json!({})));
+        }
+        if components::button(
+            ui,
+            Kind::Secondary,
+            strings::text(key!("action-symbol-copy-edit")),
+            true,
+            0.0,
+        )
+        .clicked()
+        {
+            events.push(Event::SymbolAsk("symbol.copy_edit", json!({})));
+        }
+    });
+    // The reason stands under the buttons too, where the eye is after the click.
+    if let Some(why) = refusal {
+        ui.add(
+            egui::Label::new(
+                RichText::new(why)
+                    .font(theme::font(&t.type_small))
+                    .color(t.text_secondary.color32()),
+            )
+            .wrap(),
+        );
     }
 }
 

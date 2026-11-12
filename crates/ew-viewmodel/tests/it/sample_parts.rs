@@ -203,7 +203,7 @@ fn the_picker_and_the_libraries_navigator_offer_the_sample_parts() {
     let tmp = Tmp::new("sample-parts-picker");
     let mut s = new_project(&tmp);
     goto(&mut s, MULTI);
-    done(&mut s, "tool.place", json!({}));
+    done(&mut s, "tool.place_part", json!({}));
     done(&mut s, "picker.filter", json!({"text": "A9P52610"}));
     let lines: Vec<String> = {
         let p = s.picker().expect("the picker");

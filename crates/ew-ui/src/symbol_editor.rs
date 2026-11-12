@@ -5,7 +5,7 @@
 
 use crate::{
     app::Event,
-    components::{self, Kind},
+    components::{self, Kind, Tip as _},
     theme,
 };
 use egui::{Pos2, Sense, Stroke, Ui, Vec2};
@@ -55,7 +55,22 @@ pub(crate) struct EditorView {
     slot_pin: u16,
     link_name: String,
     json_error: bool,
+    /// FT-1690: snapping is off (a drawing tool then takes the pointer to 0.01 mm). Kept for the session, as
+    /// [`EditorView::snap_step`] is.
+    snap_off: bool,
+    /// The drawing grid lines, shapes, texts and link points snap to: an index into [`SNAP_STEPS`].
+    snap_step: usize,
 }
+
+/// FT-1690: the drawing grids offered, each as nanometres per steps (0.5, 1, 2 and 4 mm and QElectroTech's 10 px), the
+/// first the default. Connection points keep to the symbol's connection grid whatever is chosen.
+const SNAP_STEPS: [(i64, i64); 5] = [
+    (500_000, 1),
+    (1_000_000, 1),
+    (2_000_000, 1),
+    (4_000_000, 1),
+    (7_937_500, 3),
+];
 
 #[derive(Clone)]
 struct FunctionPinDrag(u16);
@@ -433,12 +448,25 @@ fn ribbon_button(
     menu: bool,
     shortcut: String,
 ) -> egui::Response {
+    ribbon_command(ui, key, icon, [checked, enabled, menu], shortcut, None)
+}
+
+/// [`ribbon_button`] whose tooltip adds `how`, one short line on what the command does and how (FT-1703), under its
+/// name and key.
+fn ribbon_command(
+    ui: &mut Ui,
+    key: &'static str,
+    icon: &'static str,
+    [checked, enabled, menu]: [bool; 3],
+    shortcut: String,
+    how: Option<&str>,
+) -> egui::Response {
     let name = label(strings::Key::run_time(key));
     crate::command_bar::inline_command(
         ui,
         &CommandButton {
             id: key,
-            label: name.to_owned(),
+            label: how.map_or_else(|| name.to_owned(), |how| format!("{name}\n{how}")),
             bar_label: name.to_owned(),
             icon,
             size: CommandSize::Small,
@@ -703,6 +731,9 @@ impl EditorView {
                     .as_ref()
                     .map(|r| format!("library:{}:{}", r.library, r.item))
                     .unwrap_or_default(),
+                // The drawing grid is the person's choice for the session, not the draft's.
+                snap_off: self.snap_off,
+                snap_step: self.snap_step,
                 ..Default::default()
             };
         }
@@ -840,6 +871,48 @@ impl EditorView {
         });
     }
 
+    /// The step the drawing tools snap to, in millimetres: the chosen drawing grid's, or 0.01 mm with snapping off.
+    fn snap_mm(&self) -> f64 {
+        if self.snap_off {
+            return 0.01;
+        }
+        let (num, den) = SNAP_STEPS[self.snap_step.min(SNAP_STEPS.len() - 1)];
+        num as f64 / den as f64 / 1_000_000.0
+    }
+
+    /// FT-1690: Snap to grid and the drawing grid's step, in the header beside Fit drawing; the tooltip names the
+    /// connection grid that connection points keep to.
+    fn snap_control(&mut self, ui: &mut Ui, draft: &SymbolDraft) {
+        let words = |(num, den): (i64, i64)| ew_viewmodel::status::grid_words(num, den);
+        let grid = draft.symbol.grid;
+        let tip = strings::format(
+            strings::Key::run_time("symbol-snap-tip"),
+            &[&words((grid.num() as i64, grid.den() as i64))],
+        );
+        let caption = label(strings::Key::run_time("symbol-snap-step"));
+        ui.add_enabled_ui(!self.snap_off, |ui| {
+            let combo = egui::ComboBox::from_id_salt("symbol-snap-step")
+                .selected_text(words(SNAP_STEPS[self.snap_step.min(SNAP_STEPS.len() - 1)]))
+                .show_ui(ui, |ui| {
+                    for (i, step) in SNAP_STEPS.iter().enumerate() {
+                        ui.selectable_value(&mut self.snap_step, i, words(*step));
+                    }
+                })
+                .response
+                .expanded(ui);
+            combo.widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, ui.is_enabled(), caption));
+            let _ = combo.tip(tip.clone());
+        });
+        let mut on = !self.snap_off;
+        if ui
+            .checkbox(&mut on, label(strings::Key::run_time("symbol-snap")))
+            .tip(tip)
+            .changed()
+        {
+            self.snap_off = !on;
+        }
+    }
+
     /// The file field's path, or none so that the window's file picker asks for it.
     fn file_params(&self) -> Value {
         if self.file.trim().is_empty() {
@@ -864,7 +937,17 @@ impl EditorView {
             .and_then(|(_, action)| ew_viewmodel::actions::find(action))
             .map(|m| shell.shortcut_text(m))
             .unwrap_or_default();
-        let clicked = ribbon_button(ui, caption, icon, self.tool == index, true, false, key).clicked();
+        // FT-1703: what the tool does and how, under its name.
+        let how = label(strings::Key::run_time(&format!("symbol-tip-{word}")));
+        let clicked = ribbon_command(
+            ui,
+            caption,
+            icon,
+            [self.tool == index, true, false],
+            key,
+            Some(how),
+        )
+        .clicked();
         // P10: choosing a tool leaves the panel as it is.
         if clicked {
             self.tool = index;
@@ -915,6 +998,8 @@ impl EditorView {
                     self.manual_view = false;
                     self.fitted = None;
                 }
+                ui.separator();
+                self.snap_control(ui, draft);
             });
         });
         // Why the last action did nothing, under the symbol's name on every tab: a click on Save to library or Test
@@ -1123,12 +1208,17 @@ impl EditorView {
                     self.pan=-centre*self.zoom-Vec2::new(0.0,rect.height()/2.0);
                 }
                 let origin = rect.center_bottom() + self.pan;
-                let step = self.zoom * draft.symbol.grid.at(1).map_or(4.0,|n|n.0 as f32 / 1_000_000.0);
-                if step >= t.space_3 {
+                // FT-1690: the drawing grid's dots at its chosen step, and the connection grid's, which connection
+                // points keep to, larger; each only while its dots stand apart.
+                let cp_step = draft.symbol.grid.at(1).map_or(4.0,|n|n.0 as f32 / 1_000_000.0);
+                let grids = [(!self.snap_off).then(|| self.snap_mm() as f32), Some(cp_step)];
+                for (k, step) in grids.into_iter().enumerate() {
+                    let Some(step) = step.map(|s| s * self.zoom).filter(|s| *s >= t.space_3) else { continue };
+                    let radius = if k == 0 { t.border_width * 0.75 } else { t.border_width * 1.5 };
                     let x0 = ((rect.left()-origin.x)/step).floor() as i32;
                     let y0 = ((rect.top()-origin.y)/step).floor() as i32;
                     for x in x0..x0+((rect.width()/step).ceil() as i32)+1 { for y in y0..y0+((rect.height()/step).ceil() as i32)+1 {
-                        painter.circle_filled(origin+Vec2::new(x as f32*step,y as f32*step),t.border_width,t.canvas_grid_dot.color32());
+                        painter.circle_filled(origin+Vec2::new(x as f32*step,y as f32*step),radius,t.canvas_grid_dot.color32());
                     }}
                 }
                 painter.line_segment([origin-Vec2::new(t.space_3,0.0),origin+Vec2::new(t.space_3,0.0)],Stroke::new(t.border_width,t.canvas_grid_dot.color32()));
@@ -1158,7 +1248,7 @@ impl EditorView {
                         let outline=egui::Rect::from_two_pos(lo,hi).expand(t.space_1);
                         painter.rect_stroke(outline,t.radius_none,Stroke::new(t.border_width,t.canvas_selection.color32()),egui::StrokeKind::Outside);
                         // The move a drag makes, on the item's own step: the connection grid for a connection point.
-                        let step = item.step_nm(draft);
+                        let step = item.step_nm(draft, (self.snap_mm() * 1e6).round() as i64);
                         let moved = |start: Pos2, end: Pos2| {
                             let d=(end-start)/zoom;
                             let on=|v: f32| (f64::from(v)*1e6/step as f64).round() as i64*step;
@@ -1181,7 +1271,8 @@ impl EditorView {
                 // Press, drag and release draws a shape of two points (a line, a rectangle, a circle, an ellipse, an
                 // arc), as two clicks do: the press is its first point, the release its second, each on the 0.5 mm
                 // step. (A drag drew a rectangle only; with Line it did nothing.)
-                let on_step = |pos: Pos2| { let at=(pos-origin)/self.zoom; [(f64::from(at.x)*2.0).round()/2.0,(f64::from(at.y)*2.0).round()/2.0] };
+                let snap = self.snap_mm();
+                let on_step = |pos: Pos2| { let at=(pos-origin)/self.zoom; [(f64::from(at.x)/snap).round()*snap,(f64::from(at.y)/snap).round()*snap] };
                 if editor.variant == 0 && (1..=5).contains(&self.tool) {
                     if response.drag_started_by(egui::PointerButton::Primary) && let Some(press) = ui.input(|i| i.pointer.press_origin()) {
                         self.start = Some(on_step(press));
@@ -1204,7 +1295,8 @@ impl EditorView {
                 }
                 if editor.variant == 0 && response.clicked() && let Some(pointer) = response.interact_pointer_pos() {
                     let at = (pointer-origin)/self.zoom;
-                    let snap = if self.tool == 7 { draft.symbol.grid.at(1).map_or(4.0,|n|n.0 as f64/1_000_000.0) } else if matches!(self.tool,6|8) {1.0} else {0.5};
+                    // A connection point keeps to the connection grid; every other click to the drawing grid.
+                    let snap = if self.tool == 7 { draft.symbol.grid.at(1).map_or(4.0,|n|n.0 as f64/1_000_000.0) } else { snap };
                     let mut p = [(f64::from(at.x)/snap).round()*snap,(f64::from(at.y)/snap).round()*snap];
                     if self.tool == 7 {
                         for v in &mut p { let grid=draft.symbol.grid; *v=grid.at(grid.snap(symbols::units::Nm((*v*1_000_000.0).round() as i64))).map_or(*v,|n|n.0 as f64/1_000_000.0); }
@@ -1463,7 +1555,7 @@ impl EditorView {
                 }
                 self.selected = None;
             } else {
-                let step = item.step_nm(draft);
+                let step = item.step_nm(draft, (self.snap_mm() * 1e6).round() as i64);
                 for (key, dx, dy) in [
                     (egui::Key::ArrowLeft, -step, 0),
                     (egui::Key::ArrowRight, step, 0),
@@ -1478,6 +1570,10 @@ impl EditorView {
             }
         }
         changed |= text_field(ui, "symbol-name", &mut doc["symbol"]["name"], false);
+        // Where the browsers list the symbol: on the tab a drawing starts on and on the one it is saved from.
+        if self.panel != 1 {
+            changed |= category_control(ui, &mut doc, draft.function_ref.is_none());
+        }
         if self.panel == 2 {
             for (key, path) in [("symbol-key", "key"), ("symbol-version", "version")] {
                 let mut value = doc[path].as_str().unwrap_or_default().to_owned();
@@ -2001,6 +2097,48 @@ fn coordinate_field(ui: &mut Ui, value: &mut Value, caption: &str, owner: &str) 
 }
 
 /// A text of the document in a labelled field, committed on Enter or focus loss (M25-p3#4).
+/// FT-1691: the category the device and symbol browsers list the symbol under, in the browser's words: the first level
+/// of the draft's own function definition's category. Another category takes `Generic` for its two lower levels. An
+/// assigned library function keeps its own category (`editable` false: the list shows it greyed).
+fn category_control(ui: &mut Ui, doc: &mut Value, editable: bool) -> bool {
+    let current = doc["function"]["category"][0]
+        .as_str()
+        .unwrap_or_default()
+        .to_owned();
+    let caption = label(strings::Key::run_time("symbol-category"));
+    let shown = ew_viewmodel::tools::category_words(&current)
+        .unwrap_or_else(|| label(strings::Key::run_time("category-other")));
+    let mut chosen = current.clone();
+    ui.label(caption);
+    ui.add_enabled_ui(editable, |ui| {
+        egui::ComboBox::from_id_salt("symbol-category")
+            .selected_text(shown)
+            .width(ui.available_width())
+            // A long list: a dozen rows on show.
+            .height(
+                12.0 * ui
+                    .spacing()
+                    .interact_size
+                    .y
+                    .max(ui.text_style_height(&egui::TextStyle::Body))
+                    * 1.5,
+            )
+            .show_ui(ui, |ui| {
+                for (key, words) in ew_viewmodel::tools::function_categories() {
+                    ui.selectable_value(&mut chosen, key.to_owned(), words);
+                }
+            })
+            .response
+            .expanded(ui)
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, ui.is_enabled(), caption));
+    });
+    if chosen == current {
+        return false;
+    }
+    doc["function"]["category"] = json!([chosen, "Generic", "Generic"]);
+    true
+}
+
 fn doc_field(ui: &mut Ui, key: &str, value: &mut String) -> bool {
     let name = label(strings::Key::run_time(key));
     let width = ui.available_width();
@@ -2371,12 +2509,11 @@ impl Selected {
     }
 
     /// The step a move of the item keeps to, in nanometres: the connection grid for a connection point (it must stay
-    /// on it), 1 mm for a text slot, 0.5 mm for a graphic and a link point, as a click with each tool snaps.
-    fn step_nm(self, draft: &SymbolDraft) -> i64 {
+    /// on it), else `drawing`, the drawing grid's (FT-1690), as a click with each tool snaps.
+    fn step_nm(self, draft: &SymbolDraft, drawing: i64) -> i64 {
         match self {
             Selected::Cp(_) => draft.symbol.grid.at(1).map_or(4_000_000, |n| n.0),
-            Selected::Slot(_) => 1_000_000,
-            Selected::Graphic(_) | Selected::Link(_) => 500_000,
+            Selected::Slot(_) | Selected::Graphic(_) | Selected::Link(_) => drawing.max(1),
         }
     }
 }

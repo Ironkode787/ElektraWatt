@@ -212,7 +212,7 @@ pub fn rail(model: &ShellModel) -> RailModel {
 }
 
 /// The describe lines of the rails (D15): `rail left "Project" (shown), "Terminal strips", ... foot "History"`, with
-/// ` collapsed` when the column is; `rail right "Symbols", "Parts"`.
+/// ` collapsed` when the column is; `rail right "Symbol browser", "Device browser"`.
 pub fn describe_lines(model: &ShellModel) -> Vec<String> {
     let r = rail(model);
     let item = |b: &RailButton| {

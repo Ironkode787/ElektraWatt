@@ -112,6 +112,18 @@ pub struct SymbolEditor {
     pub functions: Vec<SymbolFunctionChoice>,
 }
 
+/// A library or project symbol that Edit symbol or Copy and edit opens (FT-1694).
+struct EditTarget {
+    /// What `symbol.fork` reads it from: its library address, or the project copy's ID.
+    source: String,
+    /// Its own key (empty for a project copy without one).
+    key: String,
+    /// Its name in words.
+    name: String,
+    /// The folder of the writable library that holds it, else why it can only be copied.
+    folder: Result<PathBuf, String>,
+}
+
 /// The key a draft takes from its name while the user has given it none: `user.` and the name's letters and digits
 /// in lower case, every other run of characters one hyphen (`New symbol` gives `user.new-symbol`).
 fn key_of_name(name: &str) -> String {
@@ -444,6 +456,148 @@ impl ShellModel {
                 failed(key!("symbol-operation-failed"), &[&message])
             }
         }
+    }
+
+    /// The symbol `symbol.edit` and `symbol.copy_edit` act on (FT-1694): the one named by `symbol` (its key, copy ID or
+    /// `library:<library>:<item>` address), else the one the browser's current row places.
+    fn edit_target(&self, p: &Map<String, Value>) -> Result<EditTarget, String> {
+        let named = text(p, "symbol");
+        let given = if named.is_empty() {
+            let picker = self.tools.picker.as_ref();
+            let row = picker.and_then(|k| Some((k, *k.rows.get(k.row)?)));
+            let symbol = row.and_then(|(k, r)| k.row_symbol(r));
+            match symbol {
+                Some(s) => s.copy.map_or_else(|| s.key.clone(), |c| c.to_string()),
+                None => return Err(strings::text(key!("reason-no-picker-row")).to_owned()),
+            }
+        } else {
+            named.to_owned()
+        };
+        let fallback;
+        let registry = match &self.project {
+            Some(project) => project.session.libraries(),
+            None => {
+                fallback = match &self.configured_libraries() {
+                    Some(tiers) => ew_api::library::Registry::open(tiers).map_err(|e| e.to_string())?,
+                    None => ew_api::library::Registry::starter_only(),
+                };
+                &fallback
+            }
+        };
+        // A copy the project embeds names the library item it was copied from by its key.
+        let project_copy = self.project.as_ref().and_then(|project| {
+            let q = project.session.query();
+            q.symbols()
+                .iter()
+                .find(|(id, _)| id.to_string() == given)
+                .map(|(_, s)| s.clone())
+        });
+        let wanted = project_copy
+            .as_ref()
+            .and_then(|s| s.item.meta.key.as_ref().map(ToString::to_string))
+            .unwrap_or_else(|| given.clone());
+        for library in registry.libraries() {
+            for doc in registry.documents(library.id, symbols::schema::Kind::Symbol) {
+                let symbols::schema::LibDocument::Symbol(s) = doc else {
+                    continue;
+                };
+                let address = format!("library:{}:{}", s.library_id, s.item_id);
+                let key = s
+                    .item
+                    .meta
+                    .key
+                    .as_ref()
+                    .map(ToString::to_string)
+                    .unwrap_or_default();
+                if address != wanted && key != wanted && s.id.to_string() != wanted {
+                    continue;
+                }
+                let folder = match &library.path {
+                    Some(path) if library.writable => Ok(path.clone()),
+                    _ => Err(strings::format(key!("symbol-edit-read-only"), &[&library.name])),
+                };
+                return Ok(EditTarget {
+                    source: address,
+                    key,
+                    name: name_words(&s.item.name),
+                    folder,
+                });
+            }
+        }
+        // A symbol the project holds alone (an import's) is copied from the project.
+        let Some(copy) = project_copy else {
+            return Err(strings::text(key!("reason-unknown-symbol")).to_owned());
+        };
+        Ok(EditTarget {
+            source: given,
+            key: copy
+                .item
+                .meta
+                .key
+                .as_ref()
+                .map(ToString::to_string)
+                .unwrap_or_default(),
+            name: name_words(&copy.item.name),
+            folder: Err(strings::text(key!("symbol-edit-project-only")).to_owned()),
+        })
+    }
+
+    /// Why the browser's current row offers Copy and edit alone (FT-1694): its library is read-only, or the project
+    /// alone holds it; `None` when Edit symbol is offered too, or the row places no symbol.
+    pub fn symbol_edit_refusal(&self) -> Option<String> {
+        self.edit_target(&Map::new()).ok()?.folder.err()
+    }
+
+    /// `symbol.edit` and, with `copy`, `symbol.copy_edit` (FT-1694): the symbol editor on the symbol of the browser's
+    /// current row (or the one `symbol` names), the browser closed. Edit symbol opens the symbol itself, under its own
+    /// key, saving to its library (a new version there); a symbol of a read-only library, or one the project alone
+    /// holds, is refused in words. Copy and edit opens a copy under a key made from its name, saving to the user's
+    /// library under a free key. Unsaved changes of the kept draft are refused unless `discard` (the window asks first).
+    pub(crate) fn act_symbol_edit(&mut self, p: &Map<String, Value>, copy: bool) -> Outcome {
+        let target = match self.edit_target(p) {
+            Ok(t) => t,
+            Err(message) => return Outcome::Failed { message },
+        };
+        let folder = match (&target.folder, copy) {
+            (Err(why), false) => return Outcome::Failed { message: why.clone() },
+            (Ok(folder), false) => Some(folder.clone()),
+            (_, true) => None,
+        };
+        let key = if copy {
+            key_of_name(&target.name)
+        } else {
+            target.key.clone()
+        };
+        if key.is_empty() {
+            return failed(key!("symbol-key-required"), &[]);
+        }
+        let mut params = Map::new();
+        params.insert("source".into(), Value::String(target.source));
+        params.insert("key".into(), Value::String(key));
+        if let Some(discard) = p.get("discard") {
+            params.insert("discard".into(), discard.clone());
+        }
+        let out = self.act_symbol("fork", &params);
+        if out != Outcome::Done {
+            return out;
+        }
+        self.tools.picker = None;
+        if let Some(editor) = &mut self.symbol_editor {
+            match folder {
+                // The library that holds the symbol is where Save writes its new version; unchanged, the draft is
+                // that library's symbol.
+                Some(folder) => {
+                    editor.directory = folder.to_string_lossy().into_owned();
+                    editor.stored = true;
+                }
+                // A copy is a new item: no identity of its source, so Save gives it a free key of its name.
+                None => {
+                    editor.draft.identity = None;
+                    editor.saved = Some(editor.draft.clone());
+                }
+            }
+        }
+        Outcome::Done
     }
 
     /// The window's way to an editor action that drops the draft (New symbol, Open or import, Fork, a candidate,

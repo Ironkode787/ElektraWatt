@@ -160,7 +160,7 @@ fn the_picker_lists_the_imported_parts_by_manufacturer_in_part_number_order() {
     );
     done(&mut shell, "parts.map_import", json!({}));
     done(&mut shell, "preview.apply", json!({}));
-    done(&mut shell, "tool.place", json!({}));
+    done(&mut shell, "tool.place_part", json!({}));
     let picker = shell.picker().expect("the picker is open");
     // One row per part, by manufacturer, in part-number order within one, the project's own parts before the
     // libraries'.

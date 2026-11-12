@@ -38,11 +38,11 @@ fn chooser(tmp: &Tmp) -> ShellModel {
     s
 }
 
-/// Opens the strip chooser by the window's path (the picker, filtered to the terminal symbol, chosen); whether it
-/// shows its empty state (the project has no strip).
+/// Opens the strip chooser by the window's path (the device browser, filtered to the terminal part, chosen);
+/// whether it shows its empty state (the project has no strip).
 fn open_chooser(s: &mut ShellModel) -> bool {
-    done(s, "tool.place", json!({}));
-    done(s, "picker.filter", json!({"text": "ew.iec.terminal@"}));
+    done(s, "tool.place_part", json!({}));
+    done(s, "picker.filter", json!({"text": "EW-GEN-TRM-1"}));
     done(s, "picker.choose", json!({}));
     let picker = s.picker().expect("the strip chooser");
     picker.empty_text() == Some(key!("picker-empty-strips"))

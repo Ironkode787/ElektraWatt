@@ -50,21 +50,27 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, _| s.act_open_picker(crate::tools::PickerMode::Parts),
         ),
     ))),
-    // Draw ▸ Place ▸ Terminal: the device browser on its Terminals category (FT-1652: the main kinds of parts have
-    // a button of their own); a terminal chosen there asks for its strip, as it does from Device.
-    keeps_banner(in_canvas(placed(
-        place(Group::Place, 3, CommandSize::Small, Some(key!("bar-terminal"))),
-        "ew-terminal-strip",
-        act(
-            "tool.place_terminal",
-            Command,
-            Menu::Draw,
-            &[],
-            editable_page,
-            None,
-            |s, _| s.act_open_picker_on(crate::tools::PickerMode::Parts, "Terminal"),
-        ),
-    ))),
+    // Draw ▸ Place ▸ Terminal…: its own small form (strip, kind, how many, from which number; FT-1695), then the Place
+    // tool floating the first terminal; a click lays the row. Terminals are placed this way only.
+    keeps_banner(with_params(
+        "strip?:text, kind?:text, count?:uint, from?:text",
+        in_canvas(placed(
+            place(Group::Place, 3, CommandSize::Small, Some(key!("bar-terminal"))),
+            "ew-terminal-strip",
+            with_aliases(
+                &[("strip", ParamForm::Whole)],
+                act(
+                    "tool.place_terminal",
+                    Command,
+                    Menu::Draw,
+                    &[],
+                    editable_page,
+                    None,
+                    |s, p| s.act_place_terminal(p),
+                ),
+            ),
+        )),
+    )),
     keeps_banner(with_params(
         "letter?:text, tag?:text, dialog?:bool",
         act(
@@ -113,7 +119,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     keeps_banner(with_params(
-        "symbol?:text, part?:text, function?:ref, device?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text",
+        "symbol?:text, part?:text, function?:ref, device?:ref, template?:uint, letter?:text, strip?:text, terminal_designation?:text, designation?:text, count?:uint",
         hidden(in_canvas(with_aliases(
             &[
                 ("symbol", ParamForm::Whole),

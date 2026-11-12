@@ -900,6 +900,24 @@ impl Driver {
         out
     }
 
+    /// Every text the window shows as a widget's name or a label's value (a line of prose, a tooltip), in the tree's
+    /// order (tests).
+    pub fn texts(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        let Some(access) = self.access.as_ref() else {
+            return out;
+        };
+        let mut stack: Vec<_> = access.root.into_iter().collect();
+        while let Some(id) = stack.pop() {
+            let Some(node) = access.nodes.get(&id) else {
+                continue;
+            };
+            out.extend(node.label().or(node.value()).map(str::to_owned));
+            stack.extend(node.children().iter().rev().copied());
+        }
+        out
+    }
+
     /// Runs one frame with `events`.
     fn frame(&mut self, mut events: Vec<Event>) {
         let Some(app) = self.app.as_mut() else { return };

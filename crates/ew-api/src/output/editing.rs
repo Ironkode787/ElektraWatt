@@ -199,6 +199,9 @@ pub struct CatalogueTemplateFn {
     /// By position with the FnDef's CP indices when the entry names as many pattern entries as the FnDef has
     /// CPs, else the pattern entries with their own indices; the whole pattern when the entry names none).
     pub cps: Vec<(u16, String)>,
+    /// The function CP indices whose FnDef point is a source's output (`source_output`: the power supply's + and −),
+    /// which a black box placed from the entry lays along its bottom edge (FT-1702); empty when it has none.
+    pub outputs: Vec<u16>,
 }
 
 /// The JSON spelling of a representation type (`multi_line`); `unknown` for a type of a newer format.
@@ -338,10 +341,20 @@ fn catalogue_part(
             }
             // A black box on its own FnDef (the supply's, which declares its source outputs) is drawn by the black
             // box frame, whatever FnDef the frame's symbol names (read from the starter while not embedded).
-            let is_black_box = def
-                .clone()
-                .or_else(|| fndef_of(q, &t.fndef))
+            let read = def.clone().or_else(|| fndef_of(q, &t.fndef));
+            let is_black_box = read
+                .as_ref()
                 .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox);
+            let outputs = read
+                .map(|d| {
+                    d.item
+                        .cps
+                        .iter()
+                        .filter(|c| c.source_output)
+                        .map(|c| c.idx)
+                        .collect()
+                })
+                .unwrap_or_default();
             let symbol = rows
                 .iter()
                 .find(|(r, f)| *f == def_id && r.allowed)
@@ -401,6 +414,7 @@ fn catalogue_part(
                     .as_ref()
                     .is_some_and(|d| d.item.contact_kind == ContactKind::BlackBox),
                 cps,
+                outputs,
             }
         })
         .collect();

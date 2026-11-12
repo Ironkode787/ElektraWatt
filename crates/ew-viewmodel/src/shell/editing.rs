@@ -47,6 +47,9 @@ enum Pick {
 /// `designation`, its old name (the old name invited a device tag).
 const TERMINAL_DESIGNATION: [&str; 2] = ["terminal_designation", "designation"];
 
+/// The most terminals one click of Terminal…'s Place lays in a row (FT-1695).
+const TERMINAL_ROW_MAX: u32 = 100;
+
 /// The terminal designation of `p`: `terminal_designation`, else its old name `designation`.
 fn terminal_designation(p: &Map<String, Value>) -> Result<Option<&str>, Outcome> {
     match string_param(p, TERMINAL_DESIGNATION[0])? {
@@ -502,6 +505,7 @@ impl ShellModel {
         // The letter of the part's own function category, which a black box placed from it takes.
         let mut part_letter = None;
         let mut part_cps: Vec<(u16, String)> = Vec::new();
+        let mut part_outputs: Vec<u16> = Vec::new();
         let (row_index, part) = match &pick {
             Pick::Symbol(i) | Pick::Function(_, i) | Pick::Join(_, i) => (*i, None),
             Pick::PartFn(pi, fi) => {
@@ -513,6 +517,7 @@ impl ShellModel {
                 // embedded yet; `f.black_box` is false until it is (the first black box of a project arms through
                 // the starter symbol row instead), so the CPs are kept apart from that test (row 4).
                 part_cps = f.cps.clone();
+                part_outputs = f.outputs.clone();
                 if f.black_box {
                     box_cps = Some(f.cps.clone());
                 }
@@ -598,6 +603,7 @@ impl ShellModel {
                         letter,
                         number,
                         cps: part_cps,
+                        outputs: part_outputs,
                     }
                 }
                 None => {
@@ -698,11 +704,18 @@ impl ShellModel {
             PlaceTarget::Part { part, template, .. } => part.parse::<Uuid>().ok().map(|p| (p, *template)),
             _ => None,
         };
+        // A terminal row of Terminal… (`count`): one click lays them all (FT-1695).
+        let row = match &target {
+            PlaceTarget::Terminal { .. } => p.get("count").and_then(Value::as_u64).unwrap_or(1),
+            _ => 1,
+        };
+        let row = u32::try_from(row).unwrap_or(1).clamp(1, TERMINAL_ROW_MAX);
         self.activate_tool(Box::new(
             PlaceTool::new(shape, target)
                 .with_autoconnect(autoconnect)
                 .with_joinable(joinable)
-                .with_copies(copies),
+                .with_copies(copies)
+                .with_row(row),
         ));
         if let Some((part, template)) = slot {
             self.join_template_slot(part, template);
@@ -766,16 +779,6 @@ impl ShellModel {
         }
         self.tools.picker = Some(picker);
         Outcome::Done
-    }
-
-    /// [`ShellModel::act_open_picker`] on the tree's node of the function category `category` (`Terminal`): the
-    /// browser lists that kind alone, and every other is one click away in the tree.
-    pub(crate) fn act_open_picker_on(&mut self, mode: PickerMode, category: &str) -> Outcome {
-        let out = self.act_open_picker(mode);
-        if let Some(picker) = &mut self.tools.picker {
-            picker.set_node(crate::tools::Node::Category(category.to_owned()));
-        }
-        out
     }
 
     /// `picker.filter {text}`.
@@ -1197,6 +1200,133 @@ impl ShellModel {
             }
         }
         out
+    }
+
+    /// `tool.place_terminal {strip?, kind?, count?, from?}` (Draw ▸ Place ▸ Terminal…, FT-1695): in the window without
+    /// parameters its small form asks which strip (one of the project's, or `new`: a new strip with the tag it will
+    /// take), which kind of terminal (the page's terminal symbols: feed-through, PE…), how many and from which number
+    /// (empty: the strip's next free one). Place then arms the Place tool with the first terminal floating; a click
+    /// places the row, each terminal on the next free point two grid steps right of the one before (`place.pick`'s
+    /// `count`). Headless, the parameters left out take the form's defaults.
+    pub(crate) fn act_place_terminal(&mut self, p: &Map<String, Value>) -> Outcome {
+        const ACTION: &str = "tool.place_terminal";
+        let Some(cat) = self.catalogue() else {
+            return Outcome::refused(key!("reason-no-catalogue"));
+        };
+        // The page's terminal symbols by their names ("Terminal" before "Terminal, protective earth").
+        let mut kinds: Vec<&CatalogueSymbol> = cat
+            .symbols
+            .iter()
+            .filter(|s| {
+                s.terminal && s.placed_by == PlacedBy::Device && s.allowed && s.grid_mismatch.is_none()
+            })
+            .collect();
+        kinds.sort_by(|a, b| a.name.cmp(&b.name));
+        if kinds.is_empty() {
+            return Outcome::refused(key!("reason-no-terminal-kind"));
+        }
+        if p.is_empty() && self.mode == super::Mode::Gui {
+            let new_words = match self.strip_tag_example("X") {
+                Some(tag) => strings::format(key!("form-terminal-strip-new"), &[&tag]),
+                None => strings::text(key!("form-terminal-strip-new-plain")).to_owned(),
+            };
+            let mut strips: Vec<(String, String)> = cat
+                .strips
+                .iter()
+                .map(|st| (st.id.to_string(), crate::navigators::strip_label(&st.tag)))
+                .collect();
+            strips.push(("new".to_owned(), new_words));
+            let field = |name, label_key, options: Vec<(String, String)>, value: String| super::FormField {
+                name,
+                label_key,
+                choices: &super::choices::NONE,
+                options,
+                value,
+            };
+            let form = super::FormDialog {
+                action: ACTION,
+                title_key: key!("terminal-form-title"),
+                ok_key: key!("tool-place"),
+                fields: vec![
+                    field(
+                        "strip",
+                        key!("form-terminal-strip"),
+                        strips.clone(),
+                        strips[0].0.clone(),
+                    ),
+                    field(
+                        "kind",
+                        key!("form-terminal-kind"),
+                        kinds.iter().map(|s| (s.key.clone(), s.name.clone())).collect(),
+                        kinds[0].key.clone(),
+                    ),
+                    field("count", key!("form-terminal-count"), Vec::new(), "1".to_owned()),
+                    field("from", key!("form-terminal-from"), Vec::new(), String::new()),
+                ],
+                error: None,
+                table: None,
+            };
+            return self.open_dialog(super::Dialog::Form(form));
+        }
+        let text = |name: &str| match p.get(name) {
+            Some(Value::String(s)) => s.trim().to_owned(),
+            Some(Value::Number(n)) => n.to_string(),
+            _ => String::new(),
+        };
+        let kind = Some(text("kind"))
+            .filter(|k| !k.is_empty())
+            .unwrap_or_else(|| kinds[0].key.clone());
+        let Some(symbol) = cat
+            .symbols
+            .iter()
+            .position(|s| s.key == kind && kinds.iter().any(|k| k.key == kind))
+        else {
+            return self.form_failed(ACTION, strings::text(key!("error-terminal-kind")).to_owned());
+        };
+        let count_text = Some(text("count"))
+            .filter(|c| !c.is_empty())
+            .unwrap_or_else(|| "1".to_owned());
+        let count = match count_text.parse::<u32>() {
+            Ok(n @ 1..=TERMINAL_ROW_MAX) => n,
+            _ => {
+                let max = TERMINAL_ROW_MAX.to_string();
+                return self.form_failed(
+                    ACTION,
+                    strings::format(key!("error-terminal-count"), &[&count_text, &max]),
+                );
+            }
+        };
+        let from = text("from");
+        // A row counts on from a number; a designation such as PE names one terminal.
+        if count > 1 && !from.is_empty() && crate::tools::next_designation(&from).is_none() {
+            return self.form_failed(ACTION, strings::format(key!("error-terminal-from"), &[&from]));
+        }
+        let mut strip = Some(text("strip")).filter(|s| !s.is_empty()).unwrap_or_else(|| {
+            cat.strips
+                .first()
+                .map_or_else(|| "new".to_owned(), |st| st.id.to_string())
+        });
+        let mut cat = cat;
+        if strip == "new" {
+            let made = self.act_strip_new(&Map::new());
+            if made != Outcome::Done {
+                return self.form_done(ACTION, made);
+            }
+            strip = self.tools.last_primary.clone().unwrap_or_default();
+            match self.catalogue() {
+                Some(fresh) => cat = fresh,
+                None => return Outcome::refused(key!("reason-no-catalogue")),
+            }
+        }
+        let mut params = Map::new();
+        params.insert("strip".into(), Value::String(strip));
+        params.insert("count".into(), Value::from(count));
+        if !from.is_empty() {
+            params.insert(TERMINAL_DESIGNATION[0].into(), Value::String(from));
+        }
+        self.tools.picker = None;
+        let out = self.arm(cat, Pick::Symbol(symbol), &params);
+        self.form_done(ACTION, out)
     }
 
     /// The transform keys (§7.4, §7.2): `Key(k)` to the active tool; with Select, V on several representations is
@@ -1741,6 +1871,7 @@ impl ShellModel {
         self.after_place();
         self.refresh_place_shape();
         self.refresh_strip_tag();
+        self.place_terminal_row();
         // A sticky join target fills the next slot, then makes new auxiliary functions.
         self.refresh_join_target();
         self.cancel_stale_move();
@@ -1842,6 +1973,33 @@ impl ShellModel {
                 }
             }
         });
+    }
+
+    /// FT-1695: after the first terminal of a Terminal… row the rest of the row, each by the Place tool's own commit at
+    /// the same point (it lands on the next free point two grid steps right of a terminal of its strip), one undo step
+    /// each.
+    fn place_terminal_row(&mut self) {
+        let rest = |s: &mut Self| {
+            s.with_tool(|t, _| {
+                t.as_any_mut()
+                    .and_then(|a| a.downcast_mut::<PlaceTool>())
+                    .map(PlaceTool::take_row_rest)
+            })
+            .flatten()
+            .unwrap_or(0)
+        };
+        let first = self.tools.before_commit.clone();
+        for _ in 0..rest(self) {
+            if self.send_tool(&CanvasEvent::Activate) != Outcome::Done {
+                break;
+            }
+            self.sync_views();
+            self.sync_tool_context();
+            self.refresh_strip_tag();
+            // The row is counted from its first terminal alone.
+            let _ = rest(self);
+        }
+        self.tools.before_commit = first;
     }
 
     /// The place tool's shape after a new revision (§12 item 4): read once again through the per-revision cache, so

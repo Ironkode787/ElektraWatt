@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-12T08:49:24+01:00\n"
+"POT-Creation-Date: 2026-11-12T12:28:54+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2486,134 +2486,144 @@ msgid ""
 "sheet. Open it with Draw ▸ Annotate ▸ Measure."
 msgstr ""
 
-#: src/reference/window/tools.md:22 src/reference/symbol-editor.md:160
+#: src/reference/window/tools.md:22 src/reference/symbol-editor.md:169
 msgid "Symbol"
 msgstr ""
 
 #: src/reference/window/tools.md:24
 msgid ""
-"Places a symbol from the library: double-click the symbol in the browser "
-"(its categories at the left, a picture of the chosen row at the right), then "
-"click where it goes; each click places one more until you finish. Open it "
-"with Draw ▸ Place ▸ Symbol…. See [A first schematic "
-"page](../../tutorials/first-page.md)."
+"Places a symbol from the library. A symbol is a drawing without a part; the "
+"symbol browser lists the symbols alone (the parts are the device browser's, "
+"the terminals Terminal's). Double-click the symbol in the browser (its "
+"categories at the left, a picture of the chosen row at the right), then "
+"click where it goes; each click places one more until you finish. Under the "
+"picture, **Edit symbol** opens the symbol in the symbol editor, where its "
+"next version is saved to its library; a symbol of a read-only library (the "
+"starter's) or one only the project holds offers **Copy and edit** alone, "
+"which opens a copy that is saved to your own library. Open it with Draw ▸ "
+"Place ▸ Symbol…. See [A first schematic page](../../tutorials/first-page.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:28
+#: src/reference/window/tools.md:32
 msgid "Device from part"
 msgstr ""
 
-#: src/reference/window/tools.md:30
+#: src/reference/window/tools.md:34
 msgid ""
 "Places a device from a part of the library, so that the device has its part "
-"from the start. The browser lists one row per part; a part with several "
-"functions opens to them with its arrow (or Right). Open it with Draw ▸ Place "
-"▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md)."
+"from the start. A device is a part of the catalogue with its functions. The "
+"browser lists one row per part; a part with several functions opens to them "
+"with its arrow (or Right). Edit symbol and Copy and edit act on the symbol "
+"of the chosen row, as in the symbol browser. Open it with Draw ▸ Place ▸ "
+"Device from part…. See [Choose parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:34
+#: src/reference/window/tools.md:39
 msgid "Terminal"
 msgstr ""
 
-#: src/reference/window/tools.md:36
+#: src/reference/window/tools.md:41
 msgid ""
-"Opens the device browser on its terminals: choose one, then the strip it "
-"joins or a new strip. Every other kind of part is one click away in the "
-"browser's tree. Draw ▸ Place ▸ Terminal…."
+"Asks which strip (one of the project's, or a new strip with the tag it will "
+"take), which kind of terminal (feed-through, protective earth and the others "
+"of the page's library), how many and from which number (empty: the strip's "
+"next free number). Place then floats the first terminal; one click lays the "
+"whole row, each terminal two grid steps right of the one before. Draw ▸ "
+"Place ▸ Terminal…."
 msgstr ""
 
-#: src/reference/window/tools.md:39 src/explanation/eplan-and-ew.md:112
+#: src/reference/window/tools.md:46 src/explanation/eplan-and-ew.md:112
 msgid "Black box"
 msgstr ""
 
-#: src/reference/window/tools.md:41
+#: src/reference/window/tools.md:48
 msgid ""
 "Draws a black box: a rectangle with connection points for a device that the "
 "library has no symbol for. Open it with Draw ▸ Place ▸ Black box…."
 msgstr ""
 
-#: src/reference/window/tools.md:44
+#: src/reference/window/tools.md:51
 msgid "Tool step back"
 msgstr ""
 
-#: src/reference/window/tools.md:46
+#: src/reference/window/tools.md:53
 msgid ""
 "Takes back the last step of the active tool, such as the last corner of a "
 "wire, without leaving the tool. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:49
+#: src/reference/window/tools.md:56
 msgid "Rotate clockwise"
 msgstr ""
 
-#: src/reference/window/tools.md:51
+#: src/reference/window/tools.md:58
 msgid ""
 "Turns the symbol that the tool floats, or the selection, by 90° clockwise. "
 "Draw ▸ Arrange ▸ Rotate clockwise."
 msgstr ""
 
-#: src/reference/window/tools.md:53
+#: src/reference/window/tools.md:60
 msgid "Rotate counter-clockwise"
 msgstr ""
 
-#: src/reference/window/tools.md:55
+#: src/reference/window/tools.md:62
 msgid ""
 "Turns the floating symbol, or the selection, by 90° counter-clockwise. Draw "
 "▸ Arrange ▸ Rotate counter-clockwise."
 msgstr ""
 
-#: src/reference/window/tools.md:57
+#: src/reference/window/tools.md:64
 msgid "Mirror left to right"
 msgstr ""
 
-#: src/reference/window/tools.md:59
+#: src/reference/window/tools.md:66
 msgid ""
 "Mirrors the floating symbol, or the selection, about its vertical axis. Draw "
 "▸ Arrange ▸ Mirror left to right."
 msgstr ""
 
-#: src/reference/window/tools.md:61
+#: src/reference/window/tools.md:68
 msgid "Mirror top to bottom"
 msgstr ""
 
-#: src/reference/window/tools.md:63
+#: src/reference/window/tools.md:70
 msgid ""
 "Mirrors the floating symbol, or the selection, about its horizontal axis. "
 "Draw ▸ Arrange ▸ Mirror top to bottom."
 msgstr ""
 
-#: src/reference/window/tools.md:65
+#: src/reference/window/tools.md:72
 msgid "Next variant"
 msgstr ""
 
-#: src/reference/window/tools.md:67
+#: src/reference/window/tools.md:74
 msgid ""
 "Switches the floating symbol to its next variant, such as another contact "
 "arrangement of the same function. Draw ▸ Arrange ▸ Next variant."
 msgstr ""
 
-#: src/reference/window/tools.md:70
+#: src/reference/window/tools.md:77
 msgid "Next representation type"
 msgstr ""
 
-#: src/reference/window/tools.md:72
+#: src/reference/window/tools.md:79
 msgid ""
 "Switches the floating symbol to its next representation type, for example "
 "from the multi-line to the single-line form. Draw ▸ Arrange ▸ Next "
 "representation type."
 msgstr ""
 
-#: src/reference/window/tools.md:75
+#: src/reference/window/tools.md:82
 msgid "Move"
 msgstr ""
 
-#: src/reference/window/tools.md:77
+#: src/reference/window/tools.md:84
 msgid ""
 "Moves the selection with the pointer or the keyboard; wires attached to it "
 "follow. Draw ▸ Arrange ▸ Move."
 msgstr ""
 
-#: src/reference/window/tools.md:79
+#: src/reference/window/tools.md:86
 msgid ""
 "When you let go, a wire whose followed route would now run through a symbol, "
 "a text, a connection point or along another wire, or would bend more than "
@@ -2621,22 +2631,22 @@ msgid ""
 "happen in the same undo step as the move."
 msgstr ""
 
-#: src/reference/window/tools.md:83
+#: src/reference/window/tools.md:90
 msgid "Finish"
 msgstr ""
 
-#: src/reference/window/tools.md:85
+#: src/reference/window/tools.md:92
 msgid ""
 "Ends what the active tool is drawing, such as a wire or a polyline, at the "
 "current point. It has no menu item; use its key or double-click where a tool "
 "allows it."
 msgstr ""
 
-#: src/reference/window/tools.md:88
+#: src/reference/window/tools.md:95
 msgid "Wire"
 msgstr ""
 
-#: src/reference/window/tools.md:90
+#: src/reference/window/tools.md:97
 msgid ""
 "Draws connections between connection points: click a start point, then the "
 "end point; corners are placed where you click in between. Open it with Draw "
@@ -2644,7 +2654,7 @@ msgid ""
 "page](../../tutorials/first-page.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:93
+#: src/reference/window/tools.md:100
 msgid ""
 "While you draw, the wire shows the route it will take. The route never runs "
 "through another connection point, along another wire, through a symbol or a "
@@ -2659,7 +2669,7 @@ msgid ""
 "junction already joins three wires: end on a wire to make a new junction.\""
 msgstr ""
 
-#: src/reference/window/tools.md:102
+#: src/reference/window/tools.md:109
 msgid ""
 "An unrouted wire, from an import or a placement, is drawn as a dashed line "
 "between its ends, straight or with one corner and never diagonal, on the "
@@ -2667,28 +2677,28 @@ msgid ""
 "no route yet. Route page or Route selection draws it."
 msgstr ""
 
-#: src/reference/window/tools.md:106
+#: src/reference/window/tools.md:113
 msgid "Next autoconnect proposal"
 msgstr ""
 
-#: src/reference/window/tools.md:108
+#: src/reference/window/tools.md:115
 msgid ""
 "While a symbol floats near other connection points, shows the next of the "
 "connections EW proposes to draw when you place it. It has no menu item; use "
 "its key."
 msgstr ""
 
-#: src/reference/window/tools.md:111
+#: src/reference/window/tools.md:118
 msgid "Connect while moving"
 msgstr ""
 
-#: src/reference/window/tools.md:113
+#: src/reference/window/tools.md:120
 msgid ""
 "While moving a symbol, connects its connection points to the ones it lands "
 "on. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:115
+#: src/reference/window/tools.md:122
 msgid ""
 "Connect while moving is on when you start: the wires the moved symbol would "
 "make are shown while you drag and are drawn with the move when you let go, "
@@ -2699,11 +2709,11 @@ msgid ""
 "keyboard follows that setting."
 msgstr ""
 
-#: src/reference/window/tools.md:121
+#: src/reference/window/tools.md:128
 msgid "Edit route"
 msgstr ""
 
-#: src/reference/window/tools.md:123
+#: src/reference/window/tools.md:130
 msgid ""
 "Changes the drawn route of a wire with the mouse. Select the wire: a handle "
 "shows on each of its segments and a dashed one on each bend. Drag a segment "
@@ -2717,11 +2727,11 @@ msgid ""
 "the segment, the arrow keys move it, `Enter` stores it."
 msgstr ""
 
-#: src/reference/window/tools.md:131
+#: src/reference/window/tools.md:138
 msgid "Route page"
 msgstr ""
 
-#: src/reference/window/tools.md:133
+#: src/reference/window/tools.md:140
 msgid ""
 "Routes every unrouted wire of the page on show in one step. Open it with "
 "Draw ▸ Connect ▸ Route page. The Preview tab shows the plan first: \"Route 3 "
@@ -2737,11 +2747,11 @@ msgid ""
 "tool."
 msgstr ""
 
-#: src/reference/window/tools.md:142
+#: src/reference/window/tools.md:149
 msgid "Route selection"
 msgstr ""
 
-#: src/reference/window/tools.md:144
+#: src/reference/window/tools.md:151
 msgid ""
 "Routes the selected wires, and every wire with an end on a selected symbol, "
 "again, routed or not; the other wires of the page stay as they are. Open it "
@@ -2749,18 +2759,18 @@ msgid ""
 "Route page does."
 msgstr ""
 
-#: src/reference/window/tools.md:148 src/explanation/eplan-and-ew.md:44
+#: src/reference/window/tools.md:155 src/explanation/eplan-and-ew.md:44
 msgid "Interruption point"
 msgstr ""
 
-#: src/reference/window/tools.md:150
+#: src/reference/window/tools.md:157
 msgid ""
 "Places an interruption point: the end of a potential on this page that "
 "continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
 "▸ Interruption point."
 msgstr ""
 
-#: src/reference/window/tools.md:153
+#: src/reference/window/tools.md:160
 msgid ""
 "The arrow always points right, the way the signal flows. A source, where the "
 "potential leaves the page, has its wire on the arrow's tail and belongs at "
@@ -2772,7 +2782,7 @@ msgid ""
 "end."
 msgstr ""
 
-#: src/reference/window/tools.md:159
+#: src/reference/window/tools.md:166
 msgid ""
 "Type the name in the field Interruption point name at the page's top left, "
 "once for a pair: the first point of a name is its source, and the tool then "
@@ -2783,7 +2793,7 @@ msgid ""
 "point goes."
 msgstr ""
 
-#: src/reference/window/tools.md:164
+#: src/reference/window/tools.md:171
 msgid ""
 "A point keeps room for its texts: where its name or its cross-reference "
 "would print over another interruption point's, it is not placed, and the "
@@ -2792,11 +2802,11 @@ msgid ""
 "anyway."
 msgstr ""
 
-#: src/reference/window/tools.md:168
+#: src/reference/window/tools.md:175
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:170
+#: src/reference/window/tools.md:177
 msgid ""
 "Turns the interruption point that the tool floats from source to target, or "
 "back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
@@ -2804,7 +2814,7 @@ msgid ""
 "properties."
 msgstr ""
 
-#: src/reference/window/tools.md:174
+#: src/reference/window/tools.md:181
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -2812,90 +2822,90 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:178
+#: src/reference/window/tools.md:185
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:180
+#: src/reference/window/tools.md:187
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:183
+#: src/reference/window/tools.md:190
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:185
+#: src/reference/window/tools.md:192
 msgid ""
 "Places a wire marker, the label that prints a wire's number or text on the "
 "wire. Open it with Draw ▸ Annotate ▸ Wire marker."
 msgstr ""
 
-#: src/reference/window/tools.md:188
+#: src/reference/window/tools.md:195
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:190
+#: src/reference/window/tools.md:197
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:192
+#: src/reference/window/tools.md:199
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:194
+#: src/reference/window/tools.md:201
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:197 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:204 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:199
+#: src/reference/window/tools.md:206
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:202
+#: src/reference/window/tools.md:209
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:204
+#: src/reference/window/tools.md:211
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:206
+#: src/reference/window/tools.md:213
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:208
+#: src/reference/window/tools.md:215
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:211
+#: src/reference/window/tools.md:218
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:213
+#: src/reference/window/tools.md:220
 msgid "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail."
 msgstr ""
 
-#: src/reference/window/tools.md:215
+#: src/reference/window/tools.md:222
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:217
+#: src/reference/window/tools.md:224
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 
@@ -3383,28 +3393,29 @@ msgid ""
 "the original unchanged. The command bar and status bar follow the active "
 "symbol; library paths and publication settings live in **Library**. The "
 "ribbon uses the same small icons, labels and selected state as the main "
-"window. **More shapes** contains ellipse, arc, polyline and polygon. Press "
-"**F1** in the editor to open this reference. Text fields can show tags, "
-"function text, technical data, pin designations or cross-references. "
-"**Advanced document** exposes the complete draft, including other slot "
-"types, styles and arrangements. The circle tool takes a centre and a point "
-"on its circumference; arcs and ellipses take opposite bounding-box corners. "
-"Arc creation angles are whole degrees; negative sweep reverses direction. A "
-"line, a rectangle, a circle, an ellipse and an arc are drawn by two clicks "
-"or by one drag. With **Select**, click a shape, a connection point, a text "
-"slot or a link point to select it; drag it or press an arrow key to move it, "
-"and press **Delete** to remove it. While you drag, an outline shows where "
-"the item will land. A connection point moves on the connection grid, a text "
-"slot in steps of 1 mm, a shape and a link point in steps of 0.5 mm. Each "
-"change takes one undo step. Numeric property edits commit when you press "
-"Enter or leave the field, so partially typed coordinates do not reshape the "
-"drawing. Selected rectangles, circles, ellipses and polygons have **Fill "
-"shape**. Text and text slots have a **Text style** list showing the "
-"project's style sizes; choose a larger style when connection numbers need to "
-"match other labels."
+"window; each tool's tooltip says what it does and how (\"Line: drag, or "
+"click two points\"). **More shapes** contains ellipse, arc, polyline and "
+"polygon. Press **F1** in the editor to open this reference. Text fields can "
+"show tags, function text, technical data, pin designations or "
+"cross-references. **Advanced document** exposes the complete draft, "
+"including other slot types, styles and arrangements. The circle tool takes a "
+"centre and a point on its circumference; arcs and ellipses take opposite "
+"bounding-box corners. Arc creation angles are whole degrees; negative sweep "
+"reverses direction. A line, a rectangle, a circle, an ellipse and an arc are "
+"drawn by two clicks or by one drag. With **Select**, click a shape, a "
+"connection point, a text slot or a link point to select it; drag it or press "
+"an arrow key to move it, and press **Delete** to remove it. While you drag, "
+"an outline shows where the item will land. A connection point moves on the "
+"connection grid; a text slot, a shape and a link point move by the drawing "
+"grid's step. Each change takes one undo step. Numeric property edits commit "
+"when you press Enter or leave the field, so partially typed coordinates do "
+"not reshape the drawing. Selected rectangles, circles, ellipses and polygons "
+"have **Fill shape**. Text and text slots have a **Text style** list showing "
+"the project's style sizes; choose a larger style when connection numbers "
+"need to match other labels."
 msgstr ""
 
-#: src/reference/symbol-editor.md:29
+#: src/reference/symbol-editor.md:30
 msgid ""
 "**Anchor** sets the point used to calculate the symbol's cross-reference "
 "cell on the project page. It does not move the symbol's insertion origin. "
@@ -3413,16 +3424,29 @@ msgid ""
 "electrical connection."
 msgstr ""
 
-#: src/reference/symbol-editor.md:33
+#: src/reference/symbol-editor.md:34
 msgid ""
-"Native connections must lie on the 4 mm grid. Drawing clicks snap to 0.5 mm; "
-"text clicks to 1 mm. Numeric pin edits remain exactly as entered: a pin at "
+"Native connections must lie on the 4 mm grid. In the editor's header, beside "
+"**Fit drawing**, **Drawing grid** chooses the step that lines, shapes, texts "
+"and link points snap to (0.5, 1, 2 or 4 mm, or QET 10 px; 0.5 mm at first), "
+"and **Snap to grid** turns that snapping off. The canvas draws the drawing "
+"grid's dots and, larger, the connection grid's. A connection point keeps to "
+"the connection grid whatever is chosen. The choice stays for the session."
+msgstr ""
+
+#: src/reference/symbol-editor.md:40
+msgid ""
+"**Category**, under the name on the Drawing and Library tabs, is where the "
+"symbol browser and the device browser list the symbol, in their words "
+"(\"Relays\", \"Power supplies\"); a new symbol starts under \"Assemblies and "
+"black boxes\". A symbol with an assigned library function takes that "
+"function's category. Numeric pin edits remain exactly as entered: a pin at "
 "4.5 mm is visibly invalid and blocks publication. See the [design "
 "standard](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/07a-symbol-design-standard.md) "
 "for the full authoring profile."
 msgstr ""
 
-#: src/reference/symbol-editor.md:39
+#: src/reference/symbol-editor.md:48
 msgid ""
 "**Save to library** writes a symbol and its owned function definition to the "
 "chosen `.ewlib` folder. The window remembers that folder. Its symbols appear "
@@ -3466,15 +3490,15 @@ msgid ""
 "Symbol…** after saving."
 msgstr ""
 
-#: src/reference/symbol-editor.md:69
+#: src/reference/symbol-editor.md:78
 msgid "AI and command-line tools"
 msgstr ""
 
-#: src/reference/symbol-editor.md:71
+#: src/reference/symbol-editor.md:80
 msgid "No remote service or generated code is required. Use `ew symbol`:"
 msgstr ""
 
-#: src/reference/symbol-editor.md:73
+#: src/reference/symbol-editor.md:82
 msgid ""
 "```text\n"
 "ew symbol template example.power \"Power block\" > power.symbol.json\n"
@@ -3488,7 +3512,7 @@ msgid ""
 "```"
 msgstr ""
 
-#: src/reference/symbol-editor.md:83
+#: src/reference/symbol-editor.md:92
 msgid ""
 "Template and schema print JSON. Validation prints stable issue codes, JSON "
 "pointers and details, exiting 0 when valid, 1 for validation findings, or 2 "
@@ -3506,7 +3530,7 @@ msgid ""
 "which blocks publication."
 msgstr ""
 
-#: src/reference/symbol-editor.md:93
+#: src/reference/symbol-editor.md:102
 msgid ""
 "The portable envelope uses `format: \"ew.symbol/1\"`, `key`, `version`, "
 "`symbol`, `function`, optional `identity`, `function_ref`, `import_notes`, "
@@ -3517,193 +3541,193 @@ msgid ""
 "publisher replaces temporary references for owned functions."
 msgstr ""
 
-#: src/reference/symbol-editor.md:99
+#: src/reference/symbol-editor.md:108
 msgid "The window and `.ewui` scripts share these actions:"
 msgstr ""
 
-#: src/reference/symbol-editor.md:101
+#: src/reference/symbol-editor.md:110
 msgid "Action"
 msgstr ""
 
-#: src/reference/symbol-editor.md:101
+#: src/reference/symbol-editor.md:110
 msgid "Parameters"
 msgstr ""
 
-#: src/reference/symbol-editor.md:103
+#: src/reference/symbol-editor.md:112
 msgid "`symbol.new`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:103
+#: src/reference/symbol-editor.md:112
 msgid "optional `key` and `name`, optional `discard: true`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:104
+#: src/reference/symbol-editor.md:113
 msgid "`symbol.open`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:104
+#: src/reference/symbol-editor.md:113
 msgid "`file`, optional import `key` (default: the file's name)"
 msgstr ""
 
-#: src/reference/symbol-editor.md:105
+#: src/reference/symbol-editor.md:114
 msgid "`symbol.candidate`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:105
+#: src/reference/symbol-editor.md:114
 msgid "zero-based `index` from an import package"
 msgstr ""
 
-#: src/reference/symbol-editor.md:106
+#: src/reference/symbol-editor.md:115
 msgid "`symbol.fork`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:106
+#: src/reference/symbol-editor.md:115
 msgid ""
 "`source`: embedded copy UUID, `library:<library UUID>:<item UUID>`, or "
 "legacy key; new `key`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:107
+#: src/reference/symbol-editor.md:116
 msgid "`symbol.draw`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:107
+#: src/reference/symbol-editor.md:116
 msgid ""
 "`tool`, `x`, `y`, optional `x2`, `y2`, `text`, arc `start`/`sweep` in whole "
 "degrees"
 msgstr ""
 
-#: src/reference/symbol-editor.md:108
+#: src/reference/symbol-editor.md:117
 msgid "`symbol.path`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:108
+#: src/reference/symbol-editor.md:117
 msgid "`points` as millimetre pairs, optional `closed` for a polygon"
 msgstr ""
 
-#: src/reference/symbol-editor.md:109
+#: src/reference/symbol-editor.md:118
 msgid "`symbol.cp`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:109
+#: src/reference/symbol-editor.md:118
 msgid "`x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:110
+#: src/reference/symbol-editor.md:119
 msgid "`symbol.map_cp`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:110
+#: src/reference/symbol-editor.md:119
 msgid "drawing `cp`, target function `fn_cp`; an occupied compatible pin swaps"
 msgstr ""
 
-#: src/reference/symbol-editor.md:111
+#: src/reference/symbol-editor.md:120
 msgid "`symbol.role`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:111
+#: src/reference/symbol-editor.md:120
 msgid ""
 "drawing `cp` and the potential `role` of its function pin (`l1` … "
 "`undefined`; `none` clears it)"
 msgstr ""
 
-#: src/reference/symbol-editor.md:112
+#: src/reference/symbol-editor.md:121
 msgid "`symbol.slot`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:112
+#: src/reference/symbol-editor.md:121
 msgid "`kind`, `x`, `y`; e.g. `\"tag\"` or `{\"cp_designation\":1}`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:113
+#: src/reference/symbol-editor.md:122
 msgid "`symbol.link`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:113
+#: src/reference/symbol-editor.md:122
 msgid "`name`, `x`, `y`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:114
+#: src/reference/symbol-editor.md:123
 msgid "`symbol.function`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:114
+#: src/reference/symbol-editor.md:123
 msgid "existing function `key`, or `library:<library UUID>:<item UUID>` in `key`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:115
+#: src/reference/symbol-editor.md:124
 msgid "`symbol.replace`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:115
+#: src/reference/symbol-editor.md:124
 msgid "complete `document` object"
 msgstr ""
 
-#: src/reference/symbol-editor.md:116
+#: src/reference/symbol-editor.md:125
 msgid "`symbol.undo`, `symbol.redo`, `symbol.validate`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:116
+#: src/reference/symbol-editor.md:125
 msgid "none"
 msgstr ""
 
-#: src/reference/symbol-editor.md:117
+#: src/reference/symbol-editor.md:126
 msgid "`symbol.variant`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:117
+#: src/reference/symbol-editor.md:126
 msgid "`variant` 0–7 for A–H"
 msgstr ""
 
-#: src/reference/symbol-editor.md:118
+#: src/reference/symbol-editor.md:127
 msgid "`symbol.export`, `symbol.save`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:118
+#: src/reference/symbol-editor.md:127
 msgid "`file` or library `directory` respectively"
 msgstr ""
 
-#: src/reference/symbol-editor.md:119
+#: src/reference/symbol-editor.md:128
 msgid "`symbol.directory`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:119
+#: src/reference/symbol-editor.md:128
 msgid "library `directory` that Save uses"
 msgstr ""
 
-#: src/reference/symbol-editor.md:120
+#: src/reference/symbol-editor.md:129
 msgid "`symbol.tool`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:120
+#: src/reference/symbol-editor.md:129
 msgid "`tool`: the drawing tool to choose"
 msgstr ""
 
-#: src/reference/symbol-editor.md:121
+#: src/reference/symbol-editor.md:130
 msgid "`symbol.place`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:121
+#: src/reference/symbol-editor.md:130
 msgid "`x`, `y` on the current project page"
 msgstr ""
 
-#: src/reference/symbol-editor.md:122
+#: src/reference/symbol-editor.md:131
 msgid "`symbol.scratch`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:122
+#: src/reference/symbol-editor.md:131
 msgid "none; creates a test page in the current project"
 msgstr ""
 
-#: src/reference/symbol-editor.md:123
+#: src/reference/symbol-editor.md:132
 msgid "`symbol.close`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:123
+#: src/reference/symbol-editor.md:132
 msgid "optional `discard: true`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:125
+#: src/reference/symbol-editor.md:134
 msgid ""
 "Action coordinates are **millimetres**, unlike JSON document coordinates. "
 "Placement snaps the insertion point to the destination page grid; it never "
@@ -3721,78 +3745,78 @@ msgid ""
 "a complete six-pin example."
 msgstr ""
 
-#: src/reference/symbol-editor.md:134
+#: src/reference/symbol-editor.md:143
 msgid "Imported formats and limits"
 msgstr ""
 
-#: src/reference/symbol-editor.md:136
+#: src/reference/symbol-editor.md:145
 msgid "Input"
 msgstr ""
 
-#: src/reference/symbol-editor.md:136
+#: src/reference/symbol-editor.md:145
 msgid "Supported behaviour"
 msgstr ""
 
-#: src/reference/symbol-editor.md:138
+#: src/reference/symbol-editor.md:147
 msgid "QElectroTech `.elmt`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:138
+#: src/reference/symbol-editor.md:147
 msgid ""
 "Existing bounded element reader; preserves the QET 10 px grid and "
 "provenance. Review conversion warnings."
 msgstr ""
 
-#: src/reference/symbol-editor.md:139
+#: src/reference/symbol-editor.md:148
 msgid "EPLAN `.edz`"
 msgstr ""
 
-#: src/reference/symbol-editor.md:139
+#: src/reference/symbol-editor.md:148
 msgid ""
 "Bounded 7-Zip or ZIP container; candidates from supported XML members. Never "
 "extracts files to disk."
 msgstr ""
 
-#: src/reference/symbol-editor.md:140
+#: src/reference/symbol-editor.md:149
 msgid "EPLAN `.ema`, `.ems`, `.esl` XML"
 msgstr ""
 
-#: src/reference/symbol-editor.md:140
+#: src/reference/symbol-editor.md:149
 msgid ""
 "PXF revision **1.23**: straight lines, rectangles, polylines, full circles "
 "and text. Each macro variant becomes a separate candidate."
 msgstr ""
 
-#: src/reference/symbol-editor.md:141
+#: src/reference/symbol-editor.md:150
 msgid "EPLAN parts XML"
 msgstr ""
 
-#: src/reference/symbol-editor.md:141
+#: src/reference/symbol-editor.md:150
 msgid ""
 "Connection designations become a generated rectangular outline. This is "
 "explicitly **not the original macro artwork**."
 msgstr ""
 
-#: src/reference/symbol-editor.md:142
+#: src/reference/symbol-editor.md:151
 msgid "EPLAN `.slk` with its companion `.sdb` folder"
 msgstr ""
 
-#: src/reference/symbol-editor.md:142
+#: src/reference/symbol-editor.md:151
 msgid ""
 "Direct read without EPLAN: observed SLK 1.2 / FE53 tables, UTF-16LE or UTF-8 "
 "descriptor, A-variant lines, axis-aligned rectangles, full circles and "
 "graphical connection points. Review required."
 msgstr ""
 
-#: src/reference/symbol-editor.md:143
+#: src/reference/symbol-editor.md:152
 msgid "Other binary macros"
 msgstr ""
 
-#: src/reference/symbol-editor.md:143
+#: src/reference/symbol-editor.md:152
 msgid "Refused with an explanation; use a supported XML macro/parts export."
 msgstr ""
 
-#: src/reference/symbol-editor.md:145
+#: src/reference/symbol-editor.md:154
 msgid ""
 "PXF arcs/ellipses, images, groups, external symbol references and "
 "unrecognised records are not faithfully reconstructed. The importer reports "
@@ -3804,7 +3828,7 @@ msgid ""
 "distributed with ElektraWatt."
 msgstr ""
 
-#: src/reference/symbol-editor.md:151
+#: src/reference/symbol-editor.md:160
 msgid ""
 "EPLAN drafts require a licence/source review and explicit acknowledgement. A "
 "download is not treated as a redistribution licence. No links or embedded "
@@ -3814,55 +3838,55 @@ msgid ""
 "names, CRCs, decompression ratio and XML depth are checked."
 msgstr ""
 
-#: src/reference/symbol-editor.md:156
+#: src/reference/symbol-editor.md:165
 msgid "How the symbol data fits together"
 msgstr ""
 
-#: src/reference/symbol-editor.md:158
+#: src/reference/symbol-editor.md:167
 msgid "Record"
 msgstr ""
 
-#: src/reference/symbol-editor.md:158
+#: src/reference/symbol-editor.md:167
 msgid "What it owns"
 msgstr ""
 
-#: src/reference/symbol-editor.md:160
+#: src/reference/symbol-editor.md:169
 msgid ""
 "Artwork, insertion/reference anchors, text slots, pin positions and "
 "directions, and each pin's function mapping."
 msgstr ""
 
-#: src/reference/symbol-editor.md:161
+#: src/reference/symbol-editor.md:170
 msgid "Function definition"
 msgstr ""
 
-#: src/reference/symbol-editor.md:161
+#: src/reference/symbol-editor.md:170
 msgid ""
 "Electrical type, pin designations, potential roles, optional/source flags "
 "and internal connections."
 msgstr ""
 
-#: src/reference/symbol-editor.md:162
+#: src/reference/symbol-editor.md:171
 msgid "Manufacturer part"
 msgstr ""
 
-#: src/reference/symbol-editor.md:162
+#: src/reference/symbol-editor.md:171
 msgid ""
 "Purchased-product information such as article number, manufacturer and "
 "technical ratings; assigned to a project device separately."
 msgstr ""
 
-#: src/reference/symbol-editor.md:163
+#: src/reference/symbol-editor.md:172
 msgid "Placed device/function"
 msgstr ""
 
-#: src/reference/symbol-editor.md:163
+#: src/reference/symbol-editor.md:172
 msgid ""
 "Device tag, function text, chosen part and embedded copies of the "
 "symbol/function definitions."
 msgstr ""
 
-#: src/reference/symbol-editor.md:165
+#: src/reference/symbol-editor.md:174
 msgid ""
 "A new drawing starts with a generic black-box function. In **Electrical "
 "data**, under **Function definition**, choose its function type and set each "
@@ -3877,7 +3901,7 @@ msgid ""
 "designations are provisional numbers until the function is reviewed."
 msgstr ""
 
-#: src/reference/symbol-editor.md:173
+#: src/reference/symbol-editor.md:182
 msgid ""
 "Keep `custom.slk` beside the complete `custom.sdb` folder (or the sibling "
 "folder named in the descriptor). Only the Symbol, Variant, Instance and Blob "

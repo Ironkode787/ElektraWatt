@@ -2661,11 +2661,11 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
 
 /// The owner's hands-on test of 0.1.0 (FT-1652, FT-1640): "important parts such as the terminal strip have no
 /// button of their own", the Wire marker was in the menu only, and the symbol editor hid behind a small button
-/// named "Symbols". On the Draw tab, at the floor: Terminal opens the device browser on its Terminals, Marker arms
-/// the Wire marker, and Symbol editor opens the editor.
+/// named "Symbols". On the Draw tab, at the floor: Terminal opens its own form (FT-1695: strip, kind, how many, from
+/// which number), Marker arms the Wire marker, and Symbol editor opens the editor.
 #[test]
 fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
-    use ew_ui::ew_viewmodel::tools::{Node, PickerRow};
+    use ew_ui::ew_viewmodel::shell::Dialog;
     let tmp = Tmp::new();
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
@@ -2680,18 +2680,14 @@ fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
         d.settle();
     };
     press(&mut d, "Terminal");
-    let picker = d.shell_mut().picker().expect("the device browser").clone();
-    assert_eq!(picker.node, Node::Category("Terminal".to_owned()));
-    assert!(!picker.rows.is_empty(), "the starter parts hold a terminal");
-    for row in &picker.rows {
-        let PickerRow::Part(p) = row else {
-            panic!("{row:?} in the device browser")
-        };
-        assert_eq!(picker.catalogue.parts[*p].category, "Terminal");
-    }
+    let form = match d.shell_mut().dialog() {
+        Some(Dialog::Form(f)) => f.action,
+        _ => panic!("the Terminal form"),
+    };
+    assert_eq!(form, "tool.place_terminal");
     d.input(&key("escape"));
     d.settle();
-    assert!(d.shell_mut().picker().is_none());
+    assert!(d.shell_mut().dialog().is_none());
     press(&mut d, "Marker");
     assert_eq!(d.shell_mut().tool().name(), "marker");
     d.input(&key("escape"));

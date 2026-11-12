@@ -550,7 +550,7 @@ holds.
 | Command bar | A tab row (the app button, quick access Save, Undo and Redo, the tabs Project, Page, Draw, Check, Output and View, the command search) over a command row (groups of large, small and split buttons, More, and the tab's next step, for example Check project on the Check tab). Generated from the registry's placements; Ctrl+F1 collapses it to 33 px. The app menu sits behind the app button (Alt alone, F10), built by tab and group; File has no Import ▸ or Export ▸ (16a §9.2). |
 | Left rail and navigator | A rail of entries (Project, Terminal strips, Cables, Potentials, Structure, with History at the foot), drawn as an egui side panel outside the dock; the navigator pane under a 32-px upper-case header with its actions, then the filter and the tree. |
 | Properties | Under the navigator, behind a named splitter; Main and Advanced, the other categories open by default; property rows with a one-word provenance chip (16a §6.8). |
-| Right rail | Symbols and Parts, which open the existing pickers. |
+| Right rail | Symbol browser and Device browser, which open the symbol and the device browser. |
 | Canvas | Canvas tabs with chips; the white sheet on the surround; toasts at the canvas pane's top right; the **tool options card** at the page view's top left while a tool with fields runs. |
 | HUD | One status node centred on the page-view pane, with the active tool, the quick tools, the prompt and the zoom control; on the inverse surface. |
 | Bottom dock | Messages, Find, Jobs, History and Preview, closed by default, each with an empty state. |

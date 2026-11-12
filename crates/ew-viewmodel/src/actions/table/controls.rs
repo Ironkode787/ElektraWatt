@@ -922,6 +922,26 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             s.act_symbol("fork", p)
         })),
     ),
+    // FT-1694: the browsers' Edit symbol and Copy and edit, on the symbol named (its key, copy ID or library address)
+    // or the browser's current row; a row's context menu calls them too.
+    with_params(
+        "symbol?:text, discard?:bool",
+        hidden(act("symbol.edit", View, Menu::Edit, &[], always, None, |s, p| {
+            s.act_symbol_edit(p, false)
+        })),
+    ),
+    with_params(
+        "symbol?:text, discard?:bool",
+        hidden(act(
+            "symbol.copy_edit",
+            View,
+            Menu::Edit,
+            &[],
+            always,
+            None,
+            |s, p| s.act_symbol_edit(p, true),
+        )),
+    ),
     with_params(
         "discard?:bool",
         hidden(act(

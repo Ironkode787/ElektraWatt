@@ -293,12 +293,21 @@ fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLay
     }
 }
 
-/// The tooltip of a command: its full label and its shortcut, or the reason it cannot run.
+/// The tooltip of a command: its full label and its shortcut, or the reason it cannot run. A label of more lines (a
+/// name, then how the command works) takes the shortcut on its first line.
 fn tooltip(b: &CommandButton) -> String {
     match (&b.reason, b.shortcut.is_empty()) {
         (Some(reason), _) if !b.enabled => format!("{}: {reason}", b.label),
         (_, true) => b.label.clone(),
-        (_, false) => format!("{} ({})", b.label, crate::keys::short_display(&b.shortcut)),
+        (_, false) => {
+            let (name, rest) = b.label.split_once('\n').unwrap_or((&b.label, ""));
+            let line = format!("{name} ({})", crate::keys::short_display(&b.shortcut));
+            if rest.is_empty() {
+                line
+            } else {
+                format!("{line}\n{rest}")
+            }
+        }
     }
 }
 

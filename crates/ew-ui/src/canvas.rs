@@ -449,6 +449,30 @@ fn paint_locks(ui: &egui::Ui, rect: Rect, ppp: f32, t: &DrawTransform, canvas: &
     out
 }
 
+/// FT-1704: the connection point whose row has the Properties cursor, ringed on the focused page: a `focus_width`
+/// ring of `canvas.selection` around the point, fixed on screen whatever the zoom, as the canvas marks a selection.
+fn paint_cp_mark(
+    ui: &egui::Ui,
+    rect: Rect,
+    ppp: f32,
+    t: &DrawTransform,
+    canvas: &CanvasModel,
+    shell: &ShellModel,
+) {
+    let Some(at) = shell.properties_cp_point() else {
+        return;
+    };
+    let sheet = canvas.page().snapper.page_to_sheet(at);
+    let (x, y) = t.to_screen((sheet.0 as f64, sheet.1 as f64));
+    let centre = rect.min + Vec2::new(x as f32, y as f32) / ppp;
+    let tokens = crate::theme::current(ui.ctx());
+    ui.painter_at(rect).circle_stroke(
+        centre,
+        tokens.space_3,
+        crate::theme::stroke(tokens.focus_width, tokens.canvas_selection),
+    );
+}
+
 /// The bands of a highlight item on screen (physical pixels of the pane), with its slot.
 fn highlight_bands(
     item: &OverlayItem,
@@ -1535,6 +1559,10 @@ impl CanvasHost {
         // A hovered link that leads somewhere is underlined.
         if shell.tool().wants_hover() {
             paint_link_underline(ui, rect, ppp, &transform, canvas);
+        }
+        // The connection point chosen in Properties, on the focused page.
+        if shell.area().map(|a| a.focused) == Some(group) {
+            paint_cp_mark(ui, rect, ppp, &transform, canvas, shell);
         }
         let stats = shell
             .frame_stats_shown()

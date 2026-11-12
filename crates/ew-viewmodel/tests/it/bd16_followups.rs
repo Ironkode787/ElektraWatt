@@ -34,12 +34,14 @@ fn new_project_with_strip(tmp: &Tmp) -> ShellModel {
     s
 }
 
-/// Places a strip terminal at cell `cell` through the symbol picker and the strip chooser: `first` are the
-/// parameters of the symbol row's choice, `second` those of the strip row's.
+/// Places a strip terminal at cell `cell` through the terminal symbol's pick and the strip chooser: `first` are the
+/// parameters of the pick, `second` those of the strip row's choice.
 fn place_terminal(s: &mut ShellModel, cell: &str, first: Value, second: Value) {
-    done(s, "tool.place", json!({}));
-    done(s, "picker.filter", json!({"text": "iec.terminal@"}));
-    done(s, "picker.choose", first);
+    let mut pick = json!({"symbol": "ew.iec.terminal@qet10"});
+    if let (Some(pick), Some(first)) = (pick.as_object_mut(), first.as_object()) {
+        pick.extend(first.clone());
+    }
+    done(s, "place.pick", pick);
     done(s, "picker.choose", second);
     done(s, "nav.goto", json!({ "text": cell }));
     done(s, "canvas.activate", json!({"alt": true}));
