@@ -1029,7 +1029,7 @@ in tree-row style, newest first, each with its time, message and still-valid act
 
 *As built.* **A toast grows with the window:** `size.toast` (300 px) at the
 1280 × 800 floor, 0.22 of the window's width above it (422 px at 1920), never wider than the window. Its line wraps at
-word boundaries up to three rows, so a refusal's reason is never cut at one line; what does not fit in three rows ends
+word boundaries up to four rows, so a refusal's reason is never cut at one line; what does not fit in four rows ends
 in an ellipsis, with the whole text in the tooltip, the HUD and the log.
 
 *As built.* **A toast fades out as it fades in:** its opacity rises from 0 to

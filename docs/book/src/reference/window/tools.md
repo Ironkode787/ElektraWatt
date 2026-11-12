@@ -195,10 +195,15 @@ arrow's tip and belongs at the left edge. The name is above the arrow and the cr
 never rotated or mirrored: change the point's direction instead. While you draw a wire, the interruption point's key
 ends the wire in a point of the right form for that end.
 
-Type the name in the field Interruption point name at the page's top left, once for a pair: the first point of a
-name is its source, and the tool then floats the same name as its target, on this page or the next. After the target the name is used up, and each further point
-gets a name of its own until you type one. When you choose the tool from the Draw tab or the menu, the field has
-the keys: type the name and press Enter, then click where the point goes.
+Type the name in the field Interruption point name at the page's top left, once for a pair: the tool then floats the
+same name as the first point's partner, on this page or the next: its target after a source, its source after a
+target that no source feeds yet. Once the pair is whole the name is used up, and each further point gets a name of
+its own until you type one. When you choose the tool from the Draw tab or the menu, the field has the keys: type the
+name and press Enter or Tab, then click where the point goes. While the field has the keys, D is a letter of the name
+and the bar says "Enter ends the name"; after Enter, Tab or a click on the page, D turns the point. The toast of a
+placed point says its direction ("Placed L1 as a target at 101-B2") and that D before the click gives the other one.
+A point names the potential it carries whichever its direction, so a wire on a target that no source feeds yet
+carries the target's name.
 
 A point keeps room for its texts: where its name or its cross-reference would print over another interruption
 point's, it is not placed, and the message says so. Three grid steps below or above the other point is clear;
