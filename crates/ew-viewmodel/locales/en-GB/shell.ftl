@@ -542,6 +542,14 @@ error-bond-same-end = Both ends of the bond are "{ $p0 }"; name two different co
 action-potential-draw = Define potential…
 reason-potential-point = Select one wire, junction or terminal
 action-potential-draw-row = Define potential…
+# FT-1700: the card of a potential reasoned for the selected wire.
+action-potential-offer = Answer the offered potential
+potential-offer-title = Potential { $p0 }?
+potential-offer-role = { $p0 } has the role { $p1 }
+potential-offer-coil = { $p0 } returns a coil fed from { $p1 }
+potential-offer-accept = Accept
+potential-offer-decline = Decline
+reason-no-potential-offer = No potential is offered for the selection
 reason-potential-row = This row has no connection point to define its potential at
 error-potential-type = "{ $p0 }" is not a potential type; type L1, L2, L3, L, N, PE, PEN, FE, L+, L-, M or signal.
 error-potential-voltage = "{ $p0 }" is not a voltage; type it as 24 V DC, 230 V AC or 24.

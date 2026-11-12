@@ -327,6 +327,12 @@ an undefined one.
      ties by that fallback text in natural order, then by CP ID (so two CPs of one anchor cell, such as a terminal's two sides, give the same name in every fresh copy of a project, whose IDs are random; blind replay, §6 item 3).
 
   An external source interruption point counts as a source IP for step 2.
+  *As built (FT-1700).* A potential named only by step 3 may be **offered** a name, never given one: the window
+  shows a card at the selected wire, and Accept is an ordinary `potential.define`. It reasons only from a member CP's
+  own `potential_role`, or from the A2 of a coil whose A1 is on a potential of type L+ (A2 is then M) or of one phase
+  (A2 is then N); every such CP must agree, and the project must hold exactly one potential of that type named by
+  steps 1 to 2b, whose name is offered (`Session::potential_offer`). A declined offer is not shown again for that wire
+  in the session.
 - **Aliases.** Every other distinct IP name on the potential is an alias, in natural order (FR-CON-012, D-24).
 - **Signals** take the first IP name inside them.
 - **Bond paths.** IPs that lie on a bond's `via` path are named on the bond, not on either potential. "PE-0VDC"

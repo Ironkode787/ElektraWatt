@@ -2637,17 +2637,34 @@ msgid ""
 msgstr ""
 
 #: src/how-to/define-supply-potential.md:30
-msgid "Check the result"
+msgid "Accept a reasoned potential"
 msgstr ""
 
 #: src/how-to/define-supply-potential.md:32
+msgid ""
+"A selected wire whose potential has no name yet may show a small card beside "
+"it: \"Potential 0VDC?\" with the reason, such as \"-K1:A2 returns a coil fed "
+"from 24VDC\". The window offers a name only where it is safe to reason: a "
+"pin whose part or function definition gives its role (the − of a DC supply, "
+"an N or PE pin), or the A2 of a coil whose A1 is on L+ (then A2 is the 0 V) "
+"or on one phase (then A2 is the N), and only when the project has exactly "
+"one named potential of that type. **Accept** defines it, as Define "
+"potential… would, in one step; **Decline** hides the card for that wire "
+"until the project is opened again. Nothing is set without your Accept."
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:39
+msgid "Check the result"
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:41
 msgid ""
 "Open the **Potentials** navigator: the potential's row now carries the name "
 "you typed, with its type and voltage. In the navigator's table view you can "
 "also change them later in the **Potential**, **Type** and **Voltage** cells."
 msgstr ""
 
-#: src/how-to/define-supply-potential.md:35
+#: src/how-to/define-supply-potential.md:44
 msgid ""
 "The command behind the form is "
 "[`potential.define`](../reference/commands/potential.define.md)."

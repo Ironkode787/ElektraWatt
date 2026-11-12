@@ -117,7 +117,7 @@ pub(crate) fn place_relay(d: &mut Driver, at: (i64, i64)) {
 
 /// Two source interruption points, L1 and N, side by side, each with a wire down to the coil of a relay under it:
 /// two wires, as the owner drew them. Returns the pixel map.
-fn two_wires(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
+pub(crate) fn two_wires(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
     for x in [900, 1000] {
         place_relay(d, (x, 620));
     }

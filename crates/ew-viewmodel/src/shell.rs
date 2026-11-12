@@ -663,6 +663,16 @@ pub struct ShellModel {
     glossary: glossary::GlossaryState,
     /// The point a Potentials row's Define potential… pinned for its open form; none otherwise.
     potential_at: Option<ew_api::output::TableEnd>,
+    /// The reasoned potential of the one selected wire (FT-1700), kept for the revision and the wire it was read for.
+    #[allow(clippy::type_complexity)]
+    offer_cache: std::cell::RefCell<
+        Option<(
+            (u64, ew_api::output::Uuid),
+            Option<ew_api::output::PotentialOffer>,
+        )>,
+    >,
+    /// The wires whose reasoned potential was declined in this session: it is not offered again.
+    declined_offers: std::collections::BTreeSet<ew_api::output::Uuid>,
     /// The wire-colour view's switch and its fetched Connections table.
     wire_colours: wire_colours::WireColourState,
     /// The cloud environment, the `ew` executable, the merge driver's status, a held change's banner.
@@ -1084,6 +1094,8 @@ impl ShellModel {
             revision: revision::RevisionState::default(),
             glossary: glossary::GlossaryState::default(),
             potential_at: None,
+            offer_cache: std::cell::RefCell::new(None),
+            declined_offers: std::collections::BTreeSet::new(),
             wire_colours: wire_colours::WireColourState::default(),
             collab: external::CollabState::default(),
             #[cfg(test)]

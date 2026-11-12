@@ -1460,6 +1460,7 @@ impl CanvasHost {
             events,
         );
         self.context_menu(&response, shell, canvas, group, events);
+        Self::potential_offer(&response, shell, canvas, group, events);
         // Doc 16a §7.2, §6.18: the connection point under the pointer names its printed label,
         // its kind and its potential in a tooltip in the inverse style.
         // The link preview popup and a hover tooltip never show at once; while the popup shows, the
@@ -1973,6 +1974,78 @@ impl CanvasHost {
                 crate::menu::item(ui, item, events);
             }
         });
+    }
+
+    /// The card of a potential reasoned for the selected wire (FT-1700, `ShellModel::potential_offer`): beside the
+    /// wire, its name and why, Accept (`potential.offer {accept: true}`) and Decline. Hidden while a menu is open, and
+    /// on any canvas but the focused one.
+    fn potential_offer(
+        response: &egui::Response,
+        shell: &ShellModel,
+        canvas: &CanvasModel,
+        group: usize,
+        events: &mut Vec<Event>,
+    ) {
+        let focused = shell.area().is_none_or(|a| a.focused == group);
+        if !focused || egui::Popup::is_any_open(&response.ctx) {
+            return;
+        }
+        let Some((title, why)) = shell.potential_offer() else {
+            return;
+        };
+        // Below the right end of the wire's rectangle, inside the canvas.
+        let page = canvas.page();
+        let Some(rect) = page
+            .entities
+            .iter()
+            .find(|(e, _)| shell.selection().items.contains(e))
+            .map(|(_, r)| *r)
+        else {
+            return;
+        };
+        let view = view_of(canvas);
+        let ppp = canvas.ppp();
+        let corner = |x: f64, y: f64| {
+            let (px, py) = view.transform().to_screen((x, y));
+            response.rect.min + egui::vec2((px / ppp) as f32, (py / ppp) as f32)
+        };
+        let b = rect.max();
+        let at = corner(b.x.0 as f64, b.y.0 as f64);
+        let t = crate::theme::current(&response.ctx);
+        let at = at + egui::vec2(t.space_2, t.space_2);
+        let at = egui::pos2(
+            at.x.clamp(response.rect.left(), response.rect.right() - t.size_dialog_label),
+            at.y.clamp(response.rect.top(), response.rect.bottom() - 4.0 * t.size_control),
+        );
+        egui::Area::new(response.id.with("potential-offer"))
+            .order(egui::Order::Foreground)
+            .fixed_pos(at)
+            .show(&response.ctx, |ui| {
+                crate::components::card_frame(&t).show(ui, |ui| {
+                    ui.label(
+                        egui::RichText::new(&title)
+                            .font(crate::theme::font(&t.type_body_strong))
+                            .color(t.text_primary.color32()),
+                    );
+                    ui.label(
+                        egui::RichText::new(&why)
+                            .font(crate::theme::font(&t.type_small))
+                            .color(t.text_secondary.color32()),
+                    );
+                    ui.add_space(t.space_2);
+                    ui.horizontal(|ui| {
+                        use crate::components::{Kind, button};
+                        let accept = strings::text(key!("potential-offer-accept"));
+                        if button(ui, Kind::Primary, accept, true, 0.0).clicked() {
+                            events.push(Event::Action("potential.offer", json!({"accept": true})));
+                        }
+                        let decline = strings::text(key!("potential-offer-decline"));
+                        if button(ui, Kind::Secondary, decline, true, 0.0).clicked() {
+                            events.push(Event::Action("potential.offer", json!({"accept": false})));
+                        }
+                    });
+                });
+            });
     }
 
     /// The sheet point (nm) under the screen position `pos` (points), with the model's exact view.
