@@ -963,9 +963,6 @@ impl App {
         // The chrome paints `color.surface.chrome` itself (doc 16a §4.14); panels take `color.surface.panel`.
         let tokens = crate::theme::current(&ctx);
         let chrome = tokens.surface_chrome.color32();
-        // Doc 16a §5.5: a fit keeps the sheet above the tool HUD's band.
-        self.shell
-            .set_canvas_fit_inset(f64::from(crate::hud::fit_inset(&tokens)));
         // The command bar replaces the menu bar (doc 16a §5.2); the app button opens the app menu.
         let bar_height = if self.shell.symbol_editor().is_some() {
             tokens.size_tab_row + crate::symbol_editor::toolbar_height(&tokens) + tokens.border_width
@@ -1035,6 +1032,7 @@ impl App {
             }
         }
         let mut page_pane = None;
+        let mut hud_strip = None;
         if self.shell.symbol_editor().is_none() {
             self.symbol_editor_view = crate::symbol_editor::EditorView::default();
         }
@@ -1080,8 +1078,20 @@ impl App {
                     PaneKind::History => crate::history::show(ui, shell, &mut events),
                     PaneKind::Glossary => crate::glossary::show(ui, shell, &mut events),
                     PaneKind::PageView => {
-                        // The HUD and the zoom control stand on the page view pane.
-                        page_pane = Some(ui.max_rect());
+                        // The canvas takes the pane above the HUD's strip (doc 16a §5.5): the zoom control and the
+                        // tool options stand on the canvas, the HUD under it, never over the drawing.
+                        let full = ui.max_rect();
+                        let split = (full.bottom() - crate::hud::strip_height(&tokens)).max(full.top());
+                        let above = egui::Rect::from_min_max(full.min, egui::pos2(full.right(), split));
+                        page_pane = Some(above);
+                        hud_strip = Some(egui::Rect::from_min_max(egui::pos2(full.left(), split), full.max));
+                        ui.painter().rect_filled(
+                            egui::Rect::from_min_max(egui::pos2(full.left(), split), full.max),
+                            0.0,
+                            tokens.canvas_surround.color32(),
+                        );
+                        let mut ui = ui.new_child(egui::UiBuilder::new().max_rect(above));
+                        let ui = &mut ui;
                         canvas_area.show(ui, shell, canvas, &mut events);
                         *area_splitters = canvas_area.splitter_count(shell);
                         canvas_shown = true;
@@ -1101,13 +1111,9 @@ impl App {
             self.options_rect = None;
         }
         if let Some(pane) = self.page_pane {
-            self.hud_rect = Some(crate::hud::show(
-                &ctx,
-                &self.shell,
-                pane,
-                self.toast_stack,
-                &mut events,
-            ));
+            if let Some(strip) = hud_strip {
+                self.hud_rect = Some(crate::hud::show(&ctx, &self.shell, strip, &mut events));
+            }
             crate::hud::show_zoom(&ctx, &self.shell, pane, &mut events);
             options_card = self.tool_options(&ctx, pane, &mut events);
         }
@@ -1184,13 +1190,9 @@ impl App {
         );
         let pivot = match self.page_pane {
             Some(pane) if self.toasts_low => {
-                // Above the zoom control and the HUD while it stands at the bottom (doc 16a §5.5).
+                // Above the zoom control (doc 16a §5.5).
                 let zoom = crate::hud::zoom_rect(&tokens, pane);
-                let bottom = self
-                    .hud_rect
-                    .filter(|h| h.center().y > pane.center().y)
-                    .map_or(zoom.top(), |h| h.top().min(zoom.top()));
-                anchor = egui::pos2(anchor.x, bottom - tokens.space_4);
+                anchor = egui::pos2(anchor.x, zoom.top() - tokens.space_4);
                 egui::Align2::RIGHT_BOTTOM
             }
             _ => egui::Align2::RIGHT_TOP,

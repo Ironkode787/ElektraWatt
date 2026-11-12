@@ -24,8 +24,6 @@ pub(super) struct CanvasViewState {
     pub(super) ppp: f64,
     /// Whether the host has sized the first group's pane: a new area's first group is then sized.
     pub(super) sized: bool,
-    /// The bottom band every canvas's fit keeps clear, in logical points (the window's tool HUD; 0 headless).
-    pub(super) fit_inset: f64,
     /// Whether the page grid is drawn.
     pub(super) grid_on: bool,
     /// Whether the frame-statistics overlay is shown.
@@ -159,23 +157,6 @@ impl ShellModel {
         match self.mode {
             super::Mode::Gui => f64::from(self.settings.ui_scale),
             super::Mode::Headless => 1.0,
-        }
-    }
-
-    /// Sets the bottom band every canvas's fit keeps clear (the window's tool HUD band, doc 16a §5.5); fitted views
-    /// fit again. The headless mode never sets it, so no transcript or golden depends on it.
-    pub fn set_canvas_fit_inset(&mut self, bottom: f64) {
-        if (bottom - self.view.fit_inset).abs() < 1e-9 {
-            return;
-        }
-        self.view.fit_inset = bottom;
-        let Some(area) = &mut self.area else { return };
-        for g in &mut area.groups {
-            for tab in &mut g.tabs {
-                if let Some(c) = &mut tab.canvas {
-                    c.set_fit_inset(bottom);
-                }
-            }
         }
     }
 

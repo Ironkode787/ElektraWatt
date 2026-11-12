@@ -15,6 +15,6 @@
 {"note":"patience 8 flow 8 The rubber band took both contacts; Delete and Undo brought them back."}
 {"do":[{"input":"scroll","x":900,"y":500,"dy":-2,"mods":"ctrl"},{"input":"key","chord":"ctrl+s"},{"input":"wait","ms":300}],"expect":["frame frames/t0006.png"]}
 {"note":"patience 9 flow 9 Ctrl and the wheel zoomed in; Ctrl+S saved."}
-{"kv":["click","x=1447","y=917"],"expect":["frame frames/t0007.png"]}
+{"kv":["click","x=1447","y=873"],"expect":["frame frames/t0007.png"]}
 {"note":"patience 9 flow 9 Fit page brought the whole page back."}
 {"handback":"## 1. Keep or drop\n8 - the self-test kept going.\n## 2. Where it lost me\nnone\n## 3. What the tool is\nA drawing program for control cabinets.\n## 4. Broken\nnone\n## 5. My design against the brief\nTwo contacts on page 101, saved.\n## 6. Flow chart\n```mermaid\nflowchart TD\n  A[Start] --> B[Place two contacts] --> C[Undo and redo] --> D[Save]\n```\n## 7. Good\nThe picker opened with one click.\n## 8. What I could not read\nThe contacts' tags at the first zoom (t0002, 640,390,280,40).\n","expect":["hand-back filed"]}

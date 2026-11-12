@@ -137,9 +137,10 @@ fn a2_the_canvas_actions_are_in_the_registry_with_their_menus_and_reasons() {
 fn a1_zoom_pan_fit_and_resize_through_the_shell() {
     let tmp = Tmp::new("canvas");
     let mut shell = tmp.shell("103");
-    // The page's first view is fit-width (wider than Fit page in this pane); Fit page is one key away.
+    // The page's first view is the whole sheet in this pane (a fit to the width would gain little); Fit page is
+    // one key away.
     let first = shell.canvas().expect("folio 103 is on the canvas");
-    assert!(first.is_first_view() && first.zoom() > first.fit_zoom());
+    assert!(first.is_first_view() && first.zoom() == first.fit_zoom());
     done(&mut shell, "view.fit_page", json!({}));
     let c = shell.canvas().expect("folio 103 is on the canvas");
     assert_eq!(c.page().folio, "103");

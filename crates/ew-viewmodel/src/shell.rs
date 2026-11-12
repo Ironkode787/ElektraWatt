@@ -1039,7 +1039,6 @@ impl ShellModel {
                 pane: HEADLESS_PANE,
                 ppp: 1.0,
                 sized: false,
-                fit_inset: 0.0,
                 grid_on: true,
                 frame_stats: false,
                 backend: CanvasBackend::Cpu,

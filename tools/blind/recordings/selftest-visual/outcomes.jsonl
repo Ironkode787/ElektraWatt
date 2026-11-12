@@ -27,7 +27,7 @@
 {"dispatched":[{"action":"file.save","outcome":"done","reason":null}],"input":{"chord":"ctrl+s","input":"key"},"step":19}
 {"dispatched":[{"action":"canvas.dwell","outcome":"done","reason":null},{"action":"canvas.dwell","outcome":"done","reason":null}],"input":{"input":"wait","ms":300},"step":20}
 {"dispatched":[],"frame":"t0006.png"}
-{"dispatched":[{"action":"canvas.pointer","outcome":"done","reason":null},{"action":"view.fit_page","outcome":"done","reason":null}],"input":{"input":"click","x":1447,"y":917},"step":21}
+{"dispatched":[{"action":"canvas.pointer","outcome":"done","reason":null},{"action":"view.fit_page","outcome":"done","reason":null}],"input":{"input":"click","x":1447,"y":873},"step":21}
 {"dispatched":[],"frame":"t0007.png"}
 {"action":"page.describe","outcome":"done","reason":null,"step":22}
 {"action":"app.quit","outcome":"done","reason":null,"step":23}

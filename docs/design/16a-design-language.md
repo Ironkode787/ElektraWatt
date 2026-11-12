@@ -706,15 +706,16 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
 - **The canvas**: the white sheet with `elevation.1`, centred on `canvas.surround` at up to 92 % of the canvas
   width; overlays per §7.
 - **The tool HUD** is always shown: a pill (`radius.pill`, opaque `color.surface.inverse`, `elevation.2`, 4-px
-  padding) centred `space.5` above the canvas's bottom edge. It holds the active tool as a 28-px pill button with
+  padding) centred in a strip of its own under the canvas (the pill with `space.2` above and below it, on
+  `canvas.surround`), so it never lies over the drawing. It holds the active tool as a 28-px pill button with
   `icon.sm` and its name (`color.accent` fill, `color.text.on_accent`, SemiBold), three quick tools as 28-px icon
   pills (Wire, Symbol, Text), a 1 × 16 px divider and the **prompt** in `type.small` at 80 % opacity: the selection
   and its keys with Select ("1 selected · Del deletes · R rotates"), the tool's target and keys otherwise
   ("Place -X1031:21 · R rotates · V variant · Esc done"). It never takes focus and it stays where it is, so its
-  buttons can be reached; a fit keeps the band it stands in clear of the sheet. (Until M2.5-Fix it moved under the
-  tab bar while the pointer was within 48 px of it, which put its own buttons out of reach: the owner's hands-on
-  test, FT-1639.) While toasts show, it sits above the toast stack's top, or under its
-  bottom where the page view has no room above it. After a Wire click that placed a bend instead of ending on a
+  buttons can be reached. (Until M2.5-Fix it floated over the sheet's foot. First it moved under the tab bar while
+  the pointer was within 48 px of it, which put its own buttons out of reach: the owner's hands-on test, FT-1639.
+  Staying put, it then covered the title block, or the drawing itself once a lower pane shortened the canvas; a
+  strip of its own ends both, FT-1656.) After a Wire click that placed a bend instead of ending on a
   connection point its prompt is "Bend placed: click a connection point to end the wire." It is the floating tool window of the
   owner's reference, reduced to what the running tool needs; the hint strip under the menu is removed.
 - **The zoom control**: at the canvas's bottom right (`space.4` from the right, `space.5` from the bottom), a
@@ -736,10 +737,12 @@ off centre, still marked; a sheet smaller than the pane is centred in it. The ri
 it never covers one. This applies to a jump and the link preview, not to panning or fitting. **Back beside the page tabs.** Each canvas tab bar starts with a
 Back button, enabled only when there is a page to go back to; its tooltip takes the key from the
 keymap, "Back (Alt+Left)", and when disabled reads "Back (Alt+Left): No page to return to". **A page's first view** is
-fit-width when that is larger than fit-page, with the top of the page 16 pt below the pane's top, so a drawing frame's
+the whole sheet (fit-page), so that the title block is in view, unless a fit to the width is clearly larger (by more
+than 15 %: a wide, low pane), which is then taken with the top of the page 16 pt below the pane's top, so a drawing frame's
 pin texts are legible at the 1280 × 800 floor (R0-F9); it stays the first view of a new pane until Fit page is
-pressed, and fit-page stays one key away (Home). A new project opens at 78 % at the floor and 116.8 % at 1920 × 1080;
-Golden A's pages stay at fit-page at the floor. The 9 px pin-text target first ruled was dropped,
+pressed, and fit-page stays one key away (Home). A new project and Golden A's pages open with the whole sheet in
+view, at the floor and at 1920 × 1080 (until M2.5-Fix a new project opened fit to the width, 116.8 % at 1920 × 1080,
+with the title block's foot under the HUD). The 9 px pin-text target first ruled was dropped,
 since it needed 128.6 % at the floor.
 
 ### 5.6 Right: the palettes

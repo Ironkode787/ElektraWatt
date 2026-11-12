@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The tool HUD and the zoom control over the canvas (doc 16a §5.5), from
-//! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred `space.5` above the page view's bottom edge: the active
-//! tool as an accent pill, the three quick tools (Wire, Symbol, Text), a divider and the prompt (the selection and its
-//! keys, the pick stack under the pointer, or the tool's target and keys). It never takes the keyboard focus and
-//! it stays where it is, so its buttons can be reached (FT-1639: it used to move under the tab bar as the pointer
-//! came near, which put its own buttons out of reach); a fit keeps the band it stands in clear of the sheet
-//! ([`fit_inset`]), and it keeps clear of the toast stack.
+//! The tool HUD and the zoom control of the page view (doc 16a §5.5), from
+//! `ew_viewmodel::command_bar::hud`. The HUD is a pill centred in a strip of its own under the canvas
+//! ([`strip_height`]): the active tool as an accent pill, the three quick tools (Wire, Symbol, Text), a divider and
+//! the prompt (the selection and its keys, the pick stack under the pointer, or the tool's target and keys). It
+//! never takes the keyboard focus, it stays where it is, so its buttons can be reached, and it never lies over the
+//! drawing (it floated over the sheet's foot: first it moved away from the pointer, which put its buttons out of
+//! reach, FT-1639; then, staying put, it covered the title block, FT-1656).
 //! The zoom control is a column of three icon buttons at the bottom right. The HUD replaces the tool strip under the
 //! menu bar; the fields of the IP, Text, Wire marker and Structure box tools moved into the "Tool options" card at the
 //! page view's top left (`app.rs`).
@@ -40,42 +40,19 @@ fn small_strong(t: &Tokens) -> TypeToken {
     }
 }
 
-/// The bottom band of the page view a fit keeps clear: the HUD's height with `space.5` above and below it.
-pub(crate) fn fit_inset(t: &Tokens) -> f32 {
-    t.size_control + 2.0 * t.space_2 + 2.0 * t.space_5
+/// The height of the strip under the canvas that holds the HUD: the pill with `space.2` above and below it.
+pub(crate) fn strip_height(t: &Tokens) -> f32 {
+    t.size_control + 4.0 * t.space_2
 }
 
-/// The HUD's rectangle of width `width` in the page view `pane` (doc 16a §5.5): centred, `space.5` above the bottom.
-pub(crate) fn hud_rect(t: &Tokens, pane: Rect, width: f32) -> Rect {
+/// The HUD's rectangle of width `width` in its strip `strip` (doc 16a §5.5): centred both ways.
+pub(crate) fn hud_rect(t: &Tokens, strip: Rect, width: f32) -> Rect {
     let height = t.size_control + 2.0 * t.space_2;
-    let top = pane.bottom() - t.space_5 - height;
-    Rect::from_min_size(pos2(pane.center().x - width / 2.0, top), vec2(width, height))
+    Rect::from_center_size(strip.center(), vec2(width, height))
 }
 
-/// The place of a HUD at `rect` beside the toast stack `toasts`: where they meet, the HUD sits above
-/// the stack's top, or under its bottom where the page view `pane` has no room above it.
-pub(crate) fn clear_of_toasts(t: &Tokens, pane: Rect, rect: Rect, toasts: Option<Rect>) -> Rect {
-    let Some(stack) = toasts.filter(|s| s.intersects(rect)) else {
-        return rect;
-    };
-    let above = stack.top() - t.space_4 - rect.height();
-    let top = if above >= pane.top() + t.size_dock_tab_bar {
-        above
-    } else {
-        stack.bottom() + t.space_4
-    };
-    rect.translate(vec2(0.0, top - rect.top()))
-}
-
-/// Paints the HUD of `shell` over the page view `pane`, clear of the last frame's toast stack `toasts`, and returns
-/// its rectangle.
-pub(crate) fn show(
-    ctx: &egui::Context,
-    shell: &ShellModel,
-    pane: Rect,
-    toasts: Option<Rect>,
-    events: &mut Vec<Event>,
-) -> Rect {
+/// Paints the HUD of `shell` in its strip `pane` under the canvas and returns its rectangle.
+pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: &mut Vec<Event>) -> Rect {
     let t = theme::current(ctx);
     let h = hud(shell);
     let measure = |text: &str, font: egui::FontId| {
@@ -109,7 +86,7 @@ pub(crate) fn show(
     } else {
         (width, prompt_room)
     };
-    let rect = clear_of_toasts(&t, pane, hud_rect(&t, pane, width), toasts);
+    let rect = hud_rect(&t, pane, width);
     let mut value = h.tool_label.clone();
     if let Some(target) = &h.target {
         value.push(' ');
@@ -219,10 +196,9 @@ pub(crate) fn show(
     rect
 }
 
-/// The widest the HUD may be in the page view `pane`: centred, it keeps clear of the zoom column at the right (and
-/// as much at the left), with `space.2` between them.
+/// The widest the HUD may be in its strip `pane`: `space.4` from each end.
 pub(crate) fn max_width(t: &Tokens, pane: Rect) -> f32 {
-    (pane.width() - 2.0 * (t.space_4 + t.size_control + t.space_2)).max(0.0)
+    (pane.width() - 2.0 * t.space_4).max(0.0)
 }
 
 /// The most lines the HUD's prompt takes: two `type.small` lines stand within the pill's height.
@@ -374,35 +350,8 @@ pub(crate) fn show_zoom(ctx: &egui::Context, shell: &ShellModel, pane: Rect, eve
 mod tests {
     use egui::{Rect, pos2};
 
-    use super::{balanced_room, clear_of_toasts, hud_rect, max_width, zoom_rect};
+    use super::{balanced_room, hud_rect, max_width, strip_height};
     use crate::theme::{self, Density, Tokens};
-
-    /// The HUD keeps clear of the toast stack: where they meet it sits above the stack's top, or under its
-    /// bottom where the page view has no room above it; apart from the stack it keeps its place.
-    #[test]
-    fn the_hud_keeps_clear_of_the_toast_stack() {
-        let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
-        let pane = Rect::from_min_max(pos2(300.0, 140.0), pos2(1500.0, 900.0));
-        let low = hud_rect(&t, pane, 600.0);
-        // A HUD a tall stack pushed to the top of the page view.
-        let high = low.translate(egui::vec2(
-            0.0,
-            pane.top() + t.size_dock_tab_bar + t.space_4 - low.top(),
-        ));
-        assert_eq!(clear_of_toasts(&t, pane, low, None), low);
-        // A stack beside it: no move.
-        let aside = Rect::from_min_max(pos2(1450.0, 200.0), pos2(1490.0, 400.0));
-        assert_eq!(clear_of_toasts(&t, pane, high, Some(aside)), high);
-        // A stack at the bottom right that the low HUD meets: the HUD sits above its top.
-        let stack = Rect::from_min_max(pos2(700.0, 700.0), pos2(1490.0, 860.0));
-        let moved = clear_of_toasts(&t, pane, low, Some(stack));
-        assert_eq!(moved.bottom(), stack.top() - t.space_4);
-        assert_eq!((moved.left(), moved.width()), (low.left(), low.width()));
-        // A stack at the top right that the raised HUD meets, with no room above it: under its bottom.
-        let top = Rect::from_min_max(pos2(700.0, high.top()), pos2(1490.0, high.top() + 120.0));
-        let under = clear_of_toasts(&t, pane, high, Some(top));
-        assert_eq!(under.top(), top.bottom() + t.space_4);
-    }
 
     /// The rows of `prompt` in `type.small` wrapped at `room`, as text.
     fn rows(ctx: &egui::Context, t: &Tokens, prompt: &str, room: f32) -> Vec<String> {
@@ -474,26 +423,15 @@ mod tests {
         assert!(one_row_kept);
     }
 
-    /// The widest HUD stays clear of the zoom column at any page view width; the room grows
-    /// with the page view (no cap chosen for the floor).
+    /// The HUD stands inside its strip, centred, at any width; its room grows with the strip.
     #[test]
-    fn the_widest_hud_keeps_clear_of_the_zoom_column() {
+    fn the_hud_stands_in_its_strip() {
         let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
         for width in [600.0, 1000.0, 1600.0] {
-            let pane = Rect::from_min_max(pos2(100.0, 50.0), pos2(100.0 + width, 750.0));
-            let hud = hud_rect(&t, pane, max_width(&t, pane));
-            let zoom = zoom_rect(&t, pane);
-            assert!(
-                hud.right() + t.space_2 <= zoom.left() + 0.01,
-                "{width}: {hud:?} {zoom:?}"
-            );
-            assert!(hud.left() >= pane.left(), "{width}");
+            let strip = Rect::from_min_max(pos2(100.0, 700.0), pos2(100.0 + width, 700.0 + strip_height(&t)));
+            let hud = hud_rect(&t, strip, max_width(&t, strip));
+            assert!(strip.contains_rect(hud), "{width}: {hud:?} in {strip:?}");
+            assert!((hud.center().x - strip.center().x).abs() < 0.01);
         }
-        let narrow = Rect::from_min_max(pos2(0.0, 0.0), pos2(800.0, 600.0));
-        let wide = Rect::from_min_max(pos2(0.0, 0.0), pos2(1600.0, 600.0));
-        assert!(
-            max_width(&t, wide) - max_width(&t, narrow) >= 799.0,
-            "the room grows with the pane"
-        );
     }
 }

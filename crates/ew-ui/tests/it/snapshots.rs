@@ -1638,10 +1638,11 @@ fn ft625_the_place_ghost_wires_and_hud_hint(
         let image = offscreen::render(dev, &h.ctx, h.output(), &recorder);
         let (_, hud_rect, pane) = h.state().command_surface_rects();
         let (hud_rect, pane) = (hud_rect.expect("the HUD"), pane.expect("the page pane"));
-        assert!(pane.contains_rect(hud_rect), "the HUD in the page pane");
+        // The canvas with the HUD's strip under it, where the prompt reads.
+        assert!(hud_rect.top() >= pane.bottom(), "the HUD under the canvas");
         failures.extend(record(
             &format!("ft625-place-wires-{theme}-comfortable"),
-            &crop(&image, pane),
+            &crop(&image, pane.union(hud_rect.expand(4.0))),
             true,
         ));
         h.state_mut().shell_mut().shutdown();

@@ -222,6 +222,10 @@ pub const ZOOM_MAX: f64 = 50.0;
 /// The pane of the headless mode until `view.canvas_resize` says otherwise: 1200 × 800 points at 1.0.
 pub const HEADLESS_PANE: (f64, f64) = (1200.0, 800.0);
 
+/// How much larger than Fit page a fit to the width must be for a page's first view to take it: below that the
+/// whole sheet is shown.
+const FIRST_VIEW_GAIN: f64 = 1.15;
+
 /// The margin of fit page on each side, in points.
 pub const FIT_MARGIN_PT: f64 = 16.0;
 
@@ -532,8 +536,6 @@ pub struct CanvasModel {
     cursor: Option<(i64, i64)>,
     /// The index into the page's links of the link under the pointer.
     hover_link: Option<usize>,
-    /// Logical points at the pane's bottom that a fit keeps clear (the tool HUD's band, doc 16a §5.5; 0 headless).
-    fit_inset: f64,
     /// The point a jump arrived at and the jump's serial: the window marks it for a moment.
     arrival: Option<((i64, i64), u64)>,
     /// Whether the view is a page's first view: while fitted it fits again as one, until Fit page.
@@ -558,7 +560,6 @@ impl CanvasModel {
             ui_scale: 1.0,
             cursor: None,
             hover_link: None,
-            fit_inset: 0.0,
             arrival: None,
             first: true,
         };
@@ -682,30 +683,8 @@ impl CanvasModel {
         self.centre = (self.centre.0.clamp(0, w.max(0)), self.centre.1.clamp(0, h.max(0)));
     }
 
-    /// The bottom band in logical points that a fit keeps clear.
-    pub fn fit_inset(&self) -> f64 {
-        self.fit_inset
-    }
-
-    /// Sets the bottom band a fit keeps clear (a finite non-negative number of points, anything else is 0, at most
-    /// half the pane); a fitted view fits again. Panning can still move content under the band.
-    pub fn set_fit_inset(&mut self, bottom: f64) {
-        let bottom = if bottom.is_finite() && bottom > 0.0 {
-            bottom
-        } else {
-            0.0
-        };
-        if (bottom - self.fit_inset).abs() < 1e-9 {
-            return;
-        }
-        self.fit_inset = bottom;
-        if self.fitted {
-            self.refit();
-        }
-    }
-
-    /// Fits the sheet into the pane above the fit inset with [`FIT_MARGIN_PT`] on each side, centred in that area (Fit
-    /// page); the view is no longer a page's first view.
+    /// Fits the sheet into the pane with [`FIT_MARGIN_PT`] on each side, centred (Fit page); the view is no longer a
+    /// page's first view.
     pub fn fit(&mut self) {
         self.first = false;
         self.fit_page();
@@ -726,15 +705,16 @@ impl CanvasModel {
         }
     }
 
-    /// A page's first view: fit-width when that is larger than Fit page, the top of the sheet
-    /// [`FIT_MARGIN_PT`] below the pane's top and its middle at the pane's middle; else Fit page. Fit page stays one
-    /// key away (`view.fit_page`).
+    /// A page's first view: fit-width when that is clearly larger than Fit page (by more than
+    /// [`FIRST_VIEW_GAIN`]), the top of the sheet [`FIT_MARGIN_PT`] below the pane's top and its middle at the
+    /// pane's middle; else Fit page, which shows the whole sheet with its title block (a few per cent of size is
+    /// not worth a cut-off foot). Fit page stays one key away (`view.fit_page`).
     fn first_view(&mut self) {
         self.fit_page();
         let (w, _) = self.page.sheet;
         let pt = POINTS_PER_INCH / NM_PER_INCH / self.ui_scale;
         let zx = (self.pane.0 - 2.0 * FIT_MARGIN_PT) / (w as f64 * pt);
-        if !zx.is_finite() || clamp_zoom(zx) <= self.zoom {
+        if !zx.is_finite() || clamp_zoom(zx) <= self.zoom * FIRST_VIEW_GAIN {
             return;
         }
         self.zoom = clamp_zoom(zx);
@@ -744,24 +724,16 @@ impl CanvasModel {
         self.update_hover();
     }
 
-    /// Fit page: the sheet whole in the pane above the fit inset, centred in that area.
+    /// Fit page: the sheet whole in the pane, centred.
     fn fit_page(&mut self) {
         let (w, h) = self.page.sheet;
         let pt = POINTS_PER_INCH / NM_PER_INCH / self.ui_scale;
         let (sw, sh) = (w as f64 * pt, h as f64 * pt);
-        let inset = self.fit_inset.min(self.pane.1 / 2.0);
         let zx = (self.pane.0 - 2.0 * FIT_MARGIN_PT) / sw;
-        let zy = (self.pane.1 - inset - 2.0 * FIT_MARGIN_PT) / sh;
+        let zy = (self.pane.1 - 2.0 * FIT_MARGIN_PT) / sh;
         let z = zx.min(zy);
         self.zoom = clamp_zoom(if z.is_finite() && z > 0.0 { z } else { ZOOM_MIN });
-        // The sheet's centre sits at the centre of the area above the inset: the view's centre lies `inset / 2`
-        // points below it (screen y grows with sheet y).
-        let down = (inset / 2.0 / self.points_per_nm()).trunc() as i64;
         self.centre = (w / 2, h / 2);
-        if down != 0 {
-            self.centre.1 = self.centre.1.saturating_add(down);
-            self.clamp_centre();
-        }
         self.fitted = true;
         self.update_hover();
     }
@@ -1270,15 +1242,23 @@ mod tests {
         m
     }
 
-    /// A page's first view is fit-width where that is larger than Fit page, the top of the sheet
-    /// 16 points below the pane's top; it fits again so on a new pane until Fit page, which stays one key away.
+    /// A page's first view is the whole sheet where a fit to the width would gain little (the title block stays in
+    /// view), and fit-width where that is clearly larger, the top of the sheet 16 points below the pane's top; it
+    /// fits again so on a new pane until Fit page, which stays one key away.
     #[test]
-    fn a_pages_first_view_is_fit_width_with_its_top_in_view() {
-        // A4 in 1200 × 800 points: fit-width (1200 − 32) / 1122.5 = 1.0405 > Fit page 0.9676.
+    fn a_pages_first_view_is_the_whole_sheet_unless_the_width_gains_much() {
+        // A4 in 1200 × 800 points: fit-width 1.0405 is under 15 % more than Fit page 0.9676: the whole sheet.
         let mut m = CanvasModel::new(page(Vec::new()), HEADLESS_PANE, 1.0);
-        let width = (1200.0 - 32.0) / (297.0 / 25.4 * 96.0);
-        assert!((m.zoom() - width).abs() < 1e-12, "{}", m.zoom());
+        assert!(
+            (m.zoom() - 768.0 / (210.0 / 25.4 * 96.0)).abs() < 1e-12,
+            "{}",
+            m.zoom()
+        );
         assert!(m.is_fitted() && m.is_first_view());
+        assert_eq!(m.centre(), (148_500_000, 105_000_000));
+        // A wide, low pane: fit-width (1600 − 32) / 1122.5 = 1.397 is far more: the width, the sheet's top in view.
+        m.relayout((1600.0, 800.0), 1.0);
+        assert!((m.zoom() - (1600.0 - 32.0) / (297.0 / 25.4 * 96.0)).abs() < 1e-12);
         let k = m.points_per_nm();
         let top = 400.0 - m.centre().1 as f64 * k;
         assert!(
@@ -1286,9 +1266,6 @@ mod tests {
             "the sheet's top {top} points below the pane's"
         );
         assert_eq!(m.centre().0, 148_500_000);
-        // A new pane: the first view again.
-        m.relayout((1600.0, 800.0), 1.0);
-        assert!((m.zoom() - (1600.0 - 32.0) / (297.0 / 25.4 * 96.0)).abs() < 1e-12);
         // Fit page, one key away, and from then on.
         m.fit();
         assert!((m.zoom() - 768.0 / (210.0 / 25.4 * 96.0)).abs() < 1e-12);
@@ -1348,27 +1325,6 @@ mod tests {
         m.fit();
         m.zoom_out();
         assert_eq!(m.zoom(), std::f64::consts::FRAC_1_SQRT_2);
-    }
-
-    #[test]
-    fn a_fit_inset_keeps_the_bottom_band_clear() {
-        let mut m = CanvasModel::new(page(Vec::new()), (2000.0, 600.0), 1.0);
-        m.fit();
-        m.set_fit_inset(100.0);
-        assert!(m.is_fitted());
-        let k = m.points_per_nm();
-        // The sheet fits the 500 points above the band with 16 on each side ...
-        assert!((210_000_000.0 * k - (500.0 - 32.0)).abs() < 1e-6);
-        // ... centred in them: its bottom edge lies 16 + 100 points above the pane's.
-        let bottom = 300.0 + (210_000_000.0 - m.centre().1 as f64) * k;
-        assert!((bottom - (600.0 - 116.0)).abs() < 0.01, "{bottom}");
-        // A user view is left alone; a bad inset is 0.
-        m.zoom_in();
-        let v = m.viewport();
-        m.set_fit_inset(f64::NAN);
-        assert_eq!(m.viewport(), v);
-        m.fit();
-        assert_eq!(m.centre(), (148_500_000, 105_000_000));
     }
 
     #[test]

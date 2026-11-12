@@ -490,7 +490,7 @@ fn device_from_part_places_the_projects_a9f78116_as_102f1_on_gp_ut() {
     assert_eq!(reps(&h), before + 1);
     assert_eq!(
         h.state().shell().toast().map(|t| t.text.clone()).as_deref(),
-        Some("Placed -102F1 at 102-F8.")
+        Some("Placed -102F1 at 102-E8.")
     );
     // The placed device is selected; its Properties name the part.
     let describe = h.state().shell().describe();

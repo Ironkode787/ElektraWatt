@@ -189,10 +189,11 @@ fn the_command_surface_from_the_keyboard() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Doc 16a §5.5: after a fit on Golden A 101 at 1280 by 800 the sheet ends above the HUD (the fit keeps the HUD's
-/// band clear) and keeps off the zoom control; the view is still the fit.
+/// Doc 16a §5.5: the HUD stands in a strip of its own under the canvas, so no view puts the drawing under it: after
+/// a fit on Golden A 101 at 1280 by 800 the sheet lies whole in the canvas, and the canvas ends where the HUD's
+/// strip begins.
 #[test]
-fn a_fitted_sheet_ends_above_the_hud() {
+fn the_canvas_ends_above_the_hud() {
     for density in ["comfortable", "compact"] {
         let tmp = Tmp::new();
         let mut h = window(&tmp, density);
@@ -203,7 +204,11 @@ fn a_fitted_sheet_ends_above_the_hud() {
         let (_, hud, pane) = h.state().command_surface_rects();
         let (hud, pane) = (hud.unwrap(), pane.unwrap());
         let canvas = h.state().shell().canvas_of(0).unwrap();
-        assert!(canvas.is_fitted() && canvas.fit_inset() > 0.0, "{density}");
+        assert!(canvas.is_fitted(), "{density}");
+        assert!(
+            pane.bottom() <= hud.top(),
+            "{density}: the canvas {pane:?} ends above the HUD {hud:?}"
+        );
         let (w, ht) = canvas.sheet();
         let host = h.state_mut().canvas_host();
         let (a, b) = (
@@ -297,9 +302,10 @@ fn the_geometry_at_1280_by_800_in_both_densities() {
             );
         }
         assert!(close(hud.height(), 36.0), "{density}: the HUD {hud:?}");
+        // In its strip under the canvas, 4 points below the canvas's foot.
         assert!(
-            close(pane.bottom() - hud.bottom(), 16.0),
-            "{density}: {hud:?} in {pane:?}"
+            close(hud.top() - pane.bottom(), 4.0),
+            "{density}: {hud:?} under {pane:?}"
         );
         assert!(
             close(hud.center().x, pane.center().x),

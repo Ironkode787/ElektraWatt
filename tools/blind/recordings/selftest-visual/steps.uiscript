@@ -25,7 +25,7 @@
 {"chord":"ctrl+s","input":"key"}
 {"input":"wait","ms":300}
 {"frame":"t0006.png"}
-{"input":"click","x":1447,"y":917}
+{"input":"click","x":1447,"y":873}
 {"frame":"t0007.png"}
 {"action":"page.describe","params":{"folio":"101"}}
 {"action":"app.quit","params":{"discard":true}}

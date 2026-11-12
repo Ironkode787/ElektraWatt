@@ -92,14 +92,6 @@ pub(crate) fn show(
     }
     let t = theme::current(ctx);
     let bound = pane.unwrap_or_else(|| ctx.content_rect());
-    // Above the HUD band at the page view's bottom (§7.4: the HUD is an obstacle).
-    let bound = Rect::from_min_max(
-        bound.min,
-        pos2(
-            bound.right(),
-            (bound.bottom() - crate::hud::fit_inset(&t)).max(bound.top()),
-        ),
-    );
     let name_font = theme::font(&t.type_body);
     let kind_font = theme::font(&t.type_small);
     let widest = ch
