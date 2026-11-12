@@ -267,6 +267,21 @@ impl ShellModel {
         if let Some(name) = form.fields.first_mut() {
             name.optional = false;
         }
+        // The type is a list, the choices Properties offers for a definition's Type (FT-1698), an empty one first
+        // (no type); the window words each as Properties does.
+        if let Some(project) = &self.project
+            && let Some(ty) = form.fields.iter_mut().find(|f| f.name == "type")
+        {
+            let words: Vec<String> = project
+                .session
+                .field_choices("potential_def", "ptype", "")
+                .into_iter()
+                .filter_map(|c| c.value.as_str().map(str::to_owned))
+                .collect();
+            if !words.is_empty() {
+                ty.ty = format!("enum(|{})", words.join("|"));
+            }
+        }
         self.dialog = None;
         self.palette = Some(PaletteState {
             query: String::new(),

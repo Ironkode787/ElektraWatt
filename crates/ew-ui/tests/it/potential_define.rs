@@ -297,6 +297,57 @@ fn a_failed_define_stays_in_its_form_and_no_banner_follows() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1698: Define potential…'s Type is a list, not a typed text: a click opens it with the words Properties shows
+/// for a definition's Type, a click on "L+" chooses it, and Enter defines the potential with the type `l_plus`.
+#[test]
+fn define_potentials_type_is_chosen_from_a_list() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut h: Harness<'static, App> = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    let shell = h.state_mut().shell_mut();
+    done(shell, "page.goto", json!({"folio": "102"}));
+    let wire = shell.canvas().unwrap().page().tables.connections[0]
+        .id
+        .to_string();
+    done(shell, "select.set", json!({"ids": [wire]}));
+    h.state_mut().dispatch_from_window("potential.draw", &json!({}));
+    settle(&mut h);
+    h.state_mut().shell_mut().set_palette_field(0, "FEED-L");
+    settle(&mut h);
+    assert!(h.query_by_label("L+").is_none(), "the list is closed");
+    h.get_by_role_and_label(egui::accesskit::Role::ComboBox, "Type")
+        .click();
+    settle(&mut h);
+    for word in ["None", "L1", "N", "PE", "L-", "M"] {
+        assert!(
+            h.query_all_by_label(word).next().is_some(),
+            "{word} is a choice"
+        );
+    }
+    h.get_by_label("L+").click();
+    settle(&mut h);
+    let form = h.state().shell().palette().and_then(|p| p.form.clone());
+    assert_eq!(
+        form.map(|f| f.fields[1].value.clone()).as_deref(),
+        Some("l_plus")
+    );
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    let shell = h.state().shell();
+    let last = shell.recorded_commands().last();
+    assert_eq!(
+        last.map(|c| c.cmd.as_str()),
+        Some("potential.define"),
+        "{:?} {:?}",
+        shell.banner(),
+        shell.palette().and_then(|p| p.form.as_ref()).map(|f| &f.error)
+    );
+    assert_eq!(last.unwrap().params["ptype"], "l_plus");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// Escape in a context menu closes the menu and nothing else: the selection stays, as Escape in the
 /// app menu does.
 #[test]

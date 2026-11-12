@@ -262,7 +262,7 @@ fn ft1688_a_wire_of_an_l1_potential_takes_the_phases_cross_section() {
     let shell = d.shell_mut();
     assert_eq!(shell.dispatch("potential.draw", &json!({})), Outcome::Done);
     shell.set_palette_field(0, "L1");
-    shell.set_palette_field(1, "L1");
+    shell.set_palette_field(1, "l1");
     assert_eq!(shell.run_palette_selection(), Outcome::Done);
     assert_eq!(shell.recorded_commands().last().unwrap().cmd, "potential.define");
     d.settle();

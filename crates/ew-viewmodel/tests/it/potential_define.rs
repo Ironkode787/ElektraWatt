@@ -417,16 +417,13 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
         Some("Name the potential first".to_owned())
     );
     shell.set_palette_field(0, "FEED-A");
-    shell.set_palette_field(1, "XX");
-    assert_eq!(
-        shell.run_palette_selection(),
-        Outcome::Failed {
-            message:
-                "\"XX\" is not a potential type; type L1, L2, L3, L, N, PE, PEN, FE, L+, L-, M or signal."
-                    .to_owned()
-        }
-    );
-    shell.set_palette_field(1, "");
+    // FT-1698: the type is a list, the choices of a definition's Type in Properties, an empty one first.
+    let form = shell.palette().and_then(|p| p.form.clone()).expect("the form");
+    let choices: Vec<String> = form.fields[1].choices().into_iter().map(str::to_owned).collect();
+    assert_eq!(choices.first().map(String::as_str), Some(""), "{choices:?}");
+    for word in ["l1", "l", "n", "pe", "l_plus", "l_minus", "m"] {
+        assert!(choices.iter().any(|c| c == word), "{word}: {choices:?}");
+    }
     shell.set_palette_field(2, "lots");
     assert_eq!(
         shell.run_palette_selection(),
@@ -435,7 +432,7 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
         }
     );
     assert_eq!(shell.recorded_commands().len(), steps, "nothing commits");
-    fill_form(&mut shell, ["FEED-A", "L+", "24 V DC"]);
+    fill_form(&mut shell, ["FEED-A", "l_plus", "24 V DC"]);
     // One undo step, at the wire's `from` end.
     assert_eq!(shell.recorded_commands().len(), steps + 1, "one step");
     let from = shell
@@ -472,7 +469,7 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
     assert_eq!(item.label, "Define potential…");
     assert!(item.enabled, "{:?}", item.reason);
     done(&mut shell, item.id, item.params);
-    fill_form(&mut shell, ["FEED-B", "PE", ""]);
+    fill_form(&mut shell, ["FEED-B", "pe", ""]);
     assert_eq!(row(&shell, "FEED-B", "Type").1, "potential_def");
 
     // The palette, by "supply", on a terminal.
@@ -490,7 +487,7 @@ fn define_potential_from_the_menu_the_context_menu_and_the_palette() {
         .expect("found by supply");
     shell.select_palette_entry(at);
     assert_eq!(shell.run_palette_selection(), Outcome::Done);
-    fill_form(&mut shell, ["FEED-C", "L1", "230 V AC"]);
+    fill_form(&mut shell, ["FEED-C", "l1", "230 V AC"]);
     assert_eq!(row(&shell, "FEED-C", "Type").1, "potential_def");
 
     // Over a symbol with several connection points, not a terminal, the context menu does not offer it.
