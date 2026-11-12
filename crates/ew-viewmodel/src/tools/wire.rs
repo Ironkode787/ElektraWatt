@@ -732,9 +732,11 @@ fn through_route(
     let found = passes(cx, own, [from, t], &direct)?;
     // In line: the route runs over the passed CPs themselves, not beside them; and every one passed is a terminal.
     let terminal = |rep: Uuid| cx.page.tables.reps.iter().any(|r| r.id == rep && r.terminal);
-    if found.passes.iter().any(|(entry, exit)| {
-        entry.proj != entry.cp.at || exit.proj != exit.cp.at || !terminal(entry.cp.rep)
-    }) {
+    if found
+        .passes
+        .iter()
+        .any(|(entry, exit)| entry.proj != entry.cp.at || exit.proj != exit.cp.at || !terminal(entry.cp.rep))
+    {
         return None;
     }
     let mut through: Vec<Uuid> = found.passes.iter().map(|(entry, _)| entry.cp.rep).collect();

@@ -2744,8 +2744,17 @@ fn choosing_source_for_a_page_arrow_makes_its_partner_the_target_in_one_step() {
     d.settle();
     d.input(&click(d.find("Source").expect("the choice Source")));
     d.settle();
-    assert_eq!(direction(&mut d, "102"), "source", "{:?}", state(&mut d)["properties"]);
-    assert_eq!(direction(&mut d, "101"), "target", "the partner turned in the same step");
+    assert_eq!(
+        direction(&mut d, "102"),
+        "source",
+        "{:?}",
+        state(&mut d)["properties"]
+    );
+    assert_eq!(
+        direction(&mut d, "101"),
+        "target",
+        "the partner turned in the same step"
+    );
     d.input(&key("ctrl+z"));
     d.settle();
     assert_eq!(direction(&mut d, "101"), "source");

@@ -616,7 +616,9 @@ impl ShellModel {
             return Vec::new();
         };
         let page = canvas.page();
-        let routes = card.preview.command["routes"].as_array().map_or(&[][..], Vec::as_slice);
+        let routes = card.preview.command["routes"]
+            .as_array()
+            .map_or(&[][..], Vec::as_slice);
         routes
             .iter()
             .filter(|r| {

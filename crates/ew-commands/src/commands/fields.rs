@@ -1123,16 +1123,19 @@ fn swap_sources(tx: &mut TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdEr
         else {
             continue;
         };
-        if g.members.iter().any(|m| pairing.ips.get(m).is_some_and(|i| i.star_source)) {
+        if g.members
+            .iter()
+            .any(|m| pairing.ips.get(m).is_some_and(|i| i.star_source))
+        {
             continue;
         }
         for m in &g.members {
             if named.contains(&m.cast()) {
                 continue;
             }
-            let is_source = tx
-                .get::<Function>(*m)
-                .is_some_and(|f| matches!(&f.kind, FunctionKind::Ip(ip) if ip.direction == IpDirection::Source));
+            let is_source = tx.get::<Function>(*m).is_some_and(
+                |f| matches!(&f.kind, FunctionKind::Ip(ip) if ip.direction == IpDirection::Source),
+            );
             if is_source {
                 tx.update::<Function>(*m, |f| {
                     if let FunctionKind::Ip(ip) = &mut f.kind {
