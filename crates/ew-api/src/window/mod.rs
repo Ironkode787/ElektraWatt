@@ -13,6 +13,8 @@ mod find;
 mod history;
 // What a PLC channel dropped on a field device can do.
 mod plc_bind;
+// Wire colours as a person types them.
+mod typed;
 
 pub use clipboard::{
     CopiedFragment, CopyError, FRAGMENT_HEADER, FragmentError, ParsedFragment, parse_fragment,
@@ -21,3 +23,4 @@ pub use clipboard::{
 pub use find::{FindError, FindField, FindHit, FindQuery, FindResults};
 pub use history::{HistoryRow, HistoryView};
 pub use plc_bind::OffCardBind;
+pub use typed::UnknownColour;

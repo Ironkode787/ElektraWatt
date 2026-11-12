@@ -179,8 +179,10 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `marker.fields {csa?, colours?}`: the Wire marker tool's fields; `""` clears one. `colours` is split on ASCII
-    /// whitespace into one entry per connection and each entry on `+` into one or two codes.
+    /// `marker.fields {csa?, colours?}`: the Wire marker tool's fields; `""` clears one. `colours` is what a person
+    /// types (`Session::typed_colours`: `BK`, `bk`, `BK, BU`, `GN+YE`, a colour's name from the colour profile): one
+    /// entry per wire, or one entry for every wire crossed. An entry the project does not know is refused in words
+    /// with the codes it knows (FT-1684).
     pub(crate) fn act_marker_fields(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.tools.tool.name() != "marker" {
             return Outcome::refused(key!("reason-marker-tool-only"));
@@ -199,15 +201,18 @@ impl ShellModel {
         let colours = match p.get("colours") {
             None => None,
             Some(Value::String(s)) => {
-                let mut out: Vec<Vec<String>> = Vec::new();
-                for entry in s.split_ascii_whitespace() {
-                    let codes: Vec<String> = entry.split('+').map(str::to_owned).collect();
-                    if codes.len() > 2 || codes.iter().any(String::is_empty) {
-                        return failed(key!("error-bad-param"), &["colours"]);
+                let Some(project) = &self.project else {
+                    return Outcome::refused(key!("reason-no-project"));
+                };
+                match project.session.typed_colours(s) {
+                    Ok(colours) => Some(colours),
+                    Err(unknown) => {
+                        return failed(
+                            key!("error-marker-colour"),
+                            &[&unknown.entry, &unknown.choices.join(", ")],
+                        );
                     }
-                    out.push(codes);
                 }
-                Some(out)
             }
             Some(_) => return failed(key!("error-bad-param"), &["colours"]),
         };
