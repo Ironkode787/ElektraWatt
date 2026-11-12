@@ -21,7 +21,7 @@
 
 use ew_api::AnyCommand;
 use ew_api::output::table_edit::potential_input;
-use ew_api::output::{InputError, PageTables, TableCp, TableEnd, TableRep};
+use ew_api::output::{InputError, PageTables, TableCp, TableEnd, TableRep, Uuid};
 use serde_json::{Map, Value, json};
 
 use super::{Outcome, PaletteState, ShellModel, failed, string_param};
@@ -325,12 +325,74 @@ impl ShellModel {
         self.potential_at = Some(TableEnd::Cp { function, idx });
         out
     }
+
+    /// The potential reasoned for the one selected wire with the Select tool (FT-1700, `Session::potential_offer`)
+    /// and the wire; `None` for any other selection, a wire whose offer was declined, or nothing to offer. Read once
+    /// per revision and wire.
+    fn offer_for_selection(&self) -> Option<(Uuid, ew_api::output::PotentialOffer)> {
+        if self.tools.tool.name() != "select" {
+            return None;
+        }
+        let c = self.canvas()?;
+        let kinds = selection_kinds(&self.tools.selection, &c.page().tables);
+        let [(e, EntityKind::Connection)] = kinds.as_slice() else {
+            return None;
+        };
+        if self.declined_offers.contains(&e.0) {
+            return None;
+        }
+        let key = (self.revision()?, e.0);
+        if let Some((k, offer)) = &*self.offer_cache.borrow()
+            && *k == key
+        {
+            return offer.clone().map(|o| (e.0, o));
+        }
+        let offer = self.project.as_ref()?.session.potential_offer(e.0);
+        *self.offer_cache.borrow_mut() = Some((key, offer.clone()));
+        offer.map(|o| (e.0, o))
+    }
+
+    /// The reasoned potential the window offers at the selected wire (FT-1700): its title ("Potential 0VDC?") and why,
+    /// in words ("-1K1:A2 returns a coil fed from 24VDC"); `None` when there is none to offer or the project is
+    /// read-only.
+    pub fn potential_offer(&self) -> Option<(String, String)> {
+        if self.read_only_reason().is_some() {
+            return None;
+        }
+        let (_, o) = self.offer_for_selection()?;
+        let why = match &o.fed_from {
+            Some(feed) => strings::format(key!("potential-offer-coil"), &[&o.cp, feed]),
+            None => strings::format(
+                key!("potential-offer-role"),
+                &[&o.cp, &strings::choice_text(&o.ptype)],
+            ),
+        };
+        Some((strings::format(key!("potential-offer-title"), &[&o.name]), why))
+    }
+
+    /// `potential.offer {accept}` (the card's Accept and Decline, FT-1700): Accept defines the offered potential at the
+    /// selected wire as Define potential… does, in one undo step; Decline keeps it from being offered again for that
+    /// wire in this session. Without an offer it is refused in words.
+    pub(crate) fn act_potential_offer(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some(accept) = p.get("accept").and_then(Value::as_bool) else {
+            return failed(key!("error-missing-param"), &["accept"]);
+        };
+        let Some((wire, offer)) = self.offer_for_selection() else {
+            return Outcome::refused(key!("reason-no-potential-offer"));
+        };
+        if !accept {
+            self.declined_offers.insert(wire);
+            return Outcome::Done;
+        }
+        let mut params = Map::new();
+        params.insert("name".into(), Value::String(offer.name));
+        params.insert("type".into(), Value::String(offer.ptype));
+        self.act_potential_draw(&params)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use ew_api::output::Uuid;
-
     use super::*;
 
     /// A symbol of the page tables showing `functions`, a terminal's or not.

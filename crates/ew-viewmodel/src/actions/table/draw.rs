@@ -1169,6 +1169,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_potential_draw_row(p),
         ))),
     )),
+    // FT-1700: Accept and Decline on the card of a potential reasoned for the selected wire.
+    keeps_banner(with_params(
+        "accept:bool",
+        hidden(in_canvas(act(
+            "potential.offer",
+            Command,
+            Menu::Draw,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_potential_offer(p),
+        ))),
+    )),
     // The Wire marker and Structure box tools, their fields and the marker mode.
     keeps_banner(in_canvas(placed(
         // "Marker" on the bar: no wider than Measure above it, so the group keeps its width.

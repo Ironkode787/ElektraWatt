@@ -52,7 +52,9 @@ mod layers;
 // Properties for layout records and the Surface view rows.
 mod layout_edit;
 mod navigation;
+// A potential reasoned for an unnamed wire (FT-1700).
 pub(crate) mod navigators;
+mod potential_offer;
 // The surface view of a panel-layout page (D9, D10).
 pub(crate) mod panel;
 // The labelled entity list of a preview (§4.2).
@@ -134,6 +136,7 @@ pub use navigators::{
     NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key, tokens as nav_tokens,
 };
 pub use panel::{PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
+pub use potential_offer::PotentialOffer;
 pub use preview::PreviewEntity;
 pub use project_diff::textconv;
 pub use properties::{
