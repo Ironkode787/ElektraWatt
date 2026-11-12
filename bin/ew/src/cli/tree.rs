@@ -225,7 +225,8 @@ enum Top {
     /// touching a connection point or a junction it does not end at, two wires running along each other on one line,
     /// a wire through a symbol's body other than along its own end's escape, a wire through a symbol's text, a
     /// junction with four or more arms) and the costs (the points where two wires cross or meet, the bends), each
-    /// with the wires it names by their ends. `--json` prints `ew.layout-result/1`. Exit 0 when measured, 2 on usage,
+    /// with the wires it names by their ends. A wire without a route is left out, as the check rules leave it out: its
+    /// dashed line is no wire. `--json` prints `ew.layout-result/1`. Exit 0 when measured, 2 on usage,
     /// open errors and a folio that names no drawn page.
     Layout(LayoutCli),
     /// Route the wires of the pages.

@@ -202,6 +202,14 @@ fn entry_of(q: &Q, folio: &str) -> Result<PageRef, LayoutError> {
         .ok_or_else(|| LayoutError::NoFolio(folio.to_owned()))
 }
 
+/// The layout measures of a page, of its routed connections only: an unrouted connection is no wire geometry, its
+/// dashed line only a sign, and it counts as unrouted alone (EW-CORE-073). The layout rules and `ew layout` read these.
+fn routed_measures(q: &Q, page: PageRef, tables: &PageTables) -> Measures {
+    let mut g = geometry(q, page, tables);
+    g.connections.retain(|c| c.routed);
+    routing::measure(&g)
+}
+
 /// The geometry of a page from its tables (see the module documentation).
 fn geometry(q: &Q, page: PageRef, tables: &PageTables) -> PageGeometry {
     let mut bodies = Vec::new();
@@ -607,9 +615,7 @@ fn text_runs(q: &Q, page: PageRef, owners: &BTreeSet<Uuid>) -> Vec<(Uuid, [i64; 
 fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<crate::checks::Finding>) {
     use crate::checks::rules::page as rules;
     let page: Id<ew_derive::ew_schema::Page> = Id::from_uuid(tables.page);
-    let mut g = geometry(q, page_ref, tables);
-    g.connections.retain(|c| c.routed);
-    let m = routing::measure(&g);
+    let m = routed_measures(q, page_ref, tables);
     let words: Vec<(Uuid, String)> = tables
         .connections
         .iter()
@@ -791,7 +797,8 @@ impl Session {
     }
 
     /// The layout measures of the page labelled `folio`, or with `None` of every drawn page but the panel-layout
-    /// pages, in page order, each named in words ([`PageLayout`]).
+    /// pages, in page order, each named in words ([`PageLayout`]); of the routed connections only, as the layout rules
+    /// measure them.
     ///
     /// # Errors
     ///
@@ -812,7 +819,7 @@ impl Session {
                 .page_tables(&f)
                 .ok_or_else(|| LayoutError::NotDrawn(f.clone()))?;
             let page = entry_of(&q, &f)?;
-            let m = routing::measure(&geometry(&q, page, &tables));
+            let m = routed_measures(&q, page, &tables);
             out.push(page_layout(&q, &tables, &m));
         }
         Ok(out)

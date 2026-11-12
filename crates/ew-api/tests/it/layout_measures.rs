@@ -280,6 +280,29 @@ fn findings(s: &Session, rule: &str) -> Vec<(String, String, ew_api::checks::Sev
 
 use ew_api::checks::Severity::{Info, Warning};
 
+/// `ew layout` measured an unrouted connection's dashed line for bends and crossings, while the check rules count it
+/// only as unrouted: the report leaves it out as they do, and measures it once it has a route.
+#[test]
+fn the_layout_report_leaves_an_unrouted_wire_out() {
+    let (mut s, page, k) = rk1_page(&[(60, 20), (70, 28)]);
+    let w = draw(&mut s, &page, pin(&k[0], 1), pin(&k[1], 0), serde_json::json!([]));
+    let bends = |s: &Session| -> Vec<String> {
+        s.layout_report(Some("103")).unwrap()[0]
+            .bends
+            .iter()
+            .map(|b| b.connection.clone())
+            .filter(|c| c.contains("-103K1"))
+            .collect()
+    };
+    assert_eq!(bends(&s), Vec::<String>::new(), "the dashed L is no wire");
+    run(
+        &mut s,
+        "connection.route",
+        serde_json::json!({"connection": w, "route": route(&[(60, 24), (60, 26), (70, 26), (70, 28)])}),
+    );
+    assert_eq!(bends(&s), ["-103K1:A2 → -103K2:A1"], "routed, it is measured");
+}
+
 /// RK1, EW-CORE-067: a wire routed through a coil's A1 that it does not join; its fixed twin runs a step above the
 /// point's stub.
 #[test]
