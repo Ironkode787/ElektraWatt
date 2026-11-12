@@ -92,8 +92,7 @@ fn the_revision_dialogs_open_fill_validate_and_cancel_headless() {
         dialog_text(&mut s),
         "dialog \"Approve revision V1.0\"\n  label \"The checker signs off the saved content of V1.0, written by the \
          author. The release gate runs on the saved project first; the sign-off is saved.\"\n  field \"Checker's role\": \
-         \"checker\"\n  field \"Type the label to confirm\": \"\"\n  label \"ElektraWatt's checks do not replace \
-         engineering verification by a competent person.\"\n  button \"Approve\"\n  button \"Cancel\""
+         \"checker\"\n  field \"Type the label to confirm\": \"\"\n  button \"Approve\"\n  button \"Cancel\""
     );
     done(&mut s, "revision.approve", json!({ "typed": "V0.9" }));
     assert_eq!(
@@ -132,8 +131,7 @@ fn the_revision_dialogs_open_fill_validate_and_cancel_headless() {
     assert_eq!(
         dialog_text(&mut s),
         "dialog \"Release revision V1.0?\"\n  label \"The release is blocked by 1 finding of the release gate:\"\n  \
-         item \"revision V1.0: checker not set; the checker approves the revision\"\n  label \"ElektraWatt's checks do \
-         not replace engineering verification by a competent person.\"\n  button \"Close\""
+         item \"revision V1.0: checker not set; the checker approves the revision\"\n  button \"Close\""
     );
     done(&mut s, "revision.release", json!({ "cancel": true }));
     assert!(s.dialog().is_none());
@@ -758,8 +756,7 @@ fn ruling1_the_revision_refusals_read_in_words() {
     assert_eq!(
         dialog_text(&mut s),
         "dialog \"Approve revision V1.0\"\n  label \"The release gate cannot run: the project has unsaved changes; \
-         save it first.\"\n  label \"ElektraWatt's checks do not replace engineering verification by a competent \
-         person.\"\n  button \"Close\""
+         save it first.\"\n  button \"Close\""
     );
     done(&mut s, "revision.approve", json!({ "cancel": true }));
     done(&mut s, "file.save", json!({}));

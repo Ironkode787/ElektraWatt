@@ -442,7 +442,7 @@ fn node_rect(h: &Harness<'_, App>, name: &str) -> Option<egui::Rect> {
     })
 }
 
-/// The Messages pane's rectangle: from its header to its footer, across its tree.
+/// The Messages pane's rectangle: from its header to the status bar, across its tree.
 fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
     let list = node_rect(h, "Messages navigator").expect("the Messages tree");
     let shell = h.state().shell();
@@ -459,8 +459,8 @@ fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
             )
         })
         .map_or(list.top(), |r| r.top());
-    let bottom = node_rect(h, "Checks support, but do not replace, engineering verification.")
-        .map_or(list.bottom(), |r| r.bottom());
+    // The pane ends at the status bar (it has no footer since FT-1711).
+    let bottom = crate::messages::status_top(h) - 8.0;
     egui::Rect::from_min_max(
         egui::pos2(list.left(), top - 4.0),
         egui::pos2(list.right(), bottom + 4.0),

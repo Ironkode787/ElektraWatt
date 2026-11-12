@@ -65,11 +65,12 @@ fn item_name(h: &Harness<'_, App>, label: &str) -> String {
         .unwrap_or_else(|| panic!("no tree item {label}"))
 }
 
-/// The top of the status bar (its Saved indicator), the foot of the docked pane.
-fn status_top(h: &Harness<'_, App>) -> f32 {
-    h.query_all_by_label("saved")
+/// The top of the status bar (its renderer field, "CPU", the lowest node of that name), the foot of the docked pane.
+pub(crate) fn status_top(h: &Harness<'_, App>) -> f32 {
+    h.query_all_by_label("CPU")
         .map(|n| n.rect().top())
-        .fold(f32::INFINITY, f32::min)
+        .reduce(f32::max)
+        .expect("the status bar's renderer field")
 }
 
 /// Places an interruption point named `name` with direction `target` near the top right of the shown page.
