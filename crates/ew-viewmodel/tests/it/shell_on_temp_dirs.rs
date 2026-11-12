@@ -299,10 +299,6 @@ fn each_tutorial_has_its_own_start() {
                 "Importing a QElectroTech project".to_owned(),
                 json!({"tutorial": "import-qet"})
             ),
-            (
-                "A first headless run on the golden project".to_owned(),
-                json!({"tutorial": "headless-workflow"})
-            ),
         ]
     );
     let first = tmp.0.join("first.ew");

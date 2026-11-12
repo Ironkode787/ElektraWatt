@@ -217,6 +217,76 @@ fn open_asks_the_file_dialog_and_opens_the_answer() {
     assert_eq!(platform.asked.borrow().len(), 2);
 }
 
+/// FT-1708: File ▸ Import…, beside Open, takes a QElectroTech project, whose import starts (the new project's folder
+/// is asked next and the import card shows), and a project archive, whose Open .ewz dialog it opens; the File menu has
+/// no Open .ewz… entry of its own.
+#[test]
+fn file_import_beside_open_takes_a_qet_or_an_ewz() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("lamp-circuit.qet");
+    std::fs::copy(
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../docs/book/src/tutorials/files/lamp-circuit.qet"
+        ),
+        &qet,
+    )
+    .unwrap();
+    let ewz = tmp.0.join("backup.ewz");
+    std::fs::write(&ewz, b"not read before the question").unwrap();
+    let platform = Scripted::default();
+    platform.answers.borrow_mut().extend([
+        Pick::Path(qet),
+        Pick::Path(tmp.0.join("lamp.ew")),
+        Pick::Path(ewz),
+    ]);
+    let mut h = harness(&tmp, platform.clone(), None);
+    settle(&mut h);
+    support::open_menu(&mut h, &["File"]);
+    assert!(
+        support::off_chrome(&h, "Open .ewz…").is_none(),
+        "no Open .ewz… in File"
+    );
+    support::menu_node(&h, "Import…").click();
+    settle(&mut h);
+    assert!(h.state_mut().shell_mut().wait_jobs().is_empty());
+    settle(&mut h);
+    assert_eq!(
+        platform.asked.borrow().as_slice(),
+        [Prompt::OpenImport, Prompt::NewFolder]
+    );
+    assert!(
+        matches!(h.state().shell().dialog(), Some(Dialog::ImportQet { .. })),
+        "the import card: {:?}",
+        h.state().shell().dialog()
+    );
+    h.state_mut().shell_mut().dispatch("ui.dismiss", &serde_json::Value::Null);
+    settle(&mut h);
+    support::open_menu(&mut h, &["File"]);
+    support::menu_node(&h, "Import…").click();
+    settle(&mut h);
+    assert!(
+        matches!(h.state().shell().dialog(), Some(Dialog::OpenEwz { name, .. }) if name == "backup.ewz"),
+        "the Open .ewz dialog: {:?}",
+        h.state().shell().dialog()
+    );
+}
+
+/// FT-1709: Help ▸ Tutorials lists the window's tutorials; the command line's walk-through is a how-to, not among them.
+#[test]
+fn help_tutorials_holds_no_command_line_run() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), None);
+    settle(&mut h);
+    support::open_menu(&mut h, &["Help", "Tutorials"]);
+    support::menu_node(&h, "Importing a QElectroTech project");
+    assert!(
+        h.query_all_by_label_contains("headless").next().is_none()
+            && h.query_all_by_label_contains("command line").next().is_none(),
+        "no command-line tutorial in Help ▸ Tutorials"
+    );
+}
+
 #[test]
 fn closing_a_dirty_project_asks_and_discard_closes_it() {
     let tmp = Tmp::new();

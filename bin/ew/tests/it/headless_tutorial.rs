@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The headless tutorial of the user guide runs as its page says (DC-8): every `console` block of
-//! `docs/book/src/tutorials/headless-workflow.md` is run in order in a folder that holds a copy of Golden A at
+//! The command-line how-to of the user guide runs as its page says (DC-8): every `console` block of
+//! `docs/book/src/how-to/headless-workflow.md` is run in order in a folder that holds a copy of Golden A at
 //! `golden/J-E-2416.ew`. An `ew` line runs the binary under test; `mkdir` makes the folder; `echo $?` shows the last
 //! exit code. The lines the page shows below a command are its standard output and then its standard error, compared
 //! whole; a line `...` stands for any lines, and a command without lines below it is only run.
@@ -14,7 +14,7 @@ use crate::support::{GOLDEN_A, bin_exe, copy_dir, isolate};
 
 const PAGE: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/../../docs/book/src/tutorials/headless-workflow.md"
+    "/../../docs/book/src/how-to/headless-workflow.md"
 );
 
 /// The words of a command line: blanks separate them, double quotes keep a word whole.

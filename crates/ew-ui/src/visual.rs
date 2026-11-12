@@ -251,6 +251,7 @@ impl Platform for VisualPlatform {
             | Prompt::OpenKeymap
             | Prompt::OpenTable
             | Prompt::OpenEwz
+            | Prompt::OpenImport
             | Prompt::OpenSymbol
                 if self.answer.borrow().is_some() =>
             {
@@ -262,6 +263,7 @@ impl Platform for VisualPlatform {
             | Prompt::OpenKeymap
             | Prompt::OpenTable
             | Prompt::OpenEwz
+            | Prompt::OpenImport
             | Prompt::OpenSymbol => Pick::Cancelled,
         }
     }

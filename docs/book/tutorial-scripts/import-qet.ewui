@@ -1,5 +1,5 @@
 {"$schema":"ew.uiscript/1","label":"Tutorial 6: importing a QElectroTech project"}
-{"action":"file.import_qet","params":{"file":"lamp-circuit.qet","dir":"lamp-circuit.ew"}}
+{"action":"file.import","params":{"file":"lamp-circuit.qet","dir":"lamp-circuit.ew"}}
 {"action":"ui.describe"}
 {"action":"file.import_qet_apply","params":{"confirm":true}}
 {"action":"ui.describe"}

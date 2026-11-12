@@ -38,9 +38,10 @@ identities for every record.
 
 ## Import a QElectroTech project
 
-**File, Import QElectroTech project...** asks for the `.qet` file and then for a new, empty directory. The importer
+**File, Import...**, beside **Open...**, asks for a `.qet` file and then for a new, empty directory. The importer
 reads the file into a new project and writes it to the directory; a banner counts the pages and the findings of the
-migration report.
+migration report. The same entry takes a project archive (`.ewz`): it asks whether to extract it into a new folder
+and open that, or to open it read-only.
 
 ## Unsaved changes and recovery
 

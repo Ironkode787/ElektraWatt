@@ -69,7 +69,7 @@ them over as one undo step; Cancel changes nothing. The migration report then li
 ## Open .ewz
 
 An `.ewz` archive of a project: Extract and open unpacks it into a new folder beside it, Open read-only opens it
-without unpacking. Open it with File ▸ Open .ewz….
+without unpacking. Open it with File ▸ Import…, which takes a QElectroTech project as well.
 
 ## Set up merge driver
 

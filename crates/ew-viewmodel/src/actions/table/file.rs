@@ -33,7 +33,20 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_open(p),
         ),
     ),
-    // File ▸ Open .ewz…, asking Extract and open or Open read-only.
+    // File ▸ Import…, beside Open: a QElectroTech project starts the import, an `.ewz` its Open .ewz dialog.
+    with_params(
+        "file?:path, discard?:bool",
+        act(
+            "file.import",
+            Command,
+            Menu::File,
+            &[],
+            always,
+            slot(Menu::File),
+            |s, p| s.act_import(p),
+        ),
+    ),
+    // An `.ewz`, asking Extract and open or Open read-only; File ▸ Import… reaches it.
     with_params(
         "path?:path, how?:enum(extract|read_only), discard?:bool",
         act(
@@ -42,7 +55,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             Menu::File,
             &[],
             always,
-            slot(Menu::File),
+            None,
             |s, p| s.act_open_ewz(p),
         ),
     ),
