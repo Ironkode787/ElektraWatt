@@ -685,28 +685,32 @@ fn tiers_without_starter_parts(root: &Path) -> LibraryTiers {
     }
 }
 
-/// On a new project without a location, Project ▸ Enclosure… is disabled with its reason, and the action
-/// refuses with it; with a location the dialog opens, and Create is disabled while the part (or the location) is
-/// empty, each with its reason; Create then sends nothing. No enclosure part is installed here.
+/// On a new project without a location, Project ▸ Enclosure… is enabled and its dialog offers a new location with a
+/// code proposed; Create is disabled while the part, the new location's code or the location is empty, each with
+/// its reason; Create then sends nothing. No enclosure part is installed here.
 #[test]
-fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
+fn enclosure_offers_a_new_location_and_create_waits_for_a_part() {
     let tmp = Tmp::new("ps1-new");
     let mut s = new_project_with(&tmp, Some(tiers_without_starter_parts(&tmp.0)));
-    let no_location = "The project has no location yet; add one with Structure node… first.";
-    assert_eq!(enclosure_entry(&s), (false, Some(no_location.to_owned())));
-    assert_eq!(
-        refused(&mut s, "layout.enclosure_new", json!({})),
-        "enclosure-new-no-location"
-    );
-    assert_eq!(s.tool_notice(), Some(no_location));
-    assert!(s.dialog().is_none());
-    done(
-        &mut s,
-        "structure.new",
-        json!({"kind": "location", "designation": "CAB1"}),
-    );
     assert_eq!(enclosure_entry(&s), (true, None));
     done(&mut s, "layout.enclosure_new", json!({}));
+    let Some(Dialog::Form(form)) = s.dialog().cloned() else {
+        panic!("{:?}", s.dialog())
+    };
+    let value = |name: &str| {
+        form.fields
+            .iter()
+            .find(|f| f.name == name)
+            .map(|f| f.value.clone())
+    };
+    let location = form.fields.iter().find(|f| f.name == "location").unwrap();
+    let words = location
+        .options
+        .iter()
+        .find(|(v, _)| *v == location.value)
+        .map(|(_, w)| w.as_str());
+    assert_eq!(words, Some("New location"));
+    assert_eq!(value("new_location").as_deref(), Some("CAB1"), "a code proposed");
     let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
     assert_eq!(
         (
@@ -738,6 +742,12 @@ fn enclosure_is_disabled_without_a_location_and_create_without_a_part() {
     s.set_form_field("part", "NSY-1");
     let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
     assert_eq!(spec.primary.disabled, None);
+    s.set_form_field("new_location", "");
+    let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
+    assert_eq!(
+        spec.primary.disabled.as_deref(),
+        Some("Type the code of the new location")
+    );
     s.set_form_field("location", "");
     let spec = ew_viewmodel::dialogs::spec(s.dialog().unwrap(), &s);
     assert_eq!(spec.primary.disabled.as_deref(), Some("Choose a location"));

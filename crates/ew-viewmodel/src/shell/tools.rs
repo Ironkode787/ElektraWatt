@@ -550,11 +550,17 @@ impl ShellModel {
                         external: !json["ip"]["external"].is_null(),
                         taken,
                     });
-                } else if out == Outcome::Done
-                    && let Some(taken) = taken
-                {
-                    // A point placed free has no result line of its own: the sentence is its toast.
-                    self.notify(taken, true);
+                } else if out == Outcome::Done && (taken.is_some() || cmd.name() == "ip.place") {
+                    // A point placed free says what it became and how the next click turns it, after the reason
+                    // of a renamed point: a click made without reading the pointer's label still tells.
+                    let placed = match cmd.name() {
+                        "ip.place" => cmd.to_json().ok().and_then(|json| self.ip_placed_text(&json)),
+                        _ => None,
+                    };
+                    let text: Vec<String> = taken.into_iter().chain(placed).collect();
+                    if !text.is_empty() {
+                        self.notify(text.join(" "), true);
+                    }
                 }
                 self.tools.tool.on_commit(out == Outcome::Done);
                 if !keep_ghost {

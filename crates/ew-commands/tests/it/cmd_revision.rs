@@ -534,7 +534,7 @@ fn create_prevents_a_label_out_of_format_or_order() {
     assert_eq!(
         finding,
         "the label 2 is not in the project's revision label format V{major}.{minor}; give a label in that format; the \
-         next label is V1.0"
+         next free label is V1.0"
     );
     e.execute(&create("V2.0", NewRevisionState::Released))
         .expect("V2.0");
@@ -543,7 +543,7 @@ fn create_prevents_a_label_out_of_format_or_order() {
     assert_eq!(
         finding,
         "the label V1.5 does not follow revision V2.0: revision labels increase in natural order; give a later label; \
-         the next label is V3.0"
+         the next free label is V3.0"
     );
     e.execute(&create("V3.0", NewRevisionState::Open))
         .expect("V3.0 follows");
@@ -571,14 +571,14 @@ fn fields_set_label_prevents_a_label_out_of_format_or_order() {
     assert_eq!(
         finding,
         "the label 2 is not in the project's revision label format V{major}.{minor}; give a label in that format; the \
-         next label is V2.0"
+         next free label is V3.0"
     );
     let (rule, finding) = prevented(e.execute(&set(&[v2], "label", json!("V0.5"))).unwrap_err());
     assert_eq!(rule, LABEL_ORDER_RULE);
     assert_eq!(
         finding,
         "the label V0.5 does not follow revision V1.0: revision labels increase in natural order; give a later label; \
-         the next label is V2.0"
+         the next free label is V3.0"
     );
     assert_eq!(lines(e.model()), before, "a prevented label writes nothing");
     e.execute(&set(&[v2], "label", json!("V3.0")))
@@ -595,14 +595,14 @@ fn create_follows_the_project_label_format() {
         vec![raw(0x7101, "02", RevisionState::Released)],
     ));
     let (_, finding) = prevented(e.execute(&create("V3.0", NewRevisionState::Open)).unwrap_err());
-    assert!(finding.contains("the next label is 03"), "{finding}");
+    assert!(finding.contains("the next free label is 03"), "{finding}");
     e.execute(&create("03", NewRevisionState::Open)).expect("03");
     let mut e = engine(model_with(
         Some(LabelFormat::Letter),
         vec![raw(0x7101, "H", RevisionState::Released)],
     ));
     let (_, finding) = prevented(e.execute(&create("I", NewRevisionState::Open)).unwrap_err());
-    assert!(finding.contains("the next label is J"), "{finding}");
+    assert!(finding.contains("the next free label is J"), "{finding}");
     e.execute(&create("J", NewRevisionState::Open)).expect("J");
     let newer = LabelFormat::Unknown(json!("roman"));
     let mut e = engine(model_with(

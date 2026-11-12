@@ -730,6 +730,10 @@ pub struct HudModel {
     pub prompt: String,
     /// How many objects a click under the pointer can pick (FT-500's stack; Select only, else 0).
     pub stack: usize,
+    /// The prompt while the IP tool's name field holds the keys: its key part says that Enter ends the name first,
+    /// since D is then a letter of the name, not the tool's key (the persona round of 0.2.0-rc.2). `None` for
+    /// another tool, or while a refusal stands in the prompt.
+    pub field_prompt: Option<String>,
 }
 
 /// The number of objects in the pick stack under the focused canvas's pointer (FT-500), 0 without a pointer.
@@ -785,6 +789,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
     let action = tool_action(name);
     let mut target = None;
     let mut stack = 0;
+    let mut field_prompt = None;
     let hint = || crate::status::hint(model);
     let prompt = match model.tool_ghost() {
         None if name == "select" && tool.state() == "idle" => {
@@ -930,14 +935,16 @@ pub fn hud(model: &ShellModel) -> HudModel {
             // role is on screen; the role says what it does, the key's part keeps the short next word.
             // A star source is a source point (the tool shows a starred point as a source), so the
             // star's hint stands alone in the role's place.
+            let mut key_part = None;
             if let Some(d) = crate::tools::IpDir::from_word(direction) {
                 let role = if star { key!("hud-ip-star") } else { ip_role_key(d) };
                 parts.push(strings::text(role).to_owned());
-                parts.push(format!(
-                    "{}: {}",
-                    key_name(model, "tool.ip_direction"),
-                    d.next().word()
+                let (key, next) = (key_name(model, "tool.ip_direction"), d.next().word());
+                key_part = Some((
+                    parts.len(),
+                    strings::format(key!("hud-ip-field-keys"), &[&key, next]),
                 ));
+                parts.push(format!("{key}: {next}"));
             } else {
                 parts.push(direction.to_owned());
             }
@@ -945,6 +952,13 @@ pub fn hud(model: &ShellModel) -> HudModel {
             // A click on a pin connects the point; the HUD says it before the click.
             if let Some(cp) = connects {
                 parts.push(strings::format(key!("hud-ip-connects"), &[&cp]));
+            }
+            // While the name field holds the keys, the key part says how to give them back.
+            if let Some((i, words)) = key_part {
+                let mut typing = parts.clone();
+                typing[i] = words;
+                typing.retain(|p| !p.is_empty());
+                field_prompt = Some(typing.join(" \u{b7} "));
             }
             // An empty part (a name not yet computed) never joins the HUD.
             parts.retain(|p| !p.is_empty());
@@ -1006,7 +1020,10 @@ pub fn hud(model: &ShellModel) -> HudModel {
     // "An identical symbol already stands here"), until the next canvas input ends it.
     // An open paste choice card's prompt stands in place of the tool's, following the card.
     let prompt = match model.tool_notice() {
-        Some(notice) => notice.to_owned(),
+        Some(notice) => {
+            field_prompt = None;
+            notice.to_owned()
+        }
         None => model.card_prompt().unwrap_or(prompt),
     };
     HudModel {
@@ -1017,6 +1034,7 @@ pub fn hud(model: &ShellModel) -> HudModel {
         target,
         prompt,
         stack,
+        field_prompt,
     }
 }
 

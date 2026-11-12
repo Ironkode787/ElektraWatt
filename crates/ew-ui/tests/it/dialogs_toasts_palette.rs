@@ -458,10 +458,10 @@ fn typing_in_a_navigator_filter_while_a_toast_shows_keeps_every_key() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// Doc 16a §6.10: a toast of one long text (no title and line) wraps up to three rows and is cut with
+/// Doc 16a §6.10: a toast of one long text (no title and line) wraps up to four rows and is cut with
 /// an ellipsis; its whole text is the tooltip under the pointer.
 #[test]
-fn a_long_toast_is_cut_at_three_rows_with_its_whole_text_in_the_tooltip() {
+fn a_long_toast_is_cut_at_four_rows_with_its_whole_text_in_the_tooltip() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));

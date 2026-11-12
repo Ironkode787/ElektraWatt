@@ -380,7 +380,7 @@ impl ShellModel {
     }
 
     /// The name typed in the IP tool's name field (`ip.name`) that is still to be used, which the field shows: it
-    /// stays after its source is placed, for the target, and is taken by any other point. `None` when none is
+    /// stays after a point placed without its partner, for the partner, and is taken by any other point. `None` when none is
     /// typed or a point took it.
     pub fn ip_typed_name(&self) -> Option<&str> {
         self.tools.ip_memory.typed.as_deref()
@@ -513,6 +513,37 @@ impl ShellModel {
         }
         self.announce_tool();
         Outcome::Done
+    }
+
+    /// The toast's sentence for a point `ip.place` put down free (`params`, the command's): "Placed L1 as a target at
+    /// 101-B2; D before the click makes it a source.", the key from the keymap; `None` for an external connection
+    /// point or an undirected one.
+    pub(super) fn ip_placed_text(&self, params: &Value) -> Option<String> {
+        if !params["external"].is_null() {
+            return None;
+        }
+        let name = params["name"].as_str()?;
+        let (with_cell, no_cell) = match IpDir::from_word(params["direction"].as_str()?)? {
+            IpDir::Source => (
+                key!("toast-ip-placed-source"),
+                key!("toast-ip-placed-source-no-cell"),
+            ),
+            IpDir::Target => (
+                key!("toast-ip-placed-target"),
+                key!("toast-ip-placed-target-no-cell"),
+            ),
+            IpDir::Undirected => return None,
+        };
+        let pos = (params["pos"][0].as_i64()?, params["pos"][1].as_i64()?);
+        let cell = self.canvas().and_then(|c| {
+            let page = c.page();
+            page.cell_text(page.snapper.page_to_sheet(pos))
+        });
+        let key = crate::command_bar::key_name(self, "tool.ip_direction");
+        Some(match cell {
+            Some(cell) => strings::format(with_cell, &[name, &cell, &key]),
+            None => strings::format(no_cell, &[name, "", &key]),
+        })
     }
 
     /// After a commit of the IP tool: the host remembers its name and direction, and the ghost proposes the next name

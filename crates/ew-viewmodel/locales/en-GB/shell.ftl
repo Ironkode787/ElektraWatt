@@ -834,6 +834,8 @@ hud-ip-source = source: the wire continues at its targets
 hud-ip-target = target: fed by its source
 hud-ip-undirected = undirected: pairs either way
 hud-ip-star = star source: feeds every point of the name
+# While the IP tool's name field holds the keys, D is a letter of the name: the HUD says how to give the keys back.
+hud-ip-field-keys = Enter ends the name, then { $p0 }: { $p1 }
 
 # W42b: the IP tool's ghost label of a starred point ("<name> <direction>" otherwise).
 ghost-ip-star = { $p0 } star source
@@ -1285,7 +1287,7 @@ refusal-inv-024 = a fluid line joins fluid ports of one medium family
 refusal-rel-label-format = the label { $p0 } is not in the project's revision label format { $p1 }; give a label in that format{ $p2 }
 refusal-rel-label-follow = the label { $p0 } does not follow revision { $p1 }: revision labels increase in natural order; give a later label{ $p2 }
 refusal-rel-label-precede = the label { $p0 } does not precede { $p1 }, the label of the open revision: revision labels increase in natural order, the open revision last; give an earlier label
-refusal-rel-label-next = ; the next label is { $p0 }
+refusal-rel-label-next = ; the next free label is { $p0 }
 # A clipboard fragment that does not read (FT-1488): its kind of failure and each line's reason.
 refusal-fragment-not = the clipboard holds no ElektraWatt fragment
 refusal-fragment-newer = copied from a newer ElektraWatt, which writes a newer format ({ $p0 })
@@ -2368,11 +2370,11 @@ count-box-pins = { $p0 } connection points
 
 # FT-893: the strip takes its tag with its first terminal; the example is the tag it would take on the page on
 # show (`-no-example` off a schematic page).
-toast-strip-new = Created a terminal strip. It takes its tag, such as { $p0 }, when its first terminal is placed: Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it.
+toast-strip-new = New terminal strip; its first terminal tags it, such as { $p0 }: Draw ▸ Symbol…, the terminal symbol, the strip in its picker.
 
 # FT-1090: a tag given in the New terminal strip form is the strip's from the start.
-toast-strip-new-tagged = Created terminal strip { $p0 }. Place its terminals with Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it.
-toast-strip-new-no-example = Created a terminal strip. It takes its tag when its first terminal is placed: Draw ▸ Symbol… and the terminal symbol, whose strip picker lists it.
+toast-strip-new-tagged = New terminal strip { $p0 }: Draw ▸ Symbol…, the terminal symbol, the strip in its picker.
+toast-strip-new-no-example = New terminal strip; its first terminal tags it: Draw ▸ Symbol…, the terminal symbol, the strip in its picker.
 toast-export-pdf = Exported { $p0 }: { $p1 }, { $p2 } KiB.
 # FT-1212 (ID-1392): the export toast names its pages by kind.
 export-pages-drawing = { $p0 } drawing pages
@@ -2411,6 +2413,10 @@ toast-ip-connected = Placed the interruption point { $p0 } at { $p1 } and connec
 toast-ip-connected-no-cell = Placed the interruption point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 toast-ip-external-connected = Placed the external point { $p0 } at { $p1 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
 toast-ip-external-connected-no-cell = Placed the external point { $p0 } and connected it to { $p2 }. Alt+Click or { $p3 } places it without connecting.
+toast-ip-placed-source = Placed { $p0 } as a source at { $p1 }; { $p2 } before the click makes it a target.
+toast-ip-placed-source-no-cell = Placed { $p0 } as a source; { $p2 } before the click makes it a target.
+toast-ip-placed-target = Placed { $p0 } as a target at { $p1 }; { $p2 } before the click makes it a source.
+toast-ip-placed-target-no-cell = Placed { $p0 } as a target; { $p2 } before the click makes it a source.
 terminal-in-sentence = { $p0 } terminal { $p1 }
 
 # FX38d: a pin whose designation the device shares, by its position in words ("-1A4 pin - (2nd)").
@@ -3485,6 +3491,7 @@ reason-titleblock-fixed = This page's title block prints only fixed texts of its
 titleblock-checked = Checked
 titleblock-note-fixed = The texts this page's title block template writes itself print as the template holds them; they are not fields here.
 titleblock-note-checked = Checked prints the checker who approves the current revision: { $p0 } on the { $p1 } tab.
+titleblock-revision-note = The label takes the project's form, such as { $p0 }, the next free one; { $p1 } ▸ { $p2 } sets the form.
 error-titleblock-date = Type { $p0 } as a date, such as 2026-11-12, or leave it empty.
 error-titleblock-revision = A revision keeps its label; type one.
 action-structure-new = Structure node…
@@ -4143,6 +4150,8 @@ draw-options-no-part = No part
 enclosure-new-title = Create enclosure
 enclosure-new-ok = Create
 form-enclosure-location = Location
+enclosure-new-location = New location
+form-enclosure-new-location = Code of the new location
 form-enclosure-part = Enclosure part
 error-no-location = The project has no location { $p0 }; choose one of the list.
 error-no-enclosure-part = No enclosure part { $p0 } is on offer; choose one of the list.
@@ -4161,13 +4170,13 @@ toast-auto-fill-left = Placed { $p0 } on { $p1 }; { $p2 }.
 # FT-1719: Project ▸ Enclosure…'s toast: the part's words and the location (+K1).
 toast-enclosure-new = Created the enclosure { $p0 } at { $p1 }.
 toast-enclosure-new-shown = Created the enclosure { $p0 } at { $p1 }; the page shows its mounting plate.
-enclosure-new-no-location = The project has no location yet; add one with { $p0 } first.
 enclosure-new-no-part = No enclosure part is in the project or an installed library; type a part number.
 auto-fill-devices = { $p0 } devices
 auto-fill-devices-one = 1 device
 
 # Cycle 44, FIX44b (W44.2 F1): why the Create enclosure dialog's Create is disabled.
 reason-enclosure-location = Choose a location
+reason-enclosure-new-location = Type the code of the new location
 reason-enclosure-part = Type or choose a part number
 
 # Cycle 44, FIX44d (W44.4 F-d): the heading of a panel page's Surface, Label mode and Datum rows.

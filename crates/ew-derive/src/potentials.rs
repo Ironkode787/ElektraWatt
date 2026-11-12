@@ -71,7 +71,7 @@ pub enum PotentialId {
 pub enum NameSource {
     /// A definition.
     Def(Id<PotentialDef>),
-    /// A source interruption point.
+    /// A source interruption point, or (doc 08 §3.5 step 2c) a point of another direction that no source feeds.
     SourceIp(Id<Function>),
     /// The supply (doc 08 §3.5 step 2b): `<root>/<tag>:<designation>` of the pass-through pair of
     /// `via` that enters the potential from upstream.

@@ -98,7 +98,7 @@ const SIGNS: [(&str, &str); 7] = [
 /// `text` as the code of a node of `aspect`: the aspect's own prefix sign (`+J-E-206`) is taken off, another aspect's sign
 /// is refused with a text naming both, and any sign left in the code (`+K1+K2`) is refused: a designation names one
 /// aspect, so it holds one sign.
-fn strip_sign(aspect: &str, text: &str) -> Result<String, String> {
+pub(super) fn strip_sign(aspect: &str, text: &str) -> Result<String, String> {
     let code = match SIGNS.iter().find(|e| text.starts_with(e.0)) {
         Some(&(sign, of)) if of == aspect => &text[sign.len()..],
         Some(&(sign, of)) => {
@@ -476,6 +476,8 @@ impl ShellModel {
         let cable_rows = (name == "type"
             && matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == "cable.from_wires"))
         .then(|| self.cable_row_wires());
+        // Create enclosure's code of a new location comes and goes with its "New location" choice.
+        let code = (name == "location").then(|| self.proposed_location_code());
         if let Some(Dialog::Form(form)) = &mut self.dialog {
             if let Some(f) = form.fields.iter_mut().find(|f| f.name == name) {
                 f.value = value.to_owned();
@@ -484,6 +486,11 @@ impl ShellModel {
             // Cable…'s cores follow its type.
             if let Some(wires) = &cable_rows {
                 super::cables::retype(self.project.as_ref().map(|p| &p.session), wires, form);
+            }
+            if form.action == "layout.enclosure_new"
+                && let Some(code) = code
+            {
+                super::layout::new_location_field(form, &code);
             }
         }
         // Terminal…'s Kind and Part follow each other.

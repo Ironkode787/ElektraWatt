@@ -907,6 +907,39 @@ fn external_source_ip_names_an_undefined_potential() {
     assert_eq!(names.aliases, vec!["SUPPLY".to_owned()]);
 }
 
+/// Doc 08 §3.5 step 2c: a target point no source feeds still names the potential it carries (a supply drawn at the
+/// page's left edge, whose quarters make it a target: the persona round of 0.2.0-rc.2 named its wire after the
+/// device pin), and an external target point (Supply comes in here…) does when no other point does.
+#[test]
+fn an_unpaired_target_or_external_point_names_an_undefined_potential() {
+    let mut fx = pair_fixture();
+    fx.node(0x900, "location", "J", None);
+    fx.push(json!({
+        "$k": "external_ref", "id": uid(0x910), "location": uid(0x900), "device": "JE-N1", "connection": "L",
+    }));
+    ip_spec(
+        &mut fx,
+        0x1101,
+        P1,
+        json!({"name": "FEED", "direction": "target", "external": uid(0x910)}),
+    );
+    conn(&mut fx, 0x2002, Some(P1), cp(0x1101), cp(0x1001), Value::Null);
+    let m = fx.build();
+    let q = Q::new(&m);
+    let names = q.get::<PotentialNameOf>(only_potential(&q));
+    assert_eq!(names.name.text, "FEED");
+    assert_eq!(names.name.source, NameSource::SourceIp(id(0x1101)));
+    // A non-external target names it first; the external name is an alias.
+    ip(&mut fx, 0x1102, P1, "L1", "target");
+    conn(&mut fx, 0x2003, Some(P1), cp(0x1102), cp(0x1002), Value::Null);
+    let m = fx.build();
+    let q = Q::new(&m);
+    let names = q.get::<PotentialNameOf>(only_potential(&q));
+    assert_eq!(names.name.text, "L1");
+    assert_eq!(names.name.source, NameSource::SourceIp(id(0x1102)));
+    assert_eq!(names.aliases, vec!["FEED".to_owned()]);
+}
+
 /// Two junctions J1 (0x3001) and J2 (0x3002) with A=0x1001 and B=0x1002. `seq1` and `seq2` list the
 /// connection numbers of the sequences. Connection 0x2001 joins the junctions, 0x2002 is J1 -- A and 0x2003
 /// is J2 -- B.

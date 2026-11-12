@@ -95,8 +95,7 @@ fn the_new_strip_toasts_example_is_the_tag_it_takes() {
         .to_owned();
     assert_eq!(
         toast,
-        "Created a terminal strip. It takes its tag, such as -101X1, when its first terminal is placed: Draw \u{25b8} \
-         Symbol\u{2026} and the terminal symbol, whose strip picker lists it."
+        "New terminal strip; its first terminal tags it, such as -101X1: Draw ▸ Symbol…, the terminal symbol, the strip in its picker."
     );
     place_terminal(&mut s, "101-D2");
     let label = s.canvas().unwrap().page().tables.cps[0].label.clone();

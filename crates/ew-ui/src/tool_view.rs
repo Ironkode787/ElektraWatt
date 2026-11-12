@@ -250,12 +250,18 @@ pub(crate) struct IpFields<'a> {
     pub focus: bool,
 }
 
+/// The ID of the IP tool's name field: the HUD reads whether it holds the keys.
+pub(crate) fn ip_name_field_id() -> egui::Id {
+    egui::Id::unique("ip-name-field")
+}
+
 /// The IP tool's fields in the tool strip: the name (every change sends `ip.name`) and the external
 /// reference, offered by printed text (a choice sends `ip.external` with its ID, "none" with `null`).
 ///
 /// While it does not have the focus the field shows `typed`, the name typed that is still to be used
 /// ([`ShellModel::ip_typed_name`](ew_viewmodel::shell::ShellModel::ip_typed_name)), so it keeps the name after the
-/// focus leaves it and after its source is placed (the target takes it too), and empties once it is taken. Empty,
+/// focus leaves it and after a point placed without its partner (the partner takes it too), and empties once it is
+/// taken. Empty,
 /// it shows `proposal` (the HUD's name of the ghost) as its hint; with no proposal, no hint. With `focus` the field
 /// takes the keyboard focus in this frame.
 pub(crate) fn ip_fields(
@@ -272,7 +278,7 @@ pub(crate) fn ip_fields(
         focus,
     } = *shown;
     ui.label(strings::text(key!("action-ip-name")));
-    let id = ui.make_persistent_id("ip-name-field");
+    let id = ip_name_field_id();
     if !ui.memory(|m| m.has_focus(id)) {
         typed.unwrap_or_default().clone_into(name);
     }

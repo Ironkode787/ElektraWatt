@@ -553,12 +553,12 @@ fn a_route_less_connection_to_a_point_on_a_pin_saves_and_reloads_byte_stable() {
     }
 }
 
-/// The next name after a connecting drop. A target "FT950" dropped on the free pin -102F2:14 makes a
-/// potential whose name is only the pin's fallback; the ghost kept there proposes the next of the name just placed (as
-/// `propose` counts among the targets of the page), not the fallback name. The Wire tool's P, from that pin, names its
-/// end from the name just placed the same way.
+/// The next name after a connecting drop. A target "FT950" dropped on the free pin -102F2:14 names the pin's
+/// potential (doc 08 §3.5 step 2c); the ghost kept there proposes the target's partner, its source "FT950" (the
+/// typed name stays while no source feeds it). The Wire tool's P, from that pin,
+/// names its end the same way: the source of FT950.
 #[test]
-fn after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
+fn after_a_connecting_drop_the_next_point_is_the_targets_source() {
     let tmp = Tmp::new("ip-pin-next-name");
     let mut s = shell(&tmp, "102");
     let pin = cp(&s, "-102F2:14");
@@ -570,13 +570,13 @@ fn after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
     let before = tables(&s);
     done(&mut s, "canvas.activate", json!({}));
     assert_connects(&s, &before, &pin, "FT950");
-    // A target names no potential: the pin's potential has its fallback name.
+    // A target no source feeds names the potential it carries (doc 08 §3.5 step 2c).
     let start = cp(&s, "-102F2:14");
     assert_eq!(
         start.potential,
         Some(TablePotential {
-            name: "-102F2:14".to_owned(),
-            fallback: true
+            name: "FT950".to_owned(),
+            fallback: false
         })
     );
     // The ghost stays where it was dropped: its CP on the pin and the new point's.
@@ -584,9 +584,9 @@ fn after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
     cursor(&mut s, pos);
     assert_eq!(
         (ghost(&s)["name"].as_str(), ghost(&s)["direction"].as_str()),
-        (Some("FT950-1"), Some("target"))
+        (Some("FT950"), Some("source"))
     );
-    // The Wire tool's P from the pin: the end is named from the name just placed.
+    // The Wire tool's P from the pin: the end is the name's partner too, its source (the typed name still stands).
     done(&mut s, "ui.dismiss", json!({}));
     done(&mut s, "tool.wire", json!({}));
     cursor(&mut s, start.at);
@@ -602,7 +602,7 @@ fn after_a_connecting_drop_the_next_name_goes_on_from_the_name_placed() {
     done(&mut s, "tool.ip", json!({}));
     let (reps, _) = added(&before, &s);
     let ip = reps[0].ip.clone().expect("the end's interruption point");
-    assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("FT950-1", "target"));
+    assert_eq!((ip.name.as_str(), ip.direction.as_str()), ("FT950", "source"));
 }
 
 /// A pin on a junction wins: a free contact moved so that its pin lies on a junction of

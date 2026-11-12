@@ -54,7 +54,13 @@ pub(crate) fn hud_rect(t: &Tokens, strip: Rect, width: f32) -> Rect {
 /// Paints the HUD of `shell` in its strip `pane` under the canvas and returns its rectangle.
 pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: &mut Vec<Event>) -> Rect {
     let t = theme::current(ctx);
-    let h = hud(shell);
+    let mut h = hud(shell);
+    // While the IP tool's name field holds the keys, D is a letter of the name: the prompt says so.
+    if ctx.memory(|m| m.has_focus(crate::tool_view::ip_name_field_id()))
+        && let Some(prompt) = h.field_prompt.take()
+    {
+        h.prompt = prompt;
+    }
     let measure = |text: &str, font: egui::FontId| {
         ctx.fonts_mut(|f| f.layout_no_wrap(text.to_owned(), font, theme::NONE).size())
     };

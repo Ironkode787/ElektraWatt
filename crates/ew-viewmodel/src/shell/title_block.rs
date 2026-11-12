@@ -178,8 +178,8 @@ impl ShellModel {
         Some((page.to_string(), facts, fields))
     }
 
-    /// The Title block fields form's lines under its fields (FT-1718): that the texts a template writes itself stay as
-    /// it holds them, and where Checked comes from while the current revision names no checker.
+    /// The Title block fields form's line over its fields (FT-1718): that the texts a template writes itself stay as
+    /// it holds them.
     pub fn title_block_notes(&self) -> Vec<String> {
         let Some((_, facts, _)) = self.title_block_fields() else {
             return Vec::new();
@@ -188,20 +188,53 @@ impl ShellModel {
         if facts.fixed_texts {
             notes.push(strings::text(key!("titleblock-note-fixed")).to_owned());
         }
+        notes
+    }
+
+    /// The line under field `field` of the open form `form`: the form's own ([`FormDialog::note`]), and the Title
+    /// block fields form's rule of the revision label before Apply (the persona round of 0.2.0-rc.2: a "B" was refused
+    /// only after Apply): the project's form by the next free label, and where the form is set.
+    pub fn form_note(&self, form: &FormDialog, field: &str) -> Option<String> {
+        if let Some(note) = form.note(field) {
+            return Some(note.to_owned());
+        }
+        if form.action != TITLE_BLOCK || field != "revision.current.label" {
+            return None;
+        }
+        let (_, facts, _) = self.title_block_fields()?;
+        let next = facts.revision_next?;
+        Some(strings::format(
+            key!("titleblock-revision-note"),
+            &[
+                &next,
+                strings::text(key!("action-props-project")),
+                strings::text(key!("field-word-revision-label")),
+            ],
+        ))
+    }
+
+    /// The line at the foot of the open form `form`, under its last field: the Title block fields form's word on
+    /// Checked where the page's title block prints a Checked cell that the current revision fills from no checker
+    /// yet, so the field is not in the form (the persona round of 0.2.0-rc.2: the line stood first, over fields that
+    /// had no Checked). `None` for another form.
+    pub fn form_foot(&self, form: &FormDialog) -> Option<String> {
+        if form.action != TITLE_BLOCK {
+            return None;
+        }
+        let (_, facts, _) = self.title_block_fields()?;
         let prints_checker = facts
             .fields
             .iter()
             .any(|(path, _)| path == "revision.current.checker.name");
-        if prints_checker && facts.revision_checker.is_none() {
-            notes.push(strings::format(
+        (prints_checker && facts.revision_checker.is_none()).then(|| {
+            strings::format(
                 key!("titleblock-note-checked"),
                 &[
                     strings::text(key!("action-revision-approve")),
                     strings::text(key!("menu-check")),
                 ],
-            ));
-        }
-        notes
+            )
+        })
     }
 
     /// `page.title_block {<path>: text, …}` (Page ▸ Title block fields…, FT-1686): without a field the window opens the

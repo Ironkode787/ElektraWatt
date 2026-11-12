@@ -11,7 +11,9 @@
 //!   potential is entered through the pass-through pair of a function f (its flow `upstream`): `<root>` is the
 //!   name of the nearest upstream potential named by a definition or a source point (the walk passes potentials
 //!   named by this step), `<tag>` f's displayed tag without its leading aspect sign and `<designation>` the
-//!   pair's downstream CP (`L/S51:2`); else `<tag>:<designation>` of the first member CP in (page position, row,
+//!   pair's downstream CP (`L/S51:2`); else (step 2c) the first interruption point of any other direction in page
+//!   order, non-external ones first (a target no source feeds, a supply coming in, still names the potential it
+//!   carries); else `<tag>:<designation>` of the first member CP in (page position, row,
 //!   column) order, ties by that name in natural order and then by CP ID. The aliases are every other distinct IP name on the potential,
 //!   external points included, in natural order; points on a bond's `via` path (doc 03
 //!   §9.6) are named on the bond, not on the potential. A signal takes the first IP name inside it, in page
@@ -148,6 +150,20 @@ impl Query for PotentialNameOf {
             }
         } else if let Some(supply) = supply_name(q, *key) {
             supply
+        } else if let Some((f, i)) = [false, true].into_iter().find_map(|external| {
+            // Step 2c: a point no source feeds (a target placed first, a supply coming in from elsewhere) still names
+            // the potential it carries; non-external points first, as in step 2.
+            infos
+                .iter()
+                .filter(|(f, i)| {
+                    i.spec.as_ref().is_some_and(|s| s.external.is_some() == external) && !on_path.contains(f)
+                })
+                .min_by_key(|(f, i)| ip_key(i, *f))
+        }) {
+            PotentialName {
+                text: i.name().to_owned(),
+                source: NameSource::SourceIp(*f),
+            }
         } else {
             fallback_name(q, p)
         };
