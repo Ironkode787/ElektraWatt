@@ -39,7 +39,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The window: feedback and dead ends
 
-- FT-1673 `ew-render2d, ew-text`: The pin labels of a black box (the power supply) and the squares of open connection points are tiny on the page (the persona round, RP1 to RP4). Both come from tokens that every page picture and the sample depend on (the built-in text-style table, ADR-0032; the square of doc 16a): decide the sizes and re-bless once.
 - FT-1671 `ew-viewmodel`: Choose part shows a part's tier as "(system)", a debug name; give the tiers words.
 - FT-1672 `ew-viewmodel`: The PLC panel lists no cards once a project has two or more CPUs.
 - FT-1669 `ew-scene`: A connection point marked not used shows no mark on the page (doc 06 defines none); decide the mark and draw it.
