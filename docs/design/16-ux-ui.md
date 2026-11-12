@@ -1288,10 +1288,11 @@ second export while one runs is refused. Headless, the export waits for its job 
 The message panel (FR-UI-021, FR-CHK-008) groups findings by severity and rule. Columns: severity (icon and word),
 rule ID, message (cause), object (derived tag), page-cell, quick fixes, waiver state. The detail pane shows the
 remedy text, which every rule must provide (NFR-UX-07). Enter or a double-click jumps to the object; F8 and
-Shift+F8 walk the findings; F1 opens the rule page (FR-CHK-015). A waiver requires a reason and records the user's
-display name (FR-CHK-009; Open question 14). Pending findings ([06](06-schematic-editor.md) §3.10) are listed in a
-muted style with their own counter. The panel footer states that checks do not replace engineering verification
-(NFR-COMP-04). The check report exports as PDF and XLSX (FR-CHK-014).
+Shift+F8 walk the findings; F1 opens the rule page (FR-CHK-015). A waiver's reason and author are optional, of any
+length (the owner, 2026-11-12, FT-1705); the prompt offers the user's display name as the author (FR-CHK-009; Open
+question 14). Pending findings ([06](06-schematic-editor.md) §3.10) are listed in a muted style with their own
+counter. The panel has no disclaimer footer: the owner removed it from the window on 2026-11-12 (FT-1711); About keeps
+the one line (NFR-COMP-04). The check report exports as PDF and XLSX (FR-CHK-014).
 
 ---
 

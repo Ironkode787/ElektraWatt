@@ -116,21 +116,18 @@ impl Command for SetCheckSchemes {
     }
 }
 
-/// The minimum length of a waiver's reason in characters, in every language it is given in (doc 15 §2.5).
-pub const WAIVER_REASON_MIN_CHARS: usize = 10;
-
 /// `check.waive` (`WaiveFinding`): records a waiver that accepts one finding (doc 15 §2.5, FR-CHK-009):
 /// `Waiver {rule, target: {finding}, reason, author, date}` with a new ID.
 ///
 /// The finding is named by its rule ID and its fingerprint (32 hex digits, FR-CHK-044; stored in lower case). The
-/// author (the display name the GUI records) and the date are parameters: the command reads no clock and no
-/// operating-system user (rule 2). The check engine then reports the matching finding as waived; a
+/// reason and the author (the display name the GUI records) are optional: an absent reason is recorded empty, an
+/// absent author is not recorded. The date is a parameter: the command reads no clock and no operating-system user
+/// (rule 2). The check engine then reports the matching finding as waived; a
 /// waiver that matches no finding stays and is reported (EW-CORE-081), and a rule whose findings cannot be waived
 /// (an integrity or system rule) gives no waived finding either.
 ///
 /// Rejected: a rule ID that is not of the form `EW-<PACK>-<three digits>` (at `/rule`); a fingerprint that is not 32
-/// hex digits (at `/fingerprint`); an empty reason or one with a text shorter than [`WAIVER_REASON_MIN_CHARS`]
-/// characters (at `/reason`); a finding that a waiver of the same rule covers already (the existing waiver is named by
+/// hex digits (at `/fingerprint`); a finding that a waiver of the same rule covers already (the existing waiver is named by
 /// its rule, and by the finding's `subject` when it is given).
 ///
 /// **Exposure `HumanOnly`** (ADR-0019 decision 8, doc 15 §2.5 "Who may waive"): a scripted waiver would defeat the
@@ -144,12 +141,14 @@ pub struct WaiveFinding {
     pub rule: Ident,
     /// The finding's fingerprint, 32 hex digits.
     pub fingerprint: String,
-    /// Why the finding is accepted: at least ten characters in every language given.
+    /// Why the finding is accepted; empty when not given.
+    #[serde(default, skip_serializing_if = "MlText::is_empty")]
     #[schemars(with = "MlTextS")]
     pub reason: MlText,
-    /// The author's display name.
-    #[schemars(with = "IdentS")]
-    pub author: Ident,
+    /// The author's display name, if given.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub author: Option<Ident>,
     /// The date of the waiver.
     pub date: Date,
     /// The finding's subject as printed (a device's tag), which the refusal of a finding waived already names; not
@@ -171,11 +170,6 @@ fn is_rule_id(rule: &str) -> bool {
         && pack.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit())
         && number.len() == 3
         && number.bytes().all(|b| b.is_ascii_digit())
-}
-
-/// Whether a reason text is too short (trimmed, in characters).
-fn too_short(text: &str) -> bool {
-    text.trim().chars().count() < WAIVER_REASON_MIN_CHARS
 }
 
 impl Command for WaiveFinding {
@@ -204,19 +198,6 @@ impl Command for WaiveFinding {
             ));
         }
         let fingerprint = self.fingerprint.to_ascii_lowercase();
-        let short = self.reason.is_empty()
-            || self.reason.as_neutral().is_some_and(too_short)
-            || self
-                .reason
-                .languages()
-                .any(|tag| self.reason.get(tag).is_none_or(too_short));
-        if short {
-            return Err(CmdError::invalid_params(
-                Self::NAME,
-                "/reason",
-                text!("refusal-check-waive-reason", WAIVER_REASON_MIN_CHARS.to_string()),
-            ));
-        }
         if tx.iter::<Waiver>().iter().any(|w| {
             w.rule == self.rule
                 && w.target
@@ -236,7 +217,7 @@ impl Command for WaiveFinding {
             rule: self.rule.clone(),
             target: WaiverTarget::finding(fingerprint),
             reason: self.reason.clone(),
-            author: Some(self.author.clone()),
+            author: self.author.clone(),
             date: Some(self.date),
             extra: Extra::new(),
         })?;

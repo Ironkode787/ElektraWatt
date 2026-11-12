@@ -58,7 +58,7 @@ mod terminal;
 
 pub use assembly::ChildSpec;
 pub use assign::AssignModeParam;
-pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES, WAIVER_REASON_MIN_CHARS};
+pub use checks::{CHECKS_MEMBER, SHIPPED_CHECK_SCHEMES};
 pub use common::{EndpointParam, KindName, TargetRef};
 pub use company::COMPANY_MEMBER;
 pub use connection::{IpAtEnd, WiringChoice};

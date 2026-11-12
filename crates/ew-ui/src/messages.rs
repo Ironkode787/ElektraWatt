@@ -3,7 +3,7 @@
 
 //! The message panel's own parts of the navigator pane (§7.3, §7.4; restyled to
 //! doc 16a §6.24): the header with the scheme and one count badge per severity, the quick-fix card, the detail block
-//! of the cursor's finding with its Fix button and rule page link, the footer, and the severity icon and word of the
+//! of the cursor's finding with its Fix button and rule page link, and the severity icon and word of the
 //! finding rows (FR-UI-025: an icon, a colour and the word).
 //!
 //! **Icons.** Error `circle-x` in `color.error`, warning `alert-triangle` in `color.warning.icon`, info `info-circle`
@@ -511,19 +511,6 @@ pub(crate) fn rule_line(ui: &mut Ui, t: &Tokens) {
     let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), t.border_width), Sense::hover());
     ui.painter()
         .rect_filled(rect, theme::radius(t.radius_none), t.border_subtle.color32());
-}
-
-/// The footer, at the foot of the pane: a 1-px `color.border.subtle` line, then the sentence in `type.caption`
-/// `color.text.tertiary`.
-pub(crate) fn footer(ui: &mut Ui) {
-    let t = theme::current(ui.ctx());
-    rule_line(ui, &t);
-    ui.add_space(t.space_1);
-    ui.label(
-        RichText::new(strings::text(key!("messages-footer")))
-            .font(theme::font(&t.type_caption))
-            .color(t.text_tertiary.color32()),
-    );
 }
 
 #[cfg(test)]

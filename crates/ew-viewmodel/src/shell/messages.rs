@@ -536,12 +536,12 @@ impl ShellModel {
     }
 
     /// `messages.waive {key?, reason?, author?, date?}` (Waive… in the Messages detail): on an open finding
-    /// row (default the cursor row) commits one `check.waive` with the rule, the fingerprint, the reason (at least
-    /// ten characters once trimmed, as the command checks), the author and the date. Without a reason the window
-    /// opens the Waive prompt (Reason; Author prefilled from the preference "Author name"), which keeps the row and
-    /// the date the window passed (`YYYY-MM-DD`: the window reads the clock, the shell never does). A short reason,
-    /// an empty author or a missing date stays in the prompt and commits nothing; a commit saves the author back to
-    /// the preference. `check.waive` is `HumanOnly`: headless the action refuses.
+    /// row (default the cursor row) commits one `check.waive` with the rule, the fingerprint, the date and, when
+    /// given, the reason and the author (both optional, any length). Without a reason the window opens the Waive
+    /// prompt (Reason; Author prefilled from the preference "Author name"), which keeps the row and the date the
+    /// window passed (`YYYY-MM-DD`: the window reads the clock, the shell never does); its Waive commits with both
+    /// fields empty too. A missing date stays in the prompt and commits nothing; a commit with an author saves it back
+    /// to the preference. `check.waive` is `HumanOnly`: headless the action refuses.
     pub(crate) fn act_messages_waive(&mut self, p: &Map<String, Value>) -> Outcome {
         if self.mode == Mode::Headless {
             return Outcome::refused(key!("reason-human-only"));
@@ -591,22 +591,16 @@ impl ShellModel {
                 table: None,
             }));
         }
-        let min = WAIVER_REASON_MIN_CHARS;
-        if reason.chars().count() < min {
-            return self.form_failed(
-                WAIVE,
-                strings::format(key!("error-waive-reason"), &[&min.to_string()]),
-            );
-        }
-        if author.is_empty() {
-            return self.form_failed(WAIVE, strings::text(key!("error-waive-author")).to_owned());
-        }
         if date.parse::<ew_api::catalog::Date>().is_err() {
             return self.form_failed(WAIVE, strings::format(key!("error-missing-param"), &["date"]));
         }
-        let mut params = serde_json::json!({
-            "rule": rule, "fingerprint": fingerprint, "reason": reason, "author": author, "date": date,
-        });
+        // The reason and the author are optional: an empty one is not sent.
+        let mut params = serde_json::json!({ "rule": rule, "fingerprint": fingerprint, "date": date });
+        for (name, text) in [("reason", &reason), ("author", &author)] {
+            if !text.is_empty() {
+                params[name] = Value::String(text.clone());
+            }
+        }
         // The finding's subject, which the refusal of a finding waived already names.
         if !subject.is_empty() {
             params["subject"] = Value::String(subject);
@@ -622,7 +616,7 @@ impl ShellModel {
                     self.dialog = None;
                 }
                 self.messages.waive = None;
-                if self.settings.author_name.as_deref() != Some(author.as_str()) {
+                if !author.is_empty() && self.settings.author_name.as_deref() != Some(author.as_str()) {
                     self.settings.author_name = Some(author);
                     self.save_settings();
                 }
@@ -789,10 +783,6 @@ impl ShellModel {
         out
     }
 }
-
-/// The shortest reason of a waiver in characters, trimmed: `check.waive`'s own minimum (doc 15 §2.5), checked here so
-/// the prompt keeps a short reason without a command round trip; the command checks it again.
-const WAIVER_REASON_MIN_CHARS: usize = 10;
 
 /// The action of the Waive prompt.
 const WAIVE: &str = "messages.waive";

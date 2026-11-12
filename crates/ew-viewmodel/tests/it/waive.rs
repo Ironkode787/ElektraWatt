@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Waive… and Unwaive in the Messages pane on copies of Golden A (the reason prompt, its ten-character rule,
+//! Waive… and Unwaive in the Messages pane on copies of Golden A (the reason prompt, its optional reason and author,
 //! the author preference, the date the window passes, one `check.waive` or `check.unwaive` per step, the check toast's
 //! waived count). The canvas's conflict overlay of an unbonded merged 0 V/PE potential (Golden A without its
 //! bond B1), which never reaches the page's display list.
@@ -80,21 +80,8 @@ fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_a
     let fields: Vec<(&str, &str)> = form.fields.iter().map(|f| (f.name, f.value.as_str())).collect();
     assert_eq!(fields, [("reason", ""), ("author", "")]);
 
-    // A nine-character reason is refused in the prompt; nothing is committed.
-    shell.set_form_field("reason", "  too short ");
+    // The reason and the author commit one `check.waive` with the reason, the author and the date.
     shell.set_form_field("author", "A. Engineer");
-    let out = shell.submit_form();
-    let Outcome::Failed { message } = out else {
-        panic!("{out:?}");
-    };
-    assert!(message.contains("at least 10 characters"), "{message}");
-    let Some(Dialog::Form(form)) = shell.dialog() else {
-        panic!("the prompt stays");
-    };
-    assert_eq!(form.error.as_deref(), Some(message.as_str()));
-    assert_eq!(shell.revision(), rev, "no commit");
-
-    // A valid reason commits one `check.waive` with the reason, the author and the date.
     shell.set_form_field("reason", "Cable length is set on site");
     assert_eq!(shell.submit_form(), Outcome::Done);
     assert!(shell.dialog().is_none(), "the prompt closes");
@@ -161,27 +148,14 @@ fn waive_from_the_prompt_commits_one_check_waive_and_unwaive_opens_the_finding_a
 }
 
 #[test]
-fn a_short_reason_an_open_or_waived_mismatch_and_headless_are_refused_without_a_commit() {
+fn a_missing_date_an_open_or_waived_mismatch_and_headless_are_refused_without_a_commit() {
     let tmp = Tmp::new("waive-refusals");
     let mut shell = tmp.shell_in(Mode::Gui, true, "102");
     done(&mut shell, "messages.show", json!({"on": true}));
     let row = finding(&shell, "EW-CORE-033", "-3W1");
     let rev = shell.revision();
-    // Nine characters after trimming, given as parameters (no prompt).
-    let message = failed(
-        &mut shell,
-        "messages.waive",
-        json!({"key": row.key, "reason": " 123456789 ", "author": "A", "date": DATE}),
-    );
-    assert!(message.contains("at least 10 characters"), "{message}");
-    // No author, no date.
+    // No date.
     let reason = "Cable length is set on site";
-    let message = failed(
-        &mut shell,
-        "messages.waive",
-        json!({"key": row.key, "reason": reason, "date": DATE}),
-    );
-    assert!(message.contains("author"), "{message}");
     let message = failed(
         &mut shell,
         "messages.waive",

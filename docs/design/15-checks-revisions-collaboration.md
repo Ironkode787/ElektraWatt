@@ -241,7 +241,8 @@ fingerprint = first 128 bits of SHA-256("ew-fp/1" ‖ rule_id ‖ sorted target 
 ```
 
 **Waiver rules.**
-- **Reason.** A reason is mandatory, with at least 10 characters, as `MlText`.
+- **Reason.** A reason is optional, of any length, as `MlText`; the record keeps an empty text when none is given, and
+  the author is optional too (the owner, 2026-11-12, FT-1705; the format's `reason` member stays required).
 - **Target.** The target is a finding fingerprint (MVP). From 1.0 it may also be a part `{library, item}`: such a
   waiver covers every finding of that rule whose primary target uses the part, for example a vendor cable whose BU
   core carries 0 V (EF-11, open question 6).
@@ -1483,7 +1484,7 @@ Screens are designed in [16](16-ux-ui.md). This area supplies:
 | Waiver dialog | Required reason, expiry, scope; bulk waiver with one reason; single findings only for safety rules; not offered to MCP, scripts or plugins (`HumanOnly`) | FR-CHK-009 |
 | Scheme editor, rule packs | Per-rule enable, severity and parameters with locks and origin; packs with version, source, trust and `verified` flags | FR-CHK-003, -004 |
 | Revision panel | Revisions, label proposal, purpose, page notes with generated summaries, transmittals | FR-REV-001, -012 |
-| Approve and release dialogs | Blockers first with jumps, sign-off state, waivers to acknowledge, disclaimer (NFR-COMP-04), archive location, tag option, step progress. *As built (2026-11-05, step 3):* both dialogs end, before their buttons, with the one disclaimer line "ElektraWatt's checks do not replace engineering verification by a competent person." (`ew_checks::report::DISCLAIMER`, the About dialog's `about-disclaimer`, nl "De controles van ElektraWatt vervangen geen technische verificatie door een deskundige."), which the check report, `ew check`'s Markdown and the release report (with its waivers in force) also end with | FR-REV-005 … 008 |
+| Approve and release dialogs | Blockers first with jumps, sign-off state, waivers to acknowledge, archive location, tag option, step progress. *As built:* no disclaimer line: the owner removed it from the window on 2026-11-12 (FT-1711). The one sentence "ElektraWatt's checks do not replace engineering verification by a competent person." (`ew_checks::report::DISCLAIMER`, the About dialog's `about-disclaimer`) stays in About, and the check report, `ew check`'s Markdown and the release report (with its waivers in force) end with it (NFR-COMP-04) | FR-REV-005 … 008 |
 | Compare view, merge panel, comments | §6.5–§6.7 | FR-REV-014, -017, -018, FR-COL-015, -017 |
 
 The persona and journey IDs P1–P6 and J1–J6 of [00](00-vision-and-scope.md) apply. The checker (P4) works mainly in

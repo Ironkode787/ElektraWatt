@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! NFR-COMP-04: the Approve and the Release dialog end with the engineering-verification
-//! disclaimer, the About dialog's sentence, as their last line before the buttons, in English and in Dutch.
+//! The engineering-verification disclaimer (NFR-COMP-04) is one line of the About dialog and nowhere else in the
+//! window (the owner, 2026-11-12, FT-1711): the Approve and the Release dialog end with their buttons, in English and
+//! in Dutch.
 
 use crate::support;
 
@@ -28,58 +29,52 @@ fn texts(h: &Harness<'_, App>) -> Vec<String> {
 }
 
 /// The Approve dialog (the gate passes but for the sign-off) and the Release dialog (blocked until the sign-off, so
-/// it shows Close only) end with the disclaimer, then their buttons, in English and in Dutch.
+/// it shows Close only) show no disclaimer; the About dialog keeps its one line; in English and in Dutch.
 #[test]
-fn the_approve_and_release_dialogs_end_with_the_disclaimer() {
+fn only_the_about_dialog_names_the_engineering_verification() {
     let tmp = Tmp::new();
     let dir = tmp.0.join("release-min");
     copy_dir(Path::new(RELEASE_MIN), &dir);
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
     settle(&mut h);
-    for (language, disclaimer, approve, approve_buttons, release, release_buttons) in [
+    for (language, disclaimer, approve, release) in [
         (
             "en",
             "ElektraWatt's checks do not replace engineering verification by a competent person.",
             "Approve revision V1.0",
-            ["Cancel", "Approve"].as_slice(),
             "Release revision V1.0?",
-            ["Close"].as_slice(),
         ),
         (
             "nl",
             "De controles van ElektraWatt vervangen geen technische verificatie door een deskundige.",
             "Revisie V1.0 goedkeuren",
-            ["Annuleren", "Goedkeuren"].as_slice(),
             "Revisie V1.0 vrijgeven?",
-            ["Sluiten"].as_slice(),
         ),
     ] {
         dispatch(&mut h, "view.language", json!({ "value": language }));
-        for (action, title, buttons) in [
-            ("revision.approve", approve, approve_buttons),
-            ("revision.release", release, release_buttons),
-        ] {
+        for (action, title) in [("revision.approve", approve), ("revision.release", release)] {
             dispatch(&mut h, action, json!({}));
             settle(&mut h);
             settle(&mut h);
             let texts = texts(&h);
             assert!(texts.iter().any(|t| t == title), "{language} {action}: {texts:?}");
-            let at = texts
-                .iter()
-                .rposition(|t| t == disclaimer)
-                .unwrap_or_else(|| panic!("{language} {action}: no disclaimer in {texts:?}"));
-            let after: Vec<&str> = texts[at + 1..].iter().map(String::as_str).collect();
-            // The footer adds its buttons right to left in the platform's order (`dialog::footer_order`): Windows
-            // shows the Primary left of Cancel, so it is added last; Linux shows it right of Cancel, added first.
-            let buttons: Vec<&str> = if cfg!(target_os = "windows") {
-                buttons.to_vec()
-            } else {
-                buttons.iter().rev().copied().collect()
-            };
-            assert_eq!(after, buttons, "{language} {action}: {texts:?}");
+            assert!(
+                !texts.iter().any(|t| t == disclaimer),
+                "{language} {action}: a disclaimer in {texts:?}"
+            );
             dispatch(&mut h, action, json!({ "cancel": true }));
             settle(&mut h);
         }
+        dispatch(&mut h, "help.about", json!({}));
+        settle(&mut h);
+        settle(&mut h);
+        let texts = texts(&h);
+        assert!(
+            texts.iter().any(|t| t == disclaimer),
+            "{language}: About keeps the line: {texts:?}"
+        );
+        dispatch(&mut h, "ui.dismiss", json!({}));
+        settle(&mut h);
     }
     h.state_mut().shell_mut().shutdown();
 }

@@ -950,7 +950,7 @@ fn approve_writes_the_checker_and_the_sign_off_from_a_person_only() {
                 rule: ident("EW-POT-004"),
                 fingerprint: "0123456789abcdef0123456789abcdef".into(),
                 reason: MlText::neutral("Accepted by the customer"),
-                author: ident("A. Checker"),
+                author: Some(ident("A. Checker")),
                 date: Date::new(2025, 6, 1).unwrap(),
                 subject: None,
             },

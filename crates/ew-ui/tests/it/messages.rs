@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The message panel in the window without rendering (acceptance check MS5 and the window half of
-//! MS1 and MS4): View ▸ Messages docks the pane at the bottom with its header line, rows and footer; the finding rows
+//! MS1 and MS4): View ▸ Messages docks the pane at the bottom with its header line and rows, and no disclaimer line
+//! under them; Waive… asks for neither a reason nor an author; the finding rows
 //! are tree items named `<label>, finding, <severity>[, fix][, pending]`; F8 and Shift+F8 walk the findings from the
 //! keyboard; the detail block names the cursor's rule and its Rule page link opens the rule's page in the browser; a
 //! new unpaired interruption point on the editing page is a pending row; the accessible-name walker after every step.
@@ -64,6 +65,13 @@ fn item_name(h: &Harness<'_, App>, label: &str) -> String {
         .unwrap_or_else(|| panic!("no tree item {label}"))
 }
 
+/// The top of the status bar (its Saved indicator), the foot of the docked pane.
+fn status_top(h: &Harness<'_, App>) -> f32 {
+    h.query_all_by_label("saved")
+        .map(|n| n.rect().top())
+        .fold(f32::INFINITY, f32::min)
+}
+
 /// Places an interruption point named `name` with direction `target` near the top right of the shown page.
 fn place_ip(h: &mut Harness<'_, App>, name: &str) {
     dispatch(h, "tool.ip", json!({}));
@@ -93,7 +101,7 @@ fn place_ip(h: &mut Harness<'_, App>, name: &str) {
     settle(h);
 }
 
-/// MS5 (FR-UI-025, FR-UI-041; §7.3): the pane from the View menu, its named rows, its header and footer, the keyboard
+/// MS5 (FR-UI-025, FR-UI-041; §7.3): the pane from the View menu, its named rows, its header and no disclaimer (FT-1711), the keyboard
 /// walk, the detail block with the Rule page link, and a pending row.
 #[test]
 fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
@@ -133,10 +141,12 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
         counts.errors, counts.warnings, counts.infos, counts.waived, counts.pending
     );
     assert!(h.query_by_label(&header).is_some(), "the header line {header}");
+    // No line about engineering verification under the rows (the owner, 2026-11-12: About keeps the one line).
     assert!(
-        h.query_by_label("Checks support, but do not replace, engineering verification.")
-            .is_some(),
-        "the footer"
+        !h.query_all_by_role(egui::Role::Label)
+            .filter_map(|n| n.accesskit_node().label())
+            .any(|l| l.contains("engineering verification")),
+        "the pane has no disclaimer"
     );
     // Every finding row on show is a tree item named `<label>, finding, <severity>…`.
     let items: Vec<String> = h
@@ -247,8 +257,47 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1705: Waive… in the detail block opens the prompt, and Enter with its Reason and Author left empty waives the
+/// finding: the window asks for neither (the owner wanted no ten-character minimum and both optional).
+#[test]
+fn waive_from_the_detail_takes_an_empty_reason_and_author() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, Scripted::default());
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    dispatch(&mut h, "page.goto", json!({"folio": "102"}));
+    dispatch(&mut h, "messages.show", json!({"on": true}));
+    settle(&mut h);
+    let row = finding(&h, "EW-CORE-033", "-3W1");
+    dispatch(
+        &mut h,
+        "navigator.row",
+        json!({"kind": "messages", "key": row.key}),
+    );
+    settle(&mut h);
+    settle(&mut h);
+    h.get_by_label("Waive…").click();
+    settle(&mut h);
+    let Some(ew_ui::ew_viewmodel::shell::Dialog::Form(form)) = h.state().shell().dialog() else {
+        panic!("the Waive prompt: {:?}", h.state().shell().dialog());
+    };
+    assert!(form.fields.iter().all(|f| f.value.is_empty()), "{form:?}");
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    let shell = h.state().shell();
+    assert!(shell.dialog().is_none(), "the prompt closed: {:?}", shell.dialog());
+    let last = shell.recorded_commands().last().expect("a committed step");
+    assert_eq!(last.cmd, "check.waive");
+    assert!(
+        last.params.get("reason").is_none() && last.params.get("author").is_none(),
+        "{}",
+        last.params
+    );
+    assert!(shell.messages_detail().expect("the detail").waived);
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// At 1280×800 the bottom dock holds the Messages pane's header, at least three whole rows, and with a
-/// finding selected both its row (of at least two whole rows) and its detail block, with the footer below.
+/// finding selected both its row (of at least two whole rows) and its detail block, above the status bar.
 #[test]
 fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
     let tmp = Tmp::new();
@@ -299,18 +348,16 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
         rule.top() >= list.bottom() - 0.5 && rule.bottom() <= 800.0,
         "the detail {rule:?} below the rows {list:?}"
     );
-    let footer = h
-        .get_by_label("Checks support, but do not replace, engineering verification.")
-        .rect();
+    let foot = status_top(&h);
     assert!(
-        footer.top() >= rule.bottom() && footer.bottom() <= 800.0,
-        "the footer {footer:?} below the detail {rule:?}"
+        rule.bottom() <= foot,
+        "the detail {rule:?} above the status bar at {foot}"
     );
-    // The Rule page link stands on the detail's title line, whole above the footer and inside the pane.
+    // The Rule page link stands on the detail's title line, whole above the status bar and inside the pane.
     let link = h.get_by_label("Rule page").rect();
     assert!(
-        link.top() >= list.bottom() - 0.5 && link.bottom() <= footer.top() + 0.5,
-        "the link {link:?} between the rows {list:?} and the footer {footer:?}"
+        link.top() >= list.bottom() - 0.5 && link.bottom() <= foot + 0.5,
+        "the link {link:?} between the rows {list:?} and the status bar at {foot}"
     );
     assert!(
         (link.center().y - rule.center().y).abs() <= 2.0 && link.right() <= list.right() + 0.5,
@@ -471,7 +518,7 @@ fn the_dock_tab_counts_the_findings_and_the_close_button_closes_the_dock() {
 /// Golden A's folio 103 without its bond B1 (0 V and PE merge, EW-POT-001 stands). The
 /// finding's message names three member CPs and counts the rest, and in a short dock (300 points; in a window
 /// 900 high, as the dock leaves the page view half the window) its detail block scrolls to
-/// the message's last line above the footer instead of cutting it at the pane's edge.
+/// the message's last line above the status bar instead of cutting it at the pane's edge.
 #[test]
 fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
     let tmp = Tmp::new();
@@ -514,18 +561,16 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
     let node = h.get_by_label(&message);
     node.scroll_to_me();
     settle(&mut h);
-    let footer = h
-        .get_by_label("Checks support, but do not replace, engineering verification.")
-        .rect();
+    let foot = status_top(&h);
     let text = h.get_by_label(&message).rect();
     assert!(
-        text.bottom() <= footer.top() + 0.5,
-        "{text:?} ends above the footer at {footer:?}"
+        text.bottom() <= foot + 0.5,
+        "{text:?} ends above the status bar at {foot}"
     );
 }
 
 /// With Golden A's first EW-LAY-001 finding selected, the detail block holds its message whole, wrapped
-/// to the pane's width, between the list and the footer, and the list keeps at least two whole rows; at the 1280 × 800
+/// to the pane's width, between the list and the status bar, and the list keeps at least two whole rows; at the 1280 × 800
 /// floor (doc 16a §2: truncation is judged at the floor) and at 1920 × 1080. The detail is as tall as its content, the list above it keeps at least two rows (was three), and only a
 /// still taller detail scrolls; never an ellipsis, a clipped line or a fixed pixel cap.
 #[test]
@@ -560,12 +605,10 @@ fn the_lay_001_detail_shows_its_message_whole_at_the_floor_and_at_1920() {
         );
         let message = h.state().shell().messages_detail().expect("the detail").message;
         let text = h.get_by_label(&message).rect();
-        let footer = h
-            .get_by_label("Checks support, but do not replace, engineering verification.")
-            .rect();
+        let foot = status_top(&h);
         assert!(
-            text.top() >= list.bottom() - 0.5 && text.bottom() <= footer.top() + 0.5,
-            "{w}×{hgt}: the message {text:?} whole between the rows {list:?} and the footer {footer:?}"
+            text.top() >= list.bottom() - 0.5 && text.bottom() <= foot + 0.5,
+            "{w}×{hgt}: the message {text:?} whole between the rows {list:?} and the status bar at {foot}"
         );
         assert!(
             text.right() <= list.right() + 0.5,
@@ -671,7 +714,7 @@ fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
 
 /// EW-POT-011's message is cut at the panel's edge. The finding's list
 /// row keeps one line (a cut row has an ellipsis and its whole text in its tooltip). The detail block shows the rule's title and the message whole, wrapped to the pane's width
-/// and between the list and the footer, at the floor and at 1920 × 1080.
+/// and between the list and the status bar, at the floor and at 1920 × 1080.
 #[test]
 fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920() {
     const TITLE: &str = "EW-POT-011 Junction feed ambiguous";
@@ -712,12 +755,10 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
             "{w}×{hgt}"
         );
         let list = h.get_by_label("Messages navigator").rect();
-        let footer = h
-            .get_by_label("Checks support, but do not replace, engineering verification.")
-            .rect();
+        let foot = status_top(&h);
         let painted = painted_texts(&h);
         // The detail block: the title and the message, each painted whole (no ellipsis), inside the pane, between the
-        // list and the footer.
+        // list and the status bar.
         for text in [TITLE, MESSAGE] {
             let shown: Vec<_> = painted
                 .iter()
@@ -728,8 +769,8 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
             };
             assert!(!elided, "{w}×{hgt}: {text:?} is not cut");
             assert!(
-                rect.right() <= list.right() + 0.5 && rect.bottom() <= footer.top() + 0.5,
-                "{w}×{hgt}: {text:?} {rect:?} inside the pane {list:?} above the footer {footer:?}"
+                rect.right() <= list.right() + 0.5 && rect.bottom() <= foot + 0.5,
+                "{w}×{hgt}: {text:?} {rect:?} inside the pane {list:?} above the status bar at {foot}"
             );
         }
         // The list row keeps one line: whole at 1920; at the floor the message that names the junction, its place
