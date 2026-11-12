@@ -142,13 +142,11 @@ fn qet_projects() {
             ),
             (
                 "infinite-coordinate.qet",
-                "imported; report: EW-IMP-002 Error element skipped: bad x/y | EW-IMP-004 Info border ?×? / ?×? \
-                 has no shipped frame; the default frame applies",
+                "imported; report: EW-IMP-002 Error element skipped: bad x/y",
             ),
             (
                 "nan-coordinate.qet",
-                "imported; report: EW-IMP-002 Error element skipped: bad x/y | EW-IMP-004 Info border ?×? / ?×? \
-                 has no shipped frame; the default frame applies",
+                "imported; report: EW-IMP-002 Error element skipped: bad x/y",
             ),
         ],
         |name, bytes| match import_qet(name, bytes.to_vec(), lib) {

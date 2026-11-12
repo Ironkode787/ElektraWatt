@@ -135,6 +135,8 @@ pub(super) fn part_at_another_hash(live: &Live, part: &Value) -> Option<Value> {
     )
 }
 
+/// A placement's steps do not count the connections: a symbol dropped on a wire splits it (normaliser 7), so their
+/// number may grow by the wires the random position lands on.
 pub(super) fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let pages = pages_taking_reps(live);
     let page = *rng.pick(&pages)?;
@@ -173,7 +175,6 @@ pub(super) fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                 (Table::Reps, 1),
                 (Table::Functions, entries),
                 (Table::Devices, 1),
-                (Table::Connections, 0),
                 (Table::Parts, parts),
             ]))
         }
@@ -263,12 +264,7 @@ pub(super) fn device_place(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             let strip_id = strip.id.clone();
             Some(
                 Step::cmd("device.place", p)
-                    .counts(&[
-                        (Table::Reps, 1),
-                        (Table::Functions, 1),
-                        (Table::Devices, 1),
-                        (Table::Connections, 0),
-                    ])
+                    .counts(&[(Table::Reps, 1), (Table::Functions, 1), (Table::Devices, 1)])
                     .check(move |before, after| {
                         let strip = typed(&strip_id).ok_or("a strip ID")?;
                         let have = |q: &ew_derive::Q| -> std::collections::BTreeMap<String, u32> {
