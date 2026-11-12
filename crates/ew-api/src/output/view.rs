@@ -129,8 +129,6 @@ pub struct GenericSymbols {
     pub junction_dot: Option<SymbolRef>,
     /// `ew.gen.junction-bevel@qet10`.
     pub junction_bevel: Option<SymbolRef>,
-    /// `ew.gen.wire-marker@qet10`.
-    pub wire_marker: Option<SymbolRef>,
 }
 
 fn builtin_symbol(json: &str) -> Option<SymbolRef> {
@@ -146,7 +144,6 @@ fn builtin_symbol(json: &str) -> Option<SymbolRef> {
 const JUNCTION_DOT: &str = include_str!("../../../../content/symbols/qet10/ew.gen.junction-dot@qet10.json");
 const JUNCTION_BEVEL: &str =
     include_str!("../../../../content/symbols/qet10/ew.gen.junction-bevel@qet10.json");
-const WIRE_MARKER: &str = include_str!("../../../../content/symbols/qet10/ew.gen.wire-marker@qet10.json");
 
 /// The derivation profile the compiled-in generic symbols belong to: their seals below are part of that
 /// profile's output. Regenerating `content/symbols/qet10` changes a seal, and the seal test then fails until the
@@ -157,7 +154,7 @@ const GENERIC_SYMBOLS_PROFILE: &str = "2027.1";
 
 /// The `sha256` seals (doc 05 §13.2) of the compiled-in generic symbols of [`GENERIC_SYMBOLS_PROFILE`], by key.
 #[cfg(test)]
-const GENERIC_SYMBOL_SEALS: [(&str, &str); 3] = [
+const GENERIC_SYMBOL_SEALS: [(&str, &str); 2] = [
     (
         "ew.gen.junction-dot@qet10",
         "sha256:5c96763c7eb1041383074d1ba74a8148a5c764c0e5f9f7feed8e56cafc0e2ceb",
@@ -165,10 +162,6 @@ const GENERIC_SYMBOL_SEALS: [(&str, &str); 3] = [
     (
         "ew.gen.junction-bevel@qet10",
         "sha256:cd5dd5c572e2c82ce2a7e401b57782e163f69f80849791b2b989d55c9b18706b",
-    ),
-    (
-        "ew.gen.wire-marker@qet10",
-        "sha256:8724aa49d6e6d50f96311c4c6a0630f68132a3e8bd859389031027c45b7910b8",
     ),
 ];
 
@@ -179,7 +172,6 @@ pub fn generic_symbols() -> &'static GenericSymbols {
     SET.get_or_init(|| GenericSymbols {
         junction_dot: builtin_symbol(JUNCTION_DOT),
         junction_bevel: builtin_symbol(JUNCTION_BEVEL),
-        wire_marker: builtin_symbol(WIRE_MARKER),
     })
 }
 
@@ -1367,7 +1359,7 @@ mod tests {
     /// regenerating `content/symbols/qet10` fails here instead of silently changing every project's output.
     #[test]
     fn the_compiled_in_generic_symbols_keep_their_seals_and_profile() {
-        for (json, (key, seal)) in [JUNCTION_DOT, JUNCTION_BEVEL, WIRE_MARKER]
+        for (json, (key, seal)) in [JUNCTION_DOT, JUNCTION_BEVEL]
             .into_iter()
             .zip(GENERIC_SYMBOL_SEALS)
         {

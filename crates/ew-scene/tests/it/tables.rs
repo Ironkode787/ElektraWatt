@@ -40,7 +40,6 @@ fn view(table: Option<TableView>) -> PageView {
         reps: Vec::new(),
         connections: Vec::new(),
         junctions: Vec::new(),
-        wire_marker: None,
         table,
         embedded: Vec::new(),
         break_marks: Vec::new(),

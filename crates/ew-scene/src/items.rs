@@ -10,7 +10,7 @@
 //! |---|---|
 //! | graphic | its shape (line, polyline, rectangle, circle, arc in the QET convention, polygon) in the page's wire stroke ([`wire_stroke`]) unless `stroke` sets the width; `dashed`, `dotted` and `dash_dot` are the pen-width multiples of doc 07 §2.3; a closed shape with `fill` is filled black |
 //! | free text | its printed text ([`ItemView::text`]) at `at` in its style (absent: `text.normal`), aligned left, centred or right on `at` and vertically on its middle, at a readable angle with the alignment flipped as slot texts are (doc 06 §2.5) |
-//! | wire marker | when shown ([`ItemView::shown`]): the `ew.gen.wire-marker` symbol at `at` (turned for 90°) and the group text in style `marker`, centred, as the per-connection marker is drawn |
+//! | wire marker | when shown ([`ItemView::shown`]): a line through `at` across its wires (horizontal across vertical wires; vertical, turned 90°, across horizontal ones), past the outer wires as a per-connection marker's, and the group text in style `marker` clear of the wires beyond the line's end: right of a horizontal line, reading upwards from the top of a vertical one (FT-1706) |
 //! | image | its asset in `rect`: a PNG or JPEG as an image item, an SVG as an image item too, which the export job and the renderers' resolver turn into vector paths ([`crate::images`], FR-SYM-025); the item carries the asset's hash and format and no bytes, as every image of a display list does |
 //! | structure box | its outline in the page's wire stroke width, dotted (0.5 mm on, 1 mm off) or dash-dot (4 mm on, 1 mm off, 0.5 mm on, 1 mm off); its caption in `tag.main` above the outline's top-left vertex (the smallest `y`, then `x`) |
 //!
@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 
-use ew_dl::{Brush, Dash, DashPattern, EntityRef, ImageData, ImageFormat, Item, Path, Stroke, Transform};
+use ew_dl::{Brush, Dash, DashPattern, EntityRef, ImageData, ImageFormat, Item, Path, Stroke};
 use ew_schema::{
     Align, AssetFormat, AssetRef, BoxStyle, FreeText, Graphic, GraphicShape, LineDash, PageItem,
     PageItemKind, StructureBox, TextAlign,
@@ -27,7 +27,7 @@ use ew_schema::{
 use ew_text::DEFAULT_STYLE_KEY;
 use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
 
-use crate::page::{Builder, MARKER_STYLE, PageView, TextSpec, wire_stroke};
+use crate::page::{Builder, MarkerText, PageView, TextSpec, wire_stroke};
 use crate::symbol;
 
 /// One page item of the page with what it prints.
@@ -183,26 +183,14 @@ impl Builder<'_> {
             match &iv.item.kind {
                 PageItemKind::FreeText(t) => self.free_text(iv, t, entity),
                 PageItemKind::WireMarker(m) if iv.shown && !iv.text.is_empty() => {
-                    let vertical = m.angle == Angle2(90_000);
-                    let (orient, angle) = if vertical {
-                        (Orient2::R270, Angle2(90_000))
+                    // Turned 90° the group reads upwards over horizontal wires, else across vertical ones.
+                    let (place, horizontal) = if m.angle == Angle2(90_000) {
+                        (MarkerText::Up, false)
                     } else {
-                        (Orient2::R0, Angle2::ZERO)
+                        (MarkerText::Right, true)
                     };
-                    if let Some(s) = &view.wire_marker {
-                        let key = self.geometry(s, orient);
-                        self.push(Item::instance(key, Transform::from_translation(m.at)).with_entity(entity));
-                    }
-                    self.text(&TextSpec {
-                        text: &iv.text,
-                        at: m.at,
-                        angle,
-                        align: &Align::Centre,
-                        style_key: MARKER_STYLE,
-                        entity,
-                        link: None,
-                        items: &[],
-                    });
+                    let crossings = Builder::marker_crossings(view, &m.connections, m.at, horizontal);
+                    self.wire_marker(view, m.at, &crossings, place, &iv.text, entity);
                 }
                 _ => {}
             }

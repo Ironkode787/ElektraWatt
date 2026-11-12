@@ -23,7 +23,6 @@ use crate::common::blank_page;
 
 const TERMINAL: &str = include_str!("../../../../content/symbols/qet10/ew.iec.terminal@qet10.json");
 const DOT: &str = include_str!("../../../../content/symbols/qet10/ew.gen.junction-dot@qet10.json");
-const MARKER: &str = include_str!("../../../../content/symbols/qet10/ew.gen.wire-marker@qet10.json");
 const FRAME: &str = include_str!("../../../../content/forms/ew.frame.qet-a4-landscape-grid.json");
 const TITLE_BLOCK: &str = include_str!("../../../../content/forms/ew.titleblock.qet-a4.json");
 
@@ -182,7 +181,6 @@ fn view() -> PageView {
             junction: j,
             symbol: Some(symbol(DOT)),
         }],
-        wire_marker: Some(symbol(MARKER)),
         ..blank_page(PAGE)
     }
 }
@@ -302,9 +300,9 @@ fn slot_texts_print_their_values_with_links_and_markers_their_text() {
     assert_eq!(runs[2].0, "2.5 BU");
     // The marker sits on the longest segment of an L whose long leg is horizontal: not turned.
     assert_eq!(runs[2].2, Angle2::ZERO);
-    // The marker box is drawn before its text.
+    // The marker's line across the wire is drawn before its text (FT-1706).
     assert!(labels.list.items.iter().any(
-        |i| matches!(i.kind, ItemKind::Instance(_)) && i.entity == Some(EntityRef(Uuid::from_u128(0x23)))
+        |i| matches!(i.kind, ItemKind::Path(_)) && i.entity == Some(EntityRef(Uuid::from_u128(0x23)))
     ));
 }
 

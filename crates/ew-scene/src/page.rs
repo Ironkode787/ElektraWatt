@@ -130,9 +130,12 @@
 //!   obstacles of the cross-reference texts: a cross-reference text that overlaps one drops below it as
 //!   below a text of its own symbol (rule 2); a device tag yields to one ("Device tags"). An entry without its box
 //!   CP, or a pin of an unknown direction, prints nothing.
-//! - **Wire markers** (FR-OUT-011 keeps them in monochrome): the caller's marker text, centred in style
-//!   `marker` on the midpoint of the polyline's longest segment (the first of equal ones), turned 90° on a
-//!   vertical segment, over the marker symbol in the same orientation. Provisional, like the routes.
+//! - **Wire markers** (FR-OUT-011 keeps them in monochrome; FT-1706: the text stands clear of its wires, as drawing
+//!   practice has it): a short line across the wire at the midpoint of the polyline's longest segment (the first of
+//!   equal ones), [`MARKER_REACH`] past the wire on both sides in the page's wire stroke, and the caller's marker text
+//!   in style `marker` [`MARKER_GAP`] beyond the line's end, horizontal: right of the line across a vertical wire
+//!   (aligned middle left), above the line across a horizontal wire (aligned bottom centre). A wire-marker group
+//!   ([`crate::items`]) draws the same line across all its wires. Provisional, like the routes.
 //! - **Stored symbol variants** (`Representation.variant`, contact-image variants) are not drawn yet: the
 //!   main graphics are used, and the geometry key's `extra` is `None`.
 
@@ -188,6 +191,50 @@ pub const DEFAULT_SHEET: (Nm, Nm) = (Nm(297_000_000), Nm(210_000_000));
 
 /// The text style of wire-marker texts (doc 20 §17.5).
 pub const MARKER_STYLE: &str = "marker";
+
+/// How far a wire marker's line reaches past its outer wires (FT-1706).
+pub const MARKER_REACH: Nm = Nm(1_500_000);
+
+/// The gap between a wire marker's line and its text (FT-1706).
+pub const MARKER_GAP: Nm = Nm(1_000_000);
+
+/// Where a wire marker's text stands beyond its line (FT-1706).
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum MarkerText {
+    /// The line is horizontal (across vertical wires): the text reads horizontally right of its right end.
+    Right,
+    /// The line is vertical (across horizontal wires): the text reads horizontally above its top end.
+    Above,
+    /// The line is vertical: the text reads bottom to top (90°) upwards from its top end.
+    Up,
+}
+
+/// The coordinate where `pts` crosses the line through `at` that runs horizontally (`horizontal`) or vertically: the
+/// crossing's `x` on a horizontal line, its `y` on a vertical one, the one nearest `at` of several; `None` when no
+/// segment crosses it (a segment lying on the line does not).
+pub(crate) fn crossing_of(pts: &[Pt2], at: Pt2, horizontal: bool) -> Option<Nm> {
+    // `(along the line, across it)` of a point.
+    let split = |p: Pt2| {
+        if horizontal {
+            (i128::from(p.x.0), i128::from(p.y.0))
+        } else {
+            (i128::from(p.y.0), i128::from(p.x.0))
+        }
+    };
+    let (target, line) = split(at);
+    let mut best: Option<i128> = None;
+    for w in pts.windows(2) {
+        let ((a_al, a_ac), (b_al, b_ac)) = (split(w[0]), split(w[1]));
+        if a_ac == b_ac || line < a_ac.min(b_ac) || line > a_ac.max(b_ac) {
+            continue;
+        }
+        let x = a_al + (line - a_ac) * (b_al - a_al) / (b_ac - a_ac);
+        if best.is_none_or(|b| (x - target).abs() < (b - target).abs()) {
+            best = Some(x);
+        }
+    }
+    best.and_then(|x| i64::try_from(x).ok()).map(Nm)
+}
 
 /// A symbol copy and its ID (the key of its geometry).
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -393,8 +440,6 @@ pub struct PageView {
     pub connections: Vec<ConnectionView>,
     /// The junctions on the page.
     pub junctions: Vec<JunctionView>,
-    /// The wire-marker symbol (`ew.gen.wire-marker`); markers draw their text only without it.
-    pub wire_marker: Option<SymbolRef>,
     /// The report table of a generated page; `None` on every other page.
     pub table: Option<TableView>,
     /// The embedded report blocks of a drawn page (FR-REP-028), drawn into the `tables` layer.
@@ -1811,6 +1856,62 @@ impl Builder<'_> {
         }
     }
 
+    /// One wire marker (module documentation, "Wire markers"): the line through `at` across the wires it crosses at
+    /// `crossings` (along the line; `at` itself without one), then `text` beyond the line's end as `place` says.
+    pub(crate) fn wire_marker(
+        &mut self,
+        view: &PageView,
+        at: Pt2,
+        crossings: &[Nm],
+        place: MarkerText,
+        text: &str,
+        entity: EntityRef,
+    ) {
+        let horizontal = place == MarkerText::Right;
+        let mine = if horizontal { at.x } else { at.y };
+        let lo = crossings.iter().copied().min().unwrap_or(mine) - MARKER_REACH;
+        let hi = crossings.iter().copied().max().unwrap_or(mine) + MARKER_REACH;
+        let (a, b) = if horizontal {
+            (Pt2::new(lo, at.y), Pt2::new(hi, at.y))
+        } else {
+            (Pt2::new(at.x, lo), Pt2::new(at.x, hi))
+        };
+        self.push(Item::path(Path::line(a, b), Some(wire_stroke(view.grid)), None).with_entity(entity));
+        let (at, angle, align) = match place {
+            MarkerText::Right => (Pt2::new(hi + MARKER_GAP, at.y), Angle2::ZERO, Align::MiddleLeft),
+            MarkerText::Above => (Pt2::new(at.x, lo - MARKER_GAP), Angle2::ZERO, Align::BottomCentre),
+            MarkerText::Up => (Pt2::new(at.x, lo - MARKER_GAP), Angle2(90_000), Align::MiddleLeft),
+        };
+        self.text(&TextSpec {
+            text,
+            at,
+            angle,
+            align: &align,
+            style_key: MARKER_STYLE,
+            entity,
+            link: None,
+            items: &[],
+        });
+    }
+
+    /// The crossings of the connections `ids` drawn on the page with the line through `at` (horizontal or
+    /// vertical), along the line ([`crossing_of`]); a connection the page does not draw, or one the line misses,
+    /// has none.
+    pub(crate) fn marker_crossings(
+        view: &PageView,
+        ids: &[Id<Connection>],
+        at: Pt2,
+        horizontal: bool,
+    ) -> Vec<Nm> {
+        let cps = cp_map(view);
+        let page = page_rect(view);
+        ids.iter()
+            .filter_map(|id| view.connections.iter().find(|c| c.connection.id == *id))
+            .filter_map(|cv| polyline_of(view, &cps, &cv.connection, page))
+            .filter_map(|pts| crossing_of(&pts, at, horizontal))
+            .collect()
+    }
+
     /// The per-connection wire markers, by connection ID.
     fn connection_markers(&mut self, view: &PageView) {
         let markers: Vec<&ConnectionView> = sorted_connections(view)
@@ -1831,26 +1932,13 @@ impl Builder<'_> {
                 continue;
             };
             let entity = EntityRef(c.id.as_uuid());
-            let (orient, angle) = if vertical {
-                (Orient2::R270, Angle2(90_000))
+            let (place, crossing) = if vertical {
+                (MarkerText::Right, at.x)
             } else {
-                (Orient2::R0, Angle2::ZERO)
+                (MarkerText::Above, at.y)
             };
-            if let Some(s) = &view.wire_marker {
-                let key = self.geometry(s, orient);
-                self.push(Item::instance(key, Transform::from_translation(at)).with_entity(entity));
-            }
             let text = cv.marker.clone().unwrap_or_default();
-            self.text(&TextSpec {
-                text: &text,
-                at,
-                angle,
-                align: &Align::Centre,
-                style_key: MARKER_STYLE,
-                entity,
-                link: None,
-                items: &[],
-            });
+            self.wire_marker(view, at, &[crossing], place, &text, entity);
         }
     }
 

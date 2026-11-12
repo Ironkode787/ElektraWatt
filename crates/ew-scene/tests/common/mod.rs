@@ -117,7 +117,6 @@ pub fn blank_page(page: u128) -> PageView {
         reps: Vec::new(),
         connections: Vec::new(),
         junctions: Vec::new(),
-        wire_marker: None,
         table: None,
         embedded: Vec::new(),
         break_marks: Vec::new(),
