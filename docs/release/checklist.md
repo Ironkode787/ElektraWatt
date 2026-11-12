@@ -24,7 +24,7 @@ a fuzz run made by hand, and RC-05's desktop installs are the one install test.
 | RC-06 | The translation status meets NFR-I18N-01; the guide is built and in every installer | The translation report; the guide's folder in the installed tree (WP-S6.06's listing) | The release manager | |
 | RC-07 | The content audit of the bundled assets: licences, provenance, no standards text, no Tahoma (NFR-LIC-06, NFR-COMP-05) | `NOTICE` and the audit's notes | The release manager | |
 | RC-08 | Derivation profiles, format changes and CLI or API changes are listed in the release notes | `docs/release-notes/<X.Y.Z>.md`; `api-guard`'s report against the previous release | The release manager | |
-| RC-09 | The engineering-verification disclaimer is in About, the check panel, the guide and the release report (NFR-COMP-04) | A screenshot of each window place; the guide's page; the report | The release manager | |
+| RC-09 | The engineering-verification disclaimer is in About, the guide and the release report (NFR-COMP-04); the owner removed it from the rest of the window (the check panel, the Approve and Release dialogs) on 2026-11-12 | A screenshot of About; the guide's page; the report | The release manager | |
 | RC-10 | LG-1, the employer copyright statement, is on file (doc 19 §3.3); LG-4 and the steward checklist are 1.0's | The statement, or the owner's statement that no employer's staff contributed (WP-S6.07 §13 O3) | The owner | |
 
 Who is the release manager at 0.1.0 is the owner's choice (WP-S6.07 §13 O4; the recommendation: the owner, the one

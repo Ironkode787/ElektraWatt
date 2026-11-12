@@ -1308,8 +1308,8 @@ rule ID and title in `type.body.strong`; the kind and severity in `type.small` `
 with the reason as tooltip, §6.1); **Rule page** as a link in `color.accent`. The quick-fix card is §6.23's inline
 card. A finding row's Fix status badge is a button too: a click opens the same card for that row (FT-1658: it was a
 label, and a click on it did nothing). A Properties finding chip opens Messages filtered to the record at its first
-row; with several records selected it opens Messages without a filter (FT-1659). The footer sentence ("Checks support, but do not replace, engineering verification.") is `type.caption`
-`color.text.tertiary`.
+row; with several records selected it opens Messages without a filter (FT-1659). The pane has no footer: the owner
+removed its disclaimer sentence on 2026-11-12 (FT-1711); About keeps the one line (NFR-COMP-04).
 
 **History rows** (the History panel, WP-S2.09 part 3; newest first, as built): `size.row` list rows: a 16-px state
 icon column (the current entry `arrow-right` in `color.accent`, an undone entry `arrow-back-up` in

@@ -37,11 +37,11 @@ pub struct Waiver {
     pub rule: Ident,
     /// What the waiver covers.
     pub target: WaiverTarget,
-    /// Why the finding is accepted (at least 10 characters, doc 15 §2.5).
+    /// Why the finding is accepted (doc 15 §2.5); `check.waive` records an empty text when none is given.
     #[schemars(with = "MlTextS")]
     pub reason: MlText,
-    /// Who waived it: the author's display name as the GUI recorded it (FT-494). `check.waive` always sets it; a
-    /// record written while the kind was reserved may lack it and still loads.
+    /// Who waived it: the author's display name as the GUI recorded it (FT-494); absent when the person gave none or
+    /// the record was written while the kind was reserved.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<IdentS>")]
     pub author: Option<Ident>,

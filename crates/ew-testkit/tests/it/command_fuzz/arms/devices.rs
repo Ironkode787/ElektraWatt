@@ -825,9 +825,9 @@ pub(super) fn conductor_specs(
 }
 
 /// `check.waive`: a `HumanOnly` command, which the fuzzer's session (the GUI) may submit. A
-/// well-formed waiver (a rule ID, 32 hex digits, a reason of at least ten characters) of a finding no waiver of
-/// that rule covers yet commits one waiver with the fingerprint in lower case; a malformed rule ID or fingerprint,
-/// a short reason and a finding a waiver already covers (in either case) are refused.
+/// well-formed waiver (a rule ID, 32 hex digits; the reason optional) of a finding no waiver of that rule covers yet
+/// commits one waiver with the fingerprint in lower case; a malformed rule ID or fingerprint and a finding a waiver
+/// already covers (in either case) are refused.
 pub(super) fn check_waive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
     let hex =
         |rng: &mut SplitMix64| -> String { (0..16).map(|_| format!("{:02x}", rng.below(256))).collect() };
@@ -844,7 +844,7 @@ pub(super) fn check_waive(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
         )),
         2 => Some(Step::cmd(
             "check.waive",
-            params("EW-CORE-041", &hex(rng), "too short"),
+            params("EW-CORE-041", &hex(rng), "x"),
         )),
         3 => {
             let (_, rule, fingerprint) = rng.pick(&live.waivers)?;

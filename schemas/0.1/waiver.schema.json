@@ -77,7 +77,7 @@
           "type": "null"
         }
       ],
-      "description": "Who waived it: the author's display name as the GUI recorded it (FT-494). `check.waive` always sets it; a\nrecord written while the kind was reserved may lack it and still loads."
+      "description": "Who waived it: the author's display name as the GUI recorded it (FT-494); absent when the person gave none or\nthe record was written while the kind was reserved."
     },
     "date": {
       "anyOf": [
@@ -96,7 +96,7 @@
     },
     "reason": {
       "$ref": "#/$defs/MlText",
-      "description": "Why the finding is accepted (at least 10 characters, doc 15 §2.5)."
+      "description": "Why the finding is accepted (doc 15 §2.5); `check.waive` records an empty text when none is given."
     },
     "rule": {
       "$ref": "#/$defs/Ident",

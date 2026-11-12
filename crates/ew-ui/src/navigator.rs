@@ -337,22 +337,17 @@ impl NavigatorPane {
         if pages {
             reorder_card(ui, shell, events);
         }
-        // The message panel's header line and quick-fix card above the rows, its detail block and
-        // footer below them.
+        // The message panel's header line and quick-fix card above the rows, its detail block below them.
         if self.kind == NavKind::Messages {
             crate::messages::header(ui, shell, events);
-            // Header, the rows in their own scroll area, the detail block (as tall as its content, and
-            // never so tall that fewer than two rows fit), then the footer, which is always on show.
+            // Header, the rows in their own scroll area, then the detail block (as tall as its content, and
+            // never so tall that fewer than two rows fit).
             let row = row_height(ui.ctx());
-            // The footer and the detail block keep the pane's `space.4` gutter.
+            // The detail block keeps the pane's `space.4` gutter.
             let frame = egui::Frame::new().inner_margin(egui::Margin::symmetric(
                 crate::theme::margin_px(t.space_4),
                 crate::theme::margin_px(t.space_1),
             ));
-            egui::Panel::bottom(ui.scope_id().with("messages-footer"))
-                .resizable(false)
-                .frame(frame)
-                .show(ui, crate::messages::footer);
             if shell.messages_detail().is_some() {
                 let pane = ui.available_height();
                 // The detail block is as tall as its content (measured on the last frame; half the pane

@@ -67,8 +67,28 @@ fn waive_records_a_waiver_and_unwaive_removes_it_each_one_undo_step() {
     assert_eq!(lines(e.model()), before);
 }
 
-/// The parameter checks: the rule ID's form, the fingerprint's 32 hex digits, a reason of at least ten characters in
-/// every language; a second waiver of the same finding is rejected naming its rule; an unknown waiver is invalid.
+/// The reason and the author are optional, of any length: a waiver without either commits with an empty reason and
+/// no author, and a one-character reason commits too.
+#[test]
+fn waive_takes_no_reason_and_no_author() {
+    let mut e = engine(golden_model());
+    let mut bare = w1();
+    let params = bare.as_object_mut().unwrap();
+    params.remove("reason");
+    params.remove("author");
+    e.execute(&waive(bare)).expect("a waiver without reason and author commits");
+    let [w] = waivers(&e).try_into().expect("one waiver");
+    assert!(w.reason.is_empty());
+    assert_eq!(w.author, None);
+    let mut short = w1();
+    short["rule"] = json!("EW-POT-009");
+    short["reason"] = json!("x");
+    e.execute(&waive(short)).expect("a one-character reason commits");
+    assert_eq!(waivers(&e).len(), 2);
+}
+
+/// The parameter checks: the rule ID's form, the fingerprint's 32 hex digits; a second waiver of the same finding is
+/// rejected naming its rule; an unknown waiver is invalid.
 #[test]
 fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
     let mut e = engine(golden_model());
@@ -82,13 +102,6 @@ fn waive_checks_its_parameters_and_refuses_a_second_waiver_of_one_finding() {
             json!("zz2e5a0b7d14f3e8a6c1b05d2e9f41ab"),
             "/fingerprint",
         ),
-        ("reason", json!({"en-GB": "too short"}), "/reason"),
-        (
-            "reason",
-            json!({"en-GB": "long enough in English", "nl-NL": "te kort"}),
-            "/reason",
-        ),
-        ("reason", json!({}), "/reason"),
     ];
     for (member, value, path) in cases {
         let mut params = w1();
