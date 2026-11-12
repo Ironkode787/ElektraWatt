@@ -50,6 +50,7 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 - FT-1674 `ew-import-qet, ew-checks`: The 21 EW-IMP rules of a migration report read in English in a Dutch window: their message is the importer's own text, stored in the project. Wording them per language needs their arguments stored instead, which changes the format.
 - FT-1675 `ew-checks, ew-viewmodel`: Three texts name a thing by its ID or path: EW-REL-004 prints a revision's ID, EW-CORE-008 a form copy's ID, and the refusal of `image.file` the file's path; name them in words.
+
 ### Symbols, parts and content
 
 - FT-1667 `content`: The starter contactor EW-GEN-CON-1 is filed as a relay (its category is its coil's), so the browser lists it under Relays and nothing under Contactors. Decide its category, and with it its letter (K or Q), in the starter parts.
