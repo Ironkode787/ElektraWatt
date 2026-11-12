@@ -152,8 +152,9 @@ pub struct IpMemory {
     /// The last committed direction.
     pub last_direction: IpDir,
     /// The name typed in Tool options (`ip.name`) that is still to be used: the next point the IP tool or the Wire
-    /// tool's P places takes it unchanged. A source the IP tool places leaves it standing, so the next click places
-    /// the target of that name and a pair needs its name typed once (FT-1657); any other point takes it, and it is
+    /// tool's P places takes it unchanged. A point the IP tool places without its partner (a source of a new name, a
+    /// target no source feeds) leaves it standing, so the next click places the partner of that name and a pair needs
+    /// its name typed once (FT-1657); a point that makes the pair whole takes it, any other point too, and it is
     /// cleared (a name left standing would join the next wires to the pair unseen). It outlives a switch of tools,
     /// so a name typed with the IP tool armed names the end of the next wire ended with P.
     pub typed: Option<String>,
@@ -254,13 +255,27 @@ impl ProjectIps {
     pub fn has_source(&self, name: &str) -> bool {
         self.sources.iter().any(|(n, _)| n == name)
     }
+
+    /// Whether a point named `name` of `direction`, placed in the project as read here (before it), still lacks its
+    /// partner: a source whose name no other point has (or only another source, a star's), a target whose name has no
+    /// source. A pair once whole lacks nothing; a further target of it is a choice, not a missing partner.
+    pub fn lacks_partner(&self, name: &str, direction: IpDir) -> bool {
+        match direction {
+            IpDir::Source => !self.names.contains(name) || self.has_source(name),
+            IpDir::Target => !self.has_source(name),
+            IpDir::Undirected => false,
+        }
+    }
 }
 
 /// The name and direction an interruption point gets from the proposal `base`: `auto` is the direction the page's
 /// quarters or the memory give (`chosen` false) or the one D chose (`chosen` true). With `typed` the name is the
 /// user's, unchanged, and an automatic `source` whose name has a source in the project already, without a star,
 /// becomes `target` with that name (the first point of a name is its source, the next ones its targets, on the
-/// same page too): only a name the user gives joins two points. Otherwise the point
+/// same page too), and an automatic `target` whose name has points but no source becomes its `source`: the tool
+/// offers the partner a lone point lacks, never a second point of its direction (a target placed first by the
+/// page's left quarter, then "L1-1 target" offered: the persona round of 0.2.0-rc.2). Only a name the user gives
+/// joins two points. Otherwise the point
 /// keeps `auto` and takes the first name of the series that no interruption point of the project has
 /// ([`ProjectIps::free_name`]), read from the model at the moment of naming, so a reopen, an undo or a paste
 /// never repeats a name.
@@ -276,10 +291,11 @@ pub fn propose(
     if !typed {
         return (project.free_name(base, tables), auto);
     }
-    let direction = if !chosen && !star && auto == IpDir::Source && project.has_source(base) {
-        IpDir::Target
-    } else {
-        auto
+    let direction = match auto {
+        _ if chosen || star => auto,
+        IpDir::Source if project.has_source(base) => IpDir::Target,
+        IpDir::Target if project.names.contains(base) && !project.has_source(base) => IpDir::Source,
+        _ => auto,
     };
     (base.to_owned(), direction)
 }
@@ -935,17 +951,14 @@ impl Tool for IpTool {
     fn on_commit(&mut self, done: bool) {
         let pending = self.pending.take();
         if let (true, Some((name, direction))) = (done, pending) {
-            // An external connection point is not remembered: the next interruption point's proposal goes on from
-            // the last one.
-            if self.external.is_none() {
-                self.memory.last_name = Some(name);
-                self.memory.last_direction = direction;
-            }
-            // A typed name stays after its source, for the target (FT-1657: the tool renamed itself "L1-1" after
-            // the first "L1" and placed a second source); any other point takes it. A chosen direction stays, but
-            // not `source` for the name left standing, whose next point is its target.
-            if self.typed.is_some() && direction == IpDir::Source && self.external.is_none() {
-                if self.chosen == Some(IpDir::Source) {
+            // A typed name stays while its point lacks its partner: after its source, for the target (FT-1657: the
+            // tool renamed itself "L1-1" after the first "L1" and placed a second source), and after a target that no
+            // source feeds, for the source (the persona round of 0.2.0-rc.2); a point that makes the pair whole takes
+            // it. A chosen direction stays, but not the one just placed for the name left standing, whose next point
+            // is its partner.
+            if self.typed.is_some() && self.external.is_none() && self.project.lacks_partner(&name, direction)
+            {
+                if self.chosen == Some(direction) {
                     self.chosen = None;
                 }
             } else {
@@ -953,6 +966,12 @@ impl Tool for IpTool {
                 self.memory.typed = None;
             }
             self.star = false;
+            // An external connection point is not remembered: the next interruption point's proposal goes on from
+            // the last one.
+            if self.external.is_none() {
+                self.memory.last_name = Some(name);
+                self.memory.last_direction = direction;
+            }
         }
     }
 

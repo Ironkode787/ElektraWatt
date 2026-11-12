@@ -643,7 +643,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "location?:text, part?:text",
+        "location?:text, part?:text, new_location?:text",
         placed(
             place(Group::Project, 3, CommandSize::Small, Some(key!("bar-enclosure"))),
             "door",

@@ -1023,11 +1023,9 @@ fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
             strings::text(key!("toast-strip-new-no-example")).to_owned()
         ),
         (
-            "Klemmenstrook gemaakt: -X5. Plaats de klemmen met Tekenen ▸ Symbool… en het klemsymbool; de keuzelijst van \
-             het symbool toont haar."
-                .to_owned(),
-            "Klemmenstrook gemaakt. Het kenmerk volgt bij de eerste klem: Tekenen ▸ Symbool… en het klemsymbool; de \
-             keuzelijst van het symbool toont haar."
+            "Nieuwe klemmenstrook -X5: Tekenen ▸ Symbool…, het klemsymbool, de strook in de keuzelijst.".to_owned(),
+            "Nieuwe klemmenstrook; de eerste klem geeft haar kenmerk: Tekenen ▸ Symbool…, het klemsymbool, de strook in \
+             de keuzelijst."
                 .to_owned()
         )
     );

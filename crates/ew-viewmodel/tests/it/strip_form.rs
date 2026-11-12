@@ -104,8 +104,7 @@ fn the_new_strip_form_holds_the_example_tag_and_leaves_it_derived() {
     assert_ne!(current_strip_tag(&s), "-101X1", "derived, not frozen");
     assert_eq!(
         toast(&s),
-        "Created a terminal strip. It takes its tag, such as -101X1, when its first terminal is placed: Draw \u{25b8} \
-         Symbol\u{2026} and the terminal symbol, whose strip picker lists it."
+        "New terminal strip; its first terminal tags it, such as -101X1: Draw ▸ Symbol…, the terminal symbol, the strip in its picker."
     );
 }
 
@@ -122,8 +121,7 @@ fn a_tag_typed_in_the_form_is_frozen_in_the_creating_commit() {
     assert_eq!(current_strip_tag(&s), "-X5");
     assert_eq!(
         toast(&s),
-        "Created terminal strip -X5. Place its terminals with Draw \u{25b8} Symbol\u{2026} and the terminal symbol, \
-         whose strip picker lists it."
+        "New terminal strip -X5: Draw ▸ Symbol…, the terminal symbol, the strip in its picker."
     );
     // One Undo step takes the strip and its tag away.
     done(&mut s, "edit.undo", json!({}));

@@ -36,6 +36,9 @@ pub struct TitleBlockFacts {
     /// Whether the page's frame or title block writes texts of its own (a cell without a placeholder, as an
     /// imported QElectroTech template does): they are not fields.
     pub fixed_texts: bool,
+    /// The next free revision label in the project's label format: after the greatest label of a revision (a
+    /// withdrawal record passed over), else the format's first; `None` for a format of a newer build.
+    pub revision_next: Option<String>,
 }
 
 /// The placeholder paths of a template (`"Drawing: {project.drawing_id | default(-)}"` names `project.drawing_id`):
@@ -112,6 +115,17 @@ impl Session {
             revision_author: role(current.as_ref().and_then(|r| r.author.as_ref())),
             revision_checker: role(current.as_ref().and_then(|r| r.checker.as_ref())),
             fixed_texts,
+            revision_next: project
+                .settings
+                .revision_label_format()
+                .next_after(
+                    q.table::<Revision>()
+                        .iter()
+                        .map(|(_, r)| r)
+                        .filter(|r| !r.is_withdrawal())
+                        .map(|r| r.label.as_str()),
+                )
+                .map(|l| l.to_string()),
         })
     }
 }

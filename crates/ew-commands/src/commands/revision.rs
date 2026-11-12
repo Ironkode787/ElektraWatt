@@ -166,7 +166,7 @@ impl Command for CreateRevision {
             }
         }
         let format = tx.project().settings.revision_label_format();
-        refuse_label_out_of_order(&format, &self.label, &state, &revisions)?;
+        refuse_label_out_of_order(&format, &self.label, &state, &revisions, &revisions)?;
         let id: Id<Revision> = tx.mint();
         tx.insert(Revision {
             id,
@@ -190,7 +190,9 @@ impl Command for CreateRevision {
 }
 
 /// EW-REL-004's prevent half for `fields.set label` on the open revision `target` (ADR-0009: a prevent rule
-/// holds for every interactive transaction): the new label is judged as an open revision's among the other revisions.
+/// holds for every interactive transaction): the new label is judged as an open revision's among the other revisions,
+/// and the refusal's next free label follows every revision's, the target's own too (it named the label the open
+/// revision already had: "the next label is V1.0" for an edit of V1.0, the persona round of 0.2.0-rc.2).
 /// A value that is not a label is left to the field's own refusal, and a label another revision has to EW-INV-017.
 pub(crate) fn refuse_label_edit_out_of_order(
     tx: &TxBuilder<'_>,
@@ -200,20 +202,18 @@ pub(crate) fn refuse_label_edit_out_of_order(
     let Some(label) = value.as_str().and_then(|v| v.parse::<Ident>().ok()) else {
         return Ok(());
     };
-    let others: Vec<Arc<Revision>> = tx
-        .iter::<Revision>()
-        .into_iter()
-        .filter(|r| r.id != target)
-        .collect();
+    let all = tx.iter::<Revision>();
+    let others: Vec<Arc<Revision>> = all.iter().filter(|r| r.id != target).cloned().collect();
     if others.iter().any(|r| !r.is_withdrawal() && r.label == label) {
         return Ok(());
     }
     let format = tx.project().settings.revision_label_format();
-    refuse_label_out_of_order(&format, &label, &RevisionState::Open, &others)
+    refuse_label_out_of_order(&format, &label, &RevisionState::Open, &others, &all)
 }
 
 /// The prevent half of EW-REL-004 (doc 15 §4.8, §5.2; FR-REV-002) for a new revision in `state` among `revisions`:
-/// the label is in `format`; an open revision's label follows every label in the format; a historic released
+/// the label is in `format`; an open revision's label follows every label in the format (the refusal names the next
+/// free label, the one after every label of `taken`); a historic released
 /// revision's label precedes the open revision's, so the open revision stays the last in order (withdrawal records
 /// repeat a label and are passed over; labels out of the format are the gate's findings, not a bound). A format of a
 /// newer build is not judged.
@@ -222,6 +222,7 @@ fn refuse_label_out_of_order(
     label: &Ident,
     state: &RevisionState,
     revisions: &[Arc<Revision>],
+    taken: &[Arc<Revision>],
 ) -> Result<(), CmdError> {
     if matches!(format, LabelFormat::Unknown(_)) {
         return Ok(());
@@ -231,7 +232,12 @@ fn refuse_label_out_of_order(
     // The finding by key, its English the one the CLI prints.
     let next = || -> crate::text::TextArg {
         let n = if opening {
-            format.next_after(current().map(|r| r.label.as_str()))
+            format.next_after(
+                taken
+                    .iter()
+                    .filter(|r| !r.is_withdrawal())
+                    .map(|r| r.label.as_str()),
+            )
         } else {
             None
         };

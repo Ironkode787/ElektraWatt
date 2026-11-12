@@ -78,7 +78,12 @@ fn a_renamed_point_says_its_base_is_taken_in_the_hud_and_the_toast() {
         )
     );
     done(&mut s, "canvas.activate", json!({}));
-    assert_eq!(toast(&s), "0V is taken, so this point is 0V-1.");
+    // Then what the click placed (a free point has no result line of its own).
+    let said = toast(&s);
+    assert!(
+        said.starts_with("0V is taken, so this point is 0V-1. Placed 0V-1 as a source"),
+        "{said}"
+    );
 }
 
 /// The IP tool's refusal of a point dropped on the interruption point Q9, as the canvas hint shows it.
@@ -91,6 +96,11 @@ fn refuse_ip_on_ip(s: &mut ShellModel) {
     done(s, "ip.name", json!({"text": "Q9"}));
     done(s, "cursor.set", json!({"x_mm": 200.0, "y_mm": 40.0}));
     done(s, "canvas.activate", json!({}));
+    // The same form again (Q9 waits for its partner, which has the other form), so the second point's connection point
+    // lies on the first's.
+    let partner = ghost(s)["direction"].as_str().unwrap_or_default().to_owned();
+    let same = if partner == "source" { "target" } else { "source" };
+    done(s, "tool.ip_direction", json!({"direction": same}));
     assert_eq!(
         common::refused(s, "canvas.activate", json!({})),
         "reason-ip-not-placed"

@@ -356,7 +356,7 @@ pub fn show(
                     );
                 }
             }
-            submit |= form_fields(ui, form, just_opened, primary_disabled, events);
+            submit |= form_fields(ui, shell, form, just_opened, primary_disabled, events);
         }
         Dialog::PartChoose(c) => crate::part_dialog::chooser(ui, shell, c, just_opened, events),
         Dialog::PartEdit(e) => crate::part_dialog::editor(ui, e, just_opened, events),
@@ -412,6 +412,7 @@ pub fn show(
 /// Enter in a text field submits the form.
 fn form_fields(
     ui: &mut Ui,
+    shell: &ShellModel,
     form: &FormDialog,
     just_opened: bool,
     primary_disabled: bool,
@@ -486,8 +487,10 @@ fn form_fields(
                 let combo = egui::ComboBox::from_id_salt(("form-option", f.name))
                     .selected_text(shown)
                     .width(ui.available_width())
+                    .height(list_height(ui))
                     .icon(crate::components::combo_chevron)
                     .show_ui(ui, |ui| {
+                        menu_rows(ui, &t);
                         for (value, words) in &f.options {
                             if ui.selectable_label(f.value == *value, words).clicked() {
                                 events.push(Event::FormField(f.name, value.clone()));
@@ -522,8 +525,10 @@ fn form_fields(
                 let combo = egui::ComboBox::from_id_salt(("form-choice", f.name))
                     .selected_text(strings::choice_text(&f.value))
                     .width(ui.available_width())
+                    .height(list_height(ui))
                     .icon(crate::components::combo_chevron)
                     .show_ui(ui, |ui| {
+                        menu_rows(ui, &t);
                         for choice in f.choices {
                             let word = strings::choice_text(choice);
                             if ui.selectable_label(f.value == *choice, word).clicked() {
@@ -541,33 +546,71 @@ fn form_fields(
         });
         // A field's line under it, in the field column, `type.small` secondary. Window check F3 (doc 16a
         // §6.12): the line sits with its field, `space.1` under it, and the row gap follows it to the next field.
-        if let Some(note) = form.note(f.name) {
-            ui.add_space(t.space_1 - ui.spacing().item_spacing.y);
-            ui.scope(|ui| {
-                // The row is the line's own height, not a control's, so the line is not centred between the fields.
-                ui.spacing_mut().interact_size.y = 0.0;
-                ui.horizontal(|ui| {
-                    ui.add_space(label_width + t.space_3);
-                    ui.add(
-                        egui::Label::new(
-                            egui::RichText::new(note)
-                                .font(crate::theme::font(&t.type_small))
-                                .color(t.text_secondary.color32()),
-                        )
-                        .wrap(),
-                    );
-                });
-            });
+        if let Some(note) = shell.form_note(form, f.name) {
+            field_line(ui, &t, label_width, note);
         }
+    }
+    // The form's line at its foot, in the field column as a field's line (Title block fields' Checked).
+    if let Some(foot) = shell.form_foot(form) {
+        field_line(ui, &t, label_width, foot);
     }
     // Save as macro's value-set table under the fields, the refusal under it.
     if let Some(table) = &form.table {
         crate::value_table::show(ui, table, events);
     }
+    // The refusal under the fields keeps the room it took while the form is open: when it goes (the field is changed),
+    // the dialog keeps its height and no button moves under the pointer (the persona round of 0.2.0-rc.2: Apply
+    // jumped up and the click missed it).
+    let room_id = egui::Id::unique(("form-error-room", form.action));
+    if just_opened {
+        ui.data_mut(|d| d.remove::<f32>(room_id));
+    }
+    let room = ui.data(|d| d.get_temp::<f32>(room_id)).unwrap_or(0.0);
+    let top = ui.cursor().top();
     if let Some(error) = &form.error {
         ui.colored_label(t.error.color32(), error);
     }
+    let used = ui.cursor().top() - top;
+    if used < room {
+        ui.add_space(room - used);
+    } else {
+        ui.data_mut(|d| d.insert_temp(room_id, used));
+    }
     submit
+}
+
+/// A line in a form's field column under the row above it: `space.1` under it, `type.small` secondary, wrapped.
+fn field_line(ui: &mut Ui, t: &crate::theme::Tokens, label_width: f32, line: String) {
+    ui.add_space(t.space_1 - ui.spacing().item_spacing.y);
+    ui.scope(|ui| {
+        // The row is the line's own height, not a control's, so the line is not centred between the fields.
+        ui.spacing_mut().interact_size.y = 0.0;
+        ui.horizontal(|ui| {
+            ui.add_space(label_width + t.space_3);
+            ui.add(
+                egui::Label::new(
+                    egui::RichText::new(line)
+                        .font(crate::theme::font(&t.type_small))
+                        .color(t.text_secondary.color32()),
+                )
+                .wrap(),
+            );
+        });
+    });
+}
+
+/// The height a form's list opens to: every choice in view without a scroll (New page's thirteen types, Panel
+/// layout among the last: the list opened on six of them and hid the rest below its fold, the persona round of
+/// 0.2.0-rc.2), up to three quarters of the window; the list opens on whichever side of its field has the room.
+fn list_height(ui: &Ui) -> f32 {
+    ui.ctx().content_rect().height() * 0.75
+}
+
+/// A form list's rows are menu rows (doc 16a §4.9: `size.row`, no gap), so New page's thirteen types stand under their
+/// field at the 1280 × 800 floor.
+fn menu_rows(ui: &mut Ui, t: &crate::theme::Tokens) {
+    ui.spacing_mut().interact_size.y = t.size_row;
+    ui.spacing_mut().item_spacing.y = 0.0;
 }
 
 /// The width of a form's label column: `floor` (`size.dialog.label`), grown to the `widest` label, at most half of

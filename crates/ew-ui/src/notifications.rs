@@ -110,8 +110,8 @@ pub(crate) fn tone_icon(t: &Tokens, tone: NoteTone) -> (IconId, theme::Rgba) {
 pub(crate) const TOAST_SHARE: f32 = 0.22;
 
 /// The rows a toast's line wraps to before it is cut (a refusal's reason is never cut at one line; what does
-/// not fit in three rows is in the HUD, the log and the tooltip).
-pub(crate) const LINE_ROWS: usize = 3;
+/// not fit in four rows is in the HUD, the log and the tooltip).
+pub(crate) const LINE_ROWS: usize = 4;
 
 /// The rows a toast's title wraps to before it is cut (a disabled command's reason is never cut at one line;
 /// the whole text is in the toast's tooltip).
@@ -223,7 +223,7 @@ fn toast(
                                 .accesskit_node_builder(response.id, |node| node.set_label(name));
                         }
                         (_, None) => {
-                            // Doc 16a §6.10: a long text wraps up to three rows, then is cut with an
+                            // Doc 16a §6.10: a long text wraps up to four rows, then is cut with an
                             // ellipsis; the whole text is the toast's tooltip.
                             let response = ui.add(
                                 egui::Label::new(line_job(
@@ -526,9 +526,9 @@ mod tests {
         assert_eq!(toast_width(&t, 200.0), 200.0);
     }
 
-    /// A refusal's reason wraps at word boundaries up to three rows, then is cut with an ellipsis.
+    /// A refusal's reason wraps at word boundaries up to four rows, then is cut with an ellipsis.
     #[test]
-    fn the_line_wraps_up_to_three_rows() {
+    fn the_line_wraps_up_to_four_rows() {
         let ctx = egui::Context::default();
         let reason =
             "0V already has a source on page 101. Press D for a target, or mark one source as the star.";
@@ -544,7 +544,7 @@ mod tests {
             let wide = ui.painter().layout_job(job);
             assert!(
                 short.elided && !wide.elided,
-                "cut only when three rows do not hold it"
+                "cut only when four rows do not hold it"
             );
             rows = (short.rows.len(), wide.rows.len());
         });

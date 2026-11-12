@@ -555,11 +555,41 @@ fn fill_orders() -> Vec<(String, String)> {
     ]
 }
 
-/// The registry's label of Structure node… (`structure.new`), as the texts that name it print it.
-fn structure_new_label() -> String {
-    crate::actions::find("structure.new")
-        .map(|a| strings::text(Key::run_time(&a.label_key())).to_owned())
-        .unwrap_or_default()
+/// The value of the Create enclosure dialog's first location choice, "New location": a location node made with the
+/// code of the field under it. A location's own value is its ID, so the word never names one.
+pub(super) const NEW_LOCATION: &str = "new";
+
+/// The Create enclosure form's field of the new location's code, under its location: there while the location is
+/// "New location" (with `code` proposed when it comes), gone for an existing one.
+pub(super) fn new_location_field(form: &mut super::FormDialog, code: &str) {
+    let new = form
+        .fields
+        .iter()
+        .any(|f| f.name == "location" && f.value == NEW_LOCATION);
+    let at = form.fields.iter().position(|f| f.name == "new_location");
+    match (new, at) {
+        (true, None) => {
+            let after = form
+                .fields
+                .iter()
+                .position(|f| f.name == "location")
+                .map_or(0, |i| i + 1);
+            form.fields.insert(
+                after,
+                super::FormField {
+                    name: "new_location",
+                    label_key: key!("form-enclosure-new-location"),
+                    choices: &super::choices::NONE,
+                    options: Vec::new(),
+                    value: code.to_owned(),
+                },
+            );
+        }
+        (false, Some(i)) => {
+            form.fields.remove(i);
+        }
+        _ => {}
+    }
 }
 
 /// The draw tool's carrier kind (`rail`, `duct`) of the tool name `name`.
@@ -722,27 +752,29 @@ impl ShellModel {
         Outcome::Done
     }
 
-    /// `layout.enclosure_new {location, part}` (Project ▸ Enclosure…, D7, D10): `layout.enclosure.create_from_part` of
-    /// the location (its code or ID) with the enclosure part (its number or ID: a project copy, or an installed
-    /// library's part, embedded through `copies` with its plate part), the focused page's function as the
-    /// enclosure device's. In the window without both the Create enclosure dialog opens (the focused page's location
-    /// and the first part chosen); a refusal stays under its fields.
+    /// `layout.enclosure_new {location, part, new_location?}` (Project ▸ Enclosure…, D7, D10):
+    /// `layout.enclosure.create_from_part` of the location (its code or ID) with the enclosure part (its number or ID:
+    /// a project copy, or an installed library's part, embedded through `copies` with its plate part), the focused
+    /// page's function as the enclosure device's. The location `new` (the form's first choice, "New location"), or
+    /// `new_location` given alone, makes the location node of the code `new_location` first (`structure.create_node`,
+    /// one undo step more; a code an existing location has takes that location), so a new project gets its panel
+    /// layout without a detour through Structure node… (the persona round of 0.2.0-rc.2: Enclosure… was disabled in a
+    /// project without a location). If the enclosure is refused after the node is made, the node is taken back. In the
+    /// window without a location and a part the Create enclosure dialog opens (the focused page's location, else a new
+    /// one, and the first part chosen); a refusal stays under its fields.
     pub(crate) fn act_layout_enclosure_new(&mut self, p: &Map<String, Value>) -> Outcome {
         const ACTION: &str = "layout.enclosure_new";
-        // A project without a location has nowhere to put an enclosure: the menu disables the entry with this text
-        // and the action refuses with it.
-        if let Some(reason) = self.enclosure_new_reason() {
-            self.tools.notice = Some(reason);
-            self.tools.notice_sticky = false;
-            return Outcome::refused(key!("enclosure-new-no-location"));
-        }
         let given = |name: &str| {
             p.get(name)
                 .and_then(Value::as_str)
                 .map(|s| s.trim().to_owned())
                 .filter(|s| !s.is_empty())
         };
-        let (location, part) = (given("location"), given("part"));
+        let new_code = given("new_location");
+        let (location, part) = (
+            given("location").or_else(|| new_code.as_ref().map(|_| NEW_LOCATION.to_owned())),
+            given("part"),
+        );
         let (Some(location), Some(part)) = (location.clone(), part.clone()) else {
             let missing = if location.is_none() { "location" } else { "part" };
             return match self.mode {
@@ -767,12 +799,36 @@ impl ShellModel {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let found = project.session.layout_locations().into_iter().find(|(id, code)| {
-            id.to_string() == location || *code == location || code.trim_start_matches('+') == location
-        });
-        let Some((location_id, location_code)) = found else {
-            let message = strings::format(key!("error-no-location"), &[&location]);
-            return self.form_failed(ACTION, message);
+        let locations = project.session.layout_locations();
+        let named = |text: &str| {
+            locations
+                .iter()
+                .find(|(id, code)| {
+                    id.to_string() == text || code == text || code.trim_start_matches('+') == text
+                })
+                .cloned()
+        };
+        // An existing location, else the new one's code (its sign taken off, as Structure node… takes it).
+        let target = match named(&location) {
+            Some(found) => Ok(found),
+            None if location == NEW_LOCATION => {
+                let Some(code) = new_code else {
+                    let message = strings::text(key!("reason-enclosure-new-location")).to_owned();
+                    return self.form_failed(ACTION, message);
+                };
+                match super::creation::strip_sign("location", &code) {
+                    Ok(code) if code.is_empty() => {
+                        let message = strings::text(key!("reason-enclosure-new-location")).to_owned();
+                        return self.form_failed(ACTION, message);
+                    }
+                    Ok(code) => named(&code).ok_or(code),
+                    Err(message) => return self.form_failed(ACTION, message),
+                }
+            }
+            None => {
+                let message = strings::format(key!("error-no-location"), &[&location]);
+                return self.form_failed(ACTION, message);
+            }
         };
         let offer = project
             .session
@@ -784,6 +840,29 @@ impl ShellModel {
             return self.form_failed(ACTION, message);
         };
         let function = page.and_then(|pg| project.session.page_structure(pg).1);
+        // The new location node first, its own undo step.
+        let made = target.is_err();
+        let (location_id, location_code) = match target {
+            Ok(found) => found,
+            Err(code) => {
+                let out = self.host_create(
+                    "structure.create_node",
+                    json!({"aspect": "location", "code": code}),
+                );
+                if out != Outcome::Done {
+                    return self.layout_form_done(ACTION, out);
+                }
+                let node = self.project.as_ref().and_then(|p| {
+                    p.session.layout_locations().into_iter().find(|(id, c)| {
+                        c.trim_start_matches('+') == code && !locations.iter().any(|(l, _)| l == id)
+                    })
+                });
+                let Some(node) = node else {
+                    return self.layout_form_done(ACTION, Outcome::refused(key!("reason-no-project")));
+                };
+                node
+            }
+        };
         let mut params = json!({
             "location": location_id.to_string(),
             "part": offer.part.to_string(),
@@ -794,13 +873,21 @@ impl ShellModel {
         if !offer.copies.is_empty() {
             params["copies"] = Value::Array(offer.copies);
         }
-        let before = project.session.surface_choices();
+        let before = self
+            .project
+            .as_ref()
+            .map(|p| p.session.surface_choices())
+            .unwrap_or_default();
         let words = if offer.description.is_empty() {
             offer.number.clone()
         } else {
             offer.description.clone()
         };
         let out = self.host_create("layout.enclosure.create_from_part", params);
+        // All or nothing: a refused enclosure takes back the location node made for it.
+        if made && out != Outcome::Done {
+            let _ = self.act_undo();
+        }
         let out = self.layout_form_done(ACTION, out);
         if out == Outcome::Done {
             let shown = self.show_new_surface(page, &before);
@@ -852,8 +939,27 @@ impl ShellModel {
         }
     }
 
-    /// The Create enclosure dialog: the location (the given one, else the focused page's, else the first)
-    /// and the enclosure part (the given one, else the first: the project's copies, then the libraries' parts).
+    /// The code Create enclosure proposes for a new location: `CAB1`, else the first `CAB<n>` no location of the
+    /// project has (Structure node… proposes no code; a cabinet is what the location of a panel layout names).
+    pub(super) fn proposed_location_code(&self) -> String {
+        let locations = self
+            .project
+            .as_ref()
+            .map(|p| p.session.layout_locations())
+            .unwrap_or_default();
+        (1..=locations.len() + 1)
+            .map(|n| format!("CAB{n}"))
+            .find(|c| {
+                !locations
+                    .iter()
+                    .any(|(_, code)| code.trim_start_matches('+') == c)
+            })
+            .unwrap_or_default()
+    }
+
+    /// The Create enclosure dialog: the location (the given one, else the focused page's, else the first, else a new
+    /// one: the list's first choice "New location", with its code proposed in the field under it) and the enclosure
+    /// part (the given one, else the first: the project's copies, then the libraries' parts).
     fn enclosure_form(&self, location: Option<String>, part: Option<String>) -> super::FormDialog {
         let page = self.focused_page_id();
         let (locations, parts, page_location) = match &self.project {
@@ -868,11 +974,17 @@ impl ShellModel {
             .or_else(|| page_location.map(|l| l.to_string()))
             .filter(|l| locations.iter().any(|(id, _)| id.to_string() == *l))
             .or_else(|| locations.first().map(|(id, _)| id.to_string()))
-            .unwrap_or_default();
+            .unwrap_or_else(|| NEW_LOCATION.to_owned());
         let part = part
             .or_else(|| parts.first().map(|o| o.part.to_string()))
             .unwrap_or_default();
-        super::FormDialog {
+        let options = std::iter::once((
+            NEW_LOCATION.to_owned(),
+            strings::text(key!("enclosure-new-location")).to_owned(),
+        ))
+        .chain(locations.iter().map(|(id, code)| (id.to_string(), code.clone())))
+        .collect();
+        let mut form = super::FormDialog {
             action: "layout.enclosure_new",
             title_key: key!("enclosure-new-title"),
             ok_key: key!("enclosure-new-ok"),
@@ -881,10 +993,7 @@ impl ShellModel {
                     name: "location",
                     label_key: key!("form-enclosure-location"),
                     choices: &super::choices::NONE,
-                    options: locations
-                        .iter()
-                        .map(|(id, code)| (id.to_string(), code.clone()))
-                        .collect(),
+                    options,
                     value: location,
                 },
                 super::FormField {
@@ -907,7 +1016,9 @@ impl ShellModel {
             ],
             error: None,
             table: None,
-        }
+        };
+        new_location_field(&mut form, &self.proposed_location_code());
+        form
     }
 
     /// The rail Auto-fill rail fills by default: the selected rail, else the page's first rail.
@@ -936,22 +1047,9 @@ impl ShellModel {
             .collect()
     }
 
-    /// Why Project ▸ Enclosure… is disabled in a project that can be changed: the project has no location
-    /// yet ("The project has no location yet; add one with Structure node… first.", named by the registry's label);
-    /// `None` when it has one, or no project is open.
-    pub fn enclosure_new_reason(&self) -> Option<String> {
-        let project = self.project.as_ref()?;
-        if !project.session.layout_locations().is_empty() {
-            return None;
-        }
-        Some(strings::format(
-            key!("enclosure-new-no-location"),
-            &[&structure_new_label()],
-        ))
-    }
-
-    /// Why the Create enclosure dialog's Create is disabled: its location is empty ("Choose a location"),
-    /// else its part ("Type or choose a part number"); `None` while both are given or another dialog is open.
+    /// Why the Create enclosure dialog's Create is disabled: its location is empty ("Choose a location"), or new
+    /// without a code, else its part ("Type or choose a part number"); `None` while all are given or another dialog
+    /// is open.
     pub fn enclosure_create_reason(&self) -> Option<String> {
         let Some(super::Dialog::Form(f)) = &self.dialog else {
             return None;
@@ -964,8 +1062,14 @@ impl ShellModel {
                 .iter()
                 .any(|x| x.name == name && x.value.trim().is_empty())
         };
+        let new = f
+            .fields
+            .iter()
+            .any(|x| x.name == "location" && x.value == NEW_LOCATION);
         if empty("location") {
             Some(strings::text(key!("reason-enclosure-location")).to_owned())
+        } else if new && empty("new_location") {
+            Some(strings::text(key!("reason-enclosure-new-location")).to_owned())
         } else if empty("part") {
             Some(strings::text(key!("reason-enclosure-part")).to_owned())
         } else {
@@ -973,21 +1077,14 @@ impl ShellModel {
         }
     }
 
-    /// The Create enclosure dialog's lines when a list has nothing to offer: no location yet (the user adds one with
-    /// Structure node…, named by its registry label), no enclosure part in the project or an installed library. The
-    /// fields then take typed text (a location's code, a part number).
+    /// The Create enclosure dialog's line when its part list has nothing to offer: no enclosure part in the project
+    /// or an installed library. The field then takes a typed part number.
     pub fn enclosure_form_notes(&self) -> Vec<String> {
         let Some(super::Dialog::Form(f)) = &self.dialog else {
             return Vec::new();
         };
         let empty = |name: &str| f.fields.iter().any(|x| x.name == name && x.options.is_empty());
         let mut notes = Vec::new();
-        if empty("location") {
-            notes.push(strings::format(
-                key!("enclosure-new-no-location"),
-                &[&structure_new_label()],
-            ));
-        }
         if empty("part") {
             notes.push(strings::text(key!("enclosure-new-no-part")).to_owned());
         }

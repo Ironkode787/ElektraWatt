@@ -1431,11 +1431,9 @@ pub(crate) fn item_of(meta: &ActionMeta, model: &ShellModel) -> ActionItem {
     let state = enabled_with(meta, model, &serde_json::Map::new());
     // Paste names the page kind that cannot take it (window check, item 3): the reason is a text with the kind, not a
     // plain key, so the item formats it here.
-    // Enclosure… likewise names Structure node… in its reason when the project has no location.
     let paste_reason = match meta.id {
         _ if state.is_err() => None,
         "edit.paste_clip" => model.paste_page_reason(),
-        "layout.enclosure_new" => model.enclosure_new_reason(),
         _ => None,
     };
     let enabled = state.is_ok() && paste_reason.is_none();
