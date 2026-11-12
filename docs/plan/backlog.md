@@ -24,16 +24,6 @@ After an hour on an imported project of their own. All of it goes into the secon
 - FT-1701 `ew-checks`: A power supply's L pin on a wire of L1 is reported as an error ("expected L, got L1"): right to the letter, wrong in sense.
 - FT-1707 `ew-ui, ew-viewmodel`: The strip editor is hidden in the menus; it should be a right click on a terminal strip away.
 
-Found by the lanes while fixing the rows above; fixed with them where it is cheap, else moved to Later.
-
-- FT-1712 `ew-viewmodel`: A row of terminals laid by Terminal… is one undo step per terminal, and one more for a new strip; the toast's Undo takes back the last terminal only. One step for the row is wanted.
-- FT-1713 `ew-scene, ew-viewmodel`: A terminal placed from the device browser's terminal part prints its tag and number twice, with no side a or b.
-- FT-1714 `ew-ui`: The symbol editor's toast after a save covers Close editor for some seconds.
-- FT-1715 `ew-viewmodel, docs/book`: Help ▸ Tutorials does not list the symbol editor's tutorial.
-- FT-1716 `ew-viewmodel, ew-import-qet`: A panel layout page made with New page in an imported QElectroTech project has no frame.
-- FT-1717 `xtask, tools/blind`: `cargo xtask blind selftest` fails at its call 27: it expects the wizard to say that the sample project is not installed.
-- FT-1718 `ew-viewmodel`: Title block fields… does not hold the title block's Author and Checked, which come from the revision (Check ▸ Revision); the fixed texts of an imported custom QElectroTech template cannot be edited at all.
-- FT-1719 `ew-viewmodel`: After Enclosure… the toast with its Open link is replaced at once by the structure node's toast.
 
 ### The persona round before 0.2.0
 
