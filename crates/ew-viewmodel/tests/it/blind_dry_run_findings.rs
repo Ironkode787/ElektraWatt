@@ -228,7 +228,7 @@ fn the_new_strip_toast_off_a_schematic_page_has_no_example() {
     done(&mut s, "strip.new", json!({"letter": "X"}));
     assert_eq!(
         toast(&s),
-        "New terminal strip; its first terminal tags it: Draw ▸ Symbol…, the terminal symbol, the strip in its picker."
+        "New terminal strip; its first terminal tags it: Draw ▸ Terminal… places its terminals."
     );
 }
 
@@ -241,7 +241,7 @@ fn an_unused_strip_is_listed_with_its_alias_and_deleted_by_delete() {
     // terminal on page 101, a fresh multi-line page, by the project's scheme `{page}{letter}{counter}`.
     assert_eq!(
         toast(&s),
-        "New terminal strip; its first terminal tags it, such as -101X1: Draw ▸ Symbol…, the terminal symbol, the strip in its picker."
+        "New terminal strip; its first terminal tags it, such as -101X1: Draw ▸ Terminal… places its terminals."
     );
     // The terminal symbol opens the strip picker, whose row ends with the strip's alias.
     done(&mut s, "place.pick", json!({"symbol": "ew.iec.terminal@qet10"}));

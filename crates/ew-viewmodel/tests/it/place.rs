@@ -804,7 +804,7 @@ fn a_terminal_symbol_asks_for_its_strip_and_proposes_the_next_designation() {
     let toast = state(&s)["toast"]["text"].as_str().unwrap_or_default().to_owned();
     assert_eq!(
         toast,
-        "New terminal strip; its first terminal tags it, such as -X1033: Draw ▸ Symbol…, the terminal symbol, the strip in its picker."
+        "New terminal strip; its first terminal tags it, such as -X1033: Draw ▸ Terminal… places its terminals."
     );
     let p = s.picker().expect("the chooser stays open");
     assert_eq!(p.rows.len(), before + 1);

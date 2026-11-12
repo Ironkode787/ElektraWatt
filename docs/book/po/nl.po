@@ -2026,20 +2026,23 @@ msgstr ""
 #: src/how-to/text-interface.md:40
 msgid ""
 "`strip.new` creates an empty terminal strip; the toast names it. It draws "
-"nothing until its first terminal is placed: choose the terminal symbol in "
-"the symbol picker, and a second picker lists the strips (`row strip "
-"\"<tag>\" terminal \"<next>\" @<n>`); choose the strip there. The terminal "
-"takes the row's proposed designation unless the choice names one "
-"(`picker.choose` with `designation` `PE`, on either picker). A strip without "
-"terminals prints its tag with question marks in it (`-X??`) because its "
-"counter is given with its first terminal; the `@n` at the end of its row "
-"selects it (`select.set` with `ids` `[\"@n\"]`), and `edit.delete_selection` "
-"deletes a strip that has no terminals. After its first terminal the strip "
-"has its real tag (`-X1011`); `place.pick` with a strip name the project does "
-"not have fails with a message that lists the project's strips."
+"nothing until its first terminal is placed: `tool.place_terminal` with "
+"`strip` (and `kind`, `part`, `count`, `from` where they differ from its "
+"form's proposals) arms the Place tool on that strip. A terminal part chosen "
+"in the device browser, or `place.pick` with a terminal symbol and no "
+"`strip`, opens a second picker that lists the strips (`row strip \"<tag>\" "
+"terminal \"<next>\" @<n>`); choose the strip there. The terminal takes the "
+"row's proposed designation unless the choice names one (`picker.choose` with "
+"`designation` `PE`, on either picker). A strip without terminals prints its "
+"tag with question marks in it (`-X??`) because its counter is given with its "
+"first terminal; the `@n` at the end of its row selects it (`select.set` with "
+"`ids` `[\"@n\"]`), and `edit.delete_selection` deletes a strip that has no "
+"terminals. After its first terminal the strip has its real tag (`-X1011`); "
+"`place.pick` with a strip name the project does not have fails with a "
+"message that lists the project's strips."
 msgstr ""
 
-#: src/how-to/text-interface.md:49
+#: src/how-to/text-interface.md:51
 msgid ""
 "In the Terminal strips navigator a row is named by what it prints: a "
 "terminal by its tag, the strip's label, a colon and its own (`-X1031:1`), "
@@ -2048,7 +2051,7 @@ msgid ""
 "`rows` `[\"-X1031:1\",\"-X1031:2\"]`, a `column` and a `value`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:53
+#: src/how-to/text-interface.md:55
 msgid ""
 "A terminal's connection points print `strip:terminal/clamp` (`-X1031:1/b`): "
 "the starter terminal has clamp `a` on side 1 (internal) and `b` on side 2 "
@@ -2057,11 +2060,11 @@ msgid ""
 "`#n` in connection-point order: `-X1:1/a#1` and `-X1:1/a#2`."
 msgstr ""
 
-#: src/how-to/text-interface.md:57
+#: src/how-to/text-interface.md:59
 msgid "Bridge terminals"
 msgstr ""
 
-#: src/how-to/text-interface.md:59
+#: src/how-to/text-interface.md:61
 msgid ""
 "Select two or more terminals of one strip on the page (click the first "
 "terminal symbol, Shift+click the others, or `select.set` with their "
@@ -2079,11 +2082,11 @@ msgid ""
 "refusal names the reason."
 msgstr ""
 
-#: src/how-to/text-interface.md:69
+#: src/how-to/text-interface.md:71
 msgid "External points"
 msgstr ""
 
-#: src/how-to/text-interface.md:71
+#: src/how-to/text-interface.md:73
 msgid ""
 "`structure.new` with `kind` `location` and the location (`+J-E-206`), then "
 "`external_ref.new` with the location, the device and the connection, once "
@@ -2091,7 +2094,7 @@ msgid ""
 "reference's label is `<device>:<connection>` (`JE-N1000-03:L`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:74
+#: src/how-to/text-interface.md:76
 msgid ""
 "With the Interruption point tool armed, `ip.external` takes that label, or "
 "the label after the location as the page prints it (`+J-E-206 / "
@@ -2099,11 +2102,11 @@ msgid ""
 "reference has fails with a message that lists the labels the project has."
 msgstr ""
 
-#: src/how-to/text-interface.md:78
+#: src/how-to/text-interface.md:80
 msgid "Draw wires"
 msgstr ""
 
-#: src/how-to/text-interface.md:80
+#: src/how-to/text-interface.md:82
 msgid ""
 "With the Wire tool armed, put the grid cursor on a connection point (its "
 "`cp` position), press Enter, move to the other end and press Enter. The "
@@ -2111,7 +2114,7 @@ msgid ""
 "commit."
 msgstr ""
 
-#: src/how-to/text-interface.md:83
+#: src/how-to/text-interface.md:85
 msgid ""
 "`cp.next` and `cp.previous` step the cursor through the page's connection "
 "points in reading order of the cell **column by column** (column 0 to 16, "
@@ -2120,18 +2123,18 @@ msgid ""
 "`cursor.set` needs no walk."
 msgstr ""
 
-#: src/how-to/text-interface.md:86
+#: src/how-to/text-interface.md:88
 msgid ""
 "**Ending a wire on a wire** makes a junction there and splits that wire. The "
 "route's `end` names the wire it would split by its ends (`@101-C12 F55:2 -> "
 "E55:L`): check it before Enter when two wires run through one cell."
 msgstr ""
 
-#: src/how-to/text-interface.md:89
+#: src/how-to/text-interface.md:91
 msgid "Delete"
 msgstr ""
 
-#: src/how-to/text-interface.md:91
+#: src/how-to/text-interface.md:93
 msgid ""
 "`edit.delete_selection` (Delete) deletes what is selected on the page shown: "
 "a representation, a wire, a junction or an item. A device selected by its "
@@ -2141,11 +2144,11 @@ msgid ""
 "refused (`reason-not-on-page`)."
 msgstr ""
 
-#: src/how-to/text-interface.md:96
+#: src/how-to/text-interface.md:98
 msgid "Save and export"
 msgstr ""
 
-#: src/how-to/text-interface.md:98
+#: src/how-to/text-interface.md:100
 msgid ""
 "`file.save` saves. `file.export_pdf` with a file name writes the PDF; the "
 "toast names the file, its page count and its size."
@@ -3499,7 +3502,7 @@ msgid ""
 "target that no source feeds yet carries the target's name."
 msgstr ""
 
-#: src/reference/window/tools.md:203
+#: src/reference/window/tools.md:208
 msgid ""
 "A point keeps room for its texts: where its name or its cross-reference "
 "would print over another interruption point's, it is not placed, and the "
@@ -3508,11 +3511,11 @@ msgid ""
 "anyway."
 msgstr ""
 
-#: src/reference/window/tools.md:207
+#: src/reference/window/tools.md:212
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:209
+#: src/reference/window/tools.md:214
 msgid ""
 "Turns the interruption point that the tool floats from source to target, or "
 "back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
@@ -3520,7 +3523,7 @@ msgid ""
 "properties."
 msgstr ""
 
-#: src/reference/window/tools.md:213
+#: src/reference/window/tools.md:218
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -3528,21 +3531,21 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:217
+#: src/reference/window/tools.md:222
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:219
+#: src/reference/window/tools.md:224
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:222
+#: src/reference/window/tools.md:227
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:224
+#: src/reference/window/tools.md:229
 msgid ""
 "Places a wire marker, the label that prints the cross-section and colours of "
 "the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
@@ -3559,7 +3562,7 @@ msgid ""
 "text beyond the line's end, clear of the wires."
 msgstr ""
 
-#: src/reference/window/tools.md:234
+#: src/reference/window/tools.md:239
 msgid ""
 "The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire "
 "numbers**, a setting of the project that the PDF and print follow too: each "
@@ -3569,62 +3572,62 @@ msgid ""
 "and core name it."
 msgstr ""
 
-#: src/reference/window/tools.md:239
+#: src/reference/window/tools.md:244
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:241
+#: src/reference/window/tools.md:246
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:243
+#: src/reference/window/tools.md:248
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:245
+#: src/reference/window/tools.md:250
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:248 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:253 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:250
+#: src/reference/window/tools.md:255
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:253
+#: src/reference/window/tools.md:258
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:255
+#: src/reference/window/tools.md:260
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:257
+#: src/reference/window/tools.md:262
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:259
+#: src/reference/window/tools.md:264
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:262
+#: src/reference/window/tools.md:267
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:264
+#: src/reference/window/tools.md:269
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -3632,11 +3635,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:267
+#: src/reference/window/tools.md:272
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:269
+#: src/reference/window/tools.md:274
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 

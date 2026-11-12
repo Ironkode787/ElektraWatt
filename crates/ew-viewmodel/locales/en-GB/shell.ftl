@@ -2370,11 +2370,11 @@ count-box-pins = { $p0 } connection points
 
 # FT-893: the strip takes its tag with its first terminal; the example is the tag it would take on the page on
 # show (`-no-example` off a schematic page).
-toast-strip-new = New terminal strip; its first terminal tags it, such as { $p0 }: Draw ▸ Symbol…, the terminal symbol, the strip in its picker.
+toast-strip-new = New terminal strip; its first terminal tags it, such as { $p0 }: Draw ▸ Terminal… places its terminals.
 
 # FT-1090: a tag given in the New terminal strip form is the strip's from the start.
-toast-strip-new-tagged = New terminal strip { $p0 }: Draw ▸ Symbol…, the terminal symbol, the strip in its picker.
-toast-strip-new-no-example = New terminal strip; its first terminal tags it: Draw ▸ Symbol…, the terminal symbol, the strip in its picker.
+toast-strip-new-tagged = New terminal strip { $p0 }: Draw ▸ Terminal… places its terminals.
+toast-strip-new-no-example = New terminal strip; its first terminal tags it: Draw ▸ Terminal… places its terminals.
 toast-export-pdf = Exported { $p0 }: { $p1 }, { $p2 } KiB.
 # FT-1212 (ID-1392): the export toast names its pages by kind.
 export-pages-drawing = { $p0 } drawing pages
@@ -4299,7 +4299,7 @@ job-done-one = 1 page, { $p1 } KiB
 # Ruling 7: a terminal strip without a tag yet, and the Terminal strips table of a project with strips but no terminal.
 strip-no-tag-yet = New terminal strip · no tag yet
 empty-nav-terminals = No terminals yet
-empty-nav-terminals-text = Place a terminal with Draw ▸ Symbol… and the terminal symbol; it goes into the strip you choose there.
+empty-nav-terminals-text = Place a terminal with Draw ▸ Terminal…; it goes into the strip you choose there.
 # C49-p6#1 and #2 (ID-1278): the choice words of every closed set, and four more singular count texts.
 choice-all = All
 choice-current = Current

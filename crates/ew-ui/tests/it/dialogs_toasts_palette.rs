@@ -473,7 +473,7 @@ fn a_long_toast_is_cut_at_four_rows_with_its_whole_text_in_the_tooltip() {
     dispatch(
         &mut h,
         "strip.new",
-        json!({"tag": format!("-X{}", "9".repeat(40))}),
+        json!({"tag": format!("-X{}", "9".repeat(120))}),
     );
     settle(&mut h);
     let whole = {
