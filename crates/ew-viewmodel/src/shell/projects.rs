@@ -335,7 +335,7 @@ impl ShellModel {
     pub(crate) fn act_tutorials(&mut self, p: &Map<String, Value>) -> Outcome {
         let tutorial = match string_param(p, "tutorial") {
             Err(e) => return e,
-            Ok(Some(t)) if !crate::actions::TUTORIALS.contains(&t) => {
+            Ok(Some(t)) if !crate::actions::tutorials().any(|(name, _)| name == t) => {
                 return failed(key!("error-bad-param"), &["tutorial"]);
             }
             Ok(t) => t.map(str::to_owned),

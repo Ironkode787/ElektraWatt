@@ -280,9 +280,8 @@ fn each_tutorial_has_its_own_start() {
         .into_iter()
         .map(|i| (i.label, i.params))
         .collect();
-    assert_eq!(
-        items,
-        [
+    // The guide's tutorials, each with its start; the list grows with the guide (FT-1715).
+    for item in [
             (
                 "A first schematic page with potentials…".to_owned(),
                 json!({"tutorial": "first-page"})
@@ -299,8 +298,13 @@ fn each_tutorial_has_its_own_start() {
                 "Importing a QElectroTech project".to_owned(),
                 json!({"tutorial": "import-qet"})
             ),
-        ]
-    );
+            (
+                "Draw a six-pin power block".to_owned(),
+                json!({"tutorial": "symbol-editor"})
+            ),
+        ] {
+        assert!(items.contains(&item), "{item:?} in {items:?}");
+    }
     let first = tmp.0.join("first.ew");
     done(
         &mut shell,

@@ -1936,6 +1936,7 @@ tutorial-first-page = Een eerste schemapagina met potentialen
 tutorial-terminal-strip-and-cable = Een klemmenstrook en een kabel
 tutorial-reports-and-pdf = Rapporten en PDF
 tutorial-import-qet = Een QElectroTech-project importeren
+tutorial-symbol-editor = Een voedingsblok met zes aansluitingen tekenen
 action-help-first-run = Eerste instelling…
 action-help-notices = Kennisgevingen van derden
 action-settings-set = Een instelling wijzigen

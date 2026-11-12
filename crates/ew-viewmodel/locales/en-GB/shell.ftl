@@ -1998,6 +1998,7 @@ tutorial-first-page = A first schematic page with potentials
 tutorial-terminal-strip-and-cable = A terminal strip and a cable
 tutorial-reports-and-pdf = Reports and PDF
 tutorial-import-qet = Importing a QElectroTech project
+tutorial-symbol-editor = Draw a six-pin power block
 action-help-first-run = First-run setup…
 action-help-notices = Third-party notices
 action-settings-set = Change a setting

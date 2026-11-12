@@ -1691,7 +1691,8 @@ renderer's final pass, applied to the screen only. Thumbnails, PNG export, PDF a
 
 *As built (2026-11-05, and FP-4).* Help ▸ Tutorials
 opens the tutorials page and one fresh copy of the sample project for every tutorial (each tutorial's own start is
-WP-S7.05 FP-4, a row); with no installed guide it shows a "user guide is not installed" banner over the copy (a row).
+WP-S7.05 FP-4, a row); its items are the tutorial pages of the guide's table of contents `SUMMARY.md`, read
+when the program is built (FT-1715); with no installed guide it shows a "user guide is not installed" banner over the copy (a row).
 F1 resolves a topic for every `tool.` action, every dialog (an exhaustive match), every pane and navigator, through
 the three window reference pages `reference/window/tools.md`, `dialogs.md` and `panels.md`, and a rule's `docs`
 reference `reference/rules/<id>`. In a Dutch window F1 opens `nl/<page>` when the Dutch guide holds that page, and the
