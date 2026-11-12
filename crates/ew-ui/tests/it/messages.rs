@@ -285,7 +285,11 @@ fn waive_from_the_detail_takes_an_empty_reason_and_author() {
     h.key_press(egui::Key::Enter);
     settle(&mut h);
     let shell = h.state().shell();
-    assert!(shell.dialog().is_none(), "the prompt closed: {:?}", shell.dialog());
+    assert!(
+        shell.dialog().is_none(),
+        "the prompt closed: {:?}",
+        shell.dialog()
+    );
     let last = shell.recorded_commands().last().expect("a committed step");
     assert_eq!(last.cmd, "check.waive");
     assert!(

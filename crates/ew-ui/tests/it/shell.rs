@@ -260,7 +260,9 @@ fn file_import_beside_open_takes_a_qet_or_an_ewz() {
         "the import card: {:?}",
         h.state().shell().dialog()
     );
-    h.state_mut().shell_mut().dispatch("ui.dismiss", &serde_json::Value::Null);
+    h.state_mut()
+        .shell_mut()
+        .dispatch("ui.dismiss", &serde_json::Value::Null);
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
     support::menu_node(&h, "Import…").click();

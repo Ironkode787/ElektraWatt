@@ -115,7 +115,9 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
             .to_owned()
     };
     assert!(
-        rail_reason(&h).ends_with("disabled: Open a panel layout page; make one with New page… and the type Panel layout"),
+        rail_reason(&h).ends_with(
+            "disabled: Open a panel layout page; make one with New page… and the type Panel layout"
+        ),
         "{}",
         rail_reason(&h)
     );
@@ -127,7 +129,11 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
     settle(&mut h);
     h.get_by_label("Create").click();
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     assert!(
         rail_reason(&h).ends_with("disabled: Show an enclosure on this page first: Enclosure… on the Project tab, or the page's Surface in Properties"),
         "{}",
@@ -144,7 +150,11 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
     settle(&mut h);
     h.get_by_label("Create").click();
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     assert!(
         h.state().shell().panel_tables().is_some(),
         "the page shows the enclosure's plate"

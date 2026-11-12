@@ -88,7 +88,10 @@ impl Session {
         Some(TitleBlockFacts {
             fields,
             project: project.id.as_uuid(),
-            description_overridden: record.description_override.as_ref().is_some_and(|d| !d.is_empty()),
+            description_overridden: record
+                .description_override
+                .as_ref()
+                .is_some_and(|d| !d.is_empty()),
             open_revision: open_revision(&q).map(|r| r.id.as_uuid()),
             has_revisions: q.table::<Revision>().iter().next().is_some(),
             parties: serde_json::to_value(&project.parties).unwrap_or(Value::Null),

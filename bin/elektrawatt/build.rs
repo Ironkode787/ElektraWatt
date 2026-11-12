@@ -17,6 +17,8 @@ const ICO: &str = "../../assets/icons/app/elektrawatt.ico";
 const RT_ICON: u16 = 3;
 const RT_GROUP_ICON: u16 = 14;
 
+// Allowed: a build script's program boundary; cargo hands it the target and its output folder in these variables.
+#[allow(clippy::disallowed_methods)]
 fn main() {
     println!("cargo:rerun-if-changed={ICO}");
     println!("cargo:rerun-if-changed=build.rs");
@@ -90,7 +92,7 @@ fn record(res: &mut Vec<u8>, kind: u16, name: u16, data: &[u8]) {
     res.extend_from_slice(&0u32.to_le_bytes());
     res.extend_from_slice(&0u32.to_le_bytes());
     res.extend_from_slice(data);
-    while res.len() % 4 != 0 {
+    while !res.len().is_multiple_of(4) {
         res.push(0);
     }
 }

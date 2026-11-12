@@ -82,7 +82,11 @@ fn the_save_dialogs_answer_replaces_an_existing_file_through_a_job() {
     }
     let files = platform.opened_files.borrow().clone();
     assert_eq!(files, [pdf.clone(), pdf.clone()]);
-    assert!(platform.opened.borrow().is_empty(), "{:?}", platform.opened.borrow());
+    assert!(
+        platform.opened.borrow().is_empty(),
+        "{:?}",
+        platform.opened.borrow()
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
