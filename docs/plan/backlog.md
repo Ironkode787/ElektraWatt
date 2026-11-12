@@ -14,12 +14,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 - FT-1645 `ew-import-qet, ew-scene`: What an imported QET folio still shows differently, after the full-fidelity work of M2.5-Fix: a master's contact list has no contact symbols and its rows stand closer than QET's 10 px (the scene has no list drawing and the text style no line height); `displayhas="cross"` and `snapto="bottom"` cross-references print as a list, with a report entry; QET's folio list arrives as EW's own table of contents; an element's `mirror` is not read (QET 0.100 writes none; newer versions do); fonts are substituted, so texts sit slightly lower.
 - FT-1656 `ew-ui`: **High.** The interface feels clunky and shows too little: a polish pass over the main window, the browsers, the panels and the dialogs for density and finish, judged at 1920 × 1080 (doc 16a).
 
-### The persona round on rc.3
-
-- FT-1658 `ew-viewmodel`: **Medium.** FT-1622 re-dated (ID-1521): adding a contact to an existing device (RP2, RP4): picking a contact of -102K1 from "In this project" makes a new device; Join on a placed contact is refused; deleting the extra device leaves an empty "-?K2"; Join's list shows the device twice per slot; the duplicate-designation finding's Fix does nothing visible.
-- FT-1659 `ew-viewmodel`: FT-1623 re-dated (ID-1521): a drag from a symbol's centre does nothing (only its edge grabs); a paste lands about 20 px from the click; the "4 Warnings" badge opens Messages filtered on "2 devices"; Esc leaves the coil tool armed (RP2, RP3).
-- FT-1660 `ew-viewmodel`: FT-1624 re-dated (ID-1521): the full-junction HUD reads as a refusal though the wire is made; an outgoing point's connection point one step behind its tip goes unseen; the auto-connect notice on placement is missed; the text interface gives Route page's result as bend counts only, not where a wire runs; the power supply's pin labels and the points' connection squares are tiny (RP1 to RP4).
-
 ### Wiring and routing
 
 - FT-866 `ew-commands`: **Medium.** When the router falls back on a pin 1 nm off, the wire ends in a 1 nm segment, so P places the interruption point sideways. Seen with a row of adjacent interruption points one grid step apart; applies to symbol connection points too (FIXPT40, cycle 40).
@@ -46,6 +40,7 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The window: feedback and dead ends
 
+- FT-1673 `ew-render2d, ew-text`: The pin labels of a black box (the power supply) and the squares of open connection points are tiny on the page (the persona round, RP1 to RP4). Both come from tokens that every page picture and the sample depend on (the built-in text-style table, ADR-0032; the square of doc 16a): decide the sizes in the finish pass (FT-1656) and re-bless once.
 - FT-1671 `ew-viewmodel`: Choose part shows a part's tier as "(system)", a debug name; give the tiers words.
 - FT-1672 `ew-viewmodel`: The PLC panel lists no cards once a project has two or more CPUs.
 - FT-1669 `ew-scene`: A connection point marked not used shows no mark on the page (doc 06 defines none); decide the mark and draw it.
