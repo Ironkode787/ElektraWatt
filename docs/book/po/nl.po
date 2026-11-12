@@ -3137,22 +3137,32 @@ msgid ""
 "name in Properties."
 msgstr ""
 
-#: src/reference/window/tools.md:27
+#: src/reference/window/tools.md:28
 msgid ""
 "On the title block: Title block fields…. On an empty spot: Paste, Page "
 "properties, New page… and Print wire numbers."
 msgstr ""
 
-#: src/reference/window/tools.md:29
+#: src/reference/window/tools.md:30
+msgid ""
+"A navigator's row offers what the same thing offers on the page; a right "
+"click on a row selects it first. A device's row offers Go to (its first "
+"placement), its symbol's entries and Properties of selection; a cable's row "
+"Cable… and Go to; a page's row Open page in a new tab, Title block fields…, "
+"Page properties, New page… and Delete page (the right click opens the page). "
+"See [Navigators](panels.md#navigators)."
+msgstr ""
+
+#: src/reference/window/tools.md:35
 msgid ""
 "An entry that cannot be used now is greyed out, and its tooltip says why."
 msgstr ""
 
-#: src/reference/window/tools.md:31
+#: src/reference/window/tools.md:37
 msgid "Select"
 msgstr ""
 
-#: src/reference/window/tools.md:33
+#: src/reference/window/tools.md:39
 msgid ""
 "Selects, moves and opens what you click: a click selects one item, a drag "
 "draws a selection band, a double click opens the item's properties. Open it "
@@ -3160,21 +3170,21 @@ msgid ""
 "window](../../how-to/application-window.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:37
+#: src/reference/window/tools.md:43
 msgid "Measure"
 msgstr ""
 
-#: src/reference/window/tools.md:39
+#: src/reference/window/tools.md:45
 msgid ""
 "Measures the distance between two points on the page, in millimetres of the "
 "sheet. Open it with Draw ▸ Annotate ▸ Measure."
 msgstr ""
 
-#: src/reference/window/tools.md:42 src/reference/symbol-editor.md:169
+#: src/reference/window/tools.md:48 src/reference/symbol-editor.md:169
 msgid "Symbol"
 msgstr ""
 
-#: src/reference/window/tools.md:44
+#: src/reference/window/tools.md:50
 msgid ""
 "Places a symbol from the library. A symbol is a drawing without a part; the "
 "symbol browser lists the symbols alone (the parts are the device browser's, "
@@ -3188,11 +3198,11 @@ msgid ""
 "Place ▸ Symbol…. See [A first schematic page](../../tutorials/first-page.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:52
+#: src/reference/window/tools.md:58
 msgid "Device from part"
 msgstr ""
 
-#: src/reference/window/tools.md:54
+#: src/reference/window/tools.md:60
 msgid ""
 "Places a device from a part of the library, so that the device has its part "
 "from the start. A device is a part of the catalogue with its functions. The "
@@ -3202,11 +3212,11 @@ msgid ""
 "Device from part…. See [Choose parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:59
+#: src/reference/window/tools.md:65
 msgid "Terminal"
 msgstr ""
 
-#: src/reference/window/tools.md:61
+#: src/reference/window/tools.md:67
 msgid ""
 "Asks which strip (one of the project's, or a new strip with the tag it will "
 "take), which kind of terminal (feed-through, protective earth and the others "
@@ -3216,98 +3226,98 @@ msgid ""
 "Place ▸ Terminal…."
 msgstr ""
 
-#: src/reference/window/tools.md:66 src/explanation/eplan-and-ew.md:112
+#: src/reference/window/tools.md:72 src/explanation/eplan-and-ew.md:112
 msgid "Black box"
 msgstr ""
 
-#: src/reference/window/tools.md:68
+#: src/reference/window/tools.md:74
 msgid ""
 "Draws a black box: a rectangle with connection points for a device that the "
 "library has no symbol for. Open it with Draw ▸ Place ▸ Black box…."
 msgstr ""
 
-#: src/reference/window/tools.md:71
+#: src/reference/window/tools.md:77
 msgid "Tool step back"
 msgstr ""
 
-#: src/reference/window/tools.md:73
+#: src/reference/window/tools.md:79
 msgid ""
 "Takes back the last step of the active tool, such as the last corner of a "
 "wire, without leaving the tool. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:76
+#: src/reference/window/tools.md:82
 msgid "Rotate clockwise"
 msgstr ""
 
-#: src/reference/window/tools.md:78
+#: src/reference/window/tools.md:84
 msgid ""
 "Turns the symbol that the tool floats, or the selection, by 90° clockwise. "
 "Draw ▸ Arrange ▸ Rotate clockwise."
 msgstr ""
 
-#: src/reference/window/tools.md:80
+#: src/reference/window/tools.md:86
 msgid "Rotate counter-clockwise"
 msgstr ""
 
-#: src/reference/window/tools.md:82
+#: src/reference/window/tools.md:88
 msgid ""
 "Turns the floating symbol, or the selection, by 90° counter-clockwise. Draw "
 "▸ Arrange ▸ Rotate counter-clockwise."
 msgstr ""
 
-#: src/reference/window/tools.md:84
+#: src/reference/window/tools.md:90
 msgid "Mirror left to right"
 msgstr ""
 
-#: src/reference/window/tools.md:86
+#: src/reference/window/tools.md:92
 msgid ""
 "Mirrors the floating symbol, or the selection, about its vertical axis. Draw "
 "▸ Arrange ▸ Mirror left to right."
 msgstr ""
 
-#: src/reference/window/tools.md:88
+#: src/reference/window/tools.md:94
 msgid "Mirror top to bottom"
 msgstr ""
 
-#: src/reference/window/tools.md:90
+#: src/reference/window/tools.md:96
 msgid ""
 "Mirrors the floating symbol, or the selection, about its horizontal axis. "
 "Draw ▸ Arrange ▸ Mirror top to bottom."
 msgstr ""
 
-#: src/reference/window/tools.md:92
+#: src/reference/window/tools.md:98
 msgid "Next variant"
 msgstr ""
 
-#: src/reference/window/tools.md:94
+#: src/reference/window/tools.md:100
 msgid ""
 "Switches the floating symbol to its next variant, such as another contact "
 "arrangement of the same function. Draw ▸ Arrange ▸ Next variant."
 msgstr ""
 
-#: src/reference/window/tools.md:97
+#: src/reference/window/tools.md:103
 msgid "Next representation type"
 msgstr ""
 
-#: src/reference/window/tools.md:99
+#: src/reference/window/tools.md:105
 msgid ""
 "Switches the floating symbol to its next representation type, for example "
 "from the multi-line to the single-line form. Draw ▸ Arrange ▸ Next "
 "representation type."
 msgstr ""
 
-#: src/reference/window/tools.md:102
+#: src/reference/window/tools.md:108
 msgid "Move"
 msgstr ""
 
-#: src/reference/window/tools.md:104
+#: src/reference/window/tools.md:110
 msgid ""
 "Moves the selection with the pointer or the keyboard; wires attached to it "
 "follow. Draw ▸ Arrange ▸ Move."
 msgstr ""
 
-#: src/reference/window/tools.md:106
+#: src/reference/window/tools.md:112
 msgid ""
 "When you let go, a wire whose followed route would now run through a symbol, "
 "a text, a connection point or along another wire, or would bend more than "
@@ -3315,22 +3325,22 @@ msgid ""
 "happen in the same undo step as the move."
 msgstr ""
 
-#: src/reference/window/tools.md:110
+#: src/reference/window/tools.md:116
 msgid "Finish"
 msgstr ""
 
-#: src/reference/window/tools.md:112
+#: src/reference/window/tools.md:118
 msgid ""
 "Ends what the active tool is drawing, such as a wire or a polyline, at the "
 "current point. It has no menu item; use its key or double-click where a tool "
 "allows it."
 msgstr ""
 
-#: src/reference/window/tools.md:115
+#: src/reference/window/tools.md:121
 msgid "Wire"
 msgstr ""
 
-#: src/reference/window/tools.md:117
+#: src/reference/window/tools.md:123
 msgid ""
 "Draws connections between connection points: click a start point, then the "
 "end point; corners are placed where you click in between. Open it with Draw "
@@ -3338,7 +3348,7 @@ msgid ""
 "page](../../tutorials/first-page.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:120
+#: src/reference/window/tools.md:126
 msgid ""
 "While you draw, the wire shows the route it will take. The route never runs "
 "through another connection point, along another wire, through a symbol or a "
@@ -3353,7 +3363,7 @@ msgid ""
 "junction already joins three wires: end on a wire to make a new junction.\""
 msgstr ""
 
-#: src/reference/window/tools.md:129
+#: src/reference/window/tools.md:135
 msgid ""
 "An unrouted wire, from an import or a placement, is drawn as a dashed line "
 "between its ends, straight or with one corner and never diagonal, on the "
@@ -3361,28 +3371,28 @@ msgid ""
 "no route yet. Route page or Route selection draws it."
 msgstr ""
 
-#: src/reference/window/tools.md:133
+#: src/reference/window/tools.md:139
 msgid "Next autoconnect proposal"
 msgstr ""
 
-#: src/reference/window/tools.md:135
+#: src/reference/window/tools.md:141
 msgid ""
 "While a symbol floats near other connection points, shows the next of the "
 "connections EW proposes to draw when you place it. It has no menu item; use "
 "its key."
 msgstr ""
 
-#: src/reference/window/tools.md:138
+#: src/reference/window/tools.md:144
 msgid "Connect while moving"
 msgstr ""
 
-#: src/reference/window/tools.md:140
+#: src/reference/window/tools.md:146
 msgid ""
 "While moving a symbol, connects its connection points to the ones it lands "
 "on. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:142
+#: src/reference/window/tools.md:148
 msgid ""
 "Connect while moving is on when you start: the wires the moved symbol would "
 "make are shown while you drag and are drawn with the move when you let go, "
@@ -3393,11 +3403,11 @@ msgid ""
 "keyboard follows that setting."
 msgstr ""
 
-#: src/reference/window/tools.md:148
+#: src/reference/window/tools.md:154
 msgid "Edit route"
 msgstr ""
 
-#: src/reference/window/tools.md:150
+#: src/reference/window/tools.md:156
 msgid ""
 "Changes the drawn route of a wire with the mouse. Select the wire: a handle "
 "shows on each of its segments and a dashed one on each bend. Drag a segment "
@@ -3411,11 +3421,11 @@ msgid ""
 "the segment, the arrow keys move it, `Enter` stores it."
 msgstr ""
 
-#: src/reference/window/tools.md:158
+#: src/reference/window/tools.md:164
 msgid "Route page"
 msgstr ""
 
-#: src/reference/window/tools.md:160
+#: src/reference/window/tools.md:166
 msgid ""
 "Routes every unrouted wire of the page on show in one step. Open it with "
 "Draw ▸ Connect ▸ Route page. The Preview tab shows the plan first: \"Route 3 "
@@ -3431,11 +3441,11 @@ msgid ""
 "tool."
 msgstr ""
 
-#: src/reference/window/tools.md:169
+#: src/reference/window/tools.md:175
 msgid "Route selection"
 msgstr ""
 
-#: src/reference/window/tools.md:171
+#: src/reference/window/tools.md:177
 msgid ""
 "Routes the selected wires, and every wire with an end on a selected symbol, "
 "again, routed or not; the other wires of the page stay as they are. Open it "
@@ -3443,18 +3453,18 @@ msgid ""
 "Route page does."
 msgstr ""
 
-#: src/reference/window/tools.md:175 src/explanation/eplan-and-ew.md:44
+#: src/reference/window/tools.md:181 src/explanation/eplan-and-ew.md:44
 msgid "Interruption point"
 msgstr ""
 
-#: src/reference/window/tools.md:177
+#: src/reference/window/tools.md:183
 msgid ""
 "Places an interruption point: the end of a potential on this page that "
 "continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
 "▸ Interruption point."
 msgstr ""
 
-#: src/reference/window/tools.md:180
+#: src/reference/window/tools.md:186
 msgid ""
 "The arrow always points right, the way the signal flows. A source, where the "
 "potential leaves the page, has its wire on the arrow's tail and belongs at "
@@ -3466,7 +3476,7 @@ msgid ""
 "end."
 msgstr ""
 
-#: src/reference/window/tools.md:186
+#: src/reference/window/tools.md:192
 msgid ""
 "Type the name in the field Interruption point name at the page's top left, "
 "once for a pair: the first point of a name is its source, and the tool then "
@@ -3477,7 +3487,7 @@ msgid ""
 "point goes."
 msgstr ""
 
-#: src/reference/window/tools.md:191
+#: src/reference/window/tools.md:197
 msgid ""
 "A point keeps room for its texts: where its name or its cross-reference "
 "would print over another interruption point's, it is not placed, and the "
@@ -3486,11 +3496,11 @@ msgid ""
 "anyway."
 msgstr ""
 
-#: src/reference/window/tools.md:195
+#: src/reference/window/tools.md:201
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:197
+#: src/reference/window/tools.md:203
 msgid ""
 "Turns the interruption point that the tool floats from source to target, or "
 "back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
@@ -3498,7 +3508,7 @@ msgid ""
 "properties."
 msgstr ""
 
-#: src/reference/window/tools.md:201
+#: src/reference/window/tools.md:207
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -3506,21 +3516,21 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:205
+#: src/reference/window/tools.md:211
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:207
+#: src/reference/window/tools.md:213
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:210
+#: src/reference/window/tools.md:216
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:212
+#: src/reference/window/tools.md:218
 msgid ""
 "Places a wire marker, the label that prints the cross-section and colours of "
 "the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
@@ -3534,7 +3544,7 @@ msgid ""
 "the wires and its text beyond the line's end, clear of the wires."
 msgstr ""
 
-#: src/reference/window/tools.md:220
+#: src/reference/window/tools.md:226
 msgid ""
 "The wires' numbers print on the page with **Draw ▸ Connect ▸ Print wire "
 "numbers**, a setting of the project that the PDF and print follow too: each "
@@ -3544,62 +3554,62 @@ msgid ""
 "and core name it."
 msgstr ""
 
-#: src/reference/window/tools.md:225
+#: src/reference/window/tools.md:231
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:227
+#: src/reference/window/tools.md:233
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:229
+#: src/reference/window/tools.md:235
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:231
+#: src/reference/window/tools.md:237
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:234 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:240 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:236
+#: src/reference/window/tools.md:242
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:239
+#: src/reference/window/tools.md:245
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:241
+#: src/reference/window/tools.md:247
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:243
+#: src/reference/window/tools.md:249
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:245
+#: src/reference/window/tools.md:251
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:248
+#: src/reference/window/tools.md:254
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:250
+#: src/reference/window/tools.md:256
 msgid ""
 "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
 "page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
@@ -3607,11 +3617,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:253
+#: src/reference/window/tools.md:259
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:255
+#: src/reference/window/tools.md:261
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 

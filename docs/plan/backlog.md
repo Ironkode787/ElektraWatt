@@ -17,7 +17,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 After an hour on an imported project of their own. All of it goes into the second candidate (the owner's word).
 
-- FT-1693 `ew-ui, ew-viewmodel`: **General.** The right-click menu should be the quick way to what fits the thing under the pointer: a terminal strip offers a new terminal and the strip editor, a relay coil its contacts, several selected wires a cable, the title block its fields, a symbol its editor. The owner asks for this to be expanded throughout.
 
 
 ### The persona round before 0.2.0
