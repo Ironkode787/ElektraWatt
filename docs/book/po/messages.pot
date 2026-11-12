@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-12T13:21:02+01:00\n"
+"POT-Creation-Date: 2026-11-12T13:32:40+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3010,14 +3010,18 @@ msgid "Rail"
 msgstr ""
 
 #: src/reference/window/tools.md:225
-msgid "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail."
+msgid ""
+"On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The "
+"page shows an enclosure first: Project ▸ Setup ▸ Enclosure… puts the new "
+"enclosure's plate on it ([Draw a panel "
+"layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:227
+#: src/reference/window/tools.md:228
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:229
+#: src/reference/window/tools.md:230
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 

@@ -3519,11 +3519,11 @@ msgid ""
 "layout](../../how-to/panel-layout.md))."
 msgstr ""
 
-#: src/reference/window/tools.md:227
+#: src/reference/window/tools.md:228
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:229
+#: src/reference/window/tools.md:230
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 

@@ -98,7 +98,8 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
     let tmp = Tmp::new();
     let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
     let mut h = support::harness_with(shell, support::Scripted::default(), None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    // At 1440 points, where the Draw row shows the Layout group whole (at the 1280 floor it folds, FT-1685).
+    h.set_size(egui::Vec2::new(1440.0, 900.0));
     settle(&mut h);
     dispatch(
         &mut h,
