@@ -128,7 +128,7 @@ fn f55_offers_the_same_function_first() {
     assert_eq!(
         lines(&s, "detail "),
         [format!(
-            "detail \"ElektraWatt starter parts (system) · version {version} · released · functions 1P+N MCB 1-2-N-N\""
+            "detail \"ElektraWatt starter parts (System) · version {version} · released · functions 1P+N MCB 1-2-N-N\""
         )]
     );
     // Only parts that fit.

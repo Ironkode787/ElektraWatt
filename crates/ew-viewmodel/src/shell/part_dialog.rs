@@ -774,7 +774,14 @@ impl ShellModel {
         let o = c.offers.get(i)?;
         let project = self.project.as_ref()?;
         let source = match &o.library {
-            Some((_, name, tier)) => format!("{name} ({})", format!("{tier:?}").to_lowercase()),
+            // The tier in the words the library navigator uses for it ("System", "Company").
+            Some((_, name, tier)) => {
+                let key = format!("lib-tier-{}", format!("{tier:?}").to_lowercase());
+                match strings::lookup(&key) {
+                    Some(word) => format!("{name} ({word})"),
+                    None => name.clone(),
+                }
+            }
             None => strings::text(key!("part-choose-view-project")).to_owned(),
         };
         let head = match &o.successor {

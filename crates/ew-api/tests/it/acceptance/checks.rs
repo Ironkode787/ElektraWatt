@@ -1264,7 +1264,6 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
         .collect();
     let shell = "the project row (except 4 settings members and the supply origin) and the project-local parts \
                  come from the shell";
-    let copies = ew_testkit::golden::embedded_copies(&c.batch).len();
     let not_built = if built.unwritten.is_empty() {
         let revisions = built.by_command.get("revision.create").copied().unwrap_or(0);
         format!("no record is left unwritten (the {revisions} revisions by revision.create, FT-165); {shell}")
@@ -1274,7 +1273,6 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
             built.unwritten_summary()
         )
     };
-    let commands = built.script.len();
     let mut problems = Vec::new();
     if !differing.is_empty() {
         problems.push(format!(
@@ -1293,7 +1291,7 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
     }
     if problems.is_empty() {
         return pass(format!(
-            "{commands} commands from the project shell (the {copies} non-local library copies by library.embed, \
+            "the commands from the project shell (the non-local library copies by library.embed, \
              the valve-terminal assembly by assembly.attach, valve.add and fields.set, the 56 channels by \
              normaliser N1 and plc.bind_channel); the {} acceptance SQL files \
              and export bom --mode parts and --mode assembly return expected/csv; {not_built}",
@@ -1301,7 +1299,7 @@ fn ac15_builder_path(c: &Ctx) -> Outcome {
         ));
     }
     fail(format!(
-        "{commands} commands from the project shell; {}; {not_built}",
+        "the commands from the project shell; {}; {not_built}",
         problems.join("; ")
     ))
 }
@@ -3657,8 +3655,8 @@ fn ac14_shuffle(c: &Ctx) -> Outcome {
         saved_files(&mut base, "ac14-file-order"),
         saved_files(&mut shuffled, "ac14-shuffled"),
     );
-    let saved = match (&fb, &fs) {
-        (Ok(a), Ok(b)) if a == b => a.len(),
+    match (&fb, &fs) {
+        (Ok(a), Ok(b)) if a == b => {}
         (Ok(a), Ok(b)) => {
             let names: BTreeSet<&String> = a.keys().chain(b.keys()).collect();
             let differing: Vec<String> = names
@@ -3690,16 +3688,12 @@ fn ac14_shuffle(c: &Ctx) -> Outcome {
                 })
                 .collect();
             wrong.push(format!("the saved project files differ: {}", list(differing, 3)));
-            0
         }
-        (Err(e), _) | (_, Err(e)) => {
-            wrong.push(e.clone());
-            0
-        }
-    };
+        (Err(e), _) | (_, Err(e)) => wrong.push(e.clone()),
+    }
     if wrong.is_empty() {
         pass(format!(
-            "on the platform of this run, the model loaded with its records shuffled (seed {SHUFFLE_SEED:#x}) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the {} SVG files, the {} page text CSVs, the {} report CSVs and the {saved} files a save writes (JSONL and manifest) of the file-order load byte for byte (gate platform Linux; across Windows and Linux at MVP)",
+            "on the platform of this run, the model loaded with its records shuffled (seed {SHUFFLE_SEED:#x}) writes the PDF (SHA-256 of expected/pdf/sha256.txt), the {} SVG files, the {} page text CSVs, the {} report CSVs and the files a save writes (JSONL and manifest) of the file-order load byte for byte (gate platform Linux; across Windows and Linux at MVP)",
             c.pdf_pages.len(),
             c.text.len(),
             ROW_PAIRS.len(),
@@ -4873,10 +4867,11 @@ fn ac16(r: &mut Runner) {
         Ok(run) => {
             let v = &run.verified;
             if v.problems.is_empty() {
-                pass(format!(
-                    "after each of the 4 edits, {} keys of {} memoised families equal their cold recomputation (two passes), and the oracle found no mismatch",
-                    v.keys, v.families
-                ))
+                pass(
+                    "after each of the 4 edits, every key of every memoised family equals its cold recomputation \
+                     (two passes), and the oracle found no mismatch"
+                        .to_owned(),
+                )
             } else {
                 fail(list(v.problems.clone(), 3))
             }

@@ -18,6 +18,8 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1470 `ew-interop-api, ew-checks`: Fluent keys and arguments for import findings (doc 14 §2.4's `FluentKey`; WP-S3.09 FP-6).
 - FT-1581 `ew-checks`: A check and a re-solve for a stale route whose end moved without it (a symbol exchange), drawn joined by one segment today (WP-S2.19 OQ7).
 - FT-1603 `ew-checks`: A representation placed outside the sheet goes unreported (the release fixture's devices stood off it unnoticed until RTR-E); add a check rule for a symbol outside the frame's drawing area.
+- FT-1674 `ew-import-qet, ew-checks`: The 21 EW-IMP rules of a migration report read in English in a Dutch window: their message is the importer's own text, stored in the project. Wording them per language needs their arguments stored instead, which changes the format.
+- FT-1675 `ew-checks, ew-viewmodel`: Three texts name a thing by its ID or path: EW-REL-004 prints a revision's ID, EW-CORE-008 a form copy's ID, and the refusal of `image.file` the file's path; name them in words.
 
 ## Command line
 
@@ -87,6 +89,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1450 `content, Golden A`: The divider form and report forms with data areas, deferred by WP-S7.03 §13 O1 since they change Golden A (WP-S7.03 FP-4).
 - FT-1577 `ew-library`: Interruption point forms for vertical current paths (the arrow pointing down at a page's bottom edge), if users ask for them beside WP-S2.19 D16's two right-pointing forms.
 - FT-1578 `ew-library`: The external connection point's arrow under WP-S2.19 D16's orientation rule (FR-XRF-012).
+- FT-1677 `ew-library`: A symbol with eleven or more text slots cannot pass both the canonical-order check and the arrangement test (found while adding the three-pole MCB, FT-657).
 
 ## Model, commands and numbering
 
@@ -154,12 +157,14 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1582 `ew-derive`: A negotiated-congestion router if WP-S2.19's two rip-up rounds fall short on real projects (spec §5.5).
 - FT-1601 `docs`: The rule notes of EW-CORE-067 to -070, -072 and -073 say "No standard: a project-hygiene rule." because the IEC 61082-1 clauses they follow are unverified; verify the clauses and cite them in the …
 - FT-1609 `ew-commands`: `macro.insert` with a turned orientation refuses a fragment that holds one of EW's interruption-point forms (ID-1509 (5)); insert it instead with those points unturned at their turned positions and …
+- FT-1550 `ew-commands, ew-api`: `page.create` and the built-in template give a new page the QET 10 px grid, against FR-PAG-031, DEC-045 and doc 06 (new pages use the native grid); build FR-PAG-031's setting "grid for new pages", default native, and move the defaults with it (FT-458's ruling, ID-650). It is a command default: 95 test files rely on it and a changed default changes how an existing command log replays, so it needs a decision under ADR-0011 first.
 
 ## Packaging and release
 
 - FT-1177 `WP-S6.10`: ARM installers, the setup on arm64 and the AppImage on aarch64; 0.1.0's best-effort ARM rows get CLI archives only (WP-S6.06 FP-2, D16).
 - FT-1178 `WP-S6.10`: Published split debug symbols (DWARF and PDB archives), with the minidump of 1.0 (WP-S6.06 FP-3).
 - FT-1179 `WP-S6.06`: The executable's icon and version resource on Windows, which needs a build-script dependency (WP-S6.06 FP-4, §13 O5).
+- FT-1626 `ew-ui`: The snapshot tests have no Linux images: the 15 Linux-only overrides were stale since rc.3 (never re-blessed on Linux) and are removed, so on Linux the affected dialogs compare with the Windows images and fail until they are blessed there. Bless on Linux when a Linux run is wanted again (1.0 at the latest).
 
 ## Reports and export
 
@@ -292,3 +297,5 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1545 `ew-viewmodel`: A target placed by the page's quarters no longer pairs with a source on its own since ID-1462 (the user types the name or uses Continue on page…); watch it in R1 and decide whether the quarters propose the source's name as a typed one.
 - FT-1604 `ew-viewmodel`: A wire drawn to a connection point that already holds a wire, where the neighbouring points' stubs leave no clean second route (§5.1 rules 1 and 2), stays unrouted; propose ending it on the first wire as a T junction instead, as drawing practice does.
 - FT-1608 `ew-viewmodel`: A route drawn before its interruption point has a partner can run through the cross-reference text that appears with the partner, since a text change re-solves no route; re-solve the routes a new text crosses, as a move does (D14).
+- FT-1672 `ew-viewmodel, ew-api`: A project with two or more CPUs cannot be built in the window: a new card joins a CPU by itself only while the project has one (D4), the notice says "attach the module to a station", and the window has no command for that (`assembly.attach` exists for `ew apply` only), so the PLC panel never lists the card. Build the attaching: the PLC panel lists the cards on no CPU, and a CPU row's menu attaches them ("Attach cards without a CPU").
+- FT-1669 `ew-scene`: A connection point marked not used shows no mark on the page (doc 06 defines none); decide the mark and draw it.

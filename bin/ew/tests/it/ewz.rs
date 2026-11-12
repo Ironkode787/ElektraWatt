@@ -19,9 +19,10 @@ fn packed(t: &Tmp, project: &Path) -> PathBuf {
     assert_eq!(
         stdout(&o),
         format!(
-            ".ewz written to {}: generation 1, 184 files
+            ".ewz written to {}: generation 1, {} files
 ",
-            ewz.display()
+            ewz.display(),
+            tree(project).len()
         )
     );
     ewz
@@ -257,7 +258,11 @@ fn extract_into_a_new_folder_and_never_into_an_existing_one() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert_eq!(
         stdout(&o),
-        format!("extracted into {}: generation 1, 184 files\n", into.display())
+        format!(
+            "extracted into {}: generation 1, {} files\n",
+            into.display(),
+            source.len()
+        )
     );
     assert_eq!(tree(&into), source, "byte-equal to the source");
 

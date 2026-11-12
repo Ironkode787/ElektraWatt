@@ -1541,8 +1541,9 @@ the state before the embedding is valid; the test pins the stop.
 `solenoid_positions` feeds derivation step 4, and normalisers N2 and N3 and the Bulk command `plc.set_module_part`
 exist (38 commands). The builder keeps its 28 explicit `plc.bind_channel` commands (§11.2).
 
-*AC-16's sweep.* **2527 keys of 72 memoised families**, the one line of `expected/acceptance_headless.md` that
-records it.
+*AC-16's sweep.* Every key of every memoised family, compared with its cold recomputation after each edit. The
+report states no totals for sets that grow with the code (the memoised families, the files a save writes, the
+builder's commands): a new family would re-bless it for no finding.
 
 *As built.* G-M2's GUI entries come from kittest: AC-28 is one flow on a copy of Golden A (`crates/ew-ui/tests/it/ac28.rs`); the hand-kept map from the GP-named requirements to their tests is not in the repository during the alpha.
 
