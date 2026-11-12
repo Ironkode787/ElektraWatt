@@ -762,6 +762,16 @@ impl ShellModel {
         if let Some(label) = label {
             params["label"] = Value::String(label);
         }
+        // A page the project's frame defaults leave without a frame (an imported QElectroTech project) takes the
+        // frame and title block of the page it is made from (FT-1716).
+        let kind = if ty.is_empty() { "multi_line" } else { ty.as_str() };
+        if let Some(form) = self
+            .focused_page_id()
+            .zip(self.project.as_ref())
+            .and_then(|(page, project)| project.session.new_page_form(page, kind))
+        {
+            params["form"] = Value::String(form.to_string());
+        }
         if !ty.is_empty() {
             if !PAGE_TYPES.contains(&ty.as_str()) {
                 return self.form_failed(

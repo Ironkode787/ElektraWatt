@@ -145,3 +145,57 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
     );
     shell.shutdown();
 }
+
+/// FT-1716: in an imported project, Page ▸ New page… with the type Panel layout gives a page with the frame and the
+/// title block of the page it was made from, as a new folio of QElectroTech takes the project's template.
+#[test]
+fn a_new_panel_page_of_an_imported_project_has_its_frame() {
+    let tmp = Tmp::new();
+    let qet = tmp.0.join("lamp-circuit.qet");
+    std::fs::copy(
+        concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../docs/book/src/tutorials/files/lamp-circuit.qet"
+        ),
+        &qet,
+    )
+    .unwrap();
+    let platform = Scripted::default();
+    platform
+        .answers
+        .borrow_mut()
+        .extend([Pick::Path(qet), Pick::Path(tmp.0.join("lamp.ew"))]);
+    let mut h = harness(&tmp, platform, None);
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    support::open_menu(&mut h, &["File"]);
+    support::menu_node(&h, "Import…").click();
+    settle(&mut h);
+    assert!(h.state_mut().shell_mut().wait_jobs().is_empty());
+    settle(&mut h);
+    h.get_by_label("Create project").click();
+    settle(&mut h);
+    support::wait_for_page(&mut h);
+    settle(&mut h);
+    support::open_menu(&mut h, &["Page"]);
+    support::menu_node(&h, "New page…").click();
+    settle(&mut h);
+    h.state_mut().shell_mut().set_form_field("type", "panel_layout");
+    settle(&mut h);
+    h.get_by_label("Create").click();
+    settle(&mut h);
+    support::wait_for_page(&mut h);
+    settle(&mut h);
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
+    assert_eq!(
+        h.state().shell().page_rows()[h.state().shell().page_index()].kind,
+        "panel_layout"
+    );
+    // It has a title block: Title block fields… lists what it prints.
+    printed(&mut h, "page.title");
+    h.state_mut().shell_mut().shutdown();
+}

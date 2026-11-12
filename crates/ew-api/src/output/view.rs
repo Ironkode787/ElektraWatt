@@ -1350,6 +1350,20 @@ impl crate::Session {
             .filter(|(_, c)| ew_derive::shows_marker(&q, c, mode))
             .count()
     }
+
+    /// The frame form a new page of type `kind` made from the page `from` takes as its own (FT-1716): `from`'s own
+    /// form, when the project's frame defaults give a page of `kind` none and the project holds no no-grid frame, so
+    /// that it would have no frame at all (an imported QElectroTech project, whose folios each carry their template).
+    /// `None` when the defaults or the no-grid frame frame the page, or `from` has no form of its own.
+    pub fn new_page_form(&self, from: Uuid, kind: &str) -> Option<Uuid> {
+        let q = self.query();
+        let kind: PageType = serde_json::from_value(serde_json::Value::String(kind.to_owned())).ok()?;
+        if frame_form_of(&q, None, &kind, true).is_some() || form_by_key(&q, NOGRID_FRAME).is_some() {
+            return None;
+        }
+        let own = q.pages().get(Id::from_uuid(from))?.form?;
+        q.forms().get(own).is_some().then(|| own.as_uuid())
+    }
 }
 
 #[cfg(test)]
