@@ -15,27 +15,7 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### Wiring and routing
 
-- FT-866 `ew-commands`: **Medium.** When the router falls back on a pin 1 nm off, the wire ends in a 1 nm segment, so P places the interruption point sideways. Seen with a row of adjacent interruption points one grid step apart; applies to symbol connection points too (FIXPT40, cycle 40).
-- FT-517 `The auto-route re-solve with FT-18 (WP-S2.04's router)`: Provisional routes that run along other wires end to end or through symbol bodies: on Golden A's folio 101 four wires (`-101F1:1 -> F55:1`, `S56:14 -> E56:X1`, `junction 2 -> S56:13`, `junction 2 -> T55:5`) lie on other wires for their whole length and are reached only by FT-500's repeated-click walk, and E55:L's wire appears …
-- FT-768 `ew-viewmodel`: **Medium.** Accidental series insertion: ID-888's through route takes any free representation in line, so a straight wire across an unwired fuse, contact or coil whose CPs face in and out inserts it in series, and going round it needs a bend. Watch for it in the next play-test, and decide whether a symbol other than a terminal should need …
-- FT-773 `ew-commands (route)`: The router detours far round a black box when the gap under it is less than one grid step, instead of taking the near side (seen at cycle 39's wave-1 window check).
-- FT-791 `ew-commands (normalise)`: **Medium.** A wire drawn by autoconnect has no stored route, so normaliser #7 (`connection_split`) does not split it when a terminal is dropped on it: confirm with a test, then let the normaliser read the connection's drawn line where no route is stored.
-- FT-898 `ew-scene, ew-commands`: The router detours around the PSU's box for a short wire (t0029) (play-test rv-vis-4, cycle 40; repeated in rv-vis-5).
-- FT-967 `ew-viewmodel, ew-commands`: **Medium.** FT-901's remaining half: making one page arrow the source is refused until the other page's arrow is changed; swap the source in one step (P42, cycle 42).
-- FT-1433 `ew-viewmodel`: A device dropped on a wire connects into it without asking ("behind my back"); show the proposals and ask, or say so in the toast, after R1's record for ADR-0007 (R0-F4, Nielsen 2; R0 P-7).
-- FT-1434 `ew-derive`: The router's provisional routes jog, take a rectangular detour on a straight vertical connection and run over existing wires (R0-F5, Nielsen 2; R0 P-8).
-- FT-1545 `ew-viewmodel`: A target placed by the page's quarters no longer pairs with a source on its own since ID-1462 (the user types the name or uses Continue on page…); watch it in R1 and decide whether the quarters propose the source's name as a typed one.
-- FT-1579 `ew-api`: Routing at an import's front door for `ew import csv`, whose `route` column is optional (a QET import needs none any more: every wire arrives routed).
-- FT-1588 `ew-derive`: Wire markers are no obstacles for the router or measure (d), since they move with their wire; place them clear of other wires and texts after routing (ID-1502 (3)).
-- FT-1589 `ew-derive`: A layout measure for a route over the frame bands; the router already blocks them (WP-S2.19 §5.1 rule 5).
-- FT-1590 `ew-derive`: QET-grid connection points can sit 1 nm off a grid line, so the exact measures miss an overlap 1 nm off.
-- FT-1594 `ew-viewmodel`: The interruption point tool's ghost connection point should move with the form when D changes the direction (the insertion point stays).
 - FT-1597 `golden`: On Golden A's folio 106 the wires to the modules' lower pins (4, 5, FE) wrap round the module bodies, because doc 20 §15 puts the interruption points of the top and bottom pins' feeds in one cell (B1, E1); give the lower-pin feeds cells of their own (below the modules) and route them without the wrap.
-- FT-1598 `ew-derive`: A straight route between two connection points whose coordinates are rounded through different paths leans by 1 nm, and a macro inserted at 90° keeps a 1 nm jog; square the route in the router or the insert, then take the 1 nm tolerance out of the testkit's diagonal check and the macro test.
-- FT-1602 `ew-api`: `ew layout` still measures an unrouted connection's dashed line for crossings and bends, while D3 counts such a connection only as unrouted; leave it out of the measures as the check rules do.
-- FT-1604 `ew-viewmodel`: A wire drawn to a connection point that already holds a wire, where the neighbouring points' stubs leave no clean second route (§5.1 rules 1 and 2), stays unrouted; propose ending it on the first wire as a T junction instead, as drawing practice does.
-- FT-1607 `ew-ui`: **Medium.** Route page's and Route selection's preview card lists the plan but draws no planned route on the canvas, the dashed lines staying until Apply; draw the planned routes as the preview's ghost.
-- FT-1608 `ew-viewmodel`: A route drawn before its interruption point has a partner can run through the cross-reference text that appears with the partner, since a text change re-solves no route; re-solve the routes a new text crosses, as a move does (D14).
 
 ### The window: feedback and dead ends
 

@@ -61,12 +61,16 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1541 `ew-scene, Golden A`: Fixed texts that no placement rule moves still overlap on Golden A: folio 103's `PE-1.4` over `PE-1.1` and `PE-1.2` over `106-A1`, and folio 101's J-E-206 cluster (`J-E-206-N` and `J-E-206-PE` over …
 - FT-1593 `ew-scene`: A black box's caption is placed without regard to junctions and wires beside it (Golden A's -102F2 against D6 and D7, ID-1502 (6)); place it clear.
 - FT-1595 `ew-scene`: The tag of a terminal drawn without a strip segment (`StripTagView`) still stands above the terminal, where a wire leaving up crosses it; place it beside, as ID-1502 (4) does for a strip segment.
+- FT-1588 `ew-derive`: Wire markers are no obstacles for the router or measure (d), since they move with their wire; place them clear of other wires and texts after routing (ID-1502 (3)).
+- FT-1589 `ew-derive`: A layout measure for a route over the frame bands; the router already blocks them (WP-S2.19 §5.1 rule 5).
+- FT-1590 `ew-scene, ew-derive, ew-api`: The 1 nm family. A symbol's connection point is its position plus a rounded offset, so a point can sit 1 nm off a grid line: the exact measures miss an overlap 1 nm off, a straight route between two such points leans by 1 nm (the router turns the lean into a jog), and a macro inserted at 90° keeps a 1 nm jog. Terminal-strip points already follow an exact grid rule, written out in three places (`cp_map` in ew-scene, `rep_cp_end` in ew-derive, `editing.rs` in ew-api): give symbol connection points the same rule in one shared place. It moves 90 points of Golden A on 8 folios and leaves 33 stored route ends 1 nm off, to be rewritten in the same change; then take the 1 nm tolerances out of the testkit's diagonal check and the macro test.
 
 ## Importers
 
 - FT-684 `ew-import-tables`: **Medium.** The tables importer's `template` column cannot pick a later entry of the same FnDef (it takes the first entry naming the FnDef; writing `template_entry` from the column would lift it once the builder …
 - FT-1419 `ew-import-tables`: The `route` column of `connections.csv` accepts only connection-point ends a symbol draws, no junction, black-box or strip-segment end (FT51e).
 - FT-1484 `ew-import-tables, ew-derive`: A `route` end at a terminal-strip segment (FT-1419's rest): its position comes from ew-derive's segment layout and ew-import-tables has no edge to ew-derive; design how the importer resolves it (an …
+- FT-1579 `ew-api`: Routing at an import's front door for `ew import csv`, whose `route` column is optional (a QET import needs none any more: every wire arrives routed).
 
 ## Libraries, parts and content
 
@@ -284,3 +288,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1606 `ew-ui`: The ribbon stacks only consecutive small buttons, so the pending Potential button (order 5) will split Route page and Route selection's column when it lands; give the stack an explicit column break.
 - FT-1618 `ew-ui`: Route page and Route selection use `file-settings` and `magnet`, the only unused icons of the set that fit; give them icons drawn for routing (a route and a waypoint glyph) from the same icon family.
 - FT-1676 `ew-ui`: In Compact density at the 1280-point floor the Connect group of the Draw tab folds into a menu with Layout, Annotate and Arrange (Wire stays on the tool bar under the canvas and on W). Letting the next step drop its label first gains nothing there: no group fits in the room it frees. A group could fold in two steps instead: keep its large button and fold only the small ones.
+- FT-1433 `ew-viewmodel`: A device dropped on a wire connects into it without asking ("behind my back"); the drop says so in a toast now; whether to show the proposals and ask is ADR-0007's decision (R0-F4, Nielsen 2; R0 P-7).
+- FT-1545 `ew-viewmodel`: A target placed by the page's quarters no longer pairs with a source on its own since ID-1462 (the user types the name or uses Continue on page…); watch it in R1 and decide whether the quarters propose the source's name as a typed one.
+- FT-1604 `ew-viewmodel`: A wire drawn to a connection point that already holds a wire, where the neighbouring points' stubs leave no clean second route (§5.1 rules 1 and 2), stays unrouted; propose ending it on the first wire as a T junction instead, as drawing practice does.
+- FT-1608 `ew-viewmodel`: A route drawn before its interruption point has a partner can run through the cross-reference text that appears with the partner, since a text change re-solves no route; re-solve the routes a new text crosses, as a move does (D14).
