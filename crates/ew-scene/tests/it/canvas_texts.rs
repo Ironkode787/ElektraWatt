@@ -658,6 +658,7 @@ fn routed_nm(n: u128, a: (u128, u16), b: (u128, u16), route: &[(i64, i64)]) -> C
     ConnectionView {
         connection: Arc::new(c),
         marker: None,
+        number: None,
     }
 }
 

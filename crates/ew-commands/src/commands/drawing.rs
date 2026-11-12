@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `project.drawing.set` (`SetDrawing`, FR-CON-031): the project's drawing settings, the member
-//! `drawing` of the project settings' `extra` (doc 03 §5.1).
+//! `drawing` of the project settings' `extra` (doc 03 §5.1): `crossings`, `marker_mode` and `wire_numbers`.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -53,7 +53,8 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Optio
 /// object this command does not know are kept. An object left empty is removed. `crossings` (`plain` or `hops`,
 /// FR-CON-031) chooses how crossing wires are drawn; absent means plain. `marker_mode` (`all`, `deviations`,
 /// `explicit` or `none`; FR-CON-024) chooses which wires carry a wire marker; absent means the
-/// as-built rule (a connection's `show_marker`). Presentation only: no record changes meaning (the drawing and the
+/// as-built rule (a connection's `show_marker`). `wire_numbers` (`true` or `false`; FT-1692) prints every wire's number
+/// on the page; absent means none. Presentation only: no record changes meaning (the drawing and the
 /// marker derivation read the members). Rejected: a `drawing` member of the project settings that is not an
 /// object (a newer or damaged format; the command never overwrites it); an unknown value (invalid); no member
 /// given (invalid at the root). Interactive. Outcome: none.
@@ -77,6 +78,14 @@ pub struct SetDrawing {
     )]
     #[schemars(with = "Option<MarkerModeParam>")]
     pub marker_mode: Option<Option<MarkerModeParam>>,
+    /// Whether every wire prints its number on the page; `null` removes the member (no numbers).
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schemars(with = "Option<bool>")]
+    pub wire_numbers: Option<Option<bool>>,
 }
 
 /// Sets (`Some`) or removes (`None`) one member of the drawing object.
@@ -107,7 +116,7 @@ impl Command for SetDrawing {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        if self.crossings.is_none() && self.marker_mode.is_none() {
+        if self.crossings.is_none() && self.marker_mode.is_none() && self.wire_numbers.is_none() {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "",
@@ -127,6 +136,9 @@ impl Command for SetDrawing {
         }
         if let Some(mode) = self.marker_mode {
             put_member(&mut drawing, "marker_mode", mode)?;
+        }
+        if let Some(on) = self.wire_numbers {
+            put_member(&mut drawing, "wire_numbers", on)?;
         }
         if drawing.is_empty() {
             project.settings.extra.remove(DRAWING_MEMBER);

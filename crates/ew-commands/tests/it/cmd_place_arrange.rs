@@ -1662,6 +1662,7 @@ fn set_drawing(crossings: Option<Option<Crossings>>) -> SetDrawing {
     SetDrawing {
         crossings,
         marker_mode: None,
+        wire_numbers: None,
     }
 }
 

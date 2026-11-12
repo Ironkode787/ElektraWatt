@@ -366,6 +366,7 @@ action-junction-member = Een lid van de aftakking verplaatsen
 action-junction-style = Stijl van aftakking
 action-junction-wiring = Bedrading van aftakking
 action-project-crossings = Kruisingen als sprongen tonen
+action-project-wire-numbers = Draadnummers afdrukken
 tool-wire = Draad
 tool-route_edit = Route bewerken
 hint-wire-armed = Klik of { $p0 } op een aansluitpunt, een aftakking of een draad om te beginnen

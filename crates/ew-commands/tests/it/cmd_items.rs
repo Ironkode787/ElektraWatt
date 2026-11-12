@@ -1259,6 +1259,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
     e.execute(&SetDrawing {
         crossings: None,
         marker_mode: Some(Some(MarkerModeParam::Deviations)),
+        wire_numbers: None,
     })
     .unwrap();
     let drawing = |e: &Engine| e.model().project().settings.extra.get("drawing").cloned();
@@ -1266,6 +1267,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
     e.execute(&SetDrawing {
         crossings: Some(Some(ew_commands::commands::Crossings::Hops)),
         marker_mode: None,
+        wire_numbers: None,
     })
     .unwrap();
     assert_eq!(
@@ -1275,13 +1277,25 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
     e.execute(&SetDrawing {
         crossings: Some(None),
         marker_mode: Some(None),
+        wire_numbers: None,
     })
     .unwrap();
     assert_eq!(drawing(&e), None, "an object left empty is removed");
+    // FT-1692: the wire numbers on, then removed with `null`.
+    let numbers = |on: Option<bool>| SetDrawing {
+        crossings: None,
+        marker_mode: None,
+        wire_numbers: Some(on),
+    };
+    e.execute(&numbers(Some(true))).unwrap();
+    assert_eq!(drawing(&e), Some(json!({"wire_numbers": true})));
+    e.execute(&numbers(None)).unwrap();
+    assert_eq!(drawing(&e), None);
     let err = e
         .execute(&SetDrawing {
             crossings: None,
             marker_mode: None,
+            wire_numbers: None,
         })
         .unwrap_err();
     assert_eq!(pointer(err, "project.drawing.set"), "");

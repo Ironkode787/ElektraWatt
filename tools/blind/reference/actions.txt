@@ -164,6 +164,7 @@ junction.member Command "Move a junction member" menu none shortcut none context
 junction.style Command "Junction style" menu none shortcut none context global hidden params "style:enum(dot|bevel), orient?:uint"
 junction.wiring Command "Junction wiring" menu none shortcut none context global hidden params "wiring:enum(star|chain|style_default)"
 project.crossings Command "Show crossings as hops" menu "Draw" shortcut none context global params "on?:bool"
+project.wire_numbers Command "Print wire numbers" menu "Draw" shortcut none context global params "on?:bool"
 tool.ip Command "Interruption point" menu "Draw" shortcut "P" context canvas params ""
 tool.black_box Command "Black box…" menu "Draw" shortcut "B" context canvas params "symbol?:text, part?:text, template?:uint, letter?:text"
 tool.ip_direction View "Interruption point direction" menu "Draw" shortcut "D" context canvas params "direction?:enum(source|target|undirected)"

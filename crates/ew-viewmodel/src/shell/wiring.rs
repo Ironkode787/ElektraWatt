@@ -52,6 +52,21 @@ impl ShellModel {
         })
     }
 
+    /// Whether the project prints every wire's number on the page (`settings.extra.drawing.wire_numbers`, FT-1692).
+    pub fn wire_numbers_on(&self) -> bool {
+        self.project.as_ref().is_some_and(|p| {
+            p.session
+                .query()
+                .project()
+                .settings
+                .extra
+                .get("drawing")
+                .and_then(|d| d.get("wire_numbers"))
+                .and_then(Value::as_bool)
+                == Some(true)
+        })
+    }
+
     /// Whether the project draws crossings as hops (`settings.extra.drawing.crossings`).
     pub fn crossings_hops(&self) -> bool {
         self.crossings_word() == Some("hops")
@@ -382,6 +397,22 @@ impl ShellModel {
         let cmd = ew_api::AnyCommand {
             name: "project.drawing.set".into(),
             params: json!({ "crossings": crossings }),
+        };
+        self.run_commit(&cmd)
+    }
+
+    /// `project.wire_numbers {on?}` (Draw ▸ Connect ▸ Print wire numbers, FT-1692): commits `project.drawing.set`
+    /// with `wire_numbers: true`, or with `null` (the member removed: no numbers, as a project without the setting) to
+    /// turn it off; without `on` it toggles. The pages, the PDF and print follow the setting.
+    pub(crate) fn act_wire_numbers(&mut self, p: &Map<String, Value>) -> Outcome {
+        let on = if p.contains_key("on") {
+            flag(p, "on")
+        } else {
+            !self.wire_numbers_on()
+        };
+        let cmd = ew_api::AnyCommand {
+            name: "project.drawing.set".into(),
+            params: json!({ "wire_numbers": if on { json!(true) } else { Value::Null } }),
         };
         self.run_commit(&cmd)
     }

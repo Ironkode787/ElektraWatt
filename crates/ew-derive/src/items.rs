@@ -18,6 +18,8 @@
 //!   as-built rule); in a mode, the mode selects the wires and the marker prints effective values (doc 08 §4.5). A
 //!   connection a wire-marker item lists draws no marker of its own; the item draws the group whenever one of its
 //!   connections would show a marker ([`group_marker`]).
+//! - **Wire numbers on the page** (FT-1692): `settings.extra.drawing.wire_numbers`; on, every connection prints the
+//!   number of the wire it belongs to ([`connection_number`]); a core prints none (its cable and core name it).
 //! - **Group text** (FR-CON-039): the distinct effective cross-sections in list order joined by `/`, then one colour
 //!   code per connection in list order: `2.5 BK BU`, `1.5 DBU DBU WH WH`.
 //! - **Captions**: a structure box prints its caption and, with `external`, ` (<external>)` as the external
@@ -432,6 +434,19 @@ pub fn connection_marker(q: &Q, c: &Connection, grouped: bool) -> Option<String>
             .unwrap_or_else(|| effective_marker_text(q, c.id)),
         Some(_) => effective_marker_text(q, c.id),
     })
+}
+
+/// The number a connection prints on the page (FT-1692): with the project's `drawing.wire_numbers` on, the printed
+/// number of the (first) physical wire it belongs to; `None` with the setting off, and for a connection that forms
+/// no numbered wire (a cable's core, which its cable and core name; a bridge; a fluid line).
+pub fn connection_number(q: &Q, c: Id<Connection>) -> Option<String> {
+    if !q.get::<DrawingSettingsQ>(()).wire_numbers {
+        return None;
+    }
+    let (wire, _) = q.get::<ConnWireProps>(c).first().cloned()?;
+    q.get::<crate::WireNumbers>(())
+        .number(wire)
+        .map(|n| n.label.clone())
 }
 
 /// The live entries of a wire marker: the listed connections that exist and are drawn on the marker's page, in list

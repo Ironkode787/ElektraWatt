@@ -153,6 +153,7 @@ fn view() -> PageView {
                     &[below(10, 20), (g(10), below(50, 50).1), below(50, 50)],
                 ),
                 marker: Some("2.5 BU".into()),
+                number: None,
             },
             ConnectionView {
                 connection: routed(
@@ -162,6 +163,7 @@ fn view() -> PageView {
                     &[above(10, 20), (g(40), above(10, 20).1), (g(40), g(20))],
                 ),
                 marker: None,
+                number: None,
             },
             ConnectionView {
                 connection: routed(
@@ -171,10 +173,12 @@ fn view() -> PageView {
                     &[(g(40), g(20)), (g(50), g(20)), above(50, 50)],
                 ),
                 marker: None,
+                number: None,
             },
             ConnectionView {
                 connection: connection(0x24, cp(0xF1, 0), cp(0xF9, 0)),
                 marker: None,
+                number: None,
             },
         ],
         junctions: vec![JunctionView {
@@ -652,6 +656,7 @@ fn wire(n: u128, a: serde_json::Value, b: serde_json::Value) -> ConnectionView {
     ConnectionView {
         connection: connection(n, a, b),
         marker: None,
+        number: None,
     }
 }
 

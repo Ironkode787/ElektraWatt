@@ -891,3 +891,41 @@ fn a_basic_project_without_pages_and_devices() {
     assert!(matches!(err, ew_api::SaveAsBasicError::Write(_)), "{err}");
     let _ = std::fs::remove_dir_all(&work);
 }
+
+/// FT-1692 (ADR-0011 decision 6, an additive member of `settings.extra.drawing`): a project saved without
+/// `wire_numbers` opens and saves back with the same `project.jsonl`; the setting turned on is written as
+/// `"wire_numbers": true`, and turned off again leaves the line as it was.
+#[test]
+fn the_wire_numbers_member_is_additive() {
+    let work = temp("wire-numbers");
+    let state = work.join("state");
+    let dir = work.join("p.ew");
+    let mut s =
+        Session::new_project(ProjectTemplate::Builtin, NewProjectKind::Schematic, options(17)).unwrap();
+    s.create(&dir, store(&state)).unwrap();
+    s.close();
+    let before = project_text(&dir);
+    assert!(!before.contains("wire_numbers"));
+    let mut s = reopen_sound(&dir, &state);
+    s.save().unwrap();
+    assert_eq!(project_text(&dir), before, "opened and saved unchanged");
+    run_cmd(
+        &mut s,
+        "project.drawing.set",
+        serde_json::json!({"wire_numbers": true}),
+    );
+    s.save().unwrap();
+    assert!(project_text(&dir).contains("\"wire_numbers\":true"));
+    run_cmd(
+        &mut s,
+        "project.drawing.set",
+        serde_json::json!({"wire_numbers": null}),
+    );
+    s.save().unwrap();
+    assert_eq!(
+        project_text(&dir),
+        before,
+        "the member removed leaves the line as it was"
+    );
+    s.close();
+}

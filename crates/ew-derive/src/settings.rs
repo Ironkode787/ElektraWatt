@@ -211,6 +211,8 @@ pub struct DrawingSettings {
     /// `marker_mode` (FR-CON-024): which wires carry a marker; `None` (absent or an unknown value) is
     /// the as-built rule, a connection's `show_marker`.
     pub marker_mode: Option<crate::items::MarkerMode>,
+    /// `wire_numbers: true` (FT-1692): every wire prints its number on the page; absent or anything else: no number.
+    pub wire_numbers: bool,
 }
 
 /// `drawing_settings()`: the project's [`DrawingSettings`]. Policy Memo: a cut-off point
@@ -233,7 +235,15 @@ impl Query for DrawingSettingsQ {
             .and_then(|d| d.get("marker_mode"))
             .and_then(Value::as_str)
             .and_then(crate::items::MarkerMode::from_name);
-        Arc::new(DrawingSettings { hops, marker_mode })
+        let wire_numbers = drawing
+            .and_then(|d| d.get("wire_numbers"))
+            .and_then(Value::as_bool)
+            == Some(true);
+        Arc::new(DrawingSettings {
+            hops,
+            marker_mode,
+            wire_numbers,
+        })
     }
 }
 

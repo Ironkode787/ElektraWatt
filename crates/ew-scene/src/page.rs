@@ -136,6 +136,10 @@
 //!   in style `marker` [`MARKER_GAP`] beyond the line's end, horizontal: right of the line across a vertical wire
 //!   (aligned middle left), above the line across a horizontal wire (aligned bottom centre). A wire-marker group
 //!   ([`crate::items`]) draws the same line across all its wires. Provisional, like the routes.
+//! - **Wire numbers** (FT-1692): a connection's [`ConnectionView::number`] prints once, at the midpoint of its
+//!   longest segment, in style `marker`, [`MARKER_GAP`] beside the wire as a marker's text stands (right of a
+//!   vertical segment, above a horizontal one) but without the marker's line; with a marker of its own it is that
+//!   marker's text, the number first (`101.1 1.5 BK`).
 //! - **Stored symbol variants** (`Representation.variant`, contact-image variants) are not drawn yet: the
 //!   main graphics are used, and the geometry key's `extra` is `None`.
 
@@ -329,6 +333,8 @@ pub struct ConnectionView {
     pub connection: Arc<Connection>,
     /// The wire-marker text, when the connection shows a marker.
     pub marker: Option<String>,
+    /// The wire's printed number, when the project prints wire numbers (FT-1692).
+    pub number: Option<String>,
 }
 
 /// One junction on the page.
@@ -1916,7 +1922,10 @@ impl Builder<'_> {
     fn connection_markers(&mut self, view: &PageView) {
         let markers: Vec<&ConnectionView> = sorted_connections(view)
             .into_iter()
-            .filter(|c| c.marker.as_deref().is_some_and(|m| !m.is_empty()))
+            .filter(|c| {
+                c.marker.as_deref().is_some_and(|m| !m.is_empty())
+                    || c.number.as_deref().is_some_and(|n| !n.is_empty())
+            })
             .collect();
         if markers.is_empty() {
             return;
@@ -1932,13 +1941,38 @@ impl Builder<'_> {
                 continue;
             };
             let entity = EntityRef(c.id.as_uuid());
-            let (place, crossing) = if vertical {
-                (MarkerText::Right, at.x)
+            // One text: the wire's number first, then its marker's values.
+            let text = [cv.number.as_deref(), cv.marker.as_deref()]
+                .into_iter()
+                .flatten()
+                .filter(|t| !t.is_empty())
+                .collect::<Vec<_>>()
+                .join(" ");
+            if cv.marker.as_deref().is_some_and(|m| !m.is_empty()) {
+                let (place, crossing) = if vertical {
+                    (MarkerText::Right, at.x)
+                } else {
+                    (MarkerText::Above, at.y)
+                };
+                self.wire_marker(view, at, &[crossing], place, &text, entity);
+                continue;
+            }
+            // A number alone stands beside its wire, as a marker's text does, without the marker's line.
+            let (at, align) = if vertical {
+                (Pt2::new(at.x + MARKER_GAP, at.y), Align::MiddleLeft)
             } else {
-                (MarkerText::Above, at.y)
+                (Pt2::new(at.x, at.y - MARKER_GAP), Align::BottomCentre)
             };
-            let text = cv.marker.clone().unwrap_or_default();
-            self.wire_marker(view, at, &[crossing], place, &text, entity);
+            self.text(&TextSpec {
+                text: &text,
+                at,
+                angle: Angle2::ZERO,
+                align: &align,
+                style_key: MARKER_STYLE,
+                entity,
+                link: None,
+                items: &[],
+            });
         }
     }
 

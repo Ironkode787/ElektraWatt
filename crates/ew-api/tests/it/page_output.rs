@@ -635,6 +635,7 @@ fn hostile_view() -> PageView {
         connections.push(ConnectionView {
             connection: Arc::new(c),
             marker: None,
+            number: None,
         });
     }
     PageView {

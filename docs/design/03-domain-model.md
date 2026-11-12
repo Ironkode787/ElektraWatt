@@ -692,6 +692,12 @@ member; it refuses a `drawing` member that is not an object, an unknown value an
 until part 2's derivation, and `marker_mode` comes with part 4a.
 `crossings` is presentation only (no derived diff); `marker_mode` is read by the derivation, so changing it changes the
 derived marker texts. The per-page marker mode of FR-CON-024 is FT-375.
+`wire_numbers?: bool` (FT-1692) prints every wire's number on its pages, the PDF and print; absent (or anything but
+`true`) means no numbers. It is read by the page view (`ew_derive::connection_number`, the number of the wire a
+connection belongs to; a cable's core prints none) and set by `project.drawing.set` like the other members (`null`
+removes it), in the window by Draw ▸ Connect ▸ Print wire numbers. It was added on 2026-11-12, after the format lock,
+as an additive member of this open object (ADR-0011 decision 6): no published schema changes, and an older build keeps
+the member in `extra` and prints no numbers.
 
 Not shaped here, and kept in `extra` until their work packages: `checks` (WP-S1.15), `fluid` ([11](11-fluid-power.md)),
 `mfg` ([13](13-manufacturing-outputs.md)), text styles and export schemes (WP-S3.02, WP-S3.04).

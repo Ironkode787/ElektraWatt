@@ -404,3 +404,60 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
     );
     d.shell_mut().shutdown();
 }
+
+/// The texts the page shown prints, groups followed.
+fn page_texts(d: &mut Driver) -> Vec<String> {
+    use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    fn walk(items: &[Item], out: &mut Vec<String>) {
+        for item in items {
+            match &item.kind {
+                ItemKind::Glyphs(run) => out.push(run.text.clone()),
+                ItemKind::Group(g) => walk(&g.items, out),
+                _ => {}
+            }
+        }
+    }
+    let list = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().list);
+    let mut out = Vec::new();
+    walk(&list.items, &mut out);
+    out
+}
+
+/// FT-1692: Print wire numbers (Draw ▸ Connect ▸ Print wire numbers), run from the command search, prints the number of each
+/// of the page's two wires on the page of a new project (`1.1`, `1.2`: the page's folio and the counter); ticked off,
+/// the numbers are gone.
+#[test]
+fn ft1692_print_wire_numbers_puts_each_wires_number_on_the_page() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let _ = two_wires(&mut d);
+    let numbers = |d: &mut Driver| {
+        let mut n: Vec<String> = page_texts(d)
+            .into_iter()
+            .filter(|t| t.starts_with("1.") && t[2..].chars().all(|c| c.is_ascii_digit()))
+            .collect();
+        n.sort();
+        n
+    };
+    assert_eq!(
+        numbers(&mut d),
+        Vec::<String>::new(),
+        "no numbers before the setting"
+    );
+    // The command search, clicked: "Print wire numbers" typed, Enter.
+    let tick = |d: &mut Driver| {
+        d.input(&click(
+            d.find("Search commands and devices").expect("the command search"),
+        ));
+        d.settle();
+        d.input(&typed("Print wire numbers"));
+        d.settle();
+        d.input(&key("enter"));
+        d.settle();
+    };
+    tick(&mut d);
+    assert_eq!(numbers(&mut d), ["1.1", "1.2"]);
+    tick(&mut d);
+    assert_eq!(numbers(&mut d), Vec::<String>::new(), "ticked off, no numbers");
+    d.shell_mut().shutdown();
+}
