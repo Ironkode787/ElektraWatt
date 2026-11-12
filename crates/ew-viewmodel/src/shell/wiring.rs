@@ -600,6 +600,41 @@ impl ShellModel {
         self.route_card(ew_api::routing::RouteScope::Selection(ids))
     }
 
+    /// The routes an open Route page or Route selection card plans on the page of canvas `group`, in sheet nm, while
+    /// the card is current: the canvas draws them as the preview's ghost until Apply or Cancel.
+    pub fn route_preview(&self, group: usize) -> Vec<Vec<(i64, i64)>> {
+        let Some(card) = self
+            .props
+            .card
+            .as_ref()
+            .filter(|c| matches!(c.origin, crate::properties::CardOrigin::Route { .. }))
+            .filter(|c| self.revision() == Some(c.preview.base_rev))
+        else {
+            return Vec::new();
+        };
+        let Some(canvas) = self.canvas_of(group) else {
+            return Vec::new();
+        };
+        let page = canvas.page();
+        let routes = card.preview.command["routes"].as_array().map_or(&[][..], Vec::as_slice);
+        routes
+            .iter()
+            .filter(|r| {
+                r["connection"]
+                    .as_str()
+                    .is_some_and(|id| page.tables.connections.iter().any(|t| t.id.to_string() == id))
+            })
+            .map(|r| {
+                r["route"]
+                    .as_array()
+                    .map_or(&[][..], Vec::as_slice)
+                    .iter()
+                    .filter_map(|p| Some(page.snapper.page_to_sheet((p[0].as_i64()?, p[1].as_i64()?))))
+                    .collect()
+            })
+            .collect()
+    }
+
     /// The selected connections and representations of the focused page, which Route selection routes (it needs one).
     pub(crate) fn route_selection_ids(&self) -> Vec<ew_api::output::Uuid> {
         self.canvas().map_or_else(Vec::new, |c| {

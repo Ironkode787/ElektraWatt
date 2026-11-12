@@ -1156,7 +1156,8 @@ hard rule there or bends more than before; it commits them as `rep.move`'s `rout
 for keeps the followed route. **Route page** (`route.page`) and **Route selection** (`route.selection`) sit in the Draw
 tab's Connect group after Edit route and Interruption, stacked in one column of their own, with no default
 key; each opens the plan in the Preview tab ("Route 3 wires on
-folio 101: 2 routed, 1 not routed.", one row per wire left unrouted with its reason), and Apply commits one
+folio 101: 2 routed, 1 not routed.", one row per wire left unrouted with its reason) and draws the planned routes
+on the canvas as its ghost, solid in the ghost colour over the dashed lines, until Apply or Cancel; Apply commits one
 `connection.route_many` with the toast "Routed 2 wires on folio 101."; a page with nothing to route says "Every wire on
 folio 101 has a route." The layout measures are the check rules EW-CORE-067 to -070, -072 and -073 (doc 15 §4).
 

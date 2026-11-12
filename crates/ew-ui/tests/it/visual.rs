@@ -2696,3 +2696,82 @@ fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
     assert!(d.shell_mut().symbol_editor().is_some(), "the editor opens");
     d.shell_mut().shutdown();
 }
+
+/// Route page's card listed the plan, and the canvas still drew the dashed lines until Apply: the planned routes are
+/// the preview's ghost on the canvas, solid in the ghost colour, and they are what Apply stores; Cancel takes them
+/// away.
+#[test]
+fn route_page_draws_its_planned_routes_on_the_canvas_until_apply_or_cancel() {
+    use ew_render2d::overlay::{ToolMark, ToolToken};
+    let tmp = Tmp::new();
+    let mut d = golden_on_101(&tmp);
+    let unroute = |d: &mut Driver| -> Vec<String> {
+        let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+        let ids: Vec<String> = tables
+            .connections
+            .iter()
+            .filter(|c| c.stored_route)
+            .take(3)
+            .map(|c| c.id.to_string())
+            .collect();
+        for id in &ids {
+            let unrouted = json!({"cmd": "connection.route", "params": {"connection": id, "route": []}});
+            assert_eq!(
+                d.shell_mut().dispatch("command.run", &unrouted),
+                ew_ui::ew_viewmodel::shell::Outcome::Done
+            );
+        }
+        d.settle();
+        ids
+    };
+    let ghosts = |d: &mut Driver| -> Vec<Vec<(i64, i64)>> {
+        let group = d.shell_mut().area().unwrap().focused;
+        ew_ui::tool_view::marks_of(d.shell_mut(), group)
+            .into_iter()
+            .filter_map(|m| match m {
+                ToolMark::Polyline {
+                    points,
+                    token: ToolToken::Ghost,
+                    ..
+                } => Some(points),
+                _ => None,
+            })
+            .collect()
+    };
+    let ids = unroute(&mut d);
+    assert!(ghosts(&mut d).is_empty());
+    d.input(&click(d.find("Route page").expect("the Route page button")));
+    d.settle();
+    let mut planned = ghosts(&mut d);
+    assert_eq!(planned.len(), ids.len(), "one ghost per planned route");
+    d.input(&click(d.find("Apply").expect("the card's Apply")));
+    d.settle();
+    assert!(ghosts(&mut d).is_empty(), "the ghost goes with the card");
+    let mut stored: Vec<Vec<(i64, i64)>> = {
+        let page = d.shell_mut().canvas().unwrap().page();
+        page.tables
+            .connections
+            .iter()
+            .filter(|c| ids.contains(&c.id.to_string()))
+            .map(|c| {
+                assert!(c.stored_route);
+                ew_ui::ew_viewmodel::tools::autoconnect::dedup(&c.polyline)
+                    .into_iter()
+                    .map(|p| page.snapper.page_to_sheet(p))
+                    .collect()
+            })
+            .collect()
+    };
+    planned.sort();
+    stored.sort();
+    assert_eq!(planned, stored, "the ghost is what Apply stores");
+    // Cancel takes the ghost away too.
+    let _ = unroute(&mut d);
+    d.input(&click(d.find("Route page").unwrap()));
+    d.settle();
+    assert!(!ghosts(&mut d).is_empty());
+    d.input(&click(d.find("Cancel").expect("the card's Cancel")));
+    d.settle();
+    assert!(ghosts(&mut d).is_empty());
+    d.shell_mut().shutdown();
+}

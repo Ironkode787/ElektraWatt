@@ -75,15 +75,27 @@ pub fn marks(overlay: &Overlay, snapper: &tools::Snapper) -> Vec<ToolMark> {
         .collect()
 }
 
-/// The marks the canvas of `group` shows: the active tool's overlay on the focused group only.
+/// The marks the canvas of `group` shows: the active tool's overlay on the focused group only, and the routes an open
+/// Route page or Route selection card plans, solid in the ghost token over the dashed lines they replace.
 pub fn marks_of(shell: &ShellModel, group: usize) -> Vec<ToolMark> {
-    if shell.area().map(|a| a.focused) == Some(group)
+    let mut out = if shell.area().map(|a| a.focused) == Some(group)
         && let Some(c) = shell.canvas_of(group)
     {
         marks(shell.tool_overlay(), &c.page().snapper)
     } else {
         Vec::new()
-    }
+    };
+    out.extend(
+        shell
+            .route_preview(group)
+            .into_iter()
+            .map(|points| ToolMark::Polyline {
+                points,
+                dash: Dash::Solid,
+                token: ToolToken::Ghost,
+            }),
+    );
+    out
 }
 
 /// The Text tool's binding in the tool options (the tool strip): one choice per [`BINDABLE`] name and "-" for none.
