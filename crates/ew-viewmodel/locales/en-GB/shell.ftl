@@ -59,6 +59,7 @@ command-device-place = Place device
 command-edit-delete = Delete
 command-edit-paste = Paste
 command-external_ref-create = Create external reference
+command-ip-supply_in = Mark where the supply comes in
 command-fields-set = Set property
 command-fields-set_many = Set properties
 command-ip-arrange = Arrange interruption points

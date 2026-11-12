@@ -284,6 +284,22 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     checked.insert(check_form(&mut h, "cable.connect_cores", json!({})));
     // Cable… with the same wire selected.
     checked.insert(check_form(&mut h, "cable.from_wires", json!({})));
+    // Supply comes in here… with an interruption point of the page selected.
+    let point = h
+        .state()
+        .shell()
+        .canvas()
+        .expect("folio 102")
+        .page()
+        .tables
+        .reps
+        .iter()
+        .find(|r| r.ip.as_ref().is_some_and(|ip| !ip.external))
+        .expect("an interruption point")
+        .id
+        .to_string();
+    dispatch(&mut h, "select.set", json!({ "ids": [point] }));
+    checked.insert(check_form(&mut h, "ip.supply_in", json!({})));
     goto(&mut h, "902");
     for action in ["layout.enclosure_new", "layout.auto_fill_rail"] {
         checked.insert(check_form(&mut h, action, json!({})));
