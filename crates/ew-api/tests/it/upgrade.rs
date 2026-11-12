@@ -58,6 +58,7 @@ static CHAIN: Migrations = Migrations {
     kinds: &[KindStep {
         kind: Kind::Project,
         from: 0,
+        format: "0.1",
         step: project_v0,
     }],
     formats: &[FormatStep {

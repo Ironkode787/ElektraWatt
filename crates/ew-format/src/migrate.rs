@@ -10,8 +10,10 @@
 //! - **Format steps** ([`FormatStep`]) go from one format to the next: one step on the manifest's `Value`, one on each
 //!   record's and library document's.
 //!
-//! A value of a file of format F is migrated towards this reader's format ([`Migrations::towards`]) by the record step
-//! of every format step from F on, in order, and then by the kind steps of its `$k` from its `$v` up to its kind's.
+//! A value of a file of format F is migrated towards this reader's format ([`Migrations::towards`]) one format at a
+//! time: at each format it reaches (F first) it takes the kind steps of its `$k` that name that format or one the way
+//! does not pass later, then the record step towards the next format. At the reader's format it takes the rest of its
+//! kind steps up to its kind's `$v`. So a record step always sees records at the `$v` its own format wrote.
 //! Steps are never deleted, and the shipped chain ([`MIGRATIONS`]) is empty while 0.1 is the first format; a test
 //! passes its own chain. A step's error carries the JSON Pointer of the value at fault; the loader adds the file and
 //! the line ([`MigrationError`]). A record whose `$v` is below its kind's with no step, and a format with no step
@@ -41,6 +43,9 @@ pub struct KindStep {
     pub kind: Kind,
     /// The `$v` it takes (an absent `$v` is 1).
     pub from: u16,
+    /// The format whose files first carry the `$v` it gives (`from + 1`): the step runs once the value has reached
+    /// that format, before the format steps beyond it.
+    pub format: &'static str,
     /// The step.
     pub step: Step,
 }
@@ -183,9 +188,10 @@ impl Migration<'_> {
         &self.from
     }
 
-    /// A record or library document migrated (the module documentation): the record step of every format step in
-    /// order, then the kind steps of its `$k` from its `$v` up to its kind's. A value without a known `$k`, or whose
-    /// `$v` is not an integer, takes no kind step (its typed reading judges it).
+    /// A record or library document migrated (the module documentation): at each format of the way, the kind steps of
+    /// its `$k` that format allows, then the record step to the next; at the end, its kind steps up to its kind's
+    /// `$v`. A value without a known `$k`, or whose `$v` is not an integer, takes no kind step (its typed reading
+    /// judges it).
     ///
     /// # Errors
     ///
@@ -193,9 +199,19 @@ impl Migration<'_> {
     /// object.
     pub fn record(&self, value: Value) -> Result<Value, MigrationError> {
         let mut value = value;
-        for step in &self.steps {
+        for (i, step) in self.steps.iter().enumerate() {
+            // The formats still ahead: a kind step naming one of them waits for it.
+            let ahead: Vec<&str> = self.steps[i..].iter().map(|s| s.to).collect();
+            value = self.kind_steps(value, &ahead)?;
             value = (step.record)(value)?;
         }
+        self.kind_steps(value, &[])
+    }
+
+    /// `value`'s kind steps from its `$v` up to its kind's, but none naming a format in `ahead`; with nothing ahead, a
+    /// missing step is an error.
+    fn kind_steps(&self, value: Value, ahead: &[&str]) -> Result<Value, MigrationError> {
+        let mut value = value;
         let Some(kind) = value.get("$k").and_then(Value::as_str).and_then(Kind::from_name) else {
             return Ok(value);
         };
@@ -211,7 +227,11 @@ impl Migration<'_> {
             if v >= target {
                 return Ok(value);
             }
-            let Some(step) = self.chain.kinds.iter().find(|s| s.kind == kind && s.from == v) else {
+            let step = self.chain.kinds.iter().find(|s| s.kind == kind && s.from == v);
+            if !ahead.is_empty() && step.is_none_or(|s| ahead.contains(&s.format)) {
+                return Ok(value);
+            }
+            let Some(step) = step else {
                 return Err(MigrationError::at(
                     "/$v",
                     format!(

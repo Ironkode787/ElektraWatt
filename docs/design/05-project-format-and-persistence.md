@@ -1182,9 +1182,11 @@ upgrade) is refused until the opt-in, previewed profile upgrade resolves the pin
 - **Same chain everywhere.** Macros, catalogue items and archives carry `$v` and use the same chain.
 
 *As built.* The chain is `ew_format::migrate`: kind steps
-(`$v` n to n + 1, the chain setting `$v`) and format steps (one on the manifest's `Value`, one on each record's and
-library document's), run on the `Value` between a line's parse and its typed reading, only on an older-major open;
-the format record steps run before the kind steps, which FT-1153 interleaves before a second format step ships. The
+(`$v` n to n + 1, the chain setting `$v`, each naming the format whose files first carry `$v` n + 1) and format
+steps (one on the manifest's `Value`, one on each record's and library document's), run on the `Value` between a
+line's parse and its typed reading, only on an older-major open. They interleave: at each format the way reaches, a
+value takes the kind steps that format allows, then the record step to the next format, so a record step sees the
+`$v` its own format wrote. The
 shipped chain (`MIGRATIONS`) is empty while 0.1 is the first format, and tests pass their own. A step's error
 carries its JSON Pointer and the loader adds the file and the line. A clipboard fragment of an older format
 migrates through the same chain (`ew-api`'s `parse_fragment`).

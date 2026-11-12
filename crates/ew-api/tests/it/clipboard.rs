@@ -1351,11 +1351,13 @@ static FRAGMENT_CHAIN: ew_store::ew_format::Migrations = ew_store::ew_format::Mi
         ew_store::ew_format::KindStep {
             kind: Kind::Device,
             from: 0,
+            format: "0.1",
             step: device_v0,
         },
         ew_store::ew_format::KindStep {
             kind: Kind::Fndef,
             from: 0,
+            format: "0.1",
             step: fndef_v0,
         },
     ],
@@ -1436,6 +1438,7 @@ static ITEM_CHAIN: ew_store::ew_format::Migrations = ew_store::ew_format::Migrat
     kinds: &[ew_store::ew_format::KindStep {
         kind: Kind::Part,
         from: 0,
+        format: "0.1",
         step: part_v0,
     }],
     formats: &[],

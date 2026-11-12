@@ -93,11 +93,13 @@ static CHAIN: Migrations = Migrations {
         KindStep {
             kind: Kind::Project,
             from: 0,
+            format: "0.1",
             step: project_v0,
         },
         KindStep {
             kind: Kind::Fndef,
             from: 0,
+            format: "0.1",
             step: fndef_v0,
         },
     ],
@@ -116,11 +118,13 @@ static FAILING: Migrations = Migrations {
         KindStep {
             kind: Kind::Project,
             from: 0,
+            format: "0.1",
             step: fails,
         },
         KindStep {
             kind: Kind::Fndef,
             from: 0,
+            format: "0.1",
             step: fndef_v0,
         },
     ],
@@ -132,6 +136,7 @@ static NO_OBJECT: Migrations = Migrations {
     kinds: &[KindStep {
         kind: Kind::Project,
         from: 0,
+        format: "0.1",
         step: no_object,
     }],
     formats: &[],
@@ -142,6 +147,7 @@ static TRACING: Migrations = Migrations {
     kinds: &[KindStep {
         kind: Kind::Project,
         from: 0,
+        format: "0.1",
         step: trace_kind,
     }],
     formats: &[FormatStep {
@@ -216,6 +222,51 @@ fn a_record_takes_the_format_steps_first_and_then_its_kind_steps() {
         way.record(current).unwrap(),
         json!({"$k": "project", "id": "7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37", "trace": ["format"]})
     );
+}
+
+fn trace_format_a(value: Value) -> Result<Value, MigrationError> {
+    Ok(traced(value, "format a-b"))
+}
+
+fn trace_format_b(value: Value) -> Result<Value, MigrationError> {
+    Ok(traced(value, "format b-c"))
+}
+
+/// Across two hops a kind step runs at the format it names, so the record step of the later format sees the
+/// record at the `$v` that format wrote (FT-1153).
+#[test]
+fn a_kind_step_runs_between_the_format_steps_at_the_format_it_names() {
+    static TWO_HOPS: Migrations = Migrations {
+        kinds: &[KindStep {
+            kind: Kind::Project,
+            from: 0,
+            format: "b",
+            step: trace_kind,
+        }],
+        formats: &[
+            FormatStep {
+                from: "b",
+                to: "c",
+                manifest: format_manifest,
+                record: trace_format_b,
+            },
+            FormatStep {
+                from: "a",
+                to: "b",
+                manifest: format_manifest,
+                record: trace_format_a,
+            },
+        ],
+    };
+    let record = json!({"$k": "project", "$v": 0, "id": "7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37", "trace": []});
+    let trace = |from: &str| {
+        let migrated = TWO_HOPS.towards(from, "c").unwrap().record(record.clone()).unwrap();
+        migrated["trace"].clone()
+    };
+    assert_eq!(trace("a"), json!(["format a-b", "kind", "format b-c"]));
+    // A file of format b takes its kind step first; one of c at the end.
+    assert_eq!(trace("b"), json!(["kind", "format b-c"]));
+    assert_eq!(trace("c"), json!(["kind"]));
 }
 
 #[test]
@@ -342,6 +393,7 @@ static ITEM_STEP: Migrations = Migrations {
     kinds: &[KindStep {
         kind: Kind::Fndef,
         from: 0,
+        format: "0.1",
         step: fndef_item_v0,
     }],
     formats: &[],
@@ -372,6 +424,7 @@ fn a_stale_hash_on_an_item_no_step_changed_still_raises_ew_core_014() {
         kinds: &[KindStep {
             kind: Kind::Fndef,
             from: 0,
+            format: "0.1",
             step: fndef_same,
         }],
         formats: &[],
@@ -411,6 +464,7 @@ fn a_migrated_library_document_that_ends_opaque_refuses_the_load() {
         kinds: &[KindStep {
             kind: Kind::Fndef,
             from: 0,
+            format: "0.1",
             step: fndef_unknown,
         }],
         formats: &[],
@@ -419,6 +473,7 @@ fn a_migrated_library_document_that_ends_opaque_refuses_the_load() {
         kinds: &[KindStep {
             kind: Kind::Fndef,
             from: 0,
+            format: "0.1",
             step: fndef_untyped,
         }],
         formats: &[],
