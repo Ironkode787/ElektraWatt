@@ -107,8 +107,9 @@ fn f55_offers_the_same_function_first() {
             .ends_with("library \"ElektraWatt starter parts\" compatible same-fndef cursor")
     );
     assert!(result_of(&s, "EW-GEN-MCB-1").ends_with("compatible same-category"));
+    assert!(result_of(&s, "EW-GEN-MCB-3").ends_with("compatible same-category"));
     // Every later offer is `other`, the held copies (source `project`) first; 5SY4204-7 and the terminals are held.
-    let rest = &lines(&s, "result ")[2..];
+    let rest = &lines(&s, "result ")[3..];
     assert!(rest.iter().all(|l| l.contains(" compatible other")), "{rest:#?}");
     let first_library = rest.iter().position(|l| l.contains(" library \"")).unwrap();
     assert!(
@@ -132,7 +133,7 @@ fn f55_offers_the_same_function_first() {
     );
     // Only parts that fit.
     done(&mut s, "part.search", json!({ "fits": true }));
-    assert_eq!(results(&s), ["EW-GEN-MCB-2", "EW-GEN-MCB-1"]);
+    assert_eq!(results(&s), ["EW-GEN-MCB-2", "EW-GEN-MCB-1", "EW-GEN-MCB-3"]);
     done(&mut s, "part.search", json!({ "fits": false, "view": "project" }));
     assert!(
         lines(&s, "result ")
