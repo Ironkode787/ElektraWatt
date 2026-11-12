@@ -534,7 +534,8 @@ fn the_grid_leads_with_address_and_target() {
     assert!(t.columns[0].key_column);
     let d = s.describe();
     assert!(d.contains("  columns \"Address\" \"Target\" "), "{d}");
-    assert!(d.contains("  row \"Q0.0\" \"-101A2\" "), "{d}");
+    // A channel bound to its card's own pin has no target until a wire leads somewhere (FT-903).
+    assert!(d.contains("  row \"Q0.0\" \"\" "), "{d}");
 }
 
 /// A channel that a drop on its card's pin unbinds is named in the toast by its address, not left unbound
@@ -617,7 +618,7 @@ fn transcript_and_counts() {
         "  row level 1 plc_config_project \"PLC1\" expanded",
         "  row level 2 station \"-101A1\" badge \"CPU\" expanded",
         "  row level 3 module \"-101A2\" expanded",
-        "  row level 4 channel \"Q0.0\"\n",
+        "  row level 4 channel \"Q0.0\" badge \"spare\"\n",
     ] {
         assert!(d.contains(line), "{line}: {d}");
     }
@@ -653,7 +654,7 @@ fn transcript_and_counts() {
     done(&mut s, "navigator.table", json!({"kind": "plc", "on": true}));
     let d = s.describe();
     assert!(d.contains("navigator \"PLC\" kind plc view tree table "), "{d}");
-    assert!(d.contains("  row \"Q0.1\" \"-101A2\" "), "{d}");
+    assert!(d.contains("  row \"Q0.1\" \"\" "), "{d}");
     let plc: Vec<&str> = d
         .lines()
         .skip_while(|l| !l.starts_with("navigator \"PLC\""))
