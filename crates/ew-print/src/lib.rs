@@ -45,7 +45,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 #[cfg(windows)]
-pub use crate::windows::{Windows, ctrl_c_cancels};
+pub use crate::windows::{Windows, attach_parent_console, ctrl_c_cancels};
 pub use ew_export::PdfPage;
 use ew_render_cpu::FontBytes;
 use ew_render_cpu::ew_dl::FontKey;

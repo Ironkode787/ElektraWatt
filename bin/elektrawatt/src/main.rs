@@ -25,6 +25,9 @@
 //! the feature that needs it.
 
 #![forbid(unsafe_code)]
+// No console window before the application on Windows (FT-1710); the terminal modes attach to their parent's console
+// ([`attach_console`]).
+#![cfg_attr(windows, windows_subsystem = "windows")]
 
 mod crash;
 
@@ -45,6 +48,11 @@ use ew_ui::visual::Geometry;
 use ew_ui::window_memory::{Display, FirstFrameStep};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// The application icon at 256 × 256 pixels, the rendering of `assets/icons/app/elektrawatt.svg` (the menu button's
+/// mark; `tests/it/app_icon.rs` keeps the two equal): the window's icon. The executable's own icon is that SVG's
+/// `elektrawatt.ico`, embedded by `build.rs`.
+const APP_ICON_PNG: &[u8] = include_bytes!("../../../assets/icons/app/elektrawatt.png");
 
 /// What the command line asks for.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -669,14 +677,16 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
         shell.start_first_run_if_needed();
     }
     let flags = Flags { no_gpu };
-    // The last size, position and maximised state, restored.
-    let viewport = ew_ui::window_memory::restore(
-        egui::ViewportBuilder::default()
-            .with_title(strings::text(key!("window-title-start")))
-            .with_inner_size([1280.0, 800.0])
-            .with_min_inner_size([640.0, 400.0]),
-        shell.settings().window,
-    );
+    // The last size, position and maximised state, restored; the window's icon is the menu button's mark, the
+    // application icon (FT-1710: without one eframe showed egui's).
+    let mut builder = egui::ViewportBuilder::default()
+        .with_title(strings::text(key!("window-title-start")))
+        .with_inner_size([1280.0, 800.0])
+        .with_min_inner_size([640.0, 400.0]);
+    if let Ok(icon) = eframe::icon_data::from_png_bytes(APP_ICON_PNG) {
+        builder = builder.with_icon(icon);
+    }
+    let viewport = ew_ui::window_memory::restore(builder, shell.settings().window);
     let options = eframe::NativeOptions {
         viewport,
         renderer: eframe::Renderer::Wgpu,
@@ -700,16 +710,28 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
         Ok(()) => 0,
         Err(e) => {
             let (code, message) = gui_failure(&e, std::env::consts::OS, adapter_count);
+            attach_console();
             eprintln!("{message}");
             code
         }
     }
 }
 
+/// On Windows the program has no console of its own (`windows_subsystem = "windows"`: no console window opens
+/// before the application, FT-1710), so a mode that writes to a terminal attaches to the console of the process that
+/// started it, unless its output goes to a pipe or a file already. Elsewhere nothing to do.
+fn attach_console() {
+    #[cfg(windows)]
+    ew_print::attach_parent_console();
+}
+
 fn main() {
     // The crash log's hook first, for every mode; a panic that reaches this frame ended the session.
     crash::install(VERSION);
     let cli = parse_args(std::env::args_os().skip(1));
+    if !matches!(cli, Ok(Cli::Gui(..))) {
+        attach_console();
+    }
     let code = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(cli))) {
         Ok(code) => code,
         Err(_) => {

@@ -41,7 +41,10 @@ use ::windows::Win32::Graphics::Gdi::{
 };
 use ::windows::Win32::Storage::Xps::{AbortDoc, DOCINFOW, EndDoc, EndPage, StartDocW, StartPage};
 use ::windows::Win32::System::Com::{COINIT_APARTMENTTHREADED, CoInitializeEx, CoUninitialize};
-use ::windows::Win32::System::Console::{CTRL_BREAK_EVENT, CTRL_C_EVENT, SetConsoleCtrlHandler};
+use ::windows::Win32::System::Console::{
+    ATTACH_PARENT_PROCESS, AttachConsole, CTRL_BREAK_EVENT, CTRL_C_EVENT, GetStdHandle, STD_OUTPUT_HANDLE,
+    SetConsoleCtrlHandler,
+};
 use ::windows::Win32::System::Memory::{GlobalLock, GlobalSize, GlobalUnlock};
 use ::windows::Win32::UI::Controls::Dialogs::{
     DEVNAMES, PD_HIDEPRINTTOFILE, PD_NOCURRENTPAGE, PD_NOPAGENUMS, PD_NOSELECTION, PD_RESULT_PRINT,
@@ -117,6 +120,20 @@ impl PrintAdapter for Windows {
             message: String::new(),
         })
     }
+}
+
+/// Attaches the process to the console of the process that started it (a terminal), unless its standard output is
+/// handed over already (a pipe or a file): the window program has no console of its own (`windows_subsystem =
+/// "windows"`, FT-1710), and its headless, smoke and informational modes write to the terminal they are started from.
+/// `false` when nothing was attached (output handed over, or no parent console).
+pub fn attach_parent_console() -> bool {
+    // SAFETY: one system call with a constant argument; it returns the handle or an error and keeps no pointer.
+    let out = unsafe { GetStdHandle(STD_OUTPUT_HANDLE) };
+    if out.is_ok_and(|h| !h.is_invalid() && !h.0.is_null()) {
+        return false;
+    }
+    // SAFETY: one system call with a constant argument; it fails harmlessly when the parent has no console.
+    unsafe { AttachConsole(ATTACH_PARENT_PROCESS) }.is_ok()
 }
 
 /// The signal the console's Ctrl+C sets ([`ctrl_c_cancels`]): the console's handler has no context but this.

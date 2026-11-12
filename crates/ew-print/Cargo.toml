@@ -38,7 +38,8 @@ ashpd = { version = "=0.13.13", default-features = false, features = ["async-io"
 # WP-S3.07 D12 (ruling 5 of ID-1218): the Windows print adapter over GDI, at the version the graph holds (through
 # accesskit_windows, gpu-allocator and wgpu-hal; no new package). Its features: the device context, its printing calls
 # and the print dialog; the dialog's owner window; COM on the dialog's thread; and the global memory of the dialog's
-# printer settings (GlobalLock); the console's Ctrl+C handler of `ew print` (FT-1157).
+# printer settings (GlobalLock); the console's Ctrl+C handler of `ew print` (FT-1157); the parent's console of the
+# window program's terminal modes (FT-1710).
 [target.'cfg(windows)'.dependencies]
 windows = { version = "=0.62.2", features = [
   "Win32_Foundation",
