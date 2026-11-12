@@ -367,7 +367,12 @@ impl ShellModel {
                 &[&o.cp, &strings::choice_text(&o.ptype)],
             ),
         };
-        Some((strings::format(key!("potential-offer-title"), &[&o.name]), why))
+        let title = if o.new {
+            key!("potential-offer-title-new")
+        } else {
+            key!("potential-offer-title")
+        };
+        Some((strings::format(title, &[&o.name]), why))
     }
 
     /// `potential.offer {accept}` (the card's Accept and Decline, FT-1700): Accept defines the offered potential at the

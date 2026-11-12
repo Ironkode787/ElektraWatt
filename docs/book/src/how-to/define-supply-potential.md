@@ -32,8 +32,8 @@ select. A name left empty is refused with "Name the potential first".
 A selected wire whose potential has no name yet may show a small card beside it: "Potential 0VDC?" with the reason,
 such as "-K1:A2 returns a coil fed from 24VDC". The window offers a name only where it is safe to reason: a pin whose
 part or function definition gives its role (the − of a DC supply, an N or PE pin), or the A2 of a coil whose A1 is on
-L+ (then A2 is the 0 V) or on one phase (then A2 is the N), and only when the project has exactly one named potential
-of that type. **Accept** defines it, as Define potential… would, in one step; **Decline** hides the card for that wire
+L+ (then A2 is the 0 V) or on one phase (then A2 is the N). The name is the project's named potential of that type;
+where there is none, the card offers a new one ("New potential 0V?"). **Accept** defines it, as Define potential… would, in one step; **Decline** hides the card for that wire
 until the project is opened again. Nothing is set without your Accept.
 
 ## Check the result

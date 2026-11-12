@@ -553,6 +553,7 @@ action-potential-draw-row = Define potential…
 # FT-1700: the card of a potential reasoned for the selected wire.
 action-potential-offer = Answer the offered potential
 potential-offer-title = Potential { $p0 }?
+potential-offer-title-new = New potential { $p0 }?
 potential-offer-role = { $p0 } has the role { $p1 }
 potential-offer-coil = { $p0 } returns a coil fed from { $p1 }
 potential-offer-accept = Accept

@@ -15,14 +15,19 @@ use serde_json::json;
 
 use crate::wires_and_cables::{click, key, new_project, page_pixel, tables, two_wires};
 
-/// A new project with the two relays, their feeds defined as L1 (type L1) and N (type N), and a wire from -1K1:A2 to
+/// A new project with the two relays, their feeds defined as L1 (type L1) and, when n_typed, N (type N), and a wire from -1K1:A2 to
 /// -1K2:A2 drawn with the Wire tool; that wire's window pixel.
-fn a2_wire(tmp: &Tmp) -> (Driver, (i64, i64)) {
+fn a2_wire(tmp: &Tmp, n_typed: bool) -> (Driver, (i64, i64)) {
     let mut d = new_project(tmp);
     let pixel = two_wires(&mut d);
     let t = tables(&mut d);
     // The feeds' types, as Define potential… sets them (not under test).
-    for (wire, name, ty) in [(0, "L1", "l1"), (1, "N", "n")] {
+    let feeds: &[(usize, &str, &str)] = if n_typed {
+        &[(0, "L1", "l1"), (1, "N", "n")]
+    } else {
+        &[(0, "L1", "l1")]
+    };
+    for &(wire, name, ty) in feeds {
         let id = t.connections[wire].id.to_string();
         let shell = d.shell_mut();
         assert_eq!(
@@ -73,7 +78,7 @@ fn card(d: &mut Driver) -> Option<(String, String)> {
 #[test]
 fn a_reasoned_potential_is_offered_at_the_wire_and_accept_defines_it() {
     let tmp = Tmp::new();
-    let (mut d, on) = a2_wire(&tmp);
+    let (mut d, on) = a2_wire(&tmp, true);
     assert_eq!(card(&mut d), None, "nothing selected, nothing offered");
     d.input(&click(on));
     d.settle();
@@ -103,7 +108,7 @@ fn a_reasoned_potential_is_offered_at_the_wire_and_accept_defines_it() {
 #[test]
 fn a_declined_offer_does_not_come_back_for_that_wire() {
     let tmp = Tmp::new();
-    let (mut d, on) = a2_wire(&tmp);
+    let (mut d, on) = a2_wire(&tmp, true);
     d.input(&click(on));
     d.settle();
     assert!(card(&mut d).is_some());
@@ -123,4 +128,24 @@ fn a_declined_offer_does_not_come_back_for_that_wire() {
     assert_eq!(card(&mut d), None, "declined for this wire");
     assert_eq!(d.shell_mut().recorded_commands().len(), steps);
     d.shell_mut().shutdown();
+}
+
+/// FT-1700, widened: with no named potential of type N in the project (the N feed is a point's name, no type), the A2
+/// wire is still offered N, as a new potential of that type; Accept defines it with the type.
+#[test]
+fn without_a_named_potential_of_the_type_a_new_one_is_offered() {
+    let tmp = Tmp::new();
+    let (mut d, on) = a2_wire(&tmp, false);
+    d.input(&click(on));
+    d.settle();
+    let (title, why) = card(&mut d).expect("the card");
+    assert!(title.starts_with("New potential N"), "{title}");
+    assert_eq!(why, "-1K1:A2 returns a coil fed from L1");
+    d.input(&click(d.find("Accept").expect("Accept")));
+    d.settle();
+    let shell = d.shell_mut();
+    let last = shell.recorded_commands().last().unwrap();
+    assert_eq!(last.cmd, "potential.define");
+    assert_eq!(last.params["ptype"].as_str(), Some("n"));
+    shell.shutdown();
 }
