@@ -297,7 +297,9 @@ fn ip_supply_in_marks_the_points_with_one_external_reference() {
         device: Some(ident("-X0")),
         remove: false,
     };
-    let r = e.execute(&mark(vec![FN_IP_101, FN_IP_102])).expect("ip.supply_in");
+    let r = e
+        .execute(&mark(vec![FN_IP_101, FN_IP_102]))
+        .expect("ip.supply_in");
     let x = row(&e, primary::<ExternalRef>(&r));
     assert_eq!(x.device, ident("-X0"));
     assert_eq!(row(&e, x.location).code, ident("Supply"));

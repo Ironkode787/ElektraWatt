@@ -107,6 +107,7 @@ command-device-place = Apparaat plaatsen
 command-edit-delete = Verwijderen
 command-edit-paste = Plakken
 command-external_ref-create = Externe verwijzing maken
+command-ip-supply_in = Markeren waar de voeding binnenkomt
 command-fields-set = Eigenschap instellen
 command-fields-set_many = Eigenschappen instellen
 command-ip-arrange = Onderbrekingspunten schikken
