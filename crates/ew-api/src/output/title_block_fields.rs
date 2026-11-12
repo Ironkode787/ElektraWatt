@@ -6,7 +6,7 @@
 //! project's ID, whether the page overrides the project's description, the open revision, the parties).
 
 use ew_derive::ew_ids::{Id, Uuid};
-use ew_derive::{PageRef, TbValue, TitleBlockValues, open_revision};
+use ew_derive::{PageRef, TbValue, TitleBlockValues, current_revision, open_revision};
 use ew_schema::{Page, Revision};
 use serde_json::Value;
 
@@ -29,6 +29,13 @@ pub struct TitleBlockFacts {
     pub has_revisions: bool,
     /// The project's parties, in their JSON form.
     pub parties: Value,
+    /// The party roles the current revision names as its author and its checker (their JSON words), FT-1718.
+    pub revision_author: Option<String>,
+    /// See [`TitleBlockFacts::revision_author`].
+    pub revision_checker: Option<String>,
+    /// Whether the page's frame or title block writes texts of its own (a cell without a placeholder, as an
+    /// imported QElectroTech template does): they are not fields.
+    pub fixed_texts: bool,
 }
 
 /// The placeholder paths of a template (`"Drawing: {project.drawing_id | default(-)}"` names `project.drawing_id`):
@@ -62,14 +69,21 @@ impl Session {
         let record = q.pages().get(id)?;
         let key = PageRef::Drawn(id);
         let mut paths = Vec::new();
+        let mut fixed_texts = false;
         if let Some(frame) = q.get::<PageFrameOf>(key).as_ref() {
             let forms = std::iter::once(&frame.form).chain(frame.title_block.as_ref());
             for cell in forms.flat_map(|f| f.cells.iter()) {
                 if let Some(template) = &cell.value {
                     placeholder_paths(template, &mut paths);
+                    fixed_texts |= !template.contains('{') && !template.trim().is_empty();
                 }
             }
         }
+        let current = current_revision(&q);
+        let role = |r: Option<&ew_schema::PartyRole>| {
+            r.and_then(|r| serde_json::to_value(r).ok())
+                .and_then(|v| v.as_str().map(str::to_owned))
+        };
         let values = q.get::<TitleBlockValues>(key);
         let fields = paths
             .into_iter()
@@ -95,6 +109,9 @@ impl Session {
             open_revision: open_revision(&q).map(|r| r.id.as_uuid()),
             has_revisions: q.table::<Revision>().iter().next().is_some(),
             parties: serde_json::to_value(&project.parties).unwrap_or(Value::Null),
+            revision_author: role(current.as_ref().and_then(|r| r.author.as_ref())),
+            revision_checker: role(current.as_ref().and_then(|r| r.checker.as_ref())),
+            fixed_texts,
         })
     }
 }

@@ -30,8 +30,12 @@ Page ▸ Title block fields…, also a link under the page's name in Properties,
 block prints from the project's data, in the title block's order: the page's title and description, the project
 reference, the drawing and object IDs, the dates, the parties' names and the revision. Apply writes each changed
 field where its value comes from in one undo step: the description to the page when the page overrides it, else to
-the project; a revision label typed in a project without a revision makes that revision. A text the title block's
-form holds itself (the fixed texts of an imported QElectroTech template) is not a field.
+the project; a revision label typed in a project without a revision makes that revision. Author and Checked are
+the names of the parties the current revision names as its author and its checker: the form edits those names. An
+open revision without an author takes the name typed as its author's (Set revision author's step); Checked has a
+field only once the revision names its checker, who is set when it is approved, and the form says so. A text the
+title block's form holds itself (the fixed texts of an imported QElectroTech template) is not a field, and the form
+says so under its fields.
 
 ## Purge unused images
 

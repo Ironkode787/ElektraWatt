@@ -3268,6 +3268,10 @@ titleblock-title = Titelblokvelden
 titleblock-project-description = Projectomschrijving
 titleblock-revision = Revisie
 reason-titleblock-fixed = Het titelblok van deze pagina drukt alleen vaste teksten van zijn formulier af, geen veld met projectgegevens
+# FT-1718
+titleblock-checked = Gecontroleerd
+titleblock-note-fixed = De teksten die het titelbloksjabloon van deze pagina zelf schrijft, worden afgedrukt zoals het sjabloon ze bevat; het zijn hier geen velden.
+titleblock-note-checked = Gecontroleerd drukt de controleur af die de huidige revisie goedkeurt: { $p0 } op het tabblad { $p1 }.
 error-titleblock-date = Typ { $p0 } als datum, zoals 2026-11-12, of laat het leeg.
 error-titleblock-revision = Een revisie houdt haar label; typ er een.
 action-structure-new = Structuurknooppunt…

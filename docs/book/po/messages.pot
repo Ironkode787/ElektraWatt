@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-12T13:49:34+01:00\n"
+"POT-Creation-Date: 2026-11-12T14:32:22+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3115,57 +3115,62 @@ msgid ""
 "revision. Apply writes each changed field where its value comes from in one "
 "undo step: the description to the page when the page overrides it, else to "
 "the project; a revision label typed in a project without a revision makes "
-"that revision. A text the title block's form holds itself (the fixed texts "
-"of an imported QElectroTech template) is not a field."
+"that revision. Author and Checked are the names of the parties the current "
+"revision names as its author and its checker: the form edits those names. An "
+"open revision without an author takes the name typed as its author's (Set "
+"revision author's step); Checked has a field only once the revision names "
+"its checker, who is set when it is approved, and the form says so. A text "
+"the title block's form holds itself (the fixed texts of an imported "
+"QElectroTech template) is not a field, and the form says so under its fields."
 msgstr ""
 
-#: src/reference/window/dialogs.md:36
+#: src/reference/window/dialogs.md:40
 msgid "Purge unused images"
 msgstr ""
 
-#: src/reference/window/dialogs.md:38
+#: src/reference/window/dialogs.md:42
 msgid ""
 "Lists the image files that no page uses any more and deletes them on Purge. "
 "Undo does not bring them back. Open it with Project ▸ Purge unused images…."
 msgstr ""
 
-#: src/reference/window/dialogs.md:41
+#: src/reference/window/dialogs.md:45
 msgid "Choose part"
 msgstr ""
 
-#: src/reference/window/dialogs.md:43
+#: src/reference/window/dialogs.md:47
 msgid ""
 "The part selection: search the library, filter the results and choose the "
 "part for the selected devices. Open it with Edit ▸ Choose part…. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/dialogs.md:46
+#: src/reference/window/dialogs.md:50
 msgid "Edit part"
 msgstr ""
 
-#: src/reference/window/dialogs.md:48
+#: src/reference/window/dialogs.md:52
 msgid ""
 "The part editor: change the members of the project's copy of a part and save "
 "them. Open it with Edit ▸ Edit part…."
 msgstr ""
 
-#: src/reference/window/dialogs.md:50
+#: src/reference/window/dialogs.md:54
 msgid "Print"
 msgstr ""
 
-#: src/reference/window/dialogs.md:52
+#: src/reference/window/dialogs.md:56
 msgid ""
 "The print options beside a preview of the print set; Print… hands the set to "
 "the printer, Open in PDF viewer opens it there. Open it with Output ▸ "
 "Print…. See [Reports and PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/dialogs.md:55
+#: src/reference/window/dialogs.md:59
 msgid "Changes on disk"
 msgstr ""
 
-#: src/reference/window/dialogs.md:57
+#: src/reference/window/dialogs.md:61
 msgid ""
 "The project changed on disk while you have unsaved edits to the same fields: "
 "each colliding field with its base, your value and the value on disk. Choose "
@@ -3173,11 +3178,11 @@ msgid ""
 "by itself; File ▸ Check for changes on disk looks again."
 msgstr ""
 
-#: src/reference/window/dialogs.md:61
+#: src/reference/window/dialogs.md:65
 msgid "Upgrade the format"
 msgstr ""
 
-#: src/reference/window/dialogs.md:63
+#: src/reference/window/dialogs.md:67
 msgid ""
 "The first save of a project in an older format: Upgrade and save writes a "
 "backup beside the project, then saves in the current format; Cancel saves "
@@ -3185,44 +3190,44 @@ msgid ""
 "project](../../how-to/upgrade-a-project.md)."
 msgstr ""
 
-#: src/reference/window/dialogs.md:66
+#: src/reference/window/dialogs.md:70
 msgid "Re-import a matched file"
 msgstr ""
 
-#: src/reference/window/dialogs.md:68
+#: src/reference/window/dialogs.md:72
 msgid ""
 "A QElectroTech file that matches an earlier import of this project by its "
 "items: Re-import compares it with that import; Cancel stops. Open it with "
 "Project ▸ Re-import QElectroTech project…."
 msgstr ""
 
-#: src/reference/window/dialogs.md:71
+#: src/reference/window/dialogs.md:75
 msgid "Re-import QElectroTech project"
 msgstr ""
 
-#: src/reference/window/dialogs.md:73
+#: src/reference/window/dialogs.md:77
 msgid ""
 "The re-import card: the records the source added, changed, changed on both "
 "sides and removed, in words. Apply takes them over as one undo step; Cancel "
 "changes nothing. The migration report then lists what needs a decision."
 msgstr ""
 
-#: src/reference/window/dialogs.md:76
+#: src/reference/window/dialogs.md:80
 msgid "Open .ewz"
 msgstr ""
 
-#: src/reference/window/dialogs.md:78
+#: src/reference/window/dialogs.md:82
 msgid ""
 "An `.ewz` archive of a project: Extract and open unpacks it into a new "
 "folder beside it, Open read-only opens it without unpacking. Open it with "
 "File ▸ Import…, which takes a QElectroTech project as well."
 msgstr ""
 
-#: src/reference/window/dialogs.md:81
+#: src/reference/window/dialogs.md:85
 msgid "Set up merge driver"
 msgstr ""
 
-#: src/reference/window/dialogs.md:83
+#: src/reference/window/dialogs.md:87
 msgid ""
 "Sets up the repository's git configuration so that git merges the project's "
 "files record by record. It asks first and writes nothing on Cancel. Open it "

@@ -205,8 +205,8 @@ pub use tag::{
 };
 pub use text_frame::{TextFrame, slot_shown, tag_slot_shown, text_frame};
 pub use title_block::{
-    TbValue, TitleBlock, TitleBlockValues, last_changed_in, last_released_revision, open_revision,
-    recorded_changed_pages, revision_label_key,
+    TbValue, TitleBlock, TitleBlockValues, current_revision, last_changed_in, last_released_revision,
+    open_revision, recorded_changed_pages, revision_label_key,
 };
 pub use toc::{TocRow, TocRows};
 pub use tracker::{ColdTracker, DepKey, IxKey, Recorded, RecordingTracker, Tracker};
