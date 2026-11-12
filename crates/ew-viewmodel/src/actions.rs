@@ -134,18 +134,22 @@ pub enum Submenu {
     Language,
     /// View, Minimum text size: off, then one item per size of `MIN_FONT_CHOICES`.
     MinFont,
-    /// Help, Tutorials: one item per tutorial of [`TUTORIALS`], each with its own start.
+    /// Help, Tutorials: one item per tutorial of [`tutorials`], each with its own start.
     Tutorials,
 }
 
-/// The tutorials of the guide in its order: each its page's name, which `help.tutorials` takes as
-/// `tutorial` and whose label is `tutorial-<name>`.
-pub const TUTORIALS: [&str; 4] = [
-    "first-page",
-    "terminal-strip-and-cable",
-    "reports-and-pdf",
-    "import-qet",
-];
+/// The guide's table of contents, the one place its tutorials are listed (FT-1715).
+const BOOK_SUMMARY: &str = include_str!("../../../docs/book/src/SUMMARY.md");
+
+/// The tutorials of the guide in its order, read from its table of contents: each its page's name, which
+/// `help.tutorials` takes as `tutorial` and whose label is `tutorial-<name>`, and the page's English title.
+pub fn tutorials() -> impl Iterator<Item = (&'static str, &'static str)> {
+    BOOK_SUMMARY.lines().filter_map(|line| {
+        let (title, rest) = line.trim().strip_prefix("- [")?.split_once("](tutorials/")?;
+        let name = rest.strip_suffix(".md)")?;
+        (name != "index").then_some((name, title))
+    })
+}
 
 impl Submenu {
     /// The key of the submenu's label.
@@ -1618,15 +1622,14 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                 .collect()
         }
         // One item per tutorial, each with its own start.
-        Submenu::Tutorials => TUTORIALS
-            .iter()
-            .map(|name| {
+        Submenu::Tutorials => tutorials()
+            .map(|(name, title)| {
                 let mut item = item_of(meta, model);
                 item.label = strings::lookup(&format!("tutorial-{name}"))
-                    .unwrap_or(name)
+                    .unwrap_or(title)
                     .to_owned();
                 // Doc 16a §8.3: an entry that asks for a folder carries "…" (`act_tutorials`).
-                if matches!(*name, "first-page" | "reports-and-pdf") {
+                if matches!(name, "first-page" | "reports-and-pdf") {
                     item.label.push('…');
                 }
                 item.params = json!({ "tutorial": name });
@@ -1938,6 +1941,21 @@ mod tests {
             assert_eq!(find(a.id).map(|m| m.id), Some(a.id));
         }
         assert!(find("no.such.action").is_none());
+    }
+
+    /// FT-1715: a tutorial added to the guide reaches Help ▸ Tutorials under its own name in both languages.
+    #[test]
+    fn every_tutorial_of_the_guide_has_a_label_in_both_languages() {
+        let nl = include_str!("../locales/nl-NL/shell.ftl");
+        for (name, title) in tutorials() {
+            let key = format!("tutorial-{name}");
+            assert_eq!(strings::lookup(&key), Some(title), "{key} is the page's title");
+            assert!(
+                nl.lines().any(|l| l.starts_with(&format!("{key} = "))),
+                "{key} has no Dutch label"
+            );
+        }
+        assert!(tutorials().any(|(name, _)| name == "symbol-editor"));
     }
 
     #[test]

@@ -282,6 +282,8 @@ fn help_tutorials_holds_no_command_line_run() {
     settle(&mut h);
     support::open_menu(&mut h, &["Help", "Tutorials"]);
     support::menu_node(&h, "Importing a QElectroTech project");
+    // FT-1715: every tutorial of the guide, the symbol editor's too.
+    support::menu_node(&h, "Draw a six-pin power block");
     assert!(
         h.query_all_by_label_contains("headless").next().is_none()
             && h.query_all_by_label_contains("command line").next().is_none(),
