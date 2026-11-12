@@ -664,6 +664,7 @@ fn form_spec(form: &crate::shell::FormDialog, model: &ShellModel) -> DialogSpec 
             match form.action {
                 "layout.auto_fill_rail" => vec![model.fill_devices_text()],
                 "layout.enclosure_new" => model.enclosure_form_notes(),
+                "page.title_block" => model.title_block_notes(),
                 _ => Vec::new(),
             },
             DialogButton {

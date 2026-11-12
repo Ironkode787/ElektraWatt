@@ -481,6 +481,15 @@ pub fn open_revision(q: &Q) -> Option<Arc<Revision>> {
         .map(|r| Arc::new(r.rev.clone()))
 }
 
+/// The current revision, open or not: the one whose `revision.current.*` a title block prints. `None` without
+/// revisions.
+pub fn current_revision(q: &Q) -> Option<Arc<Revision>> {
+    live_revisions(q)
+        .into_iter()
+        .max_by_key(RevisionView::order_key)
+        .map(|r| Arc::new(r.rev.clone()))
+}
+
 /// `last_changed_in(p)` of doc 15 §5.6: the open revision's label if `p` is changed now; else the latest released
 /// revision whose changed pages ([`recorded_changed_pages`]) contain `p`; else the first (lowest ranked) revision.
 /// `None` without revisions.

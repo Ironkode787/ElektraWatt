@@ -3440,6 +3440,10 @@ titleblock-title = Title block fields
 titleblock-project-description = Project description
 titleblock-revision = Revision
 reason-titleblock-fixed = This page's title block prints only fixed texts of its form, no field of the project's data
+# FT-1718: the title block's Checked, and the form's notes.
+titleblock-checked = Checked
+titleblock-note-fixed = The texts this page's title block template writes itself print as the template holds them; they are not fields here.
+titleblock-note-checked = Checked prints the checker who approves the current revision: { $p0 } on the { $p1 } tab.
 error-titleblock-date = Type { $p0 } as a date, such as 2026-11-12, or leave it empty.
 error-titleblock-revision = A revision keeps its label; type one.
 action-structure-new = Structure node…

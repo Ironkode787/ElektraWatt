@@ -67,8 +67,7 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
     settle(&mut h);
     support::wait_for_page(&mut h);
     settle(&mut h);
-    assert_eq!(printed(&mut h, "project.drawing_id"), "");
-    // Properties of the page links the form; it lists the fields the title block prints, the description first.
+    assert_eq!(printed(&mut h, "project.drawing_id"), "");    // Properties of the page links the form; it lists the fields the title block prints, the description first.
     h.get_by_label("Title block fields…").click();
     settle(&mut h);
     let Some(Dialog::Form(form)) = h.state().shell().dialog() else {
@@ -144,6 +143,46 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
         ["revision.create", "fields.set_many"]
     );
     shell.shutdown();
+}
+
+/// FT-1718: the title block's Author and Checked come from the current revision. On a copy of Golden A, whose
+/// current revision names its author and no checker, the form offers Author, which names the author's party, and says
+/// where Checked comes from (the approval), offering no field for it.
+#[test]
+fn the_title_block_form_names_the_revision_s_author_and_where_checked_comes_from() {
+    let tmp = Tmp::new();
+    let mut h = support::on_golden(&tmp, "101");
+    // Properties of the page links the form.
+    h.get_by_label("Title block fields…").click();
+    settle(&mut h);
+    assert!(
+        h.query_by_label(
+            "Checked prints the checker who approves the current revision: Approve revision… on the Check tab."
+        )
+        .is_some(),
+        "the note on Checked"
+    );
+    assert!(
+        h.query_all_by_label("Checked").next().is_none(),
+        "no Checked field without a checker"
+    );
+    field(&h, "Author").click();
+    settle(&mut h);
+    h.key_press_modifiers(egui::Modifiers::COMMAND, Key::A);
+    field(&h, "Author").type_text("Drafting office");
+    settle(&mut h);
+    h.key_press(Key::Enter);
+    settle(&mut h);
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
+    assert_eq!(
+        printed(&mut h, "revision.current.author.name"),
+        "Drafting office"
+    );
+    h.state_mut().shell_mut().shutdown();
 }
 
 /// FT-1716: in an imported project, Page ▸ New page… with the type Panel layout gives a page with the frame and the

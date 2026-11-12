@@ -3,8 +3,9 @@
 
 //! Title block fields… (`page.title_block`, FT-1686): every field the focused page's title block prints from the
 //! project's data, in one form, written where its value comes from in one undo step: the page's title and description,
-//! the project's master data, its parties' names and the open revision's label. A project without a revision gets one
-//! with the label typed (`revision.create`, a second step). What a title block prints as fixed text of its form is not
+//! the project's master data, its parties' names, the open revision's label and the names of the parties the current
+//! revision names as author and checker (FT-1718). A project without a revision gets one with the label typed
+//! (`revision.create`, a second step); an open revision without an author gets one (`revision.set_author`). What a title block prints as fixed text of its form is not
 //! a field: an imported QElectroTech template's own texts stay as the form holds them.
 
 use ew_api::AnyCommand;
@@ -34,7 +35,16 @@ enum Source {
     Party(&'static str),
     /// The open revision's label, or a new revision's when the project has none.
     RevisionLabel,
+    /// The name of the party the current revision names as its author (FT-1718); an open revision that names none
+    /// takes the party of the role `author`, named as typed (`revision.set_author`, a second step).
+    RevisionAuthor,
+    /// The name of the party the current revision names as its checker; only while it names one (the checker is
+    /// set when the revision is approved, Check ▸ Revision ▸ Approve).
+    RevisionChecker,
 }
+
+/// The party role an open revision without an author takes for the author's name typed in the form.
+const AUTHOR_ROLE: &str = "author";
 
 /// The title-block paths the form edits, each with its label and its source (doc 09 §2.6's paths): the one list.
 const FIELDS: &[(&str, Key<'static>, Source)] = &[
@@ -119,6 +129,16 @@ const FIELDS: &[(&str, Key<'static>, Source)] = &[
         key!("titleblock-revision"),
         Source::RevisionLabel,
     ),
+    (
+        "revision.current.author.name",
+        key!("choice-author"),
+        Source::RevisionAuthor,
+    ),
+    (
+        "revision.current.checker.name",
+        key!("titleblock-checked"),
+        Source::RevisionChecker,
+    ),
 ];
 
 /// One edit of `fields.set_many`.
@@ -137,9 +157,15 @@ impl ShellModel {
             .iter()
             .filter_map(|(path, text)| {
                 let (name, label_key, source) = FIELDS.iter().find(|(p, _, _)| p == path)?;
-                let writable = !matches!(source, Source::RevisionLabel)
-                    || facts.open_revision.is_some()
-                    || !facts.has_revisions;
+                let writable = match source {
+                    Source::RevisionLabel => facts.open_revision.is_some() || !facts.has_revisions,
+                    // A released revision's author is history: its party's name only, while it names one.
+                    Source::RevisionAuthor => {
+                        facts.revision_author.is_some() || facts.open_revision.is_some()
+                    }
+                    Source::RevisionChecker => facts.revision_checker.is_some(),
+                    _ => true,
+                };
                 writable.then(|| FormField {
                     name,
                     label_key: *label_key,
@@ -150,6 +176,32 @@ impl ShellModel {
             })
             .collect();
         Some((page.to_string(), facts, fields))
+    }
+
+    /// The Title block fields form's lines under its fields (FT-1718): that the texts a template writes itself stay as
+    /// it holds them, and where Checked comes from while the current revision names no checker.
+    pub fn title_block_notes(&self) -> Vec<String> {
+        let Some((_, facts, _)) = self.title_block_fields() else {
+            return Vec::new();
+        };
+        let mut notes = Vec::new();
+        if facts.fixed_texts {
+            notes.push(strings::text(key!("titleblock-note-fixed")).to_owned());
+        }
+        let prints_checker = facts
+            .fields
+            .iter()
+            .any(|(path, _)| path == "revision.current.checker.name");
+        if prints_checker && facts.revision_checker.is_none() {
+            notes.push(strings::format(
+                key!("titleblock-note-checked"),
+                &[
+                    strings::text(key!("action-revision-approve")),
+                    strings::text(key!("menu-check")),
+                ],
+            ));
+        }
+        notes
     }
 
     /// `page.title_block {<path>: text, …}` (Page ▸ Title block fields…, FT-1686): without a field the window opens the
@@ -181,6 +233,14 @@ impl ShellModel {
         let mut parties_changed = false;
         let mut edits = Vec::new();
         let mut new_revision = None;
+        let mut new_author = None;
+        // The name of the first party of `role`; a party of that role is added for a new name.
+        let mut name_party =
+            |role: &str, text: String| match parties.iter_mut().find(|party| party["role"] == role) {
+                Some(party) => party["name"] = Value::String(text),
+                None if text.is_empty() => {}
+                None => parties.push(json!({"role": role, "name": text})),
+            };
         for f in &fields {
             let text = match string_param(p, f.name) {
                 Err(e) => return e,
@@ -228,10 +288,21 @@ impl ShellModel {
                 }
                 Source::Party(role) => {
                     parties_changed = true;
-                    match parties.iter_mut().find(|party| party["role"] == role) {
-                        Some(party) => party["name"] = Value::String(text),
-                        None if text.is_empty() => {}
-                        None => parties.push(json!({"role": role, "name": text})),
+                    name_party(role, text);
+                }
+                Source::RevisionAuthor | Source::RevisionChecker => {
+                    let named = match *source {
+                        Source::RevisionAuthor => facts.revision_author.as_deref(),
+                        _ => facts.revision_checker.as_deref(),
+                    };
+                    parties_changed = true;
+                    match (named, facts.open_revision) {
+                        (Some(role), _) => name_party(role, text),
+                        (None, Some(rev)) if !text.is_empty() => {
+                            name_party(AUTHOR_ROLE, text);
+                            new_author = Some(rev);
+                        }
+                        _ => {}
                     }
                 }
                 Source::RevisionLabel if text.is_empty() => {
@@ -260,11 +331,20 @@ impl ShellModel {
                 other => return other,
             }
         }
+        let mut steps = Vec::new();
         if let Some(label) = new_revision {
-            let cmd = AnyCommand {
+            steps.push(AnyCommand {
                 name: "revision.create".to_owned(),
                 params: json!({ "label": label }),
-            };
+            });
+        }
+        if let Some(rev) = new_author {
+            steps.push(AnyCommand {
+                name: "revision.set_author".to_owned(),
+                params: json!({ "revision": rev.to_string(), "role": AUTHOR_ROLE }),
+            });
+        }
+        for cmd in steps {
             match self.run_commit(&cmd) {
                 Outcome::Done => {}
                 Outcome::Failed { message } => return self.form_failed(TITLE_BLOCK, message),
