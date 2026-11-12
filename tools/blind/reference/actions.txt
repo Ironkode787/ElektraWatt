@@ -194,7 +194,7 @@ bond.draw Command "Bond" menu "Draw ▸ Bond" shortcut none context canvas param
 potential.draw Command "Define potential…" menu "Draw" shortcut none context canvas params "name?:text, type?:text, voltage?:text"
 cable.new Command "New cable…" menu "Draw" shortcut none context global params "part:text"
 cable.connect_cores Command "Connect cores…" menu "Draw" shortcut none context canvas params "cable:text"
-cable.from_wires Command "Cable…" menu "Draw" shortcut none context canvas params "tag?:text, type?:text, cores?:json"
+cable.from_wires Command "Cable…" menu "Draw" shortcut none context canvas params "tag?:text, type?:text, cores?:json, cable?:text"
 potential.draw_row Command "Define potential…" menu none shortcut none context navigator hidden params "row:text"
 potential.offer Command "Answer the offered potential" menu none shortcut none context canvas hidden params "accept:bool"
 tool.marker Command "Wire marker" menu "Draw" shortcut "Shift+W" context canvas params ""

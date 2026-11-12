@@ -2019,7 +2019,7 @@ msgid ""
 "several steps."
 msgstr ""
 
-#: src/how-to/text-interface.md:38 src/reference/window/panels.md:88
+#: src/how-to/text-interface.md:38 src/reference/window/panels.md:92
 msgid "Terminal strips"
 msgstr ""
 
@@ -3092,15 +3092,17 @@ msgstr ""
 #: src/reference/window/tools.md:11
 msgid ""
 "The page's menu is the quick way to what fits the thing under the pointer: "
-"its first entries are that thing's, then come the general ones (Cut, Copy, "
-"Paste, Delete, Properties of selection). A right click selects the thing "
-"first; Shift+F10 or the menu key opens the same menu for the selection."
+"its first entries are that thing's, then come the general ones (Rotate, "
+"Mirror and Renumber devices… on a symbol; Cut, Copy, Paste, Delete, "
+"Properties of selection). A right click selects the thing first; Shift+F10 "
+"or the menu key opens the same menu for the selection."
 msgstr ""
 
 #: src/reference/window/tools.md:15
 msgid ""
 "On a wire: Edit route, Wire marker, Define potential…, Cable… and Print wire "
-"numbers. On several selected wires: Make cable from the selection…."
+"numbers; a wire does not turn, so there is no Rotate or Mirror. On several "
+"selected wires: Make cable from the selection…."
 msgstr ""
 
 #: src/reference/window/tools.md:17
@@ -3118,11 +3120,12 @@ msgstr ""
 
 #: src/reference/window/tools.md:21
 msgid ""
-"On a symbol of a device: Join device…, Choose part…, Edit symbol and Copy "
-"and edit."
+"On a symbol of a device: Join device… (only where another device can take "
+"it, such as a contact another relay has free), Choose part…, Edit symbol and "
+"Copy and edit."
 msgstr ""
 
-#: src/reference/window/tools.md:22
+#: src/reference/window/tools.md:23
 msgid ""
 "On an interruption point: Supply comes in here…, Go to partner, Direction: "
 "Source or Target, and Continue on page…. Supply comes in here… says that the "
@@ -3948,146 +3951,156 @@ msgstr ""
 msgid ""
 "A navigator lists one kind of record of the project. View ▸ Panels ▸ "
 "Navigators shows each one; clicking a row selects the record and opens its "
-"page."
+"page. A right click on a row selects it and opens its menu: what the same "
+"thing offers on the page, listed below for each navigator."
 msgstr ""
 
-#: src/reference/window/panels.md:71
+#: src/reference/window/panels.md:72
 msgid "Pages"
 msgstr ""
 
-#: src/reference/window/panels.md:73
+#: src/reference/window/panels.md:74
 msgid "The pages in folio order, flat, by section or by structure."
 msgstr ""
 
-#: src/reference/window/panels.md:75
+#: src/reference/window/panels.md:76
 msgid ""
 "The two buttons beside the filter make a page and a section; a right click "
-"on a row offers the same. A section is a range of folios with a title, such "
-"as 100 to 199: New section proposes the next number and the next hundred, "
-"and the tree lists the section at once, still empty. With a section chosen "
-"in the tree, New page proposes its first free folio."
-msgstr ""
-
-#: src/reference/window/panels.md:80
-msgid "Devices"
+"on a section offers the same. A right click on a page opens it and offers "
+"Open page in a new tab, Title block fields…, Page properties, New page… and "
+"Delete page. A section is a range of folios with a title, such as 100 to "
+"199: New section proposes the next number and the next hundred, and the tree "
+"lists the section at once, still empty. With a section chosen in the tree, "
+"New page proposes its first free folio."
 msgstr ""
 
 #: src/reference/window/panels.md:82
-msgid "The devices with their functions and representations."
+msgid "Devices"
 msgstr ""
 
 #: src/reference/window/panels.md:84
+msgid ""
+"The devices with their functions and representations. A right click on a "
+"device offers Go to (its first placement, such as `201-E4`), what its symbol "
+"offers on the page (Add contact on a relay or a contactor, Choose part…, "
+"Edit symbol, Copy and edit) and Properties of selection."
+msgstr ""
+
+#: src/reference/window/panels.md:88
 msgid "Connections"
 msgstr ""
 
-#: src/reference/window/panels.md:86
-msgid "The connections, the wires drawn on the pages."
-msgstr ""
-
 #: src/reference/window/panels.md:90
-msgid ""
-"The terminal strips with their terminals. Its table mode is the strip editor."
-msgstr ""
-
-#: src/reference/window/panels.md:92
-msgid "Cables"
+msgid "The connections, the wires drawn on the pages."
 msgstr ""
 
 #: src/reference/window/panels.md:94
 msgid ""
-"The cables with their cores. See [A terminal strip and a "
-"cable](../../tutorials/terminal-strip-and-cable.md)."
+"The terminal strips with their terminals. Its table mode is the strip editor."
 msgstr ""
 
 #: src/reference/window/panels.md:96
-msgid "PLC"
+msgid "Cables"
 msgstr ""
 
 #: src/reference/window/panels.md:98
 msgid ""
-"The PLC configuration projects, stations, modules and channels, with their "
-"addresses."
-msgstr ""
-
-#: src/reference/window/panels.md:100
-msgid "Potentials"
+"The cables with their cores. A right click on a cable offers Cable…, which "
+"shows the page of its first wire with the cable's wires selected and opens "
+"the cable's form, and Go to its first wire. See [A terminal strip and a "
+"cable](../../tutorials/terminal-strip-and-cable.md)."
 msgstr ""
 
 #: src/reference/window/panels.md:102
+msgid "PLC"
+msgstr ""
+
+#: src/reference/window/panels.md:104
+msgid ""
+"The PLC configuration projects, stations, modules and channels, with their "
+"addresses. A right click on a station or a module offers what a device's row "
+"offers; on a channel, Go to its place and Properties of selection."
+msgstr ""
+
+#: src/reference/window/panels.md:107
+msgid "Potentials"
+msgstr ""
+
+#: src/reference/window/panels.md:109
 msgid ""
 "The potentials with their definitions and members. See [Define a supply "
 "potential](../../how-to/define-supply-potential.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:105
+#: src/reference/window/panels.md:112
 msgid "Interruption points"
 msgstr ""
 
-#: src/reference/window/panels.md:107
+#: src/reference/window/panels.md:114
 msgid "The interruption points grouped by name, with their partners."
 msgstr ""
 
-#: src/reference/window/panels.md:109
+#: src/reference/window/panels.md:116
 msgid "Structure identifiers"
 msgstr ""
 
-#: src/reference/window/panels.md:111
+#: src/reference/window/panels.md:118
 msgid "The function and location nodes of the project's structure."
 msgstr ""
 
-#: src/reference/window/panels.md:113
+#: src/reference/window/panels.md:120
 msgid "Parts in use"
 msgstr ""
 
-#: src/reference/window/panels.md:115
+#: src/reference/window/panels.md:122
 msgid ""
 "The parts the project uses, with their devices. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:117
+#: src/reference/window/panels.md:124
 msgid "Report blocks"
 msgstr ""
 
-#: src/reference/window/panels.md:119
+#: src/reference/window/panels.md:126
 msgid ""
 "The report blocks: the generated pages such as the terminal diagram, the "
 "cable list and the parts list. See [Reports and "
 "PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:122
+#: src/reference/window/panels.md:129
 msgid "Unplaced devices"
 msgstr ""
 
-#: src/reference/window/panels.md:124
+#: src/reference/window/panels.md:131
 msgid ""
 "The devices of each layout space that have no place on a rail or the plate "
 "yet."
 msgstr ""
 
-#: src/reference/window/panels.md:126
+#: src/reference/window/panels.md:133
 msgid "Macros"
 msgstr ""
 
-#: src/reference/window/panels.md:128
+#: src/reference/window/panels.md:135
 msgid "The macros of every library tier and of the project."
 msgstr ""
 
-#: src/reference/window/panels.md:130
+#: src/reference/window/panels.md:137
 msgid "Libraries"
 msgstr ""
 
-#: src/reference/window/panels.md:132
+#: src/reference/window/panels.md:139
 msgid ""
 "The installed libraries and the project's library copies with their state."
 msgstr ""
 
-#: src/reference/window/panels.md:134
+#: src/reference/window/panels.md:141
 msgid "Messages"
 msgstr ""
 
-#: src/reference/window/panels.md:136
+#: src/reference/window/panels.md:143
 msgid ""
 "The findings of the project's checks, by severity and rule. Check ▸ Next "
 "finding and Check ▸ Previous finding walk them; Help ▸ Documentation on a "
