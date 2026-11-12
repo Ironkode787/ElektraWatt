@@ -2697,6 +2697,62 @@ fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {
     d.shell_mut().shutdown();
 }
 
+/// Making one page arrow the source was refused while its partner on another page was the source ("2 source points
+/// and no star source"), until the partner was changed by hand. Choosing Source in the arrow's Properties now makes
+/// the partner the target in the same step, and one undo takes both back.
+#[test]
+fn choosing_source_for_a_page_arrow_makes_its_partner_the_target_in_one_step() {
+    let tmp = Tmp::new();
+    let mut d = golden_on_101(&tmp);
+    let direction = |d: &mut Driver, folio: &str| -> String {
+        let _ = d.shell_mut().dispatch("page.goto", &json!({ "folio": folio }));
+        d.settle();
+        let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+        tables
+            .reps
+            .iter()
+            .find_map(|r| r.ip.as_ref().filter(|i| i.name == "L-1"))
+            .expect("the page arrow L-1")
+            .direction
+            .clone()
+    };
+    assert_eq!(direction(&mut d, "101"), "source");
+    assert_eq!(direction(&mut d, "102"), "target");
+    let arrow = {
+        let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+        tables
+            .reps
+            .iter()
+            .find(|r| r.ip.as_ref().is_some_and(|i| i.name == "L-1"))
+            .unwrap()
+            .id
+            .to_string()
+    };
+    let _ = d.shell_mut().dispatch("select.set", &json!({ "ids": [arrow] }));
+    d.settle();
+    // Properties: the Direction row, its choices, Source.
+    d.input(&click(d.find("Filter properties").unwrap()));
+    d.input(&Input::Type {
+        text: "Direction".to_owned(),
+    });
+    d.settle();
+    // A click on the row's value opens its menu; Esc closes the menu and Enter opens the choices.
+    let row = d.find("Direction").expect("the Direction row");
+    d.input(&click((row.0 + 150, row.1)));
+    d.input(&key("escape"));
+    d.input(&key("enter"));
+    d.settle();
+    d.input(&click(d.find("Source").expect("the choice Source")));
+    d.settle();
+    assert_eq!(direction(&mut d, "102"), "source", "{:?}", state(&mut d)["properties"]);
+    assert_eq!(direction(&mut d, "101"), "target", "the partner turned in the same step");
+    d.input(&key("ctrl+z"));
+    d.settle();
+    assert_eq!(direction(&mut d, "101"), "source");
+    assert_eq!(direction(&mut d, "102"), "target", "one undo takes both back");
+    d.shell_mut().shutdown();
+}
+
 /// Route page's card listed the plan, and the canvas still drew the dashed lines until Apply: the planned routes are
 /// the preview's ghost on the canvas, solid in the ghost colour, and they are what Apply stores; Cancel takes them
 /// away.

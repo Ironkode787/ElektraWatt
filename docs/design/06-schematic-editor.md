@@ -667,7 +667,9 @@ and one main function of the chosen symbol's function definition.
   flows: change its direction instead") and the other direction's form ("a source interruption point is drawn with
   the outgoing arrow, a target with the incoming arrow"); `rep.transform` refuses the first; `ip.continue` gives the
   partner the other form and refuses in words when the project lacks it; a direction change swaps the form by row 18.
-  While the Wire tool routes, P picks the form by the direction at the end point. Imported points, company symbols
+  Making a point the source (`fields.set` of its direction, the Direction row of Properties) makes the other sources
+  of its name and scope targets in the same step, unless the name has a star source: one source per name, without a
+  second edit. While the Wire tool routes, P picks the form by the direction at the end point. Imported points, company symbols
   and the external arrow keep a free orientation.
 - **External connection points** are IPs with `external = Some(ExternalRef)`. They never pair and print the external
   target ("+J-E-206 / JE-N1000-03") in the xref slot (FR-XRF-012).

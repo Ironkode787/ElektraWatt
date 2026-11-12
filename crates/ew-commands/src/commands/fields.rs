@@ -256,7 +256,8 @@ pub const ASPECTS: &[&str] = &[
 /// transaction, so a swap of two terminal designations over two commands is not possible here, but one
 /// `fields.set` that leaves a duplicate is caught later by prevent rules (ADR-0009). Outcome: none.
 /// Coalesce typing in one cell with a key (FR-UI-009). A page whose kind moves away from `panel_layout` loses its
-/// surface views in the same transaction (`fields.set_many` judges the page's final kind).
+/// surface views in the same transaction (`fields.set_many` judges the page's final kind). Making an interruption point
+/// a source makes the other sources of its name targets in the same transaction ([`swap_sources`], both commands).
 ///
 /// `copies` (as `device.place`): library documents (`lib/` JSON form) that the value names
 /// and the project lacks (a catalogue part chosen for a strip's bridge or accessory), embedded first, in the same
@@ -290,6 +291,7 @@ impl Command for SetFields {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
         self.apply(tx)?;
+        swap_sources(tx, std::slice::from_ref(self))?;
         refuse_bad_stars(tx, std::slice::from_ref(self))?;
         if self.kind == KindName::Page {
             drop_left_surface_views(tx, &self.targets)?;
@@ -789,7 +791,7 @@ pub const SET_MANY_MAX_EDITS: usize = 10_000;
 /// per-kind checks (closed revisions, aspects, assembly covers, the tag-collision refusal) and the same rejections,
 /// their JSON Pointer prefixed by `/edits/<i>`. The caller computes every value (find and replace computes the
 /// replaced texts, "freeze" each device's own product designation): the command searches nothing and reads no derived
-/// value, so a command log replays it exactly. Rejected with [`CmdError::InvalidParams`] at `/edits`: no entry, or
+/// value but the base's interruption-point pairing ([`swap_sources`]), so a command log replays it exactly. Rejected with [`CmdError::InvalidParams`] at `/edits`: no entry, or
 /// more than 10,000 entries; at `/edits/<j>/targets/<k>`: a (target, path) pair that an earlier entry already names.
 /// Cost: `Bulk` when the entries name more than 500 targets in total (`BULK_ABOVE`, as `edit.delete`),
 /// else interactive. Outcome: none.
@@ -872,6 +874,7 @@ impl Command for SetManyFields {
                 other => other,
             })?;
         }
+        swap_sources(tx, &self.edits)?;
         refuse_bad_stars(tx, &self.edits)?;
         // Judged on each page's final kind; a batch that sets the kind away and back is refused (one entry per
         // target and path), so the view stays.
@@ -1088,6 +1091,56 @@ fn refuse_unknown_direction(tx: &TxBuilder<'_>, target: AnyId) -> Result<(), Cmd
             "/value",
             text!("refusal-fields-direction-unknown", v.to_string()),
         ));
+    }
+    Ok(())
+}
+
+/// One source per name, in one step: an entry that makes an interruption point a source makes every other source of
+/// its star-mode pairing group (same name and scope, as the base pairs them) a target, unless the group has a star
+/// source or an entry of the call sets that point's direction too. Without it a second source was refused (EW-CORE-052)
+/// until the first was changed by hand.
+fn swap_sources(tx: &mut TxBuilder<'_>, edits: &[SetFields]) -> Result<(), CmdError> {
+    let directed: Vec<&SetFields> = edits
+        .iter()
+        .filter(|e| e.kind == KindName::Function && e.path == "kind.ip.direction")
+        .collect();
+    let named: BTreeSet<AnyId> = directed.iter().flat_map(|e| e.targets.iter().copied()).collect();
+    let made_sources: Vec<AnyId> = directed
+        .iter()
+        .filter(|e| e.value == "source")
+        .flat_map(|e| e.targets.iter().copied())
+        .collect();
+    if made_sources.is_empty() {
+        return Ok(());
+    }
+    let q = ew_derive::Q::new(tx.base_model());
+    let pairing = q.get::<ew_derive::IpPairingQ>(());
+    for t in made_sources {
+        let Some(g) = pairing
+            .groups
+            .iter()
+            .find(|g| g.mode == ew_derive::PairMode::Star && g.members.contains(&t.cast()))
+        else {
+            continue;
+        };
+        if g.members.iter().any(|m| pairing.ips.get(m).is_some_and(|i| i.star_source)) {
+            continue;
+        }
+        for m in &g.members {
+            if named.contains(&m.cast()) {
+                continue;
+            }
+            let is_source = tx
+                .get::<Function>(*m)
+                .is_some_and(|f| matches!(&f.kind, FunctionKind::Ip(ip) if ip.direction == IpDirection::Source));
+            if is_source {
+                tx.update::<Function>(*m, |f| {
+                    if let FunctionKind::Ip(ip) = &mut f.kind {
+                        ip.direction = IpDirection::Target;
+                    }
+                })?;
+            }
+        }
     }
     Ok(())
 }
