@@ -12,6 +12,7 @@
 //! - `defined_type_contradicting_a_member_role_is_noted`: type `n` against a member role `l_plus`.
 //! - `compatible_roles_on_a_defined_type_are_silent`: an FE role on a PE definition is no conflict (doc 08 §3.7).
 //! - `agreeing_definitions_are_silent`: equal attributes and a matching role give no EW-POT-001.
+//! - `an_l_role_on_one_phase_is_silent_and_on_n_is_noted`: an L pin on L1, L2 or L3 is no conflict, on N it is.
 
 use crate::common;
 
@@ -253,4 +254,47 @@ fn compatible_roles_on_a_defined_type_are_silent() {
     );
     let notes = notes_of(&m);
     assert!(notes.is_empty(), "{notes:?}");
+}
+
+/// A function `n` (its own device) whose CP 0 has the role `role`, drawn on `P1`, with a definition and a symbol of its
+/// own (`n + 0x30_000`, `n + 0x40_000`).
+fn role_func(fx: &mut Fx, n: u128, role: &str) {
+    let (fndef, sym) = (n + 0x30_000, n + 0x40_000);
+    fx.lib_item(
+        "fndef",
+        fndef,
+        json!({
+            "meta": {}, "category": ["Misc", "Misc", "Plain"], "contact_kind": "pole",
+            "cps": [{"idx": 0, "designation": "1", "potential_role": role}, {"idx": 1, "designation": "2"}],
+        }),
+    );
+    fx.symbol(sym, fndef, json!("origin"), &[(0, 0, 0, 0), (1, 1, 0, 1_000_000)]);
+    fx.device(n + 0x20_000, "K", Some(n as u32));
+    fx.function(n, Some(n + 0x20_000), fndef, true);
+    fx.rep(n + 0x10_000, P1, sym, &[n], 0, n as i64 * 1_000_000);
+}
+
+/// FT-1701: a single-phase input (role L) fed from one phase is no conflict, whether the phase is defined (a
+/// definition of type L1) or a member role (an L2 pin on the same wire); L on N stays one.
+#[test]
+fn an_l_role_on_one_phase_is_silent_and_on_n_is_noted() {
+    let on = |phase: Option<&str>, role_of_other: &str| {
+        let mut fx = base();
+        role_func(&mut fx, 0x1001, "l");
+        role_func(&mut fx, 0x1002, role_of_other);
+        wire(&mut fx, 0x2001, P1, 0x1001, 0x1002);
+        if let Some(t) = phase {
+            def(&mut fx, 0x5001, 0x1002, json!({ "ptype": t }));
+        }
+        notes_of(&fx.build())
+    };
+    for (phase, other) in [(Some("l1"), "l1"), (None, "l2"), (Some("l3"), "l")] {
+        let notes = on(phase, other);
+        assert!(notes.is_empty(), "{phase:?} {other}: {notes:?}");
+    }
+    let notes = on(Some("n"), "n");
+    assert_eq!(notes.len(), 1, "{notes:?}");
+    assert!(notes[0].contains("role L;"), "{notes:?}");
+    let notes = on(None, "n");
+    assert_eq!(notes.len(), 1, "{notes:?}");
 }

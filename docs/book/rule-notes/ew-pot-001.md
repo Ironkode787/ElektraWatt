@@ -6,6 +6,9 @@ its attribute conflicts, naming the definitions and connection points in their p
 pair. When 0 V and PE meet in one potential, the finding offers the quick fix "Declare 0 V–PE bond (PELV)"; without a
 wire to carry the bond, its message asks you to declare the bond yourself.
 
+Some roles accept each other and are no conflict: an L pin (a single-phase input) on any one phase L1, L2 or L3; an FE
+pin on PE or PEN (EW-POT-003 checks that one); a PE or N pin on PEN. An L pin on N, or a + pin on −, stays an error.
+
 ## Why
 
 A potential is one electrical node: everything on it has one type and one voltage. A conflict means two circuits that
