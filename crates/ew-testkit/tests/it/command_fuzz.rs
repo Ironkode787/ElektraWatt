@@ -660,7 +660,14 @@ impl Default for Cadence {
 
 /// [`run_fuzz`] with every cadence of the costly oracles.
 pub fn run_fuzz_with(seed: u64, steps: usize, cadence: &Cadence) -> FuzzStats {
-    run_fuzz_rng(seed, SplitMix64::new(seed), steps, cadence)
+    run_fuzz_rng(seed, SplitMix64::new(seed), steps, cadence, None)
+}
+
+/// [`run_fuzz_with`] that draws no new step after `deadline`: the steps done so far still get the closing
+/// oracles. Only [`fuzz_long`] uses it, whose wall-clock budget must end the seed in flight as well as keep a new
+/// one from starting (one seed of 300 steps came to take longer than the test's timeout allows).
+fn run_fuzz_until(seed: u64, steps: usize, cadence: &Cadence, deadline: std::time::Instant) -> FuzzStats {
+    run_fuzz_rng(seed, SplitMix64::new(seed), steps, cadence, Some(deadline))
 }
 
 /// The run of the cargo-fuzz target (`fuzz/`), which includes this module: the random source is
@@ -669,11 +676,17 @@ pub fn run_fuzz_with(seed: u64, steps: usize, cadence: &Cadence) -> FuzzStats {
 /// scratch directory, the failure text). The tests use it for the seeded fault of the determinism check
 /// (`the_determinism_check_fails_on_a_perturbed_run`).
 pub fn run_fuzz_tape(seed: u64, tape: &[u8], steps: usize, cadence: &Cadence) -> FuzzStats {
-    run_fuzz_rng(seed, SplitMix64::with_tape(seed, tape), steps, cadence)
+    run_fuzz_rng(seed, SplitMix64::with_tape(seed, tape), steps, cadence, None)
 }
 
-/// [`run_fuzz_with`] over a random source of the caller.
-fn run_fuzz_rng(seed: u64, mut rng: SplitMix64, steps: usize, cadence: &Cadence) -> FuzzStats {
+/// [`run_fuzz_with`] over a random source of the caller; with a `deadline`, no step is drawn after it.
+fn run_fuzz_rng(
+    seed: u64,
+    mut rng: SplitMix64,
+    steps: usize,
+    cadence: &Cadence,
+    deadline: Option<std::time::Instant>,
+) -> FuzzStats {
     let Cadence {
         sample_every,
         check_every,
@@ -700,6 +713,9 @@ fn run_fuzz_rng(seed: u64, mut rng: SplitMix64, steps: usize, cadence: &Cadence)
 
     let mut after_undo = false;
     for index in 0..steps {
+        if deadline.is_some_and(|d| std::time::Instant::now() >= d) {
+            break;
+        }
         let step = gen_step(&session, &fixture, &mut rng, after_undo, mix);
         after_undo = matches!(step, Step::Undo | Step::Redo);
         let started = std::time::Instant::now();
@@ -2384,8 +2400,8 @@ fn payload_text(payload: &(dyn std::any::Any + Send)) -> String {
 ///
 /// A failing seed does not stop the others: its failure text (seed, step, oracle, command log) is a finding,
 /// the run goes on, and the test fails at the end if there was one. With `EW_FUZZ_REPORT=<file>` the findings
-/// file is written first and rewritten after every seed (see [`write_report`]). No new seed starts after
-/// `EW_FUZZ_BUDGET_SECS` seconds of wall clock, [`DEFAULT_BUDGET_SECS`] without it (the run is then `status: budget`, not a failure: the
+/// file is written first and rewritten after every seed (see [`write_report`]). No new seed and no new step of
+/// the seed in flight starts after `EW_FUZZ_BUDGET_SECS` seconds of wall clock, [`DEFAULT_BUDGET_SECS`] without it (the run is then `status: budget`, not a failure: the
 /// seeds run are listed, and the seed list is deterministic, so the next night's range continues it).
 #[test]
 #[ignore = "deep run: the long fuzz (EW_FUZZ_SEEDS, EW_FUZZ_STEPS, EW_FUZZ_BUDGET_SECS)"]
@@ -2433,7 +2449,10 @@ fn fuzz_long() {
                 &total,
             );
         }
-        match catch_unwind(AssertUnwindSafe(|| run_fuzz_with(seed, steps, &cadence))) {
+        let deadline = started + budget;
+        match catch_unwind(AssertUnwindSafe(|| {
+            run_fuzz_until(seed, steps, &cadence, deadline)
+        })) {
             Ok(stats) => {
                 eprintln!("{}", report(&format!("seed {seed}"), &stats));
                 total.merge(&stats);
@@ -2447,6 +2466,11 @@ fn fuzz_long() {
         done.push(seed);
         if let Some(p) = &report_path {
             write_report(p, "running", &seeds, steps, &done, &findings, &total);
+        }
+        // The budget ended this seed's steps: the run is `budget`, as when it keeps a seed from starting.
+        if started.elapsed() >= budget {
+            status = "budget";
+            break;
         }
     }
     eprintln!("{}", report("total", &total));
