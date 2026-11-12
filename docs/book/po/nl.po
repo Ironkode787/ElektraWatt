@@ -2780,63 +2780,61 @@ msgid ""
 "the Draw tab's Rail and Duct say what is missing."
 msgstr ""
 
-#: src/how-to/panel-layout.md:11
-msgid ""
-"An enclosure belongs to a location (`+K1`). If the project has none yet, add "
-"one with **Project ▸ Setup ▸ Structure node…**: kind Location, designation "
-"`K1`."
-msgstr ""
-
-#: src/how-to/panel-layout.md:14
+#: src/how-to/panel-layout.md:12
 msgid "Add the enclosure"
 msgstr ""
 
-#: src/how-to/panel-layout.md:16
+#: src/how-to/panel-layout.md:14
 msgid ""
-"Choose **Project ▸ Setup ▸ Enclosure…**. The dialog proposes the page's "
-"location and the first enclosure part of the project or of an installed "
-"library, such as \"Wall enclosure 600 × 800 × 250 mm\"; choose another from "
-"the lists if you like, then **Create**. The page now shows the enclosure and "
-"its mounting plate, centred and at the scale that fits the page. Another "
-"plate goes on the page through the page's **Surface** row in Properties."
+"Choose **Project ▸ Setup ▸ Enclosure…**. An enclosure belongs to a location "
+"(`+CAB1`), the cabinet. The dialog proposes the page's location, else the "
+"project's first; in a project without one it proposes **New location**, the "
+"first choice of the Location list, with a code such as `CAB1` that you can "
+"change. It proposes the first enclosure part of the project or of an "
+"installed library, such as \"Wall enclosure 600 × 800 × 250 mm\"; choose "
+"others from the lists if you like, then **Create**. The page now shows the "
+"enclosure and its mounting plate, centred and at the scale that fits the "
+"page. A new location, the enclosure and the plate on the page are three "
+"steps of Undo. Another plate goes on the page through the page's **Surface** "
+"row in Properties."
 msgstr ""
 
-#: src/how-to/panel-layout.md:22
+#: src/how-to/panel-layout.md:23
 msgid "Rails and ducts"
 msgstr ""
 
-#: src/how-to/panel-layout.md:24
+#: src/how-to/panel-layout.md:25
 msgid ""
 "Choose **Draw ▸ Rail** and click the rail's start and end on the plate (a "
 "rail runs across or up and down); the tool's card offers the rail part and "
 "the grid step. Draw as many rails as the cabinet needs."
 msgstr ""
 
-#: src/how-to/panel-layout.md:26
+#: src/how-to/panel-layout.md:27
 msgid ""
 "Choose **Draw ▸ Duct** and draw the ducts the same way; the card asks for a "
 "duct's size when its part gives none."
 msgstr ""
 
-#: src/how-to/panel-layout.md:28
+#: src/how-to/panel-layout.md:29
 msgid "Place the devices"
 msgstr ""
 
-#: src/how-to/panel-layout.md:30
+#: src/how-to/panel-layout.md:31
 msgid ""
 "Show **View ▸ Panels ▸ Navigators ▸ Unplaced devices**. It lists the devices "
 "of the page's location that have no place yet. A device without a location "
 "is not listed: give it the location in Properties, under Structure."
 msgstr ""
 
-#: src/how-to/panel-layout.md:32
+#: src/how-to/panel-layout.md:33
 msgid ""
 "Drag a device from the list onto a rail, or select its row, press `Enter` "
 "and click the place. On a rail it snaps to its neighbour, the rail's ends or "
 "the plate grid; a device mounted by screws goes on the plate."
 msgstr ""
 
-#: src/how-to/panel-layout.md:34
+#: src/how-to/panel-layout.md:35
 msgid ""
 "To fill a rail at once, select the rail and choose **Draw ▸ Auto-fill "
 "rail…**: it places the devices you marked in the list, or every unplaced "
@@ -2844,7 +2842,7 @@ msgid ""
 "toast says what did not fit."
 msgstr ""
 
-#: src/how-to/panel-layout.md:38
+#: src/how-to/panel-layout.md:39
 msgid ""
 "The tools are described one by one in the [tool "
 "reference](../reference/window/tools.md): Place device, Rail and Duct."
@@ -3487,12 +3485,18 @@ msgstr ""
 #: src/reference/window/tools.md:198
 msgid ""
 "Type the name in the field Interruption point name at the page's top left, "
-"once for a pair: the first point of a name is its source, and the tool then "
-"floats the same name as its target, on this page or the next. After the "
-"target the name is used up, and each further point gets a name of its own "
-"until you type one. When you choose the tool from the Draw tab or the menu, "
-"the field has the keys: type the name and press Enter, then click where the "
-"point goes."
+"once for a pair: the tool then floats the same name as the first point's "
+"partner, on this page or the next: its target after a source, its source "
+"after a target that no source feeds yet. Once the pair is whole the name is "
+"used up, and each further point gets a name of its own until you type one. "
+"When you choose the tool from the Draw tab or the menu, the field has the "
+"keys: type the name and press Enter or Tab, then click where the point goes. "
+"While the field has the keys, D is a letter of the name and the bar says "
+"\"Enter ends the name\"; after Enter, Tab or a click on the page, D turns "
+"the point. The toast of a placed point says its direction (\"Placed L1 as a "
+"target at 101-B2\") and that D before the click gives the other one. A point "
+"names the potential it carries whichever its direction, so a wire on a "
+"target that no source feeds yet carries the target's name."
 msgstr ""
 
 #: src/reference/window/tools.md:203
