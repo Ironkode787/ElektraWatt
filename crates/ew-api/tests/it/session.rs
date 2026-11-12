@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The Session facade v0: construction, the interactive path, previews, undo and redo, the change feed,
+//! The Session facade v0: construction, the interactive path, previews, undo and redo,
 //! the dirty flag, the registry and determinism under a seeded ID source.
 
 use ew_api::{AnyCommand, CmdError, Origin, Session, SessionOptions, Submit};
@@ -34,17 +34,13 @@ fn page(number: u32) -> AnyCommand {
 }
 
 #[test]
-fn execute_undo_redo_and_the_change_feed() {
+fn execute_undo_and_redo() {
     let mut s = session(1);
     assert_eq!(s.world().rev.0, 0);
     let r = s.execute(&page(1)).unwrap();
     assert_eq!(r.rev.0, 1);
     assert_eq!(s.world().rev.0, 1);
     assert!(s.is_dirty());
-    let changes = s.drain_changes();
-    assert_eq!(changes.len(), 1);
-    assert_eq!(changes[0].rev.0, 1);
-    assert_eq!(changes[0].touched_pages.len(), 1);
 
     let u = s.undo(&Origin::Gui).unwrap();
     assert_eq!(u.rev.0, 2);
@@ -55,12 +51,11 @@ fn execute_undo_redo_and_the_change_feed() {
     assert!(s.is_dirty());
     s.mark_saved();
     assert!(!s.is_dirty());
-    assert_eq!(s.drain_changes().len(), 2);
     assert_eq!(s.history().entries().len(), 1);
 }
 
 /// `Session::undo` and `Session::redo` take the caller's origin; a `project.checks.set` step is refused to the
-/// command-log and script origins (nothing changes, nothing enters the change feed) and taken back by the GUI.
+/// command-log and script origins (nothing changes) and taken back by the GUI.
 #[test]
 fn undo_and_redo_of_a_human_only_step_need_the_gui() {
     let mut s = session(3);
@@ -69,7 +64,6 @@ fn undo_and_redo_of_a_human_only_step_need_the_gui() {
         params: serde_json::json!({"release_scheme": "full"}),
     };
     s.execute_with(&checks, Submit::from(Origin::Gui)).unwrap();
-    s.drain_changes();
     let rev = s.world().rev;
     for origin in [
         Origin::CmdLog {
@@ -83,7 +77,6 @@ fn undo_and_redo_of_a_human_only_step_need_the_gui() {
             "{origin:?}: {err:?}"
         );
         assert_eq!(s.world().rev, rev);
-        assert!(s.drain_changes().is_empty());
     }
     s.undo(&Origin::Gui).unwrap();
     let undone = s.world().rev;
@@ -100,10 +93,8 @@ fn preview_commits_nothing_until_commit() {
     let p = s.preview(&page(2)).unwrap();
     assert_eq!(s.world().rev.0, 0);
     assert_eq!(p.diff().len(), 1);
-    assert!(s.drain_changes().is_empty());
     let r = s.commit(p).unwrap();
     assert_eq!(r.rev.0, 1);
-    assert_eq!(s.drain_changes().len(), 1);
 }
 
 #[test]

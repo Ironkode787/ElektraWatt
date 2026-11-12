@@ -61,7 +61,7 @@
 //! };
 //! let receipt = session.execute(&cmd).unwrap();
 //! assert_eq!(receipt.rev, session.world().rev);
-//! assert_eq!(session.drain_changes().len(), 1);
+//! assert!(session.is_dirty());
 //!
 //! session.undo(&ew_api::Origin::Gui).unwrap();
 //! assert!(!session.is_dirty());
@@ -601,8 +601,6 @@ pub struct Session {
     /// The memo store of [`Session::query`] (`None`: [`MemoMode::Off`]).
     memo: Option<MemoStore>,
     persistence: Option<Persistence>,
-    /// Change-feed entries taken from the engine for the journal, not yet drained by the front-end.
-    changes: Vec<Change>,
     /// The origin's name for the journal.
     origin: String,
     /// The origin of the session's own submissions (the exposure of `project.assets.purge` is judged by it).
@@ -651,7 +649,6 @@ impl Session {
             reports,
             memo,
             persistence: None,
-            changes: Vec::new(),
             origin,
             engine: Engine::new(
                 model,
@@ -987,13 +984,6 @@ impl Session {
         self.engine.history()
     }
 
-    /// Takes the change-feed entries since the last call.
-    pub fn drain_changes(&mut self) -> Vec<Change> {
-        let mut out = std::mem::take(&mut self.changes);
-        out.extend(self.engine.drain_changes());
-        out
-    }
-
     /// The command registry: names, metadata and parameter schemas.
     pub fn registry(&self) -> &CommandRegistry {
         self.engine.registry()
@@ -1022,7 +1012,7 @@ impl Session {
     // ---------------------------------------------------------------------------------------------------------
     // Persistence
 
-    /// After a mutating call: takes the change feed's new entries (kept for [`Session::drain_changes`]),
+    /// After a mutating call: takes the change feed's new entries,
     /// advances the memo store with their keys (push invalidation), adds them to the dirty set and journals
     /// the transaction (doc 05 §8.1).
     fn committed(&mut self, before: &Model, cmd: &str) {
@@ -1052,7 +1042,6 @@ impl Session {
             memo.advance(self.engine.model(), &keys);
         }
         let Some(p) = &mut self.persistence else {
-            self.changes.extend(changes);
             return;
         };
         p.unsaved.extend(keys.iter().copied());
@@ -1060,7 +1049,6 @@ impl Session {
         let _ = p
             .store
             .journal_commit(before, self.engine.model(), &keys, cmd, &self.origin);
-        self.changes.extend(changes);
     }
 
     /// Opens a project directory (doc 05 §6.1) and starts a session on it: read-write when the lock is

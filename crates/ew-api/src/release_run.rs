@@ -1290,7 +1290,6 @@ impl Session {
         if let Some(memo) = &self.memo {
             memo.advance(self.engine.model(), &touched);
         }
-        self.changes.extend(changes);
         if let Some(p) = self.persistence.as_mut() {
             p.recovered = false;
         }

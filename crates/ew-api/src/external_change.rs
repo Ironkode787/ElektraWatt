@@ -350,7 +350,6 @@ impl Session {
                 memo.advance(self.engine.model(), &keys);
             }
             applied_keys.extend(keys);
-            self.changes.extend(changes);
             if self.engine.history().entries().len() > before_entries {
                 entry = Some(self.engine.history().entries().len() - 1);
             }

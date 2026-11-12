@@ -703,8 +703,8 @@ impl Session {
 
 **v0**. `Session` is a thin facade over the `ew-commands` `Engine`, with no
 persistence, no threads and no queries yet: `new` and `from_records` (instead of `open`), `world`, `execute` and
-`execute_with`, `preview` and `preview_with`, `commit`, `undo`, `redo`, `history`, `drain_changes` (the change feed),
-`registry` (instead of `commands`), `mark_saved` and `is_dirty`. It also has `check(&Scheme, CheckMode) -> CheckReport`, evaluated through the session's memo store, and `open_read_only(dir, app_version)`, which takes no lock and does no roll-forward or journal write. The `_with` forms take the origin (the editor context and the coalescing key are specified; not built). `execute` and `commit` return a `Receipt {rev, outcome, created, passes}` and `undo` and
+`execute_with`, `preview` and `preview_with`, `commit`, `undo`, `redo`, `history`,
+`registry` (instead of `commands`), `mark_saved` and `is_dirty`. The session takes the engine's change feed at each commit for the memo store and the journal and keeps no copy for a front-end, which reads revision stamps. It also has `check(&Scheme, CheckMode) -> CheckReport`, evaluated through the session's memo store, and `open_read_only(dir, app_version)`, which takes no lock and does no roll-forward or journal write. The `_with` forms take the origin (the editor context and the coalescing key are specified; not built). `execute` and `commit` return a `Receipt {rev, outcome, created, passes}` and `undo` and
 `redo` a `Restored {rev, context, label}`; `preview` is synchronous until the job pool of WP-S1.05 returns a
 `JobHandle`, and a `Cost::Bulk` command sent to `execute` is refused with `CmdError::NeedsPreview`. `ew-api` depends
 on `ew-commands`, `ew-model` without `raw-read`, and `ew-schema` (ARCH §3).
