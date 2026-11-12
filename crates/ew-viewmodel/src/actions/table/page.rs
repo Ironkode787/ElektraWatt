@@ -20,6 +20,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             }),
         ),
     ),
+    // Page, Title block fields…: the focused page's title-block fields in one form (FT-1686), for the title block's
+    // right-click menu too. Its parameters are the title-block paths the form shows (`project.drawing_id`), which no
+    // signature word can spell.
+    placed(
+        place(Group::Pages, 2, CommandSize::Small, None),
+        "layout-bottombar",
+        act(
+            "page.title_block",
+            Command,
+            Menu::Page,
+            &[],
+            writable_page,
+            None,
+            |s, p| s.act_page_title_block(p),
+        ),
+    ),
     // Page, New section…
     with_params(
         "title?:text, first:uint, last:uint, number?:uint",

@@ -618,6 +618,17 @@ impl PropertiesPane {
         if let Some(l) = &sheet.header.location {
             ui.label(small(l));
         }
+        // One page's sheet links its title block's fields (FT-1686), where a person looks for them.
+        if sheet.read_only.is_none() && sheet.header.kinds.as_slice() == [("page".to_owned(), 1)] {
+            let link = egui::Link::new(
+                RichText::new(strings::text(key!("action-page-title-block")))
+                    .font(crate::theme::font(&t.type_small))
+                    .color(t.accent.color32()),
+            );
+            if ui.add(link).clicked() {
+                events.push(Event::Action("page.title_block", json!({})));
+            }
+        }
         if let Some(r) = &sheet.read_only {
             ui.label(RichText::new(r).italics());
         }
