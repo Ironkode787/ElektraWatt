@@ -256,8 +256,7 @@ fn a_new_strip_without_a_terminal_reads_in_words() {
         shell.strips_empty(),
         Some((
             "No terminals yet".to_owned(),
-            "Place a terminal with Draw ▸ Symbol… and the terminal symbol; it goes into the strip you choose there."
-                .to_owned()
+            "Place a terminal with Draw ▸ Terminal…; it goes into the strip you choose there.".to_owned()
         ))
     );
     assert!(strings::set_locale("nl"));
@@ -1023,9 +1022,8 @@ fn the_new_strip_toasts_name_the_strip_picker_in_dutch() {
             strings::text(key!("toast-strip-new-no-example")).to_owned()
         ),
         (
-            "Nieuwe klemmenstrook -X5: Tekenen ▸ Symbool…, het klemsymbool, de strook in de keuzelijst.".to_owned(),
-            "Nieuwe klemmenstrook; de eerste klem geeft haar kenmerk: Tekenen ▸ Symbool…, het klemsymbool, de strook in \
-             de keuzelijst."
+            "Nieuwe klemmenstrook -X5: Tekenen ▸ Klem… plaatst haar klemmen.".to_owned(),
+            "Nieuwe klemmenstrook; de eerste klem geeft haar kenmerk: Tekenen ▸ Klem… plaatst haar klemmen."
                 .to_owned()
         )
     );

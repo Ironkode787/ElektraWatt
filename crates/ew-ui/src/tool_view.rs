@@ -153,8 +153,8 @@ pub(crate) fn marker_fields(
 }
 
 /// The Structure box tool's fields in the tool strip: the style (`structure_box.fields` at once), the
-/// caption and location (Enter sends its member; `""` clears it) and the external reference by printed text (a choice
-/// sends its ID, "none" clears it).
+/// caption and location (each sends its member when it loses the focus, as the Wire marker's fields do; `""` clears
+/// it) and the external reference by printed text (a choice sends its ID, "none" clears it).
 pub(crate) fn structure_box_fields(
     ui: &mut Ui,
     externals: &[(String, String)],
@@ -200,7 +200,7 @@ pub(crate) fn structure_box_fields(
         let edit = ui.add(egui::TextEdit::singleline(buffer).desired_width(width));
         let label = strings::text(label_key).to_owned();
         edit.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &label));
-        if edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+        if edit.lost_focus() {
             let mut params = serde_json::Map::new();
             params.insert(member.to_owned(), serde_json::json!(buffer.trim()));
             events.push(crate::app::Event::Action(
