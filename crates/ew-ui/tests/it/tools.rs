@@ -754,7 +754,7 @@ fn a_stationary_click_keeps_the_place_ghost() {
     settle(&mut h);
     assert_eq!(h.state().shell().tool().name(), "place");
     let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    // Below right of the centre, so that the pan brings -102F2's body under the pointer (the layout of 102).
+    // Below right of the centre; any point of the sheet does.
     let pos = screen(&h, (w / 2 + 31_022_226, hh / 2 + 21_802_780));
     h.event(egui::Event::PointerMoved(pos));
     settle(&mut h);
@@ -793,10 +793,22 @@ fn a_stationary_click_keeps_the_place_ghost() {
 #[test]
 fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {
     let tmp = Tmp::new();
+    use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
     let mut h = quick_golden(&tmp, "102");
-    let (w, hh) = h.state().shell().canvas().unwrap().sheet();
-    // Below right of the centre, so that the pan brings -102F2's body under the pointer (the layout of 102).
-    let pos = screen(&h, (w / 2 + 31_022_226, hh / 2 + 21_802_780));
+    // The pan below moves the sheet by `pan` on the screen. The pointer rests where that brings an object under it,
+    // whatever the page's layout is: the centre of an object's rectangle whose pick is that object, moved by the pan.
+    let pan = Vec2::new(80.0, 40.0);
+    let object = {
+        let c = h.state().shell().canvas().unwrap();
+        let page = std::sync::Arc::clone(c.page());
+        page.entities
+            .iter()
+            .map(|(e, r)| (*e, rect_centre(*r)))
+            .find(|(e, p)| pick(&page.entities, Some(*p), 0.0).map(|(x, _)| x) == Some(*e))
+            .map(|(_, p)| p)
+            .expect("an object")
+    };
+    let pos = screen(&h, object) + pan;
     h.event(egui::Event::PointerMoved(pos));
     settle(&mut h);
     let before = h
@@ -809,7 +821,7 @@ fn a_view_change_with_a_stationary_pointer_replays_the_pointer() {
     // A trackpad pan (a Point-unit wheel) moves the view under the stationary pointer.
     h.event(egui::Event::MouseWheel {
         unit: MouseWheelUnit::Point,
-        delta: Vec2::new(80.0, 40.0),
+        delta: pan,
         phase: TouchPhase::Move,
         source: MouseWheelSource::Wheel,
         modifiers: Modifiers::NONE,

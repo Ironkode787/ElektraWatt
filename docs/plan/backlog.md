@@ -75,8 +75,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 - FT-847 `ew-testkit (acceptance runner), Golden A`: `golden/J-E-2416/expected/acceptance_headless.md` pins totals of growing sets ("3469 keys of 84 memoised families", "181 files a save writes", "644 commands"), against CONTRIBUTING.md's Tests rule: every new family, file or builder command re-blesses it …
 - FT-1591 `ew-testkit`: The fuzz `device.place` arm counts Connections +0 although a random drop onto a wire splits it (normaliser 7).
-- FT-1596 `ew-ui`: FT-1091's test (a connection point on a link) is `#[ignore]`d because no folio of Golden A has a connection point on a link after its routing; give the test a staged page of its own and run it again; then take its name out of the deep run's command in CONTRIBUTING.md.
-- FT-1599 `tests`: Tests such as `a_view_change…` pin page points to Golden A's layout and move whenever its layout does; give them a fixture of their own that the router's layout passes do not touch.
 - FT-1626 `ew-ui`: The snapshot tests have no Linux images: the 15 Linux-only overrides were stale since rc.3 (never re-blessed on Linux) and are removed, so on Linux the affected dialogs compare with the Windows images and fail until they are blessed there. Bless on Linux when a Linux run is wanted again (1.0 at the latest).
 
 ## Later

@@ -49,11 +49,10 @@ There is no continuous integration until 1.0. `check` is the check.
   the end of a milestone and before a release:
 
   ```sh
-  cargo nextest run --workspace --all-features --run-ignored only -E 'not test(/link_preview_and_the_cp_tooltip/)'
+  cargo nextest run --workspace --all-features --run-ignored only
   ```
 
-  The tests of the private corpus are among them and skip without `EW_PRIVATE_CORPUS`. The one test the filter
-  leaves out waits for a fixture of its own (FT-1596).
+  The tests of the private corpus are among them and skip without `EW_PRIVATE_CORPUS`.
 
 ### One place for every item
 
