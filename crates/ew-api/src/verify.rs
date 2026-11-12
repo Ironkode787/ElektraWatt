@@ -5,7 +5,7 @@
 //! doc 18 §3.4).
 //!
 //! [`sweep`] reads the memoised families of `ew-derive`, of `ew-reports` (the report rows, the generated pages
-//! and the tag classes) and of the page output (the page views and the per-layer page display lists of the
+//! and the tag classes), of `ew-checks` (every rule's findings in every scope) and of the page output (the page views and the per-layer page display lists of the
 //! export job) at every key of the snapshot through a memoising [`Q`] and through a cold one, and lists the keys
 //! whose values differ. Its report names every family it read ([`Sweep::keys`]).
 //! [`verify_derived`] runs it over a session twice (the second pass reads mostly memo hits) and adds the
@@ -280,6 +280,20 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
         .collect();
     check::<ShapedText>(memo, cold, shaped, o);
     check::<PageDigest>(memo, cold, keys.page_refs.iter().copied(), o);
+    // The memoised findings of every shipped rule in every scope of its kind (`ew-checks`).
+    let q = cold.unwrap_or(memo);
+    let mut scopes = BTreeMap::new();
+    let checks: Vec<(&'static str, ew_checks::Scope)> = ew_checks::rules()
+        .iter()
+        .flat_map(|r| {
+            let meta = r.meta();
+            let all = scopes
+                .entry(meta.scope)
+                .or_insert_with(|| ew_checks::scopes(q, meta.scope));
+            all.iter().map(|s| (meta.id, *s)).collect::<Vec<_>>()
+        })
+        .collect();
+    check::<ew_checks::CheckOf>(memo, cold, checks, o);
     out
 }
 

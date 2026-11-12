@@ -609,6 +609,8 @@ fn every_family_the_store_memoises_is_swept() {
     let batch = golden_common::batch();
     let mut session = session(&batch, MemoMode::On);
     run_states(&mut session, STATES, |_, _, _, _| {});
+    // The checks memoise their findings in the same store (FT-1664).
+    session.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Release);
     let swept = ew_api::verify::sweep(&session.query(), None).keys;
     let memory = session.memo().expect("memoising session").memory();
     assert!(
