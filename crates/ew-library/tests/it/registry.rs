@@ -1012,6 +1012,38 @@ fn resolve_and_closure() {
     assert_eq!(reg.closure(&r6), Err(LibraryError::NotFound));
 }
 
+/// A company library's PLC profile resolves by reference, as every other kind does (FT-1559).
+#[test]
+fn a_plc_profile_resolves_by_reference() {
+    let f = Fixture::new("ew-library-resolve-plc");
+    let mut reg = f.open();
+    let lib = reg
+        .create(
+            &f.root.join("company").join("plc.ewlib"),
+            "plc",
+            "PLC profiles",
+            "CC0-1.0",
+        )
+        .unwrap();
+    let item = id(0x7_0021);
+    let profile = LibDocument::from_value(json!({
+        "$k": "plc_profile", "id": item.to_string(), "library_id": lib.to_string(),
+        "item_id": item.to_string(), "version": "0.1.0", "sha256": ZERO,
+        "profile": {"id": "company-plc", "version": "1"}, "label": "Company PLC",
+        "absolute": true, "base": 10, "unit_bits": 8, "word_align": 2,
+        "mnemonics": {"area": {"I": "I", "Q": "Q", "M": "M", "PI": "PI", "PQ": "PQ"},
+            "size": {"bit": "", "byte": "B", "word": "W", "dword": "D", "lword": "L"}},
+        "render": {"bit": "{area}{byte}.{bit}", "unit": "{area}{size}{byte}", "drawing": "", "exchange": "%"},
+        "parse": {"prefixes": ["", "%"], "peripheral_suffix": ":P"},
+        "allocation": {"scheme": "packed", "start": {"digital": 0, "analog": 0}, "verified": false},
+    }))
+    .unwrap();
+    reg.write(lib, &[profile]).unwrap();
+    let r: LibRef = serde_json::from_value(libref(lib, item, "^0.1")).unwrap();
+    let doc = reg.resolve(&r).unwrap();
+    assert_eq!(doc.kind(), Some(Kind::PlcProfile));
+}
+
 /// The item search over the starter and the library's manufacturers.
 #[test]
 fn items_are_searchable() {

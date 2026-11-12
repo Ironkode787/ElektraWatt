@@ -901,14 +901,8 @@ impl Registry {
         } else {
             let shards = lib.shards();
             let mut found = None;
-            for kind in [
-                Kind::Part,
-                Kind::Symbol,
-                Kind::Fndef,
-                Kind::Form,
-                Kind::Macro,
-                Kind::Manufacturer,
-            ] {
+            let kinds = crate::record::KIND_DIRS.iter().map(|&(_, k)| k);
+            for kind in kinds.chain([Kind::Manufacturer]) {
                 for p in shards.get(&ShardKey::of(kind, item)).into_iter().flatten() {
                     let (entries, _, _) = self.load_file(lib, p).map_err(LibraryError::Format)?;
                     if let Some(e) = entries.into_iter().find(|e| e.item == item) {
