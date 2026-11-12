@@ -14,8 +14,8 @@
     "looks": 400,
     "refusals": 50
   },
-  "app_version": "0.1.0",
-  "harness_version": "0.1.0",
+  "app_version": "0.2.0",
+  "harness_version": "0.2.0",
   "stateless": false,
   "counts": {
     "turns": 12,

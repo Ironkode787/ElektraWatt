@@ -267,13 +267,7 @@ fn one_run(
         },
     )?;
     let failures = play(&run, id, out, stateless, agent)?;
-    if !failures.is_empty() {
-        bail!(
-            "the scripted agent met {} problem(s):\n{}",
-            failures.len(),
-            failures.join("\n")
-        );
-    }
+    // The run stops either way: a keeper left running holds the run folder, and the next self-test cannot clear it.
     let ok = super::run(
         &[
             "stop".to_owned(),
@@ -283,6 +277,13 @@ fn one_run(
         ],
         root,
     )?;
+    if !failures.is_empty() {
+        bail!(
+            "the scripted agent met {} problem(s):\n{}",
+            failures.len(),
+            failures.join("\n")
+        );
+    }
     if !ok {
         bail!("stop failed");
     }
