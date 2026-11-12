@@ -429,7 +429,7 @@ fn run_checks_ends_pending_and_a_conflict_is_never_pending() {
         .expect("a source point in Golden A");
     done(&mut shell, "navigator.show", json!({"kind": "ips", "on": false}));
     let rev = shell.revision();
-    arm_ip(&mut shell, &source, (60, 6), "source");
+    arm_ip(&mut shell, &source, (66, 6), "source");
     // The IP tool's refused click keeps its ghost and says why in the HUD.
     match shell.dispatch("canvas.activate", &json!({})) {
         Outcome::Refused { reason_key } => assert_eq!(reason_key, key!("reason-ip-not-placed")),

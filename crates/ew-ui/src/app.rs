@@ -283,6 +283,9 @@ pub struct App {
     request_paste: bool,
     /// The IP tool's name field in the tool strip: `ip.name` on Enter.
     ip_name: String,
+    /// Whether the IP tool's fields were shown in the last frame: the frame the tool is chosen in gives its name
+    /// field the focus.
+    ip_shown: bool,
     /// The Wire marker tool's cross-section and colours fields: `marker.fields` on Enter.
     marker_csa: String,
     marker_colours: String,
@@ -377,6 +380,7 @@ impl App {
             applied_theme: None,
             request_paste: false,
             ip_name: String::new(),
+            ip_shown: false,
             drawing_fields_epoch: None,
             marker_csa: String::new(),
             marker_colours: String::new(),
@@ -1702,6 +1706,14 @@ impl App {
             tool == "marker",
             tool == "structure_box",
         );
+        // The name is the first thing the interruption point tool takes when it is chosen from the bar or a menu:
+        // the pointer is off the sheet then, and what is typed next is the point's name. (It went to the canvas,
+        // where the letters were lost and Enter placed a point at the grid cursor: the persona round before 0.2.0.)
+        // Chosen by its key with the pointer on the sheet (or with no pointer in the window), the keys stay with the
+        // tool, so D turns the direction.
+        let ip_focus = ip
+            && !std::mem::replace(&mut self.ip_shown, ip)
+            && ctx.pointer_latest_pos().is_some_and(|p| !pane.contains(p));
         // The layout place tool, or a placement dragged by Select.
         let layout = self
             .shell
@@ -1792,10 +1804,13 @@ impl App {
                         crate::tool_view::ip_fields(
                             ui,
                             ip_name,
-                            ip_typed.as_deref(),
-                            ip_proposal.as_deref(),
-                            ip_external.as_deref(),
-                            &externals,
+                            &crate::tool_view::IpFields {
+                                typed: ip_typed.as_deref(),
+                                proposal: ip_proposal.as_deref(),
+                                external: ip_external.as_deref(),
+                                externals: &externals,
+                                focus: ip_focus,
+                            },
                             events,
                         );
                     }

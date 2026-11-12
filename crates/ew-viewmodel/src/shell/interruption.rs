@@ -547,8 +547,8 @@ impl ShellModel {
             CanvasEvent::Press {
                 at,
                 button: crate::tools::Button::Primary,
-                ..
-            } => Some(*at),
+                mods,
+            } => Some((*at, mods.alt)),
             CanvasEvent::Activate => None,
             _ => return None,
         };
@@ -566,7 +566,7 @@ impl ShellModel {
         self.tools.notice = Some(text.clone());
         self.tools.notice_sticky = true;
         // As a refused tool output's: the press's point, or (Enter) kept until the pointer or the cursor moves.
-        self.tools.notice_at = Some(at.unwrap_or((i64::MIN, i64::MIN)));
+        self.tools.notice_at = Some(at.map_or((i64::MIN, i64::MIN), |(at, _)| at));
         self.notify_toned(text, crate::notifications::NoteTone::Warning);
         Some(Outcome::refused(key!("reason-ip-not-placed")))
     }

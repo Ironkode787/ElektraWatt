@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-12T03:27:21+01:00\n"
+"POT-Creation-Date: 2026-11-12T08:49:24+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2778,20 +2778,33 @@ msgid ""
 "once for a pair: the first point of a name is its source, and the tool then "
 "floats the same name as its target, on this page or the next. After the "
 "target the name is used up, and each further point gets a name of its own "
-"until you type one."
+"until you type one. When you choose the tool from the Draw tab or the menu, "
+"the field has the keys: type the name and press Enter, then click where the "
+"point goes."
 msgstr ""
 
-#: src/reference/window/tools.md:163
-msgid "Interruption point direction"
-msgstr ""
-
-#: src/reference/window/tools.md:165
+#: src/reference/window/tools.md:164
 msgid ""
-"Turns the interruption point that the tool floats to its next direction. "
-"Draw ▸ Connect ▸ Interruption point direction."
+"A point keeps room for its texts: where its name or its cross-reference "
+"would print over another interruption point's, it is not placed, and the "
+"message says so. Three grid steps below or above the other point is clear; "
+"points side by side are clear when their texts are. Hold Alt to place it "
+"anyway."
 msgstr ""
 
 #: src/reference/window/tools.md:168
+msgid "Interruption point direction"
+msgstr ""
+
+#: src/reference/window/tools.md:170
+msgid ""
+"Turns the interruption point that the tool floats from source to target, or "
+"back. Draw ▸ Connect ▸ Interruption point direction. An undirected point, "
+"which pairs either way, is a choice of a placed point's Direction in its "
+"properties."
+msgstr ""
+
+#: src/reference/window/tools.md:174
 msgid ""
 "The point takes the form of its new direction: the wire moves from the tail "
 "to the tip, or back. Changing the direction of a placed point in its "
@@ -2799,90 +2812,90 @@ msgid ""
 "other form yet: place one point of that direction first."
 msgstr ""
 
-#: src/reference/window/tools.md:172
+#: src/reference/window/tools.md:178
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:174
+#: src/reference/window/tools.md:180
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:177
+#: src/reference/window/tools.md:183
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:179
+#: src/reference/window/tools.md:185
 msgid ""
 "Places a wire marker, the label that prints a wire's number or text on the "
 "wire. Open it with Draw ▸ Annotate ▸ Wire marker."
 msgstr ""
 
-#: src/reference/window/tools.md:182
+#: src/reference/window/tools.md:188
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:184
+#: src/reference/window/tools.md:190
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:186
+#: src/reference/window/tools.md:192
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:188
+#: src/reference/window/tools.md:194
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:191 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:197 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:193
+#: src/reference/window/tools.md:199
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:196
+#: src/reference/window/tools.md:202
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:198
+#: src/reference/window/tools.md:204
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:200
+#: src/reference/window/tools.md:206
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:202
+#: src/reference/window/tools.md:208
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:205
+#: src/reference/window/tools.md:211
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:207
+#: src/reference/window/tools.md:213
 msgid "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail."
 msgstr ""
 
-#: src/reference/window/tools.md:209
+#: src/reference/window/tools.md:215
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:211
+#: src/reference/window/tools.md:217
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 

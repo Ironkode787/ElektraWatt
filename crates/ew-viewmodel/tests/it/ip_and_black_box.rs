@@ -122,9 +122,9 @@ fn the_ip_tool_proposes_names_by_series_and_direction_and_d_and_star_toggle() {
     let ghost = canvas(&s)["ghost"].clone();
     assert_eq!(ghost["direction"], "target");
     assert_eq!(ghost["name"], "24VDC-1", "typed: no series");
-    // D goes on from the offered target: undirected; the star toggles, and walks the point to source (a star
+    // The direction is chosen in words too: undirected; the star toggles, and walks the point to source (a star
     // source is a source point).
-    done(&mut s, "tool.ip_direction", json!({}));
+    done(&mut s, "tool.ip_direction", json!({"direction": "undirected"}));
     assert_eq!(canvas(&s)["ghost"]["direction"], "undirected");
     done(&mut s, "tool.star_source", json!({}));
     let line = describe_line(&s, "canvas ghost ip ").expect("the ghost line");

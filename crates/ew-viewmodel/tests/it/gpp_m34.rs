@@ -174,7 +174,8 @@ fn the_ip_tool_keeps_the_chosen_direction_and_an_external_point_is_a_target() {
     let before = ips(&s);
     done(&mut s, "tool.ip", json!({}));
     done(&mut s, "tool.ip_direction", json!({"direction": "undirected"}));
-    for (i, k) in [(4, 40), (6, 40), (140, 40)].into_iter().enumerate() {
+    // The second point stands clear of the first one's texts (six grid steps below it).
+    for (i, k) in [(4, 40), (4, 46), (140, 40)].into_iter().enumerate() {
         done(&mut s, "ip.name", json!({"text": format!("KEEP-{i}")}));
         enter_k(&mut s, k);
         assert_eq!(ghost(&s)["direction"], "undirected", "after placement {i}");
