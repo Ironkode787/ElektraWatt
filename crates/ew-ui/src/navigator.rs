@@ -29,7 +29,6 @@
 //! **Table mode**. Every pane has a Table toggle beside its filter (`navigator.table`); a navigator
 //! in table mode is drawn by `nav_table` as an egui_table on the same focusable node, then with the role `Table`.
 
-use std::collections::BTreeMap;
 use std::rc::Rc;
 
 use egui::{Key, Modifiers, PointerButton, Sense, Ui};
@@ -466,12 +465,8 @@ impl NavigatorPane {
         }
         // A navigator in table mode is drawn as its table.
         if let Some(nav) = table_nav {
-            let writable =
-                ew_viewmodel::actions::find("table.edit").is_some_and(|a| (a.enabled)(shell).is_ok());
             let preview = shell.pattern_preview(self.kind).map(|(_, v)| v);
-            let has_rows = self
-                .table
-                .show(ui, nav, writable, preview, (list_id, ours), events);
+            let has_rows = self.table.show(ui, nav, shell, preview, (list_id, ours), events);
             self.painted = self.table.painted;
             // Table mode without rows says why, as the tree does (doc 16a §6.17, CP5).
             if !has_rows {
@@ -562,29 +557,10 @@ impl NavigatorPane {
                     );
                 }
                 view = range.clone();
-                // The Pages tree's right-click menu (FT-1634), the same on every row; another tree's row has its own
-                // (`navigator_row_menu`: a strip's Add terminal and Edit strip, FT-1707).
-                let menu = if pages {
-                    ew_viewmodel::command_bar::pages_tree_menu(shell)
-                } else {
-                    Vec::new()
-                };
-                let nodes = shell.nav(kind).and_then(|n| n.table()).filter(|_| !pages);
-                let writable = shell.read_only_reason().is_none();
-                let row_menus: BTreeMap<&str, Vec<ew_viewmodel::actions::ActionItem>> = visible
-                    [range.clone()]
-                .iter()
-                .filter_map(|r| {
-                    let node = nodes?.nodes.iter().find(|n| n.key == r.key)?;
-                    let items = ew_viewmodel::command_bar::navigator_row_menu(kind, node, writable);
-                    (!items.is_empty()).then_some((r.key.as_str(), items))
-                })
-                .collect();
                 let tree = Tree {
                     cursor: cursor.as_deref(),
                     visible: &visible,
-                    menu: &menu,
-                    row_menus: &row_menus,
+                    shell,
                 };
                 for row in &visible[range] {
                     painted += 1;
@@ -976,13 +952,48 @@ fn rename_error_ui(
 }
 
 /// What every row of a tree is drawn against: the cursor's key, the rows on show (a drag of marked rows takes them
-/// all) and the right-click menu of the tree's rows (empty: none).
+/// all) and the shell (a row's right-click menu).
 struct Tree<'a> {
     cursor: Option<&'a str>,
     visible: &'a [ShownRow],
-    menu: &'a [ew_viewmodel::actions::ActionItem],
-    /// The rows with a menu of their own, by key (used where `menu` is empty).
-    row_menus: &'a BTreeMap<&'a str, Vec<ew_viewmodel::actions::ActionItem>>,
+    shell: &'a ShellModel,
+}
+
+/// The right-click menu of `row` of navigator `kind` (empty: none): the Pages tree's (`pages_tree_menu`, FT-1634 and
+/// FT-1693), else the row's own (`navigator_row_menu`).
+fn row_menu(
+    shell: &ShellModel,
+    kind: NavKind,
+    pages: bool,
+    row: &ShownRow,
+) -> Vec<ew_viewmodel::actions::ActionItem> {
+    if pages {
+        return ew_viewmodel::command_bar::pages_tree_menu(shell, row);
+    }
+    shell
+        .nav(kind)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.key == row.key))
+        .map(|node| ew_viewmodel::command_bar::navigator_row_menu(shell, kind, node))
+        .unwrap_or_default()
+}
+
+/// What a plain click on row `key` of navigator `kind` selects, which a right-click does first too (FT-1693): the focus
+/// to the navigator and the row selected; a page row (`page`) its page opened, with nothing selected on it.
+pub(crate) fn select_row(kind: NavKind, key: &str, page: bool, events: &mut Vec<Event>) {
+    let word = kind.word();
+    events.push(Event::Action(
+        "ui.focus",
+        json!({"area": "navigator", "kind": word}),
+    ));
+    events.push(Event::Action(
+        "navigator.select",
+        json!({"kind": word, "keys": [key]}),
+    ));
+    if page {
+        events.push(Event::Action("navigator.open", json!({"kind": word, "key": key})));
+        events.push(Event::Action("select.set", json!({"ids": []})));
+    }
 }
 
 /// One row: its glyph, its text, its input, drag and drop, and its AccessKit node.
@@ -990,13 +1001,8 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
     let Tree {
         cursor,
         visible,
-        menu,
-        row_menus,
+        shell,
     } = *tree;
-    let menu = match row_menus.get(row.key.as_str()) {
-        Some(own) if menu.is_empty() => own.as_slice(),
-        _ => menu,
-    };
     let is_cursor = cursor == Some(row.key.as_str());
     let mut fix_clicked = false;
     let (glyph_clicked, response) = ui
@@ -1175,12 +1181,20 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         events.push(Event::Action("messages.fix", json!({"key": row.key})));
         return;
     }
-    if !menu.is_empty() {
-        response.context_menu(|ui| {
-            for item in menu {
-                crate::menu::item(ui, item, events);
+    // The row's right-click menu, built only while it opens or is open; the right-click selects the row first, unless
+    // it is marked already, so the entries act on it.
+    if response.secondary_clicked() || response.context_menu_opened() {
+        let menu = row_menu(shell, kind, pages, row);
+        if !menu.is_empty() {
+            if response.secondary_clicked() && !row.marked {
+                select_row(kind, &row.key, pages && row.openable, events);
             }
-        });
+            response.context_menu(|ui| {
+                for item in &menu {
+                    crate::menu::item(ui, item, events);
+                }
+            });
+        }
     }
     // Drag sources.
     match &row.drag {

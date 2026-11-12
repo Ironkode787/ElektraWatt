@@ -535,16 +535,11 @@ fn define_potential_from_a_potentials_row() {
     done(&mut shell, "navigator.show", json!({"kind": "potentials"}));
     let row = node(&shell, &l);
     let (function, idx) = row.define_at.expect("a point to define it at");
-    let menu = ew_viewmodel::command_bar::navigator_row_menu(NavKind::Potentials, &row, true);
+    let menu = ew_viewmodel::command_bar::navigator_row_menu(&shell, NavKind::Potentials, &row);
     let items: Vec<(&str, String, bool)> = menu.iter().map(|i| (i.id, i.label.clone(), i.enabled)).collect();
     assert_eq!(
         items,
         [("potential.draw_row", "Define potential…".to_owned(), true)]
-    );
-    let read_only = ew_viewmodel::command_bar::navigator_row_menu(NavKind::Potentials, &row, false);
-    assert_eq!(
-        read_only[0].reason.as_deref(),
-        Some("The project is open read-only")
     );
     // Another page on show and nothing selected: the row's point all the same.
     done(&mut shell, "page.goto", json!({"folio": "103"}));
@@ -563,7 +558,7 @@ fn define_potential_from_a_potentials_row() {
     );
     // The defined row has no point left to define at: no menu, and the action refuses in words.
     let defined = node(&shell, "FEED-R");
-    assert!(ew_viewmodel::command_bar::navigator_row_menu(NavKind::Potentials, &defined, true).is_empty());
+    assert!(ew_viewmodel::command_bar::navigator_row_menu(&shell, NavKind::Potentials, &defined).is_empty());
     let reason = common::refused(&mut shell, "potential.draw_row", json!({"row": defined.key}));
     assert_eq!(
         ew_viewmodel::strings::text(ew_viewmodel::strings::Key::run_time(reason)),

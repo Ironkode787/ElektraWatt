@@ -836,5 +836,26 @@ fn the_canvas_context_menu_offers_what_fits_then_the_bar_selection_commands_and_
             item.label
         );
     }
+    // A navigator row's entries say so too (a strip's Add terminal and Edit strip).
+    done(&mut shell, "navigator.show", json!({"kind": "strips"}));
+    let strip = shell
+        .nav(ew_viewmodel::navigators::NavKind::Strips)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == ew_viewmodel::navigators::NavRole::Strip)
+                .cloned()
+        })
+        .expect("a strip row");
+    let row = ew_viewmodel::command_bar::navigator_row_menu(
+        &shell,
+        ew_viewmodel::navigators::NavKind::Strips,
+        &strip,
+    );
+    assert!(!row.is_empty());
+    for item in row {
+        assert_eq!(item.reason.as_deref(), Some("The project is open read-only"));
+    }
     shell.shutdown();
 }

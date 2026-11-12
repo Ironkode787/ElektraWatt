@@ -1152,9 +1152,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     // Draw ▸ Connect ▸ Cable… (FT-1685): the selected wires as a cable's cores in one form, on the bar after Route
-    // selection, in a column of its own.
+    // selection, in a column of its own; with `cable`, a Cables row's Cable… on that cable's wires (FT-1693).
     with_params(
-        "tag?:text, type?:text, cores?:json",
+        "tag?:text, type?:text, cores?:json, cable?:text",
         in_canvas(placed(
             place(Group::Connect, 9, CommandSize::Small, Some(key!("bar-cable"))),
             "ew-cable",

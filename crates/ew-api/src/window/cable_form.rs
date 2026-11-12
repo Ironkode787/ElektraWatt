@@ -242,30 +242,35 @@ impl Session {
         format!("{}{}{csa}", cores.len(), if pe { "G" } else { "x" })
     }
 
+    /// The wires that are cores of `cable`, each with its core, in core order (a core's wires by ID); empty for a
+    /// cable without one or a record that is no cable.
+    pub fn cable_wires(&self, cable: Uuid) -> Vec<(Uuid, String)> {
+        let q = self.query();
+        let mut rows: Vec<(Uuid, String)> = Vec::new();
+        for conductor in self.conductors_of(cable) {
+            let mut on: Vec<Uuid> = q
+                .connections()
+                .iter()
+                .filter(|(_, x)| x.kind == ConnectionKind::Core(conductor.id))
+                .map(|(id, _)| id.as_uuid())
+                .collect();
+            on.sort();
+            rows.extend(on.into_iter().map(|w| (w, conductor.core.as_str().to_owned())));
+        }
+        rows
+    }
+
     /// The Cable form of the wires `wires` (module documentation). Without a cable among them the type proposed is
     /// `<n>x<cross-section>` with the first wire's effective cross-section in mm² (1.5 when it has none).
     pub fn cable_form(&self, wires: &[Uuid]) -> CableForm {
         let q = self.query();
         let cable = wires.iter().find_map(|w| self.cable_of_wire(*w));
         let (tag, type_text, mut rows) = match cable {
-            Some(c) => {
-                let mut rows: Vec<(Uuid, String)> = Vec::new();
-                for conductor in self.conductors_of(c) {
-                    let mut on: Vec<Uuid> = q
-                        .connections()
-                        .iter()
-                        .filter(|(_, x)| x.kind == ConnectionKind::Core(conductor.id))
-                        .map(|(id, _)| id.as_uuid())
-                        .collect();
-                    on.sort();
-                    rows.extend(on.into_iter().map(|w| (w, conductor.core.as_str().to_owned())));
-                }
-                (
-                    self.device_tag(c).unwrap_or_default(),
-                    self.cable_type_text(c),
-                    rows,
-                )
-            }
+            Some(c) => (
+                self.device_tag(c).unwrap_or_default(),
+                self.cable_type_text(c),
+                self.cable_wires(c),
+            ),
             None => {
                 let csa = wires
                     .first()

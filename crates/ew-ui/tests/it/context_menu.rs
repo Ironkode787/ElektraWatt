@@ -10,12 +10,13 @@ use crate::support;
 
 use egui::{Modifiers, PointerButton, Pos2};
 use egui_kittest::Harness;
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
 use ew_ui::ew_viewmodel::canvas::{pick, rect_centre};
 use ew_ui::ew_viewmodel::command_bar::{MenuSpot, canvas_menu};
 use ew_ui::ew_viewmodel::ew_api::output::TableRep;
 use ew_ui::ew_viewmodel::navigators::NavKind;
+use ew_ui::ew_viewmodel::shell::{Dialog, Outcome};
 use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, screen, settle, wait_for_page};
@@ -162,6 +163,20 @@ fn a_wires_menu_and_two_wires_make_a_cable() {
         .collect();
     let first = point_on(&h, &wires[0]);
     right_click(&mut h, first);
+    // A wire neither turns nor mirrors: the menu (over the canvas, below the command bar) has no Rotate or Mirror.
+    let canvas = h
+        .get_all_by_role(egui::Role::Canvas)
+        .next()
+        .expect("the canvas")
+        .rect();
+    entry(&h, first, "Edit route");
+    for label in ["Rotate", "Mirror", "Renumber devices"] {
+        assert!(
+            h.query_all_by_label_contains(label)
+                .all(|n| !canvas.contains(n.rect().center())),
+            "no {label} on a wire"
+        );
+    }
     let tops = listed(
         &h,
         first,
@@ -394,4 +409,241 @@ fn a_strip_rows_menu_edits_the_strip() {
         "the strip editor"
     );
     h.state_mut().shell_mut().shutdown();
+}
+
+/// A point near the left end of the first tree item whose name starts with `name` (a row's text may be wider than the
+/// pane).
+fn item_at(h: &Harness<'_, App>, name: &str) -> Pos2 {
+    h.get_all_by_role(egui::Role::TreeItem)
+        .find(|n| n.accesskit_node().label().is_some_and(|l| l.starts_with(name)))
+        .unwrap_or_else(|| panic!("no tree item {name}"))
+        .rect()
+        .left_center()
+        + egui::vec2(12.0, 0.0)
+}
+
+/// FT-1693: a right click on a device's row in the Devices navigator selects it and offers what its symbol offers on
+/// the page (Choose part…, Edit symbol, Copy and edit, from the same function), Go to its first placement and
+/// Properties of selection; Choose part… opens the part dialog for it and Go to shows its first placement.
+#[test]
+fn a_device_rows_menu_offers_what_its_symbol_offers_and_goes_to_it() {
+    use ew_ui::ew_viewmodel::command_bar::navigator_row_menu;
+    use ew_ui::ew_viewmodel::navigators::NavRole;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    dispatch(&mut h, "navigator.show", json!({ "kind": "devices" }));
+    settle(&mut h);
+    // -201U3 is placed on 201 and 203, not on the page shown: reveal its row.
+    let node = {
+        let shell = h.state().shell();
+        let t = shell.nav(NavKind::Devices).and_then(|n| n.table()).unwrap();
+        t.nodes
+            .iter()
+            .find(|n| n.role == NavRole::Device && n.label == "-201U3")
+            .cloned()
+            .expect("the row of -201U3")
+    };
+    dispatch(
+        &mut h,
+        "navigator.row",
+        json!({ "kind": "devices", "key": node.key }),
+    );
+    settle(&mut h);
+    let at = item_at(&h, "-201U3, device");
+    right_click(&mut h, at);
+    for label in [
+        "Go to 201-E4",
+        "Choose part…",
+        "Copy and edit",
+        "Properties of selection",
+    ] {
+        entry(&h, at, label);
+    }
+    let shell = h.state().shell();
+    assert!(
+        shell.nav(NavKind::Devices).unwrap().marked().contains(&node.key),
+        "the right click selected the row"
+    );
+    entry(&h, at, "Choose part…").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_some(), "the part dialog");
+    h.key_press(egui::Key::Escape);
+    settle(&mut h);
+    let row = navigator_row_menu(h.state().shell(), NavKind::Devices, &node);
+    let at = item_at(&h, "-201U3, device");
+    right_click(&mut h, at);
+    entry(&h, at, "Go to 201-E4").click();
+    settle(&mut h);
+    wait_for_page(&mut h);
+    assert_eq!(h.state().shell().current_folio(), Some("201"));
+    // On the page its symbol, selected by Go to, offers the same entries (but Go to and Properties, which the page's
+    // general entries hold).
+    let page: Vec<String> = canvas_menu(h.state().shell(), MenuSpot::Object)
+        .into_iter()
+        .map(|i| i.label)
+        .collect();
+    for item in row.iter().filter(|i| i.id != "navigator.open") {
+        assert!(page.contains(&item.label), "{} on the page: {page:?}", item.label);
+    }
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1693: a right click on a cable's row in the Cables navigator offers Cable… and Go to its first wire; Cable…
+/// shows that wire's page with the cable's wires selected and opens the cable's form.
+#[test]
+fn a_cable_rows_menu_opens_the_cable_form() {
+    use ew_ui::ew_viewmodel::navigators::NavRole;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "101");
+    dispatch(&mut h, "navigator.show", json!({ "kind": "cables" }));
+    settle(&mut h);
+    let label = {
+        let shell = h.state().shell();
+        let t = shell.nav(NavKind::Cables).and_then(|n| n.table()).unwrap();
+        t.nodes
+            .iter()
+            .enumerate()
+            .find(|(i, n)| {
+                n.role == NavRole::Cable
+                    && t.nodes
+                        .iter()
+                        .any(|c| c.parent == u32::try_from(*i).ok() && c.open.is_some())
+            })
+            .map(|(_, n)| n.label.clone())
+            .expect("a cable with a wire")
+    };
+    let at = item_at(&h, &format!("{label}, cable"));
+    right_click(&mut h, at);
+    entry(&h, at, "Go to ");
+    entry(&h, at, "Cable…").click();
+    settle(&mut h);
+    let shell = h.state().shell();
+    let Some(Dialog::Form(form)) = shell.dialog() else {
+        panic!("the cable's form");
+    };
+    assert_eq!(form.action, "cable.from_wires");
+    // The form lists the cable's wires; those on the page shown are selected.
+    let rows = &form.table.as_ref().expect("the wires").rows;
+    let selected = shell.selection().items.len();
+    assert!(
+        selected > 0 && selected <= rows.len(),
+        "{selected} of {}",
+        rows.len()
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1693: a right click on a page's row in the Pages tree opens the page and offers what the Page tab offers for it;
+/// Title block fields… opens that page's form.
+#[test]
+fn a_page_rows_menu_edits_the_pages_title_block() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "102");
+    let title = h
+        .state()
+        .shell()
+        .page_rows()
+        .iter()
+        .find(|r| r.folio == "103")
+        .map(|r| r.title.clone())
+        .unwrap();
+    let at = item_at(&h, &format!("103 {title}, page"));
+    right_click(&mut h, at);
+    wait_for_page(&mut h);
+    assert_eq!(h.state().shell().current_folio(), Some("103"), "the page opened");
+    for label in [
+        "Open page in a new tab",
+        "Page properties",
+        "New page…",
+        "Delete page",
+    ] {
+        entry(&h, at, label);
+    }
+    entry(&h, at, "Title block fields…").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_some(), "the title block's form");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1693: on a new project with a relay placed, its row in the Devices navigator offers its free contacts by name,
+/// which float the contact; Join device… is offered on a contact that another relay can take, never on a coil that no
+/// other device can take; a symbol's menu offers Rotate.
+#[test]
+fn a_relay_rows_menu_adds_a_contact_and_join_is_offered_where_it_can_join() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let pixel = pixel_map(&mut d);
+    place_relay(&mut d, (800, 500));
+    let coil = tables(&mut d).reps[0].clone();
+    let device = coil.device.unwrap();
+    let at = body_pixel(&mut d, &pixel, &coil);
+    d.input(&Input::Click {
+        at,
+        button: PointerButton::Secondary,
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    // In the menu beside the pointer, below the command bar.
+    assert!(
+        d.labels()
+            .iter()
+            .any(|(l, p)| l.starts_with("Rotate clockwise") && p.0 > at.0 - 10 && p.1 > 200),
+        "a symbol's menu offers Rotate"
+    );
+    starting_with(&d, "Add contact ");
+    assert!(
+        !d.labels().iter().any(|(l, _)| l.starts_with("Join device")),
+        "no Join device… on a coil no other device can take"
+    );
+    d.input(&key("escape"));
+    d.settle();
+    // The relay's row in the Project pane's Devices list: its free contacts.
+    d.input(&click(d.find("Devices").expect("the Devices tab")));
+    d.settle();
+    let shell = d.shell_mut();
+    let (row_key, row_label) = shell
+        .nav(NavKind::Devices)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.records.first() == Some(&device)))
+        .map(|n| (n.key.clone(), n.label.clone()))
+        .expect("the relay's row");
+    assert_eq!(
+        shell.dispatch("navigator.row", &json!({ "kind": "devices", "key": row_key })),
+        Outcome::Done
+    );
+    d.settle();
+    let row = starting_with(&d, &format!("{row_label}, device"));
+    d.input(&Input::Click {
+        at: row,
+        button: PointerButton::Secondary,
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    d.input(&click(starting_with(&d, "Add contact ")));
+    d.settle();
+    assert_eq!(d.shell_mut().tool().name(), "place", "the contact floats");
+    let to = (1100, 500);
+    d.input(&Input::Hover { at: to });
+    d.settle();
+    d.input(&click(to));
+    d.settle();
+    d.input(&key("escape"));
+    d.settle();
+    // A second relay: the contact can join it.
+    place_relay(&mut d, (800, 650));
+    let contact = tables(&mut d)
+        .reps
+        .iter()
+        .find(|r| r.id != coil.id && r.device == coil.device)
+        .cloned()
+        .expect("the contact is placed");
+    let at = body_pixel(&mut d, &pixel, &contact);
+    d.input(&Input::Click {
+        at,
+        button: PointerButton::Secondary,
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    starting_with(&d, "Join device");
+    d.shell_mut().shutdown();
 }

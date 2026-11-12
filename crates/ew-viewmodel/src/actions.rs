@@ -657,6 +657,10 @@ pub fn enabled_with(
     if meta.id == "bond.draw" && (p.contains_key("a") || p.contains_key("b")) {
         return editable_page(m);
     }
+    // A Cables row's Cable… selects its cable's wires itself (FT-1693).
+    if meta.id == "cable.from_wires" && p.contains_key("cable") {
+        return writable_page(m);
+    }
     (meta.enabled)(m)
 }
 

@@ -66,20 +66,24 @@ Output ▸ Import table… exchange the table with a spreadsheet.
 ## Navigators
 
 A navigator lists one kind of record of the project. View ▸ Panels ▸ Navigators shows each one; clicking a row
-selects the record and opens its page.
+selects the record and opens its page. A right click on a row selects it and opens its menu: what the same thing
+offers on the page, listed below for each navigator.
 
 ### Pages
 
 The pages in folio order, flat, by section or by structure.
 
-The two buttons beside the filter make a page and a section; a right click on a row offers the same. A section is a
-range of folios with a title, such as 100 to 199: New section proposes the next number and the next hundred, and the
-tree lists the section at once, still empty. With a section chosen in the tree, New page proposes its first free
-folio.
+The two buttons beside the filter make a page and a section; a right click on a section offers the same. A right click
+on a page opens it and offers Open page in a new tab, Title block fields…, Page properties, New page… and Delete page.
+A section is a range of folios with a title, such as 100 to 199: New section proposes the next number and the next
+hundred, and the tree lists the section at once, still empty. With a section chosen in the tree, New page proposes its
+first free folio.
 
 ### Devices
 
-The devices with their functions and representations.
+The devices with their functions and representations. A right click on a device offers Go to (its first placement,
+such as `201-E4`), what its symbol offers on the page (Add contact on a relay or a contactor, Choose part…, Edit
+symbol, Copy and edit) and Properties of selection.
 
 ### Connections
 
@@ -91,11 +95,14 @@ The terminal strips with their terminals. Its table mode is the strip editor.
 
 ### Cables
 
-The cables with their cores. See [A terminal strip and a cable](../../tutorials/terminal-strip-and-cable.md).
+The cables with their cores. A right click on a cable offers Cable…, which shows the page of its first wire with the
+cable's wires selected and opens the cable's form, and Go to its first wire. See
+[A terminal strip and a cable](../../tutorials/terminal-strip-and-cable.md).
 
 ### PLC
 
-The PLC configuration projects, stations, modules and channels, with their addresses.
+The PLC configuration projects, stations, modules and channels, with their addresses. A right click on a station or a
+module offers what a device's row offers; on a channel, Go to its place and Properties of selection.
 
 ### Potentials
 
