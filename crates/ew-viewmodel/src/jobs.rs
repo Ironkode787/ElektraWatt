@@ -145,8 +145,8 @@ pub struct JobsState {
     pub(crate) waker: Option<Waker>,
     /// The test gate and fault of the jobs started from now on (empty without the feature `testkit`).
     pub(crate) hooks: TestHooks,
-    /// The `file://` URL the window must hand to the system opener (Open PDF), taken once.
-    pub(crate) open_request: Option<String>,
+    /// The written file the window must hand to the system's file opener (Open PDF), taken once.
+    pub(crate) open_request: Option<std::path::PathBuf>,
 }
 
 /// The test hooks of the export jobs (feature `testkit`): a gate and a fault. Without the feature the struct is empty,

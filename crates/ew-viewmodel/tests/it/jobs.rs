@@ -435,9 +435,9 @@ fn the_log_popup_and_its_refusals() {
     s.shutdown();
 }
 
-/// A window shell hands Open PDF to the window as a `file://` URL of the written file.
+/// A window shell hands Open PDF to the window as the written file's path (FT-1689: never a `file://` URL).
 #[test]
-fn open_pdf_in_the_window_is_a_file_url_request() {
+fn open_pdf_in_the_window_is_a_request_of_the_written_file() {
     let tmp = Tmp::new("jb6-open");
     let mut s = small(&tmp, Mode::Gui);
     let target = tmp.0.join("a b.pdf");
@@ -451,9 +451,8 @@ fn open_pdf_in_the_window_is_a_file_url_request() {
         std::thread::sleep(std::time::Duration::from_millis(5));
     }
     done(&mut s, "jobs.open_result", json!({}));
-    let url = s.take_open_request().expect("an open request");
-    assert!(url.starts_with("file:///") || url.starts_with("file://"), "{url}");
-    assert!(url.ends_with("/a%20b.pdf"), "{url}");
+    let file = s.take_open_request().expect("an open request");
+    assert_eq!(file, std::path::absolute(&target).unwrap());
     done(&mut s, "notifications.run", json!({"entry": 1, "action": "open"}));
     assert!(s.take_open_request().is_some());
     s.shutdown();

@@ -340,6 +340,17 @@ impl Platform for RfdPlatform {
         open_in_browser(url)
     }
 
+    /// An exported file by its path, through the opener the print window's Open in PDF viewer uses
+    /// (`ew_print::Program::opener`: `explorer.exe` on Windows, `xdg-open` elsewhere), no shell.
+    fn open_file(&mut self, file: &Path) -> bool {
+        let opener = ew_print::Program::opener();
+        std::process::Command::new(&opener.path)
+            .args(&opener.leading)
+            .arg(file)
+            .spawn()
+            .is_ok()
+    }
+
     /// The print set goes through `ew-print`'s chain on a thread of its own: Print… through the
     /// system's chain (on Linux the portal, then `lp`, then the viewer; on Windows the Windows print dialog, then the
     /// viewer), Open in PDF viewer through the viewer alone.

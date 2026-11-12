@@ -154,6 +154,12 @@ pub trait Platform {
         false
     }
 
+    /// Opens a written file (an exported PDF or table) in the system's default application for its type, by its path;
+    /// `false` when it could not be opened.
+    fn open_file(&mut self, _file: &std::path::Path) -> bool {
+        false
+    }
+
     /// Prints a built print set: `request` holds the PDF, the title and
     /// whether Print… or Open in PDF viewer asked. The application binary prints with `ew-print` on a worker thread
     /// and answers later; `ctx` is the context to repaint when the end is there. The default refuses: printing is not
@@ -2009,8 +2015,8 @@ impl App {
 
     /// Open PDF: the written file in the system's viewer; a banner when it could not be opened.
     fn open_results(&mut self) {
-        while let Some(url) = self.shell.take_open_request() {
-            if !self.platform.open_url(&url) {
+        while let Some(file) = self.shell.take_open_request() {
+            if !self.platform.open_file(&file) {
                 self.shell.show_banner(strings::text(key!("open-failed")));
             }
         }
