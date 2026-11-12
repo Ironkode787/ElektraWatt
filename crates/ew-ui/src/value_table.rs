@@ -12,6 +12,9 @@
 //!
 //! **Accessibility.** A cell field is named "`<column>`, value set `<i>`"; the first column's "Value set, value
 //! set `<i>`"; the remove button "Remove value set `<name>`".
+//!
+//! **Given rows** ([`FormTable::fixed`], the Cable form's wires): the first column is text, not a field, no row is
+//! added or removed, a column's header is its name, and a cell field is named "`<column>`, `<first column>`".
 
 use egui::{RichText, TextEdit, Ui};
 use ew_viewmodel::key;
@@ -87,7 +90,7 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
     let t = components::tokens(ui);
     ui.add_space(t.space_4);
     ui.label(
-        RichText::new(strings::text(key!("form-value-sets")))
+        RichText::new(strings::text(table.heading_key))
             .font(theme::font(&t.type_body_strong))
             .color(t.text_primary.color32()),
     );
@@ -100,7 +103,11 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
         return;
     }
     let key_width = t.size_table_column;
-    let remove_width = t.size_control_inline + t.space_2;
+    let remove_width = if table.fixed {
+        0.0
+    } else {
+        t.size_control_inline + t.space_2
+    };
     let rest = ui.available_width() - key_width - remove_width;
     let width = column_width(rest, table.columns.len(), t.size_table_column_min);
     let total = key_width + width * table.columns.len() as f32 + remove_width;
@@ -117,10 +124,12 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
             let mut x = header.left();
             let labels = std::iter::once((strings::text(table.key_label).to_owned(), key_width)).chain(
                 table.columns.iter().map(|(name, ty)| {
-                    (
-                        strings::format(key!("macro-value-label"), &[name, &strings::var_type_word(ty)]),
-                        width,
-                    )
+                    let label = if ty.is_empty() {
+                        name.clone()
+                    } else {
+                        strings::format(key!("macro-value-label"), &[name, &strings::var_type_word(ty)])
+                    };
+                    (label, width)
                 }),
             );
             for (label, w) in labels {
@@ -148,25 +157,46 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                     egui::Layout::left_to_right(egui::Align::Center),
                     |ui| {
                         ui.set_min_size(size);
-                        let mut key = row.key.clone();
-                        let name = strings::format(
-                            key!("form-value-cell"),
-                            &[strings::text(table.key_label), &index],
-                        );
-                        if cell(ui, &t, key_width, &mut key, &name, "") {
-                            events.push(Event::FormTableCell(i, None, key));
+                        if table.fixed {
+                            let (rect, _) =
+                                ui.allocate_exact_size(egui::vec2(key_width, t.size_row), egui::Sense::hover());
+                            ui.painter().text(
+                                egui::pos2(rect.left() + t.space_4, rect.center().y),
+                                egui::Align2::LEFT_CENTER,
+                                &row.key,
+                                theme::font(&t.type_small),
+                                t.text_primary.color32(),
+                            );
+                        } else {
+                            let mut key = row.key.clone();
+                            let name = strings::format(
+                                key!("form-value-cell"),
+                                &[strings::text(table.key_label), &index],
+                            );
+                            if cell(ui, &t, key_width, &mut key, &name, "") {
+                                events.push(Event::FormTableCell(i, None, key));
+                            }
                         }
                         for (c, ((col, ty), value)) in table.columns.iter().zip(&row.cells).enumerate() {
                             let mut text = value.clone();
-                            let name = strings::format(key!("form-value-cell"), &[col, &index]);
-                            if cell(ui, &t, width, &mut text, &name, &strings::var_type_word(ty)) {
+                            let (name, hint) = if table.fixed {
+                                (strings::format(key!("form-table-cell"), &[col, &row.key]), String::new())
+                            } else {
+                                (
+                                    strings::format(key!("form-value-cell"), &[col, &index]),
+                                    strings::var_type_word(ty),
+                                )
+                            };
+                            if cell(ui, &t, width, &mut text, &name, &hint) {
                                 events.push(Event::FormTableCell(i, Some(c), text));
                             }
                         }
-                        ui.add_space(t.space_2);
-                        let remove = strings::format(key!("form-value-set-remove"), &[&row.key]);
-                        if components::icon_button(ui, IconId::x, &remove).clicked() {
-                            events.push(Event::FormTableRemove(i));
+                        if !table.fixed {
+                            ui.add_space(t.space_2);
+                            let remove = strings::format(key!("form-value-set-remove"), &[&row.key]);
+                            if components::icon_button(ui, IconId::x, &remove).clicked() {
+                                events.push(Event::FormTableRemove(i));
+                            }
                         }
                     },
                 );
@@ -186,6 +216,9 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
                 theme::stroke(1.0, t.table_frozen_edge),
             );
         });
+    if table.fixed {
+        return;
+    }
     ui.add_space(t.space_2);
     if components::button_with_icon(
         ui,

@@ -36,13 +36,15 @@ const VERSION: &str = "0.1.0";
 /// the dimensions were added, 0.4.0 since the valve gained its fluid section, 0.4.1 since the on/off switch
 /// moved to the manual-command category, class S, 0.5.0 since the generic cable EW-GEN-CBL-1 was added, 0.5.1 since
 /// the contactor is filed as a contactor ([`own_category`]), 0.6.0 since the three-pole MCB EW-GEN-MCB-3 and the
-/// 3/2 solenoid valve EW-GEN-VLV-2 were added and the supply's outputs became sources (unreleased, still 0.6.0).
+/// 3/2 solenoid valve EW-GEN-VLV-2 were added and the supply's outputs became sources, and the generic cable's cores
+/// state their cross-section (FT-1685: its cores printed the control circuit's 0.75 mm²) (unreleased, still 0.6.0).
 const LIBRARY_VERSION: &str = "0.6.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
 /// The dimensions. The valve's solenoid 14 leaves the pattern for its fluid section, a
-/// major change. The on/off switch on the manual-command FnDef, letter S. The contactor's own category).
+/// major change. The on/off switch on the manual-command FnDef, letter S. The contactor's own category. The cable's
+/// cores' cross-section).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.1"),
     ("EW-GEN-VLV-1", "0.2.0"),
@@ -58,6 +60,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-DO-1", "0.1.1"),
     ("EW-GEN-TRM-1", "0.1.1"),
     ("EW-GEN-TRM-2", "0.1.1"),
+    ("EW-GEN-CBL-1", "0.1.1"),
 ];
 
 /// The bus section of part `number`: the generic CPU's DP interface, the master by default; no
@@ -623,9 +626,9 @@ fn defs() -> Vec<Def> {
             plc: None,
             mech: None,
             sections: Some(json!({"cable_cores": [
-                {"core": "BN", "colour": ["BN"]},
-                {"core": "BU", "colour": ["BU"]},
-                {"core": "GNYE", "colour": ["GN", "YE"]},
+                {"core": "BN", "colour": ["BN"], "csa": "1.5"},
+                {"core": "BU", "colour": ["BU"], "csa": "1.5"},
+                {"core": "GNYE", "colour": ["GN", "YE"], "csa": "1.5"},
             ]})),
             unit: Some("m"),
         },
@@ -855,9 +858,9 @@ fn the_generic_cable_has_its_cores() {
     assert_eq!(
         cable["sections"]["cable_cores"],
         json!([
-            {"core": "BN", "colour": ["BN"]},
-            {"core": "BU", "colour": ["BU"]},
-            {"core": "GNYE", "colour": ["GN", "YE"]},
+            {"core": "BN", "colour": ["BN"], "csa": "1.5"},
+            {"core": "BU", "colour": ["BU"], "csa": "1.5"},
+            {"core": "GNYE", "colour": ["GN", "YE"], "csa": "1.5"},
         ])
     );
     let hits = Registry::starter_only().search(&PartQuery {

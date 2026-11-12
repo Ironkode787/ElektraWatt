@@ -16,13 +16,13 @@ use ew_ui::ew_viewmodel::shell::Dialog;
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 
-/// At the 1280 × 800 floor (doc 16a), where the Draw row shows the Layout group whole; below it the group folds into
-/// its menu.
+/// At 1440 × 900, where the Draw row shows the Layout group whole; at the 1280 × 800 floor (doc 16a) the group folds
+/// into its menu since Cable joined Connect (FT-1685).
 #[test]
 fn the_duct_button_arms_draw_duct_with_its_options_card() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "902");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1440.0, 900.0));
     dispatch(&mut h, "view.command_tab", json!({ "tab": "draw" }));
     settle(&mut h);
     assert!(

@@ -12,6 +12,10 @@
 //!   `fields.set_many`, one undo step). Its form offers the project's cables by tag, two cables with one tag told
 //!   apart by their part and position (`Session::cables`).
 //!
+//! - **Cable…** (`cable.from_wires`, FT-1685) is the one flow from the Draw tab: the selected wires become the cores
+//!   of a new cable, or of the cable one of them already belongs to, in one form (`Session::cable_form`, its tag, its
+//!   type as written, `3G1.5`, and the wires with their cores) and one apply (`Session::cable_apply`).
+//!
 //! In the window without its parameter each action opens its form; headless the parameter is required. A refusal stays
 //! under the fields, a success closes the form with a toast.
 
@@ -258,6 +262,221 @@ impl ShellModel {
             Outcome::Failed { message } => self.form_failed(CONNECT, message),
             other => other,
         }
+    }
+}
+
+/// The action of Cable….
+const FROM_WIRES: &str = "cable.from_wires";
+
+/// The rows' cores of Cable…'s table after its type changed to `type_text`: a core the new type has stays, the
+/// others take its free cores in order (`assign_cores`); a text that is no type yet changes nothing.
+pub(super) fn retype(session: Option<&ew_api::Session>, form: &mut super::FormDialog) {
+    let Some((cores, _)) = session.and_then(|s| {
+        let text = form.fields.iter().find(|f| f.name == "type")?.value.clone();
+        s.cable_type(&text)
+    }) else {
+        return;
+    };
+    let Some(table) = &mut form.table else {
+        return;
+    };
+    let rows: Vec<(Uuid, String)> = table
+        .rows
+        .iter()
+        .enumerate()
+        .map(|(i, r)| (Uuid::from_u128(i as u128), r.cells.first().cloned().unwrap_or_default()))
+        .collect();
+    for (row, (_, core)) in table.rows.iter_mut().zip(ew_api::window::assign_cores(&cores, &rows)) {
+        if let Some(cell) = row.cells.first_mut() {
+            *cell = core;
+        }
+    }
+}
+
+impl ShellModel {
+    /// A wire in words, by its ends as the page prints them (`-1K1:A1 → L1`); its ID without a page.
+    fn wire_words(&self, wire: Uuid) -> String {
+        let Some(project) = &self.project else {
+            return wire.to_string();
+        };
+        project
+            .session
+            .wire_page(wire)
+            .and_then(|p| self.page_rows().iter().find(|r| r.id == p))
+            .and_then(|r| project.session.connection_words(&r.folio, wire))
+            .map_or_else(|| wire.to_string(), |t| super::tools::rejected_words("", Some(&t)))
+    }
+
+    /// `cable.from_wires {tag?, type?, cores?}` (Draw ▸ Connect ▸ Cable…, FT-1685): the selected wires as the cores of
+    /// a cable, in one form. Without `type` the window opens the form: the cable's tag (the cable one of the wires
+    /// already belongs to, else the tag a new cable would take), its type (that cable's, else `<n>x<cross-section>`
+    /// of the first wire), and the wires with the core each gets, which the person can change. With `type` it applies:
+    /// a typed tag of another existing cable puts the wires in that cable; a tag other than the proposal is frozen.
+    /// `cores` is the form's table, or a text of cores in the wires' order (`BU BN`); absent, each wire keeps its core
+    /// or takes the next free one. A new cable is one undo step; an existing cable that gains cores is two. No wire
+    /// selected, a type, a core or a tag the form does not take: refused in words.
+    pub(crate) fn act_cable_from_wires(&mut self, p: &Map<String, Value>) -> Outcome {
+        let wires = self.selected_wires();
+        if wires.is_empty() {
+            return Outcome::refused(key!("reason-cores-no-wires"));
+        }
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let form = project.session.cable_form(&wires);
+        let proposed = match form.cable {
+            Some(_) => Some(form.tag.clone()),
+            None => self.strip_tag_example("W"),
+        };
+        let Some(type_text) = given(p, "type") else {
+            return match self.mode {
+                Mode::Headless => failed(key!("error-missing-param"), &["type"]),
+                Mode::Gui if self.in_form_of(FROM_WIRES) => {
+                    let message = self.missing_text("type");
+                    self.form_failed(FROM_WIRES, message)
+                }
+                Mode::Gui => {
+                    let text = |name, label_key, value: String| FormField {
+                        name,
+                        label_key,
+                        choices: &super::choices::NONE,
+                        options: Vec::new(),
+                        value,
+                    };
+                    let rows = form
+                        .rows
+                        .iter()
+                        .map(|(w, core)| super::FormRow {
+                            key: self.wire_words(*w),
+                            cells: vec![core.clone()],
+                        })
+                        .collect();
+                    let dialog = FormDialog {
+                        action: FROM_WIRES,
+                        title_key: key!("bar-cable"),
+                        ok_key: key!("dialog-apply"),
+                        fields: vec![
+                            text("tag", key!("form-cable-tag"), proposed.unwrap_or_default()),
+                            text("type", key!("form-cable-type"), form.type_text.clone()),
+                        ],
+                        error: None,
+                        table: Some(super::FormTable {
+                            name: "cores",
+                            heading_key: key!("form-cable-cores"),
+                            fixed: true,
+                            key_label: key!("form-cable-wire"),
+                            columns: vec![(strings::text(key!("form-cable-core")).to_owned(), String::new())],
+                            rows,
+                        }),
+                    };
+                    self.open_dialog(Dialog::Form(dialog))
+                }
+            };
+        };
+        // The cable: the one the wires belong to, else an existing one the typed tag names, else a new one.
+        let typed_tag = given(p, "tag");
+        let cables = project.session.cables();
+        let named = typed_tag
+            .as_ref()
+            .and_then(|t| cables.iter().find(|(_, tag, _)| tag == t).map(|(id, _, _)| *id));
+        let cable = form.cable.or(named);
+        let rows: Vec<(Uuid, String)> = if form.cable.is_none() && named.is_some() {
+            wires.iter().map(|w| (*w, String::new())).collect()
+        } else {
+            form.rows.clone()
+        };
+        // The cores given: the form's table by row, or a text in the wires' order.
+        let given_cores: Option<Vec<String>> = match p.get("cores") {
+            Some(Value::Array(table)) => Some(
+                table
+                    .iter()
+                    .map(|r| {
+                        r.get("values")
+                            .and_then(Value::as_object)
+                            .and_then(|v| v.values().next())
+                            .and_then(Value::as_str)
+                            .unwrap_or_default()
+                            .trim()
+                            .to_owned()
+                    })
+                    .collect(),
+            ),
+            Some(Value::String(s)) => Some(
+                s.split([',', ' '])
+                    .filter(|c| !c.is_empty())
+                    .map(str::to_owned)
+                    .collect(),
+            ),
+            _ => None,
+        };
+        let rows: Vec<(Uuid, String)> = match given_cores {
+            Some(cores) => rows
+                .iter()
+                .enumerate()
+                .map(|(i, (w, _))| (*w, cores.get(i).cloned().unwrap_or_default()))
+                .collect(),
+            None => {
+                let cores = project
+                    .session
+                    .cable_type(&type_text)
+                    .map(|(c, _)| c)
+                    .unwrap_or_default();
+                ew_api::window::assign_cores(&cores, &rows)
+            }
+        };
+        // A typed tag other than the cable's own, or the proposal, is frozen.
+        let current = match cable {
+            Some(c) => project.session.device_tag(c),
+            None => proposed.clone(),
+        };
+        let frozen = match typed_tag.filter(|t| Some(t) != current.as_ref() && named.is_none()) {
+            None => None,
+            Some(tag) => match project.session.parse_field_input("device", "tag.frozen", &tag) {
+                Ok(parsed) if !parsed.value.is_null() => Some(parsed.value),
+                _ => {
+                    let such_as = proposed.unwrap_or_else(|| "-W1".to_owned());
+                    let message = strings::format(key!("error-strip-tag"), &[&tag, &such_as]);
+                    return self.form_failed(FROM_WIRES, message);
+                }
+            },
+        };
+        let commands = match project.session.cable_apply(cable, frozen, &type_text, &rows) {
+            Ok(commands) => commands,
+            Err(refused) => {
+                let args: Vec<&str> = refused.args.iter().map(String::as_str).collect();
+                let message = strings::format(Key::run_time(refused.key), &args);
+                return self.form_failed(FROM_WIRES, message);
+            }
+        };
+        for cmd in &commands {
+            match self.commit_from_host(cmd) {
+                Outcome::Done => {}
+                Outcome::Failed { message } => return self.form_failed(FROM_WIRES, message),
+                other => return other,
+            }
+        }
+        // The cable as it reads after the step (a new one takes its page number from its first core).
+        let tag = self
+            .project
+            .as_ref()
+            .and_then(|p| {
+                let c = cable.or_else(|| {
+                    rows.iter()
+                        .find(|(_, c)| !c.is_empty())
+                        .and_then(|(w, _)| p.session.cable_of_wire(*w))
+                })?;
+                p.session.device_tag(c)
+            })
+            .unwrap_or_default();
+        let cored = rows.iter().filter(|(_, c)| !c.is_empty()).count();
+        self.notify(
+            strings::format(key!("toast-cable-wires"), &[&tag, &cored.to_string()]),
+            true,
+        );
+        if self.in_form_of(FROM_WIRES) {
+            self.dialog = None;
+        }
+        Outcome::Done
     }
 }
 

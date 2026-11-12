@@ -1043,6 +1043,19 @@ in its tag (`-W1`). A cable placed later takes its page's next free counter. `fi
 counter another unplaced cable holds, in words naming no page, and renumbering groups the cables by the same scope
 ([03](03-domain-model.md) §8.2's note).
 
+*As built (FT-1685).* **The Cable form.** Draw ▸ Connect ▸ Cable… (`cable.from_wires`, on the Draw tab's Connect group)
+makes the selected wires a cable's cores in one form: the cable's tag (the tag a new cable would take, else the cable
+one of the wires already belongs to), its type as a person writes it (`3G1.5`: three cores, the last green-yellow;
+`4x0.75`: no green-yellow; or a cable part's number) and the wires with the core each gets, which can be changed. A
+written type gives HD 308 S2's harmonised colours up to five cores (`2x` BN BU, `3x` BN BK GY, `4x` BU BN BK GY, `3G`
+BN BU GNYE, `4G` BN BK GY GNYE, `5G` BN BK GY BU GNYE) and numbered black cores beyond, each core with the written
+cross-section, so the wires print the core's values (level 6 of §4.1), not their potential's. Apply on a new cable is
+one `cable.create` whose conductors list their wires (one undo step). On a selection that holds a cable's wire the
+same form opens that cable: a wire added takes a free core, a core emptied takes the wire out, a changed type sets the
+cores' cross-section; that is one `fields.set_many`, and one `conductor.add` more when the cable gains cores. A typed
+tag of another existing cable puts the wires in that cable. New cable… and Connect cores… stay in the menu. A wire's
+Properties name its cable and core in its Kind row (`-1W1 BN`).
+
 ### 7.3 Pre-assembled cables
 
 The NEBU-G78W5-K-2-N-LE5 part declares a 7/8" socket on end B with a pin per core (BK 1, BU 2, GNYE 3, WH 4, BN 5,

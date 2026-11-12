@@ -594,7 +594,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:50 src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:42
+#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:49 src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:42
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -716,33 +716,28 @@ msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:30
 msgid ""
-"Choose **Draw ▸ Connect ▸ New cable…**. In the form, choose the cable part "
-"**EW-GEN-CBL-1**, the three-core cable of the starter set, and choose "
-"**Create**. The toast says \"Created cable -W1 with 3 cores\". The cable has "
-"the part's three cores. It is drawn on no page yet, so its tag has no page "
-"number."
-msgstr ""
-"Kies **Tekenen ▸ Verbinden ▸ Nieuwe kabel…**. Kies in het formulier het "
-"kabelartikel **EW-GEN-CBL-1**, de kabel met drie aders uit de startset, en "
-"kies **Maken**. De notificatie zegt \"Kabel -W1 gemaakt met 3 aders\". De "
-"kabel heeft de drie aders van het artikel. Hij staat nog op geen pagina, dus "
-"zijn kenmerk heeft geen paginanummer."
-
-#: src/tutorials/terminal-strip-and-cable.md:34
-msgid ""
 "Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. "
-"Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **\\-W1**, and "
-"choose **Connect**. The toast says \"Wires connected to the cores of -1W1: "
-"2\": the two field wires are now cores of the cable, and the cable takes its "
-"page number from its first core."
+"Choose **Draw ▸ Connect ▸ Cable…** (**Cable** on the Draw tab). The form "
+"proposes the tag -1W1 and lists the two wires with the core each gets. Type "
+"`3G1.5` as the **Type**, a three-core cable of 1.5 mm² whose last core is "
+"green-yellow: the first wire gets the core BN, the second BU. Choose "
+"**Apply**. The toast says \"Cable -1W1 now has these wires as its cores: "
+"2\": the cable is made with its three cores and the two field wires are its "
+"cores, in one step that one Undo takes back. The cable takes its page number "
+"from its first core, and the wires take the cores' 1.5 mm² and colours."
 msgstr ""
 "Klik op de velddraad van -1X1:1 en Shift-klik daarna op de velddraad van "
-"-1X1:2. Kies **Tekenen ▸ Verbinden ▸ Aders verbinden…**, kies de kabel "
-"**-W1** en kies **Verbinden**. De notificatie zegt \"Draden verbonden met de "
-"aders van -1W1: 2\": de twee velddraden zijn nu aders van de kabel, en de "
-"kabel krijgt zijn paginanummer van zijn eerste ader."
+"-1X1:2. Kies **Tekenen ▸ Verbinden ▸ Kabel…** (**Kabel** op het tabblad "
+"Tekenen). Het formulier stelt het kenmerk -1W1 voor en toont de twee draden "
+"met de ader die elk krijgt. Typ `3G1.5` als **Type**, een kabel met drie "
+"aders van 1,5 mm² waarvan de laatste ader groen-geel is: de eerste draad "
+"krijgt de ader BN, de tweede BU. Kies **Toepassen**. De notificatie zegt "
+"\"Kabel -1W1 heeft nu deze draden als aders: 2\": de kabel is gemaakt met "
+"zijn drie aders en de twee velddraden zijn zijn aders, in één stap die één "
+"keer Ongedaan maken terugneemt. De kabel krijgt zijn paginanummer van zijn "
+"eerste ader, en de draden krijgen de 1,5 mm² en de kleuren van de aders."
 
-#: src/tutorials/terminal-strip-and-cable.md:38
+#: src/tutorials/terminal-strip-and-cable.md:37
 msgid ""
 "Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In "
 "the Properties pane, set **Length** to `5 m`. The Cables navigator lists the "
@@ -752,7 +747,7 @@ msgstr ""
 "in het paneel Eigenschappen **Lengte** op `5 m`. De navigator Kabels toont "
 "de kabel -1W1 met zijn drie aders: BN, BU en GNYE."
 
-#: src/tutorials/terminal-strip-and-cable.md:41
+#: src/tutorials/terminal-strip-and-cable.md:40
 msgid ""
 "Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**. The Terminal "
 "strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with "
@@ -764,7 +759,7 @@ msgstr ""
 "24VAC, met -1E2:X1 aan zijde 1 en de velddraad naar -1E3:X1 via -1W1 BN aan "
 "zijde 2; klem 2 op 0VAC, met -1E2:X2 en -1E3:X2 via -1W1 BU."
 
-#: src/tutorials/terminal-strip-and-cable.md:44
+#: src/tutorials/terminal-strip-and-cable.md:43
 msgid ""
 "Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 8 "
 "warnings, 2 infos\". The warnings are the devices that have no part yet and "
@@ -777,7 +772,7 @@ msgstr ""
 "van de transformator; de info's zeggen dat nog geen rapport de klemmenstrook "
 "of de kabel dekt."
 
-#: src/tutorials/terminal-strip-and-cable.md:47 src/tutorials/reports-and-pdf.md:35 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:39
+#: src/tutorials/terminal-strip-and-cable.md:46 src/tutorials/reports-and-pdf.md:35 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:39
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -785,7 +780,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd."
 
-#: src/tutorials/terminal-strip-and-cable.md:52
+#: src/tutorials/terminal-strip-and-cable.md:51
 msgid ""
 "A terminal strip is a device of its own, and each terminal you place from "
 "the strip's list is one of its terminals, with a cabinet side and a field "
@@ -795,18 +790,24 @@ msgstr ""
 "van de klemmenstrook plaatst, is een van haar klemmen, met een kastzijde en "
 "een veldzijde."
 
-#: src/tutorials/terminal-strip-and-cable.md:54
+#: src/tutorials/terminal-strip-and-cable.md:53
 msgid ""
-"A cable is created from its part, with the part's cores; **Draw ▸ Connect ▸ "
-"Connect cores…** makes the selected wires its cores, in order. A cable "
-"without a drawn cable line takes its page number from its first core."
+"**Draw ▸ Connect ▸ Cable…** makes the selected wires a cable's cores in one "
+"form: the cable's type as you write it (`3G1.5`, `4x0.75`, or a cable part's "
+"number) gives the cores, and each wire's core can be changed before Apply. "
+"The same command on a cable's wire opens that cable, to add a wire or take "
+"one out. A cable without a drawn cable line takes its page number from its "
+"first core."
 msgstr ""
-"Een kabel wordt uit zijn artikel gemaakt, met de aders van het artikel; "
-"**Tekenen ▸ Verbinden ▸ Aders verbinden…** maakt de geselecteerde draden op "
-"volgorde tot zijn aders. Een kabel zonder getekende kabellijn krijgt zijn "
-"paginanummer van zijn eerste ader."
+"**Tekenen ▸ Verbinden ▸ Kabel…** maakt de geselecteerde draden in één "
+"formulier tot de aders van een kabel: het type van de kabel zoals u het "
+"schrijft (`3G1.5`, `4x0.75`, of het artikelnummer van een kabel) geeft de "
+"aders, en de ader van elke draad kan vóór Toepassen worden gewijzigd. "
+"Dezelfde opdracht op de draad van een kabel opent die kabel, om een draad "
+"toe te voegen of eruit te halen. Een kabel zonder getekende kabellijn krijgt "
+"zijn paginanummer van zijn eerste ader."
 
-#: src/tutorials/terminal-strip-and-cable.md:56
+#: src/tutorials/terminal-strip-and-cable.md:57
 msgid ""
 "The strip editor and the Cables navigator show what passes through each "
 "terminal and each core, from the drawing."
@@ -814,7 +815,7 @@ msgstr ""
 "De klemmenstrookeditor en de navigator Kabels tonen, uit de tekening, wat er "
 "door elke klem en elke ader gaat."
 
-#: src/tutorials/terminal-strip-and-cable.md:57
+#: src/tutorials/terminal-strip-and-cable.md:58
 msgid ""
 "The reports that list them, the terminal diagram and the cable list, are the "
 "subject of [Reports and PDF](reports-and-pdf.md)."
@@ -3334,8 +3335,16 @@ msgstr ""
 
 #: src/reference/window/tools.md:192
 msgid ""
-"Places a wire marker, the label that prints a wire's number or text on the "
-"wire. Open it with Draw ▸ Annotate ▸ Wire marker."
+"Places a wire marker, the label that prints the cross-section and colours of "
+"the wires it marks. Open it with **Marker** on the Draw tab or Shift+W. Drag "
+"a line across the wires, type the cross-section and the colours in the "
+"tool's fields if they are to change, and press Enter. A colour is a code in "
+"any case (`BK`, `bk`), two codes of one wire (`GN+YE` or `GNYE`), a company "
+"code of the project's colour profile, or a colour's name from that profile; "
+"one colour is every marked wire's, and a list (`BK, BU`) gives each wire its "
+"own in the order the line crosses them. A colour the project does not know "
+"is refused with the codes it knows. The marker prints a short line across "
+"the wires and its text beyond the line's end, clear of the wires."
 msgstr ""
 
 #: src/reference/window/tools.md:195
@@ -5040,3 +5049,39 @@ msgid ""
 "model, so it cannot go stale. **In the window:** **Page ▸ Go ▸ Follow "
 "cross-reference**."
 msgstr ""
+
+#~ msgid ""
+#~ "Choose **Draw ▸ Connect ▸ New cable…**. In the form, choose the cable part "
+#~ "**EW-GEN-CBL-1**, the three-core cable of the starter set, and choose "
+#~ "**Create**. The toast says \"Created cable -W1 with 3 cores\". The cable has "
+#~ "the part's three cores. It is drawn on no page yet, so its tag has no page "
+#~ "number."
+#~ msgstr ""
+#~ "Kies **Tekenen ▸ Verbinden ▸ Nieuwe kabel…**. Kies in het formulier het "
+#~ "kabelartikel **EW-GEN-CBL-1**, de kabel met drie aders uit de startset, en "
+#~ "kies **Maken**. De notificatie zegt \"Kabel -W1 gemaakt met 3 aders\". De "
+#~ "kabel heeft de drie aders van het artikel. Hij staat nog op geen pagina, dus "
+#~ "zijn kenmerk heeft geen paginanummer."
+
+#~ msgid ""
+#~ "Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. "
+#~ "Choose **Draw ▸ Connect ▸ Connect cores…**, choose the cable **\\-W1**, and "
+#~ "choose **Connect**. The toast says \"Wires connected to the cores of -1W1: "
+#~ "2\": the two field wires are now cores of the cable, and the cable takes its "
+#~ "page number from its first core."
+#~ msgstr ""
+#~ "Klik op de velddraad van -1X1:1 en Shift-klik daarna op de velddraad van "
+#~ "-1X1:2. Kies **Tekenen ▸ Verbinden ▸ Aders verbinden…**, kies de kabel "
+#~ "**-W1** en kies **Verbinden**. De notificatie zegt \"Draden verbonden met de "
+#~ "aders van -1W1: 2\": de twee velddraden zijn nu aders van de kabel, en de "
+#~ "kabel krijgt zijn paginanummer van zijn eerste ader."
+
+#~ msgid ""
+#~ "A cable is created from its part, with the part's cores; **Draw ▸ Connect ▸ "
+#~ "Connect cores…** makes the selected wires its cores, in order. A cable "
+#~ "without a drawn cable line takes its page number from its first core."
+#~ msgstr ""
+#~ "Een kabel wordt uit zijn artikel gemaakt, met de aders van het artikel; "
+#~ "**Tekenen ▸ Verbinden ▸ Aders verbinden…** maakt de geselecteerde draden op "
+#~ "volgorde tot zijn aders. Een kabel zonder getekende kabellijn krijgt zijn "
+#~ "paginanummer van zijn eerste ader."

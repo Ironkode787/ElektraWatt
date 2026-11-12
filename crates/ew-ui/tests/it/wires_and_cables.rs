@@ -165,8 +165,18 @@ fn mark_across(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) -> (i6
     let mid_y = (ys.iter().min().unwrap() + ys.iter().max().unwrap()) / 2;
     let xs: Vec<i64> = t.connections.iter().flat_map(|c| c.polyline.iter().map(|p| p.0)).collect();
     let (x0, x1) = (xs.iter().min().unwrap() - 4_000_000, xs.iter().max().unwrap() + 4_000_000);
-    d.input(&click(d.find("Marker").unwrap()));
+    // Marker on the Draw tab, or Wire marker in its Annotate group's menu where the window folds the group.
+    let marker = match d.find("Marker") {
+        Some(at) => at,
+        None => {
+            d.input(&click(d.find("Annotate").expect("the Annotate group")));
+            d.settle();
+            starting_with(d, "Wire marker")
+        }
+    };
+    d.input(&click(marker));
     d.settle();
+    assert_eq!(d.shell_mut().tool().name(), "marker");
     let from = page_pixel(d, pixel, (x0, mid_y));
     let to = page_pixel(d, pixel, (x1, mid_y));
     d.input(&Input::Drag {
@@ -254,6 +264,111 @@ fn ft1688_a_wire_of_an_l1_potential_takes_the_phases_cross_section() {
     let text = marker.and_then(|m| m.text.clone()).unwrap_or_default();
     // The L1 wire 1.5 mm² BK, the other wire (no type) the control circuit's 0.75 mm².
     assert!(text.starts_with("1.5/0.75 BK"), "{text:?}");
+    d.shell_mut().shutdown();
+}
+
+/// Selects the page's two wires by the pointer: a click on the first, a Shift+click on the second.
+fn select_both(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) {
+    for (i, mods) in [(0, Modifiers::NONE), (1, Modifiers::SHIFT)] {
+        let at = on_wire(d, pixel, i);
+        d.input(&Input::Hover { at });
+        d.input(&Input::Click {
+            at,
+            button: PointerButton::Primary,
+            mods,
+        });
+        d.settle();
+    }
+}
+
+/// The core cell of the Cable form's row `i`.
+fn core_cell(d: &mut Driver, i: usize) -> String {
+    match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.table.as_ref().unwrap().rows[i].cells[0].clone(),
+        other => panic!("not the Cable form: {other:?}"),
+    }
+}
+
+/// FT-1685: two wires selected, Cable on the Draw tab, the type typed as a person writes it (3G1.5), the second
+/// wire's core changed in the form, Apply: one cable with the type's three cores, the two wires its cores as the form
+/// said, in one undo step, and the marker over the wires prints the cores' cross-section and colours, not 0.75.
+/// Cable on a selection that holds a cable's wire opens the same form on that cable.
+#[test]
+fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let pixel = two_wires(&mut d);
+    select_both(&mut d, &pixel);
+    let steps = d.shell_mut().recorded_commands().len();
+    d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
+    d.settle();
+    // The form's first field, the tag, has the keys; Tab goes to the type, whose text is selected.
+    d.input(&key("tab"));
+    d.input(&typed("3G1.5"));
+    d.settle();
+    // The type's cores: the first wire BN, the second BU; the second takes GNYE instead.
+    assert_eq!((core_cell(&mut d, 0), core_cell(&mut d, 1)), ("BN".to_owned(), "BU".to_owned()));
+    let cell = starting_with(&d, "Core, ");
+    let second = d
+        .labels()
+        .into_iter()
+        .filter(|(l, _)| l.starts_with("Core, "))
+        .nth(1)
+        .map_or(cell, |(_, at)| at);
+    d.input(&click(second));
+    d.input(&key("ctrl+a"));
+    d.input(&typed("GNYE"));
+    d.settle();
+    d.input(&click(d.find("Apply").unwrap()));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none(), "the form is closed: {}", banner(&mut d));
+    let added = &d.shell_mut().recorded_commands()[steps..];
+    assert_eq!(added.len(), 1, "one step");
+    assert_eq!(added[0].cmd, "cable.create");
+    let conductors = added[0].params["conductors"].as_array().unwrap().clone();
+    let t = tables(&mut d);
+    let wire = |i: usize| json!([t.connections[i].id.to_string()]);
+    assert_eq!(
+        conductors.iter().map(|c| (c["core"].clone(), c["csa"].clone(), c["wires"].clone())).collect::<Vec<_>>(),
+        [
+            (json!("BN"), json!("1.5"), wire(0)),
+            (json!("BU"), json!("1.5"), json!([])),
+            (json!("GNYE"), json!("1.5"), wire(1)),
+        ]
+    );
+    // Properties of the first wire, clicked: its cable and core, and their cross-section and colour.
+    d.input(&key("escape"));
+    d.settle();
+    let at = on_wire(&mut d, &pixel, 0);
+    d.input(&Input::Hover { at });
+    d.input(&click(at));
+    d.settle();
+    {
+        use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
+        let sheet = d.shell_mut().properties().sheet().expect("the wire's properties").clone();
+        let text = |key: &str| match find_row(&sheet, key).map(|(_, r)| r.value.clone()) {
+            Some(RowValue::One { text, .. }) => text,
+            other => panic!("{key}: {other:?}"),
+        };
+        assert_eq!(text("connection/kind"), "-1W1 BN");
+    }
+    // The marker across both wires: the cores' 1.5 mm² and colours.
+    d.input(&key("escape"));
+    d.settle();
+    let to = mark_across(&mut d, &pixel);
+    d.input(&Input::Hover { at: to });
+    d.input(&key("enter"));
+    d.settle();
+    let t = tables(&mut d);
+    let marker = t.items.iter().find(|i| i.kind == "wire_marker");
+    assert_eq!(marker.and_then(|m| m.text.as_deref()), Some("1.5 BN GNYE"));
+    // The same form on a selection holding a cable's wire: the cable's tag, type and cores.
+    d.input(&key("escape"));
+    d.settle();
+    select_both(&mut d, &pixel);
+    d.input(&click(d.find("Cable").unwrap()));
+    d.settle();
+    assert_eq!((core_cell(&mut d, 0), core_cell(&mut d, 1)), ("BN".to_owned(), "GNYE".to_owned()));
     d.shell_mut().shutdown();
 }
 

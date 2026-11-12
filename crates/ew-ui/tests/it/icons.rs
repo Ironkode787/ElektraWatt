@@ -162,6 +162,8 @@ fn no_icon_key_serves_two_concepts() {
         ("sitemap", &["pane structure", "structure.new"]),
         // The Terminal strips navigator and the command that places a terminal.
         ("ew-terminal-strip", &["pane strips", "tool.place_terminal"]),
+        // The Cables navigator and the command that makes the selected wires a cable.
+        ("ew-cable", &["pane cables", "cable.from_wires"]),
         // A QElectroTech project imported, and the same file imported again into its import.
         ("file-import", &["file.import_qet", "file.reimport_qet"]),
     ];

@@ -1872,6 +1872,8 @@ refusal-terminal-move-splits-group = the move would split bridge group { $p0 } (
 refusal-conductor-not-cable = the device is not a cable; pick a device with the cable aspect
 refusal-conductor-add-none = give at least one conductor to add
 refusal-conductor-core-used = core { $p0 } is already used in the cable; choose another
+refusal-conductor-wire-kind = only a wire or a cable's core can become a core; a bridge or a bus line cannot
+refusal-conductor-wire-twice = a wire can be one core only; it is listed for two
 refusal-terminal-seq-overflow = the sequence numbers would pass 4294967295; insert at a lower position
 refusal-terminal-designation-twice = designation { $p0 } is given twice; choose another
 refusal-terminal-move-twice = terminal { $p0 } is listed twice
@@ -3870,6 +3872,7 @@ form-value-set-remove = Remove value set { $p0 }
 form-value-set-new = Set { $p0 }
 form-value-sets-none = No variables yet: Make variable on a property row adds a column.
 form-value-cell = { $p0 }, value set { $p1 }
+form-table-cell = { $p0 }, { $p1 }
 error-value-set-name = Value set { $p0 } needs a name.
 macro-failed-value = The macro cannot be inserted with the value typed for { $p0 }.
 error-value-set = Value set “{ $p0 }”: { $p1 }
@@ -5137,6 +5140,20 @@ toast-cable-new = Created cable { $p0 } with { $p1 }.
 toast-cable-new-cores = { $p0 } cores
 toast-cable-new-cores-one = 1 core
 toast-cores-connected = Wires connected to the cores of { $p1 }: { $p0 }.
+
+# FT-1685: Draw ▸ Connect ▸ Cable…: the selected wires as a cable's cores, in one form.
+action-cable-from-wires = Cable…
+bar-cable = Cable
+form-cable-tag = Tag
+form-cable-type = Type
+form-cable-type-note = As 3G1.5 (the last core green-yellow) or 4x0.75, or a cable part's number
+form-cable-cores = Cores
+form-cable-wire = Wire
+form-cable-core = Core
+error-cable-type = "{ $p0 }" is not a cable type. Write it as 3G1.5 or 4x0.75, or give a cable part's number.
+error-cable-core-unknown = The cable has no core { $p0 }: its cores are { $p1 }.
+error-cable-core-twice = Core { $p0 } is given to two wires: give each wire its own core.
+toast-cable-wires = Cable { $p0 } now has these wires as its cores: { $p1 }.
 
 # FT-1372 (ID-1362): Output ▸ Reports ▸ Report block….
 action-report-block-new = Report block…

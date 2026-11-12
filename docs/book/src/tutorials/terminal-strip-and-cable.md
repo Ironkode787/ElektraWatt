@@ -27,32 +27,33 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
    of -1E2 to the bottom of -1X1:2. Then the field side: from the top of -1X1:1 to X1 of -1E3, and from the top of
    -1X1:2 to X2 of -1E3. Choose **Draw ▸ Select**.
    The terminal -1X1:1 carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine.
-6. Choose **Draw ▸ Connect ▸ New cable…**. In the form, choose the cable part **EW-GEN-CBL-1**, the three-core cable
-   of the starter set, and choose **Create**.
-   The toast says "Created cable -W1 with 3 cores". The cable has the part's three cores. It is drawn on no page yet,
-   so its tag has no page number.
-7. Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. Choose **Draw ▸ Connect ▸ Connect
-   cores…**, choose the cable **-W1**, and choose **Connect**.
-   The toast says "Wires connected to the cores of -1W1: 2": the two field wires are now cores of the cable, and the
-   cable takes its page number from its first core.
-8. Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In the Properties pane, set **Length** to
+6. Click the field wire of -1X1:1, then Shift+click the field wire of -1X1:2. Choose **Draw ▸ Connect ▸ Cable…**
+   (**Cable** on the Draw tab). The form proposes the tag -1W1 and lists the two wires with the core each gets. Type
+   `3G1.5` as the **Type**, a three-core cable of 1.5 mm² whose last core is green-yellow: the first wire gets the
+   core BN, the second BU. Choose **Apply**.
+   The toast says "Cable -1W1 now has these wires as its cores: 2": the cable is made with its three cores and the
+   two field wires are its cores, in one step that one Undo takes back. The cable takes its page number from its
+   first core, and the wires take the cores' 1.5 mm² and colours.
+7. Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In the Properties pane, set **Length** to
    `5 m`.
    The Cables navigator lists the cable -1W1 with its three cores: BN, BU and GNYE.
-9. Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**.
+8. Click the terminal -1X1:1 and choose **Edit ▸ Strip editor**.
    The Terminal strips navigator shows the strip -1X1 as a table: terminal 1 on 24VAC, with -1E2:X1 on side 1 and
    the field wire to -1E3:X1 via -1W1 BN on side 2; terminal 2 on 0VAC, with -1E2:X2 and -1E3:X2 via -1W1 BU.
-10. Choose **Check ▸ Run checks** (`F7`).
-    The toast says "Check: 0 errors, 8 warnings, 2 infos". The warnings are the devices that have no part yet and the
-    transformer's open primary pins; the infos say that no report covers the strip or the cable yet.
-11. Choose **File ▸ Save** (`Ctrl+S`).
+9. Choose **Check ▸ Run checks** (`F7`).
+   The toast says "Check: 0 errors, 8 warnings, 2 infos". The warnings are the devices that have no part yet and the
+   transformer's open primary pins; the infos say that no report covers the strip or the cable yet.
+10. Choose **File ▸ Save** (`Ctrl+S`).
     The title bar no longer marks the project as changed.
 
 ## What you learnt
 
 - A terminal strip is a device of its own, and each terminal you place from the strip's list is one of its terminals,
   with a cabinet side and a field side.
-- A cable is created from its part, with the part's cores; **Draw ▸ Connect ▸ Connect cores…** makes the selected
-  wires its cores, in order. A cable without a drawn cable line takes its page number from its first core.
+- **Draw ▸ Connect ▸ Cable…** makes the selected wires a cable's cores in one form: the cable's type as you write it
+  (`3G1.5`, `4x0.75`, or a cable part's number) gives the cores, and each wire's core can be changed before Apply.
+  The same command on a cable's wire opens that cable, to add a wire or take one out. A cable without a drawn cable
+  line takes its page number from its first core.
 - The strip editor and the Cables navigator show what passes through each terminal and each core, from the drawing.
 - The reports that list them, the terminal diagram and the cable list, are the subject of
   [Reports and PDF](reports-and-pdf.md).

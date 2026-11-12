@@ -268,7 +268,7 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     // Every form that opens here from no parameters (New page…, New section…, the renumber forms, New cable…): the
     // source's forms are walked, so a new plain form needs no line in this test.
     check_plain_forms(&mut h, &listed, &mut checked);
-    // Connect cores… with a wire of the page selected.
+    // Connect cores… and Cable… with a wire of the page selected.
     goto(&mut h, "102");
     let wire = h
         .state()
@@ -282,6 +282,8 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         .to_string();
     dispatch(&mut h, "select.set", json!({ "ids": [wire] }));
     checked.insert(check_form(&mut h, "cable.connect_cores", json!({})));
+    // Cable… with the same wire selected.
+    checked.insert(check_form(&mut h, "cable.from_wires", json!({})));
     goto(&mut h, "902");
     for action in ["layout.enclosure_new", "layout.auto_fill_rail"] {
         checked.insert(check_form(&mut h, action, json!({})));

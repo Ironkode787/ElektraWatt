@@ -7,6 +7,8 @@
 
 // The edit-cable table's gestures (§7).
 mod cable_edit;
+// The Cable form: the selected wires as a cable's cores.
+mod cable_form;
 pub(crate) mod clipboard;
 mod find;
 // The history panel's rows (§4.2).
@@ -16,6 +18,7 @@ mod plc_bind;
 // Wire colours as a person types them.
 mod typed;
 
+pub use cable_form::{CableForm, CableRefused, TypeCore, assign_cores};
 pub use clipboard::{
     CopiedFragment, CopyError, FRAGMENT_HEADER, FragmentError, ParsedFragment, parse_fragment,
     parse_fragment_with,

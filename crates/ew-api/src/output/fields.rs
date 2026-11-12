@@ -1138,6 +1138,9 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
         FieldType::Group(_) => value.as_str().map(str::to_owned).unwrap_or_default(),
         FieldType::Json => length_source_text(value)
             .or_else(|| scale_text(value))
+            // A connection that is a cable's core by its cable and core (`-1W1 BN`, FT-1685), as the strip editor
+            // names it.
+            .or_else(|| cx.record_label(value.get("core")?.as_str()?))
             .unwrap_or_else(|| compact_json(value)),
     }
 }

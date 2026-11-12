@@ -271,6 +271,7 @@ fn build(seed: u64) -> (Dsl, Ids) {
         csa: None,
         shield,
         pair: None,
+        wires: vec![],
     };
     let r = d.run(&CreateCable {
         letter: ident("W"),
@@ -281,6 +282,7 @@ fn build(seed: u64) -> (Dsl, Ids) {
         cable: Cable::default(),
         conductors: vec![spec("A", false), spec("B", false), spec("SH", true)],
         copies: vec![],
+        frozen_tag: None,
     });
     let cable: Id<Device> = primary(&r);
     let cond: [Id<Conductor>; 3] = created::<Conductor>(&r, Kind::Conductor)
