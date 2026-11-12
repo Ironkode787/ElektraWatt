@@ -811,6 +811,8 @@ fn the_how_to_and_explanation_pages_name_the_windows_menu_paths() {
     for rel in [
         "how-to/choose-parts.md",
         "how-to/upgrade-a-project.md",
+        // FT-1687: the panel layout's how-to.
+        "how-to/panel-layout.md",
         "explanation/eplan-and-ew.md",
         "explanation/qet-and-ew.md",
         // M25-p3#9: the symbol editor's reference names the window's menu paths.

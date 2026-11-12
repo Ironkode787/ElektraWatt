@@ -12,7 +12,7 @@ use crate::support;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::app::App;
-use ew_ui::ew_viewmodel::shell::Dialog;
+use ew_ui::ew_viewmodel::shell::{Dialog, Mode, ShellModel};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 
@@ -88,6 +88,76 @@ fn the_duct_card_after_the_rail_card_keeps_its_fields_width() {
         assert!(*width >= 48.0, "{label} is {width} px wide");
     }
     assert_eq!(fields[1].1, "60");
+}
+
+/// FT-1687: a panel layout page from nothing, through the window. On a new project's schematic page the Draw tab's
+/// Rail says how to make a panel page; New page… with the type Panel layout makes one, where Rail says how to show an
+/// enclosure; Project ▸ Enclosure…'s Create then shows the new enclosure's plate on the page and Rail is enabled.
+#[test]
+fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
+    let tmp = Tmp::new();
+    let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
+    let mut h = support::harness_with(shell, support::Scripted::default(), None);
+    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.new",
+        json!({"dir": tmp.0.join("p.ew"), "template": "builtin"}),
+    );
+    dispatch(&mut h, "view.command_tab", json!({ "tab": "draw" }));
+    settle(&mut h);
+    let rail_reason = |h: &Harness<'_, App>| -> String {
+        let view = h.state().shell().describe();
+        view.lines()
+            .find(|l| l.trim_start().starts_with("item tool.rail_draw "))
+            .unwrap_or_else(|| panic!("the Rail item in {view}"))
+            .to_owned()
+    };
+    assert!(
+        rail_reason(&h).ends_with("disabled: Open a panel layout page; make one with New page… and the type Panel layout"),
+        "{}",
+        rail_reason(&h)
+    );
+    // Page ▸ New page…, the type Panel layout, Create.
+    support::open_menu(&mut h, &["Page"]);
+    support::menu_node(&h, "New page…").click();
+    settle(&mut h);
+    h.state_mut().shell_mut().set_form_field("type", "panel_layout");
+    settle(&mut h);
+    h.get_by_label("Create").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        rail_reason(&h).ends_with("disabled: Show an enclosure on this page first: Enclosure… on the Project tab, or the page's Surface in Properties"),
+        "{}",
+        rail_reason(&h)
+    );
+    // A location for the enclosure, then Project ▸ Enclosure… and its Create with the proposed location and part.
+    dispatch(
+        &mut h,
+        "structure.new",
+        json!({"kind": "location", "designation": "K1"}),
+    );
+    support::open_menu(&mut h, &["Project", "Setup"]);
+    support::menu_node(&h, "Enclosure…").click();
+    settle(&mut h);
+    h.get_by_label("Create").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().panel_tables().is_some(),
+        "the page shows the enclosure's plate"
+    );
+    assert!(
+        rail_reason(&h).ends_with("\"Rail\" enabled"),
+        "{}",
+        rail_reason(&h)
+    );
+    assert!(
+        !support::bar_button(&h, "Rail").accesskit_node().is_disabled(),
+        "the Rail button"
+    );
 }
 
 #[test]

@@ -504,13 +504,14 @@ pub(crate) fn panel_page(m: &ShellModel) -> Result<(), Key<'static>> {
 }
 
 /// A panel-layout page with a surface view is on show in a project that can be changed (D10: Draw ▸ Layout is
-/// disabled elsewhere with "Open a panel layout page").
+/// disabled elsewhere with "Open a panel layout page; make one with New page…", and on a panel page that shows no
+/// enclosure yet with how to show one, FT-1687).
 pub(crate) fn panel_view(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_page(m)?;
     if m.panel_tables().is_some() {
         Ok(())
     } else {
-        Err(key!("reason-no-panel-page"))
+        Err(key!("reason-no-panel-view"))
     }
 }
 

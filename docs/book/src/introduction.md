@@ -32,8 +32,8 @@ The guide follows the [Diátaxis](https://diataxis.fr/) structure: four kinds of
   [A terminal strip and a cable](tutorials/terminal-strip-and-cable.md) and
   [Reports and PDF](tutorials/reports-and-pdf.md). If you come from QElectroTech,
   [Importing a QElectroTech project](tutorials/import-qet.md) brings a project of yours over.
-- **A task at hand:** the how-to guides, among them [Choose parts](how-to/choose-parts.md) and
-  [Upgrade a project](how-to/upgrade-a-project.md).
+- **A task at hand:** the how-to guides, among them [Choose parts](how-to/choose-parts.md),
+  [Draw a panel layout](how-to/panel-layout.md) and [Upgrade a project](how-to/upgrade-a-project.md).
 - **A fact to look up:** the [rule reference](reference/rules/index.md), with a page per check rule; the window's
   [tools](reference/window/tools.md), [dialogs](reference/window/dialogs.md) and [panels](reference/window/panels.md);
   and the [release notes](reference/release-notes/index.md) of every release.

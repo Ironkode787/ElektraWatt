@@ -222,7 +222,8 @@ devices navigator, which lists the devices of the location that have no place ye
 
 ## Rail
 
-On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail.
+On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail. The page shows an enclosure first: Project ▸
+Setup ▸ Enclosure… puts the new enclosure's plate on it ([Draw a panel layout](../../how-to/panel-layout.md)).
 
 ## Duct
 
