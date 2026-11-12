@@ -66,6 +66,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1588 `ew-derive`: Wire markers are no obstacles for the router or measure (d), since they move with their wire; place them clear of other wires and texts after routing (ID-1502 (3)).
 - FT-1589 `ew-derive`: A layout measure for a route over the frame bands; the router already blocks them (WP-S2.19 §5.1 rule 5).
 - FT-1590 `ew-scene, ew-derive, ew-api`: The 1 nm family. A symbol's connection point is its position plus a rounded offset, so a point can sit 1 nm off a grid line: the exact measures miss an overlap 1 nm off, a straight route between two such points leans by 1 nm (the router turns the lean into a jog), and a macro inserted at 90° keeps a 1 nm jog. Terminal-strip points already follow an exact grid rule, written out in three places (`cp_map` in ew-scene, `rep_cp_end` in ew-derive, `editing.rs` in ew-api): give symbol connection points the same rule in one shared place. It moves 90 points of Golden A on 8 folios and leaves 33 stored route ends 1 nm off, to be rewritten in the same change; then take the 1 nm tolerances out of the testkit's diagonal check and the macro test.
+- FT-1597 `golden`: On Golden A's folio 106 the wires to the modules' lower pins (4, 5, FE) wrap round the module bodies, because doc 20 §15 puts the interruption points of the top and bottom pins' feeds in one cell (B1, E1); give the lower-pin feeds cells of their own (below the modules) and route them without the wrap.
 
 ## Importers
 
