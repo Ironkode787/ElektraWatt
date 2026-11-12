@@ -46,23 +46,10 @@ symbol editor and the QET import work without anything that stops the work. Its 
 
 ### The window: feedback and dead ends
 
-- FT-1668 `ew-api`: Properties labels made by machine from field names read "Pos", "Orient", "Ptype"; give them words in both languages (found while every row got its explanation, FT-1648).
+- FT-1671 `ew-viewmodel`: Choose part shows a part's tier as "(system)", a debug name; give the tiers words.
+- FT-1672 `ew-viewmodel`: The PLC panel lists no cards once a project has two or more CPUs.
 - FT-1669 `ew-scene`: A connection point marked not used shows no mark on the page (doc 06 defines none); decide the mark and draw it.
-- FT-926 `ew-viewmodel, ew-ui`: **Medium.** A PLC card gets its addresses only once a CPU is placed, and nothing says so: the PLC panel reads "No PLC cards yet" with the card drawn and selected, and the card's properties offer no address field; say in the panel and on the card that a card needs a CPU, and how to add one (FT-823's area) (play-test rv-vis-5, cycle 41).
-- FT-927 `ew-viewmodel, ew-ui`: The command search finds nothing for "PLC" (only fuzzy hits such as "Properties of selection"), and the PLC panel sits behind an unlabelled chip icon on the left rail (play-test rv-vis-5, cycle 41).
-- FT-928 `ew-viewmodel, ew-ui`: **Medium.** A placement that places nothing gives no message: Device, typing "CPU", Enter and two corner clicks left nothing on the sheet and no reason (with FT-896) (play-test rv-vis-5, cycle 41).
-- FT-929 `ew-ui`: The Tool options panel lies over the sheet and hides the terminals where the user wants to click (play-test rv-vis-5, cycle 41).
-- FT-981 `ew-ui`: The tool options card covers the sheet's column header and top-left corner at both sizes (doc 16a §5.2) (W42b, cycle 42).
-- FT-614 `WP-S2.03`: Symbols are tiny at the default fit zoom (69 % on a new page in the 1536 × 994 frame): review the opening zoom of a page with few symbols.
-- FT-824 `ew-ui`: Opening a page from the Pages list: a click or a double-click on a row does nothing; only Enter or Page ▸ Go to opens it (rv-vis-3b t0003, t0060).
-- FT-826 `ew-ui, ew-viewmodel`: Rv-vis-3's first-attempt frictions: picking a PLC card switches to the Black box tool, which asks for corners (t0002); the "19 Pending" badge is never explained (t0004); the reasons on the grey rows of the Insert symbol list are cut (t0009). Known, not new: no parts-list command under Output (FT-717); toasts stack in the …
-- FT-430 `WP-S2.05`: The Properties pane's Form row (and every reference-valued row the window shows) prints the referenced record's label, the symbol form's name or key, instead of its UUID; the window keeps real UUIDs in its widgets (ID-630), but a UUID is no value for a user; a kittest on a representation's sheet.
-- FT-819 `ew-api (part_offers.rs), ew-viewmodel`: The Choose part dialog's detail line prints the template's FnDef keys ("functions ew.fn.mcb-1pn", or an item UUID when the FnDef does not resolve): `Session::part_offer_functions` returns `meta.key` by design, so this is not FT-800's cause (a word fallback for a FnDef not in the project), though one word source could serve …
-- FT-1585 `ew-ui`: A device selected only by its tag (the palette's tag hits, `select.set tag:`) draws no outline on the canvas although the status bar counts it.
-- FT-1586 `ew-viewmodel`: Ctrl+A on the canvas (select every item of the page) is not built; doc 16 §4.6 says so.
-- FT-1587 `ew-viewmodel`: The page's Properties badge read "1 Pending" while the Messages panel said "pending 8" and the status bar "8 pending on this page" (FIXR1's frame 06, cause unverified: perhaps only findings whose subject is the page).
-- FT-1546 `ew-viewmodel`: The terminal designation counter keeps a session memory (`crates/ew-viewmodel/src/tools/place.rs:786`) and can propose a designation already in use after it fills a gap (the command refuses it in words); read the strip again after each commit, as ID-1462 does for interruption points.
-- FT-1550 `ew-commands, ew-api`: `page.create` and the built-in template give a new page the QET 10 px grid, against FR-PAG-031, DEC-045 and doc 06 (new pages use the native grid); build FR-PAG-031's setting "grid for new pages", default native, and move the defaults with it (FT-458's ruling, ID-650).
+- FT-1550 `ew-commands, ew-api`: `page.create` and the built-in template give a new page the QET 10 px grid, against FR-PAG-031, DEC-045 and doc 06 (new pages use the native grid); build FR-PAG-031's setting "grid for new pages", default native, and move the defaults with it (FT-458's ruling, ID-650). It is a command default: 95 test files rely on it and a changed default changes how an existing command log replays, so it needs a decision under ADR-0011 first.
 
 ### Texts, and Dutch
 
