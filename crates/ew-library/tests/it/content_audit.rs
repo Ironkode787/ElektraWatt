@@ -225,8 +225,8 @@ fn audit(root: &Path) -> Vec<String> {
 }
 
 /// A fixture root: the repository's licence map and `content/README.md`, then the given files.
-fn fixture(stem: &str, files: &[(&str, &str)]) -> PathBuf {
-    let root = ew_testdir::fresh_dir(stem);
+fn fixture(stem: &str, files: &[(&str, &str)]) -> ew_testdir::Tmp {
+    let root = ew_testdir::Tmp::new(stem);
     for (path, text) in [
         (
             "ci/licence-map.toml",
@@ -240,7 +240,7 @@ fn fixture(stem: &str, files: &[(&str, &str)]) -> PathBuf {
     .into_iter()
     .chain(files.iter().map(|(p, t)| (*p, (*t).to_owned())))
     {
-        let p = root.join(path);
+        let p = root.dir().join(path);
         std::fs::create_dir_all(p.parent().unwrap()).unwrap();
         std::fs::write(p, text).unwrap();
     }
@@ -299,7 +299,7 @@ fn the_audit_names_each_failure_whole() {
         ],
     );
     assert_eq!(
-        audit(&root),
+        audit(root.dir()),
         [
             "content/forms/fx.form.json: fx.form: the licence CC0-1.0 is not allowed here (CC-BY-SA-4.0)",
             "content/libraries/ew-starter-parts.ewlib/manufacturers.1.jsonl: Fixture: no source",
@@ -318,7 +318,7 @@ fn the_audit_names_each_failure_whole() {
         )],
     );
     assert_eq!(
-        audit(&root),
+        audit(root.dir()),
         ["content/symbols/fx.json: FX-3: the licence CC0-1.0 is not allowed here (CC-BY-SA-4.0)"]
     );
     // A designation pattern takes the expander's reason.
@@ -330,7 +330,7 @@ fn the_audit_names_each_failure_whole() {
         )],
     );
     assert_eq!(
-        audit(&root),
+        audit(root.dir()),
         [
             "content/libraries/ew-starter-parts.ewlib/parts/06.1.jsonl: FX-4: pin_of = \"X2:{n+1\" is no map expression: \
              a `{` is not closed"

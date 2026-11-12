@@ -388,7 +388,8 @@ fn labels_follow_the_tag_and_no_layout_file_changes() {
     let before = layout_files();
     assert_eq!(before.len(), 1, "one layout file");
     let mut options = StoreOptions::new("golden-layout-lq5");
-    options.state_dir = Some(ew_testdir::fresh_dir("ew-golden-layout-lq5-state"));
+    let state = ew_testdir::Tmp::new("ew-golden-layout-lq5-state");
+    options.state_dir = Some(state.0.clone());
     let (mut s, _) = Session::open(&dir, options, SessionOptions::default(), Recovery::Discard)
         .expect("the fixture copy opens");
     let t55 = placement("T55");

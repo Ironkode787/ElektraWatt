@@ -189,7 +189,8 @@ fn off_grid_is_retained_and_blocks_save_while_fine_graphics_are_valid() {
 #[test]
 fn authored_symbol_closure_is_carried_when_placing_a_part_without_a_template() {
     use ew_api::{AnyCommand, NewProjectKind, ProjectTemplate, Session, SessionOptions};
-    let (_dir, mut registry, library) = library("symbol-part-closure");
+    let (dir, mut registry, library) = library("symbol-part-closure");
+    let _dir = ew_testdir::Tmp(dir);
     let mut draft = block();
     draft.publish(&mut registry, library).unwrap();
     let docs = draft.documents(library).unwrap();

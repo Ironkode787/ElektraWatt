@@ -267,7 +267,11 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
     let dir = ew_testdir::fresh_dir("ew-panel-lp1");
     copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
     let mut options = StoreOptions::new("panel-lp1");
-    options.state_dir = Some(ew_testdir::fresh_dir("ew-panel-lp1-state"));
+    let (state, state_2) = (
+        ew_testdir::Tmp::new("ew-panel-lp1-state"),
+        ew_testdir::Tmp::new("ew-panel-lp1-state-2"),
+    );
+    options.state_dir = Some(state.0.clone());
     let (mut s, _) = Session::open(
         &dir,
         options.clone(),
@@ -308,7 +312,7 @@ fn the_surface_view_round_trips_and_is_refused_elsewhere() {
     );
     s.save().expect("the copy saves");
     drop(s);
-    options.state_dir = Some(ew_testdir::fresh_dir("ew-panel-lp1-state-2"));
+    options.state_dir = Some(state_2.0.clone());
     let (mut s, _) = Session::open(&dir, options, SessionOptions::default(), Recovery::Discard)
         .expect("the saved copy opens");
     assert_eq!(views_on(&s.query(), page("902")), views, "the view reads back");
@@ -836,7 +840,11 @@ fn the_title_block_reads_the_scale_and_a_new_scale_writes_no_layout_record() {
 /// the suffix nor the scale.
 #[test]
 fn a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one() {
-    let dir = ew_testdir::fresh_dir("ew-panel-scale-0");
+    let (tmp, state) = (
+        ew_testdir::Tmp::new("ew-panel-scale-0"),
+        ew_testdir::Tmp::new("ew-panel-scale-0-state"),
+    );
+    let dir = tmp.0.clone();
     copy_dir(&golden_common::repo().join("golden/J-E-2416.ew"), &dir);
     let pages = dir.join("pages");
     let mut edited = 0;
@@ -851,7 +859,7 @@ fn a_file_with_a_scale_of_one_to_zero_opens_and_draws_one_to_one() {
     }
     assert_eq!(edited, 1, "902's line is the one with a scale");
     let mut options = StoreOptions::new("panel-scale-0");
-    options.state_dir = Some(ew_testdir::fresh_dir("ew-panel-scale-0-state"));
+    options.state_dir = Some(state.0.clone());
     let (mut s, _) = Session::open(&dir, options, SessionOptions::default(), Recovery::Discard)
         .expect("the edited copy opens");
     let surface = |s: &Session| -> Vec<Rect> {

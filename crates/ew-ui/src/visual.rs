@@ -1024,9 +1024,15 @@ impl Driver {
         };
         self.frame(vec![Self::mods_event(mods), moved, press]);
         let release = self.clock_s();
-        // The modifiers are let go in a frame after the release, as a hand lets go of Shift after the
-        // click: released in the release's frame, a widget that reads the click (on release) read no modifier, so a
-        // Shift+click or Ctrl+click in a table marked nothing.
+        self.release_frames(pos, button, mods);
+        self.last_click_s = Some(release);
+    }
+
+    /// The button let go at `pos`, of a click or a drag. Held modifiers are let go in a frame after the release, as
+    /// a hand lets go of Shift after the click: released in the release's frame, a widget that reads the click or
+    /// the drop (on release) read no modifier, so a Shift+click or Ctrl+click in a table marked nothing and a
+    /// modified drag was seen unmodified.
+    fn release_frames(&mut self, pos: Pos2, button: PointerButton, mods: Modifiers) {
         let mut up = vec![Event::PointerButton {
             pos,
             button,
@@ -1040,7 +1046,6 @@ impl Driver {
         if mods != Modifiers::NONE {
             self.frame(vec![Self::mods_event(Modifiers::NONE)]);
         }
-        self.last_click_s = Some(release);
     }
 
     /// The frame clock: one [`FRAME_S`] per frame, plus the pauses.
@@ -1114,15 +1119,7 @@ impl Driver {
                             self.frame(vec![ev]);
                         }
                         let end = self.pointer.unwrap_or(start);
-                        self.frame(vec![
-                            Event::PointerButton {
-                                pos: end,
-                                button: *button,
-                                pressed: false,
-                                modifiers: *mods,
-                            },
-                            Self::mods_event(Modifiers::NONE),
-                        ]);
+                        self.release_frames(end, *button, *mods);
                     }
                 }
             }

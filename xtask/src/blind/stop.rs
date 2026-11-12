@@ -435,6 +435,11 @@ pub fn stop(root: &Path, run: &Run, backend: &mut dyn Backend, reason: &str) -> 
     {
         super::run::write_atomic(&drafter_run.path("checker.md"), &text)?;
     }
+    // The run's own copies of the product served the run and its epilogue; nothing reads them after, and they are
+    // most of a run's folder (about 270 MB in a debug build).
+    for name in ["elektrawatt", "ew"] {
+        let _ = std::fs::remove_file(run.product_exe(name));
+    }
     golden?;
     Ok(format!(
         "run `{}` stopped; the report is {}\n",

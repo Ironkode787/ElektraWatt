@@ -662,6 +662,10 @@ pub struct ShellModel {
     wire_colours: wire_colours::WireColourState,
     /// The cloud environment, the `ew` executable, the merge driver's status, a held change's banner.
     collab: external::CollabState,
+    /// The settings directory of [`ShellModel::for_tests`], removed when the shell goes. The last field: the shell's
+    /// files are closed before it.
+    #[cfg(test)]
+    test_dir: Option<ew_testdir::Tmp>,
 }
 
 /// One `dispatch` in the dispatch log: the action as given, the outcome's word (`done`,
@@ -1077,6 +1081,8 @@ impl ShellModel {
             potential_at: None,
             wire_colours: wire_colours::WireColourState::default(),
             collab: external::CollabState::default(),
+            #[cfg(test)]
+            test_dir: None,
         };
         model.load_active_workspace();
         model
@@ -1116,11 +1122,14 @@ impl ShellModel {
         }
     }
 
-    /// A headless shell with settings in a fresh temporary directory (unit tests of this crate).
+    /// A headless shell with settings in a fresh temporary directory, which goes with the shell (unit tests of this
+    /// crate).
     #[cfg(test)]
     pub(crate) fn for_tests() -> ShellModel {
-        let dir = fresh_test_dir("ew-shell-test");
-        ShellModel::new(Mode::Headless, ShellConfig::in_dir(&dir, "0.0.0-test"))
+        let dir = ew_testdir::Tmp::new("ew-shell-test");
+        let mut shell = ShellModel::new(Mode::Headless, ShellConfig::in_dir(dir.dir(), "0.0.0-test"));
+        shell.test_dir = Some(dir);
+        shell
     }
 
     // -----------------------------------------------------------------------------------------------------------

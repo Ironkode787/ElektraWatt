@@ -74,8 +74,6 @@ symbol editor and the QET import work without anything that stops the work. Its 
 ### Tests
 
 - FT-847 `ew-testkit (acceptance runner), Golden A`: `golden/J-E-2416/expected/acceptance_headless.md` pins totals of growing sets ("3469 keys of 84 memoised families", "181 files a save writes", "644 commands"), against CONTRIBUTING.md's Tests rule: every new family, file or builder command re-blesses it …
-- FT-888 `ew-testdir, ew-viewmodel and other tests`: Tests leak their temporary directories into the plain temp directory (thousands of `ew-shell-test-*`, other `ew-*` and `.tmp*` entries seen on 2026-10-31), which a virus scanner then scans; every test temp directory is removed on drop, or lives under the test …
-- FT-1584 `ew-ui`: The visual harness's drag still lets go of its modifiers in the release frame, as its click did before ID-1501; a modified drag is seen unmodified.
 - FT-1591 `ew-testkit`: The fuzz `device.place` arm counts Connections +0 although a random drop onto a wire splits it (normaliser 7).
 - FT-1596 `ew-ui`: FT-1091's test (a connection point on a link) is `#[ignore]`d because no folio of Golden A has a connection point on a link after its routing; give the test a staged page of its own and run it again; then take its name out of the deep run's command in CONTRIBUTING.md.
 - FT-1599 `tests`: Tests such as `a_view_change…` pin page points to Golden A's layout and move whenever its layout does; give them a fixture of their own that the router's layout passes do not touch.
