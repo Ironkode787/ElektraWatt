@@ -34,18 +34,19 @@ const VERSION: &str = "0.1.0";
 /// was added, 0.2.0 since the generic CPU EW-GEN-CPU-1 was added, 0.2.1 since it gained its DP port (a
 /// library refuses other content under a published version, doc 05 §13.1), 0.3.0 since the layout parts and
 /// the dimensions were added, 0.4.0 since the valve gained its fluid section, 0.4.1 since the on/off switch
-/// moved to the manual-command category, class S, 0.5.0 since the generic cable EW-GEN-CBL-1 was added.
-const LIBRARY_VERSION: &str = "0.5.0";
+/// moved to the manual-command category, class S, 0.5.0 since the generic cable EW-GEN-CBL-1 was added, 0.5.1 since
+/// the contactor is filed as a contactor ([`own_category`]).
+const LIBRARY_VERSION: &str = "0.5.1";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
 /// The dimensions. The valve's solenoid 14 leaves the pattern for its fluid section, a
-/// major change. The on/off switch on the manual-command FnDef, letter S).
+/// major change. The on/off switch on the manual-command FnDef, letter S. The contactor's own category).
 const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-SEL-1", "0.1.1"),
     ("EW-GEN-VLV-1", "0.2.0"),
     ("EW-GEN-RLY-1", "0.1.2"),
-    ("EW-GEN-CON-1", "0.1.2"),
+    ("EW-GEN-CON-1", "0.1.3"),
     ("EW-GEN-CPU-1", "0.1.2"),
     ("EW-GEN-MCB-1", "0.1.1"),
     ("EW-GEN-MCB-2", "0.1.1"),
@@ -64,6 +65,13 @@ const BUMPED: &[(&str, &str)] = &[
 fn bus_section(number: &str) -> Option<Value> {
     (number == "EW-GEN-CPU-1")
         .then(|| json!({"ports": [{"interface": "DP", "bus": "profibus_dp", "role": "master"}]}))
+}
+
+/// The category of part `number` where it is not its main FnDef's. The contactor's main function is its coil, whose
+/// FnDef is filed under Relay; the part switches a load circuit, so it is filed under SwitchingPower, which IEC
+/// 81346-2 letters Q (QA in the 2019 classes; FT-1667). No other starter part differs from its main FnDef.
+fn own_category(number: &str) -> Option<Value> {
+    (number == "EW-GEN-CON-1").then(|| json!(["SwitchingPower", "Contactor", "3P"]))
 }
 
 /// The version of part `number`.
@@ -646,10 +654,12 @@ fn parts() -> Vec<LibDocument> {
                     .find(|t| t.1)
                     .map(|t| t.0)
                     .unwrap_or_else(|| panic!("{}: no main template", d.number));
-                v["category"] = match LibDocument::from_json(starter::item(main).unwrap().json).unwrap() {
-                    LibDocument::Fndef(c) => serde_json::to_value(&c.item.category).unwrap(),
-                    _ => unreachable!(),
-                };
+                v["category"] = own_category(d.number).unwrap_or_else(|| {
+                    match LibDocument::from_json(starter::item(main).unwrap().json).unwrap() {
+                        LibDocument::Fndef(c) => serde_json::to_value(&c.item.category).unwrap(),
+                        _ => unreachable!(),
+                    }
+                });
                 v["function_template"] = json!(
                     d.template
                         .iter()
@@ -1030,7 +1040,7 @@ fn the_dimensioned_parts_read_back_from_the_shipped_files() {
         ("EW-GEN-FUS-1", "0.1.1", 18000000, 85000000, 60000000),
         ("EW-GEN-SW-1", "0.1.2", 18000000, 85000000, 70000000),
         ("EW-GEN-RLY-1", "0.1.2", 27000000, 80000000, 70000000),
-        ("EW-GEN-CON-1", "0.1.2", 45000000, 85000000, 80000000),
+        ("EW-GEN-CON-1", "0.1.3", 45000000, 85000000, 80000000),
         ("EW-GEN-PSU-1", "0.1.1", 60000000, 90000000, 110000000),
         ("EW-GEN-CPU-1", "0.1.2", 100000000, 100000000, 75000000),
         ("EW-GEN-DI-1", "0.1.1", 25000000, 100000000, 75000000),
@@ -1101,10 +1111,9 @@ fn the_compiled_in_registry_resolves_a_part_with_its_closure() {
 
 /// The generic CPU is a station without I/O ranges on a black box with the supply CPs L+ and M, a new
 /// item at 0.1.0 in the library's minor version 0.2.0 (0.1.1 in 0.2.1 with its DP port; 0.1.2 in 0.3.0 with
-/// its dimensions; unchanged in 0.4.0, 0.4.1 and 0.5.0); the cards are modules of 8 channels each.
+/// its dimensions; unchanged since); the cards are modules of 8 channels each.
 #[test]
 fn the_generic_cpu_is_a_station_without_io() {
-    assert_eq!(LIBRARY_VERSION, "0.5.0");
     let part = |number: &str| {
         parts()
             .into_iter()

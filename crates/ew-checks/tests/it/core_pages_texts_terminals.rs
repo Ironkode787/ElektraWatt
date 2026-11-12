@@ -459,7 +459,8 @@ fn rds002_reports_a_separator_in_a_structure_code() {
     assert!(findings_of(&designation_fx("K", Some("JE206")).build(), "EW-RDS-002").is_empty());
 }
 
-/// A device `-<letter>1` (ID 0x101) whose main function's definition has the category `category`.
+/// A device `-<letter>1` (ID 0x111, beside the page P2's 0x101) whose main function's definition has the category
+/// `category`.
 fn letter_fx(letter: &str, category: &str) -> Fx {
     let mut fx = Fx::base();
     fx.fndef_with(
@@ -469,8 +470,8 @@ fn letter_fx(letter: &str, category: &str) -> Fx {
         &json!([]),
         &json!({"category": [category, "Generic", "Plain"]}),
     );
-    fx.device(0x101, letter, Some(1));
-    fx.push(json!({"$k": "function", "id": us(0x1101), "device": us(0x101), "def": us(0x520)}));
+    fx.device(0x111, letter, Some(1));
+    fx.push(json!({"$k": "function", "id": us(0x1101), "device": us(0x111), "def": us(0x520)}));
     fx.push(json!({
         "$k": "representation", "id": us(0x11101), "functions": [us(0x1101)], "page": us(P1),
         "symbol": us(0x521), "pos": [0, 0],
@@ -497,6 +498,26 @@ fn rds003_reports_a_letter_against_the_function_category() {
     );
     assert!(findings_of(&letter_fx("B", "SensingTemperature").build(), "EW-RDS-003").is_empty());
     assert!(findings_of(&letter_fx("U", "Assembly").build(), "EW-RDS-003").is_empty());
+}
+
+/// EW-RDS-003 judges a device by its part's category where the part has one, as the device browser files and letters
+/// it (FT-1667): a contactor's main function is its coil, of category Relay, but the part is SwitchingPower, letter Q.
+#[test]
+fn rds003_reads_the_parts_category_before_the_functions() {
+    let contactor = |letter: &str| {
+        let mut fx = letter_fx(letter, "Relay");
+        fx.part(
+            0x7100,
+            "EW-GEN-CON-1",
+            &json!({"category": ["SwitchingPower", "Contactor", "3P"]}),
+        );
+        fx.with_parts(0x111, &[0x7100]);
+        fx.build()
+    };
+    assert!(findings_of(&contactor("Q"), "EW-RDS-003").is_empty());
+    let f = findings_of(&contactor("K"), "EW-RDS-003");
+    assert_eq!(f.len(), 1, "{f:#?}");
+    assert!(f[0].message.contains("suggests Q"), "{}", f[0].message);
 }
 
 /// EW-RDS-007: a letter code with I or O is a warning; an ordinary letter code is not.

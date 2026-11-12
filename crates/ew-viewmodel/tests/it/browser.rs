@@ -87,3 +87,25 @@ fn a_part_is_one_row_that_opens_to_its_functions_and_places_its_main_function() 
     assert_eq!(s.tool().name(), "place");
     s.shutdown();
 }
+
+/// FT-1667: the starter contactor is under Contactors with the letter Q (IEC 81346-2), not under Relays with K.
+#[test]
+fn the_starter_contactor_is_under_contactors_with_the_letter_q() {
+    let tmp = Tmp::new("browser-contactor");
+    let mut s = tmp.shell_in(Mode::Headless, true, "101");
+    done(&mut s, "tool.place_part", json!({}));
+    done(&mut s, "picker.category", json!({"to": "SwitchingPower"}));
+    let p = s.picker().expect("the browser");
+    let contactor = p
+        .rows
+        .iter()
+        .find_map(|r| match r {
+            PickerRow::Part(i) if p.catalogue.parts[*i].part_number == "EW-GEN-CON-1" => {
+                Some(&p.catalogue.parts[*i])
+            }
+            _ => None,
+        })
+        .expect("the contactor under Contactors");
+    assert_eq!(contactor.letter.as_deref(), Some("Q"));
+    s.shutdown();
+}

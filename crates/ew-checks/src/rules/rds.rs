@@ -348,7 +348,7 @@ pub const LETTER_AGAINST_FUNCTION: RuleMeta = RuleMeta {
 pub const FROZEN_SEVERITY: Severity = Severity::Warning;
 
 /// EW-RDS-003: a device whose letter code (`TagSpec.letter`) is neither the letter nor an accepted alternative of its
-/// main function's category in the project's identifier set (`IdentifierSet::check_letter`), with the set's letter as
+/// category (its part's where the part has one, else its main function's) in the project's identifier set (`IdentifierSet::check_letter`), with the set's letter as
 /// the suggestion (FR-CHK-026, STD RD-03; D-03, EF-18). A frozen tag reports at [`FROZEN_SEVERITY`]. Left out: a
 /// terminal, a device without a main function, a main function of category `Assembly` (the generic black-box and
 /// overview definitions name no function; Golden A's -102F2, -102G1 and the CPX modules) and a category the set does
@@ -379,7 +379,13 @@ impl Rule for LetterAgainstFunction {
         let Some(def) = q.functions().get(f).and_then(|f| q.fndefs().get(f.def)) else {
             return Vec::new();
         };
-        let (category, group, _) = &def.item.category;
+        // The part's category where it has one, as the device browser files and letters it: a contactor's main
+        // function is its coil (Relay), its part switches power (FT-1667).
+        let part = ew_derive::main_part(q, device);
+        let (category, group, _) = part
+            .as_ref()
+            .and_then(|p| p.item.category.as_ref())
+            .unwrap_or(&def.item.category);
         // The generic `Assembly/BlackBox` and `Assembly/Overview` definitions say nothing about what the device does.
         if category.as_str() == "Assembly" {
             return Vec::new();
