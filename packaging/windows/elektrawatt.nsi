@@ -10,7 +10,8 @@
 ;   %LOCALAPPDATA%\Programs\ElektraWatt; `/S` installs silently, `/D=<folder>` (last on the command line) chooses it.
 ; - Modern UI pages: the folder, the progress, the finish page with NSIS's "Run ElektraWatt" ("ElektraWatt starten").
 ;   English and Dutch, chosen by the user's Windows language; every text is NSIS's own translation but the shortcut's
-;   name, "ElektraWatt". The setup and the shortcut show Windows' default icon (the executable has none yet, FP-4).
+;   name, "ElektraWatt". The setup, its uninstaller and the uninstall entry show the application icon
+;   (assets/icons/app/elektrawatt.ico, the menu button's mark, FT-1710); the shortcut shows the executable's, the same.
 ; - It installs D3's tree, the uninstaller `uninstall.exe`, a Start-menu shortcut for the current user, and the
 ;   uninstall entry HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\ElektraWatt; nothing under HKLM.
 ; - Upgrade: a setup that finds the entry proposes its folder, runs the old uninstaller silently in its folder and
@@ -49,6 +50,8 @@ InstallDirRegKey HKCU "${UNINSTALL_KEY}" "InstallLocation"
 !include "LogicLib.nsh"
 !include "FileFunc.nsh"
 
+!define MUI_ICON "${__FILEDIR__}\..\..\assets\icons\app\elektrawatt.ico"
+!define MUI_UNICON "${__FILEDIR__}\..\..\assets\icons\app\elektrawatt.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\elektrawatt.exe"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -118,6 +121,7 @@ Section "ElektraWatt"
   ${GetSize} "$INSTDIR" "/S=0K" $2 $3 $4
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayName" "ElektraWatt"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayVersion" "${VERSION}"
+  WriteRegStr HKCU "${UNINSTALL_KEY}" "DisplayIcon" "$INSTDIR\elektrawatt.exe"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "Publisher" "The ElektraWatt contributors"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "${UNINSTALL_KEY}" "UninstallString" '"$INSTDIR\uninstall.exe"'
