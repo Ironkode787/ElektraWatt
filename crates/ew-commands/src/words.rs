@@ -55,7 +55,8 @@ pub(crate) fn function(tx: &TxBuilder<'_>, id: ew_ids::Id<Function>) -> TextArg 
         )
 }
 
-/// A connection point by its device's tag and its printed designation (`-201U3-Q1:2`): the designation
+/// A connection point by its device's tag (an interruption point's by its name) and its printed designation
+/// (`-201U3-Q1:2`): the designation
 /// `function_cps` derives on the transaction's base model, else the FnDef CP's, else the index.
 pub(crate) fn cp(tx: &TxBuilder<'_>, f: ew_ids::Id<Function>, idx: u16) -> Text {
     let q = Q::new(tx.base_model());
@@ -72,7 +73,7 @@ pub(crate) fn cp(tx: &TxBuilder<'_>, f: ew_ids::Id<Function>, idx: u16) -> Text 
             Some(cp.designation.as_str().to_owned())
         })
         .unwrap_or_else(|| idx.to_string());
-    text!("refusal-words-cp", function(tx, f), designation)
+    text!("refusal-words-cp", interruption_point(tx, f), designation)
 }
 
 /// A channel as "channel 3 of -201U3" (its number and its module's tag), or "a channel that is not in the project".

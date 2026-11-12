@@ -709,17 +709,15 @@ impl Command for UpdateLibraryCopies {
             }
             let target = cp_mapping(&old_cps, &new_cps, &explicit);
             for f in affected_functions(tx, held) {
-                for (endpoint, designation, to) in
-                    function_moves(tx, f, held, new, &old_cps, &new_cps, &target)
-                {
+                for (endpoint, _, to) in function_moves(tx, f, held, new, &old_cps, &new_cps, &target) {
                     match to {
                         None => {
+                            // The pin by its printed designation, an interruption point's by its name (FT-1556).
                             for what in attached(tx, f, endpoint) {
                                 blocked.push(
                                     text!(
                                         "refusal-library-update-blocked-pin",
-                                        crate::words::function(tx, f),
-                                        designation.to_string(),
+                                        crate::words::cp(tx, f, endpoint),
                                         what
                                     )
                                     .into(),

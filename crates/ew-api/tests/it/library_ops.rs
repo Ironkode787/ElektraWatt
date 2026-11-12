@@ -653,17 +653,19 @@ fn a_symbol_update_is_minor_with_a_moved_anchor_and_refused_without_a_connected_
         "a wire on page 103",
         "a wire on page 103",
     ];
-    let attached: Vec<String> = wires
-        .iter()
-        .map(|w| format!("a function without a device pin fn_cp 0: {w}"))
-        .collect();
-    assert_eq!(
-        reason,
-        &format!(
-            "the update leaves connected CPs without a CP; map them in `cp_maps`: {}",
-            attached.join("; ")
-        )
-    );
+    // Each pin by its interruption point's name and printed designation, never by a raw member (FT-1556).
+    let list = reason
+        .strip_prefix("the update leaves connected CPs without a CP; map them in `cp_maps`: ")
+        .unwrap_or_else(|| panic!("{reason}"));
+    let pieces: Vec<&str> = list.split("; ").collect();
+    assert_eq!(pieces.len(), wires.len(), "{reason}");
+    for (piece, wire) in pieces.iter().zip(wires) {
+        assert!(
+            piece.starts_with("interruption point ") && piece.ends_with(&format!(": {wire}")),
+            "{piece}"
+        );
+        assert!(!piece.contains("fn_cp") && !piece.contains("without a device"), "{piece}");
+    }
 }
 
 /// EM-7 (doc 07 §4.5): a declared patch that removes a CP is classified major, whatever its version says.
