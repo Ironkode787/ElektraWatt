@@ -452,7 +452,7 @@ fn tutorial_2_a_terminal_strip_and_a_cable_runs_as_its_page_says() {
     let [connected, describe] = <[String; 2]>::try_from(describes(&transcript)).unwrap();
     assert_eq!(
         lines_of(&connected, &["toast"]),
-        ["toast \"Cable -1W1 now has these wires as its cores: 2.\" undo"]
+        ["toast \"Cable -1W1 made from 2 wires.\" undo"]
     );
     assert_eq!(
         lines_of(

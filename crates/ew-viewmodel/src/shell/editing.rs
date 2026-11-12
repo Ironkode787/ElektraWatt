@@ -452,11 +452,11 @@ impl ShellModel {
     /// the starter symbol and every FnDef the part's template needs are
     /// embedded in one host commit before the tool arms; an FnDef neither the project nor the starter library holds
     /// fails the pick by name and arms nothing.
-    /// The tag a new strip with letter `letter` would take from its first terminal placed on the page on show:
-    /// the strip's numbering format (`Session::strip_format`) with the lowest counter no device of that letter prints
-    /// on the page (FR-NUM-007 fills gaps). `None` off a schematic page or on a folio that is not a whole number, where
+    /// The tag a new strip (`aspect` `strip`) or cable (`cable`) with letter `letter` would take from its first terminal
+    /// or core on the page on show: its numbering format (`Session::numbering_format`) with the lowest counter no
+    /// device of that letter prints on the page (FR-NUM-007 fills gaps). `None` off a schematic page or on a folio that is not a whole number, where
     /// the scheme's `{page}` is not the folio as written.
-    pub(super) fn strip_tag_example(&self, letter: &str) -> Option<String> {
+    pub(super) fn tag_example(&self, aspect: &str, letter: &str) -> Option<String> {
         let row = self.page_rows().get(self.page_index())?;
         if !matches!(row.kind.as_str(), "multi_line" | "single_line")
             || row.folio.is_empty()
@@ -465,10 +465,10 @@ impl ShellModel {
             return None;
         }
         let session = &self.project.as_ref()?.session;
-        // The format the strip's scheme gives it (`-101X1` under `{page}{letter}{counter}`, `-X1011`
+        // The format the scheme gives it (`-101X1` under `{page}{letter}{counter}`, a strip's `-X1011`
         // under the strip rule `{letter}{page}{counter}`); a format with another token gives no example.
         let format = session
-            .strip_format(letter)
+            .numbering_format(aspect, letter)
             .replace("{letter}", letter)
             .replace("{page}", &row.folio);
         if format.replace("{counter}", "").contains('{') {
@@ -1139,7 +1139,7 @@ impl ShellModel {
             Ok(v) => v.unwrap_or_default().trim().to_owned(),
             Err(e) => return e,
         };
-        let example = self.strip_tag_example(&letter);
+        let example = self.tag_example("strip", &letter);
         if flag(p, "dialog") {
             return self.open_strip_form(example.as_deref().unwrap_or_default());
         }
@@ -1173,7 +1173,7 @@ impl ShellModel {
                 self.project.as_ref()?.session.device_tag(id)
             })
             .flatten();
-        let text = match (given, self.strip_tag_example(&letter)) {
+        let text = match (given, self.tag_example("strip", &letter)) {
             (Some(tag), _) => strings::format(key!("toast-strip-new-tagged"), &[&tag]),
             (None, Some(tag)) => strings::format(key!("toast-strip-new"), &[&tag]),
             (None, None) => strings::text(key!("toast-strip-new-no-example")).to_owned(),
@@ -1226,7 +1226,7 @@ impl ShellModel {
             return Outcome::refused(key!("reason-no-terminal-kind"));
         }
         if p.is_empty() && self.mode == super::Mode::Gui {
-            let new_words = match self.strip_tag_example("X") {
+            let new_words = match self.tag_example("strip", "X") {
                 Some(tag) => strings::format(key!("form-terminal-strip-new"), &[&tag]),
                 None => strings::text(key!("form-terminal-strip-new-plain")).to_owned(),
             };

@@ -31,7 +31,7 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
    (**Cable** on the Draw tab). The form proposes the tag -1W1 and lists the two wires with the core each gets. Type
    `3G1.5` as the **Type**, a three-core cable of 1.5 mm² whose last core is green-yellow: the first wire gets the
    core BN, the second BU. Choose **Apply**.
-   The toast says "Cable -1W1 now has these wires as its cores: 2": the cable is made with its three cores and the
+   The toast says "Cable -1W1 made from 2 wires": the cable is made with its three cores and the
    two field wires are its cores, in one step that one Undo takes back. The cable takes its page number from its
    first core, and the wires take the cores' 1.5 mm² and colours.
 7. Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In the Properties pane, set **Length** to

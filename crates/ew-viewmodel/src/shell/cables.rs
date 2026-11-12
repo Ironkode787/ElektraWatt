@@ -298,12 +298,18 @@ impl ShellModel {
 const FROM_WIRES: &str = "cable.from_wires";
 
 /// The rows' cores of Cable…'s table after its type changed to `type_text`: a core the new type has stays, the
-/// others take its free cores in order (`assign_cores`); a text that is no type yet changes nothing.
-pub(super) fn retype(session: Option<&ew_api::Session>, form: &mut super::FormDialog) {
-    let Some((cores, _)) = session.and_then(|s| {
-        let text = form.fields.iter().find(|f| f.name == "type")?.value.clone();
-        s.cable_type(&text)
-    }) else {
+/// others take its free cores as the form proposes them (`Session::assign_cores`, by the potential of the row's wire,
+/// `wires` in the rows' order); a text that is no type yet changes nothing.
+pub(super) fn retype(session: Option<&ew_api::Session>, wires: &[Uuid], form: &mut super::FormDialog) {
+    let Some(session) = session else {
+        return;
+    };
+    let Some((cores, _)) = form
+        .fields
+        .iter()
+        .find(|f| f.name == "type")
+        .and_then(|f| session.cable_type(&f.value))
+    else {
         return;
     };
     let Some(table) = &mut form.table else {
@@ -312,19 +318,10 @@ pub(super) fn retype(session: Option<&ew_api::Session>, form: &mut super::FormDi
     let rows: Vec<(Uuid, String)> = table
         .rows
         .iter()
-        .enumerate()
-        .map(|(i, r)| {
-            (
-                Uuid::from_u128(i as u128),
-                r.cells.first().cloned().unwrap_or_default(),
-            )
-        })
+        .zip(wires)
+        .map(|(r, w)| (*w, r.cells.first().cloned().unwrap_or_default()))
         .collect();
-    for (row, (_, core)) in table
-        .rows
-        .iter_mut()
-        .zip(ew_api::window::assign_cores(&cores, &rows))
-    {
+    for (row, (_, core)) in table.rows.iter_mut().zip(session.assign_cores(&cores, &rows)) {
         if let Some(cell) = row.cells.first_mut() {
             *cell = core;
         }
@@ -332,6 +329,14 @@ pub(super) fn retype(session: Option<&ew_api::Session>, form: &mut super::FormDi
 }
 
 impl ShellModel {
+    /// The wires of Cable…'s rows, in the rows' order: the form's rows of the selected wires.
+    pub(super) fn cable_row_wires(&self) -> Vec<Uuid> {
+        self.project.as_ref().map_or_else(Vec::new, |p| {
+            let form = p.session.cable_form(&self.selected_wires());
+            form.rows.into_iter().map(|(w, _)| w).collect()
+        })
+    }
+
     /// A wire in words, by its ends as the page prints them (`-1K1:A1 → L1`); its ID without a page.
     fn wire_words(&self, wire: Uuid) -> String {
         let Some(project) = &self.project else {
@@ -376,7 +381,7 @@ impl ShellModel {
         let form = project.session.cable_form(&wires);
         let proposed = match form.cable {
             Some(_) => Some(form.tag.clone()),
-            None => self.strip_tag_example("W"),
+            None => self.tag_example("cable", "W"),
         };
         let Some(type_text) = given(p, "type") else {
             return match self.mode {
@@ -471,7 +476,7 @@ impl ShellModel {
                     .cable_type(&type_text)
                     .map(|(c, _)| c)
                     .unwrap_or_default();
-                ew_api::window::assign_cores(&cores, &rows)
+                project.session.assign_cores(&cores, &rows)
             }
         };
         // A typed tag other than the cable's own, or the proposal, is frozen.
@@ -519,10 +524,13 @@ impl ShellModel {
             })
             .unwrap_or_default();
         let cored = rows.iter().filter(|(_, c)| !c.is_empty()).count();
-        self.notify(
-            strings::format(key!("toast-cable-wires"), &[&tag, &cored.to_string()]),
-            true,
-        );
+        let wires = strings::format_count(crate::count_key!("cable-wires-count"), cored);
+        let said = if cable.is_some() {
+            key!("toast-cable-wires-changed")
+        } else {
+            key!("toast-cable-wires")
+        };
+        self.notify(strings::format(said, &[&tag, &wires]), true);
         if self.in_form_of(FROM_WIRES) {
             self.dialog = None;
         }

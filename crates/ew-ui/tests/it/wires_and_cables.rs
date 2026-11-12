@@ -9,6 +9,7 @@ use crate::support::Tmp;
 use egui::{Modifiers, PointerButton};
 use ew_ui::ew_viewmodel::script::state_json;
 use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_ui::ew_viewmodel::tools::Ghost;
 use ew_ui::visual::{Driver, Input, parse_chord};
 use serde_json::{Value, json};
 
@@ -118,12 +119,17 @@ pub(crate) fn place_relay(d: &mut Driver, at: (i64, i64)) {
 /// Two source interruption points, L1 and N, side by side, each with a wire down to the coil of a relay under it:
 /// two wires, as the owner drew them. Returns the pixel map.
 pub(crate) fn two_wires(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
+    two_named_wires(d, ["L1", "N"])
+}
+
+/// [`two_wires`] with the points named `names`, left to right.
+fn two_named_wires(d: &mut Driver, names: [&str; 2]) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
     for x in [900, 1000] {
         place_relay(d, (x, 620));
     }
     d.input(&click(d.find("Interruption").unwrap()));
     d.settle();
-    for (name, x) in [("L1", 900), ("N", 1000)] {
+    for (name, x) in names.into_iter().zip([900, 1000]) {
         fill(d, "Interruption point name", name);
         d.input(&Input::Hover { at: (x, 420) });
         d.settle();
@@ -141,8 +147,15 @@ pub(crate) fn two_wires(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + u
         .filter_map(|r| t.cps.iter().find(|c| c.rep == r.id).map(|c| c.at))
         .collect();
     ips.sort();
-    let coil = |label: &str| t.cps.iter().find(|c| c.label == label).expect("the coil").at;
-    let ends = [(ips[0], coil("-1K1:A1")), (ips[1], coil("-1K2:A1"))];
+    // The coils' A1, left to right (their tags follow the project's numbering).
+    let mut a1: Vec<(i64, i64)> = t
+        .cps
+        .iter()
+        .filter(|c| c.label.ends_with(":A1"))
+        .map(|c| c.at)
+        .collect();
+    a1.sort();
+    let ends = [(ips[0], a1[0]), (ips[1], a1[1])];
     d.input(&click(d.find("Wire").unwrap()));
     d.settle();
     for (a, b) in ends {
@@ -164,8 +177,31 @@ fn banner(d: &mut Driver) -> String {
     state(d)["banner"].as_str().unwrap_or_default().to_owned()
 }
 
-/// Drags the Marker tool across every wire of the page, halfway down; returns the end of the drag.
+/// Arms the Marker tool by its button, and drags it across every wire of the page, halfway down; returns the end of
+/// the drag.
 fn mark_across(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) -> (i64, i64) {
+    arm_marker(d);
+    drag_across(d, pixel)
+}
+
+/// Arms the Marker tool: Marker on the Draw tab, or Wire marker in its Annotate group's menu where the window folds
+/// the group.
+fn arm_marker(d: &mut Driver) {
+    let marker = match d.find("Marker") {
+        Some(at) => at,
+        None => {
+            d.input(&click(d.find("Annotate").expect("the Annotate group")));
+            d.settle();
+            starting_with(d, "Wire marker")
+        }
+    };
+    d.input(&click(marker));
+    d.settle();
+    assert_eq!(d.shell_mut().tool().name(), "marker");
+}
+
+/// Drags the armed Marker tool across every wire of the page, halfway down; returns the end of the drag.
+fn drag_across(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) -> (i64, i64) {
     let t = tables(d);
     let ys: Vec<i64> = t
         .connections
@@ -182,18 +218,6 @@ fn mark_across(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64)) -> (i6
         xs.iter().min().unwrap() - 4_000_000,
         xs.iter().max().unwrap() + 4_000_000,
     );
-    // Marker on the Draw tab, or Wire marker in its Annotate group's menu where the window folds the group.
-    let marker = match d.find("Marker") {
-        Some(at) => at,
-        None => {
-            d.input(&click(d.find("Annotate").expect("the Annotate group")));
-            d.settle();
-            starting_with(d, "Wire marker")
-        }
-    };
-    d.input(&click(marker));
-    d.settle();
-    assert_eq!(d.shell_mut().tool().name(), "marker");
     let from = page_pixel(d, pixel, (x0, mid_y));
     let to = page_pixel(d, pixel, (x1, mid_y));
     d.input(&Input::Drag {
@@ -236,6 +260,97 @@ fn ft1684_the_marker_tool_marks_two_wires_with_a_typed_colour() {
         "the window said {:?}",
         banner(&mut d)
     );
+    d.shell_mut().shutdown();
+}
+
+/// The text of the one Wire marker of the page that is not among `before`, and every marker's ID now.
+fn new_marker(d: &mut Driver, before: &[String]) -> (Option<String>, Vec<String>) {
+    let t = tables(d);
+    let markers: Vec<_> = t.items.iter().filter(|i| i.kind == "wire_marker").collect();
+    let text = markers
+        .iter()
+        .find(|m| !before.contains(&m.id.to_string()))
+        .and_then(|m| m.text.clone());
+    (text, markers.iter().map(|m| m.id.to_string()).collect())
+}
+
+/// Clicks the Marker field named `label` and types `text`, leaving the field without Enter.
+fn type_in(d: &mut Driver, label: &str, text: &str) {
+    d.input(&click(
+        d.find(label).unwrap_or_else(|| panic!("no widget {label:?}")),
+    ));
+    d.input(&key("ctrl+a"));
+    d.input(&typed(text));
+    d.settle();
+}
+
+/// A play-tester of the second candidate (FT-1684 again): the Marker's cross-section and colours typed and left by a
+/// click on the other field, then the line dragged, then Enter: the marker printed the wires' own 0.75, not the 1.5
+/// typed (a field was taken on Enter only). Every order a person takes keeps the fields: fields then line; line then
+/// fields and a click on the sheet; Tab between the fields; line then fields and Enter in the last one. Each time
+/// the marker prints what the fields show.
+#[test]
+fn the_marker_fields_hold_in_every_order_of_use() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let pixel = two_wires(&mut d);
+    let mut seen = Vec::new();
+    let mut check = |d: &mut Driver, csa: &str, colour: &str, order: &str| {
+        let (text, now) = new_marker(d, &seen);
+        assert_eq!(
+            text,
+            Some(format!("{csa} {colour} {colour}")),
+            "{order}: the window said {:?}",
+            banner(d)
+        );
+        let ghost = d.shell_mut().tool_ghost();
+        assert!(
+            matches!(&ghost, Some(Ghost::Marker { text: Some(t), .. }) if *t == format!("{csa} {colour}")),
+            "{order}: the fields still say what the marker printed: {ghost:?}"
+        );
+        seen = now;
+    };
+    // The tester's order: the fields, then the line, then Enter.
+    arm_marker(&mut d);
+    type_in(&mut d, "Cross-section", "1.5");
+    type_in(&mut d, "Colours", "BK");
+    let _ = drag_across(&mut d, &pixel);
+    d.input(&key("enter"));
+    d.settle();
+    check(&mut d, "1.5", "BK", "fields, line, Enter");
+    // The line, then the fields, left by a click on the sheet, then Enter.
+    arm_marker(&mut d);
+    let to = drag_across(&mut d, &pixel);
+    type_in(&mut d, "Cross-section", "2.5");
+    type_in(&mut d, "Colours", "BU");
+    d.input(&Input::Hover { at: to });
+    d.input(&click(to));
+    d.settle();
+    d.input(&key("enter"));
+    d.settle();
+    check(&mut d, "2.5", "BU", "line, fields, click on the sheet, Enter");
+    // Tab from one field to the next, then the line and Enter.
+    arm_marker(&mut d);
+    type_in(&mut d, "Cross-section", "4");
+    d.input(&key("tab"));
+    d.input(&typed("RD"));
+    d.input(&key("tab"));
+    d.settle();
+    let _ = drag_across(&mut d, &pixel);
+    d.input(&key("enter"));
+    d.settle();
+    check(&mut d, "4", "RD", "Tab between the fields");
+    // The line, then the fields, and Enter in the last field.
+    arm_marker(&mut d);
+    let to = drag_across(&mut d, &pixel);
+    type_in(&mut d, "Cross-section", "6");
+    type_in(&mut d, "Colours", "GY");
+    d.input(&key("enter"));
+    d.settle();
+    d.input(&Input::Hover { at: to });
+    d.input(&key("enter"));
+    d.settle();
+    check(&mut d, "6", "GY", "line, fields, Enter in the field");
     d.shell_mut().shutdown();
 }
 
@@ -406,6 +521,93 @@ fn ft1685_cable_makes_the_selected_wires_a_cable_in_one_step() {
         (core_cell(&mut d, 0), core_cell(&mut d, 1)),
         ("BN".to_owned(), "GNYE".to_owned())
     );
+    d.shell_mut().shutdown();
+}
+
+/// A driver over a new project made from the wizard's company standard (its strips numbered `{letter}{page}{counter}`,
+/// its other devices `{page}{letter}{counter}`), on its first page.
+fn company_project(tmp: &Tmp) -> Driver {
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    let shell = d.shell_mut();
+    assert_eq!(
+        shell.dispatch("tools.company_standard", &json!({})),
+        Outcome::Done
+    );
+    d.settle();
+    let basic = json!({"dir": tmp.0.join("company.ew")});
+    assert_eq!(d.shell_mut().dispatch("wizard.finish", &basic), Outcome::Done);
+    d.settle();
+    let _ = d.shell_mut().dispatch("wizard.cancel", &json!({}));
+    let project = json!({"dir": tmp.0.join("p.ew")});
+    assert_eq!(d.shell_mut().dispatch("file.new", &project), Outcome::Done);
+    d.settle();
+    d
+}
+
+/// The tag field of the Cable form.
+fn form_tag(d: &mut Driver) -> String {
+    match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.fields[0].value.clone(),
+        other => panic!("not the Cable form: {other:?}"),
+    }
+}
+
+/// A play-tester of the second candidate: two wires from the points N and L1 (N's wire the left one), both selected,
+/// Cable…: the form put N on the brown core and L1 on the blue one, and proposed a tag in the strips' format
+/// (`-W11`) while the cable took `-1W1`. The neutral takes the blue core and the phase the brown (HD 308 S2) whatever
+/// their order, retyping the type keeps that, the tag proposed is the tag the cable gets, and the toast says it in
+/// words.
+#[test]
+fn cable_gives_n_the_blue_core_and_proposes_the_tag_it_takes() {
+    let tmp = Tmp::new();
+    let mut d = company_project(&tmp);
+    let pixel = two_named_wires(&mut d, ["N", "L1"]);
+    select_both(&mut d, &pixel);
+    d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
+    d.settle();
+    let n_first = |d: &mut Driver| (core_cell(d, 0), core_cell(d, 1));
+    assert_eq!(
+        n_first(&mut d),
+        ("BU".to_owned(), "BN".to_owned()),
+        "N blue, L1 brown"
+    );
+    let proposed = form_tag(&mut d);
+    // Retyped as a person writes it: the neutral stays on blue, no wire takes the green-yellow core.
+    d.input(&key("tab"));
+    d.input(&typed("3G1.5"));
+    d.settle();
+    assert_eq!(n_first(&mut d), ("BU".to_owned(), "BN".to_owned()), "after 3G1.5");
+    d.input(&click(d.find("Apply").unwrap()));
+    d.settle();
+    assert!(
+        d.shell_mut().dialog().is_none(),
+        "the form is closed: {}",
+        banner(&mut d)
+    );
+    let said = state(&mut d)["toast"].to_string();
+    assert!(
+        said.contains(&format!("Cable {proposed} made from 2 wires.")),
+        "{said}"
+    );
+    // The first wire, clicked: its cable is the one the form proposed.
+    d.input(&key("escape"));
+    d.settle();
+    let at = on_wire(&mut d, &pixel, 0);
+    d.input(&Input::Hover { at });
+    d.input(&click(at));
+    d.settle();
+    use ew_ui::ew_viewmodel::properties::{RowValue, find_row};
+    let sheet = d
+        .shell_mut()
+        .properties()
+        .sheet()
+        .expect("the wire's properties")
+        .clone();
+    match find_row(&sheet, "connection/kind").map(|(_, r)| r.value.clone()) {
+        Some(RowValue::One { text, .. }) => assert!(text.starts_with(&format!("{proposed} ")), "{text}"),
+        other => panic!("{other:?}"),
+    }
     d.shell_mut().shutdown();
 }
 

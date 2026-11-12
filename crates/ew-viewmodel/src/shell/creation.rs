@@ -473,14 +473,17 @@ impl ShellModel {
 
     /// Sets the text of field `name` of the open creation dialog (a keystroke or a choice) and clears the last refusal.
     pub fn set_form_field(&mut self, name: &str, value: &str) {
+        let cable_rows = (name == "type"
+            && matches!(&self.dialog, Some(Dialog::Form(f)) if f.action == "cable.from_wires"))
+        .then(|| self.cable_row_wires());
         if let Some(Dialog::Form(form)) = &mut self.dialog {
             if let Some(f) = form.fields.iter_mut().find(|f| f.name == name) {
                 f.value = value.to_owned();
             }
             form.error = None;
             // Cable…'s cores follow its type.
-            if form.action == "cable.from_wires" && name == "type" {
-                super::cables::retype(self.project.as_ref().map(|p| &p.session), form);
+            if let Some(wires) = &cable_rows {
+                super::cables::retype(self.project.as_ref().map(|p| &p.session), wires, form);
             }
         }
     }

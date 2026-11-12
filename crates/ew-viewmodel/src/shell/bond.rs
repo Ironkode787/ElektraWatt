@@ -360,6 +360,14 @@ impl ShellModel {
             return None;
         }
         let (_, o) = self.offer_for_selection()?;
+        // A potential named by a type's word without the type: the type is offered ("Type L1?").
+        if o.type_only {
+            let ptype = strings::choice_text(&o.ptype);
+            return Some((
+                strings::format(key!("potential-offer-title-type"), &[&ptype]),
+                strings::format(key!("potential-offer-type"), &[&o.name]),
+            ));
+        }
         let why = match &o.fed_from {
             Some(feed) => strings::format(key!("potential-offer-coil"), &[&o.cp, feed]),
             None => strings::format(
