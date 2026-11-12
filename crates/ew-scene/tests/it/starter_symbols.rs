@@ -66,7 +66,9 @@ const VERSION: &str = "0.1.0";
 /// redrawn with its arrow pointing right and its CP on the tail (major); the strip segment's tag moves beside
 /// the strip, left of its first terminal (minor); No text of a symbol crosses a stub of its CPs, so the
 /// heater's technical data moves down one step (patch) and the three-phase motor's leads grow one step up,
-/// its pin texts beside them (its CPs move: major).
+/// its pin texts beside them (its CPs move: major); its outer leads start two grid steps from the middle one, so a
+/// pin text has room beside its lead in the QET edition too, and "M" and "3~" stand 4.5 mm apart (FT-1619:
+/// its CPs move, major).
 const BUMPED: &[(&str, &str)] = &[
     ("ew.fn.cylinder-double-acting", "0.1.1"),
     ("ew.fn.switch-1p", "0.1.1"),
@@ -76,7 +78,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("ew.iec.coil", "0.2.0"),
     ("ew.iec.heater", "0.1.1"),
     ("ew.iec.lamp", "0.2.0"),
-    ("ew.iec.motor-3ph", "0.2.0"),
+    ("ew.iec.motor-3ph", "0.3.0"),
     ("ew.iec.position-switch-no", "0.2.0"),
     ("ew.iec.pushbutton-no", "0.2.0"),
     ("ew.iec.selector-switch-no", "0.2.0"),
@@ -1554,4 +1556,40 @@ fn no_text_of_a_symbol_crosses_a_stub_of_its_connection_points() {
         }
     }
     assert_clean("texts across a stub", &problems);
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// 11. STATIC TEXTS APART
+
+/// Two static texts of a symbol that share a column stand at least 0.85 em of their style apart in both editions: the
+/// QET edition scales their positions and not their size, so texts close in the native edition pile up there (FT-1619:
+/// "M" over "3~" in the three-phase motor).
+#[test]
+fn static_texts_of_a_symbol_stand_apart_in_both_editions() {
+    let em = |t: &ew_schema::TextPrim| {
+        let key = t
+            .style
+            .as_ref()
+            .map_or(ew_scene::symbol::DEFAULT_TEXT_STYLE, |s| s.as_str());
+        ew_text::builtin().resolve(key).map_or(0, |s| s.size.0)
+    };
+    let mut problems = Vec::new();
+    for (_, d) in symbols() {
+        let texts: Vec<&ew_schema::TextPrim> = all_graphics(&d.copy.item)
+            .filter_map(|p| match p {
+                Primitive::Text(t) => Some(t),
+                _ => None,
+            })
+            .collect();
+        for (i, a) in texts.iter().enumerate() {
+            for b in &texts[i + 1..] {
+                let need = em(a).max(em(b));
+                let (dx, dy) = ((a.pos.x.0 - b.pos.x.0).abs(), (a.pos.y.0 - b.pos.y.0).abs());
+                if dx < need && dy * 100 < need * 85 {
+                    problems.push(format!("{}: two static texts stand {dy} nm apart", d.who()));
+                }
+            }
+        }
+    }
+    assert_clean("static texts apart", &problems);
 }
