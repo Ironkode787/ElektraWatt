@@ -83,7 +83,7 @@ diagram show. **In the window:** **Draw ▸ Connect ▸ Wire**.
 
 **The same:** terminals are grouped in strips with a terminal-strip editor. **What differs:** a terminal strip is a
 device, its terminals are its functions, and the terminal diagram is generated from it. **In the window:** **Draw ▸
-Place ▸ Terminal strip…** and **Edit ▸ Strip editor**. See
+Place ▸ Terminal strip** and **Edit ▸ Strip editor**. See
 [A terminal strip and a cable](../tutorials/terminal-strip-and-cable.md).
 
 ## Plant, Location

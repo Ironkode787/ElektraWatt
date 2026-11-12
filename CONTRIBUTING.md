@@ -57,9 +57,11 @@ There is no continuous integration until 1.0. `check` is the check.
 
 ### One place for every item
 
-A command, an action, a rule, a text or an icon is declared in one place, and everything else follows from it at
-build time or through `cargo xtask gen`. Do not add a list that has to be kept in step by hand; if a change seems to
-need one, generate it or derive it instead.
+A command, an action, a rule, a text, an icon or a page of the guide is declared in one place, and everything else
+follows from it at build time or through `cargo xtask gen` (the guide's translation template and the merge of its
+Dutch translation among it: `docs/book/README.md`, "Translation"). Do not add a list that has to be kept in step by
+hand; if a change seems to need one, generate it or derive it instead. That holds for tests too: a test that must
+know every action, form or tool walks the registry or the source, it does not keep a list of its own.
 
 ## Decisions and open work
 

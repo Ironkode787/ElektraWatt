@@ -14,7 +14,7 @@ cable in the Cables navigator. At the end you have a saved project whose checks 
 
 1. Choose **File ▸ Open…** (`Ctrl+O`) and open `first-page.ew`.
    Its page shows the transformer -1T1 and the lamps -1E1 and -1E2.
-2. Choose **Draw ▸ Place ▸ Terminal strip…**.
+2. Choose **Draw ▸ Place ▸ Terminal strip**.
    EW creates an empty terminal strip. It takes its tag when its first terminal is placed.
 3. Choose **Draw ▸ Place ▸ Symbol…** (`I`) and choose **terminal**. In the list of strips, choose the new strip. Click
    twice, to the right of -1E2 and level with it, to place two terminals side by side. Choose **Draw ▸ Select**.

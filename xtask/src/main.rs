@@ -14,6 +14,7 @@
 mod anonymise;
 mod api_guard;
 mod blind;
+mod book_po;
 mod check;
 mod deps;
 mod docs_gen;
@@ -77,6 +78,10 @@ fn main() -> ExitCode {
         "gen-icons" => match flag(&args[1..], "--check") {
             Some(check) => icons::run(&root, check),
             None => usage("gen-icons takes only --check"),
+        },
+        "book-po" => match flag(&args[1..], "--check") {
+            Some(check) => book_po::run(&root, check),
+            None => usage("book-po takes only --check"),
         },
         "symbols-qet10" => match flag(&args[1..], "--check") {
             Some(check) => symbols::run(&root, check),

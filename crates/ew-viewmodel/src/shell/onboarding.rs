@@ -192,7 +192,7 @@ impl ShellModel {
         let Some(anchor) = help::anchor(topic).or_else(|| help::anchor("home")) else {
             return;
         };
-        self.request_doc_target(help::html_target(anchor));
+        self.request_doc_target(help::html_target(&anchor));
     }
 
     /// Asks the window to open `target`, a page of the built book (`how-to/x.html#fragment`): in a Dutch window the

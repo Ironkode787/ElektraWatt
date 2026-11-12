@@ -17,12 +17,14 @@
 //! anchor into them is checked against the contract file the page is built from (the command index, the rule
 //! catalogue), with the page and anchor rule of `cargo xtask docs-gen`.
 
+use std::borrow::Cow;
+
 use crate::layout::PaneKind;
 use crate::navigators::NavKind;
 use crate::shell::{Dialog, Focus, ShellModel};
 
 /// One documentation anchor.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Anchor {
     /// The stable topic name.
     pub topic: &'static str,
@@ -30,7 +32,7 @@ pub struct Anchor {
     pub page: &'static str,
     /// The heading id on the page (mdBook lower-cases a heading and joins its words with `-`); empty for the
     /// top of the page.
-    pub fragment: &'static str,
+    pub fragment: Cow<'static, str>,
 }
 
 const WINDOW: &str = "how-to/application-window.md";
@@ -45,117 +47,87 @@ pub static ANCHORS: &[Anchor] = &[
     Anchor {
         topic: "home",
         page: "introduction.md",
-        fragment: "",
+        fragment: Cow::Borrowed(""),
     },
     Anchor {
         topic: "start-page",
         page: WINDOW,
-        fragment: "start-page",
+        fragment: Cow::Borrowed("start-page"),
     },
     Anchor {
         topic: "project-view",
         page: WINDOW,
-        fragment: "project-view",
+        fragment: Cow::Borrowed("project-view"),
     },
     Anchor {
         topic: "new-project",
         page: WINDOW,
-        fragment: "new-project",
+        fragment: Cow::Borrowed("new-project"),
     },
     Anchor {
         topic: "sample-project",
         page: WINDOW,
-        fragment: "sample-project",
+        fragment: Cow::Borrowed("sample-project"),
     },
     Anchor {
         topic: "import-qet",
         page: WINDOW,
-        fragment: "import-a-qelectrotech-project",
+        fragment: Cow::Borrowed("import-a-qelectrotech-project"),
     },
     Anchor {
         topic: "recovery",
         page: WINDOW,
-        fragment: "unsaved-changes-and-recovery",
+        fragment: Cow::Borrowed("unsaved-changes-and-recovery"),
     },
     Anchor {
         topic: "unsaved-changes",
         page: WINDOW,
-        fragment: "unsaved-changes-and-recovery",
+        fragment: Cow::Borrowed("unsaved-changes-and-recovery"),
     },
     Anchor {
         topic: "command-palette",
         page: WINDOW,
-        fragment: "command-palette",
+        fragment: Cow::Borrowed("command-palette"),
     },
     Anchor {
         topic: "keyboard-shortcuts",
         page: WINDOW,
-        fragment: "keyboard-shortcuts",
+        fragment: Cow::Borrowed("keyboard-shortcuts"),
     },
     Anchor {
         topic: "workspaces",
         page: WINDOW,
-        fragment: "workspaces",
+        fragment: Cow::Borrowed("workspaces"),
     },
     Anchor {
         topic: "first-run",
         page: WINDOW,
-        fragment: "first-run-setup",
+        fragment: Cow::Borrowed("first-run-setup"),
     },
     Anchor {
         topic: "company-standard-wizard",
         page: WINDOW,
-        fragment: "company-standard-wizard",
+        fragment: Cow::Borrowed("company-standard-wizard"),
     },
     Anchor {
         topic: "tutorials",
         page: "tutorials/index.md",
-        fragment: "",
+        fragment: Cow::Borrowed(""),
     },
     Anchor {
         topic: "commands",
         page: "reference/commands/index.md",
-        fragment: "",
+        fragment: Cow::Borrowed(""),
     },
     Anchor {
         topic: "about",
         page: WINDOW,
-        fragment: "about",
+        fragment: Cow::Borrowed("about"),
     },
     // A topic for every tool action, every dialog without one above, every pane and navigator kind.
-    on(TOOLS, "tool-back", "tool-step-back"),
-    on(TOOLS, "tool-select", "select"),
-    on(TOOLS, "tool-measure", "measure"),
-    on(TOOLS, "tool-place", "symbol"),
-    on(TOOLS, "tool-place-part", "device-from-part"),
-    on(TOOLS, "tool-place-terminal", "terminal"),
-    on(TOOLS, "tool-rotate-cw", "rotate-clockwise"),
-    on(TOOLS, "tool-rotate-ccw", "rotate-counter-clockwise"),
-    on(TOOLS, "tool-mirror-x", "mirror-left-to-right"),
-    on(TOOLS, "tool-mirror-y", "mirror-top-to-bottom"),
-    on(TOOLS, "tool-next-variant", "next-variant"),
-    on(TOOLS, "tool-next-rep-type", "next-representation-type"),
-    on(TOOLS, "tool-move", "move"),
-    on(TOOLS, "tool-finish", "finish"),
-    on(TOOLS, "tool-wire", "wire"),
-    on(TOOLS, "tool-next-proposal", "next-autoconnect-proposal"),
-    on(TOOLS, "tool-place-layout", "place-device"),
-    on(TOOLS, "tool-rail-draw", "rail"),
-    on(TOOLS, "tool-duct-draw", "duct"),
-    on(TOOLS, "tool-connect-on-move", "connect-while-moving"),
-    on(TOOLS, "tool-route-edit", "edit-route"),
     // The two route actions have their sections on the tools page.
     on(TOOLS, "route-page", "route-page"),
     on(TOOLS, "route-selection", "route-selection"),
-    on(TOOLS, "tool-ip", "interruption-point"),
-    on(TOOLS, "tool-black-box", "black-box"),
-    on(TOOLS, "tool-ip-direction", "interruption-point-direction"),
-    on(TOOLS, "tool-star-source", "star-source"),
-    on(TOOLS, "tool-text", "text"),
-    on(TOOLS, "tool-graphic", "graphic"),
-    on(TOOLS, "tool-marker", "wire-marker"),
-    on(TOOLS, "tool-structure-box", "structure-box"),
-    on(TOOLS, "tool-image", "image"),
     on(DIALOGS, "dialog-goto-page", "go-to-page-or-cell"),
     on(DIALOGS, "dialog-form", "form-dialogs"),
     on(DIALOGS, "dialog-purge", "purge-unused-images"),
@@ -205,13 +177,43 @@ const fn on(page: &'static str, topic: &'static str, fragment: &'static str) -> 
     Anchor {
         topic,
         page,
-        fragment,
+        fragment: Cow::Borrowed(fragment),
     }
 }
 
-/// The anchor of a topic.
-pub fn anchor(topic: &str) -> Option<&'static Anchor> {
-    ANCHORS.iter().find(|a| a.topic == topic)
+/// The anchor of a topic: a row of [`ANCHORS`], or a tool action's own section of the tools page
+/// ([`tool_anchor`]).
+pub fn anchor(topic: &str) -> Option<Anchor> {
+    ANCHORS
+        .iter()
+        .find(|a| a.topic == topic)
+        .cloned()
+        .or_else(|| tool_anchor(topic))
+}
+
+/// The section of the tools page of the tool action `action` (`tool.place`): the heading that is the action's
+/// English label ("Symbol…" is `## Symbol`), so a new tool needs its section in the guide and no row here.
+pub fn tool_anchor(action: &str) -> Option<Anchor> {
+    let meta = crate::actions::find(action).filter(|m| m.id.starts_with("tool."))?;
+    let label = crate::strings::source_text(&meta.label_key())?;
+    Some(Anchor {
+        topic: meta.id,
+        page: TOOLS,
+        fragment: Cow::Owned(heading_id(label)),
+    })
+}
+
+/// The mdBook id of a heading: lower case, words joined by `-`, punctuation dropped.
+pub fn heading_id(text: &str) -> String {
+    let mut out = String::new();
+    for c in text.trim().chars() {
+        if c.is_alphanumeric() {
+            out.extend(c.to_lowercase());
+        } else if (c == ' ' || c == '-') && !out.ends_with('-') {
+            out.push('-');
+        }
+    }
+    out.trim_end_matches('-').to_owned()
 }
 
 /// The topic of a registry action, for its tooltip and for F1 over its menu item; `None` for an action without a
@@ -278,10 +280,9 @@ pub fn context_topic(model: &ShellModel) -> &'static str {
     }
 }
 
-/// The topic of a tool action (`tool.place` → `tool-place`); `None` for one without an anchor.
+/// The topic of a tool action: the action itself (`tool.place`), whose anchor is [`tool_anchor`]'s.
 fn tool_topic(action: &str) -> Option<&'static str> {
-    let name = action.strip_prefix("tool.")?.replace('_', "-");
-    anchor(&format!("tool-{name}")).map(|a| a.topic)
+    tool_anchor(action).map(|a| a.topic)
 }
 
 /// The topic of an open dialog. The match names every variant, so a new dialog does not compile until it
@@ -425,19 +426,6 @@ mod tests {
             .collect()
     }
 
-    /// The mdBook id of a heading line: lower case, words joined by `-`, punctuation dropped.
-    fn heading_id(text: &str) -> String {
-        let mut out = String::new();
-        for c in text.trim().chars() {
-            if c.is_alphanumeric() {
-                out.extend(c.to_lowercase());
-            } else if (c == ' ' || c == '-') && !out.ends_with('-') {
-                out.push('-');
-            }
-        }
-        out.trim_end_matches('-').to_owned()
-    }
-
     #[test]
     fn topics_are_unique() {
         for (i, a) in ANCHORS.iter().enumerate() {
@@ -450,7 +438,9 @@ mod tests {
         let summary = std::fs::read_to_string(Path::new(BOOK_SRC).join("SUMMARY.md")).expect("SUMMARY.md");
         let commands = command_names();
         assert!(!commands.is_empty());
-        for a in ANCHORS {
+        // The table's anchors, and every tool action's own section of the tools page.
+        let tools = crate::actions::ACTIONS.iter().filter_map(|m| tool_anchor(m.id));
+        for a in ANCHORS.iter().cloned().chain(tools) {
             if a.page != "introduction.md" {
                 assert!(summary.contains(a.page), "{} is not in SUMMARY.md", a.page);
             }
@@ -474,7 +464,11 @@ mod tests {
                     .filter_map(|l| l.strip_prefix('#'))
                     .map(|l| heading_id(l.trim_start_matches('#')))
                     .any(|id| id == a.fragment);
-                assert!(found, "{}: no heading with the id `{}`", a.page, a.fragment);
+                assert!(
+                    found,
+                    "{}: no heading with the id `{}` (topic {}; a tool's section is headed by its English label)",
+                    a.page, a.fragment, a.topic
+                );
             }
         }
     }
@@ -488,7 +482,7 @@ mod tests {
             ("route.selection", "route-selection"),
         ] {
             let a = action_topic(action).and_then(anchor).expect(action);
-            assert_eq!((a.page, a.fragment), (TOOLS, fragment), "{action}");
+            assert_eq!((a.page, a.fragment.as_ref()), (TOOLS, fragment), "{action}");
         }
     }
 
@@ -606,7 +600,7 @@ mod tests {
     #[test]
     fn html_targets_swap_the_extension() {
         let a = anchor("start-page").unwrap();
-        assert_eq!(html_target(a), "how-to/application-window.html#start-page");
-        assert_eq!(html_target(anchor("home").unwrap()), "introduction.html");
+        assert_eq!(html_target(&a), "how-to/application-window.html#start-page");
+        assert_eq!(html_target(&anchor("home").unwrap()), "introduction.html");
     }
 }

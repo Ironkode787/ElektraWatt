@@ -9,8 +9,6 @@
 use crate::common;
 use ew_viewmodel::strings::Key;
 
-use std::collections::BTreeSet;
-
 use common::{Tmp, done};
 use ew_viewmodel::actions::{ACTIONS, PaletteRun};
 use ew_viewmodel::dialogs::{DialogAnswer, DialogSpec, spec};
@@ -65,27 +63,53 @@ fn every_dialog(tmp: &Tmp) -> (ShellModel, Vec<Dialog>) {
             symbol: true,
         },
     ];
-    for (action, params) in [
-        ("page.new", json!({})),
-        ("section.new", json!({})),
-        ("structure.new", json!({})),
-        ("external_ref.new", json!({})),
-        ("pages.renumber", json!({})),
-        ("devices.renumber", json!({})),
+    // Every action whose label ends with "…" asks before it acts (doc 16a §8 item 8), so with no parameters it changes
+    // nothing: the registry is walked, each such action is dispatched bare, the dialog it opens is taken for the
+    // lint, and the project's revision stays as it was. An action that needs more than this page to ask (a
+    // selection, a finding) is refused, which changes nothing either. No list of these actions is kept here.
+    let rev = shell.revision();
+    for meta in ACTIONS {
+        if !strings::text(Key::run_time(&meta.label_key())).ends_with('…') {
+            continue;
+        }
         // The print pre-dialog (no build waits in the window's mode; the set is not built yet).
-        ("file.print", json!({ "wait": false })),
-    ] {
-        let _ = shell.dispatch(action, &params);
+        let params = if meta.id == "file.print" {
+            json!({ "wait": false })
+        } else {
+            json!({})
+        };
+        let _ = shell.dispatch(meta.id, &params);
         if let Some(d @ (Dialog::Form(_) | Dialog::Print(_))) = shell.dialog() {
             dialogs.push(d.clone());
         }
-        let _ = shell.dispatch("ui.dismiss", &Value::Null);
+        back_to_rest(&mut shell);
+        assert_eq!(
+            shell.revision(),
+            rev,
+            "{}: its label ends with … but it acted without asking",
+            meta.id
+        );
     }
     assert!(
         dialogs.iter().filter(|d| matches!(d, Dialog::Form(_))).count() >= 3,
         "the creation and renumber forms open"
     );
     (shell, dialogs)
+}
+
+/// Closes whatever an action left open (a dialog, a picker, the palette, a card, the wizard, the first run, the symbol
+/// editor) and arms Select, so that the next action starts from the project view.
+const REST: &[&str] = &["wizard.cancel", "first_run.finish", "symbol.close", "find.close"];
+
+fn back_to_rest(shell: &mut ShellModel) {
+    for _ in 0..4 {
+        let _ = shell.dispatch("ui.dismiss", &Value::Null);
+    }
+    for close in REST {
+        // The symbol editor closes without its question about the draft.
+        let _ = shell.dispatch(close, &json!({ "discard": true }));
+    }
+    let _ = shell.dispatch("tool.select", &json!({}));
 }
 
 fn destructive(spec: &DialogSpec, answer: &DialogAnswer) -> bool {
@@ -233,89 +257,6 @@ fn ui_strings() -> Vec<String> {
         .collect()
 }
 
-/// The actions whose dispatch opens a dialog, a picker, a pane that takes the input, or the system's file dialog
-/// before it acts (§8 item 8: exactly these end with "…"). A label change that adds or drops an ellipsis changes this
-/// list in the same reviewed commit.
-const OPENS_INPUT: &[&str] = &[
-    "file.new",
-    // The Create enclosure and Auto-fill rail dialogs.
-    "layout.enclosure_new",
-    "layout.auto_fill_rail",
-    // The keymap editor's Import… and Export… ask for a file.
-    "keymap.import",
-    "keymap.export",
-    // Export table… and Import table… ask for a file.
-    "navigator.export_table",
-    "navigator.import_table",
-    "file.open",
-    "file.open_ewz",
-    "file.save_as",
-    "file.import_qet",
-    // Re-import QElectroTech project… asks for the file.
-    "file.reimport_qet",
-    "parts.import",
-    "file.discard_journal",
-    "file.export_ewz",
-    "file.export_pdf",
-    "file.print",
-    "find.open",
-    "find.open_replace",
-    "page.new",
-    "pages.renumber",
-    "nav.goto",
-    "page.goto",
-    "view.workspace_save",
-    "tools.company_standard",
-    "help.first_run",
-    "tool.place",
-    "tool.place_part",
-    "tool.place_terminal",
-    "strip.new",
-    "rep.exchange",
-    "junction.open",
-    "tool.black_box",
-    "ip.continue_on",
-    "tool.image",
-    "structure.new",
-    "section.new",
-    "external_ref.new",
-    "devices.renumber",
-    "project.purge_assets",
-    "table.pattern_fill",
-    "messages.fix",
-    // Waive… opens the reason and author prompt.
-    "messages.waive",
-    // J opens the Join chooser.
-    "place.join",
-    // Insert macro… shows the Macros navigator (or floats the macro under its cursor), Save as
-    // macro… opens its dialog, Update… opens the bulk card.
-    "macros.insert",
-    "macros.save",
-    "libraries.update",
-    // Choose part… and Edit part… open the part dialog and the part editor.
-    "part.choose",
-    "part.edit",
-    // The revision dialogs of Check > Revision and the incomplete-release offer.
-    "revision.approve",
-    "revision.release",
-    "revision.withdraw",
-    "revision.set_author",
-    "revision.incomplete",
-    // Draw ▸ Define potential… opens its parameter form.
-    "potential.draw",
-    // A Potentials row's Define potential… opens the same form.
-    "potential.draw_row",
-    // New cable…, Connect cores… and Report block… open their forms.
-    "cable.new",
-    "cable.connect_cores",
-    "report_block.new",
-    // The editor and file actions accept parameters through the shared palette form.
-    "symbol.new",
-    "symbol.open",
-    "symbol.fork",
-    "symbol.export",
-];
-
 #[test]
 fn cp3_the_wording_lint() {
     let tmp = Tmp::new("part4-cp3");
@@ -355,18 +296,6 @@ fn cp3_the_wording_lint() {
         }
     }
     assert!(breaks.is_empty(), "not sentence case:\n{}", breaks.join("\n"));
-    // The ellipsis ends exactly the labels of the actions that ask for more input first.
-    let with: BTreeSet<&str> = ACTIONS
-        .iter()
-        .filter(|m| strings::text(Key::run_time(&m.label_key())).ends_with('…'))
-        .map(|m| m.id)
-        .collect();
-    let expected: BTreeSet<&str> = OPENS_INPUT
-        .iter()
-        .copied()
-        .filter(|id| ACTIONS.iter().any(|m| m.id == *id))
-        .collect();
-    assert_eq!(with, expected, "the actions whose label ends with …");
     // A dialog's buttons are verbs, never "OK" or "Yes" (doc 16a §8 item 9).
     for d in &dialogs {
         for b in spec(d, &shell).buttons() {

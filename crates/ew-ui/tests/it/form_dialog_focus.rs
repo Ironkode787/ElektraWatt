@@ -119,17 +119,48 @@ fn person(tmp: &Tmp, dir: &Path, actions: &[(&str, Value)]) {
     s.shutdown();
 }
 
+/// Checks, as [`check_form`] does, every form of `listed` that `checked` lacks and that opens here from no parameters;
+/// a form that needs a stage (a selection, a finding, another project) is left to the test's own steps.
+fn check_plain_forms(h: &mut Harness<'_, App>, listed: &BTreeSet<String>, checked: &mut BTreeSet<String>) {
+    for action in listed {
+        if checked.contains(action) {
+            continue;
+        }
+        let _ = h.state_mut().shell_mut().dispatch(action, &json!({}));
+        settle(h);
+        let opened =
+            matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == action.as_str());
+        let shell = h.state_mut().shell_mut();
+        for _ in 0..3 {
+            let _ = shell.dispatch("ui.dismiss", &Value::Null);
+        }
+        settle(h);
+        if opened {
+            checked.insert(check_form(h, action, json!({})));
+        }
+    }
+}
+
 /// Opens the form of `action` with `params` and checks it: the first focus is the first text field, else
 /// the Primary; Enter submits it or is refused with its reason in the form, and toggles no check box. Closes what it
 /// left open (the form, a card). Returns the action, for the tally.
 #[track_caller]
 fn check_form(h: &mut Harness<'_, App>, action: &str, params: Value) -> String {
+    let bare = params == json!({});
     dispatch(h, action, params);
     settle(h);
     let Some(Dialog::Form(form)) = h.state().shell().dialog().cloned() else {
         panic!("{action}: no form: {:?}", h.state().shell().dialog());
     };
     assert_eq!(form.action, action);
+    // An action that asks when it is given nothing says so with "…" (doc 16a §8 item 8).
+    if let (true, Some(meta)) = (bare, ew_ui::ew_viewmodel::actions::find(action)) {
+        let label = strings::text(strings::Key::run_time(&meta.label_key()));
+        assert!(
+            label.ends_with('…'),
+            "{action} asks with a form, so its label \"{label}\" ends with …"
+        );
+    }
     let primary = ew_ui::ew_viewmodel::dialogs::spec(&Dialog::Form(form.clone()), h.state().shell())
         .primary
         .label;
@@ -232,21 +263,12 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
     );
     checked.insert(check_form(&mut h, "messages.waive", json!({})));
     dispatch(&mut h, "messages.show", json!({ "on": false }));
-    for (action, params) in [
-        ("page.new", json!({})),
-        ("section.new", json!({})),
-        ("structure.new", json!({})),
-        ("external_ref.new", json!({})),
-        ("strip.new", json!({ "dialog": true })),
-        ("pages.renumber", json!({})),
-        ("devices.renumber", json!({})),
-    ] {
-        checked.insert(check_form(&mut h, action, params));
-    }
-    // New cable… and Report block…; Connect cores… with a wire of the page selected.
-    for action in ["cable.new", "report_block.new"] {
-        checked.insert(check_form(&mut h, action, json!({})));
-    }
+    // New terminal strip…'s form opens by its own parameter (bare, the action makes a strip).
+    checked.insert(check_form(&mut h, "strip.new", json!({ "dialog": true })));
+    // Every form that opens here from no parameters (New page…, New section…, the renumber forms, New cable…): the
+    // source's forms are walked, so a new plain form needs no line in this test.
+    check_plain_forms(&mut h, &listed, &mut checked);
+    // Connect cores… with a wire of the page selected.
     goto(&mut h, "102");
     let wire = h
         .state()

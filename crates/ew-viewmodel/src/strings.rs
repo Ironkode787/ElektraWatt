@@ -417,6 +417,11 @@ pub fn en_gb_errors() -> Vec<String> {
     }
 }
 
+/// The text of `key` in the source language, en-GB, whatever the UI language is (the guide's headings are English).
+pub fn source_text(key: &str) -> Option<&'static str> {
+    en_gb().texts.get(key).copied()
+}
+
 /// The text of `key` in the UI language (en-GB where it has none), or `None` for a key that has none.
 pub fn lookup(key: &str) -> Option<&'static str> {
     current()

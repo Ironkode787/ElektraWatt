@@ -9,8 +9,8 @@
 //!   GPL), so each registry's own crate has a test that writes its file when `EW_REFERENCE_DIR` is set, and
 //!   [`reference`] runs those tests.
 //! - **Committed files** that a generator writes from data in the tree: the workspace-hack crate, the book's
-//!   contents and reference pages, the icon table, the lint list, the QET symbol edition, and the persona harness's
-//!   action list. `--check` compares the ones that need no build.
+//!   contents and reference pages, the icon table, the lint list, the QET symbol edition, the guide's translation
+//!   catalogue, and the persona harness's action list. `--check` compares the ones that need no build.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -53,6 +53,8 @@ const OWN: &[(&str, Own)] = &[
         }
     }),
     ("symbols-qet10", crate::symbols::run),
+    // The guide's translation template and translations, from its pages.
+    ("book-po", crate::book_po::run),
 ];
 
 /// `gen [--check]`.

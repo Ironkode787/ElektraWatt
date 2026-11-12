@@ -14,7 +14,7 @@ GPL-3.0-or-later for the app, MIT OR Apache-2.0 for the format crates. It is an 
 
 ```sh
 cargo xtask check -p <crate> [-p <crate>]...   # format, lint, test what changed, repository rules
-cargo xtask gen                                 # regenerate generated files after changing a command, rule, text, icon
+cargo xtask gen                                 # regenerate generated files after changing a command, rule, text, icon, guide page
 cargo xtask rules                               # the repository rules alone
 ```
 

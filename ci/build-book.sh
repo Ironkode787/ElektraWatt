@@ -8,7 +8,6 @@
 #
 #   bash ci/build-book.sh <dest>      (Linux, from the repository root; needs curl, sha256sum, python3, cargo, unshare,
 #                                      sudo)
-#   bash ci/build-book.sh --pot       (Linux, from the repository root; refreshes docs/book/po/messages.pot)
 #
 # 1. `cargo xtask docs-gen` writes the reference pages, which are built, not committed.
 # 2. mdBook, the prebuilt Linux release archive of github.com/rust-lang/mdBook, is downloaded pinned by version and by
@@ -18,14 +17,13 @@
 #    that prefix as configuration overrides.)
 # 3. mdbook-i18n-helpers (WP-S7.05 D14), the `mdbook-i18n-helpers` component, is downloaded as its crate, checked by its
 #    SHA-256 before it is unpacked, and built with `cargo install --locked`; it gives `mdbook-gettext`, the one
-#    preprocessor of the Dutch build, and `mdbook-xgettext`, which makes the PO template.
+#    preprocessor of the Dutch build.
 # 4. The book is built in an empty network namespace, as the runner's user, so a plugin or theme that fetches fails
 #    the build. ubuntu-24.04 restricts unprivileged user namespaces, so the namespace needs `unshare` and passwordless
 #    sudo; their absence fails here with the reason, not as a documentation failure of the build. The English book goes
 #    to <dest>, then the Dutch one (`book.language = nl`, docs/book/po/nl.po) to <dest>/nl.
-# 5. The PO template is made from a copy of the book without its generated pages, so no generated text enters it; a
-#    committed docs/book/po/messages.pot whose messages differ is a warning here (`--pot` refreshes it, before the
-#    translation is worked on).
+# 5. The PO template (docs/book/po/messages.pot) and the translations are not made here: `cargo xtask gen` writes
+#    them from the pages and `cargo xtask rules` fails when they are stale (xtask/src/book_po.rs).
 set -euo pipefail
 
 docs_mdbook_version="$(python3 -I packaging/stage.py pin mdbook)"
@@ -34,14 +32,13 @@ docs_mdbook_sha256="$(python3 -I packaging/stage.py pin mdbook --field sha256)"
 docs_i18n_version="$(python3 -I packaging/stage.py pin mdbook-i18n-helpers)"
 docs_i18n_url="$(python3 -I packaging/stage.py pin mdbook-i18n-helpers --field url)"
 docs_i18n_sha256="$(python3 -I packaging/stage.py pin mdbook-i18n-helpers --field sha256)"
-docs_template="docs/book/po/messages.pot"
 
 fail() {
   echo "::error::build-book: $*" >&2
   exit 1
 }
 
-[ "$#" -eq 1 ] || fail "usage: ci/build-book.sh <dest> | ci/build-book.sh --pot"
+[ "$#" -eq 1 ] || fail "usage: ci/build-book.sh <dest>"
 dest="$1"
 
 work="$(mktemp -d)"
@@ -69,33 +66,8 @@ tar -xzf "$work/$crate" -C "$work/i18n-src"
 (cd "$work" && cargo install --quiet --locked --path "i18n-src/mdbook-i18n-helpers-${docs_i18n_version}" \
   --root "$work/i18n" --target-dir "$work/i18n-target")
 gettext="$work/i18n/bin/mdbook-gettext"
-xgettext="$work/i18n/bin/mdbook-xgettext"
-[ -x "$gettext" ] && [ -x "$xgettext" ] \
-  || fail "cargo install of mdbook-i18n-helpers ${docs_i18n_version} gave no mdbook-gettext and mdbook-xgettext"
-
-# D14: the PO template of the hand-written pages and the table of contents, into <dir>/messages.pot: the book is copied
-# without the generated pages (the paths of the .gitignore block of docs_gen.rs) and without their lines in
-# SUMMARY.md, then read by mdbook-xgettext.
-pot_template() {
-  local out="$1" copy="$work/pot-book" pattern="" path
-  rm -rf "$copy"
-  cp -r docs/book "$copy"
-  while read -r path; do
-    rm -rf "${copy:?}/${path#/docs/book/}"
-    pattern="${pattern}|\\]\\(${path#/docs/book/src/}"
-  done < <(grep '^/docs/book/src/reference/' .gitignore)
-  grep -Ev "${pattern#|}" "$copy/src/SUMMARY.md" > "$copy/src/SUMMARY.kept"
-  mv "$copy/src/SUMMARY.kept" "$copy/src/SUMMARY.md"
-  MDBOOK_OUTPUT="{\"xgettext\": {\"command\": \"$xgettext\"}}" "$work/mdbook/mdbook" build "$copy" --dest-dir "$out"
-  [ -s "$out/messages.pot" ] || fail "mdbook-xgettext wrote no $out/messages.pot"
-}
-
-if [ "$dest" = "--pot" ]; then
-  pot_template "$work/pot"
-  cp "$work/pot/messages.pot" "$docs_template"
-  echo "build-book: wrote $docs_template"
-  exit 0
-fi
+[ -x "$gettext" ] \
+  || fail "cargo install of mdbook-i18n-helpers ${docs_i18n_version} gave no mdbook-gettext"
 
 cargo xtask docs-gen
 
@@ -125,9 +97,3 @@ grep -qF "${docs_title}</title>" "$dest/index.html" \
   || fail "$dest/index.html does not carry the title '${docs_title}' (WP-S7.05 D2)"
 grep -qF "${docs_title_nl}</title>" "$dest/nl/index.html" \
   || fail "$dest/nl/index.html does not carry the title '${docs_title_nl}' (WP-S7.05 D2, D14)"
-
-# D14: a stale template is a warning; WP-S6.08's RC-06 refreshes it.
-pot_template "$work/pot"
-if ! stale="$(python3 -I ci/translation-status.py --stale "$work/pot/messages.pot" "$docs_template")"; then
-  echo "::warning::build-book: $stale"
-fi

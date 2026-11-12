@@ -7,9 +7,8 @@
 //!
 //! **The bar is generated from the registry.** An action of [`crate::actions::ACTIONS`] with a [`Placement`] is a
 //! command button of its group, in `(tab, group, order)` order; the app menu ([`crate::actions::menu_model`]) shows the
-//! same groups under the tab's menu, so the bar, the menu, the palette and the mockup cannot disagree. A command of doc
-//! 16a §5.3 that has no action in this build is listed in [`PENDING`] and is drawn nowhere; it joins its group with
-//! its package.
+//! same groups under the tab's menu, so the bar, the menu and the palette cannot disagree. A command of doc 16a §5.3
+//! that has no action in this build is drawn nowhere and is written down in that document alone.
 //!
 //! **The HUD** ([`hud`]) names the active tool, three quick tools and the prompt: the selection and its keys with
 //! Select, the pick stack under the pointer when it holds more than one object, the tool's target and keys
@@ -284,25 +283,6 @@ pub const fn place(
         bar_label,
     }
 }
-
-/// The commands of doc 16a §5.3 that have no action in this build, by group, position and the mockup's name. They
-/// are drawn nowhere and join their group with their package (the conformance test CB8 skips them by name).
-pub const PENDING: &[(Group, u16, &str)] = &[
-    (Group::Parts, 2, "Project parts"),
-    (Group::Standards, 1, "Schemes"),
-    (Group::Pages, 2, "Page properties"),
-    (Group::Pages, 3, "Delete page"),
-    (Group::Connect, 5, "Potential"),
-    (Group::Arrange, 3, "Align"),
-    (Group::Run, 2, "Check scheme"),
-    (Group::Numbering, 1, "Freeze tag"),
-    (Group::Numbering, 2, "Unfreeze tag"),
-    (Group::Reports, 1, "Report blocks"),
-    (Group::Reports, 2, "Open generated page"),
-    (Group::Lists, 2, "Wire list"),
-    (Group::Lists, 3, "Terminal diagram"),
-    (Group::Show, 2, "Snap"),
-];
 
 /// The split buttons: the main action runs the default, the chevron opens its variants (doc 16a §5.2).
 pub const SPLITS: &[(&str, &[&str])] = &[("tool.mirror_x", &["tool.mirror_x", "tool.mirror_y"])];

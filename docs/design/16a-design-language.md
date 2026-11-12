@@ -637,7 +637,29 @@ placed action has an icon, a label and a docs anchor, and that each tab's groups
 | View | Zoom: **Fit page** (Home), Zoom in, Zoom out, Actual size · Show: Grid, Snap, Frame statistics, Show tips · Panels: Navigators ▾, Properties, Messages, Jobs, History, Notifications · Layout: Side by side, Workspaces ▾, Reset layout · Appearance: Theme ▾, Density ▾, UI scale ▾ | None · never needed for the work itself |
 
 Commands of later packages join their tab's group when they exist (Macro in Place, Cable in Connect, Waivers in
-Findings); a new group, or a new command on Draw, needs a design-language review against the mockup. The Edit commands Cut, Copy, Paste, Duplicate and Select all
+Findings); a new group, or a new command on Draw, needs a design-language review against the mockup.
+
+**What a new command must satisfy** (read this before adding a button or an action; each point is held by a test,
+and learning them from the failures costs an afternoon):
+
+1. *One declaration.* The action is one entry of the action table (`crates/ew-viewmodel/src/actions/table/`) with
+   its label in both locale files. The bar, the menu, the palette, the keymap sheet and the reference files follow
+   from it: run `cargo xtask gen`.
+2. *At most two large buttons per group.* A third command is a small one; small ones stack two to a column in the
+   order of their places.
+3. *It must fit the smallest window.* At 1000 points wide, in Dutch and in the long-text test locale, the groups
+   that never fold (Select and Place) with the rest folded must fit; Connect folds last. At 1280 points in English
+   the Draw tab is full: a new button there folds a group at the right, so say which one and look at the picture.
+4. *A bar label is settled.* "Renumber devices" stays whole (it was confused with Renumber pages); do not shorten
+   a bar label to gain width.
+5. *One icon per concept.* An icon key serves one command or pane; two entries share one only when they are one
+   concept, with the reason in `crates/ew-ui/tests/it/icons.rs`. A new Tabler icon is the SVG of the pinned release
+   in `assets/icons/tabler/`.
+6. *The ellipsis tells the truth* (§8 item 3): it asks first, or it has none.
+7. *A tool has its section in the guide*: `docs/book/src/reference/window/tools.md`, headed by the tool's English
+   label, which is where F1 on the tool opens.
+8. *The pictures change.* A new button changes the window's pictures: look at the old and the new one, then bless
+   (`EW_BLESS=1 cargo nextest run -p ew-ui -E 'test(snapshots::)'`). The Edit commands Cut, Copy, Paste, Duplicate and Select all
 live in the app menu's Edit, the canvas context menu and their keys, as everywhere else.
 
 *As built (2026-11-05).*
@@ -1450,7 +1472,10 @@ HUD; chips avoid it (§7.4).
    "Messages", "Properties"); groups are nouns of the job ("Place", "Connect" are both: they name the activity).
 3. **The ellipsis** (the single character "…", U+2026, never three full stops) ends a command that needs more input
    before it acts (it opens a dialog or a picker): "Symbol…", "Export PDF…". A command that acts at once has none.
-   The command bar's short labels drop it (§5.2); menus, the palette and tooltips keep it.
+   The command bar's short labels drop it (§5.2); menus, the palette and tooltips keep it. The label is the one
+   statement of it, and the tests hold the program to it without a list of their own: every command whose label
+   ends with "…" is run with nothing given and must leave the project as it was, and every command that opens a
+   form when given nothing must end with "…".
 4. **One word per concept**, the standard's or EPLAN's (doc 16 §4.1 item 8): device, function, connection point,
    interruption point, potential, structure identifier, part. QET and EPLAN synonyms are palette aliases, not labels.
 5. **Messages say what happened, why, and what to do** (NFR-UX-07), in that order, in at most two sentences: "The PDF

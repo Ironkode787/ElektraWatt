@@ -12,9 +12,7 @@ use std::collections::BTreeMap;
 use common::{Tmp, at, click, done, empty_point};
 use ew_viewmodel::actions::{self, ACTIONS, MenuEntry, menu_model};
 use ew_viewmodel::canvas::HOVER_SLOP_PT;
-use ew_viewmodel::command_bar::{
-    self, ButtonKind, CommandSize, Group, PENDING, Tab, command_bar_of, hud, next_step,
-};
+use ew_viewmodel::command_bar::{self, ButtonKind, CommandSize, Group, Tab, command_bar_of, hud, next_step};
 use ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use ew_viewmodel::{help, strings};
 use serde_json::json;
@@ -124,12 +122,6 @@ fn the_registry_places_every_command_once_and_the_app_menu_holds_every_action_on
             p.order
         );
         places.push((p.group, p.order));
-    }
-    for (group, order, name) in PENDING {
-        assert!(
-            !places.contains(&(*group, *order)),
-            "the pending {name} shares {group:?} {order}"
-        );
     }
     for group in Group::ALL {
         let large = command_bar::placed_in(group)

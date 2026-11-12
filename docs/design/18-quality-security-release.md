@@ -554,9 +554,10 @@ Rules that a local run on one OS cannot see:
 **The pixel gate.** The chrome is checked by an in-house offscreen pixel gate, not by `egui_kittest`'s `snapshot` and
 `wgpu` features (rejected for the 13 packages they bring into the lock): egui-wgpu on `ew-render2d`'s headless
 device renders the window, and each image is compared with its blessed PNG within a channel tolerance of 4/255 and a
-small bound on differing pixels (at most 10 for the chrome images; at most one in 2,000 for the canvas images). It is
-compiled behind `ew-ui`'s `snapshots` feature, runs on **Windows only** (WARP) through `--all-features`; elsewhere it is
-not compiled.
+small bound on differing pixels (at most 10 for the chrome images; at most one in 2,000 for the canvas images). It
+runs in every test run of `ew-ui` on Windows (WARP), with no feature to switch it on (until M2.5-Fix it was behind a
+feature that only `--all-features` set, so a plain `cargo nextest run -p ew-ui` passed without it); its Linux images
+are not blessed at present.
 
 The gated images are under `crates/ew-ui/tests/expected/`: `snapshots/` for the main window, the component gallery, the
 command bar, the dialogs, the panes and single widgets, and `canvas/` for the overlays of folio 101.

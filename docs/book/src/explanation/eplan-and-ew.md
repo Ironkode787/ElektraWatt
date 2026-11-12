@@ -97,7 +97,7 @@ update step. **In the window:** **Draw ▸ Connect ▸ Wire**.
 
 **The same:** a terminal strip is a device whose terminals are functions, with an editor for their order, bridges and
 accessories. **What differs:** the strip editor is a table you edit cell by cell, and every edit is one undo step.
-**In the window:** **Draw ▸ Place ▸ Terminal strip…** and **Edit ▸ Strip editor**. See
+**In the window:** **Draw ▸ Place ▸ Terminal strip** and **Edit ▸ Strip editor**. See
 [A terminal strip and a cable](../tutorials/terminal-strip-and-cable.md).
 
 ## Structure identifier, Identifier block, Higher-level function, Mounting location

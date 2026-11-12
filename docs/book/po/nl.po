@@ -1,4 +1,3 @@
-
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
@@ -44,63 +43,67 @@ msgstr "Een QElectroTech-project importeren"
 msgid "Draw a six-pin power block"
 msgstr "Een voedingsblok met zes aansluitingen tekenen"
 
-#: src/SUMMARY.md:12 src/tutorials/headless-workflow.md:1
+#: src/SUMMARY.md:13 src/tutorials/headless-workflow.md:1
 msgid "A first headless run on the golden project"
 msgstr "Een eerste sessie op de opdrachtregel met het referentieproject"
 
-#: src/SUMMARY.md:14 src/SUMMARY.md:16 src/how-to/index.md:1
+#: src/SUMMARY.md:15 src/SUMMARY.md:17 src/how-to/index.md:1
 msgid "How-to guides"
 msgstr ""
 
-#: src/SUMMARY.md:17 src/how-to/install.md:1
+#: src/SUMMARY.md:18 src/how-to/install.md:1
 msgid "Install ElektraWatt"
 msgstr ""
 
-#: src/SUMMARY.md:18 src/how-to/application-window.md:1
+#: src/SUMMARY.md:19 src/how-to/application-window.md:1
 msgid "Use the application window"
 msgstr ""
 
-#: src/SUMMARY.md:19 src/how-to/text-interface.md:1
+#: src/SUMMARY.md:20 src/how-to/text-interface.md:1
 msgid "Draw a page from the text interface"
 msgstr ""
 
-#: src/SUMMARY.md:20 src/how-to/define-supply-potential.md:1
+#: src/SUMMARY.md:21 src/how-to/define-supply-potential.md:1
 msgid "Define a supply potential"
 msgstr ""
 
-#: src/SUMMARY.md:21 src/how-to/choose-parts.md:1
+#: src/SUMMARY.md:22 src/how-to/choose-parts.md:1
 msgid "Choose parts"
 msgstr ""
 
-#: src/SUMMARY.md:22 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:23 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:24 src/SUMMARY.md:26 src/reference/index.md:1
+#: src/SUMMARY.md:25 src/SUMMARY.md:27 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:27 src/reference/window/tools.md:1
+#: src/SUMMARY.md:28 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:28 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:29 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:29 src/reference/window/panels.md:1
+#: src/SUMMARY.md:30 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:31 src/SUMMARY.md:33 src/explanation/index.md:1
+#: src/SUMMARY.md:31 src/reference/symbol-editor.md:1
+msgid "Symbol editor and automated authoring"
+msgstr ""
+
+#: src/SUMMARY.md:33 src/SUMMARY.md:35 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:34 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:36 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:35 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:37 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -110,9 +113,9 @@ msgid ""
 "designing the electrical schematics of control cabinets. This guide is its "
 "user documentation."
 msgstr ""
-"ElektraWatt (EW) is een opensource desktopapplicatie voor Windows en "
-"Linux waarmee u de elektrische schema's van besturingskasten ontwerpt. "
-"Deze gids is de gebruikersdocumentatie ervan."
+"ElektraWatt (EW) is een opensource desktopapplicatie voor Windows en Linux "
+"waarmee u de elektrische schema's van besturingskasten ontwerpt. Deze gids "
+"is de gebruikersdocumentatie ervan."
 
 #: src/introduction.md:6
 msgid ""
@@ -129,14 +132,14 @@ msgid ""
 msgstr ""
 "**Status.** EW werkt toe naar zijn eerste release, de pilotrelease 0.1.0 "
 "voor Windows en Linux. Er zijn nu twee programma's: de desktopapplicatie "
-"`elektrawatt`, die een project opent, bewerkt, controleert en afdrukt, "
-"met navigators, tabelmodus, een geschiedenis en de 2D-layout van de "
-"montageplaat; en het opdrachtregelprogramma `ew`, dat vanuit de terminal "
-"met een project werkt (\"headless\", zonder venster): het importeert "
-"QElectroTech-projecten, controleert, exporteert PDF/A-2b, SVG en "
-"tabellen, en drukt af. Deze gids groeit met het product mee; waar een "
-"pagina iets beschrijft dat nog niet gebouwd is, staat dat erbij. De "
-"mijlpalen en hoe ver elk daarvan is, staan in de "
+"`elektrawatt`, die een project opent, bewerkt, controleert en afdrukt, met "
+"navigators, tabelmodus, een geschiedenis en de 2D-layout van de "
+"montageplaat; en het opdrachtregelprogramma `ew`, dat vanuit de terminal met "
+"een project werkt (\"headless\", zonder venster): het importeert "
+"QElectroTech-projecten, controleert, exporteert PDF/A-2b, SVG en tabellen, "
+"en drukt af. Deze gids groeit met het product mee; waar een pagina iets "
+"beschrijft dat nog niet gebouwd is, staat dat erbij. De mijlpalen en hoe ver "
+"elk daarvan is, staan in de "
 "[roadmap](https://github.com/Ironkode787/ElektraWatt/blob/main/ROADMAP.md) "
 "van de repository."
 
@@ -206,7 +209,8 @@ msgstr "[Naslag](reference/index.md)"
 
 #: src/introduction.md:26
 msgid "look up an exact fact: a command, a parameter, a rule"
-msgstr "een exact gegeven wilt opzoeken: een opdracht, een parameter, een regel"
+msgstr ""
+"een exact gegeven wilt opzoeken: een opdracht, een parameter, een regel"
 
 #: src/introduction.md:26
 msgid "complete and dry; parts are generated from the code"
@@ -240,9 +244,9 @@ msgstr ""
 "**Nieuw bij EW:** de zelfstudie [Een eerste schemapagina met "
 "potentialen](tutorials/first-page.md), daarna [Een klemmenstrook en een "
 "kabel](tutorials/terminal-strip-and-cable.md) en [Rapporten en "
-"PDF](tutorials/reports-and-pdf.md). Komt u van QElectroTech, dan brengt "
-"[Een QElectroTech-project importeren](tutorials/import-qet.md) een "
-"project van u over."
+"PDF](tutorials/reports-and-pdf.md). Komt u van QElectroTech, dan brengt [Een "
+"QElectroTech-project importeren](tutorials/import-qet.md) een project van u "
+"over."
 
 #: src/introduction.md:35
 msgid ""
@@ -262,9 +266,9 @@ msgid ""
 "[panels](reference/window/panels.md); and the [release "
 "notes](reference/release-notes/index.md) of every release."
 msgstr ""
-"**Een gegeven om op te zoeken:** de "
-"[regelnaslag](reference/rules/index.md), met een pagina per "
-"controleregel; de [gereedschappen](reference/window/tools.md), "
+"**Een gegeven om op te zoeken:** de [regelnaslag](reference/rules/index.md), "
+"met een pagina per controleregel; de "
+"[gereedschappen](reference/window/tools.md), "
 "[dialogen](reference/window/dialogs.md) en "
 "[panelen](reference/window/panels.md) van het venster; en de [release "
 "notes](reference/release-notes/index.md) van elke release."
@@ -277,8 +281,8 @@ msgid ""
 msgstr ""
 "**Afkomstig van een ander programma:** [EPLAN en "
 "EW](explanation/eplan-and-ew.md) en [QElectroTech en "
-"EW](explanation/qet-and-ew.md) zetten de begrippen die u kent naast die "
-"van EW."
+"EW](explanation/qet-and-ew.md) zetten de begrippen die u kent naast die van "
+"EW."
 
 #: src/introduction.md:43
 msgid "What the guide does not contain"
@@ -291,9 +295,9 @@ msgid ""
 "them; it does not copy them. Start from the [documentation "
 "map](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md)."
 msgstr ""
-"De ontwerpdocumenten, de architectuurbesluiten en het werkplan blijven in "
-"de repository, naast de code die ze beschrijven. Deze gids verwijst "
-"ernaar; hij neemt ze niet over. Begin bij het "
+"De ontwerpdocumenten, de architectuurbesluiten en het werkplan blijven in de "
+"repository, naast de code die ze beschrijven. Deze gids verwijst ernaar; hij "
+"neemt ze niet over. Begin bij het "
 "[documentatieoverzicht](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/README.md)."
 
 #: src/introduction.md:49
@@ -323,10 +327,10 @@ msgid ""
 "real customer data into examples that you contribute to this guide."
 msgstr ""
 "Elk voorbeeld gebruikt het geanonimiseerde referentieproject "
-"(`golden/J-E-2416`, licentie CC0-1.0). Waar een echt project een klant, "
-"een eindgebruiker of een persoon zou noemen, staat een plaatshouder, "
-"zoals `<customer>` en `<drawing id>`. Zet geen echte klantgegevens in "
-"voorbeelden die u aan deze gids bijdraagt."
+"(`golden/J-E-2416`, licentie CC0-1.0). Waar een echt project een klant, een "
+"eindgebruiker of een persoon zou noemen, staat een plaatshouder, zoals "
+"`<customer>` en `<drawing id>`. Zet geen echte klantgegevens in voorbeelden "
+"die u aan deze gids bijdraagt."
 
 #: src/tutorials/index.md:3
 msgid ""
@@ -336,12 +340,12 @@ msgid ""
 "step works to do it; the [explanation](../explanation/index.md) section and "
 "the [reference](../reference/index.md) say why and what exactly."
 msgstr ""
-"Een zelfstudie is een les. Ze neemt u mee door één volledige taak, met "
-"elke stap uitgeschreven en aan het eind een zichtbaar resultaat, zodat u "
-"door te doen leert hoe de onderdelen van EW samenhangen. U hoeft niet te "
-"begrijpen waarom een stap werkt om hem uit te voeren; de onderdelen "
-"[uitleg](../explanation/index.md) en [naslag](../reference/index.md) "
-"zeggen waarom en wat precies."
+"Een zelfstudie is een les. Ze neemt u mee door één volledige taak, met elke "
+"stap uitgeschreven en aan het eind een zichtbaar resultaat, zodat u door te "
+"doen leert hoe de onderdelen van EW samenhangen. U hoeft niet te begrijpen "
+"waarom een stap werkt om hem uit te voeren; de onderdelen "
+"[uitleg](../explanation/index.md) en [naslag](../reference/index.md) zeggen "
+"waarom en wat precies."
 
 #: src/tutorials/index.md:8
 msgid ""
@@ -362,10 +366,10 @@ msgid ""
 "Potentials navigator and the Messages pane read. You need EW installed and "
 "an empty folder."
 msgstr ""
-"[Een eerste schemapagina met potentialen](first-page.md): een nieuw "
-"project, een transformator en twee lampen geplaatst en bedraad, de "
-"potentialen benoemd, de navigator Potentialen en het paneel Meldingen "
-"gelezen. U hebt EW nodig en een lege map."
+"[Een eerste schemapagina met potentialen](first-page.md): een nieuw project, "
+"een transformator en twee lampen geplaatst en bedraad, de potentialen "
+"benoemd, de navigator Potentialen en het paneel Meldingen gelezen. U hebt EW "
+"nodig en een lege map."
 
 #: src/tutorials/index.md:15
 msgid ""
@@ -376,11 +380,10 @@ msgid ""
 "end of the first tutorial."
 msgstr ""
 "[Een klemmenstrook en een kabel](terminal-strip-and-cable.md): op het "
-"project van de eerste zelfstudie een klemmenstrook geplaatst en aan "
-"beide zijden bedraad, een kabel uit zijn artikel gemaakt met de "
-"velddraden als aders, de klemmenstrookeditor en de navigator Kabels "
-"gelezen. U hebt het project nodig dat u aan het eind van de eerste "
-"zelfstudie hebt opgeslagen."
+"project van de eerste zelfstudie een klemmenstrook geplaatst en aan beide "
+"zijden bedraad, een kabel uit zijn artikel gemaakt met de velddraden als "
+"aders, de klemmenstrookeditor en de navigator Kabels gelezen. U hebt het "
+"project nodig dat u aan het eind van de eerste zelfstudie hebt opgeslagen."
 
 #: src/tutorials/index.md:18
 msgid ""
@@ -404,9 +407,9 @@ msgid ""
 msgstr ""
 "[Een QElectroTech-project importeren](import-qet.md): een klein "
 "QElectroTech-project geïmporteerd, het migratierapport gelezen, de "
-"ontbrekende draad getekend en de artikelen gekozen, tot het rapport "
-"alleen nog het verslag van de import bevat. U hebt EW nodig en het "
-"bestand [lamp-circuit.qet](files/lamp-circuit.qet) van de zelfstudie."
+"ontbrekende draad getekend en de artikelen gekozen, tot het rapport alleen "
+"nog het verslag van de import bevat. U hebt EW nodig en het bestand "
+"[lamp-circuit.qet](files/lamp-circuit.qet) van de zelfstudie."
 
 #: src/tutorials/index.md:24
 msgid ""
@@ -420,7 +423,7 @@ msgstr ""
 "verbindingsraster, zijn acht oriëntaties bekeken, opgeslagen in een "
 "bibliotheek en getest op een nieuwe pagina. U hebt EW nodig en een lege map."
 
-#: src/tutorials/index.md:24
+#: src/tutorials/index.md:27
 msgid ""
 "[A first headless run on the golden project](headless-workflow.md): check a "
 "project, write its pages as PDF and SVG, export the cable list and the bill "
@@ -429,24 +432,22 @@ msgid ""
 msgstr ""
 "[Een eerste sessie op de opdrachtregel met het "
 "referentieproject](headless-workflow.md): een project controleren, de "
-"pagina's als PDF en SVG schrijven, de kabellijst en de stuklijst "
-"exporteren en het project met SQL bevragen, alles vanuit de terminal met "
-"het programma `ew`. U hebt een checkout van de repository nodig en het "
-"programma `ew`."
+"pagina's als PDF en SVG schrijven, de kabellijst en de stuklijst exporteren "
+"en het project met SQL bevragen, alles vanuit de terminal met het programma "
+"`ew`. U hebt een checkout van de repository nodig en het programma `ew`."
 
-#: src/tutorials/index.md:28
+#: src/tutorials/index.md:31
 msgid "Planned"
 msgstr "Gepland"
 
-#: src/tutorials/index.md:30
+#: src/tutorials/index.md:33
 msgid ""
 "The documentation requirements (NFR-DOC-03) name the tutorials that follow "
 "at version 1.0: a PLC card with addressing, and 2D/3D layout with the wire "
 "list."
 msgstr ""
-"De documentatie-eisen (NFR-DOC-03) noemen de zelfstudies die bij versie "
-"1.0 volgen: een PLC-kaart met adressering, en 2D/3D-layout met de "
-"draadlijst."
+"De documentatie-eisen (NFR-DOC-03) noemen de zelfstudies die bij versie 1.0 "
+"volgen: een PLC-kaart met adressering, en 2D/3D-layout met de draadlijst."
 
 #: src/tutorials/first-page.md:3
 msgid ""
@@ -457,20 +458,16 @@ msgid ""
 "checks show no error."
 msgstr ""
 "In deze zelfstudie tekent u uw eerste schemapagina in het venster van "
-"ElektraWatt: een kleine besturingstransformator die twee kastlampen "
-"voedt. U plaatst de symbolen, tekent de draden, geeft de twee potentialen "
-"hun naam en leest wat EW over de schakeling weet. Aan het eind hebt u een "
-"opgeslagen project waarvan de controles geen fout tonen."
+"ElektraWatt: een kleine besturingstransformator die twee kastlampen voedt. U "
+"plaatst de symbolen, tekent de draden, geeft de twee potentialen hun naam en "
+"leest wat EW over de schakeling weet. Aan het eind hebt u een opgeslagen "
+"project waarvan de controles geen fout tonen."
 
-#: src/tutorials/first-page.md:7 src/tutorials/terminal-strip-and-cable.md:8
-#: src/tutorials/reports-and-pdf.md:7 src/tutorials/import-qet.md:8
-#: src/how-to/install.md:7 src/how-to/define-supply-potential.md:7
-#: src/how-to/choose-parts.md:7
+#: src/tutorials/first-page.md:7 src/tutorials/terminal-strip-and-cable.md:8 src/tutorials/reports-and-pdf.md:7 src/tutorials/import-qet.md:8 src/tutorials/symbol-editor.md:8 src/how-to/install.md:7 src/how-to/define-supply-potential.md:7 src/how-to/choose-parts.md:7
 msgid "What you need"
 msgstr "Wat u nodig hebt"
 
-#: src/tutorials/first-page.md:9 src/tutorials/reports-and-pdf.md:9
-#: src/tutorials/import-qet.md:10
+#: src/tutorials/first-page.md:9 src/tutorials/reports-and-pdf.md:9 src/tutorials/import-qet.md:10 src/tutorials/symbol-editor.md:10
 msgid ""
 "ElektraWatt installed and started; see [Install "
 "ElektraWatt](../how-to/install.md)."
@@ -487,9 +484,7 @@ msgid "Nothing else: the project starts from EW's built-in basic project."
 msgstr ""
 "Verder niets: het project begint bij het ingebouwde basisproject van EW."
 
-#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:13
-#: src/tutorials/reports-and-pdf.md:12 src/tutorials/import-qet.md:16
-#: src/how-to/define-supply-potential.md:12
+#: src/tutorials/first-page.md:14 src/tutorials/terminal-strip-and-cable.md:13 src/tutorials/reports-and-pdf.md:12 src/tutorials/import-qet.md:16 src/tutorials/symbol-editor.md:13 src/how-to/define-supply-potential.md:12
 msgid "Steps"
 msgstr "Stappen"
 
@@ -499,9 +494,9 @@ msgid ""
 "`first-page.ew`. EW creates the project from the basic project and shows its "
 "one empty page, folio 1, with its frame."
 msgstr ""
-"Kies **Bestand ▸ Nieuw project…** (`Ctrl+N`) en wijs een lege map aan met "
-"de naam `first-page.ew`. EW maakt het project uit het basisproject en "
-"toont de ene lege pagina, folio 1, met zijn kader."
+"Kies **Bestand ▸ Nieuw project…** (`Ctrl+N`) en wijs een lege map aan met de "
+"naam `first-page.ew`. EW maakt het project uit het basisproject en toont de "
+"ene lege pagina, folio 1, met zijn kader."
 
 #: src/tutorials/first-page.md:18
 msgid ""
@@ -512,11 +507,10 @@ msgid ""
 "2U2 at the bottom."
 msgstr ""
 "Kies **Tekenen ▸ Plaatsen ▸ Symbool…** (`I`). Kies in de symboolkiezer "
-"**transformer-1ph** en klik linksboven op de pagina. Kies daarna "
-"**Tekenen ▸ Selecteren** om het gereedschap weg te leggen. De "
-"transformator -1T1 staat op de pagina, met de primaire aansluitpunten 1U1 "
-"en 2U1 aan de bovenkant en de secundaire aansluitpunten 1U2 en 2U2 aan de "
-"onderkant."
+"**transformer-1ph** en klik linksboven op de pagina. Kies daarna **Tekenen ▸ "
+"Selecteren** om het gereedschap weg te leggen. De transformator -1T1 staat "
+"op de pagina, met de primaire aansluitpunten 1U1 en 2U1 aan de bovenkant en "
+"de secundaire aansluitpunten 1U2 en 2U2 aan de onderkant."
 
 #: src/tutorials/first-page.md:22
 msgid ""
@@ -525,11 +519,10 @@ msgid ""
 "Choose **Draw ▸ Select**. The lamps -1E1 and -1E2 are on the page, each with "
 "the pins X1 at the top and X2 at the bottom."
 msgstr ""
-"Kies opnieuw **Tekenen ▸ Plaatsen ▸ Symbool…**, kies **lamp** en klik "
-"twee keer, rechts van en onder de transformator, om twee lampen naast "
-"elkaar te plaatsen. Kies **Tekenen ▸ Selecteren**. De lampen -1E1 en -1E2 "
-"staan op de pagina, elk met het aansluitpunt X1 aan de bovenkant en X2 "
-"aan de onderkant."
+"Kies opnieuw **Tekenen ▸ Plaatsen ▸ Symbool…**, kies **lamp** en klik twee "
+"keer, rechts van en onder de transformator, om twee lampen naast elkaar te "
+"plaatsen. Kies **Tekenen ▸ Selecteren**. De lampen -1E1 en -1E2 staan op de "
+"pagina, elk met het aansluitpunt X1 aan de bovenkant en X2 aan de onderkant."
 
 #: src/tutorials/first-page.md:25
 msgid ""
@@ -540,13 +533,13 @@ msgid ""
 "parallel to the transformer's secondary. Each wire takes a number, such as "
 "1.1."
 msgstr ""
-"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`). Klik op het aansluitpunt 1U2 "
-"van de transformator en dan op het aansluitpunt X1 van -1E1: de draad is "
-"getekend. Teken op dezelfde manier nog drie draden: van X1 van -1E1 naar "
-"X1 van -1E2, van 2U2 naar X2 van -1E1, en van X2 van -1E1 naar X2 van "
-"-1E2. Kies **Tekenen ▸ Selecteren**. De twee lampen zijn parallel op de "
-"secundaire kant van de transformator aangesloten. Elke draad krijgt een "
-"nummer, zoals 1.1."
+"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`). Klik op het aansluitpunt 1U2 van "
+"de transformator en dan op het aansluitpunt X1 van -1E1: de draad is "
+"getekend. Teken op dezelfde manier nog drie draden: van X1 van -1E1 naar X1 "
+"van -1E2, van 2U2 naar X2 van -1E1, en van X2 van -1E1 naar X2 van -1E2. "
+"Kies **Tekenen ▸ Selecteren**. De twee lampen zijn parallel op de secundaire "
+"kant van de transformator aangesloten. Elke draad krijgt een nummer, zoals "
+"1.1."
 
 #: src/tutorials/first-page.md:29
 msgid ""
@@ -556,9 +549,9 @@ msgid ""
 "the name 24VAC."
 msgstr ""
 "Klik op de draad tussen de aansluitpunten X1 van de twee lampen en kies "
-"**Tekenen ▸ Verbinden ▸ Potentiaal definiëren…**. Typ de naam `24VAC`, "
-"het type `L` en de spanning `24 V AC`, en bevestig het formulier. Elke "
-"draad van die potentiaal draagt nu de naam 24VAC."
+"**Tekenen ▸ Verbinden ▸ Potentiaal definiëren…**. Typ de naam `24VAC`, het "
+"type `L` en de spanning `24 V AC`, en bevestig het formulier. Elke draad van "
+"die potentiaal draagt nu de naam 24VAC."
 
 #: src/tutorials/first-page.md:32
 msgid ""
@@ -567,9 +560,9 @@ msgid ""
 "voltage `24 V AC`. The circuit has its two named potentials."
 msgstr ""
 "Klik op de draad tussen de aansluitpunten X2 van de twee lampen, kies "
-"**Tekenen ▸ Verbinden ▸ Potentiaal definiëren…** en geef hem de naam "
-"`0VAC`, het type `N` en de spanning `24 V AC`. De schakeling heeft haar "
-"twee benoemde potentialen."
+"**Tekenen ▸ Verbinden ▸ Potentiaal definiëren…** en geef hem de naam `0VAC`, "
+"het type `N` en de spanning `24 V AC`. De schakeling heeft haar twee "
+"benoemde potentialen."
 
 #: src/tutorials/first-page.md:35
 msgid ""
@@ -587,11 +580,11 @@ msgid ""
 "and -1T1) and the transformer's two open primary pins (EW-POT-009: -1T1:1U1 "
 "and -1T1:2U1)."
 msgstr ""
-"Kies **Controle ▸ Meldingen**. De kop van Meldingen toont F 0, W 0 en "
-"5 wachtend: vijf bevindingen wachten op de pagina waarop u tekent tot u haar "
+"Kies **Controle ▸ Meldingen**. De kop van Meldingen toont F 0, W 0 en 5 "
+"wachtend: vijf bevindingen wachten op de pagina waarop u tekent tot u haar "
 "verlaat of de controles uitvoert. Het zijn drie apparaten zonder artikel "
-"(EW-CORE-041: -1E1, -1E2 en -1T1) en de twee open primaire aansluitpunten van "
-"de transformator (EW-POT-009: -1T1:1U1 en -1T1:2U1)."
+"(EW-CORE-041: -1E1, -1E2 en -1T1) en de twee open primaire aansluitpunten "
+"van de transformator (EW-POT-009: -1T1:1U1 en -1T1:2U1)."
 
 #: src/tutorials/first-page.md:41
 msgid ""
@@ -601,8 +594,7 @@ msgstr ""
 "Kies **Bestand ▸ Opslaan** (`Ctrl+S`). De titelbalk markeert het project "
 "niet meer als gewijzigd, en de statusbalk zegt Opgeslagen."
 
-#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:50
-#: src/tutorials/reports-and-pdf.md:37 src/tutorials/import-qet.md:50
+#: src/tutorials/first-page.md:44 src/tutorials/terminal-strip-and-cable.md:50 src/tutorials/reports-and-pdf.md:38 src/tutorials/import-qet.md:56 src/tutorials/symbol-editor.md:42
 msgid "What you learnt"
 msgstr "Wat u hebt geleerd"
 
@@ -611,16 +603,16 @@ msgid ""
 "A project starts from a basic project; **File ▸ New project…** makes one in "
 "a folder of its own."
 msgstr ""
-"Een project begint bij een basisproject; **Bestand ▸ Nieuw project…** "
-"maakt er een in een eigen map."
+"Een project begint bij een basisproject; **Bestand ▸ Nieuw project…** maakt "
+"er een in een eigen map."
 
 #: src/tutorials/first-page.md:47
 msgid ""
 "A symbol you place is a function of a device, and the device gets its tag "
 "(-1T1, -1E1) from the numbering scheme."
 msgstr ""
-"Een symbool dat u plaatst, is een functie van een apparaat, en het "
-"apparaat krijgt zijn kenmerk (-1T1, -1E1) uit het nummeringsschema."
+"Een symbool dat u plaatst, is een functie van een apparaat, en het apparaat "
+"krijgt zijn kenmerk (-1T1, -1E1) uit het nummeringsschema."
 
 #: src/tutorials/first-page.md:48
 msgid ""
@@ -636,10 +628,9 @@ msgid ""
 "[rule reference](../reference/rules/index.md) explains each rule, and **Help "
 "▸ Documentation** on a finding opens its rule's page."
 msgstr ""
-"De controles lopen terwijl u tekent. Een waarschuwing zegt wat er nog "
-"open staat; de [regelnaslag](../reference/rules/index.md) legt elke regel "
-"uit, en **Help ▸ Documentatie** op een bevinding opent de pagina van de "
-"regel."
+"De controles lopen terwijl u tekent. Een waarschuwing zegt wat er nog open "
+"staat; de [regelnaslag](../reference/rules/index.md) legt elke regel uit, en "
+"**Help ▸ Documentatie** op een bevinding opent de pagina van de regel."
 
 #: src/tutorials/terminal-strip-and-cable.md:3
 msgid ""
@@ -651,12 +642,12 @@ msgid ""
 "navigator. At the end you have a saved project whose checks show no error."
 msgstr ""
 "In deze zelfstudie haalt u de lampschakeling van de eerste zelfstudie "
-"gedeeltelijk uit de kast: een derde lamp zit op de machine en wordt "
-"gevoed via een klemmenstrook in de kast en een kabel. U plaatst de "
-"klemmen van de klemmenstrook, bedraadt hun kastzijde en hun veldzijde, maakt de "
-"kabel met zijn aders, en leest de klemmenstrook in de klemmenstrookeditor en de "
-"kabel in de navigator Kabels. Aan het eind hebt u een opgeslagen project "
-"waarvan de controles geen fout tonen."
+"gedeeltelijk uit de kast: een derde lamp zit op de machine en wordt gevoed "
+"via een klemmenstrook in de kast en een kabel. U plaatst de klemmen van de "
+"klemmenstrook, bedraadt hun kastzijde en hun veldzijde, maakt de kabel met "
+"zijn aders, en leest de klemmenstrook in de klemmenstrookeditor en de kabel "
+"in de navigator Kabels. Aan het eind hebt u een opgeslagen project waarvan "
+"de controles geen fout tonen."
 
 #: src/tutorials/terminal-strip-and-cable.md:10
 msgid ""
@@ -664,8 +655,8 @@ msgid ""
 "potentials](first-page.md), `first-page.ew`, as you saved it at its end."
 msgstr ""
 "Het project van de zelfstudie [Een eerste schemapagina met "
-"potentialen](first-page.md), `first-page.ew`, zoals u het aan het eind "
-"hebt opgeslagen."
+"potentialen](first-page.md), `first-page.ew`, zoals u het aan het eind hebt "
+"opgeslagen."
 
 #: src/tutorials/terminal-strip-and-cable.md:15
 msgid ""
@@ -677,10 +668,10 @@ msgstr ""
 
 #: src/tutorials/terminal-strip-and-cable.md:17
 msgid ""
-"Choose **Draw ▸ Place ▸ Terminal strip…**. EW creates an empty terminal "
+"Choose **Draw ▸ Place ▸ Terminal strip**. EW creates an empty terminal "
 "strip. It takes its tag when its first terminal is placed."
 msgstr ""
-"Kies **Tekenen ▸ Plaatsen ▸ Klemmenstrook…**. EW maakt een lege "
+"Kies **Tekenen ▸ Plaatsen ▸ Klemmenstrook**. EW maakt een lege "
 "klemmenstrook. Die krijgt haar kenmerk zodra de eerste klem is geplaatst."
 
 #: src/tutorials/terminal-strip-and-cable.md:19
@@ -691,12 +682,12 @@ msgid ""
 "terminals -1X1:1 and -1X1:2 are on the page. Each has its cabinet side, "
 "clamp a, at the bottom and its field side, clamp b, at the top."
 msgstr ""
-"Kies **Tekenen ▸ Plaatsen ▸ Symbool…** (`I`) en kies **terminal**. Kies "
-"in de lijst met klemmenstroken de nieuwe klemmenstrook. Klik twee keer, rechts "
+"Kies **Tekenen ▸ Plaatsen ▸ Symbool…** (`I`) en kies **terminal**. Kies in "
+"de lijst met klemmenstroken de nieuwe klemmenstrook. Klik twee keer, rechts "
 "van -1E2 en op dezelfde hoogte, om twee klemmen naast elkaar te plaatsen. "
 "Kies **Tekenen ▸ Selecteren**. De klemmen -1X1:1 en -1X1:2 staan op de "
-"pagina. Elke klem heeft zijn kastzijde, klemaansluiting a, aan de "
-"onderkant en zijn veldzijde, klemaansluiting b, aan de bovenkant."
+"pagina. Elke klem heeft zijn kastzijde, klemaansluiting a, aan de onderkant "
+"en zijn veldzijde, klemaansluiting b, aan de bovenkant."
 
 #: src/tutorials/terminal-strip-and-cable.md:23
 msgid ""
@@ -704,9 +695,9 @@ msgid ""
 "and to the right of the terminals. Choose **Draw ▸ Select**. The lamp -1E3, "
 "the lamp on the machine, is on the page."
 msgstr ""
-"Kies opnieuw **Tekenen ▸ Plaatsen ▸ Symbool…**, kies **lamp** en klik "
-"boven en rechts van de klemmen. Kies **Tekenen ▸ Selecteren**. De lamp "
-"-1E3, de lamp op de machine, staat op de pagina."
+"Kies opnieuw **Tekenen ▸ Plaatsen ▸ Symbool…**, kies **lamp** en klik boven "
+"en rechts van de klemmen. Kies **Tekenen ▸ Selecteren**. De lamp -1E3, de "
+"lamp op de machine, staat op de pagina."
 
 #: src/tutorials/terminal-strip-and-cable.md:26
 msgid ""
@@ -716,12 +707,12 @@ msgid ""
 "of \\-1X1:2 to X2 of -1E3. Choose **Draw ▸ Select**. The terminal -1X1:1 "
 "carries 24VAC and -1X1:2 carries 0VAC to the lamp on the machine."
 msgstr ""
-"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`). Teken de kastzijde: van X1 "
-"van -1E2 naar de onderkant van -1X1:1, en van X2 van -1E2 naar de "
-"onderkant van -1X1:2. Daarna de veldzijde: van de bovenkant van -1X1:1 "
-"naar X1 van -1E3, en van de bovenkant van -1X1:2 naar X2 van -1E3. Kies "
-"**Tekenen ▸ Selecteren**. De klem -1X1:1 brengt 24VAC en -1X1:2 brengt "
-"0VAC naar de lamp op de machine."
+"Kies **Tekenen ▸ Verbinden ▸ Draad** (`W`). Teken de kastzijde: van X1 van "
+"-1E2 naar de onderkant van -1X1:1, en van X2 van -1E2 naar de onderkant van "
+"-1X1:2. Daarna de veldzijde: van de bovenkant van -1X1:1 naar X1 van -1E3, "
+"en van de bovenkant van -1X1:2 naar X2 van -1E3. Kies **Tekenen ▸ "
+"Selecteren**. De klem -1X1:1 brengt 24VAC en -1X1:2 brengt 0VAC naar de lamp "
+"op de machine."
 
 #: src/tutorials/terminal-strip-and-cable.md:30
 msgid ""
@@ -734,8 +725,8 @@ msgstr ""
 "Kies **Tekenen ▸ Verbinden ▸ Nieuwe kabel…**. Kies in het formulier het "
 "kabelartikel **EW-GEN-CBL-1**, de kabel met drie aders uit de startset, en "
 "kies **Maken**. De notificatie zegt \"Kabel -W1 gemaakt met 3 aders\". De "
-"kabel heeft de drie aders van het artikel. Hij staat nog op geen pagina, "
-"dus zijn kenmerk heeft geen paginanummer."
+"kabel heeft de drie aders van het artikel. Hij staat nog op geen pagina, dus "
+"zijn kenmerk heeft geen paginanummer."
 
 #: src/tutorials/terminal-strip-and-cable.md:34
 msgid ""
@@ -754,12 +745,12 @@ msgstr ""
 #: src/tutorials/terminal-strip-and-cable.md:38
 msgid ""
 "Choose **View ▸ Panels ▸ Navigators ▸ Cables** and click the cable -1W1. In "
-"the Properties pane, set **Length** to `5 m`. The Cables navigator lists "
-"the cable -1W1 with its three cores: BN, BU and GNYE."
+"the Properties pane, set **Length** to `5 m`. The Cables navigator lists the "
+"cable -1W1 with its three cores: BN, BU and GNYE."
 msgstr ""
-"Kies **Beeld ▸ Panelen ▸ Navigators ▸ Kabels** en klik op de kabel -1W1. "
-"Zet in het paneel Eigenschappen **Lengte** op `5 m`. De navigator Kabels "
-"toont de kabel -1W1 met zijn drie aders: BN, BU en GNYE."
+"Kies **Beeld ▸ Panelen ▸ Navigators ▸ Kabels** en klik op de kabel -1W1. Zet "
+"in het paneel Eigenschappen **Lengte** op `5 m`. De navigator Kabels toont "
+"de kabel -1W1 met zijn drie aders: BN, BU en GNYE."
 
 #: src/tutorials/terminal-strip-and-cable.md:41
 msgid ""
@@ -777,17 +768,16 @@ msgstr ""
 msgid ""
 "Choose **Check ▸ Run checks** (`F7`). The toast says \"Check: 0 errors, 8 "
 "warnings, 2 infos\". The warnings are the devices that have no part yet and "
-"the transformer's open primary pins; the infos say that no report covers "
-"the strip or the cable yet."
+"the transformer's open primary pins; the infos say that no report covers the "
+"strip or the cable yet."
 msgstr ""
 "Kies **Controle ▸ Controles uitvoeren** (`F7`). De notificatie zegt "
-"\"Controle: 0 fouten, 8 waarschuwingen, 2 info's\". De waarschuwingen zijn de "
-"apparaten die nog geen artikel hebben en de open primaire aansluitpunten "
-"van de transformator; de info's zeggen dat nog geen rapport de "
-"klemmenstrook of de kabel dekt."
+"\"Controle: 0 fouten, 8 waarschuwingen, 2 info's\". De waarschuwingen zijn "
+"de apparaten die nog geen artikel hebben en de open primaire aansluitpunten "
+"van de transformator; de info's zeggen dat nog geen rapport de klemmenstrook "
+"of de kabel dekt."
 
-#: src/tutorials/terminal-strip-and-cable.md:47
-#: src/tutorials/reports-and-pdf.md:34 src/tutorials/import-qet.md:47
+#: src/tutorials/terminal-strip-and-cable.md:47 src/tutorials/reports-and-pdf.md:35 src/tutorials/import-qet.md:53 src/tutorials/symbol-editor.md:39
 msgid ""
 "Choose **File ▸ Save** (`Ctrl+S`). The title bar no longer marks the project "
 "as changed."
@@ -801,9 +791,9 @@ msgid ""
 "the strip's list is one of its terminals, with a cabinet side and a field "
 "side."
 msgstr ""
-"Een klemmenstrook is een apparaat op zich, en elke klem die u uit de "
-"lijst van de klemmenstrook plaatst, is een van haar klemmen, met een kastzijde "
-"en een veldzijde."
+"Een klemmenstrook is een apparaat op zich, en elke klem die u uit de lijst "
+"van de klemmenstrook plaatst, is een van haar klemmen, met een kastzijde en "
+"een veldzijde."
 
 #: src/tutorials/terminal-strip-and-cable.md:54
 msgid ""
@@ -821,16 +811,16 @@ msgid ""
 "The strip editor and the Cables navigator show what passes through each "
 "terminal and each core, from the drawing."
 msgstr ""
-"De klemmenstrookeditor en de navigator Kabels tonen, uit de tekening, wat "
-"er door elke klem en elke ader gaat."
+"De klemmenstrookeditor en de navigator Kabels tonen, uit de tekening, wat er "
+"door elke klem en elke ader gaat."
 
 #: src/tutorials/terminal-strip-and-cable.md:57
 msgid ""
 "The reports that list them, the terminal diagram and the cable list, are the "
 "subject of [Reports and PDF](reports-and-pdf.md)."
 msgstr ""
-"De rapporten die ze opsommen, het klemmenschema en de kabellijst, zijn "
-"het onderwerp van [Rapporten en PDF](reports-and-pdf.md)."
+"De rapporten die ze opsommen, het klemmenschema en de kabellijst, zijn het "
+"onderwerp van [Rapporten en PDF](reports-and-pdf.md)."
 
 #: src/tutorials/reports-and-pdf.md:3
 msgid ""
@@ -842,9 +832,9 @@ msgid ""
 msgstr ""
 "In deze zelfstudie werkt u op een kopie van het voorbeeldproject, een "
 "volledig besturingskastproject. U leest de rapportpagina's, voegt er twee "
-"toe, schrijft het hele project als één PDF en bekijkt het "
-"afdrukvoorbeeld. Rapportpagina's worden niet getekend: EW genereert ze "
-"uit het schema, dus ze volgen elke wijziging."
+"toe, schrijft het hele project als één PDF en bekijkt het afdrukvoorbeeld. "
+"Rapportpagina's worden niet getekend: EW genereert ze uit het schema, dus ze "
+"volgen elke wijziging."
 
 #: src/tutorials/reports-and-pdf.md:10
 msgid "An empty folder, or a place where EW may create one."
@@ -853,13 +843,13 @@ msgstr "Een lege map, of een plek waar EW er een mag maken."
 #: src/tutorials/reports-and-pdf.md:14
 msgid ""
 "Choose **Help ▸ Tutorials ▸ Reports and PDF…** and name a new folder "
-"`reports.ew`. EW makes a fresh copy of the sample project there and opens it; "
-"the banner says \"A fresh copy of the sample project was made for the "
+"`reports.ew`. EW makes a fresh copy of the sample project there and opens "
+"it; the banner says \"A fresh copy of the sample project was made for the "
 "tutorials.\" This tutorial's page of the guide opens beside it."
 msgstr ""
 "Kies **Help ▸ Zelfstudies ▸ Rapporten en PDF…** en geef een nieuwe map de "
-"naam `reports.ew`. EW maakt daar een nieuwe kopie van het voorbeeldproject en "
-"opent die; de banner zegt \"Voor de zelfstudies is een nieuwe kopie van "
+"naam `reports.ew`. EW maakt daar een nieuwe kopie van het voorbeeldproject "
+"en opent die; de banner zegt \"Voor de zelfstudies is een nieuwe kopie van "
 "het voorbeeldproject gemaakt.\" De pagina van deze zelfstudie in de gids "
 "opent ernaast."
 
@@ -872,13 +862,13 @@ msgid ""
 "the device tag overview and the revision overview. Click one, such as 904, "
 "to see it."
 msgstr ""
-"Lees de rapportpagina's in de navigator Pagina's, in sectie 9 (folio's "
-"900 tot en met 999). Ze zijn gemarkeerd als gegenereerd: de stuklijst "
-"(Partlist, 901 en 901.1), een klemmenschema voor elke klemmenstrook (903 "
-"tot en met 905), het kabeloverzicht met de kabelschema's (906), de "
-"draadlijst, het PLC-overzicht, het potentiaaloverzicht, het overzicht van "
-"de apparaatkenmerken en het revisieoverzicht. Klik op een ervan, zoals "
-"904, om hem te bekijken."
+"Lees de rapportpagina's in de navigator Pagina's, in sectie 9 (folio's 900 "
+"tot en met 999). Ze zijn gemarkeerd als gegenereerd: de stuklijst (Partlist, "
+"901 en 901.1), een klemmenschema voor elke klemmenstrook (903 tot en met "
+"905), het kabeloverzicht met de kabelschema's (906), de draadlijst, het "
+"PLC-overzicht, het potentiaaloverzicht, het overzicht van de "
+"apparaatkenmerken en het revisieoverzicht. Klik op een ervan, zoals 904, om "
+"hem te bekijken."
 
 #: src/tutorials/reports-and-pdf.md:21
 msgid ""
@@ -889,11 +879,11 @@ msgid ""
 "list device by device, where the Partlist on 901 sums the parts up."
 msgstr ""
 "Kies **Uitvoer ▸ Rapportblok…**. Kies in het formulier het rapport "
-"**Stuklijst**, houd of typ het eerste folio `912`, typ de titel `Parts "
-"list` en kies **Maken**. De notificatie zegt \"Rapportblok Stuklijst "
-"toegevoegd vanaf folio 912\". De navigator Pagina's toont de nieuwe "
-"pagina's 912 tot en met 912.3: de stuklijst per apparaat, waar de "
-"Partlist op 901 de artikelen optelt."
+"**Stuklijst**, houd of typ het eerste folio `912`, typ de titel `Parts list` "
+"en kies **Maken**. De notificatie zegt \"Rapportblok Stuklijst toegevoegd "
+"vanaf folio 912\". De navigator Pagina's toont de nieuwe pagina's 912 tot en "
+"met 912.3: de stuklijst per apparaat, waar de Partlist op 901 de artikelen "
+"optelt."
 
 #: src/tutorials/reports-and-pdf.md:25
 msgid ""
@@ -914,14 +904,13 @@ msgid ""
 "PDF/A-2b file with every page, its outline and its cross-reference links."
 msgstr ""
 "Kies **Uitvoer ▸ PDF exporteren…** (`Ctrl+Shift+E`) en sla het bestand op "
-"als `reports.pdf`. Als de export klaar is, zegt de notificatie "
-"\"reports.pdf geëxporteerd: 13 tekeningpagina's, 3 scheidingspagina's en 25 "
-"rapportpagina's\", met de grootte van het "
-"bestand. Open het bestand vanuit de notificatie om het te bekijken: één "
-"PDF/A-2b-bestand met elke pagina, een inhoudsopgave en links voor de "
-"kruisverwijzingen."
+"als `reports.pdf`. Als de export klaar is, zegt de notificatie \"reports.pdf "
+"geëxporteerd: 13 tekeningpagina's, 3 scheidingspagina's en 25 "
+"rapportpagina's\", met de grootte van het bestand. Open het bestand vanuit "
+"de notificatie om het te bekijken: één PDF/A-2b-bestand met elke pagina, een "
+"inhoudsopgave en links voor de kruisverwijzingen."
 
-#: src/tutorials/reports-and-pdf.md:31
+#: src/tutorials/reports-and-pdf.md:32
 msgid ""
 "Choose **Output ▸ Print…** (`Ctrl+P`). The Print dialog shows the range, the "
 "paper and a preview of the first page: \"1 of 41\". Step to the next page in "
@@ -929,43 +918,43 @@ msgid ""
 "printing."
 msgstr ""
 "Kies **Uitvoer ▸ Afdrukken…** (`Ctrl+P`). Het venster Afdrukken toont het "
-"bereik, het papier en een voorbeeld van de eerste pagina: \"1 van 41\". "
-"Ga in het voorbeeld naar de volgende pagina om pagina 2 te zien. Kies "
+"bereik, het papier en een voorbeeld van de eerste pagina: \"1 van 41\". Ga "
+"in het voorbeeld naar de volgende pagina om pagina 2 te zien. Kies "
 "**Annuleren** om het venster te sluiten zonder af te drukken."
 
-#: src/tutorials/reports-and-pdf.md:39
+#: src/tutorials/reports-and-pdf.md:40
 msgid ""
 "A report block generates report pages from the project: a parts list, "
 "terminal diagrams, a cable list and more. **Output ▸ Report block…** adds "
 "one, from the first folio you give."
 msgstr ""
 "Een rapportblok genereert rapportpagina's uit het project: een stuklijst, "
-"klemmenschema's, een kabellijst en meer. **Uitvoer ▸ Rapportblok…** voegt "
-"er een toe, vanaf het eerste folio dat u opgeeft."
+"klemmenschema's, een kabellijst en meer. **Uitvoer ▸ Rapportblok…** voegt er "
+"een toe, vanaf het eerste folio dat u opgeeft."
 
-#: src/tutorials/reports-and-pdf.md:41
+#: src/tutorials/reports-and-pdf.md:42
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
 msgstr ""
-"Rapportpagina's volgen de tekening: verander een apparaat, een klem of "
-"een kabel, en de rapportpagina's veranderen mee."
+"Rapportpagina's volgen de tekening: verander een apparaat, een klem of een "
+"kabel, en de rapportpagina's veranderen mee."
 
-#: src/tutorials/reports-and-pdf.md:42
+#: src/tutorials/reports-and-pdf.md:43
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
 msgstr ""
-"**Uitvoer ▸ PDF exporteren…** schrijft elke pagina in één PDF; **Uitvoer "
-"▸ Afdrukken…** toont elke pagina voordat die wordt afgedrukt."
+"**Uitvoer ▸ PDF exporteren…** schrijft elke pagina in één PDF; **Uitvoer ▸ "
+"Afdrukken…** toont elke pagina voordat die wordt afgedrukt."
 
-#: src/tutorials/reports-and-pdf.md:43
+#: src/tutorials/reports-and-pdf.md:44
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."
 msgstr ""
-"[Een klemmenstrook en een kabel](terminal-strip-and-cable.md) laat zien "
-"waar de klemmenschema's en de kabellijst hun rijen vandaan halen."
+"[Een klemmenstrook en een kabel](terminal-strip-and-cable.md) laat zien waar "
+"de klemmenschema's en de kabellijst hun rijen vandaan halen."
 
 #: src/tutorials/import-qet.md:3
 msgid ""
@@ -976,11 +965,11 @@ msgid ""
 "record of the import itself. At the end you have a saved EW project."
 msgstr ""
 "In deze zelfstudie brengt u een klein QElectroTech-project over naar "
-"ElektraWatt: een voeding van 24 V die via een schakelaar een lamp voedt. "
-"U importeert het, leest het migratierapport dat zegt wat de import heeft "
-"veranderd, geraden of weggelaten, en lost de bevindingen op die aan u "
-"zijn, tot het rapport alleen nog het verslag van de import zelf toont. "
-"Aan het eind hebt u een opgeslagen EW-project."
+"ElektraWatt: een voeding van 24 V die via een schakelaar een lamp voedt. U "
+"importeert het, leest het migratierapport dat zegt wat de import heeft "
+"veranderd, geraden of weggelaten, en lost de bevindingen op die aan u zijn, "
+"tot het rapport alleen nog het verslag van de import zelf toont. Aan het "
+"eind hebt u een opgeslagen EW-project."
 
 #: src/tutorials/import-qet.md:11
 msgid ""
@@ -997,10 +986,10 @@ msgid ""
 "terminal. One conductor is missing on purpose: the lamp's return to the "
 "supply."
 msgstr ""
-"Het project heeft één folio met vier elementen: de voeding G1, de "
-"schakelaar S1, een lamp zonder label en een aardsymbool dat op de "
-"PE-aansluiting van de voeding is aangesloten. Eén geleider ontbreekt met "
-"opzet: de terugleiding van de lamp naar de voeding."
+"Het project heeft één folio met vier elementen: de voeding G1, de schakelaar "
+"S1, een lamp zonder label en een aardsymbool dat op de PE-aansluiting van de "
+"voeding is aangesloten. Eén geleider ontbreekt met opzet: de terugleiding "
+"van de lamp naar de voeding."
 
 #: src/tutorials/import-qet.md:18
 msgid ""
@@ -1167,26 +1156,26 @@ msgstr ""
 "De folio's komen binnen zoals QElectroTech ze tekende: de draden op hun "
 "paden, de teksten, vormen en afbeeldingen, het kader en het titelblok."
 
-#: src/tutorials/import-qet.md:54
+#: src/tutorials/import-qet.md:62
 msgid ""
 "The migration report lists two kinds of finding: the import's own record "
 "(the EW-IMP rules, and the frozen tags), which stays as a note of what "
 "changed, and the live checks of the project, which go away when you fix them."
 msgstr ""
-"Het migratierapport kent twee soorten bevindingen: het eigen verslag van "
-"de import (de regels EW-IMP en de vastgezette kenmerken), dat blijft "
-"staan als notitie van wat er veranderde, en de actuele controles van het "
-"project, die verdwijnen als u ze oplost."
+"Het migratierapport kent twee soorten bevindingen: het eigen verslag van de "
+"import (de regels EW-IMP en de vastgezette kenmerken), dat blijft staan als "
+"notitie van wat er veranderde, en de actuele controles van het project, die "
+"verdwijnen als u ze oplost."
 
-#: src/tutorials/import-qet.md:56
+#: src/tutorials/import-qet.md:64
 msgid ""
 "In the Messages pane's header you switch between the migration report and "
 "the project's own scheme."
 msgstr ""
-"In de kop van het paneel Meldingen wisselt u tussen het migratierapport "
-"en het eigen schema van het project."
+"In de kop van het paneel Meldingen wisselt u tussen het migratierapport en "
+"het eigen schema van het project."
 
-#: src/tutorials/import-qet.md:57
+#: src/tutorials/import-qet.md:65
 msgid ""
 "[QElectroTech and EW](../explanation/qet-and-ew.md) explains how "
 "QElectroTech's elements, labels, conductors and folio reports become EW's "
@@ -1201,16 +1190,16 @@ msgid ""
 "In this tutorial you draw a reusable symbol: a power block with six "
 "connections, designated 1 to 5 and FE. You check it on the connection grid, "
 "preview its eight orientations, save it to a library, keep a portable copy "
-"of the draft and test the symbol on a new page of a project. At the end "
-"you have a library with the symbol and a saved project with a test copy, "
-"ready to wire."
+"of the draft and test the symbol on a new page of a project. At the end you "
+"have a library with the symbol and a saved project with a test copy, ready "
+"to wire."
 msgstr ""
 "In deze zelfstudie tekent u een herbruikbaar symbool: een voedingsblok met "
 "zes aansluitingen, aangeduid met 1 tot en met 5 en FE. U controleert het op "
 "het verbindingsraster, bekijkt zijn acht oriëntaties, slaat het op in een "
 "bibliotheek, bewaart een draagbare kopie van het concept en test het symbool "
-"op een nieuwe pagina van een project. Aan het eind hebt u een bibliotheek met "
-"het symbool en een opgeslagen project met een testkopie, klaar om te "
+"op een nieuwe pagina van een project. Aan het eind hebt u een bibliotheek "
+"met het symbool en een opgeslagen project met een testkopie, klaar om te "
 "bedraden."
 
 #: src/tutorials/symbol-editor.md:11
@@ -1227,13 +1216,13 @@ msgstr ""
 
 #: src/tutorials/symbol-editor.md:16
 msgid ""
-"Choose **Draw ▸ Place ▸ Symbol editor…**. Type **Power block** as its **Name**, and "
-"in **Library** type the key `example.power`. The editor takes the place of "
-"the page, with its own command bar."
+"Choose **Draw ▸ Place ▸ Symbol editor…**. Type **Power block** as its "
+"**Name**, and in **Library** type the key `example.power`. The editor takes "
+"the place of the page, with its own command bar."
 msgstr ""
-"Kies **Tekenen ▸ Plaatsen ▸ Symbooleditor…**. Typ **Power block** als **Naam**, en typ "
-"in **Bibliotheek** de sleutel `example.power`. De editor neemt de plaats van "
-"de pagina in, met een eigen opdrachtbalk."
+"Kies **Tekenen ▸ Plaatsen ▸ Symbooleditor…**. Typ **Power block** als "
+"**Naam**, en typ in **Bibliotheek** de sleutel `example.power`. De editor "
+"neemt de plaats van de pagina in, met een eigen opdrachtbalk."
 
 #: src/tutorials/symbol-editor.md:19
 msgid ""
@@ -1292,8 +1281,8 @@ msgid ""
 msgstr ""
 "Wijzig in **Elektrische data**, onder **Aansluitpunten**, de x van het "
 "eerste punt in 4,5 mm. De validatie zegt \"Aansluitpunt 1 ligt buiten het "
-"verbindingsraster. Verplaats het naar het raster voordat u opslaat.\" Druk op "
-"`Ctrl+Z` om de wijziging ongedaan te maken. Fijne tekencoördinaten, zoals "
+"verbindingsraster. Verplaats het naar het raster voordat u opslaat.\" Druk "
+"op `Ctrl+Z` om de wijziging ongedaan te maken. Fijne tekencoördinaten, zoals "
 "0,5 mm, blijven geldig."
 
 #: src/tutorials/symbol-editor.md:33
@@ -1323,8 +1312,7 @@ msgid ""
 "test copy of the symbol selected, ready to wire."
 msgstr ""
 "Kies **Testen op een nieuwe pagina**. De editor maakt plaats voor een nieuwe "
-"pagina met een geselecteerde testkopie van het symbool, klaar om te "
-"bedraden."
+"pagina met een geselecteerde testkopie van het symbool, klaar om te bedraden."
 
 #: src/tutorials/symbol-editor.md:44
 msgid ""
@@ -1347,12 +1335,14 @@ msgstr ""
 
 #: src/tutorials/symbol-editor.md:47
 msgid ""
-"**Close editor** keeps the draft and its undo history: **Draw ▸ Place ▸ Symbol editor…** returns to it. In a later session, open `power.symbol.json` under **Open or import**: its next save updates the same symbol."
+"**Close editor** keeps the draft and its undo history: **Draw ▸ Place ▸ "
+"Symbol editor…** returns to it. In a later session, open `power.symbol.json` "
+"under **Open or import**: its next save updates the same symbol."
 msgstr ""
 "**Editor sluiten** bewaart het concept en de geschiedenis om ongedaan te "
-"maken: **Tekenen ▸ Plaatsen ▸ Symbooleditor…** keert ernaar terug. Open in een latere "
-"sessie `power.symbol.json` onder **Openen of importeren**: de volgende keer "
-"opslaan werkt hetzelfde symbool bij."
+"maken: **Tekenen ▸ Plaatsen ▸ Symbooleditor…** keert ernaar terug. Open in "
+"een latere sessie `power.symbol.json` onder **Openen of importeren**: de "
+"volgende keer opslaan werkt hetzelfde symbool bij."
 
 #: src/tutorials/symbol-editor.md:50
 msgid ""
@@ -1374,8 +1364,8 @@ msgid ""
 msgstr ""
 "Het script maakt het project naast zichzelf en de bibliotheek en "
 "`power.symbol.json` in uw gebruikersbibliotheekmap, en opent het concept "
-"opnieuw. Zie de [naslag](../reference/symbol-editor.md) voor JSON, acties en"
-" importcompatibiliteit."
+"opnieuw. Zie de [naslag](../reference/symbol-editor.md) voor JSON, acties en "
+"importcompatibiliteit."
 
 #: src/tutorials/headless-workflow.md:3
 msgid ""
@@ -1386,10 +1376,10 @@ msgid ""
 "never uses the network."
 msgstr ""
 "In deze zelfstudie gebruikt u het opdrachtregelprogramma `ew` op het "
-"referentieproject: u controleert het project, schrijft de pagina's als "
-"PDF en SVG, exporteert de kabellijst en de stuklijst, en stelt het "
-"project vragen in SQL. Niets heeft de desktopapplicatie nodig, en niets "
-"verlaat uw computer: `ew` gebruikt nooit het netwerk."
+"referentieproject: u controleert het project, schrijft de pagina's als PDF "
+"en SVG, exporteert de kabellijst en de stuklijst, en stelt het project "
+"vragen in SQL. Niets heeft de desktopapplicatie nodig, en niets verlaat uw "
+"computer: `ew` gebruikt nooit het netwerk."
 
 #: src/tutorials/headless-workflow.md:7
 msgid ""
@@ -1416,8 +1406,8 @@ msgid ""
 "a checkout of the ElektraWatt repository, which holds the project in "
 "`golden/`;"
 msgstr ""
-"een checkout van de repository van ElektraWatt, die het project in "
-"`golden/` bevat;"
+"een checkout van de repository van ElektraWatt, die het project in `golden/` "
+"bevat;"
 
 #: src/tutorials/headless-workflow.md:16
 msgid ""
@@ -1427,9 +1417,9 @@ msgid ""
 "path."
 msgstr ""
 "het programma `ew`, gebouwd uit de checkout met `cargo build --release -p "
-"ew`. Het is dan `target/release/ew` (`target\\release\\ew.exe` op "
-"Windows). De voorbeelden schrijven gewoon `ew`; zet het programma in uw "
-"`PATH` of typ het pad ervan."
+"ew`. Het is dan `target/release/ew` (`target\\release\\ew.exe` op Windows). "
+"De voorbeelden schrijven gewoon `ew`; zet het programma in uw `PATH` of typ "
+"het pad ervan."
 
 #: src/tutorials/headless-workflow.md:20
 msgid ""
@@ -1457,12 +1447,11 @@ msgid ""
 "README](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
 "describes the tables and their format."
 msgstr ""
-"De map `golden/J-E-2416/tables/` bevat het project als gewone "
-"CSV-tabellen: één bestand per soort record (apparaten, klemmen, "
-"verbindingen, pagina's enzovoort). De importer van de crate "
-"`ew-import-tables` zet deze tabellen om in projectrecords, en het "
-"ingecheckte project `golden/J-E-2416.ew` wordt uit dezelfde tabellen "
-"gegenereerd. De [README van het "
+"De map `golden/J-E-2416/tables/` bevat het project als gewone CSV-tabellen: "
+"één bestand per soort record (apparaten, klemmen, verbindingen, pagina's "
+"enzovoort). De importer van de crate `ew-import-tables` zet deze tabellen om "
+"in projectrecords, en het ingecheckte project `golden/J-E-2416.ew` wordt uit "
+"dezelfde tabellen gegenereerd. De [README van het "
 "referentieproject](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) "
 "beschrijft de tabellen en hun opmaak."
 
@@ -1473,10 +1462,10 @@ msgid ""
 "tutorial starts from the checked-in project. When the subcommand exists, "
 "this step will become a command line."
 msgstr ""
-"**Nog niet gebouwd.** De importer is nu een bibliotheek. De subopdracht "
-"`ew import csv` die hem vanuit de terminal zal uitvoeren, bestaat nog "
-"niet, dus deze zelfstudie begint bij het ingecheckte project. Zodra de "
-"subopdracht bestaat, wordt deze stap een opdrachtregel."
+"**Nog niet gebouwd.** De importer is nu een bibliotheek. De subopdracht `ew "
+"import csv` die hem vanuit de terminal zal uitvoeren, bestaat nog niet, dus "
+"deze zelfstudie begint bij het ingecheckte project. Zodra de subopdracht "
+"bestaat, wordt deze stap een opdrachtregel."
 
 #: src/tutorials/headless-workflow.md:44
 msgid ""
@@ -1510,12 +1499,12 @@ msgid ""
 "golden project holds deliberate defects, so it reports errors: the cable "
 "`-3W1`, for one, has no length, so a cable list cannot be complete."
 msgstr ""
-"Elke regel geeft de ernst, de regel-ID, de zescijferige code van de "
-"regel, het onderwerp van de bevinding en een melding. De laatste regel "
-"telt de bevindingen, en de standaardfoutuitvoer herhaalt het aantal met "
-"de naam van het schema. Het referentieproject bevat opzettelijke "
-"gebreken, dus het meldt fouten: de kabel `-3W1` heeft bijvoorbeeld geen "
-"lengte, dus een kabellijst kan niet volledig zijn."
+"Elke regel geeft de ernst, de regel-ID, de zescijferige code van de regel, "
+"het onderwerp van de bevinding en een melding. De laatste regel telt de "
+"bevindingen, en de standaardfoutuitvoer herhaalt het aantal met de naam van "
+"het schema. Het referentieproject bevat opzettelijke gebreken, dus het meldt "
+"fouten: de kabel `-3W1` heeft bijvoorbeeld geen lengte, dus een kabellijst "
+"kan niet volledig zijn."
 
 #: src/tutorials/headless-workflow.md:69
 msgid "Look at the exit code:"
@@ -1530,12 +1519,12 @@ msgid ""
 "in [doc 17 "
 "§3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes)."
 msgstr ""
-"`ew` sluit af met 0 als het project geen fouten zonder vrijstelling "
-"heeft, met 1 als het die wel heeft, en met 2 als het de controle helemaal "
-"niet kon uitvoeren (een project dat niet te openen is, een verkeerde "
-"optie). Een script hoort 2 te behandelen als een fout van het gereedschap "
-"en 1 als een antwoord over de tekening. De afsluitcodes van elke "
-"subopdracht staan in [doc 17 "
+"`ew` sluit af met 0 als het project geen fouten zonder vrijstelling heeft, "
+"met 1 als het die wel heeft, en met 2 als het de controle helemaal niet kon "
+"uitvoeren (een project dat niet te openen is, een verkeerde optie). Een "
+"script hoort 2 te behandelen als een fout van het gereedschap en 1 als een "
+"antwoord over de tekening. De afsluitcodes van elke subopdracht staan in "
+"[doc 17 "
 "§3.2](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/17-extensibility.md#32-exit-codes)."
 
 #: src/tutorials/headless-workflow.md:81
@@ -1582,17 +1571,17 @@ msgid ""
 "`--out` must exist, which is why you made `out` first."
 msgstr ""
 "De tweede regel, op de standaardfoutuitvoer, telt opmerkingen over het "
-"weergeven van afzonderlijke pagina's. Ze houden de export niet tegen. De "
-"map van `--out` moet bestaan; daarom hebt u eerst `out` gemaakt."
+"weergeven van afzonderlijke pagina's. Ze houden de export niet tegen. De map "
+"van `--out` moet bestaan; daarom hebt u eerst `out` gemaakt."
 
 #: src/tutorials/headless-workflow.md:102
 msgid ""
 "`ew export svg` writes one SVG file per page into a directory. Use `--pages` "
 "to select folios; this writes the pages numbered 101 to 106 that exist:"
 msgstr ""
-"`ew export svg` schrijft één SVG-bestand per pagina in een map. Kies "
-"folio's met `--pages`; dit schrijft de pagina's met de nummers 101 tot en "
-"met 106 die bestaan:"
+"`ew export svg` schrijft één SVG-bestand per pagina in een map. Kies folio's "
+"met `--pages`; dit schrijft de pagina's met de nummers 101 tot en met 106 "
+"die bestaan:"
 
 #: src/tutorials/headless-workflow.md:111
 msgid ""
@@ -1600,9 +1589,9 @@ msgid ""
 "replaces the directory as a whole, so it must hold SVG files only; a stale "
 "page of an earlier export cannot remain in it."
 msgstr ""
-"De map bevat nu `101.svg`, `102.svg`, `103.svg` en `106.svg`. `ew` "
-"vervangt de map als geheel, dus ze mag alleen SVG-bestanden bevatten; een "
-"oude pagina van een eerdere export kan er niet in achterblijven."
+"De map bevat nu `101.svg`, `102.svg`, `103.svg` en `106.svg`. `ew` vervangt "
+"de map als geheel, dus ze mag alleen SVG-bestanden bevatten; een oude pagina "
+"van een eerdere export kan er niet in achterblijven."
 
 #: src/tutorials/headless-workflow.md:114
 msgid ""
@@ -1612,9 +1601,9 @@ msgid ""
 "changes the speed and never the result."
 msgstr ""
 "Dezelfde export geeft altijd dezelfde bytes. De enige datum in de uitvoer "
-"komt uit het project, of uit de omgevingsvariabele `SOURCE_DATE_EPOCH` "
-"als u die zet, nooit uit de klok van uw computer; `--threads <n>` "
-"verandert de snelheid en nooit het resultaat."
+"komt uit het project, of uit de omgevingsvariabele `SOURCE_DATE_EPOCH` als u "
+"die zet, nooit uit de klok van uw computer; `--threads <n>` verandert de "
+"snelheid en nooit het resultaat."
 
 #: src/tutorials/headless-workflow.md:118
 msgid "Step 3: export the cable list and the bill of materials"
@@ -1628,8 +1617,7 @@ msgstr "Nog twee exports schrijven de rijen van een rapport als CSV:"
 msgid ""
 "Open `out/cables.csv` in a text editor or a spreadsheet. It starts like this:"
 msgstr ""
-"Open `out/cables.csv` in een teksteditor of een spreadsheet. Het begint "
-"zo:"
+"Open `out/cables.csv` in een teksteditor of een spreadsheet. Het begint zo:"
 
 #: src/tutorials/headless-workflow.md:131
 msgid ""
@@ -1653,9 +1641,9 @@ msgid ""
 "from the other side. The cables `-106W1` and `-106W2` take their length from "
 "their part."
 msgstr ""
-"De kabel `-3W1` zegt \"length missing\": dat is de bevinding van stap 1, "
-"van de andere kant gezien. De kabels `-106W1` en `-106W2` nemen hun "
-"lengte van hun artikel."
+"De kabel `-3W1` zegt \"length missing\": dat is de bevinding van stap 1, van "
+"de andere kant gezien. De kabels `-106W1` en `-106W2` nemen hun lengte van "
+"hun artikel."
 
 #: src/tutorials/headless-workflow.md:141
 msgid ""
@@ -1664,11 +1652,11 @@ msgid ""
 "row for the product. Both write the rows of the project's own report page, "
 "so the CSV equals what the drawing prints."
 msgstr ""
-"`--mode` van `ew export bom` is `parts` (de standaard; elk "
-"onderdeelartikel) of `assembly`, dat de artikelen die een geconfigureerd "
-"product omvat vervangt door één rij voor het product. Beide schrijven de "
-"rijen van de eigen rapportpagina van het project, dus de CSV is gelijk "
-"aan wat de tekening afdrukt."
+"`--mode` van `ew export bom` is `parts` (de standaard; elk onderdeelartikel) "
+"of `assembly`, dat de artikelen die een geconfigureerd product omvat "
+"vervangt door één rij voor het product. Beide schrijven de rijen van de "
+"eigen rapportpagina van het project, dus de CSV is gelijk aan wat de "
+"tekening afdrukt."
 
 #: src/tutorials/headless-workflow.md:145
 msgid "Step 4: ask the project questions with SQL"
@@ -1752,11 +1740,11 @@ msgid ""
 "job, because they read the project without locking it and never need a "
 "display."
 msgstr ""
-"U hebt een project gecontroleerd en de afsluitcode gelezen, de pagina's "
-"als PDF en SVG geschreven, een kabellijst en een stuklijst geëxporteerd "
-"en het project in SQL bevraagd, alles vanuit de terminal. Dezelfde "
-"opdrachten draaien in een script of een CI-taak, omdat ze het project "
-"lezen zonder het te vergrendelen en nooit een beeldscherm nodig hebben."
+"U hebt een project gecontroleerd en de afsluitcode gelezen, de pagina's als "
+"PDF en SVG geschreven, een kabellijst en een stuklijst geëxporteerd en het "
+"project in SQL bevraagd, alles vanuit de terminal. Dezelfde opdrachten "
+"draaien in een script of een CI-taak, omdat ze het project lezen zonder het "
+"te vergrendelen en nooit een beeldscherm nodig hebben."
 
 #: src/tutorials/headless-workflow.md:177
 msgid "Where to go next"
@@ -1768,10 +1756,9 @@ msgid ""
 "that change a project, and the [rule reference](../reference/rules/index.md) "
 "the rules that `ew check` runs."
 msgstr ""
-"De [opdrachtnaslag](../reference/commands/index.md) toont de opdrachten "
-"die een project veranderen, en de "
-"[regelnaslag](../reference/rules/index.md) de regels die `ew check` "
-"uitvoert."
+"De [opdrachtnaslag](../reference/commands/index.md) toont de opdrachten die "
+"een project veranderen, en de [regelnaslag](../reference/rules/index.md) de "
+"regels die `ew check` uitvoert."
 
 #: src/tutorials/headless-workflow.md:181
 msgid ""
@@ -2188,7 +2175,8 @@ msgid ""
 msgstr ""
 
 #: src/how-to/application-window.md:18
-msgid "**Tutorials** opens the tutorials and a fresh copy of the sample project."
+msgid ""
+"**Tutorials** opens the tutorials and a fresh copy of the sample project."
 msgstr ""
 
 #: src/how-to/application-window.md:19
@@ -2338,8 +2326,8 @@ msgstr ""
 msgid ""
 "**Help, About ElektraWatt** shows the version, the page-view renderer, the "
 "privacy state, the licence, the engineering-verification disclaimer, the "
-"support status computed from the planned support end, and the third-party "
-"notices."
+"support line (before 1.0 only the latest 0.x release is supported), and the "
+"third-party notices."
 msgstr ""
 
 #: src/how-to/text-interface.md:3
@@ -2419,7 +2407,7 @@ msgid ""
 "several steps."
 msgstr ""
 
-#: src/how-to/text-interface.md:38 src/reference/window/panels.md:83
+#: src/how-to/text-interface.md:38 src/reference/window/panels.md:88
 msgid "Terminal strips"
 msgstr ""
 
@@ -2702,28 +2690,28 @@ msgid ""
 "function, open the part with its arrow and double-click the function."
 msgstr ""
 
-#: src/how-to/choose-parts.md:28
+#: src/how-to/choose-parts.md:29
 msgid "Click where the device goes on the page."
 msgstr ""
 
-#: src/how-to/choose-parts.md:30
+#: src/how-to/choose-parts.md:31
 msgid "Read the parts list"
 msgstr ""
 
-#: src/how-to/choose-parts.md:32
+#: src/how-to/choose-parts.md:33
 msgid ""
 "**Output ▸ Open parts list** opens the parts-list page of the project, when "
 "it has one: a project made with the company standard wizard, and the sample "
 "project, have one."
 msgstr ""
 
-#: src/how-to/choose-parts.md:34
+#: src/how-to/choose-parts.md:35
 msgid ""
 "**View ▸ Panels ▸ Navigators ▸ Parts in use** lists the parts the project "
 "uses with their devices, in any project."
 msgstr ""
 
-#: src/how-to/choose-parts.md:36
+#: src/how-to/choose-parts.md:37
 msgid ""
 "The part data comes from the library: [Edit "
 "part](../reference/window/dialogs.md#edit-part) changes the project's copy, "
@@ -2964,14 +2952,17 @@ msgstr ""
 #: src/reference/window/tools.md:7
 msgid ""
 "The keys of every tool are on the [keymap](../keymaps.md) page, for each "
-"keymap preset. A tool's own keys work only while it is active."
+"keymap preset. A tool's own keys work only while it is active. `Esc` or a "
+"right click on the page cancels what the active tool is doing, one step at a "
+"time, and ends at Select; with Select active, a right click opens the page's "
+"menu."
 msgstr ""
 
-#: src/reference/window/tools.md:10
+#: src/reference/window/tools.md:11
 msgid "Select"
 msgstr ""
 
-#: src/reference/window/tools.md:12
+#: src/reference/window/tools.md:13
 msgid ""
 "Selects, moves and opens what you click: a click selects one item, a drag "
 "draws a selection band, a double click opens the item's properties. Open it "
@@ -2979,21 +2970,21 @@ msgid ""
 "window](../../how-to/application-window.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:16
+#: src/reference/window/tools.md:17
 msgid "Measure"
 msgstr ""
 
-#: src/reference/window/tools.md:18
+#: src/reference/window/tools.md:19
 msgid ""
 "Measures the distance between two points on the page, in millimetres of the "
 "sheet. Open it with Draw ▸ Annotate ▸ Measure."
 msgstr ""
 
-#: src/reference/window/tools.md:21
+#: src/reference/window/tools.md:22 src/reference/symbol-editor.md:160
 msgid "Symbol"
 msgstr ""
 
-#: src/reference/window/tools.md:23
+#: src/reference/window/tools.md:24
 msgid ""
 "Places a symbol from the library: double-click the symbol in the browser "
 "(its categories at the left, a picture of the chosen row at the right), then "
@@ -3002,11 +2993,11 @@ msgid ""
 "page](../../tutorials/first-page.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:26
+#: src/reference/window/tools.md:28
 msgid "Device from part"
 msgstr ""
 
-#: src/reference/window/tools.md:28
+#: src/reference/window/tools.md:30
 msgid ""
 "Places a device from a part of the library, so that the device has its part "
 "from the start. The browser lists one row per part; a part with several "
@@ -3014,113 +3005,132 @@ msgid ""
 "▸ Device from part…. See [Choose parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:31 src/explanation/eplan-and-ew.md:112
+#: src/reference/window/tools.md:34
+msgid "Terminal"
+msgstr ""
+
+#: src/reference/window/tools.md:36
+msgid ""
+"Opens the device browser on its terminals: choose one, then the strip it "
+"joins or a new strip. Every other kind of part is one click away in the "
+"browser's tree. Draw ▸ Place ▸ Terminal…."
+msgstr ""
+
+#: src/reference/window/tools.md:39 src/explanation/eplan-and-ew.md:112
 msgid "Black box"
 msgstr ""
 
-#: src/reference/window/tools.md:33
+#: src/reference/window/tools.md:41
 msgid ""
 "Draws a black box: a rectangle with connection points for a device that the "
 "library has no symbol for. Open it with Draw ▸ Place ▸ Black box…."
 msgstr ""
 
-#: src/reference/window/tools.md:36
+#: src/reference/window/tools.md:44
 msgid "Tool step back"
 msgstr ""
 
-#: src/reference/window/tools.md:38
+#: src/reference/window/tools.md:46
 msgid ""
 "Takes back the last step of the active tool, such as the last corner of a "
 "wire, without leaving the tool. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:41
+#: src/reference/window/tools.md:49
 msgid "Rotate clockwise"
 msgstr ""
 
-#: src/reference/window/tools.md:43
+#: src/reference/window/tools.md:51
 msgid ""
 "Turns the symbol that the tool floats, or the selection, by 90° clockwise. "
 "Draw ▸ Arrange ▸ Rotate clockwise."
 msgstr ""
 
-#: src/reference/window/tools.md:45
+#: src/reference/window/tools.md:53
 msgid "Rotate counter-clockwise"
 msgstr ""
 
-#: src/reference/window/tools.md:47
+#: src/reference/window/tools.md:55
 msgid ""
 "Turns the floating symbol, or the selection, by 90° counter-clockwise. Draw "
 "▸ Arrange ▸ Rotate counter-clockwise."
 msgstr ""
 
-#: src/reference/window/tools.md:49
+#: src/reference/window/tools.md:57
 msgid "Mirror left to right"
 msgstr ""
 
-#: src/reference/window/tools.md:51
+#: src/reference/window/tools.md:59
 msgid ""
 "Mirrors the floating symbol, or the selection, about its vertical axis. Draw "
 "▸ Arrange ▸ Mirror left to right."
 msgstr ""
 
-#: src/reference/window/tools.md:53
+#: src/reference/window/tools.md:61
 msgid "Mirror top to bottom"
 msgstr ""
 
-#: src/reference/window/tools.md:55
+#: src/reference/window/tools.md:63
 msgid ""
 "Mirrors the floating symbol, or the selection, about its horizontal axis. "
 "Draw ▸ Arrange ▸ Mirror top to bottom."
 msgstr ""
 
-#: src/reference/window/tools.md:57
+#: src/reference/window/tools.md:65
 msgid "Next variant"
 msgstr ""
 
-#: src/reference/window/tools.md:59
+#: src/reference/window/tools.md:67
 msgid ""
 "Switches the floating symbol to its next variant, such as another contact "
 "arrangement of the same function. Draw ▸ Arrange ▸ Next variant."
 msgstr ""
 
-#: src/reference/window/tools.md:62
+#: src/reference/window/tools.md:70
 msgid "Next representation type"
 msgstr ""
 
-#: src/reference/window/tools.md:64
+#: src/reference/window/tools.md:72
 msgid ""
 "Switches the floating symbol to its next representation type, for example "
 "from the multi-line to the single-line form. Draw ▸ Arrange ▸ Next "
 "representation type."
 msgstr ""
 
-#: src/reference/window/tools.md:67
+#: src/reference/window/tools.md:75
 msgid "Move"
 msgstr ""
 
-#: src/reference/window/tools.md:69
+#: src/reference/window/tools.md:77
 msgid ""
 "Moves the selection with the pointer or the keyboard; wires attached to it "
 "follow. Draw ▸ Arrange ▸ Move."
 msgstr ""
 
-#: src/reference/window/tools.md:71
+#: src/reference/window/tools.md:79
+msgid ""
+"When you let go, a wire whose followed route would now run through a symbol, "
+"a text, a connection point or along another wire, or would bend more than "
+"before, is routed again; a wire that stays clean keeps its shape. Both "
+"happen in the same undo step as the move."
+msgstr ""
+
+#: src/reference/window/tools.md:83
 msgid "Finish"
 msgstr ""
 
-#: src/reference/window/tools.md:73
+#: src/reference/window/tools.md:85
 msgid ""
 "Ends what the active tool is drawing, such as a wire or a polyline, at the "
 "current point. It has no menu item; use its key or double-click where a tool "
 "allows it."
 msgstr ""
 
-#: src/reference/window/tools.md:76
+#: src/reference/window/tools.md:88
 msgid "Wire"
 msgstr ""
 
-#: src/reference/window/tools.md:78
+#: src/reference/window/tools.md:90
 msgid ""
 "Draws connections between connection points: click a start point, then the "
 "end point; corners are placed where you click in between. Open it with Draw "
@@ -3128,142 +3138,245 @@ msgid ""
 "page](../../tutorials/first-page.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:81
+#: src/reference/window/tools.md:93
+msgid ""
+"While you draw, the wire shows the route it will take. The route never runs "
+"through another connection point, along another wire, through a symbol or a "
+"text, over the frame's bands, or through a junction, and never makes a "
+"fourth arm of a junction. When no such route exists the wire shows as a "
+"dashed right-angled line and the hint says \"No clear route: the wire stays "
+"unrouted. Click to place bends.\" Ending it there stores an unrouted wire: "
+"it keeps its connection, but it is drawn dashed and the check reports it "
+"until it has a route. Click on empty points to place bends and the wire "
+"follows them (\"Bend placed: click a connection point to end the wire.\"). A "
+"junction that already joins three wires is not an end: the hint says \"This "
+"junction already joins three wires: end on a wire to make a new junction.\""
+msgstr ""
+
+#: src/reference/window/tools.md:102
+msgid ""
+"An unrouted wire, from an import or a placement, is drawn as a dashed line "
+"between its ends, straight or with one corner and never diagonal, on the "
+"page and in the PDF. The line takes no notice of what lies under it: it is "
+"no route yet. Route page or Route selection draws it."
+msgstr ""
+
+#: src/reference/window/tools.md:106
 msgid "Next autoconnect proposal"
 msgstr ""
 
-#: src/reference/window/tools.md:83
+#: src/reference/window/tools.md:108
 msgid ""
 "While a symbol floats near other connection points, shows the next of the "
 "connections EW proposes to draw when you place it. It has no menu item; use "
 "its key."
 msgstr ""
 
-#: src/reference/window/tools.md:86
+#: src/reference/window/tools.md:111
 msgid "Connect while moving"
 msgstr ""
 
-#: src/reference/window/tools.md:88
+#: src/reference/window/tools.md:113
 msgid ""
 "While moving a symbol, connects its connection points to the ones it lands "
 "on. It has no menu item; use its key."
 msgstr ""
 
-#: src/reference/window/tools.md:90
+#: src/reference/window/tools.md:115
+msgid ""
+"Connect while moving is on when you start: the wires the moved symbol would "
+"make are shown while you drag and are drawn with the move when you let go, "
+"in the same undo step. Hold the key that places without wires as you let go "
+"to move without them. The key of Connect while moving turns it off, and on "
+"again, until you close the program; the hint of the move and the status bar "
+"show the key followed by \"Connect on move: on\" or \"off\". A move with the "
+"keyboard follows that setting."
+msgstr ""
+
+#: src/reference/window/tools.md:121
 msgid "Edit route"
 msgstr ""
 
-#: src/reference/window/tools.md:92
+#: src/reference/window/tools.md:123
 msgid ""
-"Changes the drawn route of a wire: drag a segment or a corner. Open it with "
-"Draw ▸ Connect ▸ Edit route."
+"Changes the drawn route of a wire with the mouse. Select the wire: a handle "
+"shows on each of its segments and a dashed one on each bend. Drag a segment "
+"and it moves sideways; drag a bend and the corner moves. The wire stays "
+"right-angled and its ends stay on their connection points: a first or last "
+"segment that is dragged keeps a short stub at its end and jogs after it, so "
+"a straight wire dragged sideways goes round what was in its way. A dashed "
+"line shows the new route while you drag, and one undo takes the change back. "
+"A wire without a route, drawn dashed, takes its first route this way too. "
+"Draw ▸ Connect ▸ Edit route does the same from the keyboard: `Tab` chooses "
+"the segment, the arrow keys move it, `Enter` stores it."
 msgstr ""
 
-#: src/reference/window/tools.md:94 src/explanation/eplan-and-ew.md:44
+#: src/reference/window/tools.md:131
+msgid "Route page"
+msgstr ""
+
+#: src/reference/window/tools.md:133
+msgid ""
+"Routes every unrouted wire of the page on show in one step. Open it with "
+"Draw ▸ Connect ▸ Route page. The Preview tab shows the plan first: \"Route 3 "
+"wires on folio 101: 2 routed, 1 not routed.\", and for each wire that no "
+"route keeps clear, why, such as \"No route keeps clear of other wires: "
+"-101F1:2 → -101E55:L.\" Apply draws the routes, and one Undo takes them "
+"back; the toast says \"Routed 2 wires on folio 101.\" When every wire of the "
+"page has a route it says \"Every wire on folio 101 has a route.\" instead. "
+"The router routes supply wires and long wires first, keeps the wires of a "
+"feed side by side in the order L1, L2, L3, N, PE where their ends allow it, "
+"and keeps every route clear as the Wire tool does. A wire it cannot route "
+"stays unrouted; move a symbol to make room, or place its bends with the Wire "
+"tool."
+msgstr ""
+
+#: src/reference/window/tools.md:142
+msgid "Route selection"
+msgstr ""
+
+#: src/reference/window/tools.md:144
+msgid ""
+"Routes the selected wires, and every wire with an end on a selected symbol, "
+"again, routed or not; the other wires of the page stay as they are. Open it "
+"with Draw ▸ Connect ▸ Route selection. It shows its plan and applies it as "
+"Route page does."
+msgstr ""
+
+#: src/reference/window/tools.md:148 src/explanation/eplan-and-ew.md:44
 msgid "Interruption point"
 msgstr ""
 
-#: src/reference/window/tools.md:96
+#: src/reference/window/tools.md:150
 msgid ""
 "Places an interruption point: the end of a potential on this page that "
 "continues at a point of the same name elsewhere. Open it with Draw ▸ Connect "
 "▸ Interruption point."
 msgstr ""
 
-#: src/reference/window/tools.md:99
+#: src/reference/window/tools.md:153
+msgid ""
+"The arrow always points right, the way the signal flows. A source, where the "
+"potential leaves the page, has its wire on the arrow's tail and belongs at "
+"the page's right edge; a target, where the potential arrives, has its wire "
+"on the arrow's tip and belongs at the left edge. The name is above the arrow "
+"and the cross-reference below it. The arrow is never rotated or mirrored: "
+"change the point's direction instead. While you draw a wire, the "
+"interruption point's key ends the wire in a point of the right form for that "
+"end."
+msgstr ""
+
+#: src/reference/window/tools.md:159
+msgid ""
+"Type the name in Tool options, once for a pair: the first point of a name is "
+"its source, and the tool then floats the same name as its target, on this "
+"page or the next. After the target the name is used up, and each further "
+"point gets a name of its own until you type one."
+msgstr ""
+
+#: src/reference/window/tools.md:163
 msgid "Interruption point direction"
 msgstr ""
 
-#: src/reference/window/tools.md:101
+#: src/reference/window/tools.md:165
 msgid ""
 "Turns the interruption point that the tool floats to its next direction. "
 "Draw ▸ Connect ▸ Interruption point direction."
 msgstr ""
 
-#: src/reference/window/tools.md:104
+#: src/reference/window/tools.md:168
+msgid ""
+"The point takes the form of its new direction: the wire moves from the tail "
+"to the tip, or back. Changing the direction of a placed point in its "
+"properties does the same, and is refused when the project does not hold the "
+"other form yet: place one point of that direction first."
+msgstr ""
+
+#: src/reference/window/tools.md:172
 msgid "Star source"
 msgstr ""
 
-#: src/reference/window/tools.md:106
+#: src/reference/window/tools.md:174
 msgid ""
 "Marks the interruption point as the source of its name in star mode: one "
 "source, many targets. Draw ▸ Connect ▸ Star source."
 msgstr ""
 
-#: src/reference/window/tools.md:109
+#: src/reference/window/tools.md:177
 msgid "Wire marker"
 msgstr ""
 
-#: src/reference/window/tools.md:111
+#: src/reference/window/tools.md:179
 msgid ""
 "Places a wire marker, the label that prints a wire's number or text on the "
 "wire. Open it with Draw ▸ Annotate ▸ Wire marker."
 msgstr ""
 
-#: src/reference/window/tools.md:114
+#: src/reference/window/tools.md:182
 msgid "Text"
 msgstr ""
 
-#: src/reference/window/tools.md:116
+#: src/reference/window/tools.md:184
 msgid "Places a free text on the page. Open it with Draw ▸ Annotate ▸ Text."
 msgstr ""
 
-#: src/reference/window/tools.md:118
+#: src/reference/window/tools.md:186
 msgid "Graphic"
 msgstr ""
 
-#: src/reference/window/tools.md:120
+#: src/reference/window/tools.md:188
 msgid ""
 "Draws a graphic: a line, polyline, rectangle, circle, arc or polygon, which "
 "has no electrical meaning. Open it with Draw ▸ Annotate ▸ Graphic and the "
 "shape."
 msgstr ""
 
-#: src/reference/window/tools.md:123 src/explanation/eplan-and-ew.md:120
+#: src/reference/window/tools.md:191 src/explanation/eplan-and-ew.md:120
 msgid "Structure box"
 msgstr ""
 
-#: src/reference/window/tools.md:125
+#: src/reference/window/tools.md:193
 msgid ""
 "Draws a structure box: a dashed frame that puts what it encloses into a "
 "function or location of the project's structure. Open it with Draw ▸ "
 "Annotate ▸ Structure box."
 msgstr ""
 
-#: src/reference/window/tools.md:128
+#: src/reference/window/tools.md:196
 msgid "Image"
 msgstr ""
 
-#: src/reference/window/tools.md:130
+#: src/reference/window/tools.md:198
 msgid ""
 "Places an image file (SVG, PNG or JPEG) on the page. Open it with Draw ▸ "
 "Annotate ▸ Image…."
 msgstr ""
 
-#: src/reference/window/tools.md:132
+#: src/reference/window/tools.md:200
 msgid "Place device"
 msgstr ""
 
-#: src/reference/window/tools.md:134
+#: src/reference/window/tools.md:202
 msgid ""
 "On a panel layout page, places a device of the location on a rail or the "
 "mounting plate. Open it from the Unplaced devices navigator, which lists the "
 "devices of the location that have no place yet."
 msgstr ""
 
-#: src/reference/window/tools.md:137
+#: src/reference/window/tools.md:205
 msgid "Rail"
 msgstr ""
 
-#: src/reference/window/tools.md:139
-msgid "On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail."
+#: src/reference/window/tools.md:207
+msgid ""
+"On a panel layout page, draws a mounting rail. Open it with Draw ▸ Rail."
 msgstr ""
 
-#: src/reference/window/tools.md:141
+#: src/reference/window/tools.md:209
 msgid "Duct"
 msgstr ""
 
-#: src/reference/window/tools.md:143
+#: src/reference/window/tools.md:211
 msgid "On a panel layout page, draws a wiring duct. Open it with Draw ▸ Duct."
 msgstr ""
 
@@ -3609,127 +3722,657 @@ msgstr ""
 msgid "Devices"
 msgstr ""
 
-#: src/reference/window/panels.md:77
+#: src/reference/window/panels.md:82
 msgid "The devices with their functions and representations."
 msgstr ""
 
-#: src/reference/window/panels.md:79
+#: src/reference/window/panels.md:84
 msgid "Connections"
 msgstr ""
 
-#: src/reference/window/panels.md:81
+#: src/reference/window/panels.md:86
 msgid "The connections, the wires drawn on the pages."
 msgstr ""
 
-#: src/reference/window/panels.md:85
+#: src/reference/window/panels.md:90
 msgid ""
 "The terminal strips with their terminals. Its table mode is the strip editor."
 msgstr ""
 
-#: src/reference/window/panels.md:87
+#: src/reference/window/panels.md:92
 msgid "Cables"
 msgstr ""
 
-#: src/reference/window/panels.md:89
+#: src/reference/window/panels.md:94
 msgid ""
 "The cables with their cores. See [A terminal strip and a "
 "cable](../../tutorials/terminal-strip-and-cable.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:91
+#: src/reference/window/panels.md:96
 msgid "PLC"
 msgstr ""
 
-#: src/reference/window/panels.md:93
+#: src/reference/window/panels.md:98
 msgid ""
 "The PLC configuration projects, stations, modules and channels, with their "
 "addresses."
 msgstr ""
 
-#: src/reference/window/panels.md:95
+#: src/reference/window/panels.md:100
 msgid "Potentials"
 msgstr ""
 
-#: src/reference/window/panels.md:97
+#: src/reference/window/panels.md:102
 msgid ""
 "The potentials with their definitions and members. See [Define a supply "
 "potential](../../how-to/define-supply-potential.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:100
+#: src/reference/window/panels.md:105
 msgid "Interruption points"
 msgstr ""
 
-#: src/reference/window/panels.md:102
+#: src/reference/window/panels.md:107
 msgid "The interruption points grouped by name, with their partners."
 msgstr ""
 
-#: src/reference/window/panels.md:104
+#: src/reference/window/panels.md:109
 msgid "Structure identifiers"
 msgstr ""
 
-#: src/reference/window/panels.md:106
+#: src/reference/window/panels.md:111
 msgid "The function and location nodes of the project's structure."
 msgstr ""
 
-#: src/reference/window/panels.md:108
+#: src/reference/window/panels.md:113
 msgid "Parts in use"
 msgstr ""
 
-#: src/reference/window/panels.md:110
+#: src/reference/window/panels.md:115
 msgid ""
 "The parts the project uses, with their devices. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:112
+#: src/reference/window/panels.md:117
 msgid "Report blocks"
 msgstr ""
 
-#: src/reference/window/panels.md:114
+#: src/reference/window/panels.md:119
 msgid ""
 "The report blocks: the generated pages such as the terminal diagram, the "
 "cable list and the parts list. See [Reports and "
 "PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:117
+#: src/reference/window/panels.md:122
 msgid "Unplaced devices"
 msgstr ""
 
-#: src/reference/window/panels.md:119
+#: src/reference/window/panels.md:124
 msgid ""
 "The devices of each layout space that have no place on a rail or the plate "
 "yet."
 msgstr ""
 
-#: src/reference/window/panels.md:121
+#: src/reference/window/panels.md:126
 msgid "Macros"
 msgstr ""
 
-#: src/reference/window/panels.md:123
+#: src/reference/window/panels.md:128
 msgid "The macros of every library tier and of the project."
 msgstr ""
 
-#: src/reference/window/panels.md:125
+#: src/reference/window/panels.md:130
 msgid "Libraries"
 msgstr ""
 
-#: src/reference/window/panels.md:127
+#: src/reference/window/panels.md:132
 msgid ""
 "The installed libraries and the project's library copies with their state."
 msgstr ""
 
-#: src/reference/window/panels.md:129
+#: src/reference/window/panels.md:134
 msgid "Messages"
 msgstr ""
 
-#: src/reference/window/panels.md:131
+#: src/reference/window/panels.md:136
 msgid ""
 "The findings of the project's checks, by severity and rule. Check ▸ Next "
 "finding and Check ▸ Previous finding walk them; Help ▸ Documentation on a "
 "finding opens its rule's page in the [rule reference](../rules/index.md). "
 "Open it with Check ▸ Messages."
+msgstr ""
+
+#: src/reference/symbol-editor.md:3
+msgid ""
+"Open **Draw ▸ Place ▸ Symbol editor…**. A symbol draft has its own undo "
+"history, drawing, function definition, connection points, text slots and "
+"cross-reference anchor. Changes do not alter existing placements. Choose A "
+"to draw; B–H show live rotated/mirrored previews. Select a graphic to move "
+"it by dragging or edit its coordinates in **Drawing**. **Draw by "
+"coordinates** also creates geometry from the keyboard. Pin coordinates, "
+"directions and function mappings are editable in **Electrical data**. In "
+"**Pin mapping**, drag a function pin onto a connection point or use its "
+"list. Assigning a pin already used by another compatible connection swaps "
+"their mappings in one undo step. Repeated designations have an ordinal in "
+"parentheses, so two terminals both named N remain distinguishable. Function "
+"choices include their category and source library. In **Library**, **Fork "
+"existing symbol** searches project and installed-library symbols by name or "
+"key; each choice shows its source and grid. **Create editable copy** leaves "
+"the original unchanged. The command bar and status bar follow the active "
+"symbol; library paths and publication settings live in **Library**. The "
+"ribbon uses the same small icons, labels and selected state as the main "
+"window. **More shapes** contains ellipse, arc, polyline and polygon. Press "
+"**F1** in the editor to open this reference. Text fields can show tags, "
+"function text, technical data, pin designations or cross-references. "
+"**Advanced document** exposes the complete draft, including other slot "
+"types, styles and arrangements. The circle tool takes a centre and a point "
+"on its circumference; arcs and ellipses take opposite bounding-box corners. "
+"Arc creation angles are whole degrees; negative sweep reverses direction. A "
+"line, a rectangle, a circle, an ellipse and an arc are drawn by two clicks "
+"or by one drag. With **Select**, click a shape, a connection point, a text "
+"slot or a link point to select it; drag it or press an arrow key to move it, "
+"and press **Delete** to remove it. While you drag, an outline shows where "
+"the item will land. A connection point moves on the connection grid, a text "
+"slot in steps of 1 mm, a shape and a link point in steps of 0.5 mm. Each "
+"change takes one undo step. Numeric property edits commit when you press "
+"Enter or leave the field, so partially typed coordinates do not reshape the "
+"drawing. Selected rectangles, circles, ellipses and polygons have **Fill "
+"shape**. Text and text slots have a **Text style** list showing the "
+"project's style sizes; choose a larger style when connection numbers need to "
+"match other labels."
+msgstr ""
+
+#: src/reference/symbol-editor.md:29
+msgid ""
+"**Anchor** sets the point used to calculate the symbol's cross-reference "
+"cell on the project page. It does not move the symbol's insertion origin. "
+"Place it on the left edge for a supply block. **Link point** instead adds a "
+"named attachment position for a mechanical link; it does not create an "
+"electrical connection."
+msgstr ""
+
+#: src/reference/symbol-editor.md:33
+msgid ""
+"Native connections must lie on the 4 mm grid. Drawing clicks snap to 0.5 mm; "
+"text clicks to 1 mm. Numeric pin edits remain exactly as entered: a pin at "
+"4.5 mm is visibly invalid and blocks publication. See the [design "
+"standard](https://github.com/Ironkode787/ElektraWatt/blob/main/docs/design/07a-symbol-design-standard.md) "
+"for the full authoring profile."
+msgstr ""
+
+#: src/reference/symbol-editor.md:39
+msgid ""
+"**Save to library** writes a symbol and its owned function definition to the "
+"chosen `.ewlib` folder. The window remembers that folder. Its symbols appear "
+"under **Draw ▸ Place ▸ Symbol…** (`I`), with the library name; the page must "
+"use the symbol's connection grid. Already embedded copies stay at their "
+"existing version until you explicitly update them. Repeated placement keeps "
+"the authored outline and pins. An assigned existing function definition "
+"stays referenced and its semantics cannot be edited in place; any later "
+"compatible version of it is accepted. A new symbol takes its key from its "
+"name (`user.power-block` for **Power block**), and the key follows the name "
+"until you type one in **Library**. The first save gives the draft its own "
+"identity, and later saves of that draft update the same symbol: changed "
+"content is saved as the next patch version (1.0.1 after 1.0.0), and a "
+"version you type below the library's is refused. The symbol's own function "
+"definition keeps its version while it is unchanged. A library that already "
+"holds a key you typed for a different symbol refuses the save: choose "
+"another key, or fork that symbol under its own key to change it; a key made "
+"from the name takes the next free number instead (`user.power-block-2`). A "
+"save says where the symbol went, and a refused one says why under the "
+"symbol's name. Saving a draft under another key than its symbol's makes a "
+"new symbol, and a message says so; the symbol with the earlier key stays. "
+"**Export draft** writes portable JSON to a new file, including incomplete "
+"work; an existing file is never overwritten. Leave **Symbol file** empty to "
+"choose the file in a file dialog, and choose **Choose folder…** to pick the "
+"library folder; an empty **Library folder** is refused when you save. A "
+"relative path is read from your default user library folder. **Close "
+"editor** keeps the draft and its undo history: **Draw ▸ Place ▸ Symbol "
+"editor…** returns to it. Only **Discard draft** drops it, and **New symbol** "
+"starts a fresh draft. While the draft has unsaved changes, **New symbol**, "
+"**Open or import**, **Create editable copy**, another drawing of an import "
+"and **Discard draft** first ask whether to save the symbol. While the editor "
+"shows, Ctrl+S saves the symbol and the File menu's **Save project** saves "
+"the project. Quitting with unsaved symbol changes asks whether to save the "
+"symbol. **Test on a new page** creates a page in the current project with "
+"the symbol's connection grid and places embedded copies there. The page then "
+"shows with the copy selected; the message's **Back to the editor** returns "
+"to the draft. Project undo removes the placement; a second undo removes the "
+"new page. Test placements are independent draft copies, so **Source "
+"missing** in the Libraries navigator refers to their temporary draft source. "
+"To place a copy linked to the published library, use **Draw ▸ Place ▸ "
+"Symbol…** after saving."
+msgstr ""
+
+#: src/reference/symbol-editor.md:69
+msgid "AI and command-line tools"
+msgstr ""
+
+#: src/reference/symbol-editor.md:71
+msgid "No remote service or generated code is required. Use `ew symbol`:"
+msgstr ""
+
+#: src/reference/symbol-editor.md:73
+msgid ""
+"```text\n"
+"ew symbol template example.power \"Power block\" > power.symbol.json\n"
+"ew symbol schema > symbol-authoring.schema.json\n"
+"ew symbol validate power.symbol.json\n"
+"ew symbol publish power.symbol.json --library symbols.ewlib\n"
+"ew symbol import element.elmt --key example.import > imported-drafts.json\n"
+"ew symbol import manufacturer.edz --key example.import > "
+"imported-drafts.json\n"
+"ew symbol import custom.slk --key example.import > imported-drafts.json\n"
+"```"
+msgstr ""
+
+#: src/reference/symbol-editor.md:83
+msgid ""
+"Template and schema print JSON. Validation prints stable issue codes, JSON "
+"pointers and details, exiting 0 when valid, 1 for validation findings, or 2 "
+"for unreadable/malformed input. Import prints an **array** of drafts; choose "
+"one object and save it as a `.symbol.json` file. QET conversion findings are "
+"retained in `import_details` with their original message, code and source "
+"line, so tools can identify each loss. Publication validates again and uses "
+"the ordinary library writer's lock, version and transaction protections. It "
+"does not save the current project. Without `--key`, import uses the file's "
+"name as the key. Publication prints `result` (`added`, `updated` or "
+"`unchanged`) and the draft's `identity`; copy that `identity` into the draft "
+"file to publish later versions of the same symbol. A draft without it is a "
+"new symbol, refused (exit 2) when the library holds its key for another one. "
+"Validation reports a member it does not know as `symbol-unknown-member`, "
+"which blocks publication."
+msgstr ""
+
+#: src/reference/symbol-editor.md:93
+msgid ""
+"The portable envelope uses `format: \"ew.symbol/1\"`, `key`, `version`, "
+"`symbol`, `function`, optional `identity`, `function_ref`, `import_notes`, "
+"`import_details` and `import_reviewed`. File coordinates are integer "
+"**nanometres**; 4 mm is `4000000`. A pin has `idx`, `fn_cp`, `pos: [x,y]` "
+"and outward `dir`. The function's pin with the corresponding `idx` holds its "
+"printed `designation`. Keep the reference created by the template; the "
+"publisher replaces temporary references for owned functions."
+msgstr ""
+
+#: src/reference/symbol-editor.md:99
+msgid "The window and `.ewui` scripts share these actions:"
+msgstr ""
+
+#: src/reference/symbol-editor.md:101
+msgid "Action"
+msgstr ""
+
+#: src/reference/symbol-editor.md:101
+msgid "Parameters"
+msgstr ""
+
+#: src/reference/symbol-editor.md:103
+msgid "`symbol.new`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:103
+msgid "optional `key` and `name`, optional `discard: true`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:104
+msgid "`symbol.open`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:104
+msgid "`file`, optional import `key` (default: the file's name)"
+msgstr ""
+
+#: src/reference/symbol-editor.md:105
+msgid "`symbol.candidate`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:105
+msgid "zero-based `index` from an import package"
+msgstr ""
+
+#: src/reference/symbol-editor.md:106
+msgid "`symbol.fork`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:106
+msgid ""
+"`source`: embedded copy UUID, `library:<library UUID>:<item UUID>`, or "
+"legacy key; new `key`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:107
+msgid "`symbol.draw`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:107
+msgid ""
+"`tool`, `x`, `y`, optional `x2`, `y2`, `text`, arc `start`/`sweep` in whole "
+"degrees"
+msgstr ""
+
+#: src/reference/symbol-editor.md:108
+msgid "`symbol.path`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:108
+msgid "`points` as millimetre pairs, optional `closed` for a polygon"
+msgstr ""
+
+#: src/reference/symbol-editor.md:109
+msgid "`symbol.cp`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:109
+msgid "`x`, `y`, optional `idx`, `fn_cp`, `designation`, `direction`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:110
+msgid "`symbol.map_cp`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:110
+msgid "drawing `cp`, target function `fn_cp`; an occupied compatible pin swaps"
+msgstr ""
+
+#: src/reference/symbol-editor.md:111
+msgid "`symbol.role`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:111
+msgid ""
+"drawing `cp` and the potential `role` of its function pin (`l1` … "
+"`undefined`; `none` clears it)"
+msgstr ""
+
+#: src/reference/symbol-editor.md:112
+msgid "`symbol.slot`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:112
+msgid "`kind`, `x`, `y`; e.g. `\"tag\"` or `{\"cp_designation\":1}`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:113
+msgid "`symbol.link`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:113
+msgid "`name`, `x`, `y`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:114
+msgid "`symbol.function`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:114
+msgid ""
+"existing function `key`, or `library:<library UUID>:<item UUID>` in `key`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:115
+msgid "`symbol.replace`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:115
+msgid "complete `document` object"
+msgstr ""
+
+#: src/reference/symbol-editor.md:116
+msgid "`symbol.undo`, `symbol.redo`, `symbol.validate`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:116
+msgid "none"
+msgstr ""
+
+#: src/reference/symbol-editor.md:117
+msgid "`symbol.variant`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:117
+msgid "`variant` 0–7 for A–H"
+msgstr ""
+
+#: src/reference/symbol-editor.md:118
+msgid "`symbol.export`, `symbol.save`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:118
+msgid "`file` or library `directory` respectively"
+msgstr ""
+
+#: src/reference/symbol-editor.md:119
+msgid "`symbol.directory`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:119
+msgid "library `directory` that Save uses"
+msgstr ""
+
+#: src/reference/symbol-editor.md:120
+msgid "`symbol.tool`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:120
+msgid "`tool`: the drawing tool to choose"
+msgstr ""
+
+#: src/reference/symbol-editor.md:121
+msgid "`symbol.place`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:121
+msgid "`x`, `y` on the current project page"
+msgstr ""
+
+#: src/reference/symbol-editor.md:122
+msgid "`symbol.scratch`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:122
+msgid "none; creates a test page in the current project"
+msgstr ""
+
+#: src/reference/symbol-editor.md:123
+msgid "`symbol.close`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:123
+msgid "optional `discard: true`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:125
+msgid ""
+"Action coordinates are **millimetres**, unlike JSON document coordinates. "
+"Placement snaps the insertion point to the destination page grid; it never "
+"moves a pin within the symbol. A different symbol/page grid is refused "
+"before changing the project, and the refusal offers a new page with the "
+"symbol's grid: **Place on a new page with its grid** (`symbol.new_page`) "
+"places the published symbol there and selects it while the draft is saved to "
+"a library and unchanged since, and **Test on a new page** places a test copy "
+"otherwise. Replacing or opening over a dirty draft requires `discard: true`; "
+"`symbol.close` keeps the draft unless it has `discard: true`, and "
+"`symbol.new` without a key or name returns to it, or with `discard: true` "
+"starts a fresh draft. `app.quit` with `discard: true` discards an unsaved "
+"draft. `ui.describe` and the script state expose the open editor and "
+"validation findings. [The tutorial](../tutorials/symbol-editor.md) includes "
+"a complete six-pin example."
+msgstr ""
+
+#: src/reference/symbol-editor.md:134
+msgid "Imported formats and limits"
+msgstr ""
+
+#: src/reference/symbol-editor.md:136
+msgid "Input"
+msgstr ""
+
+#: src/reference/symbol-editor.md:136
+msgid "Supported behaviour"
+msgstr ""
+
+#: src/reference/symbol-editor.md:138
+msgid "QElectroTech `.elmt`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:138
+msgid ""
+"Existing bounded element reader; preserves the QET 10 px grid and "
+"provenance. Review conversion warnings."
+msgstr ""
+
+#: src/reference/symbol-editor.md:139
+msgid "EPLAN `.edz`"
+msgstr ""
+
+#: src/reference/symbol-editor.md:139
+msgid ""
+"Bounded 7-Zip or ZIP container; candidates from supported XML members. Never "
+"extracts files to disk."
+msgstr ""
+
+#: src/reference/symbol-editor.md:140
+msgid "EPLAN `.ema`, `.ems`, `.esl` XML"
+msgstr ""
+
+#: src/reference/symbol-editor.md:140
+msgid ""
+"PXF revision **1.23**: straight lines, rectangles, polylines, full circles "
+"and text. Each macro variant becomes a separate candidate."
+msgstr ""
+
+#: src/reference/symbol-editor.md:141
+msgid "EPLAN parts XML"
+msgstr ""
+
+#: src/reference/symbol-editor.md:141
+msgid ""
+"Connection designations become a generated rectangular outline. This is "
+"explicitly **not the original macro artwork**."
+msgstr ""
+
+#: src/reference/symbol-editor.md:142
+msgid "EPLAN `.slk` with its companion `.sdb` folder"
+msgstr ""
+
+#: src/reference/symbol-editor.md:142
+msgid ""
+"Direct read without EPLAN: observed SLK 1.2 / FE53 tables, UTF-16LE or UTF-8 "
+"descriptor, A-variant lines, axis-aligned rectangles, full circles and "
+"graphical connection points. Review required."
+msgstr ""
+
+#: src/reference/symbol-editor.md:143
+msgid "Other binary macros"
+msgstr ""
+
+#: src/reference/symbol-editor.md:143
+msgid "Refused with an explanation; use a supported XML macro/parts export."
+msgstr ""
+
+#: src/reference/symbol-editor.md:145
+msgid ""
+"PXF arcs/ellipses, images, groups, external symbol references and "
+"unrecognised records are not faithfully reconstructed. The importer reports "
+"incomplete geometry and style differences; unresolved macro pins have an "
+"unknown direction and cannot be published until corrected. Macro insertion "
+"points are not verified terminal positions. Check each position and mapping "
+"against the source. No claim of complete EPLAN compatibility is made. The "
+"reference manufacturer EDZ was exercised locally; its content is not "
+"distributed with ElektraWatt."
+msgstr ""
+
+#: src/reference/symbol-editor.md:151
+msgid ""
+"EPLAN drafts require a licence/source review and explicit acknowledgement. A "
+"download is not treated as a redistribution licence. No links or embedded "
+"executables are followed. Input limits: 4 MiB per XML/draft, 32 MiB "
+"compressed archive, 64 MiB unpacked total, 4,096 archive entries, 512 "
+"recovered candidates, 4,096 editable primitives/pins per symbol; archive "
+"names, CRCs, decompression ratio and XML depth are checked."
+msgstr ""
+
+#: src/reference/symbol-editor.md:156
+msgid "How the symbol data fits together"
+msgstr ""
+
+#: src/reference/symbol-editor.md:158
+msgid "Record"
+msgstr ""
+
+#: src/reference/symbol-editor.md:158
+msgid "What it owns"
+msgstr ""
+
+#: src/reference/symbol-editor.md:160
+msgid ""
+"Artwork, insertion/reference anchors, text slots, pin positions and "
+"directions, and each pin's function mapping."
+msgstr ""
+
+#: src/reference/symbol-editor.md:161
+msgid "Function definition"
+msgstr ""
+
+#: src/reference/symbol-editor.md:161
+msgid ""
+"Electrical type, pin designations, potential roles, optional/source flags "
+"and internal connections."
+msgstr ""
+
+#: src/reference/symbol-editor.md:162
+msgid "Manufacturer part"
+msgstr ""
+
+#: src/reference/symbol-editor.md:162
+msgid ""
+"Purchased-product information such as article number, manufacturer and "
+"technical ratings; assigned to a project device separately."
+msgstr ""
+
+#: src/reference/symbol-editor.md:163
+msgid "Placed device/function"
+msgstr ""
+
+#: src/reference/symbol-editor.md:163
+msgid ""
+"Device tag, function text, chosen part and embedded copies of the "
+"symbol/function definitions."
+msgstr ""
+
+#: src/reference/symbol-editor.md:165
+msgid ""
+"A new drawing starts with a generic black-box function. In **Electrical "
+"data**, under **Function definition**, choose its function type and set each "
+"pin's potential role and flags, or assign an existing library function. "
+"Existing assigned functions remain read-only. Internal connections and less "
+"common fields are available through **Advanced document**. Typing `FE` as a "
+"designation changes the printed label; select the FE potential role to give "
+"it electrical meaning. Text slots obtain tags, technical data and function "
+"text from the placed device; the editor shows sample values. Library "
+"publication does not update already placed copies. The EPLAN importer does "
+"not create complete manufacturer part records, and SLK connection "
+"designations are provisional numbers until the function is reviewed."
+msgstr ""
+
+#: src/reference/symbol-editor.md:173
+msgid ""
+"Keep `custom.slk` beside the complete `custom.sdb` folder (or the sibling "
+"folder named in the descriptor). Only the Symbol, Variant, Instance and Blob "
+"drawing tables are read. No EPLAN installation, script, workstation record "
+"or lock file is used. The supported subset is based on an inspected public "
+"library sample; it is not a vendor-certified database reader. Unsupported "
+"versions and legacy descriptor encodings are refused. Other primitives, "
+"static text, fills and custom line styles are reported as incomplete. Only A "
+"is reconstructed; EW then derives B–H, which can differ from separately "
+"authored EPLAN variants. Review geometry, every connection, function "
+"semantics and licence before publishing. Missing connection records are "
+"reported, never invented. Companion tables are limited to 4 MiB each and "
+"reconstructed streams to 64 MiB total; oversized libraries are refused."
 msgstr ""
 
 #: src/explanation/index.md:3
@@ -4068,8 +4711,8 @@ msgid ""
 "**The same:** a terminal strip is a device whose terminals are functions, "
 "with an editor for their order, bridges and accessories. **What differs:** "
 "the strip editor is a table you edit cell by cell, and every edit is one "
-"undo step. **In the window:** **Draw ▸ Place ▸ Terminal strip…** and **Edit "
-"▸ Strip editor**. See [A terminal strip and a "
+"undo step. **In the window:** **Draw ▸ Place ▸ Terminal strip** and **Edit ▸ "
+"Strip editor**. See [A terminal strip and a "
 "cable](../tutorials/terminal-strip-and-cable.md)."
 msgstr ""
 
@@ -4156,7 +4799,8 @@ msgid "Cross-reference, Contact image"
 msgstr ""
 
 #: src/explanation/eplan-and-ew.md:147 src/explanation/qet-and-ew.md:121
-msgid "**EW term:** [Cross-reference](../reference/glossary.md#cross-reference)"
+msgid ""
+"**EW term:** [Cross-reference](../reference/glossary.md#cross-reference)"
 msgstr ""
 
 #: src/explanation/eplan-and-ew.md:149
@@ -4225,8 +4869,8 @@ msgstr ""
 msgid ""
 "**The same:** a text on the wire shows its number or function. **What "
 "differs:** the number is a property of the wire, derived by the numbering "
-"scheme; the wire marker only shows it. **In the window:** **Draw ▸ Annotate ▸ "
-"Wire marker**."
+"scheme; the wire marker only shows it. **In the window:** **Draw ▸ Annotate "
+"▸ Wire marker**."
 msgstr ""
 
 #: src/explanation/qet-and-ew.md:42
@@ -4294,7 +4938,7 @@ msgid ""
 "**The same:** terminals are grouped in strips with a terminal-strip editor. "
 "**What differs:** a terminal strip is a device, its terminals are its "
 "functions, and the terminal diagram is generated from it. **In the window:** "
-"**Draw ▸ Place ▸ Terminal strip…** and **Edit ▸ Strip editor**. See [A "
+"**Draw ▸ Place ▸ Terminal strip** and **Edit ▸ Strip editor**. See [A "
 "terminal strip and a cable](../tutorials/terminal-strip-and-cable.md)."
 msgstr ""
 
