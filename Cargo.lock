@@ -1535,6 +1535,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ew-import-dxf"
+version = "0.2.0"
+dependencies = [
+ "automod",
+ "ew-dl",
+ "ew-interop-api",
+ "ew-mltext",
+ "ew-units",
+]
+
+[[package]]
 name = "ew-import-eplan"
 version = "0.2.0"
 dependencies = [

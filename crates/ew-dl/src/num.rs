@@ -139,6 +139,31 @@ pub fn sin_cos(angle: Angle2) -> (f64, f64) {
     sin_cos_mdeg(f64::from(angle.0))
 }
 
+/// `(sin, cos)` of an angle in degrees given as f64, deterministic on every platform; exact 0 and ±1 for
+/// multiples of 90°. For foreign geometry whose angles are not whole 10⁻³ degrees (the DXF importer's bulges,
+/// ellipses and splines, doc 14 §6.1).
+///
+/// ```
+/// use ew_dl::num::sin_cos_deg;
+///
+/// assert_eq!(sin_cos_deg(270.0), (-1.0, 0.0));
+/// ```
+pub fn sin_cos_deg(deg: f64) -> (f64, f64) {
+    sin_cos_mdeg(deg * 1000.0)
+}
+
+/// The angle of the vector `(x, y)` in degrees, `(−180, 180]`, counter-clockwise from +x in a y-up frame;
+/// deterministic on every platform (pure-Rust `atan2`).
+///
+/// ```
+/// use ew_dl::num::atan2_deg;
+///
+/// assert_eq!(atan2_deg(1.0, 0.0), 90.0);
+/// ```
+pub fn atan2_deg(y: f64, x: f64) -> f64 {
+    libm::atan2(y, x) * (180.0 / PI)
+}
+
 /// Rotates the offset `(x, y)` by `a`, counter-clockwise on the sheet. Exact for multiples of 90°;
 /// otherwise f64 via [`libm`], rounded ties toward zero.
 fn rotate_offset(x: i64, y: i64, a: Angle2) -> (i64, i64) {

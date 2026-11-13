@@ -91,6 +91,11 @@ allowed = ["MIT OR Apache-2.0"]
 crate = true
 
 [[path]]
+glob = "crates/ew-import-dxf/**"
+allowed = ["MIT OR Apache-2.0"]
+crate = true
+
+[[path]]
 glob = "crates/ew-memo/**"
 allowed = ["MIT OR Apache-2.0"]
 crate = true

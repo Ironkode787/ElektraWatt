@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "ew-import-dxf"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "DXF R12 to 2018 (ASCII and binary) read into pages, underlays, symbols and part outlines."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# The record types and IDs come through ew-interop-api's re-exports (`ew_schema`, `ew_ids`).
+ew-interop-api = { path = "../ew-interop-api" }
+# Deterministic trigonometry for bulges, arcs, ellipses and splines (doc 14 §6.1, doc 09 §4.3 rule 4).
+ew-dl = { path = "../ew-dl" }
+ew-mltext = { path = "../ew-mltext" }
+ew-units = { path = "../ew-units" }
+
+[dev-dependencies]
+automod.workspace = true
