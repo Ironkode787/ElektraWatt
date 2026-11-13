@@ -13,6 +13,8 @@ pub mod core;
 pub mod device;
 // The EW-FL MVP rules
 pub mod fluid;
+// The EW-FL 1.0 rules
+pub mod fluid_media;
 pub mod imp;
 // The EW-IOL rules
 pub mod iolink;

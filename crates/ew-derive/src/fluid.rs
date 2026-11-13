@@ -1,25 +1,186 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fluid side (doc 11 §5.1): `fluid_nets()`, the partition of the fluid CPs joined by `fluid`
-//! connections and their junctions, and the tracked target of a valve (`reached_device`, `tracked_target`,
-//! `tracked_process_tag`).
+//! The fluid side (doc 11 §5.1, §5.2): `galleries(vt)`, the derived manifold galleries of a valve terminal;
+//! `fluid_nets()`, the partition of the fluid CPs; `fluid_tubes()`, the physical tubes; and the tracked target of a
+//! valve (`reached_device`, `tracked_target`, `tracked_process_tag`).
 //!
 //! A fluid net is a connected set of nodes (function CPs and junctions) joined by connections of kind `Fluid`, on
-//! every page and across pages; galleries, fluid interruption points and `Short` links are 1.0's. Its ID is its
-//! minimum member CP ID, as an electrical net's ([`NetId`]). A fluid line is no wire: it joins no electrical net
-//! ([`crate::joins_net`] leaves it out). A CP that no fluid line reaches is in no fluid net.
+//! every page and across pages, by the gallery edges of every valve terminal, by the pairs of fluid interruption
+//! points (an interruption point whose CP is a fluid port, FR-FLU-030) and by the `short` internal links of the
+//! FnDefs of the functions it reaches (fittings, distribution blocks, bulkheads). Its ID is its minimum member CP ID,
+//! as an electrical net's ([`NetId`]). A fluid line is no wire: it joins no electrical net ([`crate::joins_net`]
+//! leaves it out). A CP that neither a fluid line nor a gallery reaches is in no fluid net.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_model::EndpointKey;
-use ew_schema::{Connection, ConnectionKind, ContactKind, Device, DeviceKind, DeviceState, FluidPortRole};
+use ew_schema::{
+    Connection, ConnectionKind, ContactKind, Device, DeviceKind, DeviceState, Discipline, FluidPortRole,
+    Function, FunctionKind, InternalKind, IpDirection, StationRole,
+};
 
-use crate::nets::{Dsu, NetId, ends};
+use crate::nets::{CpRef, Dsu, NetId, ends};
 use crate::query::{Policy, Query};
-use crate::{FunctionCps, Q, driven_device};
+use crate::{FunctionCps, IpPairingQ, Q, driven_device};
+
+/// Whether a discipline is a fluid one: pneumatic, vacuum or hydraulic.
+pub fn is_fluid(d: &Discipline) -> bool {
+    matches!(
+        d,
+        Discipline::Pneumatic | Discipline::Vacuum | Discipline::Hydraulic
+    )
+}
+
+/// Whether a device is a valve terminal: a PLC station of role `valve_terminal` (doc 11 §3.2, FR-DEV-024).
+pub fn is_valve_terminal(q: &Q, device: Id<Device>) -> bool {
+    q.devices().get(device).is_some_and(|d| {
+        d.aspects
+            .plc_station
+            .as_ref()
+            .is_some_and(|s| s.role == StationRole::ValveTerminal)
+    })
+}
+
+/// The functions of a device on a FnDef of contact kind `valve`, in ID order.
+pub fn valve_functions(q: &Q, device: Id<Device>) -> Vec<Id<Function>> {
+    let functions = q.functions();
+    let fndefs = q.fndefs();
+    let mut out: Vec<Id<Function>> = q
+        .idx()
+        .functions_of_device(device)
+        .filter(|f| {
+            functions
+                .get(*f)
+                .and_then(|f| fndefs.get(f.def))
+                .is_some_and(|d| d.item.contact_kind == ContactKind::Valve)
+        })
+        .collect();
+    out.sort();
+    out
+}
+
+/// The children of a device ordered by position, then ID (a child without a position last).
+fn ordered_children(q: &Q, device: Id<Device>) -> Vec<Id<Device>> {
+    let devices = q.devices();
+    let mut out: Vec<(u32, Id<Device>)> = q
+        .idx()
+        .device_children(device)
+        .map(|c| (devices.get(c).and_then(|d| d.position).unwrap_or(u32::MAX), c))
+        .collect();
+    out.sort();
+    out.into_iter().map(|(_, c)| c).collect()
+}
+
+/// The galleries a manifold joins, in this order (doc 11 §5.2). The pilot gallery of an external pilot supply is not
+/// derived: the `valve_terminal` aspect that would name it is not typed (WP-S1.25).
+pub const GALLERIES: [FluidPortRole; 5] = [
+    FluidPortRole::Supply1,
+    FluidPortRole::Exhaust3,
+    FluidPortRole::Exhaust5,
+    FluidPortRole::PilotExhaust82,
+    FluidPortRole::PilotExhaust84,
+];
+
+/// One segment of one gallery of a valve terminal: the CPs it joins, in manifold order.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct GallerySegment {
+    /// The gallery, named by the role of the valve ports it joins.
+    pub gallery: FluidPortRole,
+    /// The joined CPs: the valves' ports of the gallery's role and the tapping ports of supply plates.
+    pub members: Vec<EndpointKey>,
+}
+
+/// `galleries(vt)` (doc 11 §5.2, FR-FLU-026): the gallery segments of a valve terminal.
+///
+/// The slots are the terminal's children in position order, each followed by its own children in position order
+/// (a module and its valves). Per gallery, a slot whose part's fluid section has an entry for the gallery with
+/// `separates` closes the segment before it; a slot with a valve function joins that function's ports of the
+/// gallery's role; a slot whose entry has a `tap` joins its port of that designation; every other slot (a module
+/// without fluid data, the CPX block) is transparent. Empty segments are left out. Empty for a device that is no
+/// valve terminal ([`is_valve_terminal`]). Policy Memo.
+#[derive(Debug)]
+pub struct Galleries;
+
+impl Query for Galleries {
+    type Key = Id<Device>;
+    type Value = Vec<GallerySegment>;
+    const FAMILY: &'static str = "galleries";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, key: &Id<Device>) -> Arc<Vec<GallerySegment>> {
+        if !is_valve_terminal(q, *key) {
+            return Arc::new(Vec::new());
+        }
+        let mut slots: Vec<Id<Device>> = Vec::new();
+        for c in ordered_children(q, *key) {
+            slots.push(c);
+            slots.extend(ordered_children(q, c));
+        }
+        let devices = q.devices();
+        let parts = q.parts();
+        let mut out = Vec::new();
+        for g in GALLERIES {
+            let mut segment: Vec<EndpointKey> = Vec::new();
+            let mut close = |segment: &mut Vec<EndpointKey>| {
+                if !segment.is_empty() {
+                    out.push(GallerySegment {
+                        gallery: g.clone(),
+                        members: std::mem::take(segment),
+                    });
+                }
+                segment.clear();
+            };
+            for s in &slots {
+                let entry = devices.get(*s).and_then(|d| {
+                    d.parts.iter().find_map(|u| {
+                        let fluid = parts.get(u.part.copy)?.item.sections.fluid.as_ref()?;
+                        fluid.galleries.iter().find(|e| e.gallery == g).cloned()
+                    })
+                });
+                if entry.as_ref().is_some_and(|e| e.separates) {
+                    close(&mut segment);
+                }
+                let valves = valve_functions(q, *s);
+                if !valves.is_empty() {
+                    for f in valves {
+                        for cp in q.get::<FunctionCps>(f).iter() {
+                            if cp.port_role.as_ref() == Some(&g) {
+                                segment.push(EndpointKey::Cp(f, cp.idx));
+                            }
+                        }
+                    }
+                } else if let Some(tap) = entry.as_ref().and_then(|e| e.tap.as_ref()) {
+                    let mut functions: Vec<Id<Function>> = q.idx().functions_of_device(*s).collect();
+                    functions.sort();
+                    if let Some(at) = functions.iter().find_map(|f| {
+                        q.get::<FunctionCps>(*f)
+                            .iter()
+                            .find(|c| c.designation == tap.as_str() && is_fluid(&c.discipline))
+                            .map(|c| EndpointKey::Cp(*f, c.idx))
+                    }) {
+                        segment.push(at);
+                    }
+                }
+            }
+            close(&mut segment);
+        }
+        Arc::new(out)
+    }
+}
+
+/// The interruption point of a fluid port: a function of kind `ip` whose CP is a fluid port.
+fn fluid_ip_cp(q: &Q, f: Id<Function>) -> Option<CpRef> {
+    let func = q.functions().get(f)?;
+    if !matches!(func.kind, FunctionKind::Ip(_)) {
+        return None;
+    }
+    let cps = q.get::<FunctionCps>(f);
+    let cp = cps.first()?;
+    is_fluid(&cp.discipline).then(|| CpRef::new(f, cp.idx))
+}
 
 /// One fluid net.
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -69,6 +230,61 @@ impl Query for FluidNets {
             dsu.union(ia, ib);
             via.entry(a).or_default().insert(id);
             via.entry(b).or_default().insert(id);
+        }
+        // The gallery edges of every valve terminal: one star per segment.
+        let mut terminals: Vec<Id<Device>> = q.devices().ids().filter(|d| is_valve_terminal(q, *d)).collect();
+        terminals.sort();
+        for vt in terminals {
+            for segment in q.get::<Galleries>(vt).iter() {
+                let Some((first, rest)) = segment.members.split_first() else {
+                    continue;
+                };
+                let root = dsu.node(*first);
+                for m in rest {
+                    let i = dsu.node(*m);
+                    dsu.union(root, i);
+                }
+            }
+        }
+        // The pairs of fluid interruption points that a line reaches.
+        let reached: BTreeSet<Id<Function>> = via
+            .keys()
+            .filter_map(|k| match k {
+                EndpointKey::Cp(f, _) => Some(*f),
+                EndpointKey::Junction(_) => None,
+            })
+            .collect();
+        let pairing = q.get::<IpPairingQ>(());
+        for f in &reached {
+            let Some(cp) = fluid_ip_cp(q, *f) else { continue };
+            for p in pairing.partners(*f) {
+                if let Some(other) = fluid_ip_cp(q, *p) {
+                    let (a, b) = (
+                        dsu.node(EndpointKey::Cp(cp.function, cp.idx)),
+                        dsu.node(EndpointKey::Cp(other.function, other.idx)),
+                    );
+                    dsu.union(a, b);
+                }
+            }
+        }
+        // The `short` internal links of the FnDefs of the functions a line reaches.
+        let functions = q.functions();
+        let fndefs = q.fndefs();
+        for f in &reached {
+            let Some(def) = functions.get(*f).and_then(|x| fndefs.get(x.def)) else {
+                continue;
+            };
+            let cps = q.get::<FunctionCps>(*f);
+            let fluid_cp = |i: u16| cps.iter().any(|c| c.idx == i && is_fluid(&c.discipline));
+            for link in &def.item.internal {
+                if link.kind == InternalKind::Short && fluid_cp(link.a) && fluid_cp(link.b) {
+                    let (a, b) = (
+                        dsu.node(EndpointKey::Cp(*f, link.a)),
+                        dsu.node(EndpointKey::Cp(*f, link.b)),
+                    );
+                    dsu.union(a, b);
+                }
+            }
         }
         let mut nets: Vec<FluidNet> = dsu
             .groups()
@@ -187,11 +403,19 @@ pub struct ValveSlotsV {
     pub outside: Vec<(u32, Id<Device>)>,
 }
 
-/// The position count of a module: `plc.positions.count` of the part named by `plc_module.part_use`,
-/// else of the first part use whose copy has `plc.positions`; `None` for a device without (no module).
+/// The position count of a module: the `fluid.positions` of the first part use whose copy has it, else
+/// `plc.positions.count` of the part named by `plc_module.part_use`, else of the first part use whose copy has
+/// `plc.positions`; `None` for a device without (no module).
 pub fn valve_positions(q: &Q, module: Id<Device>) -> Option<u16> {
     let dev = q.devices().get(module)?;
     let parts = q.parts();
+    if let Some(n) = dev
+        .parts
+        .iter()
+        .find_map(|u| parts.get(u.part.copy)?.item.sections.fluid.as_ref()?.positions)
+    {
+        return Some(n);
+    }
     let count = |i: usize| {
         let copy = parts.get(dev.parts.get(i)?.part.copy)?;
         Some(copy.item.sections.plc.as_ref()?.positions.as_ref()?.count)
@@ -284,4 +508,105 @@ pub fn tracked_process_tag(q: &Q, valve: Id<Device>) -> Option<String> {
             .map(|t| t.as_str().to_owned())
     };
     tracked_target(q, valve).and_then(tag).or_else(|| tag(valve))
+}
+
+/// One physical tube (doc 11 §5.1, FR-FLU-031): a fluid connection, or the connections joined through pairs of fluid
+/// interruption points; every drawn fluid junction is a tee, so each of its branches is its own tube.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct FluidTube {
+    /// The tube ID: the connection at a target-side interruption point, else the lowest connection ID.
+    pub id: Id<Connection>,
+    /// The connections it is made of, in ID order.
+    pub constituents: Vec<Id<Connection>>,
+    /// Its two ends: CPs or junctions (tees), never a paired interruption point.
+    pub ends: [EndpointKey; 2],
+}
+
+/// `fluid_tubes()` (doc 11 §5.1): the physical tubes of the project, in ID order. A fluid interruption point joins
+/// the connection at it with the connection at its one partner when each has exactly one fluid connection; any other
+/// interruption point is a tube end. Policy Memo.
+#[derive(Debug)]
+pub struct FluidTubes;
+
+impl Query for FluidTubes {
+    type Key = ();
+    type Value = Vec<FluidTube>;
+    const FAMILY: &'static str = "fluid_tubes";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, _: &()) -> Arc<Vec<FluidTube>> {
+        let mut lines: BTreeMap<Id<Connection>, (EndpointKey, EndpointKey)> = BTreeMap::new();
+        let mut at: BTreeMap<EndpointKey, Vec<Id<Connection>>> = BTreeMap::new();
+        for (id, c) in q.connections().iter() {
+            if !matches!(c.kind, ConnectionKind::Fluid(_)) {
+                continue;
+            }
+            let Some((a, b)) = ends(c) else { continue };
+            lines.insert(id, (a, b));
+            at.entry(a).or_default().push(id);
+            at.entry(b).or_default().push(id);
+        }
+        let pairing = q.get::<IpPairingQ>(());
+        // The single line at a fluid interruption point, when it has exactly one.
+        let single = |f: Id<Function>| -> Option<(EndpointKey, Id<Connection>)> {
+            let cp = fluid_ip_cp(q, f)?;
+            let key = EndpointKey::Cp(cp.function, cp.idx);
+            match at.get(&key).map(Vec::as_slice) {
+                Some([one]) => Some((key, *one)),
+                _ => None,
+            }
+        };
+        let mut dsu: Dsu<Id<Connection>> = Dsu::default();
+        let mut joined: BTreeSet<EndpointKey> = BTreeSet::new();
+        let mut target_side: BTreeSet<Id<Connection>> = BTreeSet::new();
+        for id in lines.keys() {
+            dsu.node(*id);
+        }
+        for f in pairing.ips.keys() {
+            let Some((key, line)) = single(*f) else { continue };
+            let partners = pairing.partners(*f);
+            let [p] = partners else { continue };
+            let Some((pkey, pline)) = single(*p) else { continue };
+            let (a, b) = (dsu.node(line), dsu.node(pline));
+            dsu.union(a, b);
+            joined.insert(key);
+            joined.insert(pkey);
+            let target = q.functions().get(*f).is_some_and(
+                |x| matches!(&x.kind, FunctionKind::Ip(ip) if ip.direction == IpDirection::Target),
+            );
+            if target {
+                target_side.insert(line);
+            }
+        }
+        let mut out: Vec<FluidTube> = dsu
+            .groups()
+            .into_iter()
+            .filter_map(|mut constituents| {
+                constituents.sort();
+                let mut free: Vec<EndpointKey> = constituents
+                    .iter()
+                    .filter_map(|c| lines.get(c))
+                    .flat_map(|(a, b)| [*a, *b])
+                    .filter(|e| !joined.contains(e))
+                    .collect();
+                if free.len() != 2 {
+                    // A cycle through interruption points: the first line's ends.
+                    let (a, b) = lines.get(constituents.first()?)?;
+                    free = vec![*a, *b];
+                }
+                let id = constituents
+                    .iter()
+                    .find(|c| target_side.contains(c))
+                    .copied()
+                    .unwrap_or(constituents[0]);
+                Some(FluidTube {
+                    id,
+                    constituents,
+                    ends: [free[0], free[1]],
+                })
+            })
+            .collect();
+        out.sort_by_key(|t| t.id);
+        Arc::new(out)
+    }
 }

@@ -356,9 +356,49 @@ rule-ew-fl-004 = { $form ->
     .title = Spare positions
     .hint = Keep the spare valve or blanking plate deliberately, or put a used valve at the position.
 
+rule-ew-fl-005 = the fluid net at { $at } carries { $media } directly; keep one medium per net
+    .title = Two media in one net
+    .hint = Remove one of the medium definitions, or separate the nets.
+
+rule-ew-fl-006 = { $form ->
+        [od] tube { $tube } is { $od } mm outside, but port { $port } takes { $port_od } mm
+       *[rating] tube { $tube } is rated { $rating } bar, below the { $pressure } bar its net carries
+    }
+    .title = Tube does not fit
+    .hint = Choose a tube that matches the port and the pressure of its medium.
+
+rule-ew-fl-007 = tube { $tube } has no tube specification; give the medium or the project a default tube, or set it on the line
+    .title = Line without tube specification
+    .hint = Give the medium or the project a default tube, or set the tube on the line.
+
+rule-ew-fl-008 = { $form ->
+        [gallery] { $terminal }: gallery { $gallery } ({ $count } exhaust ports) has no silencer, collector line or closure
+       *[ports] exhaust { $ports } has no silencer, collector line or closure
+    }
+    .title = Exhaust open
+    .hint = Fit a silencer, draw a collector line or close the exhaust.
+
+rule-ew-fl-009 = { $valve }: the coil takes { $voltage } V, but { $feeds } feed it
+    .title = Coil voltage
+    .hint = Choose a valve whose coil takes the voltage of its supply, or feed it from a potential of that voltage.
+
+rule-ew-fl-010 = { $form ->
+        [valve] { $device }: port { $port } has no supply; define a medium at it or draw the supply line
+       *[gallery] { $device }: gallery 1 has no supply; define a medium at a supply port or draw the supply line
+    }
+    .title = No supply on port 1
+    .hint = Define a medium at the supply port, or draw the line that brings it.
+
 rule-ew-fl-011 = { $valve } drives { $target }, but its working-port lines reach { $device }
     .title = Drives target mismatch
     .hint = Link the valve to the device its lines reach, or draw the lines to the device it drives.
+
+rule-ew-fl-012 = { $form ->
+        [role] working port { $working } is joined to { $other } with no valve between them
+       *[valve] { $ports } are ports of one valve and are joined
+    }
+    .title = Port-role conflict
+    .hint = Draw each working line to a consumer, and join no two ports of one valve.
 
 rule-ew-fl-013 = { $form ->
         [both] { $parent }: position { $position } holds both { $a } and { $b }
@@ -370,6 +410,10 @@ rule-ew-fl-013 = { $form ->
     }
     .title = Occupancy
     .hint = Give each valve position one valve or blanking plate, and each module its own position.
+
+rule-ew-fl-014 = tube { $tube } crosses from { $from } to { $to } without a bulkhead
+    .title = Tube crosses a location
+    .hint = Add a bulkhead fitting where the tube leaves the location, or accept the crossing.
 
 ## EW-LAYOUT: panel layout (at the project scope until space and surface scope kinds exist)
 

@@ -121,10 +121,12 @@ macro_rules! by_kind {
             Kind::Conductor => $f::<Conductor>($($arg),*),
             Kind::Channel => $f::<ew_schema::Channel>($($arg),*),
             Kind::PotentialDef => $f::<PotentialDef>($($arg),*),
+            Kind::MediumDef => $f::<ew_schema::MediumDef>($($arg),*),
             Kind::Bond => $f::<Bond>($($arg),*),
             Kind::DeviceLink => $f::<ew_schema::DeviceLink>($($arg),*),
             Kind::LogicalNet => $f::<ew_schema::LogicalNet>($($arg),*),
             Kind::PhysicalNet => $f::<ew_schema::PhysicalNet>($($arg),*),
+            Kind::Medium => $f::<ew_schema::Medium>($($arg),*),
             Kind::PageItem => $f::<PageItem>($($arg),*),
             Kind::StructureBox => $f::<StructureBox>($($arg),*),
             Kind::ReportBlock => $f::<ReportBlock>($($arg),*),
@@ -510,7 +512,7 @@ mod tests {
     const ABSENT: u128 = 0xdead;
 
     /// The kinds with a table, in the order of the `by_kind!` macro.
-    const TABLE_KINDS: [Kind; 31] = [
+    const TABLE_KINDS: [Kind; 33] = [
         Kind::PlcConfigProject,
         Kind::ImportLineage,
         Kind::StructureNode,
@@ -525,10 +527,12 @@ mod tests {
         Kind::Conductor,
         Kind::Channel,
         Kind::PotentialDef,
+        Kind::MediumDef,
         Kind::Bond,
         Kind::DeviceLink,
         Kind::LogicalNet,
         Kind::PhysicalNet,
+        Kind::Medium,
         Kind::ReportBlock,
         Kind::LayoutSpace,
         Kind::Enclosure,

@@ -61,6 +61,8 @@ mod drawn_path;
 mod flow;
 mod flow_distance;
 mod fluid;
+mod fluid_media;
+mod fluid_rows;
 mod index;
 mod ip;
 mod items;
@@ -146,8 +148,18 @@ pub use ew_model::EndpointKey;
 pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, PotentialFlow, Upstream};
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use fluid::{
-    FluidNet, FluidNets, FluidPartition, ValveSlot, ValveSlots, ValveSlotsV, parent_chain, reached_device,
-    tracked_process_tag, tracked_target, valve_positions,
+    FluidNet, FluidNets, FluidPartition, FluidTube, FluidTubes, GALLERIES, Galleries, GallerySegment,
+    ValveSlot, ValveSlots, ValveSlotsV, is_fluid, is_valve_terminal, parent_chain, reached_device,
+    tracked_process_tag, tracked_target, valve_functions, valve_positions,
+};
+pub use fluid_media::{
+    Effective, MediumKey, MediumOrigin, MediumZones, MediumZonesV, Sourced, TubeProps, TubePropsOf,
+    TubeSource, mm, node_net,
+};
+pub use fluid_rows::{
+    MediumRow, MediumRows, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtRow, VtSlot, is_blanking_plate,
+    langs, line_kind_text, line_tag, location_text, medium_text, part_number, port_role_text, short_tag,
+    valve_channels, valve_function,
 };
 pub use names::{
     PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, cp_text, def_text, potential_named,

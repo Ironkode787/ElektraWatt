@@ -359,9 +359,49 @@ rule-ew-fl-004 = { $form ->
     .title = Ventielplaatsen in reserve
     .hint = Houd het reserveventiel of de blindplaat bewust, of plaats een gebruikt ventiel op de ventielplaats.
 
+rule-ew-fl-005 = het fluïdumnet bij { $at } voert { $media_nl } rechtstreeks; houd één medium per net
+    .title = Twee media in één net
+    .hint = Verwijder een van de mediumdefinities, of scheid de netten.
+
+rule-ew-fl-006 = { $form ->
+        [od] slang { $tube } is { $od } mm buitendiameter, maar poort { $port } neemt { $port_od } mm
+       *[rating] slang { $tube } is berekend op { $rating } bar, minder dan de { $pressure } bar in zijn net
+    }
+    .title = Slang past niet
+    .hint = Kies een slang die bij de poort en bij de druk van het medium past.
+
+rule-ew-fl-007 = slang { $tube } heeft geen slangspecificatie; geef het medium of het project een standaardslang, of stel haar in op de leiding
+    .title = Leiding zonder slangspecificatie
+    .hint = Geef het medium of het project een standaardslang, of stel de slang in op de leiding.
+
+rule-ew-fl-008 = { $form ->
+        [gallery] { WORD($terminal) }: verdeelkanaal { $gallery } ({ $count } afvoerpoorten) heeft geen geluiddemper, verzamelleiding of afsluiting
+       *[ports] afvoer { $ports_nl } heeft geen geluiddemper, verzamelleiding of afsluiting
+    }
+    .title = Afvoer open
+    .hint = Plaats een geluiddemper, teken een verzamelleiding of sluit de afvoer af.
+
+rule-ew-fl-009 = { WORD($valve) }: de spoel neemt { $voltage } V, maar { $feeds_nl } voeden haar
+    .title = Spoelspanning
+    .hint = Kies een ventiel waarvan de spoel de spanning van zijn voeding neemt, of voed haar uit een potentiaal van die spanning.
+
+rule-ew-fl-010 = { $form ->
+        [valve] { WORD($device) }: poort { $port } heeft geen voeding; definieer er een medium of teken de voedingsleiding
+       *[gallery] { WORD($device) }: verdeelkanaal 1 heeft geen voeding; definieer een medium aan een voedingspoort of teken de voedingsleiding
+    }
+    .title = Geen voeding op poort 1
+    .hint = Definieer een medium aan de voedingspoort, of teken de leiding die het aanvoert.
+
 rule-ew-fl-011 = { WORD($valve) } stuurt { $target } aan, maar de leidingen van zijn werkpoorten bereiken { WORD($device) }
     .title = Aangestuurd apparaat wijkt af
     .hint = Koppel het ventiel aan het apparaat dat zijn leidingen bereiken, of teken de leidingen naar het apparaat dat het aanstuurt.
+
+rule-ew-fl-012 = { $form ->
+        [role] werkpoort { $working } is verbonden met { $other } zonder ventiel ertussen
+       *[valve] { $ports_nl } zijn poorten van één ventiel en zijn verbonden
+    }
+    .title = Poortfuncties in conflict
+    .hint = Teken elke werkleiding naar een verbruiker, en verbind geen twee poorten van één ventiel.
 
 rule-ew-fl-013 = { $form ->
         [both] { WORD($parent) }: ventielplaats { $position } bevat zowel { $a } als { $b }
@@ -373,6 +413,10 @@ rule-ew-fl-013 = { $form ->
     }
     .title = Bezetting
     .hint = Geef elke ventielplaats één ventiel of blindplaat, en elke module een eigen positie.
+
+rule-ew-fl-014 = slang { $tube } gaat van { $from } naar { $to } zonder schotdoorvoer
+    .title = Slang verlaat een locatie
+    .hint = Plaats een schotdoorvoer waar de slang de locatie verlaat, of aanvaard de overgang.
 
 rule-ew-lay-001 = { WORD($device) } is niet geplaatst in de layout van { WORD($location) }; plaats het op een rail of op de montageplaat
     .title = Niet geplaatst apparaat
