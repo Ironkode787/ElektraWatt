@@ -23,7 +23,7 @@
 //!   underlay draws ([`convert`]); symbols ([`symbols`], the wizard's steps); a part's front outline ([`outline`]).
 //! - **SHX** ([`SHX_SUBSTITUTES`]): an SHX font is drawn in a bundled family and reported once (EW-IMP-252).
 //! - **Limits** (doc 14 §11): the input size and text length of the context's [`Limits`], at most 5 million entities,
-//!   block nesting 32, 10 million shapes after expansion, 100,000 spline control points; coordinates finite and
+//!   block nesting 32, 1 million shapes after expansion, 100,000 spline control points; coordinates finite and
 //!   within the format's safe range after scaling.
 //!
 //! Pure (doc 14 §2.1): it reads only the bytes it is handed, never a file, the clock or the network. Depends on

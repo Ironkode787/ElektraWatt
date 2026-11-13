@@ -24,8 +24,9 @@ pub const TOLERANCE_NM: f64 = 10_000.0;
 /// The deepest block nesting expanded (doc 14 §11).
 pub const MAX_NESTING: usize = 32;
 
-/// The most shapes one import expands to (doc 14 §11: INSERT and MINSERT expansion).
-pub const MAX_PRIMITIVES: usize = 10_000_000;
+/// The most shapes one import expands to (doc 14 §11: INSERT and MINSERT expansion), so that a refused expansion stays
+/// within the 256 MB a hostile input may cost.
+pub const MAX_PRIMITIVES: usize = 1_000_000;
 
 /// The most control points of one spline (doc 14 §11).
 pub const MAX_SPLINE_POINTS: usize = 100_000;
@@ -223,7 +224,9 @@ pub(crate) struct Notes {
     pub shx: BTreeMap<String, &'static str>,
     /// Items on hidden layers not imported, per layer.
     pub hidden: BTreeMap<String, u32>,
-    /// Items skipped for a limit (nesting, spline size) or malformed values, with what happened.
+    /// Items with a coordinate that is not a number, by key.
+    pub malformed: Vec<String>,
+    /// Items skipped for a limit (nesting, spline size), with what happened.
     pub skipped: Vec<(String, String)>,
 }
 
@@ -733,7 +736,7 @@ impl<'d> Converter<'d> {
             return Ok(());
         }
         if !pts.iter().all(|p| finite(*p)) {
-            self.notes.skipped.push((key.to_owned(), "a coordinate is not a number".to_owned()));
+            self.notes.malformed.push(key.to_owned());
             return Ok(());
         }
         self.push(Geo::Poly { pts, closed }, layer, dash, width, key)
@@ -754,7 +757,7 @@ impl<'d> Converter<'d> {
     ) -> Result<(), ImportError> {
         if !(finite(c) && r.is_finite() && start.is_finite() && sweep.is_finite()) || r <= 0.0 {
             if !r.is_finite() || !finite(c) {
-                self.notes.skipped.push((key.to_owned(), "a coordinate is not a number".to_owned()));
+                self.notes.malformed.push(key.to_owned());
             }
             return Ok(());
         }
@@ -1092,6 +1095,11 @@ impl<'d> Converter<'d> {
         let rot = e.f(50, 0.0);
         let (cols, rows) = (e.i(70, 1).clamp(1, 100_000), e.i(71, 1).clamp(1, 100_000));
         let (cs, rs) = (e.f(44, 0.0), e.f(45, 0.0));
+        // An array larger than the expansion limit is refused before a cell is expanded (an empty block's cells cost
+        // time though they add no shape).
+        if usize::try_from(rows * cols).unwrap_or(usize::MAX) > MAX_PRIMITIVES {
+            return Err(limit("DXF block expansion (shapes)", MAX_PRIMITIVES));
+        }
         let ltype = e.str(6).map(|s| s.trim().to_ascii_uppercase());
         for r in 0..rows {
             for c in 0..cols {

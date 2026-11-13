@@ -265,6 +265,18 @@ impl Reader<'_> {
 /// [`ImportError::Malformed`] for a file that is no DXF (no section) or whose pairs do not parse,
 /// [`ImportError::LimitExceeded`] for a string or line over `max_text_bytes` or more than [`MAX_ENTITIES`] entities.
 pub(crate) fn parse(bytes: &[u8], limits: &Limits) -> Result<Drawing, ImportError> {
+    // The entities are counted in a streaming pass first, so a file over the limit is refused before any of them
+    // is held (doc 14 §11's 256 MB for a hostile input).
+    let mut scan = Pairs::new(bytes, limits);
+    let mut count = 0usize;
+    while let Some(p) = scan.next_pair()? {
+        if p.code == 0 {
+            count += 1;
+            if count > MAX_ENTITIES {
+                return Err(limit("DXF entity count", MAX_ENTITIES));
+            }
+        }
+    }
     let mut r = Reader {
         pairs: Pairs::new(bytes, limits),
         entities: 0,

@@ -84,6 +84,21 @@ prints them.
 | `seven-zip-dictionary-4-gib.edz` | an LZMA2 folder that declares a 4 GiB dictionary | Refused by the 7z header walk before decoding |
 | `seven-zip-entries-over-the-limit.edz` | a 7z header that declares 5,000 entries | Refused by the 7z header walk: over 4,096 entries |
 
+## `dxf/`: DXF drawings
+
+Parser: the DXF importer through the front door into a new page, `Session::dxf_page_batch` (`ew import dxf`, the
+window's Import), in millimetres where the drawing names no unit.
+
+| File | Tries | Verdict |
+|---|---|---|
+| `code-not-a-number.dxf` | a group code that is a word | Refused: a group code is not a number |
+| `entities-over-the-limit.dxf` | 5,000,001 entities of one point each (*generated*) | Refused before parsing: the DXF entity count limit of 5,000,000 |
+| `insert-cycle.dxf` | a block that inserts itself | Imported without the insert: EW-IMP-001, nested deeper than 32 levels |
+| `line-over-1-mib.dxf` | a text value one byte over 1 MiB (*generated*) | Refused: the DXF line length limit of 1 MiB |
+| `minsert-bomb.dxf` | an array insert of 30,000 × 30,000 | Refused: the block expansion limit of 1,000,000 shapes |
+| `nan-coordinate.dxf` | a line from `x = NaN` to `y = inf` | Imported without the line: EW-IMP-002 |
+| `truncated-binary.dxf` | a binary DXF that ends inside a real number (*generated*) | Refused: the binary file ends inside a value |
+
 ## `xlsx/`: workbooks
 
 Parser: the parts import's XLSX reader through the front door, `ew_api::catalog::parse_parts` (`ew import parts`, the

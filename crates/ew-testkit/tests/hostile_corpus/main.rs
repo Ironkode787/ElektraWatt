@@ -181,6 +181,63 @@ fn qet_elements() {
     );
 }
 
+/// A DXF drawing as `ew import dxf` and the window's Import take one: through the front door into a new page of an
+/// empty project (`dxf_page_batch`), drawn in millimetres where it names no unit.
+#[test]
+fn dxf_drawings() {
+    let session = Session::from_records(
+        serde_json::from_str(r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b39","derivation_profile":"2027.1"}"#)
+            .unwrap(),
+        [],
+        [],
+        ew_api::SessionOptions::default(),
+    )
+    .unwrap();
+    let options = ew_api::dxf::DxfOptions {
+        unit: Some(ew_api::dxf::Unit::Millimetre),
+        ..Default::default()
+    };
+    class(
+        "dxf",
+        &[
+            (
+                "code-not-a-number.dxf",
+                "malformed input at line 5: a group code is not a number",
+            ),
+            (
+                "entities-over-the-limit.dxf",
+                "input exceeds the DXF entity count limit of 5000000",
+            ),
+            (
+                "insert-cycle.dxf",
+                "imported; report: EW-IMP-001 Error An item was not imported: the block A is nested deeper than 32 \
+                 levels.",
+            ),
+            (
+                "line-over-1-mib.dxf",
+                "input exceeds the DXF line length limit of 1048576",
+            ),
+            (
+                "minsert-bomb.dxf",
+                "input exceeds the DXF block expansion (shapes) limit of 1000000",
+            ),
+            (
+                "nan-coordinate.dxf",
+                "imported; report: EW-IMP-002 Error An item has a coordinate that is not a number and was not \
+                 imported.",
+            ),
+            (
+                "truncated-binary.dxf",
+                "malformed input: the binary file ends inside a value",
+            ),
+        ],
+        |name, bytes| match session.dxf_page_batch(name, bytes.to_vec(), &options) {
+            Ok(batch) => report(&batch.report.entries),
+            Err(e) => e.to_string(),
+        },
+    );
+}
+
 /// An EPLAN symbol input as `ew symbol import` and the editor's Open take one: through the front door
 /// (`import_eplan`, M25-p2#3), its refusal in the words `ew` prints.
 #[test]
@@ -427,6 +484,7 @@ fn raster_assets() {
                     ew_schema::AssetFormat::Png => ImageFormat::Png,
                     ew_schema::AssetFormat::Jpeg => ImageFormat::Jpeg,
                     ew_schema::AssetFormat::Svg => ImageFormat::Svg,
+                    other => return format!("taken as {other:?}; not an image"),
                 };
                 let decoded = ew_render_cpu::decode_image(format, bytes);
                 format!(

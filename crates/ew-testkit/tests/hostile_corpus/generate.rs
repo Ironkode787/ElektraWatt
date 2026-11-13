@@ -35,6 +35,9 @@ pub fn committed() -> Vec<(&'static str, Vec<u8>)> {
 /// The files made at each run only, by their path below `hostile/` (none of them is committed).
 pub fn large() -> Vec<(&'static str, Vec<u8>)> {
     vec![
+        ("dxf/entities-over-the-limit.dxf", dxf_entities_over_the_limit()),
+        ("dxf/line-over-1-mib.dxf", dxf_line_over_1_mib()),
+        ("dxf/truncated-binary.dxf", dxf_truncated_binary()),
         ("eplan/depth-10000.xml", eplan_depth_10000()),
         (
             "eplan/element-of-200000-attributes.xml",
@@ -251,6 +254,37 @@ fn jsonl_line_over_16_mib() -> Vec<u8> {
     let mut out = head.to_vec();
     out.resize((16 << 20) + 1 - tail.len() + 1, b'a');
     out.extend_from_slice(tail);
+    out
+}
+
+/// A DXF of one entity more than the 5 million the importer reads, each the smallest an entity can be.
+fn dxf_entities_over_the_limit() -> Vec<u8> {
+    let mut out = b"0\nSECTION\n2\nENTITIES\n".to_vec();
+    for _ in 0..5_000_000 {
+        out.extend_from_slice(b"0\nPOINT\n");
+    }
+    out.extend_from_slice(b"0\nENDSEC\n0\nEOF\n");
+    out
+}
+
+/// A DXF whose one text value is a line one byte over 1 MiB.
+fn dxf_line_over_1_mib() -> Vec<u8> {
+    let mut out = b"0\nSECTION\n2\nENTITIES\n0\nTEXT\n1\n".to_vec();
+    out.resize(out.len() + (1 << 20) + 1, b'a');
+    out.extend_from_slice(b"\n0\nENDSEC\n0\nEOF\n");
+    out
+}
+
+/// A binary DXF that ends inside a real number.
+fn dxf_truncated_binary() -> Vec<u8> {
+    let mut out = b"AutoCAD Binary DXF\r\n\x1a\0".to_vec();
+    for (code, text) in [(0u16, "SECTION"), (2, "ENTITIES"), (0, "LINE")] {
+        out.extend_from_slice(&code.to_le_bytes());
+        out.extend_from_slice(text.as_bytes());
+        out.push(0);
+    }
+    out.extend_from_slice(&10u16.to_le_bytes());
+    out.extend_from_slice(&[0, 0, 0]);
     out
 }
 

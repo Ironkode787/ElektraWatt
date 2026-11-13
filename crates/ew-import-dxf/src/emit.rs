@@ -296,6 +296,16 @@ pub fn convert(
     for s in &shapes {
         cx.shape(s);
     }
+    for key in &notes.malformed {
+        entries.push(
+            ReportEntry::new(
+                Code::MALFORMED_ITEM,
+                Severity::Error,
+                "An item has a coordinate that is not a number and was not imported.",
+            )
+            .at(loc(Some(key.clone()))),
+        );
+    }
     for key in &cx.bad {
         entries.push(
             ReportEntry::new(
