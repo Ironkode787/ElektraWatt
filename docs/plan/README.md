@@ -1,12 +1,12 @@
 # The plan
 
-**Running:** milestone **M2.5-Fix**, a properly working program, release 0.2.0: its order, its rules and its log
-are in [m2.5-fix.md](m2.5-fix.md), its rows in [backlog.md](backlog.md).
-**Done:** M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](m2.5.md)). **Next:** M3, new development.
+**Running:** no milestone. **Done:** M2.5-Fix, a properly working program, closed with the release of 0.2.0 on
+2026-11-13 ([m2.5-fix.md](m2.5-fix.md)); M2.5, maintenance, closed on 2026-11-11 ([m2.5.md](m2.5.md)).
+**Next:** M3, new development; open rows are in [backlog-later.md](backlog-later.md) until it is planned.
 
 | File | What it is |
 |---|---|
-| [m2.5-fix.md](m2.5-fix.md) | The running milestone: how a fix is made, the order of the rows, the log |
+| [m2.5-fix.md](m2.5-fix.md) | The fix milestone: how a fix is made, the order of the rows, the log |
 | [m2.5.md](m2.5.md) | The maintenance milestone: principles, steps, assessment, what was cut and why, the exit record |
 | [backlog.md](backlog.md) | Open work, one row each, by milestone. A finished row is deleted |
 | [backlog-later.md](backlog-later.md) | Unscheduled rows for M3 and after: a seed for planning, not a commitment |

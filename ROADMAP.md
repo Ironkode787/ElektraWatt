@@ -30,13 +30,13 @@ that is running and the open work are in [docs/plan/](docs/plan/README.md).
 |---|---|
 | M0 to M2 | Closed: 0.1.0 was released on 2026-11-08 for Windows and Linux, unsigned and with no network code |
 | M2.5 | Closed on 2026-11-11: the maintenance step ([plan and exit record](docs/plan/m2.5.md)) |
-| M2.5-Fix | Running since 2026-11-11: the fixes that make the program work well in the hand ([plan](docs/plan/m2.5-fix.md), [backlog](docs/plan/backlog.md)) |
+| M2.5-Fix | Closed: 0.2.0 was released on 2026-11-13, the fixes that make the program work well in the hand ([plan and log](docs/plan/m2.5-fix.md)) |
 | M3 to M6, 1.x | Not started |
 
 What works today, in short: the desktop window opens, edits and checks a project, with navigators, table mode, a
 history, the 2D panel layout and printing; the `ew` command-line tool imports QElectroTech projects, checks, exports
-PDF/A-2b, SVG and tables (with the Excel round trip), prints and upgrades a project of an older format. 0.1.0 is an
-early alpha: hands-on use found basic flows that do not work well yet, and M2.5-Fix is there to fix them. The
+PDF/A-2b, SVG and tables (with the Excel round trip), prints and upgrades a project of an older format. 0.2.0 is an
+early alpha that fixes what hands-on use of 0.1.0 found, with the right-click menu and forms for cables and terminals. The
 [README](README.md#status) lists what is built.
 
 ## What is not on the roadmap

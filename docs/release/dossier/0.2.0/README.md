@@ -25,7 +25,7 @@ the statement that no employer is involved. No new item is asked for 0.2.0.
 |---|---|---|---|
 | `v0.2.0-rc.1` | `release/0.2`, the commit the tag names | [`checklist-rc.1.md`](checklist-rc.1.md) | Not promoted: the owner's hands-on test gave 28 findings, four of them major |
 | `v0.2.0-rc.2` | `release/0.2`, the commit the tag names | [`checklist-rc.2.md`](checklist-rc.2.md) | No downloads: its release build failed at the Windows setup (the icon's path in the setup's script) |
-| `v0.2.0-rc.3` | `release/0.2`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Cut; waits for the owner's hands-on test |
+| `v0.2.0-rc.3` | `release/0.2`, the commit the tag names | [`checklist-rc.3.md`](checklist-rc.3.md) | Promoted to `v0.2.0` on 2026-11-13 |
 
 Before the first cut, on the tip that the release branch starts from: the whole workspace passed
 (`cargo xtask check`), the deep run passed, and a persona round of four picture-led runs was triaged (the log's
@@ -51,4 +51,7 @@ checklist's RC-05). The owner's test says whether an open row holds the release.
 
 ## 4. The go
 
-Not given yet. The go is the owner's, after their hands-on test of a candidate.
+Given by the owner on 2026-11-13 for `v0.2.0-rc.3` ("Promote the build."). The release manager dispatched the
+promote from `main`: its dry run listed the candidate's five files, and the real run created the tag `v0.2.0` on
+the candidate's commit and published the release `v0.2.0` (latest) with those files, verified again against
+`SHA256SUMS`. The draft `v0.2.0-rc.3` stays as the record of the candidate.
