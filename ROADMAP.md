@@ -31,7 +31,8 @@ that is running and the open work are in [docs/plan/](docs/plan/README.md).
 | M0 to M2 | Closed: 0.1.0 was released on 2026-11-08 for Windows and Linux, unsigned and with no network code |
 | M2.5 | Closed on 2026-11-11: the maintenance step ([plan and exit record](docs/plan/m2.5.md)) |
 | M2.5-Fix | Closed: 0.2.0 was released on 2026-11-13, the fixes that make the program work well in the hand ([plan and log](docs/plan/m2.5-fix.md)) |
-| M3 to M6, 1.x | Not started |
+| M3 | Running since 2026-11-13: automation breadth, release 0.3.0 ([plan](docs/plan/m3.md)) |
+| M4 to M6, 1.x | Not started |
 
 What works today, in short: the desktop window opens, edits and checks a project, with navigators, table mode, a
 history, the 2D panel layout and printing; the `ew` command-line tool imports QElectroTech projects, checks, exports
