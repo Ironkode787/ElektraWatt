@@ -29,7 +29,9 @@ use std::sync::Arc;
 
 use ew_dl::ew_units::{Nm, Pt2};
 use ew_dl::num::atan2_deg;
-use ew_dl::{Brush, DisplayList, FontKey, Item, ItemKind, Layer, MAX_INSTANCE_DEPTH, PathEl, SymbolGeomId, Transform};
+use ew_dl::{
+    Brush, DisplayList, FontKey, Item, ItemKind, Layer, MAX_INSTANCE_DEPTH, PathEl, SymbolGeomId, Transform,
+};
 
 /// The tolerance Béziers are flattened to: 0.01 mm.
 pub const FLATNESS_NM: f64 = 10_000.0;
@@ -87,7 +89,11 @@ impl DxfLayers {
 
     /// The layer classes an export scheme maps.
     pub fn classes() -> Vec<&'static str> {
-        DxfLayers::default().named_mut().into_iter().map(|(c, _)| c).collect()
+        DxfLayers::default()
+            .named_mut()
+            .into_iter()
+            .map(|(c, _)| c)
+            .collect()
     }
 
     /// Names the layer of `class` `name`.
@@ -115,7 +121,11 @@ impl DxfLayers {
 
     /// The names in the order the LAYER table lists them.
     fn all(&self) -> Vec<String> {
-        self.clone().named_mut().into_iter().map(|(_, n)| n.clone()).collect()
+        self.clone()
+            .named_mut()
+            .into_iter()
+            .map(|(_, n)| n.clone())
+            .collect()
     }
 }
 
@@ -169,7 +179,11 @@ fn mm(n: i64) -> String {
     let neg = n < 0;
     let a = n.unsigned_abs();
     let (int, frac) = (a / 1_000_000, a % 1_000_000);
-    let mut s = if neg && a != 0 { format!("-{int}") } else { int.to_string() };
+    let mut s = if neg && a != 0 {
+        format!("-{int}")
+    } else {
+        int.to_string()
+    };
     if frac != 0 {
         let f = format!("{frac:06}");
         s.push('.');
@@ -214,7 +228,11 @@ const LINEWEIGHTS: [i64; 24] = [
 /// The standard lineweight nearest to a width.
 fn lineweight(width: Nm) -> i64 {
     let w = width.0 / 10_000;
-    LINEWEIGHTS.iter().copied().min_by_key(|l| (l - w).abs()).unwrap_or(25)
+    LINEWEIGHTS
+        .iter()
+        .copied()
+        .min_by_key(|l| (l - w).abs())
+        .unwrap_or(25)
 }
 
 /// The points of a flattened Bézier from `p0` through the controls to `p3` (`p0` excluded), within [`FLATNESS_NM`].
@@ -235,7 +253,11 @@ fn bezier(p0: Pt2, c1: Pt2, c2: Pt2, p3: Pt2) -> Vec<Pt2> {
             let s = 1.0 - t;
             let x = s * s * s * a.0 + 3.0 * s * s * t * b.0 + 3.0 * s * t * t * c.0 + t * t * t * d.0;
             let y = s * s * s * a.1 + 3.0 * s * s * t * b.1 + 3.0 * s * t * t * c.1 + t * t * t * d.1;
-            if i == n { p3 } else { Pt2::new(Nm(x.round_ties_even() as i64), Nm(y.round_ties_even() as i64)) }
+            if i == n {
+                p3
+            } else {
+                Pt2::new(Nm(x.round_ties_even() as i64), Nm(y.round_ties_even() as i64))
+            }
         })
         .collect()
 }
@@ -261,8 +283,14 @@ fn subpaths(els: &[PathEl], t: Transform) -> Vec<(Vec<Pt2>, bool)> {
             PathEl::QuadTo(c, p) => {
                 let Some(&p0) = cur.last() else { continue };
                 // The cubic of a quadratic: controls at two thirds towards the control point.
-                let c1 = Pt2::new(Nm(p0.x.0 + (c.x.0 - p0.x.0) * 2 / 3), Nm(p0.y.0 + (c.y.0 - p0.y.0) * 2 / 3));
-                let c2 = Pt2::new(Nm(p.x.0 + (c.x.0 - p.x.0) * 2 / 3), Nm(p.y.0 + (c.y.0 - p.y.0) * 2 / 3));
+                let c1 = Pt2::new(
+                    Nm(p0.x.0 + (c.x.0 - p0.x.0) * 2 / 3),
+                    Nm(p0.y.0 + (c.y.0 - p0.y.0) * 2 / 3),
+                );
+                let c2 = Pt2::new(
+                    Nm(p.x.0 + (c.x.0 - p.x.0) * 2 / 3),
+                    Nm(p.y.0 + (c.y.0 - p.y.0) * 2 / 3),
+                );
                 cur.extend(bezier(p0, c1, c2, p));
             }
             PathEl::CubicTo(c1, c2, p) => {
@@ -402,7 +430,12 @@ impl Writer<'_> {
                             if c != ew_dl::Color::BLACK {
                                 let _ = write!(body, "420\n{}\n", rgb(c));
                             }
-                            let _ = write!(body, "100\nAcDbPolyline\n 90\n{}\n 70\n{}\n 43\n0\n", pts.len(), u8::from(closed));
+                            let _ = write!(
+                                body,
+                                "100\nAcDbPolyline\n 90\n{}\n 70\n{}\n 43\n0\n",
+                                pts.len(),
+                                u8::from(closed)
+                            );
                             for p in &pts {
                                 let (x, y) = if block { Self::block_xy(*p) } else { self.xy(*p) };
                                 let _ = write!(body, " 10\n{x}\n 20\n{y}\n");
@@ -417,7 +450,10 @@ impl Writer<'_> {
                 }
                 ItemKind::Glyphs(run) => {
                     let lay = layer(self, "text");
-                    let rt = run.transform.then(Transform::from_translation(run.origin)).then(t);
+                    let rt = run
+                        .transform
+                        .then(Transform::from_translation(run.origin))
+                        .then(t);
                     let at = rt.apply(Pt2::ORIGIN);
                     let ahead = rt.apply(Pt2::new(Nm(1_000_000), Nm(0)));
                     // The angle on the sheet (y down) as DXF's (y up): the visual angle is the same.
@@ -517,7 +553,11 @@ fn rgb(c: ew_dl::Color) -> u32 {
 
 /// The STYLE name of a face: its family in capitals with `-` for spaces, `-BOLD` for a bold face.
 fn style_name(opts: &DxfOptions, font: FontKey) -> String {
-    let (family, bold) = opts.faces.get(&font).cloned().unwrap_or_else(|| ("Noto Sans".to_owned(), false));
+    let (family, bold) = opts
+        .faces
+        .get(&font)
+        .cloned()
+        .unwrap_or_else(|| ("Noto Sans".to_owned(), false));
     let mut s = format!("EW-{}", family.to_ascii_uppercase().replace(' ', "-"));
     if bold {
         s.push_str("-BOLD");
@@ -527,8 +567,16 @@ fn style_name(opts: &DxfOptions, font: FontKey) -> String {
 
 /// The font file of a face: its family without spaces, `-Bold` or `-Regular`, `.ttf`.
 fn font_file(opts: &DxfOptions, font: FontKey) -> String {
-    let (family, bold) = opts.faces.get(&font).cloned().unwrap_or_else(|| ("Noto Sans".to_owned(), false));
-    format!("{}-{}.ttf", family.replace(' ', ""), if bold { "Bold" } else { "Regular" })
+    let (family, bold) = opts
+        .faces
+        .get(&font)
+        .cloned()
+        .unwrap_or_else(|| ("Noto Sans".to_owned(), false));
+    format!(
+        "{}-{}.ttf",
+        family.replace(' ', ""),
+        if bold { "Bold" } else { "Regular" }
+    )
 }
 
 /// The DXF file of each page (see the module documentation).
@@ -569,7 +617,16 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
     for id in &used {
         let mut ents = Vec::new();
         if let Some(g) = sheet.geometry.get(id) {
-            w.items(&g.items, Transform::IDENTITY, None, true, &sheet.geometry, sheet.scale_ppb, 0, &mut ents);
+            w.items(
+                &g.items,
+                Transform::IDENTITY,
+                None,
+                true,
+                &sheet.geometry,
+                sheet.scale_ppb,
+                0,
+                &mut ents,
+            );
         }
         blocks.push((block_name(id), ents));
     }
@@ -583,14 +640,21 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
     let mut tables = String::new();
     let table = |w: &mut Writer<'_>, tables: &mut String, name: &str, entries: Vec<String>| {
         let h = w.handle();
-        let _ = write!(tables, "  0\nTABLE\n  2\n{name}\n  5\n{h}\n330\n0\n100\nAcDbSymbolTable\n 70\n{}\n", entries.len());
+        let _ = write!(
+            tables,
+            "  0\nTABLE\n  2\n{name}\n  5\n{h}\n330\n0\n100\nAcDbSymbolTable\n 70\n{}\n",
+            entries.len()
+        );
         if name == "DIMSTYLE" {
             tables.push_str("100\nAcDbDimStyleTable\n");
         }
         for e in entries {
             let eh = w.handle();
             let code = if name == "DIMSTYLE" { 105 } else { 5 };
-            let _ = write!(tables, "  0\n{name}\n{code:>3}\n{eh}\n330\n{h}\n100\nAcDbSymbolTableRecord\n{e}");
+            let _ = write!(
+                tables,
+                "  0\n{name}\n{code:>3}\n{eh}\n330\n{h}\n100\nAcDbSymbolTableRecord\n{e}"
+            );
         }
         tables.push_str("  0\nENDTAB\n");
     };
@@ -608,11 +672,16 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
     let mut ltypes = vec![
         "100\nAcDbLinetypeTableRecord\n  2\nByBlock\n 70\n0\n  3\n\n 72\n65\n 73\n0\n 40\n0\n".to_owned(),
         "100\nAcDbLinetypeTableRecord\n  2\nByLayer\n 70\n0\n  3\n\n 72\n65\n 73\n0\n 40\n0\n".to_owned(),
-        "100\nAcDbLinetypeTableRecord\n  2\nContinuous\n 70\n0\n  3\nSolid line\n 72\n65\n 73\n0\n 40\n0\n".to_owned(),
+        "100\nAcDbLinetypeTableRecord\n  2\nContinuous\n 70\n0\n  3\nSolid line\n 72\n65\n 73\n0\n 40\n0\n"
+            .to_owned(),
     ];
     for (i, d) in w.dashes.clone().iter().enumerate() {
         // An odd list repeats (PDF and SVG semantics): written twice to make on/off pairs.
-        let full: Vec<i64> = if d.len() % 2 == 1 { d.iter().chain(d.iter()).copied().collect() } else { d.clone() };
+        let full: Vec<i64> = if d.len() % 2 == 1 {
+            d.iter().chain(d.iter()).copied().collect()
+        } else {
+            d.clone()
+        };
         let total: i64 = full.iter().sum();
         let mut e = format!(
             "100\nAcDbLinetypeTableRecord\n  2\nEW_DASH_{}\n 70\n0\n  3\nElektraWatt dash {}\n 72\n65\n 73\n{}\n 40\n{}\n",
@@ -628,9 +697,13 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
         ltypes.push(e);
     }
     table(&mut w, &mut tables, "LTYPE", ltypes);
-    let mut layers = vec!["100\nAcDbLayerTableRecord\n  2\n0\n 70\n0\n 62\n7\n  6\nContinuous\n370\n-3\n".to_owned()];
+    let mut layers =
+        vec!["100\nAcDbLayerTableRecord\n  2\n0\n 70\n0\n 62\n7\n  6\nContinuous\n370\n-3\n".to_owned()];
     for name in opts.layers.all() {
-        layers.push(format!("100\nAcDbLayerTableRecord\n  2\n{}\n 70\n0\n 62\n7\n  6\nContinuous\n370\n-3\n", dxf_text(&name)));
+        layers.push(format!(
+            "100\nAcDbLayerTableRecord\n  2\n{}\n 70\n0\n 62\n7\n  6\nContinuous\n370\n-3\n",
+            dxf_text(&name)
+        ));
     }
     table(&mut w, &mut tables, "LAYER", layers);
     let mut styles = vec![
@@ -647,7 +720,12 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
     table(&mut w, &mut tables, "STYLE", styles);
     table(&mut w, &mut tables, "VIEW", Vec::new());
     table(&mut w, &mut tables, "UCS", Vec::new());
-    table(&mut w, &mut tables, "APPID", vec!["100\nAcDbRegAppTableRecord\n  2\nACAD\n 70\n0\n".to_owned()]);
+    table(
+        &mut w,
+        &mut tables,
+        "APPID",
+        vec!["100\nAcDbRegAppTableRecord\n  2\nACAD\n 70\n0\n".to_owned()],
+    );
     table(
         &mut w,
         &mut tables,
@@ -684,7 +762,12 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
     tables.push_str("  0\nENDTAB\n");
     // The blocks section.
     let mut blocks_text = String::new();
-    let block = |w: &mut Writer<'_>, out: &mut String, record: &str, name: &str, paper: bool, ents: Vec<Ent>| {
+    let block = |w: &mut Writer<'_>,
+                 out: &mut String,
+                 record: &str,
+                 name: &str,
+                 paper: bool,
+                 ents: Vec<Ent>| {
         let h = w.handle();
         let space = if paper { " 67\n1\n" } else { "" };
         let _ = write!(
@@ -693,13 +776,36 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
         );
         for e in ents {
             let eh = w.handle();
-            let _ = write!(out, "  0\n{}\n  5\n{eh}\n330\n{record}\n100\nAcDbEntity\n  8\n{}\n{}", e.kind, dxf_text(&e.layer), e.body);
+            let _ = write!(
+                out,
+                "  0\n{}\n  5\n{eh}\n330\n{record}\n100\nAcDbEntity\n  8\n{}\n{}",
+                e.kind,
+                dxf_text(&e.layer),
+                e.body
+            );
         }
         let eh = w.handle();
-        let _ = write!(out, "  0\nENDBLK\n  5\n{eh}\n330\n{record}\n100\nAcDbEntity\n{space}  8\n0\n100\nAcDbBlockEnd\n");
+        let _ = write!(
+            out,
+            "  0\nENDBLK\n  5\n{eh}\n330\n{record}\n100\nAcDbEntity\n{space}  8\n0\n100\nAcDbBlockEnd\n"
+        );
     };
-    block(&mut w, &mut blocks_text, &model_record, "*Model_Space", false, Vec::new());
-    block(&mut w, &mut blocks_text, &paper_record, "*Paper_Space", true, Vec::new());
+    block(
+        &mut w,
+        &mut blocks_text,
+        &model_record,
+        "*Model_Space",
+        false,
+        Vec::new(),
+    );
+    block(
+        &mut w,
+        &mut blocks_text,
+        &paper_record,
+        "*Paper_Space",
+        true,
+        Vec::new(),
+    );
     for ((name, ents), h) in blocks.into_iter().zip(&block_records) {
         block(&mut w, &mut blocks_text, h, &name, false, ents);
     }
@@ -707,7 +813,13 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
     let mut entities = String::new();
     for e in model {
         let eh = w.handle();
-        let _ = write!(entities, "  0\n{}\n  5\n{eh}\n330\n{model_record}\n100\nAcDbEntity\n  8\n{}\n{}", e.kind, dxf_text(&e.layer), e.body);
+        let _ = write!(
+            entities,
+            "  0\n{}\n  5\n{eh}\n330\n{model_record}\n100\nAcDbEntity\n  8\n{}\n{}",
+            e.kind,
+            dxf_text(&e.layer),
+            e.body
+        );
     }
     // The objects: the root dictionary, the group and layout dictionaries, and the two layouts.
     let mut objects = String::new();
@@ -715,7 +827,10 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
         objects,
         "  0\nDICTIONARY\n  5\n{dict_root}\n330\n0\n100\nAcDbDictionary\n281\n1\n  3\nACAD_GROUP\n350\n{dict_group}\n  3\nACAD_LAYOUT\n350\n{dict_layout}\n"
     );
-    let _ = write!(objects, "  0\nDICTIONARY\n  5\n{dict_group}\n330\n{dict_root}\n100\nAcDbDictionary\n281\n1\n");
+    let _ = write!(
+        objects,
+        "  0\nDICTIONARY\n  5\n{dict_group}\n330\n{dict_root}\n100\nAcDbDictionary\n281\n1\n"
+    );
     let _ = write!(
         objects,
         "  0\nDICTIONARY\n  5\n{dict_layout}\n330\n{dict_root}\n100\nAcDbDictionary\n281\n1\n  3\nLayout1\n350\n{layout_paper}\n  3\nModel\n350\n{layout_model}\n"
@@ -737,9 +852,18 @@ fn page(sheet: &DxfSheet, opts: &DxfOptions) -> DxfFile {
         ("$ACADVER", vec![(1, "AC1015".to_owned())]),
         ("$ACADMAINTVER", vec![(70, "6".to_owned())]),
         ("$DWGCODEPAGE", vec![(3, "ANSI_1252".to_owned())]),
-        ("$INSBASE", vec![(10, "0".to_owned()), (20, "0".to_owned()), (30, "0".to_owned())]),
-        ("$EXTMIN", vec![(10, "0".to_owned()), (20, "0".to_owned()), (30, "0".to_owned())]),
-        ("$EXTMAX", vec![(10, wd.clone()), (20, ht.clone()), (30, "0".to_owned())]),
+        (
+            "$INSBASE",
+            vec![(10, "0".to_owned()), (20, "0".to_owned()), (30, "0".to_owned())],
+        ),
+        (
+            "$EXTMIN",
+            vec![(10, "0".to_owned()), (20, "0".to_owned()), (30, "0".to_owned())],
+        ),
+        (
+            "$EXTMAX",
+            vec![(10, wd.clone()), (20, ht.clone()), (30, "0".to_owned())],
+        ),
         ("$LIMMIN", vec![(10, "0".to_owned()), (20, "0".to_owned())]),
         ("$LIMMAX", vec![(10, wd.clone()), (20, ht.clone())]),
         ("$LTSCALE", vec![(40, "1".to_owned())]),

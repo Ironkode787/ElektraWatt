@@ -1010,12 +1010,23 @@ fn import_qet_errors() {
 }
 #[test]
 fn import_dxf_forms() {
-    let Ok(Command::ImportDxf(a)) = p(&["import", "dxf", "plant.dxf", "--units", "in", "--layout", "Sheet 1"]) else {
+    let Ok(Command::ImportDxf(a)) = p(&[
+        "import",
+        "dxf",
+        "plant.dxf",
+        "--units",
+        "in",
+        "--layout",
+        "Sheet 1",
+    ]) else {
         panic!("parse failed");
     };
     assert_eq!(a.target, dxf::DxfTarget::Page);
     assert_eq!(a.units, Some(ew_api::dxf::Unit::Inch));
-    assert_eq!(a.options().space, ew_api::dxf::Space::Layout("Sheet 1".to_owned()));
+    assert_eq!(
+        a.options().space,
+        ew_api::dxf::Space::Layout("Sheet 1".to_owned())
+    );
     let Ok(Command::ImportDxf(a)) = p(&["import", "dxf", "plant.dxf", "--as", "symbol"]) else {
         panic!("parse failed");
     };
@@ -1027,8 +1038,16 @@ fn import_dxf_forms() {
 
 #[test]
 fn export_dxf_forms() {
-    let Ok(Command::ExportPages(a)) = p(&["export", "dxf", "--out", "d", "--pages", "101", "--layer", "wires=WIRING"])
-    else {
+    let Ok(Command::ExportPages(a)) = p(&[
+        "export",
+        "dxf",
+        "--out",
+        "d",
+        "--pages",
+        "101",
+        "--layer",
+        "wires=WIRING",
+    ]) else {
         panic!("parse failed");
     };
     assert_eq!(a.format, PageFormat::Dxf);

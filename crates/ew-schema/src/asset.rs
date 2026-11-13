@@ -421,7 +421,8 @@ fn is_dxf(bytes: &[u8]) -> bool {
     }
     let head = &bytes[..bytes.len().min(4096)];
     let head = head.strip_prefix(b"\xef\xbb\xbf").unwrap_or(head);
-    let Ok(text) = std::str::from_utf8(head).or_else(|e| std::str::from_utf8(&head[..e.valid_up_to()])) else {
+    let Ok(text) = std::str::from_utf8(head).or_else(|e| std::str::from_utf8(&head[..e.valid_up_to()]))
+    else {
         return false;
     };
     let mut lines = text.lines().map(str::trim);

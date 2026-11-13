@@ -186,8 +186,10 @@ fn qet_elements() {
 #[test]
 fn dxf_drawings() {
     let session = Session::from_records(
-        serde_json::from_str(r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b39","derivation_profile":"2027.1"}"#)
-            .unwrap(),
+        serde_json::from_str(
+            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b39","derivation_profile":"2027.1"}"#,
+        )
+        .unwrap(),
         [],
         [],
         ew_api::SessionOptions::default(),

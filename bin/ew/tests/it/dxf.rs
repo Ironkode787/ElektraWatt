@@ -15,23 +15,59 @@ fn drawing(units: Option<u8>) -> String {
         pairs.extend([(9, "$INSUNITS".into()), (70, u.to_string())]);
     }
     pairs.extend([(0, "ENDSEC".into()), (0, "SECTION".into()), (2, "BLOCKS".into())]);
-    pairs.extend([(0, "BLOCK".into()), (8, "0".into()), (2, "TERM4".into()), (70, "2".into())]);
+    pairs.extend([
+        (0, "BLOCK".into()),
+        (8, "0".into()),
+        (2, "TERM4".into()),
+        (70, "2".into()),
+    ]);
     pairs.extend([(10, "0".into()), (20, "0".into())]);
-    pairs.extend([(0, "LWPOLYLINE".into()), (8, "0".into()), (90, "4".into()), (70, "1".into())]);
+    pairs.extend([
+        (0, "LWPOLYLINE".into()),
+        (8, "0".into()),
+        (90, "4".into()),
+        (70, "1".into()),
+    ]);
     for (x, y) in [(0, 0), (12, 0), (12, 8), (0, 8)] {
         pairs.extend([(10, x.to_string()), (20, y.to_string())]);
     }
     for (n, x) in [(1, 0), (2, 4), (3, 8), (4, 12)] {
-        pairs.extend([(0, "ATTDEF".into()), (8, "0".into()), (10, x.to_string()), (20, "0".into())]);
-        pairs.extend([(40, "1".into()), (1, String::new()), (3, "Pin".into()), (2, format!("PIN{n}"))]);
+        pairs.extend([
+            (0, "ATTDEF".into()),
+            (8, "0".into()),
+            (10, x.to_string()),
+            (20, "0".into()),
+        ]);
+        pairs.extend([
+            (40, "1".into()),
+            (1, String::new()),
+            (3, "Pin".into()),
+            (2, format!("PIN{n}")),
+        ]);
         pairs.push((70, "1".into()));
     }
     pairs.extend([(0, "ENDBLK".into()), (8, "0".into()), (0, "ENDSEC".into())]);
     pairs.extend([(0, "SECTION".into()), (2, "ENTITIES".into())]);
-    pairs.extend([(0, "INSERT".into()), (5, "1A".into()), (8, "0".into()), (2, "TERM4".into())]);
+    pairs.extend([
+        (0, "INSERT".into()),
+        (5, "1A".into()),
+        (8, "0".into()),
+        (2, "TERM4".into()),
+    ]);
     pairs.extend([(10, "50".into()), (20, "50".into())]);
-    pairs.extend([(0, "LINE".into()), (5, "1B".into()), (8, "WIRES".into()), (10, "0".into()), (20, "0".into())]);
-    pairs.extend([(11, "100".into()), (21, "0".into()), (0, "ENDSEC".into()), (0, "EOF".into())]);
+    pairs.extend([
+        (0, "LINE".into()),
+        (5, "1B".into()),
+        (8, "WIRES".into()),
+        (10, "0".into()),
+        (20, "0".into()),
+    ]);
+    pairs.extend([
+        (11, "100".into()),
+        (21, "0".into()),
+        (0, "ENDSEC".into()),
+        (0, "EOF".into()),
+    ]);
     pairs.iter().map(|(c, v)| format!("{c}\n{v}\n")).collect()
 }
 
@@ -43,11 +79,19 @@ fn a_drawing_becomes_a_graphic_page_twice_and_a_missing_unit_is_refused_in_words
     std::fs::write(&file, drawing(Some(4))).unwrap();
     let out = t.ew(&args([&"import", &"dxf", &file, &"--project", &project]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
-    assert!(stdout(&out).ends_with("Imported plant.dxf as page 2 with 2 items.\n"), "{}", stdout(&out));
+    assert!(
+        stdout(&out).ends_with("Imported plant.dxf as page 2 with 2 items.\n"),
+        "{}",
+        stdout(&out)
+    );
     // The same file again: a copy on the next page.
     let out = t.ew(&args([&"import", &"dxf", &file, &"--project", &project]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
-    assert!(stdout(&out).ends_with("as page 3 with 2 items.\n"), "{}", stdout(&out));
+    assert!(
+        stdout(&out).ends_with("as page 3 with 2 items.\n"),
+        "{}",
+        stdout(&out)
+    );
     let (reopened, _) = ew_api::Session::open_read_only(&project, "test").unwrap();
     let graphic = reopened
         .query()
@@ -65,9 +109,20 @@ fn a_drawing_becomes_a_graphic_page_twice_and_a_missing_unit_is_refused_in_words
         stderr(&out),
         "error: the drawing names no unit; give it with --units (mm, cm, m, in, …)\n"
     );
-    let out = t.ew(&args([&"import", &"dxf", &bare, &"--project", &project, &"--units", &"mm"]));
+    let out = t.ew(&args([
+        &"import",
+        &"dxf",
+        &bare,
+        &"--project",
+        &project,
+        &"--units",
+        &"mm",
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
-    assert!(stdout(&out).contains("EW-IMP-251 warning: The drawing names no unit; it was read in millimetres as chosen."));
+    assert!(
+        stdout(&out)
+            .contains("EW-IMP-251 warning: The drawing names no unit; it was read in millimetres as chosen.")
+    );
 }
 
 /// `ew import pdf` keeps the PDF in the user's underlay cache, not in the project; `ew import dxf --as underlay
@@ -79,21 +134,59 @@ fn underlays_are_placed_kept_outside_or_embedded_and_printed_only_when_asked() {
     let pdf_file = t.path("plan.pdf");
     let out = t.ew(&args([&"export", &"pdf", &project, &"--out", &pdf_file]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
-    let out = t.ew(&args([&"import", &"pdf", &pdf_file, &"--on", &"1", &"--project", &project]));
+    let out = t.ew(&args([
+        &"import",
+        &"pdf",
+        &pdf_file,
+        &"--on",
+        &"1",
+        &"--project",
+        &project,
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
-    assert_eq!(stdout(&out), "Placed plan.pdf as an underlay on page 1, kept outside the project.\n");
-    let cached = std::fs::read_dir(t.path("cache").join("underlays")).unwrap().count();
+    assert_eq!(
+        stdout(&out),
+        "Placed plan.pdf as an underlay on page 1, kept outside the project.\n"
+    );
+    let cached = std::fs::read_dir(t.path("cache").join("underlays"))
+        .unwrap()
+        .count();
     assert_eq!(cached, 1, "the PDF is in the underlay cache");
-    assert!(!project.join("assets").exists() || std::fs::read_dir(project.join("assets")).unwrap().count() == 0);
-    let out = t.ew(&args([&"import", &"pdf", &pdf_file, &"--on", &"7", &"--project", &project]));
+    assert!(
+        !project.join("assets").exists() || std::fs::read_dir(project.join("assets")).unwrap().count() == 0
+    );
+    let out = t.ew(&args([
+        &"import",
+        &"pdf",
+        &pdf_file,
+        &"--on",
+        &"7",
+        &"--project",
+        &project,
+    ]));
     assert_eq!(out.status.code(), Some(2));
     assert_eq!(stderr(&out), "error: The project has no drawn page 7.\n");
 
     let dxf = t.path("plant.dxf");
     std::fs::write(&dxf, drawing(Some(4))).unwrap();
-    let out = t.ew(&args([&"import", &"dxf", &dxf, &"--as", &"underlay", &"--on", &"1", &"--embed", &"--project", &project]));
+    let out = t.ew(&args([
+        &"import",
+        &"dxf",
+        &dxf,
+        &"--as",
+        &"underlay",
+        &"--on",
+        &"1",
+        &"--embed",
+        &"--project",
+        &project,
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
-    assert!(stdout(&out).ends_with("embedded in the project.\n"), "{}", stdout(&out));
+    assert!(
+        stdout(&out).ends_with("embedded in the project.\n"),
+        "{}",
+        stdout(&out)
+    );
     assert_eq!(std::fs::read_dir(project.join("assets")).unwrap().count(), 1);
 
     let plain = t.path("plain");
@@ -102,10 +195,20 @@ fn underlays_are_placed_kept_outside_or_embedded_and_printed_only_when_asked() {
     let text = std::fs::read_to_string(plain.join("1.dxf")).unwrap();
     assert!(!text.contains("  8\nEW-UNDERLAY\n"), "no underlay unless printed");
     let printed = t.path("printed");
-    let out = t.ew(&args([&"export", &"dxf", &project, &"--out", &printed, &"--underlays"]));
+    let out = t.ew(&args([
+        &"export",
+        &"dxf",
+        &project,
+        &"--out",
+        &printed,
+        &"--underlays",
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     let text = std::fs::read_to_string(printed.join("1.dxf")).unwrap();
-    assert!(text.contains("  8\nEW-UNDERLAY\n"), "the printed underlay on its layer");
+    assert!(
+        text.contains("  8\nEW-UNDERLAY\n"),
+        "the printed underlay on its layer"
+    );
 }
 
 /// `ew import dxf --as outline` writes the drawing's lines as a library part's front outline, its next patch version.
@@ -113,20 +216,64 @@ fn underlays_are_placed_kept_outside_or_embedded_and_printed_only_when_asked() {
 fn a_drawing_becomes_a_parts_front_outline() {
     let t = Tmp::new("ew-dxf-outline");
     let lib = t.path("data").join("libraries").join("std.ewlib");
-    let out = t.ew(&args([&"lib", &"create", &lib, &"--key", &"std", &"--name", &"Standard", &"--licence", &"CC0-1.0"]));
+    let out = t.ew(&args([
+        &"lib",
+        &"create",
+        &lib,
+        &"--key",
+        &"std",
+        &"--name",
+        &"Standard",
+        &"--licence",
+        &"CC0-1.0",
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     let list = t.path("supplier.csv");
     let map = t.path("supplier.toml");
-    std::fs::write(&list, "Maker,Order code,Text,Category\nPhoenix Contact,3209510,Feed-through terminal,terminal\n").unwrap();
+    std::fs::write(
+        &list,
+        "Maker,Order code,Text,Category\nPhoenix Contact,3209510,Feed-through terminal,terminal\n",
+    )
+    .unwrap();
     std::fs::write(&map, "[columns]\nmanufacturer = \"Maker\"\npart_number = \"Order code\"\ndescription = \"Text\"\nkind = \"Category\"\n").unwrap();
-    let out = t.ew(&args([&"lib", &"import", &"parts", &"std", &list, &"--map", &map, &"--as-of", &"2026-01-01"]));
+    let out = t.ew(&args([
+        &"lib",
+        &"import",
+        &"parts",
+        &"std",
+        &list,
+        &"--map",
+        &map,
+        &"--as-of",
+        &"2026-01-01",
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     let dxf = t.path("front.dxf");
     std::fs::write(&dxf, drawing(Some(4))).unwrap();
-    let out = t.ew(&args([&"import", &"dxf", &dxf, &"--as", &"outline", &"--library", &lib, &"--part", &"3209510"]));
+    let out = t.ew(&args([
+        &"import",
+        &"dxf",
+        &dxf,
+        &"--as",
+        &"outline",
+        &"--library",
+        &lib,
+        &"--part",
+        &"3209510",
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     assert!(stdout(&out).contains("version 1.0.1"), "{}", stdout(&out));
-    let out = t.ew(&args([&"import", &"dxf", &dxf, &"--as", &"outline", &"--library", &lib, &"--part", &"nope"]));
+    let out = t.ew(&args([
+        &"import",
+        &"dxf",
+        &dxf,
+        &"--as",
+        &"outline",
+        &"--library",
+        &lib,
+        &"--part",
+        &"nope",
+    ]));
     assert_eq!(out.status.code(), Some(2));
     assert_eq!(stderr(&out), "error: The library holds no part nope.\n");
 }
@@ -136,7 +283,11 @@ fn a_drawing_becomes_a_parts_front_outline() {
 fn fake_converter(t: &Tmp) -> std::path::PathBuf {
     if cfg!(windows) {
         let path = t.path("converter.cmd");
-        std::fs::write(&path, "@echo off\r\ncopy /y \"%~1\\*.dwg\" \"%~2\\drawing.dxf\" >nul\r\n").unwrap();
+        std::fs::write(
+            &path,
+            "@echo off\r\ncopy /y \"%~1\\*.dwg\" \"%~2\\drawing.dxf\" >nul\r\n",
+        )
+        .unwrap();
         path
     } else {
         let path = t.path("converter.sh");
@@ -166,11 +317,25 @@ fn a_dwg_imports_through_the_users_converter_and_without_one_the_refusal_says_ho
     assert_eq!(out.status.code(), Some(2));
     assert_eq!(stderr(&out), format!("error: {}\n", ew_api::dxf::DWG_HOW_TO));
     let converter = fake_converter(&t);
-    let out = t.ew(&args([&"import", &"dwg", &dwg, &"--project", &project, &"--converter", &converter]));
+    let out = t.ew(&args([
+        &"import",
+        &"dwg",
+        &dwg,
+        &"--project",
+        &project,
+        &"--converter",
+        &converter,
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     let text = stdout(&out);
-    assert!(text.contains("EW-IMP-257 info: plant.dwg was converted to DXF by the ODA File Converter"), "{text}");
-    assert!(text.ends_with("Imported plant.dxf as page 2 with 2 items.\n"), "{text}");
+    assert!(
+        text.contains("EW-IMP-257 info: plant.dwg was converted to DXF by the ODA File Converter"),
+        "{text}"
+    );
+    assert!(
+        text.ends_with("Imported plant.dxf as page 2 with 2 items.\n"),
+        "{text}"
+    );
 }
 
 #[test]

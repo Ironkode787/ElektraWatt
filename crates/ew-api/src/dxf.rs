@@ -89,7 +89,12 @@ pub struct DxfPage {
 impl Session {
     /// The copy number of a new import of a file of SHA-256 `sha` (doc 14 §2.3): `None` for the first import into
     /// this project, else one more than the copies it holds.
-    pub(crate) fn import_copy(&self, importer: &str, sha: [u8; 32], first: ew_derive::ew_ids::Uuid) -> Option<u32> {
+    pub(crate) fn import_copy(
+        &self,
+        importer: &str,
+        sha: [u8; 32],
+        first: ew_derive::ew_ids::Uuid,
+    ) -> Option<u32> {
         let q = self.query();
         let mut held = false;
         let mut copies = 0u32;
@@ -138,12 +143,23 @@ impl Session {
     /// # Errors
     ///
     /// [`DxfError::NoUnit`] when the drawing names no unit and `options` none; [`DxfError::Refused`] otherwise.
-    pub fn dxf_page_batch(&self, name: &str, bytes: Vec<u8>, options: &DxfOptions) -> Result<ImportBatch, DxfError> {
+    pub fn dxf_page_batch(
+        &self,
+        name: &str,
+        bytes: Vec<u8>,
+        options: &DxfOptions,
+    ) -> Result<ImportBatch, DxfError> {
         let input = ImportInput::new(name, bytes).map_err(|e| {
-            DxfError::Refused(Refusal::Import(ImportError::Unsupported { message: e.to_string() }))
+            DxfError::Refused(Refusal::Import(ImportError::Unsupported {
+                message: e.to_string(),
+            }))
         })?;
         let sha = input.sha256();
-        let copy = self.import_copy(ew_import_dxf::IMPORTER_ID, sha, ew_import_dxf::first_namespace(sha));
+        let copy = self.import_copy(
+            ew_import_dxf::IMPORTER_ID,
+            sha,
+            ew_import_dxf::first_namespace(sha),
+        );
         let (section, number, grid) = self.next_folio();
         let title = std::path::Path::new(name)
             .file_stem()
@@ -157,9 +173,13 @@ impl Session {
         let mut ctx = ImportContext::new(self.query().project().id);
         ctx.mode = ImportMode::Lenient;
         let limits = ctx.limits;
-        Ok(front_door(name, &[input.bytes().len() as u64], &limits, None, || {
-            ew_import_dxf::import_page(&input, &ctx, options, &page, copy)
-        })?)
+        Ok(front_door(
+            name,
+            &[input.bytes().len() as u64],
+            &limits,
+            None,
+            || ew_import_dxf::import_page(&input, &ctx, options, &page, copy),
+        )?)
     }
 
     /// Imports the DXF drawing `bytes` named `name` as a new graphic page (doc 14 §6.2): one undo step.
@@ -167,7 +187,12 @@ impl Session {
     /// # Errors
     ///
     /// As [`Session::dxf_page_batch`], and [`DxfError::Apply`] when the transaction is refused.
-    pub fn import_dxf_page(&mut self, name: &str, bytes: Vec<u8>, options: &DxfOptions) -> Result<DxfPage, DxfError> {
+    pub fn import_dxf_page(
+        &mut self,
+        name: &str,
+        bytes: Vec<u8>,
+        options: &DxfOptions,
+    ) -> Result<DxfPage, DxfError> {
         let batch = self.dxf_page_batch(name, bytes, options)?;
         self.apply_page_batch(batch)
     }
@@ -364,7 +389,12 @@ fn convert_in(
     // The copy keeps only a plain stem of the file's name, so the converter's file filter finds it.
     let stem: String = std::path::Path::new(name)
         .file_stem()
-        .map(|s| s.to_string_lossy().chars().filter(|c| c.is_alphanumeric() || matches!(c, '-' | '_')).collect())
+        .map(|s| {
+            s.to_string_lossy()
+                .chars()
+                .filter(|c| c.is_alphanumeric() || matches!(c, '-' | '_'))
+                .collect()
+        })
         .filter(|s: &String| !s.is_empty())
         .unwrap_or_else(|| "drawing".to_owned());
     std::fs::write(input.join(format!("{stem}.dwg")), bytes).map_err(failed)?;
@@ -377,6 +407,10 @@ fn convert_in(
         .stderr(std::process::Stdio::null())
         .spawn()
         .map_err(failed)?;
+    #[allow(
+        clippy::disallowed_methods,
+        reason = "the converter's timeout is wall time; the instant never reaches the model or an output"
+    )]
     let started = std::time::Instant::now();
     let status = loop {
         match child.try_wait().map_err(failed)? {
@@ -405,7 +439,9 @@ fn convert_in(
         .and_then(|f| f.take(limit + 1).read_to_end(&mut out))
         .map_err(failed)?;
     if out.len() as u64 > limit {
-        return Err(DwgError::Failed(format!("its DXF is larger than the {limit} bytes an import reads")));
+        return Err(DwgError::Failed(format!(
+            "its DXF is larger than the {limit} bytes an import reads"
+        )));
     }
     Ok(out)
 }

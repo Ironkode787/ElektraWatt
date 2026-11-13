@@ -290,10 +290,11 @@ impl RfdPlatform {
             ),
             // File ▸ Import…: a QElectroTech project or a project archive, both offered at once.
             Prompt::OpenImport => (
-                base.set_title(strings::text(key!("prompt-import-title"))).add_filter(
-                    strings::text(key!("prompt-import-filter")),
-                    &["qet", "ewz", "dxf", "dwg", "pdf"],
-                ),
+                base.set_title(strings::text(key!("prompt-import-title")))
+                    .add_filter(
+                        strings::text(key!("prompt-import-filter")),
+                        &["qet", "ewz", "dxf", "dwg", "pdf"],
+                    ),
                 DialogKind::File,
             ),
             // A DWG import's converter: any program file.

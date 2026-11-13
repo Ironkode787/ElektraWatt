@@ -103,11 +103,16 @@ static DRAWINGS: Cache<DxfKey, ew_import_dxf::Converted> = Cache::new();
 /// The DXF drawing of an underlay, converted once per source, layout and unit.
 fn drawing(u: &Underlay, bytes: &Arc<[u8]>) -> Option<Arc<ew_import_dxf::Converted>> {
     DRAWINGS.get_or(&(u.asset.0, u.layout.clone(), u.unit.clone()), || {
-        let space = u.layout.clone().map_or(ew_import_dxf::Space::Model, ew_import_dxf::Space::Layout);
+        let space = u
+            .layout
+            .clone()
+            .map_or(ew_import_dxf::Space::Model, ew_import_dxf::Space::Layout);
         let unit = u.unit.as_deref().and_then(ew_import_dxf::Unit::parse);
         let limits = ew_import_dxf::ew_interop_api::Limits::default();
         let run = || ew_import_dxf::convert(bytes, &limits, unit, &space, &Default::default(), &u.name);
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)).ok()?.ok()
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
+            .ok()?
+            .ok()
     })
 }
 
@@ -128,7 +133,6 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
     let mut underlays: Vec<(Id<ew_schema::PageItem>, Underlay)> = q
         .idx()
         .page_items_by_page(page)
-        .into_iter()
         .filter_map(|id| Some((id, q.page_items().get(id)?.kind.underlay()?.clone())))
         .collect();
     underlays.sort_by_key(|(id, _)| *id);
@@ -143,13 +147,19 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
                 let key = (u.asset.0, u.page, size, u.opacity);
                 let png = RASTERS.get_or(&key, || {
                     let run = || ew_scene::underlay::pdf_png(Arc::clone(&bytes), u.page, size, u.opacity);
-                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)).ok()?.ok()
+                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
+                        .ok()?
+                        .ok()
                 });
                 match png {
                     Some(png) => {
                         use sha2::Digest;
                         let sha: [u8; 32] = sha2::Sha256::digest(png.as_slice()).into();
-                        items.push(ew_scene::underlay::pdf_item(Arc::from(png.as_slice()), sha, u.rect.0));
+                        items.push(ew_scene::underlay::pdf_item(
+                            Arc::from(png.as_slice()),
+                            sha,
+                            u.rect.0,
+                        ));
                     }
                     None => missing(&u, &mut items),
                 }
@@ -159,7 +169,9 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
                     let from = d.extents.map_or(Pt2::ORIGIN, |e| e.min());
                     let offset = u.rect.0.min() - from;
                     let kinds: Vec<PageItemKind> = d.items.iter().map(|(_, _, k)| k.clone()).collect();
-                    items.extend(ew_scene::underlay::dxf_list(&kinds, offset, u.opacity, fonts, &styles).items);
+                    items.extend(
+                        ew_scene::underlay::dxf_list(&kinds, offset, u.opacity, fonts, &styles).items,
+                    );
                 }
                 None => missing(&u, &mut items),
             },
@@ -174,7 +186,11 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
 pub(crate) fn sheet_rect(q: &Q, page: Id<Page>) -> Rect {
     let frame = q.get::<PageFrameOf>(PageRef::Drawn(page));
     let (w, h, map) = match frame.as_ref() {
-        Some(f) => (f.form.sheet.width, f.form.sheet.height, ew_scene::forms::SheetMap::of(&f.form)),
+        Some(f) => (
+            f.form.sheet.width,
+            f.form.sheet.height,
+            ew_scene::forms::SheetMap::of(&f.form),
+        ),
         None => (
             ew_scene::page::DEFAULT_SHEET.0,
             ew_scene::page::DEFAULT_SHEET.1,
@@ -230,8 +246,11 @@ pub(crate) fn underlay_batch(
     use crate::dxf::DxfError;
     use crate::import::{Limits, Refusal, front_door};
     use ew_derive::ew_ids::v5;
-    let input = ImportInput::new(name, bytes)
-        .map_err(|e| DxfError::Refused(Refusal::Import(ImportError::Unsupported { message: e.to_string() })))?;
+    let input = ImportInput::new(name, bytes).map_err(|e| {
+        DxfError::Refused(Refusal::Import(ImportError::Unsupported {
+            message: e.to_string(),
+        }))
+    })?;
     let sha = input.sha256();
     let limits = Limits::default();
     let shared: Arc<[u8]> = Arc::clone(input.bytes());
@@ -249,8 +268,15 @@ pub(crate) fn underlay_batch(
         }
         UnderlaySource::Dxf(options) => {
             let converted = front_door(name, &[shared.len() as u64], &limits, None, || {
-                ew_import_dxf::convert(&shared, &limits, options.unit, &options.space, &options.show, name)
-                    .map(Probed)
+                ew_import_dxf::convert(
+                    &shared,
+                    &limits,
+                    options.unit,
+                    &options.space,
+                    &options.show,
+                    name,
+                )
+                .map(Probed)
             })?
             .0;
             let rect = converted.extents.unwrap_or_else(|| Rect::from_point(Pt2::ORIGIN));
@@ -269,10 +295,16 @@ pub(crate) fn underlay_batch(
     };
     let anchor_first = first_namespace(sha);
     let (namespace, anchor) = match copy {
-        None => (anchor_first, ew_schema::LineageAnchor::FirstImportSha256(ew_schema::Sha256(sha))),
+        None => (
+            anchor_first,
+            ew_schema::LineageAnchor::FirstImportSha256(ew_schema::Sha256(sha)),
+        ),
         Some(n) => (
-            v5::lineage_namespace(UNDERLAY_IMPORTER, &v5::LineageAnchor::Copy { of: anchor_first, n })
-                .unwrap_or_else(|_| unreachable!("\"underlay\" is a valid importer name")),
+            v5::lineage_namespace(
+                UNDERLAY_IMPORTER,
+                &v5::LineageAnchor::Copy { of: anchor_first, n },
+            )
+            .unwrap_or_else(|_| unreachable!("\"underlay\" is a valid importer name")),
             ew_schema::LineageAnchor::Copy(ew_schema::LineageCopy {
                 of: Id::from_uuid(anchor_first),
                 n,
@@ -306,7 +338,8 @@ pub(crate) fn underlay_batch(
         ew_schema::Record::ImportLineage(ew_schema::ImportLineage {
             id: lineage,
             v: 1,
-            importer: ew_mltext::Ident::from_input(UNDERLAY_IMPORTER).unwrap_or_else(|_| unreachable!("an identifier")),
+            importer: ew_mltext::Ident::from_input(UNDERLAY_IMPORTER)
+                .unwrap_or_else(|_| unreachable!("an identifier")),
             source_name: name.to_owned(),
             anchor,
             namespace: Id::from_uuid(namespace),
@@ -388,7 +421,8 @@ impl crate::Session {
             keep_source(&sha, &format, &kept).map_err(DxfError::Cache)?;
         }
         let mode = ew_import_dxf::ew_interop_api::ImportMode::Lenient;
-        let command = crate::import::apply_command(&batch, None, mode, None, false).map_err(DxfError::Apply)?;
+        let command =
+            crate::import::apply_command(&batch, None, mode, None, false).map_err(DxfError::Apply)?;
         let preview = self.import_preview(&command).map_err(DxfError::Apply)?;
         self.commit_import(preview).map_err(DxfError::Apply)?;
         Ok(batch.report)
@@ -401,7 +435,8 @@ impl crate::Session {
 ///
 /// The refusal in words when the cache directory is unknown or cannot be written.
 pub(crate) fn keep_source(sha: &[u8; 32], format: &UnderlayFormat, bytes: &[u8]) -> Result<(), String> {
-    let refused = || "The underlay's file could not be kept in the underlay cache; embed it instead.".to_owned();
+    let refused =
+        || "The underlay's file could not be kept in the underlay cache; embed it instead.".to_owned();
     let dir = underlay_cache_dir().ok_or_else(refused)?;
     std::fs::create_dir_all(&dir).map_err(|_| refused())?;
     let path = dir.join(format!("{}.{}", hex(sha), ext(format)));

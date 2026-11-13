@@ -1236,18 +1236,26 @@ pub fn import_eplan(bytes: &[u8], name: &str, key: &str) -> Result<Vec<SymbolDra
 /// # Errors
 ///
 /// The importer's refusal in words (no DXF, a limit, a missing unit), or no block to make a symbol of.
-pub fn import_dxf(bytes: &[u8], name: &str, key: &str, unit: Option<ew_import_dxf::Unit>) -> Result<Vec<SymbolDraft>, Error> {
-    use sha2::{Digest, Sha256};
+pub fn import_dxf(
+    bytes: &[u8],
+    name: &str,
+    key: &str,
+    unit: Option<ew_import_dxf::Unit>,
+) -> Result<Vec<SymbolDraft>, Error> {
     use ew_import_dxf::ew_interop_api::Limits;
+    use sha2::{Digest, Sha256};
     let limits = Limits::default();
     front_door(name, &[bytes.len() as u64], "dxf-input-limit", || {
-        let blocks = ew_import_dxf::symbols(bytes, &limits, unit, ew_units::Grid::MM4, name).map_err(|e| match e {
-            ew_import_dxf::ew_interop_api::ImportError::Unsupported { message } if message == ew_import_dxf::NO_UNIT => {
-                input("dxf-no-unit")
-            }
-            ew_import_dxf::ew_interop_api::ImportError::LimitExceeded { .. } => input("dxf-input-limit"),
-            _ => input("dxf-input-invalid"),
-        })?;
+        let blocks =
+            ew_import_dxf::symbols(bytes, &limits, unit, ew_units::Grid::MM4, name).map_err(|e| match e {
+                ew_import_dxf::ew_interop_api::ImportError::Unsupported { message }
+                    if message == ew_import_dxf::NO_UNIT =>
+                {
+                    input("dxf-no-unit")
+                }
+                ew_import_dxf::ew_interop_api::ImportError::LimitExceeded { .. } => input("dxf-input-limit"),
+                _ => input("dxf-input-invalid"),
+            })?;
         if blocks.is_empty() {
             return Err(input("dxf-no-blocks"));
         }

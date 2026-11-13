@@ -20,6 +20,8 @@ use serde_json::json;
 /// The actions that a key or the canvas runs and that have no place in the app menu (CB1's exceptions): the grid
 /// cursor's click, the tool's step back, the model-command runner and the table editor's keys.
 const KEY_ONLY: &[&str] = &[
+    // A DXF, DWG or PDF drawing imports through File ▸ Import… (WP-S3.19); the palette keeps its own entry.
+    "file.import_drawing",
     // An `.ewz` opens through File ▸ Import… (FT-1708); the palette keeps its own entry.
     "file.open_ewz",
     "canvas.activate",

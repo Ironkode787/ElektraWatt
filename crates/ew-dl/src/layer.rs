@@ -127,7 +127,11 @@ mod tests {
     #[test]
     fn export_flags() {
         for l in Layer::ALL {
-            assert_eq!(l.is_exported(), !matches!(l, Layer::Highlights | Layer::Underlay), "{l:?}");
+            assert_eq!(
+                l.is_exported(),
+                !matches!(l, Layer::Highlights | Layer::Underlay),
+                "{l:?}"
+            );
         }
     }
 

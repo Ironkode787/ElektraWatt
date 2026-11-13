@@ -1238,7 +1238,9 @@ impl Insertion<'_> {
                     | PageItemKind::SurfaceView(_)
                     | PageItemKind::Underlay(_)
                     | PageItemKind::Unknown(_) => {
-                        unreachable!("images, surface views, underlays and unknown page item kinds are left out")
+                        unreachable!(
+                            "images, surface views, underlays and unknown page item kinds are left out"
+                        )
                     }
                 },
                 Record::StructureBox(b) => {

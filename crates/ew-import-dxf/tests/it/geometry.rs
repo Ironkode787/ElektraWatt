@@ -27,7 +27,11 @@ fn points_mm(bytes: &[u8], space: &Space) -> Vec<Vec<(f64, f64)>> {
             }),
             _ => None,
         })
-        .map(|pts| pts.iter().map(|p| (p.x.0 as f64 / 1e6, p.y.0 as f64 / 1e6)).collect())
+        .map(|pts| {
+            pts.iter()
+                .map(|p| (p.x.0 as f64 / 1e6, p.y.0 as f64 / 1e6))
+                .collect()
+        })
         .collect()
 }
 
@@ -36,7 +40,16 @@ fn a_bulge_is_an_arc_within_the_tolerance() {
     // A half circle from (0, 0) to (10, 0), bulge 1 (counter-clockwise): through (5, −5) in the drawing's y-up frame.
     let mut d = Dxf::new("AC1015", Some(4));
     d.section("ENTITIES");
-    d.ps(&[(0, "LWPOLYLINE"), (5, "A"), (8, "0"), (90, "2"), (70, "0"), (10, "0"), (20, "0"), (42, "1")]);
+    d.ps(&[
+        (0, "LWPOLYLINE"),
+        (5, "A"),
+        (8, "0"),
+        (90, "2"),
+        (70, "0"),
+        (10, "0"),
+        (20, "0"),
+        (42, "1"),
+    ]);
     d.ps(&[(10, "10"), (20, "0")]);
     d.ps(&[(0, "POINT"), (5, "B"), (8, "0"), (10, "0"), (20, "10")]);
     d.end();
@@ -48,7 +61,10 @@ fn a_bulge_is_an_arc_within_the_tolerance() {
     for (x, y) in pts {
         let r = ((x - 5.0).powi(2) + (y - 10.0).powi(2)).sqrt();
         assert!((r - 5.0).abs() <= 0.01, "({x}, {y}) is {r} mm from the centre");
-        assert!(*y >= 10.0 - 1e-9, "the arc bulges below the chord in the drawing, above y = 10 on the sheet");
+        assert!(
+            *y >= 10.0 - 1e-9,
+            "the arc bulges below the chord in the drawing, above y = 10 on the sheet"
+        );
     }
     assert!(pts.iter().any(|(_, y)| (*y - 15.0).abs() < 0.01));
 }
@@ -64,11 +80,23 @@ fn a_mirrored_rotated_insert_maps_its_block() {
     d.ps(&[(0, "ENDBLK"), (8, "0")]);
     d.end();
     d.section("ENTITIES");
-    d.ps(&[(0, "INSERT"), (5, "I"), (8, "0"), (2, "B"), (10, "100"), (20, "100"), (41, "-1"), (42, "1")]);
+    d.ps(&[
+        (0, "INSERT"),
+        (5, "I"),
+        (8, "0"),
+        (2, "B"),
+        (10, "100"),
+        (20, "100"),
+        (41, "-1"),
+        (42, "1"),
+    ]);
     d.ps(&[(50, "90")]);
     d.end();
     // y_top = 100: the line's ends (100, 100) and (100, 90) land at y 0 and 10.
-    assert_eq!(points_mm(&d.ascii(), &Space::Model), [vec![(100.0, 0.0), (100.0, 10.0)]]);
+    assert_eq!(
+        points_mm(&d.ascii(), &Space::Model),
+        [vec![(100.0, 0.0), (100.0, 10.0)]]
+    );
 }
 
 #[test]
@@ -80,7 +108,16 @@ fn a_minsert_draws_its_array() {
     d.ps(&[(0, "ENDBLK"), (8, "0")]);
     d.end();
     d.section("ENTITIES");
-    d.ps(&[(0, "INSERT"), (5, "I"), (8, "0"), (2, "B"), (10, "0"), (20, "0"), (70, "3"), (71, "2")]);
+    d.ps(&[
+        (0, "INSERT"),
+        (5, "I"),
+        (8, "0"),
+        (2, "B"),
+        (10, "0"),
+        (20, "0"),
+        (70, "3"),
+        (71, "2"),
+    ]);
     d.ps(&[(44, "5"), (45, "5")]);
     d.end();
     assert_eq!(points_mm(&d.ascii(), &Space::Model).len(), 6);
@@ -107,7 +144,15 @@ fn an_r12_binary_file_with_one_byte_codes_is_read() {
             }
         }
     }
-    let c = convert(&out, &Limits::default(), None, &Space::Model, &BTreeSet::new(), "a.dxf").unwrap();
+    let c = convert(
+        &out,
+        &Limits::default(),
+        None,
+        &Space::Model,
+        &BTreeSet::new(),
+        "a.dxf",
+    )
+    .unwrap();
     assert_eq!(c.items.len(), 1);
     assert_eq!(c.version, "AC1009");
 }
@@ -123,10 +168,38 @@ fn a_layout_shows_its_own_entities_and_the_model_through_a_viewport_clipped() {
     d.end();
     d.section("ENTITIES");
     // Model space: a line from (0, 0) to (100, 0).
-    d.ps(&[(0, "LINE"), (5, "M"), (330, "1F"), (8, "0"), (10, "0"), (20, "0"), (11, "100"), (21, "0")]);
+    d.ps(&[
+        (0, "LINE"),
+        (5, "M"),
+        (330, "1F"),
+        (8, "0"),
+        (10, "0"),
+        (20, "0"),
+        (11, "100"),
+        (21, "0"),
+    ]);
     // Paper space: a frame line and a viewport of 20 × 20 at (10, 10) showing the model's (25, 0) at scale 1/5.
-    d.ps(&[(0, "LINE"), (5, "P"), (330, "1E"), (67, "1"), (8, "0"), (10, "0"), (20, "0"), (11, "0"), (21, "50")]);
-    d.ps(&[(0, "VIEWPORT"), (5, "V"), (330, "1E"), (67, "1"), (8, "0"), (10, "10"), (20, "10"), (40, "20")]);
+    d.ps(&[
+        (0, "LINE"),
+        (5, "P"),
+        (330, "1E"),
+        (67, "1"),
+        (8, "0"),
+        (10, "0"),
+        (20, "0"),
+        (11, "0"),
+        (21, "50"),
+    ]);
+    d.ps(&[
+        (0, "VIEWPORT"),
+        (5, "V"),
+        (330, "1E"),
+        (67, "1"),
+        (8, "0"),
+        (10, "10"),
+        (20, "10"),
+        (40, "20"),
+    ]);
     d.ps(&[(41, "20"), (12, "25"), (22, "0"), (45, "100"), (69, "2")]);
     d.end();
     d.section("OBJECTS");

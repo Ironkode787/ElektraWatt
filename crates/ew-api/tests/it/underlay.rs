@@ -14,7 +14,10 @@ use ew_schema::{PageItemKind, UnderlayFormat};
 /// A project with page 1.
 fn project() -> Session {
     let mut s = Session::from_records(
-        serde_json::from_str(r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b39","derivation_profile":"2027.1"}"#).unwrap(),
+        serde_json::from_str(
+            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b39","derivation_profile":"2027.1"}"#,
+        )
+        .unwrap(),
         [],
         [],
         SessionOptions::default(),
@@ -59,7 +62,11 @@ fn drawing() -> Vec<u8> {
         ("0", "ENDSEC"),
         ("0", "EOF"),
     ];
-    pairs.iter().map(|(c, v)| format!("{c}\n{v}\n")).collect::<String>().into_bytes()
+    pairs
+        .iter()
+        .map(|(c, v)| format!("{c}\n{v}\n"))
+        .collect::<String>()
+        .into_bytes()
 }
 
 fn page_items(items: &[Item], out: &mut usize, picked: &mut usize) {
@@ -104,25 +111,35 @@ fn underlays(s: &Session) -> Vec<ew_schema::Underlay> {
 fn a_dxf_underlay_is_drawn_on_the_canvas_only_locked_and_undone_in_one_step() {
     let mut s = project();
     let (bare, bare_picked, _) = sheet(&s, true);
-    let checks_before = s.check(&ew_api::checks::FULL, ew_api::checks::CheckMode::Release).findings.len();
+    // The import run's own report (EW-IMP, such as the SHX font of the drawing) is listed as its findings; no other
+    // rule reads the underlay.
+    let findings = |s: &Session| -> Vec<String> {
+        s.check(&ew_api::checks::FULL, ew_api::checks::CheckMode::Release)
+            .findings
+            .iter()
+            .filter(|f| !f.rule.starts_with("EW-IMP-"))
+            .map(|f| format!("{f:?}"))
+            .collect()
+    };
+    let checks_before = findings(&s);
     let source = UnderlaySource::Dxf(DxfOptions::default());
-    s.place_underlay("1", "plan.dxf", drawing(), &source, true, Vec::new()).unwrap();
+    s.place_underlay("1", "plan.dxf", drawing(), &source, true, Vec::new())
+        .unwrap();
     let u = underlays(&s);
     assert_eq!(u.len(), 1);
     assert_eq!(u[0].format, UnderlayFormat::Dxf);
     assert_eq!(u[0].name, "plan.dxf");
-    assert!(s.asset(&u[0].asset).is_some(), "embedded: the source is a project asset");
+    assert!(
+        s.asset(&u[0].asset).is_some(),
+        "embedded: the source is a project asset"
+    );
 
     let (with, picked, _) = sheet(&s, true);
     assert!(with > bare, "the canvas draws the underlay");
     assert_eq!(picked, bare_picked, "nothing of the underlay can be picked");
     let (printed, _, _) = sheet(&s, false);
     assert_eq!(printed, bare, "an export without underlays leaves it out");
-    assert_eq!(
-        s.check(&ew_api::checks::FULL, ew_api::checks::CheckMode::Release).findings.len(),
-        checks_before,
-        "no check reads an underlay"
-    );
+    assert_eq!(findings(&s), checks_before, "no check reads an underlay");
 
     s.undo(&ew_api::Origin::Gui).unwrap();
     assert!(underlays(&s).is_empty());
@@ -134,7 +151,15 @@ fn a_pdf_page_underlay_covers_the_sheet_as_a_raster_and_a_file_that_is_no_pdf_is
     let other = project();
     let pdf = other.export_pdf(&ExportOptions::default()).unwrap().bytes;
     let mut s = project();
-    s.place_underlay("1", "eplan.pdf", pdf, &UnderlaySource::Pdf { page: 1 }, true, Vec::new()).unwrap();
+    s.place_underlay(
+        "1",
+        "eplan.pdf",
+        pdf,
+        &UnderlaySource::Pdf { page: 1 },
+        true,
+        Vec::new(),
+    )
+    .unwrap();
     let (_, _, items) = sheet(&s, true);
     let image = items.iter().find_map(|i| match &i.kind {
         ItemKind::Image(img) => Some(img.image.clone()),
@@ -144,12 +169,26 @@ fn a_pdf_page_underlay_covers_the_sheet_as_a_raster_and_a_file_that_is_no_pdf_is
     assert!(image.bytes.starts_with(b"\x89PNG"), "a PNG raster");
 
     let e = s
-        .place_underlay("1", "fake.pdf", b"%PDF-1.7 not really".to_vec(), &UnderlaySource::Pdf { page: 1 }, true, Vec::new())
+        .place_underlay(
+            "1",
+            "fake.pdf",
+            b"%PDF-1.7 not really".to_vec(),
+            &UnderlaySource::Pdf { page: 1 },
+            true,
+            Vec::new(),
+        )
         .unwrap_err();
     assert!(matches!(e, DxfError::Refused(_)), "{e:?}");
     assert!(e.to_string().contains("no PDF that can be read"), "{e}");
     let e = s
-        .place_underlay("9", "plan.dxf", drawing(), &UnderlaySource::Dxf(DxfOptions::default()), true, Vec::new())
+        .place_underlay(
+            "9",
+            "plan.dxf",
+            drawing(),
+            &UnderlaySource::Dxf(DxfOptions::default()),
+            true,
+            Vec::new(),
+        )
         .unwrap_err();
     assert_eq!(e.to_string(), "The project has no drawn page 9.");
 }

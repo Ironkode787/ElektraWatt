@@ -8,8 +8,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_interop_api::ew_schema::{
-    BUILTIN_TEXT_STYLES, FreeText, Graphic, GraphicShape, GraphicStroke, LineDash, MAX_SAFE_INTEGER, PageItemKind,
-    ShapeArc, ShapeCircle, ShapeLine, ShapePoints, TextAlign, qet_px_em,
+    BUILTIN_TEXT_STYLES, FreeText, Graphic, GraphicShape, GraphicStroke, LineDash, MAX_SAFE_INTEGER,
+    PageItemKind, ShapeArc, ShapeCircle, ShapeLine, ShapePoints, TextAlign, qet_px_em,
 };
 use ew_interop_api::{Code, ImportError, Limits, ReportEntry, Severity, SourceLocation};
 use ew_mltext::{Ident, MlText};
@@ -167,7 +167,12 @@ pub fn probe(bytes: &[u8], limits: &Limits) -> Result<Probe, ImportError> {
         binary: d.binary,
         unit,
         metric: d.header_int("MEASUREMENT").unwrap_or(1) != 0,
-        layouts: d.layouts.iter().filter(|l| !l.name.eq_ignore_ascii_case("Model")).map(|l| l.name.clone()).collect(),
+        layouts: d
+            .layouts
+            .iter()
+            .filter(|l| !l.name.eq_ignore_ascii_case("Model"))
+            .map(|l| l.name.clone())
+            .collect(),
         layers: d.layers.values().map(|l| (l.name.clone(), l.hidden)).collect(),
         blocks,
         extents,
@@ -267,8 +272,13 @@ pub fn convert(
     let notes = std::mem::take(&mut conv.notes);
     // y_top: the top of the extents the header names (the page export writes the sheet's top there, so a page
     // re-imports in place), else of the geometry.
-    let header_top = d.header_pt(top_var).map(|p| p.1).filter(|y| y.is_finite() && y.abs() < 1.0e15);
-    let top = header_top.or_else(|| bounds(&shapes).map(|[_, hi]| hi.1)).unwrap_or(0.0);
+    let header_top = d
+        .header_pt(top_var)
+        .map(|p| p.1)
+        .filter(|y| y.is_finite() && y.abs() < 1.0e15);
+    let top = header_top
+        .or_else(|| bounds(&shapes).map(|[_, hi]| hi.1))
+        .unwrap_or(0.0);
     let loc = |item: Option<String>| SourceLocation {
         file: file.to_owned(),
         item,
@@ -280,7 +290,10 @@ pub fn convert(
             ReportEntry::new(
                 Code::imp(251),
                 Severity::Warning,
-                format!("The drawing names no unit; it was read in {} as chosen.", words(unit)),
+                format!(
+                    "The drawing names no unit; it was read in {} as chosen.",
+                    words(unit)
+                ),
             )
             .at(loc(None)),
         );
@@ -318,8 +331,12 @@ pub fn convert(
     }
     for (key, why) in &notes.skipped {
         entries.push(
-            ReportEntry::new(Code::LIMIT, Severity::Error, format!("An item was not imported: {why}."))
-                .at(loc(Some(key.clone()))),
+            ReportEntry::new(
+                Code::LIMIT,
+                Severity::Error,
+                format!("An item was not imported: {why}."),
+            )
+            .at(loc(Some(key.clone()))),
         );
     }
     for (layer, n) in &notes.hidden {
@@ -409,7 +426,10 @@ fn layout_entities(d: &Drawing, name: &str) -> Result<Vec<crate::parse::Entity>,
             message: format!("the drawing has no layout named {name}"),
         })?;
     let record = layout.record.clone();
-    let record_name = record.as_ref().and_then(|h| d.records.get(h)).map(|n| n.to_ascii_uppercase());
+    let record_name = record
+        .as_ref()
+        .and_then(|h| d.records.get(h))
+        .map(|n| n.to_ascii_uppercase());
     // The active layout's entities are in ENTITIES (code 67); every other layout's in its *Paper_Space<n> block.
     let mut out: Vec<crate::parse::Entity> = match record_name.as_deref() {
         Some(n) if n != "*PAPER_SPACE" => d.blocks.get(n).map(|b| b.entities.clone()).unwrap_or_default(),
@@ -422,8 +442,11 @@ fn layout_entities(d: &Drawing, name: &str) -> Result<Vec<crate::parse::Entity>,
     };
     // Viewports (other than the layout's own, id 1) show the model space: scaled into the viewport and clipped to
     // it, each shape cut to the viewport's rectangle (`geom::clip`).
-    let viewports: Vec<crate::parse::Entity> =
-        out.iter().filter(|e| e.kind == "VIEWPORT" && e.i(69, 2) != 1).cloned().collect();
+    let viewports: Vec<crate::parse::Entity> = out
+        .iter()
+        .filter(|e| e.kind == "VIEWPORT" && e.i(69, 2) != 1)
+        .cloned()
+        .collect();
     out.retain(|e| e.kind != "VIEWPORT");
     for vp in &viewports {
         let c = vp.pt(10);
@@ -506,7 +529,9 @@ fn style_of(cap: f64) -> Option<Ident> {
             let db = (em / b.1).ln().abs();
             da.total_cmp(&db).then(a.0.cmp(b.0))
         })?;
-    (best.0 != "text.normal").then(|| Ident::from_input(best.0).ok()).flatten()
+    (best.0 != "text.normal")
+        .then(|| Ident::from_input(best.0).ok())
+        .flatten()
 }
 
 /// The page items of the shapes.
@@ -530,7 +555,11 @@ impl Emit {
         let base = format!("dxf:{}|{own}", self.space);
         let n = self.keys.entry(base.clone()).or_default();
         *n += 1;
-        if *n == 1 { base } else { format!("{base}~{}", *n - 1) }
+        if *n == 1 {
+            base
+        } else {
+            format!("{base}~{}", *n - 1)
+        }
     }
 
     fn shape(&mut self, s: &Shape) {

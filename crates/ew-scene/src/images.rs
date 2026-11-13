@@ -366,7 +366,11 @@ fn resolve_items(items: &[Item], assets: &AssetBytes<'_>, report: &mut ImageRepo
                         Ok(ew_schema::AssetFormat::Svg) => ImageFormat::Svg,
                         Ok(ew_schema::AssetFormat::Jpeg) => ImageFormat::Jpeg,
                         // An underlay source is no image: it stays the placeholder's format and does not decode.
-                        Ok(ew_schema::AssetFormat::Png | ew_schema::AssetFormat::Pdf | ew_schema::AssetFormat::Dxf)
+                        Ok(
+                            ew_schema::AssetFormat::Png
+                            | ew_schema::AssetFormat::Pdf
+                            | ew_schema::AssetFormat::Dxf,
+                        )
                         | Err(_) => img.image.format,
                     }
                 } else {

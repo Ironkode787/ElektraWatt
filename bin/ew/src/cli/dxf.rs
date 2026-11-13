@@ -37,13 +37,23 @@ pub struct ImportDxfArgs {
     #[arg(long = "as", value_name = "target", value_enum, default_value_t = DxfTarget::Page, overrides_with = "target")]
     pub target: DxfTarget,
     /// The project directory (default: the nearest ancestor of the current directory holding `manifest.json`).
-    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "project")]
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        overrides_with = "project"
+    )]
     pub project: Option<PathBuf>,
     /// The drawing's unit when its header names none: mm, cm, m, in, ft, um, dm or yd.
     #[arg(long, value_name = "unit", value_parser = unit, overrides_with = "units")]
     pub units: Option<Unit>,
     /// The paper-space layout to read (default: the model space).
-    #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "layout")]
+    #[arg(
+        long,
+        value_name = "name",
+        allow_hyphen_values = true,
+        overrides_with = "layout"
+    )]
     pub layout: Option<String>,
     /// A layer that is off or frozen, imported anyway (repeatable).
     #[arg(long = "show-layer", value_name = "name", allow_hyphen_values = true)]
@@ -58,10 +68,20 @@ pub struct ImportDxfArgs {
     #[arg(long, overrides_with = "embed")]
     pub embed: bool,
     /// The writable library of the part (with `--as outline`).
-    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "library")]
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        overrides_with = "library"
+    )]
     pub library: Option<PathBuf>,
     /// The part number of the part (with `--as outline`).
-    #[arg(long, value_name = "part-number", allow_hyphen_values = true, overrides_with = "part")]
+    #[arg(
+        long,
+        value_name = "part-number",
+        allow_hyphen_values = true,
+        overrides_with = "part"
+    )]
     pub part: Option<String>,
 }
 
@@ -72,7 +92,12 @@ pub struct ImportDwgArgs {
     #[command(flatten)]
     pub dxf: ImportDxfArgs,
     /// The program of the ODA File Converter (default: `EW_DWG_CONVERTER`); never bundled or downloaded.
-    #[arg(long, value_name = "program", allow_hyphen_values = true, overrides_with = "converter")]
+    #[arg(
+        long,
+        value_name = "program",
+        allow_hyphen_values = true,
+        overrides_with = "converter"
+    )]
     pub converter: Option<PathBuf>,
 }
 
@@ -92,7 +117,12 @@ pub struct ImportPdfArgs {
     #[arg(long, overrides_with = "embed")]
     pub embed: bool,
     /// The project directory (default: the nearest ancestor of the current directory holding `manifest.json`).
-    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "project")]
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        overrides_with = "project"
+    )]
     pub project: Option<PathBuf>,
 }
 
@@ -136,7 +166,9 @@ pub(super) fn read_input(path: &Path) -> Result<(String, Vec<u8>), i32> {
 /// The words of a refused DXF import, with the flag that answers a missing unit.
 fn refused(e: &DxfError) -> String {
     match e {
-        DxfError::NoUnit => "error: the drawing names no unit; give it with --units (mm, cm, m, in, …)".to_owned(),
+        DxfError::NoUnit => {
+            "error: the drawing names no unit; give it with --units (mm, cm, m, in, …)".to_owned()
+        }
         other => format!("error: {other}"),
     }
 }
@@ -179,8 +211,17 @@ pub(super) fn run_import_dwg(a: &ImportDwgArgs) -> i32 {
             return 2;
         }
     };
-    let converted = Path::new(&name).with_extension("dxf").to_string_lossy().into_owned();
-    import(&a.dxf, "import dwg", &converted, dxf, vec![ew_api::dxf::dwg_converted(&name)])
+    let converted = Path::new(&name)
+        .with_extension("dxf")
+        .to_string_lossy()
+        .into_owned();
+    import(
+        &a.dxf,
+        "import dwg",
+        &converted,
+        dxf,
+        vec![ew_api::dxf::dwg_converted(&name)],
+    )
 }
 
 // The program boundary: `EW_DWG_CONVERTER`, the converter program the user installed, read once and passed in.
@@ -205,10 +246,16 @@ fn import(
     let name = name.to_owned();
     match a.target {
         DxfTarget::Symbol => {
-            let key = a.key.clone().unwrap_or_else(|| ew_api::symbols::file_key(&a.file));
+            let key = a
+                .key
+                .clone()
+                .unwrap_or_else(|| ew_api::symbols::file_key(&a.file));
             match ew_api::symbols::import_dxf(&bytes, &name, &key, a.units) {
                 Ok(drafts) => {
-                    println!("{}", serde_json::to_string_pretty(&drafts).expect("drafts have a JSON form"));
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&drafts).expect("drafts have a JSON form")
+                    );
                     0
                 }
                 Err(e) => {
@@ -224,7 +271,10 @@ fn import(
             };
             match ew_api::dxf::import_part_outline(library, part, &name, &bytes, a.units) {
                 Ok(o) => {
-                    println!("The outline of {name} is the front outline of {part}, version {} ({} lines).", o.version, o.lines);
+                    println!(
+                        "The outline of {name} is the front outline of {part}, version {} ({} lines).",
+                        o.version, o.lines
+                    );
                     0
                 }
                 Err(e) => {
@@ -239,7 +289,16 @@ fn import(
                 return 2;
             };
             let source = ew_api::output::UnderlaySource::Dxf(a.options());
-            place(a.project.as_ref(), subcommand, folio, &name, bytes, &source, a.embed, notes)
+            place(
+                a.project.as_ref(),
+                subcommand,
+                folio,
+                &name,
+                bytes,
+                &source,
+                a.embed,
+                notes,
+            )
         }
         DxfTarget::Page => {
             let Some(dir) = project_dir(a.project.as_ref()) else {
@@ -252,10 +311,12 @@ fn import(
             let Ok(mut session) = open_for_writing(&dir, origin) else {
                 return 2;
             };
-            let page = match session.dxf_page_batch(&name, bytes, &a.options()).and_then(|mut batch| {
-                batch.report.entries.extend(notes);
-                session.apply_page_batch(batch)
-            }) {
+            let page = match session
+                .dxf_page_batch(&name, bytes, &a.options())
+                .and_then(|mut batch| {
+                    batch.report.entries.extend(notes);
+                    session.apply_page_batch(batch)
+                }) {
                 Ok(p) => p,
                 Err(e) => {
                     eprintln!("{}", refused(&e));
@@ -265,7 +326,10 @@ fn import(
             };
             print_findings(&page.report.entries);
             let items = page.report.stats.per_kind.get("page_item").copied().unwrap_or(0);
-            if let Err(e) = session.save().map(|r| warn_unreleased(r.unstable, &mut std::io::stderr())) {
+            if let Err(e) = session
+                .save()
+                .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
+            {
                 eprintln!("error: the save failed: {e:?}");
                 session.close();
                 return 2;
@@ -308,12 +372,19 @@ fn place(
         }
     };
     print_findings(&report.entries);
-    if let Err(e) = session.save().map(|r| warn_unreleased(r.unstable, &mut std::io::stderr())) {
+    if let Err(e) = session
+        .save()
+        .map(|r| warn_unreleased(r.unstable, &mut std::io::stderr()))
+    {
         eprintln!("error: the save failed: {e:?}");
         session.close();
         return 2;
     }
-    let kept = if embed { "embedded in the project" } else { "kept outside the project" };
+    let kept = if embed {
+        "embedded in the project"
+    } else {
+        "kept outside the project"
+    };
     println!("Placed {name} as an underlay on page {folio}, {kept}.");
     0
 }
@@ -324,5 +395,14 @@ pub(super) fn run_import_pdf(a: &ImportPdfArgs) -> i32 {
         return 2;
     };
     let source = ew_api::output::UnderlaySource::Pdf { page: a.page };
-    place(a.project.as_ref(), "import pdf", &a.on, &name, bytes, &source, a.embed, Vec::new())
+    place(
+        a.project.as_ref(),
+        "import pdf",
+        &a.on,
+        &name,
+        bytes,
+        &source,
+        a.embed,
+        Vec::new(),
+    )
 }

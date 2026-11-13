@@ -163,7 +163,10 @@ pub const TABLE: &[Row] = &[
         path: &["import", "dxf"],
         exits: &[
             exit(0, "imported and saved, or the symbol drafts printed"),
-            exit(2, "usage, a refused file, a missing unit, open, write and save errors"),
+            exit(
+                2,
+                "usage, a refused file, a missing unit, open, write and save errors",
+            ),
         ],
         result: None,
         stability: Stability::Preview,

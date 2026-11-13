@@ -48,10 +48,12 @@ use ew_interop_api::ew_ids::{Id, v5};
 use ew_interop_api::ew_schema::{
     Folio, ImportLineage, LineageAnchor, LineageCopy, Page, PageItem, PageType, Record, Section, Sha256,
 };
-use ew_interop_api::{ImportBatch, ImportContext, ImportError, ImportInput, ImportReport, LineageInfo, SourceInfo, SourceRef};
-pub use geom::{MAX_NESTING, MAX_PRIMITIVES, MAX_SPLINE_POINTS, TOLERANCE_NM};
+use ew_interop_api::{
+    ImportBatch, ImportContext, ImportError, ImportInput, ImportReport, LineageInfo, SourceInfo, SourceRef,
+};
 use ew_mltext::{Ident, MlText};
 use ew_units::Grid;
+pub use geom::{MAX_NESTING, MAX_PRIMITIVES, MAX_SPLINE_POINTS, TOLERANCE_NM};
 pub use parse::MAX_ENTITIES;
 pub use symbol::{BlockSymbol, SNAP_REPORT_NM, SymbolPin, SymbolSlot, outline, symbols};
 pub use text::{DEFAULT_FAMILY, SHX_SUBSTITUTES, shx_substitute};
@@ -133,7 +135,14 @@ pub fn import_page(
             limit: limits.max_input_bytes,
         });
     }
-    let converted = convert(input.bytes(), &limits, options.unit, &options.space, &options.show, input.name())?;
+    let converted = convert(
+        input.bytes(),
+        &limits,
+        options.unit,
+        &options.space,
+        &options.show,
+        input.name(),
+    )?;
     let version = converted.version.clone();
     let mut records = Vec::new();
     let lineage = match ctx.lineage {
@@ -142,7 +151,10 @@ pub fn import_page(
             let sha = input.sha256();
             let (namespace, anchor) = match copy {
                 Some(n) => copy_lineage(sha, n),
-                None => (first_namespace(sha), LineageAnchor::FirstImportSha256(Sha256(sha))),
+                None => (
+                    first_namespace(sha),
+                    LineageAnchor::FirstImportSha256(Sha256(sha)),
+                ),
             };
             let id: Id<ImportLineage> = v5::imported_id(namespace, LINEAGE_KEY);
             records.push(Record::ImportLineage(ImportLineage {
@@ -217,7 +229,10 @@ pub fn import_page(
         ("page_item", n_items),
     ] {
         if n > 0 {
-            report.stats.per_kind.insert(kind.to_owned(), u32::try_from(n).unwrap_or(u32::MAX));
+            report
+                .stats
+                .per_kind
+                .insert(kind.to_owned(), u32::try_from(n).unwrap_or(u32::MAX));
         }
     }
     report.entries = converted.entries;

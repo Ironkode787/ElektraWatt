@@ -224,14 +224,21 @@ impl<'a> Pairs<'a> {
                 std::str::from_utf8(value)
                     .ok()
                     .and_then(|s| s.trim().parse::<f64>().ok())
-                    .ok_or_else(|| malformed(format!("the value of group code {code} is not a number"), at))?,
+                    .ok_or_else(|| {
+                        malformed(format!("the value of group code {code} is not a number"), at)
+                    })?,
             ),
             Kind::I16 | Kind::I32 | Kind::I64 | Kind::Bool => {
                 let s = std::str::from_utf8(value).unwrap_or("").trim();
                 let i = s
                     .parse::<i64>()
                     .ok()
-                    .or_else(|| s.parse::<f64>().ok().filter(|f| f.fract() == 0.0).map(|f| f as i64))
+                    .or_else(|| {
+                        s.parse::<f64>()
+                            .ok()
+                            .filter(|f| f.fract() == 0.0)
+                            .map(|f| f as i64)
+                    })
                     .ok_or_else(|| {
                         malformed(format!("the value of group code {code} is not an integer"), at)
                     })?;
@@ -318,7 +325,11 @@ impl<'a> Pairs<'a> {
                 Val::Bin
             }
         };
-        Ok(Some(Pair { code, val, line: None }))
+        Ok(Some(Pair {
+            code,
+            val,
+            line: None,
+        }))
     }
 
     /// The text of string bytes: UTF-8 or Windows-1252, with `\U+XXXX` escapes resolved.
@@ -335,10 +346,10 @@ impl<'a> Pairs<'a> {
 /// The character of a Windows-1252 byte.
 fn cp1252(b: u8) -> char {
     const HIGH: [char; 32] = [
-        '\u{20ac}', '\u{81}', '\u{201a}', '\u{192}', '\u{201e}', '\u{2026}', '\u{2020}', '\u{2021}', '\u{2c6}',
-        '\u{2030}', '\u{160}', '\u{2039}', '\u{152}', '\u{8d}', '\u{17d}', '\u{8f}', '\u{90}', '\u{2018}',
-        '\u{2019}', '\u{201c}', '\u{201d}', '\u{2022}', '\u{2013}', '\u{2014}', '\u{2dc}', '\u{2122}', '\u{161}',
-        '\u{203a}', '\u{153}', '\u{9d}', '\u{17e}', '\u{178}',
+        '\u{20ac}', '\u{81}', '\u{201a}', '\u{192}', '\u{201e}', '\u{2026}', '\u{2020}', '\u{2021}',
+        '\u{2c6}', '\u{2030}', '\u{160}', '\u{2039}', '\u{152}', '\u{8d}', '\u{17d}', '\u{8f}', '\u{90}',
+        '\u{2018}', '\u{2019}', '\u{201c}', '\u{201d}', '\u{2022}', '\u{2013}', '\u{2014}', '\u{2dc}',
+        '\u{2122}', '\u{161}', '\u{203a}', '\u{153}', '\u{9d}', '\u{17e}', '\u{178}',
     ];
     match b {
         0x80..=0x9f => HIGH[usize::from(b - 0x80)],
@@ -360,7 +371,10 @@ pub(crate) fn unescape_unicode(s: &str) -> String {
         let hex = tail
             .get(3..7)
             .filter(|_| matches!(b.get(1), Some(b'U' | b'u')) && b.get(2) == Some(&b'+'));
-        match hex.and_then(|h| u32::from_str_radix(h, 16).ok()).and_then(char::from_u32) {
+        match hex
+            .and_then(|h| u32::from_str_radix(h, 16).ok())
+            .and_then(char::from_u32)
+        {
             Some(c) => {
                 out.push(c);
                 rest = &tail[7..];

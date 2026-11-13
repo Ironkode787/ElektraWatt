@@ -28,7 +28,12 @@ pub const DEFAULT_FAMILY: &str = "Noto Sans";
 /// The bundled family an SHX font file is drawn in, and whether the file is an SHX font at all (a TrueType font or
 /// none is no substitution). A style without a file extension names an SHX font (AutoCAD's convention).
 pub fn shx_substitute(font: &str) -> Option<&'static str> {
-    let file = font.rsplit(['/', '\\']).next().unwrap_or(font).trim().to_ascii_lowercase();
+    let file = font
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or(font)
+        .trim()
+        .to_ascii_lowercase();
     if file.is_empty() {
         return None;
     }
@@ -38,7 +43,11 @@ pub fn shx_substitute(font: &str) -> Option<&'static str> {
     if !shx {
         return None;
     }
-    let with_ext = if file.ends_with(".shx") { file } else { format!("{file}.shx") };
+    let with_ext = if file.ends_with(".shx") {
+        file
+    } else {
+        format!("{file}.shx")
+    };
     Some(
         SHX_SUBSTITUTES
             .iter()
@@ -65,7 +74,11 @@ pub fn percent_codes(s: &str) -> String {
                 Some('%') => out.push('%'),
                 Some('u' | 'o' | 'k') => {}
                 Some(d) if d.is_ascii_digit() => {
-                    let digits: String = chars[i + 2..].iter().take(3).take_while(|c| c.is_ascii_digit()).collect();
+                    let digits: String = chars[i + 2..]
+                        .iter()
+                        .take(3)
+                        .take_while(|c| c.is_ascii_digit())
+                        .collect();
                     if let Some(c) = digits.parse::<u32>().ok().and_then(char::from_u32) {
                         out.push(c);
                     }
@@ -118,7 +131,10 @@ pub fn mtext_lines(s: &str) -> Vec<String> {
                     }
                     'L' | 'l' | 'O' | 'o' | 'K' | 'k' | 'N' => i += 2,
                     'S' => {
-                        let end = chars[i + 2..].iter().position(|&c| c == ';').map_or(chars.len(), |p| i + 2 + p);
+                        let end = chars[i + 2..]
+                            .iter()
+                            .position(|&c| c == ';')
+                            .map_or(chars.len(), |p| i + 2 + p);
                         let stack: String = chars[i + 2..end]
                             .iter()
                             .map(|&c| if matches!(c, '^' | '#') { '/' } else { c })
@@ -127,7 +143,10 @@ pub fn mtext_lines(s: &str) -> Vec<String> {
                         i = end + 1;
                     }
                     'f' | 'F' | 'H' | 'C' | 'c' | 'T' | 'Q' | 'W' | 'A' | 'p' => {
-                        i = chars[i + 2..].iter().position(|&c| c == ';').map_or(chars.len(), |p| i + 3 + p);
+                        i = chars[i + 2..]
+                            .iter()
+                            .position(|&c| c == ';')
+                            .map_or(chars.len(), |p| i + 3 + p);
                     }
                     _ => {
                         tail(&mut lines).push(code);

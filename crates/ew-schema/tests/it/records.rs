@@ -714,7 +714,10 @@ fn the_underlay_page_item_variant_is_typed() {
         panic!("a page item: {line}");
     };
     let u = item.kind.underlay().expect("an underlay");
-    assert_eq!((u.format.clone(), u.page, u.opacity), (UnderlayFormat::Pdf, 2, 50));
+    assert_eq!(
+        (u.format.clone(), u.page, u.opacity),
+        (UnderlayFormat::Pdf, 2, 50)
+    );
     let newer = fill(
         r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"underlay":{"asset":"@HASH","format":"svg","rect":[[0,0],[1,1]],"tint":"blue"}}}"#,
     );

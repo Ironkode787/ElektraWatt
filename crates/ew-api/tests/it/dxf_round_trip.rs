@@ -27,7 +27,10 @@ fn drawn_points(items: &[Item], t: Transform, out: &mut Vec<Pt2>) {
             ItemKind::Path(p) if p.stroke.is_some() || p.fill.is_some() => {
                 for el in &p.path.els {
                     match el {
-                        PathEl::MoveTo(q) | PathEl::LineTo(q) | PathEl::QuadTo(_, q) | PathEl::CubicTo(_, _, q) => {
+                        PathEl::MoveTo(q)
+                        | PathEl::LineTo(q)
+                        | PathEl::QuadTo(_, q)
+                        | PathEl::CubicTo(_, _, q) => {
                             out.push(t.apply(*q));
                         }
                         PathEl::ClosePath => {}
@@ -73,7 +76,10 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
         "the export does not depend on the run"
     );
     let mut fresh = Session::from_records(
-        serde_json::from_str(r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b38","derivation_profile":"2027.1"}"#).unwrap(),
+        serde_json::from_str(
+            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b38","derivation_profile":"2027.1"}"#,
+        )
+        .unwrap(),
         [],
         [],
         SessionOptions::default(),
@@ -84,8 +90,19 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
         let text = &file.text;
         assert!(text.contains("\n  1\nAC1015\n"), "{}: AC1015", file.name);
         assert!(text.contains("$INSUNITS\n 70\n4\n"), "{}: millimetres", file.name);
-        for name in [&layers.frame, &layers.symbols, &layers.wires, &layers.texts, &layers.graphics, &layers.tables] {
-            assert!(text.contains(&format!("AcDbLayerTableRecord\n  2\n{name}\n")), "{}: layer {name}", file.name);
+        for name in [
+            &layers.frame,
+            &layers.symbols,
+            &layers.wires,
+            &layers.texts,
+            &layers.graphics,
+            &layers.tables,
+        ] {
+            assert!(
+                text.contains(&format!("AcDbLayerTableRecord\n  2\n{name}\n")),
+                "{}: layer {name}",
+                file.name
+            );
         }
         // A wire: a polyline entity on the wires layer (its lineweight follows the layer).
         assert!(
@@ -94,13 +111,27 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
             file.name,
             layers.wires
         );
-        assert!(text.contains(&format!("  8\n{}\n100\nAcDbBlockReference", layers.symbols)), "{}: symbol inserts", file.name);
-        assert!(text.contains(&format!("  8\n{}\n100\nAcDbText", layers.frame)), "{}: title block texts", file.name);
+        assert!(
+            text.contains(&format!("  8\n{}\n100\nAcDbBlockReference", layers.symbols)),
+            "{}: symbol inserts",
+            file.name
+        );
+        assert!(
+            text.contains(&format!("  8\n{}\n100\nAcDbText", layers.frame)),
+            "{}: title block texts",
+            file.name
+        );
 
         // Every drawn point of the page within 0.01 mm of a re-imported one.
-        let converted =
-            ew_import_dxf::convert(text.as_bytes(), &Default::default(), None, &Space::Model, &BTreeSet::new(), &file.name)
-                .unwrap();
+        let converted = ew_import_dxf::convert(
+            text.as_bytes(),
+            &Default::default(),
+            None,
+            &Space::Model,
+            &BTreeSet::new(),
+            &file.name,
+        )
+        .unwrap();
         let mut grid: BTreeMap<(i64, i64), Vec<Pt2>> = BTreeMap::new();
         let cell = |p: Pt2| (p.x.0.div_euclid(TOLERANCE), p.y.0.div_euclid(TOLERANCE));
         for p in imported_points(&converted.items) {
@@ -114,19 +145,38 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
             let near = (cx - 1..=cx + 1).any(|x| {
                 (cy - 1..=cy + 1).any(|y| {
                     grid.get(&(x, y)).is_some_and(|ps| {
-                        ps.iter().any(|q| (q.x.0 - p.x.0).abs() <= TOLERANCE && (q.y.0 - p.y.0).abs() <= TOLERANCE)
+                        ps.iter()
+                            .any(|q| (q.x.0 - p.x.0).abs() <= TOLERANCE && (q.y.0 - p.y.0).abs() <= TOLERANCE)
                     })
                 })
             });
-            assert!(near, "{}: ({}, {}) nm has no re-imported point within 0.01 mm", file.name, p.x.0, p.y.0);
+            assert!(
+                near,
+                "{}: ({}, {}) nm has no re-imported point within 0.01 mm",
+                file.name, p.x.0, p.y.0
+            );
         }
 
         // And it re-imports as a graphic page.
         let imported = fresh
             .import_dxf_page(&file.name, text.clone().into_bytes(), &DxfOptions::default())
             .unwrap();
-        assert!(imported.report.stats.per_kind.get("page_item").is_some_and(|n| *n > 0), "{}", file.name);
+        assert!(
+            imported
+                .report
+                .stats
+                .per_kind
+                .get("page_item")
+                .is_some_and(|n| *n > 0),
+            "{}",
+            file.name
+        );
     }
-    let graphic = fresh.query().pages().iter().filter(|(_, p)| p.kind == ew_schema::PageType::Graphic).count();
+    let graphic = fresh
+        .query()
+        .pages()
+        .iter()
+        .filter(|(_, p)| p.kind == ew_schema::PageType::Graphic)
+        .count();
     assert_eq!(graphic, pages.pages.len());
 }

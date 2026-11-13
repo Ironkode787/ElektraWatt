@@ -40,7 +40,10 @@ fn a_dxf_becomes_a_page_and_then_an_underlay_through_the_import_dialog() {
     settle(&mut h);
     h.get_by_label("Import…").click();
     settle(&mut h);
-    assert!(matches!(h.state().shell().dialog(), Some(Dialog::ImportDrawing { unitless: true, .. })));
+    assert!(matches!(
+        h.state().shell().dialog(),
+        Some(Dialog::ImportDrawing { unitless: true, .. })
+    ));
     h.get_by_label_contains("is a DXF drawing");
     h.get_by_label_contains("read in millimetres");
     support::assert_accessible(&h);

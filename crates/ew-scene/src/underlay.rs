@@ -49,7 +49,9 @@ impl std::fmt::Display for PdfError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PdfError::Unreadable => f.write_str("the file is no PDF that can be read (damaged or encrypted)"),
-            PdfError::TooManyPages(n) => write!(f, "the PDF has {n} pages, more than the {MAX_PDF_PAGES} read"),
+            PdfError::TooManyPages(n) => {
+                write!(f, "the PDF has {n} pages, more than the {MAX_PDF_PAGES} read")
+            }
             PdfError::NoPage { page, pages } => write!(f, "the PDF has no page {page}; it has {pages}"),
         }
     }
@@ -109,7 +111,12 @@ pub fn raster_size(width: Nm, height: Nm) -> (u32, u32) {
 /// # Errors
 ///
 /// As [`pdf_page_size`].
-pub fn pdf_png(bytes: Arc<[u8]>, page: u32, (px_w, px_h): (u32, u32), opacity: u8) -> Result<Vec<u8>, PdfError> {
+pub fn pdf_png(
+    bytes: Arc<[u8]>,
+    page: u32,
+    (px_w, px_h): (u32, u32),
+    opacity: u8,
+) -> Result<Vec<u8>, PdfError> {
     let pdf = open(bytes)?;
     let pages = pdf.pages();
     let p = usize::try_from(page)
@@ -235,7 +242,9 @@ fn move_shape(shape: &GraphicShape, moved: &dyn Fn(Pt2) -> Pt2) -> GraphicShape 
             l.a = moved(l.a);
             l.b = moved(l.b);
         }
-        GraphicShape::Polyline(p) | GraphicShape::Polygon(p) => p.points.iter_mut().for_each(|q| *q = moved(*q)),
+        GraphicShape::Polyline(p) | GraphicShape::Polygon(p) => {
+            p.points.iter_mut().for_each(|q| *q = moved(*q))
+        }
         GraphicShape::Rect(r) => {
             r.min = moved(r.min);
             r.max = moved(r.max);

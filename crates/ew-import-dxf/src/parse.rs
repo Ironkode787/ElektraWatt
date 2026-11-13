@@ -60,7 +60,8 @@ impl Entity {
 
     /// The layer (code 8), default `0`.
     pub fn layer(&self) -> String {
-        self.str(8).map_or_else(|| "0".to_owned(), |l| l.trim().to_owned())
+        self.str(8)
+            .map_or_else(|| "0".to_owned(), |l| l.trim().to_owned())
     }
 
     /// Whether the entity lies in paper space (code 67 = 1).
@@ -266,11 +267,15 @@ impl Reader<'_> {
 /// [`ImportError::LimitExceeded`] for a string or line over `max_text_bytes` or more than [`MAX_ENTITIES`] entities.
 pub(crate) fn parse(bytes: &[u8], limits: &Limits) -> Result<Drawing, ImportError> {
     // The entities are counted in a streaming pass first, so a file over the limit is refused before any of them
-    // is held (doc 14 §11's 256 MB for a hostile input).
+    // is held (doc 14 §11's 256 MB for a hostile input). It stops at EOF, as the parse does: what follows (an MS-DOS
+    // end-of-file mark) is not read.
     let mut scan = Pairs::new(bytes, limits);
     let mut count = 0usize;
     while let Some(p) = scan.next_pair()? {
         if p.code == 0 {
+            if p.is("EOF") {
+                break;
+            }
             count += 1;
             if count > MAX_ENTITIES {
                 return Err(limit("DXF entity count", MAX_ENTITIES));
@@ -381,17 +386,29 @@ fn tables(r: &mut Reader<'_>, d: &mut Drawing) -> Result<(), ImportError> {
                     name.to_ascii_uppercase(),
                     Layer {
                         hidden: colour < 0 || flags & 1 != 0,
-                        linetype: e.str(6).unwrap_or_else(|| "CONTINUOUS".to_owned()).trim().to_owned(),
+                        linetype: e
+                            .str(6)
+                            .unwrap_or_else(|| "CONTINUOUS".to_owned())
+                            .trim()
+                            .to_owned(),
                         name,
                     },
                 );
             }
             "LTYPE" => {
-                let dashes = e.pairs.iter().filter(|p| p.code == 49).filter_map(Pair::num).collect();
+                let dashes = e
+                    .pairs
+                    .iter()
+                    .filter(|p| p.code == 49)
+                    .filter_map(Pair::num)
+                    .collect();
                 d.ltypes.insert(name.to_ascii_uppercase(), dashes);
             }
             "STYLE" => {
-                d.styles.insert(name.to_ascii_uppercase(), e.str(3).unwrap_or_default().trim().to_owned());
+                d.styles.insert(
+                    name.to_ascii_uppercase(),
+                    e.str(3).unwrap_or_default().trim().to_owned(),
+                );
             }
             "BLOCK_RECORD" => {
                 if let Some(h) = e.handle() {
@@ -425,7 +442,12 @@ fn blocks(r: &mut Reader<'_>, d: &mut Drawing) -> Result<(), ImportError> {
         }
         // ENDBLK's own pairs.
         let _ = r.body()?;
-        let name = head.str(2).or_else(|| head.str(3)).unwrap_or_default().trim().to_owned();
+        let name = head
+            .str(2)
+            .or_else(|| head.str(3))
+            .unwrap_or_default()
+            .trim()
+            .to_owned();
         d.blocks.insert(
             name.to_ascii_uppercase(),
             Block {

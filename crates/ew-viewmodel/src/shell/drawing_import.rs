@@ -55,7 +55,11 @@ impl ShellModel {
         let name = file
             .file_name()
             .map_or_else(|| "drawing".to_owned(), |n| n.to_string_lossy().into_owned());
-        let Some(kind) = file.extension().and_then(|e| e.to_str()).and_then(DrawingKind::of) else {
+        let Some(kind) = file
+            .extension()
+            .and_then(|e| e.to_str())
+            .and_then(DrawingKind::of)
+        else {
             return Outcome::refused(key!("reason-import-kind"));
         };
         let target = match string_param(p, "as") {
@@ -91,7 +95,10 @@ impl ShellModel {
             };
             match ew_api::dxf::convert_dwg(Path::new(&converter), &name, &bytes, ew_api::dxf::DWG_TIMEOUT) {
                 Ok(dxf) => {
-                    let converted = Path::new(&name).with_extension("dxf").to_string_lossy().into_owned();
+                    let converted = Path::new(&name)
+                        .with_extension("dxf")
+                        .to_string_lossy()
+                        .into_owned();
                     (converted, dxf, vec![ew_api::dxf::dwg_converted(&name)])
                 }
                 Err(e) => return self.import_failed(&name, &e.to_string()),
@@ -118,9 +125,15 @@ impl ShellModel {
                 let Some(project) = self.project.as_mut() else {
                     return Outcome::refused(key!("reason-no-project"));
                 };
-                let outcome = match project.session.place_underlay(&folio, &name, bytes, &source, embed, notes) {
+                let outcome = match project
+                    .session
+                    .place_underlay(&folio, &name, bytes, &source, embed, notes)
+                {
                     Ok(_) => {
-                        self.notify(strings::format(key!("toast-underlay-placed"), &[&name, &folio]), true);
+                        self.notify(
+                            strings::format(key!("toast-underlay-placed"), &[&name, &folio]),
+                            true,
+                        );
                         Outcome::Done
                     }
                     Err(e) => self.import_failed(&name, &e.to_string()),
@@ -149,17 +162,23 @@ impl ShellModel {
         let Some(project) = self.project.as_mut() else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let imported = project.session.dxf_page_batch(name, bytes, options).and_then(|mut batch| {
-            batch.report.entries.extend(notes);
-            project.session.apply_page_batch(batch)
-        });
+        let imported = project
+            .session
+            .dxf_page_batch(name, bytes, options)
+            .and_then(|mut batch| {
+                batch.report.entries.extend(notes);
+                project.session.apply_page_batch(batch)
+            });
         match imported {
             Ok(page) => {
                 self.refresh_rows();
                 let mut go = Map::new();
                 go.insert("folio".to_owned(), Value::String(page.folio.clone()));
                 let _ = self.act_page_goto(&go);
-                self.notify(strings::format(key!("toast-drawing-imported"), &[name, &page.folio]), true);
+                self.notify(
+                    strings::format(key!("toast-drawing-imported"), &[name, &page.folio]),
+                    true,
+                );
                 Outcome::Done
             }
             Err(e) => self.import_failed(name, &e.to_string()),
@@ -192,6 +211,10 @@ fn read(path: &Path) -> Option<Vec<u8>> {
     use std::io::Read;
     let limit = ew_api::import::Limits::default().max_input_bytes;
     let mut bytes = Vec::new();
-    std::fs::File::open(path).ok()?.take(limit + 1).read_to_end(&mut bytes).ok()?;
+    std::fs::File::open(path)
+        .ok()?
+        .take(limit + 1)
+        .read_to_end(&mut bytes)
+        .ok()?;
     (bytes.len() as u64 <= limit).then_some(bytes)
 }

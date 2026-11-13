@@ -139,7 +139,11 @@ impl Affine {
             return Affine::IDENTITY;
         }
         let cross = |u: (f64, f64, f64), v: (f64, f64, f64)| {
-            (u.1 * v.2 - u.2 * v.1, u.2 * v.0 - u.0 * v.2, u.0 * v.1 - u.1 * v.0)
+            (
+                u.1 * v.2 - u.2 * v.1,
+                u.2 * v.0 - u.0 * v.2,
+                u.0 * v.1 - u.1 * v.0,
+            )
         };
         let ax = if n.0.abs() < 1.0 / 64.0 && n.1.abs() < 1.0 / 64.0 {
             cross((0.0, 1.0, 0.0), n)
@@ -326,7 +330,13 @@ fn spline_points(degree: usize, ctrl: &[P], weights: &[f64], knots: &[f64], tol:
     if knots.windows(2).any(|w| w[1] < w[0] || !w[1].is_finite()) {
         return None;
     }
-    let w = |i: usize| weights.get(i).copied().filter(|w| *w > 0.0 && w.is_finite()).unwrap_or(1.0);
+    let w = |i: usize| {
+        weights
+            .get(i)
+            .copied()
+            .filter(|w| *w > 0.0 && w.is_finite())
+            .unwrap_or(1.0)
+    };
     let eval = |u: f64| -> P {
         // The span k with knots[k] <= u < knots[k + 1] within [degree, n − 1].
         let mut k = degree;
@@ -395,7 +405,11 @@ fn spline_points(degree: usize, ctrl: &[P], weights: &[f64], knots: &[f64], tol:
 impl<'d> Converter<'d> {
     /// A converter of `d` whose flattening tolerance is `tol` drawing units; `show` names layers imported though
     /// hidden.
-    pub fn new(d: &'d Drawing, tol: f64, show: Option<&'d std::collections::BTreeSet<String>>) -> Converter<'d> {
+    pub fn new(
+        d: &'d Drawing,
+        tol: f64,
+        show: Option<&'d std::collections::BTreeSet<String>>,
+    ) -> Converter<'d> {
         Converter {
             d,
             tol,
@@ -412,9 +426,15 @@ impl<'d> Converter<'d> {
 
     /// The dash of an entity's linetype name, resolved through its layer and the insert.
     fn dash(&self, e: &Entity, layer: &str, inh: Option<&Inherit>) -> Pattern {
-        let mut name = e.str(6).unwrap_or_else(|| "BYLAYER".to_owned()).trim().to_ascii_uppercase();
+        let mut name = e
+            .str(6)
+            .unwrap_or_else(|| "BYLAYER".to_owned())
+            .trim()
+            .to_ascii_uppercase();
         if name == "BYBLOCK" {
-            name = inh.and_then(|i| i.ltype.clone()).unwrap_or_else(|| "BYLAYER".to_owned());
+            name = inh
+                .and_then(|i| i.ltype.clone())
+                .unwrap_or_else(|| "BYLAYER".to_owned());
         }
         if name == "BYLAYER" {
             name = self
@@ -445,7 +465,14 @@ impl<'d> Converter<'d> {
         }
     }
 
-    fn push(&mut self, geo: Geo, layer: &str, dash: Pattern, width: f64, key: &str) -> Result<(), ImportError> {
+    fn push(
+        &mut self,
+        geo: Geo,
+        layer: &str,
+        dash: Pattern,
+        width: f64,
+        key: &str,
+    ) -> Result<(), ImportError> {
         if self.shapes.len() >= MAX_PRIMITIVES {
             return Err(limit("DXF block expansion (shapes)", MAX_PRIMITIVES));
         }
@@ -491,7 +518,11 @@ impl<'d> Converter<'d> {
     ) -> Result<(), ImportError> {
         for (n, e) in entities.iter().enumerate() {
             let own = e.handle().unwrap_or_else(|| format!("#{n}"));
-            let key = if prefix.is_empty() { own } else { format!("{prefix}/{own}") };
+            let key = if prefix.is_empty() {
+                own
+            } else {
+                format!("{prefix}/{own}")
+            };
             self.entity(e, t, &key, depth, inh)?;
         }
         Ok(())
@@ -522,7 +553,11 @@ impl<'d> Converter<'d> {
         // A lineweight (code 370, 1/100 mm) is converted by the caller's unit; it is kept in millimetres here as a
         // negative width so that it is not scaled with the drawing.
         let lw = e.i(370, -1);
-        let width = if lw > 0 { -(lw as f64) / 100.0 } else { inh.map_or(0.0, |i| i.width) };
+        let width = if lw > 0 {
+            -(lw as f64) / 100.0
+        } else {
+            inh.map_or(0.0, |i| i.width)
+        };
         let ocs = t.after(Affine::ocs(e.extrusion()));
         match e.kind.as_str() {
             "LINE" => {
@@ -556,7 +591,11 @@ impl<'d> Converter<'d> {
             "POLYLINE" => {
                 let flags = e.i(70, 0);
                 if flags & (16 | 64) != 0 {
-                    *self.notes.unsupported.entry("POLYLINE (mesh)".to_owned()).or_default() += 1;
+                    *self
+                        .notes
+                        .unsupported
+                        .entry("POLYLINE (mesh)".to_owned())
+                        .or_default() += 1;
                     return Ok(());
                 }
                 let closed = flags & 1 != 0;
@@ -595,7 +634,11 @@ impl<'d> Converter<'d> {
                 let (t0, t1) = (e.f(41, 0.0), e.f(42, std::f64::consts::TAU));
                 let n = e.extrusion();
                 // The minor axis is the extrusion crossed with the major axis.
-                let minor = if n.2 < 0.0 { (m.1 * ratio, -m.0 * ratio) } else { (-m.1 * ratio, m.0 * ratio) };
+                let minor = if n.2 < 0.0 {
+                    (m.1 * ratio, -m.0 * ratio)
+                } else {
+                    (-m.1 * ratio, m.0 * ratio)
+                };
                 let deg = |rad: f64| rad * (180.0 / std::f64::consts::PI);
                 let (a0, mut sweep) = (deg(t0), deg(t1 - t0).rem_euclid(360.0));
                 if sweep == 0.0 {
@@ -603,7 +646,13 @@ impl<'d> Converter<'d> {
                 }
                 let rmax = (m.0 * m.0 + m.1 * m.1).sqrt() * t.max_scale();
                 let tol = self.tol;
-                let unit = arc_points((0.0, 0.0), 1.0, a0, sweep, if rmax > 0.0 { tol / rmax } else { 1.0 });
+                let unit = arc_points(
+                    (0.0, 0.0),
+                    1.0,
+                    a0,
+                    sweep,
+                    if rmax > 0.0 { tol / rmax } else { 1.0 },
+                );
                 let pts: Vec<P> = unit
                     .into_iter()
                     .map(|(co, s)| t.apply((c.0 + m.0 * co + minor.0 * s, c.1 + m.1 * co + minor.1 * s)))
@@ -667,7 +716,11 @@ impl<'d> Converter<'d> {
                     .unwrap_or_default();
                 // The placeholder names the file, never its folders (no local path enters the project).
                 let name = file.rsplit(['/', '\\']).next().unwrap_or("").to_owned();
-                self.notes.external.push(if name.is_empty() { "image".to_owned() } else { name.clone() });
+                self.notes.external.push(if name.is_empty() {
+                    "image".to_owned()
+                } else {
+                    name.clone()
+                });
                 let middle = corner(w / 2.0, h / 2.0);
                 let height = ((v.0 * v.0 + v.1 * v.1).sqrt() * h / 10.0).abs();
                 self.poly(pts, true, &layer, dash, width, key)?;
@@ -697,7 +750,11 @@ impl<'d> Converter<'d> {
                 self.walk(&e.children, m, key, depth, None)?;
                 let (lo, hi) = ((c.0 - w / 2.0, c.1 - h / 2.0), (c.0 + w / 2.0, c.1 + h / 2.0));
                 let tol = self.tol;
-                let clipped: Vec<Shape> = self.shapes.drain(start..).flat_map(|s| clip(s, lo, hi, tol)).collect();
+                let clipped: Vec<Shape> = self
+                    .shapes
+                    .drain(start..)
+                    .flat_map(|s| clip(s, lo, hi, tol))
+                    .collect();
                 self.shapes.extend(clipped);
             }
             "VIEWPORT" | "SEQEND" | "ENDBLK" | "BLOCK" | "VERTEX" => {}
@@ -729,7 +786,15 @@ impl<'d> Converter<'d> {
         pts.into_iter().map(|p| map.apply(p)).collect()
     }
 
-    fn poly(&mut self, pts: Vec<P>, closed: bool, layer: &str, dash: Pattern, width: f64, key: &str) -> Result<(), ImportError> {
+    fn poly(
+        &mut self,
+        pts: Vec<P>,
+        closed: bool,
+        layer: &str,
+        dash: Pattern,
+        width: f64,
+        key: &str,
+    ) -> Result<(), ImportError> {
         let mut pts = pts;
         pts.dedup();
         if pts.len() < 2 {
@@ -786,14 +851,25 @@ impl<'d> Converter<'d> {
             }
             None => {
                 let tol = self.tol / map.max_scale().max(1e-300);
-                let pts: Vec<P> = arc_points(c, r, start, sweep, tol).into_iter().map(|p| map.apply(p)).collect();
+                let pts: Vec<P> = arc_points(c, r, start, sweep, tol)
+                    .into_iter()
+                    .map(|p| map.apply(p))
+                    .collect();
                 let closed = (sweep - 360.0).abs() < 1e-9;
                 self.poly(pts, closed, layer, dash, width, key)
             }
         }
     }
 
-    fn spline(&mut self, e: &Entity, t: Affine, layer: &str, dash: Pattern, width: f64, key: &str) -> Result<(), ImportError> {
+    fn spline(
+        &mut self,
+        e: &Entity,
+        t: Affine,
+        layer: &str,
+        dash: Pattern,
+        width: f64,
+        key: &str,
+    ) -> Result<(), ImportError> {
         let pairs_of = |x: i32| -> Vec<P> {
             e.pairs
                 .iter()
@@ -810,8 +886,18 @@ impl<'d> Converter<'d> {
             ));
             return Ok(());
         }
-        let knots: Vec<f64> = e.pairs.iter().filter(|p| p.code == 40).filter_map(|p| p.num()).collect();
-        let weights: Vec<f64> = e.pairs.iter().filter(|p| p.code == 41).filter_map(|p| p.num()).collect();
+        let knots: Vec<f64> = e
+            .pairs
+            .iter()
+            .filter(|p| p.code == 40)
+            .filter_map(|p| p.num())
+            .collect();
+        let weights: Vec<f64> = e
+            .pairs
+            .iter()
+            .filter(|p| p.code == 41)
+            .filter_map(|p| p.num())
+            .collect();
         let degree = usize::try_from(e.i(71, 3)).unwrap_or(3).clamp(1, 32);
         let closed = e.i(70, 0) & 1 != 0;
         let tol = self.tol / t.max_scale().max(1e-300);
@@ -825,7 +911,15 @@ impl<'d> Converter<'d> {
         self.poly(pts, closed, layer, dash, width, key)
     }
 
-    fn hatch(&mut self, e: &Entity, ocs: Affine, layer: &str, dash: Pattern, width: f64, key: &str) -> Result<(), ImportError> {
+    fn hatch(
+        &mut self,
+        e: &Entity,
+        ocs: Affine,
+        layer: &str,
+        dash: Pattern,
+        width: f64,
+        key: &str,
+    ) -> Result<(), ImportError> {
         let solid = e.i(70, 0) & 1 != 0;
         let pattern = e.str(2).unwrap_or_default().trim().to_owned();
         let tol = self.tol / ocs.max_scale().max(1e-300);
@@ -864,7 +958,11 @@ impl<'d> Converter<'d> {
                 for _ in 0..n.min(MAX_SPLINE_POINTS) {
                     let x = take(&mut i, 10).unwrap_or(0.0);
                     let y = take(&mut i, 20).unwrap_or(0.0);
-                    let b = if bulges { take(&mut i, 42).unwrap_or(0.0) } else { 0.0 };
+                    let b = if bulges {
+                        take(&mut i, 42).unwrap_or(0.0)
+                    } else {
+                        0.0
+                    };
                     verts.push(((x, y), b));
                 }
                 pts = self.bulged(&verts, true, Affine::IDENTITY);
@@ -889,7 +987,8 @@ impl<'d> Converter<'d> {
                             } else {
                                 ((take(&mut i, 40).unwrap_or(0.0), 0.0), 1.0)
                             };
-                            let (a0, a1) = (take(&mut i, 50).unwrap_or(0.0), take(&mut i, 51).unwrap_or(360.0));
+                            let (a0, a1) =
+                                (take(&mut i, 50).unwrap_or(0.0), take(&mut i, 51).unwrap_or(360.0));
                             let ccw = take(&mut i, 73).unwrap_or(1.0) != 0.0;
                             // A clockwise edge gives its angles mirrored: drawn from −start back to −end.
                             let (from, sweep) = if ccw {
@@ -900,7 +999,9 @@ impl<'d> Converter<'d> {
                             let sweep = if sweep == 0.0 { 360.0 } else { sweep };
                             let r = (m.0 * m.0 + m.1 * m.1).sqrt();
                             let minor = (-m.1 * ratio, m.0 * ratio);
-                            for (co, s) in arc_points((0.0, 0.0), 1.0, from, sweep, if r > 0.0 { tol / r } else { 1.0 }) {
+                            for (co, s) in
+                                arc_points((0.0, 0.0), 1.0, from, sweep, if r > 0.0 { tol / r } else { 1.0 })
+                            {
                                 pts.push((c.0 + m.0 * co + minor.0 * s, c.1 + m.1 * co + minor.1 * s));
                             }
                         }
@@ -918,7 +1019,8 @@ impl<'d> Converter<'d> {
                             let ctrl: Vec<P> = (0..nc)
                                 .map(|_| (take(&mut i, 10).unwrap_or(0.0), take(&mut i, 20).unwrap_or(0.0)))
                                 .collect();
-                            let curve = spline_points(degree.clamp(1, 32), &ctrl, &[], &knots, tol).unwrap_or(ctrl);
+                            let curve =
+                                spline_points(degree.clamp(1, 32), &ctrl, &[], &knots, tol).unwrap_or(ctrl);
                             pts.extend(curve);
                         }
                     }
@@ -932,11 +1034,23 @@ impl<'d> Converter<'d> {
             }
         }
         if !solid {
-            *self.notes.patterns.entry(if pattern.is_empty() { "?".to_owned() } else { pattern }).or_default() += 1;
+            *self
+                .notes
+                .patterns
+                .entry(if pattern.is_empty() {
+                    "?".to_owned()
+                } else {
+                    pattern
+                })
+                .or_default() += 1;
         }
         let any_outer = loops.iter().any(|(_, o)| *o);
         for (n, (pts, outer)) in loops.into_iter().enumerate() {
-            let k = if n == 0 { key.to_owned() } else { format!("{key}.{n}") };
+            let k = if n == 0 {
+                key.to_owned()
+            } else {
+                format!("{key}.{n}")
+            };
             if solid && (outer || !any_outer) {
                 self.push(Geo::Fill { pts }, layer, dash, width, &k)?;
             } else {
@@ -948,11 +1062,29 @@ impl<'d> Converter<'d> {
 
     /// The font family substitution of a text style, recorded once per SHX font.
     fn note_font(&mut self, e: &Entity) {
-        let style = e.str(7).unwrap_or_else(|| "STANDARD".to_owned()).trim().to_ascii_uppercase();
-        let font = self.d.styles.get(&style).cloned().unwrap_or_else(|| "txt".to_owned());
+        let style = e
+            .str(7)
+            .unwrap_or_else(|| "STANDARD".to_owned())
+            .trim()
+            .to_ascii_uppercase();
+        let font = self
+            .d
+            .styles
+            .get(&style)
+            .cloned()
+            .unwrap_or_else(|| "txt".to_owned());
         if let Some(family) = shx_substitute(&font) {
-            let file = font.rsplit(['/', '\\']).next().unwrap_or(&font).trim().to_ascii_lowercase();
-            let file = if file.ends_with(".shx") { file } else { format!("{file}.shx") };
+            let file = font
+                .rsplit(['/', '\\'])
+                .next()
+                .unwrap_or(&font)
+                .trim()
+                .to_ascii_lowercase();
+            let file = if file.ends_with(".shx") {
+                file
+            } else {
+                format!("{file}.shx")
+            };
             self.notes.shx.insert(file, family);
         }
     }
@@ -1000,7 +1132,14 @@ impl<'d> Converter<'d> {
         self.push(geo, layer, Pattern::Solid, 0.0, key)
     }
 
-    fn text(&mut self, e: &Entity, text: &str, map: Affine, layer: &str, key: &str) -> Result<(), ImportError> {
+    fn text(
+        &mut self,
+        e: &Entity,
+        text: &str,
+        map: Affine,
+        layer: &str,
+        key: &str,
+    ) -> Result<(), ImportError> {
         self.note_font(e);
         let h = e.f(40, 2.5);
         let rot = e.f(50, 0.0);
@@ -1014,7 +1153,11 @@ impl<'d> Converter<'d> {
             3 | 5 => {
                 // Aligned and fit: centred between the two points, along their direction.
                 let mid = ((p10.0 + p11.0) / 2.0, (p10.1 + p11.1) / 2.0);
-                let rot = if p10 == p11 { rot } else { angle_of((p11.0 - p10.0, p11.1 - p10.1)) };
+                let rot = if p10 == p11 {
+                    rot
+                } else {
+                    angle_of((p11.0 - p10.0, p11.1 - p10.1))
+                };
                 (mid, HAlign::Centre, rot)
             }
             _ if va != 0 => (p11, HAlign::Left, rot),
@@ -1050,7 +1193,11 @@ impl<'d> Converter<'d> {
         let lines = mtext_lines(&raw);
         let h = e.f(40, 2.5);
         let spacing = h * 5.0 / 3.0 * e.f(44, 1.0).clamp(0.25, 4.0);
-        let rot = if e.get(11).is_some() { angle_of(e.pt(11)) } else { e.f(50, 0.0) };
+        let rot = if e.get(11).is_some() {
+            angle_of(e.pt(11))
+        } else {
+            e.f(50, 0.0)
+        };
         let attach = e.i(71, 1).clamp(1, 9);
         let align = match (attach - 1) % 3 {
             0 => HAlign::Left,
@@ -1068,11 +1215,19 @@ impl<'d> Converter<'d> {
         let at = e.pt(10);
         let (s, c) = sin_cos_deg(rot);
         // MTEXT's insertion point and direction are in the world frame; an extrusion of −z mirrors them.
-        let map = if e.extrusion().2 < 0.0 { t.after(Affine::scale(-1.0, 1.0)) } else { t };
+        let map = if e.extrusion().2 < 0.0 {
+            t.after(Affine::scale(-1.0, 1.0))
+        } else {
+            t
+        };
         for (k, line) in lines.into_iter().enumerate() {
             let down = first + spacing * k as f64;
             let base = (at.0 + s * down, at.1 - c * down);
-            let line_key = if k == 0 { key.to_owned() } else { format!("{key}.{k}") };
+            let line_key = if k == 0 {
+                key.to_owned()
+            } else {
+                format!("{key}.{k}")
+            };
             self.placed(base, rot, h, 0.0, align, line, map, layer, &line_key)?;
         }
         Ok(())
@@ -1103,7 +1258,11 @@ impl<'d> Converter<'d> {
         let ltype = e.str(6).map(|s| s.trim().to_ascii_uppercase());
         for r in 0..rows {
             for c in 0..cols {
-                let cell = if rows * cols == 1 { key.to_owned() } else { format!("{key}[{r},{c}]") };
+                let cell = if rows * cols == 1 {
+                    key.to_owned()
+                } else {
+                    format!("{key}[{r},{c}]")
+                };
                 let base = self
                     .d
                     .blocks
@@ -1149,7 +1308,10 @@ impl<'d> Converter<'d> {
         if depth >= MAX_NESTING {
             self.notes.skipped.push((
                 key.to_owned(),
-                format!("the block {} is nested deeper than {MAX_NESTING} levels", block.name),
+                format!(
+                    "the block {} is nested deeper than {MAX_NESTING} levels",
+                    block.name
+                ),
             ));
             return Ok(());
         }
@@ -1168,7 +1330,11 @@ impl<'d> Converter<'d> {
             let k = format!("{key}/{own}");
             if e.kind == "ATTDEF" {
                 let text = percent_codes(&e.str(1).unwrap_or_default());
-                let lay = if e.layer() == "0" { layer.to_owned() } else { e.layer() };
+                let lay = if e.layer() == "0" {
+                    layer.to_owned()
+                } else {
+                    e.layer()
+                };
                 self.text(e, &text, m.after(Affine::ocs(e.extrusion())), &lay, &k)?;
                 continue;
             }
@@ -1185,7 +1351,11 @@ fn clip(s: Shape, lo: P, hi: P, tol: f64) -> Vec<Shape> {
     let inside = |p: P| p.0 >= lo.0 && p.0 <= hi.0 && p.1 >= lo.1 && p.1 <= hi.1;
     let with = |geo: Geo, n: usize| Shape {
         geo,
-        key: if n == 0 { s.key.clone() } else { format!("{}.{n}", s.key) },
+        key: if n == 0 {
+            s.key.clone()
+        } else {
+            format!("{}.{n}", s.key)
+        },
         layer: s.layer.clone(),
         dash: s.dash,
         width: s.width,
@@ -1246,8 +1416,12 @@ fn clip(s: Shape, lo: P, hi: P, tol: f64) -> Vec<Shape> {
         Geo::Fill { pts } => {
             let mut poly = pts.clone();
             // Sutherland–Hodgman against the four edges.
-            let edges: [(usize, f64, bool); 4] =
-                [(0, lo.0, true), (0, hi.0, false), (1, lo.1, true), (1, hi.1, false)];
+            let edges: [(usize, f64, bool); 4] = [
+                (0, lo.0, true),
+                (0, hi.0, false),
+                (1, lo.1, true),
+                (1, hi.1, false),
+            ];
             for (axis, v, keep_above) in edges {
                 let get = |p: P| if axis == 0 { p.0 } else { p.1 };
                 let ins = |p: P| if keep_above { get(p) >= v } else { get(p) <= v };
@@ -1293,7 +1467,12 @@ fn clip(s: Shape, lo: P, hi: P, tol: f64) -> Vec<Shape> {
 fn segment(a: P, b: P, lo: P, hi: P) -> Option<(P, P)> {
     let (dx, dy) = (b.0 - a.0, b.1 - a.1);
     let (mut t0, mut t1) = (0.0_f64, 1.0_f64);
-    for (p, q) in [(-dx, a.0 - lo.0), (dx, hi.0 - a.0), (-dy, a.1 - lo.1), (dy, hi.1 - a.1)] {
+    for (p, q) in [
+        (-dx, a.0 - lo.0),
+        (dx, hi.0 - a.0),
+        (-dy, a.1 - lo.1),
+        (dy, hi.1 - a.1),
+    ] {
         if p == 0.0 {
             if q < 0.0 {
                 return None;

@@ -16,8 +16,8 @@
 use std::collections::BTreeSet;
 
 use ew_interop_api::ew_schema::{
-    Align, ArcPrim, Bounds, CirclePrim, Dash as LibDash, Dir4, LinePrim, Pen, PolygonPrim, PolylinePrim, Primitive,
-    Stroke, TextPrim,
+    Align, ArcPrim, Bounds, CirclePrim, Dash as LibDash, Dir4, LinePrim, Pen, PolygonPrim, PolylinePrim,
+    Primitive, Stroke, TextPrim,
 };
 use ew_interop_api::{Code, ImportError, Limits, ReportEntry, Severity};
 use ew_mltext::{Ident, MlText};
@@ -121,7 +121,10 @@ pub fn symbols(
         }
         let base = block.base;
         let local = |p: (f64, f64)| -> Option<Pt2> {
-            Some(Pt2::new(Nm(to_nm((p.0 - base.0) * scale)?), Nm(to_nm(-(p.1 - base.1) * scale)?)))
+            Some(Pt2::new(
+                Nm(to_nm((p.0 - base.0) * scale)?),
+                Nm(to_nm(-(p.1 - base.1) * scale)?),
+            ))
         };
         let frame = |p: (f64, f64)| -> Option<Pt2> {
             // Shapes are already relative to the base point.
@@ -139,7 +142,10 @@ pub fn symbols(
             entries.push(ReportEntry::new(
                 Code::imp(251),
                 Severity::Warning,
-                format!("The drawing names no unit; it was read in {} as chosen.", words(unit)),
+                format!(
+                    "The drawing names no unit; it was read in {} as chosen.",
+                    words(unit)
+                ),
             ));
         }
         // Steps 2 and 3: the attribute definitions.
@@ -150,7 +156,11 @@ pub fn symbols(
             let name = e.str(2).unwrap_or_default().trim().to_owned();
             let upper = name.to_ascii_uppercase();
             let ocs = Affine::ocs(e.extrusion());
-            let at = if e.i(72, 0) != 0 || e.i(73, 0) != 0 { e.pt(11) } else { e.pt(10) };
+            let at = if e.i(72, 0) != 0 || e.i(73, 0) != 0 {
+                e.pt(11)
+            } else {
+                e.pt(10)
+            };
             let Some(pos) = local(ocs.apply(at)) else { continue };
             let slot = || SymbolSlot {
                 pos,
@@ -162,7 +172,14 @@ pub fn symbols(
                 function_text.get_or_insert_with(slot);
             } else if let Some(suffix) = cp_suffix(&name) {
                 let default = e.str(1).unwrap_or_default().trim().to_owned();
-                raw_pins.push((if default.is_empty() { suffix.to_owned() } else { default }, pos));
+                raw_pins.push((
+                    if default.is_empty() {
+                        suffix.to_owned()
+                    } else {
+                        default
+                    },
+                    pos,
+                ));
             }
         }
         // Step 4: points and small circles on a connection layer.
@@ -199,7 +216,9 @@ pub fn symbols(
         for (designation, pos) in raw_pins {
             let snap = |v: Nm| grid.snap_point(v).unwrap_or(v);
             let snapped = Pt2::new(snap(pos.x), snap(pos.y));
-            moved = moved.max((snapped.x.0 - pos.x.0).abs()).max((snapped.y.0 - pos.y.0).abs());
+            moved = moved
+                .max((snapped.x.0 - pos.x.0).abs())
+                .max((snapped.y.0 - pos.y.0).abs());
             if !seen.insert(designation.clone()) {
                 continue;
             }
@@ -216,7 +235,10 @@ pub fn symbols(
                 .filter(|s| *s > 0.0)
                 .map(|s| {
                     let steps = (s / pitch).round().max(1.0);
-                    format!(" Scaling the drawing by {:.3} would put their spacing on the grid.", steps * pitch / s)
+                    format!(
+                        " Scaling the drawing by {:.3} would put their spacing on the grid.",
+                        steps * pitch / s
+                    )
                 })
                 .unwrap_or_default();
             entries.push(ReportEntry::new(
@@ -264,7 +286,9 @@ fn direction(bbox: Option<Rect>, p: Pt2) -> Dir4 {
         ((hi.y.0 - p.y.0).abs(), Dir4::Down),
         ((p.x.0 - lo.x.0).abs(), Dir4::Left),
     ];
-    d.into_iter().min_by_key(|(dist, _)| *dist).map_or(Dir4::Up, |(_, dir)| dir)
+    d.into_iter()
+        .min_by_key(|(dist, _)| *dist)
+        .map_or(Dir4::Up, |(_, dir)| dir)
 }
 
 /// The smallest non-zero distance along x or y between two connection points, in nm.
@@ -338,7 +362,9 @@ fn primitive(
             points: pts.iter().map(|p| frame(*p)).collect::<Option<_>>()?,
             closed: true,
             stroke,
-            fill: Some(ew_interop_api::ew_schema::Colour::Rgb(ew_interop_api::ew_schema::Rgb([0, 0, 0]))),
+            fill: Some(ew_interop_api::ew_schema::Colour::Rgb(
+                ew_interop_api::ew_schema::Rgb([0, 0, 0]),
+            )),
             extra: Default::default(),
         }),
         Geo::Arc { c, r, start, sweep } => {
@@ -367,7 +393,9 @@ fn primitive(
             centre: frame(*p)?,
             r: Nm(100_000),
             stroke: None,
-            fill: Some(ew_interop_api::ew_schema::Colour::Rgb(ew_interop_api::ew_schema::Rgb([0, 0, 0]))),
+            fill: Some(ew_interop_api::ew_schema::Colour::Rgb(
+                ew_interop_api::ew_schema::Rgb([0, 0, 0]),
+            )),
             extra: Default::default(),
         }),
         Geo::Text {
@@ -426,12 +454,19 @@ pub fn outline(bytes: &[u8], limits: &Limits, unit: Option<Unit>) -> Result<Vec<
     let lo = lines
         .iter()
         .flat_map(|(pts, _)| pts.iter())
-        .fold((f64::INFINITY, f64::INFINITY), |a, p| (a.0.min(p.0), a.1.min(p.1)));
+        .fold((f64::INFINITY, f64::INFINITY), |a, p| {
+            (a.0.min(p.0), a.1.min(p.1))
+        });
     let mut out = Vec::new();
     for (pts, closed) in lines {
         let mut line: Vec<Pt2> = pts
             .iter()
-            .map(|p| Some(Pt2::new(Nm(to_nm((p.0 - lo.0) * scale)?), Nm(to_nm((p.1 - lo.1) * scale)?))))
+            .map(|p| {
+                Some(Pt2::new(
+                    Nm(to_nm((p.0 - lo.0) * scale)?),
+                    Nm(to_nm((p.1 - lo.1) * scale)?),
+                ))
+            })
             .collect::<Option<_>>()
             .ok_or_else(|| ImportError::Malformed {
                 message: "an outline coordinate is outside the range of a part".to_owned(),
