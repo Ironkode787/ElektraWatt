@@ -835,6 +835,18 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
             }
         }
     }
+    if name == "project" {
+        // A member of `project.settings.set` is one JSON value, which the command replaces whole: a typed member
+        // (`fluid`) is one row, not its fields.
+        for s in SETTABLE_SETTINGS {
+            let path = format!("settings.{}", s.name);
+            let inner = format!("{path}.");
+            out.retain(|f| !f.path.starts_with(&inner));
+            if let Some(f) = out.iter_mut().find(|f| f.path == path) {
+                f.ty = FieldType::Json;
+            }
+        }
+    }
     if name == "connection" {
         // A fluid line's line kind, `fields.set` path `line_kind` (`kind.fluid.line_kind`); the sheet
         // shows it on fluid lines only.

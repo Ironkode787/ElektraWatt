@@ -187,6 +187,12 @@ fn every_query_answers_its_golden_example() {
                 );
             }
             "xref_text_of" => assert_eq!(out, json!({"text": "∞ 3-B2, 106-G3"})),
+            // Golden A defines no medium and F1 carries no tube specification (doc 11 §11.1, EF-21).
+            "medium_zones" => assert_eq!(out, json!({"zones": []})),
+            "tube_props" => assert_eq!(
+                out,
+                json!({"od": null, "id": null, "material": null, "colour": null, "part": null, "p_rating": null})
+            ),
             "bom_rows" => {
                 let rows = out["rows"].as_array().unwrap();
                 let want = expected_rows("csv/bom_parts.csv");

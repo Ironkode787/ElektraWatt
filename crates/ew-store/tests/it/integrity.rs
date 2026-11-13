@@ -489,12 +489,13 @@ fn a_damaged_copy_a_device_names_opens_read_only_with_its_finding() {
 }
 
 /// The damaged definition copy of Golden A's pneumatic cylinders, whose functions end the fluid
-/// lines of folio 203, opens read-only: beside the EW-INV-001 that names the copy, the load tolerates the EW-INV-024 of
-/// those lines, whose records include a function that names the copy. The same damage beside a violation unrelated to
-/// it, a page whose location is not in the project, is still refused by that violation.
+/// lines of folio 203, opens read-only with the EW-INV-001 that names the copy; the lines' ports, whose definition is
+/// gone, are not judged by EW-INV-024 (FT-1569: a port without its definition is exempt, so the update of another
+/// damaged copy is no misfit). The same damage beside a violation unrelated to it, a page whose location is not in the
+/// project, is still refused by that violation.
 #[test]
 fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
-    use ew_model::{FLUID_LINES, ModelError, REFS_RESOLVE};
+    use ew_model::{ModelError, REFS_RESOLVE};
     use ew_store::ew_format::ew_schema::{AnyId, Kind};
     let damaged = "lib/fndefs/7b85e9bb-116f-5c3c-a7b6-d5260aa1c219.json";
     let (vfs, root) = mem_project(DirSync::Explicit);
@@ -509,7 +510,7 @@ fn a_damaged_definition_copy_whose_functions_end_fluid_lines_opens_read_only() {
             other => panic!("{other:?}"),
         })
         .collect();
-    assert_eq!(rules, BTreeSet::from([REFS_RESOLVE, FLUID_LINES]));
+    assert_eq!(rules, BTreeSet::from([REFS_RESOLVE]));
     store.close();
 
     let page = "pages/1d6aab0f-e47b-5da2-9d75-d3eb428e8c48.jsonl";

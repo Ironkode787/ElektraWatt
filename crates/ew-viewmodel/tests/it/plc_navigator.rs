@@ -148,7 +148,11 @@ fn a_channel_dropped_on_a_golden_valve_binds_its_internal_coil() {
         .clone();
     let rev = s.revision();
     let (x, y) = sheet_mm(&s, (port.at.0 + 500_000, port.at.1));
-    done(&mut s, "navigator.bind", json!({"channel": ch, "x_mm": x, "y_mm": y}));
+    done(
+        &mut s,
+        "navigator.bind",
+        json!({"channel": ch, "x_mm": x, "y_mm": y}),
+    );
     assert_eq!(s.revision(), rev.map(|r| r + 1), "one command");
     let toast = s.toast().expect("the bind's toast").text.clone();
     assert!(toast.contains("-201U3-Q1:14"), "{toast}");

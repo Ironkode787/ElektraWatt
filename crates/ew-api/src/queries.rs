@@ -1571,7 +1571,7 @@ mod tests {
         sorted.sort_unstable();
         sorted.dedup();
         assert_eq!(names, sorted);
-        // D11 is closed: the twelve names are the oracle.
+        // D11 is closed: the twelve names and the two fluid queries of WP-S1.25 are the oracle.
         assert_eq!(
             names,
             [
@@ -1580,10 +1580,12 @@ mod tests {
                 "channel_addresses",
                 "device_tag",
                 "displayed_tag",
+                "medium_zones",
                 "page_order",
                 "plc_address_text",
                 "potential_name",
                 "title_block",
+                "tube_props",
                 "wire_numbers",
                 "wire_props_of",
                 "xref_text_of",

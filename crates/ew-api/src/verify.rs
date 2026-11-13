@@ -63,6 +63,8 @@ struct Keys {
     spaces: Vec<Id<ew_schema::LayoutSpace>>,
     carriers: Vec<Id<ew_schema::Carrier>>,
     placements: Vec<Id<ew_schema::Placement>>,
+    /// The fluid lines.
+    fluid_lines: Vec<Id<ew_schema::Connection>>,
 }
 
 impl Keys {
@@ -105,6 +107,12 @@ impl Keys {
             spaces: q.table::<ew_schema::LayoutSpace>().ids().collect(),
             carriers: q.table::<ew_schema::Carrier>().ids().collect(),
             placements: q.table::<ew_schema::Placement>().ids().collect(),
+            fluid_lines: q
+                .connections()
+                .iter()
+                .filter(|(_, c)| matches!(c.kind, ew_schema::ConnectionKind::Fluid(_)))
+                .map(|(id, _)| id)
+                .collect(),
         }
     }
 }
@@ -179,6 +187,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::Galleries>(memo, cold, keys.devices.iter().copied(), o);
     check::<ew_derive::FluidTubes>(memo, cold, [()], o);
     check::<ew_derive::MediumZones>(memo, cold, [()], o);
+    check::<ew_derive::TubePropsOf>(memo, cold, keys.fluid_lines.iter().copied(), o);
     check::<ew_derive::TubeRows>(memo, cold, [()], o);
     check::<ew_derive::ValveTerminalRows>(memo, cold, [()], o);
     check::<ew_derive::MediumRows>(memo, cold, [()], o);

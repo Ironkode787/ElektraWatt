@@ -88,7 +88,7 @@ fn draw(a: EndpointParam, b: EndpointParam, kind: ConnectionKind) -> Connect {
 }
 
 fn fluid() -> ConnectionKind {
-    ConnectionKind::Fluid(FluidLine::default())
+    ConnectionKind::Fluid(Box::default())
 }
 
 fn refusal(e: &mut Engine, cmd: &Connect) -> String {

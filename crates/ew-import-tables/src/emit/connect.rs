@@ -230,7 +230,7 @@ pub(crate) fn emit_connections(cx: &mut Cx<'_>, table: Option<&Table>) {
         let page = page.map(|info| info.id);
         let kind = match kind {
             PendingKind::Wire => ConnectionKind::Wire,
-            PendingKind::Fluid => ConnectionKind::Fluid(FluidLine::default()),
+            PendingKind::Fluid => ConnectionKind::Fluid(Box::default()),
             PendingKind::Bridge(spec) => ConnectionKind::Bridge(spec),
             PendingKind::Bus(cable) => {
                 let cable = match cable {

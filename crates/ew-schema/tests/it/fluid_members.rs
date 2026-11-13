@@ -9,7 +9,8 @@ use crate::common;
 
 use common::fill;
 use ew_schema::{
-    ClosureKind, ConnectionKind, FluidPortRole, LengthSource, LibDocument, LineKind, Record, SlotFallback, TubeMaterial,
+    ClosureKind, ConnectionKind, FluidPortRole, LengthSource, LibDocument, LineKind, Record, SlotFallback,
+    TubeMaterial,
 };
 
 fn record(line: &str) -> Record {
@@ -76,9 +77,15 @@ fn an_unknown_line_kind_and_member_survive_and_the_tube_and_length_are_typed() {
     };
     assert_eq!(f.tube.od, Some(ew_units::Nm(6_000_000)));
     assert_eq!(f.tube.material, Some(TubeMaterial::Pu));
-    assert_eq!(f.tube.extra.keys().map(String::as_str).collect::<Vec<_>>(), ["hose_class"]);
+    assert_eq!(
+        f.tube.extra.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["hose_class"]
+    );
     assert_eq!(f.length, LengthSource::Manual(ew_units::Nm(1_200_000_000)));
-    assert_eq!(f.extra.keys().map(String::as_str).collect::<Vec<_>>(), ["route_hint"]);
+    assert_eq!(
+        f.extra.keys().map(String::as_str).collect::<Vec<_>>(),
+        ["route_hint"]
+    );
 }
 
 #[test]

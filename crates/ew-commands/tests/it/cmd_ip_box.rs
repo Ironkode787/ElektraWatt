@@ -304,7 +304,7 @@ fn draw_to_ip_rejections_write_nothing() {
     // On a fluid page the tool sends the fluid kind; an interruption point's CP is no fluid port, so the line is
     // refused in words (T1) before EW-INV-024.
     let mut cmd = good();
-    cmd.kind = Some(ew_schema::ConnectionKind::Fluid(Default::default()));
+    cmd.kind = Some(ew_schema::ConnectionKind::Fluid(Box::default()));
     assert_eq!(
         rejection(e.execute(&cmd)),
         "a fluid line joins fluid ports only; an interruption point is not a fluid port"

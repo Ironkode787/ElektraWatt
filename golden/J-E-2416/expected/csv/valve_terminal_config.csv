@@ -1,0 +1,41 @@
+row,Slot,Module,Module part,Position,Valve,Valve part,Solenoids,Address,Function text,Process tag,Occupancy
+data,,-201U1,195740,,,,,,,,
+data,1,-201U2,552286,,,,,,,,
+data,2,-201U3,533361,,,,,,,,
+data,2,-201U3,533361,1,-201U3-Q1,571334,14,Q0.1,,TA05-V-15,"valve, used"
+data,2,-201U3,533361,2,-201U3-Q2,571334,14,Q0.3,,TA05-V-33,"valve, used"
+data,2,-201U3,533361,3,-201U3-Q3,571334,14,Q0.5,,TA05-V-18,"valve, used"
+data,2,-201U3,533361,4,-201U3-Q4,571334,14,Q0.7,,TA05-V-17,"valve, used"
+data,3,-201U4,533361,,,,,,,,
+data,3,-201U4,533361,1,-201U4-Q1,571334,14,Q1.1,,TA05-V-36,"valve, used"
+data,3,-201U4,533361,2,-201U4-Q2,571334,14,Q1.3,,TA05-V-38,"valve, used"
+data,3,-201U4,533361,3,-201U4-Q3,571334,14,Q1.5,,TA05-V-16,"valve, used"
+data,3,-201U4,533361,4,-201U4-Q4,571334,14,Q1.7,,TA05-V-37,"valve, used"
+data,4,-201U5,533361,,,,,,,,
+data,4,-201U5,533361,1,-201U5-Q1,571334,14,Q2.1,Spare,,"valve, spare"
+data,4,-201U5,533361,2,-201U5-Q2,571334,14,Q2.3,Spare,,"valve, spare"
+data,4,-201U5,533361,3,-201U5-Q3,571334,14,Q2.5,Spare,,"valve, spare"
+data,4,-201U5,533361,4,-201U5-Q4,571334,14,Q2.7,Spare,,"valve, spare"
+data,5,-201U6,533361,,,,,,,,
+data,5,-201U6,533361,1,-201U6-Q1,571334,14,Q3.1,Spare,,"valve, spare"
+data,5,-201U6,533361,2,-201U6-Q2,571334,14,Q3.3,Spare,,"valve, spare"
+data,5,-201U6,533361,3,-201U6-Q3,571334,14,Q3.5,Spare,,"valve, spare"
+data,5,-201U6,533361,4,-201U6-Q4,571334,14,Q3.7,Spare,,"valve, spare"
+data,6,-201U7,533361,,,,,,,,
+data,6,-201U7,533361,1,-201U7-Q1,571334,14,Q4.1,Spare,,"valve, spare"
+data,6,-201U7,533361,2,-201U7-Q2,571334,14,Q4.3,Spare,,"valve, spare"
+data,6,-201U7,533361,3,-201U7-Q3,571334,14,Q4.5,Spare,,"valve, spare"
+data,6,-201U7,533361,4,-201U7-Q4,571334,14,Q4.7,Spare,,"valve, spare"
+data,7,-201U8,533361,,,,,,,,
+data,7,-201U8,533361,1,-201U8-Q1,571334,14,Q5.1,Spare,,"valve, spare"
+data,7,-201U8,533361,2,-201U8-Q2,571334,14,Q5.3,Spare,,"valve, spare"
+data,7,-201U8,533361,3,-201U8-Q3,571334,14,Q5.5,Spare,,"valve, spare"
+data,7,-201U8,533361,4,-201U8-Q4,571334,14,Q5.7,Spare,,"valve, spare"
+data,8,-201U9,533354,,,,,,,,
+data,9,-202U1,550208,,,,,,,,
+data,10,-202U2,533361,,,,,,,,
+data,10,-202U2,533361,1,-202U2-Q1,571334,14,Q6.1,Spare,,"valve, spare"
+data,10,-202U2,533361,2,-202U2-Q2,571334,14,Q6.3,Spare,,"valve, spare"
+data,10,-202U2,533361,3,-202U2-Q3,571334,14,Q6.5,Spare,,"valve, spare"
+data,10,-202U2,533361,4,-202U2-Q4,571334,14,Q6.7,Spare,,"valve, spare"
+data,11,-202U3,533354,,,,,,,,

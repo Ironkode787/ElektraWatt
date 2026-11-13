@@ -497,7 +497,10 @@ fn defs() -> Vec<Def> {
             kind: None,
             description: "Valve terminal supply plate, ports 1, 3 and 5",
             cps: Vec::new(),
-            template: vec![("ew.fn.overview", true, Vec::new()), ("ew.fn.valve-supply-plate", false, Vec::new())],
+            template: vec![
+                ("ew.fn.overview", true, Vec::new()),
+                ("ew.fn.valve-supply-plate", false, Vec::new()),
+            ],
             contacts: Vec::new(),
             tech: Vec::new(),
             plc: None,

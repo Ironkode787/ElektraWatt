@@ -1,0 +1,17 @@
+row,Tag,From,Role,To,Role,Medium,Line,OD×ID,Material,Colour,Tube part,Length,Source,Fitting A,Fitting B,Location change,Page
+data,,-201U3-Q1:2,working,-203Q1:A,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U3-Q1:4,working,-203Q1:B,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U3-Q2:2,working,-203Q2:A,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U3-Q2:4,working,-203Q2:B,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U3-Q3:2,working,-203Q3:A,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U3-Q3:4,working,-203Q3:B,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U3-Q4:2,working,-203Q4:A,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U3-Q4:4,working,-203Q4:B,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U4-Q1:2,working,-203Q5:A,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U4-Q1:4,working,-203Q5:B,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U4-Q2:2,working,-203Q6:A,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U4-Q2:4,working,-203Q6:B,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U4-Q3:2,working,-203Q7:A,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U4-Q3:4,working,-203Q7:B,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U4-Q4:2,working,-203Q8:A,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203
+data,,-201U4-Q4:4,working,-203Q8:B,consumer,,working,,,,,length missing,missing,,,+J-E-2416 → +FIELD,203

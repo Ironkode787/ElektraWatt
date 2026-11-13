@@ -1290,7 +1290,7 @@ fn with_fluid_ports() -> Model {
 
 fn fluid(id: u128, a: ew_schema::Endpoint, b: ew_schema::Endpoint) -> Connection {
     let mut c = connection(nid(id), Some(PAGE_102), a, b);
-    c.kind = ew_schema::ConnectionKind::Fluid(Default::default());
+    c.kind = ew_schema::ConnectionKind::Fluid(Box::default());
     c
 }
 

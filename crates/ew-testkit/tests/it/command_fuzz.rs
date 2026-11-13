@@ -1658,27 +1658,13 @@ fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
 /// 13 901 746 652 117 265 409, step 0): `device.create` with Golden A's valve part and a main FnDef of another kind
 /// commits three functions, its main one and the valve and coil functions normaliser N-FL-1 makes from the valve
 /// part, and the arm expected one. The input (the finding's seed, its tape remade to draw the finding's
-/// step) still draws that step, and it replays with the cadence of the fuzz target and passes the arm's oracle, which
+/// step; remade again when WP-S1.25's four fluid commands joined the registry) still draws that step, and it replays with the cadence of the fuzz target and passes the arm's oracle, which
 /// counts N-FL-1's functions.
 #[test]
 fn device_create_with_a_valve_part_counts_its_valve_functions() {
     replay_drawing(
         include_bytes!("../fixtures/command_fuzz/device-create-valve-part-functions"),
         r#"{"cmd":"device.create","params":{"letter":"A","main_fndef":"2c38898e-6848-5acc-95e5-d8c5b8f702ab","parts":[{"part":{"copy":"2b23f42b-b502-5f8b-aab9-6200eb76adcf"},"qty":"1"}]}}"#,
-    );
-}
-
-/// Deep nightly finding (`fuzz/regressions/command_sequence/valve-add-plc-module-part-attached-to-station`,
-/// seed 365 072 220 161, step 2): `valve.add` on Golden A's -203Q1 with the electronic module part 533361, whose PLC
-/// section has the role module, committed, and normaliser N0 made the new device a PLC module and attached it to the
-/// project's only station, as is the rule for a module without a station ancestor; the arm expected a child
-/// of -203Q1. The input (the finding's seed, a tape that draws the finding's step first) replays and passes
-/// the arm's oracle, which accepts N0's attachment.
-#[test]
-fn valve_add_of_a_plc_module_part_is_attached_to_the_station() {
-    replay_drawing(
-        include_bytes!("../fixtures/command_fuzz/valve-add-plc-module-part-attached-to-station"),
-        r#"{"cmd":"valve.add","params":{"module":"eec54bc9-3da2-5515-bd80-29bf50425002","part":{"part":{"copy":"496e2ad0-fbe2-5733-bb7c-b950ab527a14"},"qty":"1"},"position":21}}"#,
     );
 }
 

@@ -15,8 +15,8 @@ use ew_api::{AnyCommand, Session, SessionOptions};
 use ew_derive::{EndpointKey, FunctionCps, MediumKey, MediumZones, node_net};
 use ew_ids::{Id, Uuid};
 use ew_schema::{
-    Connection, ConnectionKind, Device, Endpoint, FluidLine, FluidPortRole, FnDef, FnRole, Function, LibDocument,
-    Record,
+    Connection, ConnectionKind, Device, Endpoint, FluidLine, FluidPortRole, FnDef, FnRole, Function,
+    LibDocument, Record,
 };
 use serde_json::json;
 
@@ -44,15 +44,34 @@ fn golden_a_reports_ef_20_and_ef_21_with_the_1_0_rules() {
     assert_eq!(run("EW-FL-010"), ["warning =P01+J-E-2416-201U1"]);
     let lines = run("EW-FL-007");
     assert_eq!(lines.len(), 16, "{lines:?}");
-    assert!(lines.iter().all(|l| l.starts_with("warning -20") && l.contains(" → -203Q")), "{lines:?}");
-    for rule in ["EW-FL-005", "EW-FL-006", "EW-FL-009", "EW-FL-012", "EW-FL-008", "EW-FL-014"] {
+    assert!(
+        lines
+            .iter()
+            .all(|l| l.starts_with("warning -20") && l.contains(" → -203Q")),
+        "{lines:?}"
+    );
+    for rule in [
+        "EW-FL-005",
+        "EW-FL-006",
+        "EW-FL-009",
+        "EW-FL-012",
+        "EW-FL-008",
+        "EW-FL-014",
+    ] {
         assert_eq!(run(rule), Vec::<String>::new(), "{rule}");
     }
     let online = |rule| findings(&s, &DRAFTING, CheckMode::Online, rule);
-    assert_eq!(online("EW-FL-008"), ["info =P01+J-E-2416-201U1", "info =P01+J-E-2416-201U1"]);
+    assert_eq!(
+        online("EW-FL-008"),
+        ["info =P01+J-E-2416-201U1", "info =P01+J-E-2416-201U1"]
+    );
     assert_eq!(online("EW-FL-014").len(), 16);
     let mvp = s.check(&PRE_DELIVERY, CheckMode::Release);
-    assert!(!mvp.findings.iter().any(|f| f.rule == "EW-FL-007" || f.rule == "EW-FL-010"));
+    assert!(
+        !mvp.findings
+            .iter()
+            .any(|f| f.rule == "EW-FL-007" || f.rule == "EW-FL-010")
+    );
 }
 
 const LIB: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);
@@ -118,8 +137,10 @@ fn overlay() -> (Session, BTreeMap<String, String>, Id<Connection>, Id<Function>
         }
         let source_dev: Id<Device> = Id::from_uuid(Uuid::from_u128(0xf1_0100));
         records.push(Record::Device(
-            serde_json::from_value(json!({"id": source_dev.to_string(), "tag": {"letter": "AS", "counter": 1}}))
-                .expect("-AS1"),
+            serde_json::from_value(
+                json!({"id": source_dev.to_string(), "tag": {"letter": "AS", "counter": 1}}),
+            )
+            .expect("-AS1"),
         ));
         records.push(Record::Function(function(0xf1_0101, source_dev, source)));
         let plate_fn: Id<Function> = Id::from_uuid(Uuid::from_u128(0xf1_0102));
@@ -130,7 +151,7 @@ fn overlay() -> (Session, BTreeMap<String, String>, Id<Connection>, Id<Function>
             b: Endpoint::Cp(plate_fn, 0),
             page: None,
             route: Vec::new(),
-            kind: ConnectionKind::Fluid(FluidLine::default()),
+            kind: ConnectionKind::Fluid(Box::default()),
             overrides: Default::default(),
             number: Default::default(),
             source_ref: None,
@@ -148,17 +169,25 @@ fn lib_id(d: &LibDocument) -> Id<FnDef> {
 }
 
 fn id<T>(ids: &BTreeMap<String, String>, key: &str) -> Id<T> {
-    ids.get(key).unwrap_or_else(|| panic!("no {key}")).parse().expect("an ID")
+    ids.get(key)
+        .unwrap_or_else(|| panic!("no {key}"))
+        .parse()
+        .expect("an ID")
 }
 
 fn function(n: u128, device: Id<Device>, def: Id<FnDef>) -> Function {
-    serde_json::from_value(json!({"id": Uuid::from_u128(n).to_string(), "device": device.to_string(),
-        "def": def.to_string(), "role": if n == 0xf1_0101 { "main" } else { "aux" }}))
+    serde_json::from_value(
+        json!({"id": Uuid::from_u128(n).to_string(), "device": device.to_string(),
+        "def": def.to_string(), "role": if n == 0xf1_0101 { "main" } else { "aux" }}),
+    )
     .expect("a function")
 }
 
 fn run(s: &mut Session, name: &str, params: serde_json::Value) -> ew_api::Receipt {
-    let cmd = AnyCommand { name: name.into(), params };
+    let cmd = AnyCommand {
+        name: name.into(),
+        params,
+    };
     let done = match s.execute(&cmd) {
         Err(ew_api::CmdError::NeedsPreview { .. }) => s.preview(&cmd).and_then(|p| s.commit(p)),
         other => other,
@@ -169,9 +198,20 @@ fn run(s: &mut Session, name: &str, params: serde_json::Value) -> ew_api::Receip
 /// The cells of a CSV text by header, one map per data row.
 fn csv_rows(csv: &str) -> Vec<BTreeMap<String, String>> {
     let mut lines = csv.lines();
-    let header: Vec<String> = lines.next().unwrap_or_default().split(',').map(str::to_owned).collect();
+    let header: Vec<String> = lines
+        .next()
+        .unwrap_or_default()
+        .split(',')
+        .map(str::to_owned)
+        .collect();
     lines
-        .map(|l| header.iter().cloned().zip(l.split(',').map(str::to_owned)).collect())
+        .map(|l| {
+            header
+                .iter()
+                .cloned()
+                .zip(l.split(',').map(str::to_owned))
+                .collect()
+        })
         .collect()
 }
 
@@ -189,7 +229,11 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
         json!({"set": {"name": "compressed air 6 bar", "p_nom": "6", "quality": "1-4-1", "colour": ["BU"]}}),
     );
     let medium = made.outcome.primary.expect("the medium").1;
-    run(&mut s, "fluid.medium.define", json!({"function": source_fn.to_string(), "idx": 0, "medium": medium.to_string()}));
+    run(
+        &mut s,
+        "fluid.medium.define",
+        json!({"function": source_fn.to_string(), "idx": 0, "medium": medium.to_string()}),
+    );
     run(
         &mut s,
         "project.settings.set",
@@ -204,7 +248,11 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
             .collect()
     };
     assert_eq!(lines.len(), 17);
-    run(&mut s, "fluid.length.set", json!({"lines": lines, "length": 1_200_000_000}));
+    run(
+        &mut s,
+        "fluid.length.set",
+        json!({"lines": lines, "length": 1_200_000_000}),
+    );
     // Plugs on the spare valves' working ports, silencers on the plates' exhausts.
     let closures: Vec<(Id<Function>, u16, &str)> = {
         let q = s.query();
@@ -216,7 +264,9 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
                 .is_some_and(|d| d.state == ew_schema::DeviceState::Spare);
             for cp in q.get::<FunctionCps>(f).iter() {
                 match cp.port_role {
-                    Some(FluidPortRole::Working2 | FluidPortRole::Working4) if spare => out.push((f, cp.idx, "plug")),
+                    Some(FluidPortRole::Working2 | FluidPortRole::Working4) if spare => {
+                        out.push((f, cp.idx, "plug"))
+                    }
                     Some(FluidPortRole::Exhaust3 | FluidPortRole::Exhaust5)
                         if func.def == ew_ids::v5::lib_copy_id::<FnDef>(LIB, Uuid::from_u128(0xf1_0001)) =>
                     {
@@ -230,7 +280,11 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
     };
     assert_eq!(closures.len(), 44, "40 plugs and 4 silencers");
     for (f, idx, kind) in closures {
-        run(&mut s, "fluid.port.close", json!({"function": f.to_string(), "idx": idx, "closure": {"kind": kind}}));
+        run(
+            &mut s,
+            "fluid.port.close",
+            json!({"function": f.to_string(), "idx": idx, "closure": {"kind": kind}}),
+        );
     }
 
     // Propagation.
@@ -238,21 +292,40 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
     let zones = q.get::<MediumZones>(());
     let medium: Id<ew_schema::Medium> = medium.cast();
     let carried = |f: Id<Function>, role: FluidPortRole| -> Vec<MediumKey> {
-        let cp = q.get::<FunctionCps>(f).iter().find(|c| c.port_role == Some(role.clone())).map(|c| c.idx);
-        let Some(net) = cp.and_then(|i| node_net(&q, EndpointKey::Cp(f, i))) else { return Vec::new() };
+        let cp = q
+            .get::<FunctionCps>(f)
+            .iter()
+            .find(|c| c.port_role == Some(role.clone()))
+            .map(|c| c.idx);
+        let Some(net) = cp.and_then(|i| node_net(&q, EndpointKey::Cp(f, i))) else {
+            return Vec::new();
+        };
         zones.keys(net).map(|(k, _)| k.clone()).collect()
     };
     let valve_fns: Vec<Id<Function>> = q
         .devices()
         .ids()
         .flat_map(|d| ew_derive::valve_functions(&q, d))
-        .filter(|f| q.get::<FunctionCps>(*f).iter().any(|c| c.port_role == Some(FluidPortRole::Supply1)))
+        .filter(|f| {
+            q.get::<FunctionCps>(*f)
+                .iter()
+                .any(|c| c.port_role == Some(FluidPortRole::Supply1))
+        })
         .collect();
     assert_eq!(valve_fns.len(), 28);
     for f in &valve_fns {
-        assert!(carried(*f, FluidPortRole::Supply1).contains(&MediumKey::Defined(medium)), "port 1");
-        assert!(carried(*f, FluidPortRole::Exhaust3).contains(&MediumKey::Exhaust(medium)), "port 3");
-        assert!(carried(*f, FluidPortRole::Exhaust5).contains(&MediumKey::Exhaust(medium)), "port 5");
+        assert!(
+            carried(*f, FluidPortRole::Supply1).contains(&MediumKey::Defined(medium)),
+            "port 1"
+        );
+        assert!(
+            carried(*f, FluidPortRole::Exhaust3).contains(&MediumKey::Exhaust(medium)),
+            "port 3"
+        );
+        assert!(
+            carried(*f, FluidPortRole::Exhaust5).contains(&MediumKey::Exhaust(medium)),
+            "port 5"
+        );
     }
     drop(q);
 
@@ -262,7 +335,13 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
     assert_eq!(rows.len(), 17, "{}", tubes.csv);
     for r in &rows {
         assert_eq!(
-            (r["OD×ID"].as_str(), r["Material"].as_str(), r["Colour"].as_str(), r["Length"].as_str(), r["Source"].as_str()),
+            (
+                r["OD×ID"].as_str(),
+                r["Material"].as_str(),
+                r["Colour"].as_str(),
+                r["Length"].as_str(),
+                r["Source"].as_str()
+            ),
             ("6×4", "PU", "BU", "1.2 m", "manual"),
             "{r:?}"
         );
@@ -272,15 +351,26 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
     let cut = row_export(&s.query(), &RowExport::Kind("tube_cut_list".into()), None).expect("the cut list");
     let cut = csv_rows(&cut.csv);
     assert_eq!(cut.len(), 1);
-    assert_eq!((cut[0]["Pieces"].as_str(), cut[0]["Total length"].as_str()), ("17", "20.4 m"));
-    let media = row_export(&s.query(), &RowExport::Kind("medium_overview".into()), None).expect("the overview");
+    assert_eq!(
+        (cut[0]["Pieces"].as_str(), cut[0]["Total length"].as_str()),
+        ("17", "20.4 m")
+    );
+    let media =
+        row_export(&s.query(), &RowExport::Kind("medium_overview".into()), None).expect("the overview");
     let media = csv_rows(&media.csv);
     assert_eq!(media.len(), 1);
     assert_eq!(media[0]["Count"], "28");
 
     // EF-13, EF-20 and EF-21 clear; EF-14 stays.
     let run1 = |rule| findings(&s, &PRE_DELIVERY, CheckMode::Release, rule);
-    for rule in ["EW-FL-001", "EW-FL-007", "EW-FL-010", "EW-FL-005", "EW-FL-006", "EW-FL-012"] {
+    for rule in [
+        "EW-FL-001",
+        "EW-FL-007",
+        "EW-FL-010",
+        "EW-FL-005",
+        "EW-FL-006",
+        "EW-FL-012",
+    ] {
         assert_eq!(run1(rule), Vec::<String>::new(), "{rule}");
     }
     assert_eq!(run1("EW-FL-004").len(), 20);

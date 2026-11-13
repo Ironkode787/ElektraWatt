@@ -1,7 +1,7 @@
 {
   "format": "0.1",
   "min_reader": "0.1",
-  "generator": "ElektraWatt 0.1.0",
+  "generator": "ElektraWatt 0.2.0",
   "project": "d76f5765-c456-5393-935c-4cec32a87b01",
   "generation": 1,
   "files": {
@@ -101,7 +101,7 @@
     "lib/fndefs/904ea105-dd27-5122-a22d-2222fbc9a530.json": "sha256:03578e0d91198cfb4034a3aaeb345a092d709127d471870ab90466e3497b4586",
     "lib/fndefs/a0d5b37a-fb2c-52dd-9633-2a47f11c9c22.json": "sha256:c53900e3e32b98260947186dd52c225671cd641e7ed575b25cfaf2e00d31f790",
     "lib/fndefs/a5722bff-01d3-5a05-b24f-ec54f7252a45.json": "sha256:97e9d80ebee69d68f9708ab047980ac73a840739b7625438fc54b165dbde7fd2",
-    "lib/fndefs/ab4c7813-e809-503b-a0cb-8978f1c4ac3a.json": "sha256:01053c0289795e8ed3a540aa868b9ca8b79172122e96663f59be041439786d0b",
+    "lib/fndefs/ab4c7813-e809-503b-a0cb-8978f1c4ac3a.json": "sha256:1c38dcb470dc1eec19baf45c4b745b3f2a29002a96f5f68ddd26410919df744c",
     "lib/fndefs/b6fcabd7-1796-5aab-82de-23ab3d0d6cd2.json": "sha256:7d6eef6fac8c73d22111e8838db985ba67161ea2a358a4e8e159c5df084b7c0e",
     "lib/fndefs/c15149e0-a49b-52a4-8e9b-dede426d0f22.json": "sha256:81618a3ec1d1ea372eb07ff6ea8ae0f3df16c29eed1e24025043c7bfbdeec059",
     "lib/fndefs/cceed251-3c8c-576f-b066-4ca933334f2f.json": "sha256:302121b587c811aa1ab638583b3cc594148c03ea856e6ad9cbebc38f92e0ab80",

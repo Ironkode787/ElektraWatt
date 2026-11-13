@@ -95,6 +95,21 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
         "importer_version": "1", "source": {"name": "tables", "sha256": format!("sha256:{}", "0".repeat(64)),
         "size": 0, "format": "csv"}, "mode": "strict"
     })));
+    // A medium (project file) and its definition point (the file of the point's function's device).
+    let function = records
+        .iter()
+        .find_map(|r| match r {
+            Record::Function(f) if f.device.is_some() => Some(f.id.to_string()),
+            _ => None,
+        })
+        .expect("a function on a device");
+    records.push(record(json!({
+        "$k": "medium", "id": "7d3c1a90-5e2b-5f48-9a61-0c8e4b2d7f15", "name": "air", "p_nom": "6"
+    })));
+    records.push(record(json!({
+        "$k": "medium_def", "id": "8e4d2b01-6f3c-5a59-8b72-1d9f5c3e8a26", "at": {"cp": [function, 0]},
+        "medium": "7d3c1a90-5e2b-5f48-9a61-0c8e4b2d7f15"
+    })));
     records.push(record(json!({
         "$k": "conflict", "id": connection, "kind": "connection", "base": {}, "ours": {}, "theirs": {}
     })));

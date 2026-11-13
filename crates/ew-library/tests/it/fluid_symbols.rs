@@ -53,8 +53,13 @@ fn lint(symbol: &Value, fndef: &Value) -> Vec<String> {
         .filter_map(|c| Some((c["idx"].as_u64()?, c)))
         .collect();
     for c in symbol["cps"].as_array().into_iter().flatten() {
-        let fluid = matches!(c["discipline"].as_str(), Some("pneumatic" | "vacuum" | "hydraulic"));
-        let on_grid = c["pos"].as_array().is_some_and(|p| p.iter().all(|v| v.as_i64().is_some_and(|v| v % 4_000_000 == 0)));
+        let fluid = matches!(
+            c["discipline"].as_str(),
+            Some("pneumatic" | "vacuum" | "hydraulic")
+        );
+        let on_grid = c["pos"]
+            .as_array()
+            .is_some_and(|p| p.iter().all(|v| v.as_i64().is_some_and(|v| v % 4_000_000 == 0)));
         let def = c["fn_cp"].as_u64().and_then(|i| cps.get(&i));
         if !fluid {
             out.push(format!("{name}: CP {} is no fluid CP", c["idx"]));
@@ -117,7 +122,10 @@ fn the_pneumatic_library_passes_its_lint() {
     let fndefs: BTreeMap<String, Value> = docs("content/fndefs").into_iter().map(|d| (key(&d), d)).collect();
     let mut checked = 0;
     let mut faults = Vec::new();
-    for s in docs("content/symbols").iter().filter(|s| s["rep_type"] == "fluid") {
+    for s in docs("content/symbols")
+        .iter()
+        .filter(|s| s["rep_type"] == "fluid")
+    {
         let def_key = s["fndef"]["key"].as_str().unwrap_or_default();
         match fndefs.get(def_key) {
             Some(d) => faults.extend(lint(s, d)),
@@ -149,5 +157,8 @@ fn the_lint_names_a_path_to_a_missing_port_and_a_valve_without_model() {
     );
     let mut without = with_model.clone();
     without["valve_model"] = Value::Null;
-    assert_eq!(lint(&symbol, &without).last().map(String::as_str), Some("ew.iso.x: its valve definition has no switching model"));
+    assert_eq!(
+        lint(&symbol, &without).last().map(String::as_str),
+        Some("ew.iso.x: its valve definition has no switching model")
+    );
 }

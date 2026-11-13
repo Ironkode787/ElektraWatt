@@ -544,7 +544,7 @@ fn emptying_a_valve_position_names_its_fluid_lines_and_the_unbound_channel() {
             b: EndpointParam::Cp { function: b3, idx },
             page: None,
             route: vec![],
-            kind: ew_schema::ConnectionKind::Fluid(ew_schema::FluidLine::default()),
+            kind: ew_schema::ConnectionKind::Fluid(Box::default()),
         })
         .expect("a fluid line");
     }
@@ -594,7 +594,8 @@ fn n_fl_1_replaces_the_valve_function_of_another_valve_type_in_place() {
         .map(|(f, _)| *f)
         .find(|f| e.model().table::<Function>().get(f).map(|x| x.def) == Some(old_def))
         .expect("the valve function");
-    let notice = "-102F2-Q1 has the valve function of its new part; exchange the symbol to draw the new valve type";
+    let notice =
+        "-102F2-Q1 has the valve function of its new part; exchange the symbol to draw the new valve type";
     let preview = e.preview(&replace_part(v, VALVE, OTHER)).expect("the preview");
     assert_eq!(preview.outcome().notices, [notice]);
     assert_eq!(functions_of(&e, v), before, "a preview commits nothing");

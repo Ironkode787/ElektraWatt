@@ -86,7 +86,7 @@ pub enum ConnectionKind {
     /// A link between CPs of two functions of one part that no FnDef declares.
     Internal,
     /// A fluid line between fluid ports (doc 11 §2.4, WP-S1.20 D2).
-    Fluid(FluidLine),
+    Fluid(Box<FluidLine>),
     /// A kind of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

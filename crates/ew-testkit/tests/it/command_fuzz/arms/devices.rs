@@ -1173,6 +1173,7 @@ pub(super) fn valve_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
             )
             .refuse(),
         ),
+        // A part with a PLC section is refused (FT-1576); the command decides, so the step may be refused.
         _ => {
             let mut p = json!({"module": module.id, "part": part});
             let expected = if rng.chance(2) {
@@ -1204,19 +1205,6 @@ pub(super) fn valve_add(live: &Live, rng: &mut SplitMix64) -> Option<Step> {
                                 "the valve is at position {:?}, not {expected}",
                                 d.position
                             )),
-                            // A part with a PLC section of role module makes the new device a PLC module,
-                            // which normaliser N0 attaches to the project's only station when the module has no
-                            // station ancestor.
-                            [] if after.devices().iter().any(|(id, d)| {
-                                !before.devices().contains(id)
-                                    && d.aspects.plc_module.is_some()
-                                    && d.parent
-                                        .and_then(|s| after.devices().get(s))
-                                        .is_some_and(|s| s.aspects.plc_station.is_some())
-                            }) =>
-                            {
-                                Ok(())
-                            }
                             other => Err(format!("{} new children of the module, not one", other.len())),
                         }
                     }),
