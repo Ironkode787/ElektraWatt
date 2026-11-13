@@ -19,8 +19,8 @@ use ew_commands::{CmdError, Engine, Origin};
 use ew_ids::Id;
 use ew_model::{Entity, Model};
 use ew_schema::{
-    ClosureKind, Connection, ConnectionKind, Device, DeviceKind, DeviceState, Discipline, FluidLine, FnDef,
-    FnRole, Function, KeyedList, LibCopy, LibDocument, LineKind, Part, Record,
+    ClosureKind, Connection, ConnectionKind, Device, DeviceKind, DeviceState, Discipline, FnDef, FnRole,
+    Function, KeyedList, LibCopy, LibDocument, LineKind, Part, Record,
 };
 use serde_json::json;
 

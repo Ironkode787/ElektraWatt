@@ -9,8 +9,8 @@ use ew_ids::Id;
 use ew_interop_api::{Code, Severity};
 use ew_schema::{
     AcDc, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass, Conductor, Connection,
-    ConnectionKind, Endpoint, FluidLine, Junction, JunctionStyle, JunctionWiring, NumberSpec, Page,
-    PotentialDef, PotentialEarthing, PotentialEnv, Record, WireOverrides, WireProps,
+    ConnectionKind, Endpoint, Junction, JunctionStyle, JunctionWiring, NumberSpec, Page, PotentialDef,
+    PotentialEarthing, PotentialEnv, Record, WireOverrides, WireProps,
 };
 use ew_units::{Grid, Nm, Pt2};
 

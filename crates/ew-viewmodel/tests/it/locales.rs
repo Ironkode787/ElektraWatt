@@ -457,6 +457,12 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
         "terminal",
         "a computer's terminal (opdrachtregel)",
     ),
+    // A valve terminal (ventieleiland), WP-S1.25.
+    (
+        "report-kind-valve-terminal-config",
+        "terminal",
+        "a valve terminal (ventieleiland)",
+    ),
     ("form-revision-git", "tag", "the verb of Git (taggen)"),
     ("error-revision-git", "tag", "a Git tag"),
     ("revision-complete-git", "tag", "a Git tag"),

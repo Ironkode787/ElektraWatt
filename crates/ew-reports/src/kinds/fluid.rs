@@ -177,6 +177,13 @@ fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
 // ---------------------------------------------------------------------------------------------------------
 // tube_cut_list
 
+/// A cut-list line's key: material, size, colour and tube part.
+type CutKey = (String, String, String, String);
+
+/// A cut-list line: its first tube, the count, the summed length in nanometres, whether every tube has a length, and
+/// the first tube's row (its colour).
+type CutLine = (Id<ew_derive::ew_schema::Connection>, i64, i64, bool, TubeRow);
+
 /// The tube cut list (doc 11 §8.2, FR-FLU-013): the tubes grouped by material, size, colour and tube part, each line
 /// with the count and the summed length in metres (a tube without a length counts but adds none, and the line's
 /// length is then missing). Lines in natural order of material, size, colour and part; row ID the group's first tube.
@@ -202,11 +209,7 @@ impl ReportKindDef for TubeCutList {
 
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let columns = self.columns();
-        // (material, size, colour, part) -> (first tube, count, total, complete)
-        let mut groups: BTreeMap<
-            (String, String, String, String),
-            (Id<ew_derive::ew_schema::Connection>, i64, i64, bool, TubeRow),
-        > = BTreeMap::new();
+        let mut groups: BTreeMap<CutKey, CutLine> = BTreeMap::new();
         for r in q.get::<TubeRows>(()).iter() {
             let key = (
                 r.props

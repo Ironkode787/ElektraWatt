@@ -15,8 +15,7 @@ use ew_api::{AnyCommand, Session, SessionOptions};
 use ew_derive::{EndpointKey, FunctionCps, MediumKey, MediumZones, node_net};
 use ew_ids::{Id, Uuid};
 use ew_schema::{
-    Connection, ConnectionKind, Device, Endpoint, FluidLine, FluidPortRole, FnDef, FnRole, Function,
-    LibDocument, Record,
+    Connection, ConnectionKind, Device, Endpoint, FluidPortRole, FnDef, FnRole, Function, LibDocument, Record,
 };
 use serde_json::json;
 
