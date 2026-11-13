@@ -94,6 +94,8 @@ pub mod catalog;
 // The JSON results of the `ew` subcommands and their published schemas (D3, D5).
 pub mod cli_results;
 mod cmdlog;
+// DXF and DWG import and underlays (WP-S3.19).
+pub mod dxf;
 // External change (D20 to D23)
 mod external_change;
 pub mod fmt;

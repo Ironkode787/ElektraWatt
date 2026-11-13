@@ -411,6 +411,16 @@ enum Import {
     /// leading apostrophe). Exit 0 with the preview (and with `--apply` once saved), 2 on usage, open, read and save
     /// errors and a file of another project.
     Table(ImportTableCli),
+    /// Import a DXF drawing as a graphic page or as symbol drafts.
+    ///
+    /// Reads an ASCII or binary DXF (R12 to 2018). `--as page` (the default) adds the drawing as a new graphic page
+    /// of the project (`--project`, default: the nearest ancestor of the current directory holding `manifest.json`)
+    /// after its last page, one undo step with its import run, and saves; the findings are printed. `--layout` reads
+    /// a paper-space layout instead of the model space; `--show-layer` imports a layer that is off or frozen. A
+    /// drawing whose header names no unit needs `--units`. `--as symbol` prints one symbol draft per named block as
+    /// JSON (`ew symbol publish` saves one into a user library). Exit 0 when imported, 2 on usage, a refused file,
+    /// a missing unit and open and save errors.
+    Dxf(super::dxf::ImportDxfArgs),
 }
 
 /// `ew import table`.
@@ -2157,6 +2167,7 @@ impl Cli {
             }
             Top::Import(Import::Parts(a)) => Command::ImportParts(a),
             Top::Import(Import::Csv(a)) => Command::ImportCsv(a),
+            Top::Import(Import::Dxf(a)) => Command::ImportDxf(a),
             Top::Import(Import::Table(ImportTableCli {
                 file,
                 project_dir,

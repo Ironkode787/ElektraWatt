@@ -26,6 +26,8 @@ ew-import-qet = { path = "../ew-import-qet" }
 ew-import-eplan = { path = "../ew-import-eplan" }
 ew-import-catalog = { path = "../ew-import-catalog" }
 ew-import-tables = { path = "../ew-import-tables" }
+# DXF pages, underlays, symbols and part outlines (WP-S3.19, doc 14 §6).
+ew-import-dxf = { path = "../ew-import-dxf" }
 ew-jobs = { path = "../ew-jobs" }
 # The snapshot type and its revision. Without `raw-read`: the Session hands snapshots out and never reads rows
 # itself (ARCH §3 rule 1: the untracked read API stays with ew-derive, ew-commands and ew-store).

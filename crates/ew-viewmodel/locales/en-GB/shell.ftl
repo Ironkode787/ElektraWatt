@@ -5995,3 +5995,7 @@ field-help-project-supply-origin-ik-max = The highest short-circuit current at t
 field-help-project-supply-origin-upstream-rating = The rating of the protection upstream of the supply, in A.
 field-help-device-parts-item = One part the device uses, with its quantity.
 field-help-device-tech-data-item = One technical value of the device: its name and value.
+dxf-input-limit = The DXF file exceeds the supported size or complexity.
+dxf-input-invalid = The file is no DXF drawing this reader understands.
+dxf-no-unit = The drawing names no unit. Choose the unit it is drawn in.
+dxf-no-blocks = The drawing has no named block to make a symbol of.

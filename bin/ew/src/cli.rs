@@ -21,6 +21,7 @@ mod assets;
 mod checks;
 mod collab;
 mod diff;
+mod dxf;
 mod export;
 mod import;
 mod layout;
@@ -61,6 +62,8 @@ pub enum Command {
     ImportParts(ImportPartsArgs),
     /// `ew import csv`: golden-dialect tables as a new project.
     ImportCsv(ImportCsvArgs),
+    /// `ew import dxf`: a DXF drawing as a graphic page or symbol drafts.
+    ImportDxf(dxf::ImportDxfArgs),
     /// `ew import table`: a round-trip table read back and its changed cells applied.
     ImportTable(ImportTableArgs),
     /// Check a project.
@@ -742,6 +745,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::ImportParts(a) => run_import_parts(&a),
         Command::ImportCsv(a) => run_import_csv(&a),
         Command::ImportTable(a) => run_import_table(&a),
+        Command::ImportDxf(a) => dxf::run_import_dxf(&a),
         Command::Check(a) => run_check(&a),
         Command::Sql(a) => run_sql(&a),
         Command::SqlDump(a) => run_sql_dump(&a),

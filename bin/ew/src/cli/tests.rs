@@ -1002,13 +1002,29 @@ fn mapped_parts_imports() {
 #[test]
 fn import_qet_errors() {
     assert!(p(&["import"]).is_err());
-    assert!(p(&["import", "dxf", "a"]).is_err());
     assert!(p(&["import", "qet"]).is_err());
     assert!(p(&["import", "qet", "a", "b"]).is_err());
     assert!(p(&["import", "qet", "a", "--bogus"]).is_err());
     assert!(p(&["import", "qet", "a", "--report"]).is_err());
     assert!(p(&["import", "qet", "a", "--report", "xml"]).is_err());
 }
+#[test]
+fn import_dxf_forms() {
+    let Ok(Command::ImportDxf(a)) = p(&["import", "dxf", "plant.dxf", "--units", "in", "--layout", "Sheet 1"]) else {
+        panic!("parse failed");
+    };
+    assert_eq!(a.target, dxf::DxfTarget::Page);
+    assert_eq!(a.units, Some(ew_api::dxf::Unit::Inch));
+    assert_eq!(a.options().space, ew_api::dxf::Space::Layout("Sheet 1".to_owned()));
+    let Ok(Command::ImportDxf(a)) = p(&["import", "dxf", "plant.dxf", "--as", "symbol"]) else {
+        panic!("parse failed");
+    };
+    assert_eq!(a.target, dxf::DxfTarget::Symbol);
+    assert!(p(&["import", "dxf"]).is_err());
+    assert!(p(&["import", "dxf", "a", "--as", "sketch"]).is_err());
+    assert!(p(&["import", "dxf", "a", "--units", "parsec"]).is_err());
+}
+
 #[test]
 fn export_forms() {
     let Ok(Command::Export(a)) = p(&["export", "cables"]) else {

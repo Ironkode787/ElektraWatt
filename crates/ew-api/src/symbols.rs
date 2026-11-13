@@ -164,6 +164,10 @@ fn words(key: &str) -> Option<&'static str> {
             "The symbol geometry exceeds the supported coordinate or complexity limit."
         }
         "symbol-import-stopped" => "The importer stopped on an internal error; nothing was imported.",
+        "dxf-input-limit" => "The DXF file exceeds the supported size or complexity.",
+        "dxf-input-invalid" => "The file is no DXF drawing this reader understands.",
+        "dxf-no-unit" => "The drawing names no unit. Choose the unit it is drawn in.",
+        "dxf-no-blocks" => "The drawing has no named block to make a symbol of.",
         "eplan-input-limit" => "The EPLAN input exceeds the supported size or complexity.",
         "eplan-archive-path" => "The EPLAN archive has unsafe or duplicate member names.",
         "eplan-archive-invalid" => "The EPLAN archive is damaged, encrypted or unsupported.",
@@ -1189,6 +1193,8 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         path,
         if eplan {
             ew_import_eplan::MAX_INPUT
+        } else if ext == "dxf" {
+            crate::import::Limits::element_definition().max_input_bytes
         } else {
             MAX_BYTES
         },
@@ -1198,6 +1204,9 @@ pub fn open(path: &Path, key: &str) -> Result<Vec<SymbolDraft>, Error> {
         import_eplan(&bytes, name, key)
     } else if ext == "elmt" {
         Ok(vec![import_qet(&bytes, name, key)?])
+    } else if ext == "dxf" {
+        // A drawing without a unit is read in millimetres here, with EW-IMP-251 among its details.
+        import_dxf(&bytes, name, key, Some(ew_import_dxf::Unit::Millimetre))
     } else {
         front_door(name, &[bytes.len() as u64], "symbol-input-limit", || {
             Ok(vec![SymbolDraft::parse(&bytes)?])
@@ -1215,6 +1224,62 @@ pub fn import_eplan(bytes: &[u8], name: &str, key: &str) -> Result<Vec<SymbolDra
     front_door(name, &[bytes.len() as u64], "eplan-input-limit", || {
         let hash = format!("{:x}", Sha256::digest(bytes));
         eplan_drafts(ew_import_eplan::read(bytes, name).map_err(input)?, key, &hash)
+    })
+}
+
+/// The DXF→symbol wizard (doc 14 §6.2, FR-IMP-034): one reviewable draft per named block of the drawing (read in
+/// `unit` when its header names none), with the importer's steps 1 to 7 done: the drawing in the symbol frame, the tag
+/// and function-text slots, the connection points on the native grid with their directions, and its findings
+/// (EW-IMP-256 for a snapped point) as import details. Step 8: the draft carries the file's hash as its source and
+/// foreign terms without a licence, which the author supplies before publishing into a user library.
+///
+/// # Errors
+///
+/// The importer's refusal in words (no DXF, a limit, a missing unit), or no block to make a symbol of.
+pub fn import_dxf(bytes: &[u8], name: &str, key: &str, unit: Option<ew_import_dxf::Unit>) -> Result<Vec<SymbolDraft>, Error> {
+    use sha2::{Digest, Sha256};
+    use ew_import_dxf::ew_interop_api::Limits;
+    let limits = Limits::default();
+    front_door(name, &[bytes.len() as u64], "dxf-input-limit", || {
+        let blocks = ew_import_dxf::symbols(bytes, &limits, unit, ew_units::Grid::MM4, name).map_err(|e| match e {
+            ew_import_dxf::ew_interop_api::ImportError::Unsupported { message } if message == ew_import_dxf::NO_UNIT => {
+                input("dxf-no-unit")
+            }
+            ew_import_dxf::ew_interop_api::ImportError::LimitExceeded { .. } => input("dxf-input-limit"),
+            _ => input("dxf-input-invalid"),
+        })?;
+        if blocks.is_empty() {
+            return Err(input("dxf-no-blocks"));
+        }
+        let hash = format!("{:x}", Sha256::digest(bytes));
+        blocks
+            .into_iter()
+            .enumerate()
+            .map(|(i, b)| {
+                let mut d = serde_json::to_value(SymbolDraft::new(&format!("{key}.{}", i + 1), &b.name)?).map_err(input)?;
+                d["symbol"]["graphics"] = json!(b.graphics);
+                // No licence is inferred from a vendor drawing; the author supplies the terms before publication.
+                d["symbol"]["meta"]["licence"] = json!("");
+                d["symbol"]["meta"]["foreign_terms"] = json!(true);
+                d["symbol"]["meta"]["sources"] = json!([format!("dxf:sha256:{hash}")]);
+                d["symbol"]["cps"] = json!(b.pins.iter().enumerate().map(|(n, p)| json!({"idx": n + 1, "fn_cp": n + 1, "pos": p.pos, "dir": p.dir})).collect::<Vec<_>>());
+                d["function"]["cps"] = json!(b.pins.iter().enumerate().map(|(n, p)| json!({"idx": n + 1, "designation": p.designation})).collect::<Vec<_>>());
+                let slot = |kind: &str, s: &ew_import_dxf::SymbolSlot| json!({"kind": kind, "pos": s.pos, "rot": s.angle, "align": "middle_left", "visible": true});
+                let slots: Vec<Value> = [("tag", &b.tag), ("function_text", &b.function_text)]
+                    .into_iter()
+                    .filter_map(|(kind, s)| s.as_ref().map(|s| slot(kind, s)))
+                    .collect();
+                if !slots.is_empty() {
+                    d["symbol"]["text_slots"] = json!(slots);
+                }
+                d["import_details"] = json!(b
+                    .entries
+                    .iter()
+                    .map(|e| json!({"code": e.code.to_string(), "message": e.message, "line": null}))
+                    .collect::<Vec<_>>());
+                SymbolDraft::parse(&serde_json::to_vec(&d).map_err(input)?)
+            })
+            .collect()
     })
 }
 

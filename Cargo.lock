@@ -1316,6 +1316,7 @@ dependencies = [
  "ew-hack",
  "ew-ids",
  "ew-import-catalog",
+ "ew-import-dxf",
  "ew-import-eplan",
  "ew-import-qet",
  "ew-import-tables",

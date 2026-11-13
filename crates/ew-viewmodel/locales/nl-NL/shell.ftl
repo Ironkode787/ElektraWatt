@@ -5733,3 +5733,7 @@ field-help-project-supply-origin-ik-max = De hoogste kortsluitstroom bij de voed
 field-help-project-supply-origin-upstream-rating = De waarde van de beveiliging voor de voeding, in A.
 field-help-device-parts-item = Eén artikel dat het apparaat gebruikt, met het aantal.
 field-help-device-tech-data-item = Eén technische waarde van het apparaat: naam en waarde.
+dxf-input-limit = Het DXF-bestand overschrijdt de ondersteunde grootte of complexiteit.
+dxf-input-invalid = Het bestand is geen DXF-tekening die deze lezer begrijpt.
+dxf-no-unit = De tekening noemt geen eenheid. Kies de eenheid waarin ze getekend is.
+dxf-no-blocks = De tekening heeft geen blok met een naam om een symbool van te maken.
