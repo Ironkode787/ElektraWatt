@@ -58,6 +58,8 @@ pub fn row_json(row: &AnyRow) -> Result<Value, CmdError> {
         AnyRow::Placement(r) => v(&**r, row),
         AnyRow::Revision(r) => v(&**r, row),
         AnyRow::Waiver(r) => v(&**r, row),
+        AnyRow::ExchangeRecord(r) => v(&**r, row),
+        AnyRow::ForeignId(r) => v(&**r, row),
         AnyRow::ImportRun(r) => v(&**r, row),
         AnyRow::Conflict(r) => v(&**r, row),
         AnyRow::Part(r) => v(&**r, row),

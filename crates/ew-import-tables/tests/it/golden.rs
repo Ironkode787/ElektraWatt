@@ -682,6 +682,7 @@ fn the_plc_station_the_modules_and_the_part_section_are_those_of_doc_20() {
             config_project: project_id,
             role: StationRole::ValveTerminal,
             order: None,
+            firmware: None,
             extra: Default::default()
         }
     );

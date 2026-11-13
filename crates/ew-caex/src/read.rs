@@ -130,7 +130,9 @@ impl Ends {
         let i = self.ends.len();
         self.ends.push(end);
         let name = interface.attr("Name").unwrap_or("");
-        self.by_owner.entry((owner.to_owned(), name.to_owned())).or_insert(i);
+        self.by_owner
+            .entry((owner.to_owned(), name.to_owned()))
+            .or_insert(i);
         if !interface.id().is_empty() {
             self.by_id.entry(interface.id().to_owned()).or_insert(i);
         }
@@ -159,8 +161,13 @@ fn collect_links<'a>(el: &'a El, out: &mut Vec<(&'a str, &'a str)>) {
 
 /// The first element at or below `el` with the role `role`.
 fn find_role<'a>(el: &'a El, role: &str) -> Option<&'a El> {
-    el.elements()
-        .find_map(|c| if c.role() == Some(role) { Some(c) } else { find_role(c, role) })
+    el.elements().find_map(|c| {
+        if c.role() == Some(role) {
+            Some(c)
+        } else {
+            find_role(c, role)
+        }
+    })
 }
 
 fn project_child(el: &El, image: &mut ExchangeImage, ends: &mut Ends) -> Result<(), ImportError> {
@@ -211,7 +218,9 @@ fn station_child(
 ) -> Result<(), ImportError> {
     match el.role() {
         Some("CommunicationInterface") => {
-            station.interfaces.push(interface(el, index, station.interfaces.len(), ends));
+            station
+                .interfaces
+                .push(interface(el, index, station.interfaces.len(), ends));
         }
         Some("TagTable") => tag_table(el, image, ends),
         Some("DeviceItem") => {

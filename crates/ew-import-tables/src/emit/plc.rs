@@ -116,6 +116,8 @@ pub(crate) fn emit_config_projects(cx: &mut Cx<'_>, pending: Vec<PendingProject<
             profile: p.profile,
             cpu,
             symbols: None,
+            ownership: None,
+            exchange: None,
             source_ref: Some(source_ref("plc_config_projects", p.row.key())),
             extra: Default::default(),
         }));

@@ -91,6 +91,8 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
         Kind::Placement => generate::<Placement>(kind),
         Kind::Revision => generate::<Revision>(kind),
         Kind::Waiver => generate::<Waiver>(kind),
+        Kind::ExchangeRecord => generate::<crate::ExchangeRecord>(kind),
+        Kind::ForeignId => generate::<crate::ForeignId>(kind),
         Kind::ImportRun => generate::<ImportRun>(kind),
         Kind::Conflict => generate::<Conflict>(kind),
         Kind::Part => generate::<LibCopy<Part>>(kind),

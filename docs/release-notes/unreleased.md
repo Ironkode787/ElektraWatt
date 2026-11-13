@@ -439,3 +439,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   QElectroTech project and Re-import QElectroTech project whole (FT-1730)
 - behaviour-change: cli elektrawatt --headless --visual and `xtask blind start --senses visual` render 1920x1080 at
   1 by default (it was 1280x800 at 1.2; a run asks for that with `--window 1280x800 --ppp 1.2`; FT-1730)
+- format-variant: record exchange_record.schema.json
+- format-variant: record foreign_id.schema.json

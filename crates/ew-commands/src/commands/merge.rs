@@ -368,6 +368,8 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
         Record::Revision(_) => "revisions.jsonl".to_owned(),
         Record::Waiver(_) => "waivers.jsonl".to_owned(),
         Record::ImportRun(r) => format!("imports/{}.jsonl", r.id),
+        Record::ExchangeRecord(r) => format!("exchange/{}.jsonl", r.config_project),
+        Record::ForeignId(r) => format!("exchange/{}.jsonl", r.config_project),
         Record::Connection(r) => match r.page {
             Some(p) => page(p.cast()),
             None => endpoint(record.anchor_ref()).or_else(|| own().map(shard))?,

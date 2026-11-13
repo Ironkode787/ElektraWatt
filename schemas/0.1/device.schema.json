@@ -519,6 +519,17 @@
         "start": {
           "$ref": "#/$defs/IoStarts",
           "description": "The start address per direction; default `auto` for both."
+        },
+        "type_ident": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TypeIdent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The type identification of a module without part data (one created from a PLC import); a module with a\npart takes its order number from the part."
         }
       },
       "type": "object"
@@ -560,6 +571,17 @@
         "config_project": {
           "$ref": "#/$defs/Uuid",
           "description": "The configuration project."
+        },
+        "firmware": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The firmware version, which the PLC software owns (doc 10 §2.2)."
         },
         "order": {
           "description": "Address-allocation order; absent: by ID (never by tag, page or bus address).",
@@ -1161,6 +1183,24 @@
         "to_seq",
         "label"
       ],
+      "type": "object"
+    },
+    "TypeIdent": {
+      "additionalProperties": true,
+      "description": "The type identification of a module (doc 10 §2.3).",
+      "properties": {
+        "order_number": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The order number (\"6ES7 521-1BL00-0AB0\")."
+        }
+      },
       "type": "object"
     },
     "Unit": {

@@ -11,6 +11,7 @@ use serde_json::{Map, Value};
 
 use crate::MalformedVariant;
 use crate::conflict::Conflict;
+use crate::exchange::{ExchangeRecord, ForeignId};
 use crate::kind::{FileRule, Kind};
 use crate::library::{
     FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, PlcProfileDef, SymbolDef,
@@ -215,6 +216,10 @@ pub enum Record {
     Revision(Revision),
     /// `waiver` (61).
     Waiver(Waiver),
+    /// `exchange_record` (70).
+    ExchangeRecord(ExchangeRecord),
+    /// `foreign_id` (71).
+    ForeignId(ForeignId),
     /// `import_run` (72).
     ImportRun(ImportRun),
     /// `conflict` (255).
@@ -259,6 +264,8 @@ impl Record {
             Record::Placement(_) => Kind::Placement,
             Record::Revision(_) => Kind::Revision,
             Record::Waiver(_) => Kind::Waiver,
+            Record::ExchangeRecord(_) => Kind::ExchangeRecord,
+            Record::ForeignId(_) => Kind::ForeignId,
             Record::ImportRun(_) => Kind::ImportRun,
             Record::Conflict(_) => Kind::Conflict,
             Record::Unknown(_) => return None,
@@ -308,6 +315,8 @@ impl Record {
             Record::Placement(r) => r.id.as_uuid(),
             Record::Revision(r) => r.id.as_uuid(),
             Record::Waiver(r) => r.id.as_uuid(),
+            Record::ExchangeRecord(r) => r.id.as_uuid(),
+            Record::ForeignId(r) => r.id.as_uuid(),
             Record::ImportRun(r) => r.id.as_uuid(),
             Record::Conflict(r) => r.id.as_uuid(),
             Record::Unknown(v) => {
@@ -336,6 +345,8 @@ impl Record {
             | Record::Waiver(_) => AnchorRef::Root,
             Record::Page(r) => AnchorRef::Direct(r.id.as_uuid()),
             Record::ImportRun(r) => AnchorRef::Direct(r.id.as_uuid()),
+            Record::ExchangeRecord(r) => AnchorRef::Direct(r.config_project.as_uuid()),
+            Record::ForeignId(r) => AnchorRef::Direct(r.config_project.as_uuid()),
             Record::Device(r) => AnchorRef::Direct(r.id.as_uuid()),
             Record::Function(r) => match r.device {
                 Some(d) => AnchorRef::Direct(d.as_uuid()),
@@ -440,6 +451,8 @@ impl Serialize for Record {
             Record::Placement(r) => tagged(Kind::Placement, r, serializer),
             Record::Revision(r) => tagged(Kind::Revision, r, serializer),
             Record::Waiver(r) => tagged(Kind::Waiver, r, serializer),
+            Record::ExchangeRecord(r) => tagged(Kind::ExchangeRecord, r, serializer),
+            Record::ForeignId(r) => tagged(Kind::ForeignId, r, serializer),
             Record::ImportRun(r) => tagged(Kind::ImportRun, r, serializer),
             Record::Conflict(r) => tagged(Kind::Conflict, r, serializer),
             Record::Unknown(v) => v.serialize(serializer),
@@ -568,6 +581,8 @@ impl Record {
             Kind::Placement => Record::Placement(typed(kind, map, |r: &Placement| r.v)?),
             Kind::Revision => Record::Revision(typed(kind, map, |r: &Revision| r.v)?),
             Kind::Waiver => Record::Waiver(typed(kind, map, |r: &Waiver| r.v)?),
+            Kind::ExchangeRecord => Record::ExchangeRecord(typed(kind, map, |r: &ExchangeRecord| r.v)?),
+            Kind::ForeignId => Record::ForeignId(typed(kind, map, |r: &ForeignId| r.v)?),
             Kind::ImportRun => Record::ImportRun(typed(kind, map, |r: &ImportRun| r.v)?),
             Kind::Conflict => Record::Conflict(typed(kind, map, |r: &Conflict| r.v)?),
             k => return Err(SchemaError::UnknownKind(k.name().into())),

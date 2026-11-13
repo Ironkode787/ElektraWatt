@@ -325,17 +325,17 @@
       "file": "exchange/<config-project>.jsonl",
       "kind": "exchange_record",
       "rank": 70,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "exchange_record.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "exchange/<config-project>.jsonl",
       "kind": "foreign_id",
       "rank": 71,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "foreign_id.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "imports/<run>.jsonl",

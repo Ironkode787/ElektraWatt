@@ -108,7 +108,10 @@ pub fn write_aml(image: &ExchangeImage, options: &AmlOptions) -> String {
     if !image.tags.is_empty() {
         w.open(
             "InternalElement",
-            &[("ID", &image.project.tag_table_id), ("Name", &image.project.tag_table)],
+            &[
+                ("ID", &image.project.tag_table_id),
+                ("Name", &image.project.tag_table),
+            ],
         );
         for tag in &image.tags {
             w.open(
@@ -129,7 +132,10 @@ pub fn write_aml(image: &ExchangeImage, options: &AmlOptions) -> String {
                 w.attribute("LogicalAddress", "xs:string", a);
             }
             if !tag.comment.is_empty() {
-                w.open("Attribute", &[("Name", "Comment"), ("AttributeDataType", "xs:string")]);
+                w.open(
+                    "Attribute",
+                    &[("Name", "Comment"), ("AttributeDataType", "xs:string")],
+                );
                 if let Some(plain) = tag.comment.get("") {
                     w.text("Value", plain);
                 }
@@ -171,7 +177,10 @@ pub fn write_aml(image: &ExchangeImage, options: &AmlOptions) -> String {
             &[
                 ("Name", &format!("Link To Tag_{n}")),
                 ("RefPartnerSideA", &format!("{owner}:{name}")),
-                ("RefPartnerSideB", &format!("{}:{}", image.project.tag_table_id, tag.name)),
+                (
+                    "RefPartnerSideB",
+                    &format!("{}:{}", image.project.tag_table_id, tag.name),
+                ),
             ],
         );
     }

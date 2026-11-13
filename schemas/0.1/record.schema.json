@@ -99,6 +99,12 @@
       "$ref": "waiver.schema.json"
     },
     {
+      "$ref": "exchange_record.schema.json"
+    },
+    {
+      "$ref": "foreign_id.schema.json"
+    },
+    {
       "$ref": "import_run.schema.json"
     },
     {

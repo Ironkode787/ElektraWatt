@@ -255,6 +255,7 @@ pub(crate) fn emit_devices(cx: &mut Cx<'_>, table: Option<&Table>) {
                     config_project,
                     role,
                     order: plc_order,
+                    firmware: None,
                     extra: Default::default(),
                 }),
                 plc_module: plc_module.then(PlcModule::default),

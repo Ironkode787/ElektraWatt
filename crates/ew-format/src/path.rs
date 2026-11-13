@@ -164,6 +164,11 @@ impl FilePath {
         FilePath::known(format!("layout/{space}.jsonl"))
     }
 
+    /// `exchange/<id>.jsonl`.
+    pub fn exchange(config_project: AnyId) -> FilePath {
+        FilePath::known(format!("exchange/{config_project}.jsonl"))
+    }
+
     /// `imports/<id>.jsonl`.
     pub fn imports(run: AnyId) -> FilePath {
         FilePath::known(format!("imports/{run}.jsonl"))

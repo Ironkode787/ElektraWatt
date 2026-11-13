@@ -196,6 +196,23 @@ pub fn plc_channel_id<M, C>(module: Id<M>, number: u16) -> Id<C> {
     v5(module.as_uuid(), &format!("channel{SEP}{number}"))
 }
 
+/// The ID of the PLC tag of `channel` in an exchange file: `v5(channel, "tag")` (doc 10 §4.2, FR-PLC-056). Never
+/// stored: a tag is the symbol of its channel.
+pub fn plc_tag_id<C, T>(channel: Id<C>) -> Id<T> {
+    v5(channel.as_uuid(), "tag")
+}
+
+/// The ID of a record of a configuration project's exchange snapshot: `v5(config_project, what, object, target)`,
+/// `what` being `exchange` for the exchanged values of `target` and `foreign` for its foreign ID, `object` the
+/// object's kind name (`station`, `tag`). Computed, so that recording the same exchange twice writes the same
+/// records.
+pub fn exchange_id<P, T>(config_project: Id<P>, what: &str, object: &str, target: Uuid) -> Id<T> {
+    v5(
+        config_project.as_uuid(),
+        &format!("{what}{SEP}{object}{SEP}{}", target.hyphenated()),
+    )
+}
+
 /// The ID of the embedded copy of catalogue `item` from `library`:
 /// `v5(NS_LIBCOPY, library ‖ item)` (ADR-0004 amendment 2). One copy per item and project, so "update from
 /// library" rewrites one file and leaves every reference untouched.

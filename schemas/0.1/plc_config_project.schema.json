@@ -1,9 +1,177 @@
 {
   "$defs": {
+    "Date": {
+      "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "type": "string"
+    },
+    "ExchangeDirection": {
+      "description": "The direction of an exchange.",
+      "oneOf": [
+        {
+          "const": "export",
+          "description": "The file was written.",
+          "type": "string"
+        },
+        {
+          "const": "import",
+          "description": "The file was read and applied.",
+          "type": "string"
+        }
+      ]
+    },
+    "ExchangeFormat": {
+      "description": "The format of an exchanged file (doc 10 §4.1).",
+      "oneOf": [
+        {
+          "const": "aml",
+          "description": "AutomationML AR APC.",
+          "type": "string"
+        },
+        {
+          "const": "tia_xlsx",
+          "description": "The TIA Portal \"PLC Tags\" workbook.",
+          "type": "string"
+        },
+        {
+          "const": "plcopen",
+          "description": "PLCopen XML.",
+          "type": "string"
+        }
+      ]
+    },
+    "ExchangeStamp": {
+      "additionalProperties": true,
+      "description": "The stamp of a configuration project's last exchange with PLC software (doc 10 §2.2, §4.2).",
+      "properties": {
+        "date": {
+          "$ref": "#/$defs/Date",
+          "description": "The exchange's document date."
+        },
+        "direction": {
+          "$ref": "#/$defs/ExchangeDirection",
+          "description": "Whether the file was written or read."
+        },
+        "file_sha256": {
+          "$ref": "#/$defs/Sha256",
+          "description": "SHA-256 of the exchanged file."
+        },
+        "format": {
+          "$ref": "#/$defs/ExchangeFormat",
+          "description": "The format of the exchanged file."
+        },
+        "version": {
+          "description": "The format's version (\"1.4.0\" of AR APC).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "format",
+        "file_sha256",
+        "direction",
+        "date"
+      ],
+      "type": "object"
+    },
+    "FieldGroup": {
+      "description": "A group of exchanged fields with one owner (doc 10 §2.2).",
+      "oneOf": [
+        {
+          "const": "module_starts",
+          "description": "The start addresses of the modules.",
+          "type": "string"
+        },
+        {
+          "const": "symbols",
+          "description": "Symbols and comments.",
+          "type": "string"
+        },
+        {
+          "const": "plc_data",
+          "description": "What the PLC software configures: firmware, IP addresses, PROFINET names and DP station addresses.",
+          "type": "string"
+        }
+      ]
+    },
     "Ident": {
       "description": "An identifier: non-empty, one line (no control character U+0000 to U+001F or U+007F to U+009F), without leading or trailing white space (the Unicode White_Space set); interior spaces are allowed (doc 05 §3.2). JSON Schema cannot express Unicode Normalization Form C; the reader rejects non-NFC text.",
       "minLength": 1,
       "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
+      "type": "string"
+    },
+    "Owner": {
+      "description": "Who owns a field group in an exchange (doc 10 §2.2).",
+      "oneOf": [
+        {
+          "const": "ecad",
+          "description": "The schematic: a change of the PLC software is listed and applied only when accepted.",
+          "type": "string"
+        },
+        {
+          "const": "plc",
+          "description": "The PLC software: its change is applied, and the field is protected after the first import.",
+          "type": "string"
+        },
+        {
+          "const": "shared",
+          "description": "Both: a change of one side applies, a change of both is a conflict.",
+          "type": "string"
+        }
+      ]
+    },
+    "Ownership": {
+      "additionalProperties": true,
+      "description": "The ownership of a configuration project's exchanged fields (doc 10 §2.2, §3.9, FR-PLC-033): the owner of each\nconfigurable field group, and the protection of the PLC-owned groups.\n\nAn older 0.1 build keeps the member verbatim and does not enforce the protection: a PLC-owned field it edits is\nan ordinary difference in the next import's three-way merge, so the file stays consistent.",
+      "properties": {
+        "imported": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Date"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The date of the first applied PLC import: from it on, an edit of a PLC-owned group is refused until\n`plc.unlock` lifts the protection. Absent: nothing is protected."
+        },
+        "module_starts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Owner"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The owner of the module start addresses; absent: the PLC."
+        },
+        "symbols": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Owner"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The owner of symbols and comments; absent: shared."
+        },
+        "unlocked": {
+          "description": "The groups whose protection `plc.unlock` lifted; the next applied import protects them again.",
+          "items": {
+            "$ref": "#/$defs/FieldGroup"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Sha256": {
+      "description": "A SHA-256 digest sha256:<64 lower-case hex> (doc 05 §3.2).",
+      "pattern": "^sha256:[0-9a-f]{64}$",
       "type": "string"
     },
     "SourceRef": {
@@ -88,6 +256,17 @@
       ],
       "description": "The CPU device; absent when the master sits outside the project (Golden A)."
     },
+    "exchange": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExchangeStamp"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The stamp of the last exchange (doc 10 §4.2); its snapshot is in `exchange/<id>.jsonl`."
+    },
     "id": {
       "$ref": "#/$defs/Uuid",
       "description": "The record ID."
@@ -95,6 +274,17 @@
     "name": {
       "$ref": "#/$defs/Ident",
       "description": "The name (\"PLC1\")."
+    },
+    "ownership": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ownership"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Who owns which field group in the exchange with PLC software (doc 10 §2.2, FR-PLC-033); absent: the default\nowners and nothing protected."
     },
     "profile": {
       "$ref": "#/$defs/Ident",

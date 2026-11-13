@@ -182,6 +182,8 @@ fn config_project_for(tx: &mut TxBuilder<'_>, station: &Device) -> Result<Id<Plc
         profile: profile_ident,
         cpu: Some(station.id),
         symbols: None,
+        ownership: None,
+        exchange: None,
         source_ref: None,
         extra: Extra::new(),
     })?;
@@ -307,6 +309,7 @@ impl Normaliser for PlcAspects {
                     config_project: cfg,
                     role: StationRole::Cpu,
                     order: None,
+                    firmware: None,
                     extra: Extra::new(),
                 });
                 if let Some(m) = integrated {

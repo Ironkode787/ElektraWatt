@@ -8,11 +8,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_schema::{
-    Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure, ExternalRef,
-    Function, FunctionKind, ImportLineage, ImportRun, Junction, Kind, KindRegistry, LayoutSpace, LibDocument,
-    LogicalNet, MacroInstance, Medium, MediumDef, MountingSurface, Page, PageItem, PhysicalNet, Placement,
-    PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation, Revision, Section,
-    StructureBox, StructureNode, Waiver,
+    Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure, ExchangeRecord,
+    ExternalRef, ForeignId, Function, FunctionKind, ImportLineage, ImportRun, Junction, Kind, KindRegistry,
+    LayoutSpace, LibDocument, LogicalNet, MacroInstance, Medium, MediumDef, MountingSurface, Page, PageItem,
+    PhysicalNet, Placement, PlcConfigProject, PotentialDef, Project, Record, ReportBlock, Representation,
+    Revision, Section, StructureBox, StructureNode, Waiver,
 };
 
 use crate::asset::Asset;
@@ -66,6 +66,8 @@ pub struct Model {
     pub(crate) placements: Table<Placement>,
     pub(crate) revisions: Table<Revision>,
     pub(crate) waivers: Table<Waiver>,
+    pub(crate) exchange_records: Table<ExchangeRecord>,
+    pub(crate) foreign_ids: Table<ForeignId>,
     pub(crate) import_runs: Table<ImportRun>,
     /// The conflict records of a merge, by ID: a record-level conflict shares its target's ID, so this
     /// is the one table whose IDs repeat another table's.
@@ -118,6 +120,8 @@ impl Model {
             placements: Table::default(),
             revisions: Table::default(),
             waivers: Table::default(),
+            exchange_records: Table::default(),
+            foreign_ids: Table::default(),
             import_runs: Table::default(),
             conflicts: Table::default(),
             lib: LibraryCopies::default(),
@@ -610,6 +614,8 @@ impl AnyRow {
             Record::Placement(r) => AnyRow::of(r),
             Record::Revision(r) => AnyRow::of(r),
             Record::Waiver(r) => AnyRow::of(r),
+            Record::ExchangeRecord(r) => AnyRow::of(r),
+            Record::ForeignId(r) => AnyRow::of(r),
             Record::ImportRun(r) => AnyRow::of(r),
             Record::Conflict(r) => AnyRow::of(r),
             other => return Err(Box::new(other)),

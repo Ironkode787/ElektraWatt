@@ -110,6 +110,11 @@ pub const GOLDEN: &[&str] = &[
     r#"{"$k":"macro_instance","id":"@MI_PSU","macro":"@MAC_PSU","variant":"A","value_set":"1","values":{"counter":1,"function_text":{"en-GB":"Power supply 1"}},"members":[["@LOCAL_G1","@DEV_G1"],["@LOCAL_F1","@FN_F1"]],"page":"@P102"}"#,
     // import lineage (doc 14 §2.3); its namespace is checked in its own test
     r#"{"$k":"import_lineage","id":"@LIN","importer":"csv","source_name":"tables","anchor":{"fixed":"golden"},"namespace":"@PRJ","last_source_sha256":"@HASH"}"#,
+    // the PLC exchange (doc 10 §2.2, §4.2): the ownership and stamp of a configuration project, the snapshot of a
+    // tag and the ID the PLC software gave it
+    r#"{"$k":"plc_config_project","id":"@PLC1","name":"PLC1","profile":"siemens-tia-intl@2027.1","ownership":{"module_starts":"plc","symbols":"shared","imported":"2026-01-02","unlocked":["module_starts"]},"exchange":{"format":"aml","version":"1.4.0","file_sha256":"@HASH","direction":"import","date":"2026-01-02"}}"#,
+    r#"{"$k":"exchange_record","id":"@XR_TAG","config_project":"@PLC1","object":"tag","target":"@CH_U3_1","fields":{"address":"Q0.1","name":"TA05_V_15"}}"#,
+    r#"{"$k":"foreign_id","id":"@XF_TAG","config_project":"@PLC1","object":"tag","target":"@CH_U3_1","foreign":"8a6f2c3e-0001"}"#,
     // import run: one finding about a device, its hashes, and a member of a newer build kept in `extra`
     r#"{"$k":"import_run","id":"019a4f00-0000-7000-8000-000000000001","lineage":"@LIN","importer":"qet","importer_version":"0.1.0","source":{"name":"plant.qet","sha256":"@HASH","size":12,"format":"qet-project"},"as_of":"2025-04-14","mode":"lenient","entries":[{"code":"EW-IMP-006","severity":"info","message":"font substituted","location":{"file":"plant.qet","folio":"101"},"targets":[{"kind":"device","id":"@DEV_G1"}]}],"stats":{"per_kind":{"device":1}},"record_hashes":{"@DEV_G1":{"source":"00112233445566778899aabbccddeeff"}},"acknowledged":[]}"#,
     // panel layout (doc 03 §16): every typed member, and members of later packages kept in `extra`

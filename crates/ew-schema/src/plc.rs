@@ -7,9 +7,10 @@
 //!
 //! Implemented members are those of the MVP (doc 20 §11.2, §11.3, §6.2) and of the 1.0 layer of WP-S1.24: the
 //! symbol policy, the safety data of doc 10 §2.9, a channel's data type, signal range and port mode, and the
-//! part's allowed slots, station limits, IO-Link port window and output ratings. The other members of doc 10
-//! §2.2–§2.4 (allocation, ownership, exchange stamp, firmware, device descriptions, type ident, auxiliary pins)
-//! are additive and stay in `extra` until their work packages.
+//! part's allowed slots, station limits, IO-Link port window and output ratings; and of the exchange of WP-S3.16: a
+//! configuration project's ownership and exchange stamp, a station's firmware and a module's type identification.
+//! The other members of doc 10 §2.2–§2.4 (allocation, device descriptions, auxiliary pins) are additive and stay in
+//! `extra` until their work packages.
 
 use std::borrow::Cow;
 
@@ -22,7 +23,7 @@ use serde_json::Value;
 use crate::json::{Extra, de_extra, is_default, is_false, is_true, is_v1, r#true, v1};
 use crate::proxy::{IdentS, MlTextS, UuidS};
 use crate::track::{buffer, de_here, invalid, kept_unknown, malformed, not_a_variant, open_enum, raise};
-use crate::value::{Endpoint, SourceRef};
+use crate::value::{Date, Endpoint, Sha256, SourceRef};
 use crate::{Device, Function};
 
 // ---------------------------------------------------------------------------------------------------------
@@ -52,12 +53,154 @@ pub struct PlcConfigProject {
     /// identifiers.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub symbols: Option<SymbolPolicy>,
+    /// Who owns which field group in the exchange with PLC software (doc 10 §2.2, FR-PLC-033); absent: the default
+    /// owners and nothing protected.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ownership: Option<Ownership>,
+    /// The stamp of the last exchange (doc 10 §4.2); its snapshot is in `exchange/<id>.jsonl`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub exchange: Option<ExchangeStamp>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// The ownership of a configuration project's exchanged fields (doc 10 §2.2, §3.9, FR-PLC-033): the owner of each
+/// configurable field group, and the protection of the PLC-owned groups.
+///
+/// An older 0.1 build keeps the member verbatim and does not enforce the protection: a PLC-owned field it edits is
+/// an ordinary difference in the next import's three-way merge, so the file stays consistent.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct Ownership {
+    /// The owner of the module start addresses; absent: the PLC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub module_starts: Option<Owner>,
+    /// The owner of symbols and comments; absent: shared.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub symbols: Option<Owner>,
+    /// The date of the first applied PLC import: from it on, an edit of a PLC-owned group is refused until
+    /// `plc.unlock` lifts the protection. Absent: nothing is protected.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub imported: Option<Date>,
+    /// The groups whose protection `plc.unlock` lifted; the next applied import protects them again.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub unlocked: Vec<FieldGroup>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+impl Ownership {
+    /// The owner of `group` under `ownership` (a configuration project's member; absent: the defaults): module
+    /// starts are the PLC's and symbols shared unless set otherwise; the PLC's own data is always the PLC's.
+    pub fn owner(ownership: Option<&Ownership>, group: &FieldGroup) -> Owner {
+        let set = match group {
+            FieldGroup::ModuleStarts => ownership.and_then(|o| o.module_starts.clone()),
+            FieldGroup::Symbols => ownership.and_then(|o| o.symbols.clone()),
+            FieldGroup::PlcData | FieldGroup::Unknown(_) => None,
+        };
+        set.unwrap_or(match group {
+            FieldGroup::Symbols => Owner::Shared,
+            _ => Owner::Plc,
+        })
+    }
+
+    /// The date since which `group` is protected from edits: the first applied import, when the PLC owns the group
+    /// and `plc.unlock` has not lifted the protection.
+    pub fn protected_since(ownership: Option<&Ownership>, group: &FieldGroup) -> Option<Date> {
+        let o = ownership?;
+        (Ownership::owner(ownership, group) == Owner::Plc && !o.unlocked.contains(group))
+            .then_some(o.imported)
+            .flatten()
+    }
+}
+
+/// Who owns a field group in an exchange (doc 10 §2.2).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Owner")]
+pub enum Owner {
+    /// The schematic: a change of the PLC software is listed and applied only when accepted.
+    Ecad,
+    /// The PLC software: its change is applied, and the field is protected after the first import.
+    Plc,
+    /// Both: a change of one side applies, a change of both is a conflict.
+    Shared,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// A group of exchanged fields with one owner (doc 10 §2.2).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FieldGroup")]
+pub enum FieldGroup {
+    /// The start addresses of the modules.
+    ModuleStarts,
+    /// Symbols and comments.
+    Symbols,
+    /// What the PLC software configures: firmware, IP addresses, PROFINET names and DP station addresses.
+    PlcData,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The stamp of a configuration project's last exchange with PLC software (doc 10 §2.2, §4.2).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ExchangeStamp {
+    /// The format of the exchanged file.
+    pub format: ExchangeFormat,
+    /// The format's version ("1.4.0" of AR APC).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    /// SHA-256 of the exchanged file.
+    pub file_sha256: Sha256,
+    /// Whether the file was written or read.
+    pub direction: ExchangeDirection,
+    /// The exchange's document date.
+    pub date: Date,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The format of an exchanged file (doc 10 §4.1).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ExchangeFormat")]
+pub enum ExchangeFormat {
+    /// AutomationML AR APC.
+    Aml,
+    /// The TIA Portal "PLC Tags" workbook.
+    TiaXlsx,
+    /// PLCopen XML.
+    Plcopen,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The direction of an exchange.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ExchangeDirection")]
+pub enum ExchangeDirection {
+    /// The file was written.
+    Export,
+    /// The file was read and applied.
+    Import,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// How a configuration project derives and validates channel symbols (doc 10 §2.2, §3.4).
@@ -94,6 +237,10 @@ pub struct PlcStation {
     /// Address-allocation order; absent: by ID (never by tag, page or bus address).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub order: Option<u32>,
+    /// The firmware version, which the PLC software owns (doc 10 §2.2).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub firmware: Option<Ident>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -144,6 +291,22 @@ pub struct PlcModule {
     /// The safety data of an F-module (doc 10 §2.9, FR-PLC-041); absent: a standard module.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub safety: Option<SafetyModule>,
+    /// The type identification of a module without part data (one created from a PLC import); a module with a
+    /// part takes its order number from the part.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub type_ident: Option<TypeIdent>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The type identification of a module (doc 10 §2.3).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TypeIdent {
+    /// The order number ("6ES7 521-1BL00-0AB0").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub order_number: Option<Ident>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -980,4 +1143,8 @@ open_enum!(
     PortMode,
     Evaluation,
     PortClass,
+    Owner,
+    FieldGroup,
+    ExchangeFormat,
+    ExchangeDirection,
 );

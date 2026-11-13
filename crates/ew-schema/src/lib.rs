@@ -84,6 +84,7 @@ mod conflict;
 mod connect;
 mod device;
 mod error;
+mod exchange;
 mod json;
 mod kind;
 mod layout;
@@ -131,6 +132,7 @@ pub use device::{
 pub use error::{MalformedVariant, SchemaError};
 /// The namespace and ID of a file-level conflict record (WP-S1.17 D14), for `ew-format`'s merge core.
 pub use ew_ids::v5::{NS_CONFLICT, conflict_file_id};
+pub use exchange::{ExchangeObject, ExchangeRecord, ForeignId};
 pub use json::{Extra, MAX_SAFE_INTEGER, Open, check_value, normalize_nfc};
 pub use kind::{
     FORMAT, FileRule, KIND_SINCE, Kind, KindRegistry, KindStatus, MEMBER_SINCE, MERGE_STRATEGIES,
@@ -170,10 +172,11 @@ pub use page_item::{
 };
 pub use plc::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, Evaluation,
-    IoClass, IoDir, IoLinkWindow, IoRange, IoStarts, MapSpec, OutputRatings, PinMap, PlcAddress, PlcArea,
-    PlcConfigProject, PlcModule, PlcRole, PlcSection, PlcSize, PlcStation, PortClass, PortMode, PositionMap,
-    RackSlot, RangeU16, SafetyChannel, SafetyModule, SlotPath, SolenoidChannel, StationLimits, StationRole,
-    SupplyFeeds, SupplyGroup, SupplyKind, SupplyPins, SymbolPolicy,
+    ExchangeDirection, ExchangeFormat, ExchangeStamp, FieldGroup, IoClass, IoDir, IoLinkWindow, IoRange,
+    IoStarts, MapSpec, OutputRatings, Owner, Ownership, PinMap, PlcAddress, PlcArea, PlcConfigProject,
+    PlcModule, PlcRole, PlcSection, PlcSize, PlcStation, PortClass, PortMode, PositionMap, RackSlot,
+    RangeU16, SafetyChannel, SafetyModule, SlotPath, SolenoidChannel, StationLimits, StationRole,
+    SupplyFeeds, SupplyGroup, SupplyKind, SupplyPins, SymbolPolicy, TypeIdent,
 };
 pub use project::{
     Address, BasicProjectRef, DateFormat, DecimalSeparator, EarthingSystem, ExternalRef, Formatting,

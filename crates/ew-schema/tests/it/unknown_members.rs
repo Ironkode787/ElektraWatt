@@ -220,9 +220,11 @@ fn run(texts: &[(String, bool)], tally: &mut Tally) {
 /// `params`, two placements' `carrier`); their records, rail and duct parameters keep unknown members. The import run
 /// line adds one map keyed by record IDs (`record_hashes`), which takes no other key; its run, source,
 /// entry, location, target and hash objects keep unknown members. The medium lines add a multi-language `name` and
-/// an enum wrapper (a definition's `at`); the medium, its tubes and the definition keep unknown members.
+/// an enum wrapper (a definition's `at`); the medium, its tubes and the definition keep unknown members. The
+/// exchange record line adds one map of texts keyed by field names (`fields`), which takes no other value; the
+/// record, the foreign ID, the ownership and the stamp keep unknown members.
 const MIN_SURVIVORS: usize = 300;
-const MAX_REJECTED: usize = 109;
+const MAX_REJECTED: usize = 110;
 
 fn examples() -> Vec<(String, bool)> {
     let mut all: Vec<(String, bool)> = DOC05_LINES.iter().map(|l| (fill(l), false)).collect();

@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "ExchangeObject": {
+      "description": "What an exchanged object is.",
+      "oneOf": [
+        {
+          "const": "station",
+          "description": "A station.",
+          "type": "string"
+        },
+        {
+          "const": "module",
+          "description": "A module.",
+          "type": "string"
+        },
+        {
+          "const": "channel",
+          "description": "A channel.",
+          "type": "string"
+        },
+        {
+          "const": "tag",
+          "description": "A tag: the symbol of a channel.",
+          "type": "string"
+        },
+        {
+          "const": "node",
+          "description": "The node of a bus interface.",
+          "type": "string"
+        },
+        {
+          "const": "instrument",
+          "description": "A row of an instrument list (doc 10 §4.7, FR-PLC-050).",
+          "type": "string"
+        }
+      ]
+    },
+    "Uuid": {
+      "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
+      "maxLength": 36,
+      "minLength": 36,
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": true,
+  "description": "The exchanged values of one object of a configuration project (doc 10 §4.2, rank 70). Its ID is\n`v5(config_project, \"exchange\", object, target)` ([`ew_ids::v5::exchange_id`]).",
+  "properties": {
+    "$k": {
+      "const": "exchange_record",
+      "description": "The kind name; always the first member."
+    },
+    "$v": {
+      "description": "Per-kind schema version `$v`, omitted when 1.",
+      "format": "uint16",
+      "maximum": 65535,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "config_project": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The configuration project, whose file holds the record."
+    },
+    "fields": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "The exchanged values by field name.",
+      "type": "object"
+    },
+    "id": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The record ID."
+    },
+    "object": {
+      "$ref": "#/$defs/ExchangeObject",
+      "description": "What the object is."
+    },
+    "target": {
+      "$ref": "#/$defs/Uuid",
+      "description": "The project's record the object is: a station or module device, a channel (also for its tag), the function\nof a bus node, the placeholder device of an instrument."
+    }
+  },
+  "required": [
+    "$k",
+    "id",
+    "config_project",
+    "object",
+    "target"
+  ],
+  "title": "exchange_record",
+  "type": "object"
+}

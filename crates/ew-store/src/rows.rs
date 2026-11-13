@@ -149,6 +149,14 @@ macro_rules! with_row {
                 let $kind = Kind::Waiver;
                 $body
             }
+            AnyRow::ExchangeRecord($r) => {
+                let $kind = Kind::ExchangeRecord;
+                $body
+            }
+            AnyRow::ForeignId($r) => {
+                let $kind = Kind::ForeignId;
+                $body
+            }
             AnyRow::ImportRun($r) => {
                 let $kind = Kind::ImportRun;
                 $body
@@ -224,6 +232,8 @@ pub(crate) fn row_record(row: &AnyRow) -> Option<Record> {
         AnyRow::Placement(r) => Record::Placement((**r).clone()),
         AnyRow::Revision(r) => Record::Revision((**r).clone()),
         AnyRow::Waiver(r) => Record::Waiver((**r).clone()),
+        AnyRow::ExchangeRecord(r) => Record::ExchangeRecord((**r).clone()),
+        AnyRow::ForeignId(r) => Record::ForeignId((**r).clone()),
         AnyRow::ImportRun(r) => Record::ImportRun((**r).clone()),
         AnyRow::Conflict(r) => Record::Conflict((**r).clone()),
         AnyRow::Part(_)
@@ -271,6 +281,8 @@ pub(crate) fn record_row(record: Record) -> Option<AnyRow> {
         Record::Placement(r) => AnyRow::of(r),
         Record::Revision(r) => AnyRow::of(r),
         Record::Waiver(r) => AnyRow::of(r),
+        Record::ExchangeRecord(r) => AnyRow::of(r),
+        Record::ForeignId(r) => AnyRow::of(r),
         Record::ImportRun(r) => AnyRow::of(r),
         Record::Conflict(r) => AnyRow::of(r),
         Record::Unknown(_) => return None,

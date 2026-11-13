@@ -16,7 +16,13 @@ use quick_xml::events::{BytesStart, Event};
 use crate::{options, sample};
 
 /// The header every CAEX object may start with.
-const HEADER: [&str; 5] = ["Description", "Version", "Revision", "Copyright", "AdditionalInformation"];
+const HEADER: [&str; 5] = [
+    "Description",
+    "Version",
+    "Revision",
+    "Copyright",
+    "AdditionalInformation",
+];
 
 /// An element's content model: the children after the header in schema order, and its required attributes.
 fn model(element: &str) -> Option<(&'static [&'static str], &'static [&'static str])> {

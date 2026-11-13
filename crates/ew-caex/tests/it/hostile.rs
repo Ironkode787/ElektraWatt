@@ -13,9 +13,13 @@ fn refusal(bytes: &[u8], limits: &Limits) -> ImportError {
 
 #[test]
 fn a_doctype_is_refused() {
-    let aml = "<?xml version=\"1.0\"?><!DOCTYPE CAEXFile [<!ENTITY a \"aaaa\">]><CAEXFile SchemaVersion=\"2.15\"/>";
+    let aml =
+        "<?xml version=\"1.0\"?><!DOCTYPE CAEXFile [<!ENTITY a \"aaaa\">]><CAEXFile SchemaVersion=\"2.15\"/>";
     let e = refusal(aml.as_bytes(), &Limits::default());
-    assert!(matches!(&e, ImportError::Malformed { message, .. } if message.contains("DOCTYPE")), "{e}");
+    assert!(
+        matches!(&e, ImportError::Malformed { message, .. } if message.contains("DOCTYPE")),
+        "{e}"
+    );
 }
 
 #[test]
@@ -26,16 +30,55 @@ fn a_file_beyond_a_limit_is_refused_by_that_limit() {
         other => panic!("not a limit: {other}"),
     };
     let d = Limits::default();
-    assert_eq!(what(Limits { max_input_bytes: 100, ..d }), "input size");
-    assert_eq!(what(Limits { max_xml_depth: 3, ..d }), "XML depth");
-    assert_eq!(what(Limits { max_xml_nodes: 10, ..d }), "XML node");
-    assert_eq!(what(Limits { max_xml_attributes: 5, ..d }), "XML attribute");
     assert_eq!(
-        what(Limits { max_xml_attributes_per_element: 1, ..d }),
+        what(Limits {
+            max_input_bytes: 100,
+            ..d
+        }),
+        "input size"
+    );
+    assert_eq!(
+        what(Limits {
+            max_xml_depth: 3,
+            ..d
+        }),
+        "XML depth"
+    );
+    assert_eq!(
+        what(Limits {
+            max_xml_nodes: 10,
+            ..d
+        }),
+        "XML node"
+    );
+    assert_eq!(
+        what(Limits {
+            max_xml_attributes: 5,
+            ..d
+        }),
+        "XML attribute"
+    );
+    assert_eq!(
+        what(Limits {
+            max_xml_attributes_per_element: 1,
+            ..d
+        }),
         "attributes per XML element"
     );
-    assert_eq!(what(Limits { max_attribute_bytes: 4, ..d }), "XML attribute value");
-    assert_eq!(what(Limits { max_text_bytes: 8, ..d }), "XML text");
+    assert_eq!(
+        what(Limits {
+            max_attribute_bytes: 4,
+            ..d
+        }),
+        "XML attribute value"
+    );
+    assert_eq!(
+        what(Limits {
+            max_text_bytes: 8,
+            ..d
+        }),
+        "XML text"
+    );
 }
 
 #[test]
@@ -45,7 +88,10 @@ fn what_is_not_an_ar_apc_file_is_refused_in_words() {
     assert!(e.to_string().contains("no AutomationML file"), "{e}");
     let e = refusal(b"<CAEXFile SchemaVersion=\"1.0\"/>", &d);
     assert!(e.to_string().contains("CAEX 2.15 and 3.0 are read"), "{e}");
-    let e = refusal(b"<CAEXFile SchemaVersion=\"2.15\"><InstanceHierarchy Name=\"x\"/></CAEXFile>", &d);
+    let e = refusal(
+        b"<CAEXFile SchemaVersion=\"2.15\"><InstanceHierarchy Name=\"x\"/></CAEXFile>",
+        &d,
+    );
     assert!(e.to_string().contains("no AR APC project"), "{e}");
     let e = refusal(&[0xff, 0xfe, 0x00], &d);
     assert!(e.to_string().contains("not UTF-8"), "{e}");
@@ -57,7 +103,10 @@ fn what_is_not_an_ar_apc_file_is_refused_in_words() {
 fn a_number_that_is_none_names_its_element() {
     let aml = write_aml(&sample(), &options(ApcVersion::V1_4_0));
     let (head, tail) = aml.split_at(aml.find("PositionNumber").expect("a position"));
-    let aml = format!("{head}{}", tail.replacen("<Value>1</Value>", "<Value>first</Value>", 1));
+    let aml = format!(
+        "{head}{}",
+        tail.replacen("<Value>1</Value>", "<Value>first</Value>", 1)
+    );
     let e = refusal(aml.as_bytes(), &Limits::default());
     assert!(
         e.to_string().contains("`PositionNumber` of `-201U3` is `first`"),

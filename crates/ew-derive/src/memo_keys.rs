@@ -138,6 +138,8 @@ macro_rules! by_kind {
             Kind::Placement => $f::<ew_schema::Placement>($($arg),*),
             Kind::Revision => $f::<ew_schema::Revision>($($arg),*),
             Kind::Waiver => $f::<ew_schema::Waiver>($($arg),*),
+            Kind::ExchangeRecord => $f::<ew_schema::ExchangeRecord>($($arg),*),
+            Kind::ForeignId => $f::<ew_schema::ForeignId>($($arg),*),
             Kind::ImportRun => $f::<ew_schema::ImportRun>($($arg),*),
             Kind::Conflict => $f::<ew_schema::Conflict>($($arg),*),
             Kind::Part => $f::<LibCopy<Part>>($($arg),*),
@@ -512,7 +514,7 @@ mod tests {
     const ABSENT: u128 = 0xdead;
 
     /// The kinds with a table, in the order of the `by_kind!` macro.
-    const TABLE_KINDS: [Kind; 33] = [
+    const TABLE_KINDS: [Kind; 35] = [
         Kind::PlcConfigProject,
         Kind::ImportLineage,
         Kind::StructureNode,
@@ -541,6 +543,8 @@ mod tests {
         Kind::Placement,
         Kind::Revision,
         Kind::Waiver,
+        Kind::ExchangeRecord,
+        Kind::ForeignId,
         Kind::ImportRun,
         Kind::Part,
         Kind::Symbol,

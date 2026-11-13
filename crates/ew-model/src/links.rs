@@ -926,6 +926,18 @@ pub static LINKS: &[LinkDecl] = &[
     }),
     // revision (`page_notes[].page` is not a link: NOT_LINKS)
     link!(Revision."withdraws" -> Revision, Forbid, None, |v, out| opt(v.withdraws, out)),
+    // The exchange snapshot of a configuration project goes with it (WP-S3.16); load-tolerant, because an older
+    // 0.1 build kept the kinds verbatim and could delete the configuration project (ADR-0011 amendment 6).
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(ExchangeRecord."config_project" -> PlcConfigProject, Cascade, None,
+            |v, out| id(v.config_project, out))
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(ForeignId."config_project" -> PlcConfigProject, Cascade, None,
+            |v, out| id(v.config_project, out))
+    },
     // import run: the lineage and its last run name each other, neither cascades
     link!(ImportRun."lineage" -> ImportLineage, Forbid, None, |v, out| id(v.lineage, out)),
     link!(ImportLineage."last_run" -> ImportRun, Forbid, None, |v, out| opt(v.last_run, out)),
@@ -959,6 +971,17 @@ pub static NOT_LINKS: &[(&str, &str, &str)] = &[
         "import_lineage",
         "anchor.copy.of",
         "the namespace of the original lineage (`ImportLineage.namespace`), not a record ID",
+    ),
+    (
+        "exchange_record",
+        "target",
+        "history: the record an exchanged object was (a device, a channel, a function); a record deleted since \
+         snapshots nothing, and the next import parks its object",
+    ),
+    (
+        "foreign_id",
+        "target",
+        "history: the record a foreign ID was given to; a record deleted since matches nothing",
     ),
     (
         "import_run",

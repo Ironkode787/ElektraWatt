@@ -104,6 +104,8 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::Placement(r) => of(&**r),
         AnyRow::Revision(r) => of(&**r),
         AnyRow::Waiver(r) => of(&**r),
+        AnyRow::ExchangeRecord(r) => of(&**r),
+        AnyRow::ForeignId(r) => of(&**r),
         AnyRow::ImportRun(r) => of(&**r),
         AnyRow::Conflict(r) => of(&**r),
         AnyRow::Part(r) => of(&**r),
@@ -369,6 +371,24 @@ impl HeapSize for ew_schema::Conflict {
             ew_schema::ConflictBody::File { path, lines, .. } => path.heap_size() + lines.heap_size(),
         };
         body + self.extra.heap_size()
+    }
+}
+
+// ---- the exchange snapshot ----
+
+impl HeapSize for ew_schema::ExchangeRecord {
+    fn heap_size(&self) -> usize {
+        self.fields
+            .iter()
+            .map(|(k, v)| k.capacity() + v.capacity())
+            .sum::<usize>()
+            + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::ForeignId {
+    fn heap_size(&self) -> usize {
+        self.foreign.capacity() + self.extra.heap_size()
     }
 }
 
