@@ -1,0 +1,216 @@
+{
+  "$k": "symbol",
+  "id": "aaa96f3b-a2dd-5024-9bc7-20fb05f0565b",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e637ef65-d772-5c02-a281-d6eda28d4a15",
+  "version": "0.1.0",
+  "sha256": "sha256:9b73d371e7935bfc3008db8fe1d6cd39694328dc2dcc5fc1b662d385ae95afe1",
+  "meta": {
+    "key": "ew.iso.cylinder-single-acting@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Cylinder, single-acting, spring return",
+    "nl": "Cilinder, enkelwerkend, veerretour"
+  },
+  "keywords": [
+    "actuator",
+    "cylinder",
+    "pneumatic"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "780a80af-e83a-5751-910f-de0bb0c881dd",
+    "version_req": "^0.1",
+    "key": "ew.fn.cylinder-single-acting"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            2645833
+          ],
+          [
+            15875000,
+            7937500
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          2645833
+        ],
+        "to": [
+          5291667,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          5291667
+        ],
+        "to": [
+          18520833,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            6614583,
+            5291667
+          ],
+          [
+            7276042,
+            3968750
+          ],
+          [
+            8598958,
+            6614583
+          ],
+          [
+            9921875,
+            3968750
+          ],
+          [
+            11244792,
+            6614583
+          ],
+          [
+            11906250,
+            5291667
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          10583333
+        ],
+        "to": [
+          5291667,
+          13229167
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        5291667,
+        13229167
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -7937500,
+        -661458
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -7937500,
+        11906250
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        5953125,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      5291667,
+      5291667
+    ]
+  }
+}

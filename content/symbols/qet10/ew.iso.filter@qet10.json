@@ -1,0 +1,216 @@
+{
+  "$k": "symbol",
+  "id": "05979ecf-19ba-56b7-96f4-ba8b2b3d6fbd",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "ea1d07aa-f300-52bf-b903-29f23e757017",
+  "version": "0.1.0",
+  "sha256": "sha256:726c66865ac6d25f8a2313fdd0d8017ed3710fdd298ce71e548dbb437c74ba0a",
+  "meta": {
+    "key": "ew.iso.filter@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Filter",
+    "nl": "Filter"
+  },
+  "keywords": [
+    "air preparation",
+    "filter",
+    "pneumatic"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e440d978-3937-5759-baae-816539b0e444",
+    "version_req": "^0.1",
+    "key": "ew.fn.filter"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "polyline": {
+        "points": [
+          [
+            0,
+            5291667
+          ],
+          [
+            5291667,
+            0
+          ],
+          [
+            10583333,
+            5291667
+          ],
+          [
+            5291667,
+            10583333
+          ],
+          [
+            0,
+            5291667
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          0
+        ],
+        "to": [
+          5291667,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -2645833,
+          5291667
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          10583333,
+          5291667
+        ],
+        "to": [
+          13229167,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        -2645833,
+        5291667
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        13229167,
+        5291667
+      ],
+      "dir": "right",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -7937500,
+        -661458
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -7937500,
+        11906250
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -1322917,
+        4630208
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        11906250,
+        4630208
+      ],
+      "align": "middle_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      5291667,
+      5291667
+    ]
+  }
+}

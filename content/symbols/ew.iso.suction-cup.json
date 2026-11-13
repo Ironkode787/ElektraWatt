@@ -1,0 +1,151 @@
+{
+  "$k": "symbol",
+  "id": "2a985087-32ea-55fa-81d2-0f8454e00b62",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "05b76538-56ea-57a3-a6cc-32eef4ef5b14",
+  "version": "0.1.0",
+  "sha256": "sha256:d180f414d73517d10903f6bc96e3502e85151f75ae37ec7f84f4f1053a7521b7",
+  "meta": {
+    "key": "ew.iso.suction-cup",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Suction cup",
+    "nl": "Zuignap"
+  },
+  "keywords": [
+    "pneumatic",
+    "suction cup",
+    "vacuum"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "85b07272-8981-530e-b096-7e2d7e7a0637",
+    "version_req": "^0.1",
+    "key": "ew.fn.suction-cup"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "polyline": {
+        "points": [
+          [
+            0,
+            4000000
+          ],
+          [
+            4000000,
+            12000000
+          ],
+          [
+            12000000,
+            12000000
+          ],
+          [
+            16000000,
+            4000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          16000000
+        ],
+        "to": [
+          8000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        8000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -12000000,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -12000000,
+        18000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        9000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

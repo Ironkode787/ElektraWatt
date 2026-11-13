@@ -1,0 +1,160 @@
+{
+  "$k": "symbol",
+  "id": "9cb3583f-d195-5916-8868-5561a6163407",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "ac524c92-3e8e-516c-a386-828bca809b8b",
+  "version": "0.1.0",
+  "sha256": "sha256:3560850bd4a28ba66c2bcd43ed0f80fa5943222f35cad26104469520468b0aa4",
+  "meta": {
+    "key": "ew.iso.pressure-gauge@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Pressure gauge",
+    "nl": "Manometer"
+  },
+  "keywords": [
+    "air preparation",
+    "gauge",
+    "pneumatic",
+    "sensing"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "f5ebf148-5ffd-58f9-abc6-bda8e6d723de",
+    "version_req": "^0.1",
+    "key": "ew.fn.pressure-gauge"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "circle": {
+        "centre": [
+          5291667,
+          5291667
+        ],
+        "r": 4630208,
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          5291667
+        ],
+        "to": [
+          7937500,
+          2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          10583333
+        ],
+        "to": [
+          5291667,
+          13229167
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        5291667,
+        13229167
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -7937500,
+        -661458
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -7937500,
+        11906250
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        5953125,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      5291667,
+      5291667
+    ]
+  }
+}

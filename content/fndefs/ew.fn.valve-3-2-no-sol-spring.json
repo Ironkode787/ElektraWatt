@@ -1,0 +1,99 @@
+{
+  "$k": "fndef",
+  "id": "f9fb2b99-2514-530a-8db0-14b37cda2909",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "a5ded8b3-b195-5b8f-b9a4-cc7ead80e08b",
+  "version": "0.1.0",
+  "sha256": "sha256:254fe44f6b2dd65a3aac329f28607169864a7cd480388746127e5289e64a3eb6",
+  "meta": {
+    "key": "ew.fn.valve-3-2-no-sol-spring",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveDirectional",
+    "Valve32",
+    "SolenoidSpringNo"
+  ],
+  "contact_kind": "valve",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "a",
+            "paths": [
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              },
+              {
+                "closed": 0
+              }
+            ]
+          },
+          {
+            "label": "b",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "closed": 2
+              }
+            ]
+          }
+        ],
+        "rest": 1,
+        "actuation": [
+          {
+            "actuator": {
+              "solenoid": {
+                "solenoid": "10"
+              }
+            },
+            "selects": 0
+          },
+          {
+            "actuator": {
+              "manual_override": {}
+            },
+            "selects": 0
+          },
+          {
+            "actuator": "spring",
+            "selects": 1
+          }
+        ]
+      }
+    ]
+  }
+}

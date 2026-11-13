@@ -1,0 +1,162 @@
+{
+  "$k": "symbol",
+  "id": "0fdc67fd-5670-5fe1-a805-ba43c73fb47f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "dc5e4f39-6b08-5e08-a631-9d5ccf808876",
+  "version": "0.1.0",
+  "sha256": "sha256:2ffd1c8779d382af741523ae9e0ba36022f8777f77e69f293a45da21c66f2e4e",
+  "meta": {
+    "key": "ew.iso.air-supply",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Compressed-air supply point",
+    "nl": "Persluchtaansluitpunt"
+  },
+  "keywords": [
+    "compressed air",
+    "pneumatic",
+    "source",
+    "supply"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "47e58bb3-eb07-5d8f-a837-6efb88f12370",
+    "version_req": "^0.1",
+    "key": "ew.fn.air-supply"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "circle": {
+        "centre": [
+          8000000,
+          8000000
+        ],
+        "r": 6000000,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            8000000,
+            4000000
+          ],
+          [
+            5000000,
+            10000000
+          ],
+          [
+            11000000,
+            10000000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p026"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          16000000
+        ],
+        "to": [
+          8000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        8000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -12000000,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -12000000,
+        18000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        9000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

@@ -382,3 +382,24 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - format-variant: report_block ReportKind tube_labels
 - format-variant: report_block ReportKind valve_terminal_config
 - format-variant: report_block ReportKind medium_overview
+- api-add: fluid 1.0 records (WP-S1.25): `FnDef.valve_model` (switching positions, flow paths, actuators), the 1.0
+  members of a part's fluid section (ports, positions, coil, galleries, tube, fitting, transform), a fluid line's
+  `tube`, `length`, `fitting_a` and `fitting_b`, a junction's `fitting` (a fluid tee), the record kinds `medium` and
+  `medium_def`, and `ProjectSettings.fluid` (default tube, line-tag scheme `page_counter`); additive within format 0.1
+- api-add: commands `fluid.medium.edit`, `fluid.medium.define`, `fluid.tube.set` and `fluid.length.set`, and the
+  `fluid` member of `project.settings.set` (WP-S1.25)
+- api-add: derived manifold galleries of a valve terminal, media propagation over the valves' flow paths, effective
+  tube values with their source, physical tubes across fluid interruption points; `ew query medium_zones` and
+  `ew query tube_props` (WP-S1.25)
+- api-add: report kinds `tube_list`, `tube_cut_list`, `tube_labels`, `valve_terminal_config` and `medium_overview`
+  (`ew export report --kind <kind>`), the SQL views `api_v1_fluid_line`, `api_v1_valve_position` and `api_v1_medium`,
+  and fluid BOM lines for tube, fitting, tee and closure parts (WP-S1.25)
+- api-add: check rules EW-FL-005, -006, -007, -008, -009, -010, -012 and -014 in the pack's 1.0 content (WP-S1.25)
+- api-add: the ISO 1219 pneumatic library: 33 symbols with their function definitions (directional valves, cylinders
+  and drives, vacuum, air preparation, flow and logic valves, fittings, the air-supply point and the valve-terminal
+  supply plate); the starter parts EW-GEN-VTM-1, EW-GEN-VLV-3 and EW-GEN-VTS-1, a generic valve terminal (FT-1326)
+- behaviour-change: a new valve part whose valve type differs replaces the valve function's definition in place,
+  its lines following by port designation, instead of keeping the old valve function (WP-S1.25, N-FL-1)
+- behaviour-change: `valve.add` refuses a part with a PLC section (FT-1576); a `drives` link to the valve's own
+  module or terminal fails the invariant EW-INV-025 (FI-06); a fluid port whose function definition copy is damaged
+  no longer makes every other copy's update a misfit (FT-1569) (WP-S1.25)

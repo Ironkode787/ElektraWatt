@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "f772f854-6124-59f9-b6dc-9bf45b1b1be2",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "f56c11b8-9394-5942-959c-bfb3a830bee5",
+  "version": "0.1.0",
+  "sha256": "sha256:df3e6218fdefd0bec80ab9860eaf6936b893d4d56275ea6c97676d938dc5cdb5",
+  "meta": {
+    "key": "ew.fn.vacuum-switch",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Vacuum",
+    "Switch",
+    "Sensing"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "sensing"
+    }
+  ]
+}

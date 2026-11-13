@@ -1287,6 +1287,7 @@ refusal-inv-021 = a library copy that an item names stays in the project
 refusal-inv-022 = the page of a page item or a structure box is in the project
 refusal-inv-023 = every wire a wire marker lists is on the marker's page
 refusal-inv-024 = a fluid line joins fluid ports of one medium family
+refusal-inv-025 = a valve never drives itself or the module or valve terminal that holds it
 refusal-rel-label-format = the label { $p0 } is not in the project's revision label format { $p1 }; give a label in that format{ $p2 }
 refusal-rel-label-follow = the label { $p0 } does not follow revision { $p1 }: revision labels increase in natural order; give a later label{ $p2 }
 refusal-rel-label-precede = the label { $p0 } does not precede { $p1 }, the label of the open revision: revision labels increase in natural order, the open revision last; give an earlier label
@@ -1631,6 +1632,18 @@ refusal-valve-no-position = { $p0 } has { $p1 } valve positions; position { $p2 
 refusal-valve-position-holds = position { $p0 } of { $p1 } holds { $p2 }; assign the new part to { $p2 } instead
 refusal-valve-position-empty = position { $p0 } of { $p1 } holds no valve; name the valve part
 refusal-fluid-port-has-line = { $p0 } has a fluid line; delete the line before closing the port
+# fluid.medium.edit, fluid.medium.define, fluid.tube.set, fluid.length.set.
+refusal-valve-add-plc-part = part { $p0 } is a PLC station or module, not a valve; add it as a module of the valve terminal
+refusal-medium-nothing = name the medium to delete, or give the values of a new one
+refusal-medium-name-required = a medium needs a name
+refusal-medium-discipline = a medium is pneumatic, vacuum or hydraulic
+refusal-tube-diameter-positive = a tube diameter is larger than zero, not { $p0 } mm
+refusal-tube-diameters = the outer diameter { $p0 } mm is not larger than the inner diameter { $p1 } mm
+refusal-tube-rating-negative = a pressure rating is zero or more, not { $p0 } bar
+refusal-fluid-line-not = { $p0 } is no fluid line
+refusal-fluid-lines-none = select one or more fluid lines
+refusal-fluid-length-positive = a tube length is longer than zero, not { $p0 } mm
+refusal-words-connection-end = an end of a newer format
 # The panel layout: layout.place, layout.move, layout.place_assembly, layout.auto_fill, the carriers, spaces and enclosures.
 refusal-words-rail = rail { $p0 }
 refusal-words-duct = duct { $p0 }

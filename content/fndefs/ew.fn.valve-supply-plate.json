@@ -1,0 +1,42 @@
+{
+  "$k": "fndef",
+  "id": "0df12c76-eb33-5484-a9e4-53143ef24319",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e14cc197-58f0-5e66-ba62-2098eaa10345",
+  "version": "0.1.0",
+  "sha256": "sha256:dc15663ac5ea821fde53a61cbf4f8dfd2144a4317212041d38eaf570df91445b",
+  "meta": {
+    "key": "ew.fn.valve-supply-plate",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveTerminal",
+    "SupplyPlate",
+    "Generic"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    },
+    {
+      "idx": 2,
+      "designation": "5",
+      "discipline": "pneumatic",
+      "port_role": "exhaust5"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "949c03c0-e330-565d-b2cd-4d717c4983b1",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "41a043f0-031f-5c00-bfce-afad21c0abdd",
+  "version": "0.1.0",
+  "sha256": "sha256:55687a629943cb59c5860b68efe4746eb226a4c26a76749777a9e0ff1164a53c",
+  "meta": {
+    "key": "ew.fn.plug-fluid",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FluidFitting",
+    "Plug",
+    "Standard"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ]
+}

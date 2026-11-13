@@ -1,0 +1,43 @@
+{
+  "$k": "fndef",
+  "id": "508ad053-eccb-5c17-82a8-cdaab270c20e",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e508b4d3-2b7c-5141-9628-538bf4ac12ef",
+  "version": "0.1.0",
+  "sha256": "sha256:f4e6f8917cce3e8f58a31c1d03752e62991020b4f3d9eadb14faf1843ff4716d",
+  "meta": {
+    "key": "ew.fn.bulkhead",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FluidFitting",
+    "Bulkhead",
+    "Standard"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ],
+  "internal": [
+    {
+      "a": 0,
+      "b": 1,
+      "kind": "short"
+    }
+  ]
+}

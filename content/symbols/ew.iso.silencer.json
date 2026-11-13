@@ -1,0 +1,173 @@
+{
+  "$k": "symbol",
+  "id": "1cf0694c-1e95-5199-8729-da069ea2c017",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d7d39ab5-d470-50ef-923b-77f6ee8b0cd3",
+  "version": "0.1.0",
+  "sha256": "sha256:306f382cd7929417dfa9789d6c649379de470970e39d96cbb703ad7016381764",
+  "meta": {
+    "key": "ew.iso.silencer",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Silencer",
+    "nl": "Geluiddemper"
+  },
+  "keywords": [
+    "exhaust",
+    "pneumatic",
+    "silencer"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "34ed8ee9-0bf4-5eee-8f75-1ec2aacef356",
+    "version_req": "^0.1",
+    "key": "ew.fn.silencer"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            4000000,
+            4000000
+          ],
+          [
+            12000000,
+            16000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          4000000,
+          8000000
+        ],
+        "to": [
+          12000000,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          4000000,
+          12000000
+        ],
+        "to": [
+          12000000,
+          12000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          16000000
+        ],
+        "to": [
+          8000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        8000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -12000000,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -12000000,
+        18000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        9000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

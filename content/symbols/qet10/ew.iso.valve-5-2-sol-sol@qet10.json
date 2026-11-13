@@ -1,0 +1,685 @@
+{
+  "$k": "symbol",
+  "id": "a0511e44-cab4-5eb0-aaa0-0fa88a94cf40",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "3e60d460-15d1-5a1e-a0d8-e20a6d08d212",
+  "version": "0.1.0",
+  "sha256": "sha256:d75834cf4f303139f3fa2defe43f751feba5c2d9542c3ce3c705a8bba6f73175",
+  "meta": {
+    "key": "ew.iso.valve-5-2-sol-sol@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "5/2 valve, bistable, two solenoids",
+    "nl": "5/2-ventiel, bistabiel, twee magneten"
+  },
+  "keywords": [
+    "5/2",
+    "bistable",
+    "pneumatic",
+    "solenoid",
+    "valve"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "1efc12ff-24dc-5568-bba4-e1d8d9a77292",
+    "version_req": "^0.1",
+    "key": "ew.fn.valve-5-2-sol-sol"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            10583333,
+            10583333
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            10583333,
+            0
+          ],
+          [
+            21166667,
+            10583333
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          15875000,
+          10583333
+        ],
+        "to": [
+          15875000,
+          13229167
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          13229167,
+          0
+        ],
+        "to": [
+          13229167,
+          -2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          13229167,
+          10583333
+        ],
+        "to": [
+          13229167,
+          13229167
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          18520833,
+          0
+        ],
+        "to": [
+          18520833,
+          -2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          18520833,
+          10583333
+        ],
+        "to": [
+          18520833,
+          13229167
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          10583333
+        ],
+        "to": [
+          7937500,
+          0
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            7937500,
+            1322917
+          ],
+          [
+            7276042,
+            1322917
+          ],
+          [
+            7937500,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2645833,
+          0
+        ],
+        "to": [
+          2645833,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            1984375,
+            9260417
+          ],
+          [
+            3307292,
+            9260417
+          ],
+          [
+            2645833,
+            10583333
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          7937500,
+          10583333
+        ],
+        "to": [
+          7937500,
+          8598958
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          6945312,
+          8598958
+        ],
+        "to": [
+          8929687,
+          8598958
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          15875000,
+          10583333
+        ],
+        "to": [
+          13229167,
+          0
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            13890625,
+            1322917
+          ],
+          [
+            13229167,
+            1322917
+          ],
+          [
+            13229167,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          18520833,
+          0
+        ],
+        "to": [
+          18520833,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            17859375,
+            9260417
+          ],
+          [
+            19182292,
+            9260417
+          ],
+          [
+            18520833,
+            10583333
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          13229167,
+          10583333
+        ],
+        "to": [
+          13229167,
+          8598958
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          12236979,
+          8598958
+        ],
+        "to": [
+          14221354,
+          8598958
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -5291667,
+            2645833
+          ],
+          [
+            0,
+            7937500
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -5291667,
+          7937500
+        ],
+        "to": [
+          0,
+          2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            -7937500,
+            3968750
+          ],
+          [
+            -5291667,
+            6614583
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            21166667,
+            2645833
+          ],
+          [
+            26458333,
+            7937500
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          21166667,
+          7937500
+        ],
+        "to": [
+          26458333,
+          2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            26458333,
+            3968750
+          ],
+          [
+            29104167,
+            6614583
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        15875000,
+        13229167
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        13229167,
+        -2645833
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        13229167,
+        13229167
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 3,
+      "fn_cp": 3,
+      "pos": [
+        18520833,
+        -2645833
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 4,
+      "fn_cp": 4,
+      "pos": [
+        18520833,
+        13229167
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -7937500,
+        -661458
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -7937500,
+        11906250
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        16536458,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        13890625,
+        -1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        13890625,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 3
+      },
+      "pos": [
+        19182292,
+        -1322917
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 4
+      },
+      "pos": [
+        19182292,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        -7937500,
+        1984375
+      ],
+      "align": "bottom_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      10583333,
+      5291667
+    ]
+  }
+}

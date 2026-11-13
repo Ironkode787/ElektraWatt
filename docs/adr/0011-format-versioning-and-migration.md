@@ -119,6 +119,11 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `ConnectionKind::Fluid` with `line_kind`, `CpOverride.closure`, `PartSections.fluid` and `TextSlot.fallback`, each
    optional with an `Unknown` arm, `schemas/0.1` re-blessed with additions only; `closure.part` is a new link to a
    part copy that an older 0.1 build does not enforce, accepted for the unreleased format (amendment 6).
+   Applied again after the lock (WP-S1.25, M3) to the fluid 1.0 members (`FnDef.valve_model`, the 1.0 members of
+   `PartSections.fluid`, `FluidLine.tube`, `.length`, `.fitting_a`, `.fitting_b`, `Junction.fitting`,
+   `ProjectSettings.fluid`), the reserved kinds `medium` and `medium_def`, and five `ReportKind` values: each optional
+   or caught by `Unknown`; every new link is load-tolerant (doc 11 §2.7), so a stale target an older build leaves is
+   a load finding, never a refusal, and no `min_reader` is raised.
    Applied again in cycle 51 to the reserved kind `import_run` (rank 72,
    `imports/<run-uuid>.jsonl`), typed within 0.1 with `schemas/0.1` re-blessed with additions only, and to
    `ImportLineage.last_run`, now a link to the run without cascade; a build from before the change keeps the runs

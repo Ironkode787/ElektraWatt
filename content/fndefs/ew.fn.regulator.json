@@ -1,0 +1,68 @@
+{
+  "$k": "fndef",
+  "id": "fdbe53d4-abdd-5c3f-9188-c8ec61001bf2",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "3e53ca26-4db9-565a-a85e-5f5efb671503",
+  "version": "0.1.0",
+  "sha256": "sha256:743d417bde98d12ca8a30d0a057a468d01d0406508cd6d4cc0caf84e8fc05c73",
+  "meta": {
+    "key": "ew.fn.regulator",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Regulator",
+    "Relieving"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

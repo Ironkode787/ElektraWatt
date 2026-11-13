@@ -1,0 +1,87 @@
+{
+  "$k": "fndef",
+  "id": "9edd9a06-f03c-5daa-9f77-f9835920d701",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "f7592e5b-3b87-5147-a154-3d8b5edbfc6f",
+  "version": "0.1.0",
+  "sha256": "sha256:b5b3689e3e9c15d4b5d9bfb76a889023c102eed7b755c182f07e88401b7b5c80",
+  "meta": {
+    "key": "ew.fn.valve-2-2-nc-sol-spring",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveDirectional",
+    "Valve22",
+    "SolenoidSpring"
+  ],
+  "contact_kind": "valve",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "a",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              }
+            ]
+          },
+          {
+            "label": "b",
+            "paths": [
+              {
+                "closed": 0
+              },
+              {
+                "closed": 1
+              }
+            ]
+          }
+        ],
+        "rest": 1,
+        "actuation": [
+          {
+            "actuator": {
+              "solenoid": {
+                "solenoid": "12"
+              }
+            },
+            "selects": 0
+          },
+          {
+            "actuator": {
+              "manual_override": {}
+            },
+            "selects": 0
+          },
+          {
+            "actuator": "spring",
+            "selects": 1
+          }
+        ]
+      }
+    ]
+  }
+}

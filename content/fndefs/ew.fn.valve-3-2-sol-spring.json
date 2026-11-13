@@ -3,8 +3,8 @@
   "id": "97f5cfa8-61b5-51c4-b836-8ef88849826e",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "8bbf76f0-7b3d-5fa1-a7a4-e321d4bdf02e",
-  "version": "0.1.0",
-  "sha256": "sha256:08c73d45ef1b45e29ca45676f31398bb294fdfb926ea2b6a7726e6c903e7a32e",
+  "version": "0.1.1",
+  "sha256": "sha256:d2ce7337d3dd4e9a67a7d7103d33abe31983c45f48723aa94e9bee28a7d91922",
   "meta": {
     "key": "ew.fn.valve-3-2-sol-spring",
     "licence": "CC-BY-SA-4.0",
@@ -38,5 +38,56 @@
       "discipline": "pneumatic",
       "port_role": "exhaust3"
     }
-  ]
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "a",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "closed": 2
+              }
+            ]
+          },
+          {
+            "label": "b",
+            "paths": [
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              },
+              {
+                "closed": 0
+              }
+            ]
+          }
+        ],
+        "rest": 1,
+        "actuation": [
+          {
+            "actuator": {
+              "solenoid": {
+                "solenoid": "12"
+              }
+            },
+            "selects": 0
+          },
+          {
+            "actuator": "spring",
+            "selects": 1
+          }
+        ]
+      }
+    ]
+  }
 }

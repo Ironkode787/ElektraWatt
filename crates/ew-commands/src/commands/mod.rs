@@ -67,7 +67,7 @@ pub use drawing::{Crossings, MarkerModeParam};
 pub use edit::BULK_ABOVE;
 pub use exchange::{ExchangePin, derive_pin_map};
 pub use fields::{ASPECTS, SET_MANY_MAX_EDITS, SETTABLE};
-pub use fluid::{ClosureKindParam, ClosureParam, OccupancyParam, ValveStateParam};
+pub use fluid::{ClosureKindParam, ClosureParam, MediumParam, OccupancyParam, TubeField, ValveStateParam};
 pub use frames::FRAMES_MEMBER;
 pub use import::{
     ApplyImport, MemberChange, ReimportClass, ReimportPlan, ReimportRow, lineage_keys, member_text,
@@ -157,6 +157,10 @@ commands! {
     assembly::LinkDevices,
     fluid::SetValveOccupancy,
     fluid::ClosePort,
+    fluid::EditMedium,
+    fluid::DefineMedium,
+    fluid::SetTube,
+    fluid::SetLength,
     plc::CreatePlcConfigProject,
     plc::BindChannel,
     plc::SetModulePart,

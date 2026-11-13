@@ -1,0 +1,154 @@
+{
+  "$k": "symbol",
+  "id": "d2fb2932-41a5-5d0c-8836-e71b02ee7514",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "6957df0c-e5c9-5e5a-8c1f-fd6990ab25c9",
+  "version": "0.1.0",
+  "sha256": "sha256:bb1947d44eba45c3720d93d48871c844cdaffa34c27f9a97006180043b7f4830",
+  "meta": {
+    "key": "ew.iso.pressure-gauge",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Pressure gauge",
+    "nl": "Manometer"
+  },
+  "keywords": [
+    "air preparation",
+    "gauge",
+    "pneumatic",
+    "sensing"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "f5ebf148-5ffd-58f9-abc6-bda8e6d723de",
+    "version_req": "^0.1",
+    "key": "ew.fn.pressure-gauge"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "circle": {
+        "centre": [
+          8000000,
+          8000000
+        ],
+        "r": 7000000,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          8000000
+        ],
+        "to": [
+          12000000,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          16000000
+        ],
+        "to": [
+          8000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        8000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -12000000,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -12000000,
+        18000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        9000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

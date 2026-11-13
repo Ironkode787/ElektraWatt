@@ -6,7 +6,8 @@
 //! The wire-numbering schemes are not built yet, so online wire numbering is off: a connection created
 //! by this transaction stays `NumberSpec::Unassigned` and prints "?". A new connection that carries an
 //! assigned counter (a split part copied from its original, a command that copied a record) is reset to
-//! `Unassigned`; a frozen number is an explicit user value and stays.
+//! `Unassigned`; a frozen number is an explicit user value and stays. A fluid line's number is its line tag, which
+//! N-FL-5 (`tube_tags`) keeps.
 
 use ew_schema::{Connection, Kind, NumberSpec};
 
@@ -33,7 +34,9 @@ impl Normaliser for WireNumbering {
             let Some(c) = tx.get::<Connection>(id) else {
                 continue;
             };
-            if matches!(c.number, NumberSpec::Assigned(_)) {
+            if matches!(c.number, NumberSpec::Assigned(_))
+                && !matches!(c.kind, ew_schema::ConnectionKind::Fluid(_))
+            {
                 tx.update::<Connection>(id, |c| c.number = NumberSpec::Unassigned)?;
                 changed = true;
             }

@@ -1,0 +1,56 @@
+{
+  "$k": "fndef",
+  "id": "21a6952c-b6d7-5012-9969-3e3ff467be25",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "f30e1f1a-9f1c-5efc-b393-866d30ef33d6",
+  "version": "0.1.0",
+  "sha256": "sha256:02e135e9836e2af30e4b9e7d87a5db76eb2ea10b9f2a611aa045326becf28319",
+  "meta": {
+    "key": "ew.fn.quick-coupling",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FluidFitting",
+    "Coupling",
+    "Quick"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "open": {
+                  "a": 0,
+                  "b": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

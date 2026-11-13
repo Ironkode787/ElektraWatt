@@ -17,9 +17,13 @@
 //!   as `template_entry`; an internal coil whose solenoid differs from its FnDef CP's designation gets a designation
 //!   override on that CP. (c) A coil function of the device that is no entry of the valve part's template (the old
 //!   part's, after a part change) is removed; a channel bound to it is unbound with the notice `solenoid <s> of <valve>
-//!   went with the old part; <channel> is unbound`, unless N2 binds the channel again in the same step. (d) The valve function is never replaced or removed: a valve part
-//!   whose valve entry names another FnDef gives the notice `<valve> keeps its drawn valve function; the new part has
-//!   another valve type: replace the symbol to change it`.
+//!   went with the old part; <channel> is unbound`, unless N2 binds the channel again in the same step. (d) A valve
+//!   part whose valve entry names another FnDef **replaces the valve function's definition in place** (WP-S1.25): the
+//!   function keeps its ID, its representations and its role; every CP is matched by designation to the new FnDef's
+//!   CP, and the connections, closures and medium definitions at a CP follow it to the new index; those at a port the
+//!   new valve lacks are deleted, each listed in a notice; a representation whose symbol draws a CP at another index
+//!   than the new FnDef's gets a pin-map entry to it. The preview of the part change (`Engine::preview`) shows the
+//!   notices before the commit. The drawn symbol keeps its graphics: a notice says to exchange it.
 //! - **Entries and functions.** A coil function is the function of an entry when its `template_entry` names that entry
 //!   and its FnDef is the entry's; the others then take, in ID order, the first entry left with their FnDef.
 //!
@@ -31,8 +35,8 @@ use std::collections::BTreeSet;
 use ew_ids::Id;
 use ew_mltext::Ident;
 use ew_schema::{
-    ContactKind, CpOverride, Device, Extra, FnDef, FnRole, Function, FunctionKind, KeyedList, Kind, LibCopy,
-    Part,
+    Connection, ContactKind, CpOverride, Device, Endpoint, Extra, FnDef, FnRole, Function, FunctionKind,
+    KeyedList, Kind, LibCopy, MediumDef, Part, PinMapEntry, Representation, SymbolDef,
 };
 
 use crate::error::CmdError;
@@ -136,10 +140,15 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
         if valves.is_empty() {
             create.push((*i, *def, *main, None));
         } else if !valves.contains(&def) {
-            tx.notice(format!(
-                "{name} keeps its drawn valve function; the new part has another valve type: replace the symbol to \
-                 change it"
-            ));
+            let old: Vec<std::sync::Arc<Function>> = held
+                .iter()
+                .filter(|(_, d)| d.item.contact_kind == ContactKind::Valve)
+                .map(|(f, _)| f.clone())
+                .collect();
+            for f in old {
+                replace_valve(tx, &f, *def, &name)?;
+            }
+            changed = true;
         }
     }
 
@@ -274,4 +283,134 @@ fn follow_part(tx: &mut TxBuilder<'_>, dev: &Device, part: &LibCopy<Part>) -> Re
         changed = true;
     }
     Ok(changed)
+}
+
+/// N-FL-1 (d): the valve function `f` takes the FnDef `def` in place; its CPs follow by designation.
+fn replace_valve(
+    tx: &mut TxBuilder<'_>,
+    f: &Function,
+    def: Id<FnDef>,
+    name: &crate::text::TextArg,
+) -> Result<(), CmdError> {
+    let old_def = tx.require::<LibCopy<FnDef>>(f.def)?;
+    let new_def = tx.require::<LibCopy<FnDef>>(def)?;
+    // Old CP index -> new CP index, by the FnDef designation.
+    let map = |idx: u16| -> Option<u16> {
+        let d = &old_def.item.cps.iter().find(|c| c.idx == idx)?.designation;
+        new_def
+            .item
+            .cps
+            .iter()
+            .find(|c| &c.designation == d)
+            .map(|c| c.idx)
+    };
+    let designation = |idx: u16| {
+        old_def
+            .item
+            .cps
+            .iter()
+            .find(|c| c.idx == idx)
+            .map(|c| c.designation.as_str().to_owned())
+            .unwrap_or_default()
+    };
+    // Connections.
+    let mut lines = tx.connections_of_function(f.id);
+    lines.sort();
+    lines.dedup();
+    let mut dropped: Vec<String> = Vec::new();
+    for c in lines {
+        let Some(conn) = tx.get::<Connection>(c) else {
+            continue;
+        };
+        let follow = |e: &Endpoint| match e {
+            Endpoint::Cp(g, idx) if *g == f.id => map(*idx).map(|n| Endpoint::Cp(*g, n)),
+            other => Some(other.clone()),
+        };
+        match (follow(&conn.a), follow(&conn.b)) {
+            (Some(a), Some(b)) => {
+                if a != conn.a || b != conn.b {
+                    tx.update::<Connection>(c, |x| {
+                        x.a = a;
+                        x.b = b;
+                    })?;
+                }
+            }
+            _ => {
+                let port = [&conn.a, &conn.b]
+                    .into_iter()
+                    .find_map(|e| match e {
+                        Endpoint::Cp(g, idx) if *g == f.id && map(*idx).is_none() => Some(designation(*idx)),
+                        _ => None,
+                    })
+                    .unwrap_or_default();
+                tx.delete((Kind::Connection, c.cast()))?;
+                dropped.push(port);
+            }
+        }
+    }
+    // Medium definitions.
+    let defs: Vec<std::sync::Arc<MediumDef>> = tx
+        .iter::<MediumDef>()
+        .into_iter()
+        .filter(|d| matches!(d.at, Endpoint::Cp(g, _) if g == f.id))
+        .collect();
+    for d in defs {
+        let Endpoint::Cp(_, idx) = d.at else { continue };
+        match map(idx) {
+            Some(n) if n != idx => tx.update::<MediumDef>(d.id, |x| x.at = Endpoint::Cp(f.id, n))?,
+            Some(_) => {}
+            None => tx.delete((Kind::MediumDef, d.id.cast()))?,
+        }
+    }
+    // Representations: a symbol CP drawing a CP at another index gets a pin-map entry.
+    for r in tx.reps_of_function(f.id) {
+        let Some(rep) = tx.get::<Representation>(r) else {
+            continue;
+        };
+        let Some(symbol) = tx.get::<LibCopy<SymbolDef>>(rep.symbol) else {
+            continue;
+        };
+        let mut pins: Vec<PinMapEntry> = rep.pin_map.iter().cloned().collect();
+        for s in symbol.item.cps.iter() {
+            if pins.iter().any(|p| p.symbol_cp == s.idx) {
+                continue;
+            }
+            if let Some(n) = map(s.fn_cp).filter(|n| *n != s.fn_cp) {
+                pins.push(PinMapEntry {
+                    symbol_cp: s.idx,
+                    function: f.id,
+                    idx: n,
+                    extra: Extra::new(),
+                });
+            }
+        }
+        for p in pins.iter_mut().filter(|p| p.function == f.id) {
+            if let Some(n) = map(p.idx) {
+                p.idx = n;
+            }
+        }
+        let pins = KeyedList::from_vec(pins).expect("one entry per symbol CP");
+        if pins != rep.pin_map {
+            tx.update::<Representation>(r, |x| x.pin_map = pins)?;
+        }
+    }
+    // The function: its definition, its overrides of ports that remain.
+    let overrides: Vec<CpOverride> = f
+        .cp_overrides
+        .iter()
+        .filter_map(|o| map(o.idx).map(|n| CpOverride { idx: n, ..o.clone() }))
+        .collect();
+    tx.update::<Function>(f.id, |x| {
+        x.def = def;
+        x.cp_overrides = KeyedList::from_vec(overrides).expect("one override per CP");
+    })?;
+    tx.notice(format!(
+        "{name} has the valve function of its new part; exchange the symbol to draw the new valve type"
+    ));
+    for port in dropped {
+        tx.notice(format!(
+            "the line at port {port} of {name} went: the new valve has no port {port}"
+        ));
+    }
+    Ok(())
 }

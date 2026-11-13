@@ -29,8 +29,8 @@ use crate::rows::{
     Row, colour_iec, colour_text, csa_parts, decimal, enum_text, json_array, ml_json, ml_text, non_empty,
 };
 use crate::schema::{
-    self, BOM_ASSEMBLY, BOM_COMPONENT, BOND, CABLE, CONDUCTOR, DEVICE, FUNCTION, MESSAGE, META, PAGE,
-    PLC_CHANNEL, POTENTIAL, TERMINAL, View, WIRE,
+    self, BOM_ASSEMBLY, BOM_COMPONENT, BOND, CABLE, CONDUCTOR, DEVICE, FLUID_LINE, FUNCTION, MEDIUM, MESSAGE,
+    META, PAGE, PLC_CHANNEL, POTENTIAL, TERMINAL, VALVE_POSITION, View, WIRE,
 };
 
 /// What the caller adds to the model: the facts the model does not hold.
@@ -73,6 +73,9 @@ pub(crate) fn tables(q: &Q, input: &BuildInput<'_>) -> Tables {
     put(&BOM_ASSEMBLY, bom(q, BomMode::Assembly, &BOM_ASSEMBLY));
     put(&MESSAGE, messages(input.checks));
     put(&PLC_CHANNEL, plc_channels(q));
+    put(&FLUID_LINE, fluid_lines(q));
+    put(&VALVE_POSITION, valve_positions(q));
+    put(&MEDIUM, media(q));
     debug_assert_eq!(out.len(), schema::VIEWS.len(), "every view has a table");
     out.into_values().collect()
 }
@@ -1104,6 +1107,156 @@ fn messages(report: Option<&CheckReport>) -> Vec<Row> {
                 .set("args", non_empty(f.discriminator.clone()))
                 .set("waiver_id", waiver);
             r
+        })
+        .collect()
+}
+
+/// A tube end's device and tag.
+fn end_device(q: &Q, d: Option<Id<Device>>) -> (Option<String>, Option<String>) {
+    (
+        d.map(uuid),
+        d.map(|d| ew_derive::short_tag(q, d)).and_then(non_empty),
+    )
+}
+
+/// The source of a tube value, as `prov_tube` writes it.
+fn tube_source(s: &ew_derive::TubeSource) -> &'static str {
+    match s {
+        ew_derive::TubeSource::Project => "project",
+        ew_derive::TubeSource::Medium(_) => "medium",
+        ew_derive::TubeSource::Part(_) => "part",
+        ew_derive::TubeSource::Override => "override",
+    }
+}
+
+/// `api_v1_fluid_line`: one row per physical tube, in `tube_rows` order.
+fn fluid_lines(q: &Q) -> Vec<Row> {
+    let parts = q.parts();
+    let number = |p: Option<Id<ew_derive::ew_schema::Part>>| {
+        p.and_then(|p| parts.get(p))
+            .map(|c| c.item.part_number.as_str().to_owned())
+    };
+    q.get::<ew_derive::TubeRows>(())
+        .iter()
+        .map(|t| {
+            let p = &t.props;
+            let mut prov = serde_json::Map::new();
+            let mut note = |name: &str, s: Option<&ew_derive::TubeSource>| {
+                if let Some(s) = s {
+                    prov.insert(
+                        name.to_owned(),
+                        serde_json::Value::String(tube_source(s).to_owned()),
+                    );
+                }
+            };
+            note("od", p.od.as_ref().map(|v| &v.source));
+            note("id", p.id.as_ref().map(|v| &v.source));
+            note("material", p.material.as_ref().map(|v| &v.source));
+            note("colour", p.colour.as_ref().map(|v| &v.source));
+            note("part", p.part.as_ref().map(|v| &v.source));
+            note("p_rating", p.p_rating.as_ref().map(|v| &v.source));
+            let (from_id, from_tag) = end_device(q, t.from.device);
+            let (to_id, to_tag) = end_device(q, t.to.device);
+            let role = |r: &Option<ew_derive::ew_schema::FluidPortRole>| r.as_ref().map(enum_text);
+            let mut r = Row::new(&FLUID_LINE);
+            r.set("id", uuid(t.id))
+                .set("tag", non_empty(t.tag.clone()))
+                .set("line_kind", enum_text(&t.line_kind))
+                .set("from_device_id", from_id)
+                .set("from_tag", from_tag)
+                .set("from_port", non_empty(t.from.port.clone()))
+                .set("from_role", role(&t.from.role))
+                .set("to_device_id", to_id)
+                .set("to_tag", to_tag)
+                .set("to_port", non_empty(t.to.port.clone()))
+                .set("to_role", role(&t.to.role))
+                .set("fluid_net_id", t.net.map(|n| n.0.as_uuid().to_string()))
+                .set("medium", non_empty(ml_text(&ew_derive::medium_text(q, t.net))))
+                .set("od_nm", p.od.as_ref().map(|v| v.value.0))
+                .set("id_nm", p.id.as_ref().map(|v| v.value.0))
+                .set("material", p.material.as_ref().map(|v| v.value.code().to_owned()))
+                .set("colour", p.colour.as_ref().map(|v| colour_text(&v.value)))
+                .set("tube_part", number(p.part.as_ref().map(|v| v.value)))
+                .set("p_rating", p.p_rating.as_ref().map(|v| decimal(v.value)))
+                .set("length_nm", t.length.map(|n| n.0))
+                .set(
+                    "length_source",
+                    if t.length.is_some() { "manual" } else { "missing" },
+                )
+                .set("fitting_a", number(t.from.fitting))
+                .set("fitting_b", number(t.to.fitting))
+                .set("from_location", non_empty(t.from.location.clone()))
+                .set("to_location", non_empty(t.to.location.clone()))
+                .set("page_id", t.page.map(uuid))
+                .set("prov_tube", serde_json::Value::Object(prov).to_string());
+            r
+        })
+        .collect()
+}
+
+/// `api_v1_valve_position`: one row per position of a valve module, in `valve_terminal_rows` order.
+fn valve_positions(q: &Q) -> Vec<Row> {
+    q.get::<ew_derive::ValveTerminalRows>(())
+        .iter()
+        .filter_map(|v| {
+            let position = v.position?;
+            let occupancy = match v.slot {
+                ew_derive::VtSlot::Valve => "valve",
+                ew_derive::VtSlot::Blank => "blank",
+                _ => "empty",
+            };
+            let channels: Vec<String> = v.channels.iter().map(|c| uuid(*c)).collect();
+            let mut r = Row::new(&VALVE_POSITION);
+            r.set("module_id", uuid(v.module))
+                .set("module_tag", non_empty(ew_derive::short_tag(q, v.module)))
+                .set("position", position)
+                .set("occupancy", occupancy)
+                .set("valve_id", v.device.map(uuid))
+                .set(
+                    "valve_tag",
+                    v.device.map(|d| ew_derive::short_tag(q, d)).and_then(non_empty),
+                )
+                .set(
+                    "valve_part",
+                    v.device.map(|d| ew_derive::part_number(q, d)).and_then(non_empty),
+                )
+                .set("solenoids", json_array(&v.solenoids))
+                .set("channel_ids", json_array(&channels))
+                .set("addresses", v.addresses.clone())
+                .set("function_text", non_empty(ml_text(&v.function_text)))
+                .set("process_tag", v.process_tag.clone())
+                .set("target_id", v.target.map(uuid))
+                .set(
+                    "target_tag",
+                    v.target.map(|d| ew_derive::short_tag(q, d)).and_then(non_empty),
+                )
+                .set("state", v.state.as_ref().map(enum_text));
+            Some(r)
+        })
+        .collect()
+}
+
+/// `api_v1_medium`: one row per project medium, in `medium_rows` order.
+fn media(q: &Q) -> Vec<Row> {
+    let media = q.table::<ew_derive::ew_schema::Medium>();
+    q.get::<ew_derive::MediumRows>(())
+        .iter()
+        .filter_map(|m| {
+            let rec = media.get(m.medium)?;
+            let mut r = Row::new(&MEDIUM);
+            r.set("id", uuid(m.medium))
+                .set("name", ml_text(&rec.name))
+                .set("code", rec.code.as_ref().map(|c| c.as_str().to_owned()))
+                .set("discipline", enum_text(&rec.discipline))
+                .set("p_nom", decimal(rec.p_nom))
+                .set("quality", rec.quality.as_ref().map(|c| c.as_str().to_owned()))
+                .set("source_cps", json_array(&m.sources))
+                .set("consumer_count", m.consumers.len())
+                .set(
+                    "default_tube",
+                    non_empty(ew_derive::tube_spec_text(q, &rec.default_tube)),
+                );
+            Some(r)
         })
         .collect()
 }

@@ -1,0 +1,56 @@
+{
+  "$k": "fndef",
+  "id": "911f2230-d7a8-503b-b6c7-f19c603228d9",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e440d978-3937-5759-baae-816539b0e444",
+  "version": "0.1.0",
+  "sha256": "sha256:8c87ae9563698e0aa3421fbe1e12b0389a40ad2a3353eace6431590878602d45",
+  "meta": {
+    "key": "ew.fn.filter",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Filter",
+    "Standard"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

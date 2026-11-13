@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "fffc8b90-55ce-5e22-a331-80f0472f526d",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "f5ebf148-5ffd-58f9-abc6-bda8e6d723de",
+  "version": "0.1.0",
+  "sha256": "sha256:2c6beaa52a7bf8454ef8a78f81b479478ba362c51ab669fd8d07bbde12516bab",
+  "meta": {
+    "key": "ew.fn.pressure-gauge",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Gauge",
+    "Pressure"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "sensing"
+    }
+  ]
+}

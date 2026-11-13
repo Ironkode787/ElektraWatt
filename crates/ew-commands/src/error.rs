@@ -277,6 +277,7 @@ fn invariant_text(id: &str) -> Option<Text> {
         i::ITEM_PAGE_EXISTS => text!("refusal-inv-022"),
         i::MARKER_CONNECTIONS => text!("refusal-inv-023"),
         i::FLUID_LINES => text!("refusal-inv-024"),
+        i::DRIVES_TARGET => text!("refusal-inv-025"),
         _ => return None,
     })
 }

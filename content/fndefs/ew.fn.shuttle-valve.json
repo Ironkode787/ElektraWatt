@@ -1,0 +1,68 @@
+{
+  "$k": "fndef",
+  "id": "24a47f55-78aa-5e4e-bd90-a4d43463fe0e",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "8fa6dd4d-4dcd-5189-bf11-1aa44a8f8eae",
+  "version": "0.1.0",
+  "sha256": "sha256:19b0ca5acf5dfe637e621659e22e8d3cb8d3056b14449b5bb829bf0aba180031",
+  "meta": {
+    "key": "ew.fn.shuttle-valve",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FlowLogic",
+    "Shuttle",
+    "Or"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 2,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 2
+                }
+              },
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

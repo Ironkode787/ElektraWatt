@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "3596d591-97b2-5e59-91d6-0230d7004b2f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "780a80af-e83a-5751-910f-de0bb0c881dd",
+  "version": "0.1.0",
+  "sha256": "sha256:692c2b4eaf70e5233cdcaf18601a0834ea462315f49439412d020310001b2429",
+  "meta": {
+    "key": "ew.fn.cylinder-single-acting",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "CylinderFluid",
+    "SingleActing",
+    "Cylinder"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "A",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    }
+  ]
+}

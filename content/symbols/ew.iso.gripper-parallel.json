@@ -1,0 +1,211 @@
+{
+  "$k": "symbol",
+  "id": "7b4435ba-2ae5-5c29-8f01-f8f6276d19e0",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "33128d9b-ffbb-5aa7-9fce-c53211101036",
+  "version": "0.1.0",
+  "sha256": "sha256:de0586e020061c94bc56b3b68e03bf95cbd61ef40fb375c5a10f87acd84163ce",
+  "meta": {
+    "key": "ew.iso.gripper-parallel",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Gripper, parallel, double-acting",
+    "nl": "Grijper, parallel, dubbelwerkend"
+  },
+  "keywords": [
+    "actuator",
+    "gripper",
+    "pneumatic"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "d12b6e13-cf57-5303-86c2-7ac5ed8796a0",
+    "version_req": "^0.1",
+    "key": "ew.fn.gripper-parallel"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            4000000
+          ],
+          [
+            16000000,
+            12000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2000000,
+          4000000
+        ],
+        "to": [
+          2000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          14000000,
+          4000000
+        ],
+        "to": [
+          14000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          4000000,
+          16000000
+        ],
+        "to": [
+          4000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          12000000,
+          16000000
+        ],
+        "to": [
+          12000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        4000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        12000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -12000000,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -12000000,
+        18000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        5000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        13000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

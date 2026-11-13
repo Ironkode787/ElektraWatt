@@ -475,7 +475,14 @@ impl ShellModel {
         type Attach = (ew_api::output::Uuid, String, ew_api::output::Uuid, String, u32);
         let (target, wired_to, attach): ((ew_api::output::Uuid, u16), Option<String>, Option<Attach>) =
             match pr.session.off_card_bind(ch, function.0, idx) {
-                None => ((function.0, idx), None, None),
+                // A valve's symbol stands for its internal coil (FT-740).
+                None => (
+                    pr.session
+                        .valve_coil_target(ch, function.0, idx)
+                        .unwrap_or((function.0, idx)),
+                    None,
+                    None,
+                ),
                 Some(OffCardBind::Wired { device, card, pins }) => match pins.as_slice() {
                     [pin] => ((pin.function, pin.idx), Some(device), None),
                     _ => {

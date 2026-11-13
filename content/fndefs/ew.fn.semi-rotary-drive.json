@@ -1,0 +1,36 @@
+{
+  "$k": "fndef",
+  "id": "6aca1879-cfbf-50d7-9539-59672d61d112",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d8e2b7f2-27fb-57d4-bd8c-78514589968e",
+  "version": "0.1.0",
+  "sha256": "sha256:265dbde8b725c00c78478dd89858f83c318def54e696c1c2c5901ed0902ad811",
+  "meta": {
+    "key": "ew.fn.semi-rotary-drive",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "CylinderFluid",
+    "SemiRotary",
+    "DoubleActing"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "A",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    },
+    {
+      "idx": 1,
+      "designation": "B",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    }
+  ]
+}

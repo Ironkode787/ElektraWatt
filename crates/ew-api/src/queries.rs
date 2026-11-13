@@ -3,7 +3,8 @@
 
 //! The public queries of `ew query` (doc 17 §3.3 and §3.4, FR-EXT-005).
 //!
-//! [`REGISTRY`] is the closed MVP set of twelve named queries. Each entry has a name, the grammar of its key, an
+//! [`REGISTRY`] is the closed set of named queries: the twelve of the MVP and the fluid queries `medium_zones` and
+//! `tube_props` (doc 11 §8.3). Each entry has a name, the grammar of its key, an
 //! output type (`serde` and `schemars`, as D5 rules for the CLI's results) with `output_version` 1, and a golden
 //! example key on Golden A. A key is a reference of the `.ewcmd` grammar (`tag:`, `id:`, `folio:`, a bare tag),
 //! resolved by [`Session::resolve_reference`], or `-` for a query without a key. Every adapter checks the kind of
@@ -149,6 +150,17 @@ pub const REGISTRY: &[QueryDef] = &[
         run: displayed_tag,
     },
     QueryDef {
+        name: "medium_zones",
+        key: "-",
+        description: "The media each fluid net can carry after propagation (doc 11 §5.3): per net that carries one, \
+                      its first port and its media, each set there (direct) or carried there (reached).",
+        example: "-",
+        output_version: OUTPUT_VERSION,
+        takes: "no key (`-`)",
+        output: schema_of::<MediumZonesOutput>,
+        run: medium_zones,
+    },
+    QueryDef {
         name: "page_order",
         key: "-",
         description: "The folio labels of every page in page order: drawn pages, section dividers and generated \
@@ -188,6 +200,17 @@ pub const REGISTRY: &[QueryDef] = &[
         takes: "a drawn page (`folio:101`)",
         output: schema_of::<TitleBlockOutput>,
         run: title_block,
+    },
+    QueryDef {
+        name: "tube_props",
+        key: "id:<uuid> (a fluid line)",
+        description: "The effective tube values of a fluid line, each with where it comes from: the project's \
+                      default tube, the medium of its net, its tube part, or the line's own override (doc 11 §5.4).",
+        example: "id:bf6e5853-bbb2-56cc-a931-fc6bd12a31e9",
+        output_version: OUTPUT_VERSION,
+        takes: "a fluid line (`id:<uuid>`)",
+        output: schema_of::<TubePropsOutput>,
+        run: tube_props,
     },
     QueryDef {
         name: "wire_numbers",
@@ -307,6 +330,52 @@ pub struct WirePropsOutput {
     pub potential: String,
     /// The physical wires the connection belongs to, in the order of their numbers.
     pub wires: Vec<WireOut>,
+}
+
+/// One medium of a net of [`MediumZonesOutput`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ZoneMedium {
+    /// The medium as printed ("compressed air 6 bar", "exhaust").
+    pub medium: String,
+    /// `direct` (set at the net) or `reached` (carried there).
+    pub origin: String,
+}
+
+/// One net of [`MediumZonesOutput`].
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Zone {
+    /// The net's first port (`-201U9:1`).
+    pub at: String,
+    /// Its media.
+    pub media: Vec<ZoneMedium>,
+}
+
+/// `medium_zones`.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MediumZonesOutput {
+    /// The nets that carry a medium, in net order.
+    pub zones: Vec<Zone>,
+}
+
+/// `tube_props`.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TubePropsOutput {
+    /// The outer diameter in mm; `null` when no level gives one.
+    pub od: Option<WireProp>,
+    /// The inner diameter in mm.
+    pub id: Option<WireProp>,
+    /// The material.
+    pub material: Option<WireProp>,
+    /// The colour.
+    pub colour: Option<WireProp>,
+    /// The tube part's number.
+    pub part: Option<WireProp>,
+    /// The pressure rating in bar.
+    pub p_rating: Option<WireProp>,
 }
 
 /// `xref_text_of`.
@@ -1164,6 +1233,136 @@ fn wire_props_of(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
         lines,
         output: to_value(&out),
         explain: cx.explain::<WirePropsOf>(&p, None),
+    })
+}
+
+/// The words of a medium text for the CLI: its English form, else its neutral or first form.
+fn medium_words(t: &ew_derive::ew_mltext::MlText) -> String {
+    let en = "en-GB".parse().expect("a language tag");
+    t.text_for(&en)
+        .map_or_else(|| ew_derive::neutral(t), str::to_owned)
+}
+
+fn medium_zones(cx: &Cx<'_>, _key: &str) -> Result<Answer, String> {
+    let q = &cx.q;
+    let zones = q.get::<ew_derive::MediumZones>(());
+    let mut out = MediumZonesOutput { zones: Vec::new() };
+    let mut lines = Vec::new();
+    for (net, keys) in &zones.media {
+        let at = zones
+            .at
+            .get(net)
+            .and_then(|m| ew_derive::CpRef::of(*m))
+            .map(|cp| ew_derive::cp_label(q, cp))
+            .unwrap_or_default();
+        let media: Vec<ZoneMedium> = keys
+            .iter()
+            .map(|(k, o)| ZoneMedium {
+                medium: medium_words(&k.text(q)),
+                origin: match o {
+                    ew_derive::MediumOrigin::Direct => "direct",
+                    ew_derive::MediumOrigin::Reached => "reached",
+                }
+                .to_owned(),
+            })
+            .collect();
+        let words: Vec<String> = media
+            .iter()
+            .map(|m| format!("{} ({})", m.medium, m.origin))
+            .collect();
+        lines.push(line("net", &format!("{at}: {}", words.join(", "))));
+        out.zones.push(Zone { at, media });
+    }
+    Ok(Answer {
+        lines,
+        output: to_value(&out),
+        explain: cx.explain::<ew_derive::MediumZones>(&(), None),
+    })
+}
+
+fn tube_props(cx: &Cx<'_>, key: &str) -> Result<Answer, String> {
+    let q = &cx.q;
+    let c = match cx.record(key)? {
+        (_, Rec::Connection(c)) => c,
+        (uuid, other) => return Err(cx.wrong(key, uuid, other, "")),
+    };
+    if !q
+        .connections()
+        .get(c)
+        .is_some_and(|x| matches!(x.kind, ew_schema::ConnectionKind::Fluid(_)))
+    {
+        return Err(format!(
+            "`{key}`: {} is no fluid line",
+            rec_words(q, c.as_uuid(), Rec::Connection(c))
+        ));
+    }
+    let props = q.get::<ew_derive::TubePropsOf>(c);
+    let via = |s: &ew_derive::TubeSource| match s {
+        ew_derive::TubeSource::Project => "the project's default tube".to_owned(),
+        ew_derive::TubeSource::Medium(m) => format!(
+            "medium '{}'",
+            q.table::<ew_schema::Medium>()
+                .get(*m)
+                .map(|m| medium_words(&m.name))
+                .unwrap_or_default()
+        ),
+        ew_derive::TubeSource::Part(p) => format!(
+            "tube part {}",
+            q.parts()
+                .get(*p)
+                .map(|c| c.item.part_number.as_str().to_owned())
+                .unwrap_or_default()
+        ),
+        ew_derive::TubeSource::Override => "override".to_owned(),
+    };
+    let prop = |value: Option<(String, &ew_derive::TubeSource)>| {
+        value.map(|(value, s)| WireProp { value, via: via(s) })
+    };
+    let out = TubePropsOutput {
+        od: prop(props.od.as_ref().map(|v| (ew_derive::mm(v.value), &v.source))),
+        id: prop(props.id.as_ref().map(|v| (ew_derive::mm(v.value), &v.source))),
+        material: prop(
+            props
+                .material
+                .as_ref()
+                .map(|v| (v.value.code().to_owned(), &v.source)),
+        ),
+        colour: prop(
+            props
+                .colour
+                .as_ref()
+                .and_then(|v| ew_derive::colour_text(&v.value).map(|t| (t, &v.source))),
+        ),
+        part: prop(props.part.as_ref().map(|v| {
+            (
+                q.parts()
+                    .get(v.value)
+                    .map(|c| c.item.part_number.as_str().to_owned())
+                    .unwrap_or_default(),
+                &v.source,
+            )
+        })),
+        p_rating: prop(props.p_rating.as_ref().map(|v| (v.value.to_string(), &v.source))),
+    };
+    let mut lines = Vec::new();
+    for (name, p) in [
+        ("od", &out.od),
+        ("id", &out.id),
+        ("material", &out.material),
+        ("colour", &out.colour),
+        ("part", &out.part),
+        ("p_rating", &out.p_rating),
+    ] {
+        lines.push(line(
+            name,
+            &p.as_ref()
+                .map_or_else(|| "-".to_owned(), |p| format!("{} ({})", p.value, p.via)),
+        ));
+    }
+    Ok(Answer {
+        lines,
+        output: to_value(&out),
+        explain: cx.explain::<ew_derive::TubePropsOf>(&c, None),
     })
 }
 

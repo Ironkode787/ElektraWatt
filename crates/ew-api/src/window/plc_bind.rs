@@ -106,6 +106,58 @@ fn channel_pins(q: &Q, module: Id<Device>) -> BTreeSet<(Id<Function>, u16)> {
 }
 
 impl Session {
+    /// The internal coil a channel dropped on a valve's symbol binds (FT-740, FR-PLC-020): Golden A's valves draw no
+    /// coil CP, since an internal coil is never drawn (doc 11 §3.1), so a drop on any port of a valve function whose
+    /// device declares solenoids reaches its coil. Of the declared solenoids with an internal coil CP: the one whose
+    /// coil the channel already binds, else the one the channel's module maps the channel to at the valve's position
+    /// (the solenoid-position map), else the first whose coil no channel binds, else the first. `None` for a CP of
+    /// any other function, so the drop binds where it lands.
+    pub fn valve_coil_target(&self, channel: Uuid, function: Uuid, idx: u16) -> Option<(Uuid, u16)> {
+        let q = self.query();
+        let fid: Id<Function> = Id::from_uuid(function);
+        let f = q.functions().get(fid)?;
+        let valve = q
+            .fndefs()
+            .get(f.def)
+            .is_some_and(|d| d.item.contact_kind == ew_derive::ew_schema::ContactKind::Valve);
+        let device = f.device?;
+        if !valve || !q.get::<FunctionCps>(fid).iter().any(|c| c.idx == idx) {
+            return None;
+        }
+        let parts = q.parts();
+        let solenoids: Vec<_> = q.devices().get(device)?.parts.iter().find_map(|u| {
+            parts
+                .get(u.part.copy)
+                .and_then(|c| ew_derive::valve_solenoids(&c.item).map(<[_]>::to_vec))
+        })?;
+        let coils: Vec<(String, CpRef)> = solenoids
+            .iter()
+            .filter_map(|s| ew_derive::solenoid_coil(&q, device, s).map(|cp| (s.as_str().to_owned(), cp)))
+            .collect();
+        let bound = q.get::<ChannelsByCp>(());
+        let ch: Id<Channel> = Id::from_uuid(channel);
+        let mapped = || {
+            let c = q.table::<Channel>().get(ch)?;
+            q.get::<ew_derive::SolenoidPositions>(c.module)
+                .iter()
+                .find(|p| p.valve == Some(device) && p.channel == Some(c.number))
+                .and_then(|p| p.coil)
+        };
+        let chosen = coils
+            .iter()
+            .find(|(_, cp)| bound.at_cp(cp.function, cp.idx).any(|b| b == ch))
+            .map(|(_, cp)| *cp)
+            .or_else(mapped)
+            .or_else(|| {
+                coils
+                    .iter()
+                    .find(|(_, cp)| bound.at_cp(cp.function, cp.idx).next().is_none())
+                    .map(|(_, cp)| *cp)
+            })
+            .or_else(|| coils.first().map(|(_, cp)| *cp))?;
+        Some((chosen.function.as_uuid(), chosen.idx))
+    }
+
     /// What the channel `channel` dropped on CP `idx` of `function` can do when that CP is off the channel's card
     /// (see [`OffCardBind`]); `None` when the function is on the card or one of its children (the plain
     /// `plc.bind_channel` applies), or when a record is missing (the command then answers).

@@ -1,0 +1,145 @@
+{
+  "$k": "fndef",
+  "id": "46e56626-07c2-5441-ac05-541e850aadbc",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "2831994e-d944-53de-9de0-a8992cf0b69d",
+  "version": "0.1.0",
+  "sha256": "sha256:a0f6ff34bbec4dc0ac33e4583cdc44a9eaf7c61db1ae605ce7785ce20e432c8a",
+  "meta": {
+    "key": "ew.fn.valve-5-3-cc",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveDirectional",
+    "Valve53",
+    "ClosedCentre"
+  ],
+  "contact_kind": "valve",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    },
+    {
+      "idx": 3,
+      "designation": "4",
+      "discipline": "pneumatic",
+      "port_role": "working4"
+    },
+    {
+      "idx": 4,
+      "designation": "5",
+      "discipline": "pneumatic",
+      "port_role": "exhaust5"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "a",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 3
+                }
+              },
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              },
+              {
+                "closed": 4
+              }
+            ]
+          },
+          {
+            "label": "0",
+            "paths": [
+              {
+                "closed": 0
+              },
+              {
+                "closed": 1
+              },
+              {
+                "closed": 2
+              },
+              {
+                "closed": 3
+              },
+              {
+                "closed": 4
+              }
+            ]
+          },
+          {
+            "label": "b",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "flow": {
+                  "from": 3,
+                  "to": 4
+                }
+              },
+              {
+                "closed": 2
+              }
+            ]
+          }
+        ],
+        "rest": 1,
+        "actuation": [
+          {
+            "actuator": {
+              "solenoid": {
+                "solenoid": "14"
+              }
+            },
+            "selects": 0
+          },
+          {
+            "actuator": {
+              "solenoid": {
+                "solenoid": "12"
+              }
+            },
+            "selects": 2
+          },
+          {
+            "actuator": "spring",
+            "selects": 1
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -42,6 +42,8 @@ pub enum Member {
     TextStyles,
     /// `ProjectSettings.process_tag_scheme` (typed; FR-PLC-049): the regular expression a process tag matches.
     ProcessTagScheme,
+    /// `ProjectSettings.fluid` (typed; doc 11 §2.4, §5.4): the default tube and the line-tag scheme.
+    Fluid,
 }
 
 impl Member {
@@ -58,6 +60,7 @@ impl Member {
             Member::DerivationProfile => "derivation_profile",
             Member::TextStyles => "text_styles",
             Member::ProcessTagScheme => "process_tag_scheme",
+            Member::Fluid => "fluid",
         }
     }
 
@@ -73,6 +76,7 @@ impl Member {
         Member::DerivationProfile,
         Member::TextStyles,
         Member::ProcessTagScheme,
+        Member::Fluid,
     ];
 
     /// The member stored under `name` ([`Member::name`]).
@@ -98,6 +102,7 @@ impl Member {
 /// - `wire_default` and `ip_pairing`: their shapes;
 /// - `text_styles`: [`ew_schema::check_text_styles`] (identifier keys, sizes of 0.5 … 50 mm, known weights);
 /// - `process_tag_scheme`: a text that compiles as a regular expression ([`crate::plc::process_tag_scheme`]).
+/// - `fluid`: its shape (`ew_schema::FluidSettings`); the tube values are checked by the command (FI-05).
 ///
 /// `frames` and `derivation_profile` have no checker here and are refused with a message saying so.
 pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
@@ -150,6 +155,9 @@ pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
             Some(text) => crate::plc::process_tag_scheme(text).map(drop),
             None => Err("the scheme is a text: a regular expression with named groups".to_owned()),
         },
+        Member::Fluid => serde_json::from_value::<ew_schema::FluidSettings>(value.clone())
+            .map(drop)
+            .map_err(|e| e.to_string()),
         Member::Frames | Member::DerivationProfile => {
             Err(format!("`{}` has no value checker", member.name()))
         }
@@ -205,6 +213,9 @@ impl Query for SettingsMember {
             Member::TextStyles => (!project.settings.text_styles.is_empty()).then(|| {
                 serde_json::to_value(&project.settings.text_styles)
                     .expect("a typed settings member serialises")
+            }),
+            Member::Fluid => (!project.settings.fluid.is_empty()).then(|| {
+                serde_json::to_value(&project.settings.fluid).expect("a typed settings member serialises")
             }),
             other => project.settings.extra.get(other.name()).cloned(),
         };

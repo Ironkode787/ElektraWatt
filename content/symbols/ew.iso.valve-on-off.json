@@ -1,0 +1,449 @@
+{
+  "$k": "symbol",
+  "id": "d8ce5c71-7b8c-594b-abc0-bb9910dc0806",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "fe14e379-92bd-56c4-b75e-84d11f470914",
+  "version": "0.1.0",
+  "sha256": "sha256:7143ca51a1c514260b52609291f652c3e0d346671bd1829a0ad6e895331f9876",
+  "meta": {
+    "key": "ew.iso.valve-on-off",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "On/off valve, 3/2 with lever, lockable",
+    "nl": "Afsluitventiel, 3/2 met hendel, afsluitbaar"
+  },
+  "keywords": [
+    "3/2",
+    "air preparation",
+    "lever",
+    "on/off",
+    "pneumatic",
+    "valve"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "92c46a78-7605-5396-8531-88f8c79a61aa",
+    "version_req": "^0.1",
+    "key": "ew.fn.valve-on-off"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            16000000,
+            16000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            16000000,
+            0
+          ],
+          [
+            32000000,
+            16000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          20000000,
+          16000000
+        ],
+        "to": [
+          20000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          24000000,
+          0
+        ],
+        "to": [
+          24000000,
+          -4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          28000000,
+          16000000
+        ],
+        "to": [
+          28000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          4000000,
+          16000000
+        ],
+        "to": [
+          8000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            8000000,
+            2000000
+          ],
+          [
+            7000000,
+            2000000
+          ],
+          [
+            8000000,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          12000000,
+          16000000
+        ],
+        "to": [
+          12000000,
+          13000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          10500000,
+          13000000
+        ],
+        "to": [
+          13500000,
+          13000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          24000000,
+          0
+        ],
+        "to": [
+          28000000,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            27000000,
+            14000000
+          ],
+          [
+            28000000,
+            14000000
+          ],
+          [
+            28000000,
+            16000000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          20000000,
+          16000000
+        ],
+        "to": [
+          20000000,
+          13000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          18500000,
+          13000000
+        ],
+        "to": [
+          21500000,
+          13000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          0,
+          8000000
+        ],
+        "to": [
+          -4000000,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -4000000,
+          8000000
+        ],
+        "to": [
+          -6000000,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            32000000,
+            8000000
+          ],
+          [
+            33000000,
+            6000000
+          ],
+          [
+            35000000,
+            10000000
+          ],
+          [
+            37000000,
+            6000000
+          ],
+          [
+            39000000,
+            10000000
+          ],
+          [
+            40000000,
+            8000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        20000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        24000000,
+        -4000000
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        28000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -12000000,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -12000000,
+        18000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        21000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        25000000,
+        -2000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        29000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        -12000000,
+        3000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      16000000,
+      8000000
+    ]
+  }
+}

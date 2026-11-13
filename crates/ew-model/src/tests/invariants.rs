@@ -1294,6 +1294,39 @@ fn fluid(id: u128, a: ew_schema::Endpoint, b: ew_schema::Endpoint) -> Connection
     c
 }
 
+/// FT-1569: a project loaded with the FnDef copy of a valve dropped as damaged, a fluid line at that valve's port: an
+/// edit that embeds another copy (the update of a second damaged copy from its library) touches a copy, so EW-INV-024
+/// judges every line; the port whose definition is gone is not judged, so the edit is no misfit. Before the fix the
+/// port was "no fluid port" and every such update was refused.
+#[test]
+fn inv024_a_port_without_its_definition_is_not_judged() {
+    let (project, mut records, mut lib) = mini_golden_parts();
+    lib.push(LibDocument::Fndef(fluid_fndef(
+        nid(HYD),
+        ew_schema::Discipline::Hydraulic,
+    )));
+    for (dev, f, counter) in [(0x24_101, FQ1, 1), (0x24_102, FQ2, 2)] {
+        records.push(Record::Device(device(nid(dev), "Q", counter)));
+        records.push(Record::Function(function(
+            nid(f),
+            nid(dev),
+            nid(PNEU),
+            FnRole::Main,
+        )));
+    }
+    records.push(Record::Connection(fluid(
+        0x24_401,
+        cp(nid(FQ1), 0),
+        cp(nid(FQ2), 0),
+    )));
+    let dropped: std::collections::BTreeSet<AnyKey> =
+        [(ew_schema::Kind::Fndef, nid::<FnDef>(PNEU).cast())].into();
+    let loaded =
+        Model::from_records_missing(project, records, lib, &dropped).expect("the dropped copy is tolerated");
+    let other = fluid_fndef(nid(0x24_002), ew_schema::Discipline::Pneumatic);
+    edit(&loaded, &[ins(other)]).expect("embedding another copy is no misfit");
+}
+
 /// A fluid line between two pneumatic ports and a pilot line between them are accepted.
 #[test]
 fn inv024_fluid_line_between_fluid_ports_ok() {

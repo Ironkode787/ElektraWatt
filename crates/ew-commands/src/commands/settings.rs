@@ -37,6 +37,7 @@ pub struct SettableSetting {
 /// | `xref_format` | the cross-reference format (doc 03 §5.1 `XrefFormat`, FR-XRF-003) | cross-reference texts |
 /// | `text_styles` | the text styles as overrides of the built-in table, by style key (ADR-0032, FR-SYM-013) | the size and weight of every text printed in an overridden or added style, EW-CORE-061 |
 /// | `process_tag_scheme` | the regular expression with named groups a process tag matches (FR-PLC-049, doc 10 §3.4) | EW-PRC-001 |
+/// | `fluid` | the default tube of every fluid line and the line-tag scheme (doc 11 §2.4, §5.4) | effective tube values, tube list, EW-FL-006, EW-FL-007 |
 ///
 /// The first four are provisional members kept in `ProjectSettings.extra` until their work packages type them;
 /// their values are checked with the parsers the derivations read them with, so a value the derivation
@@ -75,6 +76,11 @@ pub const SETTABLE_SETTINGS: &[SettableSetting] = &[
         member: Member::ProcessTagScheme,
         doc: "the process-tag scheme: a regular expression with named groups",
     },
+    SettableSetting {
+        name: "fluid",
+        member: Member::Fluid,
+        doc: "the fluid settings: the default tube and the line-tag scheme",
+    },
 ];
 
 /// `project.settings.set` (`SetProjectSettings`): sets one member of the project settings.
@@ -101,7 +107,7 @@ pub const SETTABLE_SETTINGS: &[SettableSetting] = &[
 #[serde(deny_unknown_fields)]
 pub struct SetProjectSettings {
     /// The member to set: a name of the settable table (`numbering`, `colour_profile`, `size_profile`,
-    /// `xref_format`, `text_styles`, `process_tag_scheme`).
+    /// `xref_format`, `text_styles`, `process_tag_scheme`, `fluid`).
     pub member: String,
     /// The member's new value in its JSON shape; `null` removes it (the profile's default applies).
     pub value: Value,
@@ -129,6 +135,9 @@ impl Command for SetProjectSettings {
         };
         if spec.member == Member::TextStyles {
             return self.set_text_styles(tx);
+        }
+        if spec.member == Member::Fluid {
+            return self.set_fluid(tx);
         }
         if !self.value.is_null() {
             ew_derive::check_settings_member(spec.member, &self.value).map_err(|detail| {
@@ -161,6 +170,26 @@ impl Command for SetProjectSettings {
 }
 
 impl SetProjectSettings {
+    /// `fluid`: the typed member, replaced as a whole; its default tube is checked against FI-05.
+    fn set_fluid(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let fluid: ew_schema::FluidSettings = if self.value.is_null() {
+            Default::default()
+        } else {
+            serde_json::from_value(self.value.clone()).map_err(|e| {
+                CmdError::invalid_params(
+                    Self::NAME,
+                    "/value",
+                    text!("refusal-settings-value", "fluid".to_owned(), e.to_string()),
+                )
+            })?
+        };
+        crate::commands::fluid::check_tube(tx, &fluid.default_tube)?;
+        let mut project = (*tx.project()).clone();
+        project.settings.fluid = fluid;
+        tx.set_project(project)?;
+        Ok(Outcome::default())
+    }
+
     /// `text_styles`: the typed member, replaced as a whole and refused at the member path (ADR-0032 decision 6).
     fn set_text_styles(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let styles = if self.value.is_null() {

@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "e23f0601-afad-5500-be22-fad1b0fbda50",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "85b07272-8981-530e-b096-7e2d7e7a0637",
+  "version": "0.1.0",
+  "sha256": "sha256:96057542e373821ba392c6087096cde66a8e520028158e16d832a859f2644463",
+  "meta": {
+    "key": "ew.fn.suction-cup",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Vacuum",
+    "SuctionCup",
+    "Standard"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    }
+  ]
+}

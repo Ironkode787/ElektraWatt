@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "8f72dd84-b8fe-5204-bb78-d27ed1989956",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "434d29d5-046c-5471-9ab1-e661d94b4597",
+  "version": "0.1.0",
+  "sha256": "sha256:38c66a59b08bb2f9b8a56f013599f87e7a031848e7b6d2556f77ddfcebd84c51",
+  "meta": {
+    "key": "ew.fn.pressure-switch",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FluidSensor",
+    "PressureSwitch",
+    "Sensing"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "sensing"
+    }
+  ]
+}

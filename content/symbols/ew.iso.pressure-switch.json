@@ -1,0 +1,164 @@
+{
+  "$k": "symbol",
+  "id": "e4ca5451-a69c-5c22-b15b-ef5d4e2a2c7a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "2535a240-b19e-5caa-ab2a-f740e864a78c",
+  "version": "0.1.0",
+  "sha256": "sha256:0ed3fba3f994ebf1c644e005e8662d910fcbf590ee1177b707ac27d4516d341d",
+  "meta": {
+    "key": "ew.iso.pressure-switch",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Pressure switch, fluid side",
+    "nl": "Drukschakelaar, fluïdumzijde"
+  },
+  "keywords": [
+    "pneumatic",
+    "sensing",
+    "switch"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "434d29d5-046c-5471-9ab1-e661d94b4597",
+    "version_req": "^0.1",
+    "key": "ew.fn.pressure-switch"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            16000000,
+            16000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            4000000,
+            12000000
+          ],
+          [
+            8000000,
+            4000000
+          ],
+          [
+            12000000,
+            12000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          16000000
+        ],
+        "to": [
+          8000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        8000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -12000000,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -12000000,
+        18000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        9000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

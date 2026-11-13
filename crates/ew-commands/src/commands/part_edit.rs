@@ -229,7 +229,14 @@ where
 fn repointed_link(link: &LinkDecl) -> bool {
     matches!(
         link.from,
-        Kind::Device | Kind::Connection | Kind::PotentialDef | Kind::Carrier | Kind::Function
+        Kind::Device
+            | Kind::Connection
+            | Kind::PotentialDef
+            | Kind::Carrier
+            | Kind::Function
+            | Kind::Junction
+            | Kind::Medium
+            | Kind::Project
     )
 }
 
@@ -325,6 +332,18 @@ impl Command for EditPartCopy {
                         Kind::PotentialDef => repoint_kind::<PotentialDef>(tx, link.field, self.copy, id)?,
                         Kind::Carrier => repoint_kind::<ew_schema::Carrier>(tx, link.field, self.copy, id)?,
                         Kind::Function => repoint_kind::<ew_schema::Function>(tx, link.field, self.copy, id)?,
+                        Kind::Junction => repoint_kind::<ew_schema::Junction>(tx, link.field, self.copy, id)?,
+                        Kind::Medium => repoint_kind::<ew_schema::Medium>(tx, link.field, self.copy, id)?,
+                        Kind::Project => {
+                            let path: Vec<&str> = link.field.split('.').collect();
+                            let mut v = serde_json::to_value(&*tx.project())
+                                .map_err(|e| CmdError::internal(e.to_string()))?;
+                            if repoint_at(&mut v, &path, &self.copy.to_string(), &id.to_string()) {
+                                let project = serde_json::from_value(v)
+                                    .map_err(|e| CmdError::internal(e.to_string()))?;
+                                tx.set_project(project)?;
+                            }
+                        }
                         other => {
                             return Err(CmdError::internal(format!(
                                 "part.edit_copy does not re-point the part-copy link {other}.{}",

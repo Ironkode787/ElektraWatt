@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The fluid commands (doc 11 §4.3): `valve.set_occupancy` (`SetValveOccupancy`) and
-//! `fluid.port.close` (`ClosePort`).
+//! The fluid commands (doc 11 §4.3): `valve.set_occupancy` (`SetValveOccupancy`), `fluid.port.close`
+//! (`ClosePort`), `fluid.medium.edit` (`EditMedium`), `fluid.medium.define` (`DefineMedium`), `fluid.tube.set`
+//! (`SetTube`) and `fluid.length.set` (`SetLength`).
 
 use std::sync::Arc;
 
 use ew_ids::Id;
-use ew_mltext::MlText;
+use ew_mltext::{Ident, MlText};
 use ew_model::FluidPortClass;
 use ew_schema::{
-    Channel, ClosureKind, Connection, ConnectionKind, ContactKind, CpOverride, Device, DeviceAspects,
-    DeviceKind, DeviceState, Endpoint, Extra, FnDef, FnRole, Function, FunctionKind, Kind, LibCopy, Part,
-    PartRef, PartUse, PortClosure, TagScheme, TagSpec,
+    Channel, ClosureKind, ColourSpec, Connection, ConnectionKind, ContactKind, CpOverride, Device,
+    DeviceAspects, DeviceKind, DeviceState, Discipline, Endpoint, Extra, FnDef, FnRole, Function,
+    FunctionKind, Kind, LengthSource, LibCopy, LineKindTube, Medium, MediumDef, Part, PartRef, PartUse,
+    PortClosure, TagScheme, TagSpec, TempRange, TubeSpec,
 };
-use ew_units::Dec3;
+use ew_units::{Dec3, Nm};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -24,8 +26,8 @@ use crate::commands::assign::embed_closure;
 use crate::commands::connection::cp_fluid_class;
 use crate::error::CmdError;
 use crate::meta::CommandMeta;
-use crate::proxy::UuidS;
-use crate::text::text;
+use crate::proxy::{Dec3S, IdentS, MlTextS, NmS, UuidS};
+use crate::text::{Text, TextArg, text};
 use crate::tx::TxBuilder;
 
 /// The state of a valve set by [`SetValveOccupancy`].
@@ -109,9 +111,20 @@ pub struct SetValveOccupancy {
     pub copies: Vec<Value>,
 }
 
-/// The number of valve positions of a module: `plc.positions.count` of the part named by
-/// `plc_module.part_use`, else of the first part use whose copy has `plc.positions`; `None` for a device without.
+/// The number of valve positions of a module, as `ew_derive::valve_positions` reads it: the `fluid.positions` of
+/// the first part use whose copy has it, else `plc.positions.count` of the part named by `plc_module.part_use`, else
+/// of the first part use whose copy has `plc.positions`; `None` for a device without.
 pub(crate) fn position_count(tx: &TxBuilder<'_>, module: &Device) -> Option<u16> {
+    if let Some(n) = module.parts.iter().find_map(|u| {
+        tx.get::<LibCopy<Part>>(u.part.copy)?
+            .item
+            .sections
+            .fluid
+            .as_ref()?
+            .positions
+    }) {
+        return Some(n);
+    }
     let count = |i: usize| {
         let copy = tx.get::<LibCopy<Part>>(module.parts.get(i)?.part.copy)?;
         let positions = copy.item.sections.plc.as_ref()?.positions.as_ref()?;
@@ -499,5 +512,424 @@ impl Command for ClosePort {
             func.cp_overrides = ew_schema::KeyedList::from_vec(overrides).expect("one override per CP");
         })?;
         Ok(Outcome::primary((Kind::Function, f.cast())))
+    }
+}
+
+/// A fluid line in words: "-201U3-Q1:2 → -203Q1:A" by its ends.
+fn line_words(tx: &TxBuilder<'_>, c: &Connection) -> Text {
+    let end = |e: &Endpoint| -> TextArg {
+        match e {
+            Endpoint::Cp(f, idx) => crate::words::cp(tx, *f, *idx).into(),
+            Endpoint::Junction(j) => crate::words::junction(tx, *j).into(),
+            _ => text!("refusal-words-connection-end").into(),
+        }
+    };
+    text!("refusal-words-connection", end(&c.a), end(&c.b))
+}
+
+/// A length in millimetres as words take it.
+fn mm(n: Nm) -> String {
+    Dec3(n.0 / 1_000).to_string()
+}
+
+/// Checks a tube specification against FI-05 (doc 11 §4.1): diameters larger than zero, the outer larger than the
+/// inner, a pressure rating of zero or more; refused in words.
+pub(crate) fn check_tube(tx: &TxBuilder<'_>, spec: &TubeSpec) -> Result<(), CmdError> {
+    for d in [spec.od, spec.id].into_iter().flatten() {
+        if d.0 <= 0 {
+            return tx.reject(text!("refusal-tube-diameter-positive", mm(d)));
+        }
+    }
+    if let (Some(od), Some(id)) = (spec.od, spec.id)
+        && od <= id
+    {
+        return tx.reject(text!("refusal-tube-diameters", mm(od), mm(id)));
+    }
+    if let Some(p) = spec.p_rating
+        && p < Dec3::ZERO
+    {
+        return tx.reject(text!("refusal-tube-rating-negative", p.to_string()));
+    }
+    if let Some(part) = &spec.part {
+        tx.require::<LibCopy<Part>>(part.copy)?;
+    }
+    Ok(())
+}
+
+/// The values of a project medium ([`EditMedium`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct MediumParam {
+    /// The name ("compressed air 6 bar").
+    #[schemars(with = "MlTextS")]
+    pub name: MlText,
+    /// The ISO 1219-2 medium letter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub code: Option<Ident>,
+    /// Pneumatic (the default), vacuum or hydraulic.
+    #[serde(default = "pneumatic")]
+    pub discipline: Discipline,
+    /// The nominal pressure (bar, gauge).
+    #[schemars(with = "Dec3S")]
+    pub p_nom: Dec3,
+    /// The quality class per ISO 8573-1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub quality: Option<Ident>,
+    /// The temperature range (°C).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub t_range: Option<TempRange>,
+    /// The colour of its tubes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub colour: Option<ColourSpec>,
+    /// The default tube of its lines.
+    #[serde(default, skip_serializing_if = "TubeSpec::is_empty")]
+    pub default_tube: TubeSpec,
+    /// The default tube of the lines of a kind.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub line_kind_tubes: Vec<LineKindTube>,
+}
+
+fn pneumatic() -> Discipline {
+    Discipline::Pneumatic
+}
+
+/// `fluid.medium.edit` (`EditMedium`, doc 11 §4.3, FR-FLU-008): makes, changes or deletes a project medium.
+///
+/// - Without `medium`: a new medium with the values of `set` (required).
+/// - With `medium` and `set`: the medium takes the values of `set`, its ID and provenance kept.
+/// - With `medium` and no `set`: the medium is deleted with its definition points, with a notice naming how many.
+///
+/// Refused: an empty name; a discipline other than pneumatic, vacuum or hydraulic; a default tube against FI-05
+/// (diameters larger than zero, the outer larger than the inner, a rating of zero or more); a tube part the project
+/// does not hold (`NotFound`); a medium that does not exist (`NotFound`). Interactive, one undo step. Outcome: the
+/// medium (none after a deletion).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct EditMedium {
+    /// The medium; absent makes a new one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub medium: Option<Id<Medium>>,
+    /// Its values; absent deletes `medium`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub set: Option<MediumParam>,
+}
+
+impl Command for EditMedium {
+    const NAME: &'static str = "fluid.medium.edit";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if let Some(m) = self.medium {
+            tx.require::<Medium>(m)?;
+        }
+        let Some(set) = &self.set else {
+            let Some(m) = self.medium else {
+                return tx.reject(text!("refusal-medium-nothing"));
+            };
+            let defs = tx
+                .iter::<MediumDef>()
+                .into_iter()
+                .filter(|d| d.medium == m)
+                .count();
+            let name = tx
+                .get::<Medium>(m)
+                .map(|x| ew_derive::neutral(&x.name))
+                .unwrap_or_default();
+            tx.delete((Kind::Medium, m.cast()))?;
+            tx.notice(match defs {
+                0 => format!("deleted medium {name}"),
+                n => format!("deleted medium {name} with {n} definition points"),
+            });
+            return Ok(Outcome::default());
+        };
+        if set.name.is_empty() {
+            return tx.reject(text!("refusal-medium-name-required"));
+        }
+        if !matches!(
+            set.discipline,
+            Discipline::Pneumatic | Discipline::Vacuum | Discipline::Hydraulic
+        ) {
+            return tx.reject(text!("refusal-medium-discipline"));
+        }
+        check_tube(tx, &set.default_tube)?;
+        for t in &set.line_kind_tubes {
+            check_tube(tx, &t.tube)?;
+        }
+        let value = |id: Id<Medium>, source_ref, extra| Medium {
+            id,
+            v: 1,
+            name: set.name.clone(),
+            code: set.code.clone(),
+            discipline: set.discipline.clone(),
+            p_nom: set.p_nom,
+            quality: set.quality.clone(),
+            t_range: set.t_range.clone(),
+            colour: set.colour.clone(),
+            default_tube: set.default_tube.clone(),
+            line_kind_tubes: set.line_kind_tubes.clone(),
+            source_ref,
+            extra,
+        };
+        let id = match self.medium {
+            Some(m) => {
+                let old = tx.require::<Medium>(m)?;
+                let new = value(m, old.source_ref.clone(), old.extra.clone());
+                tx.update::<Medium>(m, |x| *x = new)?;
+                m
+            }
+            None => {
+                let id: Id<Medium> = tx.mint();
+                tx.insert(value(id, None, Extra::new()))?;
+                id
+            }
+        };
+        Ok(Outcome::primary((Kind::Medium, id.cast())))
+    }
+}
+
+/// `fluid.medium.define` (`DefineMedium`, doc 11 §4.3, FR-FLU-009): the medium a fluid port carries, the seed of its
+/// propagation; without `medium` the port's definition is removed.
+///
+/// FI-04: the port must be a fluid port, and holds at most one definition: a new one replaces the old. Refused: a CP
+/// that is no fluid port (in words); a function or medium that does not exist (`NotFound`). Interactive, one undo
+/// step. Outcome: the definition (the function after a removal).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DefineMedium {
+    /// The function.
+    #[schemars(with = "UuidS")]
+    pub function: Id<Function>,
+    /// The CP index.
+    pub idx: u16,
+    /// The medium; absent removes the port's definition.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub medium: Option<Id<Medium>>,
+}
+
+impl Command for DefineMedium {
+    const NAME: &'static str = "fluid.medium.define";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        tx.require::<Function>(self.function)?;
+        let (f, idx) = (self.function, self.idx);
+        if !matches!(cp_fluid_class(tx, f, idx), FluidPortClass::Fluid(_)) {
+            return tx.reject(text!(
+                "refusal-connection-not-fluid-port",
+                crate::words::cp(tx, f, idx)
+            ));
+        }
+        if let Some(m) = self.medium {
+            tx.require::<Medium>(m)?;
+        }
+        let at = Endpoint::Cp(f, idx);
+        let held: Vec<(Kind, ew_ids::Id<()>)> = tx
+            .iter::<MediumDef>()
+            .into_iter()
+            .filter(|d| d.at == at)
+            .map(|d| (Kind::MediumDef, d.id.cast()))
+            .collect();
+        tx.delete_many(&held)?;
+        let Some(medium) = self.medium else {
+            return Ok(Outcome::primary((Kind::Function, f.cast())));
+        };
+        let id: Id<MediumDef> = tx.mint();
+        tx.insert(MediumDef {
+            id,
+            v: 1,
+            at,
+            medium,
+            source_ref: None,
+            extra: Extra::new(),
+        })?;
+        Ok(Outcome::primary((Kind::MediumDef, id.cast())))
+    }
+}
+
+/// A value of a tube specification or a fitting, for [`SetTube`]'s `reset`.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum TubeField {
+    /// The outer diameter.
+    Od,
+    /// The inner diameter.
+    Id,
+    /// The material.
+    Material,
+    /// The colour.
+    Colour,
+    /// The tube part.
+    Part,
+    /// The pressure rating.
+    PRating,
+    /// The temperature range.
+    TRange,
+    /// The fitting at end a.
+    FittingA,
+    /// The fitting at end b.
+    FittingB,
+}
+
+/// The fluid lines of a selection, each checked; refused in words for a connection that is no fluid line.
+fn fluid_lines(tx: &TxBuilder<'_>, lines: &[Id<Connection>]) -> Result<Vec<Id<Connection>>, CmdError> {
+    let mut out = Vec::new();
+    for l in lines {
+        let c = tx.require::<Connection>(*l)?;
+        if !matches!(c.kind, ConnectionKind::Fluid(_)) {
+            return tx.reject(text!("refusal-fluid-line-not", line_words(tx, &c)));
+        }
+        if !out.contains(l) {
+            out.push(*l);
+        }
+    }
+    if out.is_empty() {
+        return tx.reject(text!("refusal-fluid-lines-none"));
+    }
+    Ok(out)
+}
+
+/// `fluid.tube.set` (`SetTube`, doc 11 §4.3, FR-FLU-010): sets tube overrides and end fittings on a selection of
+/// fluid lines.
+///
+/// Each value `set` gives replaces the line's override of it; each value `reset` names goes back to the derived
+/// value (doc 11 §5.4); `fitting_a` and `fitting_b` set the fitting parts at the line's ends. The resulting overrides
+/// of every line are checked against FI-05. Refused: no line; a connection that is no fluid line (in words); a tube
+/// against FI-05 (in words); a part the project does not hold (`NotFound`). Interactive, one undo step. Outcome: the
+/// first line.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetTube {
+    /// The lines.
+    #[schemars(with = "Vec<UuidS>")]
+    pub lines: Vec<Id<Connection>>,
+    /// The values to set.
+    #[serde(default, skip_serializing_if = "TubeSpec::is_empty")]
+    pub set: TubeSpec,
+    /// The fitting part at end a.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub fitting_a: Option<Id<Part>>,
+    /// The fitting part at end b.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub fitting_b: Option<Id<Part>>,
+    /// The values that go back to the derived value.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub reset: Vec<TubeField>,
+}
+
+impl Command for SetTube {
+    const NAME: &'static str = "fluid.tube.set";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let lines = fluid_lines(tx, &self.lines)?;
+        for p in [self.fitting_a, self.fitting_b].into_iter().flatten() {
+            tx.require::<LibCopy<Part>>(p)?;
+        }
+        for l in &lines {
+            let c = tx.require::<Connection>(*l)?;
+            let ConnectionKind::Fluid(mut line) = c.kind.clone() else {
+                continue;
+            };
+            let s = &self.set;
+            let t = &mut line.tube;
+            if s.od.is_some() {
+                t.od = s.od;
+            }
+            if s.id.is_some() {
+                t.id = s.id;
+            }
+            if s.material.is_some() {
+                t.material.clone_from(&s.material);
+            }
+            if s.colour.is_some() {
+                t.colour.clone_from(&s.colour);
+            }
+            if s.part.is_some() {
+                t.part.clone_from(&s.part);
+            }
+            if s.p_rating.is_some() {
+                t.p_rating = s.p_rating;
+            }
+            if s.t_range.is_some() {
+                t.t_range.clone_from(&s.t_range);
+            }
+            if let Some(p) = self.fitting_a {
+                line.fitting_a = Some(PartRef::new(p));
+            }
+            if let Some(p) = self.fitting_b {
+                line.fitting_b = Some(PartRef::new(p));
+            }
+            for f in &self.reset {
+                match f {
+                    TubeField::Od => line.tube.od = None,
+                    TubeField::Id => line.tube.id = None,
+                    TubeField::Material => line.tube.material = None,
+                    TubeField::Colour => line.tube.colour = None,
+                    TubeField::Part => line.tube.part = None,
+                    TubeField::PRating => line.tube.p_rating = None,
+                    TubeField::TRange => line.tube.t_range = None,
+                    TubeField::FittingA => line.fitting_a = None,
+                    TubeField::FittingB => line.fitting_b = None,
+                }
+            }
+            check_tube(tx, &line.tube)?;
+            tx.update::<Connection>(*l, |c| c.kind = ConnectionKind::Fluid(line))?;
+        }
+        Ok(Outcome::primary((Kind::Connection, lines[0].cast())))
+    }
+}
+
+/// `fluid.length.set` (`SetLength`, doc 11 §4.3, FR-FLU-011): the manual length of a selection of fluid lines, or
+/// none (`length` absent: the length is missing again). Refused: no line; a connection that is no fluid line; a
+/// length of zero or less (in words). Interactive, one undo step. Outcome: the first line.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetLength {
+    /// The lines.
+    #[schemars(with = "Vec<UuidS>")]
+    pub lines: Vec<Id<Connection>>,
+    /// The length in nanometres; absent: missing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub length: Option<Nm>,
+}
+
+impl Command for SetLength {
+    const NAME: &'static str = "fluid.length.set";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let lines = fluid_lines(tx, &self.lines)?;
+        let length = match self.length {
+            Some(n) if n.0 <= 0 => return tx.reject(text!("refusal-fluid-length-positive", mm(n))),
+            Some(n) => LengthSource::Manual(n),
+            None => LengthSource::Missing,
+        };
+        for l in &lines {
+            tx.update::<Connection>(*l, |c| {
+                if let ConnectionKind::Fluid(line) = &mut c.kind {
+                    line.length = length.clone();
+                }
+            })?;
+        }
+        Ok(Outcome::primary((Kind::Connection, lines[0].cast())))
     }
 }

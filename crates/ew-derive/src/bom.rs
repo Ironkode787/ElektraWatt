@@ -53,6 +53,15 @@ pub enum LineSource {
     /// brackets by, with the number of brackets the rails attribute to it ([`crate::layout::strip_brackets`]) instead
     /// of the authored quantity.
     GroupAccessory,
+    /// The plug or silencer part of a closed fluid port of the device (`CpOverride.closure.part`), one piece each
+    /// (FR-FLU-028).
+    Closure,
+    /// The tube part of a physical tube whose from end is a port of the device, by its length in metres
+    /// (FR-FLU-014; a tube without a length adds none).
+    Tube,
+    /// The fitting part at a tube end on a port of the device, one piece each, and the tee part of a fluid junction,
+    /// owned by the from end of the junction's lowest tube (FR-FLU-031).
+    Fitting,
 }
 
 /// One part line of one device.
@@ -87,8 +96,10 @@ pub struct PartLine {
 /// EW-LAY-010 reports it) adds nothing, and a line all of whose carriers lack a length stays with quantity
 /// 0. The carrier lines come in the legend order of their first carrier (surfaces by ID, then rails before
 /// ducts, each top to bottom then left to right; [`crate::layout::carrier_order`]), after the device's own
-/// lines, so a reader of the first line keeps the device's own part. A line whose part copy is missing is
-/// dropped.
+/// lines, so a reader of the first line keeps the device's own part. Then the fluid lines (doc 11 §8.2, FR-FLU-014):
+/// the closure parts of its ports ([`LineSource::Closure`]), the tube parts of the tubes whose from end is one of its
+/// ports ([`LineSource::Tube`]) and the fittings at its tube ends and the tees it owns ([`LineSource::Fitting`]), in
+/// that order. A line whose part copy is missing is dropped.
 #[derive(Debug)]
 pub struct DevicePartLines;
 
@@ -142,6 +153,57 @@ impl Query for DevicePartLines {
         }
         for g in carrier_groups(q, *key) {
             push(&g.part, metres_of_nm(g.nm), LineSource::Carrier);
+        }
+        let mut functions: Vec<Id<ew_schema::Function>> = q.idx().functions_of_device(*key).collect();
+        functions.sort();
+        for f in functions {
+            if let Some(func) = q.functions().get(f) {
+                for o in &func.cp_overrides {
+                    if let Some(part) = o.closure.as_ref().and_then(|c| c.part.as_ref()) {
+                        push(part, Dec3::ONE, LineSource::Closure);
+                    }
+                }
+            }
+        }
+        let tubes = q.get::<crate::TubeRows>(());
+        for r in tubes.iter() {
+            if r.from.device == Some(*key)
+                && let Some(part) = &r.props.part
+            {
+                let nm = r.length.map_or(0, |n| n.0);
+                push(
+                    &PartRef::new(part.value),
+                    metres_of_nm(i128::from(nm)),
+                    LineSource::Tube,
+                );
+            }
+        }
+        for r in tubes.iter() {
+            for end in [&r.from, &r.to] {
+                if end.device == Some(*key)
+                    && let Some(f) = end.fitting
+                {
+                    push(&PartRef::new(f), Dec3::ONE, LineSource::Fitting);
+                }
+            }
+            // A tee: owned by the from end of the lowest tube that ends at the junction.
+            if r.from.device == Some(*key) {
+                for end in [&r.from, &r.to] {
+                    let crate::EndpointKey::Junction(j) = end.at else {
+                        continue;
+                    };
+                    let lowest = tubes
+                        .iter()
+                        .filter(|t| t.from.at == end.at || t.to.at == end.at)
+                        .map(|t| t.id)
+                        .min();
+                    if lowest == Some(r.id)
+                        && let Some(tee) = q.junctions().get(j).and_then(|x| x.fitting.clone())
+                    {
+                        push(&tee, Dec3::ONE, LineSource::Fitting);
+                    }
+                }
+            }
         }
         Arc::new(lines)
     }

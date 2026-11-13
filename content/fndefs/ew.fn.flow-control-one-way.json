@@ -1,0 +1,56 @@
+{
+  "$k": "fndef",
+  "id": "a039f034-2f65-5c48-9cf2-895af2dacc5f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "0eec7753-7aff-5867-b5c9-15cba185f8df",
+  "version": "0.1.0",
+  "sha256": "sha256:de3ab391f29167fb5040863e28cc49ba021192b521570410856029a42f844908",
+  "meta": {
+    "key": "ew.fn.flow-control-one-way",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FlowControl",
+    "OneWay",
+    "Adjustable"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "open": {
+                  "a": 0,
+                  "b": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

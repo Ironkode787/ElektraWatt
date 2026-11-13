@@ -32,6 +32,10 @@
 //! is a dangling reference in any state, so no committed state, and no undo, can leave one. Other `LibRef`s
 //! (successors, manufacturers) are not links; see [`NOT_LINKS`].
 //!
+//! The fluid 1.0 links (the tube, fitting and tee parts, a medium's and the project's tube parts, a medium definition's
+//! point and medium; WP-S1.25) are load-tolerant as well, for the same reason: an older 0.1 build kept them unenforced,
+//! and every reader takes a missing target as absent.
+//!
 //! One link is **load-tolerant** ([`LinkDecl::load_tolerant`]): `page_item.kind.wire_marker.connections[]`, the
 //! connections a wire marker lists (EW-INV-023, ADR-0009 amendment 8). An older build kept
 //! page items verbatim and did not enforce the link, so a loaded project can hold a marker that lists a deleted

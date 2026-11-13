@@ -1,0 +1,36 @@
+{
+  "$k": "fndef",
+  "id": "f3b611d4-822f-52e6-a4b8-da954703977a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "792a8750-46df-50f3-bcc0-5bff805815b1",
+  "version": "0.1.0",
+  "sha256": "sha256:34c0dc64c1634704891c8ed35b9028bdcac04134214dd598bc0d8a3914c4af2b",
+  "meta": {
+    "key": "ew.fn.ejector",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "Vacuum",
+    "Ejector",
+    "Standard"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    }
+  ]
+}

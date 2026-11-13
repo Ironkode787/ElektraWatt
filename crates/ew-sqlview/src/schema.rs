@@ -756,21 +756,145 @@ pub const PLC_CHANNEL: View = View {
     ],
 };
 
+/// `api_v1_fluid_line` (doc 11 §8.3): one physical tube.
+pub const FLUID_LINE: View = View {
+    name: "api_v1_fluid_line",
+    row: "physical tube (doc 11 §5.1)",
+    columns: &[
+        t("id", "the tube UUID: its target-side connection, else its lowest"),
+        t("tag", "the line tag (\"203.1\"); NULL without a tag scheme"),
+        t("line_kind", "working, pilot, exhaust, drain or flexible"),
+        t(
+            "from_device_id",
+            "the device at the from end (a valve's working port, else end a); NULL at a tee",
+        ),
+        t("from_tag", "its tag"),
+        t("from_port", "the port designation"),
+        t("from_role", "the port role (supply1, working2, consumer, …)"),
+        t("to_device_id", "the device at the to end; NULL at a tee"),
+        t("to_tag", "its tag"),
+        t("to_port", "the port designation"),
+        t("to_role", "the port role"),
+        t("fluid_net_id", "the fluid net (its minimum member CP)"),
+        t(
+            "medium",
+            "the effective medium of the net, as printed; NULL without one",
+        ),
+        i("od_nm", "the effective outer diameter; NULL without one"),
+        i("id_nm", "the effective inner diameter; NULL without one"),
+        t("material", "the effective material (PU, PA, …); NULL without one"),
+        t("colour", "the effective colour; NULL without one"),
+        t(
+            "tube_part",
+            "the part number of the effective tube part; NULL without one",
+        ),
+        t(
+            "p_rating",
+            "the effective pressure rating in bar, exact decimal text; NULL without one",
+        ),
+        i(
+            "length_nm",
+            "the summed manual length; NULL when a constituent has none",
+        ),
+        t("length_source", "manual or missing"),
+        t(
+            "fitting_a",
+            "the part number of the fitting at the from end; NULL without one",
+        ),
+        t(
+            "fitting_b",
+            "the part number of the fitting at the to end; NULL without one",
+        ),
+        t(
+            "from_location",
+            "the location aspect of the from end's device; NULL without one",
+        ),
+        t(
+            "to_location",
+            "the location aspect of the to end's device; NULL without one",
+        ),
+        t(
+            "page_id",
+            "the page of the tube's own connection; NULL without one",
+        ),
+        t("cell", "always NULL: a tube has no frame cell yet"),
+        t(
+            "prov_tube",
+            "the source of each effective value, JSON object (project, medium, part, override)",
+        ),
+    ],
+};
+
+/// `api_v1_valve_position` (doc 11 §8.3): one position of a valve module.
+pub const VALVE_POSITION: View = View {
+    name: "api_v1_valve_position",
+    row: "valve position of a module",
+    columns: &[
+        t("module_id", "the module (sub-base) UUID"),
+        t("module_tag", "its tag"),
+        i("position", "the position, 1-based"),
+        t("occupancy", "valve, blank or empty"),
+        t("valve_id", "the valve or blanking plate; NULL when empty"),
+        t("valve_tag", "its tag"),
+        t("valve_part", "its part number"),
+        t("solenoids", "the solenoids its part declares, JSON array"),
+        t("channel_ids", "the channels bound to its coils, JSON array"),
+        t(
+            "addresses",
+            "the printed addresses (\"Q0.1\"); NULL without a binding",
+        ),
+        t(
+            "function_text",
+            "the valve's manual function text; NULL without one",
+        ),
+        t("process_tag", "the tracked process tag; NULL without one"),
+        t("target_id", "the tracked target; NULL without one"),
+        t("target_tag", "its tag"),
+        t("state", "used, spare, reserved or not_fitted; NULL when empty"),
+    ],
+};
+
+/// `api_v1_medium` (doc 11 §8.3): one project medium.
+pub const MEDIUM: View = View {
+    name: "api_v1_medium",
+    row: "project medium",
+    columns: &[
+        t("id", "the medium UUID"),
+        t("name", "its name in the project's source language"),
+        t("code", "the ISO 1219-2 medium letter; NULL without one"),
+        t("discipline", "pneumatic, vacuum or hydraulic"),
+        t("p_nom", "the nominal pressure in bar, exact decimal text"),
+        t("quality", "the ISO 8573-1 quality class; NULL without one"),
+        t("source_cps", "its definition points as DT:port, JSON array"),
+        i(
+            "consumer_count",
+            "the devices whose port 1 lies in a net carrying it",
+        ),
+        t(
+            "default_tube",
+            "its default tube as printed (\"PU 6×4 BU\"); NULL without one",
+        ),
+    ],
+};
+
 /// Every public view, in name order.
-pub const VIEWS: [View; 14] = [
+pub const VIEWS: [View; 17] = [
     BOM_ASSEMBLY,
     BOM_COMPONENT,
     BOND,
     CABLE,
     CONDUCTOR,
     DEVICE,
+    FLUID_LINE,
     FUNCTION,
+    MEDIUM,
     MESSAGE,
     META,
     PAGE,
     PLC_CHANNEL,
     POTENTIAL,
     TERMINAL,
+    VALVE_POSITION,
     WIRE,
 ];
 

@@ -176,6 +176,12 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<FlowNotes>(memo, cold, [()], o);
     check::<ew_derive::FluidNets>(memo, cold, [()], o);
     check::<ew_derive::ValveSlots>(memo, cold, keys.devices.iter().copied(), o);
+    check::<ew_derive::Galleries>(memo, cold, keys.devices.iter().copied(), o);
+    check::<ew_derive::FluidTubes>(memo, cold, [()], o);
+    check::<ew_derive::MediumZones>(memo, cold, [()], o);
+    check::<ew_derive::TubeRows>(memo, cold, [()], o);
+    check::<ew_derive::ValveTerminalRows>(memo, cold, [()], o);
+    check::<ew_derive::MediumRows>(memo, cold, [()], o);
     check::<IpNotes>(memo, cold, [()], o);
     check::<PotentialAttrsOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<PotentialNameOf>(memo, cold, keys.potentials.iter().copied(), o);

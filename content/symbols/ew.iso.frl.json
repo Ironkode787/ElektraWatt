@@ -1,0 +1,278 @@
+{
+  "$k": "symbol",
+  "id": "8870fb9a-ed39-5bde-af0a-dd5e980209a3",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "cd357432-47a7-5e6e-9c7e-12abb4a4fa8e",
+  "version": "0.1.0",
+  "sha256": "sha256:e3241278c6ab61886cb9ba7491a14be753f79f484021e56a04f89d08d1a4a0c1",
+  "meta": {
+    "key": "ew.iso.frl",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Service unit (filter, regulator, lubricator)",
+    "nl": "Verzorgingseenheid (filter, regelaar, olievernevelaar)"
+  },
+  "keywords": [
+    "air preparation",
+    "frl",
+    "pneumatic",
+    "service unit"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "16878cb0-7ef4-5e24-93bd-1724bff5e873",
+    "version_req": "^0.1",
+    "key": "ew.fn.frl"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            16000000,
+            16000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            2000000,
+            8000000
+          ],
+          [
+            5000000,
+            5000000
+          ],
+          [
+            8000000,
+            8000000
+          ],
+          [
+            5000000,
+            11000000
+          ],
+          [
+            2000000,
+            8000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            8000000,
+            8000000
+          ],
+          [
+            11000000,
+            5000000
+          ],
+          [
+            14000000,
+            8000000
+          ],
+          [
+            11000000,
+            11000000
+          ],
+          [
+            8000000,
+            8000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          -4000000,
+          8000000
+        ],
+        "to": [
+          0,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          16000000,
+          8000000
+        ],
+        "to": [
+          20000000,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          16000000
+        ],
+        "to": [
+          8000000,
+          20000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        -4000000,
+        8000000
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        20000000,
+        8000000
+      ],
+      "dir": "right",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        8000000,
+        20000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -12000000,
+        -1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -12000000,
+        18000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -2000000,
+        7000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        18000000,
+        7000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        9000000,
+        18000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

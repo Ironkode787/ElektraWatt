@@ -89,7 +89,8 @@ Every row has the class `Structural`, except EW-INV-021, which has the class `De
 | EW-INV-020 | Structural | A revision that was `Released` or `Withdrawn` before the batch is not updated (FR-REV-009, doc 03 §18: released revisions are immutable; later edits belong to the next revision, and a withdrawal is a new record that names the withdrawn revision in `withdraws`, a forbid link). Removing it stays possible (the undo of `revision.create` deletes the record), so does an open revision becoming `Released` (the release command, not built) and a new withdrawal record. `fields.set` and `edit.delete` refuse a closed revision before the model does, with a message at the target. | Touched revisions whose row before the batch was released or withdrawn and that the batch did not remove. The integrity check has no rows before it and never reports this rule. | `inv020_released_revision_delete_ok`<br>`inv020_released_revision_update_rejected` |
 | EW-INV-022 | Structural | The page of a page item or a structure box exists (WP-S2.04 part 4a, ADR-0009 amendment 8). It is the half of EW-INV-001 for the cascade links `page_item.page` and `structure_box.page` (a violation is reported as EW-INV-001), and `Model::delete_plan` deletes a page's items and boxes with it (FR-PAG-025). | The outgoing links of every touched page item and structure box; the referrers of a removed page. | `inv022_items_and_boxes_on_their_page_ok`<br>`inv022_item_on_missing_page_rejected`<br>`ops::delete_plan_page_cascades_items_and_boxes` |
 | EW-INV-023 | Structural | Every connection a wire marker lists exists and lies on the marker's page (WP-S2.04 part 4a, ADR-0009 amendment 8). The link `page_item.kind.wire_marker.connections[]` is unlink and **load-tolerant** (section 4): a deleted connection leaves the list and a marker left empty is deleted in the same plan, while a listed connection that is missing or on another page is judged by this rule, not by EW-INV-001. A build from before part 4a kept page items verbatim and did not enforce the link, so a loaded project can hold a stale entry: that is a load finding (`Session::load_findings`), not a violation, the derivation and the drawing ignore the entry, and the next edit of the marker may keep it or write a clean list. Therefore the rule judges what an **edit** adds: `Model::apply_with` only; the history path restores committed states (the undo of a cleaning edit restores the stale entries) and the integrity check has no rows before it. | Edit path only. Every touched wire marker: the entries absent from its row before the batch. Every touched connection whose page the batch changed: the markers listing it (generic referrer index). | `inv023_marker_on_its_page_ok`<br>`inv023_stale_list_loads_and_edits_keep_it_ok`<br>`inv023_missing_connection_rejected`<br>`inv023_connection_on_another_page_rejected`<br>`inv023_connection_moved_off_its_page_rejected`<br>`inv023_added_stale_entry_rejected`<br>`ops::delete_plan_connection_unlinks_markers_and_drops_an_empty_one` |
-| EW-INV-024 | Structural | A `fluid` connection ends at fluid CPs of one medium family (pneumatic and vacuum together, hydraulic alone) or at junctions whose every connection is `fluid`; no other connection except `overview` ends at a fluid CP (WP-S1.20 D11, ADR-0009 amendment 9). A CP is a fluid port when the discipline `function_cps` derives for it is pneumatic, vacuum or hydraulic: the FnDef CP of the same index, except a black box drawn from its part pattern, which is electrical. A connection kind or a CP discipline of a newer format is exempt. `connection.draw` and the Wire tool refuse first with a sentence (WP-S1.20 §5 T1 to T3). | Touched connections; the connections at the CPs of touched functions and of the functions of touched devices; every connection at a junction one of those ends at. A batch that touches a FnDef or part copy checks every connection. | `inv024_fluid_line_between_fluid_ports_ok`<br>`inv024_fluid_line_to_an_electrical_cp_rejected`<br>`inv024_wire_to_a_fluid_port_rejected`<br>`inv024_hydraulic_to_pneumatic_rejected`<br>`inv024_junction_with_a_wire_and_a_fluid_line_rejected` |
+| EW-INV-024 | Structural | A `fluid` connection ends at fluid CPs of one medium family (pneumatic and vacuum together, hydraulic alone) or at junctions whose every connection is `fluid`; no other connection except `overview` ends at a fluid CP (WP-S1.20 D11, ADR-0009 amendment 9). A CP is a fluid port when the discipline `function_cps` derives for it is pneumatic, vacuum or hydraulic: the FnDef CP of the same index, except a black box drawn from its part pattern, which is electrical. A connection kind or a CP discipline of a newer format is exempt, and so is a CP whose FnDef copy is missing (dropped as damaged; FT-1569). `connection.draw` and the Wire tool refuse first with a sentence (WP-S1.20 §5 T1 to T3). | Touched connections; the connections at the CPs of touched functions and of the functions of touched devices; every connection at a junction one of those ends at. A batch that touches a FnDef or part copy checks every connection. | `inv024_fluid_line_between_fluid_ports_ok`<br>`inv024_fluid_line_to_an_electrical_cp_rejected`<br>`inv024_wire_to_a_fluid_port_rejected`<br>`inv024_hydraulic_to_pneumatic_rejected`<br>`inv024_junction_with_a_wire_and_a_fluid_line_rejected`<br>`inv024_a_port_without_its_definition_is_not_judged` |
+| EW-INV-025 | Structural | A `drives` link targets neither the device it comes from nor an ancestor of that device (doc 11 §4.1 FI-06, ADR-0009 amendment 10). A 0.1 build before WP-S1.25 did not enforce it, so a loaded file is not judged. `device.link` refuses first with a sentence. | Edit path only: the touched `drives` links; every `drives` link when the batch touches a device. | `cmd_fluid_media::a_drives_link_to_an_ancestor_fails_ew_inv_025` (ew-commands) |
 | EW-INV-021 | Delete-time | An edit does not remove an embedded library copy that a record still names through a `LibRef` link (`symbol.fndef`, `part.function_template[].fndef`; section 4): the removal is `ModelError::Referenced`, the refusal of a forbid link, whatever the project's strictness. A state without the copy is valid (the `LibRef` names nothing, NFR-REL-11), so the history path does not evaluate the rule: the undo of `library.embed` restores the state before the embedding (FT-316, ADR-0009 amendment 7), and redo embeds again. `Model::delete_plan` refuses the same removal before a delete command (`edit.delete`, the purge) builds its batch, with the same error. | Every key the batch removed (it existed before the batch and not after it), with its referrers through each `LibRef` link (generic referrer index). Edit path only. | `inv021_unnamed_copy_removed_by_an_edit_ok`<br>`inv021_undo_of_an_embedding_restores_the_state_before_ok`<br>`inv021_named_copy_removed_by_an_edit_referenced`<br>`ops::lib_ref_fndef_copy_in_use_is_referenced`<br>`ops::lib_ref_part_template_fndef_in_use_is_referenced` |
 
 ## 4. Link table and delete policies
@@ -131,6 +132,13 @@ Its presence half is EW-INV-023's: a listed connection that does not exist, or l
 the entries an edit adds, never on load, because a build from before part 4a kept the records verbatim and a stale
 entry is a load finding (ADR-0009 amendment 8).
 
+**The fluid 1.0 links** (WP-S1.25, doc 11 §2.7) are load-tolerant too: a fluid line's tube and fitting parts, a
+fluid tee's part, a medium's tube parts, the project's default tube part, and a medium definition's point and medium.
+A 0.1 build before WP-S1.25 keeps those members in `extra` and the two kinds verbatim, so it can delete a target and
+leave the reference; the missing target is no violation of EW-INV-001, and every reader takes it as absent (no part
+data, no seed). Their removal half is ordinary: a referenced part copy is forbid, a definition goes with its point or
+medium. The commands that write them refuse a target that does not exist (`NotFound`).
+
 **The kind-erased link** (`LinkDecl::kind_erased`, WP-S1.19 part 1). `macro_instance.members[][1]` stores the
 records a placed macro created as bare IDs (`(fragment-local, created)` pairs, doc 03 §7), so the link names a record
 of any kind of `MACRO_MEMBER_KINDS` (page, device, function, representation, connection, junction, conductor, channel,
@@ -164,6 +172,7 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 |-------|--------|--------|-------|
 | project.source_ref.lineage | import_lineage | forbid | referrers |
 | project.supply.origin.source | external_ref | unlink (cleared) | referrers |
+| project.settings.fluid.default_tube.part.copy | part | forbid, load-tolerant | referrers |
 | plc_config_project.cpu | device | unlink (cleared) | referrers |
 | plc_config_project.source_ref.lineage | import_lineage | forbid | referrers |
 | structure_node.parent | structure_node | forbid | structure_children |
@@ -200,9 +209,13 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | connection.kind.core | conductor | unlink (Core reverts to Wire) | referrers |
 | connection.kind.bus.cable | device | unlink (cleared) | referrers |
 | connection.overrides.wire_part.copy | part | forbid | referrers |
+| connection.kind.fluid.tube.part.copy | part | forbid, load-tolerant | referrers |
+| connection.kind.fluid.fitting_a.copy | part | forbid, load-tolerant | referrers |
+| connection.kind.fluid.fitting_b.copy | part | forbid, load-tolerant | referrers |
 | connection.source_ref.lineage | import_lineage | forbid | referrers |
 | junction.page | page | cascade | junctions_by_page |
 | junction.sequence[] | connection | unlink (entry removed) | referrers |
+| junction.fitting.copy | part | forbid, load-tolerant | referrers |
 | junction.source_ref.lineage | import_lineage | forbid | referrers |
 | conductor.cable | device | cascade | conductors_by_cable |
 | conductor.source_ref.lineage | import_lineage | forbid | referrers |
@@ -214,6 +227,12 @@ Fields are written as `kind.path`. "referrers" means the generic referrer index.
 | potential_def.at (CP or junction) | function / junction | unlink (definition dropped) | potential_defs_by_endpoint |
 | potential_def.props.wire_part.copy | part | forbid | referrers |
 | potential_def.source_ref.lineage | import_lineage | forbid | referrers |
+| medium.default_tube.part.copy | part | forbid, load-tolerant | referrers |
+| medium.line_kind_tubes[].tube.part.copy | part | forbid, load-tolerant | referrers |
+| medium.source_ref.lineage | import_lineage | forbid | referrers |
+| medium_def.at (CP or junction) | function / junction | unlink (definition dropped), load-tolerant | referrers |
+| medium_def.medium | medium | cascade, load-tolerant | referrers |
+| medium_def.source_ref.lineage | import_lineage | forbid | referrers |
 | bond.a / bond.b (CP or junction) | function / junction | unlink (bond dropped) | bonds_by_endpoint |
 | bond.via | connection | unlink (cleared) | referrers |
 | bond.source_ref.lineage | import_lineage | forbid | referrers |

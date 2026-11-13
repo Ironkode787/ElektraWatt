@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "af2220a3-35a1-544e-9c97-fae733ddd9f8",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "47e58bb3-eb07-5d8f-a837-6efb88f12370",
+  "version": "0.1.0",
+  "sha256": "sha256:78025a35535e224ab86f5280ef3daa166767c8dcc11ac9ebb8f38430f50698d9",
+  "meta": {
+    "key": "ew.fn.air-supply",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Source",
+    "Supply"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ]
+}

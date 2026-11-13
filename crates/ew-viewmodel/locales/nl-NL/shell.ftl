@@ -1235,6 +1235,7 @@ refusal-inv-021 = een bibliotheekkopie die een element noemt, blijft in het proj
 refusal-inv-022 = de pagina van een pagina-element of een structuurkader staat in het project
 refusal-inv-023 = elke draad die een adermarkering noemt, ligt op de pagina van de markering
 refusal-inv-024 = een fluïdumleiding verbindt fluïdumpoorten van één mediumfamilie
+refusal-inv-025 = een ventiel stuurt nooit zichzelf aan, noch de module of het ventieleiland dat het draagt
 refusal-rel-label-format = het label { $p0 } volgt niet de revisielabelnotatie { $p1 } van het project; geef een label in die notatie{ $p2 }
 refusal-rel-label-follow = het label { $p0 } volgt niet op revisie { $p1 }: revisielabels lopen in natuurlijke volgorde op; geef een later label{ $p2 }
 refusal-rel-label-precede = het label { $p0 } gaat niet vooraf aan { $p1 }, het label van de open revisie: revisielabels lopen in natuurlijke volgorde op, de open revisie als laatste; geef een eerder label
@@ -1579,6 +1580,18 @@ refusal-valve-no-position = { $p0 } heeft { $p1 } ventielplaatsen; plaats { $p2 
 refusal-valve-position-holds = plaats { $p0 } van { $p1 } bevat { $p2 }; wijs het nieuwe artikel in plaats daarvan toe aan { $p2 }
 refusal-valve-position-empty = plaats { $p0 } van { $p1 } bevat geen ventiel; noem het ventielartikel
 refusal-fluid-port-has-line = { $p0 } heeft een fluïdumleiding; verwijder de leiding voordat u de poort afsluit
+# fluid.medium.edit, fluid.medium.define, fluid.tube.set, fluid.length.set.
+refusal-valve-add-plc-part = artikel { $p0 } is een PLC-station of -module, geen ventiel; voeg het toe als module van het ventieleiland
+refusal-medium-nothing = noem het medium dat weg moet, of geef de waarden van een nieuw medium
+refusal-medium-name-required = een medium heeft een naam nodig
+refusal-medium-discipline = een medium is pneumatisch, vacuüm of hydraulisch
+refusal-tube-diameter-positive = een slangdiameter is groter dan nul, niet { $p0 } mm
+refusal-tube-diameters = de buitendiameter { $p0 } mm is niet groter dan de binnendiameter { $p1 } mm
+refusal-tube-rating-negative = een drukwaarde is nul of meer, niet { $p0 } bar
+refusal-fluid-line-not = { $p0 } is geen fluïdumleiding
+refusal-fluid-lines-none = selecteer een of meer fluïdumleidingen
+refusal-fluid-length-positive = een slanglengte is langer dan nul, niet { $p0 } mm
+refusal-words-connection-end = een uiteinde van een nieuwer formaat
 # The panel layout: layout.place, layout.move, layout.place_assembly, layout.auto_fill, the carriers, spaces and enclosures.
 refusal-words-rail = rail { $p0 }
 refusal-words-duct = kabelgoot { $p0 }

@@ -1,0 +1,123 @@
+{
+  "$k": "fndef",
+  "id": "2a3337cb-75ea-5bb2-834a-d2c771bdd28a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "ecdffdcb-a166-5905-ae6e-9b43078f9ee1",
+  "version": "0.1.0",
+  "sha256": "sha256:c06c16abfd78d417614385d09a58b3433a16628543efe79166ceae3ba687207c",
+  "meta": {
+    "key": "ew.fn.valve-5-2-pilot-spring",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveDirectional",
+    "Valve52",
+    "PilotSpring"
+  ],
+  "contact_kind": "valve",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    },
+    {
+      "idx": 3,
+      "designation": "4",
+      "discipline": "pneumatic",
+      "port_role": "working4"
+    },
+    {
+      "idx": 4,
+      "designation": "5",
+      "discipline": "pneumatic",
+      "port_role": "exhaust5"
+    },
+    {
+      "idx": 5,
+      "designation": "14",
+      "discipline": "pneumatic",
+      "port_role": "pilot14"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "a",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 3
+                }
+              },
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              },
+              {
+                "closed": 4
+              }
+            ]
+          },
+          {
+            "label": "b",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "flow": {
+                  "from": 3,
+                  "to": 4
+                }
+              },
+              {
+                "closed": 2
+              }
+            ]
+          }
+        ],
+        "rest": 1,
+        "actuation": [
+          {
+            "actuator": {
+              "pilot": {
+                "port": 5
+              }
+            },
+            "selects": 0
+          },
+          {
+            "actuator": "spring",
+            "selects": 1
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "7619790a-bb07-5e68-84f8-d2f8b6696b47",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "34ed8ee9-0bf4-5eee-8f75-1ec2aacef356",
+  "version": "0.1.0",
+  "sha256": "sha256:f0d418ccb4f517c3096df955e562b76de1f5b3109002a8659d65d320c172544f",
+  "meta": {
+    "key": "ew.fn.silencer",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FluidFitting",
+    "Silencer",
+    "Standard"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ]
+}

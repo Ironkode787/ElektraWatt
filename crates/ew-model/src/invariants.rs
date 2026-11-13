@@ -104,6 +104,9 @@ pub const MARKER_CONNECTIONS: &str = "EW-INV-023";
 /// EW-INV-024: a fluid line joins fluid ports of one medium family only, and no other line ends at a fluid port
 /// (ADR-0009 amendment 9).
 pub const FLUID_LINES: &str = "EW-INV-024";
+/// EW-INV-025 (FI-06, doc 11 §4.1): a `drives` link targets neither its own device nor an ancestor of it; judged on
+/// the edit path only.
+pub const DRIVES_TARGET: &str = "EW-INV-025";
 
 /// The catalogue in evaluation order: the structural invariants, then the delete-time rule.
 pub static RULES: &[Rule] = &[
@@ -251,6 +254,14 @@ pub static RULES: &[Rule] = &[
                     is exempt",
     },
     Rule {
+        id: DRIVES_TARGET,
+        class: RuleClass::Structural,
+        statement: "A drives link targets neither the device it comes from nor an ancestor of that device (FI-06: a \
+                    valve never drives its module or valve terminal). An older 0.1 build did not enforce it, so a \
+                    loaded file is not judged: only the links an edit adds or changes, and the links from a device \
+                    an edit moves",
+    },
+    Rule {
         id: LIB_REF_KEEP_ALIVE,
         class: RuleClass::DeleteTime,
         statement: "An edit does not remove an embedded library copy that a record still names through a LibRef \
@@ -395,7 +406,49 @@ fn rules(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelErro
     revision_immutable(m, scope, out)?;
     // EW-INV-022 is the page links' half of EW-INV-001 (above).
     marker_connections(m, scope, out)?;
-    fluid_lines(m, scope, out)
+    fluid_lines(m, scope, out)?;
+    drives_target(m, scope, out)
+}
+
+/// EW-INV-025, on the edit path only (see [`DRIVES_TARGET`]): the touched `drives` links, and every `drives` link when
+/// the batch touches a device (a move changes its ancestors).
+fn drives_target(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
+    if !scope.edit {
+        return Ok(());
+    }
+    let links: Vec<Id<ew_schema::DeviceLink>> = if scope.of_kind(Kind::Device).next().is_some() {
+        m.device_links.ids().collect()
+    } else {
+        scope.of_kind(Kind::DeviceLink).map(typed).collect()
+    };
+    for l in links {
+        let Some(link) = m.device_links.get(&l) else {
+            continue;
+        };
+        if link.kind != ew_schema::DeviceLinkKind::Drives {
+            continue;
+        }
+        let mut at = Some(link.from);
+        let mut seen: BTreeSet<Id<Device>> = BTreeSet::new();
+        while let Some(d) = at {
+            if !seen.insert(d) {
+                break; // a parent cycle is EW-INV-009's
+            }
+            if d == link.to {
+                out.report(violation(
+                    DRIVES_TARGET,
+                    format!(
+                        "drives link {} from device {} targets the device or an ancestor of it",
+                        l, link.from
+                    ),
+                    vec![key_of(Kind::DeviceLink, l), key_of(Kind::Device, link.to)],
+                ))?;
+                break;
+            }
+            at = m.devices.get(&d).and_then(|x| x.parent);
+        }
+    }
+    Ok(())
 }
 
 /// EW-INV-001 with the forbid policy.
@@ -1220,7 +1273,9 @@ pub enum FluidPortClass {
 /// index of its FnDef copy `def` (a template-origin CP keeps its FnDef CP's index,
 /// `ew_schema::TemplateFn::function_cps`), except for a black box drawn from its device's part pattern (`parts`, the
 /// copies of its device's part uses in order), whose CPs are electrical. A missing FnDef copy is
-/// [`FluidPortClass::Other`] (EW-INV-001 judges the reference). One rule for EW-INV-024 and the commands' refusals.
+/// [`FluidPortClass::Exempt`]: the port cannot be judged without it (EW-INV-001 judges the reference; a copy dropped
+/// as damaged at an open must not make every other copy's update a misfit, FT-1569). One rule for EW-INV-024 and the
+/// commands' refusals.
 pub fn fluid_port_class(
     function: &Function,
     def: Option<&FnDef>,
@@ -1228,7 +1283,7 @@ pub fn fluid_port_class(
     idx: u16,
 ) -> FluidPortClass {
     let Some(def) = def else {
-        return FluidPortClass::Other;
+        return FluidPortClass::Exempt;
     };
     if matches!(function.kind, FunctionKind::BlackBox) && black_box_from_pattern(function, parts) {
         return FluidPortClass::Other;

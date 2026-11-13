@@ -1,0 +1,168 @@
+{
+  "$k": "symbol",
+  "id": "06df864c-ac23-5038-805d-47e3d9961241",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "c31f0383-5f70-56e9-a2be-4410e0d7ce57",
+  "version": "0.1.0",
+  "sha256": "sha256:ad4472de288741f746e3928d82aefb4d730b5da3de9f57fc47d1e0413c515b41",
+  "meta": {
+    "key": "ew.iso.air-supply@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Compressed-air supply point",
+    "nl": "Persluchtaansluitpunt"
+  },
+  "keywords": [
+    "compressed air",
+    "pneumatic",
+    "source",
+    "supply"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "47e58bb3-eb07-5d8f-a837-6efb88f12370",
+    "version_req": "^0.1",
+    "key": "ew.fn.air-supply"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "circle": {
+        "centre": [
+          5291667,
+          5291667
+        ],
+        "r": 3968750,
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            5291667,
+            2645833
+          ],
+          [
+            3307292,
+            6614583
+          ],
+          [
+            7276042,
+            6614583
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          10583333
+        ],
+        "to": [
+          5291667,
+          13229167
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        5291667,
+        13229167
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        -7937500,
+        -661458
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        -7937500,
+        11906250
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        5953125,
+        11906250
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      5291667,
+      5291667
+    ]
+  }
+}

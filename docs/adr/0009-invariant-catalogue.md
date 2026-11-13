@@ -1,6 +1,6 @@
 # ADR-0009: Invariant catalogue: structural vs configurable prevent rules; lenient import
 
-**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22, 2026-10-23 (specified: two invariants for page items and structure boxes), 2026-11-04 (amendment 9: EW-INV-024, fluid lines, built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
+**Status:** Accepted · amended 2026-10-18, 2026-10-19, 2026-10-21, 2026-10-22, 2026-10-23 (specified: two invariants for page items and structure boxes), 2026-11-04 (amendment 9: EW-INV-024, fluid lines, built), 2026-11-13 (amendment 10: EW-INV-025, drives targets, built) · **Date:** 2026-10-17 · **Deciders:** core team (chief architect, after the architecture judge panel)
 
 ## Context
 
@@ -187,10 +187,15 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    - **Why structural.** Every path that writes connections (paste, scripts, imports, macros) is guarded, and the
      invariant holds in every committed state: an electrical net never reaches a fluid port. `connection.draw`
      and the Wire tool refuse first with a sentence that names the ports, so a user does not meet the invariant ID.
-   - **Not here:** FI-06 (a valve does not drive its own parent chain) is a refusal of `device.link`, not an
-     invariant (a follow-up may make it one).
+   - **Not here:** FI-06 (a valve does not drive its own parent chain) was a refusal of `device.link`; amendment 10
+     makes it EW-INV-025.
    - **No format change** beyond the fluid members typed inside 0.1 (ADR-0011 amendments 1 and 4): a file without a
      fluid line is unchanged, and an older 0.1 build keeps a fluid line as an unknown kind, which joins no net.
+10. **EW-INV-025, drives targets** (2026-11-13, WP-S1.25; doc 11 §4.1 FI-06). A `drives` link targets neither the
+   device it comes from nor an ancestor of that device: a valve never drives its module or valve terminal. Structural,
+   judged on the edit path only (as EW-INV-023): a 0.1 build before WP-S1.25 did not enforce it, so a loaded file is
+   not judged; an edit judges the links it adds or changes and, when it touches a device, every `drives` link (a move
+   changes the ancestors). `device.link` refuses such a link first, in words.
 
 ## Consequences
 

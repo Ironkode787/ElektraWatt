@@ -1,0 +1,36 @@
+{
+  "$k": "fndef",
+  "id": "772b4d35-0187-5295-b80b-1bb36a82298a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d12b6e13-cf57-5303-86c2-7ac5ed8796a0",
+  "version": "0.1.0",
+  "sha256": "sha256:ad5b4101c8628d2308f8c6b3dba330b22e2f3e0f7768a599ab16981c7d55f0ea",
+  "meta": {
+    "key": "ew.fn.gripper-parallel",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "CylinderFluid",
+    "Gripper",
+    "Parallel"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "A",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    },
+    {
+      "idx": 1,
+      "designation": "B",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    }
+  ]
+}

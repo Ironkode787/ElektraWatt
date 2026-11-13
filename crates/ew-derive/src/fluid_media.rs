@@ -119,6 +119,8 @@ pub enum Effective {
 pub struct MediumZonesV {
     /// The keys of each net that carries one, by net ID.
     pub media: BTreeMap<NetId, BTreeSet<(MediumKey, MediumOrigin)>>,
+    /// A node of each net of `media`: the first through which a key reached it.
+    pub at: BTreeMap<NetId, EndpointKey>,
 }
 
 impl MediumZonesV {
@@ -298,7 +300,8 @@ impl Query for MediumZones {
                 }
             }
         }
-        Arc::new(MediumZonesV { media })
+        alone.retain(|n, _| media.contains_key(n));
+        Arc::new(MediumZonesV { media, at: alone })
     }
 }
 

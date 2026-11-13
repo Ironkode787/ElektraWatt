@@ -37,8 +37,10 @@ const VERSION: &str = "0.1.0";
 /// moved to the manual-command category, class S, 0.5.0 since the generic cable EW-GEN-CBL-1 was added, 0.5.1 since
 /// the contactor is filed as a contactor ([`own_category`]), 0.6.0 since the three-pole MCB EW-GEN-MCB-3 and the
 /// 3/2 solenoid valve EW-GEN-VLV-2 were added and the supply's outputs became sources, and the generic cable's cores
-/// state their cross-section (FT-1685: its cores printed the control circuit's 0.75 mm²) (unreleased, still 0.6.0).
-const LIBRARY_VERSION: &str = "0.6.0";
+/// state their cross-section (FT-1685: its cores printed the control circuit's 0.75 mm²) (unreleased, still 0.6.0),
+/// 0.7.0 since the generic valve terminal (module EW-GEN-VTM-1, valve EW-GEN-VLV-3, supply plate EW-GEN-VTS-1;
+/// FT-1326) was added.
+const LIBRARY_VERSION: &str = "0.7.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -448,6 +450,60 @@ fn defs() -> Vec<Def> {
             mech: None,
             // Solenoid 12 (it connects 1 to 2) is the physical coil A1, A2
             sections: Some(json!({"fluid": {"solenoids": ["12"]}})),
+            unit: None,
+        },
+        // FT-1326: a generic valve terminal without Golden A's parts: a module of four valve positions whose eight
+        // output channels have no pins (solenoid 14 of position p on channel 2p, 12 on 2p+1), a 5/2 valve with an
+        // internal coil, and a supply plate that taps galleries 1, 3 and 5.
+        Def {
+            number: "EW-GEN-VTM-1",
+            kind: None,
+            description: "Valve terminal module, 4 valve positions, 8 outputs",
+            cps: Vec::new(),
+            template: vec![("ew.fn.overview", true, Vec::new())],
+            contacts: Vec::new(),
+            tech: vec![("rated_voltage", q("24", "V"))],
+            plc: Some(json!({
+                "role": "module",
+                "io": [{"dir": "out", "bits": 8}],
+                "channels": {"count": 8, "kind": "do", "data_type": "Bool", "designation": "{n}"},
+                "bit_of": "n",
+                "unbound": "deactivated",
+                "positions": {"count": 4, "map": [{"solenoid": "14", "channel": "2p"}, {"solenoid": "12", "channel": "2p+1"}]},
+            })),
+            mech: ts35("40", "107", "70"),
+            sections: Some(json!({"fluid": {"positions": 4}})),
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-VLV-3",
+            kind: None,
+            description: "Solenoid valve 5/2 for a valve terminal, spring return",
+            cps: Vec::new(),
+            template: vec![
+                ("ew.fn.valve-5-2-sol-spring", true, Vec::new()),
+                ("ew.fn.valve-solenoid", false, Vec::new()),
+            ],
+            contacts: Vec::new(),
+            tech: vec![("coil_voltage", q("24", "V"))],
+            plc: None,
+            mech: None,
+            // Solenoid 14 is the internal coil the module's channel binds
+            sections: Some(json!({"fluid": {"solenoids": ["14"], "coil": {"voltage": "24", "env": "dc"}}})),
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-VTS-1",
+            kind: None,
+            description: "Valve terminal supply plate, ports 1, 3 and 5",
+            cps: Vec::new(),
+            template: vec![("ew.fn.overview", true, Vec::new()), ("ew.fn.valve-supply-plate", false, Vec::new())],
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: ts35("20", "107", "70"),
+            sections: Some(json!({"fluid": {"galleries": [
+                {"gallery": "supply1", "tap": "1"}, {"gallery": "exhaust3", "tap": "3"}, {"gallery": "exhaust5", "tap": "5"}]}})),
             unit: None,
         },
         Def {

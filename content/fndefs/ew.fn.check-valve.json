@@ -1,0 +1,56 @@
+{
+  "$k": "fndef",
+  "id": "e195c9d4-e3cb-54bc-9b6d-d585ef98132c",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d396b853-28ee-550c-a2a4-d58a4aa31428",
+  "version": "0.1.0",
+  "sha256": "sha256:73156b3c3216393589f436305effa568381393dafd48e6bae9f4aacfd7561878",
+  "meta": {
+    "key": "ew.fn.check-valve",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FlowControl",
+    "Check",
+    "Standard"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

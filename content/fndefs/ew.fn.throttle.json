@@ -1,0 +1,56 @@
+{
+  "$k": "fndef",
+  "id": "1a6d922f-8b98-59df-a43f-726fe93e440b",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "07be83e5-a0ee-5fda-8b7d-f40e00667776",
+  "version": "0.1.0",
+  "sha256": "sha256:95dbb3fb71c04ce0d93d79aa5050a7448b313a9606c6453c448080f07cfe0f49",
+  "meta": {
+    "key": "ew.fn.throttle",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FlowControl",
+    "Throttle",
+    "Adjustable"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "open": {
+                  "a": 0,
+                  "b": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

@@ -108,7 +108,7 @@ pub struct TubeRow {
     pub constituents: Vec<Id<Connection>>,
     /// The line tag ("203.1", a frozen tag); empty without a tag scheme.
     pub tag: String,
-    /// The from end: the working or supply port when only the other end is none, else end a.
+    /// The from end: the working port when only the other end is none, else end a.
     pub from: TubeEnd,
     /// The to end.
     pub to: TubeEnd,
@@ -179,12 +179,9 @@ fn tube_end(q: &Q, at: EndpointKey, fitting: Option<Id<Part>>) -> TubeEnd {
     }
 }
 
-/// Whether a role makes an end the "from" end of a tube.
+/// Whether a role makes an end the "from" end of a tube: a valve's working port.
 fn feeds(role: &Option<FluidPortRole>) -> bool {
-    matches!(
-        role,
-        Some(FluidPortRole::Working2 | FluidPortRole::Working4 | FluidPortRole::Supply1)
-    )
+    matches!(role, Some(FluidPortRole::Working2 | FluidPortRole::Working4))
 }
 
 /// `tube_rows()` (doc 11 §8.2): one row per physical tube ([`crate::FluidTubes`]). Policy Memo.
@@ -445,7 +442,7 @@ pub struct MediumRow {
     pub medium: Id<Medium>,
     /// Its definition points, as `DT:port`, in natural order.
     pub sources: Vec<String>,
-    /// The devices whose port 1 lies in a net carrying it (not as exhaust), in natural tag order.
+    /// The valves whose port 1 lies in a net carrying it (not as exhaust), in natural tag order.
     pub consumers: Vec<Id<Device>>,
 }
 
@@ -464,15 +461,16 @@ impl Query for MediumRows {
         // The nets carrying each medium, not as exhaust.
         let carries =
             |net: NetId, m: Id<Medium>| zones.keys(net).any(|(k, _)| k.root() == m && !k.is_exhaust());
-        // Every supply port (role supply1) of a device, once per device.
+        // The supply port (role supply1) of every valve function: the consumers of doc 11 §8.2.
         let mut supply: Vec<(Id<Device>, NetId)> = Vec::new();
-        for (f, func) in q.functions().iter() {
-            let Some(d) = func.device else { continue };
-            for cp in q.get::<FunctionCps>(f).iter() {
-                if cp.port_role == Some(FluidPortRole::Supply1)
-                    && let Some(net) = node_net(q, EndpointKey::Cp(f, cp.idx))
-                {
-                    supply.push((d, net));
+        for d in q.devices().ids() {
+            for f in valve_functions(q, d) {
+                for cp in q.get::<FunctionCps>(f).iter() {
+                    if cp.port_role == Some(FluidPortRole::Supply1)
+                        && let Some(net) = node_net(q, EndpointKey::Cp(f, cp.idx))
+                    {
+                        supply.push((d, net));
+                    }
                 }
             }
         }
@@ -532,4 +530,25 @@ pub fn is_blanking_plate(q: &Q, d: Id<Device>) -> bool {
 /// A valve's valve function, the first in ID order.
 pub fn valve_function(q: &Q, valve: Id<Device>) -> Option<Id<Function>> {
     valve_functions(q, valve).first().copied()
+}
+
+/// A tube specification as one text, "PU 6×4 BU": the material, the diameters and the colour it sets, else its part's
+/// number; empty when it sets none.
+pub fn tube_spec_text(q: &Q, t: &ew_schema::TubeSpec) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if let Some(m) = &t.material {
+        parts.push(m.code().to_owned());
+    }
+    if let (Some(od), Some(id)) = (t.od, t.id) {
+        parts.push(format!("{}×{}", crate::mm(od), crate::mm(id)));
+    }
+    if let Some(c) = t.colour.as_ref().and_then(crate::colour_text) {
+        parts.push(c);
+    }
+    if parts.is_empty()
+        && let Some(c) = t.part.as_ref().and_then(|p| q.parts().get(p.copy))
+    {
+        parts.push(c.item.part_number.as_str().to_owned());
+    }
+    parts.join(" ")
 }

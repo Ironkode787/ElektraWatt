@@ -159,7 +159,7 @@ pub use fluid_media::{
 pub use fluid_rows::{
     MediumRow, MediumRows, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtRow, VtSlot, is_blanking_plate,
     langs, line_kind_text, line_tag, location_text, medium_text, part_number, port_role_text, short_tag,
-    valve_channels, valve_function,
+    tube_spec_text, valve_channels, valve_function,
 };
 pub use names::{
     PotentialAttrsOf, PotentialAttrsV, PotentialNameOf, PotentialNames, cp_text, def_text, potential_named,

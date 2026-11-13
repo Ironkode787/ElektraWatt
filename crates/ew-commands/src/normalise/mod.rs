@@ -15,7 +15,8 @@
 //! | 4 | `online_numbering` | Gives a placed numbered device without a counter the next free counter of its page scope, and a device whose page-based tag collides (after a move of its main representation) the next free one (FR-NUM-007, FR-NUM-029) |
 //! | 7 | `connection_split` | A new representation whose two CPs lie on one segment of a connection's route splits that connection (FR-CON-008, doc 06 §5.3) |
 //! | 8 | `junction_cleanup` | A junction left with two connections dissolves into one; with one, it is removed together with that connection; with none, it is removed (CI-04) |
-//! | 12 | `wire_numbering` | Online wire numbering is off in v0 (no scheme): every new connection is `NumberSpec::Unassigned` |
+//! | 12 | `wire_numbering` | Online wire numbering is off in v0 (no scheme): every new connection but a fluid line is `NumberSpec::Unassigned` |
+//! | 12a | `tube_tags` | N-FL-5: under the line-tag scheme `page_counter`, a fluid line of the transaction without a counter, or with one another fluid line of its page holds, gets the lowest free counter of its page; without a scheme a new fluid line has none (doc 11 §4.2) |
 //! | 13 | `solenoid_binding` | N2: a valve added to or moved within a module whose part has a solenoid-position map, or a new channel of such a module, binds the declared coil to the channel the map assigns when both are free (doc 10 §3.3, FR-PLC-051) |
 //! | 14 | `module_pin_binding` | N3: a new unbound channel of a module whose part has a channel → pin map binds the module pin (doc 10 §3.3) |
 //! | 14a | `bus_ports` | N5: a device that is new or whose bus part (the first part use with a `bus` section with ports) changed, or a bus-port function new to or moved onto a device with a bus part, gives the part's uncarried ports to the device's port-less bus-port functions in list and ID order: address `not_applicable` for a passive port, else `tbd`, no nets; it never rewrites a port, and a carried port that disagrees with the part gives a notice |
@@ -42,6 +43,7 @@ mod online_numbering;
 mod plc_aspects;
 mod revision_ensure_open;
 mod solenoid_binding;
+mod tube_tags;
 mod valve_functions;
 mod wire_numbering;
 
@@ -57,6 +59,7 @@ pub use online_numbering::OnlineNumbering;
 pub use plc_aspects::PlcAspects;
 pub use revision_ensure_open::RevisionEnsureOpen;
 pub use solenoid_binding::SolenoidBinding;
+pub use tube_tags::TubeTags;
 pub use valve_functions::ValveFunctions;
 pub use wire_numbering::WireNumbering;
 
@@ -74,7 +77,7 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 14] = [
+pub const ORDER: [&str; 15] = [
     "valve_functions",
     "plc_aspects",
     "cp_instantiation",
@@ -83,6 +86,7 @@ pub const ORDER: [&str; 14] = [
     "connection_split",
     "junction_cleanup",
     "wire_numbering",
+    "tube_tags",
     "solenoid_binding",
     "module_pin_binding",
     "bus_ports",
@@ -105,6 +109,7 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
         Box::new(ConnectionSplit),
         Box::new(JunctionCleanup),
         Box::new(WireNumbering),
+        Box::new(TubeTags),
         Box::new(SolenoidBinding),
         Box::new(ModulePinBinding),
         Box::new(BusPorts),

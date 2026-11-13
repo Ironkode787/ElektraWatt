@@ -864,6 +864,13 @@ working lines from ports 2 and 4 of -201U3-Q1 … -201U4-Q4 to A and B of the ac
 eight valves move their function-text slot below the body on folio 203 only (closed). *As built:* each valve sits in row H, below the actuator it drives on folio 203 (▲U-38), and the lines'
 routes are the schematic router's, written by Golden A's route tool like every other routed page (▲U-51).
 
+*As built (WP-S1.25).* The A-R fluid overlay is applied by `ew-api`'s test `fluid_media` with the fluid commands
+(`fluid.medium.edit`, `fluid.medium.define`, the `fluid` settings, `fluid.length.set`, `fluid.port.close`) over Golden
+A whose supply plates carry a plate function tapping galleries 1, 3 and 5 and an air-supply point -AS1 feeding
+-201U9:1 through F17 (records of the test, not of the tables). Its tube list has the 17 rows, each PU 6×4 BU at 1.2 m,
+source manual; the cut list one line of 17 pieces, 20.4 m; the medium overview one row with 28 consumers; EF-13, EF-20
+and EF-21 clear and EF-14 stays. The rows are compared in the test; `expected/fluid.csv` is not committed.
+
 ---
 
 ## 13. Panel layout
@@ -1281,6 +1288,11 @@ EF-14 are no longer pending: EW-FL-001 and EW-FL-004 report their 20 subjects ea
 | EF-23 | EW-POT-007 PE continuity (FR-CHK-029) | — | none: 1X1:PE, -XPE, -X1032 and the CPX FE screws reach the plate through rails R1–R3 | 0 | D-21 |
 | EF-24 | EW-POT-018 with EW-PLC-014 load vs channel rating (FR-CHK-041) | — | none at the test loads; the evaluation lists MICO Out1 feeding 24V El and 24V Val of -201U1 and -202U1 | 0 | D-25 |
 | EF-25 | EW-CORE-065 description lint (FR-CHK-040) | — | none with the 1.0 content enabled (the MVP schemes do not run it) | 0 | D-35 |
+
+*As built (WP-S1.25).* EF-20 and EF-21 are found with the EW-FL 1.0 rules in a pre-delivery run with the 1.0
+content (`ew-api` test `fluid_media::golden_a_reports_ef_20_and_ef_21_with_the_1_0_rules`): EW-FL-010 once on
+-201U1, EW-FL-007 on F1 to F16; EW-FL-005, -006, -009 and -012 report nothing, and EW-FL-008 and -014, switched on,
+give 2 and 16 (doc 11 §11.2).
 
 ### 18.3 Release gate
 

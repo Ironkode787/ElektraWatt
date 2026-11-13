@@ -577,26 +577,39 @@ fn emptying_a_valve_position_names_its_fluid_lines_and_the_unbound_channel() {
     );
 }
 
-/// D6 (d): a valve keeps its drawn valve function when its new valve part has another valve FnDef, with a notice.
+/// D6 (d), as built at 1.0 (WP-S1.25): a new valve part whose valve entry names another valve FnDef replaces the valve
+/// function's definition in place, with a notice; the preview shows the notice and commits nothing.
 #[test]
-fn n_fl_1_keeps_the_valve_function_of_another_valve_type() {
+fn n_fl_1_replaces_the_valve_function_of_another_valve_type_in_place() {
     const OTHER: Id<Part> = id(0x70);
     let mut other = solenoid_valve_part(OTHER, "OTHER-1", &["14"]);
     other.item.function_template[0].fndef = lib_ref_to(LIBRARY_VALVE, OTHER_VALVE);
     let mut e = engine(model_with_records(vec![other], vec![]));
     make_module(&mut e, MODULE_H1);
     let (_, v, _) = add_valve(&mut e, 1, VALVE);
+    let before = functions_of(&e, v);
+    let old_def: Id<ew_schema::FnDef> = ew_ids::v5::lib_copy_id(LIBRARY_VALVE, ITEM_VALVE_52);
+    let valve_fn = before
+        .iter()
+        .map(|(f, _)| *f)
+        .find(|f| e.model().table::<Function>().get(f).map(|x| x.def) == Some(old_def))
+        .expect("the valve function");
+    let notice = "-102F2-Q1 has the valve function of its new part; exchange the symbol to draw the new valve type";
+    let preview = e.preview(&replace_part(v, VALVE, OTHER)).expect("the preview");
+    assert_eq!(preview.outcome().notices, [notice]);
+    assert_eq!(functions_of(&e, v), before, "a preview commits nothing");
     let r = e
         .execute(&replace_part(v, VALVE, OTHER))
         .expect("another valve type");
-    assert_eq!(
-        r.outcome.notices,
-        [
-            "-102F2-Q1 keeps its drawn valve function; the new part has another valve type: replace the symbol \
-             to change it"
-        ]
-    );
+    assert_eq!(r.outcome.notices, [notice]);
     assert_eq!(functions_of(&e, v).len(), 2);
+    let other_def: Id<ew_schema::FnDef> = ew_ids::v5::lib_copy_id(LIBRARY_VALVE, OTHER_VALVE);
+
+    assert_eq!(
+        e.model().table::<Function>().get(&valve_fn).map(|f| f.def),
+        Some(other_def),
+        "the valve function keeps its ID and takes the new FnDef"
+    );
 }
 
 // ---------------------------------------------------------------------------------------------------------

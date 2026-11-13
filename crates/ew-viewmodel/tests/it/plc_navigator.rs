@@ -120,6 +120,40 @@ fn coil_state(s: &mut ShellModel, attach: bool) -> Uuid {
     coil.id
 }
 
+/// FT-740 (FR-PLC-020's acceptance on Golden A): channel 1 of -201U3 (Q0.1), unbound, dropped on a port of -201U3-Q1's
+/// valve symbol on folio 203 binds the valve's internal coil 14, which is drawn without a CP: one command, and the
+/// toast names the coil.
+#[test]
+fn a_channel_dropped_on_a_golden_valve_binds_its_internal_coil() {
+    let tmp = Tmp::new("plcnav-ft740");
+    let mut s = tmp.shell_in(Mode::Headless, true, "203");
+    done(&mut s, "view.zoom_actual", json!({}));
+    done(&mut s, "navigator.show", json!({"kind": "plc"}));
+    let (ch, _) = channel_rows(&s)
+        .into_iter()
+        .find(|(_, label)| label == "Q0.1")
+        .expect("channel 1 of -201U3");
+    done(
+        &mut s,
+        "command.run",
+        json!({"cmd": "plc.bind_channel", "params": {"channel": ch, "endpoint": null}}),
+    );
+    let t = tables(&s);
+    let port = t
+        .cps
+        .iter()
+        .filter(|c| c.label.starts_with("-201U3-Q1:"))
+        .min_by_key(|c| c.idx)
+        .expect("a port of -201U3-Q1 on folio 203")
+        .clone();
+    let rev = s.revision();
+    let (x, y) = sheet_mm(&s, (port.at.0 + 500_000, port.at.1));
+    done(&mut s, "navigator.bind", json!({"channel": ch, "x_mm": x, "y_mm": y}));
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one command");
+    let toast = s.toast().expect("the bind's toast").text.clone();
+    assert!(toast.contains("-201U3-Q1:14"), "{toast}");
+}
+
 /// A channel dropped on a stand-alone coil (not on the card) is refused before
 /// any commit, in words that name the coil and the card by tag and carry no record ID; the same drop on the coil once
 /// it is on the card (PG2's path) still binds.

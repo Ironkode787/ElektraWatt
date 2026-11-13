@@ -18,7 +18,9 @@
 //! `revision_overview` (`revision_rows`). From the layout: `enclosure_legend`
 //! (`layout_legend`, registered, drawn on no page). From the check engine:
 //! `open_items` (FR-REP-021, the open findings of the open-item rules, `ew_checks::open_items`; none
-//! of those rules reads the page order, so the list paginates inside it). Other schema kinds are not registered; their blocks
+//! of those rules reads the page order, so the list paginates inside it). From the fluid row sources (doc 11 §8.2):
+//! `tube_list`, `tube_cut_list`, `tube_labels`, `valve_terminal_config` and `medium_overview`. Other schema kinds are not
+//! registered; their blocks
 //! report [`NotDerived::Unsupported`](crate::rowset::NotDerived::Unsupported).
 
 use crate::kind::ReportKindDef;
@@ -27,6 +29,7 @@ mod cable_overview;
 mod conn;
 mod device_list;
 mod enclosure_legend;
+mod fluid;
 mod io_list;
 mod numbering_report;
 mod open_items;
@@ -47,6 +50,7 @@ pub use cable_overview::CableOverview;
 pub use conn::bridge_groups;
 pub use device_list::DeviceList;
 pub use enclosure_legend::EnclosureLegend;
+pub use fluid::{MediumOverview, TubeCutList, TubeLabels, TubeList, ValveTerminalConfig};
 pub use io_list::IoList;
 pub use numbering_report::NumberingReport;
 pub use open_items::OpenItems;
@@ -92,5 +96,10 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &BusCableList,
         &IolinkPortList,
         &SafetyIoList,
+        &TubeList,
+        &TubeCutList,
+        &TubeLabels,
+        &ValveTerminalConfig,
+        &MediumOverview,
     ]
 }

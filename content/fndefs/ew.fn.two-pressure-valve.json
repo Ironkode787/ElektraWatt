@@ -1,0 +1,68 @@
+{
+  "$k": "fndef",
+  "id": "ce38a7f0-e6d6-5449-bd6c-8d533f3e7a65",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d5fc7b39-a20e-51d1-9af9-b77552dd38bb",
+  "version": "0.1.0",
+  "sha256": "sha256:161438550122588320cc3628540ea4f4562a647065a913c9a5f8bded668df1a0",
+  "meta": {
+    "key": "ew.fn.two-pressure-valve",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FlowLogic",
+    "TwoPressure",
+    "And"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 2,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 2
+                }
+              },
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

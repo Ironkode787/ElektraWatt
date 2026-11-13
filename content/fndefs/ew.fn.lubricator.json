@@ -1,0 +1,56 @@
+{
+  "$k": "fndef",
+  "id": "fb3b0d2d-8a93-5ab7-8687-d773e04f6fbb",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "52f19b98-28e8-5ee6-ae8e-185756e379b8",
+  "version": "0.1.0",
+  "sha256": "sha256:30afa16bfd68f72711013eaab650f77140cf39b4a9842a1833c7c29721109cad",
+  "meta": {
+    "key": "ew.fn.lubricator",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Lubricator",
+    "Standard"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}
