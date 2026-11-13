@@ -3,8 +3,8 @@
 
 //! File ▸ Import… of a drawing in the window (WP-S3.19, doc 14 §13): the picker's answer, a DXF, opens the dialog that
 //! says what the file is and that its unit is assumed; Add as page makes a new graphic page and shows it; a second
-//! import, Place under page, puts the drawing under the shown page as an underlay; the accessible-name walker after
-//! the dialog.
+//! import, Place under page, puts the drawing under the shown page as an underlay; each outcome is a toast; the
+//! accessible-name walker after the dialog.
 
 use crate::support;
 
@@ -50,6 +50,10 @@ fn a_dxf_becomes_a_page_and_then_an_underlay_through_the_import_dialog() {
     assert!(h.state().shell().dialog().is_none());
     assert_eq!(h.state().shell().page_rows().len(), pages_before + 1);
     let shown = h.state().shell().current_folio().map(str::to_owned).unwrap();
+    // The outcome is a toast, not a banner: a banner is for a state of the whole project (doc 16a §6.11).
+    assert_eq!(h.state().shell().banner(), None);
+    let toast = h.state().shell().toast().map(|t| t.text.clone());
+    assert_eq!(toast, Some(format!("Imported plan.dxf as page {shown}.")));
 
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
@@ -58,6 +62,8 @@ fn a_dxf_becomes_a_page_and_then_an_underlay_through_the_import_dialog() {
     h.get_by_label(&format!("Place under page {shown}")).click();
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
+    let toast = h.state().shell().toast().map(|t| t.text.clone());
+    assert_eq!(toast, Some(format!("Placed plan.dxf under page {shown}.")));
     support::dispatch(&mut h, "file.save", json!({}));
     let (saved, _) = Session::open_read_only(&dir, "test").unwrap();
     let underlays: Vec<_> = saved

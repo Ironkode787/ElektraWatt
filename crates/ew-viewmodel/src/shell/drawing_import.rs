@@ -120,7 +120,7 @@ impl ShellModel {
                 };
                 let outcome = match project.session.place_underlay(&folio, &name, bytes, &source, embed, notes) {
                     Ok(_) => {
-                        self.banner = Some(strings::format(key!("banner-underlay-placed"), &[&name, &folio]));
+                        self.notify(strings::format(key!("toast-underlay-placed"), &[&name, &folio]), true);
                         Outcome::Done
                     }
                     Err(e) => self.import_failed(&name, &e.to_string()),
@@ -159,7 +159,7 @@ impl ShellModel {
                 let mut go = Map::new();
                 go.insert("folio".to_owned(), Value::String(page.folio.clone()));
                 let _ = self.act_page_goto(&go);
-                self.banner = Some(strings::format(key!("banner-drawing-imported"), &[name, &page.folio]));
+                self.notify(strings::format(key!("toast-drawing-imported"), &[name, &page.folio]), true);
                 Outcome::Done
             }
             Err(e) => self.import_failed(name, &e.to_string()),
