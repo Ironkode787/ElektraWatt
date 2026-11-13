@@ -341,6 +341,8 @@ pub enum PageFormat {
     Svg,
     /// One PNG file per page in a directory (`export png`).
     Png,
+    /// One DXF file per page in a directory (`export dxf`).
+    Dxf,
 }
 
 /// The arguments of `ew render`.
@@ -395,6 +397,8 @@ pub struct ExportPagesArgs {
     pub threads: Option<usize>,
     /// The resolution of `export png` (`--dpi`, default 150); unused for PDF and SVG.
     pub dpi: u32,
+    /// The DXF layer names of `export dxf` (`--layer`); unused for the other formats.
+    pub dxf_layers: ew_api::output::DxfLayers,
     /// Print the result as JSON (`--json`).
     pub json: bool,
 }

@@ -1026,6 +1026,19 @@ fn import_dxf_forms() {
 }
 
 #[test]
+fn export_dxf_forms() {
+    let Ok(Command::ExportPages(a)) = p(&["export", "dxf", "--out", "d", "--pages", "101", "--layer", "wires=WIRING"])
+    else {
+        panic!("parse failed");
+    };
+    assert_eq!(a.format, PageFormat::Dxf);
+    assert_eq!(a.dxf_layers.wires, "WIRING");
+    assert_eq!(a.dxf_layers.frame, ew_api::output::DxfLayers::default().frame);
+    assert!(p(&["export", "dxf", "--out", "d", "--layer", "cables=C"]).is_err());
+    assert!(p(&["export", "dxf", "--out", "d", "--layer", "wires="]).is_err());
+}
+
+#[test]
 fn export_forms() {
     let Ok(Command::Export(a)) = p(&["export", "cables"]) else {
         panic!("parse failed");

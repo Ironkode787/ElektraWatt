@@ -265,14 +265,10 @@ pub fn convert(
     conv.entities(&entities, Affine::IDENTITY, "", 0)?;
     let shapes = std::mem::take(&mut conv.shapes);
     let notes = std::mem::take(&mut conv.notes);
-    // y_top: the top of the imported extents, the header's when it lies above the geometry (the page export writes
-    // the sheet's top there, so a page re-imports in place).
-    let geo_top = bounds(&shapes).map(|[_, hi]| hi.1);
-    let top = match (geo_top, d.header_pt(top_var).map(|p| p.1).filter(|y| y.is_finite())) {
-        (Some(g), Some(h)) if h >= g && h < 1.0e15 => h,
-        (Some(g), _) => g,
-        (None, h) => h.unwrap_or(0.0),
-    };
+    // y_top: the top of the extents the header names (the page export writes the sheet's top there, so a page
+    // re-imports in place), else of the geometry.
+    let header_top = d.header_pt(top_var).map(|p| p.1).filter(|y| y.is_finite() && y.abs() < 1.0e15);
+    let top = header_top.or_else(|| bounds(&shapes).map(|[_, hi]| hi.1)).unwrap_or(0.0);
     let loc = |item: Option<String>| SourceLocation {
         file: file.to_owned(),
         item,

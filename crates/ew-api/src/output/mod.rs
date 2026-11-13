@@ -104,7 +104,7 @@ pub use editing::{
 /// shell names its types (`DisplayList`, `EntityRef`, `Rect`) without a workspace edge to `ew-dl`
 /// (architecture §3 rule 7).
 pub use ew_dl;
-pub use ew_export::{Parallelism, PdfDate, PdfReport, SvgFile, svg_file_name};
+pub use ew_export::{DxfFile, DxfLayers, Parallelism, PdfDate, PdfReport, SvgFile, svg_file_name};
 pub use fields::{
     Category, EditRoute, FieldReadOnly, FieldType, InputError, ParsedInput, field_catalogue,
     field_catalogue_for, format_field_value,
@@ -505,6 +505,72 @@ pub struct SvgExport {
     pub report: ew_export::SvgReport,
     /// The findings of the page scenes.
     pub findings: Vec<PageFindingAt>,
+}
+
+/// A written DXF set (doc 09 §4.4).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct DxfExport {
+    /// One file per page, in page order.
+    pub files: Vec<ew_export::DxfFile>,
+    /// The findings of the page scenes.
+    pub findings: Vec<PageFindingAt>,
+}
+
+/// The DXF set of an export over `q` (doc 09 §4.4, FR-OUT-015): one AC1015 file per selected page from its exported
+/// layers on the sheet, symbol instances kept for the writer's blocks, the layers named by `layers`.
+///
+/// # Errors
+///
+/// [`OutputError::Selection`] for a selection the page order does not have, or two folios of one file name.
+pub fn export_dxf_with(
+    q: &Q,
+    options: &ExportOptions,
+    layers: &ew_export::DxfLayers,
+) -> Result<DxfExport, OutputError> {
+    let order = q.get::<PageOrder>(());
+    let picked = options.pages.resolve(&order, q.sections())?;
+    if picked.is_empty() {
+        return Err(OutputError::Selection("the export has no pages".to_owned()));
+    }
+    raster::refuse_same_file_names(
+        picked.iter().map(|&i| order.entries[i].folio.as_str()),
+        ew_export::dxf_file_name,
+    )?;
+    let mut sheets = Vec::with_capacity(picked.len());
+    let mut findings = Vec::new();
+    for &i in &picked {
+        let entry = &order.entries[i];
+        let scene = page_scene(q, entry);
+        findings.extend(scene.findings.iter().map(|f| PageFindingAt {
+            folio: entry.folio.clone(),
+            finding: f.clone(),
+        }));
+        sheets.push(ew_export::DxfSheet {
+            label: entry.folio.clone(),
+            width: scene.sheet_width,
+            height: scene.sheet_height,
+            layers: scene
+                .layers
+                .iter()
+                .filter(|(l, _)| l.is_exported())
+                .map(|(l, list)| (*l, scene.map.apply_display_list(list, None)))
+                .collect(),
+            geometry: scene.geometry.clone(),
+            scale_ppb: scene.map.scale_ppb,
+        });
+    }
+    let dxf_options = ew_export::DxfOptions {
+        layers: layers.clone(),
+        faces: svg_options(false)
+            .faces
+            .into_iter()
+            .map(|(k, f)| (k, (f.family, f.weight >= 700)))
+            .collect(),
+    };
+    Ok(DxfExport {
+        files: ew_export::dxf(&sheets, &dxf_options),
+        findings,
+    })
 }
 
 /// The bundled font faces as the writers read them (`ew_text::bundled()`): the export embeds no other font.
@@ -992,6 +1058,19 @@ impl Session {
     /// [`OutputError`] for a selection the page order does not have or pages the writer refuses.
     pub fn export_svg(&self, options: &ExportOptions) -> Result<SvgExport, OutputError> {
         export_svg_with(&self.query(), options, &self.export_assets())
+    }
+
+    /// The DXF set of the current snapshot (`ew export dxf`, doc 09 §4.4), one file per page ([`export_dxf_with`]).
+    ///
+    /// # Errors
+    ///
+    /// [`OutputError`] for a selection the page order does not have.
+    pub fn export_dxf(
+        &self,
+        options: &ExportOptions,
+        layers: &ew_export::DxfLayers,
+    ) -> Result<DxfExport, OutputError> {
+        export_dxf_with(&self.query(), options, layers)
     }
 }
 

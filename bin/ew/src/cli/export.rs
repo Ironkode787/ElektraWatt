@@ -791,6 +791,39 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
                 ew_api::output::page_findings_summary(&svg.findings),
             )
         }
+        PageFormat::Dxf => {
+            let dxf = match session.export_dxf(&options, &a.dxf_layers) {
+                Ok(d) => d,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return 2;
+                }
+            };
+            let files: Vec<(&str, &[u8])> = dxf
+                .files
+                .iter()
+                .map(|f| (f.name.as_str(), f.text.as_bytes()))
+                .collect();
+            if let Err(e) = write_file_set(&a.out, "dxf", "a DXF", &files) {
+                eprintln!("error: {e}");
+                return 2;
+            }
+            if a.json {
+                print!(
+                    "{}",
+                    results::to_text(&results::ExportDxfResult {
+                        schema: results::EXPORT_DXF.to_owned(),
+                        out: a.out.display().to_string(),
+                        files: dxf.files.iter().map(|f| f.name.clone()).collect(),
+                        findings: dxf.findings.len(),
+                    })
+                );
+            }
+            (
+                format!("DXF written to {}: {} files", a.out.display(), dxf.files.len()),
+                ew_api::output::page_findings_summary(&dxf.findings),
+            )
+        }
         PageFormat::Png => {
             let png = match session.export_png(&options, a.dpi) {
                 Ok(p) => p,

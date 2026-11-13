@@ -160,6 +160,15 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["import", "dxf"],
+        exits: &[
+            exit(0, "imported and saved, or the symbol drafts printed"),
+            exit(2, "usage, a refused file, a missing unit, open and save errors"),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["check"],
         exits: &[
             exit(0, "no unwaived error"),
@@ -257,6 +266,12 @@ pub const TABLE: &[Row] = &[
         path: &["export", "png"],
         exits: &[OK, USAGE_ETC],
         result: Some(ew_api::cli_results::EXPORT_PNG),
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["export", "dxf"],
+        exits: &[OK, USAGE_ETC],
+        result: Some(ew_api::cli_results::EXPORT_DXF),
         stability: Stability::Preview,
     },
     Row {

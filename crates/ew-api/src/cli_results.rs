@@ -106,6 +106,8 @@ pub const MERGE_RESOLVE: &str = "ew.merge-resolve-result/1";
 pub const EXPORT_SVG: &str = "ew.export-svg-result/1";
 /// `ew export png --json`.
 pub const EXPORT_PNG: &str = "ew.export-png-result/1";
+/// `ew export dxf --json`.
+pub const EXPORT_DXF: &str = "ew.export-dxf-result/1";
 /// `ew export wires --json`.
 pub const EXPORT_WIRES: &str = "ew.export-wires-result/1";
 /// `ew export terminals --json`.
@@ -182,6 +184,12 @@ pub const RESULTS: &[ResultSchema] = &[
         command: "export cables",
         flag: None,
         schema: schema_of::<ExportRowsResult>,
+    },
+    ResultSchema {
+        name: EXPORT_DXF,
+        command: "export dxf",
+        flag: None,
+        schema: schema_of::<ExportDxfResult>,
     },
     ResultSchema {
         name: EXPORT_EWZ,
@@ -696,6 +704,21 @@ pub struct ExportSvgResult {
     /// The directory written.
     pub out: String,
     /// The files written, one `<folio>.svg` per page, in page order.
+    pub files: Vec<String>,
+    /// The page findings.
+    pub findings: usize,
+}
+
+/// `ew export dxf --json` ([`EXPORT_DXF`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ExportDxfResult {
+    /// [`EXPORT_DXF`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The directory written.
+    pub out: String,
+    /// The files written, one `<folio>.dxf` per page, in page order.
     pub files: Vec<String>,
     /// The page findings.
     pub findings: usize,

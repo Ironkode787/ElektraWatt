@@ -663,6 +663,13 @@ enum ExportCli {
     /// only) through the session's export job with the bundled fonts only. `--pages`, `--sections` and `--threads`
     /// as for `export pdf`. Exit 0 on success, 2 on everything else.
     Svg(PagesCli),
+    /// Write one DXF file per page.
+    ///
+    /// Writes one `<folio>.dxf` per page (AutoCAD 2000, AC1015, in millimetres) into the directory `--out` (replaced
+    /// as a whole; it may hold DXF files only): the frame, symbols as blocks and inserts, wires, texts, graphics and
+    /// tables on their layers (`--layer` renames one), curves flattened to 0.01 mm. `--pages` and `--sections` as
+    /// for `export pdf`. Exit 0 on success, 2 on everything else.
+    Dxf(DxfCli),
     /// Pack the project's saved generation into an .ewz.
     ///
     /// Packs the project's saved generation into `--out <file.ewz>` (required), a deterministic ZIP (doc 05 §12):
@@ -1020,6 +1027,19 @@ fn rows_format(
         }
         Some(ReportPages::Csv) | None => Ok(RowFormat::Csv(csv.options(path, "csv")?)),
     }
+}
+
+/// `ew export dxf`.
+#[derive(Args, Debug)]
+struct DxfCli {
+    /// The pages, as for `export svg`.
+    #[command(flatten)]
+    pages: PagesCli,
+    /// Name the DXF layer of a class (frame, symbols, wires, texts, graphics, tables, underlay): `wires=WIRING`
+    /// (repeatable; default `EW-FRAME`, `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`,
+    /// `EW-UNDERLAY`).
+    #[arg(long, value_name = "class=name", allow_hyphen_values = true, value_parser = dxf_layer)]
+    layer: Vec<(String, String)>,
 }
 
 /// `ew export pdf|svg`.
@@ -2817,10 +2837,31 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 pages: selection(&["export", "png"], pages, sections)?,
                 threads,
                 dpi,
+                dxf_layers: ew_api::output::DxfLayers::default(),
                 json,
             })
         }
+        ExportCli::Dxf(DxfCli { pages, layer }) => {
+            let mut command = pages_command(PageFormat::Dxf, pages)?;
+            if let Command::ExportPages(a) = &mut command {
+                for (class, name) in layer {
+                    a.dxf_layers
+                        .set(&class, &name)
+                        .map_err(|e| usage_error(&["export", "dxf"], e))?;
+                }
+            }
+            command
+        }
     })
+}
+
+/// A `--layer <class>=<name>` of `export dxf`, checked against the layer classes.
+fn dxf_layer(s: &str) -> Result<(String, String), String> {
+    let (class, name) = s
+        .split_once('=')
+        .ok_or_else(|| format!("`{s}` is no `<class>=<name>`"))?;
+    ew_api::output::DxfLayers::default().set(class.trim(), name)?;
+    Ok((class.trim().to_owned(), name.trim().to_owned()))
 }
 
 /// `ew export pdf|svg`.
@@ -2839,6 +2880,7 @@ fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error
     let path: &[&str] = match format {
         PageFormat::Pdf => &["export", "pdf"],
         PageFormat::Svg | PageFormat::Png => &["export", "svg"],
+        PageFormat::Dxf => &["export", "dxf"],
     };
     not_built(path, lang.is_some(), omit_personal_data)?;
     Ok(Command::ExportPages(ExportPagesArgs {
@@ -2848,6 +2890,7 @@ fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error
         pages: selection(path, pages, sections)?,
         threads,
         dpi: ew_api::output::DEFAULT_DPI,
+        dxf_layers: ew_api::output::DxfLayers::default(),
         json,
     }))
 }
