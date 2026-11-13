@@ -18,7 +18,7 @@ platforms = ["x86_64-pc-windows-msvc", "x86_64-unknown-linux-gnu"]
 # is a development tool outside the product graph: none of them depends on ew-hack.
 workspace-members = [
   "ew-units", "ew-ids", "ew-mltext", "ew-rds", "ew-schema", "ew-format", "ew-interop-api", "ew-dl",
-  "ew-memo", "ew-plcaddr", "ew-testdir", "ew-testids",
+  "ew-memo", "ew-plcaddr", "ew-caex", "ew-testdir", "ew-testids",
   "xtask",
   # ARCH §3 rule 4 (ci/dep-rules.toml [importers]): an importer depends on permissive workspace crates only.
   "ew-import-catalog", "ew-import-dxf", "ew-import-eplan", "ew-import-qet", "ew-import-tables",

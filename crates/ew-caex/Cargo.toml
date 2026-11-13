@@ -1,0 +1,27 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
+[package]
+name = "ew-caex"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "MIT OR Apache-2.0"
+description = "The neutral PLC exchange image and its AutomationML AR APC form: CAEX 2.15 written, CAEX 2.15 and 3.0 read."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# The input limits and the refusal of a whole file (doc 14 §2.1, §11): one set of limits for every parser.
+ew-interop-api = { path = "../ew-interop-api" }
+# The AML reader streams the file (the workspace pin, no feature beyond those the graph enables).
+quick-xml.workspace = true
+# The image is a command parameter (`plc.apply_exchange`): its JSON form and the schema of that form.
+serde.workspace = true
+schemars = "1.2.3"
+
+[dev-dependencies]
+serde_json = "1.0.154"

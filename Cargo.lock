@@ -1347,6 +1347,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ew-caex"
+version = "0.2.0"
+dependencies = [
+ "ew-interop-api",
+ "quick-xml",
+ "schemars",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "ew-checks"
 version = "0.2.0"
 dependencies = [
