@@ -744,6 +744,10 @@ fn the_plc_station_the_modules_and_the_part_section_are_those_of_doc_20() {
             bit_of: Some(MapSpec::Expr("n".to_owned())),
             pin_of: None,
             supply_groups: Vec::new(),
+            allowed_slots: Vec::new(),
+            limits: None,
+            iolink: None,
+            ratings: None,
             unbound: Some(ChannelState::Deactivated),
             // test input H1 of doc 20 §11.2: coil 14 on channel 2p, coil 12 on 2p + 1
             positions: Some(PositionMap {

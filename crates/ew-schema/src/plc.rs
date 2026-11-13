@@ -5,10 +5,11 @@
 //! aspects `plc_station` and `plc_module`, the part's `plc` section, and the functional `device_link` (42;
 //! doc 03 §7, doc 11 §3.1).
 //!
-//! Implemented members are the subset the golden project needs (doc 20 §11.2, §11.3, §6.2); the other
-//! members of doc 10 §2.2–§2.4 (ownership, symbol policy, exchange stamp, firmware, device descriptions, type
-//! ident, data type, auxiliary pins, signal range, safety) are additive and stay in `extra` until their work
-//! packages.
+//! Implemented members are those of the MVP (doc 20 §11.2, §11.3, §6.2) and of the 1.0 layer of WP-S1.24: the
+//! symbol policy, the safety data of doc 10 §2.9, a channel's data type, signal range and port mode, and the
+//! part's allowed slots, station limits, IO-Link port window and output ratings. The other members of doc 10
+//! §2.2–§2.4 (allocation, ownership, exchange stamp, firmware, device descriptions, type ident, auxiliary pins)
+//! are additive and stay in `extra` until their work packages.
 
 use std::borrow::Cow;
 
@@ -18,7 +19,7 @@ use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 
-use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
+use crate::json::{Extra, de_extra, is_default, is_false, is_true, is_v1, r#true, v1};
 use crate::proxy::{IdentS, MlTextS, UuidS};
 use crate::track::{buffer, de_here, invalid, kept_unknown, malformed, not_a_variant, open_enum, raise};
 use crate::value::{Endpoint, SourceRef};
@@ -47,10 +48,34 @@ pub struct PlcConfigProject {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub cpu: Option<Id<Device>>,
+    /// The symbol policy (doc 10 §2.2, §3.4, FR-PLC-017, FR-PLC-047); absent: no automatic symbol, strict IEC
+    /// identifiers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub symbols: Option<SymbolPolicy>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
     /// Unknown members and plugin keys.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// How a configuration project derives and validates channel symbols (doc 10 §2.2, §3.4).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct SymbolPolicy {
+    /// The template of the automatic symbol (`{target.process_tag|target.dt}`, `{target.dt}_{pin}`); absent: a
+    /// channel without a manual symbol has none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template: Option<String>,
+    /// Strict IEC 61131-3 identifiers (the default): the automatic symbol is cleaned into one, and EW-PLC-005
+    /// reports a symbol that is not one.
+    #[serde(default = "r#true", skip_serializing_if = "is_true")]
+    pub strict_iec: bool,
+    /// The PLC tag table the symbols are exported to (the TIA "PLC Tags" table name).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub tag_table: Option<Ident>,
+    /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
@@ -116,6 +141,9 @@ pub struct PlcModule {
     /// Created with the station; not deletable alone (FR-PLC-003).
     #[serde(default, skip_serializing_if = "is_false")]
     pub integrated: bool,
+    /// The safety data of an F-module (doc 10 §2.9, FR-PLC-041); absent: a standard module.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub safety: Option<SafetyModule>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -302,6 +330,21 @@ pub struct Channel {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub target: Option<Id<Function>>,
+    /// The data type of the PLC tag in the profile vocabulary ("Bool", "Int"); absent: the part's
+    /// (`ChannelSpec.data_type`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub data_type: Option<Ident>,
+    /// The signal range of an analogue channel ("4..20 mA").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub signal_range: Option<Ident>,
+    /// The mode of a `multi_function` channel (an IO-Link master port, doc 10 §3.8); absent: IO-Link.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mode: Option<PortMode>,
+    /// The safety data of an F-channel (doc 10 §2.9, FR-PLC-041); absent: a standard channel.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub safety: Option<SafetyChannel>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
@@ -310,7 +353,7 @@ pub struct Channel {
     pub extra: Extra,
 }
 
-/// The kind of a channel (doc 10 §2.4). `multi_function` (IO-Link port modes, 1.0) is additive.
+/// The kind of a channel (doc 10 §2.4).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(remote = "Self")]
@@ -330,6 +373,110 @@ pub enum ChannelKind {
     IoLinkPort,
     /// Power supply.
     PowerSupply,
+    /// A multi-function port whose mode (`Channel.mode`) selects IO-Link, DI, DQ or deactivated (doc 10 §3.8,
+    /// FR-BUS-012).
+    MultiFunction,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The mode of a multi-function channel (doc 10 §3.8, FR-BUS-012).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "PortMode")]
+pub enum PortMode {
+    /// IO-Link communication (the default): the port occupies the part's process-data window.
+    #[default]
+    IoLink,
+    /// A digital input (SIO).
+    Di,
+    /// A digital output (SIO).
+    Dq,
+    /// Deactivated: no process data.
+    Deactivated,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Safety data (doc 10 §2.9)
+
+/// The safety data of an F-module (doc 10 §2.9): its PROFIsafe addresses and watchdog. SIL and PL are never
+/// calculated (FR-PLC-041).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct SafetyModule {
+    /// The F-destination address (`F_Dest_Add`); absent: missing (EW-SAF-001).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub f_dest: Option<u16>,
+    /// The F-source address (`F_Source_Add`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub f_source: Option<u16>,
+    /// The F-watchdog time in milliseconds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub f_wd_ms: Option<u16>,
+    /// The F-destination range of the device description (`1..=65534`); absent: any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub range: Option<RangeU16>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// An inclusive range of 16-bit numbers.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct RangeU16 {
+    /// The lowest value.
+    pub min: u16,
+    /// The highest value.
+    pub max: u16,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+impl RangeU16 {
+    /// Whether `value` lies in the range.
+    pub fn contains(&self, value: u16) -> bool {
+        self.min <= value && value <= self.max
+    }
+}
+
+/// The safety data of an F-channel (doc 10 §2.9).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct SafetyChannel {
+    /// One-out-of-one or one-out-of-two evaluation.
+    pub evaluation: Evaluation,
+    /// The other channel of a 1oo2 pair.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub pair: Option<Id<Channel>>,
+    /// The requirement as a field ("SIL 2", "PL d"); never calculated.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub requirement: Option<Ident>,
+    /// The module's test-pulse (sensor-supply) pin that the channel's sensor must be supplied from (EW-SAF-003);
+    /// absent: the channel needs none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub test_pulse: Option<Endpoint>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The evaluation of a safety channel.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(remote = "Self")]
+#[schemars(rename = "Evaluation")]
+pub enum Evaluation {
+    /// One-out-of-one.
+    #[serde(rename = "1oo1")]
+    OneOoOne,
+    /// One-out-of-two: the channel and its `pair` read one two-channel sensor.
+    #[serde(rename = "1oo2")]
+    OneOoTwo,
     /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),
@@ -389,6 +536,85 @@ pub struct PlcSection {
     /// part without groups writes the bytes it wrote before (the member order fixes a copy's hash).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub supply_groups: Vec<SupplyGroup>,
+    /// The slots a module of this part may occupy (doc 10 §2.3, FR-PLC-028, EW-PLC-011); empty: any slot.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub allowed_slots: Vec<u16>,
+    /// The limits of a station of this part (`Max_Module`, the maximum I/O lengths; EW-PLC-011).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limits: Option<StationLimits>,
+    /// The port window of an IO-Link master's `multi_function` channels (doc 10 §3.8, FR-BUS-012).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iolink: Option<IoLinkWindow>,
+    /// The output current ratings of a module (EW-PLC-014, FR-PLC-048).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ratings: Option<OutputRatings>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The limits of a station part (doc 10 §2.8 `Max_Module` and the maximum I/O lengths; EW-PLC-011).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct StationLimits {
+    /// The most modules the station takes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_modules: Option<u16>,
+    /// The most input bytes of all its modules together.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_input_bytes: Option<u32>,
+    /// The most output bytes of all its modules together.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_output_bytes: Option<u32>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The port window of an IO-Link master part (doc 10 §3.8): the process-data bytes each port occupies in IO-Link
+/// mode, the port class and the longest port cable.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct IoLinkWindow {
+    /// The input bytes per port.
+    pub input_bytes: u16,
+    /// The output bytes per port.
+    pub output_bytes: u16,
+    /// The port class (A or B).
+    pub class: PortClass,
+    /// The longest port cable in metres (IO-Link: 20).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_cable_m: Option<u16>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The class of an IO-Link port (FR-BUS-012): class B adds a separate actuator supply.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "PortClass")]
+pub enum PortClass {
+    /// Class A.
+    A,
+    /// Class B.
+    B,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// The output current ratings of a module part, in milliamperes (EW-PLC-014).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct OutputRatings {
+    /// The rating of one output channel.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channel_ma: Option<u32>,
+    /// The rating of one load supply group (the output channels the group feeds).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub group_ma: Option<u32>,
+    /// The rating of the whole module.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub module_ma: Option<u32>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -751,4 +977,7 @@ open_enum!(
     DeviceLinkKind,
     SupplyKind,
     SupplyFeeds,
+    PortMode,
+    Evaluation,
+    PortClass,
 );

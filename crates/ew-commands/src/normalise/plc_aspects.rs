@@ -156,6 +156,7 @@ fn config_project_for(tx: &mut TxBuilder<'_>, station: &Device) -> Result<Id<Plc
         name: name.clone(),
         profile: profile_ident,
         cpu: Some(station.id),
+        symbols: None,
         source_ref: None,
         extra: Extra::new(),
     })?;

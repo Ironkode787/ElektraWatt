@@ -158,6 +158,7 @@ pub(super) fn kind_name(k: &ChannelKind) -> &'static str {
         ChannelKind::Counter => "counter",
         ChannelKind::IoLinkPort => "IO-Link",
         ChannelKind::PowerSupply => "supply",
+        ChannelKind::MultiFunction => "multi-function",
         ChannelKind::Unknown(_) => "other",
     }
 }

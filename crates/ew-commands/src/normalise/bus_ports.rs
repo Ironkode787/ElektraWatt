@@ -88,6 +88,7 @@ fn seeded(port: &PartBusPort) -> BusPort {
         termination: port.termination.clone(),
         logical_net: None,
         physical_net: None,
+        mrp: None,
         extra: Extra::new(),
     }
 }

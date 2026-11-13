@@ -2035,6 +2035,7 @@ fn channel_kind_word(k: &ew_derive::ew_schema::ChannelKind) -> &'static str {
         ChannelKind::Counter => "counter",
         ChannelKind::IoLinkPort => "IO-Link",
         ChannelKind::PowerSupply => "supply",
+        ChannelKind::MultiFunction => "multi-function",
         ChannelKind::Unknown(_) => "other",
     }
 }

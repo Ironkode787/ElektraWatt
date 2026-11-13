@@ -216,6 +216,10 @@ impl Normaliser for ChannelInstantiation {
                         comment: MlText::default(),
                         binding: None,
                         target: None,
+                        data_type: None,
+                        signal_range: None,
+                        mode: None,
+                        safety: None,
                         source_ref: None,
                         extra: Extra::new(),
                     })?;

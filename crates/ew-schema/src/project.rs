@@ -301,6 +301,11 @@ pub struct ProjectSettings {
     #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
     #[schemars(with = "BTreeMap<String, TextStyleSpec>")]
     pub text_styles: BTreeMap<Ident, TextStyleSpec>,
+    /// The process-tag scheme (FR-PLC-049, doc 10 §3.4): a regular expression with named groups that a whole
+    /// process tag must match (`(?P<area>TA\d\d)-(?P<kind>[A-Z]+)-(?P<number>\d+)`); EW-PRC-001 reports a tag that
+    /// does not. Absent: any tag.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_tag_scheme: Option<String>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

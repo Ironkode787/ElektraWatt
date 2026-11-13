@@ -116,6 +116,7 @@ fn dp_master() -> BusPort {
         termination: None,
         logical_net: None,
         physical_net: None,
+        mrp: None,
         extra: ew_schema::Extra::new(),
     }
 }

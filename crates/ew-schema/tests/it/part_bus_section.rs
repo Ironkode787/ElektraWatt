@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 //! The part-level bus section (.1, D15; BU-7a, BU-7b): `PartSections.bus` with its port list types the
-//! members D15 names, keeps every other member in `extra` and every newer enum value as `Unknown`, writes byte-equal
+//! members D15 and WP-S1.24 name, keeps every other member in `extra` and every newer enum value as `Unknown`, writes byte-equal
 //! in §8a.1's member order, omits an empty port list, and refuses a port without a required member.
 
 use crate::common;
@@ -32,7 +32,7 @@ fn part(doc: &LibDocument) -> &Part {
 fn a_bus_section_types_its_members_and_keeps_the_rest() {
     let line = part_line(concat!(
         r#"{"plc":{"role":"station"},"bus":{"ports":["#,
-        r#"{"interface":"X1","port_label":"P1R","bus":"profinet","role":"device","termination":"off","address_range":[1,125],"connector":"rj45","signals":{"1":"TD+"}},"#,
+        r#"{"interface":"X1","port_label":"P1R","bus":"profinet","role":"device","termination":"off","connector":"rj45","rates":[100000000],"address_range":{"min":1,"max":125},"signals":{"1":"TD+"}},"#,
         r#"{"interface":"DP","bus":"sercos","role":"observer","termination":"auto"}"#,
         r#"],"rates":[9600,12000000]}}"#
     ));
@@ -56,9 +56,13 @@ fn a_bus_section_types_its_members_and_keeps_the_rest() {
     assert_eq!(first.bus, BusSystem::Profinet);
     assert_eq!(first.role, PortRole::Device);
     assert_eq!(first.termination, Some(OnOff::Off));
+    // WP-S1.24 types the connector, the rates and the address range; the signal map stays in extra
+    assert_eq!(first.connector.as_ref().map(|c| c.as_str()), Some("rj45"));
+    assert_eq!(first.rates, [ew_schema::BusRate(100_000_000)]);
+    assert_eq!(first.address_range.as_ref().map(|r| (r.min, r.max)), Some((1, 125)));
     assert_eq!(
         first.extra.keys().map(String::as_str).collect::<Vec<_>>(),
-        ["address_range", "connector", "signals"]
+        ["signals"]
     );
     let second = &bus.ports[1];
     assert_eq!(second.interface.as_str(), "DP");

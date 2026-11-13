@@ -317,13 +317,36 @@ impl Query for NetMembersOf {
     }
 }
 
-/// The station address as a drawing prints it (doc 20 §11.1, FR-BUS-006): "Node TBD" for the open item, "Node 3"
-/// for a PROFIBUS address; `None` for a port without an address and for an address form of a newer format.
+/// The station address as a drawing prints it (doc 20 §11.1, FR-BUS-006): "Node TBD" for the open item, "Node " and
+/// the address of [`net_address_text`] otherwise ("Node 3", "Node cpx-1 192.168.0.10"); `None` for a port without
+/// an address and for an address form of a newer format.
 pub fn bus_address_text(port: &BusPort) -> Option<String> {
     match &port.address {
         AddrValue::Tbd => Some("Node TBD".to_owned()),
-        AddrValue::Value(NetAddress::Profibus(n)) => Some(format!("Node {n}")),
-        AddrValue::Value(NetAddress::Unknown(_)) | AddrValue::NotApplicable | AddrValue::Unknown(_) => None,
+        AddrValue::Value(a) => net_address_text(a).map(|t| format!("Node {t}")),
+        AddrValue::NotApplicable | AddrValue::Unknown(_) => None,
+    }
+}
+
+/// A bus address as reports print it: a PROFIBUS address as its number ("3"); a PROFINET address as its device name
+/// and, when set, its IPv4 address ("cpx-1 192.168.0.10"); an EtherCAT address as its position and alias ("pos 2",
+/// "alias 1001", "pos 2 alias 1001"); an IO-Link port as "port 3". `None` for an EtherCAT address without either and
+/// for a form of a newer format.
+pub fn net_address_text(address: &NetAddress) -> Option<String> {
+    match address {
+        NetAddress::Profibus(n) => Some(n.to_string()),
+        NetAddress::Profinet(p) => Some(match p.ip {
+            Some(ip) => format!("{} {ip}", p.name),
+            None => p.name.to_string(),
+        }),
+        NetAddress::EtherCat(e) => match (e.position, e.alias) {
+            (Some(p), Some(a)) => Some(format!("pos {p} alias {a}")),
+            (Some(p), None) => Some(format!("pos {p}")),
+            (None, Some(a)) => Some(format!("alias {a}")),
+            (None, None) => None,
+        },
+        NetAddress::IoLinkPort(n) => Some(format!("port {n}")),
+        NetAddress::Unknown(_) => None,
     }
 }
 

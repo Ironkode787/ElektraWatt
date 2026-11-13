@@ -89,6 +89,7 @@ impl Command for CreatePlcConfigProject {
             name: self.name.clone(),
             profile: self.profile.clone(),
             cpu: self.cpu,
+            symbols: None,
             source_ref: None,
             extra: Extra::new(),
         })?;

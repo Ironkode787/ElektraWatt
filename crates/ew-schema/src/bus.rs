@@ -6,10 +6,12 @@
 //!
 //! Typed within the unreleased format 0.1 under ADR-0011 amendment 4: the kinds were reserved with their ranks, the
 //! aspect is named by doc 03 §7, every member the design leaves open is optional, and every enum has its `Unknown`
-//! catch-all. `NetAddress` types the PROFIBUS station address only; the other buses' address forms stay
-//! [`NetAddress::Unknown`] (kept verbatim) until WP-S1.24. The logical net's address space (doc 10 §2.7 `space`),
+//! catch-all. `NetAddress` types the PROFIBUS, PROFINET, EtherCAT and IO-Link address forms (WP-S1.24, additive
+//! variants); the forms of the buses of 1.x stay [`NetAddress::Unknown`]. The logical net's address space (doc 10 §2.7 `space`),
 //! which no design document defines yet, stays in `extra`. Segments are derived (`bus_segments`, doc 10 §3.8 A5),
 //! never stored.
+
+use std::net::Ipv4Addr;
 
 use ew_ids::Id;
 use ew_mltext::Ident;
@@ -17,6 +19,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::plc::{PortClass, RangeU16};
 use crate::Function;
 use crate::json::{Extra, de_extra, is_v1, v1};
 use crate::proxy::{IdentS, UuidS};
@@ -55,6 +58,9 @@ pub struct BusPort {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub physical_net: Option<Id<PhysicalNet>>,
+    /// The media-redundancy role of a PROFINET port in a ring (FR-BUS-010); absent: no ring.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mrp: Option<MrpRole>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -127,8 +133,9 @@ pub enum AddrValue {
     Unknown(Value),
 }
 
-/// A bus address (doc 10 §2.7). Format 0.1 types the PROFIBUS station address; the address forms of the other
-/// buses (PROFINET name and IP, EtherCAT position, …) are kept verbatim as [`NetAddress::Unknown`] until WP-S1.24.
+/// A bus address (doc 10 §2.7): the PROFIBUS station address, the PROFINET device name and IPv4 data, the EtherCAT
+/// position and alias, and an IO-Link port number. The address forms of the buses of 1.x (EtherNet/IP, AS-i,
+/// CANopen, Modbus TCP) are kept verbatim as [`NetAddress::Unknown`].
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 #[serde(remote = "Self")]
@@ -136,7 +143,65 @@ pub enum AddrValue {
 pub enum NetAddress {
     /// A PROFIBUS station address (nominally 0–125, a range from data, FR-BUS-009).
     Profibus(u8),
+    /// A PROFINET IO device name and its IPv4 data (FR-BUS-010).
+    Profinet(ProfinetAddress),
+    /// An EtherCAT position and alias (FR-BUS-011).
+    #[serde(rename = "ethercat")]
+    EtherCat(EtherCatAddress),
+    /// The number of an IO-Link master port (1-based).
+    IoLinkPort(u8),
     /// A form of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// A PROFINET IO address (doc 10 §2.7, FR-BUS-010): the DNS-compatible device name and the IPv4 address, subnet mask
+/// and gateway, each optional until assigned.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ProfinetAddress {
+    /// The device name ("cpx-1").
+    #[schemars(with = "IdentS")]
+    pub name: Ident,
+    /// The IPv4 address.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ip: Option<Ipv4Addr>,
+    /// The subnet mask.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub mask: Option<Ipv4Addr>,
+    /// The default gateway.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub gateway: Option<Ipv4Addr>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// An EtherCAT address (doc 10 §2.7, FR-BUS-011): the auto-increment position in the line and the station alias.
+/// An absent position is the derived one, the slave's place in the segment.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct EtherCatAddress {
+    /// The auto-increment position (1-based).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<u16>,
+    /// The configured station alias.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub alias: Option<u16>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The media-redundancy role of a PROFINET port (FR-BUS-010).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "MrpRole")]
+pub enum MrpRole {
+    /// The ring manager.
+    Manager,
+    /// A ring client.
+    Client,
+    /// A value of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),
 }
@@ -169,13 +234,18 @@ pub struct BusSection {
     /// first port of an (`interface`, `port_label`) pair and ignores later ones.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub ports: Vec<PartBusPort>,
-    /// Unknown members: the device-description facts of 1.0 (rates, ident number), kept verbatim.
+    /// The bus systems a cable part is made for (EW-BUS-009); empty: the part says nothing about buses.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub cable_for: Vec<BusSystem>,
+    /// Unknown members: the device-description facts of 1.x (ident number), kept verbatim.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }
 
-/// One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`]. No address, net,
-/// connector, signal map or address range is typed; those stay in `extra` (1.0).
+/// One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`], then the facts of 1.0 that
+/// the rules read: the connector type (EW-BUS-009), the supported rates (EW-BUS-005), the address range (EW-BUS-002)
+/// and the IO-Link device data (EW-IOL-001, EW-IOL-002). No address or net is typed: those belong to the drawn port;
+/// the signal map of FR-BUS-023 stays in `extra`.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PartBusPort {
     /// The interface name ("DP", "X1").
@@ -192,9 +262,53 @@ pub struct PartBusPort {
     /// Present: the interface has a termination switch, in this state; absent: it has none.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub termination: Option<OnOff>,
-    /// Unknown members (connector, signals, address range: 1.0), kept verbatim.
+    /// The connector type ("sub-d-9", "m12-b"); two ports mated without a cable must have the same (EW-BUS-009).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub connector: Option<Ident>,
+    /// The data rates the interface supports (FR-BUS-009, EW-BUS-005); empty: not stated.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub rates: Vec<BusRate>,
+    /// The station addresses the interface accepts (FR-BUS-009, EW-BUS-002); absent: the bus's range.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub address_range: Option<RangeU16>,
+    /// The IO-Link device data of a port with bus `io_link` and role `device` (doc 10 §3.8, FR-BUS-012).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub iolink: Option<IoLinkDevice>,
+    /// Unknown members (the signal map of FR-BUS-023), kept verbatim.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// The IO-Link data of a device part (doc 10 §3.8; the facts an IODD supplies, FR-BUS-013 at 1.x).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct IoLinkDevice {
+    /// The port class the device needs (A or B).
+    pub class: PortClass,
+    /// The process-data input bits.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub input_bits: u16,
+    /// The process-data output bits.
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub output_bits: u16,
+    /// The IO-Link vendor ID.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub vendor_id: Option<u32>,
+    /// The IO-Link device ID.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub device_id: Option<u32>,
+    /// The struct data type of the process data in the profile vocabulary ("BNI_IOL_88"); a symbol of the port
+    /// takes it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub data_type: Option<Ident>,
+    /// Unknown members (the IODD hash and file name of 1.x).
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+fn is_zero(n: &u16) -> bool {
+    *n == 0
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -278,4 +392,4 @@ pub enum BusMedium {
     Unknown(Value),
 }
 
-open_enum!(BusSystem, PortRole, AddrValue, NetAddress, OnOff, BusMedium);
+open_enum!(BusSystem, PortRole, AddrValue, NetAddress, OnOff, BusMedium, MrpRole);

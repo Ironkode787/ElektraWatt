@@ -5,7 +5,7 @@
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::MlText;
-use ew_derive::ew_schema::{AddrValue, Channel, Device, NetAddress, PlcConfigProject, ReportBlock};
+use ew_derive::ew_schema::{AddrValue, Channel, Device, PlcConfigProject, ReportBlock};
 use ew_derive::{EffectiveState, FunctionCps, PlcRow, PlcRows, Q, Slot};
 
 use super::conn::{put, tag_short};
@@ -144,7 +144,7 @@ impl Station {
 }
 
 /// The station's bus address: the first port (by function ID) of the station device with an address; "TBD" for the
-/// open item, the PROFIBUS station number for a set one (an address of another bus is 1.0 and prints nothing).
+/// open item, else the address as reports print it (`ew_derive::net_address_text`: "3", "cpx-1 192.168.0.10").
 fn bus_address(q: &Q, station: Id<Device>) -> Cell {
     let mut functions: Vec<_> = q.idx().functions_of_device(station).collect();
     functions.sort();
@@ -155,8 +155,12 @@ fn bus_address(q: &Q, station: Id<Device>) -> Cell {
         };
         match port.address {
             AddrValue::Tbd => return Cell::Tbd,
-            AddrValue::Value(NetAddress::Profibus(n)) => return Cell::Ident(n.to_string()),
-            AddrValue::Value(NetAddress::Unknown(_)) | AddrValue::NotApplicable | AddrValue::Unknown(_) => {}
+            AddrValue::Value(a) => {
+                if let Some(text) = ew_derive::net_address_text(&a) {
+                    return Cell::Ident(text);
+                }
+            }
+            AddrValue::NotApplicable | AddrValue::Unknown(_) => {}
         }
     }
     Cell::Empty

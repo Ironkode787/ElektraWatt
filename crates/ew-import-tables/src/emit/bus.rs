@@ -246,6 +246,7 @@ pub(crate) fn emit_bus_ports(
             termination,
             logical_net,
             physical_net,
+            mrp: None,
             extra: Default::default(),
         });
     }

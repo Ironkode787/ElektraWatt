@@ -250,6 +250,7 @@ fn seeded(
         bus,
         role,
         termination,
+        mrp: None,
         logical_net: None,
         physical_net: None,
         extra: ew_schema::Extra::new(),

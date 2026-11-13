@@ -697,6 +697,7 @@ pub(crate) fn emit_project(
         revision_label: None,
         // Importers write no text styles: the golden project prints with the built-in table (ADR-0032 decision 3).
         text_styles: Default::default(),
+        process_tag_scheme: None,
         extra: numbering(&mut r)
             .map(|n| ("numbering".to_owned(), n))
             .into_iter()
