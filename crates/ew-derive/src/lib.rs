@@ -169,12 +169,12 @@ pub use plc::{
     ChannelTarget, ChannelTargets, ChannelText, ChannelTexts, ChannelsByTarget, EffectiveState, ModuleOrder,
     ModuleStart, ModuleStartOf, ModuleStarts, OrderedModule, PlcAddressText, PlcAddressTexts, PlcRow,
     PlcRows, PortWindow, Slot, SolenoidPositions, SolenoidSlot, Start, TargetSource, address_profile,
-    address_profile_named, auto_address, builtin_profiles, canonical, channel_data_type, channel_kind_word, channel_pin,
-    coil_cp, coil_host, default_profile, driven_device, eval_map, iec_ident, iolink_device, is_iec_ident,
-    module_io, module_part, parse_plc_address, parse_plc_start, pin_pattern_error, pinned_profile,
-    port_windows, process_tag_parts, process_tag_scheme, profile_of, profiles_at_hand, solenoid_channel,
-    solenoid_coil, start_example, station_of, stations, stored, symbol_from_template, symbol_template_error,
-    unreadable_profile, valve_solenoids,
+    address_profile_named, auto_address, builtin_profiles, canonical, channel_data_type, channel_kind_word,
+    channel_pin, coil_cp, coil_host, default_profile, driven_device, eval_map, iec_ident, iolink_device,
+    is_iec_ident, module_io, module_part, parse_plc_address, parse_plc_start, pin_pattern_error,
+    pinned_profile, port_windows, process_tag_parts, process_tag_scheme, profile_of, profiles_at_hand,
+    solenoid_channel, solenoid_coil, start_example, station_of, stations, stored, symbol_from_template,
+    symbol_template_error, unreadable_profile, valve_solenoids,
 };
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,
