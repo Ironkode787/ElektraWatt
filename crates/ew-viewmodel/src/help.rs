@@ -139,6 +139,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(DIALOGS, "dialog-reimport-match", "re-import-a-matched-file"),
     on(DIALOGS, "dialog-reimport", "re-import-qelectrotech-project"),
     on(DIALOGS, "dialog-open-ewz", "open-ewz"),
+    on(DIALOGS, "dialog-import-drawing", "import-a-drawing"),
     on(DIALOGS, "dialog-git-setup", "set-up-merge-driver"),
     on(PANELS, "pane-page-view", "page-view"),
     on(PANELS, "pane-properties", "properties"),
@@ -307,6 +308,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::ReimportMatch { .. } => "dialog-reimport-match",
         Dialog::Reimport { .. } => "dialog-reimport",
         Dialog::OpenEwz { .. } => "dialog-open-ewz",
+        Dialog::ImportDrawing { .. } => "dialog-import-drawing",
         Dialog::ConfirmGitSetup { .. } => "dialog-git-setup",
     }
 }
@@ -584,6 +586,14 @@ mod tests {
                 name: text(),
             },
             Dialog::ConfirmGitSetup { folder: text() },
+            Dialog::ImportDrawing {
+                path: text(),
+                name: text(),
+                kind: crate::shell::DrawingKind::Dxf,
+                folio: None,
+                unitless: false,
+                converter: false,
+            },
         ] {
             assert!(anchor(dialog_topic(&dialog)).is_some(), "{dialog:?}");
         }

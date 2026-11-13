@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-12T18:03:08+01:00\n"
+"POT-Creation-Date: 2026-11-13T22:26:43+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3329,10 +3329,27 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/dialogs.md:85
-msgid "Set up merge driver"
+msgid "Import a drawing"
 msgstr ""
 
 #: src/reference/window/dialogs.md:87
+msgid ""
+"A DXF or DWG drawing, or a PDF, chosen with File ▸ Import…. Add as page "
+"makes the drawing a new graphic page after the last page. Place under page "
+"puts it under the shown page as a locked underlay to redraw over: no check, "
+"report or export reads it, unless an export prints underlays. An underlay is "
+"kept outside the project unless you choose Place and embed; a customer's "
+"drawing may be confidential. A drawing that names no unit is read in "
+"millimetres. A DWG is read through the ODA File Converter, which ElektraWatt "
+"does not include: install it, and choose its program when the import asks "
+"for it."
+msgstr ""
+
+#: src/reference/window/dialogs.md:94
+msgid "Set up merge driver"
+msgstr ""
+
+#: src/reference/window/dialogs.md:96
 msgid ""
 "Sets up the repository's git configuration so that git merges the project's "
 "files record by record. It asks first and writes nothing on Cancel. Open it "

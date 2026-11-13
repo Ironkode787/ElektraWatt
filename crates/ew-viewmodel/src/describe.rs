@@ -2001,7 +2001,10 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             }
         }
         // The paragraphs; the collision dialog's rows with base, mine, theirs and the side chosen.
-        Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup { .. } => {
+        Dialog::ConfirmUpgrade { .. }
+        | Dialog::OpenEwz { .. }
+        | Dialog::ImportDrawing { .. }
+        | Dialog::ConfirmGitSetup { .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));
             }

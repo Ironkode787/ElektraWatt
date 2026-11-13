@@ -1,6 +1,7 @@
 file.new Command "New project…" menu "File" shortcut "Ctrl+N" context global params "dir?:path, template?:path, discard?:bool"
 file.open Command "Open…" menu "File" shortcut "Ctrl+O" context global params "dir?:path, read_only?:bool, discard?:bool"
 file.import Command "Import…" menu "File" shortcut none context global params "file?:path, discard?:bool"
+file.import_drawing Command "?" menu none shortcut none context global params "file?:path, as?:enum(page|underlay), embed?:bool, units?:enum(mm|cm|m|in|ft|um|dm|yd), converter?:path"
 file.open_ewz Command "Open .ewz…" menu none shortcut none context global params "path?:path, how?:enum(extract|read_only), discard?:bool"
 file.open_recent Command "Open recent project" menu "File ▸ Open recent" shortcut none context global needs-parameters params "index:uint, discard?:bool"
 file.open_sample Command "Open sample project" menu "File" shortcut none context global params "discard?:bool"

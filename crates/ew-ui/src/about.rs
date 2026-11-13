@@ -255,7 +255,10 @@ pub fn show(
                     }
                 });
         }
-        Dialog::ConfirmUpgrade { .. } | Dialog::OpenEwz { .. } | Dialog::ConfirmGitSetup { .. } => {}
+        Dialog::ConfirmUpgrade { .. }
+        | Dialog::OpenEwz { .. }
+        | Dialog::ImportDrawing { .. }
+        | Dialog::ConfirmGitSetup { .. } => {}
         // The import card lists the kinds of findings under what they ask of the reader: a heading per group, then
         // one row per kind, the first few of each group.
         Dialog::ImportQet { groups, .. } => {

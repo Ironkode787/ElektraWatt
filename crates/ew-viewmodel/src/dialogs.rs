@@ -201,6 +201,14 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         } => reimport_spec(file, summary, rows, *nothing),
         // D24: Extract and open (Enter), Open read-only, Cancel.
         Dialog::OpenEwz { path, name } => open_ewz_spec(path, name),
+        Dialog::ImportDrawing {
+            path,
+            name,
+            kind,
+            folio,
+            unitless,
+            converter,
+        } => import_drawing_spec(path, name, *kind, folio.as_deref(), *unitless, *converter),
         // D28: Set up (Enter) or Cancel.
         Dialog::ConfirmGitSetup { folder } => git_setup_spec(folder),
         // Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
@@ -575,6 +583,63 @@ fn open_ewz_spec(path: &str, name: &str) -> DialogSpec {
                 DialogAnswer::Action("file.open_ewz", json!({ "path": path, "how": "extract" })),
             ),
         )
+    }
+}
+
+/// Importing the drawing `name` (WP-S3.19): Add as page (a DXF or DWG), Place under page <folio> (embedded or not),
+/// Cancel. The body says what the file is, an assumed unit, a DWG's converter, and the confidentiality of an underlay.
+fn import_drawing_spec(
+    path: &str,
+    name: &str,
+    kind: crate::shell::DrawingKind,
+    folio: Option<&str>,
+    unitless: bool,
+    converter: bool,
+) -> DialogSpec {
+    use crate::shell::DrawingKind;
+    let action = |target: &str, embed: bool| {
+        let mut params = json!({ "file": path, "as": target, "embed": embed });
+        if unitless {
+            // What the body says: a drawing without a unit is read in millimetres.
+            params["units"] = json!("mm");
+        }
+        DialogAnswer::Action("file.import_drawing", params)
+    };
+    let mut body = vec![strings::format(
+        match kind {
+            DrawingKind::Dxf => key!("drawing-dxf-text"),
+            DrawingKind::Dwg => key!("drawing-dwg-text"),
+            DrawingKind::Pdf => key!("drawing-pdf-text"),
+        },
+        &[name],
+    )];
+    if unitless {
+        body.push(strings::text(key!("drawing-unitless")).to_owned());
+    }
+    if converter {
+        body.push(strings::text(key!("drawing-converter")).to_owned());
+    }
+    body.push(strings::text(key!("drawing-underlay-text")).to_owned());
+    let folio_text = folio.unwrap_or("");
+    let mut under = DialogButton::new(key!("drawing-underlay"), action("underlay", false));
+    under.label = strings::format(key!("drawing-underlay"), &[folio_text]);
+    let mut embed = DialogButton::new(key!("drawing-embed"), action("underlay", true));
+    if folio.is_none() {
+        let why = strings::text(key!("reason-no-page")).to_owned();
+        under.disabled = Some(why.clone());
+        embed.disabled = Some(why);
+    }
+    let (primary, mut secondary) = match kind {
+        DrawingKind::Pdf => (under, vec![embed]),
+        DrawingKind::Dxf | DrawingKind::Dwg => (
+            DialogButton::new(key!("drawing-page"), action("page", false)),
+            vec![under, embed],
+        ),
+    };
+    secondary.push(cancel());
+    DialogSpec {
+        secondary,
+        ..small(strings::format(key!("drawing-title"), &[name]), body, primary)
     }
 }
 

@@ -45,6 +45,9 @@ mod supply_in;
 pub mod symbol_editor;
 // The text and graphic tools' host duties.
 mod drawing;
+// File ▸ Import… of a DXF, a DWG or a PDF (WP-S3.19).
+mod drawing_import;
+pub use drawing_import::DrawingKind;
 // External change, cloud folders, .ewz, the upgrade, the merge driver
 mod external;
 pub(crate) use external::collision_count;
@@ -401,6 +404,21 @@ pub enum Dialog {
         /// Whether the re-import writes nothing (W52 F8): Apply is disabled.
         nothing: bool,
     },
+    /// File ▸ Import… of a drawing (WP-S3.19): a new page, an underlay of the shown page, embedded or not, or Cancel.
+    ImportDrawing {
+        /// The file (never printed).
+        path: String,
+        /// Its file name.
+        name: String,
+        /// What it is.
+        kind: DrawingKind,
+        /// The shown page, which an underlay lies on; `None` without one.
+        folio: Option<String>,
+        /// The drawing names no unit: it is read in millimetres.
+        unitless: bool,
+        /// A DWG and no converter chosen yet: the dialog says what it needs.
+        converter: bool,
+    },
     /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
     OpenEwz {
         /// The `.ewz` (never printed).
@@ -452,8 +470,10 @@ pub enum Prompt {
     SaveEwz,
     /// An existing `.ewz` (`file.open_ewz`).
     OpenEwz,
-    /// An existing QElectroTech project or `.ewz` (File ▸ Import…).
+    /// An existing QElectroTech project, `.ewz`, DXF, DWG or PDF (File ▸ Import…).
     OpenImport,
+    /// The program of the ODA File Converter (a DWG import).
+    OpenConverter,
     /// A symbol file to open or import in the symbol editor.
     OpenSymbol,
     /// A symbol authoring file name (the symbol editor's Export draft).

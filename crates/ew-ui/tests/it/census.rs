@@ -274,6 +274,7 @@ enum DialogKind {
     ExternalChange,
     ConfirmUpgrade,
     OpenEwz,
+    ImportDrawing,
     ConfirmGitSetup,
     ImportQet,
     ReimportMatch,
@@ -301,7 +302,8 @@ impl DialogKind {
             Self::Print => Self::ExternalChange,
             Self::ExternalChange => Self::ConfirmUpgrade,
             Self::ConfirmUpgrade => Self::OpenEwz,
-            Self::OpenEwz => Self::ConfirmGitSetup,
+            Self::OpenEwz => Self::ImportDrawing,
+            Self::ImportDrawing => Self::ConfirmGitSetup,
             Self::ConfirmGitSetup => Self::ImportQet,
             Self::ImportQet => Self::ReimportMatch,
             Self::ReimportMatch => Self::Reimport,
@@ -334,6 +336,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::ExternalChange { .. } => DialogKind::ExternalChange,
         Dialog::ConfirmUpgrade { .. } => DialogKind::ConfirmUpgrade,
         Dialog::OpenEwz { .. } => DialogKind::OpenEwz,
+        Dialog::ImportDrawing { .. } => DialogKind::ImportDrawing,
         Dialog::ConfirmGitSetup { .. } => DialogKind::ConfirmGitSetup,
         Dialog::ImportQet { .. } => DialogKind::ImportQet,
         Dialog::ReimportMatch { .. } => DialogKind::ReimportMatch,
@@ -513,6 +516,15 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             let mut h = simple("file.export_ewz", json!({"path": ewz.to_string_lossy()}));
             dispatch(&mut h, "file.open_ewz", json!({"path": ewz.to_string_lossy()}));
             h
+        }
+        DialogKind::ImportDrawing => {
+            let dxf = tmp.0.join("plan.dxf");
+            std::fs::write(
+                &dxf,
+                "0\nSECTION\n2\nENTITIES\n0\nLINE\n8\n0\n10\n0\n20\n0\n11\n10\n21\n0\n0\nENDSEC\n0\nEOF\n",
+            )
+            .unwrap();
+            simple("file.import", json!({"file": dxf.to_string_lossy()}))
         }
         DialogKind::ConfirmGitSetup => {
             // A worktree is a folder with `.git` in it or above it: the question needs no git executable.

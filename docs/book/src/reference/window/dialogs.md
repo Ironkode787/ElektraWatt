@@ -82,6 +82,15 @@ them over as one undo step; Cancel changes nothing. The migration report then li
 An `.ewz` archive of a project: Extract and open unpacks it into a new folder beside it, Open read-only opens it
 without unpacking. Open it with File ▸ Import…, which takes a QElectroTech project as well.
 
+## Import a drawing
+
+A DXF or DWG drawing, or a PDF, chosen with File ▸ Import…. Add as page makes the drawing a new graphic page after
+the last page. Place under page puts it under the shown page as a locked underlay to redraw over: no check, report
+or export reads it, unless an export prints underlays. An underlay is kept outside the project unless you choose
+Place and embed; a customer's drawing may be confidential. A drawing that names no unit is read in millimetres. A
+DWG is read through the ODA File Converter, which ElektraWatt does not include: install it, and choose its program
+when the import asks for it.
+
 ## Set up merge driver
 
 Sets up the repository's git configuration so that git merges the project's files record by record. It asks first

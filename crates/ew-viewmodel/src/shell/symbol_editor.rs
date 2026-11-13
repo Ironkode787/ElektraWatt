@@ -38,9 +38,9 @@ pub const TOOL_KEYS: [(&str, &str); 5] = [
 ];
 
 /// The files the symbol editor opens or imports, as its file picker offers them: the authoring JSON,
-/// QElectroTech elements and every EPLAN format `symbols::open` reads.
-pub const FILE_EXTENSIONS: [&str; 11] = [
-    "json", "elmt", "edz", "pxf", "ema", "ems", "esl", "slk", "xml", "zip", "7z",
+/// QElectroTech elements, every EPLAN format and DXF drawings (one draft per block) `symbols::open` reads.
+pub const FILE_EXTENSIONS: [&str; 12] = [
+    "json", "elmt", "edz", "pxf", "ema", "ems", "esl", "slk", "xml", "zip", "7z", "dxf",
 ];
 
 /// A named symbol that can be forked without changing its source.

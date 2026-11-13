@@ -46,6 +46,13 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_import(p),
         ),
     ),
+    // A DXF, DWG or PDF drawing as a new page or an underlay of the shown page; File ▸ Import… reaches it.
+    with_params(
+        "file?:path, as?:enum(page|underlay), embed?:bool, units?:enum(mm|cm|m|in|ft|um|dm|yd), converter?:path",
+        act("file.import_drawing", Command, Menu::File, &[], project_open, None, |s, p| {
+            s.act_import_drawing(p)
+        }),
+    ),
     // An `.ewz`, asking Extract and open or Open read-only; File ▸ Import… reaches it.
     with_params(
         "path?:path, how?:enum(extract|read_only), discard?:bool",

@@ -468,6 +468,7 @@ impl ShellModel {
                 params.insert("path".to_owned(), Value::String(file));
                 self.act_open_ewz(&params)
             }
+            Some("dxf" | "dwg" | "pdf") => self.act_import_drawing(&params),
             _ => Outcome::refused(key!("reason-import-kind")),
         }
     }

@@ -8,7 +8,8 @@
 //! `keymap`, `theme`, `density`, `comes_from`, `update_check` (an opt-in, off by default, NFR-PRIV-03), the default basic
 //! project `basic_project` (FR-PRJ-009), the active workspace `workspace` (FR-UI-002) and
 //! the canvas renderer `canvas_backend` (`auto`, or `cpu` for View, Use the CPU renderer) and the
-//! author name `author_name` of the Waive prompt (written only once set) and the
+//! author name `author_name` of the Waive prompt (written only once set), the DWG converter `dwg_converter` (written
+//! only once chosen) and the
 //! part dialog's `[parts] favourites` (sorted) and `recent` (most recent first, at most [`MAX_RECENT_PARTS`]), each a
 //! list of `<library ID>/<item ID>` texts, written only once set, and the minimum text size
 //! `min_font_pt` and `reduce_motion`, each written only once set, and the tips' switch `tips`
@@ -104,6 +105,9 @@ pub struct Settings {
     /// The author name: the display name a waiver records as its author, prefilled in the Waive prompt and
     /// saved back when a waiver is committed; `None` until one is typed (`author_name`, written only when set).
     pub author_name: Option<String>,
+    /// The program of the ODA File Converter the user chose for DWG imports (FR-IMP-036, `dwg_converter`, written only
+    /// when set); never bundled or downloaded.
+    pub dwg_converter: Option<String>,
     /// The main window's last size, position and maximised state (`[window]`, item 9); `None`
     /// until a window has closed.
     pub window: Option<crate::window::WindowGeometry>,
@@ -148,6 +152,7 @@ impl Default for Settings {
             properties_collapsed: Vec::new(),
             properties_show_advanced: false,
             author_name: None,
+            dwg_converter: None,
             window: None,
             parts_favourites: Vec::new(),
             parts_recent: Vec::new(),
@@ -290,6 +295,7 @@ impl Settings {
         let author_name = take_string(&mut table, "author_name")?
             .map(|v| v.trim().to_owned())
             .filter(|v| !v.is_empty());
+        let dwg_converter = take_string(&mut table, "dwg_converter")?.filter(|v| !v.trim().is_empty());
         let workspace = take_string(&mut table, "workspace")?
             .filter(|v| valid_workspace_name(v))
             .unwrap_or_else(|| DEFAULT_WORKSPACE.to_owned());
@@ -388,6 +394,7 @@ impl Settings {
             properties_collapsed,
             properties_show_advanced,
             author_name,
+            dwg_converter,
             window,
             parts_favourites,
             parts_recent,
@@ -503,6 +510,14 @@ impl Settings {
             }
             None => {
                 table.remove("author_name");
+            }
+        }
+        match &self.dwg_converter {
+            Some(program) => {
+                table.insert("dwg_converter".to_owned(), toml::Value::String(program.clone()));
+            }
+            None => {
+                table.remove("dwg_converter");
             }
         }
         // Written only when set, so an untouched settings file keeps its bytes.
