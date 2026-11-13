@@ -75,6 +75,11 @@ pub const OPEN_ITEM_RULES: &[OpenItemRule] = &[
         discriminator: None,
         category: "Missing length",
     },
+    OpenItemRule {
+        rule: "EW-PRC-002",
+        discriminator: None,
+        category: "Open instrument tag",
+    },
 ];
 
 /// The open-item row a finding falls under: its rule is in [`OPEN_ITEM_RULES`] and, where the row names a
@@ -171,6 +176,7 @@ mod tests {
                 ("EW-LAY-001", None, "Unplaced device"),
                 ("EW-POT-009", None, "Unconnected connection point"),
                 ("EW-CORE-033", None, "Missing length"),
+                ("EW-PRC-002", None, "Open instrument tag"),
             ]
         );
     }

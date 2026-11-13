@@ -107,6 +107,7 @@ mod new_project;
 pub mod output;
 mod part_editor;
 mod part_offers;
+pub mod plc_exchange;
 pub mod symbols;
 pub mod window;
 // The public queries of `ew query` and `--explain` (D11, D12).

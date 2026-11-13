@@ -1213,3 +1213,24 @@ rule-ew-imp-255 =
 rule-ew-imp-257 =
     .title = DWG omgezet door de ODA File Converter
     .hint = Vergelijk de pagina met de DWG: de omzetting is die van de converter.
+rule-ew-plc-016 = configuratieproject { $cfg } is gewijzigd sinds de { $format ->
+        [aml] AML
+        [tia_xlsx] tagtabel
+        [plcopen] PLCopen
+       *[other] PLC
+    }-{ $direction ->
+        [import] import
+       *[export] export
+    } van { $date }: { $count } object(en) wijken af ({ $objects }{ $more ->
+        [none] {""}
+       *[other] {" "}en nog { $more }
+    }); exporteer het opnieuw, of importeer het bestand van de PLC
+    .title = Uitwisseling gewijzigd
+    .hint = Exporteer het configuratieproject opnieuw, of importeer het bestand van de PLC-software.
+
+rule-ew-prc-002 = { $form ->
+        [device] instrumentkenmerk { $tag } heeft geen apparaat meer; pas de instrumentenlijst opnieuw toe, of haal het kenmerk eruit
+       *[channel] instrumentkenmerk { $tag } ({ $signal }) heeft geen kanaal: er was geen reserve-{ $signal }-kanaal vrij; voeg een module toe of maak een kanaal vrij en pas de instrumentenlijst dan opnieuw toe
+    }
+    .title = Open instrumentkenmerk
+    .hint = Voeg een module toe of maak een kanaal van de soort van het kenmerk vrij, en pas de instrumentenlijst dan opnieuw toe.

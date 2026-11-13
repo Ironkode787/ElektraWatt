@@ -24,6 +24,7 @@ pub mod num;
 pub mod page;
 pub mod plc;
 // The EW-PLC rules of the pack's 1.0 content
+pub mod plc_exchange;
 pub mod plc_wiring;
 pub mod pot;
 // EW-PRC-001

@@ -231,6 +231,94 @@ pub fn xlsx(tables: &[Table], meta: &WorkbookMeta) -> Result<Vec<u8>, XlsxError>
     Ok(ew_zip::write(&entries)?)
 }
 
+/// A workbook of one sheet named `name` whose cells are `rows` as texts, the first row bold; the columns from
+/// `hidden_from` (0-based) on are hidden. For a table whose columns another program fixes (the TIA "PLC Tags" table,
+/// doc 10 §4.5): no `id` column in front and no `_ew` sheet. Same container, metadata and text rules as [`xlsx()`];
+/// `name` is written as it is.
+///
+/// # Errors
+///
+/// [`XlsxError::TooManyRows`] or [`XlsxError::TooManyColumns`] for more than a sheet holds; [`XlsxError::Zip`] for a
+/// part beyond the sizes of a ZIP without ZIP64.
+pub fn plain_xlsx(
+    name: &str,
+    rows: &[Vec<String>],
+    hidden_from: usize,
+    date: DateTime,
+) -> Result<Vec<u8>, XlsxError> {
+    let columns = rows.iter().map(Vec::len).max().unwrap_or(0);
+    if rows.len() > MAX_SHEET_ROWS {
+        return Err(XlsxError::TooManyRows(name.to_owned(), rows.len()));
+    }
+    if columns > MAX_SHEET_COLUMNS {
+        return Err(XlsxError::TooManyColumns(name.to_owned(), columns));
+    }
+    let mut sheet = String::from(XML_DECL);
+    let _ = write!(sheet, "<worksheet xmlns=\"{MAIN_NS}\" xmlns:r=\"{REL_NS}\">");
+    sheet.push_str("<sheetFormatPr defaultRowHeight=\"15\"/>");
+    if columns > 0 {
+        sheet.push_str("<cols>");
+        for i in 0..columns {
+            let longest = rows
+                .iter()
+                .filter_map(|r| r.get(i))
+                .map(|c| c.chars().count())
+                .fold(0, usize::max);
+            let n = i + 1;
+            let _ = if i >= hidden_from {
+                write!(
+                    sheet,
+                    "<col min=\"{n}\" max=\"{n}\" width=\"0\" hidden=\"1\" customWidth=\"1\"/>"
+                )
+            } else {
+                let width = longest.clamp(MIN_WIDTH, MAX_WIDTH);
+                write!(
+                    sheet,
+                    "<col min=\"{n}\" max=\"{n}\" width=\"{width}\" customWidth=\"1\"/>"
+                )
+            };
+        }
+        sheet.push_str("</cols>");
+    }
+    sheet.push_str("<sheetData>");
+    for (r, row) in rows.iter().enumerate() {
+        let n = r + 1;
+        let _ = write!(sheet, "<row r=\"{n}\">");
+        for (i, text) in row.iter().enumerate() {
+            if !text.is_empty() {
+                let style = (r == 0).then_some(BOLD);
+                inline(&mut sheet, &format!("{}{n}", column_name(i)), text, style);
+            }
+        }
+        sheet.push_str("</row>");
+    }
+    sheet.push_str("</sheetData></worksheet>");
+    let mut workbook = String::from(XML_DECL);
+    let _ = write!(
+        workbook,
+        "<workbook xmlns=\"{MAIN_NS}\" xmlns:r=\"{REL_NS}\"><bookViews><workbookView activeTab=\"0\"/></bookViews>\
+         <sheets><sheet name=\"{}\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>",
+        escape(name)
+    );
+    let content_types = content_types(1);
+    let core = core_xml(date);
+    let workbook_rels = workbook_rels(1);
+    Ok(ew_zip::write(&[
+        ("[Content_Types].xml", Method::Deflated, content_types.as_bytes()),
+        ("_rels/.rels", Method::Deflated, ROOT_RELS.as_bytes()),
+        ("docProps/core.xml", Method::Deflated, core.as_bytes()),
+        ("docProps/app.xml", Method::Deflated, APP_XML.as_bytes()),
+        ("xl/workbook.xml", Method::Deflated, workbook.as_bytes()),
+        (
+            "xl/_rels/workbook.xml.rels",
+            Method::Deflated,
+            workbook_rels.as_bytes(),
+        ),
+        ("xl/styles.xml", Method::Deflated, STYLES_XML.as_bytes()),
+        ("xl/worksheets/sheet1.xml", Method::Deflated, sheet.as_bytes()),
+    ])?)
+}
+
 const XML_DECL: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n";
 const MAIN_NS: &str = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
 const REL_NS: &str = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";

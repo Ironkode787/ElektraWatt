@@ -48,6 +48,7 @@ mod part_edit;
 mod parts;
 mod paste;
 mod plc;
+mod plc_exchange;
 mod renumber;
 mod revision;
 mod settings;
@@ -169,6 +170,10 @@ commands! {
     plc::FreezeAddresses,
     plc::Readdress,
     plc::ConvertManualToAuto,
+    plc_exchange::RecordExchange,
+    plc_exchange::ApplyExchange,
+    plc_exchange::Unlock,
+    plc_exchange::ApplyInstrumentList,
     bus::CreateLogicalNet,
     bus::CreatePhysicalNet,
     supply::SetProjectSupply,

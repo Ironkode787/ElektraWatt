@@ -1189,3 +1189,24 @@ rule-ew-imp-255 =
 rule-ew-imp-257 =
     .title = DWG converted by the ODA File Converter
     .hint = Compare the page with the DWG: the conversion is the converter's.
+rule-ew-plc-016 = configuration project { $cfg } changed since the { $format ->
+        [aml] AML
+        [tia_xlsx] tag table
+        [plcopen] PLCopen
+       *[other] PLC
+    } { $direction ->
+        [import] import
+       *[export] export
+    } of { $date }: { $count } object(s) differ ({ $objects }{ $more ->
+        [none] {""}
+       *[other] {" "}and { $more } more
+    }); export it again, or import the PLC's file
+    .title = Exchange drift
+    .hint = Export the configuration project again, or import the file of the PLC software.
+
+rule-ew-prc-002 = { $form ->
+        [device] instrument tag { $tag } has no device any more; apply the instrument list again, or remove the tag from it
+       *[channel] instrument tag { $tag } ({ $signal }) has no channel: no spare { $signal } channel was free; add a module or free a channel, then apply the instrument list again
+    }
+    .title = Open instrument tag
+    .hint = Add a module or free a channel of the tag's kind, then apply the instrument list again.

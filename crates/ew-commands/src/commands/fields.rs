@@ -71,9 +71,12 @@ use crate::tx::TxBuilder;
 /// The PLC kinds: a channel's `designation`, `address`, `state`, `symbol`, `comment`,
 /// `target`, `data_type`, `signal_range`, `mode` (a multi-function port's) and `safety` (its pair a channel, its test
 /// pulse a CP); a module's `plc_module.safety`; a configuration project's `name` (unique, as
-/// `plc.config_project.create` requires; its profile changes only through its own command) and `symbols` (a template
-/// of doc 10 §3.4's tokens, else refused at `/value` with the reason); a device link's `kind` (its devices are chosen
-/// by `device.link`). A
+/// `plc.config_project.create` requires; its profile changes only through its own command), `symbols` (a template
+/// of doc 10 §3.4's tokens, else refused at `/value` with the reason) and the owners `ownership.module_starts` and
+/// `ownership.symbols` (`ecad`, `plc` or `shared`, doc 10 §2.2); a station's `plc_station.firmware` and a module's
+/// `plc_module.type_ident`; a device link's `kind` (its devices are chosen by `device.link`). A field the PLC owns
+/// since an import (a module's start, a station's firmware, a bus port's address) is refused until `plc.unlock`
+/// lifts the protection (doc 10 §3.9). A
 /// channel's `address` takes `auto`, `excluded`, `tbd` or an address text in the notation of the channel's
 /// configuration project's profile (the shipped default profile while the module has no station), stored as a
 /// `manual` address: `"I4.0"`; a text that does not parse is refused at `/value` with the profile's example
@@ -122,11 +125,13 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "plc_station.config_project",
             "plc_station.role",
             "plc_station.order",
+            "plc_station.firmware",
             "plc_module",
             "plc_module.slot",
             "plc_module.start",
             "plc_module.part_use",
             "plc_module.safety",
+            "plc_module.type_ident",
         ],
     ),
     (
@@ -258,7 +263,10 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "safety",
         ],
     ),
-    (KindName::PlcConfigProject, &["name", "symbols"]),
+    (
+        KindName::PlcConfigProject,
+        &["name", "symbols", "ownership.module_starts", "ownership.symbols"],
+    ),
     (KindName::DeviceLink, &["kind"]),
     (KindName::LogicalNet, &["name", "bus", "master", "rate"]),
     (KindName::PhysicalNet, &["name", "medium", "order_hint"]),
@@ -542,6 +550,7 @@ impl SetFields {
                     set_one::<PlcConfigProject>(tx, *t, path, value)?;
                     refuse_duplicate_config_name(tx, t.cast())?;
                     refuse_bad_symbol_template(tx, t.cast())?;
+                    refuse_unknown_owner(tx, t.cast())?;
                 }
                 KindName::DeviceLink => {
                     set_one::<DeviceLink>(tx, *t, path, value)?;
@@ -578,6 +587,9 @@ impl SetFields {
             for t in &self.targets {
                 refuse_foreign_covers(tx, t.cast())?;
             }
+        }
+        if matches!(self.kind, KindName::Device | KindName::Function) {
+            crate::commands::plc_exchange::refuse_owned_edits(tx)?;
         }
         Ok(())
     }
@@ -823,6 +835,19 @@ fn refuse_bad_symbol_template(tx: &TxBuilder<'_>, cfg: ew_ids::Id<PlcConfigProje
         None => Ok(()),
         Some(why) => Err(newer(text!("refusal-plc-symbol-template", template, why))),
     }
+}
+
+/// A configuration project's owners as read back: `ecad`, `plc` or `shared`; a value of a newer format is refused
+/// at `/value`.
+fn refuse_unknown_owner(tx: &TxBuilder<'_>, cfg: ew_ids::Id<PlcConfigProject>) -> Result<(), CmdError> {
+    let c = tx.require::<PlcConfigProject>(cfg)?;
+    let owners = c.ownership.iter().flat_map(|o| [&o.module_starts, &o.symbols]);
+    for owner in owners.flatten() {
+        if let ew_schema::Owner::Unknown(v) = owner {
+            return Err(newer(text!("refusal-fields-owner-unknown", v.to_string())));
+        }
+    }
+    Ok(())
 }
 
 /// A configuration project's name as `plc.config_project.create` keeps it: unique among the configuration

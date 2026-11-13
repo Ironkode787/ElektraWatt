@@ -30,9 +30,10 @@ use super::route::RouteArgs;
 use super::{
     ApplyArgs, AssetsPurgeArgs, CheckArgs, CheckFormat, ChecksSetArgs, Command, ExportArgs, ExportEwzArgs,
     ExportKind, ExportPagesArgs, ExportTableArgs, ExtractArgs, FmtArgs, ImportCsvArgs, ImportPartsArgs,
-    ImportQetArgs, ImportTableArgs, LibAction, LibArgs, PageFormat, PrintArgs, PrintVia, RecoverAction,
-    RecoverArgs, RenderArgs, RevisionAction, RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat,
-    SqlSource, UpdateCopiesArgs, UpgradeArgs, VerifyArgs, XLSX_NEEDS_OUT,
+    ImportQetArgs, ImportTableArgs, InstrumentListArgs, LibAction, LibArgs, PageFormat, PlcExportArgs,
+    PlcImportArgs, PlcStatusArgs, PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs,
+    RevisionAction, RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, UpdateCopiesArgs,
+    UpgradeArgs, VerifyArgs, XLSX_NEEDS_OUT,
 };
 
 /// The ElektraWatt command-line interface.
@@ -83,6 +84,9 @@ enum Top {
     /// Write a report's rows as CSV, the pages as PDF, SVG or PNG, or the project as an .ewz.
     #[command(subcommand)]
     Export(ExportCli),
+    /// The exchange with PLC software: its status.
+    #[command(subcommand)]
+    Plc(PlcCli),
     /// Unpack an .ewz into a new project folder.
     ///
     /// Reads the `.ewz` whole and checks it before anything is written (its layout, the archive bounds, every file
@@ -439,6 +443,35 @@ enum Import {
     /// converted (EW-IMP-257). Without a converter the refusal says how to give one. Exit 0 when imported, 2 on usage,
     /// no converter, a failed or timed-out conversion, and as for `import dxf`.
     Dwg(super::dxf::ImportDwgArgs),
+    /// Preview or apply an AutomationML file of PLC software.
+    ///
+    /// Reads an AML AR APC file (CAEX 2.15 or 3.0, as TIA Portal's CAx export writes it), matches its stations,
+    /// modules, channels and tags to the configuration project's (`--config`, default the only one) and previews
+    /// every differing field against the last exchange: `apply` (changed in the file, and the PLC or both own it),
+    /// `rejected` (changed in the file, the schematic owns it), `kept` and `pending` (changed in the project only),
+    /// `conflict` (changed in both); an object without a counterpart is parked, one the file no longer has is
+    /// listed. Only the stations in the file are compared; `--complete` compares every station. Nothing is written
+    /// without `--accept <choices.json>`, a JSON object that maps a change's key or a parked object's ID to `ours`,
+    /// `theirs` or `create` (`{}` takes every default): the import then commits as one undo step with its snapshot,
+    /// and the project is saved. Exit 0 with the preview (and once applied and saved), 2 on usage, open, read and
+    /// save errors and a refused choice.
+    PlcAml(PlcImportCli),
+    /// Preview or apply a TIA Portal "PLC Tags" workbook.
+    ///
+    /// Reads the sheet `PLC Tags` of a workbook and matches its rows to the configuration project's tags by the
+    /// hidden ID column, then by name, then by logical address; previews and applies as `import plc-aml`, for the
+    /// names, data types and comments (`--lang` names the language of the comment column). A row without a channel
+    /// is listed and never created.
+    #[command(alias = "plc-tags")]
+    PlcXlsx(PlcImportCli),
+    /// Take an instrument list into a PLC configuration project.
+    ///
+    /// Reads a CSV or the first sheet of a workbook with the columns `tag` and `signal type` (DI, DO, AI, AO) and,
+    /// when present, `description`, `range`, `field location` and `preferred station`. Each row gets a placeholder
+    /// device with the tag as its process tag and the first spare channel of its kind, of the preferred station
+    /// first; a row without one is an open item (EW-PRC-002). Prints every row's channel; `--apply` commits them as
+    /// one undo step and saves. Exit 0 with the rows, 2 on usage, open, read and save errors.
+    InstrumentList(InstrumentListCli),
 }
 
 /// `ew import table`.
@@ -706,6 +739,218 @@ enum ExportCli {
     /// resolution). `--pages` and `--sections` as for `export pdf`. Exit 0 on success, 2 on everything else (usage,
     /// open errors, an unknown folio or section, write errors).
     Png(PngCli),
+    /// Write a PLC configuration project as AutomationML for PLC software.
+    ///
+    /// Writes the configuration project (`--config`, default the project's only one) as AutomationML AR APC on
+    /// CAEX 2.15 to `--out` (required): its stations with their modules, I/O ranges and channels, the tags with
+    /// their links to the channels, and the bus interfaces. `--apc 1.2.0` writes the older version; `--station`
+    /// (repeatable) exports those stations only. The file carries the project's own IDs and IEC designations, so a
+    /// file that comes back is matched again; its dates are `SOURCE_DATE_EPOCH`, else the project's edited date.
+    /// The export is recorded in the project as the base of the next import's merge, and the project is saved. A
+    /// symbol that is no IEC identifier blocks the export (EW-PLC-005). Exit 0 when written and recorded, 2 on
+    /// everything else.
+    PlcAml(PlcExportCli),
+    /// Write the tags of a PLC configuration project as a TIA Portal "PLC Tags" workbook.
+    ///
+    /// Writes the sheet `PLC Tags` with the columns Name, Path, Data Type, Logical Address, Comment, Hmi Visible,
+    /// Hmi Accessible, Hmi Writeable, Typeobject ID and Version ID to `--out` (required): one row per channel with
+    /// a symbol and an address (`%Q0.1`), the comment in `--lang`. Recorded and saved as `export plc-aml`; warns
+    /// while no PLC import has confirmed the addresses.
+    #[command(alias = "plc-tags")]
+    PlcXlsx(PlcExportCli),
+    /// Write the tags of a PLC configuration project as a PLCopen XML global variable list.
+    ///
+    /// Writes PLCopen XML (TC6 v2.01) with the global variable list `IO_ElektraWatt` to `--out` (required): one
+    /// variable per channel with a symbol and an address, the address in IEC notation (`%QX0.1`), the function
+    /// text and the signal pin as its documentation. Recorded and saved as `export plc-aml`; a symbol that is no
+    /// IEC identifier blocks the export (EW-PLC-005).
+    Plcopen(PlcExportCli),
+}
+
+/// `ew export plc-aml`, `plc-xlsx` and `plcopen`.
+#[derive(Args, Debug)]
+struct PlcExportCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The configuration project by name (default: the project's only one).
+    #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
+    config: Option<String>,
+    /// The AR APC version of `plc-aml`: 1.4.0 (default) or 1.2.0.
+    #[arg(long, value_name = "version", overrides_with = "apc", value_parser = apc_version)]
+    apc: Option<ew_api::plc_exchange::ApcVersion>,
+    /// A station to export, by its tag (repeatable; default: every station of the configuration project).
+    #[arg(long, value_name = "tag", allow_hyphen_values = true, value_parser = word)]
+    station: Vec<String>,
+    /// The language of comments (`plc-xlsx`) and of the documentation (`plcopen`), as a language tag.
+    #[arg(long, value_name = "tag", overrides_with = "lang", value_parser = word)]
+    lang: Option<String>,
+    /// Leave person fields out; a PLC exchange file holds none either way.
+    #[arg(long, overrides_with = "omit_personal_data")]
+    omit_personal_data: bool,
+    /// The file to write (required).
+    #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
+    out: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew import plc-aml` and `plc-xlsx`.
+#[derive(Args, Debug)]
+struct PlcImportCli {
+    /// The exchange file: an AML file or a tag workbook.
+    #[arg(value_name = "file", value_parser = path_word)]
+    file: PathBuf,
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The configuration project by name (default: the project's only one).
+    #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
+    config: Option<String>,
+    /// The language of a tag workbook's comment column, as a language tag.
+    #[arg(long, value_name = "tag", overrides_with = "lang", value_parser = word)]
+    lang: Option<String>,
+    /// The file is complete: a station it does not hold was removed in the PLC software.
+    #[arg(long, overrides_with = "complete")]
+    complete: bool,
+    /// Print the preview and write nothing (the default without `--accept`).
+    #[arg(long, overrides_with = "preview", conflicts_with = "accept")]
+    preview: bool,
+    /// Apply the import with these choices: a JSON object from a change's key or a parked object's ID to `ours`,
+    /// `theirs` or `create` (`{}` takes every default).
+    #[arg(
+        long,
+        value_name = "choices.json",
+        allow_hyphen_values = true,
+        overrides_with = "accept"
+    )]
+    accept: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew import instrument-list`.
+#[derive(Args, Debug)]
+struct InstrumentListCli {
+    /// The instrument list: a CSV or a workbook.
+    #[arg(value_name = "file", value_parser = path_word)]
+    file: PathBuf,
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The configuration project by name (default: the project's only one).
+    #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
+    config: Option<String>,
+    /// Commit the rows and save.
+    #[arg(long, overrides_with = "apply")]
+    apply: bool,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// `ew plc`.
+#[derive(Subcommand, Debug)]
+enum PlcCli {
+    /// Report the exchange status of a PLC configuration project.
+    ///
+    /// Prints the configuration project's last exchange (direction, format, date), every object of the project that
+    /// differs from it (the drift EW-PLC-016 reports) and, with `<file>`, whether that file is the one last exchanged.
+    /// The project opens as a reader. Exit 0 with the status, 2 on usage and open errors.
+    Status(PlcStatusCli),
+}
+
+/// `ew plc status`.
+#[derive(Args, Debug)]
+struct PlcStatusCli {
+    /// An exchange file to compare with the last exchange.
+    #[arg(value_name = "file", value_parser = path_word)]
+    file: Option<PathBuf>,
+    /// The project directory.
+    #[arg(long, value_name = "dir", allow_hyphen_values = true)]
+    project: Option<PathBuf>,
+    /// The configuration project by name (default: the project's only one).
+    #[arg(long, value_name = "name", allow_hyphen_values = true, overrides_with = "config", value_parser = word)]
+    config: Option<String>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
+/// An `export plc-aml --apc`.
+fn apc_version(v: &str) -> Result<ew_api::plc_exchange::ApcVersion, String> {
+    ew_api::plc_exchange::ApcVersion::parse(v)
+        .ok_or_else(|| format!("unknown AR APC version `{v}` (1.4.0, 1.2.0)"))
+}
+
+/// The refusal of a PLC export without `--out`.
+pub(super) const PLC_NEEDS_OUT: &str = "a PLC export writes a file: give `--out <file>`";
+
+/// `ew export plc-aml|plc-xlsx|plcopen`.
+fn plc_export(word: &str, a: PlcExportCli) -> Result<Command, clap::Error> {
+    use ew_api::plc_exchange::PlcFormat;
+    let format = match word {
+        "plc-aml" => PlcFormat::Aml(a.apc.unwrap_or_default()),
+        _ if a.apc.is_some() => {
+            return Err(usage_error(
+                &["export", word],
+                "`--apc` is an option of `export plc-aml`",
+            ));
+        }
+        "plc-xlsx" => PlcFormat::TiaXlsx,
+        _ => PlcFormat::Plcopen,
+    };
+    let Some(out) = a.out else {
+        return Err(usage_error(&["export", word], PLC_NEEDS_OUT));
+    };
+    Ok(Command::PlcExport(PlcExportArgs {
+        format,
+        project: project(a.project, a.project_dir),
+        config: a.config,
+        stations: a.station,
+        lang: a.lang,
+        out,
+        json: a.json,
+    }))
+}
+
+/// `ew import plc-aml|plc-xlsx`.
+fn plc_import(a: PlcImportCli) -> Command {
+    Command::PlcImport(PlcImportArgs {
+        file: a.file,
+        project: project(a.project, a.project_dir),
+        config: a.config,
+        lang: a.lang,
+        complete: a.complete,
+        accept: a.accept,
+        json: a.json,
+    })
 }
 
 /// `ew export ewz`.
@@ -2272,6 +2517,20 @@ impl Cli {
             }
             Top::Sql(a) => sql(a)?,
             Top::Export(e) => export(e)?,
+            Top::Plc(PlcCli::Status(a)) => Command::PlcStatus(PlcStatusArgs {
+                file: a.file,
+                project: a.project,
+                config: a.config,
+                json: a.json,
+            }),
+            Top::Import(Import::PlcAml(a) | Import::PlcXlsx(a)) => plc_import(a),
+            Top::Import(Import::InstrumentList(a)) => Command::InstrumentList(InstrumentListArgs {
+                file: a.file,
+                project: project(a.project, a.project_dir),
+                config: a.config,
+                apply: a.apply,
+                json: a.json,
+            }),
             Top::Extract(ExtractCli { file, into, json }) => {
                 Command::Extract(ExtractArgs { file, into, json })
             }
@@ -2882,6 +3141,9 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             }
             command
         }
+        ExportCli::PlcAml(a) => plc_export("plc-aml", a)?,
+        ExportCli::PlcXlsx(a) => plc_export("plc-xlsx", a)?,
+        ExportCli::Plcopen(a) => plc_export("plcopen", a)?,
     })
 }
 

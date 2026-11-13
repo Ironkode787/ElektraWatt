@@ -24,6 +24,8 @@ testkit = []
 [dependencies]
 # The tracked read layer; no query is used yet (previews and prevent rules read through it from WP-S1.05 on).
 ew-derive = { path = "../ew-derive" }
+# The PLC exchange: the exchange image, the matching and the three-way merge that `plc.apply_exchange` applies.
+ew-plc = { path = "../ew-plc" }
 # A transaction reads the `before` rows of its ops: the untracked read API (ARCH §3 rule 1, ADR-0001
 # amendment 1), allowed on this normal edge by the feature rule of `cargo xtask rules`.
 ew-model = { path = "../ew-model", features = ["raw-read"] }

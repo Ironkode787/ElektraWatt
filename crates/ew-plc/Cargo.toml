@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+[package]
+name = "ew-plc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license = "GPL-3.0-or-later"
+description = "The PLC exchange: the exchange image of a configuration project, matching and the three-way merge, the TIA tag table, the PLCopen writer and the instrument list."
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+# The tracked-read context the image is projected through (no `raw-read`: ARCH §3 rule 1); the record types, IDs,
+# texts and addresses come through its re-exports.
+ew-derive = { path = "../ew-derive" }
+# The neutral exchange image.
+ew-caex = { path = "../ew-caex" }
+# An instrument row is a command parameter (`plc.apply_instrument_list`): its JSON form and the schema of it.
+serde.workspace = true
+schemars = "1.2.3"
+ew-hack = { version = "0.2.0", path = "../ew-hack" }

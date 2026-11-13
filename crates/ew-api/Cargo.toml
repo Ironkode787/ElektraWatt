@@ -37,6 +37,8 @@ ew-derive = { path = "../ew-derive" }
 # The report engine: the Session installs it on every `Q` so that `page_order` includes generated report pages
 # (WP-S3.03).
 ew-reports = { path = "../ew-reports" }
+# The PLC exchange (doc 10 §4): the exchange image, the merge preview, the tag table's rows, the PLCopen writer.
+ew-plc = { path = "../ew-plc" }
 # The record types of `Session::from_records`.
 ew-schema = { path = "../ew-schema" }
 # The command log parser (`Session::run_script`, doc 17 §3.5).

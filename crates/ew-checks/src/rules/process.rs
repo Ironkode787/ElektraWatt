@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! EW-PRC-001, the process-tag rule of the EW-PLC pack's 1.0 content (doc 10 §3.4, §3.10; doc 15 §4.5.1;
-//! FR-PLC-049). EW-PRC-002 (an instrument-list tag without device or channel) needs the instrument-list import of
-//! the PLC exchange and is not built.
+//! FR-PLC-049). EW-PRC-002 (an instrument-list tag without device or channel) reads the exchange records and is in
+//! `plc_exchange`.
 
 use std::collections::BTreeMap;
 

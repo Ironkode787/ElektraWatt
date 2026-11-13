@@ -384,6 +384,7 @@ impl Command for SetStart {
                 }
             })?;
         }
+        super::plc_exchange::refuse_owned_edits(tx)?;
         let mut outcome = Outcome::primary((Kind::Device, first.cast()));
         outcome.notices = notices;
         Ok(outcome)
@@ -735,8 +736,9 @@ impl Command for FreezeAddresses {
 /// the affected configuration projects whose printed address changes (`channel 3 of -201U5: Q10.3 → Q2.3`), the
 /// following automatic modules included; committing the preview applies it as one undo step. Rejected: neither
 /// `modules` nor `config_project` (at `/modules`), a device without the `plc_module` aspect, a record that does not
-/// exist ([`CmdError::NotFound`]). Ownership protection of PLC-owned starts (doc 10 §3.9) is not built. Outcome: the
-/// first module, or the configuration project.
+/// exist ([`CmdError::NotFound`]); a start the PLC owns since an import, until `plc.unlock` lifts the protection (doc
+/// 10 §3.9; `plc.set_start` and `plc.convert_manual_to_auto` refuse it likewise). Outcome: the first module, or the
+/// configuration project.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Readdress {
@@ -791,6 +793,7 @@ impl Command for Readdress {
                 }
             }
         }
+        super::plc_exchange::refuse_owned_edits(tx)?;
         let notices = readdress_notices(tx, &before, &affected)?;
         let mut outcome = match (modules.first(), self.config_project) {
             (Some(m), _) if !self.modules.is_empty() => Outcome::primary((Kind::Device, m.cast())),
@@ -968,6 +971,7 @@ impl Command for ConvertManualToAuto {
                 auto.map_or_else(|| "none".to_owned(), start)
             ));
         }
+        super::plc_exchange::refuse_owned_edits(tx)?;
         let mut outcome = match (modules.first(), self.config_project) {
             (Some(m), _) if !self.modules.is_empty() => Outcome::primary((Kind::Device, m.cast())),
             (_, Some(cfg)) => Outcome::primary((Kind::PlcConfigProject, cfg.cast())),

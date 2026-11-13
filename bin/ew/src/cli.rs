@@ -29,6 +29,7 @@ mod library;
 mod merge_driver;
 mod merge_resolve;
 mod open;
+mod plc;
 mod print;
 mod project_files;
 mod query;
@@ -47,6 +48,7 @@ use export::*;
 use import::*;
 use library::*;
 use open::*;
+use plc::*;
 use print::*;
 use revision::*;
 use sql::*;
@@ -92,6 +94,14 @@ pub enum Command {
     Render(RenderArgs),
     /// `ew export ewz`: the project's saved generation as an `.ewz`.
     ExportEwz(ExportEwzArgs),
+    /// `ew export plc-aml|plc-xlsx|plcopen`: a PLC configuration project as an exchange file.
+    PlcExport(PlcExportArgs),
+    /// `ew import plc-aml|plc-xlsx`: an exchange file of PLC software previewed or applied.
+    PlcImport(PlcImportArgs),
+    /// `ew import instrument-list`: an instrument list taken into a configuration project.
+    InstrumentList(InstrumentListArgs),
+    /// `ew plc status`: the exchange status of a configuration project.
+    PlcStatus(PlcStatusArgs),
     /// `ew extract`: an `.ewz` into a new project directory.
     Extract(ExtractArgs),
     /// Replay a command log.
@@ -459,6 +469,72 @@ pub struct ApplyArgs {
     pub json: bool,
 }
 
+/// The arguments of `ew export plc-aml`, `plc-xlsx` and `plcopen`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PlcExportArgs {
+    /// The file format.
+    pub format: ew_api::plc_exchange::PlcFormat,
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The configuration project by name (`--config`).
+    pub config: Option<String>,
+    /// The stations to export, by tag (`--station`); empty: all.
+    pub stations: Vec<String>,
+    /// The language of comments and documentation (`--lang`).
+    pub lang: Option<String>,
+    /// The file to write (`--out`).
+    pub out: PathBuf,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
+/// The arguments of `ew import plc-aml` and `plc-xlsx`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PlcImportArgs {
+    /// The exchange file.
+    pub file: PathBuf,
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The configuration project by name (`--config`).
+    pub config: Option<String>,
+    /// The language of a tag workbook's comment column (`--lang`).
+    pub lang: Option<String>,
+    /// `--complete`.
+    pub complete: bool,
+    /// The choices file (`--accept`): apply and save; `None`: preview only.
+    pub accept: Option<PathBuf>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
+/// The arguments of `ew import instrument-list`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct InstrumentListArgs {
+    /// The instrument list.
+    pub file: PathBuf,
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The configuration project by name (`--config`).
+    pub config: Option<String>,
+    /// `--apply`: commit and save.
+    pub apply: bool,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
+/// The arguments of `ew plc status`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PlcStatusArgs {
+    /// An exchange file to compare with the last exchange.
+    pub file: Option<PathBuf>,
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The configuration project by name (`--config`).
+    pub config: Option<String>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
 /// What `ew export` writes.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ExportKind {
@@ -768,6 +844,10 @@ pub fn run(cmd: Command) -> i32 {
         Command::Print(a) => run_print(&a),
         Command::Render(a) => run_render(&a),
         Command::ExportEwz(a) => run_export_ewz(&a),
+        Command::PlcExport(a) => run_plc_export(&a),
+        Command::PlcImport(a) => run_plc_import(&a),
+        Command::InstrumentList(a) => run_instrument_list(&a),
+        Command::PlcStatus(a) => run_plc_status(&a),
         Command::Extract(a) => run_extract(&a),
         Command::Apply(a) => run_apply(&a),
         Command::Fmt(a) => project_files::run_fmt(&a),

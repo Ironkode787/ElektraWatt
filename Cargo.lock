@@ -1324,6 +1324,7 @@ dependencies = [
  "ew-library",
  "ew-mltext",
  "ew-model",
+ "ew-plc",
  "ew-render-cpu",
  "ew-reports",
  "ew-scene",
@@ -1365,6 +1366,7 @@ dependencies = [
  "ew-derive",
  "ew-hack",
  "ew-model",
+ "ew-plc",
  "fluent-bundle",
  "schemars",
  "serde",
@@ -1385,6 +1387,7 @@ dependencies = [
  "ew-ids",
  "ew-mltext",
  "ew-model",
+ "ew-plc",
  "ew-rds",
  "ew-schema",
  "ew-testids",
@@ -1674,6 +1677,17 @@ dependencies = [
  "imbl",
  "proptest",
  "serde_json",
+]
+
+[[package]]
+name = "ew-plc"
+version = "0.2.0"
+dependencies = [
+ "ew-caex",
+ "ew-derive",
+ "ew-hack",
+ "schemars",
+ "serde",
 ]
 
 [[package]]
