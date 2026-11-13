@@ -968,6 +968,14 @@ impl<'a> Placer<'a> {
     /// Places the part (or the candidates of its "A / B" number) of `src`.
     pub fn place(&mut self, src: &PartDraft) {
         let (line, pn) = (src.line, src.part_number.as_str());
+        if pn.trim().is_empty() {
+            self.reject(line, "", false, "no part number".into());
+            return;
+        }
+        if src.manufacturer.trim().is_empty() {
+            self.reject(line, pn, false, "no manufacturer".into());
+            return;
+        }
         let target = self.target;
         let library = target.library;
         let at_pn = self.at(line, Some(pn));

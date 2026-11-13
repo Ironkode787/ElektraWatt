@@ -21,11 +21,20 @@ pub(crate) fn safe_name(name: &str) -> Result<String, String> {
 }
 
 pub(crate) fn read(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
+    read_matching(bytes, &|_| true).map(|(files, _)| files)
+}
+
+/// The members `keep` names, and the names of the others, which are counted into the total and the ratio but never
+/// opened: a member above [`MAX_FILE`] that nobody reads (a 3D model, a picture) does not refuse the archive.
+pub(crate) fn read_matching(
+    bytes: &[u8],
+    keep: &dyn Fn(&str) -> bool,
+) -> Result<(Vec<(String, Vec<u8>)>, Vec<String>), String> {
     if bytes.len() as u64 > MAX_INPUT {
         return Err("eplan-input-limit".into());
     }
     if bytes.starts_with(b"PK") {
-        return zip(bytes);
+        return zip(bytes, keep);
     }
     use sevenz_rust2::{ArchiveReader, Password};
     crate::seven::check(bytes)?;
@@ -57,7 +66,7 @@ pub(crate) fn read(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
             return Err("eplan-archive-path".into());
         }
         total = total.checked_add(file.size).ok_or("eplan-input-limit")?;
-        if file.size > MAX_FILE || total > MAX_TOTAL {
+        if (file.size > MAX_FILE && keep(&name)) || total > MAX_TOTAL {
             return Err("eplan-input-limit".into());
         }
     }
@@ -65,9 +74,12 @@ pub(crate) fn read(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
         return Err("eplan-input-limit".into());
     }
     let mut files = Vec::new();
+    let mut skipped = Vec::new();
     reader
         .for_each_entries(|entry, stream| {
-            if !entry.is_directory {
+            if !entry.is_directory && !keep(&entry.name.replace('\\', "/")) {
+                skipped.push(entry.name.replace('\\', "/"));
+            } else if !entry.is_directory {
                 let mut data = Vec::new();
                 stream.take(MAX_FILE + 1).read_to_end(&mut data)?;
                 if data.len() as u64 != entry.size || data.len() as u64 > MAX_FILE {
@@ -78,7 +90,7 @@ pub(crate) fn read(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
             Ok(true)
         })
         .map_err(|_| "eplan-archive-invalid".to_owned())?;
-    Ok(files)
+    Ok((files, skipped))
 }
 
 fn u16_at(b: &[u8], at: usize) -> Result<usize, String> {
@@ -99,7 +111,7 @@ fn u32_at(b: &[u8], at: usize) -> Result<usize, String> {
 }
 
 /// Stored and raw-deflate ZIP, including ordinary comments and data descriptors. ZIP64/encryption refused.
-fn zip(b: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
+fn zip(b: &[u8], keep: &dyn Fn(&str) -> bool) -> Result<(Vec<(String, Vec<u8>)>, Vec<String>), String> {
     let end = (b.len().saturating_sub(65557)..b.len().saturating_sub(21))
         .rev()
         .find(|&i| {
@@ -119,6 +131,7 @@ fn zip(b: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
     let mut total = 0u64;
     let mut names = BTreeSet::new();
     let mut result = Vec::new();
+    let mut skipped = Vec::new();
     let mut ranges = Vec::new();
     for _ in 0..count {
         if b.get(at..at + 4) != Some(b"PK\x01\x02") {
@@ -150,7 +163,11 @@ fn zip(b: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
             return Err("eplan-archive-path".into());
         }
         total = total.checked_add(size as u64).ok_or("eplan-input-limit")?;
-        if size as u64 > MAX_FILE || total > MAX_TOTAL || size > compressed.saturating_mul(200).max(1024) {
+        let wanted = keep(&name);
+        if (size as u64 > MAX_FILE && wanted)
+            || total > MAX_TOTAL
+            || size > compressed.saturating_mul(200).max(1024)
+        {
             return Err("eplan-input-limit".into());
         }
         if b.get(local..local + 4) != Some(b"PK\x03\x04")
@@ -180,6 +197,10 @@ fn zip(b: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
             return Err("eplan-archive-invalid".into());
         }
         ranges.push((local, data_end));
+        if !wanted {
+            skipped.push(name);
+            continue;
+        }
         let data = b.get(data_start..data_end).ok_or("eplan-archive-invalid")?;
         let data = if method == 0 {
             data.to_vec()
@@ -195,5 +216,5 @@ fn zip(b: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
     if at != end {
         return Err("eplan-archive-invalid".into());
     }
-    Ok(result)
+    Ok((result, skipped))
 }

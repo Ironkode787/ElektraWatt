@@ -7,7 +7,7 @@ version.workspace = true
 edition.workspace = true
 rust-version = "1.93"
 license = "GPL-3.0-or-later"
-description = "Bounded EPLAN EDZ, PXF macro XML and parts XML symbol import."
+description = "Bounded EPLAN EDZ, PXF macro XML and parts XML import: symbol drafts and part drafts."
 repository.workspace = true
 publish = false
 
@@ -15,6 +15,13 @@ publish = false
 workspace = true
 
 [dependencies]
+# The importer contract (doc 14 §2.1): limits, report entries and the part draft; permissive crates only (ARCH §3).
+ew-interop-api = { path = "../ew-interop-api" }
+ew-mltext = { path = "../ew-mltext" }
+# The parts XML is streamed (doc 14 §5.3); the same pin as the XLSX reader of ew-import-catalog.
+quick-xml.workspace = true
+# The function-definition table `fndef-map.toml` (doc 14 §5.2).
+toml.workspace = true
 roxmltree = { version = "=0.21.1", default-features = false, features = ["std", "positions"] }
 serde_json = "1.0.154"
 serde.workspace = true

@@ -1,0 +1,75 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# The function definitions of EPLAN's part data (doc 14 §5.2, Open question 12) and the EW function definition each
+# stands for. A function template of an EDZ or a parts XML names its definition by category, group and id (the
+# attributes `functiondefcategory`, `functiondefgroup` and `functiondefid`, or `functiondefinition="c.g.i"`); a
+# template whose definition is not listed becomes a generic pin (EW-IMP-202).
+#
+# The rows below are the common ones. EPLAN's numbering was not checked against an export of every product group
+# (Open question 12): a row that is wrong or missing is corrected by the user's own `fndef-map.toml` in the
+# `imports` folder of the configuration directory, whose rows win over these. `fndef` is the key of a function
+# definition of the starter library (`ew-library` checks every key named here); `kind` is the part kind the
+# template makes the part (default: a device).
+
+[[map]]
+category = "1"
+group = "1"
+id = "1"
+fndef = "ew.fn.terminal"
+kind = "terminal"
+
+[[map]]
+category = "1"
+group = "1"
+id = "2"
+fndef = "ew.fn.terminal-pe"
+kind = "terminal"
+
+[[map]]
+category = "2"
+group = "1"
+id = "1"
+fndef = "ew.fn.psu-ac-dc"
+
+[[map]]
+category = "3"
+group = "1"
+id = "1"
+fndef = "ew.fn.mcb-1p"
+
+[[map]]
+category = "3"
+group = "1"
+id = "2"
+fndef = "ew.fn.mcb-1pn"
+
+[[map]]
+category = "3"
+group = "1"
+id = "3"
+fndef = "ew.fn.mcb-3p"
+
+[[map]]
+category = "4"
+group = "1"
+id = "1"
+fndef = "ew.fn.coil"
+
+[[map]]
+category = "4"
+group = "2"
+id = "1"
+fndef = "ew.fn.contact-no"
+
+[[map]]
+category = "4"
+group = "2"
+id = "2"
+fndef = "ew.fn.contact-nc"
+
+[[map]]
+category = "5"
+group = "1"
+id = "1"
+fndef = "ew.fn.lamp"

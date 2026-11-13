@@ -1,15 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Bounded EPLAN EDZ, PXF/parts XML and native SLK companion-table symbol import.
+//! Bounded EPLAN EDZ, PXF/parts XML and native SLK companion-table symbol import, and the EDZ and parts XML part
+//! import (`read_parts`, doc 14 §5.2, §5.3) under the importer contract of `ew-interop-api`.
 
 #![forbid(unsafe_code)]
 
 mod archive;
+mod parts;
 mod pxf;
 mod seven;
 pub mod slk;
 
+pub use parts::{FndefMap, IMPORTER_ID, IMPORTER_VERSION, PartsRead, read_parts};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 

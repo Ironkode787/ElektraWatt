@@ -32,7 +32,7 @@ fn ordinary_zip_crc_paths_and_declared_bombs_are_checked() {
 }
 
 /// One ZIP entry: its name, method, flags, the stored bytes, the declared size and CRC.
-struct Entry<'a> {
+pub(crate) struct Entry<'a> {
     name: &'a str,
     method: u16,
     flags: u16,
@@ -42,7 +42,7 @@ struct Entry<'a> {
 }
 
 impl<'a> Entry<'a> {
-    fn stored(name: &'a str, data: &[u8]) -> Self {
+    pub(crate) fn stored(name: &'a str, data: &[u8]) -> Self {
         Entry {
             name,
             method: 0,
@@ -55,7 +55,7 @@ impl<'a> Entry<'a> {
 }
 
 /// A ZIP of `entries`; `local` overrides the local header offset of the central record at that index.
-fn zip_of(entries: &[Entry<'_>], local: Option<(usize, u32)>) -> Vec<u8> {
+pub(crate) fn zip_of(entries: &[Entry<'_>], local: Option<(usize, u32)>) -> Vec<u8> {
     let mut out = Vec::new();
     let mut offsets = Vec::new();
     for e in entries {
@@ -182,7 +182,7 @@ fn seven_of(packed: &[u8], next: &[u8]) -> Vec<u8> {
 
 /// A non-solid 7z archive of copy-coded members, one folder each; `encoded` stores its header as a copy-coded
 /// stream behind them (an encoded header).
-fn seven(files: &[(&str, &[u8])], encoded: bool) -> Vec<u8> {
+pub(crate) fn seven(files: &[(&str, &[u8])], encoded: bool) -> Vec<u8> {
     let mut packed = Vec::new();
     let mut h = vec![0x01, 0x04, 0x06, 0x00];
     h.extend(number(files.len() as u64));
