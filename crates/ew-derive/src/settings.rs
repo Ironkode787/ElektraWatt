@@ -65,7 +65,7 @@ impl Member {
     }
 
     /// Every member, in declaration order.
-    pub const ALL: [Member; 10] = [
+    pub const ALL: [Member; 11] = [
         Member::IpPairing,
         Member::ColourProfile,
         Member::SizeProfile,
