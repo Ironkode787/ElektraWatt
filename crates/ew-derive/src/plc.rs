@@ -697,7 +697,7 @@ impl Query for ModuleStarts {
                     .and_then(|d| d.aspects.plc_module.as_ref())
                     .map(|p| p.start.clone())
                     .unwrap_or_default();
-                let io = module_part(q, m.module).map(|(_, s)| s.io).unwrap_or_default();
+                let io = module_io(q, m.module);
                 (m.module, starts, io)
             })
             .collect();
@@ -705,7 +705,7 @@ impl Query for ModuleStarts {
         // A module whose slot is of a newer format is not allocated: its ranges are unresolved.
         for m in order.iter().filter(|m| m.slot == Slot::Unresolved) {
             let mut s = ModuleStart::default();
-            for r in module_part(q, m.module).map(|(_, s)| s.io).unwrap_or_default() {
+            for r in module_io(q, m.module) {
                 set(&mut s, &r.dir, Start::Unresolved);
             }
             out.insert(m.module, s);
@@ -811,6 +811,164 @@ fn set(s: &mut ModuleStart, dir: &IoDir, start: Start) {
     }
 }
 
+/// The I/O ranges of a module that A1 allocates: the sums of the port windows of an IO-Link master (doc 10 §3.8: the
+/// module's I/O width follows its ports' modes, [`port_windows`]), else the ranges of its part's `plc` section.
+fn module_io(q: &Q, module: Id<Device>) -> Vec<ew_schema::IoRange> {
+    let Some(windows) = port_windows(q, module) else {
+        return module_part(q, module).map(|(_, s)| s.io).unwrap_or_default();
+    };
+    let (input, output) = windows
+        .iter()
+        .fold((0u32, 0u32), |(i, o), w| (i.saturating_add(w.input_bytes), o.saturating_add(w.output_bytes)));
+    [(IoDir::In, input), (IoDir::Out, output)]
+        .into_iter()
+        .filter(|(_, bytes)| *bytes > 0)
+        .map(|(dir, bytes)| ew_schema::IoRange {
+            dir,
+            bits: bytes.saturating_mul(8),
+            class: IoClass::Digital,
+            extra: ew_schema::Extra::new(),
+        })
+        .collect()
+}
+
+/// The process-data window of one port of an IO-Link master (doc 10 §3.8, FR-BUS-012), in whole bytes.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PortWindow {
+    /// The `multi_function` channel.
+    pub channel: Id<Channel>,
+    /// Its number.
+    pub number: u16,
+    /// Its mode (`io_link` when the channel sets none).
+    pub mode: ew_schema::PortMode,
+    /// The input bytes the port occupies: in IO-Link mode the connected device's process data, else the part's
+    /// window; one byte for a DI port; none for a DQ or deactivated port.
+    pub input_bytes: u32,
+    /// The output bytes, likewise (one byte for a DQ port).
+    pub output_bytes: u32,
+    /// The IO-Link data of the connected device (the target's part's IO-Link port), in IO-Link mode.
+    pub device: Option<ew_schema::IoLinkDevice>,
+}
+
+/// The IO-Link data of a device: the first port of its parts' bus sections with bus `io_link` and IO-Link data.
+pub fn iolink_device(q: &Q, device: Id<Device>) -> Option<ew_schema::IoLinkDevice> {
+    let dev = q.devices().get(device)?;
+    let parts = q.parts();
+    dev.parts.iter().find_map(|u| {
+        let copy = parts.get(u.part.copy)?;
+        copy.item.sections.bus.as_ref()?.ports.iter().find_map(|p| {
+            (p.bus == ew_schema::BusSystem::IoLink)
+                .then(|| p.iolink.clone())
+                .flatten()
+        })
+    })
+}
+
+/// The port windows of an IO-Link master module, by channel number: `None` for a module whose part has no IO-Link
+/// window (`PlcSection.iolink`). Only the `multi_function` channels are ports.
+pub fn port_windows(q: &Q, module: Id<Device>) -> Option<Vec<PortWindow>> {
+    let (_, plc) = module_part(q, module)?;
+    let window = plc.iolink?;
+    let targets = q.get::<ChannelTargets>(module);
+    let windows = module_channels(q, module)
+        .iter()
+        .filter(|c| c.kind == ChannelKind::MultiFunction)
+        .map(|c| {
+            let mode = c.mode.clone().unwrap_or_default();
+            let device = (mode == ew_schema::PortMode::IoLink)
+                .then(|| targets.iter().find(|t| t.channel == c.id).and_then(|t| t.device))
+                .flatten()
+                .and_then(|d| iolink_device(q, d));
+            let (input_bytes, output_bytes) = match (&mode, &device) {
+                (ew_schema::PortMode::IoLink, Some(d)) => (
+                    u32::from(d.input_bits).div_ceil(8),
+                    u32::from(d.output_bits).div_ceil(8),
+                ),
+                (ew_schema::PortMode::IoLink, None) => {
+                    (u32::from(window.input_bytes), u32::from(window.output_bytes))
+                }
+                (ew_schema::PortMode::Di, _) => (1, 0),
+                (ew_schema::PortMode::Dq, _) => (0, 1),
+                _ => (0, 0),
+            };
+            PortWindow {
+                channel: c.id,
+                number: c.number,
+                mode,
+                input_bytes,
+                output_bytes,
+                device,
+            }
+        })
+        .collect();
+    Some(windows)
+}
+
+/// The derived address of a port of an IO-Link master (doc 10 §3.8): the first byte of its window after the windows
+/// of the ports before it, in the input area when it has input bytes, else in the output area; a DI or DQ port's bit
+/// 0 of its byte; a port without a window, or one whose direction has no start, has none.
+fn port_address(windows: &[PortWindow], channel: Id<Channel>, r: &Render<'_>) -> ChannelAddr {
+    let Some(at) = windows.iter().position(|w| w.channel == channel) else {
+        return ChannelAddr::Unresolved;
+    };
+    let w = &windows[at];
+    let before = |out: bool| -> u32 {
+        windows[..at]
+            .iter()
+            .map(|w| if out { w.output_bytes } else { w.input_bytes })
+            .fold(0u32, u32::saturating_add)
+    };
+    let (out, area) = match (w.input_bytes, w.output_bytes) {
+        (0, 0) => return ChannelAddr::Excluded,
+        (0, _) => (true, Area::Q),
+        _ => (false, Area::I),
+    };
+    let first = r.start.and_then(|s| if out { s.output } else { s.input });
+    let Some(Start::At(start)) = first else {
+        return match first {
+            Some(Start::Excluded) => ChannelAddr::Excluded,
+            Some(Start::Tbd) => ChannelAddr::Tbd,
+            _ => ChannelAddr::Unresolved,
+        };
+    };
+    let Some(byte) = start.checked_add(before(out)) else {
+        return ChannelAddr::Unresolved;
+    };
+    let a = match w.mode {
+        ew_schema::PortMode::Di | ew_schema::PortMode::Dq => ew_plcaddr::PlcAddress::bit(area, byte, 0),
+        _ => ew_plcaddr::PlcAddress::unit(area, Size::Byte, byte),
+    };
+    match r.profile {
+        Some(p) if p.absolute => ChannelAddr::At {
+            address: a,
+            text: p.render(&a, Purpose::Drawing),
+        },
+        _ => ChannelAddr::Unresolved,
+    }
+}
+
+/// The data type of a channel's PLC tag (doc 10 §2.4): its own, else the struct type of the IO-Link device on a port
+/// in IO-Link mode, else its part's (`ChannelSpec.data_type`).
+pub fn channel_data_type(q: &Q, module: Id<Device>, channel: &Channel) -> Option<String> {
+    if let Some(t) = &channel.data_type {
+        return Some(t.as_str().to_owned());
+    }
+    if channel.kind == ChannelKind::MultiFunction {
+        let from_device = port_windows(q, module)
+            .and_then(|w| w.into_iter().find(|w| w.channel == channel.id))
+            .and_then(|w| w.device)
+            .and_then(|d| d.data_type)
+            .map(|t| t.as_str().to_owned());
+        if from_device.is_some() {
+            return from_device;
+        }
+    }
+    module_part(q, module)
+        .and_then(|(_, s)| s.channels)
+        .and_then(|c| c.data_type)
+        .map(|t| t.as_str().to_owned())
+}
+
 /// The configuration project of a module (through its station).
 fn module_cfg(q: &Q, module: Id<Device>) -> Option<(Id<Device>, Id<PlcConfigProject>)> {
     let station = station_of(q, module)?;
@@ -902,6 +1060,12 @@ impl Query for ChannelAddresses {
             profile: profile.as_deref(),
             place: place.as_ref(),
             start,
+        };
+        let windows = port_windows(q, *key);
+        // A port of an IO-Link master takes its window's address (doc 10 §3.8); every other channel A2's.
+        let address_of = |c: &Channel, r: &Render<'_>, bit_of: Option<&MapSpec>| match (&windows, &c.kind, &c.address) {
+            (Some(w), ChannelKind::MultiFunction, AddrSpec::Auto) => port_address(w, c.id, r),
+            _ => address_of(c, r, bit_of),
         };
         let out = channels
             .iter()
@@ -1973,6 +2137,10 @@ pub struct PlcRow {
     pub passed: Vec<crate::CpRef>,
     /// Whether the traced target was one of several candidates.
     pub ambiguous: bool,
+    /// The data type of the channel's PLC tag ([`channel_data_type`]).
+    pub data_type: Option<String>,
+    /// The signal range.
+    pub signal_range: Option<String>,
     /// The effective state.
     pub state: EffectiveState,
 }
@@ -2031,6 +2199,8 @@ impl Query for PlcRows {
                     target_pin: target.and_then(|t| t.pin),
                     passed: target.map(|t| t.passed.clone()).unwrap_or_default(),
                     ambiguous: target.is_some_and(|t| t.ambiguous),
+                    data_type: channel_data_type(q, m.module, c),
+                    signal_range: c.signal_range.as_ref().map(|s| s.as_str().to_owned()),
                     state: states
                         .iter()
                         .find(|(id, _)| *id == c.id)

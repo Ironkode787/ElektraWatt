@@ -1070,3 +1070,70 @@ fn the_symbol_template_derives_cleaned_symbols() {
     assert_eq!(ew_derive::iec_ident("-201U3-Q1:14"), "_201U3_Q1_14");
     assert!(ew_derive::symbol_template_error("{target.colour}").is_some());
 }
+
+/// FR-BUS-012: an IO-Link master's ports are multi-function channels; port 3 (channel 2) in IO-Link mode with an
+/// 88-bit input device occupies an 11-byte input window and takes the device's struct data type, a DI port one byte,
+/// a deactivated port none, so the module's input width is their sum and the next port starts after them.
+#[test]
+fn io_link_ports_take_their_devices_windows() {
+    let mut fx = traced_fixture(false);
+    fx.lib_item(
+        "part",
+        0x851,
+        json!({
+            "meta": {},
+            "kind": "device",
+            "manufacturer": {"library": uid(LIBRARY), "item": uid(0x9000), "version_req": "^1"},
+            "part_number": "IOL-8",
+            "sections": {"plc": {
+                "role": "module",
+                "channels": {"count": 4, "kind": "multi_function"},
+                "iolink": {"input_bytes": 32, "output_bytes": 32, "class": "a"},
+            }},
+        }),
+    );
+    fx.lib_item(
+        "part",
+        0x852,
+        json!({
+            "meta": {},
+            "kind": "device",
+            "manufacturer": {"library": uid(LIBRARY), "item": uid(0x9000), "version_req": "^1"},
+            "part_number": "BNI-88",
+            "sections": {"bus": {"ports": [{
+                "interface": "IOL", "bus": "io_link", "role": "device",
+                "iolink": {"class": "a", "input_bits": 88, "data_type": "BNI_IOL_88"},
+            }]}},
+        }),
+    );
+    fx.record(CARD)["parts"] = json!([{"part": {"copy": uid(0x851)}, "qty": "1"}]);
+    fx.record(SENSOR)["parts"] = json!([{"part": {"copy": uid(0x852)}, "qty": "1"}]);
+    // channel 0 is wired to the sensor; give the card three more ports and rebind channel 0 as port 3
+    let ch = |n: u16| v5::plc_channel_id::<Device, ()>(id(CARD), n).as_uuid().as_u128();
+    fx.record(ch(0))["kind"] = json!("multi_function");
+    fx.record(ch(0))["mode"] = json!("deactivated");
+    fx.record(ch(0))["binding"] = Value::Null;
+    for (n, mode) in [(1u16, "deactivated"), (2, "io_link"), (3, "di")] {
+        let mut c = json!({
+            "$k": "channel",
+            "id": v5::plc_channel_id::<Device, ()>(id(CARD), n).as_uuid().to_string(),
+            "module": uid(CARD), "number": n, "kind": "multi_function", "mode": mode,
+        });
+        if n == 2 {
+            c["binding"] = json!({"cp": [uid(CARD_FN), 0]});
+        }
+        fx.push(c);
+    }
+    let m = fx.build();
+    let q = Q::new(&m);
+    let windows = ew_derive::port_windows(&q, id(CARD)).expect("an IO-Link master");
+    let bytes: Vec<(u32, u32)> = windows.iter().map(|w| (w.input_bytes, w.output_bytes)).collect();
+    assert_eq!(bytes, [(0, 0), (0, 0), (11, 0), (1, 0)]);
+    assert_eq!(
+        texts(&q, CARD),
+        ["Excluded", "Excluded", "IB0", "I11.0"]
+    );
+    let rows = q.get::<PlcRows>(id(CARD));
+    assert_eq!(rows[2].data_type.as_deref(), Some("BNI_IOL_88"), "a struct-typed port");
+    assert_eq!(q.get::<ModuleStarts>(cfg())[&id(CARD)].input, Some(Start::At(0)));
+}

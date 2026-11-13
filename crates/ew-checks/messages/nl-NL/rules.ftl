@@ -514,6 +514,95 @@ rule-ew-plc-015 = { $subject }: { $what ->
     .title = Tbd-adres
     .hint = Vul het adres in vóór de vrijgave.
 
+rule-ew-plc-004 = { $form ->
+        [input] { $channel }: het { $kind }-kanaal leest de spoel van { WORD($target) }; een ingang leest een sensor, controleer de bedrading of de kanaalsoort
+       *[output] { $channel }: het { $kind }-kanaal stuurt het contact van { WORD($target) } aan; een uitgang stuurt een actuator aan, controleer de bedrading of de kanaalsoort
+    }
+    .title = Kanaalsoort past niet
+    .hint = Bedraad het kanaal naar een functie van zijn soort, of wijzig de kanaalsoort.
+
+rule-ew-plc-005 = { $channel }: het symbool { $symbol } is geen IEC 61131-3-identifier, wat configuratieproject { WORD($cfg) } vereist; gebruik letters, cijfers en enkele underscores
+    .title = Ongeldig symbool
+    .hint = Geef het kanaal een symbool van letters, cijfers en enkele underscores dat niet met een cijfer begint.
+
+rule-ew-plc-009 = { $channel } heeft { $what ->
+        [both] een handmatig adres en een symbool
+        [address] een handmatig adres
+       *[symbol] een symbool
+    } maar geen verbinding; verbind het, of markeer het als reserve of gereserveerd
+    .title = Kanaal zonder verbinding
+    .hint = Verbind het kanaal, of markeer het als reserve of gereserveerd.
+
+rule-ew-plc-010 = { $channel }: het gegevenstype { $data_type } ({ $bits } bit) past niet bij het { $kind }-kanaal van { $width } bit; geef het kanaal een gegevenstype van zijn breedte
+    .title = Breedte van het gegevenstype past niet
+    .hint = Geef het kanaal een gegevenstype dat even breed is als het kanaal.
+
+rule-ew-plc-011 = { $form ->
+        [slot] { WORD($module) } zit in slot { $slot } van { WORD($station) }, maar zijn artikel { $part } staat slots { $allowed } toe; verplaats het naar een toegestaan slot
+        [max_modules] { WORD($station) } heeft { $have } modules, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
+        [input] { WORD($station) } heeft { $have } ingangsbytes, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
+       *[output] { WORD($station) } heeft { $have } uitgangsbytes, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
+    }
+    .title = Slotregels
+    .hint = Plaats elke module in een slot dat zijn artikel toestaat, en houd het station binnen zijn grenzen.
+
+rule-ew-plc-013 = { $form ->
+        [fe] { $cp_shared ->
+            [yes] { $cp_tag } pen { $cp_pin } ({ $cp_nth }e)
+           *[no] { $cp }
+        } is de FE-pen van een PLC-kaart en wordt gevoed uit de PE-potentiaal { $potential }; sluit hem aan op functionele aarde, of declareer een FE–PE-verbinding
+        [unconnected] { $cp }, de { $role }-pen van de { $group ->
+            [electronics] elektronica-
+            [load] belasting-
+           *[other] {""}
+        }voedingsgroep, is niet aangesloten; sluit de voeding van de kaart aan
+       *[wrong] { $cp }, de { $role }-pen van de { $group ->
+            [electronics] elektronica-
+            [load] belasting-
+           *[other] {""}
+        }voedingsgroep, wordt gevoed uit een potentiaal van type { $type ->
+            [signal] signaal
+            [undefined] onbepaald
+           *[other] { $type }
+        }; voed hem uit { $role }
+    }
+    .title = Kaartvoeding onjuist
+    .hint = Sluit elke voedingspen van de kaart aan op een potentiaal van zijn rol, en zijn FE-pen op functionele aarde.
+
+rule-ew-plc-014 = { $subject }: { $form ->
+        [channel] de uitgang
+        [group] de belastingvoedingsgroep
+       *[module] de module
+    } voert { $load } mA, meer dan zijn waarde van { $limit } mA; verdeel de belastingen of gebruik een sterkere uitgang
+    .title = Uitgangsbelasting boven de waarde
+    .hint = Verdeel de belastingen over meer uitgangen, of gebruik een sterkere uitgang of module.
+
+rule-ew-saf-001 = { $form ->
+        [missing] { WORD($module) } is een F-module zonder F-doeladres; vul het in
+        [range] { WORD($module) }: het F-doeladres { $address } ligt buiten { $min }..{ $max }, het bereik van zijn apparaatbeschrijving; vul een adres binnen dat bereik in
+       *[duplicate] het F-doeladres { $address } wordt gebruikt door { $modules }; geef elke F-module een eigen adres
+    }
+    .title = F-adres
+    .hint = Geef elke F-module een eigen F-doeladres binnen het bereik van zijn apparaatbeschrijving.
+
+rule-ew-saf-002 = { $form ->
+        [incomplete] { $channel } is een 1oo2-kanaal zonder partner die het terugnoemt; koppel het aan het andere kanaal van de sensor
+       *[devices] het 1oo2-paar { $channel } en { $other } leest twee apparaten, { WORD($first) } en { WORD($second) }; bedraad beide kanalen naar dezelfde tweekanaalssensor
+    }
+    .title = 1oo2-paar
+    .hint = Koppel elk 1oo2-kanaal aan het andere kanaal van dezelfde tweekanaalssensor.
+
+rule-ew-saf-003 = { $channel }: de sensor { WORD($sensor) } wordt niet gevoed uit de testpulspen van de module; sluit zijn voeding op die pen aan
+    .title = Testpuls
+    .hint = Voed de sensor van een F-DI-kanaal uit de testpulspen van de module.
+
+rule-ew-prc-001 = { $form ->
+        [scheme] { WORD($device) }: het procesmerkteken { $tag } past niet in het schema { $scheme } van het project; corrigeer het merkteken
+       *[duplicate] het procesmerkteken { $tag } staat op { $devices }; houd het op het ene veldapparaat en volg het vanaf de andere
+    }
+    .title = Schema van procesmerktekens
+    .hint = Geef elk veldapparaat een eigen procesmerkteken in het schema van het project.
+
 rule-ew-bus-001 = { $form ->
         [duplicate] { $named ->
             [none] { $untagged } poorten zonder kenmerk
@@ -550,6 +639,66 @@ rule-ew-bus-004 = { $form ->
     }
     .title = Afsluiting
     .hint = Zet de afsluiting aan op beide segmenteinden en uit overal daartussen.
+
+rule-ew-bus-002 = { $port }: het stationsadres { $address } ligt buiten { $min }..{ $max }; vul een adres binnen het bereik in
+    .title = Adres buiten het bereik
+    .hint = Vul een stationsadres in binnen het bereik van de bus en van het artikel van de poort.
+
+rule-ew-bus-003 = { $form ->
+        [name] { $port }: de apparaatnaam { $name } is niet DNS-compatibel; gebruik kleine letters, cijfers, koppeltekens en punten
+        [subnet] { $port }: het IP-adres { $ip } ligt buiten het subnet van de master, { $master_ip } met masker { $mask }; vul een adres van dat subnet in
+        [duplicate_name] de apparaatnaam { $value } wordt gebruikt door { $ports } in logisch net { $net }; geef elke poort een eigen naam
+       *[duplicate_ip] het IP-adres { $value } wordt gebruikt door { $ports } in logisch net { $net }; geef elke poort een eigen adres
+    }
+    .title = PROFINET-naam of IP
+    .hint = Geef elk PROFINET-apparaat een eigen DNS-compatibele naam en een eigen IP-adres in het subnet van de master.
+
+rule-ew-bus-005 = { $port } ondersteunt { $rate } bit/s niet, de snelheid van logisch net { $net }; kies een snelheid die elk station ondersteunt
+    .title = Snelheid niet ondersteund
+    .hint = Kies een snelheid die elk station van het logische net ondersteunt.
+
+rule-ew-bus-006 = het segment vanaf { $segment } { $form ->
+        [stations] heeft { $count } stations, meer dan de { $limit } die een PROFIBUS-segment neemt; deel het met een repeater
+        [length] is { $metres } m lang, meer dan de { $limit } m die PROFIBUS bij { $rate } bit/s toestaat; maak het korter of verlaag de snelheid
+       *[stub] vertakt, en PROFIBUS staat boven 1,5 Mbit/s geen aftakkingen toe; voer de lijn door elk station
+    }
+    .title = Segmentgrenzen
+    .hint = Houd elk segment binnen het aantal stations, de lengte en de topologie die zijn snelheid toestaat.
+
+rule-ew-bus-007 = logisch net { $net } heeft geen master; noem zijn masterpoort, of de externe partner die master is
+    .title = Geen master
+    .hint = Noem de master van het logische net: een poort van het project of de externe partner.
+
+rule-ew-bus-009 = { $form ->
+        [cable] { $port } is verbonden met { WORD($cable) }, dat geen kabel voor zijn bus is; gebruik een buskabel
+       *[connector] { $port } ({ $connector }) is gekoppeld aan { $other } ({ $other_connector }); de connectortypen verschillen
+    }
+    .title = Verkeerde buskabel
+    .hint = Verbind buspoorten met een kabel voor hun bus, en koppel connectoren van één type.
+
+rule-ew-bus-010 = de poorten die met { $port } verbonden zijn, horen bij de logische netten { $nets }; zet elke poort van het segment in één logisch net
+    .title = Netten verschillen
+    .hint = Zet elke poort die busverbindingen samenvoegen in één logisch net.
+
+rule-ew-iol-001 = { $form ->
+        [mode] { $channel } staat in modus { $mode ->
+            [deactivated] uitgeschakeld
+           *[other] { $mode }
+        }, maar het IO-Link-apparaat { WORD($device) } is aangesloten; zet de poort op IO-Link
+       *[class] { $channel } is een poort van klasse { $port_class }, maar { WORD($device) } heeft klasse { $device_class } nodig; sluit het aan op een poort van klasse B
+    }
+    .title = Klasse van de IO-Link-poort
+    .hint = Sluit elk IO-Link-apparaat aan op een poort van zijn klasse, in IO-Link-modus.
+
+rule-ew-iol-002 = { $channel }: { $form ->
+        [window] de { $have } { $dir ->
+            [input] ingangs
+           *[output] uitgangs
+        }bits van het apparaat zijn meer dan het poortvenster van { $room } bits; gebruik een master met een groter venster
+       *[cable] de kabel { WORD($cable) } is { $metres } m lang, meer dan de { $max } m die een IO-Link-poort toestaat; maak hem korter
+    }
+    .title = IO-Link-grenzen
+    .hint = Houd elk IO-Link-apparaat binnen het venster en de kabellengte van zijn poort.
 
 rule-ew-pot-001 = { $form ->
         [flow] de doorverbinding van functie { WORD($device) } verbindt type { $from } met type { $to } zonder omzettende functie
@@ -989,3 +1138,10 @@ word-a-logical-bus-net = een logisch busnet
 word-a-physical-bus-net = een fysiek busnet
 word-the-junction-in = de aftakking in { $at }
 word-a-connection-point-of-another-page = een aansluitpunt van een andere pagina
+word-its-target = zijn doel
+word-the-station = het station
+word-a-station = een station
+word-an-f-module = een F-module
+word-the-sensor = de sensor
+word-the-cable = de kabel
+word-the-device = het apparaat

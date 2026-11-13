@@ -37,15 +37,15 @@ use crate::rules::term::{full_tag, location_text};
 /// its position in words, "-1A4 pin − (2nd)", never the label's `#2`; any other CP is named by its label. The parts
 /// go to the Fluent patterns as `cp_shared`, `cp_tag`, `cp_pin` and `cp_nth` (an ordinal number), so that each
 /// language words the position itself; `cp` stays the label.
-struct PinWords {
+pub(crate) struct PinWords {
     /// The English sentence form (the en-GB pattern renders the same text).
-    sentence: String,
+    pub(crate) sentence: String,
     /// The tag, the designation and the position, when the designation is shared.
     shared: Option<(String, String, u32)>,
 }
 
 impl PinWords {
-    fn of(q: &Q, cp: CpRef, label: &str) -> PinWords {
+    pub(crate) fn of(q: &Q, cp: CpRef, label: &str) -> PinWords {
         match cp.label_parts(q) {
             Some((tag, pin, Some(n))) => PinWords {
                 sentence: format!("{tag} pin {pin} ({})", ordinal_en(n)),
@@ -59,7 +59,7 @@ impl PinWords {
     }
 
     /// `finding` with the pin's Fluent arguments.
-    fn args(&self, finding: Finding) -> Finding {
+    pub(crate) fn args(&self, finding: Finding) -> Finding {
         match &self.shared {
             Some((tag, pin, n)) => finding
                 .arg("cp_shared", "yes")
@@ -178,7 +178,7 @@ pub(crate) fn potential_targets(q: &Q, p: PotentialId) -> PotTargets {
 }
 
 /// The display name of a potential, as the derivation prints it.
-fn potential_name(q: &Q, p: PotentialId) -> String {
+pub(crate) fn potential_name(q: &Q, p: PotentialId) -> String {
     q.get::<PotentialNameOf>(p).name.text.clone()
 }
 
@@ -203,7 +203,7 @@ fn owns_wire(q: &Q, p: PotentialId, wire: &PhysicalWire) -> bool {
 }
 
 /// The final type of a potential: its flow entry's (own or propagated), else its own.
-fn final_type(q: &Q, p: PotentialId) -> Option<PotentialType> {
+pub(crate) fn final_type(q: &Q, p: PotentialId) -> Option<PotentialType> {
     q.get::<PotentialFlow>(p)
         .as_ref()
         .as_ref()

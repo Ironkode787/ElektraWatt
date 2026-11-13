@@ -1,7 +1,9 @@
 ## What it checks
 
-A symbol that two or more channels of one PLC configuration project carry; symbols compare exactly. One finding per
-symbol, naming its channels.
+A symbol that two or more channels of one PLC configuration project carry, the manual symbol or the template's. Under
+the configuration project's strict IEC policy (the default) symbols compare cleaned into identifiers, so TA05-V-15 and
+TA05_V_15 collide. One finding per symbol, naming its channels. Its prevent half refuses the edit that creates the
+duplicate.
 
 ## Why
 

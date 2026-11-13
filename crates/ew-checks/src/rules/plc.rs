@@ -3,7 +3,7 @@
 
 //! The MVP rules of the EW-PLC pack (doc 10 §3.10, doc 15 §4.5.1): EW-PLC-001, -002, -003,
 //! -007, -008, -012 and -015, in the scopes `module` (a device with the `plc_module` aspect) and `cfg` (a configuration
-//! project).
+//! project). The rules of the pack's 1.0 content are in `plc_wiring`, `safety` and `process`.
 //!
 //! Every rule reads the derived PLC values of `ew-derive` (doc 10 §2.10): the module starts and channel addresses
 //! (A1, A2), the address index, the channel states (A3), texts and the solenoid-position slots. None stores or
@@ -18,9 +18,10 @@
 //!
 //! # Prevent mode
 //!
-//! EW-PLC-001 and EW-PLC-007 carry the catalogue's prevent letter, so release mode reports them; their prevent
-//! evaluation (refusing the edit that creates an overlap or a duplicate symbol) is not built: no refusal is
-//! made beyond the address parse and the profile check.
+//! EW-PLC-001 and EW-PLC-007 carry the catalogue's prevent letter, so release mode reports them, and their prevent
+//! evaluation refuses an edit that creates an overlap or a duplicate symbol (FT-726): the configuration projects that
+//! the touched channels, devices and configuration projects belong to are checked before and after the batch, and an
+//! error finding that the batch adds is a violation ([`new_findings`]).
 
 use std::collections::BTreeMap;
 
@@ -34,14 +35,14 @@ use ew_derive::{
 };
 
 use crate::finding::{Finding, QuickFix, Severity, Target};
-use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
+use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
 use crate::rules::term::full_tag;
 
 // ---------------------------------------------------------------------------------------------------------
 // Shared helpers
 
 /// A channel as printed: `<module tag>:<designation>`, the number where the channel has no designation.
-fn channel_name(q: &Q, module: Id<Device>, channel: Id<Channel>, number: u16) -> String {
+pub(crate) fn channel_name(q: &Q, module: Id<Device>, channel: Id<Channel>, number: u16) -> String {
     let designation = q
         .get::<ChannelTexts>(module)
         .iter()
@@ -61,7 +62,7 @@ fn address_text(a: &ChannelAddr) -> String {
 }
 
 /// The configuration project of a module, through its station.
-fn module_cfg(q: &Q, module: Id<Device>) -> Option<Id<PlcConfigProject>> {
+pub(crate) fn module_cfg(q: &Q, module: Id<Device>) -> Option<Id<PlcConfigProject>> {
     let station = station_of(q, module)?;
     Some(
         q.devices()
@@ -74,7 +75,7 @@ fn module_cfg(q: &Q, module: Id<Device>) -> Option<Id<PlcConfigProject>> {
 }
 
 /// The name of a configuration project as printed.
-fn cfg_name(q: &Q, cfg: Id<PlcConfigProject>) -> String {
+pub(crate) fn cfg_name(q: &Q, cfg: Id<PlcConfigProject>) -> String {
     q.table::<PlcConfigProject>()
         .get(cfg)
         .map_or_else(|| "a configuration project".to_owned(), |c| c.name.to_string())
@@ -90,8 +91,62 @@ fn dir_of(kind: &ChannelKind) -> Option<IoDir> {
 }
 
 /// The module devices of a configuration project, in allocation order.
-fn cfg_modules(q: &Q, cfg: Id<PlcConfigProject>) -> Vec<Id<Device>> {
+pub(crate) fn cfg_modules(q: &Q, cfg: Id<PlcConfigProject>) -> Vec<Id<Device>> {
     q.get::<ModuleOrder>(cfg).iter().map(|m| m.module).collect()
+}
+
+/// A channel kind as a message prints it (`DO`, `AI`, `multi-function`).
+pub(crate) fn kind_word(k: &ChannelKind) -> &'static str {
+    match k {
+        ChannelKind::Di => "DI",
+        ChannelKind::Do => "DO",
+        ChannelKind::Ai => "AI",
+        ChannelKind::Ao => "AO",
+        ChannelKind::Counter => "counter",
+        ChannelKind::IoLinkPort => "IO-Link",
+        ChannelKind::PowerSupply => "supply",
+        ChannelKind::MultiFunction => "multi-function",
+        ChannelKind::Unknown(_) => "other",
+    }
+}
+
+/// The error findings of `rule` in `scopes` after a batch that were not there before it (by discriminator and
+/// targets): the violations a prevent evaluation reports (ADR-0009 decision 3).
+pub(crate) fn new_findings(rule: &dyn Rule, before: &Q, after: &Q, scopes: &[Scope]) -> Vec<Finding> {
+    let key = |f: &Finding| {
+        let mut t: Vec<Target> = f.targets.clone();
+        t.sort();
+        (f.discriminator.clone(), t)
+    };
+    let mut out = Vec::new();
+    for scope in scopes {
+        let had: std::collections::BTreeSet<_> = rule.run(before, scope).iter().map(key).collect();
+        out.extend(
+            rule.run(after, scope)
+                .into_iter()
+                .filter(|f| f.severity == Severity::Error && !had.contains(&key(f))),
+        );
+    }
+    out
+}
+
+/// The configuration projects a batch touches: those of its touched channels' modules, of its touched devices (as
+/// stations or modules), and its touched configuration projects, in the snapshot after the batch.
+fn touched_cfgs(after: &Q, touched: &Touched) -> Vec<Scope> {
+    let mut cfgs = std::collections::BTreeSet::new();
+    for (kind, id) in touched {
+        let cfg = match kind {
+            Kind::Channel => after
+                .table::<Channel>()
+                .get(id.cast())
+                .and_then(|c| module_cfg(after, c.module)),
+            Kind::Device => module_cfg(after, id.cast()),
+            Kind::PlcConfigProject => Some(id.cast()),
+            _ => None,
+        };
+        cfgs.extend(cfg);
+    }
+    cfgs.into_iter().map(Scope::Cfg).collect()
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -208,6 +263,10 @@ impl Rule for AddressOverlap {
             }
         }
         out
+    }
+
+    fn prevent(&self, before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
+        new_findings(self, before, after, &touched_cfgs(after, touched))
     }
 }
 
@@ -426,9 +485,11 @@ pub const DUPLICATE_SYMBOL: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-plc-007",
 };
 
-/// EW-PLC-007: a determined symbol that two or more channels of one configuration project carry (symbols compare
-/// exactly; the determined symbol is the manual one until the symbol templates of 1.0). One finding per symbol, every
-/// channel that carries it as a target, discriminator `symbol`; the channels listed in natural order.
+/// EW-PLC-007: a determined symbol (manual, else the template's) that two or more channels of one configuration project
+/// carry. Under the configuration project's strict IEC policy (the default) symbols compare cleaned into identifiers
+/// (doc 10 §3.4: "TA05-V-15" and "TA05_V_15" collide), else exactly. One finding per cleaned symbol, every channel
+/// that carries it as a target, discriminator `symbol`, the symbol of the first channel in natural order printed; the
+/// channels listed in natural order. Its prevent half refuses the edit that creates a duplicate (FT-726).
 #[derive(Clone, Copy, Debug)]
 pub struct DuplicateSymbol;
 
@@ -441,7 +502,11 @@ impl Rule for DuplicateSymbol {
         let Scope::Cfg(cfg) = *scope else {
             return Vec::new();
         };
-        let mut by_symbol: BTreeMap<String, Vec<(String, Id<Channel>)>> = BTreeMap::new();
+        let strict = q
+            .table::<PlcConfigProject>()
+            .get(cfg)
+            .is_none_or(|c| c.symbols.as_ref().is_none_or(|s| s.strict_iec));
+        let mut by_symbol: BTreeMap<String, Vec<(String, Id<Channel>, String)>> = BTreeMap::new();
         for module in cfg_modules(q, cfg) {
             let channels = q.table::<Channel>();
             for (id, text) in q.get::<ChannelTexts>(module).iter() {
@@ -449,15 +514,21 @@ impl Rule for DuplicateSymbol {
                     continue;
                 };
                 let number = channels.get(*id).map_or(0, |c| c.number);
-                by_symbol
-                    .entry(symbol.clone())
-                    .or_default()
-                    .push((channel_name(q, module, *id, number), *id));
+                let key = if strict {
+                    ew_derive::iec_ident(symbol)
+                } else {
+                    symbol.clone()
+                };
+                by_symbol.entry(key).or_default().push((
+                    channel_name(q, module, *id, number),
+                    *id,
+                    symbol.clone(),
+                ));
             }
         }
         let name = cfg_name(q, cfg);
         let mut out = Vec::new();
-        for (symbol, mut channels) in by_symbol {
+        for (_, mut channels) in by_symbol {
             if channels.len() < 2 {
                 continue;
             }
@@ -466,15 +537,16 @@ impl Rule for DuplicateSymbol {
                     .then_with(|| a.0.cmp(&b.0))
                     .then_with(|| a.1.cmp(&b.1))
             });
+            let symbol = channels[0].2.clone();
             let list = channels
                 .iter()
-                .map(|(n, _)| n.as_str())
+                .map(|(n, _, _)| n.as_str())
                 .collect::<Vec<_>>()
                 .join(", ");
             out.push(
                 Finding::new(
                     &DUPLICATE_SYMBOL,
-                    channels.iter().map(|(_, id)| Target::new(Kind::Channel, *id)),
+                    channels.iter().map(|(_, id, _)| Target::new(Kind::Channel, *id)),
                     "symbol",
                     symbol.clone(),
                     format!(
@@ -490,6 +562,10 @@ impl Rule for DuplicateSymbol {
             );
         }
         out
+    }
+
+    fn prevent(&self, before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
+        new_findings(self, before, after, &touched_cfgs(after, touched))
     }
 }
 

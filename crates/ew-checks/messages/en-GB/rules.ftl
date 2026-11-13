@@ -517,6 +517,88 @@ rule-ew-plc-015 = { $subject }: the { $what ->
     .title = Tbd address
     .hint = Enter the address before release.
 
+rule-ew-plc-004 = { $form ->
+        [input] { $channel }: the { $kind } channel reads the coil of { WORD($target) }; an input reads a sensor, check the wiring or the channel kind
+       *[output] { $channel }: the { $kind } channel drives the contact of { WORD($target) }; an output drives an actuator, check the wiring or the channel kind
+    }
+    .title = Channel kind mismatch
+    .hint = Wire the channel to a function of its kind, or change the channel kind.
+
+rule-ew-plc-005 = { $channel }: the symbol { $symbol } is not an IEC 61131-3 identifier, which configuration project { WORD($cfg) } requires; use letters, digits and single underscores
+    .title = Invalid symbol
+    .hint = Give the channel a symbol of letters, digits and single underscores that does not start with a digit.
+
+rule-ew-plc-009 = { $channel } has { $what ->
+        [both] a manual address and a symbol
+        [address] a manual address
+       *[symbol] a symbol
+    } but no connection; connect it, or mark it spare or reserved
+    .title = Channel without connection
+    .hint = Connect the channel, or mark it spare or reserved.
+
+rule-ew-plc-010 = { $channel }: the data type { $data_type } ({ $bits } bit(s)) does not fit the { $width }-bit { $kind } channel; give the channel a data type of its width
+    .title = Data-type width mismatch
+    .hint = Give the channel a data type as wide as the channel.
+
+rule-ew-plc-011 = { $form ->
+        [slot] { WORD($module) } sits in slot { $slot } of { WORD($station) }, but its part { $part } allows slots { $allowed }; move it to an allowed slot
+        [max_modules] { WORD($station) } has { $have } modules, more than the { $limit } its part allows; remove modules
+        [input] { WORD($station) } has { $have } input bytes, more than the { $limit } its part allows; remove modules
+       *[output] { WORD($station) } has { $have } output bytes, more than the { $limit } its part allows; remove modules
+    }
+    .title = Slot rules
+    .hint = Put each module in a slot its part allows, and keep the station within its limits.
+
+rule-ew-plc-013 = { $form ->
+        [fe] { $cp_shared ->
+            [yes] { $cp_tag } pin { $cp_pin } ({ NUMBER($cp_nth, type: "ordinal") ->
+                [one] { $cp_nth }st
+                [two] { $cp_nth }nd
+                [few] { $cp_nth }rd
+               *[other] { $cp_nth }th
+            })
+           *[no] { $cp }
+        } is the FE pin of a PLC card and is fed from the PE potential { $potential }; connect it to functional earth, or declare an FE–PE bond
+        [unconnected] { $cp }, the { $role } pin of the { $group } supply group, is not connected; connect the card's supply
+       *[wrong] { $cp }, the { $role } pin of the { $group } supply group, is fed from a potential of type { $type }; feed it from { $role }
+    }
+    .title = Card supply wrong
+    .hint = Connect every supply pin of the card to a potential of its role, and its FE pin to functional earth.
+
+rule-ew-plc-014 = { $subject }: { $form ->
+        [channel] the output
+        [group] the load supply group
+       *[module] the module
+    } carries { $load } mA, more than its rating of { $limit } mA; spread the loads or use a stronger output
+    .title = Output load exceeds rating
+    .hint = Spread the loads over more outputs, or use a stronger output or module.
+
+rule-ew-saf-001 = { $form ->
+        [missing] { WORD($module) } is an F-module without an F-destination address; enter it
+        [range] { WORD($module) }: the F-destination address { $address } is outside { $min }..{ $max }, the range of its device description; enter an address inside it
+       *[duplicate] the F-destination address { $address } is used by { $modules }; give each F-module its own address
+    }
+    .title = F-address
+    .hint = Give every F-module its own F-destination address inside the range of its device description.
+
+rule-ew-saf-002 = { $form ->
+        [incomplete] { $channel } is a 1oo2 channel without a partner that names it back; pair it with the other channel of the sensor
+       *[devices] the 1oo2 pair { $channel } and { $other } reads two devices, { WORD($first) } and { WORD($second) }; wire both channels to the one two-channel sensor
+    }
+    .title = 1oo2 pair
+    .hint = Pair each 1oo2 channel with the other channel of the same two-channel sensor.
+
+rule-ew-saf-003 = { $channel }: the sensor { WORD($sensor) } is not supplied from the module's test-pulse pin; wire its supply to that pin
+    .title = Test pulse
+    .hint = Supply the sensor of an F-DI channel from the module's test-pulse pin.
+
+rule-ew-prc-001 = { $form ->
+        [scheme] { WORD($device) }: the process tag { $tag } does not match the project's scheme { $scheme }; correct the tag
+       *[duplicate] the process tag { $tag } is carried by { $devices }; keep it on the one field device and track it from the others
+    }
+    .title = Process-tag scheme
+    .hint = Give each field device its own process tag in the project's scheme.
+
 ## EW-BUS: bus networks
 
 rule-ew-bus-001 = { $form ->
@@ -555,6 +637,60 @@ rule-ew-bus-004 = { $form ->
     }
     .title = Termination
     .hint = Switch the termination on at both ends of the segment and off everywhere between them.
+
+rule-ew-bus-002 = { $port }: the station address { $address } is outside { $min }..{ $max }; enter an address inside the range
+    .title = Address outside the range
+    .hint = Enter a station address inside the range of the bus and of the port's part.
+
+rule-ew-bus-003 = { $form ->
+        [name] { $port }: the device name { $name } is not DNS-compatible; use lower-case letters, digits, hyphens and dots
+        [subnet] { $port }: the IP address { $ip } is outside the subnet of the master, { $master_ip } with mask { $mask }; enter an address of that subnet
+        [duplicate_name] the device name { $value } is used by { $ports } in logical net { $net }; give each port its own
+       *[duplicate_ip] the IP address { $value } is used by { $ports } in logical net { $net }; give each port its own
+    }
+    .title = PROFINET name or IP
+    .hint = Give every PROFINET device its own DNS-compatible name and its own IP address in the master's subnet.
+
+rule-ew-bus-005 = { $port } does not support { $rate } bit/s, the rate of logical net { $net }; choose a rate every station supports
+    .title = Rate not supported
+    .hint = Choose a rate that every station of the logical net supports.
+
+rule-ew-bus-006 = the segment from { $segment } { $form ->
+        [stations] has { $count } stations, more than the { $limit } a PROFIBUS segment takes; split it with a repeater
+        [length] is { $metres } m long, more than the { $limit } m PROFIBUS allows at { $rate } bit/s; shorten it or lower the rate
+       *[stub] branches, and PROFIBUS allows no stubs above 1.5 Mbit/s; run the line through every station
+    }
+    .title = Segment limits
+    .hint = Keep each segment within the station count, length and topology its rate allows.
+
+rule-ew-bus-007 = logical net { $net } has no master; name its master port, or the external partner that is
+    .title = No master
+    .hint = Name the logical net's master: a port of the project or the external partner.
+
+rule-ew-bus-009 = { $form ->
+        [cable] { $port } is connected by { WORD($cable) }, which is not a cable for its bus; use a bus cable
+       *[connector] { $port } ({ $connector }) is mated with { $other } ({ $other_connector }); the connector types differ
+    }
+    .title = Wrong bus cable
+    .hint = Connect bus ports with a cable for their bus, and mate connectors of one type.
+
+rule-ew-bus-010 = the ports joined with { $port } belong to the logical nets { $nets }; put every port of the segment in one logical net
+    .title = Net mismatch
+    .hint = Put every port that bus connections join in one logical net.
+
+rule-ew-iol-001 = { $form ->
+        [mode] { $channel } is in mode { $mode }, but the IO-Link device { WORD($device) } is connected; set the port to IO-Link
+       *[class] { $channel } is a class-{ $port_class } port, but { WORD($device) } needs class { $device_class }; connect it to a class-B port
+    }
+    .title = IO-Link port class
+    .hint = Connect each IO-Link device to a port of its class, in IO-Link mode.
+
+rule-ew-iol-002 = { $channel }: { $form ->
+        [window] the device's { $have } { $dir } bits exceed the port window of { $room } bits; use a master with a larger window
+       *[cable] the cable { WORD($cable) } is { $metres } m long, more than the { $max } m an IO-Link port allows; shorten it
+    }
+    .title = IO-Link limits
+    .hint = Keep each IO-Link device within its port's window and cable length.
 
 ## EW-POT: potentials
 
@@ -978,3 +1114,10 @@ word-a-logical-bus-net = a logical bus net
 word-a-physical-bus-net = a physical bus net
 word-the-junction-in = the junction in { $at }
 word-a-connection-point-of-another-page = a connection point of another page
+word-its-target = its target
+word-the-station = the station
+word-a-station = a station
+word-an-f-module = an F-module
+word-the-sensor = the sensor
+word-the-cable = the cable
+word-the-device = the device
