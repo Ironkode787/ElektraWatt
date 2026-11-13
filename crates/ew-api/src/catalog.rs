@@ -280,6 +280,33 @@ pub fn import_into_library(
     bump: bool,
     take_over: bool,
 ) -> Result<LibraryImport, CatalogError> {
+    import_parts_into_library(
+        reg,
+        library,
+        (input.name(), input.bytes().len() as u64),
+        &table_limits(),
+        (as_of, bump, take_over),
+        &|target, master| parse_parts(input, map, master, target),
+    )
+}
+
+/// [`import_into_library`] for any source of parts: `parse` reads the source into the parts of the target (the
+/// library's held parts and its limits are the target's), `source` is the file's name and size, `write` is the import
+/// date, whether it bumps changed parts and whether it takes a stale lock over. The EPLAN readers
+/// ([`crate::eplan::parts_import`]) write through it.
+///
+/// # Errors
+///
+/// As [`import_into_library`].
+pub fn import_parts_into_library(
+    reg: &mut library::Registry,
+    library: ew_derive::ew_ids::Uuid,
+    source: (&str, u64),
+    limits: &Limits,
+    write: (Option<Date>, bool, bool),
+    parse: &dyn Fn(&CatalogTarget<'_>, &[LibCopy<Manufacturer>]) -> Result<PartsImport, ImportError>,
+) -> Result<LibraryImport, CatalogError> {
+    let (as_of, bump, take_over) = write;
     let info = reg
         .libraries()
         .into_iter()
@@ -298,15 +325,13 @@ pub fn import_into_library(
             library,
             as_of,
             bump,
-            limits: table_limits(),
+            limits: *limits,
             existing: &held,
             local_manufacturers: true,
             shared: &shared,
         };
-        let sizes = [input.bytes().len() as u64];
-        crate::import::front_door(input.name(), &sizes, &target.limits, None, || {
-            parse_parts(input, map, &master, &target)
-        })?
+        let sizes = [source.1];
+        crate::import::front_door(source.0, &sizes, &target.limits, None, || parse(&target, &master))?
     };
     let stale: Vec<String> = import
         .needs_bump()

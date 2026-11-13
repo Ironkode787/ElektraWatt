@@ -96,6 +96,7 @@ pub mod cli_results;
 mod cmdlog;
 // DXF and DWG import and underlays (WP-S3.19).
 pub mod dxf;
+pub mod eplan;
 // External change (D20 to D23)
 mod external_change;
 pub mod fmt;

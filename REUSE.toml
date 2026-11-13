@@ -204,9 +204,10 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
 
-# L8: binary test inputs kept from the former fuzz corpus: three command sequences and one EPLAN archive.
+# L8: binary test inputs kept from the former fuzz corpus: three command sequences and one EPLAN archive; the synthetic
+# EDZ of the part readers' tests (WP-S3.18), made by those tests (`EW_BLESS=1` writes them).
 [[annotations]]
-path = ["crates/ew-testkit/tests/fixtures/command_fuzz/**", "crates/ew-import-eplan/tests/fixtures/lzma2-7z.edz"]
+path = ["crates/ew-testkit/tests/fixtures/command_fuzz/**", "crates/ew-import-eplan/tests/fixtures/*.edz"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC0-1.0"
