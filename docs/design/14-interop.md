@@ -59,10 +59,10 @@ C-15 `%f` versus `%F`).
 | EDZ (7-Zip, ZIP) | read | `ew-import-eplan` (sevenz-rust2 0.24.2, zip, quick-xml 0.42.0) | 1.0 | FR-IMP-025 … FR-IMP-027 |
 | EPLAN parts XML | read | `ew-import-eplan` | 1.0 | FR-IMP-028 |
 | EPLAN report exports (XLSX/CSV) | read | `ew-import-eplan` (calamine 0.36.1, csv 1.4.0) | 1.0 | FR-IMP-029 |
-| PDF/DXF underlays | read | `ew-import-dxf`; PDF via hayro 0.8.0 in `ew-scene`, a runtime dependency from 1.0 (ARCH §3) | 1.0 | FR-IMP-030 |
+| PDF/DXF underlays | read | `ew-import-dxf`; PDF via hayro 0.8.0 in `ew-scene`, a runtime dependency since WP-S3.19 (ARCH §3) | 1.0 | FR-IMP-030 |
 | EPLAN `.epj` project XML | read | experimental, behind a flag | Later | FR-IMP-031 |
-| DXF R12–2018 | read | `ew-import-dxf` (dxf 0.6.2) | 1.0 | FR-IMP-032 … FR-IMP-035 |
-| DXF AC1015 pages | write | `ew-export` (dxf 0.6.2) | 1.0 | FR-OUT-015 (09) |
+| DXF R12–2018 | read | `ew-import-dxf` (own reader, §6.1) | 1.0 | FR-IMP-032 … FR-IMP-035 |
+| DXF AC1015 pages | write | `ew-export` (own writer, §6.4) | 1.0 | FR-OUT-015 (09) |
 | DWG | read | ODA File Converter (user-installed); acadrust 0.6.4 behind a feature | 1.0 / 1.x | FR-IMP-036, FR-IMP-037 |
 | XLSX/CSV tables | read/write | written by `ew-reports` (rust_xlsxwriter 0.100.0, csv 1.4.0); read by `ew-import-tables` (calamine 0.36.1, csv) | MVP | FR-EXP-002 … FR-EXP-005 |
 | XLIFF 2.1, translation CSV | read/write | quick-xml, csv; the translation tables of `ew-import-tables`, next to the table round trip (ARCH §3) | 1.0 | FR-I18N-006, FR-I18N-007 |
@@ -1315,6 +1315,17 @@ engineering model reads. It is excluded from checks, reports and exports unless 
 The source file is embedded as an asset only when the user ticks "embed"; the dialog warns that a customer drawing
 may be confidential (Open question 10).
 
+*As built (WP-S3.19).* Both kinds are one typed page item, `underlay{asset, format pdf|dxf, name, page, layout, unit,
+rect, opacity}` (an additive kind, ADR-0011 amendment 6); a DXF underlay is not imported into page items but
+converted again when drawn, so the project holds one item per underlay. `rect` replaces the transform: a PDF page
+covers the whole sheet, a DXF drawing is drawn from the rectangle's corner. Both draw grey at the opacity and carry no
+entity; the commands neither move nor copy an underlay. A PDF page is rasterised at 150 dpi of its rectangle, each
+side at most 4,096 px. A source not embedded is kept in the user's cache, `<OS cache directory>/underlays/<sha256>`;
+a project opened elsewhere draws a dashed frame with the file's name. The window's canvas always draws underlays; an
+export draws them only with `--underlays` (`ew export pdf`, `svg`, `dxf`, `png`). Printing draws none. The window takes
+a PDF through File ▸ Import… as an underlay of the open page; `ew import pdf` and `ew import dxf --as underlay` do
+the same from the command line.
+
 ---
 
 ## 6. DXF and DWG
@@ -1347,6 +1358,17 @@ unchanged: DXF counts counter-clockwise with y up, and after the importer's y fl
 counter-clockwise as seen on the sheet, which is `Angle2`'s sense (ADR-0005 amendment 2). Geometry inside a block
 that becomes a symbol is transformed into the symbol frame, whose placements keep `Orient2`.
 
+*As built (WP-S3.19).* The reader is the crate's own, not the dxf crate, whose dependency graph brings uuid's random
+v4 IDs and clock-stamped headers into the shipped graph (both refused by the dependency rules); `ew-import-dxf`
+stays MIT OR Apache-2.0. It reads ASCII and binary files (strings Windows-1252 before AC1021 whatever `$DWGCODEPAGE` names, UTF-8 from
+AC1021 on) and the coverage of the
+table above, with these differences: MLEADER, 3D and proxy entities are EW-IMP-253; ACAD_TABLE is drawn through its
+anonymous block like DIMENSION; an IMAGE draws a frame with the file's name, never its folders; each paper-space
+viewport draws model space at its scale, clipped to its rectangle. `y_top` is the header's `$EXTMAX` (`$PEXTMAX` for
+a layout), else the top of the converted geometry. A unitless drawing is refused with EW-IMP-251's words until the
+caller names the unit (`--units`, or the dialog, which offers millimetres). Each import is a new graphic page; a
+second import of the same file is a copy (§2.3).
+
 ### 6.2 Import targets
 
 | Target | Result |
@@ -1371,11 +1393,24 @@ that becomes a symbol is transformed into the symbol frame, whose placements kee
 
 A vendor block with ATTDEFs PIN1–PIN4 yields a symbol with four CPs on the native grid.
 
+*As built (WP-S3.19).* Steps 1 to 4, 6 and 7 run in `ew-import-dxf` for every named block; each block opens as a
+draft in the symbol editor (its Open takes a `.dxf`; `ew import dxf --as symbol --library <dir>` saves the drafts),
+whose connection-point tool is step 5 and whose save is step 8. A block that moves a CP more than 0.1 mm reports
+EW-IMP-256 with the uniform scale that would put the CP spacing on the grid, in the draft's details only (no shipped
+rule: a draft is no project). **Part
+outline:** `ew import dxf --as outline --library <dir> --part <number>` writes the drawing's lines as the part's
+`mech.front_2d`, as its next patch version. The drilling half waits for the `FeaturePattern` record
+([12](12-panel-layout.md) §10).
+
 ### 6.3 SHX and font substitution
 
 SHX fonts are proprietary and never shipped. A data table maps SHX names to bundled fonts with a width factor
 (`romans.shx`, `simplex.shx`, `isocp.shx` → osifont; `txt.shx`, `arial.shx` → Noto Sans); unknown SHX names use
 the default family. Each substitution is EW-IMP-252 (FR-IMP-033).
+
+*As built (WP-S3.19).* osifont is not bundled, so every SHX name maps to Noto Sans, the default family; the table
+(`SHX_SUBSTITUTES` in `ew-import-dxf`) names the known ones, and EW-IMP-252 names each font substituted once per
+import. No width factor is applied: the factors are unverified (Open question 11).
 
 ### 6.4 Writing
 
@@ -1383,6 +1418,7 @@ DXF page export is specified in [09](09-reports-forms-output.md) §4.4: AC1015, 
 export scheme (`EW-FRAME`, `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`), symbols as BLOCK/INSERT
 per symbol and variant, Béziers flattened at 0.01 mm. The interop requirement is the **round trip**: EW's own DXF of
 folios 101–106 re-imports as graphic pages within 0.01 mm (AC-37). Drilling DXF per surface is FR-MFG-028.
+*As built (WP-S3.19):* `ew export dxf`, the writer as [09](09-reports-forms-output.md) §4.4 records it.
 
 ### 6.5 DWG
 
@@ -1393,6 +1429,12 @@ folios 101–106 re-imports as graphic pages within 0.01 mm (AC-37). Drilling DX
   once the DWG corpus imports with the same entity counts as its ODA-converted DXF. LibreDWG is not used (C-4).
   The 1.0 placement deviates from [vision](00-vision-and-scope.md) §9 and is raised in [02b](02b-requirements-extended.md)
   OQ 3.
+
+*As built (WP-S3.19).* `ew import dwg <file> --converter <program>` and the window's File ▸ Import… (which asks for
+the converter's program once and keeps it in the settings) copy the DWG into a fresh temporary folder, run
+`<converter> <in> <out> ACAD2018 DXF 0 1 *.DWG` for at most 120 s (stopped after that), read the DXF it writes under
+the DXF input limit, remove the folder and import the DXF as a page, underlay or symbol drafts; EW-IMP-257 records
+the conversion. Without a converter the words of EW-IMP-257 say what it is and where to get it.
 
 ---
 
@@ -1612,7 +1654,7 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 |---|---|
 | XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 8,192 attributes per element (`max_xml_attributes_per_element`) and ≤ 1,048,576 per document (`max_xml_attributes`); attribute work ≤ 2^26, the sum over elements of the squared attribute count (`max_xml_attribute_work`); ≤ 1,000,000 nodes per document (`max_xml_nodes`), counting nodes (root, elements and comments in the pre-scan; texts and processing instructions by the parser), not attributes; a project importer may raise the node limit explicitly under its own budget; at most 2 × `max_xml_nodes` + `max_xml_attributes` markup bytes (`<` and `=`, 3,048,576 by default), because roxmltree 0.21.1 reserves about 72 bytes per such byte before any node limit applies; each text node or CDATA section ≤ 1 MiB (`max_text_bytes`), because text is copied several times downstream and no other bound covers it; a standalone element definition is read under the preset `Limits::element_definition()`, an input of ≤ 16 MiB with ≤ 131,072 attributes and ≤ 262,144 nodes (review N7: under the general limits a 16 MiB file of about 349,000 three-attribute `<text>` primitives allocated about 0.5 GB extra; under the preset about 44,000 fit, well under 100 MiB) |
 | Archives (EDZ 7z/ZIP, QETZ, `.ewz`, XLSX) | ≤ 100,000 entries; ≤ 2 GiB expanded; ≤ 512 MiB per entry; ratio ≤ 200 : 1 per entry; names with `..`, absolute or drive paths, `\`, `:` or NUL rejected; symlink and encrypted entries refused; 7z solid block ≤ 512 MiB |
-| DXF | file ≤ 512 MiB; ≤ 5 million entities; block nesting ≤ 32; INSERT/MINSERT expansion ≤ 10 million primitives; spline control points ≤ 100,000; coordinates finite and within ±2^62 nm after scaling |
+| DXF | file ≤ 512 MiB; line ≤ 1 MiB; ≤ 5 million entities, counted before the parse; block nesting ≤ 32; INSERT/MINSERT expansion ≤ 1 million primitives (lowered from 10 million at WP-S3.19, whose expansion broke the 256 MB rule), an array insert checked before it expands; spline control points ≤ 100,000; coordinates finite (an item with another is EW-IMP-002) and within ±2^62 nm after scaling |
 | CSV, XLSX | ≤ 1,000,000 rows; ≤ 1,024 columns; cell ≤ 32 KiB (each XLSX shared string too; the parts-table importer reads under the preset `table_limits()`, `max_text_bytes` = 32 KiB); formulas never evaluated |
 | SQLite (QETZ) | read-only, `trusted_schema=OFF`, defensive mode, schema check, views and triggers refused, ≤ 1 GiB |
 | SVG logos | usvg with external references disabled; ≤ 8 MiB; ≤ 100,000 nodes |
@@ -1647,7 +1689,8 @@ targets that exist are `qet_project` (one `.qet` through the front door, then `A
 import's own read; each asserts no panic, a strict re-read of every emitted record and D3's contract. Their seeds are
 committed in the fuzz crate (`fuzz/corpus/<target>/`, generated by `seed_corpus` and kept current by settle), not in
 a separate corpus repository, and `fuzz/tests/replay.rs` runs them in CI. The other names above come with their
-importers.
+importers. The DXF importer's hostile files (WP-S3.19) are the `dxf/` class of the hostile corpus
+(`crates/ew-testkit/hostile/`), each verdict asserted whole within the 256 MB rule.
 
 ---
 
@@ -1691,7 +1734,7 @@ are specified in [16](16-ux-ui.md).
 | **DXF import** | Units with an extents preview, layer list with visibility and mapping, model or paper space, target choice |
 | **DXF→symbol wizard** | Block list with thumbnails, attribute mapping, CP pick tool, grid-snap result with the scale proposal |
 | **Table round trip** | "Export table…" and "Import changes…" with a per-cell diff grid and conflict resolution |
-| **CLI** (FR-EXT-008) | `ew import qet <file> [--into <project>] [--basic <project>] [--lineage auto\|new\|<id>] [--proposals pending\|safe\|all] [--report json\|csv\|md] [--report-out <file>] [--strict]` (MVP; as built: `ew import qet <file.qet> [--content <dir>] [--report md\|csv\|json] [--report-out <file>] [--strict]`); `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0); `ew import csv <dir>` (MVP); `ew import edz <file> --library <lib>` (1.0); `ew import dxf <file> --as page\|underlay\|symbol [--units mm]` (1.0); `ew import table <xlsx> --project <p>` (1.0, FR-EXT-028 of [17](17-extensibility.md) §3.3); `ew verify-migration <project> --reference <pdf>` (MVP). Exit codes follow FR-EXT-002 as [17](17-extensibility.md) §3.2 applies them to imports: a lenient import that completes exits 0 and prints its summary, whatever its findings, because the findings are the migration report's content; `--strict` exits 1 when a connection was lost or an error finding exists; 2 for an unreadable file or a usage error. With `--report` on stdout (no `--report-out`), stdout is exactly the report and the summary goes to stderr |
+| **CLI** (FR-EXT-008) | `ew import qet <file> [--into <project>] [--basic <project>] [--lineage auto\|new\|<id>] [--proposals pending\|safe\|all] [--report json\|csv\|md] [--report-out <file>] [--strict]` (MVP; as built: `ew import qet <file.qet> [--content <dir>] [--report md\|csv\|json] [--report-out <file>] [--strict]`); `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0); `ew import csv <dir>` (MVP); `ew import edz <file> --library <lib>` (1.0); `ew import dxf <file> --as page\|underlay\|symbol [--units mm]` (1.0; as built also `--as outline`, `--layout`, `--show-layer`, `--on <folio>`, `--embed`, `--library`, `--part`, with `ew import dwg <file> --converter <program>` and `ew import pdf <file> --on <folio> [--page n] [--embed]`, WP-S3.19); `ew import table <xlsx> --project <p>` (1.0, FR-EXT-028 of [17](17-extensibility.md) §3.3); `ew verify-migration <project> --reference <pdf>` (MVP). Exit codes follow FR-EXT-002 as [17](17-extensibility.md) §3.2 applies them to imports: a lenient import that completes exits 0 and prints its summary, whatever its findings, because the findings are the migration report's content; `--strict` exits 1 when a connection was lost or an error finding exists; 2 for an unreadable file or a usage error. With `--report` on stdout (no `--report-out`), stdout is exactly the report and the summary goes to stderr |
 | **Concept glossary** | The wizard and the migration report link the QET ↔ EW glossary (element → symbol and FnDef, master/slave → main/auxiliary function, folio report → interruption point, conductor → connection; NFR-DOC-05) |
 
 The CLI default `--proposals pending` applies no proposal, so headless imports are reproducible and Golden C lists
@@ -1856,7 +1899,7 @@ global plan §14.
 | [12 panel layout](12-panel-layout.md), [13 manufacturing](13-manufacturing-outputs.md) | folio 902 binding, STEP pipeline, drilling DXF, profiles |
 | [15 checks](15-checks-revisions-collaboration.md), [16 UX](16-ux-ui.md), [17 extensibility](17-extensibility.md), [18 quality](18-quality-security-release.md) | `EW-IMP` catalogue, panels, CLI and WIT importers, fuzz and corpus CI jobs |
 | [20 golden project](20-golden-project.md) | Golden C, MF-01 … MF-27, AC-25 … AC-27, AC-37, AC-38 |
-| Crates | `ew-interop-api`, `ew-schema`, `ew-rds`, `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf`, `ew-import-tables`, `ew-import-catalog`, `ew-caex`, `ew-devdesc`, `ew-plcaddr`, `ew-commands`, `ew-reports`, `ew-export`, `ew-panel`, `ew-library`; roxmltree 0.21.1, quick-xml 0.42.0, sevenz-rust2 0.24.2, zip 9.0.4, rusqlite 0.40.2 (through `ew-library` only), dxf 0.6.2, acadrust 0.6.4, calamine 0.36.1, csv 1.4.0, rust_xlsxwriter 0.100.0, usvg 0.48.1, hayro 0.8.0, gltf-json **(verify)**, placed as in the ARCH §3 table (calamine and csv in `ew-import-eplan` and `ew-import-tables`, hayro at runtime in `ew` and `ew-scene`, the glb writer in `ew-panel`) |
+| Crates | `ew-interop-api`, `ew-schema`, `ew-rds`, `ew-import-qet`, `ew-import-eplan`, `ew-import-dxf`, `ew-import-tables`, `ew-import-catalog`, `ew-caex`, `ew-devdesc`, `ew-plcaddr`, `ew-commands`, `ew-reports`, `ew-export`, `ew-panel`, `ew-library`; roxmltree 0.21.1, quick-xml 0.42.0, sevenz-rust2 0.24.2, zip 9.0.4, rusqlite 0.40.2 (through `ew-library` only), acadrust 0.6.4 (1.x; the dxf crate is not used, §6.1), calamine 0.36.1, csv 1.4.0, rust_xlsxwriter 0.100.0, usvg 0.48.1, hayro 0.8.0, gltf-json **(verify)**, placed as in the ARCH §3 table (calamine and csv in `ew-import-eplan` and `ew-import-tables`, hayro at runtime in `ew` and `ew-scene`, the glb writer in `ew-panel`) |
 
 ---
 

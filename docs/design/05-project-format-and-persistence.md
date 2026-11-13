@@ -215,9 +215,9 @@ of the golden project (Golden A has neither kind; IDs shortened, the connection 
 
 - **`page_item`:** `{"$k", "id", "$v"?, "page", "layer"?: Ident, "kind": <variant>}`, the variant an externally tagged
   object: `graphic`, `free_text`, `wire_marker` or `surface_view` (`{"surface", "datum_at", "label_mode"?}`, on a
-  `panel_layout` page only, set by `page.surface_view.set`). Their members, enumerations and defaults are in
-  [03](03-domain-model.md) §6. Any other variant (`macro_box`, `model_view`, `dimension`, `underlay`,
-  and `image` until WP-S2.04 part 5) is kept verbatim as `PageItemKind::Unknown(Value)` (§10.3 rule 3) and round-trips
+  `panel_layout` page only, set by `page.surface_view.set`), `image` and `underlay` (WP-S3.19). Their members,
+  enumerations and defaults are in [03](03-domain-model.md) §6. Any other variant (`macro_box`, `model_view`,
+  `dimension`) is kept verbatim as `PageItemKind::Unknown(Value)` (§10.3 rule 3) and round-trips
   byte for byte, as does a variant of a newer format.
 - **`structure_box`:** `{"$k", "id", "$v"?, "page", "outline": [Pt2] (at least 3), "style": "dotted" | "dash_dot",
   "caption"?: MlText, "assigns": StructureAssignment, "external"?: IdS}` ([03](03-domain-model.md) §5).

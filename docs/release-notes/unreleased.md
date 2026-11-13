@@ -50,6 +50,24 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   confidence as based on non-verified part data (FT-323)
 - dependency: `ew-derive` uses `regex` 1.13.1 (MIT OR Apache-2.0, already in the workspace) for the process-tag
   scheme (WP-S1.24)
+- api-add: cli ew import dxf <file> [--as page|underlay|symbol|outline] [--units <unit>] [--layout <name>]
+  [--show-layer <name>]... [--on <folio>] [--embed] [--library <dir>] [--part <number>] [--key <key>] (a DXF R12–2018
+  drawing as a new graphic page, an underlay of a page, symbol drafts of its blocks or a part's front outline; a
+  unitless drawing is refused until `--units` names its unit; EW-IMP-251 to -255; WP-S3.19)
+- api-add: cli ew import dwg <file> --converter <program> (the same targets through the user's ODA File Converter;
+  EW-IMP-257; WP-S3.19) and ew import pdf <file> --on <folio> [--page <n>] [--embed] (a PDF page as an underlay)
+- api-add: cli ew export dxf [--layer <class>=<name>]... (one AutoCAD 2000 DXF per page; FR-OUT-015) and
+  `--underlays` on ew export pdf|svg|dxf|png (prints the pages' underlays; WP-S3.19)
+- api-add: window File ▸ Import… takes DXF, DWG and PDF drawings (Import a drawing: as a page, an underlay of the open
+  page or symbol drafts in the symbol editor, with the unit and the confidentiality warning of embedding); the symbol
+  editor's Open takes a `.dxf`; check rules EW-IMP-251 to -255 and -257 (WP-S3.19)
+- format-variant: page_item kind `underlay` (`{asset, format, name, page, layout, unit, rect, opacity}`, typed; a
+  file of an earlier build holds none) and the asset formats `pdf` and `dxf` (`assets/<sha256>.pdf|.dxf`, an
+  embedded underlay source of at most 64 MiB); additive under ADR-0011 amendment 6 (WP-S3.19)
+- dependency: hayro 0.8.0 (Apache-2.0 OR MIT, no default features, `embed-fonts`) in ew-scene draws PDF underlays; it
+  switches flate2 to its zlib-rs backend, which changes the compressed bytes of every PDF ElektraWatt writes (the
+  pages draw the same; Golden A's PDF and print digests re-blessed; WP-S3.19)
+
 - behaviour-change: window Cable… proposes the type `<n>G<cross-section>` when one of the selected wires is a protective
   conductor, so the PE wire has its green-yellow core; retyping the type proposes the cores of the wires not yet in
   a cable afresh, so a neutral no longer keeps the brown core of an earlier type; the form's wire column is as wide

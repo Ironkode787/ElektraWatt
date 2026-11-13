@@ -895,6 +895,13 @@ partial file (FR-UI-024).
   text style. AC1015 stores text in the drawing code page (`$DWGCODEPAGE`); characters outside it ("∞", "⇄") are
   written as `\U+221E`-style escapes, and "²" (in ANSI_1252) as itself (escape handling of the dxf crate to verify).
   Re-import as a graphic page within 0.01 mm (AC-37).
+  *As built (WP-S3.19):* `ew_export::dxf` is an own writer (no dxf crate, whose graph brings random GUIDs and
+  clock-stamped headers) from the sheet display lists, one `<label>.dxf` per page, ANSI_1252 with `\U+XXXX` for every
+  other character, `$EXTMIN`/`$EXTMAX` the sheet so a re-import puts the drawing back where it was. Blocks are named
+  `EW_<symbol>_<variant>`; a fill is a solid `HATCH`, a colour other than black a true colour; images are not
+  written. The layer names are options (`ew export dxf --layer <class>=<name>`), and printed
+  underlays go to `EW-UNDERLAY`. No date, user name or GUID is written: the same pages give the same bytes. AC-37's
+  DXF half is `crates/ew-api/tests/it/dxf_round_trip.rs`.
 
 ### 4.5 Printing
 
