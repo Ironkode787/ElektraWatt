@@ -11,7 +11,9 @@
 //! strip), `cable_overview_diagrams`. Those
 //! queries read the drawn page order, which has no report pages, so these kinds derive their rows inside the
 //! pagination like the others.
-//! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview` and `io_list` (FR-PLC-023). From the tags and wire numbers:
+//! Derived from the PLC queries (`plc_rows`, doc 10 §2.10): `plc_overview` and `io_list` (FR-PLC-023); from the PLC
+//! and bus queries of 1.0 the lists of doc 10 §5: `plc_card_list`, `network_address_list`, `bus_overview`,
+//! `bus_cable_list`, `iolink_port_list` and `safety_io_list`. From the tags and wire numbers:
 //! `numbering_report` (frozen values with their rule values, FR-REP-022). From the revision records:
 //! `revision_overview` (`revision_rows`). From the layout: `enclosure_legend`
 //! (`layout_legend`, registered, drawn on no page). From the check engine:
@@ -30,6 +32,7 @@ mod numbering_report;
 mod open_items;
 mod part_data;
 mod parts;
+mod plc_bus_lists;
 mod plc_overview;
 mod potential_overview;
 mod profile_tables;
@@ -49,6 +52,7 @@ pub use numbering_report::NumberingReport;
 pub use open_items::OpenItems;
 pub use part_data::PartData;
 pub use parts::{PartsList, PartsSummary};
+pub use plc_bus_lists::{BusCableList, BusOverview, IolinkPortList, NetworkAddressList, PlcCardList, SafetyIoList};
 pub use plc_overview::PlcOverview;
 pub use potential_overview::PotentialOverview;
 pub use profile_tables::{GROUPS as PROFILE_TABLE_GROUPS, ProfileTables};
@@ -80,5 +84,11 @@ pub(crate) fn builtin() -> Vec<&'static dyn ReportKindDef> {
         &DeviceList,
         &TerminalOverview,
         &OpenItems,
+        &PlcCardList,
+        &NetworkAddressList,
+        &BusOverview,
+        &BusCableList,
+        &IolinkPortList,
+        &SafetyIoList,
     ]
 }

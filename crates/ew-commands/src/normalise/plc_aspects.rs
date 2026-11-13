@@ -8,7 +8,9 @@
 //! `ew_derive::module_part` for a device without `plc_module`) names another part copy than it did in the base
 //! snapshot, or the device is new. So placing a part, creating a device with parts, `part.assign`, `fields.set` on
 //! `parts`, a paste or a macro all reach it through the registry; a device whose aspect a person removed keeps no
-//! aspect until its PLC part changes, and an edit of an unrelated member never adds one.
+//! aspect until its PLC part changes, and an edit of an unrelated member never adds one. A part copy that the
+//! transaction changes (`library.update`, which keeps the copy's ID across versions, FT-830) triggers every device that
+//! uses it when the copy had no PLC section in the base snapshot.
 //!
 //! **Effect** (D2). From the section's role:
 //! - `module`: `plc_module {slot: positional, start: auto}` without `part_use` (absent names the first part use
@@ -75,7 +77,27 @@ fn triggered(tx: &TxBuilder<'_>, dev: &Device) -> Option<PlcSection> {
         .base_row(&(Kind::Device, dev.id.cast()))
         .and_then(|r| r.get::<Device>().cloned())
         .and_then(|b| plc_part(tx, &b.parts).map(|(c, _)| c));
-    (before != Some(copy)).then_some(section)
+    // the copy itself gained its PLC section in this transaction (`library.update`)
+    let gained = tx
+        .base_row(&(Kind::Part, copy.cast()))
+        .and_then(|r| r.get::<LibCopy<Part>>().map(|c| c.item.sections.plc.is_none()))
+        .unwrap_or(false);
+    (before != Some(copy) || gained).then_some(section)
+}
+
+/// The devices that use a part copy this transaction changed, in ID order: `library.update` replaces a copy's content
+/// under its ID (FT-830), so N0 and N5 look at its devices as if their parts had changed.
+pub(crate) fn devices_of_changed_parts(tx: &TxBuilder<'_>) -> Vec<Id<Device>> {
+    let changed: std::collections::BTreeSet<Id<Part>> =
+        tx.changed_of(Kind::Part).into_iter().map(|k| k.1.cast()).collect();
+    if changed.is_empty() {
+        return Vec::new();
+    }
+    tx.iter::<Device>()
+        .into_iter()
+        .filter(|d| d.parts.iter().any(|u| changed.contains(&u.part.copy)))
+        .map(|d| d.id)
+        .collect()
 }
 
 /// A device's tag as a notice names it (`-A1`; `-A` before online numbering gives it a counter).
@@ -247,8 +269,11 @@ impl Normaliser for PlcAspects {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let mut stations: Vec<(Arc<Device>, PlcSection)> = Vec::new();
         let mut modules: Vec<Arc<Device>> = Vec::new();
-        for key in tx.changed_of(Kind::Device) {
-            let Some(dev) = tx.get::<Device>(key.1.cast()) else {
+        let mut candidates: std::collections::BTreeSet<Id<Device>> =
+            tx.changed_of(Kind::Device).into_iter().map(|k| k.1.cast()).collect();
+        candidates.extend(devices_of_changed_parts(tx));
+        for id in candidates {
+            let Some(dev) = tx.get::<Device>(id) else {
                 continue;
             };
             let Some(section) = triggered(tx, &dev) else {

@@ -406,6 +406,18 @@ pub enum ReportKind {
     EnclosureLegend,
     /// Check report.
     CheckReport,
+    /// PLC card list (doc 10 §5, FR-REP-045).
+    PlcCardList,
+    /// Network address list (FR-BUS-008).
+    NetworkAddressList,
+    /// Bus overview, the generated bus topology overview (FR-REP-020, FR-BUS-007).
+    BusOverview,
+    /// Bus cable list (FR-BUS-008).
+    BusCableList,
+    /// IO-Link port list (FR-BUS-014).
+    IolinkPortList,
+    /// Safety I/O list (FR-PLC-041).
+    SafetyIoList,
     /// A kind of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

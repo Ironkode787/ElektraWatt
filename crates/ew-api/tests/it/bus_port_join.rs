@@ -192,3 +192,60 @@ fn the_dp_port_symbol_on_the_generic_cpu_gets_its_port() {
         .collect();
     assert_eq!(open.len(), 1, "{open:?}");
 }
+
+/// FT-841: the DP-port symbol placed as a device of its own joins the CPU with `rep.join_device`, because the CPU's
+/// bus part has a port no function carries yet; N5 then gives the joined function the CPU's DP port. A second port
+/// symbol finds no free port and is refused in words.
+#[test]
+fn a_port_symbol_joins_a_device_with_a_free_bus_port() {
+    let mut s = fresh(0x841);
+    let (cpu, _) = place_cpu(&mut s);
+    let r = s
+        .execute(&AnyCommand {
+            name: "page.create".into(),
+            params: json!({"kind": "bus_topology", "after": first_page(&s).to_string()}),
+        })
+        .expect("page.create bus_topology");
+    let page = r.outcome.primary.expect("the new page").1.as_uuid();
+    let place_alone = |s: &mut Session, x: i64| {
+        let copies = s
+            .starter_embed(DP_PORT)
+            .map_or_else(Vec::new, |c| c["copies"].as_array().cloned().unwrap_or_default());
+        let symbol = s.starter_symbol_copy(DP_PORT).expect("a starter symbol");
+        let r = s
+            .execute(&AnyCommand {
+                name: "device.place".into(),
+                params: json!({
+                    "page": page.to_string(),
+                    "symbol": symbol.to_string(),
+                    "pos": [x * STEP, 30 * STEP],
+                    "target": {"new_device": {"letter": "X"}},
+                    "copies": Value::Array(copies),
+                }),
+            })
+            .unwrap_or_else(|e| panic!("device.place: {e:?}"));
+        r.created
+            .iter()
+            .find(|k| k.0 == Kind::Representation)
+            .map(|k| k.1.as_uuid())
+            .expect("a representation")
+    };
+    let rep = place_alone(&mut s, 24);
+    s.execute(&AnyCommand {
+        name: "rep.join_device".into(),
+        params: json!({"rep": rep.to_string(), "device": cpu.to_string()}),
+    })
+    .unwrap_or_else(|e| panic!("rep.join_device: {e:?}"));
+    assert_eq!(
+        ports(&s, cpu).into_iter().map(|(_, p)| p).collect::<Vec<_>>(),
+        [dp_master()]
+    );
+    let second = place_alone(&mut s, 40);
+    let err = s
+        .execute(&AnyCommand {
+            name: "rep.join_device".into(),
+            params: json!({"rep": second.to_string(), "device": cpu.to_string()}),
+        })
+        .expect_err("no free port is left");
+    assert!(format!("{err}").contains("no port that a function of it does not carry yet"), "{err}");
+}

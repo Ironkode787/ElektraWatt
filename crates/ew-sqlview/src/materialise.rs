@@ -30,7 +30,7 @@ use crate::rows::{
 };
 use crate::schema::{
     self, BOM_ASSEMBLY, BOM_COMPONENT, BOND, CABLE, CONDUCTOR, DEVICE, FUNCTION, MESSAGE, META, PAGE,
-    POTENTIAL, TERMINAL, View, WIRE,
+    PLC_CHANNEL, POTENTIAL, TERMINAL, View, WIRE,
 };
 
 /// What the caller adds to the model: the facts the model does not hold.
@@ -72,8 +72,97 @@ pub(crate) fn tables(q: &Q, input: &BuildInput<'_>) -> Tables {
     put(&BOM_COMPONENT, bom(q, BomMode::Component, &BOM_COMPONENT));
     put(&BOM_ASSEMBLY, bom(q, BomMode::Assembly, &BOM_ASSEMBLY));
     put(&MESSAGE, messages(input.checks));
+    put(&PLC_CHANNEL, plc_channels(q));
     debug_assert_eq!(out.len(), schema::VIEWS.len(), "every view has a table");
     out.into_values().collect()
+}
+
+/// `api_v1_plc_channel`: the channels of every station (`ew_derive::stations` order), each module's in slot and
+/// channel order, from `plc_rows(station)`.
+fn plc_channels(q: &Q) -> Vec<Row> {
+    use ew_derive::ew_schema::{AddrSpec, Channel, PlcConfigProject};
+    use ew_derive::{ChannelAddr, PlcRows, Slot};
+    let channels = q.table::<Channel>();
+    let mut rows = Vec::new();
+    for station in ew_derive::stations(q) {
+        let cfg = q
+            .devices()
+            .get(station)
+            .and_then(|d| d.aspects.plc_station.as_ref().map(|s| s.config_project))
+            .and_then(|c| q.table::<PlcConfigProject>().get(c).map(|c| c.name.to_string()));
+        for r in q.get::<PlcRows>(station).iter() {
+            let ch = channels.get(r.channel);
+            let source = ch.map(|c| match &c.address {
+                AddrSpec::Auto => "auto",
+                AddrSpec::Manual(_) => "manual",
+                AddrSpec::Excluded => "excluded",
+                AddrSpec::Tbd => "tbd",
+                AddrSpec::Unknown(_) => "other",
+            });
+            let slot = match r.slot {
+                Slot::Positional(n) => Some(n.to_string()),
+                Slot::Rack { rack, slot, subslot: None } => Some(format!("{rack}.{slot}")),
+                Slot::Rack { rack, slot, subslot: Some(s) } => Some(format!("{rack}.{slot}.{s}")),
+                Slot::Unresolved => None,
+            };
+            let address = match &r.address {
+                ChannelAddr::At { text, .. } => Some(text.clone()),
+                ChannelAddr::Tbd => Some("TBD".to_owned()),
+                ChannelAddr::Excluded | ChannelAddr::Unresolved => None,
+            };
+            let pin = r.target_pin.and_then(|cp| {
+                q.get::<ew_derive::FunctionCps>(cp.function)
+                    .iter()
+                    .find(|c| c.idx == cp.idx)
+                    .map(|c| c.designation.clone())
+            });
+            let mut row = Row::new(&PLC_CHANNEL);
+            row.set("id", uuid(r.channel))
+                .set("station_id", uuid(station))
+                .set("module_id", uuid(r.module))
+                .set("target_id", r.target.map(uuid))
+                .set("address_source", source)
+                .set("config_project", cfg.clone())
+                .set("station", tag_short(q, station))
+                .set("slot", slot)
+                .set("module", tag_short(q, r.module))
+                .set(
+                    "part_number",
+                    r.part.and_then(|p| q.parts().get(p).map(|c| c.item.part_number.to_string())),
+                )
+                .set("channel", i64::from(r.number))
+                .set("designation", r.text.designation.clone())
+                .set("kind", kind_word(&r.kind))
+                .set("address", address)
+                .set("symbol", r.text.symbol.clone())
+                .set("data_type", r.data_type.clone())
+                .set("comment", ch.and_then(|c| non_empty(ml_text(&c.comment))))
+                .set("function_text", r.text.function_text.as_ref().and_then(|t| non_empty(ml_text(t))))
+                .set("process_tag", r.text.process_tag.clone())
+                .set("target", r.target_device.map(|d| tag_short(q, d)))
+                .set("target_pin", pin)
+                .set("signal_range", r.signal_range.clone())
+                .set("state", r.state.name());
+            rows.push(row);
+        }
+    }
+    rows
+}
+
+/// A channel kind as the PLC lists print it.
+fn kind_word(k: &ew_derive::ew_schema::ChannelKind) -> &'static str {
+    use ew_derive::ew_schema::ChannelKind as K;
+    match k {
+        K::Di => "DI",
+        K::Do => "DO",
+        K::Ai => "AI",
+        K::Ao => "AO",
+        K::Counter => "counter",
+        K::IoLinkPort => "IO-Link",
+        K::PowerSupply => "supply",
+        K::MultiFunction => "multi-function",
+        K::Unknown(_) => "other",
+    }
 }
 
 fn uuid<T>(id: Id<T>) -> String {

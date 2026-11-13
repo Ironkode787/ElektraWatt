@@ -30,9 +30,11 @@ const INCLUDE_DEACTIVATED: &str = "include_deactivated";
 ///   range and the safety address are added with their writers): configuration project, CPU, station, bus address
 ///   (the station's first bus port with an address: "TBD" for the open item, the PROFIBUS station number), slot
 ///   (`n` positional, `rack.slot` or `rack.slot.subslot`), module, part, channel number, designation, kind, address,
-///   symbol, data type (the part's channel spec), comment, function text, process tag, target, target pin (the bound
-///   CP's designation), target page (the frame cell of the bound coil's representation, linked to the bound CP, as
-///   the PLC overview) and state.
+///   symbol, data type (the channel's, else the IO-Link device's struct type, else the part's channel spec), comment,
+///   function text, process tag, target (traced through the signal for a card pin, doc 10 §3.5), target pin (the
+///   bound coil's or the traced CP's designation), target page (the frame cell of the bound coil's representation,
+///   linked to the bound CP, as the PLC overview) and state. The passed terminals, the signal range and the
+///   F-address of FR-PLC-023 are not columns: the 20 columns fill the house table's width.
 #[derive(Clone, Copy, Debug)]
 pub struct IoList;
 
@@ -231,12 +233,8 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
         "symbol",
         ident(r.text.symbol.as_deref().unwrap_or_default()),
     );
-    if let Some(t) = section
-        .as_ref()
-        .and_then(|(_, s)| s.channels.as_ref())
-        .and_then(|c| c.data_type.as_ref())
-    {
-        put(columns, &mut cells, "data_type", ident(t.as_str()));
+    if let Some(t) = &r.data_type {
+        put(columns, &mut cells, "data_type", ident(t));
     }
     if let Some(comment) = q
         .table::<Channel>()
@@ -258,7 +256,7 @@ fn io_row(q: &Q, columns: &[ColumnDef], head: &Station, r: &PlcRow) -> Row {
     if let Some(d) = r.target_device {
         put(columns, &mut cells, "target", ident(&tag_short(q, d)));
     }
-    if let Some(cp) = r.cp {
+    if let Some(cp) = r.target_pin {
         let pin = q
             .get::<FunctionCps>(cp.function)
             .iter()

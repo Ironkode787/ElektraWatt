@@ -315,6 +315,12 @@ pub fn kind_name(kind: &ReportKind) -> Option<&'static str> {
         ReportKind::NumberingReport => "numbering_report",
         ReportKind::EnclosureLegend => "enclosure_legend",
         ReportKind::CheckReport => "check_report",
+        ReportKind::PlcCardList => "plc_card_list",
+        ReportKind::NetworkAddressList => "network_address_list",
+        ReportKind::BusOverview => "bus_overview",
+        ReportKind::BusCableList => "bus_cable_list",
+        ReportKind::IolinkPortList => "iolink_port_list",
+        ReportKind::SafetyIoList => "safety_io_list",
         ReportKind::Unknown(_) => return None,
     })
 }

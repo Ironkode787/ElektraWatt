@@ -1586,6 +1586,7 @@ refusal-join-other-rep = the representation's function has another representatio
 refusal-join-no-function = device { $p0 } cannot take { $p1 }: it has no unplaced function of it, and { $p2 }
 refusal-join-no-auxiliary = its family takes no auxiliary contacts (no coil, no part naming it)
 refusal-join-contact-only = only a contact joins as an auxiliary function
+refusal-join-no-free-port = its bus part has no port that a function of it does not carry yet
 # fields.set.
 refusal-fields-ip-star = { $p0 }: { $p1 }
 refusal-fields-not-fluid-line = { $p0 } is not a fluid line

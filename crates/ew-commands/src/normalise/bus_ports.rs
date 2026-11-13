@@ -10,7 +10,8 @@
 //!
 //! **Trigger.** (i) A device of the transaction that is new, or whose bus part names another part copy than in the
 //! base snapshot: placement and `box.black` from a part, `device.create`, `part.assign` in every mode, `fields.set`
-//! on `parts`, a paste or a macro. (ii) A bus-port function that is new in the transaction or whose `device` changed
+//! on `parts`, a paste or a macro; and a device whose bus part copy the transaction changed so that its ports differ
+//! (`library.update` keeps the copy's ID across versions, FT-830). (ii) A bus-port function that is new in the transaction or whose `device` changed
 //! in it (`device.place` with `join_device`, `rep.join_device`), on a device with a bus part.
 //!
 //! **Effect.** The part's ports in list order, the first of each (`interface`, `port_label`) pair; a port whose `bus`
@@ -93,22 +94,30 @@ fn seeded(port: &PartBusPort) -> BusPort {
     }
 }
 
-/// The devices of trigger (i): new, or their bus part names another copy than in the base snapshot.
+/// The devices of trigger (i): new, or their bus part names another copy than in the base snapshot, or names a copy
+/// whose ports the transaction changed.
 fn devices_with_a_new_bus_part(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
     let mut out = BTreeSet::new();
-    for key in tx.changed_of(Kind::Device) {
-        let Some(dev) = tx.get::<Device>(key.1.cast()) else {
+    let mut candidates: BTreeSet<Id<Device>> =
+        tx.changed_of(Kind::Device).into_iter().map(|k| k.1.cast()).collect();
+    candidates.extend(crate::normalise::plc_aspects::devices_of_changed_parts(tx));
+    for id in candidates {
+        let Some(dev) = tx.get::<Device>(id) else {
             continue;
         };
         let Some(now) = bus_part(tx, &dev.parts) else {
             continue;
         };
         let before = tx
-            .base_row(&key)
+            .base_row(&(Kind::Device, id.cast()))
             .and_then(|r| r.get::<Device>().cloned())
             .and_then(|b| bus_part(tx, &b.parts))
             .map(|c| c.id);
-        if before != Some(now.id) {
+        let ports_before = tx
+            .base_row(&(Kind::Part, now.id.cast()))
+            .and_then(|r| r.get::<LibCopy<Part>>().map(|c| c.item.sections.bus.clone().map(|b| b.ports)));
+        let ports_now = now.item.sections.bus.clone().map(|b| b.ports);
+        if before != Some(now.id) || ports_before.is_some_and(|p| p != ports_now) {
             out.insert(dev.id);
         }
     }

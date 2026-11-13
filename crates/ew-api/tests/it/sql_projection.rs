@@ -78,6 +78,16 @@ fn every_view_has_its_documented_columns_and_the_golden_counts() {
     assert_eq!(count("api_v1_potential"), rows("potentials.csv"));
     assert_eq!(count("api_v1_page"), "36");
     assert_eq!(count("api_v1_meta"), "1");
+    // doc 17 §6.1: the 56 channels of folio 908, 8 of them used
+    assert_eq!(count("api_v1_plc_channel"), rows("channels.csv"));
+    assert_eq!(
+        reader
+            .query("SELECT count(*) FROM api_v1_plc_channel WHERE state = 'used' AND address LIKE 'Q%'")
+            .unwrap()
+            .rows[0][0]
+            .text(),
+        "8"
+    );
     // The counts the projection reports equal the views'.
     for (view, n) in p.counts() {
         assert_eq!(count(view), n.to_string(), "{view}");

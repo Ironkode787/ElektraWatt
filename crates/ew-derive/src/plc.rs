@@ -813,7 +813,7 @@ fn set(s: &mut ModuleStart, dir: &IoDir, start: Start) {
 
 /// The I/O ranges of a module that A1 allocates: the sums of the port windows of an IO-Link master (doc 10 §3.8: the
 /// module's I/O width follows its ports' modes, [`port_windows`]), else the ranges of its part's `plc` section.
-fn module_io(q: &Q, module: Id<Device>) -> Vec<ew_schema::IoRange> {
+pub fn module_io(q: &Q, module: Id<Device>) -> Vec<ew_schema::IoRange> {
     let Some(windows) = port_windows(q, module) else {
         return module_part(q, module).map(|(_, s)| s.io).unwrap_or_default();
     };

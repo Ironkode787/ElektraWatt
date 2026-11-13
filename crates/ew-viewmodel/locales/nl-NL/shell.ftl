@@ -1534,6 +1534,7 @@ refusal-join-other-rep = de functie van het symbool heeft nog een symbool
 refusal-join-no-function = apparaat { $p0 } kan { $p1 } niet opnemen: het heeft er geen ongeplaatste functie van, en { $p2 }
 refusal-join-no-auxiliary = zijn familie neemt geen hulpcontacten (geen spoel, geen artikel dat het noemt)
 refusal-join-contact-only = alleen een contact wordt samengevoegd als hulpfunctie
+refusal-join-no-free-port = zijn busartikel heeft geen poort die nog geen functie draagt
 # fields.set.
 refusal-fields-ip-star = { $p0 }: { $p1 }
 refusal-fields-not-fluid-line = { $p0 } is geen fluïdumleiding

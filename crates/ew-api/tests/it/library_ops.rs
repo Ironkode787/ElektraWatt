@@ -1078,3 +1078,34 @@ fn a_damaged_copy_is_named_by_its_installed_part() {
         )
     );
 }
+
+/// FT-830: a newer version of a part copy that adds a PLC section reaches the devices that use it through
+/// `library.update` (the copy keeps its ID): N0 gives -102G1 the `plc_module` aspect and N1 its channels in the same
+/// step.
+#[test]
+fn an_update_that_adds_a_plc_section_makes_the_device_a_module() {
+    let mut s = golden(None);
+    let g1 = device(&s, "-102G1");
+    let mut newer = golden_part("2904602");
+    newer["sections"]["plc"] = json!({
+        "role": "module",
+        "io": [{"dir": "in", "bits": 8}],
+        "channels": {"count": 2, "kind": "di"},
+    });
+    let newer = rehashed(newer);
+    commit(
+        &mut s,
+        &AnyCommand {
+            name: "library.update".into(),
+            params: json!({"copies": [newer]}),
+        },
+    );
+    let q = s.query();
+    assert!(q.devices().get(g1).and_then(|d| d.aspects.plc_module.clone()).is_some());
+    let channels = q
+        .table::<ew_schema::Channel>()
+        .iter()
+        .filter(|(_, c)| c.module == g1)
+        .count();
+    assert_eq!(channels, 2);
+}

@@ -22,6 +22,28 @@ use crate::proxy::UuidS;
 use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
+/// Whether the first part use of `device` whose part has bus ports has one that no function of the device carries (by
+/// interface and port label), as normaliser N5 pairs them (FT-841).
+fn has_free_bus_port(tx: &TxBuilder<'_>, device: &Device) -> bool {
+    let Some(ports) = device.parts.iter().find_map(|u| {
+        tx.get::<LibCopy<Part>>(u.part.copy)
+            .and_then(|p| p.item.sections.bus.clone())
+            .filter(|b| !b.ports.is_empty())
+            .map(|b| b.ports)
+    }) else {
+        return false;
+    };
+    let carried: Vec<(ew_mltext::Ident, Option<ew_mltext::Ident>)> = tx
+        .functions_of_device(device.id)
+        .into_iter()
+        .filter_map(|f| tx.get::<Function>(f).and_then(|f| f.bus_port.clone()))
+        .map(|p| (p.interface, p.port_label))
+        .collect();
+    ports
+        .iter()
+        .any(|p| !carried.iter().any(|(i, l)| *i == p.interface && *l == p.port_label))
+}
+
 /// `rep.join_device` (`JoinDevice`): the placed representation `rep` joins `device` in one
 /// transaction, at the same page, position and orientation, its wires kept.
 ///
@@ -46,7 +68,9 @@ use crate::tx::TxBuilder;
 /// (`/rep`; remove the link first); the representation's own device (`/device`); a
 /// device that cannot take the FnDef by D2's rule (`/device`): it has no unplaced function of the FnDef, and the FnDef
 /// is no contact (NO, NC, change-over) or the device's family takes no auxiliary functions (its main function is no
-/// coil and none of its parts' templates names the FnDef; terminals and strips never do); a connected CP the function
+/// coil and none of its parts' templates names the FnDef; terminals and strips never do), unless the FnDef is a bus
+/// port and the device's bus part has a port that no function of the device carries yet (FT-841: normaliser N5 then
+/// gives the joined function that port); a connected CP the function
 /// would no longer have on `device` (`/device`; its part's template draws other CPs). Interactive. Outcome: the
 /// representation.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -255,7 +279,13 @@ impl Command for JoinDevice {
                 tx.get::<LibCopy<Part>>(u.part.copy)
                     .is_some_and(|p| p.item.function_template.iter().any(|t| entry_def(t) == f.def))
             });
-            if !contact || terminal_or_strip(&target) || !(coil || templated) {
+            // FT-841: a bus-port FnDef joins a device whose bus part has a port no function carries yet
+            let bus_port = tx
+                .get::<LibCopy<FnDef>>(f.def)
+                .is_some_and(|d| d.item.contact_kind == ContactKind::BusPort);
+            let free_port = bus_port && has_free_bus_port(tx, &target);
+            let auxiliary = contact && !terminal_or_strip(&target) && (coil || templated);
+            if !(auxiliary || free_port) {
                 let fndef_words = tx.get::<LibCopy<FnDef>>(f.def).map_or_else(
                     || text!("refusal-words-kind-fndef"),
                     |d| {
@@ -272,6 +302,8 @@ impl Command for JoinDevice {
                         fndef_words,
                         if contact {
                             text!("refusal-join-no-auxiliary")
+                        } else if bus_port {
+                            text!("refusal-join-no-free-port")
                         } else {
                             text!("refusal-join-contact-only")
                         }
