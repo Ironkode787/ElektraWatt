@@ -2010,21 +2010,32 @@ impl Query for ChannelTexts {
 // ---------------------------------------------------------------------------------------------------------
 // channels_by_target()
 
-/// `channels_by_target()`: the channels whose target is a manual or traced one (doc 10 §3.5), by target function, each
-/// list in channel-ID order. The direct targets are left out: their function is bound, which
-/// [`PlcAddressText`] reads through the CP → channel index. A cut-off point over every station's targets, so a
-/// `PlcAddress` slot re-renders only when a manual or traced target changes (FT-700).
+/// The value of [`ChannelsByTarget`]: by function, the channels whose manual or traced target it is, and the channels
+/// whose traced signal passes it as a terminal; each list in channel-ID order.
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct TargetedChannels {
+    /// The channels by their manual or traced target function.
+    pub targets: BTreeMap<Id<Function>, Vec<Id<Channel>>>,
+    /// The channels by a terminal function their traced signal passes (FR-PLC-018's option).
+    pub terminals: BTreeMap<Id<Function>, Vec<Id<Channel>>>,
+}
+
+/// `channels_by_target()`: the channels whose target is a manual or traced one (doc 10 §3.5), by target function, and
+/// the channels by the terminals their traced signal passes. The direct targets are left out: their function is
+/// bound, which [`PlcAddressText`] reads through the CP → channel index. A cut-off point over every station's targets,
+/// so a `PlcAddress` slot re-renders only when a manual or traced target changes (FT-700, FT-1725).
 #[derive(Debug)]
 pub struct ChannelsByTarget;
 
 impl Query for ChannelsByTarget {
     type Key = ();
-    type Value = BTreeMap<Id<Function>, Vec<Id<Channel>>>;
+    type Value = TargetedChannels;
     const FAMILY: &'static str = "channels_by_target";
     const POLICY: Policy = Policy::Memo;
 
-    fn run(q: &Q, _: &()) -> Arc<BTreeMap<Id<Function>, Vec<Id<Channel>>>> {
+    fn run(q: &Q, _: &()) -> Arc<TargetedChannels> {
         let mut out: BTreeMap<Id<Function>, Vec<Id<Channel>>> = BTreeMap::new();
+        let mut terminals: BTreeMap<Id<Function>, Vec<Id<Channel>>> = BTreeMap::new();
         let mut cfgs: Vec<Id<PlcConfigProject>> = Vec::new();
         for station in stations(q) {
             let cfg = q
@@ -2038,18 +2049,23 @@ impl Query for ChannelsByTarget {
         for cfg in cfgs {
             for m in q.get::<ModuleOrder>(cfg).iter() {
                 for t in q.get::<ChannelTargets>(m.module).iter() {
-                    if let (Some(f), Some(TargetSource::Manual | TargetSource::Traced)) =
-                        (t.function, t.source)
-                    {
+                    if let (Some(f), Some(TargetSource::Manual | TargetSource::Traced)) = (t.function, t.source) {
                         out.entry(f).or_default().push(t.channel);
+                    }
+                    for cp in &t.passed {
+                        terminals.entry(cp.function).or_default().push(t.channel);
                     }
                 }
             }
         }
-        for list in out.values_mut() {
+        for list in out.values_mut().chain(terminals.values_mut()) {
             list.sort();
+            list.dedup();
         }
-        Arc::new(out)
+        Arc::new(TargetedChannels {
+            targets: out,
+            terminals,
+        })
     }
 }
 
@@ -2065,8 +2081,9 @@ pub struct PlcAddressTexts {
     /// The slot text: the addresses of the function's own bound CPs, else (a fluid function, contact kind
     /// `valve`) of the bound internal coil CPs of its device's other functions; in solenoid order (a CP designated
     /// `14`, then `12`, then the others by CP index), joined by `" / "`; else the addresses of the channels whose
-    /// manual or traced target the function is, in channel-ID order (FT-700: a relay coil wired to a card output).
-    /// `None` when no address resolves.
+    /// manual or traced target the function is, in channel-ID order (FT-700: a relay coil wired to a card output);
+    /// else, with the drawing setting `plc_address_at_terminals`, the addresses of the channels whose traced signal
+    /// passes the function as a terminal (FR-PLC-018's option, FT-1725). `None` when no address resolves.
     pub text: Option<String>,
     /// The function's own bound CPs that resolve, by CP index: `(idx, address text)`.
     pub pins: Vec<(u16, String)>,
@@ -2139,8 +2156,14 @@ impl Query for PlcAddressText {
         own.sort();
         let mut texts: Vec<String> = own.into_iter().map(|(_, _, _, t)| t).collect();
         if texts.is_empty() {
-            if let Some(targeting) = q.get::<ChannelsByTarget>(()).get(key) {
+            let targeted = q.get::<ChannelsByTarget>(());
+            if let Some(targeting) = targeted.targets.get(key) {
                 texts.extend(targeting.iter().filter_map(|c| address(*c)));
+            } else if let Some(passing) = targeted.terminals.get(key) {
+                // FR-PLC-018's option: a terminal on a traced path prints the channel's address
+                if q.get::<crate::DrawingSettingsQ>(()).plc_address_at_terminals {
+                    texts.extend(passing.iter().filter_map(|c| address(*c)));
+                }
             }
         }
         let text = (!texts.is_empty()).then(|| texts.join(" / "));

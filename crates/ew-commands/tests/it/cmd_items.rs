@@ -1260,6 +1260,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
         crossings: None,
         marker_mode: Some(Some(MarkerModeParam::Deviations)),
         wire_numbers: None,
+        plc_address_at_terminals: None,
     })
     .unwrap();
     let drawing = |e: &Engine| e.model().project().settings.extra.get("drawing").cloned();
@@ -1268,6 +1269,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
         crossings: Some(Some(ew_commands::commands::Crossings::Hops)),
         marker_mode: None,
         wire_numbers: None,
+        plc_address_at_terminals: None,
     })
     .unwrap();
     assert_eq!(
@@ -1278,6 +1280,7 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
         crossings: Some(None),
         marker_mode: Some(None),
         wire_numbers: None,
+        plc_address_at_terminals: None,
     })
     .unwrap();
     assert_eq!(drawing(&e), None, "an object left empty is removed");
@@ -1286,16 +1289,27 @@ fn drawing_set_writes_and_removes_the_marker_mode() {
         crossings: None,
         marker_mode: None,
         wire_numbers: Some(on),
+        plc_address_at_terminals: None,
     };
     e.execute(&numbers(Some(true))).unwrap();
     assert_eq!(drawing(&e), Some(json!({"wire_numbers": true})));
     e.execute(&numbers(None)).unwrap();
     assert_eq!(drawing(&e), None);
+    // FT-1725: the PLC address at terminals on.
+    e.execute(&SetDrawing {
+        crossings: None,
+        marker_mode: None,
+        wire_numbers: None,
+        plc_address_at_terminals: Some(Some(true)),
+    })
+    .unwrap();
+    assert_eq!(drawing(&e), Some(json!({"plc_address_at_terminals": true})));
     let err = e
         .execute(&SetDrawing {
             crossings: None,
             marker_mode: None,
             wire_numbers: None,
+            plc_address_at_terminals: None,
         })
         .unwrap_err();
     assert_eq!(pointer(err, "project.drawing.set"), "");

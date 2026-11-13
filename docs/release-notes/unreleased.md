@@ -42,6 +42,12 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - format-variant: report_block ReportKind bus_cable_list
 - format-variant: report_block ReportKind iolink_port_list
 - format-variant: report_block ReportKind safety_io_list
+- api-add: a bus part port's `signals` (signal → pin); a bus cable's core lands on the pin of its signal at each
+  port's multi-line representation, and the cable diagram prints those pins as the core's ends (FT-1724, FR-BUS-023)
+- api-add: `project.drawing.set` takes `plc_address_at_terminals`: a terminal a traced channel's signal passes prints
+  the channel's address in its `PlcAddress` slot (FT-1725, FR-PLC-018)
+- behaviour-change: EW-BUS-002, -005 and -009 mark a finding that rests on a part's `bus` section of unverified
+  confidence as based on non-verified part data (FT-323)
 - dependency: `ew-derive` uses `regex` 1.13.1 (MIT OR Apache-2.0, already in the workspace) for the process-tag
   scheme (WP-S1.24)
 - behaviour-change: window Cable… proposes the type `<n>G<cross-section>` when one of the selected wires is a protective

@@ -268,3 +268,44 @@ fn memoised_bus_families_equal_a_cold_run_across_edits() {
     assert_eq!(members.ports, [id::<Function>(F1), id(F2), id(F4)]);
     assert_eq!(members.master, Some(NetMaster::Port(id(F1))));
 }
+
+/// FR-BUS-023: a port's part maps the bus signals to pins; a core of the line's cable named after its signal lands on
+/// that pin of the port's multi-line representation (a function of the port's device drawn on a multi-line page). An
+/// end without a map entry, or without a port, has none.
+#[test]
+fn a_cable_core_lands_on_the_pin_of_its_signal() {
+    const PART: u128 = 0x600;
+    const PINS_DEF: u128 = 0x510;
+    const PINS_SYM: u128 = 0x520;
+    const PINS: u128 = 0x309;
+    let mut fx = fixture(Some(F4));
+    fx.lib_item(
+        "part",
+        PART,
+        json!({
+            "meta": {},
+            "kind": "device",
+            "manufacturer": {"library": uid(common::LIBRARY), "item": uid(0x9000), "version_req": "^1"},
+            "part_number": "CPX-FB13",
+            "sections": {"bus": {"ports": [{
+                "interface": "DP", "bus": "profibus_dp", "role": "slave",
+                "signals": {"A": "8", "B": "3", "SHIELD": "housing"},
+            }]}},
+        }),
+    );
+    fx.record(F1 + 0x1000)["parts"] = json!([{"part": {"copy": uid(PART)}, "qty": "1"}]);
+    fx.fndef(PINS_DEF, ["Connector", "Bus", "Pins"], &[(0, "3"), (1, "8")]);
+    fx.symbol(PINS_SYM, PINS_DEF, json!("origin"), &[(0, 0, 0, 0), (1, 1, 0, 4_000_000)]);
+    fx.function(PINS, Some(F1 + 0x1000), PINS_DEF, false);
+    fx.rep(0x319, PAGE, PINS_SYM, &[PINS], 40_000_000, 0);
+    let m = fx.build();
+    let q = Q::new(&m);
+    let pins = |core: &str, shield: bool| {
+        ew_derive::bus_core_pins(&q, id(W1), core, shield).map(|p| p.map(|c| (c.function, c.idx)))
+    };
+    assert_eq!(pins("A", false), [Some((id(PINS), 1)), None], "A → pin 8 at F1's end, F2 has no map");
+    assert_eq!(pins("b", false), [Some((id(PINS), 0)), None], "signals compare without regard to case");
+    assert_eq!(pins("S", true), [None, None], "the shield goes to the housing, which no CP is");
+    assert_eq!(pins("A", false).len(), 2);
+    assert_eq!(ew_derive::bus_core_pins(&q, id(W2), "A", false), [None, None]);
+}

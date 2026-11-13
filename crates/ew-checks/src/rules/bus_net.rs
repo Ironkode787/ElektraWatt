@@ -14,7 +14,8 @@ use ew_derive::ew_schema::{
     AddrValue, BusPort, BusSystem, ConnectionKind, Endpoint, Function, Kind, LengthSource, LogicalNet,
     NetAddress, PartBusPort, PortRole,
 };
-use ew_derive::{BusSegments, NetMaster, NetMembersOf, Q, SegmentMember};
+use ew_derive::ew_schema::Confidence;
+use ew_derive::{BusSegments, NetMaster, NetMembersOf, Q, SegmentMember, part_confidence};
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind};
@@ -27,13 +28,14 @@ fn port_words(q: &Q, f: Id<Function>) -> String {
 }
 
 /// The part port that a drawn port comes from: the first port with the same interface and label among the bus
-/// sections of its device's parts.
-fn part_port(q: &Q, function: &Function, port: &BusPort) -> Option<PartBusPort> {
+/// sections of its device's parts, with the confidence of that part's `bus` section (FT-323: a finding that rests on
+/// it is marked when it is not verified).
+fn part_port(q: &Q, function: &Function, port: &BusPort) -> Option<(PartBusPort, Confidence)> {
     let device = q.devices().get(function.device?)?;
     let parts = q.parts();
     device.parts.iter().find_map(|u| {
-        parts
-            .get(u.part.copy)?
+        let copy = parts.get(u.part.copy)?;
+        let found = copy
             .item
             .sections
             .bus
@@ -41,7 +43,8 @@ fn part_port(q: &Q, function: &Function, port: &BusPort) -> Option<PartBusPort> 
             .ports
             .iter()
             .find(|p| p.interface == port.interface && p.port_label == port.port_label)
-            .cloned()
+            .cloned()?;
+        Some((found, part_confidence(copy, "bus")))
     })
 }
 
@@ -106,9 +109,9 @@ impl Rule for AddressRange {
             let AddrValue::Value(NetAddress::Profibus(a)) = port.address else {
                 continue;
             };
-            let (min, max) = part_port(q, &function, &port)
-                .and_then(|p| p.address_range)
-                .map_or(PROFIBUS_RANGE, |r| (r.min, r.max));
+            let from_part = part_port(q, &function, &port)
+                .and_then(|(p, c)| p.address_range.map(|r| ((r.min, r.max), c)));
+            let (min, max) = from_part.as_ref().map_or(PROFIBUS_RANGE, |(r, _)| *r);
             if (min..=max).contains(&u16::from(a)) {
                 continue;
             }
@@ -124,7 +127,8 @@ impl Rule for AddressRange {
                 .arg("port", name)
                 .arg("address", a.to_string())
                 .arg("min", min.to_string())
-                .arg("max", max.to_string()),
+                .arg("max", max.to_string())
+                .reading(from_part.as_ref().map_or(&Confidence::Verified, |(_, c)| c)),
             );
         }
         out
@@ -324,7 +328,7 @@ impl Rule for Rate {
         let net_text = net_name(q, net);
         let mut out = Vec::new();
         for (f, function, port) in net_ports(q, net) {
-            let Some(pp) = part_port(q, &function, &port).filter(|p| !p.rates.is_empty()) else {
+            let Some((pp, confidence)) = part_port(q, &function, &port).filter(|(p, _)| !p.rates.is_empty()) else {
                 continue;
             };
             if pp.rates.contains(&rate) {
@@ -345,7 +349,8 @@ impl Rule for Rate {
                 )
                 .arg("port", name)
                 .arg("rate", rate.0.to_string())
-                .arg("net", net_text.clone()),
+                .arg("net", net_text.clone())
+                .reading(&confidence),
             );
         }
         out
@@ -630,11 +635,12 @@ impl Rule for WrongCable {
                 if let Some(cable) = line.cable {
                     let made_for = q.devices().get(cable).and_then(|d| {
                         d.parts.iter().find_map(|u| {
-                            let b = q.parts().get(u.part.copy)?.item.sections.bus.clone()?;
-                            (!b.cable_for.is_empty()).then_some(b.cable_for)
+                            let copy = q.parts().get(u.part.copy)?;
+                            let b = copy.item.sections.bus.clone()?;
+                            (!b.cable_for.is_empty()).then(|| (b.cable_for, part_confidence(copy, "bus")))
                         })
                     });
-                    if made_for.is_some_and(|list| !list.contains(&port.bus)) {
+                    if let Some((_, confidence)) = made_for.as_ref().filter(|(list, _)| !list.contains(&port.bus)) {
                         let tag = full_tag(q, cable, "the cable");
                         out.push(
                             Finding::new(
@@ -646,7 +652,8 @@ impl Rule for WrongCable {
                             )
                             .arg("form", "cable")
                             .arg("port", name)
-                            .arg("cable", tag),
+                            .arg("cable", tag)
+                            .reading(confidence),
                         );
                     }
                     continue;
@@ -665,9 +672,9 @@ impl Rule for WrongCable {
                 let Some(other_port) = other_fn.bus_port.as_ref() else {
                     continue;
                 };
-                let mine = part_port(q, function, port).and_then(|p| p.connector);
-                let theirs = part_port(q, other_fn, other_port).and_then(|p| p.connector);
-                if let (Some(a), Some(b)) = (mine, theirs) {
+                let mine = part_port(q, function, port).and_then(|(p, c)| p.connector.map(|k| (k, c)));
+                let theirs = part_port(q, other_fn, other_port).and_then(|(p, c)| p.connector.map(|k| (k, c)));
+                if let (Some((a, ca)), Some((b, cb))) = (mine, theirs) {
                     if a != b {
                         let other_name = port_words(q, other);
                         out.push(
@@ -684,7 +691,9 @@ impl Rule for WrongCable {
                             .arg("port", name)
                             .arg("connector", a.to_string())
                             .arg("other", other_name)
-                            .arg("other_connector", b.to_string()),
+                            .arg("other_connector", b.to_string())
+                            .reading(&ca)
+                            .reading(&cb),
                         );
                     }
                 }

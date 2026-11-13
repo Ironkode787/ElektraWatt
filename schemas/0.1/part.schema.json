@@ -1779,7 +1779,7 @@
     },
     "PartBusPort": {
       "additionalProperties": true,
-      "description": "One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`], then the facts of 1.0 that\nthe rules read: the connector type (EW-BUS-009), the supported rates (EW-BUS-005), the address range (EW-BUS-002)\nand the IO-Link device data (EW-IOL-001, EW-IOL-002). No address or net is typed: those belong to the drawn port;\nthe signal map of FR-BUS-023 stays in `extra`.",
+      "description": "One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`], then the facts of 1.0 that\nthe rules read: the connector type (EW-BUS-009), the supported rates (EW-BUS-005), the address range (EW-BUS-002)\nthe IO-Link device data (EW-IOL-001, EW-IOL-002) and the signal map (FR-BUS-023). No address or net is typed:\nthose belong to the drawn port.",
       "properties": {
         "address_range": {
           "anyOf": [
@@ -1843,6 +1843,13 @@
         "role": {
           "$ref": "#/$defs/PortRole",
           "description": "The role a port made from this interface takes."
+        },
+        "signals": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Ident"
+          },
+          "description": "The signal map (FR-BUS-023, doc 10 §2.6): the pin designation of each bus signal (`A` → `8`, `B` → `3`,\n`SHIELD` → `housing`), by which a cable core named after its signal lands on a pin of the port's multi-line\nrepresentation.",
+          "type": "object"
         },
         "termination": {
           "anyOf": [

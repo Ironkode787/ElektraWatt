@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! `project.drawing.set` (`SetDrawing`, FR-CON-031): the project's drawing settings, the member
-//! `drawing` of the project settings' `extra` (doc 03 §5.1): `crossings`, `marker_mode` and `wire_numbers`.
+//! `drawing` of the project settings' `extra` (doc 03 §5.1): `crossings`, `marker_mode`, `wire_numbers` and
+//! `plc_address_at_terminals`.
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -54,7 +55,9 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Optio
 /// FR-CON-031) chooses how crossing wires are drawn; absent means plain. `marker_mode` (`all`, `deviations`,
 /// `explicit` or `none`; FR-CON-024) chooses which wires carry a wire marker; absent means the
 /// as-built rule (a connection's `show_marker`). `wire_numbers` (`true` or `false`; FT-1692) prints every wire's number
-/// on the page; absent means none. Presentation only: no record changes meaning (the drawing and the
+/// on the page; absent means none. `plc_address_at_terminals` (`true` or `false`; FR-PLC-018, doc 10 §3.5) prints the
+/// address of a traced channel in the `PlcAddress` slot of every terminal its signal passes; absent means none.
+/// Presentation only: no record changes meaning (the drawing and the
 /// marker derivation read the members). Rejected: a `drawing` member of the project settings that is not an
 /// object (a newer or damaged format; the command never overwrites it); an unknown value (invalid); no member
 /// given (invalid at the root). Interactive. Outcome: none.
@@ -86,6 +89,14 @@ pub struct SetDrawing {
     )]
     #[schemars(with = "Option<bool>")]
     pub wire_numbers: Option<Option<bool>>,
+    /// Whether a terminal on a traced channel's path prints the channel's address; `null` removes the member (none).
+    #[serde(
+        default,
+        deserialize_with = "present",
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[schemars(with = "Option<bool>")]
+    pub plc_address_at_terminals: Option<Option<bool>>,
 }
 
 /// Sets (`Some`) or removes (`None`) one member of the drawing object.
@@ -116,7 +127,11 @@ impl Command for SetDrawing {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        if self.crossings.is_none() && self.marker_mode.is_none() && self.wire_numbers.is_none() {
+        if self.crossings.is_none()
+            && self.marker_mode.is_none()
+            && self.wire_numbers.is_none()
+            && self.plc_address_at_terminals.is_none()
+        {
             return Err(CmdError::invalid_params(
                 Self::NAME,
                 "",
@@ -139,6 +154,9 @@ impl Command for SetDrawing {
         }
         if let Some(on) = self.wire_numbers {
             put_member(&mut drawing, "wire_numbers", on)?;
+        }
+        if let Some(on) = self.plc_address_at_terminals {
+            put_member(&mut drawing, "plc_address_at_terminals", on)?;
         }
         if drawing.is_empty() {
             project.settings.extra.remove(DRAWING_MEMBER);

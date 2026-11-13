@@ -1175,3 +1175,20 @@ fn io_link_ports_take_their_devices_windows() {
     );
     assert_eq!(q.get::<ModuleStarts>(cfg())[&id(CARD)].input, Some(Start::At(0)));
 }
+
+/// FR-PLC-018's option (FT-1725): with the drawing setting `plc_address_at_terminals`, the terminal a traced channel's
+/// signal passes prints the channel's address in its `PlcAddress` slot; without it, none.
+#[test]
+fn a_passed_terminal_prints_the_address_with_the_option() {
+    let m = traced_fixture(false).build();
+    let q = Q::new(&m);
+    assert_eq!(q.get::<ew_derive::PlcAddressText>(id(TERM_FN)).text, None);
+    let mut fx = traced_fixture(false);
+    fx.project_set("settings", json!({"drawing": {"plc_address_at_terminals": true}}));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(
+        q.get::<ew_derive::PlcAddressText>(id(TERM_FN)).text.as_deref(),
+        Some("I0.0")
+    );
+}

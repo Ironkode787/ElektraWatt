@@ -408,8 +408,13 @@ max_output_bytes}` of a station part), `iolink` (`IoLinkWindow {input_bytes, out
 port window of an IO-Link master, §3.8) and `ratings` (`OutputRatings {channel_ma, group_ma, module_ma}`, EW-PLC-014).
 `PartBusPort` types `connector`, `rates` (supported rates in bit/s, FR-BUS-009), `address_range` (`RangeU16 {min,
 max}`) and `iolink` (`IoLinkDevice {class, input_bits, output_bits, vendor_id, device_id, data_type}`, the facts an
-IODD gives); `BusSection` types `cable_for`, the bus systems a cable part is made for (EW-BUS-009). The signal map of
-FR-BUS-023 stays in the port's `extra`: the per-core resolution of a multi-line port is not built.
+IODD gives); `BusSection` types `cable_for`, the bus systems a cable part is made for (EW-BUS-009). `PartBusPort` also
+types `signals` (FR-BUS-023, FT-1724): the pin designation of each bus signal, as in the example above. A core of a
+bus line's cable resolves by its name, the signal (`SHIELD` for a shield core, compared without regard to case), to
+the pin the signal map gives at each end's port, found as a CP of that designation on a function of the port's device
+that a multi-line page draws (`ew_derive::bus_core_pins`); the cable diagram (`cable_overview_diagrams`) prints those
+pins as the core's ends, and the core's colour is its conductor's, which the cable part's cores give. An end without a
+port, a map entry or such a pin prints none (the `housing` of a shield is no CP).
 
 **The bus section** (D15 to D17). A part's bus interfaces are `sections.bus`, typed within format 0.1
 (ADR-0011 amendment 4), appended to `PartSections` after `mounting_plate`:
@@ -830,8 +835,10 @@ bridges), passes terminals (contact kind `terminal`), never chooses a CP of a PL
 channel binds, and picks the lowest (category rank: coil and valve 0, black box 1, contacts 2, other 3; drawn page
 order; function ID; CP index); the cell is not a tie-break. The target carries its source, its CP (the I/O list's
 target pin), the passed terminals and the ambiguity flag. Only a module with a pin-bound channel reads the stitch
-graph. A traced target gives the channel the state of its device (§3.2 step 3). The "address at terminals" option
-is not built.
+graph. A traced target gives the channel the state of its device (§3.2 step 3). The "address at terminals" option is
+the drawing setting `plc_address_at_terminals` (`project.drawing.set`, FT-1725): with it, every terminal a traced
+signal passes prints the channel's address in its `PlcAddress` slot (`channels_by_target` holds the terminals). The
+shipped terminal symbols have no `PlcAddress` slot: a terminal symbol shows the address once it has one.
 
 ### 3.6 Representations
 
@@ -1038,6 +1045,10 @@ channel addresses, so it never reports the bus `Tbd`, and each `Tbd` yields exac
 its documentation page (NFR-DOC-02).
 
 *As built.* EW-PLC-001, -002, -003, -007, -008, -012 and -015 are built in the scopes `module` and `cfg`, with en-GB and nl-NL messages; EW-PLC-007 compares symbols exactly, and findings name a channel as `<full tag>:<designation>`. Their prevent half (EW-PLC-001, -007) is not built (FT-726). EW-PLC-012 offers "rebind to the map's channel" and carries the unverified-data marker; "open the part's PLC section" is FT-727; Golden A reports its 28 findings under H1 (EF-02). Two channels of one module with one number are reported by EW-CORE-008 `duplicate_number`, and the channel whose ID is v5 of its module and number wins.
+
+*As built (WP-S1.24, FT-323).* Every rule that reads a part's `plc` or `bus` section marks its findings "based on
+non-verified part data" when that section's confidence (`ItemMeta.confidence`) is not `verified`: EW-PLC-010, -011,
+-012, -013, -014, EW-IOL-001, -002, and EW-BUS-002 (a part's range), -005 and -009.
 
 *As built (WP-S1.24).* The 1.0 content of the EW-PLC and EW-BUS packs is built: EW-PLC-004, -005, -009, -010, -011,
 -013, -014; EW-SAF-001 … -003; EW-PRC-001; EW-BUS-002, -003, -005, -006, -007, -009, -010; EW-IOL-001, -002, each

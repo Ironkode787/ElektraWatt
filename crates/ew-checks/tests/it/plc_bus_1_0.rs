@@ -387,6 +387,11 @@ const CABLE_PART: u128 = 0x603;
 /// with the cable `-W1` (300 m); `a` and `b` are merged into the ports, `net` into the logical net, `part` into the
 /// devices' part port, `cable` into the cable part's bus section.
 fn bus(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>) -> ew_model::Model {
+    bus_with_meta(net, a, b, part, cable, &json!({}))
+}
+
+/// [`bus`] with the ports' part's `meta` (its confidence marks).
+fn bus_with_meta(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>, meta: &Value) -> ew_model::Model {
     let mut fx = Fx::base();
     fx.fndef_with(
         PORT_DEF,
@@ -402,7 +407,7 @@ fn bus(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>) -
     fx.part(
         BUS_PART,
         "NODE-1",
-        &json!({"kind": "device", "sections": {"bus": {"ports": [port]}}}),
+        &json!({"kind": "device", "meta": meta, "sections": {"bus": {"ports": [port]}}}),
     );
     let mut lnet = json!({"$k": "logical_net", "id": us(LNET), "bus": "profibus_dp", "name": "DP"});
     for (k, v) in net.as_object().expect("net") {
@@ -583,4 +588,23 @@ fn ew_iol_001_and_002_class_mode_window() {
         found(&m, "EW-IOL-002").is_empty(),
         "a DI port has no IO-Link window"
     );
+}
+
+/// FT-323: a bus finding that rests on the port part's `bus` section is marked "based on non-verified part data" when
+/// that section's confidence is not `verified`, and not otherwise.
+#[test]
+fn a_bus_finding_on_unverified_part_data_is_marked() {
+    let rate = |meta: Value| {
+        let m = bus_with_meta(
+            &json!({"rate": 12_000_000}),
+            &json!({}),
+            &json!({}),
+            &json!({"rates": [1_500_000]}),
+            None,
+            &meta,
+        );
+        found(&m, "EW-BUS-005").iter().map(|f| f.unverified_data).collect::<Vec<_>>()
+    };
+    assert_eq!(rate(json!({"confidence": {"bus": "test"}})), [true, true]);
+    assert_eq!(rate(json!({})), [false, false]);
 }

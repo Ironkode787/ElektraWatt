@@ -11,6 +11,7 @@
 //! which no design document defines yet, stays in `extra`. Segments are derived (`bus_segments`, doc 10 §3.8 A5),
 //! never stored.
 
+use std::collections::BTreeMap;
 use std::net::Ipv4Addr;
 
 use ew_ids::Id;
@@ -244,8 +245,8 @@ pub struct BusSection {
 
 /// One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`], then the facts of 1.0 that
 /// the rules read: the connector type (EW-BUS-009), the supported rates (EW-BUS-005), the address range (EW-BUS-002)
-/// and the IO-Link device data (EW-IOL-001, EW-IOL-002). No address or net is typed: those belong to the drawn port;
-/// the signal map of FR-BUS-023 stays in `extra`.
+/// the IO-Link device data (EW-IOL-001, EW-IOL-002) and the signal map (FR-BUS-023). No address or net is typed:
+/// those belong to the drawn port.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct PartBusPort {
     /// The interface name ("DP", "X1").
@@ -275,7 +276,13 @@ pub struct PartBusPort {
     /// The IO-Link device data of a port with bus `io_link` and role `device` (doc 10 §3.8, FR-BUS-012).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub iolink: Option<IoLinkDevice>,
-    /// Unknown members (the signal map of FR-BUS-023), kept verbatim.
+    /// The signal map (FR-BUS-023, doc 10 §2.6): the pin designation of each bus signal (`A` → `8`, `B` → `3`,
+    /// `SHIELD` → `housing`), by which a cable core named after its signal lands on a pin of the port's multi-line
+    /// representation.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(with = "BTreeMap<String, IdentS>")]
+    pub signals: BTreeMap<Ident, Ident>,
+    /// Unknown members, kept verbatim.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }

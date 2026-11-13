@@ -234,6 +234,9 @@ pub struct DrawingSettings {
     pub marker_mode: Option<crate::items::MarkerMode>,
     /// `wire_numbers: true` (FT-1692): every wire prints its number on the page; absent or anything else: no number.
     pub wire_numbers: bool,
+    /// `plc_address_at_terminals: true` (FR-PLC-018's option, doc 10 §3.5): a terminal on a traced channel's path prints
+    /// the channel's address in its `PlcAddress` slot; absent or anything else: none.
+    pub plc_address_at_terminals: bool,
 }
 
 /// `drawing_settings()`: the project's [`DrawingSettings`]. Policy Memo: a cut-off point
@@ -260,10 +263,15 @@ impl Query for DrawingSettingsQ {
             .and_then(|d| d.get("wire_numbers"))
             .and_then(Value::as_bool)
             == Some(true);
+        let plc_address_at_terminals = drawing
+            .and_then(|d| d.get("plc_address_at_terminals"))
+            .and_then(Value::as_bool)
+            == Some(true);
         Arc::new(DrawingSettings {
             hops,
             marker_mode,
             wire_numbers,
+            plc_address_at_terminals,
         })
     }
 }

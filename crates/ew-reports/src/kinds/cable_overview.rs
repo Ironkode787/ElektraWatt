@@ -24,8 +24,8 @@ use crate::rowset::{Cell, CellType, ColumnDef, MissingReason, QtyUnit, Row, RowI
 ///
 /// The ends of a cable are the devices at the From and To ends of its cores (doc 08 §7.7, a terminal
 /// standing for its strip); a core row
-/// prints the end of its physical wire (`-X1031:12/b`, `-201U1:1`), empty when no wire runs over the core
-/// (a bus cable). The length is the manual length in metres, `from part` for a length taken from the part
+/// prints the end of its physical wire (`-X1031:12/b`, `-201U1:1`); a core of a bus cable, over which no wire runs,
+/// the pins the signal maps of its bus line's ports give it (`ew_derive::bus_core_pins`, FR-BUS-023), else nothing. The length is the manual length in metres, `from part` for a length taken from the part
 /// (the part carries no value yet), and "length missing" for a cable without one (EW-CORE-033). Cores come
 /// in natural order of their names, the shield last: the pin order of doc 20 §10 is not modelled. A core's
 /// colour and cross-section are the wire's effective values, else the conductor's.
@@ -206,7 +206,17 @@ fn core_row(
     let csa = wire
         .and_then(|w| w.props.csa.as_ref().map(|p| p.value.clone()))
         .or_else(|| c.csa.clone());
-    let end = |i: usize| wire.map(|w| end_text(q, &w.wire.ends[i])).unwrap_or_default();
+    // a core no wire runs over: the pins a bus line's signal maps give it (FR-BUS-023)
+    let pins = if wire.is_none() {
+        ew_derive::bus_core_pins(q, cable, c.core.as_str(), c.shield)
+    } else {
+        [None, None]
+    };
+    let end = |i: usize| match (wire, pins[i]) {
+        (Some(w), _) => end_text(q, &w.wire.ends[i]),
+        (None, Some(cp)) => ew_derive::cp_label(q, cp),
+        (None, None) => String::new(),
+    };
     let mut r = Row::data(
         RowId::entity(cable).with(RowKey::Entity(core.as_uuid())),
         vec![

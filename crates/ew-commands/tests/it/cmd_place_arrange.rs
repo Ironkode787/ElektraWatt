@@ -1663,6 +1663,7 @@ fn set_drawing(crossings: Option<Option<Crossings>>) -> SetDrawing {
         crossings,
         marker_mode: None,
         wire_numbers: None,
+        plc_address_at_terminals: None,
     }
 }
 
