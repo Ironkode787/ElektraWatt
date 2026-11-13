@@ -812,7 +812,8 @@ mod tests {
     #[test]
     fn a_new_externally_tagged_variant_is_additive() {
         let kind = |branches: Value| json!({"$defs": {"Kind": {"oneOf": branches}}});
-        let tagged = |tag: &str| json!({"type": "object", "properties": {tag: {"type": "object"}}, "required": [tag]});
+        let tagged =
+            |tag: &str| json!({"type": "object", "properties": {tag: {"type": "object"}}, "required": [tag]});
         let before = kind(json!([tagged("graphic")]));
         let after = kind(json!([tagged("graphic"), tagged("underlay")]));
         let (mut out, mut variants) = (Vec::new(), Vec::new());
@@ -830,7 +831,11 @@ mod tests {
             &mut out,
             &mut Vec::new(),
         );
-        assert!(out.iter().any(|(breaking, _, what)| *breaking && what == "newly required"), "{out:?}");
+        assert!(
+            out.iter()
+                .any(|(breaking, _, what)| *breaking && what == "newly required"),
+            "{out:?}"
+        );
     }
 
     /// A scratch repository at a fresh temporary directory; removed by [`Scratch::remove`].
