@@ -1613,6 +1613,11 @@ refusal-fields-no-port = { $p0 } has no bus port; set `bus_port` first
 refusal-fields-port-role-unknown = { $p0 } is not a port role; give master, slave, controller, device or passive
 refusal-fields-bus-address-unknown = { $p0 } is not a bus address; give tbd, not_applicable or {"{"}"value": {"{"}"profibus": n{"}"}{"}"}
 refusal-fields-termination-unknown = { $p0 } is not a termination; give on or off
+refusal-fields-mrp-unknown = { $p0 } is not a ring role; give manager or client
+refusal-fields-port-mode-unknown = { $p0 } is not a port mode; give io_link, di, dq or deactivated
+refusal-fields-evaluation-unknown = { $p0 } is not an evaluation; give 1oo1 or 1oo2
+refusal-fields-test-pulse-cp = a test pulse is a connection point (`{"{"}"cp": [function, index]{"}"}`), not a junction
+refusal-plc-symbol-template = `{ $p0 }` is not a symbol template: { $p1 }
 refusal-fields-counter-used-project = counter { $p0 } with letter { $p1 } is already used by another cable without a page; use { $p2 }, the next free counter
 refusal-fields-section-divider-page = folio { $p0 } is held by a page; choose another folio for section { $p1 }'s divider
 refusal-fields-section-divider-report = folio { $p0 } is held by a report block; choose another folio for section { $p1 }'s divider
@@ -1825,6 +1830,9 @@ refusal-plc-module-part-use = the module's `plc_module.part_use` is { $p0 }, whi
 refusal-plc-start-input = an input
 refusal-plc-start-output = an output
 refusal-plc-start-area = `{ $p0 }` is not { $p1 } start: { $p1 } start is in area { $p2 }, like { $p3 }
+# WP-S1.24: re-addressing and the tag-based profile.
+refusal-plc-scope-empty = name the modules to re-address, or their configuration project
+refusal-plc-tag-based = profile { $p0 } is tag-based: its addresses come from the station and the slot, so none is typed; give auto, excluded or tbd
 # revision.create and revision.withdraw.
 refusal-revision-label-used = another revision already has the label { $p0 }; a label names one revision
 refusal-revision-open = revision { $p0 } is open; at most one revision collects the current edits

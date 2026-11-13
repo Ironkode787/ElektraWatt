@@ -77,7 +77,10 @@ fn the_profile_files_are_canonical() {
 #[test]
 fn both_builtins_parse_and_round_trip_golden_as_addresses() {
     let refs: Vec<String> = builtin_profiles().iter().map(|p| p.reference()).collect();
-    assert_eq!(refs, ["siemens-tia-intl@2027.1", "iec-61131-3@2027.1"]);
+    assert_eq!(
+        refs,
+        ["siemens-tia-intl@2027.1", "iec-61131-3@2027.1", "rockwell-logix@2027.1"]
+    );
     assert_eq!(default_profile(), "siemens-tia-intl@2027.1");
     let (tia, iec) = (&builtin_profiles()[0], &builtin_profiles()[1]);
     for byte in 0..7 {
@@ -102,6 +105,29 @@ fn both_builtins_parse_and_round_trip_golden_as_addresses() {
         tia.render(&PlcAddress::unit(Area::I, Size::Word, 64), Purpose::Exchange),
         "%IW64"
     );
+}
+
+/// FR-PLC-009: the tag-based built-in renders from the station and the slot, reads no address text, and names its
+/// form in a refusal's example.
+#[test]
+fn the_rockwell_builtin_is_tag_based() {
+    let rockwell = &builtin_profiles()[2];
+    assert!(!rockwell.absolute);
+    let at = ew_derive::ew_plcaddr::TagPlace {
+        station: "Local",
+        slot: 3,
+        channel: 1,
+    };
+    assert_eq!(
+        rockwell.render_tag(&at, Area::Q, Some(1), Purpose::Drawing),
+        "Local:3:O.Data.1"
+    );
+    assert_eq!(
+        rockwell.render_tag(&at, Area::I, None, Purpose::Drawing),
+        "Local:3:I.Ch1Data"
+    );
+    assert_eq!(rockwell.parse("Local:3:O.Data.1"), None);
+    assert_eq!(rockwell.example(), "Local:1:O.Data.1");
 }
 
 /// T2: a profile file whose data the engine does not render is refused whole, naming its pin and the reason.

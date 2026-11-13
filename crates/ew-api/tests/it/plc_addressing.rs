@@ -367,3 +367,142 @@ fn bind_channel_takes_tags() {
         assert!(err.contains(want), "{channel_text} {function_text}: {err}");
     }
 }
+
+/// FR-PLC-009: under the tag-based `rockwell-logix` profile a channel prints from its station and slot (Golden A has no
+/// CPU, so -201U1 is a remote adapter named by its tag), and a slot change re-renders the module's addresses.
+#[test]
+fn the_rockwell_profile_renders_from_the_station_and_the_slot() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let c = cfg(&s.query());
+    run(
+        &mut s,
+        "plc.set_profile",
+        json!({"config_project": c.to_string(), "profile": "rockwell-logix"}),
+    );
+    let u5 = device(&s, "-201U5");
+    assert_eq!(texts(&s.query(), u5)[1], "_201U1:3:O.Data.1");
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [u5.to_string()], "path": "plc_module.slot", "value": {"rack": {"rack": 0, "slot": 9}}}),
+    );
+    let q = s.query();
+    assert_eq!(texts(&q, u5)[1], "_201U1:9:O.Data.1");
+    assert_eq!(
+        texts(&q, device(&s, "-201U6"))[0],
+        "_201U1:3:O.Data.0",
+        "the next positional module moves up"
+    );
+    let err = s
+        .execute(&AnyCommand {
+            name: "plc.set_start".into(),
+            params: json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q10"}),
+        })
+        .expect_err("a tag-based profile reads no start");
+    assert!(format!("{err}").contains("is tag-based"), "{err}");
+}
+
+/// A Bulk command previewed and committed, as the window commits it.
+fn bulk(s: &mut Session, name: &str, params: Value) -> ew_api::Receipt {
+    let preview = s
+        .preview(&AnyCommand {
+            name: name.into(),
+            params,
+        })
+        .unwrap_or_else(|e| panic!("{name}: {e:?}"));
+    s.commit(preview).unwrap_or_else(|e| panic!("{name}: {e:?}"))
+}
+
+/// The EW-PLC-012 findings of discriminator `manual`.
+fn manual_deviations(s: &Session) -> usize {
+    plc_012(s).iter().filter(|f| f.discriminator == "manual").count()
+}
+
+/// FR-PLC-015: `plc.freeze` makes every derived channel address manual, so a later start change moves no printed
+/// address and EW-PLC-012 reports each channel of the moved module as a manual deviation; undo restores `auto`.
+#[test]
+fn freezing_keeps_every_printed_address() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let before = all_texts(&s.query());
+    let c = cfg(&s.query());
+    let receipt = bulk(&mut s, "plc.freeze", json!({"config_project": c.to_string()}));
+    assert_eq!(receipt.outcome.notices.len(), 1, "{:?}", receipt.outcome.notices);
+    assert_eq!(all_texts(&s.query()), before);
+    assert_eq!(manual_deviations(&s), 0);
+    let u5 = device(&s, "-201U5");
+    run(
+        &mut s,
+        "plc.set_start",
+        json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q10"}),
+    );
+    assert_eq!(all_texts(&s.query()), before, "a frozen address does not move");
+    assert_eq!(manual_deviations(&s), 8, "the eight channels of -201U5 deviate from Q10.x");
+    s.undo(&Origin::Gui).expect("undo the start");
+    s.undo(&Origin::Gui).expect("undo the freeze");
+    let q = s.query();
+    assert!(
+        q.table::<Channel>()
+            .iter()
+            .all(|(_, ch)| ch.address == ew_schema::AddrSpec::Auto)
+    );
+}
+
+/// FR-PLC-014: `plc.readdress` turns -201U5's manual start back to `auto`, its preview lists the eight changed
+/// addresses with old and new text, and one undo restores the manual start; `plc.convert_manual_to_auto` drops a
+/// manual start equal to the automatic one and keeps (and names) one that differs.
+#[test]
+fn readdress_and_convert_manual_to_auto() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let before = all_texts(&s.query());
+    let (u5, u6) = (device(&s, "-201U5"), device(&s, "-201U6"));
+    run(
+        &mut s,
+        "plc.set_start",
+        json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q10"}),
+    );
+    let c = cfg(&s.query());
+    let preview = s
+        .preview(&AnyCommand {
+            name: "plc.readdress".into(),
+            params: json!({"config_project": c.to_string()}),
+        })
+        .expect("a preview");
+    let notices = preview.outcome().notices.clone();
+    assert_eq!(notices.len(), 8, "{notices:?}");
+    assert!(
+        notices.contains(&"channel 3 of -201U5: Q10.3 → Q2.3".to_owned()),
+        "{notices:?}"
+    );
+    bulk(&mut s, "plc.readdress", json!({"config_project": c.to_string()}));
+    assert_eq!(all_texts(&s.query()), before);
+    s.undo(&Origin::Gui).expect("one undo step");
+    assert_eq!(texts(&s.query(), u5)[0], "Q10.0");
+
+    // -201U6 keeps Q3 under auto, so a manual Q3 is dropped; -201U5's manual Q10 stays
+    run(
+        &mut s,
+        "plc.set_start",
+        json!({"modules": [u6.to_string()], "dir": "output", "spec": "Q3"}),
+    );
+    let receipt = bulk(
+        &mut s,
+        "plc.convert_manual_to_auto",
+        json!({"modules": [u5.to_string(), u6.to_string()]}),
+    );
+    assert_eq!(
+        receipt.outcome.notices,
+        ["module -201U5 keeps its manual output start Q10 (automatic: Q2)"]
+    );
+    let q = s.query();
+    let start = |m: Id<Device>| {
+        q.devices()
+            .get(m)
+            .and_then(|d| d.aspects.plc_module.clone())
+            .map(|p| p.start.output)
+    };
+    assert_eq!(start(u6), Some(ew_schema::AddrSpec::Auto));
+    assert!(matches!(start(u5), Some(ew_schema::AddrSpec::Manual(_))));
+}

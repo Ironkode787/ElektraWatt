@@ -1,0 +1,60 @@
+{
+  "$k": "plc_profile",
+  "id": "00127b4b-f63b-5620-a061-8639e6d7609c",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "23805e0b-8e63-5344-99e4-7fc19190cc20",
+  "version": "0.1.0",
+  "sha256": "sha256:9f932e5a01384efae2e36bda3cba25565dc2d5aa42c19291383774025a87bbdd",
+  "meta": {
+    "key": "ew.plc-profile.rockwell-logix",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "docs/design/10-plc-and-bus.md §2.5"
+    ]
+  },
+  "profile": {
+    "id": "rockwell-logix",
+    "version": "2027.1"
+  },
+  "label": "Rockwell Logix (tag-based)",
+  "absolute": false,
+  "base": 10,
+  "unit_bits": 8,
+  "word_align": 2,
+  "mnemonics": {
+    "area": {
+      "I": "I",
+      "Q": "O",
+      "M": "M",
+      "PI": "I",
+      "PQ": "O"
+    },
+    "size": {
+      "bit": "",
+      "byte": "",
+      "word": "",
+      "dword": "",
+      "lword": ""
+    }
+  },
+  "render": {
+    "bit": "{station}:{slot}:{area}.Data.{bit}",
+    "unit": "{station}:{slot}:{area}.Ch{channel}Data",
+    "drawing": "",
+    "exchange": ""
+  },
+  "parse": {
+    "prefixes": [
+      ""
+    ],
+    "peripheral_suffix": ""
+  },
+  "allocation": {
+    "scheme": "packed",
+    "start": {
+      "digital": 0,
+      "analog": 0
+    },
+    "verified": false
+  }
+}

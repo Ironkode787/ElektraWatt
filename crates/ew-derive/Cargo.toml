@@ -37,6 +37,8 @@ serde.workspace = true
 serde_json = "1.0.154"
 # The shipped derivation profiles are TOML data (ADR-0003, ARCH §6.6).
 toml.workspace = true
+# The process-tag scheme of FR-PLC-049 is a regular expression with named groups (doc 10 §3.4), as ew-api's.
+regex = { version = "1.13.1", default-features = false, features = ["std", "unicode-case", "unicode-perl"] }
 ew-hack = { version = "0.2.0", path = "../ew-hack" }
 
 [dev-dependencies]

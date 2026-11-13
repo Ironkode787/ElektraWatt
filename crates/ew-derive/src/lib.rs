@@ -166,10 +166,13 @@ pub use part_text::{
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{
     AddressIndex, AddressIndexV, AddressUse, ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates,
+    ChannelsByTarget,
     ChannelTarget, ChannelTargets, ChannelText, ChannelTexts, EffectiveState, ModuleOrder, ModuleStart,
     ModuleStartOf, ModuleStarts, OrderedModule, PlcAddressText, PlcAddressTexts, PlcRow, PlcRows, Slot,
     SolenoidPositions, SolenoidSlot, Start, address_profile, address_profile_named, auto_address,
-    builtin_profiles, canonical, channel_pin, coil_cp, coil_host, default_profile, driven_device, eval_map,
+    builtin_profiles, canonical, channel_pin, coil_cp, coil_host, default_profile, driven_device, eval_map, iec_ident,
+    is_iec_ident, process_tag_parts, process_tag_scheme, stored, symbol_from_template, symbol_template_error,
+    TargetSource,
     module_part, parse_plc_address, parse_plc_start, pin_pattern_error, pinned_profile, profile_of,
     profiles_at_hand, solenoid_channel, solenoid_coil, start_example, station_of, stations,
     unreadable_profile, valve_solenoids,

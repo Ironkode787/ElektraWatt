@@ -41,7 +41,7 @@ impl Query for CheckOf {
         // rule that reads nothing else of a deleted page or device goes with it instead of staying in the store.
         let live = match scope {
             Scope::Page(p) => q.pages().contains(*p),
-            Scope::Strip(d) | Scope::Device(d) | Scope::Cable(d) | Scope::Module(d) => {
+            Scope::Strip(d) | Scope::Device(d) | Scope::Cable(d) | Scope::Module(d) | Scope::Station(d) => {
                 q.devices().contains(*d)
             }
             Scope::Cfg(c) => q.table::<ew_derive::ew_schema::PlcConfigProject>().contains(*c),
@@ -60,7 +60,7 @@ impl Query for CheckOf {
 
 /// The evaluation scopes of a scope kind in a snapshot, in key order: the project, every drawn page, every
 /// strip, device or cable device, every potential of the partition, every PLC module device, every PLC configuration
-/// project, every logical and every physical bus net.
+/// project, every logical and every physical bus net, every PLC station device.
 pub fn scopes(q: &Q, kind: ScopeKind) -> Vec<Scope> {
     match kind {
         ScopeKind::Project => vec![Scope::Project],
@@ -107,6 +107,12 @@ pub fn scopes(q: &Q, kind: ScopeKind) -> Vec<Scope> {
             .table::<ew_derive::ew_schema::PhysicalNet>()
             .ids()
             .map(Scope::Pnet)
+            .collect(),
+        ScopeKind::Station => q
+            .devices()
+            .iter()
+            .filter(|(_, d)| d.aspects.plc_station.is_some())
+            .map(|(id, _)| Scope::Station(id))
             .collect(),
     }
 }

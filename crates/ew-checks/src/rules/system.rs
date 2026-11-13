@@ -178,6 +178,7 @@ fn scope_text(q: &Q, scope: &Scope) -> String {
         Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) => full_tag(q, d, "a device"),
         Scope::Potential(p) => format!("potential {}", q.get::<PotentialNameOf>(p).name.text),
         Scope::Module(d) => full_tag(q, d, "a module"),
+        Scope::Station(d) => full_tag(q, d, "a station"),
         Scope::Cfg(c) => q
             .table::<ew_derive::ew_schema::PlcConfigProject>()
             .get(c)
@@ -201,7 +202,7 @@ fn scope_target(scope: &Scope) -> Option<Target> {
     match *scope {
         Scope::Project | Scope::Potential(_) => None,
         Scope::Page(p) => Some(Target::new(Kind::Page, p)),
-        Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) | Scope::Module(d) => {
+        Scope::Device(d) | Scope::Strip(d) | Scope::Cable(d) | Scope::Module(d) | Scope::Station(d) => {
             Some(Target::new(Kind::Device, d))
         }
         Scope::Cfg(c) => Some(Target::new(Kind::PlcConfigProject, c)),
@@ -223,6 +224,7 @@ fn scope_kind_name(kind: ScopeKind) -> &'static str {
         ScopeKind::Cfg => "cfg",
         ScopeKind::Lnet => "lnet",
         ScopeKind::Pnet => "pnet",
+        ScopeKind::Station => "station",
     }
 }
 

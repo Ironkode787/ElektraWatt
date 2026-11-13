@@ -68,9 +68,12 @@ use crate::tx::TxBuilder;
 /// project reference, the drawing ID, the object ID, the manufacturing year, the created and edited dates) and its
 /// `parties` as a whole, every one a title block prints (FT-1686); the other project members keep their own commands.
 ///
-/// The PLC kinds: a channel's `designation`, `address`, `state`, `symbol`, `comment` and
-/// `target`; a configuration project's `name` (unique, as `plc.config_project.create` requires; its profile
-/// changes only through its own command); a device link's `kind` (its devices are chosen by `device.link`). A
+/// The PLC kinds: a channel's `designation`, `address`, `state`, `symbol`, `comment`,
+/// `target`, `data_type`, `signal_range`, `mode` (a multi-function port's) and `safety` (its pair a channel, its test
+/// pulse a CP); a module's `plc_module.safety`; a configuration project's `name` (unique, as
+/// `plc.config_project.create` requires; its profile changes only through its own command) and `symbols` (a template
+/// of doc 10 §3.4's tokens, else refused at `/value` with the reason); a device link's `kind` (its devices are chosen
+/// by `device.link`). A
 /// channel's `address` takes `auto`, `excluded`, `tbd` or an address text in the notation of the channel's
 /// configuration project's profile (the shipped default profile while the module has no station), stored as a
 /// `manual` address: `"I4.0"`; a text that does not parse is refused at `/value` with the profile's example
@@ -123,6 +126,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "plc_module.slot",
             "plc_module.start",
             "plc_module.part_use",
+            "plc_module.safety",
         ],
     ),
     (
@@ -142,6 +146,7 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "bus_port.termination",
             "bus_port.logical_net",
             "bus_port.physical_net",
+            "bus_port.mrp",
         ],
     ),
     (
@@ -240,9 +245,20 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
     ),
     (
         KindName::Channel,
-        &["designation", "address", "state", "symbol", "comment", "target"],
+        &[
+            "designation",
+            "address",
+            "state",
+            "symbol",
+            "comment",
+            "target",
+            "data_type",
+            "signal_range",
+            "mode",
+            "safety",
+        ],
     ),
-    (KindName::PlcConfigProject, &["name"]),
+    (KindName::PlcConfigProject, &["name", "symbols"]),
     (KindName::DeviceLink, &["kind"]),
     (KindName::LogicalNet, &["name", "bus", "master", "rate"]),
     (KindName::PhysicalNet, &["name", "medium", "order_hint"]),
@@ -525,6 +541,7 @@ impl SetFields {
                 KindName::PlcConfigProject => {
                     set_one::<PlcConfigProject>(tx, *t, path, value)?;
                     refuse_duplicate_config_name(tx, t.cast())?;
+                    refuse_bad_symbol_template(tx, t.cast())?;
                 }
                 KindName::DeviceLink => {
                     set_one::<DeviceLink>(tx, *t, path, value)?;
@@ -774,7 +791,38 @@ fn refuse_unknown_channel_member(tx: &TxBuilder<'_>, channel: ew_ids::Id<Channel
             text!("refusal-fields-channel-state-unknown", v.to_string()),
         ));
     }
+    if let Some(ew_schema::PortMode::Unknown(v)) = &c.mode {
+        return Err(newer(text!("refusal-fields-port-mode-unknown", v.to_string())));
+    }
+    if let Some(s) = &c.safety {
+        if let ew_schema::Evaluation::Unknown(v) = &s.evaluation {
+            return Err(newer(text!("refusal-fields-evaluation-unknown", v.to_string())));
+        }
+        if let Some(pair) = s.pair {
+            tx.require::<Channel>(pair)?;
+        }
+        match &s.test_pulse {
+            None => {}
+            Some(Endpoint::Cp(f, _)) => {
+                tx.require::<Function>(*f)?;
+            }
+            Some(_) => return Err(newer(text!("refusal-fields-test-pulse-cp"))),
+        }
+    }
     Ok(())
+}
+
+/// A configuration project's symbol template as read back: one that expands (doc 10 §3.4), else refused at `/value`
+/// with the reason.
+fn refuse_bad_symbol_template(tx: &TxBuilder<'_>, cfg: ew_ids::Id<PlcConfigProject>) -> Result<(), CmdError> {
+    let c = tx.require::<PlcConfigProject>(cfg)?;
+    let Some(template) = c.symbols.as_ref().and_then(|s| s.template.clone()) else {
+        return Ok(());
+    };
+    match ew_derive::symbol_template_error(&template) {
+        None => Ok(()),
+        Some(why) => Err(newer(text!("refusal-plc-symbol-template", template, why))),
+    }
 }
 
 /// A configuration project's name as `plc.config_project.create` keeps it: unique among the configuration
@@ -1041,6 +1089,9 @@ fn check_port(tx: &TxBuilder<'_>, function: ew_ids::Id<Function>) -> Result<(), 
     }
     if let Some(OnOff::Unknown(v)) = &port.termination {
         return Err(newer(text!("refusal-fields-termination-unknown", v.to_string())));
+    }
+    if let Some(ew_schema::MrpRole::Unknown(v)) = &port.mrp {
+        return Err(newer(text!("refusal-fields-mrp-unknown", v.to_string())));
     }
     if let Some(n) = port.logical_net {
         tx.require::<LogicalNet>(n)?;

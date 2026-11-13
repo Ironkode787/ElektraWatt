@@ -110,11 +110,13 @@ pub enum ScopeKind {
     Lnet,
     /// One physical bus net (doc 15 §2.3 `pnet`).
     Pnet,
+    /// One PLC station (a device with the `plc_station` aspect; doc 15 §2.3 `station`).
+    Station,
 }
 
 impl ScopeKind {
     /// The catalogue's text (`rules.json`, the rule reference): `project`, `page`, `strip`, `device`, `cable`,
-    /// `potential`, `module`, `cfg`, `lnet`, `pnet`. Stable: a sign-off's pack digest binds it
+    /// `potential`, `module`, `cfg`, `lnet`, `pnet`, `station`. Stable: a sign-off's pack digest binds it
     /// ([`pack_definition`](crate::pack_definition)).
     pub fn name(self) -> &'static str {
         match self {
@@ -128,6 +130,7 @@ impl ScopeKind {
             ScopeKind::Cfg => "cfg",
             ScopeKind::Lnet => "lnet",
             ScopeKind::Pnet => "pnet",
+            ScopeKind::Station => "station",
         }
     }
 }
@@ -155,6 +158,8 @@ pub enum Scope {
     Lnet(Id<LogicalNet>),
     /// A physical bus net.
     Pnet(Id<PhysicalNet>),
+    /// A PLC station device.
+    Station(Id<Device>),
 }
 
 impl Scope {
@@ -171,6 +176,7 @@ impl Scope {
             Scope::Cfg(_) => ScopeKind::Cfg,
             Scope::Lnet(_) => ScopeKind::Lnet,
             Scope::Pnet(_) => ScopeKind::Pnet,
+            Scope::Station(_) => ScopeKind::Station,
         }
     }
 }

@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! PLC records (doc 10 §2.2–§2.4, §3.3, §3.9): `plc.config_project.create`
-//! (`CreatePlcConfigProject`), `plc.bind_channel` (`BindChannel`) and `plc.set_module_part`
-//! (`SetModulePart`, Bulk).
+//! (`CreatePlcConfigProject`), `plc.bind_channel` (`BindChannel`), `plc.set_module_part`
+//! (`SetModulePart`, Bulk), `plc.set_start`, `plc.set_profile`, and the Bulk commands of freezing and
+//! re-addressing: `plc.freeze` (`FreezeAddresses`), `plc.readdress` (`Readdress`) and
+//! `plc.convert_manual_to_auto` (`ConvertManualToAuto`).
 //!
 //! Stations and modules are device aspects, set with `fields.set` (`plc_station`, `plc_module`); the
 //! channels of a module come from its part data through normaliser N1 (`channel_instantiation`) when the
@@ -545,4 +547,415 @@ impl Command for SetModulePart {
         outcome.notices = notices;
         Ok(outcome)
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// Freezing and re-addressing (doc 10 §3.9, FR-PLC-014, FR-PLC-015)
+
+/// The modules a re-address command acts on: the named modules (each with the `plc_module` aspect), else every module
+/// of the configuration project in allocation order, from the transaction's base snapshot (the command starts there).
+fn scope_modules(
+    tx: &TxBuilder<'_>,
+    name: &'static str,
+    config_project: Option<Id<PlcConfigProject>>,
+    modules: &[Id<Device>],
+) -> Result<Vec<Id<Device>>, CmdError> {
+    if !modules.is_empty() {
+        let mut out = Vec::new();
+        for m in modules {
+            let dev = tx.require::<Device>(*m)?;
+            if dev.aspects.plc_module.is_none() {
+                return tx.reject(text!("refusal-plc-not-module", crate::words::device(tx, *m)));
+            }
+            if !out.contains(m) {
+                out.push(*m);
+            }
+        }
+        return Ok(out);
+    }
+    let Some(cfg) = config_project else {
+        return Err(CmdError::invalid_params(
+            name,
+            "/modules",
+            text!("refusal-plc-scope-empty"),
+        ));
+    };
+    tx.require::<PlcConfigProject>(cfg)?;
+    let q = ew_derive::Q::new(tx.base_model());
+    Ok(q.get::<ew_derive::ModuleOrder>(cfg).iter().map(|m| m.module).collect())
+}
+
+/// Every module of the configuration projects that `modules` belong to, in allocation order: the modules whose
+/// automatic addresses a change of `modules` can move.
+fn neighbourhood(q: &ew_derive::Q, modules: &[Id<Device>]) -> Vec<Id<Device>> {
+    let mut cfgs: Vec<Id<PlcConfigProject>> = Vec::new();
+    for m in modules {
+        let cfg = ew_derive::station_of(q, *m)
+            .and_then(|s| q.devices().get(s).and_then(|d| d.aspects.plc_station.as_ref().map(|p| p.config_project)));
+        if let Some(cfg) = cfg.filter(|c| !cfgs.contains(c)) {
+            cfgs.push(cfg);
+        }
+    }
+    let mut out: Vec<Id<Device>> = Vec::new();
+    for cfg in cfgs {
+        out.extend(q.get::<ew_derive::ModuleOrder>(cfg).iter().map(|m| m.module));
+    }
+    for m in modules {
+        if !out.contains(m) {
+            out.push(*m);
+        }
+    }
+    out
+}
+
+/// A derived address as a notice prints it: the profile's text, `TBD`, or `no address`.
+fn address_words(a: &ew_derive::ChannelAddr) -> String {
+    match a {
+        ew_derive::ChannelAddr::At { text, .. } => text.clone(),
+        ew_derive::ChannelAddr::Tbd => "TBD".to_owned(),
+        ew_derive::ChannelAddr::Excluded | ew_derive::ChannelAddr::Unresolved => "no address".to_owned(),
+    }
+}
+
+/// The printed address of every channel of `modules` in `q`, by channel, with its module and number.
+fn printed_addresses(
+    q: &ew_derive::Q,
+    modules: &[Id<Device>],
+) -> Vec<(Id<Channel>, Id<Device>, u16, String)> {
+    let mut out = Vec::new();
+    for m in modules {
+        for e in q.get::<ew_derive::ChannelAddresses>(*m).iter() {
+            out.push((e.channel, *m, e.number, address_words(&e.address)));
+        }
+    }
+    out
+}
+
+/// The re-address preview (FR-PLC-014): one notice per channel of `modules` whose printed address the transaction
+/// changes, `channel 3 of -201U5: Q10.3 → Q2.3`, in allocation and channel order, computed on the transaction's
+/// result.
+fn readdress_notices(
+    tx: &TxBuilder<'_>,
+    before: &[(Id<Channel>, Id<Device>, u16, String)],
+    modules: &[Id<Device>],
+) -> Result<Vec<String>, CmdError> {
+    let after = tx
+        .base_model()
+        .apply_history(&tx.ops(), tx.base_rev().next())
+        .map_err(|e| CmdError::internal(format!("re-address preview: {e}")))?;
+    let qa = ew_derive::Q::new(&after);
+    let now: std::collections::BTreeMap<Id<Channel>, String> = printed_addresses(&qa, modules)
+        .into_iter()
+        .map(|(c, _, _, t)| (c, t))
+        .collect();
+    let mut out = Vec::new();
+    for (channel, module, number, old) in before {
+        let Some(new) = now.get(channel) else {
+            continue;
+        };
+        if new != old {
+            out.push(format!(
+                "channel {number} of {}: {old} → {new}",
+                crate::words::device(tx, *module)
+            ));
+        }
+    }
+    Ok(out)
+}
+
+/// `plc.freeze` (`FreezeAddresses`, doc 10 §3.9 `plc.freeze{cfg}`, FR-PLC-015): freezes every derived channel address
+/// of a configuration project.
+///
+/// Every channel of the configuration project's modules whose address is `auto` and derives to an address takes that
+/// address as a `manual` one, so that a later change of a start, a slot or a part map moves no printed address and
+/// EW-PLC-012 (`manual`) reports every channel whose map now differs. A `tbd`, `excluded`, `manual` or unresolved
+/// address stays. Module starts are not touched. **Bulk** (the preview lists every channel); undoable as one step. The
+/// configuration project exists ([`CmdError::NotFound`]). Outcome: the configuration project, with a notice that
+/// counts the frozen addresses.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FreezeAddresses {
+    /// The configuration project.
+    #[schemars(with = "UuidS")]
+    pub config_project: Id<PlcConfigProject>,
+}
+
+impl Command for FreezeAddresses {
+    const NAME: &'static str = "plc.freeze";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME).bulk()
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let cfg = tx.require::<PlcConfigProject>(self.config_project)?;
+        let base = tx.base_model().clone();
+        let q = ew_derive::Q::new(&base);
+        let mut frozen = 0usize;
+        for m in q.get::<ew_derive::ModuleOrder>(self.config_project).iter() {
+            for e in q.get::<ew_derive::ChannelAddresses>(m.module).iter() {
+                let ew_derive::ChannelAddr::At { address, .. } = &e.address else {
+                    continue;
+                };
+                if tx.get::<Channel>(e.channel).is_some_and(|c| c.address == AddrSpec::Auto) {
+                    let manual = AddrSpec::Manual(ew_derive::stored(*address));
+                    tx.update::<Channel>(e.channel, |c| c.address = manual)?;
+                    frozen += 1;
+                }
+            }
+        }
+        let mut outcome = Outcome::primary((Kind::PlcConfigProject, self.config_project.cast()));
+        if frozen > 0 {
+            outcome.notices.push(format!(
+                "{frozen} channel address(es) of configuration project {} frozen as manual addresses",
+                cfg.name
+            ));
+        }
+        Ok(outcome)
+    }
+}
+
+/// `plc.readdress` (`Readdress`, doc 10 §3.9 `plc.readdress{scope}`, FR-PLC-014): re-addresses a selection of modules
+/// or a configuration project by the profile's allocation scheme.
+///
+/// The scope is `modules` (each with the `plc_module` aspect), else every module of `config_project`. Every `manual`
+/// start of a module in scope becomes `auto`, and so does every `manual` channel address of its channels; `tbd` and
+/// `excluded` stay. Algorithm A1 then places the modules afresh. **Bulk:** the preview's notices list every channel of
+/// the affected configuration projects whose printed address changes (`channel 3 of -201U5: Q10.3 → Q2.3`), the
+/// following automatic modules included; committing the preview applies it as one undo step. Rejected: neither
+/// `modules` nor `config_project` (at `/modules`), a device without the `plc_module` aspect, a record that does not
+/// exist ([`CmdError::NotFound`]). Ownership protection of PLC-owned starts (doc 10 §3.9) is not built. Outcome: the
+/// first module, or the configuration project.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Readdress {
+    /// The configuration project whose modules are re-addressed when `modules` is empty.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub config_project: Option<Id<PlcConfigProject>>,
+    /// The module devices to re-address.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<UuidS>")]
+    pub modules: Vec<Id<Device>>,
+}
+
+impl Command for Readdress {
+    const NAME: &'static str = "plc.readdress";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME).bulk()
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let modules = scope_modules(tx, Self::NAME, self.config_project, &self.modules)?;
+        let base = tx.base_model().clone();
+        let q = ew_derive::Q::new(&base);
+        let affected = neighbourhood(&q, &modules);
+        let before = printed_addresses(&q, &affected);
+        for m in &modules {
+            let manual_start = tx.get::<Device>(*m).and_then(|d| d.aspects.plc_module.clone()).is_some_and(|p| {
+                matches!(p.start.input, AddrSpec::Manual(_)) || matches!(p.start.output, AddrSpec::Manual(_))
+            });
+            if manual_start {
+                tx.update::<Device>(*m, |d| {
+                    if let Some(p) = d.aspects.plc_module.as_mut() {
+                        for s in [&mut p.start.input, &mut p.start.output] {
+                            if matches!(s, AddrSpec::Manual(_)) {
+                                *s = AddrSpec::Auto;
+                            }
+                        }
+                    }
+                })?;
+            }
+            for c in tx.channels_of_module(*m) {
+                if tx.get::<Channel>(c).is_some_and(|c| matches!(c.address, AddrSpec::Manual(_))) {
+                    tx.update::<Channel>(c, |c| c.address = AddrSpec::Auto)?;
+                }
+            }
+        }
+        let notices = readdress_notices(tx, &before, &affected)?;
+        let mut outcome = match (modules.first(), self.config_project) {
+            (Some(m), _) if !self.modules.is_empty() => Outcome::primary((Kind::Device, m.cast())),
+            (_, Some(cfg)) => Outcome::primary((Kind::PlcConfigProject, cfg.cast())),
+            _ => Outcome::default(),
+        };
+        outcome.notices = notices;
+        Ok(outcome)
+    }
+}
+
+/// `plc.convert_manual_to_auto` (`ConvertManualToAuto`, doc 10 §3.9 `plc.convert_manual_to_auto{scope}`,
+/// FR-PLC-014): drops the manual values that equal the derived ones.
+///
+/// The scope is that of [`Readdress`]. A `manual` channel address equal to the address A2 derives for the channel
+/// becomes `auto`; a `manual` start equal to the start A1 places the module at as `auto` becomes `auto` (judged on the
+/// result, so a start that only another manual start holds in place stays). Nothing prints differently. Every manual
+/// value that stays gets a notice with both values (`channel 3 of -201U5 keeps its manual address Q10.3 (derived:
+/// Q2.3)`, `module -201U5 keeps its manual output start Q10 (automatic: Q2)`). **Bulk**; one undo step. Rejected as
+/// [`Readdress`]. Outcome: the first module, or the configuration project.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ConvertManualToAuto {
+    /// The configuration project whose modules are converted when `modules` is empty.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub config_project: Option<Id<PlcConfigProject>>,
+    /// The module devices to convert.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[schemars(with = "Vec<UuidS>")]
+    pub modules: Vec<Id<Device>>,
+}
+
+impl Command for ConvertManualToAuto {
+    const NAME: &'static str = "plc.convert_manual_to_auto";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME).bulk()
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let modules = scope_modules(tx, Self::NAME, self.config_project, &self.modules)?;
+        let base = tx.base_model().clone();
+        let q = ew_derive::Q::new(&base);
+        let mut notices = Vec::new();
+        // Channel addresses: equal to the derived address, or kept with a notice.
+        for m in &modules {
+            for e in q.get::<ew_derive::ChannelAddresses>(*m).iter() {
+                let Some(c) = tx.get::<Channel>(e.channel) else {
+                    continue;
+                };
+                let AddrSpec::Manual(a) = &c.address else {
+                    continue;
+                };
+                if ew_derive::canonical(a).is_some_and(|x| e.auto == Some(x)) {
+                    tx.update::<Channel>(e.channel, |c| c.address = AddrSpec::Auto)?;
+                } else {
+                    let derived = e
+                        .auto
+                        .zip(module_profile_of(&q, *m).filter(|p| p.absolute))
+                        .map_or_else(
+                            || "none".to_owned(),
+                            |(auto, p)| p.render(&auto, ew_derive::ew_plcaddr::Purpose::Drawing),
+                        );
+                    notices.push(format!(
+                        "channel {} of {} keeps its manual address {} (derived: {derived})",
+                        e.number,
+                        crate::words::device(tx, *m),
+                        address_words(&e.address)
+                    ));
+                }
+            }
+        }
+        // Module starts: converted together, then the ones whose automatic start differs are restored, until none
+        // differs (each round restores at least one, so it ends).
+        let mut candidates: Vec<(Id<Device>, bool, u32)> = Vec::new();
+        for m in &modules {
+            let Some(p) = tx.get::<Device>(*m).and_then(|d| d.aspects.plc_module.clone()) else {
+                continue;
+            };
+            for (output, spec) in [(false, &p.start.input), (true, &p.start.output)] {
+                if let AddrSpec::Manual(a) = spec {
+                    candidates.push((*m, output, a.byte));
+                }
+            }
+        }
+        let original: Vec<(Id<Device>, ew_schema::IoStarts)> = modules
+            .iter()
+            .filter_map(|m| tx.get::<Device>(*m).and_then(|d| d.aspects.plc_module.as_ref().map(|p| (*m, p.start.clone()))))
+            .collect();
+        let mut kept: Vec<(Id<Device>, bool, u32, Option<u32>)> = Vec::new();
+        while !candidates.is_empty() {
+            for (m, output, _) in &candidates {
+                tx.update::<Device>(*m, |d| {
+                    if let Some(p) = d.aspects.plc_module.as_mut() {
+                        if *output {
+                            p.start.output = AddrSpec::Auto;
+                        } else {
+                            p.start.input = AddrSpec::Auto;
+                        }
+                    }
+                })?;
+            }
+            let after = tx
+                .base_model()
+                .apply_history(&tx.ops(), tx.base_rev().next())
+                .map_err(|e| CmdError::internal(format!("plc.convert_manual_to_auto: {e}")))?;
+            let qa = ew_derive::Q::new(&after);
+            let placed = |m: Id<Device>, output: bool| -> Option<u32> {
+                let s = (*qa.get::<ew_derive::ModuleStartOf>(m))?;
+                match if output { s.output } else { s.input } {
+                    Some(ew_derive::Start::At(b)) => Some(b),
+                    _ => None,
+                }
+            };
+            let (stay, differ): (Vec<_>, Vec<_>) = candidates
+                .iter()
+                .copied()
+                .partition(|(m, output, byte)| placed(*m, *output) == Some(*byte));
+            if differ.is_empty() {
+                break;
+            }
+            for (m, output, byte) in &differ {
+                let start = original
+                    .iter()
+                    .find(|(x, _)| x == m)
+                    .map(|(_, s)| if *output { s.output.clone() } else { s.input.clone() });
+                if let Some(start) = start {
+                    tx.update::<Device>(*m, |d| {
+                        if let Some(p) = d.aspects.plc_module.as_mut() {
+                            if *output {
+                                p.start.output = start;
+                            } else {
+                                p.start.input = start;
+                            }
+                        }
+                    })?;
+                }
+                kept.push((*m, *output, *byte, placed(*m, *output)));
+            }
+            candidates = stay;
+        }
+        for (m, output, byte, auto) in kept {
+            let area = if output {
+                ew_derive::ew_plcaddr::Area::Q
+            } else {
+                ew_derive::ew_plcaddr::Area::I
+            };
+            let start = |b: u32| {
+                module_profile_of(&q, m).map_or_else(
+                    || b.to_string(),
+                    |p| {
+                        p.render(
+                            &ew_derive::ew_plcaddr::PlcAddress::unit(area, ew_derive::ew_plcaddr::Size::Bit, b),
+                            ew_derive::ew_plcaddr::Purpose::Drawing,
+                        )
+                    },
+                )
+            };
+            notices.push(format!(
+                "module {} keeps its manual {} start {} (automatic: {})",
+                crate::words::device(tx, m),
+                if output { "output" } else { "input" },
+                start(byte),
+                auto.map_or_else(|| "none".to_owned(), start)
+            ));
+        }
+        let mut outcome = match (modules.first(), self.config_project) {
+            (Some(m), _) if !self.modules.is_empty() => Outcome::primary((Kind::Device, m.cast())),
+            (_, Some(cfg)) => Outcome::primary((Kind::PlcConfigProject, cfg.cast())),
+            _ => Outcome::default(),
+        };
+        outcome.notices = notices;
+        Ok(outcome)
+    }
+}
+
+/// The address profile of a module's configuration project in `q`.
+fn module_profile_of(
+    q: &ew_derive::Q,
+    module: Id<Device>,
+) -> Option<std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>> {
+    let station = ew_derive::station_of(q, module)?;
+    let cfg = q.devices().get(station)?.aspects.plc_station.as_ref()?.config_project;
+    ew_derive::profile_of(q, cfg)
 }

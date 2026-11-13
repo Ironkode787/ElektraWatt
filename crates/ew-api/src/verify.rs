@@ -41,7 +41,7 @@ use crate::output::{
 use crate::{Mismatch, Session};
 
 /// Every settings member (the keys of `settings_member`).
-const ALL_MEMBERS: [Member; 9] = Member::ALL;
+const ALL_MEMBERS: [Member; 10] = Member::ALL;
 
 /// The keys of the snapshot a `Q` sees, for the families with a non-trivial key.
 struct Keys {
@@ -197,7 +197,8 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::BusSegments>(memo, cold, keys.pnets.iter().copied(), o);
     check::<ew_derive::NetMembersOf>(memo, cold, keys.lnets.iter().copied(), o);
     check::<ew_derive::PlcRows>(memo, cold, keys.devices.iter().copied(), o);
-    // The printed PLC addresses.
+    // The printed PLC addresses, and the targets they print on (FT-700).
+    check::<ew_derive::ChannelsByTarget>(memo, cold, [()], o);
     check::<ew_derive::PlcAddressText>(memo, cold, keys.functions.iter().copied(), o);
     check::<DevicePartLines>(memo, cold, keys.devices.iter().copied(), o);
     check::<DeviceTag>(memo, cold, keys.devices.iter().copied(), o);

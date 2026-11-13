@@ -19,4 +19,4 @@ mod profile;
 pub use address::{Area, PlcAddress, Size};
 pub use intervals::AreaIntervals;
 pub use map::{MapExpr, MapVar};
-pub use profile::{AddressProfile, ProfileError, ProfileFields, Purpose};
+pub use profile::{AddressProfile, ProfileError, ProfileFields, Purpose, TagPlace};

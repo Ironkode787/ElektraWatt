@@ -449,6 +449,7 @@ pub(crate) fn plc_text_refusal(
     match ew_derive::pinned_profile(at_hand, profile) {
         None if start => text!("refusal-plc-start-profile-gone", profile),
         None => text!("refusal-plc-address-profile-gone", profile),
+        Some(p) if !p.absolute => text!("refusal-plc-tag-based", profile),
         Some(p) if start => text!(
             "refusal-plc-start-text",
             typed,

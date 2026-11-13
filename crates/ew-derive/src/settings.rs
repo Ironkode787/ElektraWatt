@@ -40,6 +40,8 @@ pub enum Member {
     DerivationProfile,
     /// `ProjectSettings.text_styles` (typed; ADR-0032): the overrides of the built-in text-style table.
     TextStyles,
+    /// `ProjectSettings.process_tag_scheme` (typed; FR-PLC-049): the regular expression a process tag matches.
+    ProcessTagScheme,
 }
 
 impl Member {
@@ -55,11 +57,12 @@ impl Member {
             Member::XrefFormat => "xref_format",
             Member::DerivationProfile => "derivation_profile",
             Member::TextStyles => "text_styles",
+            Member::ProcessTagScheme => "process_tag_scheme",
         }
     }
 
     /// Every member, in declaration order.
-    pub const ALL: [Member; 9] = [
+    pub const ALL: [Member; 10] = [
         Member::IpPairing,
         Member::ColourProfile,
         Member::SizeProfile,
@@ -69,6 +72,7 @@ impl Member {
         Member::XrefFormat,
         Member::DerivationProfile,
         Member::TextStyles,
+        Member::ProcessTagScheme,
     ];
 
     /// The member stored under `name` ([`Member::name`]).
@@ -92,7 +96,8 @@ impl Member {
 /// - `colour_profile`: every colour code an IEC 60757 code or a company code that the profile's `codes`
 ///   declare on an IEC 60757 base; `size_profile`: every cross-section a positive number (mm², AWG or kcmil);
 /// - `wire_default` and `ip_pairing`: their shapes;
-/// - `text_styles`: [`ew_schema::check_text_styles`] (identifier keys, sizes of 0.5 … 50 mm, known weights).
+/// - `text_styles`: [`ew_schema::check_text_styles`] (identifier keys, sizes of 0.5 … 50 mm, known weights);
+/// - `process_tag_scheme`: a text that compiles as a regular expression ([`crate::plc::process_tag_scheme`]).
 ///
 /// `frames` and `derivation_profile` have no checker here and are refused with a message saying so.
 pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
@@ -141,6 +146,10 @@ pub fn check_member(member: Member, value: &Value) -> Result<(), String> {
         Member::TextStyles => ew_schema::check_text_styles(value)
             .map(drop)
             .map_err(|e| format!("{}: {}", e.pointer, e.message)),
+        Member::ProcessTagScheme => match value.as_str() {
+            Some(text) => crate::plc::process_tag_scheme(text).map(drop),
+            None => Err("the scheme is a text: a regular expression with named groups".to_owned()),
+        },
         Member::Frames | Member::DerivationProfile => {
             Err(format!("`{}` has no value checker", member.name()))
         }
@@ -192,6 +201,7 @@ impl Query for SettingsMember {
                 .as_ref()
                 .map(|p| serde_json::to_value(p).expect("a typed settings member serialises")),
             Member::DerivationProfile => Some(Value::String(project.derivation_profile.as_str().to_owned())),
+            Member::ProcessTagScheme => project.settings.process_tag_scheme.clone().map(Value::String),
             Member::TextStyles => (!project.settings.text_styles.is_empty()).then(|| {
                 serde_json::to_value(&project.settings.text_styles)
                     .expect("a typed settings member serialises")

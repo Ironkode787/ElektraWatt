@@ -1401,6 +1401,7 @@ dependencies = [
  "ew-units",
  "imbl",
  "proptest",
+ "regex",
  "serde",
  "serde_json",
  "toml",

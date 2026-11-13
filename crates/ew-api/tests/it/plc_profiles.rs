@@ -146,7 +146,7 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
     assert_eq!(
         refusal(error),
         "`no-such-profile` is not an address profile of this build or of the project; the profiles at hand are \
-         siemens-tia-intl@2027.1, iec-61131-3@2027.1"
+         siemens-tia-intl@2027.1, iec-61131-3@2027.1, rockwell-logix@2027.1"
     );
     // T2: the library's profile that does not render is noted in its listing and left out of the profiles at hand.
     assert_eq!(
@@ -167,7 +167,7 @@ fn a_library_profile_is_chosen_without_a_code_change_and_stays_with_the_project(
     assert_eq!(
         refusal(error),
         "`fixture-hex` is not an address profile of this build or of the project; the profiles at hand are \
-         siemens-tia-intl@2027.1, iec-61131-3@2027.1"
+         siemens-tia-intl@2027.1, iec-61131-3@2027.1, rockwell-logix@2027.1"
     );
     // ... and refused by `library.embed`, so it never reaches a project.
     let hex = s

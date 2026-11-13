@@ -97,9 +97,10 @@ pub fn station_of(q: &Q, device: Id<Device>) -> Option<Id<Device>> {
 
 /// The built-in address profiles' files: `content/plc-profiles`, library documents of kind
 /// `plc_profile`, compiled in and parsed once ([`builtin_profiles`]).
-const BUILTIN_PROFILE_FILES: [&str; 2] = [
+const BUILTIN_PROFILE_FILES: [&str; 3] = [
     include_str!("../../../content/plc-profiles/siemens-tia-intl.json"),
     include_str!("../../../content/plc-profiles/iec-61131-3.json"),
+    include_str!("../../../content/plc-profiles/rockwell-logix.json"),
 ];
 
 /// The address profile of a profile document: the one parse path of the built-ins and of a user's file.
@@ -140,7 +141,8 @@ pub fn unreadable_profile(def: &PlcProfileDef) -> Option<String> {
     })
 }
 
-/// The built-in address profiles in shipping order (`siemens-tia-intl@2027.1`, `iec-61131-3@2027.1`), parsed once
+/// The built-in address profiles in shipping order (`siemens-tia-intl@2027.1`, `iec-61131-3@2027.1`,
+/// `rockwell-logix@2027.1`), parsed once
 /// from their compiled-in files. A built-in file that does not read is a build defect, which a test of this crate
 /// rules out.
 pub fn builtin_profiles() -> &'static [Arc<AddressProfile>] {
@@ -227,19 +229,28 @@ pub fn parse_plc_address(
              read; give auto, excluded or tbd"
         ));
     };
+    if !p.absolute {
+        return Err(tag_based(profile));
+    }
     let Some(a) = p.parse(text) else {
         return Err(format!(
             "`{text}` is not an address of profile {profile}: expected an address like {}",
             p.example()
         ));
     };
-    let area = match a.area {
-        Area::I => PlcArea::I,
-        Area::Q => PlcArea::Q,
-        Area::M => PlcArea::M,
-        Area::Pi => PlcArea::Pi,
-        Area::Pq => PlcArea::Pq,
-    };
+    Ok(stored(a))
+}
+
+/// Why a tag-based profile reads no address text (FR-PLC-009).
+fn tag_based(profile: &str) -> String {
+    format!(
+        "profile {profile} is tag-based: its addresses come from the station and the slot, so none is typed; give \
+         auto, excluded or tbd"
+    )
+}
+
+/// The stored form of a canonical address (a channel's `Manual` address, `plc.freeze`).
+pub fn stored(a: ew_plcaddr::PlcAddress) -> ew_schema::PlcAddress {
     let size = match a.size {
         Size::Bit => PlcSize::Bit,
         Size::Byte => PlcSize::Byte,
@@ -247,13 +258,13 @@ pub fn parse_plc_address(
         Size::DWord => PlcSize::DWord,
         Size::LWord => PlcSize::LWord,
     };
-    Ok(ew_schema::PlcAddress {
-        area,
+    ew_schema::PlcAddress {
+        area: plc_area(a.area),
         size,
         byte: a.byte,
         bit: a.bit,
         extra: ew_schema::Extra::new(),
-    })
+    }
 }
 
 /// A module-start text in the notation of the profile `profile` (`id@version`) at hand (`at_hand`), in the stored
@@ -271,6 +282,9 @@ pub fn parse_plc_start(
              give auto, excluded or tbd"
         ));
     };
+    if !p.absolute {
+        return Err(tag_based(profile));
+    }
     let Some((area, byte)) = p.parse_start(text) else {
         return Err(format!(
             "`{text}` is not a start of profile {profile}: expected a start like {}",
@@ -874,15 +888,25 @@ impl Query for ChannelAddresses {
 
     fn run(q: &Q, key: &Self::Key) -> Arc<Vec<ChannelAddrEntry>> {
         let channels = module_channels(q, *key);
-        let cfg = module_cfg(q, *key).map(|(_, c)| c);
-        let profile = cfg.and_then(|c| profile_of(q, c));
+        let located = module_cfg(q, *key);
+        let profile = located.and_then(|(_, c)| profile_of(q, c));
         // D9: this module's start only, so another module's start edit cuts off before this family
         let start = *q.get::<ModuleStartOf>(*key);
         let bit_of = module_part(q, *key).and_then(|(_, s)| s.bit_of);
+        // A tag-based profile renders from the station and the slot (FR-PLC-009); an absolute one needs neither.
+        let place = match (&profile, located) {
+            (Some(p), Some((station, cfg))) if !p.absolute => tag_station(q, *key, station, cfg),
+            _ => None,
+        };
+        let r = Render {
+            profile: profile.as_deref(),
+            place: place.as_ref(),
+            start,
+        };
         let out = channels
             .iter()
             .map(|c| {
-                let address = address_of(c, profile.as_deref(), start, bit_of.as_ref());
+                let address = address_of(c, &r, bit_of.as_ref());
                 let auto = match (&c.address, &address) {
                     (AddrSpec::Auto, ChannelAddr::At { address, .. }) => Some(*address),
                     (AddrSpec::Auto, _) => None,
@@ -891,7 +915,7 @@ impl Query for ChannelAddresses {
                             address: AddrSpec::Auto,
                             ..c.as_ref().clone()
                         };
-                        match address_of(&derived, profile.as_deref(), start, bit_of.as_ref()) {
+                        match address_of(&derived, &r, bit_of.as_ref()) {
                             ChannelAddr::At { address, .. } => Some(address),
                             _ => None,
                         }
@@ -1032,17 +1056,104 @@ pub fn auto_address(q: &Q, module: Id<Device>, channel: Id<Channel>) -> Option<e
         .and_then(|e| e.auto)
 }
 
-fn address_of(
-    c: &Channel,
-    profile: Option<&AddressProfile>,
+/// What renders a module's channel addresses: the configuration project's profile, the module's station name and
+/// slot under a tag-based profile, and the module's starts.
+struct Render<'a> {
+    profile: Option<&'a AddressProfile>,
+    place: Option<&'a (String, u32)>,
     start: Option<ModuleStart>,
-    bit_of: Option<&MapSpec>,
-) -> ChannelAddr {
+}
+
+/// The station name and the slot a tag-based profile renders a module's addresses from (FR-PLC-009): `Local` for a
+/// module of the configuration project's CPU station, else the station's tag as an identifier (`_201U1`); the slot
+/// is the rack slot, else the positional rank. `None` for a module whose slot is of a newer format.
+fn tag_station(
+    q: &Q,
+    module: Id<Device>,
+    station: Id<Device>,
+    cfg: Id<PlcConfigProject>,
+) -> Option<(String, u32)> {
+    let slot = match q.get::<ModuleOrder>(cfg).iter().find(|m| m.module == module)?.slot {
+        Slot::Rack { slot, .. } => u32::from(slot),
+        Slot::Positional(n) => n,
+        Slot::Unresolved => return None,
+    };
+    let local = q.table::<PlcConfigProject>().get(cfg).is_some_and(|c| c.cpu == Some(station));
+    let name = if local {
+        "Local".to_owned()
+    } else {
+        let tag = q.get::<crate::DeviceTag>(station);
+        iec_ident(tag.as_ref().as_ref().map_or("", |t| t.product.as_str()))
+    };
+    Some((name, slot))
+}
+
+/// `text` as a strict IEC 61131-3 identifier (doc 10 §3.4, FR-PLC-047): every character outside `[A-Za-z0-9_]`
+/// becomes `_`, runs of underscores collapse, leading and trailing underscores go, and a result that starts with a
+/// digit takes a leading `_` (`-201U3-Q1:14` gives `_201U3_Q1_14`). Empty for a text without a letter or a digit.
+pub fn iec_ident(text: &str) -> String {
+    let mut out = String::with_capacity(text.len() + 1);
+    for c in text.chars() {
+        let c = if c.is_ascii_alphanumeric() { c } else { '_' };
+        if c == '_' && (out.is_empty() || out.ends_with('_')) {
+            continue;
+        }
+        out.push(c);
+    }
+    while out.ends_with('_') {
+        out.pop();
+    }
+    if out.starts_with(|c: char| c.is_ascii_digit()) {
+        out.insert(0, '_');
+    }
+    out
+}
+
+/// Whether `text` is a strict IEC 61131-3 identifier (EW-PLC-005): letters, digits and single underscores, not
+/// ending in an underscore, and not starting with a digit.
+pub fn is_iec_ident(text: &str) -> bool {
+    !text.is_empty()
+        && text.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && !text.contains("__")
+        && !text.ends_with('_')
+        && !text.starts_with(|c: char| c.is_ascii_digit())
+}
+
+fn address_of(c: &Channel, r: &Render<'_>, bit_of: Option<&MapSpec>) -> ChannelAddr {
+    let (profile, start) = (r.profile, r.start);
     let render = |a: ew_plcaddr::PlcAddress| match profile {
-        Some(p) => ChannelAddr::At {
+        Some(p) if p.absolute => ChannelAddr::At {
             address: a,
             text: p.render(&a, Purpose::Drawing),
         },
+        // A tag-based profile prints the bit's offset in the module's range of its direction, or the channel of a
+        // unit address; an address before the range, or a module without a slot, prints none.
+        Some(p) => {
+            let Some((station, slot)) = r.place else {
+                return ChannelAddr::Unresolved;
+            };
+            let first = start.and_then(|s| match a.area {
+                Area::I | Area::Pi => s.input,
+                _ => s.output,
+            });
+            let bit = match (a.bit, first) {
+                (None, _) => None,
+                (Some(b), Some(Start::At(byte))) => match a.byte.checked_sub(byte) {
+                    Some(d) => Some(d.saturating_mul(p.unit_bits).saturating_add(u32::from(b))),
+                    None => return ChannelAddr::Unresolved,
+                },
+                (Some(_), _) => return ChannelAddr::Unresolved,
+            };
+            let place = ew_plcaddr::TagPlace {
+                station,
+                slot: *slot,
+                channel: u32::from(c.number),
+            };
+            ChannelAddr::At {
+                address: a,
+                text: p.render_tag(&place, a.area, bit, Purpose::Drawing),
+            }
+        }
         None => ChannelAddr::Unresolved,
     };
     match &c.address {
@@ -1086,12 +1197,24 @@ fn address_of(
 // ---------------------------------------------------------------------------------------------------------
 // channel_targets(module)
 
-/// One channel's target (doc 10 §3.5, direct targets).
+/// How a channel's target was found (doc 10 §3.5).
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
+pub enum TargetSource {
+    /// The manual `Channel.target` (FR-PLC-054).
+    Manual,
+    /// The function of the bound CP (an internal coil).
+    Direct,
+    /// Traced from the module pin through the signal (FR-PLC-018).
+    Traced,
+}
+
+/// One channel's target (doc 10 §3.5).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct ChannelTarget {
     /// The channel.
     pub channel: Id<Channel>,
-    /// The target function: the manual target, else the function of the bound CP.
+    /// The target function: the manual target, else the function of the bound CP, else the field function the
+    /// module pin's signal reaches.
     pub function: Option<Id<Function>>,
     /// The target function's device.
     pub device: Option<Id<Device>>,
@@ -1099,9 +1222,105 @@ pub struct ChannelTarget {
     pub rep: Option<Id<Representation>>,
     /// The bound CP (the coil's internal CP), the link destination of the channel's row (doc 10 §5).
     pub cp: Option<crate::CpRef>,
+    /// How the target was found; `None` without a target.
+    pub source: Option<TargetSource>,
+    /// The target's CP: the bound CP of a direct target, the CP the signal reaches of a traced one.
+    pub pin: Option<crate::CpRef>,
+    /// The terminals a traced signal passes (FR-PLC-018: "-X1031:5"), by their device, in drawn page order.
+    pub passed: Vec<crate::CpRef>,
+    /// Whether the signal reaches several field functions and the rank chose one (doc 10 §3.5 "ambiguous").
+    pub ambiguous: bool,
 }
 
-/// `channel_targets(module)`: the direct targets, in channel-number order.
+/// The category rank of a field function's contact kind (doc 10 §3.5: coils and actuators before contacts); `None`
+/// for a function that is passed, never chosen (terminals, PLC CPs, bus ports).
+fn field_rank(kind: &ew_schema::ContactKind) -> Option<u8> {
+    use ew_schema::ContactKind as K;
+    match kind {
+        K::Coil | K::Valve => Some(0),
+        K::BlackBox => Some(1),
+        K::No | K::Nc | K::Co | K::Pole => Some(2),
+        K::Terminal | K::PlcIo | K::BusPort => None,
+        _ => Some(3),
+    }
+}
+
+/// The field function that the signal of the module pin `pin` reaches (doc 10 §3.5, A4's traced branch): a walk over
+/// the stitch graph's net and signal edges (wires, cores, interruption-point pairs, terminal levels, plug pins, never
+/// bridges), whose CPs are the candidates; terminals and interruption points are passed, a CP of a PLC device or one
+/// that a channel binds is never chosen, nor a CP of the module itself. The best candidate is the lowest (category
+/// rank, drawn page, function ID, CP index). Returns the chosen CP, the passed terminal CPs and whether there were
+/// several candidate functions.
+fn trace(q: &Q, module: Id<Device>, pin: crate::CpRef) -> Option<(crate::CpRef, Vec<crate::CpRef>, bool)> {
+    use crate::stitch::Level;
+    let graph = q.get::<crate::StitchGraphQ>(());
+    let start = graph.node_of(ew_model::EndpointKey::Cp(pin.function, pin.idx))?;
+    let mut adjacent: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+    for e in graph.edges.iter().filter(|e| matches!(e.level, Level::Net | Level::Signal)) {
+        adjacent.entry(e.a).or_default().push(e.b);
+        adjacent.entry(e.b).or_default().push(e.a);
+    }
+    let mut seen = std::collections::BTreeSet::from([start]);
+    let mut stack = vec![start];
+    let mut cps: Vec<crate::CpRef> = Vec::new();
+    while let Some(n) = stack.pop() {
+        cps.extend(graph.nodes[n].members.iter().filter_map(|m| crate::CpRef::of(*m)));
+        for m in adjacent.get(&n).into_iter().flatten() {
+            if seen.insert(*m) {
+                stack.push(*m);
+            }
+        }
+    }
+    let functions = q.functions();
+    let devices = q.devices();
+    let bound = q.get::<ChannelsByCp>(());
+    let order = q.get::<crate::DrawnPageOrder>(());
+    let page_of = |f: Id<Function>| {
+        q.idx()
+            .reps_of_function(f)
+            .filter_map(|r| q.reps().get(r).map(|r| r.page))
+            .filter_map(|p| order.position(crate::PageRef::Drawn(p)))
+            .min()
+            .unwrap_or(usize::MAX)
+    };
+    let mut candidates: Vec<((u8, usize, Id<Function>, u16), crate::CpRef)> = Vec::new();
+    let mut passed: Vec<(usize, crate::CpRef)> = Vec::new();
+    for cp in cps {
+        let Some(f) = functions.get(cp.function) else {
+            continue;
+        };
+        let Some(kind) = q.fndefs().get(f.def).map(|d| d.item.contact_kind.clone()) else {
+            continue;
+        };
+        if kind == ew_schema::ContactKind::Terminal {
+            passed.push((page_of(cp.function), cp));
+            continue;
+        }
+        let plc_device = f.device.and_then(|d| devices.get(d)).is_some_and(|d| {
+            d.aspects.plc_module.is_some() || d.aspects.plc_station.is_some()
+        });
+        let own = f.device.is_some_and(|d| d == module);
+        if own || plc_device || bound.is_bound(cp.function, cp.idx) || f.device.is_none() {
+            continue;
+        }
+        if let Some(rank) = field_rank(&kind) {
+            candidates.push(((rank, page_of(cp.function), cp.function, cp.idx), cp));
+        }
+    }
+    candidates.sort();
+    passed.sort();
+    // one entry per terminal: its first CP in the signal
+    let mut terminals = std::collections::BTreeSet::new();
+    passed.retain(|(_, c)| terminals.insert(c.function));
+    let (_, best) = *candidates.first()?;
+    let several = candidates.iter().any(|(_, c)| c.function != best.function);
+    Some((best, passed.into_iter().map(|(_, c)| c).collect(), several))
+}
+
+/// `channel_targets(module)`: the targets of A4 (doc 10 §3.5), in channel-number order: the manual target, else the
+/// function of the bound CP when it lies outside the module (an internal coil), else, for a channel bound to a pin of
+/// its own module, the field function the pin's signal reaches ([`trace`]). Only a module with such a channel reads
+/// the stitch graph.
 #[derive(Debug)]
 pub struct ChannelTargets;
 
@@ -1122,28 +1341,47 @@ impl Query for ChannelTargets {
         let out = module_channels(q, *key)
             .iter()
             .map(|c| {
-                let bound = match &c.binding {
-                    Some(Endpoint::Cp(f, _)) => Some(*f),
+                let cp = match &c.binding {
+                    Some(Endpoint::Cp(f, idx)) if functions.contains(*f) => Some(crate::CpRef::new(*f, *idx)),
                     _ => None,
                 };
-                // A pin of the module itself is no target: the target lies behind the pin, where tracing would find
-                // it (doc 10 §3.5, not built).
-                let direct = bound.filter(|f| functions.get(*f).is_some_and(|f| f.device != Some(*key)));
-                let function = c.target.or(direct).filter(|f| functions.contains(*f));
+                let bound = cp.map(|cp| cp.function);
+                // A pin of the module itself is no target: the target lies behind the pin, where tracing finds it.
+                let on_module = bound.is_some_and(|f| functions.get(f).is_some_and(|f| f.device == Some(*key)));
+                let manual = c.target.filter(|f| functions.contains(*f));
+                let (function, source, pin, passed, ambiguous) = match (manual, cp) {
+                    (Some(f), _) => (Some(f), Some(TargetSource::Manual), None, Vec::new(), false),
+                    (None, Some(cp)) if !on_module => {
+                        (Some(cp.function), Some(TargetSource::Direct), Some(cp), Vec::new(), false)
+                    }
+                    (None, Some(cp)) => match trace(q, *key, cp) {
+                        Some((hit, passed, several)) => (
+                            Some(hit.function),
+                            Some(TargetSource::Traced),
+                            Some(hit),
+                            passed,
+                            several,
+                        ),
+                        None => (None, None, None, Vec::new(), false),
+                    },
+                    (None, None) => (None, None, None, Vec::new(), false),
+                };
+                let rep_of = |f: Id<Function>| drawn(f).or_else(|| coil_host(q, f).and_then(drawn));
                 ChannelTarget {
                     channel: c.id,
                     function,
                     device: function.and_then(|f| functions.get(f).and_then(|f| f.device)),
-                    // An internal coil is drawn in its valve's symbol
-                    rep: bound
-                        .or(function)
-                        .and_then(|f| drawn(f).or_else(|| coil_host(q, f).and_then(drawn))),
-                    cp: match &c.binding {
-                        Some(Endpoint::Cp(f, idx)) if functions.contains(*f) => {
-                            Some(crate::CpRef::new(*f, *idx))
-                        }
-                        _ => None,
+                    // An internal coil is drawn in its valve's symbol; a traced target by its own symbol
+                    rep: if source == Some(TargetSource::Traced) {
+                        function.and_then(rep_of)
+                    } else {
+                        bound.or(function).and_then(rep_of)
                     },
+                    cp,
+                    source,
+                    pin,
+                    passed,
+                    ambiguous,
                 }
             })
             .collect();
@@ -1350,12 +1588,100 @@ fn own_pin_wired(q: &Q, module: Id<Device>, channel: &Channel) -> bool {
 pub struct ChannelText {
     /// The designation: manual, else the part's pattern over `{n}`.
     pub designation: Option<String>,
-    /// The symbol: manual only (templates are 1.0).
+    /// The symbol: manual, else the configuration project's template over the target ([`symbol_from_template`]).
     pub symbol: Option<String>,
     /// The function text: the target device's, else the process tag of the device it drives.
     pub function_text: Option<ew_mltext::MlText>,
     /// The process tag: the target device's own, else that of the device it drives.
     pub process_tag: Option<String>,
+}
+
+/// The tokens of a symbol template (doc 10 §3.4, FR-PLC-017).
+const SYMBOL_TOKENS: [&str; 7] = [
+    "target.process_tag",
+    "target.dt",
+    "target.function_text",
+    "pin",
+    "module.dt",
+    "channel.number",
+    "address",
+];
+
+/// Why `template` is no symbol template (`fields.set` refuses it): an unclosed `{`, a stray `}`, an empty
+/// alternative or a token that is not one of doc 10 §3.4's; `None` for a template that expands.
+pub fn symbol_template_error(template: &str) -> Option<String> {
+    let mut rest = template;
+    loop {
+        match (rest.find('{'), rest.find('}')) {
+            (None, None) => return None,
+            (None, Some(_)) => return Some("a `}` closes no `{`".to_owned()),
+            (Some(open), close) if close.is_some_and(|c| c < open) => {
+                return Some("a `}` closes no `{`".to_owned());
+            }
+            (Some(open), _) => {
+                let Some(len) = rest[open..].find('}') else {
+                    return Some("a `{` is not closed".to_owned());
+                };
+                for token in rest[open + 1..open + len].split('|') {
+                    if !SYMBOL_TOKENS.contains(&token) {
+                        return Some(format!(
+                            "`{{{token}}}` is no token; the tokens are {}",
+                            SYMBOL_TOKENS.map(|t| format!("{{{t}}}")).join(", ")
+                        ));
+                    }
+                }
+                rest = &rest[open + len + 1..];
+            }
+        }
+    }
+}
+
+/// A symbol template expanded over `value` (doc 10 §3.4): each `{a|b}` takes the first of its tokens whose value is
+/// not empty; a placeholder whose every token is empty gives no symbol (`{target.process_tag}` on a spare valve), and
+/// so does a template that [`symbol_template_error`] refuses. Under `strict_iec` the result is cleaned into an IEC
+/// identifier ([`iec_ident`]); an empty result is no symbol.
+pub fn symbol_from_template(template: &str, strict_iec: bool, value: &dyn Fn(&str) -> Option<String>) -> Option<String> {
+    if symbol_template_error(template).is_some() {
+        return None;
+    }
+    let mut out = String::new();
+    let mut rest = template;
+    while let Some(open) = rest.find('{') {
+        out.push_str(&rest[..open]);
+        let len = rest[open..].find('}')?;
+        let text = rest[open + 1..open + len]
+            .split('|')
+            .find_map(|t| value(t).filter(|v| !v.is_empty()))?;
+        out.push_str(&text);
+        rest = &rest[open + len + 1..];
+    }
+    out.push_str(rest);
+    let out = if strict_iec { iec_ident(&out) } else { out };
+    (!out.is_empty()).then_some(out)
+}
+
+/// The process-tag scheme of the project settings as a matcher (FR-PLC-049): the regular expression `text`, which
+/// a whole tag must match; its named groups are the tag's parts (`(?P<area>TA\d\d)-(?P<kind>[A-Z]+)-(?P<number>\d+)`
+/// parses TA05-V-15 into area TA05, kind V and number 15). The error says why the text is no regular expression.
+///
+/// # Errors
+///
+/// The regular-expression parser's message for a text that does not compile.
+pub fn process_tag_scheme(text: &str) -> Result<regex::Regex, String> {
+    regex::Regex::new(&format!("^(?:{text})$")).map_err(|e| e.to_string())
+}
+
+/// The named parts of `tag` under the scheme (FR-PLC-049), in the scheme's group order; `None` when the tag does not
+/// match. A group that matched nothing is left out.
+pub fn process_tag_parts(scheme: &regex::Regex, tag: &str) -> Option<Vec<(String, String)>> {
+    let caps = scheme.captures(tag)?;
+    Some(
+        scheme
+            .capture_names()
+            .flatten()
+            .filter_map(|n| caps.name(n).map(|m| (n.to_owned(), m.as_str().to_owned())))
+            .collect(),
+    )
 }
 
 /// The device a device drives (`DeviceLink{Drives}` from it; the smallest link ID when there are several).
@@ -1383,6 +1709,14 @@ impl Query for ChannelTexts {
             .and_then(|(_, s)| s.channels.as_ref().and_then(|c| c.designation.clone()));
         let targets = q.get::<ChannelTargets>(*key);
         let devices = q.devices();
+        let policy = module_cfg(q, *key)
+            .and_then(|(_, cfg)| q.table::<PlcConfigProject>().get(cfg).and_then(|c| c.symbols.clone()));
+        let product = |d: Id<Device>| {
+            q.get::<crate::DeviceTag>(d)
+                .as_ref()
+                .as_ref()
+                .map(|t| t.product.clone())
+        };
         // a pattern that does not expand gives no automatic designation, with one note per module
         let mut noted = false;
         let out = module_channels(q, *key)
@@ -1416,17 +1750,92 @@ impl Query for ChannelTexts {
                     .map(|d| d.function_text.clone())
                     .filter(|t| !t.is_empty())
                     .or_else(|| driven.map(|t| ew_mltext::MlText::neutral(&t)));
+                let target = targets.iter().find(|t| t.channel == c.id);
+                let symbol = c.symbol.as_ref().map(|s| s.as_str().to_owned()).or_else(|| {
+                    let policy = policy.as_ref()?;
+                    let template = policy.template.as_ref()?;
+                    let value = |token: &str| -> Option<String> {
+                        match token {
+                            "target.process_tag" => process_tag.clone(),
+                            "target.dt" => device.and_then(product),
+                            "target.function_text" => function_text.as_ref().and_then(|t| {
+                                t.as_neutral()
+                                    .or_else(|| t.languages().next().and_then(|l| t.get(l)))
+                                    .map(str::to_owned)
+                            }),
+                            "pin" => target.and_then(|t| t.pin).and_then(|pin| {
+                                q.get::<crate::FunctionCps>(pin.function)
+                                    .iter()
+                                    .find(|cp| cp.idx == pin.idx)
+                                    .map(|cp| cp.designation.to_string())
+                            }),
+                            "module.dt" => product(*key),
+                            "channel.number" => Some(c.number.to_string()),
+                            "address" => q
+                                .get::<ChannelAddresses>(*key)
+                                .iter()
+                                .find(|e| e.channel == c.id)
+                                .and_then(|e| match &e.address {
+                                    ChannelAddr::At { text, .. } => Some(text.clone()),
+                                    _ => None,
+                                }),
+                            _ => None,
+                        }
+                    };
+                    symbol_from_template(template, policy.strict_iec, &value)
+                });
                 (
                     c.id,
                     ChannelText {
                         designation,
-                        symbol: c.symbol.as_ref().map(|s| s.as_str().to_owned()),
+                        symbol,
                         function_text,
                         process_tag,
                     },
                 )
             })
             .collect();
+        Arc::new(out)
+    }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// channels_by_target()
+
+/// `channels_by_target()`: the channels whose target is a manual or traced one (doc 10 §3.5), by target function, each
+/// list in channel-ID order. The direct targets are left out: their function is bound, which
+/// [`PlcAddressText`] reads through the CP → channel index. A cut-off point over every station's targets, so a
+/// `PlcAddress` slot re-renders only when a manual or traced target changes (FT-700).
+#[derive(Debug)]
+pub struct ChannelsByTarget;
+
+impl Query for ChannelsByTarget {
+    type Key = ();
+    type Value = BTreeMap<Id<Function>, Vec<Id<Channel>>>;
+    const FAMILY: &'static str = "channels_by_target";
+    const POLICY: Policy = Policy::Memo;
+
+    fn run(q: &Q, _: &()) -> Arc<BTreeMap<Id<Function>, Vec<Id<Channel>>>> {
+        let mut out: BTreeMap<Id<Function>, Vec<Id<Channel>>> = BTreeMap::new();
+        let mut cfgs: Vec<Id<PlcConfigProject>> = Vec::new();
+        for station in stations(q) {
+            let cfg = q.devices().get(station).and_then(|d| d.aspects.plc_station.as_ref().map(|s| s.config_project));
+            if let Some(cfg) = cfg.filter(|c| !cfgs.contains(c)) {
+                cfgs.push(cfg);
+            }
+        }
+        for cfg in cfgs {
+            for m in q.get::<ModuleOrder>(cfg).iter() {
+                for t in q.get::<ChannelTargets>(m.module).iter() {
+                    if let (Some(f), Some(TargetSource::Manual | TargetSource::Traced)) = (t.function, t.source) {
+                        out.entry(f).or_default().push(t.channel);
+                    }
+                }
+            }
+        }
+        for list in out.values_mut() {
+            list.sort();
+        }
         Arc::new(out)
     }
 }
@@ -1442,7 +1851,9 @@ impl Query for ChannelTexts {
 pub struct PlcAddressTexts {
     /// The slot text: the addresses of the function's own bound CPs, else (a fluid function, contact kind
     /// `valve`) of the bound internal coil CPs of its device's other functions; in solenoid order (a CP designated
-    /// `14`, then `12`, then the others by CP index), joined by `" / "`. `None` when no address resolves.
+    /// `14`, then `12`, then the others by CP index), joined by `" / "`; else the addresses of the channels whose
+    /// manual or traced target the function is, in channel-ID order (FT-700: a relay coil wired to a card output).
+    /// `None` when no address resolves.
     pub text: Option<String>,
     /// The function's own bound CPs that resolve, by CP index: `(idx, address text)`.
     pub pins: Vec<(u16, String)>,
@@ -1513,12 +1924,13 @@ impl Query for PlcAddressText {
             }
         }
         own.sort();
-        let text = (!own.is_empty()).then(|| {
-            own.iter()
-                .map(|(_, _, _, t)| t.as_str())
-                .collect::<Vec<_>>()
-                .join(" / ")
-        });
+        let mut texts: Vec<String> = own.into_iter().map(|(_, _, _, t)| t).collect();
+        if texts.is_empty() {
+            if let Some(targeting) = q.get::<ChannelsByTarget>(()).get(key) {
+                texts.extend(targeting.iter().filter_map(|c| address(*c)));
+            }
+        }
+        let text = (!texts.is_empty()).then(|| texts.join(" / "));
         Arc::new(PlcAddressTexts { text, pins })
     }
 }
@@ -1555,6 +1967,12 @@ pub struct PlcRow {
     pub rep: Option<Id<Representation>>,
     /// The bound CP, which the row links to (doc 10 §5).
     pub cp: Option<crate::CpRef>,
+    /// The target's CP (the I/O list's target pin).
+    pub target_pin: Option<crate::CpRef>,
+    /// The terminals a traced signal passes.
+    pub passed: Vec<crate::CpRef>,
+    /// Whether the traced target was one of several candidates.
+    pub ambiguous: bool,
     /// The effective state.
     pub state: EffectiveState,
 }
@@ -1610,6 +2028,9 @@ impl Query for PlcRows {
                     target_device: target.and_then(|t| t.device),
                     rep: target.and_then(|t| t.rep),
                     cp: target.and_then(|t| t.cp),
+                    target_pin: target.and_then(|t| t.pin),
+                    passed: target.map(|t| t.passed.clone()).unwrap_or_default(),
+                    ambiguous: target.is_some_and(|t| t.ambiguous),
                     state: states
                         .iter()
                         .find(|(id, _)| *id == c.id)

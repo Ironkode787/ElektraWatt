@@ -36,6 +36,7 @@ pub struct SettableSetting {
 /// | `size_profile` | the pinned size profile and its class rules (doc 08 §4.2, doc 20 §7.2) | wire cross-sections, reports |
 /// | `xref_format` | the cross-reference format (doc 03 §5.1 `XrefFormat`, FR-XRF-003) | cross-reference texts |
 /// | `text_styles` | the text styles as overrides of the built-in table, by style key (ADR-0032, FR-SYM-013) | the size and weight of every text printed in an overridden or added style, EW-CORE-061 |
+/// | `process_tag_scheme` | the regular expression with named groups a process tag matches (FR-PLC-049, doc 10 §3.4) | EW-PRC-001 |
 ///
 /// The first four are provisional members kept in `ProjectSettings.extra` until their work packages type them;
 /// their values are checked with the parsers the derivations read them with, so a value the derivation
@@ -69,6 +70,11 @@ pub const SETTABLE_SETTINGS: &[SettableSetting] = &[
         member: Member::TextStyles,
         doc: "the text styles: overrides of the built-in table by style key",
     },
+    SettableSetting {
+        name: "process_tag_scheme",
+        member: Member::ProcessTagScheme,
+        doc: "the process-tag scheme: a regular expression with named groups",
+    },
 ];
 
 /// `project.settings.set` (`SetProjectSettings`): sets one member of the project settings.
@@ -95,7 +101,7 @@ pub const SETTABLE_SETTINGS: &[SettableSetting] = &[
 #[serde(deny_unknown_fields)]
 pub struct SetProjectSettings {
     /// The member to set: a name of the settable table (`numbering`, `colour_profile`, `size_profile`,
-    /// `xref_format`, `text_styles`).
+    /// `xref_format`, `text_styles`, `process_tag_scheme`).
     pub member: String,
     /// The member's new value in its JSON shape; `null` removes it (the profile's default applies).
     pub value: Value,
@@ -138,7 +144,10 @@ impl Command for SetProjectSettings {
             })?;
         }
         let mut project = (*tx.project()).clone();
-        if self.value.is_null() {
+        if spec.member == Member::ProcessTagScheme {
+            // the typed member, checked above
+            project.settings.process_tag_scheme = self.value.as_str().map(str::to_owned);
+        } else if self.value.is_null() {
             project.settings.extra.remove(spec.name);
         } else {
             project

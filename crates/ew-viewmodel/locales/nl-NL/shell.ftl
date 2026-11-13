@@ -1561,6 +1561,11 @@ refusal-fields-no-port = { $p0 } heeft geen buspoort; stel eerst `bus_port` in
 refusal-fields-port-role-unknown = { $p0 } is geen poortrol; geef master, slave, controller, device of passive
 refusal-fields-bus-address-unknown = { $p0 } is geen busadres; geef tbd, not_applicable of {"{"}"value": {"{"}"profibus": n{"}"}{"}"}
 refusal-fields-termination-unknown = { $p0 } is geen afsluiting; geef on of off
+refusal-fields-mrp-unknown = { $p0 } is geen ringrol; geef manager of client
+refusal-fields-port-mode-unknown = { $p0 } is geen poortmodus; geef io_link, di, dq of deactivated
+refusal-fields-evaluation-unknown = { $p0 } is geen evaluatie; geef 1oo1 of 1oo2
+refusal-fields-test-pulse-cp = een testpuls is een aansluitpunt (`{"{"}"cp": [function, index]{"}"}`), geen knooppunt
+refusal-plc-symbol-template = `{ $p0 }` is geen symboolsjabloon: { $p1 }
 refusal-fields-counter-used-project = teller { $p0 } met letter { $p1 } wordt al gebruikt door een andere kabel zonder pagina; gebruik { $p2 }, de volgende vrije teller
 refusal-fields-section-divider-page = folio { $p0 } is bezet door een pagina; kies een ander folio voor de scheidingspagina van sectie { $p1 }
 refusal-fields-section-divider-report = folio { $p0 } is bezet door een rapportblok; kies een ander folio voor de scheidingspagina van sectie { $p1 }
@@ -1773,6 +1778,9 @@ refusal-plc-module-part-use = `plc_module.part_use` van de module is { $p0 }, da
 refusal-plc-start-input = een ingang
 refusal-plc-start-output = een uitgang
 refusal-plc-start-area = `{ $p0 }` is geen begin van { $p1 }: het begin van { $p1 } ligt in gebied { $p2 }, zoals { $p3 }
+# WP-S1.24: re-addressing and the tag-based profile.
+refusal-plc-scope-empty = noem de modules die opnieuw geadresseerd worden, of hun configuratieproject
+refusal-plc-tag-based = profiel { $p0 } werkt met tags: de adressen volgen uit het station en het slot, dus er wordt er geen ingetypt; geef auto, excluded of tbd
 # revision.create and revision.withdraw.
 refusal-revision-label-used = een andere revisie heeft het label { $p0 } al; een label noemt één revisie
 refusal-revision-open = revisie { $p0 } is open; ten hoogste één revisie verzamelt de huidige wijzigingen

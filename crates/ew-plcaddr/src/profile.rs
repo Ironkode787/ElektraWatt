@@ -65,6 +65,8 @@ pub enum ProfileError {
     Base,
     /// A unit is not 8 bits.
     UnitBits,
+    /// A tag-based profile's templates do not both name the slot (`{slot}`).
+    NoSlot,
 }
 
 impl core::fmt::Display for ProfileError {
@@ -75,6 +77,7 @@ impl core::fmt::Display for ProfileError {
             ProfileError::EmptyArea => "an area mnemonic is empty",
             ProfileError::Base => "only base 10 is rendered",
             ProfileError::UnitBits => "only 8 bits per unit are rendered",
+            ProfileError::NoSlot => "a tag-based profile's templates must both name {slot}",
         })
     }
 }
@@ -96,7 +99,8 @@ impl core::ops::Deref for AddressProfile {
 
 impl AddressProfile {
     /// The profile of `fields`, when this engine renders it: a bit template with `{bit}`, a unit template with
-    /// `{byte}`, no empty area mnemonic, base 10 and 8 bits per unit.
+    /// `{byte}` (a tag-based profile, `absolute = false`: both templates with `{slot}` instead, FR-PLC-009), no empty
+    /// area mnemonic, base 10 and 8 bits per unit.
     ///
     /// # Errors
     ///
@@ -105,8 +109,11 @@ impl AddressProfile {
         if !fields.render_bit.contains("{bit}") {
             return Err(ProfileError::NoBit);
         }
-        if !fields.render_unit.contains("{byte}") {
+        if fields.absolute && !fields.render_unit.contains("{byte}") {
             return Err(ProfileError::NoByte);
+        }
+        if !fields.absolute && !(fields.render_bit.contains("{slot}") && fields.render_unit.contains("{slot}")) {
+            return Err(ProfileError::NoSlot);
         }
         if fields.area_mnemonics.iter().any(String::is_empty) {
             return Err(ProfileError::EmptyArea);
@@ -140,30 +147,46 @@ impl AddressProfile {
         let size = self.size_mnemonics[a.size as usize].as_str();
         let byte = a.byte.to_string();
         let bit = a.bit.map(|b| b.to_string()).unwrap_or_default();
-        let tokens: [(&str, &str); 4] = [
-            ("{area}", area),
-            ("{size}", size),
-            ("{byte}", &byte),
-            ("{bit}", &bit),
-        ];
-        let mut out = String::from(prefix);
-        let mut rest = template;
-        while let Some(i) = rest.find('{') {
-            out.push_str(&rest[..i]);
-            let tail = &rest[i..];
-            match tokens.iter().find(|(t, _)| tail.starts_with(t)) {
-                Some((t, v)) => {
-                    out.push_str(v);
-                    rest = &tail[t.len()..];
-                }
-                None => {
-                    out.push('{');
-                    rest = &tail[1..];
-                }
-            }
-        }
-        out.push_str(rest);
-        out
+        fill(
+            prefix,
+            template,
+            &[
+                ("{area}", area),
+                ("{size}", size),
+                ("{byte}", &byte),
+                ("{bit}", &bit),
+            ],
+        )
+    }
+
+    /// Render an address of a tag-based profile (`absolute = false`, FR-PLC-009) from the station and the slot: the
+    /// bit template for a bit (`Local:3:O.Data.1`: `{station}`, `{slot}`, `{area}` and `{bit}`, the bit offset in the
+    /// module's range), the unit template otherwise (`Local:1:I.Ch0Data`: `{channel}`, the channel number). The
+    /// station is `Local` for the controller's own chassis and the adapter's name for remote I/O.
+    pub fn render_tag(&self, at: &TagPlace<'_>, area: Area, bit: Option<u32>, purpose: Purpose) -> String {
+        let prefix = match purpose {
+            Purpose::Drawing => self.drawing_prefix.as_str(),
+            Purpose::Exchange => self.exchange_prefix.as_str(),
+        };
+        let template = if bit.is_some() {
+            self.render_bit.as_str()
+        } else {
+            self.render_unit.as_str()
+        };
+        let slot = at.slot.to_string();
+        let channel = at.channel.to_string();
+        let bit = bit.map(|b| b.to_string()).unwrap_or_default();
+        fill(
+            prefix,
+            template,
+            &[
+                ("{station}", at.station),
+                ("{slot}", &slot),
+                ("{area}", self.area_mnemonics[area as usize].as_str()),
+                ("{bit}", &bit),
+                ("{channel}", &channel),
+            ],
+        )
     }
 
     /// The bit address `bit_offset` bits after `start_byte`; `None` when the byte overflows `u32` (a hostile
@@ -180,9 +203,19 @@ impl AddressProfile {
     }
 
     /// The example address of this notation that a refusal names (`Q0.1`): output byte 0, bit 1, rendered for the
-    /// drawing.
+    /// drawing; for a tag-based profile output bit 1 of the module in slot 1 of the local chassis
+    /// (`Local:1:O.Data.1`).
     pub fn example(&self) -> String {
-        self.render(&PlcAddress::bit(Area::Q, 0, 1), Purpose::Drawing)
+        if self.absolute {
+            self.render(&PlcAddress::bit(Area::Q, 0, 1), Purpose::Drawing)
+        } else {
+            let at = TagPlace {
+                station: "Local",
+                slot: 1,
+                channel: 1,
+            };
+            self.render_tag(&at, Area::Q, Some(1), Purpose::Drawing)
+        }
     }
 
     /// Parses an address text of this notation, the inverse of [`AddressProfile::render`] for either purpose: the
@@ -191,8 +224,12 @@ impl AddressProfile {
     /// `unit_bits` (`I4.9` is no address of an 8-bit unit); a unit address follows the unit template with a size
     /// other than a bit. When the bit template names a size (`{size}`, the IEC profile's `X`), a bit address may omit
     /// it (doc 10 §2.5: `%Q0.1` parses as the bit `%QX0.1`); a unit address always names its size. `None` for any
-    /// other text, a byte beyond `u32` included.
+    /// other text, a byte beyond `u32` included, and for every text of a tag-based profile: its addresses are derived
+    /// from the station and the slot, never typed.
     pub fn parse(&self, text: &str) -> Option<PlcAddress> {
+        if !self.absolute {
+            return None;
+        }
         let text = text.trim();
         let mut bodies = vec![text];
         for prefix in [self.exchange_prefix.as_str(), self.drawing_prefix.as_str()] {
@@ -222,8 +259,12 @@ impl AddressProfile {
     /// The start byte a module-start text names (`plc.set_start`): the profile's bit address at bit 0
     /// (`Q10.0`), a unit address of any size (`QB10`, `%QX10` under IEC) or the area and the byte alone (`Q10`), each
     /// with the optional drawing or exchange prefix, white space and ASCII case as [`AddressProfile::parse`] takes
-    /// them. `None` for any other text, a bit address at another bit included.
+    /// them. `None` for any other text, a bit address at another bit included, and for every text of a tag-based
+    /// profile.
     pub fn parse_start(&self, text: &str) -> Option<(Area, u32)> {
+        if !self.absolute {
+            return None;
+        }
         if let Some(a) = self.parse(text) {
             return match a.bit {
                 Some(0) | None => Some((a.area, a.byte)),
@@ -332,6 +373,40 @@ impl AddressProfile {
             }
         }
     }
+}
+
+/// Where a tag-based address lies (FR-PLC-009): the station's name in the tag (`Local`, or the adapter's), the
+/// module's slot and the channel number.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct TagPlace<'a> {
+    /// `Local` for the controller's own chassis, else the adapter's name.
+    pub station: &'a str,
+    /// The module's slot.
+    pub slot: u32,
+    /// The channel number (the unit template's `{channel}`).
+    pub channel: u32,
+}
+
+/// `prefix` and `template` with every token of `tokens` replaced by its value; a `{` that opens no token is kept.
+fn fill(prefix: &str, template: &str, tokens: &[(&str, &str)]) -> String {
+    let mut out = String::from(prefix);
+    let mut rest = template;
+    while let Some(i) = rest.find('{') {
+        out.push_str(&rest[..i]);
+        let tail = &rest[i..];
+        match tokens.iter().find(|(t, _)| tail.starts_with(t)) {
+            Some((t, v)) => {
+                out.push_str(v);
+                rest = &tail[t.len()..];
+            }
+            None => {
+                out.push('{');
+                rest = &tail[1..];
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 /// The most digits a byte or bit number of an address has: the width of `u32::MAX`.

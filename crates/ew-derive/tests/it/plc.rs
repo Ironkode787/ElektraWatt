@@ -882,3 +882,191 @@ fn a_channel_edit_re_runs_its_own_module_only() {
     assert_eq!(stats.family("channels_by_cp").cut_offs, 1);
     let _ = Op::key;
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// The 1.0 layer: the tag-based profile, target tracking, automatic symbols (WP-S1.24)
+
+/// FR-PLC-009 on the fixture: under `rockwell-logix` the station without a CPU is a remote adapter named by its tag,
+/// and a module moved to another manifold position prints its new slot.
+#[test]
+fn the_rockwell_profile_renders_the_station_and_the_slot() {
+    let mut fx = fixture();
+    fx.record(CFG)["profile"] = json!("rockwell-logix@2027.1");
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(texts(&q, M2)[1], "U1:2:O.Data.1");
+    let mut fx = fixture();
+    fx.record(CFG)["profile"] = json!("rockwell-logix@2027.1");
+    fx.record(CFG)["cpu"] = json!(uid(STATION));
+    fx.record(M2)["position"] = json!(9);
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(texts(&q, M2)[1], "Local:3:O.Data.1", "M2 is behind M3 now");
+    assert_eq!(texts(&q, M3)[0], "Local:2:O.Data.0");
+}
+
+const CARD: u128 = 0x800;
+const CARD_FN: u128 = 0x801;
+const TERM: u128 = 0x810;
+const TERM_FN: u128 = 0x811;
+const SENSOR: u128 = 0x820;
+const SENSOR_FN: u128 = 0x821;
+const LAMP: u128 = 0x830;
+const LAMP_FN: u128 = 0x831;
+const DEF_CARD: u128 = 0x840;
+const DEF_TERM: u128 = 0x841;
+const DEF_NO: u128 = 0x842;
+const DEF_LAMP: u128 = 0x843;
+const CARD_PART: u128 = 0x850;
+const IO_PAGE: u128 = 0x860;
+
+/// A fixture with a digital-input card `-A1` (its own station) whose channel 0 is bound to pin 0, wired through the
+/// terminal `-X1` (one level, two clamps) to the contact of sensor `-B1`; `with_lamp` wires a lamp `-H1` to the same
+/// terminal as well.
+fn traced_fixture(with_lamp: bool) -> Fx {
+    let mut fx = Fx::new();
+    fx.page(IO_PAGE, 110, None, "multi_line", &[], "I/O");
+    let def = |fx: &mut Fx, n: u128, kind: &str, cps: Value| {
+        fx.lib_item(
+            "fndef",
+            n,
+            json!({"meta": {}, "category": ["Other", "Other", "Other"], "contact_kind": kind, "cps": cps}),
+        );
+    };
+    def(&mut fx, DEF_CARD, "plc_io", json!([{"idx": 0, "designation": "I0"}]));
+    def(
+        &mut fx,
+        DEF_TERM,
+        "terminal",
+        json!([
+            {"idx": 0, "designation": "1", "level": 1},
+            {"idx": 1, "designation": "1", "level": 1},
+        ]),
+    );
+    def(&mut fx, DEF_NO, "no", json!([{"idx": 0, "designation": "13"}, {"idx": 1, "designation": "14"}]));
+    def(&mut fx, DEF_LAMP, "coil", json!([{"idx": 0, "designation": "X1"}, {"idx": 1, "designation": "X2"}]));
+    for (sym, d, n) in [(0x870, DEF_CARD, 1u16), (0x871, DEF_TERM, 2), (0x872, DEF_NO, 2), (0x873, DEF_LAMP, 2)] {
+        let cps: Vec<(u16, u16, i64, i64)> = (0..n).map(|i| (i, i, 0, i64::from(i) * 4_000_000)).collect();
+        fx.symbol(sym, d, json!("origin"), &cps);
+    }
+    fx.lib_item(
+        "part",
+        CARD_PART,
+        json!({
+            "meta": {},
+            "kind": "device",
+            "manufacturer": {"library": uid(LIBRARY), "item": uid(0x9000), "version_req": "^1"},
+            "part_number": "DI-1",
+            "sections": {"plc": {
+                "role": "module",
+                "io": [{"dir": "in", "bits": 8}],
+                "channels": {"count": 1, "kind": "di", "data_type": "Bool"},
+            }},
+        }),
+    );
+    fx.push(json!({"$k": "plc_config_project", "id": uid(CFG), "name": "PLC1", "profile": "siemens-tia-intl@2027.1"}));
+    fx.device(CARD, "A", Some(1))
+        .with("parts", json!([{"part": {"copy": uid(CARD_PART)}, "qty": "1"}]))
+        .with("plc_station", json!({"config_project": uid(CFG), "role": "io_device"}))
+        .with("plc_module", json!({}));
+    fx.device(TERM, "X", Some(1));
+    fx.device(SENSOR, "B", Some(1));
+    fx.function(CARD_FN, Some(CARD), DEF_CARD, true);
+    fx.function(TERM_FN, Some(TERM), DEF_TERM, true);
+    fx.function(SENSOR_FN, Some(SENSOR), DEF_NO, true);
+    fx.rep(0x880, IO_PAGE, 0x870, &[CARD_FN], 0, 0);
+    fx.rep(0x881, IO_PAGE, 0x871, &[TERM_FN], 40_000_000, 0);
+    fx.rep(0x882, IO_PAGE, 0x872, &[SENSOR_FN], 80_000_000, 0);
+    let wire = |fx: &mut Fx, n: u128, a: (u128, u16), b: (u128, u16)| {
+        fx.push(json!({
+            "$k": "connection", "id": uid(n), "page": uid(IO_PAGE),
+            "a": {"cp": [uid(a.0), a.1]}, "b": {"cp": [uid(b.0), b.1]},
+        }));
+    };
+    wire(&mut fx, 0x890, (CARD_FN, 0), (TERM_FN, 0));
+    wire(&mut fx, 0x891, (TERM_FN, 1), (SENSOR_FN, 0));
+    if with_lamp {
+        fx.device(LAMP, "H", Some(1));
+        fx.function(LAMP_FN, Some(LAMP), DEF_LAMP, true);
+        fx.rep(0x883, IO_PAGE, 0x873, &[LAMP_FN], 120_000_000, 0);
+        wire(&mut fx, 0x892, (TERM_FN, 1), (LAMP_FN, 0));
+    }
+    fx.push(json!({
+        "$k": "channel",
+        "id": v5::plc_channel_id::<Device, ()>(id(CARD), 0).as_uuid().to_string(),
+        "module": uid(CARD), "number": 0, "kind": "di",
+        "binding": {"cp": [uid(CARD_FN), 0]},
+    }));
+    fx
+}
+
+/// FR-PLC-018 (A4's traced branch): a channel bound to its card's pin reaches the sensor through the terminal; the
+/// row names the sensor, its pin and the passed terminal, the channel is used, and the sensor's `PlcAddress` slot
+/// prints the channel's address (FT-700). With a lamp on the same signal the coil ranks first and the row is ambiguous.
+#[test]
+fn a_pin_bound_channel_traces_to_the_field_device() {
+    let m = traced_fixture(false).build();
+    let q = Q::new(&m);
+    let rows = q.get::<PlcRows>(id(CARD));
+    let row = &rows[0];
+    assert_eq!(row.target_device, Some(id(SENSOR)));
+    assert_eq!(row.target_pin.map(|p| (p.function, p.idx)), Some((id(SENSOR_FN), 0)));
+    assert_eq!(row.passed.iter().map(|p| p.function).collect::<Vec<_>>(), [id(TERM_FN)]);
+    assert!(!row.ambiguous);
+    assert_eq!(row.state, EffectiveState::Used);
+    assert_eq!(
+        q.get::<ew_derive::PlcAddressText>(id(SENSOR_FN)).text.as_deref(),
+        Some("I0.0")
+    );
+
+    let m = traced_fixture(true).build();
+    let q = Q::new(&m);
+    let rows = q.get::<PlcRows>(id(CARD));
+    assert_eq!(rows[0].target_device, Some(id(LAMP)), "a coil ranks before a contact");
+    assert!(rows[0].ambiguous);
+
+    // A manual target wins over the traced one (FR-PLC-054).
+    let mut fx = traced_fixture(true);
+    let ch = v5::plc_channel_id::<Device, ()>(id(CARD), 0).as_uuid().as_u128();
+    fx.record(ch)["target"] = json!(uid(SENSOR_FN));
+    let m = fx.build();
+    let q = Q::new(&m);
+    assert_eq!(q.get::<PlcRows>(id(CARD))[0].target_device, Some(id(SENSOR)));
+}
+
+/// FR-PLC-017: the template `{target.dt}_{pin}` gives `_201U3_Q1_14`-style symbols cleaned into IEC identifiers; a
+/// manual symbol wins; `{target.process_tag}` gives none for a target without a process tag, and the fallback
+/// `{target.process_tag|target.dt}` takes the tag.
+#[test]
+fn the_symbol_template_derives_cleaned_symbols() {
+    let symbol = |template: &str, manual: Option<&str>| {
+        let mut fx = fixture();
+        fx.record(CFG)["symbols"] = json!({"template": template});
+        if let Some(s) = manual {
+            let ch = v5::plc_channel_id::<Device, ()>(id(M1), 1).as_uuid().as_u128();
+            fx.record(ch)["symbol"] = json!(s);
+        }
+        let m = fx.build();
+        let q = Q::new(&m);
+        let t1 = q.get::<ChannelTexts>(id(M1));
+        let t2 = q.get::<ChannelTexts>(id(M2));
+        (t1[1].1.symbol.clone(), t2[1].1.symbol.clone())
+    };
+    // V1 is drawn on folio 203 (its tag 203Q1); V2 is not drawn
+    assert_eq!(
+        symbol("{target.dt}_{pin}", None),
+        (Some("_203Q1_14".to_owned()), Some("Q1_14".to_owned()))
+    );
+    assert_eq!(
+        symbol("{target.process_tag|target.dt}", None),
+        (Some("TA05_V_15".to_owned()), Some("Q1".to_owned()))
+    );
+    assert_eq!(symbol("{target.process_tag}", None).1, None, "a spare valve has no process tag");
+    assert_eq!(
+        symbol("{target.process_tag}", Some("Manual-1")).0,
+        Some("Manual-1".to_owned()),
+        "a manual symbol wins, uncleaned"
+    );
+    assert_eq!(ew_derive::iec_ident("-201U3-Q1:14"), "_201U3_Q1_14");
+    assert!(ew_derive::symbol_template_error("{target.colour}").is_some());
+}
