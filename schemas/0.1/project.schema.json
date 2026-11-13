@@ -498,6 +498,13 @@
           ],
           "description": "Interruption-point pairing (FR-XRF-007, FR-XRF-010)."
         },
+        "process_tag_scheme": {
+          "description": "The process-tag scheme (FR-PLC-049, doc 10 §3.4): a regular expression with named groups that a whole\nprocess tag must match (`(?P<area>TA\\d\\d)-(?P<kind>[A-Z]+)-(?P<number>\\d+)`); EW-PRC-001 reports a tag that\ndoes not. Absent: any tag.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "revision_label": {
           "anyOf": [
             {

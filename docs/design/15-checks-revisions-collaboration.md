@@ -788,6 +788,8 @@ both 1.0, so it follows at 1.x (Could).
 
 *As built (fix round).* EW-PLC-001 reports one finding per overlap group of `address_index(cfg)` (each connected run of overlapping addresses in one area, so N channels on one address are one finding, not N(N−1)/2), every member channel a target and the first in address order the subject; the text names five channels with their addresses, then "and N more channels", in en-GB and nl-NL.
 
+*As built (WP-S1.24).* The pack's 1.0 content is built: EW-PLC-004, -005, -009, -010, -011, -013 and -014, EW-SAF-001 … -003 and EW-PRC-001, with the kinds, modes, severities and scopes above, en-GB and nl-NL messages and rule notes ([10](10-plc-and-bus.md) §3.10 has the as-built decisions). The scope `station` exists for EW-PLC-011, -013 and -014 (§2.3). The prevent halves of EW-PLC-001, -007 and -011 refuse an edit that adds an error finding in the scopes it touches (FT-726); EW-PLC-013 supersedes EW-POT-003 for the FE pins of a station's devices, so with the 1.0 content Golden A reports EF-22 where the MVP content reports EF-10. EW-PLC-016 and EW-PRC-002 are not built: they read the exchange stamp and the instrument list of WP-S3.16.
+
 #### 4.5.2 EW-BUS
 
 | ID | Name | Checks | Kind | Modes | Severity | Scope | Rel | Req. | D (golden) | Def. |
@@ -804,6 +806,8 @@ both 1.0, so it follows at 1.x (Could).
 | EW-BUS-010 | Net mismatch | Ports joined by `Bus` connections that belong to different logical nets | conflict | o r | warning | pnet | 1.0 | FR-BUS-024 | — | 10 §3.10 |
 | EW-IOL-001 | IO-Link port class | A port class mismatch, or an IODD device on a port not in IO-Link mode | conflict | o r | error | module | 1.0 | FR-BUS-019 | — | 10 §3.10 |
 | EW-IOL-002 | IO-Link limits | Process data larger than the port window; a cable longer than the maximum | conflict | o r | warning | module | 1.0 | FR-BUS-019 | — | 10 §3.10 |
+
+*As built (WP-S1.24).* The pack's 1.0 content is built: EW-BUS-002, -003, -005, -006, -007, -009 and -010 and EW-IOL-001 and -002, with en-GB and nl-NL messages and rule notes; the ranges, lengths and station counts they read are unverified data of the rules ([10](10-plc-and-bus.md) §3.10). EW-BUS-008 stays 1.x. With the 1.0 content, Golden A's EW-BUS findings are those of §18.1 (EF-03, EF-16): AC-22's EW-BUS half holds.
 
 #### 4.5.3 EW-FL
 

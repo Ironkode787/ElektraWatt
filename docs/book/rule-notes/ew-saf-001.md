@@ -9,7 +9,7 @@ PROFIsafe addresses a safety module by its F-destination address; two modules wi
 
 ## Standard
 
-- IEC 61784-3-3 (unverified)
+No standard: a project-hygiene rule.
 
 ## Example
 

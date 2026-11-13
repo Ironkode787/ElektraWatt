@@ -9,7 +9,7 @@ A class-B device needs the port's second supply; a port in DI or DQ mode does no
 
 ## Standard
 
-- IEC 61131-9 (unverified)
+No standard: a project-hygiene rule.
 
 ## Example
 

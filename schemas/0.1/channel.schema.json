@@ -34,7 +34,7 @@
       ]
     },
     "ChannelKind": {
-      "description": "The kind of a channel (doc 10 §2.4). `multi_function` (IO-Link port modes, 1.0) is additive.",
+      "description": "The kind of a channel (doc 10 §2.4).",
       "oneOf": [
         {
           "const": "di",
@@ -69,6 +69,11 @@
         {
           "const": "power_supply",
           "description": "Power supply.",
+          "type": "string"
+        },
+        {
+          "const": "multi_function",
+          "description": "A multi-function port whose mode (`Channel.mode`) selects IO-Link, DI, DQ or deactivated (doc 10 §3.8,\nFR-BUS-012).",
           "type": "string"
         }
       ]
@@ -134,6 +139,21 @@
             "junction"
           ],
           "type": "object"
+        }
+      ]
+    },
+    "Evaluation": {
+      "description": "The evaluation of a safety channel.",
+      "oneOf": [
+        {
+          "const": "1oo1",
+          "description": "One-out-of-one.",
+          "type": "string"
+        },
+        {
+          "const": "1oo2",
+          "description": "One-out-of-two: the channel and its `pair` read one two-channel sensor.",
+          "type": "string"
         }
       ]
     },
@@ -258,6 +278,78 @@
         }
       ]
     },
+    "PortMode": {
+      "description": "The mode of a multi-function channel (doc 10 §3.8, FR-BUS-012).",
+      "oneOf": [
+        {
+          "const": "io_link",
+          "description": "IO-Link communication (the default): the port occupies the part's process-data window.",
+          "type": "string"
+        },
+        {
+          "const": "di",
+          "description": "A digital input (SIO).",
+          "type": "string"
+        },
+        {
+          "const": "dq",
+          "description": "A digital output (SIO).",
+          "type": "string"
+        },
+        {
+          "const": "deactivated",
+          "description": "Deactivated: no process data.",
+          "type": "string"
+        }
+      ]
+    },
+    "SafetyChannel": {
+      "additionalProperties": true,
+      "description": "The safety data of an F-channel (doc 10 §2.9).",
+      "properties": {
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation",
+          "description": "One-out-of-one or one-out-of-two evaluation."
+        },
+        "pair": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Uuid"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The other channel of a 1oo2 pair."
+        },
+        "requirement": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The requirement as a field (\"SIL 2\", \"PL d\"); never calculated."
+        },
+        "test_pulse": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Endpoint"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The module's test-pulse (sensor-supply) pin that the channel's sensor must be supplied from (EW-SAF-003);\nabsent: the channel needs none."
+        }
+      },
+      "required": [
+        "evaluation"
+      ],
+      "type": "object"
+    },
     "SourceRef": {
       "additionalProperties": true,
       "description": "The import provenance of a record (doc 14 §2.3, ADR-0004 amendment 1): the lineage and the source key\nfrom which the record's ID `v5(lineage namespace, key)` was derived.",
@@ -319,6 +411,17 @@
       "$ref": "#/$defs/MlText",
       "description": "The PLC comment."
     },
+    "data_type": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The data type of the PLC tag in the profile vocabulary (\"Bool\", \"Int\"); absent: the part's\n(`ChannelSpec.data_type`)."
+    },
     "designation": {
       "anyOf": [
         {
@@ -338,6 +441,17 @@
       "$ref": "#/$defs/ChannelKind",
       "description": "The channel kind."
     },
+    "mode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PortMode"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The mode of a `multi_function` channel (an IO-Link master port, doc 10 §3.8); absent: IO-Link."
+    },
     "module": {
       "$ref": "#/$defs/Uuid",
       "description": "The module device."
@@ -348,6 +462,28 @@
       "maximum": 65535,
       "minimum": 0,
       "type": "integer"
+    },
+    "safety": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SafetyChannel"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The safety data of an F-channel (doc 10 §2.9, FR-PLC-041); absent: a standard channel."
+    },
+    "signal_range": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The signal range of an analogue channel (\"4..20 mA\")."
     },
     "source_ref": {
       "anyOf": [

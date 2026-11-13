@@ -10,7 +10,7 @@ An output above its rating trips its protection or ages the card.
 
 ## Standard
 
-No standard: the ratings are the manufacturer's.
+No standard: a project-hygiene rule.
 
 ## Example
 

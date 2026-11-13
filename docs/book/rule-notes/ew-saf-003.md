@@ -9,7 +9,7 @@ The module detects cross-circuits only when the sensor is fed from its test puls
 
 ## Standard
 
-No standard: the module's manual says when a test pulse is needed.
+No standard: a project-hygiene rule.
 
 ## Example
 

@@ -10,7 +10,7 @@ A segment beyond its limits loses telegrams.
 
 ## Standard
 
-- IEC 61158 (unverified)
+No standard: a project-hygiene rule.
 
 ## Example
 

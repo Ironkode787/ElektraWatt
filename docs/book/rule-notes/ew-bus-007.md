@@ -9,7 +9,7 @@ A bus without a master never starts.
 
 ## Standard
 
-No standard: a completeness rule.
+No standard: a project-hygiene rule.
 
 ## Example
 

@@ -9,7 +9,7 @@ Process data beyond the window is cut off; a longer cable breaks the communicati
 
 ## Standard
 
-- IEC 61131-9 (unverified)
+No standard: a project-hygiene rule.
 
 ## Example
 

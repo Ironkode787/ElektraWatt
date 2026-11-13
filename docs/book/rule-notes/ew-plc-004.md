@@ -10,7 +10,7 @@ A proximity sensor on an output, or a coil on an input, does not work and can da
 
 ## Standard
 
-No standard: a wiring-consistency rule.
+No standard: a project-hygiene rule.
 
 ## Example
 

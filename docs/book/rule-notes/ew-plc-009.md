@@ -9,7 +9,7 @@ An address or a symbol on an unconnected channel is a signal that was planned an
 
 ## Standard
 
-No standard: a completeness rule.
+No standard: a project-hygiene rule.
 
 ## Example
 

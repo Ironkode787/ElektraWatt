@@ -8,7 +8,7 @@ Ports on one line are on one bus; two logical nets on one line confuse the addre
 
 ## Standard
 
-No standard: a consistency rule.
+No standard: a project-hygiene rule.
 
 ## Example
 

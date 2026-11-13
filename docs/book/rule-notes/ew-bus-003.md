@@ -9,7 +9,7 @@ PROFINET finds a device by its name and talks to it by its IP address; neither m
 
 ## Standard
 
-- IEC 61158-6-10 (unverified)
+No standard: a project-hygiene rule.
 
 ## Example
 

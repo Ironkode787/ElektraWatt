@@ -8,7 +8,7 @@ A slave that does not support the bus rate does not answer.
 
 ## Standard
 
-No standard: the rates are the device description's (GSD).
+No standard: a project-hygiene rule.
 
 ## Example
 

@@ -9,7 +9,7 @@ A process tag names one field device in the plant; two devices with one tag, or 
 
 ## Standard
 
-No standard: the scheme is the plant's.
+No standard: a project-hygiene rule.
 
 ## Example
 

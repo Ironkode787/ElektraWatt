@@ -39,10 +39,23 @@
       ],
       "type": "object"
     },
+    "BusRate": {
+      "description": "A bus data rate in bit/s (FR-BUS-009: 9 600 to 12 000 000 for PROFIBUS DP), an integer like every number of\nthe format.",
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
     "BusSection": {
       "additionalProperties": true,
       "description": "The bus section of a part (`sections.bus`, doc 10 §2.6; WP-S1.21 D15): the part's bus interfaces. A part port\nis carried by a function of the device whose function definition has contact kind `bus_port`; normaliser N5\ngives a port-less such function the part's port once and never rewrites it (D16). The station address and the\nnets belong to the drawn port ([`BusPort`]), not to the part.",
       "properties": {
+        "cable_for": {
+          "description": "The bus systems a cable part is made for (EW-BUS-009); empty: the part says nothing about buses.",
+          "items": {
+            "$ref": "#/$defs/BusSystem"
+          },
+          "type": "array"
+        },
         "ports": {
           "description": "The part's bus interfaces, in the part's order. The schema enforces no uniqueness: every reader takes the\nfirst port of an (`interface`, `port_label`) pair and ignores later ones.",
           "items": {
@@ -149,7 +162,7 @@
       "type": "object"
     },
     "ChannelKind": {
-      "description": "The kind of a channel (doc 10 §2.4). `multi_function` (IO-Link port modes, 1.0) is additive.",
+      "description": "The kind of a channel (doc 10 §2.4).",
       "oneOf": [
         {
           "const": "di",
@@ -184,6 +197,11 @@
         {
           "const": "power_supply",
           "description": "Power supply.",
+          "type": "string"
+        },
+        {
+          "const": "multi_function",
+          "description": "A multi-function port whose mode (`Channel.mode`) selects IO-Link, DI, DQ or deactivated (doc 10 §3.8,\nFR-BUS-012).",
           "type": "string"
         }
       ]
@@ -883,6 +901,103 @@
         }
       ]
     },
+    "IoLinkDevice": {
+      "additionalProperties": true,
+      "description": "The IO-Link data of a device part (doc 10 §3.8; the facts an IODD supplies, FR-BUS-013 at 1.x).",
+      "properties": {
+        "class": {
+          "$ref": "#/$defs/PortClass",
+          "description": "The port class the device needs (A or B)."
+        },
+        "data_type": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The struct data type of the process data in the profile vocabulary (\"BNI_IOL_88\"); a symbol of the port\ntakes it."
+        },
+        "device_id": {
+          "description": "The IO-Link device ID.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "input_bits": {
+          "description": "The process-data input bits.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "output_bits": {
+          "description": "The process-data output bits.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "vendor_id": {
+          "description": "The IO-Link vendor ID.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "class"
+      ],
+      "type": "object"
+    },
+    "IoLinkWindow": {
+      "additionalProperties": true,
+      "description": "The port window of an IO-Link master part (doc 10 §3.8): the process-data bytes each port occupies in IO-Link\nmode, the port class and the longest port cable.",
+      "properties": {
+        "class": {
+          "$ref": "#/$defs/PortClass",
+          "description": "The port class (A or B)."
+        },
+        "input_bytes": {
+          "description": "The input bytes per port.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "max_cable_m": {
+          "description": "The longest port cable in metres (IO-Link: 20).",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "output_bytes": {
+          "description": "The output bytes per port.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "input_bytes",
+        "output_bytes",
+        "class"
+      ],
+      "type": "object"
+    },
     "IoRange": {
       "additionalProperties": true,
       "description": "One I/O range of a part.",
@@ -1261,17 +1376,84 @@
         }
       ]
     },
+    "OutputRatings": {
+      "additionalProperties": true,
+      "description": "The output current ratings of a module part, in milliamperes (EW-PLC-014).",
+      "properties": {
+        "channel_ma": {
+          "description": "The rating of one output channel.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "group_ma": {
+          "description": "The rating of one load supply group (the output channels the group feeds).",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "module_ma": {
+          "description": "The rating of the whole module.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
     "PartBusPort": {
       "additionalProperties": true,
-      "description": "One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`]. No address, net,\nconnector, signal map or address range is typed; those stay in `extra` (1.0).",
+      "description": "One bus interface of a part (WP-S1.21 D15): the first four members as in [`BusPort`], then the facts of 1.0 that\nthe rules read: the connector type (EW-BUS-009), the supported rates (EW-BUS-005), the address range (EW-BUS-002)\nand the IO-Link device data (EW-IOL-001, EW-IOL-002). No address or net is typed: those belong to the drawn port;\nthe signal map of FR-BUS-023 stays in `extra`.",
       "properties": {
+        "address_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RangeU16"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The station addresses the interface accepts (FR-BUS-009, EW-BUS-002); absent: the bus's range."
+        },
         "bus": {
           "$ref": "#/$defs/BusSystem",
           "description": "The bus system."
         },
+        "connector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The connector type (\"sub-d-9\", \"m12-b\"); two ports mated without a cable must have the same (EW-BUS-009)."
+        },
         "interface": {
           "$ref": "#/$defs/Ident",
           "description": "The interface name (\"DP\", \"X1\")."
+        },
+        "iolink": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IoLinkDevice"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The IO-Link device data of a port with bus `io_link` and role `device` (doc 10 §3.8, FR-BUS-012)."
         },
         "port_label": {
           "anyOf": [
@@ -1283,6 +1465,13 @@
             }
           ],
           "description": "The port label of a multi-port interface (\"P1R\")."
+        },
+        "rates": {
+          "description": "The data rates the interface supports (FR-BUS-009, EW-BUS-005); empty: not stated.",
+          "items": {
+            "$ref": "#/$defs/BusRate"
+          },
+          "type": "array"
         },
         "role": {
           "$ref": "#/$defs/PortRole",
@@ -1552,6 +1741,16 @@
       "additionalProperties": true,
       "description": "The PLC section of a part (doc 10 §2.6, level L2 part data). The earth, bus ports and the `meta` confidence are\nadditive and stay in `extra` until their work packages.",
       "properties": {
+        "allowed_slots": {
+          "description": "The slots a module of this part may occupy (doc 10 §2.3, FR-PLC-028, EW-PLC-011); empty: any slot.",
+          "items": {
+            "format": "uint16",
+            "maximum": 65535,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "type": "array"
+        },
         "bit_of": {
           "anyOf": [
             {
@@ -1581,6 +1780,28 @@
           },
           "type": "array"
         },
+        "iolink": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/IoLinkWindow"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The port window of an IO-Link master's `multi_function` channels (doc 10 §3.8, FR-BUS-012)."
+        },
+        "limits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StationLimits"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The limits of a station of this part (`Max_Module`, the maximum I/O lengths; EW-PLC-011)."
+        },
         "pin_of": {
           "anyOf": [
             {
@@ -1602,6 +1823,17 @@
             }
           ],
           "description": "The solenoid-position map of a valve-terminal module (doc 10 §2.6 `[plc.positions]`, §3.2 step 4,\n§3.3 normaliser N2); absent: the module serves no valve positions."
+        },
+        "ratings": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OutputRatings"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The output current ratings of a module (EW-PLC-014, FR-PLC-048)."
         },
         "role": {
           "$ref": "#/$defs/PlcRole",
@@ -1630,6 +1862,21 @@
         "role"
       ],
       "type": "object"
+    },
+    "PortClass": {
+      "description": "The class of an IO-Link port (FR-BUS-012): class B adds a separate actuator supply.",
+      "oneOf": [
+        {
+          "const": "a",
+          "description": "Class A.",
+          "type": "string"
+        },
+        {
+          "const": "b",
+          "description": "Class B.",
+          "type": "string"
+        }
+      ]
     },
     "PortRole": {
       "description": "The role of a bus port (doc 10 §2.7).",
@@ -1818,6 +2065,31 @@
       ],
       "type": "object"
     },
+    "RangeU16": {
+      "additionalProperties": true,
+      "description": "An inclusive range of 16-bit numbers.",
+      "properties": {
+        "max": {
+          "description": "The highest value.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "min": {
+          "description": "The lowest value.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "type": "object"
+    },
     "RepType": {
       "description": "Representation types (doc 03 §6, doc 07 §2.3). `panel_front` is a symbol type only: panel-front\nrepresentations are derived, never stored (ADR-0006 amendment 3).",
       "oneOf": [
@@ -1905,6 +2177,41 @@
         "solenoid",
         "channel"
       ],
+      "type": "object"
+    },
+    "StationLimits": {
+      "additionalProperties": true,
+      "description": "The limits of a station part (doc 10 §2.8 `Max_Module` and the maximum I/O lengths; EW-PLC-011).",
+      "properties": {
+        "max_input_bytes": {
+          "description": "The most input bytes of all its modules together.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_modules": {
+          "description": "The most modules the station takes.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "max_output_bytes": {
+          "description": "The most output bytes of all its modules together.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
       "type": "object"
     },
     "SupplyFeeds": {

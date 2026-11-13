@@ -9,7 +9,7 @@ A station address outside the range is not reachable on the bus.
 
 ## Standard
 
-- IEC 61158 (unverified)
+No standard: a project-hygiene rule.
 
 ## Example
 

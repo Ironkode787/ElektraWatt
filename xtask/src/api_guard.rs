@@ -781,7 +781,12 @@ fn node_changes(
         }
     }
     for (path, node) in a.iter().filter(|(p, n)| !b.contains_key(*p) && !n.branch) {
-        if node.required && b.contains_key(parent(path)) {
+        // The one member of a new object branch (`{profinet}`, an open enum's new payload variant) comes with the
+        // branch, a new value that needs its `format-variant` line; it is no member newly required of the old values.
+        let name = path.rsplit('.').next().unwrap_or(path);
+        let branch = format!("{}|{{{name}}}", parent(path));
+        let new_variant = a.contains_key(&branch) && !b.contains_key(&branch);
+        if node.required && b.contains_key(parent(path)) && !new_variant {
             out.push((true, item(path), "added as required".to_owned()));
         } else {
             out.push((false, item(path), "added".to_owned()));
@@ -1246,5 +1251,21 @@ mod tests {
                     .collect(),
             }
         );
+    }
+
+    /// A new payload variant of an open enum (a single-member object branch) adds its member as required only within
+    /// its own branch: a new value with its line, not a member the old values must now carry.
+    #[test]
+    fn a_new_payload_variant_is_a_new_value_not_a_required_member() {
+        let node = |branches: Value| json!({"$defs": {"Net": {"oneOf": branches}}, "properties": {"a": {"$ref": "#/$defs/Net"}}});
+        let before = node(json!([{"type": "object", "properties": {"p": {"type": "integer"}}, "required": ["p"]}]));
+        let after = node(json!([
+            {"type": "object", "properties": {"p": {"type": "integer"}}, "required": ["p"]},
+            {"type": "object", "properties": {"n": {"type": "string"}}, "required": ["n"]},
+        ]));
+        let (mut out, mut variants) = (Vec::new(), Vec::new());
+        node_changes("k", &before, &after, &mut out, &mut variants);
+        assert!(out.iter().all(|(breaking, _, _)| !breaking), "{out:?}");
+        assert_eq!(variants.len(), 1, "{variants:?}");
     }
 }

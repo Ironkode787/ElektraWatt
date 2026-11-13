@@ -501,6 +501,17 @@
             "null"
           ]
         },
+        "safety": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SafetyModule"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The safety data of an F-module (doc 10 §2.9, FR-PLC-041); absent: a standard module."
+        },
         "slot": {
           "$ref": "#/$defs/SlotPath",
           "description": "The slot; default positional (the rank among the station's modules by `Device.position`)."
@@ -622,6 +633,79 @@
         "rack",
         "slot"
       ],
+      "type": "object"
+    },
+    "RangeU16": {
+      "additionalProperties": true,
+      "description": "An inclusive range of 16-bit numbers.",
+      "properties": {
+        "max": {
+          "description": "The highest value.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "min": {
+          "description": "The lowest value.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "type": "object"
+    },
+    "SafetyModule": {
+      "additionalProperties": true,
+      "description": "The safety data of an F-module (doc 10 §2.9): its PROFIsafe addresses and watchdog. SIL and PL are never\ncalculated (FR-PLC-041).",
+      "properties": {
+        "f_dest": {
+          "description": "The F-destination address (`F_Dest_Add`); absent: missing (EW-SAF-001).",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "f_source": {
+          "description": "The F-source address (`F_Source_Add`).",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "f_wd_ms": {
+          "description": "The F-watchdog time in milliseconds.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RangeU16"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The F-destination range of the device description (`1..=65534`); absent: any."
+        }
+      },
       "type": "object"
     },
     "Side": {

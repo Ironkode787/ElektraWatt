@@ -55,6 +55,17 @@
           ],
           "description": "The logical net: the scope of address uniqueness, rate and master (FR-BUS-002)."
         },
+        "mrp": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MrpRole"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The media-redundancy role of a PROFINET port in a ring (FR-BUS-010); absent: no ring."
+        },
         "physical_net": {
           "anyOf": [
             {
@@ -231,6 +242,33 @@
       ],
       "type": "object"
     },
+    "EtherCatAddress": {
+      "additionalProperties": true,
+      "description": "An EtherCAT address (doc 10 §2.7, FR-BUS-011): the auto-increment position in the line and the station alias.\nAn absent position is the derived one, the slave's place in the segment.",
+      "properties": {
+        "alias": {
+          "description": "The configured station alias.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "position": {
+          "description": "The auto-increment position (1-based).",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
     "FnRole": {
       "description": "Main or auxiliary function.",
       "oneOf": [
@@ -362,8 +400,23 @@
       ],
       "description": "Multilingual text: a neutral string, or an object keyed by canonical BCP 47 tags with non-empty string values (doc 05 §3.2). JSON Schema cannot express that all text is NFC or that the keys are in ascending byte order; the reader rejects both."
     },
+    "MrpRole": {
+      "description": "The media-redundancy role of a PROFINET port (FR-BUS-010).",
+      "oneOf": [
+        {
+          "const": "manager",
+          "description": "The ring manager.",
+          "type": "string"
+        },
+        {
+          "const": "client",
+          "description": "A ring client.",
+          "type": "string"
+        }
+      ]
+    },
     "NetAddress": {
-      "description": "A bus address (doc 10 §2.7). Format 0.1 types the PROFIBUS station address; the address forms of the other\nbuses (PROFINET name and IP, EtherCAT position, …) are kept verbatim as [`NetAddress::Unknown`] until WP-S1.24.",
+      "description": "A bus address (doc 10 §2.7): the PROFIBUS station address, the PROFINET device name and IPv4 data, the EtherCAT\nposition and alias, and an IO-Link port number. The address forms of the buses of 1.x (EtherNet/IP, AS-i,\nCANopen, Modbus TCP) are kept verbatim as [`NetAddress::Unknown`].",
       "oneOf": [
         {
           "additionalProperties": false,
@@ -378,6 +431,48 @@
           },
           "required": [
             "profibus"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A PROFINET IO device name and its IPv4 data (FR-BUS-010).",
+          "properties": {
+            "profinet": {
+              "$ref": "#/$defs/ProfinetAddress"
+            }
+          },
+          "required": [
+            "profinet"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An EtherCAT position and alias (FR-BUS-011).",
+          "properties": {
+            "ethercat": {
+              "$ref": "#/$defs/EtherCatAddress"
+            }
+          },
+          "required": [
+            "ethercat"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "The number of an IO-Link master port (1-based).",
+          "properties": {
+            "io_link_port": {
+              "format": "uint8",
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "io_link_port"
           ],
           "type": "object"
         }
@@ -477,6 +572,44 @@
           "type": "string"
         }
       ]
+    },
+    "ProfinetAddress": {
+      "additionalProperties": true,
+      "description": "A PROFINET IO address (doc 10 §2.7, FR-BUS-010): the DNS-compatible device name and the IPv4 address, subnet mask\nand gateway, each optional until assigned.",
+      "properties": {
+        "gateway": {
+          "description": "The default gateway.",
+          "format": "ipv4",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ip": {
+          "description": "The IPv4 address.",
+          "format": "ipv4",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mask": {
+          "description": "The subnet mask.",
+          "format": "ipv4",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/Ident",
+          "description": "The device name (\"cpx-1\")."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
     },
     "SourceRef": {
       "additionalProperties": true,

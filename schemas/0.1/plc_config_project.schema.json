@@ -25,6 +25,35 @@
       ],
       "type": "object"
     },
+    "SymbolPolicy": {
+      "additionalProperties": true,
+      "description": "How a configuration project derives and validates channel symbols (doc 10 §2.2, §3.4).",
+      "properties": {
+        "strict_iec": {
+          "description": "Strict IEC 61131-3 identifiers (the default): the automatic symbol is cleaned into one, and EW-PLC-005\nreports a symbol that is not one.",
+          "type": "boolean"
+        },
+        "tag_table": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The PLC tag table the symbols are exported to (the TIA \"PLC Tags\" table name)."
+        },
+        "template": {
+          "description": "The template of the automatic symbol (`{target.process_tag|target.dt}`, `{target.dt}_{pin}`); absent: a\nchannel without a manual symbol has none.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
       "maxLength": 36,
@@ -81,6 +110,17 @@
         }
       ],
       "description": "Import provenance."
+    },
+    "symbols": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SymbolPolicy"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The symbol policy (doc 10 §2.2, §3.4, FR-PLC-017, FR-PLC-047); absent: no automatic symbol, strict IEC\nidentifiers."
     }
   },
   "required": [

@@ -7,6 +7,43 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
 
+- api-add: commands `plc.freeze {config_project}`, `plc.readdress {config_project | modules}` and
+  `plc.convert_manual_to_auto {config_project | modules}`, all Bulk; the re-address preview lists every changed
+  address as `channel 3 of -201U5: Q10.3 → Q2.3` (WP-S1.24, FR-PLC-014, FR-PLC-015)
+- api-add: the built-in tag-based address profile `rockwell-logix@2027.1`: `Local:3:O.Data.1` from the station and
+  the slot; a tag-based profile reads no typed address or start (WP-S1.24, FR-PLC-009)
+- api-add: `fields.set` takes a channel's `data_type`, `signal_range`, `mode` and `safety`, a module's
+  `plc_module.safety`, a configuration project's `symbols` (the automatic-symbol template, refused when it does not
+  expand) and a port's `bus_port.mrp`; `project.settings.set` takes `process_tag_scheme` (WP-S1.24)
+- api-add: report kinds `plc_card_list`, `network_address_list`, `bus_overview`, `bus_cable_list`,
+  `iolink_port_list` and `safety_io_list`, and the SQL view `api_v1_plc_channel` (WP-S1.24)
+- api-add: the 1.0 rules EW-PLC-004, -005, -009, -010, -011, -013, -014, EW-SAF-001 … -003, EW-PRC-001,
+  EW-BUS-002, -003, -005, -006, -007, -009, -010 and EW-IOL-001, -002, in a scheme with the 1.0 content; the shipped
+  schemes run the MVP content as before (WP-S1.24)
+- behaviour-change: a channel bound to its card's pin takes the field device its signal reaches as its target, with
+  the passed terminals (the I/O list's target and target pin), and that device's `PlcAddress` slot prints the
+  channel's address; a manual target prints there too (WP-S1.24, FR-PLC-018, FT-700)
+- behaviour-change: a configuration project with a symbol template gives a channel without a manual symbol the
+  template's symbol, cleaned into an IEC identifier; EW-PLC-007 compares symbols so cleaned, and EW-PLC-001 and
+  EW-PLC-007 refuse the edit that creates an overlap or a duplicate (WP-S1.24, FR-PLC-017, FT-726)
+- behaviour-change: an IO-Link master's ports take their devices' process-data windows, and A1 allocates their sum
+  (WP-S1.24, FR-BUS-012)
+- behaviour-change: `library.update` with a part version that adds a PLC section or changes its bus ports gives the
+  devices that use it their PLC aspect, channels and ports (FT-830); `rep.join_device` takes a bus-port symbol onto a
+  device whose bus part has a free port (FT-841)
+- format-variant: channel ChannelKind multi_function
+- format-variant: part ChannelKind multi_function
+- format-variant: function NetAddress {profinet}
+- format-variant: function NetAddress {ethercat}
+- format-variant: function NetAddress {io_link_port}
+- format-variant: report_block ReportKind plc_card_list
+- format-variant: report_block ReportKind network_address_list
+- format-variant: report_block ReportKind bus_overview
+- format-variant: report_block ReportKind bus_cable_list
+- format-variant: report_block ReportKind iolink_port_list
+- format-variant: report_block ReportKind safety_io_list
+- dependency: `ew-derive` uses `regex` 1.13.1 (MIT OR Apache-2.0, already in the workspace) for the process-tag
+  scheme (WP-S1.24)
 - behaviour-change: window Cable… proposes the type `<n>G<cross-section>` when one of the selected wires is a protective
   conductor, so the PE wire has its green-yellow core; retyping the type proposes the cores of the wires not yet in
   a cable afresh, so a neutral no longer keeps the brown core of an earlier type; the form's wire column is as wide

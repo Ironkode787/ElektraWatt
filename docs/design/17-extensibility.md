@@ -904,14 +904,16 @@ personal-data minimisation (§7.4).
 
 \*\* `api_v1_bond` is a Preview addition beyond FR-EXT-007 and FR-EXT-032 (ADR-0017 amendment 2).
 
-**As built.** `ew-sqlview` builds thirteen views: the
+**As built.** `ew-sqlview` builds fourteen views: the
 eleven of FR-EXT-007 (`api_v1_device`, `api_v1_function`, `api_v1_page`, `api_v1_wire`, `api_v1_terminal`,
 `api_v1_cable`, `api_v1_conductor`, `api_v1_potential`, `api_v1_bom_component`, `api_v1_bom_assembly`,
-`api_v1_message`; the table above shows the two BOM views in one row), `api_v1_meta` and `api_v1_bond`. Every column
+`api_v1_message`; the table above shows the two BOM views in one row), `api_v1_meta`, `api_v1_bond` and the 1.0 view
+`api_v1_plc_channel`. Every column
 listed above for a built view exists in the code; no listed column of a built view is missing.
 - **Not built.** `api_v1_cp` (with `role` and `i_load`), `api_v1_structure`, `api_v1_xref` and `api_v1_revision`
-  of FR-EXT-032. The 1.0 views (`api_v1_plc_channel`, `api_v1_placement`, `api_v1_fluid_line`,
-  `api_v1_valve_position`, `api_v1_medium`) are not built either.
+  of FR-EXT-032. Of the 1.0 views, `api_v1_placement`, `api_v1_fluid_line`, `api_v1_valve_position` and
+  `api_v1_medium` are not built either; `api_v1_plc_channel` is (WP-S1.24): the `io_list` columns, the IDs, the
+  `address_source` and the signal range, 56 rows on Golden A.
 - **Preview additions.** The columns marked "(Preview addition)" in the table and the view `api_v1_bond` are
   additive Preview of `api_v1`. `ew sql schema` marks each of them `[preview addition]`, and
   `api_v1_meta` carries `api_status` (`preview`) and `preview_additions` (a JSON array of `view` or `view.column`

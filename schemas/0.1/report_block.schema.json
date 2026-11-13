@@ -274,6 +274,36 @@
           "const": "check_report",
           "description": "Check report.",
           "type": "string"
+        },
+        {
+          "const": "plc_card_list",
+          "description": "PLC card list (doc 10 §5, FR-REP-045).",
+          "type": "string"
+        },
+        {
+          "const": "network_address_list",
+          "description": "Network address list (FR-BUS-008).",
+          "type": "string"
+        },
+        {
+          "const": "bus_overview",
+          "description": "Bus overview, the generated bus topology overview (FR-REP-020, FR-BUS-007).",
+          "type": "string"
+        },
+        {
+          "const": "bus_cable_list",
+          "description": "Bus cable list (FR-BUS-008).",
+          "type": "string"
+        },
+        {
+          "const": "iolink_port_list",
+          "description": "IO-Link port list (FR-BUS-014).",
+          "type": "string"
+        },
+        {
+          "const": "safety_io_list",
+          "description": "Safety I/O list (FR-PLC-041).",
+          "type": "string"
         }
       ]
     },

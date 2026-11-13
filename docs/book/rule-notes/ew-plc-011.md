@@ -10,7 +10,7 @@ A station refuses a configuration beyond its slots and I/O lengths.
 
 ## Standard
 
-No standard: the limits are the device description's (GSD Max_Module, the maximum I/O lengths).
+No standard: a project-hygiene rule.
 
 ## Example
 

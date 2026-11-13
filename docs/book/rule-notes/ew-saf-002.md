@@ -8,7 +8,7 @@ A two-channel evaluation needs both contacts of one sensor; two sensors defeat i
 
 ## Standard
 
-- ISO 13849-1:2023 (unverified)
+No standard: a project-hygiene rule.
 
 ## Example
 

@@ -9,7 +9,7 @@ A cable for another bus, or a connector that does not fit, breaks the line.
 
 ## Standard
 
-No standard: the cable and connector types are the parts'.
+No standard: a project-hygiene rule.
 
 ## Example
 
