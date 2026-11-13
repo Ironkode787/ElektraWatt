@@ -106,7 +106,7 @@ fn a_dxf_underlay_is_drawn_on_the_canvas_only_locked_and_undone_in_one_step() {
     let (bare, bare_picked, _) = sheet(&s, true);
     let checks_before = s.check(&ew_api::checks::FULL, ew_api::checks::CheckMode::Release).findings.len();
     let source = UnderlaySource::Dxf(DxfOptions::default());
-    s.place_underlay("1", "plan.dxf", drawing(), &source, true).unwrap();
+    s.place_underlay("1", "plan.dxf", drawing(), &source, true, Vec::new()).unwrap();
     let u = underlays(&s);
     assert_eq!(u.len(), 1);
     assert_eq!(u[0].format, UnderlayFormat::Dxf);
@@ -134,7 +134,7 @@ fn a_pdf_page_underlay_covers_the_sheet_as_a_raster_and_a_file_that_is_no_pdf_is
     let other = project();
     let pdf = other.export_pdf(&ExportOptions::default()).unwrap().bytes;
     let mut s = project();
-    s.place_underlay("1", "eplan.pdf", pdf, &UnderlaySource::Pdf { page: 1 }, true).unwrap();
+    s.place_underlay("1", "eplan.pdf", pdf, &UnderlaySource::Pdf { page: 1 }, true, Vec::new()).unwrap();
     let (_, _, items) = sheet(&s, true);
     let image = items.iter().find_map(|i| match &i.kind {
         ItemKind::Image(img) => Some(img.image.clone()),
@@ -144,12 +144,12 @@ fn a_pdf_page_underlay_covers_the_sheet_as_a_raster_and_a_file_that_is_no_pdf_is
     assert!(image.bytes.starts_with(b"\x89PNG"), "a PNG raster");
 
     let e = s
-        .place_underlay("1", "fake.pdf", b"%PDF-1.7 not really".to_vec(), &UnderlaySource::Pdf { page: 1 }, true)
+        .place_underlay("1", "fake.pdf", b"%PDF-1.7 not really".to_vec(), &UnderlaySource::Pdf { page: 1 }, true, Vec::new())
         .unwrap_err();
     assert!(matches!(e, DxfError::Refused(_)), "{e:?}");
     assert!(e.to_string().contains("no PDF that can be read"), "{e}");
     let e = s
-        .place_underlay("9", "plan.dxf", drawing(), &UnderlaySource::Dxf(DxfOptions::default()), true)
+        .place_underlay("9", "plan.dxf", drawing(), &UnderlaySource::Dxf(DxfOptions::default()), true, Vec::new())
         .unwrap_err();
     assert_eq!(e.to_string(), "The project has no drawn page 9.");
 }

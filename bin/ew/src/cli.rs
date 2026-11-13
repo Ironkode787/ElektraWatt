@@ -66,6 +66,8 @@ pub enum Command {
     ImportDxf(dxf::ImportDxfArgs),
     /// `ew import pdf`: a PDF page as a locked underlay.
     ImportPdf(dxf::ImportPdfArgs),
+    /// `ew import dwg`: a DWG through the user's ODA File Converter, then as `ew import dxf`.
+    ImportDwg(dxf::ImportDwgArgs),
     /// `ew import table`: a round-trip table read back and its changed cells applied.
     ImportTable(ImportTableArgs),
     /// Check a project.
@@ -755,6 +757,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::ImportTable(a) => run_import_table(&a),
         Command::ImportDxf(a) => dxf::run_import_dxf(&a),
         Command::ImportPdf(a) => dxf::run_import_pdf(&a),
+        Command::ImportDwg(a) => dxf::run_import_dwg(&a),
         Command::Check(a) => run_check(&a),
         Command::Sql(a) => run_sql(&a),
         Command::SqlDump(a) => run_sql_dump(&a),

@@ -273,3 +273,148 @@ pub fn import_part_outline(
 struct Outline(Vec<Vec<ew_units::Pt2>>);
 
 impl crate::import::FrontDoorOutput for Outline {}
+
+// -------------------------------------------------------------------------------------------------------------------
+// DWG through the ODA File Converter (doc 14 §6.5, FR-IMP-036)
+
+/// How long the converter may run: 120 s (doc 14 §11).
+pub const DWG_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+
+/// The words of EW-IMP-257 when no converter is configured: what it is and how to give it.
+pub const DWG_HOW_TO: &str = "DWG files are read through the ODA File Converter, which ElektraWatt does not include. \
+     Install it from the Open Design Alliance, then give its program: with --converter, or in the window when it asks \
+     for it.";
+
+/// Why a DWG was not converted; nothing was imported.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum DwgError {
+    /// No converter is configured (EW-IMP-257's explanation, [`DWG_HOW_TO`]).
+    NoConverter,
+    /// The converter could not be started or ended with an error, in words.
+    Failed(String),
+    /// The converter ran longer than [`DWG_TIMEOUT`] and was stopped.
+    TimedOut,
+    /// The converter ended without writing a DXF.
+    NoOutput,
+}
+
+impl std::fmt::Display for DwgError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DwgError::NoConverter => f.write_str(DWG_HOW_TO),
+            DwgError::Failed(why) => write!(f, "The ODA File Converter failed: {why}."),
+            DwgError::TimedOut => write!(
+                f,
+                "The ODA File Converter did not finish within {} seconds and was stopped.",
+                DWG_TIMEOUT.as_secs()
+            ),
+            DwgError::NoOutput => f.write_str("The ODA File Converter wrote no DXF for the drawing."),
+        }
+    }
+}
+
+impl std::error::Error for DwgError {}
+
+/// A fresh, empty working folder under the system's temporary folder.
+fn work_dir() -> Result<std::path::PathBuf, DwgError> {
+    use std::sync::atomic::{AtomicU32, Ordering};
+    static NEXT: AtomicU32 = AtomicU32::new(0);
+    let base = std::env::temp_dir();
+    for _ in 0..64 {
+        let n = NEXT.fetch_add(1, Ordering::Relaxed);
+        let dir = base.join(format!("ew-dwg-{}-{n}", std::process::id()));
+        if std::fs::create_dir(&dir).is_ok() {
+            return Ok(dir);
+        }
+    }
+    Err(DwgError::Failed("no working folder could be made".to_owned()))
+}
+
+/// The DXF of the DWG `bytes` named `name`, made by the user's ODA File Converter `converter` (doc 14 §6.5): the
+/// converter runs as an external process on a copy in a fresh temporary folder (`<converter> <in> <out> ACAD2018 DXF 0
+/// 1 *.DWG`), at most `timeout`; the DXF it writes is read under the DXF input limit, and the folder is removed. The
+/// converter is never bundled or downloaded.
+///
+/// # Errors
+///
+/// [`DwgError`]: the converter fails, times out or writes nothing.
+pub fn convert_dwg(
+    converter: &std::path::Path,
+    name: &str,
+    bytes: &[u8],
+    timeout: std::time::Duration,
+) -> Result<Vec<u8>, DwgError> {
+    let work = work_dir()?;
+    let result = convert_in(&work, converter, name, bytes, timeout);
+    let _ = std::fs::remove_dir_all(&work);
+    result
+}
+
+fn convert_in(
+    work: &std::path::Path,
+    converter: &std::path::Path,
+    name: &str,
+    bytes: &[u8],
+    timeout: std::time::Duration,
+) -> Result<Vec<u8>, DwgError> {
+    let failed = |e: std::io::Error| DwgError::Failed(e.kind().to_string());
+    let (input, output) = (work.join("in"), work.join("out"));
+    std::fs::create_dir(&input).map_err(failed)?;
+    std::fs::create_dir(&output).map_err(failed)?;
+    // The copy keeps only a plain stem of the file's name, so the converter's file filter finds it.
+    let stem: String = std::path::Path::new(name)
+        .file_stem()
+        .map(|s| s.to_string_lossy().chars().filter(|c| c.is_alphanumeric() || matches!(c, '-' | '_')).collect())
+        .filter(|s: &String| !s.is_empty())
+        .unwrap_or_else(|| "drawing".to_owned());
+    std::fs::write(input.join(format!("{stem}.dwg")), bytes).map_err(failed)?;
+    let mut child = std::process::Command::new(converter)
+        .arg(&input)
+        .arg(&output)
+        .args(["ACAD2018", "DXF", "0", "1", "*.DWG"])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .map_err(failed)?;
+    let started = std::time::Instant::now();
+    let status = loop {
+        match child.try_wait().map_err(failed)? {
+            Some(status) => break status,
+            None if started.elapsed() >= timeout => {
+                let _ = child.kill();
+                let _ = child.wait();
+                return Err(DwgError::TimedOut);
+            }
+            None => std::thread::sleep(std::time::Duration::from_millis(50)),
+        }
+    };
+    if !status.success() {
+        return Err(DwgError::Failed(format!("it ended with {status}")));
+    }
+    let dxf = std::fs::read_dir(&output)
+        .map_err(failed)?
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .find(|p| p.extension().is_some_and(|x| x.eq_ignore_ascii_case("dxf")))
+        .ok_or(DwgError::NoOutput)?;
+    let limit = Limits::default().max_input_bytes;
+    let mut out = Vec::new();
+    use std::io::Read;
+    std::fs::File::open(&dxf)
+        .and_then(|f| f.take(limit + 1).read_to_end(&mut out))
+        .map_err(failed)?;
+    if out.len() as u64 > limit {
+        return Err(DwgError::Failed(format!("its DXF is larger than the {limit} bytes an import reads")));
+    }
+    Ok(out)
+}
+
+/// The report entry of a converted DWG (EW-IMP-257).
+pub fn dwg_converted(name: &str) -> crate::import::ReportEntry {
+    crate::import::ReportEntry::new(
+        crate::import::Code::imp(257),
+        crate::import::Severity::Info,
+        format!("{name} was converted to DXF by the ODA File Converter before the import."),
+    )
+}

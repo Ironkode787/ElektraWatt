@@ -169,6 +169,18 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["import", "dwg"],
+        exits: &[
+            exit(0, "converted and imported"),
+            exit(
+                2,
+                "usage, no converter, a failed or timed-out conversion, and as for `import dxf`",
+            ),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["import", "pdf"],
         exits: &[
             exit(0, "placed and saved"),

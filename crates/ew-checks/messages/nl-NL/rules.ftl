@@ -1189,3 +1189,27 @@ word-an-f-module = een F-module
 word-the-sensor = de sensor
 word-the-cable = de kabel
 word-the-device = het apparaat
+
+rule-ew-imp-251 =
+    .title = Tekening zonder eenheid, in de gekozen eenheid gelezen
+    .hint = Controleer de afmetingen van de tekening; importeer haar opnieuw in de juiste eenheid als die niet klopt.
+
+rule-ew-imp-252 =
+    .title = SHX-lettertype in een meegeleverd lettertype getekend
+    .hint = Controleer de teksten: hun breedte kan afwijken van die in het SHX-lettertype.
+
+rule-ew-imp-253 =
+    .title = Tekeningelement niet geïmporteerd
+    .hint = Teken wat het element liet zien met de hand, of importeer een 2D-export van de tekening.
+
+rule-ew-imp-254 =
+    .title = Extern bestand niet geopend
+    .hint = Plaats het bestand waarnaar de tekening verwijst zelf als de pagina het nodig heeft.
+
+rule-ew-imp-255 =
+    .title = Arceerpatroon tot zijn omtrek teruggebracht
+    .hint = Teken de vulling van de arcering met de hand als de pagina die nodig heeft.
+
+rule-ew-imp-257 =
+    .title = DWG omgezet door de ODA File Converter
+    .hint = Vergelijk de pagina met de DWG: de omzetting is die van de converter.

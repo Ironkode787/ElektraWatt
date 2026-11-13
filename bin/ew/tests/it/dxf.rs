@@ -131,6 +131,48 @@ fn a_drawing_becomes_a_parts_front_outline() {
     assert_eq!(stderr(&out), "error: The library holds no part nope.\n");
 }
 
+/// A fake ODA File Converter written by the test: it copies the DWG of its input folder (the test writes DXF text into
+/// it) as a DXF into its output folder, as the real converter writes its output.
+fn fake_converter(t: &Tmp) -> std::path::PathBuf {
+    if cfg!(windows) {
+        let path = t.path("converter.cmd");
+        std::fs::write(&path, "@echo off\r\ncopy /y \"%~1\\*.dwg\" \"%~2\\drawing.dxf\" >nul\r\n").unwrap();
+        path
+    } else {
+        let path = t.path("converter.sh");
+        std::fs::write(&path, "#!/bin/sh\ncp \"$1\"/*.dwg \"$2\"/drawing.dxf\n").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        path
+    }
+}
+
+/// `ew import dwg` runs the configured converter on a copy and imports its DXF, the conversion among the findings;
+/// without a converter it says how to give one (FR-IMP-036, EW-IMP-257).
+#[test]
+fn a_dwg_imports_through_the_users_converter_and_without_one_the_refusal_says_how() {
+    let t = Tmp::new("ew-dwg");
+    let project = t.tiny("p.ew");
+    let dwg = t.path("plant.dwg");
+    std::fs::write(&dwg, drawing(Some(4))).unwrap();
+    let out = t
+        .ew_command(&args([&"import", &"dwg", &dwg, &"--project", &project]))
+        .env_remove("EW_DWG_CONVERTER")
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(stderr(&out), format!("error: {}\n", ew_api::dxf::DWG_HOW_TO));
+    let converter = fake_converter(&t);
+    let out = t.ew(&args([&"import", &"dwg", &dwg, &"--project", &project, &"--converter", &converter]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let text = stdout(&out);
+    assert!(text.contains("EW-IMP-257 info: plant.dwg was converted to DXF by the ODA File Converter"), "{text}");
+    assert!(text.ends_with("Imported plant.dxf as page 2 with 2 items.\n"), "{text}");
+}
+
 #[test]
 fn the_blocks_of_a_drawing_become_symbol_drafts_with_their_pins_on_the_grid() {
     let t = Tmp::new("ew-dxf-symbol");

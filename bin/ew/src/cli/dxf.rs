@@ -1,7 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! `ew import dxf` (doc 14 §13): a DXF drawing into the project as a graphic page, or its blocks as symbol drafts.
+//! `ew import dxf`, `ew import dwg` and `ew import pdf` (doc 14 §13): a drawing into the project as a graphic page or
+//! an underlay, its blocks as symbol drafts, its lines as a part's front outline; a DWG through the user's ODA File
+//! Converter first; a PDF page as an underlay.
 
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -28,10 +30,10 @@ pub enum DxfTarget {
 /// The arguments of `ew import dxf`.
 #[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
 pub struct ImportDxfArgs {
-    /// The DXF file (ASCII or binary, R12 to 2018).
-    #[arg(value_name = "file.dxf")]
+    /// The drawing: a DXF (ASCII or binary, R12 to 2018), or with `import dwg` a DWG.
+    #[arg(value_name = "file")]
     pub file: PathBuf,
-    /// What the drawing becomes: page or symbol.
+    /// What the drawing becomes: page, underlay, symbol or outline.
     #[arg(long = "as", value_name = "target", value_enum, default_value_t = DxfTarget::Page, overrides_with = "target")]
     pub target: DxfTarget,
     /// The project directory (default: the nearest ancestor of the current directory holding `manifest.json`).
@@ -61,6 +63,17 @@ pub struct ImportDxfArgs {
     /// The part number of the part (with `--as outline`).
     #[arg(long, value_name = "part-number", allow_hyphen_values = true, overrides_with = "part")]
     pub part: Option<String>,
+}
+
+/// The arguments of `ew import dwg`: those of `import dxf` and the converter.
+#[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
+pub struct ImportDwgArgs {
+    /// As for `import dxf`.
+    #[command(flatten)]
+    pub dxf: ImportDxfArgs,
+    /// The program of the ODA File Converter (default: `EW_DWG_CONVERTER`); never bundled or downloaded.
+    #[arg(long, value_name = "program", allow_hyphen_values = true, overrides_with = "converter")]
+    pub converter: Option<PathBuf>,
 }
 
 /// The arguments of `ew import pdf`.
@@ -145,6 +158,51 @@ pub(super) fn run_import_dxf(a: &ImportDxfArgs) -> i32 {
     let Ok((name, bytes)) = read_input(&a.file) else {
         return 2;
     };
+    import(a, "import dxf", &name, bytes, Vec::new())
+}
+
+/// `ew import dwg`: the drawing converted by the user's ODA File Converter (`--converter`, else `EW_DWG_CONVERTER`),
+/// then as `ew import dxf`; without a converter the refusal says how to give one (EW-IMP-257).
+pub(super) fn run_import_dwg(a: &ImportDwgArgs) -> i32 {
+    let Ok((name, bytes)) = read_input(&a.dxf.file) else {
+        return 2;
+    };
+    let converter = a.converter.clone().or_else(dwg_converter_variable);
+    let Some(converter) = converter else {
+        eprintln!("error: {}", ew_api::dxf::DwgError::NoConverter);
+        return 2;
+    };
+    let dxf = match ew_api::dxf::convert_dwg(&converter, &name, &bytes, ew_api::dxf::DWG_TIMEOUT) {
+        Ok(d) => d,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let converted = Path::new(&name).with_extension("dxf").to_string_lossy().into_owned();
+    import(&a.dxf, "import dwg", &converted, dxf, vec![ew_api::dxf::dwg_converted(&name)])
+}
+
+// The program boundary: `EW_DWG_CONVERTER`, the converter program the user installed, read once and passed in.
+#[allow(
+    clippy::disallowed_methods,
+    reason = "the environment is read at the program boundary"
+)]
+fn dwg_converter_variable() -> Option<PathBuf> {
+    std::env::var_os("EW_DWG_CONVERTER")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+}
+
+/// The import of a drawing read (a DXF, or a DWG's DXF with `notes` naming the conversion).
+fn import(
+    a: &ImportDxfArgs,
+    subcommand: &str,
+    name: &str,
+    bytes: Vec<u8>,
+    notes: Vec<ew_api::import::ReportEntry>,
+) -> i32 {
+    let name = name.to_owned();
     match a.target {
         DxfTarget::Symbol => {
             let key = a.key.clone().unwrap_or_else(|| ew_api::symbols::file_key(&a.file));
@@ -181,20 +239,23 @@ pub(super) fn run_import_dxf(a: &ImportDxfArgs) -> i32 {
                 return 2;
             };
             let source = ew_api::output::UnderlaySource::Dxf(a.options());
-            place(a.project.as_ref(), "import dxf", folio, &name, bytes, &source, a.embed)
+            place(a.project.as_ref(), subcommand, folio, &name, bytes, &source, a.embed, notes)
         }
         DxfTarget::Page => {
             let Some(dir) = project_dir(a.project.as_ref()) else {
                 return 2;
             };
             let origin = ew_api::Origin::Cli {
-                subcommand: "import dxf".into(),
+                subcommand: subcommand.into(),
                 confirmed: false,
             };
             let Ok(mut session) = open_for_writing(&dir, origin) else {
                 return 2;
             };
-            let page = match session.import_dxf_page(&name, bytes, &a.options()) {
+            let page = match session.dxf_page_batch(&name, bytes, &a.options()).and_then(|mut batch| {
+                batch.report.entries.extend(notes);
+                session.apply_page_batch(batch)
+            }) {
                 Ok(p) => p,
                 Err(e) => {
                     eprintln!("{}", refused(&e));
@@ -217,6 +278,7 @@ pub(super) fn run_import_dxf(a: &ImportDxfArgs) -> i32 {
 
 /// Places an underlay on the page `folio` of the project and saves: exit 0, 2 on a refused source or page, open and
 /// save errors.
+#[allow(clippy::too_many_arguments)]
 fn place(
     project: Option<&PathBuf>,
     subcommand: &str,
@@ -225,6 +287,7 @@ fn place(
     bytes: Vec<u8>,
     source: &ew_api::output::UnderlaySource,
     embed: bool,
+    notes: Vec<ew_api::import::ReportEntry>,
 ) -> i32 {
     let Some(dir) = project_dir(project) else {
         return 2;
@@ -236,7 +299,7 @@ fn place(
     let Ok(mut session) = open_for_writing(&dir, origin) else {
         return 2;
     };
-    let report = match session.place_underlay(folio, name, bytes, source, embed) {
+    let report = match session.place_underlay(folio, name, bytes, source, embed, notes) {
         Ok(r) => r,
         Err(e) => {
             eprintln!("{}", refused(&e));
@@ -261,5 +324,5 @@ pub(super) fn run_import_pdf(a: &ImportPdfArgs) -> i32 {
         return 2;
     };
     let source = ew_api::output::UnderlaySource::Pdf { page: a.page };
-    place(a.project.as_ref(), "import pdf", &a.on, &name, bytes, &source, a.embed)
+    place(a.project.as_ref(), "import pdf", &a.on, &name, bytes, &source, a.embed, Vec::new())
 }

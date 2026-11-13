@@ -347,7 +347,7 @@ impl crate::import::FrontDoorOutput for Probed {}
 impl crate::Session {
     /// Places an underlay of `bytes`, the file named `name`, on the drawn page `folio` (doc 14 §5.5): one undo step of
     /// `import.apply` with its import run. With `embed` the source becomes a project asset; otherwise it is kept in
-    /// the user's underlay cache. Returns the import's report.
+    /// the user's underlay cache. `notes` join the run's findings (a DWG's conversion). Returns the import's report.
     ///
     /// # Errors
     ///
@@ -359,6 +359,7 @@ impl crate::Session {
         bytes: Vec<u8>,
         source: &UnderlaySource,
         embed: bool,
+        notes: Vec<crate::import::ReportEntry>,
     ) -> Result<crate::import::ImportReport, crate::dxf::DxfError> {
         use crate::dxf::DxfError;
         use sha2::Digest;
@@ -377,7 +378,8 @@ impl crate::Session {
         let sha: [u8; 32] = sha2::Sha256::digest(&bytes).into();
         let copy = self.import_copy(UNDERLAY_IMPORTER, sha, first_namespace(sha));
         let kept = (!embed).then(|| bytes.clone());
-        let batch = underlay_batch(&self.query(), page, name, bytes, source, embed, copy)?;
+        let mut batch = underlay_batch(&self.query(), page, name, bytes, source, embed, copy)?;
+        batch.report.entries.extend(notes);
         if let Some(kept) = kept {
             let format = match source {
                 UnderlaySource::Pdf { .. } => UnderlayFormat::Pdf,

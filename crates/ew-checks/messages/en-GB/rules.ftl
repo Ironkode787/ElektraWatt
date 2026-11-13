@@ -1165,3 +1165,27 @@ word-an-f-module = an F-module
 word-the-sensor = the sensor
 word-the-cable = the cable
 word-the-device = the device
+
+rule-ew-imp-251 =
+    .title = Drawing without a unit, read in the chosen unit
+    .hint = Check the drawing's size; import it again in the right unit if it is wrong.
+
+rule-ew-imp-252 =
+    .title = SHX font drawn in a bundled font
+    .hint = Check the texts: their widths may differ from the SHX font's.
+
+rule-ew-imp-253 =
+    .title = Drawing entity not imported
+    .hint = Draw what the entity showed by hand, or import a 2D export of the drawing.
+
+rule-ew-imp-254 =
+    .title = External file not opened
+    .hint = Place the file the drawing refers to yourself if the page needs it.
+
+rule-ew-imp-255 =
+    .title = Hatch pattern reduced to its outline
+    .hint = Draw the hatch's fill by hand if the page needs it.
+
+rule-ew-imp-257 =
+    .title = DWG converted by the ODA File Converter
+    .hint = Compare the page with the DWG: the conversion is the converter's.

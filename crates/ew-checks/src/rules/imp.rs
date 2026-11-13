@@ -47,7 +47,7 @@ use Severity::{Error as E, Info as I, Warning as W};
 
 /// The EW-IMP codes the importers emit (doc 14 §2.5's catalogue), with EW-IMP-010 and EW-IMP-011 of a re-import and
 /// the three codes [`FOLDED`] pairs with a live rule.
-pub static IMP: [RuleMeta; 25] = [
+pub static IMP: [RuleMeta; 31] = [
     imp(
         "EW-IMP-001",
         "160001",
@@ -247,6 +247,55 @@ pub static IMP: [RuleMeta; 25] = [
         C,
         I,
         "reference/rules/ew-imp-122",
+    ),
+    // The DXF and DWG imports (WP-S3.19, doc 14 §6). EW-IMP-256 is the symbol wizard's, in a draft's details only.
+    imp(
+        "EW-IMP-251",
+        "160251",
+        "Drawing without a unit, read in the chosen unit",
+        C,
+        W,
+        "reference/rules/ew-imp-251",
+    ),
+    imp(
+        "EW-IMP-252",
+        "160252",
+        "SHX font drawn in a bundled font",
+        H,
+        W,
+        "reference/rules/ew-imp-252",
+    ),
+    imp(
+        "EW-IMP-253",
+        "160253",
+        "Drawing entity not imported",
+        C,
+        I,
+        "reference/rules/ew-imp-253",
+    ),
+    imp(
+        "EW-IMP-254",
+        "160254",
+        "External file not opened",
+        C,
+        I,
+        "reference/rules/ew-imp-254",
+    ),
+    imp(
+        "EW-IMP-255",
+        "160255",
+        "Hatch pattern reduced to its outline",
+        C,
+        I,
+        "reference/rules/ew-imp-255",
+    ),
+    imp(
+        "EW-IMP-257",
+        "160257",
+        "DWG converted by the ODA File Converter",
+        H,
+        I,
+        "reference/rules/ew-imp-257",
     ),
 ];
 

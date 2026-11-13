@@ -431,6 +431,14 @@ enum Import {
     /// confidential). Exit 0 when placed and saved, 2 on usage, a file that is no readable PDF or lacks the page, a
     /// page the project does not have, open and save errors.
     Pdf(super::dxf::ImportPdfArgs),
+    /// Import a DWG drawing through the ODA File Converter.
+    ///
+    /// Runs the user's ODA File Converter (`--converter <program>`, else the program `EW_DWG_CONVERTER` names; it is
+    /// never bundled or downloaded) on a copy of the DWG in a temporary folder, at most 120 seconds, and imports the
+    /// DXF it writes as `ew import dxf` does, with the same options; the import's findings say the drawing was
+    /// converted (EW-IMP-257). Without a converter the refusal says how to give one. Exit 0 when imported, 2 on usage,
+    /// no converter, a failed or timed-out conversion, and as for `import dxf`.
+    Dwg(super::dxf::ImportDwgArgs),
 }
 
 /// `ew import table`.
@@ -2207,6 +2215,7 @@ impl Cli {
             Top::Import(Import::Csv(a)) => Command::ImportCsv(a),
             Top::Import(Import::Dxf(a)) => Command::ImportDxf(a),
             Top::Import(Import::Pdf(a)) => Command::ImportPdf(a),
+            Top::Import(Import::Dwg(a)) => Command::ImportDwg(a),
             Top::Import(Import::Table(ImportTableCli {
                 file,
                 project_dir,
