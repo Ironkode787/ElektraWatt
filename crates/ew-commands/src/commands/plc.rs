@@ -582,7 +582,10 @@ fn scope_modules(
     };
     tx.require::<PlcConfigProject>(cfg)?;
     let q = ew_derive::Q::new(tx.base_model());
-    Ok(q.get::<ew_derive::ModuleOrder>(cfg).iter().map(|m| m.module).collect())
+    Ok(q.get::<ew_derive::ModuleOrder>(cfg)
+        .iter()
+        .map(|m| m.module)
+        .collect())
 }
 
 /// Every module of the configuration projects that `modules` belong to, in allocation order: the modules whose
@@ -590,8 +593,11 @@ fn scope_modules(
 fn neighbourhood(q: &ew_derive::Q, modules: &[Id<Device>]) -> Vec<Id<Device>> {
     let mut cfgs: Vec<Id<PlcConfigProject>> = Vec::new();
     for m in modules {
-        let cfg = ew_derive::station_of(q, *m)
-            .and_then(|s| q.devices().get(s).and_then(|d| d.aspects.plc_station.as_ref().map(|p| p.config_project)));
+        let cfg = ew_derive::station_of(q, *m).and_then(|s| {
+            q.devices()
+                .get(s)
+                .and_then(|d| d.aspects.plc_station.as_ref().map(|p| p.config_project))
+        });
         if let Some(cfg) = cfg.filter(|c| !cfgs.contains(c)) {
             cfgs.push(cfg);
         }
@@ -697,7 +703,10 @@ impl Command for FreezeAddresses {
                 let ew_derive::ChannelAddr::At { address, .. } = &e.address else {
                     continue;
                 };
-                if tx.get::<Channel>(e.channel).is_some_and(|c| c.address == AddrSpec::Auto) {
+                if tx
+                    .get::<Channel>(e.channel)
+                    .is_some_and(|c| c.address == AddrSpec::Auto)
+                {
                     let manual = AddrSpec::Manual(ew_derive::stored(*address));
                     tx.update::<Channel>(e.channel, |c| c.address = manual)?;
                     frozen += 1;
@@ -753,9 +762,13 @@ impl Command for Readdress {
         let affected = neighbourhood(&q, &modules);
         let before = printed_addresses(&q, &affected);
         for m in &modules {
-            let manual_start = tx.get::<Device>(*m).and_then(|d| d.aspects.plc_module.clone()).is_some_and(|p| {
-                matches!(p.start.input, AddrSpec::Manual(_)) || matches!(p.start.output, AddrSpec::Manual(_))
-            });
+            let manual_start = tx
+                .get::<Device>(*m)
+                .and_then(|d| d.aspects.plc_module.clone())
+                .is_some_and(|p| {
+                    matches!(p.start.input, AddrSpec::Manual(_))
+                        || matches!(p.start.output, AddrSpec::Manual(_))
+                });
             if manual_start {
                 tx.update::<Device>(*m, |d| {
                     if let Some(p) = d.aspects.plc_module.as_mut() {
@@ -768,7 +781,10 @@ impl Command for Readdress {
                 })?;
             }
             for c in tx.channels_of_module(*m) {
-                if tx.get::<Channel>(c).is_some_and(|c| matches!(c.address, AddrSpec::Manual(_))) {
+                if tx
+                    .get::<Channel>(c)
+                    .is_some_and(|c| matches!(c.address, AddrSpec::Manual(_)))
+                {
                     tx.update::<Channel>(c, |c| c.address = AddrSpec::Auto)?;
                 }
             }
@@ -861,7 +877,10 @@ impl Command for ConvertManualToAuto {
         }
         let original: Vec<(Id<Device>, ew_schema::IoStarts)> = modules
             .iter()
-            .filter_map(|m| tx.get::<Device>(*m).and_then(|d| d.aspects.plc_module.as_ref().map(|p| (*m, p.start.clone()))))
+            .filter_map(|m| {
+                tx.get::<Device>(*m)
+                    .and_then(|d| d.aspects.plc_module.as_ref().map(|p| (*m, p.start.clone())))
+            })
             .collect();
         let mut kept: Vec<(Id<Device>, bool, u32, Option<u32>)> = Vec::new();
         while !candidates.is_empty() {
@@ -896,10 +915,13 @@ impl Command for ConvertManualToAuto {
                 break;
             }
             for (m, output, byte) in &differ {
-                let start = original
-                    .iter()
-                    .find(|(x, _)| x == m)
-                    .map(|(_, s)| if *output { s.output.clone() } else { s.input.clone() });
+                let start = original.iter().find(|(x, _)| x == m).map(|(_, s)| {
+                    if *output {
+                        s.output.clone()
+                    } else {
+                        s.input.clone()
+                    }
+                });
                 if let Some(start) = start {
                     tx.update::<Device>(*m, |d| {
                         if let Some(p) = d.aspects.plc_module.as_mut() {
@@ -926,7 +948,11 @@ impl Command for ConvertManualToAuto {
                     || b.to_string(),
                     |p| {
                         p.render(
-                            &ew_derive::ew_plcaddr::PlcAddress::unit(area, ew_derive::ew_plcaddr::Size::Bit, b),
+                            &ew_derive::ew_plcaddr::PlcAddress::unit(
+                                area,
+                                ew_derive::ew_plcaddr::Size::Bit,
+                                b,
+                            ),
                             ew_derive::ew_plcaddr::Purpose::Drawing,
                         )
                     },
@@ -956,6 +982,12 @@ fn module_profile_of(
     module: Id<Device>,
 ) -> Option<std::sync::Arc<ew_derive::ew_plcaddr::AddressProfile>> {
     let station = ew_derive::station_of(q, module)?;
-    let cfg = q.devices().get(station)?.aspects.plc_station.as_ref()?.config_project;
+    let cfg = q
+        .devices()
+        .get(station)?
+        .aspects
+        .plc_station
+        .as_ref()?
+        .config_project;
     ew_derive::profile_of(q, cfg)
 }

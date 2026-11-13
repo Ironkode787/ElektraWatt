@@ -1258,7 +1258,8 @@ mod tests {
     #[test]
     fn a_new_payload_variant_is_a_new_value_not_a_required_member() {
         let node = |branches: Value| json!({"$defs": {"Net": {"oneOf": branches}}, "properties": {"a": {"$ref": "#/$defs/Net"}}});
-        let before = node(json!([{"type": "object", "properties": {"p": {"type": "integer"}}, "required": ["p"]}]));
+        let before =
+            node(json!([{"type": "object", "properties": {"p": {"type": "integer"}}, "required": ["p"]}]));
         let after = node(json!([
             {"type": "object", "properties": {"p": {"type": "integer"}}, "required": ["p"]},
             {"type": "object", "properties": {"n": {"type": "string"}}, "required": ["n"]},

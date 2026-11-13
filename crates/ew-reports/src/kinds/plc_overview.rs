@@ -150,17 +150,7 @@ fn sorted_by_tag(q: &Q, stations: Vec<Id<Device>>) -> Vec<Id<Device>> {
 
 /// A channel kind as the PLC overview and the I/O list print it.
 pub(super) fn kind_name(k: &ChannelKind) -> &'static str {
-    match k {
-        ChannelKind::Di => "DI",
-        ChannelKind::Do => "DO",
-        ChannelKind::Ai => "AI",
-        ChannelKind::Ao => "AO",
-        ChannelKind::Counter => "counter",
-        ChannelKind::IoLinkPort => "IO-Link",
-        ChannelKind::PowerSupply => "supply",
-        ChannelKind::MultiFunction => "multi-function",
-        ChannelKind::Unknown(_) => "other",
-    }
+    ew_derive::channel_kind_word(k)
 }
 
 fn ident(text: Option<&str>) -> Cell {

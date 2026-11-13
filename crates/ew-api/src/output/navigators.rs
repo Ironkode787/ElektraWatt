@@ -2026,18 +2026,7 @@ const PLC_COLUMNS: [(&str, &str); 14] = [
 
 /// The word of a channel kind as the PLC overview prints it.
 fn channel_kind_word(k: &ew_derive::ew_schema::ChannelKind) -> &'static str {
-    use ew_derive::ew_schema::ChannelKind;
-    match k {
-        ChannelKind::Di => "DI",
-        ChannelKind::Do => "DO",
-        ChannelKind::Ai => "AI",
-        ChannelKind::Ao => "AO",
-        ChannelKind::Counter => "counter",
-        ChannelKind::IoLinkPort => "IO-Link",
-        ChannelKind::PowerSupply => "supply",
-        ChannelKind::MultiFunction => "multi-function",
-        ChannelKind::Unknown(_) => "other",
-    }
+    ew_derive::channel_kind_word(k)
 }
 
 /// A station's role as the badge of its row (doc 10 §6: the role word, not its identifier).

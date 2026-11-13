@@ -98,8 +98,11 @@ fn seeded(port: &PartBusPort) -> BusPort {
 /// whose ports the transaction changed.
 fn devices_with_a_new_bus_part(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
     let mut out = BTreeSet::new();
-    let mut candidates: BTreeSet<Id<Device>> =
-        tx.changed_of(Kind::Device).into_iter().map(|k| k.1.cast()).collect();
+    let mut candidates: BTreeSet<Id<Device>> = tx
+        .changed_of(Kind::Device)
+        .into_iter()
+        .map(|k| k.1.cast())
+        .collect();
     candidates.extend(crate::normalise::plc_aspects::devices_of_changed_parts(tx));
     for id in candidates {
         let Some(dev) = tx.get::<Device>(id) else {
@@ -113,9 +116,10 @@ fn devices_with_a_new_bus_part(tx: &TxBuilder<'_>) -> BTreeSet<Id<Device>> {
             .and_then(|r| r.get::<Device>().cloned())
             .and_then(|b| bus_part(tx, &b.parts))
             .map(|c| c.id);
-        let ports_before = tx
-            .base_row(&(Kind::Part, now.id.cast()))
-            .and_then(|r| r.get::<LibCopy<Part>>().map(|c| c.item.sections.bus.clone().map(|b| b.ports)));
+        let ports_before = tx.base_row(&(Kind::Part, now.id.cast())).and_then(|r| {
+            r.get::<LibCopy<Part>>()
+                .map(|c| c.item.sections.bus.clone().map(|b| b.ports))
+        });
         let ports_now = now.item.sections.bus.clone().map(|b| b.ports);
         if before != Some(now.id) || ports_before.is_some_and(|p| p != ports_now) {
             out.insert(dev.id);

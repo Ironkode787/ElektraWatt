@@ -56,6 +56,35 @@ fn set(s: &mut Session, targets: &[&NavNode], path: &str, value: Value) {
 /// PG1: the configuration project above -201U1, its role word as the station's badge, the module levels, and the
 /// `unplaced` badge on exactly the channels without a binding (the deactivated ones on Golden A, which no coil binds),
 /// beside `spare` on the 20 spare channels.
+/// The stored form of an address text of Golden A's profile.
+fn parsed(text: &str) -> Value {
+    let a = ew_derive::parse_plc_address(ew_derive::builtin_profiles(), "siemens-tia-intl@2027.1", text)
+        .expect("an address of the profile");
+    serde_json::to_value(a).unwrap()
+}
+
+/// A session over Golden A with members merged into the channel records of `edits`: a state that an import or a merge
+/// brings and that the strict edit path refuses (FT-726).
+fn with_channels(edits: &[(&NavNode, Value)]) -> Session {
+    let batch = common::golden_batch();
+    let (project, mut records) = common::split(&batch);
+    for r in &mut records {
+        let ew_schema::Record::Channel(c) = r else {
+            continue;
+        };
+        for (node, members) in edits {
+            if node.records[0].to_string() == c.id.to_string() {
+                let mut v = serde_json::to_value(&*c).unwrap();
+                for (k, m) in members.as_object().unwrap() {
+                    v[k] = m.clone();
+                }
+                *c = serde_json::from_value(v).unwrap();
+            }
+        }
+    }
+    common::session_of(project, records, batch.lib.clone())
+}
+
 #[test]
 fn the_tree_levels_and_badges() {
     let s = common::golden_session();
@@ -83,7 +112,7 @@ fn the_tree_levels_and_badges() {
 /// PG4: each facet on Golden A, then after the edit that sets it. FR-PLC-021: `spare` shows exactly 20 rows.
 #[test]
 fn each_facet_on_golden_a() {
-    let mut s = common::golden_session();
+    let s = common::golden_session();
     let t = s.navigator_table(NavKind::Plc);
     assert_eq!(with(&t, "spare", "").len(), 20, "FR-PLC-021");
     assert_eq!(with(&t, "unplaced", "").len(), 28);
@@ -99,12 +128,14 @@ fn each_facet_on_golden_a() {
     let u5_2 = channel(&t, "-201U5", 2).clone();
     let other = cell(&t, &u4_1, "address").to_owned();
 
+    // EW-PLC-007's duplicate symbol and EW-PLC-001's overlap (a manual address equal to another channel's): states the
+    // strict edit path refuses (FT-726), which a lenient import or a merge brings; the session opens over them.
+    let mut s = with_channels(&[
+        (&u4_0, json!({"symbol": "B1_Start"})),
+        (&u5_2, json!({"symbol": "B1_Start"})),
+        (&u3_1, json!({"address": {"manual": parsed(&other)}})),
+    ]);
     set(&mut s, &[&u3_0], "address", json!("excluded"));
-    set(&mut s, &[&u3_1], "address", json!("tbd"));
-    // EW-PLC-007: one symbol on two channels.
-    set(&mut s, &[&u4_0, &u5_2], "symbol", json!("B1_Start"));
-    // EW-PLC-001's overlap: a manual address equal to another channel's.
-    set(&mut s, &[&u3_1], "address", json!(other));
     let t = s.navigator_table(NavKind::Plc);
     let keys = |v: Vec<&NavNode>| -> Vec<String> { v.into_iter().map(|n| n.key.clone()).collect() };
     assert_eq!(keys(with(&t, "unassigned", "")), std::slice::from_ref(&u3_0.key));

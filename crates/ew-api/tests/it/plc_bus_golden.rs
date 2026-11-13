@@ -70,7 +70,9 @@ fn golden_rows(kind: &str) -> Vec<String> {
             _ => None,
         })
         .expect("a report block");
-    let def = ew_reports::Registry::builtin().by_name(kind).expect("a registered kind");
+    let def = ew_reports::Registry::builtin()
+        .by_name(kind)
+        .expect("a registered kind");
     ew_reports::csv::rows_csv(&q, &def.rows(&q, &block))
         .lines()
         .map(str::to_owned)
@@ -83,7 +85,11 @@ fn golden_rows(kind: &str) -> Vec<String> {
 fn golden_network_address_and_bus_cable_lists() {
     let net = golden_rows("network_address_list");
     assert_eq!(net.len(), 3, "a header and two rows: {net:#?}");
-    assert!(net[1].contains("JE-N1000-03") && net[1].contains(",yes,"), "{}", net[1]);
+    assert!(
+        net[1].contains("JE-N1000-03") && net[1].contains(",yes,"),
+        "{}",
+        net[1]
+    );
     assert!(net[2].contains("-201U1") && net[2].contains("TBD"), "{}", net[2]);
     let cables = golden_rows("bus_cable_list");
     assert_eq!(cables.len(), 2, "{cables:#?}");
@@ -107,7 +113,12 @@ fn golden_bus_overview_and_card_list() {
     let sum = |col: usize| -> i64 {
         cards[1..]
             .iter()
-            .map(|l| l.split(',').nth(col).and_then(|v| v.parse::<i64>().ok()).unwrap_or(0))
+            .map(|l| {
+                l.split(',')
+                    .nth(col)
+                    .and_then(|v| v.parse::<i64>().ok())
+                    .unwrap_or(0)
+            })
             .sum()
     };
     // the first field is the row kind

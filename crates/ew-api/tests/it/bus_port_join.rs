@@ -247,5 +247,8 @@ fn a_port_symbol_joins_a_device_with_a_free_bus_port() {
             params: json!({"rep": second.to_string(), "device": cpu.to_string()}),
         })
         .expect_err("no free port is left");
-    assert!(format!("{err}").contains("no port that a function of it does not carry yet"), "{err}");
+    assert!(
+        format!("{err}").contains("no port that a function of it does not carry yet"),
+        "{err}"
+    );
 }

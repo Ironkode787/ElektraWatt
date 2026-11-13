@@ -519,7 +519,7 @@ rule-ew-plc-004 = { $form ->
        *[output] { $channel }: het { $kind }-kanaal stuurt het contact van { WORD($target) } aan; een uitgang stuurt een actuator aan, controleer de bedrading of de kanaalsoort
     }
     .title = Kanaalsoort past niet
-    .hint = Bedraad het kanaal naar een functie van zijn soort, of wijzig de kanaalsoort.
+    .hint = Verbind het kanaal met een draad naar een functie van zijn soort, of wijzig de kanaalsoort.
 
 rule-ew-plc-005 = { $channel }: het symbool { $symbol } is geen IEC 61131-3-identifier, wat configuratieproject { WORD($cfg) } vereist; gebruik letters, cijfers en enkele underscores
     .title = Ongeldig symbool
@@ -587,21 +587,21 @@ rule-ew-saf-001 = { $form ->
 
 rule-ew-saf-002 = { $form ->
         [incomplete] { $channel } is een 1oo2-kanaal zonder partner die het terugnoemt; koppel het aan het andere kanaal van de sensor
-       *[devices] het 1oo2-paar { $channel } en { $other } leest twee apparaten, { WORD($first) } en { WORD($second) }; bedraad beide kanalen naar dezelfde tweekanaalssensor
+       *[devices] het 1oo2-paar { $channel } en { $other } leest twee apparaten, { WORD($first) } en { WORD($second) }; verbind beide kanalen met draden naar dezelfde tweekanaalssensor
     }
     .title = 1oo2-paar
     .hint = Koppel elk 1oo2-kanaal aan het andere kanaal van dezelfde tweekanaalssensor.
 
-rule-ew-saf-003 = { $channel }: de sensor { WORD($sensor) } wordt niet gevoed uit de testpulspen van de module; sluit zijn voeding op die pen aan
+rule-ew-saf-003 = { $channel }: de sensor { WORD($sensor) } wordt niet gevoed uit de testpulspen van de module; verbind zijn voeding met een draad op die pen
     .title = Testpuls
     .hint = Voed de sensor van een F-DI-kanaal uit de testpulspen van de module.
 
 rule-ew-prc-001 = { $form ->
-        [scheme] { WORD($device) }: het procesmerkteken { $tag } past niet in het schema { $scheme } van het project; corrigeer het merkteken
-       *[duplicate] het procesmerkteken { $tag } staat op { $devices }; houd het op het ene veldapparaat en volg het vanaf de andere
+        [scheme] { WORD($device) }: het proceskenmerk { $tag } past niet in het schema { $scheme } van het project; corrigeer het kenmerk
+       *[duplicate] het proceskenmerk { $tag } staat op { $devices }; houd het op het ene veldapparaat en volg het vanaf de andere
     }
-    .title = Schema van procesmerktekens
-    .hint = Geef elk veldapparaat een eigen procesmerkteken in het schema van het project.
+    .title = Schema van proceskenmerken
+    .hint = Geef elk veldapparaat een eigen proceskenmerk in het schema van het project.
 
 rule-ew-bus-001 = { $form ->
         [duplicate] { $named ->

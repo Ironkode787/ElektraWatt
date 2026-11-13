@@ -88,8 +88,11 @@ fn triggered(tx: &TxBuilder<'_>, dev: &Device) -> Option<PlcSection> {
 /// The devices that use a part copy this transaction changed, in ID order: `library.update` replaces a copy's content
 /// under its ID (FT-830), so N0 and N5 look at its devices as if their parts had changed.
 pub(crate) fn devices_of_changed_parts(tx: &TxBuilder<'_>) -> Vec<Id<Device>> {
-    let changed: std::collections::BTreeSet<Id<Part>> =
-        tx.changed_of(Kind::Part).into_iter().map(|k| k.1.cast()).collect();
+    let changed: std::collections::BTreeSet<Id<Part>> = tx
+        .changed_of(Kind::Part)
+        .into_iter()
+        .map(|k| k.1.cast())
+        .collect();
     if changed.is_empty() {
         return Vec::new();
     }
@@ -269,8 +272,11 @@ impl Normaliser for PlcAspects {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let mut stations: Vec<(Arc<Device>, PlcSection)> = Vec::new();
         let mut modules: Vec<Arc<Device>> = Vec::new();
-        let mut candidates: std::collections::BTreeSet<Id<Device>> =
-            tx.changed_of(Kind::Device).into_iter().map(|k| k.1.cast()).collect();
+        let mut candidates: std::collections::BTreeSet<Id<Device>> = tx
+            .changed_of(Kind::Device)
+            .into_iter()
+            .map(|k| k.1.cast())
+            .collect();
         candidates.extend(devices_of_changed_parts(tx));
         for id in candidates {
             let Some(dev) = tx.get::<Device>(id) else {

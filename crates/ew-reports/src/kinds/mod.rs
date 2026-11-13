@@ -52,7 +52,9 @@ pub use numbering_report::NumberingReport;
 pub use open_items::OpenItems;
 pub use part_data::PartData;
 pub use parts::{PartsList, PartsSummary};
-pub use plc_bus_lists::{BusCableList, BusOverview, IolinkPortList, NetworkAddressList, PlcCardList, SafetyIoList};
+pub use plc_bus_lists::{
+    BusCableList, BusOverview, IolinkPortList, NetworkAddressList, PlcCardList, SafetyIoList,
+};
 pub use plc_overview::PlcOverview;
 pub use potential_overview::PotentialOverview;
 pub use profile_tables::{GROUPS as PROFILE_TABLE_GROUPS, ProfileTables};

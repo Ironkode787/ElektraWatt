@@ -39,9 +39,11 @@ fn has_free_bus_port(tx: &TxBuilder<'_>, device: &Device) -> bool {
         .filter_map(|f| tx.get::<Function>(f).and_then(|f| f.bus_port.clone()))
         .map(|p| (p.interface, p.port_label))
         .collect();
-    ports
-        .iter()
-        .any(|p| !carried.iter().any(|(i, l)| *i == p.interface && *l == p.port_label))
+    ports.iter().any(|p| {
+        !carried
+            .iter()
+            .any(|(i, l)| *i == p.interface && *l == p.port_label)
+    })
 }
 
 /// `rep.join_device` (`JoinDevice`): the placed representation `rep` joins `device` in one

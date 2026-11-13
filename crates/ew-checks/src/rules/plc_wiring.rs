@@ -27,14 +27,25 @@ use crate::rules::term::full_tag;
 
 /// The PLC section a station takes its limits from: the first part use whose part's `plc` section has role
 /// `station`, else the station's module section.
-fn station_section(q: &Q, station: Id<Device>) -> Option<(std::sync::Arc<ew_derive::ew_schema::LibCopy<ew_derive::ew_schema::Part>>, PlcSection)> {
+fn station_section(
+    q: &Q,
+    station: Id<Device>,
+) -> Option<(
+    std::sync::Arc<ew_derive::ew_schema::LibCopy<ew_derive::ew_schema::Part>>,
+    PlcSection,
+)> {
     let dev = q.devices().get(station)?;
     let parts = q.parts();
     dev.parts
         .iter()
         .find_map(|u| {
             let copy = parts.get(u.part.copy)?;
-            let plc = copy.item.sections.plc.clone().filter(|s| s.role == PlcRole::Station)?;
+            let plc = copy
+                .item
+                .sections
+                .plc
+                .clone()
+                .filter(|s| s.role == PlcRole::Station)?;
             Some((std::sync::Arc::clone(copy), plc))
         })
         .or_else(|| module_part(q, station))
@@ -133,7 +144,9 @@ impl Rule for KindMismatch {
                 _ => continue,
             };
             let channel = channel_name(q, module, c.id, c.number);
-            let target = t.device.map_or_else(|| "its target".to_owned(), |d| full_tag(q, d, "its target"));
+            let target = t
+                .device
+                .map_or_else(|| "its target".to_owned(), |d| full_tag(q, d, "its target"));
             let kind = kind_word(&c.kind);
             let message = match form {
                 "output" => format!(
@@ -280,12 +293,16 @@ impl Rule for WithoutConnection {
             let Some(c) = channels.get(*id) else {
                 continue;
             };
-            let connected = *state == EffectiveState::Used || targets.iter().any(|t| t.channel == *id && t.function.is_some());
+            let connected = *state == EffectiveState::Used
+                || targets.iter().any(|t| t.channel == *id && t.function.is_some());
             if connected || c.state.is_some() {
                 continue;
             }
             let manual = matches!(c.address, AddrSpec::Manual(_));
-            let symbol = texts.iter().find(|(x, _)| x == id).and_then(|(_, t)| t.symbol.clone());
+            let symbol = texts
+                .iter()
+                .find(|(x, _)| x == id)
+                .and_then(|(_, t)| t.symbol.clone());
             let what = match (manual, &symbol) {
                 (true, Some(_)) => "both",
                 (true, None) => "address",
@@ -478,7 +495,12 @@ impl Rule for SlotRules {
                 continue;
             }
             let name = full_tag(q, *module, "a module");
-            let allowed = plc.allowed_slots.iter().map(u16::to_string).collect::<Vec<_>>().join(", ");
+            let allowed = plc
+                .allowed_slots
+                .iter()
+                .map(u16::to_string)
+                .collect::<Vec<_>>()
+                .join(", ");
             out.push(
                 Finding::new(
                     &SLOT_RULES,
@@ -510,8 +532,18 @@ impl Rule for SlotRules {
         let count = modules.len() as u64;
         let checks = [
             ("max_modules", count, limits.max_modules.map(u64::from), "modules"),
-            ("input", input, limits.max_input_bytes.map(u64::from), "input bytes"),
-            ("output", output, limits.max_output_bytes.map(u64::from), "output bytes"),
+            (
+                "input",
+                input,
+                limits.max_input_bytes.map(u64::from),
+                "input bytes",
+            ),
+            (
+                "output",
+                output,
+                limits.max_output_bytes.map(u64::from),
+                "output bytes",
+            ),
         ];
         for (form, have, limit, what) in checks {
             let Some(limit) = limit.filter(|l| have > *l) else {
@@ -694,7 +726,9 @@ impl Rule for CardSupply {
                             .arg("group", group_word)
                             .arg(
                                 "type",
-                                ptype.as_ref().map_or_else(String::new, |t| potential_type_word(t).to_owned()),
+                                ptype
+                                    .as_ref()
+                                    .map_or_else(String::new, |t| potential_type_word(t).to_owned()),
                             )
                             .reading(confidence),
                         );
@@ -817,14 +851,23 @@ impl Rule for OutputLoad {
                 total = total.saturating_add(load);
                 if let Some(limit) = ratings.channel_ma.map(u64::from).filter(|l| load > *l) {
                     let channel = channel_name(q, module, c.id, c.number);
-                    out.push(load_finding(&channel, Target::new(Kind::Channel, c.id), "channel", load, limit, &confidence));
+                    out.push(load_finding(
+                        &channel,
+                        Target::new(Kind::Channel, c.id),
+                        "channel",
+                        load,
+                        limit,
+                        &confidence,
+                    ));
                 }
             }
             let name = full_tag(q, module, "a module");
             let loads_groups = plc
                 .supply_groups
                 .iter()
-                .filter(|g| g.kind == SupplyKind::Load && matches!(g.feeds(), SupplyFeeds::All | SupplyFeeds::Outputs))
+                .filter(|g| {
+                    g.kind == SupplyKind::Load && matches!(g.feeds(), SupplyFeeds::All | SupplyFeeds::Outputs)
+                })
                 .count();
             let mut sums: BTreeMap<&str, Option<u32>> = BTreeMap::new();
             if loads_groups > 0 {
@@ -833,7 +876,14 @@ impl Rule for OutputLoad {
             sums.insert("module", ratings.module_ma);
             for (form, limit) in sums {
                 if let Some(limit) = limit.map(u64::from).filter(|l| total > *l) {
-                    out.push(load_finding(&name, Target::new(Kind::Device, module), form, total, limit, &confidence));
+                    out.push(load_finding(
+                        &name,
+                        Target::new(Kind::Device, module),
+                        form,
+                        total,
+                        limit,
+                        &confidence,
+                    ));
                 }
             }
         }

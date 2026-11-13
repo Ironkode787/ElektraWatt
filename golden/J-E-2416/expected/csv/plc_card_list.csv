@@ -1,0 +1,8 @@
+row,Station,Slot,Module,Part,Input start,Input bytes,Output start,Output bytes,Used,Spare,Reserved,Deactivated
+data,-201U1,1,-201U3,533361,,,QB0,1,4,0,0,4
+data,-201U1,2,-201U4,533361,,,QB1,1,4,0,0,4
+data,-201U1,3,-201U5,533361,,,QB2,1,0,4,0,4
+data,-201U1,4,-201U6,533361,,,QB3,1,0,4,0,4
+data,-201U1,5,-201U7,533361,,,QB4,1,0,4,0,4
+data,-201U1,6,-201U8,533361,,,QB5,1,0,4,0,4
+data,-201U1,7,-202U2,533361,,,QB6,1,0,4,0,4

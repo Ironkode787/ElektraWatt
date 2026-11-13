@@ -244,8 +244,8 @@ pub fn parse_plc_address(
 /// Why a tag-based profile reads no address text (FR-PLC-009).
 fn tag_based(profile: &str) -> String {
     format!(
-        "profile {profile} is tag-based: its addresses come from the station and the slot, so none is typed; give \
-         auto, excluded or tbd"
+        "profile {profile} renders its addresses from the station and the slot, so none is typed; give auto, \
+         excluded or tbd"
     )
 }
 
@@ -817,9 +817,9 @@ pub fn module_io(q: &Q, module: Id<Device>) -> Vec<ew_schema::IoRange> {
     let Some(windows) = port_windows(q, module) else {
         return module_part(q, module).map(|(_, s)| s.io).unwrap_or_default();
     };
-    let (input, output) = windows
-        .iter()
-        .fold((0u32, 0u32), |(i, o), w| (i.saturating_add(w.input_bytes), o.saturating_add(w.output_bytes)));
+    let (input, output) = windows.iter().fold((0u32, 0u32), |(i, o), w| {
+        (i.saturating_add(w.input_bytes), o.saturating_add(w.output_bytes))
+    });
     [(IoDir::In, input), (IoDir::Out, output)]
         .into_iter()
         .filter(|(_, bytes)| *bytes > 0)
@@ -1063,10 +1063,11 @@ impl Query for ChannelAddresses {
         };
         let windows = port_windows(q, *key);
         // A port of an IO-Link master takes its window's address (doc 10 §3.8); every other channel A2's.
-        let address_of = |c: &Channel, r: &Render<'_>, bit_of: Option<&MapSpec>| match (&windows, &c.kind, &c.address) {
-            (Some(w), ChannelKind::MultiFunction, AddrSpec::Auto) => port_address(w, c.id, r),
-            _ => address_of(c, r, bit_of),
-        };
+        let address_of =
+            |c: &Channel, r: &Render<'_>, bit_of: Option<&MapSpec>| match (&windows, &c.kind, &c.address) {
+                (Some(w), ChannelKind::MultiFunction, AddrSpec::Auto) => port_address(w, c.id, r),
+                _ => address_of(c, r, bit_of),
+            };
         let out = channels
             .iter()
             .map(|c| {
@@ -1237,12 +1238,20 @@ fn tag_station(
     station: Id<Device>,
     cfg: Id<PlcConfigProject>,
 ) -> Option<(String, u32)> {
-    let slot = match q.get::<ModuleOrder>(cfg).iter().find(|m| m.module == module)?.slot {
+    let slot = match q
+        .get::<ModuleOrder>(cfg)
+        .iter()
+        .find(|m| m.module == module)?
+        .slot
+    {
         Slot::Rack { slot, .. } => u32::from(slot),
         Slot::Positional(n) => n,
         Slot::Unresolved => return None,
     };
-    let local = q.table::<PlcConfigProject>().get(cfg).is_some_and(|c| c.cpu == Some(station));
+    let local = q
+        .table::<PlcConfigProject>()
+        .get(cfg)
+        .is_some_and(|c| c.cpu == Some(station));
     let name = if local {
         "Local".to_owned()
     } else {
@@ -1409,6 +1418,9 @@ fn field_rank(kind: &ew_schema::ContactKind) -> Option<u8> {
     }
 }
 
+/// The order of a traced candidate: category rank, drawn page, function, CP index.
+type TraceRank = (u8, usize, Id<Function>, u16);
+
 /// The field function that the signal of the module pin `pin` reaches (doc 10 §3.5, A4's traced branch): a walk over
 /// the stitch graph's net and signal edges (wires, cores, interruption-point pairs, terminal levels, plug pins, never
 /// bridges), whose CPs are the candidates; terminals and interruption points are passed, a CP of a PLC device or one
@@ -1420,7 +1432,11 @@ fn trace(q: &Q, module: Id<Device>, pin: crate::CpRef) -> Option<(crate::CpRef, 
     let graph = q.get::<crate::StitchGraphQ>(());
     let start = graph.node_of(ew_model::EndpointKey::Cp(pin.function, pin.idx))?;
     let mut adjacent: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
-    for e in graph.edges.iter().filter(|e| matches!(e.level, Level::Net | Level::Signal)) {
+    for e in graph
+        .edges
+        .iter()
+        .filter(|e| matches!(e.level, Level::Net | Level::Signal))
+    {
         adjacent.entry(e.a).or_default().push(e.b);
         adjacent.entry(e.b).or_default().push(e.a);
     }
@@ -1447,7 +1463,7 @@ fn trace(q: &Q, module: Id<Device>, pin: crate::CpRef) -> Option<(crate::CpRef, 
             .min()
             .unwrap_or(usize::MAX)
     };
-    let mut candidates: Vec<((u8, usize, Id<Function>, u16), crate::CpRef)> = Vec::new();
+    let mut candidates: Vec<(TraceRank, crate::CpRef)> = Vec::new();
     let mut passed: Vec<(usize, crate::CpRef)> = Vec::new();
     for cp in cps {
         let Some(f) = functions.get(cp.function) else {
@@ -1460,9 +1476,10 @@ fn trace(q: &Q, module: Id<Device>, pin: crate::CpRef) -> Option<(crate::CpRef, 
             passed.push((page_of(cp.function), cp));
             continue;
         }
-        let plc_device = f.device.and_then(|d| devices.get(d)).is_some_and(|d| {
-            d.aspects.plc_module.is_some() || d.aspects.plc_station.is_some()
-        });
+        let plc_device = f
+            .device
+            .and_then(|d| devices.get(d))
+            .is_some_and(|d| d.aspects.plc_module.is_some() || d.aspects.plc_station.is_some());
         let own = f.device.is_some_and(|d| d == module);
         if own || plc_device || bound.is_bound(cp.function, cp.idx) || f.device.is_none() {
             continue;
@@ -1511,13 +1528,18 @@ impl Query for ChannelTargets {
                 };
                 let bound = cp.map(|cp| cp.function);
                 // A pin of the module itself is no target: the target lies behind the pin, where tracing finds it.
-                let on_module = bound.is_some_and(|f| functions.get(f).is_some_and(|f| f.device == Some(*key)));
+                let on_module =
+                    bound.is_some_and(|f| functions.get(f).is_some_and(|f| f.device == Some(*key)));
                 let manual = c.target.filter(|f| functions.contains(*f));
                 let (function, source, pin, passed, ambiguous) = match (manual, cp) {
                     (Some(f), _) => (Some(f), Some(TargetSource::Manual), None, Vec::new(), false),
-                    (None, Some(cp)) if !on_module => {
-                        (Some(cp.function), Some(TargetSource::Direct), Some(cp), Vec::new(), false)
-                    }
+                    (None, Some(cp)) if !on_module => (
+                        Some(cp.function),
+                        Some(TargetSource::Direct),
+                        Some(cp),
+                        Vec::new(),
+                        false,
+                    ),
                     (None, Some(cp)) => match trace(q, *key, cp) {
                         Some((hit, passed, several)) => (
                             Some(hit.function),
@@ -1804,7 +1826,11 @@ pub fn symbol_template_error(template: &str) -> Option<String> {
 /// not empty; a placeholder whose every token is empty gives no symbol (`{target.process_tag}` on a spare valve), and
 /// so does a template that [`symbol_template_error`] refuses. Under `strict_iec` the result is cleaned into an IEC
 /// identifier ([`iec_ident`]); an empty result is no symbol.
-pub fn symbol_from_template(template: &str, strict_iec: bool, value: &dyn Fn(&str) -> Option<String>) -> Option<String> {
+pub fn symbol_from_template(
+    template: &str,
+    strict_iec: bool,
+    value: &dyn Fn(&str) -> Option<String>,
+) -> Option<String> {
     if symbol_template_error(template).is_some() {
         return None;
     }
@@ -1848,6 +1874,21 @@ pub fn process_tag_parts(scheme: &regex::Regex, tag: &str) -> Option<Vec<(String
     )
 }
 
+/// A channel kind as the PLC lists, the navigator and the checks print it (`DO`, `AI`, `multi-function`).
+pub fn channel_kind_word(k: &ChannelKind) -> &'static str {
+    match k {
+        ChannelKind::Di => "DI",
+        ChannelKind::Do => "DO",
+        ChannelKind::Ai => "AI",
+        ChannelKind::Ao => "AO",
+        ChannelKind::Counter => "counter",
+        ChannelKind::IoLinkPort => "IO-Link",
+        ChannelKind::PowerSupply => "supply",
+        ChannelKind::MultiFunction => "multi-function",
+        ChannelKind::Unknown(_) => "other",
+    }
+}
+
 /// The device a device drives (`DeviceLink{Drives}` from it; the smallest link ID when there are several).
 pub fn driven_device(q: &Q, device: Id<Device>) -> Option<Id<Device>> {
     q.table::<DeviceLink>()
@@ -1873,8 +1914,11 @@ impl Query for ChannelTexts {
             .and_then(|(_, s)| s.channels.as_ref().and_then(|c| c.designation.clone()));
         let targets = q.get::<ChannelTargets>(*key);
         let devices = q.devices();
-        let policy = module_cfg(q, *key)
-            .and_then(|(_, cfg)| q.table::<PlcConfigProject>().get(cfg).and_then(|c| c.symbols.clone()));
+        let policy = module_cfg(q, *key).and_then(|(_, cfg)| {
+            q.table::<PlcConfigProject>()
+                .get(cfg)
+                .and_then(|c| c.symbols.clone())
+        });
         let product = |d: Id<Device>| {
             q.get::<crate::DeviceTag>(d)
                 .as_ref()
@@ -1983,7 +2027,10 @@ impl Query for ChannelsByTarget {
         let mut out: BTreeMap<Id<Function>, Vec<Id<Channel>>> = BTreeMap::new();
         let mut cfgs: Vec<Id<PlcConfigProject>> = Vec::new();
         for station in stations(q) {
-            let cfg = q.devices().get(station).and_then(|d| d.aspects.plc_station.as_ref().map(|s| s.config_project));
+            let cfg = q
+                .devices()
+                .get(station)
+                .and_then(|d| d.aspects.plc_station.as_ref().map(|s| s.config_project));
             if let Some(cfg) = cfg.filter(|c| !cfgs.contains(c)) {
                 cfgs.push(cfg);
             }
@@ -1991,7 +2038,9 @@ impl Query for ChannelsByTarget {
         for cfg in cfgs {
             for m in q.get::<ModuleOrder>(cfg).iter() {
                 for t in q.get::<ChannelTargets>(m.module).iter() {
-                    if let (Some(f), Some(TargetSource::Manual | TargetSource::Traced)) = (t.function, t.source) {
+                    if let (Some(f), Some(TargetSource::Manual | TargetSource::Traced)) =
+                        (t.function, t.source)
+                    {
                         out.entry(f).or_default().push(t.channel);
                     }
                 }

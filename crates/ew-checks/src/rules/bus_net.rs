@@ -160,7 +160,9 @@ fn valid_station_name(name: &str) -> bool {
                 && label.len() <= 63
                 && !label.starts_with('-')
                 && !label.ends_with('-')
-                && label.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+                && label
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
         })
 }
 
@@ -252,7 +254,10 @@ impl Rule for Profinet {
         let shared = names
             .into_iter()
             .map(|(k, v)| ("duplicate_name", "device name", k, v))
-            .chain(ips.into_iter().map(|(k, v)| ("duplicate_ip", "IP address", k.to_string(), v)));
+            .chain(
+                ips.into_iter()
+                    .map(|(k, v)| ("duplicate_ip", "IP address", k.to_string(), v)),
+            );
         for (form, what, value, functions) in shared {
             if functions.len() < 2 {
                 continue;
@@ -400,7 +405,9 @@ impl Rule for SegmentLimits {
         let functions = q.functions();
         let mut out = Vec::new();
         for segment in q.get::<BusSegments>(pnet).iter() {
-            let net = segment.logical_net.and_then(|n| q.table::<LogicalNet>().get(n).cloned());
+            let net = segment
+                .logical_net
+                .and_then(|n| q.table::<LogicalNet>().get(n).cloned());
             if net.as_ref().is_some_and(|n| n.bus != BusSystem::ProfibusDp) {
                 continue;
             }
@@ -417,7 +424,10 @@ impl Rule for SegmentLimits {
                         .is_some_and(|p| p.role != PortRole::Passive)
                 })
                 .count();
-            let targets: Vec<Target> = segment.functions().map(|f| Target::new(Kind::Function, f)).collect();
+            let targets: Vec<Target> = segment
+                .functions()
+                .map(|f| Target::new(Kind::Function, f))
+                .collect();
             if stations > PROFIBUS_STATIONS {
                 let message = format!(
                     "the segment from {subject} has {stations} stations, more than the {PROFIBUS_STATIONS} a PROFIBUS \
@@ -425,11 +435,17 @@ impl Rule for SegmentLimits {
                 );
                 let (n, limit) = (stations.to_string(), PROFIBUS_STATIONS.to_string());
                 out.push(
-                    Finding::new(&SEGMENT_LIMITS, targets.clone(), "stations", subject.clone(), message)
-                        .arg("form", "stations")
-                        .arg("segment", subject.clone())
-                        .arg("count", n)
-                        .arg("limit", limit),
+                    Finding::new(
+                        &SEGMENT_LIMITS,
+                        targets.clone(),
+                        "stations",
+                        subject.clone(),
+                        message,
+                    )
+                    .arg("form", "stations")
+                    .arg("segment", subject.clone())
+                    .arg("count", n)
+                    .arg("limit", limit),
                 );
             }
             let Some(rate) = net.as_ref().and_then(|n| n.rate) else {
@@ -439,10 +455,14 @@ impl Rule for SegmentLimits {
                 .members
                 .iter()
                 .filter_map(|m| match m {
-                    SegmentMember::Cable(c) => q.devices().get(*c).and_then(|d| match d.aspects.cable.as_ref()?.length {
-                        LengthSource::Manual(nm) => Some(nm.0),
-                        _ => None,
-                    }),
+                    SegmentMember::Cable(c) => {
+                        q.devices()
+                            .get(*c)
+                            .and_then(|d| match d.aspects.cable.as_ref()?.length {
+                                LengthSource::Manual(nm) => Some(nm.0),
+                                _ => None,
+                            })
+                    }
                     SegmentMember::Function(_) => None,
                 })
                 .sum();
@@ -455,12 +475,18 @@ impl Rule for SegmentLimits {
                     rate.0
                 );
                 out.push(
-                    Finding::new(&SEGMENT_LIMITS, targets.clone(), "length", subject.clone(), message)
-                        .arg("form", "length")
-                        .arg("segment", subject.clone())
-                        .arg("metres", metres.to_string())
-                        .arg("limit", limit.to_string())
-                        .arg("rate", rate.0.to_string()),
+                    Finding::new(
+                        &SEGMENT_LIMITS,
+                        targets.clone(),
+                        "length",
+                        subject.clone(),
+                        message,
+                    )
+                    .arg("form", "length")
+                    .arg("segment", subject.clone())
+                    .arg("metres", metres.to_string())
+                    .arg("limit", limit.to_string())
+                    .arg("rate", rate.0.to_string()),
                 );
             }
             if segment.branched && rate.0 > 1_500_000 {
@@ -526,7 +552,9 @@ impl Rule for NoMaster {
                 [Target::new(Kind::LogicalNet, net)],
                 "master",
                 format!("logical net {name}"),
-                format!("logical net {name} has no master; name its master port, or the external partner that is"),
+                format!(
+                    "logical net {name} has no master; name its master port, or the external partner that is"
+                ),
             )
             .arg("net", name),
         ]

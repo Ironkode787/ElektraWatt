@@ -706,29 +706,53 @@ pub const PLC_CHANNEL: View = View {
         t("id", "the channel UUID"),
         t("station_id", "the station device"),
         t("module_id", "the module device"),
-        t("target_id", "the target function (manual, bound or traced); NULL without one"),
+        t(
+            "target_id",
+            "the target function (manual, bound or traced); NULL without one",
+        ),
         t(
             "address_source",
             "the channel's address specification: `auto`, `manual`, `excluded` or `tbd`",
         ),
         t("config_project", "the configuration project's name"),
         t("station", "the list form of the station's tag"),
-        t("slot", "the module's slot (`n`, `rack.slot`, `rack.slot.subslot`)"),
+        t(
+            "slot",
+            "the module's slot (`n`, `rack.slot`, `rack.slot.subslot`)",
+        ),
         t("module", "the list form of the module's tag"),
         t("part_number", "the module part's number; NULL without one"),
         i("channel", "the channel number"),
         t("designation", "the determined designation; NULL without one"),
         t("kind", "the channel kind (`DI`, `DO`, …)"),
-        t("address", "the address as the drawing prints it (`Q0.1`, `TBD`); NULL when excluded or unresolved"),
-        t("symbol", "the determined symbol (manual or the template's); NULL without one"),
+        t(
+            "address",
+            "the address as the drawing prints it (`Q0.1`, `TBD`); NULL when excluded or unresolved",
+        ),
+        t(
+            "symbol",
+            "the determined symbol (manual or the template's); NULL without one",
+        ),
         t("data_type", "the data type of the PLC tag; NULL without one"),
         t("comment", "the PLC comment; NULL when empty"),
-        t("function_text", "the function text (the target's, else the tracked process tag); NULL without one"),
+        t(
+            "function_text",
+            "the function text (the target's, else the tracked process tag); NULL without one",
+        ),
         t("process_tag", "the tracked process tag; NULL without one"),
-        t("target", "the list form of the target device's tag; NULL without one"),
-        t("target_pin", "the designation of the target's CP; NULL without one"),
+        t(
+            "target",
+            "the list form of the target device's tag; NULL without one",
+        ),
+        t(
+            "target_pin",
+            "the designation of the target's CP; NULL without one",
+        ),
         t("signal_range", "the signal range; NULL without one"),
-        t("state", "the effective state: `used`, `spare`, `reserved`, `deactivated`, `TBD`"),
+        t(
+            "state",
+            "the effective state: `used`, `spare`, `reserved`, `deactivated`, `TBD`",
+        ),
     ],
 };
 

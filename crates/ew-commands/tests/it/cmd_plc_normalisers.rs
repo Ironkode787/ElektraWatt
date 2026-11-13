@@ -765,7 +765,7 @@ fn n1_applies_the_new_kind_to_existing_channels() {
 fn n1_keeps_a_kind_of_a_newer_format() {
     let newer: Record = Record::Channel(
         serde_json::from_value(json!({
-            "id": channel_id(DEV_102F2, 0), "module": DEV_102F2, "number": 0, "kind": {"multi_function": {"mode": "x"}}
+            "id": channel_id(DEV_102F2, 0), "module": DEV_102F2, "number": 0, "kind": {"safety_input": {"pairs": 2}}
         }))
         .expect("channel"),
     );

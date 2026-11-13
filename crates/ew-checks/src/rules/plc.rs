@@ -97,17 +97,7 @@ pub(crate) fn cfg_modules(q: &Q, cfg: Id<PlcConfigProject>) -> Vec<Id<Device>> {
 
 /// A channel kind as a message prints it (`DO`, `AI`, `multi-function`).
 pub(crate) fn kind_word(k: &ChannelKind) -> &'static str {
-    match k {
-        ChannelKind::Di => "DI",
-        ChannelKind::Do => "DO",
-        ChannelKind::Ai => "AI",
-        ChannelKind::Ao => "AO",
-        ChannelKind::Counter => "counter",
-        ChannelKind::IoLinkPort => "IO-Link",
-        ChannelKind::PowerSupply => "supply",
-        ChannelKind::MultiFunction => "multi-function",
-        ChannelKind::Unknown(_) => "other",
-    }
+    ew_derive::channel_kind_word(k)
 }
 
 /// The error findings of `rule` in `scopes` after a batch that were not there before it (by discriminator and

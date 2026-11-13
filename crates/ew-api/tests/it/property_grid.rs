@@ -152,7 +152,14 @@ fn every_settable_path_maps_to_a_node_with_its_own_route() {
                 member: s.name.to_owned()
             }
         );
-        assert_eq!(node.ty, FieldType::Json);
+        // a member of the JSON shape, or a text member (`process_tag_scheme`)
+        assert!(
+            matches!(&node.ty, FieldType::Json)
+                || matches!(&node.ty, FieldType::Optional(t) if **t == FieldType::Text),
+            "{}: {:?}",
+            s.name,
+            node.ty
+        );
     }
     let checks = project.iter().find(|f| f.path == "settings.checks").unwrap();
     assert!(matches!(

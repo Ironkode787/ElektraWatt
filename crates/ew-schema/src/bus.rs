@@ -19,9 +19,9 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::plc::{PortClass, RangeU16};
 use crate::Function;
 use crate::json::{Extra, de_extra, is_v1, v1};
+use crate::plc::{PortClass, RangeU16};
 use crate::proxy::{IdentS, UuidS};
 use crate::track::open_enum;
 use crate::value::{Endpoint, SourceRef};
@@ -392,4 +392,6 @@ pub enum BusMedium {
     Unknown(Value),
 }
 
-open_enum!(BusSystem, PortRole, AddrValue, NetAddress, OnOff, BusMedium, MrpRole);
+open_enum!(
+    BusSystem, PortRole, AddrValue, NetAddress, OnOff, BusMedium, MrpRole
+);

@@ -112,7 +112,9 @@ impl AddressProfile {
         if fields.absolute && !fields.render_unit.contains("{byte}") {
             return Err(ProfileError::NoByte);
         }
-        if !fields.absolute && !(fields.render_bit.contains("{slot}") && fields.render_unit.contains("{slot}")) {
+        if !fields.absolute
+            && !(fields.render_bit.contains("{slot}") && fields.render_unit.contains("{slot}"))
+        {
             return Err(ProfileError::NoSlot);
         }
         if fields.area_mnemonics.iter().any(String::is_empty) {

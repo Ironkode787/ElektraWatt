@@ -12,13 +12,13 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, natural_key};
 use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_derive::ew_schema::{
-    AddrValue, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource, LogicalNet,
-    NetAddress, OnOff, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
+    AddrValue, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
+    LogicalNet, NetAddress, OnOff, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
 };
 use ew_derive::{
-    BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf, NetMaster,
-    NetMembersOf, Q, SegmentMember, Slot, Start, external_partner_text, iolink_device, module_io, module_part,
-    net_address_text, port_windows, profile_of, stations,
+    BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf,
+    NetMaster, NetMembersOf, Q, SegmentMember, Slot, Start, external_partner_text, iolink_device, module_io,
+    module_part, net_address_text, port_windows, profile_of, stations,
 };
 
 use super::conn::{put, tag_short};
@@ -41,7 +41,11 @@ fn text(t: &str) -> Cell {
 fn cfgs(q: &Q) -> Vec<Id<PlcConfigProject>> {
     let mut out = Vec::new();
     for s in stations(q) {
-        if let Some(c) = q.devices().get(s).and_then(|d| d.aspects.plc_station.as_ref().map(|p| p.config_project)) {
+        if let Some(c) = q
+            .devices()
+            .get(s)
+            .and_then(|d| d.aspects.plc_station.as_ref().map(|p| p.config_project))
+        {
             if !out.contains(&c) {
                 out.push(c);
             }
@@ -54,8 +58,16 @@ fn cfgs(q: &Q) -> Vec<Id<PlcConfigProject>> {
 fn slot_text(slot: Slot) -> String {
     match slot {
         Slot::Positional(n) => n.to_string(),
-        Slot::Rack { rack, slot, subslot: None } => format!("{rack}.{slot}"),
-        Slot::Rack { rack, slot, subslot: Some(s) } => format!("{rack}.{slot}.{s}"),
+        Slot::Rack {
+            rack,
+            slot,
+            subslot: None,
+        } => format!("{rack}.{slot}"),
+        Slot::Rack {
+            rack,
+            slot,
+            subslot: Some(s),
+        } => format!("{rack}.{slot}.{s}"),
         Slot::Unresolved => String::new(),
     }
 }
@@ -63,7 +75,10 @@ fn slot_text(slot: Slot) -> String {
 /// The logical nets in natural order of their names.
 fn logical_nets(q: &Q) -> Vec<Id<LogicalNet>> {
     let table = q.table::<LogicalNet>();
-    let mut nets: Vec<_> = table.iter().map(|(id, n)| (natural_key(n.name.as_str()), id)).collect();
+    let mut nets: Vec<_> = table
+        .iter()
+        .map(|(id, n)| (natural_key(n.name.as_str()), id))
+        .collect();
     nets.sort();
     nets.into_iter().map(|(_, id)| id).collect()
 }
@@ -84,13 +99,19 @@ fn bus_word(b: &BusSystem) -> &'static str {
 
 /// A cable's length as the lists print it: metres with three decimals at most (`45 m`), else empty.
 fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
-    match q.devices().get(cable).and_then(|d| d.aspects.cable.as_ref().map(|c| c.length.clone())) {
+    match q
+        .devices()
+        .get(cable)
+        .and_then(|d| d.aspects.cable.as_ref().map(|c| c.length.clone()))
+    {
         Some(LengthSource::Manual(nm)) => {
             let mm = nm.0 / 1_000_000;
             let text = if mm % 1000 == 0 {
                 format!("{} m", mm / 1000)
             } else {
-                format!("{}.{:03} m", mm / 1000, mm % 1000).trim_end_matches('0').to_owned()
+                format!("{}.{:03} m", mm / 1000, mm % 1000)
+                    .trim_end_matches('0')
+                    .to_owned()
             };
             text_cell(&text)
         }
@@ -166,11 +187,26 @@ impl ReportKindDef for PlcCardList {
                 let starts = *q.get::<ModuleStartOf>(m.module);
                 for r in module_io(q, m.module) {
                     let (key_start, key_len, area, start) = match r.dir {
-                        IoDir::In => ("input_start", "input_length", Area::I, starts.and_then(|s| s.input)),
-                        IoDir::Out => ("output_start", "output_length", Area::Q, starts.and_then(|s| s.output)),
+                        IoDir::In => (
+                            "input_start",
+                            "input_length",
+                            Area::I,
+                            starts.and_then(|s| s.input),
+                        ),
+                        IoDir::Out => (
+                            "output_start",
+                            "output_length",
+                            Area::Q,
+                            starts.and_then(|s| s.output),
+                        ),
                         IoDir::Unknown(_) => continue,
                     };
-                    put(c, &mut cells, key_len, Cell::Number(i64::from(r.bits.div_ceil(8))));
+                    put(
+                        c,
+                        &mut cells,
+                        key_len,
+                        Cell::Number(i64::from(r.bits.div_ceil(8))),
+                    );
                     let cell = match (start, &profile) {
                         (Some(Start::At(b)), Some(p)) => {
                             Cell::Address(p.render(&PlcAddress::unit(area, Size::Byte, b), Purpose::Drawing))
@@ -190,7 +226,12 @@ impl ReportKindDef for PlcCardList {
                     ("reserved", EffectiveState::Reserved),
                     ("deactivated", EffectiveState::Deactivated),
                 ] {
-                    put(c, &mut cells, key, Cell::Number(counts.get(&state).copied().unwrap_or(0)));
+                    put(
+                        c,
+                        &mut cells,
+                        key,
+                        Cell::Number(counts.get(&state).copied().unwrap_or(0)),
+                    );
                 }
                 set.rows.push(Row::data(
                     RowId::entity(m.module).with(RowKey::Name("module".to_owned())),
@@ -245,11 +286,19 @@ impl ReportKindDef for NetworkAddressList {
                 let mut cells = vec![Cell::Empty; set.columns.len()];
                 let c = &set.columns;
                 put(c, &mut cells, "net", ident(n.name.as_str()));
-                put(c, &mut cells, "station", ident(&external_partner_text(q, external)));
+                put(
+                    c,
+                    &mut cells,
+                    "station",
+                    ident(&external_partner_text(q, external)),
+                );
                 put(c, &mut cells, "master", Cell::Bool(true));
                 put(c, &mut cells, "rate", rate.clone());
                 put(c, &mut cells, "tbd", Cell::Bool(false));
-                set.rows.push(Row::data(RowId::entity(ip).with(RowKey::Name("master".to_owned())), cells));
+                set.rows.push(Row::data(
+                    RowId::entity(ip).with(RowKey::Name("master".to_owned())),
+                    cells,
+                ));
             }
             for f in &members.ports {
                 let Some(func) = functions.get(*f) else {
@@ -273,7 +322,11 @@ impl ReportKindDef for NetworkAddressList {
                     });
                     put(c, &mut cells, "device_type", ident(&part.unwrap_or_default()));
                     let cfg = ew_derive::station_of(q, d)
-                        .and_then(|s| q.devices().get(s).and_then(|x| x.aspects.plc_station.as_ref().map(|p| p.config_project)))
+                        .and_then(|s| {
+                            q.devices()
+                                .get(s)
+                                .and_then(|x| x.aspects.plc_station.as_ref().map(|p| p.config_project))
+                        })
                         .and_then(|c| q.table::<PlcConfigProject>().get(c).map(|c| c.name.to_string()));
                     put(c, &mut cells, "config_project", ident(&cfg.unwrap_or_default()));
                 }
@@ -281,10 +334,25 @@ impl ReportKindDef for NetworkAddressList {
                     AddrValue::Tbd => put(c, &mut cells, "address", Cell::Tbd),
                     AddrValue::Value(NetAddress::Profinet(p)) => {
                         put(c, &mut cells, "address", ident(p.name.as_str()));
-                        put(c, &mut cells, "ip", ident(&p.ip.map(|ip| ip.to_string()).unwrap_or_default()));
-                        put(c, &mut cells, "mask", ident(&p.mask.map(|m| m.to_string()).unwrap_or_default()));
+                        put(
+                            c,
+                            &mut cells,
+                            "ip",
+                            ident(&p.ip.map(|ip| ip.to_string()).unwrap_or_default()),
+                        );
+                        put(
+                            c,
+                            &mut cells,
+                            "mask",
+                            ident(&p.mask.map(|m| m.to_string()).unwrap_or_default()),
+                        );
                     }
-                    AddrValue::Value(a) => put(c, &mut cells, "address", ident(&net_address_text(a).unwrap_or_default())),
+                    AddrValue::Value(a) => put(
+                        c,
+                        &mut cells,
+                        "address",
+                        ident(&net_address_text(a).unwrap_or_default()),
+                    ),
                     _ => {}
                 }
                 let master = matches!(members.master, Some(NetMaster::Port(m)) if m == *f)
@@ -292,7 +360,10 @@ impl ReportKindDef for NetworkAddressList {
                 put(c, &mut cells, "master", Cell::Bool(master));
                 put(c, &mut cells, "rate", rate.clone());
                 put(c, &mut cells, "tbd", Cell::Bool(port.address == AddrValue::Tbd));
-                set.rows.push(Row::data(RowId::entity(*f).with(RowKey::Name("port".to_owned())), cells));
+                set.rows.push(Row::data(
+                    RowId::entity(*f).with(RowKey::Name("port".to_owned())),
+                    cells,
+                ));
             }
         }
         set
@@ -387,14 +458,16 @@ impl ReportKindDef for BusOverview {
                                     ew_derive::ew_schema::FunctionKind::Ip(ip) => ip.external,
                                     _ => None,
                                 });
-                                let name = partner.map_or_else(|| port_label(q, *f), |e| external_partner_text(q, e));
+                                let name = partner
+                                    .map_or_else(|| port_label(q, *f), |e| external_partner_text(q, e));
                                 put(c, &mut cells, "station", ident(&name));
                             }
                         }
                         RowId::entity(*f)
                     }
                 };
-                set.rows.push(Row::data(row_id.with(RowKey::Name("member".to_owned())), cells));
+                set.rows
+                    .push(Row::data(row_id.with(RowKey::Name("member".to_owned())), cells));
             }
         }
         set
@@ -411,6 +484,9 @@ fn termination(t: &Option<OnOff>) -> Cell {
 
 // ---------------------------------------------------------------------------------------------------------
 // bus_cable_list
+
+/// The two functions a `Bus` connection joins.
+type Ends = (Id<Function>, Id<Function>);
 
 /// `bus_cable_list` (FR-BUS-008, doc 10 §5): one row per cable of a `Bus` connection, in natural order of its tag:
 /// cable, bus system, part, length, the two ends and the physical net (segment) of its ports.
@@ -437,7 +513,7 @@ impl ReportKindDef for BusCableList {
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let mut set = RowSet::new(self.columns());
         let functions = q.functions();
-        let mut by_cable: BTreeMap<Id<Device>, Vec<(Id<Function>, Id<Function>)>> = BTreeMap::new();
+        let mut by_cable: BTreeMap<Id<Device>, Vec<Ends>> = BTreeMap::new();
         for (_, conn) in q.connections().iter() {
             let ConnectionKind::Bus(line) = &conn.kind else {
                 continue;
@@ -447,20 +523,28 @@ impl ReportKindDef for BusCableList {
             };
             by_cable.entry(cable).or_default().push((*a, *b));
         }
-        let mut cables: Vec<_> = by_cable.into_iter().map(|(c, ends)| (natural_key(&tag_short(q, c)), c, ends)).collect();
+        let mut cables: Vec<_> = by_cable
+            .into_iter()
+            .map(|(c, ends)| (natural_key(&tag_short(q, c)), c, ends))
+            .collect();
         cables.sort();
         for (_, cable, mut ends) in cables {
             ends.sort();
             let Some(&(a, b)) = ends.first() else {
                 continue;
             };
-            let port = [a, b].into_iter().find_map(|f| functions.get(f).and_then(|x| x.bus_port.clone()));
+            let port = [a, b]
+                .into_iter()
+                .find_map(|f| functions.get(f).and_then(|x| x.bus_port.clone()));
             let mut cells = vec![Cell::Empty; set.columns.len()];
             let c = &set.columns;
             put(c, &mut cells, "cable", ident(&tag_short(q, cable)));
             if let Some(p) = &port {
                 put(c, &mut cells, "bus", text(bus_word(&p.bus)));
-                if let Some(net) = p.physical_net.and_then(|n| q.table::<PhysicalNet>().get(n).map(|n| n.name.to_string())) {
+                if let Some(net) = p
+                    .physical_net
+                    .and_then(|n| q.table::<PhysicalNet>().get(n).map(|n| n.name.to_string()))
+                {
                     put(c, &mut cells, "segment", ident(&net));
                 }
             }
@@ -475,14 +559,19 @@ impl ReportKindDef for BusCableList {
                 functions
                     .get(f)
                     .and_then(|x| match &x.kind {
-                        ew_derive::ew_schema::FunctionKind::Ip(ip) => ip.external.map(|e| external_partner_text(q, e)),
+                        ew_derive::ew_schema::FunctionKind::Ip(ip) => {
+                            ip.external.map(|e| external_partner_text(q, e))
+                        }
                         _ => None,
                     })
                     .unwrap_or_else(|| port_label(q, f))
             };
             put(c, &mut cells, "from", ident(&end(a)));
             put(c, &mut cells, "to", ident(&end(b)));
-            set.rows.push(Row::data(RowId::entity(cable).with(RowKey::Name("cable".to_owned())), cells));
+            set.rows.push(Row::data(
+                RowId::entity(cable).with(RowKey::Name("cable".to_owned())),
+                cells,
+            ));
         }
         set
     }
@@ -528,7 +617,11 @@ impl ReportKindDef for IolinkPortList {
                 let class = module_part(q, m.module).and_then(|(_, s)| s.iolink.map(|w| w.class));
                 let targets = q.get::<ChannelTargets>(m.module);
                 for w in &windows {
-                    let Some(device) = targets.iter().find(|t| t.channel == w.channel).and_then(|t| t.device) else {
+                    let Some(device) = targets
+                        .iter()
+                        .find(|t| t.channel == w.channel)
+                        .and_then(|t| t.device)
+                    else {
                         continue;
                     };
                     let mut cells = vec![Cell::Empty; set.columns.len()];
@@ -558,7 +651,12 @@ impl ReportKindDef for IolinkPortList {
                             put(c, &mut cells, "device_id", Cell::Number(i64::from(v)));
                         }
                         put(c, &mut cells, "input_bits", Cell::Number(i64::from(d.input_bits)));
-                        put(c, &mut cells, "output_bits", Cell::Number(i64::from(d.output_bits)));
+                        put(
+                            c,
+                            &mut cells,
+                            "output_bits",
+                            Cell::Number(i64::from(d.output_bits)),
+                        );
                     }
                     let cable = match channels.get(w.channel).and_then(|ch| ch.binding.clone()) {
                         Some(Endpoint::Cp(f, idx)) => q.idx().connections_at_cp(f, idx).find_map(|conn| {
@@ -615,7 +713,10 @@ impl ReportKindDef for SafetyIoList {
         let channels = q.table::<Channel>();
         for cfg in cfgs(q) {
             for m in q.get::<ModuleOrder>(cfg).iter() {
-                let module = q.devices().get(m.module).and_then(|d| d.aspects.plc_module.clone());
+                let module = q
+                    .devices()
+                    .get(m.module)
+                    .and_then(|d| d.aspects.plc_module.clone());
                 let f_module = module.and_then(|p| p.safety);
                 let targets = q.get::<ChannelTargets>(m.module);
                 for t in targets.iter() {
@@ -653,7 +754,12 @@ impl ReportKindDef for SafetyIoList {
                             .find(|cp| cp.idx == *idx)
                             .map(|cp| cp.designation.clone())
                             .unwrap_or_default();
-                        let device = q.functions().get(*f).and_then(|x| x.device).map(|d| tag_short(q, d)).unwrap_or_default();
+                        let device = q
+                            .functions()
+                            .get(*f)
+                            .and_then(|x| x.device)
+                            .map(|d| tag_short(q, d))
+                            .unwrap_or_default();
                         put(c, &mut cells, "test_pulse", ident(&format!("{device}:{pin}")));
                     }
                     set.rows.push(Row::data(

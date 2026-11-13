@@ -1,0 +1,5 @@
+row,Logical net,Position,Station,Port,Address,Connector,Termination,Cable,Length,External
+data,PROFIBUS DP,1,+J-E-206 / JE-N1000-03,,,,,,,yes
+data,PROFIBUS DP,,,,,,,-3W1,,
+data,PROFIBUS DP,2,,,,-3X1,on,,,no
+data,PROFIBUS DP,3,-201U1,DP,TBD,,,,,no

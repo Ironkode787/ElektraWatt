@@ -933,7 +933,12 @@ fn traced_fixture(with_lamp: bool) -> Fx {
             json!({"meta": {}, "category": ["Other", "Other", "Other"], "contact_kind": kind, "cps": cps}),
         );
     };
-    def(&mut fx, DEF_CARD, "plc_io", json!([{"idx": 0, "designation": "I0"}]));
+    def(
+        &mut fx,
+        DEF_CARD,
+        "plc_io",
+        json!([{"idx": 0, "designation": "I0"}]),
+    );
     def(
         &mut fx,
         DEF_TERM,
@@ -943,9 +948,24 @@ fn traced_fixture(with_lamp: bool) -> Fx {
             {"idx": 1, "designation": "1", "level": 1},
         ]),
     );
-    def(&mut fx, DEF_NO, "no", json!([{"idx": 0, "designation": "13"}, {"idx": 1, "designation": "14"}]));
-    def(&mut fx, DEF_LAMP, "coil", json!([{"idx": 0, "designation": "X1"}, {"idx": 1, "designation": "X2"}]));
-    for (sym, d, n) in [(0x870, DEF_CARD, 1u16), (0x871, DEF_TERM, 2), (0x872, DEF_NO, 2), (0x873, DEF_LAMP, 2)] {
+    def(
+        &mut fx,
+        DEF_NO,
+        "no",
+        json!([{"idx": 0, "designation": "13"}, {"idx": 1, "designation": "14"}]),
+    );
+    def(
+        &mut fx,
+        DEF_LAMP,
+        "coil",
+        json!([{"idx": 0, "designation": "X1"}, {"idx": 1, "designation": "X2"}]),
+    );
+    for (sym, d, n) in [
+        (0x870, DEF_CARD, 1u16),
+        (0x871, DEF_TERM, 2),
+        (0x872, DEF_NO, 2),
+        (0x873, DEF_LAMP, 2),
+    ] {
         let cps: Vec<(u16, u16, i64, i64)> = (0..n).map(|i| (i, i, 0, i64::from(i) * 4_000_000)).collect();
         fx.symbol(sym, d, json!("origin"), &cps);
     }
@@ -967,7 +987,10 @@ fn traced_fixture(with_lamp: bool) -> Fx {
     fx.push(json!({"$k": "plc_config_project", "id": uid(CFG), "name": "PLC1", "profile": "siemens-tia-intl@2027.1"}));
     fx.device(CARD, "A", Some(1))
         .with("parts", json!([{"part": {"copy": uid(CARD_PART)}, "qty": "1"}]))
-        .with("plc_station", json!({"config_project": uid(CFG), "role": "io_device"}))
+        .with(
+            "plc_station",
+            json!({"config_project": uid(CFG), "role": "io_device"}),
+        )
         .with("plc_module", json!({}));
     fx.device(TERM, "X", Some(1));
     fx.device(SENSOR, "B", Some(1));
@@ -1010,8 +1033,14 @@ fn a_pin_bound_channel_traces_to_the_field_device() {
     let rows = q.get::<PlcRows>(id(CARD));
     let row = &rows[0];
     assert_eq!(row.target_device, Some(id(SENSOR)));
-    assert_eq!(row.target_pin.map(|p| (p.function, p.idx)), Some((id(SENSOR_FN), 0)));
-    assert_eq!(row.passed.iter().map(|p| p.function).collect::<Vec<_>>(), [id(TERM_FN)]);
+    assert_eq!(
+        row.target_pin.map(|p| (p.function, p.idx)),
+        Some((id(SENSOR_FN), 0))
+    );
+    assert_eq!(
+        row.passed.iter().map(|p| p.function).collect::<Vec<_>>(),
+        [id(TERM_FN)]
+    );
     assert!(!row.ambiguous);
     assert_eq!(row.state, EffectiveState::Used);
     assert_eq!(
@@ -1022,7 +1051,11 @@ fn a_pin_bound_channel_traces_to_the_field_device() {
     let m = traced_fixture(true).build();
     let q = Q::new(&m);
     let rows = q.get::<PlcRows>(id(CARD));
-    assert_eq!(rows[0].target_device, Some(id(LAMP)), "a coil ranks before a contact");
+    assert_eq!(
+        rows[0].target_device,
+        Some(id(LAMP)),
+        "a coil ranks before a contact"
+    );
     assert!(rows[0].ambiguous);
 
     // A manual target wins over the traced one (FR-PLC-054).
@@ -1061,7 +1094,11 @@ fn the_symbol_template_derives_cleaned_symbols() {
         symbol("{target.process_tag|target.dt}", None),
         (Some("TA05_V_15".to_owned()), Some("Q1".to_owned()))
     );
-    assert_eq!(symbol("{target.process_tag}", None).1, None, "a spare valve has no process tag");
+    assert_eq!(
+        symbol("{target.process_tag}", None).1,
+        None,
+        "a spare valve has no process tag"
+    );
     assert_eq!(
         symbol("{target.process_tag}", Some("Manual-1")).0,
         Some("Manual-1".to_owned()),
@@ -1129,11 +1166,12 @@ fn io_link_ports_take_their_devices_windows() {
     let windows = ew_derive::port_windows(&q, id(CARD)).expect("an IO-Link master");
     let bytes: Vec<(u32, u32)> = windows.iter().map(|w| (w.input_bytes, w.output_bytes)).collect();
     assert_eq!(bytes, [(0, 0), (0, 0), (11, 0), (1, 0)]);
-    assert_eq!(
-        texts(&q, CARD),
-        ["Excluded", "Excluded", "IB0", "I11.0"]
-    );
+    assert_eq!(texts(&q, CARD), ["Excluded", "Excluded", "IB0", "I11.0"]);
     let rows = q.get::<PlcRows>(id(CARD));
-    assert_eq!(rows[2].data_type.as_deref(), Some("BNI_IOL_88"), "a struct-typed port");
+    assert_eq!(
+        rows[2].data_type.as_deref(),
+        Some("BNI_IOL_88"),
+        "a struct-typed port"
+    );
     assert_eq!(q.get::<ModuleStarts>(cfg())[&id(CARD)].input, Some(Start::At(0)));
 }

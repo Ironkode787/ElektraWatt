@@ -155,7 +155,11 @@ impl Rule for Pair {
         };
         let channels = q.table::<Channel>();
         let mut out = Vec::new();
-        for id in q.get::<ew_derive::ModuleChannelIds>(module).iter().map(|(_, id)| *id) {
+        for id in q
+            .get::<ew_derive::ModuleChannelIds>(module)
+            .iter()
+            .map(|(_, id)| *id)
+        {
             let Some(c) = channels.get(id) else {
                 continue;
             };
@@ -298,7 +302,11 @@ impl Rule for TestPulse {
 }
 
 /// The devices with a CP on the signal of CP `idx` of `function`: the stitch graph's net and signal edges from it.
-fn signal_devices(q: &Q, function: Id<ew_derive::ew_schema::Function>, idx: u16) -> std::collections::BTreeSet<Id<Device>> {
+fn signal_devices(
+    q: &Q,
+    function: Id<ew_derive::ew_schema::Function>,
+    idx: u16,
+) -> std::collections::BTreeSet<Id<Device>> {
     use ew_derive::Level;
     let graph = q.get::<ew_derive::StitchGraphQ>(());
     let mut out = std::collections::BTreeSet::new();
@@ -315,7 +323,11 @@ fn signal_devices(q: &Q, function: Id<ew_derive::ew_schema::Function>, idx: u16)
                 }
             }
         }
-        for e in graph.edges.iter().filter(|e| matches!(e.level, Level::Net | Level::Signal)) {
+        for e in graph
+            .edges
+            .iter()
+            .filter(|e| matches!(e.level, Level::Net | Level::Signal))
+        {
             let next = if e.a == n {
                 e.b
             } else if e.b == n {

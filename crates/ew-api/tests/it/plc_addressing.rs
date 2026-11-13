@@ -400,7 +400,10 @@ fn the_rockwell_profile_renders_from_the_station_and_the_slot() {
             params: json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q10"}),
         })
         .expect_err("a tag-based profile reads no start");
-    assert!(format!("{err}").contains("is tag-based"), "{err}");
+    assert!(
+        format!("{err}").contains("renders its addresses from the station and the slot"),
+        "{err}"
+    );
 }
 
 /// A Bulk command previewed and committed, as the window commits it.
@@ -438,7 +441,11 @@ fn freezing_keeps_every_printed_address() {
         json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q10"}),
     );
     assert_eq!(all_texts(&s.query()), before, "a frozen address does not move");
-    assert_eq!(manual_deviations(&s), 8, "the eight channels of -201U5 deviate from Q10.x");
+    assert_eq!(
+        manual_deviations(&s),
+        8,
+        "the eight channels of -201U5 deviate from Q10.x"
+    );
     s.undo(&Origin::Gui).expect("undo the start");
     s.undo(&Origin::Gui).expect("undo the freeze");
     let q = s.query();

@@ -74,7 +74,11 @@ impl Rule for PortClassRule {
         let targets = q.get::<ChannelTargets>(module);
         let mut out = Vec::new();
         for w in &windows {
-            let Some(device) = targets.iter().find(|t| t.channel == w.channel).and_then(|t| t.device) else {
+            let Some(device) = targets
+                .iter()
+                .find(|t| t.channel == w.channel)
+                .and_then(|t| t.device)
+            else {
                 continue;
             };
             let Some(data) = iolink_device(q, device) else {
@@ -174,8 +178,16 @@ impl Rule for Limits {
             let channel = channel_name(q, module, w.channel, w.number);
             if let Some(d) = &w.device {
                 for (dir, have, room) in [
-                    ("input", u32::from(d.input_bits), u32::from(window.input_bytes) * 8),
-                    ("output", u32::from(d.output_bits), u32::from(window.output_bytes) * 8),
+                    (
+                        "input",
+                        u32::from(d.input_bits),
+                        u32::from(window.input_bytes) * 8,
+                    ),
+                    (
+                        "output",
+                        u32::from(d.output_bits),
+                        u32::from(window.output_bytes) * 8,
+                    ),
                 ] {
                     if have > room {
                         out.push(
@@ -214,8 +226,10 @@ impl Rule for Limits {
                 let Some(cable) = q.conductors().get(core).map(|c| c.cable) else {
                     continue;
                 };
-                let Some(LengthSource::Manual(nm)) =
-                    q.devices().get(cable).and_then(|d| d.aspects.cable.as_ref().map(|c| c.length.clone()))
+                let Some(LengthSource::Manual(nm)) = q
+                    .devices()
+                    .get(cable)
+                    .and_then(|d| d.aspects.cable.as_ref().map(|c| c.length.clone()))
                 else {
                     continue;
                 };

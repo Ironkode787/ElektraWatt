@@ -46,6 +46,7 @@ project settings.identifier_set ident? other read-only:no-command
 project settings.ip_pairing group? other read-only:no-command
 project settings.ip_pairing.mode enum(star|chain) other read-only:no-command
 project settings.ip_pairing.scope enum(project|function|location) other read-only:no-command
+project settings.process_tag_scheme text? other settings:process_tag_scheme
 project settings.revision_label enum(v_major_minor|two_digit|letter)? other read-only:no-command
 project settings.text_styles json other settings:text_styles
 project settings.checks json other read-only:human-only:project.checks.set
@@ -75,6 +76,10 @@ plc_config_project profile ident other read-only:no-command
 plc_config_project source_ref group? other read-only:no-command
 plc_config_project source_ref.key text other read-only:no-command
 plc_config_project source_ref.lineage uuid other read-only:no-command
+plc_config_project symbols group? other fields.set:symbols
+plc_config_project symbols.strict_iec bool other fields.set:symbols
+plc_config_project symbols.tag_table ident? other fields.set:symbols
+plc_config_project symbols.template text? other fields.set:symbols
 logical_net $v int[0..65535] identity read-only:identity
 logical_net bus enum(profibus_dp|profinet|ethercat|ethernet_ip|io_link|asi|canopen|modbus_tcp) other fields.set:bus
 logical_net id uuid identity read-only:identity
@@ -181,6 +186,13 @@ device parts[].qty dec3 part fields.set:parts
 device plc_module group? plc fields.set:plc_module
 device plc_module.integrated bool plc fields.set:plc_module
 device plc_module.part_use int[0..255]? plc fields.set:plc_module.part_use
+device plc_module.safety group? plc fields.set:plc_module.safety
+device plc_module.safety.f_dest int[0..65535]? plc fields.set:plc_module.safety
+device plc_module.safety.f_source int[0..65535]? plc fields.set:plc_module.safety
+device plc_module.safety.f_wd_ms int[0..65535]? plc fields.set:plc_module.safety
+device plc_module.safety.range group? plc fields.set:plc_module.safety
+device plc_module.safety.range.max int[0..65535] plc fields.set:plc_module.safety
+device plc_module.safety.range.min int[0..65535] plc fields.set:plc_module.safety
 device plc_module.slot json plc fields.set:plc_module.slot identifier
 device plc_module.start group plc fields.set:plc_module.start identifier
 device plc_module.start.input json plc fields.set:plc_module.start
@@ -244,6 +256,7 @@ function bus_port.address json other fields.set:bus_port.address
 function bus_port.bus enum(profibus_dp|profinet|ethercat|ethernet_ip|io_link|asi|canopen|modbus_tcp) other fields.set:bus_port.bus
 function bus_port.interface ident other fields.set:bus_port.interface
 function bus_port.logical_net uuid? other fields.set:bus_port.logical_net
+function bus_port.mrp enum(manager|client)? other fields.set:bus_port.mrp
 function bus_port.physical_net uuid? other fields.set:bus_port.physical_net
 function bus_port.port_label ident? other fields.set:bus_port.port_label
 function bus_port.role enum(master|slave|controller|device|passive) other fields.set:bus_port.role
@@ -359,11 +372,19 @@ channel $v int[0..65535] identity read-only:identity
 channel address json other fields.set:address
 channel binding json? other read-only:no-command
 channel comment mltext other fields.set:comment
+channel data_type ident? other fields.set:data_type
 channel designation ident? other fields.set:designation
 channel id uuid identity read-only:identity
-channel kind enum(di|do|ai|ao|counter|io_link_port|power_supply) identity read-only:no-command
+channel kind enum(di|do|ai|ao|counter|io_link_port|power_supply|multi_function) identity read-only:no-command
+channel mode enum(io_link|di|dq|deactivated)? other fields.set:mode
 channel module uuid other read-only:no-command
 channel number int[0..65535] identity read-only:no-command
+channel safety group? other fields.set:safety
+channel safety.evaluation enum(1oo1|1oo2) other fields.set:safety
+channel safety.pair uuid? other fields.set:safety
+channel safety.requirement ident? other fields.set:safety
+channel safety.test_pulse json? other fields.set:safety
+channel signal_range ident? other fields.set:signal_range
 channel source_ref group? other read-only:no-command
 channel source_ref.key text other read-only:no-command
 channel source_ref.lineage uuid other read-only:no-command

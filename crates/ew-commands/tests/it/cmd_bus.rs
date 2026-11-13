@@ -185,7 +185,7 @@ fn fields_set_writes_a_bus_port_and_refuses_what_it_cannot_write() {
         KindName::Function,
         f.cast(),
         "bus_port.address",
-        json!({"value": {"profinet": {"name": "io-1"}}}),
+        json!({"value": {"modbus_tcp": {"ip": "192.168.0.10", "unit": 1}}}),
     )));
     assert!(message.contains("is not a bus address"), "{message}");
     let (_, message) = invalid(e.execute(&set(

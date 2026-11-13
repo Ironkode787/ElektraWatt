@@ -260,8 +260,9 @@ fn an_edited_copy_of_a_builtin_profile_prints_and_parses_in_its_own_notation() {
             params: json!({"kind": "channel", "targets": [channel.to_string()], "path": "address", "value": text}),
         })
     };
-    set(&mut s, "A4.7").unwrap();
-    assert_eq!(module_texts(&s)[2], "A4.7");
+    // a byte no automatic module takes: an overlap would be refused (EW-PLC-001's prevent half)
+    set(&mut s, "A9.7").unwrap();
+    assert_eq!(module_texts(&s)[2], "A9.7");
     let e = set(&mut s, "Q4.6").unwrap_err();
     assert_eq!(
         refusal(&e),

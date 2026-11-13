@@ -16,7 +16,7 @@ use ew_commands::commands::{
     AssignModeParam, AssignPart, JoinDevice, KindName, PlaceSymbol, PlaceTarget, SetFields,
 };
 use ew_commands::normalise::ORDER;
-use ew_commands::{CmdError, Engine, Receipt};
+use ew_commands::{Engine, Receipt};
 use ew_ids::Id;
 use ew_model::Model;
 use ew_schema::{
@@ -314,23 +314,17 @@ fn a_port_function_joining_a_cpu_gets_its_uncarried_port() {
     assert_eq!(port(&e, first), Some(dp_master()), "unchanged");
 }
 
-/// The `rep.join_device` clause of the bus-port join, as the code stands: `rep.join_device` moves a function
-/// only as an auxiliary contact, so a DP-port function (no contact) cannot join a CPU that has no unplaced
-/// slot of its FnDef; the join is refused and N5 is not reached.
+/// The `rep.join_device` clause of the bus-port join (FT-841): a DP-port function (no contact) joins a CPU that has
+/// no unplaced slot of its FnDef when the CPU's bus part has a port no function carries; N5 then gives it the port.
 #[test]
-fn rep_join_device_refuses_a_port_function_onto_a_cpu_without_a_slot() {
+fn rep_join_device_takes_a_port_function_onto_a_cpu_with_a_free_port() {
     let mut e = engine(model());
-    let err = e
-        .execute(&JoinDevice {
-            rep: REP_LOOSE,
-            device: DEV_CPU,
-        })
-        .expect_err("D2: only a contact joins as an auxiliary function");
-    assert!(
-        matches!(&err, CmdError::InvalidParams { message, .. } if message.contains("only a contact joins")),
-        "{err:?}"
-    );
-    assert_eq!(port(&e, FN_LOOSE), None);
+    e.execute(&JoinDevice {
+        rep: REP_LOOSE,
+        device: DEV_CPU,
+    })
+    .expect("FT-841: a bus-port function joins a device with a free bus port");
+    assert_eq!(port(&e, FN_LOOSE), Some(dp_master()));
 }
 
 /// The first port of each (`interface`, `port_label`) pair, in list order, to the port-less functions in ID order;

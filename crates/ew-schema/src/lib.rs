@@ -166,8 +166,8 @@ pub use page_item::{
     SurfaceView, TextAlign, WireMarker,
 };
 pub use plc::{
-    AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, Evaluation, IoClass,
-    IoDir, IoLinkWindow, IoRange, IoStarts, MapSpec, OutputRatings, PinMap, PlcAddress, PlcArea,
+    AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, Evaluation,
+    IoClass, IoDir, IoLinkWindow, IoRange, IoStarts, MapSpec, OutputRatings, PinMap, PlcAddress, PlcArea,
     PlcConfigProject, PlcModule, PlcRole, PlcSection, PlcSize, PlcStation, PortClass, PortMode, PositionMap,
     RackSlot, RangeU16, SafetyChannel, SafetyModule, SlotPath, SolenoidChannel, StationLimits, StationRole,
     SupplyFeeds, SupplyGroup, SupplyKind, SupplyPins, SymbolPolicy,

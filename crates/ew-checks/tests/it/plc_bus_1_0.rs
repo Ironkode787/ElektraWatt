@@ -67,7 +67,11 @@ fn card(kind: &str, field: &str, plc: &Value, channel: &Value, spare: &Value) ->
     fx.fndef_with(
         CARD_DEF,
         CARD_SYM,
-        &[(0, "0", Value::Null), (1, "1", Value::Null), (2, "TP", Value::Null)],
+        &[
+            (0, "0", Value::Null),
+            (1, "1", Value::Null),
+            (2, "TP", Value::Null),
+        ],
         &json!([]),
         &json!({"contact_kind": "plc_io"}),
     );
@@ -86,7 +90,11 @@ fn card(kind: &str, field: &str, plc: &Value, channel: &Value, spare: &Value) ->
     for (k, v) in plc.as_object().expect("plc") {
         section[k] = v.clone();
     }
-    fx.part(CARD_PART, "IO-1", &json!({"kind": "device", "sections": {"plc": section}}));
+    fx.part(
+        CARD_PART,
+        "IO-1",
+        &json!({"kind": "device", "sections": {"plc": section}}),
+    );
     fx.part(
         FIELD_PART,
         "COIL-1",
@@ -113,7 +121,8 @@ fn card(kind: &str, field: &str, plc: &Value, channel: &Value, spare: &Value) ->
     }
     fx.conn(0x1400, P1, Ep::Cp(CARD_FN, 0), Ep::Cp(FIELD_FN, 0), &json!({}));
     for (n, extra) in [(0u16, channel), (1, spare)] {
-        let mut c = json!({"$k": "channel", "id": ch(CARD, n), "module": us(CARD), "number": n, "kind": kind});
+        let mut c =
+            json!({"$k": "channel", "id": ch(CARD, n), "module": us(CARD), "number": n, "kind": kind});
         if n == 0 {
             c["binding"] = json!({"cp": [us(CARD_FN), 0]});
         }
@@ -145,12 +154,25 @@ fn ew_plc_004_channel_kind_against_the_connected_function() {
 /// once cleaned; a lenient policy checks neither identifier nor cleaning.
 #[test]
 fn ew_plc_005_and_007_judge_the_cleaned_symbol() {
-    let m = card("di", "no", &json!({}), &json!({"symbol": "TA05-V-15"}), &json!({"symbol": "TA05_V_15"})).build();
+    let m = card(
+        "di",
+        "no",
+        &json!({}),
+        &json!({"symbol": "TA05-V-15"}),
+        &json!({"symbol": "TA05_V_15"}),
+    )
+    .build();
     let invalid = found(&m, "EW-PLC-005");
     assert_eq!(invalid.len(), 1);
     assert!(invalid[0].message.contains("TA05-V-15"), "{}", invalid[0].message);
     assert_eq!(found(&m, "EW-PLC-007").len(), 1, "the cleaned symbols collide");
-    let mut fx = card("di", "no", &json!({}), &json!({"symbol": "TA05-V-15"}), &json!({"symbol": "TA05_V_15"}));
+    let mut fx = card(
+        "di",
+        "no",
+        &json!({}),
+        &json!({"symbol": "TA05-V-15"}),
+        &json!({"symbol": "TA05_V_15"}),
+    );
     fx.rec_mut(&us(CFG))["symbols"] = json!({"strict_iec": false});
     let m = fx.build();
     assert!(found(&m, "EW-PLC-005").is_empty());
@@ -162,7 +184,14 @@ fn ew_plc_005_and_007_judge_the_cleaned_symbol() {
 #[test]
 fn ew_plc_007_prevents_a_new_duplicate() {
     let before = card("di", "no", &json!({}), &json!({"symbol": "Pump_On"}), &json!({})).build();
-    let after = card("di", "no", &json!({}), &json!({"symbol": "Pump_On"}), &json!({"symbol": "Pump_On"})).build();
+    let after = card(
+        "di",
+        "no",
+        &json!({}),
+        &json!({"symbol": "Pump_On"}),
+        &json!({"symbol": "Pump_On"}),
+    )
+    .build();
     let keys = vec![(
         Kind::Channel,
         ch(CARD, 1).parse::<ew_derive::ew_schema::AnyId>().expect("an ID"),
@@ -173,7 +202,10 @@ fn ew_plc_007_prevents_a_new_duplicate() {
         ["EW-PLC-007"]
     );
     let again = ew_checks::prevent(&ew_derive::Q::new(&after), &ew_derive::Q::new(&after), &keys);
-    assert!(again.is_empty(), "a held duplicate is reported, not refused: {again:?}");
+    assert!(
+        again.is_empty(),
+        "a held duplicate is reported, not refused: {again:?}"
+    );
 }
 
 /// EW-PLC-009 (FR-PLC-046): a symbol on an unconnected channel nobody marked; marked spare it is fine.
@@ -181,7 +213,14 @@ fn ew_plc_007_prevents_a_new_duplicate() {
 fn ew_plc_009_channel_without_connection() {
     let m = card("di", "no", &json!({}), &json!({}), &json!({"symbol": "Spare_1"})).build();
     assert_eq!(forms(&found(&m, "EW-PLC-009")), ["symbol"]);
-    let m = card("di", "no", &json!({}), &json!({}), &json!({"symbol": "Spare_1", "state": "spare"})).build();
+    let m = card(
+        "di",
+        "no",
+        &json!({}),
+        &json!({}),
+        &json!({"symbol": "Spare_1", "state": "spare"}),
+    )
+    .build();
     assert!(found(&m, "EW-PLC-009").is_empty());
 }
 
@@ -218,7 +257,11 @@ fn ew_plc_011_slot_rules() {
     let after = with_second(true);
     assert_eq!(forms(&found(&after, "EW-PLC-011")), ["max_modules", "slot"]);
     let keys = vec![(Kind::Device, uid(M2))];
-    let prevented = ew_checks::prevent(&ew_derive::Q::new(&with_second(false)), &ew_derive::Q::new(&after), &keys);
+    let prevented = ew_checks::prevent(
+        &ew_derive::Q::new(&with_second(false)),
+        &ew_derive::Q::new(&after),
+        &keys,
+    );
     assert_eq!(prevented.len(), 2, "{prevented:#?}");
 }
 
@@ -240,7 +283,13 @@ fn ew_plc_014_output_load() {
     let m = card("do", "coil", &ratings, &json!({}), &json!({})).build();
     assert_eq!(forms(&found(&m, "EW-PLC-014")), ["channel", "module"]);
     let ratings = json!({"ratings": {"channel_ma": 2000}});
-    assert!(found(&card("do", "coil", &ratings, &json!({}), &json!({})).build(), "EW-PLC-014").is_empty());
+    assert!(
+        found(
+            &card("do", "coil", &ratings, &json!({}), &json!({})).build(),
+            "EW-PLC-014"
+        )
+        .is_empty()
+    );
 }
 
 /// EW-SAF-001 (FR-PLC-042): two F-modules with F-destination 100, one outside its range; a missing address.
@@ -257,7 +306,10 @@ fn ew_saf_001_f_destination() {
         r["plc_module"] = json!({"safety": second});
         fx.build()
     };
-    let m = build(json!({"f_dest": 100}), json!({"f_dest": 100, "range": {"min": 1, "max": 99}}));
+    let m = build(
+        json!({"f_dest": 100}),
+        json!({"f_dest": 100, "range": {"min": 1, "max": 99}}),
+    );
     assert_eq!(forms(&found(&m, "EW-SAF-001")), ["duplicate:100", "range"]);
     let m = build(json!({}), json!({"f_dest": 7}));
     assert_eq!(forms(&found(&m, "EW-SAF-001")), ["missing"]);
@@ -269,7 +321,14 @@ fn ew_saf_001_f_destination() {
 /// not fed from the test-pulse pin.
 #[test]
 fn ew_saf_002_and_003_pair_and_test_pulse() {
-    let lone = card("di", "no", &json!({}), &json!({"safety": {"evaluation": "1oo2"}}), &json!({})).build();
+    let lone = card(
+        "di",
+        "no",
+        &json!({}),
+        &json!({"safety": {"evaluation": "1oo2"}}),
+        &json!({}),
+    )
+    .build();
     assert_eq!(forms(&found(&lone, "EW-SAF-002")), ["incomplete"]);
     let pair = |second_wired_to: u128| {
         let mut fx = card(
@@ -279,7 +338,13 @@ fn ew_saf_002_and_003_pair_and_test_pulse() {
             &json!({"safety": {"evaluation": "1oo2", "pair": ch(CARD, 1)}}),
             &json!({"binding": {"cp": [us(CARD_FN), 1]}, "safety": {"evaluation": "1oo2", "pair": ch(CARD, 0)}}),
         );
-        fx.conn(0x1401, P1, Ep::Cp(CARD_FN, 1), Ep::Cp(second_wired_to, 1), &json!({}));
+        fx.conn(
+            0x1401,
+            P1,
+            Ep::Cp(CARD_FN, 1),
+            Ep::Cp(second_wired_to, 1),
+            &json!({}),
+        );
         fx.build()
     };
     assert_eq!(forms(&found(&pair(OTHER_FN), "EW-SAF-002")), ["devices"]);
@@ -334,7 +399,11 @@ fn bus(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>) -
     for (k, v) in part.as_object().expect("part") {
         port[k] = v.clone();
     }
-    fx.part(BUS_PART, "NODE-1", &json!({"kind": "device", "sections": {"bus": {"ports": [port]}}}));
+    fx.part(
+        BUS_PART,
+        "NODE-1",
+        &json!({"kind": "device", "sections": {"bus": {"ports": [port]}}}),
+    );
     let mut lnet = json!({"$k": "logical_net", "id": us(LNET), "bus": "profibus_dp", "name": "DP"});
     for (k, v) in net.as_object().expect("net") {
         lnet[k] = v.clone();
@@ -352,7 +421,9 @@ fn bus(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>) -
         for (k, v) in extra.as_object().expect("port") {
             p[k] = v.clone();
         }
-        fx.push(json!({"$k": "function", "id": us(n + 1), "device": us(n), "def": us(PORT_DEF), "bus_port": p}));
+        fx.push(
+            json!({"$k": "function", "id": us(n + 1), "device": us(n), "def": us(PORT_DEF), "bus_port": p}),
+        );
         fx.push(json!({
             "$k": "representation", "id": us(n + 0x10_001), "functions": [us(n + 1)], "page": us(P1),
             "symbol": us(PORT_SYM), "pos": [i64::from(counter) * 40_000_000, 0],
@@ -360,13 +431,23 @@ fn bus(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>) -
     }
     let mut kind = json!({"bus": {}});
     if let Some(section) = cable {
-        fx.part(CABLE_PART, "CABLE-1", &json!({"kind": "device", "sections": {"bus": section}}));
+        fx.part(
+            CABLE_PART,
+            "CABLE-1",
+            &json!({"kind": "device", "sections": {"bus": section}}),
+        );
         fx.device(CABLE, "W", Some(1));
         fx.rec_mut(&us(CABLE))["cable"] = json!({"length": {"manual": 300_000_000_000_i64}});
         fx.with_parts(CABLE, &[CABLE_PART]);
         kind = json!({"bus": {"cable": us(CABLE)}});
     }
-    fx.conn(0x1800, P1, Ep::Cp(P_A + 1, 0), Ep::Cp(P_B + 1, 0), &json!({"kind": kind}));
+    fx.conn(
+        0x1800,
+        P1,
+        Ep::Cp(P_A + 1, 0),
+        Ep::Cp(P_B + 1, 0),
+        &json!({"kind": kind}),
+    );
     fx.build()
 }
 
@@ -375,7 +456,13 @@ fn bus(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>) -
 #[test]
 fn ew_bus_002_005_007_range_rate_master() {
     let addr = json!({"address": {"value": {"profibus": 126}}});
-    let m = bus(&json!({"rate": 12_000_000}), &addr, &json!({}), &json!({"rates": [1_500_000]}), None);
+    let m = bus(
+        &json!({"rate": 12_000_000}),
+        &addr,
+        &json!({}),
+        &json!({"rates": [1_500_000]}),
+        None,
+    );
     assert_eq!(found(&m, "EW-BUS-002").len(), 1, "126 is beyond 0..125");
     assert_eq!(found(&m, "EW-BUS-005").len(), 2, "both slaves lack 12 Mbit/s");
     let masterless = |m: &ew_model::Model| -> Vec<String> {
@@ -392,18 +479,29 @@ fn ew_bus_002_005_007_range_rate_master() {
     for rule in ["EW-BUS-002", "EW-BUS-005"] {
         assert!(found(&m, rule).is_empty(), "{rule}");
     }
-    assert_eq!(masterless(&m), ["logical net DP2"], "a port with role master counts");
+    assert_eq!(
+        masterless(&m),
+        ["logical net DP2"],
+        "a port with role master counts"
+    );
 }
 
 /// EW-BUS-003 (FR-BUS-017): two stations at 192.168.0.10, a device name with an underscore, an address outside the
 /// master's subnet.
 #[test]
 fn ew_bus_003_profinet_names_and_addresses() {
-    let pn = |name: &str, ip: &str| {
-        json!({"bus": "profinet", "address": {"value": {"profinet": {"name": name, "ip": ip, "mask": "255.255.255.0"}}}})
-    };
-    let m = bus(&json!({"bus": "profinet"}), &pn("cpx_1", "192.168.0.10"), &pn("cpx-2", "192.168.0.10"), &json!({}), None);
-    assert_eq!(forms(&found(&m, "EW-BUS-003")), ["duplicate_ip:192.168.0.10", "name"]);
+    let pn = |name: &str, ip: &str| json!({"bus": "profinet", "address": {"value": {"profinet": {"name": name, "ip": ip, "mask": "255.255.255.0"}}}});
+    let m = bus(
+        &json!({"bus": "profinet"}),
+        &pn("cpx_1", "192.168.0.10"),
+        &pn("cpx-2", "192.168.0.10"),
+        &json!({}),
+        None,
+    );
+    assert_eq!(
+        forms(&found(&m, "EW-BUS-003")),
+        ["duplicate_ip:192.168.0.10", "name"]
+    );
     let mut master = pn("plc-1", "192.168.0.1");
     master["role"] = json!("controller");
     let m = bus(
@@ -481,5 +579,8 @@ fn ew_iol_001_and_002_class_mode_window() {
     assert_eq!(forms(&found(&m, "EW-IOL-002")), ["window:input"]);
     let m = iolink("a", "di");
     assert_eq!(forms(&found(&m, "EW-IOL-001")), ["mode"]);
-    assert!(found(&m, "EW-IOL-002").is_empty(), "a DI port has no IO-Link window");
+    assert!(
+        found(&m, "EW-IOL-002").is_empty(),
+        "a DI port has no IO-Link window"
+    );
 }

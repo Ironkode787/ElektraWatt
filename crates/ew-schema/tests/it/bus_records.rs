@@ -78,14 +78,20 @@ fn newer_bus_values_survive_a_load_and_a_save_verbatim() {
     let AddrValue::Value(NetAddress::Profinet(pn)) = &port.address else {
         panic!("a PROFINET address: {:?}", port.address)
     };
-    assert_eq!((pn.name.as_str(), pn.ip.map(|ip| ip.to_string())), ("io-device-1", Some("192.168.0.10".to_owned())));
+    assert_eq!(
+        (pn.name.as_str(), pn.ip.map(|ip| ip.to_string())),
+        ("io-device-1", Some("192.168.0.10".to_owned()))
+    );
     assert_eq!(port.extra.len(), 1);
     let Record::Function(f) = canonical(
         r#"{"$k":"function","id":"@FN_S51","device":"@DEV_S51","def":"@FNDEF_MCB","bus_port":{"interface":"X1","bus":"profinet","role":"device","address":{"value":{"modbus_tcp":{"ip":"192.168.0.10","unit":1}}}}}"#,
     ) else {
         panic!("a function")
     };
-    assert!(matches!(f.bus_port.unwrap().address, AddrValue::Value(NetAddress::Unknown(_))));
+    assert!(matches!(
+        f.bus_port.unwrap().address,
+        AddrValue::Value(NetAddress::Unknown(_))
+    ));
     let Record::Function(f) = canonical(
         r#"{"$k":"function","id":"@FN_S51","device":"@DEV_S51","def":"@FNDEF_MCB","bus_port":{"interface":"X","bus":"sercos","role":"observer","address":{"pending":{"since":"2026-10-30"}},"termination":"auto"}}"#,
     ) else {

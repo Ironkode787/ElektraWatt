@@ -79,7 +79,11 @@ fn both_builtins_parse_and_round_trip_golden_as_addresses() {
     let refs: Vec<String> = builtin_profiles().iter().map(|p| p.reference()).collect();
     assert_eq!(
         refs,
-        ["siemens-tia-intl@2027.1", "iec-61131-3@2027.1", "rockwell-logix@2027.1"]
+        [
+            "siemens-tia-intl@2027.1",
+            "iec-61131-3@2027.1",
+            "rockwell-logix@2027.1"
+        ]
     );
     assert_eq!(default_profile(), "siemens-tia-intl@2027.1");
     let (tia, iec) = (&builtin_profiles()[0], &builtin_profiles()[1]);

@@ -1101,7 +1101,12 @@ fn an_update_that_adds_a_plc_section_makes_the_device_a_module() {
         },
     );
     let q = s.query();
-    assert!(q.devices().get(g1).and_then(|d| d.aspects.plc_module.clone()).is_some());
+    assert!(
+        q.devices()
+            .get(g1)
+            .and_then(|d| d.aspects.plc_module.clone())
+            .is_some()
+    );
     let channels = q
         .table::<ew_schema::Channel>()
         .iter()

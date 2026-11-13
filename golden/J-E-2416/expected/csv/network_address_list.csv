@@ -1,0 +1,3 @@
+row,Logical net,Station,Device type,Address or name,IP address,Subnet mask,Master,Rate (bit/s),Configuration project,TBD
+data,PROFIBUS DP,+J-E-206 / JE-N1000-03,,,,,yes,,,no
+data,PROFIBUS DP,-201U1,195740,TBD,,,no,,PLC1,yes

@@ -101,8 +101,16 @@ fn plc_channels(q: &Q) -> Vec<Row> {
             });
             let slot = match r.slot {
                 Slot::Positional(n) => Some(n.to_string()),
-                Slot::Rack { rack, slot, subslot: None } => Some(format!("{rack}.{slot}")),
-                Slot::Rack { rack, slot, subslot: Some(s) } => Some(format!("{rack}.{slot}.{s}")),
+                Slot::Rack {
+                    rack,
+                    slot,
+                    subslot: None,
+                } => Some(format!("{rack}.{slot}")),
+                Slot::Rack {
+                    rack,
+                    slot,
+                    subslot: Some(s),
+                } => Some(format!("{rack}.{slot}.{s}")),
                 Slot::Unresolved => None,
             };
             let address = match &r.address {
@@ -128,16 +136,20 @@ fn plc_channels(q: &Q) -> Vec<Row> {
                 .set("module", tag_short(q, r.module))
                 .set(
                     "part_number",
-                    r.part.and_then(|p| q.parts().get(p).map(|c| c.item.part_number.to_string())),
+                    r.part
+                        .and_then(|p| q.parts().get(p).map(|c| c.item.part_number.to_string())),
                 )
                 .set("channel", i64::from(r.number))
                 .set("designation", r.text.designation.clone())
-                .set("kind", kind_word(&r.kind))
+                .set("kind", ew_derive::channel_kind_word(&r.kind))
                 .set("address", address)
                 .set("symbol", r.text.symbol.clone())
                 .set("data_type", r.data_type.clone())
                 .set("comment", ch.and_then(|c| non_empty(ml_text(&c.comment))))
-                .set("function_text", r.text.function_text.as_ref().and_then(|t| non_empty(ml_text(t))))
+                .set(
+                    "function_text",
+                    r.text.function_text.as_ref().and_then(|t| non_empty(ml_text(t))),
+                )
                 .set("process_tag", r.text.process_tag.clone())
                 .set("target", r.target_device.map(|d| tag_short(q, d)))
                 .set("target_pin", pin)
@@ -147,22 +159,6 @@ fn plc_channels(q: &Q) -> Vec<Row> {
         }
     }
     rows
-}
-
-/// A channel kind as the PLC lists print it.
-fn kind_word(k: &ew_derive::ew_schema::ChannelKind) -> &'static str {
-    use ew_derive::ew_schema::ChannelKind as K;
-    match k {
-        K::Di => "DI",
-        K::Do => "DO",
-        K::Ai => "AI",
-        K::Ao => "AO",
-        K::Counter => "counter",
-        K::IoLinkPort => "IO-Link",
-        K::PowerSupply => "supply",
-        K::MultiFunction => "multi-function",
-        K::Unknown(_) => "other",
-    }
 }
 
 fn uuid<T>(id: Id<T>) -> String {

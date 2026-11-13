@@ -59,7 +59,10 @@ fn a_bus_section_types_its_members_and_keeps_the_rest() {
     // WP-S1.24 types the connector, the rates and the address range; the signal map stays in extra
     assert_eq!(first.connector.as_ref().map(|c| c.as_str()), Some("rj45"));
     assert_eq!(first.rates, [ew_schema::BusRate(100_000_000)]);
-    assert_eq!(first.address_range.as_ref().map(|r| (r.min, r.max)), Some((1, 125)));
+    assert_eq!(
+        first.address_range.as_ref().map(|r| (r.min, r.max)),
+        Some((1, 125))
+    );
     assert_eq!(
         first.extra.keys().map(String::as_str).collect::<Vec<_>>(),
         ["signals"]
