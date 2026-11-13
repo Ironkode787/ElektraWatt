@@ -24,7 +24,7 @@ fn item() -> String {
     concat!(
         r#"{"manufacturer":{"library":"6a1d0f3e-8b25-5c74-9e1a-d3f60b8c2e47","item":"0f7b2c94-5d3a-5e81-a6f9-2b8c0e4d7a13","version_req":"^1"},"#,
         r#""part_number":"CPU-DP","sections":{"plc":{"role":"station"},"bus":{"ports":["#,
-        r#"{"interface":"DP","bus":"profibus_dp","role":"master","termination":"off","address_range":[1,125],"connector":"sub_d9","signals":{"3":"B"}},"#,
+        r#"{"interface":"DP","bus":"profibus_dp","role":"master","termination":"off","connector":"sub_d9","address_range":{"min":1,"max":125},"signals":{"B":"3"}},"#,
         r#"{"interface":"X9","bus":"sercos","role":"observer","termination":"auto"}"#,
         r#"],"rates":[9600,12000000]}}}"#
     )

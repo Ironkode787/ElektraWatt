@@ -720,6 +720,53 @@ pub static LINKS: &[LinkDecl] = &[
         }
         Some(AnyRow::Channel(Arc::new(c)))
     })),
+    // A safety channel's 1oo2 partner and its test-pulse pin (WP-S1.24): cleared when their target goes; load-tolerant,
+    // because an older 0.1 build kept `safety` in `extra` and did not maintain them (ADR-0011 amendment 6).
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Channel."safety.pair" -> Channel, Unlink, None,
+            |v, out| opt(v.safety.as_ref().and_then(|s| s.pair), out),
+        Some(|row, del| {
+            let AnyRow::Channel(c) = row else { return Some(row.clone()) };
+            let mut c = (**c).clone();
+            if let Some(s) = &mut c.safety
+                && s.pair.is_some_and(|p| gone(del, Kind::Channel, p))
+            {
+                s.pair = None;
+            }
+            Some(AnyRow::Channel(Arc::new(c)))
+        }))
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Channel."safety.test_pulse.cp[0]" -> Function, Unlink, None,
+            |v, out| if let Some(s) = &v.safety { opt_cp(&s.test_pulse, out) },
+        Some(|row, del| {
+            let AnyRow::Channel(c) = row else { return Some(row.clone()) };
+            let mut c = (**c).clone();
+            if let Some(s) = &mut c.safety
+                && matches!(s.test_pulse, Some(Endpoint::Cp(f, _)) if gone(del, Kind::Function, f))
+            {
+                s.test_pulse = None;
+            }
+            Some(AnyRow::Channel(Arc::new(c)))
+        }))
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Channel."safety.test_pulse.junction" -> Junction, Unlink, None,
+            |v, out| if let Some(s) = &v.safety { opt_junction(&s.test_pulse, out) },
+        Some(|row, del| {
+            let AnyRow::Channel(c) = row else { return Some(row.clone()) };
+            let mut c = (**c).clone();
+            if let Some(s) = &mut c.safety
+                && matches!(s.test_pulse, Some(Endpoint::Junction(j)) if gone(del, Kind::Junction, j))
+            {
+                s.test_pulse = None;
+            }
+            Some(AnyRow::Channel(Arc::new(c)))
+        }))
+    },
     lineage_link!(Channel),
     // potential_def
     link!(PotentialDef."at.cp[0]" -> Function, Unlink, Some(I::PotentialDefsByEndpoint), |v, out| cp(&v.at, out), DROP),

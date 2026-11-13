@@ -40,9 +40,6 @@ use crate::output::{
 };
 use crate::{Mismatch, Session};
 
-/// Every settings member (the keys of `settings_member`).
-const ALL_MEMBERS: [Member; 10] = Member::ALL;
-
 /// The keys of the snapshot a `Q` sees, for the families with a non-trivial key.
 struct Keys {
     /// The report blocks; the flag marks a table of contents (its pages are keyed by their count).
@@ -236,7 +233,7 @@ pub fn sweep(memo: &Q, cold: Option<&Q>) -> Sweep {
     check::<ew_derive::CpFlowDistanceOf>(memo, cold, keys.potentials.iter().copied(), o);
     check::<PotentialPartition>(memo, cold, [()], o);
     check::<ProfileRowFor>(memo, cold, keys.profile_keys.iter().cloned(), o);
-    check::<SettingsMember>(memo, cold, ALL_MEMBERS, o);
+    check::<SettingsMember>(memo, cold, Member::ALL, o);
     check::<StitchGraphQ>(memo, cold, [()], o);
     // ADR-0032: the project's effective text-style table.
     check::<ew_derive::TextStyles>(memo, cold, [()], o);

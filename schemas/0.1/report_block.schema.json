@@ -304,6 +304,31 @@
           "const": "safety_io_list",
           "description": "Safety I/O list (FR-PLC-041).",
           "type": "string"
+        },
+        {
+          "const": "tube_list",
+          "description": "Tube list (doc 11 §8.2, FR-FLU-012).",
+          "type": "string"
+        },
+        {
+          "const": "tube_cut_list",
+          "description": "Tube cut list (FR-FLU-013).",
+          "type": "string"
+        },
+        {
+          "const": "tube_labels",
+          "description": "Tube labels, one row per tube end (FR-FLU-013).",
+          "type": "string"
+        },
+        {
+          "const": "valve_terminal_config",
+          "description": "Valve-terminal configuration (FR-FLU-015).",
+          "type": "string"
+        },
+        {
+          "const": "medium_overview",
+          "description": "Medium overview (FR-FLU-016).",
+          "type": "string"
         }
       ]
     },

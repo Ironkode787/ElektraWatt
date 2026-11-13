@@ -837,12 +837,13 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
     }
     if name == "project" {
         // A member of `project.settings.set` is one JSON value, which the command replaces whole: a typed member
-        // (`fluid`) is one row, not its fields.
+        // (`fluid`) is one row, not its fields. A member that is one value (`process_tag_scheme`, a text) keeps its type.
         for s in SETTABLE_SETTINGS {
             let path = format!("settings.{}", s.name);
             let inner = format!("{path}.");
+            let structured = out.iter().any(|f| f.path.starts_with(&inner));
             out.retain(|f| !f.path.starts_with(&inner));
-            if let Some(f) = out.iter_mut().find(|f| f.path == path) {
+            if structured && let Some(f) = out.iter_mut().find(|f| f.path == path) {
                 f.ty = FieldType::Json;
             }
         }

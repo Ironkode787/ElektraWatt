@@ -1658,7 +1658,7 @@ fn rep_transform_of_a_black_box_keeps_the_centre_of_its_bounding_box() {
 /// 13 901 746 652 117 265 409, step 0): `device.create` with Golden A's valve part and a main FnDef of another kind
 /// commits three functions, its main one and the valve and coil functions normaliser N-FL-1 makes from the valve
 /// part, and the arm expected one. The input (the finding's seed, its tape remade to draw the finding's
-/// step; remade again when WP-S1.25's four fluid commands joined the registry) still draws that step, and it replays with the cadence of the fuzz target and passes the arm's oracle, which
+/// step; remade again when WP-S1.25's four fluid commands joined the registry, and again at its merge with WP-S1.24's) still draws that step, and it replays with the cadence of the fuzz target and passes the arm's oracle, which
 /// counts N-FL-1's functions.
 #[test]
 fn device_create_with_a_valve_part_counts_its_valve_functions() {
