@@ -47,9 +47,9 @@ rules hold here.
 - A file write is all or nothing.
 - A changed behaviour reaches every place that shows or runs it: grep for the old function and text.
 - A test fails without your change, and it pins no total of a growing set, no generated name and no path.
-- A change a user can see is proven offscreen at 1280 × 800 and at 1920 × 1080
-  (`target/debug/elektrawatt --headless --script <s> --config-dir <fresh dir> --visual --frames <dir>`, then with
-  `--window 1920x1080 --ppp 1`). Never open a real window. The design rules are in
+- A change a user can see is proven offscreen at 1920 × 1080, the main resolution, and looked at once at
+  2560 × 1440 (`target/debug/elektrawatt --headless --script <s> --config-dir <fresh dir> --visual --frames <dir>
+  --window 1920x1080 --ppp 1`, then `--window 2560x1440 --ppp 1`). Never open a real window. The design rules are in
   `docs/design/16a-design-language.md`.
 - Golden files: re-bless only a change your brief intends, and list every re-blessed file with why. Never open
   `golden/J-E-2416.ew` for writing.

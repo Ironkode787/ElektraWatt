@@ -9,26 +9,20 @@ and the work breakdown's Appendix B).
 Rows that a work package of [m3.md](m3.md) takes. The lane checks each row first: a row that the code already
 answers is deleted with a line in its report.
 
-### WP-S1.24: PLC and bus 1.0
 
-- FT-1724 `ew-schema, ew-derive`: The signal map of a bus port's part data (FR-BUS-023, Should): bus signals (A, B, DGND, VP, shield; TD±, RD±) to connector pins, so that a multi-line port representation resolves per-core connections and the core colours of the bus cable. WP-S1.24's first hand-back left it out.
-- FT-1725 `ew-derive, ew-scene`: Target tracking's option "show the connected PLC address at terminals" (FR-PLC-018, doc 10 §3.5). WP-S1.24's first hand-back left it out.
-- FT-323 `WP-S1.21`: The part-data confidence `ItemMeta.confidence` (verified, unverified, test) of the PLC and bus sections (doc 10 §2.6; part 533361's map is `test`, ▲U-23) and the "based on non-verified part data" …
-- FT-80 `WP-S1.13`: The `DeviceLink` record kind (format change, FR-DEV-028) and with it the used-valve process-tag fallback of ID-167.
-
-### WP-S1.25: fluid 1.0
-
-- FT-1326 `WP-S7.03`: Starter parts for a generic valve-terminal module and valve, so that a new project draws a valve terminal without Golden A's parts (WP-S1.20 FP-1).
-- FT-1569 `ew-api`: A project whose fluid function definition's copy is damaged and held by no library probably refuses every other copy's update as a misfit (read, not run); reproduce, and judge the misfit without the …
-- FT-1576 `ew-commands`: `valve.add` with a part that has a PLC-module section adds a device that normaliser N0 attaches to the project's only station (WP-S1.21 D4) instead of the valve module; rule whether `valve.add` …
-- FT-740 `ew-ui, ew-viewmodel, content/`: **Medium.** Golden A's valve coils have no drawn internal CPs, so FR-PLC-020's acceptance (channel 1 of -201U3 dragged onto -201U3-Q1's coil on folio 203) cannot be done by canvas pick; PG2 was tested on a …
 
 ### The main session
 
 - FT-1728 `ew-checks`: The rules of release 1.0 that M3 builds (EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL, EW-FL) run only in a scheme with the 1.0 content, and every shipped scheme runs the MVP content, so no user sees them. Shipped schemes run what is built; Golden A's expected findings become doc 20 §18.1 plus §18.2.
 
+### The window at 1920 × 1080
+
+- FT-1730 `ew-ui, ew-viewmodel, elektrawatt, xtask`: **High.** 1920 × 1080 is the main resolution and 2560 × 1440 its extension (the owner, 2026-11-13; doc 16a §2), but the code and its tests are anchored on 1280 × 800: the first window, the offscreen harness's default, the picture snapshots, the size rules that grow from 1280, the command bar's laws of fit and about forty test files. Re-anchor them on 1920 × 1080, let the size rules carry on to 2560 × 1440, undo what the 1280 fit forced, and keep one test that a smaller window stays usable. Before WP-S2.13.
+
 ### WP-S2.13: automation workspaces
 
+- FT-1733 `ew-viewmodel, ew-ui`: What WP-S1.25 left to the window: the flexible fluid line's arc, autoconnect and a line-kind picker on fluid ports, and the device navigator's fluid actions (doc 11 §12).
+- FT-1734 `content, ew-library`: The shipped terminal symbols (`ew.iec.terminal` and its QET twin) have no `PlcAddress` slot, so the setting `plc_address_at_terminals` (FT-1725, built) prints nothing; add the slot and look at the result on a page. The twin is in Golden A's tables: a golden change.
 - FT-727 `ew-viewmodel, ew-ui`: EW-PLC-012's second quick fix, "open the part's PLC section" (doc 10 §3.10): the window opens the part copy's PLC section through the existing `part.edit_copy`; only "rebind to the map's channel" is offered today.
 - FT-1726 `ew-viewmodel`: Output ▸ Reports ▸ Report block… offers a list kept by hand (`REPORT_KINDS` in `shell/creation.rs`), so the six PLC and bus lists of WP-S1.24 and the fluid lists of WP-S1.25 cannot be added from the window; offer every page-oriented report kind that has an engine, read from the kinds themselves.
 - FT-738 `ew-api`: The PLC navigator's `safety` and `bus:<name>` facets (WP-S2.07 §8).

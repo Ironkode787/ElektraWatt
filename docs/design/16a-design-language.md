@@ -63,12 +63,14 @@ tool; and the status bar is quiet. EW keeps those principles and none of its bra
 **The core loop** is: pick a page → place a symbol → wire it → fix its properties → check → export. It repeats
 hundreds of times per project; the rest (project set-up, numbering, reports) happens a few times. The language is
 built around the loop: it lives on one tab, its panels are open by default, and everything else is one click or one
-key away. **Screens:** 1920 × 1080 is typical, 1280 × 800 at 100 % is the floor every default layout must serve,
-remote desktop sessions are common (no reliance on animation or subtle gradients; NFR-PLAT-03). *The owner's rule
-:* the UI is judged at the typical 1920 × 1080 for look and hierarchy and at the
-1280 × 800 floor for nothing truncated or overlapping; a fix for the floor scales with the window, it never caps a
-width chosen for 1280. Both sizes render offscreen (`--window`, `--ppp`; the gated snapshot
-`main-light-comfortable-1920`).
+key away. **Screens:** 1920 × 1080 is the main resolution: the window is designed for it and judged there, for look and
+hierarchy and for nothing truncated or overlapping. 2560 × 1440 is its extension: the extra space goes to the work
+(the page, a list's rows, a dialog's content), never to empty chrome beside a capped width. A smaller window only
+has to stay usable, every control reachable by folding, wrapping or scrolling; no layout is designed for it and none
+is shaped by what fits there (the owner, 2026-11-13; until then 1280 × 800 was the floor every default layout had to
+serve, and the sizes below still name it where the code does, FT-1730). Remote desktop sessions are common (no
+reliance on animation or subtle gradients; NFR-PLAT-03). Both sizes render offscreen (`--window`, `--ppp`; the gated
+snapshot `main-light-comfortable-1920`).
 
 *As built.* **Widths at the typical size.** The left column (the
 Schematic workspace's navigator and Properties) is `size.panel.left` (280) at the floor and, while the user has not

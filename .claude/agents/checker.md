@@ -23,8 +23,9 @@ You check the user-visible changes of ElektraWatt on offscreen renders.
 ## Running
 
 **Run every script at two sizes** (doc 16a §2):
-- **the floor:** `<app> --headless --script <s> --config-dir <fresh dir> --visual --frames <dir>/floor`;
-- **the typical size:** add `--window 1920x1080 --ppp 1` and write to `<dir>/1920`.
+- **the main size:** `<app> --headless --script <s> --config-dir <fresh dir> --visual --frames <dir>/1920
+  --window 1920x1080 --ppp 1`;
+- **the extension:** the same with `--window 2560x1440 --ppp 1`, written to `<dir>/2560`.
 
 **Scripts:**
 - Coordinates in `click`, `hover` and `zoom` are frame pixels, so prefer actions to pixel clicks.
@@ -40,11 +41,12 @@ You check the user-visible changes of ElektraWatt on offscreen renders.
 
 ## Judging
 
-- **At the floor:** nothing is truncated, clipped or overlapping; every control is reachable; a disabled control gives a
-  reason.
-- **At 1920:** look and hierarchy. What draws the eye first? Does the space go to the work, or to empty chrome?
-- **A capped width is a finding:** a text cut at the floor and still cut at the same width at 1920, with free space
-  beside it.
+- **At 1920 × 1080, the main size:** look and hierarchy. What draws the eye first? Does the space go to the work, or
+  to empty chrome? Nothing is truncated, clipped or overlapping; every control is reachable; a disabled control gives
+  a reason.
+- **At 2560 × 1440:** the extra space is used. A list, a dialog or a panel that sits capped beside empty space is a
+  finding, and so is a text still cut there.
+- **Smaller windows are not judged** (owner, 2026-11-13): they only have to stay usable.
 - **Judge each item against `docs/design/16a-design-language.md`** and what the brief says it should show.
 
 ## Report

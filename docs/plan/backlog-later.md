@@ -85,6 +85,9 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1307 `WP-S7.05`: The user guide has no page "After a crash" (the crash log, the start-up offer, Recover) (WP-S6.05 FP-4).
 - FT-1449 `content`: Standard-based size profiles once their cross-sections are checked against licensed copies (WP-S7.03 FP-3, §13 O4).
 - FT-1450 `content, Golden A`: The divider form and report forms with data areas, deferred by WP-S7.03 §13 O1 since they change Golden A (WP-S7.03 FP-4).
+- FT-1731 `ew-schema, ew-derive, ew-checks`: The valve terminal's pilot supply (`valve_terminal.pilot_supply`, doc 11 §3.2): no pilot gallery is derived and EW-FL-010 does not check the X port (WP-S1.25).
+- FT-1732 `content, ew-reports`: The tube cut list has no cut allowance and no order increment, and the tube labels no marker part: none has part data yet (WP-S1.25). `tubes.json` of the production package comes with the package (M4).
+- FT-1735 `ew-derive, ew-scene`: ISO 1219-2 component codes as a second identifier set on pneumatic devices (FR-FLU-023, Could).
 - FT-1577 `ew-library`: Interruption point forms for vertical current paths (the arrow pointing down at a page's bottom edge), if users ask for them beside WP-S2.19 D16's two right-pointing forms.
 - FT-1578 `ew-library`: The external connection point's arrow under WP-S2.19 D16's orientation rule (FR-XRF-012).
 - FT-1677 `ew-library`: A symbol with eleven or more text slots cannot pass both the canonical-order check and the arrangement test (found while adding the three-pole MCB, FT-657).

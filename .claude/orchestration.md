@@ -31,7 +31,7 @@ work itself, which is the default for anything small or anything that needs judg
 | `scout` | Finding things and gathering facts. Read-only |
 | `lane` | Building one brief in a worktree |
 | `reviewer` | One independent review, then the fixes of its own minor findings |
-| `checker` | Judging what users see, on offscreen renders at 1280 × 800 and 1920 × 1080 |
+| `checker` | Judging what users see, on offscreen renders at 1920 × 1080 and 2560 × 1440 |
 
 Pass the model on every call. Haiku and Sonnet for lookups, surveys and mechanical edits; Opus where a mistake is
 costly or the work is open design. A survey's report is a lead, not a finding: check its numbers before you build on
@@ -40,7 +40,8 @@ them.
 ## What users see
 
 - Never drive the owner's desktop. Render offscreen (`elektrawatt --headless --script <s> --visual --frames <dir>`).
-- Judge look and hierarchy at 1920 × 1080 and truncation at the 1280 × 800 floor. A floor fix scales; it never caps.
+- 1920 × 1080 is the main resolution: design and judge there. 2560 × 1440 is its extension and must use its space.
+  A smaller window only has to stay usable; no layout is shaped by it (owner, 2026-11-13).
 - A persona round is three or four runs, and it runs before any expensive step, never beside it.
 - Compare an old and a new image side by side before you accept a changed snapshot.
 
