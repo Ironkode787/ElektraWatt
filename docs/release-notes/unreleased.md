@@ -61,9 +61,11 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: window File ▸ Import… takes DXF, DWG and PDF drawings (Import a drawing: as a page, an underlay of the open
   page or symbol drafts in the symbol editor, with the unit and the confidentiality warning of embedding); the symbol
   editor's Open takes a `.dxf`; check rules EW-IMP-251 to -255 and -257 (WP-S3.19)
-- format-variant: page_item kind `underlay` (`{asset, format, name, page, layout, unit, rect, opacity}`, typed; a
-  file of an earlier build holds none) and the asset formats `pdf` and `dxf` (`assets/<sha256>.pdf|.dxf`, an
-  embedded underlay source of at most 64 MiB); additive under ADR-0011 amendment 6 (WP-S3.19)
+- format-variant: page_item PageItemKind {underlay}
+- api-add: format page_item `underlay` (`{asset, format, name, page, layout, unit, rect, opacity}`, typed; an
+  earlier build keeps it verbatim as an unknown kind) and the asset formats `pdf` and `dxf`
+  (`assets/<sha256>.pdf|.dxf`, an embedded underlay source of at most 64 MiB); additive under ADR-0011 amendment 6
+  (WP-S3.19)
 - dependency: hayro 0.8.0 (Apache-2.0 OR MIT, no default features, `embed-fonts`) in ew-scene draws PDF underlays; it
   switches flate2 to its zlib-rs backend, which changes the compressed bytes of every PDF ElektraWatt writes (the
   pages draw the same; Golden A's PDF and print digests re-blessed; WP-S3.19)

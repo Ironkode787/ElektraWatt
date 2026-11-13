@@ -460,9 +460,23 @@ fn ascii_and_binary_give_the_same_batch() {
 #[test]
 fn bytes_after_eof_are_not_read() {
     let mut bytes = coverage("AC1015", Some(4), true).ascii();
-    let clean = import_page(&input("a.dxf", bytes.clone()), &ctx(), &DxfOptions::default(), &page(), None).unwrap();
+    let clean = import_page(
+        &input("a.dxf", bytes.clone()),
+        &ctx(),
+        &DxfOptions::default(),
+        &page(),
+        None,
+    )
+    .unwrap();
     bytes.push(0x1a);
-    let marked = import_page(&input("a.dxf", bytes), &ctx(), &DxfOptions::default(), &page(), None).unwrap();
+    let marked = import_page(
+        &input("a.dxf", bytes),
+        &ctx(),
+        &DxfOptions::default(),
+        &page(),
+        None,
+    )
+    .unwrap();
     assert_eq!(kinds(&marked.records), kinds(&clean.records));
 }
 

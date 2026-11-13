@@ -780,13 +780,21 @@ fn node_changes(
             variants.push((item(path), value.clone()));
         }
     }
+    // A member required by a new object branch alone (the tag of a new externally tagged variant, `{underlay}`) is
+    // that variant's, which old files never hold: the variant is the new value reported above.
+    let of_new_branch = |path: &str| {
+        let (at, name) = (parent(path), path.rsplit('.').next().unwrap_or(path));
+        a.iter().any(|(k, n)| {
+            n.branch
+                && !b.contains_key(k)
+                && k.strip_prefix(at)
+                    .and_then(|r| r.strip_prefix("|{"))
+                    .and_then(|r| r.strip_suffix('}'))
+                    .is_some_and(|members| members.split(',').any(|m| m == name))
+        })
+    };
     for (path, node) in a.iter().filter(|(p, n)| !b.contains_key(*p) && !n.branch) {
-        // The one member of a new object branch (`{profinet}`, an open enum's new payload variant) comes with the
-        // branch, a new value that needs its `format-variant` line; it is no member newly required of the old values.
-        let name = path.rsplit('.').next().unwrap_or(path);
-        let branch = format!("{}|{{{name}}}", parent(path));
-        let new_variant = a.contains_key(&branch) && !b.contains_key(&branch);
-        if node.required && b.contains_key(parent(path)) && !new_variant {
+        if node.required && b.contains_key(parent(path)) && !of_new_branch(path) {
             out.push((true, item(path), "added as required".to_owned()));
         } else {
             out.push((false, item(path), "added".to_owned()));
@@ -798,6 +806,32 @@ fn node_changes(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    /// A new externally tagged variant is its enum's new value, additive; its tag is required by its own branch only.
+    /// A member a branch both sides hold newly requires still breaks.
+    #[test]
+    fn a_new_externally_tagged_variant_is_additive() {
+        let kind = |branches: Value| json!({"$defs": {"Kind": {"oneOf": branches}}});
+        let tagged = |tag: &str| json!({"type": "object", "properties": {tag: {"type": "object"}}, "required": [tag]});
+        let before = kind(json!([tagged("graphic")]));
+        let after = kind(json!([tagged("graphic"), tagged("underlay")]));
+        let (mut out, mut variants) = (Vec::new(), Vec::new());
+        node_changes("page_item", &before, &after, &mut out, &mut variants);
+        assert!(out.iter().all(|(breaking, _, _)| !breaking), "{out:?}");
+        assert_eq!(variants, [("page_item Kind".to_owned(), "{underlay}".to_owned())]);
+        let widened = |required: Value| {
+            kind(json!([{"type": "object", "properties": {"graphic": {}, "fill": {}}, "required": required}]))
+        };
+        let mut out = Vec::new();
+        node_changes(
+            "page_item",
+            &widened(json!(["graphic"])),
+            &widened(json!(["graphic", "fill"])),
+            &mut out,
+            &mut Vec::new(),
+        );
+        assert!(out.iter().any(|(breaking, _, what)| *breaking && what == "newly required"), "{out:?}");
+    }
 
     /// A scratch repository at a fresh temporary directory; removed by [`Scratch::remove`].
     struct Scratch {
