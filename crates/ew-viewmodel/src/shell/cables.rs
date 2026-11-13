@@ -297,9 +297,10 @@ impl ShellModel {
 /// The action of Cable….
 const FROM_WIRES: &str = "cable.from_wires";
 
-/// The rows' cores of Cable…'s table after its type changed to `type_text`: a core the new type has stays, the
-/// others take its free cores as the form proposes them (`Session::assign_cores`, by the potential of the row's wire,
-/// `wires` in the rows' order); a text that is no type yet changes nothing.
+/// The rows' cores of Cable…'s table after its type changed: a wire that is a cable's core already keeps it where
+/// the new type has that core, and every other wire takes a core as the form proposes it for the new type
+/// (`Session::assign_cores`, by the potential of the row's wire, `wires` in the rows' order), so a core typed by hand
+/// for a wire not yet in a cable is proposed again; a text that is no type yet changes nothing.
 pub(super) fn retype(session: Option<&ew_api::Session>, wires: &[Uuid], form: &mut super::FormDialog) {
     let Some(session) = session else {
         return;
@@ -319,7 +320,16 @@ pub(super) fn retype(session: Option<&ew_api::Session>, wires: &[Uuid], form: &m
         .rows
         .iter()
         .zip(wires)
-        .map(|(r, w)| (*w, r.cells.first().cloned().unwrap_or_default()))
+        .map(|(r, w)| {
+            // A wire that is a cable's core already keeps it; a wire not yet in a cable is proposed afresh for the
+            // new type, or the neutral would stay on the brown core that a type without a blue one gave it.
+            let core = if session.cable_of_wire(*w).is_some() {
+                r.cells.first().cloned().unwrap_or_default()
+            } else {
+                String::new()
+            };
+            (*w, core)
+        })
         .collect();
     for (row, (_, core)) in table.rows.iter_mut().zip(session.assign_cores(&cores, &rows)) {
         if let Some(cell) = row.cells.first_mut() {

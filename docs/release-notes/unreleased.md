@@ -7,6 +7,10 @@ SPDX-License-Identifier: CC-BY-4.0
 
 Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-variant`, `text-change`.
 
+- behaviour-change: window Cable… proposes the type `<n>G<cross-section>` when one of the selected wires is a protective
+  conductor, so the PE wire has its green-yellow core; retyping the type proposes the cores of the wires not yet in
+  a cable afresh, so a neutral no longer keeps the brown core of an earlier type; the form's wire column is as wide
+  as its longest wire (after 0.2.0)
 - api-add: window Draw ▸ Connect ▸ Route page and Route selection preview the page router's plan and commit it as one
   `connection.route_many` (WP-S2.19 D13)
 - api-add: rep.move takes `routes` (applied after the follow, as connection.route_many applies them) and `connect`

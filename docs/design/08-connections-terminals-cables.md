@@ -1075,8 +1075,10 @@ one the cable takes: the scheme's format for a device with the `cable` aspect on
 format. A wire without a core takes one by what its potential says it is: its type, or without one a name (from a
 definition, a source point or the supply) that is a type's own word (`N`, `PE`, `L1`, `L2`, `L3`, `L`, `L+`, `L-`, `M`,
 `0V`). An N takes the blue core and a PE the green-yellow one (a PE with no green-yellow core left takes none); the
-other wires take the cores left in the selection's order, never the green-yellow one. Retyping the type assigns the
-same way. Apply on a new cable is
+other wires take the cores left in the selection's order, never the green-yellow one. The type proposed for wires
+in no cable is `<n>x<cross-section>`, or `<n>G<cross-section>` when one of them is a PE, so the protective conductor
+has its core. Retyping the type proposes the cores of the wires not yet in a cable afresh (a core typed for one is
+proposed again), and a wire of the cable keeps its core where the new type has it. Apply on a new cable is
 one `cable.create` whose conductors list their wires (one undo step). On a selection that holds a cable's wire the
 same form opens that cable: a wire added takes a free core, a core emptied takes the wire out, a changed type sets the
 cores' cross-section; that is one `fields.set_many`, and one `conductor.add` more when the cable gains cores. A typed

@@ -13,8 +13,8 @@
 //! **Accessibility.** A cell field is named "`<column>`, value set `<i>`"; the first column's "Value set, value
 //! set `<i>`"; the remove button "Remove value set `<name>`".
 //!
-//! **Given rows** ([`FormTable::fixed`], the Cable form's wires): the first column is text, not a field, no row is
-//! added or removed, a column's header is its name, and a cell field is named "`<column>`, `<first column>`".
+//! **Given rows** ([`FormTable::fixed`], the Cable form's wires): the first column is text, not a field, as wide as
+//! its longest row (at most half the table), no row is added or removed, a column's header is its name, and a cell field is named "`<column>`, `<first column>`".
 
 use egui::{RichText, TextEdit, Ui};
 use ew_viewmodel::key;
@@ -102,7 +102,26 @@ pub(crate) fn show(ui: &mut Ui, table: &FormTable, events: &mut Vec<Event>) {
         );
         return;
     }
-    let key_width = t.size_table_column;
+    // Given rows are text: the first column is as wide as its longest row, so that a long wire name does not run
+    // into the next column (the Cable form's "J-E-206-N → -1X1:2/b"), up to half the table.
+    let key_width = if table.fixed {
+        let font = theme::font(&t.type_small);
+        let widest = table
+            .rows
+            .iter()
+            .map(|row| {
+                ui.painter()
+                    .layout_no_wrap(row.key.clone(), font.clone(), t.text_primary.color32())
+                    .size()
+                    .x
+            })
+            .fold(0.0_f32, f32::max);
+        (widest + 2.0 * t.space_4)
+            .max(t.size_table_column)
+            .min(ui.available_width() / 2.0)
+    } else {
+        t.size_table_column
+    };
     let remove_width = if table.fixed {
         0.0
     } else {

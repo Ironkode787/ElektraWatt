@@ -667,3 +667,74 @@ fn ft1692_print_wire_numbers_puts_each_wires_number_on_the_page() {
     assert_eq!(numbers(&mut d), Vec::<String>::new(), "ticked off, no numbers");
     d.shell_mut().shutdown();
 }
+
+/// The core cells of the Cable form's rows, in the rows' order.
+fn core_cells(d: &mut Driver) -> Vec<String> {
+    match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f
+            .table
+            .as_ref()
+            .unwrap()
+            .rows
+            .iter()
+            .map(|r| r.cells[0].clone())
+            .collect(),
+        other => panic!("not the Cable form: {other:?}"),
+    }
+}
+
+/// The sample's supply on folio 101 (L, N and PE from another drawing set to the strip 1X1), the three wires
+/// selected, Cable…: the form proposes a type with a green-yellow core (`3G1.5`), since one wire is the protective
+/// conductor, and gives N the blue core, PE the green-yellow and L the brown. Retyped to a type without a blue core and
+/// back, the cores are proposed afresh: before, the neutral kept the brown core the first type gave it.
+#[test]
+fn cable_on_a_supply_with_pe_proposes_a_g_type_and_retyping_proposes_the_cores_again() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    let shell = d.shell_mut();
+    assert_eq!(shell.dispatch("file.open", &json!({"dir": dir})), Outcome::Done);
+    assert_eq!(
+        shell.dispatch("page.goto", &json!({"folio": "101"})),
+        Outcome::Done
+    );
+    d.settle();
+    let refs: Vec<String> = [
+        "J-E-206-N -> 1X1:2/b",
+        "J-E-206-PE -> 1X1:PE/b",
+        "J-E-206-L -> 1X1:1/b",
+    ]
+    .iter()
+    .map(|w| format!("wire:{w}"))
+    .collect();
+    let out = d.shell_mut().dispatch("select.set", &json!({ "refs": refs }));
+    assert_eq!(out, Outcome::Done, "{out:?}");
+    d.settle();
+    d.input(&click(d.find("Cable").expect("Cable on the Draw tab")));
+    d.settle();
+    let type_text = |d: &mut Driver| match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.fields[1].value.clone(),
+        other => panic!("not the Cable form: {other:?}"),
+    };
+    assert_eq!(type_text(&mut d), "3G1.5", "a PE among the wires: a G type");
+    assert_eq!(
+        core_cells(&mut d),
+        ["BU", "GNYE", "BN"],
+        "N blue, PE green-yellow, L brown"
+    );
+    // Retyped as a person writes it: first a type without blue and green-yellow cores, then one with them again.
+    d.input(&key("tab"));
+    d.input(&typed("3x1.5"));
+    d.settle();
+    d.input(&key("ctrl+a"));
+    d.input(&typed("3G2.5"));
+    d.settle();
+    assert_eq!(type_text(&mut d), "3G2.5");
+    assert_eq!(
+        core_cells(&mut d),
+        ["BU", "GNYE", "BN"],
+        "after 3x1.5 and back to 3G2.5"
+    );
+    d.shell_mut().shutdown();
+}

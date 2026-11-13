@@ -264,7 +264,8 @@ impl Session {
     }
 
     /// The Cable form of the wires `wires` (module documentation). Without a cable among them the type proposed is
-    /// `<n>x<cross-section>` with the first wire's effective cross-section in mm² (1.5 when it has none).
+    /// `<n>x<cross-section>` with the first wire's effective cross-section in mm² (1.5 when it has none), or
+    /// `<n>G<cross-section>` when the potential of one of the wires says PE.
     pub fn cable_form(&self, wires: &[Uuid]) -> CableForm {
         let q = self.query();
         let cable = wires.iter().find_map(|w| self.cable_of_wire(*w));
@@ -283,7 +284,18 @@ impl Session {
                             .and_then(|(_, e)| e.csa.as_ref().and_then(|p| mm2(&p.value)))
                     })
                     .unwrap_or_else(|| "1.5".to_owned());
-                (String::new(), format!("{}x{csa}", wires.len()), Vec::new())
+                // With a protective conductor among the wires the type has its green-yellow core (`3G2.5`), or the
+                // PE wire would get no core.
+                let partition = q.get::<PotentialPartition>(());
+                let pe = wires.iter().any(|w| {
+                    q.connections()
+                        .get(Id::<Connection>::from_uuid(*w))
+                        .and_then(|wire| partition.potential_at(EndpointKey::of(&wire.a)?))
+                        .and_then(|p| crate::output::said_type(&q, p.id))
+                        == Some(PotentialType::Pe)
+                });
+                let sign = if pe { "G" } else { "x" };
+                (String::new(), format!("{}{sign}{csa}", wires.len()), Vec::new())
             }
         };
         for w in wires {
