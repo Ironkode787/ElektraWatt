@@ -71,6 +71,9 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1419 `ew-import-tables`: The `route` column of `connections.csv` accepts only connection-point ends a symbol draws, no junction, black-box or strip-segment end (FT51e).
 - FT-1484 `ew-import-tables, ew-derive`: A `route` end at a terminal-strip segment (FT-1419's rest): its position comes from ew-derive's segment layout and ew-import-tables has no edge to ew-derive; design how the importer resolves it (an …
 - FT-1729 `ew-import-tables`: The tables importer maps the names of page types and report kinds through two lists kept by hand (`PAGE_TYPES`, `REPORT_KINDS` in `emit/project.rs`); read the names from the schema's own.
+- FT-1737 `ew-print, ew-api`: Printing draws no underlays: the switch that includes them reaches the exports only (`--underlays`, WP-S3.19).
+- FT-1738 `ew-import-dxf`: A part's drilling pattern from a DXF (the second half of FR-IMP-035) needs the feature pattern of the panel work (M4).
+- FT-1739 `docs`: Doc 14 §11 still describes a `fuzz/` crate that the repository no longer has.
 - FT-1579 `ew-api`: Routing at an import's front door for `ew import csv`, whose `route` column is optional (a QET import needs none any more: every wire arrives routed).
 - FT-1645 `ew-import-qet, ew-scene`: What an imported QET folio still shows differently, after the full-fidelity work of M2.5-Fix: a master's contact list has no contact symbols and its rows stand closer than QET's 10 px (the scene has no list drawing and the text style no line height); `displayhas="cross"` and `snapto="bottom"` cross-references print as a list, with a report entry; QET's folio list arrives as EW's own table of contents; an element's `mirror` is not read (QET 0.100 writes none; newer versions do); fonts are substituted, so texts sit slightly lower.
 

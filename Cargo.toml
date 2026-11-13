@@ -24,8 +24,9 @@ automod = "1.0.17"
 cargo_metadata = "0.23.1"
 # The XLSX reader of the parts import (ew-import-catalog): miniz_oxide inflates the archive's
 # entries with an output cap, quick-xml streams the workbook's XML. Both at the versions the graph already holds
-# (png's miniz_oxide, wayland-scanner's quick-xml) and with no feature beyond those the graph enables: a ZIP crate
-# would turn on flate2's zlib-rs backend, through which krilla compresses, and change the PDF bytes.
+# (png's miniz_oxide, wayland-scanner's quick-xml) and with no feature beyond those the graph enables. (Until
+# WP-S3.19 a ZIP crate was also kept out because it would have switched flate2 to its zlib-rs backend and changed
+# the bytes of every PDF; hayro, which draws PDF underlays, switches it since.)
 miniz_oxide = { version = "=0.8.9", default-features = false, features = ["with-alloc"] }
 quick-xml = { version = "=0.41.0", default-features = false }
 serde = { version = "1.0.229", features = ["derive"] }
