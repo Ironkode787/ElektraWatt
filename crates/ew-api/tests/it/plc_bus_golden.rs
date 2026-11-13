@@ -9,7 +9,7 @@ use crate::golden_common;
 
 use std::collections::BTreeMap;
 
-use ew_api::checks::{self, CheckMode, PRE_DELIVERY, Release};
+use ew_api::checks::{self, CheckMode, PRE_DELIVERY};
 
 /// The rule's pack, as the registry says.
 fn pack_of(rule: &str) -> &'static str {
@@ -20,7 +20,7 @@ fn pack_of(rule: &str) -> &'static str {
 fn ac22_plc_and_bus_packs_with_the_1_0_content() {
     let batch = golden_common::batch();
     let s = golden_common::session(&batch);
-    let report = s.check(&PRE_DELIVERY.with_content(Release::V1_0), CheckMode::Release);
+    let report = s.check(&PRE_DELIVERY, CheckMode::Release);
     let mut got: BTreeMap<(String, String), Vec<String>> = BTreeMap::new();
     for f in report.findings.iter().filter(|f| f.is_open()) {
         if matches!(pack_of(f.rule), "EW-PLC" | "EW-BUS") || f.rule == "EW-POT-003" {
@@ -51,10 +51,13 @@ fn ac22_plc_and_bus_packs_with_the_1_0_content() {
         ["-201U1:3", "-202U1:3"],
         "EF-22 names the pins EF-10 named"
     );
-    // the MVP scheme still reports EF-10 and none of the 1.0 rules
-    let mvp = s.check(&PRE_DELIVERY, CheckMode::Release);
-    assert!(mvp.findings.iter().any(|f| f.rule == "EW-POT-003" && f.is_open()));
-    assert!(!mvp.rules.iter().any(|r| r.id == "EW-PLC-013"));
+    assert!(
+        !report
+            .findings
+            .iter()
+            .any(|f| f.rule == "EW-POT-003" && f.is_open()),
+        "EF-10 is superseded"
+    );
 }
 
 /// The rows of the report kind `kind` on Golden A as CSV (the shared source of PDF, XLSX and CSV, doc 09 §3).

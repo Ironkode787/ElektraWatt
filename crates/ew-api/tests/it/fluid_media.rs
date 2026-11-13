@@ -9,7 +9,7 @@ use crate::golden_common;
 
 use std::collections::BTreeMap;
 
-use ew_api::checks::{CheckMode, DRAFTING, PRE_DELIVERY, Release};
+use ew_api::checks::{CheckMode, DRAFTING, PRE_DELIVERY};
 use ew_api::output::{RowExport, row_export};
 use ew_api::{AnyCommand, Session, SessionOptions};
 use ew_derive::{EndpointKey, FunctionCps, MediumKey, MediumZones, node_net};
@@ -19,10 +19,10 @@ use ew_schema::{
 };
 use serde_json::json;
 
-/// The open findings of `rule` as `severity subject`, sorted, in a run of `scheme` with the 1.0 content.
+/// The open findings of `rule` as `severity subject`, sorted, in a run of `scheme`.
 fn findings(s: &Session, scheme: &ew_api::checks::Scheme, mode: CheckMode, rule: &str) -> Vec<String> {
     let mut out: Vec<String> = s
-        .check(&scheme.with_content(Release::V1_0), mode)
+        .check(scheme, mode)
         .findings
         .into_iter()
         .filter(|f| f.rule == rule && f.is_open())
@@ -32,10 +32,10 @@ fn findings(s: &Session, scheme: &ew_api::checks::Scheme, mode: CheckMode, rule:
     out
 }
 
-/// AC-22 for EW-FL (doc 20 §18.2, doc 11 §11.2): with the 1.0 content, Golden A reports EF-20 (EW-FL-010 once, on the
+/// AC-22 for EW-FL (doc 20 §18.2, doc 11 §11.2): Golden A reports EF-20 (EW-FL-010 once, on the
 /// valve terminal -201U1: gallery 1 is fed by nothing) and EF-21 (EW-FL-007 on the 16 lines F1 to F16), and nothing of
 /// EW-FL-005, -006, -009 and -012; the pre-delivery scheme keeps EW-FL-008 and EW-FL-014 off, and enabled they give 2
-/// (galleries 3 and 5 of -201U1) and 16. The MVP scheme runs none of them.
+/// (galleries 3 and 5 of -201U1) and 16.
 #[test]
 fn golden_a_reports_ef_20_and_ef_21_with_the_1_0_rules() {
     let s = golden_common::session_with_profiles(&golden_common::batch());
@@ -65,12 +65,6 @@ fn golden_a_reports_ef_20_and_ef_21_with_the_1_0_rules() {
         ["info =P01+J-E-2416-201U1", "info =P01+J-E-2416-201U1"]
     );
     assert_eq!(online("EW-FL-014").len(), 16);
-    let mvp = s.check(&PRE_DELIVERY, CheckMode::Release);
-    assert!(
-        !mvp.findings
-            .iter()
-            .any(|f| f.rule == "EW-FL-007" || f.rule == "EW-FL-010")
-    );
 }
 
 const LIB: Uuid = Uuid::from_u128(0x7202fd8b_1024_4bf1_9e99_670772eaa589);

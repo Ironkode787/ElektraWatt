@@ -2638,6 +2638,20 @@ fn ac21_through_the_cli_equals_findings_mvp_csv_for_the_built_packs() {
     for (package, rows) in &pending {
         println!("AC-21 rows pending {package}: {}", rows.join(", "));
     }
+    // Doc 20 §18.2: the rules of release 1.0 run too. `findings_1_0.csv` adds EF-20, EF-21 and EF-22, and EF-22
+    // (EW-PLC-013) supersedes EF-10 (EW-POT-003) on its pins.
+    want.remove(&("EW-POT-003".to_owned(), "warning".to_owned()));
+    let v1 = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../crates/ew-api/tests/expected/findings_1_0.csv"),
+    )
+    .unwrap();
+    for line in v1.lines().skip(1) {
+        let f = csv_fields(line);
+        let mut subjects: Vec<String> = f[4].split("; ").map(str::to_owned).collect();
+        subjects.sort();
+        want.insert((f[1].clone(), f[2].clone()), subjects);
+    }
     assert_eq!(got, want, "AC-21's built-pack subset through `ew check --json`");
     for (rule, subject) in AC21_KNOWN_EXCESS {
         assert!(

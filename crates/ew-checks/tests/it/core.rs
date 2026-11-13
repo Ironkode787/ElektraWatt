@@ -7,7 +7,7 @@
 use crate::common;
 
 use common::*;
-use ew_checks::{CheckMode, FULL, Release, Severity, run};
+use ew_checks::{CheckMode, FULL, Severity, run};
 use ew_derive::Q;
 use ew_derive::ew_schema::Kind;
 use serde_json::{Value, json};
@@ -554,7 +554,7 @@ fn part_model(description: &str) -> ew_model::Model {
 
 fn release_findings(m: &ew_model::Model, rule: &str) -> Vec<ew_checks::Finding> {
     let q = Q::new(m);
-    run(&q, &FULL.with_content(Release::V1_0), CheckMode::Release)
+    run(&q, &FULL, CheckMode::Release)
         .findings
         .into_iter()
         .filter(|f| f.rule == rule)

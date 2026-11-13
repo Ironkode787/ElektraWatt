@@ -11,7 +11,7 @@
 use ew_derive::Q;
 
 use crate::finding::Severity;
-use crate::rule::{Release, RuleMeta};
+use crate::rule::RuleMeta;
 
 /// The mode of a check run (doc 15 §3.1). Prevent mode is [`prevent`](crate::prevent), not a run.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -70,24 +70,14 @@ pub struct Scheme {
     /// is always lenient in this sense (it reports and never rejects); the flag records the scheme's intent
     /// for the reports.
     pub lenient: bool,
-    /// The pack content the scheme runs (doc 15 §4.1, owner): only rules whose
-    /// [`RuleMeta::release`] is at most this. Every shipped scheme runs the MVP content until 1.0, so a 1.0
-    /// rule such as EW-CORE-065 runs only in a scheme that enables the 1.0 content
-    /// ([`Scheme::with_content`]), as the 1.0 expectations of doc 20 §18.2 do.
-    pub content: Release,
 }
 
 impl Scheme {
-    /// Whether the rule runs in this scheme and mode: its modes allow the mode, its release is within the
-    /// scheme's content, and the scheme does not switch it off.
+    /// Whether the rule runs in this scheme and mode: its modes allow the mode and the scheme does not switch it
+    /// off. A rule that is built runs, whatever release its pack's catalogue names for it (`RuleMeta::release`;
+    /// doc 15 §4.1): until M3 a scheme ran the MVP content only, and no user saw a 1.0 rule.
     pub fn enabled(&self, meta: &RuleMeta, mode: CheckMode) -> bool {
-        mode.runs(meta) && meta.release <= self.content && !self.off.contains(&meta.id)
-    }
-
-    /// The same scheme running the pack content of `content` (the 1.0 packs: `Release::V1_0`).
-    #[must_use]
-    pub const fn with_content(self, content: Release) -> Scheme {
-        Scheme { content, ..self }
+        mode.runs(meta) && !self.off.contains(&meta.id)
     }
 }
 
@@ -97,7 +87,6 @@ pub const DRAFTING: Scheme = Scheme {
     purpose: "default online scheme while editing",
     off: &[],
     lenient: false,
-    content: Release::Mvp,
 };
 
 /// The rules `pre-delivery` switches off and `migration` keeps off.
@@ -147,7 +136,6 @@ pub const PRE_DELIVERY: Scheme = Scheme {
         "EW-IMP-257",
     ],
     lenient: false,
-    content: Release::Mvp,
 };
 
 /// `migration`: `extends = "pre-delivery"` at its severities, lenient, the run behind an import's
@@ -158,7 +146,6 @@ pub const MIGRATION: Scheme = Scheme {
     purpose: "lenient run behind a migration report",
     off: &PRE_DELIVERY_OFF,
     lenient: true,
-    content: Release::Mvp,
 };
 
 /// `full`: everything, including the rules other schemes switch off.
@@ -167,7 +154,6 @@ pub const FULL: Scheme = Scheme {
     purpose: "audits and acceptance of hygiene rules",
     off: &[],
     lenient: false,
-    content: Release::Mvp,
 };
 
 /// The shipped schemes of the MVP engine, in name order.
@@ -211,23 +197,21 @@ pub fn release_scheme_of(q: &Q) -> &'static Scheme {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::rule::Release;
     use crate::rules::core::{DESCRIPTION_LINT, TITLE_BLOCK_OVERRIDE};
 
     #[test]
-    fn a_shipped_scheme_runs_only_the_mvp_content() {
+    fn a_shipped_scheme_runs_a_rule_of_either_release() {
         assert_eq!(DESCRIPTION_LINT.release, Release::V1_0);
+        assert_eq!(TITLE_BLOCK_OVERRIDE.release, Release::Mvp);
         for s in SCHEMES {
-            assert_eq!(s.content, Release::Mvp, "{}", s.name);
-            assert!(!s.enabled(&DESCRIPTION_LINT, CheckMode::Release), "{}", s.name);
+            assert!(s.enabled(&DESCRIPTION_LINT, CheckMode::Release), "{}", s.name);
             assert!(s.enabled(&TITLE_BLOCK_OVERRIDE, CheckMode::Release), "{}", s.name);
+            assert!(
+                !s.enabled(&DESCRIPTION_LINT, CheckMode::Online),
+                "{}: the modes still apply",
+                s.name
+            );
         }
-        let v1 = PRE_DELIVERY.with_content(Release::V1_0);
-        assert!(v1.enabled(&DESCRIPTION_LINT, CheckMode::Release));
-        assert!(
-            !v1.enabled(&DESCRIPTION_LINT, CheckMode::Online),
-            "the modes still apply"
-        );
-        assert_eq!(v1.name, "pre-delivery");
-        assert_eq!(v1.off, PRE_DELIVERY.off);
     }
 }

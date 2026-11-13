@@ -199,7 +199,7 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
     // EF-16 (EW-BUS-004, an info); EF-05's five EW-LAY-001 findings (warnings online).
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 33 warnings 50 infos 33 waived 0 pending 0"
+        "  messages scheme \"Drafting\" errors 33 warnings 67 infos 51 waived 0 pending 0"
     );
     let rows = finding_rows(d);
     // Golden A's findings in their groups: a lower bound, not a total (CONTRIBUTING: no pinned totals).
@@ -242,15 +242,10 @@ pub(crate) fn ms1_ms4_view_messages_f8_shift_f8_and_enter_on_ef08_are_byte_ident
     assert_eq!(lines[17]["state"]["page"], "3");
     let d = describe(&lines[18]);
     let rows = finding_rows(d);
-    // The filter's tokens `3`, `w` and `1` are also prefixes of tokens of other rows (EF-10's -201U1:3 and -202U1:3
-    // "wired", and rows of later rule packs), so the count is not pinned: the cursor is on -3W1 and EF-10's
-    // two rows are listed.
+    // The filter's tokens `3`, `w` and `1` are also prefixes of tokens of other rows, so the count is not pinned:
+    // the cursor is on -3W1.
     let at: Vec<&&str> = rows.iter().filter(|r| r.ends_with(" cursor")).collect();
     assert!(at.len() == 1 && at[0].contains("-3W1"), "{d}");
-    for cp in ["-201U1:3", "-202U1:3"] {
-        let start = format!("  row level 3 finding \"{cp} "); // the message leads with its subject, shown once
-        assert!(rows.iter().any(|r| r.starts_with(&start)), "{d}");
-    }
     assert_eq!(
         line(d, "  detail rule "),
         "  detail rule \"EW-CORE-033\" title \"Cable without length\" kind completeness severity error"
@@ -294,7 +289,7 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
     let d = describe(&lines[10]);
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 33 warnings 42 infos 33 waived 0 pending 9",
+        "  messages scheme \"Drafting\" errors 33 warnings 59 infos 51 waived 0 pending 9",
         "errors unchanged, pending 9 (four of EF-05's EW-LAY-001 warnings name devices drawn on 101)"
     );
     let rows = finding_rows(d);
@@ -304,7 +299,7 @@ pub(crate) fn ms2_messages_check_ends_pending_byte_identical_twice_and_replays_c
     let d = describe(&lines[12]);
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 34 warnings 50 infos 33 waived 0 pending 0",
+        "  messages scheme \"Drafting\" errors 34 warnings 67 infos 51 waived 0 pending 0",
         "Run checks makes it an error"
     );
     let rows = finding_rows(d);
@@ -367,6 +362,6 @@ pub(crate) fn ms3_messages_fix_with_apply_is_byte_identical_twice_and_replays_ca
     // Folio 102 is the edited page: EF-09's two completeness warnings on it (-102F2:13, :14) are pending (§7.2).
     assert_eq!(
         line(d, "  messages scheme "),
-        "  messages scheme \"Drafting\" errors 33 warnings 48 infos 33 waived 0 pending 2"
+        "  messages scheme \"Drafting\" errors 33 warnings 65 infos 51 waived 0 pending 2"
     );
 }

@@ -51,8 +51,8 @@ argument.
 ```console
 $ ew check golden/J-E-2416.ew
 ...
-42 errors, 41 warnings, 31 infos, 0 waived
-pre-delivery: 42 errors, 41 warnings, 31 infos, 0 waived
+42 errors, 58 warnings, 31 infos, 0 waived
+pre-delivery: 42 errors, 58 warnings, 31 infos, 0 waived
 ```
 
 The first lines are the findings, for example:

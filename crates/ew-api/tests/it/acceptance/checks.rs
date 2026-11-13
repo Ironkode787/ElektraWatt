@@ -1906,7 +1906,7 @@ fn defects(r: &mut Runner) {
     );
     r.entry(
         "D-16",
-        "the FE pins fed from PE are reported (EW-POT-003, EF-10)",
+        "the FE pins fed from PE are reported (EW-PLC-013, EF-22)",
         d16,
     );
     r.entry("D-17", "core colour BN is printed, never BR", |c| {
@@ -4320,9 +4320,9 @@ fn ac31(c: &Ctx) -> Outcome {
 fn d16(c: &Ctx) -> Outcome {
     match golden_ef(
         c,
-        "EW-POT-003",
+        "EW-PLC-013",
         &["warning -201U1:3", "warning -202U1:3"],
-        "EW-POT-003 reports -201U1:3 and -202U1:3 as warnings (EF-10; EW-PLC-013 supersedes it at 1.0)",
+        "EW-PLC-013 reports -201U1:3 and -202U1:3 as warnings (EF-22, which supersedes EW-POT-003's EF-10)",
     ) {
         Ok(why) => pass(why),
         Err(o) => o,
@@ -4785,24 +4785,24 @@ fn d22_pelv(c: &Ctx) -> Outcome {
 /// descriptions of Golden A, in a pre-delivery run with the 1.0 content enabled (the MVP schemes do not run
 /// it): EF-25 expects none (the seeded "10A C" of D-18 is a unit test of the rule).
 fn d35(c: &Ctx) -> Outcome {
-    use ew_api::checks::Release;
     let s = golden_common::session_with(&c.batch, |p, _| golden_common::with_profiles(p));
-    if s.check(&PRE_DELIVERY, CheckMode::Release)
+    if !s
+        .check(&PRE_DELIVERY, CheckMode::Release)
         .rules
         .iter()
         .any(|m| m.id == "EW-CORE-065")
     {
-        return fail("the MVP pre-delivery scheme runs the 1.0 rule EW-CORE-065");
+        return fail("the pre-delivery scheme does not run EW-CORE-065");
     }
     let found: Vec<ew_api::checks::Finding> = s
-        .check(&PRE_DELIVERY.with_content(Release::V1_0), CheckMode::Release)
+        .check(&PRE_DELIVERY, CheckMode::Release)
         .findings
         .into_iter()
         .filter(|f| f.rule == "EW-CORE-065" && f.is_open())
         .collect();
     if found.is_empty() {
         pass(
-            "with the 1.0 content enabled, EW-CORE-065 reports no part description of Golden A (EF-25): the descriptions of §14.1 hold no ratings, which the technical data carries and the symbols print (D-18); the MVP schemes do not run it; the 27-row parts list is D-04",
+            "EW-CORE-065 runs in the pre-delivery scheme and reports no part description of Golden A (EF-25): the descriptions of §14.1 hold no ratings, which the technical data carries and the symbols print (D-18); the 27-row parts list is D-04",
         )
     } else {
         fail(format!(

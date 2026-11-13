@@ -80,8 +80,15 @@ fn fields(line: &str) -> Vec<String> {
 }
 
 fn expected_rows() -> Vec<Row> {
-    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/expected/findings_mvp.csv");
-    let text = std::fs::read_to_string(&path).expect("tests/expected/findings_mvp.csv");
+    rows_of("findings_mvp.csv")
+}
+
+/// The rows of a findings file of `tests/expected/` (doc 20 §18.1 `findings_mvp.csv`, §18.2 `findings_1_0.csv`).
+fn rows_of(file: &str) -> Vec<Row> {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/expected")
+        .join(file);
+    let text = std::fs::read_to_string(&path).expect(file);
     let mut lines = text.lines();
     assert_eq!(
         lines.next(),
@@ -310,6 +317,15 @@ fn ac21_four_pack_subset_equals_findings_mvp_csv() {
         } else {
             pending.push(format!("{} {} ({})", r.ef, r.rule, r.pending));
         }
+    }
+    // Doc 20 §18.2: the rules of release 1.0 run too. `findings_1_0.csv` adds EF-20, EF-21 and EF-22, and EF-22
+    // (EW-PLC-013) supersedes EF-10 (EW-POT-003) on its pins.
+    want.remove(&("EW-POT-003".to_owned(), "warning".to_owned()));
+    for r in rows_of("findings_1_0.csv") {
+        let mut subjects = r.subjects.clone();
+        subjects.sort();
+        assert_eq!(subjects.len(), r.count, "{r:?}");
+        want.insert((r.rule.clone(), r.severity.clone()), subjects);
     }
     assert_eq!(got, want, "the four-pack subset of AC-21");
     // The known excess is still there (FT-638 re-counts it when FT-209 lands).

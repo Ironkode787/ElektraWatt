@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! The EW-FL pack, its 1.0 rules (doc 11 §6, doc 15 §4.5.3): EW-FL-005 … -010, -012 and -014. They read the
-//! media propagation, the effective tube properties and the physical tubes of `ew-derive` (doc 11 §5), and run only
-//! in a scheme with the 1.0 content (`Scheme::with_content`).
+//! media propagation, the effective tube properties and the physical tubes of `ew-derive` (doc 11 §5).
 //!
 //! Texts name a tube by its line tag, else by its two ends (`-201U3-Q1:2 → -203Q1:A`), a port by `DT:port` and a
 //! medium by its name; lists are in natural order. IDs enter only targets and fingerprints.

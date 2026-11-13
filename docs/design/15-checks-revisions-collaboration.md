@@ -604,7 +604,7 @@ The remaining rules of §18.1 of [20](20-golden-project.md) are FT-192.
 FR-CHK-004 (MVP packs) and FR-CHK-005 (domain packs: their MVP subsets at MVP, complete at 1.0) are satisfied by
 this table. EW-LIB is not a project pack: the library linter runs it (§4.11), and no project scheme enables it.
 
-*As built.* `RuleMeta.release` (`Release::Mvp`, `Release::V1_0`) gates the content of a scheme: a scheme runs the rules whose release lies within its `content`. Every shipped scheme runs the MVP content, so EW-CORE-065 (release 1.0) runs only under `Scheme::with_content(Release::V1_0)`; the acceptance runner enables it for D-35.
+*As built.* `RuleMeta.release` (`Release::Mvp`, `Release::V1_0`) is the catalogue's release column and gates nothing: a rule that is built runs in every shipped scheme that its modes allow and that does not switch it off. Until M3 a scheme ran the MVP content only (`Scheme.content`), so no user saw a rule of release 1.0; FT-1728 took the gate out when M3 built the 1.0 rules of the EW-PLC, EW-SAF, EW-PRC, EW-BUS, EW-IOL and EW-FL packs. On Golden A the pre-delivery run then reports doc 20 §18.1 with §18.2's additions.
 
 ### 4.2 EW-CORE
 

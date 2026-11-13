@@ -389,8 +389,13 @@ fn golden_a_ew_pot_pack_reports_the_ef_rows() {
     );
     assert_eq!(
         subjects(&report, "EW-POT-003"),
+        expected(&[]),
+        "EF-10 is superseded by EF-22"
+    );
+    assert_eq!(
+        subjects(&report, "EW-PLC-013"),
         expected(&[("warning", "-201U1:3"), ("warning", "-202U1:3")]),
-        "EF-10"
+        "EF-22, on the pins EF-10 named"
     );
     assert_eq!(
         subjects(&report, "EW-POT-005"),

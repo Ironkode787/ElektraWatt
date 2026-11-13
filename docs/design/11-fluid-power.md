@@ -715,9 +715,8 @@ with the children (MF-14). Generated overviews cannot disagree. EW-PLC-012, the 
 in pack EW-FL, on in every shipped scheme, with their catalogue rows, rule pages and messages in both languages.
 **EW-FL-004 runs in `o r`**, not `o` alone, so that the pre-delivery release run counts EF-14 (O2); EW-FL-013's prevent half refuses a strict transaction for FI-02 and FI-07.
 
-*As built (WP-S1.25).* EW-FL-005 … -010, -012 and -014 are built in the pack's **1.0 content**: they run only in a
-scheme with the 1.0 content (`Scheme::with_content`), so the shipped MVP schemes and Golden A's §11.2 MVP run are
-unchanged until WP-S1.30 switches the content on; on Golden A with it, EF-20 (EW-FL-010 on -201U1) and EF-21
+*As built (WP-S1.25).* EW-FL-005 … -010, -012 and -014 are built in the pack's **1.0 content** and run in the
+shipped schemes (doc 15 §4.1; FT-1728); on Golden A, EF-20 (EW-FL-010 on -201U1) and EF-21
 (EW-FL-007, F1 to F16) are found and the others report nothing, and EW-FL-008 and -014, switched on, give 2 and 16.
 Scopes: EW-FL-009 and -010 per device, the others per project (no `fluid_net` scope kind). EW-FL-008 counts a line
 (a collector), a closure and a port of another role as treatment; a silencer device is a line's end. EW-FL-009 reads

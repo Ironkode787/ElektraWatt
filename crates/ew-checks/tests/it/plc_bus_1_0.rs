@@ -8,7 +8,7 @@
 use crate::common;
 
 use common::*;
-use ew_checks::{CheckMode, FULL, Release};
+use ew_checks::{CheckMode, FULL};
 use ew_derive::ew_ids::v5;
 use ew_derive::ew_schema::{Device, Kind};
 use serde_json::{Value, json};
@@ -30,7 +30,7 @@ const OTHER_FN: u128 = 0x1301;
 /// The findings of `rule` in a run of the `full` scheme with the 1.0 content, their messages checked (P5-2).
 fn found_in(m: &ew_model::Model, rule: &str, mode: CheckMode) -> Vec<ew_checks::Finding> {
     let q = ew_derive::Q::new(m);
-    let found: Vec<ew_checks::Finding> = ew_checks::run(&q, &FULL.with_content(Release::V1_0), mode)
+    let found: Vec<ew_checks::Finding> = ew_checks::run(&q, &FULL, mode)
         .findings
         .into_iter()
         .filter(|f| f.rule == rule)

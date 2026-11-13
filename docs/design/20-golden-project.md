@@ -1287,10 +1287,14 @@ EF-14 are no longer pending: EW-FL-001 and EW-FL-004 report their 20 subjects ea
 | EF-22 | EW-PLC-013 card supply fed from wrong potential type (FR-PLC-048); supersedes EF-10 | warning | -201U1:3, -202U1:3 | 2 | D-16 |
 | EF-23 | EW-POT-007 PE continuity (FR-CHK-029) | — | none: 1X1:PE, -XPE, -X1032 and the CPX FE screws reach the plate through rails R1–R3 | 0 | D-21 |
 | EF-24 | EW-POT-018 with EW-PLC-014 load vs channel rating (FR-CHK-041) | — | none at the test loads; the evaluation lists MICO Out1 feeding 24V El and 24V Val of -201U1 and -202U1 | 0 | D-25 |
-| EF-25 | EW-CORE-065 description lint (FR-CHK-040) | — | none with the 1.0 content enabled (the MVP schemes do not run it) | 0 | D-35 |
+| EF-25 | EW-CORE-065 description lint (FR-CHK-040) | — | none | 0 | D-35 |
 
-*As built (WP-S1.25).* EF-20 and EF-21 are found with the EW-FL 1.0 rules in a pre-delivery run with the 1.0
-content (`ew-api` test `fluid_media::golden_a_reports_ef_20_and_ef_21_with_the_1_0_rules`): EW-FL-010 once on
+*As built (FT-1728).* The shipped schemes run the rules of release 1.0 that are built, so a pre-delivery run of
+Golden A reports §18.1 with this section's rows: EF-20, EF-21 and EF-22 are in
+`crates/ew-api/tests/expected/findings_1_0.csv`, EF-22 takes EF-10's place, and the totals are 42 errors, 58
+warnings and 31 infos before the waiver of W-1 (`ew-api` test `ac21_four_pack_subset_equals_findings_mvp_csv`).
+
+*As built (WP-S1.25).* EF-20 and EF-21 are found with the EW-FL 1.0 rules in a pre-delivery run (`ew-api` test `fluid_media::golden_a_reports_ef_20_and_ef_21_with_the_1_0_rules`): EW-FL-010 once on
 -201U1, EW-FL-007 on F1 to F16; EW-FL-005, -006, -009 and -012 report nothing, and EW-FL-008 and -014, switched on,
 give 2 and 16 (doc 11 §11.2).
 

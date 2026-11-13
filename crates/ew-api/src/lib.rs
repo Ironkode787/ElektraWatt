@@ -479,14 +479,13 @@ struct Persistence {
     dropped: Vec<AnyKey>,
 }
 
-/// The run of `ew check --integrity` ([`Session::check_integrity`]): every rule it is given, nothing switched off, the
-/// MVP content; its report names it `integrity`.
+/// The run of `ew check --integrity` ([`Session::check_integrity`]): every rule it is given, nothing switched off;
+/// its report names it `integrity`.
 const INTEGRITY_RUN: checks::Scheme = checks::Scheme {
     name: "integrity",
     purpose: "project integrity; ew check --integrity",
     off: &[],
     lenient: false,
-    content: checks::Release::Mvp,
 };
 
 /// A save error by key, in the reader's language (its `Display` carries file system paths a person's text must not):

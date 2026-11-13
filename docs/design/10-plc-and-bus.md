@@ -1052,8 +1052,8 @@ non-verified part data" when that section's confidence (`ItemMeta.confidence`) i
 
 *As built (WP-S1.24).* The 1.0 content of the EW-PLC and EW-BUS packs is built: EW-PLC-004, -005, -009, -010, -011,
 -013, -014; EW-SAF-001 … -003; EW-PRC-001; EW-BUS-002, -003, -005, -006, -007, -009, -010; EW-IOL-001, -002, each
-with en-GB and nl-NL messages and a rule note. They run only in a scheme with the 1.0 content
-(`Scheme::with_content(Release::V1_0)`); the shipped schemes run the MVP content (doc 15 §4.1). Decisions: EW-PLC-004
+with en-GB and nl-NL messages and a rule note. They run in every shipped scheme that their modes allow (doc 15
+§4.1; FT-1728). Decisions: EW-PLC-004
 judges contacts against outputs and coils or valves against inputs, not black boxes; EW-PLC-009 reports a manual
 address or a symbol on a channel that reaches nothing and that nobody marked spare, reserved or deactivated
 (`Channel.state` unset); EW-PLC-010 compares the IEC elementary types with one bit for DI and DO and a word for AI and

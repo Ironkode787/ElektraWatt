@@ -18,8 +18,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: report kinds `plc_card_list`, `network_address_list`, `bus_overview`, `bus_cable_list`,
   `iolink_port_list` and `safety_io_list`, and the SQL view `api_v1_plc_channel` (WP-S1.24)
 - api-add: the 1.0 rules EW-PLC-004, -005, -009, -010, -011, -013, -014, EW-SAF-001 … -003, EW-PRC-001,
-  EW-BUS-002, -003, -005, -006, -007, -009, -010 and EW-IOL-001, -002, in a scheme with the 1.0 content; the shipped
-  schemes run the MVP content as before (WP-S1.24)
+  EW-BUS-002, -003, -005, -006, -007, -009, -010 and EW-IOL-001, -002 (WP-S1.24)
 - behaviour-change: a channel bound to its card's pin takes the field device its signal reaches as its target, with
   the passed terminals (the I/O list's target and target pin), and that device's `PlcAddress` slot prints the
   channel's address; a manual target prints there too (WP-S1.24, FR-PLC-018, FT-700)
@@ -420,7 +419,11 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: report kinds `tube_list`, `tube_cut_list`, `tube_labels`, `valve_terminal_config` and `medium_overview`
   (`ew export report --kind <kind>`), the SQL views `api_v1_fluid_line`, `api_v1_valve_position` and `api_v1_medium`,
   and fluid BOM lines for tube, fitting, tee and closure parts (WP-S1.25)
-- api-add: check rules EW-FL-005, -006, -007, -008, -009, -010, -012 and -014 in the pack's 1.0 content (WP-S1.25)
+- api-add: check rules EW-FL-005, -006, -007, -008, -009, -010, -012 and -014 (WP-S1.25)
+- behaviour-change: every shipped check scheme runs the rules of release 1.0 that are built (the new EW-PLC, EW-SAF,
+  EW-PRC, EW-BUS, EW-IOL and EW-FL rules, and EW-CORE-065); until now a scheme ran the MVP rules only. A project
+  can show findings it did not show in 0.2.0; EW-PLC-013 takes the place of EW-POT-003 on a PLC card's FE pin
+  (FT-1728)
 - api-add: the ISO 1219 pneumatic library: 33 symbols with their function definitions (directional valves, cylinders
   and drives, vacuum, air preparation, flow and logic valves, fittings, the air-supply point and the valve-terminal
   supply plate); the starter parts EW-GEN-VTM-1, EW-GEN-VLV-3 and EW-GEN-VTS-1, a generic valve terminal (FT-1326)
