@@ -349,6 +349,19 @@
             "surface_view"
           ],
           "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A locked underlay: a page of a PDF or a DXF drawing under the page (FR-IMP-030, WP-S3.19).",
+          "properties": {
+            "underlay": {
+              "$ref": "#/$defs/Underlay"
+            }
+          },
+          "required": [
+            "underlay"
+          ],
+          "type": "object"
         }
       ]
     },
@@ -546,6 +559,76 @@
         {
           "const": "right",
           "description": "The text ends at the point.",
+          "type": "string"
+        }
+      ]
+    },
+    "Underlay": {
+      "additionalProperties": true,
+      "description": "A locked underlay (doc 14 §5.5, FR-IMP-030; WP-S3.19): a page of a PDF or a layout of a DXF drawing, drawn under\nthe page for redrawing. It is no model data: no engineering query, check or report reads it, and an export draws it\nonly when the user prints underlays. Its source is named by its content hash: an asset of the project\n(`assets/<sha256>.pdf` or `.dxf`) when the user embedded it, else a file of the user's underlay cache. Typed\nwithin format 0.1 under ADR-0011 amendment 6: additive, an older build keeps the record verbatim as an unknown\nvariant.",
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Sha256",
+          "description": "The SHA-256 of the source file."
+        },
+        "format": {
+          "$ref": "#/$defs/UnderlayFormat",
+          "description": "The source's format."
+        },
+        "layout": {
+          "description": "The DXF layout drawn; absent: the model space.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "The source file's name, without a path (for the message when its bytes are not at hand); absent: none.",
+          "type": "string"
+        },
+        "opacity": {
+          "description": "Its opacity in per cent, 1 to 100; default 50.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "page": {
+          "description": "The PDF page drawn, 1 for the first; default 1.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "rect": {
+          "$ref": "#/$defs/Rect",
+          "description": "Where it lies on the page: a PDF page is stretched over it; a DXF drawing is drawn at its own scale with its\nextents' top-left corner at the rectangle's."
+        },
+        "unit": {
+          "description": "The DXF drawing unit when its header names none (`mm`, `cm`, `m`, `in`, `ft`, `um`, `dm`, `yd`).",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "asset",
+        "format",
+        "rect"
+      ],
+      "type": "object"
+    },
+    "UnderlayFormat": {
+      "description": "The format of an underlay's source.",
+      "oneOf": [
+        {
+          "const": "pdf",
+          "description": "A PDF file.",
+          "type": "string"
+        },
+        {
+          "const": "dxf",
+          "description": "A DXF drawing.",
           "type": "string"
         }
       ]

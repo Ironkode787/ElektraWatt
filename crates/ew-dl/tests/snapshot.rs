@@ -290,6 +290,7 @@ fn layer_names() {
         "placements",
         "features",
         "dims",
+        "underlay",
     ]
     "#);
 }

@@ -369,6 +369,7 @@ impl Writer<'_> {
                 match dl {
                     Some(Layer::Frame) => l.frame.clone(),
                     Some(Layer::Tables) => l.tables.clone(),
+                    Some(Layer::Underlay) => l.underlay.clone(),
                     Some(Layer::Wires) if kind == "path" => l.wires.clone(),
                     _ if kind == "text" => l.texts.clone(),
                     _ if kind == "insert" => l.symbols.clone(),

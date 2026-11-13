@@ -70,6 +70,67 @@ fn a_drawing_becomes_a_graphic_page_twice_and_a_missing_unit_is_refused_in_words
     assert!(stdout(&out).contains("EW-IMP-251 warning: The drawing names no unit; it was read in millimetres as chosen."));
 }
 
+/// `ew import pdf` keeps the PDF in the user's underlay cache, not in the project; `ew import dxf --as underlay
+/// --embed` puts the drawing into the project; `ew export dxf` writes the underlay's layer only with `--underlays`.
+#[test]
+fn underlays_are_placed_kept_outside_or_embedded_and_printed_only_when_asked() {
+    let t = Tmp::new("ew-dxf-underlay");
+    let project = t.tiny("p.ew");
+    let pdf_file = t.path("plan.pdf");
+    let out = t.ew(&args([&"export", &"pdf", &project, &"--out", &pdf_file]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let out = t.ew(&args([&"import", &"pdf", &pdf_file, &"--on", &"1", &"--project", &project]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    assert_eq!(stdout(&out), "Placed plan.pdf as an underlay on page 1, kept outside the project.\n");
+    let cached = std::fs::read_dir(t.path("cache").join("underlays")).unwrap().count();
+    assert_eq!(cached, 1, "the PDF is in the underlay cache");
+    assert!(!project.join("assets").exists() || std::fs::read_dir(project.join("assets")).unwrap().count() == 0);
+    let out = t.ew(&args([&"import", &"pdf", &pdf_file, &"--on", &"7", &"--project", &project]));
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(stderr(&out), "error: The project has no drawn page 7.\n");
+
+    let dxf = t.path("plant.dxf");
+    std::fs::write(&dxf, drawing(Some(4))).unwrap();
+    let out = t.ew(&args([&"import", &"dxf", &dxf, &"--as", &"underlay", &"--on", &"1", &"--embed", &"--project", &project]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    assert!(stdout(&out).ends_with("embedded in the project.\n"), "{}", stdout(&out));
+    assert_eq!(std::fs::read_dir(project.join("assets")).unwrap().count(), 1);
+
+    let plain = t.path("plain");
+    let out = t.ew(&args([&"export", &"dxf", &project, &"--out", &plain]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let text = std::fs::read_to_string(plain.join("1.dxf")).unwrap();
+    assert!(!text.contains("  8\nEW-UNDERLAY\n"), "no underlay unless printed");
+    let printed = t.path("printed");
+    let out = t.ew(&args([&"export", &"dxf", &project, &"--out", &printed, &"--underlays"]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let text = std::fs::read_to_string(printed.join("1.dxf")).unwrap();
+    assert!(text.contains("  8\nEW-UNDERLAY\n"), "the printed underlay on its layer");
+}
+
+/// `ew import dxf --as outline` writes the drawing's lines as a library part's front outline, its next patch version.
+#[test]
+fn a_drawing_becomes_a_parts_front_outline() {
+    let t = Tmp::new("ew-dxf-outline");
+    let lib = t.path("data").join("libraries").join("std.ewlib");
+    let out = t.ew(&args([&"lib", &"create", &lib, &"--key", &"std", &"--name", &"Standard", &"--licence", &"CC0-1.0"]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let list = t.path("supplier.csv");
+    let map = t.path("supplier.toml");
+    std::fs::write(&list, "Maker,Order code,Text,Category\nPhoenix Contact,3209510,Feed-through terminal,terminal\n").unwrap();
+    std::fs::write(&map, "[columns]\nmanufacturer = \"Maker\"\npart_number = \"Order code\"\ndescription = \"Text\"\nkind = \"Category\"\n").unwrap();
+    let out = t.ew(&args([&"lib", &"import", &"parts", &"std", &list, &"--map", &map, &"--as-of", &"2026-01-01"]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let dxf = t.path("front.dxf");
+    std::fs::write(&dxf, drawing(Some(4))).unwrap();
+    let out = t.ew(&args([&"import", &"dxf", &dxf, &"--as", &"outline", &"--library", &lib, &"--part", &"3209510"]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    assert!(stdout(&out).contains("version 1.0.1"), "{}", stdout(&out));
+    let out = t.ew(&args([&"import", &"dxf", &dxf, &"--as", &"outline", &"--library", &lib, &"--part", &"nope"]));
+    assert_eq!(out.status.code(), Some(2));
+    assert_eq!(stderr(&out), "error: The library holds no part nope.\n");
+}
+
 #[test]
 fn the_blocks_of_a_drawing_become_symbol_drafts_with_their_pins_on_the_grid() {
     let t = Tmp::new("ew-dxf-symbol");

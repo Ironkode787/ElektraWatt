@@ -821,6 +821,10 @@ impl Insertion<'_> {
                     );
                     continue;
                 }
+                if matches!(item.kind, PageItemKind::Underlay(_)) {
+                    notices.push("an underlay was left out: it is placed by an import".to_owned());
+                    continue;
+                }
             }
             out.push((i, kind, id));
         }
@@ -1230,8 +1234,11 @@ impl Insertion<'_> {
                         // a marker lies along its wire: 0 or 90°
                         m.angle = Angle2(motion.angle(m.angle).0 % 180_000);
                     }
-                    PageItemKind::Image(_) | PageItemKind::SurfaceView(_) | PageItemKind::Unknown(_) => {
-                        unreachable!("images, surface views and unknown page item kinds are left out")
+                    PageItemKind::Image(_)
+                    | PageItemKind::SurfaceView(_)
+                    | PageItemKind::Underlay(_)
+                    | PageItemKind::Unknown(_) => {
+                        unreachable!("images, surface views, underlays and unknown page item kinds are left out")
                     }
                 },
                 Record::StructureBox(b) => {

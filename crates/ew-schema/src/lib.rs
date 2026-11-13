@@ -166,7 +166,7 @@ pub use page::{
 pub use page_item::{
     BoxStyle, FreeText, Graphic, GraphicShape, GraphicStroke, ImageItem, LineDash, MarkerField, PageItem,
     PageItemKind, ShapeArc, ShapeCircle, ShapeLine, ShapePoints, ShapeRect, StructureBox, SurfaceLabelMode,
-    SurfaceView, TextAlign, WireMarker,
+    SurfaceView, TextAlign, Underlay, UnderlayFormat, WireMarker,
 };
 pub use plc::{
     AddrSpec, Channel, ChannelKind, ChannelSpec, ChannelState, DeviceLink, DeviceLinkKind, Evaluation,

@@ -5,10 +5,10 @@
 //! page-owned kinds `page_item` (rank 43) and `structure_box` (rank 44), typed within format 0.1 under
 //! ADR-0011 amendment 4 (ID-334): additive, no format or `$v` bump, an older build keeps the records verbatim.
 //!
-//! A page item's `kind` is an externally tagged object. This format types five variants, `graphic`,
-//! `free_text`, `wire_marker`, `image` (WP-S2.04 part 5) and `surface_view` (WP-S4.01 part 3, D9); every other
-//! variant (`macro_box`, `model_view`, `dimension`, `underlay` and the variants of a newer format) is kept verbatim
-//! as [`PageItemKind::Unknown`] and written back unchanged (doc 05 §10.3).
+//! A page item's `kind` is an externally tagged object. This format types six variants, `graphic`,
+//! `free_text`, `wire_marker`, `image` (WP-S2.04 part 5), `surface_view` (WP-S4.01 part 3, D9) and `underlay` (WP-S3.19,
+//! ADR-0011 amendment 6); every other variant (`macro_box`, `model_view`, `dimension` and the variants of a newer
+//! format) is kept verbatim as [`PageItemKind::Unknown`] and written back unchanged (doc 05 §10.3).
 //!
 //! Positions are page nanometres ([`Pt2`]), lengths [`Nm`], angles [`Angle2`] (10⁻³ degree). What the format does
 //! not restrict and the commands do (WP-S2.04 §5.1): degenerate shapes, the free text's four angles and six
@@ -71,8 +71,10 @@ pub enum PageItemKind {
     Image(ImageItem),
     /// The view of one mounting surface on a panel-layout page (FR-LAY-010, WP-S4.01 D9).
     SurfaceView(SurfaceView),
-    /// A variant this format does not type (`macro_box`, `model_view`, `dimension`, `underlay`, or a newer
-    /// format's), kept verbatim.
+    /// A locked underlay: a page of a PDF or a DXF drawing under the page (FR-IMP-030, WP-S3.19).
+    Underlay(Underlay),
+    /// A variant this format does not type (`macro_box`, `model_view`, `dimension`, or a newer format's), kept
+    /// verbatim.
     #[serde(skip)]
     Unknown(Value),
 }
@@ -87,6 +89,7 @@ impl PageItemKind {
             PageItemKind::WireMarker(_) => Some("wire_marker"),
             PageItemKind::Image(_) => Some("image"),
             PageItemKind::SurfaceView(_) => Some("surface_view"),
+            PageItemKind::Underlay(_) => Some("underlay"),
             PageItemKind::Unknown(Value::Object(m)) if m.len() == 1 => m.keys().next().map(String::as_str),
             PageItemKind::Unknown(Value::String(s)) => Some(s.as_str()),
             PageItemKind::Unknown(_) => None,
@@ -105,6 +108,14 @@ impl PageItemKind {
     pub fn surface_view(&self) -> Option<&SurfaceView> {
         match self {
             PageItemKind::SurfaceView(v) => Some(v),
+            _ => None,
+        }
+    }
+
+    /// The underlay, if the item is one.
+    pub fn underlay(&self) -> Option<&Underlay> {
+        match self {
+            PageItemKind::Underlay(u) => Some(u),
             _ => None,
         }
     }
@@ -417,6 +428,75 @@ pub enum SurfaceLabelMode {
 }
 
 // ---------------------------------------------------------------------------------------------------------
+// Underlay
+
+/// A locked underlay (doc 14 §5.5, FR-IMP-030; WP-S3.19): a page of a PDF or a layout of a DXF drawing, drawn under
+/// the page for redrawing. It is no model data: no engineering query, check or report reads it, and an export draws it
+/// only when the user prints underlays. Its source is named by its content hash: an asset of the project
+/// (`assets/<sha256>.pdf` or `.dxf`) when the user embedded it, else a file of the user's underlay cache. Typed
+/// within format 0.1 under ADR-0011 amendment 6: additive, an older build keeps the record verbatim as an unknown
+/// variant.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct Underlay {
+    /// The SHA-256 of the source file.
+    pub asset: Sha256,
+    /// The source's format.
+    pub format: UnderlayFormat,
+    /// The source file's name, without a path (for the message when its bytes are not at hand); absent: none.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub name: String,
+    /// The PDF page drawn, 1 for the first; default 1.
+    #[serde(default = "first_page", skip_serializing_if = "is_first_page")]
+    pub page: u32,
+    /// The DXF layout drawn; absent: the model space.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub layout: Option<String>,
+    /// The DXF drawing unit when its header names none (`mm`, `cm`, `m`, `in`, `ft`, `um`, `dm`, `yd`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit: Option<String>,
+    /// Where it lies on the page: a PDF page is stretched over it; a DXF drawing is drawn at its own scale with its
+    /// extents' top-left corner at the rectangle's.
+    pub rect: Bounds,
+    /// Its opacity in per cent, 1 to 100; default 50.
+    #[serde(default = "half", skip_serializing_if = "is_half")]
+    pub opacity: u8,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+fn first_page() -> u32 {
+    1
+}
+
+fn is_first_page(p: &u32) -> bool {
+    *p == 1
+}
+
+fn half() -> u8 {
+    50
+}
+
+fn is_half(o: &u8) -> bool {
+    *o == 50
+}
+
+/// The format of an underlay's source.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "UnderlayFormat")]
+pub enum UnderlayFormat {
+    /// A PDF file.
+    Pdf,
+    /// A DXF drawing.
+    Dxf,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+// ---------------------------------------------------------------------------------------------------------
 // Structure box
 
 /// A dotted or dash-dot box that assigns a structure to the representations it encloses (doc 03 §5, rank 44,
@@ -476,5 +556,6 @@ open_enum!(
     TextAlign,
     MarkerField,
     BoxStyle,
-    SurfaceLabelMode
+    SurfaceLabelMode,
+    UnderlayFormat
 );

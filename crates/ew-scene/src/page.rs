@@ -735,6 +735,22 @@ pub(crate) struct Builder<'a> {
     out: LayerList,
 }
 
+impl<'a> Builder<'a> {
+    /// A builder of an empty layer list.
+    pub(crate) fn new(fonts: &'a FontSet, styles: &'a TextStyleTable) -> Builder<'a> {
+        Builder {
+            fonts,
+            styles,
+            out: LayerList::default(),
+        }
+    }
+
+    /// The layer list built.
+    pub(crate) fn finish(self) -> LayerList {
+        self.out
+    }
+}
+
 /// A drawn CP: its position and the direction a wire leaves it.
 type CpMap = BTreeMap<(Uuid, u16), (Pt2, Dir4)>;
 

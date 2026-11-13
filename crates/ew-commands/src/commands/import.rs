@@ -450,6 +450,15 @@ impl DynCommand for ApplyImport {
                 LibDocument::Unknown(_) => {}
             }
         }
+        // The source of an underlay the batch places is no image: it takes no image gate (WP-S3.19).
+        let underlays: std::collections::BTreeSet<ew_schema::Sha256> = self
+            .records
+            .iter()
+            .filter_map(|r| match r {
+                Record::PageItem(i) => i.kind.underlay().map(|u| u.asset),
+                _ => None,
+            })
+            .collect();
         for bytes in &self.assets {
             let refused = |e: ew_schema::AssetError| {
                 CmdError::rejected(
@@ -458,7 +467,10 @@ impl DynCommand for ApplyImport {
                 )
             };
             let reference = tx.put_asset(bytes.clone()).map_err(refused)?;
-            ew_schema::pixel_limit(reference.format, reference.size).map_err(refused)?;
+            let source = !reference.format.is_image() && underlays.contains(&reference.sha256);
+            if !source {
+                ew_schema::pixel_limit(reference.format, reference.size).map_err(refused)?;
+            }
         }
         let run_id: Id<ImportRun> = tx.mint();
         let mut run = self.run.clone();

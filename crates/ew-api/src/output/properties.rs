@@ -851,6 +851,7 @@ fn selection_words(q: &Q, id: Uuid) -> Option<SelectionWords> {
             K::WireMarker(_) => ("wire_marker", ew_derive::group_marker(q, item).map(|g| g.text)),
             K::Image(_) => ("image", None),
             K::SurfaceView(_) => ("surface_view", None),
+            K::Underlay(u) => ("underlay", Some(u.name.clone()).filter(|n| !n.is_empty())),
             K::Unknown(_) => ("unknown", None),
         };
         return Some(SelectionWords::PageItem {

@@ -27,6 +27,10 @@ pub enum DxfError {
     Refused(Refusal),
     /// The import's transaction was refused.
     Apply(ApplyError),
+    /// The project has no drawn page of this folio (an underlay's page).
+    NoPage(String),
+    /// A source the user did not embed could not be kept in the underlay cache (the words).
+    Cache(String),
 }
 
 impl std::fmt::Display for DxfError {
@@ -35,6 +39,8 @@ impl std::fmt::Display for DxfError {
             DxfError::NoUnit => f.write_str("The drawing names no unit. Choose the unit it is drawn in."),
             DxfError::Refused(r) => write!(f, "{r}"),
             DxfError::Apply(e) => write!(f, "{e}"),
+            DxfError::NoPage(folio) => write!(f, "The project has no drawn page {folio}."),
+            DxfError::Cache(words) => f.write_str(words),
         }
     }
 }
@@ -199,3 +205,71 @@ impl Session {
         })
     }
 }
+
+/// What a part outline import wrote.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct PartOutline {
+    /// The part's new version.
+    pub version: String,
+    /// The outline's polylines.
+    pub lines: usize,
+}
+
+/// The front outline of a vendor drawing as the part's `mech.front_2d` (doc 14 §6.2, FR-IMP-035): the DXF `bytes`
+/// named `name` (read in `unit` when its header names none) through the front door, written into the part of part
+/// number `part_number` of the writable library at `library` as its next patch version, under the library's lock.
+/// The drilling pattern of the same drawing waits for the `FeaturePattern` record (doc 12 §10).
+///
+/// # Errors
+///
+/// In words: the front door's refusal, a missing unit, no such library or part, a library that cannot be written.
+pub fn import_part_outline(
+    library: &std::path::Path,
+    part_number: &str,
+    name: &str,
+    bytes: &[u8],
+    unit: Option<Unit>,
+) -> Result<PartOutline, String> {
+    let limits = Limits::default();
+    let lines = front_door(name, &[bytes.len() as u64], &limits, None, || {
+        ew_import_dxf::outline(bytes, &limits, unit).map(Outline)
+    })
+    .map_err(|r| DxfError::from(r).to_string())?
+    .0;
+    if lines.is_empty() {
+        return Err(format!("{name} holds no line to make an outline of."));
+    }
+    let mut tiers = crate::library::LibraryTiers::for_user(vec![], vec![])
+        .ok_or("No user library directory is configured.")?;
+    tiers.company.push(library.to_path_buf());
+    let mut registry = crate::library::Registry::open(&tiers).map_err(|e| e.to_string())?;
+    let lib = registry
+        .libraries()
+        .into_iter()
+        .find(|l| l.path.as_deref() == Some(library))
+        .ok_or("The folder is no library.")?;
+    let doc = registry
+        .documents(lib.id, ew_schema::Kind::Part)
+        .into_iter()
+        .find_map(|d| match d {
+            ew_schema::LibDocument::Part(p) if p.item.part_number.as_str() == part_number => Some(p),
+            _ => None,
+        })
+        .ok_or_else(|| format!("The library holds no part {part_number}."))?;
+    let mut part = doc.clone();
+    part.version = ew_import_catalog::bump_patch(&doc.version)
+        .ok_or_else(|| format!("The part {part_number} has no version that can be raised."))?;
+    part.item.mech.get_or_insert_with(Default::default).front_2d = lines.clone();
+    registry
+        .write(lib.id, &[ew_schema::LibDocument::Part(part.clone())])
+        .map_err(|e| e.to_string())?;
+    Ok(PartOutline {
+        version: part.version,
+        lines: lines.len(),
+    })
+}
+
+/// An outline through the front door.
+struct Outline(Vec<Vec<ew_units::Pt2>>);
+
+impl crate::import::FrontDoorOutput for Outline {}

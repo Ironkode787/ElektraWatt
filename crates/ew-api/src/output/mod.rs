@@ -81,6 +81,8 @@ pub mod table_edit;
 mod table_io;
 // What the window's Title block fields form reads of a page (FT-1686).
 mod title_block_fields;
+// Underlays: placed by an import, drawn by the export job (WP-S3.19).
+mod underlay;
 mod view;
 
 use std::collections::BTreeMap;
@@ -88,7 +90,7 @@ use std::fmt;
 use std::sync::{Arc, OnceLock};
 
 use ew_derive::{PageEntry, PageOrder, PageOrderV, PageTitle, Q, TableView};
-use ew_dl::FontKey;
+use ew_dl::{DisplayList, FontKey};
 use ew_export::ew_render_cpu::FontBytes;
 use ew_export::{PdfError, PdfOptions, PdfPage, SvgError, SvgFace, SvgOptions, par_map};
 use ew_scene::page::PageFinding;
@@ -164,6 +166,7 @@ pub use table_io::{
     TableImportError, guard_table_read,
 };
 pub use title_block_fields::TitleBlockFacts;
+pub use underlay::{UNDERLAY_IMPORTER, UnderlaySource, underlay_cache_dir};
 pub use view::{
     FrameForms, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf, PageSlotsOf, PageTableOf,
     page_destination, page_items, page_uuid, page_valve_glyphs,
@@ -346,6 +349,9 @@ pub struct ExportOptions {
     pub monochrome: bool,
     /// The creation date (the release context, a scheme date or `SOURCE_DATE_EPOCH`); `None`: the model's.
     pub date: Option<PdfDate>,
+    /// Draw the pages' underlays under them (FR-IMP-030): the window's canvas always, an export only when the user
+    /// prints underlays.
+    pub underlays: bool,
 }
 
 /// The asset bytes an export draws its image items with, by SHA-256: a snapshot of the project's asset
@@ -526,6 +532,7 @@ pub fn export_dxf_with(
     q: &Q,
     options: &ExportOptions,
     layers: &ew_export::DxfLayers,
+    assets: &ExportAssets,
 ) -> Result<DxfExport, OutputError> {
     let order = q.get::<PageOrder>(());
     let picked = options.pages.resolve(&order, q.sections())?;
@@ -545,16 +552,25 @@ pub fn export_dxf_with(
             folio: entry.folio.clone(),
             finding: f.clone(),
         }));
+        let mut layers: Vec<(ew_dl::Layer, DisplayList)> = Vec::new();
+        if let ew_derive::PageRef::Drawn(page) = entry.page
+            && options.underlays
+        {
+            let list = underlay::underlay_list(q, page, assets);
+            layers.push((ew_dl::Layer::Underlay, scene.map.apply_display_list(&list, None)));
+        }
+        layers.extend(
+            scene
+                .layers
+                .iter()
+                .filter(|(l, _)| l.is_exported())
+                .map(|(l, list)| (*l, scene.map.apply_display_list(list, None))),
+        );
         sheets.push(ew_export::DxfSheet {
             label: entry.folio.clone(),
             width: scene.sheet_width,
             height: scene.sheet_height,
-            layers: scene
-                .layers
-                .iter()
-                .filter(|(l, _)| l.is_exported())
-                .map(|(l, list)| (*l, scene.map.apply_display_list(list, None)))
-                .collect(),
+            layers,
             geometry: scene.geometry.clone(),
             scale_ppb: scene.map.scale_ppb,
         });
@@ -744,6 +760,8 @@ struct Phase1 {
     title: String,
     section: Option<String>,
     scene: ew_scene::page::PageScene,
+    /// The underlays on the sheet, drawn under the page when the options ask for them; empty otherwise.
+    underlay: DisplayList,
 }
 
 /// Phases 1 and 2 of the export job (see the module documentation): the sheet display lists of the selected
@@ -813,10 +831,18 @@ pub(crate) fn export_pages_hooked(
             });
         }
         let entry = order.entries[i].clone();
+        let scene = page_scene(q, &entry);
+        let underlay = match entry.page {
+            ew_derive::PageRef::Drawn(page) if options.underlays => scene
+                .map
+                .apply_display_list(&underlay::underlay_list(q, page, assets), None),
+            _ => DisplayList::new(),
+        };
         phase1.push(Phase1 {
             title: outline_title(q, &entry),
             section: section_title(q, &entry),
-            scene: page_scene(q, &entry),
+            scene,
+            underlay,
             entry,
         });
         if let Some(ctl) = ctl {
@@ -846,8 +872,9 @@ pub(crate) fn export_pages_hooked(
         if let Some(ctl) = ctl {
             ctl.checkpoint("draw").ok()?;
         }
-        let (content, report) =
-            ew_scene::images::resolve_images(&p.scene.sheet_list(), &|sha| assets.get(sha));
+        let mut sheet = p.underlay.clone();
+        sheet.items.extend(p.scene.sheet_list().items);
+        let (content, report) = ew_scene::images::resolve_images(&sheet, &|sha| assets.get(sha));
         let page = PdfPage {
             destination: page_destination(p.entry.page),
             label: p.entry.folio.clone(),
@@ -1070,7 +1097,7 @@ impl Session {
         options: &ExportOptions,
         layers: &ew_export::DxfLayers,
     ) -> Result<DxfExport, OutputError> {
-        export_dxf_with(&self.query(), options, layers)
+        export_dxf_with(&self.query(), options, layers, &self.export_assets())
     }
 }
 

@@ -369,6 +369,8 @@ pub(crate) fn print_set_hooked(
             parallelism: options.parallelism,
             monochrome: options.monochrome,
             date: options.date,
+            // The print set prints no underlay (FR-IMP-030: an export prints them only when asked).
+            underlays: false,
         },
         assets,
         ctl,

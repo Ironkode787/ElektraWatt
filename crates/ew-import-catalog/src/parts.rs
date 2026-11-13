@@ -231,7 +231,7 @@ fn caret(version: &str) -> String {
 }
 
 /// The next patch version of `version` (`1.0.0` → `1.0.1`).
-fn bump_patch(version: &str) -> Option<String> {
+pub fn bump_patch(version: &str) -> Option<String> {
     let mut it = version.split('.');
     let (major, minor, patch) = (it.next()?, it.next()?, it.next()?);
     if it.next().is_some() {

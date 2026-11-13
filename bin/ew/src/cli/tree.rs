@@ -411,16 +411,26 @@ enum Import {
     /// leading apostrophe). Exit 0 with the preview (and with `--apply` once saved), 2 on usage, open, read and save
     /// errors and a file of another project.
     Table(ImportTableCli),
-    /// Import a DXF drawing as a graphic page or as symbol drafts.
+    /// Import a DXF drawing as a graphic page, an underlay, symbol drafts or a part outline.
     ///
     /// Reads an ASCII or binary DXF (R12 to 2018). `--as page` (the default) adds the drawing as a new graphic page
     /// of the project (`--project`, default: the nearest ancestor of the current directory holding `manifest.json`)
     /// after its last page, one undo step with its import run, and saves; the findings are printed. `--layout` reads
     /// a paper-space layout instead of the model space; `--show-layer` imports a layer that is off or frozen. A
-    /// drawing whose header names no unit needs `--units`. `--as symbol` prints one symbol draft per named block as
-    /// JSON (`ew symbol publish` saves one into a user library). Exit 0 when imported, 2 on usage, a refused file,
-    /// a missing unit and open and save errors.
+    /// drawing whose header names no unit needs `--units`. `--as underlay --on <folio>` places it as a locked
+    /// underlay on that page, kept outside the project unless `--embed`. `--as symbol` prints one symbol draft per
+    /// named block as JSON (`ew symbol publish` saves one into a user library). `--as outline --library <dir>
+    /// --part <part-number>` writes its lines as the part's front outline, the part's next patch version. Exit 0 when
+    /// imported, 2 on usage, a refused file, a missing unit and open, write and save errors.
     Dxf(super::dxf::ImportDxfArgs),
+    /// Place a page of a PDF as a locked underlay.
+    ///
+    /// Places page `--page` (default 1) of the PDF as a locked underlay over the whole sheet of the page `--on` of
+    /// the project, for redrawing: no check, report or export reads it unless an export prints underlays
+    /// (`--underlays`). The PDF is kept outside the project unless `--embed` (a customer drawing may be
+    /// confidential). Exit 0 when placed and saved, 2 on usage, a file that is no readable PDF or lacks the page, a
+    /// page the project does not have, open and save errors.
+    Pdf(super::dxf::ImportPdfArgs),
 }
 
 /// `ew import table`.
@@ -1068,6 +1078,10 @@ struct PagesCli {
     /// The threads of the page phase (1 to 256; default: the machine's parallelism).
     #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads)]
     threads: Option<usize>,
+    /// Print the pages' underlays under them (a PDF page or a DXF drawing placed for redrawing; not printed by
+    /// default).
+    #[arg(long, overrides_with = "underlays")]
+    underlays: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
     json: bool,
@@ -1175,6 +1189,10 @@ struct PngCli {
     /// The threads of the page phase (1 to 256; default: the machine's parallelism).
     #[arg(long, value_name = "n", allow_hyphen_values = true, overrides_with = "threads", value_parser = threads)]
     threads: Option<usize>,
+    /// Print the pages' underlays under them (a PDF page or a DXF drawing placed for redrawing; not printed by
+    /// default).
+    #[arg(long, overrides_with = "underlays")]
+    underlays: bool,
     /// Print the result as JSON.
     #[arg(long, overrides_with = "json")]
     json: bool,
@@ -2188,6 +2206,7 @@ impl Cli {
             Top::Import(Import::Parts(a)) => Command::ImportParts(a),
             Top::Import(Import::Csv(a)) => Command::ImportCsv(a),
             Top::Import(Import::Dxf(a)) => Command::ImportDxf(a),
+            Top::Import(Import::Pdf(a)) => Command::ImportPdf(a),
             Top::Import(Import::Table(ImportTableCli {
                 file,
                 project_dir,
@@ -2825,6 +2844,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
             sections,
             dpi,
             threads,
+            underlays,
             json,
             lang,
             omit_personal_data,
@@ -2838,6 +2858,7 @@ fn export(e: ExportCli) -> Result<Command, clap::Error> {
                 threads,
                 dpi,
                 dxf_layers: ew_api::output::DxfLayers::default(),
+                underlays,
                 json,
             })
         }
@@ -2873,6 +2894,7 @@ fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error
         pages,
         sections,
         threads,
+        underlays,
         json,
         lang,
         omit_personal_data,
@@ -2891,6 +2913,7 @@ fn pages_command(format: PageFormat, a: PagesCli) -> Result<Command, clap::Error
         threads,
         dpi: ew_api::output::DEFAULT_DPI,
         dxf_layers: ew_api::output::DxfLayers::default(),
+        underlays,
         json,
     }))
 }

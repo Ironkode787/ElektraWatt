@@ -525,6 +525,15 @@ page_item kind.surface_view group? identity read-only:narrowed
 page_item kind.surface_view.datum_at json identity read-only:narrowed
 page_item kind.surface_view.label_mode enum(abbreviated|full) identity read-only:narrowed
 page_item kind.surface_view.surface uuid identity read-only:narrowed
+page_item kind.underlay group? identity read-only:no-command
+page_item kind.underlay.asset text identity read-only:no-command
+page_item kind.underlay.format enum(pdf|dxf) identity read-only:no-command
+page_item kind.underlay.layout text? identity read-only:no-command
+page_item kind.underlay.name text identity read-only:no-command
+page_item kind.underlay.opacity int[0..255] identity read-only:no-command
+page_item kind.underlay.page int[0..] identity read-only:no-command
+page_item kind.underlay.rect json identity read-only:no-command
+page_item kind.underlay.unit text? identity read-only:no-command
 page_item layer ident? placement fields.set:layer
 page_item page uuid placement read-only:narrowed
 structure_box $v int[0..65535] identity read-only:identity

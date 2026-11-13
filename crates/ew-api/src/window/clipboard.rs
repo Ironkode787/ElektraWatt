@@ -550,6 +550,7 @@ fn page_item_pos(item: &PageItem) -> PosKey {
         PageItemKind::WireMarker(m) => Some((m.at.x.0, m.at.y.0)),
         PageItemKind::Image(i) => Some((i.rect.0.min().x.0, i.rect.0.min().y.0)),
         PageItemKind::SurfaceView(v) => Some((v.datum_at.x.0, v.datum_at.y.0)),
+        PageItemKind::Underlay(u) => Some((u.rect.0.min().x.0, u.rect.0.min().y.0)),
         PageItemKind::Unknown(_) => None,
     }
 }
@@ -752,9 +753,12 @@ impl Session {
                         items.push(item);
                     }
                 }
-                // An image names an asset of this project's store, which a fragment does not carry, and a surface view
-                // is set on its page (`page.surface_view.set`): neither is copied.
-                PageItemKind::Image(_) | PageItemKind::SurfaceView(_) | PageItemKind::Unknown(_) => {
+                // An image names an asset of this project's store, which a fragment does not carry, a surface view
+                // is set on its page (`page.surface_view.set`) and an underlay is placed by an import: none is copied.
+                PageItemKind::Image(_)
+                | PageItemKind::SurfaceView(_)
+                | PageItemKind::Underlay(_)
+                | PageItemKind::Unknown(_) => {
                     unknown_items += 1;
                     incomplete_page_items += 1;
                 }

@@ -169,6 +169,8 @@ fn title_value(c: &mut Canonical, value: &TbValue) {
                 AssetFormat::Svg => 0,
                 AssetFormat::Png => 1,
                 AssetFormat::Jpeg => 2,
+                AssetFormat::Pdf => 3,
+                AssetFormat::Dxf => 4,
             });
             c.flag(r.size.is_some());
             if let Some((w, h)) = r.size {

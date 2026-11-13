@@ -446,7 +446,7 @@ pub fn classify(path: &str) -> PathClass {
         ["assets", name] => {
             let asset = name.split_once('.').and_then(|(hash, ext)| {
                 let sha256 = parse_sha256_hex(hash)?;
-                matches!(ext, "svg" | "png" | "jpg" | "glb").then_some(sha256)
+                matches!(ext, "svg" | "png" | "jpg" | "glb" | "pdf" | "dxf").then_some(sha256)
             });
             asset.map_or(PathClass::Stray, |sha256| {
                 PathClass::Opaque(OpaqueKind::Asset { sha256 })

@@ -1,9 +1,11 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-//! Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3; FT-337).
+//! Assets: content-addressed image files (`assets/<sha256>.<ext>`, doc 05 §13.3; FT-337), and the embedded sources of
+//! underlays (a PDF or a DXF the user embedded, WP-S3.19), which no image gate takes ([`pixel_limit`]).
 //!
-//! - [`AssetFormat`]: the encodings a project may hold (SVG, PNG, JPEG) and their file extensions.
+//! - [`AssetFormat`]: the encodings a project may hold (SVG, PNG, JPEG; PDF and DXF underlay sources) and their file
+//!   extensions.
 //! - [`AssetRef`]: how a record names an asset, `{sha256, format, size}` (decision log ID-61): readers such as the
 //!   forms layer trust it and never sniff the bytes.
 //! - [`sniff`]: what the asset store does once, when bytes are imported: it reads the magic bytes and the
@@ -57,6 +59,10 @@ pub enum AssetFormat {
     Png,
     /// JPEG; prints rasterised.
     Jpeg,
+    /// A PDF, the embedded source of an underlay (never an image).
+    Pdf,
+    /// A DXF drawing, the embedded source of an underlay (never an image).
+    Dxf,
 }
 
 impl AssetFormat {
@@ -66,24 +72,36 @@ impl AssetFormat {
             AssetFormat::Svg => "svg",
             AssetFormat::Png => "png",
             AssetFormat::Jpeg => "jpg",
+            AssetFormat::Pdf => "pdf",
+            AssetFormat::Dxf => "dxf",
         }
     }
 
-    /// The format of a file extension (`svg`, `png`, `jpg`); `None` for any other.
+    /// The format of a file extension (`svg`, `png`, `jpg`, `pdf`, `dxf`); `None` for any other.
     pub fn from_ext(ext: &str) -> Option<AssetFormat> {
         match ext {
             "svg" => Some(AssetFormat::Svg),
             "png" => Some(AssetFormat::Png),
             "jpg" => Some(AssetFormat::Jpeg),
+            "pdf" => Some(AssetFormat::Pdf),
+            "dxf" => Some(AssetFormat::Dxf),
             _ => None,
         }
     }
 
     /// Whether the format is a raster image (it prints rasterised, D-07).
     pub const fn is_raster(self) -> bool {
-        !matches!(self, AssetFormat::Svg)
+        matches!(self, AssetFormat::Png | AssetFormat::Jpeg)
+    }
+
+    /// Whether the format is an image (SVG, PNG, JPEG): what the image gates take.
+    pub const fn is_image(self) -> bool {
+        matches!(self, AssetFormat::Svg | AssetFormat::Png | AssetFormat::Jpeg)
     }
 }
+
+/// The largest embedded underlay source (a PDF or a DXF): 64 MiB.
+pub const MAX_UNDERLAY_BYTES: usize = 64 * 1024 * 1024;
 
 /// How a record names an asset: its content hash, its encoding and, when known, its intrinsic size (width and
 /// height in pixels or SVG user units; only their ratio is used). Encoded as
@@ -275,15 +293,19 @@ pub fn sniff(bytes: &[u8]) -> Result<(AssetFormat, Option<(u32, u32)>), AssetErr
         (AssetFormat::Png, Some(png_size(bytes)?))
     } else if bytes.starts_with(&[0xff, 0xd8, 0xff]) {
         (AssetFormat::Jpeg, Some(jpeg_size(bytes)?))
+    } else if bytes.starts_with(b"%PDF-") {
+        (AssetFormat::Pdf, None)
+    } else if is_dxf(bytes) {
+        (AssetFormat::Dxf, None)
     } else if let Some(attrs) = svg_root(bytes) {
         (AssetFormat::Svg, svg_size(attrs))
     } else {
         return Err(AssetError::UnknownFormat);
     };
-    let limit = if format.is_raster() {
-        MAX_RASTER_BYTES
-    } else {
-        MAX_SVG_BYTES
+    let limit = match format {
+        AssetFormat::Png | AssetFormat::Jpeg => MAX_RASTER_BYTES,
+        AssetFormat::Svg => MAX_SVG_BYTES,
+        AssetFormat::Pdf | AssetFormat::Dxf => MAX_UNDERLAY_BYTES,
     };
     if bytes.len() > limit {
         return Err(AssetError::TooLarge {
@@ -309,8 +331,12 @@ pub fn sniff(bytes: &[u8]) -> Result<(AssetFormat, Option<(u32, u32)>), AssetErr
 ///
 /// # Errors
 ///
-/// [`AssetError::TooManyPixels`] for a raster image over the limit.
+/// [`AssetError::TooManyPixels`] for a raster image over the limit; [`AssetError::UnknownFormat`] for an underlay
+/// source (a PDF or a DXF), which is no image.
 pub fn pixel_limit(format: AssetFormat, size: Option<(u32, u32)>) -> Result<(), AssetError> {
+    if !format.is_image() {
+        return Err(AssetError::UnknownFormat);
+    }
     match size {
         Some((width, height))
             if format.is_raster()
@@ -384,6 +410,27 @@ fn jpeg_size(b: &[u8]) -> Result<(u32, u32), AssetError> {
             return if w > 0 && h > 0 { Ok((w, h)) } else { Err(damaged) };
         }
         at += 2 + len;
+    }
+}
+
+/// Whether bytes are a DXF drawing: the binary sentinel, or (after an optional BOM, white space and `999` comment
+/// pairs) the ASCII pair `0` / `SECTION` at the start.
+fn is_dxf(bytes: &[u8]) -> bool {
+    if bytes.starts_with(b"AutoCAD Binary DXF\r\n\x1a\0") {
+        return true;
+    }
+    let head = &bytes[..bytes.len().min(4096)];
+    let head = head.strip_prefix(b"\xef\xbb\xbf").unwrap_or(head);
+    let Ok(text) = std::str::from_utf8(head).or_else(|e| std::str::from_utf8(&head[..e.valid_up_to()])) else {
+        return false;
+    };
+    let mut lines = text.lines().map(str::trim);
+    loop {
+        match (lines.next(), lines.next()) {
+            (Some("999"), Some(_)) => {}
+            (Some("0"), Some(v)) => return v == "SECTION",
+            _ => return false,
+        }
     }
 }
 

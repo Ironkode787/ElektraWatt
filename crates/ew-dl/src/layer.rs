@@ -41,11 +41,14 @@ pub enum Layer {
     Features,
     /// Panel layout: dimensions.
     Dims,
+    /// Locked underlays (a PDF page, a DXF drawing; FR-IMP-030): drawn under the page by the export job, exported only
+    /// when the user prints them.
+    Underlay,
 }
 
 impl Layer {
     /// Every layer, in declaration order.
-    pub const ALL: [Layer; 12] = [
+    pub const ALL: [Layer; 13] = [
         Layer::Frame,
         Layer::Symbols,
         Layer::Wires,
@@ -58,6 +61,7 @@ impl Layer {
         Layer::Placements,
         Layer::Features,
         Layer::Dims,
+        Layer::Underlay,
     ];
 
     /// The layers of schematic and report pages (ADR-0015 amendment 2), in the order the amendment lists
@@ -85,10 +89,10 @@ impl Layer {
         Layer::Highlights,
     ];
 
-    /// Whether the layer reaches exports (PDF, SVG, PNG, DXF, print). Only [`Layer::Highlights`] is screen
-    /// only (doc 09 §4.1).
+    /// Whether the layer reaches exports (PDF, SVG, PNG, DXF, print) by default: [`Layer::Highlights`] is screen only
+    /// (doc 09 §4.1), [`Layer::Underlay`] reaches an export only when the user prints underlays.
     pub const fn is_exported(self) -> bool {
-        !matches!(self, Layer::Highlights)
+        !matches!(self, Layer::Highlights | Layer::Underlay)
     }
 
     /// A stable lower-case name for query keys, logs and snapshots. Never changes once released.
@@ -106,6 +110,7 @@ impl Layer {
             Layer::Placements => "placements",
             Layer::Features => "features",
             Layer::Dims => "dims",
+            Layer::Underlay => "underlay",
         }
     }
 
@@ -122,7 +127,7 @@ mod tests {
     #[test]
     fn export_flags() {
         for l in Layer::ALL {
-            assert_eq!(l.is_exported(), l != Layer::Highlights, "{l:?}");
+            assert_eq!(l.is_exported(), !matches!(l, Layer::Highlights | Layer::Underlay), "{l:?}");
         }
     }
 

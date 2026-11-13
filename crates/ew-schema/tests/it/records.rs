@@ -654,7 +654,7 @@ fn every_page_item_variant_and_shape_round_trips_byte_for_byte() {
     assert_eq!(seen, 6);
 }
 
-/// A variant this format does not type (`macro_box`, `underlay`, a newer format's) is kept verbatim as
+/// A variant this format does not type (`macro_box`, `model_view`, a newer format's) is kept verbatim as
 /// `PageItemKind::Unknown` and written back byte for byte; so is an unknown shape, dash and box style (doc 05
 /// §10.3).
 #[test]
@@ -666,8 +666,8 @@ fn an_unknown_page_item_variant_is_kept_verbatim() {
             "macro_box",
         ),
         (
-            r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"underlay":{"asset":"@HASH","rect":[[0,0],[1000000,1000000]]}}}"#,
-            "underlay",
+            r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"model_view":{"asset":"@HASH","rect":[[0,0],[1000000,1000000]]}}}"#,
+            "model_view",
         ),
         (
             r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":"divider"}"#,
@@ -700,6 +700,36 @@ fn an_unknown_page_item_variant_is_kept_verbatim() {
         panic!("a structure box");
     };
     assert!(matches!(b.style, BoxStyle::Unknown(_)));
+}
+
+/// The `underlay` variant is typed (WP-S3.19): it round-trips byte for byte with its defaults omitted (page 1,
+/// opacity 50), an unknown source format and an unknown member are kept, and a reversed rectangle is refused.
+#[test]
+fn the_underlay_page_item_variant_is_typed() {
+    use ew_schema::{PageItemKind, UnderlayFormat};
+    let line = fill(
+        r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"underlay":{"asset":"@HASH","format":"pdf","name":"plan.pdf","page":2,"rect":[[0,0],[297000000,210000000]]}}}"#,
+    );
+    let Record::PageItem(item) = assert_canonical(&line) else {
+        panic!("a page item: {line}");
+    };
+    let u = item.kind.underlay().expect("an underlay");
+    assert_eq!((u.format.clone(), u.page, u.opacity), (UnderlayFormat::Pdf, 2, 50));
+    let newer = fill(
+        r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"underlay":{"asset":"@HASH","format":"svg","rect":[[0,0],[1,1]],"tint":"blue"}}}"#,
+    );
+    let Record::PageItem(item) = assert_canonical(&newer) else {
+        panic!("a page item: {newer}");
+    };
+    let PageItemKind::Underlay(u) = &item.kind else {
+        panic!("an underlay: {newer}");
+    };
+    assert!(matches!(u.format, UnderlayFormat::Unknown(_)));
+    assert!(u.extra.contains_key("tint"));
+    let reversed = fill(
+        r#"{"$k":"page_item","id":"@PI_MACRO","page":"@P101","kind":{"underlay":{"asset":"@HASH","format":"dxf","rect":[[5,0],[1,1]]}}}"#,
+    );
+    assert!(serde_json::from_str::<Record>(&reversed).is_err());
 }
 
 /// The `image` variant is typed: it round-trips byte for byte, a reversed rectangle and a

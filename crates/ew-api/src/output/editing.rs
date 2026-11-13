@@ -1458,6 +1458,12 @@ fn item_rows(q: &Q, page: Id<Page>) -> Vec<TableItem> {
                 ),
                 // A surface view by its datum point (what it draws is derived).
                 K::SurfaceView(v) => ("surface_view", bounds_of([pt(v.datum_at)]), None, None),
+                K::Underlay(u) => (
+                    "underlay",
+                    bounds_of([pt(u.rect.0.min()), pt(u.rect.0.max())]),
+                    None,
+                    None,
+                ),
                 K::Unknown(_) => ("unknown", None, None, None),
             };
             TableItem {

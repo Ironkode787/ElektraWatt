@@ -163,7 +163,16 @@ pub const TABLE: &[Row] = &[
         path: &["import", "dxf"],
         exits: &[
             exit(0, "imported and saved, or the symbol drafts printed"),
-            exit(2, "usage, a refused file, a missing unit, open and save errors"),
+            exit(2, "usage, a refused file, a missing unit, open, write and save errors"),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["import", "pdf"],
+        exits: &[
+            exit(0, "placed and saved"),
+            exit(2, "usage, a refused file or page, open and save errors"),
         ],
         result: None,
         stability: Stability::Preview,
@@ -700,6 +709,7 @@ mod tests {
                 f("--sections", true, false),
                 f("--dpi", true, false),
                 f("--threads", true, false),
+                f("--underlays", false, false),
                 f("--json", false, false),
             ]
         );

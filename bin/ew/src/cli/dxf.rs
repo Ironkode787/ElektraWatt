@@ -19,6 +19,10 @@ pub enum DxfTarget {
     Page,
     /// Symbol drafts, one per named block, printed as JSON (as `ew symbol import`).
     Symbol,
+    /// A locked underlay on the page `--on`.
+    Underlay,
+    /// The front outline of the part `--part` of the library `--library`.
+    Outline,
 }
 
 /// The arguments of `ew import dxf`.
@@ -45,6 +49,38 @@ pub struct ImportDxfArgs {
     /// The symbol drafts' key (with `--as symbol`; default: the file's name).
     #[arg(long, value_name = "key", allow_hyphen_values = true, overrides_with = "key")]
     pub key: Option<String>,
+    /// The folio of the page the underlay lies on (with `--as underlay`).
+    #[arg(long, value_name = "folio", allow_hyphen_values = true, overrides_with = "on")]
+    pub on: Option<String>,
+    /// Embed the source in the project (with `--as underlay`): a customer drawing may be confidential.
+    #[arg(long, overrides_with = "embed")]
+    pub embed: bool,
+    /// The writable library of the part (with `--as outline`).
+    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "library")]
+    pub library: Option<PathBuf>,
+    /// The part number of the part (with `--as outline`).
+    #[arg(long, value_name = "part-number", allow_hyphen_values = true, overrides_with = "part")]
+    pub part: Option<String>,
+}
+
+/// The arguments of `ew import pdf`.
+#[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
+pub struct ImportPdfArgs {
+    /// The PDF file.
+    #[arg(value_name = "file.pdf")]
+    pub file: PathBuf,
+    /// The folio of the page the underlay lies on.
+    #[arg(long, value_name = "folio", allow_hyphen_values = true, overrides_with = "on")]
+    pub on: String,
+    /// The PDF's page, 1 for the first.
+    #[arg(long, value_name = "n", default_value_t = 1, value_parser = clap::value_parser!(u32).range(1..), overrides_with = "page")]
+    pub page: u32,
+    /// Embed the source in the project: a customer drawing may be confidential.
+    #[arg(long, overrides_with = "embed")]
+    pub embed: bool,
+    /// The project directory (default: the nearest ancestor of the current directory holding `manifest.json`).
+    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "project")]
+    pub project: Option<PathBuf>,
 }
 
 fn unit(s: &str) -> Result<Unit, String> {
@@ -123,6 +159,30 @@ pub(super) fn run_import_dxf(a: &ImportDxfArgs) -> i32 {
                 }
             }
         }
+        DxfTarget::Outline => {
+            let (Some(library), Some(part)) = (&a.library, &a.part) else {
+                eprintln!("error: `--as outline` needs `--library <dir>` and `--part <part-number>`");
+                return 2;
+            };
+            match ew_api::dxf::import_part_outline(library, part, &name, &bytes, a.units) {
+                Ok(o) => {
+                    println!("The outline of {name} is the front outline of {part}, version {} ({} lines).", o.version, o.lines);
+                    0
+                }
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    2
+                }
+            }
+        }
+        DxfTarget::Underlay => {
+            let Some(folio) = &a.on else {
+                eprintln!("error: `--as underlay` needs `--on <folio>`");
+                return 2;
+            };
+            let source = ew_api::output::UnderlaySource::Dxf(a.options());
+            place(a.project.as_ref(), "import dxf", folio, &name, bytes, &source, a.embed)
+        }
         DxfTarget::Page => {
             let Some(dir) = project_dir(a.project.as_ref()) else {
                 return 2;
@@ -153,4 +213,53 @@ pub(super) fn run_import_dxf(a: &ImportDxfArgs) -> i32 {
             0
         }
     }
+}
+
+/// Places an underlay on the page `folio` of the project and saves: exit 0, 2 on a refused source or page, open and
+/// save errors.
+fn place(
+    project: Option<&PathBuf>,
+    subcommand: &str,
+    folio: &str,
+    name: &str,
+    bytes: Vec<u8>,
+    source: &ew_api::output::UnderlaySource,
+    embed: bool,
+) -> i32 {
+    let Some(dir) = project_dir(project) else {
+        return 2;
+    };
+    let origin = ew_api::Origin::Cli {
+        subcommand: subcommand.into(),
+        confirmed: false,
+    };
+    let Ok(mut session) = open_for_writing(&dir, origin) else {
+        return 2;
+    };
+    let report = match session.place_underlay(folio, name, bytes, source, embed) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("{}", refused(&e));
+            session.close();
+            return 2;
+        }
+    };
+    print_findings(&report.entries);
+    if let Err(e) = session.save().map(|r| warn_unreleased(r.unstable, &mut std::io::stderr())) {
+        eprintln!("error: the save failed: {e:?}");
+        session.close();
+        return 2;
+    }
+    let kept = if embed { "embedded in the project" } else { "kept outside the project" };
+    println!("Placed {name} as an underlay on page {folio}, {kept}.");
+    0
+}
+
+/// `ew import pdf`: a PDF page as a locked underlay; exit 0 when placed and saved, 2 otherwise.
+pub(super) fn run_import_pdf(a: &ImportPdfArgs) -> i32 {
+    let Ok((name, bytes)) = read_input(&a.file) else {
+        return 2;
+    };
+    let source = ew_api::output::UnderlaySource::Pdf { page: a.page };
+    place(a.project.as_ref(), "import pdf", &a.on, &name, bytes, &source, a.embed)
 }

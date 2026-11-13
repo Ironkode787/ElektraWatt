@@ -64,6 +64,8 @@ pub enum Command {
     ImportCsv(ImportCsvArgs),
     /// `ew import dxf`: a DXF drawing as a graphic page or symbol drafts.
     ImportDxf(dxf::ImportDxfArgs),
+    /// `ew import pdf`: a PDF page as a locked underlay.
+    ImportPdf(dxf::ImportPdfArgs),
     /// `ew import table`: a round-trip table read back and its changed cells applied.
     ImportTable(ImportTableArgs),
     /// Check a project.
@@ -399,6 +401,8 @@ pub struct ExportPagesArgs {
     pub dpi: u32,
     /// The DXF layer names of `export dxf` (`--layer`); unused for the other formats.
     pub dxf_layers: ew_api::output::DxfLayers,
+    /// Print the pages' underlays (`--underlays`, FR-IMP-030).
+    pub underlays: bool,
     /// Print the result as JSON (`--json`).
     pub json: bool,
 }
@@ -750,6 +754,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::ImportCsv(a) => run_import_csv(&a),
         Command::ImportTable(a) => run_import_table(&a),
         Command::ImportDxf(a) => dxf::run_import_dxf(&a),
+        Command::ImportPdf(a) => dxf::run_import_pdf(&a),
         Command::Check(a) => run_check(&a),
         Command::Sql(a) => run_sql(&a),
         Command::SqlDump(a) => run_sql_dump(&a),

@@ -462,6 +462,7 @@ pub(super) fn run_export_report_pdf(a: &ExportArgs, session: &ew_api::Session, b
         ),
         monochrome: false,
         date,
+        underlays: false,
     };
     let pdf = match session.export_pdf(&options) {
         Ok(p) => p,
@@ -727,6 +728,7 @@ pub(super) fn run_export_pages(a: &ExportPagesArgs) -> i32 {
         parallelism: Parallelism::threads(threads),
         monochrome: false,
         date,
+        underlays: a.underlays,
     };
     let (written, findings) = match a.format {
         PageFormat::Pdf => {

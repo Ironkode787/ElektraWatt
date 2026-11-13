@@ -21,7 +21,7 @@ workspace-members = [
   "ew-memo", "ew-plcaddr", "ew-testdir", "ew-testids",
   "xtask",
   # ARCH §3 rule 4 (ci/dep-rules.toml [importers]): an importer depends on permissive workspace crates only.
-  "ew-import-catalog", "ew-import-eplan", "ew-import-qet", "ew-import-tables",
+  "ew-import-catalog", "ew-import-dxf", "ew-import-eplan", "ew-import-qet", "ew-import-tables",
 ]
 # The crates that only their owners may name directly (ci/dep-rules.toml [[external_owner]]).
 third-party = [

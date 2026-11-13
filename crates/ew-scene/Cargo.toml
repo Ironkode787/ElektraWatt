@@ -31,6 +31,9 @@ serde_json = "1.0.154"
 # no). Default features off: no text shaping, no system fonts, no svgz, no writer; external files and images are
 # never resolved (the resolvers are set to nothing). Licence `Apache-2.0 OR MIT` for this exact version.
 usvg = { version = "=0.48.1", default-features = false }
+# PDF underlays rasterised (doc 14 §5.5, FR-IMP-030; ADR-0015 amendment 1). Default features off but the embedded
+# standard fonts: no SIMD detection, no CJK character maps. Licence `Apache-2.0 OR MIT`.
+hayro = { version = "=0.8.0", default-features = false, features = ["embed-fonts"] }
 ew-hack = { version = "0.2.0", path = "../ew-hack" }
 
 [dev-dependencies]

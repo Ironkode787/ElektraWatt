@@ -77,7 +77,7 @@ fn sorted_boxes(view: &PageView) -> Vec<&StructureBoxView> {
 }
 
 /// The path of a graphic's shape and whether it is closed; `None` for a shape this build does not type.
-fn shape_path(shape: &GraphicShape) -> Option<(Path, bool)> {
+pub(crate) fn shape_path(shape: &GraphicShape) -> Option<(Path, bool)> {
     Some(match shape {
         GraphicShape::Line(l) => (Path::polyline(&[l.a, l.b]), false),
         GraphicShape::Polyline(p) => (Path::polyline(&p.points), false),
@@ -121,7 +121,7 @@ fn box_stroke(view: &PageView, style: &BoxStyle) -> Stroke {
 }
 
 /// The alignment of a free text at its point (horizontal from `align`, vertical on the middle).
-fn text_align(align: Option<&TextAlign>) -> Align {
+pub(crate) fn text_align(align: Option<&TextAlign>) -> Align {
     match align {
         Some(TextAlign::Centre) => Align::Centre,
         Some(TextAlign::Right) => Align::MiddleRight,
@@ -152,6 +152,8 @@ impl Builder<'_> {
                         AssetFormat::Svg => ImageFormat::Svg,
                         AssetFormat::Png => ImageFormat::Png,
                         AssetFormat::Jpeg => ImageFormat::Jpeg,
+                        // An underlay source named as an image (a hand-edited file) draws nothing.
+                        AssetFormat::Pdf | AssetFormat::Dxf => continue,
                     };
                     let data = ImageData {
                         sha256: i.asset.0,
