@@ -1,5 +1,133 @@
 {
   "$defs": {
+    "Actuation": {
+      "additionalProperties": true,
+      "description": "Which actuator selects which position of a section (doc 11 §2.3).",
+      "properties": {
+        "actuator": {
+          "$ref": "#/$defs/Actuator",
+          "description": "The actuator."
+        },
+        "selects": {
+          "description": "The index of the position it selects.",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "actuator",
+        "selects"
+      ],
+      "type": "object"
+    },
+    "Actuator": {
+      "description": "An actuator of a valve section (doc 11 §2.3). Which side of the symbol carries it is graphics only.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A solenoid, matched to the part's `fluid.solenoids` and the coil function (\"14\", \"12\").",
+          "properties": {
+            "solenoid": {
+              "properties": {
+                "solenoid": {
+                  "$ref": "#/$defs/Ident",
+                  "description": "The solenoid's designation."
+                }
+              },
+              "required": [
+                "solenoid"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "solenoid"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A pilot signal at a CP of the FnDef.",
+          "properties": {
+            "pilot": {
+              "properties": {
+                "port": {
+                  "description": "The pilot port's CP index.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "port"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "pilot"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "spring",
+          "description": "A spring.",
+          "type": "string"
+        },
+        {
+          "const": "air_spring",
+          "description": "An air spring.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A manual override, with or without detent.",
+          "properties": {
+            "manual_override": {
+              "properties": {
+                "detent": {
+                  "description": "Whether it latches.",
+                  "type": "boolean"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "required": [
+            "manual_override"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "detent",
+          "description": "A detent.",
+          "type": "string"
+        },
+        {
+          "const": "pushbutton",
+          "description": "A pushbutton.",
+          "type": "string"
+        },
+        {
+          "const": "lever",
+          "description": "A lever.",
+          "type": "string"
+        },
+        {
+          "const": "roller",
+          "description": "A roller.",
+          "type": "string"
+        },
+        {
+          "const": "pedal",
+          "description": "A pedal.",
+          "type": "string"
+        }
+      ]
+    },
     "ClampKey": {
       "description": "The clamp of a terminal CP (doc 08 §2.3): `{\"clamp\": \"a\"}`, `{\"shaft\": 1}` or `\"rail_foot\"`.",
       "oneOf": [
@@ -637,12 +765,165 @@
         }
       ]
     },
+    "SwitchPos": {
+      "additionalProperties": true,
+      "description": "One switching position: its label and its flow paths between CPs of the FnDef (by CP index).",
+      "properties": {
+        "label": {
+          "$ref": "#/$defs/Ident",
+          "description": "The label (\"a\", \"b\", \"0\")."
+        },
+        "paths": {
+          "description": "The paths of this position.",
+          "items": {
+            "$ref": "#/$defs/ValvePath"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "label"
+      ],
+      "type": "object"
+    },
     "Uuid": {
       "description": "A lower-case hyphenated UUID (doc 05 §3.2).",
       "maxLength": 36,
       "minLength": 36,
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
       "type": "string"
+    },
+    "ValveModel": {
+      "additionalProperties": true,
+      "description": "The switching model of a valve (doc 11 §2.3): one section, or two for a body with independently switched halves\n(2×3/2). Media propagation reads the union of the paths of every position (doc 11 §5.3).",
+      "properties": {
+        "sections": {
+          "description": "The sections.",
+          "items": {
+            "$ref": "#/$defs/ValveSection"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "ValvePath": {
+      "description": "One path of a switching position (doc 11 §2.3), between CP indexes of the FnDef.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A directional path: a medium flows from `from` to `to` only.",
+          "properties": {
+            "flow": {
+              "properties": {
+                "from": {
+                  "description": "The CP the medium enters at.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "to": {
+                  "description": "The CP it leaves at.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "from",
+                "to"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "flow"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A path that conducts both ways.",
+          "properties": {
+            "open": {
+              "properties": {
+                "a": {
+                  "description": "One CP.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "b": {
+                  "description": "The other CP.",
+                  "format": "uint16",
+                  "maximum": 65535,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "a",
+                "b"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "open"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A closed CP.",
+          "properties": {
+            "closed": {
+              "format": "uint16",
+              "maximum": 65535,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "closed"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ValveSection": {
+      "additionalProperties": true,
+      "description": "One independently switched section of a valve (doc 11 §2.3).",
+      "properties": {
+        "actuation": {
+          "description": "Which actuator drives which position.",
+          "items": {
+            "$ref": "#/$defs/Actuation"
+          },
+          "type": "array"
+        },
+        "positions": {
+          "description": "The switching positions in drawn order (ISO 1219 labels a, b, and 0 for a centre position).",
+          "items": {
+            "$ref": "#/$defs/SwitchPos"
+          },
+          "type": "array"
+        },
+        "rest": {
+          "description": "The index of the position held without a signal; absent: bistable (the last command holds).",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -718,6 +999,17 @@
     "sha256": {
       "$ref": "#/$defs/Sha256",
       "description": "Hash of the item's own members."
+    },
+    "valve_model": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ValveModel"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The switching model of a valve or another fluid component with flow paths (doc 11 §2.3, FR-FLU-007);\noptional and additive within format 0.1 (ADR-0011 amendment 6)."
     },
     "version": {
       "description": "The item's semantic version (`MAJOR.MINOR.PATCH`).",

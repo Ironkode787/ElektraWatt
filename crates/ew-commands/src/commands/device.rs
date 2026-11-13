@@ -478,6 +478,7 @@ fn split_for_hint(
     require_split_point(tx, &w, page, at, field)?;
     let junction: Id<Junction> = tx.mint();
     tx.insert(Junction {
+        fitting: None,
         id: junction,
         v: 1,
         page,

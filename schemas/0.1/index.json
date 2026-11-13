@@ -37,9 +37,9 @@
       "file": "project.jsonl",
       "kind": "medium",
       "rank": 14,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "medium.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "project.jsonl",
@@ -157,9 +157,9 @@
       "file": "devices/<xx>.jsonl or pages/<page>.jsonl",
       "kind": "medium_def",
       "rank": 40,
-      "schema": null,
-      "status": "reserved",
-      "v": null
+      "schema": "medium_def.schema.json",
+      "status": "implemented",
+      "v": 1
     },
     {
       "file": "devices/<xx>.jsonl or pages/<page>.jsonl",

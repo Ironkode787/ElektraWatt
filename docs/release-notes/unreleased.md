@@ -375,3 +375,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   an installed library holds is written from it and the project opens again, writable when the integrity check
   passes, the toast naming each copy with the version written; a banner whose copy no library holds says so and
   offers nothing; FT-1499)
+- format-variant: record medium.schema.json
+- format-variant: record medium_def.schema.json
+- format-variant: report_block ReportKind tube_list
+- format-variant: report_block ReportKind tube_cut_list
+- format-variant: report_block ReportKind tube_labels
+- format-variant: report_block ReportKind valve_terminal_config
+- format-variant: report_block ReportKind medium_overview

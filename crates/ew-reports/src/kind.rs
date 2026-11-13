@@ -321,6 +321,11 @@ pub fn kind_name(kind: &ReportKind) -> Option<&'static str> {
         ReportKind::BusCableList => "bus_cable_list",
         ReportKind::IolinkPortList => "iolink_port_list",
         ReportKind::SafetyIoList => "safety_io_list",
+        ReportKind::TubeList => "tube_list",
+        ReportKind::TubeCutList => "tube_cut_list",
+        ReportKind::TubeLabels => "tube_labels",
+        ReportKind::ValveTerminalConfig => "valve_terminal_config",
+        ReportKind::MediumOverview => "medium_overview",
         ReportKind::Unknown(_) => return None,
     })
 }

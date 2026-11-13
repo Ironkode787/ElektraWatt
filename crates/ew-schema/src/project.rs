@@ -278,7 +278,7 @@ pub struct SupplyOrigin {
 }
 
 /// Project settings (doc 03 §5). v0 types the settings with a field-level definition; numbering,
-/// wire numbering, cross-reference format, colour and size profiles, check, fluid, manufacturing and frame
+/// wire numbering, cross-reference format, colour and size profiles, check, manufacturing and frame
 /// settings belong to their work packages and are kept in `extra` until then.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ProjectSettings {
@@ -306,6 +306,10 @@ pub struct ProjectSettings {
     /// does not. Absent: any tag.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub process_tag_scheme: Option<String>,
+    /// The fluid settings: the default tube and the line-tag scheme (doc 11 §2.4, §5.4); optional and additive
+    /// within format 0.1 (ADR-0011 amendment 6).
+    #[serde(default, skip_serializing_if = "crate::FluidSettings::is_empty")]
+    pub fluid: crate::FluidSettings,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

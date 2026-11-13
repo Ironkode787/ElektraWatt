@@ -87,10 +87,12 @@ pub fn row_bytes(row: &AnyRow) -> usize {
         AnyRow::Conductor(r) => of(&**r),
         AnyRow::Channel(r) => of(&**r),
         AnyRow::PotentialDef(r) => of(&**r),
+        AnyRow::MediumDef(r) => of(&**r),
         AnyRow::Bond(r) => of(&**r),
         AnyRow::DeviceLink(r) => of(&**r),
         AnyRow::LogicalNet(r) => of(&**r),
         AnyRow::PhysicalNet(r) => of(&**r),
+        AnyRow::Medium(r) => of(&**r),
         AnyRow::PageItem(r) => of(&**r),
         AnyRow::StructureBox(r) => of(&**r),
         AnyRow::ReportBlock(r) => of(&**r),
@@ -878,6 +880,35 @@ impl HeapSize for ew_schema::PhysicalNet {
     }
 }
 
+impl HeapSize for ew_schema::TubeSpec {
+    fn heap_size(&self) -> usize {
+        self.colour.as_ref().map_or(0, colour_heap) + self.part.heap_size() + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::Medium {
+    fn heap_size(&self) -> usize {
+        self.name.heap_size()
+            + self.code.heap_size()
+            + self.quality.heap_size()
+            + self.colour.as_ref().map_or(0, colour_heap)
+            + self.default_tube.heap_size()
+            + self
+                .line_kind_tubes
+                .iter()
+                .map(|t| std::mem::size_of_val(t) + t.tube.heap_size() + t.extra.heap_size())
+                .sum::<usize>()
+            + self.source_ref.heap_size()
+            + self.extra.heap_size()
+    }
+}
+
+impl HeapSize for ew_schema::MediumDef {
+    fn heap_size(&self) -> usize {
+        self.source_ref.heap_size() + self.extra.heap_size()
+    }
+}
+
 // ---- layout ----
 
 impl HeapSize for ew_schema::LayoutSpace {
@@ -1054,7 +1085,9 @@ impl HeapSize for Connection {
         let kind = match &self.kind {
             ConnectionKind::Bridge(b) => b.extra.heap_size(),
             ConnectionKind::Bus(b) => b.extra.heap_size(),
-            ConnectionKind::Fluid(f) => f.extra.heap_size(),
+            ConnectionKind::Fluid(f) => {
+                f.tube.heap_size() + f.fitting_a.heap_size() + f.fitting_b.heap_size() + f.extra.heap_size()
+            }
             ConnectionKind::Unknown(v) => v.heap_size(),
             _ => 0,
         };
@@ -1075,7 +1108,10 @@ impl HeapSize for Connection {
 
 impl HeapSize for Junction {
     fn heap_size(&self) -> usize {
-        self.sequence.heap_size() + self.source_ref.heap_size() + self.extra.heap_size()
+        self.sequence.heap_size()
+            + self.fitting.heap_size()
+            + self.source_ref.heap_size()
+            + self.extra.heap_size()
     }
 }
 

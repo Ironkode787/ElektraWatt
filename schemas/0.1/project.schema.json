@@ -56,6 +56,35 @@
       ],
       "type": "object"
     },
+    "ColourCode": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Ident"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "foreign": {
+              "$ref": "#/$defs/Ident"
+            }
+          },
+          "required": [
+            "foreign"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "An IEC 60757 or profile-declared company colour code, or {\"foreign\": code} (doc 05 §3.2)."
+    },
+    "ColourSpec": {
+      "description": "One or two colour codes (doc 03 §3.4).",
+      "items": {
+        "$ref": "#/$defs/ColourCode"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "type": "array"
+    },
     "Date": {
       "description": "An authored date YYYY-MM-DD (doc 05 §3.2).",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
@@ -121,6 +150,28 @@
           "type": "string"
         }
       ]
+    },
+    "FluidSettings": {
+      "additionalProperties": true,
+      "description": "The project's fluid settings (doc 11 §2.4, §5.4): the default tube (level 1) and the line-tag scheme\n(FR-FLU-011). `ProjectSettings.fluid`, optional and additive within format 0.1.",
+      "properties": {
+        "default_tube": {
+          "$ref": "#/$defs/TubeSpec",
+          "description": "The default tube of every fluid line."
+        },
+        "line_tags": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LineTagScheme"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The line-tag scheme; absent: fluid lines carry no tag."
+        }
+      },
+      "type": "object"
     },
     "Formatting": {
       "additionalProperties": true,
@@ -248,6 +299,16 @@
       "pattern": "^(?:[a-z]{2,3}(?:-[a-z]{3}){0,3}|[a-z]{4,8})(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*(?:-[a-wy-z0-9](?:-[a-z0-9]{2,8})+)*(?:-x(?:-[a-z0-9]{1,8})+)?$",
       "type": "string"
     },
+    "LineTagScheme": {
+      "description": "How fluid lines are tagged (doc 11 §2.4, FR-FLU-011).",
+      "oneOf": [
+        {
+          "const": "page_counter",
+          "description": "`{page}.{counter}`: \"203.1\", a counter per page.",
+          "type": "string"
+        }
+      ]
+    },
     "MasterData": {
       "additionalProperties": true,
       "description": "Project master data (doc 03 §5).",
@@ -357,6 +418,31 @@
       "maximum": 9007199254740991,
       "minimum": -9007199254740991,
       "type": "integer"
+    },
+    "PartRef": {
+      "additionalProperties": true,
+      "description": "A part on a device (doc 03 §7): the embedded copy and an optional part variant (FR-PRT-003).",
+      "properties": {
+        "copy": {
+          "$ref": "#/$defs/Uuid",
+          "description": "The copy ID of the embedded part, `v5(NS_LIBCOPY, library ‖ item)`."
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A variant key of the part."
+        }
+      },
+      "required": [
+        "copy"
+      ],
+      "type": "object"
     },
     "Party": {
       "additionalProperties": true,
@@ -470,8 +556,12 @@
     },
     "ProjectSettings": {
       "additionalProperties": true,
-      "description": "Project settings (doc 03 §5). v0 types the settings with a field-level definition; numbering,\nwire numbering, cross-reference format, colour and size profiles, check, fluid, manufacturing and frame\nsettings belong to their work packages and are kept in `extra` until then.",
+      "description": "Project settings (doc 03 §5). v0 types the settings with a field-level definition; numbering,\nwire numbering, cross-reference format, colour and size profiles, check, manufacturing and frame\nsettings belong to their work packages and are kept in `extra` until then.",
       "properties": {
+        "fluid": {
+          "$ref": "#/$defs/FluidSettings",
+          "description": "The fluid settings: the default tube and the line-tag scheme (doc 11 §2.4, §5.4); optional and additive\nwithin format 0.1 (ADR-0011 amendment 6)."
+        },
         "formatting": {
           "$ref": "#/$defs/Formatting",
           "description": "Formatting conventions."
@@ -676,6 +766,35 @@
         }
       ]
     },
+    "TempRange": {
+      "additionalProperties": true,
+      "description": "A temperature range in °C; either end may be open.",
+      "properties": {
+        "max": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The highest temperature."
+        },
+        "min": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The lowest temperature."
+        }
+      },
+      "type": "object"
+    },
     "TextStyleSpec": {
       "additionalProperties": true,
       "description": "One entry of `ProjectSettings.text_styles`: an override of a built-in style or a new style (ADR-0032).\n\nFamily, italic and alignment are not typed (the bundled face is the only family at MVP, ADR-0028; alignment\nbelongs to the slot) and stay in `extra`.",
@@ -715,6 +834,130 @@
           "type": "string"
         }
       ]
+    },
+    "TubeMaterial": {
+      "description": "The material of a tube (doc 11 §2.4).",
+      "oneOf": [
+        {
+          "const": "pu",
+          "description": "Polyurethane.",
+          "type": "string"
+        },
+        {
+          "const": "pa",
+          "description": "Polyamide.",
+          "type": "string"
+        },
+        {
+          "const": "pe",
+          "description": "Polyethylene.",
+          "type": "string"
+        },
+        {
+          "const": "ptfe",
+          "description": "PTFE.",
+          "type": "string"
+        },
+        {
+          "const": "pvc",
+          "description": "PVC.",
+          "type": "string"
+        },
+        {
+          "const": "cu",
+          "description": "Copper.",
+          "type": "string"
+        },
+        {
+          "const": "steel",
+          "description": "Steel.",
+          "type": "string"
+        }
+      ]
+    },
+    "TubeSpec": {
+      "additionalProperties": true,
+      "description": "A tube specification (doc 11 §2.4), every value optional: the overrides of a line, a medium's default and the\nproject's default use the same shape, and the effective specification is resolved value by value (doc 11 §5.4).",
+      "properties": {
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The colour (an IEC 60757 code)."
+        },
+        "id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The inner diameter."
+        },
+        "material": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TubeMaterial"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The material."
+        },
+        "od": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The outer diameter."
+        },
+        "p_rating": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The pressure rating (bar)."
+        },
+        "part": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The tube part."
+        },
+        "t_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TempRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The temperature range (°C)."
+        }
+      },
+      "type": "object"
     },
     "Unit": {
       "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol.",

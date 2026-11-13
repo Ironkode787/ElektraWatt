@@ -342,6 +342,7 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
         | Record::PlcConfigProject(_)
         | Record::LogicalNet(_)
         | Record::PhysicalNet(_)
+        | Record::Medium(_)
         | Record::ImportLineage(_) => "project.jsonl".to_owned(),
         Record::StructureNode(_) | Record::Section(_) | Record::ExternalRef(_) => {
             "structure.jsonl".to_owned()
@@ -371,7 +372,7 @@ fn file_of(tx: &TxBuilder<'_>, record: &Record, depth: u8) -> Option<String> {
             Some(p) => page(p.cast()),
             None => endpoint(record.anchor_ref()).or_else(|| own().map(shard))?,
         },
-        Record::PotentialDef(_) | Record::Bond(_) => {
+        Record::PotentialDef(_) | Record::MediumDef(_) | Record::Bond(_) => {
             endpoint(record.anchor_ref()).or_else(|| own().map(shard))?
         }
         Record::LayoutSpace(r) => layout(r.id.cast()),

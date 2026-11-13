@@ -15,6 +15,7 @@ use crate::kind::{FileRule, Kind};
 use crate::library::{
     FnDef, FormDef, LibCopy, MacroDef, MacroInstance, Manufacturer, Part, PlcProfileDef, SymbolDef,
 };
+use crate::medium::{Medium, MediumDef};
 use crate::track::{
     buffer_strict, check_value_at, de_here, parse_value, raise, read_extra, read_unknown, with_context,
 };
@@ -158,6 +159,8 @@ pub enum Record {
     LogicalNet(LogicalNet),
     /// `physical_net` (13).
     PhysicalNet(PhysicalNet),
+    /// `medium` (14).
+    Medium(Medium),
     /// `import_lineage` (15).
     ImportLineage(ImportLineage),
     /// `structure_node` (20).
@@ -184,6 +187,8 @@ pub enum Record {
     Channel(Channel),
     /// `potential_def` (38).
     PotentialDef(PotentialDef),
+    /// `medium_def` (40).
+    MediumDef(MediumDef),
     /// `bond` (41).
     Bond(Bond),
     /// `device_link` (42).
@@ -226,6 +231,7 @@ impl Record {
             Record::PlcConfigProject(_) => Kind::PlcConfigProject,
             Record::LogicalNet(_) => Kind::LogicalNet,
             Record::PhysicalNet(_) => Kind::PhysicalNet,
+            Record::Medium(_) => Kind::Medium,
             Record::ImportLineage(_) => Kind::ImportLineage,
             Record::StructureNode(_) => Kind::StructureNode,
             Record::Section(_) => Kind::Section,
@@ -239,6 +245,7 @@ impl Record {
             Record::Conductor(_) => Kind::Conductor,
             Record::Channel(_) => Kind::Channel,
             Record::PotentialDef(_) => Kind::PotentialDef,
+            Record::MediumDef(_) => Kind::MediumDef,
             Record::Bond(_) => Kind::Bond,
             Record::DeviceLink(_) => Kind::DeviceLink,
             Record::PageItem(_) => Kind::PageItem,
@@ -273,6 +280,7 @@ impl Record {
             Record::PlcConfigProject(r) => r.id.as_uuid(),
             Record::LogicalNet(r) => r.id.as_uuid(),
             Record::PhysicalNet(r) => r.id.as_uuid(),
+            Record::Medium(r) => r.id.as_uuid(),
             Record::ImportLineage(r) => r.id.as_uuid(),
             Record::StructureNode(r) => r.id.as_uuid(),
             Record::Section(r) => r.id.as_uuid(),
@@ -286,6 +294,7 @@ impl Record {
             Record::Conductor(r) => r.id.as_uuid(),
             Record::Channel(r) => r.id.as_uuid(),
             Record::PotentialDef(r) => r.id.as_uuid(),
+            Record::MediumDef(r) => r.id.as_uuid(),
             Record::Bond(r) => r.id.as_uuid(),
             Record::DeviceLink(r) => r.id.as_uuid(),
             Record::PageItem(r) => r.id.as_uuid(),
@@ -318,6 +327,7 @@ impl Record {
             | Record::PlcConfigProject(_)
             | Record::LogicalNet(_)
             | Record::PhysicalNet(_)
+            | Record::Medium(_)
             | Record::ImportLineage(_)
             | Record::StructureNode(_)
             | Record::Section(_)
@@ -344,6 +354,7 @@ impl Record {
             Record::Channel(r) => AnchorRef::Direct(r.module.as_uuid()),
             Record::DeviceLink(r) => AnchorRef::Direct(r.from.as_uuid()),
             Record::PotentialDef(r) => endpoint_anchor(&r.at),
+            Record::MediumDef(r) => endpoint_anchor(&r.at),
             Record::Bond(r) => endpoint_anchor(&r.a),
             Record::ReportBlock(r) => match &r.embedded {
                 Some(e) => AnchorRef::Direct(e.page.as_uuid()),
@@ -401,6 +412,7 @@ impl Serialize for Record {
             Record::PlcConfigProject(r) => tagged(Kind::PlcConfigProject, r, serializer),
             Record::LogicalNet(r) => tagged(Kind::LogicalNet, r, serializer),
             Record::PhysicalNet(r) => tagged(Kind::PhysicalNet, r, serializer),
+            Record::Medium(r) => tagged(Kind::Medium, r, serializer),
             Record::ImportLineage(r) => tagged(Kind::ImportLineage, r, serializer),
             Record::StructureNode(r) => tagged(Kind::StructureNode, r, serializer),
             Record::Section(r) => tagged(Kind::Section, r, serializer),
@@ -414,6 +426,7 @@ impl Serialize for Record {
             Record::Conductor(r) => tagged(Kind::Conductor, r, serializer),
             Record::Channel(r) => tagged(Kind::Channel, r, serializer),
             Record::PotentialDef(r) => tagged(Kind::PotentialDef, r, serializer),
+            Record::MediumDef(r) => tagged(Kind::MediumDef, r, serializer),
             Record::Bond(r) => tagged(Kind::Bond, r, serializer),
             Record::DeviceLink(r) => tagged(Kind::DeviceLink, r, serializer),
             Record::PageItem(r) => tagged(Kind::PageItem, r, serializer),
@@ -527,6 +540,7 @@ impl Record {
             Kind::PlcConfigProject => Record::PlcConfigProject(typed(kind, map, |r: &PlcConfigProject| r.v)?),
             Kind::LogicalNet => Record::LogicalNet(typed(kind, map, |r: &LogicalNet| r.v)?),
             Kind::PhysicalNet => Record::PhysicalNet(typed(kind, map, |r: &PhysicalNet| r.v)?),
+            Kind::Medium => Record::Medium(typed(kind, map, |r: &Medium| r.v)?),
             Kind::ImportLineage => Record::ImportLineage(typed(kind, map, |r: &ImportLineage| r.v)?),
             Kind::StructureNode => Record::StructureNode(typed(kind, map, |r: &StructureNode| r.v)?),
             Kind::Section => Record::Section(typed(kind, map, |r: &Section| r.v)?),
@@ -540,6 +554,7 @@ impl Record {
             Kind::Conductor => Record::Conductor(typed(kind, map, |r: &Conductor| r.v)?),
             Kind::Channel => Record::Channel(typed(kind, map, |r: &Channel| r.v)?),
             Kind::PotentialDef => Record::PotentialDef(typed(kind, map, |r: &PotentialDef| r.v)?),
+            Kind::MediumDef => Record::MediumDef(typed(kind, map, |r: &MediumDef| r.v)?),
             Kind::Bond => Record::Bond(typed(kind, map, |r: &Bond| r.v)?),
             Kind::DeviceLink => Record::DeviceLink(typed(kind, map, |r: &DeviceLink| r.v)?),
             Kind::PageItem => Record::PageItem(typed(kind, map, |r: &PageItem| r.v)?),

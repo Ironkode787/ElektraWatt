@@ -418,6 +418,16 @@ pub enum ReportKind {
     IolinkPortList,
     /// Safety I/O list (FR-PLC-041).
     SafetyIoList,
+    /// Tube list (doc 11 §8.2, FR-FLU-012).
+    TubeList,
+    /// Tube cut list (FR-FLU-013).
+    TubeCutList,
+    /// Tube labels, one row per tube end (FR-FLU-013).
+    TubeLabels,
+    /// Valve-terminal configuration (FR-FLU-015).
+    ValveTerminalConfig,
+    /// Medium overview (FR-FLU-016).
+    MediumOverview,
     /// A kind of a newer format, kept verbatim.
     #[serde(skip)]
     Unknown(Value),

@@ -80,6 +80,9 @@ pub const GOLDEN: &[&str] = &[
     // potentials and the bond (doc 20 §7.3, §7.4)
     r#"{"$k":"potential_def","id":"@POT_LS","at":{"cp":["@FN_S51",0]},"name":"L-S"}"#,
     r#"{"$k":"potential_def","id":"@POT_24","at":{"cp":["@FN_F2_102",8]},"name":"24VDC-1","ptype":"l_plus","voltage":"24","env":{"ac_dc":"dc","earthing":"pelv"},"circuit_class":"control","props":{"csa":"0.75","colour":["DBU"]}}"#,
+    // media (doc 20 §2.4, Golden A-R's fluid overlay, ▲U-25)
+    r#"{"$k":"medium","id":"@MED_AIR","name":{"en-GB":"compressed air 6 bar"},"p_nom":"6","quality":"1-4-1","colour":["BU"],"default_tube":{"od":6000000,"id":4000000,"material":"pu","colour":["BU"]},"line_kind_tubes":[{"line_kind":"pilot","tube":{"od":4000000,"id":2700000}}]}"#,
+    r#"{"$k":"medium_def","id":"@MDEF_AIR","at":{"cp":["@FN_S51",0]},"medium":"@MED_AIR"}"#,
     r#"{"$k":"bond","id":"@BOND_B1","a":{"cp":["@FN_G1",5]},"b":{"cp":["@FN_X1032_2",0]},"kind":"pelv_0v_pe","via":"@CON_W27"}"#,
     // report blocks (doc 20 §16, doc 09 §2.2)
     r#"{"$k":"report_block","id":"@RB_TOC","source":{"kind":"toc"},"form":"@FORM_TOC","first_folio":2,"title":{"en-GB":"Table of Contents {n}"}}"#,

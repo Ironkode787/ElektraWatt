@@ -195,6 +195,7 @@ fn def_category(kind: &DefKind) -> &'static str {
 
 fn fndef_copy(copy_id: Id<FnDef>, item_id: Id<FnDef>, kind: &DefKind) -> LibCopy<FnDef> {
     let item = FnDef {
+        valve_model: None,
         meta: Default::default(),
         category: (ident("ew"), ident("synth"), ident(def_category(kind))),
         contact_kind: ContactKind::Terminal,
@@ -601,6 +602,7 @@ pub(super) fn emit(plan: &Plan, seed: u64, options: &Options) -> Generated {
     // Junctions.
     for (j, jp) in plan.junctions.iter().enumerate() {
         records.push(Record::Junction(Junction {
+            fitting: None,
             id: junction_ids[j],
             v: 1,
             page: page_ids[jp.page],

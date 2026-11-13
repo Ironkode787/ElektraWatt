@@ -1,5 +1,20 @@
 {
   "$defs": {
+    "AcDc": {
+      "description": "AC or DC.",
+      "oneOf": [
+        {
+          "const": "ac",
+          "description": "Alternating current.",
+          "type": "string"
+        },
+        {
+          "const": "dc",
+          "description": "Direct current.",
+          "type": "string"
+        }
+      ]
+    },
     "AlternativeKind": {
       "description": "How an alternative part relates to a part (FR-PRT-004).",
       "oneOf": [
@@ -365,6 +380,46 @@
         "top": {
           "$ref": "#/$defs/Nm",
           "description": "Above the part."
+        }
+      },
+      "type": "object"
+    },
+    "CoilData": {
+      "additionalProperties": true,
+      "description": "The coil data of a solenoid valve part (doc 11 §2.6).",
+      "properties": {
+        "env": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AcDc"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "AC or DC."
+        },
+        "power_w": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The power (W)."
+        },
+        "voltage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The rated voltage (V)."
         }
       },
       "type": "object"
@@ -832,19 +887,302 @@
       },
       "type": "object"
     },
+    "FittingData": {
+      "additionalProperties": true,
+      "description": "The data of a fitting part (doc 11 §2.6).",
+      "properties": {
+        "port_thread": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The port thread it screws into."
+        },
+        "tube_od": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The outer diameter of the tube it takes."
+        }
+      },
+      "type": "object"
+    },
+    "FluidPortData": {
+      "additionalProperties": true,
+      "description": "The physical data of one fluid port of a part (doc 11 §2.6).",
+      "properties": {
+        "designation": {
+          "$ref": "#/$defs/Ident",
+          "description": "The port designation (\"2\")."
+        },
+        "position": {
+          "description": "On a valve module: the valve position whose port this entry describes.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "push_in_od": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The outer diameter of the tube a push-in port takes."
+        },
+        "qn": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The nominal flow (l/min)."
+        },
+        "thread": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The thread (\"G1/8\")."
+        }
+      },
+      "required": [
+        "designation"
+      ],
+      "type": "object"
+    },
+    "FluidPortRole": {
+      "description": "The role of a fluid port (doc 11 §2.2), named by its ISO 5599 port number where it has one.",
+      "oneOf": [
+        {
+          "const": "supply1",
+          "description": "Supply, port 1.",
+          "type": "string"
+        },
+        {
+          "const": "working2",
+          "description": "Working port 2.",
+          "type": "string"
+        },
+        {
+          "const": "working4",
+          "description": "Working port 4.",
+          "type": "string"
+        },
+        {
+          "const": "exhaust3",
+          "description": "Exhaust port 3.",
+          "type": "string"
+        },
+        {
+          "const": "exhaust5",
+          "description": "Exhaust port 5.",
+          "type": "string"
+        },
+        {
+          "const": "pilot10",
+          "description": "Pilot port 10.",
+          "type": "string"
+        },
+        {
+          "const": "pilot12",
+          "description": "Pilot port 12.",
+          "type": "string"
+        },
+        {
+          "const": "pilot14",
+          "description": "Pilot port 14.",
+          "type": "string"
+        },
+        {
+          "const": "pilot_exhaust82",
+          "description": "Pilot exhaust port 82.",
+          "type": "string"
+        },
+        {
+          "const": "pilot_exhaust84",
+          "description": "Pilot exhaust port 84.",
+          "type": "string"
+        },
+        {
+          "const": "external_pilot",
+          "description": "External pilot supply.",
+          "type": "string"
+        },
+        {
+          "const": "consumer",
+          "description": "A consumer's port (a cylinder's A or B).",
+          "type": "string"
+        },
+        {
+          "const": "sensing",
+          "description": "A sensing port.",
+          "type": "string"
+        },
+        {
+          "const": "generic",
+          "description": "Any other fluid port.",
+          "type": "string"
+        }
+      ]
+    },
     "FluidSection": {
       "additionalProperties": true,
-      "description": "The fluid section of a part (doc 11 §2.6). Typed: the solenoids of a valve part, the k-th being the k-th\ntemplate entry on a FnDef of contact kind `coil` (WP-S1.20 D4); the valve model and the other members of\n1.0 stay in `extra`.",
+      "description": "The fluid section of a part (doc 11 §2.6). The solenoids of a valve part, the k-th being the k-th template entry on\na FnDef of contact kind `coil` (WP-S1.20 D4), and the 1.0 members (WP-S1.25), each optional and additive within\nformat 0.1 (ADR-0011 amendment 6); `overview` stays in `extra`.",
       "properties": {
+        "coil": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CoilData"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The coil data of a solenoid valve (EW-FL-009)."
+        },
+        "fitting": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FittingData"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The data of a fitting part."
+        },
+        "galleries": {
+          "description": "The manifold galleries the part taps or separates (doc 11 §5.2); a module without entries is transparent.",
+          "items": {
+            "$ref": "#/$defs/GalleryData"
+          },
+          "type": "array"
+        },
+        "ports": {
+          "description": "Physical port data by designation; on a valve module an entry with `position = p` supplies the data of that\nport of the valve at position p and wins over the valve part's own entry (EW-FL-006).",
+          "items": {
+            "$ref": "#/$defs/FluidPortData"
+          },
+          "type": "array"
+        },
+        "positions": {
+          "description": "The valve positions of a valve module (occupancy, FI-02); absent: `plc.positions.count`.",
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
         "solenoids": {
           "description": "The solenoids the part declares (\"14\", \"12\").",
           "items": {
             "$ref": "#/$defs/Ident"
           },
           "type": "array"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FluidTransform"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "How the part changes the medium it passes (doc 11 §5.3): a regulator or an ejector."
+        },
+        "tube": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TubeData"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The data of a tube part (doc 11 §5.4 level 3)."
         }
       },
       "type": "object"
+    },
+    "FluidTransform": {
+      "description": "How a part changes the medium that reaches one of its ports (doc 11 §5.3). The path itself is the FnDef's\nvalve model.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "description": "A pressure regulator: the medium at `outlet` is the root medium at `p_set`.",
+          "properties": {
+            "regulator": {
+              "properties": {
+                "outlet": {
+                  "$ref": "#/$defs/Ident",
+                  "description": "The outlet port's designation."
+                },
+                "p_set": {
+                  "$ref": "#/$defs/Dec3",
+                  "description": "The set pressure (bar, gauge)."
+                }
+              },
+              "required": [
+                "outlet",
+                "p_set"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "regulator"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "description": "An ejector: the medium at `vacuum` is vacuum from the root medium.",
+          "properties": {
+            "ejector": {
+              "properties": {
+                "vacuum": {
+                  "$ref": "#/$defs/Ident",
+                  "description": "The vacuum port's designation."
+                }
+              },
+              "required": [
+                "vacuum"
+              ],
+              "type": "object"
+            }
+          },
+          "required": [
+            "ejector"
+          ],
+          "type": "object"
+        }
+      ]
     },
     "FreeProp": {
       "additionalProperties": true,
@@ -862,6 +1200,35 @@
       "required": [
         "key",
         "value"
+      ],
+      "type": "object"
+    },
+    "GalleryData": {
+      "additionalProperties": true,
+      "description": "One gallery of a manifold part (doc 11 §5.2): the gallery, named by the role of the valve ports it joins, the\ndesignation of the port of the part that taps it, and whether the part separates it.",
+      "properties": {
+        "gallery": {
+          "$ref": "#/$defs/FluidPortRole",
+          "description": "The gallery: `supply1`, `exhaust3`, `exhaust5`, `pilot_exhaust82`, `pilot_exhaust84`."
+        },
+        "separates": {
+          "description": "The part closes the gallery: the segment ends before it and a new one starts.",
+          "type": "boolean"
+        },
+        "tap": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Ident"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The designation of the part's port that taps the gallery (a supply plate's \"1\")."
+        }
+      },
+      "required": [
+        "gallery"
       ],
       "type": "object"
     },
@@ -2330,6 +2697,35 @@
       ],
       "type": "object"
     },
+    "TempRange": {
+      "additionalProperties": true,
+      "description": "A temperature range in °C; either end may be open.",
+      "properties": {
+        "max": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The highest temperature."
+        },
+        "min": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The lowest temperature."
+        }
+      },
+      "type": "object"
+    },
     "TemplateFn": {
       "additionalProperties": true,
       "description": "One function of a part's template (FR-PRT-007).",
@@ -2357,6 +2753,130 @@
         "fndef"
       ],
       "type": "object"
+    },
+    "TubeData": {
+      "additionalProperties": true,
+      "description": "The data of a tube part (doc 11 §2.6, §5.4 level 3).",
+      "properties": {
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The colour."
+        },
+        "id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The inner diameter."
+        },
+        "material": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TubeMaterial"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The material."
+        },
+        "min_bend_radius": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The smallest bend radius."
+        },
+        "od": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The outer diameter."
+        },
+        "p_rating": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The pressure rating (bar)."
+        },
+        "t_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TempRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The temperature range (°C)."
+        }
+      },
+      "type": "object"
+    },
+    "TubeMaterial": {
+      "description": "The material of a tube (doc 11 §2.4).",
+      "oneOf": [
+        {
+          "const": "pu",
+          "description": "Polyurethane.",
+          "type": "string"
+        },
+        {
+          "const": "pa",
+          "description": "Polyamide.",
+          "type": "string"
+        },
+        {
+          "const": "pe",
+          "description": "Polyethylene.",
+          "type": "string"
+        },
+        {
+          "const": "ptfe",
+          "description": "PTFE.",
+          "type": "string"
+        },
+        {
+          "const": "pvc",
+          "description": "PVC.",
+          "type": "string"
+        },
+        {
+          "const": "cu",
+          "description": "Copper.",
+          "type": "string"
+        },
+        {
+          "const": "steel",
+          "description": "Steel.",
+          "type": "string"
+        }
+      ]
     },
     "Unit": {
       "description": "The units of doc 03 §3.2 and the order units of FR-PRT-026. Persisted as the unit symbol in ASCII\n(`\"mm2\"`, `\"degC\"`), so files stay greppable; rendering uses the typographic symbol.",

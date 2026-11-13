@@ -954,6 +954,7 @@ fn map_conductors_counted(
             continue;
         };
         out.junctions.push(Junction {
+            fitting: None,
             id: *id,
             v: 1,
             page: placed.page,

@@ -57,6 +57,7 @@ fn resolve_end(
             require_split_point(tx, &w, page, *at, &format!("{field}/on_connection/at"))?;
             let junction: Id<Junction> = tx.mint();
             tx.insert(Junction {
+                fitting: None,
                 id: junction,
                 v: 1,
                 page,

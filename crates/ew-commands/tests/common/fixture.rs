@@ -330,6 +330,7 @@ pub fn connection(
 
 pub fn junction(junction_id: Id<Junction>, page: Id<Page>, sequence: Vec<Id<Connection>>) -> Junction {
     Junction {
+        fitting: None,
         id: junction_id,
         v: 1,
         page,
@@ -375,6 +376,7 @@ pub fn lib_copy<T>(copy_id: Id<T>, item: T) -> LibCopy<T> {
 
 pub fn fndef(fndef_id: Id<FnDef>, cps: &[&str]) -> LibCopy<FnDef> {
     let item = FnDef {
+        valve_model: None,
         meta: Default::default(),
         category: (ident("ew"), ident("test"), ident("fixture")),
         contact_kind: ContactKind::Terminal,
@@ -572,7 +574,7 @@ pub fn solenoid_valve_part(part_id: Id<Part>, part_number: &str, solenoids: &[&s
         .collect();
     copy.item.sections.fluid = Some(ew_schema::FluidSection {
         solenoids: solenoids.iter().map(|s| ident(s)).collect(),
-        extra: Extra::new(),
+        ..Default::default()
     });
     copy
 }

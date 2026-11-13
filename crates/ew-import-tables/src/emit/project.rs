@@ -674,6 +674,7 @@ pub(crate) fn emit_project(
     let control_voltage = r.dec3("control_voltage").map(|v| Quantity::new(v, Unit::V));
     let rated_consumption = r.dec3("rated_consumption").map(|v| Quantity::new(v, Unit::A));
     let settings = ProjectSettings {
+        fluid: Default::default(),
         identifier_set: r.ident("identifier_set"),
         ip_pairing: None,
         formatting: Formatting {

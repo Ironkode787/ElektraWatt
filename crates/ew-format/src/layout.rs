@@ -128,6 +128,7 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
         | Record::PlcConfigProject(_)
         | Record::LogicalNet(_)
         | Record::PhysicalNet(_)
+        | Record::Medium(_)
         | Record::ImportLineage(_) => FilePath::project(),
         Record::StructureNode(_) | Record::Section(_) | Record::ExternalRef(_) => FilePath::structure(),
         Record::Page(r) => FilePath::page(r.id.cast()),
@@ -157,9 +158,11 @@ pub fn record_file(record: &Record, anchors: &dyn Anchors) -> Result<FilePath, F
                 .or_else(|| own().map(FilePath::shard))
                 .ok_or_else(|| no_file(record))?,
         },
-        Record::PotentialDef(_) | Record::Bond(_) => endpoint_file(record.anchor_ref())
-            .or_else(|| own().map(FilePath::shard))
-            .ok_or_else(|| no_file(record))?,
+        Record::PotentialDef(_) | Record::MediumDef(_) | Record::Bond(_) => {
+            endpoint_file(record.anchor_ref())
+                .or_else(|| own().map(FilePath::shard))
+                .ok_or_else(|| no_file(record))?
+        }
         Record::LayoutSpace(r) => FilePath::layout(r.id.cast()),
         Record::Enclosure(r) => FilePath::layout(r.space.cast()),
         Record::MountingSurface(r) => FilePath::layout(space_of_enclosure(r.enclosure.cast(), anchors)),

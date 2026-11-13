@@ -8,7 +8,9 @@
 use crate::common;
 
 use common::fill;
-use ew_schema::{ClosureKind, ConnectionKind, FluidPortRole, LibDocument, LineKind, Record, SlotFallback};
+use ew_schema::{
+    ClosureKind, ConnectionKind, FluidPortRole, LengthSource, LibDocument, LineKind, Record, SlotFallback, TubeMaterial,
+};
 
 fn record(line: &str) -> Record {
     let r: Record = serde_json::from_str(line).unwrap_or_else(|e| panic!("parse failed: {e}\n{line}"));
@@ -63,16 +65,20 @@ fn a_fluid_line_types_its_kind_and_omits_working() {
 }
 
 #[test]
-fn an_unknown_line_kind_and_the_tube_survive_verbatim() {
+fn an_unknown_line_kind_and_member_survive_and_the_tube_and_length_are_typed() {
     let r = record(&connection(
-        r#"{"fluid":{"line_kind":"capillary","length":1000}}"#,
+        r#"{"fluid":{"line_kind":"capillary","tube":{"od":6000000,"material":"pu","hose_class":"x"},"length":{"manual":1200000000},"route_hint":1}}"#,
     ));
     assert_eq!(line_kind(&r), &LineKind::Unknown(serde_json::json!("capillary")));
     let Record::Connection(c) = &r else { unreachable!() };
     let ConnectionKind::Fluid(f) = &c.kind else {
         unreachable!()
     };
-    assert_eq!(f.extra.keys().map(String::as_str).collect::<Vec<_>>(), ["length"]);
+    assert_eq!(f.tube.od, Some(ew_units::Nm(6_000_000)));
+    assert_eq!(f.tube.material, Some(TubeMaterial::Pu));
+    assert_eq!(f.tube.extra.keys().map(String::as_str).collect::<Vec<_>>(), ["hose_class"]);
+    assert_eq!(f.length, LengthSource::Manual(ew_units::Nm(1_200_000_000)));
+    assert_eq!(f.extra.keys().map(String::as_str).collect::<Vec<_>>(), ["route_hint"]);
 }
 
 #[test]

@@ -877,8 +877,6 @@ pub enum ExtraVariantKind {
 // Function definition
 
 /// What a function is, independent of how it looks (doc 03 §7, doc 07 §2.4), library item kind `fndef`.
-///
-/// Not in v0: `valve_model` (fluid power, doc 03 §15).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct FnDef {
     /// Provenance.
@@ -898,9 +896,137 @@ pub struct FnDef {
     /// Flags.
     #[serde(default, skip_serializing_if = "FnFlags::is_empty")]
     pub flags: FnFlags,
+    /// The switching model of a valve or another fluid component with flow paths (doc 11 §2.3, FR-FLU-007);
+    /// optional and additive within format 0.1 (ADR-0011 amendment 6).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub valve_model: Option<ValveModel>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// The switching model of a valve (doc 11 §2.3): one section, or two for a body with independently switched halves
+/// (2×3/2). Media propagation reads the union of the paths of every position (doc 11 §5.3).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct ValveModel {
+    /// The sections.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub sections: Vec<ValveSection>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One independently switched section of a valve (doc 11 §2.3).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct ValveSection {
+    /// The switching positions in drawn order (ISO 1219 labels a, b, and 0 for a centre position).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub positions: Vec<SwitchPos>,
+    /// The index of the position held without a signal; absent: bistable (the last command holds).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rest: Option<u8>,
+    /// Which actuator drives which position.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub actuation: Vec<Actuation>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One switching position: its label and its flow paths between CPs of the FnDef (by CP index).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct SwitchPos {
+    /// The label ("a", "b", "0").
+    #[schemars(with = "IdentS")]
+    pub label: Ident,
+    /// The paths of this position.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub paths: Vec<ValvePath>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One path of a switching position (doc 11 §2.3), between CP indexes of the FnDef.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "ValvePath")]
+pub enum ValvePath {
+    /// A directional path: a medium flows from `from` to `to` only.
+    Flow {
+        /// The CP the medium enters at.
+        from: u16,
+        /// The CP it leaves at.
+        to: u16,
+    },
+    /// A path that conducts both ways.
+    Open {
+        /// One CP.
+        a: u16,
+        /// The other CP.
+        b: u16,
+    },
+    /// A closed CP.
+    Closed(u16),
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+/// Which actuator selects which position of a section (doc 11 §2.3).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct Actuation {
+    /// The actuator.
+    pub actuator: Actuator,
+    /// The index of the position it selects.
+    pub selects: u8,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// An actuator of a valve section (doc 11 §2.3). Which side of the symbol carries it is graphics only.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "Actuator")]
+pub enum Actuator {
+    /// A solenoid, matched to the part's `fluid.solenoids` and the coil function ("14", "12").
+    Solenoid {
+        /// The solenoid's designation.
+        #[schemars(with = "IdentS")]
+        solenoid: Ident,
+    },
+    /// A pilot signal at a CP of the FnDef.
+    Pilot {
+        /// The pilot port's CP index.
+        port: u16,
+    },
+    /// A spring.
+    Spring,
+    /// An air spring.
+    AirSpring,
+    /// A manual override, with or without detent.
+    ManualOverride {
+        /// Whether it latches.
+        #[serde(default, skip_serializing_if = "is_false")]
+        detent: bool,
+    },
+    /// A detent.
+    Detent,
+    /// A pushbutton.
+    Pushbutton,
+    /// A lever.
+    Lever,
+    /// A roller.
+    Roller,
+    /// A pedal.
+    Pedal,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// Contact kinds (doc 03 §7).
@@ -1574,18 +1700,179 @@ pub struct PartSections {
     pub extra: Extra,
 }
 
-/// The fluid section of a part (doc 11 §2.6). Typed: the solenoids of a valve part, the k-th being the k-th
-/// template entry on a FnDef of contact kind `coil` (WP-S1.20 D4); the valve model and the other members of
-/// 1.0 stay in `extra`.
+/// The fluid section of a part (doc 11 §2.6). The solenoids of a valve part, the k-th being the k-th template entry on
+/// a FnDef of contact kind `coil` (WP-S1.20 D4), and the 1.0 members (WP-S1.25), each optional and additive within
+/// format 0.1 (ADR-0011 amendment 6); `overview` stays in `extra`.
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct FluidSection {
     /// The solenoids the part declares ("14", "12").
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[schemars(with = "Vec<IdentS>")]
     pub solenoids: Vec<Ident>,
+    /// Physical port data by designation; on a valve module an entry with `position = p` supplies the data of that
+    /// port of the valve at position p and wins over the valve part's own entry (EW-FL-006).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub ports: Vec<FluidPortData>,
+    /// The valve positions of a valve module (occupancy, FI-02); absent: `plc.positions.count`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub positions: Option<u16>,
+    /// The coil data of a solenoid valve (EW-FL-009).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub coil: Option<CoilData>,
+    /// The manifold galleries the part taps or separates (doc 11 §5.2); a module without entries is transparent.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub galleries: Vec<GalleryData>,
+    /// The data of a tube part (doc 11 §5.4 level 3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tube: Option<TubeData>,
+    /// The data of a fitting part.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fitting: Option<FittingData>,
+    /// How the part changes the medium it passes (doc 11 §5.3): a regulator or an ejector.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transform: Option<FluidTransform>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// The physical data of one fluid port of a part (doc 11 §2.6).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct FluidPortData {
+    /// The port designation ("2").
+    #[schemars(with = "IdentS")]
+    pub designation: Ident,
+    /// On a valve module: the valve position whose port this entry describes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub position: Option<u16>,
+    /// The thread ("G1/8").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub thread: Option<Ident>,
+    /// The outer diameter of the tube a push-in port takes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub push_in_od: Option<Nm>,
+    /// The nominal flow (l/min).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Dec3S>")]
+    pub qn: Option<Dec3>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The coil data of a solenoid valve part (doc 11 §2.6).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct CoilData {
+    /// The rated voltage (V).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Dec3S>")]
+    pub voltage: Option<Dec3>,
+    /// AC or DC.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub env: Option<crate::AcDc>,
+    /// The power (W).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Dec3S>")]
+    pub power_w: Option<Dec3>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One gallery of a manifold part (doc 11 §5.2): the gallery, named by the role of the valve ports it joins, the
+/// designation of the port of the part that taps it, and whether the part separates it.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct GalleryData {
+    /// The gallery: `supply1`, `exhaust3`, `exhaust5`, `pilot_exhaust82`, `pilot_exhaust84`.
+    pub gallery: FluidPortRole,
+    /// The designation of the part's port that taps the gallery (a supply plate's "1").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub tap: Option<Ident>,
+    /// The part closes the gallery: the segment ends before it and a new one starts.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub separates: bool,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The data of a tube part (doc 11 §2.6, §5.4 level 3).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TubeData {
+    /// The outer diameter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub od: Option<Nm>,
+    /// The inner diameter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub id: Option<Nm>,
+    /// The material.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub material: Option<crate::TubeMaterial>,
+    /// The colour.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub colour: Option<ColourSpec>,
+    /// The pressure rating (bar).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Dec3S>")]
+    pub p_rating: Option<Dec3>,
+    /// The temperature range (°C).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub t_range: Option<crate::TempRange>,
+    /// The smallest bend radius.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub min_bend_radius: Option<Nm>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The data of a fitting part (doc 11 §2.6).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct FittingData {
+    /// The port thread it screws into.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<IdentS>")]
+    pub port_thread: Option<Ident>,
+    /// The outer diameter of the tube it takes.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub tube_od: Option<Nm>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// How a part changes the medium that reaches one of its ports (doc 11 §5.3). The path itself is the FnDef's
+/// valve model.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "FluidTransform")]
+pub enum FluidTransform {
+    /// A pressure regulator: the medium at `outlet` is the root medium at `p_set`.
+    Regulator {
+        /// The outlet port's designation.
+        #[schemars(with = "IdentS")]
+        outlet: Ident,
+        /// The set pressure (bar, gauge).
+        #[schemars(with = "Dec3S")]
+        p_set: Dec3,
+    },
+    /// An ejector: the medium at `vacuum` is vacuum from the root medium.
+    Ejector {
+        /// The vacuum port's designation.
+        #[schemars(with = "IdentS")]
+        vacuum: Ident,
+    },
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
 }
 
 /// The enclosure section of a part (FR-PRT-024, doc 12 §2.5), lengths in nanometres.
@@ -2423,6 +2710,9 @@ open_enum!(
     ExtraVariantKind,
     ContactKind,
     FluidPortRole,
+    ValvePath,
+    Actuator,
+    FluidTransform,
     Side,
     ClampKey,
     InternalKind,

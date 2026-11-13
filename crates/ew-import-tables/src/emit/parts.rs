@@ -473,7 +473,7 @@ pub(crate) fn emit(
                 }),
                 fluid: (!solenoids.is_empty()).then(|| FluidSection {
                     solenoids,
-                    extra: Default::default(),
+                    ..FluidSection::default()
                 }),
                 ..PartSections::default()
             },

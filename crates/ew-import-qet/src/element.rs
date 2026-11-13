@@ -374,6 +374,7 @@ pub(crate) fn read_on_stack(
             }
             extra.insert("source_ref".to_owned(), source_ref(&fndef_key));
             let def = FnDef {
+                valve_model: None,
                 meta: meta.clone(),
                 category: g.category,
                 contact_kind: g.contact_kind,

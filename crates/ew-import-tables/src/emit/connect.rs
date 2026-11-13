@@ -680,6 +680,7 @@ pub(crate) fn emit_junctions(cx: &mut Cx<'_>, table: Option<&Table>) {
         }
         let sequence = std::mem::take(&mut sequences[i]);
         cx.records.push(Record::Junction(Junction {
+            fitting: None,
             id: p.id,
             v: 1,
             page: p.page,

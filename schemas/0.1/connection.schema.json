@@ -276,11 +276,41 @@
     },
     "FluidLine": {
       "additionalProperties": true,
-      "description": "A fluid line (doc 11 §2.4): its line kind. The tube specification and the length of 1.0 stay in `extra`.",
+      "description": "A fluid line (doc 11 §2.4): its line kind, the tube overrides of the line (level 4 of doc 11 §5.4), its length and\nthe fitting parts at its ends. The 1.0 members are optional and additive within format 0.1 (ADR-0011 amendment 6).",
       "properties": {
+        "fitting_a": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The fitting part at end a."
+        },
+        "fitting_b": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The fitting part at end b."
+        },
+        "length": {
+          "$ref": "#/$defs/LengthSource",
+          "description": "Where the length comes from; default missing."
+        },
         "line_kind": {
           "$ref": "#/$defs/LineKind",
           "description": "The line kind; default working."
+        },
+        "tube": {
+          "$ref": "#/$defs/TubeSpec",
+          "description": "The tube values set on this line; every other value is derived (doc 11 §5.4)."
         }
       },
       "type": "object"
@@ -290,6 +320,34 @@
       "minLength": 1,
       "pattern": "^[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000](?:[^\\u0000-\\u001F\\u007F-\\u009F]*[^\\u0000-\\u0020\\u007F-\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000])?$",
       "type": "string"
+    },
+    "LengthSource": {
+      "description": "The source of a cable length (FR-CBL-009). The committed sources `Estimated` and `Routed` (1.0) are\nadditive variants of a later format.",
+      "oneOf": [
+        {
+          "const": "missing",
+          "description": "No length yet (the default); blocks release.",
+          "type": "string"
+        },
+        {
+          "additionalProperties": false,
+          "description": "Entered by hand.",
+          "properties": {
+            "manual": {
+              "$ref": "#/$defs/Nm"
+            }
+          },
+          "required": [
+            "manual"
+          ],
+          "type": "object"
+        },
+        {
+          "const": "from_part",
+          "description": "From the cable part (pre-assembled length).",
+          "type": "string"
+        }
+      ]
     },
     "LineKind": {
       "description": "The kind of a fluid line (doc 11 §2.4): pilot and drain lines are drawn dashed.",
@@ -424,6 +482,159 @@
         "lineage",
         "key"
       ],
+      "type": "object"
+    },
+    "TempRange": {
+      "additionalProperties": true,
+      "description": "A temperature range in °C; either end may be open.",
+      "properties": {
+        "max": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The highest temperature."
+        },
+        "min": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The lowest temperature."
+        }
+      },
+      "type": "object"
+    },
+    "TubeMaterial": {
+      "description": "The material of a tube (doc 11 §2.4).",
+      "oneOf": [
+        {
+          "const": "pu",
+          "description": "Polyurethane.",
+          "type": "string"
+        },
+        {
+          "const": "pa",
+          "description": "Polyamide.",
+          "type": "string"
+        },
+        {
+          "const": "pe",
+          "description": "Polyethylene.",
+          "type": "string"
+        },
+        {
+          "const": "ptfe",
+          "description": "PTFE.",
+          "type": "string"
+        },
+        {
+          "const": "pvc",
+          "description": "PVC.",
+          "type": "string"
+        },
+        {
+          "const": "cu",
+          "description": "Copper.",
+          "type": "string"
+        },
+        {
+          "const": "steel",
+          "description": "Steel.",
+          "type": "string"
+        }
+      ]
+    },
+    "TubeSpec": {
+      "additionalProperties": true,
+      "description": "A tube specification (doc 11 §2.4), every value optional: the overrides of a line, a medium's default and the\nproject's default use the same shape, and the effective specification is resolved value by value (doc 11 §5.4).",
+      "properties": {
+        "colour": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ColourSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The colour (an IEC 60757 code)."
+        },
+        "id": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The inner diameter."
+        },
+        "material": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TubeMaterial"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The material."
+        },
+        "od": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Nm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The outer diameter."
+        },
+        "p_rating": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Dec3"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The pressure rating (bar)."
+        },
+        "part": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PartRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The tube part."
+        },
+        "t_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TempRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The temperature range (°C)."
+        }
+      },
       "type": "object"
     },
     "Uuid": {

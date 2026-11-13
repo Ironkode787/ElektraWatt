@@ -438,6 +438,12 @@ use IndexName as I;
 pub static LINKS: &[LinkDecl] = &[
     // project
     lineage_link!(Project),
+    // The project's default tube part (WP-S1.25): load-tolerant, as the fluid line's parts.
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Project."settings.fluid.default_tube.part.copy" -> Part, Forbid, None,
+            |v, out| opt(v.settings.fluid.default_tube.part.as_ref().map(|p| p.copy), out))
+    },
     link!(Project."supply.origin.source" -> ExternalRef, Unlink, None,
     |v, out| opt(v.supply.as_ref().and_then(|s| s.origin.as_ref()).and_then(|o| o.source), out),
     Some(|row, del| {
@@ -631,6 +637,32 @@ pub static LINKS: &[LinkDecl] = &[
     })),
     link!(Connection."overrides.wire_part.copy" -> Part, Forbid, None,
         |v, out| opt(v.overrides.wire_part.as_ref().map(|p| p.copy), out)),
+    // A fluid line's tube and fitting parts (WP-S1.25), kept alive like part uses; load-tolerant, because an older 0.1
+    // build kept the members in `extra` and did not enforce them (ADR-0011 amendment 6).
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Connection."kind.fluid.tube.part.copy" -> Part, Forbid, None, |v, out| {
+            if let ConnectionKind::Fluid(l) = &v.kind {
+                opt(l.tube.part.as_ref().map(|p| p.copy), out);
+            }
+        })
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Connection."kind.fluid.fitting_a.copy" -> Part, Forbid, None, |v, out| {
+            if let ConnectionKind::Fluid(l) = &v.kind {
+                opt(l.fitting_a.as_ref().map(|p| p.copy), out);
+            }
+        })
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Connection."kind.fluid.fitting_b.copy" -> Part, Forbid, None, |v, out| {
+            if let ConnectionKind::Fluid(l) = &v.kind {
+                opt(l.fitting_b.as_ref().map(|p| p.copy), out);
+            }
+        })
+    },
     lineage_link!(Connection),
     // junction
     link!(Junction."page" -> Page, Cascade, Some(I::JunctionsByPage), |v, out| id(v.page, out)),
@@ -646,6 +678,11 @@ pub static LINKS: &[LinkDecl] = &[
         j.sequence.retain(|c| !gone(del, Kind::Connection, *c));
         Some(AnyRow::Junction(Arc::new(j)))
     })),
+    // A fluid tee's part (WP-S1.25): load-tolerant, as the fluid line's parts.
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Junction."fitting.copy" -> Part, Forbid, None, |v, out| opt(v.fitting.as_ref().map(|p| p.copy), out))
+    },
     lineage_link!(Junction),
     // conductor
     link!(Conductor."cable" -> Device, Cascade, Some(I::ConductorsByCable), |v, out| id(v.cable, out)),
@@ -739,6 +776,35 @@ pub static LINKS: &[LinkDecl] = &[
         Some(AnyRow::PhysicalNet(Arc::new(n)))
     })),
     lineage_link!(PhysicalNet),
+    // medium and medium_def (WP-S1.25): every link load-tolerant, because an older 0.1 build kept both kinds verbatim and
+    // did not apply them (ADR-0011 amendment 6); a definition whose CP or medium is gone seeds nothing (doc 11 §5.3).
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Medium."default_tube.part.copy" -> Part, Forbid, None,
+            |v, out| opt(v.default_tube.part.as_ref().map(|p| p.copy), out))
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(Medium."line_kind_tubes[].tube.part.copy" -> Part, Forbid, None, |v, out| {
+            for t in &v.line_kind_tubes {
+                opt(t.tube.part.as_ref().map(|p| p.copy), out);
+            }
+        })
+    },
+    lineage_link!(Medium),
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(MediumDef."at.cp[0]" -> Function, Unlink, None, |v, out| cp(&v.at, out), DROP)
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(MediumDef."at.junction" -> Junction, Unlink, None, |v, out| junction(&v.at, out), DROP)
+    },
+    LinkDecl {
+        load_tolerant: true,
+        ..link!(MediumDef."medium" -> Medium, Cascade, None, |v, out| id(v.medium, out))
+    },
+    lineage_link!(MediumDef),
     // page_item (EW-INV-022, EW-INV-023)
     link!(PageItem."page" -> Page, Cascade, Some(I::PageItemsByPage), |v, out| id(v.page, out)),
     MARKER_LIST_LINK,

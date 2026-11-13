@@ -338,6 +338,7 @@ pub(crate) fn connection(
 
 pub(crate) fn junction(junction_id: Id<Junction>, page: Id<Page>, sequence: Vec<Id<Connection>>) -> Junction {
     Junction {
+        fitting: None,
         id: junction_id,
         v: 1,
         page,
@@ -383,6 +384,7 @@ fn lib_copy<T>(copy_id: Id<T>, item: T) -> LibCopy<T> {
 
 pub(crate) fn fndef(fndef_id: Id<FnDef>, cps: &[&str]) -> LibCopy<FnDef> {
     let item = FnDef {
+        valve_model: None,
         meta: Default::default(),
         category: (ident("ew"), ident("test"), ident("fixture")),
         contact_kind: ContactKind::Terminal,

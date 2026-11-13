@@ -137,15 +137,125 @@ pub struct BusLine {
     pub extra: Extra,
 }
 
-/// A fluid line (doc 11 §2.4): its line kind. The tube specification and the length of 1.0 stay in `extra`.
+/// A fluid line (doc 11 §2.4): its line kind, the tube overrides of the line (level 4 of doc 11 §5.4), its length and
+/// the fitting parts at its ends. The 1.0 members are optional and additive within format 0.1 (ADR-0011 amendment 6).
 #[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct FluidLine {
     /// The line kind; default working.
     #[serde(default, skip_serializing_if = "is_default")]
     pub line_kind: LineKind,
+    /// The tube values set on this line; every other value is derived (doc 11 §5.4).
+    #[serde(default, skip_serializing_if = "TubeSpec::is_empty")]
+    pub tube: TubeSpec,
+    /// Where the length comes from; default missing.
+    #[serde(default, skip_serializing_if = "is_default")]
+    pub length: crate::LengthSource,
+    /// The fitting part at end a.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fitting_a: Option<PartRef>,
+    /// The fitting part at end b.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fitting_b: Option<PartRef>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
+}
+
+/// A tube specification (doc 11 §2.4), every value optional: the overrides of a line, a medium's default and the
+/// project's default use the same shape, and the effective specification is resolved value by value (doc 11 §5.4).
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TubeSpec {
+    /// The outer diameter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub od: Option<Nm>,
+    /// The inner diameter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<NmS>")]
+    pub id: Option<Nm>,
+    /// The material.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub material: Option<TubeMaterial>,
+    /// The colour (an IEC 60757 code).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub colour: Option<ColourSpec>,
+    /// The tube part.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part: Option<PartRef>,
+    /// The pressure rating (bar).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Dec3S>")]
+    pub p_rating: Option<Dec3>,
+    /// The temperature range (°C).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub t_range: Option<TempRange>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+impl TubeSpec {
+    /// Whether nothing is set.
+    pub fn is_empty(&self) -> bool {
+        *self == TubeSpec::default()
+    }
+}
+
+/// A temperature range in °C; either end may be open.
+#[derive(Clone, PartialEq, Eq, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TempRange {
+    /// The lowest temperature.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Dec3S>")]
+    pub min: Option<Dec3>,
+    /// The highest temperature.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Dec3S>")]
+    pub max: Option<Dec3>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The material of a tube (doc 11 §2.4).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+#[serde(remote = "Self")]
+#[schemars(rename = "TubeMaterial")]
+pub enum TubeMaterial {
+    /// Polyurethane.
+    Pu,
+    /// Polyamide.
+    Pa,
+    /// Polyethylene.
+    Pe,
+    /// PTFE.
+    Ptfe,
+    /// PVC.
+    Pvc,
+    /// Copper.
+    Cu,
+    /// Steel.
+    Steel,
+    /// A value of a newer format, kept verbatim.
+    #[serde(skip)]
+    Unknown(Value),
+}
+
+impl TubeMaterial {
+    /// The printed abbreviation ("PU", "steel"); empty for a material of a newer format.
+    pub fn code(&self) -> &'static str {
+        match self {
+            TubeMaterial::Pu => "PU",
+            TubeMaterial::Pa => "PA",
+            TubeMaterial::Pe => "PE",
+            TubeMaterial::Ptfe => "PTFE",
+            TubeMaterial::Pvc => "PVC",
+            TubeMaterial::Cu => "Cu",
+            TubeMaterial::Steel => "steel",
+            TubeMaterial::Unknown(_) => "",
+        }
+    }
 }
 
 /// The kind of a fluid line (doc 11 §2.4): pilot and drain lines are drawn dashed.
@@ -312,9 +422,7 @@ impl AssignedNumber {
 // Junction
 
 /// An explicit T-node (ADR-0007 amendment 2, doc 03 §9, rank 35). The sequence is the wiring order; the
-/// style is a display choice.
-///
-/// Not in v0: `fitting` (fluid tees, doc 11 §5.1).
+/// style is a display choice. On a fluid line it is a tee, whose part is `fitting` (doc 11 §5.1).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Junction {
     /// The record ID.
@@ -337,6 +445,9 @@ pub struct Junction {
     /// The connections in wiring order; arm 1 is the feed arm.
     #[schemars(with = "Vec<UuidS>")]
     pub sequence: Vec<Id<Connection>>,
+    /// The tee-fitting part of a fluid junction (doc 11 §5.1, FR-FLU-031); optional and additive within format 0.1.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fitting: Option<PartRef>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
@@ -635,6 +746,7 @@ open_enum!(
     ConnectionKind,
     BridgeKind,
     LineKind,
+    TubeMaterial,
     NumberSpec,
     JunctionStyle,
     JunctionWiring,

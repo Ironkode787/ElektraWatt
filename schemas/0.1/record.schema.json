@@ -15,6 +15,9 @@
       "$ref": "physical_net.schema.json"
     },
     {
+      "$ref": "medium.schema.json"
+    },
+    {
       "$ref": "import_lineage.schema.json"
     },
     {
@@ -52,6 +55,9 @@
     },
     {
       "$ref": "potential_def.schema.json"
+    },
+    {
+      "$ref": "medium_def.schema.json"
     },
     {
       "$ref": "bond.schema.json"

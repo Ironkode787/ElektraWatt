@@ -88,6 +88,7 @@ mod json;
 mod kind;
 mod layout;
 mod library;
+mod medium;
 mod page;
 mod page_item;
 mod plc;
@@ -118,8 +119,8 @@ pub use conflict::{Conflict, ConflictBody, ConflictSide, DELETED_SIDE, FILE_CONF
 pub use connect::{
     AcDc, AssignedNumber, BevelSpec, Bond, BondKind, BridgeKind, BridgeSpec, BusLine, CircuitClass,
     Conductor, Connection, ConnectionKind, FluidLine, Junction, JunctionStyle, JunctionWiring, LineKind,
-    NumberSpec, PotentialDef, PotentialEarthing, PotentialEnv, PotentialType, WireFlags, WireOverrides,
-    WireProps,
+    NumberSpec, PotentialDef, PotentialEarthing, PotentialEnv, PotentialType, TempRange, TubeMaterial,
+    TubeSpec, WireFlags, WireOverrides, WireProps,
 };
 pub use device::{
     AccessoryKind, Assembly, AssemblyConfig, BomBasis, Cable, ClosureKind, CoreIdMode, CpOverride, Device,
@@ -141,20 +142,22 @@ pub use layout::{
     Placement, RailParams, SurfaceKind,
 };
 pub use library::{
-    Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim, Arrangement, CableCore, CategoryKey,
-    CirclePrim, ClampKey, ClampType, Clearance, Colour, Confidence, Configured, ConfiguredComponent,
-    ContactData, ContactKind, CpData, CpDef, Dash, DataArea, Deprecation, Dir4, Discipline, DuctSection,
-    EllipsePrim, EnclosureSection, ExtraVariant, ExtraVariantKind, FluidPortRole, FluidSection, FnDef,
-    FnFlags, FormCell, FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, ImagePrim,
-    InternalKind, InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef,
-    MacroInstance, MacroKind, MacroLink, MacroVariant, Manufacturer, MechData, MountKind, NamedPoint,
-    OrderUnit, Overflow, Part, PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup, PlateSection,
-    PlcAllocation, PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef,
-    PlcProfilePin, PlcRender, PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim,
-    RepType, Rgb, RowTemplate, RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback,
-    SlotKind, Stroke, SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, ValueSet, VarBinding,
-    VarDef, VarType, WrapPolicy,
+    Actuation, Actuator, Align, AlternativeKind, AlternativeRef, AnchorPolicy, ArcPrim, Arrangement,
+    CableCore, CategoryKey, CirclePrim, ClampKey, ClampType, Clearance, CoilData, Colour, Confidence,
+    Configured, ConfiguredComponent, ContactData, ContactKind, CpData, CpDef, Dash, DataArea, Deprecation,
+    Dir4, Discipline, DuctSection, EllipsePrim, EnclosureSection, ExtraVariant, ExtraVariantKind,
+    FittingData, FluidPortData, FluidPortRole, FluidSection, FluidTransform, FnDef, FnFlags, FormCell,
+    FormDef, FormKind, FrameColumns, FrameGrid, FrameRows, FreeProp, GalleryData, ImagePrim, InternalKind,
+    InternalLinkDef, ItemMeta, ItemStatus, LibCopy, LibItem, Library, LinePrim, MacroDef, MacroInstance,
+    MacroKind, MacroLink, MacroVariant, Manufacturer, MechData, MountKind, NamedPoint, OrderUnit, Overflow,
+    Part, PartKind, PartSections, PassThroughSpec, Pen, PlaceholderGroup, PlateSection, PlcAllocation,
+    PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef, PlcProfilePin, PlcRender,
+    PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate,
+    RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, Stroke, SwitchPos,
+    SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, TubeData, ValueSet, ValveModel,
+    ValvePath, ValveSection, VarBinding, VarDef, VarType, WrapPolicy,
 };
+pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};
 pub use page::{
     BoxCp, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,
     ManualSelection, Page, PageType, PinMapEntry, ReportBlock, ReportKind, ReportSource, Representation,

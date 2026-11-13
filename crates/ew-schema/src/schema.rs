@@ -76,6 +76,8 @@ pub fn kind_schema(kind: Kind) -> Option<Value> {
         Kind::Conductor => generate::<Conductor>(kind),
         Kind::Channel => generate::<Channel>(kind),
         Kind::PotentialDef => generate::<PotentialDef>(kind),
+        Kind::MediumDef => generate::<crate::MediumDef>(kind),
+        Kind::Medium => generate::<crate::Medium>(kind),
         Kind::Bond => generate::<Bond>(kind),
         Kind::DeviceLink => generate::<DeviceLink>(kind),
         Kind::PageItem => generate::<PageItem>(kind),

@@ -12,9 +12,9 @@ use ew_ids::Id;
 use ew_schema::{
     AnyId, Bond, Carrier, Channel, Conductor, Conflict, Connection, Device, DeviceLink, Enclosure,
     ExternalRef, FnDef, FormDef, Function, ImportLineage, ImportRun, Junction, Kind, LayoutSpace, LibCopy,
-    LogicalNet, MacroDef, MacroInstance, Manufacturer, MountingSurface, Page, PageItem, Part, PhysicalNet,
-    Placement, PlcConfigProject, PlcProfileDef, PotentialDef, Project, ReportBlock, Representation, Revision,
-    Section, StructureBox, StructureNode, SymbolDef, Waiver,
+    LogicalNet, MacroDef, MacroInstance, Manufacturer, Medium, MediumDef, MountingSurface, Page, PageItem,
+    Part, PhysicalNet, Placement, PlcConfigProject, PlcProfileDef, PotentialDef, Project, ReportBlock,
+    Representation, Revision, Section, StructureBox, StructureNode, SymbolDef, Waiver,
 };
 
 use crate::diff::Presence;
@@ -265,6 +265,7 @@ entities! {
     PlcConfigProject: PlcConfigProject, PlcConfigProject, plc_config_projects;
     LogicalNet: LogicalNet, LogicalNet, logical_nets;
     PhysicalNet: PhysicalNet, PhysicalNet, physical_nets;
+    Medium: Medium, Medium, media;
     ImportLineage: ImportLineage, ImportLineage, lineages;
     StructureNode: StructureNode, StructureNode, structure;
     Section: Section, Section, sections;
@@ -278,6 +279,7 @@ entities! {
     Conductor: Conductor, Conductor, conductors;
     Channel: Channel, Channel, channels;
     PotentialDef: PotentialDef, PotentialDef, potential_defs;
+    MediumDef: MediumDef, MediumDef, medium_defs;
     Bond: Bond, Bond, bonds;
     DeviceLink: DeviceLink, DeviceLink, device_links;
     PageItem: PageItem, PageItem, page_items;
