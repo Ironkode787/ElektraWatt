@@ -55,6 +55,7 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 
+mod draft;
 mod importer;
 mod input;
 mod report;
@@ -65,6 +66,7 @@ pub use ew_schema::SourceRef;
 /// dependency on `ew-schema` of its own (`ew-import-catalog` depends on this crate only).
 pub use ew_schema;
 
+pub use draft::PartDraft;
 /// The ID types and the UUIDv5 rules of imported identities (ADR-0004 amendment 4), re-exported for the same reason.
 pub use ew_ids;
 pub use importer::{ImportBatch, ImportContext, ImportError, ImportMode, Limits, LineageInfo};

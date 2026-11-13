@@ -12,7 +12,8 @@ use ew_interop_api::ew_schema::{
     Date, LibCopy, LibDocument, LibItem, Library, Manufacturer, Part, Sha256, normalize_nfc,
 };
 use ew_interop_api::{
-    Code, ImportError, ImportInput, ImportReport, Limits, ReportEntry, Severity, SourceInfo, SourceLocation,
+    Code, ImportError, ImportInput, ImportReport, Limits, PartDraft, ReportEntry, Severity, SourceInfo,
+    SourceLocation,
 };
 use serde::Serialize;
 use serde_json::{Map, Value, json};
@@ -884,10 +885,10 @@ pub fn parse_parts(
                 continue;
             }
         };
-        placer.place(&PartSource {
+        placer.place(&PartDraft {
             line: row.line,
-            part_number: &pn,
-            manufacturer: &maker_text,
+            part_number: pn,
+            manufacturer: maker_text,
             body,
             meta: Map::new(),
             sources: vec![file.clone()],
@@ -896,27 +897,10 @@ pub fn parse_parts(
     Ok(placer.finish())
 }
 
-/// One part as a source gives it, for [`Placer::place`]: the text of its part number and manufacturer cells and the
-/// members of the `Part` that do not depend on them.
-#[derive(Clone, Debug)]
-pub struct PartSource<'a> {
-    /// The row's line, or the part's number in its file: the location of the report entries.
-    pub line: u32,
-    /// The part number as the source has it ("A / B" names two candidates, FR-PRT-004).
-    pub part_number: &'a str,
-    /// The manufacturer as the source names it: a master record's key, name, alias or brand, else a new manufacturer.
-    pub manufacturer: &'a str,
-    /// The part's JSON members but `meta`, `manufacturer` and `part_number`.
-    pub body: Map<String, Value>,
-    /// Members of `meta` beyond `key`, `sources` and `as_of` (`licence`, `foreign_terms`).
-    pub meta: Map<String, Value>,
-    /// `meta.sources`: where the data came from.
-    pub sources: Vec<String>,
-}
-
 /// The parts of a source placed in a target one by one: the manufacturer resolved, the part number split and
 /// normalised, the item ID minted, duplicates and held parts told (new, updated, unchanged, duplicate, rejected). The
-/// one rule of every parts import ([`parse_parts`], the EPLAN readers): a source only decides what a part is.
+/// one rule of every parts import ([`parse_parts`], the EPLAN readers): a source only decides what a part is, as a
+/// [`PartDraft`].
 pub struct Placer<'a> {
     file: String,
     target: &'a CatalogTarget<'a>,
@@ -982,14 +966,14 @@ impl<'a> Placer<'a> {
     }
 
     /// Places the part (or the candidates of its "A / B" number) of `src`.
-    pub fn place(&mut self, src: &PartSource<'_>) {
-        let (line, pn) = (src.line, src.part_number);
+    pub fn place(&mut self, src: &PartDraft) {
+        let (line, pn) = (src.line, src.part_number.as_str());
         let target = self.target;
         let library = target.library;
         let at_pn = self.at(line, Some(pn));
         let maker = match self
             .makers
-            .resolve(src.manufacturer, library, &mut self.report, &at_pn)
+            .resolve(&src.manufacturer, library, &mut self.report, &at_pn)
         {
             Ok(m) => m,
             Err(why) => {
