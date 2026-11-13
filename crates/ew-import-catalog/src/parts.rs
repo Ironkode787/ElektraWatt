@@ -845,12 +845,7 @@ pub fn parse_parts(
         .iter()
         .map(|(m, i)| (m.clone(), sheet.headers[*i].clone()))
         .collect();
-    let library = target.library;
-    let mut makers = Makers::new(master, library, target.local_manufacturers, target.shared);
-    let mut rows: Vec<RowOutcome> = Vec::new();
-    let mut parts: Vec<LibDocument> = Vec::new();
-    // (manufacturer key, pn_norm) → (line, the part as first read).
-    let mut seen: BTreeMap<(String, String), (u32, Part)> = BTreeMap::new();
+    let mut placer = Placer::new(report, &file, master, target);
     for row in &sheet.rows {
         if row
             .cells
@@ -859,12 +854,6 @@ pub fn parse_parts(
         {
             continue;
         }
-        let at = |item: Option<&str>| SourceLocation {
-            file: file.clone(),
-            item: item.map(str::to_owned),
-            line: Some(row.line),
-            ..SourceLocation::default()
-        };
         let pn_cell = match &row.cells[bound
             .iter()
             .find(|(m, _)| *m == Member::PartNumber)
@@ -873,58 +862,145 @@ pub fn parse_parts(
             Cell::Text(t) => clean(t),
             Cell::Error(_) => String::new(),
         };
-        let reject =
-            |rows: &mut Vec<RowOutcome>, report: &mut ImportReport, pn: &str, candidate, why: String| {
-                report.push(
-                    ReportEntry::new(
-                        Code::MALFORMED_ITEM,
-                        Severity::Error,
-                        format!("row rejected: {why}"),
-                    )
-                    .at(at((!pn.is_empty()).then_some(pn))),
-                );
-                report.stats.dropped += 1;
-                rows.push(RowOutcome {
-                    line: row.line,
-                    part_number: pn.to_owned(),
-                    item: None,
-                    candidate,
-                    status: RowStatus::Rejected(why),
-                });
-            };
         let v = match values(row, &bound, &sheet.headers) {
             Ok(v) => v,
             Err(why) => {
-                reject(&mut rows, &mut report, &pn_cell, false, why);
+                placer.reject(row.line, &pn_cell, false, why);
                 continue;
             }
         };
         let Some(pn) = v.get(&Member::PartNumber).cloned() else {
-            reject(&mut rows, &mut report, "", false, "no part number".into());
+            placer.reject(row.line, "", false, "no part number".into());
             continue;
         };
         let Some(maker_text) = v.get(&Member::Manufacturer).cloned() else {
-            reject(&mut rows, &mut report, &pn, false, "no manufacturer".into());
+            placer.reject(row.line, &pn, false, "no manufacturer".into());
             continue;
         };
         let body = match body(&v, &headers) {
             Ok(b) => b,
             Err(why) => {
-                reject(&mut rows, &mut report, &pn, false, why);
+                placer.reject(row.line, &pn, false, why);
                 continue;
             }
         };
-        let maker = match makers.resolve(&maker_text, library, &mut report, &at(Some(&pn))) {
+        placer.place(&PartSource {
+            line: row.line,
+            part_number: &pn,
+            manufacturer: &maker_text,
+            body,
+            meta: Map::new(),
+            sources: vec![file.clone()],
+        });
+    }
+    Ok(placer.finish())
+}
+
+/// One part as a source gives it, for [`Placer::place`]: the text of its part number and manufacturer cells and the
+/// members of the `Part` that do not depend on them.
+#[derive(Clone, Debug)]
+pub struct PartSource<'a> {
+    /// The row's line, or the part's number in its file: the location of the report entries.
+    pub line: u32,
+    /// The part number as the source has it ("A / B" names two candidates, FR-PRT-004).
+    pub part_number: &'a str,
+    /// The manufacturer as the source names it: a master record's key, name, alias or brand, else a new manufacturer.
+    pub manufacturer: &'a str,
+    /// The part's JSON members but `meta`, `manufacturer` and `part_number`.
+    pub body: Map<String, Value>,
+    /// Members of `meta` beyond `key`, `sources` and `as_of` (`licence`, `foreign_terms`).
+    pub meta: Map<String, Value>,
+    /// `meta.sources`: where the data came from.
+    pub sources: Vec<String>,
+}
+
+/// The parts of a source placed in a target one by one: the manufacturer resolved, the part number split and
+/// normalised, the item ID minted, duplicates and held parts told (new, updated, unchanged, duplicate, rejected). The
+/// one rule of every parts import ([`parse_parts`], the EPLAN readers): a source only decides what a part is.
+pub struct Placer<'a> {
+    file: String,
+    target: &'a CatalogTarget<'a>,
+    makers: Makers<'a>,
+    rows: Vec<RowOutcome>,
+    parts: Vec<LibDocument>,
+    /// (manufacturer key, pn_norm) → (line, the part as first read).
+    seen: BTreeMap<(String, String), (u32, Part)>,
+    report: ImportReport,
+}
+
+impl<'a> Placer<'a> {
+    /// A placer into `target` for the source `file` (its name, for locations), with the manufacturer master `master`
+    /// and the report `report` the source's reader began.
+    pub fn new(
+        report: ImportReport,
+        file: &str,
+        master: &'a [LibCopy<Manufacturer>],
+        target: &'a CatalogTarget<'a>,
+    ) -> Placer<'a> {
+        Placer {
+            file: file.to_owned(),
+            target,
+            makers: Makers::new(master, target.library, target.local_manufacturers, target.shared),
+            rows: Vec::new(),
+            parts: Vec::new(),
+            seen: BTreeMap::new(),
+            report,
+        }
+    }
+
+    /// The report so far, for the reader's own findings.
+    pub fn report_mut(&mut self) -> &mut ImportReport {
+        &mut self.report
+    }
+
+    fn at(&self, line: u32, item: Option<&str>) -> SourceLocation {
+        SourceLocation {
+            file: self.file.clone(),
+            item: item.map(str::to_owned),
+            line: Some(line),
+            ..SourceLocation::default()
+        }
+    }
+
+    /// Rejects a part (EW-IMP-002) with the reason; `candidate`: one of the candidates of an "A / B" number.
+    pub fn reject(&mut self, line: u32, pn: &str, candidate: bool, why: String) {
+        let entry = ReportEntry::new(
+            Code::MALFORMED_ITEM,
+            Severity::Error,
+            format!("row rejected: {why}"),
+        )
+        .at(self.at(line, (!pn.is_empty()).then_some(pn)));
+        self.report.push(entry);
+        self.report.stats.dropped += 1;
+        self.rows.push(RowOutcome {
+            line,
+            part_number: pn.to_owned(),
+            item: None,
+            candidate,
+            status: RowStatus::Rejected(why),
+        });
+    }
+
+    /// Places the part (or the candidates of its "A / B" number) of `src`.
+    pub fn place(&mut self, src: &PartSource<'_>) {
+        let (line, pn) = (src.line, src.part_number);
+        let target = self.target;
+        let library = target.library;
+        let at_pn = self.at(line, Some(pn));
+        let maker = match self
+            .makers
+            .resolve(src.manufacturer, library, &mut self.report, &at_pn)
+        {
             Ok(m) => m,
             Err(why) => {
-                reject(&mut rows, &mut report, &pn, false, why);
-                continue;
+                self.reject(line, pn, false, why);
+                return;
             }
         };
-        let names = candidates(&pn);
+        let names = candidates(pn);
         let split = names.len() > 1;
         if split {
-            report.push(
+            self.report.push(
                 ReportEntry::new(
                     Code::imp(5),
                     Severity::Warning,
@@ -938,16 +1014,15 @@ pub fn parse_parts(
                             .join(" and ")
                     ),
                 )
-                .at(at(Some(&pn))),
+                .at(at_pn),
             );
-            report.stats.inferred += 1;
+            self.report.stats.inferred += 1;
         }
         for name in names {
             let norm = pn_norm(&name);
             if norm.is_empty() {
-                reject(
-                    &mut rows,
-                    &mut report,
+                self.reject(
+                    line,
                     &name,
                     split,
                     format!("the part number `{name}` has no letters or digits"),
@@ -960,56 +1035,52 @@ pub fn parse_parts(
                 "item": maker.item.hyphenated().to_string(),
                 "version_req": caret(&maker.version),
             });
-            let mut meta = json!({
-                "key": format!("{}.{}", maker.key.to_lowercase(), norm.to_lowercase()),
-                "sources": [file],
-            });
+            let mut meta = src.meta.clone();
+            meta.insert(
+                "key".into(),
+                json!(format!("{}.{}", maker.key.to_lowercase(), norm.to_lowercase())),
+            );
+            meta.insert("sources".into(), json!(src.sources));
             if let Some(d) = target.as_of {
-                meta["as_of"] = json!(d);
+                meta.insert("as_of".into(), json!(d));
             }
-            let mut part = body.clone();
-            part.insert("meta".into(), meta);
+            let mut part = src.body.clone();
+            part.insert("meta".into(), Value::Object(meta));
             part.insert("manufacturer".into(), manufacturer);
             part.insert("part_number".into(), json!(name));
             let part: Part = match serde_json::from_value(Value::Object(part)) {
                 Ok(p) => p,
                 Err(e) => {
-                    reject(
-                        &mut rows,
-                        &mut report,
-                        &name,
-                        split,
-                        format!("a value does not parse: {e}"),
-                    );
+                    self.reject(line, &name, split, format!("a value does not parse: {e}"));
                     continue;
                 }
             };
             let dedupe = (maker.key.clone(), norm.clone());
-            if let Some((first, earlier)) = seen.get(&dedupe) {
+            if let Some((first, earlier)) = self.seen.get(&dedupe) {
+                let first = *first;
                 if *earlier == part {
-                    report.push(
-                        ReportEntry::new(
-                            Code::DROPPED_BY_DESIGN,
-                            Severity::Info,
-                            format!("row repeats line {first} (same manufacturer and part number): skipped"),
-                        )
-                        .at(at(Some(&name))),
-                    );
-                    rows.push(RowOutcome {
-                        line: row.line,
+                    let entry = ReportEntry::new(
+                        Code::DROPPED_BY_DESIGN,
+                        Severity::Info,
+                        format!("row repeats line {first} (same manufacturer and part number): skipped"),
+                    )
+                    .at(self.at(line, Some(&name)));
+                    self.report.push(entry);
+                    self.rows.push(RowOutcome {
+                        line,
                         part_number: name,
                         item: Some(item),
                         candidate: split,
-                        status: RowStatus::Duplicate { of_line: *first },
+                        status: RowStatus::Duplicate { of_line: first },
                     });
                 } else {
                     let why =
                         format!("same manufacturer and part number as line {first}, with other content");
-                    reject(&mut rows, &mut report, &name, split, why);
+                    self.reject(line, &name, split, why);
                 }
                 continue;
             }
-            seen.insert(dedupe, (row.line, part.clone()));
+            self.seen.insert(dedupe, (line, part.clone()));
             let (status, doc) = match (target.existing)(item) {
                 None => (RowStatus::New, copy(library, item, FIRST_VERSION, part)),
                 Some(held) if same_content(&part, &held.item) => (RowStatus::Unchanged, held),
@@ -1019,7 +1090,7 @@ pub fn parse_parts(
                             Some(v) => v,
                             None => {
                                 let why = format!("the held version `{}` cannot be bumped", held.version);
-                                reject(&mut rows, &mut report, &name, split, why);
+                                self.reject(line, &name, split, why);
                                 continue;
                             }
                         }
@@ -1035,34 +1106,45 @@ pub fn parse_parts(
                     )
                 }
             };
-            rows.push(RowOutcome {
-                line: row.line,
+            self.rows.push(RowOutcome {
+                line,
                 part_number: name,
                 item: Some(item),
                 candidate: split,
                 status,
             });
-            parts.push(LibDocument::Part(doc));
+            self.parts.push(LibDocument::Part(doc));
         }
     }
-    // By item ID (the map's order).
-    let manufacturers: Vec<LibCopy<Manufacturer>> = makers.emitted.into_values().collect();
-    report
-        .stats
-        .per_kind
-        .insert("part".into(), u32::try_from(parts.len()).unwrap_or(u32::MAX));
-    if !manufacturers.is_empty() {
-        report.stats.per_kind.insert(
-            "manufacturer".into(),
-            u32::try_from(manufacturers.len()).unwrap_or(u32::MAX),
-        );
+
+    /// The import: the parts and the manufacturers they name, the outcome of every part and the report.
+    pub fn finish(self) -> PartsImport {
+        let Placer {
+            makers,
+            rows,
+            parts,
+            mut report,
+            ..
+        } = self;
+        // By item ID (the map's order).
+        let manufacturers: Vec<LibCopy<Manufacturer>> = makers.emitted.into_values().collect();
+        report
+            .stats
+            .per_kind
+            .insert("part".into(), u32::try_from(parts.len()).unwrap_or(u32::MAX));
+        if !manufacturers.is_empty() {
+            report.stats.per_kind.insert(
+                "manufacturer".into(),
+                u32::try_from(manufacturers.len()).unwrap_or(u32::MAX),
+            );
+        }
+        PartsImport {
+            parts,
+            manufacturers: manufacturers.into_iter().map(LibDocument::Manufacturer).collect(),
+            rows,
+            report,
+        }
     }
-    Ok(PartsImport {
-        parts,
-        manufacturers: manufacturers.into_iter().map(LibDocument::Manufacturer).collect(),
-        rows,
-        report,
-    })
 }
 
 #[cfg(test)]
