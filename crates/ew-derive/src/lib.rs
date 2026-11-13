@@ -140,8 +140,8 @@ pub use ew_memo::{Counters, FamilyMemory, Mismatch, Oracle, Stats};
 pub use bond_carrier::{BondCarrierQ, Carrier};
 // The bus model's derived data.
 pub use bus::{
-    BusSegment, BusSegments, NetMaster, NetMembers, NetMembersOf, SegmentMember, bus_address_text, bus_core_pins,
-    bus_termination_text, external_partner_text, net_address_text, potential_member_count,
+    BusSegment, BusSegments, NetMaster, NetMembers, NetMembersOf, SegmentMember, bus_address_text,
+    bus_core_pins, bus_termination_text, external_partner_text, net_address_text, potential_member_count,
 };
 // The endpoint type of a carrier's ends (and of a component's members), for the crates above this one.
 pub use ew_model::EndpointKey;
@@ -178,15 +178,15 @@ pub use part_text::{
 pub use pattern::{PatternError, expand_pattern};
 pub use plc::{
     AddressIndex, AddressIndexV, AddressUse, ChannelAddr, ChannelAddrEntry, ChannelAddresses, ChannelStates,
-    ChannelTarget, ChannelTargets, ChannelText, ChannelTexts, ChannelsByTarget, EffectiveState, TargetedChannels, ModuleOrder,
+    ChannelTarget, ChannelTargets, ChannelText, ChannelTexts, ChannelsByTarget, EffectiveState, ModuleOrder,
     ModuleStart, ModuleStartOf, ModuleStarts, OrderedModule, PlcAddressText, PlcAddressTexts, PlcRow,
-    PlcRows, PortWindow, Slot, SolenoidPositions, SolenoidSlot, Start, TargetSource, address_profile,
-    address_profile_named, auto_address, builtin_profiles, canonical, channel_data_type, channel_kind_word,
-    channel_pin, coil_cp, coil_host, default_profile, driven_device, eval_map, iec_ident, iolink_device,
-    is_iec_ident, module_io, module_part, parse_plc_address, parse_plc_start, pin_pattern_error,
-    pinned_profile, port_windows, process_tag_parts, process_tag_scheme, profile_of, profiles_at_hand,
-    solenoid_channel, solenoid_coil, start_example, station_of, stations, stored, symbol_from_template,
-    symbol_template_error, unreadable_profile, valve_solenoids,
+    PlcRows, PortWindow, Slot, SolenoidPositions, SolenoidSlot, Start, TargetSource, TargetedChannels,
+    address_profile, address_profile_named, auto_address, builtin_profiles, canonical, channel_data_type,
+    channel_kind_word, channel_pin, coil_cp, coil_host, default_profile, driven_device, eval_map, iec_ident,
+    iolink_device, is_iec_ident, module_io, module_part, parse_plc_address, parse_plc_start,
+    pin_pattern_error, pinned_profile, port_windows, process_tag_parts, process_tag_scheme, profile_of,
+    profiles_at_hand, solenoid_channel, solenoid_coil, start_example, station_of, stations, stored,
+    symbol_from_template, symbol_template_error, unreadable_profile, valve_solenoids,
 };
 pub use potentials::{
     Attr, AttrSource, BondLink, Component, NameSource, Partition, Potential, PotentialAttrs, PotentialId,

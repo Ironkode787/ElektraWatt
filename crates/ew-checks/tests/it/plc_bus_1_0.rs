@@ -391,7 +391,14 @@ fn bus(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>) -
 }
 
 /// [`bus`] with the ports' part's `meta` (its confidence marks).
-fn bus_with_meta(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>, meta: &Value) -> ew_model::Model {
+fn bus_with_meta(
+    net: &Value,
+    a: &Value,
+    b: &Value,
+    part: &Value,
+    cable: Option<&Value>,
+    meta: &Value,
+) -> ew_model::Model {
     let mut fx = Fx::base();
     fx.fndef_with(
         PORT_DEF,
@@ -603,7 +610,10 @@ fn a_bus_finding_on_unverified_part_data_is_marked() {
             None,
             &meta,
         );
-        found(&m, "EW-BUS-005").iter().map(|f| f.unverified_data).collect::<Vec<_>>()
+        found(&m, "EW-BUS-005")
+            .iter()
+            .map(|f| f.unverified_data)
+            .collect::<Vec<_>>()
     };
     assert_eq!(rate(json!({"confidence": {"bus": "test"}})), [true, true]);
     assert_eq!(rate(json!({})), [false, false]);

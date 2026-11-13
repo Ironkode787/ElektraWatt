@@ -64,7 +64,11 @@ fn a_bus_section_types_its_members_and_keeps_the_rest() {
         Some((1, 125))
     );
     assert_eq!(
-        first.signals.iter().map(|(s, p)| (s.as_str(), p.as_str())).collect::<Vec<_>>(),
+        first
+            .signals
+            .iter()
+            .map(|(s, p)| (s.as_str(), p.as_str()))
+            .collect::<Vec<_>>(),
         [("1", "TD+")]
     );
     assert!(first.extra.is_empty(), "{:?}", first.extra);

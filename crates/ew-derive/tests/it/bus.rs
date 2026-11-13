@@ -295,7 +295,12 @@ fn a_cable_core_lands_on_the_pin_of_its_signal() {
     );
     fx.record(F1 + 0x1000)["parts"] = json!([{"part": {"copy": uid(PART)}, "qty": "1"}]);
     fx.fndef(PINS_DEF, ["Connector", "Bus", "Pins"], &[(0, "3"), (1, "8")]);
-    fx.symbol(PINS_SYM, PINS_DEF, json!("origin"), &[(0, 0, 0, 0), (1, 1, 0, 4_000_000)]);
+    fx.symbol(
+        PINS_SYM,
+        PINS_DEF,
+        json!("origin"),
+        &[(0, 0, 0, 0), (1, 1, 0, 4_000_000)],
+    );
     fx.function(PINS, Some(F1 + 0x1000), PINS_DEF, false);
     fx.rep(0x319, PAGE, PINS_SYM, &[PINS], 40_000_000, 0);
     let m = fx.build();
@@ -303,9 +308,21 @@ fn a_cable_core_lands_on_the_pin_of_its_signal() {
     let pins = |core: &str, shield: bool| {
         ew_derive::bus_core_pins(&q, id(W1), core, shield).map(|p| p.map(|c| (c.function, c.idx)))
     };
-    assert_eq!(pins("A", false), [Some((id(PINS), 1)), None], "A → pin 8 at F1's end, F2 has no map");
-    assert_eq!(pins("b", false), [Some((id(PINS), 0)), None], "signals compare without regard to case");
-    assert_eq!(pins("S", true), [None, None], "the shield goes to the housing, which no CP is");
+    assert_eq!(
+        pins("A", false),
+        [Some((id(PINS), 1)), None],
+        "A → pin 8 at F1's end, F2 has no map"
+    );
+    assert_eq!(
+        pins("b", false),
+        [Some((id(PINS), 0)), None],
+        "signals compare without regard to case"
+    );
+    assert_eq!(
+        pins("S", true),
+        [None, None],
+        "the shield goes to the housing, which no CP is"
+    );
     assert_eq!(pins("A", false).len(), 2);
     assert_eq!(ew_derive::bus_core_pins(&q, id(W2), "A", false), [None, None]);
 }

@@ -2049,7 +2049,9 @@ impl Query for ChannelsByTarget {
         for cfg in cfgs {
             for m in q.get::<ModuleOrder>(cfg).iter() {
                 for t in q.get::<ChannelTargets>(m.module).iter() {
-                    if let (Some(f), Some(TargetSource::Manual | TargetSource::Traced)) = (t.function, t.source) {
+                    if let (Some(f), Some(TargetSource::Manual | TargetSource::Traced)) =
+                        (t.function, t.source)
+                    {
                         out.entry(f).or_default().push(t.channel);
                     }
                     for cp in &t.passed {

@@ -10,11 +10,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::net::Ipv4Addr;
 
 use ew_derive::ew_ids::Id;
+use ew_derive::ew_schema::Confidence;
 use ew_derive::ew_schema::{
     AddrValue, BusPort, BusSystem, ConnectionKind, Endpoint, Function, Kind, LengthSource, LogicalNet,
     NetAddress, PartBusPort, PortRole,
 };
-use ew_derive::ew_schema::Confidence;
 use ew_derive::{BusSegments, NetMaster, NetMembersOf, Q, SegmentMember, part_confidence};
 
 use crate::finding::{Finding, Severity, Target};
@@ -328,7 +328,8 @@ impl Rule for Rate {
         let net_text = net_name(q, net);
         let mut out = Vec::new();
         for (f, function, port) in net_ports(q, net) {
-            let Some((pp, confidence)) = part_port(q, &function, &port).filter(|(p, _)| !p.rates.is_empty()) else {
+            let Some((pp, confidence)) = part_port(q, &function, &port).filter(|(p, _)| !p.rates.is_empty())
+            else {
                 continue;
             };
             if pp.rates.contains(&rate) {
@@ -640,7 +641,9 @@ impl Rule for WrongCable {
                             (!b.cable_for.is_empty()).then(|| (b.cable_for, part_confidence(copy, "bus")))
                         })
                     });
-                    if let Some((_, confidence)) = made_for.as_ref().filter(|(list, _)| !list.contains(&port.bus)) {
+                    if let Some((_, confidence)) =
+                        made_for.as_ref().filter(|(list, _)| !list.contains(&port.bus))
+                    {
                         let tag = full_tag(q, cable, "the cable");
                         out.push(
                             Finding::new(
@@ -673,7 +676,8 @@ impl Rule for WrongCable {
                     continue;
                 };
                 let mine = part_port(q, function, port).and_then(|(p, c)| p.connector.map(|k| (k, c)));
-                let theirs = part_port(q, other_fn, other_port).and_then(|(p, c)| p.connector.map(|k| (k, c)));
+                let theirs =
+                    part_port(q, other_fn, other_port).and_then(|(p, c)| p.connector.map(|k| (k, c)));
                 if let (Some((a, ca)), Some((b, cb))) = (mine, theirs) {
                     if a != b {
                         let other_name = port_words(q, other);
