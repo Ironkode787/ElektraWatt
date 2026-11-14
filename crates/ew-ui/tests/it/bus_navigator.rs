@@ -40,11 +40,9 @@ fn the_bus_navigator_lists_nets_ports_and_segments_and_edits_an_address() {
     for want in ["Logical nets", "PROFIBUS DP", "Physical nets", "DP", "Segment 1"] {
         assert!(texts.contains(&want), "{want}: {texts:?}");
     }
-    let master = rows
-        .iter()
-        .find(|r| r.label == "-201U1 DP")
-        .expect("the station's port");
-    assert!(master.badges.iter().any(|b| b == "master") || rows.iter().any(|r| r.label == "-201U1 DP"));
+    assert!(rows.iter().any(|r| r.label == "-201U1 DP"), "the station's port");
+    // Every member names itself: the segment's external interruption point, which has no device, by its name.
+    assert!(rows.iter().all(|r| !r.label.trim().is_empty()), "{texts:?}");
     let connector = rows
         .iter()
         .find(|r| r.label == "-3X1 DP")

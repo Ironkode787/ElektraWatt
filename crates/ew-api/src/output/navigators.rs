@@ -2316,11 +2316,15 @@ fn bus_table(q: &Q, b: &mut Builder) {
                                 _ => {}
                             }
                             if port_row(b, s, *f, badges).is_none() {
-                                // An external interruption point at an end: by its device's tag.
+                                // An external interruption point at an end: by its device's tag, else by its name.
                                 let label = functions
                                     .get(*f)
                                     .and_then(|x| x.device)
                                     .map(|d| short_tag(q, d))
+                                    .filter(|t| !t.is_empty())
+                                    .or_else(|| {
+                                        q.get::<ew_derive::IpPairingQ>(()).ips.get(f).map(|i| i.name.clone())
+                                    })
                                     .unwrap_or_default();
                                 b.push(
                                     Some(s),
