@@ -8,13 +8,17 @@ EW-CORE-046,MF-14,1,0,ft,
 EW-CORE-051,,,5,extra,unpaired interruption points; the missing source of PE-1.1 (folio 101) is among them
 EW-CORE-052,,,0,extra,no ambiguous star source in the file
 EW-CORE-053,MF-13,1,0,ft,the text 3-B0 is reproduced
-EW-CORE-061,MF-25,,0,ft,
+EW-CORE-061,MF-25,,1,holds,the import text style qet.4 (the drawing's 4 pt texts) is below the minimum height
 EW-CORE-063,MF-26,,0,ft,
-EW-IMP-004,,,94,extra,
+EW-CORE-067,,,3,extra,wires through a connection point they do not join (folio 102)
+EW-CORE-068,,,13,extra,wires that run along another wire (folios 102 and 103)
+EW-CORE-069,,,6,extra,wires through a symbol
+EW-CORE-070,,,4,extra,wires through a text
+EW-IMP-004,,,2,extra,QET's tables imported as report blocks; the project's saved file path dropped
 EW-IMP-005,,,3,extra,
 EW-IMP-006,MF-22,1,1,holds,
 EW-IMP-007,MF-11;MF-12,,0,ft,
-EW-IMP-008,MF-08;MF-12,,13,extra,includes MF-08: the empty designation numbered 8
+EW-IMP-008,MF-08;MF-12,,12,extra,4 strips with terminals numbered for want of a designation (MF-08); 6 element information keys and 2 conductor properties kept as text
 EW-IMP-101,MF-01,2,0,doc,
 EW-IMP-103,MF-03,7,4,differs,
 EW-IMP-104,MF-04,1,2,differs,doc20 = 1 is an interpretation of 4 formats on 18 folios as one condition
