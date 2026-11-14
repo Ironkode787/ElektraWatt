@@ -513,3 +513,31 @@ fn the_palette_opens_a_parameter_form_and_runs_it_with_enter() {
         "the form ran and the palette closed"
     );
 }
+
+/// FT-1736: File ▸ Import… on a drawing opens a small dialog with four buttons; the dialog is as wide as they need, so
+/// no button runs out past the left edge its title stands at.
+#[test]
+fn a_small_dialog_is_as_wide_as_its_buttons() {
+    let tmp = Tmp::new();
+    let dir = tmp.golden("g.ew");
+    let dxf = tmp.0.join("plan.dxf");
+    std::fs::write(
+        &dxf,
+        "0\nSECTION\n2\nENTITIES\n0\nLINE\n8\n0\n10\n0\n20\n0\n11\n100\n21\n50\n0\nENDSEC\n0\nEOF\n",
+    )
+    .expect("the drawing");
+    let mut h = harness(&tmp, Scripted::default(), Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    support::dispatch(&mut h, "file.import", json!({"file": dxf.to_string_lossy()}));
+    settle(&mut h);
+    let title = h.get_by_label("Import plan.dxf").rect().left();
+    let first = ["Add as page", "Place under page", "Place and embed", "Cancel"]
+        .iter()
+        .map(|b| h.get_by_label_contains(b).rect().left())
+        .fold(f32::INFINITY, f32::min);
+    assert!(
+        first >= title - 1.0,
+        "the title at {title}, the first button at {first}"
+    );
+}

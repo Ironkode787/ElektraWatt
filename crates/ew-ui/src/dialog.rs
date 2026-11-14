@@ -78,7 +78,11 @@ pub(crate) fn show_sized(
     let width = match width {
         Some(w) => w,
         None if spec.form => form_width(&t, ctx.content_rect().width()),
-        None => t.size_dialog_small,
+        // A small dialog is as wide as its buttons need (FT-1736: four buttons ran out past its left edge, so the
+        // title stood indented past them), never under `size.dialog.small` nor wider than the window.
+        None => (footer_width(ctx, &t, spec) + 2.0 * t.space_5)
+            .max(t.size_dialog_small)
+            .min(ctx.content_rect().width()),
     };
     let frame = egui::Frame::new()
         .fill(t.surface_raised.color32())
@@ -157,6 +161,21 @@ pub(crate) fn footer_order(platform: Platform, others: usize) -> Vec<Slot> {
         Platform::Windows => std::iter::once(Slot::Primary).chain(rest).collect(),
         Platform::Linux => rest.chain(std::iter::once(Slot::Primary)).collect(),
     }
+}
+
+/// The width the footer's buttons take side by side: each its label in its font plus the button padding, at least
+/// `size.button.min-width`, and `space.3` between them.
+fn footer_width(ctx: &egui::Context, t: &crate::theme::Tokens, spec: &DialogSpec) -> f32 {
+    let pad = 2.0 * ctx.global_style().spacing.button_padding.x;
+    let width = |b: &DialogButton, font: &crate::theme::TypeToken| {
+        let galley = ctx.fonts_mut(|f| f.layout_no_wrap(b.label.clone(), theme::font(font), theme::NONE));
+        (galley.size().x + pad).max(t.size_button_min_width)
+    };
+    let buttons: Vec<f32> = std::iter::once(width(&spec.primary, &t.type_body_strong))
+        .chain(spec.secondary.iter().map(|b| width(b, &t.type_body)))
+        .chain(spec.danger.iter().map(|b| width(b, &t.type_body)))
+        .collect();
+    buttons.iter().sum::<f32>() + t.space_3 * buttons.len().saturating_sub(1) as f32
 }
 
 /// The footer: the destructive button at the left, the Primary and the others at the right in the platform's order.
