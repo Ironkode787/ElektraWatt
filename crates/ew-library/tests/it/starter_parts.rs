@@ -39,8 +39,10 @@ const VERSION: &str = "0.1.0";
 /// 3/2 solenoid valve EW-GEN-VLV-2 were added and the supply's outputs became sources, and the generic cable's cores
 /// state their cross-section (FT-1685: its cores printed the control circuit's 0.75 mm²) (unreleased, still 0.6.0),
 /// 0.7.0 since the generic valve terminal (module EW-GEN-VTM-1, valve EW-GEN-VLV-3, supply plate EW-GEN-VTS-1;
-/// FT-1326) was added.
-const LIBRARY_VERSION: &str = "0.7.0";
+/// FT-1326) was added, 0.8.0 since the fieldbus parts were added (the CPU with PROFINET and PROFIBUS DP
+/// EW-GEN-CPU-2, the remote I/O head EW-GEN-RIO-1, the PROFIBUS cable EW-GEN-CBL-2 and the Ethernet cable
+/// EW-GEN-CBL-3; the persona round of M3).
+const LIBRARY_VERSION: &str = "0.8.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -65,12 +67,26 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-CBL-1", "0.1.1"),
 ];
 
-/// The bus section of part `number`: the generic CPU's DP interface, the master by default; no
-/// termination (the plug carries it), connector, signal map or address range (a generic part claims no pinout). No
-/// other starter part has a bus interface.
+/// The bus section of part `number`: the generic CPUs' interfaces (EW-GEN-CPU-1's DP master; EW-GEN-CPU-2's DP
+/// master and PROFINET controller X1), the remote I/O head's DP slave and PROFINET device X1, and the bus systems
+/// the two bus cables are made for; no termination (the plug carries it), connector, signal map or address range (a
+/// generic part claims no pinout).
 fn bus_section(number: &str) -> Option<Value> {
-    (number == "EW-GEN-CPU-1")
-        .then(|| json!({"ports": [{"interface": "DP", "bus": "profibus_dp", "role": "master"}]}))
+    let port = |interface: &str, bus: &str, role: &str| json!({"interface": interface, "bus": bus, "role": role});
+    match number {
+        "EW-GEN-CPU-1" => Some(json!({"ports": [port("DP", "profibus_dp", "master")]})),
+        "EW-GEN-CPU-2" => Some(json!({"ports": [
+            port("DP", "profibus_dp", "master"),
+            port("X1", "profinet", "controller"),
+        ]})),
+        "EW-GEN-RIO-1" => Some(json!({"ports": [
+            port("DP", "profibus_dp", "slave"),
+            port("X1", "profinet", "device"),
+        ]})),
+        "EW-GEN-CBL-2" => Some(json!({"cable_for": ["profibus_dp"]})),
+        "EW-GEN-CBL-3" => Some(json!({"cable_for": ["profinet", "ethernet_ip", "modbus_tcp"]})),
+        _ => None,
+    }
 }
 
 /// The category of part `number` where it is not its main FnDef's. The contactor's main function is its coil, whose
@@ -573,6 +589,34 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
+        // The fieldbus parts: a CPU with both interfaces and a remote I/O head, a station of its own whose ports
+        // are a slave and a device, so N0 makes it a head station (doc 10 §2.3).
+        Def {
+            number: "EW-GEN-CPU-2",
+            kind: None,
+            description: "PLC CPU with PROFINET and PROFIBUS DP interfaces, without on-board I/O",
+            cps: vec![("L+", Some("l_plus")), ("M", Some("m"))],
+            template: vec![("ew.fn.blackbox", true, range(0, 2))],
+            contacts: Vec::new(),
+            tech: vec![("rated_voltage", q("24", "V"))],
+            plc: Some(json!({"role": "station"})),
+            mech: ts35("100", "100", "75"),
+            sections: None,
+            unit: None,
+        },
+        Def {
+            number: "EW-GEN-RIO-1",
+            kind: None,
+            description: "Remote I/O head with PROFINET and PROFIBUS DP interfaces",
+            cps: vec![("L+", Some("l_plus")), ("M", Some("m"))],
+            template: vec![("ew.fn.blackbox", true, range(0, 2))],
+            contacts: Vec::new(),
+            tech: vec![("rated_voltage", q("24", "V"))],
+            plc: Some(json!({"role": "station"})),
+            mech: ts35("50", "100", "75"),
+            sections: None,
+            unit: None,
+        },
         Def {
             number: "EW-GEN-DO-1",
             kind: None,
@@ -688,6 +732,44 @@ fn defs() -> Vec<Def> {
                 {"core": "BN", "colour": ["BN"], "csa": "1.5"},
                 {"core": "BU", "colour": ["BU"], "csa": "1.5"},
                 {"core": "GNYE", "colour": ["GN", "YE"], "csa": "1.5"},
+            ]})),
+            unit: Some("m"),
+        },
+        // The bus cables: their cores are named for the bus signals (doc 10 §2.6: a core lands on the pin of its
+        // signal), and their bus section says which bus systems they are made for (EW-BUS-009).
+        Def {
+            number: "EW-GEN-CBL-2",
+            kind: Some("cable"),
+            description: "PROFIBUS cable, 2 cores green and red, shielded",
+            cps: Vec::new(),
+            template: Vec::new(),
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: Some(json!({"cable_cores": [
+                {"core": "A", "colour": ["GN"]},
+                {"core": "B", "colour": ["RD"]},
+                {"core": "SHIELD", "shield": true},
+            ]})),
+            unit: Some("m"),
+        },
+        Def {
+            number: "EW-GEN-CBL-3",
+            kind: Some("cable"),
+            description: "Industrial Ethernet cable, 4 cores, shielded (PROFINET)",
+            cps: Vec::new(),
+            template: Vec::new(),
+            contacts: Vec::new(),
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: Some(json!({"cable_cores": [
+                {"core": "TD+", "colour": ["YE"], "pair": 1},
+                {"core": "TD-", "colour": ["OG"], "pair": 1},
+                {"core": "RD+", "colour": ["WH"], "pair": 2},
+                {"core": "RD-", "colour": ["BU"], "pair": 2},
+                {"core": "SHIELD", "shield": true},
             ]})),
             unit: Some("m"),
         },
@@ -1275,11 +1357,15 @@ fn the_generic_cpu_has_its_dp_port() {
         serde_json::to_string(&cpu.item.sections.plc).unwrap(),
         r#"{"role":"station"}"#
     );
+    // The parts the bus section names have one, no other part has.
     for d in &parts {
         if let LibDocument::Part(c) = d {
-            if c.item.part_number.as_str() != "EW-GEN-CPU-1" {
-                assert_eq!(c.item.sections.bus, None, "{}", c.item.part_number.as_str());
-            }
+            let number = c.item.part_number.as_str();
+            assert_eq!(
+                c.item.sections.bus.is_some(),
+                bus_section(number).is_some(),
+                "{number}"
+            );
         }
     }
 }

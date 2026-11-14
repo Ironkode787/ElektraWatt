@@ -19,7 +19,8 @@
 //! the device carries are paired, in list order, with the device's port-less bus-port functions in ID order (under
 //! trigger (ii) alone only the new or moved functions are candidates, so a port a drafter removed from an older
 //! function stays removed); each pair gives the function `{interface, port_label, bus, role, termination}` from the
-//! part, the address `not_applicable` for a passive port and `tbd` otherwise, and no nets. Surplus ports and
+//! part, the address `not_applicable` for a passive port and `tbd` otherwise, and no nets; a function whose FnDef is
+//! filed under a bus (a category word that begins the bus's stored name) takes the first port of that bus first. Surplus ports and
 //! surplus functions are left as they are, without a notice. Under trigger (i) a carried port whose `bus` or `role`
 //! differs from the part's keeps its value, with notice N5-b.
 //!
@@ -56,6 +57,23 @@ fn bus_part(tx: &TxBuilder<'_>, parts: &[PartUse]) -> Option<Arc<LibCopy<Part>>>
 fn is_bus_port_function(tx: &TxBuilder<'_>, f: &Function) -> bool {
     tx.get::<LibCopy<FnDef>>(f.def)
         .is_some_and(|d| d.item.contact_kind == ContactKind::BusPort)
+}
+
+/// Whether the FnDef of function `f` is filed under bus system `bus`: one of its category words begins the bus's
+/// stored name, case aside (`Profibus` for `profibus_dp`, `Profinet` for `profinet`).
+fn suits(tx: &TxBuilder<'_>, f: Id<Function>, bus: &BusSystem) -> bool {
+    let name = stored_name(bus);
+    tx.get::<Function>(f)
+        .and_then(|func| tx.get::<LibCopy<FnDef>>(func.def))
+        .is_some_and(|d| {
+            serde_json::to_value(&d.item.category)
+                .ok()
+                .and_then(|v| v.as_array().cloned())
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|w| w.as_str())
+                .any(|w| !w.is_empty() && name.starts_with(&w.to_lowercase()))
+        })
 }
 
 /// A port's key: its interface and port label.
@@ -235,8 +253,18 @@ fn run_device(
         .map(|(_, p)| *p)
         .collect();
     let mut changed = false;
-    for (port, function) in uncarried.into_iter().zip(candidates) {
-        let value = seeded(port);
+    let mut uncarried = uncarried;
+    for function in candidates {
+        if uncarried.is_empty() {
+            break;
+        }
+        // The function takes the first port of the bus its FnDef is filed under (the PROFINET port symbol takes
+        // the PROFINET port of a part that lists its DP port first), else the first port.
+        let at = uncarried
+            .iter()
+            .position(|p| suits(tx, function, &p.bus))
+            .unwrap_or(0);
+        let value = seeded(uncarried.remove(at));
         tx.update::<Function>(function, |f| f.bus_port = Some(value))?;
         changed = true;
     }

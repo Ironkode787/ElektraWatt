@@ -680,3 +680,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   editor): a CPU shows its station's role, order and configuration project in words, a card no station (its station is
   chosen by attaching it); a channel's binding names its pin and is set by dragging the channel onto a pin (persona
   round)
+- api-add: starter parts EW-GEN-CPU-2 (CPU with PROFINET and PROFIBUS DP), EW-GEN-RIO-1 (remote I/O head),
+  EW-GEN-CBL-2 (PROFIBUS cable) and EW-GEN-CBL-3 (Industrial Ethernet cable), `ew-starter-parts` 0.8.0; the
+  starter symbol `ew.bus.pn-port` (FnDef `ew.fn.pn-port`) (persona round)
+- behaviour-change: a bus line drawn between two ports of one bus system puts them in one logical net (normaliser
+  N6 `bus_nets`: the net one names, else a new net named for the bus with the master port as its master); a new
+  station whose ports lead no bus is a head station; a port symbol takes the port of its own bus from the part
+  (persona round)

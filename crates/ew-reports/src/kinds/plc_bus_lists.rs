@@ -12,11 +12,11 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, natural_key};
 use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_derive::ew_schema::{
-    AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
+    AddrValue, BusPort, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
     LogicalNet, NetAddress, OnOff, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
 };
 use ew_derive::{
-    BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf,
+    BusSegments, ChannelStates, ChannelTargets, EffectiveState, bus_word, FunctionCps, ModuleOrder, ModuleStartOf,
     NetMaster, NetMembersOf, Q, SegmentMember, Slot, Start, external_partner_text, iolink_device, module_io,
     module_part, net_address_text, port_windows, profile_of, stations,
 };
@@ -81,21 +81,6 @@ fn logical_nets(q: &Q) -> Vec<Id<LogicalNet>> {
         .collect();
     nets.sort();
     nets.into_iter().map(|(_, id)| id).collect()
-}
-
-/// A bus system's name as the lists and the window print it (a proper name, the same in every language).
-pub fn bus_word(b: &BusSystem) -> &'static str {
-    match b {
-        BusSystem::ProfibusDp => "PROFIBUS DP",
-        BusSystem::Profinet => "PROFINET",
-        BusSystem::EtherCat => "EtherCAT",
-        BusSystem::EthernetIp => "EtherNet/IP",
-        BusSystem::IoLink => "IO-Link",
-        BusSystem::Asi => "AS-i",
-        BusSystem::CanOpen => "CANopen",
-        BusSystem::ModbusTcp => "Modbus TCP",
-        BusSystem::Unknown(_) => "other",
-    }
 }
 
 /// A cable's length as the lists print it: metres with three decimals at most (`45 m`), else empty.

@@ -272,14 +272,16 @@ fn starter_docs() -> &'static [(&'static str, StarterKind, LibDocument)] {
 }
 
 /// The catalogue key of the starter symbol a part's bus port of `bus` that no symbol draws yet is placed with
-/// (FT-831): the DP port's (`ew.bus.dp-port`) for PROFIBUS DP; `None` for another bus system, which has no starter port
-/// symbol yet.
+/// (FT-831): the DP port's (`ew.bus.dp-port`) for PROFIBUS DP, the PROFINET port's (`ew.bus.pn-port`) for PROFINET;
+/// `None` for another bus system, which has no starter port symbol yet.
 pub fn bus_port_symbol_key(bus: &ew_schema::BusSystem) -> Option<String> {
-    if *bus != ew_schema::BusSystem::ProfibusDp {
-        return None;
-    }
+    let prefix = match bus {
+        ew_schema::BusSystem::ProfibusDp => "ew.bus.dp-port@",
+        ew_schema::BusSystem::Profinet => "ew.bus.pn-port@",
+        _ => return None,
+    };
     starter_docs().iter().find_map(|(key, _, d)| match d {
-        LibDocument::Symbol(_) if key.starts_with("ew.bus.dp-port@") => Some((*key).to_owned()),
+        LibDocument::Symbol(_) if key.starts_with(prefix) => Some((*key).to_owned()),
         _ => None,
     })
 }

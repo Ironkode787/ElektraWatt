@@ -23,7 +23,7 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AddrValue, BusPort, ConnectionKind, Device, Endpoint, ExternalRef, Function, FunctionKind, Junction,
+    AddrValue, BusPort, BusSystem, ConnectionKind, Device, Endpoint, ExternalRef, Function, FunctionKind, Junction,
     LogicalNet, NetAddress, OnOff, PhysicalNet,
 };
 
@@ -31,6 +31,21 @@ use crate::Q;
 use crate::nets::CpRef;
 use crate::potentials::Potential;
 use crate::query::{Policy, Query};
+
+/// A bus system's name as the lists and the window print it (a proper name, the same in every language).
+pub fn bus_word(b: &BusSystem) -> &'static str {
+    match b {
+        BusSystem::ProfibusDp => "PROFIBUS DP",
+        BusSystem::Profinet => "PROFINET",
+        BusSystem::EtherCat => "EtherCAT",
+        BusSystem::EthernetIp => "EtherNet/IP",
+        BusSystem::IoLink => "IO-Link",
+        BusSystem::Asi => "AS-i",
+        BusSystem::CanOpen => "CANopen",
+        BusSystem::ModbusTcp => "Modbus TCP",
+        BusSystem::Unknown(_) => "other",
+    }
+}
 
 /// A member of a bus segment, in walk order.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]

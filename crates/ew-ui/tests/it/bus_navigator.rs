@@ -15,7 +15,7 @@ use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 
 /// The four pointer events of a double click at `at`, in one frame.
-fn double_click(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, at: egui::Pos2) {
+pub(crate) fn double_click(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, at: egui::Pos2) {
     h.input_mut().events.push(egui::Event::PointerMoved(at));
     h.run_ok();
     for pressed in [true, false, true, false] {

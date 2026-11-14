@@ -20,11 +20,13 @@
 //!   {n}"; with none, the notice "no PLC station: place a CPU first"; with several, "attach the module to a
 //!   station". A station that lies below the module (a part change on an assembly) is never chosen: that parent
 //!   would close a cycle (EW-INV-009).
-//! - `station`: `plc_station {config_project, role: cpu}` and, when the section declares I/O ranges,
+//! - `station`: `plc_station {config_project, role}` and, when the section declares I/O ranges,
 //!   `plc_module {integrated: true}` on the same device. The configuration project (D3): with none in the project,
 //!   one is created in the same transaction, named `PLC<n>` (the lowest free n), pinned to the shipped TIA
 //!   international profile, `cpu` the station, ID `v5(station, "plc_config_project")`; with one, the station joins
-//!   it; with several, the first by (name, ID). Joining gives a notice that names the configuration project.
+//!   it; with several, the first by (name, ID). Joining gives a notice that names the configuration project. The
+//!   role is `head_station` when the device's parts declare bus ports and none of them is a `master` or a
+//!   `controller` port (a remote I/O head), else `cpu`.
 //! - a role of a newer format: nothing.
 //!
 //! **A station's arrival** (FT-823). When this run gives a device `plc_station` and the project then holds exactly one
@@ -47,7 +49,7 @@ use ew_ids::{Id, v5};
 use ew_mltext::Ident;
 use ew_schema::{
     Device, Extra, Kind, LibCopy, Part, PartUse, PlcConfigProject, PlcModule, PlcRole, PlcSection,
-    PlcStation, StationRole,
+    PlcStation, PortRole, StationRole,
 };
 
 use crate::error::CmdError;
@@ -57,6 +59,26 @@ use crate::tx::TxBuilder;
 /// Normaliser #0.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PlcAspects;
+
+/// The role of a new station: a head station when its parts declare bus ports and none leads a bus (no `master` and
+/// no `controller` port), else a CPU.
+fn station_role(tx: &TxBuilder<'_>, dev: &Device) -> StationRole {
+    let roles: Vec<PortRole> = dev
+        .parts
+        .iter()
+        .filter_map(|u| tx.get::<LibCopy<Part>>(u.part.copy))
+        .filter_map(|c| c.item.sections.bus.clone())
+        .flat_map(|b| b.ports.into_iter().map(|p| p.role))
+        .collect();
+    let leads = roles
+        .iter()
+        .any(|r| matches!(r, PortRole::Master | PortRole::Controller));
+    if roles.is_empty() || leads {
+        StationRole::Cpu
+    } else {
+        StationRole::HeadStation
+    }
+}
 
 /// The first part use of `parts` whose part copy has a PLC section: its copy and the section.
 fn plc_part(tx: &TxBuilder<'_>, parts: &[PartUse]) -> Option<(Id<Part>, PlcSection)> {
@@ -300,6 +322,7 @@ impl Normaliser for PlcAspects {
         let station_arrived = !stations.is_empty();
         for (dev, section) in stations {
             let cfg = config_project_for(tx, &dev)?;
+            let role = station_role(tx, &dev);
             let integrated = (!section.io.is_empty()).then(|| PlcModule {
                 integrated: true,
                 ..PlcModule::default()
@@ -307,7 +330,7 @@ impl Normaliser for PlcAspects {
             tx.update::<Device>(dev.id, |d| {
                 d.aspects.plc_station = Some(PlcStation {
                     config_project: cfg,
-                    role: StationRole::Cpu,
+                    role,
                     order: None,
                     firmware: None,
                     extra: Extra::new(),

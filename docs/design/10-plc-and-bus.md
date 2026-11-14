@@ -172,7 +172,9 @@ on a tag or on the page a child is drawn on (D-41).
 **A module's I/O widths come from part data** (§2.6). A module may have an input and an output range at once, so
 `start` holds one `AddrSpec` per direction. AR APC carries the same list of `{StartAddress, Length, IoType}`.
 
-**As built.** `plc_station` carries `config_project`, `role` (`StationRole`, all seven variants) and `order`. `plc_module` carries `slot` (`SlotPath`: `positional`, the default, or `rack` with rack, slot and subslot), `start` (`IoStarts`; `auto` for both directions by default), `part_use` and `integrated`. `PlcModule.safety` (§2.9) is typed (WP-S1.24). `PlcStation.firmware` and `PlcModule.type_ident` (`{order_number}`, the order number of a module without part data, as an import creates one; a module with a part is identified by its part) are typed (WP-S3.16), each settable with `fields.set`. Not typed, and kept in `extra`: `PlcStation.dd` (§2.8) and `type_ident.dd_module`, the device descriptions'. The aspects are written in the member order of [05](05-project-format-and-persistence.md) §3.1: `assembly` (held verbatim until its work package) before `plc_station` before `plc_module`. The module order of `module_order` is: stations by (`order`, ID); within a station, rack slots first by (rack, slot, subslot), then positional modules in manifold order, whose slot is their 1-based rank. Golden A has seven modules (-201U3 … -201U8, -202U2).
+**As built.** `plc_station` carries `config_project`, `role` (`StationRole`, all seven variants) and `order`. N0 gives
+a new station the role `head_station` when its parts declare bus ports and none of them leads a bus (no `master` or
+`controller` port: a remote I/O head such as EW-GEN-RIO-1), else `cpu` (persona round of M3). `plc_module` carries `slot` (`SlotPath`: `positional`, the default, or `rack` with rack, slot and subslot), `start` (`IoStarts`; `auto` for both directions by default), `part_use` and `integrated`. `PlcModule.safety` (§2.9) is typed (WP-S1.24). `PlcStation.firmware` and `PlcModule.type_ident` (`{order_number}`, the order number of a module without part data, as an import creates one; a module with a part is identified by its part) are typed (WP-S3.16), each settable with `fields.set`. Not typed, and kept in `extra`: `PlcStation.dd` (§2.8) and `type_ident.dd_module`, the device descriptions'. The aspects are written in the member order of [05](05-project-format-and-persistence.md) §3.1: `assembly` (held verbatim until its work package) before `plc_station` before `plc_module`. The module order of `module_order` is: stations by (`order`, ID); within a station, rack slots first by (rack, slot, subslot), then positional modules in manifold order, whose slot is their 1-based rank. Golden A has seven modules (-201U3 … -201U8, -202U2).
 
 ### 2.4 Channels
 
@@ -469,7 +471,15 @@ pub struct PartBusPort {
   port before 1.0.
 - **Data.** The generic CPU EW-GEN-CPU-1 carries one port, `DP`, `profibus_dp`, `master` (`ew-starter-parts` 0.2.1);
   placing the DP port symbol on the CPU types its port. Golden A's parts carry no bus section; its ports are typed on
-  its functions (§2.7).
+  its functions (§2.7). *As built (persona round of M3, `ew-starter-parts` 0.8.0):* the CPU EW-GEN-CPU-2 carries
+  `DP` (`profibus_dp`, `master`) and `X1` (`profinet`, `controller`), the remote I/O head EW-GEN-RIO-1 `DP` (`slave`)
+  and `X1` (`device`), and the cables EW-GEN-CBL-2 (PROFIBUS: cores A, B and the shield; `cable_for` PROFIBUS DP) and
+  EW-GEN-CBL-3 (Industrial Ethernet: TD+, TD−, RD+, RD− in two pairs and the shield; `cable_for` PROFINET,
+  EtherNet/IP and Modbus TCP). The starter has a PROFINET port symbol `ew.bus.pn-port` (FnDef `ew.fn.pn-port`, CPs P1
+  and the optional P2) beside the DP port's, and a station row offers each uncarried port with its bus's symbol. N5
+  gives a port-less bus-port function the first port of the bus its FnDef is filed under (a category word that
+  begins the bus's stored name: `Profibus`, `Profinet`), else the first port, so the PROFINET symbol on EW-GEN-CPU-2
+  takes `X1` although the part lists `DP` first.
 
 ### 2.7 Bus model
 
@@ -509,6 +519,12 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   and `io_link_port` besides `profibus` (new values that an older reader keeps as `Unknown`); `BusPort` has the
   optional `mrp` (`manager`, `client`). The P1/P2 neighbours of FR-BUS-010 are the ports' `Bus` connections, read from
   `bus_segments`. An EtherCAT terminal's position after its coupler is its module's positional slot (FR-BUS-011).
+- **As built (persona round of M3): nets from drawn lines.** A person who draws a bus line between two ports means
+  one network. Normaliser N6 (`bus_nets`, doc 06 §3.2 row 14b) gives a new or changed `Bus` line's two ports of one
+  bus system one logical net: the net one of them names, else a new `LogicalNet` named for the bus system
+  (`PROFIBUS DP`, then `PROFIBUS DP 2` …) whose master is the line's CP of the one `master` or `controller` port. It
+  never changes a net a port names (two nets on one line stay EW-BUS-010's). No member is added: `logical_net` was
+  there, and an older 0.1 build reads the net as any other. Physical nets are not made this way.
 - **External partners** are placeholder devices with `PlcStation{role: ExternalPartner}`, `BusNode`, a `BusPort`
   and an `ExternalRef` (project, location, device), but no parts. They are excluded from the BOM (FR-BUS-005). On
   folio 3, the external interruption point "DP" inside the External Connection box is the physical segment end, and

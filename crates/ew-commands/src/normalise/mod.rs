@@ -20,6 +20,7 @@
 //! | 13 | `solenoid_binding` | N2: a valve added to or moved within a module whose part has a solenoid-position map, or a new channel of such a module, binds the declared coil to the channel the map assigns when both are free (doc 10 §3.3, FR-PLC-051) |
 //! | 14 | `module_pin_binding` | N3: a new unbound channel of a module whose part has a channel → pin map binds the module pin (doc 10 §3.3) |
 //! | 14a | `bus_ports` | N5: a device that is new or whose bus part (the first part use with a `bus` section with ports) changed, or a bus-port function new to or moved onto a device with a bus part, gives the part's uncarried ports to the device's port-less bus-port functions in list and ID order: address `not_applicable` for a passive port, else `tbd`, no nets; it never rewrites a port, and a carried port that disagrees with the part gives a notice |
+//! | 14b | `bus_nets` | N6: a new or changed `Bus` line between two ports of one bus system puts them in one logical net: the net one of them names, else a new net named for the bus system with the master or controller port as its master; it never changes a net a port names |
 //! | 16 | `drives_link` | N-FL-4: a new fluid line whose fluid net holds a valve's working port and the consumer port of exactly one other device outside the valve's parent chain links the valve to that device (`drives`), unless the valve has a `drives` link |
 //! | 18 (doc 06) | `ip_form` | An interruption point drawn with one of EW's arrow forms whose direction changed takes the twin form of its new direction, unturned; a project without the twin refuses the change |
 //! | 18 | `revision_ensure_open` | `revision.ensure_open`: a content edit in a project with a released revision and no open one adds the open revision with the next label and the ID `v5(latest released, "next")` (doc 15 §5.3) |
@@ -31,6 +32,7 @@
 //! ([`crate::CmdError::Internal`]). Every normaliser breaks ties by ID and is idempotent on its own
 //! output.
 
+mod bus_nets;
 mod bus_ports;
 pub(crate) mod channel_instantiation;
 mod connection_split;
@@ -47,6 +49,7 @@ mod tube_tags;
 mod valve_functions;
 mod wire_numbering;
 
+pub use bus_nets::BusNets;
 pub use bus_ports::BusPorts;
 pub use channel_instantiation::ChannelInstantiation;
 pub use connection_split::{ConnectionSplit, split_connection};
@@ -77,7 +80,7 @@ pub trait Normaliser: Send + Sync {
 }
 
 /// The registry order within one pass: the IDs of [`registry`], asserted by a test.
-pub const ORDER: [&str; 15] = [
+pub const ORDER: [&str; 16] = [
     "valve_functions",
     "plc_aspects",
     "cp_instantiation",
@@ -90,6 +93,7 @@ pub const ORDER: [&str; 15] = [
     "solenoid_binding",
     "module_pin_binding",
     "bus_ports",
+    "bus_nets",
     "drives_link",
     "ip_form",
     "revision_ensure_open",
@@ -113,6 +117,7 @@ pub fn registry() -> Vec<Box<dyn Normaliser>> {
         Box::new(SolenoidBinding),
         Box::new(ModulePinBinding),
         Box::new(BusPorts),
+        Box::new(BusNets),
         Box::new(DrivesLink),
         Box::new(IpForm),
         Box::new(RevisionEnsureOpen),

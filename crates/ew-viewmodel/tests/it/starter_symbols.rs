@@ -50,6 +50,7 @@ const BUS: &str = "bus_topology";
 const PATHS: &[(&str, Path)] = &[
     ("ew.bus.dp-connector@qet10", Path::Device("W", BUS)),
     ("ew.bus.dp-port@qet10", Path::Device("A", BUS)),
+    ("ew.bus.pn-port@qet10", Path::Device("A", BUS)),
     ("ew.gen.blackbox@qet10", Path::BlackBox("EW-GEN-PSU-1")),
     ("ew.gen.cable-marker@qet10", Path::Aid),
     ("ew.gen.external-arrow@qet10", Path::Device("A", MULTI)),

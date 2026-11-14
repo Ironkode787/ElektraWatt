@@ -1,0 +1,183 @@
+{
+  "$k": "symbol",
+  "id": "3d5051c1-f954-5dde-acfd-f44d2128450c",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "138a05ce-bf7d-523f-831a-64b8dbdd7ce3",
+  "version": "0.1.1",
+  "sha256": "sha256:265d42941e5a6f648a6b5991b7f68297d1c2ce8d4b9fab46c12c4d6058c47480",
+  "meta": {
+    "key": "ew.bus.pn-port@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Bus port, PROFINET",
+    "nl": "Buspoort, PROFINET"
+  },
+  "keywords": [
+    "bus",
+    "ethernet",
+    "pn",
+    "port",
+    "profinet"
+  ],
+  "rep_type": "topology",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "22b3e668-4a45-549e-817c-c210ecbdb0a0",
+    "version_req": "^0.1",
+    "key": "ew.fn.pn-port"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            0,
+            0
+          ],
+          [
+            7937500,
+            7937500
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "text": {
+        "pos": [
+          3968750,
+          3968750
+        ],
+        "text": "PN",
+        "style": "cp.small",
+        "align": "centre"
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        2645833
+      ],
+      "dir": "left",
+      "discipline": "bus"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        5291667
+      ],
+      "dir": "left",
+      "discipline": "bus"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        3968750,
+        -661458
+      ],
+      "align": "bottom_centre",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        661458,
+        2645833
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        661458,
+        5291667
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        3968750,
+        8598958
+      ],
+      "align": "top_centre",
+      "visible": true,
+      "style": "xref.device"
+    },
+    {
+      "kind": "manufacturer",
+      "pos": [
+        9260417,
+        2645833
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "order_code",
+      "pos": [
+        9260417,
+        5953125
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "bus_address",
+      "pos": [
+        9260417,
+        7937500
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    }
+  ],
+  "anchor": "graphic_centre"
+}

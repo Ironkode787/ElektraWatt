@@ -1487,3 +1487,209 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
     assert_eq!(at_terminal(&h), 1, "the terminal prints the channel's address");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// Draws starter part `part` as a black box from corner cell `a` to corner cell `b`, then the Select tool.
+fn black_box(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, part: &str, a: (i64, i64), b: (i64, i64)) {
+    dispatch(h, "tool.black_box", json!({"part": part, "template": 0}));
+    crate::navigators::cursor_k(h, a);
+    dispatch(h, "canvas.activate", json!({}));
+    crate::navigators::cursor_k(h, b);
+    dispatch(h, "canvas.activate", json!({}));
+    dispatch(h, "tool.select", json!({}));
+}
+
+/// The PLC panel's row of station `tag`.
+fn station_row(h: &egui_kittest::Harness<'_, ew_ui::app::App>, tag: &str) -> ew_ui::ew_viewmodel::shell::ShownRow {
+    h.state()
+        .shell()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == NavRole::Station.word() && r.label == tag)
+        .unwrap_or_else(|| panic!("the station row {tag}"))
+}
+
+/// Narrows the PLC panel to station `tag` (its filter, so that the row is in sight), right-clicks the station's row
+/// and chooses `entry` from its menu; the filter is cleared after.
+fn station_menu(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, tag: &str, entry: &str) {
+    dispatch(h, "navigator.filter", json!({"kind": "plc", "text": tag}));
+    settle(h);
+    let row = station_row(h, tag);
+    h.get_by_label(&row.name).click_secondary();
+    settle(h);
+    support::menu_node(h, entry).click();
+    settle(h);
+    dispatch(h, "navigator.filter", json!({"kind": "plc", "text": ""}));
+    settle(h);
+}
+
+/// The persona round's job from nothing (an EPLAN designer's): two stations, a controller with two cards and a remote
+/// I/O head with one, a PROFIBUS line between them, an address on each, the Bus panel showing the net with both, and
+/// the network address list as a page. Every step is the window's: the black box tool, the PLC panel's row menus,
+/// Place port DP on a bus-topology page, the Wire tool between the ports, the Bus table's address cells, Report.
+#[test]
+fn two_stations_and_a_bus_are_built_from_nothing() {
+    let tmp = Tmp::new();
+    let mut h = harness(&tmp, Scripted::default(), None);
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.new",
+        json!({"dir": tmp.0.join("bus.ew").to_string_lossy(), "template": "builtin"}),
+    );
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "101", "type": "multi_line", "title": "PLC"}),
+    );
+    settle(&mut h);
+    wait_for_page(&mut h);
+    black_box(&mut h, "EW-GEN-CPU-2", (10, 10), (16, 18));
+    black_box(&mut h, "EW-GEN-DI-1", (24, 10), (30, 18));
+    black_box(&mut h, "EW-GEN-DO-1", (38, 10), (44, 18));
+    black_box(&mut h, "EW-GEN-RIO-1", (10, 26), (16, 34));
+    black_box(&mut h, "EW-GEN-DI-1", (24, 26), (30, 34));
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    // The PLC panel: the controller holds its two cards; the head's card waits until it is attached from its row.
+    let stations: Vec<String> = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .filter(|r| r.role == NavRole::Station.word())
+        .map(|r| r.label)
+        .collect();
+    let [cpu, head] = stations.as_slice() else {
+        panic!("two stations: {stations:?}");
+    };
+    let (cpu, head) = (cpu.clone(), head.clone());
+    station_menu(&mut h, &head, "Attach cards without a CPU");
+    let modules_of = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, tag: &str| {
+        let key = station_row(h, tag).key;
+        h.state()
+            .shell()
+            .shown_rows(NavKind::Plc)
+            .into_iter()
+            .filter(|r| r.role == NavRole::Module.word() && r.parent.as_deref() == Some(key.as_str()))
+            .count()
+    };
+    assert_eq!(modules_of(&h, &cpu), 2, "the controller's two cards");
+    assert_eq!(modules_of(&h, &head), 1, "the head's card");
+    // A bus-topology page; each station's row places its DP port there.
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "3", "type": "bus_topology", "title": "PROFIBUS"}),
+    );
+    wait_for_page(&mut h);
+    dispatch(&mut h, "navigator.show", json!({"kind": "plc"}));
+    settle(&mut h);
+    for (tag, x) in [(&cpu, 20), (&head, 50)] {
+        station_menu(&mut h, tag, "Place port DP");
+        crate::navigators::cursor_k(&mut h, (x, 30));
+        dispatch(&mut h, "canvas.activate", json!({}));
+        dispatch(&mut h, "tool.select", json!({}));
+        settle(&mut h);
+    }
+    // The Wire tool draws the bus line from one port's A to the other's.
+    let ends: Vec<(i64, i64)> = h
+        .state()
+        .shell()
+        .canvas()
+        .expect("the topology page")
+        .page()
+        .tables
+        .cps
+        .iter()
+        .filter(|c| c.label.ends_with(":A"))
+        .map(|c| c.at)
+        .collect();
+    let [a, b] = ends.as_slice() else {
+        panic!("two DP ports: {ends:?}");
+    };
+    let mm = |p: (i64, i64)| json!({"x_mm": p.0 as f64 / 1e6, "y_mm": p.1 as f64 / 1e6});
+    dispatch(&mut h, "tool.wire", json!({}));
+    dispatch(&mut h, "canvas.press", mm(*a));
+    dispatch(&mut h, "canvas.pointer", mm(*b));
+    settle(&mut h);
+    dispatch(&mut h, "canvas.press", mm(*b));
+    dispatch(&mut h, "tool.finish", json!({}));
+    dispatch(&mut h, "tool.select", json!({}));
+    settle(&mut h);
+    // The Bus panel: the net with both ports; its table takes each port's station address.
+    dispatch(&mut h, "rail.show", json!({"pane": "bus"}));
+    settle(&mut h);
+    let rows = h.state().shell().shown_rows(NavKind::Bus);
+    let net = rows
+        .iter()
+        .find(|r| r.text == "PROFIBUS DP")
+        .expect("the logical net PROFIBUS DP");
+    let members: Vec<&str> = rows
+        .iter()
+        .filter(|r| r.parent.as_deref() == Some(net.key.as_str()))
+        .map(|r| r.label.as_str())
+        .collect();
+    for tag in [&cpu, &head] {
+        assert!(
+            members.contains(&format!("{tag} DP").as_str()),
+            "{tag} in the net: {members:?}"
+        );
+    }
+    dispatch(&mut h, "navigator.table", json!({"kind": "bus", "on": true}));
+    settle(&mut h);
+    for address in ["2", "3"] {
+        let at = h
+            .get_all_by_label_contains("Address TBD")
+            .next()
+            .expect("a port's address cell")
+            .rect()
+            .center();
+        crate::bus_navigator::double_click(&mut h, at);
+        h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+        h.event(egui::Event::Text(address.to_owned()));
+        settle(&mut h);
+        h.key_press(egui::Key::Enter);
+        settle(&mut h);
+    }
+    assert_eq!(
+        h.query_all_by_label_contains("Address TBD").count(),
+        0,
+        "both ports have an address"
+    );
+    // Report on the Output tab: the network address list as a page.
+    h.get_by_role_and_label(egui::Role::Tab, "Output").click();
+    settle(&mut h);
+    support::bar_button(&h, "Report").click();
+    settle(&mut h);
+    h.get_all_by_role(egui::Role::ComboBox)
+        .next()
+        .expect("the Report list")
+        .click();
+    settle(&mut h);
+    h.get_by_label("Network address list").click();
+    settle(&mut h);
+    h.get_by_label("Create").click();
+    for _ in 0..600 {
+        h.run_ok();
+        if h.state().shell().dialog().is_none() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    settle(&mut h);
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
+    assert!(
+        toast.starts_with("Added the report block Network address list from folio "),
+        "{toast}"
+    );
+    assert!(
+        h.state().shell().page_rows().iter().any(|r| r.generated),
+        "the list's page"
+    );
+    h.state_mut().shell_mut().shutdown();
+}

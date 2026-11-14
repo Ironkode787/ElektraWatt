@@ -252,3 +252,123 @@ fn a_port_symbol_joins_a_device_with_a_free_bus_port() {
         "{err}"
     );
 }
+
+/// Places starter part `number` as the picker does on `page`, at `x` steps; the device.
+fn place_station(s: &mut Session, number: &str, page: Uuid, x: i64) -> Uuid {
+    let part = library_part(s, number);
+    let copies = s
+        .starter_embed_part(part, BLACKBOX)
+        .expect("the closure resolves")
+        .unwrap_or_else(|| json!({"copies": []}));
+    let symbol = s.starter_symbol_copy(BLACKBOX).expect("a starter symbol");
+    let r = s
+        .execute(&AnyCommand {
+            name: "box.black".into(),
+            params: json!({
+                "page": page.to_string(),
+                "symbol": symbol.to_string(),
+                "pos": [x * STEP, 12 * STEP],
+                "box": {"outline": [[0, 0], [5 * STEP, 0], [5 * STEP, 8 * STEP], [0, 8 * STEP]]},
+                "target": {"from_part": {"part": part.to_string(), "template": 0, "letter": "A"}},
+                "copies": copies["copies"],
+            }),
+        })
+        .unwrap_or_else(|e| panic!("box.black {number}: {e:?}"));
+    r.created
+        .iter()
+        .find(|k| k.0 == Kind::Device)
+        .map(|k| k.1.as_uuid())
+        .expect("a new device")
+}
+
+/// Places the port symbol `key` joined to `device` at `x` steps on `page`; the new function.
+fn place_port(s: &mut Session, key: &str, page: Uuid, device: Uuid, x: i64) -> Id<Function> {
+    let copies = s
+        .starter_embed(key)
+        .map_or_else(Vec::new, |c| c["copies"].as_array().cloned().unwrap_or_default());
+    let symbol = s.starter_symbol_copy(key).expect("a starter symbol");
+    let r = s
+        .execute(&AnyCommand {
+            name: "device.place".into(),
+            params: json!({
+                "page": page.to_string(),
+                "symbol": symbol.to_string(),
+                "pos": [x * STEP, 12 * STEP],
+                "target": {"join_device": {"device": device.to_string(), "role": "aux"}},
+                "copies": Value::Array(copies),
+            }),
+        })
+        .unwrap_or_else(|e| panic!("device.place {key}: {e:?}"));
+    r.created
+        .iter()
+        .find(|k| k.0 == Kind::Function)
+        .map(|k| k.1.cast())
+        .expect("a new function")
+}
+
+/// A bus line between the CP `a` of one function and the CP `b` of another.
+fn bus_line(s: &mut Session, a: (Id<Function>, u16), b: (Id<Function>, u16)) {
+    s.execute(&AnyCommand {
+        name: "connection.draw".into(),
+        params: json!({
+            "a": {"cp": {"function": a.0.to_string(), "idx": a.1}},
+            "b": {"cp": {"function": b.0.to_string(), "idx": b.1}},
+            "kind": {"bus": {}},
+        }),
+    })
+    .unwrap_or_else(|e| panic!("connection.draw: {e:?}"));
+}
+
+/// The persona round, a bus from nothing: the CPU with PROFINET and PROFIBUS DP is a CPU and the remote I/O head a
+/// head station (its ports lead no bus); the CPU's row offers both ports, and each port symbol takes its own bus's
+/// port of the part (the PROFINET symbol the PROFINET controller, though the part lists its DP port first); a bus line
+/// drawn between the two DP ports puts them in one new logical net "PROFIBUS DP" whose master is the CPU's port, and a
+/// line to a third port that has no net joins that net.
+#[test]
+fn a_bus_line_between_two_stations_makes_their_net() {
+    let mut s = fresh(0xB05);
+    let sheet = first_page(&s);
+    let cpu = place_station(&mut s, "EW-GEN-CPU-2", sheet, 12);
+    let rio = place_station(&mut s, "EW-GEN-RIO-1", sheet, 30);
+    let role = |s: &Session, d: Uuid| {
+        s.query()
+            .devices()
+            .get(Id::from_uuid(d))
+            .and_then(|d| d.aspects.plc_station.as_ref().map(|p| p.role.clone()))
+    };
+    assert_eq!(role(&s, cpu), Some(ew_schema::StationRole::Cpu));
+    assert_eq!(role(&s, rio), Some(ew_schema::StationRole::HeadStation));
+    let offered: Vec<String> = s.uncarried_bus_ports(cpu).into_iter().map(|(p, _)| p).collect();
+    assert_eq!(offered, ["DP", "X1"], "the CPU's row offers both ports");
+    let r = s
+        .execute(&AnyCommand {
+            name: "page.create".into(),
+            params: json!({"kind": "bus_topology", "after": first_page(&s).to_string()}),
+        })
+        .expect("page.create bus_topology");
+    let page = r.outcome.primary.expect("the new page").1.as_uuid();
+    let port = |s: &Session, f: Id<Function>| s.query().functions().get(f).and_then(|f| f.bus_port.clone());
+    let pn = place_port(&mut s, "ew.bus.pn-port@qet10", page, cpu, 12);
+    let pn_port = port(&s, pn).expect("a port");
+    assert_eq!((pn_port.bus, pn_port.role), (BusSystem::Profinet, PortRole::Controller));
+    let dp_cpu = place_port(&mut s, DP_PORT, page, cpu, 24);
+    let dp_rio = place_port(&mut s, DP_PORT, page, rio, 36);
+    assert_eq!(port(&s, dp_cpu).map(|p| p.role), Some(PortRole::Master));
+    assert_eq!(port(&s, dp_rio).map(|p| p.role), Some(PortRole::Slave));
+    bus_line(&mut s, (dp_cpu, 0), (dp_rio, 0));
+    let net = port(&s, dp_cpu).and_then(|p| p.logical_net).expect("a net");
+    assert_eq!(port(&s, dp_rio).and_then(|p| p.logical_net), Some(net));
+    let n = s
+        .query()
+        .table::<ew_schema::LogicalNet>()
+        .get(net)
+        .cloned()
+        .expect("the net");
+    assert_eq!(n.name.as_str(), "PROFIBUS DP");
+    assert_eq!(n.master.as_ref().and_then(ew_schema::Endpoint::function), Some(dp_cpu));
+    let third = place_station(&mut s, "EW-GEN-RIO-1", sheet, 48);
+    let dp_third = place_port(&mut s, DP_PORT, page, third, 48);
+    bus_line(&mut s, (dp_rio, 1), (dp_third, 0));
+    assert_eq!(port(&s, dp_third).and_then(|p| p.logical_net), Some(net));
+    assert_eq!(s.query().table::<ew_schema::LogicalNet>().iter().count(), 1, "no second net");
+}
