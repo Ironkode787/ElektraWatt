@@ -307,7 +307,7 @@ fn draw_to_ip_rejections_write_nothing() {
     cmd.kind = Some(ew_schema::ConnectionKind::Fluid(Box::default()));
     assert_eq!(
         rejection(e.execute(&cmd)),
-        "a fluid line joins fluid ports only; an interruption point is not a fluid port"
+        "a tube joins fluid ports only; an interruption point is not a fluid port"
     );
     // A missing page.
     let mut cmd = good();

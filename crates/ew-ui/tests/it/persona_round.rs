@@ -114,7 +114,11 @@ pub(crate) fn pixel_map(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + u
 }
 
 /// The window pixel of a page point.
-pub(crate) fn page_pixel(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64), p: (i64, i64)) -> (i64, i64) {
+pub(crate) fn page_pixel(
+    d: &mut Driver,
+    pixel: &impl Fn((i64, i64)) -> (i64, i64),
+    p: (i64, i64),
+) -> (i64, i64) {
     pixel(d.shell_mut().canvas().unwrap().page().snapper.page_to_sheet(p))
 }
 

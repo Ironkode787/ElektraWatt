@@ -109,7 +109,10 @@ fn port(d: &mut Driver, device: Uuid, designation: &str) -> (i64, i64) {
         .iter()
         .find(|c| {
             c.label.rsplit(':').next() == Some(designation)
-                && tables.reps.iter().any(|r| r.id == c.rep && r.device == Some(device))
+                && tables
+                    .reps
+                    .iter()
+                    .any(|r| r.id == c.rep && r.device == Some(device))
         })
         .unwrap_or_else(|| panic!("no port {designation}"));
     let sheet = snapper.page_to_sheet(cp.at);
@@ -147,7 +150,13 @@ fn draw_tube(d: &mut Driver, a: (i64, i64), b: (i64, i64)) {
 /// The fluid lines of the page shown.
 fn tubes(d: &mut Driver) -> usize {
     let canvas = d.shell_mut().canvas().unwrap();
-    canvas.page().tables.connections.iter().filter(|c| c.kind == "fluid").count()
+    canvas
+        .page()
+        .tables
+        .connections
+        .iter()
+        .filter(|c| c.kind == "fluid")
+        .count()
 }
 
 /// P2-A: a valve terminal could not be built from the window. From nothing: the starter terminal placed from the device
@@ -159,16 +168,20 @@ fn p2a_a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     // Greyed with its reason while no valve terminal is selected.
-    let reason = ew_ui::ew_viewmodel::actions::find("fluid.generate_overview")
-        .map(|a| (a.enabled)(d.shell_mut()));
+    let reason =
+        ew_ui::ew_viewmodel::actions::find("fluid.generate_overview").map(|a| (a.enabled)(d.shell_mut()));
     assert_eq!(
-        reason.and_then(Result::err).map(ew_ui::ew_viewmodel::strings::text),
+        reason
+            .and_then(Result::err)
+            .map(ew_ui::ew_viewmodel::strings::text),
         Some("Select a valve terminal first: on its page or in the Fluid panel")
     );
     place_terminal(&mut d, (760, 300), (1260, 520));
     let nodes = fluid_nodes(&mut d);
     assert!(
-        nodes.iter().any(|n| n.role == NavRole::Section && n.label == "Valve terminals"),
+        nodes
+            .iter()
+            .any(|n| n.role == NavRole::Section && n.label == "Valve terminals"),
         "the Fluid panel lists the valve terminal"
     );
     let terminal = nodes
@@ -289,7 +302,10 @@ fn device_drawn(d: &mut Driver, key: &str) -> Uuid {
 fn one_tube(d: &mut Driver) {
     place_symbol(d, "ew.iso.cylinder-double-acting@qet10", (900, 600));
     place_symbol(d, "ew.iso.air-supply@qet10", (1300, 800));
-    let (cylinder, supply) = (device_drawn(d, "ew.iso.cylinder"), device_drawn(d, "ew.iso.air-supply"));
+    let (cylinder, supply) = (
+        device_drawn(d, "ew.iso.cylinder"),
+        device_drawn(d, "ew.iso.air-supply"),
+    );
     let (a, b) = (port(d, supply, "1"), port(d, cylinder, "A"));
     draw_tube(d, a, b);
     one_tube_selected(d);
@@ -328,10 +344,15 @@ fn p2c_the_tube_part_offers_tubes_and_takes_one_from_the_library() {
         .map(|c| c.items.iter().map(|(t, _)| t.clone()).collect())
         .unwrap_or_default();
     assert!(!choices.is_empty(), "the starter tubes");
-    assert!(choices.iter().all(|c| c.starts_with("EW-GEN-TUB-")), "{choices:?}");
+    assert!(
+        choices.iter().all(|c| c.starts_with("EW-GEN-TUB-")),
+        "{choices:?}"
+    );
     let set = json!({"row": "connection/tube_part", "value": "EW-GEN-TUB-6"});
     assert_eq!(d.shell_mut().dispatch("props.set", &set), Outcome::Done);
-    let _ = d.shell_mut().dispatch("navigator.show", &json!({"kind": "tubes"}));
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.show", &json!({"kind": "tubes"}));
     d.settle();
     let table = d
         .shell_mut()
@@ -340,7 +361,10 @@ fn p2c_the_tube_part_offers_tubes_and_takes_one_from_the_library() {
         .cloned()
         .expect("the tube table");
     let size = table.columns.iter().position(|c| c.key == "size").unwrap();
-    assert_eq!(table.nodes[0].cells[size], "6×4", "the tube takes the part's size");
+    assert_eq!(
+        table.nodes[0].cells[size], "6×4",
+        "the tube takes the part's size"
+    );
     d.shell_mut().shutdown();
 }
 
@@ -387,7 +411,10 @@ fn cp_end(d: &mut Driver, device: Uuid, designation: &str) -> serde_json::Value 
         .iter()
         .find(|c| {
             c.label.rsplit(':').next() == Some(designation)
-                && tables.reps.iter().any(|r| r.id == c.rep && r.device == Some(device))
+                && tables
+                    .reps
+                    .iter()
+                    .any(|r| r.id == c.rep && r.device == Some(device))
         })
         .unwrap_or_else(|| panic!("no port {designation}"));
     json!({"cp": {"function": cp.function.to_string(), "idx": cp.idx}})
@@ -406,7 +433,10 @@ fn unrouted_tube(d: &mut Driver) -> (String, (i64, i64)) {
     d.input(&key("escape"));
     d.settle();
     place_symbol(d, "ew.iso.cylinder-double-acting@qet10", (800, 850));
-    let (valve, cylinder) = (device_drawn(d, "ew.iso.valve"), device_drawn(d, "ew.iso.cylinder"));
+    let (valve, cylinder) = (
+        device_drawn(d, "ew.iso.valve"),
+        device_drawn(d, "ew.iso.cylinder"),
+    );
     let page = d.shell_mut().canvas().unwrap().page().tables.page.to_string();
     let draw = json!({"cmd": "connection.draw", "params": {
         "a": cp_end(d, valve, "4"), "b": cp_end(d, cylinder, "B"), "page": page,
@@ -435,7 +465,9 @@ fn p2f_a_click_on_an_unrouted_tube_selects_it() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     let (line, _) = unrouted_tube(&mut d);
-    let polyline = d.shell_mut().canvas().unwrap().page().tables.connections[0].polyline.clone();
+    let polyline = d.shell_mut().canvas().unwrap().page().tables.connections[0]
+        .polyline
+        .clone();
     // At the persona's zoom, 196 %, centred on the line's longest segment.
     let (p, q) = polyline
         .windows(2)
@@ -461,7 +493,9 @@ fn p2f_a_click_on_an_unrouted_tube_selects_it() {
     // Check project: the finding calls it a tube.
     d.input(&click(d.find("Check project").unwrap()));
     d.settle();
-    let _ = d.shell_mut().dispatch("navigator.show", &json!({"kind": "messages"}));
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.show", &json!({"kind": "messages"}));
     d.settle();
     let messages: Vec<String> = d
         .shell_mut()
@@ -486,7 +520,9 @@ fn p2f_a_click_on_an_unrouted_tube_selects_it() {
 fn findings(d: &mut Driver, rule: &str) -> Vec<String> {
     d.input(&click(d.find("Check project").unwrap()));
     d.settle();
-    let _ = d.shell_mut().dispatch("navigator.show", &json!({"kind": "messages"}));
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.show", &json!({"kind": "messages"}));
     d.settle();
     d.shell_mut()
         .nav(NavKind::Messages)
@@ -538,7 +574,10 @@ fn item8_a_tube_between_ports_already_on_one_line_says_so() {
     let mut d = fluid_page(&tmp);
     place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 600));
     place_symbol(&mut d, "ew.iso.air-supply@qet10", (1300, 800));
-    let (cylinder, supply) = (device_drawn(&mut d, "ew.iso.cylinder"), device_drawn(&mut d, "ew.iso.air-supply"));
+    let (cylinder, supply) = (
+        device_drawn(&mut d, "ew.iso.cylinder"),
+        device_drawn(&mut d, "ew.iso.air-supply"),
+    );
     let (a, b) = (port(&mut d, supply, "1"), port(&mut d, cylinder, "A"));
     draw_tube(&mut d, a, b);
     assert_eq!(tubes(&mut d), 1);
@@ -558,7 +597,9 @@ fn item8_a_tube_between_ports_already_on_one_line_says_so() {
     // From a port to a point of its own tube (the persona's second click landed on the supply tube's line).
     d.input(&key("escape"));
     d.settle();
-    let polyline = d.shell_mut().canvas().unwrap().page().tables.connections[0].polyline.clone();
+    let polyline = d.shell_mut().canvas().unwrap().page().tables.connections[0]
+        .polyline
+        .clone();
     let (p, q) = polyline
         .windows(2)
         .map(|w| (w[0], w[1]))
@@ -606,7 +647,10 @@ fn p2e_a_tubes_properties_show_and_set_its_medium_and_its_tube() {
     let tmp = Tmp::new();
     let mut d = fluid_page(&tmp);
     one_tube(&mut d);
-    assert!(d.find("Fluid settings…").is_some(), "Fluid settings… on the Fluid panel");
+    assert!(
+        d.find("Fluid settings…").is_some(),
+        "Fluid settings… on the Fluid panel"
+    );
     assert!(d.find("New medium…").is_some(), "New medium… on the Fluid panel");
     let medium = json!({"name": "Compressed air", "p_nom": "6"});
     assert_eq!(d.shell_mut().dispatch("fluid.medium_new", &medium), Outcome::Done);

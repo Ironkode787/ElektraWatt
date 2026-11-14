@@ -168,7 +168,7 @@ fn every_word_is_in_every_language_and_nl_nl_words_names_and_decimals() {
         "EW-CORE-073",
         "",
         "Wire the junction in C11 → a connection point of another page has no route: Route page draws it.",
-        &[("wire", "the junction in C11 → a connection point of another page")],
+        &[("line", "wire"), ("wire", "the junction in C11 → a connection point of another page")],
     );
     assert_eq!(
         render(&unrouted, "nl-NL"),

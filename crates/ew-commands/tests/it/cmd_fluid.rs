@@ -106,17 +106,17 @@ fn the_fluid_refusals_t1_to_t3_are_in_words() {
         (
             "T1",
             draw(cp_param(FN_Q1, 1), cp_param(FN_102G1, 0), fluid()),
-            "a fluid line joins fluid ports only; -102G1:L is not a fluid port",
+            "a tube joins fluid ports only; -102G1:L is not a fluid port",
         ),
         (
             "T2",
             draw(cp_param(FN_102G1, 0), cp_param(FN_Q1, 1), ConnectionKind::Wire),
-            "-?Q71:2 is a fluid port; only a fluid line joins it",
+            "-?Q71:2 is a fluid port; only a tube joins it",
         ),
         (
             "T3",
             draw(cp_param(FN_Q1, 0), cp_param(FN_Q3, 0), fluid()),
-            "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: -?Q71:1, -?Q73:1",
+            "a tube does not join a hydraulic port to a pneumatic or vacuum port: -?Q71:1, -?Q73:1",
         ),
     ];
     for (case, cmd, words) in cases {
@@ -202,15 +202,15 @@ fn the_fluid_refusals_name_junction_and_connection_ends_in_words() {
     assert_eq!(
         texts,
         [
-            "a fluid line joins fluid ports only; the junction at x 0, y 0 mm on page 102 joins wires",
-            "a fluid line joins fluid ports only; wire 102.1 is no fluid line",
-            "the junction at x 0, y 0 mm on page 102 joins fluid lines; only a fluid line joins it",
-            "only a fluid line branches from the fluid line on page 102"
+            "a tube joins fluid ports only; the junction at x 0, y 0 mm on page 102 joins wires",
+            "a tube joins fluid ports only; wire 102.1 is no tube",
+            "the junction at x 0, y 0 mm on page 102 joins tubes; only a tube joins it",
+            "only a tube branches from the tube on page 102"
         ]
     );
     assert_eq!(
         refusal(&mut e, &draw(cp_param(FN_Q3, 1), pipes, fluid())),
-        "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: -?Q73:2, -?Q71:1"
+        "a tube does not join a hydraulic port to a pneumatic or vacuum port: -?Q73:2, -?Q71:1"
     );
 }
 
@@ -237,7 +237,7 @@ fn t3_walks_a_ring_of_three_junctions_to_its_end() {
     let ring = EndpointParam::Junction { junction: j[1] };
     assert_eq!(
         refusal(&mut e, &draw(cp_param(FN_Q3, 1), ring.clone(), fluid())),
-        "a fluid line does not join a hydraulic port to a pneumatic or vacuum port: -?Q73:2, -?Q71:1"
+        "a tube does not join a hydraulic port to a pneumatic or vacuum port: -?Q73:2, -?Q71:1"
     );
     e.execute(&draw(cp_param(FN_Q2, 1), ring, fluid()))
         .expect("a pneumatic line to the ring");
@@ -471,7 +471,7 @@ fn closing_a_fluid_port_sets_its_closure_and_opening_drops_it() {
         .expect("a line");
     assert_eq!(
         refusal_of(&mut e, &close(FN_Q1, 0, Some(ClosureKindParam::Plug))),
-        "-?Q71:1 has a fluid line; delete the line before closing the port"
+        "-?Q71:1 has a tube; delete the tube before closing the port"
     );
 }
 
@@ -677,6 +677,6 @@ fn the_line_kind_of_a_fluid_line_is_set_and_undone() {
     let wire: Id<Connection> = typed(wire.outcome.primary.unwrap());
     assert_eq!(
         refusal_of(&mut e, &set_line_kind(wire, "pilot")),
-        "a wire is not a fluid line"
+        "a wire is not a tube"
     );
 }

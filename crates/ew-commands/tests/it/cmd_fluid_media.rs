@@ -289,7 +289,7 @@ fn tube_overrides_are_set_reset_and_checked() {
         fitting_b: None,
         reset: vec![],
     });
-    assert!(refusal(r).ends_with("is no fluid line"));
+    assert!(refusal(r).ends_with("is no tube"));
 }
 
 /// `fluid.length.set` sets a manual length or clears it; zero is refused in words.
