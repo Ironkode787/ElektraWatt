@@ -523,3 +523,54 @@ fn p2d_the_default_tube_and_ew_fl_007_agree() {
     assert!(findings(&mut d, "EW-FL-007").is_empty(), "the tube is specified");
     d.shell_mut().shutdown();
 }
+
+/// Item 8 of the round: a Wire click between two ports that already sit on one line did nothing and said nothing. A
+/// second tube between the two ends of a tube, or from a port to a point of its own tube, is refused in words where
+/// the tool's hint stands, and the routing waits for another end.
+#[test]
+fn item8_a_tube_between_ports_already_on_one_line_says_so() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 600));
+    place_symbol(&mut d, "ew.iso.air-supply@qet10", (1300, 800));
+    let (cylinder, supply) = (device_drawn(&mut d, "ew.iso.cylinder"), device_drawn(&mut d, "ew.iso.air-supply"));
+    let (a, b) = (port(&mut d, supply, "1"), port(&mut d, cylinder, "A"));
+    draw_tube(&mut d, a, b);
+    assert_eq!(tubes(&mut d), 1);
+    let _ = d.shell_mut().dispatch("tool.wire", &json!({}));
+    // Apart in time, so that the second click is no double click.
+    d.input(&Input::Wait { ms: 800 });
+    click_at(&mut d, b);
+    d.input(&Input::Wait { ms: 800 });
+    click_at(&mut d, a);
+    let state = crate::persona_round::state(&mut d);
+    assert_eq!(tubes(&mut d), 1, "no second tube");
+    assert_eq!(
+        state["status"][0],
+        json!("These two points already sit on one line; click a point of another line, or Esc")
+    );
+    assert_eq!(state["canvas"]["tool"]["state"], json!("routing"));
+    // From a port to a point of its own tube (the persona's second click landed on the supply tube's line).
+    d.input(&key("escape"));
+    d.settle();
+    let polyline = d.shell_mut().canvas().unwrap().page().tables.connections[0].polyline.clone();
+    let (p, q) = polyline
+        .windows(2)
+        .map(|w| (w[0], w[1]))
+        .max_by_key(|(p, q)| (p.0 - q.0).abs() + (p.1 - q.1).abs())
+        .unwrap();
+    let snapper = d.shell_mut().canvas().unwrap().page().snapper.clone();
+    let pixel = sheet_pixel(&mut d);
+    let mid = pixel(snapper.page_to_sheet(((p.0 + q.0) / 2, (p.1 + q.1) / 2)));
+    let _ = d.shell_mut().dispatch("tool.wire", &json!({}));
+    d.input(&Input::Wait { ms: 800 });
+    click_at(&mut d, a);
+    d.input(&Input::Wait { ms: 800 });
+    click_at(&mut d, mid);
+    assert_eq!(tubes(&mut d), 1, "no tube to its own line");
+    assert_eq!(
+        crate::persona_round::state(&mut d)["status"][0],
+        json!("These two points already sit on one line; click a point of another line, or Esc")
+    );
+    d.shell_mut().shutdown();
+}

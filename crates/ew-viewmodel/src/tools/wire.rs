@@ -183,6 +183,41 @@ impl WireTarget {
         }
     }
 
+    /// The end of the page tables this target is; `None` for a split point and a grid point.
+    fn table_end(&self) -> Option<ew_api::output::TableEnd> {
+        match self {
+            WireTarget::Cp { function, idx, .. } => Some(ew_api::output::TableEnd::Cp {
+                function: function.0,
+                idx: *idx,
+            }),
+            WireTarget::Junction { id, .. } => Some(ew_api::output::TableEnd::Junction { id: id.0 }),
+            _ => None,
+        }
+    }
+
+    /// Whether a connection from this target to `other` would join two points that already sit on one line (the
+    /// persona round: such a click did nothing and said nothing): one is a point on a connection that ends at the
+    /// other, or, when `duplicates` (tubes: a second tube between two ports is never wanted; two wires may double a
+    /// cross-section), a connection joins them already.
+    fn on_one_line(&self, other: &WireTarget, tables: &ew_api::output::PageTables, duplicates: bool) -> bool {
+        let ends = |c: &ew_api::output::TableConnection| [c.a, c.b];
+        let on = |seg: &WireTarget, end: &WireTarget| match (seg, end.table_end()) {
+            (WireTarget::Segment { connection, .. }, Some(e)) => tables
+                .connections
+                .iter()
+                .any(|c| c.id == connection.0 && ends(c).contains(&e)),
+            _ => false,
+        };
+        let joined = match (self.table_end(), other.table_end()) {
+            (Some(a), Some(b)) if duplicates => tables
+                .connections
+                .iter()
+                .any(|c| ends(c) == [a, b] || ends(c) == [b, a]),
+            _ => false,
+        };
+        joined || on(self, other) || on(other, self)
+    }
+
     /// Whether two targets name the same endpoint.
     fn same_end(&self, other: &WireTarget) -> bool {
         match (self, other) {
@@ -1058,6 +1093,10 @@ impl WireTool {
                 if target.is_end() {
                     if target.same_end(&start) {
                         return ToolOutput::None;
+                    }
+                    // Two points already on one line: refused in words, the routing kept for another end.
+                    if start.on_one_line(&target, &cx.page.tables, self.kind == Some("fluid")) {
+                        return ToolOutput::Refused(key!("reason-wire-one-line"));
                     }
                     let route = self.full_route(cx, &start, &fixed, &target);
                     self.labels.1 = target.label(cx);

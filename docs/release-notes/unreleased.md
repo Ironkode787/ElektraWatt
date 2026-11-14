@@ -706,3 +706,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - text-change: EW-FL-007 names what a tube lacks: "tube … is 6×4 mm but has no material" where the size is known;
   its title is "Tube without specification"; Fluid settings… says in a toast what the default tube is, that the tubes
   drawn take it and when it lacks a material (M3 persona round)
+- behaviour-change: the Wire tool refuses in words an end that already sits on one line with its start (a point of
+  its own line; for a tube, the two ends of a tube again) and keeps routing; such a click did nothing (M3 persona
+  round)

@@ -455,6 +455,7 @@ reason-box-inside-out = A grip cannot pass the opposite side of the black box
 reason-no-grip = The black box has no such grip
 reason-cp-off-outline = Put the grid cursor on the black box's outline
 reason-ip-end-grid = End the wire on an empty grid point to end it in an interruption point
+reason-wire-one-line = These two points already sit on one line; click a point of another line, or Esc
 reason-ip-end-segment = Draw a segment before ending the wire in an interruption point
 reason-ip-symbol = The interruption-point symbol has not exactly one connection point
 

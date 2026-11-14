@@ -1170,6 +1170,12 @@ it is an outline drawn around that end (a valve terminal's box around its valves
 it the router found no route out of the box, and the persona's three tubes stayed unrouted. The layout findings
 (EW-CORE-067 to -070, -073) call a fluid line a tube ("Tube -201Q1:4 → -201M1:B has no route").
 
+*As built (M3 persona round).* The Wire tool refuses an end that already sits on one line with its start, in words where
+its hint stands ("These two points already sit on one line; click a point of another line, or Esc"), and keeps
+routing for another end: a point on a connection that ends at the start (or the start on one that ends there), and, for
+a tube, the other end of a tube that joins the two already. Two wires between the same points stay allowed (they may
+double a cross-section). Such a click did nothing and said nothing.
+
 *As built.* On the release of a move the Select tool builds the
 moved page geometry (the moved representations' bodies, CPs and texts displaced as `rep.move` displaces them, each
 followed route along its rubber band) and routes again every connection with a moved end that is unrouted, breaks a

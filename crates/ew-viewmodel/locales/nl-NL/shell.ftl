@@ -459,6 +459,7 @@ reason-box-inside-out = Een greep kan niet voorbij de tegenoverliggende zijde va
 reason-no-grip = De black box heeft deze greep niet
 reason-cp-off-outline = Zet de rastercursor op de omtrek van de black box
 reason-ip-end-grid = Beëindig de draad op een leeg rasterpunt om hem in een onderbrekingspunt te laten eindigen
+reason-wire-one-line = Deze twee punten liggen al op één leiding; klik een punt van een andere leiding, of Esc
 reason-ip-end-segment = Teken een segment voordat u de draad in een onderbrekingspunt laat eindigen
 reason-ip-symbol = Het symbool van het onderbrekingspunt heeft niet precies één aansluitpunt
 submenu-graphic = Grafisch
