@@ -20,6 +20,8 @@ answers is deleted with a line in its report.
 
 ### WP-S2.13: automation workspaces
 
+- FT-1753 `ew-viewmodel, ew-ui, ew-api`: **Medium.** A drawing import runs on the window's thread: the probe of a DXF when the dialog opens, and a DWG's conversion for up to 120 seconds, during which the window does not answer. Run it as a job with its progress and Cancel, as the exports do.
+- FT-1756 `ew-viewmodel, ew-ui`: The PLC import's preview offers "take the file's" on a comment conflict that cannot be taken (one side has languages, the other none); the command then refuses in words. Do not offer it, and let the refusal `refusal-plc-exchange-not-acceptable` state the reason that applies.
 - FT-1736 `ew-viewmodel, ew-ui`: File ▸ Import… on a drawing (WP-S3.19): the dialog's title stands indented past its buttons, and the unit choice shows the metre as "M" (the existing word `choice-m`).
 - FT-1733 `ew-viewmodel, ew-ui`: What WP-S1.25 left to the window: the flexible fluid line's arc, autoconnect and a line-kind picker on fluid ports, and the device navigator's fluid actions (doc 11 §12).
 - FT-1734 `content, ew-library`: The shipped terminal symbols (`ew.iec.terminal` and its QET twin) have no `PlcAddress` slot, so the setting `plc_address_at_terminals` (FT-1725, built) prints nothing; add the slot and look at the result on a page. The twin is in Golden A's tables: a golden change.
