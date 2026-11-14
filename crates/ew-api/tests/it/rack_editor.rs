@@ -77,7 +77,12 @@ fn the_valve_terminal_in_the_rack_editor() {
         ],
         "the seven modules in manifold order"
     );
-    let free: Vec<u32> = v.rows.iter().filter(|r| r.module.is_none()).map(|r| r.slot).collect();
+    let free: Vec<u32> = v
+        .rows
+        .iter()
+        .filter(|r| r.module.is_none())
+        .map(|r| r.slot)
+        .collect();
     assert_eq!(free, [8], "the slot after the positional modules");
     let first = &v.rows[0];
     assert_eq!(first.positions.len(), 4, "a sub-base with four valve positions");
@@ -89,7 +94,13 @@ fn the_valve_terminal_in_the_rack_editor() {
     add(&mut s, "533361").expect("slot 8 is allowed");
     let v = s.rack_view(station(&s)).unwrap();
     assert_eq!(v.rows.iter().filter(|r| r.module.is_some()).count(), 8);
-    assert_eq!(v.rows.iter().find(|r| r.slot == 8).and_then(|r| r.module.map(|_| ())), Some(()));
+    assert_eq!(
+        v.rows
+            .iter()
+            .find(|r| r.slot == 8)
+            .and_then(|r| r.module.map(|_| ())),
+        Some(())
+    );
 }
 
 #[test]
@@ -97,7 +108,10 @@ fn a_module_in_a_slot_its_part_does_not_allow_is_refused() {
     let mut s = golden_allowing(&[1, 2, 3, 4, 5, 6, 7]);
     let rev = s.world().rev;
     let err = add(&mut s, "533361").expect_err("slot 8 is not allowed");
-    assert!(err.contains("EW-PLC-011") || err.contains("allows slots 1, 2, 3, 4, 5, 6, 7"), "{err}");
+    assert!(
+        err.contains("EW-PLC-011") || err.contains("allows slots 1, 2, 3, 4, 5, 6, 7"),
+        "{err}"
+    );
     assert_eq!(s.world().rev, rev, "nothing committed");
 }
 

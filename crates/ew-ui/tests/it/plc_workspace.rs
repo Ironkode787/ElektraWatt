@@ -138,18 +138,29 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
     support::menu_node(&h, "Attach cards without a CPU").click();
     settle(&mut h);
     let rows = h.state().shell().shown_rows(NavKind::Plc);
-    assert!(rows.iter().all(|r| r.text != "Cards without a CPU"), "no card waits");
+    assert!(
+        rows.iter().all(|r| r.text != "Cards without a CPU"),
+        "no card waits"
+    );
     let module = rows
         .iter()
         .find(|r| r.role == NavRole::Module.word() && r.label == card)
         .expect("the card as a module");
     assert_eq!(module.parent.as_deref(), Some(station.key.as_str()));
-    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
     assert_eq!(toast, format!("Attached {card} to {}.", station.label));
     dispatch(&mut h, "edit.undo", json!({}));
     settle(&mut h);
     let rows = h.state().shell().shown_rows(NavKind::Plc);
-    assert!(rows.iter().any(|r| r.text == "Cards without a CPU"), "one undo step");
+    assert!(
+        rows.iter().any(|r| r.text == "Cards without a CPU"),
+        "one undo step"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -190,7 +201,12 @@ fn the_report_block_form_offers_the_plc_bus_and_fluid_lists() {
         std::thread::sleep(std::time::Duration::from_millis(20));
     }
     settle(&mut h);
-    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
     assert!(
         toast.starts_with("Added the report block Bus overview from folio "),
         "{toast}"
@@ -214,7 +230,11 @@ pub(crate) fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, 
     );
     settle(&mut h);
     wait_for_page(&mut h);
-    dispatch(&mut h, "tool.black_box", json!({"part": "EW-GEN-CPU-1", "template": 0}));
+    dispatch(
+        &mut h,
+        "tool.black_box",
+        json!({"part": "EW-GEN-CPU-1", "template": 0}),
+    );
     crate::navigators::cursor_k(&mut h, (10, 10));
     dispatch(&mut h, "canvas.activate", json!({}));
     crate::navigators::cursor_k(&mut h, (16, 18));
@@ -308,7 +328,10 @@ fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
     settle(&mut h);
     h.get_by_label("Rack and slots of -201U1");
     let code = format!("Order Code 1: {}", "51E-F13GCQP-D+H2GG");
-    assert!(h.query_all_by_label_contains(&code).count() >= 1, "the stored order code");
+    assert!(
+        h.query_all_by_label_contains(&code).count() >= 1,
+        "the stored order code"
+    );
     for tag in ["-201U3", "-201U8", "-202U2"] {
         h.get_by_label(&format!("Slot of {tag}"));
     }
@@ -365,13 +388,23 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
     settle(&mut h);
     let notices = h.state().shell().preview_pane().notices().to_vec();
     assert!(
-        notices.iter().any(|n| n.starts_with("channel 0 of -201U5: Q10.0 → ")),
+        notices
+            .iter()
+            .any(|n| n.starts_with("channel 0 of -201U5: Q10.0 → ")),
         "{notices:?}"
     );
     h.get_by_label_contains("channel 0 of -201U5: Q10.0");
-    support::off_chrome(&h, "Apply").expect("the card's Apply").click();
+    support::off_chrome(&h, "Apply")
+        .expect("the card's Apply")
+        .click();
     settle(&mut h);
-    let t = h.state().shell().nav(NavKind::Plc).and_then(|n| n.table()).cloned().unwrap();
+    let t = h
+        .state()
+        .shell()
+        .nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .cloned()
+        .unwrap();
     let address = t
         .nodes
         .iter()
@@ -408,7 +441,12 @@ fn the_plc_exchange_exports_and_previews_an_import() {
         settle(&mut h);
     }
     assert!(file.exists(), "the AML file is written");
-    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
     assert!(
         toast.starts_with("Exported plc.aml: 1 station(s), 7 module(s), 56 channel(s)"),
         "{toast}"
@@ -432,7 +470,12 @@ fn the_plc_exchange_exports_and_previews_an_import() {
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
-    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
     assert_eq!(toast, "Imported plc.aml.");
     h.state_mut().shell_mut().shutdown();
 }

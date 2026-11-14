@@ -52,13 +52,19 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
     }
     let rows = h.state().shell().shown_rows(NavKind::Fluid);
     assert!(rows.iter().any(|r| r.text == "Valve terminals"));
-    let terminal = rows.iter().find(|r| r.label == "-201U1").expect("the valve terminal");
+    let terminal = rows
+        .iter()
+        .find(|r| r.label == "-201U1")
+        .expect("the valve terminal");
     let modules: Vec<&str> = rows
         .iter()
         .filter(|r| r.parent.as_deref() == Some(terminal.key.as_str()) && r.role == NavRole::Device.word())
         .map(|r| r.label.as_str())
         .collect();
-    assert!(modules.contains(&"-201U3") && modules.contains(&"-202U2"), "{modules:?}");
+    assert!(
+        modules.contains(&"-201U3") && modules.contains(&"-202U2"),
+        "{modules:?}"
+    );
     let valves = rows
         .iter()
         .filter(|r| r.level == 4 && r.role == NavRole::Device.word())
@@ -74,7 +80,11 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
     assert!(!tubes.is_empty(), "the tube list's rows");
     let at = h
         .get_all_by_role(egui::accesskit::Role::Cell)
-        .find(|n| n.accesskit_node().label().is_some_and(|l| l.starts_with("Length")))
+        .find(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.starts_with("Length"))
+        })
         .expect("a length cell")
         .rect()
         .center();
@@ -131,7 +141,12 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
     crate::tools::right_click(&mut h, at);
     support::menu_node(&h, "Medium: Compressed air 6 bar").click();
     settle(&mut h);
-    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
     assert_eq!(toast, "The line carries Compressed air 6 bar now.");
     crate::tools::right_click(&mut h, at);
     support::menu_node(&h, "Line: Pilot").click();
@@ -158,11 +173,19 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
         .into_iter()
         .find(|r| r.role == NavRole::Medium.word())
         .expect("the medium's row");
-    assert!(row.badges.iter().any(|b| b.ends_with("lines")), "{:?}", row.badges);
+    assert!(
+        row.badges.iter().any(|b| b.ends_with("lines")),
+        "{:?}",
+        row.badges
+    );
     dispatch(&mut h, "navigator.show", json!({"kind": "media"}));
     settle(&mut h);
     h.get_all_by_role(egui::accesskit::Role::Cell)
-        .find(|n| n.accesskit_node().label().is_some_and(|l| l.starts_with("Medium Compressed air")))
+        .find(|n| {
+            n.accesskit_node()
+                .label()
+                .is_some_and(|l| l.starts_with("Medium Compressed air"))
+        })
         .expect("the medium table's row")
         .click();
     settle(&mut h);

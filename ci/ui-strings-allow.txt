@@ -22,3 +22,8 @@
 "{}  {}"
 # A wizard step's number and its title (wizard.rs).
 "{}. {}"
+# A PLC import change's arrow from the project's value to the file's, and the separator before its state or the
+# reason a parked object matches nothing (automation.rs).
+"→"
+"· {state}"
+"· {}"

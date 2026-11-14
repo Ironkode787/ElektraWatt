@@ -269,8 +269,15 @@ fn racks_bus_ports_the_new_columns_and_facets() {
     assert_eq!(ports.len(), 1, "-201U1's DP port");
     assert_eq!(ports[0].label, "DP · PROFIBUS DP");
     assert!(!ports[0].table_row);
-    assert_eq!(with(&t, "bus", "profibus-dp").len(), 56, "every channel of the station");
-    assert!(t.nodes.iter().all(|n| n.role != NavRole::Rack), "positional slots: no rack");
+    assert_eq!(
+        with(&t, "bus", "profibus-dp").len(),
+        56,
+        "every channel of the station"
+    );
+    assert!(
+        t.nodes.iter().all(|n| n.role != NavRole::Rack),
+        "positional slots: no rack"
+    );
     assert!(with(&t, "safety", "").is_empty());
 
     let u5 = channel(&t, "-201U5", 0).clone();
@@ -284,7 +291,12 @@ fn racks_bus_ports_the_new_columns_and_facets() {
     let u3 = channel(&t, "-201U3", 0).clone();
     set(&mut s, &[&u3], "data_type", json!("Bool"));
     set(&mut s, &[&u3], "signal_range", json!("24 V DC"));
-    set(&mut s, &[&u3], "safety", json!({"evaluation": "1oo2", "requirement": "SIL 2"}));
+    set(
+        &mut s,
+        &[&u3],
+        "safety",
+        json!({"evaluation": "1oo2", "requirement": "SIL 2"}),
+    );
     let t = s.navigator_table(NavKind::Plc);
     let rack = t.nodes.iter().find(|n| n.role == NavRole::Rack).expect("rack 1");
     assert_eq!(rack.label, "Rack 1");

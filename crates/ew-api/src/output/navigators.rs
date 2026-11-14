@@ -2117,7 +2117,7 @@ fn rate_words(r: ew_derive::ew_schema::BusRate) -> String {
         b if b >= 1_000 => (1_000, "kbit/s"),
         _ => (1, "bit/s"),
     };
-    let text = if bits % scale == 0 {
+    let text = if bits.is_multiple_of(scale) {
         (bits / scale).to_string()
     } else {
         format!("{}.{:03}", bits / scale, (bits % scale) * 1000 / scale)
@@ -2323,7 +2323,10 @@ fn bus_table(q: &Q, b: &mut Builder) {
                                     .map(|d| short_tag(q, d))
                                     .filter(|t| !t.is_empty())
                                     .or_else(|| {
-                                        q.get::<ew_derive::IpPairingQ>(()).ips.get(f).map(|i| i.name.clone())
+                                        q.get::<ew_derive::IpPairingQ>(())
+                                            .ips
+                                            .get(f)
+                                            .map(|i| i.name.clone())
                                     })
                                     .unwrap_or_default();
                                 b.push(

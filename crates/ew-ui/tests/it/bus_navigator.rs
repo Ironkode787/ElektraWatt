@@ -47,8 +47,15 @@ fn the_bus_navigator_lists_nets_ports_and_segments_and_edits_an_address() {
         .iter()
         .find(|r| r.label == "-3X1 DP")
         .expect("the connector in the segment");
-    assert!(connector.badges.iter().any(|b| b == "terminated"), "{:?}", connector.badges);
-    assert!(rows.iter().any(|r| r.role == NavRole::Cable.word() && r.label == "-3W1"));
+    assert!(
+        connector.badges.iter().any(|b| b == "terminated"),
+        "{:?}",
+        connector.badges
+    );
+    assert!(
+        rows.iter()
+            .any(|r| r.role == NavRole::Cable.word() && r.label == "-3W1")
+    );
     // The table: the station port's address cell typed as 3 is PROFIBUS station address 3.
     dispatch(&mut h, "navigator.table", json!({"kind": "bus", "on": true}));
     settle(&mut h);
@@ -64,7 +71,10 @@ fn the_bus_navigator_lists_nets_ports_and_segments_and_edits_an_address() {
     settle(&mut h);
     h.key_press(egui::Key::Enter);
     settle(&mut h);
-    assert!(h.query_all_by_label_contains("Address 3,").count() >= 1, "the cell reads 3");
+    assert!(
+        h.query_all_by_label_contains("Address 3,").count() >= 1,
+        "the cell reads 3"
+    );
     assert_eq!(
         h.query_all_by_label_contains("Address TBD").count(),
         0,
@@ -105,7 +115,8 @@ fn a_cpus_row_places_its_dp_port() {
     settle(&mut h);
     let rows = h.state().shell().shown_rows(NavKind::Bus);
     assert!(
-        rows.iter().any(|r| r.role == NavRole::BusPort.word() && r.label.ends_with(" DP")),
+        rows.iter()
+            .any(|r| r.role == NavRole::BusPort.word() && r.label.ends_with(" DP")),
         "{:?}",
         rows.iter().map(|r| r.text.clone()).collect::<Vec<_>>()
     );
