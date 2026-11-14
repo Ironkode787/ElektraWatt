@@ -1198,7 +1198,10 @@ rule-ew-plc-016 = configuration project { $cfg } changed since the { $format ->
     } { $direction ->
         [import] import
        *[export] export
-    } of { $date }: { $count } object(s) differ ({ $objects }{ $more ->
+    }{ $date ->
+        [none] {""}
+       *[other] {" "}of { $date }
+    }: { $count } object(s) differ ({ $objects }{ $more ->
         [none] {""}
        *[other] {" "}and { $more } more
     }); export it again, or import the PLC's file

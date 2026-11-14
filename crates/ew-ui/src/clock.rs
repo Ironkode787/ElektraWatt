@@ -62,7 +62,8 @@ pub fn wall_reads() -> u64 {
 /// wall clock, by the proleptic Gregorian calendar in UTC (the workspace carries no time-zone data, so a waiver made
 /// near midnight may carry the neighbouring day). A run on the frame clock reads no wall clock and gives
 /// [`FRAME_CLOCK_DATE`], so a visual run is reproducible. Read on a click, never in the frame path; the shell never
-/// reads a clock: the window passes this into `messages.waive`.
+/// reads a clock: the window passes this into `messages.waive` and, before each action, into the shell
+/// (`ShellModel::set_today`, the PLC export form's date).
 pub fn today() -> String {
     if on_frame_clock() {
         return FRAME_CLOCK_DATE.to_owned();

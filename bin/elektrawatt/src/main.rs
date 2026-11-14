@@ -288,11 +288,11 @@ impl RfdPlatform {
                     .add_filter("EWZ", &["ewz"]),
                 DialogKind::File,
             ),
-            Prompt::SavePlcExchange => (
+            // The chosen format's file: its extension names the file and its one filter.
+            Prompt::SavePlcExchange(extension) => (
                 base.set_title(strings::text(key!("prompt-plc-export-title")))
-                    .add_filter("AutomationML", &["aml"])
-                    .add_filter("XLSX", &["xlsx"])
-                    .add_filter("PLCopen XML", &["xml"]),
+                    .set_file_name(format!("plc.{extension}"))
+                    .add_filter(extension.to_uppercase(), &[extension]),
                 DialogKind::Save,
             ),
             Prompt::OpenPlcExchange => (

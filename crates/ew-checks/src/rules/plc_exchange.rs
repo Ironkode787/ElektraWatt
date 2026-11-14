@@ -38,7 +38,8 @@ pub const EXCHANGE_DRIFT: RuleMeta = RuleMeta {
 /// EW-PLC-016: a configuration project whose exchange image differs from the snapshot of its last exchange (doc 10
 /// §4.4): a station, module, channel, tag or bus node of the exchanged stations with another value, added since or
 /// gone since. One finding per configuration project, target the configuration project; it names the exchange (its
-/// direction, format and date), counts the differing objects and names the first three. After an export the project
+/// direction, format and date, the date left out when it is the placeholder 1980-01-01 of a model without a date),
+/// counts the differing objects and names the first three. After an export the project
 /// is as exchanged; after an import a value the merge kept on the project's side differs, which is the pending
 /// export. Whether a foreign file is newer needs the file and is `ew plc status`'s (doc 10 §4.4).
 #[derive(Clone, Copy, Debug)]
@@ -90,6 +91,9 @@ impl Rule for ExchangeDrift {
         let list = objects.join(", ");
         let count = drift.len();
         let more = count - objects.len();
+        // 1980-01-01 is the date of a model without one (the reproducible floor of FR-OUT-026), never a real
+        // exchange's: the message leaves it out.
+        let date = Some(stamp.date.to_string()).filter(|d| d != "1980-01-01");
         vec![
             Finding::new(
                 &EXCHANGE_DRIFT,
@@ -97,16 +101,16 @@ impl Rule for ExchangeDrift {
                 "drift",
                 name.clone(),
                 format!(
-                    "configuration project {name} changed since the {format_words} {direction} of {}: {count} object(s) \
+                    "configuration project {name} changed since the {format_words} {direction}{}: {count} object(s) \
                      differ ({list}{}); export it again, or import the PLC's file",
-                    stamp.date,
+                    date.as_ref().map_or_else(String::new, |d| format!(" of {d}")),
                     if more > 0 { format!(" and {more} more") } else { String::new() }
                 ),
             )
             .arg("cfg", name)
             .arg("format", format)
             .arg("direction", direction)
-            .arg("date", stamp.date.to_string())
+            .arg("date", date.unwrap_or_else(|| "none".to_owned()))
             .arg("count", count.to_string())
             .arg("objects", list)
             .arg(

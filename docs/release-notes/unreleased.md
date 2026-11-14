@@ -660,3 +660,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   EW-PLC-009 (persona round)
 - behaviour-change: EW-POT-009 no longer reports the pin of a PLC channel that is spare, reserved or deactivated: a
   card with one used channel gives no "is not connected" for the others (persona round)
+- behaviour-change: window Export to PLC software… names the file for the chosen format (`plc.aml`, `plc.xlsx`,
+  `plc.xml`) and its form's document date starts as today's; EW-PLC-016 leaves out the placeholder date 1980-01-01 of a
+  model without a date (persona round)
+- api-add: `PlcFormat::extension`; `ShellModel::set_today` (the window tells the shell today's date before an action)

@@ -171,7 +171,7 @@ static MEDIUM_NEW: Spec = Spec {
 };
 
 /// PLC exchange ▸ Export…'s form (doc 10 §6): the format and version, the stations (tags; empty: all) and the document
-/// date (empty: the model's).
+/// date (in the window today's to start with; empty: the model's).
 static PLC_EXPORT: Spec = Spec {
     action: "plc.export",
     title_key: key!("plc-export-title"),
@@ -1134,6 +1134,12 @@ impl ShellModel {
                         .map(|(w, name)| ((*w).to_owned(), (*name).to_owned()))
                         .collect();
                     super::automation::PLC_FORMATS[0].0.clone_into(&mut f.value);
+                }
+                // The document date starts as today's, which the window read (headless: empty, the model's date).
+                if let Some(f) = dialog.fields.iter_mut().find(|f| f.name == "date" && f.value.is_empty())
+                    && let Some(today) = &self.today
+                {
+                    today.clone_into(&mut f.value);
                 }
                 dialog.ok_key = key!("dialog-export");
                 return self.open_dialog(Dialog::Form(dialog));

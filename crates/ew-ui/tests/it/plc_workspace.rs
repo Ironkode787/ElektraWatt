@@ -546,6 +546,42 @@ fn the_plc_exchange_exports_and_previews_an_import() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The PLC export's form starts with today's date, which the window reads, and the file it asks for is named for the
+/// chosen format: the TIA tag table asks for an `.xlsx` file.
+#[test]
+fn the_plc_export_asks_for_a_file_of_its_format_dated_today() {
+    use ew_ui::app::Pick;
+    use ew_ui::ew_viewmodel::shell::Prompt;
+    let tmp = Tmp::new();
+    let file = tmp.0.join("tags.xlsx");
+    let platform = Scripted::default();
+    platform.answers.borrow_mut().push_back(Pick::Path(file.clone()));
+    let asked = platform.asked.clone();
+    let mut h = harness(&tmp, platform, Some(tmp.golden("g.ew")));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    support::open_menu(&mut h, &["Output"]);
+    settle(&mut h);
+    h.get_by_label("Export to PLC software…").click();
+    settle(&mut h);
+    let today = ew_ui::clock::today();
+    assert_eq!(form_value(&h, "date"), today, "the form is dated today");
+    h.get_all_by_role(egui::Role::ComboBox)
+        .next()
+        .expect("the Format list")
+        .click();
+    settle(&mut h);
+    h.get_by_label("TIA Portal PLC tags (XLSX)").click();
+    settle(&mut h);
+    h.get_by_label("Export").click();
+    for _ in 0..10 {
+        settle(&mut h);
+    }
+    assert_eq!(asked.borrow().as_slice(), [Prompt::SavePlcExchange("xlsx")]);
+    assert!(file.exists(), "the tag table is written");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// Doc 10 §4.4: Apply does what the preview of a complete file showed. The station of Golden A's exchange is renamed in
 /// the file (another ID, another designation), so the file holds a station the project lacks and lacks the one it
 /// has: imported as complete, the Removed tab lists the project's station, and Apply takes it out of the last exchange,

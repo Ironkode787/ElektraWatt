@@ -68,7 +68,8 @@ impl PlcFormat {
         }
     }
 
-    fn extension(self) -> &'static str {
+    /// The file extension of the format: `aml`, `xlsx` or `xml`.
+    pub fn extension(self) -> &'static str {
         match self {
             PlcFormat::Aml(_) => "aml",
             PlcFormat::TiaXlsx => "xlsx",

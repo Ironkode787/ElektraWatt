@@ -1222,7 +1222,10 @@ rule-ew-plc-016 = configuratieproject { $cfg } is gewijzigd sinds de { $format -
     }-{ $direction ->
         [import] import
        *[export] export
-    } van { $date }: { $count } object(en) wijken af ({ $objects }{ $more ->
+    }{ $date ->
+        [none] {""}
+       *[other] {" "}van { $date }
+    }: { $count } object(en) wijken af ({ $objects }{ $more ->
         [none] {""}
        *[other] {" "}en nog { $more }
     }); exporteer het opnieuw, of importeer het bestand van de PLC

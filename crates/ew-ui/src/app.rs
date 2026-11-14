@@ -602,6 +602,8 @@ impl App {
     /// (raised, replaced or cleared for its own reason): the banner [`App::report`] raised is then forgotten.
     fn run(&mut self, action: Option<&str>, step: impl FnOnce(&mut ShellModel) -> Outcome) {
         let before = self.shell.banner().map(str::to_owned);
+        // The window reads the date before an action; the shell never does (the PLC export's form starts with it).
+        self.shell.set_today(crate::clock::today());
         // The palette form's run is reported as its action, and the palette's run of
         // its selected action without a form as that action.
         let form = self.shell.palette().and_then(|p| match &p.form {

@@ -510,8 +510,9 @@ pub enum Prompt {
     SaveSymbol,
     /// A symbol library folder (the symbol editor's Library folder).
     LibraryFolder,
-    /// A PLC exchange file name: AML, a TIA tag workbook or PLCopen XML (PLC exchange…'s export).
-    SavePlcExchange,
+    /// A PLC exchange file name of the chosen format, whose extension (`aml`, `xlsx`, `xml`) this holds (PLC
+    /// exchange…'s export).
+    SavePlcExchange(&'static str),
     /// An existing PLC exchange file, AML or a TIA tag workbook (PLC exchange…'s import).
     OpenPlcExchange,
 }
@@ -686,6 +687,9 @@ pub struct ShellModel {
     /// The source of new record IDs for the sessions the shell opens or creates: `None` (the system clock and OS
     /// entropy) except in a test that replays one script under different IDs (feature `testkit`).
     id_source: Option<fn() -> Box<dyn IdSource + Send>>,
+    /// Today's date (`YYYY-MM-DD`) as the window last read it before an action; `None` headless. The shell never reads
+    /// a clock: a form that offers a date (the PLC export's) starts with this one.
+    today: Option<String>,
     /// The jobs (the PDF export) and the Jobs pane's entries.
     jobs: crate::jobs::JobsState,
     /// The print pre-dialog's build, its built set and the print request for the window.
@@ -1139,6 +1143,7 @@ impl ShellModel {
             clip: crate::clipboard::ClipboardState::default(),
             aliases: std::cell::RefCell::new(crate::alias::AliasTable::new()),
             id_source: None,
+            today: None,
             jobs: crate::jobs::JobsState::default(),
             print: print::PrintState::default(),
             notes: crate::notifications::NotificationLog::default(),
@@ -2060,6 +2065,12 @@ impl ShellModel {
     /// The source of new record IDs for every session the shell opens or creates from now on (feature `testkit`
     /// only; `None`: the system clock and OS entropy, as in the product, which never sets one). A guard runs one
     /// script under an ascending and a descending source: a shell output ordered by UUID then differs. The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell.
+    /// Tells the shell today's date (`YYYY-MM-DD`), which the window reads before it runs an action; the shell never
+    /// reads a clock.
+    pub fn set_today(&mut self, date: String) {
+        self.today = Some(date);
+    }
+
     #[cfg(feature = "testkit")]
     pub fn set_id_source_for_tests(&mut self, make: Option<IdSourceFactory>) {
         self.id_source = make;

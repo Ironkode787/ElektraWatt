@@ -638,6 +638,41 @@ fn an_edit_after_an_export_is_drift() {
     assert_eq!(status.same_file, Some(false));
 }
 
+/// EW-PLC-016 never prints the placeholder date 1980-01-01 of a model without a date: an export of that date is
+/// named without one, in en-GB and nl-NL.
+#[test]
+fn drift_after_an_undated_export_names_no_date() {
+    let mut s = golden();
+    let options = PlcOptions {
+        date: Some("1980-01-01".parse().expect("a date")),
+        ..PlcOptions::default()
+    };
+    let e = s
+        .plc_export(PlcFormat::Aml(ApcVersion::V1_4_0), &options)
+        .expect("the export");
+    s.execute(e.record.as_ref().expect("a record")).expect("recorded");
+    let channel = channel_of(&s, "TA05_V_15");
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "channel", "targets": [channel.to_string()], "path": "symbol", "value": "FEED_15"}),
+    );
+    let found = findings(&s, "EW-PLC-016");
+    assert_eq!(found.len(), 1, "{found:?}");
+    assert!(
+        found[0]
+            .message
+            .starts_with("configuration project PLC1 changed since the AML export: 1 object(s)"),
+        "{}",
+        found[0].message
+    );
+    let nl = ew_api::checks::render(&found[0], "nl-NL");
+    assert!(
+        nl.starts_with("configuratieproject PLC1 is gewijzigd sinds de AML-export: 1 object"),
+        "{nl}"
+    );
+}
+
 /// FR-PLC-036: an unchanged tag table comes back as an empty diff; a renamed row without its ID column is found by
 /// its address, and a row without a channel is listed and cannot be created.
 #[test]

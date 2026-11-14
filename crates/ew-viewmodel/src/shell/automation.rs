@@ -803,7 +803,8 @@ impl ShellModel {
                 let mut rest = p.clone();
                 rest.insert("replace".to_owned(), Value::Bool(true));
                 self.dialog = None;
-                return self.need_path("plc.export", crate::shell::Prompt::SavePlcExchange, "path", &rest);
+                let prompt = crate::shell::Prompt::SavePlcExchange(fmt.extension());
+                return self.need_path("plc.export", prompt, "path", &rest);
             }
         };
         // An existing file is replaced only on request (the save dialog asks itself, and says so).
