@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-14T13:17:42+01:00\n"
+"POT-Creation-Date: 2026-11-14T15:09:56+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -76,39 +76,47 @@ msgstr ""
 msgid "Draw a panel layout"
 msgstr ""
 
-#: src/SUMMARY.md:24 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:24 src/how-to/plc-workspace.md:1
+msgid "Work in the PLC workspace"
+msgstr ""
+
+#: src/SUMMARY.md:25 src/how-to/fluid-workspace.md:1
+msgid "Work in the Fluid workspace"
+msgstr ""
+
+#: src/SUMMARY.md:26 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:26 src/SUMMARY.md:28 src/reference/index.md:1
+#: src/SUMMARY.md:28 src/SUMMARY.md:30 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:29 src/reference/window/tools.md:1
+#: src/SUMMARY.md:31 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:30 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:32 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:31 src/reference/window/panels.md:1
+#: src/SUMMARY.md:33 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:32 src/reference/symbol-editor.md:1
+#: src/SUMMARY.md:34 src/reference/symbol-editor.md:1
 msgid "Symbol editor and automated authoring"
 msgstr ""
 
-#: src/SUMMARY.md:34 src/SUMMARY.md:36 src/explanation/index.md:1
+#: src/SUMMARY.md:36 src/SUMMARY.md:38 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:37 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:39 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:38 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:40 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -1510,17 +1518,20 @@ msgstr ""
 msgid ""
 "The project view is a dock: drag the border between two panes to resize "
 "them, and drag a pane's title onto another pane to rearrange or tab it. The "
-"built-in workspace is **Schematic**. **View, Workspace** lists the saved "
-"workspaces, saves the current layout under a name and resets the layout. A "
-"workspace is a file `workspaces/<name>.json` in the configuration directory; "
-"the layout is saved a second after its last change."
-msgstr ""
-
-#: src/how-to/application-window.md:71
-msgid "First-run setup"
+"program ships the workspaces **Schematic**, **PLC** (see [Work in the PLC "
+"workspace](plc-workspace.md)) and **Fluid power** (see [Work in the Fluid "
+"workspace](fluid-workspace.md)). **View ▸ Workspaces** lists them and the "
+"saved workspaces, saves the current layout under a name and resets the "
+"layout (a shipped workspace to its own layout). A workspace is a file "
+"`workspaces/<name>.json` in the configuration directory; the layout is saved "
+"a second after its last change."
 msgstr ""
 
 #: src/how-to/application-window.md:73
+msgid "First-run setup"
+msgstr ""
+
+#: src/how-to/application-window.md:75
 msgid ""
 "On the first start the application asks for the language and what you come "
 "from (EPLAN, QElectroTech, KiCad or other), says what it does with your data "
@@ -1530,11 +1541,11 @@ msgid ""
 "First-run setup** runs it again. Nothing in it makes a network connection."
 msgstr ""
 
-#: src/how-to/application-window.md:78
+#: src/how-to/application-window.md:80
 msgid "Company-standard wizard"
 msgstr ""
 
-#: src/how-to/application-window.md:80
+#: src/how-to/application-window.md:82
 msgid ""
 "The wizard collects the conventions of your company and writes a **basic "
 "project**, from which new projects start. It has ten steps: the company, the "
@@ -1548,11 +1559,11 @@ msgid ""
 "to a directory you choose and becomes the default for **New project**."
 msgstr ""
 
-#: src/how-to/application-window.md:88
+#: src/how-to/application-window.md:90
 msgid "About"
 msgstr ""
 
-#: src/how-to/application-window.md:90
+#: src/how-to/application-window.md:92
 msgid ""
 "**Help, About ElektraWatt** shows the version, the page-view renderer, the "
 "privacy state, the licence, the engineering-verification disclaimer, the "
@@ -2347,6 +2358,220 @@ msgstr ""
 msgid ""
 "The tools are described one by one in the [tool "
 "reference](../reference/window/tools.md): Place device, Rail and Duct."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:3
+msgid ""
+"The PLC workspace shows a project's PLC configuration beside its pages: the "
+"PLC navigator and the bus navigator in the left column, the page in the "
+"middle and the PLC grid, every channel as a row of a table, in the bottom "
+"dock. It is the place to address cards, bind channels and check what each "
+"channel drives."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:7 src/how-to/fluid-workspace.md:6
+msgid "Open it"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:9
+msgid ""
+"Choose **View ▸ Workspaces ▸ PLC**. The left column shows the PLC navigator "
+"and the bottom dock the PLC grid; Properties stays under the navigator. "
+"**View ▸ Workspaces ▸ Schematic** goes back; a change you make to the layout "
+"is kept for the workspace."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:13
+msgid "The PLC navigator"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:15
+msgid ""
+"The tree runs from the configuration project to its stations (a CPU, a head "
+"station, a valve terminal), their racks once a module has a rack position, "
+"their modules and each module's channels, with the station's bus ports after "
+"its modules. Selecting a row selects the device or channel on the page "
+"shown; a drawable on another page is a chip at the top of the canvas that "
+"opens it."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:19
+msgid ""
+"Drag a channel's row onto a connection point of a card pin or a coil to bind "
+"it. A device wired off the card, or a valve beside a valve terminal, is "
+"attached to the card and bound in one step; one Undo takes both back."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:21
+msgid ""
+"In a project with two CPUs a new card joins neither and is listed under "
+"**Cards without a CPU**. Right-click the CPU that takes it and choose "
+"**Attach cards without a CPU**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:24
+msgid "Bus ports and nets"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:26
+msgid ""
+"A CPU's port that is in its part but not drawn yet is offered on the CPU's "
+"row as **Place port DP**: on a bus-topology page it arms the Place tool with "
+"the port symbol joined to the CPU, and a click places it. Draw the bus "
+"between the ports with **Draw ▸ Wire**, which draws bus lines on a "
+"bus-topology page."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:29
+msgid ""
+"Choose **Bus** on the rail for the nets: each logical net with its ports, "
+"each physical net with its segments and their ends. Show it as a table to "
+"type a port's address or switch its termination."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:32
+msgid "Addresses"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:34
+msgid ""
+"Right-click a module and choose **Re-address…**, or a configuration project "
+"for all its modules: the Preview tab lists each channel whose address moves, "
+"old and new, and **Apply** makes the change in one step. **Make manual "
+"addresses automatic…** drops the manual addresses that equal the derived "
+"ones, and **Freeze addresses…** on a configuration project keeps every "
+"derived address as a manual one, so that a later change of a card moves none."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:40 src/reference/window/dialogs.md:114
+msgid "Rack and slots"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:42
+msgid ""
+"Right-click a station and choose **Rack and slots…**. Pick the card in "
+"**Module part to add** and choose **Add here** on a free slot; type another "
+"slot into a card's Slot field to move it. A slot the card's part does not "
+"allow is refused, and the reason stays in the dialog."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:46
+msgid "The PLC grid"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:48
+msgid ""
+"Each row of the grid is a channel. Type in a cell to change a channel's "
+"designation, address, symbol, state, target, comment, data type or signal "
+"range; the slot cell takes a number or `<rack>.<slot>`. Safety data is "
+"edited in Properties."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:51
+msgid ""
+"Type in the grid's filter to narrow the rows: a word of a cell, or one of "
+"`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
+"`config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's "
+"header sorts by it, a second click reverses the order."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:55
+msgid "Exchange with the PLC software"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:57
+msgid ""
+"Choose **Output ▸ Export to PLC software…**, pick the format and choose "
+"**Create**, then the file. Import the file in TIA Portal or CODESYS."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:59
+msgid ""
+"Choose **Output ▸ Import from PLC software…** for the file the PLC software "
+"wrote back. Look through its tabs, decide each conflict, and choose "
+"**Apply**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:62
+msgid ""
+"The panels are described in the [panel "
+"reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "
+"in the [dialog reference](../reference/window/dialogs.md): Rack and slots "
+"and PLC import."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:3
+msgid ""
+"The Fluid workspace shows a project's pneumatics beside its pages: the fluid "
+"navigator in the left column, the page in the middle, and the tube table and "
+"the medium table in the bottom dock."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:8
+msgid ""
+"Choose **View ▸ Workspaces ▸ Fluid power**. **View ▸ Workspaces ▸ "
+"Schematic** goes back; a change you make to the layout is kept for the "
+"workspace."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:11
+msgid "Valves and lines"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:13
+msgid ""
+"The fluid navigator lists each valve terminal with its modules and valves, "
+"and every other device a fluid line ends at, each with its lines. Select a "
+"line's row to find it on the page."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:15
+msgid ""
+"Draw a fluid line with **Draw ▸ Wire** on a fluid page. Right-click a line "
+"to choose its kind (**Line: Working**, **Line: Pilot** and the others) or "
+"its medium."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:18
+msgid "Tubes"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:20
+msgid ""
+"The tube table has one row per tube. Type a length in millimetres into "
+"**Length** or a tube part into **Tube part**; **Source** then says the value "
+"is manual. Leave a cell empty to take the derived value again."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:23
+msgid "Media"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:25
+msgid ""
+"Choose **Project ▸ New medium…**, give the medium a name and its pressure in "
+"bar, and choose **Create**."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:26
+msgid ""
+"Right-click a fluid line and choose **Medium:** with the medium's name: the "
+"line's net and every net the medium reaches through the valves carry it. The "
+"fluid navigator counts the lines of each medium."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:28
+msgid ""
+"Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
+"highlight its zones on the page; the highlight is a colour with a hatch "
+"pattern, so it reads without colour too."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:31
+msgid ""
+"The panels are described in the [panel "
+"reference](../reference/window/panels.md): Fluid, Tube table and Medium "
+"table."
 msgstr ""
 
 #: src/how-to/upgrade-a-project.md:3
@@ -3391,6 +3616,55 @@ msgid ""
 "with Project ▸ Set up merge driver."
 msgstr ""
 
+#: src/reference/window/dialogs.md:116
+msgid ""
+"Opened by **Rack and slots…** on a station's row in the PLC navigator (a "
+"right click): the station's slots, one row each, with the module in it, its "
+"part and the slots its part allows. A valve terminal shows its stored order "
+"codes at the top and each module's valve positions under its row."
+msgstr ""
+
+#: src/reference/window/dialogs.md:120
+msgid ""
+"Choose the card in **Module part to add**: the project's module parts first, "
+"then those of the installed libraries, which are copied into the project "
+"with the card. **Add here** on a free slot adds a card of that part there; "
+"in a station whose modules sit in positions, not rack slots, the free slot "
+"is the one after the last module. Type a slot into a module's Slot field and "
+"press `Enter` to move it, as a number or as rack and slot (`1.3`)."
+msgstr ""
+
+#: src/reference/window/dialogs.md:125
+msgid ""
+"A slot the part does not allow, or more modules than the station takes, is "
+"refused, and the reason stays under the slots; the station's slot findings "
+"(EW-PLC-011) are listed there too, each with its icon and the word Error. "
+"**Close** or `Esc` closes the dialog."
+msgstr ""
+
+#: src/reference/window/dialogs.md:129
+msgid "PLC import"
+msgstr ""
+
+#: src/reference/window/dialogs.md:131
+msgid ""
+"**Output ▸ Import from PLC software…** asks for an AutomationML file or a "
+"TIA Portal \"PLC Tags\" workbook and shows what it would change in the "
+"project's configuration project, by tab: **Changed** (each field with the "
+"project's and the file's value and what the import makes of it: applied, "
+"rejected because the project owns it, kept because the project changed it, "
+"or pending), **Conflicts** (both sides changed the field: keep the project's "
+"value or take the file's), **Removed** (what the file no longer holds) and "
+"**Parking** (the file's objects that match nothing in the project, or more "
+"than one; a module or station can be created unplaced). Nothing changes "
+"until **Apply**, which makes the import one step of Undo. **Output ▸ Export "
+"to PLC software…** is a form: the format (AutomationML AR APC 1.4.0 or "
+"1.2.0, the TIA tag workbook, PLCopen XML for CODESYS), the stations (their "
+"tags; empty: all) and the document date (empty: the project's); it then asks "
+"for the file, writes it whole or not at all, and says what the file holds. "
+"The file holds no personal data."
+msgstr ""
+
 #: src/reference/window/panels.md:3
 msgid ""
 "The window's panes sit around the page view: the navigators on the left, the "
@@ -3595,89 +3869,192 @@ msgstr ""
 #: src/reference/window/panels.md:104
 msgid ""
 "The PLC configuration projects, stations, modules and channels, with their "
-"addresses. A right click on a station or a module offers what a device's row "
-"offers; on a channel, Go to its place and Properties of selection."
+"addresses. A station lists its modules under their racks once a module has a "
+"rack position, and its bus ports after its modules. A right click on a "
+"station or a module offers what a device's row offers; on a channel, Go to "
+"its place and Properties of selection."
 msgstr ""
 
-#: src/reference/window/panels.md:107
+#: src/reference/window/panels.md:108
+msgid ""
+"A card that no CPU takes (a project with two CPUs leaves a new card on "
+"neither) is listed under **Cards without a CPU**. A right click on a CPU's "
+"row offers **Attach cards without a CPU**, which makes them that CPU's "
+"modules in one step."
+msgstr ""
+
+#: src/reference/window/panels.md:112
+msgid ""
+"The filter takes the words `spare`, `unplaced`, `unassigned`, `tbd`, "
+"`duplicate` and `safety` (a channel or module with safety data), "
+"`config:<name>` for a configuration project and `bus:<net>` for the bus net "
+"of a station's port, its name written with hyphens for spaces "
+"(`bus:profibus-dp`)."
+msgstr ""
+
+#: src/reference/window/panels.md:116
+msgid "PLC grid"
+msgstr ""
+
+#: src/reference/window/panels.md:118
+msgid ""
+"The PLC navigator's channels as a table, in the bottom dock of the [PLC "
+"workspace](../../how-to/plc-workspace.md): address, target, symbol, function "
+"text, designation, module, channel, kind, data type, signal range, safety, "
+"process tag, state, the page it is placed on, station, rack, slot and "
+"comment. The designation, address, symbol, state, target, comment, data type "
+"and signal range are edited in their cells, the slot in its cell as a number "
+"or `<rack>.<slot>`; a channel's safety data is edited in Properties. Its "
+"filter takes the PLC navigator's words."
+msgstr ""
+
+#: src/reference/window/panels.md:124
+msgid "Bus"
+msgstr ""
+
+#: src/reference/window/panels.md:126
+msgid ""
+"The project's bus networks, on the rail as **Bus**: **Logical nets**, each "
+"with its rate and its ports (the master port marked), **Physical nets**, "
+"each with its segments as the program derives them from the drawn bus lines, "
+"each segment's members in order from its start (a port at an end marked "
+"_end_, a connector's termination as _terminated_ or _not terminated_, the "
+"cables between them), and **Ports without a net**. Selecting a net shows its "
+"name, bus, rate and master in Properties; selecting a port shows its "
+"interface, role, address, termination and nets."
+msgstr ""
+
+#: src/reference/window/panels.md:132
+msgid ""
+"As a table each port is a row: device, interface, address, termination, bus, "
+"role and nets. Type an address into its cell as the row shows it: a number "
+"for a PROFIBUS station, a PROFINET device name with its IP address (`cpx-1 "
+"192.168.0.10`, then `mask` and `gateway` with theirs), `pos 2` and `alias "
+"1001` for EtherCAT, `port 3` for an IO-Link port, or `TBD`; an empty cell is "
+"a port without an address. The termination cell takes on or off."
+msgstr ""
+
+#: src/reference/window/panels.md:137
+msgid "Fluid"
+msgstr ""
+
+#: src/reference/window/panels.md:139
+msgid ""
+"The fluid side of the project, on the rail as **Fluid**: **Valve "
+"terminals**, each with its modules in position order and their valves, then "
+"**Fluid devices** (cylinders, grippers and the other devices a fluid line "
+"ends at), each device with its lines (`→` and the port at the line's other "
+"end), then **Media**, each with the number of lines its zones hold. "
+"Selecting a line selects it on the page."
+msgstr ""
+
+#: src/reference/window/panels.md:144
+msgid "Tube table"
+msgstr ""
+
+#: src/reference/window/panels.md:146
+msgid ""
+"The tube list as a table, in the bottom dock of the [Fluid "
+"workspace](../../how-to/fluid-workspace.md): one row per tube with its ends "
+"and their port roles, medium, line kind, size, material, colour, tube part, "
+"length and where the length comes from, fittings, a change of location and "
+"its page. Type a tube part into **Tube part** (a part of the project) and a "
+"length in millimetres into **Length**; an empty cell goes back to the "
+"derived value."
+msgstr ""
+
+#: src/reference/window/panels.md:151
+msgid "Medium table"
+msgstr ""
+
+#: src/reference/window/panels.md:153
+msgid ""
+"The project's media, one row per medium, with the ports that feed it, its "
+"pressure, quality, the devices it reaches and its default tube. With a row "
+"selected, **Highlight** (`Ctrl+Shift+H`) marks the medium's zones on the "
+"page in a colour and a hatch pattern; **Check ▸ Clear highlights** removes "
+"them."
+msgstr ""
+
+#: src/reference/window/panels.md:157
 msgid "Potentials"
 msgstr ""
 
-#: src/reference/window/panels.md:109
+#: src/reference/window/panels.md:159
 msgid ""
 "The potentials with their definitions and members. See [Define a supply "
 "potential](../../how-to/define-supply-potential.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:112
+#: src/reference/window/panels.md:162
 msgid "Interruption points"
 msgstr ""
 
-#: src/reference/window/panels.md:114
+#: src/reference/window/panels.md:164
 msgid "The interruption points grouped by name, with their partners."
 msgstr ""
 
-#: src/reference/window/panels.md:116
+#: src/reference/window/panels.md:166
 msgid "Structure identifiers"
 msgstr ""
 
-#: src/reference/window/panels.md:118
+#: src/reference/window/panels.md:168
 msgid "The function and location nodes of the project's structure."
 msgstr ""
 
-#: src/reference/window/panels.md:120
+#: src/reference/window/panels.md:170
 msgid "Parts in use"
 msgstr ""
 
-#: src/reference/window/panels.md:122
+#: src/reference/window/panels.md:172
 msgid ""
 "The parts the project uses, with their devices. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:124
+#: src/reference/window/panels.md:174
 msgid "Report blocks"
 msgstr ""
 
-#: src/reference/window/panels.md:126
+#: src/reference/window/panels.md:176
 msgid ""
 "The report blocks: the generated pages such as the terminal diagram, the "
 "cable list and the parts list. See [Reports and "
 "PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:129
+#: src/reference/window/panels.md:179
 msgid "Unplaced devices"
 msgstr ""
 
-#: src/reference/window/panels.md:131
+#: src/reference/window/panels.md:181
 msgid ""
 "The devices of each layout space that have no place on a rail or the plate "
 "yet."
 msgstr ""
 
-#: src/reference/window/panels.md:133
+#: src/reference/window/panels.md:183
 msgid "Macros"
 msgstr ""
 
-#: src/reference/window/panels.md:135
+#: src/reference/window/panels.md:185
 msgid "The macros of every library tier and of the project."
 msgstr ""
 
-#: src/reference/window/panels.md:137
+#: src/reference/window/panels.md:187
 msgid "Libraries"
 msgstr ""
 
-#: src/reference/window/panels.md:139
+#: src/reference/window/panels.md:189
 msgid ""
 "The installed libraries and the project's library copies with their state."
 msgstr ""
 
-#: src/reference/window/panels.md:141
+#: src/reference/window/panels.md:191
 msgid "Messages"
 msgstr ""
 
-#: src/reference/window/panels.md:143
+#: src/reference/window/panels.md:193
 msgid ""
 "The findings of the project's checks, by severity and rule. Check ▸ Next "
 "finding and Check ▸ Previous finding walk them; Help ▸ Documentation on a "
