@@ -340,6 +340,12 @@ fn stream(
                 ))?;
             }
             b"part" => {
+                if open.is_some() {
+                    return Err(unreadable(format!(
+                        "line {}: a part inside a part: a part file does not nest its parts",
+                        here.max(1)
+                    )));
+                }
                 parts += 1;
                 if parts > limits.max_table_rows {
                     return Err(limit("parts", u64::from(limits.max_table_rows)));
@@ -429,12 +435,16 @@ fn to_nm(text: &str, per_unit: i64) -> Option<i64> {
 }
 
 /// The languages and texts of a multilingual article field, `de_DE@text;en_US@text;` (`;;` inside a text is a literal
-/// `;`): a map of language tag to text, or the text itself when the field names no language.
+/// `;`): a map of language tag to text, or the text itself when the field does not begin with a language and `@`
+/// (a plain description may hold an `@`).
 fn ml_text(field: &str) -> (BTreeMap<String, String>, Option<String>, Vec<String>) {
     let field = field.trim();
     let mut langs = BTreeMap::new();
     let mut bad = Vec::new();
-    if !field.contains('@') {
+    let names_language = field.split_once('@').is_some_and(|(lang, _)| {
+        !lang.contains(';') && LangTag::parse_lenient(&lang.trim().replace('_', "-")).is_ok()
+    });
+    if !names_language {
         return (langs, (!field.is_empty()).then(|| field.to_owned()), bad);
     }
     let mut segments: Vec<String> = vec![String::new()];
@@ -680,9 +690,10 @@ fn draft(
         );
     }
     if !l1.is_empty() || !l2.is_empty() {
+        // A line without languages goes with every language of the other.
         let mut langs = Map::new();
         for tag in l1.keys().chain(l2.keys()) {
-            let joined = [l1.get(tag), l2.get(tag)]
+            let joined = [l1.get(tag).or(n1.as_ref()), l2.get(tag).or(n2.as_ref())]
                 .into_iter()
                 .flatten()
                 .cloned()
@@ -722,7 +733,7 @@ fn draft(
         body.insert("mech".into(), Value::Object(mech));
     }
     pins(article, fndefs, notes, member, &mut body);
-    // Free properties, keyed by name; a repeated name keeps its first value.
+    // Free properties, keyed by name; a repeated name keeps its last value.
     let mut free: BTreeMap<String, &str> = BTreeMap::new();
     for (k, v) in &article.free {
         let k = k.trim();

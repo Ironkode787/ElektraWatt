@@ -177,6 +177,37 @@ fn multilingual_fields_are_split_at_single_semicolons() {
         read("d.xml", plain.as_bytes()).unwrap().drafts[0].body["description"],
         "Relay"
     );
+    // A plain description may hold an `@`; it is no language and no finding.
+    let at = r#"<part P_ARTICLE_PARTNR="D3" P_ARTICLE_MANUFACTURER="Acme" P_ARTICLE_DESCR1="Relay 24 V@50 Hz"/>"#;
+    let read_at = read("d.xml", at.as_bytes()).unwrap();
+    assert_eq!(read_at.drafts[0].body["description"], "Relay 24 V@50 Hz");
+    assert!(read_at.entries.is_empty(), "{:?}", read_at.entries);
+    // A plain first line goes with each language of the second.
+    let mixed = r#"<part P_ARTICLE_PARTNR="D4" P_ARTICLE_MANUFACTURER="Acme" P_ARTICLE_DESCR1="Relay"
+        P_ARTICLE_DESCR2="de_DE@1-polig;en_US@single pole;"/>"#;
+    assert_eq!(
+        read("d.xml", mixed.as_bytes()).unwrap().drafts[0].body["description"],
+        serde_json::json!({"de-DE": "Relay, 1-polig", "en-US": "Relay, single pole"})
+    );
+}
+
+/// A part inside a part has no meaning in a part file: the file is refused in words, no part is lost quietly.
+#[test]
+fn a_part_inside_a_part_refuses_the_file() {
+    let nested = br#"<partsmanagement><part P_ARTICLE_PARTNR="A" P_ARTICLE_MANUFACTURER="Acme">
+        <part P_ARTICLE_PARTNR="B" P_ARTICLE_MANUFACTURER="Acme"/></part></partsmanagement>"#;
+    let e = read("n.xml", nested).unwrap_err();
+    assert!(e.to_string().contains("a part inside a part"), "{e}");
+}
+
+/// A free property given twice keeps its last value and says so.
+#[test]
+fn a_repeated_free_property_keeps_the_last_value() {
+    let xml = br#"<part P_ARTICLE_PARTNR="F1" P_ARTICLE_MANUFACTURER="Acme"><freeproperty name="colour" value="grey"/>
+        <freeproperty name="colour" value="black"/></part>"#;
+    let read = read("f.xml", xml).unwrap();
+    assert_eq!(read.drafts[0].body["free_props"][0]["value"], "black");
+    assert!(read.entries.iter().any(|e| e.message.contains("the last value is kept")));
 }
 
 /// FR-IMP-028: a parts XML of 50 parts with variants, accessories and free properties; its `length-unit` scales the
@@ -343,8 +374,18 @@ fn the_synthetic_edz_fixtures_are_current() {
         if bless() {
             std::fs::write(&path, &bytes).unwrap();
         }
+        // The committed archive holds this part; its bytes are the compressor's business, not the test's.
         let held = std::fs::read(&path).unwrap_or_else(|e| panic!("{name}: {e} (EW_BLESS=1 writes it)"));
-        assert!(held == bytes, "{name} is not this archive (EW_BLESS=1 writes it)");
-        assert_eq!(read(name, &held).unwrap().drafts.len(), 1);
+        let drafts = |bytes: &[u8]| {
+            let drafts = read(name, bytes).unwrap().drafts;
+            drafts
+                .into_iter()
+                .map(|d| (d.part_number, d.manufacturer, d.body))
+                .collect::<Vec<_>>()
+        };
+        assert!(
+            drafts(&held) == drafts(&bytes),
+            "{name} holds another part than PSU (EW_BLESS=1 writes it)"
+        );
     }
 }

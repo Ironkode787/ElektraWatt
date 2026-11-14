@@ -86,8 +86,8 @@ pub struct ImportEplanReportArgs {
         overrides_with = "preset"
     )]
     pub preset: Option<String>,
-    /// The lineage key: a newer export under the same key updates the project's records (default: the mapping's
-    /// file name, or the preset).
+    /// The lineage key: the records of a newer export under the same key keep their IDs, in the new project it makes
+    /// (default: the mapping's file name, or the preset).
     #[arg(long, value_name = "key", allow_hyphen_values = true, overrides_with = "key")]
     pub key: Option<String>,
 }

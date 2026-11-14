@@ -511,8 +511,8 @@ enum Import {
     /// found) through a column mapping (`--map <file.toml>` of your own, or `--preset <name>` for the shipped German
     /// and English headers) as a new project in `--out` (absent or empty): devices unplaced, strips with their
     /// terminals (rising levels of one designation folded into one multi-level terminal), connections between
-    /// terminals; no drawing. A column the mapping does not name is reported. A newer export under the same `--key`
-    /// is the same lineage. Exit 0 when written, 2 on usage, a table the mapping does not fit, an `--out` that holds
+    /// terminals; no drawing. A column the mapping does not name is reported. The records of a newer export under the
+    /// same `--key` keep their IDs; an existing project is not updated. Exit 0 when written, 2 on usage, a table the mapping does not fit, an `--out` that holds
     /// something and write errors.
     #[command(name = "eplan-report")]
     EplanReport(super::eplan::ImportEplanReportArgs),
