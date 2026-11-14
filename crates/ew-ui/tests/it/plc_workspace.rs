@@ -612,6 +612,80 @@ fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// A settings form's action called with some of its values keeps the others: a value left out is the stored one, and
+/// only an empty text clears it (Symbol policy…, Mode and safety…, Fluid settings…). Fluid settings… offers the
+/// format's tube materials.
+#[test]
+fn a_settings_value_left_out_keeps_the_stored_one() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    let rows = h.state().shell().shown_rows(NavKind::Plc);
+    let record = |role: NavRole| {
+        h.state()
+            .shell()
+            .nav(NavKind::Plc)
+            .and_then(|n| n.table())
+            .and_then(|t| t.nodes.iter().find(|n| n.role == role).map(|n| n.records[0].to_string()))
+            .expect("the row")
+    };
+    let (config, channel) = (record(NavRole::ConfigProject), record(NavRole::Channel));
+    let config_row = rows
+        .iter()
+        .find(|r| r.role == NavRole::ConfigProject.word())
+        .expect("the configuration project")
+        .clone();
+    dispatch(
+        &mut h,
+        "plc.symbol_policy",
+        json!({"config": config, "template": "{target.dt}_{pin}", "tag_table": "Valves"}),
+    );
+    dispatch(&mut h, "plc.symbol_policy", json!({"config": config, "tag_table": "Pumps"}));
+    h.get_by_label(&config_row.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Symbol policy…").click();
+    settle(&mut h);
+    assert_eq!(form_value(&h, "template"), "{target.dt}_{pin}", "kept");
+    assert_eq!(form_value(&h, "tag_table"), "Pumps");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(
+        &mut h,
+        "plc.channel_settings",
+        json!({"channel": channel, "evaluation": "1oo1", "requirement": "SIL2"}),
+    );
+    dispatch(&mut h, "plc.channel_settings", json!({"channel": channel, "requirement": ""}));
+    dispatch(&mut h, "plc.channel_settings", json!({"channel": channel}));
+    assert_eq!(form_value(&h, "evaluation"), "1oo1", "kept");
+    assert_eq!(form_value(&h, "requirement"), "", "cleared by the empty text");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(
+        &mut h,
+        "fluid.settings",
+        json!({"od": "6", "id": "4", "material": "pu", "line_tags": true}),
+    );
+    dispatch(&mut h, "fluid.settings", json!({"od": "8"}));
+    dispatch(&mut h, "fluid.settings", json!({}));
+    assert_eq!(form_value(&h, "od"), "8");
+    assert_eq!(form_value(&h, "id"), "4", "kept");
+    assert_eq!(form_value(&h, "material"), "pu", "kept");
+    assert_eq!(form_value(&h, "line_tags"), "true", "kept");
+    let materials: Vec<String> = match h.state().shell().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f
+            .fields
+            .iter()
+            .find(|f| f.name == "material")
+            .map(|f| f.options.iter().map(|(w, _)| w.clone()).collect())
+            .unwrap_or_default(),
+        other => panic!("{other:?}"),
+    };
+    assert!(
+        ["pu", "steel"].iter().all(|m| materials.iter().any(|w| w == m)),
+        "{materials:?}"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The value of field `name` of the open form.
 fn form_value(h: &egui_kittest::Harness<'_, ew_ui::app::App>, name: &str) -> String {
     match h.state().shell().dialog() {

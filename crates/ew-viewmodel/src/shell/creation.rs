@@ -256,16 +256,9 @@ static FLUID_LINE: Spec = Spec {
     fields: &[field("line_kind", key!("form-line-kind"))],
 };
 
-/// The tube materials Fluid settings… offers: the material's word in the file and its name (the plastics by their
-/// abbreviations, the same in every language).
-const TUBE_MATERIALS: [(&str, &str); 6] = [
-    ("pu", "PU"),
-    ("pa", "PA"),
-    ("pe", "PE"),
-    ("ptfe", "PTFE"),
-    ("pvc", "PVC"),
-    ("cu", "Cu"),
-];
+/// The field whose type gives the tube materials Fluid settings… offers (a medium's default tube has the project
+/// default's type).
+const TUBE_MATERIAL: (&str, &str) = ("medium", "default_tube.material");
 
 static PAGE_NEW: Spec = Spec {
     action: "page.new",
@@ -504,6 +497,24 @@ fn text_param(p: &Map<String, Value>, name: &str) -> Result<String, Outcome> {
         Some(Value::String(s)) => Ok(s.trim().to_owned()),
         Some(Value::Number(n)) => Ok(n.to_string()),
         Some(_) => Err(failed(key!("error-bad-param"), &[name])),
+    }
+}
+
+/// A text parameter of a settings form, which a call may leave out: `None` when it is absent or null (the stored value
+/// stays), else its text (empty clears the value); `Err` for any other type.
+fn given_text(p: &Map<String, Value>, name: &str) -> Result<Option<String>, Outcome> {
+    match p.get(name) {
+        None | Some(Value::Null) => Ok(None),
+        Some(_) => text_param(p, name).map(Some),
+    }
+}
+
+/// A yes-or-no parameter of a settings form (`true`, `"true"`, `false`, `"false"`): `None` when it is absent.
+fn given_flag(p: &Map<String, Value>, name: &str) -> Option<bool> {
+    match p.get(name) {
+        Some(Value::Bool(b)) => Some(*b),
+        Some(Value::String(s)) => Some(s == "true"),
+        _ => None,
     }
 }
 
@@ -1193,17 +1204,7 @@ impl ShellModel {
         if spec.action == FLUID_SETTINGS.action
             && let Some(f) = dialog.fields.iter_mut().find(|f| f.name == "material")
         {
-            f.options = std::iter::once((String::new(), "—".to_owned()))
-                .chain(
-                    TUBE_MATERIALS
-                        .iter()
-                        .map(|(w, n)| ((*w).to_owned(), (*n).to_owned())),
-                )
-                .chain(std::iter::once((
-                    "steel".to_owned(),
-                    strings::text(key!("tube-material-steel")).to_owned(),
-                )))
-                .collect();
+            f.options = self.enum_options(TUBE_MATERIAL.0, TUBE_MATERIAL.1, &f.value);
         }
         self.open_dialog(Dialog::Form(dialog))
     }
@@ -1274,8 +1275,9 @@ impl ShellModel {
             .cloned()
             .unwrap_or_default();
         for name in ["od", "id"] {
-            let text = match text_param(p, name) {
-                Ok(t) => t,
+            let text = match given_text(p, name) {
+                Ok(Some(t)) => t,
+                Ok(None) => continue,
                 Err(e) => return e,
             };
             if text.is_empty() {
@@ -1294,14 +1296,22 @@ impl ShellModel {
                 }
             }
         }
-        match text_param(p, "material") {
-            Ok(m) if m.is_empty() => {
+        // A material this version does not offer (one of a newer format) passes through unchanged.
+        let stored = tube.get("material").and_then(Value::as_str).map(str::to_owned);
+        match given_text(p, "material") {
+            Ok(None) => {}
+            Ok(Some(m)) if m.is_empty() => {
                 tube.remove("material");
             }
-            Ok(m) if m == "steel" || TUBE_MATERIALS.iter().any(|(w, _)| *w == m) => {
+            Ok(Some(m))
+                if self
+                    .enum_options(TUBE_MATERIAL.0, TUBE_MATERIAL.1, stored.as_deref().unwrap_or_default())
+                    .iter()
+                    .any(|(w, _)| *w == m) =>
+            {
                 tube.insert("material".into(), Value::String(m));
             }
-            Ok(_) => return failed(key!("error-bad-param"), &["material"]),
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["material"]),
             Err(e) => return e,
         }
         if tube.is_empty() {
@@ -1309,15 +1319,14 @@ impl ShellModel {
         } else {
             fluid.insert("default_tube".into(), Value::Object(tube));
         }
-        let tagged = match p.get("line_tags") {
-            Some(Value::Bool(b)) => *b,
-            Some(Value::String(s)) => s == "true",
-            _ => false,
-        };
-        if tagged {
-            fluid.insert("line_tags".into(), json!("page_counter"));
-        } else {
-            fluid.remove("line_tags");
+        match given_flag(p, "line_tags") {
+            Some(true) => {
+                fluid.insert("line_tags".into(), json!("page_counter"));
+            }
+            Some(false) => {
+                fluid.remove("line_tags");
+            }
+            None => {}
         }
         let value = if fluid.is_empty() {
             Value::Null
@@ -1326,6 +1335,25 @@ impl ShellModel {
         };
         let out = self.host_create("project.settings.set", json!({"member": "fluid", "value": value}));
         self.form_done(FLUID_SETTINGS.action, out)
+    }
+
+    /// The options of a settings form's choice of the enum field `path` of `kind`: none ("—"), then the format's values
+    /// in words, read from the field's own type (one source); `current`, when this version does not offer it (a value of
+    /// a newer format), as it is written, so that it passes through unchanged.
+    fn enum_options(&self, kind: &str, path: &str, current: &str) -> Vec<(String, String)> {
+        let mut options = vec![(String::new(), "—".to_owned())];
+        let words = self
+            .project_session()
+            .map(|s| s.field_choices(kind, path, ""))
+            .unwrap_or_default();
+        options.extend(words.into_iter().filter_map(|c| {
+            let word = c.value.as_str()?.to_owned();
+            Some((word.clone(), strings::choice_text(&word)))
+        }));
+        if !options.iter().any(|(w, _)| w == current) {
+            options.push((current.to_owned(), current.to_owned()));
+        }
+        options
     }
 
     /// The record a row's settings form is for: parameter `name`, else the open form's own record. In the window, an
@@ -1352,23 +1380,13 @@ impl ShellModel {
         if self.mode == Mode::Gui && !open && p.len() == 1 {
             let mut dialog = spec.dialog(&prefill(&current));
             dialog.ok_key = key!("dialog-apply");
-            let word = |k: Key<'static>| strings::text(k).to_owned();
             for f in &mut dialog.fields {
-                f.options = match f.name {
-                    "mode" => vec![
-                        (String::new(), "—".to_owned()),
-                        ("io_link".to_owned(), "IO-Link".to_owned()),
-                        ("di".to_owned(), "DI".to_owned()),
-                        ("dq".to_owned(), "DQ".to_owned()),
-                        ("deactivated".to_owned(), word(key!("channel-mode-deactivated"))),
-                    ],
-                    "evaluation" => vec![
-                        (String::new(), "—".to_owned()),
-                        ("1oo1".to_owned(), "1oo1".to_owned()),
-                        ("1oo2".to_owned(), "1oo2".to_owned()),
-                    ],
+                let path = match f.name {
+                    "mode" => "mode",
+                    "evaluation" => "safety.evaluation",
                     _ => continue,
                 };
+                f.options = self.enum_options("channel", path, &f.value);
             }
             self.form_target = Some(id);
             return Err(self.open_dialog(Dialog::Form(dialog)));
@@ -1395,19 +1413,20 @@ impl ShellModel {
         };
         let mut value = current.as_object().cloned().unwrap_or_default();
         for name in ["template", "tag_table"] {
-            match text_param(p, name) {
-                Ok(t) if t.is_empty() => {
+            match given_text(p, name) {
+                Ok(None) => {}
+                Ok(Some(t)) if t.is_empty() => {
                     value.remove(name);
                 }
-                Ok(t) => {
+                Ok(Some(t)) => {
                     value.insert(name.into(), Value::String(t));
                 }
                 Err(e) => return e,
             }
         }
-        let strict = !matches!(p.get("strict_iec"), Some(Value::String(s)) if s == "false")
-            && p.get("strict_iec") != Some(&Value::Bool(false));
-        value.insert("strict_iec".into(), json!(strict));
+        if let Some(strict) = given_flag(p, "strict_iec") {
+            value.insert("strict_iec".into(), json!(strict));
+        }
         let out = self.host_create(
             "fields.set",
             json!({"kind": "plc_config_project", "targets": [id.to_string()], "path": "symbols",
@@ -1434,8 +1453,9 @@ impl ShellModel {
         };
         let mut value = current.as_object().cloned().unwrap_or_default();
         for name in ["f_source", "f_dest", "f_wd_ms"] {
-            let text = match text_param(p, name) {
-                Ok(t) => t,
+            let text = match given_text(p, name) {
+                Ok(Some(t)) => t,
+                Ok(None) => continue,
                 Err(e) => return e,
             };
             if text.is_empty() {
@@ -1489,11 +1509,16 @@ impl ShellModel {
             Ok(x) => x,
             Err(out) => return out,
         };
-        let text = |name: &str| text_param(p, name);
+        let text = |name: &str| given_text(p, name);
         let (mode, evaluation, requirement) = match (text("mode"), text("evaluation"), text("requirement")) {
             (Ok(m), Ok(e), Ok(r)) => (m, e, r),
             (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => return e,
         };
+        // A value left out keeps the stored one.
+        let stored = |v: &Value| v.as_str().unwrap_or_default().to_owned();
+        let evaluation = evaluation.unwrap_or_else(|| stored(&current["safety"]["evaluation"]));
+        let requirement = requirement.unwrap_or_else(|| stored(&current["safety"]["requirement"]));
+        let mode = mode.unwrap_or_else(|| stored(&current["mode"]));
         let safety = if evaluation.is_empty() {
             Value::Null
         } else {
