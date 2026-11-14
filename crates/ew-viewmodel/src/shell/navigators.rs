@@ -1859,6 +1859,14 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             node.label = strings::text(key!("nav-front-matter")).to_owned();
         } else if segment == "cards:none" {
             node.label = strings::text(key!("nav-plc-no-cpu")).to_owned();
+        } else if segment == "nets:logical" {
+            node.label = strings::text(key!("nav-bus-logical")).to_owned();
+        } else if segment == "nets:physical" {
+            node.label = strings::text(key!("nav-bus-physical")).to_owned();
+        } else if segment == "ports:none" {
+            node.label = strings::text(key!("nav-bus-no-net")).to_owned();
+        } else if let Some(n) = segment.strip_prefix("segment:") {
+            node.label = strings::format(key!("nav-bus-segment"), &[n]);
         } else if let Some(n) = section
             && let Some(title) = node.label.strip_prefix(&format!("Section {n} - "))
         {

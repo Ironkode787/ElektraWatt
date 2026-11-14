@@ -318,9 +318,17 @@ impl ShellModel {
         out
     }
 
-    /// A station row's PLC entries: Rack and slots… (FR-PLC-028), Attach cards without a CPU (FT-1672), disabled with
-    /// its reason while no card waits for one.
+    /// A station row's PLC entries: Place port `<interface>` for each port of its part not drawn yet (FT-831: the Place
+    /// tool armed with the bus port symbol, joined to the station), Rack and slots… (FR-PLC-028), Attach cards without
+    /// a CPU (FT-1672), disabled with its reason while no card waits for one.
     fn station_entries(&self, station: Uuid, out: &mut Vec<ActionItem>) {
+        if let Some(session) = self.project_session() {
+            let tag = session.device_tag(station).unwrap_or_default();
+            for (port, symbol) in session.uncarried_bus_ports(station) {
+                let label = strings::format(key!("canvas-place-port"), &[&port]);
+                out.extend(self.aimed("place.pick", json!({ "symbol": symbol, "device": tag }), label));
+            }
+        }
         let label = strings::text(key!("action-plc-rack-editor")).to_owned();
         out.extend(self.aimed(
             "plc.rack_editor",

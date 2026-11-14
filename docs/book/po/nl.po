@@ -2860,9 +2860,10 @@ msgstr ""
 #: src/how-to/plc-workspace.md:3
 msgid ""
 "The PLC workspace shows a project's PLC configuration beside its pages: the "
-"PLC navigator in the left column, the page in the middle and the PLC grid, "
-"every channel as a row of a table, in the bottom dock. It is the place to "
-"address cards, bind channels and check what each channel drives."
+"PLC navigator and the bus navigator in the left column, the page in the "
+"middle and the PLC grid, every channel as a row of a table, in the bottom "
+"dock. It is the place to address cards, bind channels and check what each "
+"channel drives."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:7
@@ -2905,11 +2906,31 @@ msgid ""
 "**Attach cards without a CPU**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:24 src/reference/window/dialogs.md:99
-msgid "Rack and slots"
+#: src/how-to/plc-workspace.md:24
+msgid "Bus ports and nets"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:26
+msgid ""
+"A CPU's port that is in its part but not drawn yet is offered on the CPU's "
+"row as **Place port DP**: on a bus-topology page it arms the Place tool with "
+"the port symbol joined to the CPU, and a click places it. Draw the bus "
+"between the ports with **Draw ▸ Wire**, which draws bus lines on a "
+"bus-topology page."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:29
+msgid ""
+"Choose **Bus** on the rail for the nets: each logical net with its ports, "
+"each physical net with its segments and their ends. Show it as a table to "
+"type a port's address or switch its termination."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:32 src/reference/window/dialogs.md:99
+msgid "Rack and slots"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:34
 msgid ""
 "Right-click a station and choose **Rack and slots…**. Pick the card in "
 "**Module part to add** and choose **Add here** on a free slot; type another "
@@ -2917,11 +2938,11 @@ msgid ""
 "allow is refused, and the reason stays in the dialog."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:30
+#: src/how-to/plc-workspace.md:38
 msgid "The PLC grid"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:32
+#: src/how-to/plc-workspace.md:40
 msgid ""
 "Each row of the grid is a channel. Type in a cell to change a channel's "
 "designation, address, symbol, state, target, comment, data type or signal "
@@ -2929,7 +2950,7 @@ msgid ""
 "edited in Properties."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:35
+#: src/how-to/plc-workspace.md:43
 msgid ""
 "Type in the grid's filter to narrow the rows: a word of a cell, or one of "
 "`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
@@ -2937,11 +2958,11 @@ msgid ""
 "header sorts by it, a second click reverses the order."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:39
+#: src/how-to/plc-workspace.md:47
 msgid ""
 "The panels are described in the [panel "
-"reference](../reference/window/panels.md): PLC and PLC grid; the dialog in "
-"the [dialog reference](../reference/window/dialogs.md): Rack and slots."
+"reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "
+"in the [dialog reference](../reference/window/dialogs.md): Rack and slots."
 msgstr ""
 
 #: src/how-to/upgrade-a-project.md:3
@@ -4257,84 +4278,110 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/panels.md:124
-msgid "Potentials"
+msgid "Bus"
 msgstr ""
 
 #: src/reference/window/panels.md:126
+msgid ""
+"The project's bus networks, on the rail as **Bus**: **Logical nets**, each "
+"with its rate and its ports (the master port marked), **Physical nets**, "
+"each with its segments as the program derives them from the drawn bus lines, "
+"each segment's members in order from its start (a port at an end marked "
+"_end_, a connector's termination as _terminated_ or _not terminated_, the "
+"cables between them), and **Ports without a net**. Selecting a net shows its "
+"name, bus, rate and master in Properties; selecting a port shows its "
+"interface, role, address, termination and nets."
+msgstr ""
+
+#: src/reference/window/panels.md:132
+msgid ""
+"As a table each port is a row: device, interface, address, termination, bus, "
+"role and nets. Type an address into its cell as the row shows it: a number "
+"for a PROFIBUS station, a PROFINET device name with its IP address (`cpx-1 "
+"192.168.0.10`, then `mask` and `gateway` with theirs), `pos 2` and `alias "
+"1001` for EtherCAT, `port 3` for an IO-Link port, or `TBD`; an empty cell is "
+"a port without an address. The termination cell takes on or off."
+msgstr ""
+
+#: src/reference/window/panels.md:137
+msgid "Potentials"
+msgstr ""
+
+#: src/reference/window/panels.md:139
 msgid ""
 "The potentials with their definitions and members. See [Define a supply "
 "potential](../../how-to/define-supply-potential.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:129
+#: src/reference/window/panels.md:142
 msgid "Interruption points"
 msgstr ""
 
-#: src/reference/window/panels.md:131
+#: src/reference/window/panels.md:144
 msgid "The interruption points grouped by name, with their partners."
 msgstr ""
 
-#: src/reference/window/panels.md:133
+#: src/reference/window/panels.md:146
 msgid "Structure identifiers"
 msgstr ""
 
-#: src/reference/window/panels.md:135
+#: src/reference/window/panels.md:148
 msgid "The function and location nodes of the project's structure."
 msgstr ""
 
-#: src/reference/window/panels.md:137
+#: src/reference/window/panels.md:150
 msgid "Parts in use"
 msgstr ""
 
-#: src/reference/window/panels.md:139
+#: src/reference/window/panels.md:152
 msgid ""
 "The parts the project uses, with their devices. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:141
+#: src/reference/window/panels.md:154
 msgid "Report blocks"
 msgstr ""
 
-#: src/reference/window/panels.md:143
+#: src/reference/window/panels.md:156
 msgid ""
 "The report blocks: the generated pages such as the terminal diagram, the "
 "cable list and the parts list. See [Reports and "
 "PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:146
+#: src/reference/window/panels.md:159
 msgid "Unplaced devices"
 msgstr ""
 
-#: src/reference/window/panels.md:148
+#: src/reference/window/panels.md:161
 msgid ""
 "The devices of each layout space that have no place on a rail or the plate "
 "yet."
 msgstr ""
 
-#: src/reference/window/panels.md:150
+#: src/reference/window/panels.md:163
 msgid "Macros"
 msgstr ""
 
-#: src/reference/window/panels.md:152
+#: src/reference/window/panels.md:165
 msgid "The macros of every library tier and of the project."
 msgstr ""
 
-#: src/reference/window/panels.md:154
+#: src/reference/window/panels.md:167
 msgid "Libraries"
 msgstr ""
 
-#: src/reference/window/panels.md:156
+#: src/reference/window/panels.md:169
 msgid ""
 "The installed libraries and the project's library copies with their state."
 msgstr ""
 
-#: src/reference/window/panels.md:158
+#: src/reference/window/panels.md:171
 msgid "Messages"
 msgstr ""
 
-#: src/reference/window/panels.md:160
+#: src/reference/window/panels.md:173
 msgid ""
 "The findings of the project's checks, by severity and rule. Check ▸ Next "
 "finding and Check ▸ Previous finding walk them; Help ▸ Documentation on a "

@@ -365,7 +365,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     )),
     // The navigator framework (§6.9).
     keeps_banner(with_params(
-        "kind:enum(pages|devices|connections|strips|cables|plc|plc_grid|potentials|ips|structure|parts|blocks|unplaced|macros|libraries|messages), on?:bool",
+        "kind:enum(pages|devices|connections|strips|cables|plc|plc_grid|bus|potentials|ips|structure|parts|blocks|unplaced|macros|libraries|messages), on?:bool",
         needs_parameters(placed(
             place(Group::Panels, 1, CommandSize::Small, Some(key!("bar-navigators"))),
             "layout-sidebar",

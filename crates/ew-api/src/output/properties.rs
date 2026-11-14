@@ -297,6 +297,10 @@ fn lookup(q: &Q, id: Uuid) -> Option<(Kind, Value)> {
         MountingSurface => ew_schema::MountingSurface,
         Enclosure => ew_schema::Enclosure,
         LayoutSpace => ew_schema::LayoutSpace,
+        // The bus navigator's nets and the medium table's media (WP-S2.13): named by their names.
+        LogicalNet => ew_schema::LogicalNet,
+        PhysicalNet => ew_schema::PhysicalNet,
+        Medium => ew_schema::Medium,
     );
     None
 }
@@ -602,6 +606,108 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
             .map(|v| ml_text(v, source))
             .unwrap_or_else(|| kind.name().to_owned()),
     })
+}
+
+/// FT-856: a bus port's address row in words, as reports print it (`ew_derive::net_address_text`): `TBD` for the
+/// open item, nothing for a port without an address, `3`, `cpx-1 192.168.0.10`, `pos 2 alias 1001`, `port 3`.
+fn bus_address_in_words(built: &mut [Built]) {
+    for b in built.iter_mut().filter(|b| b.row.path == "bus_port.address") {
+        if let RowValue::One { json, text } = &mut b.row.value
+            && let Ok(address) = serde_json::from_value::<ew_schema::AddrValue>(json.clone())
+        {
+            *text = match address {
+                ew_schema::AddrValue::Tbd => "TBD".to_owned(),
+                ew_schema::AddrValue::Value(a) => ew_derive::net_address_text(&a).unwrap_or_default(),
+                ew_schema::AddrValue::NotApplicable | ew_schema::AddrValue::Unknown(_) => String::new(),
+            };
+        }
+    }
+}
+
+/// FT-856: a bus port's address as its row shows it (`bus_address_in_words`), read back: `TBD`, nothing (no
+/// address), a number (a PROFIBUS station address), `port <n>` (an IO-Link port), `pos <n>` and `alias <n>` (EtherCAT),
+/// else a PROFINET device name with its IPv4 address and, after `mask` and `gateway`, those; `None` for a JSON object,
+/// the field's own form, parsed as before.
+fn bus_address_input(text: &str) -> Option<Result<ParsedInput, InputError>> {
+    let t = text.trim();
+    if t.starts_with('{') || t.starts_with('"') {
+        return None;
+    }
+    let done = |value: Value| {
+        Some(Ok(ParsedInput {
+            value,
+            notes: Vec::new(),
+        }))
+    };
+    let bad = || {
+        Some(Err(InputError::Invalid(api_text!(
+            "refusal-input-bus-address",
+            t
+        ))))
+    };
+    if t.is_empty() {
+        return done(Value::String("not_applicable".to_owned()));
+    }
+    if t.eq_ignore_ascii_case("tbd") {
+        return done(Value::String("tbd".to_owned()));
+    }
+    if let Ok(n) = t.parse::<u8>() {
+        return done(serde_json::json!({"value": {"profibus": n}}));
+    }
+    let words: Vec<&str> = t.split_whitespace().collect();
+    let number = |w: Option<&&str>| w.and_then(|w| w.parse::<u16>().ok());
+    match words.as_slice() {
+        ["port", n] => {
+            return match n.parse::<u8>() {
+                Ok(n) => done(serde_json::json!({"value": {"io_link_port": n}})),
+                Err(_) => bad(),
+            };
+        }
+        [first, ..] if *first == "pos" || *first == "alias" => {
+            let (mut position, mut alias) = (None, None);
+            for pair in words.chunks(2) {
+                match pair {
+                    ["pos", _] if position.is_none() => position = number(pair.get(1)),
+                    ["alias", _] if alias.is_none() => alias = number(pair.get(1)),
+                    _ => return bad(),
+                }
+                if position.is_none() && alias.is_none() {
+                    return bad();
+                }
+            }
+            let mut e = serde_json::Map::new();
+            if let Some(p) = position {
+                e.insert("position".into(), p.into());
+            }
+            if let Some(a) = alias {
+                e.insert("alias".into(), a.into());
+            }
+            return done(serde_json::json!({"value": {"ethercat": e}}));
+        }
+        _ => {}
+    }
+    // A PROFINET device name, its IPv4 address, then `mask <ip>` and `gateway <ip>`.
+    let Ok(name) = ew_derive::ew_mltext::Ident::from_input(words[0]) else {
+        return bad();
+    };
+    let mut p = serde_json::Map::new();
+    p.insert("name".into(), Value::String(name.as_str().to_owned()));
+    let mut rest = words[1..].iter().copied();
+    while let Some(w) = rest.next() {
+        let (member, ip) = match w {
+            "mask" => ("mask", rest.next()),
+            "gateway" => ("gateway", rest.next()),
+            other => ("ip", Some(other)),
+        };
+        let Some(ip) = ip.and_then(|s| s.parse::<std::net::Ipv4Addr>().ok()) else {
+            return bad();
+        };
+        if p.contains_key(member) {
+            return bad();
+        }
+        p.insert(member.into(), Value::String(ip.to_string()));
+    }
+    done(serde_json::json!({"value": {"profinet": p}}))
 }
 
 /// A page item's kind in words (`wire marker`, `free text`) from its stored `kind`: the tag of the object form
@@ -1995,6 +2101,7 @@ impl Session {
         }
         if kind == Kind::Function {
             part_function_row(q, cx, &targets, &mut built);
+            bus_address_in_words(&mut built);
         }
         if kind == Kind::PotentialDef {
             definition_point_in_words(q, &targets, &mut built);
@@ -2732,6 +2839,12 @@ impl Session {
         }
         if (kind, row_path) == ("device", "cable.length")
             && let Some(parsed) = cable_length_input(text)
+        {
+            return parsed;
+        }
+        // FT-856: a bus port's address typed as its row shows it.
+        if (kind, row_path) == ("function", "bus_port.address")
+            && let Some(parsed) = bus_address_input(text)
         {
             return parsed;
         }

@@ -36,7 +36,7 @@
 //! end is connected through on the direct route instead when nothing else is in its way (`through_route`). The connection kind is the page type's (doc 06 §2.2), given
 //! by the host ([`WireTool::with_kind`]): a wire on a multi-line page (`connection.draw`'s default, so no `kind` is
 //! sent), `overview` on single-line, overview and assembly-overview pages, a working fluid line (`{"fluid": {}}`) on a
-//! fluid page; on the other page types the host refuses `tool.wire` until their kinds are drawn.
+//! fluid page, a bus line (`{"bus": {}}`) on a bus-topology page; on the other page types the host refuses `tool.wire`.
 
 use ew_api::AnyCommand;
 use ew_api::geometry::Dir;
@@ -770,13 +770,13 @@ pub struct WireTool {
     kind: Option<&'static str>,
 }
 
-/// The JSON value of a connection kind name: `fluid` is a working fluid line (`{"fluid": {}}`), any other name its
-/// own string.
+/// The JSON value of a connection kind name: `fluid` is a working fluid line (`{"fluid": {}}`), `bus` a bus line
+/// (`{"bus": {}}`), any other name its own string.
 fn kind_value(kind: &str) -> Value {
-    if kind == "fluid" {
-        json!({"fluid": {}})
-    } else {
-        Value::from(kind)
+    match kind {
+        "fluid" => json!({"fluid": {}}),
+        "bus" => json!({"bus": {}}),
+        _ => Value::from(kind),
     }
 }
 

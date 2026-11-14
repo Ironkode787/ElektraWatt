@@ -145,13 +145,14 @@ impl ShellModel {
 
     /// The connection kind the Wire tool draws on the focused page (doc 06 §2.2): `Ok(None)` a wire on a multi-line
     /// page, `Ok(Some("overview"))` on a single-line (the MVP kind), overview or assembly-overview page,
-    /// `Ok(Some("fluid"))` (a working line, `{"fluid": {}}`) on a fluid page; refused on a bus-topology
-    /// page (its `Bus` kind is not drawn by this package) and on every page type whose Wire tool creates nothing..
+    /// `Ok(Some("fluid"))` (a working line, `{"fluid": {}}`) on a fluid page, `Ok(Some("bus"))` (`{"bus": {}}`) on a
+    /// bus-topology page (FT-434); refused on every page type whose Wire tool creates nothing.
     pub fn wire_kind(&self) -> Result<Option<&'static str>, Key<'static>> {
         match self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) {
             Some("multi_line") => Ok(None),
             Some("single_line" | "overview" | "assembly_overview") => Ok(Some("overview")),
             Some("fluid") => Ok(Some("fluid")),
+            Some("bus_topology") => Ok(Some("bus")),
             _ => Err(key!("reason-no-wire-kind")),
         }
     }

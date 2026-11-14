@@ -246,12 +246,13 @@ pub fn is_scalar(ty: &FieldType) -> bool {
     )
 }
 
-/// The PLC grid's cells whose field is not a scalar but has a typed editor in `Session::parse_field_input`: a
-/// channel's address and target, a module's slot.
-const TYPED_PLC: [(&str, &str); 3] = [
+/// The PLC grid's and the bus navigator's cells whose field is not a scalar but has a typed editor in
+/// `Session::parse_field_input`: a channel's address and target, a module's slot, a bus port's address (FT-856).
+const TYPED_PLC: [(&str, &str); 4] = [
     ("channel", "address"),
     ("channel", "target"),
     ("device", "plc_module.slot"),
+    ("function", "bus_port.address"),
 ];
 
 /// Why a cell is read-only (§8.2's precedence), as a text key, `None` for an editable cell:
@@ -762,6 +763,10 @@ pub fn rows_word_key(kind: NavKind, n: usize) -> &'static str {
         NavKind::Plc | NavKind::PlcGrid => (
             ew_commands::text_key!("table-row-plc"),
             ew_commands::text_key!("table-rows-plc"),
+        ),
+        NavKind::Bus => (
+            ew_commands::text_key!("table-row-bus"),
+            ew_commands::text_key!("table-rows-bus"),
         ),
         NavKind::Potentials => (
             ew_commands::text_key!("table-row-potentials"),

@@ -121,6 +121,19 @@ state, the page it is placed on, station, rack, slot and comment. The designatio
 comment, data type and signal range are edited in their cells, the slot in its cell as a number or `<rack>.<slot>`;
 a channel's safety data is edited in Properties. Its filter takes the PLC navigator's words.
 
+### Bus
+
+The project's bus networks, on the rail as **Bus**: **Logical nets**, each with its rate and its ports (the master
+port marked), **Physical nets**, each with its segments as the program derives them from the drawn bus lines, each
+segment's members in order from its start (a port at an end marked *end*, a connector's termination as *terminated*
+or *not terminated*, the cables between them), and **Ports without a net**. Selecting a net shows its name, bus, rate
+and master in Properties; selecting a port shows its interface, role, address, termination and nets.
+
+As a table each port is a row: device, interface, address, termination, bus, role and nets. Type an address into its
+cell as the row shows it: a number for a PROFIBUS station, a PROFINET device name with its IP address (`cpx-1
+192.168.0.10`, then `mask` and `gateway` with theirs), `pos 2` and `alias 1001` for EtherCAT, `port 3` for an IO-Link
+port, or `TBD`; an empty cell is a port without an address. The termination cell takes on or off.
+
 ### Potentials
 
 The potentials with their definitions and members. See

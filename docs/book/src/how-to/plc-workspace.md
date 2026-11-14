@@ -1,7 +1,7 @@
 # Work in the PLC workspace
 
-The PLC workspace shows a project's PLC configuration beside its pages: the PLC navigator in the left column, the
-page in the middle and the PLC grid, every channel as a row of a table, in the bottom dock. It is the place to address
+The PLC workspace shows a project's PLC configuration beside its pages: the PLC navigator and the bus navigator in the
+left column, the page in the middle and the PLC grid, every channel as a row of a table, in the bottom dock. It is the place to address
 cards, bind channels and check what each channel drives.
 
 ## Open it
@@ -21,20 +21,28 @@ cards, bind channels and check what each channel drives.
 4. In a project with two CPUs a new card joins neither and is listed under **Cards without a CPU**. Right-click the
    CPU that takes it and choose **Attach cards without a CPU**.
 
+## Bus ports and nets
+
+5. A CPU's port that is in its part but not drawn yet is offered on the CPU's row as **Place port DP**: on a
+   bus-topology page it arms the Place tool with the port symbol joined to the CPU, and a click places it. Draw the bus
+   between the ports with **Draw ▸ Wire**, which draws bus lines on a bus-topology page.
+6. Choose **Bus** on the rail for the nets: each logical net with its ports, each physical net with its segments and
+   their ends. Show it as a table to type a port's address or switch its termination.
+
 ## Rack and slots
 
-5. Right-click a station and choose **Rack and slots…**. Pick the card in **Module part to add** and choose **Add
+7. Right-click a station and choose **Rack and slots…**. Pick the card in **Module part to add** and choose **Add
    here** on a free slot; type another slot into a card's Slot field to move it. A slot the card's part does not
    allow is refused, and the reason stays in the dialog.
 
 ## The PLC grid
 
-6. Each row of the grid is a channel. Type in a cell to change a channel's designation, address, symbol, state,
+8. Each row of the grid is a channel. Type in a cell to change a channel's designation, address, symbol, state,
    target, comment, data type or signal range; the slot cell takes a number or `<rack>.<slot>`. Safety data is edited
    in Properties.
-7. Type in the grid's filter to narrow the rows: a word of a cell, or one of `spare`, `unplaced`, `unassigned`,
+9. Type in the grid's filter to narrow the rows: a word of a cell, or one of `spare`, `unplaced`, `unassigned`,
    `tbd`, `duplicate`, `safety`, `config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's header
    sorts by it, a second click reverses the order.
 
-The panels are described in the [panel reference](../reference/window/panels.md): PLC and PLC grid; the dialog in the
+The panels are described in the [panel reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog in the
 [dialog reference](../reference/window/dialogs.md): Rack and slots.

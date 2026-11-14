@@ -95,7 +95,7 @@ pub(crate) fn rack(
                         let slot = rack_slot_text(r);
                         match r.module {
                             Some(module) => {
-                                let id = egui::Id::new(("rack-slot", module));
+                                let id = egui::Id::unique(("rack-slot", module));
                                 let mut text = ui
                                     .data_mut(|d| d.get_temp::<String>(id))
                                     .unwrap_or_else(|| slot.clone());

@@ -220,7 +220,8 @@ impl Session {
     }
 
     /// Whether the FnDef copy `fndef` can be an auxiliary function: an embedded contact (contact kind
-    /// NO, NC or change-over), or a starter one the project does not embed yet (FT-656).
+    /// NO, NC or change-over) or bus port (a device's port, which normaliser N5 types from its part; FT-831), or a
+    /// starter one the project does not embed yet (FT-656).
     pub fn auxiliary_fndef(&self, fndef: Uuid) -> bool {
         let id = Id::from_uuid(fndef);
         let kind = match self.query().fndefs().get(id) {
@@ -231,7 +232,10 @@ impl Session {
                 None => return false,
             },
         };
-        matches!(kind, ContactKind::No | ContactKind::Nc | ContactKind::Co)
+        matches!(
+            kind,
+            ContactKind::No | ContactKind::Nc | ContactKind::Co | ContactKind::BusPort
+        )
     }
 
     /// The tag a report prints for `device` (`-101K1`; `Tag::short`); `None` for a missing device.

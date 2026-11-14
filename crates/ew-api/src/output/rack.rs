@@ -221,6 +221,52 @@ impl Session {
         held
     }
 
+    /// The part bus ports of a device that no function of the device carries yet and that a starter symbol can place
+    /// (FT-831: the generic CPU's DP port, typed only once a port symbol is placed onto the CPU), in the part's order:
+    /// each interface as `DP` or `X1 P1R`, with the symbol's key ([`super::bus_port_symbol_key`]).
+    pub fn uncarried_bus_ports(&self, device: Uuid) -> Vec<(String, String)> {
+        let q = self.query();
+        let id: Id<Device> = Id::from_uuid(device);
+        let Some(d) = q.devices().get(id) else {
+            return Vec::new();
+        };
+        let carried: Vec<(String, Option<String>)> = q
+            .idx()
+            .functions_of_device(id)
+            .filter_map(|f| q.functions().get(f)?.bus_port.clone())
+            .map(|p| (p.interface.to_string(), p.port_label.map(|l| l.to_string())))
+            .collect();
+        let mut out = Vec::new();
+        for u in &d.parts {
+            let Some(copy) = q.parts().get(u.part.copy) else {
+                continue;
+            };
+            let Some(bus) = &copy.item.sections.bus else {
+                continue;
+            };
+            for p in &bus.ports {
+                let key = (
+                    p.interface.to_string(),
+                    p.port_label.as_ref().map(|l| l.to_string()),
+                );
+                if carried.contains(&key) {
+                    continue;
+                }
+                let text = match &key.1 {
+                    Some(l) => format!("{} {l}", key.0),
+                    None => key.0.clone(),
+                };
+                let Some(symbol) = super::bus_port_symbol_key(&p.bus) else {
+                    continue;
+                };
+                if !out.iter().any(|(t, _)| *t == text) {
+                    out.push((text, symbol));
+                }
+            }
+        }
+        out
+    }
+
     /// The library documents a module part not held by the project needs (`plc.add_module`'s `copies`): the part's
     /// closure; empty for a held part or one that does not resolve.
     pub fn module_part_copies(&self, part: Uuid) -> Vec<serde_json::Value> {

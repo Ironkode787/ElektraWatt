@@ -199,7 +199,7 @@ fn the_report_block_form_offers_the_plc_bus_and_fluid_lists() {
 }
 
 /// A new project with page 101 and the generic CPU drawn on it, the PLC navigator shown.
-fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::App> {
+pub(crate) fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::App> {
     let mut h = harness(tmp, Scripted::default(), None);
     settle(&mut h);
     dispatch(

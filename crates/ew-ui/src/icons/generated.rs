@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 112;
+pub const COUNT: usize = 114;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -49,6 +49,7 @@ pub enum IconId {
     device_floppy,
     door,
     dots,
+    droplet,
     ew_black_box,
     ew_cable,
     ew_din_rail,
@@ -120,6 +121,7 @@ pub enum IconId {
     tag,
     template,
     text_size,
+    topology_bus,
     trash,
     typography,
     wand,
@@ -166,6 +168,7 @@ impl IconId {
         IconId::device_floppy,
         IconId::door,
         IconId::dots,
+        IconId::droplet,
         IconId::ew_black_box,
         IconId::ew_cable,
         IconId::ew_din_rail,
@@ -237,6 +240,7 @@ impl IconId {
         IconId::tag,
         IconId::template,
         IconId::text_size,
+        IconId::topology_bus,
         IconId::trash,
         IconId::typography,
         IconId::wand,
@@ -283,6 +287,7 @@ pub const KEYS: [&str; COUNT] = [
     "device-floppy",
     "door",
     "dots",
+    "droplet",
     "ew-black-box",
     "ew-cable",
     "ew-din-rail",
@@ -354,6 +359,7 @@ pub const KEYS: [&str; COUNT] = [
     "tag",
     "template",
     "text-size",
+    "topology-bus",
     "trash",
     "typography",
     "wand",
@@ -883,6 +889,17 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         C(19.552, 13.0, 20.0, 12.552, 20.0, 12.0),
         C(20.0, 11.448, 19.552, 11.0, 19.0, 11.0),
         C(18.448, 11.0, 18.0, 11.448, 18.0, 12.0),
+    ],
+    // droplet
+    &[
+        M(7.502, 19.423),
+        C(10.104, 21.528, 13.897, 21.528, 16.498, 19.423),
+        C(19.1, 17.318, 19.76, 13.715, 18.064, 10.877),
+        L(13.174, 3.617),
+        C(12.754, 2.992, 11.887, 2.814, 11.238, 3.22),
+        C(11.075, 3.322, 10.935, 3.457, 10.828, 3.617),
+        L(5.935, 10.877),
+        C(4.24, 13.715, 4.9, 17.318, 7.502, 19.423),
     ],
     // ew-black-box
     &[
@@ -2233,6 +2250,32 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(18.0, 19.0),
         M(17.0, 19.0),
         L(19.0, 19.0),
+    ],
+    // topology-bus
+    &[
+        M(14.0, 10.0),
+        C(14.0, 8.895, 13.105, 8.0, 12.0, 8.0),
+        C(10.895, 8.0, 10.0, 8.895, 10.0, 10.0),
+        C(10.0, 11.105, 10.895, 12.0, 12.0, 12.0),
+        C(13.105, 12.0, 14.0, 11.105, 14.0, 10.0),
+        M(6.0, 10.0),
+        C(6.0, 8.895, 5.105, 8.0, 4.0, 8.0),
+        C(2.895, 8.0, 2.0, 8.895, 2.0, 10.0),
+        C(2.0, 11.105, 2.895, 12.0, 4.0, 12.0),
+        C(5.105, 12.0, 6.0, 11.105, 6.0, 10.0),
+        M(22.0, 10.0),
+        C(22.0, 8.895, 21.105, 8.0, 20.0, 8.0),
+        C(18.895, 8.0, 18.0, 8.895, 18.0, 10.0),
+        C(18.0, 11.105, 18.895, 12.0, 20.0, 12.0),
+        C(21.105, 12.0, 22.0, 11.105, 22.0, 10.0),
+        M(2.0, 16.0),
+        L(22.0, 16.0),
+        M(4.0, 12.0),
+        L(4.0, 16.0),
+        M(12.0, 12.0),
+        L(12.0, 16.0),
+        M(20.0, 12.0),
+        L(20.0, 16.0),
     ],
     // trash
     &[

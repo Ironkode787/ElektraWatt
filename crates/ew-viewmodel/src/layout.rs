@@ -34,6 +34,7 @@ pub fn nav_title_key(kind: NavKind) -> Key<'static> {
         NavKind::Cables => key!("nav-title-cables"),
         NavKind::Plc => key!("nav-title-plc"),
         NavKind::PlcGrid => key!("nav-title-plc-grid"),
+        NavKind::Bus => key!("nav-title-bus"),
         NavKind::Potentials => key!("nav-title-potentials"),
         NavKind::Ips => key!("nav-title-ips"),
         NavKind::Structure => key!("nav-title-structure"),
@@ -256,11 +257,13 @@ impl Layout {
     }
 
     /// The PLC workspace (doc 16 §2.6, doc 10 §6): the Schematic layout with the PLC navigator shown in the left
-    /// column's navigator group and the PLC grid in the bottom dock (650 : 350 of the page view's height). Properties
+    /// column's navigator group, the bus navigator beside it, and the PLC grid in the bottom dock (650 : 350 of the page view's height). Properties
     /// stays under the navigator, as in every workspace (doc 16a §5.4).
     pub fn plc() -> Layout {
         Layout::schematic()
             .with_navigator(PaneKind::Navigator(NavKind::Plc))
+            .showing(PaneKind::Navigator(NavKind::Plc))
+            .with_navigator(PaneKind::Navigator(NavKind::Bus))
             .showing(PaneKind::Navigator(NavKind::Plc))
             .with_bottom(PaneKind::Navigator(NavKind::PlcGrid))
     }

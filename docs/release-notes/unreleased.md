@@ -504,3 +504,11 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: Rack and slots… on a station's row opens the rack and slot editor: the station's slots with
   their modules, parts and allowed slots, a valve terminal's positions beside its stored order codes, EW-PLC-011
   live; Add here and a module's slot field add and move modules (WP-S2.13, FR-PLC-028)
+- behaviour-change: the rail's Bus shows the bus navigator: logical nets with their rates and ports, physical nets
+  with their derived segments and ends, terminations and cables, ports without a net; its table edits a port's address
+  and termination (WP-S2.13, FR-UI-006, FT-856)
+- behaviour-change: Properties names a bus port's nets by their names and shows and reads its address as the reports
+  print it (`3`, `cpx-1 192.168.0.10`, `pos 2`, `port 3`, `TBD`) (WP-S2.13, FT-856)
+- behaviour-change: a station's row offers Place port DP for a port of its part that no symbol draws yet; a bus port
+  symbol joins a device as an auxiliary function (WP-S2.13, FT-831)
+- behaviour-change: the Wire tool draws bus lines on a bus-topology page (WP-S2.13, FT-434)
