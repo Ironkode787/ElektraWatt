@@ -284,6 +284,99 @@ pub(super) fn run_lib(a: &LibArgs) -> i32 {
                 2
             }
         },
+        LibAction::ImportQetElements {
+            library,
+            dir,
+            take_over,
+        } => {
+            let Some((id, key)) = libs
+                .iter()
+                .find(|l| l.key == *library || l.id.to_string() == *library)
+                .map(|l| (l.id, l.key.clone()))
+            else {
+                eprintln!("error: no library `{library}` (see `ew lib list`)");
+                return 2;
+            };
+            let collection = match ew_api::qet_collection::read_collection(dir) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    return 2;
+                }
+            };
+            match ew_api::qet_collection::import_into_library(&mut reg, id, &collection, *take_over) {
+                Ok((done, write)) => {
+                    if a.json {
+                        print!(
+                            "{}",
+                            results::to_text(&results::LibImportQetElementsResult {
+                                schema: results::LIB_IMPORT_QET_ELEMENTS.to_owned(),
+                                library: key.clone(),
+                                symbols: done.symbols,
+                                not_converted: done.refused.len(),
+                                report: done
+                                    .report
+                                    .entries
+                                    .iter()
+                                    .map(|e| results::ReportRow {
+                                        code: e.code.to_string(),
+                                        severity: match e.severity {
+                                            ew_api::catalog::Severity::Info => results::ReportSeverity::Info,
+                                            ew_api::catalog::Severity::Warning => {
+                                                results::ReportSeverity::Warning
+                                            }
+                                            ew_api::catalog::Severity::Error =>
+                                                results::ReportSeverity::Error,
+                                        },
+                                        line: e.location.as_ref().and_then(|l| l.line).map(u64::from),
+                                        message: e.message.clone(),
+                                    })
+                                    .collect(),
+                                written: write.as_ref().map(|w| results::LibWrite {
+                                    added: w.added.len(),
+                                    updated: w.updated.len(),
+                                    unchanged: w.unchanged.len(),
+                                    generation: w.generation,
+                                }),
+                            })
+                        );
+                        return 0;
+                    }
+                    for e in &done.report.entries {
+                        let at = e
+                            .location
+                            .as_ref()
+                            .map_or_else(String::new, |l| format!("{}: ", l.file));
+                        println!("{} {:?}: {at}{}", e.code, e.severity, e.message);
+                    }
+                    let written = write.as_ref().map_or_else(
+                        || "nothing to write".to_owned(),
+                        |w| {
+                            format!(
+                                "written: {} added, {} updated, {} unchanged (generation {})",
+                                w.added.len(),
+                                w.updated.len(),
+                                w.unchanged.len(),
+                                w.generation
+                            )
+                        },
+                    );
+                    println!(
+                        "converted {} elements into {key}, {} files not converted; {written}",
+                        done.symbols,
+                        done.refused.len()
+                    );
+                    if let Some(w) = write.as_ref().and_then(index_warning) {
+                        eprintln!("{w}");
+                    }
+                    0
+                }
+                Err(e) => {
+                    eprintln!("error: {e}");
+                    2
+                }
+            }
+        }
         LibAction::ImportParts {
             library,
             file,

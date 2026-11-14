@@ -2140,6 +2140,31 @@ enum LibImportCli {
     /// writes it as the next patch version. A library locked by a live session is refused; a stale lock is taken
     /// over only with `--take-over`.
     Parts(LibImportPartsCli),
+    /// Convert a QElectroTech element collection into a writable library.
+    ///
+    /// Converts the `.elmt` files below `<dir>` (your QElectroTech installation's collection; links are not
+    /// followed) into symbols and function definitions of the writable library `<library>` (its key or ID), on
+    /// QET's 10 px grid with their source paths, under the licence `LicenseRef-QET-elements` and the flag
+    /// `foreign_terms`: QET's terms allow the elements in diagrams but not in a pack, so an item of this library never
+    /// goes into one. The `ELEMENTS.LICENSE` of the directory, when it has one, is named in every item's sources with
+    /// its SHA-256. A file that cannot be converted is listed and the others go on; a second run writes nothing new.
+    /// A stale library lock is taken over only with `--take-over`.
+    #[command(name = "qet-elements")]
+    QetElements(LibImportQetCli),
+}
+
+/// `ew lib import qet-elements`.
+#[derive(Args, Debug)]
+struct LibImportQetCli {
+    /// The target library, by its key or ID.
+    #[arg(value_name = "library", allow_hyphen_values = true, value_parser = word)]
+    library: String,
+    /// The collection's directory.
+    #[arg(value_name = "dir", allow_hyphen_values = true, value_parser = path_word)]
+    dir: PathBuf,
+    /// Take over a stale library lock.
+    #[arg(long, overrides_with = "take_over")]
+    take_over: bool,
 }
 
 /// `ew lib import parts`.
@@ -2815,6 +2840,15 @@ impl Cli {
                         key,
                         name,
                         licence,
+                    },
+                    LibSub::Import(LibImportCli::QetElements(LibImportQetCli {
+                        library,
+                        dir,
+                        take_over,
+                    })) => LibAction::ImportQetElements {
+                        library,
+                        dir,
+                        take_over,
                     },
                     LibSub::Import(LibImportCli::Parts(LibImportPartsCli {
                         library,

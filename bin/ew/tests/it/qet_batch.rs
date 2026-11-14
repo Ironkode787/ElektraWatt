@@ -9,6 +9,40 @@ use crate::support::{EwTmp, Tmp, args, stderr, stdout};
 const GOOD: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors/></diagram></project>"#;
 const LOST: &str = r#"<project version="0.100" title="T"><diagram order="1" folio="1" title="P"><elements/><conductors><conductor terminal1="999" terminal2="998"/></conductors></diagram></project>"#;
 
+/// `ew lib import qet-elements` converts a folder of elements into a library and says what it could not convert.
+#[test]
+fn a_collection_folder_is_converted_into_a_library() {
+    let t = Tmp::new("ew-qet-elements");
+    let library = t.path("data").join("libraries").join("qet.ewlib");
+    let make = t.ew(&args([
+        &"lib",
+        &"create",
+        &library,
+        &"--key",
+        &"qet",
+        &"--name",
+        &"QET",
+        &"--licence",
+        &"LicenseRef-QET-elements",
+    ]));
+    assert_eq!(make.status.code(), Some(0), "{}", stderr(&make));
+    let folder = t.path("elements");
+    std::fs::create_dir_all(folder.join("a")).unwrap();
+    let fixture = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../crates/ew-import-qet/tests/fixtures/contact_no.elmt"
+    );
+    std::fs::copy(fixture, folder.join("a").join("contact_no.elmt")).unwrap();
+    std::fs::write(folder.join("bad.elmt"), "no").unwrap();
+    let out = t.ew(&args([&"lib", &"import", &"qet-elements", &"qet", &folder]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    assert!(
+        stdout(&out).contains("converted 1 elements into qet, 1 files not converted; written:"),
+        "{}",
+        stdout(&out)
+    );
+}
+
 #[test]
 fn a_batch_writes_a_project_and_a_report_per_file_and_a_summary() {
     let t = Tmp::new("ew-qet-batch");

@@ -142,6 +142,8 @@ pub const LIB_INDEX: &str = "ew.lib-index-result/1";
 pub const LIB_CREATE: &str = "ew.lib-create-result/1";
 /// `ew lib import parts --json`.
 pub const LIB_IMPORT_PARTS: &str = "ew.lib-import-parts-result/1";
+/// `ew lib import qet-elements --json`.
+pub const LIB_IMPORT_QET_ELEMENTS: &str = "ew.lib-import-qet-elements-result/1";
 /// `ew commands --json`.
 pub const COMMANDS: &str = "ew.commands-result/1";
 /// `ew query --json`.
@@ -316,6 +318,12 @@ pub const RESULTS: &[ResultSchema] = &[
         command: "lib import parts",
         flag: None,
         schema: schema_of::<LibImportPartsResult>,
+    },
+    ResultSchema {
+        name: LIB_IMPORT_QET_ELEMENTS,
+        command: "lib import qet-elements",
+        flag: None,
+        schema: schema_of::<LibImportQetElementsResult>,
     },
     ResultSchema {
         name: LIB_INDEX,
@@ -1349,6 +1357,25 @@ pub struct LibImportPartsResult {
     pub source: String,
     /// The row counts.
     pub rows: RowCounts,
+    /// The report, one entry per finding.
+    pub report: Vec<ReportRow>,
+    /// What the library write did; `null` when there was nothing to write.
+    pub written: Option<LibWrite>,
+}
+
+/// `ew lib import qet-elements --json` ([`LIB_IMPORT_QET_ELEMENTS`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct LibImportQetElementsResult {
+    /// [`LIB_IMPORT_QET_ELEMENTS`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The target library's key.
+    pub library: String,
+    /// The elements converted into symbols.
+    pub symbols: usize,
+    /// The files that could not be converted.
+    pub not_converted: usize,
     /// The report, one entry per finding.
     pub report: Vec<ReportRow>,
     /// What the library write did; `null` when there was nothing to write.

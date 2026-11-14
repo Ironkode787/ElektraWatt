@@ -588,6 +588,15 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["lib", "import", "qet-elements"],
+        exits: &[
+            exit(0, "converted and written, files that cannot be converted listed"),
+            USAGE_ETC,
+        ],
+        result: Some(ew_api::cli_results::LIB_IMPORT_QET_ELEMENTS),
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["commands"],
         exits: &[OK],
         result: Some(ew_api::cli_results::COMMANDS),

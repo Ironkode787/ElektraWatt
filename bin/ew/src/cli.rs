@@ -218,6 +218,15 @@ pub enum LibAction {
         /// `--licence`.
         licence: String,
     },
+    /// `lib import qet-elements`.
+    ImportQetElements {
+        /// The target library's key or ID.
+        library: String,
+        /// The collection's directory.
+        dir: PathBuf,
+        /// Take over a stale library lock (`--take-over`).
+        take_over: bool,
+    },
     /// `lib import parts`.
     ImportParts {
         /// The target library's key or ID.
