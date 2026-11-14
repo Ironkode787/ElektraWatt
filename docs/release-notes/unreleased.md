@@ -703,3 +703,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a body that holds an end of another representation (a valve terminal's box around its valves) is
   no obstacle to that end's route, so a tube drawn from a valve in its terminal's box is routed; the layout findings
   EW-CORE-067 to -070 and -073 call a fluid line a tube (M3 persona round)
+- text-change: EW-FL-007 names what a tube lacks: "tube … is 6×4 mm but has no material" where the size is known;
+  its title is "Tube without specification"; Fluid settings… says in a toast what the default tube is, that the tubes
+  drawn take it and when it lacks a material (M3 persona round)

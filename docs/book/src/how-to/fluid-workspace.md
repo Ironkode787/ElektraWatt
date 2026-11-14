@@ -39,7 +39,8 @@ the middle, and the tube table and the medium table in the bottom dock.
    part**; **Source** then says the value is manual. Leave a cell empty to take the derived value again. A tube's
    **Tube part** in Properties offers the tube parts, such as the starter tubes PU 6 × 4, 8 × 6 and 10 × 8 mm.
 9. Choose **Project ▸ Fluid settings…** for the default tube of every line (its outer and inner diameter in mm and
-   its material) and to tag fluid lines by page and counter.
+   its material) and to tag fluid lines by page and counter. A toast says what the default tube is now; it reaches the
+   tubes drawn already. A tube is specified with its size and its material: without a material, the check names it.
 
 ## Media
 

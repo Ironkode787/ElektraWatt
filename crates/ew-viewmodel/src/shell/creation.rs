@@ -1333,7 +1333,7 @@ impl ShellModel {
         if tube.is_empty() {
             fluid.remove("default_tube");
         } else {
-            fluid.insert("default_tube".into(), Value::Object(tube));
+            fluid.insert("default_tube".into(), Value::Object(tube.clone()));
         }
         match given_flag(p, "line_tags") {
             Some(true) => {
@@ -1344,12 +1344,33 @@ impl ShellModel {
             }
             None => {}
         }
+        // The persona round: Apply changed nothing visible. The toast says what the default tube is now and that the
+        // tubes drawn already take it; without a material it says the tubes still lack one (EW-FL-007).
+        let size = match (tube.get("od").and_then(Value::as_i64), tube.get("id").and_then(Value::as_i64)) {
+            (Some(od), Some(id)) => Some(format!(
+                "{} × {} mm",
+                super::layout::mm_text(i128::from(od), false),
+                super::layout::mm_text(i128::from(id), false)
+            )),
+            _ => None,
+        };
+        let material = tube.get("material").and_then(Value::as_str).map(strings::choice_text);
+        let toast = match (size, material) {
+            (Some(size), Some(material)) => {
+                strings::format(key!("toast-fluid-settings"), &[&format!("{size} {material}")])
+            }
+            (Some(size), None) => strings::format(key!("toast-fluid-settings-no-material"), &[&size]),
+            _ => strings::text(key!("toast-fluid-settings-no-size")).to_owned(),
+        };
         let value = if fluid.is_empty() {
             Value::Null
         } else {
             Value::Object(fluid)
         };
         let out = self.host_create("project.settings.set", json!({"member": "fluid", "value": value}));
+        if out == Outcome::Done {
+            self.notify(toast, true);
+        }
         self.form_done(FLUID_SETTINGS.action, out)
     }
 

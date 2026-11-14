@@ -382,9 +382,12 @@ rule-ew-fl-006 = { $form ->
     .title = Tube does not fit
     .hint = Choose a tube that matches the port and the pressure of its medium.
 
-rule-ew-fl-007 = tube { $tube } has no tube specification; give the medium or the project a default tube, or set it on the line
-    .title = Line without tube specification
-    .hint = Give the medium or the project a default tube, or set the tube on the line.
+rule-ew-fl-007 = { $missing ->
+        [material] tube { $tube } is { $size } mm but has no material; give the default tube of its medium or of the project a material, or set it on the tube
+       *[spec] tube { $tube } has no tube specification; give the medium or the project a default tube, or set it on the line
+    }
+    .title = Tube without specification
+    .hint = Give the medium or the project a default tube, or set it on the tube.
 
 rule-ew-fl-008 = { $form ->
         [gallery] { $terminal }: gallery { $gallery } ({ $count } exhaust ports) has no silencer, collector line or closure

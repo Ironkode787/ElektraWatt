@@ -772,6 +772,12 @@ inlet (port 1 of another valve or of a manifold, a quick-exhaust or shuttle valv
 conflict, the ports of a component that is no valve never conflict, and two exhausts of one valve may share a
 silencer. EW-FL-009 also compares AC and DC where the coil and the potential both name one. Each has its rule page.
 
+*As built (M3 persona round).* EW-FL-007 keeps §5.4's test (outer and inner diameter and material), and its message
+says what is missing: a tube whose size is known reads "tube … is 6×4 mm but has no material; give the default tube of
+its medium or of the project a material, or set it on the tube", so that it agrees with the tube table, which showed
+the size. Its title is "Tube without specification". Fluid settings… says in a toast what the default tube is now, that
+the tubes drawn already take it, and that it lacks a material when it does.
+
 ---
 
 ## 7. UI and UX touchpoints

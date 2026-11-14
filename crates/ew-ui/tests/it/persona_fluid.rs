@@ -476,3 +476,50 @@ fn p2f_a_click_on_an_unrouted_tube_selects_it() {
     );
     d.shell_mut().shutdown();
 }
+
+/// The messages of rule `rule` after Check project.
+fn findings(d: &mut Driver, rule: &str) -> Vec<String> {
+    d.input(&click(d.find("Check project").unwrap()));
+    d.settle();
+    let _ = d.shell_mut().dispatch("navigator.show", &json!({"kind": "messages"}));
+    d.settle();
+    d.shell_mut()
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .map(|t| {
+            t.nodes
+                .iter()
+                .filter(|n| n.role == NavRole::Finding && n.cells[1] == rule)
+                .map(|n| n.cells[2].clone())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// P2-D: after Fluid settings named a 6×4 default tube, EW-FL-007 still said "no tube specification" on tubes the tube
+/// table showed as 6×4, and Apply said nothing. The rule asks a material as well; now Apply's toast says the default
+/// tube reaches the tubes drawn and lacks a material, the finding names the material, and a material clears it.
+#[test]
+fn p2d_the_default_tube_and_ew_fl_007_agree() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    let settings = json!({"od": "6", "id": "4"});
+    assert_eq!(d.shell_mut().dispatch("fluid.settings", &settings), Outcome::Done);
+    d.settle();
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        toast.contains("6 × 4 mm") && toast.contains("drawn already") && toast.contains("without a material"),
+        "{toast}"
+    );
+    let messages = findings(&mut d, "EW-FL-007");
+    assert!(
+        messages.len() == 1 && messages[0].contains("is 6×4 mm but has no material"),
+        "{messages:?}"
+    );
+    let settings = json!({"material": "pu"});
+    assert_eq!(d.shell_mut().dispatch("fluid.settings", &settings), Outcome::Done);
+    d.settle();
+    assert!(findings(&mut d, "EW-FL-007").is_empty(), "the tube is specified");
+    d.shell_mut().shutdown();
+}

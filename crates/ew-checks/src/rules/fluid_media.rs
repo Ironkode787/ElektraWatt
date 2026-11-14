@@ -320,7 +320,7 @@ meta!(
     "EW-FL-007",
     "ew-fl-007",
     "120007",
-    "Line without tube specification",
+    "Tube without specification",
     Completeness,
     "or",
     Warning,
@@ -346,15 +346,31 @@ impl Rule for NoTubeSpec {
             .filter(|r| !r.props.is_specified())
             .map(|r| {
                 let (text, text_nl) = tube_text(r);
+                // The persona round: a tube the tube table showed as 6×4 had "no tube specification"; it lacked a
+                // material, and the finding says so.
+                let size = r.props.size_text();
+                let (missing, message) = if size.is_empty() {
+                    (
+                        "spec",
+                        format!("tube {text} has no tube specification; give the medium or the project a default tube, or set it on the line"),
+                    )
+                } else {
+                    (
+                        "material",
+                        format!("tube {text} is {size} mm but has no material; give the default tube of its medium or of the project a material, or set it on the tube"),
+                    )
+                };
                 Finding::new(
                     &NO_TUBE_SPEC,
                     [Target::new(Kind::Connection, r.id)],
                     "spec",
                     text.clone(),
-                    format!("tube {text} has no tube specification; give the medium or the project a default tube, or set it on the line"),
+                    message,
                 )
                 .arg("tube", text)
                 .arg("tube_nl", text_nl)
+                .arg("missing", missing)
+                .arg("size", size)
             })
             .collect()
     }

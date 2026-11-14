@@ -385,9 +385,12 @@ rule-ew-fl-006 = { $form ->
     .title = Slang past niet
     .hint = Kies een slang die bij de poort en bij de druk van het medium past.
 
-rule-ew-fl-007 = slang { $tube_nl } heeft geen slangspecificatie; geef het medium of het project een standaardslang, of stel haar in op de leiding
-    .title = Leiding zonder slangspecificatie
-    .hint = Geef het medium of het project een standaardslang, of stel de slang in op de leiding.
+rule-ew-fl-007 = { $missing ->
+        [material] slang { $tube_nl } is { $size } mm maar heeft geen materiaal; geef de standaardslang van haar medium of van het project een materiaal, of stel het in op de slang
+       *[spec] slang { $tube_nl } heeft geen slangspecificatie; geef het medium of het project een standaardslang, of stel haar in op de slang
+    }
+    .title = Slang zonder specificatie
+    .hint = Geef het medium of het project een standaardslang, of stel haar in op de slang.
 
 rule-ew-fl-008 = { $form ->
         [gallery] { WORD($terminal) }: verdeelkanaal { $gallery } ({ $count } afvoerpoorten) heeft geen geluiddemper, verzamelleiding of afsluiting
