@@ -140,6 +140,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(DIALOGS, "dialog-reimport", "re-import-qelectrotech-project"),
     on(DIALOGS, "dialog-open-ewz", "open-ewz"),
     on(DIALOGS, "dialog-import-drawing", "import-a-drawing"),
+    on(DIALOGS, "dialog-import-eplan", "import-eplan-data"),
     on(DIALOGS, "dialog-git-setup", "set-up-merge-driver"),
     on(PANELS, "pane-page-view", "page-view"),
     on(PANELS, "pane-properties", "properties"),
@@ -309,6 +310,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::Reimport { .. } => "dialog-reimport",
         Dialog::OpenEwz { .. } => "dialog-open-ewz",
         Dialog::ImportDrawing { .. } => "dialog-import-drawing",
+        Dialog::ImportEplan { .. } => "dialog-import-eplan",
         Dialog::ConfirmGitSetup { .. } => "dialog-git-setup",
     }
 }
@@ -593,6 +595,11 @@ mod tests {
                 folio: None,
                 unitless: false,
                 converter: false,
+            },
+            Dialog::ImportEplan {
+                path: text(),
+                name: text(),
+                step: crate::shell::EplanStep::Terms,
             },
         ] {
             assert!(anchor(dialog_topic(&dialog)).is_some(), "{dialog:?}");

@@ -3849,10 +3849,43 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/dialogs.md:94
-msgid "Set up merge driver"
+msgid "Import EPLAN data"
 msgstr ""
 
 #: src/reference/window/dialogs.md:96
+msgid ""
+"An EPLAN part package (`.edz`), a parts XML (`.xml`) or a report spreadsheet "
+"(`.xlsx`, `.csv`), chosen with File ▸ Import…. Before the first EDZ of a "
+"session a notice says that the EPLAN Data Portal's terms restrict its data "
+"to EPLAN products; ElektraWatt reads the file from your disk only, and "
+"records the file and its SHA-256 on every part."
+msgstr ""
+
+#: src/reference/window/dialogs.md:100
+msgid ""
+"For parts, the dialog says how many parts the file holds, how many of them "
+"the project has a copy of (matched by part number) and how many of those "
+"copies would change. Update shows the changed fields and the devices that "
+"use the copies before anything changes; one undo step reverts it. Add to my "
+"parts library writes the parts into your own library, as a new version where "
+"a part was there already. A part the project does not have is never added to "
+"it."
+msgstr ""
+
+#: src/reference/window/dialogs.md:105
+msgid ""
+"For a report, the dialog offers the mappings that fit the file's column "
+"headers: your saved one, and the shipped German and English ones for a "
+"device list, a terminal diagram and a connection list. The result is a new "
+"project without drawings. Mapping other columns is done with `ew import "
+"eplan-report --map`."
+msgstr ""
+
+#: src/reference/window/dialogs.md:109
+msgid "Set up merge driver"
+msgstr ""
+
+#: src/reference/window/dialogs.md:111
 msgid ""
 "Sets up the repository's git configuration so that git merges the project's "
 "files record by record. It asks first and writes nothing on Cancel. Open it "

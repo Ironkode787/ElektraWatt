@@ -91,6 +91,21 @@ Place and embed; a customer's drawing may be confidential. A drawing that names 
 DWG is read through the ODA File Converter, which ElektraWatt does not include: install it, and choose its program
 when the import asks for it.
 
+## Import EPLAN data
+
+An EPLAN part package (`.edz`), a parts XML (`.xml`) or a report spreadsheet (`.xlsx`, `.csv`), chosen with File ▸
+Import…. Before the first EDZ of a session a notice says that the EPLAN Data Portal's terms restrict its data to EPLAN
+products; ElektraWatt reads the file from your disk only, and records the file and its SHA-256 on every part.
+
+For parts, the dialog says how many parts the file holds, how many of them the project has a copy of (matched by part
+number) and how many of those copies would change. Update shows the changed fields and the devices that use the copies
+before anything changes; one undo step reverts it. Add to my parts library writes the parts into your own library,
+as a new version where a part was there already. A part the project does not have is never added to it.
+
+For a report, the dialog offers the mappings that fit the file's column headers: your saved one, and the shipped German
+and English ones for a device list, a terminal diagram and a connection list. The result is a new project without
+drawings. Mapping other columns is done with `ew import eplan-report --map`.
+
 ## Set up merge driver
 
 Sets up the repository's git configuration so that git merges the project's files record by record. It asks first

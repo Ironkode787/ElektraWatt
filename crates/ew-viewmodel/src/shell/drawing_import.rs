@@ -145,7 +145,7 @@ impl ShellModel {
         }
     }
 
-    fn import_failed(&mut self, name: &str, why: &str) -> Outcome {
+    pub(super) fn import_failed(&mut self, name: &str, why: &str) -> Outcome {
         let message = strings::format(key!("error-import"), &[name, why]);
         self.banner = Some(message.clone());
         Outcome::Failed { message }

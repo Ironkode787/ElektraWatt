@@ -71,6 +71,32 @@ pub fn fndef_map_file(path: &Path) -> Result<FndefMap, String> {
         .map_err(|e| format!("{name}: {e}"))
 }
 
+/// The key of the user's own parts library, which the window writes EDZ and parts XML into.
+pub const USER_PARTS_KEY: &str = "user-parts";
+
+/// The user's own parts library ([`USER_PARTS_KEY`]): the writable library of that key, created in the user tier when
+/// there is none (licence `NOASSERTION`, FR-PRT-017; every part carries its own terms).
+///
+/// # Errors
+///
+/// [`CatalogError::Library`] when the library cannot be created.
+pub fn user_parts_library(reg: &mut library::Registry) -> Result<Uuid, CatalogError> {
+    if let Some(l) = reg
+        .libraries()
+        .into_iter()
+        .find(|l| l.key == USER_PARTS_KEY && l.writable)
+    {
+        return Ok(l.id);
+    }
+    // Without a user tier (compiled-in libraries only) there is no folder to create it in.
+    if reg.tiers().user.as_os_str().is_empty() {
+        return Err(CatalogError::Library(library::LibraryError::NotFound));
+    }
+    let dir = reg.tiers().user.join(format!("{USER_PARTS_KEY}.ewlib"));
+    reg.create(&dir, USER_PARTS_KEY, "My parts", "NOASSERTION")
+        .map_err(CatalogError::Library)
+}
+
 /// The report entry of the Data Portal terms notice (EW-IMP-201): a front end that showed the notice before an EDZ
 /// import adds it to the import's report.
 pub fn terms_entry(file: &str) -> ReportEntry {
@@ -206,7 +232,6 @@ pub fn report_batch(
     map: &ReportMap,
     key: &str,
 ) -> Result<crate::import::ImportBatch, crate::import::Refusal> {
-    use ew_import_catalog::sheet;
     let limits = ew_import_catalog::table_limits();
     let reg = library::Registry::starter_only();
     let fndefs: Vec<LibDocument> = ["ew.fn.terminal", "ew.fn.terminal-pe", "ew.fn.blackbox"]
@@ -224,34 +249,56 @@ pub fn report_batch(
         .collect();
     let sizes = [input.bytes().len() as u64];
     crate::import::front_door(input.name(), &sizes, &limits, None, || {
-        let bytes: &[u8] = input.bytes();
-        let format = ew_import_catalog::SourceFormat::detect(bytes);
-        let sheet_name = match (&map.sheet, format) {
-            (Some(s), _) => s.clone(),
-            (None, ew_import_catalog::SourceFormat::Xlsx) => sheet::sheet_names(bytes, &limits)?
-                .into_iter()
-                .next()
-                .ok_or_else(|| ImportError::Malformed {
-                    message: "the workbook has no sheet".into(),
-                    line: None,
-                })?,
-            (None, _) => String::new(),
-        };
-        let records = sheet::read_rows(bytes, format, &sheet_name, &limits)?;
-        let wanted: Vec<&str> = map.columns.values().map(String::as_str).collect();
-        let table = ew_import_eplan::ReportTable::from_records(&records, map.header_row, &wanted)
-            .ok_or_else(|| ImportError::Malformed {
-                message: "no header row found in the table".into(),
-                line: None,
-            })?;
+        let table = report_table(input, map)?;
         ew_import_eplan::read_report(
             &table,
             map,
-            (input.name(), input.sha256(), bytes.len() as u64),
+            (input.name(), input.sha256(), input.bytes().len() as u64),
             key,
             &fndefs,
         )
     })
+}
+
+/// The table of `input` for `map`: the records of its sheet (the first when the map names none) and the header row.
+fn report_table(input: &ImportInput, map: &ReportMap) -> Result<ew_import_eplan::ReportTable, ImportError> {
+    use ew_import_catalog::sheet;
+    let limits = ew_import_catalog::table_limits();
+    let bytes: &[u8] = input.bytes();
+    let format = ew_import_catalog::SourceFormat::detect(bytes);
+    let sheet_name = match (&map.sheet, format) {
+        (Some(s), _) => s.clone(),
+        (None, ew_import_catalog::SourceFormat::Xlsx) => sheet::sheet_names(bytes, &limits)?
+            .into_iter()
+            .next()
+            .ok_or_else(|| ImportError::Malformed {
+                message: "the workbook has no sheet".into(),
+                line: None,
+            })?,
+        (None, _) => String::new(),
+    };
+    let records = sheet::read_rows(bytes, format, &sheet_name, &limits)?;
+    let wanted: Vec<&str> = map.columns.values().map(String::as_str).collect();
+    ew_import_eplan::ReportTable::from_records(&records, map.header_row, &wanted).ok_or_else(|| {
+        ImportError::Malformed {
+            message: "no header row found in the table".into(),
+            line: None,
+        }
+    })
+}
+
+/// The names of the `maps` whose every column is a header of `input`, in the order given: the column mapper's offer.
+pub fn fitting_maps(input: &ImportInput, maps: &[(String, ReportMap)]) -> Vec<String> {
+    maps.iter()
+        .filter(|(_, map)| {
+            report_table(input, map).is_ok_and(|t| {
+                map.columns
+                    .values()
+                    .all(|h| t.headers.iter().any(|x| x == h.trim()))
+            })
+        })
+        .map(|(n, _)| n.clone())
+        .collect()
 }
 
 // -------------------------------------------------------------------------------------------------------------------

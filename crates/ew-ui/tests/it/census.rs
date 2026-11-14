@@ -275,6 +275,7 @@ enum DialogKind {
     ConfirmUpgrade,
     OpenEwz,
     ImportDrawing,
+    ImportEplan,
     ConfirmGitSetup,
     ImportQet,
     ReimportMatch,
@@ -303,7 +304,8 @@ impl DialogKind {
             Self::ExternalChange => Self::ConfirmUpgrade,
             Self::ConfirmUpgrade => Self::OpenEwz,
             Self::OpenEwz => Self::ImportDrawing,
-            Self::ImportDrawing => Self::ConfirmGitSetup,
+            Self::ImportDrawing => Self::ImportEplan,
+            Self::ImportEplan => Self::ConfirmGitSetup,
             Self::ConfirmGitSetup => Self::ImportQet,
             Self::ImportQet => Self::ReimportMatch,
             Self::ReimportMatch => Self::Reimport,
@@ -337,6 +339,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::ConfirmUpgrade { .. } => DialogKind::ConfirmUpgrade,
         Dialog::OpenEwz { .. } => DialogKind::OpenEwz,
         Dialog::ImportDrawing { .. } => DialogKind::ImportDrawing,
+        Dialog::ImportEplan { .. } => DialogKind::ImportEplan,
         Dialog::ConfirmGitSetup { .. } => DialogKind::ConfirmGitSetup,
         Dialog::ImportQet { .. } => DialogKind::ImportQet,
         Dialog::ReimportMatch { .. } => DialogKind::ReimportMatch,
@@ -525,6 +528,18 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             )
             .unwrap();
             simple("file.import", json!({"file": dxf.to_string_lossy()}))
+        }
+        DialogKind::ImportEplan => {
+            let edz = tmp.0.join("psu.edz");
+            std::fs::copy(
+                concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/../ew-import-eplan/tests/fixtures/synthetic-psu-7z.edz"
+                ),
+                &edz,
+            )
+            .unwrap();
+            simple("file.import", json!({"file": edz.to_string_lossy()}))
         }
         DialogKind::ConfirmGitSetup => {
             // A worktree is a folder with `.git` in it or above it: the question needs no git executable.

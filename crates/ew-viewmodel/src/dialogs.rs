@@ -209,6 +209,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             unitless,
             converter,
         } => import_drawing_spec(path, name, *kind, folio.as_deref(), *unitless, *converter),
+        Dialog::ImportEplan { path, name, step } => import_eplan_spec(path, name, step),
         // D28: Set up (Enter) or Cancel.
         Dialog::ConfirmGitSetup { folder } => git_setup_spec(folder),
         // Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
@@ -640,6 +641,105 @@ fn import_drawing_spec(
     DialogSpec {
         secondary,
         ..small(strings::format(key!("drawing-title"), &[name]), body, primary)
+    }
+}
+
+/// Importing EPLAN data from `path` (WP-S3.18): the terms notice with Continue; the parts of a file with Update (the
+/// copies that would change) and Add to my parts library; a report with a button for each mapping that fits.
+fn import_eplan_spec(path: &str, name: &str, step: &crate::shell::EplanStep) -> DialogSpec {
+    use crate::shell::EplanStep;
+    use ew_api::eplan::ReportTarget;
+    let action = |extra: Value| {
+        let mut params = json!({ "file": path });
+        if let (Some(p), Value::Object(e)) = (params.as_object_mut(), extra) {
+            p.extend(e);
+        }
+        DialogAnswer::Action("file.import_eplan", params)
+    };
+    let title = strings::format(key!("eplan-title"), &[name]);
+    match step {
+        EplanStep::Terms => DialogSpec {
+            secondary: vec![cancel()],
+            ..small(
+                strings::text(key!("eplan-terms-title")).to_owned(),
+                vec![
+                    strings::text(key!("eplan-terms-text")).to_owned(),
+                    strings::text(key!("eplan-terms-local")).to_owned(),
+                ],
+                DialogButton::new(key!("eplan-continue"), action(json!({ "terms": true }))),
+            )
+        },
+        EplanStep::Parts {
+            read,
+            matched,
+            changed,
+        } => {
+            let mut update = DialogButton::new(key!("eplan-update"), action(json!({ "how": "update" })));
+            update.label = strings::format(key!("eplan-update"), &[&changed.to_string()]);
+            if *changed == 0 {
+                update.disabled = Some(strings::text(key!("reason-eplan-no-change")).to_owned());
+            }
+            let library = DialogButton::new(key!("eplan-library"), action(json!({ "how": "library" })));
+            DialogSpec {
+                secondary: vec![library, cancel()],
+                ..small(
+                    title,
+                    vec![
+                        strings::format(
+                            key!("eplan-parts-text"),
+                            &[
+                                name,
+                                &read.to_string(),
+                                &matched.to_string(),
+                                &changed.to_string(),
+                            ],
+                        ),
+                        strings::text(key!("eplan-parts-note")).to_owned(),
+                    ],
+                    update,
+                )
+            }
+        }
+        EplanStep::Report { fits, saved } => {
+            let mut buttons: Vec<DialogButton> = fits
+                .iter()
+                .enumerate()
+                .map(|(i, (preset, target))| {
+                    let label_key = match target {
+                        ReportTarget::Devices => key!("eplan-report-devices"),
+                        ReportTarget::Terminals => key!("eplan-report-terminals"),
+                        ReportTarget::Connections => key!("eplan-report-connections"),
+                    };
+                    let mut b =
+                        DialogButton::new(label_key, action(json!({ "how": "report", "preset": preset })));
+                    if *saved && i == 0 {
+                        b.label = strings::format(key!("eplan-report-saved"), &[strings::text(label_key)]);
+                    }
+                    b
+                })
+                .collect();
+            let body = if buttons.is_empty() {
+                vec![
+                    strings::format(key!("eplan-report-text"), &[name]),
+                    strings::text(key!("eplan-report-none")).to_owned(),
+                ]
+            } else {
+                vec![strings::format(key!("eplan-report-text"), &[name])]
+            };
+            let primary = if buttons.is_empty() {
+                cancel()
+            } else {
+                buttons.remove(0)
+            };
+            let mut secondary = buttons;
+            if !fits.is_empty() {
+                secondary.push(cancel());
+            }
+            DialogSpec {
+                secondary,
+                ..small(title, body, primary)
+            }
+        }
     }
 }
 

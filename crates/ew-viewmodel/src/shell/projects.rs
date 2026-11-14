@@ -43,6 +43,8 @@ pub(super) struct ImportState {
     pub(super) reimport_proposal: Option<(u64, PathBuf, ew_api::import::LineageInfo)>,
     /// The re-import's proposal (T6) or card that waits behind a dialog open when its job ended.
     pub(super) reimport_waiting: Option<Dialog>,
+    /// The EPLAN Data Portal terms notice was shown in this session (WP-S3.18, FR-IMP-026).
+    pub(super) edz_terms: bool,
 }
 
 /// An imported project the import card shows, not written yet.
@@ -252,7 +254,7 @@ impl ShellModel {
 
     /// Writes `session` into `dir` and makes it the open project; the message of a failure carries the reason, never
     /// a path.
-    fn create_and_install(
+    pub(super) fn create_and_install(
         &mut self,
         mut session: Session,
         dir: &Path,
@@ -469,6 +471,7 @@ impl ShellModel {
                 self.act_open_ewz(&params)
             }
             Some("dxf" | "dwg" | "pdf") => self.act_import_drawing(&params),
+            Some("edz" | "7z" | "zip" | "xml" | "xlsx" | "csv") => self.act_import_eplan(&params),
             _ => Outcome::refused(key!("reason-import-kind")),
         }
     }

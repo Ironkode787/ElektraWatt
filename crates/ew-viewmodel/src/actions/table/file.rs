@@ -59,6 +59,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_import_drawing(p),
         ),
     ),
+    // An EDZ, a parts XML or a report spreadsheet of EPLAN; File ▸ Import… reaches it.
+    with_params(
+        "file?:path, how?:enum(update|library|report), preset?:text, terms?:bool, dir?:path, discard?:bool",
+        act(
+            "file.import_eplan",
+            Command,
+            Menu::File,
+            &[],
+            always,
+            None,
+            |s, p| s.act_import_eplan(p),
+        ),
+    ),
     // An `.ewz`, asking Extract and open or Open read-only; File ▸ Import… reaches it.
     with_params(
         "path?:path, how?:enum(extract|read_only), discard?:bool",

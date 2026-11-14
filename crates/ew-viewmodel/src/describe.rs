@@ -2004,6 +2004,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         Dialog::ConfirmUpgrade { .. }
         | Dialog::OpenEwz { .. }
         | Dialog::ImportDrawing { .. }
+        | Dialog::ImportEplan { .. }
         | Dialog::ConfirmGitSetup { .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));

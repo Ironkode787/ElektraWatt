@@ -48,6 +48,9 @@ mod drawing;
 // File ▸ Import… of a DXF, a DWG or a PDF (WP-S3.19).
 mod drawing_import;
 pub use drawing_import::DrawingKind;
+// File ▸ Import… of EPLAN data: an EDZ, a parts XML, a report spreadsheet (WP-S3.18).
+mod eplan_import;
+pub use eplan_import::{EplanKind, EplanStep};
 // External change, cloud folders, .ewz, the upgrade, the merge driver
 mod external;
 pub(crate) use external::collision_count;
@@ -418,6 +421,16 @@ pub enum Dialog {
         unitless: bool,
         /// A DWG and no converter chosen yet: the dialog says what it needs.
         converter: bool,
+    },
+    /// File ▸ Import… of EPLAN data (WP-S3.18): the Data Portal terms notice, the parts an EDZ or a parts XML holds, or
+    /// the mappings that fit a report spreadsheet.
+    ImportEplan {
+        /// The file (never printed).
+        path: String,
+        /// Its file name.
+        name: String,
+        /// The step.
+        step: EplanStep,
     },
     /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
     OpenEwz {
