@@ -529,7 +529,7 @@ fn tab_bar_back(h: &Harness<'_, App>) -> (bool, String, egui::Rect) {
 }
 
 /// A jump centres its arrival and marks it with a ring that fades out on the frame clock; Back
-/// stands beside the page tabs, at the floor and at 1920 × 1080, enabled only with a step to go back to, its tooltip
+/// stands beside the page tabs, at 1920 × 1080 and at 2560 × 1440, enabled only with a step to go back to, its tooltip
 /// naming its key, and a click on it goes back.
 #[test]
 fn a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
@@ -537,7 +537,7 @@ fn a_jump_marks_its_arrival_and_back_stands_beside_the_tabs() {
     let mut h = on_golden(&tmp);
     let start = folio(&h);
     assert_ne!(start, "103");
-    for size in [egui::vec2(1920.0, 1080.0), egui::vec2(1280.0, 800.0)] {
+    for size in [egui::vec2(1920.0, 1080.0), egui::vec2(2560.0, 1440.0)] {
         h.set_size(size);
         settle(&mut h);
         let (enabled, tip, rect) = tab_bar_back(&h);

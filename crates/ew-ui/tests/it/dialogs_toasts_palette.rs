@@ -96,7 +96,8 @@ fn cp2_cp7_the_toasts_stand_at_the_canvas_top_right_newest_on_top() {
     assert!(export.top() < edit.top(), "the newest on top");
     let pane = h.state().command_surface_rects().2.expect("the canvas pane");
     for r in &toasts {
-        assert!((r.width() - 300.0).abs() <= 2.0, "300 px wide: {r:?}");
+        // 0.22 of the 1920-point window (doc 16a §6.10).
+        assert!((r.width() - 422.4).abs() <= 2.0, "422 px wide: {r:?}");
         assert!(
             (pane.right() - 12.0 - r.right()).abs() <= 2.0,
             "12 px from the canvas's right edge: {r:?} in {pane:?}"
@@ -465,7 +466,7 @@ fn a_long_toast_is_cut_at_four_rows_with_its_whole_text_in_the_tooltip() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "view.reduce_motion", json!({"on": false}));
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
@@ -583,10 +584,10 @@ fn a_toast_under_a_still_pointer_fades_on_time() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// As drawn: at the 1280 × 800 floor, a click on the greyed Symbol button of a panel layout page
-/// shows a toast whose title stands whole on two rows (its text runs as drawn), never cut with an ellipsis.
+/// As drawn: at 1920 × 1080, a click on the greyed Symbol button of a panel layout page shows a toast whose title
+/// stands whole on one row (its text runs as drawn), never cut with an ellipsis.
 #[test]
-fn a_greyed_commands_toast_title_stands_whole_on_two_rows_at_the_floor() {
+fn a_greyed_commands_toast_title_stands_whole() {
     const TITLE: &str = "A panel layout page takes no symbols or wires";
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
@@ -594,7 +595,7 @@ fn a_greyed_commands_toast_title_stands_whole_on_two_rows_at_the_floor() {
         ew_ui::ew_viewmodel::shell::ShellModel::new(ew_ui::ew_viewmodel::shell::Mode::Gui, tmp.config());
     let app = App::new(shell, Box::new(Scripted::default()), Some(dir));
     let mut h = Harness::builder()
-        .with_size(egui::Vec2::new(1280.0, 800.0))
+        .with_size(egui::Vec2::new(1920.0, 1080.0))
         .with_context_setup(ew_ui::app::setup)
         .build_ui_state(|ui, app: &mut App| app.ui(ui), app);
     settle(&mut h);
@@ -634,7 +635,7 @@ fn a_greyed_commands_toast_title_stands_whole_on_two_rows_at_the_floor() {
         .iter()
         .map(|r| r.glyphs.iter().map(|g| g.chr).collect())
         .collect();
-    assert_eq!(rows.len(), 2, "two rows: {rows:?}");
+    assert_eq!(rows.len(), 1, "one row: {rows:?}");
     assert!(!title.elided, "whole, uncut: {rows:?}");
     h.state_mut().shell_mut().shutdown();
 }

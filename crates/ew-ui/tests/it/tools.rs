@@ -1006,14 +1006,14 @@ fn the_place_ghost_shows_one_label_that_stands_still_beside_it() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At the floor the Place ghost panned to the canvas's top left corner, where the tool options card
+/// At 1920 × 1080 the Place ghost panned to the canvas's top left corner, where the tool options card
 /// stands, leaves its label no free candidate; it stands inside the canvas all the same (clamped), not cut at its
 /// edge.
 #[test]
 fn the_place_label_stays_inside_the_canvas_at_the_floor() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
-    h.set_size(Vec2::new(1280.0, 800.0));
+    h.set_size(Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     let at = place_and_rest(&mut h);
     let tl = h
@@ -1169,7 +1169,7 @@ fn the_chip_of_an_existing_devices_tag_change_stands_above_its_printed_tag() {
     let mut h = support::on_golden(&tmp, "101");
     // The rails and the wider left column narrow the page view; at 1000 px the chip meets the
     // view's edge and is pushed off its candidates, so this window has the reference width.
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     let numbering = json!({"default": "page-based", "schemes": [
         {"key": "page-based", "format": "{page}{letter}{counter}.{column}", "rules": []}]});

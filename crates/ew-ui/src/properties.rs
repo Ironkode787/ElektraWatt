@@ -1308,7 +1308,7 @@ impl PropertiesPane {
                 .wrap(),
             );
         });
-        // A new error brings its row and its line into view (at the 1280 × 800 floor it lay below the
+        // A new error brings its row and its line into view (in a 1280 × 800 window it lay below the
         // pane's edge); the pane's scrolling is the user's again after that.
         if self.error_shown != shown {
             ui.scroll_to_rect(p.rect.union(line.response.rect), None);

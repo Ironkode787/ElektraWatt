@@ -3,8 +3,9 @@
 
 //! The command surface in the window without rendering: the tabs and the Draw row's buttons,
 //! each dispatching its action; the keyboard (Alt, F10, Ctrl+F1, F6, Left and Right); the geometry at
-//! 1280 by 800 in both densities; one HUD with the selection's prompt, no tool strip; the app button;
-//! a repaint when the window gets the focus back; and every icon key of the registry resolves.
+//! 1920 by 1080 in both densities, where no group folds in English, Dutch or the pseudo-locale; a smaller window
+//! that stays usable; one HUD with the selection's prompt, no tool strip; the app button; a repaint when the window
+//! gets the focus back; and every icon key of the registry resolves.
 
 use crate::support;
 
@@ -19,7 +20,7 @@ use ew_ui::icons::IconId;
 use serde_json::json;
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 
-/// The main window on a copy of Golden A at 1280 by 800 in `density`, folio 101 on show.
+/// The main window on a copy of Golden A at 1920 by 1080 in `density`, folio 101 on show.
 fn window(tmp: &Tmp, density: &str) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
@@ -28,7 +29,7 @@ fn window(tmp: &Tmp, density: &str) -> Harness<'static, App> {
         Outcome::Done
     );
     let mut h = harness_with(shell, Scripted::default(), Some(dir));
-    h.set_size(Vec2::new(1280.0, 800.0));
+    h.set_size(Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     assert_eq!(
@@ -190,7 +191,7 @@ fn the_command_surface_from_the_keyboard() {
 }
 
 /// Doc 16a §5.5: the HUD stands in a strip of its own under the canvas, so no view puts the drawing under it: after
-/// a fit on Golden A 101 at 1280 by 800 the sheet lies whole in the canvas, and the canvas ends where the HUD's
+/// a fit on Golden A 101 at 1920 by 1080 the sheet lies whole in the canvas, and the canvas ends where the HUD's
 /// strip begins.
 #[test]
 fn the_canvas_ends_above_the_hud() {
@@ -225,11 +226,11 @@ fn the_canvas_ends_above_the_hud() {
     }
 }
 
-/// CB4: the geometry of doc 16a §5 at 1280 by 800, Comfortable and Compact: the bar, its tab row and command row,
-/// the large and small buttons, the search field, the quick-access buttons, the HUD (36 high, 16 above the page
-/// view's bottom, centred on it) and a page view of at least 65 % of the width.
+/// CB4: the geometry of doc 16a §5 at 1920 by 1080, Comfortable and Compact: the bar, its tab row and command row,
+/// the large and small buttons, the search field (0.2 of the tab row), the quick-access buttons, the HUD (36 high,
+/// 16 above the page view's bottom, centred on it) and a page view of at least 65 % of the width.
 #[test]
-fn the_geometry_at_1280_by_800_in_both_densities() {
+fn the_geometry_at_1920_by_1080_in_both_densities() {
     for (density, bar, large_h, large_w, row) in [
         ("comfortable", 85.0, 46.0, 52.0, 52.0),
         ("compact", 69.0, 28.0, 0.0, 36.0),
@@ -254,8 +255,7 @@ fn the_geometry_at_1280_by_800_in_both_densities() {
         let model = command_bar(h.state().shell());
         let mut seen = (0, 0);
         for b in model.groups.iter().flat_map(|g| &g.buttons) {
-            // The bar's own button (a group collapsed at the floor shows none; the HUD's Text is no
-            // button of the bar).
+            // The bar's own button (the HUD's Text is no button of the bar).
             let Some(r) = h
                 .query_all_by_label(&b.bar_label)
                 .find(|n| n.accesskit_node().role() == egui::Role::Button && bar_rect.contains_rect(n.rect()))
@@ -290,7 +290,7 @@ fn the_geometry_at_1280_by_800_in_both_densities() {
             .expect("the search field")
             .rect();
         assert!(
-            close(search.width(), 280.0) && close(search.height(), 24.0),
+            (search.width() - 0.2 * bar_rect.width()).abs() < 2.0 && close(search.height(), 24.0),
             "{density}: {search:?}"
         );
         for q in &model.quick {
@@ -607,6 +607,108 @@ fn the_hud_stays_put_and_its_buttons_can_be_clicked() {
         h.state().shell().tool().name(),
         "wire",
         "the click reached the button"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// The command bar's button labelled `label`, if it shows one (the HUD and the menus hold buttons of some of its names,
+/// and a group's node bears its group's name).
+fn bar_node<'t>(h: &'t Harness<'_, App>, label: &'t str) -> Option<egui_kittest::Node<'t>> {
+    let bar = h.state().command_surface_rects().0.expect("the bar");
+    h.query_all_by_label(label)
+        .find(|n| n.accesskit_node().role() == egui::Role::Button && bar.contains_rect(n.rect()))
+}
+
+/// Whether the command bar shows a button labelled `label`.
+fn in_bar(h: &Harness<'_, App>, label: &str) -> bool {
+    bar_node(h, label).is_some()
+}
+
+/// Shows command tab `tab` by a click on it.
+fn show_tab(h: &mut Harness<'_, App>, tab: Tab) {
+    let label = ew_ui::ew_viewmodel::strings::text(tab.label_key()).to_owned();
+    h.get_by_role_and_label(egui::Role::Tab, &label).click();
+    settle(h);
+    assert_eq!(h.state().shell().command_tab(), tab);
+}
+
+/// FT-1730 (doc 16a §5.3, law 3): at 1920 × 1080 no group folds, in English, in Dutch and in the pseudo-locale: every
+/// command of every tab stands in the bar as a button of its own, and no More button shows.
+#[test]
+fn nothing_folds_at_1920_in_english_dutch_and_the_pseudo_locale() {
+    use ew_ui::ew_viewmodel::{key, strings};
+    let tmp = Tmp::new();
+    let mut h = window(&tmp, "comfortable");
+    let mut folded = Vec::new();
+    for locale in ["en-GB", "nl-NL", strings::PSEUDO] {
+        assert!(strings::set_locale(locale), "{locale}");
+        settle(&mut h);
+        for tab in Tab::ALL {
+            show_tab(&mut h, tab);
+            let model = command_bar_of(h.state().shell(), tab);
+            for b in model.groups.iter().flat_map(|g| &g.buttons) {
+                if !in_bar(&h, &b.bar_label) {
+                    folded.push(format!("{locale} {tab:?}: {}", b.bar_label));
+                }
+            }
+            if in_bar(&h, strings::text(key!("commandbar-more"))) {
+                folded.push(format!("{locale} {tab:?}: a More button"));
+            }
+        }
+    }
+    h.state_mut().shell_mut().shutdown();
+    assert!(folded.is_empty(), "folded at 1920: {folded:#?}");
+}
+
+/// FT-1730 (doc 16a §2, §5.10): a smaller window than the main resolution stays usable. At 1280 × 800 nothing panics,
+/// every command of every tab is reached, in the bar or through the menu of its folded group (in the More menu when
+/// the group went there), and the page view keeps at least half the window's width and height.
+#[test]
+fn a_smaller_window_stays_usable() {
+    use ew_ui::ew_viewmodel::{key, strings};
+    let tmp = Tmp::new();
+    let mut h = window(&tmp, "comfortable");
+    h.set_size(Vec2::new(1280.0, 800.0));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    settle(&mut h);
+    let more = strings::text(key!("commandbar-more")).to_owned();
+    let mut folded = 0;
+    for tab in Tab::ALL {
+        show_tab(&mut h, tab);
+        let model = command_bar_of(h.state().shell(), tab);
+        for g in &model.groups {
+            for b in &g.buttons {
+                if in_bar(&h, &b.bar_label) {
+                    continue;
+                }
+                folded += 1;
+                // The group's own button, else the More menu's submenu of the group.
+                if let Some(group) = bar_node(&h, &g.label) {
+                    group.click();
+                } else {
+                    bar_node(&h, &more).expect("the More button").click();
+                    settle(&mut h);
+                    support::menu_node(&h, &g.label).click();
+                }
+                settle(&mut h);
+                // The open menu holds the command under its full label, its key after it (the bar shows it nowhere).
+                assert!(
+                    h.query_all_by_label_contains(&b.label).next().is_some(),
+                    "{tab:?}: {} in the menu of {}",
+                    b.label,
+                    g.label
+                );
+                h.key_press(Key::Escape);
+                settle(&mut h);
+            }
+        }
+    }
+    assert!(folded > 0, "groups fold at 1280 × 800");
+    let pane = h.state().command_surface_rects().2.expect("the page view");
+    assert!(
+        pane.width() >= 640.0 && pane.height() >= 400.0,
+        "the page view {pane:?} in 1280 × 800"
     );
     h.state_mut().shell_mut().shutdown();
 }

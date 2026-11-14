@@ -29,7 +29,7 @@ const W29: &str = "9eb2d865-fca4-59b1-87bf-c073d7190ceb";
 fn a_click_on_a_category_header_folds_it() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "props.show", json!({"on": true}));
     dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
     settle(&mut h);
@@ -84,7 +84,7 @@ fn a_click_on_a_category_header_folds_it() {
 fn a_rows_tooltip_explains_it() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "view.reduce_motion", json!({"on": false}));
     dispatch(&mut h, "props.show", json!({"on": true}));
     dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
@@ -116,7 +116,7 @@ fn a_rows_tooltip_explains_it() {
 fn a_connection_point_is_marked_not_used_from_its_row() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "props.show", json!({"on": true}));
     dispatch(&mut h, "select.set", json!({"ids": [F1_SYMBOL]}));
     settle(&mut h);
@@ -224,7 +224,7 @@ fn a_connection_point_is_marked_not_used_from_the_page() {
 fn a_wire_shows_and_sets_its_potential_and_the_source_of_its_colour() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "props.show", json!({"on": true}));
     dispatch(&mut h, "select.set", json!({"ids": [W29]}));
     settle(&mut h);
@@ -303,7 +303,7 @@ fn a_wire_shows_and_sets_its_potential_and_the_source_of_its_colour() {
 fn an_interruption_point_without_a_definition_offers_define_potential() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "props.show", json!({"on": true}));
     // The interruption point J-E-206-L on folio 101; its potential is defined at 1X1:1/b, which goes.
     let ip = "f4fdc202-6465-54c2-9ef8-dacbf90449f4";

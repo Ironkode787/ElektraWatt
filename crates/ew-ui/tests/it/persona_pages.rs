@@ -151,7 +151,7 @@ fn shown(d: &Driver, text: &str) -> usize {
 /// The play-test's way to a panel layout, in the prelude's new project, by the pointer: New page… lists every type
 /// without a scroll, so Panel layout is clicked where the list shows it (it lay below the fold, t0055); Project ▸
 /// Enclosure… is enabled without a location and its Create with the proposals makes the location, the enclosure and
-/// shows its plate (it was greyed until a location existed, t0060); its toast is whole (t0062); Draw ▸ Layout ▸ Rail
+/// shows its plate (it was greyed until a location existed, t0060); its toast is whole (t0062); Draw ▸ Rail
 /// is enabled and two clicks draw a rail.
 #[test]
 fn a_panel_layout_in_a_new_project_by_the_pointer() {
@@ -159,9 +159,17 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
     let mut d = prelude(&tmp, Geometry::DEFAULT);
     press(&mut d, "New page");
     // The Type list, where the play-tester clicked it (a form's field is named by its label's relation, which the
-    // driver does not read).
-    let at = (868, 464);
-    tap(&mut d, at);
+    // driver does not read): its row counted up from the footer's Create, the form's rows `size.control` and
+    // `space.3` apart (36 points), the last row's centre 44 points above Create's.
+    let (fields, at) = match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => (
+            f.fields.len() as i64,
+            f.fields.iter().position(|f| f.name == "type").expect("the Type field") as i64,
+        ),
+        other => panic!("{other:?}"),
+    };
+    let create = widget(&d, "Create", false);
+    tap(&mut d, (create.0 - 300, create.1 - 44 - 36 * (fields - 1 - at)));
     // The whole list stands in the window, its last type too.
     let last = d.find("External document").expect("the last type");
     assert!(last.1 < i64::from(d.geometry().frame_height()), "{last:?}");
@@ -195,7 +203,6 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
     assert_eq!(shown(&d, &said), 1, "the toast is whole, no tooltip repeats it");
     let at = widget(&d, "Draw", true);
     tap(&mut d, at);
-    press(&mut d, "Layout");
     press(&mut d, "Rail");
     assert_eq!(d.shell_mut().tool().name(), "rail_draw");
     for at in [(800, 400), (1000, 400)] {
@@ -209,7 +216,7 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
     d.shell_mut().shutdown();
 }
 
-/// A new strip's toast, the longest a first-timer met (t0011, cut after "Draw ▸ …"), stands whole at the 1280 × 800
+/// A new strip's toast, the longest a first-timer met (t0011, cut after "Draw ▸ …"), stands whole at 1920 × 1080
 /// floor: under the pointer no tooltip repeats it.
 #[test]
 fn a_new_strips_toast_is_whole_at_the_floor() {
@@ -424,10 +431,10 @@ fn ip_direction(h: &egui_kittest::Harness<'_, ew_ui::app::App>) -> &'static str 
     }
 }
 
-/// The window at the 1280 x 800 floor over the prelude's project (the wizard's company standard, then a new project).
+/// The window at 1920 × 1080 over the prelude's project (the wizard's company standard, then a new project).
 fn prelude_window(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::App> {
     let mut h = harness(tmp, Scripted::default(), None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     let company = tmp.0.join("company");
     let project = tmp.0.join("project");
     dispatch(&mut h, "tools.company_standard", json!({}));

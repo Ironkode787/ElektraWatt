@@ -231,7 +231,7 @@ fn the_inputs_check_their_members_and_bounds() {
     assert!(parse_frame(&obj(json!({"frame": "t1.png", "paint": 0}))).is_err());
     assert!(parse_frame(&obj(json!({"frame": "../x.png"}))).is_err());
     assert!(parse_frame(&obj(json!({"frame": "t1.png", "zoom": [0, 0, 769, 10]}))).is_err());
-    assert!(parse_frame(&obj(json!({"frame": "t1.png", "zoom": [1000, 0, 768, 10]}))).is_err());
+    assert!(parse_frame(&obj(json!({"frame": "t1.png", "zoom": [1200, 0, 768, 10]}))).is_err());
     // A corner near u32::MAX is refused, not added with overflow (a debug panic, a wrapped slice in release).
     for zoom in [
         json!([4_294_967_295_u32, 0, 10, 10]),
@@ -387,9 +387,10 @@ fn clicks_right_clicks_typing_and_drags_reach_the_widgets() {
     let _ = d.shell_mut().dispatch("select.clear", &json!({}));
     d.settle();
     let _ = actions(&mut d);
+    // Over the drawing, inside the frame's border.
     d.input(&Input::Drag {
-        from: (600, 300),
-        to: (1300, 800),
+        from: (790, 290),
+        to: (1650, 850),
         button: PointerButton::Primary,
         mods: Modifiers::NONE,
     });
@@ -398,12 +399,17 @@ fn clicks_right_clicks_typing_and_drags_reach_the_widgets() {
     let selected = state(&mut d)["canvas"]["selection"].as_array().unwrap().len();
     assert!(selected > 0, "the rubber band selected");
     assert_eq!(state(&mut d)["can_undo"], false);
-    // A point over a selected item: the first of a coarse grid whose hover names something.
+    // A point over a selected item: the first of a coarse grid whose hover names one (the frame, which the band did
+    // not hold, is hovered too).
     let mut over = None;
-    'scan: for y in (340..780).step_by(40) {
-        for x in (640..1260).step_by(40) {
+    'scan: for y in (340..840).step_by(40) {
+        for x in (840..1600).step_by(40) {
             d.input(&Input::Hover { at: (x, y) });
-            if !state(&mut d)["canvas"]["hover"].is_null() {
+            let canvas = state(&mut d)["canvas"].clone();
+            if canvas["selection"]
+                .as_array()
+                .is_some_and(|s| s.contains(&canvas["hover"]))
+            {
                 over = Some((x, y));
                 break 'scan;
             }
@@ -462,7 +468,7 @@ fn the_same_script_twice_gives_the_same_logs_states_and_frames() {
     if frames {
         assert!(a[2]["sha256"].is_string() && a[9]["sha256"].is_string());
         let png = std::fs::read(tmp.0.join("a/frames/t0001.png")).unwrap();
-        // 1536 × 994 pixels, from the PNG's header.
+        // 1920 × 1108 pixels, from the PNG's header.
         assert_eq!(u32::from_be_bytes(png[16..20].try_into().unwrap()), FRAME_WIDTH);
         assert_eq!(u32::from_be_bytes(png[20..24].try_into().unwrap()), FRAME_HEIGHT);
     }
@@ -632,19 +638,20 @@ fn the_application_closes_and_later_lines_say_so() {
     assert_eq!(t[6]["outcome"], "done", "the epilogue's shell: {:?}", t[6]);
 }
 
-/// 1920 × 1080 points at 1 pixel per point.
-fn typical() -> Geometry {
-    Geometry::parse(Some("1920x1080"), Some("1")).unwrap()
+/// 2560 × 1440 points at 1 pixel per point, the extension of the main resolution (doc 16a §2).
+fn extension() -> Geometry {
+    Geometry::parse(Some("2560x1440"), Some("1")).unwrap()
 }
 
-/// A run may choose its window size and scale. At 1920 × 1080 points and ppp 1 the frame is 1920 × 1108
-/// pixels (a 28-pixel strip), at ppp 2 3840 × 2216; the default stays 1536 × 994.
+/// A run may choose its window size and scale. At 2560 × 1440 points and ppp 1 the frame is 2560 × 1468
+/// pixels (a 28-pixel strip), at 1920 × 1080 and ppp 2 3840 × 2216; the default is 1920 × 1080 at 1, a frame of
+/// 1920 × 1108.
 #[test]
 fn the_geometry_sizes_the_frame() {
-    let g = typical();
+    let g = extension();
     assert_eq!(
         (g.frame_width(), g.frame_height(), g.strip_px(), g.dpi()),
-        (1920, 1108, 28, 96)
+        (2560, 1468, 28, 96)
     );
     let g2 = Geometry::parse(Some("1920x1080"), Some("2")).unwrap();
     assert_eq!(
@@ -654,38 +661,38 @@ fn the_geometry_sizes_the_frame() {
     let d = Geometry::DEFAULT;
     assert_eq!(
         (d.frame_width(), d.frame_height(), d.strip_px(), d.dpi(), d.ppp()),
-        (FRAME_WIDTH, FRAME_HEIGHT, visual::STRIP_PX, 115, visual::PPP)
+        (FRAME_WIDTH, FRAME_HEIGHT, visual::STRIP_PX, 96, visual::PPP)
     );
     assert_eq!(Geometry::parse(None, None), Ok(Geometry::DEFAULT));
     assert_eq!(
-        Geometry::parse(Some("1280x800"), Some("1.2")),
+        Geometry::parse(Some("1920x1080"), Some("1")),
         Ok(Geometry::DEFAULT)
     );
 }
 
-/// An input at x = 1900 is inside a 1920-pixel frame and outside the default one, with the existing
+/// An input at x = 2500 is inside a 2560-pixel frame and outside the default one, with the existing
 /// out-of-frame text.
 #[test]
 fn coordinates_are_checked_against_the_runs_frame() {
-    let o = obj(json!({"input": "click", "x": 1900, "y": 1100}));
+    let o = obj(json!({"input": "click", "x": 2500, "y": 1400}));
     assert!(matches!(
-        parse_input_in(&o, typical()),
-        Ok(Input::Click { at: (1900, 1100), .. })
+        parse_input_in(&o, extension()),
+        Ok(Input::Click { at: (2500, 1400), .. })
     ));
     let refused = parse_input(&o).unwrap_err();
-    assert_eq!(refused, "`x` is outside the frame (0 to 1535)");
-    assert!(parse_input_in(&obj(json!({"input": "click", "x": 1920, "y": 0})), typical()).is_err());
-    let zoom = obj(json!({"frame": "z.png", "zoom": [1100, 600, 768, 497]}));
-    assert!(visual::parse_frame_in(&zoom, typical()).is_ok());
+    assert_eq!(refused, "`x` is outside the frame (0 to 1919)");
+    assert!(parse_input_in(&obj(json!({"input": "click", "x": 2560, "y": 0})), extension()).is_err());
+    let zoom = obj(json!({"frame": "z.png", "zoom": [1600, 900, 768, 497]}));
+    assert!(visual::parse_frame_in(&zoom, extension()).is_ok());
     assert!(parse_frame(&zoom).is_err());
 }
 
-/// At 1920 × 1080 points and ppp 1 a click at a widget's centre in that frame's pixels reaches the widget.
+/// At 2560 × 1440 points and ppp 1 a click at a widget's centre in that frame's pixels reaches the widget.
 #[test]
-fn a_click_at_the_typical_size_reaches_the_widget() {
+fn a_click_at_the_extension_reaches_the_widget() {
     let tmp = Tmp::new();
     let golden = tmp.golden("g.ew");
-    let mut d = Driver::with_geometry(tmp.config(), None, tmp.0.clone(), typical()).unwrap();
+    let mut d = Driver::with_geometry(tmp.config(), None, tmp.0.clone(), extension()).unwrap();
     d.enable_accesskit();
     let opened = d
         .shell_mut()
@@ -695,40 +702,40 @@ fn a_click_at_the_typical_size_reaches_the_widget() {
     d.settle();
     let _ = actions(&mut d);
     let at = d.find("Check project").expect("the Check project button");
-    assert!(at.0 < 1920 && at.1 < 1108, "{at:?}");
+    assert!(at.0 < 2560 && at.1 < 1468, "{at:?}");
     d.input(&click(at));
     assert_eq!(actions(&mut d), ["messages.check"], "the click at {at:?}");
     d.shell_mut().shutdown();
 }
 
-/// A run at 1920 × 1080 points and ppp 1 names its geometry in the transcript's header, accepts an input at
-/// x = 1900 and (where frames are painted) paints 1920 × 1108 pixels; at the default the header is unchanged.
+/// A run at 2560 × 1440 points and ppp 1 names its geometry in the transcript's header, accepts an input at
+/// x = 2500 and (where frames are painted) paints 2560 × 1468 pixels; at the default the header names none.
 #[test]
-fn a_run_at_the_typical_size_paints_its_frame_and_names_it() {
+fn a_run_at_the_extension_paints_its_frame_and_names_it() {
     let tmp = Tmp::new();
     let lines = |dir: &Path| {
         vec![
             json!({"action": "file.new", "params": {"dir": dir.join("p").to_string_lossy()}}),
-            json!({"input": "hover", "x": 1900, "y": 600}),
+            json!({"input": "hover", "x": 2500, "y": 600}),
             json!({"frame": "t0001.png"}),
         ]
     };
     let frames = cfg!(windows);
-    let (t, code, err) = run_at(&tmp, "w", &lines(&tmp.0.join("w")), frames, typical());
+    let (t, code, err) = run_at(&tmp, "w", &lines(&tmp.0.join("w")), frames, extension());
     assert_eq!(code, 0, "{err}");
-    assert_eq!(t[0]["window"], json!([1920, 1080]), "{:?}", t[0]);
+    assert_eq!(t[0]["window"], json!([2560, 1440]), "{:?}", t[0]);
     assert_eq!(t[0]["ppp"], json!(1));
     assert!(t[2].get("input").is_some(), "the hover ran: {:?}", t[2]);
     if frames {
         let png = std::fs::read(tmp.0.join("w/frames/t0001.png")).unwrap();
-        assert_eq!(u32::from_be_bytes(png[16..20].try_into().unwrap()), 1920);
-        assert_eq!(u32::from_be_bytes(png[20..24].try_into().unwrap()), 1108);
+        assert_eq!(u32::from_be_bytes(png[16..20].try_into().unwrap()), 2560);
+        assert_eq!(u32::from_be_bytes(png[20..24].try_into().unwrap()), 1468);
     }
     assert_eq!(
         visual::transcript_header("1.0", Geometry::parse(Some("1366x768"), Some("1.25")).unwrap()),
         r#"{"$schema":"ew.uitranscript/1","version":"1.0","window":[1366,768],"ppp":1.25}"#
     );
-    // The default run's header has no geometry, and its input at x = 1900 is refused.
+    // The default run's header has no geometry, and its input at x = 2500 is refused.
     let (t, code, _) = run(&tmp, "d", &lines(&tmp.0.join("d")), false);
     assert_eq!(code, 2);
     assert!(
@@ -1055,21 +1062,11 @@ fn symbol_editor_save_refuses_off_grid_pin_in_words_and_saves_fine_graphics() {
 }
 
 /// FT-1714: right after Save to library, a click on Close editor closes the editor; the save's toast stands clear of
-/// the button, at the 1280 floor and at 1920 × 1080.
+/// the button, at 1920 × 1080 and at 2560 × 1440.
 #[test]
 fn symbol_editor_close_editor_is_clickable_right_after_a_save() {
     use ew_ui::ew_viewmodel::shell::Outcome;
-    for (name, geometry) in [
-        ("1280", Geometry::DEFAULT),
-        (
-            "1920",
-            Geometry {
-                width: 1920,
-                height: 1080,
-                ..Geometry::DEFAULT
-            },
-        ),
-    ] {
+    for (name, geometry) in [("1920", Geometry::DEFAULT), ("2560", extension())] {
         let tmp = Tmp::new();
         let library = tmp.0.join("saved.ewlib");
         let mut d = Driver::with_geometry(tmp.config(), None, tmp.0.clone(), geometry).unwrap();
@@ -1467,15 +1464,23 @@ fn symbol_editor_select_moves_nudges_and_deletes_a_connection_point() {
         draft.symbol.cps.iter().map(|c| (c.pos.x.0, c.pos.y.0)).collect()
     };
     let grid = 4_000_000;
+    // The canvas's centre shows the empty draft's centre, (20, 20) mm, a point of the connection grid: the point
+    // lands under the pointer.
+    let centre = d
+        .labels()
+        .into_iter()
+        .find(|(l, _)| l.starts_with("Drawing of"))
+        .expect("the editor's canvas")
+        .1;
     d.input(&click(d.find("Connection point").unwrap()));
-    d.input(&click((763, 315)));
+    d.input(&click(centre));
     let placed = points(&mut d);
     assert_eq!(placed.len(), 1);
     d.input(&click(d.find("Select").unwrap()));
     // A drag to the right moves it by whole grid steps, along x only.
     d.input(&Input::Drag {
-        from: (763, 315),
-        to: (843, 317),
+        from: centre,
+        to: (centre.0 + 80, centre.1 + 2),
         button: PointerButton::Primary,
         mods: Modifiers::NONE,
     });
@@ -2118,13 +2123,16 @@ fn symbol_editor_draws_a_rectangle_by_drag_and_keeps_its_view() {
     d.shell_mut().shutdown();
 }
 
-/// At the 1280 × 800 floor the Library tab scrolls, and its fields keep clear of the scroll bar: they
+/// In a short window (640 points high) the Library tab scrolls, and its fields keep clear of the scroll bar: they
 /// are narrower than the same field on the Drawing tab, which does not scroll.
 #[test]
 fn symbol_editor_library_fields_keep_clear_of_the_scroll_bar() {
     let tmp = Tmp::new();
-    let mut d = symbol_driver(&tmp, "example.scroll");
-    assert_eq!(d.geometry().window_points(), egui::Vec2::new(1280.0, 800.0));
+    let short = Geometry {
+        height: 640,
+        ..Geometry::DEFAULT
+    };
+    let mut d = symbol_driver_at(&tmp, "example.scroll", short);
     let drawing = d.find("Name").unwrap();
     d.input(&click(d.find("Library").unwrap()));
     d.input(&Input::Wait { ms: 100 });
@@ -2386,8 +2394,13 @@ fn symbol_editor_tools_take_keys_of_the_keymap_and_leave_the_panel() {
 
 /// A driver with the symbol editor open on a drawn one-pin draft (a line and pin 1 at the origin).
 fn symbol_driver(tmp: &Tmp, key: &str) -> Driver {
+    symbol_driver_at(tmp, key, Geometry::DEFAULT)
+}
+
+/// [`symbol_driver`] in a window of `geometry`.
+fn symbol_driver_at(tmp: &Tmp, key: &str, geometry: Geometry) -> Driver {
     use ew_ui::ew_viewmodel::shell::Outcome;
-    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    let mut d = Driver::with_geometry(tmp.config(), None, tmp.0.clone(), geometry).unwrap();
     d.enable_accesskit();
     for (action, params) in [
         ("symbol.new", json!({"key":key,"name":"Drawn"})),
@@ -2714,7 +2727,7 @@ fn a_section_is_made_from_the_pages_panel_and_from_the_trees_right_click_menu() 
 
 /// The owner's hands-on test of 0.1.0 (FT-1652, FT-1640): "important parts such as the terminal strip have no
 /// button of their own", the Wire marker was in the menu only, and the symbol editor hid behind a small button
-/// named "Symbols". On the Draw tab, at the floor: Terminal opens its own form (FT-1695: strip, kind, how many, from
+/// named "Symbols". On the Draw tab, at 1920 × 1080: Terminal opens its own form (FT-1695: strip, kind, how many, from
 /// which number), Marker arms the Wire marker, and Symbol editor opens the editor.
 #[test]
 fn the_draw_tab_has_buttons_for_terminal_wire_marker_and_the_symbol_editor() {

@@ -18,12 +18,12 @@ use ew_ui::ew_viewmodel::shell::{Focus, Mode, Outcome, ShellModel};
 use serde_json::{Value, json};
 use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 
-/// The main window on a copy of Golden A at 1280 by 800, folio 101 on show.
+/// The main window on a copy of Golden A at 1920 by 1080, folio 101 on show.
 fn window(tmp: &Tmp) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
     let shell = ShellModel::new(Mode::Gui, tmp.config());
     let mut h = harness_with(shell, Scripted::default(), Some(dir));
-    h.set_size(Vec2::new(1280.0, 800.0));
+    h.set_size(Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
@@ -74,7 +74,7 @@ fn near(a: f32, b: f32, tolerance: f32) -> bool {
 }
 
 /// DK8 (with G5 to G10 of §12.0): the rails, the rail buttons, the left column, the canvas share, the 50 : 50 split of
-/// the column, the status bar and the property label column at 1280 by 800; the first five rail entries in the
+/// the column, the status bar and the property label column at 1920 by 1080; the first five rail entries in the
 /// mockup's order with History at the foot; the Project entry's segmented control.
 #[test]
 fn the_layout_matches_the_mockup() {
@@ -117,17 +117,16 @@ fn the_layout_matches_the_mockup() {
     );
     assert!(near(ready.height(), 22.0, 0.5), "{ready:?}");
     assert!(ready.left() < f.left() + 1.0, "{ready:?}");
-    // The left column and the canvas: 280 of the 1200 px between the rails at 1280 (233 ‰); here the harness's
-    // margin leaves 1184, so the column is 233 ‰ of that, the page view the rest (G5, G8: 71.9 % of the window
-    // within one percentage point).
+    // The left column and the canvas: the column is shown 480 wide at 1920 (doc 16a §2, with the tile gaps), the
+    // page view the rest (G5, G8: 70.8 % of the window within one percentage point, at least ADR-0031's 65 %).
     let (bar, _, pane) = h.state().command_surface_rects();
     let (bar, pane) = (bar.unwrap(), pane.unwrap());
     let dock = f.width() - 80.0;
     let column = pane.left() - (f.left() + 40.0);
-    assert!(near(column, 280.0, 1.5), "the left column {column} of {dock}");
-    // The harness's 16 px of margin are the canvas's at a real 1280-px window.
+    assert!(near(column, 480.0, 10.0), "the left column {column} of {dock}");
+    // The harness's 16 px of margin are the canvas's at a real 1920-px window.
     let share = (pane.width() + 16.0) / (f.width() + 16.0);
-    assert!(near(share, 0.719, 0.012), "the canvas share {share}");
+    assert!(near(share, 0.708, 0.012), "the canvas share {share}");
     // G9: Pages above Properties, 50 : 50 within three percentage points.
     let props = h
         .get_all_by_role(egui::Role::Button)
@@ -446,7 +445,7 @@ fn a_jobs_entry_is_inset_from_the_panes_edge() {
         platform,
         Some(tmp.golden("g.ew")),
     );
-    h.set_size(Vec2::new(1280.0, 800.0));
+    h.set_size(Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "file.export_pdf", Value::Null);
@@ -465,7 +464,7 @@ fn a_jobs_entry_is_inset_from_the_panes_edge() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At the 1280 × 800 floor the Messages dock grows with its list, so at least five rows of Golden
+/// At 1920 × 1080 the Messages dock grows with its list, so at least five rows of Golden
 /// A's findings are on show, and it stays within 40 % of the window's height.
 #[test]
 fn messages_shows_five_rows_at_the_floor() {

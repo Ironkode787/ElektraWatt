@@ -56,7 +56,7 @@ fn the_title_block_fields_of_an_imported_page_are_edited_in_one_form() {
         .borrow_mut()
         .extend([Pick::Path(qet), Pick::Path(tmp.0.join("lamp.ew"))]);
     let mut h = harness(&tmp, platform, None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
     support::menu_node(&h, "Import…").click();
@@ -202,7 +202,7 @@ fn a_new_panel_page_of_an_imported_project_has_its_frame() {
         .borrow_mut()
         .extend([Pick::Path(qet), Pick::Path(tmp.0.join("lamp.ew"))]);
     let mut h = harness(&tmp, platform, None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
     support::menu_node(&h, "Import…").click();

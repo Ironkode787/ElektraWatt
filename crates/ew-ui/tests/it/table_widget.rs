@@ -86,6 +86,9 @@ fn steps(shell: &ShellModel) -> usize {
 fn the_key_column_stays_while_the_table_scrolls_right() {
     let tmp = Tmp::new();
     let mut h = table(&tmp, "strips", "x1031");
+    // A window narrow enough that the table is wider than its pane (at 1920 the left column grows until it fits).
+    h.set_size(egui::Vec2::new(1000.0, 700.0));
+    settle(&mut h);
     // The columns start at `size.table_column` (110 px), so Strip and Terminal are on show in the pane.
     for name in [
         "Strip -X1031, row 1 of 20, read-only",

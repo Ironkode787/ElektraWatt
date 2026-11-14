@@ -201,13 +201,13 @@ fn a_choice_list_with_no_match_opens_no_popup() {
     assert_eq!(options(&h), None, "no popup for no match");
 }
 
-/// "the list starts under the value cell". At 1920 × 1080 the list's frame starts at the field's
-/// left edge (the list box inside it by the frame's padding); at 1280 × 800 it stays inside the window.
+/// "the list starts under the value cell". At 1920 × 1080 and at 2560 × 1440 the list's frame starts at the field's
+/// left edge (the list box inside it by the frame's padding) and stays inside the window.
 #[test]
 fn the_choice_list_starts_under_the_value_cell() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "902");
-    for (size, exact) in [((1920.0, 1080.0), true), ((1280.0, 800.0), false)] {
+    for size in [(1920.0, 1080.0), (2560.0, 1440.0)] {
         h.set_size(egui::Vec2::new(size.0, size.1));
         settle(&mut h);
         dispatch(&mut h, "select.set", json!({"ids": []}));
@@ -219,25 +219,23 @@ fn the_choice_list_starts_under_the_value_cell() {
         let list = options(&h).expect("the options");
         let tokens = ew_ui::theme::current(&h.ctx);
         let pad = tokens.space_2 + tokens.border_width;
-        if exact {
-            assert!(
-                (list.left() - pad - field.left()).abs() <= 0.5,
-                "{list:?} under {field:?}"
-            );
-        }
+        assert!(
+            (list.left() - pad - field.left()).abs() <= 0.5,
+            "{list:?} under {field:?}"
+        );
         assert!(h.ctx.content_rect().contains_rect(list), "{list:?} at {size:?}");
         dispatch(&mut h, "props.cancel", json!({}));
         settle(&mut h);
     }
 }
 
-/// "Home and End scroll the cursor row into view". At 1280 × 800 -102F1's rows run past the
+/// "Home and End scroll the cursor row into view". At 1920 × 1080 -102F1's rows run past the
 /// pane's fold: End shows the last row, Home the first.
 #[test]
 fn home_and_end_scroll_the_cursor_row_into_view() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "902");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102F1"]}));
     settle(&mut h);

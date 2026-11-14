@@ -351,7 +351,7 @@ impl NavigatorPane {
             if shell.messages_detail().is_some() {
                 let pane = ui.available_height();
                 // The detail block is as tall as its content (measured on the last frame; half the pane
-                // until then), so its Rule page link and its wrapped message are not cut at the 1280 x 800 floor (doc
+                // until then), so its Rule page link and its wrapped message are not cut in a 1280 x 800 window (doc
                 // 16a §2), but never so tall that fewer than two rows fit; beyond that it scrolls. No pixel cap: the
                 // split scales with the pane.
                 let id = ui.scope_id().with("messages-detail");

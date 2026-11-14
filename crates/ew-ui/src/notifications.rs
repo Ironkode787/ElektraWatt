@@ -516,7 +516,7 @@ mod tests {
         );
     }
 
-    /// A toast keeps `size.toast` at the floor, is wider at 1920 and stays inside a narrow window.
+    /// A toast keeps `size.toast` in a small window, is wider at 1920 and stays inside a narrow window.
     #[test]
     fn the_toast_grows_with_the_window() {
         let t = theme::tokens(Theme::Light, Density::Comfortable);
@@ -553,7 +553,7 @@ mod tests {
         assert!(rows.1 > 1 && rows.1 <= LINE_ROWS, "{} rows", rows.1);
     }
 
-    /// At the floor, a disabled click's title lays out whole on two rows in the text column, and a longer one
+    /// In a 1280-point window, a disabled click's title lays out whole on two rows in the text column, and a longer one
     /// is cut with an ellipsis after two rows. The toast as `toast` draws it is asserted in the window's tests
     /// (`tests/it/dialogs_toasts_palette.rs`).
     #[test]
@@ -591,7 +591,7 @@ mod tests {
         assert_eq!(shown, (2, false, TITLE_ROWS, true, title.to_owned()));
     }
 
-    /// The UI's faces carry the non-breaking hyphen, and a toast at the floor never breaks
+    /// The UI's faces carry the non-breaking hyphen, and a toast in a 1280-point window never breaks
     /// a tag at its hyphen: at every width of a narrowing column each row ends at a space or with the text, so no "-"
     /// is left alone on a row.
     #[test]

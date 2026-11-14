@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! In the window: the print pre-dialog's texts at the floor and at 1920,
+//! In the window: the print pre-dialog's texts at 1920 and at 2560,
 //! each inside the dialog; the progress line while the set builds and Cancel ending it; the empty state with both
 //! print buttons disabled; Print… on a platform without printing says so in one toast (by default). Every
 //! settle runs the accessible-name walker.
@@ -39,7 +39,7 @@ fn dialog(h: &Harness<'_, App>) -> egui::Rect {
 
 #[test]
 fn the_print_dialog_shows_every_text_inside_it_at_both_sizes() {
-    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+    for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)] {
         let tmp = Tmp::new();
         let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
         h.set_size(size);
@@ -93,7 +93,7 @@ fn the_print_dialog_shows_every_text_inside_it_at_both_sizes() {
 fn print_on_a_platform_without_printing_says_so_in_one_toast() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "file.print", json!({"range": "current"}));
     run_until_built(&mut h);
@@ -119,7 +119,7 @@ fn the_progress_line_stands_in_the_previews_place_and_cancel_ends_the_build() {
     gate.hold("page");
     shell.set_job_gate_for_tests(Some(gate.clone()));
     let mut h = harness_with(shell, Scripted::default(), Some(tmp.golden("g.ew")));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(
         &mut h,
@@ -144,7 +144,7 @@ fn the_progress_line_stands_in_the_previews_place_and_cancel_ends_the_build() {
 fn no_page_chosen_shows_the_empty_state_and_disables_both_print_buttons() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "file.print", json!({"range": "sections"}));
     settle(&mut h);
@@ -180,7 +180,7 @@ fn shapes(h: &Harness<'_, App>) -> Vec<(egui::Shape, egui::Rect)> {
 fn a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(
         &mut h,
@@ -233,7 +233,7 @@ fn a_refused_pages_text_shows_once_under_the_field_in_the_error_state() {
 fn the_first_focus_is_print_and_shows_its_focus_ring() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "file.print", json!({"range": "current"}));
     run_until_built(&mut h);
@@ -269,7 +269,7 @@ fn the_first_focus_is_print_and_shows_its_focus_ring() {
 fn the_preview_draws_the_papers_whole_edge() {
     let tmp = Tmp::new();
     let mut h = harness(&tmp, Scripted::default(), Some(tmp.golden("g.ew")));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(
         &mut h,
@@ -301,8 +301,8 @@ fn the_preview_draws_the_papers_whole_edge() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// PW-4 (offscreen, the visual driver): the pre-dialog built, empty and building at the 1280 × 800 floor and at
-/// 1920 × 1080, painted to `target/ew-ui-snapshots/print/` for the window check (not gated: no expected image). The
+/// PW-4 (offscreen, the visual driver): the pre-dialog built, empty and building at 1920 × 1080 and at
+/// 2560 × 1440, painted to `target/ew-ui-snapshots/print/` for the window check (not gated: no expected image). The
 /// building frame holds the job at a test gate, which a script cannot (a visual run waits for the build).
 #[test]
 fn the_visual_driver_paints_the_three_states_at_both_sizes() {
@@ -311,8 +311,8 @@ fn the_visual_driver_paints_the_three_states_at_both_sizes() {
         "/../../target/ew-ui-snapshots/print"
     ));
     for (size, geometry) in [
-        ("floor", Geometry::DEFAULT),
-        ("1920", Geometry::parse(Some("1920x1080"), Some("1")).unwrap()),
+        ("1920", Geometry::DEFAULT),
+        ("2560", Geometry::parse(Some("2560x1440"), Some("1")).unwrap()),
     ] {
         let tmp = Tmp::new();
         let golden = tmp.golden("g.ew");

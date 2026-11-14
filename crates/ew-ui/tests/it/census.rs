@@ -74,7 +74,7 @@ fn dispatch(h: &mut Harness<'_, App>, action: &str, params: Value) {
 fn on_golden(tmp: &Tmp, name: &str) -> Harness<'static, App> {
     let dir = tmp.golden(name);
     let mut h = harness(tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     h.run_ok();
     wait_for_page(&mut h);
     dispatch(&mut h, "page.goto", json!({ "folio": "101" }));
@@ -413,7 +413,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         DialogKind::Recovery | DialogKind::ConfirmJournalDiscard => {
             let dir = crashed(tmp);
             let mut h = harness(tmp, Scripted::default(), Some(dir));
-            h.set_size(egui::Vec2::new(1280.0, 800.0));
+            h.set_size(egui::Vec2::new(1920.0, 1080.0));
             h.run_ok();
             if kind == DialogKind::ConfirmJournalDiscard {
                 dispatch(&mut h, "file.discard_journal", json!({}));
@@ -428,7 +428,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
                 Outcome::Done
             );
             let mut h = harness_with(shell, Scripted::default(), None);
-            h.set_size(egui::Vec2::new(1280.0, 800.0));
+            h.set_size(egui::Vec2::new(1920.0, 1080.0));
             h.run_ok();
             dispatch(&mut h, "tools.company_standard", json!({}));
             support::wait_for_preview(&mut h);
@@ -468,7 +468,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             }
             shell.shutdown();
             let mut h = harness(tmp, Scripted::default(), Some(dir));
-            h.set_size(egui::Vec2::new(1280.0, 800.0));
+            h.set_size(egui::Vec2::new(1920.0, 1080.0));
             h.run_ok();
             dispatch(&mut h, "project.purge_assets", json!({}));
             h
@@ -477,7 +477,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             // The collision: W20's colour edited here, and saved otherwise by a colleague on disk.
             let dir = tmp.golden("live.ew");
             let mut h = harness(tmp, Scripted::default(), Some(dir.clone()));
-            h.set_size(egui::Vec2::new(1280.0, 800.0));
+            h.set_size(egui::Vec2::new(1920.0, 1080.0));
             h.run_ok();
             wait_for_page(&mut h);
             let w20 = crate::collision_dialog_focus::w20(&dir);
@@ -506,7 +506,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
                 Outcome::Done
             );
             let mut h = harness_with(shell, Scripted::default(), None);
-            h.set_size(egui::Vec2::new(1280.0, 800.0));
+            h.set_size(egui::Vec2::new(1920.0, 1080.0));
             h.run_ok();
             dispatch(&mut h, "file.save", json!({}));
             h
@@ -531,7 +531,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
             std::fs::create_dir_all(tmp.0.join("repo").join(".git")).unwrap();
             let dir = tmp.golden("repo/project.ew");
             let mut h = harness(tmp, Scripted::default(), Some(dir));
-            h.set_size(egui::Vec2::new(1280.0, 800.0));
+            h.set_size(egui::Vec2::new(1920.0, 1080.0));
             h.run_ok();
             dispatch(&mut h, "git.setup", json!({}));
             h
@@ -901,7 +901,7 @@ fn the_macro_and_text_edit_tools_cancel_with_escape_and_change_nothing() {
         })
         .expect("the macro's row");
     let mut h = harness_with(shell, Scripted::default(), None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     wait_for_page(&mut h);
     h.run_ok();
     let rows: [(&str, Vec<(&str, Value)>); 2] = [
@@ -952,7 +952,7 @@ fn census_the_start_page_the_first_run_and_the_wizard() {
         Scripted::default(),
         None,
     );
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     census.visit(&mut h, "the start page");
     h.state_mut().shell_mut().shutdown();
     drop(h);
@@ -961,7 +961,7 @@ fn census_the_start_page_the_first_run_and_the_wizard() {
     let mut shell = ShellModel::new(Mode::Gui, first.config_with_resources());
     shell.start_first_run_if_needed();
     let mut h = harness_with(shell, Scripted::default(), None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     for step in FirstRunStep::ALL {
         h.run_ok();
         let on = h.state().shell().first_run().map(|r| r.step);
@@ -984,7 +984,7 @@ fn census_the_start_page_the_first_run_and_the_wizard() {
         Outcome::Done
     );
     let mut h = harness_with(shell, Scripted::default(), None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     h.run_ok();
     dispatch(&mut h, "tools.company_standard", json!({}));
     support::wait_for_preview(&mut h);

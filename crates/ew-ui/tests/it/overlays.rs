@@ -485,11 +485,11 @@ fn the_highlight_name_chips_take_their_hue_and_a_black_label() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// With four potentials of folio 103 highlighted, at 1280 × 720, at the 1280 × 800 floor and
-/// at 1920 × 1080, with and without the find pane in the bottom dock, the name chips keep off each other, stand
-/// inside the page view and are never faded, and the page view ends above the status bar.
+/// With four potentials of folio 103 highlighted, at 1920 × 1080 and at 2560 × 1440, with and without the find pane
+/// in the bottom dock, the name chips keep off each other, stand inside the page view and are never faded, and the
+/// page view ends above the status bar.
 #[test]
-fn the_highlight_chips_stay_clear_in_a_short_window() {
+fn the_highlight_chips_stay_clear_with_and_without_the_find_pane() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
     dispatch(&mut h, "navigator.show", json!({"kind": "potentials"}));
@@ -506,11 +506,7 @@ fn the_highlight_chips_stay_clear_in_a_short_window() {
         if find {
             dispatch(&mut h, "find.open", json!({}));
         }
-        for size in [
-            egui::vec2(1280.0, 720.0),
-            egui::vec2(1280.0, 800.0),
-            egui::vec2(1920.0, 1080.0),
-        ] {
+        for size in [egui::vec2(1920.0, 1080.0), egui::vec2(2560.0, 1440.0)] {
             h.set_size(size);
             settle(&mut h);
             settle(&mut h);

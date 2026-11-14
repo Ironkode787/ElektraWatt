@@ -380,9 +380,9 @@ fn a_boolean_row_is_a_checkbox() {
 fn a_choice_editor_option_is_picked_with_the_mouse() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
-    // At 1280 by 800 Properties is the lower half of the left column and the colour row sits in its
+    // At 1920 by 1080 Properties is the lower half of the left column and the colour row sits in its
     // lower half, so the option list opens over the row, inside the window and above the status bar.
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({ "ids": [W29] }));
     settle(&mut h);
@@ -472,7 +472,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Pos2)> {
 fn j33_the_parts_row_chooses_a_part_copy_with_the_mouse() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:S51"]}));
     dispatch(&mut h, "props.set", json!({"row": "device/parts", "value": ""}));
@@ -507,7 +507,7 @@ fn j33_the_parts_row_chooses_a_part_copy_with_the_mouse() {
     assert_eq!(row(&h, "device/parts").0, "533356 × 1");
 }
 
-/// J32 (doc 16a §6.8, the mockup's `.prow` and `.psec`): on folio 101's page sheet at 1280 by 800 every property
+/// J32 (doc 16a §6.8, the mockup's `.prow` and `.psec`): on folio 101's page sheet at 1920 by 1080 every property
 /// label is painted at the left edge of its 96-px label column (not centred), the group headings read as written
 /// ("Main", not "MAIN"), the inherited Description shows its one-word chip ("inherited", no glyph) in its row, and
 /// no painted text carries the old glyph chips ("^ inherited", "= authored", "f derived").
@@ -515,7 +515,7 @@ fn j33_the_parts_row_chooses_a_part_copy_with_the_mouse() {
 fn j32_property_rows_are_left_aligned_with_one_word_chips() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     let tokens = ew_ui::theme::current(&h.ctx);
     let texts = painted_texts(&h);
@@ -590,7 +590,7 @@ fn j32_property_rows_are_left_aligned_with_one_word_chips() {
         }
         need
     };
-    // At the floor the column then gives way to the widest value it can make whole (or its first word), never
+    // The column then gives way to the widest value it can make whole (or its first word), never
     // under half of `size.property_label`.
     let expected = need.min(row_width * 0.5).max(tokens.size_property_label);
     assert!(
@@ -627,7 +627,7 @@ fn a_finding_chip_opens_messages_filtered_to_the_record() {
     use ew_ui::ew_viewmodel::navigators::NavKind;
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "messages.next", json!({}));
     settle(&mut h);
@@ -712,7 +712,7 @@ fn severity_word(severity: &str) -> &'static str {
 fn header_severity_chips_and_the_actions_menu_on_the_dots_button() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     // F8: the first finding, its object selected, so the grid shows its sheet with the finding in the header.
     dispatch(&mut h, "messages.next", json!({}));
@@ -899,7 +899,7 @@ fn the_properties_filter_for_more_than_twelve_rows() {
     use ew_ui::ew_viewmodel::properties::{FILTER_ROWS, visible_rows};
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     let open_rows = |h: &Harness<'_, App>| {
         let shell = h.state().shell();
@@ -1010,7 +1010,7 @@ fn the_properties_filter_for_more_than_twelve_rows() {
 fn m33_a_refused_letter_edit_offers_use_tag_as_a_button() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "102");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
     dispatch(&mut h, "props.show_advanced", json!({"on": true}));
@@ -1051,7 +1051,7 @@ fn m33_a_refused_letter_edit_offers_use_tag_as_a_button() {
 fn c37_typing_into_an_opened_field_replaces_its_text() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "102");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102G1"]}));
     settle(&mut h);
@@ -1095,14 +1095,14 @@ fn c37_typing_into_an_opened_field_replaces_its_text() {
     assert_eq!(edit.buffer, "-102G8");
 }
 
-/// At the floor (1280 by 800) the page's warning chip keeps its count and word ("2 Warnings",
-/// not the icon alone) while the title elides, and the chip stands inside the pane's gutter (its right edge with the
+/// At 1920 by 1080 the page's warning chip keeps its count and word ("2 Warnings",
+/// not the icon alone) beside the title, and the chip stands inside the pane's gutter (its right edge with the
 /// filter field's), never clipped by the pane's edge. Folio 102, whose findings are warnings only (one chip).
 #[test]
 fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "102");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     settle(&mut h);
     // The page's chip counts the warnings of what it draws, as Messages filtered to the page lists them (FT-1587).
@@ -1140,8 +1140,8 @@ fn c39_the_header_chip_keeps_its_word_and_stays_inside_the_pane() {
 
 /// In Dutch the project sheet's label column takes what its labels need up to half the row and gives
 /// way to no list's item count ("4 elementen") and to no prose; a label longer than its column wraps at its words onto
-/// a second line and its row grows. At the 1280 × 800 floor no label is cut: "Persoonsgegevens" whole on one line,
-/// "Personen en organisaties" on two; at 1920 × 1080 both stand on one line.
+/// a second line and its row grows. In a narrow window (1280 × 800, the left column at `size.panel.left`) no label is
+/// cut: "Persoonsgegevens" whole on one line, "Personen en organisaties" on two; at 1920 × 1080 both stand on one line.
 #[test]
 fn the_label_column_gives_way_to_no_count_and_no_prose() {
     for (size, wraps) in [
@@ -1197,9 +1197,9 @@ fn the_label_column_gives_way_to_no_count_and_no_prose() {
     }
 }
 
-/// Doc 16a §6.8: at the 1280 × 800 floor folio 101's prose values (its Description beside its
-/// "inherited" chip, its Title) wrap at their words onto further lines, their rows growing, and none is cut; at
-/// 1920 × 1080 they stand on one line.
+/// Doc 16a §6.8: in a narrow window (1280 × 800, the left column at `size.panel.left`) folio 101's prose values (its
+/// Description beside its "inherited" chip, its Title) wrap at their words onto further lines, their rows growing,
+/// and none is cut; at 1920 × 1080 they stand on one line.
 #[test]
 fn a_prose_value_wraps_and_is_never_cut() {
     for (size, wraps) in [
@@ -1272,11 +1272,12 @@ fn texts_in_row(h: &Harness<'_, App>, label: &str) -> Vec<(String, bool)> {
         .collect()
 }
 
-/// At the 1280 × 800 floor in Dutch an identifier stays whole beside its chip, on the cursor
-/// row too: a placed terminal's derived Tag ("-X1031:71" beside "afgeleid") and two devices' mixed Tag
-/// ("‹verschilt› (2)" beside "verschilt"); the label column yields to them, its labels whole or cut, never the value.
+/// In a narrow window (1280 × 800, the left column at `size.panel.left`) in Dutch an identifier stays whole beside
+/// its chip, on the cursor row too: a placed terminal's derived Tag ("-X1031:71" beside "afgeleid") and two devices'
+/// mixed Tag ("‹verschilt› (2)" beside "verschilt"); the label column yields to them, its labels whole or cut, never
+/// the value.
 #[test]
-fn an_identifier_stays_whole_beside_its_chip_at_the_floor() {
+fn an_identifier_stays_whole_beside_its_chip_in_a_narrow_column() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "103");
     h.set_size(egui::Vec2::new(1280.0, 800.0));
@@ -1343,13 +1344,13 @@ fn an_identifier_stays_whole_beside_its_chip_at_the_floor() {
     );
 }
 
-/// At the 1280 × 800 floor in Dutch the position row of -102F1's representation is whole: its grid
+/// At 1920 × 1080 in Dutch the position row of -102F1's representation is whole: its grid
 /// cell and its millimetres with one decimal ("102-C7 · x 116.4 y 60.9 mm").
 #[test]
-fn the_position_row_is_whole_at_the_floor() {
+fn the_position_row_is_whole() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "102");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     settle(&mut h);
     let rep = h
@@ -1375,13 +1376,13 @@ fn the_position_row_is_whole_at_the_floor() {
     );
 }
 
-/// At the 1280 × 800 floor in Dutch a one-word prose value ("Hoofdschakelaarkast", no digit) takes
+/// At 1920 × 1080 in Dutch a one-word prose value ("Hoofdschakelaarkast", no digit) takes
 /// nothing from the labels: the label column keeps at least `size.property_label`.
 #[test]
 fn a_one_word_prose_value_takes_nothing_from_the_labels() {
     let tmp = Tmp::new();
     let mut h = support::on_golden(&tmp, "101");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "view.language", json!({ "value": "nl" }));
     support::set_function_text(&mut h, "Hoofdschakelaarkast");
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-101F1"]}));

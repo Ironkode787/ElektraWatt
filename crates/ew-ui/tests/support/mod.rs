@@ -92,11 +92,12 @@ pub fn harness<'a>(tmp: &Tmp, platform: Scripted, initial: Option<PathBuf>) -> H
     harness_with(ShellModel::new(Mode::Gui, tmp.config()), platform, initial)
 }
 
-/// A harness around the frame of a shell the test made itself (resources, a first-run flow already started).
+/// A harness around the frame of a shell the test made itself (resources, a first-run flow already started), in a
+/// window of 1920 × 1080 points, the main resolution (doc 16a §2).
 pub fn harness_with<'a>(shell: ShellModel, platform: Scripted, initial: Option<PathBuf>) -> Harness<'a, App> {
     let app = App::new(shell, Box::new(platform), initial);
     Harness::builder()
-        .with_size(Vec2::new(1000.0, 700.0))
+        .with_size(Vec2::new(1920.0, 1080.0))
         .with_context_setup(setup)
         .build_ui_state(|ui, app: &mut App| app.ui(ui), app)
 }

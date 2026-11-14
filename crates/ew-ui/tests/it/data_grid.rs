@@ -1043,9 +1043,9 @@ fn export_and_import_table_follow_their_predicates() {
 
 /// A column the grid scrolls into view (the cursor's cell, the cell editor)
 /// lands whole to the right of the frozen key column, and a column wider than the room lands with its left edge
-/// there: at the 1280 × 800 floor the Function text column's left edge (and the editor's first character) ended under
+/// there: in a narrow window the Function text column's left edge (and the editor's first character) ended under
 /// the frozen Strip column. Every column in turn, from the far right back to the left and from the left out to the
-/// right, at the floor and wide.
+/// right, at 1920 and at 2560.
 #[test]
 fn a_column_scrolled_into_view_lands_right_of_the_frozen_column() {
     let tmp = Tmp::new();
@@ -1061,7 +1061,7 @@ fn a_column_scrolled_into_view_lands_right_of_the_frozen_column() {
             .collect()
     };
     assert!(labels.len() > 4, "{labels:?}");
-    for size in [egui::vec2(1280.0, 800.0), egui::vec2(1920.0, 1080.0)] {
+    for size in [egui::vec2(1920.0, 1080.0), egui::vec2(2560.0, 1440.0)] {
         h.set_size(size);
         settle(&mut h);
         let order: Vec<&String> = labels.iter().rev().chain(labels.iter()).collect();

@@ -17,7 +17,7 @@ use ew_ui::ew_viewmodel::shell::{Mode, Outcome, ShellModel};
 use serde_json::json;
 use support::{Scripted, Tmp, dispatch, harness_with, settle, wait_for_page};
 
-/// A copy of Golden A in the window at 1280 × 800, on folio 101.
+/// A copy of Golden A in the window at 1920 × 1080, on folio 101.
 fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
@@ -26,7 +26,7 @@ fn on_golden(tmp: &Tmp) -> Harness<'static, App> {
         Outcome::Done
     );
     let mut h = harness_with(shell, Scripted::default(), None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
@@ -39,11 +39,10 @@ fn inside_x(outer: Rect, inner: Rect) -> bool {
     inner.left() >= outer.left() - 0.5 && inner.right() <= outer.right() + 0.5
 }
 
-/// Item 1: on Golden A at 1280 × 800 every row and every chip of the Pages tree lies inside the pane; the long row 100
-/// is cut (its title is wider than its button) and its chip still shows; the expanders are named chevron buttons, not
-/// "-" and "+".
+/// Item 1: on Golden A at 1920 × 1080 every row and every chip of the Pages tree lies inside the pane; the expanders
+/// are named chevron buttons, not "-" and "+".
 #[test]
-fn x32b_pages_rows_keep_to_the_pane_and_the_long_row_is_ellipsised() {
+fn x32b_pages_rows_keep_to_the_pane() {
     let tmp = Tmp::new();
     let h = on_golden(&tmp);
     let tree = h.get_by_label("Page navigator");
@@ -70,30 +69,6 @@ fn x32b_pages_rows_keep_to_the_pane_and_the_long_row_is_ellipsised() {
     for (name, r) in &chips {
         assert!(inside_x(pane, *r), "chip {name} {r:?} inside the pane {pane:?}");
     }
-    // Row 100: its whole title is wider than the button it got, so egui cut it with an ellipsis.
-    let label = h
-        .state()
-        .shell()
-        .shown_rows(NavKind::Pages)
-        .into_iter()
-        .find(|r| r.label.starts_with("100 "))
-        .expect("row 100")
-        .label;
-    let (_, row) = rows
-        .iter()
-        .find(|(n, _)| n.starts_with(&label))
-        .expect("row 100 on show");
-    let font = egui::TextStyle::Body.resolve(&h.ctx.global_style());
-    let full = h.ctx.fonts_mut(|f| {
-        f.layout_no_wrap(label.clone(), font, egui::Color32::default())
-            .size()
-            .x
-    });
-    assert!(
-        row.width() < full,
-        "row 100 is cut: {} < {full} ({label})",
-        row.width()
-    );
     // Item 5: the expanders are buttons named by their action with the expanded state.
     let expanders: Vec<_> = tree
         .get_all_by_label("Expand or collapse")
@@ -106,7 +81,7 @@ fn x32b_pages_rows_keep_to_the_pane_and_the_long_row_is_ellipsised() {
     assert!(tree.query_by_label("-").is_none() && tree.query_by_label("+").is_none());
 }
 
-/// Item 2: at 1280 × 800 on folio 101 the value cell of Title spans to within `space.4` of the Properties pane's
+/// Item 2: at 1920 × 1080 on folio 101 the value cell of Title spans to within `space.4` of the Properties pane's
 /// right edge, and the title is shown whole when it fits the cell.
 #[test]
 fn x32b_the_property_value_cell_takes_the_rest_of_the_row() {

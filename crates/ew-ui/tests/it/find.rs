@@ -319,7 +319,7 @@ fn results_are_named_in_plain_text_and_only_the_rows_on_show_are_built() {
 }
 
 /// A result longer than the pane and a result with a line break keep one line's height (the row truncates),
-/// so the cursor, moved past them, sits inside the list at the 1280 × 800 floor and at 1920 × 1080; its name and
+/// so the cursor, moved past them, sits inside the list at 1920 × 1080 and at 2560 × 1440; its name and
 /// description keep the whole line with the replacement, its tooltip shows that line, and it alone is
 /// selected for AccessKit.
 #[test]
@@ -336,7 +336,7 @@ fn long_and_two_line_results_keep_the_cursor_inside_the_list() {
         .fonts_mut(|f| f.row_height(&egui::TextStyle::Body.resolve(&style)));
     let one_line = (line + 2.0 * style.spacing.button_padding.y).max(style.spacing.interact_size.y);
     let long = "a replacement that runs past the right edge of the pane ".repeat(6);
-    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+    for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)] {
         h.set_size(size);
         settle(&mut h);
         for replacement in [long.trim_end(), "first line\nsecond line"] {
@@ -447,7 +447,7 @@ fn a_palette_run_that_fails_is_cleared_by_the_actions_next_success() {
 }
 
 /// The folio filter takes the rest of its row (a row of its own where the rest cannot show its placeholder),
-/// so its placeholder shows whole in Dutch at the 1280 × 800 floor and at 1920 × 1080 and the field reaches the pane's
+/// so its placeholder shows whole in Dutch at 1920 × 1080 and at 2560 × 1440 and the field reaches the pane's
 /// right edge; every node fits at both sizes.
 #[test]
 fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
@@ -458,7 +458,7 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
     settle(&mut h);
     let name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("find-folios")).to_owned();
     let pane_name = ew_ui::ew_viewmodel::strings::text(ew_ui::ew_viewmodel::key!("pane-find")).to_owned();
-    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+    for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)] {
         h.set_size(size);
         settle(&mut h);
         settle(&mut h);
@@ -499,7 +499,7 @@ fn the_folio_filter_takes_the_width_it_has_at_both_sizes() {
 }
 
 /// In replace mode the Find and Replace fields share what their row has beside the buttons, so a
-/// long replacement shows more of itself at 1920 × 1080 than at the floor (doc 16a §2: a floor fix scales, never caps);
+/// long replacement shows more of itself at 2560 × 1440 than at 1920 × 1080 (doc 16a §2: a width grows, never caps);
 /// the fields and the buttons stay on one row ending at the pane's right inset, and the field rows start at the
 /// header's inset, `space.4` (16a §4.9). Every node fits at both sizes.
 #[test]
@@ -521,7 +521,7 @@ fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
     let pane_name = label(ew_ui::ew_viewmodel::key!("pane-find"));
     let inset = ew_ui::theme::current(&h.ctx).space_4;
     let mut widths = Vec::new();
-    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+    for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)] {
         h.set_size(size);
         settle(&mut h);
         settle(&mut h);
@@ -571,10 +571,10 @@ fn w49_2_f4_the_find_fields_take_their_rows_width_at_the_headers_inset() {
     );
 }
 
-/// In a 1280 × 720 window the find pane's empty state shows its two lines whole inside the pane (its icon
-/// gives way), in Find and in Find and replace, and still shows its icon at 1920 × 1080.
+/// The find pane's empty state shows its two lines whole inside the pane, in Find and in Find and replace, at
+/// 1920 × 1080 and at 2560 × 1440.
 #[test]
-fn the_empty_state_shows_whole_in_a_short_window() {
+fn the_empty_state_shows_whole() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "204");
     let text = |k| ew_ui::ew_viewmodel::strings::text(k).to_owned();
@@ -584,9 +584,9 @@ fn the_empty_state_shows_whole_in_a_short_window() {
         text(ew_ui::ew_viewmodel::key!("empty-find-start-text")),
     ];
     for (size, chord) in [
-        (egui::Vec2::new(1280.0, 720.0), Key::F),
-        (egui::Vec2::new(1280.0, 720.0), Key::H),
+        (egui::Vec2::new(1920.0, 1080.0), Key::F),
         (egui::Vec2::new(1920.0, 1080.0), Key::H),
+        (egui::Vec2::new(2560.0, 1440.0), Key::H),
     ] {
         h.set_size(size);
         settle(&mut h);

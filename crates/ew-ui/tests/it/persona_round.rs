@@ -469,7 +469,8 @@ fn a_click_just_beyond_the_arrows_tip_ends_the_wire_on_it_too() {
 fn wire_to_the_arrow(beyond: i64) {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
-    place_relay(&mut d, (930, 620));
+    // Near the canvas's centre, so the three zoom steps below keep both in view.
+    place_relay(&mut d, (1200, 670));
     // An outgoing point named L1, placed by the pointer.
     d.input(&click(d.find("Interruption").unwrap()));
     d.settle();
@@ -477,9 +478,9 @@ fn wire_to_the_arrow(beyond: i64) {
     d.input(&key("ctrl+a"));
     d.input(&typed("L1"));
     d.input(&key("enter"));
-    d.input(&Input::Hover { at: (930, 520) });
+    d.input(&Input::Hover { at: (1200, 570) });
     d.settle();
-    d.input(&click((930, 520)));
+    d.input(&click((1200, 570)));
     d.settle();
     d.input(&key("escape"));
     d.settle();

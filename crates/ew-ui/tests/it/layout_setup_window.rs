@@ -16,7 +16,7 @@ use ew_ui::ew_viewmodel::shell::{Dialog, Mode, ShellModel};
 use serde_json::json;
 use support::{Tmp, dispatch, on_golden, settle};
 
-/// At 1440 × 900, where the Draw row shows the Layout group whole; at the 1280 × 800 floor (doc 16a) the group folds
+/// At 1440 × 900, where the Draw row shows the Layout group whole (in a smaller window the group folds
 /// into its menu since Cable joined Connect (FT-1685).
 #[test]
 fn the_duct_button_arms_draw_duct_with_its_options_card() {
@@ -98,7 +98,7 @@ fn a_panel_layout_page_from_new_page_to_an_enabled_rail() {
     let tmp = Tmp::new();
     let shell = ShellModel::new(Mode::Gui, tmp.config_with_resources());
     let mut h = support::harness_with(shell, support::Scripted::default(), None);
-    // At 1440 points, where the Draw row shows the Layout group whole (at the 1280 floor it folds, FT-1685).
+    // At 1440 points, where the Draw row shows the Layout group whole (in a smaller window it folds, FT-1685).
     h.set_size(egui::Vec2::new(1440.0, 900.0));
     settle(&mut h);
     dispatch(
@@ -469,7 +469,7 @@ fn the_surface_view_rows_have_their_own_heading() {
 fn an_editor_opened_out_of_view_scrolls_into_view() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "902");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "select.set", json!({"refs": ["tag:-102F1"]}));
     settle(&mut h);

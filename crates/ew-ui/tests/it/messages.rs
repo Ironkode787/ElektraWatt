@@ -264,7 +264,7 @@ fn the_pane_in_the_window_named_rows_keyboard_detail_and_pending() {
 fn waive_from_the_detail_takes_an_empty_reason_and_author() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, Scripted::default());
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "messages.show", json!({"on": true}));
     settle(&mut h);
@@ -301,13 +301,13 @@ fn waive_from_the_detail_takes_an_empty_reason_and_author() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At 1280×800 the bottom dock holds the Messages pane's header, at least three whole rows, and with a
+/// At 1920 × 1080 the bottom dock holds the Messages pane's header, at least three whole rows, and with a
 /// finding selected both its row (of at least two whole rows) and its detail block, above the status bar.
 #[test]
-fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
+fn w31_1_the_selected_row_and_its_detail_are_both_on_show() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, Scripted::default());
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     support::open_menu(&mut h, &["Check"]);
     settle(&mut h);
@@ -350,7 +350,7 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
         .get_by_label(&format!("{} {}", detail.rule, detail.title))
         .rect();
     assert!(
-        rule.top() >= list.bottom() - 0.5 && rule.bottom() <= 800.0,
+        rule.top() >= list.bottom() - 0.5 && rule.bottom() <= 1080.0,
         "the detail {rule:?} below the rows {list:?}"
     );
     let foot = status_top(&h);
@@ -377,13 +377,13 @@ fn w31_1_the_selected_row_and_its_detail_are_both_on_show_at_1280_by_800() {
 }
 
 /// `navigator.row` to a finding under a collapsed group expands the path and scrolls the cursor row into view;
-/// a finding out of view is scrolled to as well (Golden A's findings, the window 1280 by 800; the dock leaves the
+/// a finding out of view is scrolled to as well (Golden A's findings, the window 1920 by 1080; the dock leaves the
 /// page view half the window, so a 640-high window shows too few rows).
 #[test]
 fn navigator_row_into_a_collapsed_group_expands_it_and_scrolls_the_row_into_view() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, Scripted::default());
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     support::open_menu(&mut h, &["Check"]);
     settle(&mut h);
@@ -575,12 +575,12 @@ fn the_detail_of_a_long_conflict_scrolls_and_names_three_member_cps() {
 }
 
 /// With Golden A's first EW-LAY-001 finding selected, the detail block holds its message whole, wrapped
-/// to the pane's width, between the list and the status bar, and the list keeps at least two whole rows; at the 1280 × 800
-/// floor (doc 16a §2: truncation is judged at the floor) and at 1920 × 1080. The detail is as tall as its content, the list above it keeps at least two rows (was three), and only a
+/// to the pane's width, between the list and the status bar, and the list keeps at least two whole rows; at 1920 × 1080
+/// and at 2560 × 1440 (doc 16a §2). The detail is as tall as its content, the list above it keeps at least two rows (was three), and only a
 /// still taller detail scrolls; never an ellipsis, a clipped line or a fixed pixel cap.
 #[test]
 fn the_lay_001_detail_shows_its_message_whole_at_the_floor_and_at_1920() {
-    for (w, hgt) in [(1280.0, 800.0), (1920.0, 1080.0)] {
+    for (w, hgt) in [(1920.0, 1080.0), (2560.0, 1440.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, Scripted::default());
         h.set_size(egui::Vec2::new(w, hgt));
@@ -719,7 +719,7 @@ fn ambiguous_junction_feed(h: &mut Harness<'_, App>) {
 
 /// EW-POT-011's message is cut at the panel's edge. The finding's list
 /// row keeps one line (a cut row has an ellipsis and its whole text in its tooltip). The detail block shows the rule's title and the message whole, wrapped to the pane's width
-/// and between the list and the status bar, at the floor and at 1920 × 1080.
+/// and between the list and the status bar, at 1920 × 1080 and at 2560 × 1440.
 #[test]
 fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920() {
     const TITLE: &str = "EW-POT-011 Junction feed ambiguous";
@@ -728,7 +728,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
     // Which junction, where, and its wires (FT-933).
     const MESSAGE: &str = "24VDC: it is unclear which wire feeds the junction at C11 on folio 101 (wires 101.15, \
                            101.16, 101.17); draw one wire into it from the supply side";
-    for (w, hgt) in [(1280.0, 800.0), (1920.0, 1080.0)] {
+    for (w, hgt) in [(1920.0, 1080.0), (2560.0, 1440.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, Scripted::default());
         h.set_size(egui::Vec2::new(w, hgt));
@@ -778,8 +778,8 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
                 "{w}×{hgt}: {text:?} {rect:?} inside the pane {list:?} above the status bar at {foot}"
             );
         }
-        // The list row keeps one line: whole at 1920; at the floor the message that names the junction, its place
-        // and its wires (FT-933) is cut there, its whole text in its tooltip and in the detail above.
+        // The list row keeps one line, whole at 1920 and at 2560: the message that names the junction, its place
+        // and its wires (FT-933).
         let cut = painted
             .iter()
             .filter(|(t, r, _)| t == &row.label && r.bottom() <= list.bottom() + 0.5)
@@ -787,7 +787,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
             .collect::<Vec<_>>();
         assert_eq!(
             cut,
-            [w < 1920.0],
+            [false],
             "{w}×{hgt}: the row {:?} is painted once",
             row.label
         );
@@ -893,11 +893,11 @@ fn a_finding_keeps_its_fix_badge_in_dutch() {
     );
 }
 
-/// Doc 16a §6.24: a group or rule row's count stands `space.2` after its name, at 1920 as at the floor, not
+/// Doc 16a §6.24: a group or rule row's count stands `space.2` after its name, at 1920 as at 2560, not
 /// at the row's far end.
 #[test]
 fn a_group_rows_count_follows_its_name() {
-    for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(1280.0, 800.0)] {
+    for size in [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)] {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, Scripted::default());
         h.set_size(size);

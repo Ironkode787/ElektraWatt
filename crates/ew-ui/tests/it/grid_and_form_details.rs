@@ -57,7 +57,7 @@ fn window(tmp: &Tmp) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
     let shell = ShellModel::new(Mode::Gui, tmp.config());
     let mut h: Harness<'static, App> = harness_with(shell, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     h

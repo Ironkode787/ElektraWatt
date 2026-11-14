@@ -4,7 +4,7 @@
 //! Properties refusals (kittest, no rendering), on a writable copy of Golden A: a Properties refusal shows
 //! under its row only, never again as a banner, and the next refusal names its own point (F1); a banner the window
 //! raised for a failure gives way to the next failure, a banner of the shell's own does not; a new row error scrolls
-//! into view at the 1280 × 800 floor (F2); Escape in an editor holding an error cancels the edit (i3).
+//! into view at 1920 × 1080 (F2); Escape in an editor holding an error cancels the edit (i3).
 
 use crate::support;
 
@@ -27,12 +27,12 @@ const EXTERNAL: &str =
 /// The refusal of a star on the target point "W464", as the pane shows it.
 const TARGET: &str = "Interruption point W464: a star source is a source point; set the direction to source, or clear the star";
 
-/// Golden A on 102 at the window's floor (1280 × 800) with Properties shown, an external interruption point and a
+/// Golden A on 102 at 1920 × 1080 with Properties shown, an external interruption point and a
 /// target point W464 placed.
 fn with_two_points(tmp: &Tmp) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
     let mut h = harness(tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -157,7 +157,7 @@ fn painted_texts(h: &Harness<'_, App>) -> Vec<(String, egui::Rect, egui::Rect)> 
     out
 }
 
-/// At the 1280 × 800 floor the refused Star source row's error line is drawn inside the pane's
+/// At 1920 × 1080 the refused Star source row's error line is drawn inside the pane's
 /// visible rectangle (its clip).
 #[test]
 fn at_the_floor_the_refused_rows_error_scrolls_into_view() {
@@ -221,7 +221,7 @@ fn a_toast_with_a_cut_line_shows_its_whole_text_in_the_inverse_tooltip() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
@@ -322,7 +322,7 @@ fn c52_p3_2_a_placed_toasts_undo_is_reached_with_a_tool_armed() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));

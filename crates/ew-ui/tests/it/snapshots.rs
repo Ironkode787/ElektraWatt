@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Chrome snapshots: the main window on Golden A folio 101 at 1280 × 800 in
-//! light and dark at both densities, and the component gallery in the four themes, rendered offscreen (`offscreen`)
+//! Chrome snapshots: the main window on Golden A folio 101 at 1920 × 1080, the main resolution (doc 16a §2), in
+//! light and dark at both densities, the main views at 2560 × 1440, its extension, and the component gallery in the
+//! four themes, rendered offscreen (`offscreen`)
 //! and written as PNG files under `target/ew-ui-snapshots/` (or `EW_SNAPSHOT_DIR`) for the reviewer, who compares
 //! them with the mockup side by side.
 //!
@@ -127,7 +128,7 @@ fn main_window(theme: &str, density: &str) -> (Harness<'static, App>, offscreen:
     main_window_at(theme, density, 1.0)
 }
 
-/// [`main_window`] at `ppp` physical pixels per point (the system's display scale; the window stays 1280 × 800
+/// [`main_window`] at `ppp` physical pixels per point (the system's display scale; the window stays 1920 × 1080
 /// points).
 fn main_window_at(theme: &str, density: &str, ppp: f32) -> (Harness<'static, App>, offscreen::Recorder, Tmp) {
     let tmp = Tmp::new();
@@ -136,8 +137,11 @@ fn main_window_at(theme: &str, density: &str, ppp: f32) -> (Harness<'static, App
     (h, recorder, tmp)
 }
 
-/// The window size of the gated whole-window images, in points (doc 16a's floor at 100 %).
-const WINDOW: Vec2 = Vec2::new(1280.0, 800.0);
+/// The window size of the gated whole-window images, in points (doc 16a's main resolution at 100 %).
+const WINDOW: Vec2 = Vec2::new(1920.0, 1080.0);
+
+/// The extension of the main resolution (doc 16a §2), in points.
+const EXTENSION: Vec2 = Vec2::new(2560.0, 1440.0);
 
 /// The main window with `config` on the project `dir` (a copy the test may have prepared) in `theme` and `density` at
 /// `ppp` and `size` points, with its page on show; on folio 101 when `goto_101` (the recovery dialog refuses the
@@ -191,7 +195,7 @@ fn the_main_window_in_light_and_dark_at_both_densities() {
         for density in ["comfortable", "compact"] {
             let (h, recorder, tmp) = main_window(theme, density);
             let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-            assert_eq!((image.width, image.height), (1280, 800));
+            assert_eq!((image.width, image.height), (1920, 1080));
             failures.extend(record(&format!("main-{theme}-{density}"), &image, true));
             // The project closes before its directory is removed.
             drop(h);
@@ -201,41 +205,59 @@ fn the_main_window_in_light_and_dark_at_both_densities() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// The 300 % variant: the main window, light and Comfortable, at 1280 × 800 points on a 300 % display (3840 × 2400
-/// pixels). The setting `ui_scale` reaches 300 % too (`UI_SCALES`); this variant takes 300 % as the
-/// system's scale (egui's native pixels per point), which is how a 300 % display reaches the window. Gated and re-blessed with the main-window images; the test keeps its name from before.
+/// The 200 % variant: the main window, light and Comfortable, at 1920 × 1080 points on a 200 % display (a 3840 × 2160
+/// screen). The setting `ui_scale` reaches 300 % too (`UI_SCALES`); this variant takes 200 % as the
+/// system's scale (egui's native pixels per point), which is how a high-density display reaches the window. Gated and
+/// re-blessed with the main-window images.
 #[test]
-fn the_main_window_at_300_percent_for_review() {
+fn the_main_window_at_200_percent() {
     let dev = device();
-    let (h, recorder, tmp) = main_window_at("light", "comfortable", 3.0);
+    let (h, recorder, tmp) = main_window_at("light", "comfortable", 2.0);
     let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-    assert_eq!((image.width, image.height), (3840, 2400));
-    assert_eq!(record("main-light-comfortable-300", &image, true), None);
+    assert_eq!((image.width, image.height), (3840, 2160));
+    assert_eq!(record("main-light-comfortable-200", &image, true), None);
     drop(h);
     drop(tmp);
 }
 
-/// The main window at the typical size (doc 16a: 1920 × 1080), light and Comfortable at ppp 1, on the Golden
-/// A copy like the 1280 × 800 images: what the layout does with the room a common display gives it.
+/// The main views at the extension, 2560 × 1440 (doc 16a §2: the extra space goes to the work), light and
+/// Comfortable at ppp 1, each the whole window: the main window on schematic folio 101, the Devices navigator in
+/// table mode, a form dialog (New page…) and the print pre-dialog (no page chosen yet: its empty state, so no
+/// render thread's picture decides a pixel). Gated.
 #[test]
-fn the_main_window_at_the_typical_size() {
+fn the_main_views_at_2560() {
     let dev = device();
-    let tmp = Tmp::new();
-    let dir = tmp.golden("g.ew");
-    let (h, recorder) = window_on(
-        tmp.config(),
-        dir,
-        "light",
-        "comfortable",
-        1.0,
-        true,
-        Vec2::new(1920.0, 1080.0),
-    );
-    let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-    assert_eq!((image.width, image.height), (1920, 1080));
-    assert_eq!(record("main-light-comfortable-1920", &image, true), None);
-    drop(h);
-    drop(tmp);
+    let mut failures = Vec::new();
+    type Open = fn(&mut Harness<'static, App>);
+    let views: [(&str, Open); 4] = [
+        ("main-light-comfortable-2560", |_| {}),
+        ("devices-table-light-2560", |h| {
+            act(h, "navigator.show", json!({"kind": "devices"}));
+            act(h, "navigator.table", json!({"kind": "devices", "on": true}));
+        }),
+        ("form-dialog-light-2560", |h| act(h, "page.new", json!({}))),
+        ("print-light-2560", |h| {
+            act(h, "file.print", json!({"range": "pages", "pages": ""}));
+        }),
+    ];
+    for (name, open) in views {
+        let tmp = Tmp::new();
+        let dir = tmp.golden("g.ew");
+        let (mut h, recorder) = window_on(tmp.config(), dir, "light", "comfortable", 1.0, true, EXTENSION);
+        // The form's caret blinks on the wall clock: steady for a stable image.
+        h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
+        open(&mut h);
+        for _ in 0..4 {
+            h.run_ok();
+        }
+        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+        assert_eq!((image.width, image.height), (2560, 1440), "{name}");
+        failures.extend(record(name, &image, true));
+        h.state_mut().shell_mut().shutdown();
+        drop(h);
+        drop(tmp);
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 /// The component gallery in the four themes at ppp 1 (the only gated image of the high-contrast themes).
@@ -1894,15 +1916,12 @@ fn the_conflict_overlay_in_light() {
 }
 
 /// A locked placement's lock icon on folio 902 (-102F1 locked, the view two steps in), cropped round
-/// the icon, at the 1280 × 800 floor and at the typical 1920 × 1080, light Comfortable at ppp 1 (gated).
+/// the icon, at 1920 × 1080 and at 2560 × 1440, light Comfortable at ppp 1 (gated).
 #[test]
 fn the_lock_icon_at_both_sizes() {
     let dev = device();
     let mut failures = Vec::new();
-    for (name, size) in [
-        ("lock-icon-1280", WINDOW),
-        ("lock-icon-1920", Vec2::new(1920.0, 1080.0)),
-    ] {
+    for (name, size) in [("lock-icon-1920", WINDOW), ("lock-icon-2560", EXTENSION)] {
         let tmp = Tmp::new();
         let dir = tmp.golden("g.ew");
         let (mut h, recorder) = window_on(tmp.config(), dir, "light", "comfortable", 1.0, false, size);

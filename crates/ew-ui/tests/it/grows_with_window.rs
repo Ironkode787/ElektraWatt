@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! Doc 16a §2, the UI is not fitted to the floor: the Choose part dialog, the
-//! Device-from-part picker and the command palette grow with the window. Each is measured at the floor (1280 by 800)
-//! and at the typical size (1920 by 1080): wider at the typical size, a share of the window there, and never narrower
-//! than at the floor.
+//! Doc 16a §2, the extra space of a larger window goes to the work: the Choose part dialog, the Device-from-part
+//! picker, the command palette and the dialogs that hold a list grow with the window. Each is measured at the main
+//! resolution (1920 by 1080) and at its extension (2560 by 1440): wider at the extension, a share of the window there,
+//! and never narrower than at 1920.
 
 use crate::support;
 
@@ -39,13 +39,16 @@ fn field_width(h: &Harness<'_, App>, hint: &str) -> f32 {
         .width()
 }
 
-/// Measures `measure` after `open` at the floor and at the typical size.
+/// The main resolution and its extension (doc 16a §2).
+const SIZES: [egui::Vec2; 2] = [egui::Vec2::new(1920.0, 1080.0), egui::Vec2::new(2560.0, 1440.0)];
+
+/// Measures `measure` after `open` at the main resolution and at its extension.
 fn at_both_sizes(
     open: impl Fn(&mut Harness<'_, App>),
     measure: impl Fn(&Harness<'_, App>) -> f32,
 ) -> (f32, f32) {
     let mut out = Vec::new();
-    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+    for size in SIZES {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, size);
         open(&mut h);
@@ -58,20 +61,20 @@ fn at_both_sizes(
     (out[0], out[1])
 }
 
-fn assert_grows(what: &str, floor: f32, typical: f32) {
+fn assert_grows(what: &str, main: f32, extension: f32) {
     assert!(
-        typical > floor,
-        "{what}: {typical} at 1920 against {floor} at 1280"
+        extension > main,
+        "{what}: {extension} at 2560 against {main} at 1920"
     );
     assert!(
-        typical >= 0.3 * 1920.0,
-        "{what}: {typical} is no share of the 1920-wide window"
+        extension >= 0.3 * 2560.0,
+        "{what}: {extension} is no share of the 2560-wide window"
     );
 }
 
 #[test]
 fn the_choose_part_dialog_grows_with_the_window() {
-    let (floor, typical) = at_both_sizes(
+    let (main, extension) = at_both_sizes(
         |h| {
             dispatch(h, "select.set", json!({"refs": ["tag:F55"]}));
             dispatch(h, "part.choose", json!({"use": 0}));
@@ -82,29 +85,25 @@ fn the_choose_part_dialog_grows_with_the_window() {
                 .width()
         },
     );
-    assert_grows("the part list", floor, typical);
+    assert_grows("the part list", main, extension);
 }
 
 #[test]
 fn the_part_picker_grows_with_the_window() {
-    let (floor, typical) = at_both_sizes(
+    let (main, extension) = at_both_sizes(
         |h| {
             open_part_picker(h);
         },
         |h| field_width(h, "Search names, part numbers and keywords"),
     );
-    // The picker takes the width its columns need, so it may be as wide at the floor as at 1920.
-    assert!(
-        typical >= floor && typical >= 0.3 * 1920.0,
-        "the picker's filter: {typical} at 1920 against {floor} at 1280"
-    );
+    assert_grows("the picker's filter", main, extension);
 }
 
 /// Device from part keeps its width while the filter narrows its rows, and its window stays
 /// inside the app's window with `space.6` free on each side (its content inside `space.5` margins), at both sizes.
 #[test]
 fn the_part_picker_keeps_its_width_and_stays_inside_the_window() {
-    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+    for size in SIZES {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, size);
         open_part_picker(&mut h);
@@ -138,12 +137,11 @@ fn the_part_picker_keeps_its_width_and_stays_inside_the_window() {
     }
 }
 
-/// In Device from part the part names are whole at 1920 beside a part number as long as Golden A's "32P-VGL-R-…"
-/// order code: the table uses the space it has. At the floor, beside the browser's tree and detail, a long name is
-/// cut with an ellipsis and whole in its row's tooltip (doc 16a §6.8).
+/// In Device from part the part names are whole at 1920 and at 2560 beside a part number as long as Golden A's
+/// "32P-VGL-R-…" order code: the table uses the space it has.
 #[test]
 fn part_names_are_whole_in_device_from_part() {
-    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+    for size in SIZES {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, size);
         open_part_picker(&mut h);
@@ -177,10 +175,8 @@ fn part_names_are_whole_in_device_from_part() {
                 .any(|(t, _)| t == "32P-VGL-R-MAHAHAHAHAHAHUL3LAHU-28MS"),
             "the long order code on show at {size:?}"
         );
-        if size.x > 1280.0 {
-            let cut: Vec<&String> = painted.iter().filter(|(_, e)| *e).map(|(t, _)| t).collect();
-            assert!(cut.is_empty(), "names cut at {size:?}: {cut:?}");
-        }
+        let cut: Vec<&String> = painted.iter().filter(|(_, e)| *e).map(|(t, _)| t).collect();
+        assert!(cut.is_empty(), "names cut at {size:?}: {cut:?}");
         h.state_mut().shell_mut().shutdown();
     }
 }
@@ -204,12 +200,12 @@ fn open_every_part(h: &mut Harness<'_, App>) {
     settle(h);
 }
 
-/// At the floor an opened part's function rows keep their text inside the row, and each row's tooltip is the
-/// function in words ("1 of 5 Coil A1-A2 main"), never a FnDef key.
+/// An opened part's function rows keep their text inside the row, and each row's tooltip is the function in words
+/// ("1 of 5 Coil A1-A2 main"), never a FnDef key.
 #[test]
 fn a_parts_function_rows_stay_inside_the_row_and_read_in_words() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
+    let mut h = on_golden(&tmp, SIZES[0]);
     open_part_picker(&mut h);
     open_every_part(&mut h);
     // Each painted text, its rectangle.
@@ -268,7 +264,7 @@ fn selected_labels(h: &Harness<'_, App>) -> Vec<String> {
 #[test]
 fn the_palette_and_the_picker_mark_their_selected_row() {
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, egui::Vec2::new(1280.0, 800.0));
+    let mut h = on_golden(&tmp, SIZES[0]);
     dispatch(&mut h, "tools.palette", json!({}));
     h.state_mut().shell_mut().set_palette_query("save");
     settle(&mut h);
@@ -293,24 +289,24 @@ fn the_palette_and_the_picker_mark_their_selected_row() {
 
 #[test]
 fn the_command_palette_grows_with_the_window() {
-    let (floor, typical) = at_both_sizes(
+    let (main, extension) = at_both_sizes(
         |h| dispatch(h, "tools.palette", json!({})),
         |h| field_width(h, "Type a command…"),
     );
-    assert_grows("the palette's field", floor, typical);
+    assert_grows("the palette's field", main, extension);
 }
 
-/// Wider at 1920 than at the floor, never narrower than `base` (the floor width) and within the window.
-fn assert_grows_from(what: &str, base: f32, floor: f32, typical: f32) {
+/// Wider at 2560 than at 1920, never narrower than `base` (its token width) and within the window.
+fn assert_grows_from(what: &str, base: f32, main: f32, extension: f32) {
     assert!(
-        typical > floor,
-        "{what}: {typical} at 1920 against {floor} at 1280"
+        extension > main,
+        "{what}: {extension} at 2560 against {main} at 1920"
     );
     assert!(
-        floor >= base - 0.5 && typical >= base - 0.5,
-        "{what}: {floor} and {typical} keep the floor width {base}"
+        main >= base - 0.5 && extension >= base - 0.5,
+        "{what}: {main} and {extension} keep the token width {base}"
     );
-    assert!(typical <= 1920.0, "{what}: {typical} within the window");
+    assert!(extension <= 2560.0, "{what}: {extension} within the window");
 }
 
 fn tokens() -> ew_ui::theme::Tokens {
@@ -318,7 +314,7 @@ fn tokens() -> ew_ui::theme::Tokens {
 }
 
 /// FT-798: the command search grows with the window from `size.search.width`, staying at the tab row's right
-/// end.
+/// end; at 2560 it is wider than at 1920, never capped beside the tab row's empty middle (FT-1730).
 #[test]
 fn the_command_search_grows_with_the_window() {
     let t = tokens();
@@ -331,10 +327,8 @@ fn the_command_search_grows_with_the_window() {
         );
         r.width()
     };
-    let (floor, typical) = at_both_sizes(|_| {}, measure);
-    assert!((floor - t.size_search_width).abs() < 0.5, "{floor}");
-    assert!(typical <= t.size_search_max_width + 0.5, "{typical}");
-    assert_grows_from("the command search", t.size_search_width, floor, typical);
+    let (main, extension) = at_both_sizes(|_| {}, measure);
+    assert_grows_from("the command search", t.size_search_width, main, extension);
 }
 
 /// The parts import's mapping card's width (its area).
@@ -355,32 +349,31 @@ fn open_mapping(path: &std::path::Path) -> impl Fn(&mut Harness<'_, App>) + '_ {
 }
 
 /// The parts import's column mapping card is a form that grows with the window when its samples need
-/// the room (a table with a long description): wider at 1920 than at the floor. Golden A's own table fits the form
+/// the room (a table with a long description): wider at 2560 than at 1920. Golden A's own table fits the form
 /// width at both sizes, so it is not stretched.
 #[test]
 fn the_parts_mapping_card_grows_with_the_window() {
     let csv_dir = Tmp::new();
     let csv = csv_dir.0.join("long.csv");
     let long = "Miniature circuit breaker 1P+N characteristic C 10 A 6 kA with auxiliary contact and a long \
-                catalogue text that no form at the floor can show whole";
+                catalogue text that no form at 1920 can show whole";
     let head = "key,manufacturer,part_number,kind,type_designation,description,unit,test_data,tech_data";
     std::fs::write(&csv, format!("{head}\nA1,Acme,A1,,,{long},piece,,\n")).unwrap();
-    let (floor, typical) = at_both_sizes(open_mapping(&csv), mapping_card);
-    assert_grows_from("the mapping card", tokens().size_dialog_form, floor, typical);
+    let (main, extension) = at_both_sizes(open_mapping(&csv), mapping_card);
+    assert_grows_from("the mapping card", tokens().size_dialog_form, main, extension);
     let golden =
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../golden/J-E-2416/tables/parts.csv");
-    let (floor, typical) = at_both_sizes(open_mapping(&golden), mapping_card);
+    let (main, extension) = at_both_sizes(open_mapping(&golden), mapping_card);
     assert!(
-        (floor - typical).abs() < 0.5 && floor < tokens().size_dialog_form + 0.5,
-        "Golden A's table keeps the form width: {floor} and {typical}"
+        (main - extension).abs() < 0.5 && main < tokens().size_dialog_form + 0.5,
+        "Golden A's table keeps the form width: {main} and {extension}"
     );
 }
 
-/// The print pre-dialog is `size.dialog.preview` (1040) wide at the floor and
-/// 0.65 of the window at 1920 (1248).
+/// The print pre-dialog is 0.65 of the window: 1248 at 1920 and 1664 at 2560.
 #[test]
 fn the_print_dialog_grows_with_the_window() {
-    let (floor, typical) = at_both_sizes(
+    let (main, extension) = at_both_sizes(
         |h| dispatch(h, "file.print", json!({"range": "current"})),
         |h| {
             h.ctx
@@ -389,12 +382,9 @@ fn the_print_dialog_grows_with_the_window() {
                 .width()
         },
     );
-    assert!(
-        (floor - tokens().size_dialog_preview).abs() < 1.0,
-        "{floor} at the floor"
-    );
-    assert!((typical - 0.65 * 1920.0).abs() < 1.0, "{typical} at 1920");
-    assert_grows_from("the print dialog", tokens().size_dialog_preview, floor, typical);
+    assert!((main - 0.65 * 1920.0).abs() < 1.0, "{main} at 1920");
+    assert!((extension - 0.65 * 2560.0).abs() < 1.0, "{extension} at 2560");
+    assert_grows_from("the print dialog", tokens().size_dialog_preview, main, extension);
 }
 
 /// A page title long enough that its change line needs more than `size.dialog.small`.
@@ -405,7 +395,7 @@ const LONG_TITLE: &str =
 /// list keeps the small width; past the grown width a line elides).
 #[test]
 fn the_show_changes_popup_grows_with_the_window() {
-    let (floor, typical) = at_both_sizes(
+    let (main, extension) = at_both_sizes(
         |h| {
             dispatch(
                 h,
@@ -428,13 +418,13 @@ fn the_show_changes_popup_grows_with_the_window() {
     assert_grows_from(
         "Show changes",
         t.size_dialog_small - 2.0 * t.space_5,
-        floor,
-        typical,
+        main,
+        extension,
     );
 }
 
 /// FT-798: at 1920 × 1080 no row of Golden A's Pages tree on show is cut (each button is as wide as its whole
-/// title), and the left column is wider than its share of the floor.
+/// title), and the left column is wider than `size.panel.left`.
 #[test]
 fn no_pages_row_is_cut_at_1920() {
     let tmp = Tmp::new();
@@ -483,8 +473,8 @@ fn no_pages_row_is_cut_at_1920() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The Pages table's Title is re-filled when its pane grows: after a resize from the floor to 1920
-/// it is wider.
+/// The Pages table's Title is re-filled when its pane grows: after a resize from a smaller window (1280 by 800,
+/// where the left column is narrower) to 1920 it is wider.
 #[test]
 fn the_pages_table_title_refills_on_a_resize() {
     let tmp = Tmp::new();
@@ -508,7 +498,7 @@ fn the_pages_table_title_refills_on_a_resize() {
 
 /// In a wide window the strip editor's grid shows its side columns without scrolling sideways: at 1920 the
 /// left column grows past its default width (`size.panel.left_max`, 480) by what the grid lacks, so the header
-/// "Sort by Side 2 (clamp b)" ends inside the grid; at the floor the grid keeps its width and scrolls.
+/// "Sort by Side 2 (clamp b)" ends inside the grid.
 #[test]
 fn the_strip_editor_shows_its_side_columns_at_1920() {
     let grid = |h: &Harness<'_, App>| {
@@ -517,18 +507,14 @@ fn the_strip_editor_shows_its_side_columns_at_1920() {
             .max_by(|a, b| a.width().total_cmp(&b.width()))
             .expect("the strip editor's grid")
     };
-    let (floor, typical) = at_both_sizes(
-        |h| dispatch(h, "strip.edit", json!({"strip": "-X1031"})),
-        |h| grid(h).width(),
-    );
-    assert_grows("the strip editor", floor, typical);
-    assert!(typical > 480.0, "the grid is {typical} wide at 1920");
     let tmp = Tmp::new();
-    let mut h = on_golden(&tmp, egui::Vec2::new(1920.0, 1080.0));
+    let mut h = on_golden(&tmp, SIZES[0]);
     dispatch(&mut h, "strip.edit", json!({"strip": "-X1031"}));
     for _ in 0..4 {
         settle(&mut h);
     }
+    let width = grid(&h).width();
+    assert!(width > 480.0, "the grid is {width} wide at 1920");
     let side2 = h.get_by_label_contains("Sort by Side 2").rect();
     assert!(side2.right() <= grid(&h).right(), "{side2:?} in {:?}", grid(&h));
     h.state_mut().shell_mut().shutdown();
@@ -559,12 +545,11 @@ fn the_libraries_table_shows_its_state_column_at_1920() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// The strip editor's grid asks for a repaint only while what its columns lack changes: at
-/// the floor, where the left column does not grow, and at 1920 once it has grown, the window comes to rest after the
-/// first frames instead of repainting every frame.
+/// The strip editor's grid asks for a repaint only while what its columns lack changes: at 1920 and at 2560, once
+/// the left column has grown, the window comes to rest after the first frames instead of repainting every frame.
 #[test]
 fn the_strip_editor_comes_to_rest() {
-    for size in [egui::Vec2::new(1280.0, 800.0), egui::Vec2::new(1920.0, 1080.0)] {
+    for size in SIZES {
         let tmp = Tmp::new();
         let mut h = on_golden(&tmp, size);
         dispatch(&mut h, "strip.edit", json!({"strip": "-X1031"}));

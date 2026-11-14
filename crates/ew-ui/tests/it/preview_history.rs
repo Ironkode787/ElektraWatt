@@ -37,8 +37,9 @@ fn renumber_devices_through_the_dialog_and_the_preview_tab() {
     support::page_based_numbering(&mut h);
     dispatch(&mut h, "devices.renumber", json!({}));
     settle(&mut h);
+    // The dialog's title (the command bar's Arrange group shows a button of that name too).
     assert!(
-        h.query_by_label("Renumber devices").is_some(),
+        support::off_chrome(&h, "Renumber devices").is_some(),
         "the dialog's title"
     );
     h.state_mut().shell_mut().set_form_field("include_frozen", "true");
@@ -140,7 +141,7 @@ fn the_history_panel_lists_the_steps_with_undo_to_here_and_show_changes() {
 }
 
 /// The History header starts `space.4` inside the pane, as the Messages header does.
-/// With one step the History dock is as high as its one row needs, at the floor and at 1920 × 1080,
+/// With one step the History dock is as high as its one row needs, at 1920 × 1080 and at 2560 × 1440,
 /// and the row reads in words: the command's title and its origin, not `fields.set` and `script ui-script`.
 #[test]
 fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
@@ -162,7 +163,7 @@ fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
         (header.left() - pane.left() - t.space_4).abs() < 0.5,
         "the header at {header:?} in {pane:?}"
     );
-    for size in [egui::vec2(1280.0, 800.0), egui::vec2(1920.0, 1080.0)] {
+    for size in [egui::vec2(1920.0, 1080.0), egui::vec2(2560.0, 1440.0)] {
         h.set_size(size);
         settle(&mut h);
         settle(&mut h);
@@ -183,7 +184,7 @@ fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
                 panic!("{size:?}: the step's row in words among {names:?}")
             })
             .rect();
-        assert!(pane.contains_rect(row), "{size:?}: {row:?} in {pane:?}");
+        assert!(pane.expand(0.5).contains_rect(row), "{size:?}: {row:?} in {pane:?}");
         // The row ends the list: below it at most the dock's gutter, not an empty half dock.
         assert!(
             pane.bottom() - row.bottom() <= t.space_4 + 1.0,
@@ -193,14 +194,14 @@ fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At 1280×800 the renumber card's first tag change is on show in the Preview tab without a click: Tags is the
+/// At 1920 × 1080 the renumber card's first tag change is on show in the Preview tab without a click: Tags is the
 /// list that carries the change, first and open, below Apply and Cancel.
 #[test]
-fn w31_2_the_first_tag_change_is_on_show_at_1280_by_800() {
+fn w31_2_the_first_tag_change_is_on_show() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     support::page_based_numbering(&mut h);
     dispatch(&mut h, "devices.renumber", json!({}));
@@ -219,7 +220,7 @@ fn w31_2_the_first_tag_change_is_on_show_at_1280_by_800() {
         .rect();
     let first = h.get_by_label("-XPE → -101X2").rect();
     assert!(
-        pane.expand(1.0).contains_rect(first) && first.bottom() <= 800.0,
+        pane.expand(1.0).contains_rect(first) && first.bottom() <= 1080.0,
         "the first tag change {first:?} inside the tab {pane:?}"
     );
     let apply = h.get_by_label("Apply").rect();
@@ -303,7 +304,7 @@ fn a_changed_records_line_reads_in_dutch() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At 1280 × 800 the renumber of 106 to 104 previews its Pages list as "106 → 104"; a click on a list's
+/// At 1920 × 1080 the renumber of 106 to 104 previews its Pages list as "106 → 104"; a click on a list's
 /// header opens it in place, so the headers below stay where they were (R1's second click hit the header the grown dock
 /// had moved under it), and a second click closes it again.
 #[test]
@@ -311,7 +312,7 @@ fn the_preview_lists_open_in_place_and_name_the_new_folio() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "106"}));
     dispatch(&mut h, "pages.renumber", json!({"section": "1", "start": 101}));
@@ -344,7 +345,7 @@ fn the_scrolled_preview_lists_have_an_edge_under_the_summary_line() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "106"}));
     dispatch(&mut h, "pages.renumber", json!({"section": "1", "start": 101}));

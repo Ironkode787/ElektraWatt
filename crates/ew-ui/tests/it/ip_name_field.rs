@@ -397,7 +397,7 @@ fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
         .collect()
 }
 
-/// At the floor the IP tool's Tool options card takes the pointer only with its controls. A click on
+/// At 1920 × 1080 the IP tool's Tool options card takes the pointer only with its controls. A click on
 /// its frame (its free area, left of its first control) places a point on the sheet beneath; while the tool's ghost is
 /// under the card the card is drawn at 40 % opacity and is no chip obstacle, and away from it the card is whole and an
 /// obstacle again.
@@ -405,7 +405,7 @@ fn click_canvas_centre(h: &mut Harness<'_, App>) -> Vec<String> {
 fn a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     press(&mut h, Key::P);
     assert_eq!(h.state().shell().tool().name(), "ip");
@@ -476,14 +476,14 @@ fn a_click_on_the_free_area_of_the_tool_options_card_reaches_the_sheet() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At the floor the Tool options card's band takes the pointer only on its controls. A click in the
+/// At 1920 × 1080 the Tool options card's band takes the pointer only on its controls. A click in the
 /// gap between the IP name's label and its field places a point on the sheet beneath; a click on the field does not.
 /// Folio 3, whose sheet is free beneath the band (103's routed wires run there, and a point is not placed on a wire).
 #[test]
 fn a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "3");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     press(&mut h, Key::P);
     assert_eq!(h.state().shell().tool().name(), "ip");
@@ -524,13 +524,13 @@ fn a_click_in_a_gap_of_the_tool_options_band_reaches_the_sheet() {
     h.state_mut().shell_mut().shutdown();
 }
 
-/// At the floor the Interruption point row of a placed point's function has no value, so its label
+/// At 1920 × 1080 the Interruption point row of a placed point's function has no value, so its label
 /// runs across the value column and is whole; a row with a value keeps the label column.
 #[test]
 fn a_row_with_no_value_lets_its_label_run_across_the_value_column() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "103");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     press(&mut h, Key::P);
     click_canvas_centre(&mut h);

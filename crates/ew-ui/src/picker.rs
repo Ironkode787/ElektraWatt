@@ -63,7 +63,7 @@ pub fn show(ctx: &egui::Context, shell: &ShellModel, just_opened: bool, events: 
     components::overlay_backdrop(ctx, id, true, events);
     let window = ctx.content_rect();
     let top = t.size_tab_row + t.size_command_row + t.space_4;
-    // Large: the window less `space.6` on each side, so the three columns have room at the floor too.
+    // Large: the window less `space.6` on each side, so the three columns have room in a small window too.
     let width = (window.width() - 2.0 * t.space_6).max(t.size_dialog_small);
     let height = (window.height() - top - t.space_6).max(t.size_row * 8.0);
     egui::Area::new(id)

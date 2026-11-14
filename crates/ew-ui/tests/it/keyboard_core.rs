@@ -105,7 +105,7 @@ fn the_five_core_tasks_with_key_events_only() {
     let platform = Scripted::default();
     platform.answers.borrow_mut().push_back(Pick::Path(pdf.clone()));
     let mut h = harness(&tmp, platform.clone(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
 

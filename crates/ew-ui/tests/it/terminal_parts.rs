@@ -3,7 +3,7 @@
 
 //! A play-tester's terminals had no part: Terminal…'s form gave none, so Check project reported every terminal as a
 //! device without a part (EW-CORE-041), and a terminal's menu had no Choose part…. Each test by the pointer and the
-//! keys in the window at 1280 by 800, on folio 103 of a copy of Golden A with a new strip: the form proposes the part
+//! keys in the window at 1920 by 1080, on folio 103 of a copy of Golden A with a new strip: the form proposes the part
 //! of its kind, a terminal's menu chooses the part of the selected terminals, a strip's row chooses it for its
 //! terminals without one, and Add terminal carries it on. A terminal's EW-CORE-041 is read where the window shows it,
 //! in the header of its Properties.
@@ -20,10 +20,10 @@ use ew_ui::ew_viewmodel::shell::Dialog;
 use serde_json::json;
 use support::{Tmp, dispatch, screen, settle, wait_for_page};
 
-/// The window at 1280 by 800 on folio 103 of a copy of Golden A.
+/// The window at 1920 by 1080 on folio 103 of a copy of Golden A.
 fn window(tmp: &Tmp) -> Harness<'static, App> {
     let mut h = support::on_golden(tmp, "103");
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     settle(&mut h);

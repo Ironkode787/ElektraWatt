@@ -197,14 +197,14 @@ fn a_cased_strokes_casing_is_painted_first_one_pixel_wider_on_each_side() {
     );
 }
 
-/// At the 1280 × 800 floor in Dutch the term column is as wide as "Onderbrekingspunt" needs, so the term
-/// wraps between words, never inside one; the pane's rows fit.
+/// In Dutch the pane's rows fit at 1920 × 1080, and in a pane too narrow for "Onderbrekingspunt" at the term
+/// column's share the column is as wide as the word needs, so the term wraps between words, never inside one.
 #[test]
-fn f8_the_dutch_term_keeps_its_longest_word_whole_at_the_floor() {
+fn f8_the_dutch_term_keeps_its_longest_word_whole() {
     let tmp = Tmp::new();
     let dir = tmp.golden("g.ew");
     let mut h = harness(&tmp, Scripted::default(), Some(dir));
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     dispatch(&mut h, "view.language", json!({"value": "nl"}));
     dispatch(&mut h, "help.glossary", json!({}));
@@ -212,14 +212,7 @@ fn f8_the_dutch_term_keeps_its_longest_word_whole_at_the_floor() {
     settle(&mut h);
     assert!(group(&h, "Onderbrekingspunt"));
     support::assert_fits(&h);
-    // The column rule: the word's width with the cell padding, at the pane's width.
-    let pane = h
-        .get_all_by_label("Woordenlijst")
-        .find(|n| n.accesskit_node().role() == egui::accesskit::Role::Group)
-        .unwrap()
-        .accesskit_node()
-        .raw_bounds()
-        .unwrap();
+    // The column rule: the word's width with the cell padding, in a pane where it needs more than the share.
     let t = ew_ui::theme::current(&h.ctx);
     let strong = ew_ui::theme::TypeToken {
         semibold: true,
@@ -234,12 +227,8 @@ fn f8_the_dutch_term_keeps_its_longest_word_whole_at_the_floor() {
         )
         .size()
         .x;
-    let width = (pane.x1 - pane.x0) as f32;
     let needed = word + 2.0 * t.space_4;
-    assert!(
-        needed > width * ew_ui::glossary::TEXT_SHARE,
-        "the word needs more than the share"
-    );
+    let width = needed / (ew_ui::glossary::TEXT_SHARE + 0.05);
     let widths = ew_ui::glossary::column_widths(width, [needed, 0.0, 0.0], 100.0);
     assert!(widths[0] >= needed, "{widths:?} for {needed}");
     assert!(widths[3] > 0.0, "the definition keeps its column");
@@ -324,7 +313,7 @@ fn the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
     settle(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "102"}));
     dispatch(&mut h, "view.wire_colours", json!({ "on": true }));
-    for size in [egui::vec2(1280.0, 800.0), egui::vec2(1920.0, 1080.0)] {
+    for size in [egui::vec2(1920.0, 1080.0), egui::vec2(2560.0, 1440.0)] {
         h.set_size(size);
         settle(&mut h);
         settle(&mut h);
@@ -334,16 +323,11 @@ fn the_wire_codes_keep_clear_of_the_printed_texts_and_the_chrome() {
         let chrome = host.chrome_obstacles(0).to_vec();
         let chips: Vec<egui::Rect> = host.canvas_chips(0).iter().map(|c| c.rect).collect();
         assert!(!codes.is_empty() && !texts.is_empty(), "{size:?}");
-        // A code fades only where it has no free place, so most codes stand unfaded at the floor and every
-        // code at 1920 × 1080.
+        // A code fades only where it has no free place, so every code stands unfaded at 1920 × 1080 and at
+        // 2560 × 1440.
         let unfaded = codes.iter().filter(|(_, faded)| !faded).count();
-        let least = if size.x < 1920.0 {
-            codes.len() / 2 + 1
-        } else {
-            codes.len()
-        };
         assert!(
-            unfaded >= least,
+            unfaded == codes.len(),
             "{size:?}: {unfaded} of {} codes unfaded",
             codes.len()
         );

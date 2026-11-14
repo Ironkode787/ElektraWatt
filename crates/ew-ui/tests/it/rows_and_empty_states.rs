@@ -30,7 +30,7 @@ fn group_named(h: &Harness<'_, App>, name: &str) -> bool {
     labels(h, egui::Role::Group).iter().any(|l| l == name)
 }
 
-/// A copy of Golden A in the window at 1280 × 800, on folio 101.
+/// A copy of Golden A in the window at 1920 × 1080, on folio 101.
 fn on_golden(tmp: &Tmp, read_only: bool) -> Harness<'static, App> {
     let dir = tmp.golden("g.ew");
     let mut shell = ShellModel::new(Mode::Gui, tmp.config());
@@ -42,7 +42,7 @@ fn on_golden(tmp: &Tmp, read_only: bool) -> Harness<'static, App> {
         Outcome::Done
     );
     let mut h = harness_with(shell, Scripted::default(), None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "page.goto", json!({"folio": "101"}));
@@ -89,7 +89,7 @@ fn row_key(h: &Harness<'_, App>, role: NavRole, badge: Option<&str>) -> Option<S
         .map(|n| n.key.clone())
 }
 
-/// The Pending chip of the Properties header (whole at the floor, the
+/// The Pending chip of the Properties header (whole at 1920 × 1080, the
 /// glyph chip in a narrow pane) and the Messages header's "pending n" say what they count in a tooltip, whole.
 #[test]
 fn the_pending_chips_and_the_messages_header_say_what_they_count() {
@@ -106,9 +106,9 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
         h.hover_at(egui::Pos2::new(2.0, 2.0));
         h.run_steps(10);
     };
-    // The Properties header's chip, whole (1280 × 800) and as the glyph chip (a narrow window).
-    for (width, glyph) in [(1280.0, false), (600.0, true)] {
-        h.set_size(egui::Vec2::new(width, 800.0));
+    // The Properties header's chip, whole (1920 wide) and as the glyph chip (a narrow window).
+    for (width, glyph) in [(1920.0, false), (600.0, true)] {
+        h.set_size(egui::Vec2::new(width, 1080.0));
         settle(&mut h);
         settle(&mut h);
         // The page's chip: the pending findings of what the page draws (FT-1587), as many as the status bar counts.
@@ -154,7 +154,7 @@ fn the_pending_chips_and_the_messages_header_say_what_they_count() {
         );
     }
     // The Messages header's "pending n".
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     settle(&mut h);
     let n = h.state().shell().messages_counts().unwrap().pending;
@@ -294,7 +294,7 @@ fn fix_is_disabled_on_a_read_only_project() {
         Outcome::Done
     );
     let mut h = harness_with(shell, Scripted::default(), None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     dispatch(&mut h, "messages.show", json!({"on": true}));
@@ -392,7 +392,7 @@ fn cp5_the_empty_states_of_messages_find_history_and_the_navigators() {
         Outcome::Done
     );
     let mut h = harness_with(shell, Scripted::default(), None);
-    h.set_size(egui::Vec2::new(1280.0, 800.0));
+    h.set_size(egui::Vec2::new(1920.0, 1080.0));
     settle(&mut h);
     wait_for_page(&mut h);
     // History before any edit.

@@ -149,7 +149,7 @@ impl StartupOffer {
             danger: None,
             asks: false,
             // Four buttons and the project rows: the form's width (640 px, growing with the window), so the Dutch
-            // footer fits at the 1280 × 800 floor.
+            // footer fits in a 1280 × 800 window.
             form: true,
         }
     }

@@ -240,7 +240,7 @@ impl Group {
     /// Whether the group collapses only after every other one of its tab has (doc 16a §5.2: Draw's Connect, which
     /// holds Wire; it gives way at the smallest window in a language of long words, and nowhere else). Draw's
     /// Annotate, which holds Text and the Wire marker, collapses late too, before Connect: with Cable on Connect
-    /// (FT-1685) the Layout group of the panel pages gives way at the 1280-point floor, not the schematic's Marker
+    /// (FT-1685) the Layout group of the panel pages gives way first below 1920, not the schematic's Marker
     /// (FT-1652).
     pub fn collapses_last(self) -> bool {
         matches!(self, Group::Connect | Group::Annotate)

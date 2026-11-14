@@ -801,12 +801,11 @@ fn the_pages_table_shows_changed_in_at_the_default_width() {
         folio.right() <= title.left() + 1.0 && title.right() <= changed.left() + 1.0,
         "the column order: {folio:?} {title:?} {changed:?}"
     );
-    // The three columns fit the left panel's default width (`size.panel.left`), whatever the test window's size.
-    let panel = ew_ui::theme::current(&h.ctx).size_panel_left;
+    // The three columns fit the left column's default width at 1920 × 1080: they end before the canvas.
     assert!(
-        changed.right() - folio.left() <= panel,
-        "the columns span {} of {panel}: {folio:?} {title:?} {changed:?} (canvas at {})",
-        changed.right() - folio.left(),
+        f64::from(changed.right()) <= canvas.x0,
+        "the columns end at {}: {folio:?} {title:?} {changed:?} (canvas at {})",
+        changed.right(),
         canvas.x0
     );
     assert!(

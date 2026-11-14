@@ -48,11 +48,11 @@ fn left_lack_id() -> egui::Id {
 }
 
 /// The strip editor's report of the width its columns need beyond the grid's this frame (negative: room to
-/// spare), every frame it is shown. Above the floor the next frame shows the left column that much wider, as far as
+/// spare), every frame it is shown. Above 1280 the next frame shows the left column that much wider, as far as
 /// [`Dock::keep_left_wide`] lets a default share grow (two thirds of the dock), so that the side columns show without scrolling
 /// sideways in a wide window; without a report the column has its default width again.
 pub(crate) fn report_left_lack(ui: &Ui, lack: f32) {
-    // A lack the column cannot take (at the floor, or at two thirds) stays the same; only a change asks
+    // A lack the column cannot take (in a small window, or at two thirds) stays the same; only a change asks
     // for the next frame.
     let last = egui::Id::unique("ew-dock-left-lack-last");
     let changed = ui.ctx().data_mut(|d| {
@@ -377,7 +377,7 @@ impl Dock {
     ///
     /// While the split keeps the bottom dock's default share ([`default_bottom_share`]; a share the
     /// user dragged stands), a shown pane whose content needs more is shown up to [`BOTTOM_GROW`] of the window's
-    /// height (twice `floor`), past the page view's half: at the 1280 × 800 floor Messages shows five findings.
+    /// height (twice `floor`), past the page view's half: in a 1280 × 800 window Messages shows five findings.
     fn keep_bottom_min(
         &mut self,
         fallback: f32,
@@ -1181,7 +1181,7 @@ mod tests {
         assert!(h >= 299.0, "the Messages pane is shown {h} pt tall");
     }
 
-    /// At the 1280 × 800 floor a Messages list longer than its dock grows the dock to 40 % of the
+    /// In a 1280 × 800 window a Messages list longer than its dock grows the dock to 40 % of the
     /// window's height, past the page view's half, while the split keeps its default share; a share the user dragged
     /// (300 : 700) stands.
     #[test]
