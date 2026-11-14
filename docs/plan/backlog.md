@@ -11,10 +11,6 @@ answers is deleted with a line in its report.
 
 
 
-### The window at 1920 × 1080
-
-- FT-1730 `ew-ui, ew-viewmodel, elektrawatt, xtask`: **High.** 1920 × 1080 is the main resolution and 2560 × 1440 its extension (the owner, 2026-11-13; doc 16a §2), but the code and its tests are anchored on 1280 × 800: the first window, the offscreen harness's default, the picture snapshots, the size rules that grow from 1280, the command bar's laws of fit and about forty test files. Re-anchor them on 1920 × 1080, let the size rules carry on to 2560 × 1440, undo what the 1280 fit forced, and keep one test that a smaller window stays usable. Before WP-S2.13.
-
 ### WP-S2.13: automation workspaces
 
 - FT-1736 `ew-viewmodel, ew-ui`: File ▸ Import… on a drawing (WP-S3.19): the dialog's title stands indented past its buttons, and the unit choice shows the metre as "M" (the existing word `choice-m`).
