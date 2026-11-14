@@ -440,8 +440,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   1 by default (it was 1280x800 at 1.2; a run asks for that with `--window 1280x800 --ppp 1.2`; FT-1730)
 - api-add: the PLC exchange (WP-S3.16, doc 10 §4): `ew export plc-aml` (AutomationML AR APC 1.4.0 on CAEX 2.15,
   `--apc 1.2.0` for older PLC software), `ew export plc-xlsx` (the TIA Portal "PLC Tags" workbook; alias `plc-tags`)
-  and `ew export plcopen` (PLCopen XML with the global variable list `IO_ElektraWatt`); each records the exchange in
-  the project and saves it (FR-PLC-029, -030, -036, -037, -056)
+  and `ew export plcopen` (PLCopen XML with the global variable list `IO_ElektraWatt`); an AML file or a tag table
+  records what it carries as the base of the next import and saves it (FR-PLC-029, -030, -036, -037, -056)
 - api-add: `ew import plc-aml` and `ew import plc-xlsx` preview a file of the PLC software against the last exchange
   (applied, rejected, kept, pending, conflict; parked and removed objects) and apply it with `--accept
   <choices.json>` as one undo step; `ew plc status` reports the last exchange and what changed since (FR-PLC-031 …
@@ -455,8 +455,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   `instrument_list`
 - api-add: the rules EW-PLC-016 (the configuration project changed since its last exchange) and EW-PRC-002 (an
   instrument-list tag without device or channel)
-- behaviour-change: after the first applied PLC import, an edit of a module's start, a station's firmware or a bus
-  port's address of that configuration project is refused until `plc.unlock` lifts the protection (FR-PLC-033)
+- behaviour-change: after the first applied PLC import that gives a value the PLC owns, an edit of a module's start,
+  a station's firmware, a bus port's address or (when symbols are given to the PLC) a channel's symbol or comment of
+  that configuration project is refused until `plc.unlock` lifts the protection; such an import makes every start
+  the file gives a manual start, so a module inserted later moves none (FR-PLC-033)
 - format-variant: record exchange_record.schema.json
 - format-variant: record foreign_id.schema.json
 - api-add: `ew import edz` and `ew import parts-xml` read an EPLAN EDZ (7-Zip or ZIP) or parts XML into the parts of a

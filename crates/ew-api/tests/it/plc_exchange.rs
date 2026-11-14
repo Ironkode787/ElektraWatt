@@ -85,7 +85,9 @@ fn golden() -> Session {
 /// The export of `format`, recorded in the project as the CLI records it.
 fn export(s: &mut Session, format: PlcFormat) -> Vec<u8> {
     let e = s.plc_export(format, &PlcOptions::default()).expect("the export");
-    s.execute(&e.record).expect("the export is recorded");
+    if let Some(record) = &e.record {
+        s.execute(record).expect("the export is recorded");
+    }
     e.bytes
 }
 
@@ -1025,4 +1027,621 @@ fn a_damaged_workbook_or_list_never_panics() {
             assert!(!panicked(&e), "the list with byte {i} replaced");
         }
     }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// The merge of doc 10 §4.4: matching, the merge table, ownership and the snapshot
+
+/// `exported` with the output start of `module` moved from byte `from` to byte `to`.
+fn with_start(exported: &str, module: &str, from: u32, to: u32) -> String {
+    let at = exported
+        .find(&format!("Name=\"{module}\""))
+        .expect("the module");
+    let (head, tail) = exported.split_at(at);
+    format!(
+        "{head}{}",
+        tail.replacen(
+            &format!("<Value>{from}</Value>"),
+            &format!("<Value>{to}</Value>"),
+            1
+        )
+    )
+}
+
+/// Gives the module starts to `owner` (`ecad`, `plc`, `shared`).
+fn starts_owner(s: &mut Session, owner: &str) {
+    let c = cfg(&s.query());
+    run(
+        s,
+        "fields.set",
+        json!({
+            "kind": "plc_config_project",
+            "targets": [c.to_string()],
+            "path": "ownership.module_starts",
+            "value": owner,
+        }),
+    );
+}
+
+/// The output start of -201U5 in the merge of Golden A's recorded AML export: the project's start set to
+/// `project` (a start spec), the file's moved from byte 2 to `file`; per owner of the starts, the state, the default
+/// and whether the file's value can be taken, `None` for no change.
+fn start_row(project: Option<&str>, file: Option<u32>) -> Vec<(&'static str, Option<(State, Choice, bool)>)> {
+    let mut s = golden();
+    let exported = aml(&mut s);
+    if let Some(spec) = project {
+        let u5 = device(&s, "-201U5");
+        run(
+            &mut s,
+            "plc.set_start",
+            json!({"modules": [u5.to_string()], "dir": "output", "spec": spec}),
+        );
+    }
+    let theirs = file.map_or_else(|| exported.clone(), |to| with_start(&exported, "-201U5", 2, to));
+    let u5 = device(&s, "-201U5");
+    ["ecad", "plc", "shared"]
+        .into_iter()
+        .map(|owner| {
+            starts_owner(&mut s, owner);
+            let plan = import(&s, theirs.as_bytes()).plan;
+            let change = plan
+                .changes
+                .iter()
+                .find(|c| c.field == "start.output" && c.target == u5.cast())
+                .map(|c| (c.state, c.default, c.acceptable));
+            (owner, change)
+        })
+        .collect()
+}
+
+/// Doc 10 §4.4, the merge table's first row: a change of the file alone is a rejected PLC change that can be accepted
+/// when the schematic owns the field, and applied when the PLC or both own it.
+#[test]
+fn the_merge_table_a_change_of_the_file_alone() {
+    assert_eq!(
+        start_row(None, Some(10)),
+        [
+            ("ecad", Some((State::Rejected, Choice::Ours, true))),
+            ("plc", Some((State::Apply, Choice::Theirs, true))),
+            ("shared", Some((State::Apply, Choice::Theirs, true))),
+        ]
+    );
+}
+
+/// Doc 10 §4.4, the second row: a change of the project alone is kept, flagged export pending when the PLC owns it.
+#[test]
+fn the_merge_table_a_change_of_the_project_alone() {
+    assert_eq!(
+        start_row(Some("Q20"), None),
+        [
+            ("ecad", Some((State::Kept, Choice::Ours, true))),
+            ("plc", Some((State::Pending, Choice::Ours, true))),
+            ("shared", Some((State::Kept, Choice::Ours, true))),
+        ]
+    );
+}
+
+/// Doc 10 §4.4, the third row: a change of both sides is a conflict that keeps the project's value, unless the PLC
+/// owns the field.
+#[test]
+fn the_merge_table_a_change_of_both_sides() {
+    assert_eq!(
+        start_row(Some("Q20"), Some(10)),
+        [
+            ("ecad", Some((State::Conflict, Choice::Ours, true))),
+            ("plc", Some((State::Conflict, Choice::Theirs, true))),
+            ("shared", Some((State::Conflict, Choice::Ours, true))),
+        ]
+    );
+}
+
+/// Doc 10 §4.4, the fourth row: both sides with the same value is no change, whoever owns the field.
+#[test]
+fn the_merge_table_the_same_change_on_both_sides() {
+    assert_eq!(
+        start_row(Some("Q10"), Some(10)),
+        [("ecad", None), ("plc", None), ("shared", None)]
+    );
+}
+
+/// Doc 10 §4.4: without a snapshot (an export that was never recorded) every difference of an owned field is a
+/// conflict with the owner's default, also one the project has no value for.
+#[test]
+fn without_a_snapshot_a_difference_is_a_conflict_with_the_owners_default() {
+    let s = golden();
+    let exported = String::from_utf8(
+        s.plc_export(PlcFormat::Aml(ApcVersion::V1_4_0), &PlcOptions::default())
+            .expect("the export")
+            .bytes,
+    )
+    .unwrap();
+    let node = "Name=\"Node\">";
+    let theirs = exported.replacen(
+        node,
+        &format!("{node}<Attribute Name=\"NetworkAddress\"><Value>3</Value></Attribute>"),
+        1,
+    );
+    let plan = import(&s, theirs.as_bytes()).plan;
+    let change = plan
+        .changes
+        .iter()
+        .find(|c| c.object.name() == "node" && c.field == "address")
+        .expect("the station address");
+    assert_eq!(change.ours, None, "the project's address is still TBD");
+    assert_eq!(
+        (change.state, change.default),
+        (State::Conflict, Choice::Theirs)
+    );
+}
+
+/// Doc 10 §4.4 (decided for the review of WP-S3.16): a value the file leaves out is no deletion. It is listed as a
+/// rejected PLC change that keeps the project's value, and only a resolution takes the file's side.
+#[test]
+fn a_value_the_file_leaves_out_is_kept() {
+    let mut s = golden();
+    let channel = channel_of(&s, "TA05_V_15");
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "channel", "targets": [channel.to_string()], "path": "comment", "value": "Feed"}),
+    );
+    let exported = aml(&mut s);
+    assert!(exported.contains("<Value>Feed</Value>"));
+    let theirs = exported.replace("<Value>Feed</Value>", "<Value></Value>");
+    let back = import(&s, theirs.as_bytes());
+    let change = back
+        .plan
+        .changes
+        .iter()
+        .find(|c| c.field == "comment")
+        .expect("the comment the file leaves out");
+    assert_eq!(
+        (change.state, change.default, change.theirs.as_deref()),
+        (State::Rejected, Choice::Ours, None)
+    );
+    bulk(&mut s, &back.apply);
+    let comment = |s: &Session| s.query().table::<Channel>().get(channel).unwrap().comment.clone();
+    assert_eq!(comment(&s).as_neutral(), Some("Feed"));
+}
+
+/// FR-PLC-032, A6: matching runs in passes over the whole file. A module the PLC software inserted at -201U3's slot
+/// with -201U3's order number, listed first, does not take -201U3, whose own entry carries its ID; a module whose
+/// designation names nothing in the project is parked, not paired by its slot.
+#[test]
+fn a_weaker_key_never_takes_the_object_of_a_later_entry() {
+    let mut s = golden();
+    let exported = aml(&mut s);
+    let order = image(&exported).stations[0].items[0]
+        .order_number
+        .clone()
+        .expect("-201U3's order number");
+    let first = format!("<InternalElement ID=\"{}\"", device(&s, "-201U3"));
+    let module = |id: &str, iec: &str, slot: u32| {
+        format!(
+            "<InternalElement ID=\"{id}\" Name=\"DQ {slot}\">{iec}\
+             <Attribute Name=\"PositionNumber\"><Value>{slot}</Value></Attribute>\
+             <Attribute Name=\"TypeIdentifier\"><Value>OrderNumber:{order}</Value></Attribute>\
+             <Attribute Name=\"Address\"><Attribute Name=\"1\">\
+             <Attribute Name=\"StartAddress\"><Value>9</Value></Attribute>\
+             <Attribute Name=\"Length\"><Value>8</Value></Attribute>\
+             <Attribute Name=\"IoType\"><Value>Output</Value></Attribute></Attribute></Attribute>\
+             <SupportedRoleClass RefRoleClassPath=\"AutomationProjectConfigurationRoleClassLib/DeviceItem\"/>\
+             </InternalElement>"
+        )
+    };
+    let inserted = format!(
+        "{}{}{first}",
+        module("tia-new", "", 1),
+        module(
+            "tia-k99",
+            "<Attribute Name=\"ProductDesignation IEC\"><Value>-K99</Value></Attribute>",
+            2
+        )
+    );
+    let theirs = exported.replacen(&first, &inserted, 1);
+    let back = import(&s, theirs.as_bytes());
+    assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
+    let parked: BTreeSet<&str> = back.plan.parking.iter().map(|p| p.id.as_str()).collect();
+    assert_eq!(parked, ["tia-k99", "tia-new"].into());
+}
+
+/// FR-PLC-056, A6: a file whose IDs the PLC software replaced and whose modules carry no IEC designation matches each
+/// module by its slot and order number. Once applied, the foreign IDs match the next file, in which a renamed module
+/// is a rejected change of the schematic's designation.
+#[test]
+fn modules_without_ids_or_designations_match_by_slot_and_order_number() {
+    let mut s = golden();
+    let exported = aml(&mut s);
+    let uuid = regex::Regex::new("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").unwrap();
+    let foreign = uuid.replace_all(&exported, "tia-$0").into_owned();
+    let designation = regex::Regex::new(
+        "<Attribute Name=\"ProductDesignation IEC\"[^>]*>\\s*<Value>-20[12]U[2-9]</Value>\\s*</Attribute>",
+    )
+    .unwrap();
+    let bare = designation.replace_all(&foreign, "").into_owned();
+    assert_ne!(bare, foreign, "the modules' designations are gone");
+    let back = import(&s, bare.as_bytes());
+    assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
+    assert!(back.plan.parking.is_empty(), "{:?}", back.plan.parking);
+    let modules = back
+        .plan
+        .matched
+        .iter()
+        .filter(|m| m.object.name() == "module")
+        .count();
+    assert_eq!(modules, 7);
+    bulk(&mut s, &back.apply);
+
+    let renamed = foreign.replace("<Value>-201U4</Value>", "<Value>-201U4X</Value>");
+    let next = import(&s, renamed.as_bytes());
+    assert!(next.plan.parking.is_empty(), "{:?}", next.plan.parking);
+    let name = next
+        .plan
+        .changes
+        .iter()
+        .find(|c| c.field == "name" && c.target == device(&s, "-201U4").cast())
+        .expect("the renamed designation");
+    assert_eq!((name.state, name.acceptable), (State::Rejected, false));
+}
+
+/// Doc 10 §3.9, §4.4: an import under the PLC's ownership makes every start of the file a manual start, also one
+/// equal to the project's, so that a module inserted in front of the others afterwards moves none of them; the same
+/// file again writes nothing.
+#[test]
+fn an_import_freezes_the_starts_so_an_inserted_module_moves_nothing() {
+    let mut s = golden();
+    let exported = aml(&mut s);
+    let back = import(&s, exported.as_bytes());
+    assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
+    bulk(&mut s, &back.apply);
+    let modules = ["-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-202U2"].map(|t| device(&s, t));
+    for m in modules {
+        let q = s.query();
+        let start = q.devices().get(m).unwrap().aspects.plc_module.clone().unwrap().start.output;
+        assert!(matches!(start, ew_schema::AddrSpec::Manual(_)), "{start:?}");
+    }
+    let again = import(&s, exported.as_bytes());
+    let preview = s.preview(&again.apply).expect("the preview");
+    assert_eq!(preview.op_count(), 0, "the same file again writes nothing");
+
+    let before: Vec<Vec<String>> = modules.iter().map(|m| printed(&s.query(), *m)).collect();
+    let copy = s
+        .module_parts()
+        .into_iter()
+        .find(|p| p.text.starts_with("533361"))
+        .expect("the module part")
+        .copy;
+    let station = device(&s, "-201U1");
+    run(
+        &mut s,
+        "plc.add_module",
+        json!({"station": station.to_string(),
+            "part": {"part": {"copy": copy.to_string()}, "qty": "1"}, "slot": 0}),
+    );
+    let after: Vec<Vec<String>> = modules.iter().map(|m| printed(&s.query(), *m)).collect();
+    assert_eq!(after, before, "the inserted module moves no start");
+}
+
+/// Doc 10 §4.4 (review of WP-S3.16): an export records only what its format carries. A PLCopen export, which never
+/// comes back, records nothing, and a tag table records no start: a start changed in the project since the AML export
+/// stays a change of the project when the PLC software's file comes back.
+#[test]
+fn an_export_records_only_what_its_format_carries() {
+    let mut s = golden();
+    let exported = aml(&mut s);
+    let channel = channel_of(&s, "TA05_V_15");
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "channel", "targets": [channel.to_string()], "path": "symbol", "value": "FEED_15"}),
+    );
+    let gvl = s
+        .plc_export(PlcFormat::Plcopen, &PlcOptions::default())
+        .expect("the PLCopen list");
+    assert!(gvl.record.is_none(), "a PLCopen export is not recorded");
+    let name = import(&s, exported.as_bytes())
+        .plan
+        .changes
+        .into_iter()
+        .find(|c| c.field == "name")
+        .expect("the renamed symbol");
+    assert_eq!((name.state, name.default), (State::Kept, Choice::Ours));
+
+    let u5 = device(&s, "-201U5");
+    run(
+        &mut s,
+        "plc.set_start",
+        json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q20"}),
+    );
+    export(&mut s, PlcFormat::TiaXlsx);
+    let start = import(&s, exported.as_bytes())
+        .plan
+        .changes
+        .into_iter()
+        .find(|c| c.field == "start.output")
+        .expect("the moved start");
+    assert_eq!(
+        (start.state, start.default, start.base.as_deref()),
+        (State::Pending, Choice::Ours, Some("2"))
+    );
+}
+
+/// The rows of a tag workbook, edited by `edit`, as a workbook again (the hidden ID column kept).
+fn edited_table(table: &[u8], edit: impl FnOnce(&mut Vec<Vec<String>>)) -> Vec<u8> {
+    let limits = ew_import_catalog::table_limits();
+    let mut rows = read_rows(table, SourceFormat::Xlsx, ew_plc::tia::SHEET, &limits).unwrap();
+    edit(&mut rows);
+    let date = ew_reports::xlsx::DateTime {
+        year: 2026,
+        month: 1,
+        day: 2,
+        hour: 0,
+        minute: 0,
+        second: 0,
+    };
+    ew_reports::xlsx::plain_xlsx(ew_plc::tia::SHEET, &rows, 10, date).unwrap()
+}
+
+fn row_of<'a>(rows: &'a mut [Vec<String>], symbol: &str) -> &'a mut Vec<String> {
+    rows.iter_mut().find(|r| r[0] == symbol).expect("the row")
+}
+
+/// Doc 10 §4.5 (review of WP-S3.16): a comment of several languages is never replaced whole by one value. A table's
+/// comment without a language is a conflict that keeps the languages and cannot be taken; a table in a language
+/// gives its comment to that language only.
+#[test]
+fn a_comment_in_one_language_never_replaces_the_others() {
+    let mut s = golden();
+    let channel = channel_of(&s, "TA05_V_15");
+    run(
+        &mut s,
+        "fields.set",
+        json!({
+            "kind": "channel",
+            "targets": [channel.to_string()],
+            "path": "comment",
+            "value": {"en-GB": "Feed", "nl-NL": "Toevoer"},
+        }),
+    );
+    let comment = |s: &Session| s.query().table::<Channel>().get(channel).unwrap().comment.clone();
+    let table = export(&mut s, PlcFormat::TiaXlsx);
+    let neutral = edited_table(&table, |rows| row_of(rows, "TA05_V_15")[4] = "Changed".to_owned());
+    let back = import(&s, &neutral);
+    let change = back
+        .plan
+        .changes
+        .iter()
+        .find(|c| c.field == "comment")
+        .expect("the table's comment");
+    assert_eq!(
+        (change.state, change.default, change.acceptable),
+        (State::Conflict, Choice::Ours, false)
+    );
+    let taken = PlcOptions {
+        resolutions: [(change.id.clone(), "theirs".to_owned())].into(),
+        ..PlcOptions::default()
+    };
+    let e = s
+        .preview(&s.plc_import(&neutral, &taken).unwrap().apply)
+        .expect_err("a comment without a language over languages")
+        .to_string();
+    assert!(e.contains("do not replace each other"), "{e}");
+    bulk(&mut s, &back.apply);
+    assert_eq!(comment(&s).get(&"en-GB".parse().unwrap()), Some("Feed"));
+
+    let german = PlcOptions {
+        lang: Some("de-DE".to_owned()),
+        ..PlcOptions::default()
+    };
+    let e = s.plc_export(PlcFormat::TiaXlsx, &german).expect("the German table");
+    s.execute(e.record.as_ref().unwrap()).unwrap();
+    let edited = edited_table(&e.bytes, |rows| row_of(rows, "TA05_V_15")[4] = "Zufuhr".to_owned());
+    let applied = s.plc_import(&edited, &german).unwrap().apply;
+    bulk(&mut s, &applied);
+    let c = comment(&s);
+    for (lang, text) in [("en-GB", "Feed"), ("nl-NL", "Toevoer"), ("de-DE", "Zufuhr")] {
+        assert_eq!(c.get(&lang.parse().unwrap()), Some(text), "{lang}");
+    }
+}
+
+/// FR-PLC-036, doc 10 §4.4: a tag the table no longer has is listed as removed only when the table is complete, and
+/// it is never deleted.
+#[test]
+fn a_tag_the_complete_table_lacks_is_removed_and_kept() {
+    let mut s = golden();
+    let table = export(&mut s, PlcFormat::TiaXlsx);
+    let short = edited_table(&table, |rows| rows.retain(|r| r[0] != "TA05_V_15"));
+    assert!(import(&s, &short).plan.removed.is_empty());
+    let complete = PlcOptions {
+        complete: true,
+        ..PlcOptions::default()
+    };
+    let back = s.plc_import(&short, &complete).unwrap();
+    let removed: Vec<&str> = back.plan.removed.iter().map(|(_, _, n)| n.as_str()).collect();
+    assert_eq!(removed, ["TA05_V_15"]);
+    bulk(&mut s, &back.apply);
+    channel_of(&s, "TA05_V_15");
+}
+
+/// Doc 10 §3.9 (review of WP-S3.16): when symbols are given to the PLC, an import protects them as it protects the
+/// starts, until `plc.unlock` lifts the protection.
+#[test]
+fn symbols_given_to_the_plc_are_protected() {
+    let mut s = golden();
+    let c = cfg(&s.query());
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "plc_config_project", "targets": [c.to_string()], "path": "ownership.symbols", "value": "plc"}),
+    );
+    let exported = aml(&mut s);
+    let applied = import(&s, exported.as_bytes()).apply;
+    bulk(&mut s, &applied);
+    let channel = channel_of(&s, "TA05_V_15");
+    let rename = json!({"kind": "channel", "targets": [channel.to_string()], "path": "symbol", "value": "FEED_15"});
+    let refusal = refused(&mut s, "fields.set", rename.clone());
+    assert!(
+        refusal.contains("-201U3: a channel's symbol or comment is owned by configuration project PLC1"),
+        "{refusal}"
+    );
+    run(
+        &mut s,
+        "plc.unlock",
+        json!({"config_project": c.to_string(), "group": "symbols"}),
+    );
+    run(&mut s, "fields.set", rename);
+}
+
+/// Doc 10 §2.2 (review of WP-S3.16): only an import that gives a value of a PLC-owned group starts the protection; a
+/// tag table carries symbols, which are shared, so the starts stay ordinary edits.
+#[test]
+fn a_tag_table_import_protects_no_start() {
+    let mut s = golden();
+    let table = export(&mut s, PlcFormat::TiaXlsx);
+    let applied = import(&s, &table).apply;
+    bulk(&mut s, &applied);
+    let imported = s
+        .query()
+        .table::<PlcConfigProject>()
+        .get(cfg(&s.query()))
+        .unwrap()
+        .ownership
+        .as_ref()
+        .and_then(|o| o.imported);
+    assert_eq!(imported, None);
+    let u6 = device(&s, "-201U6");
+    run(
+        &mut s,
+        "plc.set_start",
+        json!({"modules": [u6.to_string()], "dir": "output", "spec": "Q20"}),
+    );
+}
+
+/// FR-PLC-032: values that only differ in leading or trailing white space, which the readers drop, are no change.
+#[test]
+fn white_space_around_a_value_is_no_change() {
+    let mut s = golden();
+    let channel = channel_of(&s, "TA05_V_15");
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "channel", "targets": [channel.to_string()], "path": "comment", "value": " Feed "}),
+    );
+    let stored = s.query().table::<Channel>().get(channel).unwrap().comment.clone();
+    assert_eq!(stored.as_neutral(), Some(" Feed "), "the comment keeps its spaces");
+    let exported = aml(&mut s);
+    let back = import(&s, exported.as_bytes());
+    assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
+    let table = export(&mut s, PlcFormat::TiaXlsx);
+    let back = import(&s, &table);
+    assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
+}
+
+/// FR-PLC-036: a tag table from a German TIA Portal writes `%A0.1` for `%Q0.1` and `%E` for `%I`; it is no change.
+#[test]
+fn german_mnemonics_are_the_international_addresses() {
+    let mut s = golden();
+    let table = export(&mut s, PlcFormat::TiaXlsx);
+    let german = edited_table(&table, |rows| {
+        for row in rows.iter_mut().skip(1) {
+            row[3] = row[3].replace("%Q", "%A");
+        }
+    });
+    let back = import(&s, &german);
+    assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
+    assert!(back.plan.parking.is_empty(), "{:?}", back.plan.parking);
+}
+
+/// Doc 10 §4.4: a file's tag on a channel that has a symbol but no address (so no tag of its own) is compared with
+/// that symbol: without a snapshot it is a conflict that keeps it, never a value the file silently replaces.
+#[test]
+fn a_tag_on_a_channel_without_an_address_meets_its_symbol() {
+    let mut s = golden();
+    let exported = String::from_utf8(
+        s.plc_export(PlcFormat::Aml(ApcVersion::V1_4_0), &PlcOptions::default())
+            .expect("the export")
+            .bytes,
+    )
+    .unwrap();
+    let channel = channel_of(&s, "TA05_V_15");
+    let u3 = device(&s, "-201U3");
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "channel", "targets": [channel.to_string()], "path": "symbol", "value": "MINE"}),
+    );
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [u3.to_string()], "path": "plc_module.start", "value": {"output": "tbd"}}),
+    );
+    let back = import(&s, exported.as_bytes());
+    let name = back
+        .plan
+        .changes
+        .iter()
+        .find(|c| c.field == "name" && c.target == channel.cast())
+        .expect("the symbol");
+    assert_eq!(
+        (name.ours.as_deref(), name.theirs.as_deref()),
+        (Some("MINE"), Some("TA05_V_15"))
+    );
+    assert_eq!((name.state, name.default), (State::Conflict, Choice::Ours));
+}
+
+/// Doc 10 §3.9: after an import a bus port added to a function is no edit of an address the PLC set.
+#[test]
+fn a_bus_port_can_be_added_after_an_import() {
+    let mut s = golden();
+    let exported = aml(&mut s);
+    let applied = import(&s, exported.as_bytes()).apply;
+    bulk(&mut s, &applied);
+    let q = s.query();
+    let function = q
+        .idx()
+        .functions_of_device(device(&s, "-201U3"))
+        .find(|f| q.functions().get(*f).is_some_and(|f| f.bus_port.is_none()))
+        .expect("a function of -201U3 without a bus port");
+    run(
+        &mut s,
+        "fields.set",
+        json!({
+            "kind": "function",
+            "targets": [function.to_string()],
+            "path": "bus_port",
+            "value": {"interface": "X2", "bus": "profinet", "role": "device", "address": "tbd"},
+        }),
+    );
+}
+
+/// Doc 10 §4.2: the foreign ID of an object the file no longer has leaves the snapshot with its record.
+#[test]
+fn the_foreign_id_of_a_removed_object_goes() {
+    let mut s = golden();
+    let exported = aml(&mut s);
+    let uuid = regex::Regex::new("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}").unwrap();
+    let foreign = uuid.replace_all(&exported, "tia-$0").into_owned();
+    let applied = import(&s, foreign.as_bytes()).apply;
+    bulk(&mut s, &applied);
+    let channel = channel_of(&s, "TA05_V_15");
+    let named = |s: &Session| {
+        s.query()
+            .table::<ForeignId>()
+            .iter()
+            .any(|(_, f)| f.target == channel.cast() && f.object.name() == "tag")
+    };
+    assert!(named(&s), "the tag's foreign ID is kept");
+    let interface = regex::Regex::new("(?s)<ExternalInterface ID=\"[^\"]*\" Name=\"TA05_V_15\".*?</ExternalInterface>").unwrap();
+    let link = regex::Regex::new("<InternalLink [^>]*TA05_V_15\"[^>]*/>").unwrap();
+    let without = link
+        .replace_all(&interface.replace_all(&foreign, ""), "")
+        .into_owned();
+    let back = import(&s, without.as_bytes());
+    assert!(
+        back.plan.removed.iter().any(|(o, _, n)| o.name() == "tag" && n == "TA05_V_15"),
+        "{:?}",
+        back.plan.removed
+    );
+    bulk(&mut s, &back.apply);
+    assert!(!named(&s), "the removed tag's foreign ID is gone");
 }

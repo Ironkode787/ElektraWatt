@@ -120,10 +120,11 @@ are ordinary edits, flagged "export pending".
 
 **As built (WP-S3.16).** `PlcConfigProject.ownership` is `Ownership {module_starts, symbols, imported, unlocked}`: the
 owner (`ecad`, `plc`, `shared`) of the two configurable groups that an import writes, the date of the first applied
-PLC import and the groups `plc.unlock` unlocked. Absent members are the defaults: the module starts are the PLC's in a
-merge and symbols and comments are shared; the PLC's own data (firmware, IP addresses, PROFINET names, DP station
-addresses) is always the PLC's. Nothing is protected before the first applied import (`imported` absent), which is what
-the table's default `Ecad` for the starts says: until then a start is an ordinary edit. The owners are set with
+PLC import that gave a value of a PLC-owned group, and the groups `plc.unlock` unlocked. Absent members are the
+defaults: the module starts are the PLC's in a merge and symbols and comments are shared; the PLC's own data (firmware,
+IP addresses, PROFINET names, DP station addresses) is always the PLC's. Nothing is protected before such an import
+(`imported` absent), which is what the table's default `Ecad` for the starts says: until then a start is an ordinary
+edit. A tag table carries only symbols and comments, so with the default owners its import protects nothing. The owners are set with
 `fields.set` (`ownership.module_starts`, `ownership.symbols`). The structure group and the designations stay the
 schematic's and have no member: an import lists a structural difference and never writes it (§4.4). The member is
 **additive** (ADR-0011 amendment 6): an older 0.1 build keeps it verbatim and does not enforce the protection, and a
@@ -998,15 +999,18 @@ protection and `plc.unlock` came with WP-S3.16 (below). `plc.bind_channel` also 
 
 *As built (WP-S3.16).* **Protection.** From the first applied PLC import on (`ownership.imported`), an edit of a field
 of a PLC-owned group is refused: a module's start (`plc.set_start`, `plc.readdress`, `plc.convert_manual_to_auto`,
-`fields.set` and `fields.set_many` on `plc_module`), a station's firmware and the address of a bus port of a station's
-device tree (`fields.set`). The refusal is judged on what the transaction changed against its base, so every path of
-those commands is covered, and reads `-201U6: the start address is owned by configuration project PLC1 (PLC import of
-<date>); unlock it first with plc.unlock`. `plc.unlock {config_project, group}` (`module_starts`, `plc_data`, or
-`symbols` when symbols are given to the PLC) lifts the protection of one group until the next applied import, which
-protects every group again; it refuses a group that is not protected. The scope is the configuration project. The
+`fields.set` and `fields.set_many` on `plc_module`), a station's firmware, the address of an existing bus port of a
+station's device tree (`fields.set`; a port added to a function is no such edit) and, when symbols are given to the
+PLC, a channel's symbol, data type and comment (`fields.set` on `channel`). The refusal is judged on what the
+transaction changed against its base, so every path of those commands is covered, and reads `-201U6: the start address
+is owned by configuration project PLC1 (PLC import of <date>); unlock it first with plc.unlock`. An import under the
+PLC's ownership writes every start the file gives a matched module as a `manual` start, also one equal to the
+project's, so a module inserted afterwards moves none of them, as the paragraph above asks. `plc.unlock {config_project,
+group}` (`module_starts`, `plc_data`, or `symbols` when symbols are given to the PLC) lifts the protection of one group
+until the next applied import that gives a value of that group; it refuses a group that is not protected. The scope is the configuration project. The
 refusal is the commands' own, not a check rule with a quick fix, and there is no lenient mode for it: an import applies
 PLC-owned values through `plc.apply_exchange`, which is the PLC side. `plc.record_exchange {config_project, stations?,
-format, version?, file_sha256, date}` records an export (§4.4), `plc.apply_exchange {config_project, image, format,
+format, version?, file_sha256, date, comment_lang?}` records an export (§4.4), `plc.apply_exchange {config_project, image, format,
 version?, file_sha256, date, complete?, comment_lang?, resolutions?}` applies an import (Bulk, §4.4) and
 `plc.apply_instrument_list {config_project, rows}` an instrument list (Bulk, §4.7).
 
@@ -1314,25 +1318,38 @@ only.
 
 *As built (WP-S3.16).* `ew_plc::merge` on the session's snapshot is the preview, and `plc.apply_exchange` runs the same
 merge on its base, so what was previewed is applied; a stale preview is refused by the engine as for every Bulk
-command. **Matching** runs per kind below a matched parent: a station by ID (the project's, or a `foreign_id`), IEC
-designation, then type identifier; a module by ID, designation, slot, then order number; a channel by ID, then number
-and direction; a bus node by ID, then interface label; a tag by its channel's link, else by ID, name, then address.
-A step that finds several objects parks the foreign object as ambiguous. A module that only holds other modules (a
-rack) is passed over, and what is below a parked station or module is not listed on its own. **Fields.** The merge
+command. **Matching** runs kind by kind (stations, modules, channels, nodes, tags), each below its matched parent, and
+in passes over every object of the kind, so a weaker key never takes an object that a stronger key gives to an object
+later in the file: first the ID (the project's, or a `foreign_id`) of every object, then a station's or module's IEC
+designation, a channel's number and direction, a node's interface label, then a module's slot with its order number.
+A station or module whose designation names no free object of the project is parked, never paired by its slot or type;
+a station without an ID or a designation is parked too, as an image gives a station no position (A6's rule 4 needs
+one). A tag follows its channel's link, else its ID, name, then address. A step that finds several objects parks the
+foreign object as ambiguous. A module that only holds other modules (a rack) is passed over, and what is below a parked
+station or module is not listed on its own. **Fields.** The merge
 compares the fields of §4.2's records. Only fields of an owned group are written: a tag's name, data type and comment
 (`Channel.symbol`, `data_type`, `comment`, per language), a module's start (a `manual` start), a station's firmware and
 a node's address (the PROFIBUS station address; the PROFINET name, IP address, mask and gateway). Every other field
 (structure, designations, order numbers, a tag's address, which follows its channel) is the schematic's: a difference
 is listed as a rejected PLC change and cannot be accepted. **States** in a preview: `apply`, `rejected`, `kept`,
 `pending` (changed in the project only although the PLC owns it: export pending) and `conflict`; a resolution (`ours`,
-`theirs`) is keyed by `<object>/<record>/<field>`. Without a snapshot (a first import of a project that never
-exported) every difference of an owned field is a conflict with the owner's default. **Removed.** An object the last
-exchange held and the file no longer has is listed and never deleted or cleared. **Parking.** "Create unplaced"
+`theirs`) is keyed by `<object>/<record>/<field>`. Without a snapshot of the object (a first import of a project that
+never exported, an object added since) every difference of an owned field is a conflict with the owner's default. A
+value the file leaves out or empty is no deletion: it never clears the project's value by default, but is listed as
+`rejected` (or as a `conflict`) whose default is ours, and only the choice `theirs` clears it. A comment with languages
+and one without never replace each other: where the file's comment is of the other form than the project's, the change
+is a `conflict` that keeps the project's comment and cannot be taken. **Removed.** An object the last exchange held and
+the file no longer has is listed and never deleted or cleared. **Parking.** "Create unplaced"
 (`create` under the object's file ID) creates a parked station with its modules, or a parked module below its matched
 station, as devices without functions: the tag frozen to the IEC designation (else the name), a rack slot at the
 position, the starts as `manual` starts, the order number in `type_ident`; no part is assigned, so no channels exist
-until one is. A parked channel, tag or node cannot be created. **Snapshot.** After the apply the snapshot holds the
-file's values for every matched object and the foreign IDs; the stamp's direction is `import`. **Drift.** `ew plc
+until one is. A parked channel, tag or node cannot be created. **Snapshot.** An exchange re-bases only what its format
+carries: an AML file every field of every object, a tag table the tags' names, data types, addresses and the comment
+in its language, every other value of a record staying. After the apply the snapshot holds so the file's values for
+every matched object, with the foreign IDs; the stamp's direction is `import`. An export records itself the same way
+(`plc.record_exchange`): an AML export replaces the records of what it exported, a tag table updates the tags' carried
+fields, and a PLCopen list, which never comes back, is not recorded at all. The foreign ID of an object the file no
+longer has, or the project no longer has, goes with its record. **Drift.** `ew plc
 status [<file>]` prints the stamp, the differing objects with their fields, and whether the file's SHA-256 is the
 stamp's; it does not read the file's content (`ew import plc-aml <file>` previews it). The affected folios are not
 part of the preview yet (WP-S2.13's dialog).
@@ -1362,9 +1379,12 @@ Addresses are always the exchange form of the built-in TIA profile (`%Q0.1`), wh
 with. The three HMI flags are written `True`; there is no setting for them. The path is `SymbolPolicy.tag_table`,
 else `EW_IO`. The hidden column `EW ID` after the ten columns carries the channel's ID; the import matches by it,
 then by name, then by address, compares names, data types and the comment in the chosen language (a comment without
-a language is the text in every language), and previews and applies through the same merge and snapshot as AML. A
-row without a channel is parked and cannot be created. The warning "addresses not confirmed by the PLC configuration"
-is given while no PLC import has been applied.
+a language is the text in every language; a column without a language is no value for a comment with languages, nor
+a column in a language one for a comment without: such a difference is a conflict that keeps the project's comment),
+and previews and applies through the same merge and snapshot as AML. A German TIA Portal's addresses (`%A0.1`,
+`%E0.1`, `%PEW2`) are read as the international ones. A row without a channel is parked and cannot be created. The
+warning "addresses not confirmed by the PLC configuration" is given while no applied import has started the protection
+(`ownership.imported`), which a tag table's import alone does not.
 
 ### 4.6 PLCopen XML for CODESYS
 
@@ -1392,7 +1412,8 @@ One GVL `IO_ElektraWatt` per configuration project, with one variable per used c
 `instances/configurations/configuration/resource/globalVars`; a data type the standard does not name is a `derived`
 type; the documentation is the function text and the signal pin. The `plcopen` crate is not taken as a test
 dependency (a low-adoption crate, Open question 14): the test reads the written XML for its namespace, its variables
-and their addresses. Whether CODESYS imports the list is SC-8's.
+and their addresses. Whether CODESYS imports the list is SC-8's. The export is not recorded as an exchange: the list
+never comes back, so it is no base of a merge (§4.4).
 
 ### 4.7 Generic I/O list (CSV and XLSX)
 

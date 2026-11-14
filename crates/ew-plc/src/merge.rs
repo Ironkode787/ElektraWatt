@@ -3,12 +3,15 @@
 
 //! Matching a foreign image to the project and the per-field three-way merge (doc 10 §4.4, FR-PLC-032, FR-PLC-033).
 //!
-//! **Matching** (A6), first hit wins: the object's ID is one the project wrote or one a foreign-ID record holds;
-//! its IEC product designation is that of exactly one object of the project; its position is that of exactly one
-//! (a module's slot in its station, a channel's number in its module); its order number is that of exactly one
-//! module of the station. A tag follows its channel's link, else its ID, its name, then its address. A foreign
-//! object that matches nothing, or more than one object, goes to the **parking list** and is never created
-//! silently. A module that only holds other modules (a rack) is no object of the project and is passed over.
+//! **Matching** (A6) runs kind by kind, a station before its modules and a module before its channels, and in
+//! passes over every object of a kind, so that a weaker key never takes an object a stronger key gives to a later
+//! object of the file: first the ID (one the project wrote, or one a foreign-ID record holds); then a station's or
+//! module's IEC product designation (one that names no free object of the project parks the object), a channel's
+//! number and direction, a node's interface label; then a module without a designation by its slot with its order
+//! number. A station without an ID or a designation is parked: stations have no position to match by. A tag follows
+//! its channel's link, else its ID, its name, then its address. A foreign object that matches nothing, or more than
+//! one object, goes to the **parking list** and is never created silently. A module that only holds other modules
+//! (a rack) is no object of the project and is passed over.
 //!
 //! **Scope.** Only the stations the file holds are compared; with `complete`, every station of the configuration
 //! project. An object of a compared station that the last exchange held and the file no longer has is listed as
@@ -17,8 +20,10 @@
 //! **Resolution** per field, with the base `S` (the last exchange), ours `E` and theirs `T`: equal sides are no
 //! change; a change of theirs alone applies when the PLC or both own the field and is a rejected PLC change when
 //! the schematic owns it; a change of ours alone is kept (export pending when the PLC owns the field); a change of
-//! both is a conflict whose default is theirs when the PLC owns the field and ours otherwise. A field of no group
-//! (structure, designations, derived values) is the schematic's and cannot be accepted.
+//! both is a conflict whose default is theirs when the PLC owns the field and ours otherwise. Without a snapshot of
+//! the object, every difference is a change of both. A value the file leaves out or empty is no deletion: it is
+//! never taken without a resolution. A comment with languages and one without never replace each other. A field
+//! of no group (structure, designations, derived values) is the schematic's and cannot be accepted.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -42,18 +47,54 @@ pub enum Vocabulary {
 }
 
 impl Vocabulary {
-    fn covers(&self, object: &ExchangeObject, field: &str) -> bool {
+    /// Whether the file holds objects of kind `object` at all.
+    pub fn holds(&self, object: &ExchangeObject) -> bool {
+        *self == Vocabulary::All || *object == ExchangeObject::Tag
+    }
+
+    /// The comment field a table's comment column is for a tag whose project values are `ours`: the one the table
+    /// names, or `comment` where the project's comment has no language and not that one (a text without a language
+    /// reads the same in every language).
+    fn column(&self, ours: &BTreeMap<String, String>) -> &str {
+        match self {
+            Vocabulary::Tags { comment }
+                if comment != "comment" && !ours.contains_key(comment) && ours.contains_key("comment") =>
+            {
+                "comment"
+            }
+            Vocabulary::Tags { comment } => comment,
+            Vocabulary::All => "comment",
+        }
+    }
+
+    /// Whether the file carries `field` of an object of kind `object` whose project values are `ours`.
+    pub fn carries(&self, object: &ExchangeObject, field: &str, ours: &BTreeMap<String, String>) -> bool {
         match self {
             Vocabulary::All => true,
-            Vocabulary::Tags { comment } => {
+            Vocabulary::Tags { .. } => {
                 *object == ExchangeObject::Tag
-                    && (matches!(field, "name" | "data_type" | "address") || field == comment)
+                    && (matches!(field, "name" | "data_type" | "address") || field == self.column(ours))
             }
         }
     }
 
-    fn holds(&self, object: &ExchangeObject) -> bool {
-        *self == Vocabulary::All || *object == ExchangeObject::Tag
+    /// What the snapshot holds for an object after an exchange of this format: the `carried` values, and for a
+    /// field the format does not carry the value of the last exchange `base` (else the project's, `ours`), so that
+    /// an exchange never re-bases a field it did not carry.
+    pub fn next(
+        &self,
+        object: &ExchangeObject,
+        ours: &BTreeMap<String, String>,
+        base: Option<&BTreeMap<String, String>>,
+        carried: BTreeMap<String, String>,
+    ) -> BTreeMap<String, String> {
+        let mut next = match self {
+            Vocabulary::All => BTreeMap::new(),
+            Vocabulary::Tags { .. } => base.unwrap_or(ours).clone(),
+        };
+        next.retain(|f, _| !self.carries(object, f, ours));
+        next.extend(carried);
+        next
     }
 }
 
@@ -82,13 +123,14 @@ pub enum Choice {
 pub enum State {
     /// Changed in the file only, and the PLC or both own it: applied.
     Apply,
-    /// Changed in the file only, and the schematic owns it: a rejected PLC change.
+    /// Changed in the file only and not taken without a resolution: the schematic owns it, or the file leaves out a
+    /// value the project has (a rejected PLC change).
     Rejected,
     /// Changed in the project only: kept, and exported next time.
     Kept,
     /// Changed in the project only although the PLC owns it: kept, export pending.
     Pending,
-    /// Changed on both sides.
+    /// Changed on both sides, or on either side without a snapshot of the object.
     Conflict,
 }
 
@@ -132,7 +174,8 @@ pub struct Change {
     pub state: State,
     /// The side taken without a resolution.
     pub default: Choice,
-    /// Whether the file's value can be taken at all.
+    /// Whether the file's value can be taken at all: not for a field of no group, nor for a comment of the other
+    /// form (with languages, without a language) than the project's.
     pub acceptable: bool,
 }
 
@@ -204,6 +247,8 @@ pub struct Plan {
     pub parking: Vec<Parked>,
     /// The matched objects.
     pub matched: Vec<Matched>,
+    /// The field groups of which the file gives a value for a matched object.
+    pub carried: Vec<FieldGroup>,
 }
 
 /// One object of the project's image.
@@ -213,6 +258,29 @@ struct Mine {
     object: Object,
     taken: bool,
 }
+
+/// What matching made of a foreign object.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Decision {
+    /// The project's object at this index.
+    Mine(usize),
+    /// Parked; whether several objects of the project match it.
+    Parked(bool),
+    /// Not looked at: below a parked object, a rack, or a kind the file's format does not carry.
+    Skipped,
+}
+
+/// The kinds of objects in the order they are matched: a parent before what is below it.
+const LEVELS: [ExchangeObject; 5] = [
+    ExchangeObject::Station,
+    ExchangeObject::Module,
+    ExchangeObject::Channel,
+    ExchangeObject::Node,
+    ExchangeObject::Tag,
+];
+
+/// The passes of matching: see [`find`].
+const PASSES: usize = 3;
 
 /// The merge of `theirs` into the project whose image is `projection` and whose last exchange is `base`.
 pub fn merge(
@@ -232,99 +300,119 @@ pub fn merge(
         .collect();
     let foreign = objects(theirs);
     let mut plan = Plan::default();
-    // the project's record of every matched foreign object, by its ID in the file
-    let mut matched: BTreeMap<&str, usize> = BTreeMap::new();
-    // the foreign stations and modules that are parked: what is below them is not looked at
-    let mut skipped: BTreeSet<&str> = BTreeSet::new();
-    let mut compared: BTreeSet<String> = BTreeSet::new();
-    let channels: BTreeSet<&str> = foreign
+    // every foreign object by its ID in the file (the first of a repeated ID)
+    let index: BTreeMap<&str, usize> = foreign
         .iter()
-        .filter(|o| o.object == ExchangeObject::Channel)
-        .map(|o| o.id.as_str())
+        .enumerate()
+        .rev()
+        .map(|(i, o)| (o.id.as_str(), i))
         .collect();
+    let mut decided: Vec<Option<Decision>> = vec![None; foreign.len()];
+    // the project's object that the parent of a foreign object is, when the parent is matched
+    let parent_of = |decided: &[Option<Decision>], t: &Object| -> Option<usize> {
+        match decided[*index.get(t.parent.as_deref()?)?] {
+            Some(Decision::Mine(m)) => Some(m),
+            _ => None,
+        }
+    };
 
-    for t in &foreign {
-        if !options.vocabulary.holds(&t.object) {
-            continue;
-        }
-        if t.station.as_deref().is_some_and(|s| skipped.contains(s))
-            || t.parent.as_deref().is_some_and(|p| skipped.contains(p))
-        {
-            continue;
-        }
-        if t.object == ExchangeObject::Module && t.container {
-            continue;
-        }
-        // a tag of a channel that is in the file and has no counterpart goes with that channel's module
-        if t.object == ExchangeObject::Tag
-            && t.parent
-                .as_deref()
-                .is_some_and(|c| channels.contains(c) && !matched.contains_key(c))
-        {
-            continue;
-        }
-        let parent = t.parent.as_deref().and_then(|p| matched.get(p).copied());
-        let hit = find(&mine, base, t, parent);
-        let index = match hit {
-            Hit::One(i) => i,
-            Hit::New(target) => {
-                // a tag on a matched channel that has none in the project
-                mine.push(Mine {
-                    kind: ExchangeObject::Tag.name(),
-                    target,
-                    object: Object {
-                        object: ExchangeObject::Tag,
-                        id: String::new(),
-                        name: t.name.clone(),
-                        station: None,
-                        parent: None,
-                        designation: None,
-                        position: None,
-                        container: false,
-                        fields: BTreeMap::new(),
-                    },
-                    taken: false,
-                });
-                mine.len() - 1
+    for level in &LEVELS {
+        let at: Vec<usize> = (0..foreign.len())
+            .filter(|i| foreign[*i].object == *level)
+            .collect();
+        for &i in &at {
+            let t = &foreign[i];
+            let below_parked = [t.station.as_deref(), t.parent.as_deref()]
+                .into_iter()
+                .flatten()
+                .filter_map(|id| index.get(id))
+                .any(|j| matches!(decided[*j], Some(Decision::Parked(_) | Decision::Skipped)));
+            if !options.vocabulary.holds(&t.object)
+                || (t.object == ExchangeObject::Module && t.container)
+                || below_parked
+            {
+                decided[i] = Some(Decision::Skipped);
             }
-            Hit::None | Hit::Many => {
-                skipped.insert(&t.id);
-                plan.parking.push(park(
-                    t,
-                    &foreign,
-                    parent.map(|i| mine[i].target),
-                    hit == Hit::Many,
-                ));
+        }
+        for pass in 0..PASSES {
+            for &i in &at {
+                if decided[i].is_some() {
+                    continue;
+                }
+                let t = &foreign[i];
+                let parent = parent_of(&decided, t);
+                let Some(hit) = find(&mine, base, t, parent, pass) else {
+                    continue;
+                };
+                decided[i] = Some(match hit {
+                    Hit::One(m) => {
+                        mine[m].taken = true;
+                        Decision::Mine(m)
+                    }
+                    Hit::New(target) => {
+                        // a tag on a matched channel that has none in the project: compared with the values a tag of
+                        // the channel would have (its symbol without an address)
+                        let channel = parent.map(|p| mine[p].object.id.clone()).unwrap_or_default();
+                        mine.push(Mine {
+                            kind: ExchangeObject::Tag.name(),
+                            target,
+                            object: Object {
+                                object: ExchangeObject::Tag,
+                                id: String::new(),
+                                name: t.name.clone(),
+                                station: None,
+                                parent: None,
+                                designation: None,
+                                position: None,
+                                container: false,
+                                fields: projection.unaddressed.get(&channel).cloned().unwrap_or_default(),
+                            },
+                            taken: true,
+                        });
+                        Decision::Mine(mine.len() - 1)
+                    }
+                    Hit::None => Decision::Parked(false),
+                    Hit::Many => Decision::Parked(true),
+                });
+            }
+        }
+        for &i in &at {
+            decided[i].get_or_insert(Decision::Parked(false));
+        }
+    }
+
+    let mut compared: BTreeSet<String> = BTreeSet::new();
+    for (i, t) in foreign.iter().enumerate() {
+        let m = match decided[i] {
+            Some(Decision::Mine(m)) => &mine[m],
+            Some(Decision::Parked(ambiguous)) => {
+                let station = parent_of(&decided, t).map(|p| mine[p].target);
+                plan.parking.push(park(t, &foreign, station, ambiguous));
                 continue;
             }
+            _ => continue,
         };
-        mine[index].taken = true;
-        matched.insert(&t.id, index);
-        let m = &mine[index];
         if t.object == ExchangeObject::Station {
             compared.insert(m.object.id.clone());
         }
-        let empty = BTreeMap::new();
         let s = base.records.get(&(m.kind, m.target));
-        // A table's comment column is the comment in one language. Where the project's comment has no language,
-        // the column is that text: a text without a language reads the same in every language.
         let mut theirs_fields = t.fields.clone();
-        let neutral = match &options.vocabulary {
-            Vocabulary::Tags { comment } if comment != "comment" => {
-                let neutral =
-                    !m.object.fields.contains_key(comment) && m.object.fields.contains_key("comment");
-                if neutral && let Some(text) = theirs_fields.remove(comment) {
-                    theirs_fields.insert("comment".to_owned(), text);
-                }
-                neutral.then_some(comment.as_str())
+        if let Vocabulary::Tags { comment } = &options.vocabulary {
+            let column = options.vocabulary.column(&m.object.fields);
+            if column != comment
+                && let Some(text) = theirs_fields.remove(comment)
+            {
+                theirs_fields.insert(column.to_owned(), text);
             }
-            _ => None,
-        };
-        let covers = |f: &str| match neutral {
-            Some(language) if f == language => false,
-            Some(_) if f == "comment" => true,
-            _ => options.vocabulary.covers(&t.object, f),
-        };
+        }
+        for field in theirs_fields.keys() {
+            if let FieldClass::Group(g) = class(&t.object, field)
+                && !plan.carried.contains(&g)
+            {
+                plan.carried.push(g);
+            }
+        }
+        let covers = |f: &str| options.vocabulary.carries(&t.object, f, &m.object.fields);
         let subject = if m.object.name.is_empty() {
             &t.name
         } else {
@@ -342,25 +430,33 @@ pub fn merge(
                 m.target,
                 subject,
                 field,
-                s.unwrap_or(&empty).get(field),
+                s,
                 m.object.fields.get(field),
                 theirs_fields.get(field),
                 options.ownership,
             );
-            plan.changes.extend(change);
+            plan.changes.extend(change.map(|mut c| {
+                // the file's comment of the other form is never written: what would apply is a conflict
+                if c.object == ExchangeObject::Tag
+                    && c.theirs.is_some()
+                    && crosses_languages(field, &m.object.fields)
+                {
+                    if c.state == State::Apply {
+                        c.state = State::Conflict;
+                    }
+                    c.default = Choice::Ours;
+                    c.acceptable = false;
+                }
+                c
+            }));
         }
-        // the next snapshot: the file's values over what the file's format does not carry
-        let mut next = match &options.vocabulary {
-            Vocabulary::All => BTreeMap::new(),
-            Vocabulary::Tags { .. } => s.cloned().unwrap_or_else(|| m.object.fields.clone()),
-        };
-        next.retain(|f, _| !covers(f));
-        next.extend(theirs_fields);
         plan.matched.push(Matched {
             object: t.object.clone(),
             target: m.target,
             foreign: (!t.id.is_empty() && t.id != m.object.id).then(|| t.id.clone()),
-            fields: next,
+            fields: options
+                .vocabulary
+                .next(&t.object, &m.object.fields, s, theirs_fields),
         });
     }
 
@@ -387,6 +483,16 @@ pub fn merge(
     plan
 }
 
+/// Whether the file's value of comment field `field` would replace a project comment of the other form: a text
+/// without a language over one with languages, or a language over a text without one.
+fn crosses_languages(field: &str, ours: &BTreeMap<String, String>) -> bool {
+    match field {
+        "comment" => ours.keys().any(|k| k.starts_with("comment.")),
+        f if f.starts_with("comment.") => ours.contains_key("comment"),
+        _ => false,
+    }
+}
+
 #[derive(PartialEq, Eq)]
 enum Hit {
     /// The project's object at this index.
@@ -397,118 +503,87 @@ enum Hit {
     Many,
 }
 
-/// The project's object that the foreign object `t` is (A6).
-fn find(mine: &[Mine], base: &Snapshot, t: &Object, parent: Option<usize>) -> Hit {
+/// Pass `pass` of matching the foreign object `t` (A6), `parent` being the project's object its parent is; `None`
+/// when this pass does not decide it. Pass 0: the ID the project wrote, or the one a foreign-ID record holds. Pass
+/// 1: a station's or module's IEC designation (one that names no free object parks the object; a station without
+/// one is parked too), a channel's number and direction, a node's interface label, a tag's channel link, else its
+/// name. Pass 2: a module without a designation by its slot with its order number, a tag without a link by its
+/// address.
+fn find(mine: &[Mine], base: &Snapshot, t: &Object, parent: Option<usize>, pass: usize) -> Option<Hit> {
     let kind = t.object.name();
-    let free = |i: &usize| mine[*i].kind == kind && !mine[*i].taken;
-    let all: Vec<usize> = (0..mine.len()).filter(free).collect();
-    // 1. the ID the project wrote, or the one a foreign-ID record holds
-    if !t.id.is_empty() {
-        let by_foreign = base
-            .foreign
-            .get(&t.id)
-            .filter(|(k, _)| *k == kind)
-            .map(|(_, id)| *id);
-        if let Some(i) = all
-            .iter()
-            .copied()
-            .find(|i| mine[*i].object.id == t.id || Some(mine[*i].target) == by_foreign)
-        {
-            return Hit::One(i);
-        }
-    }
+    let free: Vec<usize> = (0..mine.len())
+        .filter(|i| mine[*i].kind == kind && !mine[*i].taken)
+        .collect();
     let one = |candidates: Vec<usize>| match candidates.as_slice() {
         [] => Hit::None,
         [i] => Hit::One(*i),
         _ => Hit::Many,
     };
-    // the objects of the project below the matched parent
-    let below: Vec<usize> = match parent {
-        Some(p) => all
-            .iter()
-            .copied()
-            .filter(|i| mine[*i].object.parent.as_deref() == Some(mine[p].object.id.as_str()))
-            .collect(),
-        None => Vec::new(),
+    let of = |f: &dyn Fn(&Object) -> bool| -> Vec<usize> {
+        free.iter().copied().filter(|i| f(&mine[*i].object)).collect()
     };
-    match t.object {
-        ExchangeObject::Station => {
-            // 2. the IEC designation, then 4. the type
-            let by = |f: &dyn Fn(&Object) -> bool| -> Vec<usize> {
-                all.iter().copied().filter(|i| f(&mine[*i].object)).collect()
-            };
-            if t.designation.is_some() {
-                let hit = one(by(&|o| o.designation == t.designation));
-                if hit != Hit::None {
-                    return hit;
+    // the free objects of the project below the matched parent
+    let below = |f: &dyn Fn(&Object) -> bool| -> Vec<usize> {
+        let Some(p) = parent else {
+            return Vec::new();
+        };
+        let id = mine[p].object.id.as_str();
+        free.iter()
+            .copied()
+            .filter(|i| mine[*i].object.parent.as_deref() == Some(id) && f(&mine[*i].object))
+            .collect()
+    };
+    match (pass, &t.object) {
+        (0, _) => {
+            if t.id.is_empty() {
+                return None;
+            }
+            let by_foreign = base
+                .foreign
+                .get(&t.id)
+                .filter(|(k, _)| *k == kind)
+                .map(|(_, id)| *id);
+            free.iter()
+                .copied()
+                .find(|i| mine[*i].object.id == t.id || Some(mine[*i].target) == by_foreign)
+                .map(Hit::One)
+        }
+        (1, ExchangeObject::Station) => Some(match t.designation {
+            Some(_) => one(of(&|o| o.designation == t.designation)),
+            None => Hit::None,
+        }),
+        (1, ExchangeObject::Module) => t
+            .designation
+            .is_some()
+            .then(|| one(below(&|o| o.designation == t.designation))),
+        (2, ExchangeObject::Module) => Some(one(below(&|o| {
+            o.position == t.position && o.fields.get("order_number") == t.fields.get("order_number")
+        }))),
+        (1, ExchangeObject::Channel) => Some(one(below(&|o| {
+            o.position == t.position && o.fields.get("io") == t.fields.get("io")
+        }))),
+        (1, ExchangeObject::Node) => Some(one(below(&|o| o.designation == t.designation))),
+        // the tag of the channel its link names; parked when that channel is not matched or its tag is taken
+        (1, ExchangeObject::Tag) if t.parent.is_some() => Some(match parent {
+            Some(p) => {
+                let target = mine[p].target;
+                match mine.iter().position(|m| m.kind == kind && m.target == target) {
+                    Some(i) if !mine[i].taken => Hit::One(i),
+                    Some(_) => Hit::None,
+                    None => Hit::New(target),
                 }
             }
-            match t.fields.get("type") {
-                Some(ty) => one(by(&|o| o.fields.get("type") == Some(ty))),
-                None => Hit::None,
-            }
-        }
-        ExchangeObject::Module => {
-            let by = |f: &dyn Fn(&Object) -> bool| -> Vec<usize> {
-                below.iter().copied().filter(|i| f(&mine[*i].object)).collect()
-            };
-            // 2. the IEC designation, 3. the slot, 4. the order number
-            if t.designation.is_some() {
-                let hit = one(by(&|o| o.designation == t.designation));
-                if hit != Hit::None {
-                    return hit;
-                }
-            }
-            let hit = one(by(&|o| o.position == t.position));
-            if hit != Hit::None {
-                return hit;
-            }
-            match t.fields.get("order_number") {
-                Some(n) => one(by(&|o| o.fields.get("order_number") == Some(n))),
-                None => Hit::None,
-            }
-        }
-        ExchangeObject::Channel => one(below
-            .iter()
-            .copied()
-            .filter(|i| {
-                let o = &mine[*i].object;
-                o.position == t.position && o.fields.get("io") == t.fields.get("io")
-            })
-            .collect()),
-        ExchangeObject::Node => one(below
-            .iter()
-            .copied()
-            .filter(|i| mine[*i].object.designation == t.designation)
-            .collect()),
-        ExchangeObject::Tag => {
-            // the tag of the channel its link names
-            if t.parent.is_some() {
-                return match parent {
-                    Some(p) => {
-                        let target = mine[p].target;
-                        match all.iter().copied().find(|i| mine[*i].target == target) {
-                            Some(i) => Hit::One(i),
-                            None => Hit::New(target),
-                        }
-                    }
-                    // the channel its link names is not in the file
-                    None => Hit::None,
-                };
-            }
-            let by = |f: &dyn Fn(&Object) -> bool| -> Vec<usize> {
-                all.iter().copied().filter(|i| f(&mine[*i].object)).collect()
-            };
-            let hit = one(by(&|o| o.name == t.name));
-            if hit != Hit::None {
-                return hit;
-            }
-            match t.fields.get("address") {
-                Some(a) => one(by(&|o| o.fields.get("address") == Some(a))),
-                None => Hit::None,
-            }
-        }
-        _ => Hit::None,
+            None => Hit::None,
+        }),
+        (1, ExchangeObject::Tag) => match one(of(&|o| o.name == t.name)) {
+            Hit::None => None,
+            hit => Some(hit),
+        },
+        (2, ExchangeObject::Tag) if t.parent.is_none() => Some(match t.fields.get("address") {
+            Some(a) => one(of(&|o| o.fields.get("address") == Some(a))),
+            None => Hit::None,
+        }),
+        _ => None,
     }
 }
 
@@ -560,14 +635,15 @@ fn park(t: &Object, foreign: &[Object], station: Option<AnyId>, ambiguous: bool)
     }
 }
 
-/// The change of one field, `None` when both sides agree.
+/// The change of one field, `None` when both sides agree; `record` is the object's snapshot, `None` before its
+/// first exchange.
 #[allow(clippy::too_many_arguments)]
 fn resolve(
     object: &ExchangeObject,
     target: AnyId,
     subject: &str,
     field: &str,
-    s: Option<&String>,
+    record: Option<&BTreeMap<String, String>>,
     e: Option<&String>,
     t: Option<&String>,
     ownership: Option<&Ownership>,
@@ -575,6 +651,7 @@ fn resolve(
     if e == t {
         return None;
     }
+    let s = record.and_then(|r| r.get(field));
     let (group, owner) = match class(object, field) {
         FieldClass::Group(g) => {
             let owner = Ownership::owner(ownership, &g);
@@ -582,9 +659,13 @@ fn resolve(
         }
         FieldClass::Ecad => (None, None),
     };
-    let (ours_changed, theirs_changed) = (e != s, t != s);
+    // without a snapshot every difference is a change of both sides: a conflict with the owner's default
+    let (ours_changed, theirs_changed) = match record {
+        Some(_) => (e != s, t != s),
+        None => (true, true),
+    };
     let plc = owner == Some(Owner::Plc);
-    let (state, default) = match (ours_changed, theirs_changed) {
+    let (mut state, mut default) = match (ours_changed, theirs_changed) {
         (false, _) if plc || owner == Some(Owner::Shared) => (State::Apply, Choice::Theirs),
         (false, _) => (State::Rejected, Choice::Ours),
         (true, false) if plc => (State::Pending, Choice::Ours),
@@ -593,6 +674,13 @@ fn resolve(
         (true, true) if group.is_none() => (State::Rejected, Choice::Ours),
         (true, true) => (State::Conflict, Choice::Ours),
     };
+    // a value the file leaves out is no deletion: it is listed and kept unless the file's side is chosen
+    if t.is_none() {
+        if state == State::Apply {
+            state = State::Rejected;
+        }
+        default = Choice::Ours;
+    }
     Some(Change {
         id: format!("{}/{target}/{field}", object.name()),
         object: object.clone(),

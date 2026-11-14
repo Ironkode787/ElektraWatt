@@ -14,7 +14,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ew_caex::{ExchangeImage, IoType, XItem};
+use ew_caex::{ExchangeImage, IoType, XItem, XTag};
 use ew_derive::Q;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_schema::{AnyId, ExchangeObject, ExchangeRecord, FieldGroup, ForeignId, PlcConfigProject};
@@ -110,18 +110,30 @@ pub fn field_words(object: &ExchangeObject, field: &str) -> String {
     words.to_owned()
 }
 
+/// Puts `value` under `name`, without its leading and trailing white space, which the readers of AML and tables do
+/// not keep either: so a value that only differs in it is no change. An empty value is left out.
 fn put(fields: &mut BTreeMap<String, String>, name: &str, value: Option<impl ToString>) {
-    if let Some(v) = value.map(|v| v.to_string()).filter(|v| !v.is_empty()) {
+    if let Some(v) = value.map(|v| v.to_string().trim().to_owned()).filter(|v| !v.is_empty()) {
         fields.insert(name.to_owned(), v);
     }
 }
 
 /// A tag's address with its area letter (`Q0.1`): a table's `%Q0.1` without the prefix, an AML address (`0.1`)
-/// with the letter of its direction.
+/// with the letter of its direction. The German mnemonics of TIA Portal are the international ones (`%A0.1` is
+/// `Q0.1`, `%E0.1` is `I0.1`, `PEW` is `PIW`): no international area starts with `A` or `E`.
 pub(crate) fn tag_address(io: Option<IoType>, address: &str) -> String {
     let text = address.trim().trim_start_matches('%');
     if text.starts_with(|c: char| c.is_ascii_alphabetic()) {
-        return text.to_ascii_uppercase();
+        let text = text.to_ascii_uppercase();
+        let (peripheral, rest) = match text.strip_prefix('P') {
+            Some(rest) if rest.starts_with(['A', 'E']) => ("P", rest),
+            _ => ("", text.as_str()),
+        };
+        return match (rest.strip_prefix('A'), rest.strip_prefix('E')) {
+            (Some(rest), _) => format!("{peripheral}Q{rest}"),
+            (_, Some(rest)) => format!("{peripheral}I{rest}"),
+            _ => text.clone(),
+        };
     }
     let area = match io {
         Some(IoType::Input) => "I",
@@ -129,6 +141,27 @@ pub(crate) fn tag_address(io: Option<IoType>, address: &str) -> String {
         None => "",
     };
     format!("{area}{text}")
+}
+
+/// The exchanged values of a tag: `name`, `data_type`, `address` and `comment` (`comment.<language>`).
+pub(crate) fn tag_fields(tag: &XTag) -> BTreeMap<String, String> {
+    let mut fields = BTreeMap::new();
+    put(&mut fields, "name", Some(&tag.name));
+    put(&mut fields, "data_type", tag.data_type.as_ref());
+    put(
+        &mut fields,
+        "address",
+        tag.address.as_ref().map(|a| tag_address(tag.io, a)),
+    );
+    for (lang, text) in &tag.comment {
+        let field = if lang.is_empty() {
+            "comment".to_owned()
+        } else {
+            format!("comment.{lang}")
+        };
+        put(&mut fields, &field, Some(text));
+    }
+    fields
 }
 
 /// The exchanged objects of `image`: stations, their modules (at any depth) with their channels, the bus nodes,
@@ -242,22 +275,7 @@ pub fn objects(image: &ExchangeImage) -> Vec<Object> {
         }
     }
     for tag in &image.tags {
-        let mut fields = BTreeMap::new();
-        put(&mut fields, "name", Some(&tag.name));
-        put(&mut fields, "data_type", tag.data_type.as_ref());
-        put(
-            &mut fields,
-            "address",
-            tag.address.as_ref().map(|a| tag_address(tag.io, a)),
-        );
-        for (lang, text) in &tag.comment {
-            let field = if lang.is_empty() {
-                "comment".to_owned()
-            } else {
-                format!("comment.{lang}")
-            };
-            put(&mut fields, &field, Some(text));
-        }
+        let fields = tag_fields(tag);
         let of = tag.channel.as_deref().and_then(|c| channels.get(c));
         out.push(Object {
             object: ExchangeObject::Tag,

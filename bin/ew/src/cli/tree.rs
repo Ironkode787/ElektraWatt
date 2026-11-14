@@ -798,16 +798,16 @@ enum ExportCli {
     ///
     /// Writes the sheet `PLC Tags` with the columns Name, Path, Data Type, Logical Address, Comment, Hmi Visible,
     /// Hmi Accessible, Hmi Writeable, Typeobject ID and Version ID to `--out` (required): one row per channel with
-    /// a symbol and an address (`%Q0.1`), the comment in `--lang`. Recorded and saved as `export plc-aml`; warns
-    /// while no PLC import has confirmed the addresses.
+    /// a symbol and an address (`%Q0.1`), the comment in `--lang`. Recorded and saved as `export plc-aml`, for the
+    /// tags' fields it carries only; warns while no PLC import has confirmed the addresses.
     #[command(alias = "plc-tags")]
     PlcXlsx(PlcExportCli),
     /// Write the tags of a PLC configuration project as a PLCopen XML global variable list.
     ///
     /// Writes PLCopen XML (TC6 v2.01) with the global variable list `IO_ElektraWatt` to `--out` (required): one
     /// variable per channel with a symbol and an address, the address in IEC notation (`%QX0.1`), the function
-    /// text and the signal pin as its documentation. Recorded and saved as `export plc-aml`; a symbol that is no
-    /// IEC identifier blocks the export (EW-PLC-005).
+    /// text and the signal pin as its documentation. Not recorded: the list never comes back, so it is no base of
+    /// an import. A symbol that is no IEC identifier blocks the export (EW-PLC-005).
     Plcopen(PlcExportCli),
 }
 

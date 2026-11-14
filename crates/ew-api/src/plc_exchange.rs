@@ -5,7 +5,8 @@
 //! a file that comes back, the exchange status and the instrument list.
 //!
 //! Nothing here writes: an export returns the file's bytes and the `plc.record_exchange` command that records them
-//! as the base of the next merge; an import returns its preview (the merge of `ew-plc` on the session's snapshot)
+//! as the base of the next merge (an AML file or a tag table; PLCopen XML never comes back and is not recorded); an
+//! import returns its preview (the merge of `ew-plc` on the session's snapshot)
 //! and the `plc.apply_exchange` command whose own run makes the same merge, so what was previewed is what is
 //! applied. The host writes the file, runs the command and saves.
 //!
@@ -155,8 +156,9 @@ pub struct PlcExport {
     pub bytes: Vec<u8>,
     /// A name for the file: the configuration project's name with the format's extension.
     pub file_name: String,
-    /// `plc.record_exchange` for this file: run it once the file is written.
-    pub record: AnyCommand,
+    /// `plc.record_exchange` for this file: run it once the file is written. `None` for PLCopen XML, which never
+    /// comes back and so is no base of a merge.
+    pub record: Option<AnyCommand>,
     /// What the reader of the file should know (addresses not confirmed by the PLC configuration).
     pub warnings: Vec<String>,
     /// The stations, modules, channels and tags in the file.
@@ -373,7 +375,7 @@ impl Session {
             }
         };
         let (stamp_format, version) = format.stamp();
-        let record = AnyCommand {
+        let record = (format != PlcFormat::Plcopen).then(|| AnyCommand {
             name: "plc.record_exchange".to_owned(),
             params: json!({
                 "config_project": cfg.to_string(),
@@ -382,8 +384,9 @@ impl Session {
                 "version": version,
                 "file_sha256": sha256(&bytes),
                 "date": date,
+                "comment_lang": if format == PlcFormat::TiaXlsx { options.lang.clone() } else { None },
             }),
-        };
+        });
         Ok(PlcExport {
             bytes,
             file_name,

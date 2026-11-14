@@ -595,7 +595,7 @@ impl SetFields {
                 refuse_foreign_covers(tx, t.cast())?;
             }
         }
-        if matches!(self.kind, KindName::Device | KindName::Function) {
+        if matches!(self.kind, KindName::Device | KindName::Function | KindName::Channel) {
             crate::commands::plc_exchange::refuse_owned_edits(tx)?;
         }
         Ok(())

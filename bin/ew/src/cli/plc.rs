@@ -42,8 +42,8 @@ fn document_date() -> Result<Option<ew_api::plc_exchange::Date>, String> {
 }
 
 /// `ew export plc-aml | plc-xlsx | plcopen`: the configuration project as an exchange file in `--out`, written whole
-/// or not at all, and recorded in the project as the base of the next import's merge (`plc.record_exchange`), which is
-/// saved.
+/// or not at all; an AML file or a tag table is recorded in the project as the base of the next import's merge
+/// (`plc.record_exchange`), which is saved.
 pub(super) fn run_plc_export(a: &PlcExportArgs) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
@@ -79,23 +79,29 @@ pub(super) fn run_plc_export(a: &PlcExportArgs) -> i32 {
         session.close();
         return 2;
     }
-    if let Err(e) = session.execute(&export.record) {
-        eprintln!("error: the file is written, but the exchange is not recorded: {e}");
-        session.close();
-        return 2;
+    if let Some(record) = &export.record {
+        if let Err(e) = session.execute(record) {
+            eprintln!("error: the file is written, but the exchange is not recorded: {e}");
+            session.close();
+            return 2;
+        }
+        if !save(&mut session) {
+            session.close();
+            return 2;
+        }
     }
-    let saved = save(&mut session);
     session.close();
-    if !saved {
-        return 2;
-    }
     for w in &export.warnings {
         eprintln!("warning: {w}");
     }
     let [stations, modules, channels, tags] = export.counts;
     println!(
-        "wrote {stations} station(s), {modules} module(s), {channels} channel(s) and {tags} tag(s); the exchange is \
-         recorded in the project"
+        "wrote {stations} station(s), {modules} module(s), {channels} channel(s) and {tags} tag(s){}",
+        if export.record.is_some() {
+            "; the exchange is recorded in the project"
+        } else {
+            ""
+        }
     );
     0
 }

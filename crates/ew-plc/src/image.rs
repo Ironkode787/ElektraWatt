@@ -54,6 +54,9 @@ pub struct Projection {
     pub targets: BTreeMap<String, (ExchangeObject, AnyId)>,
     /// Per tag of the image, in the image's order, what it is in the model.
     pub tags: Vec<TagInfo>,
+    /// Per image ID of a channel with a symbol and no address, which has no tag in the image, the values its tag
+    /// would have: what a file's tag of that channel is compared with.
+    pub unaddressed: BTreeMap<String, BTreeMap<String, String>>,
 }
 
 /// The exchange image of configuration project `cfg` (doc 10 §4.2); with `stations`, of those stations only.
@@ -162,34 +165,42 @@ pub fn exchange_image(
                         a.size.bits()
                     }),
                 });
-                let (Some(symbol), Some(address)) = (&row.text.symbol, address) else {
+                let Some(symbol) = &row.text.symbol else {
                     continue;
                 };
-                let tag: Id<()> = ew_derive::ew_ids::v5::plc_tag_id(row.channel);
-                out.targets
-                    .insert(tag.to_string(), (ExchangeObject::Tag, row.channel.cast()));
                 let comment = q
                     .table::<Channel>()
                     .get(row.channel)
                     .map(|c| c.comment.clone())
                     .filter(|c| !c.is_empty())
                     .or_else(|| row.text.function_text.clone());
-                out.image.tags.push(XTag {
-                    id: tag.to_string(),
+                let mut tag = XTag {
+                    id: String::new(),
                     name: symbol.clone(),
                     data_type: row.data_type.clone(),
-                    io: match address.area {
-                        Area::I | Area::Pi => Some(IoType::Input),
-                        Area::Q | Area::Pq => Some(IoType::Output),
-                        Area::M => None,
-                    },
-                    address: Some(match address.bit {
-                        Some(bit) => format!("{}.{bit}", address.byte),
-                        None => address.byte.to_string(),
-                    }),
+                    io: None,
+                    address: None,
                     comment: comment.as_ref().map(comment_map).unwrap_or_default(),
-                    channel: Some(id),
+                    channel: Some(id.clone()),
+                };
+                let Some(address) = address else {
+                    out.unaddressed.insert(id, crate::fields::tag_fields(&tag));
+                    continue;
+                };
+                let tag_id: Id<()> = ew_derive::ew_ids::v5::plc_tag_id(row.channel);
+                out.targets
+                    .insert(tag_id.to_string(), (ExchangeObject::Tag, row.channel.cast()));
+                tag.id = tag_id.to_string();
+                tag.io = match address.area {
+                    Area::I | Area::Pi => Some(IoType::Input),
+                    Area::Q | Area::Pq => Some(IoType::Output),
+                    Area::M => None,
+                };
+                tag.address = Some(match address.bit {
+                    Some(bit) => format!("{}.{bit}", address.byte),
+                    None => address.byte.to_string(),
                 });
+                out.image.tags.push(tag);
                 out.tags.push(TagInfo {
                     channel: row.channel,
                     address,

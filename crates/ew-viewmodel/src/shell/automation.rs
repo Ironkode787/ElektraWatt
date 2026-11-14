@@ -694,7 +694,10 @@ impl ShellModel {
         if let Err(e) = super::external::write_replacing(&path, &export.bytes) {
             return failed(key!("error-plc-export"), &[&e.to_string()]);
         }
-        let out = self.run_commit(&export.record);
+        let out = export
+            .record
+            .as_ref()
+            .map_or(Outcome::Done, |record| self.run_commit(record));
         if out == Outcome::Done {
             let [stations, modules, channels, tags] = export.counts.map(|n| n.to_string());
             let mut text = strings::format(

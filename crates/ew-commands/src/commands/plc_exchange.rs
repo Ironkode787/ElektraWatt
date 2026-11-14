@@ -19,7 +19,7 @@ use ew_plc::{Change, Choice, MergeOptions, Parked, ParkedModule, Vocabulary};
 use ew_schema::{
     AddrSpec, AddrValue, AnyId, BusSystem, Channel, ChannelState, Date, Device, DeviceAspects,
     ExchangeDirection, ExchangeFormat, ExchangeObject, ExchangeRecord, ExchangeStamp, Extra, FieldGroup,
-    ForeignId, FrozenTag, Function, Kind, NetAddress, Ownership, PlcAddress, PlcArea, PlcConfigProject,
+    ForeignId, FrozenTag, Function, Kind, NetAddress, Owner, Ownership, PlcAddress, PlcArea, PlcConfigProject,
     PlcModule, PlcSize, PlcStation, ProfinetAddress, RackSlot, Sha256, SlotPath, StationRole, TagSpec,
     TypeIdent,
 };
@@ -61,8 +61,9 @@ fn group_words(group: &FieldGroup) -> Text {
 }
 
 /// Refuses the transaction when it edits a field the PLC owns (doc 10 §3.9, FR-PLC-033): a module's start, a
-/// station's firmware or the address of a bus port, in a configuration project whose first import protected that
-/// group and `plc.unlock` has not lifted it since. Judged on what the transaction changed against its base, so
+/// station's firmware, the address of a bus port, or (when the configuration project gives symbols to the PLC) a
+/// channel's symbol, data type or comment, in a configuration project whose first import protected that group and
+/// `plc.unlock` has not lifted it since. Judged on what the transaction changed against its base, so
 /// every path of an edit is covered (`plc.set_start`, `plc.readdress`, `plc.convert_manual_to_auto`, `fields.set`
 /// and `fields.set_many` call it); a device or function the transaction creates is no edit. The import itself
 /// (`plc.apply_exchange`) does not call it.
@@ -107,9 +108,26 @@ pub(crate) fn refuse_owned_edits(tx: &TxBuilder<'_>) -> Result<(), CmdError> {
         let Some(before) = before.get::<Function>() else {
             continue;
         };
+        // a port added to a function is no edit of an address the PLC set
         let address = |f: &Function| f.bus_port.as_ref().map(|p| p.address.clone());
-        if let (true, Some(device)) = (address(before) != address(&now), now.device) {
+        if let (true, Some(device)) = (
+            address(before).is_some() && address(before) != address(&now),
+            now.device,
+        ) {
             refuse(device, FieldGroup::PlcData)?;
+        }
+    }
+    for key in tx.changed_of(Kind::Channel) {
+        let id: Id<Channel> = key.1.cast();
+        let (Some(before), Some(now)) = (tx.base_row(&key), tx.get::<Channel>(id)) else {
+            continue;
+        };
+        let Some(before) = before.get::<Channel>() else {
+            continue;
+        };
+        let symbol = |c: &Channel| (c.symbol.clone(), c.data_type.clone(), c.comment.clone());
+        if symbol(before) != symbol(&now) {
+            refuse(now.module, FieldGroup::Symbols)?;
         }
     }
     Ok(())
@@ -176,7 +194,8 @@ type Entry = (ExchangeObject, AnyId, Option<String>, BTreeMap<String, String>);
 
 /// Writes the snapshot records of `entries` and removes those of `gone`; with `whole`, every other record of the
 /// configuration project's stations, modules, channels, tags and nodes goes too (the exchange covered the whole
-/// configuration project), else only those whose record the project no longer has. Instrument rows stay.
+/// configuration project), else only those whose record the project no longer has. Instrument rows stay. A foreign
+/// ID goes with an object of `gone` and with a record the project no longer has.
 fn write_snapshot(
     tx: &mut TxBuilder<'_>,
     cfg: Id<PlcConfigProject>,
@@ -185,6 +204,7 @@ fn write_snapshot(
     whole: bool,
 ) -> Result<(), CmdError> {
     let mut kept: BTreeSet<Id<ExchangeRecord>> = BTreeSet::new();
+    let mut kept_foreign: BTreeSet<Id<ForeignId>> = BTreeSet::new();
     for (object, target, foreign, fields) in entries {
         let id: Id<ExchangeRecord> =
             ew_ids::v5::exchange_id(cfg, "exchange", object.name(), target.as_uuid());
@@ -211,6 +231,7 @@ fn write_snapshot(
                 foreign,
                 extra: Extra::new(),
             };
+            kept_foreign.insert(record.id);
             if tx.get::<ForeignId>(record.id).as_deref() != Some(&record) {
                 tx.put(record);
             }
@@ -220,15 +241,27 @@ fn write_snapshot(
         .iter()
         .map(|(o, t)| ew_ids::v5::exchange_id(cfg, "exchange", o.name(), t.as_uuid()))
         .collect();
+    let lost = |tx: &TxBuilder<'_>, target: AnyId| {
+        !(tx.exists::<Device>(target.cast())
+            || tx.exists::<Channel>(target.cast())
+            || tx.exists::<Function>(target.cast()))
+    };
     for r in tx.iter::<ExchangeRecord>() {
         if r.config_project != cfg || r.object == ExchangeObject::Instrument || kept.contains(&r.id) {
             continue;
         }
-        let lost = !(tx.exists::<Device>(r.target.cast())
-            || tx.exists::<Channel>(r.target.cast())
-            || tx.exists::<Function>(r.target.cast()));
-        if whole || lost || gone.contains(&r.id) {
+        if whole || lost(tx, r.target) || gone.contains(&r.id) {
             tx.delete_if_exists((Kind::ExchangeRecord, r.id.cast()))?;
+        }
+    }
+    for r in tx.iter::<ForeignId>() {
+        if r.config_project != cfg || kept_foreign.contains(&r.id) {
+            continue;
+        }
+        let record: Id<ExchangeRecord> =
+            ew_ids::v5::exchange_id(cfg, "exchange", r.object.name(), r.target.as_uuid());
+        if lost(tx, r.target) || gone.contains(&record) {
+            tx.delete_if_exists((Kind::ForeignId, r.id.cast()))?;
         }
     }
     Ok(())
@@ -249,13 +282,16 @@ fn known_format(name: &'static str, format: &ExchangeFormat) -> Result<(), CmdEr
 /// `plc.record_exchange` (`RecordExchange`, doc 10 §4.4 "Record AML exchange"): records an export of a configuration
 /// project as the base of the next import's merge.
 ///
-/// Writes the exchange snapshot (`exchange/<config-project>.jsonl`): one `exchange_record` per station, module,
-/// channel, tag and bus node of the exchange image, with the values as exported, and the configuration project's
-/// stamp `exchange {format, version, file_sha256, direction: export, date}`. With `stations`, the snapshot of those
-/// stations only; the records of the others stay. The image is the one the export wrote: the configuration project
-/// as it is on the transaction's base. The date is the export's document date, a parameter: a command reads no clock.
-/// EW-PLC-016 reports the configuration project once it differs from this snapshot (FR-PLC-035). Rejected: a record
-/// that does not exist ([`CmdError::NotFound`]); a format of a newer build (at `/format`). Undoable. Outcome: the
+/// Writes the exchange snapshot (`exchange/<config-project>.jsonl`) for what the file carries, with the values as
+/// exported, and the configuration project's stamp `exchange {format, version, file_sha256, direction: export,
+/// date}`. An AML file (`aml`) carries every station, module, channel, tag and bus node: one `exchange_record` each,
+/// and with `stations` those of the stations only, the records of the others staying. A tag table (`tia_xlsx`)
+/// carries the tags' names, data types, addresses and the comment in `comment_lang`: a tag's record takes those, and
+/// keeps every other value it holds; every other record stays. The image is the one the export wrote: the
+/// configuration project as it is on the transaction's base. The date is the export's document date, a parameter: a
+/// command reads no clock. EW-PLC-016 reports the configuration project once it differs from this snapshot
+/// (FR-PLC-035). Rejected: a record that does not exist ([`CmdError::NotFound`]); a format of a newer build or
+/// `plcopen`, which never comes back and so is no base of a merge (at `/format`). Undoable. Outcome: the
 /// configuration project.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -276,6 +312,26 @@ pub struct RecordExchange {
     pub file_sha256: Sha256,
     /// The export's document date.
     pub date: Date,
+    /// The language of a tag table's comment column; absent: a comment without a language.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub comment_lang: Option<String>,
+}
+
+/// The fields an exchange file of `format` carries, a tag table's comment column being the comment in `lang`;
+/// refused for `plcopen` and a format of a newer build, which are neither imported nor a merge's base.
+fn vocabulary(name: &'static str, format: &ExchangeFormat, lang: Option<&str>) -> Result<Vocabulary, CmdError> {
+    known_format(name, format)?;
+    match format {
+        ExchangeFormat::TiaXlsx => Ok(Vocabulary::Tags {
+            comment: ew_plc::tia::comment_field(lang),
+        }),
+        ExchangeFormat::Plcopen => Err(CmdError::invalid_params(
+            name,
+            "/format",
+            text!("refusal-plc-exchange-format", "plcopen"),
+        )),
+        _ => Ok(Vocabulary::All),
+    }
 }
 
 impl Command for RecordExchange {
@@ -286,7 +342,7 @@ impl Command for RecordExchange {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        known_format(Self::NAME, &self.format)?;
+        let vocabulary = vocabulary(Self::NAME, &self.format, self.comment_lang.as_deref())?;
         tx.require::<PlcConfigProject>(self.config_project)?;
         for s in &self.stations {
             tx.require::<Device>(*s)?;
@@ -296,11 +352,28 @@ impl Command for RecordExchange {
         let scope = (!self.stations.is_empty()).then_some(self.stations.as_slice());
         let projection = ew_plc::exchange_image(&q, self.config_project, scope)
             .ok_or_else(|| CmdError::internal("plc.record_exchange: no exchange image"))?;
+        let snapshot = ew_plc::snapshot(&q, self.config_project);
         let entries = ew_plc::ours(&projection)
             .into_iter()
-            .map(|(_, target, object)| (object.object, target, None, object.fields))
+            .filter(|(_, _, object)| vocabulary.holds(&object.object))
+            .map(|(kind, target, object)| {
+                let carried = object
+                    .fields
+                    .iter()
+                    .filter(|(f, _)| vocabulary.carries(&object.object, f, &object.fields))
+                    .map(|(f, v)| (f.clone(), v.clone()))
+                    .collect();
+                let fields = vocabulary.next(
+                    &object.object,
+                    &object.fields,
+                    snapshot.records.get(&(kind, target)),
+                    carried,
+                );
+                (object.object, target, None, fields)
+            })
             .collect();
-        write_snapshot(tx, self.config_project, entries, &[], scope.is_none())?;
+        let whole = scope.is_none() && vocabulary == Vocabulary::All;
+        write_snapshot(tx, self.config_project, entries, &[], whole)?;
         let stamp = ExchangeStamp {
             format: self.format.clone(),
             version: self.version.clone(),
@@ -336,22 +409,27 @@ pub enum Resolution {
 /// FR-PLC-032, FR-PLC-033): applies an exchange file of PLC software to a configuration project.
 ///
 /// `image` is the file as the neutral exchange image (an AML file, or the rows of a TIA tag table). Its objects are
-/// matched to the project's (the ID, the IEC designation, the position, the order number; a tag by its channel, its
-/// name, its address), and every field is resolved three ways against the last exchange's snapshot under the
-/// configuration project's ownership: a change of the file alone is applied when the PLC or both own the field and
-/// listed as a rejected PLC change when the schematic owns it; a change of the project alone is kept; a change of
-/// both is a conflict, taken from the file when the PLC owns the field and kept otherwise. `resolutions` overrides
-/// that per change (`ours` or `theirs`), by the change's key `<object>/<record>/<field>`; a field of no group
-/// (structure, designations, derived values) cannot be taken. A foreign object without a counterpart is parked and
+/// matched to the project's in passes over the whole file (the ID; the IEC designation, a designation that names
+/// nothing parking the object; a module's slot with its order number; a tag by its channel, its name, its address),
+/// and every field is resolved three ways against the last exchange's snapshot under the configuration project's
+/// ownership: a change of the file alone is applied when the PLC or both own the field and listed as a rejected PLC
+/// change when the schematic owns it; a change of the project alone is kept; a change of both, or any difference of
+/// an object the snapshot does not hold, is a conflict, taken from the file when the PLC owns the field and kept
+/// otherwise. A value the file leaves out is never taken by default. `resolutions` overrides that per change (`ours`
+/// or `theirs`), by the change's key `<object>/<record>/<field>`; a field of no group (structure, designations,
+/// derived values) cannot be taken, nor a comment without a language over one with languages or the other way
+/// round. A foreign object without a counterpart is parked and
 /// never created silently: `create` under its ID creates a parked station with its modules, or a parked module of a
 /// matched station, as unplaced devices. An object the last exchange held and the file no longer has is listed and
 /// kept. Only the stations in the file are compared, every station of the configuration project with `complete`.
 ///
 /// Written: a tag's name, data type and comment (`Channel.symbol`, `data_type`, `comment`); a module's start as a
-/// `manual` start; a station's firmware; a bus node's address (the PROFIBUS station address; the PROFINET device
-/// name, IP address, mask and gateway). Channel addresses stay `auto`. In the same transaction the snapshot becomes
-/// the file's image, the stamp `exchange {…, direction: import}` is set, and the PLC-owned groups are protected from
-/// here on (`ownership.imported`, every unlocked group locked again), so one undo restores all of it.
+/// `manual` start, and under the PLC's ownership every start the file gives a matched module, so that a module
+/// inserted later moves none; a station's firmware; a bus node's address (the PROFIBUS station address; the PROFINET
+/// device name, IP address, mask and gateway). Channel addresses stay `auto`. In the same transaction the snapshot
+/// takes the file's values of the fields its format carries, the stamp `exchange {…, direction: import}` is set,
+/// and the PLC-owned groups the file gave a value of are protected from here on (`ownership.imported`, and such a
+/// group locked again when it was unlocked), so one undo restores all of it.
 ///
 /// **Bulk:** it runs as a preview first; the outcome's notices list every change with its sides and what is done,
 /// the parked objects and the removed ones. A file equal to the last exchange and the project gives no change.
@@ -388,22 +466,6 @@ pub struct ApplyExchange {
     pub resolutions: BTreeMap<String, Resolution>,
 }
 
-impl ApplyExchange {
-    /// The merge options of this import under `ownership`.
-    fn options<'a>(&self, ownership: Option<&'a Ownership>) -> MergeOptions<'a> {
-        MergeOptions {
-            ownership,
-            complete: self.complete,
-            vocabulary: match self.format {
-                ExchangeFormat::TiaXlsx => Vocabulary::Tags {
-                    comment: ew_plc::tia::comment_field(self.comment_lang.as_deref()),
-                },
-                _ => Vocabulary::All,
-            },
-        }
-    }
-}
-
 impl Command for ApplyExchange {
     const NAME: &'static str = "plc.apply_exchange";
 
@@ -412,14 +474,7 @@ impl Command for ApplyExchange {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
-        known_format(Self::NAME, &self.format)?;
-        if self.format == ExchangeFormat::Plcopen {
-            return Err(CmdError::invalid_params(
-                Self::NAME,
-                "/format",
-                text!("refusal-plc-exchange-format", "plcopen"),
-            ));
-        }
+        let vocabulary = vocabulary(Self::NAME, &self.format, self.comment_lang.as_deref())?;
         let cfg = tx.require::<PlcConfigProject>(self.config_project)?;
         let base = tx.base_model().clone();
         let q = ew_derive::Q::new(&base);
@@ -430,7 +485,11 @@ impl Command for ApplyExchange {
             &projection,
             &snapshot,
             &self.image,
-            &self.options(cfg.ownership.as_ref()),
+            &MergeOptions {
+                ownership: cfg.ownership.as_ref(),
+                complete: self.complete,
+                vocabulary,
+            },
         );
 
         let pointer = |key: &str| format!("/resolutions/{}", key.replace('~', "~0").replace('/', "~1"));
@@ -463,15 +522,14 @@ impl Command for ApplyExchange {
             };
             if choice == Choice::Theirs {
                 if !c.acceptable {
-                    return Err(CmdError::invalid_params(
-                        Self::NAME,
-                        pointer(&c.id),
-                        text!(
-                            "refusal-plc-exchange-not-acceptable",
-                            ew_plc::field_words(&c.object, &c.field),
-                            c.subject.clone()
-                        ),
-                    ));
+                    let (field, subject) = (ew_plc::field_words(&c.object, &c.field), c.subject.clone());
+                    // an owned field the file cannot take is a comment of the other form than the project's
+                    let why = if c.group.is_some() {
+                        text!("refusal-plc-exchange-language", field, subject)
+                    } else {
+                        text!("refusal-plc-exchange-not-acceptable", field, subject)
+                    };
+                    return Err(CmdError::invalid_params(Self::NAME, pointer(&c.id), why));
                 }
                 if c.object == ExchangeObject::Node {
                     nodes.entry(c.target).or_default().push(c);
@@ -496,6 +554,24 @@ impl Command for ApplyExchange {
         }
         for (target, changes) in nodes {
             write_node(tx, target.cast(), &changes)?;
+        }
+        // Under the PLC's ownership every start the file gives a matched module becomes a manual start, also one
+        // equal to the project's, so that a module inserted later moves none of them (doc 10 §3.9, §4.4); a change
+        // decided for the project's side stays as it is.
+        let owner = |g: &FieldGroup| Ownership::owner(cfg.ownership.as_ref(), g);
+        if owner(&FieldGroup::ModuleStarts) == Owner::Plc {
+            for m in plan.matched.iter().filter(|m| m.object == ExchangeObject::Module) {
+                for field in ["start.input", "start.output"] {
+                    let decided = plan
+                        .changes
+                        .iter()
+                        .any(|c| c.object == m.object && c.target == m.target && c.field == field);
+                    let byte = m.fields.get(field).and_then(|t| t.parse::<u32>().ok());
+                    if let (false, Some(byte)) = (decided, byte) {
+                        freeze_start(tx, m.target.cast(), field == "start.input", byte)?;
+                    }
+                }
+            }
         }
 
         let mut entries: Vec<Entry> = plan
@@ -558,11 +634,20 @@ impl Command for ApplyExchange {
             extra: Extra::new(),
         };
         let date = self.date;
+        // the protection starts, and an unlocked group is locked again, only for what the PLC owns and the file gave
+        let owned: Vec<FieldGroup> = plan
+            .carried
+            .iter()
+            .filter(|g| owner(g) == Owner::Plc)
+            .cloned()
+            .collect();
         tx.update::<PlcConfigProject>(self.config_project, |c| {
             c.exchange = Some(stamp);
-            let ownership = c.ownership.get_or_insert_default();
-            ownership.imported.get_or_insert(date);
-            ownership.unlocked.clear();
+            if !owned.is_empty() {
+                let ownership = c.ownership.get_or_insert_default();
+                ownership.imported.get_or_insert(date);
+                ownership.unlocked.retain(|g| !owned.contains(g));
+            }
         })?;
         let mut outcome = Outcome::primary((Kind::PlcConfigProject, self.config_project.cast()));
         outcome.notices = notices;
@@ -627,23 +712,7 @@ fn write_field(tx: &mut TxBuilder<'_>, c: &Change) -> Result<(), CmdError> {
             let byte: u32 = text
                 .parse()
                 .map_err(|_| bad_value(c, "a start is a byte number"))?;
-            let input = field == "start.input";
-            let start = AddrSpec::Manual(PlcAddress {
-                area: if input { PlcArea::I } else { PlcArea::Q },
-                size: PlcSize::Bit,
-                byte,
-                bit: None,
-                extra: Extra::new(),
-            });
-            tx.update::<Device>(c.target.cast(), |d| {
-                if let Some(m) = d.aspects.plc_module.as_mut() {
-                    if input {
-                        m.start.input = start;
-                    } else {
-                        m.start.output = start;
-                    }
-                }
-            })
+            freeze_start(tx, c.target.cast(), field == "start.input", byte)
         }
         (ExchangeObject::Station, _) => {
             let v = ident(c)?;
@@ -655,6 +724,33 @@ fn write_field(tx: &mut TxBuilder<'_>, c: &Change) -> Result<(), CmdError> {
         }
         _ => Ok(()),
     }
+}
+
+/// A start at `byte` of the input (`input`) or output area, as an import and "create unplaced" write it.
+fn manual_start(input: bool, byte: u32) -> AddrSpec {
+    AddrSpec::Manual(PlcAddress {
+        area: if input { PlcArea::I } else { PlcArea::Q },
+        size: PlcSize::Bit,
+        byte,
+        bit: None,
+        extra: Extra::new(),
+    })
+}
+
+/// Makes the input (`input`) or output start of `module` the manual start at `byte`, unless it is one already.
+fn freeze_start(tx: &mut TxBuilder<'_>, module: Id<Device>, input: bool, byte: u32) -> Result<(), CmdError> {
+    tx.update::<Device>(module, |d| {
+        if let Some(m) = d.aspects.plc_module.as_mut() {
+            let start = if input {
+                &mut m.start.input
+            } else {
+                &mut m.start.output
+            };
+            if !matches!(start, AddrSpec::Manual(a) if a.byte == byte && a.bit.is_none()) {
+                *start = manual_start(input, byte);
+            }
+        }
+    })
 }
 
 /// Writes the file's values of the changes of one bus node into its port's address: the station address of a
@@ -782,16 +878,7 @@ fn new_device(
 /// A parked module as an unplaced child device of `station`: a rack slot at its position, its starts as `manual`
 /// starts, its order number in `type_ident`. It has no part, so no channels: assigning its part creates them.
 fn new_module(tx: &mut TxBuilder<'_>, station: Id<Device>, m: &ParkedModule) -> Result<Entry, CmdError> {
-    let start = |area: PlcArea, byte: Option<u32>| match byte {
-        Some(byte) => AddrSpec::Manual(PlcAddress {
-            area,
-            size: PlcSize::Bit,
-            byte,
-            bit: None,
-            extra: Extra::new(),
-        }),
-        None => AddrSpec::Auto,
-    };
+    let start = |input: bool, byte: Option<u32>| byte.map_or(AddrSpec::Auto, |b| manual_start(input, b));
     let mut module = PlcModule {
         slot: SlotPath::Rack(RackSlot {
             rack: 0,
@@ -809,8 +896,8 @@ fn new_module(tx: &mut TxBuilder<'_>, station: Id<Device>, m: &ParkedModule) -> 
             }),
         ..PlcModule::default()
     };
-    module.start.input = start(PlcArea::I, m.starts.0);
-    module.start.output = start(PlcArea::Q, m.starts.1);
+    module.start.input = start(true, m.starts.0);
+    module.start.output = start(false, m.starts.1);
     let id = new_device(
         tx,
         m.designation.as_deref(),
