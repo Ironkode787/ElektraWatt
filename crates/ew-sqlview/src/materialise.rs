@@ -88,11 +88,18 @@ fn plc_channels(q: &Q) -> Vec<Row> {
     let channels = q.table::<Channel>();
     let mut rows = Vec::new();
     for station in ew_derive::stations(q) {
-        let cfg = q
+        let cfg_row = q
             .devices()
             .get(station)
             .and_then(|d| d.aspects.plc_station.as_ref().map(|s| s.config_project))
-            .and_then(|c| q.table::<PlcConfigProject>().get(c).map(|c| c.name.to_string()));
+            .and_then(|c| q.table::<PlcConfigProject>().get(c).cloned());
+        let cfg = cfg_row.as_ref().map(|c| c.name.to_string());
+        let cpu = cfg_row.as_ref().and_then(|c| c.cpu).and_then(|d| tag_short(q, d));
+        let bus_address = match ew_derive::station_bus_address(q, station) {
+            Some(ew_derive::ew_schema::AddrValue::Tbd) => Some("TBD".to_owned()),
+            Some(ew_derive::ew_schema::AddrValue::Value(a)) => ew_derive::net_address_text(&a),
+            _ => None,
+        };
         for r in q.get::<PlcRows>(station).iter() {
             let ch = channels.get(r.channel);
             let source = ch.map(|c| match &c.address {
@@ -127,6 +134,16 @@ fn plc_channels(q: &Q) -> Vec<Row> {
                     .find(|c| c.idx == cp.idx)
                     .map(|c| c.designation.clone())
             });
+            let passed: Vec<String> = r
+                .passed
+                .iter()
+                .filter_map(|cp| q.functions().get(cp.function).and_then(|f| f.device))
+                .filter_map(|d| tag_short(q, d))
+                .collect();
+            let f_address = q
+                .devices()
+                .get(r.module)
+                .and_then(|d| d.aspects.plc_module.as_ref()?.safety.as_ref()?.f_dest);
             let mut row = Row::new(&PLC_CHANNEL);
             row.set("id", uuid(r.channel))
                 .set("station_id", uuid(station))
@@ -157,7 +174,11 @@ fn plc_channels(q: &Q) -> Vec<Row> {
                 .set("target", r.target_device.map(|d| tag_short(q, d)))
                 .set("target_pin", pin)
                 .set("signal_range", r.signal_range.clone())
-                .set("state", r.state.name());
+                .set("state", r.state.name())
+                .set("cpu", cpu.clone())
+                .set("bus_address", bus_address.clone())
+                .set("passed_terminals", json_array(&passed))
+                .set("f_address", f_address.map(i64::from));
             rows.push(row);
         }
     }

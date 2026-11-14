@@ -1067,6 +1067,30 @@ fn a_pin_bound_channel_traces_to_the_field_device() {
     assert_eq!(q.get::<PlcRows>(id(CARD))[0].target_device, Some(id(SENSOR)));
 }
 
+/// Doc 10 §3.5: the passed terminals are those on the path to the chosen target. A second terminal `-X2` on a branch
+/// of the signal that leads to no candidate is reached by the walk but not passed on the way to the lamp.
+#[test]
+fn only_the_terminals_on_the_path_to_the_target_are_passed() {
+    const TERM2: u128 = 0x815;
+    const TERM2_FN: u128 = 0x816;
+    let mut fx = traced_fixture(true);
+    fx.device(TERM2, "X", Some(2));
+    fx.function(TERM2_FN, Some(TERM2), DEF_TERM, true);
+    fx.rep(0x884, IO_PAGE, 0x871, &[TERM2_FN], 160_000_000, 0);
+    fx.push(json!({
+        "$k": "connection", "id": uid(0x893), "page": uid(IO_PAGE),
+        "a": {"cp": [uid(TERM_FN), 1]}, "b": {"cp": [uid(TERM2_FN), 0]},
+    }));
+    let m = fx.build();
+    let q = Q::new(&m);
+    let row = &q.get::<PlcRows>(id(CARD))[0];
+    assert_eq!(row.target_device, Some(id(LAMP)));
+    assert_eq!(
+        row.passed.iter().map(|p| p.function).collect::<Vec<_>>(),
+        [id(TERM_FN)]
+    );
+}
+
 /// FR-PLC-017: the template `{target.dt}_{pin}` gives `_201U3_Q1_14`-style symbols cleaned into IEC identifiers; a
 /// manual symbol wins; `{target.process_tag}` gives none for a target without a process tag, and the fallback
 /// `{target.process_tag|target.dt}` takes the tag.

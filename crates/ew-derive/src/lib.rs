@@ -145,6 +145,7 @@ pub use bond_carrier::{BondCarrierQ, Carrier};
 pub use bus::{
     BusSegment, BusSegments, NetMaster, NetMembers, NetMembersOf, SegmentMember, bus_address_text,
     bus_core_pins, bus_termination_text, external_partner_text, net_address_text, potential_member_count,
+    station_bus_address,
 };
 // The endpoint type of a carrier's ends (and of a component's members), for the crates above this one.
 pub use ew_model::EndpointKey;

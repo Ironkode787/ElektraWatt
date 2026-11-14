@@ -394,6 +394,23 @@ pub fn bus_address_text(port: &BusPort) -> Option<String> {
     }
 }
 
+/// The bus address of a PLC station as the I/O list and the channel view print it (doc 10 §5): the address of the
+/// first bus port (by function ID) of the station device that has one: `Tbd` for the open item, else a value that
+/// [`net_address_text`] prints. `None` when no port has such an address.
+pub fn station_bus_address(q: &Q, station: Id<Device>) -> Option<AddrValue> {
+    let mut functions: Vec<Id<Function>> = q.idx().functions_of_device(station).collect();
+    functions.sort();
+    let table = q.functions();
+    functions.into_iter().find_map(|f| {
+        let address = table.get(f)?.bus_port.as_ref()?.address.clone();
+        match &address {
+            AddrValue::Tbd => Some(address),
+            AddrValue::Value(a) => net_address_text(a).map(|_| address),
+            AddrValue::NotApplicable | AddrValue::Unknown(_) => None,
+        }
+    })
+}
+
 /// A bus address as reports print it: a PROFIBUS address as its number ("3"); a PROFINET address as its device name
 /// and, when set, its IPv4 address ("cpx-1 192.168.0.10"); an EtherCAT address as its position and alias ("pos 2",
 /// "alias 1001", "pos 2 alias 1001"); an IO-Link port as "port 3". `None` for an EtherCAT address without either and

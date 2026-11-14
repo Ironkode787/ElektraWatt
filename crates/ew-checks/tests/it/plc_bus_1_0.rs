@@ -364,6 +364,20 @@ fn ew_saf_001_f_destination() {
     assert!(found(&m, "EW-SAF-001").is_empty());
 }
 
+/// EW-SAF-002: a 1oo2 channel named as its own pair has no partner.
+#[test]
+fn ew_saf_002_a_channel_paired_with_itself_is_incomplete() {
+    let m = card(
+        "di",
+        "no",
+        &json!({}),
+        &json!({"safety": {"evaluation": "1oo2", "pair": ch(CARD, 0)}}),
+        &json!({}),
+    )
+    .build();
+    assert_eq!(forms(&found(&m, "EW-SAF-002")), ["incomplete"]);
+}
+
 /// EW-SAF-002 and EW-SAF-003 (FR-PLC-043): a 1oo2 channel without its partner; a pair reaching two sensors; a sensor
 /// not fed from the test-pulse pin.
 #[test]
@@ -446,6 +460,11 @@ fn bus_with_meta(
     cable: Option<&Value>,
     meta: &Value,
 ) -> ew_model::Model {
+    bus_fx(net, a, b, part, cable, meta).build()
+}
+
+/// [`bus_with_meta`]'s fixture.
+fn bus_fx(net: &Value, a: &Value, b: &Value, part: &Value, cable: Option<&Value>, meta: &Value) -> Fx {
     let mut fx = Fx::base();
     fx.fndef_with(
         PORT_DEF,
@@ -507,7 +526,50 @@ fn bus_with_meta(
         Ep::Cp(P_B + 1, 0),
         &json!({"kind": kind}),
     );
-    fx.build()
+    fx
+}
+
+/// EW-BUS-006: a segment compares its length to the nanometre (100.4 m is longer than the 100 m of 12 Mbit/s), and a
+/// segment of PROFINET ports that name no logical net is not held to PROFIBUS's 32 stations.
+#[test]
+fn ew_bus_006_judges_the_exact_length_and_profibus_segments_only() {
+    let mut fx = bus_fx(
+        &json!({"rate": 12_000_000}),
+        &json!({}),
+        &json!({}),
+        &json!({}),
+        Some(&json!({"cable_for": ["profibus_dp"]})),
+        &json!({}),
+    );
+    fx.rec_mut(&us(CABLE))["cable"] = json!({"length": {"manual": 100_400_000_000_i64}});
+    assert_eq!(forms(&found(&fx.build(), "EW-BUS-006")), ["length"]);
+
+    let mut fx = Fx::base();
+    fx.fndef_with(
+        PORT_DEF,
+        PORT_SYM,
+        &[(0, "A", Value::Null), (1, "B", Value::Null)],
+        &json!([]),
+        &json!({"contact_kind": "bus_port"}),
+    );
+    fx.push(json!({"$k": "physical_net", "id": us(PNET), "name": "PN", "medium": "copper"}));
+    for i in 0..33u32 {
+        let n = 0x3000 + u128::from(i) * 0x10;
+        fx.device(n, "A", Some(i + 1));
+        fx.push(json!({
+            "$k": "function", "id": us(n + 1), "device": us(n), "def": us(PORT_DEF),
+            "bus_port": {"interface": "X1", "bus": "profinet", "role": "device", "address": "tbd",
+                         "physical_net": us(PNET)},
+        }));
+        fx.push(json!({
+            "$k": "representation", "id": us(n + 0x10_001), "functions": [us(n + 1)], "page": us(P1),
+            "symbol": us(PORT_SYM), "pos": [i64::from(i) * 8_000_000, 0],
+        }));
+        if i > 0 {
+            fx.conn(n + 2, P1, Ep::Cp(n - 0x10 + 1, 1), Ep::Cp(n + 1, 0), &json!({"kind": {"bus": {}}}));
+        }
+    }
+    assert!(found(&fx.build(), "EW-BUS-006").is_empty());
 }
 
 /// EW-BUS-002, -005, -007 (FR-BUS-018): an address beyond the part's range, a rate the part does not support, a net

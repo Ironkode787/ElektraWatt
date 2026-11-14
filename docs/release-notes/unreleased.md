@@ -550,3 +550,19 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   (FT-1733)
 - fix: the shipped terminal symbols print a PLC address with Project ▸ Channel addresses at terminals (FT-1734); a small
   dialog is as wide as its buttons (FT-1736)
+- behaviour-change: EW-PLC-001 and EW-PLC-007 refuse an edit only when a channel joins an overlap or a duplicate
+  symbol it was not in; repairing a held overlap and editing a project that holds one commit, and deleting a module
+  that moves the next one onto a manual address is refused (FT-726)
+- behaviour-change: `plc.freeze` also pins the module starts it places, so a module inserted before a frozen one moves
+  nothing, and it is refused in words under a tag-based profile; a manual address inherited under a tag-based profile
+  prints the channel's own slot and bit, and an IO-Link port prints there too (FR-PLC-009, FR-PLC-015)
+- behaviour-change: `plc.convert_manual_to_auto` keeps a manual start whose conversion would move another module's
+  addresses, and says so (FR-PLC-014)
+- behaviour-change: a frozen channel left outside its module is reported by EW-PLC-002 alone, not also by EW-PLC-012
+- behaviour-change: an IO-Link port's window counts its whole width for EW-PLC-001, EW-PLC-002 and EW-PLC-011;
+  EW-PLC-013 ignores bus-port pins and accepts M on L−; EW-BUS-006 holds only PROFIBUS segments to its limits and,
+  like EW-IOL-002, compares lengths exactly; EW-SAF-002 reports a channel paired with itself
+- behaviour-change: `library.update` with a new channel count or kind of a module's part updates its channels
+- behaviour-change: a traced target's passed terminals are those on the path to it; `network_address_list` lists ports
+  with an address and no logical net; bus cable lengths print as `12.5 m`
+- api-add: the SQL view `api_v1_plc_channel` gains `cpu`, `bus_address`, `passed_terminals` and `f_address`

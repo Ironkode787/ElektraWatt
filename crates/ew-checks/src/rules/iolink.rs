@@ -233,8 +233,9 @@ impl Rule for Limits {
                 else {
                     continue;
                 };
-                let metres = nm.0.div_euclid(1_000_000_000);
-                if metres > i64::from(max) {
+                // compared in nanometres, so 20.9 m is longer than 20 m; printed to the millimetre
+                if nm.0 > i64::from(max).saturating_mul(1_000_000_000) {
+                    let metres = ew_derive::ew_units::Dec3(nm.0 / 1_000_000);
                     let tag = full_tag(q, cable, "the cable");
                     out.push(
                         Finding::new(

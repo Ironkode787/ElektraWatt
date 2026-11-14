@@ -394,8 +394,9 @@ fn profibus_length_m(rate: u32) -> u64 {
 
 /// EW-BUS-006 over the segments of a PROFIBUS DP physical net (`bus_segments(pnet)`): more stations than a segment
 /// takes (`stations`: ports that are not passive), a longer segment than the net's rate allows (`length`: the summed
-/// manual lengths of its cables), and a branch at a rate above 1.5 Mbit/s (`stub`). Warnings: the limits are
-/// unverified data. A net without a rate checks the stations only.
+/// manual lengths of its cables, compared to the nanometre), and a branch at a rate above 1.5 Mbit/s (`stub`).
+/// Warnings: the limits are unverified data. A net without a rate checks the stations only. A segment is PROFIBUS by
+/// its logical net, else when every port in it is a PROFIBUS DP port; any other segment is not judged.
 #[derive(Clone, Copy, Debug)]
 pub struct SegmentLimits;
 
@@ -414,7 +415,23 @@ impl Rule for SegmentLimits {
             let net = segment
                 .logical_net
                 .and_then(|n| q.table::<LogicalNet>().get(n).cloned());
-            if net.as_ref().is_some_and(|n| n.bus != BusSystem::ProfibusDp) {
+            // PROFIBUS by its logical net, else (ports that name none) by its ports' bus: every one PROFIBUS DP
+            let profibus = match &net {
+                Some(n) => n.bus == BusSystem::ProfibusDp,
+                None => {
+                    let mut buses = segment
+                        .functions()
+                        .filter_map(|f| {
+                            functions
+                                .get(f)
+                                .and_then(|x| x.bus_port.as_ref())
+                                .map(|p| p.bus.clone())
+                        })
+                        .peekable();
+                    buses.peek().is_some() && buses.all(|b| b == BusSystem::ProfibusDp)
+                }
+            };
+            if !profibus {
                 continue;
             }
             let Some(start) = segment.functions().next() else {
@@ -471,10 +488,14 @@ impl Rule for SegmentLimits {
                     }
                     SegmentMember::Function(_) => None,
                 })
-                .sum();
-            let metres = u64::try_from(length_nm.div_euclid(1_000_000_000)).unwrap_or(0);
+                .fold(0i64, i64::saturating_add);
+            // compared in nanometres, so 100.4 m is longer than 100 m; printed to the millimetre
             let limit = profibus_length_m(rate.0);
-            if metres > limit {
+            let limit_nm = i64::try_from(limit)
+                .unwrap_or(i64::MAX)
+                .saturating_mul(1_000_000_000);
+            if length_nm > limit_nm {
+                let metres = ew_derive::ew_units::Dec3(length_nm / 1_000_000);
                 let message = format!(
                     "the segment from {subject} is {metres} m long, more than the {limit} m PROFIBUS allows at {} bit/s; \
                      shorten it or lower the rate",

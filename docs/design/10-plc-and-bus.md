@@ -855,8 +855,10 @@ graph's net and signal edges from the pin (wires, cores, interruption-point pair
 bridges), passes terminals (contact kind `terminal`), never chooses a CP of a PLC device, of the module or one a
 channel binds, and picks the lowest (category rank: coil and valve 0, black box 1, contacts 2, other 3; drawn page
 order; function ID; CP index); the cell is not a tie-break. The target carries its source, its CP (the I/O list's
-target pin), the passed terminals and the ambiguity flag. Only a module with a pin-bound channel reads the stitch
-graph. A traced target gives the channel the state of its device (§3.2 step 3). The "address at terminals" option is
+target pin), the passed terminals and the ambiguity flag. The passed terminals are those on the path to the chosen
+target (`sig.path(cp, best)`): the walk is breadth first, and a terminal is passed when the shortest path from the pin
+to the target crosses it (two of the path's nodes hold its CPs), so a terminal on a branch to another candidate, or
+one that only hangs off the path, is not. Only a module with a pin-bound channel reads the stitch graph. A traced target gives the channel the state of its device (§3.2 step 3). The "address at terminals" option is
 the drawing setting `plc_address_at_terminals` (`project.drawing.set`, FT-1725): with it, every terminal a traced
 signal passes prints the channel's address in its `PlcAddress` slot (`channels_by_target` holds the terminals). The
 shipped terminal symbol `ew.iec.terminal` and its QET twin (version 0.1.2, FT-1734) have the slot to the right of the
@@ -1108,7 +1110,10 @@ that are unconnected or of another potential type; EW-PLC-014 reads the target d
 else `power` (W) at `voltage` (V, 24 V when absent), against `ratings`; EW-SAF-001 judges uniqueness project-wide;
 EW-SAF-003 reads `SafetyChannel.test_pulse` and the signal of that pin; EW-BUS-002 takes the part's `address_range`,
 else PROFIBUS 0–125; EW-BUS-003 judges the subnet against the master port's address and mask; EW-BUS-006 holds
-PROFIBUS limits (32 stations, 1200 … 100 m by rate, no stubs above 1.5 Mbit/s) as unverified data; EW-BUS-009 reports a
+PROFIBUS limits (32 stations, 1200 … 100 m by rate, no stubs above 1.5 Mbit/s) as unverified data, for a segment
+that is PROFIBUS by its logical net or, when its ports name none, by every port's bus, with lengths compared to the
+nanometre (as EW-IOL-002's cable length); EW-PLC-013 reads no pin of a bus port as a supply pin and accepts an M pin on
+L−; EW-SAF-002 reports a 1oo2 channel named as its own pair as incomplete; EW-BUS-009 reports a
 cable whose part's `cable_for` excludes the port's bus and mated ports whose parts name different connectors. The
 prevent halves of EW-PLC-001 and EW-PLC-007 are built (FT-726), judged per channel: a batch is refused when a channel
 that was in no overlap group (or duplicate-symbol group) before is in one after, or when a touched channel's group
@@ -1553,8 +1558,12 @@ logical net, then per segment member in A5's walk order; it is the generated bus
 FR-BUS-007, a report block, not a drawn page), `bus_cable_list`, `iolink_port_list` (one row per port with a connected
 device; the IODD hash is 1.x) and `safety_io_list`. `io_list` prints the derived data type and the traced target pin;
 the passed terminals, the signal range and the F-address are not columns, since its 20 columns fill the house
-table's width. The SQL view `api_v1_plc_channel` (doc 17 §6.1) has the `io_list` columns plus `id, station_id,
-module_id, target_id, address_source` and the signal range; Golden A has 56 rows.
+table's width (a 21st column overflows it at the 1.8 mm floor). The SQL view `api_v1_plc_channel` (doc 17 §6.1) has
+the `io_list` columns plus `id, station_id, module_id, target_id, address_source` and the signal range, and, last so
+that the earlier columns keep their places, the CPU, the station's bus address, the passed terminals (a JSON array of
+their tags) and the F-address (the module's F-destination); Golden A has 56 rows. `network_address_list` lists a port
+with an address that names no logical net after the nets, with an empty net (FR-BUS-008). A cable length prints in
+metres to the millimetre without trailing zeros (`12.5 m`).
 
 **As built.** `plc_overview` is a report kind in `ew-reports` over `plc_rows(station)`. Folio 908 prints the column set of the table above (module, part, address, channel number, designation, kind, symbol, function text, process tag, target, state and the page cell), a superset of the table of doc 20 §11.3. Every row whose channel is bound to a coil (8 used and 20 spare) links with `LinkTarget::Cp` to the coil position, the "link to the main representation" of the table; the golden PDF has 92 link annotations, 64 cross-reference links plus these 28. The station address "TBD" is not printed, because there is no `BusPort` record yet. The station list is the block's manual selection of stations, else every station in natural tag order.
 
@@ -1648,7 +1657,8 @@ status print typed `--json` results (`ew.import-plc-aml-result/1`, `ew.import-pl
 9. **Bistable valves and blanking plates.** Both solenoids are claimed and bound by N2. Empty positions give
    deactivated channels. EW-FL-002 compares solenoids with bound channels.
 10. **IO-Link mode changes** alter channel kind and data width, and thereby the module's I/O width and the starts
-    of later modules. The change is previewed.
+    of later modules. *As built:* a port's mode is an ordinary field edit (`fields.set` on `Channel.mode`, a row of
+    Properties), not a previewed Bulk command; the re-address preview of §3.9 shows the moves it causes when run.
 11. **External partners.** Their address and termination are often unknown. EW-BUS-004 reports an info, and
     EW-BUS-007 accepts an external master. Plant-wide F-address uniqueness can only be checked within the project
     and against values entered on external partners.

@@ -698,7 +698,8 @@ pub const MESSAGE: View = View {
 };
 
 /// `api_v1_plc_channel` (doc 17 §6.1, 1.0): one row per channel of every station, the `io_list` columns of doc 10 §5
-/// plus the IDs and the address source.
+/// plus the IDs and the address source; the CPU, the bus address, the passed terminals and the F-address come last,
+/// so the earlier columns keep their places.
 pub const PLC_CHANNEL: View = View {
     name: "api_v1_plc_channel",
     row: "channel",
@@ -752,6 +753,22 @@ pub const PLC_CHANNEL: View = View {
         t(
             "state",
             "the effective state: `used`, `spare`, `reserved`, `deactivated`, `TBD`",
+        ),
+        t(
+            "cpu",
+            "the list form of the configuration project's CPU tag; NULL without one",
+        ),
+        t(
+            "bus_address",
+            "the station's bus address (`TBD`, `3`, `cpx-1 192.168.0.10`): its first bus port with one; NULL without",
+        ),
+        t(
+            "passed_terminals",
+            "the terminals the traced signal passes on its way to the target, as a JSON array of their tags",
+        ),
+        i(
+            "f_address",
+            "the module's F-destination address (PROFIsafe); NULL without one",
         ),
     ],
 };

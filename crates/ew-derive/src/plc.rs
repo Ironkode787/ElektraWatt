@@ -1469,8 +1469,9 @@ type TraceRank = (u8, usize, Id<Function>, u16);
 /// the stitch graph's net and signal edges (wires, cores, interruption-point pairs, terminal levels, plug pins, never
 /// bridges), whose CPs are the candidates; terminals and interruption points are passed, a CP of a PLC device or one
 /// that a channel binds is never chosen, nor a CP of the module itself. The best candidate is the lowest (category
-/// rank, drawn page, function ID, CP index). Returns the chosen CP, the passed terminal CPs and whether there were
-/// several candidate functions.
+/// rank, drawn page, function ID, CP index). Returns the chosen CP, the terminal CPs passed on the way to it (a
+/// shortest path of the walk from the pin to the chosen CP; a terminal on a branch to another candidate is not passed)
+/// and whether there were several candidate functions.
 fn trace(q: &Q, module: Id<Device>, pin: crate::CpRef) -> Option<(crate::CpRef, Vec<crate::CpRef>, bool)> {
     use crate::stitch::Level;
     let graph = q.get::<crate::StitchGraphQ>(());
@@ -1484,14 +1485,22 @@ fn trace(q: &Q, module: Id<Device>, pin: crate::CpRef) -> Option<(crate::CpRef, 
         adjacent.entry(e.a).or_default().push(e.b);
         adjacent.entry(e.b).or_default().push(e.a);
     }
-    let mut seen = std::collections::BTreeSet::from([start]);
-    let mut stack = vec![start];
-    let mut cps: Vec<crate::CpRef> = Vec::new();
-    while let Some(n) = stack.pop() {
-        cps.extend(graph.nodes[n].members.iter().filter_map(|m| crate::CpRef::of(*m)));
+    // Breadth first, each node with the node it was reached from, so the path to the chosen target is a shortest one.
+    let mut parent: BTreeMap<usize, usize> = BTreeMap::from([(start, start)]);
+    let mut queue = std::collections::VecDeque::from([start]);
+    let mut cps: Vec<(usize, crate::CpRef)> = Vec::new();
+    while let Some(n) = queue.pop_front() {
+        cps.extend(
+            graph.nodes[n]
+                .members
+                .iter()
+                .filter_map(|m| crate::CpRef::of(*m))
+                .map(|cp| (n, cp)),
+        );
         for m in adjacent.get(&n).into_iter().flatten() {
-            if seen.insert(*m) {
-                stack.push(*m);
+            if !parent.contains_key(m) {
+                parent.insert(*m, n);
+                queue.push_back(*m);
             }
         }
     }
@@ -1507,9 +1516,9 @@ fn trace(q: &Q, module: Id<Device>, pin: crate::CpRef) -> Option<(crate::CpRef, 
             .min()
             .unwrap_or(usize::MAX)
     };
-    let mut candidates: Vec<(TraceRank, crate::CpRef)> = Vec::new();
-    let mut passed: Vec<(usize, crate::CpRef)> = Vec::new();
-    for cp in cps {
+    let mut candidates: Vec<(TraceRank, crate::CpRef, usize)> = Vec::new();
+    let mut passed: Vec<(usize, crate::CpRef, usize)> = Vec::new();
+    for (node, cp) in cps {
         let Some(f) = functions.get(cp.function) else {
             continue;
         };
@@ -1517,7 +1526,7 @@ fn trace(q: &Q, module: Id<Device>, pin: crate::CpRef) -> Option<(crate::CpRef, 
             continue;
         };
         if kind == ew_schema::ContactKind::Terminal {
-            passed.push((page_of(cp.function), cp));
+            passed.push((page_of(cp.function), cp, node));
             continue;
         }
         let plc_device = f
@@ -1529,17 +1538,32 @@ fn trace(q: &Q, module: Id<Device>, pin: crate::CpRef) -> Option<(crate::CpRef, 
             continue;
         }
         if let Some(rank) = field_rank(&kind) {
-            candidates.push(((rank, page_of(cp.function), cp.function, cp.idx), cp));
+            candidates.push(((rank, page_of(cp.function), cp.function, cp.idx), cp, node));
         }
     }
     candidates.sort();
+    let (_, best, at) = *candidates.first()?;
+    let several = candidates.iter().any(|(_, c, _)| c.function != best.function);
+    // the nodes on the path from the module pin to the chosen target
+    let mut path = std::collections::BTreeSet::from([at]);
+    let mut n = at;
+    while let Some(&p) = parent.get(&n).filter(|p| **p != n) {
+        path.insert(p);
+        n = p;
+    }
+    // a terminal is passed when the path crosses it: two of the path's nodes hold its CPs (a terminal that only hangs
+    // off a node of the path, on a branch, is not)
+    passed.retain(|(_, _, node)| path.contains(node));
+    let mut sides: BTreeMap<Id<Function>, std::collections::BTreeSet<usize>> = BTreeMap::new();
+    for (_, c, node) in &passed {
+        sides.entry(c.function).or_default().insert(*node);
+    }
+    passed.retain(|(_, c, _)| sides.get(&c.function).is_some_and(|s| s.len() > 1));
     passed.sort();
-    // one entry per terminal: its first CP in the signal
+    // one entry per terminal: its first CP on the path
     let mut terminals = std::collections::BTreeSet::new();
-    passed.retain(|(_, c)| terminals.insert(c.function));
-    let (_, best) = *candidates.first()?;
-    let several = candidates.iter().any(|(_, c)| c.function != best.function);
-    Some((best, passed.into_iter().map(|(_, c)| c).collect(), several))
+    passed.retain(|(_, c, _)| terminals.insert(c.function));
+    Some((best, passed.into_iter().map(|(_, c, _)| c).collect(), several))
 }
 
 /// `channel_targets(module)`: the targets of A4 (doc 10 §3.5), in channel-number order: the manual target, else the

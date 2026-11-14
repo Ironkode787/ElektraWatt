@@ -12,7 +12,7 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, natural_key};
 use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_derive::ew_schema::{
-    AddrValue, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
+    AddrValue, BusPort, BusSystem, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
     LogicalNet, NetAddress, OnOff, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
 };
 use ew_derive::{
@@ -106,15 +106,7 @@ fn length_cell(q: &Q, cable: Id<Device>) -> Cell {
         .and_then(|d| d.aspects.cable.as_ref().map(|c| c.length.clone()))
     {
         Some(LengthSource::Manual(nm)) => {
-            let mm = nm.0 / 1_000_000;
-            let text = if mm % 1000 == 0 {
-                format!("{} m", mm / 1000)
-            } else {
-                format!("{}.{:03} m", mm / 1000, mm % 1000)
-                    .trim_end_matches('0')
-                    .to_owned()
-            };
-            text_cell(&text)
+            text_cell(&format!("{} m", ew_derive::ew_units::Dec3(nm.0 / 1_000_000)))
         }
         Some(LengthSource::FromPart) => text_cell("from part"),
         _ => Cell::Empty,
@@ -248,9 +240,10 @@ impl ReportKindDef for PlcCardList {
 // network_address_list
 
 /// `network_address_list` (FR-BUS-008, doc 10 §5): per logical net in name order, an external partner named as its
-/// master first, then every port with an address in ID order: logical net, station, device type (its part), address
-/// or PROFINET name, IP, mask, master flag, rate, configuration project and the `Tbd` flag. Golden A has two rows:
-/// JE-N1000-03 (master, external) and -201U1 (slave, `Tbd`).
+/// master first, then every port with an address in ID order; then every port with an address that names no logical
+/// net, in ID order, with an empty net: logical net, station, device type (its part), address or PROFINET name, IP,
+/// mask, master flag, rate, configuration project and the `Tbd` flag. Golden A has two rows: JE-N1000-03 (master,
+/// external) and -201U1 (slave, `Tbd`).
 #[derive(Clone, Copy, Debug)]
 pub struct NetworkAddressList;
 
@@ -302,73 +295,111 @@ impl ReportKindDef for NetworkAddressList {
                 ));
             }
             for f in &members.ports {
-                let Some(func) = functions.get(*f) else {
+                let Some(port) = functions.get(*f).and_then(|func| func.bus_port.clone()) else {
                     continue;
                 };
-                let Some(port) = func.bus_port.as_ref() else {
-                    continue;
-                };
-                if matches!(port.address, AddrValue::NotApplicable) {
-                    continue;
+                let master = matches!(members.master, Some(NetMaster::Port(m)) if m == *f);
+                if let Some(row) = port_row(
+                    q,
+                    &set.columns,
+                    *f,
+                    &port,
+                    Some(n.name.as_str()),
+                    master,
+                    rate.clone(),
+                ) {
+                    set.rows.push(row);
                 }
-                let mut cells = vec![Cell::Empty; set.columns.len()];
-                let c = &set.columns;
-                put(c, &mut cells, "net", ident(n.name.as_str()));
-                if let Some(d) = func.device {
-                    put(c, &mut cells, "station", ident(&tag_short(q, d)));
-                    let part = q.devices().get(d).and_then(|dev| {
-                        dev.parts
-                            .first()
-                            .and_then(|u| q.parts().get(u.part.copy).map(|p| p.item.part_number.to_string()))
-                    });
-                    put(c, &mut cells, "device_type", ident(&part.unwrap_or_default()));
-                    let cfg = ew_derive::station_of(q, d)
-                        .and_then(|s| {
-                            q.devices()
-                                .get(s)
-                                .and_then(|x| x.aspects.plc_station.as_ref().map(|p| p.config_project))
-                        })
-                        .and_then(|c| q.table::<PlcConfigProject>().get(c).map(|c| c.name.to_string()));
-                    put(c, &mut cells, "config_project", ident(&cfg.unwrap_or_default()));
-                }
-                match &port.address {
-                    AddrValue::Tbd => put(c, &mut cells, "address", Cell::Tbd),
-                    AddrValue::Value(NetAddress::Profinet(p)) => {
-                        put(c, &mut cells, "address", ident(p.name.as_str()));
-                        put(
-                            c,
-                            &mut cells,
-                            "ip",
-                            ident(&p.ip.map(|ip| ip.to_string()).unwrap_or_default()),
-                        );
-                        put(
-                            c,
-                            &mut cells,
-                            "mask",
-                            ident(&p.mask.map(|m| m.to_string()).unwrap_or_default()),
-                        );
-                    }
-                    AddrValue::Value(a) => put(
-                        c,
-                        &mut cells,
-                        "address",
-                        ident(&net_address_text(a).unwrap_or_default()),
-                    ),
-                    _ => {}
-                }
-                let master = matches!(members.master, Some(NetMaster::Port(m)) if m == *f)
-                    || matches!(port.role, PortRole::Master | PortRole::Controller);
-                put(c, &mut cells, "master", Cell::Bool(master));
-                put(c, &mut cells, "rate", rate.clone());
-                put(c, &mut cells, "tbd", Cell::Bool(port.address == AddrValue::Tbd));
-                set.rows.push(Row::data(
-                    RowId::entity(*f).with(RowKey::Name("port".to_owned())),
-                    cells,
-                ));
+            }
+        }
+        // FR-BUS-008: a port with an address that names no logical net is listed too, after the nets, in ID order
+        for (f, func) in functions.iter() {
+            let Some(port) = func.bus_port.as_ref() else {
+                continue;
+            };
+            if port
+                .logical_net
+                .is_some_and(|n| q.table::<LogicalNet>().contains(n))
+            {
+                continue;
+            }
+            if let Some(row) = port_row(q, &set.columns, f, port, None, false, Cell::Empty) {
+                set.rows.push(row);
             }
         }
         set
     }
+}
+
+/// One port's row of the network address list: `None` for a port without an address (`NotApplicable`). `master` is
+/// whether its net names it as master; a port of role master or controller is one too.
+fn port_row(
+    q: &Q,
+    columns: &[ColumnDef],
+    f: Id<Function>,
+    port: &BusPort,
+    net: Option<&str>,
+    master: bool,
+    rate: Cell,
+) -> Option<Row> {
+    if matches!(port.address, AddrValue::NotApplicable) {
+        return None;
+    }
+    let mut cells = vec![Cell::Empty; columns.len()];
+    let c = columns;
+    if let Some(net) = net {
+        put(c, &mut cells, "net", ident(net));
+    }
+    if let Some(d) = q.functions().get(f).and_then(|func| func.device) {
+        put(c, &mut cells, "station", ident(&tag_short(q, d)));
+        let part = q.devices().get(d).and_then(|dev| {
+            dev.parts
+                .first()
+                .and_then(|u| q.parts().get(u.part.copy).map(|p| p.item.part_number.to_string()))
+        });
+        put(c, &mut cells, "device_type", ident(&part.unwrap_or_default()));
+        let cfg = ew_derive::station_of(q, d)
+            .and_then(|s| {
+                q.devices()
+                    .get(s)
+                    .and_then(|x| x.aspects.plc_station.as_ref().map(|p| p.config_project))
+            })
+            .and_then(|c| q.table::<PlcConfigProject>().get(c).map(|c| c.name.to_string()));
+        put(c, &mut cells, "config_project", ident(&cfg.unwrap_or_default()));
+    }
+    match &port.address {
+        AddrValue::Tbd => put(c, &mut cells, "address", Cell::Tbd),
+        AddrValue::Value(NetAddress::Profinet(p)) => {
+            put(c, &mut cells, "address", ident(p.name.as_str()));
+            put(
+                c,
+                &mut cells,
+                "ip",
+                ident(&p.ip.map(|ip| ip.to_string()).unwrap_or_default()),
+            );
+            put(
+                c,
+                &mut cells,
+                "mask",
+                ident(&p.mask.map(|m| m.to_string()).unwrap_or_default()),
+            );
+        }
+        AddrValue::Value(a) => put(
+            c,
+            &mut cells,
+            "address",
+            ident(&net_address_text(a).unwrap_or_default()),
+        ),
+        _ => {}
+    }
+    let master = master || matches!(port.role, PortRole::Master | PortRole::Controller);
+    put(c, &mut cells, "master", Cell::Bool(master));
+    put(c, &mut cells, "rate", rate);
+    put(c, &mut cells, "tbd", Cell::Bool(port.address == AddrValue::Tbd));
+    Some(Row::data(
+        RowId::entity(f).with(RowKey::Name("port".to_owned())),
+        cells,
+    ))
 }
 
 // ---------------------------------------------------------------------------------------------------------

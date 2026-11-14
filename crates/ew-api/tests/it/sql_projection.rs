@@ -88,6 +88,14 @@ fn every_view_has_its_documented_columns_and_the_golden_counts() {
             .text(),
         "8"
     );
+    // doc 10 §5: the channel view carries the I/O list's station bus address, CPU, passed terminals and F-address;
+    // Golden A's -201U1 is at the open item, has no CPU, no traced target and no F-module
+    let first = reader
+        .query("SELECT bus_address, cpu, passed_terminals, f_address FROM api_v1_plc_channel LIMIT 1")
+        .unwrap();
+    let first: Vec<String> = first.rows[0].iter().map(|v| v.text()).collect();
+    assert_eq!(first[0], "TBD");
+    assert_eq!(first[2], "[]");
     // The counts the projection reports equal the views'.
     for (view, n) in p.counts() {
         assert_eq!(count(view), n.to_string(), "{view}");

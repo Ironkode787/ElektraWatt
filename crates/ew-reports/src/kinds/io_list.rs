@@ -145,27 +145,14 @@ impl Station {
     }
 }
 
-/// The station's bus address: the first port (by function ID) of the station device with an address; "TBD" for the
-/// open item, else the address as reports print it (`ew_derive::net_address_text`: "3", "cpx-1 192.168.0.10").
+/// The station's bus address (`ew_derive::station_bus_address`): "TBD" for the open item, else the address as reports
+/// print it (`ew_derive::net_address_text`: "3", "cpx-1 192.168.0.10").
 fn bus_address(q: &Q, station: Id<Device>) -> Cell {
-    let mut functions: Vec<_> = q.idx().functions_of_device(station).collect();
-    functions.sort();
-    let functions_table = q.functions();
-    for f in functions {
-        let Some(port) = functions_table.get(f).and_then(|f| f.bus_port.clone()) else {
-            continue;
-        };
-        match port.address {
-            AddrValue::Tbd => return Cell::Tbd,
-            AddrValue::Value(a) => {
-                if let Some(text) = ew_derive::net_address_text(&a) {
-                    return Cell::Ident(text);
-                }
-            }
-            AddrValue::NotApplicable | AddrValue::Unknown(_) => {}
-        }
+    match ew_derive::station_bus_address(q, station) {
+        Some(AddrValue::Tbd) => Cell::Tbd,
+        Some(AddrValue::Value(a)) => ew_derive::net_address_text(&a).map_or(Cell::Empty, Cell::Ident),
+        _ => Cell::Empty,
     }
-    Cell::Empty
 }
 
 fn ident(text: &str) -> Cell {

@@ -918,7 +918,8 @@ listed above for a built view exists in the code; no listed column of a built vi
 - **Not built.** `api_v1_cp` (with `role` and `i_load`), `api_v1_structure`, `api_v1_xref` and `api_v1_revision`
   of FR-EXT-032. Of the 1.0 views, `api_v1_placement`, `api_v1_fluid_line`, `api_v1_valve_position` and
   `api_v1_medium` are not built either; `api_v1_plc_channel` is (WP-S1.24): the `io_list` columns, the IDs, the
-  `address_source` and the signal range, 56 rows on Golden A.
+  `address_source` and the signal range, then `cpu`, `bus_address`, `passed_terminals` and `f_address`, 56 rows on
+  Golden A.
 - **Preview additions.** The columns marked "(Preview addition)" in the table and the view `api_v1_bond` are
   additive Preview of `api_v1`. `ew sql schema` marks each of them `[preview addition]`, and
   `api_v1_meta` carries `api_status` (`preview`) and `preview_additions` (a JSON array of `view` or `view.column`

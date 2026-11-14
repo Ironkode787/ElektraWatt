@@ -138,8 +138,8 @@ pub const PAIR: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-saf-002",
 };
 
-/// EW-SAF-002 over the 1oo2 channels of a module: a channel without a pair, or whose pair is not a 1oo2 channel that
-/// names it back (`incomplete`, one finding per channel), and a complete pair whose two channels reach different
+/// EW-SAF-002 over the 1oo2 channels of a module: a channel without a pair, paired with itself, or whose pair is not a
+/// 1oo2 channel that names it back (`incomplete`, one finding per channel), and a complete pair whose two channels reach different
 /// devices (`devices`, one finding per pair, on the channel with the lower ID, both channels as targets).
 #[derive(Clone, Copy, Debug)]
 pub struct Pair;
@@ -167,7 +167,8 @@ impl Rule for Pair {
                 continue;
             };
             let name = channel_name(q, module, c.id, c.number);
-            let partner = s.pair.and_then(|p| channels.get(p));
+            // a channel named as its own pair is no partner
+            let partner = s.pair.filter(|p| *p != c.id).and_then(|p| channels.get(p));
             let complete = partner.is_some_and(|p| {
                 p.safety
                     .as_ref()
