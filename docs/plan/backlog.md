@@ -11,11 +11,12 @@ answers is deleted with a line in its report.
 
 
 
-### WP-S3.18: what its first hand-back left
+### What the migration verifier found (WP-S3.13)
 
-- FT-1741 `ew-viewmodel, ew-ui`: **Medium.** The File menu holds an entry per source: Import…, Import drawing…, Import EPLAN data…, Import QElectroTech project…, Parts table…. One File ▸ Import… takes any file the program imports and goes on by what the file is; the separate entries leave the menu (the command search still finds each by its name).
-- FT-1742 `ew-viewmodel, ew-ui, ew-api`: The column mapper of an EPLAN report spreadsheet in the window (FR-IMP-029): today the window offers the shipped and the saved mappings only, other columns need a TOML map on the command line, and nothing writes a saved mapping.
-- FT-1743 `ew-viewmodel, ew-ui`: Two faults WP-S3.18 found: the update card of a part import shows the raw word "eplan" for the accessories field; and in a project without pages (a report import makes one) Select is shown enabled while its action is unavailable, which the window's accessibility rule reports and the lane's test skips.
+- FT-1746 `ew-import-qet, ew-scene`: **Medium.** An imported QElectroTech text stands about 0.6 mm above where QET's own PDF has it, rotated texts by the same amount: on one pilot project the verifier calls a third of the texts moved. Most likely the font's ascent in the baseline rule of doc 14 §4.10; find the cause and put the texts where QET has them.
+- FT-1747 `ew-export`: **Medium.** A text read back from a PDF the program wrote has lost its `fi` and `fl` ligatures ("Denition"): FR-OUT-008 expects every text to be found and copied. Confirm it in the writer (the glyph-to-text map of a ligature) and fix it.
+- FT-1748 `ew-api`: The verifier pairs pages by order when the PDF's labels do not name every folio, so one missing page shifts every pair after it; let a run state its pairs or align them. AC-27 on the private Golden C waits for it and for its reference PDF in the corpus folder.
+- FT-1749 `golden`: `expected/c-migration-report.csv` (AC-25, the private Golden C import) is stale since M2.5-Fix: the deep run skips its test without the private corpus. Look at each changed count (EW-IMP-004 above all) before blessing it.
 
 ### WP-S2.13: automation workspaces
 
