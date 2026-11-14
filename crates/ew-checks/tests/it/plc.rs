@@ -317,6 +317,26 @@ fn ew_plc_001_prevents_the_overlap_a_deletion_creates() {
     );
 }
 
+/// FT-726: a `library.update` touches only the part copy; the modules that use it are checked, so a new map that
+/// puts channels 0 and 1 of each module on one bit is refused.
+#[test]
+fn ew_plc_001_prevents_the_overlap_a_part_update_creates() {
+    let before = fixture().build();
+    let mut fx = fixture();
+    let part = fx
+        .lib
+        .iter_mut()
+        .find(|d| d["id"] == json!(us(PART)))
+        .expect("the module part");
+    part["sections"]["plc"]["bit_of"] = json!([0, 0, 1, 2, 3, 4, 5, 6]);
+    let after = fx.build();
+    assert_eq!(
+        refused("EW-PLC-001", &before, &after, &[(Kind::Part, us(PART))]),
+        2,
+        "one new overlap in each module"
+    );
+}
+
 /// FT-726: the prevent half of EW-PLC-007 lets the repair of a held triple commit, and refuses a fourth channel.
 #[test]
 fn ew_plc_007_lets_a_repair_of_a_held_duplicate_commit() {
