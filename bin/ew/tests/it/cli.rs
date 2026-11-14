@@ -1122,6 +1122,8 @@ fn verify_migration_exits_by_what_it_finds() {
     assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
     assert!(stdout(&o).starts_with("verify-migration: "), "{}", stdout(&o));
     assert!(stdout(&o).contains(", 0 deviations, 0 expected deltas found, 0 expected deltas not found"));
+    // The raster was compared, not skipped.
+    assert!(!stdout(&o).contains(" 0 cells compared"), "{}", stdout(&o));
 
     // Another drawing: Golden A's page 101 as the reference of the one-page project.
     let other = t.0.join("other.pdf");

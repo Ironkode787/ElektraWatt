@@ -10,19 +10,47 @@ use ew_api::migration::{Expected, MigrationReport, parse_expected, verify_migrat
 use ew_api::output::ExportOptions;
 use ew_api::{AnyCommand, Session, SessionOptions};
 use ew_derive::{PageOrder, PageRef};
+use ew_schema::LibDocument;
 
 /// A project with one page per `(number, title)`.
 fn project(pages: &[(u32, &str)]) -> Session {
+    project_on(pages, None)
+}
+
+/// A project with one page per `(number, title)`, each on a frame form of this sheet size in millimetres (the
+/// default sheet without one).
+fn project_on(pages: &[(u32, &str)], sheet_mm: Option<(i64, i64)>) -> Session {
     let row = serde_json::from_str(
         r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37","derivation_profile":"2027.1"}"#,
     )
     .expect("a project row");
-    let mut session = Session::from_records(row, [], [], SessionOptions::default()).expect("an empty model");
+    let form_id = "3b1d6e52-8a47-7c09-b5e3-1f2a9d4c7e60";
+    let forms: Vec<LibDocument> = sheet_mm
+        .map(|(w, h)| {
+            let copy = serde_json::from_value(serde_json::json!({
+                "id": form_id,
+                "library_id": "7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b37",
+                "item_id": "5e8f0a13-2b64-7d95-8c07-4a3b6d1e9f28",
+                "version": "1.0.0",
+                "sha256": format!("sha256:{}", "0".repeat(64)),
+                "kind": "frame",
+                "sheet": {"width": w * 1_000_000, "height": h * 1_000_000}
+            }))
+            .expect("a frame form");
+            LibDocument::Form(copy)
+        })
+        .into_iter()
+        .collect();
+    let mut session = Session::from_records(row, [], forms, SessionOptions::default()).expect("an empty model");
     for (number, title) in pages {
+        let mut params = serde_json::json!({"number": number, "title": title});
+        if sheet_mm.is_some() {
+            params["form"] = form_id.into();
+        }
         session
             .execute(&AnyCommand {
                 name: "page.create".into(),
-                params: serde_json::json!({"number": number, "title": title}),
+                params,
             })
             .expect("a page");
     }
@@ -186,4 +214,47 @@ fn a_file_that_is_no_pdf_is_refused_in_words() {
     let session = project(&[(1, "Cover")]);
     let e = verify_migration(&session, Arc::from(&b"not a pdf"[..]), &[]).expect_err("no PDF");
     assert!(e.to_string().starts_with("the reference PDF: "), "{e}");
+}
+
+#[test]
+fn the_raster_of_a_page_is_compared_whatever_its_size() {
+    // Sheets whose pixel size at the verifier's resolution the reference's own raster does not hit exactly.
+    for sheet in [(297, 210), (420, 297), (400, 283), (353, 251), (211, 149), (593, 419)] {
+        let session = project_on(&[(1, "Cover")], Some(sheet));
+        let report = verify_migration(&session, pdf_of(&session), &[]).expect("a verification");
+        assert!(report.cells > 0, "{sheet:?}: {report:?}");
+        assert!(report.is_clean(), "{sheet:?}: {report:?}");
+    }
+}
+
+#[test]
+fn a_drawing_is_found_on_a_page_of_any_size() {
+    // The circle exists in the project only: were the raster skipped, nothing would be said.
+    let plain = project_on(&[(1, "Cover")], Some((353, 251)));
+    let mut drawn = project_on(&[(1, "Cover")], Some((353, 251)));
+    let page = match drawn.query().get::<PageOrder>(()).entries[0].page {
+        PageRef::Drawn(id) => id,
+        other => panic!("{other:?}"),
+    };
+    drawn
+        .execute(&AnyCommand {
+            name: "item.place".into(),
+            params: serde_json::json!({
+                "page": page.to_string(),
+                "kind": {"graphic": {"shape": {"circle": {"centre": [150_000_000, 100_000_000], "r": 20_000_000}}}}
+            }),
+        })
+        .expect("a circle");
+    let report = verify_migration(&drawn, pdf_of(&plain), &[]).expect("a verification");
+    assert!(kinds(&report).contains(&"raster-cell"), "{report:?}");
+}
+
+#[test]
+fn a_page_too_large_for_the_comparison_is_refused_in_words() {
+    // A1: about 4970 pixels wide at 150 dpi, more than the raster the reference can be drawn at.
+    let session = project_on(&[(1, "Cover")], Some((841, 594)));
+    let e = verify_migration(&session, pdf_of(&session), &[]).expect_err("too large");
+    let text = e.to_string();
+    assert!(text.starts_with("page 1 is too large"), "{text}");
+    assert!(text.contains("pixels"), "{text}");
 }

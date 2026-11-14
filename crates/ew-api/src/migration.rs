@@ -19,7 +19,7 @@ use std::sync::Arc;
 use ew_dl::{Item, ItemKind, Transform};
 use ew_export::ew_render_cpu::RgbaImage;
 use ew_scene::pdf_text::{TextRun, pdf_page_labels, pdf_page_text};
-use ew_scene::underlay::{PdfError, pdf_pixmap};
+use ew_scene::underlay::{MAX_RASTER_SIDE, PdfError, pdf_pixmap};
 use ew_units::Pt2;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -54,6 +54,13 @@ pub enum MigrationError {
     Pdf(PdfError),
     /// A page of the project cannot be drawn.
     Output(OutputError),
+    /// A page whose raster at [`DPI`] is larger than the reference can be drawn at.
+    PageTooLarge {
+        /// The folio label of the page.
+        page: String,
+        /// The raster of the page at [`DPI`], in pixels.
+        pixels: (u32, u32),
+    },
 }
 
 impl std::fmt::Display for MigrationError {
@@ -61,6 +68,13 @@ impl std::fmt::Display for MigrationError {
         match self {
             MigrationError::Pdf(e) => write!(f, "the reference PDF: {e}"),
             MigrationError::Output(e) => write!(f, "a page of the project cannot be drawn: {e}"),
+            MigrationError::PageTooLarge { page, pixels } => write!(
+                f,
+                "page {page} is too large to compare: it is {} × {} pixels at {DPI} dpi and the reference page is                  drawn at {MAX_RASTER_SIDE} pixels a side at most (about {} mm)",
+                pixels.0,
+                pixels.1,
+                u64::from(MAX_RASTER_SIDE) * 254 / u64::from(DPI) / 10
+            ),
         }
     }
 }
@@ -257,12 +271,22 @@ pub fn verify_migration(
 
         let image =
             sheet_image(&page.content, page.width, page.height, DPI).map_err(MigrationError::Output)?;
+        if image.width.max(image.height) > MAX_RASTER_SIDE {
+            return Err(MigrationError::PageTooLarge {
+                page: page.label.clone(),
+                pixels: (image.width, image.height),
+            });
+        }
         let pixmap = pdf_pixmap(reference.clone(), number, (image.width, image.height))
             .map_err(MigrationError::Pdf)?;
+        let reference_pixels = stretched(
+            pixmap.data_as_u8_slice(),
+            (usize::from(pixmap.width()), usize::from(pixmap.height())),
+            (image.width, image.height),
+        );
         let cells = cells_of(session, &page.label, &image);
         let masks: Vec<[f64; 4]> = mine.iter().chain(&text.runs).map(|r| r.bounds).collect();
-        let (compared, mut devs) =
-            compare_rasters(&page.label, &image, pixmap.data_as_u8_slice(), &masks, &cells);
+        let (compared, mut devs) = compare_rasters(&page.label, &image, &reference_pixels, &masks, &cells);
         report.cells += compared;
         found.append(&mut devs);
     }
@@ -466,6 +490,24 @@ fn cells_of(session: &Session, folio: &str, image: &RgbaImage) -> Vec<(Option<St
     cells
 }
 
+/// The pixels of the reference's raster stretched to `width` × `height` (nearest pixel): hayro sizes its raster
+/// by truncating, so it may be a pixel short of the project page's.
+fn stretched(source: &[u8], (w, h): (usize, usize), (width, height): (u32, u32)) -> Vec<u8> {
+    if (w, h) == (width as usize, height as usize) {
+        return source.to_vec();
+    }
+    let mut out = Vec::with_capacity(width as usize * height as usize * 4);
+    for y in 0..height as usize {
+        let sy = (y * h / height as usize).min(h.saturating_sub(1));
+        for x in 0..width as usize {
+            let sx = (x * w / width as usize).min(w.saturating_sub(1));
+            let at = (sy * w + sx) * 4;
+            out.extend_from_slice(source.get(at..at + 4).unwrap_or(&[255; 4]));
+        }
+    }
+    out
+}
+
 /// Whether each pixel of an RGBA image (premultiplied or straight, on opaque white) is ink.
 fn ink_of(pixels: &[u8]) -> Vec<bool> {
     pixels
@@ -521,7 +563,7 @@ fn compare_rasters(
     cells: &[(Option<String>, [usize; 4])],
 ) -> (usize, Vec<Deviation>) {
     let (width, height) = (image.width as usize, image.height as usize);
-    if reference.len() != image.pixels.len() || width == 0 || height == 0 {
+    if width == 0 || height == 0 {
         return (0, Vec::new());
     }
     let (mut mine, mut theirs) = (ink_of(&image.pixels), ink_of(reference));
