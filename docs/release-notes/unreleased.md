@@ -432,3 +432,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: `valve.add` refuses a part with a PLC section (FT-1576); a `drives` link to the valve's own
   module or terminal fails the invariant EW-INV-025 (FI-06); a fluid port whose function definition copy is damaged
   no longer makes every other copy's update a misfit (FT-1569) (WP-S1.25)
+- behaviour-change: the window is designed for 1920 x 1080 and uses the room of 2560 x 1440: a first start opens it
+  maximised; the left column is 480 points wide at 1920 and 640 at 2560, the command search 0.2 of the tab row
+  without a cap, a form of fields stops at its 1920 width (864); the command bar folds no group at 1920, the next
+  step showing its icon alone first where that keeps every group whole; the Project tab's bar shows Import
+  QElectroTech project and Re-import QElectroTech project whole (FT-1730)
+- behaviour-change: cli elektrawatt --headless --visual and `xtask blind start --senses visual` render 1920x1080 at
+  1 by default (it was 1280x800 at 1.2; a run asks for that with `--window 1280x800 --ppp 1.2`; FT-1730)

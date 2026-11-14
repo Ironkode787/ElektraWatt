@@ -68,32 +68,40 @@ hierarchy and for nothing truncated or overlapping. 2560 × 1440 is its extensio
 (the page, a list's rows, a dialog's content), never to empty chrome beside a capped width. A smaller window only
 has to stay usable, every control reachable by folding, wrapping or scrolling; no layout is designed for it and none
 is shaped by what fits there (the owner, 2026-11-13; until then 1280 × 800 was the floor every default layout had to
-serve, and the sizes below still name it where the code does, FT-1730). Remote desktop sessions are common (no
-reliance on animation or subtle gradients; NFR-PLAT-03). Both sizes render offscreen (`--window`, `--ppp`; the gated
-snapshot `main-light-comfortable-1920`).
+serve). Remote desktop sessions are common (no reliance on animation or subtle gradients; NFR-PLAT-03). A first start
+opens the window maximised; a remembered window is restored. The offscreen driver renders 1920 × 1080 at one pixel
+per point by default (`--window 2560x1440 --ppp 1` for the extension); the gated snapshots are `main-*` at 1920 ×
+1080 and `*-2560` at 2560 × 1440.
 
-*As built.* **Widths at the typical size.** The left column (the
-Schematic workspace's navigator and Properties) is `size.panel.left` (280) at the floor and, while the user has not
-dragged it, is shown at 280 + 0.35 × (window width − 1280), up to `size.panel.left_max` (480): display only, the
-user's share stays the layout, like the bottom dock's clamp (§5.7); at 1920 it is 480. The command search takes 0.2
-of the tab row, from `size.search` (280) up to `size.search.max_width` (400); 384 at 1920. Form dialogs take 0.45
-of the window from `size.dialog.form` (864 at 1920); dialogs that hold a list fit their content: the parts mapping
-card from `size.dialog.form` up to the grown form width, the Show changes popup from `size.dialog.small` up to 0.3 of
-the window; a short list keeps the token width, nothing is stretched. The navigator table re-fills its capped
-columns on a resize. **Exceptions, fixed on purpose:** the junction editor and the parts card keep
-`size.dialog.small`; the first-run screen keeps the reading measure `size.text_measure` (520), a line length that
-does not grow with the window. A menu's popup width is still a literal 160 px. What remains of the look at
-1920 (the ribbon's and the menu bar's empty middle, the right rail) is FT-798.
+*As built (FT-1730).* **Widths at the main resolution and its extension.** Every width is set at 1920 × 1080 and
+grows on to 2560 × 1440, where the extra room goes to the page, to more rows and to wider lists; a token is a width's
+least value in a small window.
+
+| Width | 1920 × 1080 | 2560 × 1440 | Rule |
+|---|---|---|---|
+| Left column (navigator, Properties) | 480 | 640 | 480 + 0.35 × (window − 1920), up to `size.panel.left_max` (640, from about 2380), while the user has not dragged it; below 1920 it narrows the same way until the layout's own share (280 of the 1200 points a 1280 window leaves between the rails) stands. Display only: the user's share stays the layout, like the bottom dock's clamp (§5.7). The strip editor's and a table's lack widens it further, up to two thirds of the dock |
+| Command search | 384 | 512 | 0.2 of the tab row, never under `size.search` (280); no cap beside the tab row's empty middle |
+| Form dialog of fields (New page…, Terminal…) | 864 | 864 | 0.45 of the window from `size.dialog.form` (640), stopping at its 1920 width: short values gain nothing from wider fields |
+| Form or dialog that holds a list (Choose part, the parts mapping card, Keyboard shortcuts, Notices) | 864 | 1152 | 0.45 of the window from `size.dialog.form`; a list dialog fits its content up to that width (the mapping card), a short list keeps the token width |
+| Small list dialog (Show changes) | 576 | 768 | 0.3 of the window from `size.dialog.small`, fitting its lines |
+| Print pre-dialog | 1248 | 1664 | 0.65 of the window from `size.dialog.preview` (1040); the preview takes the gain |
+| Command palette | 768 | 1024 | 0.4 of the window from `size.palette` (560) |
+| Toast | 422 | 563 | 0.22 of the window from `size.toast` (300) |
+
+The navigator table re-fills its capped columns on a resize. **Exceptions, fixed on purpose:** the junction editor
+and the parts card keep `size.dialog.small`; the first-run screen keeps the reading measure `size.text_measure`
+(520), a line length that does not grow with the window. A menu's popup width is still a literal 160 px. What
+remains of the look at 1920 (the ribbon's and the menu bar's empty middle, the right rail) is FT-798.
 
 *As built (W40a item 4).* **The macro card's value fields** follow a form dialog, not
 the preview's width: the label column is as wide as the widest label, at most half the row; the field is as wide as
 a form dialog's field (`dialog::form_width` less its margins, growing with the window, never wider than the panel);
-a refusal sits right under its field (about 525 px of field at the floor, 735 px at 1920). The Macros navigator's
+a refusal sits right under its field (about 735 px of field at 1920). The Macros navigator's
 thumbnail gives up height before its detail card clips.
 
 *As built.* **The keyboard-shortcuts list** (Help ▸ Keyboard shortcuts) is a
 list dialog that fits its content up to half the window's height, in whole rows: a row is `max(size.row,
-size.control)` high (28 px) with no gap, so 14 rows show at the floor and 19 at 1920; mid-scroll positions are not
+size.control)` high (28 px) with no gap, so 19 rows show at 1920 and 25 at 2560; mid-scroll positions are not
 snapped to whole rows. Of the columns' room the keys column takes at most 25 % and the "where" column at most
 35 %, each fitting its widest content below that; the action column takes the rest, and a cut action title shows its
 whole text on hover.
@@ -397,14 +405,13 @@ padding). Spacing tokens (a subset of Carbon's scale plus `space.icon`):
 | `size.command.large` | 46 × ≥ 52 | 28 high | Comfortable: icon 20 over label, 2-px gap; Compact: icon 20 beside label |
 | `size.command.small` | 24 | 24 | Icon 16 and label beside it |
 | `size.quick_access` | 28 × 24 | 28 × 24 | Save, Undo, Redo |
-| `size.search` | 280 × 24 | 280 × 24 | The command search field; at the floor (as built, it grows with the tab row, §2) |
-| `size.search.max_width` | 400 | 400 | As built: the widest the command search grows to |
+| `size.search` | 280 × 24 | 280 × 24 | The command search field's least width; as built it is 0.2 of the tab row, 384 at 1920 and 512 at 2560 (§2) |
 | `size.panel_header` | 32 | 32 | Navigator, Properties and palette headers |
 | `size.dock_tab_bar` | 32 | 32 | Canvas-tab bar (tabs 28 high) and the bottom dock's tab row |
 | `size.rail` | 40 | 40 | Rail width; rail buttons 32 square |
 | `size.status` | 26 | 26 | Status bar; its fields 22 high |
-| `size.panel.left` | 280 (220 to 480) | 280 | Navigator and Properties column; Properties takes half its height; its width at the floor (as built, shown wider with the window while not dragged, §2) |
-| `size.panel.left_max` | 480 | 480 | As built: the widest the left column is shown while it keeps its default share |
+| `size.panel.left` | 280 (220 to 640) | 280 | Navigator and Properties column; Properties takes half its height; its least default width (as built, shown 480 wide at 1920 and 640 at 2560 while not dragged, §2) |
+| `size.panel.left_max` | 640 | 640 | As built: the widest the left column is shown while it keeps its default share (from about 2380) |
 | `size.panel.right` | 280 (220 to 480) | 280 | Palettes. *Not built:* the token was removed because nothing read it; FT-835 proposes the right column that reads it |
 | `size.text_measure` | 520 | 520 | As built: the line length of running text on a full-window page (the first-run screen), fixed on purpose |
 | `size.dock.bottom` | 184 | 184 | The mockup's reference height of the bottom dock only (the mockup's `.bottom` rule, checked by DL8); as built the dock does not open at it (§5.7) |
@@ -520,7 +527,7 @@ adds a raw value, so the token test of WP-S2.17 part 1 checks them through their
 | `color.history.undone` | = `color.text.tertiary` | = `color.text.tertiary` | alias | Undone History entries, always with their state icon (§6.24) |
 | `color.card.strip` | = `color.surface.sunken` | = `color.surface.sunken` | alias | The fill of the "Preview open" strip |
 | `size.dialog.label` | 160 | 160 | raw size | The fixed label column of every form dialog, followed by `space.3` (§6.12) |
-| `size.dialog.preview` | 1040 | 1040 | raw size | The print pre-dialog's width at the floor, growing with the window at 0.65 of its width (1248 at 1920; §6.12) |
+| `size.dialog.preview` | 1040 | 1040 | raw size | The print pre-dialog's least width; it is 0.65 of the window, 1248 at 1920 and 1664 at 2560 (§6.12) |
 | `color.badge.on_chrome` | = `color.border.subtle` | = `color.border.subtle` | alias (high-contrast themes: `color.surface.sunken`, outlined with `color.border.default`) | A count badge on the chrome, such as the dock tab row's count chip (§6.16); secondary text on it is 5.40:1 (light) and 5.19:1 (dark) |
 
 `color.border.control` is not used for the idle cursor: on `color.accent.subtle` it falls to 2.88:1, under 3:1.
@@ -558,12 +565,12 @@ The window is [the mockup](assets/design-language-mockup.html)'s (open it in a b
 +-------------------------------------------------------------------------------------------------------+
 ```
 
-At 1280 × 800 and 100 %, Comfortable: command bar 85 px (tab row 32, command row 52 with its top hairline, the
-bottom line 1; Compact 69), canvas-tab bar 32 px, status bar 26 px, left rail 40 + left column 280 px, right rail
-40 px, so the canvas is 920 × 657 px: 72 % of the width
+At 1920 × 1080 and 100 %, Comfortable: command bar 85 px (tab row 32, command row 52 with its top hairline, the
+bottom line 1; Compact 69), canvas-tab bar 32 px, status bar 26 px, left rail 40 + left column 480 px, right rail
+40 px, so the canvas is 1360 × 937 px: 71 % of the width
 (ADR-0031 decision 5 requires at least 65 %). The bottom dock, when open, takes 350/1000 of that height, at least 300 px (§5.7). At
-1920 × 1080 the canvas is 1560 × 937 px. The sheet is centred on the surround at up to 92 % of the canvas
-width.
+2560 × 1440 the left column is 640 px and the canvas 1840 × 1297 px (72 %). The sheet is centred on the surround at
+up to 92 % of the canvas width.
 
 ### 5.2 The command surface
 
@@ -618,7 +625,10 @@ shows its command row as a popover over the canvas until a command runs or Escap
 narrow, groups collapse from the right into a "More" split button, each into one button that opens the group as a
 menu; the Draw tab's Select and Place groups never collapse, and its Connect group only after every other group
 has (at the smallest window in a language of long words; until M2.5-Fix it never did, which left Place no room for
-Terminal and the Symbol editor's own entry).
+Terminal and the Symbol editor's own entry). At 1920 × 1080 no group folds, in English, Dutch or the pseudo-locale.
+*As built (FT-1730):* before any group folds, the tab's next step shows its icon alone (named by its label, its
+label and key in the tooltip) where that keeps every group whole; at 1920 that happens only in the pseudo-locale on
+Draw.
 
 **The bar is generated from the registry.** `ActionMeta` gains `placement: Option<Placement { tab, group, order,
 size, bar_label }>` and `icon: IconId`, and each tab names its next-step action; the bar draws whatever has a
@@ -631,9 +641,9 @@ placed action has an icon, a label and a docs anchor, and that each tab's groups
 
 | Tab | Groups, left to right (large buttons in **bold**; bar labels) | Next step · notes |
 |---|---|---|
-| Project | Project: **Properties**, Structure · Parts: Project parts · Standards: Schemes, Company standard · Import: **Import parts**, Import QElectroTech project…, Re-import QElectroTech project… | None · set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
+| Project | Project: **Properties**, Structure · Parts: Project parts · Standards: Schemes, Company standard · Import: **Import parts**, Import QElectroTech project…, Re-import QElectroTech project… (whole on the bar since FT-1730; the 1280 fit had them as "Import QET" and "Re-import QET") | None · set up once; New, Open and Save are in the app menu and quick access, never duplicated here |
 | Page | Pages: **New page**, Title block fields… (FT-1686), New section, Page properties, Delete page · Order: Renumber pages, Move up, Move down · Go: **Go to** (Ctrl+G), Back (Alt+Left), Forward (Alt+Right), Follow reference (F) | None · folio navigation and page set-up |
-| **Draw** (home) | Select: **Select** · Place: **Symbol** (I), **Device** (Shift+I), Terminal… (its form asks the strip, the kind, how many and from which number, FT-1695), Black box (B), Symbol editor (alone in its column, named for what it is; the group's two large buttons are Symbol and Device) · Connect: **Wire** (W), Edit route, Potential (Shift+P), Interruption (P), Route page and Route selection (stacked in one column), Cable (the selected wires as a cable's cores, FT-1685, alone in its column; at the 1280-point floor in English the Layout group folds into its group button for it) · Annotate: **Text** (T), Measure, Marker (the Wire marker, Shift+W) · Arrange: Rotate (R), Mirror (X, Y), Align, Renumber | **Check project** (F7) · the core loop and the tab that opens with a project; the mockup's fifteen commands and its next step, with the commands that joined since: Edit route beside Wire, Route page and Route selection and Symbols (the Symbol editor joined Place, which the editor's persona round asked for; its bar label is "Symbols", the editor's things, since "Editor" names no concept and "New symbol" would mislead when a kept draft reopens; its tooltip, menu entry and palette row are "Symbol editor…"). Move, Delete, Wire marker, Graphic, Image, Structure box, Properties and Change symbol are reached by their keys, the context menu, the app menu's Draw and the palette; Align arrives with its package |
+| **Draw** (home) | Select: **Select** · Place: **Symbol** (I), **Device** (Shift+I), Terminal… (its form asks the strip, the kind, how many and from which number, FT-1695), Black box (B), Symbol editor (alone in its column, named for what it is; the group's two large buttons are Symbol and Device) · Connect: **Wire** (W), Edit route, Potential (Shift+P), Interruption (P), Route page and Route selection (stacked in one column), Cable (the selected wires as a cable's cores, FT-1685, alone in its column; below 1920 the Layout group folds into its group button first) · Annotate: **Text** (T), Measure, Marker (the Wire marker, Shift+W) · Arrange: Rotate (R), Mirror (X, Y), Align, Renumber | **Check project** (F7) · the core loop and the tab that opens with a project; the mockup's fifteen commands and its next step, with the commands that joined since: Edit route beside Wire, Route page and Route selection and Symbols (the Symbol editor joined Place, which the editor's persona round asked for; its bar label is "Symbols", the editor's things, since "Editor" names no concept and "New symbol" would mislead when a kept draft reopens; its tooltip, menu entry and palette row are "Symbol editor…"). Move, Delete, Wire marker, Graphic, Image, Structure box, Properties and Change symbol are reached by their keys, the context menu, the app menu's Draw and the palette; Align arrives with its package |
 | Check | Run: **Check project** (F7), Check scheme ▾ · Findings: **Messages**, Next finding (F8), Previous finding (Shift+F8) · Numbering: Freeze tag, Unfreeze tag · Trace: Highlight potential (Ctrl+Shift+H), Clear highlights | **Export PDF** · make it right before output; Renumber lives on Draw (the mockup) |
 | Output | PDF: **Export PDF**, Print · Reports: **Report blocks**, Open generated page · Lists: Parts list, Wire list, Terminal diagram (open their generated pages) · Jobs: Jobs | None · everything that leaves the project |
 | View | Zoom: **Fit page** (Home), Zoom in, Zoom out, Actual size · Show: Grid, Snap, Frame statistics, Show tips · Panels: Navigators ▾, Properties, Messages, Jobs, History, Notifications · Layout: Side by side, Workspaces ▾, Reset layout · Appearance: Theme ▾, Density ▾, UI scale ▾ | None · never needed for the work itself |
@@ -649,11 +659,12 @@ and learning them from the failures costs an afternoon):
    from it: run `cargo xtask gen`.
 2. *At most two large buttons per group.* A third command is a small one; small ones stack two to a column in the
    order of their places.
-3. *It must fit the smallest window.* At 1000 points wide, in Dutch and in the long-text test locale, the groups
-   that never fold (Select and Place) with the rest folded must fit; Connect folds last, and Annotate (Text, the Wire
-   marker) just before it, so that at the floor the panel pages' Layout group gives way first (FT-1685). At 1280
-   points in English the Draw tab is full: a new button there folds a group at the right, so say which one and look
-   at the picture.
+3. *It must fit the main resolution.* At 1920 × 1080, in English, Dutch and the long-text test locale, no group folds
+   (`command_surface::nothing_folds_at_1920_in_english_dutch_and_the_pseudo_locale`); in the pseudo-locale the Draw
+   tab is full, its next step already in its icon form: a new button there must make room, so say where and look at
+   the picture. Below 1920 the groups fold in this order, from the right: Connect last, and Annotate (Text, the Wire
+   marker) just before it, so that the panel pages' Layout group gives way first (FT-1685); every command stays
+   reachable through its group's menu or More (`command_surface::a_smaller_window_stays_usable`, at 1280 × 800).
 4. *A bar label is settled.* "Renumber devices" stays whole (it was confused with Renumber pages); do not shorten
    a bar label to gain width.
 5. *One icon per concept.* An icon key serves one command or pane; two entries share one only when they are one
@@ -731,7 +742,7 @@ Show · On"). Frame statistics is still drawn with its icon where its siblings s
 
 *As built.* **The double-click rule:** the window turns a double click's second press into `tool.finish` only for a tool that finishes on a double click (`Tool::finishes_on_double_click`): Wire, Select (a free text opens for editing), the polyline and polygon graphics and Structure box. Every other tool sees two plain presses, so two quick clicks with Place place twice (for the stacked twin). A right-click on the canvas opens a context menu: over an object the selection's Arrange commands in the command bar's order, then Delete; over nothing Paste when it is enabled; no menu when there is nothing to offer. The Black box tool marks its first corner, and after an Escape its hint says that a second Escape leaves the tool.
 
-*As built.* **The tool options card takes the pointer only with its controls (the band they stand in):** a click on its frame reaches the sheet beneath, and while the tool's ghost stands under the card (by the card's rectangle of the last frame) the card is drawn at 40 % opacity and is no obstacle to the canvas chips. **It is one row high and stands right under the page view's tab bar** (`space.1` below it, `space.2` padding, no title: each field carries its own label), so a fitted page's margin and its frame's band of column numbers hold it and it covers none of the drawing, at 1280 × 800 and at 1920 × 1080; on a page zoomed in it fades as above. (Until M2.5-Fix it had a title and `space.4` padding and lay over the sheet's top left, where terminals are clicked: FT-929, FT-981.)
+*As built.* **The tool options card takes the pointer only with its controls (the band they stand in):** a click on its frame reaches the sheet beneath, and while the tool's ghost stands under the card (by the card's rectangle of the last frame) the card is drawn at 40 % opacity and is no obstacle to the canvas chips. **It is one row high and stands right under the page view's tab bar** (`space.1` below it, `space.2` padding, no title: each field carries its own label), so a fitted page's margin and its frame's band of column numbers hold it and it covers none of the drawing, at 1920 × 1080 and at 2560 × 1440; on a page zoomed in it fades as above. (Until M2.5-Fix it had a title and `space.4` padding and lay over the sheet's top left, where terminals are clicked: FT-929, FT-981.)
 
 *As built.* **A jump's
 arrival.** After a cross-reference jump the target is centred and marked by a ring of `size.control.inline` radius in
@@ -743,11 +754,11 @@ Back button, enabled only when there is a page to go back to; its tooltip takes 
 keymap, "Back (Alt+Left)", and when disabled reads "Back (Alt+Left): No page to return to". **A page's first view** is
 the whole sheet (fit-page), so that the title block is in view, unless a fit to the width is clearly larger (by more
 than 15 %: a wide, low pane), which is then taken with the top of the page 16 pt below the pane's top, so a drawing frame's
-pin texts are legible at the 1280 × 800 floor (R0-F9); it stays the first view of a new pane until Fit page is
+pin texts are legible in a 1280 × 800 window (R0-F9); it stays the first view of a new pane until Fit page is
 pressed, and fit-page stays one key away (Home). A new project and Golden A's pages open with the whole sheet in
-view, at the floor and at 1920 × 1080 (until M2.5-Fix a new project opened fit to the width, 116.8 % at 1920 × 1080,
+view, at 1920 × 1080 and at 2560 × 1440 (until M2.5-Fix a new project opened fit to the width, 116.8 % at 1920 × 1080,
 with the title block's foot under the HUD). The 9 px pin-text target first ruled was dropped,
-since it needed 128.6 % at the floor.
+since it needed 128.6 % in a 1280 × 800 window.
 
 ### 5.6 Right: the palettes
 
@@ -807,8 +818,8 @@ rows), Jobs (§6.19 and §6.25), History (§6.24) and Preview (§6.23).
 *As built.* **The dock grows with its content.** Messages, Find, Preview,
 Glossary, History and Jobs report their list's height; the dock is shown no higher than the shown pane needs and,
 while the split keeps its default share (350/1000), grows past the page view's half to at most 40 % of the window's
-height when the content needs it: at the 1280 × 800 floor Messages shows six rows without its detail block, four with
-it. A share the user dragged stands.
+height when the content needs it: in a 1280 × 800 window Messages shows six rows without its detail block, four with
+it, and more at 1920 × 1080. A share the user dragged stands.
 
 ### 5.8 The status bar
 
@@ -849,9 +860,10 @@ Right move between tabs, Tab moves into the command row, arrow keys move between
 
 ### 5.10 Narrow windows
 
-The minimum window is 1024 × 640. Below 1280 px of width the right column overlays the canvas instead of pushing it;
-below 1100 px the command row's groups collapse from the right (§5.2); the left column never shrinks below 220 px and
-collapses to its rail by a click on the active rail button.
+The minimum window is 1024 × 640. A window smaller than 1920 × 1080 only has to stay usable (§2): below 1280 px of
+width the right column overlays the canvas instead of pushing it; where the command row is too narrow its groups
+collapse from the right (§5.2; on the Draw tab in English below about 1450 points); the left column never shrinks below
+220 px and collapses to its rail by a click on the active rail button.
 
 ## 6. Components
 
@@ -988,10 +1000,10 @@ only when it is cut.
 *As built.* **The
 label column takes what its labels need, up to half the row.** It is as wide as the widest label of the rows on show,
 up to half the row, the values keeping at least half; a label longer than its column wraps at its word boundaries
-onto further lines instead of being cut, so no nested Dutch label is cut at the 1280 × 800 floor. The identifier
+onto further lines instead of being cut, so no nested Dutch label is cut, in a 1280 × 800 window either. The identifier
 rule above never narrows the column below the widest single word of a label with its indent, and prose values and
 list counts take no width from the column (only identifiers do). The rule holds at every width. An
-identifier (the Tag value beside its chip at the floor, for one) keeps its whole width and its chip, the label column
+identifier (the Tag value beside its chip in a narrow column, for one) keeps its whole width and its chip, the label column
 yielding first, its labels wrapping and a single overlong label word cut with its tooltip. A
 prose value wraps at its words onto up to three lines, its row growing with it, and only a value longer than three
 lines is cut, with its whole text as its tooltip.
@@ -1000,7 +1012,7 @@ lines is cut, with its whole text as its tooltip.
 identifiers only, down to half their width.** The word floor of the note above does not hold for
 an identifier, so an identifier value (a tag, a part number, any word with a digit) can narrow the label column down to
 half of `size.property_label`, and a label whose longest word no longer fits is then cut on one line with its whole text as
-its tooltip; a nested Dutch label can therefore be cut at the floor beside an identifier. A prose value or choice word
+its tooltip; a nested Dutch label can therefore be cut in a narrow column beside an identifier. A prose value or choice word
 without a digit, one word or several, and a list count take no width from the labels; a mixed value (‹varies›) counts
 whole, as an identifier does. The row's "…" button now counts
 in the value's width, so the selected row's identifier stays whole too.
@@ -1029,8 +1041,8 @@ in tree-row style, newest first, each with its time, message and still-valid act
 
 *As built.* A parts import says each outcome in one toast, the applied import's with Undo; the banner over the tab title is gone (a banner is for a state of the whole project, §6.11), and the Preview tab shows the summary and the lists without repeating the counts.
 
-*As built.* **A toast grows with the window:** `size.toast` (300 px) at the
-1280 × 800 floor, 0.22 of the window's width above it (422 px at 1920), never wider than the window. Its line wraps at
+*As built.* **A toast grows with the window:** 0.22 of the window's width (422 px at 1920, 563 px at 2560), never
+narrower than `size.toast` (300 px) and never wider than the window. Its line wraps at
 word boundaries up to four rows, so a refusal's reason is never cut at one line; what does not fit in four rows ends
 in an ellipsis, with the whole text in the tooltip, the HUD and the log.
 
@@ -1071,7 +1083,7 @@ Dismiss, since the saves stay held.
 ### 6.12 Dialogs
 
 Modal only when the work cannot continue without the answer (doc 16 §4.1). `color.surface.raised`, `elevation.2`,
-`radius.lg`, width 440 px (small), 640 px (forms) or `size.dialog.preview`, 1040 px (the print pre-dialog, growing with the window at 0.65 of its width, 1248 px at 1920), `space.5` padding, a backdrop of `slate-900` at 24 %. Anatomy:
+`radius.lg`, width 440 px (small), 640 px (forms) or `size.dialog.preview`, 1040 px (the print pre-dialog), each the least of a width that grows with the window (§2: a form 864 px at 1920, the print pre-dialog 1248 px at 1920 and 1664 px at 2560), `space.5` padding, a backdrop of `slate-900` at 24 %. Anatomy:
 **title** in `type.title`, left-aligned, phrased as the question or the task ("Recover unsaved changes?"); **body** in
 `type.body`, at most three short paragraphs, facts as a two-column label and value list; **footer** with buttons
 right-aligned in the platform's order (Windows: Primary then Secondary; Linux: Secondary then Primary), a
@@ -1421,7 +1433,7 @@ FT-520 and follow-up 3 is FT-522):
 
 *As built.* A modal dialog (§6.12) opened by Output ▸
 Print… (`file.print`, Ctrl+P, enabled with pages) and by the command bar's Print button. It is titled "Print"
-(`print-title`), `size.dialog.preview` wide (1040 px, growing with the window at 0.65 of its width, 1248 px at 1920) and
+(`print-title`), 0.65 of the window wide (1248 px at 1920, 1664 px at 2560; never under `size.dialog.preview`, 1040 px) and
 holds two columns: the options on the left, 36 % of the body, on §6.12's form rows, and the preview on the right, at
 most 56 % of the window's height.
 - **Options.** *Range*, a radio group: All, Current page, Sections (a check list, "Section {n}: {title}", six rows
