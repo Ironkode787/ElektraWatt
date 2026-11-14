@@ -84,8 +84,14 @@ pub fn fndef_map_file(path: &Path) -> Result<FndefMap, String> {
         .map_err(|e| format!("{name}: {e}"))?;
     // A pin the map gives a function definition the program does not have would name nothing.
     let reg = library::Registry::starter_only();
-    match map.fndef_keys().into_iter().find(|k| starter_fndef(&reg, k).is_none()) {
-        Some(key) => Err(format!("{name}: `{key}` is no function definition of the starter library")),
+    match map
+        .fndef_keys()
+        .into_iter()
+        .find(|k| starter_fndef(&reg, k).is_none())
+    {
+        Some(key) => Err(format!(
+            "{name}: `{key}` is no function definition of the starter library"
+        )),
         None => Ok(map),
     }
 }
@@ -482,7 +488,8 @@ impl Session {
         let mut docs: Vec<LibDocument> = Vec::new();
         // The keys of the manufacturers a part may name (the project's copies, the installed libraries' records and
         // those the import creates), by library and item: one maker has one key whichever record names it.
-        let mut maker_keys: std::collections::BTreeMap<(Uuid, Uuid), String> = std::collections::BTreeMap::new();
+        let mut maker_keys: std::collections::BTreeMap<(Uuid, Uuid), String> =
+            std::collections::BTreeMap::new();
         let known = crate::catalog::manufacturer_master(self.libraries())
             .into_iter()
             .chain(q.manufacturers().iter().map(|(_, c)| (**c).clone()))
@@ -491,7 +498,10 @@ impl Session {
                 _ => None,
             }));
         for m in known {
-            maker_keys.insert((m.library_id.as_uuid(), m.item_id.as_uuid()), m.item.key.to_string());
+            maker_keys.insert(
+                (m.library_id.as_uuid(), m.item_id.as_uuid()),
+                m.item.key.to_string(),
+            );
         }
         // A reference no record answers stands for itself.
         let maker_of = |r: &LibRef| {

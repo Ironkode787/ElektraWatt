@@ -178,7 +178,8 @@ fn multilingual_fields_are_split_at_single_semicolons() {
         "Relay"
     );
     // A plain description may hold an `@`; it is no language and no finding.
-    let at = r#"<part P_ARTICLE_PARTNR="D3" P_ARTICLE_MANUFACTURER="Acme" P_ARTICLE_DESCR1="Relay 24 V@50 Hz"/>"#;
+    let at =
+        r#"<part P_ARTICLE_PARTNR="D3" P_ARTICLE_MANUFACTURER="Acme" P_ARTICLE_DESCR1="Relay 24 V@50 Hz"/>"#;
     let read_at = read("d.xml", at.as_bytes()).unwrap();
     assert_eq!(read_at.drafts[0].body["description"], "Relay 24 V@50 Hz");
     assert!(read_at.entries.is_empty(), "{:?}", read_at.entries);
@@ -207,7 +208,11 @@ fn a_repeated_free_property_keeps_the_last_value() {
         <freeproperty name="colour" value="black"/></part>"#;
     let read = read("f.xml", xml).unwrap();
     assert_eq!(read.drafts[0].body["free_props"][0]["value"], "black");
-    assert!(read.entries.iter().any(|e| e.message.contains("the last value is kept")));
+    assert!(
+        read.entries
+            .iter()
+            .any(|e| e.message.contains("the last value is kept"))
+    );
 }
 
 /// FR-IMP-028: a parts XML of 50 parts with variants, accessories and free properties; its `length-unit` scales the

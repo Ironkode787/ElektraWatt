@@ -427,7 +427,13 @@ pub fn read_report(
                             if let Some((s, d)) = find(row, &table.headers, map, member).rsplit_once(':')
                                 && split_dt(s).1.starts_with(['X', 'x'])
                             {
-                                rows.push((n + 2, s.trim().to_owned(), d.trim().to_owned(), 1, String::new()));
+                                rows.push((
+                                    n + 2,
+                                    s.trim().to_owned(),
+                                    d.trim().to_owned(),
+                                    1,
+                                    String::new(),
+                                ));
                             }
                         }
                     }

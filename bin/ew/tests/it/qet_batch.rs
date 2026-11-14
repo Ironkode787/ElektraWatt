@@ -108,8 +108,14 @@ fn a_report_that_cannot_be_written_does_not_end_the_batch() {
     std::fs::create_dir_all(out_dir.join("a.report.md")).unwrap();
     let out = t.ew(&args([&"import", &"qet", &"--batch", &dir, &"--out", &out_dir]));
     assert_eq!(out.status.code(), Some(2), "{}", stderr(&out));
-    assert!(out_dir.join("b").join("manifest.json").is_file(), "b is imported after a");
+    assert!(
+        out_dir.join("b").join("manifest.json").is_file(),
+        "b is imported after a"
+    );
     let summary = std::fs::read_to_string(out_dir.join("summary.md")).unwrap();
-    assert!(summary.contains("| a.qet | the report was not written |"), "{summary}");
+    assert!(
+        summary.contains("| a.qet | the report was not written |"),
+        "{summary}"
+    );
     assert!(summary.contains("| b.qet | imported |"), "{summary}");
 }

@@ -90,7 +90,10 @@ fn a_folder_too_deep_is_listed_as_not_read() {
     let collection = qet_collection::read_collection(&root.0).unwrap();
     assert!(collection.elements.is_empty());
     assert!(
-        collection.skipped.iter().any(|(_, why)| why.contains("folders deep")),
+        collection
+            .skipped
+            .iter()
+            .any(|(_, why)| why.contains("folders deep")),
         "{:?}",
         collection.skipped
     );

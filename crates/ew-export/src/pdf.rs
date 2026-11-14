@@ -897,7 +897,11 @@ fn glyph_ranges(run: &ShapedRun, font: Option<&[u8]>) -> Vec<std::ops::Range<usi
     let nominal =
         crate::font_subset::nominal_glyphs(font, &drawn.iter().map(|&(_, c)| c).collect::<Vec<_>>());
     let own = |at: usize, glyph: usize| {
-        nominal.get(at).copied().flatten().is_some_and(|g| u32::from(g) == run.glyphs[glyph].id)
+        nominal
+            .get(at)
+            .copied()
+            .flatten()
+            .is_some_and(|g| u32::from(g) == run.glyphs[glyph].id)
     };
     let (mut out, mut at) = (Vec::with_capacity(run.glyphs.len()), 0);
     for k in 0..run.glyphs.len() {

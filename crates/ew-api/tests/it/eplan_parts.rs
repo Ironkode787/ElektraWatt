@@ -237,7 +237,12 @@ fn an_edz_is_written_into_a_library_and_a_changed_part_needs_a_bump() {
     assert_eq!(done.import.counts().updated, 1);
     let after = held(&reg);
     assert_eq!(after.version, "1.0.3");
-    assert!(serde_json::to_string(&after.item.description).unwrap().contains("newest"), "the file's description");
+    assert!(
+        serde_json::to_string(&after.item.description)
+            .unwrap()
+            .contains("newest"),
+        "the file's description"
+    );
     assert!(
         after.item.tech_data.iter().any(|t| t.key.as_str() == "i_out"),
         "the user's technical data stays"
@@ -334,8 +339,15 @@ fn a_report_import_says_what_it_leaves_out_and_reads_what_the_map_names() {
     let diagram = "Terminal strip;Terminal;Level;Part number\n-X1;1;1;P-1\n-X1;2;x;\n-X1;1;1;P-1\n";
     let batch = report("terminals.csv", diagram, "terminals-en");
     let text = messages(&batch);
-    assert!(text.iter().any(|m| m.contains("-X1:1") && m.contains("listed twice")), "{text:?}");
-    assert!(text.iter().any(|m| m.contains("`x`") && m.contains("taken as 1")), "{text:?}");
+    assert!(
+        text.iter()
+            .any(|m| m.contains("-X1:1") && m.contains("listed twice")),
+        "{text:?}"
+    );
+    assert!(
+        text.iter().any(|m| m.contains("`x`") && m.contains("taken as 1")),
+        "{text:?}"
+    );
     let parts: Vec<_> = batch
         .records
         .iter()
@@ -344,16 +356,30 @@ fn a_report_import_says_what_it_leaves_out_and_reads_what_the_map_names() {
             _ => None,
         })
         .collect();
-    assert_eq!(parts, [json!("P-1")], "the part column of a terminal diagram is read");
+    assert_eq!(
+        parts,
+        [json!("P-1")],
+        "the part column of a terminal diagram is read"
+    );
 
     // The part column is named by the mapping and not in the table: the rest is imported.
-    let batch = report("terminals.csv", "Terminal strip;Terminal;Level\n-X1;1;1\n", "terminals-en");
+    let batch = report(
+        "terminals.csv",
+        "Terminal strip;Terminal;Level\n-X1;1;1\n",
+        "terminals-en",
+    );
     let text = messages(&batch);
     assert!(
-        text.iter().any(|m| m.contains("Part number") && m.contains("not in the table")),
+        text.iter()
+            .any(|m| m.contains("Part number") && m.contains("not in the table")),
         "{text:?}"
     );
-    assert!(batch.records.iter().any(|r| matches!(r, Record::Device(d) if d.aspects.terminal.is_some())));
+    assert!(
+        batch
+            .records
+            .iter()
+            .any(|r| matches!(r, Record::Device(d) if d.aspects.terminal.is_some()))
+    );
 
     let wires = "Source;Target\n-X1:1;-X2:1\n-X1:1;-X2:2\n";
     let text = messages(&report("wires.csv", wires, "connections-en"));
@@ -394,7 +420,10 @@ fn the_function_definition_table_names_starter_items_and_reads_the_users_rows() 
     )
     .unwrap();
     let e = eplan::fndef_map(Some(&dir.0)).unwrap_err();
-    assert!(e.contains("ew.fn.nothing") && e.contains("starter library"), "{e}");
+    assert!(
+        e.contains("ew.fn.nothing") && e.contains("starter library"),
+        "{e}"
+    );
     std::fs::write(dir.0.join("imports").join(eplan::FNDEF_MAP_FILE), "not a table [").unwrap();
     assert!(eplan::fndef_map(Some(&dir.0)).is_err());
 }

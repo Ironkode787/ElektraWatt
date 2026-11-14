@@ -591,3 +591,18 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   fault. An edit that writes a missing record into a fluid part, a medium, a safety channel's partner or test-pulse
   pin, or an exchange record's configuration project is refused (EW-INV-001), as an older file's stale reference
   still loads (M3 review fix, ADR-0009 amendment 10)
+- behaviour-change: `ew verify-migration` stretches the reference's raster to the page instead of skipping the
+  comparison when the two differ by a pixel, refuses a page above 4,096 pixels a side (A1) in words, and pairs
+  pages by label wherever a label names the folio, so a missing page no longer shifts the pairs after it (M3 review
+  fix, FT-1748, doc 14 §4.15)
+- behaviour-change: the PDF the program writes maps a ligature's glyph to its letters (`fi`, `fl`, `ffi`) and a glyph
+  to the same letters in every run, so a text read back from it is the text drawn; Golden A's PDF hash changes (M3
+  verifier row, FT-1747, FR-OUT-008)
+- behaviour-change: an EDZ import into a library lays the file over the part the library holds, so the technical
+  data a user added stays; the update of a project's part copies matches the manufacturer as well as the part
+  number; the terms notice follows the file (an EDZ under any name or subcommand), and the window shows it before any
+  step; a nested part refuses the parts XML, a description holding `@` stays plain; a report import says a
+  repeated terminal and a level that is no number, and reads the part of a terminal (M3 review fix, doc 14 §5)
+- behaviour-change: `ew import qet --batch` goes on after a report that cannot be written, keeps two files of one
+  stem apart and escapes a bar in the summary; a QET collection says the folders deeper than 16 it did not read (M3
+  review fix, doc 14 §4.16)

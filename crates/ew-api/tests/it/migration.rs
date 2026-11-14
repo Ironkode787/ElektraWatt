@@ -41,7 +41,8 @@ fn project_on(pages: &[(u32, &str)], sheet_mm: Option<(i64, i64)>) -> Session {
         })
         .into_iter()
         .collect();
-    let mut session = Session::from_records(row, [], forms, SessionOptions::default()).expect("an empty model");
+    let mut session =
+        Session::from_records(row, [], forms, SessionOptions::default()).expect("an empty model");
     for (number, title) in pages {
         let mut params = serde_json::json!({"number": number, "title": title});
         if sheet_mm.is_some() {
@@ -253,7 +254,14 @@ fn a_file_that_is_no_pdf_is_refused_in_words() {
 #[test]
 fn the_raster_of_a_page_is_compared_whatever_its_size() {
     // Sheets whose pixel size at the verifier's resolution the reference's own raster does not hit exactly.
-    for sheet in [(297, 210), (420, 297), (400, 283), (353, 251), (211, 149), (593, 419)] {
+    for sheet in [
+        (297, 210),
+        (420, 297),
+        (400, 283),
+        (353, 251),
+        (211, 149),
+        (593, 419),
+    ] {
         let session = project_on(&[(1, "Cover")], Some(sheet));
         let report = verify_migration(&session, pdf_of(&session), &[]).expect("a verification");
         assert!(report.cells > 0, "{sheet:?}: {report:?}");

@@ -1166,7 +1166,7 @@ ARCH §7.7) and passes the importer a neutral `TableImage` of those tables throu
 - **Verifier** (FR-IMP-021): renders each imported page with the CPU renderer at 150 dpi through the frame
   transform, rasterises the matching page of a reference PDF with hayro, and compares (1) text runs (string and
   anchor within 0.5 mm) and (2) the raster per frame cell with text boxes masked, so font substitution does not
-  swamp the result. Pages pair by folio label, else by order (the reference PDF has physical page labels, D-33).
+  swamp the result. Pages pair by folio label, the pages no label names by order (the reference PDF has physical page labels, D-33).
   Expected deltas are declared per project. For Golden C they are the [20](20-golden-project.md) §3.4 items that
   apply to an import (AC-27): the font substitution, and "3-B0" listed as flagged. "3-B0" matches the reference
   because the import reproduces it (§4.3); MF-13 reports it. FR-IMP-021's criterion expects exactly these deltas
@@ -1185,15 +1185,18 @@ page export, the frame cells of `Session::page_cells` and the CPU raster of `out
 would depend on `ew-api` for all three. The PDF side (`ew_scene::pdf_text`: the text runs, the page labels) sits in
 `ew-scene` beside `underlay`, the one place that uses hayro; hayro is not a new dependency.
 
-- **Pairing.** Pages pair by folio label when the reference's `/PageLabels` name every page of the project, else the
-  n-th page with the n-th. A page without a partner is a deviation (`page-not-in-reference`, `page-not-in-project`);
+- **Pairing.** Pages pair by folio label wherever the reference's `/PageLabels` name the folio; the project pages no
+  label claims take the reference pages no folio named, in order (FT-1748: a missing page leaves the labelled pages
+  after it where they are; a reference without labels pairs wholly by order). A page without a partner is a deviation (`page-not-in-reference`, `page-not-in-project`);
   pages whose sizes differ by more than 1 mm are `size-differs` and are not compared further.
 - **Text.** Both sides give runs of glyphs with their anchor (the first glyph's origin). hayro draws a PDF page into a
   device that keeps the glyph runs; glyphs on one baseline that follow within 0.45 em join into one run, because Qt's
   PDF engine draws every glyph by itself. White space is not compared (where a word breaks is the font's business).
   Per string the nearest pairs match; a pair within 0.5 mm is a match, a farther pair is `text-moved` (with the
   offset in words), what is left is `text-missing` (the reference has it) or `text-extra`.
-- **Raster.** Both pages at 150 dpi on the project page's pixel grid (the reference stretched to it). A pixel is ink
+- **Raster.** Both pages at 150 dpi on the project page's pixel grid (the reference stretched to it: hayro's raster
+  is a pixel short on some sheets, and is resampled to the grid, never skipped). A page whose raster would exceed 4,096
+  pixels a side (about 693 mm, so A1) is refused in words: the reference cannot be drawn at that size. A pixel is ink
   below luminance 200; the boxes of every run of either side, padded 1 mm, are cleared; an ink pixel with no ink within
   0.5 mm on the other side counts for its frame cell (the page's frame grid; a page without one is a single cell). A
   cell with more than 60 such pixels (about 10 mm of a hairline) is a `raster-cell` deviation.
@@ -1202,6 +1205,9 @@ would depend on `ew-api` for all three. The PDF side (`ew_scene::pdf_text`: the 
   either way a clean exit needs every entry found and no other deviation. Font substitution needs no entry for the
   raster (the text boxes are masked) but moves texts by a font's side bearings and baseline, so a project with another
   font declares `{"kind": "text-moved"}`.
+- **PDF text map (FT-1747).** The PDF the program writes maps each glyph to the letters it stands for: a glyph per
+  character, a ligature (`fi`, `fl`, `ffi`) its letters, found by the font's `cmap`; a glyph's map is the same in every
+  run of the document, so a run's text no longer gives wrong letters to later runs that use its glyphs.
 - **Limits.** A text a PDF draws as paths (outlined) has no text to compare; the raster still compares it unmasked.
   Instance symbols' own texts are part of the sheet list as the export gives it. The tolerances are constants of the
   module, not options.
@@ -1353,10 +1359,15 @@ the file's SHA-256, the date), the licence `LicenseRef-vendor-terms` and `foreig
 (`data/fndef-map.toml`, rows of category, group, id, `fndef` and an optional part `kind`) ships with a handful of rows
 whose EPLAN numbering is **not verified against a real export** (Open question 12); the user's
 `<config dir>/imports/fndef-map.toml`, or `--fndef-map`, wins over it. The terms notice is `ew_api::eplan::TERMS_NOTICE`
-on stderr for `ew import edz` and a dialog once per session in the window; both log EW-IMP-201 in the report. **Targets.**
+on stderr for every file that is an EDZ (`ew_import_eplan::is_edz`: the 7-Zip signature or `PK`, whatever the
+subcommand and the file's name), and a dialog once per session in the window that stands before any step of an EDZ
+(`how` named or not); both log EW-IMP-201 in the report. A row of the user's `fndef-map.toml` must name a function
+definition of the starter library, else the file is refused in words (a pin would name nothing). **Targets.**
 `ew import edz|parts-xml <file> --library <key|id>` writes a user or company library (the one writer of
-`catalog::import_parts_into_library`); `--project <dir>` writes no library: it previews the update of the project's
-part copies of the same normalised part numbers (`Session::update_parts_from_import`: the held copy with the file's
+`catalog::import_parts_into_library`; a part the library holds takes what the file knows laid over it, as the
+project's copy does, because the library keeps one version of an item and a replacement would drop the technical data
+a user added); `--project <dir>` writes no library: it previews the update of the project's
+part copies of the same manufacturer and normalised part number (`Session::update_parts_from_import`: the held copy with the file's
 description, numbers, pins, template, free properties, size and provenance laid over it, as its next patch version, what
 the file lacks kept; the plan is `library.update`'s, the card's field diff and devices) and `--apply` commits it
 (AC-38). **Reports (§5.4).** `ew_import_eplan::read_report` takes the table (`ew-import-catalog`'s readers: CSV with
@@ -1364,7 +1375,9 @@ its delimiter found, an XLSX sheet; the header row detected in the first 20 or g
 `sheet`, `header_row`, `[columns]`; shipped German and English presets, a user's saved `eplan-report-<key>.toml`) and
 emits a project without drawings: unplaced devices with a black-box function, strips and terminals (rising levels of one
 designation folded, EW-IMP-207), connections between terminals only, since a device's connection points need its part
-(an end that no terminal answers is EW-IMP-003); an unmapped column is EW-IMP-206; the lineage is `eplan` anchored on the
+(an end that no terminal answers is EW-IMP-003); an unmapped column is EW-IMP-206, and so is an optional mapped column
+the table lacks (a required one refuses the file); a terminal listed twice in a diagram, and a level that is no number
+(taken as 1), are said; the part column of a terminal diagram is read (`eplan.part`, as a device's); the lineage is `eplan` anchored on the
 mapping's key, so a newer export keeps the IDs. EW-IMP-206 and -207 are rules of the EW-IMP pack. `ew import
 eplan-report` writes the new project; the window's File ▸ Import… offers the mappings that fit the file's headers and
 has the column mapper (FT-1742): the detected columns (the header row found below a title), a kind of report and a member per column, saved under the file's source key as `eplan-report-<key>.toml` in the configuration directory, which the next file of the scheme is offered first; `File ▸ Import…` is the one entry for every file (FT-1741): a csv or xlsx that no mapping fits and that reads as no parts table asks for the mapper or the parts import. **Not built:** the picture and the drilling positions
