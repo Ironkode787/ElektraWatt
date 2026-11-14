@@ -19,9 +19,9 @@ use ew_plc::{Change, Choice, MergeOptions, Parked, ParkedModule, Vocabulary};
 use ew_schema::{
     AddrSpec, AddrValue, AnyId, BusSystem, Channel, ChannelState, Date, Device, DeviceAspects,
     ExchangeDirection, ExchangeFormat, ExchangeObject, ExchangeRecord, ExchangeStamp, Extra, FieldGroup,
-    ForeignId, FrozenTag, Function, Kind, NetAddress, Owner, Ownership, PlcAddress, PlcArea, PlcConfigProject,
-    PlcModule, PlcSize, PlcStation, ProfinetAddress, RackSlot, Sha256, SlotPath, StationRole, TagSpec,
-    TypeIdent,
+    ForeignId, FrozenTag, Function, Kind, NetAddress, Owner, Ownership, PlcAddress, PlcArea,
+    PlcConfigProject, PlcModule, PlcSize, PlcStation, ProfinetAddress, RackSlot, Sha256, SlotPath,
+    StationRole, TagSpec, TypeIdent,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -319,7 +319,11 @@ pub struct RecordExchange {
 
 /// The fields an exchange file of `format` carries, a tag table's comment column being the comment in `lang`;
 /// refused for `plcopen` and a format of a newer build, which are neither imported nor a merge's base.
-fn vocabulary(name: &'static str, format: &ExchangeFormat, lang: Option<&str>) -> Result<Vocabulary, CmdError> {
+fn vocabulary(
+    name: &'static str,
+    format: &ExchangeFormat,
+    lang: Option<&str>,
+) -> Result<Vocabulary, CmdError> {
     known_format(name, format)?;
     match format {
         ExchangeFormat::TiaXlsx => Ok(Vocabulary::Tags {

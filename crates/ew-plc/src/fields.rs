@@ -113,7 +113,10 @@ pub fn field_words(object: &ExchangeObject, field: &str) -> String {
 /// Puts `value` under `name`, without its leading and trailing white space, which the readers of AML and tables do
 /// not keep either: so a value that only differs in it is no change. An empty value is left out.
 fn put(fields: &mut BTreeMap<String, String>, name: &str, value: Option<impl ToString>) {
-    if let Some(v) = value.map(|v| v.to_string().trim().to_owned()).filter(|v| !v.is_empty()) {
+    if let Some(v) = value
+        .map(|v| v.to_string().trim().to_owned())
+        .filter(|v| !v.is_empty())
+    {
         fields.insert(name.to_owned(), v);
     }
 }

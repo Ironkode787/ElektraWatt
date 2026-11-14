@@ -1034,9 +1034,7 @@ fn a_damaged_workbook_or_list_never_panics() {
 
 /// `exported` with the output start of `module` moved from byte `from` to byte `to`.
 fn with_start(exported: &str, module: &str, from: u32, to: u32) -> String {
-    let at = exported
-        .find(&format!("Name=\"{module}\""))
-        .expect("the module");
+    let at = exported.find(&format!("Name=\"{module}\"")).expect("the module");
     let (head, tail) = exported.split_at(at);
     format!(
         "{head}{}",
@@ -1063,10 +1061,13 @@ fn starts_owner(s: &mut Session, owner: &str) {
     );
 }
 
+/// What the merge makes of a change: its state, its default and whether the file's value can be taken.
+type Outcome = (State, Choice, bool);
+
 /// The output start of -201U5 in the merge of Golden A's recorded AML export: the project's start set to
 /// `project` (a start spec), the file's moved from byte 2 to `file`; per owner of the starts, the state, the default
 /// and whether the file's value can be taken, `None` for no change.
-fn start_row(project: Option<&str>, file: Option<u32>) -> Vec<(&'static str, Option<(State, Choice, bool)>)> {
+fn start_row(project: Option<&str>, file: Option<u32>) -> Vec<(&'static str, Option<Outcome>)> {
     let mut s = golden();
     let exported = aml(&mut s);
     if let Some(spec) = project {
@@ -1168,10 +1169,7 @@ fn without_a_snapshot_a_difference_is_a_conflict_with_the_owners_default() {
         .find(|c| c.object.name() == "node" && c.field == "address")
         .expect("the station address");
     assert_eq!(change.ours, None, "the project's address is still TBD");
-    assert_eq!(
-        (change.state, change.default),
-        (State::Conflict, Choice::Theirs)
-    );
+    assert_eq!((change.state, change.default), (State::Conflict, Choice::Theirs));
 }
 
 /// Doc 10 §4.4 (decided for the review of WP-S3.16): a value the file leaves out is no deletion. It is listed as a
@@ -1294,10 +1292,22 @@ fn an_import_freezes_the_starts_so_an_inserted_module_moves_nothing() {
     let back = import(&s, exported.as_bytes());
     assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
     bulk(&mut s, &back.apply);
-    let modules = ["-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-202U2"].map(|t| device(&s, t));
+    let modules = [
+        "-201U3", "-201U4", "-201U5", "-201U6", "-201U7", "-201U8", "-202U2",
+    ]
+    .map(|t| device(&s, t));
     for m in modules {
         let q = s.query();
-        let start = q.devices().get(m).unwrap().aspects.plc_module.clone().unwrap().start.output;
+        let start = q
+            .devices()
+            .get(m)
+            .unwrap()
+            .aspects
+            .plc_module
+            .clone()
+            .unwrap()
+            .start
+            .output;
         assert!(matches!(start, ew_schema::AddrSpec::Manual(_)), "{start:?}");
     }
     let again = import(&s, exported.as_bytes());
@@ -1433,9 +1443,13 @@ fn a_comment_in_one_language_never_replaces_the_others() {
         lang: Some("de-DE".to_owned()),
         ..PlcOptions::default()
     };
-    let e = s.plc_export(PlcFormat::TiaXlsx, &german).expect("the German table");
+    let e = s
+        .plc_export(PlcFormat::TiaXlsx, &german)
+        .expect("the German table");
     s.execute(e.record.as_ref().unwrap()).unwrap();
-    let edited = edited_table(&e.bytes, |rows| row_of(rows, "TA05_V_15")[4] = "Zufuhr".to_owned());
+    let edited = edited_table(&e.bytes, |rows| {
+        row_of(rows, "TA05_V_15")[4] = "Zufuhr".to_owned()
+    });
     let applied = s.plc_import(&edited, &german).unwrap().apply;
     bulk(&mut s, &applied);
     let c = comment(&s);
@@ -1478,7 +1492,8 @@ fn symbols_given_to_the_plc_are_protected() {
     let applied = import(&s, exported.as_bytes()).apply;
     bulk(&mut s, &applied);
     let channel = channel_of(&s, "TA05_V_15");
-    let rename = json!({"kind": "channel", "targets": [channel.to_string()], "path": "symbol", "value": "FEED_15"});
+    let rename =
+        json!({"kind": "channel", "targets": [channel.to_string()], "path": "symbol", "value": "FEED_15"});
     let refusal = refused(&mut s, "fields.set", rename.clone());
     assert!(
         refusal.contains("-201U3: a channel's symbol or comment is owned by configuration project PLC1"),
@@ -1528,7 +1543,11 @@ fn white_space_around_a_value_is_no_change() {
         json!({"kind": "channel", "targets": [channel.to_string()], "path": "comment", "value": " Feed "}),
     );
     let stored = s.query().table::<Channel>().get(channel).unwrap().comment.clone();
-    assert_eq!(stored.as_neutral(), Some(" Feed "), "the comment keeps its spaces");
+    assert_eq!(
+        stored.as_neutral(),
+        Some(" Feed "),
+        "the comment keeps its spaces"
+    );
     let exported = aml(&mut s);
     let back = import(&s, exported.as_bytes());
     assert!(back.plan.changes.is_empty(), "{:?}", back.plan.changes);
@@ -1631,14 +1650,19 @@ fn the_foreign_id_of_a_removed_object_goes() {
             .any(|(_, f)| f.target == channel.cast() && f.object.name() == "tag")
     };
     assert!(named(&s), "the tag's foreign ID is kept");
-    let interface = regex::Regex::new("(?s)<ExternalInterface ID=\"[^\"]*\" Name=\"TA05_V_15\".*?</ExternalInterface>").unwrap();
+    let interface =
+        regex::Regex::new("(?s)<ExternalInterface ID=\"[^\"]*\" Name=\"TA05_V_15\".*?</ExternalInterface>")
+            .unwrap();
     let link = regex::Regex::new("<InternalLink [^>]*TA05_V_15\"[^>]*/>").unwrap();
     let without = link
         .replace_all(&interface.replace_all(&foreign, ""), "")
         .into_owned();
     let back = import(&s, without.as_bytes());
     assert!(
-        back.plan.removed.iter().any(|(o, _, n)| o.name() == "tag" && n == "TA05_V_15"),
+        back.plan
+            .removed
+            .iter()
+            .any(|(o, _, n)| o.name() == "tag" && n == "TA05_V_15"),
         "{:?}",
         back.plan.removed
     );
