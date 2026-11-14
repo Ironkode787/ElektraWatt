@@ -729,6 +729,10 @@ pub struct ShellModel {
             Option<ew_api::output::PotentialOffer>,
         )>,
     >,
+    /// The rack and slot editor's view (its slot check included), kept for the revision and the station it was made
+    /// for, so the dialog's spec and its content read it once a frame at most (FT-1763).
+    #[allow(clippy::type_complexity)]
+    rack_cache: std::cell::RefCell<Option<((u64, ew_api::output::Uuid), Option<ew_api::output::RackView>)>>,
     /// The wires whose reasoned potential was declined in this session: it is not offered again.
     declined_offers: std::collections::BTreeSet<ew_api::output::Uuid>,
     /// The wire-colour view's switch and its fetched Connections table.
@@ -1157,6 +1161,7 @@ impl ShellModel {
             glossary: glossary::GlossaryState::default(),
             potential_at: None,
             offer_cache: std::cell::RefCell::new(None),
+            rack_cache: std::cell::RefCell::new(None),
             declined_offers: std::collections::BTreeSet::new(),
             wire_colours: wire_colours::WireColourState::default(),
             collab: external::CollabState::default(),

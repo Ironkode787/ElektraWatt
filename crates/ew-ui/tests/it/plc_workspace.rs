@@ -342,6 +342,10 @@ fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
         view.rows.iter().filter(|r| r.module.is_some()).count()
     };
     assert_eq!(modules(&h), 22);
+    // FT-1763: the dialog's spec and its content read one rack view per revision, not one each a frame.
+    let made = h.state().shell().session_calls().rack_view;
+    h.run_steps(3);
+    assert_eq!(h.state().shell().session_calls().rack_view, made, "no new rack view without a change");
     let add = h.get_by_label("Add here 23").rect();
     let close = support::menu_node(&h, "Close").rect();
     assert!(

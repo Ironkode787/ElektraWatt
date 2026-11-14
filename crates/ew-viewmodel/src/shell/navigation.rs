@@ -90,6 +90,8 @@ pub struct SessionCalls {
     pub find: u64,
     /// `Session::junction_wires`: once per (revision, junction) while the editor is open.
     pub junction_wires: u64,
+    /// `Session::rack_view`: once per (revision, station) while the rack and slot editor is open.
+    pub rack_view: u64,
     /// `Session::copy_fragment`: `edit.copy`, `edit.cut`, `edit.duplicate`.
     pub copy_fragment: u64,
     /// `parse_fragment`: `edit.paste_clip` and `edit.duplicate`.

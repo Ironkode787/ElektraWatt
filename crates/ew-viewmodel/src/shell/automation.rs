@@ -91,9 +91,19 @@ impl ShellModel {
         self.project.as_ref().map(|p| &p.session)
     }
 
-    /// The rack and slot editor's view of `station` (doc 10 §6), as the window draws it.
+    /// The rack and slot editor's view of `station` (doc 10 §6), as the window draws it: made once per revision and
+    /// station (FT-1763).
     pub fn rack_view(&self, station: Uuid) -> Option<ew_api::output::RackView> {
-        self.project_session()?.rack_view(station)
+        let key = (self.revision()?, station);
+        if let Some((k, view)) = &*self.rack_cache.borrow()
+            && *k == key
+        {
+            return view.clone();
+        }
+        self.count(|c| c.rack_view += 1);
+        let view = self.project_session()?.rack_view(station);
+        *self.rack_cache.borrow_mut() = Some((key, view.clone()));
+        view
     }
 
     /// The module parts the rack and slot editor offers (`Session::module_parts`).
@@ -171,7 +181,6 @@ impl ShellModel {
     /// positions, else positional after the station's modules.
     pub(crate) fn act_plc_rack_add(&mut self, p: &Map<String, Value>) -> Outcome {
         let station = or_return!(self.rack_station());
-        let racked = self.rack_view(station).is_some_and(|v| v.racked);
         let Some(slot) = p
             .get("slot")
             .and_then(Value::as_u64)
@@ -185,6 +194,7 @@ impl ShellModel {
             .and_then(|s| u16::try_from(s).ok());
         // Only a free slot the editor offers takes a module: a taken one names its module, in words under the slots.
         let view = self.rack_view(station);
+        let racked = view.as_ref().is_some_and(|v| v.racked);
         let rows = view.as_ref().map_or(&[][..], |v| v.rows.as_slice());
         let at = |r: &&ew_api::output::RackRow| u32::from(slot) == r.slot && rack.unwrap_or(0) == r.rack;
         if !rows.iter().any(|r| r.module.is_none() && at(&r)) {
