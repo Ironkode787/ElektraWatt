@@ -3322,6 +3322,7 @@ prompt-export-table-title = Tabel exporteren
 prompt-table-name = table.xlsx
 prompt-open-table-title = Tabel importeren
 job-kind-table = Tabelexport
+job-kind-import = Tekeningimport
 job-done-table = { $p0 } KiB
 toast-export-table = { $p0 } geëxporteerd: { $p1 } KiB.
 toast-export-table-again = { $p0 } opnieuw geëxporteerd: { $p1 } KiB.

@@ -204,7 +204,13 @@ pub(super) fn run_import_dwg(a: &ImportDwgArgs) -> i32 {
         eprintln!("error: {}", ew_api::dxf::DwgError::NoConverter);
         return 2;
     };
-    let dxf = match ew_api::dxf::convert_dwg(&converter, &name, &bytes, ew_api::dxf::DWG_TIMEOUT) {
+    let dxf = match ew_api::dxf::convert_dwg(
+        &converter,
+        &name,
+        &bytes,
+        ew_api::dxf::DWG_TIMEOUT,
+        &std::sync::atomic::AtomicBool::new(false),
+    ) {
         Ok(d) => d,
         Err(e) => {
             eprintln!("error: {e}");

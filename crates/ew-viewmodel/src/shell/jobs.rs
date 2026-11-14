@@ -368,11 +368,11 @@ impl ShellModel {
         let Some(name) = path.file_name().map(|n| n.to_string_lossy().into_owned()) else {
             return failed(key!("error-bad-param"), &["path"]);
         };
-        // A print being spooled writes no file and runs beside the export.
+        // A print being spooled and a drawing import write no file and run beside the export.
         if self
             .jobs
             .entries()
-            .any(|e| e.is_running() && e.kind != JobKind::Print)
+            .any(|e| e.is_running() && matches!(e.kind, JobKind::Pdf | JobKind::Table))
         {
             return Outcome::refused(key!("reason-export-running"));
         }
@@ -408,8 +408,9 @@ impl ShellModel {
     pub fn poll_jobs(&mut self) {
         // The print pre-dialog's build too.
         self.poll_print();
-        // And the import's.
+        // And the import's, and a drawing import's.
         self.poll_import();
+        self.poll_drawing();
         let ended: Vec<(u64, JobEnd<ExportDone>)> = self
             .jobs
             .entries
@@ -434,6 +435,8 @@ impl ShellModel {
     /// for, whether their end was taken now or by an earlier poll: the runner prints each as
     /// `error: <text>` and exits 1. Which poll took an end depends on timing; this list does not.
     pub fn wait_jobs(&mut self) -> Vec<String> {
+        // A running drawing import ends in its dialog, page or underlay.
+        self.wait_drawing();
         // A running import job ends in its card.
         if let Some(pending) = self.import.job.take() {
             let end = pending.job.wait();

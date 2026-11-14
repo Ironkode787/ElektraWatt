@@ -323,6 +323,8 @@ pub enum DwgError {
     TimedOut,
     /// The converter ended without writing a DXF.
     NoOutput,
+    /// The conversion was cancelled (its stop signal was set) and the converter stopped.
+    Cancelled,
 }
 
 impl std::fmt::Display for DwgError {
@@ -336,6 +338,7 @@ impl std::fmt::Display for DwgError {
                 DWG_TIMEOUT.as_secs()
             ),
             DwgError::NoOutput => f.write_str("The ODA File Converter wrote no DXF for the drawing."),
+            DwgError::Cancelled => f.write_str("The conversion was cancelled."),
         }
     }
 }
@@ -410,21 +413,22 @@ impl Drop for Running {
 
 /// The DXF of the DWG `bytes` named `name`, made by the user's ODA File Converter `converter` (doc 14 §6.5): the
 /// converter runs as an external process on a copy in a fresh temporary folder (`<converter> <in> <out> ACAD2018 DXF 0
-/// 1 *.DWG`), at most `timeout`; the DXF it writes is read under the DXF input limit, and the folder is removed. The
-/// converter is never bundled or downloaded.
+/// 1 *.DWG`), at most `timeout` and until `stop` is set; the DXF it writes is read under the DXF input limit, and the
+/// folder is removed. The converter is never bundled or downloaded.
 ///
 /// # Errors
 ///
-/// [`DwgError`]: the converter fails, times out or writes nothing.
+/// [`DwgError`]: the converter fails, times out, is cancelled or writes nothing.
 pub fn convert_dwg(
     converter: &std::path::Path,
     name: &str,
     bytes: &[u8],
     timeout: std::time::Duration,
+    stop: &std::sync::atomic::AtomicBool,
 ) -> Result<Vec<u8>, DwgError> {
     // The guard removes the folder on every way out, a panic included.
     let work = WorkDir::new()?;
-    convert_in(&work.0, converter, name, bytes, timeout)
+    convert_in(&work.0, converter, name, bytes, timeout, stop)
 }
 
 fn convert_in(
@@ -433,6 +437,7 @@ fn convert_in(
     name: &str,
     bytes: &[u8],
     timeout: std::time::Duration,
+    stop: &std::sync::atomic::AtomicBool,
 ) -> Result<Vec<u8>, DwgError> {
     let failed = |e: std::io::Error| DwgError::Failed(e.kind().to_string());
     let (input, output) = (work.join("in"), work.join("out"));
@@ -478,6 +483,7 @@ fn convert_in(
             }
             // The guard stops it.
             None if started.elapsed() >= timeout => return Err(DwgError::TimedOut),
+            None if stop.load(std::sync::atomic::Ordering::Relaxed) => return Err(DwgError::Cancelled),
             None => std::thread::sleep(std::time::Duration::from_millis(50)),
         }
     };

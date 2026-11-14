@@ -4,7 +4,12 @@
 //! File ▸ Import… of a drawing (WP-S3.19, doc 14 §13): a DXF or a DWG becomes a new graphic page or an underlay of the
 //! shown page; a PDF page becomes an underlay. The dialog says what the file is, whether its unit had to be assumed,
 //! that a DWG needs the user's ODA File Converter, and that an underlay stays outside the project unless embedded (a
-//! customer's drawing may be confidential). A DWG asks for the converter's program once and keeps it in the settings.
+//! customer's drawing may be confidential). A DWG asks for the converter's program once and keeps it in the settings
+//! once it converted a drawing.
+//!
+//! **A job** (FT-1753): the file is read, a DXF probed for the dialog and a DWG converted on a job's thread, listed in
+//! the Jobs pane with Cancel (which also stops the converter); its end opens the dialog or makes the page or the
+//! underlay on the window's thread, since the session never leaves it. A script waits for the job.
 
 use std::path::{Path, PathBuf};
 
@@ -74,38 +79,133 @@ impl ShellModel {
                 None => return failed(key!("error-bad-param"), &["units"]),
             },
         };
-        let Some(bytes) = read(&file) else {
+        // A DWG: the converter first (asked for once, then kept in the settings once a conversion succeeded).
+        let apply = match target {
+            None => None,
+            Some(target) => {
+                let mut converter = None;
+                if kind == DrawingKind::Dwg {
+                    let chosen = match string_param(p, "converter") {
+                        Err(e) => return e,
+                        Ok(c) => c.map(str::to_owned),
+                    };
+                    let Some(c) = chosen.clone().or_else(|| self.settings.dwg_converter.clone()) else {
+                        return self.need_path("file.import_drawing", Prompt::OpenConverter, "converter", p);
+                    };
+                    converter = Some((c, chosen.is_some()));
+                }
+                Some(Apply {
+                    target,
+                    units,
+                    embed: flag(p, "embed"),
+                    converter,
+                })
+            }
+        };
+        self.start_drawing_job(file, name, kind, apply)
+    }
+
+    /// Reads (and probes, or converts) the drawing as a job (FT-1753): an entry of the Jobs pane with Cancel, off the
+    /// window's thread; its end ([`ShellModel::finish_drawing`]) opens the dialog or makes the page or the underlay. A
+    /// script waits for it.
+    fn start_drawing_job(&mut self, file: PathBuf, name: String, kind: DrawingKind, apply: Option<Apply>) -> Outcome {
+        let Some(project) = &self.project else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let (rev, epoch) = (project.session.world().rev.0, project.epoch);
+        let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let options = ew_api::ew_jobs::JobOptions {
+            name: crate::jobs::JobKind::Import.word().to_owned(),
+            waker: self.jobs.waker.clone(),
+            gate: self.jobs.hooks.gate(),
+        };
+        let hooks = self.jobs.hooks.clone();
+        let body = {
+            let (file, name, stop) = (file.clone(), name.clone(), std::sync::Arc::clone(&stop));
+            let converter = apply.as_ref().and_then(|a| a.converter.clone()).map(|(c, _)| c);
+            let probe = apply.is_none();
+            move |ctl: &ew_api::ew_jobs::JobCtl| {
+                // A test fault (feature `testkit` only): the body panics, as a reader's panic would end it.
+                hooks.fault("drawing");
+                ctl.checkpoint("drawing")?;
+                Ok(read_drawing(&file, &name, kind, probe, converter.as_deref(), &stop))
+            }
+        };
+        let Ok(job) = ew_api::ew_jobs::Job::spawn(options, body) else {
             return failed(key!("error-import-read"), &[&name]);
         };
-        let Some(target) = target else {
-            return self.drawing_dialog(&file, &name, kind, &bytes);
+        let number = self
+            .jobs
+            .start_flagged(crate::jobs::JobKind::Import, name.clone(), rev, epoch, stop);
+        let after = AfterDrawing {
+            number,
+            epoch,
+            file,
+            name,
+            kind,
+            apply,
         };
-        // A DWG: the converter first (asked for once, then kept in the settings).
-        let (name, bytes, notes) = if kind == DrawingKind::Dwg {
-            let chosen = match string_param(p, "converter") {
-                Err(e) => return e,
-                Ok(c) => c.map(str::to_owned),
-            };
-            if let Some(c) = &chosen {
-                self.settings.dwg_converter = Some(c.clone());
-                self.save_settings();
+        if self.mode == super::Mode::Headless || !self.is_person() {
+            return self.finish_drawing(job.wait(), after);
+        }
+        self.import.drawing = Some(DrawingJob { job, after });
+        Outcome::Done
+    }
+
+    /// Takes the end of a running drawing import (the window every frame, through `poll_jobs`).
+    pub(super) fn poll_drawing(&mut self) {
+        let ended = self.import.drawing.as_mut().and_then(|d| d.job.try_end());
+        if let Some(end) = ended
+            && let Some(pending) = self.import.drawing.take()
+        {
+            let _ = self.finish_drawing(end, pending.after);
+        }
+    }
+
+    /// Waits for a running drawing import and takes its end (the end of a headless run).
+    pub(super) fn wait_drawing(&mut self) {
+        if let Some(DrawingJob { job, after }) = self.import.drawing.take() {
+            let _ = self.finish_drawing(job.wait(), after);
+        }
+    }
+
+    /// The end of a drawing import: its entry leaves the Jobs pane; a refusal or a cancel is said in words; else the
+    /// dialog opens, or the page or the underlay is made. A job of a project that closed meanwhile shows nothing.
+    fn finish_drawing(
+        &mut self,
+        end: ew_api::ew_jobs::JobEnd<Result<Drawn, DrawingError>>,
+        pending: AfterDrawing,
+    ) -> Outcome {
+        self.jobs.entries.retain(|e| e.number != pending.number);
+        if self.project.as_ref().is_none_or(|p| p.epoch != pending.epoch) {
+            return Outcome::Done;
+        }
+        let name = pending.name;
+        let drawn = match end {
+            ew_api::ew_jobs::JobEnd::Done(Ok(d)) => d,
+            ew_api::ew_jobs::JobEnd::Done(Err(DrawingError::Cancelled)) | ew_api::ew_jobs::JobEnd::Cancelled => {
+                let message = strings::format(key!("error-import-cancelled"), &[&name]);
+                self.notify(message.clone(), false);
+                return Outcome::Failed { message };
             }
-            let Some(converter) = chosen.or_else(|| self.settings.dwg_converter.clone()) else {
-                return self.need_path("file.import_drawing", Prompt::OpenConverter, "converter", p);
-            };
-            match ew_api::dxf::convert_dwg(Path::new(&converter), &name, &bytes, ew_api::dxf::DWG_TIMEOUT) {
-                Ok(dxf) => {
-                    let converted = Path::new(&name)
-                        .with_extension("dxf")
-                        .to_string_lossy()
-                        .into_owned();
-                    (converted, dxf, vec![ew_api::dxf::dwg_converted(&name)])
-                }
-                Err(e) => return self.import_failed(&name, &e.to_string()),
+            ew_api::ew_jobs::JobEnd::Done(Err(DrawingError::Read)) => {
+                return failed(key!("error-import-read"), &[&name]);
             }
-        } else {
-            (name, bytes, Vec::new())
+            ew_api::ew_jobs::JobEnd::Done(Err(DrawingError::Refused(why))) => return self.import_failed(&name, &why),
+            ew_api::ew_jobs::JobEnd::Panicked | ew_api::ew_jobs::JobEnd::Failed(_) => {
+                return failed(key!("error-import-panicked"), &[&name]);
+            }
         };
+        let Some(apply) = pending.apply else {
+            return self.drawing_dialog(&pending.file, &name, pending.kind, drawn.unitless);
+        };
+        // A converter chosen now is kept once it converted the drawing.
+        if let Some((converter, true)) = apply.converter {
+            self.settings.dwg_converter = Some(converter);
+            self.save_settings();
+        }
+        let (name, bytes, notes, kind) = (drawn.name, drawn.bytes, drawn.notes, pending.kind);
+        let (target, units) = (apply.target, apply.units);
         self.dialog = None;
         let options = DxfOptions {
             unit: units,
@@ -121,7 +221,7 @@ impl ShellModel {
                     DrawingKind::Pdf => UnderlaySource::Pdf { page: 1 },
                     DrawingKind::Dxf | DrawingKind::Dwg => UnderlaySource::Dxf(options),
                 };
-                let embed = flag(p, "embed");
+                let embed = apply.embed;
                 let Some(project) = self.project.as_mut() else {
                     return Outcome::refused(key!("reason-no-project"));
                 };
@@ -185,15 +285,8 @@ impl ShellModel {
         }
     }
 
-    /// The dialog of a drawing: what it is, and its buttons.
-    fn drawing_dialog(&mut self, file: &Path, name: &str, kind: DrawingKind, bytes: &[u8]) -> Outcome {
-        let unitless = match kind {
-            DrawingKind::Dxf => match ew_api::dxf::probe_dxf(name, bytes) {
-                Ok(probe) => probe.unit.is_none(),
-                Err(e) => return self.import_failed(name, &e.to_string()),
-            },
-            DrawingKind::Dwg | DrawingKind::Pdf => false,
-        };
+    /// The dialog of a drawing: what it is (`unitless`: a DXF whose header names no unit), and its buttons.
+    fn drawing_dialog(&mut self, file: &Path, name: &str, kind: DrawingKind, unitless: bool) -> Outcome {
         let dialog = Dialog::ImportDrawing {
             path: file.to_string_lossy().into_owned(),
             name: name.to_owned(),
@@ -206,9 +299,105 @@ impl ShellModel {
     }
 }
 
-/// The bytes of a drawing, at most the importers' input limit.
-fn read(path: &Path) -> Option<Vec<u8>> {
-    read_limited(path).ok().flatten()
+/// What a drawing import does after its job: the target (`page`, `underlay`), the unit of a drawing without one, an
+/// underlay's `embed`, and a DWG's converter with whether it was chosen now (kept in the settings once it converted).
+pub(crate) struct Apply {
+    target: String,
+    units: Option<Unit>,
+    embed: bool,
+    converter: Option<(String, bool)>,
+}
+
+/// A drawing import running as a job (FT-1753): the job, and what its end needs.
+pub(crate) struct DrawingJob {
+    job: ew_api::ew_jobs::Job<Result<Drawn, DrawingError>>,
+    after: AfterDrawing,
+}
+
+/// What a drawing import's end needs: its entry in the Jobs pane, the project session it is for, the file, and what it
+/// does (`apply`: none opens the dialog).
+pub(crate) struct AfterDrawing {
+    number: u64,
+    epoch: u64,
+    file: PathBuf,
+    name: String,
+    kind: DrawingKind,
+    apply: Option<Apply>,
+}
+
+impl std::fmt::Debug for DrawingJob {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "DrawingJob({})", self.after.number)
+    }
+}
+
+/// What a drawing import's job read: the name and bytes the import takes (a DWG's converted DXF), its report notes,
+/// and whether a DXF's header names no unit.
+pub(crate) struct Drawn {
+    name: String,
+    bytes: Vec<u8>,
+    notes: Vec<ew_api::import::ReportEntry>,
+    unitless: bool,
+}
+
+/// Why a drawing import's job read nothing.
+pub(crate) enum DrawingError {
+    /// The file cannot be read, or is larger than the input limit.
+    Read,
+    /// The reader or the converter refused it, in words.
+    Refused(String),
+    /// Its Cancel was pressed.
+    Cancelled,
+}
+
+/// The job's body: the drawing at `file` read through the input limit, then probed (`probe`: a DXF's unit, for the
+/// dialog) or, for a DWG with its `converter`, converted (until `stop` is set).
+fn read_drawing(
+    file: &Path,
+    name: &str,
+    kind: DrawingKind,
+    probe: bool,
+    converter: Option<&str>,
+    stop: &std::sync::atomic::AtomicBool,
+) -> Result<Drawn, DrawingError> {
+    let stopped = || stop.load(std::sync::atomic::Ordering::Relaxed);
+    let bytes = read_limited(file).ok().flatten().ok_or(DrawingError::Read)?;
+    if stopped() {
+        return Err(DrawingError::Cancelled);
+    }
+    if probe {
+        let unitless = match kind {
+            DrawingKind::Dxf => ew_api::dxf::probe_dxf(name, &bytes)
+                .map_err(|e| DrawingError::Refused(e.to_string()))?
+                .unit
+                .is_none(),
+            DrawingKind::Dwg | DrawingKind::Pdf => false,
+        };
+        return Ok(Drawn {
+            name: name.to_owned(),
+            bytes: Vec::new(),
+            notes: Vec::new(),
+            unitless,
+        });
+    }
+    let Some(converter) = converter.filter(|_| kind == DrawingKind::Dwg) else {
+        return Ok(Drawn {
+            name: name.to_owned(),
+            bytes,
+            notes: Vec::new(),
+            unitless: false,
+        });
+    };
+    match ew_api::dxf::convert_dwg(Path::new(converter), name, &bytes, ew_api::dxf::DWG_TIMEOUT, stop) {
+        Ok(dxf) => Ok(Drawn {
+            name: Path::new(name).with_extension("dxf").to_string_lossy().into_owned(),
+            bytes: dxf,
+            notes: vec![ew_api::dxf::dwg_converted(name)],
+            unitless: false,
+        }),
+        Err(ew_api::dxf::DwgError::Cancelled) => Err(DrawingError::Cancelled),
+        Err(e) => Err(DrawingError::Refused(e.to_string())),
+    }
 }
 
 /// The bytes of a file an importer reads, `None` when it is larger than the importers' input limit (never more than

@@ -314,7 +314,7 @@ impl ShellModel {
             .as_ref()
             .map_or((0, 0), |p| (p.session.world().rev.0, p.epoch));
         self.jobs
-            .start_print(request.title.clone(), rev, epoch, Arc::clone(&request.cancel));
+            .start_flagged(JobKind::Print, request.title.clone(), rev, epoch, Arc::clone(&request.cancel));
         Some(request)
     }
 
@@ -327,7 +327,7 @@ impl ShellModel {
             .jobs
             .entries
             .iter()
-            .position(|e| e.cancel.is_some() && e.is_running())
+            .position(|e| e.kind == JobKind::Print && e.is_running())
         {
             cancelled = self.jobs.entries[i]
                 .cancel

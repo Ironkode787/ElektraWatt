@@ -620,3 +620,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   where it stands, so a refresh of an overview in order (Golden A's 201 and 202) changes nothing (M3 review of the
   window)
 - behaviour-change: on a fluid page the interruption-point tool places the fluid line's form `ew.iso.ip` (FT-1757)
+- behaviour-change: File ▸ Import… of a drawing reads, probes and converts the file as a job of the Jobs pane with
+  Cancel, which also stops the ODA File Converter; a converter chosen is kept once it converted (FT-1753)
+- api-add: `convert_dwg` takes a stop signal and `DwgError::Cancelled`; `Session::navigator_table_in`; the re-export
+  `ew_api::plc_exchange::Choice` (M3 review of the window)

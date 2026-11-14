@@ -5,6 +5,7 @@
 //! and the working folder of its copy is removed whichever way the run ends.
 
 use std::path::{Path, PathBuf};
+use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
 use ew_api::dxf::{DwgError, convert_dwg};
@@ -48,6 +49,7 @@ fn a_converter_that_does_not_finish_is_stopped_and_its_folder_removed() {
         "plan.dwg",
         b"not a drawing",
         Duration::from_millis(1500),
+        &AtomicBool::new(false),
     )
     .unwrap_err();
     assert_eq!(e, DwgError::TimedOut);
@@ -74,4 +76,21 @@ fn a_converter_that_does_not_finish_is_stopped_and_its_folder_removed() {
         }
         assert!(!alive(), "the converter's own child was stopped");
     }
+}
+
+/// FT-1753: a conversion whose stop signal is set ends as cancelled, the converter stopped, long before the timeout.
+#[test]
+fn a_cancelled_conversion_stops_the_converter() {
+    let tmp = ew_testdir::Tmp::new("dwg-cancel");
+    let (folder, pids) = (tmp.path("folder.txt"), tmp.path("pids.txt"));
+    let converter = hanging_converter(tmp.dir(), &folder, &pids);
+    let e = convert_dwg(
+        &converter,
+        "plan.dwg",
+        b"not a drawing",
+        Duration::from_secs(600),
+        &AtomicBool::new(true),
+    )
+    .unwrap_err();
+    assert_eq!(e, DwgError::Cancelled);
 }

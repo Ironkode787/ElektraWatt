@@ -39,6 +39,9 @@ pub enum JobKind {
     Print,
     /// A navigator's table as XLSX or CSV (`navigator.export_table`).
     Table,
+    /// A drawing read, probed and converted for File ▸ Import… (`file.import_drawing`, FT-1753): it writes no file,
+    /// and its end opens the dialog or makes the page or underlay.
+    Import,
 }
 
 impl JobKind {
@@ -48,6 +51,7 @@ impl JobKind {
             JobKind::Pdf => "pdf",
             JobKind::Print => "print",
             JobKind::Table => "table",
+            JobKind::Import => "import",
         }
     }
 
@@ -57,6 +61,7 @@ impl JobKind {
             JobKind::Pdf => key!("job-kind-pdf"),
             JobKind::Print => key!("job-kind-print"),
             JobKind::Table => key!("job-kind-table"),
+            JobKind::Import => key!("job-kind-import"),
         }
     }
 }
@@ -300,15 +305,23 @@ impl JobsState {
         Ok(number)
     }
 
-    /// Adds the running entry of a print the window hands to its platform: `name` the print's title,
-    /// `cancel` its signal, which the entry's Cancel sets. [`crate::shell::ShellModel::print_done`] removes it at the
-    /// print's end, whose toast tells it. Returns its number.
-    pub(crate) fn start_print(&mut self, name: String, rev: u64, epoch: u64, cancel: Arc<AtomicBool>) -> u64 {
+    /// Adds the running entry of a job of `kind` that writes no file (a print the window hands to its platform, a
+    /// drawing import): `name` its title, `cancel` its signal, which the entry's Cancel sets. Its end removes it
+    /// ([`crate::shell::ShellModel::print_done`], the drawing import's end), and a toast or a dialog tells it. Returns
+    /// its number.
+    pub(crate) fn start_flagged(
+        &mut self,
+        kind: JobKind,
+        name: String,
+        rev: u64,
+        epoch: u64,
+        cancel: Arc<AtomicBool>,
+    ) -> u64 {
         self.next += 1;
         let number = self.next;
         self.entries.push_back(JobEntry {
             number,
-            kind: JobKind::Print,
+            kind,
             name,
             rev,
             status: JobStatus::Running,

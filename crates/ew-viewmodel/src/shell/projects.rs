@@ -45,6 +45,8 @@ pub(super) struct ImportState {
     pub(super) reimport_waiting: Option<Dialog>,
     /// The EPLAN Data Portal terms notice was shown in this session (WP-S3.18, FR-IMP-026).
     pub(super) edz_terms: bool,
+    /// The drawing import running as a job (FT-1753).
+    pub(super) drawing: Option<super::drawing_import::DrawingJob>,
 }
 
 /// An imported project the import card shows, not written yet.

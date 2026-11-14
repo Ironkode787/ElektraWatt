@@ -19,6 +19,54 @@ use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 const PLAN: &str = "0\nSECTION\n2\nENTITIES\n0\nLWPOLYLINE\n8\n0\n90\n4\n70\n1\n10\n20\n20\n20\n10\n120\n20\n20\n\
 10\n120\n20\n70\n10\n20\n20\n70\n0\nENDSEC\n0\nEOF\n";
 
+/// Runs frames (bounded) until no job runs: a drawing import ends in a later frame (FT-1753).
+fn finish_jobs(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>) {
+    for _ in 0..500 {
+        settle(h);
+        if h.state().shell().jobs().running() == 0 {
+            settle(h);
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    panic!("the job did not end");
+}
+
+/// FT-1753: a drawing import runs as a job of the Jobs pane, off the window's thread: held at its start, it is listed
+/// as running, and its Cancel ends it with nothing imported and the cancel said in words.
+#[test]
+fn a_drawing_import_runs_as_a_job_with_cancel() {
+    let tmp = Tmp::new();
+    let dxf = tmp.0.join("plan.dxf");
+    std::fs::write(&dxf, PLAN).unwrap();
+    let mut h = support::on_golden(&tmp, "101");
+    let pages = h.state().shell().page_rows().len();
+    let gate = ew_ui::ew_viewmodel::ew_api::ew_jobs::Gate::new();
+    gate.hold("drawing");
+    h.state_mut().shell_mut().set_job_gate_for_tests(Some(gate.clone()));
+    support::dispatch(
+        &mut h,
+        "file.import_drawing",
+        json!({"file": dxf.to_string_lossy(), "as": "page", "units": "mm"}),
+    );
+    settle(&mut h);
+    let running: Vec<String> = h
+        .state()
+        .shell()
+        .jobs()
+        .entries()
+        .filter(|e| e.is_running())
+        .map(|e| e.kind.word().to_owned())
+        .collect();
+    assert_eq!(running, ["import"], "the window answers while the job runs");
+    support::dispatch(&mut h, "jobs.cancel", json!({}));
+    gate.release();
+    finish_jobs(&mut h);
+    assert_eq!(h.state().shell().page_rows().len(), pages, "nothing imported");
+    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(toast, "The import of plan.dxf was cancelled; nothing was imported.");
+}
+
 /// On Golden A, whose last drawn page is followed by generated report pages, a drawing imported as a page takes a folio
 /// no page has, after every page of its section.
 #[test]
@@ -33,7 +81,7 @@ fn a_drawing_page_takes_a_folio_no_page_has() {
         "file.import_drawing",
         json!({"file": dxf.to_string_lossy(), "as": "page", "units": "mm"}),
     );
-    settle(&mut h);
+    finish_jobs(&mut h);
     let shown = h.state().shell().current_folio().map(str::to_owned).unwrap();
     assert!(!before.contains(&shown), "{shown} is a new folio: {before:?}");
     let rows = h.state().shell().page_rows();
