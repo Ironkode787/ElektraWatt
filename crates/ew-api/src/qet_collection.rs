@@ -39,7 +39,8 @@ pub struct Collection {
     pub elements: Vec<ElementFile>,
     /// The SHA-256 of `ELEMENTS.LICENSE` at the top of the directory, when there is one.
     pub licence: Option<[u8; 32]>,
-    /// The files too large to be an element definition, which are not read (path, why).
+    /// What is not read (path, why): the files too large to be an element definition, the folders below the deepest
+    /// folder read.
     pub skipped: Vec<(String, String)>,
 }
 
@@ -59,6 +60,7 @@ pub fn read_collection(dir: &Path) -> Result<Collection, CatalogError> {
         })
     };
     let mut found: Vec<(String, std::path::PathBuf)> = Vec::new();
+    let mut too_deep: Vec<(String, String)> = Vec::new();
     let mut todo = vec![(dir.to_path_buf(), String::new(), 0usize)];
     while let Some((folder, prefix, depth)) = todo.pop() {
         for entry in std::fs::read_dir(&folder).map_err(|e| io(&folder, e))? {
@@ -72,6 +74,8 @@ pub fn read_collection(dir: &Path) -> Result<Collection, CatalogError> {
             };
             if meta.is_dir() && depth < MAX_DEPTH {
                 todo.push((entry.path(), path, depth + 1));
+            } else if meta.is_dir() {
+                too_deep.push((path, format!("more than {MAX_DEPTH} folders deep: not read")));
             } else if meta.is_file() && name.to_ascii_lowercase().ends_with(".elmt") {
                 if found.len() as u64 >= u64::from(limits.max_archive_entries) {
                     return Err(too_many(
@@ -85,7 +89,8 @@ pub fn read_collection(dir: &Path) -> Result<Collection, CatalogError> {
     }
     found.sort();
     let max = ew_import_qet::ew_interop_api::Limits::element_definition().max_input_bytes;
-    let (mut total, mut elements, mut skipped) = (0u64, Vec::new(), Vec::new());
+    too_deep.sort();
+    let (mut total, mut elements, mut skipped) = (0u64, Vec::new(), too_deep);
     for (path, file) in found {
         let len = std::fs::metadata(&file).map_err(|e| io(&file, e))?.len();
         if len > max {

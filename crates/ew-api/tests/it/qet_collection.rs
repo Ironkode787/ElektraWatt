@@ -76,3 +76,22 @@ fn a_collection_becomes_symbols_under_the_qet_licence_and_a_second_run_adds_noth
     let again = again.expect("the documents are written again as they are");
     assert!(again.added.is_empty() && again.updated.is_empty());
 }
+
+/// A folder below the deepest one read is said, never dropped quietly.
+#[test]
+fn a_folder_too_deep_is_listed_as_not_read() {
+    let root = Dir(ew_testdir::fresh_dir("qet-collection-deep"));
+    let mut folder = root.0.clone();
+    for _ in 0..20 {
+        folder = folder.join("d");
+    }
+    std::fs::create_dir_all(&folder).unwrap();
+    std::fs::write(folder.join("deep.elmt"), "x").unwrap();
+    let collection = qet_collection::read_collection(&root.0).unwrap();
+    assert!(collection.elements.is_empty());
+    assert!(
+        collection.skipped.iter().any(|(_, why)| why.contains("folders deep")),
+        "{:?}",
+        collection.skipped
+    );
+}
