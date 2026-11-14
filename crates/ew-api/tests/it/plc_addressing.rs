@@ -545,13 +545,12 @@ fn a_tag_based_profile_freezes_nothing_and_prints_an_inherited_manual_address_in
         "plc.set_profile",
         json!({"config_project": c.to_string(), "profile": "rockwell-logix"}),
     );
-    let err = s
-        .preview(&AnyCommand {
-            name: "plc.freeze".into(),
-            params: json!({"config_project": c.to_string()}),
-        })
-        .err()
-        .expect("a tag-based profile has nothing to freeze");
+    let Err(err) = s.preview(&AnyCommand {
+        name: "plc.freeze".into(),
+        params: json!({"config_project": c.to_string()}),
+    }) else {
+        panic!("a tag-based profile has nothing to freeze");
+    };
     assert!(format!("{err}").contains("there is none to freeze"), "{err}");
     run(
         &mut s,
