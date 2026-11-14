@@ -45,10 +45,14 @@ const KEY_ONLY: &[&str] = &[
     "plc.attach_cards",
     "plc.rack_editor",
     "plc.preview",
+    "plc.instrument_list",
+    "plc.symbol_policy",
+    "plc.module_safety",
+    "plc.channel_settings",
     // A fluid line's medium, reached through its context menu.
-    "fluid.set_medium",
     // A valve terminal's overview, reached through its row menu.
     "fluid.generate_overview",
+    "fluid.set_medium",
 ];
 
 fn shell(tmp: &Tmp) -> ShellModel {

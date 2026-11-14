@@ -394,6 +394,42 @@ impl Session {
     }
 }
 
+impl Session {
+    /// The field groups of configuration project `config` that a PLC import protects now (`plc.unlock` lifts each,
+    /// doc 10 §3.9): `module_starts`, `symbols`, `plc_data`, in that order.
+    pub fn plc_protected_groups(&self, config: Uuid) -> Vec<&'static str> {
+        use ew_derive::ew_schema::{FieldGroup, Ownership, PlcConfigProject};
+        let q = self.query();
+        let Some(cfg) = q.table::<PlcConfigProject>().get(Id::from_uuid(config)).cloned() else {
+            return Vec::new();
+        };
+        [
+            (FieldGroup::ModuleStarts, "module_starts"),
+            (FieldGroup::Symbols, "symbols"),
+            (FieldGroup::PlcData, "plc_data"),
+        ]
+        .into_iter()
+        .filter(|(g, _)| Ownership::protected_since(cfg.ownership.as_ref(), g).is_some())
+        .map(|(_, w)| w)
+        .collect()
+    }
+
+    /// The PLC settings a row's form starts with (FT-1752), in the file's JSON shape: a configuration project's
+    /// `symbols`, a module's `plc_module.safety`, a channel's `{mode, safety}`; `None` for another record.
+    pub fn plc_settings(&self, id: Uuid) -> Option<serde_json::Value> {
+        use ew_derive::ew_schema::{Channel, PlcConfigProject};
+        let q = self.query();
+        if let Some(c) = q.table::<PlcConfigProject>().get(Id::from_uuid(id)) {
+            return serde_json::to_value(&c.symbols).ok();
+        }
+        if let Some(c) = q.table::<Channel>().get(Id::from_uuid(id)) {
+            return Some(serde_json::json!({"mode": c.mode, "safety": c.safety}));
+        }
+        let module = q.devices().get(Id::from_uuid(id))?.aspects.plc_module.as_ref()?;
+        serde_json::to_value(&module.safety).ok()
+    }
+}
+
 /// A valve position's content as a word: `valve`, `blank` or `empty`.
 fn slot_word(s: &ValveSlot) -> &'static str {
     match s {

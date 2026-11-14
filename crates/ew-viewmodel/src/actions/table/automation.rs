@@ -138,6 +138,105 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_plc_import_apply(),
     )),
+    // A configuration project row's Import instrument list… (FR-PLC-050), previewed.
+    with_params(
+        "config:ref, path?:path",
+        needs_parameters(in_navigator(with_aliases(
+            &[("config", ParamForm::Whole)],
+            act(
+                "plc.instrument_list",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_instrument_list(p),
+            ),
+        ))),
+    ),
+    // The PLC navigator rows' settings forms (FT-1752): Symbol policy…, Safety data…, Mode and safety….
+    with_params(
+        "config:ref, template?:text, tag_table?:text, strict_iec?:text",
+        needs_parameters(in_navigator(with_aliases(
+            &[("config", ParamForm::Whole)],
+            act(
+                "plc.symbol_policy",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_symbol_policy(p),
+            ),
+        ))),
+    ),
+    with_params(
+        "module:ref, f_source?:text, f_dest?:text, f_wd_ms?:text",
+        needs_parameters(in_navigator(with_aliases(
+            &[("module", ParamForm::Whole)],
+            act(
+                "plc.module_safety",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_module_safety(p),
+            ),
+        ))),
+    ),
+    with_params(
+        "channel:ref, mode?:text, evaluation?:text, requirement?:text",
+        needs_parameters(in_navigator(with_aliases(
+            &[("channel", ParamForm::Whole)],
+            act(
+                "plc.channel_settings",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_channel_settings(p),
+            ),
+        ))),
+    ),
+    // Project ▸ Process-tag scheme…, Fluid settings… and PLC addresses at terminals (FT-1752).
+    with_params(
+        "scheme?:text",
+        act(
+            "plc.process_tag_scheme",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            slot(Menu::Project),
+            |s, p| s.act_process_tag_scheme(p),
+        ),
+    ),
+    with_params(
+        "od?:text, id?:text, material?:text, line_tags?:text",
+        act(
+            "fluid.settings",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            slot(Menu::Project),
+            |s, p| s.act_fluid_settings(p),
+        ),
+    ),
+    with_params(
+        "on?:bool",
+        act(
+            "project.plc_addresses_at_terminals",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            slot(Menu::Project),
+            |s, p| s.act_plc_addresses_at_terminals(p),
+        ),
+    ),
     // A valve terminal row's Generate overview… (FR-FLU-033): the previewed overview pages.
     with_params(
         "station:ref",

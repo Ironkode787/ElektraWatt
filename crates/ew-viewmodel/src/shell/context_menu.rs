@@ -336,6 +336,12 @@ impl ShellModel {
                     NavRole::Station => self.station_entries(device, &mut out),
                     NavRole::Module => {
                         self.addressing_entries(json!({ "modules": [device.to_string()] }), &mut out);
+                        let label = strings::text(key!("action-plc-module-safety")).to_owned();
+                        out.extend(self.aimed(
+                            "plc.module_safety",
+                            json!({ "module": device.to_string() }),
+                            label,
+                        ));
                     }
                     _ => {}
                 }
@@ -351,10 +357,20 @@ impl ShellModel {
             // A configuration project's addressing commands (FR-PLC-014, FR-PLC-015), each previewed.
             (NavKind::Plc | NavKind::PlcGrid, NavRole::ConfigProject, Some(cfg)) => {
                 self.addressing_entries(json!({ "config_project": cfg.to_string() }), &mut out);
+                out.extend(self.menu_item("props.focus"));
+                self.config_entries(cfg, &mut out);
             }
-            (NavKind::Plc | NavKind::PlcGrid, NavRole::Channel, _) => {
+            (NavKind::Plc | NavKind::PlcGrid, NavRole::Channel, channel) => {
                 self.go_to(kind, Some(node), &mut out);
                 out.extend(self.menu_item("props.focus"));
+                if let Some(channel) = channel {
+                    let label = strings::text(key!("action-plc-channel-settings")).to_owned();
+                    out.extend(self.aimed(
+                        "plc.channel_settings",
+                        json!({ "channel": channel.to_string() }),
+                        label,
+                    ));
+                }
             }
             (NavKind::Cables, NavRole::Cable, Some(cable)) => {
                 let wired = self
@@ -438,6 +454,30 @@ impl ShellModel {
                 i
             }),
         );
+    }
+
+    /// A configuration project row's own entries: Symbol policy… (FR-PLC-047), Unlock `<group>` for each field group a
+    /// PLC import protects (`plc.unlock`, doc 10 §3.9) and Import instrument list… (FR-PLC-050).
+    fn config_entries(&self, cfg: Uuid, out: &mut Vec<ActionItem>) {
+        let label = strings::text(key!("action-plc-symbol-policy")).to_owned();
+        out.extend(self.aimed("plc.symbol_policy", json!({ "config": cfg.to_string() }), label));
+        let groups = self
+            .project_session()
+            .map(|s| s.plc_protected_groups(cfg))
+            .unwrap_or_default();
+        for group in groups {
+            let label = strings::text(match group {
+                "module_starts" => key!("canvas-plc-unlock-module-starts"),
+                "symbols" => key!("canvas-plc-unlock-symbols"),
+                _ => key!("canvas-plc-unlock-plc-data"),
+            })
+            .to_owned();
+            let params = json!({ "cmd": "plc.unlock", "params": {
+                "config_project": cfg.to_string(), "group": group } });
+            out.extend(self.aimed("command.run", params, label));
+        }
+        let label = strings::text(key!("action-plc-instrument-list")).to_owned();
+        out.extend(self.aimed("plc.instrument_list", json!({ "config": cfg.to_string() }), label));
     }
 
     /// A device row's fluid actions (doc 11 §7, FT-1733; `Session::fluid_menu`): on a valve terminal Generate

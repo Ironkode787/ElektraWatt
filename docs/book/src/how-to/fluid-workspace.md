@@ -28,13 +28,15 @@ the middle, and the tube table and the medium table in the bottom dock.
 
 6. The tube table has one row per tube. Type a length in millimetres into **Length** or a tube part into **Tube
    part**; **Source** then says the value is manual. Leave a cell empty to take the derived value again.
+7. Choose **Project ▸ Fluid settings…** for the default tube of every line (its outer and inner diameter in mm and
+   its material) and to tag fluid lines by page and counter.
 
 ## Media
 
-7. Choose **Project ▸ New medium…**, give the medium a name and its pressure in bar, and choose **Create**.
-8. Right-click a fluid line and choose **Medium:** with the medium's name: the line's net and every net the medium
+8. Choose **Project ▸ New medium…**, give the medium a name and its pressure in bar, and choose **Create**.
+9. Right-click a fluid line and choose **Medium:** with the medium's name: the line's net and every net the medium
    reaches through the valves carry it. The fluid navigator counts the lines of each medium.
-9. Select the medium's row in the medium table and press `Ctrl+Shift+H` to highlight its zones on the page; the
-   highlight is a colour with a hatch pattern, so it reads without colour too.
+10. Select the medium's row in the medium table and press `Ctrl+Shift+H` to highlight its zones on the page; the
+    highlight is a colour with a hatch pattern, so it reads without colour too.
 
 The panels are described in the [panel reference](../reference/window/panels.md): Fluid, Tube table and Medium table.

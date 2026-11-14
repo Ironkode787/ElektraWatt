@@ -286,6 +286,40 @@ impl ShellModel {
         self.preview_bulk(&name, params)
     }
 
+    /// `plc.instrument_list {config, path?}` (FR-PLC-050, doc 10 §4.7): a configuration project row's Import instrument
+    /// list…: the instrument list (a CSV or the first sheet of a workbook) as `plc.apply_instrument_list`, previewed in
+    /// the Preview tab; Apply commits it as one undo step. In the window a missing path asks for the table.
+    pub(crate) fn act_plc_instrument_list(&mut self, p: &Map<String, Value>) -> Outcome {
+        let config = or_return!(self.record_param(p, "config"));
+        let path = match string_param(p, "path") {
+            Err(e) => return e,
+            Ok(Some(path)) => std::path::PathBuf::from(path),
+            Ok(None) => {
+                return self.need_path("plc.instrument_list", crate::shell::Prompt::OpenTable, "path", p);
+            }
+        };
+        let file = path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let too_big =
+            std::fs::metadata(&path).is_ok_and(|m| m.len() > ew_api::plc_exchange::max_file_bytes());
+        let bytes = match std::fs::read(&path) {
+            Ok(_) if too_big => return failed(key!("error-plc-import-file"), &[&file, "too large"]),
+            Ok(b) => b,
+            Err(e) => return failed(key!("error-plc-import-file"), &[&file, &e.kind().to_string()]),
+        };
+        let Some(session) = self.project_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let config = config.to_string();
+        let cmd = match session.instrument_list(Some(&config), &bytes) {
+            Ok(cmd) => cmd,
+            Err(e) => return failed(key!("error-plc-import-file"), &[&file, &e.to_string()]),
+        };
+        self.preview_bulk(&cmd.name, cmd.params)
+    }
+
     /// `fluid.generate_overview {station}` (FR-FLU-033, doc 11 §5.5): `valve_terminal.generate_overview` of a valve
     /// terminal as a card in the Preview tab (`Session::overview_params`: the band of the page's frame, the starter
     /// overview module for the members not drawn yet), whose changes list each page's members, the pages it creates

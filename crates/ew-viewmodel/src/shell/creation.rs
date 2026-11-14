@@ -182,6 +182,84 @@ static PLC_EXPORT: Spec = Spec {
     ],
 };
 
+/// Project ▸ Process-tag scheme… (FR-PLC-049, doc 10 §3.4): the regular expression with named groups a process tag
+/// matches; empty removes it.
+static PROCESS_TAG_SCHEME: Spec = Spec {
+    action: "plc.process_tag_scheme",
+    title_key: key!("process-tag-scheme-title"),
+    fields: &[field("scheme", key!("form-process-tag-scheme"))],
+};
+
+/// Project ▸ Fluid settings… (doc 11 §2.4, §5.4): the default tube of every fluid line (outer and inner diameter in
+/// mm, material) and whether fluid lines carry a tag of their page and a counter.
+static FLUID_SETTINGS: Spec = Spec {
+    action: "fluid.settings",
+    title_key: key!("fluid-settings-title"),
+    fields: &[
+        field("od", key!("form-tube-od")),
+        field("id", key!("form-tube-id")),
+        field("material", key!("form-tube-material")),
+        Field {
+            name: "line_tags",
+            label_key: key!("form-line-tags"),
+            choices: &super::choices::BOOL,
+            default: "false",
+        },
+    ],
+};
+
+/// A configuration project row's Symbol policy… (doc 10 §2.2, FR-PLC-047): the template of the automatic symbol, the
+/// PLC tag table and whether symbols are strict IEC 61131-3 identifiers.
+static SYMBOL_POLICY: Spec = Spec {
+    action: "plc.symbol_policy",
+    title_key: key!("symbol-policy-title"),
+    fields: &[
+        field("template", key!("form-symbol-template")),
+        field("tag_table", key!("form-tag-table")),
+        Field {
+            name: "strict_iec",
+            label_key: key!("form-strict-iec"),
+            choices: &super::choices::BOOL,
+            default: "true",
+        },
+    ],
+};
+
+/// A module row's Safety data… (doc 10 §2.9, FR-PLC-041): the F-source and F-destination addresses and the
+/// F-watchdog time in ms.
+static MODULE_SAFETY: Spec = Spec {
+    action: "plc.module_safety",
+    title_key: key!("module-safety-title"),
+    fields: &[
+        field("f_source", key!("form-f-source")),
+        field("f_dest", key!("form-f-dest")),
+        field("f_wd_ms", key!("form-f-watchdog")),
+    ],
+};
+
+/// A channel row's Mode and safety… (doc 10 §2.4, §2.9): a multi-function port's mode and the channel's safety
+/// evaluation and requirement.
+static CHANNEL_SETTINGS: Spec = Spec {
+    action: "plc.channel_settings",
+    title_key: key!("channel-settings-title"),
+    fields: &[
+        field("mode", key!("form-channel-mode")),
+        field("evaluation", key!("form-safety-evaluation")),
+        field("requirement", key!("form-safety-requirement")),
+    ],
+};
+
+/// The tube materials Fluid settings… offers: the material's word in the file and its name (the plastics by their
+/// abbreviations, the same in every language).
+const TUBE_MATERIALS: [(&str, &str); 6] = [
+    ("pu", "PU"),
+    ("pa", "PA"),
+    ("pe", "PE"),
+    ("ptfe", "PTFE"),
+    ("pvc", "PVC"),
+    ("cu", "Cu"),
+];
+
 static PAGE_NEW: Spec = Spec {
     action: "page.new",
     title_key: key!("new-page-title"),
@@ -1082,6 +1160,359 @@ impl ShellModel {
             self.notify(strings::format(key!("toast-medium-new"), &[name.trim()]), true);
         }
         self.form_done(MEDIUM_NEW.action, out)
+    }
+
+    /// The project settings member `member` as JSON (`Value::Null` when absent).
+    fn settings_member(&self, member: &str) -> Value {
+        self.project_session()
+            .and_then(|s| serde_json::to_value(&s.query().project().settings).ok())
+            .and_then(|v| v.get(member).cloned())
+            .unwrap_or(Value::Null)
+    }
+
+    /// Opens the settings form `spec` with `prefill` (the project's values), its button Apply; headless a settings
+    /// action without its parameters fails.
+    fn open_settings_form(
+        &mut self,
+        spec: &'static Spec,
+        prefill: Map<String, Value>,
+        first: &str,
+    ) -> Outcome {
+        if self.mode == Mode::Headless {
+            return failed(key!("error-missing-param"), &[first]);
+        }
+        let mut dialog = spec.dialog(&prefill);
+        dialog.ok_key = key!("dialog-apply");
+        if spec.action == FLUID_SETTINGS.action
+            && let Some(f) = dialog.fields.iter_mut().find(|f| f.name == "material")
+        {
+            f.options = std::iter::once((String::new(), "—".to_owned()))
+                .chain(
+                    TUBE_MATERIALS
+                        .iter()
+                        .map(|(w, n)| ((*w).to_owned(), (*n).to_owned())),
+                )
+                .chain(std::iter::once((
+                    "steel".to_owned(),
+                    strings::text(key!("tube-material-steel")).to_owned(),
+                )))
+                .collect();
+        }
+        self.open_dialog(Dialog::Form(dialog))
+    }
+
+    /// `plc.process_tag_scheme {scheme}` (Project ▸ Process-tag scheme…, FR-PLC-049): the project's process-tag scheme,
+    /// one `project.settings.set`; an empty scheme removes it. Without `scheme` the window opens the form with the
+    /// scheme the project has.
+    pub(crate) fn act_process_tag_scheme(&mut self, p: &Map<String, Value>) -> Outcome {
+        if !p.contains_key("scheme") && !self.in_form_of(PROCESS_TAG_SCHEME.action) {
+            let mut prefill = Map::new();
+            if let Value::String(s) = self.settings_member("process_tag_scheme") {
+                prefill.insert("scheme".into(), Value::String(s));
+            }
+            return self.open_settings_form(&PROCESS_TAG_SCHEME, prefill, "scheme");
+        }
+        let scheme = match text_param(p, "scheme") {
+            Ok(s) => s,
+            Err(e) => return e,
+        };
+        let value = if scheme.is_empty() {
+            Value::Null
+        } else {
+            Value::String(scheme)
+        };
+        let out = self.host_create(
+            "project.settings.set",
+            json!({"member": "process_tag_scheme", "value": value}),
+        );
+        self.form_done(PROCESS_TAG_SCHEME.action, out)
+    }
+
+    /// `fluid.settings {od, id, material, line_tags}` (Project ▸ Fluid settings…, doc 11 §2.4, §5.4): the default tube's
+    /// outer and inner diameter (mm; empty removes it) and material, and whether fluid lines are tagged by page and
+    /// counter, as one `project.settings.set` of the member `fluid` (its other values kept). Without parameters the
+    /// window opens the form with the project's values.
+    pub(crate) fn act_fluid_settings(&mut self, p: &Map<String, Value>) -> Outcome {
+        let current = self.settings_member("fluid");
+        if p.is_empty() && !self.in_form_of(FLUID_SETTINGS.action) {
+            let tube = &current["default_tube"];
+            let mm = |v: &Value| {
+                v.as_i64()
+                    .map(|nm| super::layout::mm_text(i128::from(nm), false))
+                    .map(Value::String)
+            };
+            let mut prefill = Map::new();
+            for (name, value) in [
+                ("od", mm(&tube["od"])),
+                ("id", mm(&tube["id"])),
+                (
+                    "material",
+                    tube["material"].as_str().map(|m| Value::String(m.to_owned())),
+                ),
+                (
+                    "line_tags",
+                    Some(json!(current.get("line_tags").is_some().to_string())),
+                ),
+            ] {
+                if let Some(v) = value {
+                    prefill.insert(name.into(), v);
+                }
+            }
+            return self.open_settings_form(&FLUID_SETTINGS, prefill, "od");
+        }
+        let mut fluid = current.as_object().cloned().unwrap_or_default();
+        let mut tube = fluid
+            .get("default_tube")
+            .and_then(Value::as_object)
+            .cloned()
+            .unwrap_or_default();
+        for name in ["od", "id"] {
+            let text = match text_param(p, name) {
+                Ok(t) => t,
+                Err(e) => return e,
+            };
+            if text.is_empty() {
+                tube.remove(name);
+                continue;
+            }
+            match ew_api::output::parse_mm(&text).filter(|nm| *nm > 0) {
+                Some(nm) => {
+                    tube.insert(name.into(), json!(nm));
+                }
+                None => {
+                    return self.form_failed(
+                        FLUID_SETTINGS.action,
+                        strings::format(key!("error-tube-size"), &[&text]),
+                    );
+                }
+            }
+        }
+        match text_param(p, "material") {
+            Ok(m) if m.is_empty() => {
+                tube.remove("material");
+            }
+            Ok(m) if m == "steel" || TUBE_MATERIALS.iter().any(|(w, _)| *w == m) => {
+                tube.insert("material".into(), Value::String(m));
+            }
+            Ok(_) => return failed(key!("error-bad-param"), &["material"]),
+            Err(e) => return e,
+        }
+        if tube.is_empty() {
+            fluid.remove("default_tube");
+        } else {
+            fluid.insert("default_tube".into(), Value::Object(tube));
+        }
+        let tagged = match p.get("line_tags") {
+            Some(Value::Bool(b)) => *b,
+            Some(Value::String(s)) => s == "true",
+            _ => false,
+        };
+        if tagged {
+            fluid.insert("line_tags".into(), json!("page_counter"));
+        } else {
+            fluid.remove("line_tags");
+        }
+        let value = if fluid.is_empty() {
+            Value::Null
+        } else {
+            Value::Object(fluid)
+        };
+        let out = self.host_create("project.settings.set", json!({"member": "fluid", "value": value}));
+        self.form_done(FLUID_SETTINGS.action, out)
+    }
+
+    /// The record a row's settings form is for: parameter `name`, else the open form's own record. In the window, an
+    /// action given the record alone opens its form with the record's values (`Session::plc_settings`) and `None` is
+    /// returned with the outcome.
+    fn row_form(
+        &mut self,
+        spec: &'static Spec,
+        p: &Map<String, Value>,
+        name: &str,
+        prefill: impl Fn(&Value) -> Map<String, Value>,
+    ) -> Result<(ew_api::output::Uuid, Value), Outcome> {
+        let open = self.in_form_of(spec.action);
+        let id = match (p.contains_key(name), open) {
+            (true, _) => self.record_param(p, name)?,
+            (false, true) => self
+                .form_target
+                .ok_or_else(|| failed(key!("error-missing-param"), &[name]))?,
+            (false, false) => return Err(failed(key!("error-missing-param"), &[name])),
+        };
+        let Some(current) = self.project_session().and_then(|s| s.plc_settings(id)) else {
+            return Err(failed(key!("error-bad-param"), &[name]));
+        };
+        if self.mode == Mode::Gui && !open && p.len() == 1 {
+            let mut dialog = spec.dialog(&prefill(&current));
+            dialog.ok_key = key!("dialog-apply");
+            let word = |k: Key<'static>| strings::text(k).to_owned();
+            for f in &mut dialog.fields {
+                f.options = match f.name {
+                    "mode" => vec![
+                        (String::new(), "—".to_owned()),
+                        ("io_link".to_owned(), "IO-Link".to_owned()),
+                        ("di".to_owned(), "DI".to_owned()),
+                        ("dq".to_owned(), "DQ".to_owned()),
+                        ("deactivated".to_owned(), word(key!("channel-mode-deactivated"))),
+                    ],
+                    "evaluation" => vec![
+                        (String::new(), "—".to_owned()),
+                        ("1oo1".to_owned(), "1oo1".to_owned()),
+                        ("1oo2".to_owned(), "1oo2".to_owned()),
+                    ],
+                    _ => continue,
+                };
+            }
+            self.form_target = Some(id);
+            return Err(self.open_dialog(Dialog::Form(dialog)));
+        }
+        Ok((id, current))
+    }
+
+    /// `plc.symbol_policy {config, template?, tag_table?, strict_iec?}` (a configuration project row's Symbol policy…,
+    /// FR-PLC-047): the configuration project's symbol policy, one `fields.set` of `symbols` (its other members kept).
+    pub(crate) fn act_plc_symbol_policy(&mut self, p: &Map<String, Value>) -> Outcome {
+        let (id, current) = match self.row_form(&SYMBOL_POLICY, p, "config", |c| {
+            let mut m = Map::new();
+            for name in ["template", "tag_table"] {
+                if let Some(v) = c.get(name).filter(|v| v.is_string()) {
+                    m.insert(name.into(), v.clone());
+                }
+            }
+            let strict = c.get("strict_iec").and_then(Value::as_bool).unwrap_or(true);
+            m.insert("strict_iec".into(), json!(strict.to_string()));
+            m
+        }) {
+            Ok(x) => x,
+            Err(out) => return out,
+        };
+        let mut value = current.as_object().cloned().unwrap_or_default();
+        for name in ["template", "tag_table"] {
+            match text_param(p, name) {
+                Ok(t) if t.is_empty() => {
+                    value.remove(name);
+                }
+                Ok(t) => {
+                    value.insert(name.into(), Value::String(t));
+                }
+                Err(e) => return e,
+            }
+        }
+        let strict = !matches!(p.get("strict_iec"), Some(Value::String(s)) if s == "false")
+            && p.get("strict_iec") != Some(&Value::Bool(false));
+        value.insert("strict_iec".into(), json!(strict));
+        let out = self.host_create(
+            "fields.set",
+            json!({"kind": "plc_config_project", "targets": [id.to_string()], "path": "symbols",
+                "value": Value::Object(value)}),
+        );
+        self.form_done(SYMBOL_POLICY.action, out)
+    }
+
+    /// `plc.module_safety {module, f_source?, f_dest?, f_wd_ms?}` (a module row's Safety data…, FR-PLC-041): the
+    /// module's F-addresses and watchdog, one `fields.set` of `plc_module.safety` (its range kept); all three empty
+    /// make the module a standard one again.
+    pub(crate) fn act_plc_module_safety(&mut self, p: &Map<String, Value>) -> Outcome {
+        let (id, current) = match self.row_form(&MODULE_SAFETY, p, "module", |c| {
+            let mut m = Map::new();
+            for name in ["f_source", "f_dest", "f_wd_ms"] {
+                if let Some(n) = c.get(name).and_then(Value::as_u64) {
+                    m.insert(name.into(), Value::String(n.to_string()));
+                }
+            }
+            m
+        }) {
+            Ok(x) => x,
+            Err(out) => return out,
+        };
+        let mut value = current.as_object().cloned().unwrap_or_default();
+        for name in ["f_source", "f_dest", "f_wd_ms"] {
+            let text = match text_param(p, name) {
+                Ok(t) => t,
+                Err(e) => return e,
+            };
+            if text.is_empty() {
+                value.remove(name);
+                continue;
+            }
+            match text.parse::<u16>() {
+                Ok(n) => {
+                    value.insert(name.into(), json!(n));
+                }
+                Err(_) => {
+                    return self.form_failed(
+                        MODULE_SAFETY.action,
+                        strings::format(key!("error-safety-number"), &[&text]),
+                    );
+                }
+            }
+        }
+        let value = if ["f_source", "f_dest", "f_wd_ms"]
+            .iter()
+            .any(|n| value.contains_key(*n))
+        {
+            Value::Object(value)
+        } else {
+            Value::Null
+        };
+        let out = self.host_create(
+            "fields.set",
+            json!({"kind": "device", "targets": [id.to_string()], "path": "plc_module.safety", "value": value}),
+        );
+        self.form_done(MODULE_SAFETY.action, out)
+    }
+
+    /// `plc.channel_settings {channel, mode?, evaluation?, requirement?}` (a channel row's Mode and safety…): a
+    /// multi-function port's mode and the channel's safety evaluation and requirement, one `fields.set_many` of `mode`
+    /// and `safety` (its pair and test-pulse pin kept); no evaluation makes it a standard channel.
+    pub(crate) fn act_plc_channel_settings(&mut self, p: &Map<String, Value>) -> Outcome {
+        let (id, current) = match self.row_form(&CHANNEL_SETTINGS, p, "channel", |c| {
+            let mut m = Map::new();
+            for (name, value) in [
+                ("mode", &c["mode"]),
+                ("evaluation", &c["safety"]["evaluation"]),
+                ("requirement", &c["safety"]["requirement"]),
+            ] {
+                if let Some(s) = value.as_str() {
+                    m.insert(name.into(), Value::String(s.to_owned()));
+                }
+            }
+            m
+        }) {
+            Ok(x) => x,
+            Err(out) => return out,
+        };
+        let text = |name: &str| text_param(p, name);
+        let (mode, evaluation, requirement) = match (text("mode"), text("evaluation"), text("requirement")) {
+            (Ok(m), Ok(e), Ok(r)) => (m, e, r),
+            (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => return e,
+        };
+        let safety = if evaluation.is_empty() {
+            Value::Null
+        } else {
+            let mut s = current["safety"].as_object().cloned().unwrap_or_default();
+            s.insert("evaluation".into(), Value::String(evaluation));
+            if requirement.is_empty() {
+                s.remove("requirement");
+            } else {
+                s.insert("requirement".into(), Value::String(requirement));
+            }
+            Value::Object(s)
+        };
+        let target = json!([id.to_string()]);
+        let mode = if mode.is_empty() {
+            Value::Null
+        } else {
+            Value::String(mode)
+        };
+        let out = self.host_create(
+            "fields.set_many",
+            json!({"edits": [
+                {"kind": "channel", "targets": target, "path": "mode", "value": mode},
+                {"kind": "channel", "targets": target, "path": "safety", "value": safety},
+            ]}),
+        );
+        self.form_done(CHANNEL_SETTINGS.action, out)
     }
 
     /// `external_ref.new {location, device, connection?, project?}`: one `external_ref.create` at a location

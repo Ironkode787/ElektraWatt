@@ -120,7 +120,8 @@ the top and each module's valve positions under its row.
 Choose the card in **Module part to add**: the project's module parts first, then those of the installed libraries,
 which are copied into the project with the card. **Add here** on a free slot adds a card of that part there; in a
 station whose modules sit in positions, not rack slots, the free slot is the one after the last module. Type a slot
-into a module's Slot field and press `Enter` to move it, as a number or as rack and slot (`1.3`).
+into a module's Slot field and press `Enter` to move it, as a number or as rack and slot (`1.3`), or drag the module by
+its tag onto another slot's row.
 
 A slot the part does not allow, or more modules than the station takes, is refused, and the reason stays under the
 slots; the station's slot findings (EW-PLC-011) are listed there too, each with its icon and the word Error. **Close**

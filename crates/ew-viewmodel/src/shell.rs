@@ -616,6 +616,8 @@ pub struct ShellModel {
     /// The user's keymap, its version and the keymap editor.
     keymap: keymaps::KeymapState,
     dialog: Option<Dialog>,
+    /// The record an open settings form of a row (Symbol policy…, Safety data…, Mode and safety…) is for.
+    form_target: Option<ew_api::output::Uuid>,
     /// The import and re-import cards and their jobs.
     import: projects::ImportState,
     /// Bumped on every opening of a dialog: the window gives a dialog opened again, even as the same kind, its first
@@ -1083,6 +1085,7 @@ impl ShellModel {
                 keep_file: keymap_keep_file,
             },
             dialog: None,
+            form_target: None,
             import: projects::ImportState::default(),
             dialog_gen: 0,
             prompt: None,

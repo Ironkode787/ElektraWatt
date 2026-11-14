@@ -2994,7 +2994,49 @@ msgid ""
 "**Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:62
+#: src/how-to/plc-workspace.md:61
+msgid ""
+"After an import, the module starts, the symbols or the PLC data the PLC "
+"software owns are protected. Right-click the configuration project and "
+"choose **Unlock module starts** (or the other group) to edit them in the "
+"project."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:63
+msgid ""
+"Right-click the configuration project and choose **Import instrument list…** "
+"for a CSV or workbook of process tags and signal types: the Preview tab "
+"lists the spare channels it reserves and the tags left open. Choose "
+"**Apply**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:66
+msgid "Settings"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:68
+msgid ""
+"Right-click the configuration project and choose **Symbol policy…** for the "
+"template of the automatic symbol, the PLC tag table and whether symbols are "
+"strict IEC 61131-3 identifiers."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:70
+msgid ""
+"Right-click a module and choose **Safety data…** for its F-source and "
+"F-destination address and its F-watchdog time; right-click a channel and "
+"choose **Mode and safety…** for a multi-function port's mode and the "
+"channel's safety evaluation and requirement."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:73
+msgid ""
+"Choose **Project ▸ Process-tag scheme…** for the pattern process tags "
+"follow, and **Project ▸ PLC addresses at terminals** to print a channel's "
+"address at the terminals on its path."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:76
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "
@@ -3035,41 +3077,69 @@ msgid ""
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:18
-msgid "Tubes"
+msgid "Valve terminals"
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:20
+msgid ""
+"Right-click a valve's row: **Set spare** or **Set used**, **Blank position** "
+"to put a blanking plate in its place, and **Plug port** for each working "
+"port that has no line. A module's row adds a valve at a blank or empty "
+"position (**Add valve at position**), of the part its other valves have."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:23
+msgid ""
+"Right-click the valve terminal's row and choose **Generate overview…**. The "
+"Preview tab lists which modules stand on which overview page, and the pages "
+"it adds where the frame is full; the tags that change with a page are listed "
+"below. Choose **Apply**. Run it again after adding a module: it refreshes "
+"the pages."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:27
+msgid "Tubes"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:29
 msgid ""
 "The tube table has one row per tube. Type a length in millimetres into "
 "**Length** or a tube part into **Tube part**; **Source** then says the value "
 "is manual. Leave a cell empty to take the derived value again."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:23
+#: src/how-to/fluid-workspace.md:31
+msgid ""
+"Choose **Project ▸ Fluid settings…** for the default tube of every line (its "
+"outer and inner diameter in mm and its material) and to tag fluid lines by "
+"page and counter."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:34
 msgid "Media"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:25
+#: src/how-to/fluid-workspace.md:36
 msgid ""
 "Choose **Project ▸ New medium…**, give the medium a name and its pressure in "
 "bar, and choose **Create**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:26
+#: src/how-to/fluid-workspace.md:37
 msgid ""
 "Right-click a fluid line and choose **Medium:** with the medium's name: the "
 "line's net and every net the medium reaches through the valves carry it. The "
 "fluid navigator counts the lines of each medium."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:28
+#: src/how-to/fluid-workspace.md:39
 msgid ""
 "Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page; the highlight is a colour with a hatch "
 "pattern, so it reads without colour too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:31
+#: src/how-to/fluid-workspace.md:42
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "
@@ -4134,10 +4204,11 @@ msgid ""
 "with the card. **Add here** on a free slot adds a card of that part there; "
 "in a station whose modules sit in positions, not rack slots, the free slot "
 "is the one after the last module. Type a slot into a module's Slot field and "
-"press `Enter` to move it, as a number or as rack and slot (`1.3`)."
+"press `Enter` to move it, as a number or as rack and slot (`1.3`), or drag "
+"the module by its tag onto another slot's row."
 msgstr ""
 
-#: src/reference/window/dialogs.md:125
+#: src/reference/window/dialogs.md:126
 msgid ""
 "A slot the part does not allow, or more modules than the station takes, is "
 "refused, and the reason stays under the slots; the station's slot findings "
@@ -4145,11 +4216,11 @@ msgid ""
 "**Close** or `Esc` closes the dialog."
 msgstr ""
 
-#: src/reference/window/dialogs.md:129
+#: src/reference/window/dialogs.md:130
 msgid "PLC import"
 msgstr ""
 
-#: src/reference/window/dialogs.md:131
+#: src/reference/window/dialogs.md:132
 msgid ""
 "**Output ▸ Import from PLC software…** asks for an AutomationML file or a "
 "TIA Portal \"PLC Tags\" workbook and shows what it would change in the "

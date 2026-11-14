@@ -541,3 +541,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   overview pages and adds pages where the frame is full, previewed (`valve_terminal.generate_overview`, WP-S2.13,
   FR-FLU-033); a valve's and a module's rows set a valve spare or used, blank a position, add a valve and plug an open
   working port (FT-1733)
+- behaviour-change: the PLC navigator's rows set a configuration project's symbol policy, a module's safety data and a
+  channel's mode and safety data in forms, unlock what a PLC import protects and import an instrument list, previewed;
+  Project ▸ Process-tag scheme…, Fluid settings… and PLC addresses at terminals; a module is dragged to another slot
+  in the rack and slot editor (FT-1752)

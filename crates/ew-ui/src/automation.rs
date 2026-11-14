@@ -6,8 +6,9 @@
 //!
 //! **The rack and slot editor** (doc 10 §6, FR-PLC-028): the stored order codes of a valve terminal, the module part
 //! to add (a combo box), then one row per slot: its number (a field on a module's row: typing a slot and Enter moves
-//! the module), the module's tag, its part, the slots the part allows and, on a free slot, Add here. A valve
-//! terminal's module shows its valve positions under its row. Below the rows EW-PLC-011's findings with the error icon
+//! the module; a module dragged by its tag onto another slot's row moves there too), the module's tag, its part, the
+//! slots the part allows and, on a free slot, Add here. A valve terminal's module shows its valve positions under its
+//! row. Below the rows EW-PLC-011's findings with the error icon
 //! and word, else the line that the slots meet the station's rules; a refused change stays under them in the error
 //! colour.
 
@@ -120,18 +121,28 @@ pub(crate) fn rack(
                                 } else {
                                     ui.data_mut(|d| d.remove::<String>(id));
                                 }
-                                ui.label(RichText::new(&r.tag).color(t.text_primary.color32()));
+                                // The tag is the handle a module is dragged by, and a slot another one is dropped on.
+                                let tag = ui
+                                    .dnd_drag_source(egui::Id::unique(("rack-drag", module)), module, |ui| {
+                                        ui.label(RichText::new(&r.tag).color(t.text_primary.color32()))
+                                    })
+                                    .response;
+                                let handle = strings::format(key!("rack-drag"), &[&r.tag]);
+                                ui.ctx()
+                                    .accesskit_node_builder(tag.id, |n| n.set_label(handle.clone()));
+                                drop_on(ui, &t, &tag, &slot, Some(module), events);
                                 ui.label(small(r.part.clone()));
                                 allowed_cell(ui, &t, &r.allowed, r.slot);
                                 ui.label("");
                             }
                             None => {
-                                ui.label(small(slot));
-                                ui.label(
+                                ui.label(small(slot.clone()));
+                                let free = ui.label(
                                     RichText::new(strings::text(key!("rack-free")))
                                         .font(theme::font(&t.type_small))
                                         .color(t.text_tertiary.color32()),
                                 );
+                                drop_on(ui, &t, &free, &slot, None, events);
                                 ui.label("");
                                 match &chosen {
                                     Some(p) => allowed_cell(ui, &t, &p.allowed, r.slot),
@@ -181,6 +192,34 @@ pub(crate) fn rack(
                 .font(theme::font(&t.type_small))
                 .color(t.error.color32()),
         );
+    }
+}
+
+/// A slot's module cell `cell` as a drop target (FT-1752): a module dragged by its tag and let go over the cell moves
+/// to slot `slot` (`plc.rack_move`, as the slot field does); while it hovers, the cell is outlined in the accent colour.
+fn drop_on(
+    ui: &Ui,
+    t: &theme::Tokens,
+    cell: &egui::Response,
+    slot: &str,
+    own: Option<Uuid>,
+    events: &mut Vec<Event>,
+) {
+    if cell.dnd_hover_payload::<Uuid>().is_some_and(|m| Some(*m) != own) {
+        ui.painter().rect_stroke(
+            cell.rect.expand(t.space_1),
+            theme::radius(t.radius_sm),
+            theme::stroke(t.focus_width, t.focus),
+            egui::StrokeKind::Outside,
+        );
+    }
+    if let Some(module) = cell.dnd_release_payload::<Uuid>()
+        && Some(*module) != own
+    {
+        events.push(Event::Action(
+            "plc.rack_move",
+            json!({ "module": module.to_string(), "slot": slot }),
+        ));
     }
 }
 

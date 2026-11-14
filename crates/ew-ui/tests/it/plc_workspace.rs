@@ -8,7 +8,7 @@
 
 use crate::support;
 
-use egui_kittest::kittest::Queryable;
+use egui_kittest::kittest::{NodeT as _, Queryable};
 use ew_ui::ew_viewmodel::layout::PaneKind;
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
 use serde_json::json;
@@ -477,5 +477,271 @@ fn the_plc_exchange_exports_and_previews_an_import() {
         .map(|t| t.text.clone())
         .unwrap_or_default();
     assert_eq!(toast, "Imported plc.aml.");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// The value of field `name` of the open form.
+fn form_value(h: &egui_kittest::Harness<'_, ew_ui::app::App>, name: &str) -> String {
+    match h.state().shell().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f
+            .fields
+            .iter()
+            .find(|f| f.name == name)
+            .map(|f| f.value.clone())
+            .unwrap_or_default(),
+        other => panic!("{other:?}"),
+    }
+}
+
+/// Types `text` into the form field labelled `label`.
+fn type_into(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, label: &str, text: &str) {
+    h.get_by_label(label).click();
+    h.run_ok();
+    h.event(egui::Event::Text(text.to_owned()));
+    settle(h);
+}
+
+/// FT-1752: the project's PLC and fluid settings from the Project menu. Process-tag scheme… and Fluid settings… are
+/// forms that start with the project's values and set them in one step each; PLC addresses at terminals is a switch.
+#[test]
+fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    support::open_menu(&mut h, &["Project"]);
+    settle(&mut h);
+    support::menu_node(&h, "Process-tag scheme…").click();
+    settle(&mut h);
+    type_into(
+        &mut h,
+        "Scheme (regular expression with named groups)",
+        "(?P<area>[A-Z]{2}\\d\\d)-(?P<kind>[A-Z])-(?P<number>\\d+)",
+    );
+    support::off_chrome(&h, "Apply").expect("Apply").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    dispatch(&mut h, "plc.process_tag_scheme", json!({}));
+    assert!(form_value(&h, "scheme").starts_with("(?P<area>"), "the form shows the scheme set");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    support::open_menu(&mut h, &["Project"]);
+    settle(&mut h);
+    support::menu_node(&h, "Fluid settings…").click();
+    settle(&mut h);
+    type_into(&mut h, "Default tube: outer diameter (mm)", "6");
+    type_into(&mut h, "Default tube: inner diameter (mm)", "4");
+    h.get_by_label("Tag fluid lines by page and counter").click();
+    settle(&mut h);
+    support::off_chrome(&h, "Apply").expect("Apply").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    dispatch(&mut h, "fluid.settings", json!({}));
+    assert_eq!(form_value(&h, "od"), "6");
+    assert_eq!(form_value(&h, "id"), "4");
+    assert_eq!(form_value(&h, "line_tags"), "true");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    assert!(!h.state().shell().plc_addresses_at_terminals_on());
+    support::open_menu(&mut h, &["Project"]);
+    settle(&mut h);
+    support::menu_node(&h, "PLC addresses at terminals").click();
+    settle(&mut h);
+    assert!(h.state().shell().plc_addresses_at_terminals_on());
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1752: what the PLC navigator's rows reach. A configuration project's row shows its symbol policy in
+/// Properties, a module's its safety data and a channel's its mode and safety data (each a `fields.set` row); after an
+/// applied PLC import the configuration project's row unlocks a protected group (`plc.unlock`) and imports an
+/// instrument list, previewed.
+#[test]
+fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
+    use ew_ui::app::Pick;
+    let tmp = Tmp::new();
+    let aml = tmp.0.join("plc.aml");
+    let csv = tmp.0.join("instruments.csv");
+    let mut list = String::from("Tag;Description;Signal type;Range;Field location;Preferred station\n");
+    for n in 40..44 {
+        list.push_str(&format!("TA05-V-{n};Valve {n};DO;;Hall 1;-201U1\n"));
+    }
+    std::fs::write(&csv, list).expect("the list");
+    let platform = Scripted::default();
+    platform.answers.borrow_mut().push_back(Pick::Path(csv.clone()));
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, platform, Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    let rows = h.state().shell().shown_rows(NavKind::Plc);
+    let config = rows
+        .iter()
+        .find(|r| r.role == NavRole::ConfigProject.word())
+        .expect("the configuration project")
+        .clone();
+    // Symbol policy…: the template and the tag table set in one step.
+    h.get_by_label(&config.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Symbol policy…").click();
+    settle(&mut h);
+    assert_eq!(form_value(&h, "strict_iec"), "true");
+    type_into(&mut h, "Template of the automatic symbol", "{target.dt}_{pin}");
+    type_into(&mut h, "PLC tag table", "Valves");
+    support::off_chrome(&h, "Apply").expect("Apply").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    h.get_by_label(&config.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Symbol policy…").click();
+    settle(&mut h);
+    assert_eq!(form_value(&h, "tag_table"), "Valves");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    // Safety data… of a module and Mode and safety… of a channel.
+    let rows = h.state().shell().shown_rows(NavKind::Plc);
+    let module = rows
+        .iter()
+        .find(|r| r.role == NavRole::Module.word())
+        .expect("a module")
+        .clone();
+    h.get_by_label(&module.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Safety data…").click();
+    settle(&mut h);
+    type_into(&mut h, "F-destination address", "x");
+    support::off_chrome(&h, "Apply").expect("Apply").click();
+    settle(&mut h);
+    assert!(
+        h.query_all_by_label_contains("is no address or time").count() >= 1,
+        "a refusal in words"
+    );
+    h.get_by_label("F-destination address").click();
+    h.key_press(egui::Key::Backspace);
+    h.event(egui::Event::Text("1200".to_owned()));
+    settle(&mut h);
+    support::off_chrome(&h, "Apply").expect("Apply").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    let channel = rows
+        .iter()
+        .find(|r| r.role == NavRole::Channel.word())
+        .expect("a channel")
+        .clone();
+    h.get_by_label(&channel.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Mode and safety…").click();
+    settle(&mut h);
+    type_into(&mut h, "Safety requirement (such as SIL 2 or PL d)", "SIL2");
+    h.get_by_role_and_label(egui::Role::ComboBox, "Safety evaluation").click();
+    settle(&mut h);
+    h.get_by_label("1oo1").click();
+    settle(&mut h);
+    support::off_chrome(&h, "Apply").expect("Apply").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    h.get_by_label(&channel.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Mode and safety…").click();
+    settle(&mut h);
+    assert_eq!(form_value(&h, "evaluation"), "1oo1");
+    assert_eq!(form_value(&h, "requirement"), "SIL2");
+    dispatch(&mut h, "ui.dismiss", json!({}));
+    dispatch(
+        &mut h,
+        "plc.export",
+        json!({"format": "aml-1.4.0", "path": aml.to_string_lossy()}),
+    );
+    dispatch(&mut h, "plc.import", json!({"path": aml.to_string_lossy()}));
+    dispatch(&mut h, "plc.import_apply", json!({}));
+    settle(&mut h);
+    h.get_by_label(&config.name).click_secondary();
+    settle(&mut h);
+    let unlock: Vec<String> = h
+        .query_all_by_label_contains("Unlock ")
+        .filter_map(|n| n.accesskit_node().label())
+        .collect();
+    assert!(!unlock.is_empty(), "a protected group to unlock");
+    support::menu_node(&h, &unlock[0]).click();
+    settle(&mut h);
+    h.get_by_label(&config.name).click_secondary();
+    settle(&mut h);
+    assert!(
+        h.query_by_label(&unlock[0]).is_none(),
+        "{} is unlocked",
+        unlock[0]
+    );
+    support::menu_node(&h, "Import instrument list…").click();
+    for _ in 0..4 {
+        settle(&mut h);
+    }
+    let notices = h.state().shell().preview_pane().notices().to_vec();
+    assert!(notices.iter().any(|n| n.contains("reserved")), "{notices:?}");
+    support::off_chrome(&h, "Apply").expect("the card's Apply").click();
+    settle(&mut h);
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1752: in the rack and slot editor a module dragged by its tag onto a free slot's row moves there, as typing the
+/// slot does (`fields.set plc_module.slot`).
+#[test]
+fn a_module_is_dragged_to_a_free_slot_in_the_rack_editor() {
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let tmp = Tmp::new();
+    let mut h = new_project_with_cpu(&tmp);
+    let station = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == NavRole::Station.word())
+        .expect("the CPU's row");
+    h.get_by_label(&station.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Rack and slots…").click();
+    settle(&mut h);
+    let id = match h.state().shell().dialog() {
+        Some(Dialog::Rack { station, .. }) => *station,
+        other => panic!("{other:?}"),
+    };
+    h.get_by_role_and_label(egui::Role::ComboBox, "Module part to add")
+        .click();
+    settle(&mut h);
+    h.get_by_label_contains("EW-GEN-DO-1").click();
+    settle(&mut h);
+    h.get_by_label("Add here 1").click();
+    settle(&mut h);
+    let tag = h.state().shell().rack_view(id).expect("the rack").rows[0].tag.clone();
+    let module = (id, tag, 1u32);
+    let from = h.get_by_label(&module.1).rect().center();
+    let to = h
+        .get_all_by_label("free")
+        .last()
+        .expect("a free slot")
+        .rect()
+        .center();
+    h.input_mut().events.push(egui::Event::PointerMoved(from));
+    h.run_ok();
+    h.input_mut().events.push(egui::Event::PointerButton {
+        pos: from,
+        button: egui::PointerButton::Primary,
+        pressed: true,
+        modifiers: egui::Modifiers::NONE,
+    });
+    h.run_ok();
+    for i in 1..=8 {
+        let p = from + (to - from) * (i as f32 / 8.0);
+        h.input_mut().events.push(egui::Event::PointerMoved(p));
+        h.run_ok();
+    }
+    h.input_mut().events.push(egui::Event::PointerButton {
+        pos: to,
+        button: egui::PointerButton::Primary,
+        pressed: false,
+        modifiers: egui::Modifiers::NONE,
+    });
+    settle(&mut h);
+    let view = h.state().shell().rack_view(module.0).expect("the rack");
+    let row = view
+        .rows
+        .iter()
+        .find(|r| r.tag == module.1)
+        .expect("the module's row");
+    assert_ne!(row.slot, module.2, "moved from slot {}", module.2);
     h.state_mut().shell_mut().shutdown();
 }

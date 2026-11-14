@@ -260,7 +260,7 @@ fn model_date(q: &Q) -> Date {
         .expect("1980-01-01 is a date")
 }
 
-/// The configuration project named `name`, or the project's only one.
+/// The configuration project named `name` (or with that ID), or the project's only one.
 fn config_project(q: &Q, name: Option<&str>) -> Result<Id<PlcConfigProject>, PlcExchangeError> {
     let all: Vec<(Id<PlcConfigProject>, String)> = q
         .table::<PlcConfigProject>()
@@ -271,7 +271,7 @@ fn config_project(q: &Q, name: Option<&str>) -> Result<Id<PlcConfigProject>, Plc
     match name {
         Some(name) => all
             .iter()
-            .find(|(_, n)| n == name)
+            .find(|(id, n)| n == name || id.as_uuid().to_string() == name)
             .map(|(id, _)| *id)
             .ok_or_else(|| PlcExchangeError::NoConfig(Some(name.to_owned()), names())),
         None => match all.as_slice() {

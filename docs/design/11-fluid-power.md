@@ -774,7 +774,7 @@ are on a device's row of the fluid, PLC and device navigators (`Session::fluid_m
 overview… (§5.5); a valve module's Add valve at position *n* for each blank or empty position (a `valve.set_occupancy`
 with the part of the module's first valve, else of another module's; disabled with its reason without one); a valve's
 Set spare or Set used and Blank position *n*, a blanking plate's Add valve; Plug port *p* for each open working port
-(EW-FL-001's, `ew_derive::open_working_ports`; `fluid.port.close` with a plug). Each is one undo step.
+(EW-FL-001's, `ew_derive::open_working_ports`; `fluid.port.close` with a plug). Each is one undo step. Project ▸ Fluid settings… (FT-1752) is a form of the member `fluid` of `project.settings.set`: the default tube's outer and inner diameter in mm and its material, and whether fluid lines are tagged by page and counter; the member's other values are kept, a diameter that is no length is refused in words.
 
 ---
 

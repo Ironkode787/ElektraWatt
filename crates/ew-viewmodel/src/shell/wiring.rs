@@ -418,6 +418,37 @@ impl ShellModel {
         self.run_commit(&cmd)
     }
 
+    /// `project.plc_addresses_at_terminals {on?}` (Project ▸ PLC addresses at terminals, FR-PLC-018, doc 10 §3.5):
+    /// commits `project.drawing.set` with `plc_address_at_terminals: true`, or `null` to turn it off; without `on` it
+    /// toggles. A terminal on a traced channel's path then prints the channel's address in its `PlcAddress` slot.
+    pub(crate) fn act_plc_addresses_at_terminals(&mut self, p: &Map<String, Value>) -> Outcome {
+        let on = if p.contains_key("on") {
+            flag(p, "on")
+        } else {
+            !self.plc_addresses_at_terminals_on()
+        };
+        let cmd = ew_api::AnyCommand {
+            name: "project.drawing.set".into(),
+            params: json!({ "plc_address_at_terminals": if on { json!(true) } else { Value::Null } }),
+        };
+        self.run_commit(&cmd)
+    }
+
+    /// Whether the project prints PLC addresses at terminals (the drawing setting `plc_address_at_terminals`).
+    pub fn plc_addresses_at_terminals_on(&self) -> bool {
+        self.project.as_ref().is_some_and(|p| {
+            p.session
+                .query()
+                .project()
+                .settings
+                .extra
+                .get("drawing")
+                .and_then(|d| d.get("plc_address_at_terminals"))
+                .and_then(Value::as_bool)
+                == Some(true)
+        })
+    }
+
     /// `navigator.bind {channel, x_mm, y_mm, group?}` (FR-PLC-020): a PLC channel row dropped on the
     /// canvas at the sheet point. The connection point under it, resolved as the Wire tool resolves its targets (the
     /// nearest CP within 8 screen points), takes the channel: one `plc.bind_channel` with `endpoint: {cp: {function,
