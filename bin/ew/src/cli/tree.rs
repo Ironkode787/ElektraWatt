@@ -799,9 +799,6 @@ struct PlcExportCli {
     /// The file to write (required).
     #[arg(long, value_name = "file", allow_hyphen_values = true, overrides_with = "out")]
     out: Option<PathBuf>,
-    /// Print the result as JSON.
-    #[arg(long, overrides_with = "json")]
-    json: bool,
 }
 
 /// `ew import plc-aml` and `plc-xlsx`.
@@ -870,9 +867,6 @@ struct InstrumentListCli {
     /// Commit the rows and save.
     #[arg(long, overrides_with = "apply")]
     apply: bool,
-    /// Print the result as JSON.
-    #[arg(long, overrides_with = "json")]
-    json: bool,
 }
 
 /// `ew plc`.
@@ -936,13 +930,13 @@ fn plc_export(word: &str, a: PlcExportCli) -> Result<Command, clap::Error> {
         stations: a.station,
         lang: a.lang,
         out,
-        json: a.json,
     }))
 }
 
 /// `ew import plc-aml|plc-xlsx`.
-fn plc_import(a: PlcImportCli) -> Command {
+fn plc_import(schema: &'static str, a: PlcImportCli) -> Command {
     Command::PlcImport(PlcImportArgs {
+        schema,
         file: a.file,
         project: project(a.project, a.project_dir),
         config: a.config,
@@ -2523,13 +2517,13 @@ impl Cli {
                 config: a.config,
                 json: a.json,
             }),
-            Top::Import(Import::PlcAml(a) | Import::PlcXlsx(a)) => plc_import(a),
+            Top::Import(Import::PlcAml(a)) => plc_import(ew_api::cli_results::IMPORT_PLC_AML, a),
+            Top::Import(Import::PlcXlsx(a)) => plc_import(ew_api::cli_results::IMPORT_PLC_XLSX, a),
             Top::Import(Import::InstrumentList(a)) => Command::InstrumentList(InstrumentListArgs {
                 file: a.file,
                 project: project(a.project, a.project_dir),
                 config: a.config,
                 apply: a.apply,
-                json: a.json,
             }),
             Top::Extract(ExtractCli { file, into, json }) => {
                 Command::Extract(ExtractArgs { file, into, json })

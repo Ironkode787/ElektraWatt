@@ -95,6 +95,22 @@ fn merge_resolve_routes_every_record_to_the_file_the_writer_writes_it_in() {
         "importer_version": "1", "source": {"name": "tables", "sha256": format!("sha256:{}", "0".repeat(64)),
         "size": 0, "format": "csv"}, "mode": "strict"
     })));
+    // The exchange snapshot of Golden A's configuration project, in `exchange/<config project>.jsonl`.
+    let cfg = records
+        .iter()
+        .find_map(|r| match r {
+            Record::PlcConfigProject(c) => Some(c.id.to_string()),
+            _ => None,
+        })
+        .expect("Golden A's configuration project");
+    records.push(record(json!({
+        "$k": "exchange_record", "id": "4b1d9e70-2c53-5a86-9f04-e8d1c6a3b752", "config_project": cfg,
+        "object": "station", "target": "5b4bbf7c-cd80-5c39-8f2d-9b944b9cbfb7", "fields": {"name": "-201U1"}
+    })));
+    records.push(record(json!({
+        "$k": "foreign_id", "id": "c05e7a19-8d42-5b63-a1f7-3e9b0d64c285", "config_project": cfg,
+        "object": "station", "target": "5b4bbf7c-cd80-5c39-8f2d-9b944b9cbfb7", "foreign": "a-foreign-id"
+    })));
     // A medium (project file) and its definition point (the file of the point's function's device).
     let function = records
         .iter()

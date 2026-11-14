@@ -468,7 +468,7 @@ impl Command for ApplyExchange {
                         pointer(&c.id),
                         text!(
                             "refusal-plc-exchange-not-acceptable",
-                            c.field.clone(),
+                            ew_plc::field_words(&c.object, &c.field),
                             c.subject.clone()
                         ),
                     ));
@@ -483,7 +483,7 @@ impl Command for ApplyExchange {
             notices.push(format!(
                 "{}: {} {} → {} ({}, {})",
                 c.subject,
-                c.field,
+                ew_plc::field_words(&c.object, &c.field),
                 side(&c.ours),
                 side(&c.theirs),
                 c.state.word(),
@@ -507,7 +507,11 @@ impl Command for ApplyExchange {
             match self.resolutions.get(&p.id) {
                 Some(Resolution::Create) if p.creatable => {
                     entries.extend(create_parked(tx, self.config_project, p)?);
-                    notices.push(format!("{} {}: created unplaced", p.object.name(), p.name));
+                    notices.push(format!(
+                        "{} {}: created unplaced",
+                        ew_plc::object_words(&p.object),
+                        p.name
+                    ));
                 }
                 Some(Resolution::Create) => {
                     return Err(CmdError::invalid_params(
@@ -525,7 +529,7 @@ impl Command for ApplyExchange {
                 }
                 None => notices.push(format!(
                     "{} {}: parked ({})",
-                    p.object.name(),
+                    ew_plc::object_words(&p.object),
                     p.name,
                     if p.ambiguous {
                         "several objects of the project match it"
@@ -538,7 +542,7 @@ impl Command for ApplyExchange {
         for (object, _, name) in &plan.removed {
             notices.push(format!(
                 "{} {name}: no longer in the file (kept in the project)",
-                object.name()
+                ew_plc::object_words(object)
             ));
         }
 
@@ -574,7 +578,7 @@ fn bad_value(c: &Change, why: impl std::fmt::Display) -> CmdError {
         text!(
             "refusal-plc-exchange-value",
             c.theirs.clone().unwrap_or_default(),
-            c.field.clone(),
+            ew_plc::field_words(&c.object, &c.field),
             c.subject.clone(),
             why.to_string()
         ),
@@ -738,7 +742,7 @@ fn new_device(
             text!(
                 "refusal-plc-exchange-value",
                 text.to_owned(),
-                "name",
+                "designation",
                 name.to_owned(),
                 e.to_string()
             ),
@@ -871,6 +875,9 @@ fn create_parked(
 // ---------------------------------------------------------------------------------------------------------
 // The instrument list
 
+/// What an earlier list brought for a tag: its placeholder device and its channel, each while it is still there.
+type Known = (Option<Id<Device>>, Option<Id<Channel>>);
+
 /// `plc.apply_instrument_list` (`ApplyInstrumentList`, doc 10 §4.7, FR-PLC-050): takes the rows of an instrument
 /// list into a configuration project.
 ///
@@ -915,7 +922,7 @@ impl Command for ApplyInstrumentList {
         }
         let strict = cfg.symbols.as_ref().is_none_or(|s| s.strict_iec);
         // what earlier lists brought: per tag, the placeholder device and the channel that are still there
-        let mut known: BTreeMap<String, (Option<Id<Device>>, Option<Id<Channel>>)> = BTreeMap::new();
+        let mut known: BTreeMap<String, Known> = BTreeMap::new();
         for r in tx.iter::<ExchangeRecord>() {
             if r.config_project != self.config_project || r.object != ExchangeObject::Instrument {
                 continue;

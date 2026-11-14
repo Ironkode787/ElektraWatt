@@ -193,6 +193,36 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["import", "plc-aml"],
+        exits: &[
+            exit(0, "previewed, and with `--accept` applied and saved"),
+            exit(
+                2,
+                "usage, open, read and save errors, a file that is no AML file, a refused choice",
+            ),
+        ],
+        result: Some(ew_api::cli_results::IMPORT_PLC_AML),
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["import", "plc-xlsx"],
+        exits: &[
+            exit(0, "previewed, and with `--accept` applied and saved"),
+            exit(
+                2,
+                "usage, open, read and save errors, a workbook without a tag table, a refused choice",
+            ),
+        ],
+        result: Some(ew_api::cli_results::IMPORT_PLC_XLSX),
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["plc", "status"],
+        exits: &[exit(0, "the status printed"), exit(2, "usage and open errors")],
+        result: Some(ew_api::cli_results::PLC_STATUS),
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["check"],
         exits: &[
             exit(0, "no unwaived error"),

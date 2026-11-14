@@ -6,7 +6,9 @@
 
 use super::*;
 
-use ew_api::plc_exchange::{PlcExchangeError, PlcImport, PlcOptions};
+use ew_api::plc_exchange::{
+    ExchangeDirection, ExchangeFormat, PlcExchangeError, PlcImport, PlcOptions, field_words, object_words,
+};
 
 /// The line of a refused exchange.
 fn refusal(e: &PlcExchangeError) -> String {
@@ -91,23 +93,10 @@ pub(super) fn run_plc_export(a: &PlcExportArgs) -> i32 {
         eprintln!("warning: {w}");
     }
     let [stations, modules, channels, tags] = export.counts;
-    if a.json {
-        println!(
-            "{}",
-            serde_json::json!({
-                "stations": stations,
-                "modules": modules,
-                "channels": channels,
-                "tags": tags,
-                "warnings": export.warnings,
-            })
-        );
-    } else {
-        println!(
-            "wrote {stations} station(s), {modules} module(s), {channels} channel(s) and {tags} tag(s); the exchange \
-             is recorded in the project"
-        );
-    }
+    println!(
+        "wrote {stations} station(s), {modules} module(s), {channels} channel(s) and {tags} tag(s); the exchange is \
+         recorded in the project"
+    );
     0
 }
 
@@ -123,7 +112,7 @@ fn import_text(import: &PlcImport, applied: bool) -> String {
             "{}: {}: {} {} → {}  [{}]",
             c.state.word(),
             c.subject,
-            c.field,
+            field_words(&c.object, &c.field),
             side(&c.ours),
             side(&c.theirs),
             c.id
@@ -133,7 +122,7 @@ fn import_text(import: &PlcImport, applied: bool) -> String {
         let _ = writeln!(
             out,
             "parked: {} {} ({}){}  [{}]",
-            p.object.name(),
+            object_words(&p.object),
             p.name,
             if p.ambiguous {
                 "several objects of the project match it"
@@ -149,7 +138,11 @@ fn import_text(import: &PlcImport, applied: bool) -> String {
         );
     }
     for (object, _, name) in &import.plan.removed {
-        let _ = writeln!(out, "removed: {} {name} is no longer in the file", object.name());
+        let _ = writeln!(
+            out,
+            "removed: {} {name} is no longer in the file",
+            object_words(object)
+        );
     }
     let _ = writeln!(
         out,
@@ -172,8 +165,7 @@ pub(super) fn run_plc_import(a: &PlcImportArgs) -> i32 {
     let Some(dir) = project_dir(a.project.as_ref()) else {
         return 2;
     };
-    let limit = ew_api::plc_exchange::max_file_bytes();
-    let bytes = match read_bounded(&a.file, limit) {
+    let bytes = match read_bounded(&a.file, ew_api::plc_exchange::max_file_bytes()) {
         Ok(b) => b,
         Err(e) => {
             eprintln!("error: {}: {e}", a.file.display());
@@ -251,9 +243,7 @@ pub(super) fn run_plc_import(a: &PlcImportArgs) -> i32 {
     }
     session.close();
     if a.json {
-        let mut value = import.to_json();
-        value["applied"] = serde_json::Value::Bool(apply);
-        println!("{value}");
+        print!("{}", results::to_text(&import.result(a.schema, apply)));
     } else {
         print!("{}", import_text(&import, apply));
     }
@@ -302,22 +292,23 @@ pub(super) fn run_instrument_list(a: &InstrumentListArgs) -> i32 {
         }
     }
     session.close();
-    if a.json {
-        println!("{}", serde_json::json!({"rows": notices, "applied": a.apply}));
-    } else {
-        for n in &notices {
-            println!("{n}");
-        }
-        println!(
-            "{}",
-            if a.apply {
-                "applied and saved"
-            } else {
-                "nothing is written: apply with --apply"
-            }
-        );
+    for n in &notices {
+        println!("{n}");
     }
+    println!(
+        "{}",
+        if a.apply {
+            "applied and saved"
+        } else {
+            "nothing is written: apply with --apply"
+        }
+    );
     0
+}
+
+/// The word of a format's or a direction's value in the project file (`aml`, `export`).
+fn word(value: serde_json::Value) -> String {
+    value.as_str().unwrap_or_default().to_owned()
 }
 
 /// `ew plc status [<file>]`: the last exchange of the configuration project, what changed in the project since
@@ -353,46 +344,60 @@ pub(super) fn run_plc_status(a: &PlcStatusArgs) -> i32 {
         }
     };
     if a.json {
-        println!(
-            "{}",
-            serde_json::json!({
-                "config": status.config,
-                "exchange": status.stamp,
-                "drift": status.drift.iter().map(|(object, fields)| serde_json::json!({
-                    "object": object,
-                    "fields": fields,
-                })).collect::<Vec<_>>(),
-                "same_file": status.same_file,
-            })
-        );
+        let result = results::PlcStatusResult {
+            schema: results::PLC_STATUS.to_owned(),
+            config: status.config.clone(),
+            exchange: status.stamp.as_ref().map(|s| results::PlcStatusExchange {
+                format: word(serde_json::json!(s.format)),
+                version: s.version.clone(),
+                direction: word(serde_json::json!(s.direction)),
+                date: s.date.to_string(),
+                file_sha256: s.file_sha256.to_string(),
+            }),
+            drift: status
+                .drift
+                .iter()
+                .map(|(object, name, fields)| results::PlcStatusDrift {
+                    object: object.name().to_owned(),
+                    name: name.clone(),
+                    fields: fields.clone(),
+                })
+                .collect(),
+            same_file: status.same_file,
+        };
+        print!("{}", results::to_text(&result));
         return 0;
     }
     match &status.stamp {
         None => println!("{}: not exchanged yet", status.config),
         Some(s) => println!(
-            "{}: last exchange of {}: {} {}{}",
+            "{}: last exchange: {}{} {} of {}",
             status.config,
-            s.date,
-            serde_json::to_value(&s.direction)
-                .ok()
-                .and_then(|v| v.as_str().map(str::to_owned))
-                .unwrap_or_default(),
-            serde_json::to_value(&s.format)
-                .ok()
-                .and_then(|v| v.as_str().map(str::to_owned))
-                .unwrap_or_default(),
-            s.version.as_ref().map(|v| format!(" {v}")).unwrap_or_default()
+            match s.format {
+                ExchangeFormat::Aml => "AML",
+                ExchangeFormat::TiaXlsx => "tag table",
+                ExchangeFormat::Plcopen => "PLCopen XML",
+                ExchangeFormat::Unknown(_) => "a format of a newer ElektraWatt",
+            },
+            s.version.as_ref().map(|v| format!(" {v}")).unwrap_or_default(),
+            match s.direction {
+                ExchangeDirection::Import => "import",
+                _ => "export",
+            },
+            s.date
         ),
     }
     if status.stamp.is_some() {
         if status.drift.is_empty() {
             println!("the project is as exchanged");
         }
-        for (object, fields) in &status.drift {
+        for (object, name, fields) in &status.drift {
+            let words = object_words(object);
             if fields.is_empty() {
-                println!("changed since: {object} (added or gone)");
+                println!("changed since: {words} {name} (added or gone)");
             } else {
-                println!("changed since: {object}: {}", fields.join(", "));
+                let fields: Vec<String> = fields.iter().map(|f| field_words(object, f)).collect();
+                println!("changed since: {words} {name}: {}", fields.join(", "));
             }
         }
     }

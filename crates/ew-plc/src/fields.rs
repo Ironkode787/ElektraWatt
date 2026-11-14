@@ -69,6 +69,47 @@ pub fn class(object: &ExchangeObject, field: &str) -> FieldClass {
     FieldClass::Group(group)
 }
 
+/// The kind of an exchanged object in words (`bus node`).
+pub fn object_words(object: &ExchangeObject) -> &'static str {
+    match object {
+        ExchangeObject::Station => "station",
+        ExchangeObject::Module => "module",
+        ExchangeObject::Channel => "channel",
+        ExchangeObject::Tag => "tag",
+        ExchangeObject::Node => "bus node",
+        ExchangeObject::Instrument => "instrument",
+        ExchangeObject::Unknown(_) => "object",
+    }
+}
+
+/// A field of an exchanged object in words, as a preview and a refusal name it (`output start`, `comment (en-GB)`).
+pub fn field_words(object: &ExchangeObject, field: &str) -> String {
+    if let Some(lang) = field.strip_prefix("comment.") {
+        return format!("comment ({lang})");
+    }
+    let words = match (object, field) {
+        (ExchangeObject::Tag, "name") => "symbol",
+        (_, "name") => "designation",
+        (_, "data_type") => "data type",
+        (_, "start.input") => "input start",
+        (_, "start.output") => "output start",
+        (_, "bits.input") => "input length",
+        (_, "bits.output") => "output length",
+        (_, "position") => "slot",
+        (_, "order_number") => "order number",
+        (_, "type_name") => "type name",
+        (ExchangeObject::Station, "type") => "type identifier",
+        (_, "io") => "direction",
+        (_, "bits") => "length",
+        (_, "mask") => "subnet mask",
+        (_, "router") => "gateway",
+        (_, "device_name") => "device name",
+        (_, "network") => "subnet",
+        (_, other) => other,
+    };
+    words.to_owned()
+}
+
 fn put(fields: &mut BTreeMap<String, String>, name: &str, value: Option<impl ToString>) {
     if let Some(v) = value.map(|v| v.to_string()).filter(|v| !v.is_empty()) {
         fields.insert(name.to_owned(), v);

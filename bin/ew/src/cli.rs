@@ -484,13 +484,13 @@ pub struct PlcExportArgs {
     pub lang: Option<String>,
     /// The file to write (`--out`).
     pub out: PathBuf,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
 }
 
 /// The arguments of `ew import plc-aml` and `plc-xlsx`.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PlcImportArgs {
+    /// The schema name of the subcommand's `--json` result.
+    pub schema: &'static str,
     /// The exchange file.
     pub file: PathBuf,
     /// The project directory; `None`: found from the current directory.
@@ -518,8 +518,6 @@ pub struct InstrumentListArgs {
     pub config: Option<String>,
     /// `--apply`: commit and save.
     pub apply: bool,
-    /// Print the result as JSON (`--json`).
-    pub json: bool,
 }
 
 /// The arguments of `ew plc status`.

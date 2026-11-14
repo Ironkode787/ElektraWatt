@@ -788,6 +788,8 @@ both 1.0, so it follows at 1.x (Could).
 
 *As built (fix round).* EW-PLC-001 reports one finding per overlap group of `address_index(cfg)` (each connected run of overlapping addresses in one area, so N channels on one address are one finding, not N(N−1)/2), every member channel a target and the first in address order the subject; the text names five channels with their addresses, then "and N more channels", in en-GB and nl-NL.
 
+*As built (WP-S3.16).* EW-PLC-016 and EW-PRC-002 are built in the 1.0 content, with en-GB and nl-NL messages and rule notes. EW-PRC-002's findings are the open instrument tags; it is not a row of the open-item table, whose rules run in release mode of the shipped scheme.
+
 *As built (WP-S1.24).* The pack's 1.0 content is built: EW-PLC-004, -005, -009, -010, -011, -013 and -014, EW-SAF-001 … -003 and EW-PRC-001, with the kinds, modes, severities and scopes above, en-GB and nl-NL messages and rule notes ([10](10-plc-and-bus.md) §3.10 has the as-built decisions). The scope `station` exists for EW-PLC-011, -013 and -014 (§2.3). The prevent halves of EW-PLC-001, -007 and -011 refuse an edit that adds an error finding in the scopes it touches (FT-726); EW-PLC-013 supersedes EW-POT-003 for the FE pins of a station's devices, so with the 1.0 content Golden A reports EF-22 where the MVP content reports EF-10. EW-PLC-016 and EW-PRC-002 are not built: they read the exchange stamp and the instrument list of WP-S3.16.
 
 #### 4.5.2 EW-BUS

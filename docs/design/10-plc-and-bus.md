@@ -116,7 +116,22 @@ conflict, while the same symbol renamed on both sides gives one conflict row. Ow
 field group whose owner is then `Plc`: before that import, EW edits of the DP station address (Golden A-R sets 3)
 are ordinary edits, flagged "export pending".
 
-**As built.** `plc_config_project` (rank 11, `project.jsonl`) is typed in `ew-schema` with `name`, `profile` (the pinned reference `id@version`, here `siemens-tia-intl@2027.1`) and `cpu`, plus the import-provenance member `source_ref`. The address grammar lives in the new permissive crate `ew-plcaddr` (addresses, the built-in TIA address profile, unit intervals and the part map language of §2.6). `symbols` is typed (WP-S1.24): `SymbolPolicy {template, strict_iec (default true, omitted when true), tag_table}`, set with `fields.set`, which refuses a template that does not expand. `allocation`, `ownership` and `exchange` are not typed and stay in `extra`, so the ownership table above and the protection of §3.9 are design only: an older build would edit a PLC-owned start without the refusal, so `ownership` is no additive member (ADR-0011 amendment 6) and waits for the format step that M3 takes with the exchange of WP-S3.16, whose first import starts the protection. Golden A has one configuration project, `PLC1`, without a CPU. The kind was already reserved with its rank and ownership, so it was implemented additively within format 0.1. Deleting the CPU device unlinks `cpu`; a configuration project cannot be deleted while a `plc_station` aspect still names it.
+**As built.** `plc_config_project` (rank 11, `project.jsonl`) is typed in `ew-schema` with `name`, `profile` (the pinned reference `id@version`, here `siemens-tia-intl@2027.1`) and `cpu`, plus the import-provenance member `source_ref`. The address grammar lives in the new permissive crate `ew-plcaddr` (addresses, the built-in TIA address profile, unit intervals and the part map language of §2.6). `symbols` is typed (WP-S1.24): `SymbolPolicy {template, strict_iec (default true, omitted when true), tag_table}`, set with `fields.set`, which refuses a template that does not expand. `allocation` is not typed and stays in `extra`. `ownership` and `exchange` are typed (WP-S3.16, below). Golden A has one configuration project, `PLC1`, without a CPU. The kind was already reserved with its rank and ownership, so it was implemented additively within format 0.1. Deleting the CPU device unlinks `cpu`; a configuration project cannot be deleted while a `plc_station` aspect still names it.
+
+**As built (WP-S3.16).** `PlcConfigProject.ownership` is `Ownership {module_starts, symbols, imported, unlocked}`: the
+owner (`ecad`, `plc`, `shared`) of the two configurable groups that an import writes, the date of the first applied
+PLC import and the groups `plc.unlock` unlocked. Absent members are the defaults: the module starts are the PLC's in a
+merge and symbols and comments are shared; the PLC's own data (firmware, IP addresses, PROFINET names, DP station
+addresses) is always the PLC's. Nothing is protected before the first applied import (`imported` absent), which is what
+the table's default `Ecad` for the starts says: until then a start is an ordinary edit. The owners are set with
+`fields.set` (`ownership.module_starts`, `ownership.symbols`). The structure group and the designations stay the
+schematic's and have no member: an import lists a structural difference and never writes it (§4.4). The member is
+**additive** (ADR-0011 amendment 6): an older 0.1 build keeps it verbatim and does not enforce the protection, and a
+PLC-owned field that such a build edits is an ordinary difference in the next import's three-way merge (changed in
+the project only: kept and flagged export pending; changed on both sides: a conflict), so the file stays consistent
+and M3 needs no new format version for it. `PlcConfigProject.exchange` is `ExchangeStamp {format (aml, tia_xlsx,
+plcopen), version, file_sha256, direction (export, import), date}`. It has no `rev`: a session's revision counter
+means nothing in another session, and the date is the exchange's document date.
 
 ### 2.3 Stations and modules
 
@@ -156,7 +171,7 @@ on a tag or on the page a child is drawn on (D-41).
 **A module's I/O widths come from part data** (§2.6). A module may have an input and an output range at once, so
 `start` holds one `AddrSpec` per direction. AR APC carries the same list of `{StartAddress, Length, IoType}`.
 
-**As built.** `plc_station` carries `config_project`, `role` (`StationRole`, all seven variants) and `order`. `plc_module` carries `slot` (`SlotPath`: `positional`, the default, or `rack` with rack, slot and subslot), `start` (`IoStarts`; `auto` for both directions by default), `part_use` and `integrated`. `PlcModule.safety` (§2.9) is typed (WP-S1.24). Not typed, and kept in `extra` until their work packages: `PlcStation.firmware`, `PlcStation.dd` (§2.8) and `PlcModule.type_ident` (the exchange's and the device descriptions'; the `plc_card_list` of §5 prints the module part's number). The aspects are written in the member order of [05](05-project-format-and-persistence.md) §3.1: `assembly` (held verbatim until its work package) before `plc_station` before `plc_module`. The module order of `module_order` is: stations by (`order`, ID); within a station, rack slots first by (rack, slot, subslot), then positional modules in manifold order, whose slot is their 1-based rank. Golden A has seven modules (-201U3 … -201U8, -202U2).
+**As built.** `plc_station` carries `config_project`, `role` (`StationRole`, all seven variants) and `order`. `plc_module` carries `slot` (`SlotPath`: `positional`, the default, or `rack` with rack, slot and subslot), `start` (`IoStarts`; `auto` for both directions by default), `part_use` and `integrated`. `PlcModule.safety` (§2.9) is typed (WP-S1.24). `PlcStation.firmware` and `PlcModule.type_ident` (`{order_number}`, the order number of a module without part data, as an import creates one; a module with a part is identified by its part) are typed (WP-S3.16), each settable with `fields.set`. Not typed, and kept in `extra`: `PlcStation.dd` (§2.8) and `type_ident.dd_module`, the device descriptions'. The aspects are written in the member order of [05](05-project-format-and-persistence.md) §3.1: `assembly` (held verbatim until its work package) before `plc_station` before `plc_module`. The module order of `module_order` is: stations by (`order`, ID); within a station, rack slots first by (rack, slot, subslot), then positional modules in manifold order, whose slot is their 1-based rank. Golden A has seven modules (-201U3 … -201U8, -202U2).
 
 ### 2.4 Channels
 
@@ -977,9 +992,23 @@ starts are not touched); `plc.readdress` sets the scope's manual starts and manu
 lists every changed address of the affected configuration projects (`channel 3 of -201U5: Q10.3 → Q2.3`);
 `plc.convert_manual_to_auto` drops the manual channel addresses equal to the derived ones and the manual starts that
 A1 places at the same byte (judged on the result, repeated until stable) and names every value it keeps. The ownership
-protection and `plc.unlock` are not built: they wait for the `ownership` member (§2.2). `plc.bind_channel` also takes tags in a command log: a channel as `<module tag>#<number>` or `<module tag>:<designation>`, a function as `<tag>` or `<tag>:<slot>`.
+protection and `plc.unlock` came with WP-S3.16 (below). `plc.bind_channel` also takes tags in a command log: a channel as `<module tag>#<number>` or `<module tag>:<designation>`, a function as `<tag>` or `<tag>:<slot>`.
 
 *As built (fix round).* `plc.bind_channel` checks the CP against the CPs the function draws, by the one accessor the commands share with the join (`common::function_cp_indices`): the template entry's pattern, else a black box's part pattern, else the FnDef. A black-box card's pins therefore bind; before, the check read the generic black-box FnDef, which defines no CPs, and refused every pin (found by the play-test brief `brief-plc-io`).
+
+*As built (WP-S3.16).* **Protection.** From the first applied PLC import on (`ownership.imported`), an edit of a field
+of a PLC-owned group is refused: a module's start (`plc.set_start`, `plc.readdress`, `plc.convert_manual_to_auto`,
+`fields.set` and `fields.set_many` on `plc_module`), a station's firmware and the address of a bus port of a station's
+device tree (`fields.set`). The refusal is judged on what the transaction changed against its base, so every path of
+those commands is covered, and reads `-201U6: the start address is owned by configuration project PLC1 (PLC import of
+<date>); unlock it first with plc.unlock`. `plc.unlock {config_project, group}` (`module_starts`, `plc_data`, or
+`symbols` when symbols are given to the PLC) lifts the protection of one group until the next applied import, which
+protects every group again; it refuses a group that is not protected. The scope is the configuration project. The
+refusal is the commands' own, not a check rule with a quick fix, and there is no lenient mode for it: an import applies
+PLC-owned values through `plc.apply_exchange`, which is the PLC side. `plc.record_exchange {config_project, stations?,
+format, version?, file_sha256, date}` records an export (§4.4), `plc.apply_exchange {config_project, image, format,
+version?, file_sha256, date, complete?, comment_lang?, resolutions?}` applies an import (Bulk, §4.4) and
+`plc.apply_instrument_list {config_project, rows}` an instrument list (Bulk, §4.7).
 
 ### 3.10 Check rules
 
@@ -1066,12 +1095,20 @@ else PROFIBUS 0–125; EW-BUS-003 judges the subnet against the master port's ad
 PROFIBUS limits (32 stations, 1200 … 100 m by rate, no stubs above 1.5 Mbit/s) as unverified data; EW-BUS-009 reports a
 cable whose part's `cable_for` excludes the port's bus and mated ports whose parts name different connectors. The
 prevent halves of EW-PLC-001 and EW-PLC-007 are built (FT-726): an error finding that the batch adds in a touched
-configuration project refuses it. EW-PLC-007 compares symbols cleaned by `iec_ident` under a strict policy. Not built:
-EW-PLC-016 (it reads the exchange stamp of WP-S3.16) and EW-PRC-002 (the instrument list of WP-S3.16); EW-BUS-008 is
+configuration project refuses it. EW-PLC-007 compares symbols cleaned by `iec_ident` under a strict policy. EW-BUS-008 is
 1.x. EW-PLC-012's second quick fix opens the part's PLC section in the window (WP-S2.13) through the existing
 `part.edit_copy`; a finding carries one command fix.
 
 *As built (fix round).* `address_index(cfg)` holds overlap groups, not pairs: each connected run of channel addresses in one area whose bit ranges overlap in a chain, once, so N channels on one address make one group of N. EW-PLC-001 reports one finding per group, with every member channel as a target and the first in address order as the subject; the text names the first five channels with their addresses and counts the rest (`addresses overlap in configuration project <cfg>: <channel> (<address>), …; and <N> more channels; give all but one of them another address`, the "and N more" clause only beyond five), in en-GB and nl-NL.
+
+*As built (WP-S3.16).* EW-PLC-016 and EW-PRC-002 are built, in the 1.0 content. EW-PLC-016 compares the exchange
+image with the snapshot's records field by field instead of a hash (nothing derivable is stored): one finding per
+configuration project whose exchanged stations differ, with the exchange's format, direction and date, the number of
+differing objects and the first three; after an import, a value the merge kept on the project's side is such a
+difference (the pending export). EW-PRC-002 reports a row of an applied instrument list without a channel, or whose
+placeholder device is gone. It is a finding of the 1.0 content and not yet a row of the open-item table
+(`open_items`): the table's rules run in release mode of the shipped scheme, which runs the MVP content, and the
+rule is online only (doc 15 §4.5.1).
 
 ---
 
@@ -1094,9 +1131,16 @@ EW-PLC-016 (it reads the exchange stamp of WP-S3.16) and EW-PRC-002 (the instrum
 Every exporter implements the permissive `Exporter` contract over an `ExportView` of a snapshot fork, never blocks
 editing and records the revision it reflects (FR-EXP-001). Release-mode exports refuse a stale Class II input.
 
-*Note.* No exchange record exists yet (the kinds `exchange_record` and `foreign_id` of §4.2 are reserved,
-not typed). The confirmation of FR-PLC-053, the preview of `plc.set_module_part` (§3.3), therefore lists the surplus
-channels with their bindings and symbols only; it lists their exchange records once §4.2 is built.
+*As built (WP-S3.16).* AML export and import, the AR APC 1.2.0 variant, the TIA tag table, the PLCopen list and the
+instrument list are built. The crates: `ew-caex` (permissive) holds the image, the AML writer and the AML reader
+over quick-xml; `ew-plc` the projection of the image, the matching and merge, the tag table's rows, the PLCopen
+writer and the instrument list. No XLSX or PLCopen crate is taken: the tag workbook is written by the workbook
+writer of `ew-reports` (`plain_xlsx`, a sheet with fixed columns) and read by the workbook reader of the parts
+import, both at the host (`ew-api`); `rust_xlsxwriter`, `calamine` and the `plcopen` test crate are not
+dependencies. The `Exporter` contract of [14](14-interop.md) §2.2 is not built; an export runs on the session's
+snapshot through `Session::plc_export`. The confirmation of FR-PLC-053, the preview of `plc.set_module_part`
+(§3.3), lists the surplus channels with their bindings and symbols; their exchange records are not listed and go
+with the next exchange's snapshot.
 
 ### 4.2 Exchange image and identity
 
@@ -1124,6 +1168,20 @@ pub struct XKey { pub foreign_id: Option<String>, pub ew_id: Option<Uuid> }
   exchanged field values and the foreign-ID map (kinds `exchange_record` and `foreign_id`, ranks 70 and 71 of
   [05](05-project-format-and-persistence.md) §2.2; included in the as-built archive). A separate file keeps it out
   of `project.jsonl` merges, travels through git, and lets a colleague merge a TIA re-export.
+
+*As built (WP-S3.16).* The image is `ExchangeImage {project, stations, tags, networks}` with serde and a JSON Schema,
+since it is the parameter of `plc.apply_exchange`. Every object carries one `id`, the ID the file gives it: an export
+writes the project's IDs there, an import keeps what the PLC software wrote, and the matching decides whether that is
+one of the project's IDs or a foreign one (no `XKey` with two members). A tag names its channel by that ID (`channel`)
+instead of a link list; a station holds its bus interfaces (`XInterface` with a `XNode` and `XPort`s) and the image
+the subnets (`XNetwork`). `exchange_image(q, cfg, stations?)` is a function of `ew-plc` over a `Q`, not a memoised
+query. The snapshot is typed: `exchange_record {config_project, object, target, fields}` holds the exchanged values
+of one station, module, channel, tag or bus node (`object`) by field name, `target` being the record the object is (a
+device, a channel, the port's function); `foreign_id {config_project, object, target, foreign}` holds the ID the file
+gave an object when it is not the project's. Both have computed IDs (`v5(config_project, …)`), so recording the same
+exchange twice writes the same records. A row of an instrument list is an `exchange_record` of object `instrument`
+(§4.7). The link to the configuration project is load-tolerant and cascades; `target` is history, not a link: a record
+whose object is gone snapshots nothing. The XLSX carries the channel ID in a hidden eleventh column.
 
 ### 4.3 AML AR APC export
 
@@ -1180,6 +1238,29 @@ ranges on CAx import. Writer-header dates come from the export's document date (
 (station order, slot, channel number), so the bytes are stable (FR-EXP-006). The personal-data option (FR-EXP-009)
 leaves no person fields in the file.
 
+*As built (WP-S3.16).* The writer follows the table and the example: the configuration project's `InternalElement`,
+below it one per station (role `Device`) with its modules (`DeviceItem`, flat: a rack is not written as an item, a
+module's `PositionNumber` is its slot), the tag table (`TagTable`, under the project element, Open question 18) and
+the subnets, then the `InternalLink`s. Roles are `SupportedRoleClass` paths, attributes carry `AttributeDataType`,
+children come in the order of the CAEX 2.15 content model (attributes, interfaces, elements, the role, links), and the
+class libraries are referenced by path. A station's `TypeIdentifier` is `OrderNumber:` and the order number (else the
+part number) of its first part with a station PLC section; a module's order number is its part's, else its
+`type_ident`'s. A tag is written for every channel with a determined symbol and an address; its comment is the
+channel's, else the function text. Bus: one `CommunicationInterface` per interface name of the station's bus ports,
+with a `Node` (`Type` `Profibus` or `Ethernet`, `NetworkAddress`, `SubnetMask`, `RouterAddress`, `PnDeviceName`) for
+the port with an address and one `CommunicationPort` (`Label`) per labelled port; a logical net is a `Subnet`, linked
+to its nodes through `LogicalEndPoint` interfaces. The node's attribute names, the `LogicalEndPoint` interface class
+and `PnDeviceName` are **unverified** against a TIA export (Open question 9), as is the tag table's place; EtherCAT
+and IO-Link ports are not written. The 1.2.0 variant (FR-PLC-030) is the same writer with a version table that so far
+differs in the declared version only: which attributes an older importer refuses is part of the exchange test (SC-8).
+The writer header's date is the document date (`SOURCE_DATE_EPOCH`, else the model's edited date). The file holds no
+person field with or without `--omit-personal-data`, which `ew` accepts for the PLC exports (FR-EXP-009). An export is
+refused while EW-PLC-005 has a finding (FR-PLC-047). **Validation:** the published CAEX 2.15 schema file is not in the
+repository, because its licence for redistribution is not established (Open question 16); a test of `ew-caex` checks
+the written file against the schema's content model written from the standard (child order, required attributes,
+unique IDs, links that name interfaces), and AC-30's test reads Golden A's export back: 7 modules on Q0 … Q6, 56
+channels, 8 tags linked to their channels.
+
 ### 4.4 AML import and the three-way merge
 
 ```mermaid
@@ -1231,6 +1312,31 @@ stations present in the file. A station missing from the file is untouched unles
 access, which queries never have, so FR-PLC-035 evaluates it in the exchange dialog and by `ew plc status <file>`
 only.
 
+*As built (WP-S3.16).* `ew_plc::merge` on the session's snapshot is the preview, and `plc.apply_exchange` runs the same
+merge on its base, so what was previewed is applied; a stale preview is refused by the engine as for every Bulk
+command. **Matching** runs per kind below a matched parent: a station by ID (the project's, or a `foreign_id`), IEC
+designation, then type identifier; a module by ID, designation, slot, then order number; a channel by ID, then number
+and direction; a bus node by ID, then interface label; a tag by its channel's link, else by ID, name, then address.
+A step that finds several objects parks the foreign object as ambiguous. A module that only holds other modules (a
+rack) is passed over, and what is below a parked station or module is not listed on its own. **Fields.** The merge
+compares the fields of §4.2's records. Only fields of an owned group are written: a tag's name, data type and comment
+(`Channel.symbol`, `data_type`, `comment`, per language), a module's start (a `manual` start), a station's firmware and
+a node's address (the PROFIBUS station address; the PROFINET name, IP address, mask and gateway). Every other field
+(structure, designations, order numbers, a tag's address, which follows its channel) is the schematic's: a difference
+is listed as a rejected PLC change and cannot be accepted. **States** in a preview: `apply`, `rejected`, `kept`,
+`pending` (changed in the project only although the PLC owns it: export pending) and `conflict`; a resolution (`ours`,
+`theirs`) is keyed by `<object>/<record>/<field>`. Without a snapshot (a first import of a project that never
+exported) every difference of an owned field is a conflict with the owner's default. **Removed.** An object the last
+exchange held and the file no longer has is listed and never deleted or cleared. **Parking.** "Create unplaced"
+(`create` under the object's file ID) creates a parked station with its modules, or a parked module below its matched
+station, as devices without functions: the tag frozen to the IEC designation (else the name), a rack slot at the
+position, the starts as `manual` starts, the order number in `type_ident`; no part is assigned, so no channels exist
+until one is. A parked channel, tag or node cannot be created. **Snapshot.** After the apply the snapshot holds the
+file's values for every matched object and the foreign IDs; the stamp's direction is `import`. **Drift.** `ew plc
+status [<file>]` prints the stamp, the differing objects with their fields, and whether the file's SHA-256 is the
+stamp's; it does not read the file's content (`ew import plc-aml <file>` previews it). The affected folios are not
+part of the preview yet (WP-S2.13's dialog).
+
 ### 4.5 TIA "PLC Tags" XLSX
 
 Sheet "PLC Tags", columns exactly: Name, Path, Data Type, Logical Address, Comment, Hmi Visible, Hmi Accessible,
@@ -1250,6 +1356,15 @@ its round trip needs code. One row per channel with a determined symbol:
   channel are listed, never created.
 - Because the workbook carries absolute addresses, the export warns while the module-start field group is still
   owned by `Ecad` and the starts are `Auto`: "addresses not confirmed by the PLC configuration" (§8, item 1).
+
+*As built (WP-S3.16).* The rows are made and read in `ew-plc` (`tia`); the workbook is written and read at the host.
+Addresses are always the exchange form of the built-in TIA profile (`%Q0.1`), whatever profile the project draws
+with. The three HMI flags are written `True`; there is no setting for them. The path is `SymbolPolicy.tag_table`,
+else `EW_IO`. The hidden column `EW ID` after the ten columns carries the channel's ID; the import matches by it,
+then by name, then by address, compares names, data types and the comment in the chosen language (a comment without
+a language is the text in every language), and previews and applies through the same merge and snapshot as AML. A
+row without a channel is parked and cannot be created. The warning "addresses not confirmed by the PLC configuration"
+is given while no PLC import has been applied.
 
 ### 4.6 PLCopen XML for CODESYS
 
@@ -1272,6 +1387,12 @@ One GVL `IO_ElektraWatt` per configuration project, with one variable per used c
   GVL without its `addData` device block is part of the exchange test (SC-8).
 - The file declares the namespace `http://www.plcopen.org/xml/tc6_0201`.
 - CI parses the output with the `plcopen` crate as a test-only dependency.
+
+*As built (WP-S3.16).* The writer is `ew_plc::plcopen`: the file header, an empty `types` block and the list under
+`instances/configurations/configuration/resource/globalVars`; a data type the standard does not name is a `derived`
+type; the documentation is the function text and the signal pin. The `plcopen` crate is not taken as a test
+dependency (a low-adoption crate, Open question 14): the test reads the written XML for its namespace, its variables
+and their addresses. Whether CODESYS imports the list is SC-8's.
 
 ### 4.7 Generic I/O list (CSV and XLSX)
 
@@ -1300,6 +1421,18 @@ preferred station. They create placeholder field devices (state "supplied by oth
 pre-assign spare channels of the matching kind in station order. A 10-row list with 8 DO tags against the golden
 station assigns 8 spare channels of -201U5 and -201U6 and lists 2 tags as EW-PRC-002 open items. Generating whole
 schematics from such a list is IDEA-025 in [07](07-symbols-parts-macros.md) and [17](17-extensibility.md).
+
+*As built (WP-S3.16).* `ew import instrument-list <file>` reads a CSV or the first sheet of a workbook with the
+columns `tag` and `signal type` (DI, DO, AI, AO) and, when present, `description`, `range`, `field location` and
+`preferred station` (found by header, without regard to case), and `plc.apply_instrument_list` (Bulk) applies the
+rows: a placeholder device per tag (a device that carries the process tag is reused) with the description as its
+function text, and the first spare channel of the row's kind, of the preferred station first, then in station, slot
+and channel order. The channel is reserved (`state: reserved`) and, where they are empty, takes the tag as its symbol
+(cleaned under the strict policy), the description as its comment and the range. The row is kept as an
+`exchange_record` of object `instrument` with its channel, which EW-PRC-002 reads; applying the list again keeps
+every row's device and channel. Decisions: the placeholder has no functions and the device state stays `used` (the
+format has no "supplied by others" state; the placeholder is known by its record); its letter is `B` for an input and
+`Q` for an output; the field location is kept in the record and not assigned to the structure.
 
 ### 4.8 Later formats
 
@@ -1336,6 +1469,14 @@ IODD creates pins L+, Other, L−, C/Q with core colours BN, WH, BU, BK on the c
 - **Hostile input.** AML, PLCopen, GSD, GSDML, IODD, ESI, EDS and CSV/XLSX parsers enforce the NFR-SEC-02 limits.
   Imported identifiers are NFC-normalised and confusable-checked (ARCH §4.5). An import never executes content and
   changes the model only through the previewed command.
+
+*As built (WP-S3.16).* The AML reader refuses a DOCTYPE and bounds the input size, the element depth, the nodes, the
+attributes per element and per document, an attribute value and a text by the `Limits` of [14](14-interop.md) §2.1; a
+tag workbook and an instrument list are read by the table readers under the table limits; every read of foreign
+bytes runs inside `catch_unwind`. The cargo-fuzz workspace is cut until 1.0, so the AML reader, the tag workbook and
+the instrument list have deterministic damage tests in its place (every truncation and a spread of byte damage of a
+real file is read or refused, never a panic). Imported identifiers are refused when they are no identifier text; a
+confusable check is not built. NFR-PERF-22 is **not measured**.
 
 ---
 
@@ -1423,6 +1564,17 @@ module_id, target_id, address_source` and the signal range; Golden A has 56 rows
   re-addressing proposal is a `preview_command(plc.readdress, …)`, committed only through `commit_preview` after
   ask-first approval (ADR-0020, ARCH §10.5).
 - **Scripts.** rhai can call `plc.readdress` and read `plc_rows`, never write addresses as text.
+
+*As built (WP-S3.16).* `ew export plc-aml [<project>] --out <file> [--config <name>] [--apc 1.4.0|1.2.0] [--station
+<tag>]…`, `ew export plc-xlsx` (alias `plc-tags`) and `ew export plcopen`, each with `--lang` where it has a comment:
+the file is written whole or not at all, the exchange is recorded with `plc.record_exchange` and the project saved.
+`ew import plc-aml <file> [<project>]` and `ew import plc-xlsx` (alias `plc-tags`) print the preview (`--json` as
+JSON; `--preview` is the default) and write nothing without `--accept <choices.json>`, a JSON object from a change's
+key or a parked object's ID to `ours`, `theirs` or `create` (`{}` takes every default); `--complete` compares every
+station. `ew import instrument-list <file> [--apply]`. `ew plc status [<file>] [--project <dir>]`. The imports and the
+status print typed `--json` results (`ew.import-plc-aml-result/1`, `ew.import-plc-xlsx-result/1`,
+`ew.plc-status-result/1`); the exports and the instrument list print text only. The API is
+`Session::plc_export`, `plc_import`, `plc_status` and `instrument_list`.
 
 ---
 
@@ -1540,7 +1692,7 @@ installations) closes by 1.0 ([20](20-golden-project.md) §22; [vision](00-visio
 | `ew-derive` | the queries of §2.10 |
 | `ew-commands` | normalisers N1–N4; `plc.*` commands |
 | `ew-checks` | EW-PLC, EW-SAF, EW-PRC, EW-BUS and EW-IOL rules |
-| `ew-plc` | exchange orchestration, matching and merge, the TIA "PLC Tags" XLSX exporter and importer, writers for PLCopen and L5X, rack/slot logic |
+| `ew-plc` | the exchange image's projection, matching and merge, the rows of the TIA "PLC Tags" table, the PLCopen writer, the instrument list (as built: below `ew-commands` and `ew-checks`, which call it; the commands that apply an exchange are in `ew-commands`, the file reading and writing in `ew-api`); L5X and rack/slot logic later |
 | `ew-reports`, `ew-scene` | row sources of §5; text slots and property arrangements |
 | `ew-viewmodel`, `ew-ui` | navigator, grid, dialogs |
 | `ew-import-qet` | emits `plc_*` element info and recognised "Q0.1" texts as pending channel bindings (FR-IMP-011, FR-IMP-017); it never sees `ew-model` (ARCH §3, rule 4). `ApplyImport` in `ew-commands` resolves them by A7 (§3.3) |
@@ -1597,7 +1749,8 @@ The ten rows this document proposed are in the catalogues:
    `ew-commands`. `ew-derive` (rendering, `channel_addresses`) and the QET importer (parsing "Q0.1") cannot depend
    on it. **Resolved:** ARCH §3 adds the permissive crates `ew-plcaddr` (`PlcAddress`, profiles, grammar engine, bit
    intervals), `ew-caex` and `ew-devdesc`; `ew-plc` keeps exchange orchestration, merge, writers and rack/slot logic
-   (§11).
+   (§11). *As built:* `ew-plc` depends on `ew-derive` and `ew-caex` only and sits below `ew-commands`, whose
+   `plc.apply_exchange` runs its merge.
 2. **Exchange snapshot storage.** No file in [05](05-project-format-and-persistence.md) held the merge base.
    **Resolved:** 05 §2.2 adds `exchange/<config-project-uuid>.jsonl` (1.0) with the kinds `exchange_record` and
    `foreign_id` (ranks 70, 71), included in the as-built archive; `PlcConfigProject.exchange` keeps only the stamp
@@ -1647,7 +1800,8 @@ The ten rows this document proposed are in the catalogues:
 16. **Exchange test installations.** SC-8 needs TIA Portal V21, an older TIA (V17) for AR APC 1.2.0, and CODESYS
     3.5. The CAEX 2.15 XSD licence for CI validation is unverified. *Recommendation:* ask the pilot user for access
     or sample exports (PQ-19); vendor the XSD only if its licence permits, else validate structurally in CI and with
-    the AutomationML editor in the exchange test.
+    the AutomationML editor in the exchange test. *As built:* the schema file is not vendored; the writer is checked
+    against the schema's content model written from the standard (§4.3).
 17. **Rule constants.** Bus ranges, segment lengths, IO-Link limits, PROFINET name rules and TIA's default analog
     starts are unverified. **Resolved:** they ship with `verified = false` and report at most warnings (FR-CHK-046);
     the verification pass against PI, IO-Link Community and vendor manuals is scheduled in the global plan's

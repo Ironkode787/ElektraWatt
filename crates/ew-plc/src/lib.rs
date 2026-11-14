@@ -27,7 +27,9 @@ pub mod plcopen;
 pub mod tia;
 
 pub use ew_caex;
-pub use fields::{FieldClass, Object, Snapshot, class, drift, objects, ours, snapshot};
+pub use fields::{
+    FieldClass, Object, Snapshot, class, drift, field_words, object_words, objects, ours, snapshot,
+};
 pub use image::{Projection, TagInfo, exchange_image};
 pub use merge::{
     Change, Choice, Matched, MergeOptions, Parked, ParkedModule, Plan, State, Vocabulary, merge,

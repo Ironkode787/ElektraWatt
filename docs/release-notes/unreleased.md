@@ -439,5 +439,24 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   QElectroTech project and Re-import QElectroTech project whole (FT-1730)
 - behaviour-change: cli elektrawatt --headless --visual and `xtask blind start --senses visual` render 1920x1080 at
   1 by default (it was 1280x800 at 1.2; a run asks for that with `--window 1280x800 --ppp 1.2`; FT-1730)
+- api-add: the PLC exchange (WP-S3.16, doc 10 §4): `ew export plc-aml` (AutomationML AR APC 1.4.0 on CAEX 2.15,
+  `--apc 1.2.0` for older PLC software), `ew export plc-xlsx` (the TIA Portal "PLC Tags" workbook; alias `plc-tags`)
+  and `ew export plcopen` (PLCopen XML with the global variable list `IO_ElektraWatt`); each records the exchange in
+  the project and saves it (FR-PLC-029, -030, -036, -037, -056)
+- api-add: `ew import plc-aml` and `ew import plc-xlsx` preview a file of the PLC software against the last exchange
+  (applied, rejected, kept, pending, conflict; parked and removed objects) and apply it with `--accept
+  <choices.json>` as one undo step; `ew plc status` reports the last exchange and what changed since (FR-PLC-031 …
+  -033, -035); `--json` results `ew.import-plc-aml-result/1`, `ew.import-plc-xlsx-result/1` and
+  `ew.plc-status-result/1`
+- api-add: `ew import instrument-list` gives the tags of an instrument list placeholder devices and spare channels of
+  their kind (FR-PLC-050)
+- api-add: commands `plc.record_exchange`, `plc.apply_exchange` (Bulk), `plc.unlock` and `plc.apply_instrument_list`
+  (Bulk); `fields.set` takes a configuration project's `ownership.module_starts` and `ownership.symbols`, a station's
+  `plc_station.firmware` and a module's `plc_module.type_ident`; `Session::plc_export`, `plc_import`, `plc_status` and
+  `instrument_list`
+- api-add: the rules EW-PLC-016 (the configuration project changed since its last exchange) and EW-PRC-002 (an
+  instrument-list tag without device or channel), in a scheme with the 1.0 content
+- behaviour-change: after the first applied PLC import, an edit of a module's start, a station's firmware or a bus
+  port's address of that configuration project is refused until `plc.unlock` lifts the protection (FR-PLC-033)
 - format-variant: record exchange_record.schema.json
 - format-variant: record foreign_id.schema.json

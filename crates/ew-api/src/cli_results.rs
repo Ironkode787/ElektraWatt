@@ -118,6 +118,12 @@ pub const EXPORT_REPORT: &str = "ew.export-report-result/1";
 pub const EXPORT_TABLE: &str = "ew.export-table-result/1";
 /// `ew import table --json`.
 pub const IMPORT_TABLE: &str = "ew.import-table-result/1";
+/// `ew import plc-aml --json`.
+pub const IMPORT_PLC_AML: &str = "ew.import-plc-aml-result/1";
+/// `ew import plc-xlsx --json`.
+pub const IMPORT_PLC_XLSX: &str = "ew.import-plc-xlsx-result/1";
+/// `ew plc status --json`.
+pub const PLC_STATUS: &str = "ew.plc-status-result/1";
 /// `ew render --json`.
 pub const RENDER: &str = "ew.render-result/1";
 /// `ew print --json`.
@@ -270,6 +276,18 @@ pub const RESULTS: &[ResultSchema] = &[
         schema: schema_of::<ImportPartsResult>,
     },
     ResultSchema {
+        name: IMPORT_PLC_AML,
+        command: "import plc-aml",
+        flag: None,
+        schema: schema_of::<ImportPlcResult>,
+    },
+    ResultSchema {
+        name: IMPORT_PLC_XLSX,
+        command: "import plc-xlsx",
+        flag: None,
+        schema: schema_of::<ImportPlcResult>,
+    },
+    ResultSchema {
         name: IMPORT_QET,
         command: "import qet",
         flag: None,
@@ -322,6 +340,12 @@ pub const RESULTS: &[ResultSchema] = &[
         command: "merge resolve",
         flag: None,
         schema: schema_of::<MergeResolveResult>,
+    },
+    ResultSchema {
+        name: PLC_STATUS,
+        command: "plc status",
+        flag: None,
+        schema: schema_of::<PlcStatusResult>,
     },
     ResultSchema {
         name: PRINT,
@@ -835,6 +859,127 @@ pub struct ImportTableFinding {
     pub column: Option<String>,
     /// The finding as a sentence.
     pub message: String,
+}
+
+/// One differing field of `ew import plc-aml --json` ([`ImportPlcResult::changes`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImportPlcChange {
+    /// The change's key in the choices of `--accept`: `<object>/<record>/<field>`.
+    pub id: String,
+    /// The kind of the object: `station`, `module`, `channel`, `tag` or `node`.
+    pub object: String,
+    /// The object in words.
+    pub subject: String,
+    /// The field's name in the exchange snapshot.
+    pub field: String,
+    /// The field in words.
+    pub label: String,
+    /// The value of the last exchange.
+    pub base: Option<String>,
+    /// The project's value.
+    pub ours: Option<String>,
+    /// The file's value.
+    pub theirs: Option<String>,
+    /// The field's group (`module_starts`, `symbols`, `plc_data`); `null`: the schematic's own field.
+    pub group: Option<String>,
+    /// The group's owner (`ecad`, `plc`, `shared`).
+    pub owner: Option<String>,
+    /// What the merge makes of it: `apply`, `rejected`, `kept`, `pending` or `conflict`.
+    pub state: String,
+    /// The side taken without a choice: `ours` or `theirs`.
+    pub default: String,
+    /// Whether `theirs` can be chosen.
+    pub acceptable: bool,
+}
+
+/// One parked object of `ew import plc-aml --json` ([`ImportPlcResult::parking`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImportPlcParked {
+    /// Its ID in the file: its key in the choices of `--accept`.
+    pub id: String,
+    /// The kind of the object.
+    pub object: String,
+    /// Its name.
+    pub name: String,
+    /// `unmatched` (nothing in the project matches it) or `ambiguous` (several objects do).
+    pub reason: String,
+    /// Whether the choice `create` creates it unplaced.
+    pub creatable: bool,
+}
+
+/// One object the file no longer has ([`ImportPlcResult::removed`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImportPlcRemoved {
+    /// The kind of the object.
+    pub object: String,
+    /// Its name.
+    pub name: String,
+}
+
+/// `ew import plc-aml --json` ([`IMPORT_PLC_AML`]) and `ew import plc-xlsx --json` ([`IMPORT_PLC_XLSX`]): the
+/// preview of an exchange file, and whether it was applied.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ImportPlcResult {
+    /// [`IMPORT_PLC_AML`] or [`IMPORT_PLC_XLSX`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The differing fields.
+    pub changes: Vec<ImportPlcChange>,
+    /// The objects of the file without a counterpart in the project.
+    pub parking: Vec<ImportPlcParked>,
+    /// The objects of the last exchange that the file no longer has.
+    pub removed: Vec<ImportPlcRemoved>,
+    /// Whether the import was committed (`--accept`) and the project saved.
+    pub applied: bool,
+}
+
+/// The last exchange of `ew plc status --json` ([`PlcStatusResult::exchange`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PlcStatusExchange {
+    /// The format: `aml`, `tia_xlsx` or `plcopen`.
+    pub format: String,
+    /// The format's version.
+    pub version: Option<String>,
+    /// `export` or `import`.
+    pub direction: String,
+    /// The exchange's document date, `YYYY-MM-DD`.
+    pub date: String,
+    /// The SHA-256 of the exchanged file, `sha256:<hex>`.
+    pub file_sha256: String,
+}
+
+/// One object that differs from the last exchange ([`PlcStatusResult::drift`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PlcStatusDrift {
+    /// The kind of the object.
+    pub object: String,
+    /// Its name.
+    pub name: String,
+    /// The differing fields; empty for an object added or gone since.
+    pub fields: Vec<String>,
+}
+
+/// `ew plc status --json` ([`PLC_STATUS`]).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PlcStatusResult {
+    /// [`PLC_STATUS`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// The configuration project's name.
+    pub config: String,
+    /// The last exchange; `null` before the first.
+    pub exchange: Option<PlcStatusExchange>,
+    /// The objects that differ from the last exchange.
+    pub drift: Vec<PlcStatusDrift>,
+    /// Whether the given file is the one last exchanged; `null` without a file or an exchange.
+    pub same_file: Option<bool>,
 }
 
 /// `ew import table --json` ([`IMPORT_TABLE`]): the preview, and whether it was applied.

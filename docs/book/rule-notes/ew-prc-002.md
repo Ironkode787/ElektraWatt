@@ -1,7 +1,7 @@
 ## What it checks
 
 A row of an applied instrument list that has no channel, because no spare channel of its signal type was free, or
-whose placeholder device is gone. One finding per row; an open item.
+whose placeholder device is gone. One finding per row.
 
 ## Why
 

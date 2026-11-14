@@ -134,7 +134,10 @@ Optional directories and files are absent in the golden project:
 - from 1.0, `scripts/<uuid>.rhai` and `jobs/<uuid>.ewjobs` (ADR-0010 amendment 2);
 - from 1.0, `exchange/<config-project-uuid>.jsonl`: the PLC exchange records and foreign IDs of one configuration
   project (kinds `exchange_record`, `foreign_id`), included in the as-built archive; the `PlcConfigProject` keeps
-  only the exchange stamp ([10](10-plc-and-bus.md) §4.2);
+  only the exchange stamp ([10](10-plc-and-bus.md) §4.2). *As built (WP-S3.16):* both kinds are typed within format
+  0.1 (ADR-0011 amendments 4 and 6); a record names its configuration project (`config_project`, a load-tolerant
+  link that cascades) and the record its object is (`target`, history and no link); the file exists once a
+  configuration project was exchanged or an instrument list applied, so Golden A has no `exchange/` folder;
 - from 1.0, `lib/plc-profiles/<copy_id>.json` (user PLC address profiles, kind `plc_profile`; built-in profiles are
   versioned and never removed) and `lib/profiles/<copy_id>.toml` (machine and label profiles kept in their TOML
   source form, so that the SHA-256 equals the published item; the `schema` key tells the two apart,

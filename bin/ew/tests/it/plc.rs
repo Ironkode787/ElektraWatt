@@ -34,14 +34,26 @@ fn an_export_is_recorded_and_its_file_comes_back() {
 
     let o = ew(
         &t,
-        &["export".as_ref(), "plc-aml".as_ref(), project.as_os_str(), "--out".as_ref(), aml.as_os_str()],
+        &[
+            "export".as_ref(),
+            "plc-aml".as_ref(),
+            project.as_os_str(),
+            "--out".as_ref(),
+            aml.as_os_str(),
+        ],
     );
     let text = ok(&o);
-    assert!(text.contains("1 station(s), 7 module(s), 56 channel(s)"), "{text}");
+    assert!(
+        text.contains("1 station(s), 7 module(s), 56 channel(s)"),
+        "{text}"
+    );
     let written = std::fs::read_to_string(&aml).unwrap();
     assert!(written.contains("SchemaVersion=\"2.15\""));
     // the snapshot is in the saved project, in the configuration project's own file
-    let snapshots: Vec<_> = std::fs::read_dir(project.join("exchange")).unwrap().flatten().collect();
+    let snapshots: Vec<_> = std::fs::read_dir(project.join("exchange"))
+        .unwrap()
+        .flatten()
+        .collect();
     assert_eq!(snapshots.len(), 1, "one configuration project, one exchange file");
     let snapshot = std::fs::read_to_string(snapshots[0].path()).unwrap();
     assert!(snapshot.contains("\"$k\":\"exchange_record\""));
@@ -49,36 +61,59 @@ fn an_export_is_recorded_and_its_file_comes_back() {
     let status = |file: &Path| {
         ok(&ew(
             &t,
-            &["plc".as_ref(), "status".as_ref(), file.as_os_str(), "--project".as_ref(), project.as_os_str()],
+            &[
+                "plc".as_ref(),
+                "status".as_ref(),
+                file.as_os_str(),
+                "--project".as_ref(),
+                project.as_os_str(),
+            ],
         ))
     };
     let text = status(&aml);
-    assert!(text.contains("PLC1: last exchange of "), "{text}");
-    assert!(text.contains(": export aml 1.4.0"), "{text}");
+    assert!(
+        text.contains("PLC1: last exchange: AML 1.4.0 export of "),
+        "{text}"
+    );
     assert!(text.contains("the project is as exchanged"), "{text}");
     assert!(text.contains("the file is the one last exchanged"), "{text}");
 
     // the preview of the file that comes back unchanged, and nothing is written
     let import = |extra: &[&OsStr]| {
-        let mut args: Vec<&OsStr> = vec!["import".as_ref(), "plc-aml".as_ref(), aml.as_os_str(), project.as_os_str()];
+        let mut args: Vec<&OsStr> = vec![
+            "import".as_ref(),
+            "plc-aml".as_ref(),
+            aml.as_os_str(),
+            project.as_os_str(),
+        ];
         args.extend(extra);
         ew(&t, &args)
     };
     let text = ok(&import(&[]));
-    assert!(text.contains("0 change(s), 0 parked, 0 removed; nothing is written"), "{text}");
-    assert!(status(&aml).contains(": export aml"), "a preview leaves the project as it was");
+    assert!(
+        text.contains("0 change(s), 0 parked, 0 removed; nothing is written"),
+        "{text}"
+    );
+    assert!(
+        status(&aml).contains("last exchange: AML 1.4.0 export of "),
+        "a preview leaves the project as it was"
+    );
 
     let choices = t.path("choices.json");
     std::fs::write(&choices, "{}").unwrap();
     let text = ok(&import(&["--accept".as_ref(), choices.as_os_str()]));
     assert!(text.contains("applied and saved"), "{text}");
-    assert!(status(&aml).contains(": import aml"));
+    assert!(status(&aml).contains("last exchange: AML import of "));
 
     // a choice that names nothing is refused in words, and so is an export without a file
     std::fs::write(&choices, "{\"tag/none/name\": \"theirs\"}").unwrap();
     let o = import(&["--accept".as_ref(), choices.as_os_str()]);
     assert_eq!(o.status.code(), Some(2));
-    assert!(stderr(&o).contains("is no change and no parked object of this import"), "{}", stderr(&o));
+    assert!(
+        stderr(&o).contains("is no change and no parked object of this import"),
+        "{}",
+        stderr(&o)
+    );
     let o = ew(&t, &["export".as_ref(), "plcopen".as_ref(), project.as_os_str()]);
     assert_eq!(o.status.code(), Some(2));
     assert!(stderr(&o).contains("give `--out <file>`"), "{}", stderr(&o));
@@ -88,11 +123,21 @@ fn an_export_is_recorded_and_its_file_comes_back() {
 fn the_tag_table_and_the_gvl_are_written_under_both_names() {
     let t = Tmp::new("ew-plc-test");
     let project = golden_copy(&t);
-    for (word, file) in [("plc-xlsx", "tags.xlsx"), ("plc-tags", "tags2.xlsx"), ("plcopen", "io.xml")] {
+    for (word, file) in [
+        ("plc-xlsx", "tags.xlsx"),
+        ("plc-tags", "tags2.xlsx"),
+        ("plcopen", "io.xml"),
+    ] {
         let out = t.path(file);
         let o = ew(
             &t,
-            &["export".as_ref(), word.as_ref(), project.as_os_str(), "--out".as_ref(), out.as_os_str()],
+            &[
+                "export".as_ref(),
+                word.as_ref(),
+                project.as_os_str(),
+                "--out".as_ref(),
+                out.as_os_str(),
+            ],
         );
         ok(&o);
         assert!(out.is_file(), "{word}");
@@ -102,13 +147,27 @@ fn the_tag_table_and_the_gvl_are_written_under_both_names() {
         std::fs::read(t.path("tags2.xlsx")).unwrap(),
         "`plc-tags` is `plc-xlsx`"
     );
-    assert!(std::fs::read_to_string(t.path("io.xml")).unwrap().contains("IO_ElektraWatt"));
+    assert!(
+        std::fs::read_to_string(t.path("io.xml"))
+            .unwrap()
+            .contains("IO_ElektraWatt")
+    );
     let o = ew(
         &t,
-        &["export".as_ref(), "plcopen".as_ref(), project.as_os_str(), "--apc".as_ref(), "1.2.0".as_ref()],
+        &[
+            "export".as_ref(),
+            "plcopen".as_ref(),
+            project.as_os_str(),
+            "--apc".as_ref(),
+            "1.2.0".as_ref(),
+        ],
     );
     assert_eq!(o.status.code(), Some(2));
-    assert!(stderr(&o).contains("`--apc` is an option of `export plc-aml`"), "{}", stderr(&o));
+    assert!(
+        stderr(&o).contains("`--apc` is an option of `export plc-aml`"),
+        "{}",
+        stderr(&o)
+    );
 }
 
 #[test]
@@ -116,10 +175,18 @@ fn an_instrument_list_is_previewed_and_applied() {
     let t = Tmp::new("ew-plc-test");
     let project = golden_copy(&t);
     let list = t.path("instruments.csv");
-    std::fs::write(&list, "tag,signal type,description\nTA05-V-40,DO,Valve 40\nTA05-S-01,DI,Level switch\n").unwrap();
+    std::fs::write(
+        &list,
+        "tag,signal type,description\nTA05-V-40,DO,Valve 40\nTA05-S-01,DI,Level switch\n",
+    )
+    .unwrap();
     let run = |extra: &[&OsStr]| {
-        let mut args: Vec<&OsStr> =
-            vec!["import".as_ref(), "instrument-list".as_ref(), list.as_os_str(), project.as_os_str()];
+        let mut args: Vec<&OsStr> = vec![
+            "import".as_ref(),
+            "instrument-list".as_ref(),
+            list.as_os_str(),
+            project.as_os_str(),
+        ];
         args.extend(extra);
         ew(&t, &args)
     };

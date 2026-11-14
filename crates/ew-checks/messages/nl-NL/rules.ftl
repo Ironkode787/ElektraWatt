@@ -1215,7 +1215,7 @@ rule-ew-imp-257 =
     .hint = Vergelijk de pagina met de DWG: de omzetting is die van de converter.
 rule-ew-plc-016 = configuratieproject { $cfg } is gewijzigd sinds de { $format ->
         [aml] AML
-        [tia_xlsx] tagtabel
+        [tia_xlsx] kenmerkentabel
         [plcopen] PLCopen
        *[other] PLC
     }-{ $direction ->

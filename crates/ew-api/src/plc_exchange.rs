@@ -32,14 +32,15 @@ use ew_import_catalog::ew_interop_api::Limits;
 use ew_import_catalog::sheet::{read_rows, sheet_names};
 use ew_plc::ew_caex::{AmlOptions, ExchangeImage, read_aml, write_aml};
 use ew_plc::{MergeOptions, Plan, Projection, Vocabulary};
-use ew_schema::{Device, ExchangeFormat, ExchangeStamp, PlcConfigProject, Sha256};
+use ew_schema::{Device, ExchangeStamp, PlcConfigProject, Sha256};
 use serde_json::{Value, json};
 use sha2::Digest as _;
 
 use crate::{AnyCommand, Session};
 
 pub use ew_plc::ew_caex::ApcVersion;
-pub use ew_schema::Date;
+pub use ew_plc::{field_words, object_words};
+pub use ew_schema::{Date, ExchangeDirection, ExchangeFormat, ExchangeObject};
 
 /// The largest exchange file a host reads (doc 14 §11): the input limit of the AML reader.
 pub fn max_file_bytes() -> u64 {
@@ -172,41 +173,60 @@ pub struct PlcImport {
 }
 
 impl PlcImport {
-    /// The preview as JSON (`ew import plc-aml --preview --json`): `changes` (each with its key `id`, the object,
-    /// the field, the three sides, the group and its owner, the state and the default side), `parking` and `removed`.
-    pub fn to_json(&self) -> Value {
-        let side = |c: ew_plc::Choice| match c {
-            ew_plc::Choice::Ours => "ours",
-            ew_plc::Choice::Theirs => "theirs",
-        };
-        json!({
-            "changes": self.plan.changes.iter().map(|c| json!({
-                "id": c.id,
-                "object": c.object.name(),
-                "subject": c.subject,
-                "field": c.field,
-                "base": c.base,
-                "ours": c.ours,
-                "theirs": c.theirs,
-                "group": c.group,
-                "owner": c.owner,
-                "state": c.state.word(),
-                "default": side(c.default),
-                "acceptable": c.acceptable,
-            })).collect::<Vec<_>>(),
-            "parking": self.plan.parking.iter().map(|p| json!({
-                "id": p.id,
-                "object": p.object.name(),
-                "name": p.name,
-                "reason": if p.ambiguous { "ambiguous" } else { "unmatched" },
-                "creatable": p.creatable,
-                "modules": p.modules.len(),
-            })).collect::<Vec<_>>(),
-            "removed": self.plan.removed.iter().map(|(o, _, name)| json!({
-                "object": o.name(),
-                "name": name,
-            })).collect::<Vec<_>>(),
-        })
+    /// The preview as the result of `ew import plc-aml --json` or `plc-xlsx --json` (`schema` names which): every
+    /// change with its key, its sides and what the merge makes of it, the parked objects and the removed ones.
+    pub fn result(&self, schema: &str, applied: bool) -> crate::cli_results::ImportPlcResult {
+        use crate::cli_results::{ImportPlcChange, ImportPlcParked, ImportPlcRemoved, ImportPlcResult};
+        let word = |v: Value| v.as_str().map(str::to_owned);
+        ImportPlcResult {
+            schema: schema.to_owned(),
+            changes: self
+                .plan
+                .changes
+                .iter()
+                .map(|c| ImportPlcChange {
+                    id: c.id.clone(),
+                    object: c.object.name().to_owned(),
+                    subject: c.subject.clone(),
+                    field: c.field.clone(),
+                    label: field_words(&c.object, &c.field),
+                    base: c.base.clone(),
+                    ours: c.ours.clone(),
+                    theirs: c.theirs.clone(),
+                    group: c.group.as_ref().and_then(|g| word(json!(g))),
+                    owner: c.owner.as_ref().and_then(|o| word(json!(o))),
+                    state: c.state.word().to_owned(),
+                    default: match c.default {
+                        ew_plc::Choice::Ours => "ours",
+                        ew_plc::Choice::Theirs => "theirs",
+                    }
+                    .to_owned(),
+                    acceptable: c.acceptable,
+                })
+                .collect(),
+            parking: self
+                .plan
+                .parking
+                .iter()
+                .map(|p| ImportPlcParked {
+                    id: p.id.clone(),
+                    object: p.object.name().to_owned(),
+                    name: p.name.clone(),
+                    reason: if p.ambiguous { "ambiguous" } else { "unmatched" }.to_owned(),
+                    creatable: p.creatable,
+                })
+                .collect(),
+            removed: self
+                .plan
+                .removed
+                .iter()
+                .map(|(o, _, name)| ImportPlcRemoved {
+                    object: o.name().to_owned(),
+                    name: name.clone(),
+                })
+                .collect(),
+            applied,
+        }
     }
 }
 
@@ -217,9 +237,9 @@ pub struct PlcStatus {
     pub config: String,
     /// The stamp of the last exchange; `None` before the first.
     pub stamp: Option<ExchangeStamp>,
-    /// The objects that differ from the last exchange: the object in words and its differing fields (none for an
-    /// object added or gone since).
-    pub drift: Vec<(String, Vec<String>)>,
+    /// The objects that differ from the last exchange: the object's kind, its name and its differing fields (none
+    /// for an object added or gone since).
+    pub drift: Vec<(ExchangeObject, String, Vec<String>)>,
     /// Whether the given file is the one last exchanged (its SHA-256 is the stamp's); `None` without a file or a
     /// stamp.
     pub same_file: Option<bool>,
@@ -442,7 +462,7 @@ impl Session {
             config: record.map(|c| c.name.to_string()).unwrap_or_default(),
             drift: ew_plc::drift(&q, cfg)
                 .into_iter()
-                .map(|(object, _, name, fields)| (format!("{} {name}", object.name()), fields))
+                .map(|(object, _, name, fields)| (object, name, fields))
                 .collect(),
             same_file: file
                 .zip(stamp.as_ref())
