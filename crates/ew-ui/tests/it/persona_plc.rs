@@ -44,6 +44,45 @@ fn search(d: &mut Driver, query: &str) -> Vec<String> {
     ids
 }
 
+/// Import from PLC software… on the Output tab with a file chosen opens its preview; with the file dialog cancelled
+/// (the persona's run answered every open dialog so) nothing changes and nothing opens, as a cancelled dialog does
+/// everywhere in the window.
+#[test]
+fn import_from_plc_software_previews_a_chosen_file_and_a_cancel_changes_nothing() {
+    let tmp = Tmp::new();
+    let golden = tmp.golden("g.ew");
+    let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
+    d.enable_accesskit();
+    d.set_script_dir(tmp.0.clone());
+    let opened = d
+        .shell_mut()
+        .dispatch("file.open", &json!({"dir": golden.to_string_lossy()}));
+    assert_eq!(opened, Outcome::Done);
+    let file = tmp.0.join("back.aml");
+    let export = json!({"format": "aml-1.4.0", "path": file.to_string_lossy()});
+    assert_eq!(d.shell_mut().dispatch("plc.export", &export), Outcome::Done);
+    d.settle();
+    d.input(&click(d.find("Output").expect("the Output tab")));
+    d.settle();
+    let before = d.shell_mut().revision();
+    d.input(&click(d.find("Import from PLC software").expect("the button")));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none(), "a cancel opens nothing");
+    assert_eq!(d.shell_mut().banner(), None, "and says nothing");
+    assert_eq!(d.shell_mut().revision(), before, "and changes nothing");
+    d.input(&Input::AnswerOpen {
+        path: "back.aml".to_owned(),
+    });
+    d.input(&click(d.find("Import from PLC software").expect("the button")));
+    d.settle();
+    assert!(
+        matches!(d.shell_mut().dialog(), Some(Dialog::PlcImport(_))),
+        "the chosen file's preview: {:?}",
+        d.shell_mut().dialog()
+    );
+    d.shell_mut().shutdown();
+}
+
 /// Three of three personas looked for a list page and the PLC exchange on the Output tab: it holds Report (the report
 /// block dialog), Export to PLC software and Import from PLC software; the command search finds the report dialog by
 /// "report", "list", "tube list" and "card list"; and the New page dialog says where lists are made.
