@@ -126,10 +126,39 @@ pub struct TubeRow {
     pub page: Option<Id<Page>>,
 }
 
+impl TubeEnd {
+    /// The end in words, en-GB and nl-NL: its `DT:port`, which prints alike in every language, or "tee" ("T-stuk")
+    /// for a junction.
+    pub fn words(&self) -> MlText {
+        match self.at {
+            EndpointKey::Junction(_) => langs("tee", "T-stuk"),
+            EndpointKey::Cp(..) => langs(&self.text, &self.text),
+        }
+    }
+}
+
 impl TubeRow {
     /// Whether the tube crosses a location boundary (doc 11 §3.3).
     pub fn location_change(&self) -> bool {
         self.from.device.is_some() && self.to.device.is_some() && self.from.location != self.to.location
+    }
+
+    /// The tube as the lists and messages name it, en-GB and nl-NL: its line tag, else its two ends
+    /// (`-201U3-Q1:2 → -203Q1:A`, "tee → -203Q1:A").
+    pub fn name(&self) -> MlText {
+        if !self.tag.is_empty() {
+            return langs(&self.tag, &self.tag);
+        }
+        let (from, to) = (self.from.words(), self.to.words());
+        let pair = |tag: &str| {
+            let tag = tag.parse().expect("a language tag");
+            format!(
+                "{} → {}",
+                from.text_for(&tag).unwrap_or_default(),
+                to.text_for(&tag).unwrap_or_default()
+            )
+        };
+        langs(&pair("en-GB"), &pair("nl-NL"))
     }
 }
 

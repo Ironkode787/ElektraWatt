@@ -3,8 +3,9 @@
 
 //! The lint of the shipped ISO 1219 pneumatic library (doc 11 §12, WP-S1.25): every symbol of representation type
 //! `fluid` under `content/symbols` draws its function definition's ports only, each a fluid CP on the 4 mm grid with
-//! a port role; every valve definition has a switching model whose paths name its CPs, whose rest and actuators
-//! select a position it has, and whose solenoids are the ports 12, 14 or 10; and every symbol is named in en and nl.
+//! a port role; every definition that needs a switching model has one ([`needs_model`]: a valve, or a component the
+//! medium passes through), whose paths name its CPs, whose rest and actuators select a position it has, and whose
+//! solenoids are the ports 12, 14 or 10; and every symbol is named in en and nl.
 //! The files are read as JSON, as the content audit reads them.
 
 use std::collections::BTreeMap;
@@ -35,6 +36,40 @@ fn key(d: &Value) -> String {
 /// role or a switching model (doc 11 §9.1).
 fn process(fndef: &Value) -> bool {
     key(fndef) == "ew.fn.process-valve-2way"
+}
+
+/// Whether a definition needs a switching model, which is how media propagation crosses it (doc 11 §2.3, §5.3): a
+/// valve, or a component with an inlet (supply port 1 or a generic port) and another port the medium leaves by (a
+/// working, consumer or generic port) that no `short` internal link joins (a bulkhead's ports are one net). A
+/// consumer (a cylinder), a one-port end (a silencer, a gauge) and a supply plate (its ports tap separate galleries)
+/// need none.
+fn needs_model(fndef: &Value) -> bool {
+    if process(fndef) {
+        return false;
+    }
+    if fndef["contact_kind"] == "valve" {
+        return true;
+    }
+    let roles: Vec<(u64, &str)> = fndef["cps"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|c| Some((c["idx"].as_u64()?, c["port_role"].as_str()?)))
+        .collect();
+    let shorted =
+        |a: u64, b: u64| {
+            fndef["internal"].as_array().into_iter().flatten().any(|l| {
+                l["kind"] == "short" && ((l["a"] == a && l["b"] == b) || (l["a"] == b && l["b"] == a))
+            })
+        };
+    roles.iter().any(|(i, inlet)| {
+        matches!(*inlet, "supply1" | "generic")
+            && roles.iter().any(|(o, outlet)| {
+                o != i
+                    && matches!(*outlet, "working2" | "working4" | "consumer" | "generic")
+                    && !shorted(*i, *o)
+            })
+    })
 }
 
 /// The faults of one fluid symbol and its definition, in words.
@@ -75,9 +110,9 @@ fn lint(symbol: &Value, fndef: &Value) -> Vec<String> {
             Some(_) => {}
         }
     }
-    if fndef["contact_kind"] == "valve" && !process(fndef) {
+    if needs_model(fndef) || !fndef["valve_model"].is_null() {
         let Some(sections) = fndef["valve_model"]["sections"].as_array() else {
-            out.push(format!("{name}: its valve definition has no switching model"));
+            out.push(format!("{name}: its definition has no switching model"));
             return out;
         };
         for s in sections {
@@ -159,6 +194,17 @@ fn the_lint_names_a_path_to_a_missing_port_and_a_valve_without_model() {
     without["valve_model"] = Value::Null;
     assert_eq!(
         lint(&symbol, &without).last().map(String::as_str),
-        Some("ew.iso.x: its valve definition has no switching model")
+        Some("ew.iso.x: its definition has no switching model")
     );
+    // A component the medium passes through needs one too; a consumer and a bulkhead's shorted ports do not.
+    let ejector = serde_json::json!({"meta": {"key": "ew.fn.y"}, "contact_kind": "pole", "cps": [
+        {"idx": 0, "designation": "1", "port_role": "supply1"}, {"idx": 1, "designation": "2", "port_role": "consumer"}]});
+    assert!(needs_model(&ejector));
+    let cylinder = serde_json::json!({"contact_kind": "pole", "cps": [
+        {"idx": 0, "port_role": "consumer"}, {"idx": 1, "port_role": "consumer"}]});
+    assert!(!needs_model(&cylinder));
+    let bulkhead = serde_json::json!({"contact_kind": "pole", "cps": [
+        {"idx": 0, "port_role": "generic"}, {"idx": 1, "port_role": "generic"}],
+        "internal": [{"a": 0, "b": 1, "kind": "short"}]});
+    assert!(!needs_model(&bulkhead));
 }

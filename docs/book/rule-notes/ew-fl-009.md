@@ -2,11 +2,12 @@
 
 A valve whose part gives a coil voltage that differs from the voltage of a potential feeding the coil: at a coil with
 pins, the potentials at its pins; at an internal coil of a valve terminal, the potential at the load supply pin of the
-module of the channel bound to it, or of the first device above that module with such a pin. One finding per valve.
+module of the channel bound to it, or of the first device above that module with such a pin. A coil whose part names
+AC or DC fed from a potential that names the other is a finding too. One finding per valve.
 
 ## Why
 
-A 230 V coil on a 24 V output does not switch; a 24 V coil on 230 V burns.
+A 230 V coil on a 24 V output does not switch; a 24 V coil on 230 V burns; a DC coil on AC hums and overheats.
 
 ## Standard
 

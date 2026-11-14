@@ -12,7 +12,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, natural_key};
 use ew_derive::ew_schema::{
-    ContactKind, CpOverride, Device, DeviceState, FluidPortRole, Function, Kind, Medium, SupplyKind,
+    AcDc, ContactKind, CpOverride, Device, DeviceState, FluidPortRole, Function, Kind, Medium, SupplyKind,
 };
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
@@ -31,13 +31,9 @@ fn tag(q: &Q, d: Id<Device>) -> String {
     if t.is_empty() { "device".to_owned() } else { t }
 }
 
-/// A tube as the messages name it: its line tag, else its two ends.
-fn tube_text(r: &TubeRow) -> String {
-    if r.tag.is_empty() {
-        format!("{} → {}", r.from.text, r.to.text)
-    } else {
-        r.tag.clone()
-    }
+/// A tube as the messages name it, en-GB and nl-NL: its line tag, else its two ends ("tee" / "T-stuk" at a junction).
+fn tube_text(r: &TubeRow) -> (String, String) {
+    en_nl(&r.name())
 }
 
 /// The en-GB and nl-NL text of a multi-language text.
@@ -260,7 +256,7 @@ impl Rule for TubeMisfit {
         }
         let mut out = Vec::new();
         for r in q.get::<TubeRows>(()).iter() {
-            let text = tube_text(r);
+            let (text, text_nl) = tube_text(r);
             if let (Some(rating), Some(p)) = (&r.props.p_rating, r.net.and_then(|n| highest_pressure(q, n)))
                 && rating.value < p
             {
@@ -277,6 +273,7 @@ impl Rule for TubeMisfit {
                     )
                     .arg("form", "rating")
                     .arg("tube", text.clone())
+                    .arg("tube_nl", text_nl.clone())
                     .arg("rating", rating.value.to_string())
                     .arg("pressure", p.to_string()),
                 );
@@ -303,6 +300,7 @@ impl Rule for TubeMisfit {
                         )
                         .arg("form", "od")
                         .arg("tube", text.clone())
+                        .arg("tube_nl", text_nl.clone())
                         .arg("od", ew_derive::mm(od.value))
                         .arg("port", end.text.clone())
                         .arg("port_od", ew_derive::mm(port_od)),
@@ -347,7 +345,7 @@ impl Rule for NoTubeSpec {
             .iter()
             .filter(|r| !r.props.is_specified())
             .map(|r| {
-                let text = tube_text(r);
+                let (text, text_nl) = tube_text(r);
                 Finding::new(
                     &NO_TUBE_SPEC,
                     [Target::new(Kind::Connection, r.id)],
@@ -356,6 +354,7 @@ impl Rule for NoTubeSpec {
                     format!("tube {text} has no tube specification; give the medium or the project a default tube, or set it on the line"),
                 )
                 .arg("tube", text)
+                .arg("tube_nl", text_nl)
             })
             .collect()
     }
@@ -522,16 +521,28 @@ meta!(
     Device
 );
 
-/// The voltages of the potentials at the CPs of a function, with their CP texts.
-fn voltages_at(q: &Q, cps: impl IntoIterator<Item = CpRef>) -> Vec<(String, Dec3)> {
+/// A voltage as the messages print it: "24 V", "24 V DC".
+fn volts(v: Dec3, env: Option<&AcDc>) -> String {
+    match env {
+        Some(AcDc::Ac) => format!("{v} V AC"),
+        Some(AcDc::Dc) => format!("{v} V DC"),
+        _ => format!("{v} V"),
+    }
+}
+
+/// The voltages of the potentials at the CPs of a function, with their AC or DC where the potential names it and their
+/// CP texts.
+fn voltages_at(q: &Q, cps: impl IntoIterator<Item = CpRef>) -> Vec<(String, Dec3, Option<AcDc>)> {
     let partition = q.get::<PotentialPartition>(());
     let mut out = Vec::new();
     for cp in cps {
         let Some(p) = partition.potential_at(EndpointKey::Cp(cp.function, cp.idx)) else {
             continue;
         };
-        if let Some(v) = q.get::<PotentialAttrsOf>(p.id).voltage.as_ref() {
-            out.push((cp_label(q, cp), v.value));
+        let attrs = q.get::<PotentialAttrsOf>(p.id);
+        if let Some(v) = attrs.voltage.as_ref() {
+            let env = attrs.env.as_ref().and_then(|e| e.value.ac_dc.clone());
+            out.push((cp_label(q, cp), v.value, env));
         }
     }
     out
@@ -571,9 +582,10 @@ fn load_supply(q: &Q, module: Id<Device>) -> Vec<CpRef> {
 }
 
 /// EW-FL-009 (FR-FLU-019): a valve whose part's coil voltage differs from the voltage of a potential that feeds a
-/// coil: at a physical coil, the potentials at its CPs; at an internal coil, the potential at the load supply pin of
-/// the module of the channel bound to it (or the first device above that module with one, the valve terminal's
-/// valve supply; doc 11 Open question 11). One finding per valve listing the feeding points; target the valve.
+/// coil, or whose coil's AC or DC differs from the potential's where both name one: at a physical coil, the potentials
+/// at its CPs; at an internal coil, the potential at the load supply pin of the module of the channel bound to it (or
+/// the first device above that module with one, the valve terminal's valve supply; doc 11 Open question 11). One
+/// finding per valve listing the feeding points; target the valve.
 #[derive(Clone, Copy, Debug)]
 pub struct CoilVoltage;
 
@@ -590,14 +602,18 @@ impl Rule for CoilVoltage {
             return Vec::new();
         };
         let parts = q.parts();
-        let Some((voltage, solenoids)) = dev.parts.iter().find_map(|u| {
+        let Some((voltage, env, solenoids)) = dev.parts.iter().find_map(|u| {
             let item = &parts.get(u.part.copy)?.item;
-            let v = item.sections.fluid.as_ref()?.coil.as_ref()?.voltage?;
-            Some((v, valve_solenoids(item).map(<[_]>::to_vec).unwrap_or_default()))
+            let coil = item.sections.fluid.as_ref()?.coil.as_ref()?;
+            Some((
+                coil.voltage?,
+                coil.env.clone(),
+                valve_solenoids(item).map(<[_]>::to_vec).unwrap_or_default(),
+            ))
         }) else {
             return Vec::new();
         };
-        let mut feeds: Vec<(String, Dec3)> = Vec::new();
+        let mut feeds: Vec<(String, Dec3, Option<AcDc>)> = Vec::new();
         let functions = q.functions();
         let fndefs = q.fndefs();
         let mut own: Vec<Id<Function>> = q.idx().functions_of_device(d).collect();
@@ -633,10 +649,12 @@ impl Rule for CoilVoltage {
                 }
             }
         }
+        // AC against DC is a mismatch only where the coil and the potential both name one.
+        let known = |e: &Option<AcDc>| matches!(e, Some(AcDc::Ac | AcDc::Dc));
         let mut wrong: Vec<String> = feeds
             .into_iter()
-            .filter(|(_, v)| *v != voltage)
-            .map(|(at, v)| format!("{at} ({v} V)"))
+            .filter(|(_, v, e)| *v != voltage || (known(e) && known(&env) && *e != env))
+            .map(|(at, v, e)| format!("{at} ({})", volts(v, e.as_ref())))
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect();
@@ -645,6 +663,7 @@ impl Rule for CoilVoltage {
         }
         wrong.sort_by_key(|s| natural_key(s));
         let valve = tag(q, d);
+        let takes = volts(voltage, env.as_ref());
         vec![
             Finding::new(
                 &COIL_VOLTAGE,
@@ -652,12 +671,12 @@ impl Rule for CoilVoltage {
                 "voltage",
                 full_tag(q, d, "device"),
                 format!(
-                    "{valve}: the coil takes {voltage} V, but {} feed it",
+                    "{valve}: the coil takes {takes}, but {} feed it",
                     and_list(&wrong, "and")
                 ),
             )
             .arg("valve", valve)
-            .arg("voltage", voltage.to_string())
+            .arg("voltage", takes)
             .arg("feeds", and_list(&wrong, "and"))
             .arg("feeds_nl", and_list(&wrong, "en")),
         ]
@@ -798,8 +817,11 @@ meta!(
     Project
 );
 
-/// EW-FL-012 (FR-FLU-032): in one fluid net, two ports of one valve function; or a working port of a valve joined to
-/// an exhaust or supply port of another device with no valve between them. Target the net's lines.
+/// EW-FL-012 (FR-FLU-032): in one fluid net, two ports of one valve function that are not all exhausts (two exhausts
+/// of one valve may share a silencer); or a working port of a valve joined to an exhaust port of another device's
+/// valve, with no valve between them. A working port into an inlet (port 1 of another valve, of a manifold, of a
+/// quick-exhaust, shuttle or service unit) is how a circuit is built, and the ports of a component that is no valve
+/// (a silencer, a regulator's exhaust) never conflict. Target the net's lines.
 #[derive(Clone, Copy, Debug)]
 pub struct PortRoleConflict;
 
@@ -830,33 +852,40 @@ impl Rule for PortRoleConflict {
                 .iter()
                 .map(|c| Target::new(Kind::Connection, *c))
                 .collect();
-            let mut by_valve: BTreeMap<Id<Function>, Vec<String>> = BTreeMap::new();
+            // Per valve function: its ports in the net, and whether every one is an exhaust.
+            let mut by_valve: BTreeMap<Id<Function>, (Vec<String>, bool)> = BTreeMap::new();
             let mut working: Vec<(Option<Id<Device>>, String)> = Vec::new();
-            let mut feeds: Vec<(Option<Id<Device>>, String)> = Vec::new();
+            let mut exhausts: Vec<(Option<Id<Device>>, String)> = Vec::new();
             for m in &net.members {
                 let EndpointKey::Cp(f, idx) = *m else { continue };
+                if !is_valve(f) {
+                    continue;
+                }
                 let Some(cp) = q.get::<FunctionCps>(f).iter().find(|c| c.idx == idx).cloned() else {
                     continue;
                 };
                 let text = cp_label(q, CpRef::new(f, idx));
                 let device = functions.get(f).and_then(|x| x.device);
-                if is_valve(f) {
-                    by_valve.entry(f).or_default().push(text.clone());
-                    if matches!(
-                        cp.port_role,
-                        Some(FluidPortRole::Working2 | FluidPortRole::Working4)
-                    ) {
-                        working.push((device, text.clone()));
-                    }
-                }
+                let exhaust = exhaust_role(&cp.port_role);
+                let entry = by_valve.entry(f).or_insert((Vec::new(), true));
+                entry.0.push(text.clone());
+                entry.1 &= exhaust;
                 if matches!(
                     cp.port_role,
-                    Some(FluidPortRole::Supply1 | FluidPortRole::Exhaust3 | FluidPortRole::Exhaust5)
+                    Some(FluidPortRole::Working2 | FluidPortRole::Working4)
                 ) {
-                    feeds.push((device, text));
+                    working.push((device, text));
+                } else if matches!(
+                    cp.port_role,
+                    Some(FluidPortRole::Exhaust3 | FluidPortRole::Exhaust5)
+                ) {
+                    exhausts.push((device, text));
                 }
             }
-            for ports in by_valve.values().filter(|p| p.len() > 1) {
+            for (ports, _) in by_valve
+                .values()
+                .filter(|(p, all_exhaust)| p.len() > 1 && !all_exhaust)
+            {
                 let mut ports = ports.clone();
                 ports.sort_by_key(|s| natural_key(s));
                 out.push(
@@ -876,7 +905,7 @@ impl Rule for PortRoleConflict {
                 );
             }
             for (wd, w) in &working {
-                for (fd, f) in &feeds {
+                for (fd, f) in &exhausts {
                     if wd == fd {
                         continue;
                     }
@@ -932,7 +961,7 @@ impl Rule for LocationCrossing {
             .iter()
             .filter(|r| r.location_change())
             .map(|r| {
-                let text = tube_text(r);
+                let (text, text_nl) = tube_text(r);
                 let (from, to) = (r.from.location.clone(), r.to.location.clone());
                 Finding::new(
                     &LOCATION_CROSSING,
@@ -942,6 +971,7 @@ impl Rule for LocationCrossing {
                     format!("tube {text} crosses from {from} to {to} without a bulkhead"),
                 )
                 .arg("tube", text)
+                .arg("tube_nl", text_nl)
                 .arg("from", from)
                 .arg("to", to)
             })

@@ -12,7 +12,7 @@
 //! as an electrical net's ([`NetId`]). A fluid line is no wire: it joins no electrical net ([`crate::joins_net`]
 //! leaves it out). A CP that neither a fluid line nor a gallery reaches is in no fluid net.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::sync::Arc;
 
 use ew_ids::Id;
@@ -358,33 +358,76 @@ pub fn parent_chain(q: &Q, device: Id<Device>) -> Vec<Id<Device>> {
     out
 }
 
+/// Whether a function is a passive in-line component: no valve, but a switching model (a throttle, a check valve, a
+/// filter, a quick-exhaust valve), whose paths the medium crosses.
+fn passive(q: &Q, f: Id<Function>) -> bool {
+    q.functions()
+        .get(f)
+        .and_then(|x| q.fndefs().get(x.def))
+        .is_some_and(|d| d.item.contact_kind != ContactKind::Valve && d.item.valve_model.is_some())
+}
+
 /// `reached_device(valve)` (doc 11 §3.3): the single device, other than the valve and its parent chain,
-/// with a CP in a fluid net of one of the valve's working ports (`working2`, `working4`); `None` when there is no
-/// such device or more than one. Cold.
+/// with a CP in a fluid net of one of the valve's working ports (`working2`, `working4`), crossing passive in-line
+/// components ([`passive`]: a throttle does not end the path to the cylinder behind it) along the paths of their
+/// models to a port that is no exhaust; `None` when there is no such device or more than one. Cold.
 pub fn reached_device(q: &Q, valve: Id<Device>) -> Option<Id<Device>> {
     let chain = parent_chain(q, valve);
     let functions = q.functions();
     let nets = q.get::<FluidNets>(());
-    let mut reached: Vec<Id<Device>> = Vec::new();
+    let mut queue: VecDeque<EndpointKey> = VecDeque::new();
     for f in q.idx().functions_of_device(valve) {
         for cp in q.get::<FunctionCps>(f).iter() {
-            if !matches!(
+            if matches!(
                 cp.port_role,
                 Some(FluidPortRole::Working2 | FluidPortRole::Working4)
             ) {
-                continue;
+                queue.push_back(EndpointKey::Cp(f, cp.idx));
             }
-            let Some(net) = nets.net_of(EndpointKey::Cp(f, cp.idx)) else {
+        }
+    }
+    let mut seen: BTreeSet<NetId> = BTreeSet::new();
+    let mut reached: Vec<Id<Device>> = Vec::new();
+    while let Some(at) = queue.pop_front() {
+        let Some(net) = nets.net_of(at) else {
+            continue;
+        };
+        if !seen.insert(net.id) {
+            continue;
+        }
+        for m in &net.members {
+            let EndpointKey::Cp(g, idx) = *m else { continue };
+            let Some(d) = functions.get(g).and_then(|g| g.device) else {
                 continue;
             };
-            for m in &net.members {
-                let EndpointKey::Cp(g, _) = m else { continue };
-                let Some(d) = functions.get(*g).and_then(|g| g.device) else {
-                    continue;
+            if chain.contains(&d) {
+                continue;
+            }
+            if passive(q, g) {
+                // Onward, never into an exhaust (a quick-exhaust valve's silencer is no driven device).
+                let cps = q.get::<FunctionCps>(g);
+                let exhaust = |to: u16| {
+                    cps.iter().any(|c| {
+                        c.idx == to
+                            && matches!(
+                                c.port_role,
+                                Some(
+                                    FluidPortRole::Exhaust3
+                                        | FluidPortRole::Exhaust5
+                                        | FluidPortRole::PilotExhaust82
+                                        | FluidPortRole::PilotExhaust84
+                                )
+                            )
+                    })
                 };
-                if !chain.contains(&d) && !reached.contains(&d) {
-                    reached.push(d);
-                }
+                queue.extend(
+                    crate::fluid_media::paths_from(q, g, idx)
+                        .into_iter()
+                        .filter(|to| !exhaust(*to))
+                        .map(|to| EndpointKey::Cp(g, to)),
+                );
+            } else if !reached.contains(&d) {
+                reached.push(d);
             }
         }
     }

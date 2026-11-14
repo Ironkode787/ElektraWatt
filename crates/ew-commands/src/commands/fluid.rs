@@ -94,7 +94,8 @@ pub enum OccupancyParam {
 ///   [part]?}` is made, with the part's template functions when a part is given.
 /// - *empty:* the child at the position is removed as above.
 ///
-/// Refused: a device without valve positions; a position outside them. Interactive, one undo step. Outcome: the
+/// Refused: a device without valve positions; a position outside them; a new valve of a part with a PLC section (a
+/// station or module part, as `valve.add` refuses it; FT-1576). Interactive, one undo step. Outcome: the
 /// child at the position, else the module.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -334,7 +335,8 @@ impl Command for SetValveOccupancy {
                                 module_name
                             ));
                         };
-                        tx.require::<LibCopy<Part>>(*part)?;
+                        let copy = tx.require::<LibCopy<Part>>(*part)?;
+                        crate::commands::assembly::refuse_plc_part(tx, &copy)?;
                         Some(new_child(
                             tx,
                             self.module,

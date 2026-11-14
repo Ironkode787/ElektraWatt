@@ -1,0 +1,107 @@
+{
+  "$k": "symbol",
+  "id": "1995ae98-2010-5b8e-96eb-246df78e763f",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "2d75548a-ae0d-53f8-9393-9fe5ab33a096",
+  "version": "0.1.0",
+  "sha256": "sha256:2791403b6c983fa3134a727cee8b86ff3fec26b93ffb4bed14618b89b0759a90",
+  "meta": {
+    "key": "ew.iso.ip-target@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Fluid line continued, incoming",
+    "nl": "Leiding vervolgd, inkomend"
+  },
+  "keywords": [
+    "fluid",
+    "interruption",
+    "ip",
+    "pneumatic",
+    "reference",
+    "target"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "92e0b660-9669-5cee-8725-4f0044da7a09",
+    "version_req": "^0.1",
+    "key": "ew.fn.ip-fluid"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "polygon": {
+        "points": [
+          [
+            -1984375,
+            -992187
+          ],
+          [
+            -1984375,
+            992187
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        },
+        "fill": "by_layer"
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        0
+      ],
+      "dir": "right",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "function_text",
+      "pos": [
+        -1322917,
+        -1322917
+      ],
+      "align": "bottom_centre",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        -1984375,
+        1322917
+      ],
+      "align": "top_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    }
+  ]
+}

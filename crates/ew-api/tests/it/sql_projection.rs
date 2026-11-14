@@ -78,6 +78,10 @@ fn every_view_has_its_documented_columns_and_the_golden_counts() {
     assert_eq!(count("api_v1_potential"), rows("potentials.csv"));
     assert_eq!(count("api_v1_page"), "36");
     assert_eq!(count("api_v1_meta"), "1");
+    // Doc 11 §8.3: the 16 tubes F1 to F16, the 28 valve positions of -201U1, no medium.
+    assert_eq!(count("api_v1_fluid_line"), "16");
+    assert_eq!(count("api_v1_valve_position"), "28");
+    assert_eq!(count("api_v1_medium"), "0");
     // doc 17 §6.1: the 56 channels of folio 908, 8 of them used
     assert_eq!(count("api_v1_plc_channel"), rows("channels.csv"));
     assert_eq!(

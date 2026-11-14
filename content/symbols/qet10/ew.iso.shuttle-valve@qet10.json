@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "44f0f68d-48e9-5c7b-af24-531aeeda332f",
   "version": "0.1.0",
-  "sha256": "sha256:121e594cc83b8663adf36961393d291e8baf9c3940d763193b76b340ec4aae4d",
+  "sha256": "sha256:df7c8edee3fab154c2b9144d181de2f6e8b8973f06f87e14696e4582fe6b581c",
   "meta": {
     "key": "ew.iso.shuttle-valve@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -114,6 +114,52 @@
         "stroke": {
           "pen": {
             "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            1984375,
+            3307292
+          ],
+          [
+            3307292,
+            5291667
+          ],
+          [
+            1984375,
+            7276042
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            8598958,
+            3307292
+          ],
+          [
+            7276042,
+            5291667
+          ],
+          [
+            8598958,
+            7276042
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
           }
         }
       }

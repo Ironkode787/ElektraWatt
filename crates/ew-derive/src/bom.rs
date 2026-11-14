@@ -56,11 +56,11 @@ pub enum LineSource {
     /// The plug or silencer part of a closed fluid port of the device (`CpOverride.closure.part`), one piece each
     /// (FR-FLU-028).
     Closure,
-    /// The tube part of a physical tube whose from end is a port of the device, by its length in metres
-    /// (FR-FLU-014; a tube without a length adds none).
+    /// The tube part of a physical tube the device owns (the device of its from end, else of its to end), by its length in metres (FR-FLU-014; a
+    /// tube without a length adds none).
     Tube,
     /// The fitting part at a tube end on a port of the device, one piece each, and the tee part of a fluid junction,
-    /// owned by the from end of the junction's lowest tube (FR-FLU-031).
+    /// owned by the owner of the junction's lowest tube that has one (FR-FLU-031).
     Fitting,
 }
 
@@ -97,9 +97,9 @@ pub struct PartLine {
 /// 0. The carrier lines come in the legend order of their first carrier (surfaces by ID, then rails before
 /// ducts, each top to bottom then left to right; [`crate::layout::carrier_order`]), after the device's own
 /// lines, so a reader of the first line keeps the device's own part. Then the fluid lines (doc 11 §8.2, FR-FLU-014):
-/// the closure parts of its ports ([`LineSource::Closure`]), the tube parts of the tubes whose from end is one of its
-/// ports ([`LineSource::Tube`]) and the fittings at its tube ends and the tees it owns ([`LineSource::Fitting`]), in
-/// that order. A line whose part copy is missing is dropped.
+/// the closure parts of its ports ([`LineSource::Closure`]), the tube parts of the tubes it owns (the device of the
+/// tube's from end, else of its to end; [`LineSource::Tube`]) and the fittings at its tube ends and the tees it owns ([`LineSource::Fitting`]), in that
+/// order. A line whose part copy is missing is dropped.
 #[derive(Debug)]
 pub struct DevicePartLines;
 
@@ -167,7 +167,7 @@ impl Query for DevicePartLines {
         }
         let tubes = q.get::<crate::TubeRows>(());
         for r in tubes.iter() {
-            if r.from.device == Some(*key)
+            if tube_owner(r) == Some(*key)
                 && let Some(part) = &r.props.part
             {
                 let nm = r.length.map_or(0, |n| n.0);
@@ -186,15 +186,15 @@ impl Query for DevicePartLines {
                     push(&PartRef::new(f), Dec3::ONE, LineSource::Fitting);
                 }
             }
-            // A tee: owned by the from end of the lowest tube that ends at the junction.
-            if r.from.device == Some(*key) {
+            // A tee: owned by the owner of the lowest tube at the junction that has one.
+            if tube_owner(r) == Some(*key) {
                 for end in [&r.from, &r.to] {
                     let crate::EndpointKey::Junction(j) = end.at else {
                         continue;
                     };
                     let lowest = tubes
                         .iter()
-                        .filter(|t| t.from.at == end.at || t.to.at == end.at)
+                        .filter(|t| (t.from.at == end.at || t.to.at == end.at) && tube_owner(t).is_some())
                         .map(|t| t.id)
                         .min();
                     if lowest == Some(r.id)
@@ -207,6 +207,12 @@ impl Query for DevicePartLines {
         }
         Arc::new(lines)
     }
+}
+
+/// The device that owns a tube's BOM lines: the device of its from end, else of its to end (a tube from a tee), so a
+/// tube is in the BOM whichever way it was drawn; `None` for a tube between two tees.
+fn tube_owner(r: &crate::TubeRow) -> Option<Id<Device>> {
+    r.from.device.or(r.to.device)
 }
 
 /// The carriers of one part copy (and variant) on the surfaces of a device's enclosures: one carrier line.

@@ -1,0 +1,119 @@
+{
+  "$k": "symbol",
+  "id": "d0e508e8-9f9c-501c-acea-74c42377ad0d",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "39690b27-a810-55f9-9583-832b4859d971",
+  "version": "0.1.0",
+  "sha256": "sha256:3cfe3550c0443962c9d0f713282369f175b84d9c3dde89a5da93e1d88e1154b2",
+  "meta": {
+    "key": "ew.iso.ip",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Fluid line continued",
+    "nl": "Leiding vervolgd"
+  },
+  "keywords": [
+    "fluid",
+    "interruption",
+    "ip",
+    "pneumatic",
+    "reference"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "92e0b660-9669-5cee-8725-4f0044da7a09",
+    "version_req": "^0.1",
+    "key": "ew.fn.ip-fluid"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          -4000000,
+          0
+        ],
+        "to": [
+          -3000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            -3000000,
+            -1500000
+          ],
+          [
+            -3000000,
+            1500000
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p026"
+        },
+        "fill": "by_layer"
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        -4000000,
+        0
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "function_text",
+      "pos": [
+        -2000000,
+        -2000000
+      ],
+      "align": "bottom_centre",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        0,
+        2000000
+      ],
+      "align": "top_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    }
+  ]
+}

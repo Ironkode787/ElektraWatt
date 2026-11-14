@@ -1,0 +1,123 @@
+{
+  "$k": "symbol",
+  "id": "ed40de96-4122-5c3d-bd48-88aa6e883d1c",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "fea76827-c9a5-505d-8b0c-64b05b1d9091",
+  "version": "0.1.0",
+  "sha256": "sha256:14c7706ac640f81ece4fe896f10df8e98d78170f6ff63c84b2dbea49d8df1eca",
+  "meta": {
+    "key": "ew.iso.ip@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Fluid line continued",
+    "nl": "Leiding vervolgd"
+  },
+  "keywords": [
+    "fluid",
+    "interruption",
+    "ip",
+    "pneumatic",
+    "reference"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "92e0b660-9669-5cee-8725-4f0044da7a09",
+    "version_req": "^0.1",
+    "key": "ew.fn.ip-fluid"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "line": {
+        "from": [
+          -2645833,
+          0
+        ],
+        "to": [
+          -1984375,
+          0
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            -1984375,
+            -992187
+          ],
+          [
+            -1984375,
+            992187
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        },
+        "fill": "by_layer"
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        -2645833,
+        0
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "function_text",
+      "pos": [
+        -1322917,
+        -1322917
+      ],
+      "align": "bottom_centre",
+      "visible": true
+    },
+    {
+      "kind": "xref",
+      "pos": [
+        0,
+        1322917
+      ],
+      "align": "top_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1
+      ]
+    }
+  ]
+}

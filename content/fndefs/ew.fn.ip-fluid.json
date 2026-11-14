@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "b3227f04-c4d5-5fc7-a5bd-c8eaf153f885",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "92e0b660-9669-5cee-8725-4f0044da7a09",
+  "version": "0.1.0",
+  "sha256": "sha256:c66c51a2406e7210c511102ac6169bb87da4d991c09ac0b925ab3776779cc5cd",
+  "meta": {
+    "key": "ew.fn.ip-fluid",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "InterruptionPoint",
+    "Ip",
+    "Fluid"
+  ],
+  "contact_kind": "terminal",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ]
+}

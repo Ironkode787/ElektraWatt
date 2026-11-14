@@ -224,6 +224,17 @@ pub struct AddValve {
     pub structure: StructureAssignment,
 }
 
+/// Refuses a PLC station or module part as a valve: normaliser N0 would attach it to a station (FT-1576).
+pub(crate) fn refuse_plc_part(tx: &TxBuilder<'_>, part: &LibCopy<ew_schema::Part>) -> Result<(), CmdError> {
+    if part.item.sections.plc.is_some() {
+        return tx.reject(text!(
+            "refusal-valve-add-plc-part",
+            part.item.part_number.as_str()
+        ));
+    }
+    Ok(())
+}
+
 impl Command for AddValve {
     const NAME: &'static str = "valve.add";
 
@@ -241,13 +252,7 @@ impl Command for AddValve {
         }
         tx.require::<Device>(self.module)?;
         let part = tx.require::<LibCopy<ew_schema::Part>>(self.part.part.copy)?;
-        // A PLC station or module part is no valve: normaliser N0 would attach it to a station (FT-1576).
-        if part.item.sections.plc.is_some() {
-            return tx.reject(text!(
-                "refusal-valve-add-plc-part",
-                part.item.part_number.as_str()
-            ));
-        }
+        refuse_plc_part(tx, &part)?;
         if let Some(fndef) = self.fndef {
             tx.require::<LibCopy<FnDef>>(fndef)?;
         }

@@ -614,6 +614,194 @@ fn n_fl_1_replaces_the_valve_function_of_another_valve_type_in_place() {
     );
 }
 
+/// A pneumatic valve body of `LIBRARY_VALVE` with the port designations `cps`.
+fn pneumatic_body(item: ew_ids::Uuid, cps: &[&str]) -> LibCopy<ew_schema::FnDef> {
+    let mut body = fndef_copy_for(LIBRARY_VALVE, item, cps);
+    body.item.contact_kind = ew_schema::ContactKind::Valve;
+    let pneumatic: Vec<ew_schema::CpDef> = body
+        .item
+        .cps
+        .iter()
+        .cloned()
+        .map(|mut cp| {
+            cp.discipline = ew_schema::Discipline::Pneumatic;
+            cp
+        })
+        .collect();
+    body.item.cps = ew_schema::KeyedList::from_vec(pneumatic).expect("distinct CP indexes");
+    body
+}
+
+/// D6 (d), what follows the replaced valve function (doc 11 §4.2): the old body has two ports "2" (CPs 1 and 2) and a
+/// port "4"; the new one only "2" and "1", in another order. The line at port 1 follows to its new index; of the two
+/// ports "2", which become one, the first keeps its closure and its medium definition and the second's go, without a
+/// panic; the closure at port 4, which the new valve lacks, goes; each is said in a notice, and one undo brings it all
+/// back.
+#[test]
+fn n_fl_1_carries_lines_closures_and_media_to_the_new_valve_and_names_what_goes() {
+    use ew_commands::commands::{
+        ClosePort, ClosureKindParam, ClosureParam, Connect, DefineMedium, EditMedium,
+    };
+    const OLD: Id<Part> = id(0x7b);
+    const NEW: Id<Part> = id(0x7c);
+    const OLD_BODY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x9306);
+    const NEW_BODY: ew_ids::Uuid = ew_ids::Uuid::from_u128(0x9307);
+    let mut old = solenoid_valve_part(OLD, "OLD-1", &["14"]);
+    old.item.function_template[0].fndef = lib_ref_to(LIBRARY_VALVE, OLD_BODY);
+    let mut new = solenoid_valve_part(NEW, "NEW-1", &["14"]);
+    new.item.function_template[0].fndef = lib_ref_to(LIBRARY_VALVE, NEW_BODY);
+    let mut e = engine(model_with_documents(
+        vec![
+            LibDocument::Part(old),
+            LibDocument::Part(new),
+            LibDocument::Fndef(pneumatic_body(OLD_BODY, &["1", "2", "2", "4"])),
+            LibDocument::Fndef(pneumatic_body(NEW_BODY, &["2", "1"])),
+        ],
+        vec![],
+    ));
+    make_module(&mut e, MODULE_H1);
+    let (_, v, _) = add_valve(&mut e, 1, OLD);
+    let (_, other, _) = add_valve(&mut e, 2, OLD);
+    let (body, other_body) = (
+        ew_ids::v5::template_function_id(v, 0),
+        ew_ids::v5::template_function_id(other, 0),
+    );
+    let line: Id<ew_schema::Connection> = primary(
+        &e.execute(&Connect {
+            a: EndpointParam::Cp {
+                function: body,
+                idx: 0,
+            },
+            b: EndpointParam::Cp {
+                function: other_body,
+                idx: 0,
+            },
+            page: None,
+            route: vec![],
+            kind: ew_schema::ConnectionKind::Fluid(Box::default()),
+        })
+        .expect("a fluid line at port 1"),
+    );
+    let air: Id<ew_schema::Medium> = primary(
+        &e.execute(&EditMedium {
+            medium: None,
+            set: Some(ew_commands::commands::MediumParam {
+                name: ew_mltext::MlText::neutral("air"),
+                code: None,
+                discipline: ew_schema::Discipline::Pneumatic,
+                p_nom: dec3("6"),
+                quality: None,
+                t_range: None,
+                colour: None,
+                default_tube: Default::default(),
+                line_kind_tubes: Vec::new(),
+            }),
+        })
+        .expect("a medium"),
+    );
+    for idx in [1, 2] {
+        e.execute(&DefineMedium {
+            function: body,
+            idx,
+            medium: Some(air),
+        })
+        .expect("a medium definition");
+    }
+    for idx in [1, 2, 3] {
+        e.execute(&ClosePort {
+            function: body,
+            idx,
+            closure: Some(ClosureParam {
+                kind: ClosureKindParam::Plug,
+                part: None,
+            }),
+        })
+        .expect("a plug");
+    }
+    let before = e.model().table::<Function>().get(&body).cloned();
+    let r = e
+        .execute(&replace_part(v, OLD, NEW))
+        .expect("the new valve type, without a panic");
+    let mut notices = r.outcome.notices.clone();
+    notices.sort();
+    assert_eq!(
+        notices,
+        [
+            "-102F2-Q1 has the valve function of its new part; exchange the symbol to draw the new valve type",
+            "the closure at port 4 of -102F2-Q1 went: the new valve has no port 4",
+            "the second medium definition at port 2 of -102F2-Q1 went: the new valve has one port 2",
+            "the settings of the second port 2 of -102F2-Q1 went: the new valve has one port 2",
+        ]
+    );
+    let m = e.model();
+    // The line at port 1 now ends at the new index of port 1.
+    assert_eq!(
+        m.table::<ew_schema::Connection>().get(&line).map(|c| c.a.clone()),
+        Some(Endpoint::Cp(body, 1))
+    );
+    // Port 2 (new index 0) keeps one closure and one medium definition.
+    let function = m.table::<Function>().get(&body).expect("the valve function");
+    let closed: Vec<u16> = function
+        .cp_overrides
+        .iter()
+        .filter(|o| o.closure.is_some())
+        .map(|o| o.idx)
+        .collect();
+    assert_eq!(closed, [0]);
+    let defs: Vec<Endpoint> = m
+        .table::<ew_schema::MediumDef>()
+        .iter()
+        .map(|(_, d)| d.at.clone())
+        .collect();
+    assert_eq!(defs, [Endpoint::Cp(body, 0)]);
+    e.undo(&ew_commands::Origin::Gui).expect("undo");
+    assert_eq!(e.model().table::<Function>().get(&body).cloned(), before);
+    assert_eq!(e.model().table::<ew_schema::MediumDef>().len(), 2);
+}
+
+/// N-FL-1 runs when the valve part changes, not on every change of the part list: a valve whose function is of
+/// another valve body than its part's template (as drawn, or imported) keeps it when an accessory part is added.
+#[test]
+fn n_fl_1_leaves_the_valve_function_alone_when_an_accessory_part_is_added() {
+    let valve: Id<Device> = id(0x7d0);
+    let body: Id<Function> = id(0x7d1);
+    let other_def: Id<ew_schema::FnDef> = ew_ids::v5::lib_copy_id(LIBRARY_VALVE, OTHER_VALVE);
+    let mut device = device(valve, "Q", 77);
+    device.parts = vec![PartUse {
+        part: PartRef::new(VALVE),
+        qty: dec3("1"),
+        extra: Extra::new(),
+    }];
+    let coil = function(
+        coil_function(valve, 0),
+        valve,
+        ew_ids::v5::lib_copy_id(LIBRARY_VALVE, ITEM_SOLENOID),
+        ew_schema::FnRole::Aux,
+    );
+    let mut coil = coil;
+    coil.template_entry = Some(1);
+    let mut e = engine(model_with_records(
+        vec![],
+        vec![
+            Record::Device(device),
+            Record::Function(function(body, valve, other_def, ew_schema::FnRole::Main)),
+            Record::Function(coil),
+        ],
+    ));
+    let r = e
+        .execute(&set_device(
+            valve,
+            "parts",
+            json!([{"part": {"copy": VALVE}, "qty": "1"}, {"part": {"copy": PLAIN}, "qty": "1"}]),
+        ))
+        .expect("an accessory part");
+    assert!(r.outcome.notices.is_empty(), "{:?}", r.outcome.notices);
+    assert_eq!(
+        e.model().table::<Function>().get(&body).map(|f| f.def),
+        Some(other_def)
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // N3: module pin binding
 

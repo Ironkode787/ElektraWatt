@@ -12,8 +12,8 @@ use ew_derive::ew_mltext::MlText;
 use ew_derive::ew_schema::{DeviceState, LengthSource, LibCopy, Medium, Part, ReportBlock, Unit};
 use ew_derive::ew_units::{Dec3, Nm};
 use ew_derive::{
-    MediumRows, PageRef, Q, TubeRow, TubeRows, ValveTerminalRows, VtSlot, colour_text, langs, line_kind_text,
-    medium_text, part_number, port_role_text, short_tag, tube_spec_text,
+    EndpointKey, MediumRows, PageRef, Q, TubeEnd, TubeRow, TubeRows, ValveTerminalRows, VtSlot, colour_text,
+    langs, line_kind_text, medium_text, part_number, port_role_text, short_tag, tube_spec_text,
 };
 
 use super::conn::put;
@@ -30,6 +30,15 @@ fn ident(text: &str) -> Cell {
 
 fn text(t: MlText) -> Cell {
     if t.is_empty() { Cell::Empty } else { Cell::Text(t) }
+}
+
+/// A tube end: its `DT:port`, or "tee" in the reader's language for a junction.
+fn end_cell(end: &TubeEnd) -> Cell {
+    if matches!(end.at, EndpointKey::Junction(_)) {
+        text(end.words())
+    } else {
+        ident(&end.text)
+    }
 }
 
 /// A length in metres (millimetre precision), as the cable overview prints it.
@@ -106,8 +115,8 @@ impl ReportKindDef for TubeList {
 fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
     let mut cells = vec![Cell::Empty; columns.len()];
     put(columns, &mut cells, "tag", ident(&r.tag));
-    put(columns, &mut cells, "from", ident(&r.from.text));
-    put(columns, &mut cells, "to", ident(&r.to.text));
+    put(columns, &mut cells, "from", end_cell(&r.from));
+    put(columns, &mut cells, "to", end_cell(&r.to));
     if let Some(role) = &r.from.role {
         put(columns, &mut cells, "from_role", text(port_role_text(role)));
     }
@@ -295,21 +304,17 @@ impl ReportKindDef for TubeLabels {
     fn rows(&self, q: &Q, _block: &ReportBlock) -> RowSet {
         let mut set = RowSet::new(self.columns());
         for r in q.get::<TubeRows>(()).iter() {
-            let name = if r.tag.is_empty() {
-                format!("{} → {}", r.from.text, r.to.text)
-            } else {
-                r.tag.clone()
-            };
+            let name = r.name();
             for (i, (end, other)) in [(&r.from, &r.to), (&r.to, &r.from)].into_iter().enumerate() {
                 let mut cells = vec![Cell::Empty; set.columns.len()];
-                put(&set.columns, &mut cells, "tube", ident(&name));
-                put(&set.columns, &mut cells, "at", ident(&end.text));
+                put(&set.columns, &mut cells, "tube", text(name.clone()));
+                put(&set.columns, &mut cells, "at", end_cell(end));
                 let label = if r.tag.is_empty() {
-                    other.text.clone()
+                    end_cell(other)
                 } else {
-                    r.tag.clone()
+                    ident(&r.tag)
                 };
-                put(&set.columns, &mut cells, "text", ident(&label));
+                put(&set.columns, &mut cells, "text", label);
                 let id = RowId::entity(r.id).with(RowKey::Index(u32::try_from(i).unwrap_or(0)));
                 set.rows.push(Row::data(id, cells));
             }

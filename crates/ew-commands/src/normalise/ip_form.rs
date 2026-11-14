@@ -6,7 +6,7 @@
 //!
 //! EW's interruption-point symbol comes in two forms, both drawn with the arrow pointing right: the source form
 //! (`ew.gen.ip`, the wire on the tail) and the target form (`ew.gen.ip-target`, the wire on the tip), each with its
-//! `@qet10` twin ([`FORMS`]). A representation drawn with one of them is never turned (its orientation is the
+//! `@qet10` twin, and so does the fluid line's (`ew.iso.ip`, `ew.iso.ip-target`, FR-FLU-030) ([`FORMS`]). A representation drawn with one of them is never turned (its orientation is the
 //! default), and its form is its direction's: a source point the source form, a target point the target form; an
 //! undirected point either. A symbol copy is one of the forms by its key; its twin is the copy of the other key in
 //! the same library.
@@ -27,9 +27,11 @@ use crate::text::{Text, text};
 use crate::tx::TxBuilder;
 
 /// EW's interruption-point forms: (source key, target key) per edition.
-pub const FORMS: [(&str, &str); 2] = [
+pub const FORMS: [(&str, &str); 4] = [
     ("ew.gen.ip", "ew.gen.ip-target"),
     ("ew.gen.ip@qet10", "ew.gen.ip-target@qet10"),
+    ("ew.iso.ip", "ew.iso.ip-target"),
+    ("ew.iso.ip@qet10", "ew.iso.ip-target@qet10"),
 ];
 
 /// One of EW's interruption-point forms.

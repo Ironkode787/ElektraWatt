@@ -566,3 +566,23 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a traced target's passed terminals are those on the path to it; `network_address_list` lists ports
   with an address and no logical net; bus cable lengths print as `12.5 m`
 - api-add: the SQL view `api_v1_plc_channel` gains `cpu`, `bus_address`, `passed_terminals` and `f_address`
+- behaviour-change: EW-FL-012 reports a working port joined to another valve's exhaust and two ports of one valve
+  that are not all its exhausts; a working port into an inlet (another valve's port 1, a manifold's, a quick-exhaust
+  or shuttle valve's) and two exhausts of one valve teed into one silencer report nothing (WP-S1.25 review)
+- behaviour-change: EW-FL-009 also reports a coil whose part names DC fed from a potential that names AC, and the
+  reverse; its message prints "24 V DC" (WP-S1.25 review)
+- behaviour-change: a tube drawn from a tee is in the BOM on the device at its other end, and a tee on the owner of
+  its lowest tube that has one, whichever way the tubes were drawn (WP-S1.25 review)
+- behaviour-change: a medium defined at a regulator's outlet replaces the regulated medium there (doc 11 §2.5); a
+  throttle or another passive component in a working line no longer ends the path to the driven device (WP-S1.25
+  review)
+- api-add: the fluid interruption point: function definition `ew.fn.ip-fluid` and the forms `ew.iso.ip` (outgoing)
+  and `ew.iso.ip-target` (incoming), so a fluid line continues across pages as one tube (FR-FLU-030)
+- behaviour-change: the shipped ejector has its exhaust port 3 and a switching model, so a vacuum zone arises behind
+  its port 2 when its part names the vacuum port; the 5/3 valves draw spring and solenoid side by side, the 2×3/2
+  valve two solenoids, two springs and its closed ports, and the quick-exhaust and shuttle valves differ (WP-S1.25
+  review)
+- behaviour-change: `valve.set_occupancy` refuses a PLC part for a new valve as `valve.add` does (FT-1576); a valve
+  part change lists the closures and medium definitions it drops, and adding an accessory part no longer re-makes a
+  valve's functions (WP-S1.25 review)
+- text-change: the Dutch tube list, tube labels and EW-FL messages say "T-stuk" for a tee (WP-S1.25 review)

@@ -7,7 +7,8 @@
 //! every path of every switching position of every section of a function's valve model (a `flow` path from its
 //! `from` CP to its `to` CP only, an `open` path both ways). A key reaching a port with an exhaust role (3, 5, 82,
 //! 84) becomes `Exhaust(root)`; a key reaching the outlet of a regulator part becomes `Regulated(root, p_set)`, the
-//! vacuum port of an ejector part `Vacuum(root)`, both direct. The union over all positions describes what a port
+//! vacuum port of an ejector part `Vacuum(root)`, both direct; a medium defined in the regulator's outlet net replaces
+//! the regulated key (doc 11 §2.5). The union over all positions describes what a port
 //! *can* carry, which is what tube sizing and the pressure checks need; it never depends on a simulated state. A
 //! net that no line or gallery joins is the CP alone. A definition whose CP or medium is gone seeds nothing.
 
@@ -175,7 +176,7 @@ fn transform_of(q: &Q, f: Id<Function>) -> Option<FluidTransform> {
 }
 
 /// The CPs a key at CP `idx` of function `f` moves to along the paths of its FnDef's valve model, in CP order.
-fn paths_from(q: &Q, f: Id<Function>, idx: u16) -> Vec<u16> {
+pub(crate) fn paths_from(q: &Q, f: Id<Function>, idx: u16) -> Vec<u16> {
     let Some(def) = q.functions().get(f).and_then(|x| q.fndefs().get(x.def)) else {
         return Vec::new();
     };
@@ -226,6 +227,8 @@ impl Query for MediumZones {
             .collect();
         defs.sort_by_key(|d| d.0);
         let mut queue: BTreeSet<NetId> = BTreeSet::new();
+        // The nets a definition seeds: a regulator's outlet there carries the defined medium, not a regulated key.
+        let mut defined: BTreeSet<NetId> = BTreeSet::new();
         for (_, at, m) in defs {
             let Some(at) = EndpointKey::of(&at) else { continue };
             if !mediums.contains(m) || !exists(q, at) {
@@ -233,6 +236,7 @@ impl Query for MediumZones {
             }
             let Some(net) = node_net(q, at) else { continue };
             alone.entry(net).or_insert(at);
+            defined.insert(net);
             if media
                 .entry(net)
                 .or_default()
@@ -267,6 +271,12 @@ impl Query for MediumZones {
                     };
                     let at = EndpointKey::Cp(f, to);
                     let Some(net) = node_net(q, at) else { continue };
+                    if defined.contains(&net)
+                        && matches!(&transform, Some(FluidTransform::Regulator { outlet, .. })
+                            if outlet.as_str() == cp.designation)
+                    {
+                        continue; // a defined medium at the outlet replaces the regulated key
+                    }
                     alone.entry(net).or_insert(at);
                     for k in &keys {
                         let root = k.root();

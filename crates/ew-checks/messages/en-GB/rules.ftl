@@ -378,7 +378,7 @@ rule-ew-fl-008 = { $form ->
     .title = Exhaust open
     .hint = Fit a silencer, draw a collector line or close the exhaust.
 
-rule-ew-fl-009 = { $valve }: the coil takes { $voltage } V, but { $feeds } feed it
+rule-ew-fl-009 = { $valve }: the coil takes { $voltage }, but { $feeds } feed it
     .title = Coil voltage
     .hint = Choose a valve whose coil takes the voltage of its supply, or feed it from a potential of that voltage.
 

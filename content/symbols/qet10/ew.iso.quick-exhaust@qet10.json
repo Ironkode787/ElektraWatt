@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "fba811f7-f7cc-5eae-9291-44fbdc058a86",
   "version": "0.1.0",
-  "sha256": "sha256:3548a31927328216d997bf4215fc844ef6546ba29acb6c6241d3570c53fdc3aa",
+  "sha256": "sha256:455909616d4478a2c7c0e5ff0e22e2fe705bd8ae78cee460c5b4007f9ae1c642",
   "meta": {
     "key": "ew.iso.quick-exhaust@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -114,6 +114,70 @@
         "stroke": {
           "pen": {
             "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            1984375,
+            3307292
+          ],
+          [
+            3307292,
+            5291667
+          ],
+          [
+            1984375,
+            7276042
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          6614583
+        ],
+        "to": [
+          5291667,
+          8598958
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            3968750,
+            8598958
+          ],
+          [
+            6614583,
+            8598958
+          ],
+          [
+            5291667,
+            10583333
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
           }
         }
       }

@@ -364,13 +364,13 @@ rule-ew-fl-005 = het fluïdumnet bij { $at } voert { $media_nl } rechtstreeks; h
     .hint = Verwijder een van de mediumdefinities, of scheid de netten.
 
 rule-ew-fl-006 = { $form ->
-        [od] slang { $tube } is { $od } mm buitendiameter, maar poort { $port } neemt { $port_od } mm
-       *[rating] slang { $tube } is berekend op { $rating } bar, minder dan de { $pressure } bar in zijn net
+        [od] slang { $tube_nl } is { $od } mm buitendiameter, maar poort { $port } neemt { $port_od } mm
+       *[rating] slang { $tube_nl } is berekend op { $rating } bar, minder dan de { $pressure } bar in zijn net
     }
     .title = Slang past niet
     .hint = Kies een slang die bij de poort en bij de druk van het medium past.
 
-rule-ew-fl-007 = slang { $tube } heeft geen slangspecificatie; geef het medium of het project een standaardslang, of stel haar in op de leiding
+rule-ew-fl-007 = slang { $tube_nl } heeft geen slangspecificatie; geef het medium of het project een standaardslang, of stel haar in op de leiding
     .title = Leiding zonder slangspecificatie
     .hint = Geef het medium of het project een standaardslang, of stel de slang in op de leiding.
 
@@ -381,7 +381,7 @@ rule-ew-fl-008 = { $form ->
     .title = Afvoer open
     .hint = Plaats een geluiddemper, teken een verzamelleiding of sluit de afvoer af.
 
-rule-ew-fl-009 = { WORD($valve) }: de spoel neemt { $voltage } V, maar { $feeds_nl } voeden haar
+rule-ew-fl-009 = { WORD($valve) }: de spoel neemt { $voltage }, maar { $feeds_nl } voeden haar
     .title = Spoelspanning
     .hint = Kies een ventiel waarvan de spoel de spanning van zijn voeding neemt, of voed haar uit een potentiaal van die spanning.
 
@@ -414,7 +414,7 @@ rule-ew-fl-013 = { $form ->
     .title = Bezetting
     .hint = Geef elke ventielplaats één ventiel of blindplaat, en elke module een eigen positie.
 
-rule-ew-fl-014 = slang { $tube } gaat van { $from } naar { $to } zonder schotdoorvoer
+rule-ew-fl-014 = slang { $tube_nl } gaat van { $from } naar { $to } zonder schotdoorvoer
     .title = Slang verlaat een locatie
     .hint = Plaats een schotdoorvoer waar de slang de locatie verlaat, of aanvaard de overgang.
 

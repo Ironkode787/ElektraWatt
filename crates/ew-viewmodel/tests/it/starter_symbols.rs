@@ -109,6 +109,8 @@ const PATHS: &[(&str, Path)] = &[
     ("ew.iso.flow-control-one-way@qet10", Path::Device("R", FLUID)),
     ("ew.iso.frl@qet10", Path::Device("R", FLUID)),
     ("ew.iso.gripper-parallel@qet10", Path::Device("M", FLUID)),
+    ("ew.iso.ip@qet10", Path::Device("A", FLUID)),
+    ("ew.iso.ip-target@qet10", Path::Device("A", FLUID)),
     ("ew.iso.lubricator@qet10", Path::Device("R", FLUID)),
     ("ew.iso.plug-fluid@qet10", Path::Device("X", FLUID)),
     ("ew.iso.pressure-gauge@qet10", Path::Device("P", FLUID)),

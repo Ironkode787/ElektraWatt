@@ -4,9 +4,10 @@
 //! Normaliser N-FL-1 `valve_functions` (doc 06 §3.2 row 1, doc 11 §4.2, FR-FLU-003): a valve's functions
 //! follow its valve part.
 //!
-//! - **Trigger.** A device of the transaction that is new or whose `parts` changed and that has a **valve part**: the
-//!   first part use whose copy has a fluid section with solenoids (`ew_derive::valve_solenoids`). A part without a
-//!   fluid section changes nothing.
+//! - **Trigger.** A device of the transaction that has a **valve part** (the first part use whose copy has a fluid
+//!   section with solenoids, `ew_derive::valve_solenoids`) and is new or had another valve part, or none, before the
+//!   transaction: an accessory part added or a quantity changed leaves its functions alone. A part without a fluid
+//!   section changes nothing.
 //! - **The template.** The valve part's `function_template`: its valve entry is the first on a FnDef of contact kind
 //!   `valve`; its coil entries are those on a FnDef of contact kind `coil`, the k-th being solenoid k of
 //!   `fluid.solenoids`. Every entry's FnDef copy must be embedded (else the transaction is refused, as
@@ -21,7 +22,9 @@
 //!   part whose valve entry names another FnDef **replaces the valve function's definition in place** (WP-S1.25): the
 //!   function keeps its ID, its representations and its role; every CP is matched by designation to the new FnDef's
 //!   CP, and the connections, closures and medium definitions at a CP follow it to the new index; those at a port the
-//!   new valve lacks are deleted, each listed in a notice; a representation whose symbol draws a CP at another index
+//!   new valve lacks are deleted, each listed in a notice; of two old ports with one designation, which become one new
+//!   port, the first (by index) keeps its override and its medium definition and the other's go, with a notice; a
+//!   representation whose symbol draws a CP at another index
 //!   than the new FnDef's gets a pin-map entry to it. The preview of the part change (`Engine::preview`) shows the
 //!   notices before the commit. The drawn symbol keeps its graphics: a notice says to exchange it.
 //! - **Entries and functions.** A coil function is the function of an entry when its `template_entry` names that entry
@@ -52,11 +55,19 @@ const FRESH_TRIES: usize = 8;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ValveFunctions;
 
-/// Whether a device of the transaction is new or changed its part uses.
-fn parts_changed(tx: &TxBuilder<'_>, dev: &Device) -> bool {
+/// The valve part of a device: the copy of its first part use that has a fluid section with solenoids.
+fn valve_part(tx: &TxBuilder<'_>, dev: &Device) -> Option<std::sync::Arc<LibCopy<Part>>> {
+    dev.parts
+        .iter()
+        .filter_map(|u| tx.get::<LibCopy<Part>>(u.part.copy))
+        .find(|c| ew_derive::valve_solenoids(&c.item).is_some())
+}
+
+/// Whether a device of the transaction is new or had another valve part (or none) before it.
+fn valve_part_changed(tx: &TxBuilder<'_>, dev: &Device, part: Id<Part>) -> bool {
     tx.base_row(&(Kind::Device, dev.id.cast()))
         .and_then(|r| r.get::<Device>().cloned())
-        .is_none_or(|b| b.parts != dev.parts)
+        .is_none_or(|b| valve_part(tx, &b).map(|c| c.id) != Some(part))
 }
 
 /// The designation that a coil function's first non-physical CP prints: its override, else the FnDef CP's.
@@ -81,17 +92,12 @@ impl Normaliser for ValveFunctions {
             let Some(dev) = tx.get::<Device>(key.1.cast()) else {
                 continue;
             };
-            if !parts_changed(tx, &dev) {
-                continue;
-            }
-            let Some(part) = dev
-                .parts
-                .iter()
-                .filter_map(|u| tx.get::<LibCopy<Part>>(u.part.copy))
-                .find(|c| ew_derive::valve_solenoids(&c.item).is_some())
-            else {
+            let Some(part) = valve_part(tx, &dev) else {
                 continue; // no valve part: nothing changes (D6 e)
             };
+            if !valve_part_changed(tx, &dev, part.id) {
+                continue;
+            }
             changed |= follow_part(tx, &dev, &part)?;
         }
         Ok(changed)
@@ -354,12 +360,37 @@ fn replace_valve(
         .into_iter()
         .filter(|d| matches!(d.at, Endpoint::Cp(g, _) if g == f.id))
         .collect();
-    for d in defs {
-        let Endpoint::Cp(_, idx) = d.at else { continue };
+    let mut defs: Vec<(u16, std::sync::Arc<MediumDef>)> = defs
+        .into_iter()
+        .filter_map(|d| match d.at {
+            Endpoint::Cp(_, idx) => Some((idx, d)),
+            _ => None,
+        })
+        .collect();
+    defs.sort_by_key(|(idx, d)| (*idx, d.id));
+    let mut defined: BTreeSet<u16> = BTreeSet::new();
+    let mut notices: Vec<String> = Vec::new();
+    for (idx, d) in defs {
         match map(idx) {
+            // Two old ports of one designation become one new port: it keeps one definition (FI-04).
+            Some(n) if !defined.insert(n) => {
+                tx.delete((Kind::MediumDef, d.id.cast()))?;
+                notices.push(format!(
+                    "the second medium definition at port {} of {name} went: the new valve has one port {}",
+                    designation(idx),
+                    designation(idx)
+                ));
+            }
             Some(n) if n != idx => tx.update::<MediumDef>(d.id, |x| x.at = Endpoint::Cp(f.id, n))?,
             Some(_) => {}
-            None => tx.delete((Kind::MediumDef, d.id.cast()))?,
+            None => {
+                tx.delete((Kind::MediumDef, d.id.cast()))?;
+                notices.push(format!(
+                    "the medium definition at port {} of {name} went: the new valve has no port {}",
+                    designation(idx),
+                    designation(idx)
+                ));
+            }
         }
     }
     // Representations: a symbol CP drawing a CP at another index gets a pin-map entry.
@@ -394,15 +425,26 @@ fn replace_valve(
             tx.update::<Representation>(r, |x| x.pin_map = pins)?;
         }
     }
-    // The function: its definition, its overrides of ports that remain.
-    let overrides: Vec<CpOverride> = f
-        .cp_overrides
-        .iter()
-        .filter_map(|o| map(o.idx).map(|n| CpOverride { idx: n, ..o.clone() }))
-        .collect();
+    // The function: its definition, its overrides of ports that remain, the first of two that become one port.
+    let mut overrides: KeyedList<CpOverride> = KeyedList::default();
+    for o in f.cp_overrides.iter() {
+        let port = designation(o.idx);
+        match map(o.idx) {
+            Some(n) if overrides.get(&n).is_some() => notices.push(format!(
+                "the settings of the second port {port} of {name} went: the new valve has one port {port}"
+            )),
+            Some(n) => {
+                overrides.insert(CpOverride { idx: n, ..o.clone() });
+            }
+            None if o.closure.is_some() => notices.push(format!(
+                "the closure at port {port} of {name} went: the new valve has no port {port}"
+            )),
+            None => {}
+        }
+    }
     tx.update::<Function>(f.id, |x| {
         x.def = def;
-        x.cp_overrides = KeyedList::from_vec(overrides).expect("one override per CP");
+        x.cp_overrides = overrides;
     })?;
     tx.notice(format!(
         "{name} has the valve function of its new part; exchange the symbol to draw the new valve type"
@@ -411,6 +453,9 @@ fn replace_valve(
         tx.notice(format!(
             "the line at port {port} of {name} went: the new valve has no port {port}"
         ));
+    }
+    for n in notices {
+        tx.notice(n);
     }
     Ok(())
 }

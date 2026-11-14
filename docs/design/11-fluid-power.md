@@ -159,7 +159,10 @@ with manual override on the right.
 "paths": [{"flow": {"from", "to"}} | {"open": {"a", "b"}} | {"closed": idx}]}], "rest", "actuation": [{"actuator",
 "selects"}]}]}`; `ValvePath` and `Actuator` keep a value of a newer format as `Unknown`. Every shipped valve FnDef
 carries its model (the 5/2 and 3/2 starter FnDefs at 0.2.1 and 0.1.1), and a passive component with flow paths (a
-filter, a check valve, a throttle) carries a one-position model, which is how propagation crosses it. The process
+filter, a check valve, a throttle, the ejector: 1→2, 1→3 and 2→3) carries a one-position model, which is how
+propagation crosses it. The library's fluid symbol lint asks a model of every definition that needs one: a valve, or
+a component with an inlet (port 1 or a generic port) and another port the medium leaves by that no `short` link
+joins. The process
 valve of a field device (`ew.fn.process-valve-2way`) has none: its ports are process ports.
 
 ### 2.4 Fluid lines and tube specification
@@ -219,7 +222,9 @@ vacuum or hydraulic), p_nom, quality?, t_range?, colour?, default_tube, line_kin
 deletes a medium (a deletion takes its definitions with it); `fluid.medium.define` sets or removes the definition of
 a fluid port (FI-04: one per port, a new one replaces it). The derived keys carry their root medium only:
 `Regulated(root, p_set)`, `Vacuum(root)`, `Exhaust(root)`; their texts are "… → 4 bar", "vacuum (from …)" and
-"exhaust" in en-GB and nl-NL.
+"exhaust" in en-GB and nl-NL. A medium defined in a regulator's outlet net replaces the regulated key there. The
+vacuum port is the one the ejector's part names (`transform`, §2.6); the shipped ejector `ew.fn.ejector` has ports 1
+(supply), 2 (vacuum) and 3 (exhaust).
 
 ### 2.6 Part data section `fluid`
 
@@ -380,7 +385,9 @@ The ghost shows it before commit.
 
 **Tracked target of a valve:**
 1. the target of its `Drives` link, if one exists;
-2. else the single device other than the valve terminal that its working-port nets reach;
+2. else the single device other than the valve terminal that its working-port nets reach; a passive in-line
+   component (a throttle, a check valve, a quick-exhaust valve: no valve, but a switching model) does not end the
+   path, which goes on along its model's paths to a port that is no exhaust;
 3. else none.
 
 **Tracked process tag:** the tracked target's `process_tag`, else the valve's own (the import case, §9.2). A valve
@@ -457,8 +464,10 @@ more such devices give T23 and no link.
 *As built (WP-S1.25).* N-FL-1 (d): a new valve part whose valve entry names another FnDef **replaces the valve
 function's definition in place**: the function keeps its ID, representations and role; its CPs follow by
 designation, and the connections, closures and medium definitions at a port follow to the new index, those at a port
-the new valve lacks are deleted, each listed in a notice; a symbol CP that draws a port at another index gets a pin
-map entry. The part change's preview (`Engine::preview`) shows the notices; the drawn symbol keeps its graphics and a
+the new valve lacks are deleted, each listed in a notice; of two old ports with one designation, which become one
+new port, the first keeps its override and its medium definition and the other's go, with a notice; a symbol CP that
+draws a port at another index gets a pin map entry. N-FL-1 runs when a device is new or its valve part (the first
+part use with solenoids) changed: an accessory part added or a quantity changed leaves the functions alone. The part change's preview (`Engine::preview`) shows the notices; the drawn symbol keeps its graphics and a
 notice says to exchange it. **N-FL-5** is `tube_tags`, after `wire_numbering`: under the scheme `page_counter` a fluid
 line of the transaction without a counter, or with one another fluid line of its page holds, gets the lowest free
 counter of its page; without a scheme a new line has none (`wire_numbering` leaves fluid lines to it).
@@ -498,7 +507,8 @@ is built (§5.5); `RouteTubes` is 1.x.
 
 *As built.* `valve.set_occupancy {module, position, occupancy, copies?}`
 (`{"valve": {state, part?}}`, `{"blank": {part?}}` or `"empty"`, one undo step; a blank removes the valve with its
-delete plan and makes a `blanking_plate` child with the position's tag) and `fluid.port.close {function, idx,
+delete plan and makes a `blanking_plate` child with the position's tag; a new valve of a part with a PLC section is
+refused as `valve.add` refuses it) and `fluid.port.close {function, idx,
 closure?}` (refused on a port that is no fluid port or has a fluid line) are built; `valve.add` with a part whose
 template has a valve entry ignores `fndef` and lets N-FL-1 make the functions; `fields.set` sets a fluid line's
 `line_kind`.
@@ -531,7 +541,10 @@ interruption points (an interruption point whose CP is a fluid port) that a line
 links of the FnDefs of the functions a line reaches. A net's ID stays its minimum member CP ID (not its definition
 point's): stable under unrelated edits, and one rule with the electrical nets. `fluid_tubes()` gives one tube per
 fluid line, merged across a pair whose two points have exactly one line each; the tube ID is the line at a
-target-side point, else the lowest. The tube list orders tubes naturally by tag, then by their from end.
+target-side point, else the lowest. The tube list orders tubes naturally by tag, then by their from end. The fluid
+interruption point is the definition `ew.fn.ip-fluid` (one pneumatic CP) with the forms `ew.iso.ip` (outgoing, the
+line at the tail) and `ew.iso.ip-target` (incoming, the line at the tip), each with its `@qet10` twin, placed with
+`ip.place` and continued with `ip.continue`, which gives the partner the other form.
 
 ### 5.2 Manifold galleries
 
@@ -720,7 +733,7 @@ reports state that checks do not replace engineering verification (NFR-COMP-04).
 | EW-FL-009 | Coil `voltage` ≠ voltage of the potential feeding the coil or its module's valve-supply pin | FR-FLU-019 | o r | error | 1.0 | 0 (24 V DC ▲ on 24VDC-1 via -201U1:5) |
 | EW-FL-010 | Valve, or manifold gallery-1 segment, whose port-1 net has no medium definition and no member outside the terminal | FR-FLU-020 | o r | warning | 1.0 | EF-20: 1 on -201U1 |
 | EW-FL-011 | `Drives` target ≠ the device reached through the working-port tubes | FR-FLU-029 | o | warning | MVP | 0 |
-| EW-FL-012 | Port-role conflict: a working port joined to an exhaust or supply port of another device without a valve; two ports of one valve function joined | FR-FLU-032 | o r | warning | 1.0 | 0 |
+| EW-FL-012 | Port-role conflict: a valve's working port joined to an exhaust port of another valve without a valve between them; two ports of one valve function joined, unless all are exhausts | FR-FLU-032 | o r | warning | 1.0 | 0 |
 | EW-FL-013 | Occupancy: duplicate or out-of-range position, `Empty` position (lenient report of FI-02, FI-07) | FR-FLU-027 | p o | error (empty: warning) | MVP | 0 |
 | EW-FL-014 | Tube crossing a location boundary without a transition device (bulkhead); off by default | FR-FLU-032 | o | info | 1.0 | off. When enabled: 16 |
 
@@ -739,7 +752,10 @@ Scopes: EW-FL-009 and -010 per device, the others per project (no `fluid_net` sc
 (a collector), a closure and a port of another role as treatment; a silencer device is a line's end. EW-FL-009 reads
 the feed at a physical coil's pins, and at an internal coil the load supply pin (`L+` of a `load` supply group) of
 the bound channel's module or of the first device above it with one (Open question 11). EW-FL-010 counts a junction
-as a member outside the terminal. EW-FL-012 skips a net without a line (a gallery alone). Each has its rule page.
+as a member outside the terminal. EW-FL-012 skips a net without a line (a gallery alone); a working port into an
+inlet (port 1 of another valve or of a manifold, a quick-exhaust or shuttle valve's inlet) is a circuit, not a
+conflict, the ports of a component that is no valve never conflict, and two exhausts of one valve may share a
+silencer. EW-FL-009 also compares AC and DC where the coil and the potential both name one. Each has its rule page.
 
 ---
 
@@ -817,7 +833,8 @@ allowance and no order length, since no part data names an order increment. The 
 end with the line tag, else the far end; no marker part. The medium overview counts as consumers the **valves** whose
 port 1 lies in a net carrying the medium (not the supply plates that feed it), so Golden A-R has 28. The fluid BOM
 lines are part lines of a device: a closure's part on the device of the closed port, a tube's part on the device of
-its from end in metres, a fitting on the device of its end, and a tee on the from end of the lowest tube at it.
+its from end in metres, else of its to end (a tube from a tee), a fitting on the device of its end, and a tee on the
+owner of the lowest tube at it that has one; a tube between two tees has no owner.
 
 ### 8.3 Exports, CLI and SQL
 
@@ -1040,7 +1057,8 @@ their FnDefs over the PBF §9.2 families (directional valves 2/2, 3/2 NO, 5/2 bi
 exhausted and pressurised centre, 2×3/2, the on/off valve; single-acting cylinder, semi-rotary drive, gripper,
 ejector, suction cup, vacuum and pressure switches; filter, regulator, lubricator, service unit, gauge; throttle,
 one-way flow control, check, quick-exhaust, shuttle and two-pressure valves, silencer; plug, quick coupling,
-bulkhead; the air-supply point and the valve terminal's supply plate), checked by the library's fluid symbol lint
+bulkhead; the air-supply point and the valve terminal's supply plate; the fluid interruption point's two forms),
+checked by the library's fluid symbol lint
 (`ew-library`, test `fluid_symbols`). Not built here: the flexible line's arc (a scene change of the window's,
 WP-S2.13), autoconnect and the line-kind picker (WP-S2.13), the navigator's fluid actions (WP-S2.13), and the
 ISO 1219-2 identifier set (FR-FLU-023, Could, Later). *As built (WP-S2.13).* The flexible line's arc, autoconnect,

@@ -405,6 +405,44 @@ fn valve_add_refuses_a_plc_module_part() {
     );
 }
 
+/// FT-1576 on the other path that makes a valve: `valve.set_occupancy` refuses a PLC part for a new valve as `valve.add`
+/// does, and makes nothing.
+#[test]
+fn valve_set_occupancy_refuses_a_plc_module_part() {
+    let mut module_part = part(id(0x7a50), "MODULE-4");
+    module_part.item.sections.plc =
+        Some(serde_json::from_value(json!({"role": "module", "positions": {"count": 4}})).unwrap());
+    let mut sub_base = part(id(0x7a51), "SUB-BASE-4");
+    sub_base.item.sections.fluid = Some(serde_json::from_value(json!({"positions": 4})).unwrap());
+    let mut e = engine(model_with(vec![
+        LibDocument::Part(module_part),
+        LibDocument::Part(sub_base),
+    ]));
+    e.execute(&ew_commands::commands::SetFields {
+        kind: ew_commands::commands::KindName::Device,
+        targets: vec![DEV_A.cast()],
+        path: "parts".into(),
+        value: json!([{"part": {"copy": id::<Part>(0x7a51)}, "qty": "1"}]),
+        copies: Vec::new(),
+    })
+    .expect("DEV_A has four valve positions");
+    let devices = e.model().table::<Device>().len();
+    let r = e.execute(&ew_commands::commands::SetValveOccupancy {
+        module: DEV_A,
+        position: 1,
+        occupancy: ew_commands::commands::OccupancyParam::Valve {
+            state: ew_commands::commands::ValveStateParam::Used,
+            part: Some(id(0x7a50)),
+        },
+        copies: Vec::new(),
+    });
+    assert_eq!(
+        refusal(r),
+        "part MODULE-4 is a PLC station or module, not a valve; add it as a module of the valve terminal"
+    );
+    assert_eq!(e.model().table::<Device>().len(), devices, "no valve is made");
+}
+
 /// EW-INV-025 (FI-06): a `drives` link to an ancestor of its device is refused on the edit path, here by a parent set
 /// under an existing link.
 #[test]

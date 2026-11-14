@@ -4,7 +4,7 @@
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "839253a1-5738-5d5d-9c6f-1c5ff48e0884",
   "version": "0.1.0",
-  "sha256": "sha256:18887a2f8de642eaec38be478d36aff5e6c1f7ce146e27b918bb41c66bd48fad",
+  "sha256": "sha256:3f83af6e5983fbea933e95c03b3d3a3518e9df1785fb0af4cd7a07c8380c7de7",
   "meta": {
     "key": "ew.iso.shuttle-valve",
     "licence": "CC-BY-SA-4.0",
@@ -105,6 +105,48 @@
         ],
         "stroke": {
           "pen": "p026"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            3000000,
+            5000000
+          ],
+          [
+            5000000,
+            8000000
+          ],
+          [
+            3000000,
+            11000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            13000000,
+            5000000
+          ],
+          [
+            11000000,
+            8000000
+          ],
+          [
+            13000000,
+            11000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p013"
         }
       }
     }

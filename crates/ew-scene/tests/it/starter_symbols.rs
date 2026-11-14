@@ -49,7 +49,13 @@ use ew_schema::{
 use ew_units::{Grid, Nm, Orient2, Pt2};
 
 /// The interruption-point symbols: their xref slot keeps the default style of its kind.
-const INTERRUPTION_POINTS: [&str; 3] = ["ew.gen.ip", "ew.gen.ip-target", "ew.gen.external-arrow"];
+const INTERRUPTION_POINTS: [&str; 5] = [
+    "ew.gen.ip",
+    "ew.gen.ip-target",
+    "ew.gen.external-arrow",
+    "ew.iso.ip",
+    "ew.iso.ip-target",
+];
 
 /// The suffix of a generated QET 10 px key.
 const QET_SUFFIX: &str = "@qet10";
