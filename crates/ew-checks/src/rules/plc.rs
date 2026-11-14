@@ -180,18 +180,18 @@ fn touched_channels(before: &Q, after: &Q, touched: &Touched) -> BTreeSet<Id<Cha
     out
 }
 
-/// Every channel that an error finding of `rule` in `scope` groups with others, with the channels of its group.
-fn channel_groups(
-    rule: &dyn Rule,
-    q: &Q,
-    scope: &Scope,
-) -> (BTreeMap<Id<Channel>, BTreeSet<Id<Channel>>>, Vec<Finding>) {
+/// Every grouped channel with the channels of its group (itself included).
+type Groups = BTreeMap<Id<Channel>, BTreeSet<Id<Channel>>>;
+
+/// Every channel that an error finding of `rule` in `scope` groups with others, with the channels of its group, and
+/// those findings.
+fn channel_groups(rule: &dyn Rule, q: &Q, scope: &Scope) -> (Groups, Vec<Finding>) {
     let found: Vec<Finding> = rule
         .run(q, scope)
         .into_iter()
         .filter(|f| f.severity == Severity::Error)
         .collect();
-    let mut groups: BTreeMap<Id<Channel>, BTreeSet<Id<Channel>>> = BTreeMap::new();
+    let mut groups = Groups::new();
     for f in &found {
         let members: BTreeSet<Id<Channel>> = channel_targets(f).collect();
         for m in &members {

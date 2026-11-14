@@ -319,8 +319,16 @@ fn ew_plc_013_skips_bus_port_pins_and_accepts_l_minus_for_m() {
         fx.conn(0x1403, P1, Ep::Cp(CARD_FN, 1), Ep::Cp(SRC + 1, 0), &json!({}));
         forms(&found(&fx.build(), "EW-PLC-013"))
     };
-    assert!(!fed("l_minus").iter().any(|f| f.starts_with("wrong")), "{:?}", fed("l_minus"));
-    assert!(fed("l_plus").iter().any(|f| f.starts_with("wrong")), "{:?}", fed("l_plus"));
+    assert!(
+        !fed("l_minus").iter().any(|f| f.starts_with("wrong")),
+        "{:?}",
+        fed("l_minus")
+    );
+    assert!(
+        fed("l_plus").iter().any(|f| f.starts_with("wrong")),
+        "{:?}",
+        fed("l_plus")
+    );
 }
 
 /// EW-PLC-014 (FR-PLC-048): a 1 A coil on an output rated 500 mA, and the module rated 800 mA.
@@ -566,7 +574,13 @@ fn ew_bus_006_judges_the_exact_length_and_profibus_segments_only() {
             "symbol": us(PORT_SYM), "pos": [i64::from(i) * 8_000_000, 0],
         }));
         if i > 0 {
-            fx.conn(n + 2, P1, Ep::Cp(n - 0x10 + 1, 1), Ep::Cp(n + 1, 0), &json!({"kind": {"bus": {}}}));
+            fx.conn(
+                n + 2,
+                P1,
+                Ep::Cp(n - 0x10 + 1, 1),
+                Ep::Cp(n + 1, 0),
+                &json!({"kind": {"bus": {}}}),
+            );
         }
     }
     assert!(found(&fx.build(), "EW-BUS-006").is_empty());
@@ -717,7 +731,9 @@ fn an_iolink_window_counts_its_whole_width() {
     assert!(found(&m, "EW-PLC-008").is_empty());
     let q = ew_derive::Q::new(&m);
     let port = q
-        .get::<ew_derive::ChannelAddresses>(ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(CARD)))
+        .get::<ew_derive::ChannelAddresses>(ew_derive::ew_ids::Id::from_uuid(
+            ew_derive::ew_ids::Uuid::from_u128(CARD),
+        ))
         .first()
         .map(|e| e.address.clone());
     assert!(

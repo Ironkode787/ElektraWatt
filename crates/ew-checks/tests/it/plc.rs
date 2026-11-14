@@ -263,8 +263,16 @@ fn ew_plc_001_prevents_a_new_overlap_and_lets_a_repair_commit() {
     let pair = manual_bits(&[(0, 0, 3)]);
     let three = manual_bits(&[(0, 0, 3), (1, 0, 3)]);
     assert_eq!(refused("EW-PLC-001", &none, &pair, &edit(0)), 1, "a new overlap");
-    assert_eq!(refused("EW-PLC-001", &pair, &three, &edit(1)), 1, "a channel joins a held group");
-    assert_eq!(refused("EW-PLC-001", &three, &pair, &edit(1)), 0, "a repair of a held group");
+    assert_eq!(
+        refused("EW-PLC-001", &pair, &three, &edit(1)),
+        1,
+        "a channel joins a held group"
+    );
+    assert_eq!(
+        refused("EW-PLC-001", &three, &pair, &edit(1)),
+        0,
+        "a repair of a held group"
+    );
     let mut renamed = fixture();
     for (n, byte, bit) in [(0, 0, 3), (1, 0, 3)] {
         renamed.rec_mut(&ch(M2, n))["address"] = json!({"manual": {"area": "q", "byte": byte, "bit": bit}});
@@ -306,7 +314,8 @@ fn ew_plc_001_prevents_the_overlap_a_deletion_creates() {
         }
         gone.extend(doomed);
     }
-    fx.records.retain(|r| !r["id"].as_str().is_some_and(|id| gone.iter().any(|g| g == id)));
+    fx.records
+        .retain(|r| !r["id"].as_str().is_some_and(|id| gone.iter().any(|g| g == id)));
     let after = fx.build();
     let mut keys = vec![(Kind::Device, us(M1))];
     keys.extend((0..8).map(|n| (Kind::Channel, ch(M1, n))));
@@ -348,8 +357,19 @@ fn ew_plc_007_lets_a_repair_of_a_held_duplicate_commit() {
         fx.build()
     };
     let edit = |n: u16| vec![(Kind::Channel, ch(M2, n))];
-    assert_eq!(refused("EW-PLC-007", &symbols(&[4, 5, 6]), &symbols(&[4, 5]), &edit(6)), 0);
-    assert_eq!(refused("EW-PLC-007", &symbols(&[4, 5, 6]), &symbols(&[4, 5, 6, 7]), &edit(7)), 1);
+    assert_eq!(
+        refused("EW-PLC-007", &symbols(&[4, 5, 6]), &symbols(&[4, 5]), &edit(6)),
+        0
+    );
+    assert_eq!(
+        refused(
+            "EW-PLC-007",
+            &symbols(&[4, 5, 6]),
+            &symbols(&[4, 5, 6, 7]),
+            &edit(7)
+        ),
+        1
+    );
 }
 
 /// A group names five channels and counts the rest ("and 4 more channels"), in the rule text, the en-GB

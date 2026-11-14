@@ -913,8 +913,11 @@ impl Command for ConvertManualToAuto {
                 if !matches!(c.address, AddrSpec::Manual(_)) {
                     continue;
                 }
-                let derived = matches!(&e.address, ew_derive::ChannelAddr::At { address, .. } if e.auto == Some(*address));
-                if derived {
+                let at_derived = matches!(
+                    &e.address,
+                    ew_derive::ChannelAddr::At { address, .. } if e.auto == Some(*address)
+                );
+                if at_derived {
                     tx.update::<Channel>(e.channel, |c| c.address = AddrSpec::Auto)?;
                 } else {
                     let derived = e
@@ -955,8 +958,7 @@ impl Command for ConvertManualToAuto {
                     .and_then(|d| d.aspects.plc_module.as_ref().map(|p| (*m, p.start.clone())))
             })
             .collect();
-        // (module, output, manual byte, automatic byte, whether it stays because it would move other modules)
-        let mut kept: Vec<(Id<Device>, bool, u32, Option<u32>, bool)> = Vec::new();
+        let mut kept: Vec<KeptStart> = Vec::new();
         while !candidates.is_empty() {
             for (m, output, _) in &candidates {
                 tx.update::<Device>(*m, |d| {
@@ -1042,8 +1044,8 @@ impl Command for ConvertManualToAuto {
             );
             notices.push(if others_moved {
                 format!(
-                    "module {module} keeps its manual {dir} start {}: as an automatic start it would move the addresses \
-                     of other modules",
+                    "module {module} keeps its manual {dir} start {}: as an automatic start it would move the \
+                     addresses of other modules",
                     start(byte)
                 )
             } else {
@@ -1064,6 +1066,10 @@ impl Command for ConvertManualToAuto {
         Ok(outcome)
     }
 }
+
+/// A manual start `plc.convert_manual_to_auto` keeps: the module, whether it is the output start, the manual byte, the
+/// byte A1 places it at as automatic, and whether it stays because converting it would move other modules.
+type KeptStart = (Id<Device>, bool, u32, Option<u32>, bool);
 
 /// The address profile of a module's configuration project in `q`.
 fn module_profile_of(

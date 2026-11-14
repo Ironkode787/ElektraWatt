@@ -585,8 +585,10 @@ fn converting_a_start_that_would_move_another_module_keeps_it() {
     assert_eq!(all_texts(&s.query()), before, "nothing prints differently");
     assert_eq!(
         receipt.outcome.notices,
-        ["module -201U3 keeps its manual output start Q1: as an automatic start it would move the addresses of other \
-          modules"]
+        [
+            "module -201U3 keeps its manual output start Q1: as an automatic start it would move the addresses of other \
+          modules"
+        ]
     );
 }
 

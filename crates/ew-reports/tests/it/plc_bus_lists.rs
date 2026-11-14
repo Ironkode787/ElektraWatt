@@ -166,10 +166,9 @@ fn model() -> Model {
 fn rows(kind: &str) -> Vec<Vec<String>> {
     let m = model();
     let q = Q::new(&m);
-    let block: ReportBlock = serde_json::from_value(
-        json!({"id": uid(0x50), "source": {"kind": kind}, "form": uid(0x51)}),
-    )
-    .expect("a report block");
+    let block: ReportBlock =
+        serde_json::from_value(json!({"id": uid(0x50), "source": {"kind": kind}, "form": uid(0x51)}))
+            .expect("a report block");
     let def = Registry::builtin().by_name(kind).expect("a registered kind");
     def.rows(&q, &block)
         .rows
