@@ -22,6 +22,7 @@ mod checks;
 mod collab;
 mod diff;
 mod dxf;
+mod eplan;
 mod export;
 mod import;
 mod layout;
@@ -70,6 +71,10 @@ pub enum Command {
     ImportPdf(dxf::ImportPdfArgs),
     /// `ew import dwg`: a DWG through the user's ODA File Converter, then as `ew import dxf`.
     ImportDwg(dxf::ImportDwgArgs),
+    /// `ew import edz`: the parts of an EDZ into a library, or the previewed update of a project's part copies.
+    ImportEdz(eplan::ImportEplanPartsArgs),
+    /// `ew import parts-xml`: as `ew import edz`, for an EPLAN parts XML.
+    ImportPartsXml(eplan::ImportEplanPartsArgs),
     /// `ew import table`: a round-trip table read back and its changed cells applied.
     ImportTable(ImportTableArgs),
     /// Check a project.
@@ -832,6 +837,8 @@ pub fn run(cmd: Command) -> i32 {
         Command::ImportDxf(a) => dxf::run_import_dxf(&a),
         Command::ImportPdf(a) => dxf::run_import_pdf(&a),
         Command::ImportDwg(a) => dxf::run_import_dwg(&a),
+        Command::ImportEdz(a) => eplan::run_import_eplan_parts(&a, true),
+        Command::ImportPartsXml(a) => eplan::run_import_eplan_parts(&a, false),
         Command::Check(a) => run_check(&a),
         Command::Sql(a) => run_sql(&a),
         Command::SqlDump(a) => run_sql_dump(&a),

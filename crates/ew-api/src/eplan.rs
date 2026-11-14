@@ -48,17 +48,27 @@ pub fn fndef_map(config_dir: Option<&Path>) -> Result<FndefMap, String> {
     let path = dir.join(crate::catalog::MAPS_DIR).join(FNDEF_MAP_FILE);
     match std::fs::metadata(&path) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(shipped),
-        Err(e) => Err(format!("{FNDEF_MAP_FILE}: {e}")),
-        Ok(m) if m.len() > MAX_MAP_BYTES => {
-            Err(format!("{FNDEF_MAP_FILE}: larger than {MAX_MAP_BYTES} bytes"))
-        }
-        Ok(_) => {
-            let text = std::fs::read_to_string(&path).map_err(|e| format!("{FNDEF_MAP_FILE}: {e}"))?;
-            shipped
-                .with_user(&text)
-                .map_err(|e| format!("{FNDEF_MAP_FILE}: {e}"))
-        }
+        _ => fndef_map_file(&path),
     }
+}
+
+/// The shipped table with the rows of the file `path` over it (`ew import edz --fndef-map`).
+///
+/// # Errors
+///
+/// The text of the problem: the file cannot be read, is above 1 MiB or is not a table of rows.
+pub fn fndef_map_file(path: &Path) -> Result<FndefMap, String> {
+    let name = path
+        .file_name()
+        .map_or_else(|| FNDEF_MAP_FILE.to_owned(), |n| n.to_string_lossy().into_owned());
+    let len = std::fs::metadata(path).map_err(|e| format!("{name}: {e}"))?.len();
+    if len > MAX_MAP_BYTES {
+        return Err(format!("{name}: larger than {MAX_MAP_BYTES} bytes"));
+    }
+    let text = std::fs::read_to_string(path).map_err(|e| format!("{name}: {e}"))?;
+    FndefMap::shipped()
+        .with_user(&text)
+        .map_err(|e| format!("{name}: {e}"))
 }
 
 /// The report entry of the Data Portal terms notice (EW-IMP-201): a front end that showed the notice before an EDZ

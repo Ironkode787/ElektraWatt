@@ -472,6 +472,26 @@ enum Import {
     /// first; a row without one is an open item (EW-PRC-002). Prints every row's channel; `--apply` commits them as
     /// one undo step and saves. Exit 0 with the rows, 2 on usage, open, read and save errors.
     InstrumentList(InstrumentListCli),
+    /// Import the parts of an EPLAN EDZ.
+    ///
+    /// Reads an EDZ (7-Zip or ZIP, told by its content): the `*.part.xml` members into parts, with their
+    /// multilingual descriptions, pins, function templates (through the function-definition table, `--fndef-map`
+    /// adds your own rows), sizes, free properties and provenance (the file, its SHA-256, the vendor terms). The
+    /// EPLAN Data Portal terms notice is printed first. `--library <key|id>` writes the parts into a writable
+    /// library (`--bump` writes a changed part as its next patch version, `--take-over` takes a stale library lock
+    /// over, `--company` names company libraries, `--as-of` stamps the parts). `--project <dir>` writes nothing into
+    /// a library: it previews the update of the project's part copies of the same part numbers, field by field,
+    /// and with `--apply` commits it as one undo step and saves; a part the project has no copy of is listed, never
+    /// created. Exit 0 when imported or previewed, 2 on usage, a refused file, a refused library write and open and
+    /// save errors.
+    Edz(super::eplan::ImportEplanPartsArgs),
+    /// Import the parts of an EPLAN parts XML.
+    ///
+    /// As `import edz`, for a `partsmanagement` file (parts, variants, function templates, free properties,
+    /// accessory lists; its `length-unit` scales the sizes) or one part XML, without the terms notice. Parts that the
+    /// library holds already are updated in place.
+    #[command(name = "parts-xml")]
+    PartsXml(super::eplan::ImportEplanPartsArgs),
 }
 
 /// `ew import table`.
@@ -2455,6 +2475,8 @@ impl Cli {
             Top::Import(Import::Dxf(a)) => Command::ImportDxf(a),
             Top::Import(Import::Pdf(a)) => Command::ImportPdf(a),
             Top::Import(Import::Dwg(a)) => Command::ImportDwg(a),
+            Top::Import(Import::Edz(a)) => Command::ImportEdz(a),
+            Top::Import(Import::PartsXml(a)) => Command::ImportPartsXml(a),
             Top::Import(Import::Table(ImportTableCli {
                 file,
                 project_dir,

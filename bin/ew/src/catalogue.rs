@@ -184,6 +184,36 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["import", "edz"],
+        exits: &[
+            exit(
+                0,
+                "imported into the library, or the update of the part copies previewed or committed and saved",
+            ),
+            exit(
+                2,
+                "usage, a refused file, a refused library write, open and save errors",
+            ),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
+        path: &["import", "parts-xml"],
+        exits: &[
+            exit(
+                0,
+                "imported into the library, or the update of the part copies previewed or committed and saved",
+            ),
+            exit(
+                2,
+                "usage, a refused file, a refused library write, open and save errors",
+            ),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["import", "pdf"],
         exits: &[
             exit(0, "placed and saved"),
