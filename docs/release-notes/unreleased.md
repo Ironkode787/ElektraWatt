@@ -658,3 +658,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: `plc.freeze` makes the address of every used or reserved channel manual and pins every module
   start; a spare or deactivated channel keeps its automatic address, so a frozen project gives no spare channel
   EW-PLC-009 (persona round)
+- behaviour-change: EW-POT-009 no longer reports the pin of a PLC channel that is spare, reserved or deactivated: a
+  card with one used channel gives no "is not connected" for the others (persona round)

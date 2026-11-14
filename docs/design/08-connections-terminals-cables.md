@@ -1266,7 +1266,10 @@ BFS from main; every PE-typed CP not reached → error with the nearest reached 
 - CPs of unplaced functions;
 - non-physical CPs;
 - CPs whose CpDef is optional (`CpDef.optional`, [07](07-symbols-parts-macros.md) §2.4), such as the outgoing
-  entry of a terminating bus connector or a parallel duplicate pin (Open question 6).
+  entry of a terminating bus connector or a parallel duplicate pin (Open question 6);
+- the pin of a PLC channel whose effective state is spare, reserved or deactivated ([10](10-plc-and-bus.md) §3.2):
+  the channel's state already says that the pin stays free, so a card with one used channel gives no warning for the
+  other seven.
 
 Marking a CP `unused` turns the warning into an info.
 

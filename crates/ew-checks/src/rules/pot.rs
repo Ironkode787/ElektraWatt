@@ -17,12 +17,12 @@ use std::sync::OnceLock;
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::natural_cmp;
 use ew_derive::ew_schema::{
-    BondKind, ColourCode, Connection, ContactKind, Csa, Device, Discipline, Function, FunctionKind,
+    BondKind, Channel, ColourCode, Connection, ContactKind, Csa, Device, Discipline, Function, FunctionKind,
     IecColour, Kind, Page, PotentialEarthing, PotentialType, StructureNode,
 };
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
-    BondCarrierQ, ConnWireProps, CpRef, DeriveNote, DeviceTag, DrawnPageOrder, EndKind, EndpointKey, FlowBfs,
+    BondCarrierQ, ChannelStates, ChannelsByCp, ConnWireProps, CpRef, DeriveNote, DeviceTag, DrawnPageOrder, EffectiveState, EndKind, EndpointKey, FlowBfs,
     FunctionCps, FunctionLinksOf, PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow,
     PotentialId, PotentialNameOf, PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers,
     bonds_of_potential, colour_text, cp_label, cp_text, csa_text, device_location, potential_id_at,
@@ -1533,7 +1533,9 @@ pub const UNCONNECTED_CP: RuleMeta = RuleMeta {
 /// counts as connected when a connection ends at it or it is a node of the stitch graph (a bridge, a rail, a
 /// declared link joins it). A CP marked `unused` is an info. Each function is checked on the first page of its
 /// representations (page order), so a function drawn twice is reported once; one finding per CP, target the
-/// function, discriminator the CP index, shown on that page. Golden A: -102F2:13 and :14 (EF-09).
+/// function, discriminator the CP index, shown on that page. Left out too: the pin of a PLC channel whose effective
+/// state is spare, reserved or deactivated (doc 10 §3.2): the channel's state says that it stays unconnected. Golden
+/// A: -102F2:13 and :14 (EF-09).
 #[derive(Clone, Copy, Debug)]
 pub struct UnconnectedCp;
 
@@ -1585,7 +1587,10 @@ impl Rule for UnconnectedCp {
                     continue;
                 }
                 let at = EndpointKey::Cp(f, c.idx);
-                if q.idx().connections_at(at).next().is_some() || partition.is_node(at) {
+                if q.idx().connections_at(at).next().is_some()
+                    || partition.is_node(at)
+                    || idle_channel_pin(q, f, c.idx)
+                {
                     continue;
                 }
                 let label = cp_label(q, CpRef::new(f, c.idx));
@@ -1614,6 +1619,22 @@ impl Rule for UnconnectedCp {
         }
         out
     }
+}
+
+/// Whether CP `idx` of `function` is the pin of a PLC channel whose effective state (doc 10 §3.2) says it is meant to
+/// stay unconnected: spare, reserved or deactivated.
+fn idle_channel_pin(q: &Q, function: Id<Function>, idx: u16) -> bool {
+    q.get::<ChannelsByCp>(()).at_cp(function, idx).any(|channel| {
+        q.table::<Channel>().get(channel).is_some_and(|c| {
+            q.get::<ChannelStates>(c.module).iter().any(|(id, state)| {
+                *id == channel
+                    && matches!(
+                        state,
+                        EffectiveState::Spare | EffectiveState::Reserved | EffectiveState::Deactivated
+                    )
+            })
+        })
+    })
 }
 
 // ---------------------------------------------------------------------------------------------------------

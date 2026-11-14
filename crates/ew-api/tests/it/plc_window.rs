@@ -307,6 +307,48 @@ fn a_card_channel_is_used_once_a_wire_reaches_its_pin() {
     }
 }
 
+/// The discriminators (CP indexes) of the open EW-POT-009 findings on the function of `device`.
+fn unconnected_pins(s: &Session, device: Uuid) -> Vec<String> {
+    let report = s.check(&ew_api::checks::PRE_DELIVERY, ew_api::checks::CheckMode::Online);
+    let q = s.query();
+    let mut out: Vec<String> = report
+        .findings
+        .iter()
+        .filter(|f| f.rule == "EW-POT-009" && f.is_open())
+        .filter(|f| {
+            f.targets.iter().any(|t| {
+                q.functions()
+                    .get(t.id.cast())
+                    .is_some_and(|x| x.device.map(|d| d.as_uuid()) == Some(device))
+            })
+        })
+        .map(|f| f.discriminator.clone())
+        .collect();
+    out.sort();
+    out
+}
+
+/// Doc 10 §3.2, EW-POT-009: the pin of a spare, reserved or deactivated channel is meant to stay unconnected, so the
+/// check does not call it "not connected"; the card's supply pin M, which is no channel's, still is.
+#[test]
+fn an_idle_channels_pin_is_not_reported_unconnected() {
+    let (mut s, _, di, dout) = three(30);
+    let channel = |m: Uuid, n: u16| ew_ids::v5::plc_channel_id(Id::<Device>::from_uuid(m), n);
+    let pin = |s: &Session, m: Uuid| match binding(s, channel(m, 0)) {
+        Some(ew_schema::Endpoint::Cp(f, idx)) => json!({"cp": {"function": f.to_string(), "idx": idx}}),
+        other => panic!("channel 0 is bound to its pin: {other:?}"),
+    };
+    let (a, b) = (pin(&s, di), pin(&s, dout));
+    s.execute(&AnyCommand {
+        name: "connection.draw".into(),
+        params: json!({"a": a, "b": b}),
+    })
+    .expect("a wire between the two pins");
+    set_channel(&mut s, channel(di, 1), "state", json!("reserved")).expect("reserved");
+    set_channel(&mut s, channel(di, 2), "state", json!("deactivated")).expect("deactivated");
+    assert_eq!(unconnected_pins(&s, di), ["8"], "only the M pin of the input card");
+}
+
 /// PW-5: `fields.set` on a channel: symbol, comment, state, the address forms (a manual address refused for I4.9
 /// with the profile's example), each one undo step, and the rows of `PlcRows` follow. The property sheet of the
 /// selected channel shows the members with their `fields.set` routes.
