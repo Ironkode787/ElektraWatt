@@ -52,11 +52,24 @@ pub fn fndef_map(config_dir: Option<&Path>) -> Result<FndefMap, String> {
     }
 }
 
+/// The starter function definition `key` (`v5(SYSTEM_LIBRARY, key)`) of `reg`, if it holds one.
+fn starter_fndef(reg: &library::Registry, key: &str) -> Option<LibDocument> {
+    let library = ew_import_catalog::ew_interop_api::SYSTEM_LIBRARY;
+    reg.resolve(&LibRef {
+        library: Id::from_uuid(library),
+        item: Id::from_uuid(Uuid::new_v5(&library, key.as_bytes())),
+        version_req: "*".to_owned(),
+        extra: Default::default(),
+    })
+    .ok()
+}
+
 /// The shipped table with the rows of the file `path` over it (`ew import edz --fndef-map`).
 ///
 /// # Errors
 ///
-/// The text of the problem: the file cannot be read, is above 1 MiB or is not a table of rows.
+/// The text of the problem: the file cannot be read, is above 1 MiB, is not a table of rows or names a function
+/// definition the starter library does not hold.
 pub fn fndef_map_file(path: &Path) -> Result<FndefMap, String> {
     let name = path
         .file_name()
@@ -66,9 +79,15 @@ pub fn fndef_map_file(path: &Path) -> Result<FndefMap, String> {
         return Err(format!("{name}: larger than {MAX_MAP_BYTES} bytes"));
     }
     let text = std::fs::read_to_string(path).map_err(|e| format!("{name}: {e}"))?;
-    FndefMap::shipped()
+    let map = FndefMap::shipped()
         .with_user(&text)
-        .map_err(|e| format!("{name}: {e}"))
+        .map_err(|e| format!("{name}: {e}"))?;
+    // A pin the map gives a function definition the program does not have would name nothing.
+    let reg = library::Registry::starter_only();
+    match map.fndef_keys().into_iter().find(|k| starter_fndef(&reg, k).is_none()) {
+        Some(key) => Err(format!("{name}: `{key}` is no function definition of the starter library")),
+        None => Ok(map),
+    }
 }
 
 /// The key of the user's own parts library, which the window writes EDZ and parts XML into.
@@ -236,16 +255,7 @@ pub fn report_batch(
     let reg = library::Registry::starter_only();
     let fndefs: Vec<LibDocument> = ["ew.fn.terminal", "ew.fn.terminal-pe", "ew.fn.blackbox"]
         .iter()
-        .filter_map(|k| {
-            let item = Uuid::new_v5(&ew_import_catalog::ew_interop_api::SYSTEM_LIBRARY, k.as_bytes());
-            reg.resolve(&LibRef {
-                library: Id::from_uuid(ew_import_catalog::ew_interop_api::SYSTEM_LIBRARY),
-                item: Id::from_uuid(item),
-                version_req: "*".to_owned(),
-                extra: Default::default(),
-            })
-            .ok()
-        })
+        .filter_map(|k| starter_fndef(&reg, k))
         .collect();
     let sizes = [input.bytes().len() as u64];
     crate::import::front_door(input.name(), &sizes, &limits, None, || {

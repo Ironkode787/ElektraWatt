@@ -387,6 +387,14 @@ fn the_function_definition_table_names_starter_items_and_reads_the_users_rows() 
     .unwrap();
     let mine = eplan::fndef_map(Some(&dir.0)).unwrap();
     assert!(mine.fndef_keys().contains(&"ew.fn.terminal-pe"));
+    // A row for a function definition the starter library does not hold is refused in words.
+    std::fs::write(
+        dir.0.join("imports").join(eplan::FNDEF_MAP_FILE),
+        "[[map]]\ncategory = \"1\"\ngroup = \"1\"\nid = \"1\"\nfndef = \"ew.fn.nothing\"\n",
+    )
+    .unwrap();
+    let e = eplan::fndef_map(Some(&dir.0)).unwrap_err();
+    assert!(e.contains("ew.fn.nothing") && e.contains("starter library"), "{e}");
     std::fs::write(dir.0.join("imports").join(eplan::FNDEF_MAP_FILE), "not a table [").unwrap();
     assert!(eplan::fndef_map(Some(&dir.0)).is_err());
 }
