@@ -119,6 +119,28 @@ fn parts_the_project_does_not_hold_are_listed_not_created() {
     );
 }
 
+/// The part number alone does not make a match: another manufacturer's part of the same number is a part the project
+/// does not hold, the held manufacturer's is the copy.
+#[test]
+fn a_part_number_of_another_manufacturer_is_not_the_projects_copy() {
+    let s = golden();
+    let xml = |maker: &str| {
+        let xml = format!(
+            r#"<partsmanagement><part P_ARTICLE_PARTNR="2904602" P_ARTICLE_MANUFACTURER="{maker}"
+                P_ARTICLE_DESCR1="Gadget"/></partsmanagement>"#
+        );
+        let input = ImportInput::new("p.xml", xml.into_bytes()).unwrap();
+        let import = s.eplan_parts(&input, &FndefMap::shipped(), None).unwrap();
+        s.update_parts_from_import(&import).unwrap()
+    };
+    let other = xml("Acme");
+    assert!(other.matched.is_empty() && other.plan.is_none(), "{other:?}");
+    assert_eq!(other.unmatched, ["2904602"]);
+    let held = xml("Phoenix Contact");
+    assert_eq!(held.matched.len(), 1, "{held:?}");
+    assert!(held.unmatched.is_empty() && held.ambiguous.is_empty());
+}
+
 /// A library write: the parts of an EDZ go into a user library with their provenance and the vendor terms; a second
 /// import of the same file writes nothing; a changed part under its held version is refused unless it is bumped.
 #[test]

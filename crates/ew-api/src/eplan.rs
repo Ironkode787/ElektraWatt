@@ -456,7 +456,7 @@ impl Session {
 
     /// The previewed update of this project's part copies from the parts of `import` (an EDZ or parts XML read by
     /// [`parts_import`]; FR-PRT-014, AC-38): each part of the import is matched to the project's copy of the same
-    /// normalised part number, laid over it ([`merged`]) as the copy's next patch version, and the plan of the
+    /// manufacturer and normalised part number, laid over it ([`merged`]) as the copy's next patch version, and the plan of the
     /// differing copies is made as [`Session::update_from_documents`] makes it (the card's field diff, the devices and
     /// the BOM rows touched). A part the project holds no copy of is listed, never created; a part number two copies
     /// carry is left alone.
@@ -470,16 +470,40 @@ impl Session {
         let mut unmatched = Vec::new();
         let mut ambiguous = Vec::new();
         let mut docs: Vec<LibDocument> = Vec::new();
+        // The keys of the manufacturers a part may name (the project's copies, the installed libraries' records and
+        // those the import creates), by library and item: one maker has one key whichever record names it.
+        let mut maker_keys: std::collections::BTreeMap<(Uuid, Uuid), String> = std::collections::BTreeMap::new();
+        let known = crate::catalog::manufacturer_master(self.libraries())
+            .into_iter()
+            .chain(q.manufacturers().iter().map(|(_, c)| (**c).clone()))
+            .chain(import.manufacturers.iter().filter_map(|d| match d {
+                LibDocument::Manufacturer(m) => Some(m.clone()),
+                _ => None,
+            }));
+        for m in known {
+            maker_keys.insert((m.library_id.as_uuid(), m.item_id.as_uuid()), m.item.key.to_string());
+        }
+        // A reference no record answers stands for itself.
+        let maker_of = |r: &LibRef| {
+            let at = (r.library.as_uuid(), r.item.as_uuid());
+            maker_keys
+                .get(&at)
+                .cloned()
+                .unwrap_or_else(|| format!("{}/{}", at.0, at.1))
+        };
         for doc in &import.parts {
             let LibDocument::Part(new) = doc else {
                 continue;
             };
             let number = new.item.part_number.as_str().to_owned();
             let norm = pn_norm(&number);
+            let maker = maker_of(&new.item.manufacturer);
             let hits: Vec<_> = q
                 .parts()
                 .iter()
-                .filter(|(_, c)| pn_norm(c.item.part_number.as_str()) == norm)
+                .filter(|(_, c)| {
+                    pn_norm(c.item.part_number.as_str()) == norm && maker_of(&c.item.manufacturer) == maker
+                })
                 .map(|(_, c)| c.clone())
                 .collect();
             let [held] = hits.as_slice() else {
