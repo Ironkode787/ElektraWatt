@@ -286,4 +286,134 @@ impl Session {
             })
             .unwrap_or_default()
     }
+
+    /// The parameters of `valve_terminal.generate_overview` for `station` (doc 11 §5.5, FR-FLU-033): the band is the
+    /// drawing area of the frame on the page the overview starts from (the first page of a member's overview
+    /// representation, else the station's own page), the row's y that of the first overview representation, else a
+    /// third down the drawing area; the starter overview module (`ew.ovw.module`, in the page grid's family) for the
+    /// members not drawn yet, embedded with the command. `None` for an unknown or unplaced station or a page without a
+    /// frame grid.
+    pub fn overview_params(&self, station: Uuid) -> Option<serde_json::Value> {
+        let q = self.query();
+        let head: Id<Device> = Id::from_uuid(station);
+        q.devices().get(head)?;
+        let members = ew_derive::assembly_members(&q, head);
+        let drawn: Vec<_> = members
+            .iter()
+            .filter_map(|m| ew_derive::overview_rep(&q, *m).and_then(|r| q.reps().get(r).cloned()))
+            .collect();
+        let page = match drawn.first() {
+            Some(r) => r.page,
+            None => q.reps().get((*q.get::<ew_derive::MainRep>(head))?)?.page,
+        };
+        let (area, map) = super::scale_fit::drawing_area(&q, page)?;
+        let (min, max) = (map.unapply(area.min()), map.unapply(area.max()));
+        let y = drawn
+            .first()
+            .map_or(min.y.0 + (max.y.0 - min.y.0) / 3, |r| r.pos.y.0);
+        let mut params = serde_json::json!({
+            "station": station.to_string(), "left": min.x.0, "right": max.x.0, "y": y,
+        });
+        if drawn.len() < members.len() {
+            let grid = q.pages().get(page)?.grid;
+            let key = if grid == ew_derive::ew_units::Grid::QET_10PX {
+                "ew.ovw.module@qet10"
+            } else {
+                "ew.ovw.module"
+            };
+            if let Some(symbol) = self.starter_symbol_copy(key) {
+                params["symbol"] = serde_json::json!(symbol.to_string());
+            }
+            if let Some(embed) = self.starter_embed(key) {
+                params["copies"] = embed["copies"].clone();
+            }
+        }
+        Some(params)
+    }
+
+    /// What a device row's fluid actions act on (doc 11 §7, FT-1733): whether it is a valve terminal (Generate
+    /// overview…), the positions of a valve module, its own position when it is a valve or a blanking plate, the part a
+    /// new valve takes and its open working ports (EW-FL-001's).
+    pub fn fluid_menu(&self, device: Uuid) -> FluidMenu {
+        let q = self.query();
+        let id: Id<Device> = Id::from_uuid(device);
+        let slots = q.get::<ValveSlots>(id);
+        let positions: Vec<(u32, &'static str)> = (1u32..)
+            .zip(slots.slots.iter())
+            .map(|(p, s)| (p, slot_word(s)))
+            .collect();
+        let parent = q.devices().get(id).and_then(|d| d.parent);
+        let own = parent.and_then(|m| {
+            let slots = q.get::<ValveSlots>(m);
+            (1u32..).zip(slots.slots.iter()).find_map(|(p, s)| match s {
+                ValveSlot::Valve { device, state } if *device == id => {
+                    Some((m.as_uuid(), p, super::navigators::state_word(state).to_owned()))
+                }
+                ValveSlot::Blank { device } if *device == id => Some((m.as_uuid(), p, "blank".to_owned())),
+                _ => None,
+            })
+        });
+        // A new valve takes the part of the first valve of the module, else of another module of its terminal.
+        let valve_part = |m: Id<Device>| {
+            q.get::<ValveSlots>(m).slots.iter().find_map(|s| match s {
+                ValveSlot::Valve { device, .. } => q
+                    .devices()
+                    .get(*device)
+                    .and_then(|d| d.parts.first())
+                    .map(|u| u.part.copy.as_uuid()),
+                _ => None,
+            })
+        };
+        let grand = parent.and_then(|p| q.devices().get(p).and_then(|d| d.parent));
+        let part = [Some(id), parent]
+            .into_iter()
+            .flatten()
+            .find_map(valve_part)
+            .or_else(|| {
+                [parent, grand]
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|t| q.idx().device_children(t).collect::<Vec<_>>())
+                    .find_map(valve_part)
+            });
+        let open_ports = ew_derive::valve_functions(&q, id)
+            .into_iter()
+            .flat_map(|f| {
+                ew_derive::open_working_ports(&q, f)
+                    .into_iter()
+                    .map(move |(idx, d)| (f.as_uuid(), idx, d))
+            })
+            .collect();
+        FluidMenu {
+            terminal: ew_derive::is_valve_terminal(&q, id),
+            positions,
+            own,
+            valve_part: part,
+            open_ports,
+        }
+    }
+}
+
+/// A valve position's content as a word: `valve`, `blank` or `empty`.
+fn slot_word(s: &ValveSlot) -> &'static str {
+    match s {
+        ValveSlot::Valve { .. } => "valve",
+        ValveSlot::Blank { .. } => "blank",
+        ValveSlot::Empty => "empty",
+    }
+}
+
+/// What a device row's fluid actions act on ([`Session::fluid_menu`]).
+#[derive(Clone, PartialEq, Eq, Debug, Default)]
+pub struct FluidMenu {
+    /// Whether the device is a valve terminal.
+    pub terminal: bool,
+    /// A valve module's positions: (position, `valve` | `blank` | `empty`).
+    pub positions: Vec<(u32, &'static str)>,
+    /// A valve's or plate's own place: (module, position, its state word or `blank`).
+    pub own: Option<(Uuid, u32, String)>,
+    /// The part copy a new valve on the module takes.
+    pub valve_part: Option<Uuid>,
+    /// The open working ports: (function, CP index, designation).
+    pub open_ports: Vec<(Uuid, u16, String)>,
 }

@@ -138,6 +138,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_plc_import_apply(),
     )),
+    // A valve terminal row's Generate overview… (FR-FLU-033): the previewed overview pages.
+    with_params(
+        "station:ref",
+        needs_parameters(in_navigator(with_aliases(
+            &[("station", ParamForm::Whole)],
+            act(
+                "fluid.generate_overview",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_generate_overview(p),
+            ),
+        ))),
+    ),
     // A fluid line's medium (its context menu) and New medium… (doc 11 §7, FR-FLU-008/-009).
     with_params(
         "line:ref, medium:ref",

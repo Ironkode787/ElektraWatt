@@ -494,7 +494,7 @@ golden builder keeps its 28 explicit bindings, because under H1 the map and the 
 built, each one undo step; the project's default tube and line-tag scheme are the `fluid` member of
 `project.settings.set`. `valve.add` refuses a part with a PLC section (a station or module part, which N0 would attach
 to a station; FT-1576). `fluid.line.draw` is `connection.draw` with kind `fluid`; `valve_terminal.generate_overview`
-is WP-S2.13's; `RouteTubes` is 1.x.
+is built (§5.5); `RouteTubes` is 1.x.
 
 *As built.* `valve.set_occupancy {module, position, occupancy, copies?}`
 (`{"valve": {state, part?}}`, `{"blank": {part?}}` or `"empty"`, one undo step; a blank removes the valve with its
@@ -664,6 +664,23 @@ per position of a module from `valve_slots`, a valve as a rectangle with a circl
 both diagonals, an empty position dashed, in a band above the module glyph; the glyphs are derived items, never
 records. Golden A's folio 201 shows 24 and 202 four, each printing 571334 (AC-32's MVP part).
 
+*As built (WP-S2.13).* `valve_terminal.generate_overview {station, left, right, y, symbol?, copies?}` is built, a
+`Bulk` command (previewed, one undo step); the window's entry is Generate overview… on a valve terminal's row of the
+fluid, PLC or device navigator, which sends the drawing area of the frame on the page the overview starts from (the
+first page of a member's overview, else the station's page; `Session::overview_params`) and, for members not drawn
+yet, the starter `ew.ovw.module` of the page grid's family. The members (`assembly_members`) stand left to right, each
+the width of its symbol's graphics, snapped to the page grid; one that would pass the band's right edge starts the next
+page (the members' overview pages in member order, then new assembly-overview pages after the last, with its frame,
+grid and structure). A member without an overview representation gets one of its main function; a module added
+without functions gets the symbol's FnDef as its main function. The preview's changes name each page's members, the
+new pages and a page left without members; the derived changes show the tags that move with a page. A member takes
+part in the overview with its **overview representation** (`overview_rep`: its main representation when that is an
+overview one, else the smallest-ID overview representation of its main function), so a module drawn on a multi-line
+page first is a member of the generated overview too; its main representation, and so its page-based tag, stay with
+the smallest-ID representation (doc 03 §5.1). The positions in the overview are each member's symbol width apart,
+so a refresh of Golden A, drawn by hand with gaps, closes the gaps. The part data's `overview.symbol` and
+`overview.width` (step 1) are not read: the symbol is the member's own or the starter one, the width its graphics'.
+
 ### 5.6 Query catalogue
 
 | Query (key) | Depends on | Policy | Class |
@@ -752,8 +769,12 @@ context menu, Medium: `<name>` (one `fluid.medium.define` at the line's end), wh
 Working … Flexible: the line-kind picker of FT-1733, after drawing). **Zones are shown** by a medium's row with
 Highlight (`Ctrl+Shift+H`, the window highlight of doc 16 §7.3 in a slot's colour and hatch, never colour alone): the
 lines of the nets whose medium is that medium. This is the highlight half of FR-FLU-034 (Could), built because the
-zones were otherwise invisible; the per-position flow preview stays Later. Not built: the flexible line's arc on the
-page, autoconnect on fluid ports and the fluid navigator's row actions (add valve, spare or blank, close ports).
+zones were otherwise invisible; the per-position flow preview stays Later. **The device rows' fluid actions** (FT-1733)
+are on a device's row of the fluid, PLC and device navigators (`Session::fluid_menu`): a valve terminal's Generate
+overview… (§5.5); a valve module's Add valve at position *n* for each blank or empty position (a `valve.set_occupancy`
+with the part of the module's first valve, else of another module's; disabled with its reason without one); a valve's
+Set spare or Set used and Blank position *n*, a blanking plate's Add valve; Plug port *p* for each open working port
+(EW-FL-001's, `ew_derive::open_working_ports`; `fluid.port.close` with a plug). Each is one undo step.
 
 ---
 

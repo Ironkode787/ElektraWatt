@@ -142,6 +142,7 @@
     - [`terminal.move`](reference/commands/terminal.move.md)
     - [`valve.add`](reference/commands/valve.add.md)
     - [`valve.set_occupancy`](reference/commands/valve.set_occupancy.md)
+    - [`valve_terminal.generate_overview`](reference/commands/valve_terminal.generate_overview.md)
   - [Rule reference](reference/rules/index.md)
     - [EW-BUS](reference/rules/ew-bus.md)
       - [EW-BUS-001](reference/rules/ew-bus-001.md)

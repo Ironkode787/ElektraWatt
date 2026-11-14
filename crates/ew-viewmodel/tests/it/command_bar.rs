@@ -47,6 +47,8 @@ const KEY_ONLY: &[&str] = &[
     "plc.preview",
     // A fluid line's medium, reached through its context menu.
     "fluid.set_medium",
+    // A valve terminal's overview, reached through its row menu.
+    "fluid.generate_overview",
 ];
 
 fn shell(tmp: &Tmp) -> ShellModel {

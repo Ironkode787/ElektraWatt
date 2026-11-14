@@ -44,6 +44,35 @@ pub fn is_valve_terminal(q: &Q, device: Id<Device>) -> bool {
     })
 }
 
+/// The open working ports of function `f` (EW-FL-001, FR-FLU-018): its CPs of role `working2` or `working4` that carry
+/// no closure and whose fluid net has no other member, as (CP index, designation) in CP order.
+pub fn open_working_ports(q: &Q, f: Id<Function>) -> Vec<(u16, String)> {
+    let Some(func) = q.functions().get(f) else {
+        return Vec::new();
+    };
+    let nets = q.get::<FluidNets>(());
+    q.get::<FunctionCps>(f)
+        .iter()
+        .filter(|cp| {
+            matches!(
+                cp.port_role,
+                Some(FluidPortRole::Working2 | FluidPortRole::Working4)
+            )
+        })
+        .filter(|cp| {
+            !func
+                .cp_overrides
+                .iter()
+                .any(|o| o.idx == cp.idx && o.closure.is_some())
+        })
+        .filter(|cp| {
+            nets.net_of(EndpointKey::Cp(f, cp.idx))
+                .is_none_or(|n| n.members.len() < 2)
+        })
+        .map(|cp| (cp.idx, cp.designation.clone()))
+        .collect()
+}
+
 /// The functions of a device on a FnDef of contact kind `valve`, in ID order.
 pub fn valve_functions(q: &Q, device: Id<Device>) -> Vec<Id<Function>> {
     let functions = q.functions();

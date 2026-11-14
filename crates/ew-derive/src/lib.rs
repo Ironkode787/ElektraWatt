@@ -102,7 +102,10 @@ mod wires;
 mod xref;
 mod xref_format;
 
-pub use assembly::{AssemblyBreakMarks, BreakMark, BreakSide, order_code_part, order_code_text};
+pub use assembly::{
+    AssemblyBreakMarks, BreakMark, BreakSide, assembly_members, order_code_part, order_code_text,
+    overview_rep,
+};
 pub use bom::{BomMode, BomRow, BomRowKey, BomRows, DevicePartLines, LineSource, PartLine};
 pub use cell::{
     Cell, CellOf, FrameGridOf, FrameSettings, FrameSettingsValue, FrameTypeEntry, RepAnchorCell,
@@ -149,8 +152,8 @@ pub use flow::{Flow, FlowBfs, FlowConflict, FlowEntry, FlowNotes, Load, Potentia
 pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use fluid::{
     FluidNet, FluidNets, FluidPartition, FluidTube, FluidTubes, GALLERIES, Galleries, GallerySegment,
-    ValveSlot, ValveSlots, ValveSlotsV, is_fluid, is_valve_terminal, parent_chain, reached_device,
-    tracked_process_tag, tracked_target, valve_functions, valve_positions,
+    ValveSlot, ValveSlots, ValveSlotsV, is_fluid, is_valve_terminal, open_working_ports, parent_chain,
+    reached_device, tracked_process_tag, tracked_target, valve_functions, valve_positions,
 };
 pub use fluid_media::{
     Effective, MediumKey, MediumOrigin, MediumZones, MediumZonesV, Sourced, TubeProps, TubePropsOf,

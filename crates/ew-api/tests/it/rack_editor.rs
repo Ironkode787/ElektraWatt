@@ -137,3 +137,47 @@ fn a_part_that_is_no_module_is_refused_in_words() {
         .expect_err("a CPU is no module");
     assert!(format!("{err}").contains("is no PLC module"), "{err}");
 }
+
+/// `valve_terminal.generate_overview` (FR-FLU-033, doc 11 §5.5) in a band five overview modules wide: the members fill
+/// 201 and 202 five at a time, never more, and the rest goes onto a new assembly-overview page, with a break mark at
+/// each open end; a second run changes nothing.
+#[test]
+fn the_overview_breaks_onto_a_new_page_where_the_band_is_full() {
+    use ew_derive::ew_schema::PageType;
+    let mut s = golden_allowing(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    let pages = |s: &Session| {
+        let q = s.query();
+        q.pages()
+            .iter()
+            .filter(|(_, p)| p.kind == PageType::AssemblyOverview)
+            .count()
+    };
+    let before = pages(&s);
+    let mut params = s.overview_params(station(&s)).expect("the parameters");
+    let left = params["left"].as_i64().expect("left");
+    // Golden A's overview module is 15.875 mm wide; five fit, a sixth does not.
+    params["right"] = json!(left + 5 * 15_875_000 + 7_937_500);
+    // A bulk command: previewed, then committed.
+    let run = |s: &mut Session| {
+        let cmd = AnyCommand {
+            name: "valve_terminal.generate_overview".into(),
+            params: params.clone(),
+        };
+        let preview = s.preview(&cmd).expect("the preview");
+        s.commit(preview).expect("the overview")
+    };
+    let receipt = run(&mut s);
+    let notices = receipt.outcome.notices;
+    assert!(notices.iter().any(|n| n.contains("(new page)")), "{notices:?}");
+    for n in &notices {
+        let members = n.split(": ").nth(1).map_or(0, |m| m.split(", ").count());
+        assert!(members <= 5, "{n}");
+    }
+    assert_eq!(pages(&s), before + 1, "one page more");
+    let q = s.query();
+    let marks = q.get::<ew_derive::AssemblyBreakMarks>(());
+    assert!(marks.len() >= 4, "two marks at each of two breaks: {marks:?}");
+    let receipt = run(&mut s);
+    assert!(!receipt.outcome.notices.iter().any(|n| n.contains("(new page)")));
+    assert_eq!(pages(&s), before + 1, "a refresh adds no page");
+}

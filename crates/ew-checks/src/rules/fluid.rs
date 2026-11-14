@@ -11,10 +11,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::ew_ids::Id;
-use ew_derive::ew_schema::{Channel, ContactKind, Device, DeviceState, FluidPortRole, Function, Kind};
+use ew_derive::ew_schema::{Channel, ContactKind, Device, DeviceState, Function, Kind};
 use ew_derive::{
-    ChannelsByCp, DeviceTag, EndpointKey, FluidNets, FunctionCps, Q, ValveSlot, ValveSlots, driven_device,
-    reached_device, valve_solenoids,
+    ChannelsByCp, DeviceTag, FunctionCps, Q, ValveSlot, ValveSlots, driven_device, reached_device,
+    valve_solenoids,
 };
 
 use crate::engine::touched_ids;
@@ -112,35 +112,14 @@ impl Rule for WorkingPortOpen {
         if dev.state == DeviceState::NotFitted {
             return Vec::new();
         }
-        let nets = q.get::<FluidNets>(());
         let mut out = Vec::new();
         for f in functions_of_kind(q, d, &ContactKind::Valve) {
             if q.idx().reps_of_function(f).next().is_none() {
                 continue;
             }
-            let Some(func) = q.functions().get(f) else {
-                continue;
-            };
-            let open: Vec<String> = q
-                .get::<FunctionCps>(f)
-                .iter()
-                .filter(|cp| {
-                    matches!(
-                        cp.port_role,
-                        Some(FluidPortRole::Working2 | FluidPortRole::Working4)
-                    )
-                })
-                .filter(|cp| {
-                    !func
-                        .cp_overrides
-                        .iter()
-                        .any(|o| o.idx == cp.idx && o.closure.is_some())
-                })
-                .filter(|cp| {
-                    nets.net_of(EndpointKey::Cp(f, cp.idx))
-                        .is_none_or(|n| n.members.len() < 2)
-                })
-                .map(|cp| cp.designation.clone())
+            let open: Vec<String> = ew_derive::open_working_ports(q, f)
+                .into_iter()
+                .map(|(_, designation)| designation)
                 .collect();
             let valve = tag(q, d);
             let finding = match open.as_slice() {

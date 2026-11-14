@@ -1633,6 +1633,10 @@ refusal-fields-section-divider-page = folio { $p0 } is held by a page; choose an
 refusal-fields-section-divider-report = folio { $p0 } is held by a report block; choose another folio for section { $p1 }'s divider
 # valve.set_occupancy and fluid.port.close.
 refusal-valve-no-positions = { $p0 } has no valve positions
+refusal-overview-no-children = { $p0 } has no modules to draw an overview of
+refusal-overview-no-symbol = { $p0 } has no overview symbol yet; choose the symbol to draw it with
+refusal-overview-unplaced = { $p0 } is on no page; place it first, so the overview has a page to follow
+refusal-overview-out-of-range = the overview does not fit on the page; check the band it fills
 refusal-valve-no-position = { $p0 } has { $p1 } valve positions; position { $p2 } does not exist
 refusal-valve-position-holds = position { $p0 } of { $p1 } holds { $p2 }; assign the new part to { $p2 } instead
 refusal-valve-position-empty = position { $p0 } of { $p1 } holds no valve; name the valve part
@@ -3198,6 +3202,9 @@ action-navigator-jump = Jump to row
 # WP-S2.07 §8: a channel dragged from the PLC navigator onto a connection point.
 action-navigator-bind = Bind channel
 action-plc-attach-cards = Attach cards without a CPU
+action-fluid-generate-overview = Generate overview…
+reason-overview-no-page = The valve terminal is on no page with a frame; place it first
+reason-valve-no-part = No valve of this terminal names a part to copy; place a valve from its part first
 canvas-place-port = Place port { $p0 }
 action-plc-rack-editor = Rack and slots…
 action-plc-rack-part = Module part
@@ -3290,6 +3297,11 @@ error-medium-pressure = "{ $p0 }" is no pressure: type a number of bar, such as 
 toast-medium-new = Added the medium { $p0 }.
 toast-line-medium = The line carries { $p0 } now.
 canvas-line-medium = Medium: { $p0 }
+canvas-valve-add = Add valve at position { $p0 }
+canvas-valve-used = Set used
+canvas-valve-spare = Set spare
+canvas-valve-blank = Blank position { $p0 }
+canvas-port-plug = Plug port { $p0 }
 canvas-line-kind = Line: { $p0 }
 
 # FT-757: a channel the bind unbound (FR-PLC-005), appended to the bind's toast.

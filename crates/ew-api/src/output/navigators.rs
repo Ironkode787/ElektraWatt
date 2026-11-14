@@ -691,7 +691,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
 }
 
 /// The word of a device state (`used`, `spare`, `reserved`, `not_fitted`).
-fn state_word(s: &DeviceState) -> &'static str {
+pub(super) fn state_word(s: &DeviceState) -> &'static str {
     match s {
         DeviceState::Spare => "spare",
         DeviceState::Reserved => "reserved",

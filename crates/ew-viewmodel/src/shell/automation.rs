@@ -286,6 +286,19 @@ impl ShellModel {
         self.preview_bulk(&name, params)
     }
 
+    /// `fluid.generate_overview {station}` (FR-FLU-033, doc 11 §5.5): `valve_terminal.generate_overview` of a valve
+    /// terminal as a card in the Preview tab (`Session::overview_params`: the band of the page's frame, the starter
+    /// overview module for the members not drawn yet), whose changes list each page's members, the pages it creates
+    /// and a page it empties; the derived changes show the tags a new page break changes. Apply commits it as one
+    /// undo step.
+    pub(crate) fn act_fluid_generate_overview(&mut self, p: &Map<String, Value>) -> Outcome {
+        let station = or_return!(self.record_param(p, "station"));
+        let Some(params) = self.project_session().and_then(|s| s.overview_params(station)) else {
+            return Outcome::refused(key!("reason-overview-no-page"));
+        };
+        self.preview_bulk("valve_terminal.generate_overview", params)
+    }
+
     /// `fluid.set_medium {line, medium}` (FR-FLU-009): the medium the fluid line's net carries, defined at the line's
     /// end with one `fluid.medium.define`; a toast names the medium and the line.
     pub(crate) fn act_fluid_set_medium(&mut self, p: &Map<String, Value>) -> Outcome {

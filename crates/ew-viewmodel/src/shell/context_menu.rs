@@ -339,6 +339,14 @@ impl ShellModel {
                     }
                     _ => {}
                 }
+                self.fluid_entries(device, &mut out);
+            }
+            // A fluid navigator's device: its fluid actions (doc 11 §7).
+            (NavKind::Fluid, NavRole::Device, Some(device)) => {
+                self.go_to(kind, Some(node), &mut out);
+                self.device_entries(&self.row_device(device, node), &mut out);
+                out.extend(self.menu_item("props.focus"));
+                self.fluid_entries(device, &mut out);
             }
             // A configuration project's addressing commands (FR-PLC-014, FR-PLC-015), each previewed.
             (NavKind::Plc | NavKind::PlcGrid, NavRole::ConfigProject, Some(cfg)) => {
@@ -430,6 +438,81 @@ impl ShellModel {
                 i
             }),
         );
+    }
+
+    /// A device row's fluid actions (doc 11 §7, FT-1733; `Session::fluid_menu`): on a valve terminal Generate
+    /// overview… (FR-FLU-033); on a valve module Add valve at each blank or empty position (the part of its other
+    /// valves); on a valve Set used or Set spare and Blank position, on a blanking plate Add valve; Plug port for each
+    /// open working port (EW-FL-001's). Each is one `valve.set_occupancy` or `fluid.port.close`, one undo step.
+    fn fluid_entries(&self, device: Uuid, out: &mut Vec<ActionItem>) {
+        let Some(session) = self.project_session() else {
+            return;
+        };
+        let menu = session.fluid_menu(device);
+        if menu.terminal {
+            let label = strings::text(key!("action-fluid-generate-overview")).to_owned();
+            out.extend(self.aimed(
+                "fluid.generate_overview",
+                json!({ "station": device.to_string() }),
+                label,
+            ));
+        }
+        let mut valve = json!({ "valve": { "state": "used" } });
+        if let Some(part) = menu.valve_part {
+            valve["valve"]["part"] = json!(part.to_string());
+        }
+        let occupancy = |module: Uuid, position: u32, occupancy: &Value| {
+            json!({ "cmd": "valve.set_occupancy", "params": {
+                "module": module.to_string(), "position": position, "occupancy": occupancy } })
+        };
+        let add = |out: &mut Vec<ActionItem>, module: Uuid, position: u32| {
+            let label = strings::format(key!("canvas-valve-add"), &[&position.to_string()]);
+            out.extend(
+                self.aimed("command.run", occupancy(module, position, &valve), label)
+                    .map(|mut i| {
+                        if i.enabled && menu.valve_part.is_none() {
+                            i.enabled = false;
+                            i.reason = Some(strings::text(key!("reason-valve-no-part")).to_owned());
+                        }
+                        i
+                    }),
+            );
+        };
+        for (position, holds) in &menu.positions {
+            if *holds != "valve" {
+                add(out, device, *position);
+            }
+        }
+        if let Some((module, position, state)) = &menu.own {
+            if state == "blank" {
+                add(out, *module, *position);
+            } else {
+                let spare = json!({ "valve": { "state": "spare" } });
+                let used = json!({ "valve": { "state": "used" } });
+                let (word, change) = if state == "spare" {
+                    (key!("canvas-valve-used"), used)
+                } else {
+                    (key!("canvas-valve-spare"), spare)
+                };
+                out.extend(self.aimed(
+                    "command.run",
+                    occupancy(*module, *position, &change),
+                    strings::text(word).to_owned(),
+                ));
+                let label = strings::format(key!("canvas-valve-blank"), &[&position.to_string()]);
+                out.extend(self.aimed(
+                    "command.run",
+                    occupancy(*module, *position, &json!({ "blank": {} })),
+                    label,
+                ));
+            }
+        }
+        for (function, idx, designation) in &menu.open_ports {
+            let label = strings::format(key!("canvas-port-plug"), &[designation]);
+            let params = json!({ "cmd": "fluid.port.close", "params": {
+                "function": function.to_string(), "idx": idx, "closure": { "kind": "plug" } } });
+            out.extend(self.aimed("command.run", params, label));
+        }
     }
 
     /// A page row's entries (FT-1693), as the Page tab offers them: Open page in a new tab, Title block fields…, Page

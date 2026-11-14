@@ -537,3 +537,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a DXF whose `$EXTMAX` does not hold its drawing is placed by the drawing's own top, not off the
   sheet; a DWG's work folder is private and removed on every way out, and a converter that is stopped takes the
   processes it started with it (M3 review fix, doc 14 §6.1, §6.5)
+- behaviour-change: a valve terminal's row offers Generate overview…, which lays out its assembly overview on its
+  overview pages and adds pages where the frame is full, previewed (`valve_terminal.generate_overview`, WP-S2.13,
+  FR-FLU-033); a valve's and a module's rows set a valve spare or used, blank a position, add a valve and plug an open
+  working port (FT-1733)

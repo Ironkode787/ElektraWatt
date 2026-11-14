@@ -8,7 +8,7 @@
 //!
 //! An assembly's overview is drawn by the overview representations of its members: the assembly device
 //! itself, then its direct children in `Device.position` order (ties by tag natural order, then ID). A member
-//! takes part with its main representation when that is an [`RepType::Overview`] representation. The members
+//! takes part with its overview representation ([`overview_rep`]). The members
 //! form *segments*, the maximal runs of consecutive members drawn on one page. With two or more segments the
 //! overview continues across pages, and every open end gets a break mark (doc 11 §5.5 step 5, FR-DEV-023):
 //! a [`BreakSide::Right`] mark after the last representation of every segment but the last, and a
@@ -65,24 +65,12 @@ impl Query for AssemblyBreakMarks {
             if dev.aspects.assembly.is_none() {
                 continue;
             }
-            let mut children: Vec<(u32, NaturalKey, Id<Device>)> = q
-                .idx()
-                .device_children(head)
-                .filter_map(|c| {
-                    let d = q.devices().get(c)?;
-                    let tag = q.get::<DeviceTag>(c);
-                    let full = tag.as_ref().as_ref().map(|t| t.full.clone()).unwrap_or_default();
-                    Some((d.position.unwrap_or(u32::MAX), natural_key(&full), c))
-                })
-                .collect();
-            children.sort();
-            let members = std::iter::once(head).chain(children.into_iter().map(|(_, _, c)| c));
             // The drawn members as (page, representation), in member order.
-            let drawn: Vec<(Id<Page>, Id<Representation>)> = members
+            let drawn: Vec<(Id<Page>, Id<Representation>)> = assembly_members(q, head)
+                .into_iter()
                 .filter_map(|m| {
-                    let rep_id = (*q.get::<MainRep>(m))?;
-                    let rep = q.reps().get(rep_id)?;
-                    (rep.rep_type == RepType::Overview).then_some((rep.page, rep_id))
+                    let rep_id = overview_rep(q, m)?;
+                    Some((q.reps().get(rep_id)?.page, rep_id))
                 })
                 .collect();
             let mut segments: Vec<Vec<(Id<Page>, Id<Representation>)>> = Vec::new();
@@ -119,6 +107,38 @@ impl Query for AssemblyBreakMarks {
         out.dedup();
         Arc::new(out)
     }
+}
+
+/// The members of the assembly `head`'s overview: `head`, then its direct children in `Device.position` order
+/// (ties by tag natural order, then ID).
+pub fn assembly_members(q: &Q, head: Id<Device>) -> Vec<Id<Device>> {
+    let mut children: Vec<(u32, NaturalKey, Id<Device>)> = q
+        .idx()
+        .device_children(head)
+        .filter_map(|c| {
+            let d = q.devices().get(c)?;
+            let tag = q.get::<DeviceTag>(c);
+            let full = tag.as_ref().as_ref().map(|t| t.full.clone()).unwrap_or_default();
+            Some((d.position.unwrap_or(u32::MAX), natural_key(&full), c))
+        })
+        .collect();
+    children.sort();
+    std::iter::once(head)
+        .chain(children.into_iter().map(|(_, _, c)| c))
+        .collect()
+}
+
+/// The overview representation a member draws itself with: its main representation when that is an overview
+/// representation, else the smallest-ID overview representation of its main function (one the overview generator
+/// added to a module already drawn elsewhere, doc 11 §5.5).
+pub fn overview_rep(q: &Q, device: Id<Device>) -> Option<Id<Representation>> {
+    let reps = q.reps();
+    let is_overview = |r: Id<Representation>| reps.get(r).is_some_and(|x| x.rep_type == RepType::Overview);
+    if let Some(main) = (*q.get::<MainRep>(device)).filter(|r| is_overview(*r)) {
+        return Some(main);
+    }
+    let f = (*q.get::<crate::MainFunction>(device))?;
+    q.idx().reps_of_function(f).filter(|r| is_overview(*r)).min()
 }
 
 /// The order-code text of a device (the `order_code` symbol slot, doc 20 §11.1, D-36): the order code of

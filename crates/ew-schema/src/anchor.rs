@@ -51,6 +51,24 @@ impl SymbolDef {
     /// (their `Bounds` corners), circle centre ± radius and text positions. Stroke widths, Bézier
     /// approximations, text extents, connection points and slots do not count; unknown primitives are skipped.
     pub fn graphic_centre(&self) -> Option<Pt2> {
+        let Some([x0, y0, x1, y1]) = self.graphic_box().0 else {
+            return Some(Pt2::ORIGIN);
+        };
+        // i128 division truncates toward zero, which rounds the only possible fraction (a half) toward zero.
+        let x = i64::try_from((x0 + x1) / 2).ok()?;
+        let y = i64::try_from((y0 + y1) / 2).ok()?;
+        Some(Pt2::new(Nm(x), Nm(y)))
+    }
+
+    /// The left and right edge of the bounding box of [`SymbolDef::graphic_centre`] (the overview generator lays
+    /// modules side by side by it, doc 11 §5.5); `None` for a symbol without graphics or on overflow.
+    pub fn graphic_span_x(&self) -> Option<(Nm, Nm)> {
+        let [x0, _, x1, _] = self.graphic_box().0?;
+        Some((Nm(i64::try_from(x0).ok()?), Nm(i64::try_from(x1).ok()?)))
+    }
+
+    /// The integer bounding box of the symbol's graphics (see [`SymbolDef::graphic_centre`]).
+    fn graphic_box(&self) -> Bb {
         let mut bb = Bb::default();
         for g in &self.graphics {
             match g {
@@ -77,13 +95,7 @@ impl SymbolDef {
                 Primitive::Unknown(_) => {}
             }
         }
-        let Some([x0, y0, x1, y1]) = bb.0 else {
-            return Some(Pt2::ORIGIN);
-        };
-        // i128 division truncates toward zero, which rounds the only possible fraction (a half) toward zero.
-        let x = i64::try_from((x0 + x1) / 2).ok()?;
-        let y = i64::try_from((y0 + y1) / 2).ok()?;
-        Some(Pt2::new(Nm(x), Nm(y)))
+        bb
     }
 }
 

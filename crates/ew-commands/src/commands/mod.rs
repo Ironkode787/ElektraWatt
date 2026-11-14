@@ -43,6 +43,7 @@ pub(crate) mod library;
 mod library_update;
 mod macro_insert;
 mod merge;
+mod overview;
 mod page;
 mod part_edit;
 mod parts;
@@ -162,6 +163,7 @@ commands! {
     fluid::DefineMedium,
     fluid::SetTube,
     fluid::SetLength,
+    overview::GenerateOverview,
     plc::CreatePlcConfigProject,
     plc::BindChannel,
     plc::SetModulePart,
