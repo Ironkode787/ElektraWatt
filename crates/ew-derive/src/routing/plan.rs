@@ -209,7 +209,10 @@ fn request(
         // around its valves, the persona round), never an obstacle: a route could not leave it.
         let inside = |r: Rect, e: &OneEnd| r[0] < e.at.0 && e.at.0 < r[2] && r[1] < e.at.1 && e.at.1 < r[3];
         for body in &page.bodies {
-            if [a, b].into_iter().any(|e| e.rep != Some(body.rep) && inside(body.rect, e)) {
+            if [a, b]
+                .into_iter()
+                .any(|e| e.rep != Some(body.rep) && inside(body.rect, e))
+            {
                 continue;
             }
             place(body.rep, grow(body.rect, g), &mut obstacles, &mut own);

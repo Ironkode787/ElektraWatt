@@ -1098,7 +1098,12 @@ pub fn wire_through_symbol(
         [wire.target(), Target::new(Kind::Representation, rep)],
         "",
         wire.words,
-        format!("{} {} runs through {}.", wire.noun(), wire.words, symbol.english()),
+        format!(
+            "{} {} runs through {}.",
+            wire.noun(),
+            wire.words,
+            symbol.english()
+        ),
     )
     .on_page(page)
     .arg("line", wire.line())
@@ -1211,7 +1216,11 @@ pub fn unrouted_wire(page: Id<Page>, wire: LayoutWire<'_>) -> Finding {
         [wire.target()],
         "",
         wire.words,
-        format!("{} {} has no route: Route page draws it.", wire.noun(), wire.words),
+        format!(
+            "{} {} has no route: Route page draws it.",
+            wire.noun(),
+            wire.words
+        ),
     )
     .on_page(page)
     .arg("line", wire.line())

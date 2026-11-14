@@ -1668,7 +1668,12 @@ fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
     use ew_derive::ew_schema::{Medium, MediumDef};
     use ew_derive::{FluidNets, TubePropsOf, TubeSource};
     let media = q.table::<Medium>();
-    let name = |m: Id<Medium>| media.get(m).map(|m| neutral_or_first(&m.name)).unwrap_or_default();
+    let name = |m: Id<Medium>| {
+        media
+            .get(m)
+            .map(|m| neutral_or_first(&m.name))
+            .unwrap_or_default()
+    };
     let nets = q.get::<FluidNets>(());
     let net_of = |at: Option<EndpointKey>| at.and_then(|at| nets.net_of(at)).map(|n| n.id);
     let mut medium_per = Vec::new();
@@ -1709,16 +1714,23 @@ fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
         .collect::<Vec<_>>()
         .join(" ");
         let mut sources: Vec<String> = Vec::new();
-        for s in [&props.od.as_ref().map(|v| &v.source), &props.id.as_ref().map(|v| &v.source), &props.material.as_ref().map(|v| &v.source)]
-            .into_iter()
-            .flatten()
+        for s in [
+            &props.od.as_ref().map(|v| &v.source),
+            &props.id.as_ref().map(|v| &v.source),
+            &props.material.as_ref().map(|v| &v.source),
+        ]
+        .into_iter()
+        .flatten()
         {
             let words = match s {
                 TubeSource::Project => "project default tube".to_owned(),
                 TubeSource::Medium(m) => format!("medium '{}'", name(*m)),
                 TubeSource::Part(p) => format!(
                     "tube part {}",
-                    q.parts().get(*p).map(|c| c.item.part_number.as_str().to_owned()).unwrap_or_default()
+                    q.parts()
+                        .get(*p)
+                        .map(|c| c.item.part_number.as_str().to_owned())
+                        .unwrap_or_default()
                 ),
                 TubeSource::Override => "override".to_owned(),
             };

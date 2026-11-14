@@ -244,7 +244,11 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
     if has_station_ancestor(tx, module) {
         return Ok(false);
     }
-    let stations: Vec<Arc<Device>> = tx.iter::<Device>().into_iter().filter(|d| takes_cards(d)).collect();
+    let stations: Vec<Arc<Device>> = tx
+        .iter::<Device>()
+        .into_iter()
+        .filter(|d| takes_cards(d))
+        .collect();
     let station = match stations.as_slice() {
         [] => {
             tx.notice("no PLC station: place a CPU first");

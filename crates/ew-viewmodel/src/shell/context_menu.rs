@@ -530,16 +530,13 @@ impl ShellModel {
         let add = |out: &mut Vec<ActionItem>, module: Uuid, position: u32| {
             let label = strings::format(key!("canvas-valve-add"), &[&position.to_string()]);
             let params = json!({ "module": module.to_string(), "position": position });
-            out.extend(
-                self.aimed("fluid.valve_add", params, label)
-                    .map(|mut i| {
-                        if i.enabled && menu.valve_part.is_none() {
-                            i.enabled = false;
-                            i.reason = Some(strings::text(key!("reason-valve-no-part")).to_owned());
-                        }
-                        i
-                    }),
-            );
+            out.extend(self.aimed("fluid.valve_add", params, label).map(|mut i| {
+                if i.enabled && menu.valve_part.is_none() {
+                    i.enabled = false;
+                    i.reason = Some(strings::text(key!("reason-valve-no-part")).to_owned());
+                }
+                i
+            }));
         };
         for (position, holds) in &menu.positions {
             if *holds != "valve" {

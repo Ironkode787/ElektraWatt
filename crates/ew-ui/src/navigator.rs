@@ -272,8 +272,16 @@ impl NavigatorPane {
                     // the command search): the same actions as the Project tab's, disabled with their reasons.
                     if self.kind == NavKind::Fluid {
                         for (id, icon, label) in [
-                            ("fluid.settings", crate::icons::IconId::adjustments, key!("action-fluid-settings")),
-                            ("fluid.medium_new", crate::icons::IconId::plus, key!("action-fluid-medium-new")),
+                            (
+                                "fluid.settings",
+                                crate::icons::IconId::adjustments,
+                                key!("action-fluid-settings"),
+                            ),
+                            (
+                                "fluid.medium_new",
+                                crate::icons::IconId::plus,
+                                key!("action-fluid-medium-new"),
+                            ),
                         ] {
                             let state = ew_viewmodel::actions::find(id).map(|a| (a.enabled)(shell));
                             let button = crate::components::icon_toggle(

@@ -118,7 +118,9 @@ pub fn assembly_members(q: &Q, head: Id<Device>) -> Vec<Id<Device>> {
         .device_children(head)
         .filter_map(|c| {
             let d = q.devices().get(c)?;
-            if d.kind == Some(ew_schema::DeviceKind::BlankingPlate) || !crate::fluid::valve_functions(q, c).is_empty() {
+            if d.kind == Some(ew_schema::DeviceKind::BlankingPlate)
+                || !crate::fluid::valve_functions(q, c).is_empty()
+            {
                 return None;
             }
             let tag = q.get::<DeviceTag>(c);

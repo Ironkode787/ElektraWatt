@@ -413,7 +413,10 @@ impl ShellModel {
         let tag = valve.and_then(|v| session.device_tag(v)).unwrap_or_default();
         let module_tag = session.device_tag(module).unwrap_or_default();
         self.notify(
-            strings::format(key!("toast-valve-added"), &[&tag, &position.to_string(), &module_tag]),
+            strings::format(
+                key!("toast-valve-added"),
+                &[&tag, &position.to_string(), &module_tag],
+            ),
             true,
         );
         if let Some(valve) = valve.filter(|_| self.canvas().is_some()) {
