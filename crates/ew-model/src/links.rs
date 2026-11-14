@@ -40,7 +40,8 @@
 //! connections a wire marker lists (EW-INV-023, ADR-0009 amendment 8). An older build kept
 //! page items verbatim and did not enforce the link, so a loaded project can hold a marker that lists a deleted
 //! connection or one on another page: that is a load finding, not a refusal (doc 05 §2.2). Its missing target is
-//! therefore not judged by EW-INV-001; EW-INV-023 judges the entries an edit adds. Its removal half is an ordinary
+//! therefore judged only for the entries an edit adds: by EW-INV-001 when missing (as for every load-tolerant link), by
+//! EW-INV-023 when on another page. Its removal half is an ordinary
 //! unlink link: a deleted connection leaves the list, and a marker left empty is deleted in the same plan.
 //!
 //! One link is **kind-erased** ([`LinkDecl::kind_erased`]): `macro_instance.members[][1]`, the records a placed
@@ -165,9 +166,9 @@ pub struct LinkDecl {
     /// [`ModelError::Referenced`](crate::ModelError::Referenced) (the delete-time rule EW-INV-021, which
     /// undo and redo skip).
     pub lib_ref: bool,
-    /// A load-tolerant link (module documentation): a listed target that does not exist is not a violation of
-    /// EW-INV-001 (EW-INV-023 judges the entries an edit adds, a loaded file's stale entry is a load finding);
-    /// a removed target with a referrer left is, as for every unlink link.
+    /// A load-tolerant link (module documentation): a listed target that does not exist is a violation of EW-INV-001
+    /// only when an edit adds it (a loaded file's stale entry is a load finding, which undo may restore); a removed
+    /// target with a referrer left is, as for every unlink link.
     pub load_tolerant: bool,
     /// The kinds of a kind-erased link (module documentation), `to` first; empty for every other link. The
     /// target is a record of any of these kinds with the stored ID: EW-INV-001 looks the ID up in each, the

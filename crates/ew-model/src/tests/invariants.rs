@@ -142,6 +142,29 @@ fn inv001_lib_ref_referrer_left_by_removal_ok() {
     assert!(m1.integrity_check().is_ok());
 }
 
+/// A load-tolerant link (a fluid tee's part) naming a missing part loads, as an older build could leave it, and an
+/// edit that keeps it commits; an edit that writes a new missing target is rejected, on the edit path only.
+#[test]
+fn inv001_load_tolerant_added_target_rejected() {
+    let fitting = |n: u128| -> Option<ew_schema::PartRef> {
+        Some(serde_json::from_value(json!({ "copy": super::fixture::uid(nid::<Part>(n)) })).unwrap())
+    };
+    let (project, mut records, lib) = mini_golden_parts();
+    for r in &mut records {
+        if let Record::Junction(j) = r
+            && j.id == J5
+        {
+            j.fitting = fitting(0x4f_000);
+        }
+    }
+    let m = Model::from_records(project, records, lib).expect("a stale load-tolerant target loads");
+    let kept = upd(&m, J5, |j: &mut Junction| j.sequence.reverse());
+    assert!(edit(&m, &[kept]).is_ok(), "an edit keeps the stale target");
+    let added = upd(&m, J5, |j: &mut Junction| j.fitting = fitting(0x4f_001));
+    assert!(apply(&m, std::slice::from_ref(&added)).is_ok(), "the history path does not judge it");
+    rejected_by(edit(&m, &[added]), crate::REFS_RESOLVE);
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // EW-INV-021 (delete-time): the `LibRef` keep-alive
 
@@ -1160,12 +1183,13 @@ fn inv023_marker_on_its_page_ok() {
     assert!(edit(&m, &[ins(marker)]).is_ok());
 }
 
-/// A wire marker listing a connection that does not exist is rejected.
+/// A wire marker listing a connection that does not exist is rejected, by EW-INV-001's edit half of a load-tolerant
+/// link.
 #[test]
 fn inv023_missing_connection_rejected() {
     let m = mini_golden();
     let marker = super::fixture::wire_marker(nid(0x43_000), PAGE_102, vec![CON_W22, nid(0x4ff)]);
-    rejected_by(edit(&m, &[ins(marker)]), crate::MARKER_CONNECTIONS);
+    rejected_by(edit(&m, &[ins(marker)]), crate::REFS_RESOLVE);
 }
 
 /// A wire marker listing a connection of another page is rejected.
@@ -1230,7 +1254,7 @@ fn inv023_added_stale_entry_rejected() {
             w.connections.push(nid(0x4fe));
         }
     });
-    rejected_by(edit(&m, &[op]), crate::MARKER_CONNECTIONS);
+    rejected_by(edit(&m, &[op]), crate::REFS_RESOLVE);
 }
 
 /// The ID of `CON_W11A`, a connection of page 101.
@@ -1446,4 +1470,47 @@ fn inv024_media_across_a_ring_of_three_junctions() {
     };
     rejected_by(edit(&m, &ring(FH)), crate::FLUID_LINES);
     assert!(edit(&m, &ring(FQ2)).is_ok());
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-INV-025 (ADR-0009 amendment 10)
+
+/// The mini golden project, loaded with -101F1 under `parent` and a link -101F1 drives -102F2.
+fn drives_model(parent: Id<Device>) -> Model {
+    let (project, mut records, lib) = mini_golden_parts();
+    for r in &mut records {
+        if let Record::Device(d) = r
+            && d.id == DEV_101F1
+        {
+            d.parent = Some(parent);
+        }
+    }
+    records.push(
+        serde_json::from_value(json!({
+            "$k": "device_link", "id": super::fixture::uid(nid::<Device>(0x25_000)),
+            "from": super::fixture::uid(DEV_101F1), "to": super::fixture::uid(DEV_102F2), "kind": "drives",
+        }))
+        .unwrap(),
+    );
+    Model::from_records(project, records, lib).expect("a loaded file is not judged by EW-INV-025")
+}
+
+/// A file an older build wrote, whose valve drives the terminal that holds it, loads; an edit of another device, and
+/// one of the valve that keeps the link, commit.
+#[test]
+fn inv025_loaded_violation_does_not_block_other_edits_ok() {
+    let m = drives_model(DEV_102F2);
+    let other = upd(&m, DEV_102G1, |d: &mut Device| d.parent = Some(DEV_102F2));
+    assert!(edit(&m, &[other]).is_ok(), "an edit of another device");
+    let valve = upd(&m, DEV_101F1, |d: &mut Device| d.parent = Some(DEV_102F2));
+    assert!(edit(&m, &[valve]).is_ok(), "an edit of the valve that keeps the link");
+}
+
+/// Moving the module that holds a valve under the device the valve drives is rejected: the move makes the target an
+/// ancestor of the valve, though the batch touches neither the link nor the valve.
+#[test]
+fn inv025_move_under_the_driven_device_rejected() {
+    let m = drives_model(DEV_102G1);
+    let op = upd(&m, DEV_102G1, |d: &mut Device| d.parent = Some(DEV_102F2));
+    rejected_by(edit(&m, &[op]), crate::DRIVES_TARGET);
 }

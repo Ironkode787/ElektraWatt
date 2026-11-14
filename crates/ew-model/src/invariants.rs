@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_schema::{
-    Connection, ConnectionKind, Device, Discipline, Endpoint, FnDef, FnRole, Function, FunctionKind,
+    AnyId, Connection, ConnectionKind, Device, Discipline, Endpoint, FnDef, FnRole, Function, FunctionKind,
     Junction, Kind, PageItem, PageItemKind, Representation, Revision, RevisionState, StructureNode,
     template_entry_of,
 };
@@ -116,7 +116,8 @@ pub static RULES: &[Rule] = &[
         statement: "Every link field of a record names an existing record of its target kind, and a removed record \
                     has no referrer left; a referrer through a forbid link makes the removal Referenced. A LibRef \
                     link names nothing while its copy is not embedded, so it is not part of either half (its \
-                    keep-alive is the delete-time rule EW-INV-021)",
+                    keep-alive is the delete-time rule EW-INV-021). A load-tolerant link's missing target is judged \
+                    on the edit path only, for the targets a batch adds (an older build did not enforce it)",
     },
     Rule {
         id: ONE_MAIN_FUNCTION,
@@ -239,7 +240,8 @@ pub static RULES: &[Rule] = &[
     Rule {
         id: MARKER_CONNECTIONS,
         class: RuleClass::Structural,
-        statement: "Every connection a wire marker lists exists and lies on the marker's page. The edit path judges \
+        statement: "Every connection a wire marker lists exists (through EW-INV-001) and lies on the marker's page. \
+                    The edit path judges \
                     the entries a batch adds to a marker's list and the markers of a connection whose page a batch \
                     changes; a deleted connection leaves the list (unlink) and a marker left empty is deleted in \
                     the same plan. A loaded file's stale entry is a load finding, not a violation (ADR-0009 \
@@ -258,8 +260,8 @@ pub static RULES: &[Rule] = &[
         class: RuleClass::Structural,
         statement: "A drives link targets neither the device it comes from nor an ancestor of that device (FI-06: a \
                     valve never drives its module or valve terminal). An older 0.1 build did not enforce it, so a \
-                    loaded file is not judged: only the links an edit adds or changes, and the links from a device \
-                    an edit moves",
+                    loaded file is not judged: only the links an edit adds or changes and the links whose device or \
+                    an ancestor of it an edit changes, and of those only a link that kept the rule before the edit",
     },
     Rule {
         id: LIB_REF_KEEP_ALIVE,
@@ -410,45 +412,80 @@ fn rules(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelErro
     drives_target(m, scope, out)
 }
 
-/// EW-INV-025, on the edit path only (see [`DRIVES_TARGET`]): the touched `drives` links, and every `drives` link when
-/// the batch touches a device (a move changes its ancestors).
+/// EW-INV-025, on the edit path only (see [`DRIVES_TARGET`]): a `drives` link the batch touches, or one whose device
+/// chain (its device and that device's ancestors) holds a device the batch touches, since a move changes the
+/// ancestors of the moved device's descendants. A link that already broke the rule before the batch is a loaded
+/// file's (an older build did not enforce it) and is skipped, as EW-INV-023 skips a stale entry.
 fn drives_target(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     if !scope.edit {
         return Ok(());
     }
+    let touched_link = |l: Id<ew_schema::DeviceLink>| scope.keys.contains(&key_of(Kind::DeviceLink, l));
     let links: Vec<Id<ew_schema::DeviceLink>> = if scope.of_kind(Kind::Device).next().is_some() {
         m.device_links.ids().collect()
     } else {
         scope.of_kind(Kind::DeviceLink).map(typed).collect()
     };
-    for l in links {
-        let Some(link) = m.device_links.get(&l) else {
+    let parent_now = |d: Id<Device>| m.devices.get(&d).and_then(|x| x.parent);
+    let parent_before = |d: Id<Device>| match scope.before.get(&key_of(Kind::Device, d)) {
+        Some(row) => row
+            .as_ref()
+            .and_then(|r| r.get::<Device>())
+            .and_then(|x| x.parent),
+        None => parent_now(d),
+    };
+    for l in &links {
+        let Some(link) = m.device_links.get(l) else {
             continue;
         };
         if link.kind != ew_schema::DeviceLinkKind::Drives {
             continue;
         }
-        let mut at = Some(link.from);
-        let mut seen: BTreeSet<Id<Device>> = BTreeSet::new();
-        while let Some(d) = at {
-            if !seen.insert(d) {
-                break; // a parent cycle is EW-INV-009's
-            }
-            if d == link.to {
-                out.report(violation(
-                    DRIVES_TARGET,
-                    format!(
-                        "drives link {} from device {} targets the device or an ancestor of it",
-                        l, link.from
-                    ),
-                    vec![key_of(Kind::DeviceLink, l), key_of(Kind::Device, link.to)],
-                ))?;
-                break;
-            }
-            at = m.devices.get(&d).and_then(|x| x.parent);
+        let chain = device_chain(link.from, parent_now);
+        let judged = touched_link(*l)
+            || chain
+                .iter()
+                .any(|d| scope.keys.contains(&key_of(Kind::Device, *d)));
+        if !judged || !chain.contains(&link.to) {
+            continue;
         }
+        let broke_before = match scope.before.get(&key_of(Kind::DeviceLink, *l)) {
+            Some(row) => row
+                .as_ref()
+                .and_then(|r| r.get::<ew_schema::DeviceLink>())
+                .is_some_and(|b| {
+                    b.kind == ew_schema::DeviceLinkKind::Drives
+                        && device_chain(b.from, parent_before).contains(&b.to)
+                }),
+            None => device_chain(link.from, parent_before).contains(&link.to),
+        };
+        if broke_before {
+            continue;
+        }
+        out.report(violation(
+            DRIVES_TARGET,
+            format!(
+                "drives link {} from device {} targets the device or an ancestor of it",
+                l, link.from
+            ),
+            vec![key_of(Kind::DeviceLink, *l), key_of(Kind::Device, link.to)],
+        ))?;
     }
     Ok(())
+}
+
+/// `from` and its ancestors by `parent`, stopping at a parent cycle (EW-INV-009's).
+fn device_chain(from: Id<Device>, parent: impl Fn(Id<Device>) -> Option<Id<Device>>) -> Vec<Id<Device>> {
+    let mut chain: Vec<Id<Device>> = Vec::new();
+    let mut at = Some(from);
+    while let Some(d) = at {
+        if chain.contains(&d) {
+            break;
+        }
+        chain.push(d);
+        at = parent(d);
+    }
+    chain
 }
 
 /// EW-INV-001 with the forbid policy.
@@ -460,12 +497,26 @@ fn drives_target(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), M
 ///
 /// A kind-erased link ([`crate::LinkDecl::kind_erased`], `macro_instance.members[][1]`) resolves when a record of
 /// any of its kinds has the ID; its removal half is the ordinary one, for each of the kinds.
+///
+/// A load-tolerant link ([`crate::LinkDecl::load_tolerant`]) is judged on the edit path only, for the targets the
+/// batch adds to the record: a target the record named before the batch is a load finding, so an edit that keeps it
+/// commits, but no writer (a command, a paste, a macro, an import, a script) commits a new missing one.
 fn refs_resolve(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     for key in &scope.keys {
         match get_row(m, key) {
             Some(row) => {
                 for (_, link) in links_from(key.0) {
-                    for t in link.targets_of(&row) {
+                    if link.lib_ref || (link.load_tolerant && !scope.edit) {
+                        continue;
+                    }
+                    // A load-tolerant link: an edit's added targets only, a loaded file's stale one is a load finding.
+                    let kept: BTreeSet<AnyId> = match scope.before.get(key) {
+                        Some(Some(b)) if link.load_tolerant => {
+                            link.targets_of(b).into_iter().map(|t| t.id()).collect()
+                        }
+                        _ => BTreeSet::new(),
+                    };
+                    for t in link.targets_of(&row).into_iter().filter(|t| !kept.contains(&t.id())) {
                         let target = (link.to, t.id());
                         let present = if link.kind_erased.is_empty() {
                             get_row(m, &target).is_some()
@@ -474,7 +525,7 @@ fn refs_resolve(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), Mo
                                 .iter()
                                 .any(|k| get_row(m, &(*k, t.id())).is_some())
                         };
-                        if !present && !link.lib_ref && !link.load_tolerant {
+                        if !present {
                             out.report(violation(
                                 REFS_RESOLVE,
                                 format!(
@@ -1168,7 +1219,8 @@ fn marker_list(item: &PageItem) -> Option<&[Id<Connection>]> {
 }
 
 /// EW-INV-023, on the edit path only (see [`MARKER_CONNECTIONS`]): for every touched wire marker, each entry the
-/// batch added (absent from the marker's row before the batch) names an existing connection on the marker's page;
+/// batch added (absent from the marker's row before the batch) names a connection on the marker's page (that it
+/// exists is EW-INV-001's);
 /// for every touched connection whose page the batch changed, every marker listing it is on its new page.
 fn marker_connections(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), ModelError> {
     if !scope.edit {
@@ -1186,30 +1238,19 @@ fn marker_connections(m: &Model, scope: &Scope, out: &mut Violations) -> Result<
             .and_then(|b| marker_list(b))
             .map(|l| l.iter().copied().collect())
             .unwrap_or_default();
+        // A missing added entry is EW-INV-001's (its edit half of a load-tolerant link).
         for c in list.iter().filter(|c| !before.contains(c)) {
-            let ck = key_of(Kind::Connection, *c);
-            match m.connections.get(c) {
-                None => {
-                    out.report(violation(
-                        MARKER_CONNECTIONS,
-                        format!(
-                            "wire marker {} lists connection {c}, which does not exist",
-                            item.id
-                        ),
-                        vec![*key, ck],
-                    ))?;
-                }
-                Some(conn) if conn.page != Some(item.page) => {
-                    out.report(violation(
-                        MARKER_CONNECTIONS,
-                        format!(
-                            "wire marker {} on page {} lists connection {c}, which is not drawn on that page",
-                            item.id, item.page
-                        ),
-                        vec![*key, ck],
-                    ))?;
-                }
-                Some(_) => {}
+            if let Some(conn) = m.connections.get(c)
+                && conn.page != Some(item.page)
+            {
+                out.report(violation(
+                    MARKER_CONNECTIONS,
+                    format!(
+                        "wire marker {} on page {} lists connection {c}, which is not drawn on that page",
+                        item.id, item.page
+                    ),
+                    vec![*key, key_of(Kind::Connection, *c)],
+                ))?;
             }
         }
     }
