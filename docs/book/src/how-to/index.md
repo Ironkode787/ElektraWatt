@@ -20,6 +20,10 @@ EW, start with a [tutorial](../tutorials/index.md) instead.
   from its part, and where the parts are listed.
 - [Draw a panel layout](panel-layout.md): a panel layout page, its enclosure and mounting plate, rails and ducts,
   and the devices placed on them.
+- [Work in the PLC workspace](plc-workspace.md): the PLC and Bus navigators, the PLC grid, the rack and slot
+  editor, freezing and re-addressing, and the exchange with PLC software.
+- [Work in the Fluid workspace](fluid-workspace.md): the Fluid navigator, the tube and medium tables, a medium
+  and a tube on a line, and the overview page of a valve terminal.
 - [Upgrade a project](upgrade-a-project.md): what a release reads and writes, opening a project of an older format,
   the backup of the first save, `ew upgrade`, and what changes in the format from 0.1.0.
 

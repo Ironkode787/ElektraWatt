@@ -1438,23 +1438,37 @@ msgstr ""
 
 #: src/how-to/index.md:23
 msgid ""
+"[Work in the PLC workspace](plc-workspace.md): the PLC and Bus navigators, "
+"the PLC grid, the rack and slot editor, freezing and re-addressing, and the "
+"exchange with PLC software."
+msgstr ""
+
+#: src/how-to/index.md:25
+msgid ""
+"[Work in the Fluid workspace](fluid-workspace.md): the Fluid navigator, the "
+"tube and medium tables, a medium and a tube on a line, and the overview page "
+"of a valve terminal."
+msgstr ""
+
+#: src/how-to/index.md:27
+msgid ""
 "[Upgrade a project](upgrade-a-project.md): what a release reads and writes, "
 "opening a project of an older format, the backup of the first save, `ew "
 "upgrade`, and what changes in the format from 0.1.0."
 msgstr ""
 
-#: src/how-to/index.md:26
+#: src/how-to/index.md:30
 msgid ""
 "More follow the [command-line how-to](headless-workflow.md), for example "
 "replaying a command log with `ew apply`, checking a project in a CI job, and "
 "exporting for a single page range."
 msgstr ""
 
-#: src/how-to/index.md:29
+#: src/how-to/index.md:33
 msgid "Writing a how-to guide"
 msgstr ""
 
-#: src/how-to/index.md:31
+#: src/how-to/index.md:35
 msgid ""
 "A guide names its goal in the title (\"Export one page range as SVG\"), "
 "lists what you need, gives numbered steps and ends when the goal is met. "
