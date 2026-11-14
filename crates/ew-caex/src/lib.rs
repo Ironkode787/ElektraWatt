@@ -22,4 +22,4 @@ pub use image::{
     XProject, XStation, XTag,
 };
 pub use read::read_aml;
-pub use write::{AmlOptions, ApcVersion, write_aml};
+pub use write::{AmlOptions, ApcVersion, escape, write_aml};

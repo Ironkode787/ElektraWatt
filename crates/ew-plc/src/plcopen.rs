@@ -12,6 +12,7 @@
 
 use std::fmt::Write as _;
 
+use ew_caex::escape;
 use ew_derive::ew_plcaddr::Purpose;
 
 use crate::image::Projection;
@@ -113,20 +114,4 @@ pub fn write_gvl(projection: &Projection, options: &GvlOptions) -> String {
     s.push_str("          </globalVars>\n        </resource>\n      </configuration>\n");
     s.push_str("    </configurations>\n  </instances>\n</project>\n");
     s
-}
-
-/// `text` for an attribute value or character data; a character XML 1.0 cannot hold is left out.
-fn escape(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    for c in text.chars() {
-        match c {
-            '&' => out.push_str("&amp;"),
-            '<' => out.push_str("&lt;"),
-            '>' => out.push_str("&gt;"),
-            '"' => out.push_str("&quot;"),
-            c if (c as u32) < 0x20 || c == '\u{fffe}' || c == '\u{ffff}' => {}
-            c => out.push(c),
-        }
-    }
-    out
 }

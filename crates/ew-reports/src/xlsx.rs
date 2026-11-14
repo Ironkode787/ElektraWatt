@@ -205,12 +205,17 @@ pub fn xlsx(tables: &[Table], meta: &WorkbookMeta) -> Result<Vec<u8>, XlsxError>
         all_names.push(BASE_SHEET);
     }
 
+    package(&workbook_xml(tables, &all_names), &sheets, meta.date)
+}
+
+/// The workbook's container: the fixed parts, the workbook part `workbook` and the `sheets` in order, its
+/// properties dated `date`.
+fn package(workbook: &str, sheets: &[String], date: DateTime) -> Result<Vec<u8>, XlsxError> {
     let paths: Vec<String> = (1..=sheets.len())
         .map(|n| format!("xl/worksheets/sheet{n}.xml"))
         .collect();
     let content_types = content_types(sheets.len());
-    let core = core_xml(meta.date);
-    let workbook = workbook_xml(tables, &all_names);
+    let core = core_xml(date);
     let workbook_rels = workbook_rels(sheets.len());
     let mut entries: Vec<(&str, Method, &[u8])> = vec![
         ("[Content_Types].xml", Method::Deflated, content_types.as_bytes()),
@@ -225,7 +230,7 @@ pub fn xlsx(tables: &[Table], meta: &WorkbookMeta) -> Result<Vec<u8>, XlsxError>
         ),
         ("xl/styles.xml", Method::Deflated, STYLES_XML.as_bytes()),
     ];
-    for (path, sheet) in paths.iter().zip(&sheets) {
+    for (path, sheet) in paths.iter().zip(sheets) {
         entries.push((path, Method::Deflated, sheet.as_bytes()));
     }
     Ok(ew_zip::write(&entries)?)
@@ -300,23 +305,7 @@ pub fn plain_xlsx(
          <sheets><sheet name=\"{}\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>",
         escape(name)
     );
-    let content_types = content_types(1);
-    let core = core_xml(date);
-    let workbook_rels = workbook_rels(1);
-    Ok(ew_zip::write(&[
-        ("[Content_Types].xml", Method::Deflated, content_types.as_bytes()),
-        ("_rels/.rels", Method::Deflated, ROOT_RELS.as_bytes()),
-        ("docProps/core.xml", Method::Deflated, core.as_bytes()),
-        ("docProps/app.xml", Method::Deflated, APP_XML.as_bytes()),
-        ("xl/workbook.xml", Method::Deflated, workbook.as_bytes()),
-        (
-            "xl/_rels/workbook.xml.rels",
-            Method::Deflated,
-            workbook_rels.as_bytes(),
-        ),
-        ("xl/styles.xml", Method::Deflated, STYLES_XML.as_bytes()),
-        ("xl/worksheets/sheet1.xml", Method::Deflated, sheet.as_bytes()),
-    ])?)
+    package(&workbook, &[sheet], date)
 }
 
 const XML_DECL: &str = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n";

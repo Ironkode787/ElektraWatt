@@ -413,8 +413,8 @@ impl Xml {
 
 /// `text` for an attribute value or character data: the five XML entities, and a character XML 1.0 cannot hold
 /// (a control character other than tab, LF and CR; U+FFFE, U+FFFF) left out. Tab, LF and CR are written as character
-/// references, so that an attribute value keeps them.
-fn escape(text: &str) -> String {
+/// references, so that an attribute value keeps them. The PLCopen writer of `ew-plc` writes its texts so too.
+pub fn escape(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     for c in text.chars() {
         match c {
