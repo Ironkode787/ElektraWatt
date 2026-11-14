@@ -338,3 +338,141 @@ fn p2c_the_tube_part_offers_tubes_and_takes_one_from_the_library() {
     assert_eq!(table.nodes[0].cells[size], "6×4", "the tube takes the part's size");
     d.shell_mut().shutdown();
 }
+
+/// Item 3 of the round: three tubes drawn with the Wire tool from valves standing in their terminal's box stayed
+/// unrouted ("no route keeps clear of symbols", EW-CORE-073 "Wire … has no route"). The box around the valves is no
+/// obstacle to a route from a port inside it: the tube takes a path as a wire does.
+#[test]
+fn item3_a_tube_from_a_valve_inside_its_terminals_box_is_routed() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_terminal(&mut d, (760, 300), (1260, 520));
+    d.input(&right_click((1010, 330)));
+    d.settle();
+    d.input(&click(starting_with(&d, "Add valve at position 1")));
+    d.settle();
+    click_at(&mut d, (900, 440));
+    d.input(&key("escape"));
+    d.settle();
+    place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 800));
+    let valve = device_drawn(&mut d, "ew.iso.valve");
+    let cylinder = device_drawn(&mut d, "ew.iso.cylinder");
+    let (a, b) = (port(&mut d, valve, "4"), port(&mut d, cylinder, "B"));
+    draw_tube(&mut d, a, b);
+    let routed = d
+        .shell_mut()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .connections
+        .iter()
+        .filter(|c| c.kind == "fluid")
+        .map(|c| c.stored_route)
+        .collect::<Vec<_>>();
+    assert_eq!(routed, [true], "the tube is routed");
+    d.shell_mut().shutdown();
+}
+
+/// The connection point `designation` of `device` on the page shown as a `connection.draw` end.
+fn cp_end(d: &mut Driver, device: Uuid, designation: &str) -> serde_json::Value {
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    let cp = tables
+        .cps
+        .iter()
+        .find(|c| {
+            c.label.rsplit(':').next() == Some(designation)
+                && tables.reps.iter().any(|r| r.id == c.rep && r.device == Some(device))
+        })
+        .unwrap_or_else(|| panic!("no port {designation}"));
+    json!({"cp": {"function": cp.function.to_string(), "idx": cp.idx}})
+}
+
+/// The persona's page: a valve at position 1 of a valve terminal drawn as a box around it, a cylinder below, and a tube
+/// from the valve's port 4 to the cylinder's port B stored without a route (as the Wire tool stored it when the box
+/// blocked every route); the tube's ID and the window pixel of the middle of its vertical run below the box.
+fn unrouted_tube(d: &mut Driver) -> (String, (i64, i64)) {
+    place_terminal(d, (760, 300), (1260, 520));
+    d.input(&right_click((1010, 330)));
+    d.settle();
+    d.input(&click(starting_with(d, "Add valve at position 1")));
+    d.settle();
+    click_at(d, (900, 440));
+    d.input(&key("escape"));
+    d.settle();
+    place_symbol(d, "ew.iso.cylinder-double-acting@qet10", (800, 850));
+    let (valve, cylinder) = (device_drawn(d, "ew.iso.valve"), device_drawn(d, "ew.iso.cylinder"));
+    let page = d.shell_mut().canvas().unwrap().page().tables.page.to_string();
+    let draw = json!({"cmd": "connection.draw", "params": {
+        "a": cp_end(d, valve, "4"), "b": cp_end(d, cylinder, "B"), "page": page,
+        "kind": {"fluid": {}}, "route": []}});
+    assert_eq!(d.shell_mut().dispatch("command.run", &draw), Outcome::Done);
+    d.settle();
+    let canvas = d.shell_mut().canvas().unwrap();
+    let c = canvas
+        .page()
+        .tables
+        .connections
+        .iter()
+        .find(|c| c.kind == "fluid")
+        .unwrap()
+        .clone();
+    assert!(!c.stored_route, "unrouted");
+    // Its vertical run: the segment of the drawn line whose x is the valve port's, between the box and the cylinder.
+    let (a, b) = (port(d, valve, "4"), port(d, cylinder, "B"));
+    (c.id.to_string(), (a.0, (a.1.max(520) + b.1) / 2))
+}
+
+/// P2-F: a click on a dashed (unrouted) tube selected nothing, and a right-click there opened the page's menu. A click
+/// on the line an unrouted tube is drawn with selects it, on the persona's page.
+#[test]
+fn p2f_a_click_on_an_unrouted_tube_selects_it() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let (line, _) = unrouted_tube(&mut d);
+    let polyline = d.shell_mut().canvas().unwrap().page().tables.connections[0].polyline.clone();
+    // At the persona's zoom, 196 %, centred on the line's longest segment.
+    let (p, q) = polyline
+        .windows(2)
+        .map(|w| (w[0], w[1]))
+        .max_by_key(|(p, q)| (p.0 - q.0).abs() + (p.1 - q.1).abs())
+        .unwrap();
+    let mid = ((p.0 + q.0) / 2, (p.1 + q.1) / 2);
+    let snapper = d.shell_mut().canvas().unwrap().page().snapper.clone();
+    let sheet = snapper.page_to_sheet(mid);
+    let zoom = json!({"percent": 196, "x_mm": sheet.0 as f64 / 1e6, "y_mm": sheet.1 as f64 / 1e6});
+    let _ = d.shell_mut().dispatch("view.zoom_to", &zoom);
+    d.settle();
+    let pixel = sheet_pixel(&mut d);
+    let at = pixel(sheet);
+    let at = (at.0 + 1, at.1);
+    d.input(&click(at));
+    d.settle();
+    assert_eq!(
+        crate::persona_round::state(&mut d)["canvas"]["selection"],
+        json!([line]),
+        "the click at {at:?} selects the tube drawn along {polyline:?}"
+    );
+    // Check project: the finding calls it a tube.
+    d.input(&click(d.find("Check project").unwrap()));
+    d.settle();
+    let _ = d.shell_mut().dispatch("navigator.show", &json!({"kind": "messages"}));
+    d.settle();
+    let messages: Vec<String> = d
+        .shell_mut()
+        .nav(NavKind::Messages)
+        .and_then(|n| n.table())
+        .map(|t| {
+            t.nodes
+                .iter()
+                .filter(|n| n.role == NavRole::Finding && n.cells[1] == "EW-CORE-073")
+                .map(|n| n.cells[2].clone())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(
+        !messages.is_empty() && messages.iter().all(|m| m.starts_with("Tube ")),
+        "{messages:?}"
+    );
+    d.shell_mut().shutdown();
+}

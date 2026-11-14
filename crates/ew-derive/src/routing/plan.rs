@@ -205,7 +205,13 @@ fn request(
         }
     };
     if !relax.bodies {
+        // A body that holds an end of another representation is an outline drawn around it (a valve terminal's box
+        // around its valves, the persona round), never an obstacle: a route could not leave it.
+        let inside = |r: Rect, e: &OneEnd| r[0] < e.at.0 && e.at.0 < r[2] && r[1] < e.at.1 && e.at.1 < r[3];
         for body in &page.bodies {
+            if [a, b].into_iter().any(|e| e.rep != Some(body.rep) && inside(body.rect, e)) {
+                continue;
+            }
             place(body.rep, grow(body.rect, g), &mut obstacles, &mut own);
         }
         obstacles.extend(frame_rects(page, g, &[a.at, stub(a), b.at, stub(b)]));

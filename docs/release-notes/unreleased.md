@@ -700,3 +700,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: the starter parts gain the tubes EW-GEN-TUB-6, -8 and -10 (PU 6×4, 8×6, 10×8 mm) and the
   fittings EW-GEN-FIT-6 and -8; a tube's Tube part offers the tube parts only, a library's too, and embeds the one
   chosen (M3 persona round)
+- behaviour-change: a body that holds an end of another representation (a valve terminal's box around its valves) is
+  no obstacle to that end's route, so a tube drawn from a valve in its terminal's box is routed; the layout findings
+  EW-CORE-067 to -070 and -073 call a fluid line a tube (M3 persona round)

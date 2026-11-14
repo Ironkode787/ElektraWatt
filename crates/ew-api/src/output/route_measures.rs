@@ -627,6 +627,10 @@ fn layout_findings(q: &Q, page_ref: PageRef, tables: &PageTables, out: &mut Vec<
             .iter()
             .find(|(c, _)| *c == id)
             .map_or("", |(_, w)| w.as_str()),
+        tube: tables
+            .connections
+            .iter()
+            .any(|c| c.id == id && c.kind == "fluid"),
     };
     for t in &m.touches {
         match t.point {

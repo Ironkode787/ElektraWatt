@@ -429,6 +429,7 @@ fn rk1_a_wire_through_a_text_fires_ew_core_070() {
     let wire = LayoutWire {
         id: w.parse().expect("an ID"),
         words: "-103K1:A2 → -103K2:A1",
+        tube: false,
     };
     let device = TextOwner::Symbol {
         rep: ew_derive::ew_ids::Id::from_uuid(rep),
@@ -482,6 +483,7 @@ fn a_wire_through_an_interruption_point_names_it_in_each_language() {
     let wire = LayoutWire {
         id: ew_derive::ew_ids::Id::from_uuid(rep),
         words: "-103K1:A2 → -103K2:A2",
+        tube: false,
     };
     let owner = TextOwner::Ip {
         rep: ew_derive::ew_ids::Id::from_uuid(rep),

@@ -271,7 +271,10 @@ rule-ew-core-065 = description "{ $text }" of part { $part }{ $form ->
     .title = Description lint
     .hint = Move ratings and technical data out of the description into their typed fields.
 
-rule-ew-core-067 = Wire { $wire } runs through { $point ->
+rule-ew-core-067 = { $line ->
+        [tube] Tube
+       *[wire] Wire
+    } { $wire } runs through { $point ->
         [junction] the junction in { $pin }
         [junction-off-grid] a junction
        *[cp] { $pin }
@@ -279,18 +282,27 @@ rule-ew-core-067 = Wire { $wire } runs through { $point ->
     .title = Wire through a connection point
     .hint = Route the wire again with Route selection, or change its route with Edit route so that it keeps clear of the point.
 
-rule-ew-core-068 = Wire { $wire } runs along { $other } on folio { $page }.
+rule-ew-core-068 = { $line ->
+        [tube] Tube
+       *[wire] Wire
+    } { $wire } runs along { $other } on folio { $page }.
     .title = Wire along another wire
     .hint = Route one of the wires again with Route selection, so that each runs on a line of its own.
 
-rule-ew-core-069 = Wire { $wire } runs through { $symbol ->
+rule-ew-core-069 = { $line ->
+        [tube] Tube
+       *[wire] Wire
+    } { $wire } runs through { $symbol ->
         [ip] interruption point { $device }
        *[device] { $device }
     }.
     .title = Wire through a symbol
     .hint = Route the wire again with Route selection, or move the symbol out of its way.
 
-rule-ew-core-070 = Wire { $wire } runs through { $owner ->
+rule-ew-core-070 = { $line ->
+        [tube] Tube
+       *[wire] Wire
+    } { $wire } runs through { $owner ->
         [free-text] the free text "{ $text }"
         [structure-box] the caption "{ $text }" of a structure box
         [ip] the text "{ $text }" of interruption point { $device }
@@ -310,9 +322,12 @@ rule-ew-core-072 = { $place ->
     .title = Four-way junction
     .hint = Move one branch to a junction of its own a grid step away, so that each junction joins three wires.
 
-rule-ew-core-073 = Wire { $wire } has no route: Route page draws it.
+rule-ew-core-073 = { $line ->
+        [tube] Tube
+       *[wire] Wire
+    } { $wire } has no route: Route page draws it.
     .title = Unrouted wire
-    .hint = Run Route page or Route selection, or draw the wire's route with Edit route.
+    .hint = Run Route page or Route selection, or draw its route with Edit route.
 
 rule-ew-core-081 = waiver { $waiver } for { $rule } { $form ->
         [not-evaluated] was not evaluated: the rule did not run in scheme { $scheme } ({ $mode } mode)

@@ -942,18 +942,31 @@ impl Rule for LayoutRule {
 }
 
 /// A drawn wire as a layout finding names it: its connection and its words, its two ends as the page prints them
-/// (`-101F1:2 → -101E55:L`).
+/// (`-101F1:2 → -101E55:L`), and whether it is a fluid line, which a finding calls a tube (the persona round: "Wire …
+/// has no route" on a tube).
 #[derive(Clone, Copy, Debug)]
 pub struct LayoutWire<'a> {
     /// The connection.
     pub id: Id<Connection>,
     /// Its words.
     pub words: &'a str,
+    /// Whether it is a fluid line.
+    pub tube: bool,
 }
 
 impl LayoutWire<'_> {
     fn target(self) -> Target {
         Target::new(Kind::Connection, self.id)
+    }
+
+    /// The `line` argument's word: `tube` or `wire`.
+    fn line(self) -> &'static str {
+        if self.tube { "tube" } else { "wire" }
+    }
+
+    /// The English noun that starts a message: `Tube` or `Wire`.
+    fn noun(self) -> &'static str {
+        if self.tube { "Tube" } else { "Wire" }
     }
 }
 
@@ -1010,11 +1023,13 @@ pub fn wire_through_cp(page: Id<Page>, wire: LayoutWire<'_>, point: PassedPoint<
         discriminator,
         wire.words,
         format!(
-            "Wire {} runs through {named}, which it does not join.",
+            "{} {} runs through {named}, which it does not join.",
+            wire.noun(),
             wire.words
         ),
     )
     .on_page(page)
+    .arg("line", wire.line())
     .arg("wire", wire.words)
     .arg("point", kind)
     .arg("pin", pin)
@@ -1027,9 +1042,15 @@ pub fn wire_along_wire(page: Id<Page>, folio: &str, wire: LayoutWire<'_>, other:
         [wire.target(), other.target()],
         "",
         wire.words,
-        format!("Wire {} runs along {} on folio {folio}.", wire.words, other.words),
+        format!(
+            "{} {} runs along {} on folio {folio}.",
+            wire.noun(),
+            wire.words,
+            other.words
+        ),
     )
     .on_page(page)
+    .arg("line", wire.line())
     .arg("wire", wire.words)
     .arg("other", other.words)
     .arg("page", folio)
@@ -1077,9 +1098,10 @@ pub fn wire_through_symbol(
         [wire.target(), Target::new(Kind::Representation, rep)],
         "",
         wire.words,
-        format!("Wire {} runs through {}.", wire.words, symbol.english()),
+        format!("{} {} runs through {}.", wire.noun(), wire.words, symbol.english()),
     )
     .on_page(page)
+    .arg("line", wire.line())
     .arg("wire", wire.words)
     .arg("symbol", kind)
     .arg("device", name)
@@ -1143,9 +1165,10 @@ pub fn wire_through_text(page: Id<Page>, wire: LayoutWire<'_>, owner: TextOwner<
         [wire.target(), target],
         "",
         wire.words,
-        format!("Wire {} runs through {named}.", wire.words),
+        format!("{} {} runs through {named}.", wire.noun(), wire.words),
     )
     .on_page(page)
+    .arg("line", wire.line())
     .arg("wire", wire.words)
     .arg("owner", kind)
     .arg("text", text)
@@ -1188,8 +1211,9 @@ pub fn unrouted_wire(page: Id<Page>, wire: LayoutWire<'_>) -> Finding {
         [wire.target()],
         "",
         wire.words,
-        format!("Wire {} has no route: Route page draws it.", wire.words),
+        format!("{} {} has no route: Route page draws it.", wire.noun(), wire.words),
     )
     .on_page(page)
+    .arg("line", wire.line())
     .arg("wire", wire.words)
 }

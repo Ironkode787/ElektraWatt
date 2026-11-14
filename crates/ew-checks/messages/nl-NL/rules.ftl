@@ -273,7 +273,10 @@ rule-ew-core-065 = omschrijving "{ $text }" van artikel { $part }{ $form ->
     .title = Technische gegevens in de omschrijving
     .hint = Verplaats nominale waarden en technische gegevens uit de omschrijving naar hun eigen velden.
 
-rule-ew-core-067 = Draad { WORD($wire) } loopt door { $point ->
+rule-ew-core-067 = { $line ->
+        [tube] Slang
+       *[wire] Draad
+    } { WORD($wire) } loopt door { $point ->
         [junction] de aftakking in { $pin }
         [junction-off-grid] een aftakking
        *[cp] { $pin }
@@ -281,18 +284,27 @@ rule-ew-core-067 = Draad { WORD($wire) } loopt door { $point ->
     .title = Draad door een aansluitpunt
     .hint = Routeer de draad opnieuw met Selectie routeren, of wijzig zijn route met Route bewerken zodat hij vrij blijft van het punt.
 
-rule-ew-core-068 = Draad { WORD($wire) } loopt over { WORD($other) } op folio { $page }.
+rule-ew-core-068 = { $line ->
+        [tube] Slang
+       *[wire] Draad
+    } { WORD($wire) } loopt over { WORD($other) } op folio { $page }.
     .title = Draad over een andere draad
     .hint = Routeer een van de draden opnieuw met Selectie routeren, zodat elke draad een eigen lijn heeft.
 
-rule-ew-core-069 = Draad { WORD($wire) } loopt door { $symbol ->
+rule-ew-core-069 = { $line ->
+        [tube] Slang
+       *[wire] Draad
+    } { WORD($wire) } loopt door { $symbol ->
         [ip] onderbrekingspunt { WORD($device) }
        *[device] { WORD($device) }
     }.
     .title = Draad door een symbool
     .hint = Routeer de draad opnieuw met Selectie routeren, of verplaats het symbool uit de weg.
 
-rule-ew-core-070 = Draad { WORD($wire) } loopt door { $owner ->
+rule-ew-core-070 = { $line ->
+        [tube] Slang
+       *[wire] Draad
+    } { WORD($wire) } loopt door { $owner ->
         [free-text] de vrije tekst "{ $text }"
         [structure-box] het bijschrift "{ $text }" van een structuurkader
         [ip] de tekst "{ $text }" van onderbrekingspunt { WORD($device) }
@@ -312,9 +324,12 @@ rule-ew-core-072 = { $place ->
     .title = Vierwegaftakking
     .hint = Verplaats één tak naar een eigen aftakking een rasterstap verder, zodat elke aftakking drie draden verbindt.
 
-rule-ew-core-073 = Draad { WORD($wire) } heeft geen route: Pagina routeren tekent hem.
+rule-ew-core-073 = { $line ->
+        [tube] Slang { WORD($wire) } heeft geen route: Pagina routeren tekent haar.
+       *[wire] Draad { WORD($wire) } heeft geen route: Pagina routeren tekent hem.
+    }
     .title = Draad zonder route
-    .hint = Gebruik Pagina routeren of Selectie routeren, of teken de route van de draad met Route bewerken.
+    .hint = Gebruik Pagina routeren of Selectie routeren, of teken de route met Route bewerken.
 
 rule-ew-core-081 = vrijstelling { $waiver } voor { $rule } { $form ->
         [not-evaluated] is niet beoordeeld: de regel liep niet in schema { $scheme } ({ $mode ->

@@ -1165,6 +1165,11 @@ rip-up rounds; no fallback route: a connection without a clear route stays unrou
 line is right-angled, and it is no route). Step 4 of the list
 above (re-solve after a move, FT-18) is built in the Select tool, which passes the re-solved routes to `rep.move`.
 
+*As built (M3 persona round).* A representation's body that holds an end of another representation strictly inside
+it is an outline drawn around that end (a valve terminal's box around its valves), not an obstacle of that route: with
+it the router found no route out of the box, and the persona's three tubes stayed unrouted. The layout findings
+(EW-CORE-067 to -070, -073) call a fluid line a tube ("Tube -201Q1:4 → -201M1:B has no route").
+
 *As built.* On the release of a move the Select tool builds the
 moved page geometry (the moved representations' bodies, CPs and texts displaced as `rep.move` displaces them, each
 followed route along its rubber band) and routes again every connection with a moved end that is unrouted, breaks a
