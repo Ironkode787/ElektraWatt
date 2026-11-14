@@ -823,17 +823,9 @@ impl Writer<'_> {
             return;
         };
         let size = run.size.0 as f64;
-        // Clusters: one char per glyph when the counts agree, else the whole text as one cluster.
-        let chars: Vec<(usize, char)> = run.text.char_indices().collect();
-        let one_to_one = chars.len() == run.glyphs.len();
-        let range = |i: usize| {
-            if one_to_one {
-                let start = chars[i].0;
-                start..start + chars[i].1.len_utf8()
-            } else {
-                0..run.text.len()
-            }
-        };
+        let font_bytes = self.fonts.font(run.font);
+        let ranges = glyph_ranges(run, font_bytes.as_ref().map(|f| &f.data[..]));
+        let range = |i: usize| ranges[i].clone();
         let kept: Vec<usize> = (0..run.glyphs.len()).filter(|&i| run.glyphs[i].id != 0).collect();
         self.report.dropped_notdef_glyphs += run.glyphs.len() - kept.len();
         let Some(&first) = kept.first() else { return };
@@ -874,6 +866,54 @@ impl Writer<'_> {
         );
         surface.pop();
     }
+}
+
+/// The part of the run's text each glyph stands for, which the PDF's glyph-to-text map (ToUnicode) is made of, so that
+/// every text is found and copied again (FR-OUT-008). A glyph is one character when the glyphs and the characters
+/// that are drawn agree in number (a line break draws nothing). Otherwise the font has put characters into one glyph
+/// (the ligatures `fi`, `fl`, `ffi`) and the glyphs are matched to the characters by what the font's `cmap` gives each
+/// character: a glyph that is not the character's own takes the shortest run of characters after which the next glyph
+/// is the next character's own, so a ligature's glyph always stands for the same letters. The map is kept per glyph
+/// of the font for the whole document: a glyph given the whole text of one run would give wrong letters to every
+/// later run that uses it. A run these rules do not fit, or one with more glyphs than characters, is one cluster.
+fn glyph_ranges(run: &ShapedRun, font: Option<&[u8]>) -> Vec<std::ops::Range<usize>> {
+    let whole = || vec![0..run.text.len(); run.glyphs.len()];
+    let span = |chars: &[(usize, char)]| {
+        let last = chars[chars.len() - 1];
+        chars[0].0..last.0 + last.1.len_utf8()
+    };
+    let all: Vec<(usize, char)> = run.text.char_indices().collect();
+    let drawn: Vec<(usize, char)> = if all.len() == run.glyphs.len() {
+        all
+    } else {
+        all.into_iter().filter(|(_, c)| !c.is_control()).collect()
+    };
+    if drawn.len() == run.glyphs.len() {
+        return drawn.iter().map(|&c| span(&[c])).collect();
+    }
+    let (Some(font), true) = (font, drawn.len() > run.glyphs.len()) else {
+        return whole();
+    };
+    let nominal =
+        crate::font_subset::nominal_glyphs(font, &drawn.iter().map(|&(_, c)| c).collect::<Vec<_>>());
+    let own = |at: usize, glyph: usize| {
+        nominal.get(at).copied().flatten().is_some_and(|g| u32::from(g) == run.glyphs[glyph].id)
+    };
+    let (mut out, mut at) = (Vec::with_capacity(run.glyphs.len()), 0);
+    for k in 0..run.glyphs.len() {
+        let after = run.glyphs.len() - k - 1;
+        let room = drawn.len() - at - after;
+        let n = if own(at, k) {
+            1
+        } else {
+            (2..=room)
+                .find(|&n| (after == 0 && n == room) || (after > 0 && own(at + n, k + 1)))
+                .unwrap_or(2.min(room))
+        };
+        out.push(span(&drawn[at..at + n]));
+        at += n;
+    }
+    out
 }
 
 /// The krilla image of a PNG or JPEG image item, or `None` when the bytes are empty, the format is SVG or the bytes do

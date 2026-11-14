@@ -177,6 +177,18 @@ pub fn cmap_glyphs(font: &[u8], chars: &BTreeSet<char>) -> Result<BTreeSet<u16>,
     Ok(face.cmap_glyphs(chars))
 }
 
+/// The glyph the `cmap` of `font` gives each of `chars` (`None` where it gives none, or the font is not read): what a
+/// character draws as when nothing combines it with its neighbours.
+pub(crate) fn nominal_glyphs(font: &[u8], chars: &[char]) -> Vec<Option<u16>> {
+    match Face::parse(font) {
+        Ok(face) => {
+            let map = face.unicode_map();
+            chars.iter().map(|&c| map(c)).collect()
+        }
+        Err(_) => vec![None; chars.len()],
+    }
+}
+
 /// The subset of `font` for a page's text: the glyphs the runs drew and the glyphs the `cmap` gives the
 /// characters written, so that a browser that maps the characters itself finds their outlines.
 pub(crate) fn subset_for_text(
@@ -421,6 +433,16 @@ impl<'a> Face<'a> {
 
     /// The glyph IDs of `chars` through the best Unicode `cmap` subtable.
     fn cmap_glyphs(&self, chars: &BTreeSet<char>) -> BTreeSet<u16> {
+        let map = self.unicode_map();
+        chars
+            .iter()
+            .filter_map(|&c| map(c))
+            .filter(|&g| g != 0 && g < self.num_glyphs)
+            .collect()
+    }
+
+    /// The glyph of a character through the best Unicode `cmap` subtable.
+    fn unicode_map(&self) -> impl Fn(char) -> Option<u16> + '_ {
         let cmap = self.tables[b"cmap"];
         let mut format4 = None;
         let mut format12 = None;
@@ -443,18 +465,13 @@ impl<'a> Face<'a> {
                 _ => {}
             }
         }
-        let map = |c: char| -> Option<u16> {
+        move |c: char| -> Option<u16> {
             match (format12, format4) {
                 (Some(sub), _) => format12_glyph(sub, u32::from(c)),
                 (None, Some(sub)) => format4_glyph(sub, u32::from(c)),
                 (None, None) => None,
             }
-        };
-        chars
-            .iter()
-            .filter_map(|&c| map(c))
-            .filter(|&g| g != 0 && g < self.num_glyphs)
-            .collect()
+        }
     }
 }
 

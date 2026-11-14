@@ -104,6 +104,22 @@ fn a_project_matches_its_own_pdf() {
     assert!(report.is_clean(), "{report:?}");
 }
 
+/// FR-OUT-008: every text the program writes into a PDF is found again, whatever the font does with its letters: "fi"
+/// and "fl" are one glyph of the font (a ligature) and still two letters of the text, and the glyph-to-text map of one
+/// run must not give wrong letters to the runs that follow it.
+#[test]
+fn texts_with_ligatures_are_read_back_from_the_pdf_whole() {
+    let titles = ["Definition of the flow, five final offices", "Default fine flat"];
+    let session = project(&[(1, titles[0]), (2, titles[1])]);
+    for (page, title) in (1..).zip(titles) {
+        let read = ew_scene::pdf_text::pdf_page_text(pdf_of(&session), page).expect("the page is read");
+        let texts: Vec<&str> = read.runs.iter().map(|r| r.text.as_str()).collect();
+        assert_eq!(texts, [title], "page {page}");
+    }
+    let report = verify_migration(&session, pdf_of(&session), &[]).expect("a verification");
+    assert!(report.is_clean(), "{report:?}");
+}
+
 #[test]
 fn a_retitled_page_differs_in_its_texts_only() {
     let before = project(&[(1, "Cover"), (2, "Power")]);
