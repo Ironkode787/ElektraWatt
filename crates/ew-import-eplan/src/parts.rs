@@ -527,7 +527,9 @@ fn pins(
         return;
     };
     // The function definitions in order of first use, each with the pins of its templates.
-    let mut groups: Vec<(String, Option<String>, Vec<(String, Map<String, Value>)>)> = Vec::new();
+    /// The pins of one function definition: the definition, the part kind it makes, the pins with their extras.
+    type Group = (String, Option<String>, Vec<(String, Map<String, Value>)>);
+    let mut groups: Vec<Group> = Vec::new();
     let mut skipped = 0usize;
     for t in &main.templates {
         let (fndef, kind) = match t.key.as_ref().and_then(|k| fndefs.get(k)) {

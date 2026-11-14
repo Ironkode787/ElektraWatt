@@ -23,7 +23,10 @@ const EDZ: &str = concat!(
 fn open_golden(tmp: &Tmp, files: &[&std::path::Path]) -> egui_kittest::Harness<'static, ew_ui::app::App> {
     let platform = Scripted::default();
     for f in files {
-        platform.answers.borrow_mut().push_back(Pick::Path((*f).to_path_buf()));
+        platform
+            .answers
+            .borrow_mut()
+            .push_back(Pick::Path((*f).to_path_buf()));
     }
     let tiers = LibraryTiers::under(&tmp.0.join("data"), &tmp.0.join("cache"), Vec::new(), Vec::new());
     let config = tmp.config().with_libraries(Some(tiers));
@@ -67,7 +70,11 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
     h.get_by_label("Continue").click();
     settle(&mut h);
     let Some(Dialog::ImportEplan {
-        step: EplanStep::Parts { read, matched, changed },
+        step: EplanStep::Parts {
+            read,
+            matched,
+            changed,
+        },
         ..
     }) = h.state().shell().dialog().cloned()
     else {
@@ -102,7 +109,13 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
         toast.as_deref(),
         Some("psu.edz: 1 parts added to your parts library, 0 updated, 0 not imported.")
     );
-    assert!(tmp.0.join("data").join("libraries").join("user-parts.ewlib").is_dir());
+    assert!(
+        tmp.0
+            .join("data")
+            .join("libraries")
+            .join("user-parts.ewlib")
+            .is_dir()
+    );
 }
 
 #[test]
@@ -123,7 +136,11 @@ fn a_report_offers_the_mappings_that_fit_and_becomes_a_new_project() {
     else {
         panic!("the report step: {:?}", h.state().shell().dialog());
     };
-    assert_eq!(fits.len(), 1, "only the English terminal diagram fits these headers");
+    assert_eq!(
+        fits.len(),
+        1,
+        "only the English terminal diagram fits these headers"
+    );
     h.get_by_label_contains("is an EPLAN report");
     support::assert_accessible(&h);
     let dir = tmp.0.join("report.ew");

@@ -51,7 +51,11 @@ fn codes(r: &ew_import_eplan::PartsRead) -> Vec<Code> {
 /// the ZIP container reads the same, and says it is a ZIP (EW-IMP-203).
 #[test]
 fn an_edz_in_7z_and_in_zip_gives_the_part_with_its_pins_and_descriptions() {
-    let seven = read("2904602.edz", &seven(&[("2904602.part.xml", PSU.as_bytes())], false)).unwrap();
+    let seven = read(
+        "2904602.edz",
+        &seven(&[("2904602.part.xml", PSU.as_bytes())], false),
+    )
+    .unwrap();
     let zip = read(
         "2904602.edz",
         &zip_of(&[Entry::stored("data/2904602.part.xml", PSU.as_bytes())], None),
@@ -78,7 +82,10 @@ fn an_edz_in_7z_and_in_zip_gives_the_part_with_its_pins_and_descriptions() {
             .collect();
         assert_eq!(idx, [0, 1, 2, 3, 4, 5, 6]);
         assert_eq!(part.body["function_template"][0]["main"], true);
-        assert_eq!(part.body["function_template"][0]["fndef"]["key"], "ew.fn.psu-ac-dc");
+        assert_eq!(
+            part.body["function_template"][0]["fndef"]["key"],
+            "ew.fn.psu-ac-dc"
+        );
     }
     assert!(!codes(&seven).contains(&Code::imp(203)));
     assert!(codes(&zip).contains(&Code::imp(203)));
@@ -87,10 +94,18 @@ fn an_edz_in_7z_and_in_zip_gives_the_part_with_its_pins_and_descriptions() {
 /// FR-IMP-026: the part says where it came from: the file, its SHA-256, the vendor terms.
 #[test]
 fn a_part_carries_its_provenance_and_the_foreign_terms() {
-    let read = read("psu.edz", &zip_of(&[Entry::stored("a.part.xml", PSU.as_bytes())], None)).unwrap();
+    let read = read(
+        "psu.edz",
+        &zip_of(&[Entry::stored("a.part.xml", PSU.as_bytes())], None),
+    )
+    .unwrap();
     let part = &read.drafts[0];
     assert!(part.sources.iter().any(|s| s.contains("psu.edz")));
-    assert!(part.sources.iter().any(|s| s.starts_with("sha256:") && s.len() == 7 + 64));
+    assert!(
+        part.sources
+            .iter()
+            .any(|s| s.starts_with("sha256:") && s.len() == 7 + 64)
+    );
     assert_eq!(part.meta["foreign_terms"], true);
     assert_eq!(part.meta["licence"], "LicenseRef-vendor-terms");
 }
@@ -128,7 +143,11 @@ fn an_unmapped_function_definition_gives_generic_pins_until_the_user_maps_it() {
         mapped.drafts[0].body["function_template"][0]["fndef"]["key"],
         "ew.fn.psu-ac-dc"
     );
-    assert!(FndefMap::shipped().with_user("[[map]]\ncategory = \"1\"").is_err());
+    assert!(
+        FndefMap::shipped()
+            .with_user("[[map]]\ncategory = \"1\"")
+            .is_err()
+    );
 }
 
 /// The pins of a terminal are sorted naturally within their function definition ("10" after "3"); a lettered
@@ -181,12 +200,19 @@ fn a_parts_xml_of_fifty_parts_is_read_with_its_variants_and_its_unit() {
     assert_eq!(read.drafts.len(), 50);
     let first = &read.drafts[0];
     assert_eq!(first.body["mech"]["width"], 75_000_000);
-    assert_eq!(first.body["eplan.variants"][0]["pins"], serde_json::json!(["1", "2", "3"]));
+    assert_eq!(
+        first.body["eplan.variants"][0]["pins"],
+        serde_json::json!(["1", "2", "3"])
+    );
     assert_eq!(first.body["eplan.accessories"].as_array().unwrap().len(), 1);
     assert!(codes(&read).contains(&Code::imp(205)));
     let odd = xml.replace("length-unit=\"cm\"", "length-unit=\"furlong\"");
     assert!(matches!(
-        read_parts(&input("p.xml", odd.as_bytes()), &FndefMap::shipped(), &Limits::default()),
+        read_parts(
+            &input("p.xml", odd.as_bytes()),
+            &FndefMap::shipped(),
+            &Limits::default()
+        ),
         Err(ImportError::Unsupported { .. })
     ));
 }
@@ -248,7 +274,10 @@ fn hostile_files_are_refused() {
 /// such parts the file has.
 #[test]
 fn a_hostile_pin_list_is_cut_and_said() {
-    let pins = (0..10_000).map(|n| n.to_string()).collect::<Vec<_>>().join("&#10;");
+    let pins = (0..10_000)
+        .map(|n| n.to_string())
+        .collect::<Vec<_>>()
+        .join("&#10;");
     let mut xml = String::from("<partsmanagement>");
     for n in 0..100 {
         xml.push_str(&format!(
@@ -258,9 +287,21 @@ fn a_hostile_pin_list_is_cut_and_said() {
     xml.push_str("</partsmanagement>");
     let read = read("p.xml", xml.as_bytes()).unwrap();
     assert_eq!(read.drafts.len(), 100);
-    let total: usize = read.drafts.iter().map(|d| d.body.get("cp_pattern").map_or(0, |c| c.as_array().unwrap().len())).sum();
+    let total: usize = read
+        .drafts
+        .iter()
+        .map(|d| {
+            d.body
+                .get("cp_pattern")
+                .map_or(0, |c| c.as_array().unwrap().len())
+        })
+        .sum();
     assert!(total <= 262_144, "{total}");
-    assert!(read.drafts.iter().all(|d| d.body.get("cp_pattern").is_none_or(|c| c.as_array().unwrap().len() <= 4_096)));
+    assert!(read.drafts.iter().all(|d| {
+        d.body
+            .get("cp_pattern")
+            .is_none_or(|c| c.as_array().unwrap().len() <= 4_096)
+    }));
     assert!(codes(&read).contains(&Code::LIMIT));
 }
 
@@ -289,7 +330,10 @@ fn bless() -> bool {
 fn the_synthetic_edz_fixtures_are_current() {
     let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
     for (name, bytes) in [
-        ("synthetic-psu-7z.edz", seven(&[("2904602.part.xml", PSU.as_bytes())], false)),
+        (
+            "synthetic-psu-7z.edz",
+            seven(&[("2904602.part.xml", PSU.as_bytes())], false),
+        ),
         (
             "synthetic-psu-zip.edz",
             zip_of(&[Entry::stored("2904602.part.xml", PSU.as_bytes())], None),

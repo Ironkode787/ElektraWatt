@@ -290,6 +290,10 @@ pub fn import_into_library(
     )
 }
 
+/// What reads a source into the parts of a target: the target and the manufacturer master in, the import out.
+pub type PartsReader<'a> =
+    dyn Fn(&CatalogTarget<'_>, &[LibCopy<Manufacturer>]) -> Result<PartsImport, ImportError> + 'a;
+
 /// [`import_into_library`] for any source of parts: `parse` reads the source into the parts of the target (the
 /// library's held parts and its limits are the target's), `source` is the file's name and size, `write` is the import
 /// date, whether it bumps changed parts and whether it takes a stale lock over. The EPLAN readers
@@ -304,7 +308,7 @@ pub fn import_parts_into_library(
     source: (&str, u64),
     limits: &Limits,
     write: (Option<Date>, bool, bool),
-    parse: &dyn Fn(&CatalogTarget<'_>, &[LibCopy<Manufacturer>]) -> Result<PartsImport, ImportError>,
+    parse: &PartsReader<'_>,
 ) -> Result<LibraryImport, CatalogError> {
     let (as_of, bump, take_over) = write;
     let info = reg

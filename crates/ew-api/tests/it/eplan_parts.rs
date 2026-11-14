@@ -23,7 +23,11 @@ fn fixture(name: &str) -> ImportInput {
     let path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../ew-import-eplan/tests/fixtures")
         .join(name);
-    ImportInput::new(name, std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))).unwrap()
+    ImportInput::new(
+        name,
+        std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display())),
+    )
+    .unwrap()
 }
 
 fn golden() -> Session {
@@ -48,7 +52,9 @@ fn held_part(s: &Session, number: &str) -> ew_schema::LibCopy<ew_schema::Part> {
 fn an_edz_updates_the_golden_part_copy_through_a_previewed_command_listing_the_changed_fields() {
     let mut s = golden();
     let before = held_part(&s, "2904602");
-    let import = s.eplan_parts(&fixture("synthetic-psu-7z.edz"), &FndefMap::shipped(), None).unwrap();
+    let import = s
+        .eplan_parts(&fixture("synthetic-psu-7z.edz"), &FndefMap::shipped(), None)
+        .unwrap();
     let updates = s.update_parts_from_import(&import).unwrap();
     assert_eq!(updates.matched.len(), 1);
     assert!(updates.unmatched.is_empty() && updates.ambiguous.is_empty());
@@ -61,7 +67,10 @@ fn an_edz_updates_the_golden_part_copy_through_a_previewed_command_listing_the_c
     for changed in ["description", "free_props", "mech", "meta"] {
         assert!(fields.contains(&changed), "{changed} in {fields:?}");
     }
-    assert!(!fields.contains(&"tech_data") && !fields.contains(&"function_template"), "{fields:?}");
+    assert!(
+        !fields.contains(&"tech_data") && !fields.contains(&"function_template"),
+        "{fields:?}"
+    );
     assert_eq!((copy.from.as_str(), copy.to.as_str()), ("1.0.0", "1.0.1"));
     assert_eq!(plan.devices.len(), 1);
     // A preview: the model is as it was until the commit.
@@ -77,7 +86,11 @@ fn an_edz_updates_the_golden_part_copy_through_a_previewed_command_listing_the_c
     // Kept: the technical data and the pins' potential roles, which the file does not carry.
     assert_eq!(after.item.tech_data, before.item.tech_data);
     let roles = |p: &ew_schema::LibCopy<ew_schema::Part>| -> Vec<_> {
-        p.item.cp_pattern.iter().map(|c| (c.idx, c.designation.clone(), c.potential_role.clone())).collect()
+        p.item
+            .cp_pattern
+            .iter()
+            .map(|c| (c.idx, c.designation.clone(), c.potential_role.clone()))
+            .collect()
     };
     assert_eq!(roles(&after), roles(&before));
     assert!(after.item.meta.foreign_terms);
@@ -98,7 +111,12 @@ fn parts_the_project_does_not_hold_are_listed_not_created() {
     let updates = s.update_parts_from_import(&import).unwrap();
     assert!(updates.plan.is_none() && updates.matched.is_empty());
     assert_eq!(updates.unmatched, ["9999-X"]);
-    assert!(s.query().parts().iter().all(|(_, c)| c.item.part_number.as_str() != "9999-X"));
+    assert!(
+        s.query()
+            .parts()
+            .iter()
+            .all(|(_, c)| c.item.part_number.as_str() != "9999-X")
+    );
 }
 
 /// A library write: the parts of an EDZ go into a user library with their provenance and the vendor terms; a second
@@ -112,20 +130,39 @@ fn an_edz_is_written_into_a_library_and_a_changed_part_needs_a_bump() {
     };
     let mut reg = Registry::open(&tiers).unwrap();
     let lib = reg
-        .create(&root.0.join("company").join("mine.ewlib"), "mine", "Mine", "NOASSERTION")
+        .create(
+            &root.0.join("company").join("mine.ewlib"),
+            "mine",
+            "Mine",
+            "NOASSERTION",
+        )
         .unwrap();
     let edz = fixture("synthetic-psu-zip.edz");
     let write = (None, false, false);
     let first = eplan::import_into_library(&mut reg, lib, &edz, &FndefMap::shipped(), write, true).unwrap();
     assert_eq!(first.import.counts().new, 1);
-    assert_eq!(first.write.as_ref().map(|w| w.added.len()), Some(2), "the part and its manufacturer");
-    assert_eq!(first.import.report.entries[0].code.number(), 201, "the notice is logged first");
+    assert_eq!(
+        first.write.as_ref().map(|w| w.added.len()),
+        Some(2),
+        "the part and its manufacturer"
+    );
+    assert_eq!(
+        first.import.report.entries[0].code.number(),
+        201,
+        "the notice is logged first"
+    );
     let part = match &first.import.parts[0] {
         LibDocument::Part(p) => p.clone(),
         _ => unreachable!(),
     };
     assert!(part.item.meta.foreign_terms);
-    assert!(part.item.meta.sources.iter().any(|s| s.contains("synthetic-psu-zip.edz")));
+    assert!(
+        part.item
+            .meta
+            .sources
+            .iter()
+            .any(|s| s.contains("synthetic-psu-zip.edz"))
+    );
     let again = eplan::import_into_library(&mut reg, lib, &edz, &FndefMap::shipped(), write, false).unwrap();
     assert_eq!(again.import.counts().unchanged, 1);
     // The same part with another description: refused under the held version, written bumped.
@@ -134,9 +171,15 @@ fn an_edz_is_written_into_a_library_and_a_changed_part_needs_a_bump() {
     let edited = ImportInput::new("2904602.xml", xml.as_bytes().to_vec()).unwrap();
     let refused = eplan::import_into_library(&mut reg, lib, &edited, &FndefMap::shipped(), write, false);
     assert!(matches!(refused, Err(CatalogError::NeedsBump(_))));
-    let bumped =
-        eplan::import_into_library(&mut reg, lib, &edited, &FndefMap::shipped(), (None, true, false), false)
-            .unwrap();
+    let bumped = eplan::import_into_library(
+        &mut reg,
+        lib,
+        &edited,
+        &FndefMap::shipped(),
+        (None, true, false),
+        false,
+    )
+    .unwrap();
     assert_eq!(bumped.import.counts().updated, 1);
 }
 
@@ -163,19 +206,43 @@ fn a_report_spreadsheet_becomes_a_project_without_drawings_and_a_newer_export_up
         })
         .collect();
     assert_eq!(terminals.len(), 4, "X1:1, X1:2 (two levels), X1:PE, X2:1");
-    assert_eq!(terminals.iter().map(|t| t.strip).collect::<std::collections::BTreeSet<_>>().len(), 2);
+    assert_eq!(
+        terminals
+            .iter()
+            .map(|t| t.strip)
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        2
+    );
     assert!(terminals.iter().any(|t| t.levels.len() == 2));
-    assert!(terminals.iter().any(|t| t.rail_bonded), "PE is bonded to the rail");
-    let code = |n: u16| batch.report.entries.iter().filter(|e| e.code.number() == n).count();
+    assert!(
+        terminals.iter().any(|t| t.rail_bonded),
+        "PE is bonded to the rail"
+    );
+    let code = |n: u16| {
+        batch
+            .report
+            .entries
+            .iter()
+            .filter(|e| e.code.number() == n)
+            .count()
+    };
     assert_eq!((code(206), code(207)), (1, 1));
     assert!(ew_api::import::session_from_batch(&batch, SessionOptions::default()).is_ok());
     // The connection list: one wire between two terminals, one with an end no terminal answers... the second end is
     // a device pin and joins no terminal.
     let wires = "Source;Target\n-X1:1;-X2:1\n-X1:2;-K1:A1\n";
     let batch = report("wires.csv", wires, "connections-en");
-    let connections = batch.records.iter().filter(|r| matches!(r, Record::Connection(_))).count();
+    let connections = batch
+        .records
+        .iter()
+        .filter(|r| matches!(r, Record::Connection(_)))
+        .count();
     assert_eq!(connections, 1);
-    assert!(batch.report.entries.iter().any(|e| e.code.number() == 3), "the dropped end is said");
+    assert!(
+        batch.report.entries.iter().any(|e| e.code.number() == 3),
+        "the dropped end is said"
+    );
     assert!(ew_api::import::session_from_batch(&batch, SessionOptions::default()).is_ok());
     // A newer export: the old records keep their IDs.
     let newer = report("terminals.csv", &format!("{diagram}-X2;2;1;;\n"), "terminals-en");

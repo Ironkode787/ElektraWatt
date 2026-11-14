@@ -65,7 +65,11 @@ fn a_collection_becomes_symbols_under_the_qet_licence_and_a_second_run_adds_noth
             "{:?}",
             meta.sources
         );
-        assert!(meta.sources.iter().any(|x| x.starts_with("qet.licence:ELEMENTS.LICENSE@sha256:")));
+        assert!(
+            meta.sources
+                .iter()
+                .any(|x| x.starts_with("qet.licence:ELEMENTS.LICENSE@sha256:"))
+        );
         assert_eq!(s.item.grid, ew_units::Grid::QET_10PX, "the QET grid is kept");
     }
     let (_, again) = qet_collection::import_into_library(&mut reg, lib, &collection, false).unwrap();

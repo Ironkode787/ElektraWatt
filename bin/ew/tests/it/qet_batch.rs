@@ -77,10 +77,20 @@ fn a_batch_writes_a_project_and_a_report_per_file_and_a_summary() {
     ]));
     assert_eq!(strict.status.code(), Some(1), "{}", stderr(&strict));
     // No `--out`, no file and a directory without projects are usage errors.
-    assert_eq!(t.ew(&args([&"import", &"qet", &"--batch", &dir])).status.code(), Some(2));
+    assert_eq!(
+        t.ew(&args([&"import", &"qet", &"--batch", &dir])).status.code(),
+        Some(2)
+    );
     let empty = t.path("empty");
     std::fs::create_dir_all(&empty).unwrap();
-    let none = t.ew(&args([&"import", &"qet", &"--batch", &empty, &"--out", &t.path("out3")]));
+    let none = t.ew(&args([
+        &"import",
+        &"qet",
+        &"--batch",
+        &empty,
+        &"--out",
+        &t.path("out3"),
+    ]));
     assert_eq!(none.status.code(), Some(2));
     assert!(stderr(&none).contains("no .qet files"), "{}", stderr(&none));
 }

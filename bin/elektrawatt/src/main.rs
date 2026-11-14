@@ -293,7 +293,9 @@ impl RfdPlatform {
                 base.set_title(strings::text(key!("prompt-import-title")))
                     .add_filter(
                         strings::text(key!("prompt-import-filter")),
-                        &["qet", "ewz", "dxf", "dwg", "pdf", "edz", "7z", "zip", "xml", "xlsx", "csv"],
+                        &[
+                            "qet", "ewz", "dxf", "dwg", "pdf", "edz", "7z", "zip", "xml", "xlsx", "csv",
+                        ],
                     ),
                 DialogKind::File,
             ),

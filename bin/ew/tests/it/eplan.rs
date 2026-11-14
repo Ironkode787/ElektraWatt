@@ -15,7 +15,8 @@ const EDZ_7Z: &str = concat!(
 
 /// A supplier's list with the part the EDZ is about, and its map.
 const LIST: &str = "Maker,Order code,Text\nPhoenix Contact,2904602,Power supply\n";
-const MAP: &str = "[columns]\nmanufacturer = \"Maker\"\npart_number = \"Order code\"\ndescription = \"Text\"\n";
+const MAP: &str =
+    "[columns]\nmanufacturer = \"Maker\"\npart_number = \"Order code\"\ndescription = \"Text\"\n";
 
 #[test]
 fn an_edz_goes_into_a_user_library_with_the_terms_notice_and_a_second_run_changes_nothing() {
@@ -36,7 +37,11 @@ fn an_edz_goes_into_a_user_library_with_the_terms_notice_and_a_second_run_change
     let run = || t.ew(&args([&"import", &"edz", &EDZ_7Z, &"--library", &"mine"]));
     let out = run();
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
-    assert!(stderr(&out).contains("Data Portal"), "the notice: {}", stderr(&out));
+    assert!(
+        stderr(&out).contains("Data Portal"),
+        "the notice: {}",
+        stderr(&out)
+    );
     assert!(
         stdout(&out).contains("1 new, 0 updated, 0 unchanged, 0 duplicate, 0 rejected; written: 2 added"),
         "{}",
@@ -44,7 +49,11 @@ fn an_edz_goes_into_a_user_library_with_the_terms_notice_and_a_second_run_change
     );
     let again = run();
     assert_eq!(again.status.code(), Some(0), "{}", stderr(&again));
-    assert!(stdout(&again).contains("0 new, 0 updated, 1 unchanged"), "{}", stdout(&again));
+    assert!(
+        stdout(&again).contains("0 new, 0 updated, 1 unchanged"),
+        "{}",
+        stdout(&again)
+    );
 }
 
 #[test]
@@ -103,7 +112,10 @@ fn a_report_export_becomes_a_new_project() {
     ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     let text = stdout(&out);
-    assert!(text.contains("EW-IMP-206") && text.contains("EW-IMP-207"), "{text}");
+    assert!(
+        text.contains("EW-IMP-206") && text.contains("EW-IMP-207"),
+        "{text}"
+    );
     let (s, _) = ew_api::Session::open_read_only(&out_dir, "test").unwrap();
     let terminals = s
         .query()
@@ -121,7 +133,11 @@ fn a_report_export_becomes_a_new_project() {
         &"--out",
         &t.path("other"),
     ]));
-    assert_eq!(again.status.code(), Some(2), "a mapping the table does not fit is refused");
+    assert_eq!(
+        again.status.code(),
+        Some(2),
+        "a mapping the table does not fit is refused"
+    );
 }
 
 #[test]
@@ -131,7 +147,15 @@ fn an_edz_previews_and_applies_the_update_of_a_project_part_copy() {
     let (list, map) = (t.path("list.csv"), t.path("map.toml"));
     std::fs::write(&list, LIST).unwrap();
     std::fs::write(&map, MAP).unwrap();
-    let out = t.ew(&args([&"import", &"parts", &list, &"--map", &map, &"--project", &project]));
+    let out = t.ew(&args([
+        &"import",
+        &"parts",
+        &list,
+        &"--map",
+        &map,
+        &"--project",
+        &project,
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     let description = |project: &std::path::Path| {
         let (s, _) = ew_api::Session::open_read_only(project, "test").unwrap();
@@ -142,7 +166,13 @@ fn an_edz_previews_and_applies_the_update_of_a_project_part_copy() {
             .find(|(_, c)| c.item.part_number.as_str() == "2904602")
             .map(|(_, c)| serde_json::to_string(&c.item.description).unwrap())
             .unwrap();
-        (part, q.parts().iter().map(|(_, c)| c.version.clone()).collect::<Vec<_>>())
+        (
+            part,
+            q.parts()
+                .iter()
+                .map(|(_, c)| c.version.clone())
+                .collect::<Vec<_>>(),
+        )
     };
     let (before, versions) = description(&project);
     assert_eq!(before, "\"Power supply\"");
@@ -158,9 +188,20 @@ fn an_edz_previews_and_applies_the_update_of_a_project_part_copy() {
     assert_eq!(description(&project).0, before);
 
     // `--apply` commits it as one step and saves.
-    let out = t.ew(&args([&"import", &"edz", &EDZ_7Z, &"--project", &project, &"--apply"]));
+    let out = t.ew(&args([
+        &"import",
+        &"edz",
+        &EDZ_7Z,
+        &"--project",
+        &project,
+        &"--apply",
+    ]));
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
-    assert!(stdout(&out).contains("1 part copies updated in one step; saved"), "{}", stdout(&out));
+    assert!(
+        stdout(&out).contains("1 part copies updated in one step; saved"),
+        "{}",
+        stdout(&out)
+    );
     let (after, versions) = description(&project);
     assert!(after.contains("Stromversorgung"), "{after}");
     assert_eq!(versions, ["1.0.1"]);

@@ -248,6 +248,23 @@ pub static IMP: [RuleMeta; 33] = [
         I,
         "reference/rules/ew-imp-122",
     ),
+    // The EPLAN report spreadsheets (WP-S3.18, doc 14 §5.4).
+    imp(
+        "EW-IMP-206",
+        "160206",
+        "Report column not mapped",
+        C,
+        W,
+        "reference/rules/ew-imp-206",
+    ),
+    imp(
+        "EW-IMP-207",
+        "160207",
+        "Multi-level terminals folded",
+        H,
+        I,
+        "reference/rules/ew-imp-207",
+    ),
     // The DXF and DWG imports (WP-S3.19, doc 14 §6). EW-IMP-256 is the symbol wizard's, in a draft's details only.
     imp(
         "EW-IMP-251",
@@ -296,23 +313,6 @@ pub static IMP: [RuleMeta; 33] = [
         H,
         I,
         "reference/rules/ew-imp-257",
-    ),
-    // The EPLAN report spreadsheets (WP-S3.18, doc 14 §5.4).
-    imp(
-        "EW-IMP-206",
-        "160206",
-        "Report column not mapped",
-        C,
-        W,
-        "reference/rules/ew-imp-206",
-    ),
-    imp(
-        "EW-IMP-207",
-        "160207",
-        "Multi-level terminals folded",
-        H,
-        I,
-        "reference/rules/ew-imp-207",
     ),
 ];
 

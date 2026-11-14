@@ -20,16 +20,16 @@ pub(crate) fn safe_name(name: &str) -> Result<String, String> {
     Ok(name)
 }
 
+/// The members read (name and bytes) and the names of those left unread.
+pub(crate) type Members = (Vec<(String, Vec<u8>)>, Vec<String>);
+
 pub(crate) fn read(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
     read_matching(bytes, &|_| true).map(|(files, _)| files)
 }
 
 /// The members `keep` names, and the names of the others, which are counted into the total and the ratio but never
 /// opened: a member above [`MAX_FILE`] that nobody reads (a 3D model, a picture) does not refuse the archive.
-pub(crate) fn read_matching(
-    bytes: &[u8],
-    keep: &dyn Fn(&str) -> bool,
-) -> Result<(Vec<(String, Vec<u8>)>, Vec<String>), String> {
+pub(crate) fn read_matching(bytes: &[u8], keep: &dyn Fn(&str) -> bool) -> Result<Members, String> {
     if bytes.len() as u64 > MAX_INPUT {
         return Err("eplan-input-limit".into());
     }
@@ -111,7 +111,7 @@ fn u32_at(b: &[u8], at: usize) -> Result<usize, String> {
 }
 
 /// Stored and raw-deflate ZIP, including ordinary comments and data descriptors. ZIP64/encryption refused.
-fn zip(b: &[u8], keep: &dyn Fn(&str) -> bool) -> Result<(Vec<(String, Vec<u8>)>, Vec<String>), String> {
+fn zip(b: &[u8], keep: &dyn Fn(&str) -> bool) -> Result<Members, String> {
     let end = (b.len().saturating_sub(65557)..b.len().saturating_sub(21))
         .rev()
         .find(|&i| {
