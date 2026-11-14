@@ -34,6 +34,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     ),
     // File ▸ Import…, beside Open: a QElectroTech project starts the import, an `.ewz` its Open .ewz dialog.
+    // It takes every file the program imports and goes on by what the file is (FT-1741): a QElectroTech project, a
+    // drawing, EPLAN data, a parts table. The separate entries (Parts table…, Import QElectroTech project…, Import
+    // drawing…, Import EPLAN data…) are out of the menus and the bar; the command search finds each by its name.
     with_params(
         "file?:path, discard?:bool",
         act(
@@ -105,8 +108,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     with_params(
         "file?:path, dir?:path, discard?:bool",
-        placed(
-            place(Group::Import, 2, CommandSize::Small, None),
+        with_icon(
             "file-import",
             act(
                 "file.import_qet",
@@ -114,7 +116,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 Menu::Project,
                 &[],
                 always,
-                // It is in Project, Import (its ID unchanged).
+                // File ▸ Import… reaches it; the command search finds it by its name (FT-1741).
                 None,
                 |s, p| s.act_import_qet(p),
             ),
@@ -139,7 +141,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "file?:path, accept?:bool",
         placed(
-            place(Group::Import, 3, CommandSize::Small, None),
+            place(Group::Import, 2, CommandSize::Small, None),
             "file-import",
             act(
                 "file.reimport_qet",
@@ -164,14 +166,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     // File, Import, Parts table…
     with_params(
         "path?:path",
-        placed(
-            // Both imports in one group, Import, the parts table first.
-            place(
-                Group::Import,
-                1,
-                CommandSize::Large,
-                Some(key!("bar-import-parts")),
-            ),
+        with_icon(
             "database-import",
             act(
                 "parts.import",
@@ -186,7 +181,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // The parts import's column mapping step (the card's fields and its Import button).
     with_params(
-        "source?:text, column?:text, member?:text",
+        "source?:text, column?:text, member?:text, target?:enum(devices|terminals|connections)",
         hidden(act(
             "parts.map",
             Command,
@@ -197,15 +192,18 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_parts_map(p),
         )),
     ),
-    hidden(act(
-        "parts.map_import",
-        Command,
-        Menu::Project,
-        &[],
-        parts_map_open,
-        None,
-        |s, _| s.act_parts_map_import(),
-    )),
+    with_params(
+        "dir?:path, discard?:bool",
+        hidden(act(
+            "parts.map_import",
+            Command,
+            Menu::Project,
+            &[],
+            parts_map_open,
+            None,
+            |s, p| s.act_parts_map_import(p),
+        )),
+    ),
     with_icon(
         "device-floppy",
         act(

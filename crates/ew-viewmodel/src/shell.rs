@@ -120,7 +120,7 @@ pub use creation::{FormDialog, FormField, FormRow, FormTable, PAGE_TYPES, STRUCT
 pub use drawing::TextPopup;
 pub use navigation::{Focus, RECENT_PAGES, SessionCalls};
 pub use navigators::{Chip, DragSource, FindingLook, MAX_CHIPS, ShownRow};
-pub use parts::{MapColumn, PartsMap};
+pub use parts::{MapColumn, MapKind, PartsMap};
 pub use row_ops::NavRename;
 pub use tools::SnapIndicator;
 

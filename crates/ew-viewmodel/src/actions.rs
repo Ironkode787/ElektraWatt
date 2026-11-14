@@ -2058,8 +2058,18 @@ mod tests {
         assert!(!file.contains(&"file.open_ewz"), "no Open .ewz… in File");
         // The imports and the company standard sit in the Project tab's menu.
         let project = ids(Menu::Project);
-        for id in ["tools.company_standard", "file.import_qet", "parts.import"] {
-            assert!(project.contains(&id), "{id} in Project");
+        assert!(
+            project.contains(&"tools.company_standard"),
+            "company standard in Project"
+        );
+        // One File ▸ Import… takes every file; the separate entries are in no menu (FT-1741).
+        for id in [
+            "file.import_qet",
+            "parts.import",
+            "file.import_drawing",
+            "file.import_eplan",
+        ] {
+            assert!(!project.contains(&id) && !file.contains(&id), "{id} in no menu");
         }
         let help = ids(Menu::Help);
         for id in [

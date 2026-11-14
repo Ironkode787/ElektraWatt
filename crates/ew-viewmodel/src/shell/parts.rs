@@ -22,6 +22,7 @@
 use std::path::PathBuf;
 
 use ew_api::catalog;
+use ew_api::eplan::{self, ReportMap, ReportTarget};
 use ew_api::import::{PartsImport, parts_import_counts, read_parts_tables};
 use ew_api::{AnyCommand, Submit};
 use serde_json::{Map, Value};
@@ -91,9 +92,36 @@ pub struct MapColumn {
     pub member: Option<String>,
 }
 
-/// The column mapping step of File ▸ Import ▸ Parts table…, while it is open.
+/// What the column mapping step maps for.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MapKind {
+    /// A supplier's parts table (the members of the parts import).
+    Parts,
+    /// An EPLAN report spreadsheet of the given kind (FR-IMP-029, FT-1742): the members of that report.
+    Report(ReportTarget),
+}
+
+/// The words of a report member (`strip`, `designation`, ...), `None` for a name that is no member.
+fn report_member_key(member: &str) -> Option<crate::strings::Key<'static>> {
+    Some(match member {
+        "strip" => key!("eplan-member-strip"),
+        "designation" => key!("eplan-member-designation"),
+        "level" => key!("eplan-member-level"),
+        "part" => key!("eplan-member-part"),
+        "description" => key!("eplan-member-description"),
+        "from" => key!("eplan-member-from"),
+        "to" => key!("eplan-member-to"),
+        _ => return None,
+    })
+}
+
+/// The column mapping step of File ▸ Import… of a parts table or of an EPLAN report, while it is open.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PartsMap {
+    /// What it maps for.
+    pub kind: MapKind,
+    /// The 1-based row of a report's header among the rows with text.
+    header_row: u32,
     /// The table's file name (never its path).
     pub file: String,
     path: PathBuf,
@@ -131,6 +159,49 @@ impl PartsMap {
         out
     }
 
+    /// The member choices of the column `header` for this step: a parts table's ([`PartsMap::choices`]), or the members
+    /// of the report's kind.
+    pub fn member_choices(&self, header: &str) -> Vec<String> {
+        match self.kind {
+            MapKind::Parts => Self::choices(header),
+            MapKind::Report(target) => target.members().iter().map(|(m, _)| (*m).to_owned()).collect(),
+        }
+    }
+
+    /// A member in words for this step ([`PartsMap::member_text`], or the report member's words).
+    pub fn member_words(&self, member: &str, header: &str) -> String {
+        match self.kind {
+            MapKind::Parts => Self::member_text(member, header),
+            MapKind::Report(_) => match report_member_key(member) {
+                Some(k) => strings::text(k).to_owned(),
+                None => member.to_owned(),
+            },
+        }
+    }
+
+    /// The report map of the chosen members, as the importer checks it (a required member without a column, a member
+    /// of another kind of report).
+    fn report_map(&self) -> Result<ReportMap, String> {
+        let MapKind::Report(target) = self.kind else {
+            return Err(String::new());
+        };
+        let mut columns = std::collections::BTreeMap::new();
+        for c in &self.columns {
+            if let Some(m) = &c.member
+                && columns.insert(m.clone(), c.header.clone()).is_some()
+            {
+                return Err(strings::format(key!("parts-map-twice"), &[m]));
+            }
+        }
+        let map = ReportMap {
+            target,
+            sheet: None,
+            header_row: Some(self.header_row),
+            columns,
+        };
+        ReportMap::from_toml(&map.to_toml()).map(|_| map)
+    }
+
     /// The column map of the chosen members, or the importer's message why it is not usable.
     fn column_map(&self) -> Result<catalog::ColumnMap, String> {
         let mut chosen = std::collections::BTreeSet::new();
@@ -151,7 +222,10 @@ impl PartsMap {
 
     /// Whether Import can run: the importer takes the map.
     pub fn can_import(&self) -> bool {
-        self.column_map().is_ok()
+        match self.kind {
+            MapKind::Parts => self.column_map().is_ok(),
+            MapKind::Report(_) => self.report_map().is_ok(),
+        }
     }
 
     /// A member in words, as the mapping card shows it (doc 16a P2): "Manufacturer",
@@ -184,6 +258,31 @@ impl PartsMap {
     /// importer's message for the describe text and the action's outcome.
     pub fn error_text(&self) -> Option<String> {
         let error = self.error.as_ref()?;
+        if let MapKind::Report(target) = self.kind {
+            let mut chosen = std::collections::BTreeSet::new();
+            if let Some(m) = self
+                .columns
+                .iter()
+                .filter_map(|c| c.member.as_deref())
+                .find(|m| !chosen.insert(*m))
+            {
+                return Some(strings::format(
+                    key!("parts-map-twice-text"),
+                    &[&self.member_words(m, "")],
+                ));
+            }
+            if let Some((m, _)) = target
+                .members()
+                .iter()
+                .find(|(m, required)| *required && !chosen.contains(m))
+            {
+                return Some(strings::format(
+                    key!("parts-map-missing"),
+                    &[&self.member_words(m, "")],
+                ));
+            }
+            return Some(error.clone());
+        }
         let mut chosen = std::collections::BTreeSet::new();
         if let Some(c) = self
             .columns
@@ -258,6 +357,8 @@ impl ShellModel {
             .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
         let golden = golden_members(&columns);
         let mut map = PartsMap {
+            kind: MapKind::Parts,
+            header_row: 0,
             source: catalog::source_key_for(&file),
             file,
             path,
@@ -280,6 +381,9 @@ impl ShellModel {
 
     /// Fills the members from the map saved for the source key (`saved`), else from the golden dialect.
     fn prefill(&self, map: &mut PartsMap) {
+        if matches!(map.kind, MapKind::Report(_)) {
+            return self.prefill_report(map);
+        }
         let saved = self
             .config
             .config_dir
@@ -298,21 +402,145 @@ impl ShellModel {
         map.error = map.column_map().err();
     }
 
+    /// Whether the table `input` of `path` reads as a parts table without asking: a map is saved for its source key,
+    /// or its headers are exactly those of the golden dialect (File ▸ Import… then goes on to the parts import).
+    pub(super) fn reads_as_parts_table(&self, path: &std::path::Path, input: &catalog::ImportInput) -> bool {
+        let Ok(columns) = catalog::table_columns(input, None, &catalog::table_limits()) else {
+            return false;
+        };
+        let file = path
+            .file_name()
+            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+        let saved = self
+            .config
+            .config_dir
+            .as_deref()
+            .is_some_and(|dir| catalog::load_column_map(dir, &catalog::source_key_for(&file)).is_ok());
+        saved || golden_members(&columns).is_some()
+    }
+
+    /// Fills a report's members from the mapping saved for the source key (and takes its kind).
+    fn prefill_report(&self, map: &mut PartsMap) {
+        let saved = self
+            .config
+            .config_dir
+            .as_deref()
+            .and_then(|dir| eplan::load_report_map(dir, &map.source));
+        map.saved = saved.is_some();
+        if let Some(m) = &saved {
+            map.kind = MapKind::Report(m.target);
+        }
+        for c in &mut map.columns {
+            c.member = saved.as_ref().and_then(|m| {
+                m.columns
+                    .iter()
+                    .find(|(_, h)| h.trim() == c.header)
+                    .map(|(member, _)| member.clone())
+            });
+        }
+        map.error = map.report_map().err();
+    }
+
+    /// The mapping step of the report spreadsheet `path` (read as `input`): its columns as detected, the members of
+    /// the mapping saved for the file's source key (else none), a terminal diagram unless that mapping says another
+    /// (FR-IMP-029, FT-1742).
+    pub(super) fn open_report_map(&mut self, path: PathBuf, input: &catalog::ImportInput) -> Outcome {
+        let file = path
+            .file_name()
+            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+        let (columns, header_row) = match eplan::report_columns(input) {
+            Ok(c) => c,
+            Err(e) => return self.import_failed(&file, &e.to_string()),
+        };
+        let mut map = PartsMap {
+            kind: MapKind::Report(ReportTarget::Terminals),
+            header_row,
+            source: catalog::source_key_for(&file),
+            file,
+            path,
+            saved: false,
+            columns: columns
+                .into_iter()
+                .map(|c| MapColumn {
+                    header: c.header,
+                    sample: c.sample,
+                    member: None,
+                })
+                .collect(),
+            golden: None,
+            error: None,
+        };
+        self.prefill_report(&mut map);
+        self.dialog = None;
+        self.parts_map = Some(map);
+        Outcome::Done
+    }
+
+    /// Import on a report's mapping: the mapping is saved under the source key (the next file of the report scheme
+    /// finds it), then the report becomes a new project in `dir` (asked for when absent).
+    fn report_map_import(&mut self, map: PartsMap, p: &Map<String, Value>) -> Outcome {
+        let report = match map.report_map() {
+            Ok(m) => m,
+            Err(message) => return Outcome::Failed { message },
+        };
+        if let Some(dir) = self.config.config_dir.as_deref()
+            && let Err(e) = eplan::save_report_map(dir, &map.source, &report)
+        {
+            return self.map_failed(e.to_string());
+        }
+        let input = match catalog::read_input(&map.path, &catalog::table_limits()) {
+            Ok(i) => i,
+            Err(e) => return self.map_failed(e.to_string()),
+        };
+        let outcome = self.run_report_import(p, &map.file, &input, report, &map.source);
+        if outcome == Outcome::Done && self.dialog.is_none() && self.prompt.is_none() {
+            self.parts_map = None;
+        }
+        outcome
+    }
+
     /// `parts.map {source?, column?, member?}`: sets the source key (a map saved for it fills the members)
     /// and the member the column with header `column` imports as (`member` empty or absent: not imported).
     pub(crate) fn act_parts_map(&mut self, p: &Map<String, Value>) -> Outcome {
-        let (source, column, member) = match (
+        let (source, column, member, target) = match (
             string_param(p, "source"),
             string_param(p, "column"),
             string_param(p, "member"),
+            string_param(p, "target"),
         ) {
-            (Ok(s), Ok(c), Ok(m)) => (s.map(str::to_owned), c.map(str::to_owned), m.map(str::to_owned)),
-            (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => return e,
+            (Ok(s), Ok(c), Ok(m), Ok(t)) => (
+                s.map(str::to_owned),
+                c.map(str::to_owned),
+                m.map(str::to_owned),
+                t.map(str::to_owned),
+            ),
+            (Err(e), _, _, _) | (_, Err(e), _, _) | (_, _, Err(e), _) | (_, _, _, Err(e)) => return e,
         };
         let Some(mut map) = self.parts_map.take() else {
             return Outcome::refused(key!("reason-no-parts-map"));
         };
         let outcome = (|| {
+            // A report's kind: the members of the other kinds are dropped.
+            if let Some(t) = target {
+                let MapKind::Report(_) = map.kind else {
+                    return failed(key!("error-bad-param"), &["target"]);
+                };
+                let kind = match t.as_str() {
+                    "devices" => ReportTarget::Devices,
+                    "terminals" => ReportTarget::Terminals,
+                    "connections" => ReportTarget::Connections,
+                    _ => return failed(key!("error-bad-param"), &["target"]),
+                };
+                map.kind = MapKind::Report(kind);
+                for c in &mut map.columns {
+                    if c.member
+                        .as_deref()
+                        .is_some_and(|m| !kind.members().iter().any(|(k, _)| k == &m))
+                    {
+                        c.member = None;
+                    }
+                }
+            }
             if let Some(source) = source {
                 let source = source.trim().to_owned();
                 if let Err(message) = catalog::check_source_key(&source) {
@@ -335,18 +563,24 @@ impl ShellModel {
                     return failed(key!("error-bad-param"), &["column"]);
                 };
                 let member = member.map(|m| m.trim().to_owned()).filter(|m| !m.is_empty());
-                if let Some(m) = &member
-                    && let Err(e) = catalog::Member::parse(m)
-                {
-                    return Outcome::Failed {
-                        message: e.to_string(),
+                if let Some(m) = &member {
+                    let refused = match map.kind {
+                        MapKind::Parts => catalog::Member::parse(m).err().map(|e| e.to_string()),
+                        MapKind::Report(_) => (!map.member_choices("").contains(m))
+                            .then(|| strings::format(key!("error-bad-param"), &["member"])),
                     };
+                    if let Some(message) = refused {
+                        return Outcome::Failed { message };
+                    }
                 }
                 map.columns[i].member = member;
             }
             Outcome::Done
         })();
-        map.error = map.column_map().err();
+        map.error = match map.kind {
+            MapKind::Parts => map.column_map().err(),
+            MapKind::Report(_) => map.report_map().err(),
+        };
         self.parts_map = Some(map);
         outcome
     }
@@ -356,10 +590,13 @@ impl ShellModel {
     /// to the toast. A golden-dialect table whose pre-filled map is unchanged is read by the golden reader with its
     /// sibling tables, as before the mapping step. Refused while the importer refuses the map (its message under the
     /// table).
-    pub(crate) fn act_parts_map_import(&mut self) -> Outcome {
+    pub(crate) fn act_parts_map_import(&mut self, p: &Map<String, Value>) -> Outcome {
         let Some(map) = self.parts_map.clone() else {
             return Outcome::refused(key!("reason-no-parts-map"));
         };
+        if matches!(map.kind, MapKind::Report(_)) {
+            return self.report_map_import(map, p);
+        }
         let columns = match map.column_map() {
             Ok(c) => c,
             Err(message) => return Outcome::Failed { message },

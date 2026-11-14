@@ -134,6 +134,13 @@ mod tests {
         )
     }
 
+    /// FT-1743: the importer's own member of a part (`eplan.accessories`, `eplan.variants`) reads in words, not as
+    /// the name of the importer.
+    #[test]
+    fn the_eplan_member_of_a_part_reads_as_accessories_and_variants() {
+        assert_eq!(words(&["eplan"]), ["accessories and variants"]);
+    }
+
     #[test]
     fn field_words_drop_the_content_hash_name_a_lone_one_content_and_read_underscores_as_spaces() {
         assert_eq!(

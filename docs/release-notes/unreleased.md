@@ -476,3 +476,12 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: `ew verify-migration <project> --reference <pdf> [--expected <file.json>] [--json]` compares an imported project
   with the PDF of its drawing: texts (string and anchor within 0.5 mm) and the raster per frame cell with the texts
   masked; result `ew.verify-migration-result/1` (WP-S3.13, FR-IMP-021)
+- behaviour-change: window File ▸ Import… is the one entry for every file the program imports (a QElectroTech project,
+  a drawing, EPLAN data, a parts table), and goes on by what the file is; Parts table…, Import QElectroTech project…,
+  Import drawing… and Import EPLAN data… are out of the menus and the Project tab's Import group, which keeps
+  Re-import QElectroTech project…; the command search finds each by its name (FT-1741)
+- api-add: window column mapper for an EPLAN report spreadsheet (a kind of report, a member per column, the header row
+  found below a title, the mapping saved under the file's source key and offered first for the next file); `parts.map`
+  takes `target` and `parts.map_import` takes `dir` and `discard` (FT-1742)
+- text-change: the update card of a part import names the importer's own member "Accessories and variants" (FT-1743);
+  the canvas tool strip shows its tool disabled while the tool's action is unavailable (a project without pages)

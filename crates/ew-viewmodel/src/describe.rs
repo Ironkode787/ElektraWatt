@@ -806,6 +806,13 @@ fn parts_map_lines(model: &ShellModel, lines: &mut Vec<String>) {
     if map.saved {
         head.push_str(" saved");
     }
+    if let crate::shell::MapKind::Report(target) = map.kind {
+        head.push_str(match target {
+            ew_api::eplan::ReportTarget::Devices => " report devices",
+            ew_api::eplan::ReportTarget::Terminals => " report terminals",
+            ew_api::eplan::ReportTarget::Connections => " report connections",
+        });
+    }
     lines.push(head);
     for c in &map.columns {
         let member = c

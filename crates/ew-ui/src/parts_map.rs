@@ -15,8 +15,9 @@
 //! `parts.map {column, member}`; Import `parts.map_import`; Cancel and Escape `ui.dismiss`.
 
 use egui::{Align, Align2, Id, Layout, RichText, Vec2};
+use ew_viewmodel::ew_api::eplan::ReportTarget;
 use ew_viewmodel::key;
-use ew_viewmodel::shell::{PartsMap, ShellModel};
+use ew_viewmodel::shell::{MapKind, PartsMap, ShellModel};
 use ew_viewmodel::strings;
 use serde_json::json;
 
@@ -64,11 +65,18 @@ fn body(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
             .font(crate::theme::font(&t.type_title))
             .color(t.text_primary.color32()),
     );
+    let intro = match map.kind {
+        MapKind::Parts => key!("parts-map-intro"),
+        MapKind::Report(_) => key!("eplan-map-intro"),
+    };
     ui.label(
-        RichText::new(strings::format(key!("parts-map-intro"), &[&map.file]))
+        RichText::new(strings::format(intro, &[&map.file]))
             .font(crate::theme::font(&t.type_body))
             .color(t.text_secondary.color32()),
     );
+    if let MapKind::Report(target) = map.kind {
+        report_row(ui, target, events);
+    }
     source_row(ui, map, events);
     columns(ui, map, events);
     // The refusal in words ("Map a column to Manufacturer").
@@ -76,6 +84,52 @@ fn body(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
         crate::components::live_line(ui, &e, true);
     }
     buttons(ui, map, events);
+}
+
+/// The kind of the EPLAN report the columns belong to: device list, terminal diagram or connection list
+/// (`parts.map {target}`).
+fn report_row(ui: &mut egui::Ui, target: ReportTarget, events: &mut Vec<Event>) {
+    let t = crate::components::tokens(ui);
+    let words = |x: ReportTarget| {
+        strings::text(match x {
+            ReportTarget::Devices => key!("eplan-target-devices"),
+            ReportTarget::Terminals => key!("eplan-target-terminals"),
+            ReportTarget::Connections => key!("eplan-target-connections"),
+        })
+    };
+    ui.horizontal(|ui| {
+        let label = ui
+            .allocate_ui_with_layout(
+                Vec2::new(t.size_dialog_label, t.size_control),
+                Layout::left_to_right(Align::Center),
+                |ui| {
+                    ui.set_min_width(t.size_dialog_label);
+                    ui.label(
+                        RichText::new(strings::text(key!("eplan-map-list")))
+                            .font(crate::theme::font(&t.type_label))
+                            .color(t.text_secondary.color32()),
+                    )
+                },
+            )
+            .inner;
+        let combo = egui::ComboBox::from_id_salt("parts-map-report")
+            .selected_text(words(target))
+            .width(t.size_dialog_label * 1.5)
+            .icon(crate::components::combo_chevron)
+            .show_ui(ui, |ui| {
+                for (x, id) in [
+                    (ReportTarget::Terminals, "terminals"),
+                    (ReportTarget::Devices, "devices"),
+                    (ReportTarget::Connections, "connections"),
+                ] {
+                    if ui.selectable_label(x == target, words(x)).clicked() {
+                        events.push(Event::Action("parts.map", json!({ "target": id })));
+                    }
+                }
+            });
+        combo.response.clone().labelled_by(label.id);
+        crate::components::combo_expanded(ui, &combo.response);
+    });
 }
 
 /// The Source field and the "Saved map" caption.
@@ -195,7 +249,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                                 ui.add(egui::Label::new(small(&c.sample, false)).truncate());
                             },
                         );
-                        let mut choices = PartsMap::choices(&c.header);
+                        let mut choices = map.member_choices(&c.header);
                         if let Some(m) = &c.member
                             && !choices.contains(m)
                         {
@@ -206,7 +260,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                         let shown = c
                             .member
                             .as_deref()
-                            .map_or_else(|| none.to_owned(), |m| PartsMap::member_text(m, &c.header));
+                            .map_or_else(|| none.to_owned(), |m| map.member_words(m, &c.header));
                         let combo = egui::ComboBox::from_id_salt(("parts-map-member", i))
                             .selected_text(shown)
                             .width(combo)
@@ -222,7 +276,7 @@ fn columns(ui: &mut egui::Ui, map: &PartsMap, events: &mut Vec<Event>) {
                                     if ui
                                         .selectable_label(
                                             c.member.as_deref() == Some(m.as_str()),
-                                            PartsMap::member_text(m, &c.header),
+                                            map.member_words(m, &c.header),
                                         )
                                         .clicked()
                                     {

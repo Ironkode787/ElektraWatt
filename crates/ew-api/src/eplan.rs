@@ -260,15 +260,15 @@ pub fn report_batch(
     })
 }
 
-/// The table of `input` for `map`: the records of its sheet (the first when the map names none) and the header row.
-fn report_table(input: &ImportInput, map: &ReportMap) -> Result<ew_import_eplan::ReportTable, ImportError> {
-    use ew_import_catalog::sheet;
+/// Every record with text of the sheet `sheet` of `input` (the first when `None`; a CSV has one table).
+fn records_of(input: &ImportInput, sheet: Option<&str>) -> Result<Vec<Vec<String>>, ImportError> {
+    use ew_import_catalog::sheet as reader;
     let limits = ew_import_catalog::table_limits();
     let bytes: &[u8] = input.bytes();
     let format = ew_import_catalog::SourceFormat::detect(bytes);
-    let sheet_name = match (&map.sheet, format) {
-        (Some(s), _) => s.clone(),
-        (None, ew_import_catalog::SourceFormat::Xlsx) => sheet::sheet_names(bytes, &limits)?
+    let name = match (sheet, format) {
+        (Some(s), _) => s.to_owned(),
+        (None, ew_import_catalog::SourceFormat::Xlsx) => reader::sheet_names(bytes, &limits)?
             .into_iter()
             .next()
             .ok_or_else(|| ImportError::Malformed {
@@ -277,7 +277,12 @@ fn report_table(input: &ImportInput, map: &ReportMap) -> Result<ew_import_eplan:
             })?,
         (None, _) => String::new(),
     };
-    let records = sheet::read_rows(bytes, format, &sheet_name, &limits)?;
+    reader::read_rows(bytes, format, &name, &limits)
+}
+
+/// The table of `input` for `map`: the records of its sheet (the first when the map names none) and the header row.
+fn report_table(input: &ImportInput, map: &ReportMap) -> Result<ew_import_eplan::ReportTable, ImportError> {
+    let records = records_of(input, map.sheet.as_deref())?;
     let wanted: Vec<&str> = map.columns.values().map(String::as_str).collect();
     ew_import_eplan::ReportTable::from_records(&records, map.header_row, &wanted).ok_or_else(|| {
         ImportError::Malformed {
@@ -285,6 +290,42 @@ fn report_table(input: &ImportInput, map: &ReportMap) -> Result<ew_import_eplan:
             line: None,
         }
     })
+}
+
+/// The columns of a report spreadsheet as the column mapper shows them, and the 1-based row of the header among the
+/// rows with text: the row of the first 20 that has most cells filled (the earliest on a tie), since an export often
+/// starts with a title; each column with its first value below the header.
+///
+/// # Errors
+///
+/// [`ImportError`] for a table that cannot be read or has no header.
+pub fn report_columns(input: &ImportInput) -> Result<(Vec<crate::catalog::TableColumn>, u32), ImportError> {
+    let records = records_of(input, None)?;
+    let filled = |r: &Vec<String>| r.iter().filter(|c| !c.trim().is_empty()).count();
+    let best = records.iter().take(20).map(filled).max().unwrap_or(0);
+    let at = records
+        .iter()
+        .take(20)
+        .position(|r| filled(r) == best && best > 0)
+        .ok_or_else(|| ImportError::Malformed {
+            message: "no header row found in the table".into(),
+            line: None,
+        })?;
+    let columns = records[at]
+        .iter()
+        .enumerate()
+        .map(|(i, h)| crate::catalog::TableColumn {
+            header: h.trim().to_owned(),
+            sample: records[at + 1..]
+                .iter()
+                .filter_map(|r| r.get(i))
+                .map(|c| c.trim())
+                .find(|c| !c.is_empty())
+                .unwrap_or_default()
+                .to_owned(),
+        })
+        .collect();
+    Ok((columns, u32::try_from(at + 1).unwrap_or(1)))
 }
 
 /// The names of the `maps` whose every column is a header of `input`, in the order given: the column mapper's offer.

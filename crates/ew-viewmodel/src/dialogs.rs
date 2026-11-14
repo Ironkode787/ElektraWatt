@@ -209,7 +209,7 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
             unitless,
             converter,
         } => import_drawing_spec(path, name, *kind, folio.as_deref(), *unitless, *converter),
-        Dialog::ImportEplan { path, name, step } => import_eplan_spec(path, name, step),
+        Dialog::ImportEplan { path, name, step } => import_eplan_spec(path, name, step, model.has_project()),
         // D28: Set up (Enter) or Cancel.
         Dialog::ConfirmGitSetup { folder } => git_setup_spec(folder),
         // Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
@@ -646,7 +646,12 @@ fn import_drawing_spec(
 
 /// Importing EPLAN data from `path` (WP-S3.18): the terms notice with Continue; the parts of a file with Update (the
 /// copies that would change) and Add to my parts library; a report with a button for each mapping that fits.
-fn import_eplan_spec(path: &str, name: &str, step: &crate::shell::EplanStep) -> DialogSpec {
+fn import_eplan_spec(
+    path: &str,
+    name: &str,
+    step: &crate::shell::EplanStep,
+    has_project: bool,
+) -> DialogSpec {
     use crate::shell::EplanStep;
     use ew_api::eplan::ReportTarget;
     let action = |extra: Value| {
@@ -726,15 +731,19 @@ fn import_eplan_spec(path: &str, name: &str, step: &crate::shell::EplanStep) -> 
             } else {
                 vec![strings::format(key!("eplan-report-text"), &[name])]
             };
-            let primary = if buttons.is_empty() {
-                cancel()
-            } else {
-                buttons.remove(0)
-            };
-            let mut secondary = buttons;
-            if !fits.is_empty() {
-                secondary.push(cancel());
+            // The column mapper, and the other reading of a table: a parts table (FT-1741, FT-1742).
+            buttons.push(DialogButton::new(
+                key!("eplan-report-map"),
+                action(json!({ "how": "map" })),
+            ));
+            let mut parts = DialogButton::new(key!("eplan-report-parts"), action(json!({ "how": "parts" })));
+            if !has_project {
+                parts.disabled = Some(strings::text(key!("reason-no-project")).to_owned());
             }
+            buttons.push(parts);
+            let primary = buttons.remove(0);
+            let mut secondary = buttons;
+            secondary.push(cancel());
             DialogSpec {
                 secondary,
                 ..small(title, body, primary)

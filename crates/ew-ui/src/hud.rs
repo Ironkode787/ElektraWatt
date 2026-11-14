@@ -128,6 +128,8 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
                     let r =
                         Rect::from_min_size(pos2(x, cy - t.size_control / 2.0), vec2(tool_w, t.size_control));
                     let tool = action_button(shell, h.tool);
+                    // The tool's action may be unavailable (a project without pages): the button says so.
+                    let tool_enabled = tool.as_ref().is_none_or(|b| b.enabled);
                     let response = button_response(
                         ui,
                         Id::unique("hud-tool"),
@@ -135,7 +137,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
                         Spec {
                             name: &h.tool_label,
                             shortcut: tool.as_ref().map_or("", |b| b.shortcut.as_str()),
-                            enabled: true,
+                            enabled: tool_enabled,
                             checked: Some(true),
                             sense: Sense::CLICK,
                         },
@@ -154,7 +156,7 @@ pub(crate) fn show(ctx: &egui::Context, shell: &ShellModel, pane: Rect, events: 
                     );
                     let at = pos2(icon.right() + t.space_icon, cy - galley.size().y / 2.0);
                     ui.painter().galley(at, galley, t.text_on_accent.color32());
-                    if response.clicked() {
+                    if response.clicked() && tool_enabled {
                         events.push(Event::Action(h.tool, Value::Null));
                     }
                     x = r.right();

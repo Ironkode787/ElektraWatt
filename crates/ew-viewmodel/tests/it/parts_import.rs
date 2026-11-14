@@ -215,15 +215,9 @@ fn the_transcript_is_byte_identical_across_runs_and_has_no_uuid() {
 }
 
 #[test]
-fn without_a_project_the_menu_item_is_disabled_with_its_reason() {
+fn without_a_project_the_parts_import_is_refused_with_its_reason() {
     let tmp = Tmp::new("parts-no-project");
     let mut shell = headless(&tmp);
-    let text = shell.describe();
-    let line = line_with(&text, "item parts.import");
-    assert_eq!(
-        line, "item parts.import \"Parts table…\" disabled: No project is open",
-        "{text}"
-    );
     assert_eq!(
         refused(
             &mut shell,
@@ -246,11 +240,6 @@ fn a_read_only_project_refuses_the_import() {
             json!({"path": golden_parts().to_string_lossy()})
         ),
         "reason-read-only"
-    );
-    let text = shell.describe();
-    assert!(
-        line_with(&text, "item parts.import").contains("disabled: The project is open read-only"),
-        "{text}"
     );
     shell.shutdown();
 }

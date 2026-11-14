@@ -104,7 +104,7 @@ as a new version where a part was there already. A part the project does not hav
 
 For a report, the dialog offers the mappings that fit the file's column headers: your saved one, and the shipped German
 and English ones for a device list, a terminal diagram and a connection list. The result is a new project without
-drawings. Mapping other columns is done with `ew import eplan-report --map`.
+drawings. A file that no mapping fits is mapped column by column (Map the columns…: the kind of report and what each column is; Import saves the mapping, which the next file of the report is offered first), or imported as a parts table.
 
 ## Set up merge driver
 

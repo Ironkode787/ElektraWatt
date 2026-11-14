@@ -1,8 +1,8 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! File, Import, Parts table… in the window without rendering: the entry is disabled without a project;
-//! with a new project it raises the file prompt (`Prompt::OpenPartsTable`), the answer opens the column mapping step
+//! File ▸ Import… of a parts table in the window without rendering: without a project it opens no mapping;
+//! with a new project it raises the file prompt (`Prompt::OpenImport`), the answer opens the column mapping step
 //!  and its Import the import card in the Preview tab, the read's outcome in one toast and no strip over the
 //! tab title, Ctrl+Enter applies it from anywhere, and the project has the 29 part copies; the accessible-name
 //! walker after every step.
@@ -47,16 +47,19 @@ fn golden_parts() -> PathBuf {
 }
 
 #[test]
-fn without_a_project_the_entry_is_disabled() {
+fn without_a_project_a_parts_table_opens_no_mapping() {
     let tmp = Tmp::new();
-    let mut h = harness(&tmp, Scripted::default(), None);
+    let platform = Scripted::default();
+    platform.answers.borrow_mut().push_back(Pick::Path(golden_parts()));
+    let mut h = harness(&tmp, platform, None);
     settle(&mut h);
-    support::open_menu(&mut h, &["Project"]);
+    support::open_menu(&mut h, &["File"]);
     settle(&mut h);
-    assert!(
-        h.get_by_label("Parts table…").accesskit_node().is_disabled(),
-        "no project: disabled"
-    );
+    h.get_by_label("Import…").click();
+    settle(&mut h);
+    settle(&mut h);
+    assert!(h.state().shell().parts_map().is_none(), "no project: no mapping card");
+    assert!(h.state().shell().dialog().is_none());
 }
 
 #[test]
@@ -72,16 +75,16 @@ fn the_entry_prompts_and_ctrl_enter_applies_the_card() {
     settle(&mut h);
     wait_for_page(&mut h);
 
-    support::open_menu(&mut h, &["Project"]);
+    support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     assert!(
-        !h.get_by_label("Parts table…").accesskit_node().is_disabled(),
+        !h.get_by_label("Import…").accesskit_node().is_disabled(),
         "a writable project: enabled"
     );
-    h.get_by_label("Parts table…").click();
+    h.get_by_label("Import…").click();
     settle(&mut h);
     settle(&mut h);
-    assert_eq!(platform.asked.borrow().as_slice(), [Prompt::OpenPartsTable]);
+    assert_eq!(platform.asked.borrow().as_slice(), [Prompt::OpenImport]);
     // The column mapping step first, pre-filled from the golden dialect's headers; Import reads the table.
     assert!(h.query_by_label("Map columns").is_some(), "the mapping card");
     assert!(
@@ -212,9 +215,9 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
     *ctx_slot.borrow_mut() = Some(h.ctx.clone());
     settle(&mut h);
 
-    support::open_menu(&mut h, &["Project"]);
+    support::open_menu(&mut h, &["File"]);
     settle(&mut h);
-    h.get_by_label("Parts table…").click();
+    h.get_by_label("Import…").click();
     // Step frames until the one in which the dialog was answered; it must already show the menu closed and the card in
     // the shell (the card's text is laid out in the following frame).
     let mut answered = false;
@@ -225,7 +228,7 @@ fn the_card_and_the_closed_menu_arrive_in_the_frame_after_the_pick() {
         let at = pick_pass.get();
         if at != u64::MAX && before <= at && at <= after {
             assert!(
-                h.query_by_label("Parts table…").is_none(),
+                h.query_by_label("Import…").is_none(),
                 "the File menu closes in the frame that answers the pick"
             );
             // The column mapping step is the card that answers the pick.
@@ -299,9 +302,9 @@ fn harness_with_open_dialog<'a>(tmp: &Tmp, platform: ThreadedPlatform) -> Harnes
         .with_context_setup(setup)
         .build_ui_state(|ui, app: &mut App| app.ui(ui), app);
     settle(&mut h);
-    support::open_menu(&mut h, &["Project"]);
+    support::open_menu(&mut h, &["File"]);
     settle(&mut h);
-    h.get_by_label("Parts table…").click();
+    h.get_by_label("Import…").click();
     h.step();
     h.step();
     h
@@ -332,7 +335,7 @@ fn an_answer_from_the_dialog_thread_opens_the_card_in_the_next_frame() {
     assert!(!h.state().shell().import_card_open(), "no card before the answer");
     assert_eq!(platform.started.get(), 1, "no second dialog while one is open");
     assert!(
-        h.query_by_label("Parts table…").is_none(),
+        h.query_by_label("Import…").is_none(),
         "the File menu is closed while the dialog is open"
     );
 
@@ -372,9 +375,9 @@ fn a_dialog_thread_without_an_answer_counts_as_cancelled() {
     h.step();
     assert!(!h.state().shell().import_card_open());
     assert!(!h.state().shell().can_undo());
-    support::open_menu(&mut h, &["Project"]);
+    support::open_menu(&mut h, &["File"]);
     settle(&mut h);
-    h.get_by_label("Parts table…").click();
+    h.get_by_label("Import…").click();
     h.step();
     h.step();
     assert_eq!(platform.started.get(), 2, "a new prompt starts a new dialog");

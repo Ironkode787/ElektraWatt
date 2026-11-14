@@ -25,6 +25,9 @@ const KEY_ONLY: &[&str] = &[
     "file.import_eplan",
     // An `.ewz` opens through File ▸ Import… (FT-1708); the palette keeps its own entry.
     "file.open_ewz",
+    // A QElectroTech project and a parts table import through File ▸ Import… too (FT-1741).
+    "file.import_qet",
+    "parts.import",
     "canvas.activate",
     "tool.back",
     // The strip editor's row actions, reached through its row menu and keys.

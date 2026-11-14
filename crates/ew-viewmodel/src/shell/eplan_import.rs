@@ -207,59 +207,92 @@ impl ShellModel {
             Err(e) => return e,
             Ok(h) => h.map(str::to_owned),
         };
-        let Some(how) = how else {
-            let mut maps: Vec<(String, ReportMap)> = Vec::new();
-            if let Some(m) = &saved {
-                maps.push((saved_key.clone(), m.clone()));
-            }
-            maps.extend(eplan::report_presets());
-            let fits = eplan::fitting_maps(input, &maps);
-            let had_saved = saved.is_some() && fits.first().is_some_and(|f| *f == saved_key);
-            let fits = fits
-                .into_iter()
-                .filter_map(|n| {
-                    maps.iter()
-                        .find(|(m, _)| *m == n)
-                        .map(|(n, m)| (n.clone(), m.target))
+        match how.as_deref() {
+            None => {
+                let mut maps: Vec<(String, ReportMap)> = Vec::new();
+                if let Some(m) = &saved {
+                    maps.push((saved_key.clone(), m.clone()));
+                }
+                maps.extend(eplan::report_presets());
+                let fits = eplan::fitting_maps(input, &maps);
+                // A table that no report mapping fits and that reads as a parts table goes on to the parts import.
+                if fits.is_empty() && self.reads_as_parts_table(file, input) {
+                    if !self.has_project() {
+                        return Outcome::refused(key!("reason-no-project"));
+                    }
+                    return self.act_parts_import(&path_params(file));
+                }
+                let had_saved = saved.is_some() && fits.first().is_some_and(|f| *f == saved_key);
+                let fits = fits
+                    .into_iter()
+                    .filter_map(|n| {
+                        maps.iter()
+                            .find(|(m, _)| *m == n)
+                            .map(|(n, m)| (n.clone(), m.target))
+                    })
+                    .collect();
+                self.open_dialog(Dialog::ImportEplan {
+                    path: file.to_string_lossy().into_owned(),
+                    name: name.to_owned(),
+                    step: EplanStep::Report {
+                        fits,
+                        saved: had_saved,
+                    },
                 })
-                .collect();
-            return self.open_dialog(Dialog::ImportEplan {
-                path: file.to_string_lossy().into_owned(),
-                name: name.to_owned(),
-                step: EplanStep::Report {
-                    fits,
-                    saved: had_saved,
-                },
-            });
-        };
-        if how != "report" {
-            return failed(key!("error-bad-param"), &["how"]);
-        }
-        let (map, key_name) = match string_param(p, "preset") {
-            Err(e) => return e,
-            Ok(Some(preset)) if preset == saved_key && saved.is_some() => {
-                (saved.unwrap_or_else(|| unreachable!("checked")), saved_key)
             }
-            Ok(Some(preset)) => match eplan::report_presets().remove(preset) {
-                Some(m) => (m, preset.to_owned()),
-                None => return failed(key!("error-bad-param"), &["preset"]),
-            },
-            Ok(None) => return failed(key!("error-missing-param"), &["preset"]),
+            Some("map") => self.open_report_map(file.to_path_buf(), input),
+            Some("parts") => {
+                self.dialog = None;
+                self.act_parts_import(&path_params(file))
+            }
+            Some("report") => {
+                let (map, key_name) = match string_param(p, "preset") {
+                    Err(e) => return e,
+                    Ok(Some(preset)) if preset == saved_key && saved.is_some() => {
+                        (saved.unwrap_or_else(|| unreachable!("checked")), saved_key)
+                    }
+                    Ok(Some(preset)) => match eplan::report_presets().remove(preset) {
+                        Some(m) => (m, preset.to_owned()),
+                        None => return failed(key!("error-bad-param"), &["preset"]),
+                    },
+                    Ok(None) => return failed(key!("error-missing-param"), &["preset"]),
+                };
+                self.run_report_import(p, name, input, map, &key_name)
+            }
+            Some(_) => failed(key!("error-bad-param"), &["how"]),
+        }
+    }
+
+    /// A report as a new project in `dir` (asked for when absent), the unsaved project asked about first
+    /// (`p` carries the action's parameters for those asks): the one end of the preset buttons and of the column
+    /// mapper's Import.
+    pub(super) fn run_report_import(
+        &mut self,
+        p: &Map<String, Value>,
+        name: &str,
+        input: &ew_api::catalog::ImportInput,
+        map: ReportMap,
+        key_name: &str,
+    ) -> Outcome {
+        let action = if self.parts_map().is_some() {
+            "parts.map_import"
+        } else {
+            "file.import_eplan"
         };
         if self.has_project()
-            && let Some(outcome) = self.guard_unsaved("file.import_eplan", p)
+            && let Some(outcome) = self.guard_unsaved(action, p)
         {
             return outcome;
         }
         let dir = match string_param(p, "dir") {
             Err(e) => return e,
             Ok(Some(dir)) => PathBuf::from(dir),
-            Ok(None) => return self.need_path("file.import_eplan", Prompt::NewFolder, "dir", p),
+            Ok(None) => return self.need_path(action, Prompt::NewFolder, "dir", p),
         };
         if let Some(outcome) = self.require_free_dir(&dir) {
             return outcome;
         }
-        let batch = match eplan::report_batch(input, &map, &key_name) {
+        let batch = match eplan::report_batch(input, &map, key_name) {
             Ok(b) => b,
             Err(e) => return self.import_failed(name, &e.to_string()),
         };
@@ -295,4 +328,14 @@ impl ShellModel {
         }
         outcome
     }
+}
+
+/// The parameters of `parts.import` for `file`.
+fn path_params(file: &std::path::Path) -> Map<String, Value> {
+    let mut p = Map::new();
+    p.insert(
+        "path".to_owned(),
+        Value::String(file.to_string_lossy().into_owned()),
+    );
+    p
 }

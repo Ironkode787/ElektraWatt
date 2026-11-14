@@ -407,10 +407,10 @@ fn show_tips_is_a_view_tab_switch_and_the_palette_says_its_state() {
     shell.shutdown();
 }
 
-/// Re-import QElectroTech project… is a button of the Project tab's Import group, beside the
-/// import's.
+/// Re-import QElectroTech project… is the button of the Project tab's Import group; the sources of an import are in File ▸
+/// Import… alone (FT-1741).
 #[test]
-fn reimport_has_a_command_bar_button_beside_the_import() {
+fn reimport_is_the_one_button_of_the_import_group() {
     use ew_viewmodel::command_bar::{Group, Tab, command_bar_of};
     let tmp = Tmp::new("pal-ft1388");
     let shell = tmp.shell_in(Mode::Gui, true, "103");
@@ -423,10 +423,5 @@ fn reimport_has_a_command_bar_button_beside_the_import() {
         .iter()
         .map(|b| b.id)
         .collect();
-    let at = |id: &str| {
-        ids.iter()
-            .position(|b| *b == id)
-            .unwrap_or_else(|| panic!("{id} in {ids:?}"))
-    };
-    assert_eq!(at("file.reimport_qet"), at("file.import_qet") + 1, "{ids:?}");
+    assert_eq!(ids, ["file.reimport_qet"], "no button per source: File ▸ Import… takes every file");
 }

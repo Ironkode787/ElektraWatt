@@ -1367,7 +1367,7 @@ designation folded, EW-IMP-207), connections between terminals only, since a dev
 (an end that no terminal answers is EW-IMP-003); an unmapped column is EW-IMP-206; the lineage is `eplan` anchored on the
 mapping's key, so a newer export keeps the IDs. EW-IMP-206 and -207 are rules of the EW-IMP pack. `ew import
 eplan-report` writes the new project; the window's File ▸ Import… offers the mappings that fit the file's headers and
-has no per-column mapper (map other columns in a TOML file). **Not built:** the picture and the drilling positions
+has the column mapper (FT-1742): the detected columns (the header row found below a title), a kind of report and a member per column, saved under the file's source key as `eplan-report-<key>.toml` in the configuration directory, which the next file of the scheme is offered first; `File ▸ Import…` is the one entry for every file (FT-1741): a csv or xlsx that no mapping fits and that reads as no parts table asks for the mapper or the parts import. **Not built:** the picture and the drilling positions
 (above), device connection points from a report, a re-import of a report into an existing project, import as a copy
 (FR-IMP-045, Could). The fuzz targets `edz_7z`, `edz_zip`, `parts_xml` and `eplan_table` are the hostile corpus's
 `eplan/` class read by `eplan_part_inputs` (the repository has no fuzz crate).
