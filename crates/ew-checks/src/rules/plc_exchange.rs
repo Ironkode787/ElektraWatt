@@ -139,7 +139,7 @@ pub const OPEN_INSTRUMENT_TAG: RuleMeta = RuleMeta {
 /// EW-PRC-002: a row of an instrument list (an `exchange_record` of object `instrument`, doc 10 §4.7) whose
 /// placeholder device is gone (discriminator `device`, target the configuration project) or that has no channel: none
 /// was spare when the list was applied, or its channel is gone (`channel`, target the device). It is not a row of the open-item table yet: the table's rules run in release mode of
-/// the shipped scheme, and this rule is online only and of the 1.0 content.
+/// the shipped scheme, and this rule is online only.
 #[derive(Clone, Copy, Debug)]
 pub struct OpenInstrumentTag;
 

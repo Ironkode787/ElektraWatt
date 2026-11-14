@@ -10,7 +10,7 @@ still to be engineered.
 
 ## Standard
 
-No standard: a completeness rule.
+No standard: a project-hygiene rule.
 
 ## Example
 

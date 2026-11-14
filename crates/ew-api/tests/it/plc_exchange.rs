@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 
 use crate::golden_common;
 
-use ew_api::checks::{CheckMode, PRE_DELIVERY, Release};
+use ew_api::checks::{CheckMode, PRE_DELIVERY};
 use ew_api::plc_exchange::{ApcVersion, PlcFormat, PlcImport, PlcOptions};
 use ew_api::{AnyCommand, Origin, Session};
 use ew_derive::{ChannelAddr, ChannelAddresses, PlcRows, Q};
@@ -123,7 +123,7 @@ fn printed(q: &Q, module: Id<Device>) -> Vec<String> {
 }
 
 fn findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
-    s.check(&PRE_DELIVERY.with_content(Release::V1_0), CheckMode::Online)
+    s.check(&PRE_DELIVERY, CheckMode::Online)
         .findings
         .into_iter()
         .filter(|f| f.rule == rule)
