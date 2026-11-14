@@ -399,6 +399,8 @@ connection source_ref group? other read-only:no-command
 connection source_ref.key text other read-only:no-command
 connection source_ref.lineage uuid other read-only:no-command
 connection line_kind enum(working|pilot|exhaust|drain|flexible) identity fields.set:line_kind
+connection tube_part link(part)? part fields.set:tube_part
+connection tube_length nm? part fields.set:tube_length
 junction $v int[0..65535] identity read-only:identity
 junction at json placement read-only:junction.edit
 junction fitting link(part)? other read-only:junction.edit

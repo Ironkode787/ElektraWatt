@@ -98,15 +98,13 @@ fn slot(t: &Tokens, rect: Rect, i: usize) -> Rect {
 }
 
 /// Paints the left rail into `ui` (a side panel of `size.rail`): the navigator entries from the top, History at the
-/// foot.
+/// foot. The entries scroll (the wheel over the rail) where a short window or a large UI scale leaves them less room
+/// than they need above History, so every entry stays reachable and none lies under History (doc 16a §5.10).
 pub(crate) fn show_left(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
     let model: RailModel = ew_viewmodel::rail::rail(shell);
     let rect = ui.max_rect();
     strip(ui, &t, Side::Left, rect);
-    for (i, b) in model.left.iter().enumerate() {
-        button(ui, &t, Side::Left, b, slot(&t, rect, i), events);
-    }
     let foot = Rect::from_min_size(
         pos2(
             rect.center().x - t.size_rail_button / 2.0,
@@ -114,6 +112,19 @@ pub(crate) fn show_left(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>
         ),
         vec2(t.size_rail_button, t.size_rail_button),
     );
+    let entries = Rect::from_min_max(rect.min, pos2(rect.max.x, foot.top() - t.space_2));
+    let mut column = ui.new_child(egui::UiBuilder::new().max_rect(entries));
+    column.set_clip_rect(entries.intersect(ui.clip_rect()));
+    egui::ScrollArea::vertical()
+        .id_salt("left-rail-entries")
+        .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysHidden)
+        .show(&mut column, |ui| {
+            let height = t.space_3 + model.left.len() as f32 * (t.size_rail_button + t.space_2);
+            let (area, _) = ui.allocate_exact_size(vec2(entries.width(), height), Sense::hover());
+            for (i, b) in model.left.iter().enumerate() {
+                button(ui, &t, Side::Left, b, slot(&t, area, i), events);
+            }
+        });
     button(ui, &t, Side::Left, &model.foot, foot, events);
     ui.allocate_rect(rect, Sense::hover());
 }

@@ -740,6 +740,21 @@ as a member outside the terminal. EW-FL-012 skips a net without a line (a galler
 | Fluid navigator and Fluid workspace (1.0) | Fluid devices, lines with tube specs and lengths, media. The workspace docks the fluid navigator, the tube table and the medium table | FR-UI-003, FR-UI-006 |
 | Tables | The tube table supports fill-down of specs and lengths and Excel round trip, each edit one command (FR-EXP-004) | FR-FLU-011 |
 
+*As built (WP-S2.13).* **The Fluid workspace** is the built-in workspace Fluid (View ▸ Workspaces ▸ Fluid power): the
+fluid navigator (rail entry Fluid) in the left column, the tube table and the medium table as tabs of the bottom dock.
+The fluid navigator lists Valve terminals → each terminal → its modules → their valves, then Fluid devices (every other
+device at a line's end), each device with its lines (`→ <the other end's port>`, from `tube_rows`), then Media, each
+with the line count of its zones. The tube table is the `tube_list` rows; its Tube part and Length cells are the new
+`fields.set` paths `tube_part` and `tube_length` of a fluid line (refused on another connection; the length typed in
+millimetres), which Properties shows on fluid lines too. The medium table is the `medium_overview` rows. **Media are
+set** by Project ▸ New medium… (a form of name, pressure and letter: one `fluid.medium.edit`) and by a fluid line's
+context menu, Medium: `<name>` (one `fluid.medium.define` at the line's end), which also offers the line kinds (Line:
+Working … Flexible: the line-kind picker of FT-1733, after drawing). **Zones are shown** by a medium's row with
+Highlight (`Ctrl+Shift+H`, the window highlight of doc 16 §7.3 in a slot's colour and hatch, never colour alone): the
+lines of the nets whose medium is that medium. This is the highlight half of FR-FLU-034 (Could), built because the
+zones were otherwise invisible; the per-position flow preview stays Later. Not built: the flexible line's arc on the
+page, autoconnect on fluid ports and the fluid navigator's row actions (add valve, spare or blank, close ports).
+
 ---
 
 ## 8. Outputs

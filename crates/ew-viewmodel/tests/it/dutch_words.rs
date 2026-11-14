@@ -773,12 +773,16 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
     };
     let en = vec![
         "Line kind: Working",
+        "Tube part: ",
+        "Tube length: ",
         "Page: 203 Valve Manifold 1",
         "A: -201U3-Q3:4",
         "B: -203Q3:B",
     ];
     let nl = vec![
         "Leidingsoort: Werkleiding",
+        "Slangartikel: ",
+        "Slanglengte: ",
         "Pagina: 203 Valve Manifold 1",
         "A: -201U3-Q3:4",
         "B: -203Q3:B",
@@ -787,6 +791,8 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
         "$v: ",
         "ID: Working line",
         "Line kind: Working",
+        "Tube part: ",
+        "Tube length: ",
         "Page: 203 Valve Manifold 1",
         "A: -201U3-Q3:4",
         "B: -203Q3:B",
@@ -804,6 +810,8 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
         "$v: ",
         "ID: Werkleiding",
         "Leidingsoort: Werkleiding",
+        "Slangartikel: ",
+        "Slanglengte: ",
         "Pagina: 203 Valve Manifold 1",
         "A: -201U3-Q3:4",
         "B: -203Q3:B",

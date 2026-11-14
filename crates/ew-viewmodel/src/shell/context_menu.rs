@@ -55,6 +55,25 @@ impl ShellModel {
         let kinds = selection_kinds(&self.tools.selection, tables);
         let mut out = Vec::new();
         if !kinds.is_empty() && kinds.iter().all(|(_, k)| *k == EntityKind::Connection) {
+            // A fluid line: its medium, one entry per medium of the project (doc 11 §7), then New medium….
+            let fluid = |e: &ew_api::output::ew_dl::EntityRef| {
+                tables
+                    .connections
+                    .iter()
+                    .any(|c| c.id == e.0 && c.kind == "fluid")
+            };
+            if let [(e, _)] = kinds.as_slice()
+                && fluid(e)
+            {
+                let line_kind = tables
+                    .connections
+                    .iter()
+                    .find(|c| c.id == e.0)
+                    .and_then(|c| c.line_kind.clone());
+                self.line_kind_entries(line_kind.as_deref(), &mut out);
+                self.medium_entries(e.0, &mut out);
+                return out;
+            }
             if kinds.len() == 1 {
                 for id in [
                     "tool.route_edit",
@@ -101,6 +120,38 @@ impl ShellModel {
             _ => {}
         }
         out
+    }
+
+    /// A fluid line's line kinds (FT-1733: the line-kind picker), each as Line: `<kind>`, checked for its own, through
+    /// the Properties row `connection/line_kind`.
+    fn line_kind_entries(&self, current: Option<&str>, out: &mut Vec<ActionItem>) {
+        for word in ["working", "pilot", "exhaust", "drain", "flexible"] {
+            let kind = strings::lookup(&format!("choice-{word}")).unwrap_or(word);
+            let label = strings::format(key!("canvas-line-kind"), &[kind]);
+            let params = json!({"row": "connection/line_kind", "value": word});
+            out.extend(self.aimed("props.set", params, label).map(|mut i| {
+                i.checked = current == Some(word);
+                i
+            }));
+        }
+    }
+
+    /// A fluid line's medium entries: Medium `<name>` for each medium of the project, checked for the medium its net
+    /// carries (`fluid.set_medium` on the line), then New medium….
+    fn medium_entries(&self, line: Uuid, out: &mut Vec<ActionItem>) {
+        let Some(session) = self.project_session() else {
+            return;
+        };
+        let carried = session.line_medium(line);
+        for (medium, name) in session.media() {
+            let label = strings::format(key!("canvas-line-medium"), &[&name]);
+            let params = json!({ "line": line.to_string(), "medium": medium.to_string() });
+            out.extend(self.aimed("fluid.set_medium", params, label).map(|mut i| {
+                i.checked = carried == Some(medium);
+                i
+            }));
+        }
+        out.extend(self.menu_item("fluid.medium_new"));
     }
 
     /// The item of action `id` in the present state, with no parameters.

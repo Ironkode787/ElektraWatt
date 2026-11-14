@@ -159,6 +159,17 @@ const fn field(name: &'static str, label_key: Key<'static>) -> Field {
     }
 }
 
+/// New medium… (doc 11 §2.5, FR-FLU-008): a medium's name, its nominal pressure in bar and its ISO 1219-2 letter.
+static MEDIUM_NEW: Spec = Spec {
+    action: "fluid.medium_new",
+    title_key: key!("medium-new-title"),
+    fields: &[
+        field("name", key!("form-medium-name")),
+        field("p_nom", key!("form-medium-pressure")),
+        field("code", key!("form-medium-code")),
+    ],
+};
+
 static PAGE_NEW: Spec = Spec {
     action: "page.new",
     title_key: key!("new-page-title"),
@@ -997,6 +1008,40 @@ impl ShellModel {
             );
         }
         self.form_done(STRUCTURE_NEW.action, out)
+    }
+
+    /// `fluid.medium_new {name, p_nom, code?}` (FR-FLU-008): one `fluid.medium.edit` that makes a medium of that name,
+    /// nominal pressure (bar) and ISO 1219-2 letter; in the window a missing name or pressure opens the form.
+    pub(crate) fn act_fluid_medium_new(&mut self, p: &Map<String, Value>) -> Outcome {
+        let mut v = Vec::new();
+        for f in MEDIUM_NEW.fields {
+            match text_param(p, f.name) {
+                Ok(t) => v.push(t),
+                Err(e) => return e,
+            }
+        }
+        let [name, p_nom, code] = <[String; 3]>::try_from(v).expect("three fields");
+        for (field, value) in [("name", &name), ("p_nom", &p_nom)] {
+            if value.trim().is_empty() {
+                return self.form_missing(&MEDIUM_NEW, p, field);
+            }
+        }
+        let pressure = p_nom.trim().replace(',', ".");
+        if pressure.parse::<f64>().is_err() {
+            return self.form_failed(
+                MEDIUM_NEW.action,
+                strings::format(key!("error-medium-pressure"), &[p_nom.trim()]),
+            );
+        }
+        let mut set = json!({"name": name.trim(), "p_nom": pressure});
+        if !code.trim().is_empty() {
+            set["code"] = Value::String(code.trim().to_owned());
+        }
+        let out = self.host_create("fluid.medium.edit", json!({ "set": set }));
+        if out == Outcome::Done {
+            self.notify(strings::format(key!("toast-medium-new"), &[name.trim()]), true);
+        }
+        self.form_done(MEDIUM_NEW.action, out)
     }
 
     /// `external_ref.new {location, device, connection?, project?}`: one `external_ref.create` at a location

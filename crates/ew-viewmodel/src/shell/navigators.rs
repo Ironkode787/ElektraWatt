@@ -1865,6 +1865,12 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             node.label = strings::text(key!("nav-bus-physical")).to_owned();
         } else if segment == "ports:none" {
             node.label = strings::text(key!("nav-bus-no-net")).to_owned();
+        } else if segment == "fluid:terminals" {
+            node.label = strings::text(key!("nav-fluid-terminals")).to_owned();
+        } else if segment == "fluid:devices" {
+            node.label = strings::text(key!("nav-fluid-devices")).to_owned();
+        } else if segment == "fluid:media" {
+            node.label = strings::text(key!("nav-fluid-media")).to_owned();
         } else if let Some(n) = segment.strip_prefix("segment:") {
             node.label = strings::format(key!("nav-bus-segment"), &[n]);
         } else if let Some(n) = section
@@ -1950,6 +1956,8 @@ pub fn row_highlight(node: &NavNode) -> Option<HighlightTarget> {
             Some(HighlightTarget::Potential(node.records[0]))
         }
         NavRole::Connection => node.records.first().map(|c| HighlightTarget::Net(*c)),
+        // A medium's zones (doc 11 §7): its lines in pattern and colour.
+        NavRole::Medium => node.records.first().map(|m| HighlightTarget::Medium(*m)),
         _ => None,
     }
 }

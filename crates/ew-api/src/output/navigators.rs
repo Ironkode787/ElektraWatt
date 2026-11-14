@@ -65,6 +65,12 @@ pub enum NavKind {
     PlcGrid,
     /// The bus networks: logical nets with their ports, physical nets with their derived segments (FR-UI-006).
     Bus,
+    /// The fluid devices with their lines, and the media (FR-UI-006, doc 11 §7).
+    Fluid,
+    /// The tube table: one row per tube (doc 11 §7), in the bottom dock of the Fluid workspace.
+    Tubes,
+    /// The medium table: one row per medium (doc 11 §7), in the bottom dock of the Fluid workspace.
+    Media,
     /// Potentials (part 2).
     Potentials,
     /// Interruption points (part 2).
@@ -87,7 +93,7 @@ pub enum NavKind {
 
 impl NavKind {
     /// The kinds in menu order.
-    pub const ALL: [NavKind; 17] = [
+    pub const ALL: [NavKind; 20] = [
         NavKind::Pages,
         NavKind::Devices,
         NavKind::Connections,
@@ -96,6 +102,9 @@ impl NavKind {
         NavKind::Plc,
         NavKind::PlcGrid,
         NavKind::Bus,
+        NavKind::Fluid,
+        NavKind::Tubes,
+        NavKind::Media,
         NavKind::Potentials,
         NavKind::Ips,
         NavKind::Structure,
@@ -118,6 +127,9 @@ impl NavKind {
             NavKind::Plc => "plc",
             NavKind::PlcGrid => "plc_grid",
             NavKind::Bus => "bus",
+            NavKind::Fluid => "fluid",
+            NavKind::Tubes => "tubes",
+            NavKind::Media => "media",
             NavKind::Potentials => "potentials",
             NavKind::Ips => "ips",
             NavKind::Structure => "structure",
@@ -143,9 +155,10 @@ impl NavKind {
         }
     }
 
-    /// Whether the navigator is a table of the bottom dock that opens in table mode (the PLC grid).
+    /// Whether the navigator is a table of the bottom dock that opens in table mode (the PLC grid, the tube and medium
+    /// tables).
     pub fn bottom_table(self) -> bool {
-        matches!(self, NavKind::PlcGrid)
+        matches!(self, NavKind::PlcGrid | NavKind::Tubes | NavKind::Media)
     }
 }
 
@@ -194,6 +207,8 @@ pub enum NavRole {
     Net,
     /// A derived segment of a physical bus net.
     Segment,
+    /// A fluid medium.
+    Medium,
     /// A name group (interruption points).
     Name,
     /// An interruption point.
@@ -249,6 +264,7 @@ impl NavRole {
             NavRole::BusPort => "bus_port",
             NavRole::Net => "net",
             NavRole::Segment => "segment",
+            NavRole::Medium => "medium",
             NavRole::Name => "name",
             NavRole::Ip => "ip",
             NavRole::StructureNode => "structure_node",
@@ -463,7 +479,7 @@ fn kind_columns(kind: &str) -> Vec<NavColumn> {
 
 /// The editable columns of table mode (D10): (navigator, column key, route kind, route path).
 /// Every other column is read-only.
-const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 34] = [
+const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 36] = [
     (NavKind::Pages, "title", "page", "title"),
     (NavKind::Pages, "type", "page", "kind"),
     (NavKind::Devices, "function_text", "device", "function_text"),
@@ -510,6 +526,9 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 34] = [
     // FT-856: a bus port's address through its typed editor, its termination as its choice.
     (NavKind::Bus, "address", "function", "bus_port.address"),
     (NavKind::Bus, "termination", "function", "bus_port.termination"),
+    // The tube table's tube part and length, the line's (WP-S2.13).
+    (NavKind::Tubes, "part", "connection", "tube_part"),
+    (NavKind::Tubes, "length", "connection", "tube_length"),
     (NavKind::Structure, "designation", "structure_node", "code"),
     (
         NavKind::Structure,
@@ -631,6 +650,10 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             .enumerate()
             .map(|(i, (k, l))| column(k, l, i == 0, None))
             .collect(),
+        // The fluid navigator is a tree: its rows carry no cells.
+        NavKind::Fluid => Vec::new(),
+        NavKind::Tubes => kind_columns("tube_list"),
+        NavKind::Media => kind_columns("medium_overview"),
         NavKind::Potentials => kind_columns("potential_overview"),
         NavKind::Ips => own(&["name", "page_cell", "direction", "partner", "external"]),
         NavKind::Structure => {
@@ -774,6 +797,9 @@ impl Session {
             NavKind::Cables => cables_table(&q, &mut b),
             NavKind::Plc | NavKind::PlcGrid => plc_table(&q, &mut b),
             NavKind::Bus => bus_table(&q, &mut b),
+            NavKind::Fluid => fluid_table(&q, &mut b),
+            NavKind::Tubes => tubes_table(&q, &mut b),
+            NavKind::Media => media_table(&q, &mut b),
             NavKind::Potentials => potentials_table(&q, &mut b),
             NavKind::Ips => ips_table(&q, &mut b),
             NavKind::Structure => structure_table(&q, &mut b),
@@ -2354,6 +2380,306 @@ fn bus_table(q: &Q, b: &mut Builder) {
     }
 }
 
+/// The medium a zone's key names.
+fn medium_of(key: &ew_derive::MediumKey) -> Id<ew_derive::ew_schema::Medium> {
+    use ew_derive::MediumKey;
+    match key {
+        MediumKey::Defined(m) | MediumKey::Regulated(m, _) | MediumKey::Vacuum(m) | MediumKey::Exhaust(m) => {
+            *m
+        }
+    }
+}
+
+/// The fluid lines of the nets that carry `medium` (its zones, doc 11 §5.3), sorted.
+fn medium_lines(q: &Q, medium: Id<ew_derive::ew_schema::Medium>) -> Vec<Uuid> {
+    let zones = q.get::<ew_derive::MediumZones>(());
+    let mut out: Vec<Uuid> = q
+        .get::<ew_derive::FluidNets>(())
+        .nets
+        .iter()
+        .filter(|n| {
+            zones
+                .media
+                .get(&n.id)
+                .is_some_and(|keys| keys.iter().any(|(k, _)| medium_of(k) == medium))
+        })
+        .flat_map(|n| n.connections.iter().map(|c| c.as_uuid()))
+        .collect();
+    out.sort();
+    out
+}
+
+impl Session {
+    /// The project's media by name (natural order): their IDs and names.
+    pub fn media(&self) -> Vec<(Uuid, String)> {
+        let q = self.query();
+        let mut out: Vec<(NaturalKey, Uuid, String)> = q
+            .table::<ew_derive::ew_schema::Medium>()
+            .iter()
+            .map(|(id, m)| {
+                let name = super::properties::neutral_or_first(&m.name);
+                (natural_key(&name), id.as_uuid(), name)
+            })
+            .collect();
+        out.sort();
+        out.into_iter().map(|(_, id, name)| (id, name)).collect()
+    }
+
+    /// The one medium the net of fluid line `line` carries (doc 11 §5.3); `None` for no medium or a mixed net.
+    pub fn line_medium(&self, line: Uuid) -> Option<Uuid> {
+        let q = self.query();
+        let id: Id<ew_derive::ew_schema::Connection> = Id::from_uuid(line);
+        let nets = q.get::<ew_derive::FluidNets>(());
+        let net = nets.nets.iter().find(|n| n.connections.contains(&id))?;
+        let zones = q.get::<ew_derive::MediumZones>(());
+        let media: std::collections::BTreeSet<_> = zones
+            .media
+            .get(&net.id)?
+            .iter()
+            .map(|(k, _)| medium_of(k))
+            .collect();
+        match media.iter().collect::<Vec<_>>().as_slice() {
+            [m] => Some(m.as_uuid()),
+            _ => None,
+        }
+    }
+
+    /// The connection point at an end of fluid line `line` (its end a, else its end b): the function and the CP index
+    /// `fluid.medium.define` takes; `None` for a line between junctions only.
+    pub fn line_end_cp(&self, line: Uuid) -> Option<(Uuid, u16)> {
+        use ew_derive::ew_schema::Endpoint;
+        let q = self.query();
+        let c = q.connections().get(Id::from_uuid(line))?;
+        [&c.a, &c.b].into_iter().find_map(|e| match e {
+            Endpoint::Cp(f, idx) => Some((f.as_uuid(), *idx)),
+            _ => None,
+        })
+    }
+}
+
+/// Fluid (FR-UI-006, doc 11 §7): **Valve terminals** → each valve terminal → its modules in position order → their
+/// valves, **Fluid devices** (every other device at a fluid line's end), each device with its lines (the tube list's
+/// rows that end at it: `<tag> → <other end>`), then **Media**, each medium with its zones' line count. A line row's
+/// records are its connections, so selecting it selects the line on the page; a medium row highlights its zones.
+fn fluid_table(q: &Q, b: &mut Builder) {
+    use ew_derive::TubeRows;
+    use ew_derive::ew_schema::Medium;
+    let folios = folios(q);
+    let tubes = q.get::<TubeRows>(());
+    // The lines at each device.
+    let mut lines: BTreeMap<Id<Device>, Vec<usize>> = BTreeMap::new();
+    for (i, t) in tubes.iter().enumerate() {
+        for d in [t.from.device, t.to.device].into_iter().flatten() {
+            let v = lines.entry(d).or_default();
+            if !v.contains(&i) {
+                v.push(i);
+            }
+        }
+    }
+    let line_rows = |b: &mut Builder, parent: u32, device: Id<Device>| {
+        for i in lines.get(&device).into_iter().flatten() {
+            let t = &tubes[*i];
+            let other = if t.from.device == Some(device) {
+                &t.to
+            } else {
+                &t.from
+            };
+            let records: Vec<Uuid> = t.constituents.iter().map(|c| c.as_uuid()).collect();
+            let drawables = sorted(
+                t.constituents
+                    .iter()
+                    .filter_map(|c| connection_drawable(q, &folios, *c))
+                    .collect(),
+            );
+            let facets = base_facets(NavRole::Connection, &drawables);
+            let n = b.push(
+                Some(parent),
+                NavRole::Connection,
+                &format!("line:{}", t.id.as_uuid()),
+                format!("{} → {}", t.tag, other.text).trim().to_owned(),
+                Vec::new(),
+                records,
+                drawables,
+                None,
+                facets,
+            );
+            b.nodes[n as usize].kinds = vec!["connection".to_owned()];
+        }
+    };
+    let device_row = |b: &mut Builder, parent: Option<u32>, d: Id<Device>| -> u32 {
+        let drawables = device_drawables(q, &folios, d);
+        let facets = base_facets(NavRole::Device, &drawables);
+        b.push(
+            parent,
+            NavRole::Device,
+            &format!("device:{}", d.as_uuid()),
+            short_tag(q, d),
+            Vec::new(),
+            vec![d.as_uuid()],
+            drawables,
+            None,
+            facets,
+        )
+    };
+    let ranked = |mut v: Vec<Id<Device>>| {
+        v.sort_by_cached_key(|d| (natural_key(&short_tag(q, *d)), *d));
+        v
+    };
+    let terminals = ranked(
+        q.devices()
+            .iter()
+            .map(|(id, _)| id)
+            .filter(|id| ew_derive::is_valve_terminal(q, *id))
+            .collect(),
+    );
+    let mut listed: std::collections::BTreeSet<Id<Device>> = std::collections::BTreeSet::new();
+    if !terminals.is_empty() {
+        let g = group(
+            b,
+            None,
+            NavRole::Section,
+            "fluid:terminals",
+            "Valve terminals".to_owned(),
+        );
+        for vt in terminals {
+            listed.insert(vt);
+            let vnode = device_row(b, Some(g), vt);
+            line_rows(b, vnode, vt);
+            let mut modules: Vec<(Option<u32>, Id<Device>)> = q
+                .idx()
+                .device_children(vt)
+                .map(|c| (q.devices().get(c).and_then(|d| d.position), c))
+                .collect();
+            modules.sort();
+            for (_, m) in modules {
+                listed.insert(m);
+                let mnode = device_row(b, Some(vnode), m);
+                line_rows(b, mnode, m);
+                let mut valves: Vec<(Option<u32>, Id<Device>)> = q
+                    .idx()
+                    .device_children(m)
+                    .map(|c| (q.devices().get(c).and_then(|d| d.position), c))
+                    .collect();
+                valves.sort();
+                for (_, v) in valves {
+                    listed.insert(v);
+                    let n = device_row(b, Some(mnode), v);
+                    line_rows(b, n, v);
+                }
+            }
+        }
+    }
+    let others = ranked(lines.keys().copied().filter(|d| !listed.contains(d)).collect());
+    if !others.is_empty() {
+        let g = group(
+            b,
+            None,
+            NavRole::Section,
+            "fluid:devices",
+            "Fluid devices".to_owned(),
+        );
+        for d in others {
+            let n = device_row(b, Some(g), d);
+            line_rows(b, n, d);
+        }
+    }
+    let media = q.table::<Medium>();
+    let mut ranked_m: Vec<(NaturalKey, Id<Medium>, String)> = media
+        .iter()
+        .map(|(id, m)| {
+            let name = super::properties::neutral_or_first(&m.name);
+            (natural_key(&name), id, name)
+        })
+        .collect();
+    ranked_m.sort();
+    if !ranked_m.is_empty() {
+        let g = group(b, None, NavRole::Section, "fluid:media", "Media".to_owned());
+        for (_, id, name) in ranked_m {
+            let count = medium_lines(q, id).len();
+            let n = b.push(
+                Some(g),
+                NavRole::Medium,
+                &format!("medium:{}", id.as_uuid()),
+                name,
+                vec![format!("{count} lines")],
+                vec![id.as_uuid()],
+                Vec::new(),
+                None,
+                vec![("kind".to_owned(), NavRole::Medium.word().to_owned())],
+            );
+            b.nodes[n as usize].kinds = vec!["medium".to_owned()];
+        }
+    }
+}
+
+/// The tube table (doc 11 §7, FR-FLU-011): the tube list's rows (`tube_list`), one per tube, its effective tube spec
+/// and length with their sources; the tube part and the length are edited in their cells (`fields.set` `tube_part`,
+/// `tube_length` on the line).
+fn tubes_table(q: &Q, b: &mut Builder) {
+    let Some(set) = ew_reports::project_rows(q, "tube_list", None) else {
+        return;
+    };
+    let folios = folios(q);
+    for (i, r) in set.rows.iter().enumerate() {
+        if r.kind != ew_reports::RowKind::Data {
+            continue;
+        }
+        let Some(record) = row_entity(&r.id, 0) else {
+            continue;
+        };
+        let texts = ew_reports::csv::row_texts(q, &set, i);
+        let label = cell_of(&set, &texts, "tag").to_owned();
+        let drawables = sorted(
+            connection_drawable(q, &folios, Id::from_uuid(record))
+                .into_iter()
+                .collect(),
+        );
+        let facets = base_facets(NavRole::Connection, &drawables);
+        let n = b.push(
+            None,
+            NavRole::Connection,
+            &format!("tube:{}", row_segment(&r.id)),
+            label,
+            Vec::new(),
+            vec![record],
+            drawables,
+            Some(texts),
+            facets,
+        );
+        b.nodes[n as usize].kinds = vec!["connection".to_owned()];
+    }
+}
+
+/// The medium table (doc 11 §7): the medium overview's rows (`medium_overview`), one per medium; a row highlights the
+/// medium's zones on the page (pattern and colour, doc 11 §7's highlight).
+fn media_table(q: &Q, b: &mut Builder) {
+    let Some(set) = ew_reports::project_rows(q, "medium_overview", None) else {
+        return;
+    };
+    for (i, r) in set.rows.iter().enumerate() {
+        if r.kind != ew_reports::RowKind::Data {
+            continue;
+        }
+        let Some(record) = row_entity(&r.id, 0) else {
+            continue;
+        };
+        let texts = ew_reports::csv::row_texts(q, &set, i);
+        let label = cell_of(&set, &texts, "medium").to_owned();
+        let n = b.push(
+            None,
+            NavRole::Medium,
+            &format!("medium:{}", row_segment(&r.id)),
+            label,
+            Vec::new(),
+            vec![record],
+            Vec::new(),
+            Some(texts),
+            vec![("kind".to_owned(), NavRole::Medium.word().to_owned())],
+        );
+        b.nodes[n as usize].kinds = vec!["medium".to_owned()];
+    }
+}
+
 /// The word of a channel kind as the PLC overview prints it.
 fn channel_kind_word(k: &ew_derive::ew_schema::ChannelKind) -> &'static str {
     ew_derive::channel_kind_word(k)
@@ -3339,6 +3665,8 @@ pub enum HighlightTarget {
     Potential(Uuid),
     /// The net that contains this connection.
     Net(Uuid),
+    /// The zones of the medium whose ID this is: the fluid lines of the nets that carry it (doc 11 §7).
+    Medium(Uuid),
 }
 
 impl Session {
@@ -3390,6 +3718,7 @@ impl Session {
                 });
                 net.unwrap_or_else(|| vec![*u])
             }
+            HighlightTarget::Medium(u) => medium_lines(&q, Id::from_uuid(*u)),
         };
         out.sort();
         out.dedup();
@@ -3880,6 +4209,7 @@ mod tests {
                 ("channel", "target"),
                 ("device", "plc_module.slot"),
                 ("function", "bus_port.address"),
+                ("connection", "tube_part"),
             ]
             .contains(&(kind, path));
             // A channel's safety data is a structure: its cell says to edit it in the property grid (FT-737).

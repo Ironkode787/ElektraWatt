@@ -343,6 +343,12 @@ pub(super) fn badge_word(code: &str) -> String {
             {
                 return strings::format(key!("nav-badge-spares"), &[n]);
             }
+            if let Some(n) = other
+                .strip_suffix(" lines")
+                .filter(|n| n.parse::<usize>().is_ok())
+            {
+                return strings::format(key!("nav-badge-lines"), &[n]);
+            }
             let key = format!("nav-badge-{}", other.to_lowercase().replace([' ', '_'], "-"));
             strings::lookup(&key).unwrap_or(other)
         }

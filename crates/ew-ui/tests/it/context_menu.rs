@@ -27,7 +27,7 @@ use crate::wires_and_cables::{
 
 /// A window point on `id` (a symbol's or a wire's ID) where the canvas picks it and no link is: a third of the way
 /// along a wire's segment (a selected wire's handles stand at the middles), else its rectangle's middle.
-fn point_on(h: &Harness<'_, App>, id: &str) -> Pos2 {
+pub(crate) fn point_on(h: &Harness<'_, App>, id: &str) -> Pos2 {
     let c = h.state().shell().canvas().unwrap();
     let page = std::sync::Arc::clone(c.page());
     let segments = page

@@ -512,3 +512,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a station's row offers Place port DP for a port of its part that no symbol draws yet; a bus port
   symbol joins a device as an auxiliary function (WP-S2.13, FT-831)
 - behaviour-change: the Wire tool draws bus lines on a bus-topology page (WP-S2.13, FT-434)
+- api-add: `fields.set` takes a fluid line's `tube_part` (a part reference, or null) and `tube_length` (nanometres,
+  or null), refused on another connection (WP-S2.13)
+- behaviour-change: View ▸ Workspaces offers the built-in workspace Fluid power: the fluid navigator (valve terminals,
+  modules, valves and other fluid devices with their lines, media) and the tube and medium tables (WP-S2.13,
+  FR-UI-003, FR-UI-006)
+- behaviour-change: Project ▸ New medium… adds a medium; a fluid line's context menu sets its medium and its line
+  kind; a medium's row highlights its zones in colour and hatch (WP-S2.13, FT-1733)

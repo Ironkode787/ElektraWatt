@@ -265,6 +265,36 @@ impl ShellModel {
     }
 }
 
+impl ShellModel {
+    /// `fluid.set_medium {line, medium}` (FR-FLU-009): the medium the fluid line's net carries, defined at the line's
+    /// end with one `fluid.medium.define`; a toast names the medium and the line.
+    pub(crate) fn act_fluid_set_medium(&mut self, p: &Map<String, Value>) -> Outcome {
+        let line = or_return!(self.record_param(p, "line"));
+        let medium = or_return!(self.record_param(p, "medium"));
+        let Some(session) = self.project_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some((function, idx)) = session.line_end_cp(line) else {
+            return Outcome::refused(key!("reason-line-no-port"));
+        };
+        let name = session
+            .media()
+            .into_iter()
+            .find(|(m, _)| *m == medium)
+            .map(|(_, n)| n)
+            .unwrap_or_default();
+        let cmd = ew_api::AnyCommand {
+            name: "fluid.medium.define".into(),
+            params: json!({"function": function.to_string(), "idx": idx, "medium": medium.to_string()}),
+        };
+        let out = self.run_commit(&cmd);
+        if out == Outcome::Done {
+            self.notify(strings::format(key!("toast-line-medium"), &[&name]), true);
+        }
+        out
+    }
+}
+
 /// A slot of the rack and slot editor as the window and the describe text print it: `3`, or `<rack>.<slot>`.
 pub fn rack_slot_text(r: &ew_api::output::RackRow) -> String {
     if r.rack == 0 {

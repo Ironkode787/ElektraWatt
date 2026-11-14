@@ -1177,6 +1177,8 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
             "connection/$v",
             "connection/id",
             "connection/line_kind",
+            "connection/tube_part",
+            "connection/tube_length",
             "connection/page",
             "connection/a",
             "connection/b",

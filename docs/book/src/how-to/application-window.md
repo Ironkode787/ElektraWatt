@@ -64,8 +64,9 @@ the tooltip ends with "F1: learn more"; `F1` while the pointer is on the item op
 ## Workspaces
 
 The project view is a dock: drag the border between two panes to resize them, and drag a pane's title onto another
-pane to rearrange or tab it. The program ships the workspaces **Schematic** and **PLC** (see
-[Work in the PLC workspace](plc-workspace.md)). **View ▸ Workspaces** lists them and the saved
+pane to rearrange or tab it. The program ships the workspaces **Schematic**, **PLC** (see
+[Work in the PLC workspace](plc-workspace.md)) and **Fluid power** (see
+[Work in the Fluid workspace](fluid-workspace.md)). **View ▸ Workspaces** lists them and the saved
 workspaces, saves the current layout under a name and resets the layout (a shipped workspace to its own layout). A workspace is a file `workspaces/<name>.json` in the
 configuration directory; the layout is saved a second after its last change.
 

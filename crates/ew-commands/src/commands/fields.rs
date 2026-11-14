@@ -173,6 +173,10 @@ pub const SETTABLE: &[(KindName, &[&str])] = &[
             "kind",
             // The line kind of a fluid line (`kind.fluid.line_kind`), refused on another connection.
             "line_kind",
+            // A fluid line's tube part override (`kind.fluid.tube.part`) and manual length (`kind.fluid.length`), the
+            // tube table's cells (WP-S2.13); refused on another connection.
+            "tube_part",
+            "tube_length",
             "number",
             "overrides.csa",
             "overrides.colour",
@@ -455,6 +459,9 @@ impl SetFields {
                 }
                 KindName::Representation => set_one::<Representation>(tx, *t, path, value)?,
                 KindName::Connection if path == "line_kind" => set_line_kind(tx, t.cast(), value)?,
+                KindName::Connection if path == "tube_part" || path == "tube_length" => {
+                    set_tube_cell(tx, t.cast(), path, value)?;
+                }
                 KindName::Connection => {
                     set_one::<Connection>(tx, *t, path, value)?;
                     if path == "overrides.colour" {
@@ -1292,6 +1299,42 @@ fn set_line_kind(tx: &mut TxBuilder<'_>, id: ew_ids::Id<Connection>, value: &Val
             f.line_kind = kind;
         }
     })
+}
+
+/// A fluid line's `tube_part` (a part reference `{"copy"}`, or `null` for the derived part) or `tube_length` (a
+/// length in nanometres, or `null`: missing), as `fluid.tube.set` and `fluid.length.set` set them: the part must be a
+/// copy the project holds, the length larger than zero, the tube still valid by FI-05.
+fn set_tube_cell(
+    tx: &mut TxBuilder<'_>,
+    id: ew_ids::Id<Connection>,
+    path: &str,
+    value: &Value,
+) -> Result<(), CmdError> {
+    let c = tx.require::<Connection>(id)?;
+    let ew_schema::ConnectionKind::Fluid(mut line) = c.kind.clone() else {
+        return tx.reject(text!("refusal-fields-not-fluid-line", crate::words::wire(tx, id)));
+    };
+    let bad = || CmdError::invalid_params(SetFields::NAME, "/value", text!("refusal-fields-tube-value"));
+    if path == "tube_part" {
+        line.tube.part = match value {
+            Value::Null => None,
+            v => {
+                let part: ew_schema::PartRef = serde_json::from_value(v.clone()).map_err(|_| bad())?;
+                tx.require::<ew_schema::LibCopy<ew_schema::Part>>(part.copy)?;
+                Some(part)
+            }
+        };
+        super::fluid::check_tube(tx, &line.tube)?;
+    } else {
+        line.length = match value {
+            Value::Null => ew_schema::LengthSource::Missing,
+            v => match v.as_i64() {
+                Some(n) if n > 0 => ew_schema::LengthSource::Manual(ew_units::Nm(n)),
+                _ => return Err(bad()),
+            },
+        };
+    }
+    tx.update::<Connection>(id, |c| c.kind = ew_schema::ConnectionKind::Fluid(line))
 }
 
 fn set_one<T: Entity + Serialize + DeserializeOwned>(

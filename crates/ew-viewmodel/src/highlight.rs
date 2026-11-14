@@ -71,6 +71,7 @@ impl Highlight {
         match self.target {
             HighlightTarget::Potential(_) => "potential",
             HighlightTarget::Net(_) => "connection",
+            HighlightTarget::Medium(_) => "medium",
         }
     }
 

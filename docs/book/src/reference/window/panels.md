@@ -134,6 +134,26 @@ cell as the row shows it: a number for a PROFIBUS station, a PROFINET device nam
 192.168.0.10`, then `mask` and `gateway` with theirs), `pos 2` and `alias 1001` for EtherCAT, `port 3` for an IO-Link
 port, or `TBD`; an empty cell is a port without an address. The termination cell takes on or off.
 
+### Fluid
+
+The fluid side of the project, on the rail as **Fluid**: **Valve terminals**, each with its modules in position order
+and their valves, then **Fluid devices** (cylinders, grippers and the other devices a fluid line ends at), each device
+with its lines (`→` and the port at the line's other end), then **Media**, each with the number of lines its zones
+hold. Selecting a line selects it on the page.
+
+### Tube table
+
+The tube list as a table, in the bottom dock of the [Fluid workspace](../../how-to/fluid-workspace.md): one row per
+tube with its ends and their port roles, medium, line kind, size, material, colour, tube part, length and where the
+length comes from, fittings, a change of location and its page. Type a tube part into **Tube part** (a part of the
+project) and a length in millimetres into **Length**; an empty cell goes back to the derived value.
+
+### Medium table
+
+The project's media, one row per medium, with the ports that feed it, its pressure, quality, the devices it reaches and
+its default tube. With a row selected, **Highlight** (`Ctrl+Shift+H`) marks the medium's zones on the page in a
+colour and a hatch pattern; **Check ▸ Clear highlights** removes them.
+
 ### Potentials
 
 The potentials with their definitions and members. See

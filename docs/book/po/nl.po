@@ -79,39 +79,43 @@ msgstr ""
 msgid "Work in the PLC workspace"
 msgstr ""
 
-#: src/SUMMARY.md:25 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:25 src/how-to/fluid-workspace.md:1
+msgid "Work in the Fluid workspace"
+msgstr ""
+
+#: src/SUMMARY.md:26 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:27 src/SUMMARY.md:29 src/reference/index.md:1
+#: src/SUMMARY.md:28 src/SUMMARY.md:30 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:30 src/reference/window/tools.md:1
+#: src/SUMMARY.md:31 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:31 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:32 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:32 src/reference/window/panels.md:1
+#: src/SUMMARY.md:33 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:33 src/reference/symbol-editor.md:1
+#: src/SUMMARY.md:34 src/reference/symbol-editor.md:1
 msgid "Symbol editor and automated authoring"
 msgstr ""
 
-#: src/SUMMARY.md:35 src/SUMMARY.md:37 src/explanation/index.md:1
+#: src/SUMMARY.md:36 src/SUMMARY.md:38 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:38 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:39 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:39 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:40 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -1896,19 +1900,20 @@ msgstr ""
 msgid ""
 "The project view is a dock: drag the border between two panes to resize "
 "them, and drag a pane's title onto another pane to rearrange or tab it. The "
-"program ships the workspaces **Schematic** and **PLC** (see [Work in the PLC "
-"workspace](plc-workspace.md)). **View ▸ Workspaces** lists them and the "
+"program ships the workspaces **Schematic**, **PLC** (see [Work in the PLC "
+"workspace](plc-workspace.md)) and **Fluid power** (see [Work in the Fluid "
+"workspace](fluid-workspace.md)). **View ▸ Workspaces** lists them and the "
 "saved workspaces, saves the current layout under a name and resets the "
 "layout (a shipped workspace to its own layout). A workspace is a file "
 "`workspaces/<name>.json` in the configuration directory; the layout is saved "
 "a second after its last change."
 msgstr ""
 
-#: src/how-to/application-window.md:72
+#: src/how-to/application-window.md:73
 msgid "First-run setup"
 msgstr ""
 
-#: src/how-to/application-window.md:74
+#: src/how-to/application-window.md:75
 msgid ""
 "On the first start the application asks for the language and what you come "
 "from (EPLAN, QElectroTech, KiCad or other), says what it does with your data "
@@ -1918,11 +1923,11 @@ msgid ""
 "First-run setup** runs it again. Nothing in it makes a network connection."
 msgstr ""
 
-#: src/how-to/application-window.md:79
+#: src/how-to/application-window.md:80
 msgid "Company-standard wizard"
 msgstr ""
 
-#: src/how-to/application-window.md:81
+#: src/how-to/application-window.md:82
 msgid ""
 "The wizard collects the conventions of your company and writes a **basic "
 "project**, from which new projects start. It has ten steps: the company, the "
@@ -1936,11 +1941,11 @@ msgid ""
 "to a directory you choose and becomes the default for **New project**."
 msgstr ""
 
-#: src/how-to/application-window.md:89
+#: src/how-to/application-window.md:90
 msgid "About"
 msgstr ""
 
-#: src/how-to/application-window.md:91
+#: src/how-to/application-window.md:92
 msgid ""
 "**Help, About ElektraWatt** shows the version, the page-view renderer, the "
 "privacy state, the licence, the engineering-verification disclaimer, the "
@@ -2866,7 +2871,7 @@ msgid ""
 "channel drives."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:7
+#: src/how-to/plc-workspace.md:7 src/how-to/fluid-workspace.md:6
 msgid "Open it"
 msgstr ""
 
@@ -2963,6 +2968,80 @@ msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "
 "in the [dialog reference](../reference/window/dialogs.md): Rack and slots."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:3
+msgid ""
+"The Fluid workspace shows a project's pneumatics beside its pages: the fluid "
+"navigator in the left column, the page in the middle, and the tube table and "
+"the medium table in the bottom dock."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:8
+msgid ""
+"Choose **View ▸ Workspaces ▸ Fluid power**. **View ▸ Workspaces ▸ "
+"Schematic** goes back; a change you make to the layout is kept for the "
+"workspace."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:11
+msgid "Valves and lines"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:13
+msgid ""
+"The fluid navigator lists each valve terminal with its modules and valves, "
+"and every other device a fluid line ends at, each with its lines. Select a "
+"line's row to find it on the page."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:15
+msgid ""
+"Draw a fluid line with **Draw ▸ Wire** on a fluid page. Right-click a line "
+"to choose its kind (**Line: Working**, **Line: Pilot** and the others) or "
+"its medium."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:18
+msgid "Tubes"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:20
+msgid ""
+"The tube table has one row per tube. Type a length in millimetres into "
+"**Length** or a tube part into **Tube part**; **Source** then says the value "
+"is manual. Leave a cell empty to take the derived value again."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:23
+msgid "Media"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:25
+msgid ""
+"Choose **Project ▸ New medium…**, give the medium a name and its pressure in "
+"bar, and choose **Create**."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:26
+msgid ""
+"Right-click a fluid line and choose **Medium:** with the medium's name: the "
+"line's net and every net the medium reaches through the valves carry it. The "
+"fluid navigator counts the lines of each medium."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:28
+msgid ""
+"Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
+"highlight its zones on the page; the highlight is a colour with a hatch "
+"pattern, so it reads without colour too."
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:31
+msgid ""
+"The panels are described in the [panel "
+"reference](../reference/window/panels.md): Fluid, Tube table and Medium "
+"table."
 msgstr ""
 
 #: src/how-to/upgrade-a-project.md:3
@@ -4304,84 +4383,126 @@ msgid ""
 msgstr ""
 
 #: src/reference/window/panels.md:137
-msgid "Potentials"
+msgid "Fluid"
 msgstr ""
 
 #: src/reference/window/panels.md:139
+msgid ""
+"The fluid side of the project, on the rail as **Fluid**: **Valve "
+"terminals**, each with its modules in position order and their valves, then "
+"**Fluid devices** (cylinders, grippers and the other devices a fluid line "
+"ends at), each device with its lines (`→` and the port at the line's other "
+"end), then **Media**, each with the number of lines its zones hold. "
+"Selecting a line selects it on the page."
+msgstr ""
+
+#: src/reference/window/panels.md:144
+msgid "Tube table"
+msgstr ""
+
+#: src/reference/window/panels.md:146
+msgid ""
+"The tube list as a table, in the bottom dock of the [Fluid "
+"workspace](../../how-to/fluid-workspace.md): one row per tube with its ends "
+"and their port roles, medium, line kind, size, material, colour, tube part, "
+"length and where the length comes from, fittings, a change of location and "
+"its page. Type a tube part into **Tube part** (a part of the project) and a "
+"length in millimetres into **Length**; an empty cell goes back to the "
+"derived value."
+msgstr ""
+
+#: src/reference/window/panels.md:151
+msgid "Medium table"
+msgstr ""
+
+#: src/reference/window/panels.md:153
+msgid ""
+"The project's media, one row per medium, with the ports that feed it, its "
+"pressure, quality, the devices it reaches and its default tube. With a row "
+"selected, **Highlight** (`Ctrl+Shift+H`) marks the medium's zones on the "
+"page in a colour and a hatch pattern; **Check ▸ Clear highlights** removes "
+"them."
+msgstr ""
+
+#: src/reference/window/panels.md:157
+msgid "Potentials"
+msgstr ""
+
+#: src/reference/window/panels.md:159
 msgid ""
 "The potentials with their definitions and members. See [Define a supply "
 "potential](../../how-to/define-supply-potential.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:142
+#: src/reference/window/panels.md:162
 msgid "Interruption points"
 msgstr ""
 
-#: src/reference/window/panels.md:144
+#: src/reference/window/panels.md:164
 msgid "The interruption points grouped by name, with their partners."
 msgstr ""
 
-#: src/reference/window/panels.md:146
+#: src/reference/window/panels.md:166
 msgid "Structure identifiers"
 msgstr ""
 
-#: src/reference/window/panels.md:148
+#: src/reference/window/panels.md:168
 msgid "The function and location nodes of the project's structure."
 msgstr ""
 
-#: src/reference/window/panels.md:150
+#: src/reference/window/panels.md:170
 msgid "Parts in use"
 msgstr ""
 
-#: src/reference/window/panels.md:152
+#: src/reference/window/panels.md:172
 msgid ""
 "The parts the project uses, with their devices. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:154
+#: src/reference/window/panels.md:174
 msgid "Report blocks"
 msgstr ""
 
-#: src/reference/window/panels.md:156
+#: src/reference/window/panels.md:176
 msgid ""
 "The report blocks: the generated pages such as the terminal diagram, the "
 "cable list and the parts list. See [Reports and "
 "PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:159
+#: src/reference/window/panels.md:179
 msgid "Unplaced devices"
 msgstr ""
 
-#: src/reference/window/panels.md:161
+#: src/reference/window/panels.md:181
 msgid ""
 "The devices of each layout space that have no place on a rail or the plate "
 "yet."
 msgstr ""
 
-#: src/reference/window/panels.md:163
+#: src/reference/window/panels.md:183
 msgid "Macros"
 msgstr ""
 
-#: src/reference/window/panels.md:165
+#: src/reference/window/panels.md:185
 msgid "The macros of every library tier and of the project."
 msgstr ""
 
-#: src/reference/window/panels.md:167
+#: src/reference/window/panels.md:187
 msgid "Libraries"
 msgstr ""
 
-#: src/reference/window/panels.md:169
+#: src/reference/window/panels.md:189
 msgid ""
 "The installed libraries and the project's library copies with their state."
 msgstr ""
 
-#: src/reference/window/panels.md:171
+#: src/reference/window/panels.md:191
 msgid "Messages"
 msgstr ""
 
-#: src/reference/window/panels.md:173
+#: src/reference/window/panels.md:193
 msgid ""
 "The findings of the project's checks, by severity and rule. Check ▸ Next "
 "finding and Check ▸ Previous finding walk them; Help ▸ Documentation on a "

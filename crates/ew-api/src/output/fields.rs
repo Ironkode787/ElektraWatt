@@ -858,12 +858,38 @@ fn walk_kind(kind: Kind, schema: &Value, exposure: &dyn Fn(&str) -> Option<Expos
             Category::Identity,
             exposure,
         ));
+        // Its tube part override and manual length (`kind.fluid.tube.part`, `kind.fluid.length`), fluid lines only.
+        out.push(spec(
+            name,
+            TUBE_PART,
+            FieldType::Optional(Box::new(FieldType::Link {
+                kind: "part".to_owned(),
+            })),
+            Category::Part,
+            exposure,
+        ));
+        out.push(spec(
+            name,
+            TUBE_LENGTH,
+            FieldType::Optional(Box::new(FieldType::Nm)),
+            Category::Part,
+            exposure,
+        ));
     }
     out
 }
 
 /// The `fields.set` path of a fluid line's line kind.
 pub(crate) const LINE_KIND: &str = "line_kind";
+
+/// The `fields.set` path of a fluid line's tube part override.
+pub(crate) const TUBE_PART: &str = "tube_part";
+
+/// The `fields.set` path of a fluid line's manual length.
+pub(crate) const TUBE_LENGTH: &str = "tube_length";
+
+/// The rows a connection shows on fluid lines only.
+pub(crate) const FLUID_LINE_PATHS: [&str; 3] = [LINE_KIND, TUBE_PART, TUBE_LENGTH];
 
 /// The type of a fluid line's line kind: the five line kinds in schema order.
 pub(crate) fn line_kind_type() -> FieldType {

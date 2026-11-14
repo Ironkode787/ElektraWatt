@@ -22,6 +22,7 @@
   - [Choose parts](how-to/choose-parts.md)
   - [Draw a panel layout](how-to/panel-layout.md)
   - [Work in the PLC workspace](how-to/plc-workspace.md)
+  - [Work in the Fluid workspace](how-to/fluid-workspace.md)
   - [Upgrade a project](how-to/upgrade-a-project.md)
 
 # Reference

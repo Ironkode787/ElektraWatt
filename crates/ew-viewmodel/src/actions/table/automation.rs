@@ -67,6 +67,34 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_rack_add(p),
         )),
     ),
+    // A fluid line's medium (its context menu) and New medium… (doc 11 §7, FR-FLU-008/-009).
+    with_params(
+        "line:ref, medium:ref",
+        needs_parameters(in_canvas(with_aliases(
+            &[("line", ParamForm::Whole), ("medium", ParamForm::Whole)],
+            act(
+                "fluid.set_medium",
+                Command,
+                Menu::Draw,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_set_medium(p),
+            ),
+        ))),
+    ),
+    with_params(
+        "name?:text, p_nom?:text, code?:text",
+        act(
+            "fluid.medium_new",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            slot(Menu::Project),
+            |s, p| s.act_fluid_medium_new(p),
+        ),
+    ),
     with_params(
         "module:ref, slot:text",
         hidden(with_aliases(

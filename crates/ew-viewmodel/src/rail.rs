@@ -83,7 +83,7 @@ pub struct RailModel {
 /// The left rail's entries (doc 16a §5.4, with Unplaced devices, Macros and Libraries after Report blocks): the word, the
 /// icon and the entry's pane, whose [`PaneKind::title_key`] is the entry's label ([`left_label`]). Project shows the
 /// Pages pane and, through its segmented control, the Devices navigator, so its label is its own.
-pub const LEFT: [(&str, &str, PaneKind); 14] = [
+pub const LEFT: [(&str, &str, PaneKind); 15] = [
     ("project", "files", PaneKind::Pages),
     (
         "strips",
@@ -109,6 +109,7 @@ pub const LEFT: [(&str, &str, PaneKind); 14] = [
     // The automation workspaces' navigators (WP-S2.13), after Report blocks so that the Ctrl+<n> keys of the entries
     // before them stay.
     ("bus", "topology-bus", PaneKind::Navigator(NavKind::Bus)),
+    ("fluid", "droplet", PaneKind::Navigator(NavKind::Fluid)),
     // The devices a layout space has not placed yet (doc 16 §5.2's row), the panel tools'
     // source, after Report blocks and without a Ctrl+<n> key.
     (

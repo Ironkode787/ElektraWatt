@@ -2029,6 +2029,14 @@ impl Session {
                     .cloned()
                     .unwrap_or_else(|| Value::String("working".into()));
                 j[super::fields::LINE_KIND] = word;
+                // The tube table's cells: the line's tube part override and its manual length (WP-S2.13).
+                let fluid = j["kind"]["fluid"].clone();
+                j[super::fields::TUBE_PART] = fluid.pointer("/tube/part").cloned().unwrap_or(Value::Null);
+                j[super::fields::TUBE_LENGTH] = fluid
+                    .get("length")
+                    .and_then(|l| l.get("manual"))
+                    .cloned()
+                    .unwrap_or(Value::Null);
             }
         }
         let catalogue = field_catalogue(name).unwrap_or_else(|| Vec::new().into());
@@ -2086,7 +2094,7 @@ impl Session {
             // A fluid line shows the fluid rows only, none of a wire's (its number, the
             // wire overrides; below, the derived wire rows).
             if kind == Kind::Connection
-                && ((spec.path == super::fields::LINE_KIND && !fluid_lines)
+                && ((super::fields::FLUID_LINE_PATHS.contains(&spec.path.as_str()) && !fluid_lines)
                     || (["kind", "number", "overrides"].contains(&spec.path.as_str()) && fluid_lines))
             {
                 continue;
