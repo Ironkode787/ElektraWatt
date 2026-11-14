@@ -2014,7 +2014,7 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             }
             lines.push(format!("  tab {}", card.tab.word()));
             for c in card.changes.iter().chain(&card.conflicts) {
-                let choice = card.choices.get(&c.id).map(String::as_str).unwrap_or("default");
+                let choice = card.choices.get(&c.id).map_or(c.default, String::as_str);
                 lines.push(format!(
                     "  change \"{}\" \"{}\" \"{}\" {} {choice}",
                     user(&c.text),

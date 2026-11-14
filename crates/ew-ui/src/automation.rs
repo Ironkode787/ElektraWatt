@@ -336,13 +336,21 @@ pub(crate) fn plc_import(
                         ui.label(small(format!("· {state}"), t.text_tertiary));
                     });
                     if card.tab == ImportTab::Conflicts {
-                        let chosen = card.choices.get(&c.id).map(String::as_str);
-                        ui.horizontal(|ui| {
+                        // The side Apply takes: the one chosen, else the merge's default (FT-1756: the file's value
+                        // only where it can be taken, else the reason why not).
+                        let chosen = card.choices.get(&c.id).map_or(c.default, String::as_str);
+                        ui.horizontal_wrapped(|ui| {
                             for (word, key) in [
                                 ("ours", key!("plc-import-keep-ours")),
                                 ("theirs", key!("plc-import-take-theirs")),
                             ] {
-                                if ui.radio(chosen == Some(word), strings::text(key)).clicked() {
+                                if word == "theirs"
+                                    && let Some(why) = &c.refused
+                                {
+                                    ui.label(small(why.clone(), t.text_secondary));
+                                    continue;
+                                }
+                                if ui.radio(chosen == word, strings::text(key)).clicked() {
                                     events.push(Event::Action(
                                         "plc.import_choose",
                                         json!({ "id": c.id, "choice": word }),

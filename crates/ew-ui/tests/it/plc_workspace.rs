@@ -480,6 +480,138 @@ fn the_plc_exchange_exports_and_previews_an_import() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// Doc 10 §4.4: Apply does what the preview of a complete file showed. The station of Golden A's exchange is renamed in
+/// the file (another ID, another designation), so the file holds a station the project lacks and lacks the one it
+/// has: imported as complete, the Removed tab lists the project's station, and Apply takes it out of the last exchange,
+/// so the same file previewed again removes nothing.
+#[test]
+fn a_complete_imports_apply_removes_what_its_preview_listed() {
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    let station = h
+        .state()
+        .shell()
+        .nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == NavRole::Station)
+                .map(|n| n.records[0])
+        })
+        .expect("-201U1");
+    let exported = tmp.0.join("plc.aml");
+    dispatch(
+        &mut h,
+        "plc.export",
+        json!({"format": "aml-1.4.0", "path": exported.to_string_lossy()}),
+    );
+    let text = std::fs::read_to_string(&exported).expect("the export");
+    assert!(text.contains(&station.to_string()), "the station's ID in the file");
+    let foreign = text
+        .replace(&station.to_string(), "tia-station")
+        .replace("<Value>-201U1</Value>", "<Value>-209U1</Value>");
+    let file = tmp.0.join("renamed.aml");
+    std::fs::write(&file, foreign).expect("the file");
+    let import = json!({"path": file.to_string_lossy(), "complete": true});
+    let removed = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| match h.state().shell().dialog() {
+        Some(Dialog::PlcImport(card)) => card.removed.clone(),
+        other => panic!("{other:?}"),
+    };
+    dispatch(&mut h, "plc.import", import.clone());
+    settle(&mut h);
+    let listed = removed(&h);
+    assert!(
+        listed.iter().any(|r| r == "station -201U1"),
+        "{listed:?}"
+    );
+    support::off_chrome(&h, "Apply").expect("Apply").click();
+    settle(&mut h);
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
+    dispatch(&mut h, "plc.import", import);
+    settle(&mut h);
+    assert_eq!(removed(&h), Vec::<String>::new(), "the station left the last exchange");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1756, doc 10 §4.5: a conflict shows the side Apply takes without a choice, and offers the file's value only where
+/// it can be taken. The file gives a channel's plain comment a comment in a language, which never replaces it: the
+/// conflict's row has "Keep the project's" chosen and, in place of "Take the file's", the reason; Apply keeps it.
+#[test]
+fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    let record = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, role: NavRole, cell: &str| {
+        h.state()
+            .shell()
+            .nav(NavKind::Plc)
+            .and_then(|n| n.table())
+            .and_then(|t| {
+                t.nodes
+                    .iter()
+                    .find(|n| n.role == role && (cell.is_empty() || n.cells.iter().any(|c| c == cell)))
+                    .map(|n| n.records[0].to_string())
+            })
+            .expect("the row")
+    };
+    // Symbols from the process tags, so that the file has tags with their comments.
+    let config = record(&h, NavRole::ConfigProject, "");
+    let channel = record(&h, NavRole::Channel, "TA05-V-15");
+    for (kind, target, path, value) in [
+        ("plc_config_project", config, "symbols", json!({"template": "{target.process_tag}"})),
+        ("channel", channel, "comment", json!("Feed")),
+    ] {
+        dispatch(
+            &mut h,
+            "command.run",
+            json!({"cmd": "fields.set", "params": {"kind": kind, "targets": [target], "path": path, "value": value}}),
+        );
+    }
+    let exported = tmp.0.join("plc.aml");
+    dispatch(
+        &mut h,
+        "plc.export",
+        json!({"format": "aml-1.4.0", "path": exported.to_string_lossy()}),
+    );
+    let text = std::fs::read_to_string(&exported).expect("the export");
+    assert!(text.contains("<Value>Feed</Value>"), "the comment in the file");
+    let file = tmp.0.join("german.aml");
+    let german = text.replace(
+        "<Value>Feed</Value>",
+        "<Attribute Name=\"aml-lang=de-DE\"><Value>Zufuhr</Value></Attribute>",
+    );
+    std::fs::write(&file, german).expect("the file");
+    dispatch(&mut h, "plc.import", json!({"path": file.to_string_lossy()}));
+    settle(&mut h);
+    h.get_by_label_contains("Conflicts (1)").click();
+    settle(&mut h);
+    let keep = h.get_by_label("Keep the project's");
+    assert_eq!(
+        keep.accesskit_node().toggled(),
+        Some(egui::accesskit::Toggled::True),
+        "the default side is chosen"
+    );
+    assert!(h.query_by_label("Take the file's").is_none(), "no side that cannot be taken");
+    h.get_by_label_contains("Comment (de-DE) of TA05_V_15 cannot be taken from the file");
+    support::off_chrome(&h, "Apply").expect("Apply").click();
+    settle(&mut h);
+    assert!(
+        !matches!(h.state().shell().dialog(), Some(Dialog::PlcImport(_))),
+        "applied"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The value of field `name` of the open form.
 fn form_value(h: &egui_kittest::Harness<'_, ew_ui::app::App>, name: &str) -> String {
     match h.state().shell().dialog() {

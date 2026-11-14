@@ -40,7 +40,7 @@ use sha2::Digest as _;
 use crate::{AnyCommand, Session};
 
 pub use ew_plc::ew_caex::ApcVersion;
-pub use ew_plc::{field_words, object_words};
+pub use ew_plc::{Choice, field_words, object_words};
 pub use ew_schema::{Date, ExchangeDirection, ExchangeFormat, ExchangeObject};
 
 /// The largest exchange file a host reads (doc 14 §11): the input limit of the AML reader.

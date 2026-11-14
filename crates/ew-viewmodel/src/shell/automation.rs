@@ -302,13 +302,7 @@ impl ShellModel {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let too_big =
-            std::fs::metadata(&path).is_ok_and(|m| m.len() > ew_api::plc_exchange::max_file_bytes());
-        let bytes = match std::fs::read(&path) {
-            Ok(_) if too_big => return failed(key!("error-plc-import-file"), &[&file, "too large"]),
-            Ok(b) => b,
-            Err(e) => return failed(key!("error-plc-import-file"), &[&file, &e.kind().to_string()]),
-        };
+        let bytes = or_return!(read_exchange_file(&path, &file));
         let Some(session) = self.project_session() else {
             return Outcome::refused(key!("reason-no-project"));
         };
@@ -388,13 +382,13 @@ pub fn rack_positions_text(r: &ew_api::output::RackRow) -> String {
         .join(" · ")
 }
 
-/// The bytes of a file a dialog holds, printed by their length only.
+/// The command a preview was made of, printed by its name only (its parameters hold the whole file read).
 #[derive(Clone, PartialEq, Eq)]
-pub struct FileBytes(pub std::sync::Arc<Vec<u8>>);
+pub struct PreviewedCommand(pub std::sync::Arc<ew_api::AnyCommand>);
 
-impl std::fmt::Debug for FileBytes {
+impl std::fmt::Debug for PreviewedCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} bytes", self.0.len())
+        f.write_str(&self.0.name)
     }
 }
 
@@ -444,6 +438,10 @@ pub struct ImportChange {
     pub theirs: String,
     /// What the merge makes of it: `apply`, `rejected`, `kept`, `pending` or `conflict`.
     pub state: &'static str,
+    /// The side Apply takes without a choice: `ours` or `theirs`.
+    pub default: &'static str,
+    /// Why the file's value cannot be taken, in words; `None` when it can.
+    pub refused: Option<String>,
 }
 
 /// One parked object of the import's preview.
@@ -464,8 +462,9 @@ pub struct ImportParked {
 pub struct PlcImportCard {
     /// The file's name.
     pub file: String,
-    /// Its bytes (read once; Apply merges them again with the choices).
-    pub bytes: FileBytes,
+    /// The `plc.apply_exchange` the preview was made of, with every option it was made with (`complete`); Apply
+    /// commits it under the choices, and the file is neither read nor merged again here.
+    pub apply: PreviewedCommand,
     /// The tab on show.
     pub tab: ImportTab,
     /// The differing fields (not conflicts).
@@ -490,6 +489,106 @@ impl PlcImportCard {
             ImportTab::Parking => self.parking.len(),
         }
     }
+}
+
+/// The bytes of the exchange file or instrument list at `path` (named `file`), read through the importers' input limit:
+/// a file larger than the limit, or one that cannot be read, is refused in words.
+fn read_exchange_file(path: &std::path::Path, file: &str) -> Result<Vec<u8>, Outcome> {
+    match super::drawing_import::read_limited(path) {
+        Ok(Some(bytes)) => Ok(bytes),
+        Ok(None) => {
+            let mib = (ew_api::plc_exchange::max_file_bytes() >> 20).to_string();
+            Err(failed(key!("error-plc-import-too-large"), &[file, &mib]))
+        }
+        Err(e) => Err(failed(
+            key!("error-plc-import-file"),
+            &[file, &crate::jobs::io_cause(&e)],
+        )),
+    }
+}
+
+/// The PLC import's card of the preview `import` of the file `file`: its rows in the window's words.
+fn plc_import_card(file: String, import: ew_api::plc_exchange::PlcImport) -> PlcImportCard {
+    let words = |v: &Option<String>| v.clone().unwrap_or_default();
+    let (conflicts, changes): (Vec<_>, Vec<_>) = import
+        .plan
+        .changes
+        .iter()
+        .map(|c| {
+            let field = plc_field_text(&c.object, &c.field);
+            let refused = (!c.acceptable).then(|| {
+                // A field of a group the file cannot take is a comment of the other form (the command's reason).
+                let key = if c.group.is_some() {
+                    key!("refusal-plc-exchange-language")
+                } else {
+                    key!("refusal-plc-exchange-not-acceptable")
+                };
+                strings::sentence_start(&strings::format(key, &[&field, &c.subject])).into_owned()
+            });
+            ImportChange {
+                id: c.id.clone(),
+                text: strings::format(key!("plc-import-row"), &[&c.subject, &field]),
+                ours: words(&c.ours),
+                theirs: words(&c.theirs),
+                state: c.state.word(),
+                default: match c.default {
+                    ew_api::plc_exchange::Choice::Ours => "ours",
+                    ew_api::plc_exchange::Choice::Theirs => "theirs",
+                },
+                refused,
+            }
+        })
+        .partition(|c| c.state == "conflict");
+    let object = |o: &ew_api::plc_exchange::ExchangeObject, name: &str| {
+        strings::format(key!("plc-import-object"), &[&plc_object_text(o), name])
+    };
+    PlcImportCard {
+        file,
+        apply: PreviewedCommand(std::sync::Arc::new(import.apply)),
+        tab: ImportTab::Changed,
+        changes,
+        conflicts,
+        removed: import
+            .plan
+            .removed
+            .iter()
+            .map(|(o, _, name)| object(o, name))
+            .collect(),
+        parking: import
+            .plan
+            .parking
+            .iter()
+            .map(|p| ImportParked {
+                id: p.id.clone(),
+                text: object(&p.object, &p.name),
+                ambiguous: p.ambiguous,
+                creatable: p.creatable,
+            })
+            .collect(),
+        choices: std::collections::BTreeMap::new(),
+    }
+}
+
+/// The kind of an exchanged object in the window's words: its `plc-object-<kind>` text, `plc-object-other` for a kind
+/// of a newer format.
+pub fn plc_object_text(object: &ew_api::plc_exchange::ExchangeObject) -> String {
+    strings::lookup(&format!("plc-object-{}", object.name()))
+        .filter(|_| !object.name().is_empty())
+        .unwrap_or_else(|| strings::text(key!("plc-object-other")))
+        .to_owned()
+}
+
+/// A field of an exchanged object in the window's words: the object's own `plc-field-<kind>-<field>` text (a tag's
+/// `name` is its symbol), else `plc-field-<field>`, a comment in a language with the language; a field this version
+/// does not know as it is written.
+pub fn plc_field_text(object: &ew_api::plc_exchange::ExchangeObject, field: &str) -> String {
+    if let Some(lang) = field.strip_prefix("comment.") {
+        return strings::format(key!("plc-field-comment-in"), &[lang]);
+    }
+    let key = field.replace(['.', '_'], "-");
+    strings::lookup(&format!("plc-field-{}-{key}", object.name()))
+        .or_else(|| strings::lookup(&format!("plc-field-{key}")))
+        .map_or_else(|| field.to_owned(), str::to_owned)
 }
 
 /// The PLC export formats PLC exchange… offers: (word, the format, its name); product names, the same in every
@@ -529,87 +628,24 @@ impl ShellModel {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
-        let too_big =
-            std::fs::metadata(&path).is_ok_and(|m| m.len() > ew_api::plc_exchange::max_file_bytes());
-        let bytes = match std::fs::read(&path) {
-            Ok(_) if too_big => return failed(key!("error-plc-import-file"), &[&file, "too large"]),
-            Ok(b) => b,
-            Err(e) => return failed(key!("error-plc-import-file"), &[&file, &e.kind().to_string()]),
-        };
+        let bytes = or_return!(read_exchange_file(&path, &file));
         let complete = p.get("complete").and_then(Value::as_bool).unwrap_or(false);
-        let card = PlcImportCard {
-            file,
-            bytes: FileBytes(std::sync::Arc::new(bytes)),
-            tab: ImportTab::Changed,
-            changes: Vec::new(),
-            conflicts: Vec::new(),
-            removed: Vec::new(),
-            parking: Vec::new(),
-            choices: std::collections::BTreeMap::new(),
-        };
-        match self.plc_import_plan(card, complete) {
-            Ok(mut card) => {
-                if card.changes.is_empty() && !card.conflicts.is_empty() {
-                    card.tab = ImportTab::Conflicts;
-                }
-                self.open_dialog(crate::shell::Dialog::PlcImport(Box::new(card)))
-            }
-            Err(out) => out,
-        }
-    }
-
-    /// The card with the plan of its file under its choices, in words.
-    fn plc_import_plan(&self, mut card: PlcImportCard, complete: bool) -> Result<PlcImportCard, Outcome> {
         let Some(session) = self.project_session() else {
-            return Err(Outcome::refused(key!("reason-no-project")));
+            return Outcome::refused(key!("reason-no-project"));
         };
         let options = ew_api::plc_exchange::PlcOptions {
             complete,
-            resolutions: card.choices.clone(),
             ..Default::default()
         };
-        let import = session
-            .plc_import(&card.bytes.0, &options)
-            .map_err(|e| Outcome::Failed {
-                message: strings::format(key!("error-plc-import"), &[&e.to_string()]),
-            })?;
-        let words = |v: &Option<String>| v.clone().unwrap_or_default();
-        let (conflicts, changes): (Vec<_>, Vec<_>) = import
-            .plan
-            .changes
-            .iter()
-            .map(|c| ImportChange {
-                id: c.id.clone(),
-                text: format!(
-                    "{} · {}",
-                    c.subject,
-                    ew_api::plc_exchange::field_words(&c.object, &c.field)
-                ),
-                ours: words(&c.ours),
-                theirs: words(&c.theirs),
-                state: c.state.word(),
-            })
-            .partition(|c| c.state == "conflict");
-        card.changes = changes;
-        card.conflicts = conflicts;
-        card.removed = import
-            .plan
-            .removed
-            .iter()
-            .map(|(o, _, name)| format!("{} {name}", ew_api::plc_exchange::object_words(o)))
-            .collect();
-        card.parking = import
-            .plan
-            .parking
-            .iter()
-            .map(|p| ImportParked {
-                id: p.id.clone(),
-                text: format!("{} {}", ew_api::plc_exchange::object_words(&p.object), p.name),
-                ambiguous: p.ambiguous,
-                creatable: p.creatable,
-            })
-            .collect();
-        Ok(card)
+        let import = match session.plc_import(&bytes, &options) {
+            Ok(i) => i,
+            Err(e) => return failed(key!("error-plc-import"), &[&e.to_string()]),
+        };
+        let mut card = plc_import_card(file, import);
+        if card.changes.is_empty() && !card.conflicts.is_empty() {
+            card.tab = ImportTab::Conflicts;
+        }
+        self.open_dialog(crate::shell::Dialog::PlcImport(Box::new(card)))
     }
 
     /// `plc.import_tab {tab}`: the tab the import's preview shows.
@@ -663,18 +699,9 @@ impl ShellModel {
         let Some(crate::shell::Dialog::PlcImport(card)) = self.dialog.clone() else {
             return Outcome::refused(key!("reason-plc-import-closed"));
         };
-        let Some(session) = self.project_session() else {
-            return Outcome::refused(key!("reason-no-project"));
-        };
-        let options = ew_api::plc_exchange::PlcOptions {
-            resolutions: card.choices.clone(),
-            ..Default::default()
-        };
-        let import = match session.plc_import(&card.bytes.0, &options) {
-            Ok(i) => i,
-            Err(e) => return failed(key!("error-plc-import"), &[&e.to_string()]),
-        };
-        let out = self.run_commit(&import.apply);
+        let mut apply = (*card.apply.0).clone();
+        apply.params["resolutions"] = json!(card.choices);
+        let out = self.run_commit(&apply);
         if out == Outcome::Done {
             self.dialog = None;
             self.notify(strings::format(key!("toast-plc-import"), &[&card.file]), true);

@@ -208,13 +208,17 @@ impl ShellModel {
 
 /// The bytes of a drawing, at most the importers' input limit.
 fn read(path: &Path) -> Option<Vec<u8>> {
+    read_limited(path).ok().flatten()
+}
+
+/// The bytes of a file an importer reads, `None` when it is larger than the importers' input limit (never more than
+/// one byte past the limit is read).
+pub(super) fn read_limited(path: &Path) -> std::io::Result<Option<Vec<u8>>> {
     use std::io::Read;
     let limit = ew_api::import::Limits::default().max_input_bytes;
     let mut bytes = Vec::new();
-    std::fs::File::open(path)
-        .ok()?
+    std::fs::File::open(path)?
         .take(limit + 1)
-        .read_to_end(&mut bytes)
-        .ok()?;
-    (bytes.len() as u64 <= limit).then_some(bytes)
+        .read_to_end(&mut bytes)?;
+    Ok((bytes.len() as u64 <= limit).then_some(bytes))
 }
