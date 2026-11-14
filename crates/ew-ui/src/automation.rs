@@ -82,7 +82,7 @@ pub(crate) fn rack(
     let lines = view.findings.len().max(1) + usize::from(error.is_some());
     let below = t.size_row * (lines as f32 + 2.0) + 4.0 * t.space_5;
     let room = (ui.ctx().content_rect().height() - above - below).max(t.size_row * 4.0);
-    let rows_id = egui::Id::new(("rack-rows-height", station));
+    let rows_id = egui::Id::unique(("rack-rows-height", station));
     let rows = ui.data(|d| d.get_temp::<f32>(rows_id)).unwrap_or(0.0);
     let list = ScrollArea::vertical()
         .max_height(room)

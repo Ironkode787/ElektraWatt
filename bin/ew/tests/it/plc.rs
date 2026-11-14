@@ -43,10 +43,7 @@ fn an_export_is_recorded_and_its_file_comes_back() {
         ],
     );
     let text = ok(&o);
-    assert!(
-        text.contains("1 station, 7 modules, 56 channels"),
-        "{text}"
-    );
+    assert!(text.contains("1 station, 7 modules, 56 channels"), "{text}");
     let written = std::fs::read_to_string(&aml).unwrap();
     assert!(written.contains("SchemaVersion=\"2.15\""));
     // the snapshot is in the saved project, in the configuration project's own file

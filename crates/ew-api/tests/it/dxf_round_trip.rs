@@ -11,9 +11,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
+use ew_api::Session;
 use ew_api::dxf::{DxfOptions, Space};
 use ew_api::output::{DxfLayers, ExportOptions, PageSelection};
-use ew_api::Session;
 use ew_dl::{
     Brush, DisplayList, FontKey, Item, ItemKind, Layer, Path, PathEl, ShapedRun, Stroke, SymbolGeomId,
     Transform,
@@ -134,7 +134,12 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
         let mut drawn = Vec::new();
         drawn_points(&page.content.items, Transform::IDENTITY, &mut drawn);
         assert!(!drawn.is_empty());
-        all_near(&file.name, "drawn point", &drawn, &imported_points(&converted.items));
+        all_near(
+            &file.name,
+            "drawn point",
+            &drawn,
+            &imported_points(&converted.items),
+        );
 
         // And it re-imports as a graphic page that prints where the drawing was drawn: its drawn points and its texts'
         // baselines on the sheet within 0.01 mm of the original's.
@@ -181,7 +186,14 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
     let bare = sheet(&golden, true).len();
     let source = ew_api::output::UnderlaySource::Dxf(DxfOptions::default());
     golden
-        .place_underlay(&on, &file.name, file.text.clone().into_bytes(), &source, true, Vec::new())
+        .place_underlay(
+            &on,
+            &file.name,
+            file.text.clone().into_bytes(),
+            &source,
+            true,
+            Vec::new(),
+        )
         .unwrap();
     let with = sheet(&golden, true);
     let underlay = &with[..with.len() - bare];
@@ -217,8 +229,12 @@ fn all_near(file: &str, what: &str, want: &[Pt2], got: &[Pt2]) {
     }
     for p in want {
         let (cx, cy) = cell(*p);
-        let found = (cx - 1..=cx + 1)
-            .any(|x| (cy - 1..=cy + 1).any(|y| grid.get(&(x, y)).is_some_and(|ps| ps.iter().any(|q| near(*q, *p)))));
+        let found = (cx - 1..=cx + 1).any(|x| {
+            (cy - 1..=cy + 1).any(|y| {
+                grid.get(&(x, y))
+                    .is_some_and(|ps| ps.iter().any(|q| near(*q, *p)))
+            })
+        });
         assert!(
             found,
             "{file}: the {what} at ({}, {}) nm has none within 0.01 mm",

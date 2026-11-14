@@ -345,7 +345,11 @@ fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
     // FT-1763: the dialog's spec and its content read one rack view per revision, not one each a frame.
     let made = h.state().shell().session_calls().rack_view;
     h.run_steps(3);
-    assert_eq!(h.state().shell().session_calls().rack_view, made, "no new rack view without a change");
+    assert_eq!(
+        h.state().shell().session_calls().rack_view,
+        made,
+        "no new rack view without a change"
+    );
     let add = h.get_by_label("Add here 23").rect();
     let close = support::menu_node(&h, "Close").rect();
     assert!(
@@ -710,7 +714,8 @@ fn the_import_preview_says_what_apply_refuses_and_takes_the_file_complete() {
     );
     let text = std::fs::read_to_string(&exported).expect("the export");
     let at = text.find("Name=\"-201U4\"").expect("-201U4 in the file");
-    let start = "<Attribute Name=\"StartAddress\" AttributeDataType=\"xs:int\">\n                <Value>1</Value>";
+    let start =
+        "<Attribute Name=\"StartAddress\" AttributeDataType=\"xs:int\">\n                <Value>1</Value>";
     let offset = text[at..].find(start).expect("-201U4's start") + at;
     let overlapping = format!(
         "{}{}{}",
@@ -729,7 +734,10 @@ fn the_import_preview_says_what_apply_refuses_and_takes_the_file_complete() {
     let shown = card(&h);
     let why = shown.refusal.clone().expect("Apply's refusal in the preview");
     assert!(
-        shown.changes.iter().any(|c| c.refused.as_deref() == Some(why.as_str())),
+        shown
+            .changes
+            .iter()
+            .any(|c| c.refused.as_deref() == Some(why.as_str())),
         "the start's row is marked: {:?}",
         shown.changes
     );

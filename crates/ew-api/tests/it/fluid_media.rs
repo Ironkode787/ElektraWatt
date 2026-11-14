@@ -192,7 +192,8 @@ fn run(s: &mut Session, name: &str, params: serde_json::Value) -> ew_api::Receip
 fn csv_rows(csv: &str) -> Vec<BTreeMap<String, String>> {
     // A field in double quotes may hold commas (a range of consumers); a doubled quote is one.
     let fields = |l: &str| {
-        let (mut out, mut cell, mut quoted, mut chars) = (Vec::new(), String::new(), false, l.chars().peekable());
+        let (mut out, mut cell, mut quoted, mut chars) =
+            (Vec::new(), String::new(), false, l.chars().peekable());
         while let Some(c) = chars.next() {
             match c {
                 '"' if quoted && chars.peek() == Some(&'"') => {
@@ -359,7 +360,10 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
         row_export(&s.query(), &RowExport::Kind("medium_overview".into()), None).expect("the overview");
     let media = csv_rows(&media.csv);
     assert_eq!(media.len(), 1);
-    assert_eq!(media[0]["Count"], "36", "the 28 valves and the 8 cylinders of 203: {media:?}");
+    assert_eq!(
+        media[0]["Count"], "36",
+        "the 28 valves and the 8 cylinders of 203: {media:?}"
+    );
 
     // EF-13, EF-20 and EF-21 clear; EF-14 stays.
     let run1 = |rule| findings(&s, &PRE_DELIVERY, CheckMode::Release, rule);

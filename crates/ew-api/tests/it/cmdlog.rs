@@ -266,7 +266,8 @@ fn an_id_reference_resolves_for_a_medium() {
         .next()
         .expect("the medium");
     assert_eq!(
-        s.resolve_reference(&format!("id:{medium}")).map_err(|e| e.to_string()),
+        s.resolve_reference(&format!("id:{medium}"))
+            .map_err(|e| e.to_string()),
         Ok(medium.as_uuid())
     );
 }
