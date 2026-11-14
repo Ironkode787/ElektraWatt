@@ -21,7 +21,7 @@ use ew_derive::{
 
 use crate::finding::{Finding, Severity, Target};
 use crate::rule::{Modes, Release, Rule, RuleKind, RuleMeta, Scope, ScopeKind, Touched};
-use crate::rules::plc::{cfg_modules, cfg_name, channel_name, kind_word, new_findings};
+use crate::rules::plc::{cfg_modules, cfg_name, channel_name, kind_word, new_findings, touched_devices};
 use crate::rules::pot::{PinWords, final_type, potential_name};
 use crate::rules::term::full_tag;
 
@@ -456,8 +456,9 @@ pub const SLOT_RULES: RuleMeta = RuleMeta {
 /// EW-PLC-011: over the modules of a station, a module in a slot its part does not allow (`PlcSection.allowed_slots`,
 /// discriminator `slot`, target the module), more modules than the station's part allows (`limits.max_modules`,
 /// `max_modules`), and more input or output bytes than it allows (`limits.max_input_bytes`, `max_output_bytes`;
-/// discriminators `input` and `output`; target the station). The station itself counts as a module when it carries
-/// the aspect. Its prevent half refuses the edit that creates a violation.
+/// discriminators `input` and `output`; target the station; an IO-Link master counts the bytes of its ports' windows,
+/// `module_io`). The station itself counts as a module when it carries the aspect. Its prevent half refuses the edit
+/// that creates a violation, over the stations of the touched devices, channels and parts before and after the batch.
 #[derive(Clone, Copy, Debug)]
 pub struct SlotRules;
 
@@ -478,7 +479,8 @@ impl Rule for SlotRules {
             let Some((copy, plc)) = module_part(q, *module) else {
                 continue;
             };
-            for r in &plc.io {
+            // An IO-Link master's width follows its ports' windows (doc 10 §3.8), as A1 allocates it.
+            for r in &ew_derive::module_io(q, *module) {
                 let bytes = u64::from(r.bits.div_ceil(8));
                 match r.dir {
                     ew_derive::ew_schema::IoDir::In => input += bytes,
@@ -569,13 +571,9 @@ impl Rule for SlotRules {
 
     fn prevent(&self, before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
         let mut stations = std::collections::BTreeSet::new();
-        for (kind, id) in touched {
-            if *kind == Kind::Device {
-                let d: Id<Device> = id.cast();
-                if let Some(s) = ew_derive::station_of(after, d) {
-                    stations.insert(s);
-                }
-            }
+        for d in touched_devices(before, after, touched) {
+            stations.extend(ew_derive::station_of(before, d));
+            stations.extend(ew_derive::station_of(after, d));
         }
         let scopes: Vec<Scope> = stations.into_iter().map(Scope::Station).collect();
         new_findings(self, before, after, &scopes)

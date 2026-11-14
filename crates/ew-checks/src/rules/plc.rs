@@ -20,10 +20,11 @@
 //!
 //! EW-PLC-001 and EW-PLC-007 carry the catalogue's prevent letter, so release mode reports them, and their prevent
 //! evaluation refuses an edit that creates an overlap or a duplicate symbol (FT-726): the configuration projects that
-//! the touched channels, devices and configuration projects belong to are checked before and after the batch, and an
-//! error finding that the batch adds is a violation ([`new_findings`]).
+//! the touched channels, devices, parts and configuration projects belong to are checked before and after the batch,
+//! and the batch is refused when a channel joins a group of channels it was not in ([`new_group_members`]); a repair
+//! of a held overlap and an unrelated edit of a project that holds one commit.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use ew_derive::ew_ids::Id;
 use ew_derive::ew_plcaddr::{Area, Size};
@@ -120,23 +121,111 @@ pub(crate) fn new_findings(rule: &dyn Rule, before: &Q, after: &Q, scopes: &[Sco
     out
 }
 
-/// The configuration projects a batch touches: those of its touched channels' modules, of its touched devices (as
-/// stations or modules), and its touched configuration projects, in the snapshot after the batch.
-fn touched_cfgs(after: &Q, touched: &Touched) -> Vec<Scope> {
-    let mut cfgs = std::collections::BTreeSet::new();
-    for (kind, id) in touched {
-        let cfg = match kind {
-            Kind::Channel => after
-                .table::<Channel>()
-                .get(id.cast())
-                .and_then(|c| module_cfg(after, c.module)),
-            Kind::Device => module_cfg(after, id.cast()),
-            Kind::PlcConfigProject => Some(id.cast()),
-            _ => None,
-        };
-        cfgs.extend(cfg);
+/// The devices a batch touches, in the snapshots before and after it (a deleted record is found in the first, a new
+/// one in the second): its touched devices, the modules of its touched channels, and every device that uses a touched
+/// part (`library.update`).
+pub(crate) fn touched_devices(before: &Q, after: &Q, touched: &Touched) -> BTreeSet<Id<Device>> {
+    let mut out = BTreeSet::new();
+    for q in [before, after] {
+        for (kind, id) in touched {
+            match kind {
+                Kind::Device => {
+                    out.insert(id.cast());
+                }
+                Kind::Channel => out.extend(q.table::<Channel>().get(id.cast()).map(|c| c.module)),
+                Kind::Part => out.extend(
+                    q.devices()
+                        .iter()
+                        .filter(|(_, d)| d.parts.iter().any(|u| u.part.copy == id.cast()))
+                        .map(|(d, _)| d),
+                ),
+                _ => {}
+            }
+        }
     }
+    out
+}
+
+/// The configuration projects a batch touches: those of the [`touched_devices`] (as stations or modules) in either
+/// snapshot, and its touched configuration projects.
+fn touched_cfgs(before: &Q, after: &Q, touched: &Touched) -> Vec<Scope> {
+    let mut cfgs = BTreeSet::new();
+    for d in touched_devices(before, after, touched) {
+        cfgs.extend(module_cfg(before, d));
+        cfgs.extend(module_cfg(after, d));
+    }
+    cfgs.extend(
+        touched
+            .iter()
+            .filter(|(k, _)| *k == Kind::PlcConfigProject)
+            .map(|(_, id)| id.cast::<PlcConfigProject>()),
+    );
     cfgs.into_iter().map(Scope::Cfg).collect()
+}
+
+/// The channels a batch touches: its touched channels and the channels of its touched devices, in either snapshot.
+fn touched_channels(before: &Q, after: &Q, touched: &Touched) -> BTreeSet<Id<Channel>> {
+    let mut out: BTreeSet<Id<Channel>> = touched
+        .iter()
+        .filter(|(k, _)| *k == Kind::Channel)
+        .map(|(_, id)| id.cast())
+        .collect();
+    for q in [before, after] {
+        for (kind, id) in touched {
+            if *kind == Kind::Device {
+                out.extend(q.get::<ModuleChannelIds>(id.cast()).iter().map(|(_, c)| *c));
+            }
+        }
+    }
+    out
+}
+
+/// Every channel that an error finding of `rule` in `scope` groups with others, with the channels of its group.
+fn channel_groups(
+    rule: &dyn Rule,
+    q: &Q,
+    scope: &Scope,
+) -> (BTreeMap<Id<Channel>, BTreeSet<Id<Channel>>>, Vec<Finding>) {
+    let found: Vec<Finding> = rule
+        .run(q, scope)
+        .into_iter()
+        .filter(|f| f.severity == Severity::Error)
+        .collect();
+    let mut groups: BTreeMap<Id<Channel>, BTreeSet<Id<Channel>>> = BTreeMap::new();
+    for f in &found {
+        let members: BTreeSet<Id<Channel>> = channel_targets(f).collect();
+        for m in &members {
+            groups.entry(*m).or_default().extend(members.iter().copied());
+        }
+    }
+    (groups, found)
+}
+
+fn channel_targets(f: &Finding) -> impl Iterator<Item = Id<Channel>> + '_ {
+    f.targets
+        .iter()
+        .filter(|t| t.kind == Kind::Channel)
+        .map(|t| t.id.cast())
+}
+
+/// The prevent half of a rule whose findings group channels (EW-PLC-001's overlaps, EW-PLC-007's duplicate symbols),
+/// judged per channel (FT-726): an error finding after the batch is a violation when one of its channels was in no
+/// group before, or when a touched channel's group gained a channel it was not grouped with. So a repair of a held
+/// group (a channel moved out of it) and an edit that leaves the groups alone or only shrinks them commit, even though
+/// the shrunk group is a finding of another key; a new overlap or duplicate is refused.
+fn new_group_members(rule: &dyn Rule, before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
+    let edited = touched_channels(before, after, touched);
+    let mut out = Vec::new();
+    for scope in touched_cfgs(before, after, touched) {
+        let (had, _) = channel_groups(rule, before, &scope);
+        let (has, found) = channel_groups(rule, after, &scope);
+        let violates = |c: Id<Channel>| match had.get(&c) {
+            None => true,
+            Some(old) => edited.contains(&c) && has.get(&c).is_some_and(|new| !new.is_subset(old)),
+        };
+        out.extend(found.into_iter().filter(|f| channel_targets(f).any(violates)));
+    }
+    out
 }
 
 // ---------------------------------------------------------------------------------------------------------
@@ -256,7 +345,7 @@ impl Rule for AddressOverlap {
     }
 
     fn prevent(&self, before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
-        new_findings(self, before, after, &touched_cfgs(after, touched))
+        new_group_members(self, before, after, touched)
     }
 }
 
@@ -555,7 +644,7 @@ impl Rule for DuplicateSymbol {
     }
 
     fn prevent(&self, before: &Q, after: &Q, touched: &Touched) -> Vec<Finding> {
-        new_findings(self, before, after, &touched_cfgs(after, touched))
+        new_group_members(self, before, after, touched)
     }
 }
 

@@ -240,6 +240,98 @@ fn ew_plc_001_reports_separate_overlaps_apart() {
     assert!(f.iter().all(|f| f.targets.len() == 2), "{f:#?}");
 }
 
+/// How many violations of `rule` the prevent evaluation of the batch from `before` to `after` with the touched `keys`
+/// reports (none: the batch commits).
+fn refused(rule: &str, before: &ew_model::Model, after: &ew_model::Model, keys: &[(Kind, String)]) -> usize {
+    let keys: Vec<(Kind, ew_derive::ew_schema::AnyId)> = keys
+        .iter()
+        .map(|(k, id)| (*k, id.parse().expect("an ID")))
+        .collect();
+    ew_checks::prevent(&ew_derive::Q::new(before), &ew_derive::Q::new(after), &keys)
+        .iter()
+        .filter(|f| f.rule == rule)
+        .count()
+}
+
+/// FT-726: the prevent half of EW-PLC-001 judges per channel. A new overlap, and a channel joining a held group, are
+/// refused; a repair that moves one of three channels out of their held group commits (the group of two left is a
+/// finding of another key), and so does an edit of a channel that leaves the groups alone.
+#[test]
+fn ew_plc_001_prevents_a_new_overlap_and_lets_a_repair_commit() {
+    let edit = |n: u16| vec![(Kind::Channel, ch(M2, n))];
+    let none = manual_bits(&[]);
+    let pair = manual_bits(&[(0, 0, 3)]);
+    let three = manual_bits(&[(0, 0, 3), (1, 0, 3)]);
+    assert_eq!(refused("EW-PLC-001", &none, &pair, &edit(0)), 1, "a new overlap");
+    assert_eq!(refused("EW-PLC-001", &pair, &three, &edit(1)), 1, "a channel joins a held group");
+    assert_eq!(refused("EW-PLC-001", &three, &pair, &edit(1)), 0, "a repair of a held group");
+    let mut renamed = fixture();
+    for (n, byte, bit) in [(0, 0, 3), (1, 0, 3)] {
+        renamed.rec_mut(&ch(M2, n))["address"] = json!({"manual": {"area": "q", "byte": byte, "bit": bit}});
+    }
+    renamed.rec_mut(&ch(M2, 0))["symbol"] = json!("Pump_On");
+    assert_eq!(
+        refused("EW-PLC-001", &three, &renamed.build(), &edit(0)),
+        0,
+        "an edit of a held group's channel that keeps the group"
+    );
+}
+
+/// FT-726: deleting a module moves the automatic module after it onto a held manual address: the batch's touched keys
+/// resolve in the snapshot before it, where the deleted module still names its configuration project, so the new
+/// overlap is refused.
+#[test]
+fn ew_plc_001_prevents_the_overlap_a_deletion_creates() {
+    let before = manual_bits(&[(0, 0, 3)]);
+    let mut fx = fixture();
+    fx.rec_mut(&ch(M2, 0))["address"] = json!({"manual": {"area": "q", "byte": 0, "bit": 3}});
+    // -1U2 and everything that names it, as the deletion cascades
+    let mut gone = vec![us(M1)];
+    loop {
+        let names = |r: &Value| {
+            let refs = ["id", "device", "module", "parent"].map(|k| r[k].clone());
+            refs.iter()
+                .chain(r["functions"].as_array().into_iter().flatten())
+                .any(|v| v.as_str().is_some_and(|s| gone.iter().any(|g| g == s)))
+        };
+        let doomed: Vec<String> = fx
+            .records
+            .iter()
+            .filter(|r| names(r))
+            .filter_map(|r| r["id"].as_str().map(str::to_owned))
+            .filter(|id| !gone.contains(id))
+            .collect();
+        if doomed.is_empty() {
+            break;
+        }
+        gone.extend(doomed);
+    }
+    fx.records.retain(|r| !r["id"].as_str().is_some_and(|id| gone.iter().any(|g| g == id)));
+    let after = fx.build();
+    let mut keys = vec![(Kind::Device, us(M1))];
+    keys.extend((0..8).map(|n| (Kind::Channel, ch(M1, n))));
+    assert_eq!(
+        refused("EW-PLC-001", &before, &after, &keys),
+        1,
+        "-1U3 moves to Q0 and its channel 3 lands on -1U3:0's Q0.3"
+    );
+}
+
+/// FT-726: the prevent half of EW-PLC-007 lets the repair of a held triple commit, and refuses a fourth channel.
+#[test]
+fn ew_plc_007_lets_a_repair_of_a_held_duplicate_commit() {
+    let symbols = |carriers: &[u16]| {
+        let mut fx = fixture();
+        for n in carriers {
+            fx.rec_mut(&ch(M2, *n))["symbol"] = json!("Pump_On");
+        }
+        fx.build()
+    };
+    let edit = |n: u16| vec![(Kind::Channel, ch(M2, n))];
+    assert_eq!(refused("EW-PLC-007", &symbols(&[4, 5, 6]), &symbols(&[4, 5]), &edit(6)), 0);
+    assert_eq!(refused("EW-PLC-007", &symbols(&[4, 5, 6]), &symbols(&[4, 5, 6, 7]), &edit(7)), 1);
+}
+
 /// A group names five channels and counts the rest ("and 4 more channels"), in the rule text, the en-GB
 /// pattern (equal to it, as for EW-POT-001) and the nl-NL pattern; every member stays a target.
 #[test]
