@@ -140,6 +140,60 @@ fn an_edz_is_written_into_a_library_and_a_changed_part_needs_a_bump() {
     assert_eq!(bumped.import.counts().updated, 1);
 }
 
+fn report(name: &str, text: &str, preset: &str) -> ew_api::import::ImportBatch {
+    let map = eplan::report_presets().remove(preset).expect("a shipped preset");
+    let input = ImportInput::new(name, text.as_bytes().to_vec()).unwrap();
+    eplan::report_batch(&input, &map, preset).unwrap()
+}
+
+/// FR-IMP-029: a terminal diagram becomes strips and terminals (rising levels of one designation folded, EW-IMP-207;
+/// an unmapped column reported, EW-IMP-206), a connection list joins the terminals it names and drops an end that is
+/// none; the records make a valid project, and a newer export of the list is the same records plus the new ones.
+#[test]
+fn a_report_spreadsheet_becomes_a_project_without_drawings_and_a_newer_export_updates_in_place() {
+    use ew_schema::Record;
+    let diagram = "Terminal strip;Terminal;Level;Part number;Remark\n-X1;1;1;;a\n-X1;2;1;;b\n-X1;2;2;;b\n-X1;PE;1;;\n-X2;1;1;;\n";
+    let batch = report("terminals.csv", diagram, "terminals-en");
+    let terminals: Vec<_> = batch
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Device(d) => d.aspects.terminal.clone(),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(terminals.len(), 4, "X1:1, X1:2 (two levels), X1:PE, X2:1");
+    assert_eq!(terminals.iter().map(|t| t.strip).collect::<std::collections::BTreeSet<_>>().len(), 2);
+    assert!(terminals.iter().any(|t| t.levels.len() == 2));
+    assert!(terminals.iter().any(|t| t.rail_bonded), "PE is bonded to the rail");
+    let code = |n: u16| batch.report.entries.iter().filter(|e| e.code.number() == n).count();
+    assert_eq!((code(206), code(207)), (1, 1));
+    assert!(ew_api::import::session_from_batch(&batch, SessionOptions::default()).is_ok());
+    // The connection list: one wire between two terminals, one with an end no terminal answers... the second end is
+    // a device pin and joins no terminal.
+    let wires = "Source;Target\n-X1:1;-X2:1\n-X1:2;-K1:A1\n";
+    let batch = report("wires.csv", wires, "connections-en");
+    let connections = batch.records.iter().filter(|r| matches!(r, Record::Connection(_))).count();
+    assert_eq!(connections, 1);
+    assert!(batch.report.entries.iter().any(|e| e.code.number() == 3), "the dropped end is said");
+    assert!(ew_api::import::session_from_batch(&batch, SessionOptions::default()).is_ok());
+    // A newer export: the old records keep their IDs.
+    let newer = report("terminals.csv", &format!("{diagram}-X2;2;1;;\n"), "terminals-en");
+    let ids = |b: &ew_api::import::ImportBatch| -> std::collections::BTreeSet<_> {
+        b.records.iter().filter_map(|r| r.id()).collect()
+    };
+    let (old, new) = (ids(&batch_of(diagram)), ids(&newer));
+    assert!(old.is_subset(&new) && new.len() > old.len());
+    // A column of the mapping that the table lacks refuses the file in words.
+    let map = eplan::report_presets().remove("terminals-de").unwrap();
+    let input = ImportInput::new("terminals.csv", diagram.as_bytes().to_vec()).unwrap();
+    assert!(eplan::report_batch(&input, &map, "terminals-de").is_err());
+}
+
+fn batch_of(diagram: &str) -> ew_api::import::ImportBatch {
+    report("terminals.csv", diagram, "terminals-en")
+}
+
 /// Every function definition the shipped table names is one of the starter library; the user's own rows win over the
 /// shipped ones and are read from the configuration directory.
 #[test]

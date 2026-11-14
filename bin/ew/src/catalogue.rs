@@ -214,6 +214,18 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["import", "eplan-report"],
+        exits: &[
+            exit(0, "written, with its findings"),
+            exit(
+                2,
+                "usage, a table the mapping does not fit, an `--out` that holds something, write errors",
+            ),
+        ],
+        result: None,
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["import", "pdf"],
         exits: &[
             exit(0, "placed and saved"),

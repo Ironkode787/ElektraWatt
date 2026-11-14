@@ -75,6 +75,8 @@ pub enum Command {
     ImportEdz(eplan::ImportEplanPartsArgs),
     /// `ew import parts-xml`: as `ew import edz`, for an EPLAN parts XML.
     ImportPartsXml(eplan::ImportEplanPartsArgs),
+    /// `ew import eplan-report`: an EPLAN report export as a new project without drawings.
+    ImportEplanReport(eplan::ImportEplanReportArgs),
     /// `ew import table`: a round-trip table read back and its changed cells applied.
     ImportTable(ImportTableArgs),
     /// Check a project.
@@ -862,6 +864,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::ImportDwg(a) => dxf::run_import_dwg(&a),
         Command::ImportEdz(a) => eplan::run_import_eplan_parts(&a, true),
         Command::ImportPartsXml(a) => eplan::run_import_eplan_parts(&a, false),
+        Command::ImportEplanReport(a) => eplan::run_import_eplan_report(&a),
         Command::Check(a) => run_check(&a),
         Command::Sql(a) => run_sql(&a),
         Command::SqlDump(a) => run_sql_dump(&a),

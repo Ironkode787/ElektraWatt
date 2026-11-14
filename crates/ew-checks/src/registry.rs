@@ -99,6 +99,8 @@ static RULES: &[&dyn Rule] = &[
     &shipped::imp::ImportEntries(&shipped::imp::IMP[28]),
     &shipped::imp::ImportEntries(&shipped::imp::IMP[29]),
     &shipped::imp::ImportEntries(&shipped::imp::IMP[30]),
+    &shipped::imp::ImportEntries(&shipped::imp::IMP[31]),
+    &shipped::imp::ImportEntries(&shipped::imp::IMP[32]),
     &shipped::iolink::PortClassRule,
     &shipped::iolink::Limits,
     &shipped::layout::UnplacedDevice,

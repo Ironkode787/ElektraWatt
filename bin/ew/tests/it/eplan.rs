@@ -81,6 +81,49 @@ fn a_parts_xml_goes_into_a_library_and_a_missing_target_is_a_usage_error() {
     assert!(stderr(&out).contains("--library"), "{}", stderr(&out));
 }
 
+/// `ew import eplan-report` writes a terminal diagram as a new project and says what it did not map.
+#[test]
+fn a_report_export_becomes_a_new_project() {
+    let t = Tmp::new("ew-eplan-report");
+    let report = t.path("terminals.csv");
+    std::fs::write(
+        &report,
+        "Terminal strip,Terminal,Level,Part number,Remark\n-X1,1,1,,a\n-X1,2,1,,b\n-X1,2,2,,b\n",
+    )
+    .unwrap();
+    let out_dir = t.path("project");
+    let out = t.ew(&args([
+        &"import",
+        &"eplan-report",
+        &report,
+        &"--preset",
+        &"terminals-en",
+        &"--out",
+        &out_dir,
+    ]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    let text = stdout(&out);
+    assert!(text.contains("EW-IMP-206") && text.contains("EW-IMP-207"), "{text}");
+    let (s, _) = ew_api::Session::open_read_only(&out_dir, "test").unwrap();
+    let terminals = s
+        .query()
+        .devices()
+        .iter()
+        .filter(|(_, d)| d.aspects.terminal.is_some())
+        .count();
+    assert_eq!(terminals, 2);
+    let again = t.ew(&args([
+        &"import",
+        &"eplan-report",
+        &report,
+        &"--preset",
+        &"terminals-de",
+        &"--out",
+        &t.path("other"),
+    ]));
+    assert_eq!(again.status.code(), Some(2), "a mapping the table does not fit is refused");
+}
+
 #[test]
 fn an_edz_previews_and_applies_the_update_of_a_project_part_copy() {
     let t = Tmp::new("ew-edz-project");

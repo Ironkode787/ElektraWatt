@@ -1234,3 +1234,11 @@ rule-ew-prc-002 = { $form ->
     }
     .title = Open instrumentkenmerk
     .hint = Voeg een module toe of maak een kanaal van de soort van het kenmerk vrij, en pas de instrumentenlijst dan opnieuw toe.
+
+rule-ew-imp-206 =
+    .title = Rapportkolom niet gekoppeld
+    .hint = Koppel de kolom in de kolomkoppeling van het rapport en importeer het rapport opnieuw, of laat haar bewust weg.
+
+rule-ew-imp-207 =
+    .title = Klemmen met meerdere niveaus samengevoegd
+    .hint = Controleer de niveaus van de klem aan de hand van het rapport.

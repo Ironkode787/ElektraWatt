@@ -1210,3 +1210,11 @@ rule-ew-prc-002 = { $form ->
     }
     .title = Open instrument tag
     .hint = Add a module or free a channel of the tag's kind, then apply the instrument list again.
+
+rule-ew-imp-206 =
+    .title = Report column not mapped
+    .hint = Map the column in the report's column mapper and import the report again, or leave it out on purpose.
+
+rule-ew-imp-207 =
+    .title = Multi-level terminals folded
+    .hint = Check the terminal's levels against the report.

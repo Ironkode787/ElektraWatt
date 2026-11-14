@@ -495,6 +495,17 @@ enum Import {
     /// library holds already are updated in place.
     #[command(name = "parts-xml")]
     PartsXml(super::eplan::ImportEplanPartsArgs),
+    /// Import an EPLAN report export as a new project without drawings.
+    ///
+    /// Reads an EPLAN device, terminal-diagram or connection list (XLSX or CSV; the delimiter and the header row are
+    /// found) through a column mapping (`--map <file.toml>` of your own, or `--preset <name>` for the shipped German
+    /// and English headers) as a new project in `--out` (absent or empty): devices unplaced, strips with their
+    /// terminals (rising levels of one designation folded into one multi-level terminal), connections between
+    /// terminals; no drawing. A column the mapping does not name is reported. A newer export under the same `--key`
+    /// is the same lineage. Exit 0 when written, 2 on usage, a table the mapping does not fit, an `--out` that holds
+    /// something and write errors.
+    #[command(name = "eplan-report")]
+    EplanReport(super::eplan::ImportEplanReportArgs),
 }
 
 /// `ew import table`.
@@ -2505,6 +2516,7 @@ impl Cli {
             Top::Import(Import::Dwg(a)) => Command::ImportDwg(a),
             Top::Import(Import::Edz(a)) => Command::ImportEdz(a),
             Top::Import(Import::PartsXml(a)) => Command::ImportPartsXml(a),
+            Top::Import(Import::EplanReport(a)) => Command::ImportEplanReport(a),
             Top::Import(Import::Table(ImportTableCli {
                 file,
                 project_dir,

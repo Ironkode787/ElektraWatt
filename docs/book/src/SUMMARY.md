@@ -262,6 +262,8 @@
       - [EW-IMP-254](reference/rules/ew-imp-254.md)
       - [EW-IMP-255](reference/rules/ew-imp-255.md)
       - [EW-IMP-257](reference/rules/ew-imp-257.md)
+      - [EW-IMP-206](reference/rules/ew-imp-206.md)
+      - [EW-IMP-207](reference/rules/ew-imp-207.md)
     - [EW-LAYOUT](reference/rules/ew-layout.md)
       - [EW-LAY-001](reference/rules/ew-lay-001.md)
       - [EW-LAY-003](reference/rules/ew-lay-003.md)

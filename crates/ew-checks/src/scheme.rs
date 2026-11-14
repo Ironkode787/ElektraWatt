@@ -134,6 +134,8 @@ pub const PRE_DELIVERY: Scheme = Scheme {
         "EW-IMP-254",
         "EW-IMP-255",
         "EW-IMP-257",
+        "EW-IMP-206",
+        "EW-IMP-207",
     ],
     lenient: false,
 };

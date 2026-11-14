@@ -59,6 +59,117 @@ pub struct ImportEplanPartsArgs {
     pub fndef_map: Option<PathBuf>,
 }
 
+/// The arguments of `ew import eplan-report`.
+#[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
+pub struct ImportEplanReportArgs {
+    /// The report export: an XLSX workbook or a CSV.
+    #[arg(value_name = "file")]
+    pub file: PathBuf,
+    /// The new project's directory: absent or empty.
+    #[arg(long, value_name = "dir", allow_hyphen_values = true, overrides_with = "out")]
+    pub out: PathBuf,
+    /// The column mapping (a TOML file: `target`, `sheet`, `header_row`, `[columns]`).
+    #[arg(
+        long,
+        value_name = "map.toml",
+        allow_hyphen_values = true,
+        overrides_with = "map",
+        required_unless_present = "preset",
+        conflicts_with = "preset"
+    )]
+    pub map: Option<PathBuf>,
+    /// A shipped mapping by name: devices-de, devices-en, terminals-de, terminals-en, connections-de, connections-en.
+    #[arg(
+        long,
+        value_name = "name",
+        allow_hyphen_values = true,
+        overrides_with = "preset"
+    )]
+    pub preset: Option<String>,
+    /// The lineage key: a newer export under the same key updates the project's records (default: the mapping's
+    /// file name, or the preset).
+    #[arg(long, value_name = "key", allow_hyphen_values = true, overrides_with = "key")]
+    pub key: Option<String>,
+}
+
+/// `ew import eplan-report`: a report export as a new project without drawings.
+pub(super) fn run_import_eplan_report(a: &ImportEplanReportArgs) -> i32 {
+    let (map, default_key) = match (&a.map, &a.preset) {
+        (Some(path), _) => {
+            let text = match std::fs::read_to_string(path) {
+                Ok(t) => t,
+                Err(e) => {
+                    eprintln!("error: {}: {e}", path.display());
+                    return 2;
+                }
+            };
+            match eplan::ReportMap::from_toml(&text) {
+                Ok(m) => (m, ew_api::catalog::source_key_for(&path.to_string_lossy())),
+                Err(e) => {
+                    eprintln!("error: the column map: {e}");
+                    return 2;
+                }
+            }
+        }
+        (None, Some(name)) => match eplan::report_presets().remove(name) {
+            Some(m) => (m, name.clone()),
+            None => {
+                eprintln!("error: no preset `{name}`");
+                return 2;
+            }
+        },
+        (None, None) => return 2,
+    };
+    let key = a.key.clone().unwrap_or(default_key);
+    if let Err(e) = ew_api::catalog::check_source_key(&key) {
+        eprintln!("error: {e}");
+        return 2;
+    }
+    let input = match ew_api::catalog::read_input(&a.file, &ew_api::catalog::table_limits()) {
+        Ok(i) => i,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    let batch = match eplan::report_batch(&input, &map, &key) {
+        Ok(b) => b,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    for e in &batch.report.entries {
+        let at = e
+            .location
+            .as_ref()
+            .and_then(|l| l.line)
+            .map_or_else(String::new, |n| format!("line {n}: "));
+        println!("{} {:?}: {at}{}", e.code, e.severity, e.message);
+    }
+    match ew_api::import::create_project(
+        &batch,
+        &a.out,
+        ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
+    ) {
+        Ok(unstable) => {
+            println!(
+                "imported {} into {}: {} records, {} findings",
+                input.name(),
+                a.out.display(),
+                batch.records.len(),
+                batch.report.entries.len()
+            );
+            super::revision::warn_unreleased(unstable, &mut std::io::stderr());
+            0
+        }
+        Err(e) => {
+            eprintln!("error: {e}");
+            2
+        }
+    }
+}
+
 /// `ew import edz` (`edz`: the terms notice is shown first, EW-IMP-201) and `ew import parts-xml`.
 pub(super) fn run_import_eplan_parts(a: &ImportEplanPartsArgs, edz: bool) -> i32 {
     let fndefs = match &a.fndef_map {

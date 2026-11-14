@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+# SPDX-License-Identifier: CC0-1.0
+
+# The column headers of EPLAN's report exports in the two shipped languages (doc 14 §5.4, Open question 9). A report
+# scheme is the customer's own, so these are starting points: the column mapper shows the headers of the file and the
+# user's own mapping, saved under a key, replaces a preset.
+
+[preset.devices-de]
+target = "devices"
+[preset.devices-de.columns]
+designation = "Betriebsmittel"
+part = "Artikelnummer"
+description = "Benennung"
+
+[preset.devices-en]
+target = "devices"
+[preset.devices-en.columns]
+designation = "Device tag"
+part = "Part number"
+description = "Description"
+
+[preset.terminals-de]
+target = "terminals"
+[preset.terminals-de.columns]
+strip = "Klemmleiste"
+designation = "Klemme"
+level = "Ebene"
+part = "Artikelnummer"
+
+[preset.terminals-en]
+target = "terminals"
+[preset.terminals-en.columns]
+strip = "Terminal strip"
+designation = "Terminal"
+level = "Level"
+part = "Part number"
+
+[preset.connections-de]
+target = "connections"
+[preset.connections-de.columns]
+from = "Quelle"
+to = "Ziel"
+
+[preset.connections-en]
+target = "connections"
+[preset.connections-en.columns]
+from = "Source"
+to = "Target"

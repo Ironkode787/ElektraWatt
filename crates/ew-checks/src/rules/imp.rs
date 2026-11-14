@@ -47,7 +47,7 @@ use Severity::{Error as E, Info as I, Warning as W};
 
 /// The EW-IMP codes the importers emit (doc 14 §2.5's catalogue), with EW-IMP-010 and EW-IMP-011 of a re-import and
 /// the three codes [`FOLDED`] pairs with a live rule.
-pub static IMP: [RuleMeta; 31] = [
+pub static IMP: [RuleMeta; 33] = [
     imp(
         "EW-IMP-001",
         "160001",
@@ -296,6 +296,23 @@ pub static IMP: [RuleMeta; 31] = [
         H,
         I,
         "reference/rules/ew-imp-257",
+    ),
+    // The EPLAN report spreadsheets (WP-S3.18, doc 14 §5.4).
+    imp(
+        "EW-IMP-206",
+        "160206",
+        "Report column not mapped",
+        C,
+        W,
+        "reference/rules/ew-imp-206",
+    ),
+    imp(
+        "EW-IMP-207",
+        "160207",
+        "Multi-level terminals folded",
+        H,
+        I,
+        "reference/rules/ew-imp-207",
     ),
 ];
 

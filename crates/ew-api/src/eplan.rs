@@ -155,6 +155,106 @@ pub fn import_into_library(
 }
 
 // -------------------------------------------------------------------------------------------------------------------
+// Report spreadsheets
+
+pub use ew_import_eplan::{ReportMap, ReportTarget, report_presets};
+
+/// The file of the report mapping saved under `key` (doc 14 §5.4): `<config dir>/imports/eplan-report-<key>.toml`.
+///
+/// # Errors
+///
+/// [`CatalogError::SourceKey`] for a key that is not a file name.
+pub fn report_map_path(config_dir: &Path, key: &str) -> Result<std::path::PathBuf, CatalogError> {
+    crate::catalog::check_source_key(key).map_err(CatalogError::SourceKey)?;
+    Ok(config_dir
+        .join(crate::catalog::MAPS_DIR)
+        .join(format!("eplan-report-{key}.toml")))
+}
+
+/// Saves `map` under `key` (creating `imports/`), replacing an earlier one.
+///
+/// # Errors
+///
+/// [`CatalogError::SourceKey`], or [`CatalogError::Io`] when the file cannot be written.
+pub fn save_report_map(config_dir: &Path, key: &str, map: &ReportMap) -> Result<(), CatalogError> {
+    let path = report_map_path(config_dir, key)?;
+    let io = |e| CatalogError::Io(format!("eplan-report-{key}.toml"), e);
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir).map_err(io)?;
+    }
+    std::fs::write(&path, map.to_toml()).map_err(io)
+}
+
+/// The mapping saved under `key`, else `None`.
+pub fn load_report_map(config_dir: &Path, key: &str) -> Option<ReportMap> {
+    let path = report_map_path(config_dir, key).ok()?;
+    if std::fs::metadata(&path).ok()?.len() > MAX_MAP_BYTES {
+        return None;
+    }
+    ReportMap::from_toml(&std::fs::read_to_string(path).ok()?).ok()
+}
+
+/// The records of a report spreadsheet as a batch for a new project without drawings: the file (CSV with its delimiter
+/// found, or XLSX; `map.sheet` or the first sheet) read as a table, the header row found, the rows mapped by
+/// [`ew_import_eplan::read_report`] under the front door. `key` names the lineage (the mapping's key).
+///
+/// # Errors
+///
+/// [`crate::import::Refusal`] for a file or a mapping the table does not fit, or an importer that panicked.
+pub fn report_batch(
+    input: &ImportInput,
+    map: &ReportMap,
+    key: &str,
+) -> Result<crate::import::ImportBatch, crate::import::Refusal> {
+    use ew_import_catalog::sheet;
+    let limits = ew_import_catalog::table_limits();
+    let reg = library::Registry::starter_only();
+    let fndefs: Vec<LibDocument> = ["ew.fn.terminal", "ew.fn.terminal-pe", "ew.fn.blackbox"]
+        .iter()
+        .filter_map(|k| {
+            let item = Uuid::new_v5(&ew_import_catalog::ew_interop_api::SYSTEM_LIBRARY, k.as_bytes());
+            reg.resolve(&LibRef {
+                library: Id::from_uuid(ew_import_catalog::ew_interop_api::SYSTEM_LIBRARY),
+                item: Id::from_uuid(item),
+                version_req: "*".to_owned(),
+                extra: Default::default(),
+            })
+            .ok()
+        })
+        .collect();
+    let sizes = [input.bytes().len() as u64];
+    crate::import::front_door(input.name(), &sizes, &limits, None, || {
+        let bytes: &[u8] = input.bytes();
+        let format = ew_import_catalog::SourceFormat::detect(bytes);
+        let sheet_name = match (&map.sheet, format) {
+            (Some(s), _) => s.clone(),
+            (None, ew_import_catalog::SourceFormat::Xlsx) => sheet::sheet_names(bytes, &limits)?
+                .into_iter()
+                .next()
+                .ok_or_else(|| ImportError::Malformed {
+                    message: "the workbook has no sheet".into(),
+                    line: None,
+                })?,
+            (None, _) => String::new(),
+        };
+        let records = sheet::read_rows(bytes, format, &sheet_name, &limits)?;
+        let wanted: Vec<&str> = map.columns.values().map(String::as_str).collect();
+        let table = ew_import_eplan::ReportTable::from_records(&records, map.header_row, &wanted)
+            .ok_or_else(|| ImportError::Malformed {
+                message: "no header row found in the table".into(),
+                line: None,
+            })?;
+        ew_import_eplan::read_report(
+            &table,
+            map,
+            (input.name(), input.sha256(), bytes.len() as u64),
+            key,
+            &fndefs,
+        )
+    })
+}
+
+// -------------------------------------------------------------------------------------------------------------------
 // A project's part copies
 
 /// The part copies an import updates: what matched, what did not, and the plan (a previewed `library.update`).
