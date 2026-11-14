@@ -11,6 +11,12 @@ answers is deleted with a line in its report.
 
 
 
+### WP-S3.18: what its first hand-back left
+
+- FT-1741 `ew-viewmodel, ew-ui`: **Medium.** The File menu holds an entry per source: Import…, Import drawing…, Import EPLAN data…, Import QElectroTech project…, Parts table…. One File ▸ Import… takes any file the program imports and goes on by what the file is; the separate entries leave the menu (the command search still finds each by its name).
+- FT-1742 `ew-viewmodel, ew-ui, ew-api`: The column mapper of an EPLAN report spreadsheet in the window (FR-IMP-029): today the window offers the shipped and the saved mappings only, other columns need a TOML map on the command line, and nothing writes a saved mapping.
+- FT-1743 `ew-viewmodel, ew-ui`: Two faults WP-S3.18 found: the update card of a part import shows the raw word "eplan" for the accessories field; and in a project without pages (a report import makes one) Select is shown enabled while its action is unavailable, which the window's accessibility rule reports and the lane's test skips.
+
 ### WP-S2.13: automation workspaces
 
 - FT-1736 `ew-viewmodel, ew-ui`: File ▸ Import… on a drawing (WP-S3.19): the dialog's title stands indented past its buttons, and the unit choice shows the metre as "M" (the existing word `choice-m`).
