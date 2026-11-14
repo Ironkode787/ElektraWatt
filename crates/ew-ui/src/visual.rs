@@ -22,13 +22,13 @@
 //!   current frame painted to `<frames>/<file>`; one transcript line `{"frame","sha256"}` without a step number (a
 //!   look is not a step). Without `--frames` or with `--no-frames` nothing is painted and `sha256` is null.
 //!
-//! **Geometry.** By default the window is 1280 × 800 points at 1.2 pixels per point (1536 × 960 pixels); above it a
-//! title strip of 28 points (34 pixels) shows the window title in the theme's chrome colours, so a frame is
-//! 1536 × 994 pixels. A run may choose another window and scale (`--window <W>x<H>` in points, `--ppp <n>`; see
+//! **Geometry.** By default the window is 1920 × 1080 points at 1 pixel per point, the main resolution (doc 16a §2);
+//! above it a title strip of 28 points (28 pixels) shows the window title in the theme's chrome colours, so a frame is
+//! 1920 × 1108 pixels. A run may choose another window and scale (`--window <W>x<H>` in points, `--ppp <n>`; see
 //! [`Geometry`]): the strip is then `round(28 × ppp)` pixels high and the PNG's resolution `round(96 × ppp)` dpi, so
-//! 1920 × 1080 points at 1 make a frame of 1920 × 1108 pixels. Input coordinates are frame pixels; a point in the
-//! strip reaches nothing. At the default geometry every frame and transcript is as before; at another the
-//! transcript's header names it (`"window":[W,H],"ppp":n` after `"version"`).
+//! 2560 × 1440 points at 1 make a frame of 2560 × 1468 pixels. Input coordinates are frame pixels; a point in the
+//! strip reaches nothing. At another geometry than the default the transcript's header names it
+//! (`"window":[W,H],"ppp":n` after `"version"`).
 //!
 //! **Determinism.** The frame clock (`input.time` = frames / 60, [`crate::clock::use_frame_clock`]), theme light,
 //! density comfortable, language `en`, the bundled fonts, `ui_scale` 1, the CPU canvas, the caret's blink off; the
@@ -55,13 +55,13 @@ use crate::headless::{HeadlessArgs, ScriptSource};
 use crate::offscreen::Offscreen;
 
 /// The frame's pixels per point at the default geometry.
-pub const PPP: f32 = 1.2;
+pub const PPP: f32 = 1.0;
 /// The title strip's height in frame pixels at the default geometry.
-pub const STRIP_PX: u32 = 34;
+pub const STRIP_PX: u32 = 28;
 /// The frame's width in pixels at the default geometry.
-pub const FRAME_WIDTH: u32 = 1536;
+pub const FRAME_WIDTH: u32 = 1920;
 /// The frame's height in pixels (window and title strip) at the default geometry.
-pub const FRAME_HEIGHT: u32 = 960 + STRIP_PX;
+pub const FRAME_HEIGHT: u32 = 1080 + STRIP_PX;
 /// The title strip's height in points.
 const STRIP_POINTS: u32 = 28;
 /// The largest frame side in pixels (the 300 % snapshot's 3840 × 2400 renders on the hosts the project uses).
@@ -80,8 +80,8 @@ const DRAG_STEPS: u32 = 8;
 pub const ZOOM_MAX: (u32, u32) = (768, 497);
 
 /// The window size and scale of a visual run: the window in points and the pixels per point in hundredths (an `Eq`
-/// form: 120 is 1.2). [`Geometry::DEFAULT`] is 1280 × 800 points at 1.2, the frame of 1536 × 994 pixels every
-/// earlier run painted.
+/// form: 120 is 1.2). [`Geometry::DEFAULT`] is 1920 × 1080 points at 1, a frame of 1920 × 1108 pixels (until
+/// FT-1730 it was 1280 × 800 points at 1.2, which a run now asks for with `--window 1280x800 --ppp 1.2`).
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct Geometry {
     /// The window's width in points.
@@ -104,11 +104,11 @@ fn scaled(n: u32, hundredths: u32) -> u32 {
 }
 
 impl Geometry {
-    /// 1280 × 800 points at 1.2 pixels per point.
+    /// 1920 × 1080 points at 1 pixel per point.
     pub const DEFAULT: Geometry = Geometry {
-        width: 1280,
-        height: 800,
-        ppp_hundredths: 120,
+        width: 1920,
+        height: 1080,
+        ppp_hundredths: 100,
     };
 
     /// The geometry of `--window <W>x<H>` and `--ppp <n>` (each `None` when not given: the default's value).

@@ -61,10 +61,11 @@ pub struct Display {
 
 /// The window builder `builder` with the saved geometry `saved` restored: its size and its position as a first guess
 /// (the saved pixels taken as points); never maximised, even when the saved state is: [`first_frame`] places the
-/// window and then maximises it.
+/// window and then maximises it. Without a saved geometry (the first start) the window opens maximised, the
+/// builder's size its normal size (doc 16a §2: the window is designed for the whole of a 1920 × 1080 screen).
 pub fn restore(builder: ViewportBuilder, saved: Option<WindowGeometry>) -> ViewportBuilder {
     let Some(g) = saved.map(|g| window::restore(g, &[])) else {
-        return builder;
+        return builder.with_maximized(true);
     };
     builder
         .with_inner_size([g.width, g.height])
@@ -519,7 +520,8 @@ mod tests {
         assert!(first_frame(None, Some(opened), inner, &[], scale, zoom).is_empty());
     }
 
-    /// DK6: the builder takes the saved geometry, the size raised to the minimum; without one it is unchanged.
+    /// DK6: the builder takes the saved geometry, the size raised to the minimum; without one (the first start) it
+    /// opens maximised with its own normal size.
     #[test]
     fn the_builder_restores_the_saved_geometry() {
         let saved = WindowGeometry {
@@ -536,5 +538,6 @@ mod tests {
         let none = restore(ViewportBuilder::default().with_inner_size([1280.0, 800.0]), None);
         assert_eq!(none.inner_size, Some(vec2(1280.0, 800.0)));
         assert_eq!(none.position, None);
+        assert_eq!(none.maximized, Some(true), "the first start opens maximised");
     }
 }

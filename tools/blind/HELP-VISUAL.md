@@ -27,7 +27,7 @@ at it before you decide what to do next. `frames/t0000.png` is the window before
 
 ## The picture and the coordinates
 
-The picture's size is stated at the end of this text, at the start of the run; usually it is 1536 × 994 pixels. The top
+The picture's size is stated at the end of this text, at the start of the run; usually it is 1920 × 1108 pixels. The top
 strip (34 pixels in the usual picture) is the window's title bar (the project's name, and a `*` while there are unsaved
 changes); clicks there do nothing. Everything below it is the window. Coordinates are whole pixels of the normal
 picture, `x` from 0 (left) to the width less one and `y` from 0 (top) to the height less one, the title bar included:

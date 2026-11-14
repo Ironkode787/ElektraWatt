@@ -53,7 +53,7 @@ pub struct HeadlessArgs {
     /// `--no-frames`: a visual run lays out every frame and paints none (replay on every system).
     pub no_frames: bool,
     /// `--window <W>x<H>` and `--ppp <n>`: a visual run's window size and scale ([`crate::visual::Geometry`]; the
-    /// default 1280 × 800 points at 1.2 when not given).
+    /// default 1920 × 1080 points at 1 when not given).
     pub geometry: crate::visual::Geometry,
 }
 

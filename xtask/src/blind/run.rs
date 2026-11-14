@@ -189,12 +189,12 @@ impl Senses {
     }
 }
 
-/// The default window of a visual run in points, and its pixels per point (visual spec §3.1): frames are 1536 × 994
+/// The default window of a visual run in points, and its pixels per point (visual spec §3.1): frames are 1920 × 1108
 /// pixels with the title strip. A run may choose another (`start --window --ppp`, [`super::visual::Geometry`]).
-pub const VISUAL_WINDOW: [u32; 2] = [1280, 800];
+pub const VISUAL_WINDOW: [u32; 2] = [1920, 1080];
 /// The default pixels per point of a visual run's frame.
 #[cfg(test)]
-pub const VISUAL_PPP: f64 = 1.2;
+pub const VISUAL_PPP: f64 = 1.0;
 
 /// The kinds of run (D3, the check run of §5.4 and the open brief of the visual spec §6.1).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -347,10 +347,10 @@ pub struct RunJson {
     /// `visual` for a visual run (visual spec §5.2); absent in a text run, whose `run.json` is unchanged.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub senses: Option<String>,
-    /// A visual run's frame scale: pixels per point (1.2).
+    /// A visual run's frame scale: pixels per point (1).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ppp: Option<f64>,
-    /// A visual run's window in points (`[1280, 800]`); the frame adds the title strip.
+    /// A visual run's window in points (`[1920, 1080]`); the frame adds the title strip.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub window: Option<[u32; 2]>,
     /// What the run has used.

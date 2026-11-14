@@ -16,12 +16,12 @@ use super::protocol::{apply_caps, derive_state, ended, lost_message, mark_lost};
 use super::run::{FRAME_LINE, INPUT_LINE, Run, RunJson, Turn, VISUAL_WINDOW, append, step_line};
 use super::session::{Backend, Lost};
 
-/// The frame's width in pixels at the default geometry (1280 points at 1.2).
+/// The frame's width in pixels at the default geometry (1920 points at 1).
 #[cfg(test)]
-pub const FRAME_WIDTH: i64 = 1536;
-/// The frame's height in pixels at the default geometry (800 points at 1.2 and the 34-pixel title strip).
+pub const FRAME_WIDTH: i64 = 1920;
+/// The frame's height in pixels at the default geometry (1080 points at 1 and the 28-pixel title strip).
 #[cfg(test)]
-pub const FRAME_HEIGHT: i64 = 994;
+pub const FRAME_HEIGHT: i64 = 1108;
 /// The largest zoom region in frame pixels.
 pub const ZOOM_MAX: (i64, i64) = (768, 497);
 /// The most inputs of one `do`.
@@ -69,10 +69,10 @@ fn hundredths(text: &str) -> Option<u32> {
 }
 
 impl Geometry {
-    /// 1280 × 800 points at 1.2 pixels per point: frames of 1536 × 994 pixels.
+    /// 1920 × 1080 points at 1 pixel per point: frames of 1920 × 1108 pixels.
     pub const DEFAULT: Geometry = Geometry {
         window: VISUAL_WINDOW,
-        ppp_hundredths: 120,
+        ppp_hundredths: 100,
     };
 
     /// The geometry of `--window <W>x<H>` and `--ppp <n>` (each `None` when not given), checked as the driver checks
@@ -796,12 +796,12 @@ mod tests {
     fn the_inputs_are_checked_with_the_drivers_texts() {
         let err = |v: Value| check_input(&obj(v)).unwrap_err();
         assert_eq!(
-            err(json!({"input": "click", "x": 1536, "y": 0})),
-            "`x` is outside the frame (0 to 1535)"
+            err(json!({"input": "click", "x": 1920, "y": 0})),
+            "`x` is outside the frame (0 to 1919)"
         );
         assert_eq!(
-            err(json!({"input": "click", "x": 1, "y": 994})),
-            "`y` is outside the frame (0 to 993)"
+            err(json!({"input": "click", "x": 1, "y": 1108})),
+            "`y` is outside the frame (0 to 1107)"
         );
         assert_eq!(
             err(json!({"input": "click", "x": 1.5, "y": 1})),
@@ -895,7 +895,7 @@ mod tests {
         );
         assert_eq!(
             parse_inputs("{\"input\":\"click\",\"x\":2000,\"y\":1}").unwrap_err(),
-            "harness: line 1: `x` is outside the frame (0 to 1535)"
+            "harness: line 1: `x` is outside the frame (0 to 1919)"
         );
         let o = parse_input_args(
             "click",
@@ -912,24 +912,24 @@ mod tests {
         let zoom = |a: &[&str]| parse_zoom(&a.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>());
         assert_eq!(zoom(&["0", "0", "768", "497"]), Ok([0, 0, 768, 497]));
         assert!(zoom(&["0", "0", "769", "10"]).is_err());
-        assert!(zoom(&["1000", "0", "768", "10"]).is_err());
+        assert!(zoom(&["1200", "0", "768", "10"]).is_err());
         assert!(zoom(&["1", "2", "3"]).is_err());
     }
 
     /// The geometry's texts and frame sizes are the driver's; a run.json without them reads as the default.
     #[test]
     fn the_geometry_is_the_drivers() {
-        let g = Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
+        let g = Geometry::parse(Some("2560x1440"), Some("1")).unwrap();
         assert_eq!(
             (g.frame_width(), g.frame_height(), g.strip_px()),
-            (1920, 1108, 28)
+            (2560, 1468, 28)
         );
         let g2 = Geometry::parse(Some("1920x1080"), Some("2")).unwrap();
         assert_eq!((g2.frame_width(), g2.frame_height()), (3840, 2216));
         let d = Geometry::DEFAULT;
         assert_eq!(
             (d.frame_width(), d.frame_height(), d.strip_px()),
-            (FRAME_WIDTH, FRAME_HEIGHT, 34)
+            (FRAME_WIDTH, FRAME_HEIGHT, 28)
         );
         assert_eq!(
             (d.ppp(), d.window),
@@ -937,7 +937,7 @@ mod tests {
         );
         assert_eq!(Geometry::parse(None, None), Ok(d));
         assert!(d.app_args().is_empty(), "the default adds no flag");
-        assert_eq!(g.app_args(), ["--window", "1920x1080", "--ppp", "1"]);
+        assert_eq!(g.app_args(), ["--window", "2560x1440", "--ppp", "1"]);
         assert_eq!(
             Geometry::parse(Some("1920"), None).unwrap_err(),
             "--window needs <width>x<height> in points, e.g. 1920x1080"
@@ -958,30 +958,30 @@ mod tests {
         let mut rj: RunJson = f.run.load().unwrap();
         (rj.window, rj.ppp) = (None, None);
         assert_eq!(Geometry::of(&rj), d, "no window or ppp: the default");
-        rj.window = Some([1920, 1080]);
+        rj.window = Some([2560, 1440]);
         rj.ppp = Some(g.ppp());
         assert_eq!(Geometry::of(&rj), g);
     }
 
-    /// A click and a zoom at x = 1900 pass at 1920 × 1080 points and ppp 1, and are refused at the default
+    /// A click and a zoom at x = 2500 pass at 2560 × 1440 points and ppp 1, and are refused at the default
     /// with the driver's texts.
     #[test]
     fn coordinates_are_checked_against_the_runs_frame() {
-        let g = Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
-        let line = "{\"input\":\"click\",\"x\":1900,\"y\":1100}";
+        let g = Geometry::parse(Some("2560x1440"), Some("1")).unwrap();
+        let line = "{\"input\":\"click\",\"x\":2500,\"y\":1400}";
         assert_eq!(parse_inputs_in(line, g).unwrap().len(), 1);
         assert_eq!(
             parse_inputs(line).unwrap_err(),
-            "harness: line 1: `x` is outside the frame (0 to 1535)"
+            "harness: line 1: `x` is outside the frame (0 to 1919)"
         );
-        let click = ["x=1900".to_owned(), "y=10".to_owned()];
+        let click = ["x=2500".to_owned(), "y=10".to_owned()];
         assert!(parse_input_args_in("click", &click, g).is_ok());
         assert!(parse_input_args("click", &click).is_err());
-        let zoom: Vec<String> = ["1100", "600", "768", "497"]
+        let zoom: Vec<String> = ["1600", "900", "768", "497"]
             .iter()
             .map(|s| (*s).to_owned())
             .collect();
-        assert_eq!(parse_zoom_in(&zoom, g), Ok([1100, 600, 768, 497]));
+        assert_eq!(parse_zoom_in(&zoom, g), Ok([1600, 900, 768, 497]));
         assert!(parse_zoom(&zoom).is_err());
     }
 

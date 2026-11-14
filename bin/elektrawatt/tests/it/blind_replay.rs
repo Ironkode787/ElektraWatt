@@ -13,8 +13,9 @@
 //! no record ID (the product prints the alias `@n`), so the test needs no normaliser, and a raw UUID in a replayed line
 //! fails it. A recording with `stale` set is skipped with its reason; the self-test recording is never stale.
 //!
-//! A visual recording (`run.json` `senses = "visual"`) is replayed with `--visual --no-frames`: its
-//! input and frame lines are settled as in the run and no frame is painted, so it runs on every OS. R1 then compares
+//! A visual recording (`run.json` `senses = "visual"`) is replayed with `--visual --no-frames` at the window size and
+//! scale its `run.json` records (`--window`, `--ppp`): its input and frame lines are settled as in the run and no
+//! frame is painted, so it runs on every OS. R1 then compares
 //! each input's and each frame line's `dispatched` (and `closed`) too; the frames themselves are a report (§5.4).
 //! `blind_replay_long` (ignored) does the same for `ci = "nightly"`.
 
@@ -34,6 +35,8 @@ struct Recording {
     stale: Option<String>,
     /// A visual run's recording.
     visual: bool,
+    /// A visual run's `--window` and `--ppp` as its `run.json` records them (none where it records none).
+    geometry: Vec<String>,
     script: Vec<String>,
     outcomes: Vec<Value>,
     epilogue_text: String,
@@ -82,6 +85,15 @@ fn load(dir: &Path) -> Recording {
         ci: run["ci"].as_str().unwrap_or("none").to_owned(),
         stale: run["stale"].as_str().map(str::to_owned),
         visual: run["senses"] == "visual",
+        geometry: match (run["window"].as_array(), run["ppp"].as_f64()) {
+            (Some(w), Some(ppp)) => vec![
+                "--window".to_owned(),
+                format!("{}x{}", w[0], w[1]),
+                "--ppp".to_owned(),
+                ppp.to_string(),
+            ],
+            _ => Vec::new(),
+        },
         script,
         outcomes,
         epilogue_text: std::fs::read_to_string(dir.join("epilogue.txt"))
@@ -134,6 +146,7 @@ fn replay(rec: &Recording) -> Vec<String> {
         } else {
             &[]
         })
+        .args(&rec.geometry)
         .current_dir(tmp.0.join("work"))
         .env("EW_SAMPLE_DIR", tmp.0.join("empty-sample"))
         .env("EW_DOCS_DIR", tmp.0.join("book"))

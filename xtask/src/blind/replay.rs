@@ -883,11 +883,11 @@ mod tests {
              {\"closed\":true,\"dispatched\":[],\"input\":{\"chord\":\"alt+f4\",\"input\":\"key\"},\"step\":2}\n"
         );
     }
-    /// A visual recording replays at its run's window size and scale (a 1920 recording at 1920); at the
+    /// A visual recording replays at its run's window size and scale (a 2560 recording at 2560); at the
     /// default no flag is added.
     #[test]
     fn a_visual_replay_runs_at_the_recorded_geometry() {
-        let g = crate::blind::visual::Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
+        let g = crate::blind::visual::Geometry::parse(Some("2560x1440"), Some("1")).unwrap();
         let mut inputs = Inputs {
             prelude: Vec::new(),
             steps: Vec::new(),
@@ -909,7 +909,7 @@ mod tests {
         };
         let a = argv(&inputs);
         assert!(
-            a.ends_with(&["--no-frames", "--window", "1920x1080", "--ppp", "1"].map(String::from)),
+            a.ends_with(&["--no-frames", "--window", "2560x1440", "--ppp", "1"].map(String::from)),
             "{a:?}"
         );
         inputs.geometry = crate::blind::visual::Geometry::DEFAULT;

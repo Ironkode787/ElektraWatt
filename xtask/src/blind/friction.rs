@@ -342,7 +342,7 @@ mod tests {
             friction(&f.run, &named).unwrap(),
             "harness: no frame t0009 in this run\n"
         );
-        for bad in ["1500,0,100,10", "0,0,0,10", "1,2,3", "a,b,c,d"] {
+        for bad in ["1900,0,100,10", "0,0,0,10", "1,2,3", "a,b,c,d"] {
             let mut r = args("cosmetic", "wording");
             r.region = Some(bad.to_owned());
             assert_eq!(
@@ -364,13 +364,13 @@ mod tests {
         );
     }
 
-    /// A `--region` is checked against the run's frame: x = 1900 is inside 1920 × 1108, outside the default.
+    /// A `--region` is checked against the run's frame: x = 2500 is inside 2560 × 1468, outside the default.
     #[test]
     fn a_region_is_checked_against_the_runs_frame() {
-        let g = crate::blind::visual::Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
-        assert_eq!(region_in("1900,1000,20,100", g), Some([1900, 1000, 20, 100]));
+        let g = crate::blind::visual::Geometry::parse(Some("2560x1440"), Some("1")).unwrap();
+        assert_eq!(region_in("2500,1300,20,100", g), Some([2500, 1300, 20, 100]));
         assert_eq!(
-            region_in("1900,1000,20,100", crate::blind::visual::Geometry::DEFAULT),
+            region_in("2500,1300,20,100", crate::blind::visual::Geometry::DEFAULT),
             None
         );
         assert_eq!(

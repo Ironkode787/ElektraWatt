@@ -43,7 +43,7 @@ pub struct StartArgs {
     pub bin: Option<PathBuf>,
     /// Whether the run has no keeper; always true for a check run.
     pub stateless: bool,
-    /// `--window` and `--ppp` (a visual run's window size and scale); `None`: the default 1280 × 800 at 1.2.
+    /// `--window` and `--ppp` (a visual run's window size and scale); `None`: the default 1920 × 1080 at 1.
     pub geometry: Option<Geometry>,
 }
 
@@ -1146,8 +1146,8 @@ mod tests {
         assert!(!dest.exists());
     }
 
-    /// A visual run started with `--window 1920x1080 --ppp 1` records both in `run.json` and passes them to
-    /// the spawned app; a default visual run records 1280 × 800 at 1.2 and adds no flag; a text run with `--window` is
+    /// A visual run started with `--window 2560x1440 --ppp 1` records both in `run.json` and passes them to
+    /// the spawned app; a default visual run records 1920 × 1080 at 1 and adds no flag; a text run with `--window` is
     /// refused before anything is created.
     #[test]
     fn a_visual_run_records_and_passes_its_window_and_scale() {
@@ -1159,13 +1159,13 @@ mod tests {
 ",
         )
         .unwrap();
-        let g = Geometry::parse(Some("1920x1080"), Some("1")).unwrap();
+        let g = Geometry::parse(Some("2560x1440"), Some("1")).unwrap();
         let mut a = args(&tmp, "v1");
         a.senses = Senses::Visual;
         a.geometry = Some(g);
         let run = prepare(&root, &a, &|_| Ok("0".to_owned())).unwrap();
         let rj = run.load().unwrap();
-        assert_eq!((rj.window, rj.ppp), (Some([1920, 1080]), Some(1.0)));
+        assert_eq!((rj.window, rj.ppp), (Some([2560, 1440]), Some(1.0)));
         assert_eq!(Geometry::of(&rj), g);
         let command = super::super::session::ProcessProduct::command(&run, "record.ewcmd");
         let argv: Vec<String> = command
@@ -1176,12 +1176,12 @@ mod tests {
             .iter()
             .position(|x| x == "--window")
             .expect("--window passed");
-        assert_eq!(argv[at..at + 4], ["--window", "1920x1080", "--ppp", "1"]);
+        assert_eq!(argv[at..at + 4], ["--window", "2560x1440", "--ppp", "1"]);
         assert!(argv.contains(&"--visual".to_owned()));
         let prompt = std::fs::read_to_string(run.path("prompt.md")).unwrap();
         assert!(
             prompt
-                .contains("This run's picture is 1920 × 1108 pixels: `x` from 0 to 1919, `y` from 0 to 1107"),
+                .contains("This run's picture is 2560 × 1468 pixels: `x` from 0 to 2559, `y` from 0 to 1467"),
             "{prompt}"
         );
         // The default: recorded as before, no flag.
@@ -1189,12 +1189,12 @@ mod tests {
         a.senses = Senses::Visual;
         let run = prepare(&root, &a, &|_| Ok("0".to_owned())).unwrap();
         let rj = run.load().unwrap();
-        assert_eq!((rj.window, rj.ppp), (Some([1280, 800]), Some(1.2)));
+        assert_eq!((rj.window, rj.ppp), (Some([1920, 1080]), Some(1.0)));
         let command = super::super::session::ProcessProduct::command(&run, "record.ewcmd");
         assert!(!command.get_args().any(|x| x == "--window" || x == "--ppp"));
         let prompt = std::fs::read_to_string(run.path("prompt.md")).unwrap();
         assert!(
-            prompt.contains("This run's picture is 1536 × 994 pixels"),
+            prompt.contains("This run's picture is 1920 × 1108 pixels"),
             "{prompt}"
         );
         // A text run: refused, no folder.

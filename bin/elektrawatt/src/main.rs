@@ -136,7 +136,7 @@ fn parse_args(args: impl IntoIterator<Item = OsString>) -> Result<Cli, String> {
     if frames.is_some() && no_frames {
         return Err("--frames and --no-frames exclude each other".to_owned());
     }
-    // A visual run's window size and scale (default 1280 × 800 points at 1.2).
+    // A visual run's window size and scale (default 1920 × 1080 points at 1).
     let geometry = Geometry::parse(window.as_deref(), ppp.as_deref())?;
     if (window.is_some() || ppp.is_some()) && !visual {
         return Err("--window and --ppp need --visual".to_owned());
@@ -685,8 +685,9 @@ fn run_gui(initial: Option<PathBuf>, no_gpu: bool) -> i32 {
         shell.start_first_run_if_needed();
     }
     let flags = Flags { no_gpu };
-    // The last size, position and maximised state, restored; the window's icon is the menu button's mark, the
-    // application icon (FT-1710: without one eframe showed egui's).
+    // The last size, position and maximised state, restored (the first start opens maximised, 1280 × 800 its normal
+    // size); the window's icon is the menu button's mark, the application icon (FT-1710: without one eframe showed
+    // egui's).
     let mut builder = egui::ViewportBuilder::default()
         .with_title(strings::text(key!("window-title-start")))
         .with_inner_size([1280.0, 800.0])
@@ -1073,8 +1074,8 @@ mod tests {
             with(&["--ppp", "1.25"]),
             Ok(Cli::Headless(HeadlessArgs {
                 geometry: Geometry {
-                    width: 1280,
-                    height: 800,
+                    width: 1920,
+                    height: 1080,
                     ppp_hundredths: 125
                 },
                 ..
