@@ -608,6 +608,18 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
     })
 }
 
+/// A channel's binding row in words: the pin it is bound to as the canvas names it (`-1A2:1`), never the endpoint's
+/// JSON (the persona round); a binding that names no CP keeps its text.
+fn binding_in_words(q: &Q, built: &mut [Built]) {
+    for b in built.iter_mut().filter(|b| b.row.path == "binding") {
+        if let RowValue::One { json, text } = &mut b.row.value
+            && let Ok(ew_schema::Endpoint::Cp(f, idx)) = serde_json::from_value::<ew_schema::Endpoint>(json.clone())
+        {
+            *text = ew_derive::cp_label(q, ew_derive::CpRef::new(f, idx));
+        }
+    }
+}
+
 /// FT-856: a bus port's address row in words, as reports print it (`ew_derive::net_address_text`): `TBD` for the
 /// open item, nothing for a port without an address, `3`, `cpx-1 192.168.0.10`, `pos 2 alias 1001`, `port 3`.
 fn bus_address_in_words(built: &mut [Built]) {
@@ -1413,6 +1425,24 @@ impl SectionCx<'_, '_> {
     fn emit(&self, spec: &FieldSpec, rpath: &str, depth: u8, out: &mut Vec<Built>) {
         let values = values_at(self.jsons, rpath);
         let value = row_value(self.cx, &spec.ty, &values);
+        // A device's PLC aspect is no value a person types (the persona round: "PLC station" was a raw data editor):
+        // a station comes with its CPU's part and a card's station is chosen by attaching the card, so the aspect has
+        // no row of its own, absent or present, and a present one shows its members (the role and the order in words).
+        if depth == 0 && self.kind == "device" && ["plc_station", "plc_module"].contains(&rpath) {
+            if value == RowValue::Absent || values.iter().any(Option::is_none) {
+                return;
+            }
+            if let FieldType::Group(children) = spec.ty.inner() {
+                for c in children {
+                    let seg = segment(&c.name);
+                    let gchild = format!("{}.{seg}", spec.path);
+                    if let Some(cs) = self.catalogue.iter().find(|s| s.path == gchild) {
+                        self.emit(cs, &format!("{rpath}.{seg}"), depth, out);
+                    }
+                }
+            }
+            return;
+        }
         let mut route = spec.route.clone();
         if let Some(why) = &self.closed {
             route = EditRoute::ReadOnly(FieldReadOnly::Narrowed { why: why.clone() });
@@ -2110,6 +2140,9 @@ impl Session {
         if kind == Kind::Function {
             part_function_row(q, cx, &targets, &mut built);
             bus_address_in_words(&mut built);
+        }
+        if kind == Kind::Channel {
+            binding_in_words(q, &mut built);
         }
         if kind == Kind::PotentialDef {
             definition_point_in_words(q, &targets, &mut built);

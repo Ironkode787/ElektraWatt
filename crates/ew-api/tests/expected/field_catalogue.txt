@@ -426,7 +426,7 @@ conductor source_ref.key text other read-only:no-command
 conductor source_ref.lineage uuid other read-only:no-command
 channel $v int[0..65535] identity read-only:identity
 channel address json other fields.set:address
-channel binding json? other read-only:no-command
+channel binding json? other read-only:plc.bind_channel
 channel comment mltext other fields.set:comment
 channel data_type ident? other fields.set:data_type
 channel designation ident? other fields.set:designation

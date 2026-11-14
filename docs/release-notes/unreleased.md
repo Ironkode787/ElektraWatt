@@ -676,3 +676,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   automatic…, Freeze addresses…); Apply of Freeze addresses or Re-address toasts the count; a manual channel address
   carries the badge manual in the PLC panel and a lock in the grid (persona round)
 - api-add: `Session::plc_config_projects`; `ShellModel::plc_addressing_items`
+- behaviour-change: Properties shows no row of its own for a device's PLC station or PLC module (it was a raw data
+  editor): a CPU shows its station's role, order and configuration project in words, a card no station (its station is
+  chosen by attaching it); a channel's binding names its pin and is set by dragging the channel onto a pin (persona
+  round)

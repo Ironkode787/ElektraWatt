@@ -404,6 +404,53 @@ fn the_channel_members_through_fields_set_and_the_property_sheet() {
     );
 }
 
+/// The persona round: a card's "PLC station" row was a raw data editor ("expected struct PlcStation") and a channel's
+/// binding showed as JSON. A device's PLC aspect has no row of its own, absent or present: the CPU shows its station's
+/// members (the role, the configuration project), the card none of a station; the channel's binding names the pin and
+/// is set by dragging the channel onto a pin (`plc.bind_channel`), not typed.
+#[test]
+fn plc_records_show_no_raw_structs_in_properties() {
+    let (s, cpu, di, _) = three(31);
+    let rows = |id: Uuid| -> Vec<ew_api::output::PropRow> {
+        s.property_sheet(&[id])
+            .sections
+            .into_iter()
+            .flat_map(|sec| sec.rows)
+            .collect()
+    };
+    let paths = |id: Uuid| -> Vec<String> { rows(id).into_iter().map(|r| r.path).collect() };
+    for id in [cpu, di] {
+        let p = paths(id);
+        assert!(
+            !p.iter().any(|x| x == "plc_station" || x == "plc_module"),
+            "no aspect row: {p:?}"
+        );
+    }
+    assert!(paths(cpu).iter().any(|x| x == "plc_station.role"));
+    assert!(
+        !paths(di).iter().any(|x| x.starts_with("plc_station")),
+        "a card has no station"
+    );
+    let c0: Id<Channel> = ew_ids::v5::plc_channel_id(Id::<Device>::from_uuid(di), 0);
+    let binding = rows(c0.as_uuid())
+        .into_iter()
+        .find(|r| r.path == "binding")
+        .expect("the binding row");
+    assert!(
+        matches!(&binding.value, RowValue::One { text, .. } if text.starts_with('-') && !text.contains('{')),
+        "{:?}",
+        binding.value
+    );
+    assert!(
+        matches!(
+            &binding.route,
+            EditRoute::ReadOnly(ew_api::output::FieldReadOnly::Command { command, .. }) if command == "plc.bind_channel"
+        ),
+        "{:?}",
+        binding.route
+    );
+}
+
 /// PW-6: renumbering the devices after PW-1 changes no address (FR-PLC-055).
 #[test]
 fn renumbering_changes_no_address() {

@@ -691,6 +691,8 @@ const OTHER_COMMANDS: &[(&str, &str, &str, Option<&str>)] = &[
     ("junction", "*", "junction.edit", Some("the canvas")),
     ("page", "folio", "page.renumber", None),
     ("device", "parent", "assembly.attach", None),
+    // A channel is bound by dragging its row onto a pin (the PLC panel), which runs `plc.bind_channel`.
+    ("channel", "binding", "plc.bind_channel", None),
     ("device", "position", "assembly.attach", None),
     ("project", "supply.origin.source", "project.supply.set", None),
     ("representation", "anchor", "rep.set_anchor_policy", None),
