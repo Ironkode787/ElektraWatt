@@ -488,7 +488,7 @@ fn the_grammar_of_values_repeats_and_the_option_end() {
         p(&["import", "qet", "a.qet", "--json", "--report", "md"]),
         usage_error(
             "`--json` prints the result on stdout: give the report a file with `--report-out <file>`",
-            "ew import qet [OPTIONS] <file.qet>"
+            "ew import qet [OPTIONS] [file.qet]"
         )
     );
     assert_eq!(
@@ -663,7 +663,7 @@ fn import_qet_options() {
     ]) else {
         panic!("parse failed");
     };
-    assert_eq!(a.file, PathBuf::from("a.qet"));
+    assert_eq!(a.file, Some(PathBuf::from("a.qet")));
     assert_eq!(a.content, Some(PathBuf::from("c")));
     assert_eq!(a.report, Some(ReportFormat::Markdown));
     assert_eq!(a.report_out, Some(PathBuf::from("r.md")));

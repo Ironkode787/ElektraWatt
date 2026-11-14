@@ -371,7 +371,10 @@ enum Import {
     /// `imports/`, after the report; without it nothing is written. Exit 2 when the project cannot be written.
     /// With `--into <project>` the file is re-imported into its earlier import in that project: the changes are
     /// printed and nothing is written; `--apply` commits them as one step and saves. Exit 2 when the file is not an
-    /// earlier import of the project.
+    /// earlier import of the project. With `--batch <dir> --out <dir>` every `.qet` of the first directory is
+    /// imported as a new project `<out>/<name>/` with its migration report `<out>/<name>.report.md`, and the summary
+    /// `<out>/summary.md`; a file that cannot be imported is a row of the summary, and `--strict` exits 1 when any
+    /// project lost a connection or has an error finding.
     Qet(ImportQetArgs),
     /// Copy the parts of a parts table into the project.
     ///

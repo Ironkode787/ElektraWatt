@@ -720,8 +720,22 @@ pub struct CheckArgs {
 #[derive(clap::Args, Clone, PartialEq, Eq, Debug)]
 pub struct ImportQetArgs {
     /// The QElectroTech project file.
-    #[arg(value_name = "file.qet")]
-    pub file: PathBuf,
+    #[arg(
+        value_name = "file.qet",
+        required_unless_present = "batch",
+        conflicts_with = "batch"
+    )]
+    pub file: Option<PathBuf>,
+    /// Import every `.qet` of this directory as a new project of `--out`, with a report each and a summary.
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        overrides_with = "batch",
+        requires = "out",
+        conflicts_with_all = ["into", "json", "report", "report_out"]
+    )]
+    pub batch: Option<PathBuf>,
     /// The starter content directory (default: `EW_CONTENT_DIR`, else the documents compiled into the program).
     #[arg(
         long,

@@ -412,6 +412,130 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     0
 }
 
+/// `ew import qet --batch <dir> --out <dir>` (FR-IMP-023): every `.qet` of `dir` (by name) imported as a new project
+/// `<out>/<stem>/` with its migration report `<out>/<stem>.report.md`, and the summary `<out>/summary.md` (also
+/// printed). A file that cannot be imported is a row of the summary, never the end of the batch; `--strict` exits 1
+/// when a project lost a connection, has an error finding or was refused.
+fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary) -> i32 {
+    let Some(out) = &a.out else {
+        eprintln!("error: `--batch` needs `--out <dir>` for the projects and reports");
+        return 2;
+    };
+    let mut files: Vec<PathBuf> = match std::fs::read_dir(dir) {
+        Ok(entries) => entries
+            .filter_map(Result::ok)
+            .map(|e| e.path())
+            .filter(|p| p.is_file() && p.extension().is_some_and(|e| e.eq_ignore_ascii_case("qet")))
+            .collect(),
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    files.sort();
+    if files.is_empty() {
+        eprintln!("error: {}: no .qet files", dir.display());
+        return 2;
+    }
+    if let Err(e) = std::fs::create_dir_all(out) {
+        eprintln!("error: {}: {e}", out.display());
+        return 2;
+    }
+    let mut summary = String::from(
+        "| Project | Result | Pages | Devices | Connections | Findings | Lost connections |\n|---|---|---|---|---|---|---|\n",
+    );
+    let (mut violated, mut refused) = (0usize, 0usize);
+    for file in &files {
+        let name = file
+            .file_name()
+            .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
+        let stem = file
+            .file_stem()
+            .map_or_else(|| name.clone(), |n| n.to_string_lossy().into_owned());
+        let row = |result: &str, c: Option<(usize, usize, usize, u32, u32)>| match c {
+            Some((p, d, k, f, l)) => format!("| {name} | {result} | {p} | {d} | {k} | {f} | {l} |\n"),
+            None => format!("| {name} | {result} | | | | | |\n"),
+        };
+        let imported = std::fs::read(file)
+            .map_err(|e| e.to_string())
+            .and_then(|bytes| import_qet(&name, bytes, library).map_err(|e| e.to_string()));
+        let imported = match imported {
+            Ok(i) => i,
+            Err(why) => {
+                eprintln!("{name}: refused: {why}");
+                summary.push_str(&row(&format!("refused: {}", printable(&why)), None));
+                refused += 1;
+                continue;
+            }
+        };
+        let c = imported.counts();
+        let report = imported.migration_report();
+        let errors = imported
+            .batch
+            .report
+            .entries
+            .iter()
+            .filter(|e| e.severity == Severity::Error)
+            .count();
+        let counts = Some((
+            c.pages,
+            c.devices,
+            c.connections,
+            report.total,
+            report.lost_connections,
+        ));
+        let report_file = out.join(format!("{stem}.report.md"));
+        if let Err(e) = write_report(&report_file, &report.render(ReportFormat::Markdown)) {
+            eprintln!("error: {}: {e}", report_file.display());
+            return 2;
+        }
+        let result = match imported.session {
+            Ok(session) => {
+                let target = out.join(&stem);
+                match ew_api::import::create_project_from(
+                    session,
+                    &target,
+                    ew_api::StoreOptions::new(env!("CARGO_PKG_VERSION")),
+                ) {
+                    Ok(unstable) => {
+                        warn_unreleased(unstable, &mut std::io::stderr());
+                        "imported".to_owned()
+                    }
+                    Err(e) => {
+                        eprintln!("{name}: not written: {e}");
+                        refused += 1;
+                        format!("not written: {}", printable(&e.to_string()))
+                    }
+                }
+            }
+            Err(why) => {
+                eprintln!("{name}: the records do not make a project: {why}");
+                refused += 1;
+                "the records do not make a project".to_owned()
+            }
+        };
+        if report.lost_connections > 0 || errors > 0 {
+            violated += 1;
+        }
+        println!(
+            "{name}: {result}, {} findings, {} lost connections",
+            report.total, report.lost_connections
+        );
+        summary.push_str(&row(&result, counts));
+    }
+    let total = files.len();
+    summary.push_str(&format!(
+        "\n{total} files: {} imported, {refused} refused or not written, {violated} with lost connections or error findings.\n",
+        total.saturating_sub(refused)
+    ));
+    if let Err(e) = write_report(&out.join("summary.md"), &summary) {
+        eprintln!("error: {}: {e}", out.join("summary.md").display());
+        return 2;
+    }
+    println!("summary written to {}", out.join("summary.md").display());
+    i32::from(a.strict && (violated > 0 || refused > 0))
+}
+
 pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
     let content = a.content.clone().or_else(content_dir);
     let library = match &content {
@@ -425,15 +549,22 @@ pub(super) fn run_import_qet(a: &ImportQetArgs) -> i32 {
         // Without a content directory the import takes the compiled-in documents: no folio report is lost.
         None => StarterLibrary::compiled(),
     };
-    let bytes = match std::fs::read(&a.file) {
+    if let Some(dir) = &a.batch {
+        return run_import_qet_batch(a, dir, &library);
+    }
+    let Some(file) = &a.file else {
+        eprintln!("error: give the QElectroTech project file, or `--batch <dir>`");
+        return 2;
+    };
+    let bytes = match std::fs::read(file) {
         Ok(b) => b,
         Err(e) => {
-            eprintln!("error: {}: {e}", a.file.display());
+            eprintln!("error: {}: {e}", file.display());
             return 2;
         }
     };
-    let name = a.file.file_name().map_or_else(
-        || a.file.to_string_lossy().into_owned(),
+    let name = file.file_name().map_or_else(
+        || file.to_string_lossy().into_owned(),
         |n| n.to_string_lossy().into_owned(),
     );
     if let Some(project) = &a.into {
