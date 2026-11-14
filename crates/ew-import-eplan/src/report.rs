@@ -252,8 +252,8 @@ fn find<'t>(row: &'t [String], headers: &[String], map: &ReportMap, member: &str
 ///
 /// # Errors
 ///
-/// [`ImportError::Malformed`] when a column of the map is not in the table's headers or a function definition is
-/// missing; item-level problems are report entries.
+/// [`ImportError::Malformed`] when a required column of the map is not in the table's headers or a function
+/// definition is missing; an optional column the table lacks and item-level problems are report entries.
 pub fn read_report(
     table: &ReportTable,
     map: &ReportMap,
@@ -262,12 +262,17 @@ pub fn read_report(
     fndefs: &[LibDocument],
 ) -> Result<ImportBatch, ImportError> {
     let (file, sha256, size) = source;
+    let mut missing = Vec::new();
     for (member, header) in &map.columns {
         if !table.headers.iter().any(|h| h == header.trim()) {
-            return Err(ImportError::Malformed {
-                message: format!("the column `{header}` ({member}) is not in the table"),
-                line: None,
-            });
+            let required = map.target.members().iter().any(|(m, r)| m == member && *r);
+            if required {
+                return Err(ImportError::Malformed {
+                    message: format!("the column `{header}` ({member}) is not in the table"),
+                    line: None,
+                });
+            }
+            missing.push((member, header));
         }
     }
     let def = |k: &str| -> Result<(Id<ew_interop_api::ew_schema::FnDef>, LibDocument), ImportError> {
@@ -304,6 +309,14 @@ pub fn read_report(
         entries: Vec::new(),
         suppressed: BTreeMap::new(),
     };
+    for (member, header) in missing {
+        notes.push(
+            Code::imp(206),
+            Severity::Warning,
+            1,
+            format!("the column `{header}` ({member}) is not in the table: its values are not imported"),
+        );
+    }
     for h in &table.headers {
         if !h.is_empty() && !map.columns.values().any(|m| m.trim() == h) {
             notes.push(
@@ -380,7 +393,7 @@ pub fn read_report(
             let mut seq: BTreeMap<String, u32> = BTreeMap::new();
             let mut strips: BTreeMap<String, Id<Device>> = BTreeMap::new();
             let mut last: Option<(String, String, u8)> = None;
-            let mut rows: Vec<(usize, String, String, u8)> = Vec::new();
+            let mut rows: Vec<(usize, String, String, u8, String)> = Vec::new();
             match map.target {
                 ReportTarget::Terminals => {
                     for (n, row) in table.rows.iter().enumerate() {
@@ -391,8 +404,20 @@ pub fn read_report(
                         if strip.is_empty() && designation.is_empty() {
                             continue;
                         }
-                        let level = find(row, &table.headers, map, "level").parse::<u8>().unwrap_or(1);
-                        rows.push((n + 2, strip.to_owned(), designation.to_owned(), level));
+                        let text = find(row, &table.headers, map, "level");
+                        let level = text.parse::<u8>().unwrap_or_else(|_| {
+                            if !text.is_empty() {
+                                notes.push(
+                                    Code::MALFORMED_ITEM,
+                                    Severity::Warning,
+                                    n + 2,
+                                    format!("the level `{text}` of `{strip}:{designation}` is no number: taken as 1"),
+                                );
+                            }
+                            1
+                        });
+                        let part = find(row, &table.headers, map, "part").to_owned();
+                        rows.push((n + 2, strip.to_owned(), designation.to_owned(), level, part));
                     }
                 }
                 _ => {
@@ -402,13 +427,13 @@ pub fn read_report(
                             if let Some((s, d)) = find(row, &table.headers, map, member).rsplit_once(':')
                                 && split_dt(s).1.starts_with(['X', 'x'])
                             {
-                                rows.push((n + 2, s.trim().to_owned(), d.trim().to_owned(), 1));
+                                rows.push((n + 2, s.trim().to_owned(), d.trim().to_owned(), 1, String::new()));
                             }
                         }
                     }
                 }
             }
-            for (line, strip, designation, level) in rows {
+            for (line, strip, designation, level, part) in rows {
                 let (structure, product) = split_dt(&strip);
                 let (Some(tag), Some(desig)) = (tag_of(product), ident(&designation)) else {
                     notes.push(
@@ -497,6 +522,15 @@ pub fn read_report(
                 last = Some((strip.clone(), designation.clone(), level));
                 let tkey = format!("eplan:terminal:{strip}:{designation}");
                 if answers.contains_key(&(strip.clone(), designation.clone())) {
+                    // A connection list names a terminal once per connection; a terminal diagram lists it once.
+                    if map.target == ReportTarget::Terminals {
+                        notes.push(
+                            Code::DROPPED_BY_DESIGN,
+                            Severity::Info,
+                            line,
+                            format!("`{strip}:{designation}` is listed twice: kept once"),
+                        );
+                    }
                     continue;
                 }
                 let n = seq.entry(strip.clone()).or_insert(0);
@@ -528,7 +562,11 @@ pub fn read_report(
                         }),
                         ..DeviceAspects::default()
                     },
-                    extra: Extra::new(),
+                    extra: if part.is_empty() {
+                        Extra::new()
+                    } else {
+                        Extra::from([("eplan.part".to_owned(), serde_json::json!(part))])
+                    },
                 }));
                 let f = function(&ids, &tkey, device, if pe { terminal_pe } else { terminal });
                 answers.insert((strip, designation), f.id);

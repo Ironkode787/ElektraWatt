@@ -322,6 +322,44 @@ fn batch_of(diagram: &str) -> ew_api::import::ImportBatch {
     report("terminals.csv", diagram, "terminals-en")
 }
 
+/// What a report import leaves out is said, and what the map names is read: a terminal listed twice, a level that is
+/// no number, the part of a terminal; an optional column the table lacks is a finding, not a refusal; a connection
+/// list names a terminal once per connection and that is no finding.
+#[test]
+fn a_report_import_says_what_it_leaves_out_and_reads_what_the_map_names() {
+    use ew_schema::Record;
+    let messages = |b: &ew_api::import::ImportBatch| -> Vec<String> {
+        b.report.entries.iter().map(|e| e.message.clone()).collect()
+    };
+    let diagram = "Terminal strip;Terminal;Level;Part number\n-X1;1;1;P-1\n-X1;2;x;\n-X1;1;1;P-1\n";
+    let batch = report("terminals.csv", diagram, "terminals-en");
+    let text = messages(&batch);
+    assert!(text.iter().any(|m| m.contains("-X1:1") && m.contains("listed twice")), "{text:?}");
+    assert!(text.iter().any(|m| m.contains("`x`") && m.contains("taken as 1")), "{text:?}");
+    let parts: Vec<_> = batch
+        .records
+        .iter()
+        .filter_map(|r| match r {
+            Record::Device(d) => d.extra.get("eplan.part").cloned(),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(parts, [json!("P-1")], "the part column of a terminal diagram is read");
+
+    // The part column is named by the mapping and not in the table: the rest is imported.
+    let batch = report("terminals.csv", "Terminal strip;Terminal;Level\n-X1;1;1\n", "terminals-en");
+    let text = messages(&batch);
+    assert!(
+        text.iter().any(|m| m.contains("Part number") && m.contains("not in the table")),
+        "{text:?}"
+    );
+    assert!(batch.records.iter().any(|r| matches!(r, Record::Device(d) if d.aspects.terminal.is_some())));
+
+    let wires = "Source;Target\n-X1:1;-X2:1\n-X1:1;-X2:2\n";
+    let text = messages(&report("wires.csv", wires, "connections-en"));
+    assert!(!text.iter().any(|m| m.contains("listed twice")), "{text:?}");
+}
+
 /// Every function definition the shipped table names is one of the starter library; the user's own rows win over the
 /// shipped ones and are read from the configuration directory.
 #[test]
