@@ -75,6 +75,8 @@ struct RowLayout {
     more_rect: Option<Rect>,
     /// The next step's rectangle.
     next: Option<Rect>,
+    /// Whether the next step shows its label (it shows its icon alone where that keeps every group whole).
+    next_labelled: bool,
 }
 
 /// The height of the bar for `t`: the tab row, the command row unless collapsed, the bottom line.
@@ -86,12 +88,10 @@ pub(crate) fn bar_height(t: &Tokens, collapsed: bool) -> f32 {
 /// The share of the tab row the command search takes once that is wider than `size.search.width` (FT-798).
 pub(crate) const SEARCH_SHARE: f32 = 0.2;
 
-/// The command search's width in a tab row `row` wide: `size.search.width` at the floor, growing with the row
-/// ([`SEARCH_SHARE`]) to `size.search.max_width` (FT-798; doc 16a §2: a floor width never caps one that should
-/// grow).
+/// The command search's width in a tab row `row` wide: [`SEARCH_SHARE`] of the row, never under `size.search.width`
+/// (FT-798, FT-1730; doc 16a §2: no cap beside the tab row's empty middle at 2560): 384 at 1920, 512 at 2560.
 pub(crate) fn search_width(t: &Tokens, row: f32) -> f32 {
     crate::dialog::grown(t.size_search_width, SEARCH_SHARE, row)
-        .min(t.size_search_max_width.max(t.size_search_width))
 }
 
 fn text_width(ui: &Ui, text: &str, font: egui::FontId) -> f32 {
@@ -193,27 +193,40 @@ fn group_width(ui: &Ui, t: &Tokens, g: &GroupModel) -> f32 {
     right + 2.0 * t.space_2
 }
 
-/// The size of the next-step Primary button.
-fn next_size(ui: &Ui, t: &Tokens, b: &CommandButton) -> Vec2 {
-    let w = text_width(ui, &b.bar_label, theme::font(&t.type_body_strong));
-    vec2(2.0 * t.space_4 + t.icon_sm + t.space_icon + w, t.size_control)
+/// The size of the next-step Primary button, with its label or (`labelled` false) its icon alone.
+fn next_size(ui: &Ui, t: &Tokens, b: &CommandButton, labelled: bool) -> Vec2 {
+    let label = if labelled {
+        t.space_icon + text_width(ui, &b.bar_label, theme::font(&t.type_body_strong))
+    } else {
+        0.0
+    };
+    vec2(2.0 * t.space_4 + t.icon_sm + label, t.size_control)
 }
 
 /// Lays out the command row of `model` in `row` (doc 16a §5.2): `space.3` gutters, the groups left to right with a
-/// 1-px divider between them, the next step at the right end; groups that do not fit collapse from the right, a
-/// group that collapses last after the others.
+/// 1-px divider between them, the next step at the right end; where the groups do not fit beside the next step's
+/// label, it shows its icon alone first (FT-1730: so that no group folds at 1920 in a language of long words), and
+/// groups that still do not fit collapse from the right, a group that collapses last after the others.
 fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLayout {
     let cy = row.center().y;
-    let next_size = model.next.as_ref().map(|b| next_size(ui, t, b));
-    let right = row.right() - t.space_3 - next_size.map_or(0.0, |s| s.x + t.space_4);
-    let available = right - (row.left() + t.space_3);
     let natural: Vec<f32> = model.groups.iter().map(|g| group_width(ui, t, g)).collect();
+    let divider = t.border_width;
+    let whole = natural.iter().sum::<f32>() + divider * model.groups.len().saturating_sub(1) as f32;
+    let available_beside = |next: Option<Vec2>| {
+        let right = row.right() - t.space_3 - next.map_or(0.0, |s| s.x + t.space_4);
+        right - (row.left() + t.space_3)
+    };
+    let labelled = model
+        .next
+        .as_ref()
+        .is_none_or(|b| whole <= available_beside(Some(next_size(ui, t, b, true))));
+    let next_size = model.next.as_ref().map(|b| next_size(ui, t, b, labelled));
+    let available = available_beside(next_size);
     let collapsed_w: Vec<f32> = model
         .groups
         .iter()
         .map(|g| menu_button_size(ui, t, &g.label).x + 2.0 * t.space_2)
         .collect();
-    let divider = t.border_width;
     let total = |collapsed: &[bool]| -> f32 {
         let widths: f32 = (0..model.groups.len())
             .map(|i| if collapsed[i] { collapsed_w[i] } else { natural[i] })
@@ -290,6 +303,7 @@ fn layout_row(ui: &Ui, t: &Tokens, model: &CommandBarModel, row: Rect) -> RowLay
         more,
         more_rect,
         next,
+        next_labelled: labelled,
     }
 }
 
@@ -893,7 +907,7 @@ impl CommandBarHost {
             },
         );
         // The command search at the right end: a field that opens the palette anchored under it. FT-798: it grows
-        // with the window, a share of the tab row, from `size.search.width` at the floor to `size.search.max_width`.
+        // with the window, a share of the tab row, never under `size.search.width`.
         let search_width = search_width(t, row.width());
         let search = Rect::from_min_size(
             pos2(
@@ -1058,12 +1072,13 @@ fn command_row(ui: &mut Ui, t: &Tokens, model: &CommandBarModel, row: Rect, even
         });
     }
     if let (Some(r), Some(b)) = (layout.next, &model.next) {
-        next_step(ui, t, b, r, events);
+        next_step(ui, t, b, r, layout.next_labelled, events);
     }
 }
 
-/// The tab's next step: the one Primary button of the chrome (doc 16a §5.2, §6.2).
-fn next_step(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect, events: &mut Vec<Event>) {
+/// The tab's next step: the one Primary button of the chrome (doc 16a §5.2, §6.2), with its label or (`labelled`
+/// false) its icon alone, named by its label and with it in its tooltip either way.
+fn next_step(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect, labelled: bool, events: &mut Vec<Event>) {
     let response = button_response(
         ui,
         Id::unique(("command-next", b.id)),
@@ -1096,11 +1111,13 @@ fn next_step(ui: &Ui, t: &Tokens, b: &CommandButton, rect: Rect, events: &mut Ve
         Vec2::splat(t.icon_sm),
     );
     paint_icon(ui, b.icon, icon, text.color32(), t.icon_stroke);
-    let at = pos2(
-        icon.right() + t.space_icon,
-        rect.center().y - galley.size().y / 2.0,
-    );
-    ui.painter().galley(at, galley, text.color32());
+    if labelled {
+        let at = pos2(
+            icon.right() + t.space_icon,
+            rect.center().y - galley.size().y / 2.0,
+        );
+        ui.painter().galley(at, galley, text.color32());
+    }
     if response.clicked() && b.enabled {
         events.push(Event::Action(b.id, Value::Null));
     } else if response.clicked() {
@@ -1136,17 +1153,12 @@ mod tests {
         assert_eq!(bar_height(&c, true), 33.0);
     }
 
-    /// FT-798: the search keeps `size.search.width` at the floor, grows with the row and stops at
-    /// `size.search.max_width`.
+    /// FT-798, FT-1730: the search keeps `size.search.width` in a small window and grows with the row, at 2560 too.
     #[test]
-    fn the_search_grows_with_the_row_between_its_tokens() {
+    fn the_search_grows_with_the_row_from_its_token() {
         let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
         assert_eq!(search_width(&t, 1280.0), t.size_search_width);
-        let wide = search_width(&t, 1920.0);
-        assert!(
-            wide > t.size_search_width && wide <= t.size_search_max_width,
-            "{wide}"
-        );
-        assert_eq!(search_width(&t, 4000.0), t.size_search_max_width);
+        let (main, extension) = (search_width(&t, 1920.0), search_width(&t, 2560.0));
+        assert!(main > t.size_search_width && extension > main, "{main} {extension}");
     }
 }

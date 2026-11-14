@@ -93,7 +93,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "file?:path, dir?:path, discard?:bool",
         placed(
-            place(Group::Import, 2, CommandSize::Small, Some(key!("bar-import-qet"))),
+            place(Group::Import, 2, CommandSize::Small, None),
             "file-import",
             act(
                 "file.import_qet",
@@ -126,12 +126,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     with_params(
         "file?:path, accept?:bool",
         placed(
-            place(
-                Group::Import,
-                3,
-                CommandSize::Small,
-                Some(key!("bar-reimport-qet")),
-            ),
+            place(Group::Import, 3, CommandSize::Small, None),
             "file-import",
             act(
                 "file.reimport_qet",
