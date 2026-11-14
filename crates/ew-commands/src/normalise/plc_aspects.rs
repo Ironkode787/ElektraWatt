@@ -21,12 +21,14 @@
 //!   station". A station that lies below the module (a part change on an assembly) is never chosen: that parent
 //!   would close a cycle (EW-INV-009).
 //! - `station`: `plc_station {config_project, role}` and, when the section declares I/O ranges,
-//!   `plc_module {integrated: true}` on the same device. The configuration project (D3): with none in the project,
-//!   one is created in the same transaction, named `PLC<n>` (the lowest free n), pinned to the shipped TIA
-//!   international profile, `cpu` the station, ID `v5(station, "plc_config_project")`; with one, the station joins
-//!   it; with several, the first by (name, ID). Joining gives a notice that names the configuration project. The
-//!   role is `head_station` when the device's parts declare bus ports and none of them is a `master` or a
-//!   `controller` port (a remote I/O head), else `cpu`.
+//!   `plc_module {integrated: true}` on the same device. The role is `valve_terminal` when the section maps solenoids
+//!   to valve positions (`positions`: the part carries valves); else `head_station` when the device's parts declare
+//!   bus ports and none of them is a `master` or a `controller` port (a remote I/O head); else `cpu`. The
+//!   configuration project (D3): with none in the project, one is created in the same transaction, named `PLC<n>`
+//!   (the lowest free n), pinned to the shipped TIA international profile, `cpu` the station when it is a CPU, ID
+//!   `v5(station, "plc_config_project")`; with one, the station joins it (a CPU becomes its `cpu` when it has none);
+//!   with several, the first by (name, ID). Joining gives a notice that names the configuration project. D4 never
+//!   attaches a card to a valve terminal.
 //! - a role of a newer format: nothing.
 //!
 //! **A station's arrival** (FT-823). When this run gives a device `plc_station` and the project then holds exactly one
@@ -60,9 +62,13 @@ use crate::tx::TxBuilder;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct PlcAspects;
 
-/// The role of a new station: a head station when its parts declare bus ports and none leads a bus (no `master` and
-/// no `controller` port), else a CPU.
-fn station_role(tx: &TxBuilder<'_>, dev: &Device) -> StationRole {
+/// The role of a new station: a valve terminal when its part's PLC section maps solenoids to valve positions (the
+/// part says it carries valves, as the starter terminal EW-GEN-VTM-1 does); a head station when its parts declare bus
+/// ports and none leads a bus (no `master` and no `controller` port); else a CPU.
+fn station_role(tx: &TxBuilder<'_>, dev: &Device, section: &PlcSection) -> StationRole {
+    if section.positions.is_some() {
+        return StationRole::ValveTerminal;
+    }
     let roles: Vec<PortRole> = dev
         .parts
         .iter()
@@ -167,12 +173,30 @@ fn is_at_or_above(tx: &TxBuilder<'_>, ancestor: Id<Device>, device: Id<Device>) 
     false
 }
 
-/// The configuration project a new station joins (D3), creating `PLC<n>` when the project has none.
-fn config_project_for(tx: &mut TxBuilder<'_>, station: &Device) -> Result<Id<PlcConfigProject>, CmdError> {
+/// Whether `d` is a station that takes cards attached by D4: any station but a valve terminal, whose children are its
+/// valves.
+fn takes_cards(d: &Device) -> bool {
+    d.aspects
+        .plc_station
+        .as_ref()
+        .is_some_and(|s| s.role != StationRole::ValveTerminal)
+}
+
+/// The configuration project a new station joins (D3), creating `PLC<n>` when the project has none. A CPU is the
+/// project's CPU when it creates it or joins one without; a valve terminal never is.
+fn config_project_for(
+    tx: &mut TxBuilder<'_>,
+    station: &Device,
+    role: &StationRole,
+) -> Result<Id<PlcConfigProject>, CmdError> {
     let mut all = tx.iter::<PlcConfigProject>();
     all.sort_by(|a, b| (a.name.as_str(), a.id).cmp(&(b.name.as_str(), b.id)));
     let tag = tag_text(station);
+    let cpu = (*role == StationRole::Cpu).then_some(station.id);
     if let Some(first) = all.first() {
+        if first.cpu.is_none() && cpu.is_some() {
+            tx.update::<PlcConfigProject>(first.id, |c| c.cpu = cpu)?;
+        }
         let more = if all.len() > 1 {
             format!(
                 ", the first of {} by name; set `plc_station.config_project` to choose another",
@@ -202,7 +226,7 @@ fn config_project_for(tx: &mut TxBuilder<'_>, station: &Device) -> Result<Id<Plc
         v: 1,
         name: name.clone(),
         profile: profile_ident,
-        cpu: Some(station.id),
+        cpu,
         symbols: None,
         ownership: None,
         exchange: None,
@@ -220,11 +244,7 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
     if has_station_ancestor(tx, module) {
         return Ok(false);
     }
-    let stations: Vec<Arc<Device>> = tx
-        .iter::<Device>()
-        .into_iter()
-        .filter(|d| d.aspects.plc_station.is_some())
-        .collect();
+    let stations: Vec<Arc<Device>> = tx.iter::<Device>().into_iter().filter(|d| takes_cards(d)).collect();
     let station = match stations.as_slice() {
         [] => {
             tx.notice("no PLC station: place a CPU first");
@@ -260,11 +280,7 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
 /// the project's only station by D4, in the order of their main representations' anchor cells (ties by ID). With
 /// several stations nothing happens here: EW-PLC-008 asks the user to attach them.
 fn attach_waiting_modules(tx: &mut TxBuilder<'_>) -> Result<(), CmdError> {
-    let stations = tx
-        .iter::<Device>()
-        .into_iter()
-        .filter(|d| d.aspects.plc_station.is_some())
-        .count();
+    let stations = tx.iter::<Device>().into_iter().filter(|d| takes_cards(d)).count();
     if stations != 1 {
         return Ok(());
     }
@@ -321,8 +337,8 @@ impl Normaliser for PlcAspects {
         stations.sort_by_key(|(d, _)| d.id);
         let station_arrived = !stations.is_empty();
         for (dev, section) in stations {
-            let cfg = config_project_for(tx, &dev)?;
-            let role = station_role(tx, &dev);
+            let role = station_role(tx, &dev, &section);
+            let cfg = config_project_for(tx, &dev, &role)?;
             let integrated = (!section.io.is_empty()).then(|| PlcModule {
                 integrated: true,
                 ..PlcModule::default()

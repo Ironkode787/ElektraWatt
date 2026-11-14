@@ -691,3 +691,12 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   supply, the air preparation, flow control and flow logic components, the fluid fittings, the pressure and vacuum
   switches, the ejector, the suction cup and the supply plate to letter codes (the air supply was greyed "Give a letter
   code") (M3 persona round)
+- behaviour-change: a valve terminal is built from nothing: the starter EW-GEN-VTM-1 ("Valve terminal, 4 valve
+  positions, 8 outputs") is a station whose part maps solenoids to valve positions, so N0 makes it a valve terminal
+  (role `valve_terminal`, never the configuration project's CPU, never a target for cards); its box and its row offer
+  Add valve at position n, which makes the valve child of the library's valve when the project has none and puts its
+  symbol on the pointer; Generate overview… acts on the selected terminal from the command search and says in words
+  when none is selected; an overview leaves valves and blanking plates out of its members (M3 persona round)
+- behaviour-change: the starter parts gain the tubes EW-GEN-TUB-6, -8 and -10 (PU 6×4, 8×6, 10×8 mm) and the
+  fittings EW-GEN-FIT-6 and -8; a tube's Tube part offers the tube parts only, a library's too, and embeds the one
+  chosen (M3 persona round)

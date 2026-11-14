@@ -784,6 +784,12 @@ normaliser notices are merged once into the command's outcome.
   them, so committing it is the confirmation (ADR-0008). A part change of a module in the UI goes through this
   command; `fields.set` on `parts` stays the scripting form that never removes a channel.
 
+*As built (M3 persona round).* N0 gives a station whose part's PLC section maps solenoids to valve positions
+(`positions`) the role `valve_terminal`, any other station `cpu`: the starter valve terminal EW-GEN-VTM-1 is such a
+station ([11](11-fluid-power.md) §2.6). A valve terminal is never its configuration project's `cpu`; a CPU that joins a
+project without one becomes it. D4 and the attachment of waiting cards count only the stations that are no valve
+terminal, so a card drawn beside a valve terminal still attaches to the project's CPU.
+
 *As built (WP-S1.24, FT-830).* `library.update` keeps a copy's ID, so N0 also triggers the devices that use a part
 copy the transaction changed when the copy had no PLC section in the base snapshot, and N5 those whose bus part's
 ports changed; a newer part version that adds a PLC section or a port reaches its devices in the update's step.

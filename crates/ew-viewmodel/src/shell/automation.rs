@@ -21,6 +21,7 @@ use serde_json::{Map, Value, json};
 use super::{Outcome, ShellModel, failed, string_param};
 use crate::key;
 use crate::strings;
+use crate::strings::Key;
 
 impl ShellModel {
     /// A record named by parameter `name`: its UUID, or a reference (`tag:-201U1`, `id:<uuid>`).
@@ -348,11 +349,79 @@ impl ShellModel {
     /// and a page it empties; the derived changes show the tags a new page break changes. Apply commits it as one
     /// undo step.
     pub(crate) fn act_fluid_generate_overview(&mut self, p: &Map<String, Value>) -> Outcome {
-        let station = or_return!(self.record_param(p, "station"));
+        let station = if p.contains_key("station") {
+            or_return!(self.record_param(p, "station"))
+        } else {
+            match self.selected_valve_terminal() {
+                Ok(s) => s,
+                Err(reason) => return Outcome::refused(reason),
+            }
+        };
         let Some(params) = self.project_session().and_then(|s| s.overview_params(station)) else {
             return Outcome::refused(key!("reason-overview-no-page"));
         };
         self.preview_bulk("valve_terminal.generate_overview", params)
+    }
+
+    /// The valve terminal the selection is (one device whose `fluid_menu` says so); else the reason in words: select
+    /// one, or the selected device is none.
+    pub(crate) fn selected_valve_terminal(&self) -> Result<Uuid, Key<'static>> {
+        let session = self.project_session().ok_or(key!("reason-no-project"))?;
+        let selected = self.selected_devices();
+        let [device] = selected.as_slice() else {
+            return Err(key!("reason-overview-select"));
+        };
+        let device: Uuid = device.parse().map_err(|_| key!("reason-overview-select"))?;
+        if session.fluid_menu(device).terminal {
+            Ok(device)
+        } else {
+            Err(key!("reason-overview-not-terminal"))
+        }
+    }
+
+    /// `fluid.valve_add {module, position}` (doc 11 §7, the persona round): a valve terminal's Add valve at position
+    /// n: one `valve.set_occupancy` with the part of its other valves, else the libraries' valve for its positions
+    /// (embedded with it), then the new valve's symbol on the pointer when the page shown takes it, so that a click
+    /// places it; a toast names the valve and its position.
+    pub(crate) fn act_fluid_valve_add(&mut self, p: &Map<String, Value>) -> Outcome {
+        let module = or_return!(self.record_param(p, "module"));
+        let Some(position) = p.get("position").and_then(Value::as_u64) else {
+            return failed(key!("error-missing-param"), &["position"]);
+        };
+        let Some(session) = self.project_session() else {
+            return Outcome::refused(key!("reason-no-project"));
+        };
+        let Some(part) = session.fluid_menu(module).valve_part else {
+            return Outcome::refused(key!("reason-valve-no-part"));
+        };
+        let mut params = json!({
+            "module": module.to_string(), "position": position,
+            "occupancy": { "valve": { "state": "used", "part": part.to_string() } },
+        });
+        let copies = session.module_part_copies(part);
+        if !copies.is_empty() {
+            params["copies"] = Value::Array(copies);
+        }
+        let out = self.run_logged("valve.set_occupancy".to_owned(), params);
+        if out != Outcome::Done {
+            return out;
+        }
+        let Some(session) = self.project_session() else {
+            return out;
+        };
+        let valve = session.valve_at(module, position);
+        let tag = valve.and_then(|v| session.device_tag(v)).unwrap_or_default();
+        let module_tag = session.device_tag(module).unwrap_or_default();
+        self.notify(
+            strings::format(key!("toast-valve-added"), &[&tag, &position.to_string(), &module_tag]),
+            true,
+        );
+        if let Some(valve) = valve.filter(|_| self.canvas().is_some()) {
+            let mut pick = Map::new();
+            pick.insert("function".into(), Value::String(valve.to_string()));
+            let _ = self.act_place_pick(&pick);
+        }
+        Outcome::Done
     }
 
     /// `fluid.set_medium {line, medium}` (FR-FLU-009): the medium the fluid line's net carries, defined at the line's

@@ -375,6 +375,13 @@ impl Session {
                     .flatten()
                     .flat_map(|t| q.idx().device_children(t).collect::<Vec<_>>())
                     .find_map(valve_part)
+            })
+            .or_else(|| {
+                let module = [Some(id), parent]
+                    .into_iter()
+                    .flatten()
+                    .find(|m| ew_derive::valve_positions(&q, *m).is_some())?;
+                self.library_valve_part(&q, module)
             });
         let open_ports = ew_derive::valve_functions(&q, id)
             .into_iter()
@@ -391,6 +398,46 @@ impl Session {
             valve_part: part,
             open_ports,
         }
+    }
+
+    /// The valve at position `position` (1-based) of module `module`; `None` for an empty or blank position.
+    pub fn valve_at(&self, module: Uuid, position: u64) -> Option<Uuid> {
+        let q = self.query();
+        let slots = q.get::<ValveSlots>(Id::from_uuid(module));
+        match slots.slots.get(usize::try_from(position).ok()?.checked_sub(1)?)? {
+            ValveSlot::Valve { device, .. } => Some(device.as_uuid()),
+            _ => None,
+        }
+    }
+
+    /// The valve part a module's position takes from the system libraries while the project has no valve to copy (the
+    /// persona round: Add valve stayed greyed on a new project): of the libraries' parts that name solenoids, carry no
+    /// PLC section and no CP pattern (a valve whose coil is internal, as a valve terminal drives it) and whose solenoids
+    /// the module's solenoid-position map names, the first by part number; `None` without one.
+    fn library_valve_part(&self, q: &ew_derive::Q, module: Id<Device>) -> Option<Uuid> {
+        let device = q.devices().get(module)?;
+        let mapped: Vec<String> = device
+            .parts
+            .iter()
+            .filter_map(|u| q.parts().get(u.part.copy))
+            .filter_map(|c| c.item.sections.plc.as_ref()?.positions.clone())
+            .flat_map(|p| p.map.into_iter().map(|e| e.solenoid.as_str().to_owned()))
+            .collect();
+        let mut parts: Vec<_> = self
+            .library_parts()
+            .into_iter()
+            .filter(|c| c.item.sections.plc.is_none() && c.item.cp_pattern.is_empty())
+            .filter(|c| {
+                c.item.sections.fluid.as_ref().is_some_and(|f| {
+                    !f.solenoids.is_empty()
+                        && f.solenoids
+                            .iter()
+                            .all(|s| mapped.is_empty() || mapped.iter().any(|m| m == s.as_str()))
+                })
+            })
+            .collect();
+        parts.sort_by(|a, b| a.item.part_number.as_str().cmp(b.item.part_number.as_str()));
+        parts.first().map(|c| c.id.as_uuid())
     }
 }
 

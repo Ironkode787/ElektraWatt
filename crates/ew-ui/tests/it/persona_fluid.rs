@@ -150,6 +150,130 @@ fn tubes(d: &mut Driver) -> usize {
     canvas.page().tables.connections.iter().filter(|c| c.kind == "fluid").count()
 }
 
+/// P2-A: a valve terminal could not be built from the window. From nothing: the starter terminal placed from the device
+/// browser is a valve terminal (the Fluid panel lists it); Add valve at position 1 on its box's menu and at position 2
+/// on its row's menu each make a valve child whose symbol follows the pointer to its place; a cylinder, the air supply
+/// and three tubes join them; Generate overview…, greyed in words before, draws the overview page.
+#[test]
+fn p2a_a_valve_terminal_is_built_from_nothing_and_its_overview_generated() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    // Greyed with its reason while no valve terminal is selected.
+    let reason = ew_ui::ew_viewmodel::actions::find("fluid.generate_overview")
+        .map(|a| (a.enabled)(d.shell_mut()));
+    assert_eq!(
+        reason.and_then(Result::err).map(ew_ui::ew_viewmodel::strings::text),
+        Some("Select a valve terminal first: on its page or in the Fluid panel")
+    );
+    place_terminal(&mut d, (760, 300), (1260, 520));
+    let nodes = fluid_nodes(&mut d);
+    assert!(
+        nodes.iter().any(|n| n.role == NavRole::Section && n.label == "Valve terminals"),
+        "the Fluid panel lists the valve terminal"
+    );
+    let terminal = nodes
+        .iter()
+        .find(|n| n.role == NavRole::Device)
+        .map(|n| n.label.clone())
+        .expect("the terminal's row");
+    // Add valve at position 1 on the box's menu: the valve's symbol follows the pointer, a click places it.
+    d.input(&right_click((1010, 330)));
+    d.settle();
+    d.input(&click(starting_with(&d, "Add valve at position 1")));
+    d.settle();
+    click_at(&mut d, (860, 440));
+    d.input(&key("escape"));
+    d.settle();
+    // Add valve at position 2 on the terminal's row in the Fluid panel.
+    let row = row_of(&mut d, &terminal);
+    d.input(&right_click(row));
+    d.settle();
+    d.input(&click(starting_with(&d, "Add valve at position 2")));
+    d.settle();
+    click_at(&mut d, (1100, 440));
+    d.input(&key("escape"));
+    d.settle();
+    let nodes = fluid_nodes(&mut d);
+    let at = nodes.iter().position(|n| n.label == terminal).unwrap();
+    let valves: Vec<&str> = nodes
+        .iter()
+        .filter(|n| n.parent == u32::try_from(at).ok() && n.role == NavRole::Device)
+        .map(|n| n.label.as_str())
+        .collect();
+    let (q1, q2) = (format!("{terminal}-Q1"), format!("{terminal}-Q2"));
+    assert_eq!(valves, [q1.as_str(), q2.as_str()], "the terminal's two valves");
+    let drawn = |d: &mut Driver, device: Uuid| {
+        d.shell_mut()
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .reps
+            .iter()
+            .any(|r| r.device == Some(device))
+    };
+    let (v1, v2) = (fluid_device(&mut d, &q1), fluid_device(&mut d, &q2));
+    assert!(drawn(&mut d, v1) && drawn(&mut d, v2), "both valves drawn");
+    // A cylinder and the air supply (the persona's supply was greyed for want of a letter code).
+    place_symbol(&mut d, "ew.iso.cylinder-double-acting@qet10", (900, 800));
+    d.input(&click(d.find("Symbol").unwrap()));
+    d.settle();
+    d.input(&typed("supply point"));
+    d.settle();
+    d.input(&key("enter"));
+    d.settle();
+    click_at(&mut d, (1400, 800));
+    d.input(&key("escape"));
+    d.settle();
+    let reps = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    let device_of = |key: &str| {
+        reps.reps
+            .iter()
+            .find(|r| r.symbol_key.starts_with(key))
+            .and_then(|r| r.device)
+            .unwrap_or_else(|| panic!("no {key}"))
+    };
+    let (cylinder, supply) = (device_of("ew.iso.cylinder"), device_of("ew.iso.air-supply"));
+    // Three tubes with the Wire tool.
+    for (a, b) in [
+        ((v1, "4"), (cylinder, "B")),
+        ((v1, "2"), (cylinder, "A")),
+        ((supply, "1"), (v1, "1")),
+    ] {
+        let (pa, pb) = (port(&mut d, a.0, a.1), port(&mut d, b.0, b.1));
+        draw_tube(&mut d, pa, pb);
+    }
+    assert_eq!(tubes(&mut d), 3);
+    // Generate overview… on the terminal's row: the preview, then Apply draws the overview page.
+    let row = row_of(&mut d, &terminal);
+    d.input(&right_click(row));
+    d.settle();
+    d.input(&click(starting_with(&d, "Generate overview…")));
+    d.settle();
+    let notices = d.shell_mut().preview_pane().notices().to_vec();
+    let page = notices
+        .iter()
+        .find(|n| n.contains("(new page)") && n.contains(&terminal))
+        .and_then(|n| n.strip_prefix("page "))
+        .and_then(|n| n.split([':', ' ']).next())
+        .unwrap_or_else(|| panic!("a new overview page: {notices:?}"))
+        .to_owned();
+    d.input(&click(d.find("Apply").expect("the card's Apply")));
+    d.settle();
+    let _ = d.shell_mut().dispatch("page.goto", &json!({ "folio": page }));
+    d.settle();
+    let head = fluid_device(&mut d, &terminal);
+    let overview = d.shell_mut().canvas().is_some_and(|c| {
+        c.page()
+            .tables
+            .reps
+            .iter()
+            .any(|r| r.rep_type == "overview" && r.device == Some(head))
+    });
+    assert!(overview, "the terminal drawn on its overview page {page}");
+    d.shell_mut().shutdown();
+}
+
 /// The device a symbol of the page shown draws, by its symbol key's start (`ew.iso.cylinder`).
 fn device_drawn(d: &mut Driver, key: &str) -> Uuid {
     let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);

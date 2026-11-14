@@ -505,19 +505,21 @@ fn defs() -> Vec<Def> {
             sections: Some(json!({"fluid": {"solenoids": ["12"]}})),
             unit: None,
         },
-        // FT-1326: a generic valve terminal without Golden A's parts: a module of four valve positions whose eight
+        // FT-1326: a generic valve terminal without Golden A's parts: a terminal of four valve positions whose eight
         // output channels have no pins (solenoid 14 of position p on channel 2p, 12 on 2p+1), a 5/2 valve with an
-        // internal coil, and a supply plate that taps galleries 1, 3 and 5.
+        // internal coil, and a supply plate that taps galleries 1, 3 and 5. The persona round: the terminal is a
+        // station of its own with integrated outputs, so that a device placed from it is a valve terminal (its
+        // part's solenoid-position map says so, normaliser N0) without a head beside it.
         Def {
             number: "EW-GEN-VTM-1",
             kind: None,
-            description: "Valve terminal module, 4 valve positions, 8 outputs",
+            description: "Valve terminal, 4 valve positions, 8 outputs",
             cps: Vec::new(),
             template: vec![("ew.fn.overview", true, Vec::new())],
             contacts: Vec::new(),
             tech: vec![("rated_voltage", q("24", "V"))],
             plc: Some(json!({
-                "role": "module",
+                "role": "station",
                 "io": [{"dir": "out", "bits": 8}],
                 "channels": {"count": 8, "kind": "do", "data_type": "Bool", "designation": "{n}"},
                 "bit_of": "n",

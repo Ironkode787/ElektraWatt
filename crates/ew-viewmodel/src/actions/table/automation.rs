@@ -240,19 +240,36 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_addresses_at_terminals(p),
         ),
     ),
-    // A valve terminal row's Generate overview… (FR-FLU-033): the previewed overview pages.
+    // A valve terminal row's Generate overview… (FR-FLU-033): the previewed overview pages; without a row, of the
+    // selected valve terminal, greyed in words while none is selected (the persona round).
     with_params(
-        "station:ref",
-        needs_parameters(in_navigator(with_aliases(
+        "station?:ref",
+        in_navigator(with_aliases(
             &[("station", ParamForm::Whole)],
             act(
                 "fluid.generate_overview",
                 Command,
                 Menu::Project,
                 &[],
-                writable,
+                valve_terminal_selected,
                 None,
                 |s, p| s.act_fluid_generate_overview(p),
+            ),
+        )),
+    ),
+    // A valve terminal's Add valve at position n (doc 11 §7): the valve child, then its symbol on the pointer.
+    with_params(
+        "module:ref, position:uint",
+        needs_parameters(hidden(with_aliases(
+            &[("module", ParamForm::Whole)],
+            act(
+                "fluid.valve_add",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_fluid_valve_add(p),
             ),
         ))),
     ),

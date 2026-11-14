@@ -309,6 +309,12 @@ fn writable_page(m: &ShellModel) -> Result<(), Key<'static>> {
     has_pages(m)
 }
 
+/// The selection is one valve terminal (Generate overview… without a row; the persona round), else why not in words.
+fn valve_terminal_selected(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable(m)?;
+    m.selected_valve_terminal().map(|_| ())
+}
+
 /// The project can be written and has an open revision (Approve, Release, Set author).
 fn open_revision(m: &ShellModel) -> Result<(), Key<'static>> {
     writable(m)?;
@@ -669,6 +675,10 @@ pub fn enabled_with(
     // A Cables row's Cable… selects its cable's wires itself (FT-1693).
     if meta.id == "cable.from_wires" && p.contains_key("cable") {
         return writable_page(m);
+    }
+    // A valve terminal's row names its terminal.
+    if meta.id == "fluid.generate_overview" && p.contains_key("station") {
+        return writable(m);
     }
     (meta.enabled)(m)
 }

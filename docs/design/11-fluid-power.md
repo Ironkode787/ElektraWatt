@@ -252,8 +252,15 @@ by designation; the path itself is the FnDef's valve model). A gallery is named 
 joins (`supply1`, `exhaust3`, `exhaust5`, `pilot_exhaust82`, `pilot_exhaust84`), and `tap` is the **designation** of
 the part's port, not a CP index, so a part tapping a gallery does not depend on its FnDef's CP order. A module's
 position count is `fluid.positions`, else `plc.positions.count`. The starter parts (FT-1326) add a generic valve
-terminal: module EW-GEN-VTM-1 (four positions, eight internal outputs, solenoid 14 on channel 2p), valve
-EW-GEN-VLV-3 (5/2 with an internal coil, 24 V DC) and supply plate EW-GEN-VTS-1 (taps 1, 3 and 5).
+terminal: EW-GEN-VTM-1 (four positions, eight internal outputs, solenoid 14 on channel 2p), valve
+EW-GEN-VLV-3 (5/2 with an internal coil, 24 V DC) and supply plate EW-GEN-VTS-1 (taps 1, 3 and 5). *As built (M3
+persona round).* EW-GEN-VTM-1 is a station part with its outputs integrated (`plc.role` `station`, the positions map),
+so that a device placed from it is a valve terminal and its own valve module: normaliser N0 gives a station whose
+part maps solenoids to valve positions the role `valve_terminal` ([10](10-plc-and-bus.md) §3.3), and its valves are
+its children. The starter tubes EW-GEN-TUB-6, -8 and -10 (polyurethane 6×4, 8×6 and 10×8 mm, blue, 10 bar; part kind
+`tube`, sold by the metre) and the push-in fittings EW-GEN-FIT-6 and -8 (G1/8 for 6 mm, G1/4 for 8 mm; kind
+`accessory`) carry `fluid.tube` and `fluid.fitting` and no template. A fluid line's Tube part offers the parts of kind
+`tube`, the project's and the system libraries' (a library part is embedded with the edit).
 
 *As built (WP-S1.20).* Of this section only `solenoids` is typed
 (`PartSections.fluid`), with the part's template: the k-th `function_template` entry on a FnDef of contact kind `coil`
@@ -697,6 +704,11 @@ the smallest-ID representation (doc 03 §5.1). The positions in the overview are
 so a refresh of Golden A, drawn by hand with gaps, closes the gaps. The part data's `overview.symbol` and
 `overview.width` (step 1) are not read: the symbol is the member's own or the starter one, the width its graphics'.
 
+*As built (M3 persona round).* A valve or a blanking plate is never a member: it is a glyph of its module's position
+(step 3), also when the module is the terminal itself (the starter terminal, §2.6). So a terminal with valve positions
+of its own is an overview without other members; the command refuses only a station with neither members nor valve
+positions.
+
 ### 5.6 Query catalogue
 
 | Query (key) | Depends on | Policy | Class |
@@ -802,6 +814,16 @@ join, and the committed hint is a working fluid line (`device.place`'s hint take
 fluid ports); a fluid port never proposes an electrical CP, nor an electrical CP a fluid port, on any page. A flexible
 line is drawn as an arc between its ends: a quadratic curve whose control point stands a quarter of the chord to the
 left of it, the route's corners not drawn. Project ▸ Fluid settings… (FT-1752) is a form of the member `fluid` of `project.settings.set`: the default tube's outer and inner diameter in mm and its material, and whether fluid lines are tagged by page and counter; the member's other values are kept, a diameter that is no length is refused in words.
+
+*As built (M3 persona round, pneumatics from nothing).* The device's fluid actions stand on its symbol's menu as on
+its rows, so a valve terminal's box offers Add valve and Generate overview…. **Add valve at position n** is the window
+action `fluid.valve_add {module, position}`: one `valve.set_occupancy` with the part of the terminal's other valves,
+else the system libraries' valve for its positions (the first by part number of the parts that name solenoids the
+module's map names, with no PLC section and no CP pattern, embedded in the same step; `Session::fluid_menu`), then the
+new valve's symbol on the pointer (`place.pick` of its main function) when the page shown takes it, and a toast that
+names it. **Generate overview…** without a row acts on the selected valve terminal; while none is selected it is greyed
+with "Select a valve terminal first: on its page or in the Fluid panel", and on a device that is no terminal with
+"The selection is no valve terminal: a valve terminal is placed from a part with valve positions".
 
 ---
 

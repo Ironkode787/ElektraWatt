@@ -42,7 +42,8 @@ use crate::tx::TxBuilder;
 /// it empties.
 ///
 /// A member without a main function (a module added without one) is given the symbol's function as its main one.
-/// Refused: a station without children; a member without an overview representation when `symbol` is absent; a
+/// Refused: a station without children and without valve positions of its own; a member without an overview
+/// representation when `symbol` is absent; a
 /// station without a page to start from. `Bulk`: the window previews it; one undo step. Outcome: the station.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -91,7 +92,8 @@ impl Command for GenerateOverview {
         tx.require::<Device>(self.station)?;
         let q = Q::new(tx.base_model());
         let members = assembly_members(&q, self.station);
-        if members.len() < 2 {
+        // A terminal that carries its valves itself (the starter one) is an overview of its own.
+        if members.len() < 2 && ew_derive::valve_positions(&q, self.station).is_none() {
             return tx.reject(text!(
                 "refusal-overview-no-children",
                 crate::words::device(tx, self.station)

@@ -551,7 +551,7 @@ impl ShellModel {
 
     /// The devices of the selection: a selected device, the device of a selected function or of a selected
     /// representation's function; sorted, once each.
-    fn selected_devices(&self) -> Vec<String> {
+    pub(super) fn selected_devices(&self) -> Vec<String> {
         let Some(project) = &self.project else {
             return Vec::new();
         };

@@ -110,13 +110,17 @@ impl Query for AssemblyBreakMarks {
 }
 
 /// The members of the assembly `head`'s overview: `head`, then its direct children in `Device.position` order
-/// (ties by tag natural order, then ID).
+/// (ties by tag natural order, then ID). A valve or a blanking plate is no member: it is a glyph of its module's
+/// position (doc 11 §5.5 step 3), also when the module is the terminal itself (the starter valve terminal).
 pub fn assembly_members(q: &Q, head: Id<Device>) -> Vec<Id<Device>> {
     let mut children: Vec<(u32, NaturalKey, Id<Device>)> = q
         .idx()
         .device_children(head)
         .filter_map(|c| {
             let d = q.devices().get(c)?;
+            if d.kind == Some(ew_schema::DeviceKind::BlankingPlate) || !crate::fluid::valve_functions(q, c).is_empty() {
+                return None;
+            }
             let tag = q.get::<DeviceTag>(c);
             let full = tag.as_ref().as_ref().map(|t| t.full.clone()).unwrap_or_default();
             Some((d.position.unwrap_or(u32::MAX), natural_key(&full), c))

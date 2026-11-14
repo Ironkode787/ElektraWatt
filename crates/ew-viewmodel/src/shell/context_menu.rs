@@ -14,7 +14,7 @@
 //!   Choose part…, Edit strip, Define potential…. **Several terminals:** Choose part… for them all.
 //! - **A symbol of a device:** on a coil Add contact per free contact of its device (each floats its symbol), on a
 //!   contact Go to coil; Join device… where another device can take it; Choose part…; Edit symbol and Copy and edit;
-//!   Define potential… on a symbol of one connection point.
+//!   Define potential… on a symbol of one connection point; then its device's fluid actions (Add valve, Generate overview…, Plug port).
 //!
 //! [`crate::command_bar::canvas_menu`] puts them first, then the bar's selection commands and the general ones. A
 //! navigator's row offers what the same thing offers on the page from the same functions
@@ -248,6 +248,8 @@ impl ShellModel {
             here: Some(rep),
         };
         self.device_entries(&thing, out);
+        // The persona round: a valve terminal's box offered no Add valve nor Generate overview….
+        self.fluid_entries(thing.device, out);
     }
 
     /// What a device offers, on the page and on a navigator's row alike (FT-1693): on a coil Add contact per free
@@ -502,10 +504,11 @@ impl ShellModel {
         out.extend(self.aimed("plc.instrument_list", json!({ "config": cfg.to_string() }), label));
     }
 
-    /// A device row's fluid actions (doc 11 §7, FT-1733; `Session::fluid_menu`): on a valve terminal Generate
-    /// overview… (FR-FLU-033); on a valve module Add valve at each blank or empty position (the part of its other
-    /// valves); on a valve Set used or Set spare and Blank position, on a blanking plate Add valve; Plug port for each
-    /// open working port (EW-FL-001's). Each is one `valve.set_occupancy` or `fluid.port.close`, one undo step.
+    /// A device's fluid actions, on its row and on its symbol alike (doc 11 §7, FT-1733; `Session::fluid_menu`): on a
+    /// valve terminal Generate overview… (FR-FLU-033); on a valve module Add valve at each blank or empty position (the
+    /// part of its other valves, else the libraries' valve; `fluid.valve_add` puts its symbol on the pointer); on a
+    /// valve Set used or Set spare and Blank position, on a blanking plate Add valve; Plug port for each open working
+    /// port (EW-FL-001's). Each is one `valve.set_occupancy` or `fluid.port.close`, one undo step.
     fn fluid_entries(&self, device: Uuid, out: &mut Vec<ActionItem>) {
         let Some(session) = self.project_session() else {
             return;
@@ -519,18 +522,16 @@ impl ShellModel {
                 label,
             ));
         }
-        let mut valve = json!({ "valve": { "state": "used" } });
-        if let Some(part) = menu.valve_part {
-            valve["valve"]["part"] = json!(part.to_string());
-        }
         let occupancy = |module: Uuid, position: u32, occupancy: &Value| {
             json!({ "cmd": "valve.set_occupancy", "params": {
                 "module": module.to_string(), "position": position, "occupancy": occupancy } })
         };
+        // Add valve: the valve child, then its symbol on the pointer (`fluid.valve_add`).
         let add = |out: &mut Vec<ActionItem>, module: Uuid, position: u32| {
             let label = strings::format(key!("canvas-valve-add"), &[&position.to_string()]);
+            let params = json!({ "module": module.to_string(), "position": position });
             out.extend(
-                self.aimed("command.run", occupancy(module, position, &valve), label)
+                self.aimed("fluid.valve_add", params, label)
                     .map(|mut i| {
                         if i.enabled && menu.valve_part.is_none() {
                             i.enabled = false;
