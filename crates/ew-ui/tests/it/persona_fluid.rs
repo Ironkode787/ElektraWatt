@@ -292,6 +292,11 @@ fn one_tube(d: &mut Driver) {
     let (cylinder, supply) = (device_drawn(d, "ew.iso.cylinder"), device_drawn(d, "ew.iso.air-supply"));
     let (a, b) = (port(d, supply, "1"), port(d, cylinder, "A"));
     draw_tube(d, a, b);
+    one_tube_selected(d);
+}
+
+/// Selects the page's first tube.
+fn one_tube_selected(d: &mut Driver) {
     let line = d
         .shell_mut()
         .canvas()
@@ -572,5 +577,59 @@ fn item8_a_tube_between_ports_already_on_one_line_says_so() {
         crate::persona_round::state(&mut d)["status"][0],
         json!("These two points already sit on one line; click a point of another line, or Esc")
     );
+    d.shell_mut().shutdown();
+}
+
+/// The text and the provenance chip of the Properties row `key` of the selection.
+fn prop_row(d: &mut Driver, key: &str) -> (String, String) {
+    d.settle();
+    let sheet = d.shell_mut().properties().sheet().cloned().expect("the sheet");
+    let row = sheet
+        .sections
+        .iter()
+        .flat_map(|s| s.rows.iter())
+        .find(|r| r.key == key)
+        .unwrap_or_else(|| panic!("no row {key}"))
+        .clone();
+    let text = match &row.value {
+        ew_ui::ew_viewmodel::properties::RowValue::One { text, .. } => text.clone(),
+        other => format!("{other:?}"),
+    };
+    (text, ew_ui::ew_viewmodel::properties::chip_text(&row.provenance))
+}
+
+/// P2-E: the medium could not be found from a tube (Properties showed Line kind, Tube part, Tube length), and Fluid
+/// settings… and New medium… were found only through the command search. The Fluid panel offers both; a tube's
+/// Properties show its medium with where it is defined, set it by a choice, and show its effective tube with its source.
+#[test]
+fn p2e_a_tubes_properties_show_and_set_its_medium_and_its_tube() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    assert!(d.find("Fluid settings…").is_some(), "Fluid settings… on the Fluid panel");
+    assert!(d.find("New medium…").is_some(), "New medium… on the Fluid panel");
+    let medium = json!({"name": "Compressed air", "p_nom": "6"});
+    assert_eq!(d.shell_mut().dispatch("fluid.medium_new", &medium), Outcome::Done);
+    let settings = json!({"od": "6", "id": "4", "material": "pu"});
+    assert_eq!(d.shell_mut().dispatch("fluid.settings", &settings), Outcome::Done);
+    one_tube_selected(&mut d);
+    let edit = json!({"row": "connection/derived.medium"});
+    assert_eq!(d.shell_mut().dispatch("props.edit", &edit), Outcome::Done);
+    let (name, id) = d
+        .shell_mut()
+        .properties()
+        .choices()
+        .and_then(|c| c.items.first().cloned())
+        .expect("the project's medium as a choice");
+    assert_eq!(name, "Compressed air");
+    let set = json!({"row": "connection/derived.medium", "value": id});
+    assert_eq!(d.shell_mut().dispatch("props.set", &set), Outcome::Done);
+    one_tube_selected(&mut d);
+    let (text, chip) = prop_row(&mut d, "connection/derived.medium");
+    assert_eq!(text, "Compressed air");
+    assert!(chip.contains("medium defined at"), "{chip}");
+    let (text, chip) = prop_row(&mut d, "connection/derived.tube");
+    assert_eq!(text, "6×4 mm PU");
+    assert!(chip.contains("the project's default tube"), "{chip}");
     d.shell_mut().shutdown();
 }

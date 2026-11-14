@@ -926,6 +926,20 @@ impl Session {
                 "plc.set_profile",
                 json!({"config_project": edit.target.to_string(), "profile": text}),
             ),
+            // A fluid line's medium, chosen among the project's media: defined at the line's end, which replaces the
+            // definition of its net (doc 11 §7).
+            ("connection", "medium") => {
+                let Some((function, idx)) = self.line_end_cp(edit.target) else {
+                    return invalid("The tube ends at no port to define its medium at.");
+                };
+                if text.parse::<Uuid>().is_err() {
+                    return invalid("Choose one of the project's media.");
+                }
+                command(
+                    "fluid.medium.define",
+                    json!({"function": function.to_string(), "idx": idx, "medium": text}),
+                )
+            }
             ("placement", _) => {
                 let Some(p) = q.table::<Placement>().get(Id::from_uuid(edit.target)) else {
                     return invalid("The placement is no longer in the project.");

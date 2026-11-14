@@ -44,9 +44,12 @@ the middle, and the tube table and the medium table in the bottom dock.
 
 ## Media
 
-10. Choose **Project ▸ New medium…**, give the medium a name and its pressure in bar, and choose **Create**.
+10. Choose **Project ▸ New medium…**, or **New medium…** at the top of the Fluid panel beside **Fluid settings…**,
+    give the medium a name and its pressure in bar, and choose **Create**.
 11. Right-click a fluid line and choose **Medium:** with the medium's name: the line's net and every net the medium
-    reaches through the valves carry it. The fluid navigator counts the lines of each medium.
+    reaches through the valves carry it. The fluid navigator counts the lines of each medium. A tube's **Medium** in
+    Properties shows the medium and where it is defined, and sets it too; its **Tube** row shows the tube it is made of
+    (such as 6×4 mm PU) and where that comes from.
 12. Select the medium's row in the medium table and press `Ctrl+Shift+H` to highlight its zones on the page; the
     highlight is a colour with a hatch pattern, so it reads without colour too.
 

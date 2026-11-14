@@ -864,6 +864,16 @@ impl ShellModel {
                 details = refs;
                 items
             }
+            // A tube's medium by its name; choosing one commits the medium's ID.
+            (crate::properties::EditRoute::Command { command }, _) if command == "fluid.medium.define" => {
+                let f = filter.to_lowercase();
+                p.session
+                    .media()
+                    .into_iter()
+                    .filter(|(_, name)| name.to_lowercase().contains(&f))
+                    .map(|(id, name)| (name, Value::String(id.to_string())))
+                    .collect()
+            }
             // The Surface row's choice is the surface, by its ID: two surfaces may read alike.
             (crate::properties::EditRoute::Command { .. }, _) if row.key == SURFACE_ROW => {
                 let f = filter.to_lowercase();

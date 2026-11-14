@@ -1671,6 +1671,14 @@ const CHIP_PHRASES: &[(&str, Option<&str>, Key<'static>)] = &[
     ("size profile '", Some("'"), key!("chip-via-size-profile")),
     ("class ", Some(""), key!("chip-via-class")),
     ("built-in default (", Some(")"), key!("chip-via-built-in-default")),
+    // A tube's medium and tube (the persona round).
+    ("medium definition at ", Some(""), key!("chip-via-medium-definition-at")),
+    ("carried through the valves", None, key!("chip-via-through-valves")),
+    ("no medium definition", None, key!("chip-via-no-medium")),
+    ("project default tube", None, key!("chip-via-project-default-tube")),
+    ("medium '", Some("'"), key!("chip-via-medium")),
+    ("tube part ", Some(""), key!("chip-via-tube-part")),
+    ("no tube specification", None, key!("chip-via-no-tube-spec")),
 ];
 
 /// A provenance chip's words in the UI language: each ` · `-separated part of `ew-api`'s English

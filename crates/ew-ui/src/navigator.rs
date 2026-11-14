@@ -268,6 +268,30 @@ impl NavigatorPane {
                             events.push(Event::Action("section.new", Value::Null));
                         }
                     }
+                    // The Fluid panel's Fluid settings… and New medium… (the persona round found them only through
+                    // the command search): the same actions as the Project tab's, disabled with their reasons.
+                    if self.kind == NavKind::Fluid {
+                        for (id, icon, label) in [
+                            ("fluid.settings", crate::icons::IconId::adjustments, key!("action-fluid-settings")),
+                            ("fluid.medium_new", crate::icons::IconId::plus, key!("action-fluid-medium-new")),
+                        ] {
+                            let state = ew_viewmodel::actions::find(id).map(|a| (a.enabled)(shell));
+                            let button = crate::components::icon_toggle(
+                                ui,
+                                icon,
+                                strings::text(label),
+                                matches!(state, Some(Ok(()))),
+                                None,
+                            );
+                            let button = match state {
+                                Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
+                                _ => button,
+                            };
+                            if button.clicked() {
+                                events.push(Event::Action(id, Value::Null));
+                            }
+                        }
+                    }
                     // The Table toggle (§8.1, `navigator.table`); the Messages pane
                     // has no table mode, so no toggle.
                     if self.kind != NavKind::Messages {

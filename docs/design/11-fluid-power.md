@@ -831,6 +831,14 @@ names it. **Generate overview…** without a row acts on the selected valve term
 with "Select a valve terminal first: on its page or in the Fluid panel", and on a device that is no terminal with
 "The selection is no valve terminal: a valve terminal is placed from a part with valve positions".
 
+*As built (M3 persona round).* **A tube's Properties** show, beside Line kind, Tube part and Tube length, two derived
+rows: **Medium**, the medium its net carries, its chip saying where it is defined ("medium defined at -201X1:1", else
+"carried through the valves"), chosen among the project's media (one `fluid.medium.define` at the tube's end through
+`Session::layout_edit`, which replaces the net's definition); and **Tube**, its effective specification ("6×4 mm PU"),
+its chip naming the sources of its size and material (the project's default tube, a medium's, a tube part's, its own
+override; §5.4), read-only. **The Fluid panel's tool line** offers Fluid settings… and New medium…, the Project tab's
+actions.
+
 ---
 
 ## 8. Outputs

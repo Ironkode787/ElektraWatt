@@ -709,3 +709,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: the Wire tool refuses in words an end that already sits on one line with its start (a point of
   its own line; for a tube, the two ends of a tube again) and keeps routing; such a click did nothing (M3 persona
   round)
+- behaviour-change: a tube's Properties show its medium with where it is defined and set it by a choice, and its
+  effective tube (6×4 mm PU) with the source of its size and material; the Fluid panel offers Fluid settings… and New
+  medium… beside its filter (M3 persona round)

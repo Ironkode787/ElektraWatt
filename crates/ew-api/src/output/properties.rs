@@ -1659,6 +1659,128 @@ fn profile_chooser(q: &Q, built: &mut [Built]) {
     }
 }
 
+/// A fluid line's derived rows (doc 11 §7, the persona round: the medium was found only through the command search):
+/// **Medium**, the medium its net carries, with where it is defined, chosen among the project's media (one
+/// `fluid.medium.define` at the line's end through [`Session::layout_edit`]); **Tube**, its effective tube
+/// specification (`6×4 mm PU`) with the source of its values (the project's default tube, its medium's, its tube part's,
+/// its own override; doc 11 §5.4), read-only.
+fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
+    use ew_derive::ew_schema::{Medium, MediumDef};
+    use ew_derive::{FluidNets, TubePropsOf, TubeSource};
+    let media = q.table::<Medium>();
+    let name = |m: Id<Medium>| media.get(m).map(|m| neutral_or_first(&m.name)).unwrap_or_default();
+    let nets = q.get::<FluidNets>(());
+    let net_of = |at: Option<EndpointKey>| at.and_then(|at| nets.net_of(at)).map(|n| n.id);
+    let mut medium_per = Vec::new();
+    let mut tube_per = Vec::new();
+    for t in targets {
+        let id: Id<Connection> = Id::from_uuid(*t);
+        let props = q.get::<TubePropsOf>(id);
+        let net = q
+            .connections()
+            .get(id)
+            .and_then(|c| net_of(EndpointKey::of(&c.a)));
+        // The medium and where it is defined: a definition in the line's own net, else the valves carry it there.
+        let medium = props.medium.as_ref().map(ew_derive::MediumKey::root);
+        let def = q
+            .table::<MediumDef>()
+            .iter()
+            .map(|(_, d)| d)
+            .find(|d| net.is_some() && net_of(EndpointKey::of(&d.at)) == net)
+            .and_then(|d| EndpointKey::of(&d.at).and_then(ew_derive::CpRef::of))
+            .map(|cp| cp_label(q, cp));
+        let via = match (medium, def) {
+            (Some(_), Some(at)) => format!("medium definition at {at}"),
+            (Some(_), None) => "carried through the valves".to_owned(),
+            (None, _) => "no medium definition".to_owned(),
+        };
+        medium_per.push((
+            medium.map(|m| Value::String(m.as_uuid().to_string())),
+            Provenance::Derived { via },
+        ));
+        // The effective tube and the source of its size and material.
+        let size = props.size_text();
+        let text = [
+            (!size.is_empty()).then(|| format!("{size} mm")),
+            props.material.as_ref().map(|m| m.value.code().to_owned()),
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>()
+        .join(" ");
+        let mut sources: Vec<String> = Vec::new();
+        for s in [&props.od.as_ref().map(|v| &v.source), &props.id.as_ref().map(|v| &v.source), &props.material.as_ref().map(|v| &v.source)]
+            .into_iter()
+            .flatten()
+        {
+            let words = match s {
+                TubeSource::Project => "project default tube".to_owned(),
+                TubeSource::Medium(m) => format!("medium '{}'", name(*m)),
+                TubeSource::Part(p) => format!(
+                    "tube part {}",
+                    q.parts().get(*p).map(|c| c.item.part_number.as_str().to_owned()).unwrap_or_default()
+                ),
+                TubeSource::Override => "override".to_owned(),
+            };
+            if !sources.contains(&words) {
+                sources.push(words);
+            }
+        }
+        let provenance = if sources.is_empty() {
+            Provenance::Derived {
+                via: "no tube specification".to_owned(),
+            }
+        } else {
+            Provenance::Derived {
+                via: sources.join(" · "),
+            }
+        };
+        tube_per.push(((!text.is_empty()).then_some(Value::String(text)), provenance));
+    }
+    let options: Vec<String> = media.iter().map(|(id, _)| id.as_uuid().to_string()).collect();
+    let (medium_value, medium_provenance) = merge(cx, &FieldType::Text, medium_per);
+    // The medium's name stands for its ID.
+    let medium_value = match medium_value {
+        RowValue::One { json, .. } => {
+            let text = json
+                .as_str()
+                .and_then(|s| s.parse::<Uuid>().ok())
+                .map(|u| name(Id::from_uuid(u)))
+                .unwrap_or_default();
+            RowValue::One { json, text }
+        }
+        other => other,
+    };
+    let medium = derived(
+        "connection",
+        "medium",
+        Some((
+            "derived.medium",
+            EditRoute::Command {
+                command: "fluid.medium.define".to_owned(),
+            },
+            false,
+        )),
+        Category::Part,
+        FieldType::Enum { options },
+        medium_value,
+        medium_provenance,
+        vec![RowAction::Edit],
+    );
+    let (tube_value, tube_provenance) = merge(cx, &FieldType::Text, tube_per);
+    let tube = derived(
+        "connection",
+        "tube",
+        None,
+        Category::Part,
+        FieldType::Text,
+        tube_value,
+        tube_provenance,
+        Vec::new(),
+    );
+    vec![medium, tube]
+}
+
 /// Doc 16a §8.5: the route points of connection `c` as the frame cells they lie in (`D5`), as
 /// cross-references print them, never as nanometres; a point outside the frame grid by its two lengths.
 fn route_in_cells(q: &Q, c: Id<Connection>, built: &mut [Built]) {
@@ -2153,6 +2275,9 @@ impl Session {
         }
         if (generated.is_none() || kind != Kind::ReportBlock) && !fluid_lines {
             built.extend(self.derived_rows(q, cx, kind, &targets, &jsons));
+        }
+        if fluid_lines {
+            built.extend(fluid_line_rows(q, cx, &targets));
         }
         // A generated page shows its Kind, as a drawn page does: the page type `report`.
         if let (Kind::ReportBlock, Some(block)) = (kind, generated) {
