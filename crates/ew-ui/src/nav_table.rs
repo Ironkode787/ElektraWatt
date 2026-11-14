@@ -1188,11 +1188,18 @@ impl TableDelegate for Delegate<'_> {
         // A strip without a tag yet in words in its Strip cell.
         let text = ew_viewmodel::navigators::cell_text(self.table, node, c);
         let reason = cell_reason(self.table, node, c);
+        // A PLC channel's manual address (typed, or frozen by Freeze addresses) carries a lock after its text.
+        let manual = column.key == "address"
+            && node.role == NavRole::Channel
+            && node.badges.iter().any(|b| b == "manual");
         let mut name = if text.is_empty() {
             column.label.clone()
         } else {
             format!("{} {text}", column.label)
         };
+        if manual {
+            name = format!("{name}, {}", strings::text(key!("nav-badge-manual")));
+        }
         name.push_str(&strings::format(
             key!("table-cell-row"),
             &[&(at + 1).to_string(), &self.rows.len().to_string()],
@@ -1251,7 +1258,15 @@ impl TableDelegate for Delegate<'_> {
         } else {
             t.text_primary
         };
-        let content = rect.shrink2(vec2(t.space_4, 0.0));
+        let mut content = rect.shrink2(vec2(t.space_4, 0.0));
+        if manual {
+            let icon = Rect::from_min_size(
+                pos2(content.right() - t.icon_sm, content.center().y - t.icon_sm / 2.0),
+                vec2(t.icon_sm, t.icon_sm),
+            );
+            icons::paint(ui.painter(), IconId::lock, icon, t.text_secondary.color32(), t.icon_stroke);
+            content.max.x -= t.icon_sm + t.space_2;
+        }
         paint_text(ui, content, &text, theme::font(&t.type_small), colour);
         // A cell cut with an ellipsis shows its whole text in its tooltip (a read-only cell's reason first).
         let elided = text_width(ui, &text, theme::font(&t.type_small)) > content.width() + 0.5;

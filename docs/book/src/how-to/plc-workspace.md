@@ -36,6 +36,9 @@ cards, bind channels and check what each channel drives.
    **Make manual addresses automatic…** drops the manual addresses that equal the derived ones, and **Freeze
    addresses…** on a configuration project keeps the address of every used or reserved channel as a manual one and
    pins each card's start, so that a later change of a card moves none; a spare channel keeps its automatic address.
+   The configuration project's three commands are also in the **Addresses** menu at the top of the PLC panel and of
+   the PLC grid. After **Apply** a toast says how many addresses were frozen or moved, and a manual address (typed,
+   or frozen) carries the badge **manual** in the panel and a lock in the grid's Address cell.
 
 ## Rack and slots
 

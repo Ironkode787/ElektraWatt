@@ -290,6 +290,11 @@ impl NavigatorPane {
                         if let Some(nav) = table_nav {
                             crate::nav_table::chooser(ui, shell, nav, events);
                         }
+                        // The PLC panel's and grid's Addresses menu: Re-address…, Make manual addresses automatic…
+                        // and Freeze addresses… where a person looks for them, not only on a row's right-click.
+                        if matches!(self.kind, NavKind::Plc | NavKind::PlcGrid) {
+                            addresses_menu(ui, shell, events);
+                        }
                         // The strip editor's scope (one strip, by its ID) stands in the filter's place in
                         // words, with its Clear; Clear, or Escape on the empty filter, ends it.
                         if let Some(words) = scope.as_deref() {
@@ -783,6 +788,33 @@ impl NavigatorPane {
             json!({"kind": self.kind_word(), "prefix": self.typed.0}),
         ));
     }
+}
+
+/// The Addresses menu of the PLC panel and the PLC grid: a Subtle button with a chevron, as Columns, whose entries
+/// are the configuration projects' addressing commands ([`ShellModel::plc_addressing_items`]); none without one.
+fn addresses_menu(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
+    let items = shell.plc_addressing_items();
+    if items.is_empty() {
+        return;
+    }
+    let t = crate::theme::current(ui.ctx());
+    let label = egui::RichText::new(strings::text(key!("nav-plc-addresses")))
+        .font(crate::theme::font(&t.type_body))
+        .color(t.text_primary.color32());
+    let chevron = crate::components::icon_atom(
+        crate::icons::IconId::chevron_down,
+        t.icon_sm,
+        Some(t.text_secondary),
+        t.icon_stroke,
+    );
+    let button = egui::Button::new((label, chevron))
+        .frame(false)
+        .min_size(egui::vec2(0.0, t.size_control_inline));
+    let _ = egui::containers::menu::MenuButton::from_button(button).ui(ui, |ui| {
+        for item in &items {
+            crate::menu::item(ui, item, events);
+        }
+    });
 }
 
 /// Opens a row: `pages.open` for a page row of the Pages navigator as built (`pages`), `navigator.open` otherwise.

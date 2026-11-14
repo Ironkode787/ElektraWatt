@@ -831,6 +831,19 @@ impl Session {
             .collect()
     }
 
+    /// The project's configuration projects with their names, in natural order of the name (the PLC panel's Addresses
+    /// menu).
+    pub fn plc_config_projects(&self) -> Vec<(Uuid, String)> {
+        let q = self.query();
+        let mut out: Vec<(Uuid, String)> = q
+            .table::<ew_derive::ew_schema::PlcConfigProject>()
+            .iter()
+            .map(|(id, c)| (id.as_uuid(), c.name.to_string()))
+            .collect();
+        out.sort_by_cached_key(|(id, name)| (natural_key(name), *id));
+        out
+    }
+
     /// The Messages table of the migration report (d, T11): the tree of [`Session::navigator_table`]'s
     /// Messages from a run of the `migration` scheme at the release mode, the import runs' findings among the live
     /// ones.
@@ -3027,6 +3040,10 @@ fn plc_table(q: &Q, b: &mut Builder) {
                 if r.cp.is_none() {
                     badges.push("unplaced".to_owned());
                     facets.push(("unplaced".to_owned(), String::new()));
+                }
+                // A manual address (typed, or frozen by Freeze addresses) is told from a derived one.
+                if record.is_some_and(|c| matches!(c.address, ew_derive::ew_schema::AddrSpec::Manual(_))) {
+                    badges.push("manual".to_owned());
                 }
                 match r.address {
                     ChannelAddr::Tbd => facets.push(("tbd".to_owned(), String::new())),

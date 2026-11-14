@@ -402,6 +402,28 @@ impl ShellModel {
         out
     }
 
+    /// The PLC panel's and the PLC grid's Addresses menu (the persona round: Freeze addresses was found only through
+    /// the guide): the addressing commands of each configuration project, as its row's menu offers them, each label
+    /// led by the configuration project's name when the project has more than one. Empty without one.
+    pub fn plc_addressing_items(&self) -> Vec<ActionItem> {
+        let cfgs = self
+            .project_session()
+            .map(ew_api::Session::plc_config_projects)
+            .unwrap_or_default();
+        let mut out = Vec::new();
+        for (id, name) in &cfgs {
+            let mut items = Vec::new();
+            self.addressing_entries(json!({ "config_project": id.to_string() }), &mut items);
+            if cfgs.len() > 1 {
+                for i in &mut items {
+                    i.label = format!("{name}: {}", i.label);
+                }
+            }
+            out.extend(items);
+        }
+        out
+    }
+
     /// The previewed addressing commands of a configuration project or a module (`scope` their parameters): Re-address…
     /// (`plc.readdress`, the preview lists every old and new address), Make manual addresses automatic…
     /// (`plc.convert_manual_to_auto`) and, for a configuration project, Freeze addresses… (`plc.freeze`).

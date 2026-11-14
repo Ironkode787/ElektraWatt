@@ -425,6 +425,93 @@ fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The persona round: Freeze addresses was found only through the guide, and after Apply nothing said what it did.
+/// In the PLC workspace of a new project, the PLC panel's Addresses menu holds Freeze addresses…; Apply toasts the
+/// count, and the frozen address carries the manual mark in the panel and in the grid, while a spare channel's does not.
+#[test]
+fn freeze_addresses_is_in_the_plc_panels_addresses_menu_and_marks_what_it_froze() {
+    let tmp = Tmp::new();
+    let mut h = new_project_with_cpu(&tmp);
+    dispatch(
+        &mut h,
+        "tool.black_box",
+        json!({"part": "EW-GEN-DO-1", "template": 0}),
+    );
+    crate::navigators::cursor_k(&mut h, (24, 10));
+    dispatch(&mut h, "canvas.activate", json!({}));
+    crate::navigators::cursor_k(&mut h, (30, 18));
+    dispatch(&mut h, "canvas.activate", json!({}));
+    dispatch(&mut h, "tool.select", json!({}));
+    dispatch(&mut h, "view.workspace_load", json!({"name": "PLC"}));
+    settle(&mut h);
+    let channels: Vec<String> = h
+        .state()
+        .shell()
+        .nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .map(|t| {
+            t.nodes
+                .iter()
+                .filter(|n| n.role == NavRole::Channel)
+                .map(|n| n.records[0].to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(channels.len() > 1, "{channels:?}");
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "fields.set", "params": {"kind": "channel", "targets": [channels[0]], "path": "state", "value": "reserved"}}),
+    );
+    settle(&mut h);
+    h.get_all_by_label("Addresses")
+        .next()
+        .expect("the PLC panel's Addresses menu")
+        .click();
+    settle(&mut h);
+    support::menu_node(&h, "Freeze addresses…").click();
+    settle(&mut h);
+    support::off_chrome(&h, "Apply")
+        .expect("the card's Apply")
+        .click();
+    settle(&mut h);
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
+    assert_eq!(
+        toast,
+        "Froze 1 channel address of PLC1; spare channels keep their automatic addresses."
+    );
+    let manual = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| -> Vec<String> {
+        h.state()
+            .shell()
+            .shown_rows(NavKind::Plc)
+            .into_iter()
+            .filter(|r| r.badge_codes.iter().any(|b| b == "manual"))
+            .map(|r| r.key)
+            .collect()
+    };
+    let frozen = manual(&h);
+    assert!(
+        frozen.len() == 1 && frozen[0].ends_with(&format!("channel:{}", channels[0])),
+        "the frozen one alone: {frozen:?}"
+    );
+    assert_eq!(
+        h.get_all_by_role(egui::accesskit::Role::Cell)
+            .filter(|n| n
+                .accesskit_node()
+                .label()
+                .is_some_and(|l| l.starts_with("Address ") && l.contains(", manual")))
+            .count(),
+        1,
+        "one address cell of the grid says manual"
+    );
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FR-PLC-014 in the window: a module started by hand at Q10 is re-addressed from its row's Re-address…: the Preview
 /// tab lists each channel's old and new address, and Apply moves them back to the automatic start in one step.
 #[test]

@@ -357,10 +357,56 @@ impl ShellModel {
             };
         }
         if card.preview.base_rev == rev {
+            let toast = self.plc_addressing_toast(&card);
             let Card { preview, edit, .. } = card;
-            return self.commit_kept(preview, &edit.name, &edit.params, None);
+            let out = self.commit_kept(preview, &edit.name, &edit.params, None);
+            if out == Outcome::Done
+                && let Some(text) = toast
+            {
+                self.notify(text, true);
+            }
+            return out;
         }
         self.preview_host_card_as(&card.edit.name, card.edit.params, card.reason, card.origin)
+    }
+
+    /// What Apply of a PLC addressing card did, as its toast says it (the persona round: after Freeze addresses
+    /// nothing said that they were frozen): Freeze addresses counts the channel addresses it made manual and names
+    /// the configuration project, Re-address counts the addresses that moved; `None` for another card.
+    fn plc_addressing_toast(&self, card: &Card) -> Option<String> {
+        let preview = card.preview.result.as_ref().ok()?;
+        match card.edit.name.as_str() {
+            "plc.freeze" => {
+                let frozen = preview
+                    .diff()
+                    .changes
+                    .iter()
+                    .filter(|c| c.key.0.name() == "channel")
+                    .count();
+                let cfg = card.edit.params.get("config_project").and_then(Value::as_str)?;
+                let name = self
+                    .project_session()?
+                    .plc_config_projects()
+                    .into_iter()
+                    .find(|(id, _)| id.to_string() == cfg)?
+                    .1;
+                Some(strings::format(
+                    key!("toast-plc-freeze"),
+                    &[
+                        &strings::format_count(count_key!("plc-count-addresses"), frozen),
+                        &name,
+                    ],
+                ))
+            }
+            "plc.readdress" => Some(strings::format(
+                key!("toast-plc-readdress"),
+                &[&strings::format_count(
+                    count_key!("plc-count-addresses"),
+                    preview.outcome().notices.len(),
+                )],
+            )),
+            _ => None,
+        }
     }
 
     // -----------------------------------------------------------------------------------------------------------

@@ -672,3 +672,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   the group PLC exchange with Export to PLC software and Import from PLC software; the command search finds Report
   block… by the name of each list it makes ("tube list", "card list"); New page says where lists are made (persona
   round)
+- behaviour-change: window the PLC panel and the PLC grid have an Addresses menu (Re-address…, Make manual addresses
+  automatic…, Freeze addresses…); Apply of Freeze addresses or Re-address toasts the count; a manual channel address
+  carries the badge manual in the PLC panel and a lock in the grid (persona round)
+- api-add: `Session::plc_config_projects`; `ShellModel::plc_addressing_items`
