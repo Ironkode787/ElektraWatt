@@ -79,7 +79,13 @@ pub fn percent_codes(s: &str) -> String {
                         .take(3)
                         .take_while(|c| c.is_ascii_digit())
                         .collect();
-                    if let Some(c) = digits.parse::<u32>().ok().and_then(char::from_u32) {
+                    // `%%000` is no character (a NUL would end the text for a C reader).
+                    if let Some(c) = digits
+                        .parse::<u32>()
+                        .ok()
+                        .and_then(char::from_u32)
+                        .filter(|c| *c != '\0')
+                    {
                         out.push(c);
                     }
                     i += 2 + digits.len();

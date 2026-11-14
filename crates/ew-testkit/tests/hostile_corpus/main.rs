@@ -199,17 +199,25 @@ fn dxf_drawings() {
         unit: Some(ew_api::dxf::Unit::Millimetre),
         ..Default::default()
     };
+    // The one finding of a drawing that is read without trouble but names no unit.
+    const UNIT_CHOSEN: &str =
+        "imported; report: EW-IMP-251 Warning The drawing names no unit; it was read in millimetres as chosen.";
     class(
         "dxf",
         &[
+            (
+                "block-doubling.dxf",
+                "input exceeds the DXF memory budget limit of 201326592",
+            ),
             (
                 "code-not-a-number.dxf",
                 "malformed input at line 5: a group code is not a number",
             ),
             (
                 "entities-over-the-limit.dxf",
-                "input exceeds the DXF entity count limit of 5000000",
+                "input exceeds the DXF memory budget limit of 201326592",
             ),
+            ("hatch-empty-loops.dxf", UNIT_CHOSEN),
             (
                 "insert-cycle.dxf",
                 "imported; report: EW-IMP-001 Error An item was not imported: the block A is nested deeper than 32 \
@@ -219,9 +227,14 @@ fn dxf_drawings() {
                 "line-over-1-mib.dxf",
                 "input exceeds the DXF line length limit of 1048576",
             ),
+            ("long-handles.dxf", UNIT_CHOSEN),
             (
                 "minsert-bomb.dxf",
                 "input exceeds the DXF block expansion (shapes) limit of 1000000",
+            ),
+            (
+                "minsert-nested.dxf",
+                "input exceeds the DXF memory budget limit of 201326592",
             ),
             (
                 "nan-coordinate.dxf",

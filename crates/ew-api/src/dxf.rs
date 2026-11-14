@@ -340,19 +340,65 @@ impl std::fmt::Display for DwgError {
 
 impl std::error::Error for DwgError {}
 
-/// A fresh, empty working folder under the system's temporary folder.
-fn work_dir() -> Result<std::path::PathBuf, DwgError> {
-    use std::sync::atomic::{AtomicU32, Ordering};
-    static NEXT: AtomicU32 = AtomicU32::new(0);
-    let base = std::env::temp_dir();
-    for _ in 0..64 {
-        let n = NEXT.fetch_add(1, Ordering::Relaxed);
-        let dir = base.join(format!("ew-dwg-{}-{n}", std::process::id()));
-        if std::fs::create_dir(&dir).is_ok() {
-            return Ok(dir);
+/// A fresh, empty working folder under the system's temporary folder, removed with its guard: named with a random
+/// suffix (the standard library's own hash seeds, from the operating system) and readable by its user only, since
+/// the drawing in it may be confidential.
+struct WorkDir(std::path::PathBuf);
+
+impl WorkDir {
+    fn new() -> Result<WorkDir, DwgError> {
+        use std::hash::{BuildHasher, Hasher};
+        let base = std::env::temp_dir();
+        for _ in 0..64 {
+            #[allow(
+                clippy::disallowed_methods,
+                reason = "an unpredictable folder name for the converter's copy; it never reaches the model or an output"
+            )]
+            let suffix = std::hash::RandomState::new().build_hasher().finish();
+            let dir = base.join(format!("ew-dwg-{}-{suffix:016x}", std::process::id()));
+            #[allow(unused_mut, reason = "only a Unix builder is given a mode")]
+            let mut made = std::fs::DirBuilder::new();
+            #[cfg(unix)]
+            std::os::unix::fs::DirBuilderExt::mode(&mut made, 0o700);
+            if made.create(&dir).is_ok() {
+                return Ok(WorkDir(dir));
+            }
         }
+        Err(DwgError::Failed("no working folder could be made".to_owned()))
     }
-    Err(DwgError::Failed("no working folder could be made".to_owned()))
+}
+
+impl Drop for WorkDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+
+/// A running converter, stopped with the processes it started when it is dropped before it ended (a timeout, an
+/// error reading its state).
+struct Running {
+    child: std::process::Child,
+    ended: bool,
+}
+
+impl Drop for Running {
+    fn drop(&mut self) {
+        if self.ended {
+            return;
+        }
+        // The converter may have started helpers of its own: its tree goes with it where the platform has a command
+        // for that (a process group on Unix, `taskkill /T` on Windows); the direct child is stopped in any case.
+        let pid = self.child.id().to_string();
+        #[cfg(windows)]
+        let tree = std::process::Command::new("taskkill").args(["/T", "/F", "/PID", &pid]).output();
+        #[cfg(unix)]
+        let tree = std::process::Command::new("kill").args(["-KILL", "--", &format!("-{pid}")]).output();
+        #[cfg(not(any(windows, unix)))]
+        let tree: Result<(), ()> = Ok(());
+        let _ = tree;
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
 }
 
 /// The DXF of the DWG `bytes` named `name`, made by the user's ODA File Converter `converter` (doc 14 §6.5): the
@@ -369,10 +415,9 @@ pub fn convert_dwg(
     bytes: &[u8],
     timeout: std::time::Duration,
 ) -> Result<Vec<u8>, DwgError> {
-    let work = work_dir()?;
-    let result = convert_in(&work, converter, name, bytes, timeout);
-    let _ = std::fs::remove_dir_all(&work);
-    result
+    // The guard removes the folder on every way out, a panic included.
+    let work = WorkDir::new()?;
+    convert_in(&work.0, converter, name, bytes, timeout)
 }
 
 fn convert_in(
@@ -398,28 +443,34 @@ fn convert_in(
         .filter(|s: &String| !s.is_empty())
         .unwrap_or_else(|| "drawing".to_owned());
     std::fs::write(input.join(format!("{stem}.dwg")), bytes).map_err(failed)?;
-    let mut child = std::process::Command::new(converter)
+    let mut command = std::process::Command::new(converter);
+    command
         .arg(&input)
         .arg(&output)
         .args(["ACAD2018", "DXF", "0", "1", "*.DWG"])
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .map_err(failed)?;
+        .stderr(std::process::Stdio::null());
+    // Its own process group on Unix, so that stopping it can stop what it started.
+    #[cfg(unix)]
+    std::os::unix::process::CommandExt::process_group(&mut command, 0);
+    let mut run = Running {
+        child: command.spawn().map_err(failed)?,
+        ended: false,
+    };
     #[allow(
         clippy::disallowed_methods,
         reason = "the converter's timeout is wall time; the instant never reaches the model or an output"
     )]
     let started = std::time::Instant::now();
     let status = loop {
-        match child.try_wait().map_err(failed)? {
-            Some(status) => break status,
-            None if started.elapsed() >= timeout => {
-                let _ = child.kill();
-                let _ = child.wait();
-                return Err(DwgError::TimedOut);
+        match run.child.try_wait().map_err(failed)? {
+            Some(status) => {
+                run.ended = true;
+                break status;
             }
+            // The guard stops it.
+            None if started.elapsed() >= timeout => return Err(DwgError::TimedOut),
             None => std::thread::sleep(std::time::Duration::from_millis(50)),
         }
     };

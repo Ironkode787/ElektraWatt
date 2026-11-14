@@ -357,7 +357,17 @@ fn cp1252(b: u8) -> char {
     }
 }
 
-/// `s` with each `\U+XXXX` (four hex digits) replaced by its character; an escape of no valid character stays.
+/// The UTF-16 unit of the `\U+XXXX` (four hex digits) that opens `tail`.
+fn unit_of(tail: &str) -> Option<u32> {
+    let b = tail.as_bytes();
+    let hex = tail
+        .get(3..7)
+        .filter(|h| matches!(b.get(1), Some(b'U' | b'u')) && b.get(2) == Some(&b'+') && h.bytes().all(|c| c.is_ascii_hexdigit()))?;
+    u32::from_str_radix(hex, 16).ok()
+}
+
+/// `s` with each `\U+XXXX` (four hex digits) replaced by its character, a pair of surrogate units (how a character
+/// beyond the first plane is written) by the one character; an escape of no valid character stays.
 pub(crate) fn unescape_unicode(s: &str) -> String {
     if !s.contains("\\U+") && !s.contains("\\u+") {
         return s.to_owned();
@@ -367,22 +377,24 @@ pub(crate) fn unescape_unicode(s: &str) -> String {
     while let Some(i) = rest.find(['\\']) {
         out.push_str(&rest[..i]);
         let tail = &rest[i..];
-        let b = tail.as_bytes();
-        let hex = tail
-            .get(3..7)
-            .filter(|_| matches!(b.get(1), Some(b'U' | b'u')) && b.get(2) == Some(&b'+'));
-        match hex
-            .and_then(|h| u32::from_str_radix(h, 16).ok())
-            .and_then(char::from_u32)
-        {
-            Some(c) => {
-                out.push(c);
-                rest = &tail[7..];
+        let unit = unit_of(tail);
+        let low = unit_of(tail.get(7..).unwrap_or(""));
+        match unit {
+            Some(hi @ 0xd800..=0xdbff) if matches!(low, Some(0xdc00..=0xdfff)) => {
+                let lo = low.unwrap_or(0);
+                out.extend(char::from_u32(0x10000 + ((hi - 0xd800) << 10) + (lo - 0xdc00)));
+                rest = &tail[14..];
             }
-            None => {
-                out.push('\\');
-                rest = &tail[1..];
-            }
+            _ => match unit.and_then(char::from_u32).filter(|c| *c != '\0') {
+                Some(c) => {
+                    out.push(c);
+                    rest = &tail[7..];
+                }
+                None => {
+                    out.push('\\');
+                    rest = &tail[1..];
+                }
+            },
         }
     }
     out.push_str(rest);

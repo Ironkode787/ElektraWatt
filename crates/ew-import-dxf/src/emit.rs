@@ -16,7 +16,7 @@ use ew_mltext::{Ident, MlText};
 use ew_units::{Angle2, Nm, Pt2, Rect};
 
 use crate::geom::{Affine, Converter, Geo, HAlign, Pattern, Shape, TOLERANCE_NM};
-use crate::parse::{Drawing, parse};
+use crate::parse::{Drawing, Entity, parse};
 
 /// A drawing unit (`$INSUNITS`, or the user's choice when the file names none).
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
@@ -152,8 +152,7 @@ pub fn probe(bytes: &[u8], limits: &Limits) -> Result<Probe, ImportError> {
     let d = parse(bytes, limits)?;
     let unit = d.header_int("INSUNITS").and_then(Unit::from_insunits);
     let mut conv = Converter::new(&d, 1.0e-3, None);
-    let model = model_entities(&d);
-    conv.entities(&model, Affine::IDENTITY, "", 0)?;
+    conv.entities(model_entities(&d), Affine::IDENTITY, "", 0)?;
     let extents = bounds(&conv.shapes);
     let mut blocks: Vec<String> = d
         .blocks
@@ -209,7 +208,7 @@ pub(crate) fn bounds(shapes: &[Shape]) -> Option<[(f64, f64); 2]> {
 }
 
 /// The model-space entities: those of ENTITIES outside paper space and owned by no paper-space block record.
-fn model_entities(d: &Drawing) -> Vec<crate::parse::Entity> {
+fn model_entities(d: &Drawing) -> Vec<&Entity> {
     let paper_records: BTreeSet<&String> = d
         .records
         .iter()
@@ -219,7 +218,6 @@ fn model_entities(d: &Drawing) -> Vec<crate::parse::Entity> {
     d.entities
         .iter()
         .filter(|e| !e.paper() && e.owner().is_none_or(|o| !paper_records.contains(&o)))
-        .cloned()
         .collect()
 }
 
@@ -263,22 +261,32 @@ pub fn convert(
     })?;
     let scale = unit.nm();
     let mut conv = Converter::new(&d, TOLERANCE_NM / scale, Some(show));
-    let (entities, top_var) = match space {
-        Space::Model => (model_entities(&d), "EXTMAX"),
-        Space::Layout(name) => (layout_entities(&d, name)?, "PEXTMAX"),
+    let layout;
+    let (entities, min_var, max_var) = match space {
+        Space::Model => (model_entities(&d), "EXTMIN", "EXTMAX"),
+        Space::Layout(name) => {
+            layout = layout_entities(&d, &mut conv, name)?;
+            (layout.iter().collect(), "PEXTMIN", "PEXTMAX")
+        }
     };
-    conv.entities(&entities, Affine::IDENTITY, "", 0)?;
+    conv.entities(entities, Affine::IDENTITY, "", 0)?;
     let shapes = std::mem::take(&mut conv.shapes);
     let notes = std::mem::take(&mut conv.notes);
     // y_top: the top of the extents the header names (the page export writes the sheet's top there, so a page
-    // re-imports in place), else of the geometry.
+    // re-imports in place), else of the geometry. Extents that do not hold the geometry are stale and not believed:
+    // they would put the drawing off the sheet.
+    let geometry = bounds(&shapes);
+    let tol = TOLERANCE_NM / scale;
     let header_top = d
-        .header_pt(top_var)
+        .header_pt(max_var)
         .map(|p| p.1)
-        .filter(|y| y.is_finite() && y.abs() < 1.0e15);
-    let top = header_top
-        .or_else(|| bounds(&shapes).map(|[_, hi]| hi.1))
-        .unwrap_or(0.0);
+        .filter(|y| y.is_finite() && y.abs() < 1.0e15)
+        .filter(|y| {
+            geometry.is_none_or(|[lo, hi]| {
+                hi.1 <= y + tol && d.header_pt(min_var).is_none_or(|m| m.1 <= lo.1 + tol)
+            })
+        });
+    let top = header_top.or_else(|| geometry.map(|[_, hi]| hi.1)).unwrap_or(0.0);
     let loc = |item: Option<String>| SourceLocation {
         file: file.to_owned(),
         item,
@@ -306,8 +314,9 @@ pub fn convert(
         items: Vec::new(),
         bad: Vec::new(),
     };
-    for s in &shapes {
-        cx.shape(s);
+    // Each shape is freed as its item is made, so that the two never stand together whole.
+    for s in shapes {
+        cx.shape(&s);
     }
     for key in &notes.malformed {
         entries.push(
@@ -417,7 +426,10 @@ pub(crate) fn words(unit: Unit) -> &'static str {
 }
 
 /// The entities of the paper-space layout `name`, with the model space drawn through its viewports.
-fn layout_entities(d: &Drawing, name: &str) -> Result<Vec<crate::parse::Entity>, ImportError> {
+///
+/// The copies it makes (the layout's own entities, the model space once per viewport) are charged to `conv`'s budget
+/// before they are made.
+fn layout_entities(d: &Drawing, conv: &mut Converter<'_>, name: &str) -> Result<Vec<Entity>, ImportError> {
     let layout = d
         .layouts
         .iter()
@@ -431,23 +443,30 @@ fn layout_entities(d: &Drawing, name: &str) -> Result<Vec<crate::parse::Entity>,
         .and_then(|h| d.records.get(h))
         .map(|n| n.to_ascii_uppercase());
     // The active layout's entities are in ENTITIES (code 67); every other layout's in its *Paper_Space<n> block.
-    let mut out: Vec<crate::parse::Entity> = match record_name.as_deref() {
-        Some(n) if n != "*PAPER_SPACE" => d.blocks.get(n).map(|b| b.entities.clone()).unwrap_or_default(),
+    let source: Vec<&Entity> = match record_name.as_deref() {
+        Some(n) if n != "*PAPER_SPACE" => d
+            .blocks
+            .get(n)
+            .map(|b| b.entities.iter().collect())
+            .unwrap_or_default(),
         _ => d
             .entities
             .iter()
             .filter(|e| e.paper() && (record.is_none() || e.owner().is_none() || e.owner() == record))
-            .cloned()
             .collect(),
     };
+    conv.charge(source.iter().map(|e| e.held_cost()).sum())?;
+    let mut out: Vec<Entity> = source.into_iter().cloned().collect();
     // Viewports (other than the layout's own, id 1) show the model space: scaled into the viewport and clipped to
     // it, each shape cut to the viewport's rectangle (`geom::clip`).
-    let viewports: Vec<crate::parse::Entity> = out
+    let viewports: Vec<Entity> = out
         .iter()
         .filter(|e| e.kind == "VIEWPORT" && e.i(69, 2) != 1)
         .cloned()
         .collect();
     out.retain(|e| e.kind != "VIEWPORT");
+    let model = model_entities(d);
+    let model_cost: usize = model.iter().map(|e| e.held_cost()).sum();
     for vp in &viewports {
         let c = vp.pt(10);
         let (w, h) = (vp.f(40, 0.0), vp.f(41, 0.0));
@@ -457,9 +476,11 @@ fn layout_entities(d: &Drawing, name: &str) -> Result<Vec<crate::parse::Entity>,
             continue;
         }
         let s = h / view_h;
+        // Each viewport holds its own copy of the model space.
+        conv.charge(model_cost)?;
         // Model space under the viewport's map: the view centre to the viewport centre at scale s
         // (the converter's `EW-VIEWPORT`).
-        out.push(crate::parse::Entity {
+        out.push(Entity {
             kind: "EW-VIEWPORT".to_owned(),
             pairs: vec![
                 pair(10, c.0),
@@ -470,7 +491,7 @@ fn layout_entities(d: &Drawing, name: &str) -> Result<Vec<crate::parse::Entity>,
                 pair(22, view.1),
                 pair(45, s),
             ],
-            children: model_entities(d),
+            children: model.iter().map(|e| (*e).clone()).collect(),
             line: vp.line,
         });
         if let (Some(h), Some(e)) = (vp.handle(), out.last_mut()) {
@@ -525,9 +546,10 @@ fn style_of(cap: f64) -> Option<Ident> {
         .map(|(key, px, _)| (*key, qet_px_em(*px).0 as f64))
         .filter(|(_, e)| *e > 0.0)
         .min_by(|a, b| {
-            let da = (em / a.1).ln().abs();
-            let db = (em / b.1).ln().abs();
-            da.total_cmp(&db).then(a.0.cmp(b.0))
+            // Nearest by ratio: the larger of `em / e` and `e / em` is 1 at equal sizes and grows as they part, in the
+            // order of |ln(em / e)| (no `ln`: a platform function has no place in a determinism path).
+            let off = |e: f64| (em / e).max(e / em);
+            off(a.1).total_cmp(&off(b.1)).then(a.0.cmp(b.0))
         })?;
     (best.0 != "text.normal")
         .then(|| Ident::from_input(best.0).ok())

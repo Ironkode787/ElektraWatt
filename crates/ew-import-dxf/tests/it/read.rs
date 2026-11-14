@@ -582,6 +582,31 @@ fn a_hidden_layer_is_imported_when_shown() {
 }
 
 #[test]
+fn unicode_escapes_are_resolved_whatever_the_code_page_and_surrogates_join() {
+    // What the DXF writer writes for "Ää°²😀": ASCII only, a character beyond the first plane as two UTF-16 units.
+    let mut d = Dxf::new("AC1015", Some(4));
+    d.section("ENTITIES");
+    d.ps(&[
+        (0, "TEXT"),
+        (8, "0"),
+        (10, "0"),
+        (20, "0"),
+        (40, "2.5"),
+        (1, "\\U+00C4\\U+00E4\\U+00B0\\U+00B2\\U+D83D\\U+DE00"),
+    ]);
+    d.end();
+    let batch = import_page(
+        &input("a.dxf", d.ascii()),
+        &ctx(),
+        &DxfOptions::default(),
+        &page(),
+        None,
+    )
+    .unwrap();
+    assert_eq!(texts(&batch.records), ["Ää°²😀"]);
+}
+
+#[test]
 fn a_file_that_is_no_dxf_is_refused() {
     let e = import_page(
         &input("a.dxf", b"hello".to_vec()),

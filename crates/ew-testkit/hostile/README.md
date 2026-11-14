@@ -96,11 +96,15 @@ window's Import), in millimetres where the drawing names no unit.
 
 | File | Tries | Verdict |
 |---|---|---|
+| `block-doubling.dxf` | a block that inserts itself twice (2^32 expansions before the nesting limit, no shape to count) | Refused: the DXF memory budget (192 MiB) |
 | `code-not-a-number.dxf` | a group code that is a word | Refused: a group code is not a number |
-| `entities-over-the-limit.dxf` | 5,000,001 entities of one point each (*generated*) | Refused before parsing: the DXF entity count limit of 5,000,000 |
+| `entities-over-the-limit.dxf` | 5,000,000 entities of one point each (*generated*) | Refused before parsing: the DXF memory budget (192 MiB) |
+| `hatch-empty-loops.dxf` | a hatch of 10,000 loops, each claiming 100,000 edges and holding none (*generated*) | Imported without the hatch: only EW-IMP-251 (no unit); the loops end with their pairs |
 | `insert-cycle.dxf` | a block that inserts itself | Imported without the insert: EW-IMP-001, nested deeper than 32 levels |
 | `line-over-1-mib.dxf` | a text value one byte over 1 MiB (*generated*) | Refused: the DXF line length limit of 1 MiB |
+| `long-handles.dxf` | a line in a block inserted through 30 levels of blocks, every entity with a handle of 100,000 digits (*generated*) | Imported whole, one line: the long handles name nothing, so the keys stay short; only EW-IMP-251 |
 | `minsert-bomb.dxf` | an array insert of 30,000 × 30,000 | Refused: the block expansion limit of 1,000,000 shapes |
+| `minsert-nested.dxf` | a 1000 × 1000 array of a block that holds a 1000 × 1000 array of an empty block | Refused: the DXF memory budget (192 MiB) |
 | `nan-coordinate.dxf` | a line from `x = NaN` to `y = inf` | Imported without the line: EW-IMP-002 |
 | `truncated-binary.dxf` | a binary DXF that ends inside a real number (*generated*) | Refused: the binary file ends inside a value |
 

@@ -109,12 +109,16 @@ pub fn symbols(
     })?;
     let scale = unit.nm();
     let mut out = Vec::new();
+    // What the blocks so far cost in the budget: the symbols stand together, so each block starts from it.
+    let mut spent = 0;
     for block in d.blocks.values() {
         if block.flags & (1 | 4) != 0 || block.name.starts_with('*') {
             continue;
         }
         let mut conv = Converter::new(&d, TOLERANCE_NM / scale, None);
+        conv.charge(spent)?;
         conv.block_shapes(&block.name)?;
+        spent = conv.spent() - d.held;
         let shapes = std::mem::take(&mut conv.shapes);
         if shapes.is_empty() && !block.entities.iter().any(|e| e.kind == "ATTDEF") {
             continue;
@@ -437,8 +441,7 @@ pub fn outline(bytes: &[u8], limits: &Limits, unit: Option<Unit>) -> Result<Vec<
         })?;
     let scale = unit.nm();
     let mut conv = Converter::new(&d, TOLERANCE_NM / scale, None);
-    let model: Vec<Entity> = d.entities.iter().filter(|e| !e.paper()).cloned().collect();
-    conv.entities(&model, Affine::IDENTITY, "", 0)?;
+    conv.entities(d.entities.iter().filter(|e| !e.paper()), Affine::IDENTITY, "", 0)?;
     let lines: Vec<(Vec<(f64, f64)>, bool)> = conv
         .shapes
         .iter()

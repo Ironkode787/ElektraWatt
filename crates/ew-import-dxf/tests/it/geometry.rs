@@ -217,3 +217,126 @@ fn a_layout_shows_its_own_entities_and_the_model_through_a_viewport_clipped() {
     // The model space alone has only the model line.
     assert_eq!(points_mm(&bytes, &Space::Model).len(), 1);
 }
+
+/// A drawing in millimetres whose model space holds `entities`.
+fn in_model(entities: &[(i32, &str)]) -> Dxf {
+    let mut d = Dxf::new("AC1015", Some(4));
+    d.section("ENTITIES");
+    d.ps(entities);
+    d.end();
+    d
+}
+
+#[test]
+fn an_ellipse_a_spline_and_a_hatch_come_out_where_the_numbers_put_them() {
+    // An ellipse of semi-axes 10 and 5 about (20, 20): every flattened point on it within 0.01 mm.
+    let all = points_mm(
+        &in_model(&[
+            (0, "ELLIPSE"),
+            (8, "0"),
+            (10, "20"),
+            (20, "20"),
+            (11, "10"),
+            (21, "0"),
+            (40, "0.5"),
+            (41, "0"),
+            (42, "6.283185307179586"),
+        ])
+        .ascii(),
+        &Space::Model,
+    );
+    // y_top is the top of the ellipse (25): a drawing y lands at 25 − y.
+    for (x, y) in &all[0] {
+        let (u, v) = ((x - 20.0) / 10.0, (25.0 - y - 20.0) / 5.0);
+        let off = ((u * u + v * v).sqrt() - 1.0).abs() * 5.0;
+        assert!(off < 0.01, "({x}, {y}) is {off} mm off the ellipse");
+    }
+
+    // A clamped cubic through (0, 0), (0, 10), (10, 10), (10, 0): at 0.5 it is at (5, 7.5), and the curve starts and
+    // ends on its end points.
+    let mut spline = vec![
+        (0, "SPLINE"),
+        (8, "0"),
+        (70, "8"),
+        (71, "3"),
+        (72, "8"),
+        (73, "4"),
+    ];
+    for knot in ["0", "0", "0", "0", "1", "1", "1", "1"] {
+        spline.push((40, knot));
+    }
+    for (x, y) in [("0", "0"), ("0", "10"), ("10", "10"), ("10", "0")] {
+        spline.push((10, x));
+        spline.push((20, y));
+    }
+    let all = points_mm(&in_model(&spline).ascii(), &Space::Model);
+    let pts = &all[0];
+    // y_top is 7.5, the top of the curve.
+    assert_eq!(pts.first(), Some(&(0.0, 7.5)));
+    assert_eq!(pts.last(), Some(&(10.0, 7.5)));
+    let bezier = |t: f64| {
+        let s = 1.0 - t;
+        (
+            3.0 * s * t * t * 10.0 + t * t * t * 10.0,
+            3.0 * s * s * t * 10.0 + 3.0 * s * t * t * 10.0,
+        )
+    };
+    let curve: Vec<(f64, f64)> = (0..=2000).map(|i| bezier(f64::from(i) / 2000.0)).collect();
+    for (x, y) in pts {
+        let near = curve
+            .iter()
+            .map(|(cx, cy)| ((cx - x).powi(2) + (7.5 - cy - y).powi(2)).sqrt())
+            .fold(f64::MAX, f64::min);
+        assert!(near < 0.01, "({x}, {y}) is {near} mm off the spline");
+    }
+    assert!(
+        pts.iter().any(|p| (p.0 - 5.0).abs() < 1e-6 && p.1.abs() < 1e-6),
+        "the point at 0.5"
+    );
+
+    // A solid hatch of one polyline loop: the filled square, corner for corner.
+    let all = points_mm(
+        &in_model(&[
+            (0, "HATCH"),
+            (8, "0"),
+            (2, "SOLID"),
+            (70, "1"),
+            (91, "1"),
+            (92, "3"),
+            (72, "0"),
+            (73, "1"),
+            (93, "4"),
+            (10, "0"),
+            (20, "0"),
+            (10, "10"),
+            (20, "0"),
+            (10, "10"),
+            (20, "10"),
+            (10, "0"),
+            (20, "10"),
+            (97, "0"),
+            (75, "0"),
+            (76, "1"),
+            (98, "0"),
+        ])
+        .ascii(),
+        &Space::Model,
+    );
+    assert_eq!(all, [[(0.0, 10.0), (10.0, 10.0), (10.0, 0.0), (0.0, 0.0)]]);
+}
+
+#[test]
+fn a_header_extent_that_does_not_hold_the_drawing_is_not_believed() {
+    // `$EXTMAX` says the drawing ends at y = 5; the line goes up to 50. Believed, it would put the line off the sheet
+    // (negative y); the drawing's own top is used.
+    let mut d = Dxf::new("AC1015", Some(4));
+    d.p(0, "SECTION").p(2, "HEADER");
+    d.p(9, "$EXTMIN").p(10, "0").p(20, "0");
+    d.p(9, "$EXTMAX").p(10, "10").p(20, "5");
+    d.end();
+    d.section("ENTITIES");
+    d.ps(&[(0, "LINE"), (8, "0"), (10, "0"), (20, "0"), (11, "10"), (21, "50")]);
+    d.end();
+    let all = points_mm(&d.ascii(), &Space::Model);
+    assert_eq!(all[0], [(0.0, 50.0), (10.0, 0.0)]);
+}

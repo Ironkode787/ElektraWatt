@@ -525,3 +525,13 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   workbook or PLCopen XML from a form of format, stations and date; Import from PLC software… previews an exchange file by
   tab (changed, conflicts, removed, parking) with the choices of its conflicts and parked objects before Apply
   (WP-S2.13, FR-PLC-029 … -036)
+- behaviour-change: a DXF import spends one memory budget (192 MiB, estimated) on the file's pairs and on everything its
+  blocks expand to; a drawing of more than about 150,000 plain entities, a block that inserts itself twice and nested
+  arrays of inserts are refused in words before the memory is taken, and the 5-million-entity limit is gone with it
+  (M3 review fix, doc 14 §11)
+- behaviour-change: `ew export dxf` writes ASCII (`\U+XXXX` for ä, °, ² and every other character outside ASCII), so
+  a CAD program and the DXF importer read the texts as written; a layer name with a character DXF forbids is refused,
+  and two classes that share a name make one layer (M3 review fix, doc 14 §6.4)
+- behaviour-change: a DXF whose `$EXTMAX` does not hold its drawing is placed by the drawing's own top, not off the
+  sheet; a DWG's work folder is private and removed on every way out, and a converter that is stopped takes the
+  processes it started with it (M3 review fix, doc 14 §6.1, §6.5)

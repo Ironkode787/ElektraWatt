@@ -5,9 +5,9 @@
 //! and BLOCK_RECORD tables, the blocks, the entities and the layouts and image definitions of the OBJECTS section.
 //! Other sections and tables are skipped pair by pair. Entities stay as their pairs; [`crate::geom`] reads them.
 //!
-//! Limits (doc 14 §11): at most [`MAX_ENTITIES`] entities in the whole file (blocks included), each string within
-//! the context's `max_text_bytes`. The structure is read leniently: a missing `ENDSEC`, `ENDBLK`, `SEQEND` or `EOF`
-//! ends what it would have ended.
+//! Limits (doc 14 §11): the file's pairs and entities, added up before any is held, cost at most [`MAX_BUDGET`] bytes
+//! (the one budget the conversion goes on spending), each string within the context's `max_text_bytes`. The structure
+//! is read leniently: a missing `ENDSEC`, `ENDBLK`, `SEQEND` or `EOF` ends what it would have ended.
 
 use std::collections::BTreeMap;
 
@@ -15,8 +15,34 @@ use ew_interop_api::{ImportError, Limits};
 
 use crate::pairs::{Pair, Pairs, Val};
 
-/// The most entities one file may hold (doc 14 §11: 5 million).
-pub const MAX_ENTITIES: usize = 5_000_000;
+/// The most memory one conversion may hold and copy, estimated in bytes (doc 14 §11): first the pairs and entities of
+/// the file ([`PAIR_COST`], [`ENTITY_COST`], their strings), then what the conversion makes of them
+/// (`geom::Converter`). The shapes are freed as the page items are made of them, so the peak stays near it plus the
+/// shapes' fixed part: inside the 256 MB of extra allocation a hostile file may cost. It is an estimate (not measured):
+/// about 150,000 plain entities of a drawing fit.
+pub const MAX_BUDGET: usize = 192 * 1024 * 1024;
+
+/// What a held group-code pair costs in the budget, apart from its string: the pair, a string's header and the
+/// allocator's rounding.
+const PAIR_COST: usize = 64;
+
+/// What a held entity costs in the budget, apart from its pairs.
+const ENTITY_COST: usize = 128;
+
+/// The longest handle (code 5) that names an entity: a handle is at most 16 hexadecimal digits, and a longer one
+/// would grow every source key built from it.
+const MAX_HANDLE: usize = 32;
+
+/// Refuses a budget of `used` bytes over [`MAX_BUDGET`].
+pub(crate) fn within_budget(used: usize) -> Result<(), ImportError> {
+    if used > MAX_BUDGET {
+        return Err(ImportError::LimitExceeded {
+            what: "DXF memory budget".to_owned(),
+            limit: MAX_BUDGET as u64,
+        });
+    }
+    Ok(())
+}
 
 /// One entity: its type, its pairs after the type, and its VERTEX or ATTRIB followers.
 #[derive(Clone, Debug, PartialEq)]
@@ -53,9 +79,37 @@ impl Entity {
         (self.f(x, 0.0), self.f(x + 10, 0.0))
     }
 
-    /// The handle (code 5), upper case.
+    /// What reading the entity costs in the budget: 8 bytes a pair (the points and numbers made of them), its strings
+    /// (a conversion copies them) and its followers'. A viewport's followers are the model space, charged where its
+    /// entities are visited.
+    pub fn read_cost(&self) -> usize {
+        let own: usize = self
+            .pairs
+            .iter()
+            .map(|p| 8 + if let Val::Str(s) = &p.val { s.len() } else { 0 })
+            .sum();
+        if self.kind == "EW-VIEWPORT" {
+            return own;
+        }
+        own + self.children.iter().map(Entity::read_cost).sum::<usize>()
+    }
+
+    /// What a copy of the entity costs in the budget, as the file's own were counted.
+    pub fn held_cost(&self) -> usize {
+        let pairs: usize = self
+            .pairs
+            .iter()
+            .map(|p| PAIR_COST + if let Val::Str(s) = &p.val { s.len() } else { 0 })
+            .sum();
+        ENTITY_COST + pairs + self.children.iter().map(Entity::held_cost).sum::<usize>()
+    }
+
+    /// The handle (code 5), upper case; none when longer than [`MAX_HANDLE`] (the entity is then keyed by its place,
+    /// as one without a handle).
     pub fn handle(&self) -> Option<String> {
-        self.str(5).map(|h| h.trim().to_ascii_uppercase())
+        self.str(5)
+            .map(|h| h.trim().to_ascii_uppercase())
+            .filter(|h| h.len() <= MAX_HANDLE)
     }
 
     /// The layer (code 8), default `0`.
@@ -137,6 +191,8 @@ pub(crate) struct Drawing {
     pub images: BTreeMap<String, String>,
     /// Whether the file is binary.
     pub binary: bool,
+    /// What the file's pairs and entities cost in the budget (added up before they were held).
+    pub held: usize,
 }
 
 impl Drawing {
@@ -156,14 +212,6 @@ impl Drawing {
 
 struct Reader<'a> {
     pairs: Pairs<'a>,
-    entities: usize,
-}
-
-fn limit(what: &str, limit: usize) -> ImportError {
-    ImportError::LimitExceeded {
-        what: what.to_owned(),
-        limit: limit as u64,
-    }
 }
 
 impl Reader<'_> {
@@ -215,10 +263,6 @@ impl Reader<'_> {
         if head.is(stop) {
             return Ok(None);
         }
-        self.entities += 1;
-        if self.entities > MAX_ENTITIES {
-            return Err(limit("DXF entity count", MAX_ENTITIES));
-        }
         let kind = head.text().trim().to_ascii_uppercase();
         let pairs = self.body()?;
         let mut e = Entity {
@@ -239,10 +283,6 @@ impl Reader<'_> {
                     val: Val::Str(String::new()),
                     line: None,
                 });
-                self.entities += 1;
-                if self.entities > MAX_ENTITIES {
-                    return Err(limit("DXF entity count", MAX_ENTITIES));
-                }
                 e.children.push(Entity {
                     kind: follower.to_owned(),
                     pairs: self.body()?,
@@ -264,31 +304,31 @@ impl Reader<'_> {
 /// # Errors
 ///
 /// [`ImportError::Malformed`] for a file that is no DXF (no section) or whose pairs do not parse,
-/// [`ImportError::LimitExceeded`] for a string or line over `max_text_bytes` or more than [`MAX_ENTITIES`] entities.
+/// [`ImportError::LimitExceeded`] for a string or line over `max_text_bytes`, or a file whose pairs and entities cost
+/// more than [`MAX_BUDGET`].
 pub(crate) fn parse(bytes: &[u8], limits: &Limits) -> Result<Drawing, ImportError> {
-    // The entities are counted in a streaming pass first, so a file over the limit is refused before any of them
-    // is held (doc 14 §11's 256 MB for a hostile input). It stops at EOF, as the parse does: what follows (an MS-DOS
-    // end-of-file mark) is not read.
+    // What the pairs and entities will cost is added up in a streaming pass first, so a file over the budget is
+    // refused before any of them is held (doc 14 §11's 256 MB for a hostile input). It stops at EOF, as the parse
+    // does: what follows (an MS-DOS end-of-file mark) is not read.
     let mut scan = Pairs::new(bytes, limits);
-    let mut count = 0usize;
+    let mut held = 0usize;
     while let Some(p) = scan.next_pair()? {
-        if p.code == 0 {
-            if p.is("EOF") {
-                break;
-            }
-            count += 1;
-            if count > MAX_ENTITIES {
-                return Err(limit("DXF entity count", MAX_ENTITIES));
-            }
+        if p.is("EOF") {
+            break;
         }
+        held += PAIR_COST + if let Val::Str(s) = &p.val { s.len() } else { 0 };
+        if p.code == 0 {
+            held += ENTITY_COST;
+        }
+        within_budget(held)?;
     }
     let mut r = Reader {
         pairs: Pairs::new(bytes, limits),
-        entities: 0,
     };
     let mut d = Drawing {
         version: "AC1009".to_owned(),
         binary: r.pairs.is_binary(),
+        held,
         ..Drawing::default()
     };
     let mut sections = 0;

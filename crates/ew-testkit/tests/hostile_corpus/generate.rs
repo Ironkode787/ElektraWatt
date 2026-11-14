@@ -36,7 +36,9 @@ pub fn committed() -> Vec<(&'static str, Vec<u8>)> {
 pub fn large() -> Vec<(&'static str, Vec<u8>)> {
     vec![
         ("dxf/entities-over-the-limit.dxf", dxf_entities_over_the_limit()),
+        ("dxf/hatch-empty-loops.dxf", dxf_hatch_empty_loops()),
         ("dxf/line-over-1-mib.dxf", dxf_line_over_1_mib()),
+        ("dxf/long-handles.dxf", dxf_long_handles()),
         ("dxf/truncated-binary.dxf", dxf_truncated_binary()),
         ("eplan/depth-10000.xml", eplan_depth_10000()),
         (
@@ -257,7 +259,36 @@ fn jsonl_line_over_16_mib() -> Vec<u8> {
     out
 }
 
-/// A DXF of one entity more than the 5 million the importer reads, each the smallest an entity can be.
+/// A DXF of one hatch that claims 10,000 loops of 100,000 edges each and holds none of the edges.
+fn dxf_hatch_empty_loops() -> Vec<u8> {
+    let mut out = b"0\nSECTION\n2\nENTITIES\n0\nHATCH\n8\n0\n2\nSOLID\n70\n1\n91\n10000\n".to_vec();
+    for _ in 0..10_000 {
+        out.extend_from_slice(b"92\n0\n93\n100000\n");
+    }
+    out.extend_from_slice(b"0\nENDSEC\n0\nEOF\n");
+    out
+}
+
+/// A DXF of one line in a block, inserted through 30 levels of blocks, every entity with a handle of 100,000 digits.
+fn dxf_long_handles() -> Vec<u8> {
+    let handle = "A".repeat(100_000);
+    let mut out = b"0\nSECTION\n2\nBLOCKS\n".to_vec();
+    out.extend_from_slice(b"0\nBLOCK\n8\n0\n2\nL0\n70\n0\n10\n0\n20\n0\n");
+    out.extend_from_slice(format!("0\nLINE\n5\n{handle}\n8\n0\n10\n0\n20\n0\n11\n1\n21\n1\n").as_bytes());
+    out.extend_from_slice(b"0\nENDBLK\n8\n0\n");
+    for level in 1..30 {
+        out.extend_from_slice(format!("0\nBLOCK\n8\n0\n2\nL{level}\n70\n0\n10\n0\n20\n0\n").as_bytes());
+        out.extend_from_slice(
+            format!("0\nINSERT\n5\n{handle}\n8\n0\n2\nL{}\n10\n1\n20\n0\n", level - 1).as_bytes(),
+        );
+        out.extend_from_slice(b"0\nENDBLK\n8\n0\n");
+    }
+    out.extend_from_slice(b"0\nENDSEC\n0\nSECTION\n2\nENTITIES\n0\nINSERT\n8\n0\n2\nL29\n10\n0\n20\n0\n");
+    out.extend_from_slice(b"0\nENDSEC\n0\nEOF\n");
+    out
+}
+
+/// A DXF of 5 million entities, each the smallest an entity can be: far over the budget of the conversion.
 fn dxf_entities_over_the_limit() -> Vec<u8> {
     let mut out = b"0\nSECTION\n2\nENTITIES\n".to_vec();
     for _ in 0..5_000_000 {

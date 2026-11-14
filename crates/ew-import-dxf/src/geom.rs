@@ -8,14 +8,16 @@
 //! stays an arc under a similarity and is flattened otherwise. Bulges, ellipses and splines are flattened to within
 //! [`TOLERANCE_NM`] after scaling; every sine, cosine and arc tangent comes from `ew-dl`'s pure-Rust numerics, so the
 //! result is the same on every platform. Limits (doc 14 §11): block nesting at most [`MAX_NESTING`], at most
-//! [`MAX_PRIMITIVES`] shapes after expansion, at most [`MAX_SPLINE_POINTS`] control points per spline.
+//! [`MAX_PRIMITIVES`] shapes after expansion, at most [`MAX_SPLINE_POINTS`] control points per spline, and one
+//! budget ([`crate::parse::MAX_BUDGET`]) that every entity visited, shape made, point flattened and note kept is
+//! charged to, so that a block expanding itself or an array of arrays is refused after a bounded amount of work.
 
 use std::collections::BTreeMap;
 
 use ew_dl::num::{atan2_deg, sin_cos_deg};
 use ew_interop_api::ImportError;
 
-use crate::parse::{Drawing, Entity, Layer};
+use crate::parse::{Drawing, Entity, Layer, within_budget};
 use crate::text::{mtext_lines, percent_codes, shx_substitute};
 
 /// The flattening tolerance of bulges, ellipses, splines and arcs under a non-uniform scale: 0.01 mm.
@@ -33,6 +35,16 @@ pub const MAX_SPLINE_POINTS: usize = 100_000;
 
 /// The most points one flattened curve gets.
 const MAX_CURVE_POINTS: usize = 4096;
+
+/// What a point costs in the budget (two `f64`).
+const POINT_COST: usize = 16;
+
+/// What a note kept for the report costs in the budget, apart from its text: the report entry made of it.
+const NOTE_COST: usize = 512;
+
+/// What visiting an entity (or a block) costs in the budget, apart from its key and what it is read from
+/// ([`Entity::read_cost`]).
+const VISIT_COST: usize = 64;
 
 /// A point in drawing units.
 pub(crate) type P = (f64, f64);
@@ -252,6 +264,8 @@ pub(crate) struct Converter<'d> {
     pub shapes: Vec<Shape>,
     pub notes: Notes,
     mirrtext: bool,
+    /// What the file and the conversion have cost in the budget so far.
+    work: usize,
 }
 
 fn limit(what: &str, limit: usize) -> ImportError {
@@ -270,9 +284,8 @@ fn finite(p: P) -> bool {
     p.0.is_finite() && p.1.is_finite()
 }
 
-/// The points of an arc `c`, `r` from `start` over `sweep` degrees within `tol` (at least one point per 90°), the
-/// start and end included.
-pub(crate) fn arc_points(c: P, r: f64, start: f64, sweep: f64, tol: f64) -> Vec<P> {
+/// The steps of an arc of radius `r` over `sweep` degrees within `tol` (at least one per 90°).
+fn arc_steps(r: f64, sweep: f64, tol: f64) -> usize {
     let r_abs = r.abs();
     let step = if tol >= r_abs || r_abs == 0.0 {
         90.0
@@ -282,7 +295,13 @@ pub(crate) fn arc_points(c: P, r: f64, start: f64, sweep: f64, tol: f64) -> Vec<
         2.0 * atan2_deg((1.0 - half * half).max(0.0).sqrt(), half)
     }
     .clamp(0.05, 90.0);
-    let n = ((sweep.abs() / step).ceil() as usize).clamp(1, MAX_CURVE_POINTS);
+    ((sweep.abs() / step).ceil() as usize).clamp(1, MAX_CURVE_POINTS)
+}
+
+/// The points of an arc `c`, `r` from `start` over `sweep` degrees within `tol` (at least one point per 90°), the
+/// start and end included.
+pub(crate) fn arc_points(c: P, r: f64, start: f64, sweep: f64, tol: f64) -> Vec<P> {
+    let n = arc_steps(r, sweep, tol);
     (0..=n)
         .map(|i| {
             let a = start + sweep * (i as f64) / (n as f64);
@@ -338,11 +357,8 @@ fn spline_points(degree: usize, ctrl: &[P], weights: &[f64], knots: &[f64], tol:
             .unwrap_or(1.0)
     };
     let eval = |u: f64| -> P {
-        // The span k with knots[k] <= u < knots[k + 1] within [degree, n − 1].
-        let mut k = degree;
-        while k < n - 1 && u >= knots[k + 1] {
-            k += 1;
-        }
+        // The span k with knots[k] <= u < knots[k + 1] within [degree, n − 1] (the knots are sorted: a bisection).
+        let k = degree + knots[degree + 1..n].partition_point(|&knot| u >= knot);
         let mut d: Vec<(f64, f64, f64)> = (0..=degree)
             .map(|j| {
                 let i = k - degree + j;
@@ -417,7 +433,29 @@ impl<'d> Converter<'d> {
             shapes: Vec::new(),
             notes: Notes::default(),
             mirrtext: d.header_int("MIRRTEXT").unwrap_or(0) != 0,
+            work: d.held,
         }
+    }
+
+    /// What the file and the conversion have cost in the budget so far.
+    pub fn spent(&self) -> usize {
+        self.work
+    }
+
+    /// Spends `bytes` of the budget; refused (before the memory is taken) when it is spent.
+    pub fn charge(&mut self, bytes: usize) -> Result<(), ImportError> {
+        self.work = self.work.saturating_add(bytes);
+        within_budget(self.work)
+    }
+
+    /// Spends the budget on a note kept for the report: its text of `bytes` and the report entry made of it.
+    fn charge_note(&mut self, bytes: usize) -> Result<(), ImportError> {
+        self.charge(NOTE_COST + bytes)
+    }
+
+    /// Spends the budget on `points` points a curve flattening has made.
+    fn charge_points(&mut self, points: usize) -> Result<(), ImportError> {
+        self.charge(points.saturating_mul(POINT_COST))
     }
 
     fn layer(&self, name: &str) -> Option<&'d Layer> {
@@ -476,6 +514,9 @@ impl<'d> Converter<'d> {
         if self.shapes.len() >= MAX_PRIMITIVES {
             return Err(limit("DXF block expansion (shapes)", MAX_PRIMITIVES));
         }
+        // The points were charged where a curve made them; the rest is what the shape holds.
+        let text = if let Geo::Text { text, .. } = &geo { text.len() } else { 0 };
+        self.charge(std::mem::size_of::<Shape>() + key.len() + layer.len() + text)?;
         self.shapes.push(Shape {
             geo,
             layer: layer.to_owned(),
@@ -498,9 +539,9 @@ impl<'d> Converter<'d> {
     }
 
     /// The shapes of `entities` (a space or a block's content) under `t`.
-    pub fn entities(
+    pub fn entities<'e>(
         &mut self,
-        entities: &[Entity],
+        entities: impl IntoIterator<Item = &'e Entity>,
         t: Affine,
         prefix: &str,
         depth: usize,
@@ -508,15 +549,15 @@ impl<'d> Converter<'d> {
         self.walk(entities, t, prefix, depth, None)
     }
 
-    fn walk(
+    fn walk<'e>(
         &mut self,
-        entities: &[Entity],
+        entities: impl IntoIterator<Item = &'e Entity>,
         t: Affine,
         prefix: &str,
         depth: usize,
         inh: Option<&Inherit>,
     ) -> Result<(), ImportError> {
-        for (n, e) in entities.iter().enumerate() {
+        for (n, e) in entities.into_iter().enumerate() {
             let own = e.handle().unwrap_or_else(|| format!("#{n}"));
             let key = if prefix.is_empty() {
                 own
@@ -536,6 +577,7 @@ impl<'d> Converter<'d> {
         depth: usize,
         inh: Option<&Inherit>,
     ) -> Result<(), ImportError> {
+        self.charge(VISIT_COST + key.len() + e.read_cost())?;
         let mut layer = e.layer();
         if layer == "0" {
             if let Some(i) = inh {
@@ -585,7 +627,7 @@ impl<'d> Converter<'d> {
                     }
                 }
                 let width = if cw > 0.0 { cw * ocs.max_scale() } else { width };
-                let pts = self.bulged(&verts, closed, ocs);
+                let pts = self.bulged(&verts, closed, ocs)?;
                 self.poly(pts, closed, &layer, dash, width, key)?;
             }
             "POLYLINE" => {
@@ -609,7 +651,7 @@ impl<'d> Converter<'d> {
                     .collect();
                 let cw = e.f(40, 0.0);
                 let width = if cw > 0.0 { cw * map.max_scale() } else { width };
-                let pts = self.bulged(&verts, closed, map);
+                let pts = self.bulged(&verts, closed, map)?;
                 self.poly(pts, closed, &layer, dash, width, key)?;
             }
             "ARC" | "CIRCLE" => {
@@ -646,13 +688,9 @@ impl<'d> Converter<'d> {
                 }
                 let rmax = (m.0 * m.0 + m.1 * m.1).sqrt() * t.max_scale();
                 let tol = self.tol;
-                let unit = arc_points(
-                    (0.0, 0.0),
-                    1.0,
-                    a0,
-                    sweep,
-                    if rmax > 0.0 { tol / rmax } else { 1.0 },
-                );
+                let unit_tol = if rmax > 0.0 { tol / rmax } else { 1.0 };
+                self.charge_points(arc_steps(1.0, sweep, unit_tol) + 1)?;
+                let unit = arc_points((0.0, 0.0), 1.0, a0, sweep, unit_tol);
                 let pts: Vec<P> = unit
                     .into_iter()
                     .map(|(co, s)| t.apply((c.0 + m.0 * co + minor.0 * s, c.1 + m.1 * co + minor.1 * s)))
@@ -716,6 +754,7 @@ impl<'d> Converter<'d> {
                     .unwrap_or_default();
                 // The placeholder names the file, never its folders (no local path enters the project).
                 let name = file.rsplit(['/', '\\']).next().unwrap_or("").to_owned();
+                self.charge_note(name.len())?;
                 self.notes.external.push(if name.is_empty() {
                     "image".to_owned()
                 } else {
@@ -750,6 +789,14 @@ impl<'d> Converter<'d> {
                 self.walk(&e.children, m, key, depth, None)?;
                 let (lo, hi) = ((c.0 - w / 2.0, c.1 - h / 2.0), (c.0 + w / 2.0, c.1 + h / 2.0));
                 let tol = self.tol;
+                // An arc crossing the rectangle is flattened to be cut: its points are charged first.
+                let mut flattened = 0;
+                for s in &self.shapes[start..] {
+                    if let Geo::Arc { r, sweep, .. } = s.geo {
+                        flattened += arc_steps(r, sweep, tol) + 1;
+                    }
+                }
+                self.charge_points(flattened)?;
                 let clipped: Vec<Shape> = self
                     .shapes
                     .drain(start..)
@@ -766,11 +813,11 @@ impl<'d> Converter<'d> {
     }
 
     /// The vertices of a polyline with bulges, mapped by `map` (bulge arcs flattened in the polyline's own frame).
-    fn bulged(&self, verts: &[(P, f64)], closed: bool, map: Affine) -> Vec<P> {
+    fn bulged(&mut self, verts: &[(P, f64)], closed: bool, map: Affine) -> Result<Vec<P>, ImportError> {
         let tol = self.tol / map.max_scale().max(1e-300);
         let mut pts: Vec<P> = Vec::with_capacity(verts.len());
         let Some(first) = verts.first() else {
-            return pts;
+            return Ok(pts);
         };
         pts.push(first.0);
         let n = verts.len();
@@ -778,12 +825,14 @@ impl<'d> Converter<'d> {
         for i in 0..segments {
             let (a, bulge) = verts[i];
             let b = verts[(i + 1) % n].0;
-            pts.extend(bulge_points(a, b, bulge, tol));
+            let segment = bulge_points(a, b, bulge, tol);
+            self.charge_points(segment.len())?;
+            pts.extend(segment);
         }
         if closed && pts.len() > 1 && pts.first() == pts.last() {
             pts.pop();
         }
-        pts.into_iter().map(|p| map.apply(p)).collect()
+        Ok(pts.into_iter().map(|p| map.apply(p)).collect())
     }
 
     fn poly(
@@ -801,6 +850,7 @@ impl<'d> Converter<'d> {
             return Ok(());
         }
         if !pts.iter().all(|p| finite(*p)) {
+            self.charge_note(key.len())?;
             self.notes.malformed.push(key.to_owned());
             return Ok(());
         }
@@ -822,6 +872,7 @@ impl<'d> Converter<'d> {
     ) -> Result<(), ImportError> {
         if !(finite(c) && r.is_finite() && start.is_finite() && sweep.is_finite()) || r <= 0.0 {
             if !r.is_finite() || !finite(c) {
+                self.charge_note(key.len())?;
                 self.notes.malformed.push(key.to_owned());
             }
             return Ok(());
@@ -851,6 +902,7 @@ impl<'d> Converter<'d> {
             }
             None => {
                 let tol = self.tol / map.max_scale().max(1e-300);
+                self.charge_points(arc_steps(r, sweep, tol) + 1)?;
                 let pts: Vec<P> = arc_points(c, r, start, sweep, tol)
                     .into_iter()
                     .map(|p| map.apply(p))
@@ -880,6 +932,7 @@ impl<'d> Converter<'d> {
         };
         let ctrl = pairs_of(10);
         if ctrl.len() > MAX_SPLINE_POINTS {
+            self.charge_note(key.len())?;
             self.notes.skipped.push((
                 key.to_owned(),
                 format!("the spline has more than {MAX_SPLINE_POINTS} control points"),
@@ -907,6 +960,7 @@ impl<'d> Converter<'d> {
         } else {
             spline_points(degree, &ctrl, &weights, &knots, tol).unwrap_or(ctrl)
         };
+        self.charge_points(pts.len())?;
         let pts: Vec<P> = pts.into_iter().map(|p| t.apply(p)).collect();
         self.poly(pts, closed, layer, dash, width, key)
     }
@@ -945,7 +999,10 @@ impl<'d> Converter<'d> {
             None
         };
         let mut loops: Vec<(Vec<P>, bool)> = Vec::new();
-        for _ in 0..paths.min(10_000) {
+        // The loops, their vertices and edges, and the knots and points of a spline edge end with the data: a count
+        // the pairs cannot hold is cut to the pairs left, and an iteration that took no pair ends its loop.
+        let counted = |i: usize, n: usize| n.min(pairs.len().saturating_sub(i));
+        for _ in 0..counted(i, paths) {
             let Some(flags) = take(&mut i, 92) else { break };
             let flags = flags as i64;
             let outer = flags & (1 | 16) != 0;
@@ -955,7 +1012,8 @@ impl<'d> Converter<'d> {
                 let _closed = take(&mut i, 73);
                 let n = take(&mut i, 93).unwrap_or(0.0).max(0.0) as usize;
                 let mut verts: Vec<(P, f64)> = Vec::new();
-                for _ in 0..n.min(MAX_SPLINE_POINTS) {
+                for _ in 0..counted(i, n.min(MAX_SPLINE_POINTS)) {
+                    let vertex_start = i;
                     let x = take(&mut i, 10).unwrap_or(0.0);
                     let y = take(&mut i, 20).unwrap_or(0.0);
                     let b = if bulges {
@@ -963,12 +1021,16 @@ impl<'d> Converter<'d> {
                     } else {
                         0.0
                     };
+                    if i == vertex_start {
+                        break;
+                    }
                     verts.push(((x, y), b));
                 }
-                pts = self.bulged(&verts, true, Affine::IDENTITY);
+                pts = self.bulged(&verts, true, Affine::IDENTITY)?;
             } else {
                 let edges = take(&mut i, 93).unwrap_or(0.0).max(0.0) as usize;
-                for _ in 0..edges.min(MAX_SPLINE_POINTS) {
+                for _ in 0..counted(i, edges.min(MAX_SPLINE_POINTS)) {
+                    let edge_start = i;
                     let kind = take(&mut i, 72).unwrap_or(1.0) as i64;
                     match kind {
                         1 => {
@@ -999,9 +1061,9 @@ impl<'d> Converter<'d> {
                             let sweep = if sweep == 0.0 { 360.0 } else { sweep };
                             let r = (m.0 * m.0 + m.1 * m.1).sqrt();
                             let minor = (-m.1 * ratio, m.0 * ratio);
-                            for (co, s) in
-                                arc_points((0.0, 0.0), 1.0, from, sweep, if r > 0.0 { tol / r } else { 1.0 })
-                            {
+                            let unit_tol = if r > 0.0 { tol / r } else { 1.0 };
+                            self.charge_points(arc_steps(1.0, sweep, unit_tol) + 1)?;
+                            for (co, s) in arc_points((0.0, 0.0), 1.0, from, sweep, unit_tol) {
                                 pts.push((c.0 + m.0 * co + minor.0 * s, c.1 + m.1 * co + minor.1 * s));
                             }
                         }
@@ -1015,14 +1077,20 @@ impl<'d> Converter<'d> {
                             if nc > MAX_SPLINE_POINTS || nk > MAX_SPLINE_POINTS * 2 {
                                 break;
                             }
-                            let knots: Vec<f64> = (0..nk).map(|_| take(&mut i, 40).unwrap_or(0.0)).collect();
-                            let ctrl: Vec<P> = (0..nc)
+                            let knots: Vec<f64> = (0..counted(i, nk))
+                                .map(|_| take(&mut i, 40).unwrap_or(0.0))
+                                .collect();
+                            let ctrl: Vec<P> = (0..counted(i, nc))
                                 .map(|_| (take(&mut i, 10).unwrap_or(0.0), take(&mut i, 20).unwrap_or(0.0)))
                                 .collect();
                             let curve =
                                 spline_points(degree.clamp(1, 32), &ctrl, &[], &knots, tol).unwrap_or(ctrl);
+                            self.charge_points(curve.len())?;
                             pts.extend(curve);
                         }
+                    }
+                    if i == edge_start {
+                        break;
                     }
                 }
             }
@@ -1061,23 +1129,20 @@ impl<'d> Converter<'d> {
     }
 
     /// The font family substitution of a text style, recorded once per SHX font.
-    fn note_font(&mut self, e: &Entity) {
+    fn note_font(&mut self, e: &Entity) -> Result<(), ImportError> {
         let style = e
             .str(7)
             .unwrap_or_else(|| "STANDARD".to_owned())
             .trim()
             .to_ascii_uppercase();
-        let font = self
-            .d
-            .styles
-            .get(&style)
-            .cloned()
-            .unwrap_or_else(|| "txt".to_owned());
-        if let Some(family) = shx_substitute(&font) {
+        let d = self.d;
+        let font = d.styles.get(&style).map_or("txt", String::as_str);
+        self.charge(font.len())?;
+        if let Some(family) = shx_substitute(font) {
             let file = font
                 .rsplit(['/', '\\'])
                 .next()
-                .unwrap_or(&font)
+                .unwrap_or(font)
                 .trim()
                 .to_ascii_lowercase();
             let file = if file.ends_with(".shx") {
@@ -1087,6 +1152,7 @@ impl<'d> Converter<'d> {
             };
             self.notes.shx.insert(file, family);
         }
+        Ok(())
     }
 
     /// One placed text line: `base` its baseline anchor of alignment `align` in the entity's frame, `up` the
@@ -1140,7 +1206,7 @@ impl<'d> Converter<'d> {
         layer: &str,
         key: &str,
     ) -> Result<(), ImportError> {
-        self.note_font(e);
+        self.note_font(e)?;
         let h = e.f(40, 2.5);
         let rot = e.f(50, 0.0);
         let (ha, va) = (e.i(72, 0), e.i(73, 0));
@@ -1184,7 +1250,7 @@ impl<'d> Converter<'d> {
     }
 
     fn mtext(&mut self, e: &Entity, t: Affine, layer: &str, key: &str) -> Result<(), ImportError> {
-        self.note_font(e);
+        self.note_font(e)?;
         let mut raw = String::new();
         for p in e.pairs.iter().filter(|p| p.code == 3) {
             raw.push_str(&p.text());
@@ -1297,15 +1363,19 @@ impl<'d> Converter<'d> {
         ltype: Option<String>,
         width: f64,
     ) -> Result<(), ImportError> {
+        // Every expansion of a block is charged, an empty block or a missing one too: a cell of an array costs time.
+        self.charge(VISIT_COST + key.len() + name.len())?;
         let d = self.d;
         let Some(block) = d.blocks.get(&name.trim().to_ascii_uppercase()) else {
             return Ok(());
         };
         if block.flags & 4 != 0 {
+            self.charge_note(block.name.len())?;
             self.notes.external.push(block.name.clone());
             return Ok(());
         }
         if depth >= MAX_NESTING {
+            self.charge_note(key.len() + block.name.len())?;
             self.notes.skipped.push((
                 key.to_owned(),
                 format!(

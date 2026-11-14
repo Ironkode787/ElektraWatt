@@ -14,7 +14,8 @@
 //! is converted by the DXF importer and drawn as its page items from the rectangle's corner. Both are grey at the
 //! underlay's opacity and carry no entity, so no pick lands on them (an underlay is locked; the commands neither move
 //! nor copy it). Rasters and conversions are cached by the source's hash for the process (at most
-//! [`CACHE_ENTRIES`] each).
+//! [`CACHE_ENTRIES`] each, a failure too); the source is read, and its hash checked, only when what is drawn of it
+//! is not cached.
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -62,9 +63,10 @@ fn source(assets: &ExportAssets, u: &Underlay) -> Option<Arc<[u8]>> {
     (sha2::Sha256::digest(&bytes).as_slice() == u.asset.0).then(|| Arc::from(bytes))
 }
 
-/// A small cache by key, most recent last.
+/// A small cache by key, most recent last. A result that failed is kept as a failure, so that a source that does not
+/// convert or render is not tried again at every draw.
 struct Cache<K, V> {
-    entries: Mutex<Vec<(K, Arc<V>)>>,
+    entries: Mutex<Vec<(K, Option<Arc<V>>)>>,
 }
 
 impl<K: PartialEq + Clone, V> Cache<K, V> {
@@ -74,23 +76,25 @@ impl<K: PartialEq + Clone, V> Cache<K, V> {
         }
     }
 
-    fn get_or(&self, key: &K, make: impl FnOnce() -> Option<V>) -> Option<Arc<V>> {
+    /// The value of `key`, made by `make` once: `make` answers `None` when the source is not at hand (nothing is
+    /// kept: it may be later), `Some(None)` when it failed (kept), else the value.
+    fn get_or(&self, key: &K, make: impl FnOnce() -> Option<Option<V>>) -> Option<Arc<V>> {
         if let Ok(mut e) = self.entries.lock()
             && let Some(i) = e.iter().position(|(k, _)| k == key)
         {
             let hit = e.remove(i);
-            let v = Arc::clone(&hit.1);
+            let v = hit.1.clone();
             e.push(hit);
-            return Some(v);
+            return v;
         }
-        let v = Arc::new(make()?);
+        let v = make()?.map(Arc::new);
         if let Ok(mut e) = self.entries.lock() {
             if e.len() >= CACHE_ENTRIES {
                 e.remove(0);
             }
-            e.push((key.clone(), Arc::clone(&v)));
+            e.push((key.clone(), v.clone()));
         }
-        Some(v)
+        v
     }
 }
 
@@ -100,29 +104,47 @@ static RASTERS: Cache<RasterKey, Vec<u8>> = Cache::new();
 type DxfKey = ([u8; 32], Option<String>, Option<String>);
 static DRAWINGS: Cache<DxfKey, ew_import_dxf::Converted> = Cache::new();
 
-/// The DXF drawing of an underlay, converted once per source, layout and unit.
-fn drawing(u: &Underlay, bytes: &Arc<[u8]>) -> Option<Arc<ew_import_dxf::Converted>> {
+/// The DXF drawing of an underlay, converted once per source, layout and unit (the source is read, and its hash
+/// checked, only when the drawing is not at hand).
+fn drawing(assets: &ExportAssets, u: &Underlay) -> Option<Arc<ew_import_dxf::Converted>> {
     DRAWINGS.get_or(&(u.asset.0, u.layout.clone(), u.unit.clone()), || {
+        let bytes = source(assets, u)?;
         let space = u
             .layout
             .clone()
             .map_or(ew_import_dxf::Space::Model, ew_import_dxf::Space::Layout);
         let unit = u.unit.as_deref().and_then(ew_import_dxf::Unit::parse);
         let limits = ew_import_dxf::ew_interop_api::Limits::default();
-        let run = || ew_import_dxf::convert(bytes, &limits, unit, &space, &Default::default(), &u.name);
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
-            .ok()?
-            .ok()
+        let run = || ew_import_dxf::convert(&bytes, &limits, unit, &space, &Default::default(), &u.name);
+        Some(
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
+                .ok()
+                .and_then(Result::ok),
+        )
     })
 }
 
-/// The frame of an underlay whose source is not at hand: its rectangle, dashed, with the file's name.
-fn missing(u: &Underlay, out: &mut Vec<Item>) {
+/// The frame of an underlay whose source is not at hand (or that does not draw): its rectangle, dashed, with the
+/// file's name inside its top-left corner.
+fn missing(u: &Underlay, fonts: &ew_text::FontSet, styles: &ew_text::TextStyleTable, out: &mut Vec<Item>) {
     let grey = Color::from_rgba8(0x80, 0x80, 0x80, 0xff);
     let stroke = Stroke::solid(Nm(250_000))
         .with_brush(Brush::Solid(grey))
         .dashed(ew_dl::DashPattern::Dash42);
     out.push(Item::path(Path::rect(u.rect.0), Some(stroke), None));
+    if u.name.is_empty() {
+        return;
+    }
+    let name = PageItemKind::FreeText(ew_schema::FreeText {
+        text: ew_mltext::MlText::neutral(&u.name),
+        bind: None,
+        at: u.rect.0.min() + Pt2::new(Nm(3_000_000), Nm(6_000_000)),
+        angle: ew_units::Angle2(0),
+        style: None,
+        align: None,
+        extra: Default::default(),
+    });
+    out.extend(ew_scene::underlay::dxf_list(&[name], Pt2::ORIGIN, 100, fonts, styles).items);
 }
 
 /// The underlays of `page` drawn in page coordinates (see the module documentation).
@@ -137,19 +159,18 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
         .collect();
     underlays.sort_by_key(|(id, _)| *id);
     for (_, u) in underlays {
-        let Some(bytes) = source(assets, &u) else {
-            missing(&u, &mut items);
-            continue;
-        };
         match u.format {
             UnderlayFormat::Pdf => {
                 let size = ew_scene::underlay::raster_size(u.rect.0.width(), u.rect.0.height());
                 let key = (u.asset.0, u.page, size, u.opacity);
                 let png = RASTERS.get_or(&key, || {
-                    let run = || ew_scene::underlay::pdf_png(Arc::clone(&bytes), u.page, size, u.opacity);
-                    std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
-                        .ok()?
-                        .ok()
+                    let bytes = source(assets, &u)?;
+                    let run = || ew_scene::underlay::pdf_png(bytes, u.page, size, u.opacity);
+                    Some(
+                        std::panic::catch_unwind(std::panic::AssertUnwindSafe(run))
+                            .ok()
+                            .and_then(Result::ok),
+                    )
                 });
                 match png {
                     Some(png) => {
@@ -161,10 +182,10 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
                             u.rect.0,
                         ));
                     }
-                    None => missing(&u, &mut items),
+                    None => missing(&u, fonts, &styles, &mut items),
                 }
             }
-            UnderlayFormat::Dxf => match drawing(&u, &bytes) {
+            UnderlayFormat::Dxf => match drawing(assets, &u) {
                 Some(d) => {
                     let from = d.extents.map_or(Pt2::ORIGIN, |e| e.min());
                     let offset = u.rect.0.min() - from;
@@ -173,9 +194,9 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
                         ew_scene::underlay::dxf_list(&kinds, offset, u.opacity, fonts, &styles).items,
                     );
                 }
-                None => missing(&u, &mut items),
+                None => missing(&u, fonts, &styles, &mut items),
             },
-            UnderlayFormat::Unknown(_) => missing(&u, &mut items),
+            UnderlayFormat::Unknown(_) => missing(&u, fonts, &styles, &mut items),
         }
     }
     DisplayList { items }
@@ -450,4 +471,74 @@ pub(crate) fn keep_source(sha: &[u8; 32], format: &UnderlayFormat, bytes: &[u8])
             let _ = std::fs::remove_file(&tmp);
             refused()
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use std::cell::Cell;
+
+    use super::*;
+
+    #[test]
+    fn a_failed_conversion_is_kept_and_a_missing_source_is_not() {
+        let cache: Cache<u8, u8> = Cache::new();
+        let tries = Cell::new(0);
+        // A source that fails to convert is tried once.
+        for _ in 0..3 {
+            let got = cache.get_or(&1, || {
+                tries.set(tries.get() + 1);
+                Some(None)
+            });
+            assert!(got.is_none());
+        }
+        assert_eq!(tries.get(), 1);
+        // A source that is not at hand is asked for again at the next draw.
+        for _ in 0..3 {
+            let got = cache.get_or(&2, || {
+                tries.set(tries.get() + 1);
+                None
+            });
+            assert!(got.is_none());
+        }
+        assert_eq!(tries.get(), 4);
+        // And a value is made once.
+        for _ in 0..3 {
+            let got = cache.get_or(&3, || {
+                tries.set(tries.get() + 1);
+                Some(Some(7))
+            });
+            assert_eq!(got.as_deref(), Some(&7));
+        }
+        assert_eq!(tries.get(), 5);
+    }
+
+    #[test]
+    fn an_underlay_whose_source_is_missing_draws_its_frame_and_the_file_name() {
+        let u = Underlay {
+            asset: ew_schema::Sha256([0; 32]),
+            format: UnderlayFormat::Pdf,
+            name: "plan.pdf".to_owned(),
+            page: 1,
+            layout: None,
+            unit: None,
+            rect: ew_schema::Bounds(Rect::from_points(
+                Pt2::new(Nm(0), Nm(0)),
+                Pt2::new(Nm(100_000_000), Nm(50_000_000)),
+            )),
+            opacity: 50,
+            extra: Default::default(),
+        };
+        let mut items = Vec::new();
+        missing(&u, ew_text::bundled(), ew_text::builtin(), &mut items);
+        let named = items.iter().any(|i| match &i.kind {
+            ew_dl::ItemKind::Glyphs(run) => run.text == "plan.pdf",
+            ew_dl::ItemKind::Group(g) => g
+                .items
+                .iter()
+                .any(|i| matches!(&i.kind, ew_dl::ItemKind::Glyphs(run) if run.text == "plan.pdf")),
+            _ => false,
+        });
+        assert!(items.iter().any(|i| matches!(i.kind, ew_dl::ItemKind::Path(_))), "the frame");
+        assert!(named, "the file's name");
+    }
 }

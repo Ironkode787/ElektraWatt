@@ -13,7 +13,7 @@
 //! | `Instance` | an `INSERT` of a `BLOCK` per symbol geometry (named `EW_<symbol>_<variant>[_<extra>]`), scaled by the page-to-sheet map, turned and mirrored as the instance's transform; on the symbols layer, the block's content on layer `0` |
 //! | `Path` | one `LWPOLYLINE` per subpath (closed with `70 = 1`); quadratic and cubic Béziers flattened to within [`FLATNESS_NM`]; the stroke width as the nearest standard lineweight; a dash pattern as an `LTYPE` |
 //! | a filled `Path` | a solid `HATCH` per closed subpath; a colour other than black as a true colour (420) |
-//! | `Glyphs` | a `TEXT` at the run's baseline start, its cap height (0.714 em, the bundled face's) and angle; one `STYLE` per face; a character outside Windows-1252 as `\U+XXXX` |
+//! | `Glyphs` | a `TEXT` at the run's baseline start, its cap height (0.714 em, the bundled face's) and angle; one `STYLE` per face; a character outside ASCII as `\U+XXXX`, so the file is ASCII whatever code page a reader assumes |
 //! | `Group` | its transform applied to its items; a clip is not written |
 //! | `Image` | not written, counted |
 //!
@@ -100,11 +100,29 @@ impl DxfLayers {
     ///
     /// # Errors
     ///
-    /// The refusal in words for a class that is none of [`DxfLayers::classes`] or an empty name.
+    /// The refusal in words for a class that is none of [`DxfLayers::classes`], an empty name, a name of more than 255
+    /// characters or one with a character a DXF layer name may not hold (a control character or one of
+    /// `< > / \ " : ; ? * | , = '`).
     pub fn set(&mut self, class: &str, name: &str) -> Result<(), String> {
         let name = name.trim();
         if name.is_empty() {
             return Err(format!("the layer class `{class}` needs a name"));
+        }
+        if name.chars().count() > 255 {
+            return Err(format!("the layer name for `{class}` is longer than 255 characters"));
+        }
+        if let Some(c) = name
+            .chars()
+            .find(|c| c.is_control() || "<>/\\\":;?*|,='".contains(*c))
+        {
+            return Err(format!(
+                "the layer name `{name}` may not hold {}; a DXF layer name cannot",
+                if c.is_control() {
+                    "a control character".to_owned()
+                } else {
+                    format!("`{c}`")
+                }
+            ));
         }
         let slot = self.named_mut().into_iter().find(|(c, _)| *c == class);
         match slot {
@@ -119,12 +137,15 @@ impl DxfLayers {
         }
     }
 
-    /// The names in the order the LAYER table lists them.
+    /// The names in the order the LAYER table lists them, each once (two classes may share a name) and without layer
+    /// `0`, which the table starts with; DXF names compare without regard to case.
     fn all(&self) -> Vec<String> {
+        let mut seen = std::collections::BTreeSet::from(["0".to_owned()]);
         self.clone()
             .named_mut()
             .into_iter()
             .map(|(_, n)| n.clone())
+            .filter(|n| seen.insert(n.to_uppercase()))
             .collect()
     }
 }
@@ -199,16 +220,14 @@ fn real(v: f64) -> String {
     if s == "-0" { "0".to_owned() } else { s.to_owned() }
 }
 
-/// The text of a DXF string: a character outside Windows-1252 as `\U+XXXX`, a line break as a space, `%%` doubled
-/// to `%%%`.
+/// The text of a DXF string: a character outside ASCII as `\U+XXXX` (a reader decodes an AC1015 file's bytes in the
+/// code page the header names, so only ASCII is safe), a line break as a space, `%%` doubled to `%%%`.
 fn dxf_text(s: &str) -> String {
-    const CP1252_HIGH: &str = "€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ";
     let mut out = String::with_capacity(s.len());
     for c in s.chars() {
-        let ok = (c as u32) < 0x80 || ((c as u32) >= 0xa0 && (c as u32) <= 0xff) || CP1252_HIGH.contains(c);
         match c {
             '\n' | '\r' => out.push(' '),
-            _ if ok => out.push(c),
+            _ if c.is_ascii() => out.push(c),
             _ => {
                 let mut buf = [0u16; 2];
                 for unit in c.encode_utf16(&mut buf) {
@@ -562,7 +581,7 @@ fn style_name(opts: &DxfOptions, font: FontKey) -> String {
     if bold {
         s.push_str("-BOLD");
     }
-    s
+    dxf_text(&s)
 }
 
 /// The font file of a face: its family without spaces, `-Bold` or `-Regular`, `.ttf`.
@@ -572,11 +591,11 @@ fn font_file(opts: &DxfOptions, font: FontKey) -> String {
         .get(&font)
         .cloned()
         .unwrap_or_else(|| ("Noto Sans".to_owned(), false));
-    format!(
+    dxf_text(&format!(
         "{}-{}.ttf",
         family.replace(' ', ""),
         if bold { "Bold" } else { "Regular" }
-    )
+    ))
 }
 
 /// The DXF file of each page (see the module documentation).
@@ -923,8 +942,39 @@ mod tests {
     }
 
     #[test]
-    fn text_outside_windows_1252_is_escaped() {
-        assert_eq!(dxf_text("∞ 2,5 mm²"), "\\U+221E 2,5 mm²");
+    fn text_outside_ascii_is_escaped() {
+        // A reader decodes the file in the code page it assumes: Windows-1252 for an AC1015 file, whatever bytes a
+        // UTF-8 `ä` would be written as. Only ASCII reaches the file.
+        assert_eq!(dxf_text("∞ 2,5 mm²"), "\\U+221E 2,5 mm\\U+00B2");
+        assert_eq!(dxf_text("Ää°²"), "\\U+00C4\\U+00E4\\U+00B0\\U+00B2");
+        assert_eq!(dxf_text("😀"), "\\U+D83D\\U+DE00");
         assert_eq!(dxf_text("50%%"), "50%%%");
+        assert!(dxf_text("Müller\nÖl").is_ascii());
+    }
+
+    #[test]
+    fn a_layer_name_a_dxf_file_cannot_hold_is_refused_in_words() {
+        let mut layers = DxfLayers::default();
+        layers.set("wires", "EW LEITUNGEN").unwrap();
+        for bad in ["A/B", "A:B", "A\nB", "A\"B", "A,B", "A<B"] {
+            let e = layers.set("wires", bad).unwrap_err();
+            assert!(e.contains("may not hold"), "{bad:?}: {e}");
+        }
+        assert!(layers.set("wires", &"A".repeat(256)).unwrap_err().contains("255"));
+        assert_eq!(layers.wires, "EW LEITUNGEN", "a refused name changes nothing");
+    }
+
+    #[test]
+    fn the_layer_table_lists_each_name_once_and_never_layer_zero() {
+        let mut layers = DxfLayers::default();
+        layers.set("wires", "EW-FRAME").unwrap();
+        layers.set("texts", "ew-frame").unwrap();
+        layers.set("graphics", "0").unwrap();
+        let all = layers.all();
+        let mut upper: Vec<String> = all.iter().map(|n| n.to_uppercase()).collect();
+        upper.sort();
+        upper.dedup();
+        assert_eq!(upper.len(), all.len(), "{all:?}");
+        assert!(!all.iter().any(|n| n == "0"));
     }
 }

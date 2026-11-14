@@ -22,9 +22,10 @@
 //!   `dxf:<space>|<handle>`, an insert's shapes `…|<insert>/<handle>`, layers kept as the items' layers); the items a DXF
 //!   underlay draws ([`convert`]); symbols ([`symbols`], the wizard's steps); a part's front outline ([`outline`]).
 //! - **SHX** ([`SHX_SUBSTITUTES`]): an SHX font is drawn in a bundled family and reported once (EW-IMP-252).
-//! - **Limits** (doc 14 §11): the input size and text length of the context's [`Limits`], at most 5 million entities,
-//!   block nesting 32, 1 million shapes after expansion, 100,000 spline control points; coordinates finite and
-//!   within the format's safe range after scaling.
+//! - **Limits** (doc 14 §11): the input size and text length of the context's [`Limits`]; one memory budget
+//!   ([`MAX_BUDGET`]) for the pairs and entities the file holds and for everything the conversion expands, copies and
+//!   flattens, refused before the memory is taken; block nesting 32, 1 million shapes after expansion, 100,000 spline
+//!   control points; coordinates finite and within the format's safe range after scaling.
 //!
 //! Pure (doc 14 §2.1): it reads only the bytes it is handed, never a file, the clock or the network. Depends on
 //! `ew-interop-api` and the permissive `ew-dl`, `ew-units` and `ew-mltext` only, so it is `MIT OR Apache-2.0` like the
@@ -54,7 +55,7 @@ use ew_interop_api::{
 use ew_mltext::{Ident, MlText};
 use ew_units::Grid;
 pub use geom::{MAX_NESTING, MAX_PRIMITIVES, MAX_SPLINE_POINTS, TOLERANCE_NM};
-pub use parse::MAX_ENTITIES;
+pub use parse::MAX_BUDGET;
 pub use symbol::{BlockSymbol, SNAP_REPORT_NM, SymbolPin, SymbolSlot, outline, symbols};
 pub use text::{DEFAULT_FAMILY, SHX_SUBSTITUTES, shx_substitute};
 

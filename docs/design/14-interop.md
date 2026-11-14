@@ -1389,7 +1389,8 @@ converted again when drawn, so the project holds one item per underlay. `rect` r
 covers the whole sheet, a DXF drawing is drawn from the rectangle's corner. Both draw grey at the opacity and carry no
 entity; the commands neither move nor copy an underlay. A PDF page is rasterised at 150 dpi of its rectangle, each
 side at most 4,096 px. A source not embedded is kept in the user's cache, `<OS cache directory>/underlays/<sha256>`;
-a project opened elsewhere draws a dashed frame with the file's name. The window's canvas always draws underlays; an
+a project opened elsewhere draws a dashed frame with the file's name inside its top-left corner (also for a source that
+does not convert or render; such a failure is kept per source, so it is not tried again at every draw). The window's canvas always draws underlays; an
 export draws them only with `--underlays` (`ew export pdf`, `svg`, `dxf`, `png`). Printing draws none. The window takes
 a PDF through File ▸ Import… as an underlay of the open page; `ew import pdf` and `ew import dxf --as underlay` do
 the same from the command line.
@@ -1433,7 +1434,9 @@ AC1021 on) and the coverage of the
 table above, with these differences: MLEADER, 3D and proxy entities are EW-IMP-253; ACAD_TABLE is drawn through its
 anonymous block like DIMENSION; an IMAGE draws a frame with the file's name, never its folders; each paper-space
 viewport draws model space at its scale, clipped to its rectangle. `y_top` is the header's `$EXTMAX` (`$PEXTMAX` for
-a layout), else the top of the converted geometry. A unitless drawing is refused with EW-IMP-251's words until the
+a layout) when the header's extents hold the converted geometry (its `$EXTMIN` below it, its `$EXTMAX` above it, within
+0.01 mm), else the top of the converted geometry: extents that do not hold the drawing are stale and would put it off
+the sheet. `\U+XXXX` escapes are resolved in every code page, a pair of surrogate units as the one character. A unitless drawing is refused with EW-IMP-251's words until the
 caller names the unit (`--units`, or the dialog, which offers millimetres). Each import is a new graphic page; a
 second import of the same file is a copy (§2.3).
 
@@ -1486,7 +1489,14 @@ DXF page export is specified in [09](09-reports-forms-output.md) §4.4: AC1015, 
 export scheme (`EW-FRAME`, `EW-SYMBOLS`, `EW-WIRES`, `EW-TEXTS`, `EW-GRAPHICS`, `EW-TABLES`), symbols as BLOCK/INSERT
 per symbol and variant, Béziers flattened at 0.01 mm. The interop requirement is the **round trip**: EW's own DXF of
 folios 101–106 re-imports as graphic pages within 0.01 mm (AC-37). Drilling DXF per surface is FR-MFG-028.
-*As built (WP-S3.19):* `ew export dxf`, the writer as [09](09-reports-forms-output.md) §4.4 records it.
+*As built (WP-S3.19):* `ew export dxf`, the writer as [09](09-reports-forms-output.md) §4.4 records it. The file is
+ASCII: a character outside ASCII is written as `\U+XXXX` (a character beyond the first plane as two surrogate units),
+because a reader decodes an AC1015 file in the code page its header names (Windows-1252), not as UTF-8; the importer
+reads it back as written (AC-37's test compares symbol inserts, turned and mirrored, and a text of `Ää°²` with its
+position). A layer name an export scheme gives is refused in words when it is empty, longer than 255 characters or holds
+a control character or one of `< > / \ " : ; ? * | , = '`; two classes that share a name, or one named `0`, are one
+LAYER record. The AC1015 file has been read back by this importer only; no CAD program or independent reader has
+confirmed that it is valid (open).
 
 ### 6.5 DWG
 
@@ -1500,9 +1510,12 @@ folios 101–106 re-imports as graphic pages within 0.01 mm (AC-37). Drilling DX
 
 *As built (WP-S3.19).* `ew import dwg <file> --converter <program>` and the window's File ▸ Import… (which asks for
 the converter's program once and keeps it in the settings) copy the DWG into a fresh temporary folder, run
-`<converter> <in> <out> ACAD2018 DXF 0 1 *.DWG` for at most 120 s (stopped after that), read the DXF it writes under
-the DXF input limit, remove the folder and import the DXF as a page, underlay or symbol drafts; EW-IMP-257 records
-the conversion. Without a converter the words of EW-IMP-257 say what it is and where to get it.
+`<converter> <in> <out> ACAD2018 DXF 0 1 *.DWG` for at most 120 s (stopped after that, with the processes it started: its own process group on Unix,
+`taskkill /T` on Windows), read the DXF it writes under the DXF input limit, remove the folder and import the DXF as a
+page, underlay or symbol drafts; EW-IMP-257 records the conversion. The folder has a random name and is readable by its
+user only, and a guard removes it on every way out and stops a converter still running. Without a converter the words
+of EW-IMP-257 say what it is and where to get it. The window runs this, the import's conversion and the dialog's probe
+in the action itself, on the window's thread: a long conversion holds the window (not yet a job).
 
 ---
 
@@ -1730,7 +1743,7 @@ allocator of [18](18-quality-security-release.md) §3.12. The per-parser values:
 |---|---|
 | XML (QET, parts XML, AML, GSDML, IODD, BMEcat) | DTD refused (no internal or external entities, no XInclude); depth ≤ 256; attribute value ≤ 16 MiB; base64 payload ≤ 64 MiB decoded; decoded images ≤ 16,384 × 16,384 px; ≤ 8,192 attributes per element (`max_xml_attributes_per_element`) and ≤ 1,048,576 per document (`max_xml_attributes`); attribute work ≤ 2^26, the sum over elements of the squared attribute count (`max_xml_attribute_work`); ≤ 1,000,000 nodes per document (`max_xml_nodes`), counting nodes (root, elements and comments in the pre-scan; texts and processing instructions by the parser), not attributes; a project importer may raise the node limit explicitly under its own budget; at most 2 × `max_xml_nodes` + `max_xml_attributes` markup bytes (`<` and `=`, 3,048,576 by default), because roxmltree 0.21.1 reserves about 72 bytes per such byte before any node limit applies; each text node or CDATA section ≤ 1 MiB (`max_text_bytes`), because text is copied several times downstream and no other bound covers it; a standalone element definition is read under the preset `Limits::element_definition()`, an input of ≤ 16 MiB with ≤ 131,072 attributes and ≤ 262,144 nodes (review N7: under the general limits a 16 MiB file of about 349,000 three-attribute `<text>` primitives allocated about 0.5 GB extra; under the preset about 44,000 fit, well under 100 MiB) |
 | Archives (EDZ 7z/ZIP, QETZ, `.ewz`, XLSX) | ≤ 100,000 entries; ≤ 2 GiB expanded; ≤ 512 MiB per entry; ratio ≤ 200 : 1 per entry; names with `..`, absolute or drive paths, `\`, `:` or NUL rejected; symlink and encrypted entries refused; 7z solid block ≤ 512 MiB |
-| DXF | file ≤ 512 MiB; line ≤ 1 MiB; ≤ 5 million entities, counted before the parse; block nesting ≤ 32; INSERT/MINSERT expansion ≤ 1 million primitives (lowered from 10 million at WP-S3.19, whose expansion broke the 256 MB rule), an array insert checked before it expands; spline control points ≤ 100,000; coordinates finite (an item with another is EW-IMP-002) and within ±2^62 nm after scaling |
+| DXF | file ≤ 512 MiB; line ≤ 1 MiB; **one memory budget of 192 MiB** (`MAX_BUDGET`, an estimate in bytes, not a measurement) for the whole conversion: the file's pairs and entities (64 bytes a pair and its string, 128 an entity), counted before any is held, then every entity and block expansion visited (its key and the pairs it is read from, so an empty cell of an array and a block that inserts itself twice are charged), every shape made, every point a curve flattens to and every note kept for the report, each refused as `LimitExceeded` before the memory is taken (a legal drawing of about 150,000 plain entities fits; the shapes are freed as the page items are made, so the peak stays near the budget); block nesting ≤ 32; INSERT/MINSERT expansion ≤ 1 million primitives, an array insert checked before it expands; spline control points ≤ 100,000; a hatch's loops, edges and vertices end with its pairs (a count the pairs cannot hold is cut to the pairs left); a handle (code 5) longer than 32 characters names nothing (the entity is keyed by its place), so a key cannot grow; coordinates finite (an item with another is EW-IMP-002) and within ±2^62 nm after scaling |
 | CSV, XLSX | ≤ 1,000,000 rows; ≤ 1,024 columns; cell ≤ 32 KiB (each XLSX shared string too; the parts-table importer reads under the preset `table_limits()`, `max_text_bytes` = 32 KiB); formulas never evaluated |
 | SQLite (QETZ) | read-only, `trusted_schema=OFF`, defensive mode, schema check, views and triggers refused, ≤ 1 GiB |
 | SVG logos | usvg with external references disabled; ≤ 8 MiB; ≤ 100,000 nodes |
