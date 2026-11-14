@@ -101,6 +101,73 @@ fn the_fluid_workspace_lists_valves_lines_and_tubes_and_edits_a_length() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// A net whose medium is defined at its other end: the line's context menu checks that medium, and Medium: of another
+/// one replaces the net's definition rather than adding a second one beside it, so the net carries the new medium
+/// alone (not "mixed") and the menu checks it.
+#[test]
+fn a_medium_set_on_a_line_replaces_the_definition_of_its_net() {
+    use ew_ui::ew_viewmodel::ew_api::output::TableEnd;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    for (name, p_nom) in [("Air 6 bar", "6"), ("Air 4 bar", "4")] {
+        dispatch(&mut h, "fluid.medium_new", json!({"name": name, "p_nom": p_nom}));
+    }
+    let (line, b) = {
+        let c = h.state().shell().canvas().unwrap();
+        let line = c
+            .page()
+            .tables
+            .connections
+            .iter()
+            .find(|c| c.kind == "fluid" && c.polyline.len() >= 2 && matches!(c.b, TableEnd::Cp { .. }))
+            .expect("a fluid line on 203");
+        (line.id.to_string(), line.b)
+    };
+    let TableEnd::Cp { function, idx } = b else {
+        unreachable!("a CP");
+    };
+    dispatch(&mut h, "rail.show", json!({"pane": "fluid"}));
+    settle(&mut h);
+    let six = h
+        .state()
+        .shell()
+        .nav(NavKind::Fluid)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == NavRole::Medium && n.label == "Air 6 bar")
+                .map(|n| n.records[0])
+        })
+        .expect("Air 6 bar");
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "fluid.medium.define", "params": {"function": function.to_string(), "idx": idx,
+            "medium": six.to_string()}}),
+    );
+    settle(&mut h);
+    let at = crate::context_menu::point_on(&h, &line);
+    let checked = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, label: &str| {
+        h.get_by_label(label).accesskit_node().toggled() == Some(egui::accesskit::Toggled::True)
+    };
+    crate::tools::right_click(&mut h, at);
+    assert!(checked(&h, "Medium: Air 6 bar"), "the medium defined at the other end");
+    support::menu_node(&h, "Medium: Air 4 bar").click();
+    settle(&mut h);
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
+    assert_eq!(toast, "The line carries Air 4 bar now.");
+    crate::tools::right_click(&mut h, at);
+    assert!(checked(&h, "Medium: Air 4 bar"), "the net carries the new medium");
+    assert!(!checked(&h, "Medium: Air 6 bar"), "and not the old one");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// Media from nothing on Golden A, which defines none: Project ▸ New medium… adds one; a fluid line's context menu on
 /// folio 203 sets it on the line's net and sets the line's kind; the medium table's row counts the consumers and
 /// highlights the zones.

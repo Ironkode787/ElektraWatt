@@ -606,3 +606,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: `ew import qet --batch` goes on after a report that cannot be written, keeps two files of one
   stem apart and escapes a bar in the summary; a QET collection says the folders deeper than 16 it did not read (M3
   review fix, doc 14 §4.16)
+- behaviour-change: `fluid.medium.define` with a medium replaces the definition of the port's whole net, wherever on
+  the net it is, so that a net is never defined twice; a fluid line's Medium: in the window sets the net's medium
+  (M3 review of the window)
+- behaviour-change: the PLC import's Apply commits the merge its preview showed, `complete` included; a conflict shows
+  the side Apply takes and offers the file's value only where it can be taken (M3 review of the window, FT-1756)

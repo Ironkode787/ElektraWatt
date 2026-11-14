@@ -220,7 +220,8 @@ Media that propagation derives without a record:
 vacuum or hydraulic), p_nom, quality?, t_range?, colour?, default_tube, line_kind_tubes: [{line_kind, tube}]}`;
 `medium_def` (rank 40) is `{id, at, medium}` in the file of the owner of `at`. `fluid.medium.edit` makes, changes and
 deletes a medium (a deletion takes its definitions with it); `fluid.medium.define` sets or removes the definition of
-a fluid port (FI-04: one per port, a new one replaces it). The derived keys carry their root medium only:
+a fluid port (FI-04: one per port; a new one replaces the definition of the port's whole net, so that a net is never
+defined twice). The derived keys carry their root medium only:
 `Regulated(root, p_set)`, `Vacuum(root)`, `Exhaust(root)`; their texts are "… → 4 bar", "vacuum (from …)" and
 "exhaust" in en-GB and nl-NL. A medium defined in a regulator's outlet net replaces the regulated key there. The
 vacuum port is the one the ejector's part names (`transform`, §2.6); the shipped ejector `ew.fn.ejector` has ports 1
@@ -781,7 +782,8 @@ with the line count of its zones. The tube table is the `tube_list` rows; its Tu
 `fields.set` paths `tube_part` and `tube_length` of a fluid line (refused on another connection; the length typed in
 millimetres), which Properties shows on fluid lines too. The medium table is the `medium_overview` rows. **Media are
 set** by Project ▸ New medium… (a form of name, pressure and letter: one `fluid.medium.edit`) and by a fluid line's
-context menu, Medium: `<name>` (one `fluid.medium.define` at the line's end), which also offers the line kinds (Line:
+context menu, Medium: `<name>` (one `fluid.medium.define` at the line's end, which replaces the net's definition
+wherever it is; the entry of the medium the line's net carries is checked), which also offers the line kinds (Line:
 Working … Flexible: the line-kind picker of FT-1733, after drawing). **Zones are shown** by a medium's row with
 Highlight (`Ctrl+Shift+H`, the window highlight of doc 16 §7.3 in a slot's colour and hatch, never colour alone): the
 lines of the nets whose medium is that medium. This is the highlight half of FR-FLU-034 (Could), built because the

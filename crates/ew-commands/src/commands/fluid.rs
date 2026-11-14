@@ -698,7 +698,8 @@ impl Command for EditMedium {
 /// `fluid.medium.define` (`DefineMedium`, doc 11 §4.3, FR-FLU-009): the medium a fluid port carries, the seed of its
 /// propagation; without `medium` the port's definition is removed.
 ///
-/// FI-04: the port must be a fluid port, and holds at most one definition: a new one replaces the old. Refused: a CP
+/// FI-04: the port must be a fluid port, and its net holds at most one definition: a new one replaces the net's (at
+/// this port or at another of the same net), so that a medium set at any port of a net is the net's. Refused: a CP
 /// that is no fluid port (in words); a function or medium that does not exist (`NotFound`). Interactive, one undo
 /// step. Outcome: the definition (the function after a removal).
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
@@ -735,10 +736,14 @@ impl Command for DefineMedium {
             tx.require::<Medium>(m)?;
         }
         let at = Endpoint::Cp(f, idx);
+        // A new medium replaces the definition of the port's whole net, so that a net is never defined twice.
+        let q = ew_derive::Q::new(tx.base_model());
+        let net_of = |e: &Endpoint| ew_model::EndpointKey::of(e).and_then(|k| ew_derive::node_net(&q, k));
+        let net = self.medium.and(net_of(&at));
         let held: Vec<(Kind, ew_ids::Id<()>)> = tx
             .iter::<MediumDef>()
             .into_iter()
-            .filter(|d| d.at == at)
+            .filter(|d| d.at == at || (net.is_some() && net_of(&d.at) == net))
             .map(|d| (Kind::MediumDef, d.id.cast()))
             .collect();
         tx.delete_many(&held)?;
