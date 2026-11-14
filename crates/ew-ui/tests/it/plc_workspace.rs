@@ -67,6 +67,9 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
         );
     }
     h.get_by_label("PLC grid table");
+    // The workspace's grid makes the canvas shorter: the page fits it again, whole.
+    let canvas = h.state().shell().canvas().expect("the canvas");
+    assert!(canvas.is_fitted() && !canvas.is_first_view(), "Fit page");
     assert_eq!(grid_rows(&h), 56);
     // FT-776: the Address header grows by its sort icon when sorted, so its word is not cut.
     let width = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, label: &str| {
@@ -448,7 +451,7 @@ fn the_plc_exchange_exports_and_previews_an_import() {
         .map(|t| t.text.clone())
         .unwrap_or_default();
     assert!(
-        toast.starts_with("Exported plc.aml: 1 station(s), 7 module(s), 56 channel(s)"),
+        toast.starts_with("Exported plc.aml: 1 station, 7 modules, 56 channels"),
         "{toast}"
     );
     // The project's own file read back: nothing differs from the exchange just recorded.
@@ -464,6 +467,9 @@ fn the_plc_exchange_exports_and_previews_an_import() {
     };
     assert!(card.conflicts.is_empty() && card.parking.is_empty(), "{card:?}");
     h.get_by_label_contains("Nothing changes until you apply.");
+    h.get_by_label_contains("Conflicts (").click();
+    settle(&mut h);
+    h.get_by_label("Nothing in this tab.");
     h.get_by_label_contains("Removed (").click();
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::PlcImport(c)) if c.tab.word() == "removed"));
@@ -510,7 +516,10 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
         json!({"format": "aml-1.4.0", "path": exported.to_string_lossy()}),
     );
     let text = std::fs::read_to_string(&exported).expect("the export");
-    assert!(text.contains(&station.to_string()), "the station's ID in the file");
+    assert!(
+        text.contains(&station.to_string()),
+        "the station's ID in the file"
+    );
     // A script's export onto an existing file needs `replace`, as the PDF export does.
     let again = json!({"format": "aml-1.4.0", "path": exported.to_string_lossy()});
     assert!(matches!(
@@ -530,10 +539,7 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
     dispatch(&mut h, "plc.import", import.clone());
     settle(&mut h);
     let listed = removed(&h);
-    assert!(
-        listed.iter().any(|r| r == "station -201U1"),
-        "{listed:?}"
-    );
+    assert!(listed.iter().any(|r| r == "station -201U1"), "{listed:?}");
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);
     assert!(
@@ -543,7 +549,11 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
     );
     dispatch(&mut h, "plc.import", import);
     settle(&mut h);
-    assert_eq!(removed(&h), Vec::<String>::new(), "the station left the last exchange");
+    assert_eq!(
+        removed(&h),
+        Vec::<String>::new(),
+        "the station left the last exchange"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -574,7 +584,12 @@ fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
     let config = record(&h, NavRole::ConfigProject, "");
     let channel = record(&h, NavRole::Channel, "TA05-V-15");
     for (kind, target, path, value) in [
-        ("plc_config_project", config, "symbols", json!({"template": "{target.process_tag}"})),
+        (
+            "plc_config_project",
+            config,
+            "symbols",
+            json!({"template": "{target.process_tag}"}),
+        ),
         ("channel", channel, "comment", json!("Feed")),
     ] {
         dispatch(
@@ -607,7 +622,10 @@ fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
         Some(egui::accesskit::Toggled::True),
         "the default side is chosen"
     );
-    assert!(h.query_by_label("Take the file's").is_none(), "no side that cannot be taken");
+    assert!(
+        h.query_by_label("Take the file's").is_none(),
+        "no side that cannot be taken"
+    );
     h.get_by_label_contains("Comment (de-DE) of TA05_V_15 cannot be taken from the file");
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);
@@ -633,7 +651,12 @@ fn a_settings_value_left_out_keeps_the_stored_one() {
             .shell()
             .nav(NavKind::Plc)
             .and_then(|n| n.table())
-            .and_then(|t| t.nodes.iter().find(|n| n.role == role).map(|n| n.records[0].to_string()))
+            .and_then(|t| {
+                t.nodes
+                    .iter()
+                    .find(|n| n.role == role)
+                    .map(|n| n.records[0].to_string())
+            })
             .expect("the row")
     };
     let (config, channel) = (record(NavRole::ConfigProject), record(NavRole::Channel));
@@ -647,7 +670,11 @@ fn a_settings_value_left_out_keeps_the_stored_one() {
         "plc.symbol_policy",
         json!({"config": config, "template": "{target.dt}_{pin}", "tag_table": "Valves"}),
     );
-    dispatch(&mut h, "plc.symbol_policy", json!({"config": config, "tag_table": "Pumps"}));
+    dispatch(
+        &mut h,
+        "plc.symbol_policy",
+        json!({"config": config, "tag_table": "Pumps"}),
+    );
     h.get_by_label(&config_row.name).click_secondary();
     settle(&mut h);
     support::menu_node(&h, "Symbol policy…").click();
@@ -660,7 +687,11 @@ fn a_settings_value_left_out_keeps_the_stored_one() {
         "plc.channel_settings",
         json!({"channel": channel, "evaluation": "1oo1", "requirement": "SIL2"}),
     );
-    dispatch(&mut h, "plc.channel_settings", json!({"channel": channel, "requirement": ""}));
+    dispatch(
+        &mut h,
+        "plc.channel_settings",
+        json!({"channel": channel, "requirement": ""}),
+    );
     dispatch(&mut h, "plc.channel_settings", json!({"channel": channel}));
     assert_eq!(form_value(&h, "evaluation"), "1oo1", "kept");
     assert_eq!(form_value(&h, "requirement"), "", "cleared by the empty text");
@@ -722,10 +753,18 @@ fn a_channel_row_selects_the_channel_alone() {
         .shell()
         .nav(NavKind::Plc)
         .and_then(|n| n.table())
-        .and_then(|t| t.nodes.iter().find(|n| n.role == NavRole::Channel && n.label == "Q0.1").map(|n| n.records[0]))
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == NavRole::Channel && n.label == "Q0.1")
+                .map(|n| n.records[0])
+        })
         .expect("the channel");
     assert_eq!(selected, [channel.to_string()]);
-    assert!(h.query_by_label_contains("No common fields").is_none(), "Properties shows the channel");
+    assert!(
+        h.query_by_label_contains("No common fields").is_none(),
+        "Properties shows the channel"
+    );
     h.state_mut().shell_mut().shutdown();
 }
 
@@ -745,7 +784,11 @@ fn the_plc_export_form_refuses_a_bad_date_before_the_file() {
     settle(&mut h);
     match h.state().shell().dialog() {
         Some(Dialog::Form(f)) if f.action == "plc.export" => {
-            assert!(f.error.as_deref().is_some_and(|e| e.contains("is no date")), "{:?}", f.error);
+            assert!(
+                f.error.as_deref().is_some_and(|e| e.contains("is no date")),
+                "{:?}",
+                f.error
+            );
         }
         other => panic!("{other:?}"),
     }

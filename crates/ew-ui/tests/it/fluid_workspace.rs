@@ -152,7 +152,10 @@ fn a_medium_set_on_a_line_replaces_the_definition_of_its_net() {
         h.get_by_label(label).accesskit_node().toggled() == Some(egui::accesskit::Toggled::True)
     };
     crate::tools::right_click(&mut h, at);
-    assert!(checked(&h, "Medium: Air 6 bar"), "the medium defined at the other end");
+    assert!(
+        checked(&h, "Medium: Air 6 bar"),
+        "the medium defined at the other end"
+    );
     support::menu_node(&h, "Medium: Air 4 bar").click();
     settle(&mut h);
     let toast = h
@@ -255,7 +258,9 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
         .find(|r| r.role == NavRole::Medium.word())
         .expect("the medium's row");
     assert!(
-        row.badges.iter().any(|b| b.ends_with("line") || b.ends_with("lines")),
+        row.badges
+            .iter()
+            .any(|b| b.ends_with("line") || b.ends_with("lines")),
         "{:?}",
         row.badges
     );
@@ -574,7 +579,11 @@ fn the_valve_terminals_overview_is_generated_from_its_row() {
 fn golden_as_overview_is_refreshed_without_a_change() {
     let tmp = Tmp::new();
     let mut h = on_golden(&tmp, "201");
-    dispatch(&mut h, "fluid.generate_overview", json!({"station": "tag:-201U1"}));
+    dispatch(
+        &mut h,
+        "fluid.generate_overview",
+        json!({"station": "tag:-201U1"}),
+    );
     settle(&mut h);
     let pane = h.state().shell().preview_pane();
     let notices = pane.notices().to_vec();
@@ -639,7 +648,11 @@ fn the_fluid_workspace_speaks_dutch() {
         .iter()
         .find(|r| r.role == NavRole::Station.word())
         .expect("the valve terminal");
-    assert!(terminal.badges.iter().any(|b| b == "ventieleiland"), "{:?}", terminal.badges);
+    assert!(
+        terminal.badges.iter().any(|b| b == "ventieleiland"),
+        "{:?}",
+        terminal.badges
+    );
     let table = h
         .state()
         .shell()

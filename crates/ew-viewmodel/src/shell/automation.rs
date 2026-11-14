@@ -739,13 +739,14 @@ impl ShellModel {
                 Err(_) => return failed(key!("error-plc-export-date"), &[d]),
             },
         };
-        // The form's values are checked before the file is asked for, and the form stays open behind the prompt.
+        // The form's values are checked before the file is asked for, so a value refused keeps the form.
         let path = match string_param(p, "path") {
             Err(e) => return e,
             Ok(Some(path)) => super::jobs::absolute_target(std::path::PathBuf::from(path)),
             Ok(None) => {
                 let mut rest = p.clone();
                 rest.insert("replace".to_owned(), Value::Bool(true));
+                self.dialog = None;
                 return self.need_path("plc.export", crate::shell::Prompt::SavePlcExchange, "path", &rest);
             }
         };
@@ -777,10 +778,13 @@ impl ShellModel {
             .as_ref()
             .map_or(Outcome::Done, |record| self.run_commit(record));
         if out == Outcome::Done {
-            if matches!(&self.dialog, Some(crate::shell::Dialog::Form(f)) if f.action == "plc.export") {
-                self.dialog = None;
-            }
-            let [stations, modules, channels, tags] = export.counts.map(|n| n.to_string());
+            let [stations, modules, channels, tags] = export.counts;
+            let [stations, modules, channels, tags] = [
+                strings::format_count(crate::count_key!("plc-count-stations"), stations),
+                strings::format_count(crate::count_key!("plc-count-modules"), modules),
+                strings::format_count(crate::count_key!("plc-count-channels"), channels),
+                strings::format_count(crate::count_key!("plc-count-symbols"), tags),
+            ];
             let mut text = strings::format(
                 key!("toast-plc-export"),
                 &[&name, &stations, &modules, &channels, &tags],

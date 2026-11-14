@@ -176,7 +176,9 @@ fn text_that_does_not_fit_is_shrunk_then_cut_and_reported() {
     );
     let texts = glyph_texts(&l.list);
     assert!(
-        texts.iter().any(|s| s.starts_with("A description") && s.ends_with('…')),
+        texts
+            .iter()
+            .any(|s| s.starts_with("A description") && s.ends_with('…')),
         "{texts:?}"
     );
 }

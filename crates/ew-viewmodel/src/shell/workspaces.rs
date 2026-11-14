@@ -146,6 +146,17 @@ impl ShellModel {
                 self.save_settings();
                 self.panes.version += 1;
                 self.panes.changed_at = None;
+                // The canvas's pane changes size with the layout: each page fits again once it has its new size.
+                if let Some(area) = &mut self.area {
+                    for c in area
+                        .groups
+                        .iter_mut()
+                        .flat_map(|g| &mut g.tabs)
+                        .filter_map(|t| t.canvas.as_mut())
+                    {
+                        c.fit_again();
+                    }
+                }
                 Outcome::Done
             }
             Err(ReadError::Missing) => failed(key!("error-workspace-missing"), &[&name]),

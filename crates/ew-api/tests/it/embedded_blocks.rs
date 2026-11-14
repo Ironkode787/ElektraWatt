@@ -319,15 +319,20 @@ fn a_kind_without_a_layout_draws_every_column_and_reports_the_rows_it_cannot_hol
             drawn: 9
         })
     );
-    // Every column at weight 1 leaves the longest wire-list texts too wide: they shrink, are reported and drawn whole,
-    // and only the nine drawn rows report.
+    // Every column at weight 1 leaves the longest wire-list texts too wide: they shrink, are cut with an ellipsis at
+    // the smallest size and reported (never printed over the next cell), and only the nine drawn rows report.
     for f in &findings[1..] {
         match f {
             PageFinding::Table(TableFinding::Overflow {
                 row: Some(r), text, ..
             }) => {
                 assert!(*r < 9, "{f:?}");
-                assert!(texts.contains(text), "{text} is drawn whole");
+                assert!(
+                    texts
+                        .iter()
+                        .any(|t| t.ends_with('…') && text.starts_with(t.trim_end_matches('…'))),
+                    "{text} is drawn cut"
+                );
             }
             other => panic!("{other:?}"),
         }

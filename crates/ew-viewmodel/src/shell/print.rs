@@ -313,8 +313,13 @@ impl ShellModel {
             .project
             .as_ref()
             .map_or((0, 0), |p| (p.session.world().rev.0, p.epoch));
-        self.jobs
-            .start_flagged(JobKind::Print, request.title.clone(), rev, epoch, Arc::clone(&request.cancel));
+        self.jobs.start_flagged(
+            JobKind::Print,
+            request.title.clone(),
+            rev,
+            epoch,
+            Arc::clone(&request.cancel),
+        );
         Some(request)
     }
 

@@ -379,6 +379,10 @@ fn a_tube_without_a_length_prints_a_short_mark() {
     let rows = csv_rows(&tubes.csv);
     assert!(!rows.is_empty(), "Golden A's tubes");
     for r in &rows {
-        assert_eq!((r["Length"].as_str(), r["Source"].as_str()), ("—", "missing"), "{r:?}");
+        assert_eq!(
+            (r["Length"].as_str(), r["Source"].as_str()),
+            ("—", "missing"),
+            "{r:?}"
+        );
     }
 }

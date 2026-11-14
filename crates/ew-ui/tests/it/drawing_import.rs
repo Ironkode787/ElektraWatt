@@ -43,7 +43,9 @@ fn a_drawing_import_runs_as_a_job_with_cancel() {
     let pages = h.state().shell().page_rows().len();
     let gate = ew_ui::ew_viewmodel::ew_api::ew_jobs::Gate::new();
     gate.hold("drawing");
-    h.state_mut().shell_mut().set_job_gate_for_tests(Some(gate.clone()));
+    h.state_mut()
+        .shell_mut()
+        .set_job_gate_for_tests(Some(gate.clone()));
     support::dispatch(
         &mut h,
         "file.import_drawing",
@@ -63,8 +65,16 @@ fn a_drawing_import_runs_as_a_job_with_cancel() {
     gate.release();
     finish_jobs(&mut h);
     assert_eq!(h.state().shell().page_rows().len(), pages, "nothing imported");
-    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
-    assert_eq!(toast, "The import of plan.dxf was cancelled; nothing was imported.");
+    let toast = h
+        .state()
+        .shell()
+        .toast()
+        .map(|t| t.text.clone())
+        .unwrap_or_default();
+    assert_eq!(
+        toast,
+        "The import of plan.dxf was cancelled; nothing was imported."
+    );
 }
 
 /// On Golden A, whose last drawn page is followed by generated report pages, a drawing imported as a page takes a folio
@@ -75,7 +85,13 @@ fn a_drawing_page_takes_a_folio_no_page_has() {
     let dxf = tmp.0.join("plan.dxf");
     std::fs::write(&dxf, PLAN).unwrap();
     let mut h = support::on_golden(&tmp, "101");
-    let before: Vec<String> = h.state().shell().page_rows().iter().map(|r| r.folio.clone()).collect();
+    let before: Vec<String> = h
+        .state()
+        .shell()
+        .page_rows()
+        .iter()
+        .map(|r| r.folio.clone())
+        .collect();
     support::dispatch(
         &mut h,
         "file.import_drawing",
@@ -85,7 +101,11 @@ fn a_drawing_page_takes_a_folio_no_page_has() {
     let shown = h.state().shell().current_folio().map(str::to_owned).unwrap();
     assert!(!before.contains(&shown), "{shown} is a new folio: {before:?}");
     let rows = h.state().shell().page_rows();
-    assert_eq!(rows.iter().filter(|r| r.folio == shown).count(), 1, "one page {shown}");
+    assert_eq!(
+        rows.iter().filter(|r| r.folio == shown).count(),
+        1,
+        "one page {shown}"
+    );
 }
 
 #[test]

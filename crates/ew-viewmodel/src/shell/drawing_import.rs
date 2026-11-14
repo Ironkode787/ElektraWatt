@@ -111,7 +111,13 @@ impl ShellModel {
     /// Reads (and probes, or converts) the drawing as a job (FT-1753): an entry of the Jobs pane with Cancel, off the
     /// window's thread; its end ([`ShellModel::finish_drawing`]) opens the dialog or makes the page or the underlay. A
     /// script waits for it.
-    fn start_drawing_job(&mut self, file: PathBuf, name: String, kind: DrawingKind, apply: Option<Apply>) -> Outcome {
+    fn start_drawing_job(
+        &mut self,
+        file: PathBuf,
+        name: String,
+        kind: DrawingKind,
+        apply: Option<Apply>,
+    ) -> Outcome {
         let Some(project) = &self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
@@ -131,7 +137,14 @@ impl ShellModel {
                 // A test fault (feature `testkit` only): the body panics, as a reader's panic would end it.
                 hooks.fault("drawing");
                 ctl.checkpoint("drawing")?;
-                Ok(read_drawing(&file, &name, kind, probe, converter.as_deref(), &stop))
+                Ok(read_drawing(
+                    &file,
+                    &name,
+                    kind,
+                    probe,
+                    converter.as_deref(),
+                    &stop,
+                ))
             }
         };
         let Ok(job) = ew_api::ew_jobs::Job::spawn(options, body) else {
@@ -186,7 +199,8 @@ impl ShellModel {
         let name = pending.name;
         let drawn = match end {
             ew_api::ew_jobs::JobEnd::Done(Ok(d)) => d,
-            ew_api::ew_jobs::JobEnd::Done(Err(DrawingError::Cancelled)) | ew_api::ew_jobs::JobEnd::Cancelled => {
+            ew_api::ew_jobs::JobEnd::Done(Err(DrawingError::Cancelled))
+            | ew_api::ew_jobs::JobEnd::Cancelled => {
                 let message = strings::format(key!("error-import-cancelled"), &[&name]);
                 self.notify(message.clone(), false);
                 return Outcome::Failed { message };
@@ -194,7 +208,9 @@ impl ShellModel {
             ew_api::ew_jobs::JobEnd::Done(Err(DrawingError::Read)) => {
                 return failed(key!("error-import-read"), &[&name]);
             }
-            ew_api::ew_jobs::JobEnd::Done(Err(DrawingError::Refused(why))) => return self.import_failed(&name, &why),
+            ew_api::ew_jobs::JobEnd::Done(Err(DrawingError::Refused(why))) => {
+                return self.import_failed(&name, &why);
+            }
             ew_api::ew_jobs::JobEnd::Panicked | ew_api::ew_jobs::JobEnd::Failed(_) => {
                 return failed(key!("error-import-panicked"), &[&name]);
             }
@@ -249,7 +265,8 @@ impl ShellModel {
     }
 
     pub(super) fn import_failed(&mut self, name: &str, why: &str) -> Outcome {
-        let message = strings::format(key!("error-import"), &[name, why]);
+        // `error-import` ends the sentence: a reason that is a sentence of its own loses its full stop.
+        let message = strings::format(key!("error-import"), &[name, strings::without_stop(why)]);
         self.banner = Some(message.clone());
         Outcome::Failed { message }
     }
@@ -393,7 +410,10 @@ fn read_drawing(
     };
     match ew_api::dxf::convert_dwg(Path::new(converter), name, &bytes, ew_api::dxf::DWG_TIMEOUT, stop) {
         Ok(dxf) => Ok(Drawn {
-            name: Path::new(name).with_extension("dxf").to_string_lossy().into_owned(),
+            name: Path::new(name)
+                .with_extension("dxf")
+                .to_string_lossy()
+                .into_owned(),
             bytes: dxf,
             notes: vec![ew_api::dxf::dwg_converted(name)],
             unitless: false,

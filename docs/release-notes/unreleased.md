@@ -624,3 +624,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   Cancel, which also stops the ODA File Converter; a converter chosen is kept once it converted (FT-1753)
 - api-add: `convert_dwg` takes a stop signal and `DwgError::Cancelled`; `Session::navigator_table_in`; the re-export
   `ew_api::plc_exchange::Choice` (M3 review of the window)
+- text-change: the PLC export's toast counts with singular and plural ("1 station, 7 modules"); the PLC import's rows
+  say which value is the project's and which the file's, and an empty tab says so (M3 review of the window)

@@ -1306,7 +1306,11 @@ impl ShellModel {
             }
             Ok(Some(m))
                 if self
-                    .enum_options(TUBE_MATERIAL.0, TUBE_MATERIAL.1, stored.as_deref().unwrap_or_default())
+                    .enum_options(
+                        TUBE_MATERIAL.0,
+                        TUBE_MATERIAL.1,
+                        stored.as_deref().unwrap_or_default(),
+                    )
                     .iter()
                     .any(|(w, _)| *w == m) =>
             {

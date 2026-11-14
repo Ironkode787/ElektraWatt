@@ -530,6 +530,14 @@ fn a_small_dialog_is_as_wide_as_its_buttons() {
     settle(&mut h);
     wait_for_page(&mut h);
     support::dispatch(&mut h, "file.import", json!({"file": dxf.to_string_lossy()}));
+    // The drawing is read as a job (FT-1753): its end opens the dialog in a later frame.
+    for _ in 0..500 {
+        settle(&mut h);
+        if h.state().shell().jobs().running() == 0 {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
     settle(&mut h);
     let title = h.get_by_label("Import plan.dxf").rect().left();
     let first = ["Add as page", "Place under page", "Place and embed", "Cancel"]

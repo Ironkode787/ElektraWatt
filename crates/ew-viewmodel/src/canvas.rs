@@ -690,6 +690,13 @@ impl CanvasModel {
         self.fit_page();
     }
 
+    /// Fit page now and again on the next resize (a workspace that changes the pane's size, M3 review): the view is
+    /// fitted, and no longer a page's first view.
+    pub fn fit_again(&mut self) {
+        self.fitted = true;
+        self.fit();
+    }
+
     /// Whether the view is a page's first view, untouched: fit-width where that is larger than Fit page,
     /// which fits again as one on a new pane.
     pub fn is_first_view(&self) -> bool {

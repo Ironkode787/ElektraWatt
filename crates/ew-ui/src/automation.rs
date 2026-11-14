@@ -317,6 +317,12 @@ pub(crate) fn plc_import(
         .max_height(ui.ctx().content_rect().height() * 0.45)
         .auto_shrink([false, true])
         .show(ui, |ui| match card.tab {
+            tab if card.count(tab) == 0 => {
+                ui.label(small(
+                    strings::text(key!("plc-import-empty")).to_owned(),
+                    t.text_secondary,
+                ));
+            }
             ImportTab::Changed | ImportTab::Conflicts => {
                 let rows = if card.tab == ImportTab::Changed {
                     &card.changes
@@ -326,9 +332,12 @@ pub(crate) fn plc_import(
                 for c in rows {
                     ui.label(small(c.text.clone(), t.text_primary));
                     ui.horizontal_wrapped(|ui| {
-                        ui.label(small(c.ours.clone(), t.text_secondary));
-                        ui.label(small("→".to_owned(), t.text_tertiary));
-                        ui.label(small(c.theirs.clone(), t.text_primary));
+                        // Which value is the project's and which the file's, in words.
+                        let none = || strings::text(key!("plc-import-no-value")).to_owned();
+                        let side = |v: &str| if v.is_empty() { none() } else { v.to_owned() };
+                        let sides =
+                            strings::format(key!("plc-import-sides"), &[&side(&c.ours), &side(&c.theirs)]);
+                        ui.label(small(sides, t.text_primary));
                         let state = strings::text(ew_viewmodel::strings::Key::run_time(&format!(
                             "plc-import-state-{}",
                             c.state
