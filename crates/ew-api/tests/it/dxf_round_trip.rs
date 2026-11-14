@@ -3,8 +3,9 @@
 
 //! AC-37's DXF half (doc 09 §4.4, doc 14 §6.4; FR-OUT-015, FR-IMP-032): the DXF (AC1015) of Golden A's folios
 //! 101–106 has the configured layers, its wires on the wires layer and its symbols as inserts, and re-imports as
-//! graphic pages within 0.01 mm: every corner and curve end the page draws lies within 0.01 mm of a point the
-//! re-imported drawing holds. The export's bytes do not depend on the run. A symbol insert and a text come back where
+//! graphic pages of Golden A within 0.01 mm: every corner and curve end the page draws, and every text's baseline,
+//! prints within 0.01 mm of the re-imported page's on the sheet, through the frame's page-to-sheet map; as an underlay
+//! too. The export's bytes do not depend on the run. A symbol insert and a text come back where
 //! they were written, mirrored, turned and with their characters (`Ää°²`), through the file's ASCII.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -12,7 +13,7 @@ use std::sync::Arc;
 
 use ew_api::dxf::{DxfOptions, Space};
 use ew_api::output::{DxfLayers, ExportOptions, PageSelection};
-use ew_api::{Session, SessionOptions};
+use ew_api::Session;
 use ew_dl::{
     Brush, DisplayList, FontKey, Item, ItemKind, Layer, Path, PathEl, ShapedRun, Stroke, SymbolGeomId,
     Transform,
@@ -80,16 +81,9 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
         dxf,
         "the export does not depend on the run"
     );
-    let mut fresh = Session::from_records(
-        serde_json::from_str(
-            r#"{"id":"7f0c2a91-5d3e-7b48-9a61-0e2f4c8d1b38","derivation_profile":"2027.1"}"#,
-        )
-        .unwrap(),
-        [],
-        [],
-        SessionOptions::default(),
-    )
-    .unwrap();
+    // Re-imported into Golden A itself, whose frame maps page to sheet (scale 0.986, offset 9.79 mm): each new page
+    // must print where the drawing was drawn.
+    let mut golden = golden_common::session(&golden_common::batch());
     for (file, page) in dxf.files.iter().zip(&pages.pages) {
         assert_eq!(file.name, format!("{}.dxf", page.label));
         let text = &file.text;
@@ -137,53 +131,100 @@ fn folios_101_to_106_export_to_dxf_with_their_layers_and_re_import_within_a_hund
             &file.name,
         )
         .unwrap();
-        let mut grid: BTreeMap<(i64, i64), Vec<Pt2>> = BTreeMap::new();
-        let cell = |p: Pt2| (p.x.0.div_euclid(TOLERANCE), p.y.0.div_euclid(TOLERANCE));
-        for p in imported_points(&converted.items) {
-            grid.entry(cell(p)).or_default().push(p);
-        }
         let mut drawn = Vec::new();
         drawn_points(&page.content.items, Transform::IDENTITY, &mut drawn);
         assert!(!drawn.is_empty());
-        for p in drawn {
-            let (cx, cy) = cell(p);
-            let near = (cx - 1..=cx + 1).any(|x| {
-                (cy - 1..=cy + 1).any(|y| {
-                    grid.get(&(x, y)).is_some_and(|ps| {
-                        ps.iter()
-                            .any(|q| (q.x.0 - p.x.0).abs() <= TOLERANCE && (q.y.0 - p.y.0).abs() <= TOLERANCE)
-                    })
-                })
-            });
-            assert!(
-                near,
-                "{}: ({}, {}) nm has no re-imported point within 0.01 mm",
-                file.name, p.x.0, p.y.0
-            );
-        }
+        all_near(&file.name, "drawn point", &drawn, &imported_points(&converted.items));
 
-        // And it re-imports as a graphic page.
-        let imported = fresh
+        // And it re-imports as a graphic page that prints where the drawing was drawn: its drawn points and its texts'
+        // baselines on the sheet within 0.01 mm of the original's.
+        let imported = golden
             .import_dxf_page(&file.name, text.clone().into_bytes(), &DxfOptions::default())
             .unwrap();
+        let sheet = golden
+            .export_pages(&ExportOptions {
+                pages: PageSelection::Folios(vec![imported.folio.clone()]),
+                ..ExportOptions::default()
+            })
+            .unwrap()
+            .pages
+            .remove(0);
+        let mut original = Vec::new();
+        drawn_points(&page.content.items, Transform::IDENTITY, &mut original);
+        let mut printed = Vec::new();
+        drawn_points(&sheet.content.items, Transform::IDENTITY, &mut printed);
+        all_near(&file.name, "drawn point", &original, &printed);
+        let mut original = Vec::new();
+        baselines(&page.content.items, Transform::IDENTITY, &mut original);
+        let mut printed = Vec::new();
+        baselines(&sheet.content.items, Transform::IDENTITY, &mut printed);
+        assert!(!original.is_empty(), "{}: texts", file.name);
+        all_near(&file.name, "text", &original, &printed);
+    }
+
+    // The first page's drawing as an underlay of the second prints where it was drawn too: the underlay's items are
+    // the first ones of the sheet the canvas draws.
+    let (file, page) = (&dxf.files[0], &pages.pages[0]);
+    let on = pages.pages[1].label.clone();
+    let sheet = |s: &Session, underlays: bool| {
+        s.export_pages(&ExportOptions {
+            pages: PageSelection::Folios(vec![on.clone()]),
+            underlays,
+            ..ExportOptions::default()
+        })
+        .unwrap()
+        .pages
+        .remove(0)
+        .content
+        .items
+    };
+    let bare = sheet(&golden, true).len();
+    let source = ew_api::output::UnderlaySource::Dxf(DxfOptions::default());
+    golden
+        .place_underlay(&on, &file.name, file.text.clone().into_bytes(), &source, true, Vec::new())
+        .unwrap();
+    let with = sheet(&golden, true);
+    let underlay = &with[..with.len() - bare];
+    let mut original = Vec::new();
+    drawn_points(&page.content.items, Transform::IDENTITY, &mut original);
+    let mut printed = Vec::new();
+    drawn_points(underlay, Transform::IDENTITY, &mut printed);
+    all_near(&file.name, "underlay's drawn point", &original, &printed);
+}
+
+/// The baseline start of every glyph run of `items` on the sheet.
+fn baselines(items: &[Item], t: Transform, out: &mut Vec<Pt2>) {
+    for item in items {
+        match &item.kind {
+            ItemKind::Glyphs(run) if !run.text.trim().is_empty() => out.push(
+                run.transform
+                    .then(Transform::from_translation(run.origin))
+                    .then(t)
+                    .apply(Pt2::ORIGIN),
+            ),
+            ItemKind::Group(g) => baselines(&g.items, g.transform.map_or(t, |gt| gt.then(t)), out),
+            _ => {}
+        }
+    }
+}
+
+/// Every point of `want` within 0.01 mm of a point of `got`.
+fn all_near(file: &str, what: &str, want: &[Pt2], got: &[Pt2]) {
+    let cell = |p: Pt2| (p.x.0.div_euclid(TOLERANCE), p.y.0.div_euclid(TOLERANCE));
+    let mut grid: BTreeMap<(i64, i64), Vec<Pt2>> = BTreeMap::new();
+    for p in got {
+        grid.entry(cell(*p)).or_default().push(*p);
+    }
+    for p in want {
+        let (cx, cy) = cell(*p);
+        let found = (cx - 1..=cx + 1)
+            .any(|x| (cy - 1..=cy + 1).any(|y| grid.get(&(x, y)).is_some_and(|ps| ps.iter().any(|q| near(*q, *p)))));
         assert!(
-            imported
-                .report
-                .stats
-                .per_kind
-                .get("page_item")
-                .is_some_and(|n| *n > 0),
-            "{}",
-            file.name
+            found,
+            "{file}: the {what} at ({}, {}) nm has none within 0.01 mm",
+            p.x.0, p.y.0
         );
     }
-    let graphic = fresh
-        .query()
-        .pages()
-        .iter()
-        .filter(|(_, p)| p.kind == ew_schema::PageType::Graphic)
-        .count();
-    assert_eq!(graphic, pages.pages.len());
 }
 
 /// A point of `x`, `y` millimetres.

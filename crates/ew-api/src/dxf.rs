@@ -10,8 +10,8 @@
 
 use ew_derive::ew_ids::Id;
 use ew_import_dxf::ew_interop_api::{ImportContext, ImportInput, ImportMode};
-use ew_schema::{ImportLineage, LineageAnchor, Page, Record};
-use ew_units::Grid;
+use ew_schema::{GraphicShape, ImportLineage, LineageAnchor, Page, PageItemKind, Record};
+use ew_units::{Grid, Nm, Pt2};
 
 pub use ew_import_dxf::{DxfOptions, NO_UNIT, Probe, Space, Unit};
 
@@ -175,13 +175,20 @@ impl Session {
         let mut ctx = ImportContext::new(self.query().project().id);
         ctx.mode = ImportMode::Lenient;
         let limits = ctx.limits;
-        Ok(front_door(
-            name,
-            &[input.bytes().len() as u64],
-            &limits,
-            None,
-            || ew_import_dxf::import_page(&input, &ctx, options, &page, copy),
-        )?)
+        let mut batch = front_door(name, &[input.bytes().len() as u64], &limits, None, || {
+            ew_import_dxf::import_page(&input, &ctx, options, &page, copy)
+        })?;
+        // The drawing is in sheet millimetres; the new page's frame maps page to sheet, so its items go through the
+        // inverse of that map and print where they were drawn.
+        let map = crate::output::new_page_map(&self.query(), &ew_schema::PageType::Graphic);
+        if !map.is_identity() {
+            for r in &mut batch.records {
+                if let Record::PageItem(i) = r {
+                    map_item(&mut i.kind, &|p| map.unapply(p), &|n| map.unscale_len(n));
+                }
+            }
+        }
+        Ok(batch)
     }
 
     /// Imports the DXF drawing `bytes` named `name` as a new graphic page (doc 14 §6.2): one undo step.
@@ -230,6 +237,42 @@ impl Session {
             folio,
             report: batch.report,
         })
+    }
+}
+
+/// A drawing's page item `kind` with its points through `point` and its lengths (a radius, a stroke width) through
+/// `len`; a text keeps its style.
+pub(crate) fn map_item(kind: &mut PageItemKind, point: &dyn Fn(Pt2) -> Pt2, len: &dyn Fn(Nm) -> Nm) {
+    match kind {
+        PageItemKind::Graphic(g) => {
+            match &mut g.shape {
+                GraphicShape::Line(l) => {
+                    l.a = point(l.a);
+                    l.b = point(l.b);
+                }
+                GraphicShape::Polyline(p) | GraphicShape::Polygon(p) => {
+                    p.points.iter_mut().for_each(|q| *q = point(*q));
+                }
+                GraphicShape::Rect(r) => {
+                    r.min = point(r.min);
+                    r.max = point(r.max);
+                }
+                GraphicShape::Circle(c) => {
+                    c.centre = point(c.centre);
+                    c.r = len(c.r);
+                }
+                GraphicShape::Arc(a) => {
+                    a.centre = point(a.centre);
+                    a.r = len(a.r);
+                }
+                GraphicShape::Unknown(_) => {}
+            }
+            if let Some(s) = g.stroke.as_mut() {
+                s.width = len(s.width);
+            }
+        }
+        PageItemKind::FreeText(t) => t.at = point(t.at),
+        _ => {}
     }
 }
 

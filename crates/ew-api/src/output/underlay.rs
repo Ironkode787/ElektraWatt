@@ -11,7 +11,9 @@
 //! another computer draws a frame with the file's name instead.
 //!
 //! **Drawing.** A PDF page is rasterised with hayro at 150 dpi of its rectangle and stretched over it; a DXF drawing
-//! is converted by the DXF importer and drawn as its page items from the rectangle's corner. Both are grey at the
+//! is converted by the DXF importer and drawn as its page items stretched uniformly over the rectangle (placed, the
+//! rectangle is the drawing's extents through the inverse of the page's sheet map, so the drawing prints where it was
+//! drawn). Both are grey at the
 //! underlay's opacity and carry no entity, so no pick lands on them (an underlay is locked; the commands neither move
 //! nor copy it). Rasters and conversions are cached by the source's hash for the process (at most
 //! [`CACHE_ENTRIES`] each, a failure too); the source is read, and its hash checked, only when what is drawn of it
@@ -187,11 +189,33 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
             }
             UnderlayFormat::Dxf => match drawing(assets, &u) {
                 Some(d) => {
-                    let from = d.extents.map_or(Pt2::ORIGIN, |e| e.min());
-                    let offset = u.rect.0.min() - from;
-                    let kinds: Vec<PageItemKind> = d.items.iter().map(|(_, _, k)| k.clone()).collect();
+                    // The drawing stretched over its rectangle, uniformly: its extents' corner on the rectangle's,
+                    // scaled by the ratio of their widths (of their heights for a drawing without width).
+                    let from = d.extents.unwrap_or_else(|| Rect::from_point(Pt2::ORIGIN));
+                    let to = u.rect.0;
+                    let (num, den) = match (from.width().0, from.height().0) {
+                        (w, _) if w > 0 => (to.width().0, w),
+                        (_, h) if h > 0 => (to.height().0, h),
+                        _ => (1, 1),
+                    };
+                    let len = |n: Nm| Nm(ratio(n.0, num, den));
+                    let point = |p: Pt2| {
+                        Pt2::new(
+                            to.min().x + len(p.x - from.min().x),
+                            to.min().y + len(p.y - from.min().y),
+                        )
+                    };
+                    let kinds: Vec<PageItemKind> = d
+                        .items
+                        .iter()
+                        .map(|(_, _, k)| {
+                            let mut k = k.clone();
+                            crate::dxf::map_item(&mut k, &point, &len);
+                            k
+                        })
+                        .collect();
                     items.extend(
-                        ew_scene::underlay::dxf_list(&kinds, offset, u.opacity, fonts, &styles).items,
+                        ew_scene::underlay::dxf_list(&kinds, Pt2::ORIGIN, u.opacity, fonts, &styles).items,
                     );
                 }
                 None => missing(&u, fonts, &styles, &mut items),
@@ -202,11 +226,25 @@ pub(crate) fn underlay_list(q: &Q, page: Id<Page>, assets: &ExportAssets) -> Dis
     DisplayList { items }
 }
 
+/// `v × num / den` rounded to the nearest integer (ties away from zero), saturated; `den` is positive.
+fn ratio(v: i64, num: i64, den: i64) -> i64 {
+    let n = i128::from(v) * i128::from(num);
+    let d = i128::from(den);
+    let q = (n + n.signum() * d / 2) / d;
+    i64::try_from(q).unwrap_or(if q < 0 { i64::MIN } else { i64::MAX })
+}
+
 /// The rectangle a PDF page covers on `page`: its whole sheet, in page coordinates (through the inverse of its frame
 /// form's page-to-sheet map).
 pub(crate) fn sheet_rect(q: &Q, page: Id<Page>) -> Rect {
+    let (w, h, map) = sheet_of(q, page);
+    Rect::from_points(map.unapply(Pt2::ORIGIN), map.unapply(Pt2::new(w, h)))
+}
+
+/// The sheet size of `page` and its page-to-sheet map.
+fn sheet_of(q: &Q, page: Id<Page>) -> (Nm, Nm, ew_scene::forms::SheetMap) {
     let frame = q.get::<PageFrameOf>(PageRef::Drawn(page));
-    let (w, h, map) = match frame.as_ref() {
+    match frame.as_ref() {
         Some(f) => (
             f.form.sheet.width,
             f.form.sheet.height,
@@ -217,8 +255,7 @@ pub(crate) fn sheet_rect(q: &Q, page: Id<Page>) -> Rect {
             ew_scene::page::DEFAULT_SHEET.1,
             ew_scene::forms::SheetMap::IDENTITY,
         ),
-    };
-    Rect::from_points(map.unapply(Pt2::ORIGIN), map.unapply(Pt2::new(w, h)))
+    }
 }
 
 /// What an underlay is made of.
@@ -300,7 +337,11 @@ pub(crate) fn underlay_batch(
                 .map(Probed)
             })?
             .0;
-            let rect = converted.extents.unwrap_or_else(|| Rect::from_point(Pt2::ORIGIN));
+            // The drawing is in sheet millimetres: its rectangle on the page is its extents through the inverse of
+            // the page's page-to-sheet map, so it prints where it was drawn.
+            let extents = converted.extents.unwrap_or_else(|| Rect::from_point(Pt2::ORIGIN));
+            let (_, _, map) = sheet_of(q, page);
+            let rect = Rect::from_points(map.unapply(extents.min()), map.unapply(extents.max()));
             let layout = match &options.space {
                 ew_import_dxf::Space::Model => None,
                 ew_import_dxf::Space::Layout(l) => Some(l.clone()),

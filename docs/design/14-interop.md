@@ -1399,7 +1399,8 @@ may be confidential (Open question 10).
 *As built (WP-S3.19).* Both kinds are one typed page item, `underlay{asset, format pdf|dxf, name, page, layout, unit,
 rect, opacity}` (an additive kind, ADR-0011 amendment 6); a DXF underlay is not imported into page items but
 converted again when drawn, so the project holds one item per underlay. `rect` replaces the transform: a PDF page
-covers the whole sheet, a DXF drawing is drawn from the rectangle's corner. Both draw grey at the opacity and carry no
+covers the whole sheet, a DXF drawing is stretched uniformly over its rectangle, which is the drawing's extents in
+sheet millimetres through the inverse of the page's page-to-sheet map, so it prints where it was drawn. Both draw grey at the opacity and carry no
 entity; the commands neither move nor copy an underlay. A PDF page is rasterised at 150 dpi of its rectangle, each
 side at most 4,096 px. A source not embedded is kept in the user's cache, `<OS cache directory>/underlays/<sha256>`;
 a project opened elsewhere draws a dashed frame with the file's name inside its top-left corner (also for a source that
@@ -1506,7 +1507,11 @@ folios 101–106 re-imports as graphic pages within 0.01 mm (AC-37). Drilling DX
 ASCII: a character outside ASCII is written as `\U+XXXX` (a character beyond the first plane as two surrogate units),
 because a reader decodes an AC1015 file in the code page its header names (Windows-1252), not as UTF-8; the importer
 reads it back as written (AC-37's test compares symbol inserts, turned and mirrored, and a text of `Ää°²` with its
-position). A layer name an export scheme gives is refused in words when it is empty, longer than 255 characters or holds
+position). The drawing is in sheet millimetres, so a page made of it takes its items through the inverse of the new
+page's page-to-sheet map (Golden A's frame and a QElectroTech import's fit their page to the sheet) and prints where it
+was drawn; AC-37's test re-imports folios 101 to 106 into Golden A and compares the printed drawn points and text
+baselines, and those of folio 101 as an underlay of 102, within 0.01 mm. A text keeps the nearest built-in style, so
+its size may differ by a style step. A layer name an export scheme gives is refused in words when it is empty, longer than 255 characters or holds
 a control character or one of `< > / \ " : ; ? * | , = '`; two classes that share a name, or one named `0`, are one
 LAYER record. The AC1015 file has been read back by this importer only; no CAD program or independent reader has
 confirmed that it is valid (open).

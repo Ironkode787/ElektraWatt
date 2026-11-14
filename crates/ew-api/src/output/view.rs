@@ -263,6 +263,17 @@ impl Query for PageFrameOf {
     }
 }
 
+/// The page-to-sheet map of a new page of type `kind` without a form of its own: the map of the frame that
+/// [`PageFrameOf`] gives it once it exists, the identity without one.
+pub(crate) fn new_page_map(q: &Q, kind: &PageType) -> ew_scene::forms::SheetMap {
+    frame_form_of(q, None, kind, true)
+        .and_then(|id| form(q, id))
+        .or_else(|| form_by_key(q, NOGRID_FRAME))
+        .map_or(ew_scene::forms::SheetMap::IDENTITY, |f| {
+            ew_scene::forms::SheetMap::of(&f)
+        })
+}
+
 /// `page_bindings(page)`: the title-block bindings of a page: every `title_block(page)` value and the project's
 /// date format, neutral language. Its own memo: it reads the whole project record (the date format), so an edit of
 /// the project record that keeps the bindings is cut off here and does not rebuild the frame layers.

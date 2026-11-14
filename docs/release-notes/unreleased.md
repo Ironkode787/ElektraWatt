@@ -626,3 +626,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   `ew_api::plc_exchange::Choice` (M3 review of the window)
 - text-change: the PLC export's toast counts with singular and plural ("1 station, 7 modules"); the PLC import's rows
   say which value is the project's and which the file's, and an empty tab says so (M3 review of the window)
+- behaviour-change: a DXF imported as a page or an underlay prints where it was drawn on a page whose frame scales
+  the page to the sheet (Golden A, a QElectroTech import); it was scaled and moved by the frame a second time (M3
+  whole review)

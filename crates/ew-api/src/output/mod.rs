@@ -178,7 +178,9 @@ pub use view::{
 
 pub(crate) use panel::{PageSurfaceView, ShapedText};
 pub(crate) use properties::folio_of;
-pub(crate) use view::{CpTargetsByPage, PageBindingsOf, PageCpTargetsOf, PageGridOf, PageRepsOf};
+pub(crate) use view::{
+    CpTargetsByPage, PageBindingsOf, PageCpTargetsOf, PageGridOf, PageRepsOf, new_page_map,
+};
 
 use crate::Session;
 
