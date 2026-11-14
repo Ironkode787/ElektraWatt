@@ -26,9 +26,10 @@
 //!
 //! # Overflow
 //!
-//! Text that does not fit its cell shrinks to a printed cap height of [`MIN_CAP_HEIGHT`] and is then
-//! reported ([`TableFinding::Overflow`], carried by [`PageFinding::Table`](crate::page::PageFinding::Table)); it is never clipped
-//! (FR-REP-039).
+//! Text that does not fit its cell shrinks to a printed cap height of [`MIN_CAP_HEIGHT`]; still too wide, it is cut
+//! with an ellipsis at that size (doc 09 §7 item 5) and reported ([`TableFinding::Overflow`], carried by
+//! [`PageFinding::Table`](crate::page::PageFinding::Table)). A cell never prints over its neighbour, and never
+//! silently (FR-REP-039).
 //!
 //! # Row links
 //!
@@ -196,8 +197,9 @@ pub fn column_edges_in(columns: &[TableColumn], left: Nm, right: Nm) -> Vec<Nm> 
 }
 
 /// The house cell rule (shared with [`crate::embedded`]): `s` left aligned in `rect` (page coordinates), centred on its
-/// midline and inset by [`CELL_PADDING`], shrunk to the printed cap height [`MIN_CAP_HEIGHT`] when it does not fit and
-/// then reported ([`TableFinding::Overflow`] at `at`, `(row, column)`), never clipped; characters without a glyph are
+/// midline and inset by [`CELL_PADDING`], shrunk to the printed cap height [`MIN_CAP_HEIGHT`] when it does not fit, then
+/// cut with an ellipsis at that size and reported ([`TableFinding::Overflow`] at `at`,
+/// `(row, column)`; a cut text carries no span links); characters without a glyph are
 /// reported too. An empty text draws nothing. `links` are the cell's links: the first without a span is set on every
 /// item of the text; each with a span adds an invisible path over that span's glyphs ([`span_quads`]) carrying it.
 #[allow(clippy::too_many_arguments)]
@@ -218,16 +220,24 @@ pub(crate) fn push_cell(
         min_cap_height: MIN_CAP_HEIGHT,
         extra: Default::default(),
     });
-    let spec = BoxSpec {
+    let ellipsis = Overflow::Ellipsis;
+    let spec = |overflow| BoxSpec {
         rect,
         halign: -1,
         valign: 0,
         padding: CELL_PADDING,
-        overflow: Some(&shrink),
+        overflow: Some(overflow),
         max_lines: 1,
         sheet,
     };
-    let laid = lay_out(fonts, s, style, &spec);
+    let mut laid = lay_out(fonts, s, style, &spec(&shrink));
+    // Still too wide at the smallest size: cut with an ellipsis at that size (doc 09 §7 item 5), so that a cell never
+    // prints over its neighbour. Two lines are no way out: at the smallest size their pitch exceeds the row.
+    let cut = laid.overflow == Some(OverflowKind::ShrinkLimit);
+    if cut {
+        let floor = style.with_size(laid.shaped.run.size);
+        laid = lay_out(fonts, s, &floor, &spec(&ellipsis));
+    }
     if !laid.shaped.missing.is_empty() {
         out.findings.push(TableFinding::MissingGlyphs {
             text: s.to_owned(),
@@ -246,8 +256,10 @@ pub(crate) fn push_cell(
     let final_style = style.with_size(laid.shaped.run.size);
     // One call for all the cell's spans: the boxes come from the drawn shaping, which `span_quads` cannot redo (it takes
     // no fonts).
+    // A cut text has no boxes for the spans of the whole one.
     let spanned: Vec<(&Range<usize>, Destination)> = links
         .iter()
+        .filter(|_| !cut)
         .filter_map(|l| Some((l.span.as_ref()?, l.dest)))
         .collect();
     let ranges: Vec<&Range<usize>> = spanned.iter().map(|(r, _)| *r).collect();

@@ -83,21 +83,21 @@ impl ReportKindDef for TubeList {
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("tag", CellType::Ident, "Tag").weighted(8),
-            ColumnDef::new("from", CellType::Ident, "From").weighted(14),
+            ColumnDef::new("from", CellType::Ident, "From").weighted(12),
             ColumnDef::new("from_role", CellType::Text, "Role").weighted(8),
-            ColumnDef::new("to", CellType::Ident, "To").weighted(14),
+            ColumnDef::new("to", CellType::Ident, "To").weighted(12),
             ColumnDef::new("to_role", CellType::Text, "Role").weighted(8),
-            ColumnDef::new("medium", CellType::Text, "Medium").weighted(14),
+            ColumnDef::new("medium", CellType::Text, "Medium").weighted(12),
             ColumnDef::new("line_kind", CellType::Text, "Line").weighted(8),
             ColumnDef::new("size", CellType::Ident, "OD×ID").weighted(7),
-            ColumnDef::new("material", CellType::Ident, "Material").weighted(7),
-            ColumnDef::new("colour", CellType::Colour, "Colour").weighted(6),
+            ColumnDef::new("material", CellType::Ident, "Material").weighted(9),
+            ColumnDef::new("colour", CellType::Colour, "Colour").weighted(7),
             ColumnDef::new("part", CellType::Ident, "Tube part").weighted(10),
-            ColumnDef::new("length", CellType::Qty, "Length").weighted(7),
-            ColumnDef::new("length_source", CellType::Text, "Source").weighted(7),
+            ColumnDef::new("length", CellType::Qty, "Length").weighted(6),
+            ColumnDef::new("length_source", CellType::Text, "Source").weighted(8),
             ColumnDef::new("fitting_a", CellType::Ident, "Fitting A").weighted(9),
             ColumnDef::new("fitting_b", CellType::Ident, "Fitting B").weighted(9),
-            ColumnDef::new("location", CellType::Ident, "Location change").weighted(14),
+            ColumnDef::new("location", CellType::Ident, "Location change").weighted(16),
             ColumnDef::new("page", CellType::Folio, "Page").weighted(5),
         ]
     }
@@ -147,7 +147,8 @@ fn tube_row(q: &Q, columns: &[ColumnDef], r: &TubeRow) -> Row {
         columns,
         &mut cells,
         "length",
-        r.length.map_or(Cell::Missing(MissingReason::Length), metres),
+        // No length: a short mark; the Source column says that it is missing.
+        r.length.map_or_else(|| ident("—"), metres),
     );
     put(
         columns,

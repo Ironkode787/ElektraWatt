@@ -156,8 +156,10 @@ fn the_table_prints_at_the_house_position_on_the_sheet() {
     assert!(close(printed.max().y, 15_010_000 + 3 * 6_520_000), "{printed:?}");
 }
 
+/// Doc 09 §7 item 5: a text too long for its cell at the smallest size is cut with an ellipsis and reported, so it
+/// never prints over the next cell.
 #[test]
-fn text_that_does_not_fit_is_shrunk_and_reported_never_cut() {
+fn text_that_does_not_fit_is_shrunk_then_cut_and_reported() {
     let long = "A description far too long for the narrow location column of the house form, and then some";
     let l = drawn(table(&[&["1", "Title", long]]));
     assert!(
@@ -172,7 +174,11 @@ fn text_that_does_not_fit_is_shrunk_and_reported_never_cut() {
         "{:?}",
         l.findings
     );
-    assert!(glyph_texts(&l.list).iter().any(|s| s == long));
+    let texts = glyph_texts(&l.list);
+    assert!(
+        texts.iter().any(|s| s.starts_with("A description") && s.ends_with('…')),
+        "{texts:?}"
+    );
 }
 
 #[test]

@@ -369,3 +369,16 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
     assert_eq!(run1("EW-FL-004").len(), 20);
     let _ = (f17, FnRole::Main, SessionOptions::default());
 }
+
+/// A tube without a length prints a short mark in the tube list's Length column, which its Source column explains, so
+/// the narrow column holds it.
+#[test]
+fn a_tube_without_a_length_prints_a_short_mark() {
+    let s = golden_common::session(&golden_common::batch());
+    let tubes = row_export(&s.query(), &RowExport::Kind("tube_list".into()), None).expect("the tube list");
+    let rows = csv_rows(&tubes.csv);
+    assert!(!rows.is_empty(), "Golden A's tubes");
+    for r in &rows {
+        assert_eq!((r["Length"].as_str(), r["Source"].as_str()), ("—", "missing"), "{r:?}");
+    }
+}

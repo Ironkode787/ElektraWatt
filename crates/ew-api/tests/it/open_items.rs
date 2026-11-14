@@ -322,7 +322,7 @@ fn cycle_notes(s: &Session) -> Vec<DeriveNote> {
 
 /// The two descriptions of Golden A that no column split of the house table holds at the 1.8 mm floor (probed: 184.95
 /// and 164.31 mm with the cell padding; the other five columns need 102.78 mm at the floor, the table is 260.96 mm):
-/// the only overflowing cells, shrunk to the floor and reported (`ShrinkLimit`), never clipped.
+/// the only overflowing cells, shrunk to the floor, cut with an ellipsis and reported (`Truncated`).
 const TOO_LONG: [&str; 2] = [
     "placeholder part \"End bracket\" (part number TBD) is used by =P01+J-E-2416-1X1, =P01+J-E-2416-X1031, \
      =P01+J-E-2416-X1032; choose the part before release",
@@ -331,7 +331,7 @@ const TOO_LONG: [&str; 2] = [
 ];
 
 /// Ruling 5 for one snapshot: no cycle note, the block's rows derived and paginated without a placeholder page, no
-/// overflow but the description cells of [`TOO_LONG`] (each at the floor, `ShrinkLimit`), and no EW-CORE-083 finding
+/// overflow but the description cells of [`TOO_LONG`] (each cut at the floor, `Truncated`), and no EW-CORE-083 finding
 /// naming a table rule in the release run.
 fn assert_paginates(s: &Session, folio: &str) -> Vec<Vec<String>> {
     assert_eq!(cycle_notes(s), Vec::<DeriveNote>::new());
@@ -358,7 +358,7 @@ fn assert_paginates(s: &Session, folio: &str) -> Vec<Vec<String>> {
     }
     let want: Vec<(usize, String, OverflowKind)> = TOO_LONG
         .iter()
-        .map(|t| (2, (*t).to_owned(), OverflowKind::ShrinkLimit))
+        .map(|t| (2, (*t).to_owned(), OverflowKind::Truncated))
         .collect();
     assert_eq!(overflows, want, "only the descriptions too long for the table");
     let caught: Vec<String> = s

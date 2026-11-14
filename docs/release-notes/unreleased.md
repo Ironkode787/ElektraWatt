@@ -613,3 +613,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   the side Apply takes and offers the file's value only where it can be taken (M3 review of the window, FT-1756)
 - behaviour-change: a DXF imported as a page takes the folio after every page of its section, generated report pages
   included, so it never shares a folio with another page (M3 review of the window)
+- behaviour-change: a report table's text that does not fit its cell at the smallest size is cut with an ellipsis and
+  reported, never printed over the next cell; the tube list's columns are widened where their words need it and a tube
+  without a length prints "—" (its Source says "missing") (M3 review of the window)
