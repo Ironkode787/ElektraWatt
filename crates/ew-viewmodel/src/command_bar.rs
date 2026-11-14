@@ -132,6 +132,8 @@ pub enum Group {
     Reports,
     /// Output: the lists.
     Lists,
+    /// Output: the exchange with PLC software.
+    Exchange,
     /// Output: the jobs.
     Jobs,
     /// View: zoom.
@@ -148,7 +150,7 @@ pub enum Group {
 
 impl Group {
     /// Every group, in bar order.
-    pub const ALL: [Group; 26] = [
+    pub const ALL: [Group; 27] = [
         Group::Project,
         Group::Parts,
         Group::Standards,
@@ -169,6 +171,7 @@ impl Group {
         Group::Pdf,
         Group::Reports,
         Group::Lists,
+        Group::Exchange,
         Group::Jobs,
         Group::Zoom,
         Group::Show,
@@ -189,7 +192,7 @@ impl Group {
             | Group::Annotate
             | Group::Arrange => Tab::Draw,
             Group::Run | Group::Findings | Group::Numbering | Group::Trace => Tab::Check,
-            Group::Pdf | Group::Reports | Group::Lists | Group::Jobs => Tab::Output,
+            Group::Pdf | Group::Reports | Group::Lists | Group::Exchange | Group::Jobs => Tab::Output,
             Group::Zoom | Group::Show | Group::Panels | Group::Layout | Group::Appearance => Tab::View,
         }
     }
@@ -217,6 +220,7 @@ impl Group {
             Group::Pdf => "pdf",
             Group::Reports => "reports",
             Group::Lists => "lists",
+            Group::Exchange => "exchange",
             Group::Jobs => "jobs",
             Group::Zoom => "zoom",
             Group::Show => "show",

@@ -6382,3 +6382,7 @@ eplan-member-description = Description
 eplan-member-from = From
 eplan-member-to = To
 choice-terminals = Terminals
+# Persona round (M3): the Output tab's Report and PLC exchange, and where lists are made.
+group-exchange = PLC exchange
+bar-report = Report
+form-page-type-note = Lists (parts, wires, terminals, cables, PLC cards, tubes) are made with Report on the Output tab.

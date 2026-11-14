@@ -408,6 +408,8 @@ impl FormDialog {
         match (self.action, field) {
             ("pages.renumber", "start") => Some(strings::text(key!("form-renumber-start-note"))),
             ("cable.from_wires", "type") => Some(strings::text(key!("form-cable-type-note"))),
+            // A list is no page type: New page says where lists are made.
+            ("page.new", "type") => Some(strings::text(key!("form-page-type-note"))),
             _ => None,
         }
     }

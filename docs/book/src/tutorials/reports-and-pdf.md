@@ -18,8 +18,8 @@ drawn: EW generates them from the schematic, so they follow every change.
    parts list (Partlist, 901 and 901.1), a terminal diagram for each terminal strip (903 to 905), the cable overview
    and diagrams (906), the wire list, the PLC overview, the potential overview, the device tag overview and the
    revision overview. Click one, such as 904, to see it.
-3. Choose **Output ▸ Report block…**. In the form, choose the report **Parts list**, keep or type the first folio
-   `912`, type the title `Parts list`, and choose **Create**.
+3. Choose **Output ▸ Report block…** (on the Output tab: **Report**). In the form, choose the report **Parts list**,
+   keep or type the first folio `912`, type the title `Parts list`, and choose **Create**.
    The toast says "Added the report block Parts list from folio 912". The Pages navigator lists the new pages 912 to
    912.3: the parts list device by device, where the Partlist on 901 sums the parts up.
 4. Choose **Output ▸ Report block…** again, choose **Terminal overview**, the first folio `913` and the title
@@ -38,7 +38,8 @@ drawn: EW generates them from the schematic, so they follow every change.
 ## What you learnt
 
 - A report block generates report pages from the project: a parts list, terminal diagrams, a cable list and more.
-  **Output ▸ Report block…** adds one, from the first folio you give.
+  **Output ▸ Report block…** (the Output tab's **Report**) adds one, from the first folio you give: every list, a
+  tube list or a PLC card list too, is made this way; a list is no page type of **New page**.
 - Report pages follow the drawing: change a device, a terminal or a cable, and its report pages change with it.
 - **Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** shows each page before it prints.
 - [A terminal strip and a cable](terminal-strip-and-cable.md) shows where the terminal diagrams and the cable list

@@ -9,7 +9,7 @@
 use super::Seg::{self, C, L, M, Q, Z};
 
 /// The number of icons in the table.
-pub const COUNT: usize = 114;
+pub const COUNT: usize = 116;
 
 /// One icon of the table, named by its key in `snake_case` (`ew_` for the project's own glyphs).
 #[allow(non_camel_case_types, missing_docs)]
@@ -122,6 +122,8 @@ pub enum IconId {
     template,
     text_size,
     topology_bus,
+    transfer_in,
+    transfer_out,
     trash,
     typography,
     wand,
@@ -241,6 +243,8 @@ impl IconId {
         IconId::template,
         IconId::text_size,
         IconId::topology_bus,
+        IconId::transfer_in,
+        IconId::transfer_out,
         IconId::trash,
         IconId::typography,
         IconId::wand,
@@ -360,6 +364,8 @@ pub const KEYS: [&str; COUNT] = [
     "template",
     "text-size",
     "topology-bus",
+    "transfer-in",
+    "transfer-out",
     "trash",
     "typography",
     "wand",
@@ -2276,6 +2282,36 @@ pub(super) static PATHS: [&[Seg]; COUNT] = [
         L(12.0, 16.0),
         M(20.0, 12.0),
         L(20.0, 16.0),
+    ],
+    // transfer-in
+    &[
+        M(4.0, 18.0),
+        L(4.0, 21.0),
+        L(20.0, 21.0),
+        L(20.0, 7.0),
+        L(12.0, 3.0),
+        L(4.0, 7.0),
+        L(4.0, 10.0),
+        M(4.0, 14.0),
+        L(13.0, 14.0),
+        M(10.0, 11.0),
+        L(13.0, 14.0),
+        L(10.0, 17.0),
+    ],
+    // transfer-out
+    &[
+        M(4.0, 19.0),
+        L(4.0, 21.0),
+        L(20.0, 21.0),
+        L(20.0, 7.0),
+        L(12.0, 3.0),
+        L(4.0, 7.0),
+        L(4.0, 9.0),
+        M(13.0, 14.0),
+        L(4.0, 14.0),
+        M(7.0, 11.0),
+        L(4.0, 14.0),
+        L(7.0, 17.0),
     ],
     // trash
     &[

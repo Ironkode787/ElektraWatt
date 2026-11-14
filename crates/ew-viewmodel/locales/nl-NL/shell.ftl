@@ -6120,3 +6120,7 @@ eplan-member-description = Omschrijving
 eplan-member-from = Van
 eplan-member-to = Naar
 choice-terminals = Klemmen
+# Persona round (M3): Rapport en PLC-uitwisseling op het tabblad Uitvoer, en waar lijsten worden gemaakt.
+group-exchange = PLC-uitwisseling
+bar-report = Rapport
+form-page-type-note = Lijsten (artikelen, draden, klemmen, kabels, PLC-kaarten, slangen) maakt u met Rapport op het tabblad Uitvoer.

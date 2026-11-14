@@ -668,3 +668,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   on show (persona round)
 - behaviour-change: the device browser lists the project's part copies and the libraries' parts in one order (maker,
   part number) and always shows In this project, so a part placed once keeps its row (persona round)
+- behaviour-change: window the Output tab holds Report (the report block dialog, where every list page is made) and
+  the group PLC exchange with Export to PLC software and Import from PLC software; the command search finds Report
+  block… by the name of each list it makes ("tube list", "card list"); New page says where lists are made (persona
+  round)

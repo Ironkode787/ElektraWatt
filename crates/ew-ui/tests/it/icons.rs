@@ -164,6 +164,8 @@ fn no_icon_key_serves_two_concepts() {
         ("ew-terminal-strip", &["pane strips", "tool.place_terminal"]),
         // The Cables navigator and the command that makes the selected wires a cable.
         ("ew-cable", &["pane cables", "cable.from_wires"]),
+        // The Report blocks navigator and the command that adds one (Output ▸ Report).
+        ("report", &["pane blocks", "report_block.new"]),
         // A QElectroTech project imported, and the same file imported again into its import.
         ("file-import", &["file.import_qet", "file.reimport_qet"]),
     ];

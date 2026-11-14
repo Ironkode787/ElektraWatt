@@ -80,29 +80,38 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_preview(p),
         ))),
     ),
-    // PLC exchange (doc 10 §4, §6): Export… and Import… in the Output menu, the import preview's own controls.
+    // PLC exchange (doc 10 §4, §6): Export… and Import… on the Output tab and in its menu, the import preview's own
+    // controls.
     with_params(
         "format?:text, stations?:text, date?:text, path?:path, replace?:bool",
-        act(
-            "plc.export",
-            Command,
-            Menu::Output,
-            &[],
-            writable,
-            slot(Menu::Output),
-            |s, p| s.act_plc_export(p),
+        placed(
+            place(Group::Exchange, 1, CommandSize::Small, None),
+            "transfer-out",
+            act(
+                "plc.export",
+                Command,
+                Menu::Output,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_export(p),
+            ),
         ),
     ),
     with_params(
         "path?:path, complete?:bool",
-        act(
-            "plc.import",
-            View,
-            Menu::Output,
-            &[],
-            writable,
-            slot(Menu::Output),
-            |s, p| s.act_plc_import(p),
+        placed(
+            place(Group::Exchange, 2, CommandSize::Small, None),
+            "transfer-in",
+            act(
+                "plc.import",
+                View,
+                Menu::Output,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_import(p),
+            ),
         ),
     ),
     with_params(

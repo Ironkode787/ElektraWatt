@@ -882,12 +882,20 @@ msgstr ""
 "hem te bekijken."
 
 #: src/tutorials/reports-and-pdf.md:21
+#, fuzzy
+#| msgid ""
+#| "Choose **Output ▸ Report block…**. In the form, choose the report **Parts "
+#| "list**, keep or type the first folio `912`, type the title `Parts list`, and "
+#| "choose **Create**. The toast says \"Added the report block Parts list from "
+#| "folio 912\". The Pages navigator lists the new pages 912 to 912.3: the parts "
+#| "list device by device, where the Partlist on 901 sums the parts up."
 msgid ""
-"Choose **Output ▸ Report block…**. In the form, choose the report **Parts "
-"list**, keep or type the first folio `912`, type the title `Parts list`, and "
-"choose **Create**. The toast says \"Added the report block Parts list from "
-"folio 912\". The Pages navigator lists the new pages 912 to 912.3: the parts "
-"list device by device, where the Partlist on 901 sums the parts up."
+"Choose **Output ▸ Report block…** (on the Output tab: **Report**). In the "
+"form, choose the report **Parts list**, keep or type the first folio `912`, "
+"type the title `Parts list`, and choose **Create**. The toast says \"Added "
+"the report block Parts list from folio 912\". The Pages navigator lists the "
+"new pages 912 to 912.3: the parts list device by device, where the Partlist "
+"on 901 sums the parts up."
 msgstr ""
 "Kies **Uitvoer ▸ Rapportblok…**. Kies in het formulier het rapport "
 "**Stuklijst**, houd of typ het eerste folio `912`, typ de titel `Parts list` "
@@ -934,16 +942,23 @@ msgstr ""
 "**Annuleren** om het venster te sluiten zonder af te drukken."
 
 #: src/tutorials/reports-and-pdf.md:40
+#, fuzzy
+#| msgid ""
+#| "A report block generates report pages from the project: a parts list, "
+#| "terminal diagrams, a cable list and more. **Output ▸ Report block…** adds "
+#| "one, from the first folio you give."
 msgid ""
 "A report block generates report pages from the project: a parts list, "
-"terminal diagrams, a cable list and more. **Output ▸ Report block…** adds "
-"one, from the first folio you give."
+"terminal diagrams, a cable list and more. **Output ▸ Report block…** (the "
+"Output tab's **Report**) adds one, from the first folio you give: every "
+"list, a tube list or a PLC card list too, is made this way; a list is no "
+"page type of **New page**."
 msgstr ""
 "Een rapportblok genereert rapportpagina's uit het project: een stuklijst, "
 "klemmenschema's, een kabellijst en meer. **Uitvoer ▸ Rapportblok…** voegt er "
 "een toe, vanaf het eerste folio dat u opgeeft."
 
-#: src/tutorials/reports-and-pdf.md:42
+#: src/tutorials/reports-and-pdf.md:43
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
@@ -951,7 +966,7 @@ msgstr ""
 "Rapportpagina's volgen de tekening: verander een apparaat, een klem of een "
 "kabel, en de rapportpagina's veranderen mee."
 
-#: src/tutorials/reports-and-pdf.md:43
+#: src/tutorials/reports-and-pdf.md:44
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
@@ -959,7 +974,7 @@ msgstr ""
 "**Uitvoer ▸ PDF exporteren…** schrijft elke pagina in één PDF; **Uitvoer ▸ "
 "Afdrukken…** toont elke pagina voordat die wordt afgedrukt."
 
-#: src/tutorials/reports-and-pdf.md:44
+#: src/tutorials/reports-and-pdf.md:45
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."
@@ -2951,8 +2966,10 @@ msgid ""
 "for all its modules: the Preview tab lists each channel whose address moves, "
 "old and new, and **Apply** makes the change in one step. **Make manual "
 "addresses automatic…** drops the manual addresses that equal the derived "
-"ones, and **Freeze addresses…** on a configuration project keeps every "
-"derived address as a manual one, so that a later change of a card moves none."
+"ones, and **Freeze addresses…** on a configuration project keeps the address "
+"of every used or reserved channel as a manual one and pins each card's "
+"start, so that a later change of a card moves none; a spare channel keeps "
+"its automatic address."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:40 src/reference/window/dialogs.md:114
@@ -2993,18 +3010,21 @@ msgstr ""
 
 #: src/how-to/plc-workspace.md:57
 msgid ""
-"Choose **Output ▸ Export to PLC software…**, pick the format and choose "
-"**Export**, then the file. Import the file in TIA Portal or CODESYS."
+"Choose **Export to PLC software** on the Output tab (or **Output ▸ Export to "
+"PLC software…**), pick the format and choose **Export**, then the file: the "
+"dialog names it for the format (`.aml`, `.xlsx` or `.xml`), and the document "
+"date starts as today's. Import the file in TIA Portal or CODESYS."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:59
+#: src/how-to/plc-workspace.md:60
 msgid ""
-"Choose **Output ▸ Import from PLC software…** for the file the PLC software "
-"wrote back. Look through its tabs; each conflict shows the side Apply takes, "
-"and offers the file's value where it can be taken. Choose **Apply**."
+"Choose **Import from PLC software** on the Output tab (or **Output ▸ Import "
+"from PLC software…**) for the file the PLC software wrote back. Look through "
+"its tabs; each conflict shows the side Apply takes, and offers the file's "
+"value where it can be taken. Choose **Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:61
+#: src/how-to/plc-workspace.md:63
 msgid ""
 "After an import, the module starts, the symbols or the PLC data the PLC "
 "software owns are protected. Right-click the configuration project and "
@@ -3012,7 +3032,7 @@ msgid ""
 "project."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:63
+#: src/how-to/plc-workspace.md:65
 msgid ""
 "Right-click the configuration project and choose **Import instrument list…** "
 "for a CSV or workbook of process tags and signal types: the Preview tab "
@@ -3020,18 +3040,18 @@ msgid ""
 "**Apply**."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:66
+#: src/how-to/plc-workspace.md:68
 msgid "Settings"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:68
+#: src/how-to/plc-workspace.md:70
 msgid ""
 "Right-click the configuration project and choose **Symbol policy…** for the "
 "template of the automatic symbol, the PLC tag table and whether symbols are "
 "strict IEC 61131-3 identifiers."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:70
+#: src/how-to/plc-workspace.md:72
 msgid ""
 "Right-click a module and choose **Safety data…** for its F-source and "
 "F-destination address and its F-watchdog time; right-click a channel and "
@@ -3039,14 +3059,14 @@ msgid ""
 "channel's safety evaluation and requirement."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:73
+#: src/how-to/plc-workspace.md:75
 msgid ""
 "Choose **Project ▸ Process-tag scheme…** for the pattern process tags "
 "follow, and **Project ▸ Channel addresses at terminals** to print a "
 "channel's address at the terminals on its path."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:76
+#: src/how-to/plc-workspace.md:78
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "

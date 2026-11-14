@@ -251,17 +251,22 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ),
     )),
-    // Output ▸ Reports ▸ Report block…, `report_block.create` through its form.
+    // Output ▸ Reports ▸ Report block…, `report_block.create` through its form; on the Output tab as Report, where
+    // every list page is made (three of three personas looked for it there).
     with_params(
         "kind:text, folio:text, title?:text",
-        act(
-            "report_block.new",
-            Command,
-            Menu::Output,
-            &[],
-            writable,
-            grp(Group::Reports),
-            |s, p| s.act_report_block_new(p),
+        placed(
+            place(Group::Reports, 1, CommandSize::Large, Some(key!("bar-report"))),
+            "report",
+            act(
+                "report_block.new",
+                Command,
+                Menu::Output,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_report_block_new(p),
+            ),
         ),
     ),
     // FT-717: Output ▸ Parts list opens the first page of the project's parts list (the first `parts_summary` block,

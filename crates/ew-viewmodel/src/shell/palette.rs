@@ -132,7 +132,14 @@ impl ShellModel {
             .filter(|a| !a.headless_only && !a.hidden && keep(a))
         {
             let label = strings::text(Key::run_time(&meta.label_key()));
-            let aliases = glossary::aliases_of(meta.id);
+            let mut aliases: Vec<String> = glossary::aliases_of(meta.id)
+                .into_iter()
+                .map(str::to_owned)
+                .collect();
+            // Report block… is found by the name of each list it makes ("tube list", "PLC card list").
+            if meta.id == "report_block.new" {
+                aliases.extend(super::creation::report_kinds().into_iter().map(super::creation::report_kind_words));
+            }
             let state = match form_plan(meta) {
                 FormPlan::Disabled(reason) => Err(reason),
                 FormPlan::Direct | FormPlan::Form(_) => (meta.enabled)(self),
@@ -140,7 +147,7 @@ impl ShellModel {
             let Some(rank) = rank(
                 query,
                 label,
-                aliases.iter().copied(),
+                aliases.iter().map(String::as_str),
                 meta.id,
                 self.recents.uses(meta.id),
                 state.is_ok(),
