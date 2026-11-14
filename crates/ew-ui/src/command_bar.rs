@@ -1159,6 +1159,9 @@ mod tests {
         let t = theme::tokens(theme::Theme::Light, Density::Comfortable);
         assert_eq!(search_width(&t, 1280.0), t.size_search_width);
         let (main, extension) = (search_width(&t, 1920.0), search_width(&t, 2560.0));
-        assert!(main > t.size_search_width && extension > main, "{main} {extension}");
+        assert!(
+            main > t.size_search_width && extension > main,
+            "{main} {extension}"
+        );
     }
 }

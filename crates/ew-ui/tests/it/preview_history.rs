@@ -184,7 +184,10 @@ fn a_short_history_is_a_short_dock_in_words_with_its_header_inset() {
                 panic!("{size:?}: the step's row in words among {names:?}")
             })
             .rect();
-        assert!(pane.expand(0.5).contains_rect(row), "{size:?}: {row:?} in {pane:?}");
+        assert!(
+            pane.expand(0.5).contains_rect(row),
+            "{size:?}: {row:?} in {pane:?}"
+        );
         // The row ends the list: below it at most the dock's gutter, not an empty half dock.
         assert!(
             pane.bottom() - row.bottom() <= t.space_4 + 1.0,

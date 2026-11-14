@@ -164,7 +164,10 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
     let (fields, at) = match d.shell_mut().dialog() {
         Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => (
             f.fields.len() as i64,
-            f.fields.iter().position(|f| f.name == "type").expect("the Type field") as i64,
+            f.fields
+                .iter()
+                .position(|f| f.name == "type")
+                .expect("the Type field") as i64,
         ),
         other => panic!("{other:?}"),
     };

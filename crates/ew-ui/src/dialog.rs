@@ -253,10 +253,16 @@ mod tests {
         ] {
             let (main, extension) = (f(&t, 1920.0), f(&t, 2560.0));
             assert_eq!(f(&t, 1024.0).max(base), base, "{name} in a small window");
-            assert!(extension > main && main > base, "{name}: {main} at 1920, {extension} at 2560");
+            assert!(
+                extension > main && main > base,
+                "{name}: {main} at 1920, {extension} at 2560"
+            );
             assert_eq!(f(&t, 400.0), 400.0, "{name} within a narrow window");
         }
-        assert_eq!(super::fields_form_width(&t, 2560.0), super::form_width(&t, 1920.0));
+        assert_eq!(
+            super::fields_form_width(&t, 2560.0),
+            super::form_width(&t, 1920.0)
+        );
         assert_eq!(super::fields_form_width(&t, 400.0), 400.0);
     }
 }

@@ -785,12 +785,7 @@ fn the_pot_011_detail_shows_its_title_and_message_whole_at_the_floor_and_at_1920
             .filter(|(t, r, _)| t == &row.label && r.bottom() <= list.bottom() + 0.5)
             .map(|(_, _, elided)| *elided)
             .collect::<Vec<_>>();
-        assert_eq!(
-            cut,
-            [false],
-            "{w}×{hgt}: the row {:?} is painted once",
-            row.label
-        );
+        assert_eq!(cut, [false], "{w}×{hgt}: the row {:?} is painted once", row.label);
         h.state_mut().shell_mut().shutdown();
     }
 }
