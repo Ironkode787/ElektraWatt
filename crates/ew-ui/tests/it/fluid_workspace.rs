@@ -255,7 +255,7 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
         .find(|r| r.role == NavRole::Medium.word())
         .expect("the medium's row");
     assert!(
-        row.badges.iter().any(|b| b.ends_with("lines")),
+        row.badges.iter().any(|b| b.ends_with("line") || b.ends_with("lines")),
         "{:?}",
         row.badges
     );
@@ -590,5 +590,37 @@ fn golden_as_overview_is_refreshed_without_a_change() {
     assert_eq!(first.last().map(String::as_str), Some("-201U9"), "{notices:?}");
     assert_eq!(on("202"), ["-202U1", "-202U2", "-202U3"], "{notices:?}");
     assert!(pane.entities().is_empty(), "{:?}", pane.entities());
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// No English in a Dutch run of the fluid workspace: the valve terminal's role badge, the tube table's port roles,
+/// line kinds and length sources are Dutch, and its colour column is a tube's colour, not a core's.
+#[test]
+fn the_fluid_workspace_speaks_dutch() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    dispatch(&mut h, "view.language", json!({ "value": "nl" }));
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    dispatch(&mut h, "navigator.show", json!({"kind": "tubes"}));
+    settle(&mut h);
+    let rows = h.state().shell().shown_rows(NavKind::Plc);
+    let terminal = rows
+        .iter()
+        .find(|r| r.role == NavRole::Station.word())
+        .expect("the valve terminal");
+    assert!(terminal.badges.iter().any(|b| b == "ventieleiland"), "{:?}", terminal.badges);
+    let table = h
+        .state()
+        .shell()
+        .nav(NavKind::Tubes)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the tube table");
+    let column = |key: &str| table.columns.iter().position(|c| c.key == key).expect(key);
+    assert_eq!(table.columns[column("colour")].label, "Kleur");
+    let first = &table.nodes[0].cells;
+    assert_eq!(first[column("line_kind")], "werkleiding", "{first:?}");
+    assert_eq!(first[column("from_role")], "werkpoort", "{first:?}");
+    assert_eq!(first[column("length_source")], "ontbreekt", "{first:?}");
     h.state_mut().shell_mut().shutdown();
 }

@@ -345,11 +345,15 @@ pub(super) fn badge_word(code: &str) -> String {
             }
             if let Some(n) = other
                 .strip_suffix(" lines")
-                .filter(|n| n.parse::<usize>().is_ok())
+                .and_then(|n| n.parse::<usize>().ok())
             {
-                return strings::format(key!("nav-badge-lines"), &[n]);
+                return strings::format_count(crate::count_key!("nav-badge-lines"), n);
             }
-            let key = format!("nav-badge-{}", other.to_lowercase().replace([' ', '_'], "-"));
+            // A station's role among them (`I/O device` is `nav-badge-io-device`).
+            let key = format!(
+                "nav-badge-{}",
+                other.to_lowercase().replace([' ', '_'], "-").replace('/', "")
+            );
             strings::lookup(&key).unwrap_or(other)
         }
     };

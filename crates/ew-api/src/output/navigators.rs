@@ -786,6 +786,13 @@ impl Session {
     /// merge evidence (the manifest's `merged`, a git merge or rebase in progress, `--after-merge`): a
     /// change of that evidence without a new revision shows at the next revision.
     pub fn navigator_table(&self, kind: NavKind) -> NavTable {
+        self.navigator_table_in(kind, None)
+    }
+
+    /// [`Session::navigator_table`] with the texts of the fluid tables (a port role, a line kind, a length source) in
+    /// language `lang` (`en-GB`, `nl-NL`; `None` or another: neutral, as their CSV prints them), as the window shows
+    /// them.
+    pub fn navigator_table_in(&self, kind: NavKind, lang: Option<&str>) -> NavTable {
         let rev = self.world().rev.0;
         let mut b = Builder { nodes: Vec::new() };
         let q = self.query();
@@ -798,8 +805,8 @@ impl Session {
             NavKind::Plc | NavKind::PlcGrid => plc_table(&q, &mut b),
             NavKind::Bus => bus_table(&q, &mut b),
             NavKind::Fluid => fluid_table(&q, &mut b),
-            NavKind::Tubes => tubes_table(&q, &mut b),
-            NavKind::Media => media_table(&q, &mut b),
+            NavKind::Tubes => tubes_table(&q, &mut b, lang),
+            NavKind::Media => media_table(&q, &mut b, lang),
             NavKind::Potentials => potentials_table(&q, &mut b),
             NavKind::Ips => ips_table(&q, &mut b),
             NavKind::Structure => structure_table(&q, &mut b),
@@ -2619,10 +2626,23 @@ fn fluid_table(q: &Q, b: &mut Builder) {
     }
 }
 
+/// The printed cells of row `i` of `set` in language `lang` (`None`: neutral, as the CSV prints them).
+fn texts_in(q: &Q, set: &ew_reports::RowSet, i: usize, lang: Option<&str>) -> Vec<String> {
+    let opts = ew_reports::render::RenderOptions {
+        lang: lang.and_then(|l| l.parse().ok()),
+        ..Default::default()
+    };
+    set.rows[i]
+        .cells
+        .iter()
+        .map(|c| ew_reports::render::render(q, c, &opts))
+        .collect()
+}
+
 /// The tube table (doc 11 §7, FR-FLU-011): the tube list's rows (`tube_list`), one per tube, its effective tube spec
 /// and length with their sources; the tube part and the length are edited in their cells (`fields.set` `tube_part`,
 /// `tube_length` on the line).
-fn tubes_table(q: &Q, b: &mut Builder) {
+fn tubes_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     let Some(set) = ew_reports::project_rows(q, "tube_list", None) else {
         return;
     };
@@ -2634,7 +2654,7 @@ fn tubes_table(q: &Q, b: &mut Builder) {
         let Some(record) = row_entity(&r.id, 0) else {
             continue;
         };
-        let texts = ew_reports::csv::row_texts(q, &set, i);
+        let texts = texts_in(q, &set, i, lang);
         let label = cell_of(&set, &texts, "tag").to_owned();
         let drawables = sorted(
             connection_drawable(q, &folios, Id::from_uuid(record))
@@ -2659,7 +2679,7 @@ fn tubes_table(q: &Q, b: &mut Builder) {
 
 /// The medium table (doc 11 §7): the medium overview's rows (`medium_overview`), one per medium; a row highlights the
 /// medium's zones on the page (pattern and colour, doc 11 §7's highlight).
-fn media_table(q: &Q, b: &mut Builder) {
+fn media_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     let Some(set) = ew_reports::project_rows(q, "medium_overview", None) else {
         return;
     };
@@ -2670,7 +2690,7 @@ fn media_table(q: &Q, b: &mut Builder) {
         let Some(record) = row_entity(&r.id, 0) else {
             continue;
         };
-        let texts = ew_reports::csv::row_texts(q, &set, i);
+        let texts = texts_in(q, &set, i, lang);
         let label = cell_of(&set, &texts, "medium").to_owned();
         let n = b.push(
             None,

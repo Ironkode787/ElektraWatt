@@ -640,7 +640,9 @@ impl ShellModel {
             let table = if k == NavKind::Messages {
                 Self::messages_table_of(project, &self.messages)
             } else {
-                let mut table = project.session.navigator_table(k);
+                let mut table = project
+                    .session
+                    .navigator_table_in(k, Some(strings::rule_language()));
                 table_in_words(&mut table, project);
                 table
             };
