@@ -115,7 +115,10 @@ fn deleting_a_configuration_project_takes_its_exchange_snapshot() {
         .apply_history(&[Op::update(station, crate::AnyRow::of(freed))], Rev(1))
         .unwrap();
     let ops = m.delete_plan(&key::<PlcConfigProject>(CFG)).unwrap();
-    assert!(removes(&ops, key::<ew_schema::ExchangeRecord>(Id::from_uuid(snap))));
+    assert!(removes(
+        &ops,
+        key::<ew_schema::ExchangeRecord>(Id::from_uuid(snap))
+    ));
     assert!(removes(&ops, key::<ew_schema::ForeignId>(Id::from_uuid(foreign))));
     assert!(m.apply_history(&ops, Rev(2)).is_ok());
 }
@@ -123,7 +126,11 @@ fn deleting_a_configuration_project_takes_its_exchange_snapshot() {
 /// A deleted channel leaves the 1oo2 pair of its partner (`channel.safety.pair`, unlink).
 #[test]
 fn deleting_a_channel_clears_its_partner_s_safety_pair() {
-    let m = plc_model_with(&[safety_channel(CH2, 1, json!({"evaluation": "1oo2", "pair": uid(CH)}))]);
+    let m = plc_model_with(&[safety_channel(
+        CH2,
+        1,
+        json!({"evaluation": "1oo2", "pair": uid(CH)}),
+    )]);
     let ops = m.delete_plan(&key::<Channel>(CH)).unwrap();
     let partner: Channel = after(&ops, CH2);
     assert_eq!(partner.safety.and_then(|s| s.pair), None);

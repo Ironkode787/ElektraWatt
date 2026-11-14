@@ -516,7 +516,11 @@ fn refs_resolve(m: &Model, scope: &Scope, out: &mut Violations) -> Result<(), Mo
                         }
                         _ => BTreeSet::new(),
                     };
-                    for t in link.targets_of(&row).into_iter().filter(|t| !kept.contains(&t.id())) {
+                    for t in link
+                        .targets_of(&row)
+                        .into_iter()
+                        .filter(|t| !kept.contains(&t.id()))
+                    {
                         let target = (link.to, t.id());
                         let present = if link.kind_erased.is_empty() {
                             get_row(m, &target).is_some()

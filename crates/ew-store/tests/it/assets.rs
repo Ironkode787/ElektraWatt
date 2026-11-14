@@ -331,7 +331,10 @@ fn a_journal_asset_of_an_unknown_format_is_a_recovery_finding() {
         let path = dir.join(&name);
         let text = String::from_utf8(vfs.read(&path).unwrap()).unwrap();
         if text.contains(r#""format":"svg""#) {
-            vfs.put(&path, text.replace(r#""format":"svg""#, r#""format":"tiff""#).as_bytes());
+            vfs.put(
+                &path,
+                text.replace(r#""format":"svg""#, r#""format":"tiff""#).as_bytes(),
+            );
             replaced = true;
         }
     }

@@ -161,7 +161,10 @@ fn inv001_load_tolerant_added_target_rejected() {
     let kept = upd(&m, J5, |j: &mut Junction| j.sequence.reverse());
     assert!(edit(&m, &[kept]).is_ok(), "an edit keeps the stale target");
     let added = upd(&m, J5, |j: &mut Junction| j.fitting = fitting(0x4f_001));
-    assert!(apply(&m, std::slice::from_ref(&added)).is_ok(), "the history path does not judge it");
+    assert!(
+        apply(&m, std::slice::from_ref(&added)).is_ok(),
+        "the history path does not judge it"
+    );
     rejected_by(edit(&m, &[added]), crate::REFS_RESOLVE);
 }
 
@@ -1503,7 +1506,10 @@ fn inv025_loaded_violation_does_not_block_other_edits_ok() {
     let other = upd(&m, DEV_102G1, |d: &mut Device| d.parent = Some(DEV_102F2));
     assert!(edit(&m, &[other]).is_ok(), "an edit of another device");
     let valve = upd(&m, DEV_101F1, |d: &mut Device| d.parent = Some(DEV_102F2));
-    assert!(edit(&m, &[valve]).is_ok(), "an edit of the valve that keeps the link");
+    assert!(
+        edit(&m, &[valve]).is_ok(),
+        "an edit of the valve that keeps the link"
+    );
 }
 
 /// Moving the module that holds a valve under the device the valve drives is rejected: the move makes the target an
