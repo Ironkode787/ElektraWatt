@@ -1009,6 +1009,17 @@ fn a_module_is_dragged_to_a_free_slot_in_the_rack_editor() {
         .tag
         .clone();
     let module = (id, tag, 1u32);
+    // The last free slot's row, the one the module is dropped on.
+    let target = h
+        .state()
+        .shell()
+        .rack_view(id)
+        .expect("the rack")
+        .rows
+        .iter()
+        .rfind(|r| r.module.is_none())
+        .map(|r| r.slot)
+        .expect("a free slot");
     let from = h.get_by_label(&module.1).rect().center();
     let to = h
         .get_all_by_label("free")
@@ -1043,7 +1054,13 @@ fn a_module_is_dragged_to_a_free_slot_in_the_rack_editor() {
         .iter()
         .find(|r| r.tag == module.1)
         .expect("the module's row");
-    assert_ne!(row.slot, module.2, "moved from slot {}", module.2);
+    assert_eq!(row.slot, target, "moved onto the slot it was dropped on");
+    // One undo step puts it back.
+    dispatch(&mut h, "edit.undo", json!({}));
+    settle(&mut h);
+    let view = h.state().shell().rack_view(module.0).expect("the rack");
+    let slot = view.rows.iter().find(|r| r.tag == module.1).map(|r| r.slot);
+    assert_eq!(slot, Some(module.2), "back in slot {}", module.2);
     h.state_mut().shell_mut().shutdown();
 }
 

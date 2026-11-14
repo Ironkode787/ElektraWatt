@@ -34,14 +34,20 @@ pub enum EplanKind {
 }
 
 impl EplanKind {
+    /// The extensions File ▸ Import… takes for EPLAN data, with their kinds.
+    pub const EXTENSIONS: [(&'static str, EplanKind); 6] = [
+        ("edz", EplanKind::Edz),
+        ("7z", EplanKind::Edz),
+        ("zip", EplanKind::Edz),
+        ("xml", EplanKind::PartsXml),
+        ("xlsx", EplanKind::Report),
+        ("csv", EplanKind::Report),
+    ];
+
     /// The kind of an extension (any case).
     pub fn of(ext: &str) -> Option<EplanKind> {
-        match ext.to_ascii_lowercase().as_str() {
-            "edz" | "7z" | "zip" => Some(EplanKind::Edz),
-            "xml" => Some(EplanKind::PartsXml),
-            "xlsx" | "csv" => Some(EplanKind::Report),
-            _ => None,
-        }
+        let ext = ext.to_ascii_lowercase();
+        Self::EXTENSIONS.iter().find(|(e, _)| *e == ext).map(|(_, k)| *k)
     }
 }
 
@@ -69,8 +75,8 @@ pub enum EplanStep {
 }
 
 impl ShellModel {
-    /// `file.import_eplan {file?, how?, preset?, saved?, terms?, dir?}`: without `how`, the dialog of the file; with it,
-    /// the import (`update`, `library` or `report`).
+    /// `file.import_eplan {file?, how?, preset?, terms?, dir?, discard?}`: without `how`, the dialog of the file; with it,
+    /// the import (`update`, `library` or `report`), the report's column mapper (`map`) or the parts import (`parts`).
     pub(crate) fn act_import_eplan(&mut self, p: &Map<String, Value>) -> Outcome {
         let file = match string_param(p, "file") {
             Err(e) => return e,

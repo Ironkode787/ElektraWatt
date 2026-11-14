@@ -472,10 +472,20 @@ impl ShellModel {
                 params.insert("path".to_owned(), Value::String(file));
                 self.act_open_ewz(&params)
             }
-            Some("dxf" | "dwg" | "pdf") => self.act_import_drawing(&params),
-            Some("edz" | "7z" | "zip" | "xml" | "xlsx" | "csv") => self.act_import_eplan(&params),
+            Some(e) if super::DrawingKind::of(e).is_some() => self.act_import_drawing(&params),
+            Some(e) if super::EplanKind::of(e).is_some() => self.act_import_eplan(&params),
             _ => Outcome::refused(key!("reason-import-kind")),
         }
+    }
+
+    /// The extensions File ▸ Import… takes, its file dialog's filter: a QElectroTech project, a project archive, the
+    /// drawings and EPLAN's data.
+    pub fn import_extensions() -> Vec<&'static str> {
+        ["qet", "ewz"]
+            .into_iter()
+            .chain(super::DrawingKind::EXTENSIONS.iter().map(|(e, _)| *e))
+            .chain(super::EplanKind::EXTENSIONS.iter().map(|(e, _)| *e))
+            .collect()
     }
 
     pub(crate) fn act_import_qet(&mut self, p: &Map<String, Value>) -> Outcome {

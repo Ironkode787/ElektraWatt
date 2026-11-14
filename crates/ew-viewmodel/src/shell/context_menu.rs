@@ -126,7 +126,7 @@ impl ShellModel {
     /// A fluid line's line kinds (FT-1733: the line-kind picker), each as Line: `<kind>`, checked for its own, through
     /// the Properties row `connection/line_kind`.
     fn line_kind_entries(&self, current: Option<&str>, out: &mut Vec<ActionItem>) {
-        for word in ["working", "pilot", "exhaust", "drain", "flexible"] {
+        for &word in strings::LINE_KINDS {
             let kind = strings::lookup(&format!("choice-{word}")).unwrap_or(word);
             let label = strings::format(key!("canvas-line-kind"), &[kind]);
             let params = json!({"row": "connection/line_kind", "value": word});

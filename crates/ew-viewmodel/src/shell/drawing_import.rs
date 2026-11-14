@@ -33,14 +33,17 @@ pub enum DrawingKind {
 }
 
 impl DrawingKind {
+    /// The extensions File ▸ Import… takes for a drawing, with their kinds.
+    pub const EXTENSIONS: [(&'static str, DrawingKind); 3] = [
+        ("dxf", DrawingKind::Dxf),
+        ("dwg", DrawingKind::Dwg),
+        ("pdf", DrawingKind::Pdf),
+    ];
+
     /// The kind of an extension (`dxf`, `dwg`, `pdf`, any case).
     pub fn of(ext: &str) -> Option<DrawingKind> {
-        match ext.to_ascii_lowercase().as_str() {
-            "dxf" => Some(DrawingKind::Dxf),
-            "dwg" => Some(DrawingKind::Dwg),
-            "pdf" => Some(DrawingKind::Pdf),
-            _ => None,
-        }
+        let ext = ext.to_ascii_lowercase();
+        Self::EXTENSIONS.iter().find(|(e, _)| *e == ext).map(|(_, k)| *k)
     }
 }
 

@@ -108,7 +108,7 @@ fn a_dxf_becomes_a_page_and_then_an_underlay_through_the_import_dialog() {
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     h.get_by_label("Import…").click();
-    settle(&mut h);
+    finish_jobs(&mut h);
     assert!(matches!(
         h.state().shell().dialog(),
         Some(Dialog::ImportDrawing { unitless: true, .. })
@@ -117,7 +117,7 @@ fn a_dxf_becomes_a_page_and_then_an_underlay_through_the_import_dialog() {
     h.get_by_label_contains("read in millimetres");
     support::assert_accessible(&h);
     h.get_by_label("Add as page").click();
-    settle(&mut h);
+    finish_jobs(&mut h);
     wait_for_page(&mut h);
     assert!(h.state().shell().dialog().is_none());
     assert_eq!(h.state().shell().page_rows().len(), pages_before + 1);
@@ -130,9 +130,9 @@ fn a_dxf_becomes_a_page_and_then_an_underlay_through_the_import_dialog() {
     support::open_menu(&mut h, &["File"]);
     settle(&mut h);
     h.get_by_label("Import…").click();
-    settle(&mut h);
+    finish_jobs(&mut h);
     h.get_by_label(&format!("Place under page {shown}")).click();
-    settle(&mut h);
+    finish_jobs(&mut h);
     assert!(h.state().shell().dialog().is_none());
     let toast = h.state().shell().toast().map(|t| t.text.clone());
     assert_eq!(toast, Some(format!("Placed plan.dxf under page {shown}.")));

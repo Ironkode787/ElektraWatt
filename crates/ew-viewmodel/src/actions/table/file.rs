@@ -64,7 +64,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
     ),
     // An EDZ, a parts XML or a report spreadsheet of EPLAN; File ▸ Import… reaches it.
     with_params(
-        "file?:path, how?:enum(update|library|report), preset?:text, terms?:bool, dir?:path, discard?:bool",
+        "file?:path, how?:enum(update|library|report|map|parts), preset?:text, terms?:bool, dir?:path, discard?:bool",
         act(
             "file.import_eplan",
             Command,

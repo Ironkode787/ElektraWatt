@@ -610,8 +610,6 @@ fn open_ewz_spec(path: &str, name: &str) -> DialogSpec {
     }
 }
 
-/// Importing the drawing `name` (WP-S3.19): Add as page (a DXF or DWG), Place under page <folio> (embedded or not),
-/// Cancel. The body says what the file is, an assumed unit, a DWG's converter, and the confidentiality of an underlay.
 /// The rack and slot editor's title and body (doc 10 §6): "Rack and slots of `<station>`", the station's part and the
 /// most modules it takes; Close is the Primary.
 fn rack_spec(model: &ShellModel, station: ew_api::output::Uuid) -> DialogSpec {
@@ -636,6 +634,8 @@ fn rack_spec(model: &ShellModel, station: ew_api::output::Uuid) -> DialogSpec {
     }
 }
 
+/// Importing the drawing `name` (WP-S3.19): Add as page (a DXF or DWG), Place under page <folio> (embedded or not),
+/// Cancel. The body says what the file is, an assumed unit, a DWG's converter, and the confidentiality of an underlay.
 fn import_drawing_spec(
     path: &str,
     name: &str,
