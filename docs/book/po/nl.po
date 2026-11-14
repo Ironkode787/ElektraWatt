@@ -2965,8 +2965,8 @@ msgstr ""
 msgid ""
 "Each row of the grid is a channel. Type in a cell to change a channel's "
 "designation, address, symbol, state, target, comment, data type or signal "
-"range; the slot cell takes a number or `<rack>.<slot>`. Safety data is "
-"edited in Properties."
+"range; the slot cell takes a number or `<rack>.<slot>`. Safety data is set "
+"with **Safety data…** and **Mode and safety…** (step 16)."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:51
@@ -2984,14 +2984,14 @@ msgstr ""
 #: src/how-to/plc-workspace.md:57
 msgid ""
 "Choose **Output ▸ Export to PLC software…**, pick the format and choose "
-"**Create**, then the file. Import the file in TIA Portal or CODESYS."
+"**Export**, then the file. Import the file in TIA Portal or CODESYS."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:59
 msgid ""
 "Choose **Output ▸ Import from PLC software…** for the file the PLC software "
-"wrote back. Look through its tabs, decide each conflict, and choose "
-"**Apply**."
+"wrote back. Look through its tabs; each conflict shows the side Apply takes, "
+"and offers the file's value where it can be taken. Choose **Apply**."
 msgstr ""
 
 #: src/how-to/plc-workspace.md:61
