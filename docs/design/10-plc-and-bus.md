@@ -854,7 +854,9 @@ target pin), the passed terminals and the ambiguity flag. Only a module with a p
 graph. A traced target gives the channel the state of its device (§3.2 step 3). The "address at terminals" option is
 the drawing setting `plc_address_at_terminals` (`project.drawing.set`, FT-1725): with it, every terminal a traced
 signal passes prints the channel's address in its `PlcAddress` slot (`channels_by_target` holds the terminals). The
-shipped terminal symbols have no `PlcAddress` slot: a terminal symbol shows the address once it has one.
+shipped terminal symbol `ew.iec.terminal` and its QET twin (version 0.1.2, FT-1734) have the slot to the right of the
+terminal under its function text, in the arrangement `full`; the window's switch is Project ▸ PLC addresses at
+terminals.
 
 ### 3.6 Representations
 

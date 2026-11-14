@@ -3,8 +3,8 @@
   "id": "13704217-e6f6-56c5-951b-0552447345b7",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "8d18209b-6d24-54b1-9a07-f877d4803d8b",
-  "version": "0.1.1",
-  "sha256": "sha256:11302fd0f6f49a5956d458d82db852f68d10d3ee10049ce0e5e4bd406ad93071",
+  "version": "0.1.2",
+  "sha256": "sha256:7aabb0c13ce81828fedb5dbbaf0b1c929703f8a1ddb6f3a88a9a0c048fc914cc",
   "meta": {
     "key": "ew.iec.terminal@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -119,6 +119,15 @@
       ],
       "align": "middle_left",
       "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        1984375,
+        1984375
+      ],
+      "align": "middle_left",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -126,7 +135,8 @@
       "name": "full",
       "slots": [
         0,
-        1
+        1,
+        2
       ]
     },
     {
