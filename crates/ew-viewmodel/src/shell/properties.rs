@@ -1362,10 +1362,21 @@ impl ShellModel {
                 "project.settings.set".to_owned(),
                 json!({ "member": m, "value": new }),
             ),
-            crate::properties::EditRoute::FieldsSet { kind, path } => (
-                "fields.set".to_owned(),
-                json!({ "kind": kind, "targets": targets, "path": path, "value": new }),
-            ),
+            crate::properties::EditRoute::FieldsSet { kind, path } => {
+                let mut params = json!({ "kind": kind, "targets": targets, "path": path, "value": new });
+                // A part a system library holds and the project does not (a tube part): embedded with the edit.
+                let copies = new
+                    .get("copy")
+                    .and_then(Value::as_str)
+                    .and_then(|c| c.parse().ok())
+                    .zip(self.project.as_ref())
+                    .map(|(c, p)| p.session.module_part_copies(c))
+                    .unwrap_or_default();
+                if !copies.is_empty() {
+                    params["copies"] = Value::Array(copies);
+                }
+                ("fields.set".to_owned(), params)
+            }
             crate::properties::EditRoute::Command { .. } | crate::properties::EditRoute::ReadOnly(_) => {
                 (String::new(), Value::Null)
             }

@@ -13,7 +13,8 @@
 //! description, no order or catalogue data; each carries the template functions on the starter FnDefs, the CP pattern,
 //! the contact data of its contacts and the technical data the starter symbols print in their `tech_data` slot. The
 //! layout parts (an enclosure, a mounting plate, a rail, a duct and an end bracket) carry no template
-//! and no CP pattern: their sections and their dimensions (`mech`) are their data. The generic cable carries
+//! and no CP pattern: their sections and their dimensions (`mech`) are their data; so do the tubes and the fittings,
+//! whose `fluid` section is theirs. The generic cable carries
 //! no template either: its cores (`cable_cores`) are its data, so a new project creates a cable without a library.
 
 use std::collections::BTreeMap;
@@ -41,7 +42,7 @@ const VERSION: &str = "0.1.0";
 /// 0.7.0 since the generic valve terminal (module EW-GEN-VTM-1, valve EW-GEN-VLV-3, supply plate EW-GEN-VTS-1;
 /// FT-1326) was added, 0.8.0 since the fieldbus parts were added (the CPU with PROFINET and PROFIBUS DP
 /// EW-GEN-CPU-2, the remote I/O head EW-GEN-RIO-1, the PROFIBUS cable EW-GEN-CBL-2 and the Ethernet cable
-/// EW-GEN-CBL-3; the persona round of M3).
+/// EW-GEN-CBL-3) and the tubes EW-GEN-TUB-6, -8, -10 and the fittings EW-GEN-FIT-6, -8 (the persona round of M3).
 const LIBRARY_VERSION: &str = "0.8.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
@@ -208,6 +209,41 @@ fn cps(designations: &[&'static str]) -> Vec<(&'static str, Option<&'static str>
 
 fn range(from: u16, to: u16) -> Vec<u16> {
     (from..to).collect()
+}
+
+/// A polyurethane tube sold by the metre: its outer and inner diameter in millimetres, blue, rated 10 bar.
+fn tube(number: &'static str, description: &'static str, od: &str, id: &str) -> Def {
+    Def {
+        number,
+        kind: Some("tube"),
+        description,
+        cps: Vec::new(),
+        template: Vec::new(),
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech: None,
+        sections: Some(json!({"fluid": {"tube": {
+            "od": mm(od), "id": mm(id), "material": "pu", "colour": ["BU"], "p_rating": "10"}}})),
+        unit: Some("m"),
+    }
+}
+
+/// A push-in fitting: the port thread it screws into and the outer diameter of the tube it takes (mm).
+fn fitting(number: &'static str, description: &'static str, thread: &str, tube_od: &str) -> Def {
+    Def {
+        number,
+        kind: Some("accessory"),
+        description,
+        cps: Vec::new(),
+        template: Vec::new(),
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech: None,
+        sections: Some(json!({"fluid": {"fitting": {"port_thread": thread, "tube_od": mm(tube_od)}}})),
+        unit: None,
+    }
 }
 
 /// The generic starter parts, then the five layout parts (no template, no CP pattern).
@@ -526,6 +562,13 @@ fn defs() -> Vec<Def> {
                 {"gallery": "supply1", "tap": "1"}, {"gallery": "exhaust3", "tap": "3"}, {"gallery": "exhaust5", "tap": "5"}]}})),
             unit: None,
         },
+        // The persona round: no tube part existed, so the Tube part choice offered valves. Three polyurethane tubes
+        // (doc 11 §2.6 `fluid.tube`, sold by the metre) and two push-in fittings (`fluid.fitting`); no template.
+        tube("EW-GEN-TUB-6", "Tube PU 6 × 4 mm, blue", "6", "4"),
+        tube("EW-GEN-TUB-8", "Tube PU 8 × 6 mm, blue", "8", "6"),
+        tube("EW-GEN-TUB-10", "Tube PU 10 × 8 mm, blue", "10", "8"),
+        fitting("EW-GEN-FIT-6", "Push-in fitting G1/8 for tube 6 mm", "G1/8", "6"),
+        fitting("EW-GEN-FIT-8", "Push-in fitting G1/4 for tube 8 mm", "G1/4", "8"),
         Def {
             number: "EW-GEN-TRM-1",
             kind: Some("terminal"),
@@ -976,7 +1019,8 @@ fn the_shipped_library_is_the_generated_one() {
 /// Whether a part is a layout part: an enclosure, a mounting plate, a rail, a duct or an end bracket.
 /// The layout tools use them; they carry no function template.
 fn is_layout(kind: &PartKind) -> bool {
-    // the generic cable carries no template either: `the_generic_cable_has_its_cores` checks it
+    // the generic cable carries no template either: `the_generic_cable_has_its_cores` checks it; nor do the tubes
+    // and the fittings, whose fluid section is their data
     matches!(
         kind,
         PartKind::Enclosure
@@ -985,6 +1029,8 @@ fn is_layout(kind: &PartKind) -> bool {
             | PartKind::Duct
             | PartKind::EndBracket
             | PartKind::Cable
+            | PartKind::Tube
+            | PartKind::Accessory
     )
 }
 

@@ -1,0 +1,216 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! The persona round's pneumatics from nothing (M3, run m3-p2): a QElectroTech user drew a valve terminal, a cylinder,
+//! a supply and three tubes on a new project, by the window's own path (clicks, keys, menus) at 1920 × 1080.
+
+use crate::persona_round::{click, key, new_project, starting_with, typed};
+use crate::support::Tmp;
+
+use egui::{Modifiers, PointerButton};
+use ew_ui::ew_viewmodel::ew_api::output::{NavNode, Uuid};
+use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
+use ew_ui::ew_viewmodel::shell::Outcome;
+use ew_ui::visual::{Driver, Input};
+use serde_json::json;
+
+fn right_click(at: (i64, i64)) -> Input {
+    Input::Click {
+        at,
+        button: PointerButton::Secondary,
+        mods: Modifiers::NONE,
+    }
+}
+
+/// A click at `at` after the pointer rested there, so that a tool's ghost follows it first.
+fn click_at(d: &mut Driver, at: (i64, i64)) {
+    d.input(&Input::Hover { at });
+    d.settle();
+    d.input(&click(at));
+    d.settle();
+}
+
+/// A new project with the fluid page 201 shown, fitted, and the Fluid panel in the left column.
+fn fluid_page(tmp: &Tmp) -> Driver {
+    let mut d = new_project(tmp);
+    let page = json!({"folio": "201", "type": "fluid", "title": "Clamp pneumatics"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    let _ = d.shell_mut().dispatch("page.goto", &json!({"folio": "201"}));
+    let _ = d.shell_mut().dispatch("view.fit_page", &json!({}));
+    let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "fluid"}));
+    d.settle();
+    d
+}
+
+/// The Fluid navigator's nodes.
+fn fluid_nodes(d: &mut Driver) -> Vec<NavNode> {
+    d.settle();
+    d.shell_mut()
+        .nav(NavKind::Fluid)
+        .and_then(|n| n.table())
+        .map(|t| t.nodes.clone())
+        .unwrap_or_default()
+}
+
+/// The device of the Fluid navigator's device row labelled `tag`.
+fn fluid_device(d: &mut Driver, tag: &str) -> Uuid {
+    fluid_nodes(d)
+        .into_iter()
+        .find(|n| n.role == NavRole::Device && n.label == tag)
+        .and_then(|n| n.records.first().copied())
+        .unwrap_or_else(|| panic!("no device row {tag}"))
+}
+
+/// The window pixel of the Fluid panel's row labelled `label`, by its accessible name.
+fn row_of(d: &mut Driver, label: &str) -> (i64, i64) {
+    let name = d
+        .shell_mut()
+        .shown_rows(NavKind::Fluid)
+        .into_iter()
+        .find(|r| r.label == label)
+        .map(|r| r.name)
+        .unwrap_or_else(|| panic!("no row {label}"));
+    d.find(&name).unwrap_or_else(|| panic!("row {name} not on show"))
+}
+
+/// Places the starter valve terminal from the device browser as a box from `a` to `b`, then Escape.
+fn place_terminal(d: &mut Driver, a: (i64, i64), b: (i64, i64)) {
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    d.input(&typed("valve terminal"));
+    d.settle();
+    d.input(&Input::DoubleClick {
+        at: starting_with(d, "Valve terminal, 4"),
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    click_at(d, a);
+    click_at(d, b);
+    d.input(&key("escape"));
+    d.settle();
+}
+
+/// Places the starter symbol `symbol` at `at`, then Escape.
+fn place_symbol(d: &mut Driver, symbol: &str, at: (i64, i64)) {
+    let picked = d.shell_mut().dispatch("place.pick", &json!({ "symbol": symbol }));
+    assert_eq!(picked, Outcome::Done, "{symbol}");
+    click_at(d, at);
+    d.input(&key("escape"));
+    d.settle();
+}
+
+/// The window pixel of the connection point `designation` of `device` on the page shown.
+fn port(d: &mut Driver, device: Uuid, designation: &str) -> (i64, i64) {
+    let canvas = d.shell_mut().canvas().unwrap();
+    let tables = std::sync::Arc::clone(&canvas.page().tables);
+    let snapper = canvas.page().snapper.clone();
+    let cp = tables
+        .cps
+        .iter()
+        .find(|c| {
+            c.label.rsplit(':').next() == Some(designation)
+                && tables.reps.iter().any(|r| r.id == c.rep && r.device == Some(device))
+        })
+        .unwrap_or_else(|| panic!("no port {designation}"));
+    let sheet = snapper.page_to_sheet(cp.at);
+    let pixel = sheet_pixel(d);
+    pixel(sheet)
+}
+
+/// The window pixel of a sheet point, from two pointer positions the canvas reports.
+fn sheet_pixel(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
+    let probe = |d: &mut Driver, at: (i64, i64)| {
+        d.input(&Input::Hover { at });
+        d.settle();
+        let p = crate::persona_round::state(d)["canvas"]["pointer_nm"].clone();
+        (p[0].as_i64().unwrap(), p[1].as_i64().unwrap())
+    };
+    let (f0, f1) = ((700, 400), (1000, 700));
+    let (s0, s1) = (probe(d, f0), probe(d, f1));
+    move |sheet: (i64, i64)| {
+        (
+            f0.0 + (sheet.0 - s0.0) * (f1.0 - f0.0) / (s1.0 - s0.0),
+            f0.1 + (sheet.1 - s0.1) * (f1.1 - f0.1) / (s1.1 - s0.1),
+        )
+    }
+}
+
+/// Draws a tube with the Wire tool from port `a` to port `b` (window pixels), then Escape.
+fn draw_tube(d: &mut Driver, a: (i64, i64), b: (i64, i64)) {
+    let _ = d.shell_mut().dispatch("tool.wire", &json!({}));
+    click_at(d, a);
+    click_at(d, b);
+    d.input(&key("escape"));
+    d.settle();
+}
+
+/// The fluid lines of the page shown.
+fn tubes(d: &mut Driver) -> usize {
+    let canvas = d.shell_mut().canvas().unwrap();
+    canvas.page().tables.connections.iter().filter(|c| c.kind == "fluid").count()
+}
+
+/// The device a symbol of the page shown draws, by its symbol key's start (`ew.iso.cylinder`).
+fn device_drawn(d: &mut Driver, key: &str) -> Uuid {
+    let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
+    tables
+        .reps
+        .iter()
+        .find(|r| r.symbol_key.starts_with(key))
+        .and_then(|r| r.device)
+        .unwrap_or_else(|| panic!("no {key}"))
+}
+
+/// A cylinder and the air supply joined by one tube, the tube selected.
+fn one_tube(d: &mut Driver) {
+    place_symbol(d, "ew.iso.cylinder-double-acting@qet10", (900, 600));
+    place_symbol(d, "ew.iso.air-supply@qet10", (1300, 800));
+    let (cylinder, supply) = (device_drawn(d, "ew.iso.cylinder"), device_drawn(d, "ew.iso.air-supply"));
+    let (a, b) = (port(d, supply, "1"), port(d, cylinder, "A"));
+    draw_tube(d, a, b);
+    let line = d
+        .shell_mut()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .connections
+        .iter()
+        .find(|c| c.kind == "fluid")
+        .map(|c| c.id.to_string())
+        .expect("the tube");
+    let _ = d.shell_mut().dispatch("select.set", &json!({ "ids": [line] }));
+    d.settle();
+}
+
+/// P2-C: no tube part existed, and a tube's Tube part offered the valves. It offers the starter tubes, and only
+/// tubes; choosing one, a library part the project does not hold yet, embeds it and gives the tube its size.
+#[test]
+fn p2c_the_tube_part_offers_tubes_and_takes_one_from_the_library() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    let edit = json!({"row": "connection/tube_part"});
+    assert_eq!(d.shell_mut().dispatch("props.edit", &edit), Outcome::Done);
+    let choices: Vec<String> = d
+        .shell_mut()
+        .properties()
+        .choices()
+        .map(|c| c.items.iter().map(|(t, _)| t.clone()).collect())
+        .unwrap_or_default();
+    assert!(!choices.is_empty(), "the starter tubes");
+    assert!(choices.iter().all(|c| c.starts_with("EW-GEN-TUB-")), "{choices:?}");
+    let set = json!({"row": "connection/tube_part", "value": "EW-GEN-TUB-6"});
+    assert_eq!(d.shell_mut().dispatch("props.set", &set), Outcome::Done);
+    let _ = d.shell_mut().dispatch("navigator.show", &json!({"kind": "tubes"}));
+    d.settle();
+    let table = d
+        .shell_mut()
+        .nav(NavKind::Tubes)
+        .and_then(|n| n.table())
+        .cloned()
+        .expect("the tube table");
+    let size = table.columns.iter().position(|c| c.key == "size").unwrap();
+    assert_eq!(table.nodes[0].cells[size], "6×4", "the tube takes the part's size");
+    d.shell_mut().shutdown();
+}

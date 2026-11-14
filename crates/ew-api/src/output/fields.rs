@@ -18,7 +18,7 @@
 //! registry does not hold is "no command"; one whose command is `HumanOnly` is read-only with the confirmed step, so
 //! a future `HumanOnly` command cannot leak into the grid.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, OnceLock};
 
 use ew_commands::commands::{SETTABLE, SETTABLE_SETTINGS};
@@ -1912,8 +1912,20 @@ pub(crate) fn choices(cx: &dyn ParseCx, ty: &FieldType, member: &str, filter: &s
             }));
             out
         }
+        // A fluid line's tube part is a part that is a tube (the persona round: it offered the valves).
         FieldType::Link { kind } if kind == "part" => {
-            part_choices(cx, |id| serde_json::json!({ "copy": id }))
+            let mut all = part_choices(cx, |id| serde_json::json!({ "copy": id }));
+            if member == TUBE_PART {
+                let tubes: BTreeSet<String> = cx
+                    .part_copies()
+                    .into_iter()
+                    .chain(cx.library_parts())
+                    .filter(|c| c.kind == "tube")
+                    .map(|c| c.id)
+                    .collect();
+                all.retain(|c| c.value["copy"].as_str().is_some_and(|id| tubes.contains(id)));
+            }
+            all
         }
         // The minimal part chooser: one part use of quantity 1 replaces the list.
         FieldType::List(_) if ty.is_part_uses() => part_choices(

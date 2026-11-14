@@ -12,7 +12,7 @@ use ew_ui::ew_viewmodel::shell::Outcome;
 use ew_ui::visual::{Driver, Input, parse_chord};
 use serde_json::{Value, json};
 
-fn click(at: (i64, i64)) -> Input {
+pub(crate) fn click(at: (i64, i64)) -> Input {
     Input::Click {
         at,
         button: PointerButton::Primary,
@@ -20,23 +20,23 @@ fn click(at: (i64, i64)) -> Input {
     }
 }
 
-fn key(chord: &str) -> Input {
+pub(crate) fn key(chord: &str) -> Input {
     let (key, mods) = parse_chord(chord).unwrap();
     Input::Key { key, mods, repeat: 1 }
 }
 
-fn typed(text: &str) -> Input {
+pub(crate) fn typed(text: &str) -> Input {
     Input::Type {
         text: text.to_owned(),
     }
 }
 
-fn state(d: &mut Driver) -> Value {
+pub(crate) fn state(d: &mut Driver) -> Value {
     serde_json::from_str(&state_json(d.shell_mut())).unwrap()
 }
 
 /// The centre of the first widget whose accessible name starts with `prefix`.
-fn starting_with(d: &Driver, prefix: &str) -> (i64, i64) {
+pub(crate) fn starting_with(d: &Driver, prefix: &str) -> (i64, i64) {
     d.labels()
         .into_iter()
         .find(|(l, _)| l.starts_with(prefix))
@@ -45,7 +45,7 @@ fn starting_with(d: &Driver, prefix: &str) -> (i64, i64) {
 }
 
 /// A driver over a new project from the built-in template, on its first page.
-fn new_project(tmp: &Tmp) -> Driver {
+pub(crate) fn new_project(tmp: &Tmp) -> Driver {
     let mut d = Driver::in_folder(tmp.config(), None, tmp.0.clone()).unwrap();
     d.enable_accesskit();
     let project = json!({"dir": tmp.0.join("p.ew"), "template": "builtin"});
@@ -96,7 +96,7 @@ fn place_relay(d: &mut Driver, at: (i64, i64)) {
 }
 
 /// The window pixel of a sheet point, from two pointer positions the canvas reports.
-fn pixel_map(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
+pub(crate) fn pixel_map(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
     let probe = |d: &mut Driver, at: (i64, i64)| {
         d.input(&Input::Hover { at });
         d.settle();
@@ -114,12 +114,12 @@ fn pixel_map(d: &mut Driver) -> impl Fn((i64, i64)) -> (i64, i64) + use<> {
 }
 
 /// The window pixel of a page point.
-fn page_pixel(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64), p: (i64, i64)) -> (i64, i64) {
+pub(crate) fn page_pixel(d: &mut Driver, pixel: &impl Fn((i64, i64)) -> (i64, i64), p: (i64, i64)) -> (i64, i64) {
     pixel(d.shell_mut().canvas().unwrap().page().snapper.page_to_sheet(p))
 }
 
 /// The page point of the connection point labelled `label` on the page shown.
-fn cp_at(d: &mut Driver, label: &str) -> (i64, i64) {
+pub(crate) fn cp_at(d: &mut Driver, label: &str) -> (i64, i64) {
     let tables = std::sync::Arc::clone(&d.shell_mut().canvas().unwrap().page().tables);
     tables
         .cps

@@ -2899,11 +2899,11 @@ impl Session {
         let q = self.query();
         let ty = row_type(kind, row_path)
             .ok_or_else(|| InputError::Invalid(api_text!("refusal-input-not-a-field", row_path, kind)))?;
-        let cx = match ty.is_part_uses() {
+        let member = last_member(row_path);
+        let cx = match ty.is_part_uses() || (kind == "connection" && member == super::fields::TUBE_PART) {
             true => SheetCx::new(&q).with_library_parts(self),
             false => SheetCx::new(&q),
         };
-        let member = last_member(row_path);
         super::fields::parse_input(&cx, &ty, &member, text)
     }
 
@@ -2914,11 +2914,13 @@ impl Session {
             return Vec::new();
         };
         let q = self.query();
-        let cx = match ty.is_part_uses() {
+        let member = last_member(row_path);
+        // A Parts row and a fluid line's tube part offer the libraries' parts too; choosing one embeds it.
+        let cx = match ty.is_part_uses() || (kind == "connection" && member == super::fields::TUBE_PART) {
             true => SheetCx::new(&q).with_library_parts(self),
             false => SheetCx::new(&q),
         };
-        choices(&cx, &ty, &last_member(row_path), filter)
+        choices(&cx, &ty, &member, filter)
     }
 }
 
