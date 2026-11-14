@@ -47,6 +47,10 @@ pub const LINE_MIDDLE_PER_MILLE: i128 = 547;
 /// Half the distance between two lines, per mille of the em (Qt's line spacing, about 1.15 em).
 pub const HALF_LINE_PER_MILLE: i128 = 575;
 
+/// The descent of the bundled family below the baseline, per mille of the em (Noto Sans: 293 of its 1,000 units):
+/// QET places an element's static text by its baseline, EW by the bottom of its box.
+pub const DESCENT_PER_MILLE: i128 = 293;
+
 /// The point size of a QET text without a usable font: QET's default diagram font, 9 pt.
 pub const DEFAULT_POINT_SIZE: i64 = 9;
 

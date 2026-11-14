@@ -685,7 +685,7 @@ map one to one:
 | `ellipse x y width height`, `circle x y diameter` | ellipse, circle | `x y` is the bounding box's top-left |
 | `arc x y width height start angle` | elliptic arc | degrees; 0° at 3 o'clock; positive span counter-clockwise on screen, so a point is `(cx + rx·cosθ, cy − ry·sinθ)`; the importer keeps `start` and `angle` as given, and lowering in `ew-scene` evaluates the arc with `ew-dl`'s deterministic trigonometry |
 | `polygon x1 … xn y1 … yn closed` | polyline or closed polygon | |
-| `text x y text size\|font color rotation` | static symbol text | font per §4.10; `rotation` is Qt's clockwise-positive angle and becomes the negated `Angle2` (counter-clockwise positive, [03](03-domain-model.md) §3.1; ADR-0005 amendment 2); `x y` is the first line's baseline, and a text of several lines becomes one text per line, each 1.15 em lower in the text's own frame |
+| `text x y text size\|font color rotation` | static symbol text | font per §4.10; `rotation` is Qt's clockwise-positive angle and becomes the negated `Angle2` (counter-clockwise positive, [03](03-domain-model.md) §3.1; ADR-0005 amendment 2); `x y` is the first line's baseline (QET subtracts the font's ascent for the top of its text document, whose first baseline is that ascent lower), so EW, which aligns the bottom of the text's box, stands it 0.293 em (the bundled family's descent) lower; a text of several lines becomes one text per line, each 1.15 em lower in the text's own frame |
 | `dynamic_text`, legacy `input tagg` | text slot | `label` → tag slot, `function` → function-text slot, `CompositeText` → slot with a format; `UserText` → static text. In a project the placed elements print their own texts instead (§4.4.2) |
 | `terminal x y orientation name type uuid` | connection point | index = definition order; designation = `name` (empty allowed); direction from `orientation`; `type` Generic, Inner or Outer kept |
 
@@ -1031,6 +1031,12 @@ variable has an EW xref-format token (FR-XRF-003):
   that many points, `size × 3,175,000 / 9` nm (QET draws a point as 4/3 px), bold for `.b`; italic is not a
   text-style property and is dropped. Without them every import style was unknown and printed in `text.normal`,
   so texts of 4 to 6 pt printed at 9 pt.
+- *Measured (FT-1746).* Against QET's own PDF of a pilot project (QElectroTech 0.100, Qt 5.15), an element's static
+  text drawn from its baseline but placed by the bottom of its box stood a descent (0.31 em measured, 0.293 em of
+  Noto Sans) too high; placed a descent lower it matches within 0.1 mm. Dynamic texts and a page's free texts stand
+  within 0.3 mm of QET's for the sizes of 4 to 9 pt (the rest is Qt's ascent and line pitch rounded up to whole pixels
+  at its screen size, about 0.1 em, not modelled); free texts of 12 pt and more stand 0.7 to 1.2 mm higher, and a
+  title block's cell texts 0.5 to 2.7 mm across, both open.
 
 ### 4.11 Strips, terminals and cables
 

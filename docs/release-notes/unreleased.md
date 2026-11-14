@@ -632,3 +632,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: `ew verify-migration` segments the project's texts and the reference's by one rule: a text with
   a glyph of another font (², ∞, −, ⇄) is one text, and the texts of neighbouring cells no longer join; Golden A
   against its own PDF reports no deviation (M3 whole review)
+- behaviour-change: an imported QElectroTech element's static text stands on QET's baseline, a descent lower than
+  before, where QET's own PDF has it (FT-1746)
