@@ -124,6 +124,23 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
    `ProjectSettings.fluid`), the reserved kinds `medium` and `medium_def`, and five `ReportKind` values: each optional
    or caught by `Unknown`; every new link is load-tolerant (doc 11 §2.7), so a stale target an older build leaves is
    a load finding, never a refusal, and no `min_reader` is raised.
+   Applied again after the lock (M3) to the PLC and bus 1.0 members (WP-S1.24: `PlcConfigProject.symbols`,
+   `PlcModule.safety`, `Channel.data_type`, `.signal_range`, `.mode`, `.safety`, the part section `plc`'s
+   `allowed_slots`, `limits`, `iolink` and `ratings`, the part's bus-port members, `BusPort.mrp`, `BusSection.cable_for`,
+   the typed `NetAddress` forms), to the PLC exchange (WP-S3.16: `PlcConfigProject.ownership` and `.exchange`,
+   `PlcStation.firmware`, `PlcModule.type_ident`, and the reserved kinds `exchange_record` and `foreign_id`), and to the
+   underlay (WP-S3.19: the `page_item` variant `underlay` and the `AssetFormat` values `pdf` and `dxf`): each optional
+   or caught by `Unknown`, except `AssetFormat`, which needs no `Unknown` arm: no image gate takes a PDF or a DXF, so a
+   company logo never names one, and a reader takes an asset (from the asset files or the journal) only when its own
+   sniffing confirms the format, so an older build reports a journal asset of a format it does not know as a recovery
+   finding and keeps the asset file of an open as opaque bytes. The new links (a safety channel's `pair` and `test_pulse`, unlink) are load-tolerant: an
+   older build kept `safety` in `extra`, so a stale target it leaves is absent to every reader, and an edit may not add
+   one. The exchange kinds' link to their configuration project is a cascade, which the rule above would make a
+   `min_reader` bump; it is not one, because the link is load-tolerant and the kinds are a snapshot: an older build
+   keeps them verbatim, and a snapshot whose configuration project that build deleted is unused data, which a newer
+   build neither reads as an error nor applies (the next exchange writes a new one), while the newer build deletes it
+   with its project. A member added after the lock is appended after the members of the released format, `source_ref`
+   included (amendment 1), where an older build that keeps it in `extra` writes it as well.
    Applied again in cycle 51 to the reserved kind `import_run` (rank 72,
    `imports/<run-uuid>.jsonl`), typed within 0.1 with `schemas/0.1` re-blessed with additions only, and to
    `ImportLineage.last_run`, now a link to the run without cascade; a build from before the change keeps the runs

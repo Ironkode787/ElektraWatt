@@ -586,3 +586,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   part change lists the closures and medium definitions it drops, and adding an accessory part no longer re-makes a
   valve's functions (WP-S1.25 review)
 - text-change: the Dutch tube list, tube labels and EW-FL messages say "T-stuk" for a tee (WP-S1.25 review)
+- behaviour-change: a `drives` link that a file of an older build holds to its valve's own module or terminal no
+  longer refuses every later device edit; EW-INV-025 judges only the links an edit adds, changes or moves into the
+  fault. An edit that writes a missing record into a fluid part, a medium, a safety channel's partner or test-pulse
+  pin, or an exchange record's configuration project is refused (EW-INV-001), as an older file's stale reference
+  still loads (M3 review fix, ADR-0009 amendment 10)

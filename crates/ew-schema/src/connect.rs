@@ -445,12 +445,13 @@ pub struct Junction {
     /// The connections in wiring order; arm 1 is the feed arm.
     #[schemars(with = "Vec<UuidS>")]
     pub sequence: Vec<Id<Connection>>,
-    /// The tee-fitting part of a fluid junction (doc 11 §5.1, FR-FLU-031); optional and additive within format 0.1.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub fitting: Option<PartRef>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
+    /// The tee-fitting part of a fluid junction (doc 11 §5.1, FR-FLU-031); optional and additive within format 0.1,
+    /// so after the released members (ADR-0011 amendment 6).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fitting: Option<PartRef>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

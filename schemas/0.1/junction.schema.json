@@ -168,7 +168,7 @@
           "type": "null"
         }
       ],
-      "description": "The tee-fitting part of a fluid junction (doc 11 §5.1, FR-FLU-031); optional and additive within format 0.1."
+      "description": "The tee-fitting part of a fluid junction (doc 11 §5.1, FR-FLU-031); optional and additive within format 0.1,\nso after the released members (ADR-0011 amendment 6)."
     },
     "id": {
       "$ref": "#/$defs/Uuid",

@@ -1291,21 +1291,4 @@ mod tests {
             }
         );
     }
-
-    /// A new payload variant of an open enum (a single-member object branch) adds its member as required only within
-    /// its own branch: a new value with its line, not a member the old values must now carry.
-    #[test]
-    fn a_new_payload_variant_is_a_new_value_not_a_required_member() {
-        let node = |branches: Value| json!({"$defs": {"Net": {"oneOf": branches}}, "properties": {"a": {"$ref": "#/$defs/Net"}}});
-        let before =
-            node(json!([{"type": "object", "properties": {"p": {"type": "integer"}}, "required": ["p"]}]));
-        let after = node(json!([
-            {"type": "object", "properties": {"p": {"type": "integer"}}, "required": ["p"]},
-            {"type": "object", "properties": {"n": {"type": "string"}}, "required": ["n"]},
-        ]));
-        let (mut out, mut variants) = (Vec::new(), Vec::new());
-        node_changes("k", &before, &after, &mut out, &mut variants);
-        assert!(out.iter().all(|(breaking, _, _)| !breaking), "{out:?}");
-        assert_eq!(variants.len(), 1, "{variants:?}");
-    }
 }

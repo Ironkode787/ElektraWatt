@@ -333,7 +333,10 @@ numbers live in `Connection.number`. A released revision's report snapshots live
   `PartRef`, `Folio`, `WireOverrides` …) alike, has its own `extra` map, flattened last, so a member that a newer
   minor appends at any depth survives a load and a save (ADR-0011 amendment 2).
 - **Import provenance last.** `source_ref?{lineage, key}` ([14](14-interop.md) §2.3) is the last declared member of
-  every project record kind except `import_lineage`; in a device only the flattened aspects and `extra` follow it.
+  every project record kind except `import_lineage`, among the members of the released format; in a device only the
+  flattened aspects and `extra` follow it. A member added after the format locked is appended after `source_ref`
+  (ADR-0011 amendment 6, §10.3 rule 1), where an older build that keeps it in `extra` writes it too, so that a record
+  an older build rewrites keeps its member order.
 - **`$v` is checked.** A typed reader accepts only the registry's `$v` of each kind; older records are migrated first
   (§10.2).
 

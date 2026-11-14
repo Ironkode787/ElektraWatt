@@ -310,6 +310,42 @@ fn a_damaged_journal_asset_is_a_recovery_finding() {
     );
 }
 
+/// A journal asset whose format this build does not know (as an underlay's PDF or DXF is to a build before them) is a
+/// recovery finding, never a failed replay: `AssetFormat` needs no `Unknown` arm, since a reader takes an asset only
+/// when its own sniffing confirms the format, which it cannot for a format it does not know.
+#[test]
+fn a_journal_asset_of_an_unknown_format_is_a_recovery_finding() {
+    use ew_store::Vfs;
+    let (vfs, _, o) = open_golden();
+    let mut store = o.store;
+    let x = logo_asset(LOGO);
+    let (m1, k1) = with_logo(&o.model, &x);
+    let k1: Vec<AnyKey> = k1.into_iter().collect();
+    store
+        .journal_commit(&o.model, &m1, &k1, "project.company.set", "test")
+        .unwrap();
+    let dir = store.journal_dir().expect("a journal").to_path_buf();
+    store.crash();
+    let mut replaced = false;
+    for (name, _) in vfs.list(&dir).unwrap() {
+        let path = dir.join(&name);
+        let text = String::from_utf8(vfs.read(&path).unwrap()).unwrap();
+        if text.contains(r#""format":"svg""#) {
+            vfs.put(&path, text.replace(r#""format":"svg""#, r#""format":"tiff""#).as_bytes());
+            replaced = true;
+        }
+    }
+    assert!(replaced, "the journal names the asset's format");
+    let mut o = reopen(&vfs, 2);
+    let rec = o.store.recover(&o.model).expect("the journal replays");
+    assert!(rec.model.asset(x.sha256()).is_none());
+    assert_eq!(rec.findings.len(), 1, "{:?}", rec.findings);
+    assert_eq!(
+        rec.findings[0].kind,
+        ew_store::ew_format::FindingKind::AssetMismatch
+    );
+}
+
 #[test]
 fn a_new_project_writes_its_assets() {
     let (vfs, _, o) = open_golden();

@@ -49,6 +49,9 @@ pub struct PlcConfigProject {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub cpu: Option<Id<Device>>,
+    /// Import provenance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_ref: Option<SourceRef>,
     /// The symbol policy (doc 10 §2.2, §3.4, FR-PLC-017, FR-PLC-047); absent: no automatic symbol, strict IEC
     /// identifiers.
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -60,9 +63,6 @@ pub struct PlcConfigProject {
     /// The stamp of the last exchange (doc 10 §4.2); its snapshot is in `exchange/<id>.jsonl`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub exchange: Option<ExchangeStamp>,
-    /// Import provenance.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source_ref: Option<SourceRef>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
@@ -493,6 +493,9 @@ pub struct Channel {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub target: Option<Id<Function>>,
+    /// Import provenance.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_ref: Option<SourceRef>,
     /// The data type of the PLC tag in the profile vocabulary ("Bool", "Int"); absent: the part's
     /// (`ChannelSpec.data_type`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -508,9 +511,6 @@ pub struct Channel {
     /// The safety data of an F-channel (doc 10 §2.9, FR-PLC-041); absent: a standard channel.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub safety: Option<SafetyChannel>,
-    /// Import provenance.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub source_ref: Option<SourceRef>,
     /// Unknown members and plugin keys.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
