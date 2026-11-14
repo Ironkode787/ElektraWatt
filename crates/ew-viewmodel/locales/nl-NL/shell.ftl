@@ -6127,6 +6127,6 @@ form-page-type-note = Lijsten (artikelen, draden, klemmen, kabels, PLC-kaarten, 
 nav-plc-addresses = Adressen
 plc-count-addresses = { $p0 } kanaaladressen
 plc-count-addresses-one = 1 kanaaladres
-toast-plc-freeze = { $p0 } van { $p1 } bevroren; reservekanalen houden hun automatische adres.
+toast-plc-freeze = { $p0 } van { $p1 } vastgezet; reservekanalen houden hun automatische adres.
 toast-plc-readdress = Opnieuw geadresseerd: { $p0 } verschoven.
 nav-badge-manual = handmatig

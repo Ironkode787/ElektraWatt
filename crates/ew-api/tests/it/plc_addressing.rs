@@ -481,7 +481,11 @@ fn freezing_keeps_every_printed_address() {
         "plc.set_start",
         json!({"modules": [module.to_string()], "dir": "output", "spec": "Q10"}),
     );
-    assert_eq!(manual_texts(&s.query(), module), frozen, "a frozen address does not move");
+    assert_eq!(
+        manual_texts(&s.query(), module),
+        frozen,
+        "a frozen address does not move"
+    );
     assert_eq!(
         findings(&s, "EW-PLC-002").len(),
         frozen.len(),

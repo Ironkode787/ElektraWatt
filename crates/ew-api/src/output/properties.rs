@@ -613,7 +613,8 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
 fn binding_in_words(q: &Q, built: &mut [Built]) {
     for b in built.iter_mut().filter(|b| b.row.path == "binding") {
         if let RowValue::One { json, text } = &mut b.row.value
-            && let Ok(ew_schema::Endpoint::Cp(f, idx)) = serde_json::from_value::<ew_schema::Endpoint>(json.clone())
+            && let Ok(ew_schema::Endpoint::Cp(f, idx)) =
+                serde_json::from_value::<ew_schema::Endpoint>(json.clone())
         {
             *text = ew_derive::cp_label(q, ew_derive::CpRef::new(f, idx));
         }

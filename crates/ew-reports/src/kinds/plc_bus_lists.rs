@@ -12,13 +12,13 @@ use ew_derive::ew_ids::Id;
 use ew_derive::ew_mltext::{MlText, natural_key};
 use ew_derive::ew_plcaddr::{Area, PlcAddress, Purpose, Size};
 use ew_derive::ew_schema::{
-    AddrValue, BusPort, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource,
-    LogicalNet, NetAddress, OnOff, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
+    AddrValue, BusPort, Channel, ConnectionKind, Device, Endpoint, Function, IoDir, LengthSource, LogicalNet,
+    NetAddress, OnOff, PhysicalNet, PlcConfigProject, PortClass, PortMode, PortRole, ReportBlock,
 };
 use ew_derive::{
-    BusSegments, ChannelStates, ChannelTargets, EffectiveState, bus_word, FunctionCps, ModuleOrder, ModuleStartOf,
-    NetMaster, NetMembersOf, Q, SegmentMember, Slot, Start, external_partner_text, iolink_device, module_io,
-    module_part, net_address_text, port_windows, profile_of, stations,
+    BusSegments, ChannelStates, ChannelTargets, EffectiveState, FunctionCps, ModuleOrder, ModuleStartOf,
+    NetMaster, NetMembersOf, Q, SegmentMember, Slot, Start, bus_word, external_partner_text, iolink_device,
+    module_io, module_part, net_address_text, port_windows, profile_of, stations,
 };
 
 use super::conn::{put, tag_short};

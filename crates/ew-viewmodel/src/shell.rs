@@ -2062,15 +2062,15 @@ impl ShellModel {
         }
     }
 
-    /// The source of new record IDs for every session the shell opens or creates from now on (feature `testkit`
-    /// only; `None`: the system clock and OS entropy, as in the product, which never sets one). A guard runs one
-    /// script under an ascending and a descending source: a shell output ordered by UUID then differs. The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell.
     /// Tells the shell today's date (`YYYY-MM-DD`), which the window reads before it runs an action; the shell never
     /// reads a clock.
     pub fn set_today(&mut self, date: String) {
         self.today = Some(date);
     }
 
+    /// The source of new record IDs for every session the shell opens or creates from now on (feature `testkit`
+    /// only; `None`: the system clock and OS entropy, as in the product, which never sets one). A guard runs one
+    /// script under an ascending and a descending source: a shell output ordered by UUID then differs. The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell.
     #[cfg(feature = "testkit")]
     pub fn set_id_source_for_tests(&mut self, make: Option<IdSourceFactory>) {
         self.id_source = make;

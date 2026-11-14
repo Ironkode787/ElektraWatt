@@ -160,7 +160,8 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
     press(&mut d, "New page");
     // The Type list, where the play-tester clicked it (a form's field is named by its label's relation, which the
     // driver does not read): its row counted up from the footer's Create, the form's rows `size.control` and
-    // `space.3` apart (36 points), the last row's centre 44 points above Create's.
+    // `space.3` apart (36 points), the last row's centre 44 points above Create's, and the line under Type that says
+    // where lists are made (one `type.small` line and `space.1`, 18 points) between it and the next row.
     let (fields, at) = match d.shell_mut().dialog() {
         Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => (
             f.fields.len() as i64,
@@ -172,7 +173,10 @@ fn a_panel_layout_in_a_new_project_by_the_pointer() {
         other => panic!("{other:?}"),
     };
     let create = widget(&d, "Create", false);
-    tap(&mut d, (create.0 - 300, create.1 - 44 - 36 * (fields - 1 - at)));
+    tap(
+        &mut d,
+        (create.0 - 300, create.1 - 44 - 36 * (fields - 1 - at) - 18),
+    );
     // The whole list stands in the window, its last type too.
     let last = d.find("External document").expect("the last type");
     assert!(last.1 < i64::from(d.geometry().frame_height()), "{last:?}");

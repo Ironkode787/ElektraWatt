@@ -1264,7 +1264,13 @@ impl TableDelegate for Delegate<'_> {
                 pos2(content.right() - t.icon_sm, content.center().y - t.icon_sm / 2.0),
                 vec2(t.icon_sm, t.icon_sm),
             );
-            icons::paint(ui.painter(), IconId::lock, icon, t.text_secondary.color32(), t.icon_stroke);
+            icons::paint(
+                ui.painter(),
+                IconId::lock,
+                icon,
+                t.text_secondary.color32(),
+                t.icon_stroke,
+            );
             content.max.x -= t.icon_sm + t.space_2;
         }
         paint_text(ui, content, &text, theme::font(&t.type_small), colour);

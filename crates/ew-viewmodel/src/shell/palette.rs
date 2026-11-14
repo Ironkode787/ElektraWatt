@@ -132,26 +132,34 @@ impl ShellModel {
             .filter(|a| !a.headless_only && !a.hidden && keep(a))
         {
             let label = strings::text(Key::run_time(&meta.label_key()));
-            let mut aliases: Vec<String> = glossary::aliases_of(meta.id)
-                .into_iter()
-                .map(str::to_owned)
-                .collect();
-            // Report block… is found by the name of each list it makes ("tube list", "PLC card list").
-            if meta.id == "report_block.new" {
-                aliases.extend(super::creation::report_kinds().into_iter().map(super::creation::report_kind_words));
-            }
+            let aliases = glossary::aliases_of(meta.id);
             let state = match form_plan(meta) {
                 FormPlan::Disabled(reason) => Err(reason),
                 FormPlan::Direct | FormPlan::Form(_) => (meta.enabled)(self),
             };
-            let Some(rank) = rank(
+            let uses = self.recents.uses(meta.id);
+            let own = rank(
                 query,
                 label,
-                aliases.iter().map(String::as_str),
+                aliases.iter().copied(),
                 meta.id,
-                self.recents.uses(meta.id),
+                uses,
                 state.is_ok(),
-            ) else {
+            );
+            // Report block… is found by the name of each list it makes ("tube list", "PLC card list"), weighed as
+            // an ID is, below a label or an alias of the same match (so "PLC" still finds the PLC panel first).
+            let lists = (meta.id == "report_block.new")
+                .then(|| {
+                    super::creation::report_kinds()
+                        .into_iter()
+                        .filter_map(|k| {
+                            let words = super::creation::report_kind_words(k);
+                            rank(query, "", std::iter::empty(), &words, uses, state.is_ok())
+                        })
+                        .max()
+                })
+                .flatten();
+            let Some(rank) = own.max(lists) else {
                 continue;
             };
             // A View switch says whether it is on, after where it lives ("View · Show · On").

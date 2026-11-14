@@ -103,15 +103,9 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         placed(
             place(Group::Exchange, 2, CommandSize::Small, None),
             "transfer-in",
-            act(
-                "plc.import",
-                View,
-                Menu::Output,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_plc_import(p),
-            ),
+            act("plc.import", View, Menu::Output, &[], writable, None, |s, p| {
+                s.act_plc_import(p)
+            }),
         ),
     ),
     with_params(

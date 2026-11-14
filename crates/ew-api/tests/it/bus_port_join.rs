@@ -350,7 +350,10 @@ fn a_bus_line_between_two_stations_makes_their_net() {
     let port = |s: &Session, f: Id<Function>| s.query().functions().get(f).and_then(|f| f.bus_port.clone());
     let pn = place_port(&mut s, "ew.bus.pn-port@qet10", page, cpu, 12);
     let pn_port = port(&s, pn).expect("a port");
-    assert_eq!((pn_port.bus, pn_port.role), (BusSystem::Profinet, PortRole::Controller));
+    assert_eq!(
+        (pn_port.bus, pn_port.role),
+        (BusSystem::Profinet, PortRole::Controller)
+    );
     let dp_cpu = place_port(&mut s, DP_PORT, page, cpu, 24);
     let dp_rio = place_port(&mut s, DP_PORT, page, rio, 36);
     assert_eq!(port(&s, dp_cpu).map(|p| p.role), Some(PortRole::Master));
@@ -365,10 +368,17 @@ fn a_bus_line_between_two_stations_makes_their_net() {
         .cloned()
         .expect("the net");
     assert_eq!(n.name.as_str(), "PROFIBUS DP");
-    assert_eq!(n.master.as_ref().and_then(ew_schema::Endpoint::function), Some(dp_cpu));
+    assert_eq!(
+        n.master.as_ref().and_then(ew_schema::Endpoint::function),
+        Some(dp_cpu)
+    );
     let third = place_station(&mut s, "EW-GEN-RIO-1", sheet, 48);
     let dp_third = place_port(&mut s, DP_PORT, page, third, 48);
     bus_line(&mut s, (dp_rio, 1), (dp_third, 0));
     assert_eq!(port(&s, dp_third).and_then(|p| p.logical_net), Some(net));
-    assert_eq!(s.query().table::<ew_schema::LogicalNet>().iter().count(), 1, "no second net");
+    assert_eq!(
+        s.query().table::<ew_schema::LogicalNet>().iter().count(),
+        1,
+        "no second net"
+    );
 }

@@ -43,11 +43,11 @@ pub mod table;
 pub mod xlsx;
 
 pub use arrange::{Arrangement, arrange};
+pub use ew_derive::bus_word;
 pub use kind::{
     EmbeddedLayout, KindParams, ParamDef, ParamKind, ParamValue, Registry, ReportKindDef, kind_name,
     kind_params,
 };
-pub use ew_derive::bus_word;
 pub use kinds::bridge_groups;
 pub use layout::{Layouts, PageLayout};
 pub use paginate::{BlockSpec, Break, Continuation, FixedLines, RowLines, Slice, paginate};

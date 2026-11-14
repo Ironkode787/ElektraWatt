@@ -346,7 +346,11 @@ fn an_idle_channels_pin_is_not_reported_unconnected() {
     .expect("a wire between the two pins");
     set_channel(&mut s, channel(di, 1), "state", json!("reserved")).expect("reserved");
     set_channel(&mut s, channel(di, 2), "state", json!("deactivated")).expect("deactivated");
-    assert_eq!(unconnected_pins(&s, di), ["8"], "only the M pin of the input card");
+    assert_eq!(
+        unconnected_pins(&s, di),
+        ["8"],
+        "only the M pin of the input card"
+    );
 }
 
 /// PW-5: `fields.set` on a channel: symbol, comment, state, the address forms (a manual address refused for I4.9

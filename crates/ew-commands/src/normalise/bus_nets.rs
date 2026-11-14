@@ -43,7 +43,11 @@ fn net_of(tx: &TxBuilder<'_>, port: &BusPort) -> Option<Id<LogicalNet>> {
 }
 
 /// A new logical net of `bus`, named for the bus system and unique among the nets, with `master`.
-fn new_net(tx: &mut TxBuilder<'_>, bus: &BusSystem, master: Option<Endpoint>) -> Result<Id<LogicalNet>, CmdError> {
+fn new_net(
+    tx: &mut TxBuilder<'_>,
+    bus: &BusSystem,
+    master: Option<Endpoint>,
+) -> Result<Id<LogicalNet>, CmdError> {
     let base = ew_derive::bus_word(bus);
     let taken: Vec<String> = tx
         .iter::<LogicalNet>()

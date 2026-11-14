@@ -770,7 +770,10 @@ impl Command for FreezeAddresses {
                 };
                 let kept = states.iter().any(|(c, s)| {
                     *c == e.channel
-                        && !matches!(s, ew_derive::EffectiveState::Used | ew_derive::EffectiveState::Reserved)
+                        && !matches!(
+                            s,
+                            ew_derive::EffectiveState::Used | ew_derive::EffectiveState::Reserved
+                        )
                 });
                 if kept {
                     continue;

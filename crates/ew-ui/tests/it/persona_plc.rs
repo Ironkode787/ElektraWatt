@@ -120,9 +120,9 @@ fn lists_and_the_plc_exchange_are_found_on_the_output_tab() {
     );
     let texts = d.texts();
     assert!(
-        texts
-            .iter()
-            .any(|t| t.starts_with("Lists (parts, wires, terminals") && t.contains("Report on the Output tab")),
+        texts.iter().any(
+            |t| t.starts_with("Lists (parts, wires, terminals") && t.contains("Report on the Output tab")
+        ),
         "New page says where lists are made: {texts:?}"
     );
     d.shell_mut().shutdown();

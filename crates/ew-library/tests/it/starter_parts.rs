@@ -72,7 +72,8 @@ const BUMPED: &[(&str, &str)] = &[
 /// the two bus cables are made for; no termination (the plug carries it), connector, signal map or address range (a
 /// generic part claims no pinout).
 fn bus_section(number: &str) -> Option<Value> {
-    let port = |interface: &str, bus: &str, role: &str| json!({"interface": interface, "bus": bus, "role": role});
+    let port =
+        |interface: &str, bus: &str, role: &str| json!({"interface": interface, "bus": bus, "role": role});
     match number {
         "EW-GEN-CPU-1" => Some(json!({"ports": [port("DP", "profibus_dp", "master")]})),
         "EW-GEN-CPU-2" => Some(json!({"ports": [

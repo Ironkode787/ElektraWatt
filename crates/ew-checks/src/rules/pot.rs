@@ -22,11 +22,11 @@ use ew_derive::ew_schema::{
 };
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
-    BondCarrierQ, ChannelStates, ChannelsByCp, ConnWireProps, CpRef, DeriveNote, DeviceTag, DrawnPageOrder, EffectiveState, EndKind, EndpointKey, FlowBfs,
-    FunctionCps, FunctionLinksOf, PageRef, PhysicalWire, PhysicalWiresOf, PotentialAttrsOf, PotentialFlow,
-    PotentialId, PotentialNameOf, PotentialPartition, Q, RailLocation, RailTerminalOf, WireNumbers,
-    bonds_of_potential, colour_text, cp_label, cp_text, csa_text, device_location, potential_id_at,
-    potential_part, ranked_defs, wire_props_below_overrides,
+    BondCarrierQ, ChannelStates, ChannelsByCp, ConnWireProps, CpRef, DeriveNote, DeviceTag, DrawnPageOrder,
+    EffectiveState, EndKind, EndpointKey, FlowBfs, FunctionCps, FunctionLinksOf, PageRef, PhysicalWire,
+    PhysicalWiresOf, PotentialAttrsOf, PotentialFlow, PotentialId, PotentialNameOf, PotentialPartition, Q,
+    RailLocation, RailTerminalOf, WireNumbers, bonds_of_potential, colour_text, cp_label, cp_text, csa_text,
+    device_location, potential_id_at, potential_part, ranked_defs, wire_props_below_overrides,
 };
 
 use crate::finding::{Finding, QuickFix, Severity, Target};

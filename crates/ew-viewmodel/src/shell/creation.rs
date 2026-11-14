@@ -1138,7 +1138,10 @@ impl ShellModel {
                     super::automation::PLC_FORMATS[0].0.clone_into(&mut f.value);
                 }
                 // The document date starts as today's, which the window read (headless: empty, the model's date).
-                if let Some(f) = dialog.fields.iter_mut().find(|f| f.name == "date" && f.value.is_empty())
+                if let Some(f) = dialog
+                    .fields
+                    .iter_mut()
+                    .find(|f| f.name == "date" && f.value.is_empty())
                     && let Some(today) = &self.today
                 {
                     today.clone_into(&mut f.value);

@@ -943,11 +943,11 @@ fn the_strip_chooser_says_what_it_waits_for_and_a_canvas_press_starts_nothing() 
     assert_ne!(state(&s)["status"][0], hint);
 }
 
-/// The chooser lists the project's own
-/// parts first, then the libraries', each by (maker, part number). Placing a terminal from a library part embeds the
-/// part, which then stands among the project's own: the chooser opened again has the same rows, in that order.
+/// The chooser lists the project's own parts and the libraries' in one order, (maker, part number). Placing a terminal
+/// from a library part embeds the part, which keeps its row: the chooser opened again has the same rows in the same
+/// order (the persona round: a used part jumped to the top and the next click hit another row).
 #[test]
-fn the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one() {
+fn the_chooser_keeps_its_order_after_a_placement_embeds_a_part() {
     use ew_viewmodel::tools::PickerRow;
     let tmp = Tmp::new("ft1087-order");
     let mut s = shell(&tmp, "103");
@@ -977,15 +977,12 @@ fn the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one(
     assert!(!held_before("EW-GEN-TRM-1"), "the library part is not held yet");
     assert!(before.iter().any(|r| r.1 == "EW-GEN-TRM-1"));
     let in_order = |v: &[(String, String, u16, bool)]| {
-        let keys: Vec<(bool, &str, &str)> = v.iter().map(|r| (!r.3, r.0.as_str(), r.1.as_str())).collect();
+        let keys: Vec<(&str, &str)> = v.iter().map(|r| (r.0.as_str(), r.1.as_str())).collect();
         let mut sorted = keys.clone();
         sorted.sort();
         keys == sorted
     };
-    assert!(
-        in_order(&before),
-        "the project's first, then maker, then part number"
-    );
+    assert!(in_order(&before), "maker, then part number");
     done(&mut s, "ui.dismiss", json!({}));
     // The placement embeds the part with its closure.
     done(
@@ -1002,11 +999,14 @@ fn the_chooser_lists_the_projects_parts_first_also_after_a_placement_embeds_one(
         after.iter().any(|r| r.1 == "EW-GEN-TRM-1" && r.3),
         "the part is held after its placement"
     );
-    assert!(in_order(&after), "the embedded part among the project's own");
-    let rows_of = |v: &[(String, String, u16, bool)]| -> std::collections::BTreeSet<(String, String, u16)> {
+    let rows_of = |v: &[(String, String, u16, bool)]| -> Vec<(String, String, u16)> {
         v.iter().map(|r| (r.0.clone(), r.1.clone(), r.2)).collect()
     };
-    assert_eq!(rows_of(&after), rows_of(&before), "the same rows");
+    assert_eq!(
+        rows_of(&after),
+        rows_of(&before),
+        "the same rows in the same order"
+    );
     s.shutdown();
 }
 

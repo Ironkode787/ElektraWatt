@@ -23,8 +23,8 @@ use std::sync::Arc;
 
 use ew_ids::Id;
 use ew_schema::{
-    AddrValue, BusPort, BusSystem, ConnectionKind, Device, Endpoint, ExternalRef, Function, FunctionKind, Junction,
-    LogicalNet, NetAddress, OnOff, PhysicalNet,
+    AddrValue, BusPort, BusSystem, ConnectionKind, Device, Endpoint, ExternalRef, Function, FunctionKind,
+    Junction, LogicalNet, NetAddress, OnOff, PhysicalNet,
 };
 
 use crate::Q;
