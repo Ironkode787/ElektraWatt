@@ -44,25 +44,100 @@ pub struct PdfPageText {
     pub runs: Vec<TextRun>,
 }
 
-/// Where the last glyph collected ended, to join the next glyph to its run.
+/// One piece of text a page draws, in millimetres from the page's top left: a glyph of a PDF, or a run of one font of
+/// the project's sheet.
+#[derive(Clone, PartialEq, Debug)]
+pub struct Piece {
+    /// Its characters.
+    pub text: String,
+    /// The pen position where it starts, on its baseline.
+    pub origin: (f64, f64),
+    /// The pen position after it.
+    pub end: (f64, f64),
+    /// Its em.
+    pub em: f64,
+    /// Its box `[x0, y0, x1, y1]`.
+    pub bounds: [f64; 4],
+}
+
+/// Where the last piece ended, to join the next piece to its text.
 struct Tail {
-    /// The pen position after the glyph, in points.
-    end: Point,
+    /// The pen position after the piece.
+    end: (f64, f64),
     /// The unit vector of the baseline.
     along: (f64, f64),
-    /// The em in points.
+    /// The em.
     em: f64,
 }
 
-/// Collects the glyphs as runs; draws nothing. A glyph joins the run before it when it follows on the same baseline
-/// within [`JOIN_GAP`] ems, however the producer cut its text operators: Qt's PDF engine draws every glyph on its own.
-struct Collector {
+/// How far, in ems, a piece may start before or after the pen to continue a text: kerning and rounding, never a word
+/// space or the gap between two cells of a table.
+const JOIN_GAP: (f64, f64) = (-0.15, 0.1);
+
+/// The texts of a page, segmented by one rule on both sides of the verifier (doc 14 §4.15): a piece joins the text
+/// before it when it continues that text's baseline at the pen (within [`JOIN_GAP`] ems along it and 0.15 em across,
+/// the same way), whatever its font, so a glyph of another font (², ∞, −, ⇄) does not split its text and a producer
+/// that draws every glyph on its own (Qt's PDF engine) gives whole texts; a gap splits, so the texts of neighbouring
+/// cells stay apart.
+#[derive(Default)]
+pub struct Segmenter {
     runs: Vec<TextRun>,
     tail: Option<Tail>,
 }
 
-/// How far, in ems, a glyph may start before or after the pen to continue a run (a word space is about a third).
-const JOIN_GAP: (f64, f64) = (-0.15, 0.45);
+impl Segmenter {
+    /// Adds the next piece in drawing order.
+    pub fn push(&mut self, p: Piece) {
+        let length = (p.end.0 - p.origin.0).hypot(p.end.1 - p.origin.1);
+        let along = if length > 1e-9 {
+            ((p.end.0 - p.origin.0) / length, (p.end.1 - p.origin.1) / length)
+        } else {
+            self.tail.as_ref().map_or((1.0, 0.0), |t| t.along)
+        };
+        let continues = self.tail.as_ref().is_some_and(|t| {
+            let (vx, vy) = (p.origin.0 - t.end.0, p.origin.1 - t.end.1);
+            let gap = vx * t.along.0 + vy * t.along.1;
+            let off = vx * t.along.1 - vy * t.along.0;
+            let turn = along.0 * t.along.1 - along.1 * t.along.0;
+            let same_way = along.0 * t.along.0 + along.1 * t.along.1 > 0.0;
+            same_way
+                && turn.abs() < 0.01
+                && off.abs() < 0.15 * t.em
+                && (JOIN_GAP.0 * t.em..=JOIN_GAP.1 * t.em).contains(&gap)
+        });
+        match self.runs.last_mut().filter(|_| continues) {
+            Some(last) => {
+                last.text.push_str(&p.text);
+                last.bounds = [
+                    last.bounds[0].min(p.bounds[0]),
+                    last.bounds[1].min(p.bounds[1]),
+                    last.bounds[2].max(p.bounds[2]),
+                    last.bounds[3].max(p.bounds[3]),
+                ];
+            }
+            None => self.runs.push(TextRun {
+                text: p.text,
+                anchor: p.origin,
+                bounds: p.bounds,
+            }),
+        }
+        self.tail = Some(Tail {
+            end: p.end,
+            along,
+            em: p.em,
+        });
+    }
+
+    /// The texts in drawing order.
+    pub fn finish(self) -> Vec<TextRun> {
+        self.runs
+    }
+}
+
+/// Collects the glyphs as pieces of the [`Segmenter`]; draws nothing.
+struct Collector {
+    texts: Segmenter,
+}
 
 impl<'a> Device<'a> for Collector {
     fn draw_path(&mut self, _: &BezPath, _: DrawProps<'a>, _: &DrawMode) {}
@@ -85,15 +160,10 @@ impl<'a> Device<'a> for Collector {
                 hayro::hayro_interpret::font::Glyph::Outline(o) => o.advance_width().unwrap_or(500.0),
                 hayro::hayro_interpret::font::Glyph::Type3(_) => 500.0,
             });
-            let origin = m * Point::new(0.0, 0.0);
-            let end = m * Point::new(advance, 0.0);
-            let em = m.as_coeffs()[0].hypot(m.as_coeffs()[1]) * 1000.0;
-            let length = (advance * em / 1000.0).max(1e-9);
-            let along = ((end.x - origin.x) / length, (end.y - origin.y) / length);
+            let mm = |p: Point| (p.x * MM_PER_PT, p.y * MM_PER_PT);
             let mut bounds = [f64::MAX, f64::MAX, f64::MIN, f64::MIN];
             for (x, y) in [(0.0, -250.0), (advance, -250.0), (advance, 950.0), (0.0, 950.0)] {
-                let c = m * Point::new(x, y);
-                let (x, y) = (c.x * MM_PER_PT, c.y * MM_PER_PT);
+                let (x, y) = mm(m * Point::new(x, y));
                 bounds = [
                     bounds[0].min(x),
                     bounds[1].min(y),
@@ -101,34 +171,13 @@ impl<'a> Device<'a> for Collector {
                     bounds[3].max(y),
                 ];
             }
-            let continues = self.tail.as_ref().is_some_and(|t| {
-                let (vx, vy) = (origin.x - t.end.x, origin.y - t.end.y);
-                let gap = vx * t.along.0 + vy * t.along.1;
-                let off = vx * t.along.1 - vy * t.along.0;
-                let turn = along.0 * t.along.1 - along.1 * t.along.0;
-                let same_way = along.0 * t.along.0 + along.1 * t.along.1 > 0.0;
-                same_way
-                    && turn.abs() < 0.01
-                    && off.abs() < 0.15 * t.em
-                    && (JOIN_GAP.0 * t.em..=JOIN_GAP.1 * t.em).contains(&gap)
+            self.texts.push(Piece {
+                text,
+                origin: mm(m * Point::new(0.0, 0.0)),
+                end: mm(m * Point::new(advance, 0.0)),
+                em: m.as_coeffs()[0].hypot(m.as_coeffs()[1]) * 1000.0 * MM_PER_PT,
+                bounds,
             });
-            match self.runs.last_mut().filter(|_| continues) {
-                Some(last) => {
-                    last.text.push_str(&text);
-                    last.bounds = [
-                        last.bounds[0].min(bounds[0]),
-                        last.bounds[1].min(bounds[1]),
-                        last.bounds[2].max(bounds[2]),
-                        last.bounds[3].max(bounds[3]),
-                    ];
-                }
-                None => self.runs.push(TextRun {
-                    text,
-                    anchor: (origin.x * MM_PER_PT, origin.y * MM_PER_PT),
-                    bounds,
-                }),
-            }
-            self.tail = Some(Tail { end, along, em });
         }
     }
 }
@@ -159,14 +208,13 @@ pub fn pdf_page_text(bytes: Arc<[u8]>, page: u32) -> Result<PdfPageText, PdfErro
         InterpreterSettings::default(),
     );
     let mut device = Collector {
-        runs: Vec::new(),
-        tail: None,
+        texts: Segmenter::default(),
     };
     interpret_page(p, &mut context, &mut device);
     Ok(PdfPageText {
         width_mm: f64::from(w) * MM_PER_PT,
         height_mm: f64::from(h) * MM_PER_PT,
-        runs: device.runs,
+        runs: device.texts.finish(),
     })
 }
 

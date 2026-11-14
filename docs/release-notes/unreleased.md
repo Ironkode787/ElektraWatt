@@ -629,3 +629,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a DXF imported as a page or an underlay prints where it was drawn on a page whose frame scales
   the page to the sheet (Golden A, a QElectroTech import); it was scaled and moved by the frame a second time (M3
   whole review)
+- behaviour-change: `ew verify-migration` segments the project's texts and the reference's by one rule: a text with
+  a glyph of another font (², ∞, −, ⇄) is one text, and the texts of neighbouring cells no longer join; Golden A
+  against its own PDF reports no deviation (M3 whole review)

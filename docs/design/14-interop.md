@@ -1189,9 +1189,14 @@ would depend on `ew-api` for all three. The PDF side (`ew_scene::pdf_text`: the 
   label claims take the reference pages no folio named, in order (FT-1748: a missing page leaves the labelled pages
   after it where they are; a reference without labels pairs wholly by order). A page without a partner is a deviation (`page-not-in-reference`, `page-not-in-project`);
   pages whose sizes differ by more than 1 mm are `size-differs` and are not compared further.
-- **Text.** Both sides give runs of glyphs with their anchor (the first glyph's origin). hayro draws a PDF page into a
-  device that keeps the glyph runs; glyphs on one baseline that follow within 0.45 em join into one run, because Qt's
-  PDF engine draws every glyph by itself. White space is not compared (where a word breaks is the font's business).
+- **Text.** Both sides give texts with their anchor (the first glyph's origin), segmented by one rule
+  (`ew_scene::pdf_text::Segmenter`): hayro draws a PDF page into a device that gives each glyph as a piece, the
+  project's sheet gives each run of one font as a piece, and a piece joins the text before it when it continues that
+  text's baseline at the pen (from 0.15 em before to 0.1 em after it, within 0.15 em across), whatever its font. So
+  a text with a glyph of another font (², ∞, −, ⇄) is one text, a producer that draws every glyph by itself (Qt's PDF
+  engine, which draws its spaces as glyphs) gives whole texts, and a gap splits: the texts of neighbouring cells stay
+  apart. Golden A against its own PDF gives no deviation (a deep-run test). White space is not compared (where a word
+  breaks is the font's business).
   Per string the nearest pairs match; a pair within 0.5 mm is a match, a farther pair is `text-moved` (with the
   offset in words), what is left is `text-missing` (the reference has it) or `text-extra`.
 - **Raster.** Both pages at 150 dpi on the project page's pixel grid (the reference stretched to it: hayro's raster

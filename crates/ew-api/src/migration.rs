@@ -5,7 +5,8 @@
 //!
 //! [`verify_migration`] renders every page of the project at [`DPI`] through the page export (the frame transform
 //! included), reads the matching page of the reference PDF with hayro, and compares two things: the text runs
-//! (the same string whose anchor lies within [`ANCHOR_TOLERANCE_MM`]) and the raster, cell by cell of the page's frame
+//! (the same string whose anchor lies within [`ANCHOR_TOLERANCE_MM`], both sides segmented into texts by one rule,
+//! [`Segmenter`]) and the raster, cell by cell of the page's frame
 //! grid, with the boxes of every text of either side masked so that a substituted font does not swamp the result.
 //! Pages pair by folio label, the pages without a label of the PDF's by order ([`pair_pages`]).
 //!
@@ -18,7 +19,7 @@ use std::sync::Arc;
 
 use ew_dl::{Item, ItemKind, Transform};
 use ew_export::ew_render_cpu::RgbaImage;
-use ew_scene::pdf_text::{TextRun, pdf_page_labels, pdf_page_text};
+use ew_scene::pdf_text::{Piece, Segmenter, TextRun, pdf_page_labels, pdf_page_text};
 use ew_scene::underlay::{MAX_RASTER_SIDE, PdfError, pdf_pixmap};
 use ew_units::Pt2;
 use schemars::JsonSchema;
@@ -335,9 +336,10 @@ fn pair_pages<'a>(folios: impl Iterator<Item = &'a str>, labels: &[Option<String
     pairs
 }
 
-/// The text runs of a sheet's display list, in millimetres from the top left of the sheet.
+/// The texts of a sheet's display list, in millimetres from the top left of the sheet: each run of one font a piece of
+/// the [`Segmenter`], so the project's texts are cut and joined by the rule the reference's are.
 fn list_runs(items: &[Item]) -> Vec<TextRun> {
-    fn walk(items: &[Item], stack: &mut Vec<Transform>, out: &mut Vec<TextRun>) {
+    fn walk(items: &[Item], stack: &mut Vec<Transform>, out: &mut Segmenter) {
         for item in items {
             match &item.kind {
                 ItemKind::Glyphs(run) => {
@@ -353,9 +355,13 @@ fn list_runs(items: &[Item]) -> Vec<TextRun> {
                             bounds[3].max(y),
                         ];
                     }
-                    out.push(TextRun {
+                    // A run of one font of a text in several covers its own stretch of the pen's travel.
+                    let pen = |x| mm(map(run.to_parent(Pt2::new(x, ew_units::Nm(0)))));
+                    out.push(Piece {
                         text: run.text.clone(),
-                        anchor: mm(map(run.origin)),
+                        origin: pen(run.layout_box.min().x),
+                        end: pen(run.layout_box.max().x),
+                        em: run.size.0 as f64 / 1_000_000.0,
                         bounds,
                     });
                 }
@@ -370,9 +376,9 @@ fn list_runs(items: &[Item]) -> Vec<TextRun> {
             }
         }
     }
-    let mut out = Vec::new();
+    let mut out = Segmenter::default();
     walk(items, &mut Vec::new(), &mut out);
-    out
+    out.finish()
 }
 
 /// A text without its white space: where the words break is the font's business, not the project's.
