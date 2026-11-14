@@ -276,6 +276,53 @@ fn ew_plc_013_unconnected_supply_pin() {
     assert!(found(&plain("di", "no"), "EW-PLC-013").is_empty());
 }
 
+/// EW-PLC-013: a bus port's pin "A" is no supply pin though a supply group names "A"; an M pin fed from L− is right,
+/// one fed from L+ is wrong.
+#[test]
+fn ew_plc_013_skips_bus_port_pins_and_accepts_l_minus_for_m() {
+    const SRC_DEF: u128 = 0x560;
+    const SRC_SYM: u128 = 0x561;
+    const SRC: u128 = 0x1900;
+    let groups = json!({"supply_groups": [{"kind": "load", "cps": {"l_plus": "TP", "m": "A"}}]});
+    let mut fx = card("di", "no", &groups, &json!({}), &json!({}));
+    fx.fndef_with(
+        PORT_DEF,
+        PORT_SYM,
+        &[(0, "A", Value::Null), (1, "B", Value::Null)],
+        &json!([]),
+        &json!({"contact_kind": "bus_port"}),
+    );
+    fx.push(json!({
+        "$k": "function", "id": us(CARD_FN + 2), "device": us(CARD), "def": us(PORT_DEF), "role": "aux",
+        "bus_port": {"interface": "X1", "bus": "profibus_dp", "role": "slave", "address": "tbd"},
+    }));
+    let f = found(&fx.build(), "EW-PLC-013");
+    assert_eq!(f.len(), 1, "TP only: {f:#?}");
+    assert_eq!(f[0].targets[0].id, uid(CARD_FN));
+
+    let fed = |role: &str| {
+        let groups = json!({"supply_groups": [{"kind": "load", "cps": {"l_plus": "TP", "m": "1"}}]});
+        let mut fx = card("di", "no", &groups, &json!({}), &json!({}));
+        fx.fndef_with(
+            SRC_DEF,
+            SRC_SYM,
+            &[(0, "1", json!({"potential_role": role}))],
+            &json!([]),
+            &json!({}),
+        );
+        fx.device(SRC, "G", Some(1));
+        fx.push(json!({"$k": "function", "id": us(SRC + 1), "device": us(SRC), "def": us(SRC_DEF)}));
+        fx.push(json!({
+            "$k": "representation", "id": us(SRC + 0x10_001), "functions": [us(SRC + 1)], "page": us(P1),
+            "symbol": us(SRC_SYM), "pos": [80_000_000, 0],
+        }));
+        fx.conn(0x1403, P1, Ep::Cp(CARD_FN, 1), Ep::Cp(SRC + 1, 0), &json!({}));
+        forms(&found(&fx.build(), "EW-PLC-013"))
+    };
+    assert!(!fed("l_minus").iter().any(|f| f.starts_with("wrong")), "{:?}", fed("l_minus"));
+    assert!(fed("l_plus").iter().any(|f| f.starts_with("wrong")), "{:?}", fed("l_plus"));
+}
+
 /// EW-PLC-014 (FR-PLC-048): a 1 A coil on an output rated 500 mA, and the module rated 800 mA.
 #[test]
 fn ew_plc_014_output_load() {
@@ -558,15 +605,24 @@ const DEV_PART: u128 = 0x605;
 /// An IO-Link master `-A1` (8-byte class-A ports) whose port 0 is wired to the device `-B1` (88 input bits, class
 /// `class`) in mode `mode`.
 fn iolink(class: &str, mode: &str) -> ew_model::Model {
+    iolink_fx(class, mode, &json!({})).build()
+}
+
+/// [`iolink`]'s fixture; `plc` members are merged into the master part's `plc` section.
+fn iolink_fx(class: &str, mode: &str, plc: &Value) -> Fx {
     let mut fx = card("multi_function", "black_box", &json!({}), &json!({}), &json!({}));
+    let mut section = json!({
+        "role": "module",
+        "channels": {"count": 2, "kind": "multi_function"},
+        "iolink": {"input_bytes": 8, "output_bytes": 8, "class": "a", "max_cable_m": 20},
+    });
+    for (k, v) in plc.as_object().expect("plc") {
+        section[k] = v.clone();
+    }
     fx.part(
         MASTER_PART,
         "IOL-8",
-        &json!({"kind": "device", "sections": {"plc": {
-            "role": "module",
-            "channels": {"count": 2, "kind": "multi_function"},
-            "iolink": {"input_bytes": 8, "output_bytes": 8, "class": "a", "max_cable_m": 20},
-        }}}),
+        &json!({"kind": "device", "sections": {"plc": section}}),
     );
     fx.with_parts(CARD, &[MASTER_PART]);
     fx.part(
@@ -579,7 +635,33 @@ fn iolink(class: &str, mode: &str) -> ew_model::Model {
     );
     fx.with_parts(FIELD, &[DEV_PART]);
     fx.rec_mut(&ch(CARD, 0))["mode"] = json!(mode);
-    fx.build()
+    fx
+}
+
+/// Doc 10 §3.8: an IO-Link port's window is as wide as its process data. Port 0's 11 input bytes (88 bits) from IB0
+/// overlap a manual IB3 on port 1 (EW-PLC-001); the master's 19 input bytes exceed a station limit of 10 (EW-PLC-011);
+/// under the tag-based Rockwell profile the used port prints by its channel instead of having no address
+/// (EW-PLC-008).
+#[test]
+fn an_iolink_window_counts_its_whole_width() {
+    let mut fx = iolink_fx("a", "io_link", &json!({"limits": {"max_input_bytes": 10}}));
+    fx.rec_mut(&ch(CARD, 1))["address"] = json!({"manual": {"area": "i", "size": "byte", "byte": 3}});
+    let m = fx.build();
+    assert_eq!(forms(&found(&m, "EW-PLC-001")), ["overlap"]);
+    assert_eq!(forms(&found(&m, "EW-PLC-011")), ["input"]);
+    let mut fx = iolink_fx("a", "io_link", &json!({}));
+    fx.rec_mut(&us(CFG))["profile"] = json!("rockwell-logix@2027.1");
+    let m = fx.build();
+    assert!(found(&m, "EW-PLC-008").is_empty());
+    let q = ew_derive::Q::new(&m);
+    let port = q
+        .get::<ew_derive::ChannelAddresses>(ew_derive::ew_ids::Id::from_uuid(ew_derive::ew_ids::Uuid::from_u128(CARD)))
+        .first()
+        .map(|e| e.address.clone());
+    assert!(
+        matches!(&port, Some(ew_derive::ChannelAddr::At { text, .. }) if text.ends_with(":I.Ch0Data")),
+        "{port:?}"
+    );
 }
 
 /// EW-IOL-001 and EW-IOL-002 (FR-BUS-019): a class-B device on a class-A port, an IO-Link device on a DI port, and

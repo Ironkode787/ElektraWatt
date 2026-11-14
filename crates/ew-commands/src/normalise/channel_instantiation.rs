@@ -4,9 +4,10 @@
 //! Normaliser #3, channel instantiation (N1; doc 06 §3.2, doc 10 §2.4, §3.3).
 //!
 //! Trigger: a device of this transaction that carries the `plc_module` aspect and is new, gained the
-//! aspect, or changed its parts or the aspect's `part_use`. The module's PLC section is the one of the part
-//! use `plc_module.part_use`, else of the first part use whose part has a PLC section: the rule of
-//! `ew_derive::module_part`, so N1 instantiates exactly the channels the derivation reads.
+//! aspect, or changed its parts or the aspect's `part_use`; and a module whose PLC part copy this transaction changed
+//! (`library.update`, which keeps the copy's ID across versions, FT-830: a new channel count or kind). The module's
+//! PLC section is the one of the part use `plc_module.part_use`, else of the first part use whose part has a PLC
+//! section: the rule of `ew_derive::module_part`, so N1 instantiates exactly the channels the derivation reads.
 //!
 //! Effect:
 //! - **Create.** The channels `0 … count − 1` of the section's `channels` spec that the module lacks, each
@@ -179,11 +180,23 @@ impl Normaliser for ChannelInstantiation {
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
         let mut changed = false;
-        for key in tx.changed_of(Kind::Device) {
-            let Some(dev) = tx.get::<Device>(key.1.cast()) else {
+        let changed_parts: std::collections::BTreeSet<Id<Part>> = tx
+            .changed_of(Kind::Part)
+            .into_iter()
+            .map(|k| k.1.cast())
+            .collect();
+        let mut devices: std::collections::BTreeSet<Id<Device>> = tx
+            .changed_of(Kind::Device)
+            .into_iter()
+            .map(|k| k.1.cast())
+            .collect();
+        devices.extend(super::plc_aspects::devices_of_changed_parts(tx));
+        for id in devices {
+            let Some(dev) = tx.get::<Device>(id) else {
                 continue;
             };
-            if !triggered(tx, &dev) {
+            let part_changed = module_part_copy(tx, &dev).is_some_and(|p| changed_parts.contains(&p.id));
+            if !triggered(tx, &dev) && !part_changed {
                 continue;
             }
             let spec = module_section(tx, &dev).and_then(|s| s.channels);

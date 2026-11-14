@@ -548,3 +548,51 @@ fn n3_notices_name_the_records_in_words() {
         .collect();
     assert_eq!(r.outcome.notices, want);
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// library.update of a module's part
+
+/// `sha256:<hex>` of a library document's item, as `library.update` checks it.
+fn sha_text(v: &Value) -> String {
+    let doc = LibDocument::from_value(v.clone()).expect("a library document");
+    let hash = ew_commands::commands::library_copy_hash(&doc).expect("a known kind");
+    let hex: String = hash.iter().map(|b| format!("{b:02x}")).collect();
+    format!("sha256:{hex}")
+}
+
+/// N1 after `library.update` (FT-830 keeps the copy's ID): a new version of the module's part with four DO channels
+/// instead of two DI channels creates channels 2 and 3 and turns channels 0 and 1 into outputs, in the same step.
+#[test]
+fn a_library_update_of_the_module_part_re_instantiates_its_channels() {
+    const LIBRARY: u128 = 0xf656_0000;
+    const ITEM: u128 = 0xf656_0001;
+    let copy: Id<Part> = ew_ids::v5::lib_copy_id(uuid(LIBRARY), uuid(ITEM));
+    let card = |count: u16, kind: &str, version: &str| {
+        let mut c = plc_part(
+            copy,
+            "DIO-4",
+            json!({"role": "module", "io": [{"dir": "in", "bits": 8}], "channels": {"count": count, "kind": kind}}),
+        );
+        c.library_id = Id::from_uuid(uuid(LIBRARY));
+        c.item_id = Id::from_uuid(uuid(ITEM));
+        c.version = version.into();
+        c
+    };
+    let mut e = engine(model_with(vec![card(2, "di", "1.0.0")], vec![]));
+    make_module(&mut e, copy);
+    let mut v = serde_json::to_value(LibDocument::Part(card(4, "do", "2.0.0"))).expect("a library document");
+    v["sha256"] = json!(sha_text(&v));
+    let update = ew_commands::AnyCommand {
+        name: "library.update".into(),
+        params: json!({ "copies": [v] }),
+    };
+    let preview = e.preview(&update).expect("library.update previews");
+    e.commit(preview).expect("library.update");
+    for n in 0..4 {
+        assert_eq!(
+            row(&e, channel_id(DEV_102F2, n)).kind,
+            ew_schema::ChannelKind::Do,
+            "channel {n}"
+        );
+    }
+}

@@ -1149,7 +1149,8 @@ pub struct AddressUse {
     pub manual: bool,
     /// The first bit of the address in its area (the byte times the profile's unit width, plus the bit).
     pub from: u64,
-    /// One past the last bit: `from` plus the access size's width.
+    /// One past the last bit: `from` plus the access size's width, or plus the window's bytes in the address's area
+    /// for an IO-Link port's unit address when that is wider ([`port_windows`]).
     pub to: u64,
 }
 
@@ -1186,11 +1187,23 @@ impl Query for AddressIndex {
         let channels = q.table::<Channel>();
         let mut uses: Vec<AddressUse> = Vec::new();
         for m in q.get::<ModuleOrder>(*key).iter() {
+            let windows = port_windows(q, m.module).unwrap_or_default();
             for e in q.get::<ChannelAddresses>(m.module).iter() {
                 let ChannelAddr::At { address, text } = &e.address else {
                     continue;
                 };
                 let from = u64::from(address.byte) * unit + address.bit.map_or(0, u64::from);
+                // An IO-Link port's unit address stands for its whole window in that area (doc 10 §3.8).
+                let window = windows
+                    .iter()
+                    .find(|w| w.channel == e.channel && address.bit.is_none())
+                    .map_or(0, |w| {
+                        let bytes = match address.area {
+                            Area::Q | Area::Pq => w.output_bytes,
+                            _ => w.input_bytes,
+                        };
+                        u64::from(bytes) * unit
+                    });
                 uses.push(AddressUse {
                     module: m.module,
                     channel: e.channel,
@@ -1201,7 +1214,7 @@ impl Query for AddressIndex {
                         .get(e.channel)
                         .is_some_and(|c| matches!(c.address, AddrSpec::Manual(_))),
                     from,
-                    to: from + u64::from(address.size.bits()),
+                    to: from + u64::from(address.size.bits()).max(window),
                 });
             }
         }

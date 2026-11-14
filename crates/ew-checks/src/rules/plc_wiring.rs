@@ -605,9 +605,10 @@ pub const CARD_SUPPLY: RuleMeta = RuleMeta {
 /// - **`fe`**: a CP with the potential role FE on a PE or PEN potential without an FE–PE bond, the CPX earth screw of
 ///   Golden A (EF-22). It targets the CP's function, so it supersedes EW-POT-003's finding for the same pin.
 /// - **`unconnected`**: an L+ or M pin of a supply group of the device's part (`PlcSection.supply_groups`) that no
-///   connection reaches.
+///   connection reaches. The pins of a function that carries a bus port are never supply pins (the DP port's DGND
+///   pin "5" beside the load supply's "5").
 /// - **`wrong`**: such a pin on a potential of another type than its role (an M pin on an L+ potential, an L+ pin on
-///   PE).
+///   PE); an M pin on L− is right.
 #[derive(Clone, Copy, Debug)]
 pub struct CardSupply;
 
@@ -636,6 +637,8 @@ impl Rule for CardSupply {
                     })
                 });
             for f in functions {
+                // A bus port's pins (the DP port's DGND "5") are no supply pins, whatever their designation.
+                let bus_port = q.functions().get(f).is_some_and(|f| f.bus_port.is_some());
                 for cp in q.get::<FunctionCps>(f).iter() {
                     let at = CpRef::new(f, cp.idx);
                     let potential = potential_id_at(q, at.key());
@@ -670,7 +673,7 @@ impl Rule for CardSupply {
                             );
                         }
                     }
-                    let Some((confidence, groups)) = &groups else {
+                    let Some((confidence, groups)) = groups.as_ref().filter(|_| !bus_port) else {
                         continue;
                     };
                     for g in groups {
@@ -697,7 +700,11 @@ impl Rule for CardSupply {
                                 ),
                             )
                         } else if let Some(t) = ptype.as_ref().filter(|t| {
-                            !matches!(t, PotentialType::Undefined | PotentialType::Unknown(_)) && **t != role
+                            // An M pin on L− is the same reference conductor by its other name.
+                            let alias = role == PotentialType::M && **t == PotentialType::LMinus;
+                            !matches!(t, PotentialType::Undefined | PotentialType::Unknown(_))
+                                && **t != role
+                                && !alias
                         }) {
                             let type_word = potential_type_word(t);
                             (
