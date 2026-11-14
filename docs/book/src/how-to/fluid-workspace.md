@@ -12,8 +12,10 @@ the middle, and the tube table and the medium table in the bottom dock.
 
 2. The fluid navigator lists each valve terminal with its modules and valves, and every other device a fluid line
    ends at, each with its lines. Select a line's row to find it on the page.
-3. Draw a fluid line with **Draw ▸ Wire** on a fluid page. Right-click a line to choose its kind (**Line: Working**,
-   **Line: Pilot** and the others) or its medium.
+3. Draw a fluid line with **Draw ▸ Wire** on a fluid page, or choose **Draw ▸ Connect ▸ Fluid line…** to pick its
+   kind first (Pilot, Exhaust, Drain, Flexible). A symbol placed with a fluid port facing a free port is joined to it
+   with a fluid line. Right-click a line to change its kind (**Line: Working**, **Line: Pilot** and the others) or its
+   medium; a flexible line is drawn as an arc.
 
 ## Valve terminals
 

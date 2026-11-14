@@ -1042,6 +1042,9 @@ pub struct ShapeCp {
     /// The designation of the FnDef CP it draws (`13`, `A1`), empty when the symbol's FnDef is not embedded
     /// or has no such CP.
     pub designation: String,
+    /// Whether the FnDef CP it draws is a fluid port (a pneumatic, vacuum or hydraulic discipline): autoconnect joins a
+    /// fluid port to a fluid port only (FT-1733).
+    pub fluid: bool,
 }
 
 /// What `rep.exchange_symbol` without `pin_map` does to the function CPs a representation draws, from its current
@@ -1246,6 +1249,12 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
             .map(|c| c.designation.as_str().to_owned())
             .unwrap_or_default()
     };
+    let fluid = |fn_cp: u16| {
+        fndef
+            .as_ref()
+            .and_then(|d| d.item.cps.iter().find(|c| c.idx == fn_cp))
+            .is_some_and(|c| ew_derive::is_fluid(&c.discipline))
+    };
     let geometry = ew_scene::symbol::lower(def, Orient2::R0);
     let mut outline = Vec::new();
     let mut bounds: Option<Rect> = None;
@@ -1270,6 +1279,7 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
                 at: pt(cp.pos),
                 dir: dir_of(&cp.dir),
                 designation: designation(cp.fn_cp),
+                fluid: fluid(cp.fn_cp),
             })
             .collect(),
         body,
@@ -1642,6 +1652,9 @@ pub struct TableCp {
     /// A terminal CP's side in the model's words (doc 08 §2.1): `field` when its side is the strip's
     /// `field_side`, `internal` for the other side; `None` for a CP without a side.
     pub side: Option<&'static str>,
+    /// Whether it is a fluid port (a pneumatic, vacuum or hydraulic CP): autoconnect joins a fluid port to a fluid port
+    /// only (FT-1733).
+    pub fluid: bool,
     /// The printed PLC address of the channel bound to it (`ew_derive::PlcAddressText`'s pins); `None`
     /// for an unbound CP or an address that does not resolve.
     pub plc_address: Option<String>,
@@ -2016,6 +2029,11 @@ impl Session {
                 connections,
                 potential,
                 side: terminal_side(&q, function, idx),
+                fluid: q
+                    .get::<ew_derive::FunctionCps>(function)
+                    .iter()
+                    .find(|c| c.idx == idx)
+                    .is_some_and(|c| ew_derive::is_fluid(&c.discipline)),
                 plc_address: q
                     .get::<ew_derive::PlcAddressText>(function)
                     .pins
@@ -2221,6 +2239,7 @@ mod tests {
                     at: (0, 0),
                     dir: Dir::Up,
                     designation: d.to_owned(),
+                    fluid: false,
                 })
                 .collect(),
             body: [0; 4],

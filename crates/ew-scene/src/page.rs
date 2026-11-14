@@ -1167,6 +1167,8 @@ impl Builder<'_> {
         // takes and makes no hop.
         let mut drawn: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
         let mut strokes: Vec<Stroke> = Vec::new();
+        // A flexible fluid line (a hose, ISO 1219-1) is drawn as an arc between its ends (FT-1733).
+        let mut flexible: Vec<bool> = Vec::new();
         let mut unrouted: Vec<(Id<Connection>, Vec<Pt2>)> = Vec::new();
         for cv in sorted_connections(view) {
             let c = &cv.connection;
@@ -1184,6 +1186,7 @@ impl Builder<'_> {
                 continue;
             }
             drawn.push((c.id, pts));
+            flexible.push(matches!(&c.kind, ConnectionKind::Fluid(f) if f.line_kind == LineKind::Flexible));
             strokes.push(match &c.kind {
                 ConnectionKind::Fluid(f) if matches!(f.line_kind, LineKind::Pilot | LineKind::Drain) => {
                     stroke.clone().dashed(DashPattern::Dash42)
@@ -1197,6 +1200,7 @@ impl Builder<'_> {
         };
         for (k, (id, pts)) in drawn.iter().enumerate() {
             let path = match hopped.get(k) {
+                _ if flexible[k] => flexible_arc(pts),
                 Some(h) if !h.is_empty() => hop_path(pts, h),
                 _ => Path::polyline(pts),
             };
@@ -2453,6 +2457,24 @@ fn pin_texts(view: &PageView) -> Vec<PlacedPin> {
         }
     }
     out
+}
+
+/// The arc of a flexible fluid line through the ends of its route `pts` (ISO 1219-1, a hose): a quadratic curve whose
+/// control point stands a quarter of the chord off the chord's middle, to the left of the direction from the first
+/// end to the last; the straight line where both ends coincide.
+fn flexible_arc(pts: &[Pt2]) -> Path {
+    let (Some(a), Some(b)) = (pts.first(), pts.last()) else {
+        return Path::polyline(pts);
+    };
+    let (dx, dy) = (i128::from(b.x.0 - a.x.0), i128::from(b.y.0 - a.y.0));
+    if dx == 0 && dy == 0 {
+        return Path::polyline(pts);
+    }
+    // The middle of the chord, moved by a quarter of the chord turned a quarter left: (-dy, dx) / 4.
+    let mid = |p: i64, q: i64| (i128::from(p) + i128::from(q)) / 2;
+    let sat = |v: i128| Nm(i64::try_from(v).unwrap_or(if v < 0 { i64::MIN } else { i64::MAX }));
+    let control = Pt2::new(sat(mid(a.x.0, b.x.0) - dy / 4), sat(mid(a.y.0, b.y.0) + dx / 4));
+    Path::builder().move_to(*a).quad_to(control, *b).build()
 }
 
 /// How far a black box's caption stands above its outline: the black-box symbol's own tag-slot offset, a

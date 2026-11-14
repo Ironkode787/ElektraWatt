@@ -768,14 +768,17 @@ pub struct WireTool {
     labels: (Option<String>, Option<String>),
     /// The JSON value of `connection.draw`'s `kind` for the page type; `None` for a wire (the default).
     kind: Option<&'static str>,
+    /// The line kind of a fluid line the tool draws (Draw ▸ Fluid line…, FT-1733); `None` a working line.
+    line_kind: Option<&'static str>,
 }
 
-/// The JSON value of a connection kind name: `fluid` is a working fluid line (`{"fluid": {}}`), `bus` a bus line
-/// (`{"bus": {}}`), any other name its own string.
-fn kind_value(kind: &str) -> Value {
-    match kind {
-        "fluid" => json!({"fluid": {}}),
-        "bus" => json!({"bus": {}}),
+/// The JSON value of a connection kind name: `fluid` is a fluid line of `line_kind` (`{"fluid": {}}`, a working line,
+/// without one), `bus` a bus line (`{"bus": {}}`), any other name its own string.
+fn kind_value(kind: &str, line_kind: Option<&str>) -> Value {
+    match (kind, line_kind) {
+        ("fluid", Some(k)) => json!({"fluid": {"line_kind": k}}),
+        ("fluid", None) => json!({"fluid": {}}),
+        ("bus", _) => json!({"bus": {}}),
         _ => Value::from(kind),
     }
 }
@@ -797,12 +800,19 @@ impl WireTool {
             routes: 0,
             labels: (None, None),
             kind: None,
+            line_kind: None,
         }
     }
 
     /// The tool drawing connections of `kind` (`connection.draw`'s kind name; `None` for a wire).
     pub fn with_kind(mut self, kind: Option<&'static str>) -> WireTool {
         self.kind = kind;
+        self
+    }
+
+    /// The tool drawing fluid lines of `line_kind` (a word of `strings::LINE_KINDS`).
+    pub fn with_line_kind(mut self, line_kind: &'static str) -> WireTool {
+        self.line_kind = Some(line_kind);
         self
     }
 
@@ -967,7 +977,7 @@ impl WireTool {
                 "route": route.iter().map(|p| vec![p.0, p.1]).collect::<Vec<_>>(),
             });
             if let Some(kind) = self.kind {
-                params["kind"] = kind_value(kind);
+                params["kind"] = kind_value(kind, self.line_kind);
             }
             params
         };
@@ -1195,7 +1205,7 @@ impl WireTool {
             },
         });
         if let Some(kind) = self.kind {
-            params["kind"] = kind_value(kind);
+            params["kind"] = kind_value(kind, self.line_kind);
         }
         self.state = State::Armed { target: None };
         self.cache = None;

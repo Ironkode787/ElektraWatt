@@ -132,11 +132,12 @@ impl ShellModel {
             .map(|w| w.route_calls())
     }
 
-    /// Whether the focused page's type autoconnects (doc 06 §2.2: multi-line and single-line pages).
+    /// Whether the focused page's type autoconnects (doc 06 §2.2: multi-line and single-line pages; fluid pages, whose
+    /// fluid ports autoconnect with fluid lines, FT-1733).
     pub(super) fn page_autoconnects(&self) -> bool {
         matches!(
             self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()),
-            Some("multi_line" | "single_line")
+            Some("multi_line" | "single_line" | "fluid")
         )
     }
 

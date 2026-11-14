@@ -3071,16 +3071,19 @@ msgstr ""
 
 #: src/how-to/fluid-workspace.md:15
 msgid ""
-"Draw a fluid line with **Draw ▸ Wire** on a fluid page. Right-click a line "
-"to choose its kind (**Line: Working**, **Line: Pilot** and the others) or "
-"its medium."
-msgstr ""
-
-#: src/how-to/fluid-workspace.md:18
-msgid "Valve terminals"
+"Draw a fluid line with **Draw ▸ Wire** on a fluid page, or choose **Draw ▸ "
+"Connect ▸ Fluid line…** to pick its kind first (Pilot, Exhaust, Drain, "
+"Flexible). A symbol placed with a fluid port facing a free port is joined to "
+"it with a fluid line. Right-click a line to change its kind (**Line: "
+"Working**, **Line: Pilot** and the others) or its medium; a flexible line is "
+"drawn as an arc."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:20
+msgid "Valve terminals"
+msgstr ""
+
+#: src/how-to/fluid-workspace.md:22
 msgid ""
 "Right-click a valve's row: **Set spare** or **Set used**, **Blank position** "
 "to put a blanking plate in its place, and **Plug port** for each working "
@@ -3088,7 +3091,7 @@ msgid ""
 "position (**Add valve at position**), of the part its other valves have."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:23
+#: src/how-to/fluid-workspace.md:25
 msgid ""
 "Right-click the valve terminal's row and choose **Generate overview…**. The "
 "Preview tab lists which modules stand on which overview page, and the pages "
@@ -3097,49 +3100,49 @@ msgid ""
 "the pages."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:27
+#: src/how-to/fluid-workspace.md:29
 msgid "Tubes"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:29
+#: src/how-to/fluid-workspace.md:31
 msgid ""
 "The tube table has one row per tube. Type a length in millimetres into "
 "**Length** or a tube part into **Tube part**; **Source** then says the value "
 "is manual. Leave a cell empty to take the derived value again."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:31
+#: src/how-to/fluid-workspace.md:33
 msgid ""
 "Choose **Project ▸ Fluid settings…** for the default tube of every line (its "
 "outer and inner diameter in mm and its material) and to tag fluid lines by "
 "page and counter."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:34
+#: src/how-to/fluid-workspace.md:36
 msgid "Media"
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:36
+#: src/how-to/fluid-workspace.md:38
 msgid ""
 "Choose **Project ▸ New medium…**, give the medium a name and its pressure in "
 "bar, and choose **Create**."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:37
+#: src/how-to/fluid-workspace.md:39
 msgid ""
 "Right-click a fluid line and choose **Medium:** with the medium's name: the "
 "line's net and every net the medium reaches through the valves carry it. The "
 "fluid navigator counts the lines of each medium."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:39
+#: src/how-to/fluid-workspace.md:41
 msgid ""
 "Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page; the highlight is a colour with a hatch "
 "pattern, so it reads without colour too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:42
+#: src/how-to/fluid-workspace.md:44
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "

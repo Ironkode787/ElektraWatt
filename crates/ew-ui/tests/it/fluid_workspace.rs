@@ -163,6 +163,20 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
         .find(|c| c.id.to_string() == line)
         .and_then(|c| c.line_kind.clone());
     assert_eq!(kind.as_deref(), Some("pilot"));
+    // FT-1733: a flexible line (a hose) is drawn as an arc.
+    let curved = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
+        use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{ItemKind, PathEl};
+        let c = h.state().shell().canvas().unwrap();
+        c.page().list.items.iter().any(|i| {
+            i.entity.is_some_and(|e| e.0.to_string() == line)
+                && matches!(&i.kind, ItemKind::Path(p) if p.path.els.iter().any(|e| matches!(e, PathEl::QuadTo(..))))
+        })
+    };
+    assert!(!curved(&h), "a pilot line is straight");
+    crate::tools::right_click(&mut h, at);
+    support::menu_node(&h, "Line: Flexible").click();
+    settle(&mut h);
+    assert!(curved(&h), "a flexible line is an arc");
     // The medium's zones, counted in the fluid navigator and highlighted from the medium table's row.
     dispatch(&mut h, "rail.show", json!({"pane": "fluid"}));
     settle(&mut h);
@@ -194,6 +208,115 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
     let highlights = h.state().shell().highlights().items().len();
     assert_eq!(highlights, 1, "the zones are highlighted");
     assert!(!h.state().shell().highlight_overlay(0).is_empty(), "drawn on 203");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1733: on fluid page 203 a silencer placed facing a valve's free fluid port autoconnects to it, and the committed
+/// connection is a fluid line, not a wire.
+#[test]
+fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
+    use ew_ui::ew_viewmodel::tools::Ghost;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    let (free, step) = {
+        let c = h.state().shell().canvas().unwrap();
+        let t = &c.page().tables;
+        let free: Vec<(i64, i64)> = t
+            .cps
+            .iter()
+            .filter(|p| p.fluid && p.connections.is_empty() && p.dir.is_some())
+            .map(|p| p.at)
+            .collect();
+        (free, t.grid.0 / t.grid.1.max(1))
+    };
+    assert!(!free.is_empty(), "Golden A's spare valves have free fluid ports");
+    let before: usize = {
+        let c = h.state().shell().canvas().unwrap();
+        c.page().tables.connections.iter().filter(|c| c.kind == "fluid").count()
+    };
+    dispatch(&mut h, "tool.place", json!({}));
+    dispatch(&mut h, "place.pick", json!({"symbol": "ew.iso.silencer@qet10", "letter": "R"}));
+    settle(&mut h);
+    let mut found = false;
+    'search: for at in &free {
+        for dy in (-10..=10).filter(|d| *d != 0) {
+            for dx in -3..=3 {
+                let p = (at.0 + dx * step, at.1 + dy * step);
+                let (x, y) = {
+                    let c = h.state().shell().canvas().unwrap();
+                    let s = c.page().snapper.page_to_sheet(p);
+                    (s.0 as f64 / 1e6, s.1 as f64 / 1e6)
+                };
+                dispatch(&mut h, "cursor.set", json!({"x_mm": x, "y_mm": y}));
+                if matches!(h.state().shell().tool_ghost(), Some(Ghost::Place { hints, .. }) if hints > 0) {
+                    found = true;
+                    break 'search;
+                }
+            }
+        }
+    }
+    assert!(found, "a place where the silencer faces a free fluid port");
+    dispatch(&mut h, "canvas.activate", json!({}));
+    settle(&mut h);
+    let after: usize = {
+        let c = h.state().shell().canvas().unwrap();
+        c.page().tables.connections.iter().filter(|c| c.kind == "fluid").count()
+    };
+    assert_eq!(after, before + 1, "the hint is a fluid line");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FT-1733: Draw ▸ Connect ▸ Fluid line… picks the line kind first; the Wire tool then draws a pilot line between
+/// two free fluid ports of fluid page 203.
+#[test]
+fn the_fluid_line_picker_draws_a_pilot_line() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    support::open_menu(&mut h, &["Draw", "Connect"]);
+    settle(&mut h);
+    support::menu_node(&h, "Fluid line…").click();
+    settle(&mut h);
+    h.get_all_by_role(egui::Role::ComboBox)
+        .last()
+        .expect("the Line kind list")
+        .click();
+    settle(&mut h);
+    h.get_by_label("Pilot").click();
+    settle(&mut h);
+    support::off_chrome(&h, "Draw").expect("Draw").click();
+    settle(&mut h);
+    assert_eq!(h.state().shell().tool().name(), "wire");
+    let free: Vec<(i64, i64)> = {
+        let c = h.state().shell().canvas().unwrap();
+        c.page()
+            .tables
+            .cps
+            .iter()
+            .filter(|p| p.fluid && p.connections.is_empty() && p.dir.is_some())
+            .map(|p| p.at)
+            .collect()
+    };
+    for at in &free[..2] {
+        let (x, y) = {
+            let c = h.state().shell().canvas().unwrap();
+            let s = c.page().snapper.page_to_sheet(*at);
+            (s.0 as f64 / 1e6, s.1 as f64 / 1e6)
+        };
+        dispatch(&mut h, "cursor.set", json!({"x_mm": x, "y_mm": y}));
+        dispatch(&mut h, "canvas.activate", json!({}));
+    }
+    settle(&mut h);
+    let pilot = h
+        .state()
+        .shell()
+        .canvas()
+        .unwrap()
+        .page()
+        .tables
+        .connections
+        .iter()
+        .any(|c| c.kind == "fluid" && c.line_kind.as_deref() == Some("pilot"));
+    assert!(pilot, "a pilot line is drawn");
     h.state_mut().shell_mut().shutdown();
 }
 

@@ -774,7 +774,14 @@ are on a device's row of the fluid, PLC and device navigators (`Session::fluid_m
 overview… (§5.5); a valve module's Add valve at position *n* for each blank or empty position (a `valve.set_occupancy`
 with the part of the module's first valve, else of another module's; disabled with its reason without one); a valve's
 Set spare or Set used and Blank position *n*, a blanking plate's Add valve; Plug port *p* for each open working port
-(EW-FL-001's, `ew_derive::open_working_ports`; `fluid.port.close` with a plug). Each is one undo step. Project ▸ Fluid settings… (FT-1752) is a form of the member `fluid` of `project.settings.set`: the default tube's outer and inner diameter in mm and its material, and whether fluid lines are tagged by page and counter; the member's other values are kept, a diameter that is no length is refused in words.
+(EW-FL-001's, `ew_derive::open_working_ports`; `fluid.port.close` with a plug). Each is one undo step. **The line
+tool** (FT-1733): Draw ▸ Connect ▸ Fluid line… on a fluid page is the line-kind picker (Working, Pilot, Exhaust, Drain,
+Flexible), then the Wire tool drawing lines of that kind (`connection.draw` with `{"fluid": {"line_kind"}}`); Draw ▸
+Wire draws working lines. Fluid pages autoconnect: a placed symbol's fluid port facing a free fluid port proposes the
+join, and the committed hint is a working fluid line (`device.place`'s hint takes the fluid kind when both ends are
+fluid ports); a fluid port never proposes an electrical CP, nor an electrical CP a fluid port, on any page. A flexible
+line is drawn as an arc between its ends: a quadratic curve whose control point stands a quarter of the chord to the
+left of it, the route's corners not drawn. Project ▸ Fluid settings… (FT-1752) is a form of the member `fluid` of `project.settings.set`: the default tube's outer and inner diameter in mm and its material, and whether fluid lines are tagged by page and counter; the member's other values are kept, a diameter that is no length is refused in words.
 
 ---
 
@@ -1036,7 +1043,8 @@ one-way flow control, check, quick-exhaust, shuttle and two-pressure valves, sil
 bulkhead; the air-supply point and the valve terminal's supply plate), checked by the library's fluid symbol lint
 (`ew-library`, test `fluid_symbols`). Not built here: the flexible line's arc (a scene change of the window's,
 WP-S2.13), autoconnect and the line-kind picker (WP-S2.13), the navigator's fluid actions (WP-S2.13), and the
-ISO 1219-2 identifier set (FR-FLU-023, Could, Later).
+ISO 1219-2 identifier set (FR-FLU-023, Could, Later). *As built (WP-S2.13).* The flexible line's arc, autoconnect,
+the line-kind picker and the navigator's fluid actions are built (§7).
 
 ---
 

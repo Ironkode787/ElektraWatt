@@ -249,6 +249,13 @@ static CHANNEL_SETTINGS: Spec = Spec {
     ],
 };
 
+/// Draw ▸ Fluid line…'s form (doc 11 §7, FT-1733): the kind of the fluid lines the Wire tool draws next.
+static FLUID_LINE: Spec = Spec {
+    action: "tool.fluid_line",
+    title_key: key!("fluid-line-title"),
+    fields: &[field("line_kind", key!("form-line-kind"))],
+};
+
 /// The tube materials Fluid settings… offers: the material's word in the file and its name (the plastics by their
 /// abbreviations, the same in every language).
 const TUBE_MATERIALS: [(&str, &str); 6] = [
@@ -1513,6 +1520,51 @@ impl ShellModel {
             ]}),
         );
         self.form_done(CHANNEL_SETTINGS.action, out)
+    }
+
+    /// `tool.fluid_line {line_kind}` (Draw ▸ Fluid line…, doc 11 §7, FT-1733): the Wire tool drawing fluid lines of a
+    /// line kind on a fluid page. Without `line_kind` the window opens the line-kind picker (the kinds in words, working
+    /// first).
+    pub(crate) fn act_tool_fluid_line(&mut self, p: &Map<String, Value>) -> Outcome {
+        if self.wire_kind() != Ok(Some("fluid")) {
+            return Outcome::refused(key!("reason-not-fluid-page"));
+        }
+        let kind = match text_param(p, "line_kind") {
+            Ok(k) => k,
+            Err(e) => return e,
+        };
+        if kind.is_empty() {
+            if self.mode == Mode::Headless {
+                return failed(key!("error-missing-param"), &["line_kind"]);
+            }
+            let mut dialog = FLUID_LINE.dialog(p);
+            dialog.ok_key = key!("tool-draw");
+            if let Some(f) = dialog.fields.first_mut() {
+                f.options = crate::strings::LINE_KINDS
+                    .iter()
+                    .map(|w| {
+                        (
+                            (*w).to_owned(),
+                            strings::field_choice_text("connection", "line_kind", w),
+                        )
+                    })
+                    .collect();
+                f.value = "working".to_owned();
+            }
+            return self.open_dialog(Dialog::Form(dialog));
+        }
+        let Some(kind) = crate::strings::LINE_KINDS.iter().copied().find(|w| *w == kind) else {
+            return failed(key!("error-bad-param"), &["line_kind"]);
+        };
+        if self.in_form_of(FLUID_LINE.action) {
+            self.dialog = None;
+        }
+        self.activate_tool(Box::new(
+            crate::tools::WireTool::new()
+                .with_kind(Some("fluid"))
+                .with_line_kind(kind),
+        ));
+        Outcome::Done
     }
 
     /// `external_ref.new {location, device, connection?, project?}`: one `external_ref.create` at a location

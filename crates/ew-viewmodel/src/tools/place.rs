@@ -319,6 +319,7 @@ impl PlaceTool {
                     dir: orient_dir(self.orient, cp.dir),
                     connected: false,
                     strip_tag: strip_tag.clone(),
+                    fluid: cp.fluid,
                 }
             })
             .collect()

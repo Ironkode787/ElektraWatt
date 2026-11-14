@@ -141,6 +141,7 @@ rep.exchange Command "Change symbol…" menu "Draw" shortcut none context canvas
 tool.finish View "Finish" menu none shortcut "Shift+Enter" context canvas hidden params ""
 text.input View "Type into the tool" menu none shortcut none context canvas hidden params "text:text"
 tool.wire Command "Wire" menu "Draw" shortcut "W" context canvas params ""
+tool.fluid_line Command "Fluid line…" menu "Draw" shortcut none context global params "line_kind?:text"
 canvas.activate_alt View "Click with Alt at the grid cursor" menu none shortcut "Ctrl+Enter" context canvas hidden params ""
 tool.next_proposal View "Next autoconnect proposal" menu none shortcut "Tab" context canvas hidden params ""
 tool.place_layout Command "Place device" menu none shortcut none context global hidden params "device:ref"

@@ -588,6 +588,15 @@ fn wire_page(m: &ShellModel) -> Result<(), Key<'static>> {
     m.wire_kind().map(|_| ())
 }
 
+/// An editable fluid page (Draw ▸ Fluid line…).
+fn fluid_page(m: &ShellModel) -> Result<(), Key<'static>> {
+    editable_page(m)?;
+    match m.wire_kind() {
+        Ok(Some("fluid")) => Ok(()),
+        _ => Err(key!("reason-not-fluid-page")),
+    }
+}
+
 /// An editable page with a connection or a representation selected (Route selection).
 fn route_selection(m: &ShellModel) -> Result<(), Key<'static>> {
     editable_page(m)?;

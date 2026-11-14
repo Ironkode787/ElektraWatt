@@ -440,6 +440,7 @@ mod tests {
             connections: Vec::new(),
             potential: None,
             side: None,
+            fluid: false,
             plc_address: None,
         }
     }

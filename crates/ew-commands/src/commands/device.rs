@@ -425,6 +425,16 @@ fn hint_wire(
         ),
     };
     let route = crate::geometry::hint_route(tx, &a, &to, page);
+    // A fluid port joined to a fluid port is a working fluid line (FT-1733, doc 06 §2.2), any other hint a wire.
+    let fluid = |e: &Endpoint| {
+        matches!(e, Endpoint::Cp(f, idx)
+            if matches!(crate::commands::connection::cp_fluid_class(tx, *f, *idx), ew_model::FluidPortClass::Fluid(_)))
+    };
+    let kind = if fluid(&a) && fluid(&to) {
+        ConnectionKind::Fluid(Default::default())
+    } else {
+        ConnectionKind::Wire
+    };
     tx.insert(Connection {
         id,
         v: 1,
@@ -432,7 +442,7 @@ fn hint_wire(
         b: to.clone(),
         page: Some(page),
         route,
-        kind: ConnectionKind::Wire,
+        kind,
         overrides: Default::default(),
         number: NumberSpec::default(),
         source_ref: None,
