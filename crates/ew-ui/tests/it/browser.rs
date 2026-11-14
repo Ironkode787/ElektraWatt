@@ -198,3 +198,58 @@ fn every_floating_overlay_closes_by_a_click_beside_it_and_by_its_close_button() 
     }
     d.shell_mut().shutdown();
 }
+
+/// The part numbers of the device browser's rows, in order, and its tree's nodes.
+fn browser_rows(d: &mut Driver) -> (Vec<String>, Vec<Node>) {
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    let p = d.shell_mut().picker().expect("the browser").clone();
+    let rows = p
+        .rows
+        .iter()
+        .filter_map(|r| match r {
+            PickerRow::Part(i) => Some(p.catalogue.parts[*i].part_number.clone()),
+            _ => None,
+        })
+        .collect();
+    (rows, p.nodes.into_iter().map(|(n, _)| n).collect())
+}
+
+/// The device browser's rows stay where they were once a part is used (the persona's second click hit the row that
+/// had moved into the used part's place): a placed relay keeps its row, and the tree has In this project from the
+/// start, so it does not shift either.
+#[test]
+fn the_device_browsers_rows_stay_in_place_once_a_part_is_used() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let (before, tree) = browser_rows(&mut d);
+    assert!(tree.contains(&Node::Project), "{tree:?}");
+    d.input(&Input::DoubleClick {
+        at: starting_with(&d, "Relay with four"),
+        mods: Modifiers::NONE,
+    });
+    d.input(&Input::Hover { at: (900, 500) });
+    d.settle();
+    d.input(&click((900, 500)));
+    d.settle();
+    d.input(&Input::Key {
+        key: Some(egui::Key::Escape),
+        mods: Modifiers::NONE,
+        repeat: 1,
+    });
+    d.settle();
+    let (after, again) = browser_rows(&mut d);
+    let held = d
+        .shell_mut()
+        .picker()
+        .expect("the browser")
+        .catalogue
+        .parts
+        .iter()
+        .filter(|c| c.library.is_none())
+        .count();
+    assert!(held > 0, "the relay is the project's now");
+    assert_eq!(after, before, "the rows keep their order");
+    assert_eq!(again, tree, "and the tree");
+    d.shell_mut().shutdown();
+}

@@ -5,7 +5,7 @@
 //! (`Session::place_catalogue`, fetched once per (revision, folio) while it is open). The symbol browser
 //! ([`PickerMode::Place`]) lists the symbols, drawings without a part, but the terminals; the device browser
 //! ([`PickerMode::Parts`]) lists the parts with their functions (FT-1696). Its tree ([`Picker::nodes`]) is
-//! All, In this project, then one node per function category with words ([`category_words`]; the first level of a
+//! All, In this project (also without hits), then one node per function category with words ([`category_words`]; the first level of a
 //! symbol's FnDef category, of a part's own category or its main function's), then Other, each with the count of its
 //! hits under the filter. Its rows ([`Picker::rows`]) are those of the chosen node: the symbol rows (the plain name,
 //! [`symbol_name`], with the badge `embedded` or `starter`, then the `<key>`), then one row per part
@@ -16,7 +16,8 @@
 //! and a part's description and category, every typed token somewhere in the row, across the categories. Up, Down,
 //! Home and End move the row; Enter chooses; Escape or a click beside the browser closes it.
 //!
-//! **Device from part** lists the project's own part copies first, then the libraries' parts; a
+//! **Device from part** lists the project's own part copies and the libraries' parts in one order (manufacturer, part
+//! number), so a part placed once keeps its row, and the tree always has In this project; a
 //! held copy without a function template is one row, whose choice lists the allowed symbols
 //! that are no black box, one of which places the part (`device.place` `from_part`, entry 0). Its empty state under
 //! a filter names Edit ▸ Choose part… as the next step.
@@ -339,16 +340,12 @@ impl Picker {
         // The parts are the device browser's (and the black boxes'); the symbol browser lists symbols alone, so that
         // each thing stands in one browser (FT-1696).
         if matches!(self.mode, PickerMode::Parts | PickerMode::BlackBox) {
-            // One order, (manufacturer, part number), the catalogue's order within a tie; the project's own
-            // copies before the libraries' parts.
+            // One order, (manufacturer, part number), the catalogue's order within a tie, whether the project holds
+            // the part or not: a part placed once keeps its row, so the next click hits the row it aims at.
             let mut parts: Vec<usize> = (0..self.catalogue.parts.len()).collect();
             parts.sort_by(|a, b| {
                 let (a, b) = (&self.catalogue.parts[*a], &self.catalogue.parts[*b]);
-                (a.library.is_some(), &a.manufacturer, &a.part_number).cmp(&(
-                    b.library.is_some(),
-                    &b.manufacturer,
-                    &b.part_number,
-                ))
+                (&a.manufacturer, &a.part_number).cmp(&(&b.manufacturer, &b.part_number))
             });
             for p in parts {
                 let part = &self.catalogue.parts[p];
@@ -397,7 +394,8 @@ impl Picker {
                 let c = count(&n);
                 (n, c)
             })
-            .filter(|(n, c)| *c > 0 || *n == Node::All || *n == self.node)
+            // In this project stands with no hits too, so the tree does not shift when the first part is used.
+            .filter(|(n, c)| *c > 0 || *n == Node::All || *n == Node::Project || *n == self.node)
             .collect();
         for (row, node, held) in found {
             let shown = match &self.node {

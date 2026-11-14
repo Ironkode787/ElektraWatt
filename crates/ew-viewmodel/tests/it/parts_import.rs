@@ -162,8 +162,8 @@ fn the_picker_lists_the_imported_parts_by_manufacturer_in_part_number_order() {
     done(&mut shell, "preview.apply", json!({}));
     done(&mut shell, "tool.place_part", json!({}));
     let picker = shell.picker().expect("the picker is open");
-    // One row per part, by manufacturer, in part-number order within one, the project's own parts before the
-    // libraries'.
+    // One row per part, by manufacturer, in part-number order within one, the project's own parts among the
+    // libraries' (a part placed once keeps its row).
     let rows: Vec<(usize, &str, &str, bool)> = picker
         .rows
         .iter()
@@ -182,13 +182,10 @@ fn the_picker_lists_the_imported_parts_by_manufacturer_in_part_number_order() {
         })
         .collect();
     assert!(!rows.is_empty(), "part rows are listed");
-    let keys: Vec<(bool, &str, &str)> = rows.iter().map(|(_, m, n, l)| (*l, *m, *n)).collect();
+    let keys: Vec<(&str, &str)> = rows.iter().map(|(_, m, n, _)| (*m, *n)).collect();
     let mut sorted = keys.clone();
     sorted.sort_unstable();
-    assert_eq!(
-        keys, sorted,
-        "the project's first, then manufacturer, then part-number order"
-    );
+    assert_eq!(keys, sorted, "manufacturer, then part-number order");
     assert!(
         rows.iter().any(|r| !r.3) && rows.iter().any(|r| r.3),
         "both groups listed"

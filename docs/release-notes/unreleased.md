@@ -666,3 +666,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: `PlcFormat::extension`; `ShellModel::set_today` (the window tells the shell today's date before an action)
 - behaviour-change: the bottom dock's close button (and Ctrl+J) closes the PLC grid, Tubes and Media too; it left them
   on show (persona round)
+- behaviour-change: the device browser lists the project's part copies and the libraries' parts in one order (maker,
+  part number) and always shows In this project, so a part placed once keeps its row (persona round)
