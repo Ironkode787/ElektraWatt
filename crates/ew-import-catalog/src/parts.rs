@@ -910,6 +910,8 @@ pub struct Placer<'a> {
     /// (manufacturer key, pn_norm) → (line, the part as first read).
     seen: BTreeMap<(String, String), (u32, Part)>,
     report: ImportReport,
+    /// How a part the target holds takes what the source knows of it: the held part and the source's, the merged.
+    merge: Option<fn(&Part, &Part) -> Part>,
 }
 
 impl<'a> Placer<'a> {
@@ -929,7 +931,16 @@ impl<'a> Placer<'a> {
             parts: Vec::new(),
             seen: BTreeMap::new(),
             report,
+            merge: None,
         }
+    }
+
+    /// A source that does not carry the whole part (EPLAN's) lays what it knows over the part the target holds with
+    /// `merge` (the held part, the source's) instead of replacing it: what a user added to the held part stays.
+    #[must_use]
+    pub fn merging(mut self, merge: fn(&Part, &Part) -> Part) -> Placer<'a> {
+        self.merge = Some(merge);
+        self
     }
 
     /// The report so far, for the reader's own findings.
@@ -1073,7 +1084,12 @@ impl<'a> Placer<'a> {
                 continue;
             }
             self.seen.insert(dedupe, (line, part.clone()));
-            let (status, doc) = match (target.existing)(item) {
+            let held = (target.existing)(item);
+            let part = match (&held, self.merge) {
+                (Some(h), Some(merge)) => merge(&h.item, &part),
+                _ => part,
+            };
+            let (status, doc) = match held {
                 None => (RowStatus::New, copy(library, item, FIRST_VERSION, part)),
                 Some(held) if same_content(&part, &held.item) => (RowStatus::Unchanged, held),
                 Some(held) => {

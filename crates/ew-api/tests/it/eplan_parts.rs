@@ -203,6 +203,45 @@ fn an_edz_is_written_into_a_library_and_a_changed_part_needs_a_bump() {
     )
     .unwrap();
     assert_eq!(bumped.import.counts().updated, 1);
+
+    // A user adds technical data to the held part; a later import of other EPLAN data keeps it.
+    let held = |reg: &Registry| match reg
+        .resolve(&LibRef {
+            library: Id::from_uuid(lib),
+            item: Id::from_uuid(part.item_id.as_uuid()),
+            version_req: "*".into(),
+            extra: Default::default(),
+        })
+        .unwrap()
+    {
+        LibDocument::Part(p) => p,
+        _ => unreachable!(),
+    };
+    let mut mine = held(&reg);
+    mine.item.tech_data.insert(
+        serde_json::from_value(json!({"key": "i_out", "value": {"value": "10", "unit": "A"}})).unwrap(),
+    );
+    mine.version = "1.0.2".into();
+    reg.write(lib, &[LibDocument::Part(mine)]).unwrap();
+    let xml = xml.replace("Power supply, new", "Power supply, newest");
+    let newest = ImportInput::new("2904602.xml", xml.into_bytes()).unwrap();
+    let done = eplan::import_into_library(
+        &mut reg,
+        lib,
+        &newest,
+        &FndefMap::shipped(),
+        (None, true, false),
+        false,
+    )
+    .unwrap();
+    assert_eq!(done.import.counts().updated, 1);
+    let after = held(&reg);
+    assert_eq!(after.version, "1.0.3");
+    assert!(serde_json::to_string(&after.item.description).unwrap().contains("newest"), "the file's description");
+    assert!(
+        after.item.tech_data.iter().any(|t| t.key.as_str() == "i_out"),
+        "the user's technical data stays"
+    );
 }
 
 fn report(name: &str, text: &str, preset: &str) -> ew_api::import::ImportBatch {

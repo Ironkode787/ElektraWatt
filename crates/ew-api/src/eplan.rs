@@ -144,7 +144,7 @@ pub fn parts_import(
     );
     report.entries = read.entries;
     report.stats.suppressed = read.suppressed;
-    let mut placer = ew_import_catalog::Placer::new(report, input.name(), master, target);
+    let mut placer = ew_import_catalog::Placer::new(report, input.name(), master, target).merging(merged);
     for draft in &read.drafts {
         placer.place(draft);
     }
