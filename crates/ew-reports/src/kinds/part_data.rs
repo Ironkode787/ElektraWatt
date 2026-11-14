@@ -38,6 +38,11 @@ impl ReportKindDef for PartData {
         "part_data"
     }
 
+    /// Embedded on a drawn page only.
+    fn page_oriented(&self) -> bool {
+        false
+    }
+
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("label", CellType::Text, "Label"),

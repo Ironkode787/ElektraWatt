@@ -485,3 +485,16 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   takes `target` and `parts.map_import` takes `dir` and `discard` (FT-1742)
 - text-change: the update card of a part import names the importer's own member "Accessories and variants" (FT-1743);
   the canvas tool strip shows its tool disabled while the tool's action is unavailable (a project without pages)
+- api-add: `plc.bind_channel` takes `attach_at`: the endpoint's device is first attached to the channel's module at
+  that position, so that a channel dropped on a device beside its card attaches and binds in one undo step (WP-S2.13,
+  FT-774)
+- behaviour-change: View ▸ Workspaces offers the built-in workspace PLC: the PLC navigator in the left column and the
+  PLC grid in the bottom dock (WP-S2.13, FR-UI-003)
+- behaviour-change: the PLC navigator lists a station's racks and bus ports and the cards without a CPU, which a
+  station's row attaches (Attach cards without a CPU); the grid gains the data type, signal range, safety and rack
+  columns, and its filter the words `safety` and `bus:<net>` (WP-S2.13, FT-737, FT-738, FT-739, FT-1672)
+- behaviour-change: Output ▸ Reports ▸ Report block… offers every report kind that fills pages and has an engine (the
+  PLC, bus and fluid lists among them; Check report, which has no engine, no longer), ordered by name (WP-S2.13,
+  FT-1726)
+- behaviour-change: a table column sorted after the table sized it widens by its sort icon, so its header is not cut
+  (WP-S2.13, FT-776)

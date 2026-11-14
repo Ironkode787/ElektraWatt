@@ -34,6 +34,8 @@ use crate::strings::Key;
 use crate::wizard::Wizard;
 
 mod canvas_actions;
+// The window's entries of the PLC, bus and fluid commands (WP-S2.13).
+mod automation;
 mod creation;
 // The closed sets of a form field's choices.
 pub mod choices;

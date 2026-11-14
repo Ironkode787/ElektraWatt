@@ -648,7 +648,7 @@ fn the_filter_field_clear_button_empties_the_filter_and_keeps_the_focus() {
 }
 
 /// The grid cursor of the focused canvas to grid index `k`.
-fn cursor_k(h: &mut Harness<'_, App>, k: (i64, i64)) {
+pub(crate) fn cursor_k(h: &mut Harness<'_, App>, k: (i64, i64)) {
     let (x, y) = {
         let c = h.state().shell().canvas().unwrap();
         let sn = &c.page().snapper;

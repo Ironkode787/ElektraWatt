@@ -52,6 +52,12 @@ pub trait ReportKindDef: Send + Sync {
     fn params(&self) -> &'static [ParamDef] {
         &[]
     }
+
+    /// Whether a block of this kind fills pages of its own (Output ▸ Reports ▸ Report block… offers it); `false` for a
+    /// kind that is only embedded on a drawn page (the profile tables, the PART DATA box).
+    fn page_oriented(&self) -> bool {
+        true
+    }
 }
 
 /// One declared block parameter of a kind ([`ReportKindDef::params`]).

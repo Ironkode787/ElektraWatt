@@ -136,6 +136,10 @@ pub fn is_on_module(
 /// and the outcome's notices name it. An explicit binding wins over the solenoid-position map: N2 never
 /// rebinds a coil that a channel binds, nor a channel that is bound. Outcome: the channel.
 ///
+/// With `attach_at`, the device of the endpoint's function first becomes a child of the channel's module at that
+/// position, as `assembly.attach` makes it (with its checks), so that a device wired off the card is attached and
+/// bound in one undo step (FT-774).
+///
 /// In a command log (and the blind harness's `command.run`) the channel and the CP may also be named by tags:
 /// the channel as `<module tag>#<number>` or `<module tag>:<designation>`, the function as `<device tag>`
 /// or `<device tag>:<slot>` with the CP by `designation` instead of `idx`, as
@@ -150,6 +154,9 @@ pub struct BindChannel {
     pub channel: Id<Channel>,
     /// The signal CP; `null` unbinds.
     pub endpoint: Option<EndpointParam>,
+    /// The position at which the endpoint's device is attached to the channel's module before the binding.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub attach_at: Option<u32>,
 }
 
 impl Command for BindChannel {
@@ -173,6 +180,18 @@ impl Command for BindChannel {
         };
         let channel = tx.require::<Channel>(self.channel)?;
         let mut notices = Vec::new();
+        if let (Some(position), Some((function, _))) = (self.attach_at, binding)
+            && let Some(device) = tx.require::<Function>(function)?.device
+        {
+            super::assembly::AttachChildren {
+                parent: channel.module,
+                children: vec![super::assembly::ChildSpec {
+                    device,
+                    position: Some(position),
+                }],
+            }
+            .run(tx)?;
+        }
         if let Some((function, idx)) = binding {
             let f = tx.require::<Function>(function)?;
             // The signal CP lies on the module itself (a pin) or on one of its

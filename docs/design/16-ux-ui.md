@@ -230,6 +230,12 @@ A workspace is a named dock layout with its panels and canvas kinds. Users save 
 | Panel 3D | layout navigator, unplaced devices | 3D canvas, panel pages | property grid | wiring manager, routing preview, thermal | 1.0 ([12](12-panel-layout.md) §12.3) |
 | Manufacturing | label sets, machine profiles, orders | 3D or plate view | property grid | wire table, pre-flight findings | 1.0 ([13](13-manufacturing-outputs.md) §12) |
 
+*As built (WP-S2.13).* The shipped workspaces are files the program does not write: View ▸ Workspaces lists them first
+(named in the UI language), then the saved ones; a shipped workspace without a file has its built-in layout
+(`Layout::built_in`), a saved file of its name replaces it, and Reset layout goes back to the active shipped
+workspace's own layout. Properties stays under the navigator in every workspace (doc 16a §5.4); the right column of
+this table is not built. PLC is built as [10](10-plc-and-bus.md) §6's *As built* says.
+
 ---
 
 ## 3. Main window

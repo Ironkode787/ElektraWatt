@@ -1580,7 +1580,12 @@ fn submenu_items(submenu: Submenu, metas: &[&ActionMeta], model: &ShellModel) ->
                         let mut item = item_of(meta, model);
                         item.checked = name == active;
                         item.params = json!({ "name": name });
-                        item.label = name;
+                        // A built-in workspace in the UI language's words, a saved one by its name.
+                        item.label = crate::settings::BUILT_IN_WORKSPACES
+                            .contains(&name.as_str())
+                            .then(|| strings::lookup(&format!("workspace-{}", name.to_lowercase())))
+                            .flatten()
+                            .map_or(name, str::to_owned);
                         item.shortcut = String::new();
                         items.push(item);
                     }

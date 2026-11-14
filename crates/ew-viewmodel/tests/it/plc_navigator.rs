@@ -477,8 +477,8 @@ fn a_device_wired_to_two_card_pins_asks_which() {
 }
 
 /// Attachable: a valve not wired to a valve terminal (Golden A's sub-base part 533361, which has a
-/// solenoid-position map) is attached to it at its first free position and bound where it was dropped: two commands,
-/// two undo steps, both named by the toast.
+/// solenoid-position map) is attached to it at its first free position and bound where it was dropped: one command,
+/// one undo step (FT-774), both named by the toast, which offers Undo.
 #[test]
 fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
     let tmp = Tmp::new("plcnav-ft753-attach");
@@ -536,7 +536,7 @@ fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
     let rev = s.revision();
     let bind = drop_on(&s, &ch0, &coil);
     done(&mut s, "navigator.bind", bind);
-    assert_eq!(s.revision(), rev.map(|r| r + 2), "two commands");
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "one command");
     assert_eq!(address_at(&s, &coil).as_deref(), Some(label.as_str()));
     let toast = s.toast().unwrap();
     assert!(
@@ -546,16 +546,15 @@ fn a_valve_is_attached_to_a_valve_terminal_and_bound() {
         "{}",
         toast.text
     );
-    assert!(toast.text.contains("(two undo steps)"), "{}", toast.text);
-    assert!(toast.action().is_none(), "no Undo for one of two steps");
+    assert!(toast.action().is_some(), "Undo of the one step");
     done(&mut s, "edit.undo", json!({}));
     assert_eq!(address_at(&s, &coil), None, "the bind undone");
-    done(&mut s, "edit.undo", json!({}));
-    // The attachment undone too: the same drop attaches again (two commands, not one plain bind).
+    // The attachment undone with it: the same drop attaches again.
     let rev = s.revision();
     let bind = drop_on(&s, &ch0, &coil);
     done(&mut s, "navigator.bind", bind);
-    assert_eq!(s.revision(), rev.map(|r| r + 2), "attached again");
+    assert_eq!(s.revision(), rev.map(|r| r + 1), "attached again");
+    assert!(s.toast().unwrap().text.starts_with(&format!("Attached {valve}")));
 }
 
 /// The PLC grid's key column is the address and the target follows it, so a narrow grid shows what a

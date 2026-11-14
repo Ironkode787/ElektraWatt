@@ -417,6 +417,16 @@ pub fn report_kinds() -> Vec<&'static str> {
     Registry::builtin().names().collect()
 }
 
+/// The registered report kinds whose blocks fill pages of their own (`ReportKindDef::page_oriented`), in name order:
+/// the kinds Output ▸ Reports ▸ Report block… offers (FT-1726).
+pub fn page_report_kinds() -> Vec<&'static str> {
+    let registry = Registry::builtin();
+    registry
+        .names()
+        .filter(|n| registry.by_name(n).is_some_and(|k| k.page_oriented()))
+        .collect()
+}
+
 /// The whole-project rows of the registered kind `name`.
 fn kind_rows(q: &Q, name: &str) -> Result<Chosen, RowsError> {
     let registry = Registry::builtin();

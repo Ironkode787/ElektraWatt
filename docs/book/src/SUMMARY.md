@@ -21,6 +21,7 @@
   - [Define a supply potential](how-to/define-supply-potential.md)
   - [Choose parts](how-to/choose-parts.md)
   - [Draw a panel layout](how-to/panel-layout.md)
+  - [Work in the PLC workspace](how-to/plc-workspace.md)
   - [Upgrade a project](how-to/upgrade-a-project.md)
 
 # Reference

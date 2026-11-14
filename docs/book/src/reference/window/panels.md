@@ -101,8 +101,25 @@ cable's wires selected and opens the cable's form, and Go to its first wire. See
 
 ### PLC
 
-The PLC configuration projects, stations, modules and channels, with their addresses. A right click on a station or a
-module offers what a device's row offers; on a channel, Go to its place and Properties of selection.
+The PLC configuration projects, stations, modules and channels, with their addresses. A station lists its modules
+under their racks once a module has a rack position, and its bus ports after its modules. A right click on a station or
+a module offers what a device's row offers; on a channel, Go to its place and Properties of selection.
+
+A card that no CPU takes (a project with two CPUs leaves a new card on neither) is listed under **Cards without a
+CPU**. A right click on a CPU's row offers **Attach cards without a CPU**, which makes them that CPU's modules in one
+step.
+
+The filter takes the words `spare`, `unplaced`, `unassigned`, `tbd`, `duplicate` and `safety` (a channel or module
+with safety data), `config:<name>` for a configuration project and `bus:<net>` for the bus net of a station's port,
+its name written with hyphens for spaces (`bus:profibus-dp`).
+
+### PLC grid
+
+The PLC navigator's channels as a table, in the bottom dock of the [PLC workspace](../../how-to/plc-workspace.md): address,
+target, symbol, function text, designation, module, channel, kind, data type, signal range, safety, process tag,
+state, the page it is placed on, station, rack, slot and comment. The designation, address, symbol, state, target,
+comment, data type and signal range are edited in their cells, the slot in its cell as a number or `<rack>.<slot>`;
+a channel's safety data is edited in Properties. Its filter takes the PLC navigator's words.
 
 ### Potentials
 

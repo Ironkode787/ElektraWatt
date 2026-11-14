@@ -824,7 +824,8 @@ impl ShellModel {
         let Some(n) = self.generic_mut(kind) else {
             return failed(key!("error-nav-closed"), &[kind.word()]);
         };
-        if !on {
+        // A table of the bottom dock (the PLC grid) is always a table.
+        if !on && !kind.bottom_table() {
             n.table_mode = None;
             n.scope = None;
         } else if n.table_mode.is_none() {

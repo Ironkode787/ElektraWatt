@@ -41,6 +41,8 @@ const KEY_ONLY: &[&str] = &[
     "table.paste",
     "table.copy",
     "table.clear",
+    // The PLC navigator's row actions, reached through its row menu.
+    "plc.attach_cards",
 ];
 
 fn shell(tmp: &Tmp) -> ShellModel {

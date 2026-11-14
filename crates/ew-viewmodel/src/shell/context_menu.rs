@@ -276,12 +276,15 @@ impl ShellModel {
         let mut out = Vec::new();
         match (kind, node.role, node.records.first().copied()) {
             (NavKind::Devices, NavRole::Device, Some(device))
-            | (NavKind::Plc, NavRole::Station | NavRole::Module, Some(device)) => {
+            | (NavKind::Plc | NavKind::PlcGrid, NavRole::Station | NavRole::Module, Some(device)) => {
                 self.go_to(kind, Some(node), &mut out);
                 self.device_entries(&self.row_device(device, node), &mut out);
                 out.extend(self.menu_item("props.focus"));
+                if node.role == NavRole::Station {
+                    self.station_entries(device, &mut out);
+                }
             }
-            (NavKind::Plc, NavRole::Channel, _) => {
+            (NavKind::Plc | NavKind::PlcGrid, NavRole::Channel, _) => {
                 self.go_to(kind, Some(node), &mut out);
                 out.extend(self.menu_item("props.focus"));
             }
@@ -313,6 +316,30 @@ impl ShellModel {
             _ => {}
         }
         out
+    }
+
+    /// A station row's PLC entries: Attach cards without a CPU (FT-1672), disabled with its reason while no card
+    /// waits for one.
+    fn station_entries(&self, station: Uuid, out: &mut Vec<ActionItem>) {
+        let waiting = self
+            .project
+            .as_ref()
+            .map_or(0, |p| p.session.plc_cards_without_cpu().len());
+        let label = strings::text(key!("action-plc-attach-cards")).to_owned();
+        out.extend(
+            self.aimed(
+                "plc.attach_cards",
+                json!({ "station": station.to_string() }),
+                label,
+            )
+            .map(|mut i| {
+                if i.enabled && waiting == 0 {
+                    i.enabled = false;
+                    i.reason = Some(strings::text(key!("reason-no-cards-without-cpu")).to_owned());
+                }
+                i
+            }),
+        );
     }
 
     /// A page row's entries (FT-1693), as the Page tab offers them: Open page in a new tab, Title block fields…, Page

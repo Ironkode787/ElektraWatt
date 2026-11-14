@@ -244,10 +244,14 @@ fn cables_plc_potentials_parts() {
             "module",
             "channel",
             "kind",
+            "data_type",
+            "signal_range",
+            "safety",
             "process_tag",
             "state",
             "placed_on",
             "station",
+            "rack",
             "slot",
             "comment"
         ]
@@ -293,7 +297,11 @@ fn cables_plc_potentials_parts() {
     assert_eq!(stations.len(), 1);
     assert_eq!(stations[0].role, NavRole::Station);
     assert_eq!(stations[0].label, "-201U1");
-    let modules = children(&t, stations[0]);
+    // The modules; the station's bus port follows them (FT-739).
+    let modules: Vec<&NavNode> = children(&t, stations[0])
+        .into_iter()
+        .filter(|n| n.role == NavRole::Module)
+        .collect();
     assert_eq!(
         modules.iter().map(|m| m.label.as_str()).collect::<Vec<_>>(),
         [

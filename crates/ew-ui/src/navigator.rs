@@ -637,7 +637,7 @@ impl NavigatorPane {
             return;
         }
         // The PLC navigator with cards drawn but no CPU says that a card waits for one.
-        if self.kind == NavKind::Plc
+        if self.kind.source() == NavKind::Plc
             && let Some((line, sentence)) = shell.plc_empty()
         {
             crate::components::empty_state(ui, IconId::cpu, &line, &sentence, None);
@@ -822,7 +822,7 @@ pub(crate) fn empty_texts(kind: NavKind) -> (crate::icons::IconId, &'static str,
         NavKind::Connections => (IconId::plug_connected, key!("empty-nav-connections")),
         NavKind::Strips => (IconId::ew_terminal_strip, key!("empty-nav-strips")),
         NavKind::Cables => (IconId::ew_cable, key!("empty-nav-cables")),
-        NavKind::Plc => (IconId::cpu, key!("empty-nav-plc")),
+        NavKind::Plc | NavKind::PlcGrid => (IconId::cpu, key!("empty-nav-plc")),
         NavKind::Potentials => (IconId::ew_potential, key!("empty-nav-potentials")),
         NavKind::Ips => (IconId::ew_interruption_point, key!("empty-nav-ips")),
         NavKind::Structure => (IconId::sitemap, key!("empty-nav-structure")),

@@ -17,8 +17,8 @@
 //!
 //! **Filter** (§6.3). The query is split at whitespace: a part `<facet>:<value>` with a facet of the closed list
 //! (`page`, `potential`, `state`, `kind`, `part`) matches a node with that facet and a case-folded equal value;
-//! `unplaced` and `frozen` alone match the flag (in the PLC navigator also `unassigned`, `spare`, `tbd` and `duplicate`,
-//! and the facet `config:<name>`); every other part is plain text, split into tokens like the node tokens
+//! `unplaced` and `frozen` alone match the flag (in the PLC navigator and the PLC grid also `unassigned`, `spare`,
+//! `tbd`, `duplicate` and `safety`, and the facets `config:<name>` and `bus:<net>`); every other part is plain text, split into tokens like the node tokens
 //! (`ew_api::output::nav_tokens`). A node matches when every facet and flag matches, and either every plain token is a
 //! prefix of one of its tokens or the plain text, case-folded, is a substring of its case-folded label. Matches keep
 //! their ancestors, shown and expanded.
@@ -56,15 +56,24 @@ impl PartialEq for TableRef {
 impl Eq for TableRef {}
 
 /// The facets of the closed list that take a value (§6.1 item 5).
-pub const FACETS: [&str; 7] = ["page", "potential", "state", "kind", "part", "strip", "config"];
+pub const FACETS: [&str; 8] = [
+    "page",
+    "potential",
+    "state",
+    "kind",
+    "part",
+    "strip",
+    "config",
+    "bus",
+];
 
 /// The flags that a query word alone matches.
 pub const FLAGS: [&str; 2] = ["unplaced", "frozen"];
 
-/// The flags that a query word alone matches in the PLC navigator besides [`FLAGS`] (FR-PLC-021): a
-/// channel without an address, a spare channel, an open address, and a duplicate symbol or overlapping address. In
-/// the other navigators these words stay plain text.
-pub const PLC_FLAGS: [&str; 4] = ["unassigned", "spare", "tbd", "duplicate"];
+/// The flags that a query word alone matches in the PLC navigator and the PLC grid besides [`FLAGS`] (FR-PLC-021): a
+/// channel without an address, a spare channel, an open address, a duplicate symbol or overlapping address, and
+/// safety data on the channel or its module (FT-738). In the other navigators these words stay plain text.
+pub const PLC_FLAGS: [&str; 5] = ["unassigned", "spare", "tbd", "duplicate", "safety"];
 
 /// The two views of a navigator other than Pages.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -134,7 +143,11 @@ impl Query {
     /// The query of a filter text in navigator `kind`: [`Query::parse`], with the PLC navigator's own flags
     /// ([`PLC_FLAGS`]).
     pub fn parse_for(kind: NavKind, filter: &str) -> Query {
-        let extra: &[&str] = if kind == NavKind::Plc { &PLC_FLAGS } else { &[] };
+        let extra: &[&str] = if kind.source() == NavKind::Plc {
+            &PLC_FLAGS
+        } else {
+            &[]
+        };
         Query::parse_with(filter, extra)
     }
 
@@ -327,7 +340,8 @@ pub struct Navigator {
 }
 
 impl Navigator {
-    /// A navigator of `kind` in its default state: tree view, by label ascending, no filter, every node expanded.
+    /// A navigator of `kind` in its default state: tree view, by label ascending, no filter, every node expanded; a
+    /// table of the bottom dock (the PLC grid) in table mode.
     pub fn new(kind: NavKind) -> Navigator {
         Navigator {
             kind,
@@ -342,7 +356,7 @@ impl Navigator {
             anchor: None,
             table: None,
             applied: None,
-            table_mode: None,
+            table_mode: kind.bottom_table().then(table::TableMode::default),
             cache: VisCache::default(),
             rebuilds: std::cell::Cell::new(0),
         }

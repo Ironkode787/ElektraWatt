@@ -5,6 +5,7 @@
 
 use super::ActionMeta;
 
+mod automation;
 mod controls;
 mod draw;
 mod edit;
@@ -24,4 +25,5 @@ pub(super) const SECTIONS: &[&[ActionMeta]] = &[
     window::ACTIONS,
     panes::ACTIONS,
     controls::ACTIONS,
+    automation::ACTIONS,
 ];

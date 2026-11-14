@@ -131,6 +131,7 @@ fn bind(channel: Id<Channel>, endpoint: Option<(Id<Function>, u16)>) -> BindChan
     BindChannel {
         channel,
         endpoint: endpoint.map(|(function, idx)| EndpointParam::Cp { function, idx }),
+        attach_at: None,
     }
 }
 

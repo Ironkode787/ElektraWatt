@@ -433,7 +433,11 @@ fn tag_scheme_child_is_settable() {
 // plc.bind_channel
 
 fn bind(channel: Id<Channel>, endpoint: Option<EndpointParam>) -> BindChannel {
-    BindChannel { channel, endpoint }
+    BindChannel {
+        channel,
+        endpoint,
+        attach_at: None,
+    }
 }
 
 fn cp_param(function: Id<Function>, idx: u16) -> Option<EndpointParam> {

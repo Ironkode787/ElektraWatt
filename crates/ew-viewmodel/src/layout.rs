@@ -33,6 +33,7 @@ pub fn nav_title_key(kind: NavKind) -> Key<'static> {
         NavKind::Strips => key!("nav-title-strips"),
         NavKind::Cables => key!("nav-title-cables"),
         NavKind::Plc => key!("nav-title-plc"),
+        NavKind::PlcGrid => key!("nav-title-plc-grid"),
         NavKind::Potentials => key!("nav-title-potentials"),
         NavKind::Ips => key!("nav-title-ips"),
         NavKind::Structure => key!("nav-title-structure"),
@@ -87,10 +88,11 @@ impl PaneKind {
     /// The panes of the bottom dock (D14): they share one tab group below the page view (the
     /// Messages navigator is one of them, the Preview tab, the history panel and the
     /// glossary pane).
-    pub const BOTTOM: [PaneKind; 6] = [
+    pub const BOTTOM: [PaneKind; 7] = [
         PaneKind::Find,
         PaneKind::Jobs,
         PaneKind::Navigator(NavKind::Messages),
+        PaneKind::Navigator(NavKind::PlcGrid),
         PaneKind::Preview,
         PaneKind::History,
         PaneKind::Glossary,
@@ -242,6 +244,25 @@ impl Layout {
                 ],
             },
         }
+    }
+
+    /// The layout of a workspace the program ships (`settings::BUILT_IN_WORKSPACES`), `None` for any other name.
+    pub fn built_in(name: &str) -> Option<Layout> {
+        match name {
+            crate::settings::DEFAULT_WORKSPACE => Some(Layout::schematic()),
+            "PLC" => Some(Layout::plc()),
+            _ => None,
+        }
+    }
+
+    /// The PLC workspace (doc 16 §2.6, doc 10 §6): the Schematic layout with the PLC navigator shown in the left
+    /// column's navigator group and the PLC grid in the bottom dock (650 : 350 of the page view's height). Properties
+    /// stays under the navigator, as in every workspace (doc 16a §5.4).
+    pub fn plc() -> Layout {
+        Layout::schematic()
+            .with_navigator(PaneKind::Navigator(NavKind::Plc))
+            .showing(PaneKind::Navigator(NavKind::Plc))
+            .with_bottom(PaneKind::Navigator(NavKind::PlcGrid))
     }
 
     /// The layout with the property grid (View ▸ Properties): under the left column that holds the Pages pane,

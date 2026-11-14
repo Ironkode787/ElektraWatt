@@ -252,3 +252,57 @@ fn the_grid_columns_and_routes() {
     }
     assert!(t.columns[0].key_column);
 }
+
+/// FT-737, FT-738, FT-739: the station's bus port under it with the net as every channel's `bus:` facet; a rack level
+/// once a module has an authored rack, the module keeping its key; the data type, signal range and safety cells and
+/// the `safety` flag after the edits that set them; the PLC grid shows the PLC navigator's rows and columns.
+#[test]
+fn racks_bus_ports_the_new_columns_and_facets() {
+    let mut s = common::golden_session();
+    let t = s.navigator_table(NavKind::Plc);
+    let station = t.nodes.iter().position(|n| n.role == NavRole::Station).unwrap();
+    let ports: Vec<&NavNode> = t
+        .nodes
+        .iter()
+        .filter(|n| n.role == NavRole::BusPort && n.parent == u32::try_from(station).ok())
+        .collect();
+    assert_eq!(ports.len(), 1, "-201U1's DP port");
+    assert_eq!(ports[0].label, "DP · PROFIBUS DP");
+    assert!(!ports[0].table_row);
+    assert_eq!(with(&t, "bus", "profibus-dp").len(), 56, "every channel of the station");
+    assert!(t.nodes.iter().all(|n| n.role != NavRole::Rack), "positional slots: no rack");
+    assert!(with(&t, "safety", "").is_empty());
+
+    let u5 = channel(&t, "-201U5", 0).clone();
+    let module_key = t.nodes[u5.parent.unwrap() as usize].key.clone();
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [u5.records[1].to_string()], "path": "plc_module.slot",
+            "value": {"rack": {"rack": 1, "slot": 3}}}),
+    );
+    let u3 = channel(&t, "-201U3", 0).clone();
+    set(&mut s, &[&u3], "data_type", json!("Bool"));
+    set(&mut s, &[&u3], "signal_range", json!("24 V DC"));
+    set(&mut s, &[&u3], "safety", json!({"evaluation": "1oo2", "requirement": "SIL 2"}));
+    let t = s.navigator_table(NavKind::Plc);
+    let rack = t.nodes.iter().find(|n| n.role == NavRole::Rack).expect("rack 1");
+    assert_eq!(rack.label, "Rack 1");
+    let moved = channel(&t, "-201U5", 0);
+    let module = &t.nodes[moved.parent.unwrap() as usize];
+    assert_eq!(module.key, module_key, "the module's key is stable");
+    assert_eq!(t.nodes[module.parent.unwrap() as usize].role, NavRole::Rack);
+    assert_eq!(cell(&t, moved, "rack"), "1");
+    assert_eq!(cell(&t, moved, "slot"), "1.3");
+    let u3 = channel(&t, "-201U3", 0);
+    assert_eq!(cell(&t, u3, "data_type"), "Bool");
+    assert_eq!(cell(&t, u3, "signal_range"), "24 V DC");
+    assert_eq!(cell(&t, u3, "safety"), "1oo2 · SIL 2");
+    let safe: Vec<&str> = with(&t, "safety", "").iter().map(|n| n.key.as_str()).collect();
+    assert_eq!(safe, [u3.key.as_str()]);
+
+    let grid = s.navigator_table(NavKind::PlcGrid);
+    assert_eq!(grid.kind, NavKind::PlcGrid);
+    assert_eq!(grid.columns, t.columns);
+    assert_eq!(grid.nodes, t.nodes);
+}

@@ -75,39 +75,43 @@ msgstr ""
 msgid "Draw a panel layout"
 msgstr ""
 
-#: src/SUMMARY.md:24 src/how-to/upgrade-a-project.md:1
+#: src/SUMMARY.md:24 src/how-to/plc-workspace.md:1
+msgid "Work in the PLC workspace"
+msgstr ""
+
+#: src/SUMMARY.md:25 src/how-to/upgrade-a-project.md:1
 msgid "Upgrade a project"
 msgstr ""
 
-#: src/SUMMARY.md:26 src/SUMMARY.md:28 src/reference/index.md:1
+#: src/SUMMARY.md:27 src/SUMMARY.md:29 src/reference/index.md:1
 msgid "Reference"
 msgstr ""
 
-#: src/SUMMARY.md:29 src/reference/window/tools.md:1
+#: src/SUMMARY.md:30 src/reference/window/tools.md:1
 msgid "Tools"
 msgstr ""
 
-#: src/SUMMARY.md:30 src/reference/window/dialogs.md:1
+#: src/SUMMARY.md:31 src/reference/window/dialogs.md:1
 msgid "Dialogs"
 msgstr ""
 
-#: src/SUMMARY.md:31 src/reference/window/panels.md:1
+#: src/SUMMARY.md:32 src/reference/window/panels.md:1
 msgid "Panels"
 msgstr ""
 
-#: src/SUMMARY.md:32 src/reference/symbol-editor.md:1
+#: src/SUMMARY.md:33 src/reference/symbol-editor.md:1
 msgid "Symbol editor and automated authoring"
 msgstr ""
 
-#: src/SUMMARY.md:34 src/SUMMARY.md:36 src/explanation/index.md:1
+#: src/SUMMARY.md:35 src/SUMMARY.md:37 src/explanation/index.md:1
 msgid "Explanation"
 msgstr ""
 
-#: src/SUMMARY.md:37 src/explanation/eplan-and-ew.md:1
+#: src/SUMMARY.md:38 src/explanation/eplan-and-ew.md:1
 msgid "EPLAN and EW"
 msgstr ""
 
-#: src/SUMMARY.md:38 src/explanation/qet-and-ew.md:1
+#: src/SUMMARY.md:39 src/explanation/qet-and-ew.md:1
 msgid "QElectroTech and EW"
 msgstr ""
 
@@ -1892,17 +1896,19 @@ msgstr ""
 msgid ""
 "The project view is a dock: drag the border between two panes to resize "
 "them, and drag a pane's title onto another pane to rearrange or tab it. The "
-"built-in workspace is **Schematic**. **View, Workspace** lists the saved "
-"workspaces, saves the current layout under a name and resets the layout. A "
-"workspace is a file `workspaces/<name>.json` in the configuration directory; "
-"the layout is saved a second after its last change."
+"program ships three workspaces: **Schematic**, **PLC** (see [Work in the PLC "
+"workspace](plc-workspace.md)) and **Fluid power**. **View ▸ Workspaces** "
+"lists them and the saved workspaces, saves the current layout under a name "
+"and resets the layout (a shipped workspace to its own layout). A workspace "
+"is a file `workspaces/<name>.json` in the configuration directory; the "
+"layout is saved a second after its last change."
 msgstr ""
 
-#: src/how-to/application-window.md:71
+#: src/how-to/application-window.md:72
 msgid "First-run setup"
 msgstr ""
 
-#: src/how-to/application-window.md:73
+#: src/how-to/application-window.md:74
 msgid ""
 "On the first start the application asks for the language and what you come "
 "from (EPLAN, QElectroTech, KiCad or other), says what it does with your data "
@@ -1912,11 +1918,11 @@ msgid ""
 "First-run setup** runs it again. Nothing in it makes a network connection."
 msgstr ""
 
-#: src/how-to/application-window.md:78
+#: src/how-to/application-window.md:79
 msgid "Company-standard wizard"
 msgstr ""
 
-#: src/how-to/application-window.md:80
+#: src/how-to/application-window.md:81
 msgid ""
 "The wizard collects the conventions of your company and writes a **basic "
 "project**, from which new projects start. It has ten steps: the company, the "
@@ -1930,11 +1936,11 @@ msgid ""
 "to a directory you choose and becomes the default for **New project**."
 msgstr ""
 
-#: src/how-to/application-window.md:88
+#: src/how-to/application-window.md:89
 msgid "About"
 msgstr ""
 
-#: src/how-to/application-window.md:90
+#: src/how-to/application-window.md:91
 msgid ""
 "**Help, About ElektraWatt** shows the version, the page-view renderer, the "
 "privacy state, the licence, the engineering-verification disclaimer, the "
@@ -2849,6 +2855,80 @@ msgstr ""
 msgid ""
 "The tools are described one by one in the [tool "
 "reference](../reference/window/tools.md): Place device, Rail and Duct."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:3
+msgid ""
+"The PLC workspace shows a project's PLC configuration beside its pages: the "
+"PLC navigator in the left column, the page in the middle and the PLC grid, "
+"every channel as a row of a table, in the bottom dock. It is the place to "
+"address cards, bind channels and check what each channel drives."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:7
+msgid "Open it"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:9
+msgid ""
+"Choose **View ▸ Workspaces ▸ PLC**. The left column shows the PLC navigator "
+"and the bottom dock the PLC grid; Properties stays under the navigator. "
+"**View ▸ Workspaces ▸ Schematic** goes back; a change you make to the layout "
+"is kept for the workspace."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:13
+msgid "The PLC navigator"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:15
+msgid ""
+"The tree runs from the configuration project to its stations (a CPU, a head "
+"station, a valve terminal), their racks once a module has a rack position, "
+"their modules and each module's channels, with the station's bus ports after "
+"its modules. Selecting a row selects the device or channel on the page "
+"shown; a drawable on another page is a chip at the top of the canvas that "
+"opens it."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:19
+msgid ""
+"Drag a channel's row onto a connection point of a card pin or a coil to bind "
+"it. A device wired off the card, or a valve beside a valve terminal, is "
+"attached to the card and bound in one step; one Undo takes both back."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:21
+msgid ""
+"In a project with two CPUs a new card joins neither and is listed under "
+"**Cards without a CPU**. Right-click the CPU that takes it and choose "
+"**Attach cards without a CPU**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:24
+msgid "The PLC grid"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:26
+msgid ""
+"Each row of the grid is a channel. Type in a cell to change a channel's "
+"designation, address, symbol, state, target, comment, data type or signal "
+"range; the slot cell takes a number or `<rack>.<slot>`. Safety data is "
+"edited in Properties."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:29
+msgid ""
+"Type in the grid's filter to narrow the rows: a word of a cell, or one of "
+"`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
+"`config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's "
+"header sorts by it, a second click reverses the order."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:33
+msgid ""
+"The panels are described in the [panel "
+"reference](../reference/window/panels.md): PLC and PLC grid."
 msgstr ""
 
 #: src/how-to/upgrade-a-project.md:3
@@ -4098,89 +4178,124 @@ msgstr ""
 #: src/reference/window/panels.md:104
 msgid ""
 "The PLC configuration projects, stations, modules and channels, with their "
-"addresses. A right click on a station or a module offers what a device's row "
-"offers; on a channel, Go to its place and Properties of selection."
+"addresses. A station lists its modules under their racks once a module has a "
+"rack position, and its bus ports after its modules. A right click on a "
+"station or a module offers what a device's row offers; on a channel, Go to "
+"its place and Properties of selection."
 msgstr ""
 
-#: src/reference/window/panels.md:107
+#: src/reference/window/panels.md:108
+msgid ""
+"A card that no CPU takes (a project with two CPUs leaves a new card on "
+"neither) is listed under **Cards without a CPU**. A right click on a CPU's "
+"row offers **Attach cards without a CPU**, which makes them that CPU's "
+"modules in one step."
+msgstr ""
+
+#: src/reference/window/panels.md:112
+msgid ""
+"The filter takes the words `spare`, `unplaced`, `unassigned`, `tbd`, "
+"`duplicate` and `safety` (a channel or module with safety data), "
+"`config:<name>` for a configuration project and `bus:<net>` for the bus net "
+"of a station's port, its name written with hyphens for spaces "
+"(`bus:profibus-dp`)."
+msgstr ""
+
+#: src/reference/window/panels.md:116
+msgid "PLC grid"
+msgstr ""
+
+#: src/reference/window/panels.md:118
+msgid ""
+"The PLC navigator's channels as a table, in the bottom dock of the [PLC "
+"workspace](../../how-to/plc-workspace.md): address, target, symbol, function "
+"text, designation, module, channel, kind, data type, signal range, safety, "
+"process tag, state, the page it is placed on, station, rack, slot and "
+"comment. The designation, address, symbol, state, target, comment, data type "
+"and signal range are edited in their cells, the slot in its cell as a number "
+"or `<rack>.<slot>`; a channel's safety data is edited in Properties. Its "
+"filter takes the PLC navigator's words."
+msgstr ""
+
+#: src/reference/window/panels.md:124
 msgid "Potentials"
 msgstr ""
 
-#: src/reference/window/panels.md:109
+#: src/reference/window/panels.md:126
 msgid ""
 "The potentials with their definitions and members. See [Define a supply "
 "potential](../../how-to/define-supply-potential.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:112
+#: src/reference/window/panels.md:129
 msgid "Interruption points"
 msgstr ""
 
-#: src/reference/window/panels.md:114
+#: src/reference/window/panels.md:131
 msgid "The interruption points grouped by name, with their partners."
 msgstr ""
 
-#: src/reference/window/panels.md:116
+#: src/reference/window/panels.md:133
 msgid "Structure identifiers"
 msgstr ""
 
-#: src/reference/window/panels.md:118
+#: src/reference/window/panels.md:135
 msgid "The function and location nodes of the project's structure."
 msgstr ""
 
-#: src/reference/window/panels.md:120
+#: src/reference/window/panels.md:137
 msgid "Parts in use"
 msgstr ""
 
-#: src/reference/window/panels.md:122
+#: src/reference/window/panels.md:139
 msgid ""
 "The parts the project uses, with their devices. See [Choose "
 "parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:124
+#: src/reference/window/panels.md:141
 msgid "Report blocks"
 msgstr ""
 
-#: src/reference/window/panels.md:126
+#: src/reference/window/panels.md:143
 msgid ""
 "The report blocks: the generated pages such as the terminal diagram, the "
 "cable list and the parts list. See [Reports and "
 "PDF](../../tutorials/reports-and-pdf.md)."
 msgstr ""
 
-#: src/reference/window/panels.md:129
+#: src/reference/window/panels.md:146
 msgid "Unplaced devices"
 msgstr ""
 
-#: src/reference/window/panels.md:131
+#: src/reference/window/panels.md:148
 msgid ""
 "The devices of each layout space that have no place on a rail or the plate "
 "yet."
 msgstr ""
 
-#: src/reference/window/panels.md:133
+#: src/reference/window/panels.md:150
 msgid "Macros"
 msgstr ""
 
-#: src/reference/window/panels.md:135
+#: src/reference/window/panels.md:152
 msgid "The macros of every library tier and of the project."
 msgstr ""
 
-#: src/reference/window/panels.md:137
+#: src/reference/window/panels.md:154
 msgid "Libraries"
 msgstr ""
 
-#: src/reference/window/panels.md:139
+#: src/reference/window/panels.md:156
 msgid ""
 "The installed libraries and the project's library copies with their state."
 msgstr ""
 
-#: src/reference/window/panels.md:141
+#: src/reference/window/panels.md:158
 msgid "Messages"
 msgstr ""
 
-#: src/reference/window/panels.md:143
+#: src/reference/window/panels.md:160
 msgid ""
 "The findings of the project's checks, by severity and rule. Check ▸ Next "
 "finding and Check ▸ Previous finding walk them; Help ▸ Documentation on a "

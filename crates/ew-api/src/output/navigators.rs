@@ -61,6 +61,8 @@ pub enum NavKind {
     Cables,
     /// PLC (part 2).
     Plc,
+    /// The PLC grid: the PLC navigator's channels as a table in the bottom dock (doc 16 §2.6, the PLC workspace).
+    PlcGrid,
     /// Potentials (part 2).
     Potentials,
     /// Interruption points (part 2).
@@ -83,13 +85,14 @@ pub enum NavKind {
 
 impl NavKind {
     /// The kinds in menu order.
-    pub const ALL: [NavKind; 15] = [
+    pub const ALL: [NavKind; 16] = [
         NavKind::Pages,
         NavKind::Devices,
         NavKind::Connections,
         NavKind::Strips,
         NavKind::Cables,
         NavKind::Plc,
+        NavKind::PlcGrid,
         NavKind::Potentials,
         NavKind::Ips,
         NavKind::Structure,
@@ -110,6 +113,7 @@ impl NavKind {
             NavKind::Strips => "strips",
             NavKind::Cables => "cables",
             NavKind::Plc => "plc",
+            NavKind::PlcGrid => "plc_grid",
             NavKind::Potentials => "potentials",
             NavKind::Ips => "ips",
             NavKind::Structure => "structure",
@@ -125,6 +129,19 @@ impl NavKind {
     /// The kind of a word.
     pub fn from_word(w: &str) -> Option<NavKind> {
         NavKind::ALL.into_iter().find(|k| k.word() == w)
+    }
+
+    /// The navigator whose rows and columns this one shows: the PLC grid the PLC navigator's, every other its own.
+    pub fn source(self) -> NavKind {
+        match self {
+            NavKind::PlcGrid => NavKind::Plc,
+            k => k,
+        }
+    }
+
+    /// Whether the navigator is a table of the bottom dock that opens in table mode (the PLC grid).
+    pub fn bottom_table(self) -> bool {
+        matches!(self, NavKind::PlcGrid)
     }
 }
 
@@ -161,10 +178,14 @@ pub enum NavRole {
     ConfigProject,
     /// A PLC station.
     Station,
+    /// A rack of a PLC station.
+    Rack,
     /// A PLC module.
     Module,
     /// A PLC channel.
     Channel,
+    /// A bus port: a function with the `bus_port` aspect, under its station or in the bus navigator.
+    BusPort,
     /// A name group (interruption points).
     Name,
     /// An interruption point.
@@ -214,8 +235,10 @@ impl NavRole {
             NavRole::Conductor => "conductor",
             NavRole::ConfigProject => "plc_config_project",
             NavRole::Station => "station",
+            NavRole::Rack => "rack",
             NavRole::Module => "module",
             NavRole::Channel => "channel",
+            NavRole::BusPort => "bus_port",
             NavRole::Name => "name",
             NavRole::Ip => "ip",
             NavRole::StructureNode => "structure_node",
@@ -430,7 +453,7 @@ fn kind_columns(kind: &str) -> Vec<NavColumn> {
 
 /// The editable columns of table mode (D10): (navigator, column key, route kind, route path).
 /// Every other column is read-only.
-const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
+const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 32] = [
     (NavKind::Pages, "title", "page", "title"),
     (NavKind::Pages, "type", "page", "kind"),
     (NavKind::Devices, "function_text", "device", "function_text"),
@@ -470,6 +493,10 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
     (NavKind::Plc, "state", "channel", "state"),
     (NavKind::Plc, "target", "channel", "target"),
     (NavKind::Plc, "comment", "channel", "comment"),
+    // FT-737: a channel's data type and signal range in the cell; its safety data in Properties (the cell says so).
+    (NavKind::Plc, "data_type", "channel", "data_type"),
+    (NavKind::Plc, "signal_range", "channel", "signal_range"),
+    (NavKind::Plc, "safety", "channel", "safety"),
     (NavKind::Structure, "designation", "structure_node", "code"),
     (
         NavKind::Structure,
@@ -482,7 +509,7 @@ const EDITABLE_COLUMNS: [(NavKind, &str, &str, &str); 29] = [
 /// The derived columns (§8.2): cells the derivation computes from other records rather than a
 /// field of the row's record (a connection's or terminal's potential, the folios a row is drawn on, counts). Drawn
 /// italic in table mode and read-only with the reason "derived".
-const DERIVED_COLUMNS: [(NavKind, &str); 17] = [
+const DERIVED_COLUMNS: [(NavKind, &str); 18] = [
     (NavKind::Pages, "changed_in"),
     (NavKind::Connections, "potential"),
     (NavKind::Cables, "potential"),
@@ -497,6 +524,8 @@ const DERIVED_COLUMNS: [(NavKind, &str); 17] = [
     (NavKind::Plc, "function_text"),
     (NavKind::Plc, "process_tag"),
     (NavKind::Plc, "placed_on"),
+    // The rack is the module's slot's (edited in the Slot cell).
+    (NavKind::Plc, "rack"),
     // The Unplaced devices navigator's cells are the device's tag and its primary part's data.
     (NavKind::Unplaced, "device"),
     (NavKind::Unplaced, "part"),
@@ -513,6 +542,8 @@ const STRIP_CELLS: [(&str, super::strip_edit::StripCell); 3] = [
 
 /// The columns of a navigator (§6.6, §7.1) with the routes of §8.2's table and the derived flags.
 fn columns_of(kind: NavKind) -> Vec<NavColumn> {
+    // The PLC grid has the PLC navigator's columns.
+    let kind = kind.source();
     let mut columns = plain_columns_of(kind);
     for c in &mut columns {
         if kind == NavKind::Strips
@@ -543,7 +574,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             .map(|(i, k)| column(k, &key_label(k), i == 0, None))
             .collect()
     };
-    match kind {
+    match kind.source() {
         NavKind::Pages => vec![
             column("folio", "Folio", true, None),
             column("title", "Title", false, None),
@@ -577,7 +608,7 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             c
         }
         // The PLC grid's own columns; the first, Address, is the key column.
-        NavKind::Plc => PLC_COLUMNS
+        NavKind::Plc | NavKind::PlcGrid => PLC_COLUMNS
             .iter()
             .enumerate()
             .map(|(i, (k, l))| column(k, l, i == 0, None))
@@ -723,7 +754,7 @@ impl Session {
             NavKind::Connections => connections_table(&q, &mut b),
             NavKind::Strips => strips_table(&q, &mut b),
             NavKind::Cables => cables_table(&q, &mut b),
-            NavKind::Plc => plc_table(&q, &mut b),
+            NavKind::Plc | NavKind::PlcGrid => plc_table(&q, &mut b),
             NavKind::Potentials => potentials_table(&q, &mut b),
             NavKind::Ips => ips_table(&q, &mut b),
             NavKind::Structure => structure_table(&q, &mut b),
@@ -739,21 +770,13 @@ impl Session {
         b.finish(kind, rev)
     }
 
-    /// The short tags of the PLC cards that wait for a CPU, in natural order: the devices with `plc_module` and no
-    /// station, which the PLC table cannot list because a card is listed under its station (FT-926).
-    pub fn plc_cards_without_cpu(&self) -> Vec<String> {
-        let q = self.query();
-        let mut out: Vec<(NaturalKey, String)> = q
-            .devices()
-            .iter()
-            .filter(|(id, d)| d.aspects.plc_module.is_some() && ew_derive::station_of(&q, *id).is_none())
-            .map(|(id, _)| {
-                let tag = short_tag(&q, id);
-                (natural_key(&tag), tag)
-            })
-            .collect();
-        out.sort();
-        out.into_iter().map(|(_, t)| t).collect()
+    /// The PLC cards that wait for a CPU with their short tags, in natural order: the devices with `plc_module` and
+    /// no station (FT-926), which the PLC table lists under "Cards without a CPU" while it has a station (FT-1672).
+    pub fn plc_cards_without_cpu(&self) -> Vec<(Uuid, String)> {
+        cards_without_cpu(&self.query())
+            .into_iter()
+            .map(|(id, tag)| (id.as_uuid(), tag))
+            .collect()
     }
 
     /// The Messages table of the migration report (d, T11): the tree of [`Session::navigator_table`]'s
@@ -2003,11 +2026,10 @@ fn cables_table(q: &Q, b: &mut Builder) {
     }
 }
 
-/// The PLC grid's columns (FR-PLC-021): the members of PBF §2.8 that the model has. Rack, data
-/// type, safety and signal range have no member yet and are left out. The address is the key column and the
-/// target, symbol and function text follow it, so that a grid at the default rail width shows what a channel is
-/// and what it drives; station, slot and comment come last.
-const PLC_COLUMNS: [(&str, &str); 14] = [
+/// The PLC grid's columns (FR-PLC-021, PBF §2.8). The address is the key column and the target, symbol and
+/// function text follow it, so that a grid at the default rail width shows what a channel is and what it drives; the
+/// data type, signal range and safety data follow the kind (FT-737); station, rack, slot and comment come last.
+const PLC_COLUMNS: [(&str, &str); 18] = [
     ("address", "Address"),
     ("target", "Target"),
     ("symbol", "Symbol"),
@@ -2016,10 +2038,14 @@ const PLC_COLUMNS: [(&str, &str); 14] = [
     ("module", "Module"),
     ("channel", "Channel"),
     ("kind", "Kind"),
+    ("data_type", "Data type"),
+    ("signal_range", "Signal range"),
+    ("safety", "Safety"),
     ("process_tag", "Process tag"),
     ("state", "State"),
     ("placed_on", "Placed on"),
     ("station", "Station"),
+    ("rack", "Rack"),
     ("slot", "Slot"),
     ("comment", "Comment"),
 ];
@@ -2091,12 +2117,15 @@ fn duplicate_channels(
     out
 }
 
-/// PLC (FR-PLC-020, FR-PLC-021): configuration project → station (its role word as the badge) → module →
-/// channel, from `plc_rows(station)` in slot and channel order. Configuration projects sort by name (natural, then ID),
-/// stations by their tag (natural, as the PLC overview lists them). A channel row carries the grid's cells
-/// ([`PLC_COLUMNS`]), the badges `spare` and `unplaced` (no binding), and the facets `kind`, `state`, `page`,
-/// `config:<name>` and the flags `unassigned` (no address: excluded or not derivable), `spare`, `unplaced`, `tbd` (an
-/// open address) and `duplicate` ([`duplicate_channels`]). Racks and bus ports wait for their records.
+/// PLC (FR-PLC-020, FR-PLC-021): configuration project → station (its role word as the badge) → rack (only where a
+/// module of the station has an authored rack) → module → channel, from `plc_rows(station)` in slot and channel
+/// order, and the station's bus ports after its modules (FT-739: the functions with a `bus_port` of the station and
+/// of the devices under it). Configuration projects sort by name (natural, then ID), stations by their tag (natural,
+/// as the PLC overview lists them). A channel row carries the grid's cells ([`PLC_COLUMNS`]), the badges `spare` and
+/// `unplaced` (no binding), and the facets `kind`, `state`, `page`, `config:<name>`, `bus:<net>` per logical net of
+/// its station's bus ports (FT-738; the net's name with hyphens for spaces) and the flags `unassigned` (no address:
+/// excluded or not derivable), `spare`, `unplaced`, `tbd` (an open address), `duplicate` ([`duplicate_channels`]) and
+/// `safety` (safety data on the channel or its module, FT-738).
 fn plc_table(q: &Q, b: &mut Builder) {
     use ew_derive::ew_schema::{Channel, PlcConfigProject};
     use ew_derive::{ChannelAddr, EffectiveState, PlcRows};
@@ -2129,6 +2158,35 @@ fn plc_table(q: &Q, b: &mut Builder) {
     cfgs.sort();
     let ids: Vec<Id<PlcConfigProject>> = cfgs.iter().map(|(_, c, _)| *c).collect();
     let duplicates = duplicate_channels(q, &ids);
+    // The cards that wait for a CPU, listed after the configuration projects while the project has a station
+    // (FT-1672: a project with two CPUs leaves a new card on none); without one the empty state names them.
+    if !cfgs.is_empty() {
+        let cards = cards_without_cpu(q);
+        if !cards.is_empty() {
+            let group = group(
+                b,
+                None,
+                NavRole::Section,
+                "cards:none",
+                "Cards without a CPU".to_owned(),
+            );
+            for (card, tag) in cards {
+                let drawables = device_drawables(q, &folios, card);
+                let facets = base_facets(NavRole::Module, &drawables);
+                b.push(
+                    Some(group),
+                    NavRole::Module,
+                    &format!("module:{}", card.as_uuid()),
+                    tag,
+                    Vec::new(),
+                    vec![card.as_uuid()],
+                    drawables,
+                    None,
+                    facets,
+                );
+            }
+        }
+    }
     for (_, cfg, name) in cfgs {
         let config = ("config".to_owned(), name.clone());
         let cnode = b.push(
@@ -2168,17 +2226,74 @@ fn plc_table(q: &Q, b: &mut Builder) {
                 None,
                 facets,
             );
+            let ports = station_bus_ports(q, station);
+            // The logical nets of the station's ports: every channel row of the station carries `bus:<net>`, the
+            // net's name in lower case with its spaces as hyphens, so that one word types it (`bus:profibus-dp`).
+            let mut buses: Vec<(String, String)> = ports
+                .iter()
+                .filter_map(|(_, p)| p.logical_net)
+                .filter_map(|n| {
+                    q.table::<ew_derive::ew_schema::LogicalNet>()
+                        .get(n)
+                        .map(|n| n.name.to_string())
+                })
+                .map(|name| {
+                    (
+                        "bus".to_owned(),
+                        name.to_lowercase()
+                            .split_whitespace()
+                            .collect::<Vec<_>>()
+                            .join("-"),
+                    )
+                })
+                .collect();
+            buses.sort();
+            buses.dedup();
+            let rows = q.get::<PlcRows>(station);
+            // A rack level only where a module has an authored rack position.
+            let racked = rows
+                .iter()
+                .any(|r| matches!(r.slot, ew_derive::Slot::Rack { .. }));
+            let mut racks: BTreeMap<u16, u32> = BTreeMap::new();
             let mut modules: BTreeMap<Uuid, u32> = BTreeMap::new();
-            for r in q.get::<PlcRows>(station).iter() {
+            for r in rows.iter() {
                 let module_tag = short_tag(q, r.module);
+                let module_record = q.devices().get(r.module);
+                let module_safety = module_record
+                    .and_then(|d| d.aspects.plc_module.as_ref())
+                    .is_some_and(|m| m.safety.is_some());
                 let mnode = match modules.get(&r.module.as_uuid()) {
                     Some(n) => *n,
                     None => {
+                        let parent = match r.slot {
+                            ew_derive::Slot::Rack { rack, .. } if racked => {
+                                *racks.entry(rack).or_insert_with(|| {
+                                    let mut facets =
+                                        vec![("kind".to_owned(), NavRole::Rack.word().to_owned())];
+                                    facets.push(config.clone());
+                                    b.push(
+                                        Some(snode),
+                                        NavRole::Rack,
+                                        &format!("rack:{rack}"),
+                                        format!("Rack {rack}"),
+                                        Vec::new(),
+                                        Vec::new(),
+                                        Vec::new(),
+                                        None,
+                                        facets,
+                                    )
+                                })
+                            }
+                            _ => snode,
+                        };
                         let drawables = device_drawables(q, &folios, r.module);
                         let mut facets = base_facets(NavRole::Module, &drawables);
                         facets.push(config.clone());
+                        if module_safety {
+                            facets.push(("safety".to_owned(), String::new()));
+                        }
                         let n = b.push(
-                            Some(snode),
+                            Some(parent),
                             NavRole::Module,
                             &format!("module:{}", r.module.as_uuid()),
                             module_tag.clone(),
@@ -2188,6 +2303,10 @@ fn plc_table(q: &Q, b: &mut Builder) {
                             None,
                             facets,
                         );
+                        // A module's key stays its station's path, with or without a rack level, so that it is
+                        // stable when a slot is first authored.
+                        b.nodes[n as usize].key =
+                            format!("{}/module:{}", b.nodes[snode as usize].key, r.module.as_uuid());
                         modules.insert(r.module.as_uuid(), n);
                         n
                     }
@@ -2202,10 +2321,15 @@ fn plc_table(q: &Q, b: &mut Builder) {
                     .rep
                     .and_then(|rep| drawable(q, &folios, rep, true))
                     .map(|(_, d)| d);
-                let comment = channel_table
-                    .get(r.channel)
+                let record = channel_table.get(r.channel);
+                let comment = record
                     .map(|c| super::properties::neutral_or_first(&c.comment))
                     .unwrap_or_default();
+                let safety = record.and_then(|c| c.safety.as_ref()).map(safety_text);
+                let rack = match r.slot {
+                    ew_derive::Slot::Rack { rack, .. } => rack.to_string(),
+                    _ => String::new(),
+                };
                 // In the order of `PLC_COLUMNS`.
                 let cells: Vec<String> = vec![
                     address.clone(),
@@ -2220,10 +2344,14 @@ fn plc_table(q: &Q, b: &mut Builder) {
                     module_tag.clone(),
                     r.number.to_string(),
                     channel_kind_word(&r.kind).to_owned(),
+                    r.data_type.clone().unwrap_or_default(),
+                    r.signal_range.clone().unwrap_or_default(),
+                    safety.clone().unwrap_or_default(),
                     r.text.process_tag.clone().unwrap_or_default(),
                     r.state.name().to_owned(),
                     page.as_ref().map(Drawable::place).unwrap_or_default(),
                     station_tag.clone(),
+                    rack,
                     slot_text(&r.slot),
                     comment,
                 ];
@@ -2234,6 +2362,7 @@ fn plc_table(q: &Q, b: &mut Builder) {
                     ("state".to_owned(), r.state.name().to_lowercase()),
                     config.clone(),
                 ];
+                facets.extend(buses.iter().cloned());
                 if r.state == EffectiveState::Spare {
                     badges.push("spare".to_owned());
                     facets.push(("spare".to_owned(), String::new()));
@@ -2251,6 +2380,9 @@ fn plc_table(q: &Q, b: &mut Builder) {
                 }
                 if duplicates.contains(&ch) {
                     facets.push(("duplicate".to_owned(), String::new()));
+                }
+                if safety.is_some() || module_safety {
+                    facets.push(("safety".to_owned(), String::new()));
                 }
                 if let Some(d) = &page {
                     facets.push(("page".to_owned(), d.folio.to_lowercase()));
@@ -2278,8 +2410,109 @@ fn plc_table(q: &Q, b: &mut Builder) {
                     select: Vec::new(),
                 });
             }
+            for (f, port) in &ports {
+                push_bus_port(q, b, &folios, snode, *f, port, &config);
+            }
         }
     }
+}
+
+/// The PLC cards without a station, by their short tags (natural order).
+fn cards_without_cpu(q: &Q) -> Vec<(Id<Device>, String)> {
+    let mut out: Vec<(NaturalKey, Id<Device>, String)> = q
+        .devices()
+        .iter()
+        .filter(|(id, d)| d.aspects.plc_module.is_some() && ew_derive::station_of(q, *id).is_none())
+        .map(|(id, _)| {
+            let tag = short_tag(q, id);
+            (natural_key(&tag), id, tag)
+        })
+        .collect();
+    out.sort();
+    out.into_iter().map(|(_, id, tag)| (id, tag)).collect()
+}
+
+/// A channel's safety data as the grid's Safety cell prints it: the evaluation, then the requirement (`1oo2 · SIL 2`).
+fn safety_text(s: &ew_derive::ew_schema::SafetyChannel) -> String {
+    use ew_derive::ew_schema::Evaluation;
+    let evaluation = match &s.evaluation {
+        Evaluation::OneOoOne => "1oo1",
+        Evaluation::OneOoTwo => "1oo2",
+        Evaluation::Unknown(_) => "?",
+    };
+    match &s.requirement {
+        Some(r) => format!("{evaluation} · {r}"),
+        None => evaluation.to_owned(),
+    }
+}
+
+/// The bus ports of a station (FT-739): the functions with a `bus_port` of the station device and of every device
+/// under it, by (interface, port label, ID).
+fn station_bus_ports(q: &Q, station: Id<Device>) -> Vec<(Id<Function>, ew_derive::ew_schema::BusPort)> {
+    let mut devices = vec![station];
+    let mut at = 0;
+    while let Some(d) = devices.get(at).copied() {
+        at += 1;
+        for c in q.idx().device_children(d) {
+            if !devices.contains(&c) {
+                devices.push(c);
+            }
+        }
+    }
+    let idx = q.idx();
+    let mut out: Vec<(NaturalKey, Id<Function>, ew_derive::ew_schema::BusPort)> = devices
+        .iter()
+        .flat_map(|d| idx.functions_of_device(*d))
+        .filter_map(|f| {
+            let port = q.functions().get(f)?.bus_port.clone()?;
+            Some((natural_key(&bus_port_label(&port)), f, port))
+        })
+        .collect();
+    out.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
+    out.into_iter().map(|(_, f, p)| (f, p)).collect()
+}
+
+/// A bus port's label: its interface and port label (`X1 P1R`), then its bus system (`DP · PROFIBUS DP`).
+fn bus_port_label(port: &ew_derive::ew_schema::BusPort) -> String {
+    let name = match &port.port_label {
+        Some(l) => format!("{} {l}", port.interface),
+        None => port.interface.to_string(),
+    };
+    format!("{name} · {}", ew_reports::bus_word(&port.bus))
+}
+
+/// One bus-port row under `parent` (the station's in the PLC navigator, a net's in the bus navigator): the port's
+/// label, its function as the record, its drawables (the port symbol's), the facets `kind:bus_port` and `config`.
+fn push_bus_port(
+    q: &Q,
+    b: &mut Builder,
+    folios: &BTreeMap<Id<Page>, (usize, String, Uuid)>,
+    parent: u32,
+    f: Id<Function>,
+    port: &ew_derive::ew_schema::BusPort,
+    config: &(String, String),
+) -> u32 {
+    let drawables = sorted(
+        q.idx()
+            .reps_of_function(f)
+            .filter_map(|r| drawable(q, folios, r, true))
+            .collect(),
+    );
+    let mut facets = base_facets(NavRole::BusPort, &drawables);
+    facets.push(config.clone());
+    let n = b.push(
+        Some(parent),
+        NavRole::BusPort,
+        &format!("bus_port:{}", f.as_uuid()),
+        bus_port_label(port),
+        Vec::new(),
+        vec![f.as_uuid()],
+        drawables,
+        None,
+        facets,
+    );
+    b.nodes[n as usize].kinds = vec!["function".to_owned()];
+    n
 }
 
 /// Potentials (§7.1): the potential overview's rows, each with the physical-wire rows of the wire list whose potential
@@ -3344,7 +3577,13 @@ mod tests {
                 ("device", "plc_module.slot"),
             ]
             .contains(&(kind, path));
-            assert!(scalar(&spec.ty) || typed, "{kind}.{path}: {}", spec.ty.word());
+            // A channel's safety data is a structure: its cell says to edit it in the property grid (FT-737).
+            let in_grid = (kind, path) == ("channel", "safety");
+            assert!(
+                scalar(&spec.ty) || typed || in_grid,
+                "{kind}.{path}: {}",
+                spec.ty.word()
+            );
             assert_eq!(
                 spec.identifier,
                 identifiers.contains(&(kind, path)),
@@ -3362,7 +3601,7 @@ mod tests {
             for c in columns_of(nav) {
                 let listed = EDITABLE_COLUMNS
                     .iter()
-                    .any(|(n, k, _, _)| *n == nav && *k == c.key);
+                    .any(|(n, k, _, _)| *n == nav.source() && *k == c.key);
                 match (listed, c.derived) {
                     (true, _) => assert!(c.route.is_some(), "{nav:?}.{}", c.key),
                     (false, true) => {

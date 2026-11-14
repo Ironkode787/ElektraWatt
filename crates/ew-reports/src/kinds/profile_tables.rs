@@ -58,6 +58,11 @@ impl ReportKindDef for ProfileTables {
         "profile_tables"
     }
 
+    /// Embedded on a drawn page only.
+    fn page_oriented(&self) -> bool {
+        false
+    }
+
     fn columns(&self) -> Vec<ColumnDef> {
         vec![
             ColumnDef::new("voltage_class", CellType::Text, "Voltage class"),

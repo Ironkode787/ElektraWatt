@@ -66,8 +66,12 @@ pub const ORIGINS: [&str; 4] = ["eplan", "qet", "kicad", "other"];
 /// The values of `canvas_backend`: the switch rule decides (`auto`, the default), or always the CPU canvas (`cpu`).
 pub const CANVAS_BACKENDS: [&str; 2] = ["auto", "cpu"];
 
-/// The name of the built-in workspace (doc 16 section 2.6) and the default of `workspace`.
+/// The name of the Schematic workspace (doc 16 section 2.6) and the default of `workspace`.
 pub const DEFAULT_WORKSPACE: &str = "Schematic";
+
+/// The workspaces the program ships (doc 16 §2.6), each with its layout (`Layout::built_in`) and its label
+/// (`workspace-<name>` in lower case).
+pub const BUILT_IN_WORKSPACES: [&str; 2] = [DEFAULT_WORKSPACE, "PLC"];
 
 /// The settings.
 #[derive(Clone, PartialEq, Debug)]

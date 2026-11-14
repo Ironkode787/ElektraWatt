@@ -5,7 +5,9 @@
 //! project view, the workspace files `workspaces/<name>.json` in the configuration directory, and the actions that
 //! load, save and reset them.
 //!
-//! The built-in workspace is Schematic (the page list and the page view). The active workspace's file is rewritten
+//! The built-in workspaces are Schematic (the page list and the page view), PLC and Fluid (doc 16 §2.6,
+//! `Layout::built_in`); a built-in workspace without a file has its layout, and a saved file of its name replaces it.
+//! The active workspace's file is rewritten
 //! one second after the last layout change (`persist_layout_if_due`, driven by the frame's clock) and at shutdown.
 //! A workspace file is only written in the configuration directory; a headless run without one writes nothing.
 
@@ -16,7 +18,7 @@ use serde_json::{Map, Value};
 use super::{Dialog, Mode, Outcome, ShellModel, failed, string_param};
 use crate::key;
 use crate::layout::Layout;
-use crate::settings::{DEFAULT_WORKSPACE, valid_workspace_name};
+use crate::settings::{BUILT_IN_WORKSPACES, valid_workspace_name};
 use crate::strings;
 
 /// How long after the last layout change the workspace file is written, in seconds (doc 16 section 3.4).
@@ -52,9 +54,9 @@ impl ShellModel {
         &self.panes.workspace
     }
 
-    /// The workspaces the user can switch to: Schematic first, then the saved ones by name.
+    /// The workspaces the user can switch to: the built-in ones first, then the saved ones by name.
     pub fn workspace_names(&self) -> Vec<String> {
-        let mut names = vec![DEFAULT_WORKSPACE.to_owned()];
+        let mut names: Vec<String> = BUILT_IN_WORKSPACES.iter().map(|n| (*n).to_owned()).collect();
         if let Some(dir) = self.workspaces_dir()
             && let Ok(entries) = std::fs::read_dir(&dir)
         {
@@ -66,7 +68,7 @@ impl ShellModel {
                         .then(|| path.file_stem().map(|s| s.to_string_lossy().into_owned()))
                         .flatten()
                 })
-                .filter(|n| valid_workspace_name(n) && n != DEFAULT_WORKSPACE)
+                .filter(|n| valid_workspace_name(n) && !BUILT_IN_WORKSPACES.contains(&n.as_str()))
                 .collect();
             saved.sort();
             names.extend(saved);
@@ -89,8 +91,7 @@ impl ShellModel {
         let file = self.workspaces_dir().map(|d| d.join(format!("{name}.json")));
         let text = match file.as_ref().map(std::fs::read_to_string) {
             Some(Ok(text)) => text,
-            _ if name == DEFAULT_WORKSPACE => return Ok(Layout::schematic()),
-            _ => return Err(ReadError::Missing),
+            _ => return Layout::built_in(name).ok_or(ReadError::Missing),
         };
         Layout::parse(&text)
             .map(|(_, layout)| layout)
@@ -185,7 +186,8 @@ impl ShellModel {
     }
 
     pub(crate) fn act_workspace_reset(&mut self) -> Outcome {
-        self.panes.layout = Layout::schematic();
+        // A built-in workspace goes back to its own layout, a saved one to Schematic's.
+        self.panes.layout = Layout::built_in(&self.panes.workspace).unwrap_or_else(Layout::schematic);
         self.panes.version += 1;
         // The reset layout is the active workspace's from now on: it is written like any change.
         self.panes.changed_at = Some(f64::NEG_INFINITY);

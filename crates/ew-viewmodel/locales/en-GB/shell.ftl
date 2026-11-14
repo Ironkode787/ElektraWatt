@@ -2033,6 +2033,9 @@ describe-item = item { $p0 } "{ $p1 }"
 
 # Part 2: menus, actions and reasons.
 submenu-workspace = Workspace
+workspace-schematic = Schematic
+workspace-plc = PLC
+workspace-fluid = Fluid power
 action-file-new = New project…
 action-file-open-sample = Open sample project
 action-file-import-qet = Import QElectroTech project…
@@ -2296,6 +2299,10 @@ column-process-tag = Process tag
 column-placed-on = Placed on
 column-station = Station
 column-slot = Slot
+column-rack = Rack
+column-data-type = Data type
+column-signal-range = Signal range
+column-safety = Safety
 column-comment = Comment
 column-voltage = Voltage
 column-class = Class
@@ -3151,10 +3158,12 @@ action-navigator-jump = Jump to row
 
 # WP-S2.07 §8: a channel dragged from the PLC navigator onto a connection point.
 action-navigator-bind = Bind channel
+action-plc-attach-cards = Attach cards without a CPU
 reason-drop-on-cp = Drop the channel on a connection point
 
 # FX38d: a CP off the channel's card, refused in words before the commit.
 reason-bind-off-card = The connection point is not on the channel's card: a channel binds a pin of its card or the coil of a valve on it
+reason-no-cards-without-cpu = No PLC card waits for a CPU
 
 # FT-753: the words say what to do.
 toast-bind-off-card = { $p0 } is not on the card { $p1 }: wire { $p0 } to a pin of { $p1 } first; the channel binds the card's pin.
@@ -3166,7 +3175,8 @@ toast-bind-wired-pins = { $p0 } is wired to { $p2 } pins of { $p1 } ({ $p3 }): d
 toast-bind-no-position = { $p0 } cannot go on the valve terminal { $p1 }: no valve position is free, or { $p0 } sits on another assembly.
 toast-bind-done = Bound { $p0 } to { $p1 }.
 toast-bind-wired = Bound { $p0 } to { $p1 }, where { $p2 } is wired.
-toast-bind-attached = Attached { $p0 } to { $p1 } at position { $p2 } and bound { $p3 } to { $p4 } (two undo steps).
+toast-bind-attached = Attached { $p0 } to { $p1 } at position { $p2 } and bound { $p3 } to { $p4 }.
+toast-cards-attached = Attached { $p0 } to { $p1 }.
 
 # FT-757: a channel the bind unbound (FR-PLC-005), appended to the bind's toast.
 toast-bind-displaced = ; { $p0 } was bound there and is now unbound
@@ -3367,6 +3377,7 @@ nav-title-connections = Connections
 nav-title-strips = Terminal strips
 nav-title-cables = Cables
 nav-title-plc = PLC
+nav-title-plc-grid = PLC grid
 nav-title-potentials = Potentials
 nav-title-ips = Interruption points
 nav-title-structure = Structure identifiers
@@ -3432,7 +3443,9 @@ nav-mode-structure = By structure
 nav-sort-folio = Sort by folio
 nav-sort-type = Sort by type
 nav-front-matter = Front matter
+nav-plc-no-cpu = Cards without a CPU
 nav-section = Section { $p0 } - { $p1 }
+nav-rack = Rack { $p0 }
 # FT-1338 (ID-1392): a function's kind in the navigators, the words of ew-api's KIND_WORDS.
 kind-words-decoration = Decoration
 kind-words-overview = Overview
@@ -4261,6 +4274,7 @@ choice-page = Page
 choice-pages = Pages
 choice-parts = Parts
 choice-plc = Plc
+choice-plc-grid = Plc grid
 choice-potentials = Potentials
 choice-project = Project
 choice-section = Section

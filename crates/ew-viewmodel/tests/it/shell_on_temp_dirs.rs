@@ -2042,14 +2042,17 @@ fn workspaces_are_files_in_the_configuration_directory() {
     let ws_dir = tmp.0.join("config/workspaces");
     let mut shell = tmp.shell();
     assert_eq!(shell.workspace(), "Schematic");
-    assert_eq!(shell.workspace_names(), ["Schematic"]);
+    let built_in = ew_viewmodel::settings::BUILT_IN_WORKSPACES;
+    assert_eq!(shell.workspace_names(), built_in);
     let before = shell.layout().clone();
     // Save the layout as a named workspace; the file is the layout's text.
     done(&mut shell, "view.workspace_save", json!({"name": "Review"}));
     assert_eq!(shell.workspace(), "Review");
     let text = std::fs::read_to_string(ws_dir.join("Review.json")).unwrap();
     assert_eq!(text, before.to_json("Review"));
-    assert_eq!(shell.workspace_names(), ["Schematic", "Review"]);
+    let mut names: Vec<&str> = built_in.to_vec();
+    names.push("Review");
+    assert_eq!(shell.workspace_names(), names);
     assert_eq!(shell.settings().workspace, "Review");
     // Another layout, as a user drag would make it, is written one second after its last change.
     let tabbed = ew_viewmodel::layout::Layout {

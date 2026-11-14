@@ -83,7 +83,8 @@ fn logical_nets(q: &Q) -> Vec<Id<LogicalNet>> {
     nets.into_iter().map(|(_, id)| id).collect()
 }
 
-fn bus_word(b: &BusSystem) -> &'static str {
+/// A bus system's name as the lists and the window print it (a proper name, the same in every language).
+pub fn bus_word(b: &BusSystem) -> &'static str {
     match b {
         BusSystem::ProfibusDp => "PROFIBUS DP",
         BusSystem::Profinet => "PROFINET",

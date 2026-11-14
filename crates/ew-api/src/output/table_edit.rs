@@ -759,7 +759,7 @@ pub fn rows_word_key(kind: NavKind, n: usize) -> &'static str {
             ew_commands::text_key!("table-row-cables"),
             ew_commands::text_key!("table-rows-cables"),
         ),
-        NavKind::Plc => (
+        NavKind::Plc | NavKind::PlcGrid => (
             ew_commands::text_key!("table-row-plc"),
             ew_commands::text_key!("table-rows-plc"),
         ),

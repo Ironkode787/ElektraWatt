@@ -90,7 +90,7 @@ impl ShellModel {
                 }
             }
         };
-        if kind != NavKind::Messages && !TABLE_NAVIGATORS.contains(&kind) {
+        if kind != NavKind::Messages && !TABLE_NAVIGATORS.contains(&kind.source()) {
             return Err(key!("reason-table-no-file"));
         }
         Ok(kind)
@@ -126,7 +126,7 @@ impl ShellModel {
         };
         let key = match strip {
             Some(id) => format!("nav:strips/{id}"),
-            None => format!("nav:{}", kind.word()),
+            None => format!("nav:{}", kind.source().word()),
         };
         let row_keys = rows
             .iter()

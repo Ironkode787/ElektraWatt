@@ -69,6 +69,9 @@ pub(crate) struct TableUi {
     chooser_active: usize,
     /// The grid's width last frame (a resize re-fills the capped columns).
     pane_width: Option<f32>,
+    /// The key of the column the rows were sorted by last frame: a new sort column re-sizes it and the old one, so that
+    /// a header keeps its whole word beside its sort icon (FT-776).
+    sorted_by: Option<String>,
     /// How the cursor's column is aligned again in the next frame, when the scroll that brought it into
     /// view left it cut by the frozen key column (or, while it fits, by the grid's right edge).
     realign: Option<egui::Align>,
@@ -182,14 +185,23 @@ impl TableUi {
         let resized = self.pane_width.is_some_and(|w| (w - area.width()).abs() > 0.5);
         self.pane_width = Some(area.width());
         let max = column_max(&tokens, area.width());
+        let sorted_by = match &nav.sort {
+            SortBy::Column(k) => Some(k.clone()),
+            SortBy::Label | SortBy::Order => None,
+        };
+        let resorted = std::mem::replace(&mut self.sorted_by, sorted_by.clone());
+        let resorted = (resorted != sorted_by).then_some((resorted, sorted_by));
         let columns: Vec<Column> = shown
             .iter()
             .map(|c| {
                 let key = &table.columns[*c].key;
+                let sort_changed = resorted
+                    .as_ref()
+                    .is_some_and(|(old, new)| old.as_ref() == Some(key) || new.as_ref() == Some(key));
                 Column::new(tokens.size_table_column)
                     .range(tokens.size_table_column_min..=max)
                     .id(column_id(key))
-                    .auto_size_this_frame(resized && capped(kind, key))
+                    .auto_size_this_frame((resized && capped(kind, key)) || sort_changed)
             })
             .collect();
         let mut t = Table::new()
@@ -811,7 +823,7 @@ fn cell_rect(
 /// push the Terminal column out of a narrow pane, and the Pages table's Folio, as short, and the PLC grid's
 /// Address, Channel and Slot, short texts too, so that Target and Symbol fit the default rail width.
 fn start_width(t: &Tokens, kind: NavKind, key: &str) -> f32 {
-    let plc_short = kind == NavKind::Plc && matches!(key, "address" | "channel" | "slot");
+    let plc_short = kind.source() == NavKind::Plc && matches!(key, "address" | "channel" | "slot" | "rack");
     // The Unplaced devices table's short texts fit their content, so that Part gives way first.
     let unplaced_short = kind == NavKind::Unplaced && matches!(key, "device" | "size" | "mount");
     if key == "pos" || (kind == NavKind::Pages && key == "folio") || plc_short || unplaced_short {

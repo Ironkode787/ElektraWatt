@@ -534,25 +534,17 @@ impl ShellModel {
             .into_iter()
             .filter_map(|o| pr.session.channel_words(o))
             .collect();
-        if let Some((device, _, card, _, position)) = &attach {
-            let cmd = ew_api::AnyCommand {
-                name: "assembly.attach".into(),
-                params: json!({
-                    "parent": card.to_string(),
-                    "children": [{"device": device.to_string(), "position": position}],
-                }),
-            };
-            let out = self.run_commit(&cmd);
-            if out != Outcome::Done {
-                return out;
-            }
+        // A device wired off the card is attached to it by the same command, one undo step (FT-774).
+        let mut params = json!({
+            "channel": channel,
+            "endpoint": {"cp": {"function": target.0.to_string(), "idx": target.1}},
+        });
+        if let Some((_, _, _, _, position)) = &attach {
+            params["attach_at"] = json!(position);
         }
         let cmd = ew_api::AnyCommand {
             name: "plc.bind_channel".into(),
-            params: json!({
-                "channel": channel,
-                "endpoint": {"cp": {"function": target.0.to_string(), "idx": target.1}},
-            }),
+            params,
         };
         let out = self.run_commit(&cmd);
         if out != Outcome::Done {
@@ -574,8 +566,7 @@ impl ShellModel {
                 strings::format(key!("toast-bind-displaced"), &[d])
             );
         }
-        // An attachment and a bind are two undo steps: that toast offers no Undo of only the second.
-        self.notify(text, attach.is_none());
+        self.notify(text, true);
         Outcome::Done
     }
 

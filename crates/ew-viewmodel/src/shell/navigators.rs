@@ -223,7 +223,10 @@ impl ShellModel {
     /// cards' tags and how to place a CPU; `None` without such a card (FT-926: the panel read "No PLC cards yet" with
     /// a card drawn, because a card is listed under its CPU).
     pub fn plc_empty(&self) -> Option<(String, String)> {
-        let cards = self.project.as_ref()?.session.plc_cards_without_cpu();
+        let cards: Vec<String> = (self.project.as_ref()?.session.plc_cards_without_cpu())
+            .into_iter()
+            .map(|(_, tag)| tag)
+            .collect();
         (!cards.is_empty()).then(|| {
             (
                 crate::strings::text(key!("empty-nav-plc-no-cpu")).to_owned(),
@@ -944,8 +947,8 @@ impl ShellModel {
             k => PaneKind::Navigator(k),
         };
         if on {
-            // The Messages navigator docks in the bottom dock, the others beside the Pages pane.
-            let layout = if kind == NavKind::Messages {
+            // The Messages navigator and the tables of the bottom dock dock there, the others beside the Pages pane.
+            let layout = if PaneKind::BOTTOM.contains(&pane) {
                 self.layout().with_bottom(pane)
             } else {
                 // A navigator already docked becomes the shown tab of its group.
@@ -1724,7 +1727,8 @@ fn library_in_words(node: &mut NavNode, tier: Option<usize>, access: Option<usiz
 /// message as the Messages detail renders it (`ew_api::checks::messages`). The badges keep their codes; the
 /// rows word them ([`super::macros::badge_word`]).
 pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &super::Project) {
-    let nav = table.kind.word();
+    // The PLC grid's texts are the PLC navigator's.
+    let nav = table.kind.source().word();
     for c in &mut table.columns {
         let key = c.key.replace('_', "-");
         if let Some(text) = strings::lookup(&format!("column-{nav}-{key}"))
@@ -1853,12 +1857,20 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             .or_else(|| segment.strip_prefix("section:"));
         if section == Some("front") {
             node.label = strings::text(key!("nav-front-matter")).to_owned();
+        } else if segment == "cards:none" {
+            node.label = strings::text(key!("nav-plc-no-cpu")).to_owned();
         } else if let Some(n) = section
             && let Some(title) = node.label.strip_prefix(&format!("Section {n} - "))
         {
             node.label = strings::format(key!("nav-section"), &[n, title]);
         }
         match node.role {
+            // A station's rack (`Rack 0`), by its number.
+            NavRole::Rack => {
+                if let Some(n) = node.key.rsplit('/').next().and_then(|s| s.strip_prefix("rack:")) {
+                    node.label = strings::format(key!("nav-rack"), &[n]);
+                }
+            }
             NavRole::Accessory => {
                 let english = node.label.clone();
                 let words = ew_api::output::ACCESSORY_KINDS

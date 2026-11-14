@@ -227,27 +227,13 @@ static STRIP_NEW: Spec = Spec {
     fields: &[field("tag", key!("form-tag"))],
 };
 
-/// The report kinds Output ▸ Reports ▸ Report block… adds: the page-oriented kinds of `ReportKind`, in its
-/// order (the embedded ones, profile tables and part data, sit on a drawn page and are not offered).
-pub const REPORT_KINDS: &[&str] = &[
-    "toc",
-    "structure_overview",
-    "parts_summary",
-    "parts_list",
-    "device_list",
-    "terminal_diagram",
-    "terminal_overview",
-    "cable_overview_diagrams",
-    "wire_list",
-    "plc_overview",
-    "io_list",
-    "potential_overview",
-    "revision_overview",
-    "open_items",
-    "numbering_report",
-    "enclosure_legend",
-    "check_report",
-];
+/// The report kinds Output ▸ Reports ▸ Report block… adds: every registered kind whose blocks fill pages of their own
+/// (`ew_api::output::page_report_kinds`, FT-1726), ordered by their words in the UI language.
+pub fn report_kinds() -> Vec<&'static str> {
+    let mut kinds = ew_api::output::page_report_kinds();
+    kinds.sort_by_cached_key(|k| report_kind_words(k).to_lowercase());
+    kinds
+}
 
 /// Output ▸ Reports ▸ Report block…, its kind offered in words.
 static REPORT_NEW: Spec = Spec {
@@ -1082,12 +1068,15 @@ impl ShellModel {
                     }
                     let mut dialog = REPORT_NEW.dialog(&filled);
                     if let Some(f) = dialog.fields.iter_mut().find(|f| f.name == "kind") {
-                        f.options = REPORT_KINDS
+                        let kinds = report_kinds();
+                        f.options = kinds
                             .iter()
                             .map(|k| ((*k).to_owned(), report_kind_words(k)))
                             .collect();
-                        if f.value.is_empty() {
-                            REPORT_KINDS[0].clone_into(&mut f.value);
+                        if f.value.is_empty()
+                            && let Some(first) = kinds.first()
+                        {
+                            (*first).clone_into(&mut f.value);
                         }
                     }
                     return self.open_dialog(Dialog::Form(dialog));
@@ -1095,8 +1084,9 @@ impl ShellModel {
                 return self.form_missing(&REPORT_NEW, p, name);
             }
         }
-        if !REPORT_KINDS.contains(&kind.as_str()) {
-            let words: Vec<String> = REPORT_KINDS.iter().map(|k| report_kind_words(k)).collect();
+        let kinds = report_kinds();
+        if !kinds.contains(&kind.as_str()) {
+            let words: Vec<String> = kinds.iter().map(|k| report_kind_words(k)).collect();
             return self.form_failed(
                 REPORT_NEW.action,
                 strings::format(key!("error-report-kind"), &[&kind, &words.join(", ")]),

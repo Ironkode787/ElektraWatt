@@ -136,6 +136,7 @@ fn open_navigator(h: &mut Harness<'_, App>, kind: NavKind) {
         | NavKind::Strips
         | NavKind::Cables
         | NavKind::Plc
+        | NavKind::PlcGrid
         | NavKind::Potentials
         | NavKind::Ips
         | NavKind::Structure
