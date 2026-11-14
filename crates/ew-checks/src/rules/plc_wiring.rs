@@ -453,8 +453,9 @@ pub const SLOT_RULES: RuleMeta = RuleMeta {
     docs: "reference/rules/ew-plc-011",
 };
 
-/// EW-PLC-011: over the modules of a station, a module in a slot its part does not allow (`PlcSection.allowed_slots`,
-/// discriminator `slot`, target the module), more modules than the station's part allows (`limits.max_modules`,
+/// EW-PLC-011: over the modules of a station, two modules in one slot (a rack slot of rack 0 and a positional module's
+/// number are one slot; discriminator `occupied`, target both), a module in a slot its part does not allow
+/// (`PlcSection.allowed_slots`, discriminator `slot`, target the module), more modules than the station's part allows (`limits.max_modules`,
 /// `max_modules`), and more input or output bytes than it allows (`limits.max_input_bytes`, `max_output_bytes`;
 /// discriminators `input` and `output`; target the station; an IO-Link master counts the bytes of its ports' windows,
 /// `module_io`). The station itself counts as a module when it carries the aspect. Its prevent half refuses the edit
@@ -474,6 +475,41 @@ impl Rule for SlotRules {
         let modules = station_modules(q, station);
         let tag = full_tag(q, station, "the station");
         let mut out = Vec::new();
+        // One module per slot: a positional module's number is a slot of rack 0.
+        let mut held: std::collections::BTreeMap<(u16, u32, Option<u16>), Id<Device>> = Default::default();
+        for (module, slot) in &modules {
+            let at = match *slot {
+                Slot::Rack { rack, slot, subslot } => (rack, u32::from(slot), subslot),
+                Slot::Positional(n) => (0, n, None),
+                Slot::Unresolved => continue,
+            };
+            let Some(other) = held.get(&at).copied() else {
+                held.insert(at, *module);
+                continue;
+            };
+            let (first, second) = (full_tag(q, other, "a module"), full_tag(q, *module, "a module"));
+            let number = if at.0 == 0 {
+                at.1.to_string()
+            } else {
+                format!("{}.{}", at.0, at.1)
+            };
+            out.push(
+                Finding::new(
+                    &SLOT_RULES,
+                    [Target::new(Kind::Device, other), Target::new(Kind::Device, *module)],
+                    "occupied",
+                    format!("{first} {second}"),
+                    format!(
+                        "{first} and {second} sit in the same slot {number} of {tag}; move one of them to a free slot"
+                    ),
+                )
+                .arg("form", "occupied")
+                .arg("module", first)
+                .arg("other", second)
+                .arg("slot", number)
+                .arg("station", tag.clone()),
+            );
+        }
         let (mut input, mut output) = (0u64, 0u64);
         for (module, slot) in &modules {
             let Some((copy, plc)) = module_part(q, *module) else {

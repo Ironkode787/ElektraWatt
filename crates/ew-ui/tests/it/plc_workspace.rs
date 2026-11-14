@@ -310,6 +310,58 @@ fn modules_are_added_in_the_rack_and_slot_editor() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The rack and slot editor's slots take the dialog's height at 1920 × 1080: with twenty-two modules the free slot's
+/// Add here stands inside the window, above the dialog's footer; a slot a module holds is refused in words under the
+/// slots and adds nothing.
+#[test]
+fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let tmp = Tmp::new();
+    let mut h = new_project_with_cpu(&tmp);
+    let station = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == NavRole::Station.word())
+        .expect("the CPU's row");
+    h.get_by_label(&station.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Rack and slots…").click();
+    settle(&mut h);
+    let id = match h.state().shell().dialog() {
+        Some(Dialog::Rack { station, .. }) => *station,
+        other => panic!("{other:?}"),
+    };
+    for slot in 1..=22 {
+        dispatch(&mut h, "plc.rack_add", json!({ "slot": slot }));
+    }
+    settle(&mut h);
+    let modules = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
+        let view = h.state().shell().rack_view(id).expect("the rack");
+        view.rows.iter().filter(|r| r.module.is_some()).count()
+    };
+    assert_eq!(modules(&h), 22);
+    let add = h.get_by_label("Add here 23").rect();
+    let close = support::menu_node(&h, "Close").rect();
+    assert!(
+        add.top() >= 0.0 && add.bottom() <= close.top(),
+        "Add here {add:?} is out of sight above the footer {close:?}"
+    );
+    let refused = h
+        .state_mut()
+        .shell_mut()
+        .dispatch("plc.rack_add", &json!({ "slot": 3 }));
+    assert!(
+        matches!(refused, ew_ui::ew_viewmodel::shell::Outcome::Failed { .. }),
+        "{refused:?}"
+    );
+    settle(&mut h);
+    assert_eq!(modules(&h), 22, "a taken slot adds nothing");
+    h.get_by_label_contains("Slot 3 holds");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FR-PLC-028 on Golden A: the valve terminal's editor lists its seven modules in manifold order, each with its valve
 /// positions, beside the stored order codes, and no EW-PLC-011 finding.
 #[test]

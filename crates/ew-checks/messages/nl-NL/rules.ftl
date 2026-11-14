@@ -582,13 +582,14 @@ rule-ew-plc-010 = { $channel }: het gegevenstype { $data_type } ({ $bits } bit) 
     .hint = Geef het kanaal een gegevenstype dat even breed is als het kanaal.
 
 rule-ew-plc-011 = { $form ->
+        [occupied] { WORD($module) } en { WORD($other) } zitten in hetzelfde slot { $slot } van { WORD($station) }; verplaats een van beide naar een vrij slot
         [slot] { WORD($module) } zit in slot { $slot } van { WORD($station) }, maar zijn artikel { $part } staat slots { $allowed } toe; verplaats het naar een toegestaan slot
         [max_modules] { WORD($station) } heeft { $have } modules, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
         [input] { WORD($station) } heeft { $have } ingangsbytes, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
        *[output] { WORD($station) } heeft { $have } uitgangsbytes, meer dan de { $limit } die zijn artikel toestaat; verwijder modules
     }
     .title = Slotregels
-    .hint = Plaats elke module in een slot dat zijn artikel toestaat, en houd het station binnen zijn grenzen.
+    .hint = Plaats elke module in een eigen slot dat zijn artikel toestaat, en houd het station binnen zijn grenzen.
 
 rule-ew-plc-013 = { $form ->
         [fe] { $cp_shared ->

@@ -74,8 +74,20 @@ pub(crate) fn rack(
             .font(small_strong(&t))
             .color(t.text_secondary.color32())
     };
-    ScrollArea::vertical()
-        .max_height(ui.ctx().content_rect().height() * 0.5)
+    // The slots take the dialog's height: the window's, less what stands above them in the dialog, its margins, and
+    // the findings, the refusal and the footer below them; the scroll bar shows whenever rows are out of sight. The
+    // rows' height of the last frame is the list's least height, so the centred dialog takes its size at once rather
+    // than growing by what it gains below the slots each frame.
+    let above = ui.cursor().top() - ui.min_rect().top();
+    let lines = view.findings.len().max(1) + usize::from(error.is_some());
+    let below = t.size_row * (lines as f32 + 2.0) + 4.0 * t.space_5;
+    let room = (ui.ctx().content_rect().height() - above - below).max(t.size_row * 4.0);
+    let rows_id = egui::Id::new(("rack-rows-height", station));
+    let rows = ui.data(|d| d.get_temp::<f32>(rows_id)).unwrap_or(0.0);
+    let list = ScrollArea::vertical()
+        .max_height(room)
+        .min_scrolled_height(rows.min(room).max(t.size_row))
+        .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
         .show(ui, |ui| {
             egui::Grid::new("rack-slots")
                 .num_columns(5)
@@ -177,6 +189,7 @@ pub(crate) fn rack(
                     }
                 });
         });
+    ui.data_mut(|d| d.insert_temp(rows_id, list.content_size.y));
     // EW-PLC-011, live: each finding with the error icon and word, or the line that the slots meet the rules.
     let lang = strings::rule_language();
     if view.findings.is_empty() {

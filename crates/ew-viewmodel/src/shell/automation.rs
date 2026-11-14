@@ -183,6 +183,24 @@ impl ShellModel {
             .get("rack")
             .and_then(Value::as_u64)
             .and_then(|s| u16::try_from(s).ok());
+        // Only a free slot the editor offers takes a module: a taken one names its module, in words under the slots.
+        let view = self.rack_view(station);
+        let rows = view.as_ref().map_or(&[][..], |v| v.rows.as_slice());
+        let at = |r: &&ew_api::output::RackRow| u32::from(slot) == r.slot && rack.unwrap_or(0) == r.rack;
+        if !rows.iter().any(|r| r.module.is_none() && at(&r)) {
+            let shown = match rack.filter(|r| *r > 0) {
+                Some(r) => format!("{r}.{slot}"),
+                None => slot.to_string(),
+            };
+            let why = match rows.iter().find(|r| r.module.is_some() && at(r)) {
+                Some(taken) => strings::format(key!("rack-slot-taken"), &[&shown, &taken.tag]),
+                None => strings::format(key!("rack-slot-not-free"), &[&shown]),
+            };
+            if let Some(crate::shell::Dialog::Rack { error, .. }) = &mut self.dialog {
+                *error = Some(why.clone());
+            }
+            return Outcome::Failed { message: why };
+        }
         let Some(part) = self.rack_part() else {
             return Outcome::refused(key!("reason-rack-no-part"));
         };

@@ -772,7 +772,7 @@ both 1.0, so it follows at 1.x (Could).
 | EW-PLC-008 | Used channel without address | A used channel without an address | completeness | o x r | warning (export: error) | module | MVP | FR-PLC-044 | D-26 | 10 §3.10 |
 | EW-PLC-009 | Channel without connection | A channel with address or symbol but no connection that is not a spare | completeness | o r | warning | module | 1.0 | FR-PLC-046 | — | 10 §3.10 |
 | EW-PLC-010 | Data-type width mismatch | The data-type width differs from the channel width (Bool on a 16-bit AI) | conflict | o r | error | module | 1.0 | FR-PLC-046 | — | 10 §3.10 |
-| EW-PLC-011 | Slot rules | A module in a disallowed slot; `Max_Module`; maximum I/O length | conflict | p o r | error | station | 1.0 | FR-PLC-028 | — | 10 §3.10 |
+| EW-PLC-011 | Slot rules | Two modules in one slot; a module in a disallowed slot; `Max_Module`; maximum I/O length | conflict | p o r | error | station | 1.0 | FR-PLC-028 | — | 10 §3.10 |
 | EW-PLC-012 | Binding differs from the part map | A binding or address differs from the part's address map (discriminators `binding` and `manual`); supersedes EW-NUM-002 for addresses | conflict | o r | error | module | MVP | FR-PLC-045 | D-26; EF-02 (28 under map H1, 0 under H2) | 10 §3.10 |
 | EW-PLC-013 | Card supply wrong | A card supply group unconnected or fed from a wrong potential type (FE on PE); supersedes EW-POT-003 for PLC supply CPs | conflict | o r | warning | station | 1.0 | FR-PLC-048 | D-16; EF-22 | 10 §3.10 |
 | EW-PLC-014 | Output load exceeds rating | Summed output load (coil power from part data) above the channel, group, module or feeding-channel rating | safety | f r | warning | station | 1.0 | FR-PLC-048 | D-25; EF-24 | 10 §3.10 |

@@ -585,13 +585,14 @@ rule-ew-plc-010 = { $channel }: the data type { $data_type } ({ $bits } bit(s)) 
     .hint = Give the channel a data type as wide as the channel.
 
 rule-ew-plc-011 = { $form ->
+        [occupied] { WORD($module) } and { WORD($other) } sit in the same slot { $slot } of { WORD($station) }; move one of them to a free slot
         [slot] { WORD($module) } sits in slot { $slot } of { WORD($station) }, but its part { $part } allows slots { $allowed }; move it to an allowed slot
         [max_modules] { WORD($station) } has { $have } modules, more than the { $limit } its part allows; remove modules
         [input] { WORD($station) } has { $have } input bytes, more than the { $limit } its part allows; remove modules
        *[output] { WORD($station) } has { $have } output bytes, more than the { $limit } its part allows; remove modules
     }
     .title = Slot rules
-    .hint = Put each module in a slot its part allows, and keep the station within its limits.
+    .hint = Put each module in a slot of its own that its part allows, and keep the station within its limits.
 
 rule-ew-plc-013 = { $form ->
         [fe] { $cp_shared ->

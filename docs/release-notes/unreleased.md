@@ -634,3 +634,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   against its own PDF reports no deviation (M3 whole review)
 - behaviour-change: an imported QElectroTech element's static text stands on QET's baseline, a descent lower than
   before, where QET's own PDF has it (FT-1746)
+- behaviour-change: EW-PLC-011 finds two modules in one slot (a positional module's number is a slot of rack 0) and
+  its prevent half refuses `plc.add_module` into a taken slot; the rack and slot editor's Add here takes only a free
+  slot it offers and names the module of a taken one; its slots take the dialog's height with the scroll bar shown
+  (M3 whole review)

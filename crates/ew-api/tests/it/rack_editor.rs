@@ -115,6 +115,31 @@ fn a_module_in_a_slot_its_part_does_not_allow_is_refused() {
     assert_eq!(s.world().rev, rev, "nothing committed");
 }
 
+/// `plc.add_module {slot: 3}` on the valve terminal, whose third positional module is -201U5: refused by EW-PLC-011,
+/// which names both modules, and nothing is committed.
+#[test]
+fn a_module_into_a_slot_another_module_holds_is_refused() {
+    let mut s = golden_allowing(&[]);
+    let rev = s.world().rev;
+    let station = station(&s);
+    let copy = s
+        .module_parts()
+        .into_iter()
+        .find(|p| p.text.starts_with("533361"))
+        .expect("the module part")
+        .copy;
+    let err = s
+        .execute(&AnyCommand {
+            name: "plc.add_module".into(),
+            params: json!({"station": station.to_string(), "slot": 3,
+                "part": {"part": {"copy": copy.to_string()}, "qty": "1"}}),
+        })
+        .expect_err("slot 3 holds -201U5");
+    let err = format!("{err}");
+    assert!(err.contains("-201U5") && err.contains("the same slot 3"), "{err}");
+    assert_eq!(s.world().rev, rev, "nothing committed");
+}
+
 #[test]
 fn a_part_that_is_no_module_is_refused_in_words() {
     let mut s = golden_allowing(&[]);
