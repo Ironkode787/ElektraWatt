@@ -688,6 +688,59 @@ fn a_conflict_shows_its_default_and_never_offers_what_cannot_be_taken() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The PLC import's preview tries Apply: a file that gives -201U4 the start of -201U3 shows Apply's refusal (EW-PLC-001)
+/// above the tabs and on the start's row, before Apply is pressed; "The file is complete" makes the preview again with
+/// the file complete.
+#[test]
+fn the_import_preview_says_what_apply_refuses_and_takes_the_file_complete() {
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    let exported = tmp.0.join("plc.aml");
+    dispatch(
+        &mut h,
+        "plc.export",
+        json!({"format": "aml-1.4.0", "path": exported.to_string_lossy()}),
+    );
+    let text = std::fs::read_to_string(&exported).expect("the export");
+    let at = text.find("Name=\"-201U4\"").expect("-201U4 in the file");
+    let start = "<Attribute Name=\"StartAddress\" AttributeDataType=\"xs:int\">\n                <Value>1</Value>";
+    let offset = text[at..].find(start).expect("-201U4's start") + at;
+    let overlapping = format!(
+        "{}{}{}",
+        &text[..offset],
+        start.replace("<Value>1</Value>", "<Value>0</Value>"),
+        &text[offset + start.len()..]
+    );
+    let file = tmp.0.join("overlap.aml");
+    std::fs::write(&file, overlapping).expect("the file");
+    dispatch(&mut h, "plc.import", json!({"path": file.to_string_lossy()}));
+    settle(&mut h);
+    let card = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| match h.state().shell().dialog() {
+        Some(Dialog::PlcImport(card)) => (**card).clone(),
+        other => panic!("{other:?}"),
+    };
+    let shown = card(&h);
+    let why = shown.refusal.clone().expect("Apply's refusal in the preview");
+    assert!(
+        shown.changes.iter().any(|c| c.refused.as_deref() == Some(why.as_str())),
+        "the start's row is marked: {:?}",
+        shown.changes
+    );
+    assert_eq!(
+        h.get_all_by_label(&why).count(),
+        2,
+        "above the tabs and under the start's row"
+    );
+    assert!(!shown.complete);
+    h.get_by_label_contains("The file is complete").click();
+    settle(&mut h);
+    assert!(card(&h).complete, "the preview made again with the file complete");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// A settings form's action called with some of its values keeps the others: a value left out is the stored one, and
 /// only an empty text clears it (Symbol policy…, Mode and safety…, Fluid settings…). Fluid settings… offers the
 /// format's tube materials.

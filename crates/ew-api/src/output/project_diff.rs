@@ -170,10 +170,7 @@ impl Session {
     /// Whether the current model holds a record with the ID `id`, of any kind (a reloaded window's
     /// selection).
     pub fn record_exists(&self, id: Uuid) -> bool {
-        let q = self.query();
-        ew_derive::ew_schema::Kind::ALL
-            .iter()
-            .any(|k| record_json(&q, *k, id).is_some())
+        ew_commands::holds_record(&self.world().model, ew_derive::ew_ids::Id::from_uuid(id))
     }
 
     /// The records that differ from this session to `to`, each labelled with the tags of its own side

@@ -315,12 +315,16 @@ fn update_session(
     if let Some(plan) = &updates.plan {
         for c in &plan.copies {
             let fields: Vec<&str> = c.fields.iter().map(|f| f.member.as_str()).collect();
+            let class = match c.class {
+                ew_api::ChangeClass::Patch => "data only",
+                ew_api::ChangeClass::Minor => "every connection point kept",
+                ew_api::ChangeClass::Major => "connection points changed",
+            };
             println!(
-                "copy {}: version {} -> {} ({:?}): changes {}",
+                "copy {}: version {} -> {} ({class}): changes {}",
                 c.copy,
                 c.from,
                 c.to,
-                c.class,
                 fields.join(", ")
             );
         }

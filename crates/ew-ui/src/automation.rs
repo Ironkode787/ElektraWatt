@@ -313,6 +313,20 @@ pub(crate) fn plc_import(
             .font(theme::font(&t.type_small))
             .color(colour.color32())
     };
+    // "The file is complete" (doc 10 §4.4) makes the preview again: what the file lacks is then removed.
+    let mut complete = card.complete;
+    if ui
+        .checkbox(&mut complete, strings::text(key!("plc-import-complete")))
+        .changed()
+    {
+        events.push(Event::Action(
+            "plc.import",
+            json!({ "path": card.path, "complete": complete }),
+        ));
+    }
+    if let Some(why) = &card.refusal {
+        ui.label(small(why.clone(), t.error));
+    }
     ui.horizontal(|ui| {
         for tab in ImportTab::ALL {
             let label = strings::format(
@@ -357,6 +371,11 @@ pub(crate) fn plc_import(
                         )));
                         ui.label(small(format!("· {state}"), t.text_tertiary));
                     });
+                    if card.tab == ImportTab::Changed
+                        && let Some(why) = &c.refused
+                    {
+                        ui.label(small(why.clone(), t.error));
+                    }
                     if card.tab == ImportTab::Conflicts {
                         // The side Apply takes: the one chosen, else the merge's default (FT-1756: the file's value
                         // only where it can be taken, else the reason why not).

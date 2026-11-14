@@ -83,7 +83,7 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
     assert_eq!((read, matched, changed), (1, 1, 1));
     h.get_by_label_contains("The project has a copy of 1 of them");
     support::assert_accessible(&h);
-    h.get_by_label("Update 1 part copies").click();
+    h.get_by_label("Update 1 part copy").click();
     settle(&mut h);
     assert!(h.state().shell().dialog().is_none());
     assert!(

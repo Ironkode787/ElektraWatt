@@ -143,6 +143,13 @@ pub(crate) fn field_paths(prefix: &str, before: &Value, after: &Value, out: &mut
     }
 }
 
+/// Whether `model` holds a record with the ID `id`, of any kind: the project record or a row of any table.
+pub fn holds_record(model: &Model, id: ew_schema::AnyId) -> bool {
+    ew_schema::Kind::ALL
+        .into_iter()
+        .any(|kind| model.contains(&(kind, id)))
+}
+
 /// The entity and field changes from `current` to `candidate` over **every** record of both snapshots
 /// (O(model); the engine summarises a transaction's ops with [`ModelDiff::of_ops`] instead).
 pub fn diff_model(current: &Model, candidate: &Model) -> Result<ModelDiff, CmdError> {

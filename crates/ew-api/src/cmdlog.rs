@@ -398,7 +398,7 @@ impl Session {
             Some(("id", uuid)) => {
                 let id: AnyId = serde_json::from_value(Value::String(uuid.to_owned()))
                     .map_err(|_| api_text!("refusal-ref-not-uuid", text))?;
-                if !record_exists(&self.query(), id) {
+                if !ew_commands::holds_record(&self.world().model, id) {
                     return Err(api_text!("refusal-ref-no-record", text));
                 }
                 Ok(id)
@@ -687,34 +687,4 @@ fn candidates(items: impl Iterator<Item = String>) -> String {
 /// Whether `text` is a UUID (the ID form of a parameter).
 fn is_uuid(text: &str) -> bool {
     ew_derive::ew_ids::Uuid::parse_str(text.trim()).is_ok()
-}
-
-/// Whether the project holds a record with this ID: the project record or a row of any table.
-fn record_exists(q: &Q, id: AnyId) -> bool {
-    q.project().id.cast::<()>() == id
-        || q.structure_nodes().contains(id.cast())
-        || q.sections().contains(id.cast())
-        || q.external_refs().contains(id.cast())
-        || q.pages().contains(id.cast())
-        || q.devices().contains(id.cast())
-        || q.functions().contains(id.cast())
-        || q.reps().contains(id.cast())
-        || q.connections().contains(id.cast())
-        || q.junctions().contains(id.cast())
-        || q.conductors().contains(id.cast())
-        || q.potential_defs().contains(id.cast())
-        || q.bonds().contains(id.cast())
-        || q.report_blocks().contains(id.cast())
-        || q.page_items().contains(id.cast())
-        || q.structure_boxes().contains(id.cast())
-        || q.parts().contains(id.cast())
-        || q.symbols().contains(id.cast())
-        || q.fndefs().contains(id.cast())
-        || q.forms().contains(id.cast())
-        // The layout records, which Properties shows and `select.set` reaches.
-        || q.table::<ew_schema::Placement>().get(id.cast()).is_some()
-        || q.table::<ew_schema::Carrier>().get(id.cast()).is_some()
-        || q.table::<ew_schema::MountingSurface>().get(id.cast()).is_some()
-        || q.table::<ew_schema::Enclosure>().get(id.cast()).is_some()
-        || q.table::<ew_schema::LayoutSpace>().get(id.cast()).is_some()
 }

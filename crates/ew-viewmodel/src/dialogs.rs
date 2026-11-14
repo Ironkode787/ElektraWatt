@@ -727,7 +727,7 @@ fn import_eplan_spec(
             changed,
         } => {
             let mut update = DialogButton::new(key!("eplan-update"), action(json!({ "how": "update" })));
-            update.label = strings::format(key!("eplan-update"), &[&changed.to_string()]);
+            update.label = strings::format_count(crate::count_key!("eplan-update"), *changed);
             if *changed == 0 {
                 update.disabled = Some(strings::text(key!("reason-eplan-no-change")).to_owned());
             }

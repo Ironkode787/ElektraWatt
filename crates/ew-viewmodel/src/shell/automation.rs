@@ -480,6 +480,12 @@ pub struct ImportParked {
 pub struct PlcImportCard {
     /// The file's name.
     pub file: String,
+    /// The file's path, which the preview is made of again when "the file is complete" changes.
+    pub path: String,
+    /// Whether the file is complete (doc 10 §4.4): an object of the last exchange it lacks is removed.
+    pub complete: bool,
+    /// Why Apply would be refused (its prevent rules, tried on the preview), in words; `None` when it commits.
+    pub refusal: Option<String>,
     /// The `plc.apply_exchange` the preview was made of, with every option it was made with (`complete`); Apply
     /// commits it under the choices, and the file is neither read nor merged again here.
     pub apply: PreviewedCommand,
@@ -526,8 +532,18 @@ fn read_exchange_file(path: &std::path::Path, file: &str) -> Result<Vec<u8>, Out
 }
 
 /// The PLC import's card of the preview `import` of the file `file`: its rows in the window's words.
-fn plc_import_card(file: String, import: ew_api::plc_exchange::PlcImport) -> PlcImportCard {
+fn plc_import_card(
+    file: String,
+    import: ew_api::plc_exchange::PlcImport,
+    refusal: Option<&(ew_api::CmdError, Vec<String>)>,
+) -> PlcImportCard {
     let words = |v: &Option<String>| v.clone().unwrap_or_default();
+    // Apply's refusal in the window's words; the rows of the changes it concerns say so.
+    let why = refusal.map(|(e, _)| match super::tools::command_failed(e, &Value::Null) {
+        Outcome::Failed { message } => message,
+        _ => e.to_string(),
+    });
+    let named: &[String] = refusal.map_or(&[], |(_, changes)| changes.as_slice());
     let (conflicts, changes): (Vec<_>, Vec<_>) = import
         .plan
         .changes
@@ -543,6 +559,7 @@ fn plc_import_card(file: String, import: ew_api::plc_exchange::PlcImport) -> Plc
                 };
                 strings::sentence_start(&strings::format(key, &[&field, &c.subject])).into_owned()
             });
+            let refused = refused.or_else(|| why.clone().filter(|_| named.contains(&c.id)));
             ImportChange {
                 id: c.id.clone(),
                 text: strings::format(key!("plc-import-row"), &[&c.subject, &field]),
@@ -562,6 +579,9 @@ fn plc_import_card(file: String, import: ew_api::plc_exchange::PlcImport) -> Plc
     };
     PlcImportCard {
         file,
+        path: String::new(),
+        complete: false,
+        refusal: why,
         apply: PreviewedCommand(std::sync::Arc::new(import.apply)),
         tab: ImportTab::Changed,
         changes,
@@ -659,7 +679,15 @@ impl ShellModel {
             Ok(i) => i,
             Err(e) => return failed(key!("error-plc-import"), &[&e.to_string()]),
         };
-        let mut card = plc_import_card(file, import);
+        // Apply tried on the preview (its prevent rules run), so a start the file gives that overlaps another is
+        // refused here already, its row marked, rather than at Apply.
+        let refusal = self
+            .project
+            .as_mut()
+            .and_then(|project| project.session.plc_import_refusal(&import));
+        let mut card = plc_import_card(file, import, refusal.as_ref());
+        card.path = path.to_string_lossy().into_owned();
+        card.complete = complete;
         if card.changes.is_empty() && !card.conflicts.is_empty() {
             card.tab = ImportTab::Conflicts;
         }

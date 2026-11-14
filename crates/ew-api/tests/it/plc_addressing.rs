@@ -591,8 +591,9 @@ fn converting_a_start_that_would_move_another_module_keeps_it() {
     );
 }
 
-/// After `plc.freeze` a module added in rack slot 1, which A1 allocates before every positional module, is placed
-/// around the frozen modules (their starts are frozen too), so the batch commits and no frozen address moves.
+/// After `plc.freeze` a module added in rack slot 9 (free: the positional modules hold 1 to 7), which A1 allocates
+/// before every positional module, is placed around the frozen modules (their starts are frozen too), so the batch
+/// commits and no frozen address moves.
 #[test]
 fn a_module_added_before_frozen_ones_commits_and_moves_nothing() {
     let batch = golden_common::batch();
@@ -610,7 +611,7 @@ fn a_module_added_before_frozen_ones_commits_and_moves_nothing() {
     run(
         &mut s,
         "plc.add_module",
-        json!({"station": station.to_string(), "part": part, "slot": 1}),
+        json!({"station": station.to_string(), "part": part, "slot": 9}),
     );
     let after = all_texts(&s.query());
     for (m, texts) in &before {

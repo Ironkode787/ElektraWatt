@@ -44,7 +44,7 @@ fn an_export_is_recorded_and_its_file_comes_back() {
     );
     let text = ok(&o);
     assert!(
-        text.contains("1 station(s), 7 module(s), 56 channel(s)"),
+        text.contains("1 station, 7 modules, 56 channels"),
         "{text}"
     );
     let written = std::fs::read_to_string(&aml).unwrap();

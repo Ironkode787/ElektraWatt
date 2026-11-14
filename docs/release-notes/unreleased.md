@@ -641,3 +641,14 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: the medium overview and the medium table count as a medium's consumers the actuators its zones
   reach (a cylinder's A or B) beside the valves whose port 1 they reach, so a medium set on a working line counts the
   cylinder it feeds instead of 0; Golden A-R lists 36 (M3 whole review)
+- behaviour-change: a command log's `{"ref":"id:<uuid>"}` resolves for a record of any kind the project holds (a
+  channel, a configuration project, a medium, a medium definition, a bus net), as `Session::record_exists` does (M3
+  whole review)
+- behaviour-change: the PLC import's preview tries Apply's prevent rules: a refusal (a start that overlaps another,
+  EW-PLC-001) stands above the tabs and under the rows it concerns in the window, and ends `ew import plc-aml|plc-xlsx`
+  without `--accept`; a conflict's row says which value `{}` keeps; the window's preview has "The file is complete",
+  which makes the preview again (M3 whole review)
+- api-add: `Session::plc_import_refusal` (Apply of a PLC import tried on a fork) and `ew_commands::holds_record`
+- text-change: `ew export plc-xlsx` and `plcopen` count the tags they write only, every count in the singular or
+  plural; the EPLAN parts update names a copy's change in words ("every connection point kept"), not as Minor; the
+  dialog says "Update 1 part copy" (M3 whole review)

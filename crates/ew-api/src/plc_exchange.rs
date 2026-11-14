@@ -446,6 +446,33 @@ impl Session {
         Ok(PlcImport { plan, apply })
     }
 
+    /// What Apply of `import` would meet (doc 10 §4.4): its `plc.apply_exchange` tried on a fork, so its prevent rules
+    /// run; `None` when it would commit, else the refusal and the keys of the changes it concerns (a change of a record
+    /// the refusing rule names, or of the module of a channel it names), so that the preview says it before Apply.
+    pub fn plc_import_refusal(&mut self, import: &PlcImport) -> Option<(crate::CmdError, Vec<String>)> {
+        let e = self.preview(&import.apply).err()?;
+        let named: std::collections::BTreeSet<ew_schema::AnyId> = match &e {
+            crate::CmdError::Prevented { keys, .. } => {
+                let q = self.query();
+                let channels = q.table::<ew_schema::Channel>();
+                keys.iter()
+                    .flat_map(|(kind, id)| {
+                        let module = (*kind == ew_schema::Kind::Channel)
+                            .then(|| channels.get(id.cast()).map(|c| c.module.cast()))
+                            .flatten();
+                        [Some(*id), module].into_iter().flatten()
+                    })
+                    .collect()
+            }
+            _ => Default::default(),
+        };
+        let changes = (import.plan.changes.iter())
+            .filter(|c| named.contains(&c.target))
+            .map(|c| c.id.clone())
+            .collect();
+        Some((e, changes))
+    }
+
     /// The exchange status of configuration project `config` (doc 10 §4.4, FR-PLC-035): its stamp, what differs
     /// from the last exchange, and whether `file` is the file last exchanged.
     ///

@@ -88,7 +88,7 @@ mod words;
 
 pub use command::{Command, DynCommand, Outcome};
 pub use derived::{DerivedChange, DerivedDiff, derived_diff};
-pub use diff::{ChangeKind, EntityChange, ModelDiff, diff_model};
+pub use diff::{ChangeKind, EntityChange, ModelDiff, diff_model, holds_record};
 pub use engine::{
     Change, Engine, EngineOptions, NoPrevent, Preview, Receipt, Restored, World, affected_pages,
 };

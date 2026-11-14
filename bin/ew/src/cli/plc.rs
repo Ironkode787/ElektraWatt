@@ -7,7 +7,8 @@
 use super::*;
 
 use ew_api::plc_exchange::{
-    ExchangeDirection, ExchangeFormat, PlcExchangeError, PlcImport, PlcOptions, field_words, object_words,
+    ExchangeDirection, ExchangeFormat, PlcExchangeError, PlcFormat, PlcImport, PlcOptions, field_words,
+    object_words,
 };
 
 /// The line of a refused exchange.
@@ -95,8 +96,20 @@ pub(super) fn run_plc_export(a: &PlcExportArgs) -> i32 {
         eprintln!("warning: {w}");
     }
     let [stations, modules, channels, tags] = export.counts;
+    let plural = |n: usize, one: &str, many: &str| format!("{n} {}", if n == 1 { one } else { many });
+    let held = if matches!(a.format, PlcFormat::TiaXlsx | PlcFormat::Plcopen) {
+        plural(tags, "tag", "tags")
+    } else {
+        format!(
+            "{}, {}, {} and {}",
+            plural(stations, "station", "stations"),
+            plural(modules, "module", "modules"),
+            plural(channels, "channel", "channels"),
+            plural(tags, "tag", "tags")
+        )
+    };
     println!(
-        "wrote {stations} station(s), {modules} module(s), {channels} channel(s) and {tags} tag(s){}",
+        "wrote {held}{}",
         if export.record.is_some() {
             "; the exchange is recorded in the project"
         } else {
@@ -108,14 +121,31 @@ pub(super) fn run_plc_export(a: &PlcExportArgs) -> i32 {
 
 /// The text preview of an import: one line per change with its key, the parked objects and the removed ones, then
 /// the counts.
-fn import_text(import: &PlcImport, applied: bool) -> String {
+fn import_text(
+    import: &PlcImport,
+    applied: bool,
+    refusal: Option<&(ew_api::CmdError, Vec<String>)>,
+) -> String {
     use std::fmt::Write as _;
     let side = |v: &Option<String>| v.clone().unwrap_or_else(|| "nothing".to_owned());
+    // The changes Apply's refusal concerns: their rows say so.
+    let named: &[String] = refusal.map_or(&[], |(_, changes)| changes.as_slice());
     let mut out = String::new();
     for c in &import.plan.changes {
+        // A conflict takes the project's value or the file's; `{}` takes the default.
+        let default = match (c.state.word(), &c.default) {
+            ("conflict", ew_api::plc_exchange::Choice::Ours) => "; by default the project's value stays",
+            ("conflict", ew_api::plc_exchange::Choice::Theirs) => "; by default the file's value is taken",
+            _ => "",
+        };
+        let refused = if named.contains(&c.id) {
+            "; Apply refuses it"
+        } else {
+            ""
+        };
         let _ = writeln!(
             out,
-            "{}: {}: {} {} → {}  [{}]",
+            "{}: {}: {} {} → {}{default}{refused}  [{}]",
             c.state.word(),
             c.subject,
             field_words(&c.object, &c.field),
@@ -162,6 +192,9 @@ fn import_text(import: &PlcImport, applied: bool) -> String {
             "; nothing is written: apply with --accept <choices.json> (`{}` takes every default)"
         }
     );
+    if let Some((e, _)) = refusal {
+        let _ = writeln!(out, "Apply is refused: {e}");
+    }
     out
 }
 
@@ -247,11 +280,13 @@ pub(super) fn run_plc_import(a: &PlcImportArgs) -> i32 {
             return 2;
         }
     }
+    // Apply tried on a fork (its prevent rules run), so the preview says when Apply would be refused.
+    let refusal = (!apply).then(|| session.plc_import_refusal(&import)).flatten();
     session.close();
     if a.json {
         print!("{}", results::to_text(&import.result(a.schema, apply)));
     } else {
-        print!("{}", import_text(&import, apply));
+        print!("{}", import_text(&import, apply, refusal.as_ref()));
     }
     0
 }

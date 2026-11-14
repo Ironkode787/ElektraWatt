@@ -37,9 +37,9 @@ project records, and the checked-in project `golden/J-E-2416.ew` is generated fr
 [golden README](https://github.com/Ironkode787/ElektraWatt/blob/main/golden/J-E-2416/README.md) describes the tables
 and their format.
 
-> **Not built yet.** The importer is a library today. The `ew import csv` subcommand that will run it from the terminal
-> does not exist yet, so this guide starts from the checked-in project. When the subcommand exists, this step will
-> become a command line.
+> **Not built yet.** The importer of these tables is a library today; no subcommand runs it from the terminal
+> (`ew import csv` is another command: it reads a round-trip table back into a project), so this guide starts from
+> the checked-in project.
 
 A project is a directory, here `golden/J-E-2416.ew`. Every `ew` command that works on a project takes it as its first
 argument.

@@ -247,6 +247,30 @@ fn a_missing_id_reference_stops_with_exit_2_and_counts_the_committed_lines() {
     assert_eq!(s.run_script(&log(&[&ok]), "x.ewcmd").unwrap().len(), 1);
 }
 
+/// An ID reference resolves for a record of any kind the project holds, a medium among them.
+#[test]
+fn an_id_reference_resolves_for_a_medium() {
+    let mut s = session();
+    let made = s
+        .run_script(
+            &log(&[r#"{"cmd":"fluid.medium.edit","params":{"set":{"name":"Air 6 bar","p_nom":"6"}}}"#]),
+            "x.ewcmd",
+        )
+        .unwrap();
+    assert_eq!(made.len(), 1);
+    let medium = s
+        .query()
+        .table::<ew_schema::Medium>()
+        .iter()
+        .map(|(id, _)| id)
+        .next()
+        .expect("the medium");
+    assert_eq!(
+        s.resolve_reference(&format!("id:{medium}")).map_err(|e| e.to_string()),
+        Ok(medium.as_uuid())
+    );
+}
+
 #[test]
 fn exit_codes_follow_doc_17() {
     let mut s = session();
