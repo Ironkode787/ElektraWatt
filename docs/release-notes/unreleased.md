@@ -652,3 +652,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - text-change: `ew export plc-xlsx` and `plcopen` count the tags they write only, every count in the singular or
   plural; the EPLAN parts update names a copy's change in words ("every connection point kept"), not as Minor; the
   dialog says "Update 1 part copy" (M3 whole review)
+- api-add: `ew_api::dxf::convert_dxf`, `Session::dxf_page_batch_converted` and `ew_import_dxf::page_batch`: a DXF page's drawing
+  converted off the window's thread; File ▸ Import… converts a drawing that becomes a page in its job (FT-1763)
+- behaviour-change: the rack and slot editor builds its view once per revision, not twice a frame (FT-1763)

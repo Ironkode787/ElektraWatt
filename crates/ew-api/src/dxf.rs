@@ -13,7 +13,7 @@ use ew_import_dxf::ew_interop_api::{ImportContext, ImportInput, ImportMode};
 use ew_schema::{GraphicShape, ImportLineage, LineageAnchor, Page, PageItemKind, Record};
 use ew_units::{Grid, Nm, Pt2};
 
-pub use ew_import_dxf::{DxfOptions, NO_UNIT, Probe, Space, Unit};
+pub use ew_import_dxf::{Converted, DxfOptions, NO_UNIT, Probe, Space, Unit};
 
 use crate::Session;
 use crate::import::{ApplyError, ImportBatch, ImportError, Limits, Refusal, front_door};
@@ -55,6 +55,25 @@ impl From<Refusal> for DxfError {
         }
     }
 }
+
+/// A DXF drawing converted through the front door (its limits, a reader's panic caught), for
+/// [`Session::dxf_page_batch_converted`]: what can run off the window's thread.
+///
+/// # Errors
+///
+/// [`DxfError::NoUnit`] when the drawing names no unit and `options` none; [`DxfError::Refused`] otherwise.
+pub fn convert_dxf(name: &str, bytes: &[u8], options: &DxfOptions) -> Result<Converted, DxfError> {
+    let limits = Limits::default();
+    let converted = front_door(name, &[bytes.len() as u64], &limits, None, || {
+        ew_import_dxf::convert(bytes, &limits, options.unit, &options.space, &options.show, name).map(Convert)
+    })?;
+    Ok(converted.0)
+}
+
+/// What a conversion returns through the front door.
+struct Convert(Converted);
+
+impl crate::import::FrontDoorOutput for Convert {}
 
 /// What a probe returns through the front door.
 struct Probed(Probe);
@@ -151,6 +170,32 @@ impl Session {
         bytes: Vec<u8>,
         options: &DxfOptions,
     ) -> Result<ImportBatch, DxfError> {
+        self.page_batch_of(name, bytes, options, None)
+    }
+
+    /// [`Session::dxf_page_batch`] of a drawing [`convert_dxf`] converted already (with the same `options`), so that
+    /// the window converts it on a job's thread and makes the page on its own (FT-1763).
+    ///
+    /// # Errors
+    ///
+    /// [`DxfError::Refused`] for bytes that are no import input.
+    pub fn dxf_page_batch_converted(
+        &self,
+        name: &str,
+        bytes: Vec<u8>,
+        options: &DxfOptions,
+        converted: Converted,
+    ) -> Result<ImportBatch, DxfError> {
+        self.page_batch_of(name, bytes, options, Some(converted))
+    }
+
+    fn page_batch_of(
+        &self,
+        name: &str,
+        bytes: Vec<u8>,
+        options: &DxfOptions,
+        converted: Option<Converted>,
+    ) -> Result<ImportBatch, DxfError> {
         let input = ImportInput::new(name, bytes).map_err(|e| {
             DxfError::Refused(Refusal::Import(ImportError::Unsupported {
                 message: e.to_string(),
@@ -175,9 +220,12 @@ impl Session {
         let mut ctx = ImportContext::new(self.query().project().id);
         ctx.mode = ImportMode::Lenient;
         let limits = ctx.limits;
-        let mut batch = front_door(name, &[input.bytes().len() as u64], &limits, None, || {
-            ew_import_dxf::import_page(&input, &ctx, options, &page, copy)
-        })?;
+        let mut batch = match converted {
+            Some(converted) => ew_import_dxf::page_batch(&input, &ctx, options, &page, copy, converted),
+            None => front_door(name, &[input.bytes().len() as u64], &limits, None, || {
+                ew_import_dxf::import_page(&input, &ctx, options, &page, copy)
+            })?,
+        };
         // The drawing is in sheet millimetres; the new page's frame maps page to sheet, so its items go through the
         // inverse of that map and print where they were drawn.
         let map = crate::output::new_page_map(&self.query(), &ew_schema::PageType::Graphic);

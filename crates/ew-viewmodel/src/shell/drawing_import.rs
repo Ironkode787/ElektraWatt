@@ -133,18 +133,30 @@ impl ShellModel {
             let (file, name, stop) = (file.clone(), name.clone(), std::sync::Arc::clone(&stop));
             let converter = apply.as_ref().and_then(|a| a.converter.clone()).map(|(c, _)| c);
             let probe = apply.is_none();
+            // A drawing that becomes a page is converted here too, off the window's thread (FT-1763).
+            let page = apply
+                .as_ref()
+                .filter(|a| a.target == "page" && kind != DrawingKind::Pdf)
+                .map(|a| DxfOptions {
+                    unit: a.units,
+                    ..DxfOptions::default()
+                });
             move |ctl: &ew_api::ew_jobs::JobCtl| {
                 // A test fault (feature `testkit` only): the body panics, as a reader's panic would end it.
                 hooks.fault("drawing");
                 ctl.checkpoint("drawing")?;
-                Ok(read_drawing(
-                    &file,
-                    &name,
-                    kind,
-                    probe,
-                    converter.as_deref(),
-                    &stop,
-                ))
+                Ok(
+                    read_drawing(&file, &name, kind, probe, converter.as_deref(), &stop).and_then(
+                        |mut drawn| {
+                            if let Some(options) = &page {
+                                let converted = ew_api::dxf::convert_dxf(&drawn.name, &drawn.bytes, options)
+                                    .map_err(|e| DrawingError::Refused(e.to_string()))?;
+                                drawn.converted = Some(converted);
+                            }
+                            Ok(drawn)
+                        },
+                    ),
+                )
             }
         };
         let Ok(job) = ew_api::ew_jobs::Job::spawn(options, body) else {
@@ -223,7 +235,13 @@ impl ShellModel {
             self.settings.dwg_converter = Some(converter);
             self.save_settings();
         }
-        let (name, bytes, notes, kind) = (drawn.name, drawn.bytes, drawn.notes, pending.kind);
+        let (name, bytes, notes, kind, converted) = (
+            drawn.name,
+            drawn.bytes,
+            drawn.notes,
+            pending.kind,
+            drawn.converted,
+        );
         let (target, units) = (apply.target, apply.units);
         self.dialog = None;
         let options = DxfOptions {
@@ -231,7 +249,7 @@ impl ShellModel {
             ..DxfOptions::default()
         };
         match target.as_str() {
-            "page" if kind != DrawingKind::Pdf => self.drawing_page(&name, bytes, &options, notes),
+            "page" if kind != DrawingKind::Pdf => self.drawing_page(&name, bytes, &options, notes, converted),
             "underlay" => {
                 let Some(folio) = self.current_folio().map(str::to_owned) else {
                     return Outcome::refused(key!("reason-no-page"));
@@ -271,24 +289,28 @@ impl ShellModel {
         Outcome::Failed { message }
     }
 
-    /// The drawing as a new graphic page, then shown.
+    /// The drawing as a new graphic page (from its conversion on the job's thread, when it has one), then shown.
     fn drawing_page(
         &mut self,
         name: &str,
         bytes: Vec<u8>,
         options: &DxfOptions,
         notes: Vec<ew_api::import::ReportEntry>,
+        converted: Option<ew_api::dxf::Converted>,
     ) -> Outcome {
         let Some(project) = self.project.as_mut() else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        let imported = project
-            .session
-            .dxf_page_batch(name, bytes, options)
-            .and_then(|mut batch| {
-                batch.report.entries.extend(notes);
-                project.session.apply_page_batch(batch)
-            });
+        let batch = match converted {
+            Some(converted) => project
+                .session
+                .dxf_page_batch_converted(name, bytes, options, converted),
+            None => project.session.dxf_page_batch(name, bytes, options),
+        };
+        let imported = batch.and_then(|mut batch| {
+            batch.report.entries.extend(notes);
+            project.session.apply_page_batch(batch)
+        });
         match imported {
             Ok(page) => {
                 self.refresh_rows();
@@ -352,12 +374,13 @@ impl std::fmt::Debug for DrawingJob {
 }
 
 /// What a drawing import's job read: the name and bytes the import takes (a DWG's converted DXF), its report notes,
-/// and whether a DXF's header names no unit.
+/// whether a DXF's header names no unit, and the drawing converted for a page.
 pub(crate) struct Drawn {
     name: String,
     bytes: Vec<u8>,
     notes: Vec<ew_api::import::ReportEntry>,
     unitless: bool,
+    converted: Option<ew_api::dxf::Converted>,
 }
 
 /// Why a drawing import's job read nothing.
@@ -398,6 +421,7 @@ fn read_drawing(
             bytes: Vec::new(),
             notes: Vec::new(),
             unitless,
+            converted: None,
         });
     }
     let Some(converter) = converter.filter(|_| kind == DrawingKind::Dwg) else {
@@ -406,6 +430,7 @@ fn read_drawing(
             bytes,
             notes: Vec::new(),
             unitless: false,
+            converted: None,
         });
     };
     match ew_api::dxf::convert_dwg(Path::new(converter), name, &bytes, ew_api::dxf::DWG_TIMEOUT, stop) {
@@ -417,6 +442,7 @@ fn read_drawing(
             bytes: dxf,
             notes: vec![ew_api::dxf::dwg_converted(name)],
             unitless: false,
+            converted: None,
         }),
         Err(ew_api::dxf::DwgError::Cancelled) => Err(DrawingError::Cancelled),
         Err(e) => Err(DrawingError::Refused(e.to_string())),

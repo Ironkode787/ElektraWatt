@@ -144,6 +144,19 @@ pub fn import_page(
         &options.show,
         input.name(),
     )?;
+    Ok(page_batch(input, ctx, options, page, copy, converted))
+}
+
+/// [`import_page`] of a drawing [`convert`]ed already (with the same `options`), so that a host can convert it off its
+/// window's thread and make the page on it.
+pub fn page_batch(
+    input: &ImportInput,
+    ctx: &ImportContext,
+    options: &DxfOptions,
+    page: &PageSpec,
+    copy: Option<u32>,
+    converted: Converted,
+) -> ImportBatch {
     let version = converted.version.clone();
     let mut records = Vec::new();
     let lineage = match ctx.lineage {
@@ -237,10 +250,10 @@ pub fn import_page(
         }
     }
     report.entries = converted.entries;
-    Ok(ImportBatch {
+    ImportBatch {
         records,
         lib: Vec::new(),
         assets: Vec::new(),
         report,
-    })
+    }
 }
