@@ -566,3 +566,29 @@ fn the_valve_terminals_overview_is_generated_from_its_row() {
     assert!(drawn, "the new module drawn on {page}");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// Doc 11 §11, AC-32: Generate overview… on Golden A's valve terminal, whose overviews 201 and 202 are drawn in member
+/// order, keeps every member where it stands: the preview names -201U1 … -201U9 on 201 and -202U1 … -202U3 on 202, and
+/// changes no record.
+#[test]
+fn golden_as_overview_is_refreshed_without_a_change() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "201");
+    dispatch(&mut h, "fluid.generate_overview", json!({"station": "tag:-201U1"}));
+    settle(&mut h);
+    let pane = h.state().shell().preview_pane();
+    let notices = pane.notices().to_vec();
+    let on = |folio: &str| {
+        notices
+            .iter()
+            .find_map(|n| n.strip_prefix(&format!("page {folio}: ")))
+            .map(|m| m.split(", ").map(str::to_owned).collect::<Vec<_>>())
+            .unwrap_or_default()
+    };
+    let first = on("201");
+    assert_eq!(first.first().map(String::as_str), Some("-201U1"), "{notices:?}");
+    assert_eq!(first.last().map(String::as_str), Some("-201U9"), "{notices:?}");
+    assert_eq!(on("202"), ["-202U1", "-202U2", "-202U3"], "{notices:?}");
+    assert!(pane.entities().is_empty(), "{:?}", pane.entities());
+    h.state_mut().shell_mut().shutdown();
+}

@@ -616,3 +616,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a report table's text that does not fit its cell at the smallest size is cut with an ellipsis and
   reported, never printed over the next cell; the tube list's columns are widened where their words need it and a tube
   without a length prints "—" (its Source says "missing") (M3 review of the window)
+- behaviour-change: `valve_terminal.generate_overview` keeps a member already drawn in member order inside the band
+  where it stands, so a refresh of an overview in order (Golden A's 201 and 202) changes nothing (M3 review of the
+  window)

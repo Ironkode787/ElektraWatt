@@ -685,9 +685,11 @@ first page of a member's overview, else the station's page; `Session::overview_p
 yet, the starter `ew.ovw.module` of the page grid's family. The members (`assembly_members`) stand left to right, each
 the width of its symbol's graphics, snapped to the page grid; one that would pass the band's right edge starts the next
 page (the members' overview pages in member order, then new assembly-overview pages after the last, with its frame,
-grid and structure). A member without an overview representation gets one of its main function; a module added
-without functions gets the symbol's FnDef as its main function. The preview's changes name each page's members, the
-new pages and a page left without members; the derived changes show the tags that move with a page. A member takes
+grid and structure). A member already drawn in member order inside the band (on a later page than the member before,
+or right of it on the same page) stays where it stands (M3 review): a refresh of Golden A's overviews 201 (-201U1 …
+-201U9) and 202 (-202U1 … -202U3) changes nothing. A member without an overview representation gets one of its main
+function; a module added without functions gets the symbol's FnDef as its main function. The preview's changes name
+each page's members, the new pages and a page left without members; the derived changes show the tags that move with a page. A member takes
 part in the overview with its **overview representation** (`overview_rep`: its main representation when that is an
 overview one, else the smallest-ID overview representation of its main function), so a module drawn on a multi-line
 page first is a member of the generated overview too; its main representation, and so its page-based tag, stay with

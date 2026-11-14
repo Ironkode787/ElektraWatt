@@ -35,8 +35,10 @@ use crate::tx::TxBuilder;
 /// the next page (never inside a module; a member wider than the band alone stands on a page of its own). The pages
 /// are those the members' overview representations are on, in member order, then new assembly-overview pages after
 /// the last (with its frame, grid, structure and, when it is an overview page, its title), the first new one after
-/// the station's own page when there is none. A refresh moves the representations that stand elsewhere; break marks
-/// and page-based tags follow from the pages. The notices name each page's members, the pages it creates and a page
+/// the station's own page when there is none. A member already drawn in member order inside the band (on a later page
+/// than the member before, or on the same page right of it) stays where it stands, so that a refresh of an overview
+/// in order, Golden A's 201 and 202 among them, changes nothing; a refresh moves the representations that stand
+/// elsewhere; break marks and page-based tags follow from the pages. The notices name each page's members, the pages it creates and a page
 /// it empties.
 ///
 /// A member without a main function (a module added without one) is given the symbol's function as its main one.
@@ -149,6 +151,21 @@ impl Command for GenerateOverview {
         let mut index = 0usize;
         let mut cursor = self.left;
         for (m, function, rep, symbol, (x0, x1)) in plan {
+            // A member drawn in member order inside the band (on a later page, or on this page right of the one before)
+            // stays where it stands, so that a refresh of an overview in order changes nothing.
+            let standing = rep
+                .and_then(|r| q.reps().get(r))
+                .and_then(|r| Some((pages.iter().position(|p| *p == r.page)?, r.pos.x)));
+            if let Some((at, x)) = standing
+                && x.0.saturating_add(x1.0) <= self.right.0
+                && (at > index || (at == index && x.0.saturating_add(x0.0) >= cursor.0))
+                && x.0.saturating_add(x0.0) >= self.left.0
+            {
+                index = at;
+                cursor = Nm(x.0.saturating_add(x1.0));
+                on_page.entry(index).or_default().push(tag(m));
+                continue;
+            }
             loop {
                 if index >= pages.len() {
                     let page = new_page(tx, pages.last().copied().unwrap_or(reference))?;
