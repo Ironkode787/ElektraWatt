@@ -16,8 +16,12 @@ use ew_viewmodel::dialogs::{DialogAnswer, DialogButton, DialogSpec};
 use crate::components::{self, Kind, Tip};
 use crate::theme;
 
+/// The width of the main resolution, 1920 × 1080 points (doc 16a §2): the window every default layout is designed
+/// for.
+pub(crate) const MAIN_WIDTH: f32 = 1920.0;
+
 /// The share of the window a form dialog takes once that is wider than `size.dialog.form`
-/// (the UI grows with the space it has, never a width chosen for the floor).
+/// (the UI grows with the space it has).
 pub(crate) const FORM_SHARE: f32 = 0.45;
 
 /// The share of the window a small dialog that holds a list (the Show changes popup, the parts card) takes once that
@@ -27,6 +31,12 @@ pub(crate) const SMALL_SHARE: f32 = 0.3;
 /// A form dialog's width in a window `window` wide: `size.dialog.form`, growing with the window ([`FORM_SHARE`]).
 pub(crate) fn form_width(t: &crate::theme::Tokens, window: f32) -> f32 {
     grown(t.size_dialog_form, FORM_SHARE, window)
+}
+
+/// The width of a creation form of a few fields (New page…, Terminal…): [`form_width`] up to its width at the main
+/// resolution (864), since its short values gain nothing from wider fields; the forms that hold a list grow on.
+pub(crate) fn fields_form_width(t: &crate::theme::Tokens, window: f32) -> f32 {
+    form_width(t, window.min(MAIN_WIDTH))
 }
 
 /// The width of a small dialog that holds a list in a window `window` wide: `size.dialog.small`, growing with the
@@ -44,8 +54,8 @@ pub(crate) fn preview_width(t: &crate::theme::Tokens, window: f32) -> f32 {
     grown(t.size_dialog_preview, PREVIEW_SHARE, window)
 }
 
-/// A width that grows with the window: `share` of `window`, never under `base` (today's layout at the floor) and
-/// never wider than the window.
+/// A width that grows with the window: `share` of `window`, never under `base` (its token) and never wider than the
+/// window.
 pub(crate) fn grown(base: f32, share: f32, window: f32) -> f32 {
     (window * share).max(base).min(window)
 }
@@ -227,10 +237,10 @@ mod tests {
         }
     }
 
-    /// A form and a small list dialog keep their token width at the floor, are wider at 1920 and stay
-    /// inside a window narrower than their token.
+    /// A form, a small list dialog and the print pre-dialog keep their token width in a small window, are wider at
+    /// 2560 than at 1920 and stay inside a window narrower than their token; a form of fields stops at its 1920 width.
     #[test]
-    fn grown_dialogs_are_wider_at_1920_than_at_the_floor() {
+    fn grown_dialogs_are_wider_at_2560_than_at_1920() {
         let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
         for (name, f, base) in [
             (
@@ -241,10 +251,12 @@ mod tests {
             ("small", super::small_width, t.size_dialog_small),
             ("preview", super::preview_width, t.size_dialog_preview),
         ] {
-            let (floor, typical) = (f(&t, 1280.0), f(&t, 1920.0));
-            assert_eq!(floor, base, "{name} at the floor");
-            assert!(typical > floor && typical <= 1920.0, "{name}: {typical} at 1920");
+            let (main, extension) = (f(&t, 1920.0), f(&t, 2560.0));
+            assert_eq!(f(&t, 1024.0).max(base), base, "{name} in a small window");
+            assert!(extension > main && main > base, "{name}: {main} at 1920, {extension} at 2560");
             assert_eq!(f(&t, 400.0), 400.0, "{name} within a narrow window");
         }
+        assert_eq!(super::fields_form_width(&t, 2560.0), super::form_width(&t, 1920.0));
+        assert_eq!(super::fields_form_width(&t, 400.0), 400.0);
     }
 }

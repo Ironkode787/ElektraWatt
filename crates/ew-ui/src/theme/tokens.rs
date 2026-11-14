@@ -338,9 +338,8 @@ pub struct Tokens {
     pub size_command_small: f32,
     pub size_quick_access_width: f32,
     pub size_quick_access_height: f32,
+    /// The command search's least width; it grows with the window, a share of the tab row (FT-798).
     pub size_search_width: f32,
-    /// FT-798: the command search grows with the window (a share of the tab row) up to this width.
-    pub size_search_max_width: f32,
     pub size_search_height: f32,
     pub size_panel_header: f32,
     pub size_dock_tab_bar: f32,
@@ -348,9 +347,10 @@ pub struct Tokens {
     pub size_rail_button: f32,
     pub size_status: f32,
     pub size_status_field: f32,
-    /// The left column's width at the 1280-point floor (the Schematic workspace's default share there).
+    /// The left column's least width while it keeps its default share (480 at 1920, `dock::left_default_width`).
     pub size_panel_left: f32,
-    /// FT-798: the widest the left column grows to with the window while it keeps its default share.
+    /// FT-798, FT-1730: the widest the left column grows to with the window while it keeps its default share (at
+    /// 2560).
     pub size_panel_left_max: f32,
     pub size_dock_bottom: f32,
     /// The bottom dock is never shown lower than this (at least three Messages rows and a detail block).
@@ -657,7 +657,6 @@ impl Tokens {
             ("size.quick_access.width", Px(self.size_quick_access_width)),
             ("size.quick_access.height", Px(self.size_quick_access_height)),
             ("size.search.width", Px(self.size_search_width)),
-            ("size.search.max_width", Px(self.size_search_max_width)),
             ("size.search.height", Px(self.size_search_height)),
             ("size.panel_header", Px(self.size_panel_header)),
             ("size.dock_tab_bar", Px(self.size_dock_tab_bar)),
@@ -1054,7 +1053,6 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         size_quick_access_width: 28.0,
         size_quick_access_height: 24.0,
         size_search_width: 280.0,
-        size_search_max_width: 400.0,
         size_search_height: 24.0,
         size_panel_header: 32.0,
         size_dock_tab_bar: 32.0,
@@ -1063,7 +1061,7 @@ pub fn tokens(theme: Theme, density: Density) -> Tokens {
         size_status: 26.0,
         size_status_field: 22.0,
         size_panel_left: 280.0,
-        size_panel_left_max: 480.0,
+        size_panel_left_max: 640.0,
         size_dock_bottom: 184.0,
         size_dock_bottom_min: 300.0,
         size_property_label: 96.0,

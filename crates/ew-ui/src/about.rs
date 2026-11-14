@@ -129,10 +129,14 @@ pub fn show(
             | Dialog::Shortcuts
             | Dialog::Print(_)
     );
-    // The print pre-dialog is `size.dialog.preview` wide, growing with the
-    // window.
-    let width = matches!(d, Dialog::Print(_))
-        .then(|| crate::dialog::preview_width(&crate::theme::current(ctx), ctx.content_rect().width()));
+    // The print pre-dialog is `size.dialog.preview` wide, growing with the window; a creation form of fields stops
+    // growing at its width at the main resolution.
+    let (t, window) = (crate::theme::current(ctx), ctx.content_rect().width());
+    let width = match d {
+        Dialog::Print(_) => Some(crate::dialog::preview_width(&t, window)),
+        Dialog::Form(_) => Some(crate::dialog::fields_form_width(&t, window)),
+        _ => None,
+    };
     // Choose picks the list's active row, which the window keeps.
     if matches!(d, Dialog::PartChoose(_)) {
         spec.primary.answer = DialogAnswer::Action(

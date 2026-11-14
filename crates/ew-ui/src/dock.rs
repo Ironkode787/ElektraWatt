@@ -250,18 +250,16 @@ impl Dock {
             .collect();
         let (mut clamps, guessed) =
             self.keep_bottom_min(height, tokens.size_dock_bottom_min, floor, &reports);
-        // FT-798: the left column keeps its floor width and grows with a wide window while it has its default
-        // share; display only, like the bottom clamp.
+        // FT-798: the left column grows with the window while it has its default share; display only, like the
+        // bottom clamp.
         let window = ui.ctx().content_rect().width();
         let lack = ui.ctx().data_mut(|d| {
             let r = d.get_temp::<f32>(left_lack_id());
             d.remove::<f32>(left_lack_id());
             r
         });
-        if window > FLOOR_WIDTH {
-            let want = left_default_width(&tokens, window);
-            clamps.extend(self.keep_left_wide(ui.available_width(), want, lack));
-        }
+        let want = left_default_width(&tokens, window);
+        clamps.extend(self.keep_left_wide(ui.available_width(), want, lack));
         if guessed {
             // A split without a last shown height was clamped against the guess; the next frame uses its
             // real height.
@@ -579,19 +577,20 @@ impl Dock {
     }
 }
 
-/// The window width at the floor every default layout serves (doc 16a §2: 1280 × 800 at 100 %).
-const FLOOR_WIDTH: f32 = 1280.0;
+/// The left column's width at the main resolution (doc 16a §2: 1920 × 1080 at 100 %) while it has its default share.
+const LEFT_AT_MAIN: f32 = 480.0;
 
-/// The share of every point a window is wider than the floor that the left column takes while it has its default
-/// share (FT-798): `size.panel.left` at 1280, `size.panel.left_max` from about 1850.
-pub(crate) const LEFT_GROW: f32 = 0.35;
+/// The share of every point a window is wider or narrower than the main resolution that the left column gains or
+/// gives up while it has its default share: `size.panel.left_max` (640) from about 2380.
+const LEFT_GROW: f32 = 0.35;
 
-/// The left column's least width on show in a window `window` wide while it has its default share (FT-798; doc
-/// 16a §2: a floor width never caps one that should grow): `size.panel.left` at the floor and below, plus
-/// [`LEFT_GROW`] of every point beyond, never wider than `size.panel.left_max`.
+/// The left column's least width on show in a window `window` wide while it has its default share (FT-798, FT-1730;
+/// doc 16a §2: at 2560 a list in it has room, never a capped width beside the page): [`LEFT_AT_MAIN`] at 1920, plus or
+/// minus [`LEFT_GROW`] of every point the window is wider or narrower, up to `size.panel.left_max`; in a window of
+/// 1280 or less it is under the layout's default share (280 of the 1200 points between the rails), which then
+/// stands.
 pub(crate) fn left_default_width(t: &crate::theme::Tokens, window: f32) -> f32 {
-    (t.size_panel_left + LEFT_GROW * (window - FLOOR_WIDTH).max(0.0))
-        .min(t.size_panel_left_max.max(t.size_panel_left))
+    (LEFT_AT_MAIN + LEFT_GROW * (window - crate::dialog::MAIN_WIDTH)).min(t.size_panel_left_max)
 }
 
 /// The left column's share of the root split in the Schematic workspace ([`Layout::schematic`]).
@@ -1444,9 +1443,8 @@ mod tests {
         dock.tree.tiles.rect(id).unwrap().width()
     }
 
-    /// FT-798: the Schematic workspace's left column keeps its share at the floor (`size.panel.left` and more)
-    /// and is shown wider at 1920, display only (the layout stays the user's); a share the user dragged is shown as
-    /// it is, at 1920 too.
+    /// FT-798: the Schematic workspace's left column is shown wider than its share at 1920 and wider still at 2560,
+    /// display only (the layout stays the user's); a share the user dragged is shown as it is, at 1920 too.
     #[test]
     fn the_default_left_column_grows_with_the_window_and_a_dragged_one_keeps_its_share() {
         let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
@@ -1455,20 +1453,20 @@ mod tests {
         let ctx = egui::Context::default();
         let mut dock = Dock::new(&layout, 0);
         for _ in 0..2 {
-            frame(&ctx, &mut dock, 1280.0, 800.0);
+            frame(&ctx, &mut dock, 1920.0, 1080.0);
         }
-        let floor = shown_width(&dock, PaneKind::Pages);
+        let main = shown_width(&dock, PaneKind::Pages);
         assert!(
-            (floor - share * 1280.0).abs() < 8.0 && floor >= t.size_panel_left,
-            "the floor keeps its share: {floor}"
+            main > share * 1920.0 + 8.0 && main >= left_default_width(&t, 1920.0) - 8.0,
+            "1920 grows past its share: {main}"
         );
         for _ in 0..2 {
-            frame(&ctx, &mut dock, 1920.0, 1080.0);
+            frame(&ctx, &mut dock, 2560.0, 1440.0);
         }
         let wide = shown_width(&dock, PaneKind::Pages);
         assert!(
-            wide > share * 1920.0 + 8.0 && wide >= left_default_width(&t, 1920.0) - 8.0,
-            "1920 grows past its share: {wide}"
+            wide > main + 100.0 && wide >= left_default_width(&t, 2560.0) - 8.0,
+            "2560 grows past 1920: {wide}"
         );
         assert_eq!(dock.layout().as_ref(), Some(&layout), "the layout is the user's");
         // A dragged share (200 : 800) is not widened.
@@ -1489,15 +1487,16 @@ mod tests {
         assert!((shown - 0.2 * 1920.0).abs() < 8.0, "the dragged share: {shown}");
     }
 
-    /// FT-798: the left column's least width is `size.panel.left` at the floor and below, grows with the
-    /// window and stops at `size.panel.left_max`.
+    /// FT-1730: the left column's least width is 480 at 1920, grows with the window to `size.panel.left_max` at
+    /// 2560 and falls under `size.panel.left` at 1280, where the layout's share stands.
     #[test]
-    fn the_left_default_width_runs_between_its_tokens() {
+    fn the_left_default_width_runs_up_to_its_token() {
         let t = crate::theme::tokens(crate::theme::Theme::Light, crate::theme::Density::Comfortable);
-        assert_eq!(left_default_width(&t, 1024.0), t.size_panel_left);
-        assert_eq!(left_default_width(&t, 1280.0), t.size_panel_left);
-        let mid = left_default_width(&t, 1600.0);
-        assert!(mid > t.size_panel_left && mid < t.size_panel_left_max, "{mid}");
+        assert!(left_default_width(&t, 1280.0) <= t.size_panel_left);
+        assert_eq!(left_default_width(&t, 1920.0), LEFT_AT_MAIN);
+        let mid = left_default_width(&t, 2240.0);
+        assert!(mid > LEFT_AT_MAIN && mid < t.size_panel_left_max, "{mid}");
         assert_eq!(left_default_width(&t, 2560.0), t.size_panel_left_max);
+        assert_eq!(left_default_width(&t, 3840.0), t.size_panel_left_max);
     }
 }

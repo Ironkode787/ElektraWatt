@@ -82,7 +82,6 @@ size.command.small 24px
 size.quick_access.width 28px
 size.quick_access.height 24px
 size.search.width 280px
-size.search.max_width 400px
 size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
@@ -91,7 +90,7 @@ size.rail_button 32px
 size.status 26px
 size.status_field 22px
 size.panel.left 280px
-size.panel.left_max 480px
+size.panel.left_max 640px
 size.dock.bottom 184px
 size.dock.bottom_min 300px
 size.property_label 96px
@@ -221,7 +220,6 @@ size.command.small 24px
 size.quick_access.width 28px
 size.quick_access.height 24px
 size.search.width 280px
-size.search.max_width 400px
 size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
@@ -230,7 +228,7 @@ size.rail_button 32px
 size.status 26px
 size.status_field 22px
 size.panel.left 280px
-size.panel.left_max 480px
+size.panel.left_max 640px
 size.dock.bottom 184px
 size.dock.bottom_min 300px
 size.property_label 96px
@@ -360,7 +358,6 @@ size.command.small 24px
 size.quick_access.width 28px
 size.quick_access.height 24px
 size.search.width 280px
-size.search.max_width 400px
 size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
@@ -369,7 +366,7 @@ size.rail_button 32px
 size.status 26px
 size.status_field 22px
 size.panel.left 280px
-size.panel.left_max 480px
+size.panel.left_max 640px
 size.dock.bottom 184px
 size.dock.bottom_min 300px
 size.property_label 96px
@@ -499,7 +496,6 @@ size.command.small 24px
 size.quick_access.width 28px
 size.quick_access.height 24px
 size.search.width 280px
-size.search.max_width 400px
 size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
@@ -508,7 +504,7 @@ size.rail_button 32px
 size.status 26px
 size.status_field 22px
 size.panel.left 280px
-size.panel.left_max 480px
+size.panel.left_max 640px
 size.dock.bottom 184px
 size.dock.bottom_min 300px
 size.property_label 96px
@@ -638,7 +634,6 @@ size.command.small 24px
 size.quick_access.width 28px
 size.quick_access.height 24px
 size.search.width 280px
-size.search.max_width 400px
 size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
@@ -647,7 +642,7 @@ size.rail_button 32px
 size.status 26px
 size.status_field 22px
 size.panel.left 280px
-size.panel.left_max 480px
+size.panel.left_max 640px
 size.dock.bottom 184px
 size.dock.bottom_min 300px
 size.property_label 96px
@@ -777,7 +772,6 @@ size.command.small 24px
 size.quick_access.width 28px
 size.quick_access.height 24px
 size.search.width 280px
-size.search.max_width 400px
 size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
@@ -786,7 +780,7 @@ size.rail_button 32px
 size.status 26px
 size.status_field 22px
 size.panel.left 280px
-size.panel.left_max 480px
+size.panel.left_max 640px
 size.dock.bottom 184px
 size.dock.bottom_min 300px
 size.property_label 96px
@@ -916,7 +910,6 @@ size.command.small 24px
 size.quick_access.width 28px
 size.quick_access.height 24px
 size.search.width 280px
-size.search.max_width 400px
 size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
@@ -925,7 +918,7 @@ size.rail_button 32px
 size.status 26px
 size.status_field 22px
 size.panel.left 280px
-size.panel.left_max 480px
+size.panel.left_max 640px
 size.dock.bottom 184px
 size.dock.bottom_min 300px
 size.property_label 96px
@@ -1055,7 +1048,6 @@ size.command.small 24px
 size.quick_access.width 28px
 size.quick_access.height 24px
 size.search.width 280px
-size.search.max_width 400px
 size.search.height 24px
 size.panel_header 32px
 size.dock_tab_bar 32px
@@ -1064,7 +1056,7 @@ size.rail_button 32px
 size.status 26px
 size.status_field 22px
 size.panel.left 280px
-size.panel.left_max 480px
+size.panel.left_max 640px
 size.dock.bottom 184px
 size.dock.bottom_min 300px
 size.property_label 96px
