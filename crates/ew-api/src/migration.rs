@@ -7,7 +7,7 @@
 //! included), reads the matching page of the reference PDF with hayro, and compares two things: the text runs
 //! (the same string whose anchor lies within [`ANCHOR_TOLERANCE_MM`]) and the raster, cell by cell of the page's frame
 //! grid, with the boxes of every text of either side masked so that a substituted font does not swamp the result.
-//! Pages pair by folio label when the PDF's page labels name every page of the project, else by order.
+//! Pages pair by folio label, the pages without a label of the PDF's by order ([`pair_pages`]).
 //!
 //! The result is a list of [`Deviation`]s. A project's expected deltas are declared in a JSON file ([`Expected`]);
 //! a deviation one of them matches is reported as expected, and a declared delta that matched nothing is reported
@@ -222,21 +222,11 @@ pub fn verify_migration(
     let exported = session
         .export_pages(&ExportOptions::default())
         .map_err(MigrationError::Output)?;
-    let by_label = exported
-        .pages
-        .iter()
-        .all(|p| labels.iter().any(|l| l.as_deref() == Some(p.label.as_str())));
+    let pairs = pair_pages(exported.pages.iter().map(|p| p.label.as_str()), &labels);
     let mut report = MigrationReport::default();
     let mut found = Vec::new();
     let mut used = vec![false; labels.len()];
-    for (i, page) in exported.pages.iter().enumerate() {
-        let index = if by_label {
-            labels
-                .iter()
-                .position(|l| l.as_deref() == Some(page.label.as_str()))
-        } else {
-            (i < labels.len()).then_some(i)
-        };
+    for (page, index) in exported.pages.iter().zip(pairs) {
         let Some(index) = index else {
             found.push(Deviation::new(
                 &page.label,
@@ -320,6 +310,29 @@ pub fn verify_migration(
         .map(|(e, _)| e.clone())
         .collect();
     Ok(report)
+}
+
+/// The page of the reference each project page pairs with (its index in `labels`): the page whose label is the project
+/// page's folio label, and the project pages without one take the reference pages no label claimed, in order. A
+/// reference that labels no page by the project's folios pairs wholly by order; a page missing on one side leaves
+/// the labelled pages after it where they are.
+fn pair_pages<'a>(folios: impl Iterator<Item = &'a str>, labels: &[Option<String>]) -> Vec<Option<usize>> {
+    let mut taken = vec![false; labels.len()];
+    let mut pairs: Vec<Option<usize>> = folios
+        .map(|folio| {
+            let at = labels
+                .iter()
+                .enumerate()
+                .position(|(i, l)| !taken[i] && l.as_deref() == Some(folio))?;
+            taken[at] = true;
+            Some(at)
+        })
+        .collect();
+    let mut free = (0..labels.len()).filter(|&i| !taken[i]);
+    for slot in pairs.iter_mut().filter(|s| s.is_none()) {
+        *slot = free.next();
+    }
+    pairs
 }
 
 /// The text runs of a sheet's display list, in millimetres from the top left of the sheet.

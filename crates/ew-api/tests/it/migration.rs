@@ -188,6 +188,24 @@ fn pages_pair_by_order_when_the_labels_do_not_match() {
     assert!(report.is_clean(), "{report:?}");
 }
 
+/// FT-1748: a page missing on one side leaves the pages after it paired by their labels; the pages no label claims pair
+/// in order.
+#[test]
+fn a_missing_page_does_not_shift_the_pairs_after_it() {
+    let three = project(&[(1, "Cover"), (2, "Power"), (3, "Motors")]);
+    let without_two = project(&[(1, "Cover"), (3, "Motors")]);
+    let report = verify_migration(&three, pdf_of(&without_two), &[]).expect("a verification");
+    assert_eq!(kinds(&report), ["page-not-in-reference"], "{report:?}");
+    assert_eq!(report.deviations[0].page, "2");
+    assert_eq!(report.pages, 2, "folios 1 and 3 compared with their own pages");
+
+    // The reference counts 1, 2, 3; the project's last folio is 9: that page takes the page no folio names.
+    let reference = project(&[(1, "Cover"), (2, "Power"), (3, "Motors")]);
+    let renumbered = project(&[(1, "Cover"), (2, "Power"), (9, "Motors")]);
+    let report = verify_migration(&renumbered, pdf_of(&reference), &[]).expect("a verification");
+    assert!(report.pages == 3 && report.is_clean(), "{report:?}");
+}
+
 #[test]
 fn declared_deltas_are_expected_and_a_declared_delta_not_found_is_reported() {
     let before = project(&[(1, "Cover"), (2, "Power")]);
