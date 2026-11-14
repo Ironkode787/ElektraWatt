@@ -493,7 +493,12 @@ driver exits 0 (clean), 1 (conflict records written) or 129 for a caught interna
 | About | `ew about [--json]`: version, commit, render backend, licence summary, output statement, third-party notices, `PRIVACY.md` | [19](19-open-source-governance.md) | MVP | NFR-LIC-08, NFR-LIC-09 |
 | Smoke | `elektrawatt --smoke <project>`: the GUI binary opens the project, renders its pages and exits; the release smoke test, run under the network sandbox | [18](18-quality-security-release.md) §12.2 | MVP | — |
 
-This table is the authoritative CLI catalogue; ARCH §10.1 summarises its groups.
+This table is the authoritative CLI catalogue; ARCH §10.1 summarises its groups. *As built (M3).* The subcommands
+M3 added are listed with their options and exit codes in the guide's reference, which is generated from the
+command tree: `ew import dxf|dwg|pdf|edz|parts-xml|eplan-report|plc-aml|plc-xlsx|instrument-list`,
+`ew lib import qet-elements`, `ew export dxf|plc-aml|plc-xlsx|plcopen`, `--underlays` on the page exports,
+`ew plc status` and `ew verify-migration`. The importers of drawings and EPLAN data, the instrument list and the
+three PLC exports are Preview commands that print text only: they have no `--json` result yet (§3.1).
 
 ### 3.4 Examples on the golden project
 

@@ -164,8 +164,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-break: cli merge-driver exit 2 (removed: a usage error of `merge-driver` exits 129, every other command keeps 2;
   WP-S1.17 ID-1273 ruling 9)
 - api-add: cli elektrawatt --headless --visual --window <W>x<H> --ppp <n> (a visual run chooses its window in points
-  and its scale; the default 1280x800 at 1.2 and every earlier frame and transcript are unchanged; `xtask blind start
-  --senses visual` takes the same flags)
+  and its scale; `xtask blind start --senses visual` takes the same flags)
 - api-add: format plc_profile (the library kind of PLC address profiles: `lib/plc-profiles/<id>.json` in a project,
   `plc-profiles/` in a library; the built-in TIA and IEC profiles ship as `content/plc-profiles/*.json`, their pins
   unchanged; a profile file in a library is chosen by `plc.set_profile` and the project holds its copy; WP-S7.03 D7,
@@ -455,7 +454,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   `plc_station.firmware` and a module's `plc_module.type_ident`; `Session::plc_export`, `plc_import`, `plc_status` and
   `instrument_list`
 - api-add: the rules EW-PLC-016 (the configuration project changed since its last exchange) and EW-PRC-002 (an
-  instrument-list tag without device or channel), in a scheme with the 1.0 content
+  instrument-list tag without device or channel)
 - behaviour-change: after the first applied PLC import, an edit of a module's start, a station's firmware or a bus
   port's address of that configuration project is refused until `plc.unlock` lifts the protection (FR-PLC-033)
 - format-variant: record exchange_record.schema.json
