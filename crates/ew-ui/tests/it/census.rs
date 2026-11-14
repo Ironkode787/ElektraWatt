@@ -612,7 +612,7 @@ fn census_every_dialog() {
     for want in DialogKind::all() {
         let tmp = Tmp::new();
         let mut h = open_dialog(&tmp, want);
-        h.run_ok();
+        support::finish_jobs(&mut h);
         let got = h.state().shell().dialog().map(kind);
         assert_eq!(got, Some(want), "{want:?} opens");
         let surface = support::surface_name(&h);

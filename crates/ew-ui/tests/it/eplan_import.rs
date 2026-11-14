@@ -47,6 +47,7 @@ fn import_menu(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>) {
     support::open_menu(h, &["File"]);
     settle(h);
     h.get_by_label("Import…").click();
+    support::finish_jobs(h);
     settle(h);
 }
 

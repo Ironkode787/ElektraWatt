@@ -112,6 +112,21 @@ pub fn settle(harness: &mut Harness<'_, App>) {
     assert_accessible(harness);
 }
 
+/// Runs frames (bounded) until no job runs: an import reads its file in a job and goes on in a later frame
+/// (FT-1753, FT-1763).
+#[track_caller]
+pub fn finish_jobs(harness: &mut Harness<'_, App>) {
+    for _ in 0..500 {
+        harness.run_ok();
+        if harness.state().shell().jobs().running() == 0 {
+            harness.run_ok();
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    panic!("the job did not end");
+}
+
 /// Waits (bounded) for the render worker's image of the page on show.
 #[track_caller]
 pub fn wait_for_page(harness: &mut Harness<'_, App>) {
