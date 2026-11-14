@@ -519,3 +519,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   FR-UI-003, FR-UI-006)
 - behaviour-change: Project ▸ New medium… adds a medium; a fluid line's context menu sets its medium and its line
   kind; a medium's row highlights its zones in colour and hatch (WP-S2.13, FT-1733)
+- behaviour-change: a module's and a configuration project's rows in the PLC navigator offer Re-address…, Make manual
+  addresses automatic… and Freeze addresses…, each previewed in the Preview tab with a Changes list of every address
+  that moves (WP-S2.13, FR-PLC-014, FR-PLC-015)

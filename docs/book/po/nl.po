@@ -2931,11 +2931,25 @@ msgid ""
 "type a port's address or switch its termination."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:32 src/reference/window/dialogs.md:99
-msgid "Rack and slots"
+#: src/how-to/plc-workspace.md:32
+msgid "Addresses"
 msgstr ""
 
 #: src/how-to/plc-workspace.md:34
+msgid ""
+"Right-click a module and choose **Re-address…**, or a configuration project "
+"for all its modules: the Preview tab lists each channel whose address moves, "
+"old and new, and **Apply** makes the change in one step. **Make manual "
+"addresses automatic…** drops the manual addresses that equal the derived "
+"ones, and **Freeze addresses…** on a configuration project keeps every "
+"derived address as a manual one, so that a later change of a card moves none."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:40 src/reference/window/dialogs.md:99
+msgid "Rack and slots"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:42
 msgid ""
 "Right-click a station and choose **Rack and slots…**. Pick the card in "
 "**Module part to add** and choose **Add here** on a free slot; type another "
@@ -2943,11 +2957,11 @@ msgid ""
 "allow is refused, and the reason stays in the dialog."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:38
+#: src/how-to/plc-workspace.md:46
 msgid "The PLC grid"
 msgstr ""
 
-#: src/how-to/plc-workspace.md:40
+#: src/how-to/plc-workspace.md:48
 msgid ""
 "Each row of the grid is a channel. Type in a cell to change a channel's "
 "designation, address, symbol, state, target, comment, data type or signal "
@@ -2955,7 +2969,7 @@ msgid ""
 "edited in Properties."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:43
+#: src/how-to/plc-workspace.md:51
 msgid ""
 "Type in the grid's filter to narrow the rows: a word of a cell, or one of "
 "`spare`, `unplaced`, `unassigned`, `tbd`, `duplicate`, `safety`, "
@@ -2963,7 +2977,7 @@ msgid ""
 "header sorts by it, a second click reverses the order."
 msgstr ""
 
-#: src/how-to/plc-workspace.md:47
+#: src/how-to/plc-workspace.md:55
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "

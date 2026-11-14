@@ -67,6 +67,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_rack_add(p),
         )),
     ),
+    // A configuration project's or a module's previewed addressing command (its row menu, FR-PLC-014/-015).
+    with_params(
+        "cmd:text, params?:json",
+        needs_parameters(in_navigator(act(
+            "plc.preview",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_preview(p),
+        ))),
+    ),
     // A fluid line's medium (its context menu) and New medium… (doc 11 §7, FR-FLU-008/-009).
     with_params(
         "line:ref, medium:ref",

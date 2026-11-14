@@ -266,6 +266,22 @@ impl ShellModel {
 }
 
 impl ShellModel {
+    /// `plc.preview {cmd, params}` (FR-PLC-014, FR-PLC-015): the previewed PLC addressing command `cmd` (`plc.readdress`,
+    /// `plc.convert_manual_to_auto`, `plc.freeze`) as a card in the Preview tab, whose list of changes is the command's
+    /// notices (every channel whose address moves, old → new); Apply commits it as one undo step.
+    pub(crate) fn act_plc_preview(&mut self, p: &Map<String, Value>) -> Outcome {
+        let name = match string_param(p, "cmd") {
+            Ok(Some(n)) if ["plc.readdress", "plc.convert_manual_to_auto", "plc.freeze"].contains(&n) => {
+                n.to_owned()
+            }
+            Ok(Some(_)) => return failed(key!("error-bad-param"), &["cmd"]),
+            Ok(None) => return failed(key!("error-missing-param"), &["cmd"]),
+            Err(e) => return e,
+        };
+        let params = p.get("params").cloned().unwrap_or_else(|| json!({}));
+        self.preview_bulk(&name, params)
+    }
+
     /// `fluid.set_medium {line, medium}` (FR-FLU-009): the medium the fluid line's net carries, defined at the line's
     /// end with one `fluid.medium.define`; a toast names the medium and the line.
     pub(crate) fn act_fluid_set_medium(&mut self, p: &Map<String, Value>) -> Outcome {

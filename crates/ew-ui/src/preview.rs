@@ -663,6 +663,20 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
         }
         ui.add_space(t.space_2);
         let [entities, tags, xrefs, pages] = rows(&t, shell);
+        // The command's notices (a re-address's old and new addresses), first and open where it gives any.
+        let notices: Vec<Vec<(String, Rgba)>> = shell
+            .preview_pane()
+            .notices()
+            .iter()
+            .map(|n| match n.split_once(" → ") {
+                Some((a, b)) => vec![
+                    (a.to_owned(), t.text_secondary),
+                    (" → ".to_owned(), t.text_tertiary),
+                    (b.to_owned(), t.text_primary),
+                ],
+                None => vec![(n.clone(), t.text_primary)],
+            })
+            .collect();
         let shown = egui::ScrollArea::vertical()
             .id_salt("preview-lists")
             .auto_shrink([false, false])
@@ -671,7 +685,11 @@ pub fn show(ui: &mut Ui, shell: &ShellModel, events: &mut Vec<Event>) {
                 // entities otherwise); the others follow, closed.
                 let renumber = card.preview.name.ends_with("renumber") && !tags.is_empty();
                 let mut closed = 0.0;
-                if renumber {
+                if !notices.is_empty() {
+                    closed += list(ui, strings::text(key!("preview-notices")), &notices, true);
+                    closed += list(ui, strings::text(key!("preview-entities")), &entities, false);
+                    closed += list(ui, strings::text(key!("preview-tags")), &tags, false);
+                } else if renumber {
                     closed += list(ui, strings::text(key!("preview-tags")), &tags, true);
                     closed += list(ui, strings::text(key!("preview-entities")), &entities, false);
                 } else {

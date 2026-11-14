@@ -90,6 +90,9 @@ pub struct PreviewPane {
     pub(crate) tags: Vec<(String, String)>,
     pub(crate) xrefs: Vec<XrefChange>,
     pub(crate) pages: Vec<(String, Option<String>)>,
+    /// What the command says it changes beyond its records (`Outcome::notices`): the re-address preview's old to new
+    /// address per channel (`channel 3 of -201U5: Q10.3 → Q2.3`), a freeze's count.
+    pub(crate) notices: Vec<String>,
     /// Whether the card chain opened the tab (it was not in the layout when the first card came): the tab then closes
     /// when the last card is applied or cancelled; a tab the user opened by hand stays.
     pub(crate) opened_by_card: bool,
@@ -115,6 +118,11 @@ impl PreviewPane {
     /// is another ("106 → 104").
     pub fn pages(&self) -> &[(String, Option<String>)] {
         &self.pages
+    }
+
+    /// The command's notices, in its order.
+    pub fn notices(&self) -> &[String] {
+        &self.notices
     }
 
     /// Forgets the card's lists.

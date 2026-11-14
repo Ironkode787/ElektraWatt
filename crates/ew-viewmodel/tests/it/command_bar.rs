@@ -44,6 +44,7 @@ const KEY_ONLY: &[&str] = &[
     // The PLC navigator's row actions, reached through its row menu.
     "plc.attach_cards",
     "plc.rack_editor",
+    "plc.preview",
     // A fluid line's medium, reached through its context menu.
     "fluid.set_medium",
 ];

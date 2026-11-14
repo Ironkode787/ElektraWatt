@@ -3205,6 +3205,10 @@ action-plc-rack-add = Add module
 action-plc-rack-move = Move module
 action-fluid-set-medium = Set medium
 action-fluid-medium-new = New medium…
+action-plc-preview = Preview PLC addressing
+menu-plc-readdress = Re-address…
+menu-plc-convert-manual-to-auto = Make manual addresses automatic…
+menu-plc-freeze = Freeze addresses…
 reason-drop-on-cp = Drop the channel on a connection point
 
 # FX38d: a CP off the channel's card, refused in words before the commit.
@@ -3731,6 +3735,7 @@ preview-changes-count-one = 1 change
 preview-pages-count = { $p0 } pages
 preview-pages-count-one = 1 page
 preview-entities = Entities
+preview-notices = Changes
 preview-tags = Tags
 preview-xrefs = Xrefs
 preview-pages = Pages

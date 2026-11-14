@@ -27,6 +27,7 @@ use super::ShellModel;
 use crate::actions::{self, ActionItem};
 use crate::key;
 use crate::strings;
+use crate::strings::Key;
 use crate::tools::{EntityKind, selection_kinds};
 
 /// How far beyond a symbol's body a cross-reference of its own prints (nm): a contact's reference to its coil and an
@@ -331,9 +332,17 @@ impl ShellModel {
                 self.go_to(kind, Some(node), &mut out);
                 self.device_entries(&self.row_device(device, node), &mut out);
                 out.extend(self.menu_item("props.focus"));
-                if node.role == NavRole::Station {
-                    self.station_entries(device, &mut out);
+                match node.role {
+                    NavRole::Station => self.station_entries(device, &mut out),
+                    NavRole::Module => {
+                        self.addressing_entries(json!({ "modules": [device.to_string()] }), &mut out);
+                    }
+                    _ => {}
                 }
+            }
+            // A configuration project's addressing commands (FR-PLC-014, FR-PLC-015), each previewed.
+            (NavKind::Plc | NavKind::PlcGrid, NavRole::ConfigProject, Some(cfg)) => {
+                self.addressing_entries(json!({ "config_project": cfg.to_string() }), &mut out);
             }
             (NavKind::Plc | NavKind::PlcGrid, NavRole::Channel, _) => {
                 self.go_to(kind, Some(node), &mut out);
@@ -367,6 +376,22 @@ impl ShellModel {
             _ => {}
         }
         out
+    }
+
+    /// The previewed addressing commands of a configuration project or a module (`scope` their parameters): Re-address…
+    /// (`plc.readdress`, the preview lists every old and new address), Make manual addresses automatic…
+    /// (`plc.convert_manual_to_auto`) and, for a configuration project, Freeze addresses… (`plc.freeze`).
+    fn addressing_entries(&self, scope: Value, out: &mut Vec<ActionItem>) {
+        let mut commands = vec!["plc.readdress", "plc.convert_manual_to_auto"];
+        if scope.get("config_project").is_some() {
+            commands.push("plc.freeze");
+        }
+        for name in commands {
+            let label =
+                strings::text(Key::run_time(&format!("menu-{}", name.replace(['.', '_'], "-")))).to_owned();
+            let params = json!({ "cmd": name, "params": scope });
+            out.extend(self.aimed("plc.preview", params, label));
+        }
     }
 
     /// A station row's PLC entries: Place port `<interface>` for each port of its part not drawn yet (FT-831: the Place

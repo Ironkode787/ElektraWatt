@@ -316,3 +316,68 @@ fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
     h.get_by_label("The slots meet the station's rules.");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// FR-PLC-014 in the window: a module started by hand at Q10 is re-addressed from its row's Re-address…: the Preview
+/// tab lists each channel's old and new address, and Apply moves them back to the automatic start in one step.
+#[test]
+fn a_module_is_re_addressed_with_its_old_to_new_preview() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    let module = h
+        .state()
+        .shell()
+        .nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .and_then(|t| {
+            t.nodes
+                .iter()
+                .find(|n| n.role == NavRole::Module && n.label == "-201U5")
+                .map(|n| n.records[0])
+        })
+        .expect("-201U5");
+    dispatch(
+        &mut h,
+        "command.run",
+        json!({"cmd": "plc.set_start", "params": {"modules": [module.to_string()], "dir": "output", "spec": "Q10"}}),
+    );
+    settle(&mut h);
+    // The navigator's filter (the text field at the left column's top) narrows the tree to the module.
+    h.get_all_by_role(egui::accesskit::Role::TextInput)
+        .filter(|n| n.rect().left() < 600.0 && n.rect().top() > 100.0)
+        .min_by(|a, b| a.rect().top().total_cmp(&b.rect().top()))
+        .expect("the navigator's filter")
+        .click();
+    h.run_ok();
+    h.event(egui::Event::Text("201U5".to_owned()));
+    settle(&mut h);
+    let row = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == NavRole::Module.word() && r.label == "-201U5")
+        .expect("-201U5's row");
+    h.get_by_label(&row.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Re-address…").click();
+    settle(&mut h);
+    let notices = h.state().shell().preview_pane().notices().to_vec();
+    assert!(
+        notices.iter().any(|n| n.starts_with("channel 0 of -201U5: Q10.0 → ")),
+        "{notices:?}"
+    );
+    h.get_by_label_contains("channel 0 of -201U5: Q10.0");
+    support::off_chrome(&h, "Apply").expect("the card's Apply").click();
+    settle(&mut h);
+    let t = h.state().shell().nav(NavKind::Plc).and_then(|n| n.table()).cloned().unwrap();
+    let address = t
+        .nodes
+        .iter()
+        .find(|n| n.role == NavRole::Channel && n.cells.get(5).is_some_and(|m| m == "-201U5"))
+        .map(|n| n.cells[0].clone())
+        .unwrap_or_default();
+    assert!(!address.starts_with("Q10"), "{address}");
+    h.state_mut().shell_mut().shutdown();
+}

@@ -409,6 +409,7 @@ plc.attach_cards Command "Attach cards without a CPU" menu none shortcut none co
 plc.rack_editor View "Rack and slots…" menu none shortcut none context navigator needs-parameters params "station:ref"
 plc.rack_part View "Module part" menu none shortcut none context global hidden params "part:ref"
 plc.rack_add Command "Add module" menu none shortcut none context global hidden params "slot:uint, rack?:uint"
+plc.preview Command "Preview PLC addressing" menu none shortcut none context navigator needs-parameters params "cmd:text, params?:json"
 fluid.set_medium Command "Set medium" menu none shortcut none context canvas needs-parameters params "line:ref, medium:ref"
 fluid.medium_new Command "New medium…" menu "Project" shortcut none context global params "name?:text, p_nom?:text, code?:text"
 plc.rack_move Command "Move module" menu none shortcut none context global hidden params "module:ref, slot:text"

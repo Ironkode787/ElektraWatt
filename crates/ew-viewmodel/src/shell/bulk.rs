@@ -192,6 +192,7 @@ impl ShellModel {
         };
         bump(calls, |c| c.preview_entities += 1);
         self.preview.entities = project.session.preview_entities(preview);
+        self.preview.notices.clone_from(&preview.outcome().notices);
         let position = |page: Uuid| rows.iter().position(|r| r.id == page);
         let mut pages: Vec<usize> = preview
             .affected_pages()
