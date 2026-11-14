@@ -33,6 +33,11 @@ pub const IMPORTER_VERSION: &str = "1";
 /// The most report entries one read lists; the rest are counted (EW-IMP-001 in the stats, doc 14 §11).
 const MAX_ENTRIES: usize = 1_000;
 
+/// The most pins of one part, and of one file (a part's pins are JSON for the library: a hostile list of millions would
+/// not fit the 256 MB of doc 14 §11).
+const MAX_PINS: usize = 4_096;
+const MAX_PINS_TOTAL: usize = 262_144;
+
 /// The function definition of a template whose EPLAN definition is not mapped: EW's generic black box.
 const GENERIC_FNDEF: &str = "ew.fn.blackbox";
 
@@ -203,7 +208,12 @@ fn attributes(
 /// The values of a template attribute that lists one value per pin: split at line breaks and the pilcrow.
 fn list(value: Option<&String>) -> Vec<String> {
     value
-        .map(|v| v.split(['\n', '\r', '¶']).map(|s| s.trim().to_owned()).collect())
+        .map(|v| {
+            v.split(['\n', '\r', '¶'])
+                .take(MAX_PINS + 1)
+                .map(|s| s.trim().to_owned())
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -461,6 +471,8 @@ fn ml_text(field: &str) -> (BTreeMap<String, String>, Option<String>, Vec<String
 /// The report of one read, with the cap of [`MAX_ENTRIES`].
 struct Notes {
     file: String,
+    /// The pins kept so far, all parts together.
+    pins: usize,
     entries: Vec<ReportEntry>,
     suppressed: BTreeMap<Code, u32>,
 }
@@ -516,6 +528,7 @@ fn pins(
     };
     // The function definitions in order of first use, each with the pins of its templates.
     let mut groups: Vec<(String, Option<String>, Vec<(String, Map<String, Value>)>)> = Vec::new();
+    let mut skipped = 0usize;
     for t in &main.templates {
         let (fndef, kind) = match t.key.as_ref().and_then(|k| fndefs.get(k)) {
             Some((f, k)) => (f.clone(), k.clone()),
@@ -548,6 +561,11 @@ fn pins(
             if d.is_empty() {
                 continue;
             }
+            if notes.pins >= MAX_PINS_TOTAL || groups.iter().map(|g| g.2.len()).sum::<usize>() >= MAX_PINS {
+                skipped += 1;
+                continue;
+            }
+            notes.pins += 1;
             let mut extra = Map::new();
             if let Some(n) = t.terminal_nrs.get(i).filter(|n| !n.is_empty()) {
                 extra.insert("eplan.terminal_nr".into(), json!(n));
@@ -557,6 +575,18 @@ fn pins(
             }
             groups[slot].2.push((d.clone(), extra));
         }
+    }
+    if skipped > 0 {
+        notes.push(
+            Code::LIMIT,
+            Severity::Warning,
+            format!(
+                "part `{}` has more pins than one part or one file may have: {skipped} pins left out",
+                article.attr("P_ARTICLE_PARTNR")
+            ),
+            Some(member),
+            Some(article.line),
+        );
     }
     let mut cps = Vec::new();
     let mut template = Vec::new();
@@ -861,6 +891,7 @@ pub fn read_parts(input: &ImportInput, fndefs: &FndefMap, limits: &Limits) -> Re
         file: input.name().to_owned(),
         entries: Vec::new(),
         suppressed: BTreeMap::new(),
+        pins: 0,
     };
     let sha = hex(input.sha256());
     let seven = bytes.starts_with(b"7z\xbc\xaf\x27\x1c");

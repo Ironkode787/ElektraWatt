@@ -244,6 +244,26 @@ fn hostile_files_are_refused() {
     assert!(read("a.edz", &nested).is_err());
 }
 
+/// A part with thousands of pins is cut to what a part may hold and the cut is said (doc 14 §11: 256 MB), however many
+/// such parts the file has.
+#[test]
+fn a_hostile_pin_list_is_cut_and_said() {
+    let pins = (0..10_000).map(|n| n.to_string()).collect::<Vec<_>>().join("&#10;");
+    let mut xml = String::from("<partsmanagement>");
+    for n in 0..100 {
+        xml.push_str(&format!(
+            "<part P_ARTICLE_PARTNR=\"P{n}\" P_ARTICLE_MANUFACTURER=\"Acme\"><functiontemplate connectionDesignation=\"{pins}\"/></part>"
+        ));
+    }
+    xml.push_str("</partsmanagement>");
+    let read = read("p.xml", xml.as_bytes()).unwrap();
+    assert_eq!(read.drafts.len(), 100);
+    let total: usize = read.drafts.iter().map(|d| d.body.get("cp_pattern").map_or(0, |c| c.as_array().unwrap().len())).sum();
+    assert!(total <= 262_144, "{total}");
+    assert!(read.drafts.iter().all(|d| d.body.get("cp_pattern").is_none_or(|c| c.as_array().unwrap().len() <= 4_096)));
+    assert!(codes(&read).contains(&Code::LIMIT));
+}
+
 /// A part with no part number or no manufacturer still becomes a draft; the placer rejects it in words.
 #[test]
 fn a_part_without_number_or_manufacturer_is_left_to_the_placer() {

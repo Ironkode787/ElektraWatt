@@ -269,6 +269,44 @@ fn eplan_symbol_inputs() {
     );
 }
 
+/// The same files as the EDZ and parts XML part reader takes them (`eplan::parts_import`, WP-S3.18), through the
+/// front door: the verdict is the kind of refusal; a file the reader reads gives its parts, never more than the pin
+/// budget.
+#[test]
+fn eplan_part_inputs() {
+    use ew_api::catalog::{CatalogTarget, ImportInput};
+    let sha_target = CatalogTarget::new(ew_ids::Uuid::from_u128(7));
+    class(
+        "eplan",
+        &[
+            ("billion-laughs.xml", "malformed"),
+            ("depth-10000.xml", "limit"),
+            ("element-of-200000-attributes.xml", "limit"),
+            ("entry-parent.edz", "malformed"),
+            ("external-entity.xml", "malformed"),
+            ("parts-pins-over-the-budget.xml", "parts: 17"),
+            ("ratio-over-200.edz", "limit"),
+            ("seven-zip-dictionary-4-gib.edz", "limit"),
+            ("seven-zip-entries-over-the-limit.edz", "limit"),
+        ],
+        |name, bytes| {
+            let input = ImportInput::new(name, bytes.to_vec()).expect("a file name");
+            let sizes = [bytes.len() as u64];
+            let run = ew_api::import::front_door(name, &sizes, &sha_target.limits, None, || {
+                ew_api::eplan::parts_import(&input, &ew_api::eplan::FndefMap::shipped(), &[], &sha_target)
+            });
+            match run {
+                Ok(i) => format!("parts: {}", i.rows.len()),
+                Err(ew_api::import::Refusal::Import(ew_api::import::ImportError::LimitExceeded {
+                    ..
+                })) => "limit".to_owned(),
+                Err(ew_api::import::Refusal::Import(_)) => "malformed".to_owned(),
+                Err(other) => format!("other: {other}"),
+            }
+        },
+    );
+}
+
 /// A supplier's parts workbook through the front door (`parse_parts`, as `ew import parts` and the window read one).
 #[test]
 fn xlsx_parts_tables() {

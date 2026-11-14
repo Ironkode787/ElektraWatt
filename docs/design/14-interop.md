@@ -56,9 +56,9 @@ C-15 `%f` versus `%F`).
 | QET `.elmt` directory (the user's QET collection) | read | `ew-import-qet` (§4.3 mapper) into a user library | 1.0 ([07](07-symbols-parts-macros.md) §3.6) | FR-SYM-029 (07) |
 | Golden tables (CSV) | read | `csv` importer (report format `golden-csv`) in `ew-import-tables` (ARCH §3), the CSV bootstrap of ARCH §13, exposed as `ew import csv` and reused by `ew-testkit` | MVP | FR-IMP-022 |
 | Parts CSV/XLSX | read | `ew-import-catalog` column mapper into a user or company library ([07](07-symbols-parts-macros.md) §3.6) | MVP | FR-PRT-016 (07) |
-| EDZ (7-Zip, ZIP) | read | `ew-import-eplan` (sevenz-rust2 0.24.2, zip, quick-xml 0.42.0) | 1.0 | FR-IMP-025 … FR-IMP-027 |
+| EDZ (7-Zip, ZIP) | read | `ew-import-eplan` (sevenz-rust2 0.24.2, its own bounded ZIP reader, quick-xml 0.41.0; §5.2 as built) | 1.0 | FR-IMP-025 … FR-IMP-027 |
 | EPLAN parts XML | read | `ew-import-eplan` | 1.0 | FR-IMP-028 |
-| EPLAN report exports (XLSX/CSV) | read | `ew-import-eplan` (calamine 0.36.1, csv 1.4.0) | 1.0 | FR-IMP-029 |
+| EPLAN report exports (XLSX/CSV) | read | `ew-import-eplan` for the mapping, the tables read by `ew-import-catalog`'s own bounded readers (not calamine) | 1.0 | FR-IMP-029 |
 | PDF/DXF underlays | read | `ew-import-dxf`; PDF via hayro 0.8.0 in `ew-scene`, a runtime dependency since WP-S3.19 (ARCH §3) | 1.0 | FR-IMP-030 |
 | EPLAN `.epj` project XML | read | experimental, behind a flag | Later | FR-IMP-031 |
 | DXF R12–2018 | read | `ew-import-dxf` (own reader, §6.1) | 1.0 | FR-IMP-032 … FR-IMP-035 |
@@ -1304,6 +1304,47 @@ target_b = "Ziel 2"
 - The result is a project without drawings that the user places from the navigators; the import is a batch with
   row-key lineage, so a newer export of the same list updates in place.
 
+*As built (WP-S3.18).* **Parts (§5.2, §5.3).** `ew_import_eplan::read_parts` reads an EDZ (the 7-Zip signature or `PK`;
+only `*.part.xml` members are opened, a 3D model or picture beyond the member limit that nobody reads does not refuse
+the archive; the archive limits are the older reader's, 32 MiB packed, 4 MiB a part file, 64 MiB unpacked, 200 : 1), an
+EPLAN parts XML or a bare part XML, streamed with quick-xml under `Limits` (a DOCTYPE refused), into `PartDraft`s of
+`ew-interop-api`; the crate does not depend on `ew-import-catalog` (an importer depends on permissive crates only), so
+the placing of a draft (manufacturer through the master list, `pn_norm` dedupe, item IDs, new / updated / unchanged /
+duplicate / rejected, `--bump`) is `ew_import_catalog::Placer`, which `parse_parts` uses for its rows too. The shapes
+the reader takes: a part's attributes `P_ARTICLE_PARTNR`, `_MANUFACTURER`, `_ORDERNR`, `_TYPENR`, `_DESCR1`, `_DESCR2`
+(joined per language), `_WIDTH`, `_HEIGHT`, `_DEPTH` (in `length-unit`, to `mech`); `<variant P_ARTICLE_VARIANT>`;
+`<functiontemplate connectionDesignation connectiondescription terminalNr>` (one pin per line break or `¶`), its
+function definition `functiondefcategory`, `functiondefgroup` and `functiondefid`, or `functiondefinition="c.g.i"`;
+`<freeproperty name value>`; `<accessorylist><accessory P_ARTICLE_PARTNR P_ARTICLE_MANUFACTURER quantity>`;
+`<drillingPosition>`. Decisions: the pins of the first variant are the part's CPs, one template function per function
+definition, natural order within a group whose designations are all numbered and the template's order for lettered
+pins (L, N, PE, +, +, −, −); the further variants and the accessories stay in `extra` as `eplan.variants` and
+`eplan.accessories` (the part model has no member for either yet, doc 03 §7); the picture (a part holds none; libraries
+store no assets) and the drilling positions (no `FeaturePattern` before the panel work, FT-1738) are reported, not read;
+at most 4,096 pins a part and 262,144 a file. A part carries its provenance (`eplan.edz:<file>` or `eplan.parts-xml:<file>`,
+the file's SHA-256, the date), the licence `LicenseRef-vendor-terms` and `foreign_terms`. `fndef-map.toml`
+(`data/fndef-map.toml`, rows of category, group, id, `fndef` and an optional part `kind`) ships with a handful of rows
+whose EPLAN numbering is **not verified against a real export** (Open question 12); the user's
+`<config dir>/imports/fndef-map.toml`, or `--fndef-map`, wins over it. The terms notice is `ew_api::eplan::TERMS_NOTICE`
+on stderr for `ew import edz` and a dialog once per session in the window; both log EW-IMP-201 in the report. **Targets.**
+`ew import edz|parts-xml <file> --library <key|id>` writes a user or company library (the one writer of
+`catalog::import_parts_into_library`); `--project <dir>` writes no library: it previews the update of the project's
+part copies of the same normalised part numbers (`Session::update_parts_from_import`: the held copy with the file's
+description, numbers, pins, template, free properties, size and provenance laid over it, as its next patch version, what
+the file lacks kept; the plan is `library.update`'s, the card's field diff and devices) and `--apply` commits it
+(AC-38). **Reports (§5.4).** `ew_import_eplan::read_report` takes the table (`ew-import-catalog`'s readers: CSV with
+its delimiter found, an XLSX sheet; the header row detected in the first 20 or given) and a `ReportMap` (`target`,
+`sheet`, `header_row`, `[columns]`; shipped German and English presets, a user's saved `eplan-report-<key>.toml`) and
+emits a project without drawings: unplaced devices with a black-box function, strips and terminals (rising levels of one
+designation folded, EW-IMP-207), connections between terminals only, since a device's connection points need its part
+(an end that no terminal answers is EW-IMP-003); an unmapped column is EW-IMP-206; the lineage is `eplan` anchored on the
+mapping's key, so a newer export keeps the IDs. EW-IMP-206 and -207 are rules of the EW-IMP pack. `ew import
+eplan-report` writes the new project; the window's File ▸ Import… offers the mappings that fit the file's headers and
+has no per-column mapper (map other columns in a TOML file). **Not built:** the picture and the drilling positions
+(above), device connection points from a report, a re-import of a report into an existing project, import as a copy
+(FR-IMP-045, Could). The fuzz targets `edz_7z`, `edz_zip`, `parts_xml` and `eplan_table` are the hostile corpus's
+`eplan/` class read by `eplan_part_inputs` (the repository has no fuzz crate).
+
 ### 5.5 Underlays
 
 A PDF page or a DXF layout can be placed on a page as a locked underlay (FR-IMP-030) that no query of the
@@ -1745,7 +1786,7 @@ are specified in [16](16-ux-ui.md).
 | **DXF import** | Units with an extents preview, layer list with visibility and mapping, model or paper space, target choice |
 | **DXF→symbol wizard** | Block list with thumbnails, attribute mapping, CP pick tool, grid-snap result with the scale proposal |
 | **Table round trip** | "Export table…" and "Import changes…" with a per-cell diff grid and conflict resolution |
-| **CLI** (FR-EXT-008) | `ew import qet <file> [--into <project>] [--basic <project>] [--lineage auto\|new\|<id>] [--proposals pending\|safe\|all] [--report json\|csv\|md] [--report-out <file>] [--strict]` (MVP; as built: `ew import qet <file.qet> [--content <dir>] [--report md\|csv\|json] [--report-out <file>] [--strict]`); `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0); `ew import csv <dir>` (MVP); `ew import edz <file> --library <lib>` (1.0); `ew import dxf <file> --as page\|underlay\|symbol [--units mm]` (1.0; as built also `--as outline`, `--layout`, `--show-layer`, `--on <folio>`, `--embed`, `--library`, `--part`, with `ew import dwg <file> --converter <program>` and `ew import pdf <file> --on <folio> [--page n] [--embed]`, WP-S3.19); `ew import table <xlsx> --project <p>` (1.0, FR-EXT-028 of [17](17-extensibility.md) §3.3); `ew verify-migration <project> --reference <pdf>` (MVP). Exit codes follow FR-EXT-002 as [17](17-extensibility.md) §3.2 applies them to imports: a lenient import that completes exits 0 and prints its summary, whatever its findings, because the findings are the migration report's content; `--strict` exits 1 when a connection was lost or an error finding exists; 2 for an unreadable file or a usage error. With `--report` on stdout (no `--report-out`), stdout is exactly the report and the summary goes to stderr |
+| **CLI** (FR-EXT-008) | `ew import qet <file> [--into <project>] [--basic <project>] [--lineage auto\|new\|<id>] [--proposals pending\|safe\|all] [--report json\|csv\|md] [--report-out <file>] [--strict]` (MVP; as built: `ew import qet <file.qet> [--content <dir>] [--report md\|csv\|json] [--report-out <file>] [--strict]`); `ew import qet --batch <dir> --out <dir>` (FR-IMP-023, 1.0); `ew import csv <dir>` (MVP); `ew import edz <file> --library <lib>` (1.0; as built also `--project <dir> [--apply]`, `--bump`, `--take-over`, `--as-of`, `--fndef-map`, and `ew import parts-xml` likewise, `ew import eplan-report <file> --map <map.toml>|--preset <name> --out <dir>`, `ew lib import qet-elements <library> <dir>`, WP-S3.18); `ew import dxf <file> --as page\|underlay\|symbol [--units mm]` (1.0; as built also `--as outline`, `--layout`, `--show-layer`, `--on <folio>`, `--embed`, `--library`, `--part`, with `ew import dwg <file> --converter <program>` and `ew import pdf <file> --on <folio> [--page n] [--embed]`, WP-S3.19); `ew import table <xlsx> --project <p>` (1.0, FR-EXT-028 of [17](17-extensibility.md) §3.3); `ew verify-migration <project> --reference <pdf>` (MVP). Exit codes follow FR-EXT-002 as [17](17-extensibility.md) §3.2 applies them to imports: a lenient import that completes exits 0 and prints its summary, whatever its findings, because the findings are the migration report's content; `--strict` exits 1 when a connection was lost or an error finding exists; 2 for an unreadable file or a usage error. With `--report` on stdout (no `--report-out`), stdout is exactly the report and the summary goes to stderr |
 | **Concept glossary** | The wizard and the migration report link the QET ↔ EW glossary (element → symbol and FnDef, master/slave → main/auxiliary function, folio report → interruption point, conductor → connection; NFR-DOC-05) |
 
 The CLI default `--proposals pending` applies no proposal, so headless imports are reproducible and Golden C lists
@@ -1871,7 +1912,7 @@ rule (§2.5).
 | `ew import csv` golden bootstrap | ● | | | |
 | Table export and round trip, CSV dialects, BOM for purchasing, deterministic exports | ● | | | |
 | Parts CSV/XLSX into libraries (07); generic I/O list round trip (10, Should) | ● | | | |
-| `ew import qet --batch`; import as copy (FR-IMP-045, Could); QET `.elmt` collection into a user library (FR-SYM-029, 07) | | ● | | |
+| `ew import qet --batch` (as built, WP-S3.18); import as copy (FR-IMP-045, Could); QET `.elmt` collection into a user library (FR-SYM-029, 07; as built, WP-S3.18) | | ● | | |
 | EDZ (7-Zip and ZIP), extras, parts XML | | ● | | |
 | EPLAN report spreadsheets, underlays (Should) | | ● | | |
 | DXF import, SHX substitution, DXF→symbol wizard, part outlines and drilling patterns | | ● | | |

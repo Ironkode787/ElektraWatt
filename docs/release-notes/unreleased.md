@@ -460,3 +460,16 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   port's address of that configuration project is refused until `plc.unlock` lifts the protection (FR-PLC-033)
 - format-variant: record exchange_record.schema.json
 - format-variant: record foreign_id.schema.json
+- api-add: `ew import edz` and `ew import parts-xml` read an EPLAN EDZ (7-Zip or ZIP) or parts XML into the parts of a
+  library (`--library`, `--bump`, `--take-over`, `--fndef-map`), with the Data Portal terms notice; with `--project`
+  they preview, and with `--apply` commit, the update of the project's part copies of the same part numbers,
+  field by field (WP-S3.18, FR-IMP-025 … -028, AC-38)
+- api-add: `ew import eplan-report` makes a project without drawings from an EPLAN device list, terminal diagram or
+  connection list through a column mapping; the check rules EW-IMP-206 and EW-IMP-207 (FR-IMP-029)
+- api-add: `ew import qet --batch <dir> --out <dir>` writes a project and a report per file and a summary of all
+  (FR-IMP-023); `ew lib import qet-elements <library> <dir>` converts a QElectroTech element folder into a library
+  under `LicenseRef-QET-elements` with `foreign_terms` (FR-SYM-029)
+- api-add: `PartDraft` in `ew-interop-api` and `Placer` in `ew-import-catalog`, the one placing of a part for every
+  parts source; `ew_api::eplan` and `ew_api::qet_collection`; the result `ew.lib-import-qet-elements-result/1`
+- text-change: File ▸ Import… takes `.edz`, `.7z`, `.zip`, `.xml`, `.xlsx` and `.csv` (an EPLAN part file or a
+  report), with a dialog in English and Dutch (WP-S3.18)

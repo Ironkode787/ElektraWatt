@@ -84,6 +84,11 @@ prints them.
 | `seven-zip-dictionary-4-gib.edz` | an LZMA2 folder that declares a 4 GiB dictionary | Refused by the 7z header walk before decoding |
 | `seven-zip-entries-over-the-limit.edz` | a 7z header that declares 5,000 entries | Refused by the 7z header walk: over 4,096 entries |
 
+The same files are read a second time by the EDZ and parts XML part reader of WP-S3.18 (`ew_api::eplan::parts_import`,
+the test `eplan_part_inputs`): the verdict is the kind of refusal, `limit` for a limit of the XML or of the archive and
+`malformed` for a DOCTYPE, an unsafe member name or a file that is no part data; `parts-pins-over-the-budget.xml` is
+read (its 17 parts cut to the pin budget of 4,096 a part and 262,144 a file), as the other class's test allows.
+
 ## `dxf/`: DXF drawings
 
 Parser: the DXF importer through the front door into a new page, `Session::dxf_page_batch` (`ew import dxf`, the

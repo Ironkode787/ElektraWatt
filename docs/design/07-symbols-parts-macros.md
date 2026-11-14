@@ -818,6 +818,17 @@ company library**, never directly into a project. A project then picks the resul
 | BMEcat 2005, ETIM xChange | 1.x | product identification, ETIM or ECLASS feature blocks (feature system name, class, feature name, value, unit), order and price details (element names to verify against the specification) | FR-PRT-020; prices go to L4 with source and as-of date |
 | DXF blocks | 1.0 | DXF-to-symbol wizard (FR-IMP-034); vendor DXF as 2D front outline or drilling pattern (FR-IMP-035) | CPs snap to the target library's connection grid (FR-IMP-034) |
 
+*As built (WP-S3.18).* **EDZ and parts XML** are read by `ew-import-eplan` into part drafts, placed by
+`ew-import-catalog`'s one placer (the dedupe on manufacturer and `pn_norm`, a new patch version with `--bump`), written by
+`ew import edz|parts-xml --library` or from the window (Add to my parts library, the library `user-parts`); the pins,
+descriptions, sizes, free properties and provenance are read, accessories and further variants kept in `extra`, the
+picture and the drilling positions reported (14 §5.2). The previewed update of a project's part copy from a file is
+`ew import edz --project` and the window's Update (14 §5.2, AC-38). **The QET element collection** is
+`ew lib import qet-elements <library> <dir>`: the `.elmt` files below a folder become symbols and function definitions of
+a writable library under `LicenseRef-QET-elements` with `foreign_terms`, the source path kept in `meta.sources`, the
+folder's `ELEMENTS.LICENSE` named there by its SHA-256; the refusal to pack such a library (`ew lib pack`, LL-05) waits for
+the command, which is not built.
+
 *As built.* The CSV/XLSX row is built in
 `ew-import-catalog`: a column map (`member ← header`, saved as TOML per source key), a CSV reader (UTF-8 with or without
 a BOM, comma or semicolon from the header line, RFC 4180 quoting), an own bounded XLSX reader (no calamine),
