@@ -827,7 +827,7 @@ alike (ADR-0018, FR-EXP-002).
 | Tube cut list (FR-FLU-013, 1.0) | material, od×id, colour, part, count, Σ length + per-end cut allowance (default 0), order length rounded to the part's order increment | Golden A-R (PU 6×4 BU at 1,200 mm on F1–F17 ▲, [20](20-golden-project.md) §12): 1 line, 17 pieces, 20.4 m |
 | Tube labels (FR-FLU-013, 1.0) | per tube end: text by marking scheme (tag, or destination "-203Q1:A" / "-201U3-Q1:2"), marker part | Input to the label engine (FR-MFG-012, [13](13-manufacturing-outputs.md)) |
 | Valve-terminal configuration (FR-FLU-015, 1.0) | position, module DT, module part, valve DT, valve part, solenoids, channel and address, function text / process tag, occupancy and state | 12 module rows -201U1 … -202U3, 28 valve rows (8 used, 20 spare) |
-| Medium overview (FR-FLU-016, 1.0) | medium, sources (DT:port), p_nom, quality, consumers (devices whose port 1 lies in the zone), default tube | Golden A-R (medium at -201U9:1 through F17): one row, 28 consumers |
+| Medium overview (FR-FLU-016, 1.0) | medium, sources (DT:port), p_nom, quality, consumers (devices whose port 1 lies in the zone, and the actuators it reaches), default tube | Golden A-R (medium at -201U9:1 through F17): one row, 36 consumers |
 | Fluid BOM lines (FR-FLU-014, 1.0) | Tubes as consumables in m per tube part; fittings per end; plugs and silencers from closures and devices; blanking plates; configured assemblies in assembly mode (FR-REP-005); field devices supplied by others excluded | Component mode: 571334 × 28, 533361 × 7, 533354 × 2 (D-04); assembly mode: rows A1 (51E-F13GCQP-D+H2GG) and A2 (32P-VGL-R-…-28MS) ([20](20-golden-project.md) §14.2) |
 
 *As built (WP-S1.25).* The row sources are `tube_rows()`, `valve_terminal_rows()` and `medium_rows()` of
@@ -835,7 +835,9 @@ alike (ADR-0018, FR-EXP-002).
 groups by material, size, colour and tube part, with the count and the summed length; it has no per-end cut
 allowance and no order length, since no part data names an order increment. The tube labels give one row per tube
 end with the line tag, else the far end; no marker part. The medium overview counts as consumers the **valves** whose
-port 1 lies in a net carrying the medium (not the supply plates that feed it), so Golden A-R has 28. The fluid BOM
+port 1 lies in a net carrying the medium (not the supply plates that feed it) and the **actuators** whose consumer port
+(a cylinder's A or B) does, so a medium set on a working line counts the cylinder it feeds and Golden A-R has 36 (its 28
+valves and the 8 cylinders of 203; M3's whole review: a medium set on a working line showed Count 0). The fluid BOM
 lines are part lines of a device: a closure's part on the device of the closed port, a tube's part on the device of
 its from end in metres, else of its to end (a tube from a tee), a fitting on the device of its end, and a tee on the
 owner of the lowest tube at it that has one; a tube between two tees has no owner.

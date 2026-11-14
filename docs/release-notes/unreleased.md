@@ -638,3 +638,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   its prevent half refuses `plc.add_module` into a taken slot; the rack and slot editor's Add here takes only a free
   slot it offers and names the module of a taken one; its slots take the dialog's height with the scroll bar shown
   (M3 whole review)
+- behaviour-change: the medium overview and the medium table count as a medium's consumers the actuators its zones
+  reach (a cylinder's A or B) beside the valves whose port 1 they reach, so a medium set on a working line counts the
+  cylinder it feeds instead of 0; Golden A-R lists 36 (M3 whole review)

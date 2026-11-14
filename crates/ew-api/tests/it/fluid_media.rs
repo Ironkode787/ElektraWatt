@@ -190,28 +190,35 @@ fn run(s: &mut Session, name: &str, params: serde_json::Value) -> ew_api::Receip
 
 /// The cells of a CSV text by header, one map per data row.
 fn csv_rows(csv: &str) -> Vec<BTreeMap<String, String>> {
+    // A field in double quotes may hold commas (a range of consumers); a doubled quote is one.
+    let fields = |l: &str| {
+        let (mut out, mut cell, mut quoted, mut chars) = (Vec::new(), String::new(), false, l.chars().peekable());
+        while let Some(c) = chars.next() {
+            match c {
+                '"' if quoted && chars.peek() == Some(&'"') => {
+                    cell.push('"');
+                    chars.next();
+                }
+                '"' => quoted = !quoted,
+                ',' if !quoted => out.push(std::mem::take(&mut cell)),
+                c => cell.push(c),
+            }
+        }
+        out.push(cell);
+        out
+    };
     let mut lines = csv.lines();
-    let header: Vec<String> = lines
-        .next()
-        .unwrap_or_default()
-        .split(',')
-        .map(str::to_owned)
-        .collect();
+    let header = fields(lines.next().unwrap_or_default());
     lines
-        .map(|l| {
-            header
-                .iter()
-                .cloned()
-                .zip(l.split(',').map(str::to_owned))
-                .collect()
-        })
+        .map(|l| header.iter().cloned().zip(fields(l)).collect())
         .collect()
 }
 
 /// AC-32's 1.0 part and the propagation test (doc 11 §11.2, doc 20 §12): on the A-R overlay, the medium "compressed
 /// air 6 bar" defined at the air-supply point reaches -201U9:1 through F17 and port 1 of all 28 valves through gallery
 /// 1, ports 3 and 5 as exhaust; the default tube PU 6×4 BU and 1,200 mm on F1 to F17 give a tube list of 17 rows and
-/// a cut list of one line of 17 pieces, 20.4 m; the medium overview has one row with 28 consumers; plugs on the spare
+/// a cut list of one line of 17 pieces, 20.4 m; the medium overview has one row with 36 consumers (the 28 valves and the
+/// 8 cylinders they feed); plugs on the spare
 /// valves' working ports and silencers on the plates' exhausts clear EF-13, EF-20 and EF-21, and EF-14 stays.
 #[test]
 fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
@@ -352,7 +359,7 @@ fn the_a_r_overlay_feeds_every_valve_and_lists_17_tubes() {
         row_export(&s.query(), &RowExport::Kind("medium_overview".into()), None).expect("the overview");
     let media = csv_rows(&media.csv);
     assert_eq!(media.len(), 1);
-    assert_eq!(media[0]["Count"], "28");
+    assert_eq!(media[0]["Count"], "36", "the 28 valves and the 8 cylinders of 203: {media:?}");
 
     // EF-13, EF-20 and EF-21 clear; EF-14 stays.
     let run1 = |rule| findings(&s, &PRE_DELIVERY, CheckMode::Release, rule);

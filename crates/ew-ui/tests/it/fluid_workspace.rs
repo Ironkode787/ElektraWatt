@@ -275,6 +275,15 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
         .expect("the medium table's row")
         .click();
     settle(&mut h);
+    // A medium set on a working line counts the cylinder it feeds.
+    let counts: Vec<String> = h
+        .get_all_by_role(egui::accesskit::Role::Cell)
+        .filter_map(|n| n.accesskit_node().label().filter(|l| l.starts_with("Count ")))
+        .collect();
+    assert!(
+        counts.len() == 1 && counts[0].starts_with("Count 1,"),
+        "the medium's consumers: {counts:?}"
+    );
     h.key_press_modifiers(egui::Modifiers::COMMAND | egui::Modifiers::SHIFT, egui::Key::H);
     settle(&mut h);
     let highlights = h.state().shell().highlights().items().len();

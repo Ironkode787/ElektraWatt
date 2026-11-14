@@ -416,8 +416,8 @@ impl ReportKindDef for ValveTerminalConfig {
 // medium_overview
 
 /// The medium overview (doc 11 §8.2, FR-FLU-016): one row per project medium, in natural order of its name: the
-/// name, its definition points, the nominal pressure, the quality class, the consumers (devices whose port 1 lies in a
-/// net carrying it) with their count, and the default tube. Row ID the medium.
+/// name, its definition points, the nominal pressure, the quality class, the consumers (valves whose port 1 and actuators
+/// whose consumer port lie in a net carrying it) with their count, and the default tube. Row ID the medium.
 #[derive(Clone, Copy, Debug)]
 pub struct MediumOverview;
 

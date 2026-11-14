@@ -471,7 +471,8 @@ pub struct MediumRow {
     pub medium: Id<Medium>,
     /// Its definition points, as `DT:port`, in natural order.
     pub sources: Vec<String>,
-    /// The valves whose port 1 lies in a net carrying it (not as exhaust), in natural tag order.
+    /// The valves whose port 1 and the actuators whose consumer port lie in a net carrying it (not as exhaust), in
+    /// natural tag order.
     pub consumers: Vec<Id<Device>>,
 }
 
@@ -490,14 +491,20 @@ impl Query for MediumRows {
         // The nets carrying each medium, not as exhaust.
         let carries =
             |net: NetId, m: Id<Medium>| zones.keys(net).any(|(k, _)| k.root() == m && !k.is_exhaust());
-        // The supply port (role supply1) of every valve function: the consumers of doc 11 §8.2.
+        // The ports a device takes the medium in by, the consumers of doc 11 §8.2: a valve function's supply port
+        // (role supply1) and an actuator's consumer port (a cylinder's A or B), so a medium set on a working line
+        // counts the actuator it feeds.
         let mut supply: Vec<(Id<Device>, NetId)> = Vec::new();
         for d in q.devices().ids() {
-            for f in valve_functions(q, d) {
+            let valves = valve_functions(q, d);
+            for f in q.idx().functions_of_device(d) {
                 for cp in q.get::<FunctionCps>(f).iter() {
-                    if cp.port_role == Some(FluidPortRole::Supply1)
-                        && let Some(net) = node_net(q, EndpointKey::Cp(f, cp.idx))
-                    {
+                    let takes = match cp.port_role {
+                        Some(FluidPortRole::Supply1) => valves.contains(&f),
+                        Some(FluidPortRole::Consumer) => true,
+                        _ => false,
+                    };
+                    if takes && let Some(net) = node_net(q, EndpointKey::Cp(f, cp.idx)) {
                         supply.push((d, net));
                     }
                 }
