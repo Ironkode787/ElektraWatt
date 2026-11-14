@@ -161,6 +161,11 @@ impl ShellModel {
                 PaneKind::Preview => Some(("preview.show", flag)),
                 PaneKind::History => Some(("history.show", flag)),
                 PaneKind::Glossary => Some(("help.glossary", flag)),
+                // The bottom dock's other tables (the PLC grid, Tubes, Media).
+                PaneKind::Navigator(kind) => Some((
+                    "navigator.show",
+                    serde_json::json!({ "kind": kind.word(), "on": on }),
+                )),
                 _ => None,
             }
         };

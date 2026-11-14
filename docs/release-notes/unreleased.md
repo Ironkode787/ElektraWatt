@@ -664,3 +664,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   `plc.xml`) and its form's document date starts as today's; EW-PLC-016 leaves out the placeholder date 1980-01-01 of a
   model without a date (persona round)
 - api-add: `PlcFormat::extension`; `ShellModel::set_today` (the window tells the shell today's date before an action)
+- behaviour-change: the bottom dock's close button (and Ctrl+J) closes the PLC grid, Tubes and Media too; it left them
+  on show (persona round)

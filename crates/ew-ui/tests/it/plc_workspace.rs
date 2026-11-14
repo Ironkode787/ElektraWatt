@@ -87,6 +87,28 @@ fn the_plc_workspace_shows_the_plc_navigator_and_its_grid() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// The PLC grid's close button in the PLC workspace closes the bottom dock (it highlighted and left the grid on show);
+/// View ▸ Bottom dock (Ctrl+J) brings the grid back.
+#[test]
+fn the_plc_grids_close_button_closes_the_dock() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    dispatch(&mut h, "view.workspace_load", json!({"name": "PLC"}));
+    settle(&mut h);
+    let grid = PaneKind::Navigator(NavKind::PlcGrid);
+    assert!(h.state().shell().layout().panes().contains(&grid));
+    h.get_by_label("Close the bottom dock").click();
+    settle(&mut h);
+    assert!(
+        !h.state().shell().layout().panes().contains(&grid),
+        "the grid is closed"
+    );
+    dispatch(&mut h, "view.bottom_dock", json!({}));
+    settle(&mut h);
+    assert!(h.state().shell().layout().panes().contains(&grid), "and back");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// FT-1672: in a new project with two CPUs a new card joins neither; the PLC navigator lists it under "Cards without a
 /// CPU", and Attach cards without a CPU on the first CPU's row makes it that CPU's module, one undo step.
 #[test]
