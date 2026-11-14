@@ -94,3 +94,22 @@ fn a_batch_writes_a_project_and_a_report_per_file_and_a_summary() {
     assert_eq!(none.status.code(), Some(2));
     assert!(stderr(&none).contains("no .qet files"), "{}", stderr(&none));
 }
+
+/// A report that cannot be written is a row of the summary and the batch goes on; the exit code says it at the end.
+#[test]
+fn a_report_that_cannot_be_written_does_not_end_the_batch() {
+    let t = Tmp::new("ew-qet-batch-report");
+    let dir = t.path("in");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("a.qet"), GOOD).unwrap();
+    std::fs::write(dir.join("b.qet"), GOOD).unwrap();
+    let out_dir = t.path("out");
+    // A folder where the first report belongs: its write fails.
+    std::fs::create_dir_all(out_dir.join("a.report.md")).unwrap();
+    let out = t.ew(&args([&"import", &"qet", &"--batch", &dir, &"--out", &out_dir]));
+    assert_eq!(out.status.code(), Some(2), "{}", stderr(&out));
+    assert!(out_dir.join("b").join("manifest.json").is_file(), "b is imported after a");
+    let summary = std::fs::read_to_string(out_dir.join("summary.md")).unwrap();
+    assert!(summary.contains("| a.qet | the report was not written |"), "{summary}");
+    assert!(summary.contains("| b.qet | imported |"), "{summary}");
+}

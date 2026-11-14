@@ -412,10 +412,29 @@ pub(super) fn run_import_parts(a: &ImportPartsArgs) -> i32 {
     0
 }
 
+/// A text as one cell of a Markdown table: control characters and bidirectional controls escaped (`printable`), the
+/// bar that would end the cell escaped.
+pub(super) fn md_cell(text: &str) -> String {
+    printable(text).replace('|', "\\|")
+}
+
+/// `stem`, or `stem-2`, `stem-3`, ... when `used` holds it already (the comparison ignores case, as a file system that
+/// does would): two files of one batch never write to one project folder or one report.
+pub(super) fn unique_stem(used: &mut std::collections::BTreeSet<String>, stem: &str) -> String {
+    let mut candidate = stem.to_owned();
+    let mut n = 1;
+    while !used.insert(candidate.to_lowercase()) {
+        n += 1;
+        candidate = format!("{stem}-{n}");
+    }
+    candidate
+}
+
 /// `ew import qet --batch <dir> --out <dir>` (FR-IMP-023): every `.qet` of `dir` (by name) imported as a new project
 /// `<out>/<stem>/` with its migration report `<out>/<stem>.report.md`, and the summary `<out>/summary.md` (also
-/// printed). A file that cannot be imported is a row of the summary, never the end of the batch; `--strict` exits 1
-/// when a project lost a connection, has an error finding or was refused.
+/// printed). A file that cannot be imported, or whose report cannot be written, is a row of the summary, never the end
+/// of the batch (a write error makes the exit code 2 at its end); `--strict` exits 1 when a project lost a
+/// connection, has an error finding or was refused.
 fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary) -> i32 {
     let Some(out) = &a.out else {
         eprintln!("error: `--batch` needs `--out <dir>` for the projects and reports");
@@ -445,16 +464,23 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         "| Project | Result | Pages | Devices | Connections | Findings | Lost connections |\n|---|---|---|---|---|---|---|\n",
     );
     let (mut violated, mut refused) = (0usize, 0usize);
+    let (mut used_stems, mut write_failed) = (std::collections::BTreeSet::new(), false);
     for file in &files {
         let name = file
             .file_name()
             .map_or_else(String::new, |n| n.to_string_lossy().into_owned());
-        let stem = file
-            .file_stem()
-            .map_or_else(|| name.clone(), |n| n.to_string_lossy().into_owned());
-        let row = |result: &str, c: Option<(usize, usize, usize, u32, u32)>| match c {
-            Some((p, d, k, f, l)) => format!("| {name} | {result} | {p} | {d} | {k} | {f} | {l} |\n"),
-            None => format!("| {name} | {result} | | | | | |\n"),
+        let stem = unique_stem(
+            &mut used_stems,
+            &file
+                .file_stem()
+                .map_or_else(|| name.clone(), |n| n.to_string_lossy().into_owned()),
+        );
+        let row = |result: &str, c: Option<(usize, usize, usize, u32, u32)>| {
+            let (name, result) = (md_cell(&name), md_cell(result));
+            match c {
+                Some((p, d, k, f, l)) => format!("| {name} | {result} | {p} | {d} | {k} | {f} | {l} |\n"),
+                None => format!("| {name} | {result} | | | | | |\n"),
+            }
         };
         let imported = std::fs::read(file)
             .map_err(|e| e.to_string())
@@ -463,7 +489,7 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
             Ok(i) => i,
             Err(why) => {
                 eprintln!("{name}: refused: {why}");
-                summary.push_str(&row(&format!("refused: {}", printable(&why)), None));
+                summary.push_str(&row(&format!("refused: {why}"), None));
                 refused += 1;
                 continue;
             }
@@ -487,7 +513,10 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         let report_file = out.join(format!("{stem}.report.md"));
         if let Err(e) = write_report(&report_file, &report.render(ReportFormat::Markdown)) {
             eprintln!("error: {}: {e}", report_file.display());
-            return 2;
+            write_failed = true;
+            refused += 1;
+            summary.push_str(&row("the report was not written", counts));
+            continue;
         }
         let result = match imported.session {
             Ok(session) => {
@@ -504,7 +533,7 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
                     Err(e) => {
                         eprintln!("{name}: not written: {e}");
                         refused += 1;
-                        format!("not written: {}", printable(&e.to_string()))
+                        format!("not written: {e}")
                     }
                 }
             }
@@ -533,6 +562,9 @@ fn run_import_qet_batch(a: &ImportQetArgs, dir: &Path, library: &StarterLibrary)
         return 2;
     }
     println!("summary written to {}", out.join("summary.md").display());
+    if write_failed {
+        return 2;
+    }
     i32::from(a.strict && (violated > 0 || refused > 0))
 }
 

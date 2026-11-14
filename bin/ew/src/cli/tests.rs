@@ -54,6 +54,19 @@ fn printable_escapes_the_bidirectional_controls() {
     assert_eq!(super::printable("Jürgen \u{1b}"), "Jürgen \\u{1b}");
 }
 
+/// A batch's summary cell never ends early at a bar of the text, and two files that share a stem (any case) get two
+/// folders.
+#[test]
+fn the_batch_summary_escapes_a_bar_and_keeps_stems_apart() {
+    assert_eq!(super::import::md_cell("a|b\n"), "a\\|b\\n");
+    let mut used = std::collections::BTreeSet::new();
+    let stems: Vec<String> = ["A", "a", "b", "A"]
+        .iter()
+        .map(|s| super::import::unique_stem(&mut used, s))
+        .collect();
+    assert_eq!(stems, ["A", "a-2", "b", "A-3"]);
+}
+
 #[test]
 fn index_warning_prints_the_index_error_only_when_there_is_one() {
     let mut w = ew_api::library::WriteReport::default();
