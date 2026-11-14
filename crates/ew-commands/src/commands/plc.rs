@@ -697,9 +697,12 @@ fn readdress_notices(
 /// Every channel of the configuration project's modules whose address is `auto` and derives to an address takes that
 /// address as a `manual` one, so that a later change of a start, a slot or a part map moves no printed address and
 /// EW-PLC-012 (`manual`) reports every channel whose map now differs. A `tbd`, `excluded`, `manual` or unresolved
-/// address stays. Module starts are not touched. **Bulk** (the preview lists every channel); undoable as one step. The
-/// configuration project exists ([`CmdError::NotFound`]). Outcome: the configuration project, with a notice that
-/// counts the frozen addresses.
+/// address stays. Every `auto` module start that A1 places takes its place as a `manual` start too, so that a module
+/// inserted before a frozen one is placed around it (A1 reserves manual starts first) instead of moving it from under
+/// its frozen channels. **Bulk** (the preview lists every channel); undoable as one step. Refused in words: the
+/// configuration project's profile is tag-based (FR-PLC-009), whose addresses follow the station and the slot and
+/// never move. The configuration project exists ([`CmdError::NotFound`]). Outcome: the configuration project, with a
+/// notice that counts the frozen addresses.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct FreezeAddresses {
@@ -719,8 +722,44 @@ impl Command for FreezeAddresses {
         let cfg = tx.require::<PlcConfigProject>(self.config_project)?;
         let base = tx.base_model().clone();
         let q = ew_derive::Q::new(&base);
+        if ew_derive::profile_of(&q, self.config_project).is_some_and(|p| !p.absolute) {
+            return tx.reject(text!(
+                "refusal-plc-freeze-tag-based",
+                cfg.name.as_str(),
+                cfg.profile.as_str()
+            ));
+        }
         let mut frozen = 0usize;
         for m in q.get::<ew_derive::ModuleOrder>(self.config_project).iter() {
+            // The start too, in the stored form of `plc.set_start`, so that a module inserted before this one is
+            // placed around it (A1 pass 1 reserves manual starts).
+            if let Some(start) = *q.get::<ew_derive::ModuleStartOf>(m.module) {
+                let pinned = |spec: &AddrSpec, at: Option<ew_derive::Start>, area| match (spec, at) {
+                    (AddrSpec::Auto, Some(ew_derive::Start::At(byte))) => Some(AddrSpec::Manual(
+                        ew_derive::stored(ew_derive::ew_plcaddr::PlcAddress::unit(
+                            area,
+                            ew_derive::ew_plcaddr::Size::Bit,
+                            byte,
+                        )),
+                    )),
+                    _ => None,
+                };
+                if let Some(p) = tx
+                    .get::<Device>(m.module)
+                    .and_then(|d| d.aspects.plc_module.clone())
+                {
+                    let input = pinned(&p.start.input, start.input, ew_derive::ew_plcaddr::Area::I);
+                    let output = pinned(&p.start.output, start.output, ew_derive::ew_plcaddr::Area::Q);
+                    if input.is_some() || output.is_some() {
+                        tx.update::<Device>(m.module, |d| {
+                            if let Some(p) = d.aspects.plc_module.as_mut() {
+                                p.start.input = input.unwrap_or_else(|| p.start.input.clone());
+                                p.start.output = output.unwrap_or_else(|| p.start.output.clone());
+                            }
+                        })?;
+                    }
+                }
+            }
             for e in q.get::<ew_derive::ChannelAddresses>(m.module).iter() {
                 let ew_derive::ChannelAddr::At { address, .. } = &e.address else {
                     continue;
@@ -829,9 +868,13 @@ impl Command for Readdress {
 ///
 /// The scope is that of [`Readdress`]. A `manual` channel address equal to the address A2 derives for the channel
 /// becomes `auto`; a `manual` start equal to the start A1 places the module at as `auto` becomes `auto` (judged on the
-/// result, so a start that only another manual start holds in place stays). Nothing prints differently. Every manual
-/// value that stays gets a notice with both values (`channel 3 of -201U5 keeps its manual address Q10.3 (derived:
-/// Q2.3)`, `module -201U5 keeps its manual output start Q10 (automatic: Q2)`). **Bulk**; one undo step. Rejected as
+/// result, so a start that only another manual start holds in place stays), unless that moves the printed address of
+/// any channel of the affected configuration projects (an automatic module after it), as [`Readdress`] compares
+/// them: then the start stays too. Nothing prints differently. Under a tag-based profile, which prints a manual
+/// address as the derived one, every manual channel address becomes `auto`. Every manual value that stays gets a
+/// notice with both values (`channel 3 of -201U5 keeps its manual address Q10.3 (derived: Q2.3)`, `module -201U5 keeps
+/// its manual output start Q10 (automatic: Q2)`), or with the reason (`module -201U3 keeps its manual output start
+/// Q1: as an automatic start it would move the addresses of other modules`). **Bulk**; one undo step. Rejected as
 /// [`Readdress`]. Outcome: the first module, or the configuration project.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -857,17 +900,21 @@ impl Command for ConvertManualToAuto {
         let modules = scope_modules(tx, Self::NAME, self.config_project, &self.modules)?;
         let base = tx.base_model().clone();
         let q = ew_derive::Q::new(&base);
+        let affected = neighbourhood(&q, &modules);
+        let before = printed_addresses(&q, &affected);
         let mut notices = Vec::new();
-        // Channel addresses: equal to the derived address, or kept with a notice.
+        // Channel addresses: at the derived address (under a tag-based profile every manual address, which prints as
+        // derived), or kept with a notice.
         for m in &modules {
             for e in q.get::<ew_derive::ChannelAddresses>(*m).iter() {
                 let Some(c) = tx.get::<Channel>(e.channel) else {
                     continue;
                 };
-                let AddrSpec::Manual(a) = &c.address else {
+                if !matches!(c.address, AddrSpec::Manual(_)) {
                     continue;
-                };
-                if ew_derive::canonical(a).is_some_and(|x| e.auto == Some(x)) {
+                }
+                let derived = matches!(&e.address, ew_derive::ChannelAddr::At { address, .. } if e.auto == Some(*address));
+                if derived {
                     tx.update::<Channel>(e.channel, |c| c.address = AddrSpec::Auto)?;
                 } else {
                     let derived = e
@@ -887,7 +934,9 @@ impl Command for ConvertManualToAuto {
             }
         }
         // Module starts: converted together, then the ones whose automatic start differs are restored, until none
-        // differs (each round restores at least one, so it ends).
+        // differs and no channel of the affected configuration projects prints another address (a start that keeps
+        // its own place can still move the automatic modules after it): when none differs but something moved, the
+        // last candidate is restored. Each round restores at least one, so it ends.
         let mut candidates: Vec<(Id<Device>, bool, u32)> = Vec::new();
         for m in &modules {
             let Some(p) = tx.get::<Device>(*m).and_then(|d| d.aspects.plc_module.clone()) else {
@@ -906,7 +955,8 @@ impl Command for ConvertManualToAuto {
                     .and_then(|d| d.aspects.plc_module.as_ref().map(|p| (*m, p.start.clone())))
             })
             .collect();
-        let mut kept: Vec<(Id<Device>, bool, u32, Option<u32>)> = Vec::new();
+        // (module, output, manual byte, automatic byte, whether it stays because it would move other modules)
+        let mut kept: Vec<(Id<Device>, bool, u32, Option<u32>, bool)> = Vec::new();
         while !candidates.is_empty() {
             for (m, output, _) in &candidates {
                 tx.update::<Device>(*m, |d| {
@@ -931,10 +981,14 @@ impl Command for ConvertManualToAuto {
                     _ => None,
                 }
             };
-            let (stay, differ): (Vec<_>, Vec<_>) = candidates
+            let (mut stay, mut differ): (Vec<_>, Vec<_>) = candidates
                 .iter()
                 .copied()
                 .partition(|(m, output, byte)| placed(*m, *output) == Some(*byte));
+            let others_moved = differ.is_empty() && printed_addresses(&qa, &affected) != before;
+            if others_moved {
+                differ.extend(stay.pop());
+            }
             if differ.is_empty() {
                 break;
             }
@@ -957,11 +1011,11 @@ impl Command for ConvertManualToAuto {
                         }
                     })?;
                 }
-                kept.push((*m, *output, *byte, placed(*m, *output)));
+                kept.push((*m, *output, *byte, placed(*m, *output), others_moved));
             }
             candidates = stay;
         }
-        for (m, output, byte, auto) in kept {
+        for (m, output, byte, auto, others_moved) in kept {
             let area = if output {
                 ew_derive::ew_plcaddr::Area::Q
             } else {
@@ -982,13 +1036,23 @@ impl Command for ConvertManualToAuto {
                     },
                 )
             };
-            notices.push(format!(
-                "module {} keeps its manual {} start {} (automatic: {})",
+            let (module, dir) = (
                 crate::words::device(tx, m),
                 if output { "output" } else { "input" },
-                start(byte),
-                auto.map_or_else(|| "none".to_owned(), start)
-            ));
+            );
+            notices.push(if others_moved {
+                format!(
+                    "module {module} keeps its manual {dir} start {}: as an automatic start it would move the addresses \
+                     of other modules",
+                    start(byte)
+                )
+            } else {
+                format!(
+                    "module {module} keeps its manual {dir} start {} (automatic: {})",
+                    start(byte),
+                    auto.map_or_else(|| "none".to_owned(), start)
+                )
+            });
         }
         super::plc_exchange::refuse_owned_edits(tx)?;
         let mut outcome = match (modules.first(), self.config_project) {

@@ -1867,6 +1867,7 @@ refusal-plc-start-area = `{ $p0 }` is not { $p1 } start: { $p1 } start is in are
 # WP-S1.24: re-addressing and the tag-based profile.
 refusal-plc-scope-empty = name the modules to re-address, or their configuration project
 refusal-plc-tag-based = profile { $p0 } renders its addresses from the station and the slot, so none is typed; give auto, excluded or tbd
+refusal-plc-freeze-tag-based = configuration project { $p0 } uses profile { $p1 }, which renders its addresses from the station and the slot, so no address moves and there is none to freeze
 # revision.create and revision.withdraw.
 refusal-revision-label-used = another revision already has the label { $p0 }; a label names one revision
 refusal-revision-open = revision { $p0 } is open; at most one revision collects the current edits

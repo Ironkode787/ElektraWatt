@@ -370,8 +370,9 @@ pub const OUTSIDE_MODULE: RuleMeta = RuleMeta {
 
 /// EW-PLC-002: a channel address outside its module's I/O range in the channel's direction: another area, or bytes
 /// outside `[start, start + width)`, where the start is the module's derived start (A1) and the width the units of
-/// the part's ranges in that direction. Only a module whose start in that direction is an address is checked (an
-/// excluded, open or unresolved start bounds nothing). Target the channel, discriminator `range`.
+/// the module's ranges in that direction ([`ModuleRange`]). Only a module whose start in that direction is an address
+/// is checked (an excluded, open or unresolved start bounds nothing). Target the channel, discriminator `range`. Such
+/// a manual address is not also an EW-PLC-012 `manual` deviation.
 #[derive(Clone, Copy, Debug)]
 pub struct OutsideModule;
 
@@ -384,21 +385,8 @@ impl Rule for OutsideModule {
         let Scope::Module(module) = *scope else {
             return Vec::new();
         };
-        let Some(start) = *q.get::<ModuleStartOf>(module) else {
+        let Some(range) = ModuleRange::of(q, module) else {
             return Vec::new();
-        };
-        let Some((_, plc)) = module_part(q, module) else {
-            return Vec::new();
-        };
-        let unit_bits = module_cfg(q, module)
-            .and_then(|c| profile_of(q, c))
-            .map_or(8, |p| p.unit_bits.max(1));
-        let units = |dir: &IoDir| -> u32 {
-            plc.io
-                .iter()
-                .filter(|r| r.dir == *dir)
-                .map(|r| r.bits.div_ceil(unit_bits))
-                .fold(0u32, u32::saturating_add)
         };
         let channels = q.table::<Channel>();
         let mut out = Vec::new();
@@ -409,20 +397,9 @@ impl Rule for OutsideModule {
             let Some(dir) = channels.get(e.channel).and_then(|c| dir_of(&c.kind)) else {
                 continue;
             };
-            let (area, s) = match dir {
-                IoDir::In => (Area::I, start.input),
-                _ => (Area::Q, start.output),
-            };
-            let Some(Start::At(from)) = s else {
+            let Some((area, from, to)) = range.outside(&dir, address) else {
                 continue;
             };
-            let to = from.saturating_add(units(&dir));
-            let last = address
-                .byte
-                .saturating_add(address.size.bits().div_ceil(unit_bits).saturating_sub(1));
-            if address.area == area && address.byte >= from && last < to {
-                continue;
-            }
             let channel = channel_name(q, module, e.channel, e.number);
             let tag = full_tag(q, module, "module");
             let (range, form) = if to > from {
@@ -448,6 +425,55 @@ impl Rule for OutsideModule {
             );
         }
         out
+    }
+}
+
+/// The I/O range of a module (EW-PLC-002): its derived starts (A1) and the units of its ranges per direction
+/// (`module_io`: an IO-Link master's port windows, else the part's ranges), in the profile's unit width.
+struct ModuleRange {
+    start: ew_derive::ModuleStart,
+    io: Vec<ew_derive::ew_schema::IoRange>,
+    unit_bits: u32,
+}
+
+impl ModuleRange {
+    /// `None` for a module outside every configuration project or without a part's PLC section.
+    fn of(q: &Q, module: Id<Device>) -> Option<ModuleRange> {
+        let start = (*q.get::<ModuleStartOf>(module))?;
+        module_part(q, module)?;
+        let unit_bits = module_cfg(q, module)
+            .and_then(|c| profile_of(q, c))
+            .map_or(8, |p| p.unit_bits.max(1));
+        Some(ModuleRange {
+            start,
+            io: ew_derive::module_io(q, module),
+            unit_bits,
+        })
+    }
+
+    /// The area and the bytes `[from, to)` of the range in direction `dir` when `address` lies outside them: another
+    /// area, or a byte outside. `None` when it lies inside, or when the module's start in that direction is no
+    /// address (an excluded, open or unresolved start bounds nothing).
+    fn outside(&self, dir: &IoDir, address: &ew_derive::ew_plcaddr::PlcAddress) -> Option<(Area, u32, u32)> {
+        let (area, s) = match dir {
+            IoDir::In => (Area::I, self.start.input),
+            _ => (Area::Q, self.start.output),
+        };
+        let Some(Start::At(from)) = s else {
+            return None;
+        };
+        let units = self
+            .io
+            .iter()
+            .filter(|r| r.dir == *dir)
+            .map(|r| r.bits.div_ceil(self.unit_bits))
+            .fold(0u32, u32::saturating_add);
+        let to = from.saturating_add(units);
+        let last = address
+            .byte
+            .saturating_add(address.size.bits().div_ceil(self.unit_bits).saturating_sub(1));
+        let inside = address.area == area && address.byte >= from && last < to;
+        (!inside).then_some((area, from, to))
     }
 }
 
@@ -757,7 +783,9 @@ pub const DIFFERS_FROM_MAP: RuleMeta = RuleMeta {
 ///   fix of the catalogue, "open the part's PLC section", is a window action, not a command (a finding carries one
 ///   command fix).
 /// - **`manual`**: a channel whose manual address differs from the address A2 derives for it (`auto`); target the
-///   channel.
+///   channel. A manual address outside the module's I/O range (a frozen channel after its module's start moved) is
+///   EW-PLC-002's alone: that it lies on no byte of the card is the defect, and the deviation from the map follows
+///   from it.
 ///
 /// Both read the module's part, so a part whose `plc` section is not of confidence `verified` marks the findings as
 /// resting on unverified data (FT-323's PLC half, `part_confidence(copy, "plc")`).
@@ -857,14 +885,23 @@ impl Rule for DiffersFromMap {
                 }
             }
         }
+        let range = ModuleRange::of(q, module);
         for e in addresses.iter() {
             let manual = channels
                 .get(e.channel)
-                .is_some_and(|c| matches!(c.address, AddrSpec::Manual(_)));
-            let (true, ChannelAddr::At { address, text }, Some(auto)) = (manual, &e.address, e.auto) else {
+                .filter(|c| matches!(c.address, AddrSpec::Manual(_)));
+            let (Some(c), ChannelAddr::At { address, text }, Some(auto)) = (manual, &e.address, e.auto)
+            else {
                 continue;
             };
             if *address == auto {
+                continue;
+            }
+            // An address outside the module's range is EW-PLC-002's: one defect, one finding.
+            let outside = dir_of(&c.kind)
+                .zip(range.as_ref())
+                .is_some_and(|(dir, r)| r.outside(&dir, address).is_some());
+            if outside {
                 continue;
             }
             let derived = module_cfg(q, module)

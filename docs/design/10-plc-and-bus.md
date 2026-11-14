@@ -309,7 +309,12 @@ of a byte, the area mnemonics are `I` and `O`, and `AddressProfile::render_tag` 
 when it is the configuration project's CPU, else its tag as an IEC identifier (`_201U1`); the slot is the rack slot,
 else the positional rank; `{bit}` is the bit's offset in the module's range of its direction. A1 still packs the
 modules, so the canonical addresses stay unique; only the text changes, and a slot move re-renders the module
-(FR-PLC-009). A tag-based profile reads no address or start text: `fields.set` and `plc.set_start` refuse one in words.
+(FR-PLC-009). A tag-based profile reads no address or start text: `fields.set` and `plc.set_start` refuse one in words,
+and `plc.freeze` is refused in words too (nothing it prints moves). A manual channel address such a profile inherits
+(a profile change, an import) is read as `auto` by A2: the channel prints its own place (its slot and its bit offset
+from the part's map), so the text neither moves nor vanishes when an earlier module's start moves; the stored value
+stays and counts again under an absolute profile. An IO-Link master's port prints the same way: a DI or DQ port by the
+bit offset of its byte in the module's range, a port with a window by its channel (`.Ch<n>Data`).
 
 ### 2.6 PLC and bus part data
 
@@ -990,11 +995,16 @@ mode it is reported. Inserting the same module after an import moves nothing: th
 `plc.convert_manual_to_auto {config_project | modules}` are built, all Bulk. They start from the transaction's base
 snapshot, whose derived addresses a command may read (as `device.renumber` does); ADR-0008 amendment 4 forbids reading
 the memoised queries of the pending state, so the re-address preview computes its old → new notices on a model the
-transaction's ops give, through a fresh `Q`. `plc.freeze` writes every derived channel address as `manual` (module
-starts are not touched); `plc.readdress` sets the scope's manual starts and manual channel addresses to `auto` and
-lists every changed address of the affected configuration projects (`channel 3 of -201U5: Q10.3 → Q2.3`);
+transaction's ops give, through a fresh `Q`. `plc.freeze` writes every derived channel address as `manual`, and every
+`auto` module start A1 places as a `manual` start, so that a module inserted before a frozen one is placed around it
+(A1 reserves manual starts first) instead of moving it from under its frozen channels; it is refused in words under a
+tag-based profile. A frozen channel that a later start move leaves outside its module is EW-PLC-002's finding alone,
+not also EW-PLC-012's `manual` one. `plc.readdress` sets the scope's manual starts and manual channel addresses to
+`auto` and lists every changed address of the affected configuration projects (`channel 3 of -201U5: Q10.3 → Q2.3`);
 `plc.convert_manual_to_auto` drops the manual channel addresses equal to the derived ones and the manual starts that
-A1 places at the same byte (judged on the result, repeated until stable) and names every value it keeps. The ownership
+A1 places at the same byte, judged on the result and repeated until stable: a start whose conversion moves the printed
+address of any channel of the affected configuration projects (an automatic module after it) stays as well, as
+`plc.readdress` compares them. It names every value it keeps. The ownership
 protection and `plc.unlock` came with WP-S3.16 (below). `plc.bind_channel` also takes tags in a command log: a channel as `<module tag>#<number>` or `<module tag>:<designation>`, a function as `<tag>` or `<tag>:<slot>`.
 
 *As built (fix round).* `plc.bind_channel` checks the CP against the CPs the function draws, by the one accessor the commands share with the join (`common::function_cp_indices`): the template entry's pattern, else a black box's part pattern, else the FnDef. A black-box card's pins therefore bind; before, the check read the generic black-box FnDef, which defines no CPs, and refused every pin (found by the play-test brief `brief-plc-io`).
@@ -1100,8 +1110,13 @@ EW-SAF-003 reads `SafetyChannel.test_pulse` and the signal of that pin; EW-BUS-0
 else PROFIBUS 0–125; EW-BUS-003 judges the subnet against the master port's address and mask; EW-BUS-006 holds
 PROFIBUS limits (32 stations, 1200 … 100 m by rate, no stubs above 1.5 Mbit/s) as unverified data; EW-BUS-009 reports a
 cable whose part's `cable_for` excludes the port's bus and mated ports whose parts name different connectors. The
-prevent halves of EW-PLC-001 and EW-PLC-007 are built (FT-726): an error finding that the batch adds in a touched
-configuration project refuses it. EW-PLC-007 compares symbols cleaned by `iec_ident` under a strict policy. EW-BUS-008 is
+prevent halves of EW-PLC-001 and EW-PLC-007 are built (FT-726), judged per channel: a batch is refused when a channel
+that was in no overlap group (or duplicate-symbol group) before is in one after, or when a touched channel's group
+gains a channel it was not grouped with. A repair of a held overlap (one of three channels moved away, which leaves a
+group of two) and an edit that keeps or shrinks the groups commit. The touched configuration projects are those of the
+touched channels, devices and parts (`library.update`) in the snapshots before and after the batch, so a deleted
+module whose removal moves the next one onto a manual address is checked; EW-PLC-011's prevent half finds its
+stations the same way, and its byte sums take an IO-Link master's port windows (`module_io`). EW-PLC-007 compares symbols cleaned by `iec_ident` under a strict policy. EW-BUS-008 is
 1.x. EW-PLC-012's second quick fix opens the part's PLC section in the window (WP-S2.13) through the existing
 `part.edit_copy`; a finding carries one command fix.
 

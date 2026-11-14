@@ -422,8 +422,18 @@ fn manual_deviations(s: &Session) -> usize {
     plc_012(s).iter().filter(|f| f.discriminator == "manual").count()
 }
 
+/// The findings of `rule` in a release check.
+fn findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
+    s.check(&PRE_DELIVERY, CheckMode::Release)
+        .findings
+        .into_iter()
+        .filter(|f| f.rule == rule)
+        .collect()
+}
+
 /// FR-PLC-015: `plc.freeze` makes every derived channel address manual, so a later start change moves no printed
-/// address and EW-PLC-012 reports each channel of the moved module as a manual deviation; undo restores `auto`.
+/// address; each channel of the moved module then lies outside its module's range, which EW-PLC-002 reports once per
+/// channel and EW-PLC-012 leaves to it (one defect, one finding); undo restores `auto`.
 #[test]
 fn freezing_keeps_every_printed_address() {
     let batch = golden_common::batch();
@@ -442,10 +452,11 @@ fn freezing_keeps_every_printed_address() {
     );
     assert_eq!(all_texts(&s.query()), before, "a frozen address does not move");
     assert_eq!(
-        manual_deviations(&s),
+        findings(&s, "EW-PLC-002").len(),
         8,
-        "the eight channels of -201U5 deviate from Q10.x"
+        "the eight channels of -201U5 lie outside Q10"
     );
+    assert_eq!(manual_deviations(&s), 0, "EW-PLC-002's, not also EW-PLC-012's");
     s.undo(&Origin::Gui).expect("undo the start");
     s.undo(&Origin::Gui).expect("undo the freeze");
     let q = s.query();
@@ -512,4 +523,97 @@ fn readdress_and_convert_manual_to_auto() {
     };
     assert_eq!(start(u6), Some(ew_schema::AddrSpec::Auto));
     assert!(matches!(start(u5), Some(ew_schema::AddrSpec::Manual(_))));
+}
+
+/// Under the tag-based `rockwell-logix` profile `plc.freeze` is refused in words (its addresses follow the station
+/// and the slot); a manual address the profile inherits prints as the channel's own place, so a slot change that moves
+/// the module's start neither moves it elsewhere nor makes it vanish.
+#[test]
+fn a_tag_based_profile_freezes_nothing_and_prints_an_inherited_manual_address_in_place() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let c = cfg(&s.query());
+    let u6 = device(&s, "-201U6");
+    let ch1 = channel(&s.query(), u6, 1);
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "channel", "targets": [ch1.to_string()], "path": "address", "value": "Q3.1"}),
+    );
+    run(
+        &mut s,
+        "plc.set_profile",
+        json!({"config_project": c.to_string(), "profile": "rockwell-logix"}),
+    );
+    let err = s
+        .preview(&AnyCommand {
+            name: "plc.freeze".into(),
+            params: json!({"config_project": c.to_string()}),
+        })
+        .err()
+        .expect("a tag-based profile has nothing to freeze");
+    assert!(format!("{err}").contains("there is none to freeze"), "{err}");
+    run(
+        &mut s,
+        "fields.set",
+        json!({"kind": "device", "targets": [u6.to_string()], "path": "plc_module.slot", "value": {"rack": {"rack": 0, "slot": 9}}}),
+    );
+    assert_eq!(texts(&s.query(), u6)[1], "_201U1:9:O.Data.1");
+}
+
+/// `plc.convert_manual_to_auto` changes nothing that prints: -201U3's manual start Q1 keeps its own place as
+/// automatic (-201U4's manual Q0 holds Q0), but -201U5 after it would move from Q2 to Q3, so the start stays manual
+/// and the notice says why.
+#[test]
+fn converting_a_start_that_would_move_another_module_keeps_it() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let (u3, u4) = (device(&s, "-201U3"), device(&s, "-201U4"));
+    for (m, spec) in [(u3, "Q1"), (u4, "Q0")] {
+        run(
+            &mut s,
+            "plc.set_start",
+            json!({"modules": [m.to_string()], "dir": "output", "spec": spec}),
+        );
+    }
+    let before = all_texts(&s.query());
+    let receipt = bulk(
+        &mut s,
+        "plc.convert_manual_to_auto",
+        json!({"modules": [u3.to_string()]}),
+    );
+    assert_eq!(all_texts(&s.query()), before, "nothing prints differently");
+    assert_eq!(
+        receipt.outcome.notices,
+        ["module -201U3 keeps its manual output start Q1: as an automatic start it would move the addresses of other \
+          modules"]
+    );
+}
+
+/// After `plc.freeze` a module added in rack slot 1, which A1 allocates before every positional module, is placed
+/// around the frozen modules (their starts are frozen too), so the batch commits and no frozen address moves.
+#[test]
+fn a_module_added_before_frozen_ones_commits_and_moves_nothing() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session(&batch);
+    let c = cfg(&s.query());
+    bulk(&mut s, "plc.freeze", json!({"config_project": c.to_string()}));
+    let before = all_texts(&s.query());
+    let part = s
+        .query()
+        .devices()
+        .get(device(&s, "-201U3"))
+        .map(|d| serde_json::to_value(&d.parts[0]).expect("a part use"))
+        .expect("-201U3");
+    let station = device(&s, "-201U1");
+    run(
+        &mut s,
+        "plc.add_module",
+        json!({"station": station.to_string(), "part": part, "slot": 1}),
+    );
+    let after = all_texts(&s.query());
+    for (m, texts) in &before {
+        let now = after.iter().find(|(x, _)| x == m).map(|(_, t)| t);
+        assert_eq!(now, Some(texts), "a frozen module keeps its addresses");
+    }
 }

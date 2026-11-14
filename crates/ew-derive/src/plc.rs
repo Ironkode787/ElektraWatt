@@ -938,12 +938,40 @@ fn port_address(windows: &[PortWindow], channel: Id<Channel>, r: &Render<'_>) ->
         ew_schema::PortMode::Di | ew_schema::PortMode::Dq => ew_plcaddr::PlcAddress::bit(area, byte, 0),
         _ => ew_plcaddr::PlcAddress::unit(area, Size::Byte, byte),
     };
-    match r.profile {
-        Some(p) if p.absolute => ChannelAddr::At {
+    match (r.profile, r.place) {
+        (Some(p), _) if p.absolute => ChannelAddr::At {
             address: a,
             text: p.render(&a, Purpose::Drawing),
         },
+        // A tag-based profile prints a DI or DQ port by its bit offset in the module's range, a port with a window by
+        // its channel (FR-PLC-009), as every other channel.
+        (Some(p), Some((station, slot))) => {
+            let bit = matches!(w.mode, ew_schema::PortMode::Di | ew_schema::PortMode::Dq)
+                .then(|| before(out).saturating_mul(p.unit_bits));
+            let place = ew_plcaddr::TagPlace {
+                station,
+                slot: *slot,
+                channel: u32::from(w.number),
+            };
+            ChannelAddr::At {
+                address: a,
+                text: p.render_tag(&place, area, bit, Purpose::Drawing),
+            }
+        }
         _ => ChannelAddr::Unresolved,
+    }
+}
+
+/// The address specification A2 reads for a channel: its own, except that a tag-based profile (FR-PLC-009) reads a
+/// `manual` address as `auto`. Such a profile prints a channel from its station, its slot and its own place in the
+/// module, so a manual address that it inherits (from a profile change or an import; none is typed under it) names
+/// no place of its own: the channel prints its derived address, which neither moves nor vanishes when an earlier
+/// module's start moves. The stored value stays and counts again under an absolute profile.
+fn spec_of<'a>(c: &'a Channel, profile: Option<&AddressProfile>) -> &'a AddrSpec {
+    static AUTO: AddrSpec = AddrSpec::Auto;
+    match (&c.address, profile) {
+        (AddrSpec::Manual(_), Some(p)) if !p.absolute => &AUTO,
+        (spec, _) => spec,
     }
 }
 
@@ -1063,11 +1091,14 @@ impl Query for ChannelAddresses {
         };
         let windows = port_windows(q, *key);
         // A port of an IO-Link master takes its window's address (doc 10 §3.8); every other channel A2's.
-        let address_of =
-            |c: &Channel, r: &Render<'_>, bit_of: Option<&MapSpec>| match (&windows, &c.kind, &c.address) {
-                (Some(w), ChannelKind::MultiFunction, AddrSpec::Auto) => port_address(w, c.id, r),
-                _ => address_of(c, r, bit_of),
-            };
+        let address_of = |c: &Channel, r: &Render<'_>, bit_of: Option<&MapSpec>| match (
+            &windows,
+            &c.kind,
+            spec_of(c, r.profile),
+        ) {
+            (Some(w), ChannelKind::MultiFunction, AddrSpec::Auto) => port_address(w, c.id, r),
+            _ => address_of(c, r, bit_of),
+        };
         let out = channels
             .iter()
             .map(|c| {
@@ -1329,7 +1360,7 @@ fn address_of(c: &Channel, r: &Render<'_>, bit_of: Option<&MapSpec>) -> ChannelA
         }
         None => ChannelAddr::Unresolved,
     };
-    match &c.address {
+    match spec_of(c, profile) {
         AddrSpec::Excluded => ChannelAddr::Excluded,
         AddrSpec::Tbd => ChannelAddr::Tbd,
         AddrSpec::Unknown(_) => ChannelAddr::Unresolved,
