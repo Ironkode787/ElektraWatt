@@ -46,18 +46,18 @@ cards, bind channels and check what each channel drives.
 ## The PLC grid
 
 9. Each row of the grid is a channel. Type in a cell to change a channel's designation, address, symbol, state,
-   target, comment, data type or signal range; the slot cell takes a number or `<rack>.<slot>`. Safety data is edited
-   in Properties.
+   target, comment, data type or signal range; the slot cell takes a number or `<rack>.<slot>`. Safety data is set
+   with **Safety data…** and **Mode and safety…** (step 16).
 10. Type in the grid's filter to narrow the rows: a word of a cell, or one of `spare`, `unplaced`, `unassigned`,
     `tbd`, `duplicate`, `safety`, `config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's header
     sorts by it, a second click reverses the order.
 
 ## Exchange with the PLC software
 
-11. Choose **Output ▸ Export to PLC software…**, pick the format and choose **Create**, then the file. Import the file in
-    TIA Portal or CODESYS.
-12. Choose **Output ▸ Import from PLC software…** for the file the PLC software wrote back. Look through its tabs, decide
-    each conflict, and choose **Apply**.
+11. Choose **Output ▸ Export to PLC software…**, pick the format and choose **Export**, then the file. Import the file
+    in TIA Portal or CODESYS.
+12. Choose **Output ▸ Import from PLC software…** for the file the PLC software wrote back. Look through its tabs; each
+    conflict shows the side Apply takes, and offers the file's value where it can be taken. Choose **Apply**.
 13. After an import, the module starts, the symbols or the PLC data the PLC software owns are protected. Right-click
     the configuration project and choose **Unlock module starts** (or the other group) to edit them in the project.
 14. Right-click the configuration project and choose **Import instrument list…** for a CSV or workbook of process tags

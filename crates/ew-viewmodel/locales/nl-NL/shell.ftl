@@ -3612,6 +3612,7 @@ form-section-last = Laatste folio
 toast-section-new = Sectie { $p0 } { $p1 } gemaakt, folio's { $p2 } tot en met { $p3 }. Een nieuwe pagina met een folio in dat bereik komt erin.
 error-section-whole-number = { $p0 } moet een geheel getal zijn, niet "{ $p1 }".
 dialog-create = Maken
+dialog-export = Exporteren
 form-folio = Folio
 form-page-type = Type
 form-title = Titel

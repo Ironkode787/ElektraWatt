@@ -3788,6 +3788,7 @@ form-section-last = Last folio
 toast-section-new = Section { $p0 } { $p1 } made, folios { $p2 } to { $p3 }. A new page with a folio in that range joins it.
 error-section-whole-number = { $p0 } must be a whole number, not "{ $p1 }".
 dialog-create = Create
+dialog-export = Export
 form-folio = Folio
 form-page-type = Type
 form-title = Title

@@ -718,16 +718,6 @@ impl ShellModel {
         let Some(fmt) = plc_format(format) else {
             return failed(key!("error-bad-param"), &["format"]);
         };
-        let path = match string_param(p, "path") {
-            Err(e) => return e,
-            Ok(Some(path)) => super::jobs::absolute_target(std::path::PathBuf::from(path)),
-            Ok(None) => {
-                let mut rest = p.clone();
-                rest.insert("replace".to_owned(), Value::Bool(true));
-                self.dialog = None;
-                return self.need_path("plc.export", crate::shell::Prompt::SavePlcExchange, "path", &rest);
-            }
-        };
         let stations: Vec<String> = string_param(p, "stations")
             .ok()
             .flatten()
@@ -749,6 +739,20 @@ impl ShellModel {
                 Err(_) => return failed(key!("error-plc-export-date"), &[d]),
             },
         };
+        // The form's values are checked before the file is asked for, and the form stays open behind the prompt.
+        let path = match string_param(p, "path") {
+            Err(e) => return e,
+            Ok(Some(path)) => super::jobs::absolute_target(std::path::PathBuf::from(path)),
+            Ok(None) => {
+                let mut rest = p.clone();
+                rest.insert("replace".to_owned(), Value::Bool(true));
+                return self.need_path("plc.export", crate::shell::Prompt::SavePlcExchange, "path", &rest);
+            }
+        };
+        // An existing file is replaced only on request (the save dialog asks itself, and says so).
+        if path.exists() && !or_return!(super::jobs::bool_param(p, "replace", false)) {
+            return Outcome::refused(key!("reason-file-exists"));
+        }
         let Some(session) = self.project_session() else {
             return Outcome::refused(key!("reason-no-project"));
         };
@@ -773,6 +777,9 @@ impl ShellModel {
             .as_ref()
             .map_or(Outcome::Done, |record| self.run_commit(record));
         if out == Outcome::Done {
+            if matches!(&self.dialog, Some(crate::shell::Dialog::Form(f)) if f.action == "plc.export") {
+                self.dialog = None;
+            }
             let [stations, modules, channels, tags] = export.counts.map(|n| n.to_string());
             let mut text = strings::format(
                 key!("toast-plc-export"),

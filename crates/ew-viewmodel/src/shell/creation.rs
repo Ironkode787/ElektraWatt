@@ -1135,6 +1135,7 @@ impl ShellModel {
                         .collect();
                     super::automation::PLC_FORMATS[0].0.clone_into(&mut f.value);
                 }
+                dialog.ok_key = key!("dialog-export");
                 return self.open_dialog(Dialog::Form(dialog));
             }
             return self.form_missing(&PLC_EXPORT, p, "format");

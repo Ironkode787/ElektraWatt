@@ -436,7 +436,7 @@ fn the_plc_exchange_exports_and_previews_an_import() {
     h.get_by_label("Export to PLC software…").click();
     settle(&mut h);
     assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "plc.export"));
-    h.get_by_label("Create").click();
+    h.get_by_label("Export").click();
     for _ in 0..10 {
         settle(&mut h);
     }
@@ -511,6 +511,12 @@ fn a_complete_imports_apply_removes_what_its_preview_listed() {
     );
     let text = std::fs::read_to_string(&exported).expect("the export");
     assert!(text.contains(&station.to_string()), "the station's ID in the file");
+    // A script's export onto an existing file needs `replace`, as the PDF export does.
+    let again = json!({"format": "aml-1.4.0", "path": exported.to_string_lossy()});
+    assert!(matches!(
+        h.state_mut().shell_mut().dispatch("plc.export", &again),
+        ew_ui::ew_viewmodel::shell::Outcome::Refused { .. }
+    ));
     let foreign = text
         .replace(&station.to_string(), "tia-station")
         .replace("<Value>-201U1</Value>", "<Value>-209U1</Value>");
@@ -720,6 +726,30 @@ fn a_channel_row_selects_the_channel_alone() {
         .expect("the channel");
     assert_eq!(selected, [channel.to_string()]);
     assert!(h.query_by_label_contains("No common fields").is_none(), "Properties shows the channel");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// The PLC export form checks its values before it asks for the file: a document date that is no date is refused in
+/// the form, which stays open with what was typed, and no file is asked for.
+#[test]
+fn the_plc_export_form_refuses_a_bad_date_before_the_file() {
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    support::open_menu(&mut h, &["Output"]);
+    settle(&mut h);
+    h.get_by_label("Export to PLC software…").click();
+    settle(&mut h);
+    type_into(&mut h, "Document date (empty: the project's)", "tomorrow");
+    h.get_by_label("Export").click();
+    settle(&mut h);
+    match h.state().shell().dialog() {
+        Some(Dialog::Form(f)) if f.action == "plc.export" => {
+            assert!(f.error.as_deref().is_some_and(|e| e.contains("is no date")), "{:?}", f.error);
+        }
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(form_value(&h, "date"), "tomorrow");
     h.state_mut().shell_mut().shutdown();
 }
 
