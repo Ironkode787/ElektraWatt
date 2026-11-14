@@ -147,10 +147,12 @@ impl NavKind {
         NavKind::ALL.into_iter().find(|k| k.word() == w)
     }
 
-    /// The navigator whose rows and columns this one shows: the PLC grid the PLC navigator's, every other its own.
+    /// The navigator whose columns this one shows: the PLC grid the PLC navigator's (its rows too), the fluid navigator
+    /// the tube table's (its table mode lists the tubes, the persona round), every other its own.
     pub fn source(self) -> NavKind {
         match self {
             NavKind::PlcGrid => NavKind::Plc,
+            NavKind::Fluid => NavKind::Tubes,
             k => k,
         }
     }
@@ -650,9 +652,8 @@ fn plain_columns_of(kind: NavKind) -> Vec<NavColumn> {
             .enumerate()
             .map(|(i, (k, l))| column(k, l, i == 0, None))
             .collect(),
-        // The fluid navigator is a tree: its rows carry no cells.
-        NavKind::Fluid => Vec::new(),
-        NavKind::Tubes => kind_columns("tube_list"),
+        // The fluid navigator's table mode lists its tubes (`NavKind::source`).
+        NavKind::Fluid | NavKind::Tubes => kind_columns("tube_list"),
         NavKind::Media => kind_columns("medium_overview"),
         NavKind::Potentials => kind_columns("potential_overview"),
         NavKind::Ips => own(&["name", "page_cell", "direction", "partner", "external"]),
@@ -804,7 +805,7 @@ impl Session {
             NavKind::Cables => cables_table(&q, &mut b),
             NavKind::Plc | NavKind::PlcGrid => plc_table(&q, &mut b),
             NavKind::Bus => bus_table(&q, &mut b),
-            NavKind::Fluid => fluid_table(&q, &mut b),
+            NavKind::Fluid => fluid_table(&q, &mut b, lang),
             NavKind::Tubes => tubes_table(&q, &mut b, lang),
             NavKind::Media => media_table(&q, &mut b, lang),
             NavKind::Potentials => potentials_table(&q, &mut b),
@@ -2487,12 +2488,23 @@ impl Session {
 /// Fluid (FR-UI-006, doc 11 §7): **Valve terminals** → each valve terminal → its modules in position order → their
 /// valves, **Fluid devices** (every other device at a fluid line's end), each device with its lines (the tube list's
 /// rows that end at it: `<tag> → <other end>`), then **Media**, each medium with its zones' line count. A line row's
-/// records are its connections, so selecting it selects the line on the page; a medium row highlights its zones.
-fn fluid_table(q: &Q, b: &mut Builder) {
+/// records are its connections, so selecting it selects the line on the page; a medium row highlights its zones. In
+/// table mode the navigator lists its tubes: a tube's first row carries the tube list's cells in `lang`.
+fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
     use ew_derive::TubeRows;
     use ew_derive::ew_schema::Medium;
     let folios = folios(q);
     let tubes = q.get::<TubeRows>(());
+    // The tube list's cells by the row's record (the tube), each given to one row only.
+    let mut cells: BTreeMap<Uuid, Vec<String>> = BTreeMap::new();
+    if let Some(set) = ew_reports::project_rows(q, "tube_list", None) {
+        for (i, r) in set.rows.iter().enumerate() {
+            if let (ew_reports::RowKind::Data, Some(record)) = (&r.kind, row_entity(&r.id, 0)) {
+                cells.insert(record, texts_in(q, &set, i, lang));
+            }
+        }
+    }
+    let cells = std::cell::RefCell::new(cells);
     // The lines at each device.
     let mut lines: BTreeMap<Id<Device>, Vec<usize>> = BTreeMap::new();
     for (i, t) in tubes.iter().enumerate() {
@@ -2519,6 +2531,12 @@ fn fluid_table(q: &Q, b: &mut Builder) {
                     .collect(),
             );
             let facets = base_facets(NavRole::Connection, &drawables);
+            let row_cells = {
+                let mut cells = cells.borrow_mut();
+                cells
+                    .remove(&t.id.as_uuid())
+                    .or_else(|| records.iter().find_map(|r| cells.remove(r)))
+            };
             let n = b.push(
                 Some(parent),
                 NavRole::Connection,
@@ -2527,7 +2545,7 @@ fn fluid_table(q: &Q, b: &mut Builder) {
                 Vec::new(),
                 records,
                 drawables,
-                None,
+                row_cells,
                 facets,
             );
             b.nodes[n as usize].kinds = vec!["connection".to_owned()];

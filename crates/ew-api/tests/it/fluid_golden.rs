@@ -269,7 +269,7 @@ fn fl9_closed_ports_are_exempt_from_ew_fl_001() {
     };
     assert_eq!(
         refusal(&mut s, &t10),
-        "fluid.port.close: -201U3-Q1:2 has a fluid line; delete the line before closing the port"
+        "fluid.port.close: -201U3-Q1:2 has a tube; delete the tube before closing the port"
     );
 }
 

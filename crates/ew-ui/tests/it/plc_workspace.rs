@@ -1113,7 +1113,7 @@ fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
     settle(&mut h);
     type_into(&mut h, "Default tube: outer diameter (mm)", "6");
     type_into(&mut h, "Default tube: inner diameter (mm)", "4");
-    h.get_by_label("Tag fluid lines by page and counter").click();
+    h.get_by_label("Tag tubes by page and counter").click();
     settle(&mut h);
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);

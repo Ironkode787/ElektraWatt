@@ -164,7 +164,7 @@ fn a_medium_set_on_a_line_replaces_the_definition_of_its_net() {
         .toast()
         .map(|t| t.text.clone())
         .unwrap_or_default();
-    assert_eq!(toast, "The line carries Air 4 bar now.");
+    assert_eq!(toast, "The tube carries Air 4 bar now.");
     crate::tools::right_click(&mut h, at);
     assert!(checked(&h, "Medium: Air 4 bar"), "the net carries the new medium");
     assert!(!checked(&h, "Medium: Air 6 bar"), "and not the old one");
@@ -217,9 +217,9 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
         .toast()
         .map(|t| t.text.clone())
         .unwrap_or_default();
-    assert_eq!(toast, "The line carries Compressed air 6 bar now.");
+    assert_eq!(toast, "The tube carries Compressed air 6 bar now.");
     crate::tools::right_click(&mut h, at);
-    support::menu_node(&h, "Line: Pilot").click();
+    support::menu_node(&h, "Line kind: Pilot").click();
     settle(&mut h);
     let kind = h
         .state()
@@ -244,7 +244,7 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
     };
     assert!(!curved(&h), "a pilot line is straight");
     crate::tools::right_click(&mut h, at);
-    support::menu_node(&h, "Line: Flexible").click();
+    support::menu_node(&h, "Line kind: Flexible").click();
     settle(&mut h);
     assert!(curved(&h), "a flexible line is an arc");
     // The medium's zones, counted in the fluid navigator and highlighted from the medium table's row.
@@ -260,7 +260,7 @@ fn a_medium_is_added_set_on_a_line_and_highlighted() {
     assert!(
         row.badges
             .iter()
-            .any(|b| b.ends_with("line") || b.ends_with("lines")),
+            .any(|b| b.ends_with("tube") || b.ends_with("tubes")),
         "{:?}",
         row.badges
     );
@@ -369,7 +369,7 @@ fn the_fluid_line_picker_draws_a_pilot_line() {
     let mut h = on_golden(&tmp, "203");
     support::open_menu(&mut h, &["Draw", "Connect"]);
     settle(&mut h);
-    support::menu_node(&h, "Fluid line…").click();
+    support::menu_node(&h, "Tube…").click();
     settle(&mut h);
     h.get_all_by_role(egui::Role::ComboBox)
         .last()

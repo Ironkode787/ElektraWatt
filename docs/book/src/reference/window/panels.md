@@ -137,10 +137,10 @@ port, or `TBD`; an empty cell is a port without an address. The termination cell
 ### Fluid
 
 The fluid side of the project, on the rail as **Fluid**: **Valve terminals**, each with its modules in position order
-and their valves, then **Fluid devices** (cylinders, grippers and the other devices a fluid line ends at), each device
-with its lines (`→` and the port at the line's other end), then **Media**, each with the number of lines its zones
-hold. Selecting a line selects it on the page. Beside the filter stand **Fluid settings…** (the default tube and line
-tags) and **New medium…**.
+and their valves, then **Fluid devices** (cylinders, grippers and the other devices a tube ends at), each device
+with its tubes (`→` and the port at the tube's other end), then **Media**, each with the number of tubes its zones
+hold. Selecting a tube selects it on the page; in table mode the panel lists the tubes with the tube table's columns.
+Beside the filter stand **Fluid settings…** (the default tube and tube tags) and **New medium…**.
 
 ### Tube table
 

@@ -839,6 +839,12 @@ its chip naming the sources of its size and material (the project's default tube
 override; §5.4), read-only. **The Fluid panel's tool line** offers Fluid settings… and New medium…, the Project tab's
 actions.
 
+*As built (M3 persona round).* **One word.** The window calls a drawn fluid line a **tube** (Dutch *slang*): Draw ▸
+Connect ▸ Tube…, a tube's Properties headed "Tube (Working)", the refusals, the medium's count ("3 tubes"), the layout
+findings; "line kind" stays the attribute (Working, Pilot, Exhaust, Drain, Flexible), "fluid line" stays this document's
+and the format's term. **The Fluid panel's table** lists the tubes drawn: `NavKind::Fluid`'s columns are the tube
+table's (`NavKind::source`), and each tube's first row in the tree carries the tube list's cells.
+
 ---
 
 ## 8. Outputs

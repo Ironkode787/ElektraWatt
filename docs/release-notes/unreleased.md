@@ -712,3 +712,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a tube's Properties show its medium with where it is defined and set it by a choice, and its
   effective tube (6×4 mm PU) with the source of its size and material; the Fluid panel offers Fluid settings… and New
   medium… beside its filter (M3 persona round)
+- text-change: the window calls a drawn fluid line a tube (slang): Draw ▸ Connect ▸ Tube…, the Properties heading
+  "Tube (Working)", the refusals, the medium's count, Line kind: … in the tube's menu; the Fluid panel's table lists the
+  tubes drawn with the tube table's columns (M3 persona round)

@@ -302,7 +302,8 @@ fn table(shell: &ShellModel, kind: NavKind) -> std::sync::Arc<ew_viewmodel::ew_a
 }
 
 /// Every navigator's column header has its text in both locales, the en-GB one
-/// the label `ew-api` gives (`column-<navigator>-<key>`, else `column-<key>`); in nl-NL the window's tables show the
+/// the label `ew-api` gives (`column-<navigator>-<key>` of the navigator whose columns it shows, else `column-<key>`);
+/// in nl-NL the window's tables show the
 /// Dutch headers and the Devices tree its badges in Dutch.
 #[test]
 fn every_navigator_column_and_badge_reads_in_both_locales() {
@@ -314,7 +315,7 @@ fn every_navigator_column_and_badge_reads_in_both_locales() {
     for kind in NavKind::ALL {
         for c in session.navigator_table(kind).columns {
             let key = c.key.replace('_', "-");
-            let own = format!("column-{}-{key}", kind.word());
+            let own = format!("column-{}-{key}", kind.source().word());
             let key = if strings::has_key(&own) {
                 own
             } else {
@@ -725,16 +726,16 @@ fn a_fluid_line_kind_is_found_by_its_dutch_word() {
     done(&mut shell, "select.set", json!({"ids": [F6]}));
     // The sheet is headed by the line's kind in words, never "?".
     let title = |s: &ShellModel| s.properties().sheet().expect("a sheet").header.title.clone();
-    assert_eq!(title(&shell), "Werkleiding");
+    assert_eq!(title(&shell), "Slang (Werkleiding)");
     let sheet = shell.properties().sheet().expect("a sheet");
     let id = sheet.sections[0]
         .rows
         .iter()
         .find(|r| r.key == "connection/id")
         .expect("the ID row");
-    assert_eq!(ew_viewmodel::properties::value_text(id), "Werkleiding");
+    assert_eq!(ew_viewmodel::properties::value_text(id), "Slang (Werkleiding)");
     done(&mut shell, "view.language", json!({"value": "en"}));
-    assert_eq!(title(&shell), "Working line");
+    assert_eq!(title(&shell), "Tube (Working)");
     done(&mut shell, "view.language", json!({"value": "nl"}));
     done(&mut shell, "props.edit", json!({"row": "connection/line_kind"}));
     done(&mut shell, "props.input", json!({"text": "Stuur"}));
@@ -773,6 +774,8 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
     };
     let en = vec![
         "Line kind: Working",
+        "Medium: ",
+        "Tube: ",
         "Tube part: ",
         "Tube length: ",
         "Page: 203 Valve Manifold 1",
@@ -781,6 +784,8 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
     ];
     let nl = vec![
         "Leidingsoort: Werkleiding",
+        "Medium: ",
+        "Slang: ",
         "Slangartikel: ",
         "Slanglengte: ",
         "Pagina: 203 Valve Manifold 1",
@@ -789,8 +794,10 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
     ];
     let en_advanced = vec![
         "$v: ",
-        "ID: Working line",
+        "ID: Tube (Working)",
         "Line kind: Working",
+        "Medium: ",
+        "Tube: ",
         "Tube part: ",
         "Tube length: ",
         "Page: 203 Valve Manifold 1",
@@ -808,8 +815,10 @@ fn a_fluid_line_sheet_shows_its_ends_in_words_and_its_route_under_advanced() {
     ];
     let nl_advanced = vec![
         "$v: ",
-        "ID: Werkleiding",
+        "ID: Slang (Werkleiding)",
         "Leidingsoort: Werkleiding",
+        "Medium: ",
+        "Slang: ",
         "Slangartikel: ",
         "Slanglengte: ",
         "Pagina: 203 Valve Manifold 1",

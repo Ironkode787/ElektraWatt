@@ -484,7 +484,7 @@ fn hovering_a_fluid_line_names_its_kind() {
     let at = screen_of_page(&h, at);
     h.hover_at(at);
     settle(&mut h);
-    let tip = "Working line";
+    let tip = "Tube (Working)";
     assert_eq!(
         h.state().shell().canvas().unwrap().hovered_line_tip().as_deref(),
         Some(tip)

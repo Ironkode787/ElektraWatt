@@ -633,3 +633,26 @@ fn p2e_a_tubes_properties_show_and_set_its_medium_and_its_tube() {
     assert!(chip.contains("the project's default tube"), "{chip}");
     d.shell_mut().shutdown();
 }
+
+/// P2-G: the Fluid panel's table said "No fluid lines yet" over three working lines drawn, and "tube", "working line"
+/// and "fluid line" read as three things. The panel's table lists the tubes drawn, its empty state and a tube's
+/// Properties say "tube".
+#[test]
+fn p2g_the_fluid_panels_table_lists_the_tubes_and_says_tube() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let table = json!({"kind": "fluid", "on": true});
+    assert_eq!(d.shell_mut().dispatch("navigator.table", &table), Outcome::Done);
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    assert!(
+        d.texts().iter().any(|t| t == "No tubes yet"),
+        "the empty table says tubes"
+    );
+    one_tube(&mut d);
+    let rows = d.shell_mut().shown_rows(NavKind::Fluid);
+    assert_eq!(rows.len(), 1, "the one tube drawn: {rows:?}");
+    let header = d.shell_mut().properties().sheet().map(|s| s.header.title.clone());
+    assert_eq!(header.as_deref(), Some("Tube (Working)"));
+    d.shell_mut().shutdown();
+}
