@@ -543,10 +543,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   working port (FT-1733)
 - behaviour-change: the PLC navigator's rows set a configuration project's symbol policy, a module's safety data and a
   channel's mode and safety data in forms, unlock what a PLC import protects and import an instrument list, previewed;
-  Project ▸ Process-tag scheme…, Fluid settings… and PLC addresses at terminals; a module is dragged to another slot
+  Project ▸ Process-tag scheme…, Fluid settings… and Channel addresses at terminals; a module is dragged to another slot
   in the rack and slot editor (FT-1752)
 - behaviour-change: Draw ▸ Connect ▸ Fluid line… picks the kind of the fluid lines the Wire tool draws; fluid ports
   autoconnect with fluid lines on fluid pages, and never to an electrical point; a flexible line is drawn as an arc
   (FT-1733)
-- fix: the shipped terminal symbols print a PLC address with Project ▸ PLC addresses at terminals (FT-1734); a small
+- fix: the shipped terminal symbols print a PLC address with Project ▸ Channel addresses at terminals (FT-1734); a small
   dialog is as wide as its buttons (FT-1736)

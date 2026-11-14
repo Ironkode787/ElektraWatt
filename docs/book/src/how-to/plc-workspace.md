@@ -70,7 +70,7 @@ cards, bind channels and check what each channel drives.
 16. Right-click a module and choose **Safety data…** for its F-source and F-destination address and its F-watchdog
     time; right-click a channel and choose **Mode and safety…** for a multi-function port's mode and the channel's
     safety evaluation and requirement.
-17. Choose **Project ▸ Process-tag scheme…** for the pattern process tags follow, and **Project ▸ PLC addresses at
+17. Choose **Project ▸ Process-tag scheme…** for the pattern process tags follow, and **Project ▸ Channel addresses at
     terminals** to print a channel's address at the terminals on its path.
 
 The panels are described in the [panel reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog in the

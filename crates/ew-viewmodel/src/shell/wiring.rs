@@ -419,7 +419,7 @@ impl ShellModel {
         self.run_commit(&cmd)
     }
 
-    /// `project.plc_addresses_at_terminals {on?}` (Project ▸ PLC addresses at terminals, FR-PLC-018, doc 10 §3.5):
+    /// `project.plc_addresses_at_terminals {on?}` (Project ▸ Channel addresses at terminals, FR-PLC-018, doc 10 §3.5):
     /// commits `project.drawing.set` with `plc_address_at_terminals: true`, or `null` to turn it off; without `on` it
     /// toggles. A terminal on a traced channel's path then prints the channel's address in its `PlcAddress` slot.
     pub(crate) fn act_plc_addresses_at_terminals(&mut self, p: &Map<String, Value>) -> Outcome {
@@ -435,7 +435,7 @@ impl ShellModel {
         self.run_commit(&cmd)
     }
 
-    /// Whether the project prints PLC addresses at terminals (the drawing setting `plc_address_at_terminals`).
+    /// Whether the project prints Channel addresses at terminals (the drawing setting `plc_address_at_terminals`).
     pub fn plc_addresses_at_terminals_on(&self) -> bool {
         self.project.as_ref().is_some_and(|p| {
             p.session

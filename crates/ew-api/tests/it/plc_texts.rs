@@ -277,6 +277,8 @@ fn golden_a_prints_the_valve_addresses_of_part_2() {
         [
             "ew.iec.lamp@qet10",
             "ew.iec.position-switch-no@qet10",
+            // FT-1734: the terminal has the slot; Golden A has no terminal on a traced path, so it prints nothing.
+            "ew.iec.terminal@qet10",
             "ew.iso.valve-5-2-sol-spring@qet10"
         ]
     );

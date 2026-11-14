@@ -232,10 +232,19 @@ fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
     assert!(!free.is_empty(), "Golden A's spare valves have free fluid ports");
     let before: usize = {
         let c = h.state().shell().canvas().unwrap();
-        c.page().tables.connections.iter().filter(|c| c.kind == "fluid").count()
+        c.page()
+            .tables
+            .connections
+            .iter()
+            .filter(|c| c.kind == "fluid")
+            .count()
     };
     dispatch(&mut h, "tool.place", json!({}));
-    dispatch(&mut h, "place.pick", json!({"symbol": "ew.iso.silencer@qet10", "letter": "R"}));
+    dispatch(
+        &mut h,
+        "place.pick",
+        json!({"symbol": "ew.iso.silencer@qet10", "letter": "R"}),
+    );
     settle(&mut h);
     let mut found = false;
     'search: for at in &free {
@@ -260,7 +269,12 @@ fn a_silencer_autoconnects_to_a_free_fluid_port_with_a_fluid_line() {
     settle(&mut h);
     let after: usize = {
         let c = h.state().shell().canvas().unwrap();
-        c.page().tables.connections.iter().filter(|c| c.kind == "fluid").count()
+        c.page()
+            .tables
+            .connections
+            .iter()
+            .filter(|c| c.kind == "fluid")
+            .count()
     };
     assert_eq!(after, before + 1, "the hint is a fluid line");
     h.state_mut().shell_mut().shutdown();
@@ -346,7 +360,9 @@ fn row_menu(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, label: &str) {
         if h.query_by_label(&row.name).is_some() {
             break;
         }
-        h.input_mut().events.push(egui::Event::PointerMoved(egui::pos2(250.0, 400.0)));
+        h.input_mut()
+            .events
+            .push(egui::Event::PointerMoved(egui::pos2(250.0, 400.0)));
         h.input_mut().events.push(egui::Event::MouseWheel {
             unit: egui::MouseWheelUnit::Point,
             delta: egui::vec2(0.0, -200.0),
@@ -389,7 +405,11 @@ fn valves_ports_and_positions_are_set_from_the_fluid_navigator() {
     settle(&mut h);
     row_menu(&mut h, "-201U3-Q1");
     let plugs = items(&h, "Plug port ");
-    assert_eq!(plugs.len(), 2, "the new valve's working ports are open: {plugs:?}");
+    assert_eq!(
+        plugs.len(),
+        2,
+        "the new valve's working ports are open: {plugs:?}"
+    );
     support::menu_node(&h, &plugs[0]).click();
     settle(&mut h);
     row_menu(&mut h, "-201U3-Q1");

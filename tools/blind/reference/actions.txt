@@ -422,7 +422,7 @@ plc.module_safety Command "Safety data…" menu none shortcut none context navig
 plc.channel_settings Command "Mode and safety…" menu none shortcut none context navigator needs-parameters params "channel:ref, mode?:text, evaluation?:text, requirement?:text"
 plc.process_tag_scheme Command "Process-tag scheme…" menu "Project" shortcut none context global params "scheme?:text"
 fluid.settings Command "Fluid settings…" menu "Project" shortcut none context global params "od?:text, id?:text, material?:text, line_tags?:text"
-project.plc_addresses_at_terminals Command "PLC addresses at terminals" menu "Project" shortcut none context global params "on?:bool"
+project.plc_addresses_at_terminals Command "Channel addresses at terminals" menu "Project" shortcut none context global params "on?:bool"
 fluid.generate_overview Command "Generate overview…" menu none shortcut none context navigator needs-parameters params "station:ref"
 fluid.set_medium Command "Set medium" menu none shortcut none context canvas needs-parameters params "line:ref, medium:ref"
 fluid.medium_new Command "New medium…" menu "Project" shortcut none context global params "name?:text, p_nom?:text, code?:text"

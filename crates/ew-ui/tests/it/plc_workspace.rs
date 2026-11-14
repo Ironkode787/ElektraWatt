@@ -502,7 +502,7 @@ fn type_into(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, label: &str, te
 }
 
 /// FT-1752: the project's PLC and fluid settings from the Project menu. Process-tag scheme… and Fluid settings… are
-/// forms that start with the project's values and set them in one step each; PLC addresses at terminals is a switch.
+/// forms that start with the project's values and set them in one step each; Channel addresses at terminals is a switch.
 #[test]
 fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
     let tmp = Tmp::new();
@@ -518,9 +518,16 @@ fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
     );
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     dispatch(&mut h, "plc.process_tag_scheme", json!({}));
-    assert!(form_value(&h, "scheme").starts_with("(?P<area>"), "the form shows the scheme set");
+    assert!(
+        form_value(&h, "scheme").starts_with("(?P<area>"),
+        "the form shows the scheme set"
+    );
     dispatch(&mut h, "ui.dismiss", json!({}));
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
@@ -532,7 +539,11 @@ fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
     settle(&mut h);
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     dispatch(&mut h, "fluid.settings", json!({}));
     assert_eq!(form_value(&h, "od"), "6");
     assert_eq!(form_value(&h, "id"), "4");
@@ -541,7 +552,7 @@ fn the_process_tag_and_fluid_settings_are_set_from_the_project_menu() {
     assert!(!h.state().shell().plc_addresses_at_terminals_on());
     support::open_menu(&mut h, &["Project"]);
     settle(&mut h);
-    support::menu_node(&h, "PLC addresses at terminals").click();
+    support::menu_node(&h, "Channel addresses at terminals").click();
     settle(&mut h);
     assert!(h.state().shell().plc_addresses_at_terminals_on());
     h.state_mut().shell_mut().shutdown();
@@ -586,7 +597,11 @@ fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
     type_into(&mut h, "PLC tag table", "Valves");
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     h.get_by_label(&config.name).click_secondary();
     settle(&mut h);
     support::menu_node(&h, "Symbol policy…").click();
@@ -617,7 +632,11 @@ fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
     settle(&mut h);
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     let channel = rows
         .iter()
         .find(|r| r.role == NavRole::Channel.word())
@@ -628,13 +647,18 @@ fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
     support::menu_node(&h, "Mode and safety…").click();
     settle(&mut h);
     type_into(&mut h, "Safety requirement (such as SIL 2 or PL d)", "SIL2");
-    h.get_by_role_and_label(egui::Role::ComboBox, "Safety evaluation").click();
+    h.get_by_role_and_label(egui::Role::ComboBox, "Safety evaluation")
+        .click();
     settle(&mut h);
     h.get_by_label("1oo1").click();
     settle(&mut h);
     support::off_chrome(&h, "Apply").expect("Apply").click();
     settle(&mut h);
-    assert!(h.state().shell().dialog().is_none(), "{:?}", h.state().shell().dialog());
+    assert!(
+        h.state().shell().dialog().is_none(),
+        "{:?}",
+        h.state().shell().dialog()
+    );
     h.get_by_label(&channel.name).click_secondary();
     settle(&mut h);
     support::menu_node(&h, "Mode and safety…").click();
@@ -672,7 +696,9 @@ fn a_configuration_projects_row_unlocks_and_imports_an_instrument_list() {
     }
     let notices = h.state().shell().preview_pane().notices().to_vec();
     assert!(notices.iter().any(|n| n.contains("reserved")), "{notices:?}");
-    support::off_chrome(&h, "Apply").expect("the card's Apply").click();
+    support::off_chrome(&h, "Apply")
+        .expect("the card's Apply")
+        .click();
     settle(&mut h);
     h.state_mut().shell_mut().shutdown();
 }
@@ -706,7 +732,9 @@ fn a_module_is_dragged_to_a_free_slot_in_the_rack_editor() {
     settle(&mut h);
     h.get_by_label("Add here 1").click();
     settle(&mut h);
-    let tag = h.state().shell().rack_view(id).expect("the rack").rows[0].tag.clone();
+    let tag = h.state().shell().rack_view(id).expect("the rack").rows[0]
+        .tag
+        .clone();
     let module = (id, tag, 1u32);
     let from = h.get_by_label(&module.1).rect().center();
     let to = h
@@ -747,7 +775,7 @@ fn a_module_is_dragged_to_a_free_slot_in_the_rack_editor() {
 }
 
 /// FT-1734: the shipped terminal symbol has a `PlcAddress` slot. In a new project the digital output card's pin Q0.0
-/// is wired through terminal -X1:1 to a coil; with Project ▸ PLC addresses at terminals on, the terminal prints Q0.0,
+/// is wired through terminal -X1:1 to a coil; with Project ▸ Channel addresses at terminals on, the terminal prints Q0.0,
 /// and without it nothing.
 #[test]
 fn a_terminal_on_a_traced_path_prints_the_channel_address() {
@@ -779,7 +807,10 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
     }
     dispatch(&mut h, "strip.new", json!({"tag": "-X1"}));
     for (pick, at) in [
-        (json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1", "designation": "1"}), (40, 26)),
+        (
+            json!({"symbol": "ew.iec.terminal@qet10", "strip": "-X1", "designation": "1"}),
+            (40, 26),
+        ),
         (json!({"symbol": "ew.iec.coil@qet10", "letter": "K"}), (40, 36)),
     ] {
         dispatch(&mut h, "tool.place", json!({}));
@@ -796,7 +827,12 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
         let card = t
             .reps
             .iter()
-            .find(|r| r.black_box.is_some() && t.cps.iter().any(|p| p.rep == r.id && p.plc_address.as_deref() == Some("Q0.0")))
+            .find(|r| {
+                r.black_box.is_some()
+                    && t.cps
+                        .iter()
+                        .any(|p| p.rep == r.id && p.plc_address.as_deref() == Some("Q0.0"))
+            })
             .expect("the card");
         let pin = t
             .cps
@@ -845,7 +881,9 @@ fn a_terminal_on_a_traced_path_prints_the_channel_address() {
         let mut all = Vec::new();
         runs(&page.list.items, &mut all);
         all.into_iter()
-            .filter(|(t, o)| t == "Q0.0" && (o.0 - at.0).abs() < 10_000_000 && (o.1 - at.1).abs() < 10_000_000)
+            .filter(|(t, o)| {
+                t == "Q0.0" && (o.0 - at.0).abs() < 10_000_000 && (o.1 - at.1).abs() < 10_000_000
+            })
             .count()
     };
     assert_eq!(at_terminal(&h), 0, "off by default");

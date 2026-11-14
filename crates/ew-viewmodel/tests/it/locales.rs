@@ -463,7 +463,11 @@ const OTHER_SENSES: &[(&str, &str, &str)] = &[
         "terminal",
         "a valve terminal (ventieleiland)",
     ),
-    ("reason-valve-no-part", "terminal", "a valve terminal (ventieleiland)"),
+    (
+        "reason-valve-no-part",
+        "terminal",
+        "a valve terminal (ventieleiland)",
+    ),
     ("form-revision-git", "tag", "the verb of Git (taggen)"),
     ("error-revision-git", "tag", "a Git tag"),
     ("revision-complete-git", "tag", "a Git tag"),

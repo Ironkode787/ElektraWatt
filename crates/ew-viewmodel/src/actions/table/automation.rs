@@ -200,7 +200,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
-    // Project ▸ Process-tag scheme…, Fluid settings… and PLC addresses at terminals (FT-1752).
+    // Project ▸ Process-tag scheme…, Fluid settings… and Channel addresses at terminals (FT-1752).
     with_params(
         "scheme?:text",
         act(

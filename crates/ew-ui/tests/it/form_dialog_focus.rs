@@ -300,6 +300,34 @@ fn w49_2_f1_every_form_dialog_focuses_its_first_text_field_or_its_primary() {
         .to_string();
     dispatch(&mut h, "select.set", json!({ "ids": [point] }));
     checked.insert(check_form(&mut h, "ip.supply_in", json!({})));
+    // The PLC navigator rows' settings forms (FT-1752), each for its row's record.
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    let record = |h: &Harness<'_, App>, role: NavRole| {
+        h.state()
+            .shell()
+            .nav(NavKind::Plc)
+            .and_then(|n| n.table())
+            .and_then(|t| {
+                t.nodes
+                    .iter()
+                    .find(|n| n.role == role)
+                    .map(|n| n.records[0].to_string())
+            })
+            .expect("a PLC row")
+    };
+    for (action, param, role) in [
+        ("plc.symbol_policy", "config", NavRole::ConfigProject),
+        ("plc.module_safety", "module", NavRole::Module),
+        ("plc.channel_settings", "channel", NavRole::Channel),
+    ] {
+        let id = record(&h, role);
+        checked.insert(check_form(&mut h, action, json!({ param: id })));
+    }
+    // Draw ▸ Connect ▸ Fluid line…'s line-kind picker on a fluid page (FT-1733).
+    goto(&mut h, "203");
+    checked.insert(check_form(&mut h, "tool.fluid_line", json!({})));
+    dispatch(&mut h, "tool.select", json!({}));
     goto(&mut h, "902");
     for action in ["layout.enclosure_new", "layout.auto_fill_rail"] {
         checked.insert(check_form(&mut h, action, json!({})));
