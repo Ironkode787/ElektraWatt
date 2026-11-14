@@ -335,7 +335,14 @@ fn a_header_extent_that_does_not_hold_the_drawing_is_not_believed() {
     d.p(9, "$EXTMAX").p(10, "10").p(20, "5");
     d.end();
     d.section("ENTITIES");
-    d.ps(&[(0, "LINE"), (8, "0"), (10, "0"), (20, "0"), (11, "10"), (21, "50")]);
+    d.ps(&[
+        (0, "LINE"),
+        (8, "0"),
+        (10, "0"),
+        (20, "0"),
+        (11, "10"),
+        (21, "50"),
+    ]);
     d.end();
     let all = points_mm(&d.ascii(), &Space::Model);
     assert_eq!(all[0], [(0.0, 50.0), (10.0, 0.0)]);

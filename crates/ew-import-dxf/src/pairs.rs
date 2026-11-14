@@ -360,9 +360,11 @@ fn cp1252(b: u8) -> char {
 /// The UTF-16 unit of the `\U+XXXX` (four hex digits) that opens `tail`.
 fn unit_of(tail: &str) -> Option<u32> {
     let b = tail.as_bytes();
-    let hex = tail
-        .get(3..7)
-        .filter(|h| matches!(b.get(1), Some(b'U' | b'u')) && b.get(2) == Some(&b'+') && h.bytes().all(|c| c.is_ascii_hexdigit()))?;
+    let hex = tail.get(3..7).filter(|h| {
+        matches!(b.get(1), Some(b'U' | b'u'))
+            && b.get(2) == Some(&b'+')
+            && h.bytes().all(|c| c.is_ascii_hexdigit())
+    })?;
     u32::from_str_radix(hex, 16).ok()
 }
 

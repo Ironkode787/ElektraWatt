@@ -515,7 +515,11 @@ impl<'d> Converter<'d> {
             return Err(limit("DXF block expansion (shapes)", MAX_PRIMITIVES));
         }
         // The points were charged where a curve made them; the rest is what the shape holds.
-        let text = if let Geo::Text { text, .. } = &geo { text.len() } else { 0 };
+        let text = if let Geo::Text { text, .. } = &geo {
+            text.len()
+        } else {
+            0
+        };
         self.charge(std::mem::size_of::<Shape>() + key.len() + layer.len() + text)?;
         self.shapes.push(Shape {
             geo,

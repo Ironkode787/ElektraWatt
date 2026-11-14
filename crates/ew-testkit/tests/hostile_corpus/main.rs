@@ -200,8 +200,7 @@ fn dxf_drawings() {
         ..Default::default()
     };
     // The one finding of a drawing that is read without trouble but names no unit.
-    const UNIT_CHOSEN: &str =
-        "imported; report: EW-IMP-251 Warning The drawing names no unit; it was read in millimetres as chosen.";
+    const UNIT_CHOSEN: &str = "imported; report: EW-IMP-251 Warning The drawing names no unit; it was read in millimetres as chosen.";
     class(
         "dxf",
         &[

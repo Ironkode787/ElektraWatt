@@ -14,7 +14,8 @@ use ew_api::dxf::{DxfOptions, Space};
 use ew_api::output::{DxfLayers, ExportOptions, PageSelection};
 use ew_api::{Session, SessionOptions};
 use ew_dl::{
-    Brush, DisplayList, FontKey, Item, ItemKind, Layer, Path, PathEl, ShapedRun, Stroke, SymbolGeomId, Transform,
+    Brush, DisplayList, FontKey, Item, ItemKind, Layer, Path, PathEl, ShapedRun, Stroke, SymbolGeomId,
+    Transform,
 };
 use ew_schema::{GraphicShape, PageItemKind};
 use ew_units::{Angle2, Nm, Orient2, Pt2, Rect};
@@ -252,10 +253,7 @@ fn an_insert_and_a_text_come_back_where_they_were_written_with_their_characters(
             (
                 Layer::Frame,
                 DisplayList {
-                    items: vec![
-                        run(mm(50, 60), Transform::IDENTITY),
-                        run(mm(250, 150), turned),
-                    ],
+                    items: vec![run(mm(50, 60), Transform::IDENTITY), run(mm(250, 150), turned)],
                 },
             ),
         ],
@@ -285,7 +283,10 @@ fn an_insert_and_a_text_come_back_where_they_were_written_with_their_characters(
     let got = imported_points(&converted.items);
     assert_eq!(got.len(), wanted.len());
     for w in &wanted {
-        assert!(got.iter().any(|g| near(*g, *w)), "no vertex near {w:?} in {got:?}");
+        assert!(
+            got.iter().any(|g| near(*g, *w)),
+            "no vertex near {w:?} in {got:?}"
+        );
     }
 
     // The texts: the characters as written, at the anchor the run's origin and angle give (the importer anchors a

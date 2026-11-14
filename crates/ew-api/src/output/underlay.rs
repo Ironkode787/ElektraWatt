@@ -538,7 +538,10 @@ mod tests {
                 .any(|i| matches!(&i.kind, ew_dl::ItemKind::Glyphs(run) if run.text == "plan.pdf")),
             _ => false,
         });
-        assert!(items.iter().any(|i| matches!(i.kind, ew_dl::ItemKind::Path(_))), "the frame");
+        assert!(
+            items.iter().any(|i| matches!(i.kind, ew_dl::ItemKind::Path(_))),
+            "the frame"
+        );
         assert!(named, "the file's name");
     }
 }

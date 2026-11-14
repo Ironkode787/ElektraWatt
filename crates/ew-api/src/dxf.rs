@@ -352,6 +352,7 @@ impl WorkDir {
         for _ in 0..64 {
             #[allow(
                 clippy::disallowed_methods,
+                clippy::disallowed_types,
                 reason = "an unpredictable folder name for the converter's copy; it never reaches the model or an output"
             )]
             let suffix = std::hash::RandomState::new().build_hasher().finish();
@@ -390,9 +391,13 @@ impl Drop for Running {
         // for that (a process group on Unix, `taskkill /T` on Windows); the direct child is stopped in any case.
         let pid = self.child.id().to_string();
         #[cfg(windows)]
-        let tree = std::process::Command::new("taskkill").args(["/T", "/F", "/PID", &pid]).output();
+        let tree = std::process::Command::new("taskkill")
+            .args(["/T", "/F", "/PID", &pid])
+            .output();
         #[cfg(unix)]
-        let tree = std::process::Command::new("kill").args(["-KILL", "--", &format!("-{pid}")]).output();
+        let tree = std::process::Command::new("kill")
+            .args(["-KILL", "--", &format!("-{pid}")])
+            .output();
         #[cfg(not(any(windows, unix)))]
         let tree: Result<(), ()> = Ok(());
         let _ = tree;

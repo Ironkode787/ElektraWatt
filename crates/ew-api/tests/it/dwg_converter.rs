@@ -43,7 +43,13 @@ fn a_converter_that_does_not_finish_is_stopped_and_its_folder_removed() {
     let tmp = ew_testdir::Tmp::new("dwg-converter");
     let (folder, pids) = (tmp.path("folder.txt"), tmp.path("pids.txt"));
     let converter = hanging_converter(tmp.dir(), &folder, &pids);
-    let e = convert_dwg(&converter, "plan.dwg", b"not a drawing", Duration::from_millis(1500)).unwrap_err();
+    let e = convert_dwg(
+        &converter,
+        "plan.dwg",
+        b"not a drawing",
+        Duration::from_millis(1500),
+    )
+    .unwrap_err();
     assert_eq!(e, DwgError::TimedOut);
 
     // The folder the converter was given (`<work>/in`) is gone with its work folder.

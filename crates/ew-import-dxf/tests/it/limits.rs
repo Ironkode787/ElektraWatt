@@ -35,7 +35,14 @@ fn drawing(blocks: &[(&str, &[(i32, &str)])], model: &[(i32, &str)]) -> Dxf {
     let mut d = Dxf::new("AC1015", Some(4));
     d.section("BLOCKS");
     for (name, body) in blocks {
-        d.ps(&[(0, "BLOCK"), (8, "0"), (2, *name), (70, "0"), (10, "0"), (20, "0")]);
+        d.ps(&[
+            (0, "BLOCK"),
+            (8, "0"),
+            (2, *name),
+            (70, "0"),
+            (10, "0"),
+            (20, "0"),
+        ]);
         d.ps(body);
         d.ps(&[(0, "ENDBLK"), (8, "0")]);
     }
@@ -125,7 +132,14 @@ fn a_handle_that_is_not_one_cannot_grow_the_keys() {
     let mut d = Dxf::new("AC1015", Some(4));
     d.section("BLOCKS");
     for (name, body) in &blocks {
-        d.ps(&[(0, "BLOCK"), (8, "0"), (2, name.as_str()), (70, "0"), (10, "0"), (20, "0")]);
+        d.ps(&[
+            (0, "BLOCK"),
+            (8, "0"),
+            (2, name.as_str()),
+            (70, "0"),
+            (10, "0"),
+            (20, "0"),
+        ]);
         for (c, v) in body {
             d.p(*c, v);
         }
@@ -133,7 +147,14 @@ fn a_handle_that_is_not_one_cannot_grow_the_keys() {
     }
     d.end();
     d.section("ENTITIES");
-    d.ps(&[(0, "INSERT"), (5, "1A"), (8, "0"), (2, "L29"), (10, "0"), (20, "0")]);
+    d.ps(&[
+        (0, "INSERT"),
+        (5, "1A"),
+        (8, "0"),
+        (2, "L29"),
+        (10, "0"),
+        (20, "0"),
+    ]);
     d.end();
     let c = read(&d).unwrap();
     assert_eq!(c.items.len(), 1, "the line is imported");
@@ -159,7 +180,14 @@ fn a_hatch_whose_counts_outrun_its_pairs_ends_with_them() {
 fn nul_is_no_character_of_an_imported_text() {
     let mut d = Dxf::new("AC1015", Some(4));
     d.section("ENTITIES");
-    d.ps(&[(0, "TEXT"), (8, "0"), (10, "0"), (20, "0"), (40, "2.5"), (1, "A%%000B")]);
+    d.ps(&[
+        (0, "TEXT"),
+        (8, "0"),
+        (10, "0"),
+        (20, "0"),
+        (40, "2.5"),
+        (1, "A%%000B"),
+    ]);
     d.end();
     let c = read(&d).unwrap();
     let text = c.items.iter().find_map(|(_, _, k)| match k {

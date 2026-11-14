@@ -109,7 +109,9 @@ impl DxfLayers {
             return Err(format!("the layer class `{class}` needs a name"));
         }
         if name.chars().count() > 255 {
-            return Err(format!("the layer name for `{class}` is longer than 255 characters"));
+            return Err(format!(
+                "the layer name for `{class}` is longer than 255 characters"
+            ));
         }
         if let Some(c) = name
             .chars()
