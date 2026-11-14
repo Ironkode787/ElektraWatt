@@ -170,6 +170,8 @@ commands! {
     plc::FreezeAddresses,
     plc::Readdress,
     plc::ConvertManualToAuto,
+    // The rack and slot editor (FR-PLC-028)
+    plc::AddModule,
     plc_exchange::RecordExchange,
     plc_exchange::ApplyExchange,
     plc_exchange::Unlock,

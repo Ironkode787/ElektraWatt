@@ -110,3 +110,18 @@ drawings. A file that no mapping fits is mapped column by column (Map the column
 
 Sets up the repository's git configuration so that git merges the project's files record by record. It asks first
 and writes nothing on Cancel. Open it with Project ▸ Set up merge driver.
+
+## Rack and slots
+
+Opened by **Rack and slots…** on a station's row in the PLC navigator (a right click): the station's slots, one row
+each, with the module in it, its part and the slots its part allows. A valve terminal shows its stored order codes at
+the top and each module's valve positions under its row.
+
+Choose the card in **Module part to add**: the project's module parts first, then those of the installed libraries,
+which are copied into the project with the card. **Add here** on a free slot adds a card of that part there; in a
+station whose modules sit in positions, not rack slots, the free slot is the one after the last module. Type a slot
+into a module's Slot field and press `Enter` to move it, as a number or as rack and slot (`1.3`).
+
+A slot the part does not allow, or more modules than the station takes, is refused, and the reason stays under the
+slots; the station's slot findings (EW-PLC-011) are listed there too, each with its icon and the word Error. **Close**
+or `Esc` closes the dialog.

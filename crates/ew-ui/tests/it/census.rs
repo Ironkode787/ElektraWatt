@@ -281,6 +281,7 @@ enum DialogKind {
     ImportQet,
     ReimportMatch,
     Reimport,
+    Rack,
 }
 
 impl DialogKind {
@@ -310,7 +311,8 @@ impl DialogKind {
             Self::ConfirmGitSetup => Self::ImportQet,
             Self::ImportQet => Self::ReimportMatch,
             Self::ReimportMatch => Self::Reimport,
-            Self::Reimport => return None,
+            Self::Reimport => Self::Rack,
+            Self::Rack => return None,
         })
     }
 
@@ -341,6 +343,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::OpenEwz { .. } => DialogKind::OpenEwz,
         Dialog::ImportDrawing { .. } => DialogKind::ImportDrawing,
         Dialog::ImportEplan { .. } => DialogKind::ImportEplan,
+        Dialog::Rack { .. } => DialogKind::Rack,
         Dialog::ConfirmGitSetup { .. } => DialogKind::ConfirmGitSetup,
         Dialog::ImportQet { .. } => DialogKind::ImportQet,
         Dialog::ReimportMatch { .. } => DialogKind::ReimportMatch,
@@ -395,6 +398,7 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         DialogKind::GotoPage => simple("nav.goto", json!({})),
         DialogKind::SaveWorkspace => simple("view.workspace_save", json!({})),
         DialogKind::Form => simple("page.new", json!({})),
+        DialogKind::Rack => simple("plc.rack_editor", json!({"station": "tag:-201U1"})),
         DialogKind::Print => simple("file.print", json!({"range": "current"})),
         DialogKind::ConfirmDiscard => {
             let mut h = simple(

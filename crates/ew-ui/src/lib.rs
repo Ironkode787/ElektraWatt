@@ -16,6 +16,8 @@
 pub use ew_viewmodel;
 
 mod about;
+// The dialog contents of the automation workspaces (WP-S2.13).
+mod automation;
 // The recovery dialog's test clock (the module is private).
 #[doc(hidden)]
 pub use about::set_now_for_tests;

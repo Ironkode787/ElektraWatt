@@ -112,6 +112,7 @@ mod tips;
 mod wire_colours;
 // The start-up offer after a crash.
 pub mod startup;
+pub use automation::{rack_positions_text, rack_slot_text};
 pub use glossary::GlossaryRow;
 pub use macros::MacroVariable;
 pub use tips::Tip;
@@ -433,6 +434,16 @@ pub enum Dialog {
         name: String,
         /// The step.
         step: EplanStep,
+    },
+    /// The rack and slot editor of a station (doc 10 §6, FR-PLC-028): its slots as `Session::rack_view` gives them,
+    /// read each frame; Close.
+    Rack {
+        /// The station device.
+        station: ew_api::output::Uuid,
+        /// The module part Add module puts into a free slot; `None` before one is chosen (the first offered).
+        part: Option<ew_api::output::Uuid>,
+        /// The last refusal of a change, under the slots; `None` after a change went through.
+        error: Option<String>,
     },
     /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
     OpenEwz {

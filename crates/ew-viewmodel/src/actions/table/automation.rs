@@ -24,4 +24,62 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
+    // A station row's Rack and slots… (FR-PLC-028) and the editor's own controls.
+    with_params(
+        "station:ref",
+        needs_parameters(in_navigator(with_aliases(
+            &[("station", ParamForm::Whole)],
+            act(
+                "plc.rack_editor",
+                View,
+                Menu::Project,
+                &[],
+                project_open,
+                None,
+                |s, p| s.act_plc_rack_editor(p),
+            ),
+        ))),
+    ),
+    with_params(
+        "part:ref",
+        hidden(with_aliases(
+            &[("part", ParamForm::Whole)],
+            act(
+                "plc.rack_part",
+                View,
+                Menu::Project,
+                &[],
+                project_open,
+                None,
+                |s, p| s.act_plc_rack_part(p),
+            ),
+        )),
+    ),
+    with_params(
+        "slot:uint, rack?:uint",
+        hidden(act(
+            "plc.rack_add",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_rack_add(p),
+        )),
+    ),
+    with_params(
+        "module:ref, slot:text",
+        hidden(with_aliases(
+            &[("module", ParamForm::Whole)],
+            act(
+                "plc.rack_move",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_rack_move(p),
+            ),
+        )),
+    ),
 ];

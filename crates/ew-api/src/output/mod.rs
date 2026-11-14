@@ -63,7 +63,9 @@ pub(crate) mod preview;
 pub mod print;
 // `ew diff` and its textconv (D26, D27)
 mod project_diff;
+// The rack and slot editor's view (FR-PLC-028).
 pub(crate) mod properties;
+mod rack;
 // Page rasters and the row exports: their XLSX and CSV presets.
 mod raster;
 mod rows;
@@ -146,6 +148,7 @@ pub use properties::{
     CompanyColour, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SelectionWords,
     SheetHeader, SheetSection, SourceLink, WireColours, WireEnd,
 };
+pub use rack::{ModulePart, RackRow, RackView};
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png, sheet_image};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 pub use route_measures::{

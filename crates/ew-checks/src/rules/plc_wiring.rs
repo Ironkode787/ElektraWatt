@@ -27,7 +27,7 @@ use crate::rules::term::full_tag;
 
 /// The PLC section a station takes its limits from: the first part use whose part's `plc` section has role
 /// `station`, else the station's module section.
-fn station_section(
+pub fn station_section(
     q: &Q,
     station: Id<Device>,
 ) -> Option<(

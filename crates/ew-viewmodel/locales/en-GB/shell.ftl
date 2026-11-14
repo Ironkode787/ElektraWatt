@@ -86,6 +86,7 @@ command-plc-set_start = Set PLC module start
 command-plc-freeze = Freeze PLC addresses
 command-plc-readdress = Re-address PLC modules
 command-plc-convert_manual_to_auto = Make manual PLC addresses automatic
+command-plc-add_module = Add PLC module
 command-potential-define = Define potential
 command-project-assets-purge = Purge unused assets
 command-project-checks-set = Set checks
@@ -1636,6 +1637,8 @@ refusal-valve-position-empty = position { $p0 } of { $p1 } holds no valve; name 
 refusal-fluid-port-has-line = { $p0 } has a fluid line; delete the line before closing the port
 # fluid.medium.edit, fluid.medium.define, fluid.tube.set, fluid.length.set.
 refusal-valve-add-plc-part = part { $p0 } is a PLC station or module, not a valve; add it as a module of the valve terminal
+refusal-plc-add-module-no-station = { $p0 } is no PLC station; a module is added to a CPU, a head station or a valve terminal
+refusal-plc-add-module-part = part { $p0 } is no PLC module; choose a part whose PLC data names a module
 refusal-medium-nothing = name the medium to delete, or give the values of a new one
 refusal-medium-name-required = a medium needs a name
 refusal-medium-discipline = a medium is pneumatic, vacuum or hydraulic
@@ -3159,11 +3162,17 @@ action-navigator-jump = Jump to row
 # WP-S2.07 §8: a channel dragged from the PLC navigator onto a connection point.
 action-navigator-bind = Bind channel
 action-plc-attach-cards = Attach cards without a CPU
+action-plc-rack-editor = Rack and slots…
+action-plc-rack-part = Module part
+action-plc-rack-add = Add module
+action-plc-rack-move = Move module
 reason-drop-on-cp = Drop the channel on a connection point
 
 # FX38d: a CP off the channel's card, refused in words before the commit.
 reason-bind-off-card = The connection point is not on the channel's card: a channel binds a pin of its card or the coil of a valve on it
 reason-no-cards-without-cpu = No PLC card waits for a CPU
+reason-rack-closed = The rack and slot editor is not open
+reason-rack-no-part = No module part is offered: import parts with PLC module data or install a parts library
 
 # FT-753: the words say what to do.
 toast-bind-off-card = { $p0 } is not on the card { $p1 }: wire { $p0 } to a pin of { $p1 } first; the channel binds the card's pin.
@@ -3177,6 +3186,24 @@ toast-bind-done = Bound { $p0 } to { $p1 }.
 toast-bind-wired = Bound { $p0 } to { $p1 }, where { $p2 } is wired.
 toast-bind-attached = Attached { $p0 } to { $p1 } at position { $p2 } and bound { $p3 } to { $p4 }.
 toast-cards-attached = Attached { $p0 } to { $p1 }.
+rack-title = Rack and slots of { $p0 }
+rack-station-part = Station part: { $p0 }
+rack-max-modules = It takes at most { $p0 } modules.
+rack-slot = Slot
+rack-module = Module
+rack-part = Part
+rack-allowed = Allowed slots
+rack-any-slot = any
+rack-free = free
+rack-blank = blank
+rack-empty = empty
+rack-positions = Valve positions: { $p0 }
+rack-order-code = { $p0 }: { $p1 }
+rack-add-here = Add here
+rack-module-part = Module part to add
+rack-slot-field = Slot of { $p0 }
+rack-bad-slot = "{ $p0 }" is no slot: type a number, or rack and slot as 1.3
+rack-no-findings = The slots meet the station's rules.
 
 # FT-757: a channel the bind unbound (FR-PLC-005), appended to the bind's toast.
 toast-bind-displaced = ; { $p0 } was bound there and is now unbound

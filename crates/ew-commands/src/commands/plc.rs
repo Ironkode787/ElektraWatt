@@ -1016,3 +1016,109 @@ fn module_profile_of(
         .config_project;
     ew_derive::profile_of(q, cfg)
 }
+
+/// `plc.add_module` (`AddModule`, doc 10 §6 the rack and slot editor, FR-PLC-028): adds a module of a part to a
+/// station, in a slot.
+///
+/// Creates `Device {tag: {letter: the station's, counter: position, scheme: child}, parent: station, position, parts:
+/// [part], plc_module: {slot}}` at the position after the station's last child; normaliser N1 instantiates its
+/// channels. With `slot`, the module's slot is `rack.slot` (rack 0 when `rack` is absent); without, it is positional,
+/// so the module follows the station's modules. Refused: a station without the `plc_station` aspect; a part whose PLC
+/// section is not a module's (in words). A slot outside the part's allowed slots and a station beyond its limits are
+/// EW-PLC-011's prevent rule. `copies` are library
+/// documents embedded first, in the same transaction, as `device.place` embeds them (a library part the project does not
+/// hold yet). One undo step. Outcome: the module.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct AddModule {
+    /// The station device.
+    #[schemars(with = "UuidS")]
+    pub station: Id<Device>,
+    /// The module's part use.
+    pub part: PartUse,
+    /// The rack; absent: rack 0 when `slot` is given.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rack: Option<u16>,
+    /// The slot; absent: positional.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slot: Option<u16>,
+    /// Library documents (`lib/` JSON form) embedded first.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<serde_json::Value>,
+}
+
+impl Command for AddModule {
+    const NAME: &'static str = "plc.add_module";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
+        let station = tx.require::<Device>(self.station)?;
+        if station.aspects.plc_station.is_none() {
+            return tx.reject(text!(
+                "refusal-plc-add-module-no-station",
+                crate::words::device(tx, self.station)
+            ));
+        }
+        let part = tx.require::<LibCopy<Part>>(self.part.part.copy)?;
+        let module = part
+            .item
+            .sections
+            .plc
+            .as_ref()
+            .is_some_and(|p| p.role == ew_schema::PlcRole::Module);
+        if !module {
+            return tx.reject(text!(
+                "refusal-plc-add-module-part",
+                part.item.part_number.as_str()
+            ));
+        }
+        let position = tx
+            .children_of(self.station)
+            .into_iter()
+            .filter_map(|c| tx.get::<Device>(c).and_then(|d| d.position))
+            .max()
+            .unwrap_or(0)
+            .saturating_add(1);
+        let slot = match self.slot {
+            Some(slot) => ew_schema::SlotPath::Rack(ew_schema::RackSlot {
+                rack: self.rack.unwrap_or(0),
+                slot,
+                subslot: None,
+                extra: Extra::new(),
+            }),
+            None => ew_schema::SlotPath::Positional,
+        };
+        let id: Id<Device> = tx.mint();
+        tx.insert(Device {
+            id,
+            v: 1,
+            tag: ew_schema::TagSpec {
+                scheme: ew_schema::TagScheme::Child,
+                ..ew_schema::TagSpec::new(station.tag.letter.clone(), Some(position))
+            },
+            kind: None,
+            parent: Some(self.station),
+            position: Some(position),
+            structure: Default::default(),
+            parts: vec![self.part.clone()],
+            function_text: Default::default(),
+            process_tag: None,
+            tech_data: Default::default(),
+            state: Default::default(),
+            source_ref: None,
+            aspects: ew_schema::DeviceAspects {
+                plc_module: Some(ew_schema::PlcModule {
+                    slot,
+                    ..ew_schema::PlcModule::default()
+                }),
+                ..ew_schema::DeviceAspects::default()
+            },
+            extra: Extra::new(),
+        })?;
+        Ok(Outcome::primary((Kind::Device, id.cast())))
+    }
+}

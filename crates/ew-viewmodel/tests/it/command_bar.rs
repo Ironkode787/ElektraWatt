@@ -43,6 +43,7 @@ const KEY_ONLY: &[&str] = &[
     "table.clear",
     // The PLC navigator's row actions, reached through its row menu.
     "plc.attach_cards",
+    "plc.rack_editor",
 ];
 
 fn shell(tmp: &Tmp) -> ShellModel {

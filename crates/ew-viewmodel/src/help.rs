@@ -141,6 +141,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(DIALOGS, "dialog-open-ewz", "open-ewz"),
     on(DIALOGS, "dialog-import-drawing", "import-a-drawing"),
     on(DIALOGS, "dialog-import-eplan", "import-eplan-data"),
+    on(DIALOGS, "dialog-rack", "rack-and-slots"),
     on(DIALOGS, "dialog-git-setup", "set-up-merge-driver"),
     on(PANELS, "pane-page-view", "page-view"),
     on(PANELS, "pane-properties", "properties"),
@@ -312,6 +313,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::OpenEwz { .. } => "dialog-open-ewz",
         Dialog::ImportDrawing { .. } => "dialog-import-drawing",
         Dialog::ImportEplan { .. } => "dialog-import-eplan",
+        Dialog::Rack { .. } => "dialog-rack",
         Dialog::ConfirmGitSetup { .. } => "dialog-git-setup",
     }
 }
@@ -602,6 +604,11 @@ mod tests {
                 path: text(),
                 name: text(),
                 step: crate::shell::EplanStep::Terms,
+            },
+            Dialog::Rack {
+                station: ew_api::output::Uuid::nil(),
+                part: None,
+                error: None,
             },
         ] {
             assert!(anchor(dialog_topic(&dialog)).is_some(), "{dialog:?}");

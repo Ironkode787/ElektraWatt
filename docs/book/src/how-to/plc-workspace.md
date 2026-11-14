@@ -21,13 +21,20 @@ cards, bind channels and check what each channel drives.
 4. In a project with two CPUs a new card joins neither and is listed under **Cards without a CPU**. Right-click the
    CPU that takes it and choose **Attach cards without a CPU**.
 
+## Rack and slots
+
+5. Right-click a station and choose **Rack and slots…**. Pick the card in **Module part to add** and choose **Add
+   here** on a free slot; type another slot into a card's Slot field to move it. A slot the card's part does not
+   allow is refused, and the reason stays in the dialog.
+
 ## The PLC grid
 
-5. Each row of the grid is a channel. Type in a cell to change a channel's designation, address, symbol, state,
+6. Each row of the grid is a channel. Type in a cell to change a channel's designation, address, symbol, state,
    target, comment, data type or signal range; the slot cell takes a number or `<rack>.<slot>`. Safety data is edited
    in Properties.
-6. Type in the grid's filter to narrow the rows: a word of a cell, or one of `spare`, `unplaced`, `unassigned`,
+7. Type in the grid's filter to narrow the rows: a word of a cell, or one of `spare`, `unplaced`, `unassigned`,
    `tbd`, `duplicate`, `safety`, `config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's header
    sorts by it, a second click reverses the order.
 
-The panels are described in the [panel reference](../reference/window/panels.md): PLC and PLC grid.
+The panels are described in the [panel reference](../reference/window/panels.md): PLC and PLC grid; the dialog in the
+[dialog reference](../reference/window/dialogs.md): Rack and slots.

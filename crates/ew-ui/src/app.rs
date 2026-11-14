@@ -674,6 +674,11 @@ impl App {
         if under_row {
             return;
         }
+        // A refusal the rack and slot editor shows under its slots is not made a banner as well (P3).
+        if matches!(self.shell.dialog(), Some(ew_viewmodel::shell::Dialog::Rack { error: Some(e), .. }) if *e == message)
+        {
+            return;
+        }
         // SM25b m2 (P3): a refusal the symbol editor shows with its draft is not made a banner as well.
         if self
             .shell

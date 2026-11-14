@@ -498,3 +498,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   FT-1726)
 - behaviour-change: a table column sorted after the table sized it widens by its sort icon, so its header is not cut
   (WP-S2.13, FT-776)
+- api-add: command `plc.add_module {station, part, rack?, slot?, copies?}`: a module of a part as a child of a
+  station, in an authored rack slot or positional after its modules; EW-PLC-011 refuses a slot the part does not
+  allow (WP-S2.13, FR-PLC-028)
+- behaviour-change: Rack and slots… on a station's row opens the rack and slot editor: the station's slots with
+  their modules, parts and allowed slots, a valve terminal's positions beside its stored order codes, EW-PLC-011
+  live; Add here and a module's slot field add and move modules (WP-S2.13, FR-PLC-028)

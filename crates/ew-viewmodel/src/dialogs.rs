@@ -212,6 +212,8 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ImportEplan { path, name, step } => import_eplan_spec(path, name, step, model.has_project()),
         // D28: Set up (Enter) or Cancel.
         Dialog::ConfirmGitSetup { folder } => git_setup_spec(folder),
+        // The rack and slot editor: its slots are the dialog's own content; Close.
+        Dialog::Rack { station, .. } => rack_spec(model, *station),
         // Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
         // buttons disabled, with the reason, until the set is built.
         Dialog::Print(_) => print_spec(model),
@@ -589,6 +591,30 @@ fn open_ewz_spec(path: &str, name: &str) -> DialogSpec {
 
 /// Importing the drawing `name` (WP-S3.19): Add as page (a DXF or DWG), Place under page <folio> (embedded or not),
 /// Cancel. The body says what the file is, an assumed unit, a DWG's converter, and the confidentiality of an underlay.
+/// The rack and slot editor's title and body (doc 10 §6): "Rack and slots of `<station>`", the station's part and the
+/// most modules it takes; Close is the Primary.
+fn rack_spec(model: &ShellModel, station: ew_api::output::Uuid) -> DialogSpec {
+    let view = model.project_session().and_then(|s| s.rack_view(station));
+    let tag = view.as_ref().map(|v| v.tag.clone()).unwrap_or_default();
+    let mut body = Vec::new();
+    if let Some(v) = &view {
+        if !v.part.is_empty() {
+            body.push(strings::format(key!("rack-station-part"), &[&v.part]));
+        }
+        if let Some(m) = v.max_modules {
+            body.push(strings::format(key!("rack-max-modules"), &[&m.to_string()]));
+        }
+    }
+    DialogSpec {
+        form: true,
+        ..small(
+            strings::format(key!("rack-title"), &[&tag]),
+            body,
+            DialogButton::new(key!("dialog-close"), DialogAnswer::Dismiss),
+        )
+    }
+}
+
 fn import_drawing_spec(
     path: &str,
     name: &str,

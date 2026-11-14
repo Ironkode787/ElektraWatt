@@ -2007,6 +2007,16 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  label \"{line}\""));
             }
         }
+        // The rack and slot editor: its paragraphs, each slot with its module, part and allowed slots, the findings.
+        Dialog::Rack { station, error, .. } => {
+            for line in &spec.body {
+                lines.push(format!("  label \"{}\"", user(line)));
+            }
+            lines.extend(model.rack_lines(*station));
+            if let Some(e) = error {
+                lines.push(format!("  error \"{}\"", user(e)));
+            }
+        }
         // The paragraphs; the collision dialog's rows with base, mine, theirs and the side chosen.
         Dialog::ConfirmUpgrade { .. }
         | Dialog::OpenEwz { .. }

@@ -197,3 +197,122 @@ fn the_report_block_form_offers_the_plc_bus_and_fluid_lists() {
     );
     h.state_mut().shell_mut().shutdown();
 }
+
+/// A new project with page 101 and the generic CPU drawn on it, the PLC navigator shown.
+fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::App> {
+    let mut h = harness(tmp, Scripted::default(), None);
+    settle(&mut h);
+    dispatch(
+        &mut h,
+        "file.new",
+        json!({"dir": tmp.0.join("rack.ew").to_string_lossy(), "template": "builtin"}),
+    );
+    dispatch(
+        &mut h,
+        "page.new",
+        json!({"folio": "101", "type": "multi_line", "title": "Control"}),
+    );
+    settle(&mut h);
+    wait_for_page(&mut h);
+    dispatch(&mut h, "tool.black_box", json!({"part": "EW-GEN-CPU-1", "template": 0}));
+    crate::navigators::cursor_k(&mut h, (10, 10));
+    dispatch(&mut h, "canvas.activate", json!({}));
+    crate::navigators::cursor_k(&mut h, (16, 18));
+    dispatch(&mut h, "canvas.activate", json!({}));
+    dispatch(&mut h, "tool.select", json!({}));
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    h
+}
+
+/// FR-PLC-028 from nothing: Rack and slots… on a new project's CPU row opens the editor; the digital output card
+/// chosen from the module parts goes into slot 1 and then into slot 2 with Add here; a slot typed that is no slot is
+/// refused in words under the slots; the navigator lists both cards under the CPU.
+#[test]
+fn modules_are_added_in_the_rack_and_slot_editor() {
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let tmp = Tmp::new();
+    let mut h = new_project_with_cpu(&tmp);
+    let station = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == NavRole::Station.word())
+        .expect("the CPU's row");
+    h.get_by_label(&station.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Rack and slots…").click();
+    settle(&mut h);
+    let id = match h.state().shell().dialog() {
+        Some(Dialog::Rack { station, .. }) => *station,
+        other => panic!("{other:?}"),
+    };
+    h.get_by_label_contains("Rack and slots of");
+    h.get_by_role_and_label(egui::Role::ComboBox, "Module part to add")
+        .click();
+    settle(&mut h);
+    h.get_by_label_contains("EW-GEN-DO-1").click();
+    settle(&mut h);
+    h.get_by_label("Add here 1").click();
+    settle(&mut h);
+    h.get_by_label("Add here 2").click();
+    settle(&mut h);
+    let view = h.state().shell().rack_view(id).expect("the view");
+    let cards: Vec<(u32, &str)> = view
+        .rows
+        .iter()
+        .filter(|r| r.module.is_some())
+        .map(|r| (r.slot, r.part.split(' ').next().unwrap_or_default()))
+        .collect();
+    assert_eq!(cards, [(1, "EW-GEN-DO-1"), (2, "EW-GEN-DO-1")]);
+    let first = view.rows[0].tag.clone();
+    let name = format!("Slot of {first}");
+    h.get_by_label(&name).click();
+    h.key_press_modifiers(egui::Modifiers::COMMAND, egui::Key::A);
+    h.event(egui::Event::Text("x".to_owned()));
+    h.key_press(egui::Key::Enter);
+    settle(&mut h);
+    h.get_by_label_contains("is no slot: type a number");
+    support::menu_node(&h, "Close").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none());
+    let rows = h.state().shell().shown_rows(NavKind::Plc);
+    let under: Vec<&str> = rows
+        .iter()
+        .filter(|r| r.role == NavRole::Module.word() && r.parent.as_deref() == Some(station.key.as_str()))
+        .map(|r| r.label.as_str())
+        .collect();
+    assert_eq!(under.len(), 2, "{under:?}");
+    h.state_mut().shell_mut().shutdown();
+}
+
+/// FR-PLC-028 on Golden A: the valve terminal's editor lists its seven modules in manifold order, each with its valve
+/// positions, beside the stored order codes, and no EW-PLC-011 finding.
+#[test]
+fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "201");
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    let station = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == NavRole::Station.word())
+        .expect("-201U1's row");
+    h.get_by_label(&station.name).click_secondary();
+    settle(&mut h);
+    support::menu_node(&h, "Rack and slots…").click();
+    settle(&mut h);
+    h.get_by_label("Rack and slots of -201U1");
+    let code = format!("Order Code 1: {}", "51E-F13GCQP-D+H2GG");
+    assert!(h.query_all_by_label_contains(&code).count() >= 1, "the stored order code");
+    for tag in ["-201U3", "-201U8", "-202U2"] {
+        h.get_by_label(&format!("Slot of {tag}"));
+    }
+    assert!(h.query_all_by_label_contains("Valve positions: 1 ").count() >= 7);
+    h.get_by_label("The slots meet the station's rules.");
+    h.state_mut().shell_mut().shutdown();
+}
