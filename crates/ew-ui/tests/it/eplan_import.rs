@@ -118,6 +118,41 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
     );
 }
 
+/// The terms notice cannot be skipped: an EDZ under another name, and an import that names its step before the notice
+/// was shown, stop at the notice, and nothing is written.
+#[test]
+fn an_edz_under_another_name_and_a_named_step_still_stop_at_the_terms() {
+    let tmp = Tmp::new();
+    let disguised = tmp.0.join("psu.xml");
+    std::fs::copy(EDZ, &disguised).unwrap();
+    let mut h = open_golden(&tmp, &[]);
+    for how in ["library", "update"] {
+        support::dispatch(
+            &mut h,
+            "file.import_eplan",
+            json!({"file": disguised.to_string_lossy(), "how": how}),
+        );
+        assert!(
+            matches!(
+                h.state().shell().dialog(),
+                Some(Dialog::ImportEplan {
+                    step: EplanStep::Terms,
+                    ..
+                })
+            ),
+            "{how}: {:?}",
+            h.state().shell().dialog()
+        );
+    }
+    assert!(
+        !tmp.0
+            .join("data")
+            .join("libraries")
+            .join("user-parts.ewlib")
+            .exists()
+    );
+}
+
 /// A report whose headers fit a shipped mapping offers it; Import as terminal diagram makes a new project without
 /// pages, and the window's tool strip does not show Select enabled there (FT-1743).
 #[test]

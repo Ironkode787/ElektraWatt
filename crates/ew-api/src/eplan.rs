@@ -19,7 +19,7 @@ use ew_derive::ew_ids::{Id, Uuid};
 use ew_import_eplan::{IMPORTER_ID, IMPORTER_VERSION};
 use ew_schema::{FreeProp, LibCopy, LibDocument, LibRef, Manufacturer, MechData, Part, PartKind, Sha256};
 
-pub use ew_import_eplan::{FndefMap, PartsRead};
+pub use ew_import_eplan::{FndefMap, PartsRead, is_edz};
 
 use crate::catalog::{
     CatalogError, CatalogTarget, Date, ImportError, ImportInput, ImportReport, LibraryImport, Limits,

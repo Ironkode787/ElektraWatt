@@ -872,6 +872,12 @@ fn refusal(key: &str) -> ImportError {
     }
 }
 
+/// Whether `bytes` are an EDZ package (a 7-Zip or ZIP archive, told by the content as [`read_parts`] tells it),
+/// whatever the file is called: the Data Portal terms notice (EW-IMP-201) belongs to it.
+pub fn is_edz(bytes: &[u8]) -> bool {
+    bytes.starts_with(b"7z\xbc\xaf\x27\x1c") || bytes.starts_with(b"PK")
+}
+
 /// Reads the parts of an EDZ (7-Zip or ZIP), an EPLAN parts XML (`partsmanagement`) or a bare part XML, into drafts
 /// (doc 14 §5.2, §5.3). The format is told by the content: the 7-Zip signature, a ZIP's `PK`, else XML. An EDZ's
 /// `*.part.xml` members are read; the others are counted into one finding (EW-IMP-204 for `.e3d` 3D models). A ZIP
@@ -896,9 +902,8 @@ pub fn read_parts(input: &ImportInput, fndefs: &FndefMap, limits: &Limits) -> Re
         pins: 0,
     };
     let sha = hex(input.sha256());
-    let seven = bytes.starts_with(b"7z\xbc\xaf\x27\x1c");
     let zip = bytes.starts_with(b"PK");
-    let (members, format): (Vec<(String, String)>, &'static str) = if seven || zip {
+    let (members, format): (Vec<(String, String)>, &'static str) = if is_edz(bytes) {
         let (files, skipped) =
             archive::read_matching(bytes, &|n| n.to_ascii_lowercase().ends_with(".part.xml"))
                 .map_err(|k| refusal(&k))?;
@@ -943,7 +948,7 @@ pub fn read_parts(input: &ImportInput, fndefs: &FndefMap, limits: &Limits) -> Re
         for (name, data) in files {
             members.push((name, crate::text(&data).map_err(|k| refusal(&k))?.into_owned()));
         }
-        (members, if seven { "edz-7z" } else { "edz-zip" })
+        (members, if zip { "edz-zip" } else { "edz-7z" })
     } else {
         let text = crate::text(bytes).map_err(|k| refusal(&k))?;
         let text = text.trim_start_matches('\u{feff}').to_owned();

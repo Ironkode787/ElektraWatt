@@ -170,8 +170,9 @@ pub(super) fn run_import_eplan_report(a: &ImportEplanReportArgs) -> i32 {
     }
 }
 
-/// `ew import edz` (`edz`: the terms notice is shown first, EW-IMP-201) and `ew import parts-xml`.
-pub(super) fn run_import_eplan_parts(a: &ImportEplanPartsArgs, edz: bool) -> i32 {
+/// `ew import edz` and `ew import parts-xml`: a file that is an EDZ, whatever the subcommand and the file's name,
+/// shows the terms notice first (EW-IMP-201).
+pub(super) fn run_import_eplan_parts(a: &ImportEplanPartsArgs) -> i32 {
     let fndefs = match &a.fndef_map {
         Some(path) => match eplan::fndef_map_file(path) {
             Ok(m) => m,
@@ -189,6 +190,7 @@ pub(super) fn run_import_eplan_parts(a: &ImportEplanPartsArgs, edz: bool) -> i32
             return 2;
         }
     };
+    let edz = eplan::is_edz(input.bytes());
     if edz {
         eprintln!("{}", eplan::TERMS_NOTICE);
     }

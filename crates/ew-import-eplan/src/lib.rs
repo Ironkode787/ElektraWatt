@@ -13,7 +13,7 @@ mod report;
 mod seven;
 pub mod slk;
 
-pub use parts::{FndefMap, IMPORTER_ID, IMPORTER_VERSION, PartsRead, read_parts};
+pub use parts::{FndefMap, IMPORTER_ID, IMPORTER_VERSION, PartsRead, is_edz, read_parts};
 pub use report::{
     REPORT_IMPORTER_ID, REPORT_IMPORTER_VERSION, ReportMap, ReportTable, ReportTarget, read_report,
     report_presets,

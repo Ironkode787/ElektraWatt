@@ -91,7 +91,7 @@ impl ShellModel {
         if kind == EplanKind::Report {
             return self.eplan_report(p, &file, &name, &input);
         }
-        self.eplan_parts(p, &file, &name, kind, &input)
+        self.eplan_parts(p, &file, &name, &input)
     }
 
     fn eplan_parts(
@@ -99,7 +99,6 @@ impl ShellModel {
         p: &Map<String, Value>,
         file: &std::path::Path,
         name: &str,
-        kind: EplanKind,
         input: &ew_api::catalog::ImportInput,
     ) -> Outcome {
         if self.project.is_none() {
@@ -109,8 +108,9 @@ impl ShellModel {
             Err(e) => return e,
             Ok(h) => h.map(str::to_owned),
         };
-        let edz = kind == EplanKind::Edz;
-        if how.is_none() && edz && !self.import.edz_terms && !flag(p, "terms") {
+        // The notice belongs to an EDZ whatever the file is called and whatever step the call is for.
+        let edz = eplan::is_edz(input.bytes());
+        if edz && !self.import.edz_terms && !flag(p, "terms") {
             return self.open_dialog(Dialog::ImportEplan {
                 path: file.to_string_lossy().into_owned(),
                 name: name.to_owned(),

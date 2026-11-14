@@ -85,6 +85,10 @@ fn a_parts_xml_goes_into_a_library_and_a_missing_target_is_a_usage_error() {
     assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
     assert!(!stderr(&out).contains("Data Portal"), "{}", stderr(&out));
     assert!(stdout(&out).contains("5 new"), "{}", stdout(&out));
+    // The notice belongs to the file, not to the subcommand: an EDZ given to `parts-xml` shows it too.
+    let out = t.ew(&args([&"import", &"parts-xml", &EDZ_7Z, &"--library", &"mine"]));
+    assert_eq!(out.status.code(), Some(0), "{}", stderr(&out));
+    assert!(stderr(&out).contains("Data Portal"), "{}", stderr(&out));
     let out = t.ew(&args([&"import", &"parts-xml", &xml]));
     assert_eq!(out.status.code(), Some(2));
     assert!(stderr(&out).contains("--library"), "{}", stderr(&out));
