@@ -691,15 +691,16 @@ fn readdress_notices(
     Ok(out)
 }
 
-/// `plc.freeze` (`FreezeAddresses`, doc 10 §3.9 `plc.freeze{cfg}`, FR-PLC-015): freezes every derived channel address
+/// `plc.freeze` (`FreezeAddresses`, doc 10 §3.9 `plc.freeze{cfg}`, FR-PLC-015): freezes the derived channel addresses
 /// of a configuration project.
 ///
-/// Every channel of the configuration project's modules whose address is `auto` and derives to an address takes that
-/// address as a `manual` one, so that a later change of a start, a slot or a part map moves no printed address and
-/// EW-PLC-012 (`manual`) reports every channel whose map now differs. A `tbd`, `excluded`, `manual` or unresolved
-/// address stays. Every `auto` module start that A1 places takes its place as a `manual` start too, so that a module
-/// inserted before a frozen one is placed around it (A1 reserves manual starts first) instead of moving it from under
-/// its frozen channels. **Bulk** (the preview lists every channel); undoable as one step. Refused in words: the
+/// Every used or reserved channel (effective state, doc 10 §3.2) of the configuration project's modules whose address
+/// is `auto` and derives to an address takes that address as a `manual` one, so that a later change of a start, a slot
+/// or a part map moves no printed address and EW-PLC-012 (`manual`) reports every channel whose map now differs. A
+/// spare or deactivated channel keeps its `auto` address, which cannot move while its module's start is pinned; a
+/// `tbd`, `excluded`, `manual` or unresolved address stays. Every `auto` module start that A1 places takes its place as
+/// a `manual` start too, so that a module inserted before a frozen one is placed around it (A1 reserves manual starts
+/// first) instead of moving it from under its frozen channels. **Bulk** (the preview lists every channel); undoable as one step. Refused in words: the
 /// configuration project's profile is tag-based (FR-PLC-009), whose addresses follow the station and the slot and
 /// never move. The configuration project exists ([`CmdError::NotFound`]). Outcome: the configuration project, with a
 /// notice that counts the frozen addresses.
@@ -760,10 +761,20 @@ impl Command for FreezeAddresses {
                     }
                 }
             }
+            // A spare or deactivated channel keeps its derived address: the pinned start holds it in place, and a
+            // manual address on it would be EW-PLC-009's "manual address but no connection".
+            let states = q.get::<ew_derive::ChannelStates>(m.module);
             for e in q.get::<ew_derive::ChannelAddresses>(m.module).iter() {
                 let ew_derive::ChannelAddr::At { address, .. } = &e.address else {
                     continue;
                 };
+                let kept = states.iter().any(|(c, s)| {
+                    *c == e.channel
+                        && !matches!(s, ew_derive::EffectiveState::Used | ew_derive::EffectiveState::Reserved)
+                });
+                if kept {
+                    continue;
+                }
                 if tx
                     .get::<Channel>(e.channel)
                     .is_some_and(|c| c.address == AddrSpec::Auto)

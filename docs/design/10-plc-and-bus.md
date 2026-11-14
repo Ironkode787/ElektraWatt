@@ -974,7 +974,7 @@ the device's struct data type. EW-IOL-001 and -002 check class, mode, window and
 | `plc.set_start{modules, dir, spec}` | sets Auto, Manual, Excluded or Tbd starts | Interactive | MVP |
 | `plc.readdress{scope}` | recomputes starts for a selection or a configuration project; previews old → new address, folios and symbol changes; one transaction (FR-PLC-014) | Bulk (preview) | MVP Should |
 | `plc.convert_manual_to_auto{scope}` | drops manual values that equal the derived value; lists the others | Bulk | MVP Should |
-| `plc.freeze{cfg}` | sets every derived channel address to `Manual(current)` (FR-PLC-015) | Bulk | 1.0 |
+| `plc.freeze{cfg}` | sets the derived address of every used or reserved channel to `Manual(current)` and pins every module start (FR-PLC-015) | Bulk | 1.0 |
 | `plc.unlock{scope, group}` | lifts PLC ownership protection for a field group | Interactive | 1.0 |
 | `plc.bind_channel{channel, endpoint}` | binds or rebinds (§3.3) | Interactive | MVP |
 | `plc.set_module_part{module, parts?}` | changes a module's part uses and removes the channels the new part no longer has, with their bindings; the preview is FR-PLC-053's confirmation (§3.3) | Bulk (preview) | MVP |
@@ -997,8 +997,10 @@ mode it is reported. Inserting the same module after an import moves nothing: th
 `plc.convert_manual_to_auto {config_project | modules}` are built, all Bulk. They start from the transaction's base
 snapshot, whose derived addresses a command may read (as `device.renumber` does); ADR-0008 amendment 4 forbids reading
 the memoised queries of the pending state, so the re-address preview computes its old → new notices on a model the
-transaction's ops give, through a fresh `Q`. `plc.freeze` writes every derived channel address as `manual`, and every
-`auto` module start A1 places as a `manual` start, so that a module inserted before a frozen one is placed around it
+transaction's ops give, through a fresh `Q`. `plc.freeze` writes the derived address of every used or reserved channel
+(its effective state, §3.2) as `manual`, and every `auto` module start A1 places as a `manual` start; a spare or
+deactivated channel keeps its `auto` address, which cannot move while its module's start is pinned, so a frozen
+project gives no spare channel EW-PLC-009's "manual address but no connection". The pinned starts are written so that a module inserted before a frozen one is placed around it
 (A1 reserves manual starts first) instead of moving it from under its frozen channels; it is refused in words under a
 tag-based profile. A frozen channel that a later start move leaves outside its module is EW-PLC-002's finding alone,
 not also EW-PLC-012's `manual` one. `plc.readdress` sets the scope's manual starts and manual channel addresses to

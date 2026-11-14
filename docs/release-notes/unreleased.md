@@ -655,3 +655,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: `ew_api::dxf::convert_dxf`, `Session::dxf_page_batch_converted` and `ew_import_dxf::page_batch`: a DXF page's drawing
   converted off the window's thread; File ▸ Import… converts a drawing that becomes a page in its job (FT-1763)
 - behaviour-change: the rack and slot editor builds its view once per revision, not twice a frame (FT-1763)
+- behaviour-change: `plc.freeze` makes the address of every used or reserved channel manual and pins every module
+  start; a spare or deactivated channel keeps its automatic address, so a frozen project gives no spare channel
+  EW-PLC-009 (persona round)

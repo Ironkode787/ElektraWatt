@@ -34,8 +34,8 @@ cards, bind channels and check what each channel drives.
 7. Right-click a module and choose **Re-address…**, or a configuration project for all its modules: the Preview tab
    lists each channel whose address moves, old and new, and **Apply** makes the change in one step.
    **Make manual addresses automatic…** drops the manual addresses that equal the derived ones, and **Freeze
-   addresses…** on a configuration project keeps every derived address as a manual one, so that a later change of a
-   card moves none.
+   addresses…** on a configuration project keeps the address of every used or reserved channel as a manual one and
+   pins each card's start, so that a later change of a card moves none; a spare channel keeps its automatic address.
 
 ## Rack and slots
 

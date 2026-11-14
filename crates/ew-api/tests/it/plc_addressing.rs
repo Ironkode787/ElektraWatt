@@ -431,9 +431,27 @@ fn findings(s: &Session, rule: &str) -> Vec<ew_api::checks::Finding> {
         .collect()
 }
 
-/// FR-PLC-015: `plc.freeze` makes every derived channel address manual, so a later start change moves no printed
-/// address; each channel of the moved module then lies outside its module's range, which EW-PLC-002 reports once per
-/// channel and EW-PLC-012 leaves to it (one defect, one finding); undo restores `auto`.
+/// The printed addresses of a module's channels whose address is `manual`, by channel number.
+fn manual_texts(q: &Q, module: Id<Device>) -> Vec<(u16, String)> {
+    q.get::<ChannelAddresses>(module)
+        .iter()
+        .filter(|e| {
+            q.table::<Channel>()
+                .get(e.channel)
+                .is_some_and(|c| matches!(c.address, ew_schema::AddrSpec::Manual(_)))
+        })
+        .map(|e| match &e.address {
+            ChannelAddr::At { text, .. } => (e.number, text.clone()),
+            other => (e.number, format!("{other:?}")),
+        })
+        .collect()
+}
+
+/// FR-PLC-015, doc 10 §3.9: `plc.freeze` makes the derived address of every used or reserved channel manual and pins
+/// every module start, so nothing prints differently and no spare channel gets EW-PLC-009's "manual address but no
+/// connection". A later start change moves no frozen address; each frozen channel of the moved module then lies outside
+/// its module's range, which EW-PLC-002 reports once per channel and EW-PLC-012 leaves to it (one defect, one finding),
+/// while its spare channels follow the start. Undo restores `auto`.
 #[test]
 fn freezing_keeps_every_printed_address() {
     let batch = golden_common::batch();
@@ -444,17 +462,30 @@ fn freezing_keeps_every_printed_address() {
     assert_eq!(receipt.outcome.notices.len(), 1, "{:?}", receipt.outcome.notices);
     assert_eq!(all_texts(&s.query()), before);
     assert_eq!(manual_deviations(&s), 0);
-    let u5 = device(&s, "-201U5");
+    let quiet = s.check(&PRE_DELIVERY, CheckMode::Online).findings;
+    assert!(
+        !quiet.iter().any(|f| f.rule == "EW-PLC-009"),
+        "a spare channel stays quiet"
+    );
+    // An output module with used and spare channels.
+    let (module, frozen) = {
+        let q = s.query();
+        q.get::<ModuleOrder>(c)
+            .iter()
+            .map(|m| (m.module, manual_texts(&q, m.module)))
+            .find(|(m, f)| !f.is_empty() && f.len() < texts(&q, *m).len() && f[0].1.starts_with('Q'))
+            .expect("a module with used and spare channels")
+    };
     run(
         &mut s,
         "plc.set_start",
-        json!({"modules": [u5.to_string()], "dir": "output", "spec": "Q10"}),
+        json!({"modules": [module.to_string()], "dir": "output", "spec": "Q10"}),
     );
-    assert_eq!(all_texts(&s.query()), before, "a frozen address does not move");
+    assert_eq!(manual_texts(&s.query(), module), frozen, "a frozen address does not move");
     assert_eq!(
         findings(&s, "EW-PLC-002").len(),
-        8,
-        "the eight channels of -201U5 lie outside Q10"
+        frozen.len(),
+        "the frozen channels of the module lie outside Q10"
     );
     assert_eq!(manual_deviations(&s), 0, "EW-PLC-002's, not also EW-PLC-012's");
     s.undo(&Origin::Gui).expect("undo the start");
