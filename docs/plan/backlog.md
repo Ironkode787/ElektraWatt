@@ -21,9 +21,6 @@ answers is deleted with a line in its report.
 - FT-1763 `ew-viewmodel, ew-ui, ew-api`: Work that still runs on the window's thread: a DXF's parse at Apply, an EDZ's and a parts XML's reading (twice), a PLC import's read and merge, a report spreadsheet becoming a project, and the rack view with its slot check twice a frame while the editor is open. The drawing import's read, probe and DWG conversion are a job since M3's review.
 - FT-1764 `ew-ui`: Two tests the window's code review asked for: the rack and slot editor's refusal of a slot (EW-PLC-011), and what `a_smaller_window_stays_usable` really proves (its label query matches any node; it checks the command bar and the page's size only).
 
-### WP-S2.13: automation workspaces
-
-
 ## Later
 
 New development and polish for M3 and after, not scheduled: [backlog-later.md](backlog-later.md).
