@@ -194,8 +194,12 @@ Accepted on 2026-10-18. The decision text above is unchanged; these entries refi
 10. **EW-INV-025, drives targets** (2026-11-13, WP-S1.25; doc 11 §4.1 FI-06). A `drives` link targets neither the
    device it comes from nor an ancestor of that device: a valve never drives its module or valve terminal. Structural,
    judged on the edit path only (as EW-INV-023): a 0.1 build before WP-S1.25 did not enforce it, so a loaded file is
-   not judged; an edit judges the links it adds or changes and, when it touches a device, every `drives` link (a move
-   changes the ancestors). `device.link` refuses such a link first, in words.
+   not judged; an edit judges the links it adds or changes and the links whose device or an ancestor of it it touches
+   (a move changes the ancestors of the moved device's descendants), and skips a link that already broke the rule
+   before the edit (a loaded file's, as EW-INV-023 skips a stale entry), so such a link blocks no other edit.
+   `device.link` refuses such a link first, in words. The same edit-only judgement holds for every load-tolerant
+   link's missing target (EW-INV-001): a target a record named before the edit is a load finding, a target the edit
+   adds must exist, so no writer (paste, macro, import, script) commits a new dangling ID.
 
 ## Consequences
 
