@@ -14,7 +14,7 @@ const fn l(code: &'static str) -> LetterCode {
     LetterCode::from_static(code)
 }
 
-static ROWS_EN81346_2_2009: [Mapping; 37] = [
+static ROWS_EN81346_2_2009: [Mapping; 50] = [
     Mapping::from_static("ProtectionOvercurrent", None, l("F"), &[], false, "Protects a circuit against overcurrent: miniature circuit breakers, fuses, electronic circuit breakers"),
     Mapping::from_static("ProtectionResidualCurrent", None, l("F"), &[], false, "Disconnects a circuit on residual current to earth: RCDs and RCBOs"),
     Mapping::from_static("ProtectionOvervoltage", None, l("F"), &[], false, "Limits transient overvoltages: surge protective devices"),
@@ -42,6 +42,19 @@ static ROWS_EN81346_2_2009: [Mapping; 37] = [
     Mapping::from_static("CylinderFluid", None, l("M"), &[], false, "Moves a part by fluid power: pneumatic and hydraulic cylinders"),
     Mapping::from_static("ValveDirectional", None, l("Q"), &[l("QM")], false, "Opens, closes or redirects a fluid flow on command: directional and shut-off valves"),
     Mapping::from_static("ValvePilot", None, l("Q"), &[l("K")], false, "Controls another valve with a small fluid signal: pilot valves"),
+    Mapping::from_static("AirPreparation", None, l("V"), &[], false, "Treats compressed air before use: filters, lubricators and service units"),
+    Mapping::from_static("AirPreparation", Some("Source"), l("X"), &[l("G")], false, "Brings compressed air into the drawing: supply points"),
+    Mapping::from_static("AirPreparation", Some("Regulator"), l("R"), &[l("Q")], false, "Holds a pressure steady: pressure regulators"),
+    Mapping::from_static("AirPreparation", Some("Gauge"), l("P"), &[], false, "Shows a pressure: pressure gauges"),
+    Mapping::from_static("AirPreparation", Some("OnOffValve"), l("Q"), &[], false, "Shuts off the compressed air by hand: on/off valves"),
+    Mapping::from_static("FlowControl", None, l("R"), &[l("Q")], false, "Restricts a fluid flow: throttles, check valves, flow control and quick-exhaust valves"),
+    Mapping::from_static("FlowLogic", None, l("K"), &[l("Q")], false, "Combines fluid signals: shuttle and two-pressure valves"),
+    Mapping::from_static("FluidSensor", None, l("B"), &[], false, "Senses a fluid pressure and signals it: pressure switches"),
+    Mapping::from_static("Vacuum", None, l("G"), &[], false, "Makes a vacuum from compressed air: ejectors"),
+    Mapping::from_static("Vacuum", Some("SuctionCup"), l("U"), &[], false, "Holds a part by vacuum: suction cups"),
+    Mapping::from_static("Vacuum", Some("Switch"), l("B"), &[], false, "Senses a vacuum and signals it: vacuum switches"),
+    Mapping::from_static("FluidFitting", None, l("X"), &[], false, "Connects or closes fluid lines: bulkheads, couplings, plugs and silencers"),
+    Mapping::from_static("ValveTerminal", None, l("U"), &[l("K")], false, "Feeds and exhausts the valves of a valve terminal: supply plates"),
     Mapping::from_static("Terminal", None, l("X"), &[], false, "Connects conductors at a fixed point: terminals and terminal strips"),
     Mapping::from_static("TerminalEarth", None, l("X"), &[], false, "Connects protective-earth and functional-earth conductors: PE and FE terminals"),
     Mapping::from_static("ConnectorSignal", None, l("X"), &[], false, "Connects signal and bus lines detachably: plug connectors, sockets and bus connectors"),
@@ -54,7 +67,7 @@ static ROWS_EN81346_2_2009: [Mapping; 37] = [
     Mapping::from_static("Assembly", None, l("A"), &[], false, "Combines several main functions in one unit that no single category describes"),
 ];
 
-static ROWS_IEC81346_2_2019: [Mapping; 36] = [
+static ROWS_IEC81346_2_2019: [Mapping; 49] = [
     Mapping::from_static("ProtectionOvercurrent", None, l("FC"), &[], false, "Protects a circuit against overcurrent: miniature circuit breakers, fuses, electronic circuit breakers"),
     Mapping::from_static("ProtectionResidualCurrent", None, l("FB"), &[], false, "Disconnects a circuit on residual current to earth: RCDs and RCBOs"),
     Mapping::from_static("ProtectionOvervoltage", None, l("FA"), &[], false, "Limits transient overvoltages: surge protective devices"),
@@ -82,6 +95,19 @@ static ROWS_IEC81346_2_2019: [Mapping; 36] = [
     Mapping::from_static("CylinderFluid", None, l("MM"), &[], false, "Moves a part by fluid power: pneumatic and hydraulic cylinders"),
     Mapping::from_static("ValveDirectional", None, l("QM"), &[], false, "Opens, closes or redirects a fluid flow on command: directional and shut-off valves"),
     Mapping::from_static("ValvePilot", None, l("KH"), &[], false, "Controls another valve with a small fluid signal: pilot valves"),
+    Mapping::from_static("AirPreparation", None, l("H"), &[], false, "Treats compressed air before use: filters, lubricators and service units"),
+    Mapping::from_static("AirPreparation", Some("Source"), l("X"), &[], false, "Brings compressed air into the drawing: supply points"),
+    Mapping::from_static("AirPreparation", Some("Regulator"), l("QN"), &[], false, "Holds a pressure steady: pressure regulators"),
+    Mapping::from_static("AirPreparation", Some("Gauge"), l("PG"), &[], false, "Shows a pressure: pressure gauges"),
+    Mapping::from_static("AirPreparation", Some("OnOffValve"), l("QM"), &[], false, "Shuts off the compressed air by hand: on/off valves"),
+    Mapping::from_static("FlowControl", None, l("R"), &[], false, "Restricts a fluid flow: throttles, check valves, flow control and quick-exhaust valves"),
+    Mapping::from_static("FlowLogic", None, l("KH"), &[], false, "Combines fluid signals: shuttle and two-pressure valves"),
+    Mapping::from_static("FluidSensor", None, l("BP"), &[], false, "Senses a fluid pressure and signals it: pressure switches"),
+    Mapping::from_static("Vacuum", None, l("GQ"), &[], false, "Makes a vacuum from compressed air: ejectors"),
+    Mapping::from_static("Vacuum", Some("SuctionCup"), l("U"), &[], false, "Holds a part by vacuum: suction cups"),
+    Mapping::from_static("Vacuum", Some("Switch"), l("BP"), &[], false, "Senses a vacuum and signals it: vacuum switches"),
+    Mapping::from_static("FluidFitting", None, l("X"), &[], false, "Connects or closes fluid lines: bulkheads, couplings, plugs and silencers"),
+    Mapping::from_static("ValveTerminal", None, l("UA"), &[], false, "Feeds and exhausts the valves of a valve terminal: supply plates"),
     Mapping::from_static("Terminal", None, l("XD"), &[], false, "Connects conductors at a fixed point: terminals and terminal strips"),
     Mapping::from_static("TerminalEarth", None, l("XE"), &[], false, "Connects protective-earth and functional-earth conductors: PE and FE terminals"),
     Mapping::from_static("ConnectorSignal", None, l("XG"), &[], false, "Connects signal and bus lines detachably: plug connectors, sockets and bus connectors"),
@@ -93,7 +119,7 @@ static ROWS_IEC81346_2_2019: [Mapping; 36] = [
     Mapping::from_static("Resistor", None, l("RA"), &[], false, "Limits a current or dissipates energy: resistors and braking resistors"),
 ];
 
-static ROWS_IEC60750_LEGACY: [Mapping; 35] = [
+static ROWS_IEC60750_LEGACY: [Mapping; 48] = [
     Mapping::from_static("ProtectionOvercurrent", None, l("F"), &[], false, "Protects a circuit against overcurrent: miniature circuit breakers, fuses, electronic circuit breakers"),
     Mapping::from_static("ProtectionResidualCurrent", None, l("F"), &[], false, "Disconnects a circuit on residual current to earth: RCDs and RCBOs"),
     Mapping::from_static("ProtectionOvervoltage", None, l("F"), &[], false, "Limits transient overvoltages: surge protective devices"),
@@ -121,6 +147,19 @@ static ROWS_IEC60750_LEGACY: [Mapping; 35] = [
     Mapping::from_static("CylinderFluid", None, l("M"), &[], false, "Moves a part by fluid power: pneumatic and hydraulic cylinders"),
     Mapping::from_static("ValveDirectional", None, l("Y"), &[], false, "Opens, closes or redirects a fluid flow on command: directional and shut-off valves"),
     Mapping::from_static("ValvePilot", None, l("Y"), &[], false, "Controls another valve with a small fluid signal: pilot valves"),
+    Mapping::from_static("AirPreparation", None, l("V"), &[], false, "Treats compressed air before use: filters, lubricators and service units"),
+    Mapping::from_static("AirPreparation", Some("Source"), l("X"), &[], false, "Brings compressed air into the drawing: supply points"),
+    Mapping::from_static("AirPreparation", Some("Regulator"), l("Y"), &[], false, "Holds a pressure steady: pressure regulators"),
+    Mapping::from_static("AirPreparation", Some("Gauge"), l("P"), &[], false, "Shows a pressure: pressure gauges"),
+    Mapping::from_static("AirPreparation", Some("OnOffValve"), l("Y"), &[], false, "Shuts off the compressed air by hand: on/off valves"),
+    Mapping::from_static("FlowControl", None, l("Y"), &[], false, "Restricts a fluid flow: throttles, check valves, flow control and quick-exhaust valves"),
+    Mapping::from_static("FlowLogic", None, l("Y"), &[], false, "Combines fluid signals: shuttle and two-pressure valves"),
+    Mapping::from_static("FluidSensor", None, l("B"), &[], false, "Senses a fluid pressure and signals it: pressure switches"),
+    Mapping::from_static("Vacuum", None, l("G"), &[], false, "Makes a vacuum from compressed air: ejectors"),
+    Mapping::from_static("Vacuum", Some("SuctionCup"), l("U"), &[], false, "Holds a part by vacuum: suction cups"),
+    Mapping::from_static("Vacuum", Some("Switch"), l("B"), &[], false, "Senses a vacuum and signals it: vacuum switches"),
+    Mapping::from_static("FluidFitting", None, l("X"), &[], false, "Connects or closes fluid lines: bulkheads, couplings, plugs and silencers"),
+    Mapping::from_static("ValveTerminal", None, l("A"), &[], false, "Feeds and exhausts the valves of a valve terminal: supply plates"),
     Mapping::from_static("Terminal", None, l("X"), &[], false, "Connects conductors at a fixed point: terminals and terminal strips"),
     Mapping::from_static("TerminalEarth", None, l("X"), &[], false, "Connects protective-earth and functional-earth conductors: PE and FE terminals"),
     Mapping::from_static("ConnectorSignal", None, l("X"), &[], false, "Connects signal and bus lines detachably: plug connectors, sockets and bus connectors"),

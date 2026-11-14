@@ -687,3 +687,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   N6 `bus_nets`: the net one names, else a new net named for the bus with the master port as its master); a new
   station whose ports lead no bus is a head station; a port symbol takes the port of its own bus from the part
   (persona round)
+- behaviour-change: every shipped fluid symbol can be placed: the identifier sets map the categories of the air
+  supply, the air preparation, flow control and flow logic components, the fluid fittings, the pressure and vacuum
+  switches, the ejector, the suction cup and the supply plate to letter codes (the air supply was greyed "Give a letter
+  code") (M3 persona round)

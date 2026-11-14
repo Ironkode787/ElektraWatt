@@ -270,6 +270,120 @@ description = "Controls another valve with a small fluid signal: pilot valves"
 "IEC81346-2:2019" = { letter = "KH", verified = false }
 "IEC60750-legacy" = { letter = "Y", verified = false }
 
+# The other fluid components of the pneumatic library (FT persona round: the air supply could not be placed for want
+# of a letter code). The legacy set has no fluid letters of its own: a valve-like component takes its valves' Y, any
+# other the 2009 letter.
+
+[[category]]
+key = "AirPreparation"
+description = "Treats compressed air before use: filters, lubricators and service units"
+[category.letters]
+"EN81346-2:2009" = { letter = "V", verified = false }
+"IEC81346-2:2019" = { letter = "H", verified = false }
+"IEC60750-legacy" = { letter = "V", verified = false }
+
+[[category]]
+key = "AirPreparation"
+group = "Source"
+description = "Brings compressed air into the drawing: supply points"
+[category.letters]
+"EN81346-2:2009" = { letter = "X", alternatives = ["G"], verified = false }
+"IEC81346-2:2019" = { letter = "X", verified = false }
+"IEC60750-legacy" = { letter = "X", verified = false }
+
+[[category]]
+key = "AirPreparation"
+group = "Regulator"
+description = "Holds a pressure steady: pressure regulators"
+[category.letters]
+"EN81346-2:2009" = { letter = "R", alternatives = ["Q"], verified = false }
+"IEC81346-2:2019" = { letter = "QN", verified = false }
+"IEC60750-legacy" = { letter = "Y", verified = false }
+
+[[category]]
+key = "AirPreparation"
+group = "Gauge"
+description = "Shows a pressure: pressure gauges"
+[category.letters]
+"EN81346-2:2009" = { letter = "P", verified = false }
+"IEC81346-2:2019" = { letter = "PG", verified = false }
+"IEC60750-legacy" = { letter = "P", verified = false }
+
+[[category]]
+key = "AirPreparation"
+group = "OnOffValve"
+description = "Shuts off the compressed air by hand: on/off valves"
+[category.letters]
+"EN81346-2:2009" = { letter = "Q", verified = false }
+"IEC81346-2:2019" = { letter = "QM", verified = false }
+"IEC60750-legacy" = { letter = "Y", verified = false }
+
+[[category]]
+key = "FlowControl"
+description = "Restricts a fluid flow: throttles, check valves, flow control and quick-exhaust valves"
+[category.letters]
+"EN81346-2:2009" = { letter = "R", alternatives = ["Q"], verified = false }
+"IEC81346-2:2019" = { letter = "R", verified = false }
+"IEC60750-legacy" = { letter = "Y", verified = false }
+
+[[category]]
+key = "FlowLogic"
+description = "Combines fluid signals: shuttle and two-pressure valves"
+[category.letters]
+"EN81346-2:2009" = { letter = "K", alternatives = ["Q"], verified = false }
+"IEC81346-2:2019" = { letter = "KH", verified = false }
+"IEC60750-legacy" = { letter = "Y", verified = false }
+
+[[category]]
+key = "FluidSensor"
+description = "Senses a fluid pressure and signals it: pressure switches"
+[category.letters]
+"EN81346-2:2009" = { letter = "B", verified = false }
+"IEC81346-2:2019" = { letter = "BP", verified = false }
+"IEC60750-legacy" = { letter = "B", verified = false }
+
+[[category]]
+key = "Vacuum"
+description = "Makes a vacuum from compressed air: ejectors"
+[category.letters]
+"EN81346-2:2009" = { letter = "G", verified = false }
+"IEC81346-2:2019" = { letter = "GQ", verified = false }
+"IEC60750-legacy" = { letter = "G", verified = false }
+
+[[category]]
+key = "Vacuum"
+group = "SuctionCup"
+description = "Holds a part by vacuum: suction cups"
+[category.letters]
+"EN81346-2:2009" = { letter = "U", verified = false }
+"IEC81346-2:2019" = { letter = "U", verified = false }
+"IEC60750-legacy" = { letter = "U", verified = false }
+
+[[category]]
+key = "Vacuum"
+group = "Switch"
+description = "Senses a vacuum and signals it: vacuum switches"
+[category.letters]
+"EN81346-2:2009" = { letter = "B", verified = false }
+"IEC81346-2:2019" = { letter = "BP", verified = false }
+"IEC60750-legacy" = { letter = "B", verified = false }
+
+[[category]]
+key = "FluidFitting"
+description = "Connects or closes fluid lines: bulkheads, couplings, plugs and silencers"
+[category.letters]
+"EN81346-2:2009" = { letter = "X", verified = false }
+"IEC81346-2:2019" = { letter = "X", verified = false }
+"IEC60750-legacy" = { letter = "X", verified = false }
+
+[[category]]
+key = "ValveTerminal"
+description = "Feeds and exhausts the valves of a valve terminal: supply plates"
+[category.letters]
+"EN81346-2:2009" = { letter = "U", alternatives = ["K"], verified = false }
+"IEC81346-2:2019" = { letter = "UA", verified = false }
+"IEC60750-legacy" = { letter = "A", verified = false }
+
 # --- Connecting and guiding ---------------------------------------------------------------------------------
 
 [[category]]
