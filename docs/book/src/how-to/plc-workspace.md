@@ -52,5 +52,12 @@ cards, bind channels and check what each channel drives.
    `tbd`, `duplicate`, `safety`, `config:<name>` and `bus:<net>` (`bus:profibus-dp`). A click on a column's header
    sorts by it, a second click reverses the order.
 
+## Exchange with the PLC software
+
+11. Choose **Output ▸ Export to PLC software…**, pick the format and choose **Create**, then the file. Import the file in
+    TIA Portal or CODESYS.
+12. Choose **Output ▸ Import from PLC software…** for the file the PLC software wrote back. Look through its tabs, decide
+    each conflict, and choose **Apply**.
+
 The panels are described in the [panel reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog in the
-[dialog reference](../reference/window/dialogs.md): Rack and slots.
+[dialog reference](../reference/window/dialogs.md): Rack and slots and PLC import.

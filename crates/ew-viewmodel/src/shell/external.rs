@@ -787,7 +787,7 @@ fn ew_beside_program() -> Option<PathBuf> {
 }
 
 /// Writes `bytes` to `path` all or nothing: a temporary file beside it, synced, renamed over it; removed on a failure.
-fn write_replacing(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+pub(super) fn write_replacing(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
     use std::io::Write as _;
     let mut temp = path.as_os_str().to_owned();
     temp.push(".tmp-ew");

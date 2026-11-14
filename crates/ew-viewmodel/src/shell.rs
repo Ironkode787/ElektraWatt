@@ -35,7 +35,7 @@ use crate::wizard::Wizard;
 
 mod canvas_actions;
 // The window's entries of the PLC, bus and fluid commands (WP-S2.13).
-mod automation;
+pub mod automation;
 mod creation;
 // The closed sets of a form field's choices.
 pub mod choices;
@@ -445,6 +445,10 @@ pub enum Dialog {
         /// The last refusal of a change, under the slots; `None` after a change went through.
         error: Option<String>,
     },
+    /// The PLC import's preview (doc 10 §4.4, §6): the changes, conflicts, removed and parked objects of an exchange
+    /// file against a configuration project, by tab, with the choices of its conflicts and parked objects; Apply or
+    /// Cancel.
+    PlcImport(Box<crate::shell::automation::PlcImportCard>),
     /// File ▸ Open .ewz…: Extract and open (into a new folder beside it), Open read-only, or Cancel.
     OpenEwz {
         /// The `.ewz` (never printed).
@@ -506,6 +510,10 @@ pub enum Prompt {
     SaveSymbol,
     /// A symbol library folder (the symbol editor's Library folder).
     LibraryFolder,
+    /// A PLC exchange file name: AML, a TIA tag workbook or PLCopen XML (PLC exchange…'s export).
+    SavePlcExchange,
+    /// An existing PLC exchange file, AML or a TIA tag workbook (PLC exchange…'s import).
+    OpenPlcExchange,
 }
 
 /// A request to the window to open a page of the user guide in the system browser (F1).

@@ -214,6 +214,27 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ConfirmGitSetup { folder } => git_setup_spec(folder),
         // The rack and slot editor: its slots are the dialog's own content; Close.
         Dialog::Rack { station, .. } => rack_spec(model, *station),
+        // The PLC import's preview: its tabs are the dialog's own content; Apply (Enter) or Cancel.
+        Dialog::PlcImport(card) => DialogSpec {
+            secondary: vec![cancel()],
+            form: true,
+            ..small(
+                strings::format(key!("plc-import-title"), &[&card.file]),
+                vec![strings::format(
+                    key!("plc-import-summary"),
+                    &[
+                        &card.changes.len().to_string(),
+                        &card.conflicts.len().to_string(),
+                        &card.removed.len().to_string(),
+                        &card.parking.len().to_string(),
+                    ],
+                )],
+                DialogButton::new(
+                    key!("dialog-apply"),
+                    DialogAnswer::Action("plc.import_apply", json!({})),
+                ),
+            )
+        },
         // Print… the Primary (Enter), Open in PDF viewer and Cancel; both print
         // buttons disabled, with the reason, until the set is built.
         Dialog::Print(_) => print_spec(model),

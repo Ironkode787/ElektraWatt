@@ -286,6 +286,7 @@ enum DialogKind {
     ReimportMatch,
     Reimport,
     Rack,
+    PlcImport,
 }
 
 impl DialogKind {
@@ -316,7 +317,8 @@ impl DialogKind {
             Self::ImportQet => Self::ReimportMatch,
             Self::ReimportMatch => Self::Reimport,
             Self::Reimport => Self::Rack,
-            Self::Rack => return None,
+            Self::Rack => Self::PlcImport,
+            Self::PlcImport => return None,
         })
     }
 
@@ -348,6 +350,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::ImportDrawing { .. } => DialogKind::ImportDrawing,
         Dialog::ImportEplan { .. } => DialogKind::ImportEplan,
         Dialog::Rack { .. } => DialogKind::Rack,
+        Dialog::PlcImport(_) => DialogKind::PlcImport,
         Dialog::ConfirmGitSetup { .. } => DialogKind::ConfirmGitSetup,
         Dialog::ImportQet { .. } => DialogKind::ImportQet,
         Dialog::ReimportMatch { .. } => DialogKind::ReimportMatch,
@@ -403,6 +406,16 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         DialogKind::SaveWorkspace => simple("view.workspace_save", json!({})),
         DialogKind::Form => simple("page.new", json!({})),
         DialogKind::Rack => simple("plc.rack_editor", json!({"station": "tag:-201U1"})),
+        // Golden A's own export, read back.
+        DialogKind::PlcImport => {
+            let file = tmp.0.join("plc.aml");
+            let mut h = simple(
+                "plc.export",
+                json!({"format": "aml-1.4.0", "path": file.to_string_lossy()}),
+            );
+            dispatch(&mut h, "plc.import", json!({"path": file.to_string_lossy()}));
+            h
+        }
         DialogKind::Print => simple("file.print", json!({"range": "current"})),
         DialogKind::ConfirmDiscard => {
             let mut h = simple(

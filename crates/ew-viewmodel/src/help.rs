@@ -142,6 +142,7 @@ pub static ANCHORS: &[Anchor] = &[
     on(DIALOGS, "dialog-import-drawing", "import-a-drawing"),
     on(DIALOGS, "dialog-import-eplan", "import-eplan-data"),
     on(DIALOGS, "dialog-rack", "rack-and-slots"),
+    on(DIALOGS, "dialog-plc-import", "plc-import"),
     on(DIALOGS, "dialog-git-setup", "set-up-merge-driver"),
     on(PANELS, "pane-page-view", "page-view"),
     on(PANELS, "pane-properties", "properties"),
@@ -318,6 +319,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::ImportDrawing { .. } => "dialog-import-drawing",
         Dialog::ImportEplan { .. } => "dialog-import-eplan",
         Dialog::Rack { .. } => "dialog-rack",
+        Dialog::PlcImport(_) => "dialog-plc-import",
         Dialog::ConfirmGitSetup { .. } => "dialog-git-setup",
     }
 }

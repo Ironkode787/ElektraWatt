@@ -80,6 +80,64 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             |s, p| s.act_plc_preview(p),
         ))),
     ),
+    // PLC exchange (doc 10 §4, §6): Export… and Import… in the Output menu, the import preview's own controls.
+    with_params(
+        "format?:text, stations?:text, date?:text, path?:path, replace?:bool",
+        act(
+            "plc.export",
+            Command,
+            Menu::Output,
+            &[],
+            writable,
+            slot(Menu::Output),
+            |s, p| s.act_plc_export(p),
+        ),
+    ),
+    with_params(
+        "path?:path, complete?:bool",
+        act(
+            "plc.import",
+            View,
+            Menu::Output,
+            &[],
+            writable,
+            slot(Menu::Output),
+            |s, p| s.act_plc_import(p),
+        ),
+    ),
+    with_params(
+        "tab:enum(changed|conflicts|removed|parking)",
+        hidden(act(
+            "plc.import_tab",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_plc_import_tab(p),
+        )),
+    ),
+    with_params(
+        "id:text, choice?:enum(ours|theirs|create)",
+        hidden(act(
+            "plc.import_choose",
+            View,
+            Menu::Output,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_plc_import_choose(p),
+        )),
+    ),
+    hidden(act(
+        "plc.import_apply",
+        Command,
+        Menu::Output,
+        &[],
+        writable,
+        None,
+        |s, _| s.act_plc_import_apply(),
+    )),
     // A fluid line's medium (its context menu) and New medium… (doc 11 §7, FR-FLU-008/-009).
     with_params(
         "line:ref, medium:ref",

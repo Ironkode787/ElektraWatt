@@ -2007,6 +2007,30 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
                 lines.push(format!("  label \"{line}\""));
             }
         }
+        // The PLC import's preview: its summary, the tab on show and its rows with their states and choices.
+        Dialog::PlcImport(card) => {
+            for line in &spec.body {
+                lines.push(format!("  label \"{}\"", user(line)));
+            }
+            lines.push(format!("  tab {}", card.tab.word()));
+            for c in card.changes.iter().chain(&card.conflicts) {
+                let choice = card.choices.get(&c.id).map(String::as_str).unwrap_or("default");
+                lines.push(format!(
+                    "  change \"{}\" \"{}\" \"{}\" {} {choice}",
+                    user(&c.text),
+                    user(&c.ours),
+                    user(&c.theirs),
+                    c.state
+                ));
+            }
+            for r in &card.removed {
+                lines.push(format!("  removed \"{}\"", user(r)));
+            }
+            for p in &card.parking {
+                let choice = card.choices.get(&p.id).map(String::as_str).unwrap_or("default");
+                lines.push(format!("  parked \"{}\" {choice}", user(&p.text)));
+            }
+        }
         // The rack and slot editor: its paragraphs, each slot with its module, part and allowed slots, the findings.
         Dialog::Rack { station, error, .. } => {
             for line in &spec.body {

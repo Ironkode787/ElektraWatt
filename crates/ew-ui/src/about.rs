@@ -267,6 +267,7 @@ pub fn show(
         Dialog::Rack { station, error, .. } => {
             crate::automation::rack(ui, shell, *station, error.as_deref(), events);
         }
+        Dialog::PlcImport(card) => crate::automation::plc_import(ui, card, events),
         // The import card lists the kinds of findings under what they ask of the reader: a heading per group, then
         // one row per kind, the first few of each group.
         Dialog::ImportQet { groups, .. } => {

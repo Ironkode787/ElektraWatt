@@ -522,3 +522,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a module's and a configuration project's rows in the PLC navigator offer Re-address…, Make manual
   addresses automatic… and Freeze addresses…, each previewed in the Preview tab with a Changes list of every address
   that moves (WP-S2.13, FR-PLC-014, FR-PLC-015)
+- behaviour-change: Output ▸ Export to PLC software… writes the configuration project as AutomationML, a TIA tag
+  workbook or PLCopen XML from a form of format, stations and date; Import from PLC software… previews an exchange file by
+  tab (changed, conflicts, removed, parking) with the choices of its conflicts and parked objects before Apply
+  (WP-S2.13, FR-PLC-029 … -036)

@@ -381,3 +381,58 @@ fn a_module_is_re_addressed_with_its_old_to_new_preview() {
     assert!(!address.starts_with("Q10"), "{address}");
     h.state_mut().shell_mut().shutdown();
 }
+
+/// The PLC exchange from the Output menu (doc 10 §4, §6): Export… asks the format in its form and the file, writes
+/// Golden A's configuration as AML and says what it holds; Import… of that file previews it by tab, with nothing in
+/// conflict or parked, and Apply records the import (the merge's cases are WP-S3.16's tests).
+#[test]
+fn the_plc_exchange_exports_and_previews_an_import() {
+    use ew_ui::app::Pick;
+    use ew_ui::ew_viewmodel::shell::Dialog;
+    let tmp = Tmp::new();
+    let file = tmp.0.join("plc.aml");
+    let platform = Scripted::default();
+    platform.answers.borrow_mut().push_back(Pick::Path(file.clone()));
+    platform.answers.borrow_mut().push_back(Pick::Path(file.clone()));
+    let dir = tmp.golden("g.ew");
+    let mut h = harness(&tmp, platform, Some(dir));
+    settle(&mut h);
+    wait_for_page(&mut h);
+    support::open_menu(&mut h, &["Output"]);
+    settle(&mut h);
+    h.get_by_label("Export to PLC software…").click();
+    settle(&mut h);
+    assert!(matches!(h.state().shell().dialog(), Some(Dialog::Form(f)) if f.action == "plc.export"));
+    h.get_by_label("Create").click();
+    for _ in 0..10 {
+        settle(&mut h);
+    }
+    assert!(file.exists(), "the AML file is written");
+    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        toast.starts_with("Exported plc.aml: 1 station(s), 7 module(s), 56 channel(s)"),
+        "{toast}"
+    );
+    // The project's own file read back: nothing differs from the exchange just recorded.
+    support::open_menu(&mut h, &["Output"]);
+    settle(&mut h);
+    h.get_by_label("Import from PLC software…").click();
+    for _ in 0..5 {
+        settle(&mut h);
+    }
+    let card = match h.state().shell().dialog() {
+        Some(Dialog::PlcImport(card)) => card.clone(),
+        other => panic!("{other:?}"),
+    };
+    assert!(card.conflicts.is_empty() && card.parking.is_empty(), "{card:?}");
+    h.get_by_label_contains("Nothing changes until you apply.");
+    h.get_by_label_contains("Removed (").click();
+    settle(&mut h);
+    assert!(matches!(h.state().shell().dialog(), Some(Dialog::PlcImport(c)) if c.tab.word() == "removed"));
+    support::off_chrome(&h, "Apply").expect("Apply").click();
+    settle(&mut h);
+    assert!(h.state().shell().dialog().is_none());
+    let toast = h.state().shell().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(toast, "Imported plc.aml.");
+    h.state_mut().shell_mut().shutdown();
+}

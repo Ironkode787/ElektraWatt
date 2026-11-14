@@ -288,6 +288,19 @@ impl RfdPlatform {
                     .add_filter("EWZ", &["ewz"]),
                 DialogKind::File,
             ),
+            Prompt::SavePlcExchange => (
+                base.set_title(strings::text(key!("prompt-plc-export-title")))
+                    .add_filter("AutomationML", &["aml"])
+                    .add_filter("XLSX", &["xlsx"])
+                    .add_filter("PLCopen XML", &["xml"]),
+                DialogKind::Save,
+            ),
+            Prompt::OpenPlcExchange => (
+                base.set_title(strings::text(key!("prompt-plc-import-title")))
+                    .add_filter("AutomationML", &["aml"])
+                    .add_filter("XLSX", &["xlsx"]),
+                DialogKind::File,
+            ),
             // File ▸ Import…: a QElectroTech project or a project archive, both offered at once.
             Prompt::OpenImport => (
                 base.set_title(strings::text(key!("prompt-import-title")))

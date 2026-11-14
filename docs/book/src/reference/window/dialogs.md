@@ -125,3 +125,16 @@ into a module's Slot field and press `Enter` to move it, as a number or as rack 
 A slot the part does not allow, or more modules than the station takes, is refused, and the reason stays under the
 slots; the station's slot findings (EW-PLC-011) are listed there too, each with its icon and the word Error. **Close**
 or `Esc` closes the dialog.
+
+## PLC import
+
+**Output ▸ Import from PLC software…** asks for an AutomationML file or a TIA Portal "PLC Tags" workbook and shows what it
+would change in the project's configuration project, by tab: **Changed** (each field with the project's and the
+file's value and what the import makes of it: applied, rejected because the project owns it, kept because the project
+changed it, or pending), **Conflicts** (both sides changed the field: keep the project's value or take the file's),
+**Removed** (what the file no longer holds) and **Parking** (the file's objects that match nothing in the project, or
+more than one; a module or station can be created unplaced). Nothing changes until **Apply**, which makes the import
+one step of Undo. **Output ▸ Export to PLC software…** is a form: the format (AutomationML AR APC 1.4.0 or 1.2.0, the TIA
+tag workbook, PLCopen XML for CODESYS), the stations (their tags; empty: all) and the document date (empty: the
+project's); it then asks for the file, writes it whole or not at all, and says what the file holds. The file holds no
+personal data.

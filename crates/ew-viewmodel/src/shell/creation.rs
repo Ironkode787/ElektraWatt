@@ -170,6 +170,18 @@ static MEDIUM_NEW: Spec = Spec {
     ],
 };
 
+/// PLC exchange ▸ Export…'s form (doc 10 §6): the format and version, the stations (tags; empty: all) and the document
+/// date (empty: the model's).
+static PLC_EXPORT: Spec = Spec {
+    action: "plc.export",
+    title_key: key!("plc-export-title"),
+    fields: &[
+        field("format", key!("form-plc-format")),
+        field("stations", key!("form-plc-stations")),
+        field("date", key!("form-plc-date")),
+    ],
+};
+
 static PAGE_NEW: Spec = Spec {
     action: "page.new",
     title_key: key!("new-page-title"),
@@ -1008,6 +1020,34 @@ impl ShellModel {
             );
         }
         self.form_done(STRUCTURE_NEW.action, out)
+    }
+
+    /// `plc.export {format?, stations?, date?, path?}` (doc 10 §6): without a format the window opens the export form
+    /// (its format offered by name); with one the file is written ([`ShellModel::act_plc_export_file`]).
+    pub(crate) fn act_plc_export(&mut self, p: &Map<String, Value>) -> Outcome {
+        let format = match text_param(p, "format") {
+            Ok(f) => f,
+            Err(e) => return e,
+        };
+        if format.trim().is_empty() {
+            if self.mode == Mode::Gui && !self.in_form_of(PLC_EXPORT.action) {
+                let mut dialog = PLC_EXPORT.dialog(p);
+                if let Some(f) = dialog.fields.iter_mut().find(|f| f.name == "format") {
+                    f.options = super::automation::PLC_FORMATS
+                        .iter()
+                        .map(|(w, name)| ((*w).to_owned(), (*name).to_owned()))
+                        .collect();
+                    super::automation::PLC_FORMATS[0].0.clone_into(&mut f.value);
+                }
+                return self.open_dialog(Dialog::Form(dialog));
+            }
+            return self.form_missing(&PLC_EXPORT, p, "format");
+        }
+        let out = self.act_plc_export_file(p, format.trim());
+        match out {
+            Outcome::Failed { message } => self.form_failed(PLC_EXPORT.action, message),
+            other => other,
+        }
     }
 
     /// `fluid.medium_new {name, p_nom, code?}` (FR-FLU-008): one `fluid.medium.edit` that makes a medium of that name,

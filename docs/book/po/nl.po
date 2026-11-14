@@ -2978,10 +2978,28 @@ msgid ""
 msgstr ""
 
 #: src/how-to/plc-workspace.md:55
+msgid "Exchange with the PLC software"
+msgstr ""
+
+#: src/how-to/plc-workspace.md:57
+msgid ""
+"Choose **Output ▸ Export to PLC software…**, pick the format and choose "
+"**Create**, then the file. Import the file in TIA Portal or CODESYS."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:59
+msgid ""
+"Choose **Output ▸ Import from PLC software…** for the file the PLC software "
+"wrote back. Look through its tabs, decide each conflict, and choose "
+"**Apply**."
+msgstr ""
+
+#: src/how-to/plc-workspace.md:62
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): PLC, PLC grid and Bus; the dialog "
-"in the [dialog reference](../reference/window/dialogs.md): Rack and slots."
+"in the [dialog reference](../reference/window/dialogs.md): Rack and slots "
+"and PLC import."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:3
@@ -4125,6 +4143,29 @@ msgid ""
 "refused, and the reason stays under the slots; the station's slot findings "
 "(EW-PLC-011) are listed there too, each with its icon and the word Error. "
 "**Close** or `Esc` closes the dialog."
+msgstr ""
+
+#: src/reference/window/dialogs.md:114
+msgid "PLC import"
+msgstr ""
+
+#: src/reference/window/dialogs.md:116
+msgid ""
+"**Output ▸ Import from PLC software…** asks for an AutomationML file or a "
+"TIA Portal \"PLC Tags\" workbook and shows what it would change in the "
+"project's configuration project, by tab: **Changed** (each field with the "
+"project's and the file's value and what the import makes of it: applied, "
+"rejected because the project owns it, kept because the project changed it, "
+"or pending), **Conflicts** (both sides changed the field: keep the project's "
+"value or take the file's), **Removed** (what the file no longer holds) and "
+"**Parking** (the file's objects that match nothing in the project, or more "
+"than one; a module or station can be created unplaced). Nothing changes "
+"until **Apply**, which makes the import one step of Undo. **Output ▸ Export "
+"to PLC software…** is a form: the format (AutomationML AR APC 1.4.0 or "
+"1.2.0, the TIA tag workbook, PLCopen XML for CODESYS), the stations (their "
+"tags; empty: all) and the document date (empty: the project's); it then asks "
+"for the file, writes it whole or not at all, and says what the file holds. "
+"The file holds no personal data."
 msgstr ""
 
 #: src/reference/window/panels.md:3

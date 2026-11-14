@@ -245,6 +245,7 @@ impl Platform for VisualPlatform {
             Prompt::SaveEwz => Pick::Path(self.base.join("project.ewz")),
             Prompt::SaveSymbol => Pick::Path(self.base.join("symbol.json")),
             Prompt::LibraryFolder => Pick::Path(self.base.join("symbols.ewlib")),
+            Prompt::SavePlcExchange => Pick::Path(self.base.join("plc.aml")),
             Prompt::OpenQet
             | Prompt::OpenPartsTable
             | Prompt::OpenImage
@@ -254,6 +255,7 @@ impl Platform for VisualPlatform {
             | Prompt::OpenImport
             | Prompt::OpenConverter
             | Prompt::OpenSymbol
+            | Prompt::OpenPlcExchange
                 if self.answer.borrow().is_some() =>
             {
                 self.answer.take().map_or(Pick::Cancelled, Pick::Path)
@@ -266,7 +268,8 @@ impl Platform for VisualPlatform {
             | Prompt::OpenEwz
             | Prompt::OpenImport
             | Prompt::OpenConverter
-            | Prompt::OpenSymbol => Pick::Cancelled,
+            | Prompt::OpenSymbol
+            | Prompt::OpenPlcExchange => Pick::Cancelled,
         }
     }
 }
