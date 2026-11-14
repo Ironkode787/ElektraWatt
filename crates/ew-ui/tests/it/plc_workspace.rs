@@ -686,6 +686,43 @@ fn a_settings_value_left_out_keeps_the_stored_one() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// A click on a channel's row in the PLC navigator selects the channel alone (not its module beside it), and
+/// Properties shows the channel.
+#[test]
+fn a_channel_row_selects_the_channel_alone() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
+    settle(&mut h);
+    let row = h
+        .state()
+        .shell()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .find(|r| r.role == NavRole::Channel.word() && r.label == "Q0.1")
+        .expect("Q0.1's row");
+    h.get_by_label(&row.name).click();
+    settle(&mut h);
+    let selected: Vec<String> = h
+        .state()
+        .shell()
+        .selection()
+        .items
+        .iter()
+        .map(|e| e.0.to_string())
+        .collect();
+    let channel = h
+        .state()
+        .shell()
+        .nav(NavKind::Plc)
+        .and_then(|n| n.table())
+        .and_then(|t| t.nodes.iter().find(|n| n.role == NavRole::Channel && n.label == "Q0.1").map(|n| n.records[0]))
+        .expect("the channel");
+    assert_eq!(selected, [channel.to_string()]);
+    assert!(h.query_by_label_contains("No common fields").is_none(), "Properties shows the channel");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// The value of field `name` of the open form.
 fn form_value(h: &egui_kittest::Harness<'_, ew_ui::app::App>, name: &str) -> String {
     match h.state().shell().dialog() {

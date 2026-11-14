@@ -829,8 +829,17 @@ impl ShellModel {
                     _ => (Vec::new(), Vec::new()),
                 }
             }
+            // A row selects the records of its own kind (its first stated kind): a channel row lists its module for
+            // the edits of the module's cells, and selects the channel alone.
             k => match self.generic(k).and_then(|n| n.node_of(key)) {
-                Some((_, node)) => (node.records.clone(), node.drawables.clone()),
+                Some((_, node)) => {
+                    let own = |i: usize| node.kinds.get(i).is_none_or(|k| Some(k) == node.kinds.first());
+                    let records = (0..node.records.len())
+                        .filter(|i| own(*i))
+                        .map(|i| node.records[i])
+                        .collect();
+                    (records, node.drawables.clone())
+                }
                 None => (Vec::new(), Vec::new()),
             },
         }
