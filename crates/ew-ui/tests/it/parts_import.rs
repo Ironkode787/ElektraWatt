@@ -50,7 +50,10 @@ fn golden_parts() -> PathBuf {
 fn without_a_project_a_parts_table_opens_no_mapping() {
     let tmp = Tmp::new();
     let platform = Scripted::default();
-    platform.answers.borrow_mut().push_back(Pick::Path(golden_parts()));
+    platform
+        .answers
+        .borrow_mut()
+        .push_back(Pick::Path(golden_parts()));
     let mut h = harness(&tmp, platform, None);
     settle(&mut h);
     support::open_menu(&mut h, &["File"]);
@@ -58,7 +61,10 @@ fn without_a_project_a_parts_table_opens_no_mapping() {
     h.get_by_label("Import…").click();
     settle(&mut h);
     settle(&mut h);
-    assert!(h.state().shell().parts_map().is_none(), "no project: no mapping card");
+    assert!(
+        h.state().shell().parts_map().is_none(),
+        "no project: no mapping card"
+    );
     assert!(h.state().shell().dialog().is_none());
 }
 

@@ -118,7 +118,6 @@ fn an_edz_asks_the_terms_once_then_updates_the_part_copy_on_the_card_and_fills_t
     );
 }
 
-
 /// A report whose headers fit a shipped mapping offers it; Import as terminal diagram makes a new project without
 /// pages, and the window's tool strip does not show Select enabled there (FT-1743).
 #[test]
@@ -140,7 +139,11 @@ fn a_report_that_fits_a_mapping_becomes_a_new_project_and_a_pageless_project_jud
     else {
         panic!("the report step: {:?}", h.state().shell().dialog());
     };
-    assert_eq!(fits.len(), 1, "only the English terminal diagram fits these headers");
+    assert_eq!(
+        fits.len(),
+        1,
+        "only the English terminal diagram fits these headers"
+    );
     h.get_by_label_contains("is an EPLAN report");
     support::assert_accessible(&h);
     support::dispatch(&mut h, "ui.dismiss", json!({}));
@@ -181,7 +184,10 @@ fn one_import_goes_on_by_what_the_file_is() {
     std::fs::write(&report, "Terminal strip,Terminal\n-X1,1\n").unwrap();
     let mut h = open_golden(&tmp, &[&dxf, &edz, &xml, &parts, &report]);
     import_menu(&mut h);
-    assert!(matches!(h.state().shell().dialog(), Some(Dialog::ImportDrawing { .. })));
+    assert!(matches!(
+        h.state().shell().dialog(),
+        Some(Dialog::ImportDrawing { .. })
+    ));
     support::dispatch(&mut h, "ui.dismiss", json!({}));
     import_menu(&mut h);
     assert!(matches!(
@@ -202,7 +208,10 @@ fn one_import_goes_on_by_what_the_file_is() {
     ));
     support::dispatch(&mut h, "ui.dismiss", json!({}));
     import_menu(&mut h);
-    assert!(h.state().shell().parts_map().is_some(), "a parts table: its column mapping");
+    assert!(
+        h.state().shell().parts_map().is_some(),
+        "a parts table: its column mapping"
+    );
     support::dispatch(&mut h, "ui.dismiss", json!({}));
     import_menu(&mut h);
     assert!(matches!(
@@ -275,12 +284,13 @@ fn the_column_mapper_maps_a_report_and_saves_the_mapping_for_the_next_file() {
     settle(&mut h);
     assert!(dir.join("manifest.json").is_file());
     assert!(h.state().shell().parts_map().is_none());
-    assert!(tmp
-        .0
-        .join("config")
-        .join("imports")
-        .join("eplan-report-klemmen.toml")
-        .is_file());
+    assert!(
+        tmp.0
+            .join("config")
+            .join("imports")
+            .join("eplan-report-klemmen.toml")
+            .is_file()
+    );
     // The next file of the scheme: the saved mapping is offered first.
     import_menu(&mut h);
     let Some(Dialog::ImportEplan {

@@ -423,5 +423,9 @@ fn reimport_is_the_one_button_of_the_import_group() {
         .iter()
         .map(|b| b.id)
         .collect();
-    assert_eq!(ids, ["file.reimport_qet"], "no button per source: File ▸ Import… takes every file");
+    assert_eq!(
+        ids,
+        ["file.reimport_qet"],
+        "no button per source: File ▸ Import… takes every file"
+    );
 }
