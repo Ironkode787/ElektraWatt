@@ -74,6 +74,7 @@ The numbers are the old follow-up numbers (history: `5516edba4`).
 - FT-1737 `ew-print, ew-api`: Printing draws no underlays: the switch that includes them reaches the exports only (`--underlays`, WP-S3.19).
 - FT-1738 `ew-import-dxf`: A part's drilling pattern from a DXF (the second half of FR-IMP-035) needs the feature pattern of the panel work (M4).
 - FT-1739 `docs`: Doc 14 §11 still describes a `fuzz/` crate that the repository no longer has.
+- FT-1740 `ew-plc, ew-api`: What WP-S3.16 left of the PLC exchange: the affected folios in the import preview, racks as exchanged items, the HMI flag of a tag as a setting, and the exporters behind the `Exporter` contract of doc 14 §2.2. The bus attribute names of the AML export are unverified until a file is read by TIA Portal and CODESYS (SC-8).
 - FT-1579 `ew-api`: Routing at an import's front door for `ew import csv`, whose `route` column is optional (a QET import needs none any more: every wire arrives routed).
 - FT-1645 `ew-import-qet, ew-scene`: What an imported QET folio still shows differently, after the full-fidelity work of M2.5-Fix: a master's contact list has no contact symbols and its rows stand closer than QET's 10 px (the scene has no list drawing and the text style no line height); `displayhas="cross"` and `snapto="bottom"` cross-references print as a list, with a report entry; QET's folio list arrives as EW's own table of contents; an element's `mirror` is not read (QET 0.100 writes none; newer versions do); fonts are substituted, so texts sit slightly lower.
 
