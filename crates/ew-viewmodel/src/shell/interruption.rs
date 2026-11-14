@@ -159,10 +159,16 @@ impl ShellModel {
     }
 
     /// EW's interruption-point forms in the page's grid family: the source form, the target form when
-    /// the catalogue holds it, and the library documents a command drawing either carries, each once.
+    /// the catalogue holds it, and the library documents a command drawing either carries, each once. On a fluid page
+    /// they are the fluid line's (`ew.iso.ip`, of `ew.fn.ip-fluid`; FT-1757), elsewhere the wire's (`ew.gen.ip`).
     fn ip_forms(&mut self) -> Result<IpForms, Outcome> {
-        let (source, mut copies) = self.family_shape("ew.gen.ip")?;
-        let target = match self.family_shape("ew.gen.ip-target") {
+        let family = if self.wire_kind() == Ok(Some("fluid")) {
+            "ew.iso"
+        } else {
+            "ew.gen"
+        };
+        let (source, mut copies) = self.family_shape(&format!("{family}.ip"))?;
+        let target = match self.family_shape(&format!("{family}.ip-target")) {
             Ok((target, more)) => {
                 for c in more {
                     if !copies.contains(&c) {

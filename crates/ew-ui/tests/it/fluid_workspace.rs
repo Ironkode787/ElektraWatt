@@ -593,6 +593,37 @@ fn golden_as_overview_is_refreshed_without_a_change() {
     h.state_mut().shell_mut().shutdown();
 }
 
+/// FT-1757: on a fluid page (Golden A's 203) the interruption-point tool places the fluid line's form `ew.iso.ip`, not
+/// the wire's.
+#[test]
+fn the_interruption_tool_places_the_fluid_form_on_a_fluid_page() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, "203");
+    let forms = |h: &egui_kittest::Harness<'_, ew_ui::app::App>| {
+        h.state()
+            .shell()
+            .canvas()
+            .unwrap()
+            .page()
+            .tables
+            .reps
+            .iter()
+            .filter(|r| r.ip.is_some())
+            .map(|r| r.symbol_key.clone())
+            .collect::<Vec<_>>()
+    };
+    let before = forms(&h).len();
+    dispatch(&mut h, "tool.ip", json!({}));
+    crate::navigators::cursor_k(&mut h, (60, 6));
+    dispatch(&mut h, "canvas.activate_alt", json!({}));
+    dispatch(&mut h, "tool.select", json!({}));
+    settle(&mut h);
+    let after = forms(&h);
+    assert_eq!(after.len(), before + 1, "{after:?}");
+    assert!(after.iter().all(|k| k.starts_with("ew.iso.ip")), "{after:?}");
+    h.state_mut().shell_mut().shutdown();
+}
+
 /// No English in a Dutch run of the fluid workspace: the valve terminal's role badge, the tube table's port roles,
 /// line kinds and length sources are Dutch, and its colour column is a tube's colour, not a core's.
 #[test]

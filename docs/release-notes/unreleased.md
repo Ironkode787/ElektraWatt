@@ -619,3 +619,4 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: `valve_terminal.generate_overview` keeps a member already drawn in member order inside the band
   where it stands, so a refresh of an overview in order (Golden A's 201 and 202) changes nothing (M3 review of the
   window)
+- behaviour-change: on a fluid page the interruption-point tool places the fluid line's form `ew.iso.ip` (FT-1757)
