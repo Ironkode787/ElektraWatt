@@ -68,7 +68,7 @@ impl AsRef<[u8]> for Source {
     }
 }
 
-fn open(bytes: Arc<[u8]>) -> Result<hayro::hayro_syntax::Pdf, PdfError> {
+pub(crate) fn open(bytes: Arc<[u8]>) -> Result<hayro::hayro_syntax::Pdf, PdfError> {
     let pdf = hayro::hayro_syntax::Pdf::new(Arc::new(Source(bytes))).map_err(|_| PdfError::Unreadable)?;
     let pages = pdf.pages().len();
     if pages > MAX_PDF_PAGES {
@@ -106,17 +106,16 @@ pub fn raster_size(width: Nm, height: Nm) -> (u32, u32) {
     (((w * k).round() as u32).max(1), ((h * k).round() as u32).max(1))
 }
 
-/// A PNG of page `page` of a PDF in `px_w` × `px_h` pixels, on white, faded to `opacity` per cent.
+/// Page `page` (1-based) of a PDF rasterised in `px_w` × `px_h` pixels on white: premultiplied RGBA.
 ///
 /// # Errors
 ///
 /// As [`pdf_page_size`].
-pub fn pdf_png(
+pub fn pdf_pixmap(
     bytes: Arc<[u8]>,
     page: u32,
     (px_w, px_h): (u32, u32),
-    opacity: u8,
-) -> Result<Vec<u8>, PdfError> {
+) -> Result<hayro::vello_cpu::Pixmap, PdfError> {
     let pdf = open(bytes)?;
     let pages = pdf.pages();
     let p = usize::try_from(page)
@@ -134,13 +133,22 @@ pub fn pdf_png(
         bg_color: hayro::vello_cpu::color::palette::css::WHITE,
     };
     let cache = hayro::RenderCache::new();
-    let mut pixmap = hayro::render(
+    Ok(hayro::render(
         p,
         &cache,
         &hayro::hayro_interpret::InterpreterSettings::default(),
         &hayro::RenderSettings::default(),
         &settings,
-    );
+    ))
+}
+
+/// A PNG of page `page` of a PDF in `px_w` × `px_h` pixels, on white, faded to `opacity` per cent.
+///
+/// # Errors
+///
+/// As [`pdf_page_size`].
+pub fn pdf_png(bytes: Arc<[u8]>, page: u32, px: (u32, u32), opacity: u8) -> Result<Vec<u8>, PdfError> {
+    let mut pixmap = pdf_pixmap(bytes, page, px)?;
     // Premultiplied RGBA: every channel scaled fades the page into the sheet.
     let a = u16::from(opacity.clamp(1, 100));
     for b in pixmap.data_as_u8_slice_mut() {

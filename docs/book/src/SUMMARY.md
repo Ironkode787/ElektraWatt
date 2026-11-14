@@ -349,6 +349,7 @@
     - [`ew update-copies`](reference/cli/update-copies.md)
     - [`ew upgrade`](reference/cli/upgrade.md)
     - [`ew verify-derived`](reference/cli/verify-derived.md)
+    - [`ew verify-migration`](reference/cli/verify-migration.md)
   - [Query reference](reference/queries.md)
   - [api_v1 reference](reference/api-v1.md)
   - [Format reference](reference/format/index.md)

@@ -530,6 +530,16 @@ pub const TABLE: &[Row] = &[
         stability: Stability::Preview,
     },
     Row {
+        path: &["verify-migration"],
+        exits: &[
+            exit(0, "only the expected deltas"),
+            exit(1, "other deviations, or an expected delta not found"),
+            exit(2, "usage, open and read errors"),
+        ],
+        result: Some(ew_api::cli_results::VERIFY_MIGRATION),
+        stability: Stability::Preview,
+    },
+    Row {
         path: &["query"],
         exits: &[
             exit(0, "answered"),

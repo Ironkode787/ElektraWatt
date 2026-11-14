@@ -132,6 +132,8 @@ pub const PRINT: &str = "ew.print-result/1";
 pub const APPLY: &str = "ew.apply-result/1";
 /// `ew verify-derived --json`.
 pub const VERIFY_DERIVED: &str = "ew.verify-derived-result/1";
+/// `ew verify-migration --json`.
+pub const VERIFY_MIGRATION: &str = "ew.verify-migration-result/1";
 /// `ew lib list --json`.
 pub const LIB_LIST: &str = "ew.lib-list-result/1";
 /// `ew lib search --json`.
@@ -408,6 +410,12 @@ pub const RESULTS: &[ResultSchema] = &[
         command: "verify-derived",
         flag: None,
         schema: schema_of::<VerifyDerivedResult>,
+    },
+    ResultSchema {
+        name: VERIFY_MIGRATION,
+        command: "verify-migration",
+        flag: None,
+        schema: schema_of::<VerifyMigrationResult>,
     },
 ];
 
@@ -1135,6 +1143,27 @@ pub struct VerifyDerivedResult {
     pub differences: Vec<String>,
     /// What the memo oracle found.
     pub oracle: Vec<OracleMismatch>,
+}
+
+/// `ew verify-migration --json` ([`VERIFY_MIGRATION`]).
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct VerifyMigrationResult {
+    /// [`VERIFY_MIGRATION`].
+    #[serde(rename = "$schema")]
+    pub schema: String,
+    /// Page pairs compared.
+    pub pages: usize,
+    /// Text runs of the reference that found their match in the project.
+    pub texts_matched: usize,
+    /// Frame cells whose raster was compared.
+    pub cells: usize,
+    /// The deviations no declared delta matches.
+    pub deviations: Vec<crate::migration::Deviation>,
+    /// The deviations a declared delta matches.
+    pub expected: Vec<crate::migration::Deviation>,
+    /// The declared deltas that matched no deviation.
+    pub unmet: Vec<crate::migration::Expected>,
 }
 
 /// One mismatch of the memo oracle.

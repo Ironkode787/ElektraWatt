@@ -473,3 +473,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   parts source; `ew_api::eplan` and `ew_api::qet_collection`; the result `ew.lib-import-qet-elements-result/1`
 - text-change: File ▸ Import… takes `.edz`, `.7z`, `.zip`, `.xml`, `.xlsx` and `.csv` (an EPLAN part file or a
   report), with a dialog in English and Dutch (WP-S3.18)
+- api-add: `ew verify-migration <project> --reference <pdf> [--expected <file.json>] [--json]` compares an imported project
+  with the PDF of its drawing: texts (string and anchor within 0.5 mm) and the raster per frame cell with the texts
+  masked; result `ew.verify-migration-result/1` (WP-S3.13, FR-IMP-021)

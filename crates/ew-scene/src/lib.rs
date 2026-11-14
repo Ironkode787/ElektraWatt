@@ -25,6 +25,7 @@ pub mod images;
 pub mod items;
 pub mod page;
 pub mod panel;
+pub mod pdf_text;
 pub mod route;
 pub mod symbol;
 pub mod table;

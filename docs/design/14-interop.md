@@ -1179,6 +1179,33 @@ ARCH §7.7) and passes the importer a neutral `TableImage` of those tables throu
 - **Pilot acceptance:** Golden C (AC-25 … AC-27) and NFR-UX-06 (one hour from import to zero migration errors on a
   reference-size project).
 
+*As built (WP-S3.13).* The verifier is `ew_api::migration` (`ew verify-migration <project> --reference <pdf>
+[--expected <file.json>] [--json]`, `ew.verify-migration-result/1`). It lives in `ew-api` because it needs the session's
+page export, the frame cells of `Session::page_cells` and the CPU raster of `output::sheet_image`; a crate of its own
+would depend on `ew-api` for all three. The PDF side (`ew_scene::pdf_text`: the text runs, the page labels) sits in
+`ew-scene` beside `underlay`, the one place that uses hayro; hayro is not a new dependency.
+
+- **Pairing.** Pages pair by folio label when the reference's `/PageLabels` name every page of the project, else the
+  n-th page with the n-th. A page without a partner is a deviation (`page-not-in-reference`, `page-not-in-project`);
+  pages whose sizes differ by more than 1 mm are `size-differs` and are not compared further.
+- **Text.** Both sides give runs of glyphs with their anchor (the first glyph's origin). hayro draws a PDF page into a
+  device that keeps the glyph runs; glyphs on one baseline that follow within 0.45 em join into one run, because Qt's
+  PDF engine draws every glyph by itself. White space is not compared (where a word breaks is the font's business).
+  Per string the nearest pairs match; a pair within 0.5 mm is a match, a farther pair is `text-moved` (with the
+  offset in words), what is left is `text-missing` (the reference has it) or `text-extra`.
+- **Raster.** Both pages at 150 dpi on the project page's pixel grid (the reference stretched to it). A pixel is ink
+  below luminance 200; the boxes of every run of either side, padded 1 mm, are cleared; an ink pixel with no ink within
+  0.5 mm on the other side counts for its frame cell (the page's frame grid; a page without one is a single cell). A
+  cell with more than 60 such pixels (about 10 mm of a hairline) is a `raster-cell` deviation.
+- **Expected deltas** are a JSON file, an array of `{"kind", "page", "text", "cell"}` (the last three optional): a
+  deviation one entry matches is reported as expected, an entry that matches none is reported as not found, and
+  either way a clean exit needs every entry found and no other deviation. Font substitution needs no entry for the
+  raster (the text boxes are masked) but moves texts by a font's side bearings and baseline, so a project with another
+  font declares `{"kind": "text-moved"}`.
+- **Limits.** A text a PDF draws as paths (outlined) has no text to compare; the raster still compares it unmasked.
+  Instance symbols' own texts are part of the sheet list as the export gives it. The tolerances are constants of the
+  module, not options.
+
 ### 4.16 The project importer as built
 
 The lenient import of whole projects (`QetProjectImporter`, `ew import qet`) was
@@ -1761,6 +1788,15 @@ or refused in words, never a panic).
 | DWG | DWG files with ODA-converted DXF twins | private until licence-clean samples exist | FR-IMP-036, FR-IMP-037 |
 | Tables | golden exports edited by script and by hand in Excel with nl-NL and en-US locales | committed | FR-EXP-003, FR-EXP-004 |
 | STEP, AML | as in [12](12-panel-layout.md) and [10](10-plc-and-bus.md) | — | — |
+
+*As built (WP-S3.13).* The 26 `.qet` files of the QET mirror's `examples/` at commit
+`aff5edf3905d111289a9a9328d480e39f9591368` (a duplicate under an accented name left out) are fetched by hand into a
+scratch folder, never committed (GPL, 18 MB):
+`https://raw.githubusercontent.com/qelectrotech/qelectrotech-source-mirror/aff5edf3905d111289a9a9328d480e39f9591368/examples/<name>.qet`.
+The deep-run test `qet_examples` (`EW_QET_EXAMPLES=<folder> cargo nextest run -p ew-api --test it -E
+'test(/^qet_examples::/)' --run-ignored all`) imports each, expects at most two refusals, no lost connection in
+`photovoltaique` and `schema_indus`, and the same batch from a second import of each file. All 26 import, with no lost
+connection. The private pilot runs are `qet_private_corpus` and `golden_c` (`EW_PRIVATE_CORPUS`).
 
 *As built.* The committed hostile set is
 `crates/ew-testkit/hostile/`, not `tests/hostile/`: one folder per class (`qet`, `elmt`, `xlsx`, `ewz`, `jsonl`,

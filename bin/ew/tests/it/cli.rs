@@ -1097,6 +1097,100 @@ fn verify_derived_golden_a_is_clean() {
     );
 }
 
+/// `ew verify-migration`: exit 0 and the summary for a project against its own PDF; exit 1 and the deviations against
+/// the PDF of another drawing, unless they are declared; exit 2 and a sentence for a reference that is no PDF and
+/// for a declaration that is no list.
+#[test]
+fn verify_migration_exits_by_what_it_finds() {
+    let t = Tmp::new("ew-cli-test");
+    let dir = tiny_project(&t);
+    let own = t.0.join("own.pdf");
+    let o = ew(&[
+        "export".as_ref(),
+        "pdf".as_ref(),
+        dir.as_os_str(),
+        "--out".as_ref(),
+        own.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let o = ew(&[
+        "verify-migration".as_ref(),
+        dir.as_os_str(),
+        "--reference".as_ref(),
+        own.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}{}", stdout(&o), stderr(&o));
+    assert!(stdout(&o).starts_with("verify-migration: "), "{}", stdout(&o));
+    assert!(stdout(&o).contains(", 0 deviations, 0 expected deltas found, 0 expected deltas not found"));
+
+    // Another drawing: Golden A's page 101 as the reference of the one-page project.
+    let other = t.0.join("other.pdf");
+    let o = ew(&[
+        "export".as_ref(),
+        "pdf".as_ref(),
+        GOLDEN_A.as_ref(),
+        "--pages".as_ref(),
+        "101".as_ref(),
+        "--out".as_ref(),
+        other.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let o = ew(&[
+        "verify-migration".as_ref(),
+        dir.as_os_str(),
+        "--reference".as_ref(),
+        other.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(1), "{}{}", stdout(&o), stderr(&o));
+    assert!(stdout(&o).contains(": text-missing: "), "{}", stdout(&o));
+    let declared = t.0.join("declared.json");
+    std::fs::write(
+        &declared,
+        r#"[{"kind":"text-missing"},{"kind":"raster-cell"},{"kind":"size-differs"},{"kind":"text-moved"}]"#,
+    )
+    .unwrap();
+    let o = ew(&[
+        "verify-migration".as_ref(),
+        dir.as_os_str(),
+        "--reference".as_ref(),
+        other.as_os_str(),
+        "--expected".as_ref(),
+        declared.as_os_str(),
+    ]);
+    // Every deviation but those declared remains; a declared kind that was not found is named.
+    assert!(stdout(&o).contains(" (expected): "), "{}", stdout(&o));
+
+    let bad = t.0.join("bad.pdf");
+    std::fs::write(&bad, b"not a pdf").unwrap();
+    let o = ew(&[
+        "verify-migration".as_ref(),
+        dir.as_os_str(),
+        "--reference".as_ref(),
+        bad.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(2), "{}", stdout(&o));
+    assert!(
+        stderr(&o).starts_with("error: the reference PDF: "),
+        "{}",
+        stderr(&o)
+    );
+    std::fs::write(&declared, "{}").unwrap();
+    let o = ew(&[
+        "verify-migration".as_ref(),
+        dir.as_os_str(),
+        "--reference".as_ref(),
+        own.as_os_str(),
+        "--expected".as_ref(),
+        declared.as_os_str(),
+    ]);
+    assert_eq!(o.status.code(), Some(2));
+    assert!(
+        stderr(&o).contains("the expected deltas are no list of deltas"),
+        "{}",
+        stderr(&o)
+    );
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // `ew export pdf|svg` (G-M1-01) and `ew apply`
 

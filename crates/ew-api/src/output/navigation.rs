@@ -235,6 +235,17 @@ impl PageCells {
         ])
     }
 
+    /// Every cell of the grid with its rectangle on the sheet ([`PageCells::cell_rect`]), row by row.
+    pub fn cells(&self) -> Vec<(CellLabel, [i64; 4])> {
+        let positions = (0..self.rows.len()).flat_map(|r| (0..self.columns.len()).map(move |c| (r, c)));
+        positions
+            .filter_map(|(r, c)| {
+                let label = self.label(r, c);
+                self.cell_rect(&label).map(|rect| (label, rect))
+            })
+            .collect()
+    }
+
     /// The cell as the project's `ip` cross-reference format prints it for this page (`102-H15`), with
     /// `{function}` and `{location}` empty and `{page_index}` the page's position.
     pub fn text(&self, cell: &CellLabel) -> String {

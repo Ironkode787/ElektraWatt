@@ -104,6 +104,7 @@ pub mod geometry;
 pub mod import;
 mod library_ops;
 mod macros;
+pub mod migration;
 mod new_project;
 pub mod output;
 mod part_editor;

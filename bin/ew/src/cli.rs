@@ -93,6 +93,8 @@ pub enum Command {
     ExportTable(ExportTableArgs),
     /// Compare the memoised derived data with a cold recomputation.
     VerifyDerived(VerifyArgs),
+    /// `ew verify-migration`: an imported project compared with the PDF of the drawing it came from.
+    VerifyMigration(VerifyMigrationArgs),
     /// Write the pages as PDF, SVG or PNG.
     ExportPages(ExportPagesArgs),
     /// `ew print`: the print set through an adapter, or to a file.
@@ -646,6 +648,19 @@ pub struct VerifyArgs {
     pub json: bool,
 }
 
+/// The arguments of `ew verify-migration`.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct VerifyMigrationArgs {
+    /// The project directory; `None`: found from the current directory.
+    pub project: Option<PathBuf>,
+    /// The reference PDF (`--reference`).
+    pub reference: PathBuf,
+    /// The JSON file of the project's expected deltas (`--expected`).
+    pub expected: Option<PathBuf>,
+    /// Print the result as JSON (`--json`).
+    pub json: bool,
+}
+
 /// The result format of `ew sql`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SqlFormat {
@@ -871,6 +886,7 @@ pub fn run(cmd: Command) -> i32 {
         Command::Export(a) => run_export(&a),
         Command::ExportTable(a) => run_export_nav_table(&a),
         Command::VerifyDerived(a) => run_verify_derived(&a),
+        Command::VerifyMigration(a) => run_verify_migration(&a),
         Command::ExportPages(a) => run_export_pages(&a),
         Command::Print(a) => run_print(&a),
         Command::Render(a) => run_render(&a),

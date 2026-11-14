@@ -160,13 +160,17 @@ pub fn page_png(scene: &PageScene, dpi: u32) -> Result<Vec<u8>, OutputError> {
     sheet_png(&scene.sheet_list(), scene.sheet_width, scene.sheet_height, dpi).map(|(bytes, _)| bytes)
 }
 
-/// The PNG of one sheet display list and its pixel size.
-fn sheet_png(
+/// The RGBA raster of one sheet display list at `dpi`, drawn with the bundled fonts.
+///
+/// # Errors
+///
+/// [`OutputError::Raster`] as [`page_png`]; the size is not checked against [`MAX_PAGE_PIXELS`] here.
+pub fn sheet_image(
     list: &DisplayList,
     width: Nm,
     height: Nm,
     dpi: u32,
-) -> Result<(Vec<u8>, (u32, u32)), OutputError> {
+) -> Result<ew_render_cpu::RgbaImage, OutputError> {
     let options = ew_render_cpu::RenderOptions {
         dpi,
         ..Default::default()
@@ -185,6 +189,17 @@ fn sheet_png(
             report.missing_fonts.len()
         )));
     }
+    Ok(img)
+}
+
+/// The PNG of one sheet display list and its pixel size.
+fn sheet_png(
+    list: &DisplayList,
+    width: Nm,
+    height: Nm,
+    dpi: u32,
+) -> Result<(Vec<u8>, (u32, u32)), OutputError> {
+    let img = sheet_image(list, width, height, dpi)?;
     Ok((
         ew_render_cpu::encode_png(&img, Some(dpi)),
         (img.width, img.height),

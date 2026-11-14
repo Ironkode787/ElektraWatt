@@ -33,7 +33,7 @@ use super::{
     ImportQetArgs, ImportTableArgs, InstrumentListArgs, LibAction, LibArgs, PageFormat, PlcExportArgs,
     PlcImportArgs, PlcStatusArgs, PrintArgs, PrintVia, RecoverAction, RecoverArgs, RenderArgs,
     RevisionAction, RevisionArgs, RowFormat, SqlArgs, SqlDumpArgs, SqlFormat, SqlSource, UpdateCopiesArgs,
-    UpgradeArgs, VerifyArgs, XLSX_NEEDS_OUT,
+    UpgradeArgs, VerifyArgs, VerifyMigrationArgs, XLSX_NEEDS_OUT,
 };
 
 /// The ElektraWatt command-line interface.
@@ -207,6 +207,16 @@ enum Top {
     /// Opens a project with the memo oracle on, recomputes every derived value cold and compares it with the
     /// memoised one: exit 0 with no difference, 1 with differences, 2 on usage and open errors.
     VerifyDerived(ProjectJsonCli),
+    /// Compare an imported project with the PDF of the drawing it came from.
+    ///
+    /// Draws every page of the project at 150 dpi, reads the matching page of `--reference` and lists where they
+    /// differ: texts the reference has and the project lacks (or the other way round, or more than 0.5 mm away), and
+    /// frame cells whose drawing differs with the texts masked, so that another font does not count. Pages pair by
+    /// folio label when the PDF's page labels name every page, else by order. `--expected <file.json>` declares the
+    /// deltas the project is expected to have, an array of `{"kind", "page", "text", "cell"}` (the last three
+    /// optional); the check expects exactly those. Exit 0 when only the expected deltas are found, 1 with other
+    /// deviations or with an expected delta not found, 2 on usage, open and read errors.
+    VerifyMigration(VerifyMigrationCli),
     /// Answer one public query of the project.
     ///
     /// `query <name> <key>` answers one public query of the project (`ew queries` lists them with their keys): the
@@ -1848,6 +1858,41 @@ struct WithdrawCli {
     project: Option<PathBuf>,
 }
 
+/// `ew verify-migration`.
+#[derive(Args, Debug)]
+struct VerifyMigrationCli {
+    /// The project directory.
+    #[arg(value_name = "project-dir")]
+    project_dir: Option<PathBuf>,
+    /// The project directory (instead of the positional one).
+    #[arg(
+        long,
+        value_name = "dir",
+        allow_hyphen_values = true,
+        conflicts_with = "project_dir"
+    )]
+    project: Option<PathBuf>,
+    /// The PDF of the drawing the project was imported from.
+    #[arg(
+        long,
+        value_name = "file.pdf",
+        allow_hyphen_values = true,
+        overrides_with = "reference"
+    )]
+    reference: PathBuf,
+    /// The JSON file of the deltas the project is expected to have.
+    #[arg(
+        long,
+        value_name = "file.json",
+        allow_hyphen_values = true,
+        overrides_with = "expected"
+    )]
+    expected: Option<PathBuf>,
+    /// Print the result as JSON.
+    #[arg(long, overrides_with = "json")]
+    json: bool,
+}
+
 /// A subcommand that takes a project and `--json` only.
 #[derive(Args, Debug)]
 struct ProjectJsonCli {
@@ -2774,6 +2819,18 @@ impl Cli {
                 json,
             }) => Command::VerifyDerived(VerifyArgs {
                 project: project(flag, project_dir),
+                json,
+            }),
+            Top::VerifyMigration(VerifyMigrationCli {
+                project_dir,
+                project: flag,
+                reference,
+                expected,
+                json,
+            }) => Command::VerifyMigration(VerifyMigrationArgs {
+                project: project(flag, project_dir),
+                reference,
+                expected,
                 json,
             }),
             Top::Query(QueryCli {

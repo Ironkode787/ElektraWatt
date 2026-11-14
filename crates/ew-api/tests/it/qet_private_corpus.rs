@@ -4,8 +4,8 @@
 //! Smoke run of the QET project importer over a private corpus (Golden C spike, doc 20 §2.3): every `.qet`
 //! of the directory named by `EW_PRIVATE_CORPUS` is imported in lenient mode, opened as a session, derived
 //! (page order, device tags, potential partition) and exported to PDF. The test prints counts only, never a
-//! name or a text of the corpus, and asserts that nothing panics, the model accepts every batch and the PDF
-//! has one page per entry of the page order.
+//! name or a text of the corpus, and asserts that nothing panics, no connection is lost, a second import gives the
+//! same batch, the model accepts every batch and the PDF has one page per entry of the page order.
 //!
 //! It is `#[ignore]`d and skips when the variable is unset: the corpus is private and never part of the
 //! repository. Run it with
@@ -14,12 +14,13 @@
 // EW_PRIVATE_CORPUS names the private corpus directory; the test is ignored by default and the result does not depend on the path.
 #![allow(clippy::disallowed_methods)]
 
+use crate::qet_examples::batch_digest;
 use crate::view;
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use ew_api::import::{StarterLibrary, import_qet};
+use ew_api::import::{StarterLibrary, import_qet, import_qet_batch};
 use ew_api::output::{ExportOptions, PdfDate};
 use ew_derive::{DeviceTag, PageOrder, PotentialPartition};
 use ew_schema::Record;
@@ -46,6 +47,18 @@ fn the_private_corpus_imports_derives_and_exports() {
         let bytes = std::fs::read(&path).unwrap();
         let imported =
             import_qet(&file_name, bytes, &library).unwrap_or_else(|e| panic!("{name}: import refused: {e}"));
+        // SC-4: no connection lost, and a second import gives the same batch.
+        assert_eq!(
+            imported.batch.report.stats.lost_connections, 0,
+            "{name}: connections lost"
+        );
+        let again = import_qet_batch(&file_name, std::fs::read(&path).unwrap(), &library)
+            .unwrap_or_else(|e| panic!("{name}: second import refused: {e}"));
+        assert_eq!(
+            batch_digest(&imported.batch),
+            batch_digest(&again),
+            "{name}: two imports differ"
+        );
         let c = imported.counts();
         let mut by_code: BTreeMap<String, u32> = BTreeMap::new();
         for g in &imported.migration_report().groups {

@@ -170,6 +170,115 @@ pub(super) fn run_verify_derived(a: &VerifyArgs) -> i32 {
     i32::from(!report.is_clean())
 }
 
+/// The most bytes of a reference PDF or of an expected-deltas file `ew verify-migration` reads.
+const VERIFY_MIGRATION_READ_LIMIT: u64 = 1 << 30;
+
+pub(super) fn run_verify_migration(a: &VerifyMigrationArgs) -> i32 {
+    let Some(dir) = reader_dir(a.project.as_ref()) else {
+        return 2;
+    };
+    let read = |path: &Path| match read_bounded(path, VERIFY_MIGRATION_READ_LIMIT) {
+        Ok(b) if b.len() as u64 > VERIFY_MIGRATION_READ_LIMIT => {
+            eprintln!("error: {}: the file is larger than 1 GiB", path.display());
+            None
+        }
+        Ok(b) => Some(b),
+        Err(e) => {
+            eprintln!("error: {}: {e}", path.display());
+            None
+        }
+    };
+    let Some(reference) = read(&a.reference) else {
+        return 2;
+    };
+    let expected = match &a.expected {
+        None => Vec::new(),
+        Some(path) => {
+            let Some(bytes) = read(path) else {
+                return 2;
+            };
+            match ew_api::migration::parse_expected(&String::from_utf8_lossy(&bytes)) {
+                Ok(e) => e,
+                Err(e) => {
+                    eprintln!("error: {}: {e}", path.display());
+                    return 2;
+                }
+            }
+        }
+    };
+    let (session, _) = match ew_api::Session::open_reader(&dir, env!("CARGO_PKG_VERSION"), "verify-migration")
+    {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {}: {e}", dir.display());
+            return 2;
+        }
+    };
+    let report = match ew_api::migration::verify_migration(&session, reference.into(), &expected) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("error: {e}");
+            return 2;
+        }
+    };
+    if a.json {
+        print!(
+            "{}",
+            results::to_text(&results::VerifyMigrationResult {
+                schema: results::VERIFY_MIGRATION.to_owned(),
+                pages: report.pages,
+                texts_matched: report.texts_matched,
+                cells: report.cells,
+                deviations: report.deviations.clone(),
+                expected: report.expected.clone(),
+                unmet: report.unmet.clone(),
+            })
+        );
+        return i32::from(!report.is_clean());
+    }
+    println!(
+        "verify-migration: {} pages, {} texts matched, {} cells compared, {} deviations, {} expected deltas found, {} \
+         expected deltas not found",
+        report.pages,
+        report.texts_matched,
+        report.cells,
+        report.deviations.len(),
+        report.expected.len(),
+        report.unmet.len()
+    );
+    for d in &report.deviations {
+        println!("page {}: {}: {}", d.page, d.kind, deviation_line(d));
+    }
+    for d in &report.expected {
+        println!("page {}: {} (expected): {}", d.page, d.kind, deviation_line(d));
+    }
+    for e in &report.unmet {
+        println!(
+            "expected but not found: {}{}{}{}",
+            e.kind,
+            e.page
+                .as_ref()
+                .map_or_else(String::new, |p| format!(", page {p}")),
+            e.text
+                .as_ref()
+                .map_or_else(String::new, |t| format!(", text \"{t}\"")),
+            e.cell
+                .as_ref()
+                .map_or_else(String::new, |c| format!(", cell {c}"))
+        );
+    }
+    i32::from(!report.is_clean())
+}
+
+/// A deviation's text, its place and its sentence on one line.
+fn deviation_line(d: &ew_api::migration::Deviation) -> String {
+    let text = d.text.as_ref().map_or_else(String::new, |t| format!("\"{t}\" "));
+    let at = d
+        .at_mm
+        .map_or_else(String::new, |[x, y]| format!("at {x:.1}, {y:.1} mm: "));
+    format!("{text}{at}{}", d.detail)
+}
+
 pub(super) fn run_check(a: &CheckArgs) -> i32 {
     let dir = match &a.project {
         Some(d) => d.clone(),

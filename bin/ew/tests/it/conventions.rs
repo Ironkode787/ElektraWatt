@@ -157,6 +157,9 @@ fn project_flag_equals_the_positional_directory() {
     let ewz = t.0.join("p.ewz");
     let parts = t.0.join("parts.csv");
     std::fs::copy(GOLDEN_PARTS, &parts).unwrap();
+    let tiny_pdf = t.0.join("tiny.pdf");
+    let o = t.ew(&args([&"export", &"pdf", &tiny, &"--out", &tiny_pdf]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     // (the words before the project, the words after it, the project)
     let cases: Vec<(Vec<&str>, Vec<OsString>, &Path)> = vec![
         (vec!["check"], args([&"--json"]), &p),
@@ -202,6 +205,11 @@ fn project_flag_equals_the_positional_directory() {
         ),
         (vec!["export", "ewz"], args([&"--out", &ewz, &"--json"]), &p),
         (vec!["verify-derived"], args([&"--json"]), &tiny),
+        (
+            vec!["verify-migration"],
+            args([&"--reference", &tiny_pdf, &"--json"]),
+            &tiny,
+        ),
         (vec!["layout"], args([&"--page", &"101", &"--json"]), &p),
         (vec!["fmt"], args([&"--check", &"--json"]), &p),
         (vec!["recover"], args([&"--json"]), &p),
@@ -305,6 +313,9 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
     let t = Tmp::new("ew-conventions");
     let p = t.golden("J-E-2416.ew");
     let tiny = t.tiny("tiny.ew");
+    let tiny_pdf = t.0.join("tiny.pdf");
+    let o = t.ew(&args([&"export", &"pdf", &tiny, &"--out", &tiny_pdf]));
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let check: results::CheckResult = json_twice(&t, &args([&"check", &p, &"--json"]), results::CHECK, 1);
     assert_eq!(check.scheme, "pre-delivery");
     let sql: results::SqlResult = json_twice(
@@ -476,6 +487,13 @@ fn every_reading_json_result_validates_round_trips_and_repeats() {
         0,
     );
     assert!(verify.differences.is_empty() && verify.oracle.is_empty());
+    let migration: results::VerifyMigrationResult = json_twice(
+        &t,
+        &args([&"verify-migration", &tiny, &"--reference", &tiny_pdf, &"--json"]),
+        results::VERIFY_MIGRATION,
+        0,
+    );
+    assert!(migration.deviations.is_empty() && migration.unmet.is_empty() && migration.pages > 0);
     let layout: results::LayoutResult = json_twice(
         &t,
         &args([&"layout", &p, &"--page", &"101", &"--json"]),
