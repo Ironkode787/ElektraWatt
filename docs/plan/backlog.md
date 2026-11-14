@@ -15,11 +15,14 @@ answers is deleted with a line in its report.
 
 - FT-1746 `ew-import-qet, ew-scene`: **Medium.** An imported QElectroTech text stands too high against QET's own PDF, a fixed text by about 0.45 to 0.5 of its height: doc 14 §4.10's rule "x y is the baseline" does not hold for QET's texts (the anchor is the baseline less the descent, plus an offset of QET's), and the font's ascent alone does not explain it. A change of the rule moves the 222 generated QET-10 symbols and the golden files, so it is measured first: it waits for a PDF exported by QET of a pilot project in the private corpus folder.
 
+### The window: what its fix lane left
+
+- FT-1761 `ew-viewmodel, ew-ui`: What the frame check of M3's window found and its fix lane left: a table that does not widen its column or fill its panel at 2560 × 1440 (the Bus, Devices and Medium tables); the Medium table's count against the navigator's badge ("1 lines"); the rack editor's refusal at the dialog's foot and the dialog's jump; a grid tooltip above a dialog's backdrop; forms without a hint or an example (symbol policy, process-tag scheme, fluid settings, mode and safety); a line's Properties without its medium; a "generated" chip on every row of a report page's Properties; the Properties header cut by its chips at 1920; the symbol browser opening on a disabled row; lower-case preview rows, zero counts and "Xrefs"; a medium's category "Electrical"; the Mapping dialog at the top of the window; context menus that cover their row and grey entries without a reason.
+- FT-1763 `ew-viewmodel, ew-ui, ew-api`: Work that still runs on the window's thread: a DXF's parse at Apply, an EDZ's and a parts XML's reading (twice), a PLC import's read and merge, a report spreadsheet becoming a project, and the rack view with its slot check twice a frame while the editor is open. The drawing import's read, probe and DWG conversion are a job since M3's review.
+- FT-1764 `ew-ui`: Two tests the window's code review asked for: the rack and slot editor's refusal of a slot (EW-PLC-011), and what `a_smaller_window_stays_usable` really proves (its label query matches any node; it checks the command bar and the page's size only).
+
 ### WP-S2.13: automation workspaces
 
-- FT-1757 `ew-viewmodel, ew-ui`: A fluid interruption point has its definition and forms (`ew.fn.ip-fluid`, `ew.iso.ip`) and no tool in the window: let the interruption-point tool place the fluid form on a fluid page.
-- FT-1753 `ew-viewmodel, ew-ui, ew-api`: **Medium.** A drawing import runs on the window's thread: the probe of a DXF when the dialog opens, and a DWG's conversion for up to 120 seconds, during which the window does not answer. Run it as a job with its progress and Cancel, as the exports do.
-- FT-1756 `ew-viewmodel, ew-ui`: The PLC import's preview offers "take the file's" on a comment conflict that cannot be taken (one side has languages, the other none); the command then refuses in words. Do not offer it, and let the refusal `refusal-plc-exchange-not-acceptable` state the reason that applies.
 
 ## Later
 
