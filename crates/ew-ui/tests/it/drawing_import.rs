@@ -19,6 +19,27 @@ use support::{Scripted, Tmp, harness_with, settle, wait_for_page};
 const PLAN: &str = "0\nSECTION\n2\nENTITIES\n0\nLWPOLYLINE\n8\n0\n90\n4\n70\n1\n10\n20\n20\n20\n10\n120\n20\n20\n\
 10\n120\n20\n70\n10\n20\n20\n70\n0\nENDSEC\n0\nEOF\n";
 
+/// On Golden A, whose last drawn page is followed by generated report pages, a drawing imported as a page takes a folio
+/// no page has, after every page of its section.
+#[test]
+fn a_drawing_page_takes_a_folio_no_page_has() {
+    let tmp = Tmp::new();
+    let dxf = tmp.0.join("plan.dxf");
+    std::fs::write(&dxf, PLAN).unwrap();
+    let mut h = support::on_golden(&tmp, "101");
+    let before: Vec<String> = h.state().shell().page_rows().iter().map(|r| r.folio.clone()).collect();
+    support::dispatch(
+        &mut h,
+        "file.import_drawing",
+        json!({"file": dxf.to_string_lossy(), "as": "page", "units": "mm"}),
+    );
+    settle(&mut h);
+    let shown = h.state().shell().current_folio().map(str::to_owned).unwrap();
+    assert!(!before.contains(&shown), "{shown} is a new folio: {before:?}");
+    let rows = h.state().shell().page_rows();
+    assert_eq!(rows.iter().filter(|r| r.folio == shown).count(), 1, "one page {shown}");
+}
+
 #[test]
 fn a_dxf_becomes_a_page_and_then_an_underlay_through_the_import_dialog() {
     let tmp = Tmp::new();

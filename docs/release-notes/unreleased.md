@@ -611,3 +611,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   (M3 review of the window)
 - behaviour-change: the PLC import's Apply commits the merge its preview showed, `complete` included; a conflict shows
   the side Apply takes and offers the file's value only where it can be taken (M3 review of the window, FT-1756)
+- behaviour-change: a DXF imported as a page takes the folio after every page of its section, generated report pages
+  included, so it never shares a folio with another page (M3 review of the window)

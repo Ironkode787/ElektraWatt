@@ -111,7 +111,8 @@ impl Session {
         held.then_some(copies + 1)
     }
 
-    /// The folio, section and grid of a page added after the last page of the page order.
+    /// The folio, section and grid of a page added after the last page of the page order: the section and grid of the
+    /// last drawn page, and the folio after every page of that section (a generated report page too), so no page has it.
     pub(crate) fn next_folio(&self) -> (Option<Id<ew_schema::Section>>, u32, Grid) {
         let q = self.query();
         let order = q.get::<ew_derive::PageOrder>(());
@@ -127,11 +128,12 @@ impl Session {
             ew_derive::PageRef::Drawn(p) => q.pages().get(p).map_or(Grid::QET_10PX, |p| p.grid),
             _ => Grid::QET_10PX,
         };
-        let number = q
-            .pages()
+        // A folio no page has: after every page of the section, the generated report pages included.
+        let number = order
+            .entries
             .iter()
-            .filter(|(_, p)| p.folio.section == last.section)
-            .map(|(_, p)| p.folio.number)
+            .filter(|e| e.section == last.section)
+            .map(|e| e.number)
             .max()
             .unwrap_or(0)
             .saturating_add(1);
