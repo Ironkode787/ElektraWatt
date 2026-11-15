@@ -772,7 +772,10 @@ impl ShellModel {
         }
         self.device_medium_entries(session, device, out);
         // A multipin terminal's plug, drawn on the page shown when it is no fluid page (rc.2): a box with a pin each.
-        let fluid_page = self.page_rows().get(self.page_index()).is_some_and(|r| r.kind == "fluid");
+        let fluid_page = self
+            .page_rows()
+            .get(self.page_index())
+            .is_some_and(|r| r.kind == "fluid");
         if !fluid_page
             && session.terminal_kind(device) == Some(ew_api::output::TerminalKind::Multipin)
             && let Some((main, _)) = session.main_function(device)

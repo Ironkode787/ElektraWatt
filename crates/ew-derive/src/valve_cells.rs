@@ -319,11 +319,15 @@ pub fn plug_pins(q: &Q, terminal: Id<Device>) -> Vec<(String, PlugPin)> {
         return Vec::new();
     };
     let parts = q.parts();
-    let Some(fluid) = dev
-        .parts
-        .iter()
-        .find_map(|u| parts.get(u.part.copy)?.item.sections.fluid.clone().filter(|f| !f.pins.is_empty()))
-    else {
+    let Some(fluid) = dev.parts.iter().find_map(|u| {
+        parts
+            .get(u.part.copy)?
+            .item
+            .sections
+            .fluid
+            .clone()
+            .filter(|f| !f.pins.is_empty())
+    }) else {
         return Vec::new();
     };
     let slots = q.get::<ValveSlots>(terminal);

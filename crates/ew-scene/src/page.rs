@@ -1355,10 +1355,26 @@ impl Builder<'_> {
         for n in &view.plug_notes {
             let out = if n.forward { gap } else { Nm(-gap.0) };
             let (at, angle, align) = match (n.vertical, n.forward) {
-                (true, false) => (Pt2::new(n.at.x - side, n.at.y + out), Angle2(90_000), Align::MiddleLeft),
-                (true, true) => (Pt2::new(n.at.x - side, n.at.y + out), Angle2(90_000), Align::MiddleRight),
-                (false, true) => (Pt2::new(n.at.x + out, n.at.y - side), Angle2(0), Align::MiddleLeft),
-                (false, false) => (Pt2::new(n.at.x + out, n.at.y - side), Angle2(0), Align::MiddleRight),
+                (true, false) => (
+                    Pt2::new(n.at.x - side, n.at.y + out),
+                    Angle2(90_000),
+                    Align::MiddleLeft,
+                ),
+                (true, true) => (
+                    Pt2::new(n.at.x - side, n.at.y + out),
+                    Angle2(90_000),
+                    Align::MiddleRight,
+                ),
+                (false, true) => (
+                    Pt2::new(n.at.x + out, n.at.y - side),
+                    Angle2(0),
+                    Align::MiddleLeft,
+                ),
+                (false, false) => (
+                    Pt2::new(n.at.x + out, n.at.y - side),
+                    Angle2(0),
+                    Align::MiddleRight,
+                ),
             };
             self.text(&TextSpec {
                 text: &n.text,

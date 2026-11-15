@@ -469,7 +469,11 @@ fn the_two_kinds_of_terminal_drive_their_valves_solenoids_apart() {
 /// one grid step apart, its top-left corner at grid point (`kx`, `ky`); the function's CPs by designation.
 fn draw_box(s: &mut Session, page: Uuid, function: Uuid, kx: i64, ky: i64) -> Vec<(String, u16)> {
     let q = s.query();
-    let grid = q.pages().get(Id::from_uuid(page)).map(|p| p.grid).expect("the page");
+    let grid = q
+        .pages()
+        .get(Id::from_uuid(page))
+        .map(|p| p.grid)
+        .expect("the page");
     let cps: Vec<(String, u16)> = q
         .get::<ew_derive::FunctionCps>(Id::from_uuid(function))
         .iter()
@@ -486,7 +490,10 @@ fn draw_box(s: &mut Session, page: Uuid, function: Uuid, kx: i64, ky: i64) -> Ve
         .map(|((_, idx), k)| json!({"idx": idx, "pos": [at(kx + k) - at(kx), 0], "dir": "up"}))
         .collect();
     let (w, h) = (at(kx + n + 1) - at(kx), at(ky + 4) - at(ky));
-    let copies = s.starter_embed(&key).map(|e| e["copies"].clone()).unwrap_or(json!([]));
+    let copies = s
+        .starter_embed(&key)
+        .map(|e| e["copies"].clone())
+        .unwrap_or(json!([]));
     run(
         s,
         "box.black",
@@ -504,11 +511,30 @@ fn draw_box(s: &mut Session, page: Uuid, function: Uuid, kx: i64, ky: i64) -> Ve
 #[test]
 fn a_multipin_plug_says_its_pins_and_its_wired_outputs_drive_the_solenoids() {
     let mut s = project(184);
-    run(&mut s, "page.create", json!({"kind": "multi_line", "number": 101})).expect("the electrical page");
+    run(
+        &mut s,
+        "page.create",
+        json!({"kind": "multi_line", "number": 101}),
+    )
+    .expect("the electrical page");
     let multi = place_terminal_of(&mut s, "EW-GEN-VTP-1", (60_000_000, 60_000_000));
     let c = cells(&s, multi);
-    let v1 = place_into(&mut s, "EW-GEN-VLV-3", "ew.iso.valve-5-2-sol-spring", centre(&c[0]), multi).expect("v1");
-    let v2 = place_into(&mut s, "EW-GEN-VLV-3", "ew.iso.valve-5-2-sol-spring", centre(&c[1]), multi).expect("v2");
+    let v1 = place_into(
+        &mut s,
+        "EW-GEN-VLV-3",
+        "ew.iso.valve-5-2-sol-spring",
+        centre(&c[0]),
+        multi,
+    )
+    .expect("v1");
+    let v2 = place_into(
+        &mut s,
+        "EW-GEN-VLV-3",
+        "ew.iso.valve-5-2-sol-spring",
+        centre(&c[1]),
+        multi,
+    )
+    .expect("v2");
     // A CPU with an output card, as the rack dialog makes it.
     let [cpu, dout] = ["EW-GEN-CPU-1", "EW-GEN-DO-1"].map(|n| library_part(&s, n));
     let mut copies: Vec<Value> = Vec::new();
@@ -537,14 +563,21 @@ fn a_multipin_plug_says_its_pins_and_its_wired_outputs_drive_the_solenoids() {
         let q = s.query();
         q.devices()
             .iter()
-            .find(|(_, d)| d.aspects.plc_station.is_some() && d.parts.iter().any(|u| u.part.copy.as_uuid() == cpu))
+            .find(|(_, d)| {
+                d.aspects.plc_station.is_some() && d.parts.iter().any(|u| u.part.copy.as_uuid() == cpu)
+            })
             .map(|(id, _)| id.as_uuid())
             .expect("the CPU")
     };
     // The output card drawn on page 101 and put in the CPU's rack, as the window's placement and Rack… make it.
     let key = edition(&s, "ew.gen.blackbox");
     let symbol = s.starter_symbol_copy(&key).expect("the black box");
-    let grid = s.query().pages().get(Id::from_uuid(page)).map(|p| p.grid).expect("grid");
+    let grid = s
+        .query()
+        .pages()
+        .get(Id::from_uuid(page))
+        .map(|p| p.grid)
+        .expect("grid");
     let at = |k: i64| grid.at(k).expect("a grid point").0;
     let card_box: Vec<Value> = (0u16..10)
         .zip(1i64..)
@@ -585,7 +618,8 @@ fn a_multipin_plug_says_its_pins_and_its_wired_outputs_drive_the_solenoids() {
     assert!(notes.contains(&"3 · 14".to_owned()), "{notes:?}");
     assert!(notes.contains(&"COM".to_owned()), "{notes:?}");
     // Card outputs 1 and 3 wired to plug pins 1 and 3: solenoid 14 of positions 1 and 2.
-    let idx = |pins: &[(String, u16)], d: &str| pins.iter().find(|(x, _)| x == d).map(|(_, i)| *i).expect("a pin");
+    let idx =
+        |pins: &[(String, u16)], d: &str| pins.iter().find(|(x, _)| x == d).map(|(_, i)| *i).expect("a pin");
     for d in ["1", "3"] {
         run(
             &mut s,
@@ -603,7 +637,10 @@ fn a_multipin_plug_says_its_pins_and_its_wired_outputs_drive_the_solenoids() {
     };
     for v in [v1, v2] {
         let text = output(&s, v).unwrap_or_default();
-        assert!(text.starts_with('Q'), "the valve's symbol prints its output: {text:?}");
+        assert!(
+            text.starts_with('Q'),
+            "the valve's symbol prints its output: {text:?}"
+        );
     }
     assert_ne!(output(&s, v1), output(&s, v2), "two outputs");
     let unbound: Vec<String> = s

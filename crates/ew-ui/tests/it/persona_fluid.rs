@@ -1832,7 +1832,11 @@ fn f15_the_multipin_plug_is_drawn_from_its_terminal_and_names_its_pins() {
     d.settle();
     d.input(&click(starting_with(&d, &format!("Draw the plug of {terminal}"))));
     d.settle();
-    assert_eq!(d.shell_mut().tool().name(), "black_box", "the plug's box on the pointer");
+    assert_eq!(
+        d.shell_mut().tool().name(),
+        "black_box",
+        "the plug's box on the pointer"
+    );
     click_at(&mut d, (800, 400));
     click_at(&mut d, (1100, 500));
     d.input(&key("escape"));
@@ -1842,7 +1846,10 @@ fn f15_the_multipin_plug_is_drawn_from_its_terminal_and_names_its_pins() {
     glyph_boxes(&p.list.items, &|q| q, &mut texts);
     let texts: Vec<String> = texts.into_iter().map(|(t, _)| t).collect();
     assert!(texts.iter().any(|t| t == "COM"), "the common: {texts:?}");
-    assert!(texts.iter().any(|t| t == "2 · 14"), "an empty position's pin: {texts:?}");
+    assert!(
+        texts.iter().any(|t| t == "2 · 14"),
+        "an empty position's pin: {texts:?}"
+    );
     assert!(
         texts.iter().any(|t| t.ends_with(" 14") && t.starts_with('-')),
         "the valve's pin names the valve and its solenoid: {texts:?}"

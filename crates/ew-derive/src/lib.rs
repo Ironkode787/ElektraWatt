@@ -231,9 +231,9 @@ pub use title_block::{
 pub use toc::{TocRow, TocRows};
 pub use tracker::{ColdTracker, DepKey, IxKey, Recorded, RecordingTracker, Tracker};
 pub use valve_cells::{
-    BAND_TOP, CELL_STEPS, END_STEPS, HEIGHT_STEPS, SlotFrame, ValveCell, device_fits_terminal, fits_terminal,
-    PlugPin, graphics_x_extent, is_fluid_terminal, is_multipin_terminal, plug_pins, solenoid_pin, terminal_cells,
-    terminal_supply, wired_solenoid_channel,
+    BAND_TOP, CELL_STEPS, END_STEPS, HEIGHT_STEPS, PlugPin, SlotFrame, ValveCell, device_fits_terminal,
+    fits_terminal, graphics_x_extent, is_fluid_terminal, is_multipin_terminal, plug_pins, solenoid_pin,
+    terminal_cells, terminal_supply, wired_solenoid_channel,
 };
 pub use wire_profile::{
     Attrs, ColourProfile, ProfileKey, ProfileRow, ProfileRowFor, SizeProfile, WireDefaultProps,
