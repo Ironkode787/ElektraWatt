@@ -781,7 +781,11 @@ impl ShellModel {
 
     /// The card of the first part of device `device`; `None` for a device without a part.
     pub fn device_part_card(&self, device: ew_api::output::Uuid) -> Option<crate::part_card::PartCardView> {
-        let part = self.project.as_ref()?.session.device_part(device)?;
-        self.part_card(part)
+        self.part_card(self.device_part(device)?)
+    }
+
+    /// The part copy of device `device`'s first part use; `None` without a project or a part.
+    pub fn device_part(&self, device: ew_api::output::Uuid) -> Option<ew_api::output::Uuid> {
+        self.project.as_ref()?.session.device_part(device)
     }
 }

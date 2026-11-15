@@ -1921,6 +1921,16 @@ fn part_edit_lines(e: &crate::shell::part_dialog::PartEditor, lines: &mut Vec<St
             user(d.text(f))
         ));
     }
+    for f in ew_api::SIZE_FIELDS {
+        lines.push(format!(
+            "  field \"{}\" \"{}\"",
+            strings::text(Key::run_time(&format!(
+                "part-size-{}",
+                f.replace(['.', '_'], "-")
+            ))),
+            user(d.text(f))
+        ));
+    }
     for (k, v) in &d.tech {
         lines.push(format!("  tech \"{}\" \"{}\"", user(k), user(v)));
     }

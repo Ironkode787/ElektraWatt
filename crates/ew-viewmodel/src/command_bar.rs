@@ -826,6 +826,19 @@ pub fn navigator_row_menu(
                 item("strip.edit", strip, key!("canvas-edit-strip")),
             ]
         }
+        // A device the layout cannot place to size: Give it a size… opens its part in the part editor (F23).
+        (NavKind::Unplaced, NavRole::Device, Some(device))
+            if node.badges.iter().any(|b| b == "unknown size") =>
+        {
+            match model.device_part(*device) {
+                Some(copy) => vec![item(
+                    "part.edit",
+                    serde_json::json!({ "part": format!("id:{copy}") }),
+                    key!("action-part-give-size"),
+                )],
+                None => model.row_fits(kind, node),
+            }
+        }
         _ => model.row_fits(kind, node),
     }
 }

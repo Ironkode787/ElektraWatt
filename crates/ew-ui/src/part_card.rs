@@ -98,7 +98,7 @@ pub fn body(ui: &mut Ui, t: &Tokens, view: &PartCardView, title: bool, events: &
 
 /// The part's front, `width` × `height` nanometres, drawn to scale over a 35 mm rail band, as it sits on a rail; the
 /// scale fits the taller of the two into the drawing's height.
-fn outline(ui: &mut Ui, t: &Tokens, width: i64, height: i64) {
+pub(crate) fn outline(ui: &mut Ui, t: &Tokens, width: i64, height: i64) {
     let (w, h) = (width.max(1) as f32, height.max(1) as f32);
     let avail = ui.available_width();
     let scale = (OUTLINE_H / h.max(RAIL_NM)).min(avail * 0.8 / w);

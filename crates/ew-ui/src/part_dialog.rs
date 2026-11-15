@@ -434,6 +434,130 @@ fn identity(
     save
 }
 
+/// Size and mounting (F23): the part's width, height and depth, how it is mounted, its mass and its clearances, each
+/// group with its hint, and its outline as typed, to scale over a 35 mm rail. `true` when Enter was pressed in a field.
+fn size_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Vec<Event>) -> bool {
+    let t = theme::current(ui.ctx());
+    let mut save = false;
+    ui.add_space(t.space_3);
+    // Open on a saved part (Give it a size… opens its editor here) and wherever a size is typed; a new part's form
+    // opens it with a click.
+    let typed = ew_viewmodel::ew_api::SIZE_FIELDS
+        .iter()
+        .any(|f| !d.text(f).is_empty() || d.message(f).is_some());
+    egui::CollapsingHeader::new(
+        RichText::new(strings::text(key!("part-size-section"))).font(theme::font(&t.type_body_strong)),
+    )
+    .id_salt("part-edit-size")
+    .default_open(!d.new || typed)
+    .show(ui, |ui| save = size_fields(ui, &t, d, events));
+    save
+}
+
+/// The fields of Size and mounting ([`size_section`]).
+fn size_fields(
+    ui: &mut Ui,
+    t: &theme::Tokens,
+    d: &ew_viewmodel::ew_api::PartDraft,
+    events: &mut Vec<Event>,
+) -> bool {
+    let mut save = false;
+    let hint = |ui: &mut Ui, k: strings::Key<'static>| {
+        ui.add(
+            egui::Label::new(
+                RichText::new(strings::text(k))
+                    .font(theme::font(&t.type_small))
+                    .color(t.text_secondary.color32()),
+            )
+            .wrap(),
+        );
+    };
+    for f in ew_viewmodel::ew_api::SIZE_FIELDS {
+        let label = strings::text(strings::Key::run_time(&format!(
+            "part-size-{}",
+            f.replace(['.', '_'], "-")
+        )));
+        if f == "mech.mount_kind" {
+            mount_field(ui, label, d.text(f), events);
+        } else {
+            save |= labelled_field(ui, label, d.text(f), false, |text| {
+                events.push(Event::Action("part.field", json!({ "field": f, "value": text })));
+            });
+        }
+        if let Some(m) = d.message(f) {
+            ui.colored_label(
+                t.error.color32(),
+                ew_viewmodel::shell::part_dialog::message_text(strings::Key::run_time(m.key), &m.args),
+            );
+        }
+        match f {
+            "mech.depth" => {
+                hint(ui, key!("part-size-hint-dimensions"));
+                let mm = |f: &str| {
+                    ew_viewmodel::ew_api::output::parse_mm(d.text(f)).and_then(|n| i64::try_from(n).ok())
+                };
+                if let (Some(w), Some(h)) = (mm("mech.width"), mm("mech.height")) {
+                    crate::part_card::outline(ui, t, w, h);
+                }
+            }
+            "mech.mount_kind" => hint(ui, key!("part-size-hint-mount")),
+            "mech.mass" => hint(ui, key!("part-size-hint-mass")),
+            "mech.clearance.right" => hint(ui, key!("part-size-hint-clearance")),
+            _ => {}
+        }
+    }
+    save
+}
+
+/// The Mounting choice of Size and mounting: not given, or a mounting word in words.
+fn mount_field(ui: &mut Ui, label_text: &str, value: &str, events: &mut Vec<Event>) {
+    let t = theme::current(ui.ctx());
+    let words = |w: &str| {
+        if w.is_empty() {
+            strings::text(key!("part-size-mount-none")).to_owned()
+        } else {
+            strings::choice_text(w)
+        }
+    };
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing.x = 0.0;
+        let label = ui
+            .allocate_ui_with_layout(
+                vec2(t.size_dialog_label, t.size_control),
+                egui::Layout::left_to_right(egui::Align::Center),
+                |ui| {
+                    ui.set_min_size(vec2(t.size_dialog_label, t.size_control));
+                    ui.add(egui::Label::new(label_text).truncate())
+                },
+            )
+            .inner;
+        ui.add_space(t.space_3);
+        let mut picked = None;
+        let options: Vec<String> = std::iter::once(String::new())
+            .chain(ew_viewmodel::ew_api::mount_words())
+            .collect();
+        let combo = egui::ComboBox::from_id_salt("part-edit-mount")
+            .selected_text(words(value))
+            .width(ui.available_width())
+            .show_ui(ui, |ui| {
+                for w in &options {
+                    if ui.selectable_label(w == value, words(w)).clicked() {
+                        picked = Some(w.clone());
+                    }
+                }
+            })
+            .response
+            .labelled_by(label.id);
+        crate::components::combo_expanded(ui, &combo);
+        if let Some(w) = picked.filter(|w| w != value) {
+            events.push(Event::Action(
+                "part.field",
+                json!({ "field": "mech.mount_kind", "value": w }),
+            ));
+        }
+    });
+}
+
 /// The part editor's body (D20, D21).
 pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mut Vec<Event>) {
     let t = theme::current(ui.ctx());
@@ -466,6 +590,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                 save |= left_save || right_save;
                 ui.add_space(t.space_3);
                 bus_section(ui, d, events);
+                save |= size_section(ui, d, events);
             } else {
                 save |= identity(ui, d, just_opened, events);
                 if d.new || d.own || !d.bus.is_empty() {
@@ -476,6 +601,7 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
                     ui.add_space(t.space_3);
                     save |= plc_section(ui, d, events);
                 }
+                save |= size_section(ui, d, events);
             }
             if d.new {
                 ui.add_space(t.space_3);

@@ -101,6 +101,7 @@ impl Session {
             copy: item,
             fields,
             tech: Vec::new(),
+            size: crate::part_editor::size_rows(None),
             messages: Vec::new(),
             fork: false,
             library: None,
