@@ -439,10 +439,14 @@ pub(crate) fn editor(ui: &mut Ui, e: &PartEditor, just_opened: bool, events: &mu
     let t = theme::current(ui.ctx());
     let d = &e.draft;
     let mut save = false;
-    // Doc 16a §2: the form takes the window's height as it grows, sixteen rows at the floor.
+    // Doc 16a §2: the form takes the window's height as it grows, sixteen rows at the floor. It keeps that height and
+    // its width while one types (the persona run m3-p4: the dialog grew after the first key and moved up under the
+    // pointer): the body scrolls inside it.
     let height = crate::dialog::grown(t.size_row * 16.0, 0.6, ui.ctx().content_rect().height());
     ScrollArea::vertical()
         .id_salt("part-edit-scroll")
+        .auto_shrink([false, false])
+        .min_scrolled_height(height)
         .max_height(height)
         .show(ui, |ui| {
             // A new part's form is long: at the main resolution its identity and its PLC section stand side by side,
@@ -854,6 +858,14 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
             events.push(Event::Action("part.bus_row", serde_json::Value::Null));
         }
     }
+    // A row just added comes into sight whole, with Add interface under it, never half hidden at the form's bottom edge
+    // (the persona run m3-p4).
+    let count = ui.id().with("part-bus-rows");
+    let before = ui.data(|m| m.get_temp::<usize>(count));
+    if before.is_some_and(|n| d.bus.len() > n) {
+        ui.scroll_to_cursor(Some(egui::Align::BOTTOM));
+    }
+    ui.data_mut(|m| m.insert_temp(count, d.bus.len()));
 }
 
 #[cfg(test)]

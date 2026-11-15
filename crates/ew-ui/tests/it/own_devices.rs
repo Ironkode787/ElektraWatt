@@ -5,7 +5,7 @@
 //! on a bus-topology page stands there with its bus ports. The window's own path: clicks and keys at 1920 × 1080.
 
 use crate::own_parts::{
-    cp_labels, cursor_k, edit_part, make_card, make_head_station, make_port_device, new_project, page_texts,
+    cp_labels, cursor_k, edit_part, fill, make_card, make_head_station, make_port_device, new_project, page_texts,
     place_box, press, press_cp, records,
 };
 use crate::persona_round::{key, typed};
@@ -212,6 +212,36 @@ fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_soc
         .collect();
     let six: Vec<String> = (1..=6).map(|n| format!("{tag}:P{n}")).collect();
     assert_eq!(drawn, six, "the drawn box follows: the sockets the part still has");
+}
+
+/// Item 6: the New part dialog holds still. The fields stand where they stood after a person types into the first one
+/// (the persona's next clicks hit other fields when the dialog grew and moved up), and an interface row just added
+/// stands whole above the footer, with Add interface under it.
+#[test]
+fn the_new_part_dialog_holds_still_while_one_types_and_adds_rows() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&key("Shift+I"));
+    d.settle();
+    press(&mut d, "New part…");
+    let at = |d: &mut Driver, name: &str| {
+        d.labels()
+            .into_iter()
+            .rfind(|(l, _)| l == name)
+            .unwrap_or_else(|| panic!("no {name}"))
+            .1
+    };
+    let before = (at(&mut d, "Part number"), at(&mut d, "Save"));
+    fill(&mut d, "Manufacturer", "Acme");
+    fill(&mut d, "Part number", "SW-8");
+    let after = (at(&mut d, "Part number"), at(&mut d, "Save"));
+    assert_eq!(before, after, "the fields and the footer keep their place");
+    for _ in 0..4 {
+        press(&mut d, "Add interface");
+    }
+    let (row, add, save) = (at(&mut d, "Ports 4"), at(&mut d, "Add interface"), at(&mut d, "Save"));
+    assert!(row.1 < add.1 && add.1 < save.1, "the new row and Add interface above the footer: {row:?} {add:?} {save:?}");
+    assert_eq!(save, before.1, "the footer stays where it was");
 }
 
 /// The labels of the PLC panel's rows under Cards without a station.

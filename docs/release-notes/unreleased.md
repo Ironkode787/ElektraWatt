@@ -832,3 +832,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: with several stations a new card attaches to the station drawn beside it on its page; a card that
   waits says so in its placement's toast; a card's row dragged onto a station's row in the PLC panel attaches it (or
   moves it from another station), and a drop that cannot be taken says why (persona run m3-p4)
+- behaviour-change: the part editor keeps its place and size while one types (its body scrolls), and an interface
+  row just added comes into sight whole above the footer (persona run m3-p4)
