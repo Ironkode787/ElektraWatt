@@ -444,6 +444,20 @@ box as its positions. A box drawn as its positions is not reshaped (`box.reshape
 part with several sizes whose count is asked when it is made (it needs a device-level position count that the channel
 instantiation honours, which an older build would not: not additive).
 
+*As built (rc.2, F15: two kinds).* A valve terminal **with a bus node** is a PLC station of role `valve_terminal`
+(EW-GEN-VTM-1, "Valve terminal with bus node, 4 valve positions, 8 outputs"): its outputs drive the solenoids, nothing is
+wired per solenoid. A **multipin** valve terminal has no station ([10](10-plc-and-bus.md) §2.3): its part's
+`fluid.pins [{solenoid, pin}]` (an optional member, additive) names the plug pin of each solenoid as an expression in
+the position index p, the pins being the part's CP pattern on its overview box (EW-GEN-VTP-1: eight positions, solenoid 14
+on pin 2p+1, 12 on 2p+2, the common on 25); placed on an electrical page it is that plug, wired by a cable to an output
+card. `is_fluid_terminal` takes both: galleries, cells, seating and the fluid navigator treat them alike;
+`Session::terminal_kind` gives the kind, which the terminal's menu says ("Valve terminal · PLC station with bus node",
+"Valve terminal · multipin, wired"). A terminal valve's solenoid is never drawn: its Properties row says "driven by
+output Q0.0 of -201K1 (inside the terminal: nothing to wire)" or "pin 3 of the plug of -201K1" with a link to the plug
+(or Draw the plug while it is drawn on no electrical page), and its menu offers Go to output (the channel in the PLC list)
+instead of Draw solenoid. Not built: a text per plug pin on the electrical page naming the valve and solenoid it drives
+(each valve's Properties name its pin), and the part editor's controls for the kind, the positions and the pin map.
+
 ### 3.3 Field devices, linkages, process tags and target tracking
 
 The process valves TA05-V-15, -33, -18, -17, -36, -38, -16 and -37 are **field devices** (FR-DEV-027): -203Q1 …

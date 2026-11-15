@@ -51,6 +51,12 @@ the middle, and the tube table and the medium table in the bottom dock.
    **Blanking plate** and **Empty**. A terminal drawn before this version as a free box keeps it: its box's menu offers
    **Draw as slots**, previewed, which redraws it as its positions and moves its valves on that page into their cells
    with their tubes; its Properties list the **Valve positions**.
+   There are two kinds, and the terminal's menu says which: a **valve terminal with bus node** is a PLC station (the
+   outputs that drive its solenoids are inside it, nothing is wired per solenoid); a **multipin valve terminal**
+   (**Multipin valve terminal, 8 valve positions, 25-pin plug**) has no station: placed on an electrical page it is its
+   plug, pins 1 to 16 and the common 25, wired by a cable to an output card. A valve's solenoid on a terminal is never
+   drawn: its Properties say **driven by output Q0.0 of -201K1** or **pin 3 of the plug of -201K1**, and its menu has
+   **Go to the output of solenoid 14** (the channel in the PLC list) or the way to its plug pin.
 9. Right-click the valve terminal's box or row and choose **Generate overview…**; from the command search it acts on
    the selected terminal and says so while none is selected. The Preview tab lists which modules stand on which
    overview page, and the pages it adds where the frame is full; the tags that change with a page are listed below.
