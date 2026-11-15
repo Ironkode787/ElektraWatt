@@ -17,7 +17,7 @@
 //! - The gate is the `#[ignore]`d test `gate`, a part of the deep run (CONTRIBUTING.md, "Tests"): it writes the
 //!   report to `EW_ACCEPTANCE_REPORT`, or to `target/tmp/acceptance-report.md` without it, and fails when any
 //!   entry fails or is not built.
-//! - The ordinary tests run the runner without the raster comparison and the measurements, in the three shards of
+//! - The ordinary tests run the runner without the raster comparison and the measurements, in the five shards of
 //!   [`HEADLESS_SHARDS`] that nextest runs in parallel, and compare each shard's rows with the
 //!   committed `expected/acceptance_headless.md`; a fourth test shows that the shards evaluate every row of the
 //!   report once and that the committed summary line follows from the committed rows. They keep `expected/csv/`
@@ -88,13 +88,19 @@ fn nightly_the_headless_report_equals_the_committed_report_on_every_read() {
 /// The shards of the headless report: the entry indexes each one evaluates (an `entry_from` row goes with the
 /// entry it copies). The SQL pairs (AC-08 to AC-11) and AC-15's SQL paths share the SQL projection, whose
 /// pre-delivery check on the oracle session takes about a minute in a debug build, so they are one shard; the
-/// criteria AC-01 to AC-13 another; AC-18, AC-20, AC-14, the rest of AC-15, AC-16, AC-17, AC-31, AC-37, AC-39 and
-/// the §19 rows the third (open-ended, so that an entry added at the end is evaluated). Every row is evaluated by
+/// criteria AC-01 to AC-13 another; AC-18, AC-20 and AC-14 the third; AC-16 (its six entries share one run of the
+/// freshness script, the longest work of the report) the fourth; the rest of AC-15, AC-17, AC-31, AC-37, AC-39 and
+/// the §19 rows the fifth (open-ended, so that an entry added at the end is evaluated). Every row is evaluated by
 /// exactly one shard (`the_headless_report_shards_cover_the_committed_report`); moving an entry only moves the
 /// work between shards.
 #[allow(clippy::single_range_in_vec_init)] // a shard is a list of index ranges; the first has one
-const HEADLESS_SHARDS: [&[std::ops::Range<usize>]; 3] =
-    [&[0..31], &[31..35, 45..46], &[35..45, 46..usize::MAX]];
+const HEADLESS_SHARDS: [&[std::ops::Range<usize>]; 5] = [
+    &[0..31],
+    &[31..35, 45..46],
+    &[35..45],
+    &[48..54],
+    &[46..48, 54..usize::MAX],
+];
 
 /// One shard of the ordinary test: its rows equal the committed report's rows, and the oracle sessions found no
 /// mismatch.
@@ -155,18 +161,28 @@ fn split_report(text: &str) -> (&str, Vec<&str>) {
 }
 
 #[test]
-fn the_headless_report_equals_the_committed_report_shard_1_of_3() {
+fn the_headless_report_equals_the_committed_report_shard_1_of_5() {
     headless_report_shard(0);
 }
 
 #[test]
-fn the_headless_report_equals_the_committed_report_shard_2_of_3() {
+fn the_headless_report_equals_the_committed_report_shard_2_of_5() {
     headless_report_shard(1);
 }
 
 #[test]
-fn the_headless_report_equals_the_committed_report_shard_3_of_3() {
+fn the_headless_report_equals_the_committed_report_shard_3_of_5() {
     headless_report_shard(2);
+}
+
+#[test]
+fn the_headless_report_equals_the_committed_report_shard_4_of_5() {
+    headless_report_shard(3);
+}
+
+#[test]
+fn the_headless_report_equals_the_committed_report_shard_5_of_5() {
+    headless_report_shard(4);
 }
 
 /// The shards together are the former single test: the runner's rows (listed without evaluating anything) are

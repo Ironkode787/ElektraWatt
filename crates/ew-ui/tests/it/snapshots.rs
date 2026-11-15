@@ -220,9 +220,8 @@ fn the_main_window_is_drawn_at_200_percent() {
 /// Comfortable at ppp 1, each the whole window: the main window on schematic folio 101, the Devices navigator in
 /// table mode, a form dialog (New page…) and the print pre-dialog (no page chosen yet: its empty state, so no
 /// render thread's picture decides a pixel). Each is drawn at that size; only the main window keeps a picture
-/// (the second of the two whole-window pictures).
-#[test]
-fn the_main_views_at_2560() {
+/// (the second of the two whole-window pictures). Four shards that run side by side, a view each.
+fn the_main_views_at_2560(k: usize, of: usize) {
     let dev = device();
     let mut failures = Vec::new();
     type Open = fn(&mut Harness<'static, App>);
@@ -237,7 +236,7 @@ fn the_main_views_at_2560() {
             act(h, "file.print", json!({"range": "pages", "pages": ""}));
         }),
     ];
-    for (name, open) in views {
+    for (name, open) in support::shard(views, k, of) {
         let tmp = Tmp::new();
         let dir = tmp.golden("g.ew");
         let (mut h, recorder) = window_on(tmp.config(), dir, "light", "comfortable", 1.0, true, EXTENSION);
@@ -258,6 +257,14 @@ fn the_main_views_at_2560() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+support::shard_tests!(
+    the_main_views_at_2560, 4:
+    the_main_views_at_2560_shard_1_of_4 = 0,
+    the_main_views_at_2560_shard_2_of_4 = 1,
+    the_main_views_at_2560_shard_3_of_4 = 2,
+    the_main_views_at_2560_shard_4_of_4 = 3,
+);
 
 /// The component gallery in the four themes at ppp 1 (the only gated image of the high-contrast themes).
 #[test]
@@ -365,10 +372,10 @@ fn luma(image: &ew_render_cpu::RgbaImage, x: u32, y: u32) -> f32 {
 /// The quit prompt over the toast (its scrim dims the window behind it), the app menu's File submenu, the command
 /// palette and the Preview tab with the property grid's "Preview open" strip are opened and drawn in light and dark.
 /// No whole-window picture is kept of them: the dialogs, toasts and cards have their cropped pictures below.
-#[test]
-fn dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
+/// Two shards that run side by side, a theme each.
+fn dialogs_toasts_menu_palette_and_preview(k: usize, of: usize) {
     let dev = device();
-    for theme in ["light", "dark"] {
+    for theme in support::shard(["light", "dark"], k, of) {
         // An edit gives the toast and the dirty project; closing asks to save.
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         // The palette's caret blinks on the wall clock: steady for a stable image.
@@ -453,6 +460,12 @@ fn dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
     }
 }
 
+support::shard_tests!(
+    dialogs_toasts_menu_palette_and_preview, 2:
+    dialogs_toasts_menu_palette_and_preview_in_light_and_dark_shard_1_of_2 = 0,
+    dialogs_toasts_menu_palette_and_preview_in_light_and_dark_shard_2_of_2 = 1,
+);
+
 /// The rectangle of the first node named `name` (its label, or a label node's value).
 fn node_rect(h: &Harness<'_, App>, name: &str) -> Option<egui::Rect> {
     use egui_kittest::kittest::NodeT as _;
@@ -490,11 +503,11 @@ fn messages_pane(h: &Harness<'_, App>) -> egui::Rect {
 /// The Messages pane in tree mode (Golden A's error and a pending finding, then the
 /// cursor on the pending finding with its detail block) and the History panel (three steps, a save marker, one undone), each cropped to its pane,
 /// gated: all three in light Comfortable, the detail block in dark Compact.
-#[test]
-fn messages_and_history_in_light_with_one_dark_compact() {
+/// Two shards that run side by side, a theme each.
+fn messages_and_history(k: usize, of: usize) {
     let dev = device();
     let mut failures = Vec::new();
-    for (theme, density) in [("light", "comfortable"), ("dark", "compact")] {
+    for (theme, density) in support::shard([("light", "comfortable"), ("dark", "compact")], k, of) {
         let light = theme == "light";
         {
             let (mut h, recorder, tmp) = main_window(theme, density);
@@ -626,6 +639,12 @@ fn messages_and_history_in_light_with_one_dark_compact() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
+support::shard_tests!(
+    messages_and_history, 2:
+    messages_and_history_in_light_with_one_dark_compact_shard_1_of_2 = 0,
+    messages_and_history_in_light_with_one_dark_compact_shard_2_of_2 = 1,
+);
+
 /// A drag with the primary button from `from` by `by`, in eight steps, one frame each.
 fn drag(h: &mut Harness<'_, App>, from: egui::Pos2, by: egui::Vec2) {
     let button = |pos, pressed| egui::Event::PointerButton {
@@ -655,11 +674,11 @@ fn drag(h: &mut Harness<'_, App>, from: egui::Pos2, by: egui::Vec2) {
 /// the cursor cell in the second (`dk12-grid-*`), then the editing cell opened on the cursor cell
 /// (`dk12-grid-edit-*`; the editor opens where the cursor is, so the cursor ring and the editor are two images).
 /// Cropped to the pane from its tool line to the grid's bottom, light Comfortable and dark Compact, gated.
-#[test]
-fn the_data_grid_in_light_comfortable_and_dark_compact() {
+/// Two shards that run side by side, a theme each.
+fn the_data_grid(k: usize, of: usize) {
     let dev = device();
     let mut failures = Vec::new();
-    for (theme, density) in [("light", "comfortable"), ("dark", "compact")] {
+    for (theme, density) in support::shard([("light", "comfortable"), ("dark", "compact")], k, of) {
         {
             let (mut h, recorder, tmp) = main_window(theme, density);
             // The editor's caret blinks on the wall clock: steady for a stable image.
@@ -791,6 +810,12 @@ fn the_data_grid_in_light_comfortable_and_dark_compact() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
+support::shard_tests!(
+    the_data_grid, 2:
+    the_data_grid_in_light_comfortable_and_dark_compact_shard_1_of_2 = 0,
+    the_data_grid_in_light_comfortable_and_dark_compact_shard_2_of_2 = 1,
+);
+
 /// Dismisses every toast on show: they leave on the wall clock, so no gated image may show one.
 fn dismiss_toasts(h: &mut Harness<'_, App>) {
     let shell = h.state_mut().shell_mut();
@@ -812,9 +837,9 @@ fn around(rects: impl IntoIterator<Item = egui::Rect>, margin: f32) -> egui::Rec
 /// CP6: every dialog of the shell one by one that Golden A opens with one action, each cropped to the dialog's
 /// frame with its shadow, light Comfortable, gated. Not here: the quit prompt (`part4-dialog-toast-*`)
 /// and the four dialogs that need a fixture (the recovery dialog, the question of discarding its journal, the
-/// check-scheme question and the purge question), gated by [`cp6_the_fixture_dialogs_in_light`].
-#[test]
-fn cp6_every_dialog_one_by_one_in_light() {
+/// check-scheme question and the purge question), gated by [`cp6_the_fixture_dialogs_in_light`]. Two shards that run
+/// side by side, each in a window of its own.
+fn cp6_every_dialog(k: usize, of: usize) {
     let dev = device();
     let mut failures = Vec::new();
     {
@@ -822,18 +847,22 @@ fn cp6_every_dialog_one_by_one_in_light() {
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
         // The fields' caret blinks on the wall clock: steady for a stable image.
         h.ctx.all_styles_mut(|s| s.visuals.text_cursor.blink = false);
-        for (name, action) in [
-            ("about", "help.about"),
-            ("shortcuts", "help.shortcuts"),
-            ("notices", "help.notices"),
-            ("goto", "nav.goto"),
-            ("save-layout", "view.workspace_save"),
-            ("new-page", "page.new"),
-            ("new-structure", "structure.new"),
-            ("new-external-ref", "external_ref.new"),
-            ("renumber-pages", "pages.renumber"),
-            ("renumber-devices", "devices.renumber"),
-        ] {
+        for (name, action) in support::shard(
+            [
+                ("about", "help.about"),
+                ("shortcuts", "help.shortcuts"),
+                ("notices", "help.notices"),
+                ("goto", "nav.goto"),
+                ("save-layout", "view.workspace_save"),
+                ("new-page", "page.new"),
+                ("new-structure", "structure.new"),
+                ("new-external-ref", "external_ref.new"),
+                ("renumber-pages", "pages.renumber"),
+                ("renumber-devices", "devices.renumber"),
+            ],
+            k,
+            of,
+        ) {
             assert_eq!(
                 h.state_mut().shell_mut().dispatch(action, &json!({})),
                 Outcome::Done,
@@ -855,6 +884,12 @@ fn cp6_every_dialog_one_by_one_in_light() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+support::shard_tests!(
+    cp6_every_dialog, 2:
+    cp6_every_dialog_one_by_one_in_light_shard_1_of_2 = 0,
+    cp6_every_dialog_one_by_one_in_light_shard_2_of_2 = 1,
+);
 
 /// Records the open dialog as `name`, cropped to the dialog's frame with its shadow, gated; the toasts (they leave on
 /// the wall clock) are dismissed first.
@@ -1613,17 +1648,30 @@ fn the_save_tooltip_in_light() {
 }
 
 /// Four window details, each in its own window on a fresh copy of Golden A (their
-/// edits would show in each other's crops), light Comfortable, gated.
-#[test]
-fn the_window_details_in_light() {
+/// edits would show in each other's crops), light Comfortable, gated. Four shards that run side by side, a detail each.
+fn the_window_details(k: usize, of: usize) {
+    type Detail = fn(&ew_render2d::gpu::HeadlessDevice, &mut Vec<String>);
+    let details: [Detail; 4] = [
+        ft625_the_place_ghost_wires_and_hud_hint,
+        ft625_the_counted_toasts,
+        ft625_the_wire_marker_row,
+        ft625_the_potential_name_cell,
+    ];
     let dev = device();
     let mut failures = Vec::new();
-    ft625_the_place_ghost_wires_and_hud_hint(&dev, &mut failures);
-    ft625_the_counted_toasts(&dev, &mut failures);
-    ft625_the_wire_marker_row(&dev, &mut failures);
-    ft625_the_potential_name_cell(&dev, &mut failures);
+    for detail in support::shard(details, k, of) {
+        detail(&dev, &mut failures);
+    }
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
+
+support::shard_tests!(
+    the_window_details, 4:
+    the_window_details_in_light_shard_1_of_4 = 0,
+    the_window_details_in_light_shard_2_of_4 = 1,
+    the_window_details_in_light_shard_3_of_4 = 2,
+    the_window_details_in_light_shard_4_of_4 = 3,
+);
 
 /// The Place tool holding a NO contact between two contacts on folio 101, its ghost facing both
 /// with the wires autoconnect will draw, and the HUD saying how many and how to place without them; cropped to the

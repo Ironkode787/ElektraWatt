@@ -622,11 +622,11 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
     }
 }
 
-/// D3: every dialog of the shell, each in its state.
-#[test]
-fn census_every_dialog() {
+/// D3: every dialog of the shell, each in its state, in four shards that run side by side (`support::shard`: each
+/// dialog is opened in a window and a folder of its own).
+fn census_dialogs(k: usize, of: usize) {
     let mut census = Census::default();
-    for want in DialogKind::all() {
+    for want in support::shard(DialogKind::all(), k, of) {
         let tmp = Tmp::new();
         let mut h = open_dialog(&tmp, want);
         support::finish_jobs(&mut h);
@@ -638,6 +638,14 @@ fn census_every_dialog() {
     }
     census.assert_clean();
 }
+
+support::shard_tests!(
+    census_dialogs, 4:
+    census_every_dialog_shard_1_of_4 = 0,
+    census_every_dialog_shard_2_of_4 = 1,
+    census_every_dialog_shard_3_of_4 = 2,
+    census_every_dialog_shard_4_of_4 = 3,
+);
 
 /// Every context menu that has a registry entry (`command_bar::canvas_menu` over an object, over nothing and
 /// over a placement of a panel page; `command_bar::navigator_row_menu` on a Potentials row), opened by a right click as

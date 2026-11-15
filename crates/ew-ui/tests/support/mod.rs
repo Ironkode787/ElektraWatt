@@ -779,3 +779,45 @@ pub fn bar_button<'t>(harness: &'t Harness<'_, App>, label: &'t str) -> egui_kit
         })
         .unwrap_or_else(|| panic!("no command-bar button {label:?}"))
 }
+
+/// The cases of `items` that fall to shard `k` of `of`: the ones at an index that is `k` modulo `of`. A test that
+/// loops over independent cases runs the loop through this in `of` test functions ([`shard_tests`]), so that nextest
+/// runs the shards side by side, and a case added to the list lands in a shard by itself. The shards together hold
+/// every case once (`shards_hold_every_case_once`); a list too short to give every shard a case fails, so no shard
+/// passes empty.
+#[track_caller]
+pub fn shard<T>(items: impl IntoIterator<Item = T>, k: usize, of: usize) -> Vec<T> {
+    let all: Vec<T> = items.into_iter().collect();
+    assert!(k < of, "shard {k} of {of}");
+    assert!(all.len() >= of, "{} cases cannot fill {of} shards", all.len());
+    all.into_iter()
+        .enumerate()
+        .filter_map(|(i, x)| (i % of == k).then_some(x))
+        .collect()
+}
+
+/// Declares one `#[test]` per shard, each running `$run($k, $of)`.
+macro_rules! shard_tests {
+    ($run:ident, $of:literal: $($name:ident = $k:literal),+ $(,)?) => {
+        $(
+            #[test]
+            fn $name() {
+                $run($k, $of);
+            }
+        )+
+    };
+}
+pub(crate) use shard_tests;
+
+#[test]
+fn shards_hold_every_case_once() {
+    for (cases, of) in [(26, 4), (4, 4), (10, 3), (7, 2)] {
+        let mut seen: Vec<usize> = (0..of).flat_map(|k| shard(0..cases, k, of)).collect();
+        seen.sort_unstable();
+        assert_eq!(
+            seen,
+            (0..cases).collect::<Vec<_>>(),
+            "{cases} cases in {of} shards"
+        );
+    }
+}

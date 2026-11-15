@@ -588,6 +588,20 @@ fn the_terminology_table_is_followed() {
             .join("rules.ftl");
         std::fs::read_to_string(path).unwrap().replace("\r\n", "\n")
     };
+    // Each rejected word with the other rows whose Dutch term holds it: the same for every message, so found once.
+    let rejected: Vec<(&Term, &String, Vec<&Term>)> = table
+        .iter()
+        .flat_map(|term| {
+            let table = &table;
+            term.not.iter().map(move |alt| {
+                let owners = table
+                    .iter()
+                    .filter(|t| t.en != term.en && nl_rejected(&t.nl, alt, ""))
+                    .collect();
+                (term, alt, owners)
+            })
+        })
+        .collect();
     let mut wrong = Vec::new();
     for (en_file, nl_file) in [
         (shipped_file("en-GB"), nl.clone()),
@@ -612,18 +626,11 @@ fn the_terminology_table_is_followed() {
                     english = english.replace(&term.en.to_lowercase(), " ");
                 }
             }
-            for term in &table {
-                for alt in &term.not {
-                    let owners: Vec<&Term> = table
-                        .iter()
-                        .filter(|t| t.en != term.en && nl_rejected(&t.nl, alt, ""))
-                        .collect();
-                    let allowed = !owners.is_empty()
-                        && (!held.iter().any(|t| t.en == term.en)
-                            || owners.iter().any(|o| en_uses(&en, &o.en)));
-                    if !allowed && nl_rejected(dutch, alt, &term.nl) {
-                        wrong.push(format!("{key}: {} is {alt}, not {}: {dutch:?}", term.en, term.nl));
-                    }
+            for (term, alt, owners) in &rejected {
+                let allowed = !owners.is_empty()
+                    && (!held.iter().any(|t| t.en == term.en) || owners.iter().any(|o| en_uses(&en, &o.en)));
+                if !allowed && nl_rejected(dutch, alt, &term.nl) {
+                    wrong.push(format!("{key}: {} is {alt}, not {}: {dutch:?}", term.en, term.nl));
                 }
             }
         }
