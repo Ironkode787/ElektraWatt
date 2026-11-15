@@ -802,3 +802,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   "Valve terminal plates" (it stood under "Assemblies and black boxes"), and a device placed from it takes that group's
   letter (K); a filter lists first the parts whose description starts with it, so "valve terminal" finds the terminal
   first (persona round 3)
+- behaviour-change: Output ▸ Report block… on a report with nothing to list yet says in its toast that the block makes
+  no page and what gives it rows ("A valve terminal gives it rows"), for every report kind; it announced a folio that
+  never came (persona round 3)

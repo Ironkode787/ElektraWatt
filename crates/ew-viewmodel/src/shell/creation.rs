@@ -1791,13 +1791,22 @@ impl ShellModel {
         }
         let out = self.host_create("report_block.create", params);
         if out == Outcome::Done {
-            self.notify(
-                strings::format(
-                    key!("toast-report-block-new"),
-                    &[&report_kind_words(&kind), &folio],
-                ),
-                true,
-            );
+            // A block with nothing to list makes no page: the toast says so and what gives it rows (the persona round
+            // looked for a page 913 that the toast had announced).
+            let empty = self.project_session().is_some_and(|s| {
+                matches!(
+                    ew_api::output::report_folios(&s.query(), &number.to_string()),
+                    Err(ew_api::output::RowsError::NoPages(_))
+                )
+            });
+            let words = report_kind_words(&kind);
+            let text = if empty {
+                let rows = strings::lookup(&format!("report-rows-{}", kind.replace('_', "-"))).unwrap_or_default();
+                strings::format(key!("toast-report-block-empty"), &[&words, &folio, rows])
+            } else {
+                strings::format(key!("toast-report-block-new"), &[&words, &folio])
+            };
+            self.notify(text, true);
         }
         self.form_done(REPORT_NEW.action, out)
     }

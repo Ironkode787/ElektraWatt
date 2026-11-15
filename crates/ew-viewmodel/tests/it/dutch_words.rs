@@ -1092,10 +1092,16 @@ fn every_report_kind_has_its_words_in_both_locales() {
         .filter_map(|k| k["const"].as_str().map(str::to_owned))
         .collect();
     assert!(kinds.iter().any(|k| k == "wire_list"), "{kinds:?}");
-    let wanted: BTreeSet<String> = kinds
+    let mut wanted: BTreeSet<String> = kinds
         .iter()
         .map(|k| format!("report-kind-{}", k.replace('_', "-")))
         .collect();
+    // What gives a block of a page kind its rows, said when it makes no page yet (persona round 3).
+    wanted.extend(
+        ew_viewmodel::ew_api::output::page_report_kinds()
+            .iter()
+            .map(|k| format!("report-rows-{}", k.replace('_', "-"))),
+    );
     assert_eq!(missing(&wanted), Vec::<String>::new());
 }
 

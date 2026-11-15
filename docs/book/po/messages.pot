@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-15T05:12:54+01:00\n"
+"POT-Creation-Date: 2026-11-15T05:19:30+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -712,22 +712,24 @@ msgid ""
 "Output tab's **Report**) adds one, from the first folio you give: every "
 "list, a tube list or a PLC card list too, is made this way; a list is no "
 "page type of **New page**. Without a title of your own, its pages take the "
-"report's name (\"912 Tube list\")."
+"report's name (\"912 Tube list\"). A block with nothing to list yet makes no "
+"page: its toast says so and what gives it rows, such as a valve terminal for "
+"the valve-terminal configuration."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:44
+#: src/tutorials/reports-and-pdf.md:45
 msgid ""
 "Report pages follow the drawing: change a device, a terminal or a cable, and "
 "its report pages change with it."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:45
+#: src/tutorials/reports-and-pdf.md:46
 msgid ""
 "**Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** "
 "shows each page before it prints."
 msgstr ""
 
-#: src/tutorials/reports-and-pdf.md:46
+#: src/tutorials/reports-and-pdf.md:47
 msgid ""
 "[A terminal strip and a cable](terminal-strip-and-cable.md) shows where the "
 "terminal diagrams and the cable list take their rows from."

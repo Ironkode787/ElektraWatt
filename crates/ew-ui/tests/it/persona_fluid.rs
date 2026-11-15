@@ -1467,6 +1467,38 @@ fn browser_parts(d: &mut Driver) -> (Vec<(String, String)>, Vec<String>) {
     (rows, p.nodes.iter().map(|(n, _)| n.words()).collect())
 }
 
+/// Item 3 of round 3 (friction 5 and 6): Output ▸ Report ▸ Valve-terminal configuration on a project without a valve
+/// terminal said "Added the report block … from folio 913", and no page 913 came. The toast says that the block has
+/// nothing to list yet and what gives it rows; a block that lists something says as before that it was added.
+#[test]
+fn round3_a_report_block_with_nothing_to_list_says_so() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    let report = json!({"kind": "valve_terminal_config", "folio": "913"});
+    assert_eq!(d.shell_mut().dispatch("report_block.new", &report), Outcome::Done);
+    d.settle();
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(
+        toast,
+        "Added the report block Valve-terminal configuration from folio 913; it has nothing to list yet, so it makes \
+         no page. A valve terminal gives it rows: place one from Device ▸ Valve terminals."
+    );
+    let rows: Vec<String> = d
+        .shell_mut()
+        .shown_rows(NavKind::Pages)
+        .into_iter()
+        .map(|r| r.label)
+        .collect();
+    assert!(!rows.iter().any(|r| r.starts_with("913")), "{rows:?}");
+    one_tube(&mut d);
+    let report = json!({"kind": "tube_list", "folio": "912"});
+    assert_eq!(d.shell_mut().dispatch("report_block.new", &report), Outcome::Done);
+    d.settle();
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(toast, "Added the report block Tube list from folio 912.");
+    d.shell_mut().shutdown();
+}
+
 /// Item 2 of round 3 (friction 7 and 8): the starter terminal stood under "Assemblies and black boxes", so the person
 /// found only the supply plate, under "Valve terminal plates", and placed loose valves; a search for "valve terminal"
 /// listed the valve for a valve terminal first. The terminal stands under "Valve terminals", beside its plate's group,

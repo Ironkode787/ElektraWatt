@@ -40,7 +40,8 @@ drawn: EW generates them from the schematic, so they follow every change.
 - A report block generates report pages from the project: a parts list, terminal diagrams, a cable list and more.
   **Output ▸ Report block…** (the Output tab's **Report**) adds one, from the first folio you give: every list, a
   tube list or a PLC card list too, is made this way; a list is no page type of **New page**. Without a title of your
-  own, its pages take the report's name ("912 Tube list").
+  own, its pages take the report's name ("912 Tube list"). A block with nothing to list yet makes no page: its toast
+  says so and what gives it rows, such as a valve terminal for the valve-terminal configuration.
 - Report pages follow the drawing: change a device, a terminal or a cable, and its report pages change with it.
 - **Output ▸ Export PDF…** writes every page into one PDF; **Output ▸ Print…** shows each page before it prints.
 - [A terminal strip and a cable](terminal-strip-and-cable.md) shows where the terminal diagrams and the cable list
