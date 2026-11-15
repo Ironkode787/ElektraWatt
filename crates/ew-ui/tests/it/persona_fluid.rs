@@ -1178,7 +1178,7 @@ fn set_beside(d: &mut Driver, device: Uuid, of: Uuid, steps: (i64, i64)) {
     d.settle();
 }
 
-/// The re-test's page (frames t0022, t0082): a valve terminal's box holding two 5/2 valves, the second eight grid steps
+/// The re-test's page (frames t0022, t0082): a valve terminal's box holding two 5/2 valves, the second six grid steps
 /// above the first, so that its ports 5, 1 and 3 face the first's ports 4 and 2 two steps away, and a double-acting
 /// cylinder right of the box at the first valve's height; the first valve and the cylinder.
 fn stacked_valves(d: &mut Driver) -> (Uuid, Uuid) {
@@ -1193,7 +1193,7 @@ fn stacked_valves(d: &mut Driver) -> (Uuid, Uuid) {
     } else {
         (valves[1], valves[0])
     };
-    set_beside(d, upper, lower, (0, -8));
+    set_beside(d, upper, lower, (0, -6));
     let cylinder = device_drawn(d, "ew.iso.cylinder");
     set_beside(d, cylinder, lower, (40, 0));
     (lower, cylinder)

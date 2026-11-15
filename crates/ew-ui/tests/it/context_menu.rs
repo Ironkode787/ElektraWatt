@@ -30,7 +30,8 @@ use crate::wires_and_cables::{
 pub(crate) fn point_on(h: &Harness<'_, App>, id: &str) -> Pos2 {
     let c = h.state().shell().canvas().unwrap();
     let page = std::sync::Arc::clone(c.page());
-    let segments = page
+    // The longest segment first: a short lead at a port lies within reach of the port's symbol.
+    let mut segments: Vec<(i64, _)> = page
         .tables
         .connections
         .iter()
@@ -39,11 +40,17 @@ pub(crate) fn point_on(h: &Harness<'_, App>, id: &str) -> Pos2 {
             w.polyline
                 .windows(2)
                 .map(|s| {
-                    page.snapper
-                        .page_to_sheet(((2 * s[0].0 + s[1].0) / 3, (2 * s[0].1 + s[1].1) / 3))
+                    let length = (s[1].0 - s[0].0).abs() + (s[1].1 - s[0].1).abs();
+                    let at = page
+                        .snapper
+                        .page_to_sheet(((2 * s[0].0 + s[1].0) / 3, (2 * s[0].1 + s[1].1) / 3));
+                    (length, at)
                 })
                 .collect::<Vec<_>>()
-        });
+        })
+        .collect();
+    segments.sort_by_key(|(length, _)| std::cmp::Reverse(*length));
+    let segments = segments.into_iter().map(|(_, at)| at);
     let centres = page
         .entities
         .iter()
