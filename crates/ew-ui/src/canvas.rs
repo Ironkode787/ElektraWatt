@@ -1918,14 +1918,13 @@ impl CanvasHost {
                 i.consume_key(Modifiers::SHIFT, Key::F10) || i.consume_key(Modifiers::NONE, Key::Menu)
             });
         if response.secondary_clicked() && select {
-            // Picked at the pointer as a press picks, not from the hover a click before cleared; of the entities there
-            // a selected one first, so a right click on what a click selected keeps it.
-            let stack = canvas.pointer_stack();
-            let over = stack
-                .iter()
+            // Picked at the pointer now, not from the hover a click before cleared: of the entities a press there can
+            // pick a selected one first, so a right click on what a click selected keeps it, else the hover's pick.
+            let over = canvas
+                .pointer_stack()
+                .into_iter()
                 .find(|e| shell.selection().items.contains(e))
-                .or(stack.first())
-                .copied();
+                .or_else(|| canvas.pointer_entity().map(|(e, _)| e));
             let spot = menu_spot(canvas, over);
             if !canvas_menu(shell, spot).is_empty() {
                 match over.filter(|_| spot == MenuSpot::Object) {

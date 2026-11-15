@@ -847,12 +847,18 @@ impl CanvasModel {
 
     /// Recomputes the hover pick (see the module documentation) and the hovered link.
     fn update_hover(&mut self) {
-        self.hover = pick(
+        self.hover = self.pointer_entity();
+        self.hover_link = self.pointer.and_then(|p| self.link_at(p));
+    }
+
+    /// The hover's pick at the pointer, found now ([`CanvasModel::hover`] is cleared by a press while the pointer
+    /// stands still).
+    pub fn pointer_entity(&self) -> Option<(EntityRef, Rect)> {
+        pick(
             &self.page.entities,
             self.pointer,
             HOVER_SLOP_PT / self.points_per_nm(),
-        );
-        self.hover_link = self.pointer.and_then(|p| self.link_at(p));
+        )
     }
 
     /// Every entity a press at the pointer can pick, in the Select tool's pick order ([`crate::tools::pick_stack`]),
