@@ -22,8 +22,8 @@
 #    the build. ubuntu-24.04 restricts unprivileged user namespaces, so the namespace needs `unshare` and passwordless
 #    sudo; their absence fails here with the reason, not as a documentation failure of the build. The English book goes
 #    to <dest>, then the Dutch one (`book.language = nl`, docs/book/po/nl.po) to <dest>/nl.
-# 5. The PO template (docs/book/po/messages.pot) and the translations are not made here: `cargo xtask gen` writes
-#    them from the pages and `cargo xtask rules` fails when they are stale (xtask/src/book_po.rs).
+# 5. The PO template (docs/book/po/messages.pot) and the translations are not made here: `cargo xtask book-po`
+#    writes them from the pages, when the guide is translated and before a release (xtask/src/book_po.rs).
 set -euo pipefail
 
 docs_mdbook_version="$(python3 -I packaging/stage.py pin mdbook)"

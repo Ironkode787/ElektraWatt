@@ -12,7 +12,9 @@
 //!   English beside it (`#| msgid`), which the build treats as untranslated until a translator has looked; a
 //!   translation whose message is gone stays at the end as an obsolete entry (`#~`), so no Dutch text is lost.
 //!
-//! `cargo xtask gen` writes both; `cargo xtask rules` (and so every `cargo xtask check`) fails when either is stale.
+//! `cargo xtask book-po` writes both and `cargo xtask book-po --check` says whether they are stale. It is run by
+//! whoever translates the guide and before a release (the release checklist's translation item); `cargo xtask gen`
+//! and `cargo xtask rules` leave the catalogue alone, so a change of a page does not rewrite it in every branch.
 //!
 //! **The tools.** mdBook and mdbook-i18n-helpers at the versions `packaging/components.toml` pins. An `mdbook` of
 //! that version on the PATH is used; otherwise, and for mdbook-i18n-helpers always, the step installs the pinned

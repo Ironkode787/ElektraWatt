@@ -74,13 +74,15 @@ The source language is English (`language = "en"` in `book.toml`). The Dutch gui
 built from the same pages through mdbook-i18n-helpers 0.4.0 (pinned in `packaging/components.toml`):
 
 - `po/messages.pot` holds the messages of the hand-written pages and the table of contents, made from a copy of the
-  book without the generated pages, so no generated text is translated. It is generated: `cargo xtask gen` writes it
-  from the pages, and `cargo xtask rules` (so every `cargo xtask check`) fails when it is stale. Never edit it.
+  book without the generated pages, so no generated text is translated. It is generated: `cargo xtask book-po` writes it
+  from the pages (and `cargo xtask book-po --check` says whether it is stale). Never edit it. It is made when the
+  guide is translated and before a release, not with every change of a page: `cargo xtask gen` and
+  `cargo xtask rules` leave it and the translations alone, so that branches do not all rewrite them.
 - `po/nl.po` translates the introduction, the tutorials page and the tutorials; every other message, and every
-  generated page, shows in English. `cargo xtask gen` merges it with the template: a message whose English is
+  generated page, shows in English. `cargo xtask book-po` merges it with the template: a message whose English is
   unchanged keeps its Dutch; one whose English changed takes its old Dutch marked `#, fuzzy`, with the old English
   under `#|` (the book shows such a message in English until it is looked at); a translation whose message is gone
-  stays at the end under `#~`. So after changing a page: run `cargo xtask gen`, then in `nl.po` bring each fuzzy
+  stays at the end under `#~`. So to translate after pages changed: run `cargo xtask book-po`, then in `nl.po` bring each fuzzy
   entry's `msgstr` up to date and delete its `#, fuzzy` and `#|` lines. Only the `msgstr` texts are written by hand
   (no Weblate at 0.1.0, ID-1331). Keep the window's Dutch words (the terminology table at the head of
   `crates/ew-viewmodel/locales/nl-NL/shell.ftl`) and its Dutch menu paths, which `elektrawatt`'s `tutorials` test

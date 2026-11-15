@@ -9,8 +9,9 @@
 //!   GPL), so each registry's own crate has a test that writes its file when `EW_REFERENCE_DIR` is set, and
 //!   [`reference`] runs those tests.
 //! - **Committed files** that a generator writes from data in the tree: the workspace-hack crate, the book's
-//!   contents and reference pages, the icon table, the lint list, the QET symbol edition, the guide's translation
-//!   catalogue, and the persona harness's action list. `--check` compares the ones that need no build.
+//!   contents and reference pages, the icon table, the lint list, the QET symbol edition, and the persona harness's
+//!   action list. `--check` compares the ones that need no build. The guide's translation catalogue is not among
+//!   them: `cargo xtask book-po` makes it, when the guide is translated and before a release.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -53,8 +54,9 @@ const OWN: &[(&str, Own)] = &[
         }
     }),
     ("symbols-qet10", crate::symbols::run),
-    // The guide's translation template and translations, from its pages.
-    ("book-po", crate::book_po::run),
+    // Not here: the guide's translation catalogue (`cargo xtask book-po`). It is made when the guide is translated
+    // and before a release, not with every change of a page: made here, every change of a page rewrote the
+    // template and the translations in every branch, and they met at every merge.
 ];
 
 /// `gen [--check]`.
@@ -107,6 +109,7 @@ pub(crate) fn reference(root: &Path) -> Result<bool> {
         std::fs::remove_dir_all(&dir).with_context(|| format!("removing {}", dir.display()))?;
     }
     std::fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
+    build_reference_tests(root)?;
     for (package, args) in REFERENCE {
         let (target, test) = args.split_at(2);
         let mut command = Command::new(crate::cargo());
@@ -126,6 +129,28 @@ pub(crate) fn reference(root: &Path) -> Result<bool> {
         }
     }
     Ok(true)
+}
+
+/// Builds the test binaries of [`REFERENCE`] in one cargo invocation, so that they compile and link side by side.
+/// The runs that follow then find them built: run one after the other on a tree that changed, each waited for its
+/// own crate's compile and link in turn, which was most of the time `gen` took. A failure here is left to the
+/// runs, which report it against their package.
+fn build_reference_tests(root: &Path) -> Result<()> {
+    let mut packages: Vec<&str> = REFERENCE.iter().map(|(p, _)| *p).collect();
+    packages.sort_unstable();
+    packages.dedup();
+    let mut command = Command::new(crate::cargo());
+    command
+        .current_dir(root)
+        .args(["test", "--quiet", "--no-run", "--all-features"]);
+    for package in packages {
+        command.args(["-p", package]);
+    }
+    command
+        .args(["--test", "it", "--bin", "ew"])
+        .status()
+        .context("building the reference tests")?;
+    Ok(())
 }
 
 /// The workspace-hack crate `ew-hack` (`.config/hakari.toml`), which gives every `-p` build the same features of the
