@@ -1461,6 +1461,10 @@ impl CanvasHost {
         );
         self.context_menu(&response, shell, canvas, group, events);
         Self::potential_offer(&response, shell, canvas, group, events);
+        // A text of the one selected symbol can be grabbed and dragged on its own (doc 06 §2.5).
+        if response.hovered() && shell.tool().name() == "select" && shell.text_under_pointer().is_some() {
+            ui.ctx().set_cursor_icon(egui::CursorIcon::Grab);
+        }
         // Doc 16a §7.2, §6.18: the connection point under the pointer names its printed label,
         // its kind and its potential in a tooltip in the inverse style.
         // The link preview popup and a hover tooltip never show at once; while the popup shows, the

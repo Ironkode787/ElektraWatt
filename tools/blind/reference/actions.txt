@@ -153,6 +153,8 @@ layout.rotate Command "Turn placement" menu none shortcut none context canvas hi
 layout.flip Command "Flip placement" menu none shortcut none context canvas hidden params ""
 layout.lock_selection Command "Lock" menu none shortcut none context canvas hidden params ""
 layout.unlock_selection Command "Unlock" menu none shortcut none context canvas hidden params ""
+rep.hide_text Command "Hide text" menu none shortcut none context canvas hidden params "slot:uint"
+rep.reset_texts Command "Reset text positions" menu none shortcut none context canvas hidden params ""
 layout.reset_label Command "Reset label position" menu none shortcut none context canvas hidden params ""
 layout.options View "Placing options" menu none shortcut none context canvas hidden params "mode?:enum(free|push|swap), grid?:uint"
 tool.rail_draw Command "Rail" menu "Draw" shortcut none context canvas params ""

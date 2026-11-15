@@ -426,6 +426,7 @@ impl ShellModel {
         if let Some(geometry) = project.session.page_geometry(folio) {
             page.geometry = Arc::new(geometry);
         }
+        page.texts = Arc::new(project.session.page_slot_texts(folio));
         // A panel-layout page's panel data, once per (session, revision, folio); none for another page.
         if self
             .page_rows()

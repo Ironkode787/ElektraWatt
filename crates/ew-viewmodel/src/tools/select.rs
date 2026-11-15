@@ -157,6 +157,87 @@ pub struct SelectTool {
     last: Option<LastClick>,
     /// A press on a placement or a carrier of a panel page, and the placement's drag once it moves.
     panel: Option<PanelPress>,
+    /// A press on a text of the one selected symbol, and its drag once it moves.
+    text: Option<TextPress>,
+}
+
+/// A press on a text of the one selected symbol (doc 06 §2.5): a drag moves the text alone, snapped to the fine grid
+/// (Alt: free), the Rotate key turns it a quarter counter-clockwise while it is dragged, and the release commits
+/// `rep.text_set` with its anchor in the symbol's coordinates; a release without a drag is a click on the symbol.
+#[derive(Clone, PartialEq, Debug)]
+struct TextPress {
+    /// The text where the page prints it.
+    text: ew_api::output::SlotTextBox,
+    /// Where the press was, sheet point.
+    from: (i64, i64),
+    /// The modifiers of the press.
+    mods: Mods,
+    /// The anchor's page point once dragged.
+    to: Option<(i64, i64)>,
+    /// The quarter turns the Rotate key added.
+    turns: u8,
+}
+
+/// The text of the one selected representation under the sheet point `at`, the last printed first.
+pub(crate) fn text_under(cx: &ToolCx<'_>, at: (i64, i64)) -> Option<ew_api::output::SlotTextBox> {
+    let reps = selected_reps(cx.selection, cx.page);
+    let [rep] = reps.as_slice() else { return None };
+    let p = cx.snapper.sheet_to_page(at);
+    cx.page.texts.iter().rev().copied().find(|t| {
+        t.rep == rep.0
+            && (t.rect.min().x.0..=t.rect.max().x.0).contains(&p.0)
+            && (t.rect.min().y.0..=t.rect.max().y.0).contains(&p.1)
+    })
+}
+
+/// `r` turned by `turns` quarters counter-clockwise on the sheet about `c`, page nm.
+fn turned_rect(r: Rect, c: (i64, i64), turns: u8) -> Rect {
+    let turn = |p: Pt2| {
+        let (dx, dy) = (p.x.0 - c.0, p.y.0 - c.1);
+        // Counter-clockwise on the sheet with y down: (dx, dy) to (dy, −dx).
+        let (x, y) = (0..turns % 4).fold((dx, dy), |(x, y), _| (y, -x));
+        Pt2::new(Nm(c.0 + x), Nm(c.1 + y))
+    };
+    Rect::from_points(turn(r.min()), turn(r.max()))
+}
+
+impl TextPress {
+    /// The ghost of the text at its current point and turn: its box moved and turned, on the sheet.
+    fn ghost(&self, cx: &ToolCx<'_>) -> ToolOutput {
+        let a = (self.text.at.x.0, self.text.at.y.0);
+        let to = self.to.unwrap_or(a);
+        let r = turned_rect(self.text.rect, a, self.turns);
+        let d = (to.0 - a.0, to.1 - a.1);
+        let s = |x: i64, y: i64| {
+            let (x, y) = cx.snapper.page_to_sheet((x + d.0, y + d.1));
+            Pt2::new(Nm(x), Nm(y))
+        };
+        let rect = Rect::from_points(s(r.min().x.0, r.min().y.0), s(r.max().x.0, r.max().y.0));
+        ToolOutput::Transient(Overlay::new(vec![OverlayItem::Ghost {
+            rects: vec![rect],
+            offset: (0, 0),
+        }]))
+    }
+
+    /// The `rep.text_set` of the drop: the anchor in the symbol's coordinates and, when turned, the angle.
+    fn command(&self) -> Option<Box<ew_api::AnyCommand>> {
+        let t = &self.text;
+        let to = self.to?;
+        let local = t
+            .frame
+            .orient
+            .inverse()
+            .checked_apply(Pt2::new(Nm(to.0 - t.frame.origin.x.0), Nm(to.1 - t.frame.origin.y.0)))?;
+        let mut params = serde_json::json!({"rep": t.rep.to_string(), "slot": t.slot, "pos": [local.x.0, local.y.0]});
+        if self.turns % 4 != 0 {
+            let angle = (i64::from(t.angle.normalized().0) + i64::from(self.turns % 4) * 90_000).rem_euclid(360_000);
+            params["angle"] = serde_json::json!(angle);
+        }
+        Some(Box::new(ew_api::AnyCommand {
+            name: "rep.text_set".into(),
+            params,
+        }))
+    }
 }
 
 /// A press on a panel page: a click selects the placement or carrier (a label press selects its
@@ -336,6 +417,78 @@ impl SelectTool {
             connect: false,
             last: None,
             panel: None,
+            text: None,
+        }
+    }
+
+    /// Select on a drawn page: the events of a press on a text of the one selected symbol; `None` hands the event to
+    /// the page's other rules.
+    fn text_event(&mut self, ev: &CanvasEvent, cx: &ToolCx<'_>) -> Option<ToolOutput> {
+        match ev {
+            CanvasEvent::Press {
+                at,
+                button: Button::Primary,
+                mods,
+            } => {
+                self.text = None;
+                if !matches!(self.state, State::Idle | State::Link { .. } | State::Pressed { .. }) {
+                    return None;
+                }
+                let text = text_under(cx, *at)?;
+                self.state = State::Idle;
+                self.text = Some(TextPress {
+                    text,
+                    from: *at,
+                    mods: *mods,
+                    to: None,
+                    turns: 0,
+                });
+                Some(ToolOutput::None)
+            }
+            CanvasEvent::PointerMove { at, mods } => {
+                let press = self.text.as_mut()?;
+                if press.to.is_none() && cx.within(press.from, *at, CLICK_SLOP_PT) {
+                    return Some(ToolOutput::None);
+                }
+                let (a, b) = (cx.snapper.sheet_to_page(press.from), cx.snapper.sheet_to_page(*at));
+                let anchor = (
+                    press.text.at.x.0.saturating_add(b.0 - a.0),
+                    press.text.at.y.0.saturating_add(b.1 - a.1),
+                );
+                let sheet = cx.snapper.page_to_sheet(anchor);
+                press.to = Some(cx.snapper.snap_fine(sheet, super::snap::FineKind::Text, mods.alt).1);
+                Some(press.ghost(cx))
+            }
+            CanvasEvent::Key(ToolKey::RotateCw) => {
+                let press = self.text.as_mut()?;
+                press.to?;
+                press.turns = (press.turns + 1) % 4;
+                Some(press.ghost(cx))
+            }
+            CanvasEvent::Release {
+                button: Button::Primary,
+                ..
+            } => {
+                let press = self.text.take()?;
+                if press.to.is_none() {
+                    let last = self.last;
+                    return Some(self.click(last, EntityRef(press.text.rep), press.from, press.mods, cx));
+                }
+                Some(match press.command() {
+                    Some(cmd) => ToolOutput::Commit(cmd),
+                    None => ToolOutput::Cancel,
+                })
+            }
+            CanvasEvent::Escape => {
+                let press = self.text.take()?;
+                Some(if press.to.is_some() {
+                    ToolOutput::Cancel
+                } else {
+                    ToolOutput::None
+                })
+            }
+            _ if self.text.is_some() => Some(ToolOutput::None),
+            _ => None,
         }
     }
 
@@ -1041,6 +1194,11 @@ impl Tool for SelectTool {
             Some(_) => return "pressed",
             None => {}
         }
+        match &self.text {
+            Some(TextPress { to: Some(_), .. }) => return "dragging",
+            Some(_) => return "pressed",
+            None => {}
+        }
         match self.state {
             State::Idle | State::Link { .. } => "idle",
             State::Pressed { .. } => "pressed",
@@ -1056,6 +1214,12 @@ impl Tool for SelectTool {
         // A press on a placement or a carrier of a panel page.
         if cx.page.panel.is_some()
             && let Some(out) = self.panel_event(ev, cx)
+        {
+            return out;
+        }
+        // A press on a text of the one selected symbol.
+        if cx.page.panel.is_none()
+            && let Some(out) = self.text_event(ev, cx)
         {
             return out;
         }

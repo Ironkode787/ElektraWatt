@@ -6809,3 +6809,12 @@ field-word-labels = Labels
 field-help-word-labels = What each device on the layout is labelled with: its tag, its item number in a balloon that the legend lists, or both.
 field-word-label-at = Label position
 field-help-word-label-at = Where the device's label was dragged to on its layout pages; Reset label position puts it back.
+
+# A symbol's text moved on its own (doc 06 §2.5).
+action-rep-hide-text = Hide text
+action-rep-reset-texts = Reset text positions
+command-rep-text_set = Move a symbol's text
+command-rep-texts_reset = Reset text positions
+reason-text-one-symbol = Select one symbol
+reason-texts-not-moved = The symbol's texts stand where the symbol puts them
+refusal-rep-text-slot = the symbol has no text { $p0 }

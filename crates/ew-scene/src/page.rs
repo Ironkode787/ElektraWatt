@@ -578,6 +578,29 @@ pub struct LayerList {
     /// The labels layer's box of each placement's label on a panel-layout page where it prints (its knockout box,
     /// `crate::panel`), by placement ID: what a drag of the label grabs. Empty in the other layers and pages.
     pub panel_labels: BTreeMap<Uuid, Rect>,
+    /// The labels layer's slot texts where they print, in print order: what a drag of a symbol's text grabs. Empty in
+    /// the other layers.
+    pub slot_texts: Vec<SlotTextBox>,
+}
+
+/// A representation's slot text where the labels layer prints it.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SlotTextBox {
+    /// The representation.
+    pub rep: Uuid,
+    /// The symbol's slot index.
+    pub slot: u16,
+    /// The text's anchor on the page.
+    pub at: Pt2,
+    /// The angle it prints at.
+    pub angle: Angle2,
+    /// Whether the representation's override moves or turns it.
+    pub moved: bool,
+    /// Its box on the page.
+    pub rect: Rect,
+    /// The representation's text frame (`ew_derive::text_frame`): a page point `p` is `frame.orient⁻¹(p − origin)` in
+    /// the symbol's coordinates, where a slot override's position is.
+    pub frame: ew_derive::TextFrame,
 }
 
 /// `page_display_list(page, layer, lang)` for a drawn page (see the module documentation). The language is
@@ -1271,6 +1294,8 @@ impl Builder<'_> {
                 texts.push(SlotText {
                     symbol: rep.symbol.as_uuid(),
                     value,
+                    frame,
+                    moved: moved || turned,
                     at: frame.origin + frame.orient.apply(pos),
                     angle: symbol::upright_angle(rot),
                     align: symbol::slot_align(def, slot, rot, frame.orient),
@@ -1330,6 +1355,17 @@ impl Builder<'_> {
                 });
             }
             let spec = t.spec(conflict);
+            if let Some(rect) = self.text_box(&spec, false) {
+                self.out.slot_texts.push(SlotTextBox {
+                    rep: t.entity.0,
+                    slot: t.value.slot,
+                    at: t.at,
+                    angle: t.angle,
+                    moved: t.moved,
+                    rect,
+                    frame: t.frame,
+                });
+            }
             self.text_placed(&spec, t.xref);
         }
         for (entity, text, at, angle, align) in &pins {
@@ -2497,6 +2533,10 @@ const SLOT_TEXT_DROPS: usize = 3;
 struct SlotText<'v> {
     symbol: Uuid,
     value: &'v SlotValue,
+    /// The representation's text frame.
+    frame: ew_derive::TextFrame,
+    /// Whether the representation's override moves or turns it.
+    moved: bool,
     at: Pt2,
     angle: Angle2,
     align: Align,

@@ -586,7 +586,30 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         None,
         |s, _| s.act_layout_lock(false),
     ))),
-    // Reset label position in the canvas context menu over a placement whose label was dragged (F21).
+    // Hide text in the canvas context menu over a text of the one selected symbol (doc 06 §2.5).
+    with_params(
+        "slot:uint",
+        hidden(in_canvas(act(
+            "rep.hide_text",
+            Command,
+            Menu::Edit,
+            &[],
+            one_rep_selected,
+            None,
+            |s, p| s.act_rep_hide_text(p),
+        ))),
+    ),
+    // Reset text positions in the canvas context menu over a symbol whose texts were moved or turned.
+    hidden(in_canvas(act(
+        "rep.reset_texts",
+        Command,
+        Menu::Edit,
+        &[],
+        texts_moved,
+        None,
+        |s, _| s.act_rep_reset_texts(),
+    ))),
+    // Reset label position in the canvas context menu over a placement whose label was dragged.
     hidden(in_canvas(act(
         "layout.reset_label",
         Command,

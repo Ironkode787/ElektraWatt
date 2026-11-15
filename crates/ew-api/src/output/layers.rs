@@ -59,6 +59,8 @@ pub struct PageLayer {
     /// The labels layer's box of each placement's label on a panel-layout page, by placement ID
     /// (`ew_scene::page::LayerList::panel_labels`).
     pub panel_labels: BTreeMap<Uuid, ew_dl::ew_units::Rect>,
+    /// The labels layer's slot texts where they print (`ew_scene::page::LayerList::slot_texts`).
+    pub slot_texts: Vec<ew_scene::page::SlotTextBox>,
 }
 
 /// An empty view of `page`: the parts a layer reads are filled by its family.
@@ -230,6 +232,7 @@ fn build(q: &Q, page: PageRef, layer: Layer) -> Arc<PageLayer> {
         findings: l.findings,
         tags: l.tags,
         panel_labels: l.panel_labels,
+        slot_texts: l.slot_texts,
     })
 }
 

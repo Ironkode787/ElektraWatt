@@ -127,6 +127,8 @@ commands! {
     device::MoveReps,
     device::TransformReps,
     device::SetAnchorPolicy,
+    device::SetRepText,
+    device::ResetRepTexts,
     device::PlaceBlackBox,
     device::PlacePortBoxes,
     connection::Connect,

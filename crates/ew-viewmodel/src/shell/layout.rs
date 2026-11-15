@@ -470,6 +470,79 @@ impl ShellModel {
         )
     }
 
+    /// The one selected symbol and its texts where the page prints them; `None` unless exactly one representation is
+    /// selected on a drawn page.
+    pub fn selected_rep_texts(&self) -> Option<(Uuid, Vec<ew_api::output::SlotTextBox>)> {
+        let canvas = self.canvas()?;
+        let page = canvas.page();
+        if page.panel.is_some() {
+            return None;
+        }
+        let reps = crate::tools::transform::selected_reps(&self.tools.selection, page);
+        let [rep] = reps.as_slice() else { return None };
+        Some((rep.0, page.texts.iter().filter(|t| t.rep == rep.0).copied().collect()))
+    }
+
+    /// The selected symbols with a text moved or turned by an override.
+    pub fn selected_reps_with_moved_texts(&self) -> Vec<Uuid> {
+        let Some(canvas) = self.canvas() else {
+            return Vec::new();
+        };
+        let page = canvas.page();
+        let mut out: Vec<Uuid> = crate::tools::transform::selected_reps(&self.tools.selection, page)
+            .into_iter()
+            .map(|e| e.0)
+            .filter(|r| page.texts.iter().any(|t| t.rep == *r && t.moved))
+            .collect();
+        out.dedup();
+        out
+    }
+
+    /// The slot of the selected symbol's text under the pointer, for the canvas context menu.
+    pub fn text_under_pointer(&self) -> Option<u16> {
+        let canvas = self.canvas()?;
+        let at = canvas.pointer()?;
+        let p = canvas.page().snapper.sheet_to_page(at);
+        let (_, texts) = self.selected_rep_texts()?;
+        texts
+            .iter()
+            .rev()
+            .find(|t| {
+                (t.rect.min().x.0..=t.rect.max().x.0).contains(&p.0)
+                    && (t.rect.min().y.0..=t.rect.max().y.0).contains(&p.1)
+            })
+            .map(|t| t.slot)
+    }
+
+    /// `rep.hide_text {slot}` (Hide text in the canvas context menu over a text of the one selected symbol):
+    /// `rep.text_set {rep, slot, visible: false}`.
+    pub(crate) fn act_rep_hide_text(&mut self, p: &Map<String, Value>) -> Outcome {
+        let Some((rep, _)) = self.selected_rep_texts() else {
+            return Outcome::refused(key!("reason-text-one-symbol"));
+        };
+        let Some(slot) = p.get("slot").and_then(Value::as_u64) else {
+            return failed(key!("error-missing-param"), &["slot"]);
+        };
+        self.commit_from_host(&AnyCommand {
+            name: "rep.text_set".into(),
+            params: json!({"rep": rep.to_string(), "slot": slot, "visible": false}),
+        })
+    }
+
+    /// `rep.reset_texts` (Reset text positions in the canvas context menu over a symbol): `rep.texts_reset` of the
+    /// selected symbols whose texts were moved or turned.
+    pub(crate) fn act_rep_reset_texts(&mut self) -> Outcome {
+        let reps = self.selected_reps_with_moved_texts();
+        if reps.is_empty() {
+            return Outcome::refused(key!("reason-texts-not-moved"));
+        }
+        let reps: Vec<String> = reps.iter().map(ToString::to_string).collect();
+        self.commit_from_host(&AnyCommand {
+            name: "rep.texts_reset".into(),
+            params: json!({ "reps": reps }),
+        })
+    }
+
     /// `layout.reset_label` (Reset label position in the canvas context menu over a placement): `layout.label_move
     /// {placement}` of the selected placement, which puts its label back where the label rules place it.
     pub(crate) fn act_layout_reset_label(&mut self) -> Outcome {

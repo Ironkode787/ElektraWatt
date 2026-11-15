@@ -588,6 +588,26 @@ fn legend_addable(m: &ShellModel) -> Result<(), Key<'static>> {
     }
 }
 
+/// Hide text: one symbol selected on a writable page.
+fn one_rep_selected(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable_page(m)?;
+    if m.selected_rep_texts().is_some() {
+        Ok(())
+    } else {
+        Err(key!("reason-text-one-symbol"))
+    }
+}
+
+/// Reset text positions: a selected symbol has a text moved or turned.
+fn texts_moved(m: &ShellModel) -> Result<(), Key<'static>> {
+    writable_page(m)?;
+    if m.selected_reps_with_moved_texts().is_empty() {
+        Err(key!("reason-texts-not-moved"))
+    } else {
+        Ok(())
+    }
+}
+
 /// Reset label position: the selected placement's label was moved.
 fn label_moved(m: &ShellModel) -> Result<(), Key<'static>> {
     panel_selection(m)?;

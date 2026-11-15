@@ -716,6 +716,17 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot) -> Vec<ActionItem> {
             items.extend(variants.iter().filter(|v| v.id != b.id).cloned());
         }
     }
+    // Over a text of the one selected symbol, Hide text; over a symbol with a moved text, Reset text positions.
+    if let Some(slot) = model.text_under_pointer()
+        && let Some(meta) = actions::find("rep.hide_text")
+    {
+        let mut hide = actions::item_of(meta, model);
+        hide.params = serde_json::json!({ "slot": slot });
+        items.push(hide);
+    }
+    if !model.selected_reps_with_moved_texts().is_empty() {
+        items.extend(item("rep.reset_texts"));
+    }
     for id in [
         "edit.cut",
         "edit.copy",

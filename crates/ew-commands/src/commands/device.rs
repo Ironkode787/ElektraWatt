@@ -13,9 +13,9 @@ use ew_schema::{
     AnchorPolicy, AnyId, BoxSpec, Connection, ConnectionKind, ContactKind, Device, DeviceAspects, DeviceKind,
     Endpoint, Extra, FnDef, FnRole, FrozenTag, Function, FunctionKind, Junction, JunctionStyle, Kind,
     LibCopy, NumberSpec, Page, PageItem, PageItemKind, PageType, Part, PartRef, PartUse, RepType,
-    Representation, Strip, StructureAssignment, StructureBox, SymbolDef, TagSpec,
+    Representation, SlotOverride, Strip, StructureAssignment, StructureBox, SymbolDef, TagSpec,
 };
-use ew_units::{Dec3, Grid, Nm, Orient2, Pt2};
+use ew_units::{Angle2, Dec3, Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -31,7 +31,7 @@ use crate::geometry::{
     translate,
 };
 use crate::meta::CommandMeta;
-use crate::proxy::{IdentS, MlTextS, Orient2S, Pt2S, UuidS};
+use crate::proxy::{Angle2S, IdentS, MlTextS, Orient2S, Pt2S, UuidS};
 use crate::text::text;
 use crate::tx::TxBuilder;
 
@@ -1394,6 +1394,130 @@ mod box_pivot_tests;
 
 mod port_boxes;
 pub use port_boxes::{PlacePortBoxes, PortBox, PortsTarget};
+
+/// `rep.text_set` (`SetRepText`, doc 06 §2.5): moves, turns or hides one text of a representation's symbol on its page:
+/// sets the members given of the representation's override of slot `slot` and keeps the others. `pos` is a point of
+/// the representation's text frame (the symbol's coordinates, `ew_derive::text_frame`), `angle` the text's angle in the
+/// symbol's coordinates (a turned symbol prints it as it is, made readable), `visible` shows or hides it. An override
+/// left with no member is removed. Rejected: a slot the symbol does not have (`/slot`); a missing representation is
+/// not found. Interactive. Outcome: the representation.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SetRepText {
+    /// The representation.
+    #[schemars(with = "UuidS")]
+    pub rep: Id<Representation>,
+    /// The symbol's text slot (its index).
+    pub slot: u16,
+    /// The text's new anchor in the symbol's coordinates.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Pt2S>")]
+    pub pos: Option<Pt2>,
+    /// The text's new angle in the symbol's coordinates.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<Angle2S>")]
+    pub angle: Option<Angle2>,
+    /// Shown or hidden.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub visible: Option<bool>,
+}
+
+impl Command for SetRepText {
+    const NAME: &'static str = "rep.text_set";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let rep = tx.require::<Representation>(self.rep)?;
+        let slots = tx
+            .get::<LibCopy<SymbolDef>>(rep.symbol)
+            .map_or(0, |s| s.item.text_slots.len());
+        if usize::from(self.slot) >= slots {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/slot",
+                text!("refusal-rep-text-slot", self.slot.to_string()),
+            ));
+        }
+        let (slot, pos, angle, visible) = (self.slot, self.pos, self.angle, self.visible);
+        tx.update::<Representation>(self.rep, |r| {
+            let mut o = r.text_slots.get(&slot).cloned().unwrap_or(SlotOverride {
+                slot,
+                pos: None,
+                angle: None,
+                visible: None,
+                extra: Extra::new(),
+            });
+            o.pos = pos.or(o.pos);
+            o.angle = angle.or(o.angle);
+            o.visible = visible.or(o.visible);
+            if o.pos.is_none() && o.angle.is_none() && o.visible.is_none() && o.extra.is_empty() {
+                r.text_slots.remove(&slot);
+            } else {
+                r.text_slots.insert(o);
+            }
+        })?;
+        Ok(Outcome::primary((Kind::Representation, self.rep.cast())))
+    }
+}
+
+/// `rep.texts_reset` (`ResetRepTexts`, doc 06 §2.5): puts every text of the representations' symbols back where the
+/// symbol places it: removes the position and the angle of each slot override (a hidden text stays hidden); an override
+/// left with no member is removed. A representation without such an override is left untouched. Rejected: an empty
+/// `reps` list; a missing representation is not found. Interactive. Outcome: none.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResetRepTexts {
+    /// The representations, at least one.
+    #[schemars(with = "Vec<UuidS>")]
+    #[schemars(length(min = 1))]
+    pub reps: Vec<Id<Representation>>,
+}
+
+impl Command for ResetRepTexts {
+    const NAME: &'static str = "rep.texts_reset";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        if self.reps.is_empty() {
+            return Err(CmdError::invalid_params(
+                Self::NAME,
+                "/reps",
+                text!("refusal-params-no-rep"),
+            ));
+        }
+        for id in &self.reps {
+            let rep = tx.require::<Representation>(*id)?;
+            if !rep
+                .text_slots
+                .iter()
+                .any(|o| o.pos.is_some() || o.angle.is_some())
+            {
+                continue;
+            }
+            tx.update::<Representation>(*id, |r| {
+                let kept: Vec<SlotOverride> = r
+                    .text_slots
+                    .iter()
+                    .cloned()
+                    .map(|o| SlotOverride {
+                        pos: None,
+                        angle: None,
+                        ..o
+                    })
+                    .filter(|o| o.visible.is_some() || !o.extra.is_empty())
+                    .collect();
+                r.text_slots = ew_schema::KeyedList::from_vec(kept).unwrap_or_default();
+            })?;
+        }
+        Ok(Outcome::default())
+    }
+}
 
 /// `rep.set_anchor_policy`: sets the cross-reference anchor policy of representations (FR-SYM-010; the
 /// quick fix of MF-13, doc 07 §3.6).

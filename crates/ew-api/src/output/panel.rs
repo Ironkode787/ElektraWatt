@@ -1047,6 +1047,19 @@ pub(crate) fn legend_offer_of(q: &Q, page: Id<Page>) -> LegendOffer {
 }
 
 impl crate::Session {
+    /// The slot texts of the drawn page labelled `folio` where its labels layer prints them, in print order: what a
+    /// drag of a symbol's text grabs (doc 06 §2.5); empty for an unknown folio or a generated page.
+    pub fn page_slot_texts(&self, folio: &str) -> Vec<ew_scene::page::SlotTextBox> {
+        let q = self.query();
+        let order = q.get::<ew_derive::PageOrder>(());
+        let Some(entry) = order.entries.iter().find(|e| e.folio == folio) else {
+            return Vec::new();
+        };
+        super::layers::page_layer(&q, entry.page, ew_dl::Layer::Labels)
+            .slot_texts
+            .clone()
+    }
+
     /// Where Add legend would put the legend of the panel page `page` ([`LegendOffer`]); `NoLayout` for a page the
     /// project does not hold.
     pub fn legend_offer(&self, page: Uuid) -> LegendOffer {

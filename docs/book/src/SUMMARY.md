@@ -132,6 +132,8 @@
     - [`rep.join_device`](reference/commands/rep.join_device.md)
     - [`rep.move`](reference/commands/rep.move.md)
     - [`rep.set_anchor_policy`](reference/commands/rep.set_anchor_policy.md)
+    - [`rep.text_set`](reference/commands/rep.text_set.md)
+    - [`rep.texts_reset`](reference/commands/rep.texts_reset.md)
     - [`rep.transform`](reference/commands/rep.transform.md)
     - [`report_block.create`](reference/commands/report_block.create.md)
     - [`revision.approve`](reference/commands/revision.approve.md)
