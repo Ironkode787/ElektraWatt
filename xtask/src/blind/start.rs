@@ -614,7 +614,7 @@ mod tests {
         w("content/symbols/x.json", "{}\n");
         w("tools/blind/HELP.md", "Help {blind}\n");
         w(
-            "tools/blind/reference/actions.txt",
+            crate::blind::compose::ACTIONS,
             "a View \"x\" menu none shortcut none context global params \"\"\n",
         );
         w("tools/blind/tasks/selftest/task.md", "Selftest\n");

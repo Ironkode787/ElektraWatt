@@ -12,7 +12,6 @@ live here. The specification is `docs/plan/specs/WP-S6.13-blind-drafter-harness.
 | `HELP.md` | The protocol as the agent reads it (composed into the prompt, printed by `{blind} help`) |
 | `PLAYTESTER.md`, `HELP-VISUAL.md` | A visual run's (`--senses visual`) play-tester prompt and its harness help (front matter `prompt`, `version`): `compose` uses them in place of `BLIND_DRAFTER.md` and `HELP.md`, and `{blind} help` prints `HELP-VISUAL.md` alone (WP-S6.13 part 4) |
 | `personas/first-timer.md` | The play-tester persona of part 4: an electrician new to ECAD, who reads every label and opens the guide when lost |
-| `reference/actions.txt` | The action registry with the parameter signatures, **generated** by `cargo xtask gen`; the harness reads it, and a test fails when the product and they differ |
 | `tasks/<task>/` | A task: `task.md`, `prelude.uiscript`, and for the self-test `agent.jsonl`; a gate task also `prelude.toml` (the class of each prelude step), `gaps.toml` (the checks an open follow-up blocks) and `oracle/` |
 | `tasks/gpp-101-103/oracle/` | `counts.toml` (the exact counts and the marker texts, with their sources), `bom.csv` (doc 20 §14.1 restricted to folios 101 to 103 with the demo variant's quantities), `rows.sql` (the read-only queries) and `rows/*.csv` (the expected rows); **made by `bless-oracle`** from a temporary copy of Golden A, never edited by hand except `counts.toml` |
 | `tasks/gpp-101-103/task.md` | The G-PP job sheet, an extract of doc 20 (the tables of folios 101 to 103); `<!-- folio N -->` blocks are left out of the composed prompt for folios not in `--folios` |
@@ -35,7 +34,7 @@ navigator, pointing (`canvas.pointer`, `canvas.dwell`), the grid cursor, `tool.s
 
 ## The orchestrator's procedure (outside CI, never by an agent)
 
-1. Build: `cargo build -p xtask -p elektrawatt -p ew`, then run `cargo xtask docs-gen`, then `mdbook build docs/book`
+1. Build: `cargo build -p xtask -p elektrawatt -p ew`, then run `cargo xtask docs-gen` (it writes the action list the harness reads, `target/reference/actions.txt`, never committed), then `mdbook build docs/book`
    (the guide, `target/book`; its reference pages are built, not committed).
 2. `cargo xtask blind start --kind gate --task gpp-101-103 --persona qet-veteran --run gpp-r1` (`--folios 101` for
    the dry run on one folio: the sheet's blocks of the other folios are left out of the prompt, and their checks score

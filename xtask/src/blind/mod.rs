@@ -169,11 +169,12 @@ fn load_reference(run: Option<&Run>, repo: Option<&Path>) -> Result<Reference> {
         .filter(|p| p.is_file());
     let path = match (own, repo) {
         (Some(p), _) => p,
-        (None, Some(root)) => root.join("tools/blind/reference/actions.txt"),
+        (None, Some(root)) => root.join(compose::ACTIONS),
         (None, None) => bail!("the run's copy of the action reference is missing"),
     };
     filter::parse_reference(
-        &std::fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?,
+        &std::fs::read_to_string(&path)
+            .with_context(|| format!("reading {}: {}", path.display(), compose::ACTIONS_MISSING))?,
     )
 }
 
@@ -829,7 +830,13 @@ fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
             (None, None) => bail!("the run's copy of {rel} is missing"),
         };
         Ok(std::fs::read_to_string(&path)
-            .with_context(|| format!("reading {}", path.display()))?
+            .with_context(|| {
+                if rel == compose::ACTIONS {
+                    format!("reading {}: {}", path.display(), compose::ACTIONS_MISSING)
+                } else {
+                    format!("reading {}", path.display())
+                }
+            })?
             .replace("\r\n", "\n"))
     };
     if run.is_some_and(|r| r.load().is_ok_and(|j| j.visual())) {
@@ -837,10 +844,7 @@ fn help_text(repo: Option<&Path>, run: Option<&Run>) -> Result<String> {
     }
     let mut out = read(".harness/HELP.md", "tools/blind/HELP.md")?;
     out.push_str("\n== actions ==\n");
-    out.push_str(&read(
-        ".harness/reference/actions.txt",
-        "tools/blind/reference/actions.txt",
-    )?);
+    out.push_str(&read(".harness/reference/actions.txt", compose::ACTIONS)?);
     if let Some(r) = run {
         for (title, name, args) in [
             ("elektrawatt --help", "elektrawatt", ["--help"]),
@@ -972,7 +976,7 @@ mod tests {
         for (rel, text) in [
             ("tools/blind/HELP.md", "repo help\n"),
             (
-                "tools/blind/reference/actions.txt",
+                compose::ACTIONS,
                 "a View \"x\" menu none shortcut none context global params \"\"\n",
             ),
         ] {

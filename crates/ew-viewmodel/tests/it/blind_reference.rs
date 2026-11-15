@@ -1,36 +1,18 @@
 // SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-//! The blind drafter's reference file is generated from
-//! this crate's registry and compared with the committed copy, so that a lane that adds an action or a signature
-//! without updating the harness's help fails here. `EW_BLESS=1` rewrites it:
+//! The persona harness's action list (`actions.txt`) is made from this crate's registry. It is not committed: it is
+//! part of the reference (`cargo xtask gen`, `cargo xtask docs-gen`), which runs the first test below with
+//! `EW_REFERENCE_DIR` set; the harness reads `target/reference/actions.txt`.
 //!
-//! ```text
-//! EW_BLESS=1 cargo nextest run -p ew-viewmodel --test it blind_reference::
-//! ```
-//!
-//! `tools/blind/reference/actions.txt` has one line per action in registry order,
+//! `actions.txt` has one line per action in registry order,
 //! `<id> <View|Command> "<label>" menu "<menu>[ ▸ <submenu>]"|none shortcut "<first>"|none context <context>[ headless]
-//! [ hidden][ needs-parameters] params "<signature>"`. It carries the
-//! licence of this crate (it is generated from its strings; REUSE.toml and `ci/licence-map.toml`).
+//! [ hidden][ needs-parameters] params "<signature>"`. It carries the licence of this crate (it is made of its
+//! strings), as the rest of the reference does.
 
-use std::path::PathBuf;
-
-use crate::common::bless;
 use ew_viewmodel::actions::{ACTIONS, ActionKind, Context, parse_signature};
 use ew_viewmodel::strings;
 use ew_viewmodel::strings::Key;
-
-const BLESS_HINT: &str = "EW_BLESS=1 cargo nextest run -p ew-viewmodel --test it blind_reference::";
-
-fn reference_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("..")
-        .join("..")
-        .join("tools")
-        .join("blind")
-        .join("reference")
-}
 
 fn context_word(c: Context) -> &'static str {
     match c {
@@ -94,33 +76,16 @@ fn actions_text() -> String {
     out
 }
 
-#[track_caller]
-fn check(name: &str, text: &str) {
-    let path = reference_dir().join(name);
-    if bless() {
-        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-        std::fs::write(&path, text).unwrap();
-    }
-    let committed = std::fs::read_to_string(&path)
-        .unwrap_or_else(|e| panic!("{}: {e}; `{BLESS_HINT}` generates it", path.display()))
-        .replace("\r\n", "\n");
-    if committed != text {
-        let first = committed
-            .lines()
-            .zip(text.lines())
-            .position(|(a, b)| a != b)
-            .unwrap_or_else(|| committed.lines().count().min(text.lines().count()));
-        panic!(
-            "tools/blind/reference/{name} is not the registry's text (first difference at line {}): \
-             rewrite it with `{BLESS_HINT}` and commit it",
-            first + 1
-        );
-    }
-}
-
+/// Writes `actions.txt` where `EW_REFERENCE_DIR` asks for it, for the persona harness.
+// The variable only chooses whether the generated file is also written out.
+#[allow(clippy::disallowed_methods)]
 #[test]
-fn the_reference_file_equals_the_registry() {
-    check("actions.txt", &actions_text());
+fn the_action_list_is_written_for_the_harness() {
+    if let Some(dir) = std::env::var_os("EW_REFERENCE_DIR") {
+        let dir = std::path::PathBuf::from(dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("actions.txt"), actions_text()).unwrap();
+    }
 }
 
 #[test]

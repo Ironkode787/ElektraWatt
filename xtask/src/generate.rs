@@ -9,9 +9,9 @@
 //!   GPL), so each registry's own crate has a test that writes its file when `EW_REFERENCE_DIR` is set, and
 //!   [`reference`] runs those tests.
 //! - **Committed files** that a generator writes from data in the tree: the workspace-hack crate, the book's
-//!   contents and reference pages, the icon table, the lint list, the QET symbol edition, and the persona harness's
-//!   action list. `--check` compares the ones that need no build. The guide's translation catalogue is not among
-//!   them: `cargo xtask book-po` makes it, when the guide is translated and before a release.
+//!   contents and reference pages, the icon table, the lint list and the QET symbol edition. `--check` compares the
+//!   ones that need no build. The guide's translation catalogue is not among them: `cargo xtask book-po` makes it,
+//!   when the guide is translated and before a release.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -29,6 +29,11 @@ const REFERENCE: &[(&str, &[&str])] = &[
     ("ew-checks", &["--test", "it", "catalogue::"]),
     // keymap-sheet.json
     ("ew-viewmodel", &["--test", "it", "keymaps::the_keymap_sheet"]),
+    // actions.txt: the persona harness's action list
+    (
+        "ew-viewmodel",
+        &["--test", "it", "blind_reference::the_action_list"],
+    ),
     // cli.json
     ("ew", &["--bin", "ew", "catalogue::tests::the_cli_reference"]),
     // results/: one schema per `--json` result and index.json
@@ -68,8 +73,6 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<bool> {
     let mut ok = workspace_hack(root)?;
     println!("==> gen: reference");
     ok &= reference(root)?;
-    println!("==> gen: blind-reference");
-    ok &= blind_reference(root)?;
     println!("==> gen: docs-gen");
     ok &= crate::docs_gen::run(root, false)?;
     for (name, step) in OWN {
@@ -180,25 +183,4 @@ fn workspace_hack(root: &Path) -> Result<bool> {
         }
     }
     Ok(true)
-}
-
-/// The persona harness's committed action list (`tools/blind/reference/actions.txt`), rewritten by its test.
-fn blind_reference(root: &Path) -> Result<bool> {
-    Ok(Command::new(crate::cargo())
-        .current_dir(root)
-        .env("EW_BLESS", "1")
-        .args([
-            "test",
-            "--quiet",
-            "--all-features",
-            "-p",
-            "ew-viewmodel",
-            "--test",
-            "it",
-            "--",
-            "blind_reference::",
-        ])
-        .status()
-        .context("running the blind reference test")?
-        .success())
 }

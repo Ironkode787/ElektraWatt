@@ -55,8 +55,15 @@ pub struct Composed {
     pub files: BTreeMap<String, String>,
 }
 
+/// The action list, a file of the reference (`cargo xtask docs-gen` writes it; never committed). A run records its
+/// digest under this name; the recordings made before it moved keep the old name, which nothing compares.
+pub const ACTIONS: &str = "target/reference/actions.txt";
+
+/// What to say where [`ACTIONS`] is missing.
+pub const ACTIONS_MISSING: &str = "run `cargo xtask docs-gen`, which writes it";
+
 /// The reference files the harness copies and the run records.
-pub const REFERENCE_FILES: [&str; 1] = ["tools/blind/reference/actions.txt"];
+pub const REFERENCE_FILES: [&str; 1] = [ACTIONS];
 
 /// Leaves out the folio blocks of `body` that are not for `folios` (§5.4: `--folios`). A block is the lines from
 /// `<!-- folio 102 -->` to `<!-- /folio -->`; the marker lines themselves never reach the prompt. With no folios every
@@ -90,7 +97,13 @@ pub fn filter_folios(body: &str, folios: &[String]) -> Result<String> {
 }
 
 fn read_text(root: &Path, rel: &str) -> Result<String> {
-    let text = std::fs::read_to_string(root.join(rel)).with_context(|| format!("reading {rel}"))?;
+    let text = std::fs::read_to_string(root.join(rel)).with_context(|| {
+        if rel == ACTIONS {
+            format!("reading {rel}: {ACTIONS_MISSING}")
+        } else {
+            format!("reading {rel}")
+        }
+    })?;
     Ok(text.replace("\r\n", "\n"))
 }
 
@@ -245,7 +258,7 @@ mod tests {
         w("tools/blind/tasks/selftest/task.md", "Selftest.\n");
         w("tools/blind/HELP.md", "Help.\n");
         w(
-            "tools/blind/reference/actions.txt",
+            ACTIONS,
             "a View \"x\" menu none shortcut none context global params \"\"\n",
         );
     }
@@ -343,7 +356,7 @@ mod tests {
         let all = run_files(&inp, &c).unwrap();
         let keys: Vec<&String> = all.keys().collect();
         assert!(keys.contains(&&"tools/blind/tasks/gpp/oracle/counts.toml".to_owned()));
-        assert!(keys.contains(&&"tools/blind/reference/actions.txt".to_owned()));
+        assert!(keys.contains(&&ACTIONS.to_owned()));
         assert!(keys.windows(2).all(|w| w[0] < w[1]));
     }
 

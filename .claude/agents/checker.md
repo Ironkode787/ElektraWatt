@@ -35,7 +35,7 @@ You check the user-visible changes of ElektraWatt on offscreen renders.
 - `script.expect_refused {"action": …, "params": …}` frames a refusal and goes on.
 - Use a fresh `--config-dir` for every run.
 - **Where to look things up:**
-  - action names: `tools/blind/reference/actions.txt`;
+  - action names: `target/reference/actions.txt` (`cargo xtask docs-gen` writes it);
   - the script format: `crates/ew-viewmodel/src/script.rs` and `crates/ew-ui/src/visual.rs`;
   - the form of a script: copy the examples your brief names.
 

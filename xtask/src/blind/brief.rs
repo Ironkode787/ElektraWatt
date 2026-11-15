@@ -33,6 +33,7 @@ use anyhow::{Context, Result};
 use serde::Deserialize;
 use serde_json::Value;
 
+use super::compose::{ACTIONS, ACTIONS_MISSING};
 use super::run::{parse_script, script_header, step_line};
 use super::score::{PreludeFile, read_toml, task_dir};
 
@@ -212,10 +213,10 @@ fn has_word(text: &str, word: &str) -> bool {
     })
 }
 
-/// The action IDs of `tools/blind/reference/actions.txt`.
+/// The action IDs of the action list ([`ACTIONS`]).
 fn action_ids(root: &Path) -> Result<BTreeSet<String>> {
-    let text = std::fs::read_to_string(root.join("tools/blind/reference/actions.txt"))
-        .context("reading tools/blind/reference/actions.txt")?;
+    let text = std::fs::read_to_string(root.join(ACTIONS))
+        .with_context(|| format!("reading {ACTIONS}: {ACTIONS_MISSING}"))?;
     Ok(text
         .lines()
         .filter_map(|l| l.split(' ').next())
@@ -865,12 +866,8 @@ mod tests {
         let root = crate::workspace_root();
         let dir = tmp.0.join("tools/blind/tasks").join(brief);
         std::fs::create_dir_all(&dir).unwrap();
-        std::fs::create_dir_all(tmp.0.join("tools/blind/reference")).unwrap();
-        std::fs::copy(
-            root.join("tools/blind/reference/actions.txt"),
-            tmp.0.join("tools/blind/reference/actions.txt"),
-        )
-        .unwrap();
+        std::fs::create_dir_all(tmp.0.join("target/reference")).unwrap();
+        std::fs::copy(root.join(ACTIONS), tmp.0.join(ACTIONS)).unwrap();
         // The starter content, where a `symbol:` or `fndef:` requirement is looked up.
         for folder in ["content/symbols", "content/symbols/qet10", "content/fndefs"] {
             std::fs::create_dir_all(tmp.0.join(folder)).unwrap();

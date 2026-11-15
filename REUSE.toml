@@ -95,15 +95,6 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
 SPDX-License-Identifier = "CC-BY-4.0"
 
-# L1: the generated reference file of the blind drafter (the action registry of
-# ew-viewmodel, written by its `blind_reference` test): it keeps the crate's licence, as the generated command and
-# rule pages do; `override` replaces the annotation above for this path.
-[[annotations]]
-path = "tools/blind/reference/**"
-precedence = "override"
-SPDX-FileCopyrightText = "2026 The ElektraWatt contributors"
-SPDX-License-Identifier = "GPL-3.0-or-later"
-
 # L7: shipped library content as JSON documents (symbols, function definitions, forms), which cannot carry headers.
 [[annotations]]
 path = "content/**"
