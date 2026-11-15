@@ -1188,7 +1188,10 @@ fn a_devices_natures_come_from_its_aspects_and_its_points() {
     assert_eq!(vt.station, Some(ew_schema::StationRole::ValveTerminal));
     assert!(vt.bus_device() && !vt.mechanical_only(), "{vt:?}");
     let mcb = natures("-101F1");
-    assert!(mcb.electrical() && !mcb.fluid() && !mcb.bus_device() && !mcb.terminal, "{mcb:?}");
+    assert!(
+        mcb.electrical() && !mcb.fluid() && !mcb.bus_device() && !mcb.terminal,
+        "{mcb:?}"
+    );
     let terminal = natures("-X1032:5");
     assert!(terminal.terminal && !terminal.fluid(), "{terminal:?}");
     let header = s.property_sheet(&[device(&s, "-101F1")]).header;

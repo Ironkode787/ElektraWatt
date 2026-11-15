@@ -2,7 +2,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ElektraWatt User Guide\n"
-"POT-Creation-Date: 2026-11-15T20:08:06+01:00\n"
+"POT-Creation-Date: 2026-11-15T21:45:17+01:00\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -2184,15 +2184,17 @@ msgstr ""
 #: src/how-to/define-supply-potential.md:27
 msgid ""
 "When nothing, or more than one item, is selected, **Define potential…** is "
-"greyed out and its tooltip says what to select. A name left empty is refused "
-"with \"Name the potential first\"."
-msgstr ""
-
-#: src/how-to/define-supply-potential.md:30
-msgid "Accept a reasoned potential"
+"greyed out and its tooltip says what to select. A potential is electrical: "
+"on a fluid port (an air supply's) it is greyed out too, and the air supply's "
+"own menu and its **Medium** row in Properties set the medium instead. A name "
+"left empty is refused with \"Name the potential first\"."
 msgstr ""
 
 #: src/how-to/define-supply-potential.md:32
+msgid "Accept a reasoned potential"
+msgstr ""
+
+#: src/how-to/define-supply-potential.md:34
 msgid ""
 "A selected wire whose potential has no name yet may show a small card beside "
 "it: \"Potential 0VDC?\" with the reason, such as \"-K1:A2 returns a coil fed "
@@ -2206,18 +2208,18 @@ msgid ""
 "opened again. Nothing is set without your Accept."
 msgstr ""
 
-#: src/how-to/define-supply-potential.md:39
+#: src/how-to/define-supply-potential.md:41
 msgid "Check the result"
 msgstr ""
 
-#: src/how-to/define-supply-potential.md:41
+#: src/how-to/define-supply-potential.md:43
 msgid ""
 "Open the **Potentials** navigator: the potential's row now carries the name "
 "you typed, with its type and voltage. In the navigator's table view you can "
 "also change them later in the **Potential**, **Type** and **Voltage** cells."
 msgstr ""
 
-#: src/how-to/define-supply-potential.md:44
+#: src/how-to/define-supply-potential.md:46
 msgid ""
 "The command behind the form is "
 "[`potential.define`](../reference/commands/potential.define.md)."
@@ -3426,7 +3428,7 @@ msgid ""
 "Device from part…. See [Choose parts](../../how-to/choose-parts.md)."
 msgstr ""
 
-#: src/reference/window/tools.md:67 src/reference/symbol-editor.md:190
+#: src/reference/window/tools.md:67 src/reference/symbol-editor.md:193
 msgid "Terminal"
 msgstr ""
 
@@ -5127,91 +5129,97 @@ msgstr ""
 #: src/reference/symbol-editor.md:179
 msgid ""
 "A new drawing starts with a generic black-box function. In **Function and "
-"connection points**, under **Function**, the **Function type** says what the "
-"symbol is to the program; it decides which connection points the symbol has "
-"and how its device is listed and checked. Each choice says what it is for "
-"when you point at it, and the chosen one's meaning stands under the list:"
+"connection points**, under **Function**, **Discipline** says what the symbol "
+"is drawn for: electrical, pneumatic, vacuum, hydraulic or bus. Its "
+"connection points take it, a new point too, and its device is called by it "
+"in Properties (\"pneumatic\"); one point can differ, set under **Connection "
+"points**. The **Function type** says what the symbol is to the program; it "
+"decides which connection points the symbol has and how its device is listed "
+"and checked, and its list follows the discipline: a valve for a fluid "
+"symbol, a contact or a coil for an electrical one, a port for a bus one, a "
+"black box for each. Each choice says what it is for when you point at it, "
+"and the chosen one's meaning stands under the list:"
 msgstr ""
 
-#: src/reference/symbol-editor.md:184
+#: src/reference/symbol-editor.md:187
 msgid "Function type"
 msgstr ""
 
-#: src/reference/symbol-editor.md:184
+#: src/reference/symbol-editor.md:187
 msgid "For"
 msgstr ""
 
-#: src/reference/symbol-editor.md:186
+#: src/reference/symbol-editor.md:189
 msgid "Generic black box"
 msgstr ""
 
-#: src/reference/symbol-editor.md:186
+#: src/reference/symbol-editor.md:189
 msgid ""
 "A device the program has no type for, such as a drive or a module, with "
 "connection points of its own."
 msgstr ""
 
-#: src/reference/symbol-editor.md:187
+#: src/reference/symbol-editor.md:190
 msgid "Normally open, normally closed and change-over contact"
 msgstr ""
 
-#: src/reference/symbol-editor.md:187
+#: src/reference/symbol-editor.md:190
 msgid ""
 "A contact of a relay, contactor or switch; it is listed with the coil or "
 "device that switches it."
 msgstr ""
 
-#: src/reference/symbol-editor.md:188
+#: src/reference/symbol-editor.md:191
 msgid "Coil"
 msgstr ""
 
-#: src/reference/symbol-editor.md:188
+#: src/reference/symbol-editor.md:191
 msgid "The coil of a relay or contactor; its contacts refer to it."
 msgstr ""
 
-#: src/reference/symbol-editor.md:189
+#: src/reference/symbol-editor.md:192
 msgid "Pole"
 msgstr ""
 
-#: src/reference/symbol-editor.md:189
+#: src/reference/symbol-editor.md:192
 msgid ""
 "A path through a device, or out of a source: a pole of a breaker, fuse or "
 "switch, a supply or an air supply."
 msgstr ""
 
-#: src/reference/symbol-editor.md:190
+#: src/reference/symbol-editor.md:193
 msgid "A terminal of a terminal strip, listed in the terminal diagram."
 msgstr ""
 
-#: src/reference/symbol-editor.md:191
+#: src/reference/symbol-editor.md:194
 msgid "PLC input/output"
 msgstr ""
 
-#: src/reference/symbol-editor.md:191
+#: src/reference/symbol-editor.md:194
 msgid ""
 "A channel of a PLC card, which gets an address and is listed in the PLC "
 "lists."
 msgstr ""
 
-#: src/reference/symbol-editor.md:192
+#: src/reference/symbol-editor.md:195
 msgid "Bus port"
 msgstr ""
 
-#: src/reference/symbol-editor.md:192
+#: src/reference/symbol-editor.md:195
 msgid "A port such as PROFINET or PROFIBUS; its device joins a bus net."
 msgstr ""
 
-#: src/reference/symbol-editor.md:193
+#: src/reference/symbol-editor.md:196
 msgid "Valve"
 msgstr ""
 
-#: src/reference/symbol-editor.md:193
+#: src/reference/symbol-editor.md:196
 msgid ""
 "A fluid power valve; its ports carry air or oil, and it can sit on a valve "
 "terminal."
 msgstr ""
 
-#: src/reference/symbol-editor.md:195
+#: src/reference/symbol-editor.md:198
 msgid ""
 "Set each pin's potential role and flags there. **Ready-made function** "
 "offers the library's functions: one that fits brings its function type and "
@@ -5227,7 +5235,7 @@ msgid ""
 "designations are provisional numbers until the function is reviewed."
 msgstr ""
 
-#: src/reference/symbol-editor.md:204
+#: src/reference/symbol-editor.md:207
 msgid ""
 "Keep `custom.slk` beside the complete `custom.sdb` folder (or the sibling "
 "folder named in the descriptor). Only the Symbol, Variant, Instance and Blob "

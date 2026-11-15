@@ -38,6 +38,8 @@ fn a_click_on_a_category_header_folds_it() {
             .shell()
             .properties_collapsed()
             .into_iter()
+            // More (rc.2) is closed until opened.
+            .filter(|k| !k.ends_with("/more"))
             .collect::<Vec<_>>()
     };
     let headers = |h: &Harness<'_, App>| {

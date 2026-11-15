@@ -2171,6 +2171,7 @@ fn discipline_control(ui: &mut Ui, current: &str, cp: Option<u16>, events: &mut 
                 }
             })
             .response
+            .expanded(ui)
             .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, enabled, caption));
     });
 }

@@ -76,7 +76,11 @@ fn the_header_says_what_a_device_is() {
     let tmp = Tmp::new("props-kind-what");
     let mut s = new_project(&tmp);
     done(&mut s, "page.goto", json!({"folio": "102"}));
-    let air = place(&mut s, json!({"symbol": "ew.iso.air-supply@qet10", "letter": "X"}), (10, 10));
+    let air = place(
+        &mut s,
+        json!({"symbol": "ew.iso.air-supply@qet10", "letter": "X"}),
+        (10, 10),
+    );
     let what = what_of(&mut s, &air);
     assert!(what.ends_with(" · pneumatic"), "{what}");
     let line = describe_line(&s, "properties what").expect("the describe line");
@@ -116,7 +120,11 @@ fn only_the_rows_that_belong_are_shown() {
     let tmp = Tmp::new("props-kind-rows");
     let mut s = new_project(&tmp);
     done(&mut s, "page.goto", json!({"folio": "102"}));
-    let air = place(&mut s, json!({"symbol": "ew.iso.air-supply@qet10", "letter": "X"}), (10, 10));
+    let air = place(
+        &mut s,
+        json!({"symbol": "ew.iso.air-supply@qet10", "letter": "X"}),
+        (10, 10),
+    );
     let sheet = sheet_of(&mut s, &air);
     let all = keys(&sheet);
     for other in [
@@ -129,7 +137,10 @@ fn only_the_rows_that_belong_are_shown() {
         "function/kind.ip",
         "representation/derived.xref",
     ] {
-        assert!(!all.iter().any(|k| k == other), "{other} on an air supply: {all:?}");
+        assert!(
+            !all.iter().any(|k| k == other),
+            "{other} on an air supply: {all:?}"
+        );
     }
     let device = &sheet.sections[0];
     let main: Vec<&str> = groups(device, false)
@@ -165,7 +176,10 @@ fn only_the_rows_that_belong_are_shown() {
     let sheet = sheet_of(&mut s, &valve);
     let (_, port) = find_row(&sheet, "device/derived.port[0]").expect("a port row");
     let none = strings::text(ew_viewmodel::key!("props-port-no-medium"));
-    assert!(matches!(&port.value, RowValue::One { text, .. } if text == none), "{port:?}");
+    assert!(
+        matches!(&port.value, RowValue::One { text, .. } if text == none),
+        "{port:?}"
+    );
     let what_to_do = strings::text(ew_viewmodel::key!("chip-via-port-no-medium"));
     assert!(chip_text(&port.provenance).contains(what_to_do), "{port:?}");
     done(&mut s, "page.goto", json!({"folio": "101"}));
@@ -198,10 +212,20 @@ fn an_air_supplys_menu_offers_its_medium_and_no_potential() {
         "fluid.medium_new",
         json!({"name": "Compressed air", "p_nom": "6"}),
     );
-    let air = place(&mut s, json!({"symbol": "ew.iso.air-supply@qet10", "letter": "X"}), (10, 10));
+    let air = place(
+        &mut s,
+        json!({"symbol": "ew.iso.air-supply@qet10", "letter": "X"}),
+        (10, 10),
+    );
     let items = menu(&mut s, &air);
-    assert!(items.iter().all(|(_, id, _)| *id != "potential.draw"), "{items:?}");
-    assert_eq!(refused(&mut s, "potential.draw", json!({})), "reason-potential-fluid");
+    assert!(
+        items.iter().all(|(_, id, _)| *id != "potential.draw"),
+        "{items:?}"
+    );
+    assert_eq!(
+        refused(&mut s, "potential.draw", json!({})),
+        "reason-potential-fluid"
+    );
     let label = "Medium: Compressed air, 6 bar";
     let checked = |items: &[(String, &'static str, bool)]| {
         items
@@ -211,7 +235,10 @@ fn an_air_supplys_menu_offers_its_medium_and_no_potential() {
             .unwrap_or_else(|| panic!("the medium entry: {items:?}"))
     };
     assert!(!checked(&items), "no medium yet");
-    assert!(items.iter().any(|(_, id, _)| *id == "fluid.medium_new"), "{items:?}");
+    assert!(
+        items.iter().any(|(_, id, _)| *id == "fluid.medium_new"),
+        "{items:?}"
+    );
     let entry = canvas_menu(&s, MenuSpot::Object)
         .into_iter()
         .find(|i| i.label == label)
@@ -254,7 +281,11 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
         json!({"cmd": "page.create", "params": {"number": 2, "grid": {"num": 4000000, "den": 1}}}),
     );
     done(&mut s, "page.goto", json!({"folio": "2"}));
-    done(&mut s, "symbol.new", json!({"key": "example.air", "name": "Air point"}));
+    done(
+        &mut s,
+        "symbol.new",
+        json!({"key": "example.air", "name": "Air point"}),
+    );
     done(&mut s, "symbol.discipline", json!({"discipline": "pneumatic"}));
     let editor = s.symbol_editor().expect("the editor");
     assert_eq!(editor.discipline(), "pneumatic");
@@ -268,15 +299,41 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
     done(&mut s, "symbol.cp", json!({"x": 0, "y": 0, "designation": "1"}));
     let pin = |s: &ShellModel| {
         let editor = s.symbol_editor().expect("the editor");
-        let pins: Vec<Discipline> = editor.draft.function.cps.iter().map(|c| c.discipline.clone()).collect();
-        let points: Vec<Discipline> = editor.draft.symbol.cps.iter().map(|c| c.discipline.clone()).collect();
+        let pins: Vec<Discipline> = editor
+            .draft
+            .function
+            .cps
+            .iter()
+            .map(|c| c.discipline.clone())
+            .collect();
+        let points: Vec<Discipline> = editor
+            .draft
+            .symbol
+            .cps
+            .iter()
+            .map(|c| c.discipline.clone())
+            .collect();
         (pins, points)
     };
-    assert_eq!(pin(&s), (vec![Discipline::Pneumatic], vec![Discipline::Pneumatic]));
+    assert_eq!(
+        pin(&s),
+        (vec![Discipline::Pneumatic], vec![Discipline::Pneumatic])
+    );
     // One point can differ, and back.
-    done(&mut s, "symbol.discipline", json!({"discipline": "electrical", "cp": 1}));
-    assert_eq!(pin(&s), (vec![Discipline::Electrical], vec![Discipline::Electrical]));
-    done(&mut s, "symbol.discipline", json!({"discipline": "pneumatic", "cp": 1}));
+    done(
+        &mut s,
+        "symbol.discipline",
+        json!({"discipline": "electrical", "cp": 1}),
+    );
+    assert_eq!(
+        pin(&s),
+        (vec![Discipline::Electrical], vec![Discipline::Electrical])
+    );
+    done(
+        &mut s,
+        "symbol.discipline",
+        json!({"discipline": "pneumatic", "cp": 1}),
+    );
     done(
         &mut s,
         "symbol.save",
@@ -299,6 +356,10 @@ fn a_symbol_drawn_as_pneumatic_gives_a_pneumatic_device() {
     let what = what_of(&mut s, &air);
     assert!(what.ends_with(" · pneumatic"), "{what}");
     let sheet = sheet_of(&mut s, &air);
-    assert!(find_row(&sheet, "device/derived.medium").is_some(), "{:?}", keys(&sheet));
+    assert!(
+        find_row(&sheet, "device/derived.medium").is_some(),
+        "{:?}",
+        keys(&sheet)
+    );
     s.shutdown();
 }

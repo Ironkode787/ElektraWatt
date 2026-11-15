@@ -2112,7 +2112,7 @@ impl Session {
         for (_, at) in ports {
             let one = medium_at(&q, at)
                 .0
-                .and_then(|m| media.get(m).map(|x| (m.as_uuid(), medium_words(&x))));
+                .and_then(|m| media.get(m).map(|x| (m.as_uuid(), medium_words(x))));
             if !carried.contains(&one) {
                 carried.push(one);
             }
@@ -2127,7 +2127,7 @@ impl Session {
     pub fn medium_text(&self, medium: Uuid) -> Option<String> {
         let q = self.query();
         let media = q.table::<ew_derive::ew_schema::Medium>();
-        media.get(Id::from_uuid(medium)).map(|m| medium_words(&m))
+        media.get(Id::from_uuid(medium)).map(|m| medium_words(m))
     }
 }
 
@@ -2190,7 +2190,7 @@ fn fluid_port_rows(q: &Q, device: Id<Device>) -> Vec<Built> {
                 }),
                 text: medium
                     .and_then(|m| media.get(m))
-                    .map(|m| medium_words(&m))
+                    .map(|m| medium_words(m))
                     .unwrap_or_default(),
             };
             let mut b = derived(

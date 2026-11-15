@@ -479,23 +479,25 @@ fn an_editor_opened_out_of_view_scrolls_into_view() {
         .find(|n| n.accesskit_node().label().as_deref() == Some(pane_name))
         .expect("the Properties pane")
         .rect();
-    let last = h
-        .state()
-        .shell()
-        .properties()
-        .sheet()
-        .unwrap()
-        .sections
-        .iter()
-        .flat_map(|s| &s.rows)
-        .rev()
-        .find(|r| {
-            r.actions
-                .contains(&ew_ui::ew_viewmodel::ew_api::output::RowAction::Edit)
-                && !matches!(r.ty.inner(), ew_ui::ew_viewmodel::properties::FieldType::Bool)
-        })
-        .map(|r| r.key.clone())
-        .expect("an editable row");
+    // The last editable row on show, in the order the pane draws them (Main first, the closed More not at all).
+    let shell = h.state().shell();
+    let collapsed = shell.properties_collapsed();
+    let last = ew_ui::ew_viewmodel::properties::visible_rows(
+        shell.properties().sheet().unwrap(),
+        &collapsed,
+        false,
+        "",
+    )
+    .into_iter()
+    .map(|v| v.row)
+    .rev()
+    .find(|r| {
+        r.actions
+            .contains(&ew_ui::ew_viewmodel::ew_api::output::RowAction::Edit)
+            && !matches!(r.ty.inner(), ew_ui::ew_viewmodel::properties::FieldType::Bool)
+    })
+    .map(|r| r.key.clone())
+    .expect("an editable row");
     let row_name = {
         let sheet = h.state().shell().properties().sheet().unwrap();
         let (section, row) = ew_ui::ew_viewmodel::properties::find_row(sheet, &last).unwrap();

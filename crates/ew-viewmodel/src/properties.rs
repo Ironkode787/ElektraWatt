@@ -871,6 +871,10 @@ const MORE: &[(&str, &[&str])] = &[
 /// schema does not list (a raw value).
 pub fn is_more(kind: &str, row: &PropRow) -> bool {
     let rest = row.key.split_once('/').map_or(row.key.as_str(), |(_, r)| r);
+    // An interruption point's own rows and a device's tag letter are a drafter's, though their parents wait in More.
+    if under(rest, "kind.ip") || under(rest, "tag.letter") {
+        return false;
+    }
     row.category == Category::Extra
         || MORE
             .iter()

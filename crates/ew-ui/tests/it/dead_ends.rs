@@ -238,6 +238,9 @@ fn a_symbols_properties_name_its_symbol_and_definition_in_words() {
     let _ = d.shell_mut().dispatch("select.set", &json!({"refs": []}));
     d.input(&click(pixel(ew_ui::ew_viewmodel::canvas::rect_centre(rect))));
     d.settle();
+    // The definition row waits in the function's closed More (rc.2): open it.
+    let more = json!({"category": "more", "kind": "function", "expanded": true});
+    let _ = d.shell_mut().dispatch("props.category", &more);
     let text = ew_ui::ew_viewmodel::describe::describe(d.shell_mut());
     let rows: Vec<&str> = text
         .lines()
