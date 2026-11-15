@@ -572,8 +572,5 @@ fn a_tutorial_opens_its_practice_project_in_a_second_window() {
     let windows = platform.opened_windows.borrow();
     assert_eq!(windows.len(), 1, "one second window");
     assert!(windows[0].is_dir(), "the practice project is written");
-    assert_eq!(
-        h.state().shell().last_help(),
-        Some("tutorials/first-page.html")
-    );
+    assert_eq!(h.state().shell().last_help(), Some("tutorials/first-page.html"));
 }

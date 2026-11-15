@@ -528,10 +528,13 @@ fn tutorial_4_reports_and_pdf_runs_as_its_page_says() {
             "row level 2 page \"911\" \"Revision Overview\" generated changed \"V1.0\"",
         ]
     );
-    // Step 3's toast.
+    // Step 1's toast, which says where the copy is (F4), and step 3's.
     assert_eq!(
         lines_of(&parts, &["toast"]),
-        ["toast \"Added the report block Parts list from folio 912.\" undo"]
+        [
+            "toast \"The tutorial's practice project is under Tutorials in your projects folder.\" show_folder",
+            "toast \"Added the report block Parts list from folio 912.\" undo"
+        ]
     );
     assert_eq!(
         lines_of(&preview, &["dialog \"Print\"", "preview \""]),

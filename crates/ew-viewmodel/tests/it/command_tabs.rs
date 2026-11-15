@@ -41,7 +41,8 @@ fn every_plc_and_fluid_command_has_a_button_on_its_tab() {
             continue;
         }
         assert!(
-            a.placement.is_some_and(|p| matches!(p.tab, Tab::Plc | Tab::Fluid)),
+            a.placement
+                .is_some_and(|p| matches!(p.tab, Tab::Plc | Tab::Fluid)),
             "{} has no button on the PLC or the Fluid tab",
             a.id
         );
@@ -56,7 +57,11 @@ fn every_plc_and_fluid_command_has_a_button_on_its_tab() {
         button(&s, Tab::Fluid, id);
     }
     // The tabs stand between Draw and Check.
-    let tabs: Vec<Tab> = command_bar_of(&s, Tab::Draw).tabs.iter().map(|(t, _)| *t).collect();
+    let tabs: Vec<Tab> = command_bar_of(&s, Tab::Draw)
+        .tabs
+        .iter()
+        .map(|(t, _)| *t)
+        .collect();
     let at = |t: Tab| tabs.iter().position(|x| *x == t).unwrap();
     assert!(at(Tab::Draw) < at(Tab::Plc) && at(Tab::Plc) < at(Tab::Fluid) && at(Tab::Fluid) < at(Tab::Check));
     s.shutdown();
@@ -112,7 +117,12 @@ fn the_fluid_buttons_need_a_fluid_page_and_say_so() {
     );
     assert!(!button(&s, Tab::Fluid, "tool.fluid_line").enabled);
     done(&mut s, "page.new", json!({"folio": "201", "type": "fluid"}));
-    for id in ["fluid.symbol", "fluid.air_supply", "fluid.valve_terminal", "tool.fluid_line"] {
+    for id in [
+        "fluid.symbol",
+        "fluid.air_supply",
+        "fluid.valve_terminal",
+        "tool.fluid_line",
+    ] {
         assert!(button(&s, Tab::Fluid, id).enabled, "{id}");
     }
     done(&mut s, "fluid.air_supply", json!({}));

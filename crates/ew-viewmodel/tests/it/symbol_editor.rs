@@ -2002,6 +2002,9 @@ fn take_off_unlocks_a_ready_made_function_and_keeps_its_pins() {
     assert!(taken_off.function_ref.is_none(), "unlocked");
     assert_eq!(taken_off.function, used.function, "the type and the pins stay");
     done(&mut shell, "symbol.undo", json!({}));
-    assert!(shell.symbol_editor().unwrap().draft.function_ref.is_some(), "one undo step");
+    assert!(
+        shell.symbol_editor().unwrap().draft.function_ref.is_some(),
+        "one undo step"
+    );
     shell.shutdown();
 }

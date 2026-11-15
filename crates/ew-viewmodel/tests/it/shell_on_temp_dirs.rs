@@ -2822,15 +2822,26 @@ fn describe_lists_the_start_page_the_wizard_and_the_project_view() {
 fn a_tutorial_keeps_the_open_project_and_asks_no_folder() {
     let tmp = Tmp::new(STEM);
     let mut shell = tmp.gui();
-    done(&mut shell, "file.new", json!({ "dir": path(&tmp.0.join("mine.ew")) }));
+    done(
+        &mut shell,
+        "file.new",
+        json!({ "dir": path(&tmp.0.join("mine.ew")) }),
+    );
     done(&mut shell, "help.tutorials", json!({ "tutorial": "first-page" }));
     assert!(shell.take_prompt().is_none(), "no folder question");
     assert_eq!(shell.project_name(), Some("mine.ew"), "the open project stays");
     assert_eq!(shell.last_help(), Some("tutorials/first-page.html"));
     let first = shell.take_window_request().expect("a second window");
     assert!(first.starts_with(tmp.0.join("config").join("projects").join("Tutorials")));
-    assert!(Session::open_read_only(&first, VERSION).is_ok(), "the practice project is written");
-    let toast = shell.notifications().newest_visible().cloned().expect("the toast");
+    assert!(
+        Session::open_read_only(&first, VERSION).is_ok(),
+        "the practice project is written"
+    );
+    let toast = shell
+        .notifications()
+        .newest_visible()
+        .cloned()
+        .expect("the toast");
     assert_eq!(
         toast.actions(),
         [ew_viewmodel::notifications::NoteAction::ShowFolder]

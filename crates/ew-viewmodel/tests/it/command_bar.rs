@@ -92,7 +92,9 @@ fn menu_places(model: &ShellModel) -> BTreeMap<&'static str, Vec<String>> {
 fn the_registry_places_every_command_once_and_the_app_menu_holds_every_action_once() {
     assert_eq!(
         Tab::ALL.map(Tab::word),
-        ["project", "page", "draw", "plc", "fluid", "check", "output", "view"]
+        [
+            "project", "page", "draw", "plc", "fluid", "check", "output", "view"
+        ]
     );
     let in_tab_order: Vec<Group> = Tab::ALL.into_iter().flat_map(Tab::groups).collect();
     assert_eq!(in_tab_order, Group::ALL, "the groups run tab by tab");

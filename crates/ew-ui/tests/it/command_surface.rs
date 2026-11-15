@@ -71,7 +71,9 @@ fn the_tabs_and_the_draw_row_dispatch_their_actions() {
     let names: Vec<&str> = tabs.iter().map(|(n, _)| n.as_str()).collect();
     assert_eq!(
         names,
-        ["Project", "Page", "Draw", "PLC", "Fluid", "Check", "Output", "View"]
+        [
+            "Project", "Page", "Draw", "PLC", "Fluid", "Check", "Output", "View"
+        ]
     );
     assert_eq!(
         tabs.iter()

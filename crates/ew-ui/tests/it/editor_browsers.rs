@@ -542,7 +542,9 @@ fn the_symbol_editor_explains_function_type_and_ready_made_function() {
     );
     press(&mut d, "Ready-made function");
     assert!(
-        d.texts().iter().any(|t| t.starts_with("Use a ready-made function from the library")),
+        d.texts()
+            .iter()
+            .any(|t| t.starts_with("Use a ready-made function from the library")),
         "{:?}",
         d.texts()
     );
