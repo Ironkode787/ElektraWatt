@@ -969,3 +969,48 @@ fn r2b_autoconnect_never_joins_an_exhaust_to_a_working_port() {
     assert_eq!(tubes(&mut d), 0, "no exhaust joined to a working port");
     d.shell_mut().shutdown();
 }
+
+/// Clicks the Properties header's finding chip (its accessible name `<n> Warning…` or `<n> Pending…`) and answers the
+/// finding rows Messages shows then.
+fn chip_findings(d: &mut Driver) -> Vec<String> {
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    let chip = d
+        .labels()
+        .into_iter()
+        .find(|(l, _)| {
+            l.split_once(' ').is_some_and(|(n, rest)| {
+                n.parse::<u32>().is_ok() && (rest.starts_with("Warning") || rest.starts_with("Pending"))
+            })
+        })
+        .map(|(_, at)| at)
+        .expect("a finding chip");
+    d.input(&click(chip));
+    d.settle();
+    d.shell_mut()
+        .shown_rows(NavKind::Messages)
+        .into_iter()
+        .filter(|r| r.role == "finding")
+        .map(|r| r.label)
+        .collect()
+}
+
+/// R2-D of the re-test: the "2 Warnings" chip of a selected tube opened Messages filtered by its heading "Tube
+/// (Working)", and nothing matched. The chip filters by the tube's name, so Messages lists its findings and no other;
+/// a device's chip (another kind) lists the device's.
+#[test]
+fn r2d_a_tubes_finding_chip_lists_its_findings() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    let rows = chip_findings(&mut d);
+    assert!(!rows.is_empty(), "the tube's findings are listed");
+    assert!(rows.iter().all(|r| r.contains("-201X1:1 → -201M1:A")), "{rows:?}");
+    let cylinder = device_drawn(&mut d, "ew.iso.cylinder");
+    let _ = d
+        .shell_mut()
+        .dispatch("select.set", &json!({ "ids": [cylinder.to_string()] }));
+    let rows = chip_findings(&mut d);
+    assert!(rows.iter().any(|r| r.starts_with("-201M1 has no part")), "{rows:?}");
+    d.shell_mut().shutdown();
+}

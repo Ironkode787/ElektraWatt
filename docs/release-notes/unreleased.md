@@ -416,6 +416,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   R2-F)
 - behaviour-change: on a fluid page autoconnect never joins a valve's working port to another valve's exhaust port
   (EW-FL-012's conflict): two valves stacked are placed without tubes between them (persona re-test R2-B)
+- behaviour-change: a tube's finding chip in Properties opens Messages filtered by the tube's name, and an unnumbered
+  wire's by its ends, so the list shows their findings (it filtered by "Tube (Working)" and matched nothing; persona
+  re-test R2-D)
 - format-variant: report_block ReportKind tube_list
 - format-variant: report_block ReportKind tube_cut_list
 - format-variant: report_block ReportKind tube_labels

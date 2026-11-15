@@ -78,6 +78,9 @@ pub struct SheetHeader {
     pub location: Option<String>,
     /// The open findings of the drafting scheme on the sheet's records.
     pub findings: Vec<FindingChip>,
+    /// The words the record's findings name it by where its title is in none of them (a tube, an unnumbered wire): the
+    /// Messages filter of its finding chips; `None`: the title is.
+    pub filter: Option<String>,
 }
 
 /// One finding in the header.
@@ -1150,6 +1153,28 @@ fn number_order(a: Option<&str>, b: Option<&str>) -> std::cmp::Ordering {
 /// The printed wire number of a connection (its first wire's), `?` when unassigned.
 fn wire_number_text(q: &Q, conn: Id<Connection>) -> String {
     wire_number(q, conn).unwrap_or_else(|| "?".to_owned())
+}
+
+/// The words the findings name connection `c` by where its sheet's title is in none of them: a fluid line as the
+/// tube list names it (its tag, else its two ends, in English), a wire without a number by its ends' connection points
+/// (`-G1:+ → -S1:1`); `None` for a numbered wire, whose number is its title.
+fn connection_filter(q: &Q, c: Id<Connection>) -> Option<String> {
+    let conn = q.connections().get(c)?;
+    if matches!(conn.kind, ew_derive::ew_schema::ConnectionKind::Fluid(_)) {
+        let rows = q.get::<ew_derive::TubeRows>(());
+        let row = rows.iter().find(|r| r.constituents.contains(&c))?;
+        let en = "en-GB".parse().ok()?;
+        return row.name().text_for(&en).map(str::to_owned);
+    }
+    if wire_number(q, c).is_some() {
+        return None;
+    }
+    let ends: Vec<String> = [&conn.a, &conn.b]
+        .into_iter()
+        .filter_map(|e| EndpointKey::of(e).and_then(ew_derive::CpRef::of))
+        .map(|cp| cp_label(q, cp))
+        .collect();
+    (!ends.is_empty()).then(|| ends.join(" → "))
 }
 
 /// The printed wire number of a connection (its first wire's), `None` when unassigned.
@@ -3147,6 +3172,16 @@ impl Session {
         }
         findings.sort_by(|a, b| (&a.0, &a.1).cmp(&(&b.0, &b.1)));
         findings.dedup_by(|a, b| a.2 == b.2);
+        // The persona re-test: a tube's chip opened Messages filtered by its heading "Tube (Working)", which no
+        // finding prints; a tube is named there by its tag, else its two ends, an unnumbered wire by its ends.
+        let filter = match picked {
+            [one] if one.kind == Kind::Connection => one
+                .reach
+                .get(&Kind::Connection)
+                .and_then(|s| s.iter().next())
+                .and_then(|c| connection_filter(q, Id::from_uuid(*c))),
+            _ => None,
+        };
         SheetHeader {
             title,
             items,
@@ -3154,6 +3189,7 @@ impl Session {
             subtitle,
             location,
             findings: findings.into_iter().map(|(_, _, c)| c).collect(),
+            filter,
         }
     }
 

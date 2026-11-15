@@ -2075,12 +2075,16 @@ fn findings_events(header: &ew_viewmodel::ew_api::output::SheetHeader) -> [Event
 }
 
 /// The Messages filter of a sheet's record: a page by its folio facet (`page:101`; its title "101 Control" is in no
-/// finding's text), any other record by its title (a device's tag, a wire's number). Several records have no filter
+/// finding's text), a tube or an unnumbered wire by the words its findings name it by (`SheetHeader::filter`), any
+/// other record by its title (a device's tag, a wire's number). Several records have no filter
 /// (FT-1659: the title "2 devices" is in no finding's text, so the chip of four warnings opened "Nothing matches"); the
 /// chip's tooltip lists their findings.
 pub(crate) fn findings_filter(header: &ew_viewmodel::ew_api::output::SheetHeader) -> String {
     if header.items != 1 {
         return String::new();
+    }
+    if let Some(filter) = &header.filter {
+        return filter.clone();
     }
     let page = header.kinds.iter().any(|(k, n)| k == "page" && *n == 1);
     match header.title.split_whitespace().next() {
