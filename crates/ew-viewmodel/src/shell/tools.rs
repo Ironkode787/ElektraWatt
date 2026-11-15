@@ -541,6 +541,16 @@ impl ShellModel {
                         into,
                     });
                 }
+                // A device placed on a bus page as several boxes, one for each bus interface, says so: two boxes with
+                // one tag appeared "unexplained" (the persona round of M3).
+                if out == Outcome::Done
+                    && cmd.name() == "bus.place_ports"
+                    && let Ok(json) = cmd.to_json()
+                    && let Some(boxes) = json["boxes"].as_array().map(Vec::len).filter(|n| *n > 1)
+                {
+                    let text = strings::format(key!("toast-placed-boxes"), &[&boxes.to_string()]);
+                    self.notify(text, true);
+                }
                 if out == Outcome::Done
                     && let Some(pin) = ip_pin
                     && let Ok(json) = cmd.to_json()

@@ -2558,6 +2558,7 @@ toast-device-retagged = { $p0 } (now { $p1 })
 toast-autoconnect = { $p0 } and connected { $p1 }: { $p2 }. Alt+Click or { $p3 } places without connecting.
 toast-placed = Placed { $p0 } at { $p1 }.
 toast-placed-no-cell = Placed { $p0 }.
+toast-placed-boxes = Placed as { $p0 } boxes, one for each bus interface.
 toast-placed-in-wire = { $p0 }, connected into the wire it was dropped on.
 # FT-1208: the end of the toast of a terminal placed where a terminal of its strip stands ({0} the strip, {1} the grid steps).
 toast-placed-moved = { $p1 } grid steps right: { $p0 } has a terminal on the click point.

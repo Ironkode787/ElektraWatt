@@ -448,6 +448,9 @@ fn a_station_placed_on_a_bus_page_stands_with_its_bus_ports() {
     bus_page(&mut d);
     let cpu = place_box(&mut d, "EW-GEN-CPU-2", (10, 10), (20, 16));
     assert_eq!(cpu.len(), 2, "the CPU's DP and X1, a socket each: {cpu:?}");
+    // Two boxes with one tag: the toast says why.
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(toast, "Placed as 2 boxes, one for each bus interface.");
     let head = place_box(&mut d, "HEAD-DP", (50, 10), (60, 16));
     assert_eq!(head.len(), 1, "the head station's DP: {head:?}");
     let supply = cp_labels(&mut d)

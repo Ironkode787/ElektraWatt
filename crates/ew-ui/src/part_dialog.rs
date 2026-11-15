@@ -806,7 +806,8 @@ fn bus_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
                             let hint = match m {
                                 "interface" => "X1",
                                 "port_label" => "P1R",
-                                "ports" => "8",
+                                // Empty means one port: an "8" here read as a value already set.
+                                "ports" => "1",
                                 _ => "",
                             };
                             let edit = ui.add_sized(
