@@ -51,7 +51,8 @@ A part has channels of one kind: a card with 16 inputs and 16 outputs is two par
 12. **Save**, then place it from the device browser on a bus-topology page: it stands as a box with a connection
     point per socket, P1, P2 …. Draw the bus lines with **Draw ▸ Wire**: the CPU, the devices and the managed switch
     are one network, and an unmanaged switch stands in it with "passes the net through" in the **Bus** navigator.
-    Type each node's name in the navigator's table (its **Address** column).
+    Type each node's name in the navigator's table (its **Address** column): the box prints it ("Node switch-1
+    192.168.0.2"), and "Node TBD" while it is open.
 
 The starter parts hold such parts to begin with: EW-GEN-ESW-5 (unmanaged switch, 5 ports), EW-GEN-ESW-8 (managed
 switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).

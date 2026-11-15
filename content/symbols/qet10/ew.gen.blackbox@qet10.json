@@ -3,8 +3,8 @@
   "id": "faf09b45-ec6e-57d8-8be6-faf4c1596ddb",
   "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
   "item_id": "e1890f47-7cbf-5cfa-bf2e-e4cf690b1ab6",
-  "version": "0.1.1",
-  "sha256": "sha256:ae4ed065a2ba07dca9e4941418545bd515bd7372fa72dbe7db52dba58c8596c7",
+  "version": "0.1.2",
+  "sha256": "sha256:e85ff68e7eaf9bbc4e59232853793a33a93c2f9b4ddf3df4f94976eff69270fe",
   "meta": {
     "key": "ew.gen.blackbox@qet10",
     "licence": "CC-BY-SA-4.0",
@@ -99,6 +99,15 @@
       ],
       "align": "bottom_right",
       "visible": true
+    },
+    {
+      "kind": "bus_address",
+      "pos": [
+        26458333,
+        -8598958
+      ],
+      "align": "bottom_right",
+      "visible": true
     }
   ],
   "arrangements": [
@@ -109,7 +118,8 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ]
     },
     {

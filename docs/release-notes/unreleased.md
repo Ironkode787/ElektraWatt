@@ -783,3 +783,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   starter or another library's part says why it cannot change and offers Copy as a part of your own… (FT-1766)
 - api-add: `part.edit_copy` takes a project-local copy's `sections`, `cp_pattern` and `function_template`; `part.new`
   takes `from`, a held part copied as a new part (FT-1766)
+- behaviour-change: a device with ports drawn as a box prints its address under its tag, "Node TBD" while it is open
+  (the black-box frame `ew.gen.blackbox` 0.1.2 has a bus-address slot) (FT-1767)

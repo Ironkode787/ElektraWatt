@@ -2715,6 +2715,8 @@ fn caption_rank(kind: &SlotKind) -> Option<u8> {
         SlotKind::Tag => Some(0),
         SlotKind::PartNumber => Some(1),
         SlotKind::Manufacturer => Some(2),
+        // A device with ports drawn as a box prints its address (FT-1767), as a port symbol does.
+        SlotKind::BusAddress => Some(3),
         _ => None,
     }
 }

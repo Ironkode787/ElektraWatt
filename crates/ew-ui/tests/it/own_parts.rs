@@ -63,6 +63,24 @@ pub(crate) fn records(d: &mut Driver) -> Vec<Value> {
         .collect()
 }
 
+/// The texts the page shown prints, groups followed.
+fn page_texts(d: &mut Driver) -> Vec<String> {
+    use ew_ui::ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    fn walk(items: &[Item], out: &mut Vec<String>) {
+        for item in items {
+            match &item.kind {
+                ItemKind::Glyphs(run) => out.push(run.text.clone()),
+                ItemKind::Group(g) => walk(&g.items, out),
+                _ => {}
+            }
+        }
+    }
+    let list = std::sync::Arc::clone(&d.shell_mut().canvas().expect("a page").page().list);
+    let mut out = Vec::new();
+    walk(&list.items, &mut out);
+    out
+}
+
 /// Every file of a library folder, one after the other.
 fn library_text(dir: &std::path::Path) -> String {
     let mut out = String::new();
@@ -415,6 +433,9 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
         nodes.iter().all(|k| k.starts_with("nets:logical/")),
         "all in the net: {nodes:?}"
     );
+    // The boxes print their address as the port symbol does: open, it is TBD.
+    let open = page_texts(&mut d).into_iter().filter(|t| t == "Node TBD").count();
+    assert_eq!(open, 3, "the CPU's port, the switch and the drive print Node TBD");
     let _ = d
         .shell_mut()
         .dispatch("navigator.table", &json!({"kind": "bus", "on": true}));
@@ -424,6 +445,15 @@ fn a_managed_switch_and_a_drive_made_in_the_window_are_nodes_of_one_net() {
         assert_eq!(d.shell_mut().dispatch("table.set", &set), Outcome::Done, "{row}");
         d.settle();
     }
+    // Each box prints the name it was given, and the switch prints its one name.
+    let texts = page_texts(&mut d);
+    for name in ["plc-1", "switch-1", "drive-1"] {
+        assert!(
+            texts.iter().any(|t| t == &format!("Node {name}")),
+            "{name}: {texts:?}"
+        );
+    }
+    assert!(!texts.iter().any(|t| t == "Node TBD"), "no address stays open");
     assert_eq!(
         findings(&mut d, "EW-BUS"),
         Vec::<String>::new(),

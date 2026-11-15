@@ -3238,21 +3238,22 @@ msgid ""
 "lines with **Draw ▸ Wire**: the CPU, the devices and the managed switch are "
 "one network, and an unmanaged switch stands in it with \"passes the net "
 "through\" in the **Bus** navigator. Type each node's name in the navigator's "
-"table (its **Address** column)."
+"table (its **Address** column): the box prints it (\"Node switch-1 "
+"192.168.0.2\"), and \"Node TBD\" while it is open."
 msgstr ""
 
-#: src/how-to/own-parts.md:56
+#: src/how-to/own-parts.md:57
 msgid ""
 "The starter parts hold such parts to begin with: EW-GEN-ESW-5 (unmanaged "
 "switch, 5 ports), EW-GEN-ESW-8 (managed switch, 8 ports) and EW-GEN-PND-1 (a "
 "PROFINET device, 2 ports)."
 msgstr ""
 
-#: src/how-to/own-parts.md:59
+#: src/how-to/own-parts.md:60
 msgid "Correct a part you made"
 msgstr ""
 
-#: src/how-to/own-parts.md:61
+#: src/how-to/own-parts.md:62
 msgid ""
 "Select a device of the part and choose **Edit ▸ Edit part…** (or **Edit "
 "part…** in the menu of the **Parts** row of its Properties). A part of your "
@@ -3261,7 +3262,7 @@ msgid ""
 "**Save**."
 msgstr ""
 
-#: src/how-to/own-parts.md:64
+#: src/how-to/own-parts.md:65
 msgid ""
 "A part of My parts is saved there as its next version, and the Preview tab "
 "lists what changes and the devices that use it; **Apply** brings the "
@@ -3269,31 +3270,31 @@ msgid ""
 "same card."
 msgstr ""
 
-#: src/how-to/own-parts.md:66
+#: src/how-to/own-parts.md:67
 msgid ""
 "The next device you place takes the correction. A device already drawn keeps "
 "the sockets it was drawn with and the bus ports it carries: delete it and "
 "place it again to draw the change. The editor says so above the form."
 msgstr ""
 
-#: src/how-to/own-parts.md:69
+#: src/how-to/own-parts.md:70
 msgid ""
 "A starter part or a part of another library is not yours to change: its "
 "editor says so and offers **Copy as a part of your own…**, a new part with "
 "its data, which you save under a part number of your own."
 msgstr ""
 
-#: src/how-to/own-parts.md:72
+#: src/how-to/own-parts.md:73
 msgid ""
 "A part cannot be removed from My parts in the window yet: it stays, unused, "
 "until you delete it from the library folder."
 msgstr ""
 
-#: src/how-to/own-parts.md:74
+#: src/how-to/own-parts.md:75
 msgid "A part drawn with your own symbol"
 msgstr ""
 
-#: src/how-to/own-parts.md:76
+#: src/how-to/own-parts.md:77
 msgid ""
 "In the [symbol editor](../reference/symbol-editor.md), save the symbol with "
 "**Save to library**, then choose **Make a part for this symbol…**. The part "
@@ -3301,7 +3302,7 @@ msgid ""
 "part is drawn with it."
 msgstr ""
 
-#: src/how-to/own-parts.md:80
+#: src/how-to/own-parts.md:81
 msgid ""
 "The PLC exchange with PLC software exports the stations of a configuration "
 "project; a switch or a device without a PLC section is not in the exported "

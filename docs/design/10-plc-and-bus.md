@@ -494,7 +494,8 @@ pub struct PartBusPort {
   `function_template`. Members the forms do not show are kept; the pins and the template are made again only when
   the channels, the pin pattern or the supply pins changed. A device already drawn keeps its box's sockets and the
   ports its functions carry (N5 never rewrites one); it takes the change when placed again. A starter part or another
-  library's part stays read-only and is copied as a new part of his own.
+  library's part stays read-only and is copied as a new part of his own. The box of a device with ports prints the
+  interface's address in its caption (the black-box frame's `bus_address` slot), "Node TBD" while it is open.
 
 ### 2.7 Bus model
 
