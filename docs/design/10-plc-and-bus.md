@@ -519,12 +519,14 @@ pub struct PhysicalNet { pub name: Ident, pub medium: Medium,           // added
   and `io_link_port` besides `profibus` (new values that an older reader keeps as `Unknown`); `BusPort` has the
   optional `mrp` (`manager`, `client`). The P1/P2 neighbours of FR-BUS-010 are the ports' `Bus` connections, read from
   `bus_segments`. An EtherCAT terminal's position after its coupler is its module's positional slot (FR-BUS-011).
-- **As built (persona round of M3): nets from drawn lines.** A person who draws a bus line between two ports means
-  one network. Normaliser N6 (`bus_nets`, doc 06 §3.2 row 14b) gives a new or changed `Bus` line's two ports of one
-  bus system one logical net: the net one of them names, else a new `LogicalNet` named for the bus system
-  (`PROFIBUS DP`, then `PROFIBUS DP 2` …) whose master is the line's CP of the one `master` or `controller` port. It
-  never changes a net a port names (two nets on one line stay EW-BUS-010's). No member is added: `logical_net` was
-  there, and an older 0.1 build reads the net as any other. Physical nets are not made this way.
+- **As built (persona round of M3): nets from drawn lines.** A person who draws a bus between ports means one
+  network. Normaliser N6 (`bus_nets`, doc 06 §3.2 row 14b) takes a new or changed `Bus` line's segment (every port
+  of its bus system reached over bus lines from its ends) and gives the segment's ports one logical net: the one net
+  they name, else, with two ports or more, a new `LogicalNet` named for the bus system (`PROFIBUS DP`, then
+  `PROFIBUS DP 2` …) whose master is the CP of the one `master` or `controller` port. A passive port (a bus plug)
+  passes the net through and takes none, as Golden A's -3X1 has none: two stations joined plug to plug are one net.
+  It never changes a net a port names (two nets in one segment stay EW-BUS-010's). No member is added:
+  `logical_net` was there, and an older 0.1 build reads the net as any other. Physical nets are not made this way.
 - **External partners** are placeholder devices with `PlcStation{role: ExternalPartner}`, `BusNode`, a `BusPort`
   and an `ExternalRef` (project, location, device), but no parts. They are excluded from the BOM (FR-BUS-005). On
   folio 3, the external interruption point "DP" inside the External Connection box is the physical segment end, and

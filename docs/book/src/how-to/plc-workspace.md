@@ -18,8 +18,8 @@ cards, bind channels and check what each channel drives.
    chip at the top of the canvas that opens it.
 3. Drag a channel's row onto a connection point of a card pin or a coil to bind it. A device wired off the card, or a
    valve beside a valve terminal, is attached to the card and bound in one step; one Undo takes both back.
-4. In a project with two CPUs a new card joins neither and is listed under **Cards without a CPU**. Right-click the
-   CPU that takes it and choose **Attach cards without a CPU**.
+4. In a project with two CPUs a new card joins neither and is listed under **Cards without a station**. Right-click
+   the station that takes it and choose **Attach cards without a station**.
 
 ## Bus ports and nets
 
@@ -28,7 +28,7 @@ cards, bind channels and check what each channel drives.
    station, and a click places it. Draw the bus between the ports with **Draw ▸ Wire**, which draws bus lines on a
    bus-topology page: the two ports become one network (a new one named for the bus, PROFIBUS DP, when neither has
    one), with the CPU's port as its master. The starter parts hold a CPU with PROFINET and PROFIBUS DP, a remote I/O
-   head (a station of its own: attach its cards with **Attach cards without a CPU** on its row) and a PROFIBUS and an
+   head (a station of its own: attach its cards with **Attach cards without a station** on its row) and a PROFIBUS and an
    Ethernet cable.
 6. Choose **Bus** on the rail for the nets: each logical net with its ports, each physical net with its segments and
    their ends. Show it as a table to type a port's address or switch its termination.

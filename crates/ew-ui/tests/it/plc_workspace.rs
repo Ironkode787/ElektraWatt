@@ -4,7 +4,7 @@
 //! The PLC workspace in the window (WP-S2.13, doc 16 §2.6, doc 10 §6), at 1920 × 1080: View ▸ Workspaces ▸ PLC shows
 //! the PLC navigator in the left column and the PLC grid in the bottom dock; the grid's filter takes the bus facet and
 //! the safety flag (FT-738); a sorted Address header keeps its whole word (FT-776); a project with two CPUs lists a
-//! new card under "Cards without a CPU", and a CPU row's menu attaches it (FT-1672).
+//! new card under "Cards without a station", and a CPU row's menu attaches it (FT-1672).
 
 use crate::support;
 
@@ -110,7 +110,7 @@ fn the_plc_grids_close_button_closes_the_dock() {
 }
 
 /// FT-1672: in a new project with two CPUs a new card joins neither; the PLC navigator lists it under "Cards without a
-/// CPU", and Attach cards without a CPU on the first CPU's row makes it that CPU's module, one undo step.
+/// CPU", and Attach cards without a station on the first CPU's row makes it that CPU's module, one undo step.
 #[test]
 fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
     let tmp = Tmp::new();
@@ -145,8 +145,8 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     let group = rows
         .iter()
-        .find(|r| r.text == "Cards without a CPU")
-        .expect("the group of cards without a CPU");
+        .find(|r| r.text == "Cards without a station")
+        .expect("the group of cards without a station");
     let card = rows
         .iter()
         .find(|r| r.parent.as_deref() == Some(group.key.as_str()))
@@ -160,11 +160,11 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
         .clone();
     h.get_by_label(&station.name).click_secondary();
     settle(&mut h);
-    support::menu_node(&h, "Attach cards without a CPU").click();
+    support::menu_node(&h, "Attach cards without a station").click();
     settle(&mut h);
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     assert!(
-        rows.iter().all(|r| r.text != "Cards without a CPU"),
+        rows.iter().all(|r| r.text != "Cards without a station"),
         "no card waits"
     );
     let module = rows
@@ -183,7 +183,7 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
     settle(&mut h);
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     assert!(
-        rows.iter().any(|r| r.text == "Cards without a CPU"),
+        rows.iter().any(|r| r.text == "Cards without a station"),
         "one undo step"
     );
     h.state_mut().shell_mut().shutdown();
@@ -1566,7 +1566,7 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
         panic!("two stations: {stations:?}");
     };
     let (cpu, head) = (cpu.clone(), head.clone());
-    station_menu(&mut h, &head, "Attach cards without a CPU");
+    station_menu(&mut h, &head, "Attach cards without a station");
     let modules_of = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, tag: &str| {
         let key = station_row(h, tag).key;
         h.state()

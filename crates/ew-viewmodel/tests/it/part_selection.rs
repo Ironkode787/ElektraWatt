@@ -166,10 +166,13 @@ fn favourites_and_recent_persist() {
     done(&mut s, "part.choose", json!({}));
     let vlv = item_text(&s, "EW-GEN-VLV-1");
     let n = steps(&s);
+    // The list shows its first rows only, and the starter parts grow: find the part by its number.
+    done(&mut s, "part.search", json!({ "text": "EW-GEN-VLV-1" }));
     let i = index_of(&s, "EW-GEN-VLV-1");
     done(&mut s, "part.favourite", json!({ "index": i }));
     assert_eq!(steps(&s), n, "a favourite is no project step");
     assert!(result_of(&s, "EW-GEN-VLV-1").contains(" favourite"));
+    done(&mut s, "part.search", json!({ "text": "" }));
     // A held copy cannot be a favourite (D18: library items only).
     assert_eq!(
         {
@@ -204,6 +207,7 @@ fn favourites_and_recent_persist() {
     done(&mut s, "part.search", json!({ "view": "all" }));
     // Choosing EW-GEN-CON-1, then EW-GEN-MCB-2: recent = [MCB-2, CON-1]; a held copy records nothing.
     let con = item_text(&s, "EW-GEN-CON-1");
+    done(&mut s, "part.search", json!({ "text": "EW-GEN-CON-1" }));
     let i = index_of(&s, "EW-GEN-CON-1");
     done(&mut s, "part.pick", json!({ "index": i }));
     done(&mut s, "part.choose", json!({}));

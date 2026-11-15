@@ -7,13 +7,17 @@
 //! **Trigger.** A `Bus` connection that is new or changed in the transaction, both of whose ends are CPs of functions
 //! with a `bus_port` of one bus system (a newer format's bus is left alone).
 //!
-//! **Effect.** The two ports are one network, as a person who draws a bus line between them means: when one port
-//! names a logical net that exists and the other names none, the other takes it; when neither names one, a new
-//! `LogicalNet` of their bus system is made, named for the bus system (`PROFIBUS DP`, then `PROFIBUS DP 2` …), with
-//! the line's CP of a `master` or `controller` port as its master when exactly one end has such a role, and both
-//! ports take it. Two ports in different nets are left as they are (EW-BUS-010 reports them). N6 never changes a
-//! net a port names, so it is idempotent: after a run both ends name a net and a second run changes nothing.
+//! **Effect.** The ports that bus lines join are one network, as a person who draws a bus between them means. The
+//! line's segment is every port of its bus system reached over `Bus` lines from its ends, through any port on the
+//! way. A passive port (a bus plug, role `passive`) passes the net through and never takes one: it has no address
+//! (Golden A's plug -3X1 names the physical net only). Among the segment's other ports: when exactly one logical net
+//! is named (and exists), the ports that name none take it; when none is named and the segment has two such ports, a
+//! new `LogicalNet` of their bus system is made, named for the bus system (`PROFIBUS DP`, then `PROFIBUS DP 2` …),
+//! with the CP of the segment's one `master` or `controller` port as its master, and all take it. Ports in different
+//! nets are left as they are (EW-BUS-010 reports them). N6 never changes a net a port names, so it is idempotent:
+//! after a run the segment's ports name a net and a second run changes nothing.
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use ew_ids::Id;
@@ -30,11 +34,49 @@ use crate::tx::TxBuilder;
 #[derive(Clone, Copy, Debug, Default)]
 pub struct BusNets;
 
+/// A port of a segment: its function's port and the CP a bus line meets it at.
+type Member = (BusPort, Endpoint);
+
 /// The port at a line's end, with its function and the end's CP.
-fn end_port(tx: &TxBuilder<'_>, end: &Endpoint) -> Option<(Id<Function>, BusPort, Endpoint)> {
+fn end_port(tx: &TxBuilder<'_>, end: &Endpoint) -> Option<(Id<Function>, Member)> {
     let f = end.function()?;
     let port = tx.get::<Function>(f)?.bus_port.clone()?;
-    Some((f, port, end.clone()))
+    Some((f, (port, end.clone())))
+}
+
+/// The segment of `line`: the ports of `bus` reached over the bus lines `all` from its ends, each with the CP of the
+/// first line (in ID order, `line` first) that meets it.
+fn segment(
+    tx: &TxBuilder<'_>,
+    all: &[Arc<Connection>],
+    line: &Connection,
+    bus: &BusSystem,
+) -> BTreeMap<Id<Function>, Member> {
+    let mut members: BTreeMap<Id<Function>, Member> = BTreeMap::new();
+    let mut queue: Vec<Id<Function>> = Vec::new();
+    let meet =
+        |members: &mut BTreeMap<Id<Function>, Member>, queue: &mut Vec<Id<Function>>, end: &Endpoint| {
+            if let Some((f, member)) = end_port(tx, end)
+                && member.0.bus == *bus
+                && !members.contains_key(&f)
+            {
+                members.insert(f, member);
+                queue.push(f);
+            }
+        };
+    meet(&mut members, &mut queue, &line.a);
+    meet(&mut members, &mut queue, &line.b);
+    while let Some(f) = queue.pop() {
+        for other in all {
+            if other.a.function() == Some(f) {
+                meet(&mut members, &mut queue, &other.b);
+            }
+            if other.b.function() == Some(f) {
+                meet(&mut members, &mut queue, &other.a);
+            }
+        }
+    }
+    members
 }
 
 /// The net a port names, when it exists.
@@ -79,43 +121,65 @@ impl Normaliser for BusNets {
     }
 
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<bool, CmdError> {
+        let bus_line = |c: &Arc<Connection>| matches!(c.kind, ConnectionKind::Bus(_));
         let mut lines: Vec<Arc<Connection>> = tx
             .changed_of(Kind::Connection)
             .into_iter()
             .filter_map(|k| tx.get::<Connection>(k.1.cast()))
-            .filter(|c| matches!(c.kind, ConnectionKind::Bus(_)))
+            .filter(bus_line)
             .collect();
+        if lines.is_empty() {
+            return Ok(false);
+        }
         lines.sort_by_key(|c| c.id);
+        let mut all: Vec<Arc<Connection>> = tx.iter::<Connection>().into_iter().filter(bus_line).collect();
+        all.sort_by_key(|c| c.id);
+        let mut done: BTreeSet<Id<Function>> = BTreeSet::new();
         let mut changed = false;
         for line in lines {
             let (Some(a), Some(b)) = (end_port(tx, &line.a), end_port(tx, &line.b)) else {
                 continue;
             };
-            if a.1.bus != b.1.bus || matches!(a.1.bus, BusSystem::Unknown(_)) {
+            let bus = a.1.0.bus.clone();
+            if bus != b.1.0.bus || matches!(bus, BusSystem::Unknown(_)) || done.contains(&a.0) {
                 continue;
             }
-            let net = match (net_of(tx, &a.1), net_of(tx, &b.1)) {
-                (Some(_), Some(_)) => continue,
-                (Some(n), None) | (None, Some(n)) => n,
-                (None, None) => {
-                    let leads = |p: &BusPort| matches!(p.role, PortRole::Master | PortRole::Controller);
-                    let master = match (leads(&a.1), leads(&b.1)) {
-                        (true, false) => Some(a.2.clone()),
-                        (false, true) => Some(b.2.clone()),
+            let members = segment(tx, &all, &line, &bus);
+            done.extend(members.keys().copied());
+            // A plug passes the net through and takes none.
+            let nodes: Vec<(Id<Function>, &Member)> = members
+                .iter()
+                .filter(|(_, m)| m.0.role != PortRole::Passive)
+                .map(|(f, m)| (*f, m))
+                .collect();
+            let named: BTreeSet<Id<LogicalNet>> =
+                nodes.iter().filter_map(|(_, m)| net_of(tx, &m.0)).collect();
+            let net = match (named.len(), named.first()) {
+                (1, Some(n)) => *n,
+                (0, _) if nodes.len() >= 2 => {
+                    let mut leading = nodes
+                        .iter()
+                        .filter(|(_, m)| matches!(m.0.role, PortRole::Master | PortRole::Controller));
+                    let master = match (leading.next(), leading.next()) {
+                        (Some((_, m)), None) => Some(m.1.clone()),
                         _ => None,
                     };
-                    new_net(tx, &a.1.bus, master)?
+                    new_net(tx, &bus, master)?
                 }
+                _ => continue,
             };
-            for (f, port, _) in [&a, &b] {
-                if net_of(tx, port).is_none() {
-                    tx.update::<Function>(*f, |x| {
-                        if let Some(p) = x.bus_port.as_mut() {
-                            p.logical_net = Some(net);
-                        }
-                    })?;
-                    changed = true;
-                }
+            let join: Vec<Id<Function>> = nodes
+                .iter()
+                .filter(|(_, m)| net_of(tx, &m.0).is_none())
+                .map(|(f, _)| *f)
+                .collect();
+            for f in join {
+                tx.update::<Function>(f, |x| {
+                    if let Some(p) = x.bus_port.as_mut() {
+                        p.logical_net = Some(net);
+                    }
+                })?;
+                changed = true;
             }
         }
         Ok(changed)

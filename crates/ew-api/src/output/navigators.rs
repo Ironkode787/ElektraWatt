@@ -824,7 +824,7 @@ impl Session {
     }
 
     /// The PLC cards that wait for a CPU with their short tags, in natural order: the devices with `plc_module` and
-    /// no station (FT-926), which the PLC table lists under "Cards without a CPU" while it has a station (FT-1672).
+    /// no station (FT-926), which the PLC table lists under "Cards without a station" while it has a station (FT-1672).
     pub fn plc_cards_without_cpu(&self) -> Vec<(Uuid, String)> {
         cards_without_cpu(&self.query())
             .into_iter()
@@ -2856,7 +2856,7 @@ fn plc_table(q: &Q, b: &mut Builder) {
                 None,
                 NavRole::Section,
                 "cards:none",
-                "Cards without a CPU".to_owned(),
+                "Cards without a station".to_owned(),
             );
             for (card, tag) in cards {
                 let drawables = device_drawables(q, &folios, card);

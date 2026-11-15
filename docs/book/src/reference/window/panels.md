@@ -106,8 +106,8 @@ under their racks once a module has a rack position, and its bus ports after its
 a module offers what a device's row offers; on a channel, Go to its place and Properties of selection.
 
 A card that no CPU takes (a project with two CPUs leaves a new card on neither) is listed under **Cards without a
-CPU**. A right click on a CPU's row offers **Attach cards without a CPU**, which makes them that CPU's modules in one
-step.
+station**. A right click on a station's row offers **Attach cards without a station**, which makes them that
+station's modules in one step.
 
 The filter takes the words `spare`, `unplaced`, `unassigned`, `tbd`, `duplicate` and `safety` (a channel or module
 with safety data), `config:<name>` for a configuration project and `bus:<net>` for the bus net of a station's port,

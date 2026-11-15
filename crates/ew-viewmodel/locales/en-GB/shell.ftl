@@ -3224,7 +3224,7 @@ action-navigator-jump = Jump to row
 
 # WP-S2.07 §8: a channel dragged from the PLC navigator onto a connection point.
 action-navigator-bind = Bind channel
-action-plc-attach-cards = Attach cards without a CPU
+action-plc-attach-cards = Attach cards without a station
 action-fluid-generate-overview = Generate overview…
 reason-overview-no-page = The valve terminal is on no page with a frame; place it first
 reason-valve-no-part = No valve part fits this terminal: neither its valves nor the libraries name one for its positions
@@ -3691,7 +3691,7 @@ nav-mode-structure = By structure
 nav-sort-folio = Sort by folio
 nav-sort-type = Sort by type
 nav-front-matter = Front matter
-nav-plc-no-cpu = Cards without a CPU
+nav-plc-no-cpu = Cards without a station
 nav-bus-logical = Logical nets
 nav-bus-physical = Physical nets
 nav-bus-no-net = Ports without a net

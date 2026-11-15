@@ -382,3 +382,50 @@ fn a_bus_line_between_two_stations_makes_their_net() {
         "no second net"
     );
 }
+
+/// A bus plug passes the net through and takes none (N6): two stations whose DP ports are joined over a plug, a
+/// passive port, get one net, and the plug names no logical net, as Golden A's -3X1 names none.
+#[test]
+fn a_bus_plug_passes_the_net_through_and_takes_none() {
+    let mut s = fresh(0xB06);
+    let sheet = first_page(&s);
+    let cpu = place_station(&mut s, "EW-GEN-CPU-2", sheet, 12);
+    let rio = place_station(&mut s, "EW-GEN-RIO-1", sheet, 30);
+    let between = place_station(&mut s, "EW-GEN-RIO-1", sheet, 48);
+    let r = s
+        .execute(&AnyCommand {
+            name: "page.create".into(),
+            params: json!({"kind": "bus_topology", "after": first_page(&s).to_string()}),
+        })
+        .expect("page.create bus_topology");
+    let page = r.outcome.primary.expect("the new page").1.as_uuid();
+    let port = |s: &Session, f: Id<Function>| s.query().functions().get(f).and_then(|f| f.bus_port.clone());
+    let dp_cpu = place_port(&mut s, DP_PORT, page, cpu, 12);
+    let plug = place_port(&mut s, DP_PORT, page, between, 24);
+    let dp_rio = place_port(&mut s, DP_PORT, page, rio, 36);
+    s.execute(&AnyCommand {
+        name: "fields.set".into(),
+        params: json!({"kind": "function", "targets": [plug.to_string()], "path": "bus_port.role", "value": "passive"}),
+    })
+    .expect("fields.set bus_port.role");
+    bus_line(&mut s, (dp_cpu, 0), (plug, 0));
+    assert_eq!(
+        port(&s, dp_cpu).and_then(|p| p.logical_net),
+        None,
+        "one station and a plug are no net yet"
+    );
+    bus_line(&mut s, (plug, 1), (dp_rio, 0));
+    let net = port(&s, dp_cpu).and_then(|p| p.logical_net).expect("a net");
+    assert_eq!(port(&s, dp_rio).and_then(|p| p.logical_net), Some(net));
+    assert_eq!(
+        port(&s, plug).and_then(|p| p.logical_net),
+        None,
+        "the plug takes none"
+    );
+    let master = s
+        .query()
+        .table::<ew_schema::LogicalNet>()
+        .get(net)
+        .and_then(|n| n.master.as_ref().and_then(ew_schema::Endpoint::function));
+    assert_eq!(master, Some(dp_cpu));
+}

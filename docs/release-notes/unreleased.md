@@ -491,8 +491,8 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   FT-774)
 - behaviour-change: View ▸ Workspaces offers the built-in workspace PLC: the PLC navigator in the left column and the
   PLC grid in the bottom dock (WP-S2.13, FR-UI-003)
-- behaviour-change: the PLC navigator lists a station's racks and bus ports and the cards without a CPU, which a
-  station's row attaches (Attach cards without a CPU); the grid gains the data type, signal range, safety and rack
+- behaviour-change: the PLC navigator lists a station's racks and bus ports and the cards without a station, which a
+  station's row attaches (Attach cards without a station); the grid gains the data type, signal range, safety and rack
   columns, and its filter the words `safety` and `bus:<net>` (WP-S2.13, FT-737, FT-738, FT-739, FT-1672)
 - behaviour-change: Output ▸ Reports ▸ Report block… offers every report kind that fills pages and has an engine (the
   PLC, bus and fluid lists among them; Check report, which has no engine, no longer), ordered by name (WP-S2.13,
@@ -683,8 +683,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - api-add: starter parts EW-GEN-CPU-2 (CPU with PROFINET and PROFIBUS DP), EW-GEN-RIO-1 (remote I/O head),
   EW-GEN-CBL-2 (PROFIBUS cable) and EW-GEN-CBL-3 (Industrial Ethernet cable), `ew-starter-parts` 0.8.0; the
   starter symbol `ew.bus.pn-port` (FnDef `ew.fn.pn-port`) (persona round)
-- behaviour-change: a bus line drawn between two ports of one bus system puts them in one logical net (normaliser
-  N6 `bus_nets`: the net one names, else a new net named for the bus with the master port as its master); a new
+- behaviour-change: a bus line drawn between two ports of one bus system puts the ports it joins in one logical net
+  (normaliser N6 `bus_nets`: the net one names, else a new net named for the bus with the master port as its
+  master; a bus plug passes the net through and takes none); a new
   station whose ports lead no bus is a head station; a port symbol takes the port of its own bus from the part
   (persona round)
 - behaviour-change: every shipped fluid symbol can be placed: the identifier sets map the categories of the air

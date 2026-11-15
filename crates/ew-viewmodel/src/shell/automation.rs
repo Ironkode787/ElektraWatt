@@ -4,7 +4,7 @@
 //! The window's entries of the PLC, bus and fluid commands (WP-S2.13): each handler builds one declared command
 //! from the row or selection it is aimed at and commits it as one undo step, saying what it did in words.
 //!
-//! - **Attach cards without a CPU** (FT-1672): a CPU row of the PLC navigator attaches the cards that wait for a CPU
+//! - **Attach cards without a station** (FT-1672): a CPU row of the PLC navigator attaches the cards that wait for a CPU
 //!   (`Session::plc_cards_without_cpu`) with one `assembly.attach`, after the station's last child position.
 //! - **The rack and slot editor** (FR-PLC-028): a station row's Rack and slots… opens `Dialog::Rack`, which shows
 //!   `Session::rack_view` each frame. Add module puts the chosen module part into a free slot with `plc.add_module`

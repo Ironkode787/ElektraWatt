@@ -8,7 +8,7 @@
 use super::super::*;
 
 pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
-    // A CPU row's Attach cards without a CPU (FT-1672): the cards that wait for a CPU become children of the station.
+    // A CPU row's Attach cards without a station (FT-1672): the cards that wait for a CPU become children of the station.
     with_params(
         "station:ref",
         needs_parameters(in_navigator(with_aliases(
