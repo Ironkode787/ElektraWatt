@@ -3353,9 +3353,10 @@ msgstr ""
 #: src/how-to/fluid-workspace.md:22
 msgid ""
 "To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal, "
-"4 valve positions, 8 outputs** and click two corners of its box on the page. "
-"It is a valve terminal because its part has valve positions: the fluid "
-"navigator lists it under **Valve terminals**."
+"4 valve positions, 8 outputs** under **Valve terminals** (or type \"valve "
+"terminal\") and click two corners of its box on the page. It is a valve "
+"terminal because its part has valve positions: the fluid navigator lists it "
+"under **Valve terminals**."
 msgstr ""
 
 #: src/how-to/fluid-workspace.md:25

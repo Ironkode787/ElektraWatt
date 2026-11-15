@@ -103,9 +103,16 @@ fn bus_section(number: &str) -> Option<Value> {
 
 /// The category of part `number` where it is not its main FnDef's. The contactor's main function is its coil, whose
 /// FnDef is filed under Relay; the part switches a load circuit, so it is filed under SwitchingPower, which IEC
-/// 81346-2 letters Q (QA in the 2019 classes; FT-1667). No other starter part differs from its main FnDef.
+/// 81346-2 letters Q (QA in the 2019 classes; FT-1667). The valve terminal's main function is its overview box, whose
+/// FnDef is filed under Assembly, where nobody looked for it (persona round 3); the part is a valve terminal that
+/// drives its valves, filed under ValveTerminalNode ("Valve terminals"), beside its supply plate. No other starter part
+/// differs from its main FnDef.
 fn own_category(number: &str) -> Option<Value> {
-    (number == "EW-GEN-CON-1").then(|| json!(["SwitchingPower", "Contactor", "3P"]))
+    match number {
+        "EW-GEN-CON-1" => Some(json!(["SwitchingPower", "Contactor", "3P"])),
+        "EW-GEN-VTM-1" => Some(json!(["ValveTerminalNode", "Station", "Generic"])),
+        _ => None,
+    }
 }
 
 /// The version of part `number`.

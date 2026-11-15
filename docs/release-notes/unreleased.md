@@ -798,3 +798,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   run into each other, and titles a new overview page with the terminal ("Valve terminal -201A1") (persona round 3)
 - api-add: `valve_terminal.generate_overview` takes `title`, the title of a new overview page; the starter symbol
   `ew.ovw.module-wide` (64 mm, its QET edition 42.3 mm) (persona round 3)
+- behaviour-change: the starter valve terminal EW-GEN-VTM-1 stands under "Valve terminals" in the device browser, beside
+  "Valve terminal plates" (it stood under "Assemblies and black boxes"), and a device placed from it takes that group's
+  letter (K); a filter lists first the parts whose description starts with it, so "valve terminal" finds the terminal
+  first (persona round 3)

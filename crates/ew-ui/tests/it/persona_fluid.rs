@@ -1442,3 +1442,64 @@ fn round3_the_generated_overview_stands_in_the_frame_readable_and_titled() {
     }
     d.shell_mut().shutdown();
 }
+
+/// The device browser's part rows on show, each as (part number, the words of the tree node it stands under), and the
+/// tree's nodes in words.
+fn browser_parts(d: &mut Driver) -> (Vec<(String, String)>, Vec<String>) {
+    use ew_ui::ew_viewmodel::tools::{Node, PickerRow};
+    let p = d.shell_mut().picker().expect("the device browser");
+    let node_of = |category: &str| {
+        Node::of_word(category)
+            .unwrap_or(Node::Other)
+            .words()
+    };
+    let rows = p
+        .rows
+        .iter()
+        .filter_map(|r| match r {
+            PickerRow::Part(i) => {
+                let part = &p.catalogue.parts[*i];
+                Some((part.part_number.clone(), node_of(&part.category)))
+            }
+            _ => None,
+        })
+        .collect();
+    (rows, p.nodes.iter().map(|(n, _)| n.words()).collect())
+}
+
+/// Item 2 of round 3 (friction 7 and 8): the starter terminal stood under "Assemblies and black boxes", so the person
+/// found only the supply plate, under "Valve terminal plates", and placed loose valves; a search for "valve terminal"
+/// listed the valve for a valve terminal first. The terminal stands under "Valve terminals", beside its plate's group,
+/// the search lists it first, and the other fluid starter parts stand under their own fluid groups.
+#[test]
+fn round3_the_valve_terminal_is_filed_with_its_plate_and_found_first() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    d.input(&click(d.find("Device").unwrap()));
+    d.settle();
+    let (rows, nodes) = browser_parts(&mut d);
+    let node = |number: &str| {
+        rows.iter()
+            .find(|(n, _)| n == number)
+            .map(|(_, w)| w.clone())
+            .unwrap_or_else(|| panic!("no row {number}"))
+    };
+    assert_eq!(node("EW-GEN-VTM-1"), "Valve terminals");
+    let at = |words: &str| nodes.iter().position(|n| n == words).unwrap();
+    assert_eq!(
+        at(&node("EW-GEN-VTS-1")).abs_diff(at("Valve terminals")),
+        1,
+        "the plate's group beside the terminal's: {nodes:?}"
+    );
+    assert_eq!(node("EW-GEN-CYL-1"), "Cylinders");
+    assert_eq!(node("EW-GEN-AIR-1"), "Air supply and preparation");
+    d.input(&typed("valve terminal"));
+    d.settle();
+    let (rows, _) = browser_parts(&mut d);
+    assert_eq!(
+        rows.first().map(|(n, _)| n.as_str()),
+        Some("EW-GEN-VTM-1"),
+        "{rows:?}"
+    );
+    d.shell_mut().shutdown();
+}

@@ -257,7 +257,10 @@ EW-GEN-VLV-3 (5/2 with an internal coil, 24 V DC) and supply plate EW-GEN-VTS-1 
 persona round).* EW-GEN-VTM-1 is a station part with its outputs integrated (`plc.role` `station`, the positions map),
 so that a device placed from it is a valve terminal and its own valve module: normaliser N0 gives a station whose
 part maps solenoids to valve positions the role `valve_terminal` ([10](10-plc-and-bus.md) §3.3), and its valves are
-its children. *As built (M3 persona re-test).* EW-GEN-VTS-1's one template entry is the supply plate's function, so
+its children. *As built (M3 persona round 3).* The part's category is ValveTerminalNode, not its overview FnDef's
+Assembly: the device browser files it under "Valve terminals", beside "Valve terminal plates", and a device placed from
+it takes that category's letter (K under EN 81346-2:2009, U allowed). Under a filter the browser lists first the parts
+whose description starts with it, so "valve terminal" finds the terminal first. *As built (M3 persona re-test).* EW-GEN-VTS-1's one template entry is the supply plate's function, so
 placed from Device it draws ew.iso.valve-supply-plate with its ports 1, 3 and 5 (it was an overview box without a
 connection point) and, placed in a valve terminal's box, joins the terminal (§4.3); the starter parts EW-GEN-CYL-1
 (double-acting cylinder) and EW-GEN-AIR-1 (an air supply: a service unit, on the air-supply point's FnDef) answer the

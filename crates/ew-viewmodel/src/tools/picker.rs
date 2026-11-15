@@ -341,11 +341,15 @@ impl Picker {
         // each thing stands in one browser (FT-1696).
         if matches!(self.mode, PickerMode::Parts | PickerMode::BlackBox) {
             // One order, (manufacturer, part number), the catalogue's order within a tie, whether the project holds
-            // the part or not: a part placed once keeps its row, so the next click hits the row it aims at.
+            // the part or not: a part placed once keeps its row, so the next click hits the row it aims at. Under a
+            // filter, the parts whose description starts with it come first ("valve terminal" found the valve for a
+            // valve terminal before the terminal; the persona round).
+            let phrase = f.trim();
             let mut parts: Vec<usize> = (0..self.catalogue.parts.len()).collect();
-            parts.sort_by(|a, b| {
-                let (a, b) = (&self.catalogue.parts[*a], &self.catalogue.parts[*b]);
-                (&a.manufacturer, &a.part_number).cmp(&(&b.manufacturer, &b.part_number))
+            parts.sort_by_cached_key(|i| {
+                let p = &self.catalogue.parts[*i];
+                let named = !phrase.is_empty() && p.description.to_lowercase().starts_with(phrase);
+                (!named, p.manufacturer.clone(), p.part_number.clone())
             });
             for p in parts {
                 let part = &self.catalogue.parts[p];

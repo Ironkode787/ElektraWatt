@@ -19,8 +19,8 @@ the middle, and the tube table and the medium table in the bottom dock.
 
 ## Valve terminals
 
-4. To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal, 4 valve positions, 8 outputs** and
-   click two corners of its box on the page. It is a valve terminal because its part has valve positions: the fluid
+4. To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal, 4 valve positions, 8 outputs** under
+   **Valve terminals** (or type "valve terminal") and click two corners of its box on the page. It is a valve terminal because its part has valve positions: the fluid
    navigator lists it under **Valve terminals**.
 5. Right-click the terminal's box or its row and choose **Add valve at position 1**: the valve becomes the terminal's
    child at that position, and its symbol follows the pointer until you click where it goes. The valve is of the part
