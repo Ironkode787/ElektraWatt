@@ -76,9 +76,9 @@ the fluid part of the QET importer.
    square's edge 2 mm off the grid), the paths drawn from the definition's switching model (a flow arrow, a closed
    port's T), the actuators 6 mm (solenoid, spring, pilot), the manual override 3 mm. Every other component is a body
    of 12 mm or less centred between its ports, which stand 8 mm from its centre with 2 mm leads; a port's designation
-   stands beside its tube just beyond the port. Line widths and text sizes are the electrical symbols'. The 5/2
-   solenoid/spring valve and the double-acting cylinder keep their earlier drawing: Golden A holds them and its
-   bootstrap takes them from the shipped set. A library update that draws a CP elsewhere takes the routes at it along
+   stands beside its tube just beyond the port. Line widths and text sizes are the electrical symbols'. The script
+   `tools/iso1219/symbols.py` draws them (then `cargo xtask symbols-qet10` seals them); Golden A's 5/2 valves and
+   cylinders were redrawn with the rest, their positions kept. A library update that draws a CP elsewhere takes the routes at it along
    (the end segments stretch, a hand-drawn route keeps its other bends).
 
 ---
