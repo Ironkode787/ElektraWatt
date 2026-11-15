@@ -1283,6 +1283,11 @@ impl ShellModel {
         if kind == NavKind::Macros && node.role == ew_api::output::NavRole::Macro {
             return self.arm_macro(&key);
         }
+        // Enter on a port not drawn yet (the Bus navigator) places it: its box on a bus-topology page.
+        if let Some((device, port)) = undrawn_port(&key) {
+            self.set_cursor(kind, &key);
+            return self.place_undrawn_port(device, port);
+        }
         // Enter on an Unplaced devices row arms the layout place tool on the focused panel page.
         if kind == NavKind::Unplaced
             && node.role == ew_api::output::NavRole::Device
@@ -1669,6 +1674,27 @@ impl ShellModel {
     }
 }
 
+/// The device (its ID text) and the interface ("X1") of a Bus navigator row of a port not drawn yet, keyed
+/// `undrawn:<device>:<interface>` (`ew-api`'s bus table); `None` for another row.
+pub(crate) fn undrawn_port(key: &str) -> Option<(&str, &str)> {
+    let at = key.find("undrawn:")?;
+    if at > 0 && !key[..at].ends_with('/') {
+        return None;
+    }
+    key[at + "undrawn:".len()..].split_once(':')
+}
+
+impl ShellModel {
+    /// Place port `<port>` of a Bus navigator row of a port not drawn yet: on a bus-topology page the Black box tool
+    /// with that interface's box (`place.pick {device, port}`); on another page refused, in words.
+    pub(crate) fn place_undrawn_port(&mut self, device: &str, port: &str) -> Outcome {
+        if self.page_rows().get(self.page_index()).map(|r| r.kind.as_str()) != Some("bus_topology") {
+            return Outcome::refused(key!("reason-port-bus-page"));
+        }
+        self.act_place_pick(&json_map(json!({ "device": device, "port": port })))
+    }
+}
+
 /// A JSON object value as a parameter map.
 fn json_map(v: Value) -> Map<String, Value> {
     match v {
@@ -1876,6 +1902,8 @@ pub(super) fn table_in_words(table: &mut ew_api::output::NavTable, project: &sup
             node.label = strings::text(key!("nav-bus-physical")).to_owned();
         } else if segment == "ports:none" {
             node.label = strings::text(key!("nav-bus-no-net")).to_owned();
+        } else if segment == "ports:undrawn" {
+            node.label = strings::text(key!("nav-bus-undrawn")).to_owned();
         } else if segment == "fluid:terminals" {
             node.label = strings::text(key!("nav-fluid-terminals")).to_owned();
         } else if segment == "fluid:devices" {

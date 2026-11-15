@@ -820,3 +820,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   bus-topology page stands there as a box per interface with its sockets and without its supply pins (the starter
   CPU as DP and X1); a station's Place port on a bus-topology page draws that interface's box; an unplaced black-box
   function (the station's supply pins) is placed with the black box tool (persona run m3-p4)
+- behaviour-change: the Bus navigator lists Ports not drawn yet, every interface a part gives a device that no page
+  draws; Enter or Place port in the row's menu draws its box on a bus-topology page (persona run m3-p4)

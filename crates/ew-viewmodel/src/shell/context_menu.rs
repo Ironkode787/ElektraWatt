@@ -416,6 +416,22 @@ impl ShellModel {
                 };
                 out.extend(self.aimed(action, key, strings::text(label).to_owned()));
             }
+            // A port not drawn yet (the Bus navigator): Place port, its box on a bus-topology page.
+            (NavKind::Bus, NavRole::Device, Some(_)) => {
+                if let Some((device, port)) = super::navigators::undrawn_port(&node.key) {
+                    let label = strings::format(key!("canvas-place-port"), &[port]);
+                    let bus_page = self.page_rows().get(self.page_index()).map(|r| r.kind.as_str())
+                        == Some("bus_topology");
+                    let params = json!({ "device": device, "port": port });
+                    out.extend(self.aimed("place.pick", params, label).map(|mut i| {
+                        if i.enabled && !bus_page {
+                            i.enabled = false;
+                            i.reason = Some(strings::text(key!("reason-port-bus-page")).to_owned());
+                        }
+                        i
+                    }));
+                }
+            }
             _ => {}
         }
         out

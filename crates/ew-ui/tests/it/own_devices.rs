@@ -22,6 +22,54 @@ fn bus_page(d: &mut Driver) {
     d.settle();
 }
 
+/// The rows under the Bus navigator's group `group` (its key segment): their keys and labels.
+fn bus_group(d: &mut Driver, group: &str) -> Vec<(String, String)> {
+    let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "bus"}));
+    d.settle();
+    let rows = d.shell_mut().shown_rows(NavKind::Bus);
+    rows.iter()
+        .filter(|r| r.parent.as_deref().is_some_and(|p| p.ends_with(group)))
+        .map(|r| (r.key.clone(), r.label.clone()))
+        .collect()
+}
+
+/// Item 2: the Bus panel lists what is not drawn yet. The starter CPU drawn on a schematic page has its DP and X1 in
+/// its part and on no page: the group Ports not drawn yet lists both, each row's menu offers Place port; Enter on the
+/// DP row on a bus-topology page draws its box, after which the row is gone and the port is listed without a net.
+#[test]
+fn the_bus_panel_lists_the_ports_not_drawn_yet_and_places_them() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    let cpu = place_box(&mut d, "EW-GEN-CPU-2", (10, 10), (20, 16));
+    let tag = cpu[0].split(':').next().unwrap().to_owned();
+    let undrawn = bus_group(&mut d, "ports:undrawn");
+    let labels: Vec<&str> = undrawn.iter().map(|(_, l)| l.as_str()).collect();
+    assert_eq!(labels, [format!("{tag} DP"), format!("{tag} X1")], "{undrawn:?}");
+    // Its menu offers Place port, which waits for a bus-topology page and says so.
+    let node = d
+        .shell_mut()
+        .nav(NavKind::Bus)
+        .and_then(|n| n.node_of(&undrawn[0].0).map(|(_, n)| n.clone()))
+        .expect("the DP row");
+    let menu = ew_ui::ew_viewmodel::command_bar::navigator_row_menu(d.shell_mut(), NavKind::Bus, &node);
+    let place = menu.iter().find(|i| i.label == "Place port DP").expect("Place port DP");
+    assert!(!place.enabled && place.reason.is_some(), "not on a schematic page: {place:?}");
+    bus_page(&mut d);
+    let open = json!({"kind": "bus", "key": undrawn[0].0});
+    assert_eq!(d.shell_mut().dispatch("navigator.open", &open), Outcome::Done);
+    for k in [(10, 10), (18, 16)] {
+        cursor_k(&mut d, k);
+        let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
+        d.settle();
+    }
+    d.input(&key("Escape"));
+    d.settle();
+    let left: Vec<String> = bus_group(&mut d, "ports:undrawn").into_iter().map(|(_, l)| l).collect();
+    assert_eq!(left, [format!("{tag} X1")], "the DP is drawn");
+    let loose: Vec<String> = bus_group(&mut d, "ports:none").into_iter().map(|(_, l)| l).collect();
+    assert_eq!(loose, [format!("{tag} DP")], "and listed without a net");
+}
+
 /// Item 1: the starter CPU and a head station of one's own (such as an IM 152), each placed from the device browser on
 /// a bus-topology page, stand there with their bus ports and without their supply pins: the CPU as its interfaces DP
 /// and X1, the head station as its DP, each socket named by its interface. A Wire between the two DP ports makes one

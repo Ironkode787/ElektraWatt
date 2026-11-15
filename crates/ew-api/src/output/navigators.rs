@@ -2187,7 +2187,9 @@ fn port_role_word(r: &ew_derive::ew_schema::PortRole) -> &'static str {
 /// Bus (FR-UI-006, doc 10 §6): **Logical nets** → each logical net (its name, then its rate) → its ports, then the passive ports it runs through (a switch, a plug) with the badge `passes through`; **Physical
 /// nets** → each physical net (its name and medium) → its derived segments (`bus_segments`, A5) → their members in walk
 /// order, a port with the badge `end` at an end of its segment and its termination as `terminated` or `not
-/// terminated`, a cable by its tag; then **Ports without a net**. A port row is a table row with [`BUS_COLUMNS`]; its
+/// terminated`, a cable by its tag; then **Ports without a net**; then **Ports not drawn yet**, each interface of a
+/// device's bus part that no drawn function carries (a device row with the badge `not drawn`, keyed
+/// `undrawn:<device>:<interface>`, by tag). A port row is a table row with [`BUS_COLUMNS`]; its
 /// record is the port's function, so selecting it shows the port in Properties, and a net's row selects the net
 /// (its rate and master in Properties).
 fn bus_table(q: &Q, b: &mut Builder) {
@@ -2432,6 +2434,55 @@ fn bus_table(q: &Q, b: &mut Builder) {
         );
         for (_, f) in loose {
             port_row(b, g, f, Vec::new());
+        }
+    }
+    // The interfaces a part gives a device that nothing draws yet (doc 10 §2.7): a row each, keyed
+    // `undrawn:<device>:<interface>`, whose Enter and menu place the port.
+    let mut undrawn: Vec<(NaturalKey, Id<ew_derive::ew_schema::Device>, String, String)> = Vec::new();
+    for (id, d) in q.devices().iter() {
+        let Some(part) = d.parts.iter().find_map(|u| {
+            q.parts()
+                .get(u.part.copy)
+                .filter(|c| c.item.sections.bus.as_ref().is_some_and(|s| !s.ports.is_empty()))
+        }) else {
+            continue;
+        };
+        let drawn: Vec<(String, Option<String>)> = q
+            .idx()
+            .functions_of_device(id)
+            .filter(|f| q.idx().reps_of_function(*f).next().is_some())
+            .filter_map(|f| functions.get(f)?.bus_port.clone())
+            .map(|p| (p.interface.to_string(), p.port_label.map(|l| l.to_string())))
+            .collect();
+        let tag = short_tag(q, id);
+        for i in super::editing::part_interfaces(&part.item) {
+            if !drawn.contains(&(i.interface.clone(), i.port_label.clone())) {
+                undrawn.push((natural_key(&tag), id, tag.clone(), i.label));
+            }
+        }
+    }
+    undrawn.sort();
+    if !undrawn.is_empty() {
+        let g = group(
+            b,
+            None,
+            NavRole::Section,
+            "ports:undrawn",
+            "Ports not drawn yet".to_owned(),
+        );
+        for (_, id, tag, label) in undrawn {
+            let n = b.push(
+                Some(g),
+                NavRole::Device,
+                &format!("undrawn:{}:{label}", id.as_uuid()),
+                format!("{tag} {label}").trim().to_owned(),
+                vec!["not drawn".to_owned()],
+                vec![id.as_uuid()],
+                Vec::new(),
+                None,
+                vec![("kind".to_owned(), NavRole::Device.word().to_owned())],
+            );
+            b.nodes[n as usize].kinds = vec!["device".to_owned()];
         }
     }
 }
