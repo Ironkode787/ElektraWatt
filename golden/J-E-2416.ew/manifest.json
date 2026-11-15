@@ -1,7 +1,7 @@
 {
   "format": "0.1",
   "min_reader": "0.1",
-  "generator": "ElektraWatt 0.2.0",
+  "generator": "ElektraWatt 0.3.0",
   "project": "d76f5765-c456-5393-935c-4cec32a87b01",
   "generation": 1,
   "files": {
@@ -150,8 +150,8 @@
     "lib/parts/f54fb48e-fc5d-5bd2-9d6a-67edb901dc3f.json": "sha256:46b1672d201a1eb7945a823e77510a1e3b946bae1796b2c25121a32344191e99",
     "lib/parts/f81b8f71-4bcf-57e8-a182-5bca37b74ac9.json": "sha256:692008fb99170985d4c9c68f31ab13e07ff0c1b14d1da981f2e2ac71b3ee851b",
     "lib/symbols/13704217-e6f6-56c5-951b-0552447345b7.json": "sha256:0b62213ff90054d70ce67743a5508c5899c543e5c34b6a267251ac0bf7361e2b",
-    "lib/symbols/1def94e7-31f2-5d92-ae08-3c3c619f288a.json": "sha256:c3d3ad3ebae0eab6116a029267f6745bfd32b26b66b21c7699ebcbc7f0acdc30",
-    "lib/symbols/27de388b-93d5-5d7d-b224-cb590f5bcdc5.json": "sha256:cfddda346c55e43c218190c0f2d0abad706e46b886c205dc18c5034d7579a3e2",
+    "lib/symbols/1def94e7-31f2-5d92-ae08-3c3c619f288a.json": "sha256:14827775fa917c17e708831440e2f2f22675c2e94acaf5a6fab1b77a5d07cb28",
+    "lib/symbols/27de388b-93d5-5d7d-b224-cb590f5bcdc5.json": "sha256:ba9b35ffbcfa0170dbf2e38d6a4aa49f5fa7fb91be3ab1f4070651ffb0efe7b3",
     "lib/symbols/342746cd-bc7f-5f9e-9e52-24f1771ad142.json": "sha256:10e1d038ff4ff5898cdead1876ca455de0dddbf70e910fe5fa0d09b6486ea84a",
     "lib/symbols/35f7983c-4766-5502-9ebf-a335d4e6e64d.json": "sha256:9bfa5607f27772e9f294bb468be343a43e203373dbe8dc08f572b220bb1072f7",
     "lib/symbols/4f6bee27-45fb-5898-a9f7-48a91ddce41c.json": "sha256:c5b10628e589f9418115c35981ee336e40ff27f5f393fd2437b308929323d23e",
@@ -182,9 +182,9 @@
     "pages/b57668be-b65f-5802-a9dc-3ba4c8ed9866.jsonl": "sha256:020d389689b71652cd546802a1a003362f02856e34a2cb7a81a070e9cfb755fb",
     "pages/b6d9a198-2120-5ffd-8681-cdb072300253.jsonl": "sha256:fb95e8a28ffb1a588ff5b255416047981790291582f2754a7392fa460c0f0443",
     "pages/cba74a02-a83c-58e8-9c56-3b1365ed2d1a.jsonl": "sha256:b26127468bdeec9330c6ce91cf671239082e4259b1bcb346dbba97da9d47bb92",
-    "pages/ce20ff4a-7c7c-587a-aeb9-b6ab6624ea08.jsonl": "sha256:3de04161246446c5125e00c31e7fd7617475a502dbd0f9cc91ccbd655a4ae4af",
+    "pages/ce20ff4a-7c7c-587a-aeb9-b6ab6624ea08.jsonl": "sha256:18d37ab2ccdb4a158bd976b495e41189faca37034e44bd016f9b4a3530a273bf",
     "pages/f239a42a-2ec8-574b-8086-d0fe72d1da6a.jsonl": "sha256:f1d5a238202bc829ddadd8e6d885bb8619742fd1a283471d9c559ff2c8337e2a",
-    "project.jsonl": "sha256:d7d63120fc33588a1064ef36f5f33d38be24efe2fd0450c7aae9c43e6895e461",
+    "project.jsonl": "sha256:68291bc877206e5b3462ca65554fbec68013103d512eaf5afc16d6de3aa7b261",
     "report-blocks.jsonl": "sha256:52cccfbb2f6e61f5d5b0c22fc85f48b82d2b439dc50430ec93eeee2a39ca556c",
     "revisions.jsonl": "sha256:0ad5f67ad2a9f8ce6470ca36a4558caa60e628043c744481dc577c94f5f2af77",
     "structure.jsonl": "sha256:38c56d8c524050261fc33e0d8a41f0aa1dc51cf7cc4d1e42fce8bd60be22206d"

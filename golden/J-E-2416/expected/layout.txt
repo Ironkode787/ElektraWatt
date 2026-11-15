@@ -6,4 +6,4 @@
   5 bends: PE-1.1 → -X1032:1/b (one of four targets in 103-G6, right of the strip it feeds: its wire leaves right and loops back over the stack, as its cross-reference runs right under its arrow (ID-1509 (4)))
   5 bends: PE-1.2 → -X1032:2/b (one of four targets in 103-G6, right of the strip it feeds: its wire leaves right and loops back over the stack, as its cross-reference runs right under its arrow (ID-1509 (4)))
 106: hard 0, crossings 14, bends 28, text overlaps 0
-203: hard 0, crossings 0, bends 48, text overlaps 0
+203: hard 0, crossings 8, bends 48, text overlaps 0

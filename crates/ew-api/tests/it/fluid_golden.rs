@@ -409,8 +409,10 @@ fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
     assert_eq!(lines.len(), 16);
     let q = s.query();
     let page = lines[0].1.page.expect("on folio 203");
-    // the body of ew.iso.cylinder-double-acting@qet10: the rectangle (0, 0) to (20, 60) px from its position
-    let body = Pt2::new(Grid::QET_1PX.at(20).unwrap(), Grid::QET_1PX.at(60).unwrap());
+    // the body of ew.iso.cylinder-double-acting@qet10 (the 12 mm module of rc.2): the barrel from (5, 5) to (20, 45) px
+    // from its position, its ports at x 0 on 2 mm leads
+    let corner = Pt2::new(Grid::QET_1PX.at(5).unwrap(), Grid::QET_1PX.at(5).unwrap());
+    let body = Pt2::new(Grid::QET_1PX.at(20).unwrap(), Grid::QET_1PX.at(45).unwrap());
     let bodies: Vec<(Pt2, Pt2)> = q
         .reps()
         .iter()
@@ -421,7 +423,7 @@ fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
                     .and_then(|y| y.item.meta.key.as_ref())
                     .is_some_and(|k| k.as_str() == "ew.iso.cylinder-double-acting@qet10")
         })
-        .map(|(_, r)| (r.pos, r.pos.checked_add(body).unwrap()))
+        .map(|(_, r)| (r.pos.checked_add(corner).unwrap(), r.pos.checked_add(body).unwrap()))
         .collect();
     assert_eq!(bodies.len(), 8);
     let mut routes = BTreeMap::new();
@@ -450,7 +452,7 @@ fn the_working_lines_are_routed_clear_of_the_cylinder_bodies() {
         }
     }
     let f1: Vec<(i64, i64)> = routes[&1].1.iter().copied().map(px).collect();
-    assert_eq!(f1, [(140, 590), (140, 420), (80, 420), (80, 440), (90, 440)]);
+    assert_eq!(f1, [(140, 600), (140, 580), (80, 580), (80, 440), (100, 440)]);
     drop(q);
     for (n, (id, route)) in &routes {
         let cmd = AnyCommand {
