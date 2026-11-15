@@ -832,7 +832,8 @@ lines of the nets whose medium is that medium. This is the highlight half of FR-
 zones were otherwise invisible; the per-position flow preview stays Later. **The device rows' fluid actions** (FT-1733)
 are on a device's row of the fluid, PLC and device navigators (`Session::fluid_menu`): a valve terminal's Generate
 overview… (§5.5); a valve module's Add valve at position *n* for each blank or empty position (a `valve.set_occupancy`
-with the part of the module's first valve, else of another module's; disabled with its reason without one); a valve's
+with the part of the module's first valve, else of another module's; disabled with its reason without one) and Blank
+position *n* for each empty one (*as built, M3 persona round 3*: it stood on a valve's menu only); a valve's
 Set spare or Set used and Blank position *n*, a blanking plate's Add valve; Plug port *p* for each open working port
 (EW-FL-001's, `ew_derive::open_working_ports`; `fluid.port.close` with a plug). Each is one undo step. **The line
 tool** (FT-1733): Draw ▸ Connect ▸ Fluid line… on a fluid page is the line-kind picker (Working, Pilot, Exhaust, Drain,

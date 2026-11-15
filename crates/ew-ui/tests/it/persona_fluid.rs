@@ -1553,6 +1553,49 @@ fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_
     d.shell_mut().shutdown();
 }
 
+/// The labels of the context menu that a right-click at `at` opens, which Escape closes again.
+fn menu_at(d: &mut Driver, at: (i64, i64)) -> Vec<String> {
+    d.input(&right_click(at));
+    d.settle();
+    let labels = d.labels().into_iter().map(|(l, _)| l).collect();
+    d.input(&key("escape"));
+    d.settle();
+    labels
+}
+
+/// Item 5 of round 3 (friction 9): the terminal's menu offered Add valve at position n only; Blank position stood on a
+/// valve's own menu, so the person added a valve to blank a position. The terminal's box and its row offer Blank
+/// position n at each empty position; chosen, the position is blank and the entry gives way to Add valve.
+#[test]
+fn round3_the_terminal_blanks_an_empty_position() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_terminal(&mut d, (760, 300), (1260, 520));
+    let terminal = fluid_nodes(&mut d)
+        .into_iter()
+        .find(|n| n.role == NavRole::Device)
+        .map(|n| n.label)
+        .expect("the terminal's row");
+    let on_box = menu_at(&mut d, (1010, 330));
+    for n in 1..=4 {
+        assert!(on_box.contains(&format!("Blank position {n}")), "{on_box:?}");
+    }
+    let row = row_of(&mut d, &terminal);
+    d.input(&right_click(row));
+    d.settle();
+    d.input(&click(starting_with(&d, "Blank position 3")));
+    d.settle();
+    let row = row_of(&mut d, &terminal);
+    let on_row = menu_at(&mut d, row);
+    assert!(!on_row.contains(&"Blank position 3".to_owned()), "{on_row:?}");
+    assert!(on_row.contains(&"Blank position 4".to_owned()), "{on_row:?}");
+    assert!(
+        on_row.iter().any(|l| l.starts_with("Add valve at position 3")),
+        "a blank position takes a valve: {on_row:?}"
+    );
+    d.shell_mut().shutdown();
+}
+
 /// Item 2 of round 3 (friction 7 and 8): the starter terminal stood under "Assemblies and black boxes", so the person
 /// found only the supply plate, under "Valve terminal plates", and placed loose valves; a search for "valve terminal"
 /// listed the valve for a valve terminal first. The terminal stands under "Valve terminals", beside its plate's group,

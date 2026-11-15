@@ -31,7 +31,8 @@ the middle, and the tube table and the medium table in the bottom dock.
    feeds every valve of the terminal.
 6. Right-click a valve's row: **Set spare** or **Set used**, **Blank position** to put a blanking plate in its place,
    and **Plug port** for each working port that has no line. A module's row adds a valve at a blank or empty position
-   the same way (**Add valve at position**).
+   the same way (**Add valve at position**), and the terminal's box or row closes an empty position with a blanking
+   plate (**Blank position**).
 7. Right-click the valve terminal's box or row and choose **Generate overview…**; from the command search it acts on
    the selected terminal and says so while none is selected. The Preview tab lists which modules stand on which
    overview page, and the pages it adds where the frame is full; the tags that change with a page are listed below.

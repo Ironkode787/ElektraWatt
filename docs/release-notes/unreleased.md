@@ -808,3 +808,5 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: autoconnect never joins a valve's working port to a supply plate's exhaust tap (a valve placed
   below a loose plate had its port 4 joined to the plate's port 5), EW-FL-012 reports such a join, and a placement's
   toast on a fluid page counts the tubes it drew ("connected 1 tube") (persona round 3)
+- behaviour-change: a valve terminal's box and row offer Blank position n at each empty position; it stood on a valve's
+  own menu only, so a position had to take a valve before it could be blanked (persona round 3)

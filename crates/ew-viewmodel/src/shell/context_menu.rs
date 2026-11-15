@@ -542,8 +542,9 @@ impl ShellModel {
 
     /// A device's fluid actions, on its row and on its symbol alike (doc 11 §7, FT-1733; `Session::fluid_menu`): on a
     /// valve terminal Generate overview… (FR-FLU-033); on a valve module Add valve at each blank or empty position (the
-    /// part of its other valves, else the libraries' valve; `fluid.valve_add` puts its symbol on the pointer); on a
-    /// valve Set used or Set spare and Blank position, on a blanking plate Add valve; Plug port for each open working
+    /// part of its other valves, else the libraries' valve; `fluid.valve_add` puts its symbol on the pointer) and Blank
+    /// position at each empty one; on a valve Set used or Set spare and Blank position, on a blanking plate Add valve;
+    /// Plug port for each open working
     /// port (EW-FL-001's). Each is one `valve.set_occupancy` or `fluid.port.close`, one undo step.
     fn fluid_entries(&self, device: Uuid, out: &mut Vec<ActionItem>) {
         let Some(session) = self.project_session() else {
@@ -574,9 +575,21 @@ impl ShellModel {
                 i
             }));
         };
+        // An empty position is blanked from the module too (the persona round added a valve to blank it).
+        let blank = |out: &mut Vec<ActionItem>, module: Uuid, position: u32| {
+            let label = strings::format(key!("canvas-valve-blank"), &[&position.to_string()]);
+            out.extend(self.aimed(
+                "command.run",
+                occupancy(module, position, &json!({ "blank": {} })),
+                label,
+            ));
+        };
         for (position, holds) in &menu.positions {
             if *holds != "valve" {
                 add(out, device, *position);
+            }
+            if *holds == "empty" {
+                blank(out, device, *position);
             }
         }
         if let Some((module, position, state)) = &menu.own {
