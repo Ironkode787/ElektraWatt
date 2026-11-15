@@ -1668,22 +1668,40 @@ fn device_create_with_a_valve_part_counts_its_valve_functions() {
     );
 }
 
-/// Replays a `command_sequence` input with the cadence of the fuzz target, after asserting that its first step is
-/// still `first` (a remade tape keeps the finding's step only while the generator draws as it did).
+/// Replays a `command_sequence` input with the cadence of the fuzz target, on a tape whose first step is `first`.
+/// The generator draws its command from a total that counts the registry's commands, so a recorded tape stops
+/// drawing its step whenever a command joins the registry: the tape's first word is then found again here (the
+/// first word under which the step is drawn as recorded), instead of a file remade by hand at every new command.
 fn replay_drawing(input: &[u8], first: &str) {
     let (seed, rest) = input.split_first_chunk::<8>().expect("a seed");
     let (&steps, tape) = rest.split_first().expect("a step count");
     let seed = u64::from_le_bytes(*seed);
     let session = open_session_with(seed, MemoMode::On);
     let fixture = Rc::new(Fixture::of(&session.query()));
-    let step = gen_step(
-        &session,
-        &fixture,
-        &mut SplitMix64::with_tape(seed, tape),
-        false,
-        Mix::default(),
-    );
-    assert_eq!(step.line(), first);
+    let draws = |tape: &[u8]| {
+        gen_step(
+            &session,
+            &fixture,
+            &mut SplitMix64::with_tape(seed, tape),
+            false,
+            Mix::default(),
+        )
+        .line()
+            == first
+    };
+    let mut tape = tape.to_vec();
+    if !draws(&tape) {
+        let with_word = |word: u64| {
+            let mut t = tape.clone();
+            t[..8].copy_from_slice(&word.to_le_bytes());
+            t
+        };
+        let word = (0..1u64 << 16)
+            .find(|w| draws(&with_word(*w)))
+            .expect("a first word under which the recorded step is drawn");
+        tape = with_word(word);
+    }
+    let tape = tape.as_slice();
     let cadence = Cadence {
         sample_every: 0,
         check_every: 0,

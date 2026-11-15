@@ -297,7 +297,6 @@ fn fluid(number: &'static str, description: &'static str, fndef: &'static str) -
     }
 }
 
-
 /// A bus plug (doc 10 §2.7): an accessory at a bus line's end, whose bus section ([`bus_section`]) is its data.
 fn bus_plug(number: &'static str, description: &'static str) -> Def {
     Def {
