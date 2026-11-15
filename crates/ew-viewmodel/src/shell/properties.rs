@@ -27,6 +27,7 @@ use serde_json::{Map, Value, json};
 use super::navigation::{Focus, bump};
 use super::{Mode, Outcome, RecordedCommand, ShellModel, failed, string_param};
 use crate::key;
+use crate::navigators::NavKind;
 use crate::properties::{
     Card, CardOrigin, ChoiceKind, Choices, Decision, EditBuffer, PendingEdit, Popup, PropRow,
     PropertiesState, PropertySheet, Provenance, RowAction, RowMenuItem, RowValue, SheetKey, SheetSection,
@@ -178,6 +179,56 @@ impl ShellModel {
     /// The property grid's state.
     pub fn properties(&self) -> &PropertiesState {
         &self.props
+    }
+
+    /// The form a bus port's field takes, said under its editor (the persona run m3-p4): for `bus_port.address`
+    /// the address form of the port's bus with an example (`Session::bus_address_form`), for `bus_port.termination`
+    /// its words; `None` for another field or a function without a bus port.
+    fn port_field_hint(&self, function: ew_api::output::Uuid, field: &str) -> Option<String> {
+        match field {
+            "bus_port.address" => {
+                let key = self.project_session()?.bus_address_form(function)?;
+                Some(strings::text(Key::run_time(key)).to_owned())
+            }
+            "bus_port.termination" => Some(strings::text(key!("hint-termination")).to_owned()),
+            _ => None,
+        }
+    }
+
+    /// What the open Properties editor says under it: the form of a bus port's address or termination (one port
+    /// selected); `None` for another row.
+    pub fn property_edit_hint(&self) -> Option<String> {
+        let edit = self.props.edit()?;
+        let field = edit.row.strip_prefix("function/")?;
+        let (section, _) = crate::properties::find_row(self.props.sheet()?, &edit.row)?;
+        match section.targets.as_slice() {
+            [function] => self.port_field_hint(*function, field),
+            _ => None,
+        }
+    }
+
+    /// What the edited cell of navigator `kind`'s table says under it: in the Bus table the form of the port's
+    /// Address or Termination, then, with more than one row marked, that Ctrl+Enter sets them all
+    /// (`navigators::table::commit_all_hint`), a line each; `None` when neither applies.
+    pub fn table_edit_hint(&self, kind: NavKind) -> Option<String> {
+        let nav = self.nav(kind)?;
+        let form = (kind == NavKind::Bus)
+            .then(|| {
+                let edit = nav.table_mode()?.edit()?;
+                let field = match edit.column.as_str() {
+                    "address" => "bus_port.address",
+                    "termination" => "bus_port.termination",
+                    _ => return None,
+                };
+                let (_, node) = nav.node_of(&edit.row)?;
+                self.port_field_hint(*node.records.first()?, field)
+            })
+            .flatten();
+        let all = crate::navigators::table::commit_all_hint(nav);
+        match (form, all) {
+            (Some(f), Some(a)) => Some(format!("{f}\n{a}")),
+            (f, a) => f.or(a),
+        }
     }
 
     /// Whether the property pane is in the layout of the project view.

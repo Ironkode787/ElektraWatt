@@ -70,6 +70,77 @@ fn the_bus_panel_lists_the_ports_not_drawn_yet_and_places_them() {
     assert_eq!(loose, [format!("{tag} DP")], "and listed without a net");
 }
 
+/// Item 4: the address is typed where a person looks, with its form said. The Bus table's Address cell of the CPU's
+/// X1 says under its editor that a PROFINET address is a name and an IP address, with an example, and its Termination
+/// cell what it takes; typed so, the box prints it. The X1 box selected on the page shows its function first in
+/// Properties, with the port's Address as a row whose editor says the same form.
+#[test]
+fn the_address_of_a_port_says_its_form_in_the_table_and_in_properties() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    bus_page(&mut d);
+    place_box(&mut d, "EW-GEN-CPU-2", (10, 10), (20, 16));
+    let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "bus"}));
+    let _ = d
+        .shell_mut()
+        .dispatch("navigator.table", &json!({"kind": "bus", "on": true}));
+    d.settle();
+    let row = d
+        .shell_mut()
+        .shown_rows(NavKind::Bus)
+        .into_iter()
+        .find(|r| r.role == NavRole::BusPort.word() && r.label.ends_with(" X1"))
+        .expect("the CPU's X1 row")
+        .key;
+    let edit = json!({"kind": "bus", "row": row, "column": "address"});
+    assert_eq!(d.shell_mut().dispatch("table.edit", &edit), Outcome::Done);
+    d.settle();
+    let hint = d.shell_mut().table_edit_hint(NavKind::Bus).unwrap_or_default();
+    assert!(
+        hint.contains("device name") && hint.contains("plc1 192.168.0.1"),
+        "the Address cell says its form: {hint:?}"
+    );
+    d.input(&key("Escape"));
+    let edit = json!({"kind": "bus", "row": row, "column": "termination"});
+    let _ = d.shell_mut().dispatch("table.edit", &edit);
+    d.settle();
+    let hint = d.shell_mut().table_edit_hint(NavKind::Bus).unwrap_or_default();
+    assert!(hint.starts_with("on or off"), "the Termination cell's words: {hint:?}");
+    d.input(&key("Escape"));
+    d.settle();
+    let set = json!({"kind": "bus", "column": "Address", "value": "plc1 192.168.0.1", "rows": [row]});
+    assert_eq!(d.shell_mut().dispatch("table.set", &set), Outcome::Done);
+    d.settle();
+    assert!(page_texts(&mut d).iter().any(|t| t == "Node plc1 192.168.0.1"));
+    // The X1 box, selected: its function's section comes first, with the Address row and its form.
+    let all = records(&mut d);
+    let port = all
+        .iter()
+        .find(|v| v["bus_port"]["interface"] == "X1")
+        .and_then(|v| v["id"].as_str())
+        .expect("the X1 function")
+        .to_owned();
+    let rep = all
+        .iter()
+        .find(|v| v["functions"][0] == port.as_str())
+        .and_then(|v| v["id"].as_str())
+        .expect("the X1 box")
+        .to_owned();
+    assert_eq!(d.shell_mut().dispatch("select.set", &json!({"ids": [rep]})), Outcome::Done);
+    d.settle();
+    let first = d
+        .shell_mut()
+        .properties()
+        .sheet()
+        .and_then(|s| s.sections.first().map(|s| s.kind.clone()));
+    assert_eq!(first.as_deref(), Some("function"), "the port's section first");
+    let row = json!({"row": "function/bus_port.address"});
+    assert_eq!(d.shell_mut().dispatch("props.edit", &row), Outcome::Done);
+    d.settle();
+    let hint = d.shell_mut().property_edit_hint().unwrap_or_default();
+    assert!(hint.contains("plc1 192.168.0.1"), "Properties says the form: {hint:?}");
+}
+
 /// Item 1: the starter CPU and a head station of one's own (such as an IM 152), each placed from the device browser on
 /// a bus-topology page, stand there with their bus ports and without their supply pins: the CPU as its interfaces DP
 /// and X1, the head station as its DP, each socket named by its interface. A Wire between the two DP ports makes one

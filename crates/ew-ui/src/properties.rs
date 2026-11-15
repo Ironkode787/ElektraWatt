@@ -1547,6 +1547,10 @@ impl PropertiesPane {
         );
         let name = label.to_owned();
         response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::TextInput, true, &name));
+        // A bus port's address or termination says its form under the editor (the persona run m3-p4).
+        if let Some(hint) = shell.property_edit_hint() {
+            crate::components::show_tip(ui.ctx(), egui::containers::Tooltip::for_widget(&response), &hint);
+        }
         // Escape in an open field cancels the edit, whether or not the field still holds the focus (egui drops
         // it on Escape before the frame, and a refused Enter leaves the field without it until it is focused again);
         // the window's keys leave Escape to the field (`App::route_keys`). A popup's or an ambiguity's Escape is the

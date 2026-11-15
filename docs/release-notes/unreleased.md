@@ -822,3 +822,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   function (the station's supply pins) is placed with the black box tool (persona run m3-p4)
 - behaviour-change: the Bus navigator lists Ports not drawn yet, every interface a part gives a device that no page
   draws; Enter or Place port in the row's menu draws its box on a bus-topology page (persona run m3-p4)
+- behaviour-change: the Bus table's Address and Termination cells and a port's Address row in Properties say under
+  their editor the form they take, with an example (`plc1 192.168.0.1` for PROFINET); a port's symbol or box selected
+  shows its function's section first in Properties (persona run m3-p4)

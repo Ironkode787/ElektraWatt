@@ -36,7 +36,10 @@ cards, bind channels and check what each channel drives.
    managed switch, a PROFINET device and a PROFIBUS and an Ethernet cable. Your own cards, stations, switches and
    devices are made in the part editor: see [Make your own PLC or bus part](own-parts.md).
 6. Choose **Bus** on the rail for the nets: each logical net with its ports, each physical net with its segments and
-   their ends. Show it as a table to type a port's address or switch its termination. **Ports not drawn yet** lists
+   their ends. Show it as a table to type a port's address or switch its termination: the cell's editor says the form
+   under it (a PROFIBUS DP station address such as `3`, a PROFINET device name and IP address such as `plc1
+   192.168.0.1`). Selected on the page, a port's symbol or box shows its function first in Properties, with the same
+   **Address** row. **Ports not drawn yet** lists
    every interface a part gives a device that no page draws: Enter, or **Place port** in its menu, draws its box on
    the bus-topology page shown.
 

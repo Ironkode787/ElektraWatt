@@ -643,6 +643,23 @@ fn bus_address_in_words(built: &mut [Built]) {
     }
 }
 
+impl Session {
+    /// The text key of the form in which the address of the bus port function `function` is typed, by its bus (the
+    /// persona run m3-p4: nothing said that a PROFINET address is a name and an IP address): `hint-address-profibus`,
+    /// `-profinet`, `-ethercat`, `-io-link`, else `hint-address-other`; `None` for a function without a bus port.
+    pub fn bus_address_form(&self, function: Uuid) -> Option<&'static str> {
+        let q = self.query();
+        let port = q.functions().get(Id::from_uuid(function))?.bus_port.clone()?;
+        Some(match port.bus {
+            ew_schema::BusSystem::ProfibusDp => "hint-address-profibus",
+            ew_schema::BusSystem::Profinet => "hint-address-profinet",
+            ew_schema::BusSystem::EtherCat => "hint-address-ethercat",
+            ew_schema::BusSystem::IoLink => "hint-address-io-link",
+            _ => "hint-address-other",
+        })
+    }
+}
+
 /// FT-856: a bus port's address as its row shows it (`bus_address_in_words`), read back: `TBD`, nothing (no
 /// address), a number (a PROFIBUS station address), `port <n>` (an IO-Link port), `pos <n>` and `alias <n>` (EtherCAT),
 /// else a PROFINET device name with its IPv4 address and, after `mask` and `gateway`, those; `None` for a JSON object,
@@ -2263,6 +2280,24 @@ impl Session {
         }
         let mut section_kinds: Vec<Kind> = common.unwrap_or_default().into_iter().collect();
         section_kinds.sort_by_key(|k| section_rank(*k));
+        // A port's symbol or box (the persona run m3-p4 found no address field below the device's rows): its function's
+        // section, with the port's address, comes first.
+        let ports_only = !picked.is_empty()
+            && picked.iter().all(|p| {
+                p.kind == Kind::Representation
+                    && p.reach.get(&Kind::Function).is_some_and(|fs| {
+                        !fs.is_empty()
+                            && fs.iter().all(|f| {
+                                q.functions()
+                                    .get(Id::from_uuid(*f))
+                                    .is_some_and(|f| f.bus_port.is_some())
+                            })
+                    })
+            });
+        if ports_only && let Some(i) = section_kinds.iter().position(|k| *k == Kind::Function) {
+            let f = section_kinds.remove(i);
+            section_kinds.insert(0, f);
+        }
         let generated_block = picked.iter().find_map(|p| p.generated.clone());
         let mut sections = Vec::new();
         for kind in section_kinds {

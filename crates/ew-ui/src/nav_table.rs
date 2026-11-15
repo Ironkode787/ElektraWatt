@@ -240,7 +240,7 @@ impl TableUi {
             sort,
             edit: edit_cell,
             fresh,
-            commit_hint: ew_viewmodel::navigators::table::commit_all_hint(nav),
+            commit_hint: shell.table_edit_hint(kind),
             shell,
             writable,
             buffer: &mut self.buffer,
@@ -1051,8 +1051,8 @@ impl Delegate<'_> {
                 json!({"kind": word, "text": *self.buffer}),
             ));
         }
-        // With more than one row marked the editor says, in a tooltip under it (doc 16a §6.18's style),
-        // that Ctrl+Enter sets them all; Enter sets the cursor row.
+        // The editor says, in a tooltip under it (doc 16a §6.18's style), the form of a bus port's address or
+        // termination and, with more than one row marked, that Ctrl+Enter sets them all; Enter sets the cursor row.
         if let Some(hint) = &self.commit_hint {
             crate::components::show_tip(ui.ctx(), egui::containers::Tooltip::for_widget(&response), hint);
         }

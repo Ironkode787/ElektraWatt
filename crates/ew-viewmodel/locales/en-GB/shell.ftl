@@ -3667,6 +3667,12 @@ table-pattern-title = Pattern fill
 table-pattern-hint = Pattern
 # ID-1497 (1): the cell editor's line while more than one row is marked.
 table-commit-all-hint = Ctrl+Enter sets all { $p0 } marked rows.
+hint-address-profibus = PROFIBUS DP: the station address, 0 to 126, such as 3; TBD while it is open
+hint-address-profinet = PROFINET: the device name, a space and the IP address, such as plc1 192.168.0.1; TBD while it is open
+hint-address-ethercat = EtherCAT: pos and the position after the coupler, or alias and the alias, such as pos 2; TBD while it is open
+hint-address-io-link = IO-Link: port and the master's port, such as port 3; TBD while it is open
+hint-address-other = The address as its bus writes it; TBD while it is open, empty for none
+hint-termination = on or off, as the termination switch stands; empty for a port without one
 table-pattern-values = Values: { $p0 }
 table-resize = Resize { $p0 } column
 
