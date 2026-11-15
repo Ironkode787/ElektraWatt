@@ -231,6 +231,11 @@ allowed = ["CC-BY-4.0"]
 glob = "tools/blind/reference/**"
 allowed = ["GPL-3.0-or-later"]
 
+# The ISO 1219 symbol generator (rc.2): authoring code for content/symbols, MIT OR Apache-2.0 like xtask's.
+[[path]]
+glob = "tools/iso1219/**"
+allowed = ["MIT OR Apache-2.0"]
+
 [[path]]
 glob = "*.md"
 allowed = ["CC-BY-4.0"]
