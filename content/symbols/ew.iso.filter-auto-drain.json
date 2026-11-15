@@ -1,0 +1,248 @@
+{
+  "$k": "symbol",
+  "id": "6a7aa984-2363-5788-8e17-1c8581be07b2",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "7f0b9c74-11e6-5a1f-962a-22f306e19edc",
+  "version": "0.1.0",
+  "sha256": "sha256:fd96a79c4bcb8b6e19d64dc87878c33db0b5357e2a96108dbd01555fa71232e1",
+  "meta": {
+    "key": "ew.iso.filter-auto-drain",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Filter with automatic drain",
+    "nl": "Filter met automatische aftap"
+  },
+  "keywords": [
+    "automatic",
+    "drain",
+    "filter",
+    "pneumatic"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "c9f506ca-c3b7-58bc-a728-1e5572b02867",
+    "version_req": "^0.1",
+    "key": "ew.fn.filter-auto-drain"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "polyline": {
+        "points": [
+          [
+            2000000,
+            8000000
+          ],
+          [
+            8000000,
+            2000000
+          ],
+          [
+            14000000,
+            8000000
+          ],
+          [
+            8000000,
+            14000000
+          ],
+          [
+            2000000,
+            8000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          2000000
+        ],
+        "to": [
+          8000000,
+          11000000
+        ],
+        "stroke": {
+          "pen": "p013",
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          14000000
+        ],
+        "to": [
+          8000000,
+          15500000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            6500000,
+            15500000
+          ],
+          [
+            9500000,
+            15500000
+          ],
+          [
+            8000000,
+            17500000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2000000,
+          8000000
+        ],
+        "to": [
+          0,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          14000000,
+          8000000
+        ],
+        "to": [
+          16000000,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        8000000
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        16000000,
+        8000000
+      ],
+      "dir": "right",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        2000000,
+        1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        10000000,
+        15000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -1000000,
+        5000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        17000000,
+        5000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

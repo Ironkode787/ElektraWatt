@@ -1,0 +1,68 @@
+{
+  "$k": "fndef",
+  "id": "fe51b36c-51e0-5af3-85df-21ea61d7bbb5",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "4ede4f4e-42dd-59c0-8e43-08f99e569d9c",
+  "version": "0.1.0",
+  "sha256": "sha256:36fffebc2be6b95d61c6103ede7dc7b162e33433ecdc5963c174ca4f1c44088d",
+  "meta": {
+    "key": "ew.fn.regulator-gauge",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Regulator",
+    "Gauge"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

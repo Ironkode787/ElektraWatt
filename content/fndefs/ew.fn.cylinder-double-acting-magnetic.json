@@ -1,0 +1,36 @@
+{
+  "$k": "fndef",
+  "id": "e6dcc0c7-eba6-5483-b2cf-c3302e12c007",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e4ffc678-dc0c-5034-a246-b252fa00306a",
+  "version": "0.1.0",
+  "sha256": "sha256:0e8c8612c8b5f44b878fcb62a9c30f5eeffcb2fdf5ddccece5b5e4ce84eef243",
+  "meta": {
+    "key": "ew.fn.cylinder-double-acting-magnetic",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "CylinderFluid",
+    "DoubleActing",
+    "Magnetic"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "A",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    },
+    {
+      "idx": 1,
+      "designation": "B",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    }
+  ]
+}

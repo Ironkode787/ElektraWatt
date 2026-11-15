@@ -265,6 +265,55 @@ fn fitting(number: &'static str, description: &'static str, thread: &str, tube_o
     }
 }
 
+/// A generic fluid part on its symbol's FnDef: one function, no CP pattern (its ports are the FnDef's).
+fn fluid(number: &'static str, description: &'static str, fndef: &'static str) -> Def {
+    Def {
+        number,
+        kind: None,
+        description,
+        cps: Vec::new(),
+        template: vec![(fndef, true, Vec::new())],
+        contacts: Vec::new(),
+        tech: Vec::new(),
+        plc: None,
+        mech: None,
+        sections: None,
+        unit: None,
+    }
+}
+
+/// A stand-alone solenoid valve: the valve body on `ports` ports is its main function, then a physical coil A1, A2
+/// (B1, B2 for the second) for each solenoid, in solenoid order, which its fluid section declares (doc 11 §2.6:
+/// the k-th coil entry is solenoid k).
+fn solenoid_valve(
+    number: &'static str,
+    description: &'static str,
+    valve: &'static str,
+    ports: u16,
+    solenoids: &[&str],
+) -> Def {
+    const COILS: [[&str; 2]; 2] = [["A1", "A2"], ["B1", "B2"]];
+    const PORTS: [&str; 5] = ["1", "2", "3", "4", "5"];
+    let n = u16::try_from(solenoids.len()).expect("one or two solenoids");
+    let mut designations: Vec<&'static str> = COILS[..solenoids.len()].iter().flatten().copied().collect();
+    designations.extend(PORTS[..usize::from(ports)].iter().copied());
+    let mut template = vec![(valve, true, range(2 * n, 2 * n + ports))];
+    template.extend((0..n).map(|k| ("ew.fn.valve-coil", false, vec![2 * k, 2 * k + 1])));
+    Def {
+        number,
+        kind: None,
+        description,
+        cps: cps(&designations),
+        template,
+        contacts: Vec::new(),
+        tech: vec![("coil_voltage", q("24", "V"))],
+        plc: None,
+        mech: None,
+        sections: Some(json!({"fluid": {"solenoids": solenoids}})),
+        unit: None,
+    }
+}
+
 /// A device whose one PROFINET interface is its function (FT-1767): no CP pattern, the port function as its main
 /// template entry, whose sockets the bus section counts; on a TS 35 rail, `width` mm wide.
 fn port_device(number: &'static str, description: &'static str, width: &'static str) -> Def {
@@ -638,6 +687,68 @@ fn defs() -> Vec<Def> {
             sections: None,
             unit: None,
         },
+        // rc.2, F10: the basic pneumatic parts, generic, each on its symbol's FnDef, so that the device browser files
+        // it by its FnDef's category (air preparation, directional valves, flow control, logic valves, cylinders,
+        // vacuum, fittings, pressure switches).
+        fluid("EW-GEN-FIL-1", "Filter", "ew.fn.filter"),
+        fluid("EW-GEN-FIL-2", "Filter with manual drain", "ew.fn.filter-manual-drain"),
+        fluid("EW-GEN-FIL-3", "Filter with automatic drain", "ew.fn.filter-auto-drain"),
+        fluid("EW-GEN-REG-1", "Pressure regulator, relieving", "ew.fn.regulator"),
+        fluid("EW-GEN-REG-2", "Pressure regulator with gauge", "ew.fn.regulator-gauge"),
+        fluid("EW-GEN-LUB-1", "Lubricator", "ew.fn.lubricator"),
+        fluid("EW-GEN-FRL-1", "Service unit, filter regulator and lubricator", "ew.fn.frl"),
+        fluid("EW-GEN-FRL-2", "Service unit, filter, regulator and lubricator, detailed", "ew.fn.frl-detailed"),
+        fluid("EW-GEN-SOV-1", "Shut-off valve 3/2, manual, lockable", "ew.fn.valve-on-off"),
+        fluid("EW-GEN-SSV-1", "Soft-start valve", "ew.fn.soft-start"),
+        fluid("EW-GEN-GAU-1", "Pressure gauge 0 to 10 bar", "ew.fn.pressure-gauge"),
+        // The pressure switch's electrical contact is its second function, drawn on an electrical page.
+        Def {
+            number: "EW-GEN-PSW-1",
+            kind: None,
+            description: "Pressure switch with one changeover contact",
+            cps: cps(&["1", "11", "12", "14"]),
+            template: vec![
+                ("ew.fn.pressure-switch", true, vec![0]),
+                ("ew.fn.contact-co", false, range(1, 4)),
+            ],
+            contacts: vec![("co", vec!["11", "12", "14"])],
+            tech: Vec::new(),
+            plc: None,
+            mech: None,
+            sections: None,
+            unit: None,
+        },
+        fluid("EW-GEN-DRN-1", "Condensate drain, automatic", "ew.fn.condensate-drain"),
+        fluid("EW-GEN-RES-1", "Air reservoir 10 l", "ew.fn.air-reservoir"),
+        fluid("EW-GEN-SIL-1", "Silencer G1/8", "ew.fn.silencer"),
+        fluid("EW-GEN-EXH-1", "Exhaust port, open", "ew.fn.exhaust"),
+        solenoid_valve("EW-GEN-VLV-4", "Solenoid valve 2/2, normally closed, spring return", "ew.fn.valve-2-2-nc-sol-spring", 2, &["12"]),
+        solenoid_valve("EW-GEN-VLV-5", "Solenoid valve 3/2, normally open, spring return", "ew.fn.valve-3-2-no-sol-spring", 3, &["10"]),
+        solenoid_valve("EW-GEN-VLV-6", "Solenoid valve 5/2, double solenoid", "ew.fn.valve-5-2-sol-sol", 5, &["14", "12"]),
+        solenoid_valve("EW-GEN-VLV-7", "Solenoid valve 5/3, closed centre, double solenoid", "ew.fn.valve-5-3-cc", 5, &["14", "12"]),
+        solenoid_valve("EW-GEN-VLV-8", "Solenoid valve 5/3, exhausted centre, double solenoid", "ew.fn.valve-5-3-ec", 5, &["14", "12"]),
+        fluid("EW-GEN-VLV-9", "Valve 3/2, push button, spring return", "ew.fn.valve-3-2-pushbutton"),
+        fluid("EW-GEN-VLV-10", "Valve 3/2, lever, spring return", "ew.fn.valve-3-2-lever"),
+        fluid("EW-GEN-VLV-11", "Valve 5/2, push button, spring return", "ew.fn.valve-5-2-pushbutton"),
+        fluid("EW-GEN-VLV-12", "Valve 5/2, lever with detent", "ew.fn.valve-5-2-lever"),
+        fluid("EW-GEN-VLV-13", "Valve 3/2, roller, spring return", "ew.fn.valve-3-2-roller"),
+        fluid("EW-GEN-VLV-14", "Valve 5/2, pneumatically piloted, spring return", "ew.fn.valve-5-2-pilot-spring"),
+        fluid("EW-GEN-CHK-1", "Non-return valve", "ew.fn.check-valve"),
+        fluid("EW-GEN-FCV-1", "One-way flow control valve", "ew.fn.flow-control-one-way"),
+        fluid("EW-GEN-THR-1", "Throttle valve", "ew.fn.throttle"),
+        fluid("EW-GEN-QEV-1", "Quick exhaust valve", "ew.fn.quick-exhaust"),
+        fluid("EW-GEN-SHV-1", "Shuttle valve (OR)", "ew.fn.shuttle-valve"),
+        fluid("EW-GEN-DPV-1", "Dual-pressure valve (AND)", "ew.fn.two-pressure-valve"),
+        fluid("EW-GEN-CYL-2", "Cylinder single-acting, spring return, bore 20 mm, stroke 50 mm", "ew.fn.cylinder-single-acting"),
+        fluid("EW-GEN-CYL-3", "Cylinder double-acting, magnetic piston, bore 32 mm, stroke 100 mm", "ew.fn.cylinder-double-acting-magnetic"),
+        fluid("EW-GEN-CYL-4", "Cylinder double-acting, cushioned, bore 32 mm, stroke 100 mm", "ew.fn.cylinder-double-acting-cushioned"),
+        fluid("EW-GEN-CYL-5", "Rodless cylinder, double-acting, bore 25 mm, stroke 300 mm", "ew.fn.cylinder-rodless"),
+        fluid("EW-GEN-ROT-1", "Rotary actuator, double-acting, 180°", "ew.fn.semi-rotary-drive"),
+        fluid("EW-GEN-GRP-1", "Parallel gripper, double-acting", "ew.fn.gripper-parallel"),
+        fluid("EW-GEN-EJE-1", "Vacuum generator (ejector)", "ew.fn.ejector"),
+        fluid("EW-GEN-SUC-1", "Suction cup 30 mm", "ew.fn.suction-cup"),
+        fluid("EW-GEN-PLG-1", "Plug G1/8", "ew.fn.plug-fluid"),
+        fluid("EW-GEN-DIS-1", "Distributor block, four outlets", "ew.fn.distributor"),
         Def {
             number: "EW-GEN-TRM-1",
             kind: Some("terminal"),

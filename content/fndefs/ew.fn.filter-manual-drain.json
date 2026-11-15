@@ -1,0 +1,56 @@
+{
+  "$k": "fndef",
+  "id": "2a548e92-b01f-5a6f-86d3-824b5ad7f5c2",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e77da227-0314-53f7-a9ce-19994c6d2015",
+  "version": "0.1.0",
+  "sha256": "sha256:4a6fb623dce3cbe8b6a303dd51e01718938b0a17bd8d7ac239ac927e989ac042",
+  "meta": {
+    "key": "ew.fn.filter-manual-drain",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Filter",
+    "ManualDrain"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

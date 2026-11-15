@@ -5,6 +5,7 @@
 //! button, a category of its tree lists that category alone, a double click on a part places it (FT-1636); the browser
 //! and every other floating overlay close by their close button and by a click beside them (FT-1635).
 
+use crate::persona_round::typed;
 use crate::support::Tmp;
 
 use egui::{Modifiers, PointerButton};
@@ -224,6 +225,9 @@ fn the_device_browsers_rows_stay_in_place_once_a_part_is_used() {
     let mut d = new_project(&tmp);
     let (before, tree) = browser_rows(&mut d);
     assert!(tree.contains(&Node::Project), "{tree:?}");
+    // The relay's row by its words: the starter parts run past the window's height.
+    d.input(&typed("Relay with four"));
+    d.settle();
     d.input(&Input::DoubleClick {
         at: starting_with(&d, "Relay with four"),
         mods: Modifiers::NONE,

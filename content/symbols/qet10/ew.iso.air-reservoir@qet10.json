@@ -1,0 +1,168 @@
+{
+  "$k": "symbol",
+  "id": "8695cb13-6f99-5db9-a13f-610b7d24fa46",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "926f13a8-4f90-5cea-bc84-3f1358f0e079",
+  "version": "0.1.0",
+  "sha256": "sha256:bb3ed8f4de65cb9349702aef3cf98dcfe367df74b847f7ea1643b85e549b1fd7",
+  "meta": {
+    "key": "ew.iso.air-reservoir@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Air reservoir",
+    "nl": "Luchtketel"
+  },
+  "keywords": [
+    "air",
+    "pneumatic",
+    "receiver",
+    "reservoir",
+    "tank"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "6c3535fe-eb94-5bad-b1a5-f6deb14829b6",
+    "version_req": "^0.1",
+    "key": "ew.fn.air-reservoir"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            661458,
+            2645833
+          ],
+          [
+            9921875,
+            7937500
+          ]
+        ],
+        "rx": 1322917,
+        "ry": 1322917,
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          7937500
+        ],
+        "to": [
+          5291667,
+          9260417
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          9260417
+        ],
+        "to": [
+          5291667,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        5291667,
+        10583333
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        0,
+        5291667
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        10583333,
+        5291667
+      ],
+      "align": "middle_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        5953125,
+        11244792
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      5291667,
+      5291667
+    ]
+  }
+}

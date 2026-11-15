@@ -1,0 +1,89 @@
+{
+  "$k": "fndef",
+  "id": "7cafe9d1-db00-50e8-91e7-ef6471aa941a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "695421a9-ca08-56d7-8ec4-210a9340b9b0",
+  "version": "0.1.0",
+  "sha256": "sha256:2dd2f11ef23c5dd01d9dc058e0bde587914040f970e316d294b99b9ce973f1fb",
+  "meta": {
+    "key": "ew.fn.valve-3-2-pushbutton",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveDirectional",
+    "Valve32",
+    "PushbuttonSpring"
+  ],
+  "contact_kind": "valve",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "a",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "closed": 2
+              }
+            ]
+          },
+          {
+            "label": "b",
+            "paths": [
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              },
+              {
+                "closed": 0
+              }
+            ]
+          }
+        ],
+        "rest": 1,
+        "actuation": [
+          {
+            "actuator": "pushbutton",
+            "selects": 0
+          },
+          {
+            "actuator": "spring",
+            "selects": 1
+          }
+        ]
+      }
+    ]
+  }
+}

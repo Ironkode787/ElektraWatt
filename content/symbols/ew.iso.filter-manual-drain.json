@@ -1,0 +1,240 @@
+{
+  "$k": "symbol",
+  "id": "6416baab-d812-50c3-8b88-d6a86ccaab16",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "2cbc43eb-909a-5c5c-91e9-8585b5a02384",
+  "version": "0.1.0",
+  "sha256": "sha256:6625404d762b5c400deff0bf0f7db7127bf0700922c3a326651c39eda9fd7763",
+  "meta": {
+    "key": "ew.iso.filter-manual-drain",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Filter with manual drain",
+    "nl": "Filter met handmatige aftap"
+  },
+  "keywords": [
+    "drain",
+    "filter",
+    "manual",
+    "pneumatic"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e77da227-0314-53f7-a9ce-19994c6d2015",
+    "version_req": "^0.1",
+    "key": "ew.fn.filter-manual-drain"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "polyline": {
+        "points": [
+          [
+            2000000,
+            8000000
+          ],
+          [
+            8000000,
+            2000000
+          ],
+          [
+            14000000,
+            8000000
+          ],
+          [
+            8000000,
+            14000000
+          ],
+          [
+            2000000,
+            8000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          2000000
+        ],
+        "to": [
+          8000000,
+          11000000
+        ],
+        "stroke": {
+          "pen": "p013",
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          14000000
+        ],
+        "to": [
+          8000000,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          6500000,
+          16000000
+        ],
+        "to": [
+          9500000,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2000000,
+          8000000
+        ],
+        "to": [
+          0,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          14000000,
+          8000000
+        ],
+        "to": [
+          16000000,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        8000000
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        16000000,
+        8000000
+      ],
+      "dir": "right",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        2000000,
+        1000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        10000000,
+        15000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -1000000,
+        5000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        17000000,
+        5000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

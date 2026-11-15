@@ -279,6 +279,18 @@ connection point) and, placed in a valve terminal's box, joins the terminal (§4
 `accessory`) carry `fluid.tube` and `fluid.fitting` and no template. A fluid line's Tube part offers the parts of kind
 `tube`, the project's and the system libraries' (a library part is embedded with the edit).
 
+*As built (rc.2, F10).* The starter parts hold the basic pneumatic parts, generic, each on its symbol's FnDef, so that
+the device browser files it by the FnDef's category: air preparation (filter, with manual and with automatic drain,
+regulator, with gauge, lubricator, service unit simplified and detailed, the 3/2 shut-off valve, soft-start valve,
+gauge, condensate drain, air reservoir), the pressure switch EW-GEN-PSW-1 with its changeover contact as its second
+function, directional valves (solenoid 2/2 NC, 3/2 NO, 5/2 double, 5/3 closed and exhausted centre, each with a
+physical coil A1, A2 or B1, B2 per declared solenoid; push button, lever and roller 3/2 and 5/2; the piloted 5/2),
+flow and logic valves (non-return, one-way flow control, throttle, quick exhaust, shuttle, dual-pressure), cylinders
+(single-acting, double-acting with magnetic piston, cushioned, rodless; rotary actuator, gripper), vacuum (ejector,
+suction cup), fittings (silencer, open exhaust, plug, a distributor block with four outlets). The new symbols are drawn
+on the module of §1 rule 6. Left out: a pilot-operated variant of every valve (the piloted 5/2 only), a 3/2 lever
+valve with detent beside the shut-off valve, a cushioning adjustment, a hydraulic set.
+
 *As built (WP-S1.20).* Of this section only `solenoids` is typed
 (`PartSections.fluid`), with the part's template: the k-th `function_template` entry on a FnDef of contact kind `coil`
 is solenoid k (WP-S1.20 D4); the other members stay in the section's `extra`. A module's position count is read from

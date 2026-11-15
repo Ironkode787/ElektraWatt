@@ -1,0 +1,148 @@
+{
+  "$k": "symbol",
+  "id": "b7023b5a-e49f-567b-aecc-56c744defc68",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d4677086-b608-5dbe-ad94-323ef6395b81",
+  "version": "0.1.0",
+  "sha256": "sha256:7f358bc031406e1910a6aab397113fb2d7999b8adef6f37bb9ab56ed158c44cd",
+  "meta": {
+    "key": "ew.iso.exhaust",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Exhaust port, open",
+    "nl": "Ontluchting, open"
+  },
+  "keywords": [
+    "exhaust",
+    "pneumatic",
+    "port"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "05b167ce-67e6-5eb9-b0f7-40fb880b3aba",
+    "version_req": "^0.1",
+    "key": "ew.fn.exhaust"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "polygon": {
+        "points": [
+          [
+            5500000,
+            2000000
+          ],
+          [
+            10500000,
+            2000000
+          ],
+          [
+            8000000,
+            5500000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          2000000
+        ],
+        "to": [
+          8000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        8000000,
+        0
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        4000000,
+        4000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        12000000,
+        4000000
+      ],
+      "align": "middle_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        9000000,
+        -1000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

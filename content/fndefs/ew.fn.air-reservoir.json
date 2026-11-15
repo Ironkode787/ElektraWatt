@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "43645b32-26aa-5225-be23-345076924e6d",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "6c3535fe-eb94-5bad-b1a5-f6deb14829b6",
+  "version": "0.1.0",
+  "sha256": "sha256:b5afd47317b9bed25469f00cdd22ed2f619335f3853eab9b7237a448dce61ed2",
+  "meta": {
+    "key": "ew.fn.air-reservoir",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Reservoir",
+    "Standard"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "fe999f76-7868-5302-b9a2-85b4fc9135b7",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "05b167ce-67e6-5eb9-b0f7-40fb880b3aba",
+  "version": "0.1.0",
+  "sha256": "sha256:001e1f025d54637fbb9c08d4e258dd6d33d96a2e70e34c12056a07e8122e347d",
+  "meta": {
+    "key": "ew.fn.exhaust",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "FluidFitting",
+    "Exhaust",
+    "Open"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ]
+}

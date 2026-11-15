@@ -1,0 +1,36 @@
+{
+  "$k": "fndef",
+  "id": "73f8f9b7-4c5d-5948-b6b2-3f6739d08d00",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "0f2ab782-a759-5b23-b6ec-cdb08c949ac3",
+  "version": "0.1.0",
+  "sha256": "sha256:41111c7a2ad658ffdba33849d8d4ebe9084c50c913e998a26fb02f22bbfd0fcb",
+  "meta": {
+    "key": "ew.fn.cylinder-rodless",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "CylinderFluid",
+    "Rodless",
+    "DoubleActing"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "A",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    },
+    {
+      "idx": 1,
+      "designation": "B",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    }
+  ]
+}

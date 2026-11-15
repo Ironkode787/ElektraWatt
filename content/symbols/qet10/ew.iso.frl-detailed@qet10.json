@@ -1,0 +1,523 @@
+{
+  "$k": "symbol",
+  "id": "c36999bd-c059-5338-ad13-86964736997e",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "f35a4c76-b9d5-5708-b3d6-1f6811874db4",
+  "version": "0.1.0",
+  "sha256": "sha256:14af8f472b04659e4a7a22e3bfd54c8a4d2957eeac3b094f2a944e86445ad64f",
+  "meta": {
+    "key": "ew.iso.frl-detailed@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Service unit, detailed (filter, regulator, lubricator)",
+    "nl": "Verzorgingseenheid, uitgebreid (filter, drukregelaar, oliënevelaar)"
+  },
+  "keywords": [
+    "filter",
+    "lubricator",
+    "pneumatic",
+    "regulator",
+    "service unit"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "dafbc84a-9fb7-5517-a8f8-7aec47255d60",
+    "version_req": "^0.1",
+    "key": "ew.fn.frl-detailed"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            1322917,
+            661458
+          ],
+          [
+            19843750,
+            9921875
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            1984375,
+            5291667
+          ],
+          [
+            3968750,
+            3307292
+          ],
+          [
+            5953125,
+            5291667
+          ],
+          [
+            3968750,
+            7276042
+          ],
+          [
+            1984375,
+            5291667
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3968750,
+          3307292
+        ],
+        "to": [
+          3968750,
+          7276042
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          },
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3968750,
+          7276042
+        ],
+        "to": [
+          3968750,
+          9260417
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5953125,
+          5291667
+        ],
+        "to": [
+          7276042,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            7276042,
+            1984375
+          ],
+          [
+            13890625,
+            8598958
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8598958,
+          7276042
+        ],
+        "to": [
+          12567708,
+          3307292
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            11906250,
+            3307292
+          ],
+          [
+            12567708,
+            3968750
+          ],
+          [
+            12567708,
+            3307292
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          13890625,
+          5291667
+        ],
+        "to": [
+          15213542,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            15213542,
+            5291667
+          ],
+          [
+            17197917,
+            3307292
+          ],
+          [
+            19182292,
+            5291667
+          ],
+          [
+            17197917,
+            7276042
+          ],
+          [
+            15213542,
+            5291667
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          16205729,
+          4299479
+        ],
+        "to": [
+          18190104,
+          4299479
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          17197917,
+          4299479
+        ],
+        "to": [
+          17197917,
+          6283854
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          1322917,
+          5291667
+        ],
+        "to": [
+          1984375,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          19182292,
+          5291667
+        ],
+        "to": [
+          19843750,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          1322917,
+          5291667
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          19843750,
+          5291667
+        ],
+        "to": [
+          21166667,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3968750,
+          9260417
+        ],
+        "to": [
+          3968750,
+          9921875
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3968750,
+          9921875
+        ],
+        "to": [
+          5291667,
+          9921875
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          9921875
+        ],
+        "to": [
+          5291667,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        5291667
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        21166667,
+        5291667
+      ],
+      "dir": "right",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        5291667,
+        10583333
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        1322917,
+        661458
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        11906250,
+        11244792
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -661458,
+        3307292
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        21828125,
+        3307292
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        5953125,
+        11244792
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      5291667,
+      5291667
+    ]
+  }
+}

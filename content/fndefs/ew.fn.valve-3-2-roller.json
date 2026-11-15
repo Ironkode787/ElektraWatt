@@ -1,0 +1,89 @@
+{
+  "$k": "fndef",
+  "id": "239cd6c3-7695-5f5f-a5ad-52ba751cf0f4",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "a3bb8415-8486-5cda-aed6-b438c5eef018",
+  "version": "0.1.0",
+  "sha256": "sha256:be16c4b9a64e0f39ba7fc55a6f9b21fcd3ba2a19786092a2e36d05447588a6ee",
+  "meta": {
+    "key": "ew.fn.valve-3-2-roller",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveDirectional",
+    "Valve32",
+    "RollerSpring"
+  ],
+  "contact_kind": "valve",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "a",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "closed": 2
+              }
+            ]
+          },
+          {
+            "label": "b",
+            "paths": [
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              },
+              {
+                "closed": 0
+              }
+            ]
+          }
+        ],
+        "rest": 1,
+        "actuation": [
+          {
+            "actuator": "roller",
+            "selects": 0
+          },
+          {
+            "actuator": "spring",
+            "selects": 1
+          }
+        ]
+      }
+    ]
+  }
+}

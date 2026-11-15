@@ -1,0 +1,56 @@
+{
+  "$k": "fndef",
+  "id": "a14008b0-aa39-568e-89c2-ebb2294a55df",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "c9f506ca-c3b7-58bc-a728-1e5572b02867",
+  "version": "0.1.0",
+  "sha256": "sha256:67d233388f1c8e14a05675f1e45342a60a11ae0349a9a6994269134a0820fa62",
+  "meta": {
+    "key": "ew.fn.filter-auto-drain",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Filter",
+    "AutoDrain"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

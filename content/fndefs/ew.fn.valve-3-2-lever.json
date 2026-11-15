@@ -1,0 +1,89 @@
+{
+  "$k": "fndef",
+  "id": "601a5640-b694-5f3e-af47-199295b706e4",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "487a7c05-fc44-5f87-998b-2da99bf07717",
+  "version": "0.1.0",
+  "sha256": "sha256:af6a45326213382bd98295ab032c8a8d8d9e0a1a09ba49dd157203375e607280",
+  "meta": {
+    "key": "ew.fn.valve-3-2-lever",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "ValveDirectional",
+    "Valve32",
+    "LeverSpring"
+  ],
+  "contact_kind": "valve",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "a",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "closed": 2
+              }
+            ]
+          },
+          {
+            "label": "b",
+            "paths": [
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              },
+              {
+                "closed": 0
+              }
+            ]
+          }
+        ],
+        "rest": 1,
+        "actuation": [
+          {
+            "actuator": "lever",
+            "selects": 0
+          },
+          {
+            "actuator": "spring",
+            "selects": 1
+          }
+        ]
+      }
+    ]
+  }
+}

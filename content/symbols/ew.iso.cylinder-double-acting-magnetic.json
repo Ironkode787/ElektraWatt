@@ -1,0 +1,248 @@
+{
+  "$k": "symbol",
+  "id": "5aec9118-f117-5ee5-b976-d404b26d79cf",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "26e62fdd-3af7-564f-a03d-a487fafc578e",
+  "version": "0.1.0",
+  "sha256": "sha256:99a2759bd3a56854c7088a5f51103fd44003fc56d47175046cd96357427e9651",
+  "meta": {
+    "key": "ew.iso.cylinder-double-acting-magnetic",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Cylinder, double-acting, magnetic piston",
+    "nl": "Cilinder, dubbelwerkend, magnetische zuiger"
+  },
+  "keywords": [
+    "cylinder",
+    "double-acting",
+    "magnetic",
+    "pneumatic",
+    "sensor"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e4ffc678-dc0c-5034-a246-b252fa00306a",
+    "version_req": "^0.1",
+    "key": "ew.fn.cylinder-double-acting-magnetic"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            2000000,
+            2000000
+          ],
+          [
+            8000000,
+            18000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2000000,
+          10000000
+        ],
+        "to": [
+          8000000,
+          10000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5000000,
+          10000000
+        ],
+        "to": [
+          5000000,
+          24000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            2500000,
+            9000000
+          ],
+          [
+            7500000,
+            9000000
+          ],
+          [
+            7500000,
+            11000000
+          ],
+          [
+            2500000,
+            11000000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2000000,
+          4000000
+        ],
+        "to": [
+          0,
+          4000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          2000000,
+          16000000
+        ],
+        "to": [
+          0,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        4000000
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        16000000
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        10000000,
+        7000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        10000000,
+        13000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -1000000,
+        3000000
+      ],
+      "align": "bottom_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        -1000000,
+        15000000
+      ],
+      "align": "bottom_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      4000000,
+      12000000
+    ]
+  },
+  "link_points": [
+    {
+      "name": "rod",
+      "pos": [
+        5000000,
+        24000000
+      ]
+    }
+  ]
+}

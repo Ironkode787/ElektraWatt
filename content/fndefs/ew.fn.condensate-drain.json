@@ -1,0 +1,30 @@
+{
+  "$k": "fndef",
+  "id": "af2cba97-ac75-57f6-87a5-1c2fa57b7e57",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "abcc31bf-835c-53d3-bd02-87124f0ab3b4",
+  "version": "0.1.0",
+  "sha256": "sha256:14b7b1e4cee9b0cd9c02ed210c0943eb4d2b1d669358e623f47b0aeafc119a40",
+  "meta": {
+    "key": "ew.fn.condensate-drain",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "Drain",
+    "Automatic"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "generic"
+    }
+  ]
+}

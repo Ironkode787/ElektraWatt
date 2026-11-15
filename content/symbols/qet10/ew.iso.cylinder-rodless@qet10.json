@@ -1,0 +1,233 @@
+{
+  "$k": "symbol",
+  "id": "05027cff-fc55-5b74-9082-84532edf7acd",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "0b21ea55-6fb4-542f-a4e5-b277faa11b99",
+  "version": "0.1.0",
+  "sha256": "sha256:fffbf302e8972132c713f3df692a14f6a4f69b36680a0ea2a8cd040e26d51482",
+  "meta": {
+    "key": "ew.iso.cylinder-rodless@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Cylinder, rodless, double-acting",
+    "nl": "Cilinder, stangloos, dubbelwerkend"
+  },
+  "keywords": [
+    "cylinder",
+    "double-acting",
+    "pneumatic",
+    "rodless",
+    "slide"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "0f2ab782-a759-5b23-b6ec-cdb08c949ac3",
+    "version_req": "^0.1",
+    "key": "ew.fn.cylinder-rodless"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            1322917,
+            3307292
+          ],
+          [
+            19843750,
+            7276042
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          10583333,
+          3307292
+        ],
+        "to": [
+          10583333,
+          7276042
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            8598958,
+            661458
+          ],
+          [
+            12567708,
+            3307292
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          1322917,
+          5291667
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          19843750,
+          5291667
+        ],
+        "to": [
+          21166667,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        5291667
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        21166667,
+        5291667
+      ],
+      "dir": "right",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        1322917,
+        2645833
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        1322917,
+        7937500
+      ],
+      "align": "top_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -661458,
+        3307292
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        21828125,
+        3307292
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      10583333,
+      5291667
+    ]
+  },
+  "link_points": [
+    {
+      "name": "rod",
+      "pos": [
+        10583333,
+        661458
+      ]
+    }
+  ]
+}

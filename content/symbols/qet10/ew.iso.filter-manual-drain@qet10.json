@@ -1,0 +1,252 @@
+{
+  "$k": "symbol",
+  "id": "cc8181df-52fe-5bc8-8afd-92ce50c80c6a",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "e9029e24-2333-5b7a-bab1-255a5acd7d4b",
+  "version": "0.1.0",
+  "sha256": "sha256:e33655752dbf79877df153a284b41fa1665612ca99ebb1d683dc799b9682587d",
+  "meta": {
+    "key": "ew.iso.filter-manual-drain@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Filter with manual drain",
+    "nl": "Filter met handmatige aftap"
+  },
+  "keywords": [
+    "drain",
+    "filter",
+    "manual",
+    "pneumatic"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e77da227-0314-53f7-a9ce-19994c6d2015",
+    "version_req": "^0.1",
+    "key": "ew.fn.filter-manual-drain"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "polyline": {
+        "points": [
+          [
+            1322917,
+            5291667
+          ],
+          [
+            5291667,
+            1322917
+          ],
+          [
+            9260417,
+            5291667
+          ],
+          [
+            5291667,
+            9260417
+          ],
+          [
+            1322917,
+            5291667
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          1322917
+        ],
+        "to": [
+          5291667,
+          7276042
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          },
+          "dash": "dash42"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          9260417
+        ],
+        "to": [
+          5291667,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          4299479,
+          10583333
+        ],
+        "to": [
+          6283854,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          1322917,
+          5291667
+        ],
+        "to": [
+          0,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          9260417,
+          5291667
+        ],
+        "to": [
+          10583333,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        5291667
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        10583333,
+        5291667
+      ],
+      "dir": "right",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        1322917,
+        661458
+      ],
+      "align": "bottom_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        6614583,
+        9921875
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -661458,
+        3307292
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        11244792,
+        3307292
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      5291667,
+      5291667
+    ]
+  }
+}

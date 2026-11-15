@@ -1,0 +1,260 @@
+{
+  "$k": "symbol",
+  "id": "30432557-6479-568b-b6b6-8770869e93a4",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "aa1b5cd2-1287-56cf-8ed5-d801591776b1",
+  "version": "0.1.0",
+  "sha256": "sha256:084dab7bb1788f2cabe19c4d6fc143077d9e731524908cf0cb3c724221e8302c",
+  "meta": {
+    "key": "ew.iso.cylinder-double-acting-magnetic@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Cylinder, double-acting, magnetic piston",
+    "nl": "Cilinder, dubbelwerkend, magnetische zuiger"
+  },
+  "keywords": [
+    "cylinder",
+    "double-acting",
+    "magnetic",
+    "pneumatic",
+    "sensor"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "e4ffc678-dc0c-5034-a246-b252fa00306a",
+    "version_req": "^0.1",
+    "key": "ew.fn.cylinder-double-acting-magnetic"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            1322917,
+            1322917
+          ],
+          [
+            5291667,
+            11906250
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          1322917,
+          6614583
+        ],
+        "to": [
+          5291667,
+          6614583
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3307292,
+          6614583
+        ],
+        "to": [
+          3307292,
+          15875000
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            1653646,
+            5953125
+          ],
+          [
+            4960937,
+            5953125
+          ],
+          [
+            4960937,
+            7276042
+          ],
+          [
+            1653646,
+            7276042
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          1322917,
+          2645833
+        ],
+        "to": [
+          0,
+          2645833
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          1322917,
+          10583333
+        ],
+        "to": [
+          0,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        0,
+        2645833
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        0,
+        10583333
+      ],
+      "dir": "left",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        6614583,
+        4630208
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        6614583,
+        8598958
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        -661458,
+        1984375
+      ],
+      "align": "bottom_right",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        -661458,
+        9921875
+      ],
+      "align": "bottom_right",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      2645833,
+      7937500
+    ]
+  },
+  "link_points": [
+    {
+      "name": "rod",
+      "pos": [
+        3307292,
+        15875000
+      ]
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "$k": "fndef",
+  "id": "877c70e5-b10e-55d6-8e3e-1c114bdbec84",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "dafbc84a-9fb7-5517-a8f8-7aec47255d60",
+  "version": "0.1.0",
+  "sha256": "sha256:8cc9098b568f41bd394d72a88c744f93fe89c6122035f7d8ddae1ac30db648e2",
+  "meta": {
+    "key": "ew.fn.frl-detailed",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "AirPreparation",
+    "ServiceUnit",
+    "FrlDetailed"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "1",
+      "discipline": "pneumatic",
+      "port_role": "supply1"
+    },
+    {
+      "idx": 1,
+      "designation": "2",
+      "discipline": "pneumatic",
+      "port_role": "working2"
+    },
+    {
+      "idx": 2,
+      "designation": "3",
+      "discipline": "pneumatic",
+      "port_role": "exhaust3"
+    }
+  ],
+  "valve_model": {
+    "sections": [
+      {
+        "positions": [
+          {
+            "label": "0",
+            "paths": [
+              {
+                "flow": {
+                  "from": 0,
+                  "to": 1
+                }
+              },
+              {
+                "flow": {
+                  "from": 1,
+                  "to": 2
+                }
+              }
+            ]
+          }
+        ],
+        "rest": 0
+      }
+    ]
+  }
+}

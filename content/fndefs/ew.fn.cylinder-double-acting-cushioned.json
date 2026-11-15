@@ -1,0 +1,36 @@
+{
+  "$k": "fndef",
+  "id": "147abbdd-65e9-5dbe-9d43-e7ba3bb0402e",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "1bfe221c-72ee-5cd7-90ce-c4d0c0f63d46",
+  "version": "0.1.0",
+  "sha256": "sha256:e1cf70cbf62e3706041aadb6c864ac119ebfa1368bab3a1856815c4bb5dd1f33",
+  "meta": {
+    "key": "ew.fn.cylinder-double-acting-cushioned",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "category": [
+    "CylinderFluid",
+    "DoubleActing",
+    "Cushioned"
+  ],
+  "contact_kind": "pole",
+  "cps": [
+    {
+      "idx": 0,
+      "designation": "A",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    },
+    {
+      "idx": 1,
+      "designation": "B",
+      "discipline": "pneumatic",
+      "port_role": "consumer"
+    }
+  ]
+}

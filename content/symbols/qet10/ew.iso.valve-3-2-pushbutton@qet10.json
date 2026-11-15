@@ -1,0 +1,498 @@
+{
+  "$k": "symbol",
+  "id": "8ed805b3-d317-5720-9625-3fdd62580a07",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "f04a7223-3c65-5652-bb68-a4e689db4e4b",
+  "version": "0.1.0",
+  "sha256": "sha256:4f7e23794bae41a94a4bf76ad8e059915331997df6d99ced414511a370ab21dd",
+  "meta": {
+    "key": "ew.iso.valve-3-2-pushbutton@qet10",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "3/2 valve, push button and spring",
+    "nl": "3/2-ventiel, drukknop en veer"
+  },
+  "keywords": [
+    "3/2",
+    "manual",
+    "pneumatic",
+    "push button",
+    "valve"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "695421a9-ca08-56d7-8ec4-210a9340b9b0",
+    "version_req": "^0.1",
+    "key": "ew.fn.valve-3-2-pushbutton"
+  },
+  "grid": {
+    "num": 7937500,
+    "den": 3
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            3968750,
+            1322917
+          ],
+          [
+            11906250,
+            9260417
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            11906250,
+            1322917
+          ],
+          [
+            19843750,
+            9260417
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          13229167,
+          9260417
+        ],
+        "to": [
+          13229167,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          15875000,
+          1322917
+        ],
+        "to": [
+          15875000,
+          0
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          18520833,
+          9260417
+        ],
+        "to": [
+          18520833,
+          10583333
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          5291667,
+          9260417
+        ],
+        "to": [
+          7937500,
+          1322917
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            7276042,
+            2645833
+          ],
+          [
+            7937500,
+            2645833
+          ],
+          [
+            7937500,
+            1322917
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          10583333,
+          9260417
+        ],
+        "to": [
+          10583333,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          9921875,
+          7937500
+        ],
+        "to": [
+          11244792,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          15875000,
+          1322917
+        ],
+        "to": [
+          18520833,
+          9260417
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            17859375,
+            7937500
+          ],
+          [
+            18520833,
+            7937500
+          ],
+          [
+            18520833,
+            9260417
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          13229167,
+          9260417
+        ],
+        "to": [
+          13229167,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          12567708,
+          7937500
+        ],
+        "to": [
+          13890625,
+          7937500
+        ],
+        "stroke": {
+          "pen": {
+            "width": 132292
+          }
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3968750,
+          5291667
+        ],
+        "to": [
+          1984375,
+          5291667
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            1984375,
+            4299479
+          ],
+          [
+            1322917,
+            4630208
+          ],
+          [
+            992187,
+            5291667
+          ],
+          [
+            1322917,
+            5953125
+          ],
+          [
+            1984375,
+            6283854
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            19843750,
+            5291667
+          ],
+          [
+            20505208,
+            4299479
+          ],
+          [
+            21166667,
+            6283854
+          ],
+          [
+            21828125,
+            4299479
+          ],
+          [
+            22489583,
+            6283854
+          ],
+          [
+            23151042,
+            4299479
+          ],
+          [
+            23812500,
+            5291667
+          ]
+        ],
+        "stroke": {
+          "pen": {
+            "width": 264583
+          }
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        13229167,
+        10583333
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        15875000,
+        0
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        18520833,
+        10583333
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        11244792,
+        -661458
+      ],
+      "align": "bottom_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        0,
+        9921875
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        13890625,
+        11244792
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        16536458,
+        -661458
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        19182292,
+        11244792
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        0,
+        1984375
+      ],
+      "align": "bottom_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      10583333,
+      5291667
+    ]
+  }
+}

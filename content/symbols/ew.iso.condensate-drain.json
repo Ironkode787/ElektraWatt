@@ -1,0 +1,179 @@
+{
+  "$k": "symbol",
+  "id": "9c66055a-814e-5015-9be0-c44ed0efaef7",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "d14fb6a4-4fb3-58f2-8282-a351c9ec3881",
+  "version": "0.1.0",
+  "sha256": "sha256:8a3e37ef645fef4bc253702c56801a0be7e698a37de0b69de7a10eda78ff1a34",
+  "meta": {
+    "key": "ew.iso.condensate-drain",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "Condensate drain, automatic",
+    "nl": "Condensaataftap, automatisch"
+  },
+  "keywords": [
+    "condensate",
+    "drain",
+    "pneumatic",
+    "water"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "abcc31bf-835c-53d3-bd02-87124f0ab3b4",
+    "version_req": "^0.1",
+    "key": "ew.fn.condensate-drain"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "polyline": {
+        "points": [
+          [
+            2000000,
+            8000000
+          ],
+          [
+            8000000,
+            2000000
+          ],
+          [
+            14000000,
+            8000000
+          ],
+          [
+            8000000,
+            14000000
+          ],
+          [
+            2000000,
+            8000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            6500000,
+            10000000
+          ],
+          [
+            9500000,
+            10000000
+          ],
+          [
+            8000000,
+            12500000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          2000000
+        ],
+        "to": [
+          8000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        8000000,
+        0
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        1000000,
+        5000000
+      ],
+      "align": "middle_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        15000000,
+        10000000
+      ],
+      "align": "middle_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        9000000,
+        -1000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      8000000,
+      8000000
+    ]
+  }
+}

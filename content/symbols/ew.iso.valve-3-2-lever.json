@@ -1,0 +1,452 @@
+{
+  "$k": "symbol",
+  "id": "79d885e7-91b1-562a-8905-cb358177f742",
+  "library_id": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+  "item_id": "095b42d1-2e82-5820-bc98-24bf36ced275",
+  "version": "0.1.0",
+  "sha256": "sha256:9ed24cb7decfa70f479a8777ad14483314322979515d2fdeb0782a2bd9123e3b",
+  "meta": {
+    "key": "ew.iso.valve-3-2-lever",
+    "licence": "CC-BY-SA-4.0",
+    "sources": [
+      "ew.original"
+    ],
+    "status": "draft"
+  },
+  "name": {
+    "en": "3/2 valve, lever and spring",
+    "nl": "3/2-ventiel, hendel en veer"
+  },
+  "keywords": [
+    "3/2",
+    "lever",
+    "manual",
+    "pneumatic",
+    "valve"
+  ],
+  "rep_type": "fluid",
+  "fndef": {
+    "library": "7202fd8b-1024-4bf1-9e99-670772eaa589",
+    "item": "487a7c05-fc44-5f87-998b-2da99bf07717",
+    "version_req": "^0.1",
+    "key": "ew.fn.valve-3-2-lever"
+  },
+  "grid": {
+    "num": 4000000,
+    "den": 1
+  },
+  "graphics": [
+    {
+      "rect": {
+        "rect": [
+          [
+            6000000,
+            2000000
+          ],
+          [
+            18000000,
+            14000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "rect": {
+        "rect": [
+          [
+            18000000,
+            2000000
+          ],
+          [
+            30000000,
+            14000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          20000000,
+          14000000
+        ],
+        "to": [
+          20000000,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          24000000,
+          2000000
+        ],
+        "to": [
+          24000000,
+          0
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          28000000,
+          14000000
+        ],
+        "to": [
+          28000000,
+          16000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          8000000,
+          14000000
+        ],
+        "to": [
+          12000000,
+          2000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            11000000,
+            4000000
+          ],
+          [
+            12000000,
+            4000000
+          ],
+          [
+            12000000,
+            2000000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          16000000,
+          14000000
+        ],
+        "to": [
+          16000000,
+          12000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          15000000,
+          12000000
+        ],
+        "to": [
+          17000000,
+          12000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          24000000,
+          2000000
+        ],
+        "to": [
+          28000000,
+          14000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "polygon": {
+        "points": [
+          [
+            27000000,
+            12000000
+          ],
+          [
+            28000000,
+            12000000
+          ],
+          [
+            28000000,
+            14000000
+          ]
+        ],
+        "closed": true,
+        "stroke": {
+          "pen": "p013"
+        },
+        "fill": "by_layer"
+      }
+    },
+    {
+      "line": {
+        "from": [
+          20000000,
+          14000000
+        ],
+        "to": [
+          20000000,
+          12000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          19000000,
+          12000000
+        ],
+        "to": [
+          21000000,
+          12000000
+        ],
+        "stroke": {
+          "pen": "p013"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          6000000,
+          8000000
+        ],
+        "to": [
+          3000000,
+          8000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "line": {
+        "from": [
+          3000000,
+          8000000
+        ],
+        "to": [
+          1500000,
+          5000000
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    },
+    {
+      "polyline": {
+        "points": [
+          [
+            30000000,
+            8000000
+          ],
+          [
+            31000000,
+            6500000
+          ],
+          [
+            32000000,
+            9500000
+          ],
+          [
+            33000000,
+            6500000
+          ],
+          [
+            34000000,
+            9500000
+          ],
+          [
+            35000000,
+            6500000
+          ],
+          [
+            36000000,
+            8000000
+          ]
+        ],
+        "stroke": {
+          "pen": "p026"
+        }
+      }
+    }
+  ],
+  "cps": [
+    {
+      "idx": 0,
+      "fn_cp": 0,
+      "pos": [
+        20000000,
+        16000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 1,
+      "fn_cp": 1,
+      "pos": [
+        24000000,
+        0
+      ],
+      "dir": "up",
+      "discipline": "pneumatic"
+    },
+    {
+      "idx": 2,
+      "fn_cp": 2,
+      "pos": [
+        28000000,
+        16000000
+      ],
+      "dir": "down",
+      "discipline": "pneumatic"
+    }
+  ],
+  "text_slots": [
+    {
+      "kind": "tag",
+      "pos": [
+        17000000,
+        -1000000
+      ],
+      "align": "bottom_right",
+      "visible": true
+    },
+    {
+      "kind": "function_text",
+      "pos": [
+        0,
+        15000000
+      ],
+      "align": "top_left",
+      "visible": true,
+      "fallback": "process_tag"
+    },
+    {
+      "kind": {
+        "cp_designation": 0
+      },
+      "pos": [
+        21000000,
+        17000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 1
+      },
+      "pos": [
+        25000000,
+        -1000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": {
+        "cp_designation": 2
+      },
+      "pos": [
+        29000000,
+        17000000
+      ],
+      "align": "middle_left",
+      "visible": true
+    },
+    {
+      "kind": "plc_address",
+      "pos": [
+        0,
+        3000000
+      ],
+      "align": "bottom_left",
+      "visible": true
+    }
+  ],
+  "arrangements": [
+    {
+      "name": "full",
+      "slots": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "tag",
+      "slots": [
+        0
+      ]
+    },
+    {
+      "name": "ports",
+      "slots": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  ],
+  "anchor": {
+    "named": [
+      16000000,
+      8000000
+    ]
+  }
+}
