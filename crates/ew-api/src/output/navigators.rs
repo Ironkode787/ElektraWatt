@@ -824,7 +824,7 @@ impl Session {
     }
 
     /// The PLC cards that wait for a CPU with their short tags, in natural order: the devices with `plc_module` and
-    /// no station (FT-926), which the PLC table lists under "Cards without a station" while it has a station (FT-1672).
+    /// no station (FT-926), which the PLC table lists under "Modules without a station" while it has a station (FT-1672).
     pub fn plc_cards_without_cpu(&self) -> Vec<(Uuid, String)> {
         cards_without_cpu(&self.query())
             .into_iter()
@@ -1405,7 +1405,7 @@ fn device_node(
     let mut badges = Vec::new();
     let mut facets = vec![("kind".to_owned(), "device".to_owned())];
     if drawables.is_empty() {
-        badges.push("unplaced".to_owned());
+        badges.push(NOT_DRAWN.to_owned());
         facets.push(("unplaced".to_owned(), String::new()));
     }
     if dev.tag.frozen.is_some() {
@@ -1791,6 +1791,10 @@ fn strips(q: &Q) -> Vec<Id<Device>> {
     v.sort();
     v.into_iter().map(|(_, d)| d).collect()
 }
+
+/// The badge of a device row whose device no page draws (F17 of the rc.1 test: its tag shows `?` where the page goes,
+/// and nothing said why); the window explains it on hover.
+pub const NOT_DRAWN: &str = "not drawn";
 
 /// A device's short tag.
 fn short_tag(q: &Q, d: Id<Device>) -> String {
@@ -2935,17 +2939,22 @@ fn plc_table(q: &Q, b: &mut Builder) {
                 None,
                 NavRole::Section,
                 "cards:none",
-                "Cards without a station".to_owned(),
+                "Modules without a station".to_owned(),
             );
             for (card, tag) in cards {
                 let drawables = device_drawables(q, &folios, card);
                 let facets = base_facets(NavRole::Module, &drawables);
+                let badges = if drawables.is_empty() {
+                    vec![NOT_DRAWN.to_owned()]
+                } else {
+                    Vec::new()
+                };
                 b.push(
                     Some(group),
                     NavRole::Module,
                     &format!("module:{}", card.as_uuid()),
                     tag,
-                    Vec::new(),
+                    badges,
                     vec![card.as_uuid()],
                     drawables,
                     None,
@@ -2982,12 +2991,16 @@ fn plc_table(q: &Q, b: &mut Builder) {
             let mut facets = base_facets(NavRole::Station, &drawables);
             facets.push(config.clone());
             let station_tag = short_tag(q, station);
+            let mut badges: Vec<String> = role.map(str::to_owned).into_iter().collect();
+            if drawables.is_empty() {
+                badges.push(NOT_DRAWN.to_owned());
+            }
             let snode = b.push(
                 Some(cnode),
                 NavRole::Station,
                 &format!("station:{}", station.as_uuid()),
                 station_tag.clone(),
-                role.map(str::to_owned).into_iter().collect(),
+                badges,
                 vec![station.as_uuid()],
                 drawables,
                 None,
@@ -3029,8 +3042,11 @@ fn plc_table(q: &Q, b: &mut Builder) {
                 let module_safety = module_record
                     .and_then(|d| d.aspects.plc_module.as_ref())
                     .is_some_and(|m| m.safety.is_some());
+                // A station that is its own module (a compact device, a valve terminal with a bus node) is one row,
+                // its channels under it (F17 of the rc.1 test: two rows of one tag, one under the other).
                 let mnode = match modules.get(&r.module.as_uuid()) {
                     Some(n) => *n,
+                    None if r.module == station => snode,
                     None => {
                         let parent = match r.slot {
                             ew_derive::Slot::Rack { rack, .. } if racked => {
@@ -3059,12 +3075,17 @@ fn plc_table(q: &Q, b: &mut Builder) {
                         if module_safety {
                             facets.push(("safety".to_owned(), String::new()));
                         }
+                        let badges = if drawables.is_empty() {
+                            vec![NOT_DRAWN.to_owned()]
+                        } else {
+                            Vec::new()
+                        };
                         let n = b.push(
                             Some(parent),
                             NavRole::Module,
                             &format!("module:{}", r.module.as_uuid()),
                             module_tag.clone(),
-                            Vec::new(),
+                            badges,
                             vec![r.module.as_uuid()],
                             drawables,
                             None,
@@ -3188,12 +3209,18 @@ fn plc_table(q: &Q, b: &mut Builder) {
     }
 }
 
-/// The PLC cards without a station, by their short tags (natural order).
+/// The PLC cards without a station, by their short tags (natural order): a station's own module and a device that
+/// nothing describes as a module (`ew_derive::not_a_module`, EW-PLC-017's) are no cards (F17 of the rc.1 test: a copy of
+/// a station kept its own module, waited here and was attached to a CPU).
 fn cards_without_cpu(q: &Q) -> Vec<(Id<Device>, String)> {
     let mut out: Vec<(NaturalKey, Id<Device>, String)> = q
         .devices()
         .iter()
-        .filter(|(id, d)| d.aspects.plc_module.is_some() && ew_derive::station_of(q, *id).is_none())
+        .filter(|(id, d)| {
+            d.aspects.plc_module.as_ref().is_some_and(|m| !m.integrated)
+                && ew_derive::station_of(q, *id).is_none()
+                && !ew_derive::not_a_module(q, *id)
+        })
         .map(|(id, _)| {
             let tag = short_tag(q, id);
             (natural_key(&tag), id, tag)

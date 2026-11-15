@@ -4,7 +4,7 @@
 //! The PLC workspace in the window (WP-S2.13, doc 16 §2.6, doc 10 §6), at 1920 × 1080: View ▸ Workspaces ▸ PLC shows
 //! the PLC navigator in the left column and the PLC grid in the bottom dock; the grid's filter takes the bus facet and
 //! the safety flag (FT-738); a sorted Address header keeps its whole word (FT-776); a project with two CPUs lists a
-//! new card under "Cards without a station", and a CPU row's menu attaches it (FT-1672).
+//! new card under "Modules without a station", and a CPU row's menu attaches it (FT-1672).
 
 use crate::support;
 
@@ -146,6 +146,10 @@ fn two_cpus_and_a_card(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::
         crate::navigators::cursor_k(&mut h, b);
         dispatch(&mut h, "canvas.activate", json!({}));
         dispatch(&mut h, "tool.select", json!({}));
+        // F18 of the rc.1 test: each CPU's rack opens when it is placed; the card on a page of neither asks which
+        // station takes it. Closed, the card waits.
+        assert!(h.state().shell().dialog().is_some(), "{part}: a dialog");
+        dispatch(&mut h, "ui.dismiss", json!({}));
     }
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
@@ -178,7 +182,7 @@ fn a_waiting_cards_row_takes_a_click_beside_its_name_and_attaches_to_a_station()
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     let group = rows
         .iter()
-        .find(|r| r.text == "Cards without a station")
+        .find(|r| r.text == "Modules without a station")
         .expect("the group of cards without a station");
     let card = rows
         .iter()
@@ -224,7 +228,7 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     let group = rows
         .iter()
-        .find(|r| r.text == "Cards without a station")
+        .find(|r| r.text == "Modules without a station")
         .expect("the group of cards without a station");
     let card = rows
         .iter()
@@ -239,11 +243,11 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
         .clone();
     h.get_by_label(&station.name).click_secondary();
     settle(&mut h);
-    support::menu_node(&h, "Attach cards without a station").click();
+    support::menu_node(&h, "Attach modules without a station").click();
     settle(&mut h);
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     assert!(
-        rows.iter().all(|r| r.text != "Cards without a station"),
+        rows.iter().all(|r| r.text != "Modules without a station"),
         "no card waits"
     );
     let module = rows
@@ -262,7 +266,7 @@ fn a_card_without_a_cpu_is_attached_from_the_cpus_row() {
     settle(&mut h);
     let rows = h.state().shell().shown_rows(NavKind::Plc);
     assert!(
-        rows.iter().any(|r| r.text == "Cards without a station"),
+        rows.iter().any(|r| r.text == "Modules without a station"),
         "one undo step"
     );
     h.state_mut().shell_mut().shutdown();
@@ -333,24 +337,49 @@ pub(crate) fn new_project_with_cpu(tmp: &Tmp) -> egui_kittest::Harness<'static, 
         json!({"folio": "101", "type": "multi_line", "title": "Control"}),
     );
     settle(&mut h);
-    wait_for_page(&mut h);
-    dispatch(
-        &mut h,
-        "tool.black_box",
-        json!({"part": "EW-GEN-CPU-1", "template": 0}),
+    draw_black_box(&mut h, "EW-GEN-CPU-1", (10, 10));
+    // F18 of the rc.1 test: a station placed directly opens its rack dialog, so that it is filled there.
+    assert!(
+        matches!(
+            h.state().shell().dialog(),
+            Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station: Some(_), .. })
+        ),
+        "{:?}",
+        h.state().shell().dialog()
     );
-    crate::navigators::cursor_k(&mut h, (10, 10));
-    dispatch(&mut h, "canvas.activate", json!({}));
-    crate::navigators::cursor_k(&mut h, (16, 18));
-    dispatch(&mut h, "canvas.activate", json!({}));
-    dispatch(&mut h, "tool.select", json!({}));
+    dispatch(&mut h, "ui.dismiss", json!({}));
     dispatch(&mut h, "rail.show", json!({"pane": "plc"}));
     settle(&mut h);
     h
 }
 
-/// FR-PLC-028 from nothing: Rack and slots… on a new project's CPU row opens the editor; the digital output card
-/// chosen from the module parts goes into slot 1 and then into slot 2 with Add here; a slot typed that is no slot is
+/// The digital output card's entry in the picker of Add module…: its part and what it gives.
+fn do_card_pick(h: &egui_kittest::Harness<'static, ew_ui::app::App>) -> String {
+    let p = h
+        .state()
+        .shell()
+        .module_parts()
+        .into_iter()
+        .find(|p| p.text.starts_with("EW-GEN-DO-1"))
+        .expect("the output card among the module parts");
+    format!("{} · {}", p.text, p.gives)
+}
+
+/// Draws the starter part `number` as a black box from grid cell `at` (six by eight cells) on the page shown, then
+/// takes the Select tool.
+pub(crate) fn draw_black_box(h: &mut egui_kittest::Harness<'static, ew_ui::app::App>, number: &str, at: (i64, i64)) {
+    wait_for_page(h);
+    dispatch(h, "tool.black_box", json!({"part": number, "template": 0}));
+    crate::navigators::cursor_k(h, at);
+    dispatch(h, "canvas.activate", json!({}));
+    crate::navigators::cursor_k(h, (at.0 + 6, at.1 + 8));
+    dispatch(h, "canvas.activate", json!({}));
+    dispatch(h, "tool.select", json!({}));
+    settle(h);
+}
+
+/// FR-PLC-028 from nothing: Rack… on a new project's CPU row opens the editor; the digital output card
+/// chosen in the picker of Add module… goes into slot 1 and then into slot 2; a slot typed that is no slot is
 /// refused in words under the slots; the navigator lists both cards under the CPU.
 #[test]
 fn modules_are_added_in_the_rack_and_slot_editor() {
@@ -366,22 +395,20 @@ fn modules_are_added_in_the_rack_and_slot_editor() {
         .expect("the CPU's row");
     h.get_by_label(&station.name).click_secondary();
     settle(&mut h);
-    support::menu_node(&h, "Rack and slots…").click();
+    support::menu_node(&h, "Rack…").click();
     settle(&mut h);
     let id = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station, .. }) => *station,
+        Some(Dialog::Rack { station: Some(station), .. }) => *station,
         other => panic!("{other:?}"),
     };
     h.get_by_label_contains("Rack and slots of");
-    h.get_by_role_and_label(egui::Role::ComboBox, "Module part to add")
-        .click();
-    settle(&mut h);
-    h.get_by_label_contains("EW-GEN-DO-1").click();
-    settle(&mut h);
-    h.get_by_label("Add here 1").click();
-    settle(&mut h);
-    h.get_by_label("Add here 2").click();
-    settle(&mut h);
+    let pick = do_card_pick(&h);
+    for slot in [1, 2] {
+        h.get_by_label(&format!("Add module… {slot}")).click();
+        settle(&mut h);
+        h.get_by_label(&pick).click();
+        settle(&mut h);
+    }
     let view = h.state().shell().rack_view(id).expect("the view");
     let cards: Vec<(u32, &str)> = view
         .rows
@@ -412,7 +439,7 @@ fn modules_are_added_in_the_rack_and_slot_editor() {
 }
 
 /// The rack and slot editor's slots take the dialog's height at 1920 × 1080: with twenty-two modules the free slot's
-/// Add here stands inside the window, above the dialog's footer; a slot a module holds is refused in words under the
+/// Add module… stands inside the window, above the dialog's footer; a slot a module holds is refused in words under the
 /// slots and adds nothing.
 #[test]
 fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
@@ -428,10 +455,10 @@ fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
         .expect("the CPU's row");
     h.get_by_label(&station.name).click_secondary();
     settle(&mut h);
-    support::menu_node(&h, "Rack and slots…").click();
+    support::menu_node(&h, "Rack…").click();
     settle(&mut h);
     let id = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station, .. }) => *station,
+        Some(Dialog::Rack { station: Some(station), .. }) => *station,
         other => panic!("{other:?}"),
     };
     for slot in 1..=22 {
@@ -451,11 +478,11 @@ fn the_free_slot_stays_in_sight_and_a_taken_slot_is_refused() {
         made,
         "no new rack view without a change"
     );
-    let add = h.get_by_label("Add here 23").rect();
+    let add = h.get_by_label("Add module… 23").rect();
     let close = support::menu_node(&h, "Close").rect();
     assert!(
         add.top() >= 0.0 && add.bottom() <= close.top(),
-        "Add here {add:?} is out of sight above the footer {close:?}"
+        "Add module… {add:?} is out of sight above the footer {close:?}"
     );
     let refused = h
         .state_mut()
@@ -488,7 +515,7 @@ fn the_valve_terminal_shows_its_positions_beside_its_order_codes() {
         .expect("-201U1's row");
     h.get_by_label(&station.name).click_secondary();
     settle(&mut h);
-    support::menu_node(&h, "Rack and slots…").click();
+    support::menu_node(&h, "Rack…").click();
     settle(&mut h);
     h.get_by_label("Rack and slots of -201U1");
     let code = format!("Order Code 1: {}", "51E-F13GCQP-D+H2GG");
@@ -1376,18 +1403,16 @@ fn a_module_is_dragged_to_a_free_slot_in_the_rack_editor() {
         .expect("the CPU's row");
     h.get_by_label(&station.name).click_secondary();
     settle(&mut h);
-    support::menu_node(&h, "Rack and slots…").click();
+    support::menu_node(&h, "Rack…").click();
     settle(&mut h);
     let id = match h.state().shell().dialog() {
-        Some(Dialog::Rack { station, .. }) => *station,
+        Some(Dialog::Rack { station: Some(station), .. }) => *station,
         other => panic!("{other:?}"),
     };
-    h.get_by_role_and_label(egui::Role::ComboBox, "Module part to add")
-        .click();
+    let pick = do_card_pick(&h);
+    h.get_by_label("Add module… 1").click();
     settle(&mut h);
-    h.get_by_label_contains("EW-GEN-DO-1").click();
-    settle(&mut h);
-    h.get_by_label("Add here 1").click();
+    h.get_by_label(&pick).click();
     settle(&mut h);
     let tag = h.state().shell().rack_view(id).expect("the rack").rows[0]
         .tag
@@ -1575,6 +1600,10 @@ fn black_box(h: &mut egui_kittest::Harness<'_, ew_ui::app::App>, part: &str, a: 
     crate::navigators::cursor_k(h, b);
     dispatch(h, "canvas.activate", json!({}));
     dispatch(h, "tool.select", json!({}));
+    // F18 of the rc.1 test: a station's rack opens when it is placed (a waiting card's chooser likewise); closed here.
+    if h.state().shell().dialog().is_some() {
+        dispatch(h, "ui.dismiss", json!({}));
+    }
 }
 
 /// The PLC panel's row of station `tag`.
@@ -1645,7 +1674,7 @@ fn two_stations_and_a_bus_are_built_from_nothing() {
         panic!("two stations: {stations:?}");
     };
     let (cpu, head) = (cpu.clone(), head.clone());
-    station_menu(&mut h, &head, "Attach cards without a station");
+    station_menu(&mut h, &head, "Attach modules without a station");
     let modules_of = |h: &egui_kittest::Harness<'_, ew_ui::app::App>, tag: &str| {
         let key = station_row(h, tag).key;
         h.state()

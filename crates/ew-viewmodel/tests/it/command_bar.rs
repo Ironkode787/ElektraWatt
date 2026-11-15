@@ -53,6 +53,7 @@ const KEY_ONLY: &[&str] = &[
     // A valve terminal's overview, reached through its row menu.
     "fluid.generate_overview",
     "fluid.set_medium",
+    "plc.add_to_plc",
 ];
 
 fn shell(tmp: &Tmp) -> ShellModel {

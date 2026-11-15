@@ -56,7 +56,7 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         )),
     ),
     with_params(
-        "slot:uint, rack?:uint",
+        "slot:uint, rack?:uint, part?:ref",
         hidden(act(
             "plc.rack_add",
             Command,
@@ -315,5 +315,87 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
                 |s, p| s.act_plc_rack_move(p),
             ),
         )),
+    ),
+    // F18 and F19 of the rc.1 test: a station is made as a rack and filled; a bus device is given to a PLC.
+    with_params(
+        "kind?:text",
+        with_icon(
+            "cpu",
+            act(
+                "plc.new_station",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                slot(Menu::Project),
+                |s, p| s.act_plc_new_station(p),
+            ),
+        ),
+    ),
+    with_params(
+        "kind?:text, head?:ref, config?:text, count?:uint",
+        hidden(with_aliases(
+            &[("head", ParamForm::Whole)],
+            act(
+                "plc.rack_set",
+                View,
+                Menu::Project,
+                &[],
+                project_open,
+                None,
+                |s, p| s.act_plc_rack_set(p),
+            ),
+        )),
+    ),
+    with_params(
+        "slot:uint, rack?:uint, op:text, part?:ref",
+        hidden(with_aliases(
+            &[("part", ParamForm::Whole)],
+            act(
+                "plc.rack_slot",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_rack_slot(p),
+            ),
+        )),
+    ),
+    hidden(act(
+        "plc.rack_create",
+        Command,
+        Menu::Project,
+        &[],
+        writable,
+        None,
+        |s, _| s.act_plc_rack_create(),
+    )),
+    with_params(
+        "step:text",
+        hidden(act(
+            "plc.rack_next",
+            Command,
+            Menu::Project,
+            &[],
+            writable,
+            None,
+            |s, p| s.act_plc_rack_next(p),
+        )),
+    ),
+    with_params(
+        "device:ref, config?:ref",
+        needs_parameters(in_canvas(with_aliases(
+            &[("device", ParamForm::Whole), ("config", ParamForm::Whole)],
+            act(
+                "plc.add_to_plc",
+                Command,
+                Menu::Project,
+                &[],
+                writable,
+                None,
+                |s, p| s.act_plc_add_to_plc(p),
+            ),
+        ))),
     ),
 ];

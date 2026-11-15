@@ -248,8 +248,48 @@ impl ShellModel {
             here: Some(rep),
         };
         self.device_entries(&thing, out);
+        self.plc_entries(thing.device, out);
         // The persona round: a valve terminal's box offered no Add valve nor Generate overview….
         self.fluid_entries(thing.device, out);
+    }
+
+    /// A device's PLC entries (F19 of the rc.1 test), on its symbol on any page and on its rows in the Devices and Bus
+    /// panels: a station offers Rack… and names its PLC; a bus device that belongs to no PLC offers Add to `<PLC>` for
+    /// each PLC of the project and Add to a new PLC; a device whose bus ports are all passive (a switch, a plug) says in
+    /// a disabled row why it takes no part.
+    fn plc_entries(&self, device: Uuid, out: &mut Vec<ActionItem>) {
+        use ew_api::output::PlcOffer;
+        let Some(session) = self.project_session() else {
+            return;
+        };
+        match session.plc_offer(device) {
+            PlcOffer::Station(name) => {
+                let label = strings::text(key!("action-plc-rack-editor")).to_owned();
+                out.extend(self.aimed("plc.rack_editor", json!({ "station": device.to_string() }), label));
+                out.extend(self.menu_item("plc.add_to_plc").map(|mut i| {
+                    i.label = strings::format(key!("canvas-plc-of"), &[&name]);
+                    i.enabled = false;
+                    i.reason = Some(strings::format(key!("reason-plc-station-of"), &[&name]));
+                    i
+                }));
+            }
+            PlcOffer::BusDevice => {
+                for (cfg, name) in session.plc_config_projects() {
+                    let label = strings::format(key!("canvas-plc-add-to"), &[&name]);
+                    let params = json!({ "device": device.to_string(), "config": cfg.to_string() });
+                    out.extend(self.aimed("plc.add_to_plc", params, label));
+                }
+                let label = strings::text(key!("canvas-plc-add-new")).to_owned();
+                out.extend(self.aimed("plc.add_to_plc", json!({ "device": device.to_string() }), label));
+            }
+            PlcOffer::Passive => out.extend(self.menu_item("plc.add_to_plc").map(|mut i| {
+                i.label = strings::text(key!("canvas-plc-add")).to_owned();
+                i.enabled = false;
+                i.reason = Some(strings::text(key!("reason-plc-passive")).to_owned());
+                i
+            })),
+            PlcOffer::None => {}
+        }
     }
 
     /// What a device offers, on the page and on a navigator's row alike (FT-1693): on a coil Add contact per free
@@ -334,6 +374,9 @@ impl ShellModel {
                 self.go_to(kind, Some(node), &mut out);
                 self.device_entries(&self.row_device(device, node), &mut out);
                 out.extend(self.menu_item("props.focus"));
+                if kind == NavKind::Devices {
+                    self.plc_entries(device, &mut out);
+                }
                 match node.role {
                     NavRole::Station => self.station_entries(device, &mut out),
                     NavRole::Module => {
@@ -416,8 +459,21 @@ impl ShellModel {
                 };
                 out.extend(self.aimed(action, key, strings::text(label).to_owned()));
             }
-            // A port not drawn yet (the Bus navigator): Place port, its box on a bus-topology page.
-            (NavKind::Bus, NavRole::Device, Some(_)) => {
+            // A port's row in the Bus navigator: its device's PLC entries (F19 of the rc.1 test).
+            (NavKind::Bus, NavRole::BusPort, Some(function)) => {
+                let device = self.project_session().and_then(|s| {
+                    let q = s.query();
+                    let f = q.functions().get(function.to_string().parse().ok()?)?;
+                    f.device.map(|d| d.as_uuid())
+                });
+                if let Some(device) = device {
+                    self.plc_entries(device, &mut out);
+                }
+            }
+            // A port not drawn yet (the Bus navigator): Place port, its box on a bus-topology page; its device's PLC
+            // entries.
+            (NavKind::Bus, NavRole::Device, Some(device)) => {
+                self.plc_entries(device, &mut out);
                 if let Some((device, port)) = super::navigators::undrawn_port(&node.key) {
                     let label = strings::format(key!("canvas-place-port"), &[port]);
                     let bus_page = self.page_rows().get(self.page_index()).map(|r| r.kind.as_str())
@@ -476,7 +532,7 @@ impl ShellModel {
     }
 
     /// A waiting card's own entries: Attach to `<station>` for each station that takes cards, so that a card listed
-    /// under Cards without a station says on its own row where it can go (the persona round of M3).
+    /// under Modules without a station says on its own row where it can go (the persona round of M3).
     fn attach_entries(&self, card: Uuid, out: &mut Vec<ActionItem>) {
         let Some(session) = self.project_session() else {
             return;

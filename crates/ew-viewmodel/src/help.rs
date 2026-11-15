@@ -321,6 +321,7 @@ pub fn dialog_topic(dialog: &Dialog) -> &'static str {
         Dialog::Rack { .. } => "dialog-rack",
         Dialog::PlcImport(_) => "dialog-plc-import",
         Dialog::ConfirmGitSetup { .. } => "dialog-git-setup",
+        Dialog::ChooseStation { .. } => "dialog-rack",
     }
 }
 
@@ -602,6 +603,11 @@ mod tests {
                 name: text(),
             },
             Dialog::ConfirmGitSetup { folder: text() },
+            Dialog::ChooseStation {
+                card: ew_api::output::Uuid::nil(),
+                tag: text(),
+                stations: Vec::new(),
+            },
             Dialog::ImportDrawing {
                 path: text(),
                 name: text(),
@@ -616,8 +622,11 @@ mod tests {
                 step: crate::shell::EplanStep::Terms,
             },
             Dialog::Rack {
-                station: ew_api::output::Uuid::nil(),
+                station: None,
+                draft: None,
                 part: None,
+                count: 1,
+                note: None,
                 error: None,
             },
         ] {

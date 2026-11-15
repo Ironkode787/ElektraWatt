@@ -296,7 +296,7 @@ fn the_small_words_say_what_slots_and_a_bus_page_are_and_the_search_finds_the_ne
     assert!(
         texts
             .iter()
-            .any(|t| t.starts_with("The slots the card may stand in") && t.contains("1-8, 10")),
+            .any(|t| t.starts_with("The slots the module may stand in") && t.contains("1-8, 10")),
         "Allowed slots says what it takes: {texts:?}"
     );
     d.input(&key("Escape"));
@@ -401,11 +401,17 @@ fn a_card_goes_behind_the_station_it_is_placed_beside_or_dragged_onto() {
         waiting(&mut d).iter().any(|l| l.starts_with(&second)),
         "{second} waits"
     );
-    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    // F18 of the rc.1 test: with two stations and none on its page, a window asks which station takes it; Cancel
+    // leaves it waiting.
     assert!(
-        toast.contains("waits for a station") && toast.contains("PLC panel"),
-        "{toast}"
+        matches!(
+            d.shell_mut().dialog(),
+            Some(ew_ui::ew_viewmodel::shell::Dialog::ChooseStation { .. })
+        ),
+        "the station chooser"
     );
+    assert_eq!(d.shell_mut().dispatch("ui.dismiss", &json!({})), Outcome::Done);
+    d.settle();
     // The PLC panel: the waiting card's row dragged onto the head station's row.
     // The PLC panel on show (Rail ▸ PLC toggles it).
     let find = |d: &mut Driver, tag: &str| {

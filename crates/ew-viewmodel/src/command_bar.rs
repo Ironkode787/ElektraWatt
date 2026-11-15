@@ -537,6 +537,13 @@ pub fn canvas_menu(model: &ShellModel, spot: MenuSpot) -> Vec<ActionItem> {
         if model.canvas().is_some_and(|c| c.page().panel.is_none()) {
             items.extend(item("project.wire_numbers"));
         }
+        // A schematic page offers New station… (F18 of the rc.1 test: the rack comes first).
+        if matches!(
+            model.page_rows().get(model.page_index()).map(|r| r.kind.as_str()),
+            Some("multi_line" | "single_line")
+        ) {
+            items.extend(item("plc.new_station"));
+        }
         return items;
     }
     // Over a placement on a panel page, Turn, Flip, Lock or Unlock, and Delete.

@@ -287,6 +287,7 @@ enum DialogKind {
     Reimport,
     Rack,
     PlcImport,
+    ChooseStation,
 }
 
 impl DialogKind {
@@ -318,7 +319,8 @@ impl DialogKind {
             Self::ReimportMatch => Self::Reimport,
             Self::Reimport => Self::Rack,
             Self::Rack => Self::PlcImport,
-            Self::PlcImport => return None,
+            Self::PlcImport => Self::ChooseStation,
+            Self::ChooseStation => return None,
         })
     }
 
@@ -351,6 +353,7 @@ fn kind(d: &Dialog) -> DialogKind {
         Dialog::ImportEplan { .. } => DialogKind::ImportEplan,
         Dialog::Rack { .. } => DialogKind::Rack,
         Dialog::PlcImport(_) => DialogKind::PlcImport,
+        Dialog::ChooseStation { .. } => DialogKind::ChooseStation,
         Dialog::ConfirmGitSetup { .. } => DialogKind::ConfirmGitSetup,
         Dialog::ImportQet { .. } => DialogKind::ImportQet,
         Dialog::ReimportMatch { .. } => DialogKind::ReimportMatch,
@@ -406,6 +409,16 @@ fn open_dialog(tmp: &Tmp, kind: DialogKind) -> Harness<'static, App> {
         DialogKind::SaveWorkspace => simple("view.workspace_save", json!({})),
         DialogKind::Form => simple("page.new", json!({})),
         DialogKind::Rack => simple("plc.rack_editor", json!({"station": "tag:-201U1"})),
+        // Two CPUs on page 101, a card drawn on a page of its own: which station takes it.
+        DialogKind::ChooseStation => {
+            let mut h = crate::plc_workspace::new_project_with_cpu(tmp);
+            crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-CPU-1", (30, 10));
+            dispatch(&mut h, "ui.dismiss", json!({}));
+            dispatch(&mut h, "page.new", json!({"folio": "102", "type": "multi_line", "title": "Cards"}));
+            support::settle(&mut h);
+            crate::plc_workspace::draw_black_box(&mut h, "EW-GEN-DI-1", (10, 10));
+            h
+        }
         // Golden A's own export, read back.
         DialogKind::PlcImport => {
             let file = tmp.0.join("plc.aml");

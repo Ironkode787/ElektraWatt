@@ -176,6 +176,23 @@ on a tag or on the page a child is drawn on (D-41).
 a new station the role `head_station` when its parts declare bus ports and none of them leads a bus (no `master` or
 `controller` port: a remote I/O head such as EW-GEN-RIO-1), else `cpu` (persona round of M3). `plc_module` carries `slot` (`SlotPath`: `positional`, the default, or `rack` with rack, slot and subslot), `start` (`IoStarts`; `auto` for both directions by default), `part_use` and `integrated`. `PlcModule.safety` (§2.9) is typed (WP-S1.24). `PlcStation.firmware` and `PlcModule.type_ident` (`{order_number}`, the order number of a module without part data, as an import creates one; a module with a part is identified by its part) are typed (WP-S3.16), each settable with `fields.set`. Not typed, and kept in `extra`: `PlcStation.dd` (§2.8) and `type_ident.dd_module`, the device descriptions'. The aspects are written in the member order of [05](05-project-format-and-persistence.md) §3.1: `assembly` (held verbatim until its work package) before `plc_station` before `plc_module`. The module order of `module_order` is: stations by (`order`, ID); within a station, rack slots first by (rack, slot, subslot), then positional modules in manifold order, whose slot is their 1-based rank. Golden A has seven modules (-201U3 … -201U8, -202U2).
 
+**As built (rc.2): the rack comes first.** A station is made as in TIA Portal: **New station…** opens the rack dialog in
+a new-station state that asks what the station is (a PLC with its CPU, a remote I/O station, a valve terminal with a
+bus node, a compact device with channels of its own; the choice narrows the head parts offered, the role stays what N0
+gives the part's section), its head part and its configuration project (an existing one or a new `PLC<n>`), then fills
+its rack slot by slot from the module parts that may sit in each slot. **Create** is one `plc.add_station {part,
+config_project?, modules, copies}`: the station device (drawn on no page), its `plc_station` and, when its section
+declares I/O, its own module, and each module as `plc.add_module` makes it (positional, in rack order), one undo
+step. The same command with `device` makes an existing bus device a station (F19): a part with a station section takes
+N0's role, a part without PLC data the role `io_device` with an open rack whose modules are added by hand. A station
+part placed directly opens its rack dialog at once; a module placed directly joins as D4 says and its toast names the
+slot, or a chooser asks which station takes it when several could and none is drawn beside it. The rack's order is the
+slot: moving a module up or down swaps two modules' positions (`assembly.attach`) or slots (`fields.set_many`), and the
+dialog says when addresses moved. Only a module part goes into a rack: the window refuses any other device in words,
+`plc.remove_from_rack` takes a device out again (and, for a device that nothing describes as a module, its aspect and
+its channels), and EW-PLC-017 reports a device in that state with that command as its fix. A copy of a station drops the
+station's own module with `plc_station`, so N0 makes the paste a station again.
+
 ### 2.4 Channels
 
 ```rust

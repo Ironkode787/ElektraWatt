@@ -113,19 +113,31 @@ and writes nothing on Cancel. Open it with Project ▸ Set up merge driver.
 
 ## Rack and slots
 
-Opened by **Rack and slots…** on a station's row in the PLC navigator (a right click): the station's slots, one row
-each, with the module in it, its part and the slots its part allows. A valve terminal shows its stored order codes at
-the top and each module's valve positions under its row.
+Opened by **Rack…** on a station's row in the PLC navigator or on its symbol on any page (a right click), by placing a
+station part directly, and by **New station…** (Project menu, the PLC navigator) for a station not made yet: the
+station's slots, one row each, with the module in it, its part, what it gives (`8 DI`), its address range and the
+slots its part allows. The number of slots comes from the station's part (its most modules); a part that says nothing
+gets an open rack that grows by one free row. A valve terminal shows its stored order codes at the top and each
+module's valve positions under its row.
 
-Choose the card in **Module part to add**: the project's module parts first, then those of the installed libraries,
-which are copied into the project with the card. **Add here** on a free slot adds a card of that part there; in a
-station whose modules sit in positions, not rack slots, the free slot is the one after the last module. Type a slot
-into a module's Slot field and press `Enter` to move it, as a number or as rack and slot (`1.3`), or drag the module by
-its tag onto another slot's row.
+**New station…** first asks what the station is (a PLC with its CPU, a remote I/O station, a valve terminal with a bus
+node, a compact device with channels of its own), then its head part from the parts that can be that (**New part…**
+opens the part editor and comes back with the new part), and the PLC it belongs to: one of the project's or a new one.
+**Create** makes the station and its modules, drawn on no page yet, in one undo step.
+
+**Add module…** on a free slot opens a picker of the module parts that may sit in that slot (the project's first, then
+those of the installed libraries, which are copied into the project with the module), with a field for how many fill
+the slots from there. On a module's row the arrows move it up and down, the bin empties the slot (a module drawn on no
+page is deleted, a drawn one leaves the rack and waits under Modules without a station), **Replace…** gives it another
+part and **Draw…** puts its symbol on the pointer when no page draws it. Type a slot into a module's Slot field and
+press `Enter` to move it, as a number or as rack and slot (`1.3`), or drag the module by its tag onto another slot's
+row. A move that changes addresses says so under the slots. A station whose part does not describe its modules (a bus
+device given to a PLC) says so above them.
 
 A slot the part does not allow, or more modules than the station takes, is refused, and the reason stays under the
-slots; the station's slot findings (EW-PLC-011) are listed there too, each with its icon and the word Error. **Close**
-or `Esc` closes the dialog.
+slots; the station's slot findings (EW-PLC-011) are listed there too, each with its icon and the word Error. Under a
+made station, **Draw on this page**, **Make the overview page** (a valve terminal) and **Put it on a bus page** do
+what comes next. **Close** or `Esc` closes the dialog.
 
 ## PLC import
 

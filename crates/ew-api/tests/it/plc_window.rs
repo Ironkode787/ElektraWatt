@@ -25,7 +25,7 @@ fn symbol_id(s: &Session) -> Uuid {
 
 /// Places the starter part `number` as the picker does: one `box.black` from the part with its closure. The new
 /// device's ID.
-fn place(s: &mut Session, number: &str, slot: i64) -> Uuid {
+pub(crate) fn place(s: &mut Session, number: &str, slot: i64) -> Uuid {
     let part = library_part(s, number);
     let copies = s
         .starter_embed_part(part, BLACKBOX)

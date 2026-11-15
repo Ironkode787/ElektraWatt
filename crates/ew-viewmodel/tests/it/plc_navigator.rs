@@ -186,7 +186,7 @@ fn a_cp_off_the_card_is_refused_in_words() {
     let toast = s.toast().expect("the refusal's toast").text.clone();
     let coil_tag = cp.label.split(':').next().unwrap().to_owned();
     assert!(
-        toast.starts_with(&format!("{coil_tag} is not on the card -")),
+        toast.starts_with(&format!("{coil_tag} is not on the module -")),
         "{toast}"
     );
     // A device neither wired to the card nor attachable to it: the words say what to do.
@@ -471,7 +471,7 @@ fn a_device_wired_to_two_card_pins_asks_which() {
     assert_eq!(
         toast,
         format!(
-            "{switch} is wired to 2 pins of {card} ({card}:2, {card}:3): drop the channel on the card's pin you mean."
+            "{switch} is wired to 2 pins of {card} ({card}:2, {card}:3): drop the channel on the module's pin you mean."
         )
     );
 }

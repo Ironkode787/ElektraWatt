@@ -1013,3 +1013,72 @@ impl Rule for TbdAddress {
         out
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------
+// EW-PLC-017
+
+/// EW-PLC-017 "Not a PLC module" (F17 of the rc.1 test): conflict, o r, warning, module.
+pub const NOT_A_MODULE: RuleMeta = RuleMeta {
+    id: "EW-PLC-017",
+    code: "110017",
+    pack: "EW-PLC",
+    title: "Not a PLC module",
+    kind: RuleKind::Conflict,
+    modes: Modes::letters("or"),
+    severity: Severity::Warning,
+    release_severity: None,
+    scope: ScopeKind::Module,
+    supersedes: &[],
+    release: Release::V1_0,
+    docs: "reference/rules/ew-plc-017",
+};
+
+/// EW-PLC-017: a device that carries `plc_module` while nothing of it describes a module
+/// ([`ew_derive::not_a_module`]: a bus node whose part has no PLC data, attached to a CPU, or a copy of a station that
+/// kept the station's own module). Its channels are no part's, and an export would list a module that does not exist.
+/// Target the device, discriminator `module`; the quick fix `plc.remove_from_rack` takes it out of the rack and removes
+/// its channels.
+#[derive(Clone, Copy, Debug)]
+pub struct NotAModule;
+
+impl Rule for NotAModule {
+    fn meta(&self) -> &'static RuleMeta {
+        &NOT_A_MODULE
+    }
+
+    fn run(&self, q: &Q, scope: &Scope) -> Vec<Finding> {
+        let Scope::Module(device) = *scope else {
+            return Vec::new();
+        };
+        if !ew_derive::not_a_module(q, device) {
+            return Vec::new();
+        }
+        let tag = full_tag(q, device, "device");
+        let part = q
+            .devices()
+            .get(device)
+            .and_then(|d| d.parts.first().and_then(|u| q.parts().get(u.part.copy)))
+            .map(|c| c.item.part_number.to_string())
+            .unwrap_or_default();
+        vec![
+            Finding::new(
+                &NOT_A_MODULE,
+                [Target::new(Kind::Device, device)],
+                "module",
+                tag.clone(),
+                format!(
+                    "{tag} sits in the PLC as a module, but its part {part} describes no PLC module; take it out of \
+                     the rack (a bus device joins a PLC as a station of its own)"
+                ),
+            )
+            .arg("device", tag)
+            .arg("part", part)
+            .with_fix(QuickFix {
+                label: "Take it out of the rack".to_owned(),
+                key: Some("fix-plc-take-out"),
+                command: "plc.remove_from_rack".to_owned(),
+                params: serde_json::json!({ "device": device.to_string() }),
+            }),
+        ]
+    }
+}

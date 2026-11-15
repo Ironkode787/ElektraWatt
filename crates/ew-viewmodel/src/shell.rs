@@ -436,14 +436,31 @@ pub enum Dialog {
         step: EplanStep,
     },
     /// The rack and slot editor of a station (doc 10 §6, FR-PLC-028): its slots as `Session::rack_view` gives them,
-    /// read each frame; Close.
+    /// read each frame; Close. In the new-station state (F18 of the rc.1 test) it shows the draft's rack
+    /// (`Session::draft_rack`) and Create makes the station with its modules.
     Rack {
-        /// The station device.
-        station: ew_api::output::Uuid,
+        /// The station device; `None` while the station is a draft.
+        station: Option<ew_api::output::Uuid>,
+        /// The station not made yet: what it is, its head part, its PLC and its modules.
+        draft: Option<Box<crate::shell::automation::StationDraft>>,
         /// The module part Add module puts into a free slot; `None` before one is chosen (the first offered).
         part: Option<ew_api::output::Uuid>,
+        /// How many modules of the part Add module puts into the slots from the one chosen (1 to 64).
+        count: u16,
+        /// A line under the slots after a change: the addresses that moved, or what comes next after Create.
+        note: Option<String>,
         /// The last refusal of a change, under the slots; `None` after a change went through.
         error: Option<String>,
+    },
+    /// Which station takes a module placed on a page where none is drawn, in a project of several stations (F18 of the
+    /// rc.1 test): a button per station, the last one a module was given to first; Cancel leaves it waiting.
+    ChooseStation {
+        /// The module.
+        card: ew_api::output::Uuid,
+        /// Its tag.
+        tag: String,
+        /// The stations that take modules, with their tags.
+        stations: Vec<(ew_api::output::Uuid, String)>,
     },
     /// The PLC import's preview (doc 10 §4.4, §6): the changes, conflicts, removed and parked objects of an exchange
     /// file against a configuration project, by tab, with the choices of its conflicts and parked objects; Apply or
@@ -737,6 +754,8 @@ pub struct ShellModel {
     /// for, so the dialog's spec and its content read it once a frame at most (FT-1763).
     #[allow(clippy::type_complexity)]
     rack_cache: std::cell::RefCell<Option<((u64, ew_api::output::Uuid), Option<ew_api::output::RackView>)>>,
+    /// The station a module was last given to (a rack opened, a module attached): the default of the station chooser.
+    last_station: Option<ew_api::output::Uuid>,
     /// The wires whose reasoned potential was declined in this session: it is not offered again.
     declined_offers: std::collections::BTreeSet<ew_api::output::Uuid>,
     /// The wire-colour view's switch and its fetched Connections table.
@@ -1167,6 +1186,7 @@ impl ShellModel {
             potential_at: None,
             offer_cache: std::cell::RefCell::new(None),
             rack_cache: std::cell::RefCell::new(None),
+            last_station: None,
             declined_offers: std::collections::BTreeSet::new(),
             wire_colours: wire_colours::WireColourState::default(),
             collab: external::CollabState::default(),

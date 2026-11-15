@@ -1107,7 +1107,8 @@ fn module_profile_of(
 /// Creates `Device {tag: {letter: the station's, counter: position, scheme: child}, parent: station, position, parts:
 /// [part], plc_module: {slot}}` at the position after the station's last child; normaliser N1 instantiates its
 /// channels. With `slot`, the module's slot is `rack.slot` (rack 0 when `rack` is absent); without, it is positional,
-/// so the module follows the station's modules. Refused: a station without the `plc_station` aspect; a part whose PLC
+/// so the module follows the station's modules. With `count` (the rack dialog's count field), that many modules of the
+/// part, in the slots from `slot` on, or one after the other. Refused: a station without the `plc_station` aspect; a part whose PLC
 /// section is not a module's (in words). A slot outside the part's allowed slots and a station beyond its limits are
 /// EW-PLC-011's prevent rule. `copies` are library
 /// documents embedded first, in the same transaction, as `device.place` embeds them (a library part the project does not
@@ -1126,6 +1127,9 @@ pub struct AddModule {
     /// The slot; absent: positional.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub slot: Option<u16>,
+    /// How many modules of the part fill the slots from `slot` on (or follow positionally); absent: one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub count: Option<u16>,
     /// Library documents (`lib/` JSON form) embedded first.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub copies: Vec<serde_json::Value>,
@@ -1160,6 +1164,18 @@ impl Command for AddModule {
                 part.item.part_number.as_str()
             ));
         }
+        let mut first = None;
+        for n in 0..self.count.unwrap_or(1).max(1) {
+            let id = self.add_one(tx, &station, self.slot.map(|s| s.saturating_add(n)))?;
+            first.get_or_insert(id);
+        }
+        Ok(Outcome::primary((Kind::Device, first.unwrap_or(self.station).cast())))
+    }
+}
+
+impl AddModule {
+    /// One module of the part under `station`, at its next position, in `slot` (rack `rack`, else 0) or positional.
+    fn add_one(&self, tx: &mut TxBuilder<'_>, station: &Device, slot: Option<u16>) -> Result<Id<Device>, CmdError> {
         let position = tx
             .children_of(self.station)
             .into_iter()
@@ -1167,7 +1183,7 @@ impl Command for AddModule {
             .max()
             .unwrap_or(0)
             .saturating_add(1);
-        let slot = match self.slot {
+        let slot = match slot {
             Some(slot) => ew_schema::SlotPath::Rack(ew_schema::RackSlot {
                 rack: self.rack.unwrap_or(0),
                 slot,
@@ -1203,6 +1219,220 @@ impl Command for AddModule {
             },
             extra: Extra::new(),
         })?;
+        Ok(id)
+    }
+}
+
+/// One module of `plc.add_station`: its part, in the next slot.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StationModule {
+    /// The module's part use.
+    pub part: PartUse,
+}
+
+/// `plc.add_station` (`AddStation`, F18 and F19 of the rc.1 test, doc 10 §2.3 "The rack comes first"): makes a station
+/// of a PLC with its modules, in one undo step.
+///
+/// The station is a new device of `part`, drawn on no page yet (tag letter `A`, the online numbering gives it a
+/// counter), or the existing `device` (a bus device given to a PLC from where it stands). It gets `plc_station` in
+/// `config_project`, or in a new configuration project `PLC<n>` when that is absent (the station its CPU when it is
+/// one). Its role is the one normaliser N0 gives its PLC section (valve terminal, head station or CPU) and, with a
+/// section that declares I/O, the station's own module (`plc_module {integrated}`); a device whose parts have no PLC
+/// section becomes an I/O device with an open rack. Then each of `modules` becomes a device under the station, as
+/// `plc.add_module` makes it, at the next position, positional; normaliser N1 instantiates their channels. Refused in
+/// words: both or neither of `device` and `part`; a device that is a station or a PLC module already; a `part` whose
+/// PLC section is not a station's; a module part that is not a module's. `copies` are library documents embedded first.
+/// Outcome: the station.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct AddStation {
+    /// The existing device that becomes the station; absent: a new device of `part`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub device: Option<Id<Device>>,
+    /// The new station's head part (without `device`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub part: Option<PartUse>,
+    /// The configuration project (the PLC) it belongs to; absent: a new one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(with = "Option<UuidS>")]
+    pub config_project: Option<Id<PlcConfigProject>>,
+    /// Its modules in slot order.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub modules: Vec<StationModule>,
+    /// Library documents (`lib/` JSON form) embedded first.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub copies: Vec<serde_json::Value>,
+}
+
+impl Command for AddStation {
+    const NAME: &'static str = "plc.add_station";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        use crate::normalise::plc_aspects::{create_config_project, station_role};
+        crate::commands::assign::embed_closure(Self::NAME, tx, &self.copies)?;
+        let id = match (&self.device, &self.part) {
+            (Some(d), None) => {
+                let dev = tx.require::<Device>(*d)?;
+                if dev.aspects.plc_station.is_some() || dev.aspects.plc_module.is_some() {
+                    return tx.reject(text!("refusal-plc-station-already", crate::words::device(tx, *d)));
+                }
+                *d
+            }
+            (None, Some(part)) => {
+                let copy = tx.require::<LibCopy<Part>>(part.part.copy)?;
+                if !copy
+                    .item
+                    .sections
+                    .plc
+                    .as_ref()
+                    .is_some_and(|p| p.role == ew_schema::PlcRole::Station)
+                {
+                    return tx.reject(text!(
+                        "refusal-plc-station-part",
+                        copy.item.part_number.as_str()
+                    ));
+                }
+                let id: Id<Device> = tx.mint();
+                tx.insert(Device {
+                    id,
+                    v: 1,
+                    tag: ew_schema::TagSpec::new(
+                        Ident::from_input("A")
+                            .map_err(|e| CmdError::internal(format!("the letter A is no identifier ({e:?})")))?,
+                        None,
+                    ),
+                    kind: None,
+                    parent: None,
+                    position: None,
+                    structure: Default::default(),
+                    parts: vec![part.clone()],
+                    function_text: Default::default(),
+                    process_tag: None,
+                    tech_data: Default::default(),
+                    state: Default::default(),
+                    source_ref: None,
+                    aspects: ew_schema::DeviceAspects::default(),
+                    extra: Extra::new(),
+                })?;
+                id
+            }
+            _ => {
+                return Err(CmdError::invalid_params(
+                    Self::NAME,
+                    "/device",
+                    text!("refusal-plc-station-device-or-part"),
+                ));
+            }
+        };
+        let dev = tx.require::<Device>(id)?;
+        let section = dev
+            .parts
+            .iter()
+            .find_map(|u| tx.get::<LibCopy<Part>>(u.part.copy)?.item.sections.plc.clone())
+            .filter(|s| s.role == ew_schema::PlcRole::Station);
+        let role = section
+            .as_ref()
+            .map_or(ew_schema::StationRole::IoDevice, |s| station_role(tx, &dev, s));
+        let cfg = match self.config_project {
+            Some(c) => {
+                let cfg = tx.require::<PlcConfigProject>(c)?;
+                if cfg.cpu.is_none() && role == ew_schema::StationRole::Cpu {
+                    tx.update::<PlcConfigProject>(c, |x| x.cpu = Some(id))?;
+                }
+                c
+            }
+            None => create_config_project(tx, &dev, (role == ew_schema::StationRole::Cpu).then_some(id))?,
+        };
+        let integrated = section.as_ref().is_some_and(|s| !s.io.is_empty());
+        tx.update::<Device>(id, |d| {
+            d.aspects.plc_station = Some(ew_schema::PlcStation {
+                config_project: cfg,
+                role,
+                order: None,
+                firmware: None,
+                extra: Extra::new(),
+            });
+            if integrated {
+                d.aspects.plc_module = Some(ew_schema::PlcModule {
+                    integrated: true,
+                    ..ew_schema::PlcModule::default()
+                });
+            }
+        })?;
+        for m in &self.modules {
+            AddModule {
+                station: id,
+                part: m.part.clone(),
+                rack: None,
+                slot: None,
+                count: None,
+                copies: Vec::new(),
+            }
+            .run(tx)?;
+        }
+        Ok(Outcome::primary((Kind::Device, id.cast())))
+    }
+}
+
+/// `plc.remove_from_rack` (`RemoveFromRack`, F17 of the rc.1 test, the quick fix of EW-PLC-017): takes a device out of
+/// its station's rack.
+///
+/// The device leaves the station it sits under (`parent` and `position` absent). A device that nothing describes as a
+/// module ([`ew_derive::not_a_module`]: a bus node whose part has no PLC data, attached to a CPU) also loses its
+/// `plc_module` aspect and every channel of it, which no part gives. A module that is one keeps its channels and waits
+/// under Modules without a station. Refused in words: a device that is neither a module in a station nor such a device (a
+/// station itself, a valve on a valve terminal, a loose device). One undo step. Outcome: the device.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RemoveFromRack {
+    /// The device.
+    #[schemars(with = "UuidS")]
+    pub device: Id<Device>,
+}
+
+impl Command for RemoveFromRack {
+    const NAME: &'static str = "plc.remove_from_rack";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME)
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let id = self.device;
+        let dev = tx.require::<Device>(id)?;
+        let q = ew_derive::Q::new(tx.base_model());
+        let fault = ew_derive::not_a_module(&q, id);
+        let in_station = dev.aspects.plc_station.is_none()
+            && dev.aspects.plc_module.is_some()
+            && dev.parent.is_some_and(|p| ew_derive::station_of(&q, p).is_some());
+        if !fault && !in_station {
+            return tx.reject(text!("refusal-plc-not-in-rack", crate::words::device(tx, id)));
+        }
+        tx.update::<Device>(id, |d| {
+            if in_station {
+                d.parent = None;
+                d.position = None;
+            }
+            if fault {
+                d.aspects.plc_module = None;
+            }
+        })?;
+        if fault {
+            let doomed: Vec<_> = tx
+                .channels_of_module(id)
+                .into_iter()
+                .map(|c| (Kind::Channel, c.cast()))
+                .collect();
+            if !doomed.is_empty() {
+                tx.delete_many(&doomed)?;
+            }
+        }
         Ok(Outcome::primary((Kind::Device, id.cast())))
     }
 }

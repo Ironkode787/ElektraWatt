@@ -140,7 +140,7 @@ pub use ew_reports::table::{Table, TableCell, TableColumn, TableRow};
 pub use ew_reports::xlsx::{WorkbookMeta, base_text, xlsx};
 pub use navigators::{
     Drawable, HighlightTarget, LibraryCopyDetail, MacroDetail, MacroThumbnail, NaturalKey, NavColumn,
-    NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key, tokens as nav_tokens,
+    NOT_DRAWN, NavKind, NavNode, NavRole, NavTable, Uuid, names_subject, nav_natural_key, tokens as nav_tokens,
 };
 pub use panel::{PanelAxis, PanelCarrier, PanelPlacement, PanelTables, UnplacedDevice, surface_of_page};
 pub use potential_offer::PotentialOffer;
@@ -151,7 +151,7 @@ pub use properties::{
     CompanyColour, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SelectionWords,
     SheetHeader, SheetSection, SourceLink, WireColours, WireEnd,
 };
-pub use rack::{FluidMenu, ModulePart, RackRow, RackView, TerminalSeat};
+pub use rack::{FluidMenu, ModulePart, PlcOffer, RackRow, RackView, TerminalSeat, gives_text};
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png, sheet_image};
 pub use revisions::{PageDigest, changed_now, changed_pages, last_changed_in, page_digest, page_digests};
 pub use route_measures::{

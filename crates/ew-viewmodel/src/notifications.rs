@@ -42,6 +42,10 @@ pub enum NoteAction {
     ShowChanges,
     /// Back to the symbol editor and its kept draft, after a test placement.
     BackToEditor,
+    /// The rack dialog of the station a placed module joined (F18 of the rc.1 test).
+    Rack,
+    /// New station…, for a module placed while the project has no station (F18 of the rc.1 test).
+    NewStation,
 }
 
 impl NoteAction {
@@ -55,6 +59,8 @@ impl NoteAction {
             NoteAction::ShowBlock => "show_block",
             NoteAction::ShowChanges => "show_changes",
             NoteAction::BackToEditor => "edit",
+            NoteAction::Rack => "rack",
+            NoteAction::NewStation => "new_station",
         }
     }
 
@@ -68,6 +74,8 @@ impl NoteAction {
             "show_block" => Some(NoteAction::ShowBlock),
             "show_changes" => Some(NoteAction::ShowChanges),
             "edit" => Some(NoteAction::BackToEditor),
+            "rack" => Some(NoteAction::Rack),
+            "new_station" => Some(NoteAction::NewStation),
             _ => None,
         }
     }
@@ -82,6 +90,8 @@ impl NoteAction {
             NoteAction::ShowBlock => key!("toast-show-block"),
             NoteAction::ShowChanges => key!("toast-show-changes"),
             NoteAction::BackToEditor => key!("toast-back-to-editor"),
+            NoteAction::Rack => key!("action-plc-rack-editor"),
+            NoteAction::NewStation => key!("action-plc-new-station"),
         }
     }
 }

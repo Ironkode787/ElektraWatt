@@ -508,7 +508,7 @@ fn the_valve_terminals_overview_is_generated_from_its_row() {
     dispatch(&mut h, "plc.rack_editor", json!({"station": "tag:-201U1"}));
     settle(&mut h);
     let station = match h.state().shell().dialog() {
-        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station, .. }) => *station,
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station: Some(station), .. }) => *station,
         other => panic!("{other:?}"),
     };
     let before = h.state().shell().rack_view(station).expect("the rack");

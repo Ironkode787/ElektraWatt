@@ -78,7 +78,7 @@ fn core047_reports_a_device_whose_functions_are_not_drawn() {
         (Kind::Device, uid(0x102))
     );
     assert!(
-        f[0].message.ends_with("has no representation on any page"),
+        f[0].message.ends_with("is not drawn on any page, so its tag shows ? where the page goes"),
         "{}",
         f[0].message
     );

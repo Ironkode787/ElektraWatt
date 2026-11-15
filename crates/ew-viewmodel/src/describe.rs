@@ -2049,11 +2049,14 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
             }
         }
         // The rack and slot editor: its paragraphs, each slot with its module, part and allowed slots, the findings.
-        Dialog::Rack { station, error, .. } => {
+        Dialog::Rack { error, note, .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));
             }
-            lines.extend(model.rack_lines(*station));
+            lines.extend(model.rack_lines());
+            if let Some(n) = note {
+                lines.push(format!("  note \"{}\"", user(n)));
+            }
             if let Some(e) = error {
                 lines.push(format!("  error \"{}\"", user(e)));
             }
@@ -2063,7 +2066,8 @@ fn dialog(model: &ShellModel, lines: &mut Vec<String>) {
         | Dialog::OpenEwz { .. }
         | Dialog::ImportDrawing { .. }
         | Dialog::ImportEplan { .. }
-        | Dialog::ConfirmGitSetup { .. } => {
+        | Dialog::ConfirmGitSetup { .. }
+        | Dialog::ChooseStation { .. } => {
             for line in &spec.body {
                 lines.push(format!("  label \"{}\"", user(line)));
             }

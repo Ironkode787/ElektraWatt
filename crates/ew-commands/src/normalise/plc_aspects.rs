@@ -66,7 +66,7 @@ pub struct PlcAspects;
 /// The role of a new station: a valve terminal when its part's PLC section maps solenoids to valve positions (the
 /// part says it carries valves, as the starter terminal EW-GEN-VTM-1 does); a head station when its parts declare bus
 /// ports and none leads a bus (no `master` and no `controller` port); else a CPU.
-fn station_role(tx: &TxBuilder<'_>, dev: &Device, section: &PlcSection) -> StationRole {
+pub(crate) fn station_role(tx: &TxBuilder<'_>, dev: &Device, section: &PlcSection) -> StationRole {
     if section.positions.is_some() {
         return StationRole::ValveTerminal;
     }
@@ -212,6 +212,18 @@ fn config_project_for(
         ));
         return Ok(first.id);
     }
+    create_config_project(tx, station, cpu)
+}
+
+/// A new configuration project for `station`, `PLC<n>` (the lowest free n), pinned to the shipped TIA international
+/// profile, `cpu` its CPU, ID `v5(station, "plc_config_project")`, with a notice that names it.
+pub(crate) fn create_config_project(
+    tx: &mut TxBuilder<'_>,
+    station: &Device,
+    cpu: Option<Id<Device>>,
+) -> Result<Id<PlcConfigProject>, CmdError> {
+    let all = tx.iter::<PlcConfigProject>();
+    let tag = tag_text(station);
     let taken: std::collections::BTreeSet<&str> = all.iter().map(|c| c.name.as_str()).collect();
     let n = (1u32..)
         .find(|n| !taken.contains(format!("PLC{n}").as_str()))

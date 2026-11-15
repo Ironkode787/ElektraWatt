@@ -42,7 +42,7 @@ pub(crate) mod ip_form;
 mod junction_cleanup;
 mod module_pin_binding;
 mod online_numbering;
-mod plc_aspects;
+pub(crate) mod plc_aspects;
 mod revision_ensure_open;
 mod solenoid_binding;
 mod tube_tags;

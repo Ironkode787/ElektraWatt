@@ -88,6 +88,16 @@ fn place_terminal(d: &mut Driver, a: (i64, i64), b: (i64, i64)) {
     d.settle();
     click_at(d, a);
     click_at(d, b);
+    // F18 of the rc.1 test: the valve terminal is a station, and its rack dialog opens when it is placed.
+    assert!(
+        matches!(
+            d.shell_mut().dialog(),
+            Some(ew_ui::ew_viewmodel::shell::Dialog::Rack { station: Some(_), .. })
+        ),
+        "the rack dialog"
+    );
+    d.input(&key("escape"));
+    d.settle();
     d.input(&key("escape"));
     d.settle();
 }

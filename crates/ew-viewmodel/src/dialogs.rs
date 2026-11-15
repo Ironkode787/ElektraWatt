@@ -212,8 +212,41 @@ pub fn spec(dialog: &Dialog, model: &ShellModel) -> DialogSpec {
         Dialog::ImportEplan { path, name, step } => import_eplan_spec(path, name, step, model.has_project()),
         // D28: Set up (Enter) or Cancel.
         Dialog::ConfirmGitSetup { folder } => git_setup_spec(folder),
+        // Which station takes a module: the last one given a module first (Enter), the others, Cancel.
+        Dialog::ChooseStation { card, tag, stations } => {
+            let attach = |(station, name): &(ew_api::output::Uuid, String)| {
+                let mut b = DialogButton::new(
+                    key!("choose-station-button"),
+                    DialogAnswer::Action(
+                        "plc.attach_cards",
+                        json!({ "station": station.to_string(), "card": card.to_string() }),
+                    ),
+                );
+                b.label = strings::format(key!("choose-station-button"), &[name]);
+                b
+            };
+            let mut ordered = stations.clone();
+            if let Some(i) = model.last_station().and_then(|l| ordered.iter().position(|(s, _)| *s == l)) {
+                let last = ordered.remove(i);
+                ordered.insert(0, last);
+            }
+            let mut buttons = ordered.iter().map(attach);
+            let primary = buttons
+                .next()
+                .unwrap_or_else(|| DialogButton::new(key!("dialog-close"), DialogAnswer::Dismiss));
+            let mut secondary: Vec<DialogButton> = buttons.collect();
+            secondary.push(cancel());
+            DialogSpec {
+                secondary,
+                ..small(
+                    strings::format(key!("choose-station-title"), &[tag]),
+                    vec![strings::text(key!("choose-station-text")).to_owned()],
+                    primary,
+                )
+            }
+        }
         // The rack and slot editor: its slots are the dialog's own content; Close.
-        Dialog::Rack { station, .. } => rack_spec(model, *station),
+        Dialog::Rack { .. } => rack_spec(model),
         // The PLC import's preview: its tabs are the dialog's own content; Apply (Enter) or Cancel.
         Dialog::PlcImport(card) => DialogSpec {
             secondary: vec![cancel()],
@@ -635,18 +668,35 @@ fn open_ewz_spec(path: &str, name: &str) -> DialogSpec {
 }
 
 /// The rack and slot editor's title and body (doc 10 §6): "Rack and slots of `<station>`", the station's part and the
-/// most modules it takes; Close is the Primary.
-fn rack_spec(model: &ShellModel, station: ew_api::output::Uuid) -> DialogSpec {
-    let view = model.project_session().and_then(|s| s.rack_view(station));
+/// most modules it takes, and for a part that does not describe its modules (a bus device given to a PLC, F19) that it
+/// does not; Close is the Primary. In the new-station state (F18) the title is New station and Create (Enter) makes it;
+/// Cancel.
+fn rack_spec(model: &ShellModel) -> DialogSpec {
+    let view = model.shown_rack();
+    let draft = model.station_draft().is_some();
     let tag = view.as_ref().map(|v| v.tag.clone()).unwrap_or_default();
     let mut body = Vec::new();
     if let Some(v) = &view {
-        if !v.part.is_empty() {
+        if !v.part.is_empty() && !draft {
             body.push(strings::format(key!("rack-station-part"), &[&v.part]));
         }
         if let Some(m) = v.max_modules {
             body.push(strings::format(key!("rack-max-modules"), &[&m.to_string()]));
         }
+        if !v.described && !draft {
+            body.push(strings::text(key!("rack-not-described")).to_owned());
+        }
+    }
+    if draft {
+        return DialogSpec {
+            secondary: vec![cancel()],
+            form: true,
+            ..small(
+                strings::text(key!("rack-new-title")).to_owned(),
+                body,
+                DialogButton::new(key!("rack-create"), DialogAnswer::Action("plc.rack_create", json!({}))),
+            )
+        };
     }
     DialogSpec {
         form: true,

@@ -77,6 +77,26 @@ pub fn module_part(q: &Q, module: Id<Device>) -> Option<(Arc<LibCopy<Part>>, Plc
     }
 }
 
+/// Whether `device` carries `plc_module` while nothing of it describes a PLC module (F17 of the rc.1 test: a bus node
+/// whose part has no PLC data, attached to a CPU, sat in its rack with channels no part gives): it has parts, no
+/// imported order number (`type_ident`), and its PLC part is none, or a station's part on a device that is no station
+/// (a copy of a station that kept the station's own module).
+pub fn not_a_module(q: &Q, device: Id<Device>) -> bool {
+    let Some(d) = q.devices().get(device) else {
+        return false;
+    };
+    let Some(m) = d.aspects.plc_module.as_ref() else {
+        return false;
+    };
+    if m.type_ident.is_some() || d.parts.is_empty() {
+        return false;
+    }
+    match module_part(q, device) {
+        None => true,
+        Some((_, s)) => s.role == ew_schema::PlcRole::Station && d.aspects.plc_station.is_none(),
+    }
+}
+
 /// The station of a device: the device itself when it carries `plc_station`, else its nearest ancestor that
 /// does. A hostile parent cycle terminates: the walk stops at a device it has visited. It reads the rows of the
 /// device and its ancestors only, never the whole device table, so an edit of another device does not invalidate

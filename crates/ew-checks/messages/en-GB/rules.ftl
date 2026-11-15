@@ -221,12 +221,12 @@ rule-ew-core-045 = { $device } uses { $need_no } NO, { $need_nc } NC, { $need_co
     .title = Auxiliary contacts exceed the part
     .hint = Remove contacts from the drawing, or choose a part with enough main and auxiliary contacts.
 
-rule-ew-core-047 = { $device } has { $part ->
-        [yes] a part but no representation on any page; the parts list still counts it
-       *[no] no representation on any page
+rule-ew-core-047 = { $device } is not drawn on any page, so its tag shows ? where the page goes{ $part ->
+        [yes] ; the parts list still counts it
+       *[no] {""}
     }
-    .title = Device not in the schematic
-    .hint = Place a representation of the device in the schematic, or delete the device.
+    .title = Device not drawn
+    .hint = Draw the device on a page of the schematic, or delete it.
 
 rule-ew-core-048 = { $device } is covered by { $form ->
         [covered-twice] { $count } order codes of { $assembly }; its parts would print { $count } times
@@ -635,6 +635,10 @@ rule-ew-plc-014 = { $subject }: { $form ->
     } carries { $load } mA, more than its rating of { $limit } mA; spread the loads or use a stronger output
     .title = Output load exceeds rating
     .hint = Spread the loads over more outputs, or use a stronger output or module.
+
+rule-ew-plc-017 = { $device } sits in the PLC as a module, but its part { $part } describes no PLC module; take it out of the rack (a bus device joins a PLC as a station of its own)
+    .title = Not a PLC module
+    .hint = Take the device out of the rack; add a bus device to a PLC as a station from its menu.
 
 rule-ew-saf-001 = { $form ->
         [missing] { WORD($module) } is an F-module without an F-destination address; enter it
@@ -1141,6 +1145,7 @@ fix-realise-primary-part = Realise the primary part
 fix-rebind-map-channel = Rebind to the map's channel
 fix-declare-pelv-bond = Declare 0 V–PE bond (PELV)
 fix-mark-cp-unused = Mark not used
+fix-plc-take-out = Take it out of the rack
 
 # The words a rule prints where a record has no name of its own (FT-912): a pattern of another language wraps an
 # argument that may hold them in WORD(…), which prints that language's message of the same ID instead.

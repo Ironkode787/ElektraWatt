@@ -68,12 +68,12 @@ impl Rule for CableWithoutLength {
     }
 }
 
-/// EW-CORE-047 "Device not in the schematic" (doc 15 §4.2): completeness, o r, warning (release: error), device.
+/// EW-CORE-047 "Device not drawn" (doc 15 §4.2): completeness, o r, warning (release: error), device.
 pub const DEVICE_NOT_IN_SCHEMATIC: RuleMeta = RuleMeta {
     id: "EW-CORE-047",
     code: "102047",
     pack: "EW-CORE",
-    title: "Device not in the schematic",
+    title: "Device not drawn",
     kind: RuleKind::Completeness,
     modes: Modes::letters("or"),
     severity: Severity::Warning,
@@ -126,10 +126,13 @@ impl Rule for DeviceNotInSchematic {
             return Vec::new();
         }
         let tag = full_tag(q, device, "device");
+        // F17 of the rc.1 test: the `?` in such a tag, where the page goes, said nothing; the text names it.
         let message = if d.parts.is_empty() {
-            format!("{tag} has no representation on any page")
+            format!("{tag} is not drawn on any page, so its tag shows ? where the page goes")
         } else {
-            format!("{tag} has a part but no representation on any page; the parts list still counts it")
+            format!(
+                "{tag} is not drawn on any page, so its tag shows ? where the page goes; the parts list still counts it"
+            )
         };
         vec![
             Finding::new(

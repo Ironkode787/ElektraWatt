@@ -223,12 +223,12 @@ rule-ew-core-045 = { WORD($device) } gebruikt { $need_no } maakcontacten, { $nee
     .title = Meer hulpcontacten dan het artikel heeft
     .hint = Verwijder contacten uit de tekening, of kies een artikel met genoeg hoofd- en hulpcontacten.
 
-rule-ew-core-047 = { WORD($device) } heeft { $part ->
-        [yes] een artikel maar geen representatie op een pagina; de stuklijst telt het nog mee
-       *[no] geen representatie op een pagina
+rule-ew-core-047 = { WORD($device) } is op geen pagina getekend, daarom toont het kenmerk ? waar de pagina hoort{ $part ->
+        [yes] ; de stuklijst telt het nog mee
+       *[no] {""}
     }
-    .title = Apparaat niet in het schema
-    .hint = Plaats een weergave van het apparaat in het schema, of verwijder het apparaat.
+    .title = Apparaat niet getekend
+    .hint = Teken het apparaat op een pagina van het schema, of verwijder het.
 
 rule-ew-core-048 = { WORD($device) } wordt { $form ->
         [covered-twice] gedekt door { $count } bestelcodes van { WORD($assembly) }; zijn artikelen zouden { $count } keer worden afgedrukt
@@ -639,6 +639,10 @@ rule-ew-plc-014 = { $subject }: { $form ->
     } voert { $load } mA, meer dan zijn waarde van { $limit } mA; verdeel de belastingen of gebruik een sterkere uitgang
     .title = Uitgangsbelasting boven de waarde
     .hint = Verdeel de belastingen over meer uitgangen, of gebruik een sterkere uitgang of module.
+
+rule-ew-plc-017 = { WORD($device) } staat als module in de PLC, maar zijn artikel { $part } beschrijft geen PLC-module; haal het uit het rek (een busapparaat komt als eigen station bij een PLC)
+    .title = Geen PLC-module
+    .hint = Haal het apparaat uit het rek; voeg een busapparaat vanuit zijn menu als station aan een PLC toe.
 
 rule-ew-saf-001 = { $form ->
         [missing] { WORD($module) } is een F-module zonder F-doeladres; vul het in
@@ -1165,6 +1169,7 @@ fix-realise-primary-part = Het primaire artikel opnieuw plaatsen
 fix-rebind-map-channel = Koppelen aan het kanaal van de kaart
 fix-declare-pelv-bond = 0 V–PE-verbinding (PELV) vastleggen
 fix-mark-cp-unused = Markeren als niet gebruikt
+fix-plc-take-out = Uit het rek halen
 
 # De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; WORD(…) in een patroon
 # drukt ze in het Nederlands af.

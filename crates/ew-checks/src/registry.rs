@@ -126,6 +126,7 @@ static RULES: &[&dyn Rule] = &[
     &shipped::plc_wiring::OutputLoad,
     &shipped::plc::TbdAddress,
     &shipped::plc_exchange::ExchangeDrift,
+    &shipped::plc::NotAModule,
     &shipped::pot::TypeOrVoltageConflict,
     &shipped::pot::PelvSelvBonding,
     &shipped::pot::FePinOnPe,

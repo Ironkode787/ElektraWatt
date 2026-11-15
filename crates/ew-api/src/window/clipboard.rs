@@ -24,7 +24,8 @@
 //! numbering, which numbers new devices in ID order, numbers the copies by position.
 //!
 //! **What a copy drops** (§8.2 item 6): an import lineage (`source_ref`: a pasted record is new, not imported), a
-//! PLC station aspect (its configuration project is not copied), a cable core (the copy is a plain wire), a bus
+//! PLC station aspect with the station's own module (its configuration project is not copied; the paste is a station
+//! again by normaliser N0, which joins it to the project's configuration project), a cable core (the copy is a plain wire), a bus
 //! line's cable, an assembly cover outside the copy and a junction's sequence entries outside the copy. A page item
 //! of a kind this version does not know, and an image (its asset is not in the fragment), is dropped as `page_item`, and a wire marker that keeps none of its copied
 //! connections as `wire_marker`. Bonds, cables and conductors are listed in [`CopiedFragment::skipped`]. The
@@ -845,6 +846,11 @@ impl Session {
             dev.source_ref = None;
             if dev.aspects.plc_station.take().is_some() {
                 stations += 1;
+                // The station's own module goes with it, so that the paste is a station again by normaliser N0 (F17 of
+                // the rc.1 test: a copy kept the module alone, waited as a card and was attached to a CPU).
+                if dev.aspects.plc_module.as_ref().is_some_and(|m| m.integrated) {
+                    dev.aspects.plc_module = None;
+                }
             }
             if let Some(a) = dev.aspects.assembly.as_mut() {
                 for c in &mut a.configs {

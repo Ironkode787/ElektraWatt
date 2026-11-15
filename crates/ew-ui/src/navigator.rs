@@ -270,6 +270,28 @@ impl NavigatorPane {
                     }
                     // The Fluid panel's Fluid settings… and New medium… (the persona round found them only through
                     // the command search): the same actions as the Project tab's, disabled with their reasons.
+                    // The PLC panel's + is New station… (F18 of the rc.1 test: the rack comes first).
+                    let own: &[(&str, crate::icons::IconId, ew_viewmodel::strings::Key<'static>)] = match self.kind {
+                        NavKind::Plc => &[("plc.new_station", crate::icons::IconId::plus, key!("action-plc-new-station"))],
+                        _ => &[],
+                    };
+                    for (id, icon, label) in own {
+                        let state = ew_viewmodel::actions::find(id).map(|a| (a.enabled)(shell));
+                        let button = crate::components::icon_toggle(
+                            ui,
+                            *icon,
+                            strings::text(*label),
+                            matches!(state, Some(Ok(()))),
+                            None,
+                        );
+                        let button = match state {
+                            Some(Err(reason)) => button.disabled_tip(strings::text(reason)),
+                            _ => button,
+                        };
+                        if button.clicked() {
+                            events.push(Event::Action(id, Value::Null));
+                        }
+                    }
                     if self.kind == NavKind::Fluid {
                         for (id, icon, label) in [
                             (
@@ -673,11 +695,23 @@ impl NavigatorPane {
             crate::components::empty_state(ui, IconId::ew_terminal_strip, &line, &sentence, None);
             return;
         }
-        // The PLC navigator with cards drawn but no CPU says that a card waits for one.
-        if self.kind.source() == NavKind::Plc
-            && let Some((line, sentence)) = shell.plc_empty()
-        {
-            crate::components::empty_state(ui, IconId::cpu, &line, &sentence, None);
+        // The PLC navigator with modules drawn but no station says that a module waits for one; empty or not, it
+        // offers New station… (F18 of the rc.1 test).
+        if self.kind.source() == NavKind::Plc {
+            let (line, sentence) = shell.plc_empty().unwrap_or_else(|| {
+                let (_, line, sentence) = empty_texts(self.kind);
+                (line.to_owned(), sentence.to_owned())
+            });
+            let new = crate::components::empty_state(
+                ui,
+                IconId::cpu,
+                &line,
+                &sentence,
+                Some(strings::text(key!("action-plc-new-station"))),
+            );
+            if new.is_some_and(|r| r.clicked()) {
+                events.push(Event::Action("plc.new_station", json!({})));
+            }
             return;
         }
         let (icon, line, sentence) = empty_texts(self.kind);
@@ -1184,7 +1218,11 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
                 // A status badge from its code, a chip and a count from the words.
                 for (b, code) in row.badges.iter().zip(&row.badge_codes).rev() {
                     if kind != NavKind::Messages {
-                        crate::components::caption_chip(ui, b);
+                        let chip = crate::components::caption_chip(ui, b);
+                        // A device no page draws: why its tag shows `?` (F17 of the rc.1 test).
+                        if code == ew_viewmodel::ew_api::output::NOT_DRAWN && matches!(kind, NavKind::Devices | NavKind::Plc) {
+                            chip.on_hover_text(strings::text(key!("nav-badge-not-drawn-tip")));
+                        }
                     } else if let Some(status) = crate::messages::finding_badge(code) {
                         let badge = crate::components::status_badge(ui, status);
                         // The Fix badge opens the finding's quick fix, as the detail's Fix… does (FT-1658: a click

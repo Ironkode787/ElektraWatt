@@ -105,9 +105,12 @@ The PLC configuration projects, stations, modules and channels, with their addre
 under their racks once a module has a rack position, and its bus ports after its modules. A right click on a station or
 a module offers what a device's row offers; on a channel, Go to its place and Properties of selection.
 
-A card that no CPU takes (a project with two CPUs leaves a new card on neither) is listed under **Cards without a
-station**. A right click on a station's row offers **Attach cards without a station**, which makes them that
-station's modules in one step.
+A station that is its own module (a compact device, a valve terminal with a bus node) is one row with its channels
+under it. A station or a module drawn on no page carries the badge **not drawn**: its tag shows `?` where the page
+goes. A module that no station takes (a project with two stations, the module drawn on a page of neither) is listed
+under **Modules without a station**. A right click on a station's row offers **Rack…** and **Attach modules without a
+station**, which makes them that station's modules in one step. The panel's **+** and its empty state offer **New
+station…**.
 
 The filter takes the words `spare`, `unplaced`, `unassigned`, `tbd`, `duplicate` and `safety` (a channel or module
 with safety data), `config:<name>` for a configuration project and `bus:<net>` for the bus net of a station's port,

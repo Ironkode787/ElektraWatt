@@ -232,6 +232,34 @@ impl ShellModel {
         self.notes.push(text, key, action);
     }
 
+    /// Shows `text` as a toast of key `edit` whose action opens the rack of `station` (F18 of the rc.1 test).
+    pub(super) fn notify_rack(&mut self, text: String, station: ew_api::output::Uuid) {
+        let action = self.project.as_ref().map(|p| {
+            (
+                NoteAction::Rack,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select: vec![station],
+                },
+            )
+        });
+        self.notes.push(text, "edit", action);
+    }
+
+    /// Shows `text` as a toast of key `edit` whose action is New station… (F18 of the rc.1 test).
+    pub(super) fn notify_new_station(&mut self, text: String) {
+        let action = self.project.as_ref().map(|p| {
+            (
+                NoteAction::NewStation,
+                Validity::Session {
+                    epoch: p.epoch,
+                    select: Vec::new(),
+                },
+            )
+        });
+        self.notes.push(text, "edit", action);
+    }
+
     /// Shows a result's `text` as a toast of key `edit` whose icon follows `tone` (the check's worst severity).
     pub(super) fn notify_toned(&mut self, text: String, tone: NoteTone) {
         self.notes.push_toned(text, "edit", None, Some(tone));
@@ -319,6 +347,18 @@ impl ShellModel {
             Some(NoteAction::BackToEditor) => {
                 self.notes.dismiss(entry.serial);
                 self.dispatch("symbol.new", &serde_json::json!({}))
+            }
+            // The rack of the station a placed module joined; New station… for one placed without a station.
+            Some(NoteAction::Rack) => {
+                let Some(station) = entry.selects(action).first().copied() else {
+                    return Outcome::refused(key!("reason-action-expired"));
+                };
+                self.notes.dismiss(entry.serial);
+                self.dispatch("plc.rack_editor", &serde_json::json!({ "station": station.to_string() }))
+            }
+            Some(NoteAction::NewStation) => {
+                self.notes.dismiss(entry.serial);
+                self.dispatch("plc.new_station", &serde_json::json!({}))
             }
             None => Outcome::refused(key!("reason-no-toast")),
         }

@@ -457,7 +457,7 @@ pub(crate) fn make_card(d: &mut Driver, number: &str, slots: &str) {
     assert_eq!(left, None, "{number} is saved");
 }
 
-/// Adds the module part numbered `number` to slot `slot` of station `station` (its tag) in Rack and slots….
+/// Adds the module part numbered `number` to slot `slot` of station `station` (its tag) in its Rack….
 fn rack_add(d: &mut Driver, station: &str, number: &str, slot: u64) {
     let open = d
         .shell_mut()
@@ -468,7 +468,7 @@ fn rack_add(d: &mut Driver, station: &str, number: &str, slot: u64) {
         .module_parts()
         .into_iter()
         .find(|m| m.text.contains(number))
-        .unwrap_or_else(|| panic!("Rack and slots offers {number}"))
+        .unwrap_or_else(|| panic!("the rack offers {number}"))
         .copy;
     let chose = d
         .shell_mut()

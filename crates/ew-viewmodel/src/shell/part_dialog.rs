@@ -113,6 +113,9 @@ pub struct PartEditor {
     pub error: Option<String>,
     /// The part dialog that New part… was chosen in: Save opens it again on the new part.
     pub back: Option<Box<PartChooser>>,
+    /// The new-station dialog that New part… was chosen in (F18 of the rc.1 test): Save opens it again, the new part
+    /// its head when it is a station part.
+    pub back_rack: Option<Box<Dialog>>,
 }
 
 impl PartEditor {
@@ -776,6 +779,7 @@ impl ShellModel {
             manufacturers,
             error: None,
             back: None,
+            back_rack: None,
         })))
     }
 
@@ -811,11 +815,12 @@ impl ShellModel {
         {
             editor.shown = false;
         }
-        let back = match self.dialog.take() {
-            Some(Dialog::PartChoose(c)) => Some(c),
+        let (back, back_rack) = match self.dialog.take() {
+            Some(Dialog::PartChoose(c)) => (Some(c), None),
+            Some(rack @ Dialog::Rack { draft: Some(_), .. }) => (None, Some(Box::new(rack))),
             other => {
                 self.dialog = other;
-                None
+                (None, None)
             }
         };
         let out = self.open_dialog(Dialog::PartEdit(Box::new(PartEditor {
@@ -824,9 +829,11 @@ impl ShellModel {
             manufacturers,
             error: None,
             back: None,
+            back_rack: None,
         })));
         if let Some(Dialog::PartEdit(e)) = &mut self.dialog {
             e.back = back;
+            e.back_rack = back_rack;
         }
         out
     }
@@ -1029,10 +1036,22 @@ impl ShellModel {
         };
         self.notify(toast, true);
         if let Some(mut chooser) = editor.back.take() {
-            chooser.query.text = number;
+            chooser.query.text = number.clone();
             chooser.cursor = 0;
             self.dialog = Some(Dialog::PartChoose(chooser));
             self.part_refresh();
+        }
+        if let Some(mut rack) = editor.back_rack.take() {
+            // The new part is the station's head when it can be one.
+            let made = self.project_session().and_then(|s| {
+                s.station_parts("any")
+                    .into_iter()
+                    .find(|p| p.held && p.text.split(" · ").next() == Some(number.as_str()))
+            });
+            if let (Dialog::Rack { draft: Some(d), .. }, Some(made)) = (rack.as_mut(), made) {
+                d.head = Some(made.copy);
+            }
+            self.dialog = Some(*rack);
         }
         Outcome::Done
     }

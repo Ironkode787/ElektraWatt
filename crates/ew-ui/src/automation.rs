@@ -24,51 +24,41 @@ use crate::components::{self, Kind};
 use crate::icons::{self, IconId};
 use crate::theme;
 
-/// The rack and slot editor's content for `station`, with the last refusal `error`.
+/// The rack dialog's content: in the new-station state what the station is, its head part and its PLC above the slots;
+/// the slots; the findings, a note (addresses that moved, what comes next) and the last refusal `error`; under a made
+/// station's slots what comes next.
 pub(crate) fn rack(
     ui: &mut Ui,
     shell: &ShellModel,
-    station: Uuid,
     error: Option<&str>,
+    note: Option<&str>,
     events: &mut Vec<Event>,
 ) {
     let t = theme::current(ui.ctx());
-    let Some(view) = shell.rack_view(station) else {
+    let Some(view) = shell.shown_rack() else {
         return;
+    };
+    let draft = shell.station_draft().cloned();
+    let station = match shell.dialog() {
+        Some(ew_viewmodel::shell::Dialog::Rack { station, .. }) => *station,
+        _ => None,
+    };
+    let count = match shell.dialog() {
+        Some(ew_viewmodel::shell::Dialog::Rack { count, .. }) => *count,
+        _ => 1,
     };
     let small = |text: String| {
         RichText::new(text)
             .font(theme::font(&t.type_small))
             .color(t.text_secondary.color32())
     };
+    if let Some(d) = &draft {
+        new_station_head(ui, shell, d, events);
+    }
     for (label, code) in &view.order_codes {
         ui.label(small(strings::format(key!("rack-order-code"), &[label, code])));
     }
     let parts = shell.module_parts();
-    let chosen = shell.rack_part();
-    ui.horizontal(|ui| {
-        ui.label(small(strings::text(key!("rack-module-part")).to_owned()));
-        let shown = chosen.as_ref().map(|p| p.text.clone()).unwrap_or_default();
-        let combo = egui::ComboBox::from_id_salt("rack-part")
-            .width(ui.available_width())
-            .selected_text(shown)
-            .show_ui(ui, |ui| {
-                for p in &parts {
-                    let on = chosen.as_ref().is_some_and(|c| c.copy == p.copy);
-                    if ui.selectable_label(on, &p.text).clicked() {
-                        events.push(Event::Action(
-                            "plc.rack_part",
-                            json!({ "part": p.copy.to_string() }),
-                        ));
-                    }
-                }
-            });
-        let name = strings::text(key!("rack-module-part")).to_owned();
-        combo
-            .response
-            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
-        components::combo_expanded(ui, &combo.response);
-    });
     let header = |text: &str| {
         RichText::new(text)
             .font(small_strong(&t))
@@ -79,18 +69,20 @@ pub(crate) fn rack(
     // rows' height of the last frame is the list's least height, so the centred dialog takes its size at once rather
     // than growing by what it gains below the slots each frame.
     let above = ui.cursor().top() - ui.min_rect().top();
-    let lines = view.findings.len().max(1) + usize::from(error.is_some());
+    let lines = view.findings.len().max(1) + usize::from(error.is_some()) + usize::from(note.is_some()) + 1;
     let below = t.size_row * (lines as f32 + 2.0) + 4.0 * t.space_5;
     let room = (ui.ctx().content_rect().height() - above - below).max(t.size_row * 4.0);
     let rows_id = egui::Id::unique(("rack-rows-height", station));
     let rows = ui.data(|d| d.get_temp::<f32>(rows_id)).unwrap_or(0.0);
+    // A positional rack fills at its end: the first free row takes modules; a racked one in any free slot.
+    let first_free = view.rows.iter().find(|r| r.module.is_none()).map(|r| (r.rack, r.slot));
     let list = ScrollArea::vertical()
         .max_height(room)
         .min_scrolled_height(rows.min(room).max(t.size_row))
         .scroll_bar_visibility(egui::scroll_area::ScrollBarVisibility::AlwaysVisible)
         .show(ui, |ui| {
             egui::Grid::new("rack-slots")
-                .num_columns(5)
+                .num_columns(7)
                 .spacing(egui::vec2(t.space_4, t.space_2))
                 .striped(false)
                 .show(ui, |ui| {
@@ -98,6 +90,8 @@ pub(crate) fn rack(
                         key!("rack-slot"),
                         key!("rack-module"),
                         key!("rack-part"),
+                        key!("rack-gives"),
+                        key!("rack-addresses"),
                         key!("rack-allowed"),
                     ] {
                         ui.label(header(strings::text(k)));
@@ -108,44 +102,54 @@ pub(crate) fn rack(
                         let slot = rack_slot_text(r);
                         match r.module {
                             Some(module) => {
-                                let id = egui::Id::unique(("rack-slot", module));
-                                let mut text = ui
-                                    .data_mut(|d| d.get_temp::<String>(id))
-                                    .unwrap_or_else(|| slot.clone());
-                                let name = strings::format(key!("rack-slot-field"), &[&r.tag]);
-                                let edit = ui.add(
-                                    egui::TextEdit::singleline(&mut text)
-                                        .desired_width(t.size_table_column_min)
-                                        .font(theme::font(&t.type_small)),
-                                );
-                                ui.ctx()
-                                    .accesskit_node_builder(edit.id, |n| n.set_label(name.clone()));
-                                let enter =
-                                    edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
-                                if enter && text.trim() != slot {
-                                    events.push(Event::Action(
-                                        "plc.rack_move",
-                                        json!({ "module": module.to_string(), "slot": text.trim() }),
-                                    ));
-                                }
-                                if edit.has_focus() {
-                                    ui.data_mut(|d| d.insert_temp(id, text));
+                                if draft.is_some() {
+                                    ui.label(small(slot.clone()));
+                                    ui.label(
+                                        RichText::new(strings::text(key!("rack-new-module")))
+                                            .font(theme::font(&t.type_small))
+                                            .color(t.text_tertiary.color32()),
+                                    );
                                 } else {
-                                    ui.data_mut(|d| d.remove::<String>(id));
+                                    slot_field(ui, &t, r, module, &slot, events);
                                 }
-                                // The tag is the handle a module is dragged by, and a slot another one is dropped on.
-                                let tag = ui
-                                    .dnd_drag_source(egui::Id::unique(("rack-drag", module)), module, |ui| {
-                                        ui.label(RichText::new(&r.tag).color(t.text_primary.color32()))
-                                    })
-                                    .response;
-                                let handle = strings::format(key!("rack-drag"), &[&r.tag]);
-                                ui.ctx()
-                                    .accesskit_node_builder(tag.id, |n| n.set_label(handle.clone()));
-                                drop_on(ui, &t, &tag, &slot, Some(module), events);
                                 ui.label(small(r.part.clone()));
+                                ui.label(small(r.gives.clone()));
+                                ui.label(small(r.addresses.clone()));
                                 allowed_cell(ui, &t, &r.allowed, r.slot);
-                                ui.label("");
+                                ui.horizontal(|ui| {
+                                    let at = json!({ "slot": r.slot, "rack": r.rack });
+                                    let op = |o: &str| {
+                                        let mut p = at.clone();
+                                        p["op"] = json!(o);
+                                        Event::Action("plc.rack_slot", p)
+                                    };
+                                    let up = strings::format(key!("rack-up"), &[&slot]);
+                                    if components::icon_button(ui, IconId::arrow_up, &up).clicked() {
+                                        events.push(op("up"));
+                                    }
+                                    let down = strings::format(key!("rack-down"), &[&slot]);
+                                    if components::icon_button(ui, IconId::arrow_down, &down).clicked() {
+                                        events.push(op("down"));
+                                    }
+                                    let empty = strings::format(key!("rack-empty-slot"), &[&slot]);
+                                    if components::icon_button(ui, IconId::trash, &empty).clicked() {
+                                        events.push(op("empty"));
+                                    }
+                                    let label = strings::text(key!("rack-replace"));
+                                    let replace = components::button(ui, Kind::Secondary, label, true, 0.0);
+                                    part_menu(ui, &t, &replace, &parts, r.slot, None, |p| {
+                                        let mut e = at.clone();
+                                        e["op"] = json!("replace");
+                                        e["part"] = json!(p.to_string());
+                                        Event::Action("plc.rack_slot", e)
+                                    }, events);
+                                    if draft.is_none() && !r.drawn {
+                                        let label = strings::text(key!("rack-draw"));
+                                        if components::button(ui, Kind::Secondary, label, true, 0.0).clicked() {
+                                            events.push(op("draw"));
+                                        }
+                                    }
+                                });
                             }
                             None => {
                                 ui.label(small(slot.clone()));
@@ -155,25 +159,23 @@ pub(crate) fn rack(
                                         .color(t.text_tertiary.color32()),
                                 );
                                 drop_on(ui, &t, &free, &slot, None, events);
-                                ui.label("");
-                                match &chosen {
-                                    Some(p) => allowed_cell(ui, &t, &p.allowed, r.slot),
-                                    None => {
-                                        ui.label("");
-                                    }
+                                for _ in 0..4 {
+                                    ui.label("");
                                 }
-                                let label = strings::text(key!("rack-add-here"));
-                                let add =
-                                    components::button(ui, Kind::Secondary, label, chosen.is_some(), 0.0);
-                                let name = format!("{label} {}", r.slot);
-                                add.widget_info(|| {
-                                    egui::WidgetInfo::labeled(egui::Role::Button, chosen.is_some(), &name)
-                                });
-                                if add.clicked() {
-                                    events.push(Event::Action(
-                                        "plc.rack_add",
-                                        json!({ "slot": r.slot, "rack": r.rack }),
-                                    ));
+                                let takes = view.racked || first_free == Some((r.rack, r.slot));
+                                if takes {
+                                    let label = strings::text(key!("rack-add-module"));
+                                    let add = components::button(ui, Kind::Secondary, label, true, 0.0);
+                                    let name = format!("{label} {}", r.slot);
+                                    add.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &name));
+                                    part_menu(ui, &t, &add, &parts, r.slot, Some(count), |p| {
+                                        Event::Action(
+                                            "plc.rack_add",
+                                            json!({ "slot": r.slot, "rack": r.rack, "part": p.to_string() }),
+                                        )
+                                    }, events);
+                                } else {
+                                    ui.label("");
                                 }
                             }
                         }
@@ -192,12 +194,15 @@ pub(crate) fn rack(
     ui.data_mut(|d| d.insert_temp(rows_id, list.content_size.y));
     // EW-PLC-011, live: each finding with the error icon and word, or the line that the slots meet the rules.
     let lang = strings::rule_language();
-    if view.findings.is_empty() {
+    if view.findings.is_empty() && draft.is_none() {
         ui.label(small(strings::text(key!("rack-no-findings")).to_owned()));
     }
     for f in &view.findings {
         let text = ew_viewmodel::ew_api::checks::messages::render(f, lang);
         severity_line(ui, &t, &text);
+    }
+    if let Some(n) = note {
+        ui.label(small(n.to_owned()));
     }
     if let Some(e) = error {
         ui.label(
@@ -206,6 +211,197 @@ pub(crate) fn rack(
                 .color(t.error.color32()),
         );
     }
+    // What comes next for a made station: draw it, its overview, its place on a bus page (F18).
+    if let Some(station) = station {
+        ui.horizontal(|ui| {
+            ui.label(small(strings::text(key!("rack-next")).to_owned()));
+            let terminal = shell.is_valve_terminal(station);
+            let mut steps = vec![("draw", key!("rack-next-draw")), ("bus", key!("rack-next-bus"))];
+            if terminal {
+                steps.insert(1, ("overview", key!("rack-next-overview")));
+            }
+            for (step, label) in steps {
+                if components::button(ui, Kind::Secondary, strings::text(label), true, 0.0).clicked() {
+                    events.push(Event::Action("plc.rack_next", json!({ "step": step })));
+                }
+            }
+        });
+    }
+}
+
+/// The new-station dialog's choices above its slots: what the station is (one button each), its head part from the
+/// parts that can be that (with New part… for one of your own), and the PLC it belongs to (an existing one or a new one).
+fn new_station_head(
+    ui: &mut Ui,
+    shell: &ShellModel,
+    draft: &ew_viewmodel::shell::automation::StationDraft,
+    events: &mut Vec<Event>,
+) {
+    use ew_viewmodel::shell::automation::StationKind;
+    let t = theme::current(ui.ctx());
+    let caption = |ui: &mut Ui, k| {
+        ui.label(
+            RichText::new(strings::text(k))
+                .font(theme::font(&t.type_small))
+                .color(t.text_secondary.color32()),
+        );
+    };
+    caption(ui, key!("rack-kind"));
+    ui.horizontal_wrapped(|ui| {
+        for k in StationKind::ALL {
+            if ui.selectable_label(draft.kind == k, strings::text(k.text_key())).clicked() {
+                events.push(Event::Action("plc.rack_set", json!({ "kind": k.word() })));
+            }
+        }
+    });
+    let heads = shell.station_parts();
+    caption(ui, key!("rack-head"));
+    ui.horizontal(|ui| {
+        let shown = draft
+            .head
+            .and_then(|h| heads.iter().find(|p| p.copy == h))
+            .map_or_else(|| strings::text(key!("rack-choose-head")).to_owned(), |p| p.text.clone());
+        let combo = egui::ComboBox::from_id_salt("rack-head")
+            .width((ui.available_width() - t.size_table_column_min * 2.0).max(t.size_table_column_min))
+            .selected_text(shown)
+            .show_ui(ui, |ui| {
+                for p in &heads {
+                    let text = if p.gives.is_empty() {
+                        p.text.clone()
+                    } else {
+                        format!("{} · {}", p.text, p.gives)
+                    };
+                    if ui.selectable_label(draft.head == Some(p.copy), text).clicked() {
+                        events.push(Event::Action("plc.rack_set", json!({ "head": p.copy.to_string() })));
+                    }
+                }
+            });
+        let name = strings::text(key!("rack-head")).to_owned();
+        combo
+            .response
+            .widget_info(|| egui::WidgetInfo::labeled(egui::Role::ComboBox, true, &name));
+        components::combo_expanded(ui, &combo.response);
+        if components::button(ui, Kind::Secondary, strings::text(key!("rack-new-part")), true, 0.0).clicked() {
+            events.push(Event::Action("part.new", json!({})));
+        }
+    });
+    caption(ui, key!("rack-plc"));
+    let configs = shell.plc_config_projects();
+    ui.horizontal_wrapped(|ui| {
+        for (id, name) in &configs {
+            if ui.selectable_label(draft.config == Some(*id), name).clicked() {
+                events.push(Event::Action("plc.rack_set", json!({ "config": id.to_string() })));
+            }
+        }
+        if ui
+            .selectable_label(draft.config.is_none(), strings::text(key!("rack-new-plc")))
+            .clicked()
+        {
+            events.push(Event::Action("plc.rack_set", json!({ "config": "new" })));
+        }
+    });
+}
+
+/// The picker under a slot's Add module… or Replace… button `button`: the module parts that may sit in `slot`, each
+/// with what it gives, and with `count` the field of how many fill the slots from there; a part chosen sends `pick`.
+fn part_menu(
+    _ui: &Ui,
+    t: &theme::Tokens,
+    button: &egui::Response,
+    parts: &[ew_viewmodel::ew_api::output::ModulePart],
+    slot: u32,
+    count: Option<u16>,
+    pick: impl Fn(Uuid) -> Event,
+    events: &mut Vec<Event>,
+) {
+    egui::Popup::menu(button)
+        .style(crate::menu::menu_style(t))
+        .show(|ui| {
+            if let Some(count) = count {
+                ui.horizontal(|ui| {
+                    let caption = ui.label(strings::text(key!("rack-count")));
+                    let mut n = count;
+                    let field = ui.add(egui::DragValue::new(&mut n).range(1..=64)).labelled_by(caption.id);
+                    if field.changed() {
+                        events.push(Event::Action("plc.rack_set", json!({ "count": n })));
+                    }
+                });
+            }
+            let fits = |allowed: &[u16]| {
+                (0..u32::from(count.unwrap_or(1))).all(|k| {
+                    allowed.is_empty() || allowed.iter().any(|a| u32::from(*a) == slot + k)
+                })
+            };
+            let mut any = false;
+            for p in parts.iter().filter(|p| fits(&p.allowed)) {
+                any = true;
+                let text = if p.gives.is_empty() {
+                    p.text.clone()
+                } else {
+                    format!("{} · {}", p.text, p.gives)
+                };
+                if ui.button(text).clicked() {
+                    events.push(pick(p.copy));
+                    ui.close();
+                }
+            }
+            if !any {
+                ui.label(strings::text(key!("rack-no-part-fits")));
+            }
+        });
+}
+
+/// A module's slot field (typing a slot and Enter moves the module) and its tag, the handle it is dragged by onto
+/// another slot's row.
+fn slot_field(
+    ui: &mut Ui,
+    t: &theme::Tokens,
+    r: &ew_viewmodel::ew_api::output::RackRow,
+    module: Uuid,
+    slot: &str,
+    events: &mut Vec<Event>,
+) {
+    let id = egui::Id::unique(("rack-slot", module));
+    let mut text = ui
+        .data_mut(|d| d.get_temp::<String>(id))
+        .unwrap_or_else(|| slot.to_owned());
+    let name = strings::format(key!("rack-slot-field"), &[&r.tag]);
+    let edit = ui.add(
+        egui::TextEdit::singleline(&mut text)
+            .desired_width(t.size_table_column_min)
+            .font(theme::font(&t.type_small)),
+    );
+    ui.ctx()
+        .accesskit_node_builder(edit.id, |n| n.set_label(name.clone()));
+    let enter = edit.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
+    if enter && text.trim() != slot {
+        events.push(Event::Action(
+            "plc.rack_move",
+            json!({ "module": module.to_string(), "slot": text.trim() }),
+        ));
+    }
+    if edit.has_focus() {
+        ui.data_mut(|d| d.insert_temp(id, text));
+    } else {
+        ui.data_mut(|d| d.remove::<String>(id));
+    }
+    // The tag is the handle a module is dragged by, and a slot another one is dropped on; a module drawn nowhere says
+    // so beside it.
+    let tag = ui
+        .dnd_drag_source(egui::Id::unique(("rack-drag", module)), module, |ui| {
+            ui.horizontal(|ui| {
+                ui.label(RichText::new(&r.tag).color(t.text_primary.color32()));
+                if !r.drawn {
+                    let chip = components::caption_chip(ui, strings::text(key!("nav-badge-not-drawn")));
+                    chip.on_hover_text(strings::text(key!("nav-badge-not-drawn-tip")));
+                }
+            })
+        })
+        .response;
+    let handle = strings::format(key!("rack-drag"), &[&r.tag]);
+    ui.ctx()
+        .accesskit_node_builder(tag.id, |n| n.set_label(handle.clone()));
+    drop_on(ui, t, &tag, slot, Some(module), events);
 }
 
 /// A slot's module cell `cell` as a drop target (FT-1752): a module dragged by its tag and let go over the cell moves

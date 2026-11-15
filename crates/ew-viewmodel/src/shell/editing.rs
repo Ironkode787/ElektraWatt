@@ -186,37 +186,102 @@ fn unplaced_text(
 }
 
 impl ShellModel {
-    /// The toast of the result note the dispatch's commit left, read on the page tables after it.
-    /// A card the commit drew that joined no station says where it is given one (the persona run m3-p4 found the PLC
-    /// panel by trying every icon): with stations in the project, drag it onto one in the PLC panel or use Attach to on
-    /// its row; without one, place a CPU.
+    /// After a commit that drew PLC devices for the first time (F18 of the rc.1 test, the rack comes first): a station
+    /// placed directly opens its rack dialog, so it is filled there (a further symbol of a station drawn before does
+    /// not); a module that joined a station says which slot it got, with Rack… as the toast's action; a module that
+    /// waits asks which station takes it when the project has several, and offers New station… when it has none (the
+    /// persona run m3-p4 found the PLC panel by trying every icon).
     fn say_card_waits(&mut self, before: &PageTables, now: &PageTables) {
         let Some(session) = self.project_session() else {
             return;
         };
-        let waiting = session.plc_cards_without_cpu();
-        let new: Vec<String> = now
-            .reps
-            .iter()
-            .filter(|r| !before.reps.iter().any(|b| b.id == r.id))
-            .filter_map(|r| r.device)
-            .filter_map(|d| waiting.iter().find(|(c, _)| *c == d).map(|(_, t)| t.clone()))
-            .fold(Vec::new(), |mut out, t| {
-                if !out.contains(&t) {
-                    out.push(t);
-                }
-                out
-            });
-        if new.is_empty() {
+        let q = session.query();
+        // The devices this commit drew on the page that no page drew before it.
+        let mut first: Vec<Uuid> = Vec::new();
+        for r in now.reps.iter().filter(|r| !before.reps.iter().any(|b| b.id == r.id)) {
+            let Some(d) = r.device else { continue };
+            let Ok(id) = d.to_string().parse() else {
+                continue;
+            };
+            let all = q
+                .idx()
+                .functions_of_device(id)
+                .flat_map(|f| q.idx().reps_of_function(f).collect::<Vec<_>>())
+                .count();
+            let fresh = now
+                .reps
+                .iter()
+                .filter(|n| n.device == Some(d) && !before.reps.iter().any(|b| b.id == n.id))
+                .count();
+            if all == fresh && !first.contains(&d) {
+                first.push(d);
+            }
+        }
+        drop(q);
+        if first.is_empty() {
             return;
         }
-        let key = if session.plc_stations_for_cards().is_empty() {
-            key!("toast-card-waits-cpu")
-        } else {
-            key!("toast-card-waits")
+        let waiting = session.plc_cards_without_cpu();
+        let stations = session.plc_stations_for_cards();
+        let new_station = first.iter().copied().find(|d| {
+            matches!(session.plc_offer(*d), ew_api::output::PlcOffer::Station(_))
+        });
+        // The modules among them (a valve joining its terminal is no module) that sit in a station's rack.
+        let q = session.query();
+        let module = |d: &Uuid| {
+            d.to_string()
+                .parse()
+                .ok()
+                .and_then(|id| q.devices().get(id).cloned())
+                .and_then(|x| x.aspects.plc_module.clone())
+                .is_some_and(|m| !m.integrated)
         };
-        let text = strings::format(key, &[&new.join(", ")]);
-        self.notify(text, false);
+        let joined: Vec<(Uuid, Uuid)> = first
+            .iter()
+            .filter(|d| module(d))
+            .filter_map(|d| {
+                let station = session.plc_station_of(*d)?;
+                (station != *d).then_some((*d, station))
+            })
+            .collect();
+        drop(q);
+        let waits: Vec<(Uuid, String)> = first
+            .iter()
+            .filter_map(|d| waiting.iter().find(|(c, _)| c == d).cloned())
+            .collect();
+        if let Some(station) = new_station {
+            self.open_dialog(Self::rack_dialog(Some(station), None));
+            return;
+        }
+        if let Some((card, station)) = joined.first().copied() {
+            let tag = session.device_tag(card).unwrap_or_default();
+            let at = session.device_tag(station).unwrap_or_default();
+            let slot = session
+                .rack_view(station)
+                .and_then(|v| v.rows.into_iter().find(|r| r.module == Some(card)))
+                .map(|r| super::automation::rack_slot_text(&r))
+                .unwrap_or_default();
+            let text = strings::format(key!("toast-card-joined"), &[&tag, &at, &slot]);
+            self.last_station = Some(station);
+            self.notify_rack(text, station);
+            return;
+        }
+        let Some((card, tag)) = waits.into_iter().next() else {
+            return;
+        };
+        match stations.len() {
+            0 => {
+                let text = strings::format(key!("toast-card-waits-cpu"), &[&tag]);
+                self.notify_new_station(text);
+            }
+            1 => {
+                let text = strings::format(key!("toast-card-waits"), &[&tag]);
+                self.notify(text, false);
+            }
+            _ => {
+                self.open_dialog(super::Dialog::ChooseStation { card, tag, stations });
+            }
+        }
     }
 
     fn say_result(&mut self, before: &PageTables, now: &PageTables) {
