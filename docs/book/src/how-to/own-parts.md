@@ -67,10 +67,14 @@ switch, 8 ports) and EW-GEN-PND-1 (a PROFINET device, 2 ports).
 14. Select a device of the part and choose **Edit ▸ Edit part…** (or **Edit part…** in the menu of the **Parts** row
     of its Properties). A part of your own, in My parts or kept to the project, opens with the same forms and what you
     saved: change the number of ports, the pin pattern or any field and **Save**.
-15. A part of My parts is saved there as its next version, and the Preview tab lists what changes and the devices that
+15. A part of My parts is saved there as its next version, and the Preview tab lists what changes in words
+    ("Interface X1: 8 ports → 6 ports", "Channels: 8 → 16", the parts list row's changed column) and the devices that
     use it; **Apply** brings the project's copy to it. A part kept to the project changes in place, with the same card.
-16. The next device you place takes the correction. A device already drawn keeps the sockets it was drawn with and the
-    bus ports it carries: delete it and place it again to draw the change. The editor says so above the form.
+16. A device already drawn follows the correction, in both cases: its box shows the pins and sockets the part still
+    has, and its bus port keeps its bus, role and address. A bus line at a socket the part no longer has keeps its end
+    there; the card names it before **Apply**, so that you draw it to another socket. A pin or socket the part adds
+    shows when the box is drawn again: delete the box and draw it again (a port from **Ports not drawn yet** in the
+    **Bus** panel). The editor says so above the form.
 
 A starter part or a part of another library is not yours to change: its editor says so and offers **Copy as a part of
 your own…**, a new part with its data, which you save under a part number of your own.

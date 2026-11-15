@@ -5,9 +5,10 @@
 //! on a bus-topology page stands there with its bus ports. The window's own path: clicks and keys at 1920 × 1080.
 
 use crate::own_parts::{
+    edit_part, make_port_device, press,
     cp_labels, cursor_k, make_head_station, new_project, page_texts, place_box, press_cp, records,
 };
-use crate::persona_round::key;
+use crate::persona_round::{key, typed};
 use crate::support::Tmp;
 
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
@@ -139,6 +140,77 @@ fn the_address_of_a_port_says_its_form_in_the_table_and_in_properties() {
     d.settle();
     let hint = d.shell_mut().property_edit_hint().unwrap_or_default();
     assert!(hint.contains("plc1 192.168.0.1"), "Properties says the form: {hint:?}");
+}
+
+/// Item 5: the card of a corrected part speaks words. A managed switch of one's own with eight ports, drawn and wired
+/// at P8, is corrected to six: the card lists "Interface X1: 8 ports → 6 ports" and the parts list row's changed
+/// column, no JSON or CSV, and names the bus line at P8 as losing its socket. After Apply the drawn box shows the
+/// sockets P1 … P6, as the editor's note says.
+#[test]
+fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_socket() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    make_port_device(&mut d, "SW-8", "Managed switch 8 ports", "8");
+    let parts_list = json!({"kind": "parts_summary", "folio": "901"});
+    assert_eq!(d.shell_mut().dispatch("report_block.new", &parts_list), Outcome::Done);
+    bus_page(&mut d);
+    let switch = place_box(&mut d, "SW-8", (40, 15), (64, 22));
+    let drive = place_box(&mut d, "EW-GEN-PND-1", (40, 45), (55, 52));
+    d.input(&key("W"));
+    d.settle();
+    press_cp(&mut d, &switch[7]);
+    press_cp(&mut d, &drive[0]);
+    d.input(&key("Escape"));
+    d.input(&key("Escape"));
+    d.settle();
+    edit_part(&mut d, "SW-8");
+    press(&mut d, "Description");
+    d.input(&key("Ctrl+A"));
+    d.input(&typed("Managed switch 6 ports"));
+    press(&mut d, "Ports 1");
+    d.input(&key("Ctrl+A"));
+    d.input(&typed("6"));
+    d.settle();
+    press(&mut d, "Save");
+    let card = match d.shell_mut().properties().card().map(|c| c.origin.clone()) {
+        Some(ew_ui::ew_viewmodel::properties::CardOrigin::Part(p)) => *p,
+        other => panic!("the part card: {other:?}"),
+    };
+    assert!(
+        card.fields.contains(&(
+            "Interface X1".to_owned(),
+            "8 ports".to_owned(),
+            "6 ports".to_owned()
+        )),
+        "{:?}",
+        card.fields
+    );
+    let all: Vec<String> = card
+        .fields
+        .iter()
+        .map(|(m, a, b)| format!("{m} {a} {b}"))
+        .chain(card.changed.clone())
+        .chain(card.removed.clone())
+        .chain(card.added.clone())
+        .collect();
+    assert!(
+        all.iter().all(|t| !t.contains('{') && !t.contains(",1,")),
+        "no JSON and no CSV: {all:?}"
+    );
+    assert!(
+        card.changed.iter().any(|c| c.contains("8 ports → Managed switch 6 ports")),
+        "the parts list row's changed column: {card:?}"
+    );
+    assert_eq!(card.lost, [switch[7].clone()], "the line at P8 loses its socket");
+    assert_eq!(d.shell_mut().dispatch("preview.apply", &json!({})), Outcome::Done);
+    d.settle();
+    let tag = switch[0].split(':').next().unwrap().to_owned();
+    let drawn: Vec<String> = cp_labels(&mut d)
+        .into_iter()
+        .filter(|l| l.starts_with(&format!("{tag}:")))
+        .collect();
+    let six: Vec<String> = (1..=6).map(|n| format!("{tag}:P{n}")).collect();
+    assert_eq!(drawn, six, "the drawn box follows: the sockets the part still has");
 }
 
 /// Item 1: the starter CPU and a head station of one's own (such as an IM 152), each placed from the device browser on

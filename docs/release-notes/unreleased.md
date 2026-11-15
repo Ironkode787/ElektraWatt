@@ -825,3 +825,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: the Bus table's Address and Termination cells and a port's Address row in Properties say under
   their editor the form they take, with an example (`plc1 192.168.0.1` for PROFINET); a port's symbol or box selected
   shows its function's section first in Properties (persona run m3-p4)
+- behaviour-change: the card of a corrected part, kept to the project or in My parts, lists its changes in words
+  ("Interface X1: 8 ports → 6 ports", "Channels: 8 → 16", a parts list row's changed columns) and names a bus line at a
+  socket the part no longer has; the editor's note says what a drawn device does with the correction (persona run
+  m3-p4)

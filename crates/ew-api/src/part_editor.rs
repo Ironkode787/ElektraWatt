@@ -465,10 +465,15 @@ pub struct PartEditPlan {
     pub fields: Vec<FieldChange>,
     /// The devices that use the copy (in ID order).
     pub devices: Vec<Id<Device>>,
-    /// The component BOM's CSV rows that go (in BOM order).
+    /// The component BOM's rows that go, each as its columns ("Qty 1 · Unit pc · Part number SW-8P"), in BOM order;
+    /// empty when they pair with the rows that come ([`PartEditPlan::bom_changed`]).
     pub bom_removed: Vec<String>,
-    /// The component BOM's CSV rows that come (in BOM order).
+    /// The component BOM's rows that come, as [`PartEditPlan::bom_removed`].
     pub bom_added: Vec<String>,
+    /// As many rows go as come: each pair's columns that differ ("Description: … 8 ports → … 6 ports"), in BOM order.
+    pub bom_changed: Vec<String>,
+    /// The sockets a bus line ends at that the correction takes away (`-3K2:P8`, [`lost_sockets`]).
+    pub lost: Vec<String>,
 }
 
 pub(crate) fn message(field: &str, key: &'static str, args: &[&str]) -> DraftMessage {
@@ -1028,12 +1033,8 @@ impl Session {
             ))
         })?;
         let after = self.query_over(preview.candidate());
-        let bom = |q: &Q| -> Vec<String> {
-            ew_reports::export::export_csv(q, Export::Bom(BomMode::Component))
-                .map(|t| t.lines().skip(1).map(str::to_owned).collect())
-                .unwrap_or_default()
-        };
-        let (before_rows, after_rows) = (bom(&q), bom(&after));
+        let (bom_removed, bom_added, bom_changed) = bom_changes(&q, &after);
+        let lost = lost_sockets(&q, &after);
         Ok(PartEditPlan {
             fork: command
                 .params
@@ -1043,17 +1044,99 @@ impl Session {
             command,
             fields,
             devices: devices.into_iter().collect(),
-            bom_removed: before_rows
-                .iter()
-                .filter(|r| !after_rows.contains(r))
-                .cloned()
-                .collect(),
-            bom_added: after_rows
-                .iter()
-                .filter(|r| !before_rows.contains(r))
-                .cloned()
-                .collect(),
+            bom_removed,
+            bom_added,
+            bom_changed,
+            lost,
         })
+    }
+}
+
+/// The sockets that a change from `before` to `after` takes from a bus port while a bus line ends at them (a
+/// corrected part with fewer ports): each by its label as `before` prints it (`-3K2:P8`), sorted. The line keeps its
+/// end; the update says so.
+pub(crate) fn lost_sockets(before: &Q, after: &Q) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for (_, c) in after.connections().iter() {
+        if !matches!(c.kind, ew_schema::ConnectionKind::Bus(_)) {
+            continue;
+        }
+        for end in [&c.a, &c.b] {
+            let ew_schema::Endpoint::Cp(f, idx) = end else {
+                continue;
+            };
+            let has = |q: &Q| {
+                q.get::<ew_derive::FunctionCps>(*f)
+                    .iter()
+                    .any(|cp| cp.idx == *idx)
+            };
+            if has(before) && !has(after) {
+                out.push(ew_derive::cp_label(before, ew_derive::CpRef::new(*f, *idx)));
+            }
+        }
+    }
+    out.sort();
+    out.dedup();
+    out
+}
+
+/// The component BOM's rows that a change from `before` to `after` takes away and adds, each as its columns ("Qty 1 ·
+/// Unit pc · Part number SW-8P"), and, when as many go as come, instead each pair's columns that differ ("Description:
+/// … 8 ports → … 6 ports"): (removed, added, changed), in BOM order. The persona run m3-p4 read the rows as CSV lines.
+pub(crate) fn bom_changes(before: &Q, after: &Q) -> (Vec<String>, Vec<String>, Vec<String>) {
+    // The component BOM as its header and rows of cells (the persona run m3-p4 read its CSV lines).
+    let bom = |q: &Q| -> Vec<Vec<String>> {
+        let csv = ew_reports::export::export_csv(q, Export::Bom(BomMode::Component)).unwrap_or_default();
+        ew_import_catalog::sheet::read_rows(
+            csv.as_bytes(),
+            ew_import_catalog::SourceFormat::Csv,
+            "",
+            &ew_import_catalog::table_limits(),
+        )
+        .unwrap_or_default()
+    };
+    let (before, after) = (bom(before), bom(after));
+    let header: Vec<String> = before.first().or(after.first()).cloned().unwrap_or_default();
+    let before_rows: Vec<&Vec<String>> = before.iter().skip(1).filter(|r| !after.contains(r)).collect();
+    let after_rows: Vec<&Vec<String>> = after.iter().skip(1).filter(|r| !before.contains(r)).collect();
+    // A row as its columns: each cell after the row's kind, after its column's name ("Part number SW-8P").
+    let words = |r: &Vec<String>| -> String {
+        r.iter()
+            .zip(&header)
+            .skip(1)
+            .filter(|(c, _)| !c.trim().is_empty())
+            .map(|(c, h)| format!("{h} {c}"))
+            .collect::<Vec<_>>()
+            .join(" · ")
+    };
+    // Rows that go and come in pairs are one row changed: its columns that differ ("Description: … → …").
+    if before_rows.len() == after_rows.len() {
+        let changed = before_rows
+            .iter()
+            .zip(&after_rows)
+            .map(|(a, b)| {
+                header
+                    .iter()
+                    .enumerate()
+                    .skip(1)
+                    .filter_map(|(i, h)| {
+                        let (x, y) = (
+                            a.get(i).cloned().unwrap_or_default(),
+                            b.get(i).cloned().unwrap_or_default(),
+                        );
+                        (x != y).then(|| format!("{h}: {x} → {y}"))
+                    })
+                    .collect::<Vec<_>>()
+                    .join("; ")
+            })
+            .collect();
+        (Vec::new(), Vec::new(), changed)
+    } else {
+        (
+            before_rows.iter().map(|r| words(r)).collect(),
+            after_rows.iter().map(|r| words(r)).collect(),
+            Vec::new(),
+        )
     }
 }
 

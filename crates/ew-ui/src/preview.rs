@@ -179,6 +179,21 @@ fn part_block(ui: &mut Ui, p: &ew_viewmodel::properties::PartCard) {
             t.text_secondary,
         );
     }
+    for r in &p.changed {
+        line(
+            ui,
+            &strings::format(key!("part-card-changed"), &[r]),
+            t.text_secondary,
+        );
+    }
+    // A bus line at a socket the part no longer has keeps its end there: said in the primary colour.
+    if !p.lost.is_empty() {
+        line(
+            ui,
+            &strings::format(key!("part-card-lost"), &[&p.lost.join(", ")]),
+            t.text_primary,
+        );
+    }
     if p.fork {
         line(ui, strings::text(key!("part-edit-fork-note")), t.text_secondary);
     }

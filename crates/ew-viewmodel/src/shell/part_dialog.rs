@@ -913,27 +913,14 @@ impl ShellModel {
                 return out;
             }
         };
-        let text = |v: &Option<Value>| match v {
-            None => String::new(),
-            Some(Value::String(s)) => s.clone(),
-            Some(Value::Object(m)) if m.values().all(Value::is_string) && m.len() == 1 => m
-                .values()
-                .next()
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_owned(),
-            Some(other) => other.to_string(),
-        };
         let card = PartCard {
             title: editor.title(),
-            fields: plan
-                .fields
-                .iter()
-                .map(|f| (f.member.clone(), text(&f.old), text(&f.new)))
-                .collect(),
+            fields: card_fields(&plan.fields),
             devices: Vec::new(),
             removed: plan.bom_removed.clone(),
             added: plan.bom_added.clone(),
+            changed: plan.bom_changed.clone(),
+            lost: plan.lost.clone(),
             fork: plan.fork.is_some(),
         };
         let devices: Vec<String> = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
@@ -959,7 +946,31 @@ impl ShellModel {
             return Outcome::Done;
         };
         match project.session.own_part_update(&editor.draft) {
-            Ok(cmd) => self.preview_host_card(&cmd.name, cmd.params, key!("reason-library-update")),
+            Ok(plan) => {
+                // The card in words, as a part kept to the project lists its correction (the persona run m3-p4).
+                let fields = plan
+                    .copies
+                    .first()
+                    .map(|c| card_fields(&c.fields))
+                    .unwrap_or_default();
+                let devices = plan.devices.iter().map(|d| self.tag_of(d.as_uuid())).collect();
+                let card = PartCard {
+                    title: editor.title(),
+                    fields,
+                    devices,
+                    removed: plan.bom_removed,
+                    added: plan.bom_added,
+                    changed: plan.bom_changed,
+                    lost: plan.lost,
+                    fork: false,
+                };
+                self.preview_host_card_as(
+                    &plan.command.name,
+                    plan.command.params,
+                    key!("reason-library-update"),
+                    CardOrigin::Part(Box::new(card)),
+                )
+            }
             Err(e) => {
                 if let PartDraftError::Field(m) = &e {
                     editor.draft.messages.retain(|x| x.field != m.field);
@@ -1062,4 +1073,231 @@ impl ShellModel {
             )
         })
     }
+}
+
+/// A part card's changed members in words (the persona run m3-p4 read the sections as raw JSON): each member by its
+/// label, the sections as the interfaces and PLC fields that change ([`section_changes`]), the pins made again as
+/// their designations (their function template following them, unlisted).
+fn card_fields(fields: &[ew_api::FieldChange]) -> Vec<(String, String, String)> {
+    let text = |v: &Option<Value>| match v {
+        None => String::new(),
+        Some(Value::String(s)) => s.clone(),
+        Some(Value::Object(m)) if m.values().all(Value::is_string) && m.len() == 1 => m
+            .values()
+            .next()
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_owned(),
+        Some(other) => other.to_string(),
+    };
+    let pins = fields.iter().any(|f| f.member == "cp_pattern");
+    fields
+        .iter()
+        .filter(|f| !(pins && f.member == "function_template"))
+        .flat_map(|f| match f.member.as_str() {
+            "sections" => section_changes(f.old.as_ref(), f.new.as_ref()),
+            "cp_pattern" => vec![(
+                strings::text(key!("part-field-cps")).to_owned(),
+                designations(f.old.as_ref()),
+                designations(f.new.as_ref()),
+            )],
+            member => vec![(member_label(member), text(&f.old), text(&f.new))],
+        })
+        .collect()
+}
+
+/// A member of a part as the part card names it: its `part-field-<member>` text, else its field label.
+fn member_label(member: &str) -> String {
+    strings::lookup(&format!("part-field-{member}"))
+        .map_or_else(|| strings::field_label("part", member), str::to_owned)
+}
+
+/// The designations of a CP pattern, joined by commas; empty for none.
+fn designations(pattern: Option<&Value>) -> String {
+    pattern
+        .and_then(Value::as_array)
+        .map(|cps| {
+            cps.iter()
+                .filter_map(|c| c.get("designation").and_then(Value::as_str))
+                .collect::<Vec<_>>()
+                .join(", ")
+        })
+        .unwrap_or_default()
+}
+
+/// Whole numbers as runs ("1-32, 40"), as the Allowed slots field takes them.
+fn runs(numbers: &[u64]) -> String {
+    let mut out: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < numbers.len() {
+        let mut j = i;
+        while j + 1 < numbers.len() && numbers[j + 1] == numbers[j] + 1 {
+            j += 1;
+        }
+        out.push(if j > i {
+            format!("{}-{}", numbers[i], numbers[j])
+        } else {
+            numbers[i].to_string()
+        });
+        i = j + 1;
+    }
+    out.join(", ")
+}
+
+/// A scalar of a part section in words: a string as it is, a number as its digits; empty for anything else.
+fn scalar(v: Option<&Value>) -> String {
+    match v {
+        Some(Value::String(s)) => s.clone(),
+        Some(Value::Number(n)) => n.to_string(),
+        _ => String::new(),
+    }
+}
+
+/// The interfaces of a bus section by their (interface, port label), in list order, the first of each pair.
+fn interfaces(bus: Option<&Value>) -> Vec<((String, String), Value)> {
+    let mut out: Vec<((String, String), Value)> = Vec::new();
+    for p in bus
+        .and_then(|b| b.get("ports"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
+        let key = (scalar(p.get("interface")), scalar(p.get("port_label")));
+        if !out.iter().any(|(k, _)| *k == key) {
+            out.push((key, p.clone()));
+        }
+    }
+    out
+}
+
+/// An interface's socket count in words ("8 ports", "1 port"); one where it counts none.
+fn ports_words(p: &Value) -> String {
+    let n = p
+        .get("ports")
+        .and_then(Value::as_u64)
+        .and_then(|n| usize::try_from(n).ok())
+        .unwrap_or(1);
+    strings::format_count(crate::count_key!("part-change-ports"), n)
+}
+
+/// An interface in words: its bus, its role and its socket count ("PROFINET, Device, 8 ports").
+fn interface_words(p: &Value) -> String {
+    let choice = |member: &str| {
+        strings::field_choice_text("function", &format!("bus_port.{member}"), &scalar(p.get(member)))
+    };
+    [choice("bus"), choice("role"), ports_words(p)].join(", ")
+}
+
+/// The changes of a part's `sections` in words (the persona run m3-p4 read them as JSON): per interface of the bus
+/// section that comes, goes or changes, "Interface X1: 8 ports → 6 ports" (its socket count alone when nothing else
+/// of it changes, else its bus, role and count); per field of the PLC section the part editor shows ("Channels: 8 →
+/// 16", "Pin pattern: {n+1} → X2:{n+1}"), the I/O ranges and bit map that follow the channels left out; anything else
+/// as one line "Other part data".
+fn section_changes(old: Option<&Value>, new: Option<&Value>) -> Vec<(String, String, String)> {
+    let mut out = Vec::new();
+    let empty = Value::Null;
+    let (old, new) = (old.unwrap_or(&empty), new.unwrap_or(&empty));
+    let (a, b) = (interfaces(old.get("bus")), interfaces(new.get("bus")));
+    let mut keys: Vec<&(String, String)> = a.iter().map(|(k, _)| k).collect();
+    keys.extend(
+        b.iter()
+            .map(|(k, _)| k)
+            .filter(|k| !a.iter().any(|(x, _)| x == *k)),
+    );
+    let strip = |p: &Value| {
+        let mut p = p.clone();
+        if let Some(m) = p.as_object_mut() {
+            m.remove("ports");
+        }
+        p
+    };
+    for key in keys {
+        let x = a.iter().find(|(k, _)| k == key).map(|(_, p)| p);
+        let y = b.iter().find(|(k, _)| k == key).map(|(_, p)| p);
+        if x == y {
+            continue;
+        }
+        let label = if key.1.is_empty() {
+            key.0.clone()
+        } else {
+            format!("{} {}", key.0, key.1)
+        };
+        let only_ports = matches!((x, y), (Some(x), Some(y)) if strip(x) == strip(y));
+        let words = |p: Option<&Value>| match p {
+            None => String::new(),
+            Some(p) if only_ports => ports_words(p),
+            Some(p) => interface_words(p),
+        };
+        out.push((
+            strings::format(key!("part-change-interface"), &[&label]),
+            words(x),
+            words(y),
+        ));
+    }
+    let (p, q) = (old.get("plc").unwrap_or(&empty), new.get("plc").unwrap_or(&empty));
+    let plc: [(&str, Key<'static>); 9] = [
+        ("/role", key!("part-plc-role")),
+        ("/channels/kind", key!("part-plc-kind")),
+        ("/channels/count", key!("part-plc-count")),
+        ("/channels/data_type", key!("part-plc-data_type")),
+        ("/channels/designation", key!("part-plc-designation")),
+        ("/pin_of", key!("part-plc-pin_of")),
+        ("/supply_groups/0/cps/l_plus", key!("part-plc-l_plus")),
+        ("/supply_groups/0/cps/m", key!("part-plc-m")),
+        ("/limits/max_modules", key!("part-plc-max_modules")),
+    ];
+    for (path, key) in plc {
+        let (x, y) = (p.pointer(path), q.pointer(path));
+        if x != y {
+            // A role or a channel kind is a choice of the form, in its words ("Station", "DI").
+            let words = |v: Option<&Value>| match path {
+                "/role" | "/channels/kind" => strings::choice_text(&scalar(v)),
+                _ => scalar(v),
+            };
+            out.push((strings::text(key).to_owned(), words(x), words(y)));
+        }
+    }
+    let slots = |v: &Value| -> Vec<u64> {
+        v.get("allowed_slots")
+            .and_then(Value::as_array)
+            .map(|a| a.iter().filter_map(Value::as_u64).collect())
+            .unwrap_or_default()
+    };
+    if slots(p) != slots(q) {
+        out.push((
+            strings::text(key!("part-plc-slots")).to_owned(),
+            runs(&slots(p)),
+            runs(&slots(q)),
+        ));
+    }
+    // What the forms do not show, beside the members that follow the channels.
+    let rest = |v: &Value| {
+        let mut v = v.clone();
+        if let Some(m) = v.as_object_mut() {
+            m.remove("bus");
+            if let Some(plc) = m.get_mut("plc").and_then(Value::as_object_mut) {
+                for k in [
+                    "role",
+                    "channels",
+                    "pin_of",
+                    "limits",
+                    "allowed_slots",
+                    "io",
+                    "bit_of",
+                    "supply_groups",
+                ] {
+                    plc.remove(k);
+                }
+            }
+        }
+        v
+    };
+    if rest(old) != rest(new) {
+        out.push((
+            strings::text(key!("part-change-other")).to_owned(),
+            String::new(),
+            strings::text(key!("part-change-other-changed")).to_owned(),
+        ));
+    }
+    out
 }

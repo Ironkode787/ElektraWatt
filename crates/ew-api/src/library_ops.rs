@@ -21,7 +21,7 @@ use ew_units::Dec3;
 
 use ew_derive::Q;
 
-use crate::{AnyCommand, BomMode, CmdError, DerivedDiff, Export, Session, library};
+use crate::{AnyCommand, CmdError, DerivedDiff, Session, library};
 
 /// Why a library operation of the session could not compose its command.
 #[derive(Clone, PartialEq, Debug)]
@@ -179,10 +179,15 @@ pub struct UpdatePlan {
     pub devices: Vec<Id<Device>>,
     /// The representations of those devices' functions and of a changed symbol (in ID order).
     pub representations: Vec<Id<Representation>>,
-    /// The component BOM's CSV rows that go (in BOM order).
+    /// The component BOM's rows that go, each as its columns, in BOM order; empty when they pair with the rows that
+    /// come (`bom_changed`).
     pub bom_removed: Vec<String>,
-    /// The component BOM's CSV rows that come (in BOM order).
+    /// The component BOM's rows that come, as `bom_removed`.
     pub bom_added: Vec<String>,
+    /// As many rows go as come: each pair's columns that differ, in BOM order.
+    pub bom_changed: Vec<String>,
+    /// The sockets a bus line ends at that the update takes away (`-3K2:P8`).
+    pub lost: Vec<String>,
     /// The printed tags and cross-reference texts that change.
     pub derived: DerivedDiff,
 }
@@ -1010,22 +1015,8 @@ impl Session {
         let preview = engine.preview(&command).map_err(ApiError::Cmd)?;
         let after = self.query_over(preview.candidate());
         let derived = ew_commands::derived_diff(q, &after);
-        let bom = |q: &Q| -> Vec<String> {
-            ew_reports::export::export_csv(q, Export::Bom(BomMode::Component))
-                .map(|t| t.lines().skip(1).map(str::to_owned).collect())
-                .unwrap_or_default()
-        };
-        let (before_rows, after_rows) = (bom(q), bom(&after));
-        let bom_removed = before_rows
-            .iter()
-            .filter(|r| !after_rows.contains(r))
-            .cloned()
-            .collect();
-        let bom_added = after_rows
-            .iter()
-            .filter(|r| !before_rows.contains(r))
-            .cloned()
-            .collect();
+        let (bom_removed, bom_added, bom_changed) = crate::part_editor::bom_changes(q, &after);
+        let lost = crate::part_editor::lost_sockets(q, &after);
         Ok(UpdatePlan {
             command,
             copies: plan_copies,
@@ -1033,6 +1024,8 @@ impl Session {
             representations: reps.into_iter().collect(),
             bom_removed,
             bom_added,
+            bom_changed,
+            lost,
             derived,
         })
     }

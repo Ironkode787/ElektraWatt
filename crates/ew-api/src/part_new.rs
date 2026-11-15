@@ -396,7 +396,10 @@ impl Session {
     ///
     /// [`PartDraftError::Field`] for the first field that does not parse, or on `part` when My parts cannot be
     /// written; [`PartDraftError::Refused`] (`reason-part-unchanged`) when nothing changed.
-    pub fn own_part_update(&mut self, draft: &PartDraft) -> Result<AnyCommand, PartDraftError> {
+    pub fn own_part_update(
+        &mut self,
+        draft: &PartDraft,
+    ) -> Result<crate::library_ops::UpdatePlan, PartDraftError> {
         let item = self.sectioned_item(draft)?;
         if item == draft.original {
             return Err(PartDraftError::Refused(ew_commands::text_key!(
@@ -447,7 +450,7 @@ impl Session {
         let plan = self
             .update_from_documents(std::slice::from_ref(&doc), &[])
             .map_err(|e| failed(e.to_string()))?;
-        Ok(plan.command)
+        Ok(plan)
     }
 
     /// A new part's draft with the identity, the technical data and the sections of the held copy `copy` (Copy as a
