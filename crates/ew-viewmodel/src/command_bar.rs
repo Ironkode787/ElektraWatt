@@ -472,7 +472,19 @@ pub fn short_label(label: &str) -> String {
         .to_owned()
 }
 
-/// The actions placed in `group`, by their order.
+/// The buttons of `group`: each action placed there, first or second ([`ActionMeta::also`]), with that place, by its
+/// order.
+pub fn buttons_in(group: Group) -> Vec<(&'static ActionMeta, Placement)> {
+    let mut out: Vec<(&'static ActionMeta, Placement)> = ACTIONS
+        .iter()
+        .flat_map(|a| [a.placement, a.also].into_iter().flatten().map(move |p| (a, p)))
+        .filter(|(_, p)| p.group == group)
+        .collect();
+    out.sort_by_key(|(_, p)| p.order);
+    out
+}
+
+/// The actions placed first in `group`, by their order (the app menu's group).
 pub fn placed_in(group: Group) -> Vec<&'static ActionMeta> {
     let mut metas: Vec<&'static ActionMeta> = ACTIONS
         .iter()
@@ -532,12 +544,9 @@ pub fn command_bar_of(model: &ShellModel, tab: Tab) -> CommandBarModel {
     let groups = tab
         .groups()
         .filter_map(|group| {
-            let buttons: Vec<CommandButton> = placed_in(group)
+            let buttons: Vec<CommandButton> = buttons_in(group)
                 .into_iter()
-                .map(|meta| {
-                    let size = meta.placement.map_or(CommandSize::Small, |p| p.size);
-                    button_of(meta, model, size)
-                })
+                .map(|(meta, p)| button_of(meta, model, p.size))
                 .collect();
             (!buttons.is_empty()).then(|| GroupModel {
                 group,

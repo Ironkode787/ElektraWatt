@@ -252,20 +252,24 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
         ),
     )),
     // Output ▸ Reports ▸ Report block…, `report_block.create` through its form; on the Output tab as Report, where
-    // every list page is made (three of three personas looked for it there).
+    // every list page is made (three of three personas looked for it there), and on the Page tab beside New page,
+    // since a report block is put on a page (the owner looked for it there, rc.1).
     with_params(
         "kind:text, folio:text, title?:text",
-        placed(
-            place(Group::Reports, 1, CommandSize::Large, Some(key!("bar-report"))),
-            "report",
-            act(
-                "report_block.new",
-                Command,
-                Menu::Output,
-                &[],
-                writable,
-                None,
-                |s, p| s.act_report_block_new(p),
+        placed_also(
+            place(Group::Pages, 5, CommandSize::Large, Some(key!("bar-report"))),
+            placed(
+                place(Group::Reports, 1, CommandSize::Large, Some(key!("bar-report"))),
+                "report",
+                act(
+                    "report_block.new",
+                    Command,
+                    Menu::Output,
+                    &[],
+                    writable,
+                    None,
+                    |s, p| s.act_report_block_new(p),
+                ),
             ),
         ),
     ),

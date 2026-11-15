@@ -18,7 +18,7 @@ drawn: EW generates them from the schematic, so they follow every change.
    parts list (Partlist, 901 and 901.1), a terminal diagram for each terminal strip (903 to 905), the cable overview
    and diagrams (906), the wire list, the PLC overview, the potential overview, the device tag overview and the
    revision overview. Click one, such as 904, to see it.
-3. Choose **Output ▸ Report block…** (on the Output tab: **Report**). In the form, choose the report **Parts list**,
+3. Choose **Output ▸ Report block…** (on the Page or the Output tab: **Report**). In the form, choose the report **Parts list**,
    keep or type the first folio `912`, type the title `Parts list`, and choose **Create**.
    The toast says "Added the report block Parts list from folio 912". The Pages navigator lists the new pages 912 to
    912.3: the parts list device by device, where the Partlist on 901 sums the parts up.

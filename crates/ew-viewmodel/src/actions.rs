@@ -272,6 +272,9 @@ pub struct ActionMeta {
     pub params: &'static str,
     /// The place in the command bar; `None` for an action the bar does not show.
     pub placement: Option<Placement>,
+    /// A second place in the command bar, on another tab, where people look for it too (Report on Page and Output);
+    /// the app menu and the palette keep the first.
+    pub also: Option<Placement>,
     /// The icon key (`ew-ui` maps it to its icon table; doc 16a §4.11); required for a placed action.
     pub icon: Option<&'static str>,
     /// Dispatching the action leaves the banner standing (popups, dialogs, help, the describe text, the canvas's view
@@ -962,6 +965,12 @@ const fn placed(placement: Placement, icon: &'static str, mut a: ActionMeta) -> 
     a
 }
 
+/// Gives a placed action a second place in the bar, on another tab ([`ActionMeta::also`]).
+const fn placed_also(placement: Placement, mut a: ActionMeta) -> ActionMeta {
+    a.also = Some(placement);
+    a
+}
+
 /// Gives an action that the bar does not place an icon (quick access, the HUD's tools).
 const fn with_icon(icon: &'static str, mut a: ActionMeta) -> ActionMeta {
     a.icon = Some(icon);
@@ -990,6 +999,7 @@ const fn act(
         context: Context::Global,
         params: "",
         placement: None,
+        also: None,
         icon: None,
         keeps_banner: false,
         answers_recovery: false,

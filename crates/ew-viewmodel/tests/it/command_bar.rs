@@ -108,8 +108,14 @@ fn the_registry_places_every_command_once_and_the_app_menu_holds_every_action_on
         ]
     );
     let mut places = Vec::new();
-    for a in ACTIONS.iter() {
-        let Some(p) = a.placement else { continue };
+    for (a, p) in ACTIONS
+        .iter()
+        .flat_map(|a| [a.placement, a.also].into_iter().flatten().map(move |p| (a, p)))
+    {
+        // A second place is on another tab than the first.
+        if a.also.is_some() {
+            assert_ne!(a.placement.map(|f| f.tab), a.also.map(|s| s.tab), "{}", a.id);
+        }
         assert_eq!(p.group.tab(), p.tab, "{}: the group's tab", a.id);
         let icon = a.icon.unwrap_or_else(|| panic!("{} has no icon key", a.id));
         assert!(!icon.is_empty(), "{}", a.id);
@@ -138,9 +144,9 @@ fn the_registry_places_every_command_once_and_the_app_menu_holds_every_action_on
         places.push((p.group, p.order));
     }
     for group in Group::ALL {
-        let large = command_bar::placed_in(group)
+        let large = command_bar::buttons_in(group)
             .iter()
-            .filter(|a| a.placement.is_some_and(|p| p.size == CommandSize::Large))
+            .filter(|(_, p)| p.size == CommandSize::Large)
             .count();
         assert!(large <= 2, "{group:?} has {large} Large commands");
         assert!(
@@ -456,5 +462,24 @@ fn the_draw_tab_names_renumber_devices_and_offers_edit_route_beside_wire() {
     assert_eq!(renumber.bar_label, "Renumber devices");
     let route = command_bar::action_button(&s, "tool.route_edit").unwrap();
     assert_eq!(route.bar_label, "Edit route");
+    s.shutdown();
+}
+
+/// The owner's test of 0.3.0-rc.1 (F25): Report, which puts a report block on a page, has a button on the Page tab
+/// beside New page, and keeps its place on the Output tab where every list page is made; the app menu lists it once.
+#[test]
+fn report_stands_on_the_page_tab_and_on_the_output_tab() {
+    let tmp = Tmp::new("f25-report");
+    let mut s = shell(&tmp);
+    for tab in [Tab::Page, Tab::Output] {
+        let report = command_bar_of(&s, tab)
+            .groups
+            .into_iter()
+            .flat_map(|g| g.buttons)
+            .find(|b| b.id == "report_block.new")
+            .unwrap_or_else(|| panic!("Report on {tab:?}"));
+        assert_eq!(report.bar_label, "Report");
+    }
+    assert_eq!(menu_places(&s)["report_block.new"].len(), 1);
     s.shutdown();
 }
