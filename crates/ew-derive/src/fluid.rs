@@ -18,7 +18,7 @@ use std::sync::Arc;
 use ew_ids::Id;
 use ew_model::EndpointKey;
 use ew_schema::{
-    Connection, ConnectionKind, ContactKind, Device, DeviceKind, DeviceState, Discipline, FluidPortRole,
+    Connection, ConnectionKind, ContactKind, Device, DeviceKind, DeviceState, Discipline, FluidPortRole, FnDef,
     Function, FunctionKind, InternalKind, IpDirection, StationRole,
 };
 
@@ -46,7 +46,9 @@ pub fn is_valve_terminal(q: &Q, device: Id<Device>) -> bool {
 
 /// A valve's port on one side of EW-FL-012's role conflict (FR-FLU-032): a working port (2, 4) or an exhaust port (3,
 /// 5). Joined to each other across two devices' valves with no valve between them, the two conflict; the rule and the
-/// window's autoconnect (which never proposes such a join) read it here.
+/// window's autoconnect (which never proposes such a join) read it here. A valve terminal's supply plate taps the
+/// valves' galleries, so its ports are on their sides too (persona round 3: a valve below a loose plate had its working
+/// port 4 joined to the plate's exhaust tap 5).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ValvePort {
     /// A working port, 2 or 4.
@@ -56,9 +58,10 @@ pub enum ValvePort {
 }
 
 impl ValvePort {
-    /// The side of a CP of role `role` on a FnDef of contact kind `kind`; `None` for any other port.
-    pub fn of(kind: &ContactKind, role: Option<&FluidPortRole>) -> Option<ValvePort> {
-        if *kind != ContactKind::Valve {
+    /// The side of a CP of role `role` on the FnDef `def`, a valve's (contact kind `valve`) or a supply plate's (filed
+    /// under `ValveTerminal`); `None` for any other port.
+    pub fn of(def: &FnDef, role: Option<&FluidPortRole>) -> Option<ValvePort> {
+        if def.contact_kind != ContactKind::Valve && def.category.0.as_str() != "ValveTerminal" {
             return None;
         }
         match role? {

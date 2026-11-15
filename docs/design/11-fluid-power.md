@@ -790,8 +790,9 @@ the feed at a physical coil's pins, and at an internal coil the load supply pin 
 the bound channel's module or of the first device above it with one (Open question 11). EW-FL-010 counts a junction
 as a member outside the terminal. EW-FL-012 skips a net without a line (a gallery alone); a working port into an
 inlet (port 1 of another valve or of a manifold, a quick-exhaust or shuttle valve's inlet) is a circuit, not a
-conflict, the ports of a component that is no valve never conflict, and two exhausts of one valve may share a
-silencer. EW-FL-009 also compares AC and DC where the coil and the potential both name one. Each has its rule page.
+conflict, the ports of a component that is no valve never conflict but a supply plate's taps, which are on the
+sides of the gallery they tap (*as built, M3 persona round 3*: a working port joined to a plate's exhaust tap
+conflicts), and two exhausts of one valve may share a silencer. EW-FL-009 also compares AC and DC where the coil and the potential both name one. Each has its rule page.
 
 *As built (M3 persona round).* EW-FL-007 keeps §5.4's test (outer and inner diameter and material), and its message
 says what is missing: a tube whose size is known reads "tube … is 6×4 mm but has no material; give the default tube of
@@ -839,8 +840,9 @@ Flexible), then the Wire tool drawing lines of that kind (`connection.draw` with
 Wire draws working lines. Fluid pages autoconnect: a placed symbol's fluid port facing a free fluid port proposes the
 join, and the committed hint is a working fluid line (`device.place`'s hint takes the fluid kind when both ends are
 fluid ports); a fluid port never proposes an electrical CP, nor an electrical CP a fluid port, on any page, and a
-valve's working port never proposes another valve's exhaust port, nor the other way round (EW-FL-012's conflict,
-`ew_derive::ValvePort`; the persona re-test's stacked valves). A flexible
+valve's working port never proposes another valve's exhaust port or a supply plate's exhaust tap, nor the other way
+round (EW-FL-012's conflict, `ew_derive::ValvePort`; the persona re-test's stacked valves, round 3's valve below a
+loose plate); the placement's toast counts the tubes it draws ("connected 1 tube"). A flexible
 line is drawn as an arc between its ends: a quadratic curve whose control point stands a quarter of the chord to the
 left of it, the route's corners not drawn. Project ▸ Fluid settings… (FT-1752) is a form of the member `fluid` of `project.settings.set`: the default tube's outer and inner diameter in mm and its material, and whether fluid lines are tagged by page and counter; the member's other values are kept, a diameter that is no length is refused in words.
 

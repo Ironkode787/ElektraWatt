@@ -1304,7 +1304,7 @@ fn shape_with(copy: Uuid, def: &SymbolDef, fndef: Option<Arc<LibCopy<FnDef>>>) -
     let valve_port = |fn_cp: u16| {
         let d = fndef.as_ref()?;
         let cp = d.item.cps.iter().find(|c| c.idx == fn_cp)?;
-        ew_derive::ValvePort::of(&d.item.contact_kind, cp.port_role.as_ref())
+        ew_derive::ValvePort::of(&d.item, cp.port_role.as_ref())
     };
     let geometry = ew_scene::symbol::lower(def, Orient2::R0);
     let mut outline = Vec::new();
@@ -2108,7 +2108,7 @@ impl Session {
                             .iter()
                             .find(|c| c.idx == idx)
                             .cloned()?;
-                        ew_derive::ValvePort::of(&d.item.contact_kind, cp.port_role.as_ref())
+                        ew_derive::ValvePort::of(&d.item, cp.port_role.as_ref())
                     }),
                 plc_address: q
                     .get::<ew_derive::PlcAddressText>(function)

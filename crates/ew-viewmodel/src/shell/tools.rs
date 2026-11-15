@@ -801,16 +801,31 @@ impl ShellModel {
     }
 
     /// For a `device.place` with autoconnect hints (`connect`): the number of wires it draws as words (`1 wire`,
-    /// `2 wires`) and the proposals the ghost showed (`"2" -> "-101F2:2"`), from the Place tool's ghost; `None` for any
-    /// other command or a placement without hints (Alt, or no proposal).
+    /// `2 wires`; `1 tube` where every hint joins a fluid port, persona round 3) and the proposals the ghost showed
+    /// (`"2" -> "-101F2:2"`), from the Place tool's ghost; `None` for any other command or a placement without hints
+    /// (Alt, or no proposal).
     fn autoconnect_words(&self, cmd: &dyn DynCommand) -> Option<(String, String)> {
         if cmd.name() != "device.place" {
             return None;
         }
-        let hints = cmd.to_json().ok()?["connect"].as_array().map_or(0, Vec::len);
+        let json = cmd.to_json().ok()?;
+        let connect = json["connect"].as_array().cloned().unwrap_or_default();
+        let hints = connect.len();
         if hints == 0 {
             return None;
         }
+        // Tubes where every hint ends at a fluid port of the page.
+        let tubes = self.canvas().is_some_and(|c| {
+            let cps = &c.page().tables.cps;
+            connect.iter().all(|h| {
+                let to = &h["to"]["cp"];
+                cps.iter().any(|cp| {
+                    cp.fluid
+                        && to["function"].as_str() == Some(cp.function.to_string().as_str())
+                        && to["idx"].as_u64() == Some(u64::from(cp.idx))
+                })
+            })
+        });
         let Some(crate::tools::Ghost::Place { proposals, .. }) = self.tools.tool.ghost() else {
             return None;
         };
@@ -824,10 +839,11 @@ impl ShellModel {
             })
             .collect();
         let count = strings::format(
-            if hints == 1 {
-                key!("count-wire")
-            } else {
-                key!("count-wires")
+            match (tubes, hints == 1) {
+                (true, true) => key!("count-tube"),
+                (true, false) => key!("count-tubes"),
+                (false, true) => key!("count-wire"),
+                (false, false) => key!("count-wires"),
             },
             &[&hints.to_string()],
         );

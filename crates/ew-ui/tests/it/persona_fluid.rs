@@ -1499,6 +1499,60 @@ fn round3_a_report_block_with_nothing_to_list_says_so() {
     d.shell_mut().shutdown();
 }
 
+/// Item 4 of round 3 (friction 2): a valve placed below the loose supply plate had its working port 4 joined to the
+/// plate's exhaust tap 5 by a tube: the plate's ports carry the roles of the galleries they tap, but autoconnect read a
+/// side of EW-FL-012 on valves only. The valve is placed without a tube, and a fluid autoconnect that does join says
+/// so in tubes: a cylinder dropped with its port A over a valve's port 2.
+#[test]
+fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_tubes() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    place_plate(&mut d, (1000, 300));
+    let plate = device_drawn(&mut d, "ew.iso.valve-supply-plate");
+    // The valve's port 4 straight below the plate's port 5, facing it, as the persona dropped it.
+    let five = port(&mut d, plate, "5");
+    place_symbol(&mut d, "ew.iso.valve-5-2-sol-spring@qet10", (1000, 500));
+    let valve = device_drawn(&mut d, "ew.iso.valve-5-2");
+    let four = port(&mut d, valve, "4");
+    let _ = d.shell_mut().dispatch("edit.undo", &json!({}));
+    d.settle();
+    place_symbol(&mut d, "ew.iso.valve-5-2-sol-spring@qet10", (1000 + five.0 - four.0, 500));
+    let valve = device_drawn(&mut d, "ew.iso.valve-5-2");
+    assert_eq!(port(&mut d, valve, "4").0, five.0, "port 4 under the tap 5");
+    assert_eq!(tubes(&mut d), 0, "no working port joined to the exhaust tap");
+    // A cylinder's port A dropped over another valve's port 2: one tube, and the toast says so.
+    place_symbol(&mut d, "ew.iso.valve-5-2-sol-spring@qet10", (1400, 750));
+    let other = devices_drawn(&mut d, "ew.iso.valve-5-2")
+        .into_iter()
+        .find(|v| *v != valve)
+        .unwrap();
+    let two = port(&mut d, other, "2");
+    // The cylinder turned so that its ports face down.
+    let place_turned = |d: &mut Driver, at: (i64, i64)| {
+        let pick = json!({ "symbol": "ew.iso.cylinder-double-acting@qet10" });
+        assert_eq!(d.shell_mut().dispatch("place.pick", &pick), Outcome::Done);
+        d.input(&Input::Hover { at });
+        d.settle();
+        for _ in 0..3 {
+            d.input(&key("r"));
+            d.settle();
+        }
+        click_at(d, at);
+        d.input(&key("escape"));
+        d.settle();
+    };
+    place_turned(&mut d, (1400, 450));
+    let cylinder = device_drawn(&mut d, "ew.iso.cylinder");
+    let a = port(&mut d, cylinder, "A");
+    let _ = d.shell_mut().dispatch("edit.undo", &json!({}));
+    d.settle();
+    place_turned(&mut d, (1400 + two.0 - a.0, 450));
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(tubes(&mut d), 1, "{toast}");
+    assert!(toast.contains("and connected 1 tube: \"A\" -> "), "{toast}");
+    d.shell_mut().shutdown();
+}
+
 /// Item 2 of round 3 (friction 7 and 8): the starter terminal stood under "Assemblies and black boxes", so the person
 /// found only the supply plate, under "Valve terminal plates", and placed loose valves; a search for "valve terminal"
 /// listed the valve for a valve terminal first. The terminal stands under "Valve terminals", beside its plate's group,

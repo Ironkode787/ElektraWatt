@@ -1,9 +1,10 @@
 ## What it checks
 
 In one fluid net: two ports of one valve joined, unless they are all its exhausts (ports 3 and 5 of a valve may share
-a silencer), or a working port of a valve joined to an exhaust port of another valve with no valve between them. A
-working port into an inlet, such as port 1 of another valve, of a manifold, of a quick-exhaust or shuttle valve or of
-a service unit, is how a circuit is built and is no conflict. One finding per conflict.
+a silencer), or a working port of a valve joined to an exhaust port of another valve, or to the exhaust tap 3 or 5
+of a valve terminal's supply plate (the valves' exhaust gallery), with no valve between them. A working port into an
+inlet, such as port 1 of another valve, of a manifold, of a quick-exhaust or shuttle valve or of a service unit, is how
+a circuit is built and is no conflict. One finding per conflict.
 
 ## Why
 

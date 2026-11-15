@@ -805,3 +805,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: Output ▸ Report block… on a report with nothing to list yet says in its toast that the block makes
   no page and what gives it rows ("A valve terminal gives it rows"), for every report kind; it announced a folio that
   never came (persona round 3)
+- behaviour-change: autoconnect never joins a valve's working port to a supply plate's exhaust tap (a valve placed
+  below a loose plate had its port 4 joined to the plate's port 5), EW-FL-012 reports such a join, and a placement's
+  toast on a fluid page counts the tubes it drew ("connected 1 tube") (persona round 3)

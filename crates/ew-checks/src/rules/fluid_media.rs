@@ -835,9 +835,10 @@ meta!(
 
 /// EW-FL-012 (FR-FLU-032): in one fluid net, two ports of one valve function that are not all exhausts (two exhausts
 /// of one valve may share a silencer); or a working port of a valve joined to an exhaust port of another device's
-/// valve, with no valve between them. A working port into an inlet (port 1 of another valve, of a manifold, of a
-/// quick-exhaust, shuttle or service unit) is how a circuit is built, and the ports of a component that is no valve
-/// (a silencer, a regulator's exhaust) never conflict. Target the net's lines.
+/// valve, or to a supply plate's exhaust tap (it is the valves' exhaust gallery), with no valve between them. A working
+/// port into an inlet (port 1 of another valve, of a manifold, of a quick-exhaust, shuttle or service unit) is how a
+/// circuit is built, and the ports of another component that is no valve (a silencer, a regulator's exhaust) never
+/// conflict. Target the net's lines.
 #[derive(Clone, Copy, Debug)]
 pub struct PortRoleConflict;
 
@@ -852,12 +853,6 @@ impl Rule for PortRoleConflict {
         }
         let functions = q.functions();
         let fndefs = q.fndefs();
-        let is_valve = |f: Id<Function>| {
-            functions
-                .get(f)
-                .and_then(|x| fndefs.get(x.def))
-                .is_some_and(|x| x.item.contact_kind == ContactKind::Valve)
-        };
         let mut out = Vec::new();
         for net in q.get::<FluidNets>(()).nets.iter() {
             if net.connections.is_empty() {
@@ -874,19 +869,27 @@ impl Rule for PortRoleConflict {
             let mut exhausts: Vec<(Option<Id<Device>>, String)> = Vec::new();
             for m in &net.members {
                 let EndpointKey::Cp(f, idx) = *m else { continue };
-                if !is_valve(f) {
+                let Some(def) = functions.get(f).and_then(|x| fndefs.get(x.def)) else {
                     continue;
-                }
+                };
                 let Some(cp) = q.get::<FunctionCps>(f).iter().find(|c| c.idx == idx).cloned() else {
                     continue;
                 };
+                // A valve's ports, and a supply plate's taps, which are on the valves' sides.
+                let side = ew_derive::ValvePort::of(&def.item, cp.port_role.as_ref());
+                let valve = def.item.contact_kind == ContactKind::Valve;
+                if !valve && side.is_none() {
+                    continue;
+                }
                 let text = cp_label(q, CpRef::new(f, idx));
                 let device = functions.get(f).and_then(|x| x.device);
-                let exhaust = exhaust_role(&cp.port_role);
-                let entry = by_valve.entry(f).or_insert((Vec::new(), true));
-                entry.0.push(text.clone());
-                entry.1 &= exhaust;
-                match ew_derive::ValvePort::of(&ContactKind::Valve, cp.port_role.as_ref()) {
+                if valve {
+                    let exhaust = exhaust_role(&cp.port_role);
+                    let entry = by_valve.entry(f).or_insert((Vec::new(), true));
+                    entry.0.push(text.clone());
+                    entry.1 &= exhaust;
+                }
+                match side {
                     Some(ew_derive::ValvePort::Working) => working.push((device, text)),
                     Some(ew_derive::ValvePort::Exhaust) => exhausts.push((device, text)),
                     None => {}

@@ -105,7 +105,7 @@ fn base() -> Fx {
             (2, "5", port("exhaust5")),
         ],
         &json!([]),
-        &json!({}),
+        &json!({"category": ["ValveTerminal", "SupplyPlate", "Generic"]}),
     );
     fx.part(
         REG_PART,
@@ -236,6 +236,12 @@ fn ew_fl_012_reports_a_real_port_conflict_only() {
     fx.rec_mut(&us(0x710c))["position"] = json!(2);
     line(&mut fx, 0x4006, at(V2, 1), at(PLATE, 0));
     assert_eq!(messages(&fx, "EW-FL-012"), Vec::<String>::new());
+    // Persona round 3: a working port joined to the plate's exhaust tap 5, the valves' exhaust gallery, conflicts.
+    line(&mut fx, 0x4007, at(V2, 3), at(PLATE, 2));
+    assert_eq!(
+        messages(&fx, "EW-FL-012"),
+        ["working port -1Q2:4 is joined to -1U2:5 with no valve between them"]
+    );
 }
 
 /// EW-FL-005 (FR-FLU-019): two media defined in one net report; a medium defined at a regulator's outlet replaces the
