@@ -787,14 +787,20 @@ described here (FT-798's remainder).
 Change symbol, Insert black box and the strip chooser: one overlay over the `color.backdrop` scrim, the window less
 `space.6` on each side and most of its height, `elevation.2`, `radius.lg`, `space.5` padding; the title in
 `type.title` with the close button at the right, the filter field, then three columns. **Left, the tree:** All, In
-this project, one node per function category (the first level of a symbol's FnDef category, of a part's own category
-or its main function's; the words are `function-category-<key>` texts, a category without words falls under Other),
-Other, each with its count of hits under the filter. **Middle, the table** of §6.7 (`type.small`, `size.row`, the
+this project, the trades Electrical, PLC and bus, Pneumatics, Enclosure and mounting (rc.2, F28: each with the
+chevron of a tree node, opening to its sub-groups one `size.tree.indent` in; one table, `trade_of`, files a category
+under its trade), the sub-groups one node per function category (the first level of a symbol's FnDef category, of a
+part's own category or its main function's, else the group its kind gives; the words are `function-category-<key>`
+texts, a category without words or a trade falls under Other), Other, each with its count of hits under the filter. A
+trade opens when it or one of its groups is chosen, a second click closes it; under a filter every trade stands open,
+and a chosen node without a hit gives way to All. **Middle, the table** of §6.7 (`type.small`, `size.row`, the
 header on `color.surface.sunken`): name, part number, ratings and library, a greyed row's reason in the last column;
 one row per part, which opens to its functions with a chevron (Left and Right in the table), and whose own row places
 its main function. **Right, what will be placed:** the symbol's outline on the white sheet with its connection
-points, its name, part number and ratings, its connection points' designations, a greyed row's reason, and the Primary
-Place. A click makes a row or node current (the Selected state with the 2-px accent bar), a double click or Enter
+points, its name, part number and ratings, its connection points' designations, for a part its card (rc.2, F22: type
+and order number, its technical data as label and value rows, its size with its outline to scale over a 35 mm rail,
+what it gives, where it comes from; the same card on hover over a Devices row and behind a device sheet's Part
+details link), a greyed row's reason, and the Primary Place. A click makes a row or node current (the Selected state with the 2-px accent bar), a double click or Enter
 places; Tab goes between the filter, the tree and the table. The picture is read through the shape cache, once per
 symbol and revision.
 
