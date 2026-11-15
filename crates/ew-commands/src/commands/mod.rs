@@ -161,6 +161,8 @@ commands! {
     assembly::AttachChildren,
     assembly::AddValve,
     assembly::LinkDevices,
+    // A valve terminal's free box redrawn as its positions (rc.2)
+    assembly::DrawSlots,
     fluid::SetValveOccupancy,
     fluid::ClosePort,
     fluid::EditMedium,

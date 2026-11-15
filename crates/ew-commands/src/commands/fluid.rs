@@ -116,25 +116,16 @@ pub struct SetValveOccupancy {
 /// the first part use whose copy has it, else `plc.positions.count` of the part named by `plc_module.part_use`, else
 /// of the first part use whose copy has `plc.positions`; `None` for a device without.
 pub(crate) fn position_count(tx: &TxBuilder<'_>, module: &Device) -> Option<u16> {
-    if let Some(n) = module.parts.iter().find_map(|u| {
-        tx.get::<LibCopy<Part>>(u.part.copy)?
-            .item
-            .sections
-            .fluid
-            .as_ref()?
-            .positions
-    }) {
-        return Some(n);
-    }
-    let count = |i: usize| {
-        let copy = tx.get::<LibCopy<Part>>(module.parts.get(i)?.part.copy)?;
-        let positions = copy.item.sections.plc.as_ref()?.positions.as_ref()?;
-        Some(positions.count)
-    };
-    match module.aspects.plc_module.as_ref().and_then(|m| m.part_use) {
-        Some(i) => count(usize::from(i)),
-        None => (0..module.parts.len()).find_map(count),
-    }
+    ew_derive::positions_of(module, |i| {
+        let copy = module.parts.get(i).and_then(|u| tx.get::<LibCopy<Part>>(u.part.copy));
+        copy.map_or((None, None), |c| {
+            let s = &c.item.sections;
+            (
+                s.fluid.as_ref().and_then(|f| f.positions),
+                s.plc.as_ref().and_then(|p| p.positions.as_ref()).map(|p| p.count),
+            )
+        })
+    })
 }
 
 /// The child of `module` at `position`: of two, the lower ID.
@@ -147,7 +138,7 @@ fn child_at(tx: &TxBuilder<'_>, module: Id<Device>, position: u32) -> Option<Arc
 }
 
 /// Removes a child of a module with its delete plan, with its notices.
-fn remove_child(
+pub(crate) fn remove_child(
     tx: &mut TxBuilder<'_>,
     child: &Device,
     position: u32,
@@ -399,6 +390,7 @@ impl Command for SetValveOccupancy {
                 None
             }
         };
+        crate::commands::assembly::seat_reps(tx, self.module)?;
         let primary = child.unwrap_or(self.module);
         Ok(Outcome::primary((Kind::Device, primary.cast())))
     }

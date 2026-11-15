@@ -819,6 +819,7 @@ impl ShellModel {
                 strings::format(key!("toast-seat-plate"), &[&device, &terminal])
             }
             TerminalSeat::Loose { device } => strings::format(key!("toast-seat-full"), &[&device]),
+            TerminalSeat::Own { device } => strings::format(key!("toast-seat-own"), &[&device]),
         })
     }
 

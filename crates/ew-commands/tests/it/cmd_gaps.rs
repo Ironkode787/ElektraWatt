@@ -38,6 +38,7 @@ fn spec() -> BoxSpec {
         outline: vec![pt(0, 0), pt(4 * G, 0), pt(4 * G, 3 * G), pt(0, 3 * G)],
         cps: vec![box_cp(0, pt(G, 3 * G)), box_cp(1, pt(2 * G, 3 * G))],
         inner: vec![],
+        slots: None,
         extra: Extra::new(),
     }
 }

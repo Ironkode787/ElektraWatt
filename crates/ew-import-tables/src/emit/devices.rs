@@ -716,6 +716,7 @@ fn black_box_geometry(grid: Grid, pos: Pt2, cps: &[CpInfo]) -> Option<BoxSpec> {
         outline: vec![step(0, 0)?, step(2 * k, 0)?, step(2 * k, 6)?, step(0, 6)?],
         cps: box_cps,
         inner: Vec::new(),
+        slots: None,
         extra: Default::default(),
     })
 }

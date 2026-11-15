@@ -161,7 +161,7 @@ pub use library::{
 };
 pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};
 pub use page::{
-    BoxCp, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,
+    BoxCp, BoxSlots, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,
     ManualSelection, Page, PageType, PinMapEntry, ReportBlock, ReportColumn, ReportKind, ReportSource,
     Representation, Scale, SlotOverride, SortKey, SqlQuery,
 };

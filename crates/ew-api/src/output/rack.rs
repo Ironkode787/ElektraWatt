@@ -694,8 +694,8 @@ impl Session {
     }
 
     /// Where `device` sits after a drop into a valve terminal's box: on a valve terminal (its tag and the valve
-    /// position, none for a supply plate), or loose (a valve on no terminal: the terminal had no free position); `None`
-    /// for a device that is neither a valve nor on a valve terminal.
+    /// position, none for a supply plate), loose (a valve for a terminal on none: the terminal had no free position),
+    /// or its own (a device that takes no valve position, rc.2); `None` for a device that is gone.
     pub fn terminal_seat(&self, device: Uuid) -> Option<TerminalSeat> {
         let q = self.query();
         let id: Id<Device> = Id::from_uuid(device);
@@ -707,9 +707,49 @@ impl Session {
                 terminal: super::properties::device_tag_text(&q, p),
                 position: d.position,
             }),
-            None => (!ew_derive::valve_functions(&q, id).is_empty())
-                .then_some(TerminalSeat::Loose { device: tag }),
+            None if ew_derive::device_fits_terminal(&q, id) => Some(TerminalSeat::Loose { device: tag }),
+            None => Some(TerminalSeat::Own { device: tag }),
         }
+    }
+
+    /// The valve positions a part gives a device placed from it: its `fluid.positions`, else its `plc.positions.count`
+    /// (the rule of `ew_derive::valve_positions` for one part); `None` for a part without, or one that is gone.
+    pub fn part_positions(&self, part: Uuid) -> Option<u16> {
+        let id = Id::from_uuid(part);
+        let copy = self
+            .query()
+            .parts()
+            .get(id)
+            .cloned()
+            .or_else(|| self.library_parts().into_iter().find(|c| c.id == id).map(std::sync::Arc::new))?;
+        let s = &copy.item.sections;
+        s.fluid
+            .as_ref()
+            .and_then(|f| f.positions)
+            .or_else(|| s.plc.as_ref()?.positions.as_ref().map(|p| p.count))
+    }
+
+    /// The box of a valve terminal of `count` positions drawn as its positions on `page`, its top-left corner at the
+    /// grid point nearest `at` (doc 11 §3.2, rc.2): the insertion point and the `box` of `box.black`
+    /// (`{outline, slots: {pitch}}`, `ew_derive::SlotFrame`); `None` for a page that is gone or no positions.
+    pub fn slot_box(&self, page: Uuid, at: (i64, i64), count: u16) -> Option<((i64, i64), serde_json::Value)> {
+        use ew_derive::ew_units::{Nm, Pt2};
+        if count == 0 {
+            return None;
+        }
+        let grid = self.query().pages().get(Id::from_uuid(page))?.grid;
+        let pitch = ew_derive::SlotFrame::pitch(grid);
+        let frame = ew_derive::SlotFrame::new(grid, Pt2::new(Nm(at.0), Nm(at.1)), pitch);
+        let o = frame.origin();
+        let outline: Vec<[i64; 2]> = frame
+            .outline(usize::from(count))
+            .iter()
+            .map(|p| [p.x.0, p.y.0])
+            .collect();
+        Some((
+            (o.x.0, o.y.0),
+            serde_json::json!({"outline": outline, "slots": {"pitch": pitch.0}}),
+        ))
     }
 
     /// The valve at position `position` (1-based) of module `module`; `None` for an empty or blank position.
@@ -823,8 +863,14 @@ pub enum TerminalSeat {
         /// The valve position.
         position: Option<u32>,
     },
-    /// A valve on no valve terminal.
+    /// A valve for a valve terminal on none: the terminal had no free position.
     Loose {
+        /// The device's tag.
+        device: String,
+    },
+    /// A device that takes no valve position (a stand-alone valve with a coil of its own, a coil, a cylinder): it stays
+    /// a device of its own.
+    Own {
         /// The device's tag.
         device: String,
     },

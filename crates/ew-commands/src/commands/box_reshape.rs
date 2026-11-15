@@ -337,6 +337,7 @@ impl Command for ReshapeBox {
             outline: self.outline.clone(),
             cps,
             inner: old.inner.clone(),
+            slots: old.slots.clone(),
             extra: old.extra.clone(),
         });
         tx.put(next);

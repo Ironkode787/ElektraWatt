@@ -244,8 +244,11 @@ pub struct ConnectHint {
 /// - The effective `rep_type` must be one the page's type allows (doc 06 §2.2, `allowed_rep_types`);
 ///   else the placement is rejected with the list of allowed types.
 /// - `into` (the window sends the valve terminal whose box the insertion point lies in): the new device joins that
-///   terminal as `assembly::seat_on_terminal` says (a valve at the first free position, a supply plate without one),
-///   in the same transaction; any other device is left as it is.
+///   terminal as `assembly::seat_on_terminal` says (a valve in the cell it is placed in when the terminal is drawn as
+///   its positions, else at the first free position; a supply plate without one), in the same transaction; any other
+///   device is left as it is. With `replace`, a held cell's valve or blanking plate is removed for the new valve.
+///   Without `into`, a function of a terminal's valve drawn on a page where the terminal is drawn as its positions
+///   stands in its cell.
 ///
 /// Rejected besides: a missing part copy or template index; a template without exactly one main entry (a device
 /// has one main function); a template FnDef that is neither embedded nor in `copies` (embed it
@@ -288,6 +291,10 @@ pub struct PlaceSymbol {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[schemars(with = "Option<UuidS>")]
     pub into: Option<Id<Device>>,
+    /// With `into`: a valve placed in a held cell of a terminal drawn as its positions replaces the cell's valve or
+    /// blanking plate (Replace… on the cell's menu, rc.2); default false (refused).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub replace: bool,
 }
 
 impl Command for PlaceSymbol {
@@ -397,7 +404,10 @@ impl Command for PlaceSymbol {
         if let Some(terminal) = self.into
             && let Some(device) = tx.require::<Function>(function)?.device
         {
-            super::assembly::seat_on_terminal(tx, device, terminal)?;
+            super::assembly::seat_on_terminal(tx, device, terminal, Some(rep), self.replace)?;
+        } else if let Some(parent) = tx.require::<Function>(function)?.device.and_then(|d| tx.get::<Device>(d)?.parent) {
+            // A valve of a terminal drawn as its positions, drawn on the box's page, stands in its cell (rc.2).
+            super::assembly::seat_reps(tx, parent)?;
         }
         Ok(Outcome {
             notices,
@@ -1068,14 +1078,17 @@ impl Command for MoveReps {
     fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         let out = self.run_move(tx)?;
         if let Some(terminal) = self.into {
-            let mut devices: BTreeSet<Id<Device>> = BTreeSet::new();
+            // Each device with the first moved representation that draws it: the cell it lands in is that one's.
+            let mut devices: BTreeMap<Id<Device>, Id<Representation>> = BTreeMap::new();
             for r in &self.reps {
                 for f in drawn_functions(&*tx.require::<Representation>(*r)?) {
-                    devices.extend(tx.get::<Function>(f).and_then(|f| f.device));
+                    if let Some(d) = tx.get::<Function>(f).and_then(|f| f.device) {
+                        devices.entry(d).or_insert(*r);
+                    }
                 }
             }
-            for d in devices {
-                super::assembly::seat_on_terminal(tx, d, terminal)?;
+            for (d, r) in devices {
+                super::assembly::seat_on_terminal(tx, d, terminal, Some(r), false)?;
             }
         }
         Ok(out)
@@ -1084,7 +1097,7 @@ impl Command for MoveReps {
 
 impl MoveReps {
     /// The move itself (see the type's documentation), without `into`.
-    fn run_move(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+    pub(crate) fn run_move(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
         if self.reps.is_empty() && self.items.is_empty() {
             return tx.reject(text!("refusal-rep-move-nothing"));
         }
@@ -1713,7 +1726,12 @@ impl Command for PlaceBlackBox {
         if rep_cps_checked(tx, &record).is_err() {
             return tx.reject(text!("refusal-box-black-out-of-range"));
         }
+        let slotted = record.box_.as_ref().is_some_and(|b| b.slots.is_some());
         tx.insert(record)?;
+        // A valve terminal drawn as its positions: its valves drawn on this page stand in their cells (rc.2).
+        if slotted && let Some(device) = tx.require::<Function>(function)?.device {
+            super::assembly::seat_reps(tx, device)?;
+        }
         Ok(Outcome::primary((Kind::Representation, rep.cast())))
     }
 }

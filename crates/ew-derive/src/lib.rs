@@ -96,6 +96,7 @@ mod text_frame;
 mod title_block;
 mod toc;
 mod tracker;
+mod valve_cells;
 mod wire_profile;
 mod wire_props;
 mod wires;
@@ -154,7 +155,12 @@ pub use flow_distance::{CpFlowDistanceOf, CpFlowDistances};
 pub use fluid::{
     FluidNet, FluidNets, FluidPartition, FluidTube, FluidTubes, GALLERIES, Galleries, GallerySegment,
     ValvePort, ValveSlot, ValveSlots, ValveSlotsV, is_fluid, is_valve_terminal, open_working_ports,
-    parent_chain, reached_device, tracked_process_tag, tracked_target, valve_functions, valve_positions,
+    parent_chain, positions_of, reached_device, tracked_process_tag, tracked_target, valve_functions,
+    valve_positions,
+};
+pub use valve_cells::{
+    BAND_TOP, CELL_STEPS, END_STEPS, HEIGHT_STEPS, SlotFrame, ValveCell, device_fits_terminal, fits_terminal,
+    graphics_x_extent, terminal_cells, terminal_supply,
 };
 pub use fluid_media::{
     Effective, MediumKey, MediumOrigin, MediumZones, MediumZonesV, Sourced, TubeProps, TubePropsOf,

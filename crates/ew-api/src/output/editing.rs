@@ -1848,6 +1848,59 @@ pub struct TableBox {
     /// Whether the box is a valve terminal's (its device a PLC station of role `valve_terminal`): a valve placed inside
     /// is a valve of its own that joins the terminal, never a function of the terminal's device.
     pub valve_terminal: bool,
+    /// The cells of a box drawn as the terminal's valve positions (rc.2), left to right; empty for a free box.
+    pub cells: Vec<SlotCell>,
+    /// The supply end of such a box (left, top, right, bottom on the page); `None` for a free box.
+    pub supply_end: Option<[i64; 4]>,
+}
+
+/// One cell of a [`TableBox`] drawn as a valve terminal's positions.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SlotCell {
+    /// The module the position belongs to (the terminal, or a sub-base).
+    pub module: Uuid,
+    /// The position, 1-based, on its module.
+    pub position: u32,
+    /// Its rectangle on the page: left, top, right, bottom.
+    pub rect: [i64; 4],
+    /// The valve or blanking plate that holds it; `None` when empty.
+    pub holder: Option<Uuid>,
+    /// Whether the holder is a blanking plate.
+    pub blank: bool,
+}
+
+/// The cells and the supply end of valve terminal `terminal`'s box at `pos` drawn as its positions, `pitch` per cell, on a
+/// page of grid `grid` ([`TableBox::cells`]).
+fn table_cells(
+    q: &ew_derive::Q,
+    terminal: Id<Device>,
+    grid: ew_derive::ew_units::Grid,
+    pos: Pt2,
+    pitch: ew_derive::ew_units::Nm,
+) -> (Vec<SlotCell>, Option<[i64; 4]>) {
+    let frame = ew_derive::SlotFrame::new(grid, pos, pitch);
+    let (top, _, bottom) = frame.rows();
+    let cells = ew_derive::terminal_cells(q, terminal)
+        .into_iter()
+        .enumerate()
+        .map(|(i, c)| {
+            let (l, r) = frame.cell_x(i);
+            let (holder, blank) = match c.slot {
+                ew_derive::ValveSlot::Valve { device, .. } => (Some(device.as_uuid()), false),
+                ew_derive::ValveSlot::Blank { device } => (Some(device.as_uuid()), true),
+                ew_derive::ValveSlot::Empty => (None, false),
+            };
+            SlotCell {
+                module: c.module.as_uuid(),
+                position: c.position,
+                rect: [l.0, top.0, r.0, bottom.0],
+                holder,
+                blank,
+            }
+        })
+        .collect();
+    let origin = frame.origin();
+    (cells, Some([origin.x.0, top.0, frame.end_x().0, bottom.0]))
 }
 
 /// The derived potential of a [`TableCp`]: its name, and whether that name is only the fallback.
@@ -2197,7 +2250,19 @@ impl Session {
                         .as_ref()
                         .and_then(|f| f.device)
                         .is_some_and(|d| ew_derive::is_valve_terminal(&q, d)),
+                    cells: Vec::new(),
+                    supply_end: None,
                 }
+            });
+            let black_box = black_box.map(|mut b| {
+                if let (Some(slots), Some(terminal), Some(page)) = (
+                    rep.box_.as_ref().and_then(|x| x.slots.as_ref()),
+                    first.as_ref().and_then(|f| f.device),
+                    q.pages().get(page_id),
+                ) {
+                    (b.cells, b.supply_end) = table_cells(&q, terminal, page.grid, rep.pos, slots.pitch);
+                }
+                b
             });
             let tag_at = (first.as_ref().is_some_and(|f| f.device.is_some() && ip.is_none()))
                 .then(|| {

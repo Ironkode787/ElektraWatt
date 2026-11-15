@@ -69,6 +69,7 @@ fn place(page: ew_ids::Id<ew_schema::Page>, pos: Pt2, target: PlaceTarget) -> Pl
         target,
         connect: vec![],
         into: None,
+        replace: false,
     }
 }
 

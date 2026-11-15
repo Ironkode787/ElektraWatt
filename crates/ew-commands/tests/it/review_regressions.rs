@@ -153,6 +153,7 @@ fn n1_a_hint_onto_the_wire_takes_the_same_rule() {
             to: EndpointParam::OnConnection { connection: w, at },
         }],
         into: None,
+        replace: false,
     };
 
     let reason = rejection(e.execute(&hint(pt(2 * G, Y_GRID))));

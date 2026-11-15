@@ -69,6 +69,7 @@ fn place_k(letter: &str, page: Id<Page>, pos: Pt2) -> PlaceSymbol {
         },
         connect: vec![],
         into: None,
+        replace: false,
     }
 }
 

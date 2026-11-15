@@ -147,6 +147,7 @@ mod tests {
                 })
                 .collect(),
             inner: Vec::new(),
+            slots: None,
             extra: Default::default(),
         }
     }

@@ -1,0 +1,238 @@
+// SPDX-FileCopyrightText: 2026 The ElektraWatt contributors
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+//! A valve terminal drawn as its valve positions (doc 11 §3.2, rc.2): what each cell of a slotted box holds
+//! ([`terminal_cells`]), which device may take a cell ([`fits_terminal`]), and the geometry of the cells
+//! ([`SlotFrame`]).
+//!
+//! The box (`BoxSpec.slots`) stands on the page grid: a supply end of [`END_STEPS`] grid steps on the left (where the
+//! terminal's supply ports 1, 3 and 5 are drawn), then one cell of `pitch` per valve position, left to right, all
+//! [`HEIGHT_STEPS`] high. A valve stands in its cell with its working ports 2 and 4 two steps below the top edge; its
+//! ports 1, 3 and 5 end on the sub-base, a band along the bottom two steps high, which the scene draws with the cell
+//! numbers in it (the galleries join those ports in the model, doc 11 §5.2).
+
+use ew_ids::Id;
+use ew_schema::{ContactKind, Device, FnDef, Primitive, SymbolDef};
+use ew_units::{Grid, Nm, Pt2};
+
+use crate::{Q, ValveSlot, ValveSlots};
+
+/// The width of one cell, in grid steps: a 5/2 valve of the 12 mm module (39 mm with its solenoid and spring) with a
+/// step to spare.
+pub const CELL_STEPS: i64 = 11;
+/// The width of the supply end, in grid steps: the supply plate's symbol (six steps).
+pub const END_STEPS: i64 = 6;
+/// The height of the box, in grid steps.
+pub const HEIGHT_STEPS: i64 = 8;
+/// The row of a valve's insertion point (its working ports), in grid steps below the top edge.
+const VALVE_TOP: i64 = 2;
+/// The row of the sub-base's top edge, where a valve's ports 1, 3 and 5 end.
+pub const BAND_TOP: i64 = 6;
+/// The row of the supply plate's insertion point: its ports end on the bottom edge.
+const SUPPLY_TOP: i64 = 3;
+
+/// One cell of a slotted box: the module whose position it is (the terminal itself, or a sub-base), the position,
+/// and what it holds.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct ValveCell {
+    /// The module the position belongs to.
+    pub module: Id<Device>,
+    /// The position, 1-based, on its module.
+    pub position: u32,
+    /// What it holds.
+    pub slot: ValveSlot,
+}
+
+/// The cells of a valve terminal, left to right: the positions of the terminal itself, then those of each child
+/// module in position order (`valve_slots` of each); empty for a device without valve positions.
+pub fn terminal_cells(q: &Q, terminal: Id<Device>) -> Vec<ValveCell> {
+    let mut modules = vec![terminal];
+    modules.extend(crate::fluid::ordered_children(q, terminal));
+    let mut out = Vec::new();
+    for m in modules {
+        let slots = q.get::<ValveSlots>(m);
+        for (p, slot) in (1u32..).zip(slots.slots.iter()) {
+            out.push(ValveCell {
+                module: m,
+                position: p,
+                slot: slot.clone(),
+            });
+        }
+    }
+    out
+}
+
+/// Whether a device with functions on the FnDefs `defs` may sit on a valve terminal's position: it has a valve function
+/// and no coil of its own to wire (a coil FnDef with a physical CP: a stand-alone valve's A1, A2). A valve for a
+/// terminal has an internal coil the terminal drives, or none drawn yet.
+pub fn fits_terminal<'a>(defs: impl IntoIterator<Item = &'a FnDef>) -> bool {
+    let mut valve = false;
+    for d in defs {
+        match d.contact_kind {
+            ContactKind::Valve => valve = true,
+            ContactKind::Coil if d.cps.iter().any(|c| c.physical) => return false,
+            _ => {}
+        }
+    }
+    valve
+}
+
+/// [`fits_terminal`] of a device of the model.
+pub fn device_fits_terminal(q: &Q, device: Id<Device>) -> bool {
+    let functions = q.functions();
+    let fndefs = q.fndefs();
+    let defs: Vec<_> = q
+        .idx()
+        .functions_of_device(device)
+        .filter_map(|f| fndefs.get(functions.get(f)?.def))
+        .collect();
+    fits_terminal(defs.iter().map(|d| &d.item))
+}
+
+/// The left and right ends of a symbol's graphics, relative to its insertion point (texts left out); `None` for a
+/// symbol without graphics of these kinds.
+pub fn graphics_x_extent(symbol: &SymbolDef) -> Option<(Nm, Nm)> {
+    let mut xs: Vec<i64> = Vec::new();
+    for p in &symbol.graphics {
+        match p {
+            Primitive::Line(l) => xs.extend([l.from.x.0, l.to.x.0]),
+            Primitive::Polyline(l) => xs.extend(l.points.iter().map(|p| p.x.0)),
+            Primitive::Polygon(l) => xs.extend(l.points.iter().map(|p| p.x.0)),
+            Primitive::Rect(r) => xs.extend([r.rect.0.min().x.0, r.rect.0.max().x.0]),
+            Primitive::Ellipse(r) => xs.extend([r.rect.0.min().x.0, r.rect.0.max().x.0]),
+            Primitive::Arc(r) => xs.extend([r.rect.0.min().x.0, r.rect.0.max().x.0]),
+            Primitive::Circle(c) => xs.extend([c.centre.x.0.saturating_sub(c.r.0), c.centre.x.0.saturating_add(c.r.0)]),
+            _ => {}
+        }
+    }
+    Some((Nm(*xs.iter().min()?), Nm(*xs.iter().max()?)))
+}
+
+/// The geometry of a slotted box on its page: the grid, the grid indices of its top-left corner, and the cell width in
+/// grid steps.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct SlotFrame {
+    grid: Grid,
+    x0: i64,
+    y0: i64,
+    cell: i64,
+}
+
+impl SlotFrame {
+    /// The frame of a box at `pos` (its top-left corner) whose cells are `pitch` wide, on a page of grid `grid`; the
+    /// pitch is taken in whole grid steps (at least one).
+    pub fn new(grid: Grid, pos: Pt2, pitch: Nm) -> SlotFrame {
+        let cell = grid.snap(pitch).max(1);
+        SlotFrame {
+            grid,
+            x0: grid.snap(pos.x),
+            y0: grid.snap(pos.y),
+            cell,
+        }
+    }
+
+    /// The cell width of a new box on grid `grid`: [`CELL_STEPS`] grid steps.
+    pub fn pitch(grid: Grid) -> Nm {
+        grid.at(CELL_STEPS).unwrap_or(Nm(0))
+    }
+
+    fn x(&self, k: i64) -> Nm {
+        self.grid.at(self.x0.saturating_add(k)).unwrap_or(Nm(0))
+    }
+
+    fn y(&self, k: i64) -> Nm {
+        self.grid.at(self.y0.saturating_add(k)).unwrap_or(Nm(0))
+    }
+
+    /// The top-left corner.
+    pub fn origin(&self) -> Pt2 {
+        Pt2::new(self.x(0), self.y(0))
+    }
+
+    /// The grid column of the left edge of cell `i` (0-based), relative to the box.
+    fn col(&self, i: usize) -> i64 {
+        END_STEPS.saturating_add(self.cell.saturating_mul(i64::try_from(i).unwrap_or(i64::MAX / 2)))
+    }
+
+    /// The outline of a box of `n` cells, relative to its top-left corner (clockwise from it).
+    pub fn outline(&self, n: usize) -> Vec<Pt2> {
+        let o = self.origin();
+        let w = self.x(self.col(n)) - o.x;
+        let h = self.y(HEIGHT_STEPS) - o.y;
+        vec![Pt2::ORIGIN, Pt2::new(w, Nm(0)), Pt2::new(w, h), Pt2::new(Nm(0), h)]
+    }
+
+    /// The left and right x of cell `i` (0-based), on the page.
+    pub fn cell_x(&self, i: usize) -> (Nm, Nm) {
+        (self.x(self.col(i)), self.x(self.col(i + 1)))
+    }
+
+    /// The y of the top edge, of the sub-base's top edge and of the bottom edge, on the page.
+    pub fn rows(&self) -> (Nm, Nm, Nm) {
+        (self.y(0), self.y(BAND_TOP), self.y(HEIGHT_STEPS))
+    }
+
+    /// The right x of the supply end, on the page.
+    pub fn end_x(&self) -> Nm {
+        self.x(END_STEPS)
+    }
+
+    /// The cell of a box of `n` cells that the page point `p` lies in (0-based); `None` outside every cell.
+    pub fn cell_at(&self, n: usize, p: Pt2) -> Option<usize> {
+        let (top, _, bottom) = self.rows();
+        if p.y < top || p.y > bottom {
+            return None;
+        }
+        (0..n).find(|i| {
+            let (l, r) = self.cell_x(*i);
+            p.x >= l && p.x < r
+        })
+    }
+
+    /// The insertion point of a valve in cell `i` whose graphics span `extent` (relative x): centred in the cell on the
+    /// nearest grid column, its working ports [`VALVE_TOP`] steps below the top edge.
+    pub fn valve_at(&self, i: usize, extent: Option<(Nm, Nm)>) -> Pt2 {
+        let (l, r) = self.cell_x(i);
+        let (min, max) = extent.unwrap_or((Nm(0), Nm(0)));
+        let centre = (i128::from(l.0) + i128::from(r.0)) / 2;
+        let half = (i128::from(min.0) + i128::from(max.0)) / 2;
+        let x = i64::try_from(centre - half).unwrap_or(l.0);
+        Pt2::new(self.grid.snap_point(Nm(x)).unwrap_or(l), self.y(VALVE_TOP))
+    }
+
+    /// The insertion point of the supply plate's symbol: at the left edge, its ports on the bottom edge.
+    pub fn supply_at(&self) -> Pt2 {
+        Pt2::new(self.x(0), self.y(SUPPLY_TOP))
+    }
+}
+
+/// The supply of a valve terminal drawn in its box's supply end: the lowest-ID function of the terminal, else of a
+/// child without a position, whose device's part taps a gallery and that has a fluid CP of the tap's designation (the
+/// supply plate's function). `None` when the terminal has no supply plate.
+pub fn terminal_supply(q: &Q, terminal: Id<Device>) -> Option<Id<ew_schema::Function>> {
+    let devices = q.devices();
+    let parts = q.parts();
+    let mut candidates = vec![terminal];
+    candidates.extend(
+        crate::fluid::ordered_children(q, terminal)
+            .into_iter()
+            .filter(|c| devices.get(*c).is_some_and(|d| d.position.is_none())),
+    );
+    candidates.into_iter().find_map(|d| {
+        let dev = devices.get(d)?;
+        let taps: Vec<String> = dev
+            .parts
+            .iter()
+            .filter_map(|u| parts.get(u.part.copy))
+            .filter_map(|p| p.item.sections.fluid.clone())
+            .flat_map(|f| f.galleries.into_iter().filter_map(|g| g.tap.map(|t| t.as_str().to_owned())))
+            .collect();
+        let mut fns: Vec<_> = q.idx().functions_of_device(d).collect();
+        fns.sort();
+        fns.into_iter().find(|f| {
+            q.get::<crate::FunctionCps>(*f)
+                .iter()
+                .any(|c| crate::is_fluid(&c.discipline) && taps.iter().any(|t| *t == c.designation))
+        })
+    })
+}

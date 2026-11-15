@@ -330,6 +330,7 @@ fn place_with(
         target,
         connect: vec![],
         into: None,
+        replace: false,
     }
 }
 
@@ -1821,6 +1822,7 @@ fn device_place_with_an_old_target_serialises_as_before() {
         },
         connect: vec![],
         into: None,
+        replace: false,
     };
     assert_eq!(
         serde_json::to_value(&cmd).unwrap(),

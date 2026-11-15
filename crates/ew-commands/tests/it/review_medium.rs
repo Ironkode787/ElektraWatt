@@ -56,6 +56,7 @@ fn place(page: Id<Page>, rep_type: Option<RepType>) -> PlaceSymbol {
         },
         connect: vec![],
         into: None,
+        replace: false,
     }
 }
 

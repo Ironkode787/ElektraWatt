@@ -34,7 +34,7 @@ fn child(device: Id<Device>, position: Option<u32>) -> ChildSpec {
 }
 
 fn attach(parent: Id<Device>, children: Vec<ChildSpec>) -> AttachChildren {
-    AttachChildren { parent, children }
+    AttachChildren { parent, children, swap: false }
 }
 
 fn set_device(device: Id<Device>, path: &str, value: Value) -> SetFields {
@@ -191,8 +191,8 @@ fn valve_add_checks_positions_and_undo_removes_the_valve() {
             reason(e.execute(&valve(DEV_102G1, Some(5), None)))
         ],
         [
-            "position 1 of -102G1 is held by -101F1; choose a free position (no push insert)",
-            "position 5 of -102G1 is held by -102G1-Q5; choose a free position (no push insert)"
+            "position 1 of -102G1 already holds -101F1: choose an empty position, or empty this one first",
+            "position 5 of -102G1 already holds -102G1-Q5: choose an empty position, or empty this one first"
         ]
     );
     assert_eq!(

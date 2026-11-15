@@ -54,6 +54,7 @@ fn tool_box(g: Grid, k0: (i64, i64), w: i64, h: i64) -> (Pt2, BoxSpec) {
         outline,
         cps,
         inner: vec![],
+        slots: None,
         extra: Extra::new(),
     };
     (pos, spec)

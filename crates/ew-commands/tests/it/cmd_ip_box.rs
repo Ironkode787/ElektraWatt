@@ -415,6 +415,7 @@ fn draw_to_ip_refuses_a_start_on_another_page() {
                 extra: Extra::new(),
             }],
             inner: vec![],
+            slots: None,
             extra: Extra::new(),
         });
         records.push(Record::Representation(box_rep));
@@ -633,6 +634,7 @@ fn box_spec(outline: Vec<Pt2>, cps: Vec<BoxCp>) -> BoxSpec {
         outline,
         cps,
         inner: vec![],
+        slots: None,
         extra: Extra::new(),
     }
 }

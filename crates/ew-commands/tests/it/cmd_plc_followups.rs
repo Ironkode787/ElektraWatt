@@ -142,6 +142,7 @@ fn attach(parent: Id<Device>, valve: Id<Device>, position: Option<u32>) -> Attac
             device: valve,
             position,
         }],
+        swap: false,
     }
 }
 

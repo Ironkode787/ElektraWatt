@@ -10,14 +10,14 @@
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
-use ew_units::{Angle2, Grid, Orient2, Pt2};
+use ew_units::{Angle2, Grid, Nm, Orient2, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::json::{Extra, de_extra, is_default, is_false, is_v1, v1};
 use crate::library::{AnchorPolicy, Dir4, FormDef, Primitive, RepType, SymbolDef};
-use crate::proxy::{Angle2S, GridS, IdentS, MlTextS, Orient2S, Pt2S, UuidS};
+use crate::proxy::{Angle2S, GridS, IdentS, MlTextS, NmS, Orient2S, Pt2S, UuidS};
 use crate::set::{KeyedList, Set, keyed};
 use crate::track::open_enum;
 use crate::value::{AnyId, Bounds, SourceRef, StructureAssignment};
@@ -255,6 +255,23 @@ pub struct BoxSpec {
     /// Graphics inside the box.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub inner: Vec<Primitive>,
+    /// A valve terminal's box drawn as its valve positions (doc 11 §3.2, rc.2): one cell per position in a row, each
+    /// `pitch` wide; absent: a free box. An optional member without cascade semantics (ADR-0011 amendment 6): an
+    /// older build keeps it and draws the outline alone.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub slots: Option<BoxSlots>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// The cells of a valve terminal's box ([`BoxSpec::slots`]): the cells stand left to right after the supply end, each
+/// `pitch` wide; their content is derived from the terminal's valve positions, never stored.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct BoxSlots {
+    /// The width of one cell.
+    #[schemars(with = "NmS")]
+    pub pitch: Nm,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

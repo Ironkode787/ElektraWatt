@@ -103,7 +103,7 @@ use sha2::{Digest, Sha256};
 
 pub use editing::{
     CatalogueSymbol, JunctionWire, PageTables, PlaceCatalogue, PlacedBy, SymbolShape, TableConnection,
-    TableCp, TableEnd, TableItem, TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map,
+    SlotCell, TableCp, TableEnd, TableItem, TableJunction, TablePotential, TableRep, TableStructureBox, exchange_map,
     page_type_takes,
 };
 /// The display-list IR the pages of an export are made of ([`ExportPages`]' `content`), re-exported so that the
@@ -182,7 +182,7 @@ pub use title_block_fields::TitleBlockFacts;
 pub use underlay::{UNDERLAY_IMPORTER, UnderlaySource, underlay_cache_dir};
 pub use view::{
     FrameForms, NOGRID_FRAME, PageConnectionsOf, PageEmbeddedOf, PageFrameOf, PageSlotsOf, PageTableOf,
-    page_destination, page_items, page_uuid, page_valve_glyphs,
+    page_destination, page_items, page_uuid, page_valve_cells, page_valve_glyphs,
 };
 
 pub(crate) use panel::{PageSurfaceView, ShapedText};

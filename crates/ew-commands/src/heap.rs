@@ -1010,7 +1010,11 @@ impl HeapSize for Page {
 
 impl HeapSize for BoxSpec {
     fn heap_size(&self) -> usize {
-        self.outline.heap_size() + self.cps.heap_size() + self.inner.heap_size() + self.extra.heap_size()
+        self.outline.heap_size()
+            + self.cps.heap_size()
+            + self.inner.heap_size()
+            + self.slots.as_ref().map_or(0, |s| s.extra.heap_size())
+            + self.extra.heap_size()
     }
 }
 

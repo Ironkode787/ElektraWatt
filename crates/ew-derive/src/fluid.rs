@@ -129,7 +129,7 @@ pub fn valve_functions(q: &Q, device: Id<Device>) -> Vec<Id<Function>> {
 }
 
 /// The children of a device ordered by position, then ID (a child without a position last).
-fn ordered_children(q: &Q, device: Id<Device>) -> Vec<Id<Device>> {
+pub(crate) fn ordered_children(q: &Q, device: Id<Device>) -> Vec<Id<Device>> {
     let devices = q.devices();
     let mut out: Vec<(u32, Id<Device>)> = q
         .idx()
@@ -161,8 +161,8 @@ pub struct GallerySegment {
 
 /// `galleries(vt)` (doc 11 §5.2, FR-FLU-026): the gallery segments of a valve terminal.
 ///
-/// The slots are the terminal's children in position order, each followed by its own children in position order
-/// (a module and its valves). Per gallery, a slot whose part's fluid section has an entry for the gallery with
+/// The slots are the terminal itself, then its children in position order, each followed by its own children in
+/// position order (a module and its valves). Per gallery, a slot whose part's fluid section has an entry for the gallery with
 /// `separates` closes the segment before it; a slot with a valve function joins that function's ports of the
 /// gallery's role; a slot whose entry has a `tap` joins its port of that designation; every other slot (a module
 /// without fluid data, the CPX block) is transparent. Empty segments are left out. Empty for a device that is no
@@ -180,7 +180,9 @@ impl Query for Galleries {
         if !is_valve_terminal(q, *key) {
             return Arc::new(Vec::new());
         }
-        let mut slots: Vec<Id<Device>> = Vec::new();
+        // The terminal itself first: a terminal with a supply of its own (its part taps the galleries) feeds them from
+        // its supply end (rc.2).
+        let mut slots: Vec<Id<Device>> = vec![*key];
         for c in ordered_children(q, *key) {
             slots.push(c);
             slots.extend(ordered_children(q, c));
@@ -518,20 +520,28 @@ pub struct ValveSlotsV {
 pub fn valve_positions(q: &Q, module: Id<Device>) -> Option<u16> {
     let dev = q.devices().get(module)?;
     let parts = q.parts();
-    if let Some(n) = dev
-        .parts
-        .iter()
-        .find_map(|u| parts.get(u.part.copy)?.item.sections.fluid.as_ref()?.positions)
-    {
-        return Some(n);
+    positions_of(&dev, |i| {
+        let section = |c: &ew_schema::LibCopy<ew_schema::Part>| {
+            let s = &c.item.sections;
+            (
+                s.fluid.as_ref().and_then(|f| f.positions),
+                s.plc.as_ref().and_then(|p| p.positions.as_ref()).map(|p| p.count),
+            )
+        };
+        dev.parts.get(i).and_then(|u| parts.get(u.part.copy)).map_or((None, None), |c| section(&c))
+    })
+}
+
+/// [`valve_positions`] of a device whose `i`-th part use's copy says `part(i)`: (its `fluid.positions`, its
+/// `plc.positions.count`); the one rule for the model and a command's transaction.
+pub fn positions_of(dev: &Device, part: impl Fn(usize) -> (Option<u16>, Option<u16>)) -> Option<u16> {
+    let n = dev.parts.len();
+    if let Some(p) = (0..n).find_map(|i| part(i).0) {
+        return Some(p);
     }
-    let count = |i: usize| {
-        let copy = parts.get(dev.parts.get(i)?.part.copy)?;
-        Some(copy.item.sections.plc.as_ref()?.positions.as_ref()?.count)
-    };
     match dev.aspects.plc_module.as_ref().and_then(|m| m.part_use) {
-        Some(i) => count(usize::from(i)),
-        None => (0..dev.parts.len()).find_map(count),
+        Some(i) => part(usize::from(i)).1,
+        None => (0..n).find_map(|i| part(i).1),
     }
 }
 

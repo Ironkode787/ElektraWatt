@@ -189,6 +189,7 @@ impl Command for BindChannel {
                     device,
                     position: Some(position),
                 }],
+                swap: false,
             }
             .run(tx)?;
         }

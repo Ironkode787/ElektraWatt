@@ -462,6 +462,7 @@ fn a_drives_link_to_an_ancestor_fails_ew_inv_025() {
     let r = e.execute(&ew_commands::commands::AttachChildren {
         parent: DEV_B,
         children: vec![serde_json::from_value(json!({"device": DEV_A.to_string()})).expect("a child")],
+        swap: false,
     });
     match r {
         Err(CmdError::Model(ew_model::ModelError::Invariant { id, .. }, _)) => assert_eq!(id, "EW-INV-025"),

@@ -75,6 +75,7 @@ fn tool_box(k0: (i64, i64), k1: (i64, i64), tops: &[i64], bottoms: &[i64]) -> (P
         outline,
         cps,
         inner: vec![],
+        slots: None,
         extra: Extra::new(),
     };
     (pos, spec)
@@ -184,6 +185,7 @@ fn place_two(e: &mut Engine, page: Id<ew_schema::Page>, pos: Pt2) -> (Id<Represe
             },
             connect: vec![],
             into: None,
+            replace: false,
         })
         .expect("device.place");
     let rep: Id<Representation> = typed(r.outcome.primary.expect("primary"));
@@ -633,6 +635,7 @@ fn an_off_grid_position_is_refused_in_words() {
         },
         connect: vec![],
         into: None,
+        replace: false,
     }));
     assert_eq!(
         reason,

@@ -1127,6 +1127,7 @@ fn finding1_a_concurrent_new_member_reruns_place_assembly() {
             device: k(3),
             position: Some(4),
         }],
+        swap: false,
     })
     .unwrap();
     assert!(

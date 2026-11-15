@@ -111,11 +111,11 @@ use ew_scene::embedded::{CoverTables, EmbeddedContent, EmbeddedTable, EmbeddedVi
 use ew_scene::forms::{AssetRef, BoundValue, PageBindings};
 use ew_scene::page::{
     BreakMarkView, BreakSide, ConnectionView, CpTarget, FrameView, ItemLink, JunctionView, PinText, RepView,
-    SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveGlyph, ValveGlyphsView,
+    CellView, SegmentTerminal, SlotValue, StripTagView, SymbolRef, ValveCellsView, ValveGlyph, ValveGlyphsView,
 };
 use ew_scene::table::{TableColumn, TableLink, TableRow, TableRowKind, TableView};
 use ew_schema::{
-    FnRole, FormDef, Function, FunctionKind, JunctionStyle, LabelMode, LibCopy, LibDocument, Page, PageType,
+    Device, FnRole, FormDef, Function, FunctionKind, JunctionStyle, LabelMode, LibCopy, LibDocument, Page, PageType,
     RepType, ReportBlock, ReportKind, ReportSource, Representation, Side, SlotKind, SymbolDef, TagPrint,
 };
 
@@ -641,6 +641,59 @@ pub fn page_valve_glyphs(q: &Q, page: Id<Page>) -> Vec<ValveGlyphsView> {
             })
             .collect();
         out.push(ValveGlyphsView { rep: rid, glyphs });
+    }
+    out
+}
+
+/// The cells of the valve terminals drawn as their positions on a drawn page (doc 11 §3.2, rc.2): for each box
+/// representation with `slots`, in representation-ID order, its frame and per cell (`terminal_cells`) its number and
+/// what it holds (a valve not drawn on this page with its tag), and whether its supply plate stands on the page. A plain
+/// function of the tracked reads of `q`, like `page_valve_glyphs`.
+pub fn page_valve_cells(q: &Q, page: Id<Page>) -> Vec<ValveCellsView> {
+    let reps = q.reps();
+    let functions = q.functions();
+    let Some(grid) = q.pages().get(page).map(|p| p.grid) else {
+        return Vec::new();
+    };
+    let mut ids: Vec<Id<Representation>> = q.idx().reps_by_page(page).collect();
+    ids.sort();
+    let drawn_here = |device: Id<Device>| {
+        q.idx()
+            .functions_of_device(device)
+            .any(|f| q.idx().reps_of_function(f).any(|r| reps.get(r).is_some_and(|r| r.page == page)))
+    };
+    let mut out = Vec::new();
+    for rid in ids {
+        let Some(rep) = reps.get(rid) else { continue };
+        let Some(slots) = rep.box_.as_ref().and_then(|b| b.slots.as_ref()) else {
+            continue;
+        };
+        let Some(terminal) = rep.functions.first().and_then(|f| functions.get(*f)).and_then(|f| f.device) else {
+            continue;
+        };
+        let cells = ew_derive::terminal_cells(q, terminal)
+            .into_iter()
+            .map(|c| {
+                let view = match c.slot {
+                    ew_derive::ValveSlot::Valve { device, .. } => CellView::Valve {
+                        elsewhere: (!drawn_here(device))
+                            .then(|| super::properties::device_tag_text(q, device)),
+                    },
+                    ew_derive::ValveSlot::Blank { .. } => CellView::Blank,
+                    ew_derive::ValveSlot::Empty => CellView::Empty,
+                };
+                (c.position, view)
+            })
+            .collect();
+        let supply = ew_derive::terminal_supply(q, terminal).is_some_and(|f| {
+            q.idx().reps_of_function(f).any(|r| reps.get(r).is_some_and(|r| r.page == page))
+        });
+        out.push(ValveCellsView {
+            rep: rid,
+            frame: ew_derive::SlotFrame::new(grid, rep.pos, slots.pitch),
+            cells,
+            supply,
+        });
     }
     out
 }

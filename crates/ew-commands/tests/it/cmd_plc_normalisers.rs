@@ -297,6 +297,7 @@ fn n2_on_a_move_binds_a_free_coil_and_keeps_a_bound_one() {
             device: v,
             position: Some(p),
         }],
+        swap: false,
     };
     let r = e.execute(&move_to(2)).expect("move to 2");
     assert_eq!(

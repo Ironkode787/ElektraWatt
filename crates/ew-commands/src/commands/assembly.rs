@@ -11,10 +11,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use ew_ids::Id;
 use ew_mltext::{Ident, MlText};
+use std::sync::Arc;
+
 use ew_schema::{
-    Device, DeviceAspects, DeviceLink, DeviceLinkKind, Extra, FnDef, FnRole, Kind, LibCopy, PartUse,
-    StructureAssignment, TagScheme, TagSpec,
+    Device, DeviceAspects, DeviceLink, DeviceLinkKind, Extra, FnDef, FnRole, Kind, LibCopy, Page, PartUse,
+    Representation, StructureAssignment, TagScheme, TagSpec,
 };
+use ew_units::{Nm, Pt2};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -78,11 +81,14 @@ fn taken_positions(
 /// ([`CmdError::NotFound`]). Rejected: a position 0 (positions are 1-based, at `/children/i/position`); two
 /// children of the command at one position; a position another child of the parent already holds (no
 /// push insert in v0: move that child first); a child that is the parent's ancestor (the assembly graph is
-/// acyclic, EW-INV-009). A child that has another parent moves to this one. A child tag (`tag.scheme =
+/// acyclic, EW-INV-009). With `swap`, a held position is exchanged instead: its holder takes the old position of the
+/// child that comes (refused when that child had no position on this parent). A child that has another parent moves to
+/// this one. A child tag (`tag.scheme =
 /// child`, not frozen) whose counter equals its old position follows the new position (N-FL-2, doc 11
 /// §4.2); any other tag is not touched. A child tag is set with `fields.set`, a valve added with `valve.add`.
 /// The generated assembly overviews, slots, break marks and the PLC overview follow from the tree (they are
-/// derived). Outcome: the parent.
+/// derived). A valve terminal drawn as its positions (`BoxSpec.slots`) has the symbols of its valves on that page
+/// moved into their cells, their tubes following (rc.2). Outcome: the parent.
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct AttachChildren {
@@ -91,6 +97,10 @@ pub struct AttachChildren {
     pub parent: Id<Device>,
     /// The children, at least one.
     pub children: Vec<ChildSpec>,
+    /// A requested position another child of the parent holds is swapped (rc.2): that child takes the old position of
+    /// the child that comes, which must be a child of the parent with a position; default false (refused).
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub swap: bool,
 }
 
 impl Command for AttachChildren {
@@ -153,8 +163,17 @@ impl Command for AttachChildren {
             ));
         }
         let taken = taken_positions(tx, self.parent, &seen);
+        let mut swaps: Vec<(Id<Device>, Option<u32>)> = Vec::new();
         for (p, child) in &positions {
             if let Some(holder) = taken.get(p) {
+                let old = tx
+                    .get::<Device>(*child)
+                    .filter(|d| d.parent == Some(self.parent))
+                    .and_then(|d| d.position);
+                if self.swap && old.is_some() {
+                    swaps.push((*holder, old));
+                    continue;
+                }
                 return tx.reject(text!(
                     "refusal-assembly-position-held",
                     p.to_string(),
@@ -164,9 +183,15 @@ impl Command for AttachChildren {
                 ));
             }
         }
-        for c in &self.children {
-            let (parent, position) = (self.parent, c.position);
-            tx.update::<Device>(c.device, |d| {
+        let moves: Vec<(Id<Device>, Option<u32>)> = self
+            .children
+            .iter()
+            .map(|c| (c.device, c.position))
+            .chain(swaps)
+            .collect();
+        for (device, position) in moves {
+            let parent = self.parent;
+            tx.update::<Device>(device, |d| {
                 // N-FL-2 (doc 11 §3.2, §4.2): a child tag keeps its counter equal to its position; a frozen
                 // tag or a counter that differed from the old position is the user's and stays
                 let follows = d.tag.scheme == TagScheme::Child
@@ -180,6 +205,7 @@ impl Command for AttachChildren {
                 d.position = position;
             })?;
         }
+        seat_reps(tx, self.parent)?;
         Ok(Outcome::primary((Kind::Device, self.parent.cast())))
     }
 }
@@ -206,52 +232,365 @@ fn is_supply_plate(tx: &TxBuilder<'_>, device: &Device) -> bool {
     })
 }
 
+/// Whether `device` may sit on a valve terminal's position, as the transaction holds it ([`ew_derive::fits_terminal`]:
+/// a valve without a coil of its own to wire).
+pub(crate) fn fits_terminal(tx: &TxBuilder<'_>, device: Id<Device>) -> bool {
+    let defs: Vec<_> = tx
+        .functions_of_device(device)
+        .into_iter()
+        .filter_map(|f| tx.get::<ew_schema::Function>(f))
+        .filter_map(|f| tx.get::<LibCopy<FnDef>>(f.def))
+        .collect();
+    ew_derive::fits_terminal(defs.iter().map(|d| &d.item))
+}
+
+/// Whether `device` is a valve terminal: a PLC station of role `valve_terminal`.
+fn is_terminal(tx: &TxBuilder<'_>, device: Id<Device>) -> bool {
+    tx.get::<Device>(device).is_some_and(|t| {
+        t.aspects
+            .plc_station
+            .as_ref()
+            .is_some_and(|s| s.role == ew_schema::StationRole::ValveTerminal)
+    })
+}
+
+/// One cell of a valve terminal as the transaction holds it: its module, its position and the child that holds it.
+type CellIn = (Id<Device>, u32, Option<Id<Device>>);
+
+/// The cells of valve terminal `terminal` as the transaction holds them (`ew_derive::terminal_cells`): per cell, left
+/// to right, its module, its position and the child that holds it (a valve or a blanking plate; of two, the lower ID).
+fn cells_in(tx: &TxBuilder<'_>, terminal: Id<Device>) -> Vec<CellIn> {
+    let mut modules: Vec<(u32, Id<Device>)> = tx
+        .children_of(terminal)
+        .into_iter()
+        .filter_map(|c| tx.get::<Device>(c).map(|d| (d.position.unwrap_or(u32::MAX), c)))
+        .collect();
+    modules.sort();
+    let mut out = Vec::new();
+    for m in std::iter::once(terminal).chain(modules.into_iter().map(|(_, m)| m)) {
+        let Some(count) = tx.get::<Device>(m).and_then(|d| crate::commands::fluid::position_count(tx, &d)) else {
+            continue;
+        };
+        let mut children = tx.children_of(m);
+        children.sort();
+        for p in 1..=u32::from(count) {
+            let holder = children.iter().copied().find(|c| {
+                tx.get::<Device>(*c).is_some_and(|d| {
+                    d.position == Some(p)
+                        && (d.kind == Some(ew_schema::DeviceKind::BlankingPlate) || is_valve_device(tx, *c))
+                })
+            });
+            out.push((m, p, holder));
+        }
+    }
+    out
+}
+
+/// The slotted boxes of valve terminal `terminal` (`BoxSpec.slots`): each representation with its frame on its page.
+fn slotted_boxes(tx: &TxBuilder<'_>, terminal: Id<Device>) -> Vec<(Arc<Representation>, ew_derive::SlotFrame)> {
+    let mut reps: Vec<Id<Representation>> = tx
+        .functions_of_device(terminal)
+        .into_iter()
+        .flat_map(|f| tx.reps_of_function(f))
+        .collect();
+    reps.sort();
+    reps.dedup();
+    reps.into_iter()
+        .filter_map(|r| tx.get::<Representation>(r))
+        .filter_map(|r| {
+            let slots = r.box_.as_ref()?.slots.as_ref()?;
+            let grid = tx.get::<Page>(r.page)?.grid;
+            let frame = ew_derive::SlotFrame::new(grid, r.pos, slots.pitch);
+            Some((r, frame))
+        })
+        .collect()
+}
+
+/// The terminal a position of `parent` belongs to: `parent` itself when it is a valve terminal, else its parent when
+/// that is one.
+fn terminal_of(tx: &TxBuilder<'_>, parent: Id<Device>) -> Option<Id<Device>> {
+    if is_terminal(tx, parent) {
+        return Some(parent);
+    }
+    tx.get::<Device>(parent)?.parent.filter(|p| is_terminal(tx, *p))
+}
+
+/// The cell of a slotted box of `terminal` that representation `rep` stands in (the middle of its symbol's graphics,
+/// at the height of its insertion point): (module, position); `None` when it stands in no cell.
+fn cell_under(tx: &TxBuilder<'_>, terminal: Id<Device>, rep: Id<Representation>) -> Option<(Id<Device>, u32)> {
+    let r = tx.get::<Representation>(rep)?;
+    let (min, max) = tx
+        .get::<LibCopy<ew_schema::SymbolDef>>(r.symbol)
+        .and_then(|s| ew_derive::graphics_x_extent(&s.item))
+        .unwrap_or((Nm(0), Nm(0)));
+    let mid = i64::try_from((i128::from(min.0) + i128::from(max.0)) / 2).ok()?;
+    let at = Pt2::new(Nm(r.pos.x.0.checked_add(mid)?), r.pos.y);
+    let cells = cells_in(tx, terminal);
+    slotted_boxes(tx, terminal)
+        .into_iter()
+        .filter(|(b, _)| b.page == r.page)
+        .find_map(|(_, frame)| frame.cell_at(cells.len(), at))
+        .map(|i| (cells[i].0, cells[i].1))
+}
+
+/// The representations of `device` on `page` that are no box, in ID order: of its valve functions only with
+/// `valves_only`.
+fn reps_on(tx: &TxBuilder<'_>, device: Id<Device>, page: Id<Page>, valves_only: bool) -> Vec<Arc<Representation>> {
+    let mut reps: Vec<Arc<Representation>> = tx
+        .functions_of_device(device)
+        .into_iter()
+        .filter(|f| {
+            !valves_only
+                || tx
+                    .get::<ew_schema::Function>(*f)
+                    .and_then(|f| tx.get::<LibCopy<FnDef>>(f.def))
+                    .is_some_and(|d| d.item.contact_kind == ew_schema::ContactKind::Valve)
+        })
+        .flat_map(|f| tx.reps_of_function(f))
+        .filter_map(|r| tx.get::<Representation>(r))
+        .filter(|r| r.page == page && r.box_.is_none())
+        .collect();
+    reps.sort_by_key(|r| r.id);
+    reps.dedup_by_key(|r| r.id);
+    reps
+}
+
+/// The symbols of a valve terminal's valves and its supply plate on the pages where the terminal is drawn as its
+/// positions, moved into their places (rc.2): each representation of a valve function of the valve holding cell `i`,
+/// on the box's page, to the cell's valve point, and the first representation of the supply plate (a child without a
+/// position whose part taps a gallery) to the supply end; their tubes follow as `rep.move` makes them follow. Nothing
+/// for a parent of no valve terminal or a terminal not drawn as its positions.
+pub(crate) fn seat_reps(tx: &mut TxBuilder<'_>, parent: Id<Device>) -> Result<(), CmdError> {
+    let Some(terminal) = terminal_of(tx, parent) else {
+        return Ok(());
+    };
+    let boxes = slotted_boxes(tx, terminal);
+    if boxes.is_empty() {
+        return Ok(());
+    }
+    let cells = cells_in(tx, terminal);
+    let plates: Vec<Id<Device>> = tx
+        .children_of(terminal)
+        .into_iter()
+        .filter(|c| {
+            tx.get::<Device>(*c)
+                .is_some_and(|d| d.position.is_none() && is_supply_plate(tx, &d))
+        })
+        .collect();
+    for (b, frame) in boxes {
+        let mut targets: Vec<(Id<Representation>, Pt2)> = Vec::new();
+        for (i, (_, _, holder)) in cells.iter().enumerate() {
+            let Some(valve) = holder.filter(|h| is_valve_device(tx, *h)) else {
+                continue;
+            };
+            for r in reps_on(tx, valve, b.page, true) {
+                let extent = tx
+                    .get::<LibCopy<ew_schema::SymbolDef>>(r.symbol)
+                    .and_then(|s| ew_derive::graphics_x_extent(&s.item));
+                targets.push((r.id, frame.valve_at(i, extent)));
+            }
+        }
+        if let Some(r) = plates
+            .iter()
+            .find_map(|p| reps_on(tx, *p, b.page, false).into_iter().next())
+        {
+            targets.push((r.id, frame.supply_at()));
+        }
+        for (rep, to) in targets {
+            let Some(r) = tx.get::<Representation>(rep) else {
+                continue;
+            };
+            if r.pos == to {
+                continue;
+            }
+            let Ok(delta) = crate::geometry::sub(to, r.pos) else {
+                continue;
+            };
+            crate::commands::device::MoveReps {
+                reps: vec![rep],
+                delta,
+                page: None,
+                steps: None,
+                items: Vec::new(),
+                routes: Vec::new(),
+                connect: Vec::new(),
+                into: None,
+            }
+            .run_move(tx)?;
+        }
+    }
+    Ok(())
+}
+
 /// The `into` of `device.place` and `rep.move` (the persona round: valves placed inside a valve terminal's box stayed
-/// loose devices): `device` drawn inside the box of the valve terminal `terminal` joins it as `assembly.attach` makes
-/// it (with its checks), in the same transaction. A valve takes the terminal's first free valve position (1 … n, n its
-/// `fluid.positions` or `plc.positions.count`); a supply plate (a part that taps a gallery) joins without a position. A
-/// device that is already the terminal's child, the terminal itself, any other device, and a valve when no position is
-/// free, are left as they are. Refused: a `terminal` that is no valve terminal.
+/// loose devices): `device`, drawn by representation `rep` inside the box of the valve terminal `terminal`, joins it as
+/// `assembly.attach` makes it (with its checks), in the same transaction. A valve that fits a terminal
+/// ([`fits_terminal`]) takes the position of the cell `rep` stands in when the terminal is drawn as its positions (a
+/// valve of the terminal at another position swaps with the cell's holder; with `replace` the holder is removed with its
+/// delete plan; any other valve onto a held cell is refused in words), else keeps its position when it is the terminal's already, else takes the terminal's first free valve
+/// position (1 … n, n its `fluid.positions` or `plc.positions.count`); a supply plate (a part that taps a gallery) joins
+/// without a position. The terminal itself, any other device (a stand-alone valve with a coil of its own, a coil, a
+/// cylinder), and a valve when no position is free, are left as they are: the window says so. Refused: a `terminal`
+/// that is no valve terminal.
 pub(crate) fn seat_on_terminal(
     tx: &mut TxBuilder<'_>,
     device: Id<Device>,
     terminal: Id<Device>,
+    rep: Option<Id<Representation>>,
+    replace: bool,
 ) -> Result<(), CmdError> {
-    let t = tx.require::<Device>(terminal)?;
-    let valve_terminal = t
-        .aspects
-        .plc_station
-        .as_ref()
-        .is_some_and(|s| s.role == ew_schema::StationRole::ValveTerminal);
-    if !valve_terminal {
+    tx.require::<Device>(terminal)?;
+    if !is_terminal(tx, terminal) {
         return tx.reject(text!(
             "refusal-seat-not-terminal",
             crate::words::device(tx, terminal)
         ));
     }
     let d = tx.require::<Device>(device)?;
-    if device == terminal || d.parent == Some(terminal) {
+    if device == terminal {
         return Ok(());
     }
-    let position = if is_valve_device(tx, device) {
-        let q = ew_derive::Q::new(tx.base_model());
-        let count = ew_derive::valve_positions(&q, terminal).unwrap_or(0);
-        let taken = taken_positions(tx, terminal, &BTreeSet::from([device]));
-        match (1..=u32::from(count)).find(|p| !taken.contains_key(p)) {
-            Some(p) => Some(p),
-            None => return Ok(()),
+    if !fits_terminal(tx, device) {
+        if is_supply_plate(tx, &d) && d.parent != Some(terminal) {
+            AttachChildren {
+                parent: terminal,
+                children: vec![ChildSpec { device, position: None }],
+                swap: false,
+            }
+            .run(tx)?;
+        } else if d.parent == Some(terminal) {
+            seat_reps(tx, terminal)?;
         }
-    } else if is_supply_plate(tx, &d) {
-        None
-    } else {
+        return Ok(());
+    }
+    let mine = d.parent.filter(|p| terminal_of(tx, *p) == Some(terminal));
+    if let Some((module, position)) = rep.and_then(|r| cell_under(tx, terminal, r)) {
+        let holder = cells_in(tx, terminal)
+            .into_iter()
+            .find(|(m, p, _)| *m == module && *p == position)
+            .and_then(|(_, _, h)| h)
+            .filter(|h| *h != device);
+        if let Some(holder) = holder.filter(|_| replace) {
+            let h = tx.require::<Device>(holder)?;
+            crate::commands::fluid::remove_child(tx, &h, position, module)?;
+        } else if let Some(holder) = holder.filter(|_| mine != Some(module)) {
+            return tx.reject(text!(
+                "refusal-seat-cell-held",
+                position.to_string(),
+                crate::words::device(tx, module),
+                crate::words::device(tx, holder)
+            ));
+        }
+        return AttachChildren {
+            parent: module,
+            children: vec![ChildSpec {
+                device,
+                position: Some(position),
+            }],
+            swap: true,
+        }
+        .run(tx)
+        .map(|_| ());
+    }
+    if mine.is_some() {
+        return seat_reps(tx, terminal);
+    }
+    let t = tx.require::<Device>(terminal)?;
+    let count = crate::commands::fluid::position_count(tx, &t).unwrap_or(0);
+    let taken = taken_positions(tx, terminal, &BTreeSet::from([device]));
+    let Some(position) = (1..=u32::from(count)).find(|p| !taken.contains_key(p)) else {
         return Ok(());
     };
     AttachChildren {
         parent: terminal,
-        children: vec![ChildSpec { device, position }],
+        children: vec![ChildSpec {
+            device,
+            position: Some(position),
+        }],
+        swap: false,
     }
     .run(tx)
     .map(|_| ())
+}
+
+/// `valve_terminal.draw_slots` (`DrawSlots`, doc 11 §3.2, rc.2): redraws the free box of a valve terminal as its valve
+/// positions, which a page drawn before rc.2 shows as one box (a page that exists is never redrawn by itself).
+///
+/// The box representation `rep` keeps its ID, page and insertion point (its top-left corner) and becomes a box with one
+/// cell per position (`BoxSpec.slots`, [`ew_derive::SlotFrame`]: the supply end, then the cells of the terminal's
+/// positions and of its modules' in order, each [`ew_derive::CELL_STEPS`] grid steps wide), turned upright, without box
+/// CPs or inner graphics; the symbols of the terminal's valves on that page move into their cells and its supply plate
+/// into the supply end, their tubes following ([`seat_reps`]). Refused, in words: a representation that draws no valve
+/// terminal, one that is no box or is drawn as its positions already, a terminal without valve positions, and a box CP
+/// with a connection. Previewed, one undo step. Outcome: the representation.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct DrawSlots {
+    /// The terminal's box.
+    #[schemars(with = "UuidS")]
+    pub rep: Id<Representation>,
+}
+
+impl Command for DrawSlots {
+    const NAME: &'static str = "valve_terminal.draw_slots";
+
+    fn meta() -> CommandMeta {
+        CommandMeta::edit(Self::NAME).bulk()
+    }
+
+    fn run(&self, tx: &mut TxBuilder<'_>) -> Result<Outcome, CmdError> {
+        let rep = tx.require::<Representation>(self.rep)?;
+        let device = rep
+            .functions
+            .first()
+            .and_then(|f| tx.get::<ew_schema::Function>(*f))
+            .and_then(|f| f.device)
+            .filter(|d| is_terminal(tx, *d));
+        let Some(device) = device else {
+            return tx.reject(text!(
+                "refusal-draw-slots-not-terminal",
+                crate::words::symbol(tx, self.rep)
+            ));
+        };
+        let name = crate::words::device(tx, device);
+        let Some(old) = rep.box_.clone() else {
+            return tx.reject(text!("refusal-draw-slots-no-box", name));
+        };
+        if old.slots.is_some() {
+            return tx.reject(text!("refusal-draw-slots-already", name));
+        }
+        let n = cells_in(tx, device).len();
+        if n == 0 {
+            return tx.reject(text!("refusal-draw-slots-no-positions", name));
+        }
+        let connected = rep.functions.iter().any(|f| {
+            old.cps
+                .iter()
+                .any(|c| !tx.connections_at(ew_model::EndpointKey::Cp(*f, c.idx)).is_empty())
+        });
+        if connected {
+            return tx.reject(text!("refusal-draw-slots-connected", name));
+        }
+        let grid = tx.require::<Page>(rep.page)?.grid;
+        let pitch = ew_derive::SlotFrame::pitch(grid);
+        let frame = ew_derive::SlotFrame::new(grid, rep.pos, pitch);
+        let mut next = (*rep).clone();
+        next.pos = frame.origin();
+        next.orient = Default::default();
+        next.box_ = Some(ew_schema::BoxSpec {
+            outline: frame.outline(n),
+            cps: Vec::new(),
+            inner: Vec::new(),
+            slots: Some(ew_schema::BoxSlots {
+                pitch,
+                extra: Extra::new(),
+            }),
+            extra: old.extra.clone(),
+        });
+        tx.put(next);
+        seat_reps(tx, device)?;
+        Ok(Outcome::primary((Kind::Representation, self.rep.cast())))
+    }
 }
 
 /// `valve.add` (`AddValve`, doc 11 §4.3 `valve.add{module, position?, part}`): adds a valve child to a

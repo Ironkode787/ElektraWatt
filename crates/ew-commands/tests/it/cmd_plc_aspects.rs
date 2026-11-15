@@ -346,6 +346,7 @@ fn a_module_below_a_station_keeps_its_place() {
             device: m,
             position: Some(5),
         }],
+        swap: false,
     })
     .expect("attach");
     let r = e
