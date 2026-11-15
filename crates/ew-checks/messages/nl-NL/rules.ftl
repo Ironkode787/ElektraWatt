@@ -1164,6 +1164,7 @@ fix-unfreeze-tag = Kenmerk losmaken
 fix-realise-primary-part = Het primaire artikel opnieuw plaatsen
 fix-rebind-map-channel = Koppelen aan het kanaal van de kaart
 fix-declare-pelv-bond = 0 V–PE-verbinding (PELV) vastleggen
+fix-mark-cp-unused = Markeren als niet gebruikt
 
 # De woorden die een regel afdrukt waar een record geen eigen naam heeft (FT-912), per sleutel; WORD(…) in een patroon
 # drukt ze in het Nederlands af.

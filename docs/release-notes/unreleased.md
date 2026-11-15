@@ -785,3 +785,10 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   takes `from`, a held part copied as a new part (FT-1766)
 - behaviour-change: a device with ports drawn as a box prints its address under its tag, "Node TBD" while it is open
   (the black-box frame `ew.gen.blackbox` 0.1.2 has a bus-address slot) (FT-1767)
+- behaviour-change: check EW-POT-009 carries the quick fix Mark not used (`fields.set` of the function's
+  `cp_overrides`): its message says "connect it or mark it unused", and the Fix badge and Fix… now do the second
+  (persona round)
+- behaviour-change: window a right-click on a finding's row in Messages offers Fix…, where the finding has a quick
+  fix, and Waive… or Unwaive (persona round)
+- behaviour-change: window Properties of a logical net show its master as the port's pin (-3A1:P1), not as data
+  (persona round)

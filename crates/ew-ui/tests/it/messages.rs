@@ -937,3 +937,38 @@ fn a_group_rows_count_follows_its_name() {
         h.state_mut().shell_mut().shutdown();
     }
 }
+
+/// The persona round of M3: a right-click on a finding's row did nothing. A finding's row offers its quick fix, where
+/// it has one, and Waive…; a waived one offers Unwaive.
+#[test]
+fn a_findings_row_menu_offers_its_fix_and_waive() {
+    let tmp = Tmp::new();
+    let mut h = on_golden(&tmp, Scripted::default());
+    dispatch(&mut h, "messages.show", json!({"on": true}));
+    settle(&mut h);
+    let nodes = table_nodes(&h);
+    let labels = |n: &NavNode| -> Vec<String> {
+        ew_ui::ew_viewmodel::command_bar::navigator_row_menu(h.state().shell(), NavKind::Messages, n)
+            .into_iter()
+            .map(|i| i.label)
+            .collect()
+    };
+    let with_fix = nodes
+        .iter()
+        .find(|n| n.role == NavRole::Finding && n.badges.iter().any(|b| b == "fix"))
+        .unwrap_or_else(|| {
+            let rules: Vec<&str> = nodes
+                .iter()
+                .filter(|n| n.role == NavRole::Finding)
+                .map(|n| n.cells[1].as_str())
+                .collect();
+            panic!("a finding with a fix among {rules:?}")
+        });
+    assert_eq!(labels(with_fix), ["Fix…", "Waive…"]);
+    let without = nodes
+        .iter()
+        .find(|n| n.role == NavRole::Finding && !n.badges.iter().any(|b| b == "fix" || b == "waived"))
+        .expect("a finding without a fix");
+    assert_eq!(labels(without), ["Waive…"]);
+    h.state_mut().shell_mut().shutdown();
+}

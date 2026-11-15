@@ -1140,6 +1140,7 @@ fix-unfreeze-tag = Unfreeze the tag
 fix-realise-primary-part = Realise the primary part
 fix-rebind-map-channel = Rebind to the map's channel
 fix-declare-pelv-bond = Declare 0 V–PE bond (PELV)
+fix-mark-cp-unused = Mark not used
 
 # The words a rule prints where a record has no name of its own (FT-912): a pattern of another language wraps an
 # argument that may hold them in WORD(…), which prints that language's message of the same ID instead.

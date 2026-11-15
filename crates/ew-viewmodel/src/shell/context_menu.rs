@@ -400,6 +400,22 @@ impl ShellModel {
                 self.go_to(kind, wire, &mut out);
             }
             (NavKind::Pages, NavRole::Page, _) => self.page_row_fits(&node.key, &mut out),
+            // A finding's row: its quick fix, where it has one, and Waive… or Unwaive, as the detail under the list
+            // offers them (the persona round of M3: a right-click on a message did nothing).
+            (NavKind::Messages, NavRole::Finding, _) => {
+                let key = json!({ "key": node.key });
+                let has = |badge: &str| node.badges.iter().any(|b| b == badge);
+                if has("fix") {
+                    let label = strings::text(key!("messages-fix-button")).to_owned();
+                    out.extend(self.aimed("messages.fix", key.clone(), label));
+                }
+                let (action, label) = if has("waived") {
+                    ("messages.unwaive", key!("messages-unwaive-button"))
+                } else {
+                    ("messages.waive", key!("messages-waive-button"))
+                };
+                out.extend(self.aimed(action, key, strings::text(label).to_owned()));
+            }
             _ => {}
         }
         out

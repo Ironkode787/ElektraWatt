@@ -1613,12 +1613,46 @@ impl Rule for UnconnectedCp {
                 out.push(if c.unused {
                     finding.with_severity(Severity::Info)
                 } else {
-                    finding
+                    // The message says "mark it unused": its quick fix does that (three personas of M3's round
+                    // looked for it on the message and did not find it).
+                    match mark_unused(function, c.idx) {
+                        Some(fix) => finding.with_fix(fix),
+                        None => finding,
+                    }
                 });
             }
         }
         out
     }
+}
+
+/// EW-POT-009's quick fix: `fields.set` of the function's `cp_overrides` with CP `idx` marked unused, the other
+/// overrides and the other members of its own kept. `None` when the overrides do not read as a list.
+fn mark_unused(function: &Function, idx: u16) -> Option<QuickFix> {
+    let mut overrides = match serde_json::to_value(&function.cp_overrides).ok()? {
+        serde_json::Value::Array(a) => a,
+        serde_json::Value::Null => Vec::new(),
+        _ => return None,
+    };
+    let at = |o: &serde_json::Value| o.get("idx").and_then(serde_json::Value::as_u64);
+    match overrides.iter_mut().find(|o| at(o) == Some(u64::from(idx))) {
+        Some(o) => o["unused"] = serde_json::Value::Bool(true),
+        None => {
+            overrides.push(serde_json::json!({ "idx": idx, "unused": true }));
+            overrides.sort_by_key(at);
+        }
+    }
+    Some(QuickFix {
+        label: "Mark not used".to_owned(),
+        key: Some("fix-mark-cp-unused"),
+        command: "fields.set".to_owned(),
+        params: serde_json::json!({
+            "kind": "function",
+            "targets": [function.id.to_string()],
+            "path": "cp_overrides",
+            "value": overrides,
+        }),
+    })
 }
 
 /// Whether CP `idx` of `function` is the pin of a PLC channel whose effective state (doc 10 §3.2) says it is meant to

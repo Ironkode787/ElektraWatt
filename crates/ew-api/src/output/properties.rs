@@ -611,10 +611,13 @@ pub(super) fn record_title(q: &Q, id: Uuid, source: Option<&str>) -> Option<Stri
     })
 }
 
-/// A channel's binding row in words: the pin it is bound to as the canvas names it (`-1A2:1`), never the endpoint's
-/// JSON (the persona round); a binding that names no CP keeps its text.
+/// A channel's binding row and a logical net's master row in words: the pin as the canvas names it (`-1A2:1`), never
+/// the endpoint's JSON (the persona round); a value that names no CP keeps its text.
 fn binding_in_words(q: &Q, built: &mut [Built]) {
-    for b in built.iter_mut().filter(|b| b.row.path == "binding") {
+    for b in built
+        .iter_mut()
+        .filter(|b| b.row.path == "binding" || b.row.path == "master")
+    {
         if let RowValue::One { json, text } = &mut b.row.value
             && let Ok(ew_schema::Endpoint::Cp(f, idx)) =
                 serde_json::from_value::<ew_schema::Endpoint>(json.clone())
@@ -2403,7 +2406,7 @@ impl Session {
             part_function_row(q, cx, &targets, &mut built);
             bus_address_in_words(&mut built);
         }
-        if kind == Kind::Channel {
+        if kind == Kind::Channel || kind == Kind::LogicalNet {
             binding_in_words(q, &mut built);
         }
         if kind == Kind::PotentialDef {

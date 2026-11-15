@@ -310,6 +310,38 @@ fn the_0v_pe_bond_fix_declares_b1_on_w27_and_undo_restores_the_finding() {
     );
 }
 
+/// EW-POT-009's message says "connect it or mark it unused", and its quick fix does the second (the persona round of
+/// M3: nobody found where). On Golden A the fix of -102F2:13 marks that pin unused with one `fields.set`; the finding
+/// is then an info without a fix, and :14 keeps its warning.
+#[test]
+fn the_unconnected_pins_fix_marks_it_unused() {
+    let batch = golden_common::batch();
+    let mut s = golden_common::session_with(&batch, |_, _| {});
+    let open = |s: &Session| -> Vec<checks::Finding> {
+        s.check(&PRE_DELIVERY, CheckMode::Release)
+            .findings
+            .into_iter()
+            .filter(|f| f.rule == "EW-POT-009")
+            .collect()
+    };
+    let before = open(&s);
+    let warnings = |fs: &[checks::Finding]| fs.iter().filter(|f| f.fix.is_some()).count();
+    assert_eq!(warnings(&before), 2, "{before:#?}");
+    let fix = before[0].fix.clone().expect("a fix");
+    assert_eq!(
+        (fix.label.as_str(), fix.command.as_str()),
+        ("Mark not used", "fields.set")
+    );
+    s.execute(&AnyCommand {
+        name: fix.command,
+        params: fix.params,
+    })
+    .expect("the fix commits");
+    let after = open(&s);
+    assert_eq!(after.len(), before.len(), "the finding stays, as an info");
+    assert_eq!(warnings(&after), 1, "{after:#?}");
+}
+
 // ---------------------------------------------------------------------------------------------------------
 // The EW-POT pack on Golden A (doc 20 §18.1; P2-2).
 
