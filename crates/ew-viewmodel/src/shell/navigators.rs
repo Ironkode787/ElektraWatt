@@ -489,6 +489,13 @@ impl ShellModel {
                             (node.role == ew_api::output::NavRole::Macro && node.key.contains("macro:"))
                                 .then(|| DragSource::Macro(node.key.clone()))
                         })
+                        // A card row of the PLC navigator drops onto a station's row, which attaches it (the persona
+                        // run m3-p4 dragged one and nothing happened).
+                        .or_else(|| {
+                            (k == NavKind::Plc && node.role == ew_api::output::NavRole::Module)
+                                .then(|| node.records.first().map(|r| DragSource::Device(r.to_string())))
+                                .flatten()
+                        })
                         // Every device row of the Unplaced devices navigator drops onto a panel page.
                         .or_else(|| {
                             (k == NavKind::Unplaced && node.role == ew_api::output::NavRole::Device)

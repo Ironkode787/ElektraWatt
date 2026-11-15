@@ -54,8 +54,38 @@ impl ShellModel {
         let Some(project) = self.project.as_ref() else {
             return Outcome::refused(key!("reason-no-project"));
         };
+        // A card dropped on a station's row (the persona run m3-p4): one that cannot go there says why.
+        let station_tag = project.session.device_tag(station).unwrap_or_default();
+        if !project
+            .session
+            .plc_stations_for_cards()
+            .iter()
+            .any(|(s, _)| *s == station)
+        {
+            return failed(key!("error-station-takes-no-cards"), &[&station_tag]);
+        }
         let mut cards = project.session.plc_cards_without_cpu();
         cards.retain(|(card, _)| only.is_none_or(|o| *card == o));
+        // A card of another station dropped here moves to this one (`assembly.attach` moves a child); one of this
+        // station already, or a device that is no card, says so.
+        if let (true, Some(card)) = (cards.is_empty(), only) {
+            let tag = project.session.device_tag(card).unwrap_or_default();
+            let q = project.session.query();
+            let device = q
+                .devices()
+                .iter()
+                .find(|(id, _)| id.as_uuid() == card)
+                .map(|(_, d)| d.clone());
+            match device {
+                Some(d) if d.parent.is_some_and(|p| p.as_uuid() == station) => {
+                    return failed(key!("error-card-on-station"), &[&tag, &station_tag]);
+                }
+                Some(d) if d.aspects.plc_module.as_ref().is_some_and(|m| !m.integrated) => {
+                    cards.push((card, tag));
+                }
+                _ => return failed(key!("error-not-a-card"), &[&tag]),
+            }
+        }
         if cards.is_empty() {
             return Outcome::refused(key!("reason-no-cards-without-cpu"));
         }

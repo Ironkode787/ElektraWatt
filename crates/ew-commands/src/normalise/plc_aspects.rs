@@ -17,8 +17,9 @@
 //!   with a PLC section, which is the one N0 read). Then D4, for a device without a station ancestor: with exactly
 //!   one station in the project, the device becomes that station's last child (`parent` = the station, `position`
 //!   = its highest child position + 1, `assembly.attach`'s members) with the notice "attached to {tag} as module
-//!   {n}"; with none, the notice "no PLC station: place a CPU first"; with several, "attach the module to a
-//!   station". A station that lies below the module (a part change on an assembly) is never chosen: that parent
+//!   {n}"; with none, the notice "no PLC station: place a CPU first"; with several, the station drawn beside it (a
+//!   representation on the page of the module's first representation, the nearest by insertion point, ties by ID;
+//!   the persona run m3-p4), else "attach the module to a station". A station that lies below the module (a part change on an assembly) is never chosen: that parent
 //!   would close a cycle (EW-INV-009).
 //! - `station`: `plc_station {config_project, role}` and, when the section declares I/O ranges,
 //!   `plc_module {integrated: true}` on the same device. The role is `valve_terminal` when the section maps solenoids
@@ -51,7 +52,7 @@ use ew_ids::{Id, v5};
 use ew_mltext::Ident;
 use ew_schema::{
     Device, Extra, Kind, LibCopy, Part, PartUse, PlcConfigProject, PlcModule, PlcRole, PlcSection,
-    PlcStation, PortRole, StationRole,
+    PlcStation, PortRole, Representation, StationRole,
 };
 
 use crate::error::CmdError;
@@ -239,7 +240,44 @@ fn config_project_for(
     Ok(id)
 }
 
-/// D4: attaches a new module without a station ancestor to the project's only station, or says why not.
+/// The station of `stations` drawn beside `module` (the persona run m3-p4 placed a card beside his head station in a
+/// project with a CPU too): the one with a representation on the page of the module's first representation nearest to
+/// it (squared distance between insertion points, ties by station ID); `None` when no station is drawn on that page.
+fn beside(tx: &TxBuilder<'_>, module: Id<Device>, stations: &[Arc<Device>]) -> Option<Arc<Device>> {
+    let reps_of = |d: Id<Device>| -> Vec<Arc<Representation>> {
+        let mut out: Vec<Arc<Representation>> = tx
+            .functions_of_device(d)
+            .into_iter()
+            .flat_map(|f| tx.reps_of_function(f))
+            .filter_map(|r| tx.get::<Representation>(r))
+            .collect();
+        out.sort_by_key(|r| r.id);
+        out
+    };
+    let at = reps_of(module).into_iter().next()?;
+    let dist = |r: &Representation| {
+        let (dx, dy) = (
+            i128::from(r.pos.x.0) - i128::from(at.pos.x.0),
+            i128::from(r.pos.y.0) - i128::from(at.pos.y.0),
+        );
+        dx * dx + dy * dy
+    };
+    stations
+        .iter()
+        .filter_map(|s| {
+            reps_of(s.id)
+                .iter()
+                .filter(|r| r.page == at.page)
+                .map(|r| dist(r))
+                .min()
+                .map(|d| (d, s.id, Arc::clone(s)))
+        })
+        .min_by_key(|(d, id, _)| (*d, *id))
+        .map(|(_, _, s)| s)
+}
+
+/// D4: attaches a new module without a station ancestor to the project's only station, else to the station drawn
+/// beside it ([`beside`]), or says why not.
 fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, CmdError> {
     if has_station_ancestor(tx, module) {
         return Ok(false);
@@ -255,10 +293,13 @@ fn attach_module(tx: &mut TxBuilder<'_>, module: Id<Device>) -> Result<bool, Cmd
             return Ok(false);
         }
         [one] => Arc::clone(one),
-        _ => {
-            tx.notice("attach the module to a station");
-            return Ok(false);
-        }
+        several => match beside(tx, module, several) {
+            Some(station) => station,
+            None => {
+                tx.notice("attach the module to a station");
+                return Ok(false);
+            }
+        },
     };
     if is_at_or_above(tx, module, station.id) {
         tx.notice("attach the module to a station");

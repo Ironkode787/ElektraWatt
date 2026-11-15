@@ -976,6 +976,12 @@ fn card_and_toast_lines(model: &ShellModel, lines: &mut Vec<String>) {
                         for r in &p.added {
                             lines.push(format!("  added \"{}\"", user(r)));
                         }
+                        for r in &p.changed {
+                            lines.push(format!("  changed \"{}\"", user(r)));
+                        }
+                        for r in &p.lost {
+                            lines.push(format!("  lost \"{}\"", user(r)));
+                        }
                         if p.fork {
                             lines.push(format!(
                                 "  note \"{}\"",

@@ -1308,6 +1308,22 @@ fn row_ui(ui: &mut Ui, kind: NavKind, pages: bool, row: &ShownRow, tree: &Tree<'
         Some(DragSource::Device(id)) => response.dnd_set_drag_payload(DeviceDrag(id.clone())),
         None => {}
     }
+    // A card dropped on a station's row of the PLC navigator is attached to it; one that cannot be is refused in words.
+    if kind == NavKind::Plc
+        && row.role == ew_viewmodel::navigators::NavRole::Station.word()
+        && let Some(payload) = response.dnd_release_payload::<DeviceDrag>()
+        && let Some(station) = row
+            .key
+            .rsplit('/')
+            .next()
+            .and_then(|s| s.strip_prefix("station:"))
+    {
+        events.push(Event::Action(
+            "plc.attach_cards",
+            json!({"station": station, "card": payload.0}),
+        ));
+        return;
+    }
     // A drop of pages on a row of the Pages navigator.
     if pages && let Some(payload) = response.dnd_release_payload::<PagesDrag>() {
         let pages = payload.0.clone();

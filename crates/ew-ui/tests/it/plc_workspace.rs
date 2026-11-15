@@ -130,6 +130,16 @@ fn two_cpus_and_a_card(tmp: &Tmp) -> egui_kittest::Harness<'static, ew_ui::app::
         ("EW-GEN-CPU-1", (24, 10), (30, 18)),
         ("EW-GEN-DO-1", (38, 10), (44, 18)),
     ] {
+        // The card on a page of its own: beside a station it would join that one (the persona run m3-p4).
+        if part == "EW-GEN-DO-1" {
+            dispatch(
+                &mut h,
+                "page.new",
+                json!({"folio": "102", "type": "multi_line", "title": "Cards"}),
+            );
+            settle(&mut h);
+            wait_for_page(&mut h);
+        }
         dispatch(&mut h, "tool.black_box", json!({"part": part, "template": 0}));
         crate::navigators::cursor_k(&mut h, a);
         dispatch(&mut h, "canvas.activate", json!({}));

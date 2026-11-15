@@ -606,18 +606,17 @@ fn an_edit_in_place_is_previewed() {
         ["description"]
     );
     assert!(plan.devices.iter().any(|x| x.as_uuid() == f55));
-    // The BOM rows that change are 5SY4204-7's, where they print its description.
-    assert!(!plan.bom_added.is_empty() && plan.bom_added.len() == plan.bom_removed.len());
+    // The BOM rows that change are 5SY4204-7's, where they print its description: each as the column that differs,
+    // in words, never a CSV line.
+    assert!(plan.bom_added.is_empty() && plan.bom_removed.is_empty());
+    assert!(!plan.bom_changed.is_empty());
     assert!(
-        plan.bom_added
+        plan.bom_changed
             .iter()
-            .chain(&plan.bom_removed)
-            .all(|r| r.contains("5SY4204-7")),
-        "{:?} {:?}",
-        plan.bom_removed,
-        plan.bom_added
+            .all(|r| r.contains("→ MCB 1P+N C4") && !r.contains(",data")),
+        "{:?}",
+        plan.bom_changed
     );
-    assert!(plan.bom_added.iter().all(|r| r.contains("MCB 1P+N C4")));
     let before = lines(&s);
     commit(&mut s, &plan.command);
     let after = s

@@ -5,15 +5,16 @@
 //! on a bus-topology page stands there with its bus ports. The window's own path: clicks and keys at 1920 × 1080.
 
 use crate::own_parts::{
-    edit_part, make_port_device, press,
-    cp_labels, cursor_k, make_head_station, new_project, page_texts, place_box, press_cp, records,
+    cp_labels, cursor_k, edit_part, make_card, make_head_station, make_port_device, new_project, page_texts,
+    place_box, press, press_cp, records,
 };
 use crate::persona_round::{key, typed};
 use crate::support::Tmp;
 
+use egui::{Modifiers, PointerButton};
 use ew_ui::ew_viewmodel::navigators::{NavKind, NavRole};
 use ew_ui::ew_viewmodel::shell::Outcome;
-use ew_ui::visual::Driver;
+use ew_ui::visual::{Driver, Input};
 use serde_json::json;
 
 /// A new project with a bus-topology page shown.
@@ -211,6 +212,98 @@ fn the_card_of_a_corrected_part_speaks_words_and_names_a_line_that_loses_its_soc
         .collect();
     let six: Vec<String> = (1..=6).map(|n| format!("{tag}:P{n}")).collect();
     assert_eq!(drawn, six, "the drawn box follows: the sockets the part still has");
+}
+
+/// The labels of the PLC panel's rows under Cards without a station.
+fn waiting(d: &mut Driver) -> Vec<String> {
+    let _ = d.shell_mut().dispatch("navigator.show", &json!({"kind": "plc"}));
+    d.settle();
+    d.shell_mut()
+        .shown_rows(NavKind::Plc)
+        .into_iter()
+        .filter(|r| r.parent.as_deref().is_some_and(|p| p.ends_with("cards:none")))
+        .map(|r| r.label)
+        .collect()
+}
+
+/// Item 3: a card goes behind a station where a person puts it. In a project with the starter CPU and a head station
+/// of one's own, a card placed beside the head station is attached to it; one placed on a page without a station
+/// waits, and its toast says where it gets one. Its row in the PLC panel dragged onto the head station's row attaches
+/// it.
+#[test]
+fn a_card_goes_behind_the_station_it_is_placed_beside_or_dragged_onto() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    make_head_station(&mut d, "HEAD-DP");
+    make_card(&mut d, "DI8-24", "1-32");
+    place_box(&mut d, "EW-GEN-CPU-2", (10, 10), (20, 16));
+    let head = place_box(&mut d, "HEAD-DP", (60, 10), (70, 16));
+    let head = head[0].split(':').next().unwrap().to_owned();
+    let first = place_box(&mut d, "DI8-24", (74, 10), (88, 16));
+    let first = first[0].split(':').next().unwrap().to_owned();
+    assert!(waiting(&mut d).is_empty(), "the card beside the head station is attached");
+    let rows = d.shell_mut().shown_rows(NavKind::Plc);
+    let key_of = |tag: &str| rows.iter().find(|r| r.label.starts_with(tag)).map(|r| r.key.clone());
+    let parent = rows
+        .iter()
+        .find(|r| r.label.starts_with(&first))
+        .and_then(|r| r.parent.clone());
+    assert_eq!(parent, key_of(&head), "listed under the head station");
+    // On a page without a station the card waits, and says where it gets one.
+    let page = json!({"folio": "2", "type": "multi_line", "title": "Cards"});
+    assert_eq!(d.shell_mut().dispatch("page.new", &page), Outcome::Done);
+    d.settle();
+    // The device browser's part, placed as its Place button does (the PLC panel has the keys now).
+    let before = cp_labels(&mut d);
+    let pick = json!({"part": "DI8-24"});
+    assert_eq!(d.shell_mut().dispatch("place.pick", &pick), Outcome::Done);
+    for k in [(10, 10), (24, 16)] {
+        cursor_k(&mut d, k);
+        let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
+        d.settle();
+    }
+    let second = cp_labels(&mut d)
+        .into_iter()
+        .find(|l| !before.contains(l))
+        .expect("the card on page 2");
+    let second = second.split(':').next().unwrap().to_owned();
+    assert!(
+        waiting(&mut d).iter().any(|l| l.starts_with(&second)),
+        "{second} waits"
+    );
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert!(
+        toast.contains("waits for a station") && toast.contains("PLC panel"),
+        "{toast}"
+    );
+    // The PLC panel: the waiting card's row dragged onto the head station's row.
+    // The PLC panel on show (Rail ▸ PLC toggles it).
+    let find = |d: &mut Driver, tag: &str| {
+        // A frame painted after the dispatches, so that the labels are the window's now.
+        d.input(&Input::Hover { at: (900, 600) });
+        d.settle();
+        d.labels().into_iter().find(|(l, _)| l.starts_with(tag))
+    };
+    if find(&mut d, &second).is_none() {
+        let _ = d.shell_mut().dispatch("rail.show", &json!({"pane": "plc"}));
+        d.settle();
+    }
+    let row_at = |d: &mut Driver, tag: &str| {
+        find(d, tag)
+            .unwrap_or_else(|| panic!("no row {tag}: {:?}", d.labels()))
+            .1
+    };
+    let (from, to) = (row_at(&mut d, &second), row_at(&mut d, &head));
+    d.input(&Input::Drag {
+        from,
+        to,
+        button: PointerButton::Primary,
+        mods: Modifiers::NONE,
+    });
+    d.settle();
+    assert!(waiting(&mut d).is_empty(), "the dragged card is attached");
+    let toast = d.shell_mut().toast().map(|t| t.text.clone()).unwrap_or_default();
+    assert_eq!(toast, format!("Attached {second} to {head}."));
 }
 
 /// Item 1: the starter CPU and a head station of one's own (such as an IM 152), each placed from the device browser on

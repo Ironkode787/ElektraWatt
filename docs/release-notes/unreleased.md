@@ -829,3 +829,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   ("Interface X1: 8 ports → 6 ports", "Channels: 8 → 16", a parts list row's changed columns) and names a bus line at a
   socket the part no longer has; the editor's note says what a drawn device does with the correction (persona run
   m3-p4)
+- behaviour-change: with several stations a new card attaches to the station drawn beside it on its page; a card that
+  waits says so in its placement's toast; a card's row dragged onto a station's row in the PLC panel attaches it (or
+  moves it from another station), and a drop that cannot be taken says why (persona run m3-p4)

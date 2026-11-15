@@ -183,7 +183,8 @@ fn a_second_cpu_joins_plc1() {
 }
 
 /// PW-3: a card placed without a station has no parent, its channels exist and its addresses are not derived; the
-/// notice reads "no PLC station: place a CPU first". With two stations a card stays unattached.
+/// notice reads "no PLC station: place a CPU first". With two stations a card placed on their page goes to the one
+/// drawn beside it (the persona run m3-p4), the nearer.
 #[test]
 fn a_card_without_one_station_stays_unattached() {
     let mut s = fresh(13);
@@ -223,9 +224,9 @@ fn a_card_without_one_station_stays_unattached() {
 
     let mut s = fresh(14);
     place(&mut s, "EW-GEN-CPU-1", 1);
-    place(&mut s, "EW-GEN-CPU-1", 2);
+    let near = place(&mut s, "EW-GEN-CPU-1", 2);
     let card = place(&mut s, "EW-GEN-DI-1", 3);
-    assert_eq!(device(&s, card).parent, None);
+    assert_eq!(device(&s, card).parent.map(|p| p.as_uuid()), Some(near));
 }
 
 /// PW-4: each placement is one undo step; undo of the first removes the station and `PLC1` and nothing else; redo

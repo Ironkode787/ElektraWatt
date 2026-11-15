@@ -444,10 +444,7 @@ fn an_edit_in_place_is_previewed() {
         lines(&s, "device ").contains(&"device \"F55\"".to_owned()),
         "{text}"
     );
-    assert!(
-        !lines(&s, "removed ").is_empty() && !lines(&s, "added ").is_empty(),
-        "{text}"
-    );
+    assert!(!lines(&s, "changed ").is_empty(), "{text}");
     assert!(lines(&s, "note ").is_empty(), "no fork: {text}");
     done(&mut s, "preview.apply", json!({}));
     assert_eq!(steps(&s), n + 1);

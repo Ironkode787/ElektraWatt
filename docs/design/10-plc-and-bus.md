@@ -849,6 +849,14 @@ station ([11](11-fluid-power.md) §2.6). A valve terminal is never its configura
 project without one becomes it. D4 and the attachment of waiting cards count only the stations that are no valve
 terminal, so a card drawn beside a valve terminal still attaches to the project's CPU.
 
+*As built (persona run m3-p4).* With several stations that take cards, D4 attaches a new card to the station drawn
+beside it: the one with a representation on the page of the card's first representation, nearest by insertion point
+(ties by ID); with none drawn on that page the card waits, and the placement's toast says where it gets a station.
+In the PLC navigator a card's row dropped on a station's row runs the station's Attach (`assembly.attach`, which
+moves a card of another station there); a station that takes no cards, a card of that station already and a device
+that is no card are refused in words. A head station of one's own and the starter's attach alike: the persona's
+card waited because his project held two stations, not because the head station was his own part.
+
 *As built (WP-S1.24, FT-830).* `library.update` keeps a copy's ID, so N0 also triggers the devices that use a part
 copy the transaction changed when the copy had no PLC section in the base snapshot, and N5 those whose bus part's
 ports changed; a newer part version that adds a PLC section or a port reaches its devices in the update's step.

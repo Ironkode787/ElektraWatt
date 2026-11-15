@@ -187,6 +187,38 @@ fn unplaced_text(
 
 impl ShellModel {
     /// The toast of the result note the dispatch's commit left, read on the page tables after it.
+    /// A card the commit drew that joined no station says where it is given one (the persona run m3-p4 found the PLC
+    /// panel by trying every icon): with stations in the project, drag it onto one in the PLC panel or use Attach to on
+    /// its row; without one, place a CPU.
+    fn say_card_waits(&mut self, before: &PageTables, now: &PageTables) {
+        let Some(session) = self.project_session() else {
+            return;
+        };
+        let waiting = session.plc_cards_without_cpu();
+        let new: Vec<String> = now
+            .reps
+            .iter()
+            .filter(|r| !before.reps.iter().any(|b| b.id == r.id))
+            .filter_map(|r| r.device)
+            .filter_map(|d| waiting.iter().find(|(c, _)| *c == d).map(|(_, t)| t.clone()))
+            .fold(Vec::new(), |mut out, t| {
+                if !out.contains(&t) {
+                    out.push(t);
+                }
+                out
+            });
+        if new.is_empty() {
+            return;
+        }
+        let key = if session.plc_stations_for_cards().is_empty() {
+            key!("toast-card-waits-cpu")
+        } else {
+            key!("toast-card-waits")
+        };
+        let text = strings::format(key, &[&new.join(", ")]);
+        self.notify(text, false);
+    }
+
     fn say_result(&mut self, before: &PageTables, now: &PageTables) {
         let Some(note) = self.tools.result_note.take() else {
             return;
@@ -2250,6 +2282,7 @@ impl ShellModel {
             return;
         };
         self.say_result(&before, &now);
+        self.say_card_waits(&before, &now);
         // The IP tool's ghost proposes its next name on the page as the commit left it (its kept direction may meet
         // the name it just placed).
         self.after_ip_commit();
