@@ -193,7 +193,7 @@ fn only_the_rows_that_belong_are_shown() {
 /// The canvas menu of the one symbol `rep`: each entry's label, action and whether it is checked.
 fn menu(s: &mut ShellModel, rep: &TableRep) -> Vec<(String, &'static str, bool)> {
     done(s, "select.set", json!({"ids": [rep.id.to_string()]}));
-    canvas_menu(s, MenuSpot::Object)
+    canvas_menu(s, MenuSpot::Object, None)
         .into_iter()
         .map(|i| (i.label, i.id, i.checked))
         .collect()
@@ -239,7 +239,7 @@ fn an_air_supplys_menu_offers_its_medium_and_no_potential() {
         items.iter().any(|(_, id, _)| *id == "fluid.medium_new"),
         "{items:?}"
     );
-    let entry = canvas_menu(&s, MenuSpot::Object)
+    let entry = canvas_menu(&s, MenuSpot::Object, None)
         .into_iter()
         .find(|i| i.label == label)
         .expect("the entry");
