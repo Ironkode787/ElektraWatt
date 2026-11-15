@@ -586,8 +586,8 @@ impl PropertiesPane {
         ui.separator();
     }
 
-    /// The header's lines inside its gutter: the title line with its chips, the subtitle, the location, the read-only
-    /// reason ([`Self::header`]).
+    /// The header's lines inside its gutter: the title line with its chips, what the device is, the subtitle, the
+    /// location, the read-only reason ([`Self::header`]).
     fn header_lines(
         ui: &mut Ui,
         sheet: &PropertySheet,
@@ -628,6 +628,10 @@ impl PropertiesPane {
                 .font(crate::theme::font(&t.type_small))
                 .color(t.text_secondary.color32())
         };
+        // What the device is (rc.2, F9: "Compressed-air supply point · pneumatic").
+        if let Some(what) = &sheet.header.what {
+            ui.label(small(&ew_viewmodel::properties::what_words(what)));
+        }
         if let Some(s) = &sheet.header.subtitle {
             ui.label(small(s));
         }

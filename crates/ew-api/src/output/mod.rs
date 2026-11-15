@@ -52,6 +52,8 @@ mod layers;
 // Properties for layout records and the Surface view rows.
 mod layout_edit;
 mod navigation;
+// What a device is: its natures (rc.2, F9 and F12).
+mod natures;
 // A potential reasoned for an unnamed wire (FT-1700).
 pub(crate) mod navigators;
 mod potential_offer;
@@ -151,9 +153,10 @@ pub use potential_offer::PotentialOffer;
 pub(crate) use potential_offer::said_type;
 pub use preview::PreviewEntity;
 pub use project_diff::textconv;
+pub use natures::Natures;
 pub use properties::{
     CompanyColour, FindingChip, PropRow, PropertySheet, Provenance, RowAction, RowValue, SelectionWords,
-    SheetHeader, SheetSection, SourceLink, WireColours, WireEnd,
+    SheetHeader, SheetSection, SheetWhat, SourceLink, WireColours, WireEnd,
 };
 pub use rack::{FluidMenu, ModulePart, PlcOffer, RackRow, RackView, TerminalSeat, ValveSolenoid, gives_text};
 pub use raster::{DEFAULT_DPI, DPI_RANGE, page_png, sheet_image};

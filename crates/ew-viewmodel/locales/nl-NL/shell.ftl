@@ -6627,3 +6627,20 @@ command-rep-texts_reset = Tekstposities herstellen
 reason-text-one-symbol = Selecteer één symbool
 reason-texts-not-moved = De teksten van het symbool staan waar het symbool ze zet
 refusal-rep-text-slot = het symbool heeft geen tekst { $p0 }
+
+# Wat een apparaat is, onder de titel van Eigenschappen (rc.2, F9).
+props-what = { $p0 } · { $p1 }
+nature-electrical = elektrisch
+nature-pneumatic = pneumatisch
+nature-vacuum = vacuüm
+nature-hydraulic = hydraulisch
+nature-bus-device = busdeelnemer
+nature-mechanical = alleen mechanisch
+nature-plc-station = PLC-station
+nature-station-on = PLC-station aan { $p0 }
+nature-plc-module = PLC-module
+nature-terminal = Klem
+nature-strip = Klemmenstrook
+nature-cable = Kabel
+nature-solenoids = { $p0 } magneetspoelen
+nature-solenoids-one = 1 magneetspoel

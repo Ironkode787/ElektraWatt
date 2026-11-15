@@ -81,6 +81,22 @@ pub struct SheetHeader {
     /// The words the record's findings name it by where its title is in none of them (a tube, an unnumbered wire): the
     /// Messages filter of its finding chips; `None`: the title is.
     pub filter: Option<String>,
+    /// What the one selected device is (rc.2, F9); `None` for anything but one device, its function or its symbol.
+    pub what: Option<SheetWhat>,
+}
+
+/// What the one selected device is, for the header's line under the title (rc.2, F9: "Compressed-air supply point ·
+/// pneumatic"): its natures, its symbol's name and what a valve or a station adds. A window writes it in its language.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct SheetWhat {
+    /// Its natures.
+    pub natures: super::Natures,
+    /// The name of its main representation's symbol in every language it has; `None` for a device not drawn.
+    pub symbol: Option<ew_derive::ew_mltext::MlText>,
+    /// The number of its solenoids (a valve's).
+    pub solenoids: usize,
+    /// The bus system of a station's first bus port in its JSON spelling (`profibus_dp`); `None` without one.
+    pub bus: Option<String>,
 }
 
 /// One finding in the header.
@@ -1939,6 +1955,27 @@ fn bus_line_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built
     vec![row("bus_cable", cable_per), row("bus_plugs", plug_per)]
 }
 
+/// What `device` is, for the header ([`SheetWhat`]).
+fn sheet_what(q: &Q, device: Id<Device>) -> SheetWhat {
+    let symbol = (*q.get::<MainRep>(device))
+        .and_then(|r| q.reps().get(r))
+        .and_then(|r| q.symbols().get(r.symbol))
+        .map(|c| c.item.name.clone())
+        .filter(|n| !n.is_empty());
+    let functions = q.functions();
+    let bus = q
+        .idx()
+        .functions_of_device(device)
+        .filter_map(|f| functions.get(f)?.bus_port.clone())
+        .find_map(|p| serde_json::to_value(&p.bus).ok()?.as_str().map(str::to_owned));
+    SheetWhat {
+        natures: super::natures::device_natures(q, device),
+        symbol,
+        solenoids: super::rack::solenoids(q, device).len(),
+        bus,
+    }
+}
+
 /// The fluid port of a source device (a function on a FnDef of category `Source`, the air-supply point): its first
 /// fluid CP; `None` for any other device.
 pub(crate) fn source_port(q: &Q, device: Id<Device>) -> Option<(Id<ew_derive::ew_schema::Function>, u16)> {
@@ -3381,6 +3418,7 @@ impl Session {
             location,
             findings: findings.into_iter().map(|(_, _, c)| c).collect(),
             filter,
+            what: device.map(|d| sheet_what(q, d)),
         }
     }
 

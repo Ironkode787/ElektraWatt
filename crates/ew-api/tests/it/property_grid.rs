@@ -1176,3 +1176,21 @@ fn a_fluid_line_shows_its_line_kind_row_and_a_wire_none() {
         .collect();
     assert!(!keys.contains(&"connection/line_kind"), "{keys:?}");
 }
+
+/// rc.2, F9: what a device is comes from what the model knows of it. On Golden A the valve terminal -201U1 is a PLC
+/// station of role valve terminal with a bus port, the MCB -101F1 is electrical and nothing else, a terminal of -X1032
+/// is a terminal; the sheet's header carries the same natures.
+#[test]
+fn a_devices_natures_come_from_its_aspects_and_its_points() {
+    let s = golden();
+    let natures = |tag: &str| s.device_natures(device(&s, tag)).expect("a device");
+    let vt = natures("-201U1");
+    assert_eq!(vt.station, Some(ew_schema::StationRole::ValveTerminal));
+    assert!(vt.bus_device() && !vt.mechanical_only(), "{vt:?}");
+    let mcb = natures("-101F1");
+    assert!(mcb.electrical() && !mcb.fluid() && !mcb.bus_device() && !mcb.terminal, "{mcb:?}");
+    let terminal = natures("-X1032:5");
+    assert!(terminal.terminal && !terminal.fluid(), "{terminal:?}");
+    let header = s.property_sheet(&[device(&s, "-101F1")]).header;
+    assert_eq!(header.what.map(|w| w.natures), Some(mcb));
+}

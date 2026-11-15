@@ -22,7 +22,7 @@ use crate::strings::Key;
 use crate::{count_key, key};
 pub use ew_api::output::{
     Category, EditRoute, FieldReadOnly, FieldType, PropRow, PropertySheet, Provenance, RowAction, RowValue,
-    SheetSection, SourceLink,
+    SheetSection, SheetWhat, SourceLink,
 };
 use serde_json::Value;
 
@@ -1605,6 +1605,69 @@ pub fn header_in_words(sheet: &mut PropertySheet) {
                 *text = words.clone();
             }
         }
+    }
+}
+
+/// What the one selected device is, in the UI language (rc.2, F9), the header's line under the title: what it is
+/// first — a PLC station or module, a terminal, a strip or a cable by that word, anything else by its symbol's name —
+/// then its natures ("Compressed-air supply point · pneumatic", "5/2 valve, solenoid and spring · pneumatic, 1
+/// solenoid", "PLC station · CPU", "Valve terminal · PLC station on PROFIBUS DP", "Terminal"). A valve's electrical
+/// points are its solenoids, so a fluid device with solenoids counts them instead of saying electrical.
+pub fn what_words(what: &SheetWhat) -> String {
+    use ew_api::symbols::schema::{Discipline, StationRole};
+    let n = &what.natures;
+    let word = |k: Key<'static>| strings::text(k).to_owned();
+    let role = |r: &StationRole| {
+        serde_json::to_value(r)
+            .ok()
+            .and_then(|v| v.as_str().map(strings::choice_text))
+            .unwrap_or_default()
+    };
+    let (lead, mut details): (Option<String>, Vec<String>) = match &n.station {
+        Some(StationRole::ValveTerminal) => {
+            let station = match &what.bus {
+                Some(bus) => strings::format(key!("nature-station-on"), &[&strings::choice_text(bus)]),
+                None => word(key!("nature-plc-station")),
+            };
+            (Some(role(&StationRole::ValveTerminal)), vec![station])
+        }
+        Some(r) => (Some(word(key!("nature-plc-station"))), vec![role(r)]),
+        None if n.module => (Some(word(key!("nature-plc-module"))), Vec::new()),
+        None if n.terminal => (Some(word(key!("nature-terminal"))), Vec::new()),
+        None if n.strip => (Some(word(key!("nature-strip"))), Vec::new()),
+        None if n.cable => (Some(word(key!("nature-cable"))), Vec::new()),
+        None => (
+            what.symbol.as_ref().map(crate::shell::symbol_editor::name_words),
+            Vec::new(),
+        ),
+    };
+    if n.station.is_none() && !n.module && !n.terminal && !n.strip && !n.cable {
+        for d in &n.disciplines {
+            let k = match d {
+                Discipline::Electrical if n.fluid() && what.solenoids > 0 => continue,
+                Discipline::Electrical => key!("nature-electrical"),
+                Discipline::Pneumatic => key!("nature-pneumatic"),
+                Discipline::Vacuum => key!("nature-vacuum"),
+                Discipline::Hydraulic => key!("nature-hydraulic"),
+                Discipline::Bus | Discipline::Unknown(_) => continue,
+            };
+            details.push(word(k));
+        }
+        if n.fluid() && what.solenoids > 0 {
+            details.push(strings::format_count(count_key!("nature-solenoids"), what.solenoids));
+        }
+        if n.bus_device() {
+            details.push(word(key!("nature-bus-device")));
+        }
+        if n.mechanical_only() {
+            details.push(word(key!("nature-mechanical")));
+        }
+    }
+    let details = details.join(", ");
+    match lead.filter(|l| !l.is_empty()) {
+        Some(lead) if details.is_empty() => lead,
+        Some(lead) => strings::format(key!("props-what"), &[&lead, &details]),
+        None => strings::sentence_start(&details).into_owned(),
     }
 }
 

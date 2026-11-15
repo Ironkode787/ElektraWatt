@@ -623,6 +623,12 @@ fn properties_lines(model: &ShellModel, lines: &mut Vec<String>) {
         user(&sheet.header.title),
         sheet.header.items
     ));
+    if let Some(what) = &sheet.header.what {
+        lines.push(format!(
+            "properties what \"{}\"",
+            user(&crate::properties::what_words(what))
+        ));
+    }
     match (&sheet.header.subtitle, &sheet.header.location) {
         (Some(s), Some(l)) => lines.push(format!(
             "properties subtitle \"{}\" location \"{}\"",

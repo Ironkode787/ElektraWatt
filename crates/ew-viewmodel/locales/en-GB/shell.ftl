@@ -6889,3 +6889,20 @@ command-rep-texts_reset = Reset text positions
 reason-text-one-symbol = Select one symbol
 reason-texts-not-moved = The symbol's texts stand where the symbol puts them
 refusal-rep-text-slot = the symbol has no text { $p0 }
+
+# What a device is, under the Properties title (rc.2, F9).
+props-what = { $p0 } · { $p1 }
+nature-electrical = electrical
+nature-pneumatic = pneumatic
+nature-vacuum = vacuum
+nature-hydraulic = hydraulic
+nature-bus-device = bus device
+nature-mechanical = mechanical only
+nature-plc-station = PLC station
+nature-station-on = PLC station on { $p0 }
+nature-plc-module = PLC module
+nature-terminal = Terminal
+nature-strip = Terminal strip
+nature-cable = Cable
+nature-solenoids = { $p0 } solenoids
+nature-solenoids-one = 1 solenoid
