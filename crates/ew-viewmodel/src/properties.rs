@@ -587,6 +587,8 @@ pub struct PropertiesState {
     pub(crate) filter: String,
     /// The proposal of a refused tag-letter edit (FR-NUM-029): accepted by `props.accept_tag_proposal`.
     pub(crate) tag_proposal: Option<TagProposal>,
+    /// The Medium row whose New medium… opened the form: the medium it makes is set there (the persona re-test).
+    pub(crate) medium_for: Option<String>,
 }
 
 /// The proposal that comes with a tag-letter edit refused for a colliding counter (FR-NUM-029): the same letter with the counter left to online numbering, which gives the next free one. Accepting it is
@@ -769,6 +771,8 @@ const PRIMARY: &[(&str, &[&str])] = &[
             "derived.structure.location",
             // A valve's position on its valve terminal (the persona round: found only through the filter).
             "derived.position",
+            // A fluid source's medium (the persona re-test: a person starts at the source).
+            "derived.medium",
         ],
     ),
     (

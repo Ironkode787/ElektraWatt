@@ -411,6 +411,9 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
 - behaviour-change: a tube's Medium set in Properties on several tubes at once holds on each of them (only the first
   kept it), and tubes of one medium defined at different ports read as that medium, not "varies" (persona re-test
   R2-G)
+- behaviour-change: a tube's Medium list ends in New medium… (its only entry while the project has none), and the
+  medium it makes is the tube's; an air supply's Properties show the medium it supplies and set it (persona re-test
+  R2-F)
 - format-variant: report_block ReportKind tube_list
 - format-variant: report_block ReportKind tube_cut_list
 - format-variant: report_block ReportKind tube_labels

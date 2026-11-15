@@ -954,6 +954,19 @@ impl Session {
                 }
                 command("fluid.medium.define", params)
             }
+            // A fluid source's medium: defined at its port, as a tube's at its end.
+            ("device", "medium") => {
+                let Some((function, idx)) = super::properties::source_port(&q, Id::from_uuid(edit.target)) else {
+                    return invalid("The device has no fluid port to define its medium at.");
+                };
+                if text.parse::<Uuid>().is_err() {
+                    return invalid("Choose one of the project's media.");
+                }
+                command(
+                    "fluid.medium.define",
+                    json!({"function": function.as_uuid().to_string(), "idx": idx, "medium": text}),
+                )
+            }
             // A valve's position on its module or valve terminal: `assembly.attach` there at the typed position, which
             // refuses a position another child holds in words.
             ("device", "position") => {

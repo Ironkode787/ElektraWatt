@@ -5162,6 +5162,7 @@ field-device-tech-data = Technical data
 field-device-derived-tag = Tag
 field-device-derived-main-location = Main location
 field-device-derived-position = Valve position
+field-device-derived-medium = Medium
 field-device-derived-printed-label = Printed label
 field-device-derived-group = Group
 field-connection-derived-number = Wire number
@@ -6156,6 +6157,7 @@ field-help-device-tech-data-item-value = The technical value.
 field-help-device-derived-cp-item = A connection point of the device, as pages print it. Mark not used tells the checks it stays free on purpose.
 field-help-device-derived-main-location = Where the device's main symbol stands: its page and grid cell.
 field-help-device-derived-position = The valve's place on its valve terminal. Type another free position to move it there; a valve placed inside the valve terminal's box takes the next free one.
+field-help-device-derived-medium = The medium this source supplies and where it is defined. Choose one to define it at the source's port, for every tube it reaches; New medium… makes one first.
 field-help-device-derived-printed-label = The text the device prints beside its tag.
 field-help-device-derived-group = The group of the terminal on its strip. Typing a caption here names the group.
 field-help-device-derived-structure-function = The function (=) identifier the tag uses: set on the device, else taken from its page or a structure box.

@@ -1809,6 +1809,81 @@ fn fluid_line_rows(q: &Q, cx: &SheetCx<'_>, targets: &[Uuid]) -> Vec<Built> {
     vec![medium, tube]
 }
 
+/// The fluid port of a source device (a function on a FnDef of category `Source`, the air-supply point): its first
+/// fluid CP; `None` for any other device.
+pub(crate) fn source_port(q: &Q, device: Id<Device>) -> Option<(Id<ew_derive::ew_schema::Function>, u16)> {
+    q.idx().functions_of_device(device).find_map(|f| {
+        let def = q.functions().get(f).and_then(|x| q.fndefs().get(x.def))?;
+        let (a, b, c) = &def.item.category;
+        if ![a, b, c].iter().any(|c| c.as_str() == "Source") {
+            return None;
+        }
+        q.get::<ew_derive::FunctionCps>(f)
+            .iter()
+            .find(|c| ew_derive::is_fluid(&c.discipline))
+            .map(|c| (f, c.idx))
+    })
+}
+
+/// A source device's **Medium** row ([`source_port`]): the medium its port's net carries and where it is defined, set
+/// as a tube's (`fluid.medium.define` at the port through [`Session::layout_edit`]); `None` for any other device.
+fn source_medium_row(q: &Q, cx: &SheetCx<'_>, device: Id<Device>) -> Option<Built> {
+    use ew_derive::ew_schema::{Medium, MediumDef};
+    use ew_derive::{Effective, MediumZones, node_net};
+    let (f, idx) = source_port(q, device)?;
+    let at = EndpointKey::Cp(f, idx);
+    let net = node_net(q, at);
+    let medium = match net.map(|n| q.get::<MediumZones>(()).effective(n)) {
+        Some(Effective::One(k)) => Some(k.root()),
+        _ => None,
+    };
+    let def = q
+        .table::<MediumDef>()
+        .iter()
+        .map(|(_, d)| d)
+        .find(|d| net.is_some() && EndpointKey::of(&d.at).and_then(|k| node_net(q, k)) == net)
+        .and_then(|d| EndpointKey::of(&d.at).and_then(ew_derive::CpRef::of))
+        .map(|cp| cp_label(q, cp));
+    let via = match (medium, def) {
+        (Some(_), Some(at)) => format!("medium definition at {at}"),
+        (Some(_), None) => "carried through the valves".to_owned(),
+        (None, _) => "no medium definition".to_owned(),
+    };
+    let media = q.table::<Medium>();
+    let options: Vec<String> = media.iter().map(|(id, _)| id.as_uuid().to_string()).collect();
+    let per = vec![(
+        medium.map(|m| Value::String(m.as_uuid().to_string())),
+        Provenance::Derived { via },
+    )];
+    let (value, provenance) = merge(cx, &FieldType::Text, per);
+    let value = match value {
+        RowValue::One { json, .. } => {
+            let text = medium
+                .and_then(|m| media.get(m))
+                .map(|m| neutral_or_first(&m.name))
+                .unwrap_or_default();
+            RowValue::One { json, text }
+        }
+        other => other,
+    };
+    Some(derived(
+        "device",
+        "medium",
+        Some((
+            "derived.medium",
+            EditRoute::Command {
+                command: "fluid.medium.define".to_owned(),
+            },
+            false,
+        )),
+        Category::Part,
+        FieldType::Enum { options },
+        value,
+        provenance,
+        vec![RowAction::Edit],
+    ))
+}
+
 /// Doc 16a §8.5: the route points of connection `c` as the frame cells they lie in (`D5`), as
 /// cross-references print them, never as nanometres; a point outside the frame grid by its two lengths.
 fn route_in_cells(q: &Q, c: Id<Connection>, built: &mut [Built]) {
@@ -2575,6 +2650,13 @@ impl Session {
                 provenance,
                 actions,
             ));
+        }
+        // A fluid source's medium (the persona re-test started at the air supply and found no medium there): the medium
+        // its port's net carries, with where it is defined, chosen among the project's media as a tube's is.
+        if let [one] = devices.as_slice()
+            && let Some(row) = source_medium_row(q, cx, *one)
+        {
+            out.push(row);
         }
         // The main location.
         let per: Vec<(Option<Value>, Provenance)> = devices

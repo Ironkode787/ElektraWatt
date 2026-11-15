@@ -1171,6 +1171,10 @@ impl ShellModel {
         let [name, p_nom, code] = <[String; 3]>::try_from(v).expect("three fields");
         for (field, value) in [("name", &name), ("p_nom", &p_nom)] {
             if value.trim().is_empty() {
+                // A form opened afresh sets the medium on no row (the Medium row's New medium… names its row after).
+                if p.is_empty() {
+                    self.props.medium_for = None;
+                }
                 return self.form_missing(&MEDIUM_NEW, p, field);
             }
         }
@@ -1185,11 +1189,25 @@ impl ShellModel {
         if !code.trim().is_empty() {
             set["code"] = Value::String(code.trim().to_owned());
         }
+        let before: Vec<_> = self
+            .project_session()
+            .map(|s| s.media().into_iter().map(|(id, _)| id).collect())
+            .unwrap_or_default();
         let out = self.host_create("fluid.medium.edit", json!({ "set": set }));
         if out == Outcome::Done {
             self.notify(strings::format(key!("toast-medium-new"), &[name.trim()]), true);
         }
-        self.form_done(MEDIUM_NEW.action, out)
+        let out = self.form_done(MEDIUM_NEW.action, out);
+        // Made from a tube's Medium row (its New medium…): the tubes take the new medium.
+        let made = self
+            .project_session()
+            .and_then(|s| s.media().into_iter().find(|(id, _)| !before.contains(id)));
+        if let (Some(row), Some((id, name)), Outcome::Done) = (self.props.medium_for.take(), made, &out)
+            && self.props_find(&row).is_some()
+        {
+            return self.commit_value(&row, Value::String(id.to_string()), name, Vec::new());
+        }
+        out
     }
 
     /// The project settings member `member` as JSON (`Value::Null` when absent).

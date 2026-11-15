@@ -848,6 +848,11 @@ its chip naming the sources of its size and material (the project's default tube
 override; §5.4), read-only. **The Fluid panel's tool line** offers Fluid settings… and New medium…, the Project tab's
 actions.
 
+*As built (M3 persona re-test).* The Medium row's list ends in **New medium…**, its only entry while the project has
+no medium; the medium its form makes is set on the row's tubes. **A source's Properties** (a device with a function on
+a FnDef of category `Source`, the air-supply point) show the same Medium row in Main: the medium its port's net carries
+and where it is defined, set at its port.
+
 *As built (M3 persona round).* **One word.** The window calls a drawn fluid line a **tube** (Dutch *slang*): Draw ▸
 Connect ▸ Tube…, a tube's Properties headed "Tube (Working)", the refusals, the medium's count ("3 tubes"), the layout
 findings; "line kind" stays the attribute (Working, Pilot, Exhaust, Drain, Flexible), "fluid line" stays this document's

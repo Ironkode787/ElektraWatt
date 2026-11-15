@@ -50,8 +50,9 @@ the middle, and the tube table and the medium table in the bottom dock.
     give the medium a name and its pressure in bar, and choose **Create**.
 11. Right-click a tube and choose **Medium:** with the medium's name: the tube's net and every net the medium
     reaches through the valves carry it. The fluid navigator counts the tubes of each medium. A tube's **Medium** in
-    Properties shows the medium and where it is defined, and sets it too, on every tube selected; its **Tube** row
-    shows the tube it is made of (such as 6×4 mm PU) and where that comes from.
+    Properties shows the medium and where it is defined, and sets it too, on every tube selected; its list ends in
+    **New medium…**, which makes one and gives it to the tubes. Its **Tube** row shows the tube it is made of (such as
+    6×4 mm PU) and where that comes from. The air supply's Properties show the medium it supplies, and set it there.
 12. Select the medium's row in the medium table and press `Ctrl+Shift+H` to highlight its zones on the page; the
     highlight is a colour with a hatch pattern, so it reads without colour too.
 

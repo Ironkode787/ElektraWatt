@@ -4907,6 +4907,7 @@ field-device-tech-data = Technische gegevens
 field-device-derived-tag = Kenmerk
 field-device-derived-main-location = Hoofdlocatie
 field-device-derived-position = Ventielplaats
+field-device-derived-medium = Medium
 field-device-derived-printed-label = Gedrukt label
 field-device-derived-group = Groep
 field-connection-derived-number = Draadnummer
@@ -5894,6 +5895,7 @@ field-help-device-tech-data-item-value = De technische waarde.
 field-help-device-derived-cp-item = Een aansluitpunt van het apparaat, zoals pagina's het afdrukken. Markeren als niet gebruikt vertelt de controles dat het bewust vrij blijft.
 field-help-device-derived-main-location = Waar het hoofdsymbool van het apparaat staat: de pagina en het rastervak.
 field-help-device-derived-position = De plaats van het ventiel op zijn ventieleiland. Typ een andere vrije plaats om het daarheen te verplaatsen; een ventiel dat in het kader van het eiland wordt geplaatst, krijgt de volgende vrije plaats.
+field-help-device-derived-medium = Het medium dat deze bron levert en waar het bepaald is. Een keuze bepaalt het aan de poort van de bron, voor elke slang die het bereikt; Nieuw medium… maakt er eerst een.
 field-help-device-derived-printed-label = De tekst die het apparaat naast het kenmerk afdrukt.
 field-help-device-derived-group = De groep van de klem op de klemmenstrook. Een opschrift hier typen geeft de groep een naam.
 field-help-device-derived-structure-function = De functiecodering (=) die het kenmerk gebruikt: op het apparaat ingesteld, anders overgenomen van de pagina of een structuurkader.

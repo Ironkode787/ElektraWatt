@@ -899,3 +899,59 @@ fn r2g_a_medium_set_on_two_tubes_at_once_holds_on_both() {
     assert_eq!(badge, format!("{carried} lines"), "the Media row counts the tubes that carry it");
     d.shell_mut().shutdown();
 }
+
+/// The texts of the choices under the Properties row being edited.
+fn choice_texts(d: &mut Driver) -> Vec<String> {
+    d.shell_mut()
+        .properties()
+        .choices()
+        .map(|c| c.items.iter().map(|(t, _)| t.clone()).collect())
+        .unwrap_or_default()
+}
+
+/// R2-F of the re-test: with no medium in the project, a tube's Medium was a text box that refused every text and
+/// offered no list, and the air supply's Properties said nothing of a medium. The Medium row offers New medium… (the
+/// only entry, then the last); the medium the form makes is the tube's; the air supply shows the medium it supplies,
+/// and sets it there too.
+#[test]
+fn r2f_new_medium_from_the_tubes_medium_and_the_supplys_medium() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    let edit = json!({"row": "connection/derived.medium"});
+    assert_eq!(d.shell_mut().dispatch("props.edit", &edit), Outcome::Done);
+    assert_eq!(choice_texts(&mut d), ["New medium…"]);
+    let choose = json!({"index": 0});
+    assert_eq!(d.shell_mut().dispatch("props.choose", &choose), Outcome::Done);
+    d.settle();
+    let action = match d.shell_mut().dialog() {
+        Some(ew_ui::ew_viewmodel::shell::Dialog::Form(f)) => f.action,
+        other => panic!("{other:?}"),
+    };
+    assert_eq!(action, "fluid.medium_new");
+    // A frame to show the form (a dispatch asks for none).
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    // The first field has the focus: the name, Tab, the pressure, Enter.
+    d.input(&typed("Compressed air"));
+    d.input(&key("tab"));
+    d.input(&typed("6"));
+    d.input(&key("enter"));
+    d.settle();
+    assert!(d.shell_mut().dialog().is_none(), "the form is done");
+    one_tube_selected(&mut d);
+    let (text, _) = prop_row(&mut d, "connection/derived.medium");
+    assert_eq!(text, "Compressed air", "the new medium is the tube's");
+    assert_eq!(d.shell_mut().dispatch("props.edit", &edit), Outcome::Done);
+    assert_eq!(choice_texts(&mut d), ["Compressed air", "New medium…"]);
+    let _ = d.shell_mut().dispatch("props.cancel", &json!({}));
+    // The air supply says what it supplies, in Main.
+    let supply = device_drawn(&mut d, "ew.iso.air-supply");
+    let _ = d
+        .shell_mut()
+        .dispatch("select.set", &json!({ "ids": [supply.to_string()] }));
+    let (text, chip) = prop_row(&mut d, "device/derived.medium");
+    assert_eq!(text, "Compressed air");
+    assert!(chip.contains("medium defined at"), "{chip}");
+    d.shell_mut().shutdown();
+}

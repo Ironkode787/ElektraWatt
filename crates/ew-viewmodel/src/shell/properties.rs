@@ -864,7 +864,8 @@ impl ShellModel {
                 details = refs;
                 items
             }
-            // A tube's medium by its name; choosing one commits the medium's ID.
+            // A tube's medium by its name; choosing one commits the medium's ID. New medium… stands last, the only
+            // entry while the project has none (the persona re-test met a text box that refused every text).
             (crate::properties::EditRoute::Command { command }, _) if command == "fluid.medium.define" => {
                 let f = filter.to_lowercase();
                 p.session
@@ -872,6 +873,7 @@ impl ShellModel {
                     .into_iter()
                     .filter(|(_, name)| name.to_lowercase().contains(&f))
                     .map(|(id, name)| (name, Value::String(id.to_string())))
+                    .chain([(strings::text(key!("action-fluid-medium-new")).to_owned(), Value::Null)])
                     .collect()
             }
             // The Surface row's choice is the surface, by its ID: two surfaces may read alike.
@@ -1179,7 +1181,7 @@ impl ShellModel {
     }
 
     /// Compiles the leaf `value` of row `key` into exactly one command and runs the commit path (§6.6).
-    fn commit_value(&mut self, key: &str, value: Value, typed: String, notes: Vec<String>) -> Outcome {
+    pub(super) fn commit_value(&mut self, key: &str, value: Value, typed: String, notes: Vec<String>) -> Outcome {
         let Some((section, row)) = self.props_find(key) else {
             return failed(key!("error-no-row"), &[key]);
         };
@@ -1963,6 +1965,17 @@ impl ShellModel {
             self.props.choices = Some(choices);
             return failed(key!("error-bad-param"), &["index"]);
         };
+        // New medium… opens its form; the medium it makes is set on the row's tubes.
+        if value.is_null()
+            && self.props_find(&choices.row).is_some_and(|(_, r)| {
+                matches!(&r.route, crate::properties::EditRoute::Command { command } if command == "fluid.medium.define")
+            })
+        {
+            self.props.edit = None;
+            let out = self.act_fluid_medium_new(&Map::new());
+            self.props.medium_for = Some(choices.row.clone());
+            return out;
+        }
         let typed = self
             .props
             .edit

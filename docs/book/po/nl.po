@@ -3382,18 +3382,20 @@ msgid ""
 "net and every net the medium reaches through the valves carry it. The fluid "
 "navigator counts the tubes of each medium. A tube's **Medium** in Properties "
 "shows the medium and where it is defined, and sets it too, on every tube "
-"selected; its **Tube** row shows the tube it is made of (such as 6×4 mm PU) "
-"and where that comes from."
+"selected; its list ends in **New medium…**, which makes one and gives it to "
+"the tubes. Its **Tube** row shows the tube it is made of (such as 6×4 mm PU) "
+"and where that comes from. The air supply's Properties show the medium it "
+"supplies, and set it there."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:55
+#: src/how-to/fluid-workspace.md:56
 msgid ""
 "Select the medium's row in the medium table and press `Ctrl+Shift+H` to "
 "highlight its zones on the page; the highlight is a colour with a hatch "
 "pattern, so it reads without colour too."
 msgstr ""
 
-#: src/how-to/fluid-workspace.md:58
+#: src/how-to/fluid-workspace.md:59
 msgid ""
 "The panels are described in the [panel "
 "reference](../reference/window/panels.md): Fluid, Tube table and Medium "
