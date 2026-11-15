@@ -154,10 +154,48 @@ fn clippy(root: &Path, scope: &[String]) -> Result<bool> {
 
 /// Formats every Rust file of the repository with rustfmt, the test modules that `automod::dir!` declares and
 /// `cargo fmt` therefore never sees included. Prints the files it changed.
+///
+/// The chunks are compared side by side (`--check`, which writes nothing), and only the files that differ are then
+/// written: rustfmt also formats the modules a given file declares, so two chunks written at once could both write
+/// one file. One chunk after another took most of a lane's `check` before the build started (25 to 47 s, 6 s side
+/// by side).
 fn format(root: &Path) -> Result<bool> {
     let files = rust_files(root)?;
     let before = crate::repo::git(root, &["status", "--porcelain", "--", "*.rs"])?;
-    for chunk in files.chunks(RUSTFMT_CHUNK) {
+    let checks = std::thread::scope(|scope| {
+        let runs: Vec<_> = files
+            .chunks(RUSTFMT_CHUNK)
+            .map(|chunk| {
+                scope.spawn(move || {
+                    Command::new("rustfmt")
+                        .args(["--check", "--files-with-diff"])
+                        .args(chunk)
+                        .current_dir(root)
+                        .output()
+                })
+            })
+            .collect();
+        runs.into_iter()
+            .map(|run| run.join().expect("a rustfmt thread panicked"))
+            .collect::<std::io::Result<Vec<_>>>()
+    })
+    .context("running rustfmt --check")?;
+    let mut differ = Vec::new();
+    for output in checks {
+        // A file that differs is a failed `--check` with its name on stdout; an error also says why on stderr.
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if !output.status.success() && !stderr.trim().is_empty() {
+            eprintln!("{}", stderr.trim_end());
+            return Ok(false);
+        }
+        differ.extend(
+            String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .filter(|line| !line.trim().is_empty())
+                .map(str::to_owned),
+        );
+    }
+    for chunk in differ.chunks(RUSTFMT_CHUNK) {
         let output = Command::new("rustfmt")
             .args(chunk)
             .current_dir(root)
