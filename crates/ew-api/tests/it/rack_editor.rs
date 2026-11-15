@@ -86,7 +86,7 @@ fn the_valve_terminal_in_the_rack_editor() {
     assert_eq!(free, [8], "the slot after the positional modules");
     let first = &v.rows[0];
     assert_eq!(first.positions.len(), 4, "a sub-base with four valve positions");
-    assert!(first.positions.iter().all(|(valve, _)| valve.is_some()));
+    assert!(first.positions.iter().all(|p| p.valve.is_some()));
     let codes: Vec<&str> = v.order_codes.iter().map(|(_, c)| c.as_str()).collect();
     assert!(codes.contains(&"51E-F13GCQP-D+H2GG"), "{codes:?}");
     assert!(v.findings.is_empty());

@@ -166,6 +166,10 @@ impl Command for ReshapeBox {
         let Some(old) = rep.box_.clone() else {
             return tx.reject(text!("refusal-box-reshape-no-box"));
         };
+        // A valve terminal drawn as its positions takes its size from them (rc.2).
+        if old.slots.is_some() {
+            return tx.reject(text!("refusal-box-reshape-slots"));
+        }
         let page = tx.require::<Page>(rep.page)?;
         let grid = page.grid;
         if self.outline.len() < 3 {
@@ -337,7 +341,7 @@ impl Command for ReshapeBox {
             outline: self.outline.clone(),
             cps,
             inner: old.inner.clone(),
-            slots: old.slots.clone(),
+            slots: None,
             extra: old.extra.clone(),
         });
         tx.put(next);

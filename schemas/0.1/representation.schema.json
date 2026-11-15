@@ -158,6 +158,20 @@
       ],
       "type": "object"
     },
+    "BoxSlots": {
+      "additionalProperties": true,
+      "description": "The cells of a valve terminal's box ([`BoxSpec::slots`]): the cells stand left to right after the supply end, each\n`pitch` wide; their content is derived from the terminal's valve positions, never stored.",
+      "properties": {
+        "pitch": {
+          "$ref": "#/$defs/Nm",
+          "description": "The width of one cell."
+        }
+      },
+      "required": [
+        "pitch"
+      ],
+      "type": "object"
+    },
     "BoxSpec": {
       "additionalProperties": true,
       "description": "The outline, CPs and inner graphics of a black box (doc 03 §6).",
@@ -182,6 +196,17 @@
             "$ref": "#/$defs/Pt2"
           },
           "type": "array"
+        },
+        "slots": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BoxSlots"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "A valve terminal's box drawn as its valve positions (doc 11 §3.2, rc.2): one cell per position in a row, each\n`pitch` wide; absent: a free box. An optional member without cascade semantics (ADR-0011 amendment 6): an\nolder build keeps it and draws the outline alone."
         }
       },
       "required": [
