@@ -29,7 +29,7 @@ enum Source {
     ProjectText(&'static str),
     /// An identifier member of the project row; empty removes it.
     ProjectIdent(&'static str),
-    /// A date member of the project row (`YYYY-MM-DD`); empty removes it.
+    /// A date member of the project row, shown and typed in the project's date format; empty removes it.
     ProjectDate(&'static str),
     /// The name of the first party of a role (its serde word); a party of that role is added for a new name.
     Party(&'static str),
@@ -311,13 +311,20 @@ impl ShellModel {
                     edits.push(edit("project", &project, member, Value::String(text)));
                 }
                 Source::ProjectIdent(member) => edits.push(edit("project", &project, member, or_null(&text))),
+                // Typed in the project's date format, stored ISO.
+                Source::ProjectDate(member) if text.is_empty() => {
+                    edits.push(edit("project", &project, member, Value::Null));
+                }
                 Source::ProjectDate(member) => {
-                    if !text.is_empty() && text.parse::<ew_api::catalog::Date>().is_err() {
-                        let message =
-                            strings::format(key!("error-titleblock-date"), &[strings::text(f.label_key)]);
+                    let format = self.date_format();
+                    let Ok(date) = format.parse(&text) else {
+                        let message = strings::format(
+                            key!("error-titleblock-date"),
+                            &[strings::text(f.label_key), &format.example()],
+                        );
                         return self.form_failed(TITLE_BLOCK, message);
-                    }
-                    edits.push(edit("project", &project, member, or_null(&text)));
+                    };
+                    edits.push(edit("project", &project, member, Value::String(date.to_string())));
                 }
                 Source::Party(role) => {
                     parties_changed = true;

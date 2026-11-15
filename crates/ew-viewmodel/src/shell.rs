@@ -2088,6 +2088,22 @@ impl ShellModel {
         self.today = Some(date);
     }
 
+    /// The date format the open project shows and takes its dates in (`Formatting::date_format`; dd-mm-yyyy when it
+    /// names none, ISO without a project). Every date field of the window reads and writes through it (the owner's
+    /// test of 0.3.0-rc.1: a dd-mm-yyyy project asked for YYYY-MM-DD).
+    pub fn date_format(&self) -> ew_api::catalog::DateFormat {
+        self.project
+            .as_ref()
+            .map_or(ew_api::catalog::DateFormat::Iso8601, |p| {
+                p.session.query().project().settings.formatting.date_format()
+            })
+    }
+
+    /// The hint of a date field: "A date, such as 31-12-2026", in the project's format.
+    pub fn date_hint(&self) -> String {
+        strings::format(key!("hint-date"), &[&self.date_format().example()])
+    }
+
     /// The source of new record IDs for every session the shell opens or creates from now on (feature `testkit`
     /// only; `None`: the system clock and OS entropy, as in the product, which never sets one). A guard runs one
     /// script under an ascending and a descending source: a shell output ordered by UUID then differs. The product's IDs stay UUIDv7 from the system (ADR-0004); this is no seeded ID source for the shell.

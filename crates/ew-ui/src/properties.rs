@@ -1515,6 +1515,11 @@ impl PropertiesPane {
         // its caret after the typed text.
         // The selection is set once the field holds the focus (egui collapses a selection of an unfocused field).
         let field_id = ui.make_persistent_id(("props-editor", row.key.as_str()));
+        // A date's hint is an example in the project's date format.
+        let hint = match row.ty.inner() {
+            FieldType::Date => shell.date_hint(),
+            _ => label.to_owned(),
+        };
         let response = ui.add_sized(
             Vec2::new(ui.available_width(), t.size_control_inline),
             TextEdit::singleline(&mut self.buffer)
@@ -1527,7 +1532,7 @@ impl PropertiesPane {
                 .desired_width(f32::INFINITY)
                 // The text centred in its field, as the value's is in its cell.
                 .align(egui::Align2::LEFT_CENTER)
-                .hint_text(label),
+                .hint_text(hint),
         );
         let radius = crate::theme::radius(t.radius_sm);
         ui.painter().set(

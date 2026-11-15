@@ -415,6 +415,10 @@ impl ParseCx for WithPending<'_> {
     fn slot_nodes(&self, member: &str) -> Vec<(String, String, Vec<String>)> {
         self.inner.slot_nodes(member)
     }
+
+    fn date_format(&self) -> ew_schema::DateFormat {
+        self.inner.date_format()
+    }
 }
 
 /// The copy of a part text among `kinds` (D7).

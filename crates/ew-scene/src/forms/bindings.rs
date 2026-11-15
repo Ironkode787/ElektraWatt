@@ -438,9 +438,9 @@ fn eval_placeholder(
         match (f.name.as_str(), f.args.as_slice()) {
             ("date", []) => {
                 state = state.map(|v| match v {
-                    BoundValue::Date(d) => BoundValue::Text(format_date(d, &bindings.date_format())),
+                    BoundValue::Date(d) => BoundValue::Text(bindings.date_format().format(d)),
                     BoundValue::Text(t) => match t.parse::<Date>() {
-                        Ok(d) => BoundValue::Text(format_date(d, &bindings.date_format())),
+                        Ok(d) => BoundValue::Text(bindings.date_format().format(d)),
                         Err(_) => BoundValue::Text(t),
                     },
                     other => other,
@@ -466,20 +466,11 @@ fn eval_placeholder(
     state
 }
 
-fn format_date(d: Date, format: &DateFormat) -> String {
-    match format {
-        DateFormat::DdMmYyyy => format!("{:02}-{:02}-{:04}", d.day(), d.month(), d.year()),
-        DateFormat::Iso8601 | DateFormat::Unknown(_) => {
-            format!("{:04}-{:02}-{:02}", d.year(), d.month(), d.day())
-        }
-    }
-}
-
 fn render(value: &BoundValue, bindings: &dyn Bindings) -> String {
     match value {
         BoundValue::Text(t) => t.clone(),
         BoundValue::Ml(ml) => ml_text(ml, bindings.language()).to_owned(),
-        BoundValue::Date(d) => format_date(*d, &bindings.date_format()),
+        BoundValue::Date(d) => bindings.date_format().format(*d),
         BoundValue::Tag { displayed, .. } => displayed.clone(),
         BoundValue::Asset(_) => String::new(),
     }

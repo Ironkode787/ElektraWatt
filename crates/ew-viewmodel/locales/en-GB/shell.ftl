@@ -3879,7 +3879,7 @@ titleblock-checked = Checked
 titleblock-note-fixed = The texts this page's title block template writes itself print as the template holds them; they are not fields here.
 titleblock-note-checked = Checked prints the checker who approves the current revision: { $p0 } on the { $p1 } tab.
 titleblock-revision-note = The label takes the project's form, such as { $p0 }, the next free one; { $p1 } ▸ { $p2 } sets the form.
-error-titleblock-date = Type { $p0 } as a date, such as 2026-11-12, or leave it empty.
+error-titleblock-date = Type { $p0 } as a date, such as { $p1 }, or leave it empty.
 error-titleblock-revision = A revision keeps its label; type one.
 action-structure-new = Structure node…
 action-external-ref-new = External reference…
@@ -6645,3 +6645,7 @@ status-waiting = { $p0 } changes wait for Apply
 status-waiting-one = 1 change waits for Apply
 status-waiting-open = A preview is open
 status-waiting-tip = Show the Preview, where Apply makes the changes
+
+# A date typed in the project's date format (the owner's test of 0.3.0-rc.1).
+refusal-input-date = `{ $p0 }` is not a date: type it as { $p1 }
+hint-date = A date, such as { $p0 }

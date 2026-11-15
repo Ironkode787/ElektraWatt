@@ -17,11 +17,11 @@ project languages.source text other read-only:project.languages.set
 project languages.translations list<text> other read-only:project.languages.set
 project languages.translations[] text other read-only:project.languages.set
 project master group other -
-project master.created text? other fields.set:master.created
+project master.created date? other fields.set:master.created
 project master.description mltext other fields.set:master.description
 project master.document_title mltext other fields.set:master.document_title
 project master.drawing_id ident? other fields.set:master.drawing_id
-project master.edited text? other fields.set:master.edited
+project master.edited date? other fields.set:master.edited
 project master.long_description mltext other fields.set:master.long_description
 project master.manufacturing_year int[0..65535]? other fields.set:master.manufacturing_year
 project master.object_id ident? other fields.set:master.object_id
@@ -72,7 +72,7 @@ project supply.u_nom dec3 other read-only:no-command
 plc_config_project $v int[0..65535] identity read-only:identity
 plc_config_project cpu uuid? other read-only:no-command
 plc_config_project exchange group? other read-only:no-command
-plc_config_project exchange.date text other read-only:no-command
+plc_config_project exchange.date date other read-only:no-command
 plc_config_project exchange.direction enum(export|import) other read-only:no-command
 plc_config_project exchange.file_sha256 text other read-only:no-command
 plc_config_project exchange.format enum(aml|tia_xlsx|plcopen) other read-only:no-command
@@ -80,7 +80,7 @@ plc_config_project exchange.version text? other read-only:no-command
 plc_config_project id uuid identity read-only:identity
 plc_config_project name ident identity fields.set:name
 plc_config_project ownership group? other -
-plc_config_project ownership.imported text? other read-only:no-command
+plc_config_project ownership.imported date? other read-only:no-command
 plc_config_project ownership.module_starts enum(ecad|plc|shared)? other fields.set:ownership.module_starts
 plc_config_project ownership.symbols enum(ecad|plc|shared)? other fields.set:ownership.symbols
 plc_config_project ownership.unlocked list<enum(module_starts|symbols|plc_data)> other read-only:no-command
@@ -656,7 +656,7 @@ placement pose.t json other read-only:no-command
 revision $v int[0..65535] identity read-only:identity
 revision author enum(customer|end_user|panel_builder|author|checker|engineer)? other read-only:narrowed
 revision checker enum(customer|end_user|panel_builder|author|checker|engineer)? other read-only:narrowed
-revision date text? other fields.set:date
+revision date date? other fields.set:date
 revision description mltext texts fields.set:description
 revision id uuid identity read-only:identity
 revision label ident identity fields.set:label
@@ -669,7 +669,7 @@ revision release group? other read-only:no-command
 revision release.approval group? other read-only:no-command
 revision release.approval.checker enum(customer|end_user|panel_builder|author|checker|engineer)? other read-only:no-command
 revision release.approval.content_digest text? other read-only:no-command
-revision release.approval.date text? other read-only:no-command
+revision release.approval.date date? other read-only:no-command
 revision release.approval.packs list<group>? other read-only:no-command
 revision release.approval.packs[] group other read-only:no-command
 revision release.approval.packs[].id ident? other read-only:no-command
@@ -688,7 +688,7 @@ revision release.derivation_profile ident? other read-only:no-command
 revision release.generation int[0..]? other read-only:no-command
 revision release.git_tag ident? other read-only:no-command
 revision release.page_digests json? other read-only:no-command
-revision release.released_on text? other read-only:no-command
+revision release.released_on date? other read-only:no-command
 revision release.rule_packs list<group>? other read-only:no-command
 revision release.rule_packs[] group other read-only:no-command
 revision release.rule_packs[].id ident? other read-only:no-command
@@ -697,7 +697,7 @@ revision release.rule_packs[].version ident? other read-only:no-command
 revision sign_off group? other read-only:no-command
 revision sign_off.checker enum(customer|end_user|panel_builder|author|checker|engineer)? other read-only:no-command
 revision sign_off.content_digest text? other read-only:no-command
-revision sign_off.date text? other read-only:no-command
+revision sign_off.date date? other read-only:no-command
 revision sign_off.packs list<group>? other read-only:no-command
 revision sign_off.packs[] group other read-only:no-command
 revision sign_off.packs[].id ident? other read-only:no-command
@@ -713,7 +713,7 @@ revision state enum(open|released|withdrawn) identity read-only:no-command
 revision withdraws uuid? other read-only:no-command
 waiver $v int[0..65535] identity read-only:identity
 waiver author ident? other read-only:no-command
-waiver date text? other read-only:no-command
+waiver date date? other read-only:no-command
 waiver id uuid identity read-only:identity
 waiver reason mltext other read-only:no-command
 waiver rule ident other read-only:no-command
@@ -732,7 +732,7 @@ foreign_id id uuid identity read-only:identity
 foreign_id object enum(station|module|channel|tag|node|instrument) other read-only:no-command
 foreign_id target uuid other read-only:no-command
 import_run $v int[0..65535] identity read-only:identity
-import_run as_of text? other read-only:no-command
+import_run as_of date? other read-only:no-command
 import_run entries list<group> other read-only:no-command
 import_run entries[] group other read-only:no-command
 import_run entries[].code text other read-only:no-command

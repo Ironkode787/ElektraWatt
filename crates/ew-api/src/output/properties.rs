@@ -453,6 +453,10 @@ impl DisplayCx for SheetCx<'_> {
     fn source_language(&self) -> Option<String> {
         self.source.clone()
     }
+
+    fn date_format(&self) -> ew_schema::DateFormat {
+        self.q.project().settings.formatting.date_format()
+    }
 }
 
 /// The structure aspect a structure-assignment member names.
@@ -484,6 +488,10 @@ fn member_of_aspect(aspect: Aspect) -> &'static str {
 }
 
 impl ParseCx for SheetCx<'_> {
+    fn date_format(&self) -> ew_schema::DateFormat {
+        self.q.project().settings.formatting.date_format()
+    }
+
     fn company_codes(&self) -> Vec<(String, String)> {
         self.q
             .project()

@@ -18,6 +18,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
+use crate::error::SchemaError;
 use crate::json::{Extra, Open, de_extra, is_default, is_false, is_v1, v1};
 use crate::proxy::{AspectS, Dec3S, IdentS, LangTagS, MlTextS, UuidS};
 use crate::revision::LabelFormat;
@@ -392,6 +393,63 @@ impl Formatting {
     /// Whether nothing is set.
     pub fn is_empty(&self) -> bool {
         *self == Formatting::default()
+    }
+
+    /// The date format the project prints and shows its dates in: the one set, else dd-mm-yyyy.
+    pub fn date_format(&self) -> DateFormat {
+        self.date.clone().unwrap_or(DateFormat::DdMmYyyy)
+    }
+}
+
+impl DateFormat {
+    /// `date` as this format writes it: `14-04-2025` for dd-mm-yyyy, else ISO `2025-04-14` (a newer format's value
+    /// too). The one formatter of a date shown to a person: title blocks, the property grid, the forms.
+    pub fn format(&self, date: Date) -> String {
+        match self {
+            DateFormat::DdMmYyyy => format!("{:02}-{:02}-{:04}", date.day(), date.month(), date.year()),
+            DateFormat::Iso8601 | DateFormat::Unknown(_) => date.to_string(),
+        }
+    }
+
+    /// A date as a person types it in this format, the one parser of a typed date: ISO `2025-04-14` always; with
+    /// dd-mm-yyyy also day, month and year separated by `-`, `.` or `/`, a day and a month of one or two digits and a
+    /// year of four digits, or of two meaning this century (`14.4.25` is 2025-04-14). Surrounding spaces are ignored.
+    ///
+    /// # Errors
+    ///
+    /// [`SchemaError::InvalidDate`] for any other text or a day that does not exist.
+    pub fn parse(&self, text: &str) -> Result<Date, SchemaError> {
+        let t = text.trim();
+        if let Ok(d) = t.parse::<Date>() {
+            return Ok(d);
+        }
+        if *self != DateFormat::DdMmYyyy {
+            return Err(SchemaError::InvalidDate);
+        }
+        let parts: Vec<&str> = t.split(['-', '.', '/']).collect();
+        let [day, month, year] = parts.as_slice() else {
+            return Err(SchemaError::InvalidDate);
+        };
+        let number = |s: &str, lens: &[usize]| -> Result<u16, SchemaError> {
+            if !lens.contains(&s.len()) || !s.bytes().all(|b| b.is_ascii_digit()) {
+                return Err(SchemaError::InvalidDate);
+            }
+            s.parse().map_err(|_| SchemaError::InvalidDate)
+        };
+        let day = u8::try_from(number(day, &[1, 2])?).map_err(|_| SchemaError::InvalidDate)?;
+        let month = u8::try_from(number(month, &[1, 2])?).map_err(|_| SchemaError::InvalidDate)?;
+        let year = match year.len() {
+            2 => 2000 + number(year, &[2])?,
+            _ => number(year, &[4])?,
+        };
+        Date::new(year, month, day)
+    }
+
+    /// An example of a date in this format, for a field's hint and a refusal: the last day of 2026.
+    pub fn example(&self) -> String {
+        Date::new(2026, 12, 31)
+            .map(|d| self.format(d))
+            .unwrap_or_default()
     }
 }
 

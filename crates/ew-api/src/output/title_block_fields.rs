@@ -17,7 +17,8 @@ use crate::Session;
 #[derive(Clone, PartialEq, Debug)]
 pub struct TitleBlockFacts {
     /// The placeholder paths the page's frame and title block print (`project.drawing_id`), in the order of their cells,
-    /// each once, with the text the page prints for it now (empty when it has no value; a date as `YYYY-MM-DD`).
+    /// each once, with the text the page prints for it now (empty when it has no value; a date in the project's date
+    /// format).
     pub fields: Vec<(String, String)>,
     /// The project record's ID.
     pub project: Uuid,
@@ -94,7 +95,8 @@ impl Session {
                 let text = match values.get(&path) {
                     Some(TbValue::Text(t)) => t.clone(),
                     Some(TbValue::Ml(m)) => neutral(m),
-                    Some(TbValue::Date(d)) => d.to_string(),
+                    // A date as the project shows it, as the form takes it back.
+                    Some(TbValue::Date(d)) => q.project().settings.formatting.date_format().format(*d),
                     Some(TbValue::Tag { displayed, .. }) => displayed.clone(),
                     Some(TbValue::Asset(_)) | None => String::new(),
                 };

@@ -3703,7 +3703,7 @@ titleblock-checked = Gecontroleerd
 titleblock-note-fixed = De teksten die het titelbloksjabloon van deze pagina zelf schrijft, worden afgedrukt zoals het sjabloon ze bevat; het zijn hier geen velden.
 titleblock-note-checked = Gecontroleerd drukt de controleur af die de huidige revisie goedkeurt: { $p0 } op het tabblad { $p1 }.
 titleblock-revision-note = Het label volgt de notatie van het project, zoals { $p0 }, het volgende vrije; { $p1 } ▸ { $p2 } stelt de notatie in.
-error-titleblock-date = Typ { $p0 } als datum, zoals 2026-11-12, of laat het leeg.
+error-titleblock-date = Typ { $p0 } als datum, zoals { $p1 }, of laat het leeg.
 error-titleblock-revision = Een revisie houdt haar label; typ er een.
 action-structure-new = Structuurknooppunt…
 action-external-ref-new = Externe verwijzing…
@@ -6383,3 +6383,7 @@ status-waiting = { $p0 } wijzigingen wachten op Toepassen
 status-waiting-one = 1 wijziging wacht op Toepassen
 status-waiting-open = Er staat een voorbeeld open
 status-waiting-tip = Toon het voorbeeld, waar Toepassen de wijzigingen doorvoert
+
+# A date typed in the project's date format (the owner's test of 0.3.0-rc.1).
+refusal-input-date = `{ $p0 }` is geen datum: typ hem als { $p1 }
+hint-date = Een datum, zoals { $p0 }

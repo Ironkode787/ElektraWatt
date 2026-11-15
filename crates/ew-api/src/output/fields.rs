@@ -24,7 +24,7 @@ use std::sync::{Arc, OnceLock};
 use ew_commands::commands::{SETTABLE, SETTABLE_SETTINGS};
 use ew_commands::{CommandRegistry, Exposure};
 use ew_mltext::{Ident, ident_findings};
-use ew_schema::{IecColour, Kind, KindStatus};
+use ew_schema::{DateFormat, IecColour, Kind, KindStatus};
 use ew_units::Dec3;
 use serde_json::Value;
 
@@ -57,6 +57,8 @@ pub enum FieldType {
     Csa,
     /// A length in nanometres, edited in millimetres.
     Nm,
+    /// A calendar date, stored `YYYY-MM-DD`, shown and typed in the project's date format.
+    Date,
     /// One or two colour codes.
     Colour,
     /// One of a closed list of words.
@@ -122,6 +124,7 @@ impl FieldType {
             FieldType::Quantity => "quantity".into(),
             FieldType::Csa => "csa".into(),
             FieldType::Nm => "nm".into(),
+            FieldType::Date => "date".into(),
             FieldType::Colour => "colour".into(),
             FieldType::Enum { options } => format!("enum({})", options.join("|")),
             FieldType::Link { kind } => format!("link({kind})"),
@@ -493,6 +496,7 @@ fn node_type(root: &Value, node: &Value, depth: usize) -> FieldType {
             "Csa" => FieldType::Csa,
             "ColourSpec" => FieldType::Colour,
             "Nm" => FieldType::Nm,
+            "Date" => FieldType::Date,
             "PartRef" => FieldType::Link { kind: "part".into() },
             "Slot" => FieldType::Slot,
             "Uuid" => FieldType::Uuid,
@@ -998,6 +1002,10 @@ pub(crate) trait DisplayCx {
     fn source_language(&self) -> Option<String> {
         None
     }
+    /// The date format the project shows its dates in; ISO without a project.
+    fn date_format(&self) -> DateFormat {
+        DateFormat::Iso8601
+    }
 }
 
 /// No context.
@@ -1121,6 +1129,10 @@ pub(crate) fn format_with(cx: &dyn DisplayCx, ty: &FieldType, value: &Value) -> 
         },
         FieldType::Csa => csa_text(value),
         FieldType::Nm => value.as_i64().map_or_else(|| compact_json(value), nm_text),
+        FieldType::Date => match value.as_str().map(str::parse::<ew_schema::Date>) {
+            Some(Ok(d)) => cx.date_format().format(d),
+            _ => value.as_str().map_or_else(|| compact_json(value), str::to_owned),
+        },
         FieldType::Colour => match value {
             Value::Array(codes) => codes
                 .iter()
@@ -1350,6 +1362,10 @@ pub(crate) trait ParseCx {
     }
     /// The structure nodes of the aspect of a slot named `member` (`location`): (ID, printed code path, aliases).
     fn slot_nodes(&self, member: &str) -> Vec<(String, String, Vec<String>)>;
+    /// The date format a date is typed in ([`DateFormat::parse`]); ISO without a project.
+    fn date_format(&self) -> DateFormat {
+        DateFormat::Iso8601
+    }
 }
 
 fn invalid(text: crate::Text) -> InputError {
@@ -1665,6 +1681,18 @@ pub(crate) fn parse_input(
             value,
             notes: Vec::new(),
         }),
+        // Typed as the project shows it (the owner's test of 0.3.0-rc.1), stored ISO.
+        FieldType::Date => {
+            let format = cx.date_format();
+            match format.parse(text) {
+                Ok(d) => plain(Value::String(d.to_string())),
+                Err(_) => Err(invalid(api_text!(
+                    "refusal-input-date",
+                    text.trim(),
+                    format.example()
+                ))),
+            }
+        }
         FieldType::Colour => parse_colour(text, &cx.company_codes()).map(|value| ParsedInput {
             value,
             notes: Vec::new(),

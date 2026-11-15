@@ -18,7 +18,7 @@ use std::path::{Path, PathBuf};
 pub use ew_import_catalog::ew_interop_api::{
     ImportError, ImportInput, ImportReport, Limits, ReportEntry, Severity,
 };
-pub use ew_schema::Date;
+pub use ew_schema::{Date, DateFormat};
 use ew_schema::{Kind, LibCopy, LibDocument, LibRef, Manufacturer, Part};
 
 pub use ew_import_catalog::{
