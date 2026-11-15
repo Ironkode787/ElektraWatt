@@ -223,7 +223,7 @@ impl Command for SetBusCable {
             return tx.reject(text!("refusal-bus-cable-length", (n.0 / 1_000_000).to_string()));
         }
         embed_closure(Self::NAME, tx, &self.copies)?;
-        let plug = |tx: &TxBuilder<'_>, p: &Option<PlugParam>| -> Result<Option<BusPlug>, CmdError> {
+        let plug = |tx: &TxBuilder<'_>, p: &Option<PlugParam>| -> Result<Option<Box<BusPlug>>, CmdError> {
             let Some(p) = p else { return Ok(None) };
             let copy = tx.require::<LibCopy<Part>>(p.part)?;
             let switch = copy
@@ -238,11 +238,11 @@ impl Command for SetBusCable {
                     copy.item.part_number.to_string()
                 ));
             }
-            Ok(Some(BusPlug {
+            Ok(Some(Box::new(BusPlug {
                 part: PartRef::new(p.part),
                 termination: p.termination.clone(),
                 extra: Extra::new(),
-            }))
+            })))
         };
         let (plug_a, plug_b) = (plug(tx, &self.plug_a)?, plug(tx, &self.plug_b)?);
         let cable = match (&self.cable, &self.create) {

@@ -71,14 +71,21 @@ fn a_bus_line_takes_a_dp_cable_and_a_plug_at_each_end() {
     );
     d.settle();
     // The Draw tab's Cable… on the line: its own form.
-    assert_eq!(d.shell_mut().dispatch("cable.from_wires", &json!({})), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("cable.from_wires", &json!({})),
+        Outcome::Done
+    );
     d.settle();
     {
         let Some(Dialog::Form(form)) = d.shell_mut().dialog() else {
             panic!("the bus line's Cable form");
         };
         assert_eq!(form.action, "bus.cable");
-        let part = form.fields.iter().find(|f| f.name == "part").expect("the cable part");
+        let part = form
+            .fields
+            .iter()
+            .find(|f| f.name == "part")
+            .expect("the cable part");
         assert!(
             part.options[0].1.starts_with("EW-GEN-CBL-2"),
             "the PROFIBUS cable first: {:?}",
@@ -86,11 +93,18 @@ fn a_bus_line_takes_a_dp_cable_and_a_plug_at_each_end() {
         );
         assert_eq!(part.value, part.options[0].0, "and chosen");
         assert!(
-            part.options.iter().any(|(_, w)| w.contains("not made for PROFIBUS DP")),
+            part.options
+                .iter()
+                .any(|(_, w)| w.contains("not made for PROFIBUS DP")),
             "another cable says it is not made for the bus: {:?}",
             part.options
         );
-        let plugs = &form.fields.iter().find(|f| f.name == "plug_a").expect("a plug").options;
+        let plugs = &form
+            .fields
+            .iter()
+            .find(|f| f.name == "plug_a")
+            .expect("a plug")
+            .options;
         assert!(
             plugs.iter().all(|(_, w)| !w.contains("RJ45")),
             "only plugs for PROFIBUS: {plugs:?}"
@@ -121,9 +135,16 @@ fn a_bus_line_takes_a_dp_cable_and_a_plug_at_each_end() {
         .map(|(_, c)| serde_json::to_value(&c.kind).unwrap())
         .next()
         .expect("the line");
-    let cable = kind["bus"]["cable"].as_str().expect("the line has its cable").to_owned();
+    let cable = kind["bus"]["cable"]
+        .as_str()
+        .expect("the line has its cable")
+        .to_owned();
     assert_eq!(kind["bus"]["plug_a"]["termination"], json!("on"));
-    assert_eq!(kind["bus"]["plug_b"].get("termination"), None, "the M12 plug has no switch");
+    assert_eq!(
+        kind["bus"]["plug_b"].get("termination"),
+        None,
+        "the M12 plug has no switch"
+    );
     let cores = q
         .conductors()
         .iter()
@@ -137,7 +158,9 @@ fn a_bus_line_takes_a_dp_cable_and_a_plug_at_each_end() {
         .and_then(|(_, dev)| serde_json::to_value(&dev.aspects.cable).ok())
         .unwrap_or(Value::Null);
     assert_eq!(length["length"], json!({"manual": 12_500_000_000_i64}));
-    let bom = saved.export_csv(Export::Bom(BomMode::Component)).expect("the parts list");
+    let bom = saved
+        .export_csv(Export::Bom(BomMode::Component))
+        .expect("the parts list");
     for number in ["EW-GEN-CBL-2", "EW-GEN-PLG-1", "EW-GEN-PLG-5"] {
         assert!(bom.contains(number), "{number} in the parts list:\n{bom}");
     }

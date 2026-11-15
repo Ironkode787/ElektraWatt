@@ -557,7 +557,7 @@ impl ReportKindDef for BusCableList {
             let (Some(cable), Endpoint::Cp(a, _), Endpoint::Cp(b, _)) = (line.cable, &conn.a, &conn.b) else {
                 continue;
             };
-            let plug = |p: &Option<ew_derive::ew_schema::BusPlug>| p.as_ref().map(|p| p.part.copy);
+            let plug = |p: &Option<Box<ew_derive::ew_schema::BusPlug>>| p.as_ref().map(|p| p.part.copy);
             by_cable
                 .entry(cable)
                 .or_default()

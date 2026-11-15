@@ -85,8 +85,55 @@
             }
           ],
           "description": "The cable device."
+        },
+        "plug_a": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BusPlug"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The plug at end a (doc 10 §2.7: a part on the line's end, not a drawn device)."
+        },
+        "plug_b": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BusPlug"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The plug at end b."
         }
       },
+      "type": "object"
+    },
+    "BusPlug": {
+      "additionalProperties": true,
+      "description": "The plug at one end of a bus line (doc 10 §2.7): its part and, for a plug with a termination switch, the switch's\nstate, which EW-BUS-004 reads as a terminating element at that end.",
+      "properties": {
+        "part": {
+          "$ref": "#/$defs/PartRef",
+          "description": "The plug part."
+        },
+        "termination": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OnOff"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The termination switch; absent: the plug has none."
+        }
+      },
+      "required": [
+        "part"
+      ],
       "type": "object"
     },
     "ColourCode": {
@@ -418,6 +465,21 @@
             "frozen"
           ],
           "type": "object"
+        }
+      ]
+    },
+    "OnOff": {
+      "description": "A two-state switch (doc 10 §2.7: the termination of a connector, FR-BUS-004).",
+      "oneOf": [
+        {
+          "const": "on",
+          "description": "On.",
+          "type": "string"
+        },
+        {
+          "const": "off",
+          "description": "Off.",
+          "type": "string"
         }
       ]
     },

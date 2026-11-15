@@ -694,7 +694,10 @@ fn defs() -> Vec<Def> {
         fitting("EW-GEN-FIT-8", "Push-in fitting G1/4 for tube 8 mm", "G1/4", "8"),
         // F20: the plugs at a bus line's ends, chosen in the line's Cable form.
         bus_plug("EW-GEN-PLG-1", "PROFIBUS plug, switchable termination"),
-        bus_plug("EW-GEN-PLG-2", "PROFIBUS plug, switchable termination, programming socket"),
+        bus_plug(
+            "EW-GEN-PLG-2",
+            "PROFIBUS plug, switchable termination, programming socket",
+        ),
         bus_plug("EW-GEN-PLG-3", "RJ45 plug for Industrial Ethernet"),
         bus_plug("EW-GEN-PLG-4", "M12 plug, D-coded, for Industrial Ethernet"),
         bus_plug("EW-GEN-PLG-5", "M12 plug, B-coded, for PROFIBUS"),

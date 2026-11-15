@@ -5852,8 +5852,8 @@ form-bus-plug-none = { $p0 }: no plug
 error-bus-cable-length = "{ $p0 }" is not a length. Give it in metres, as 25 or 2.5.
 error-bus-plug = No plug for { $p1 } has the ID { $p0 }: choose one from the list.
 toast-bus-cable = Cable { $p0 } carries { $p1 }.
-toast-bus-cable-lines = { $p0 } bus lines
-toast-bus-cable-lines-one = the bus line
+bus-cable-lines-count = { $p0 } bus lines
+bus-cable-lines-count-one = the bus line
 
 # FT-1372 (ID-1362): Output ▸ Reports ▸ Report block….
 action-report-block-new = Report block…

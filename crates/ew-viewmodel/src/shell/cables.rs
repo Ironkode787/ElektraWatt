@@ -712,7 +712,7 @@ impl ShellModel {
                 p.session.device_tag(cable)
             })
             .unwrap_or_default();
-        let count = strings::format_count(crate::count_key!("toast-bus-cable-lines"), lines.len());
+        let count = strings::format_count(crate::count_key!("bus-cable-lines-count"), lines.len());
         self.notify(strings::format(key!("toast-bus-cable"), &[&tag, &count]), true);
         if self.in_form_of(BUS_CABLE) {
             self.dialog = None;

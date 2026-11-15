@@ -28,8 +28,10 @@ fn a_new_part_takes_its_size_and_a_saved_one_changes_it_through_the_card() {
     press(&mut d, "Size and mounting");
     fill(&mut d, "Width (mm)", "six");
     assert!(
-        d.texts().iter().any(|t| t.starts_with("\u{201c}six\u{201d} is not a length")
-            || t.starts_with("\"six\" is not a length")),
+        d.texts()
+            .iter()
+            .any(|t| t.starts_with("\u{201c}six\u{201d} is not a length")
+                || t.starts_with("\"six\" is not a length")),
         "a wrong width is refused in words at its field"
     );
     for _ in 0..3 {

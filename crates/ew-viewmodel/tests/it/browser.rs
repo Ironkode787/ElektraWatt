@@ -30,7 +30,12 @@ fn the_browsers_tree_lists_each_trade_and_category_with_its_count() {
         .collect();
     assert_eq!(
         words,
-        ["Electrical", "PLC and bus", "Pneumatics", "Enclosure and mounting"]
+        [
+            "Electrical",
+            "PLC and bus",
+            "Pneumatics",
+            "Enclosure and mounting"
+        ]
     );
     // Every trade opened, the categories stand under their trade.
     for (node, _) in closed.iter().filter(|(n, _)| matches!(n, Node::Trade(_))) {

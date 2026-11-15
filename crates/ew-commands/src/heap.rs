@@ -1115,7 +1115,7 @@ impl HeapSize for Connection {
         let kind = match &self.kind {
             ConnectionKind::Bridge(b) => b.extra.heap_size(),
             ConnectionKind::Bus(b) => {
-                let plug = |p: &Option<ew_schema::BusPlug>| {
+                let plug = |p: &Option<Box<ew_schema::BusPlug>>| {
                     p.as_ref().map_or(0, |p| p.part.heap_size() + p.extra.heap_size())
                 };
                 plug(&b.plug_a) + plug(&b.plug_b) + b.extra.heap_size()

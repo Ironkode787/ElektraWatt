@@ -20,7 +20,10 @@ use serde_json::json;
 fn the_device_browser_shows_a_parts_data_and_a_placed_device_links_them() {
     let tmp = Tmp::new();
     let mut d = new_project(&tmp);
-    assert_eq!(d.shell_mut().dispatch("tool.place_part", &json!({})), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("tool.place_part", &json!({})),
+        Outcome::Done
+    );
     let filter = json!({"text": "EW-GEN-CON-1"});
     assert_eq!(d.shell_mut().dispatch("picker.filter", &filter), Outcome::Done);
     d.settle();
@@ -38,9 +41,17 @@ fn the_device_browser_shows_a_parts_data_and_a_placed_device_links_them() {
         w.rows
     );
     assert!(w.size.contains(" mm") && w.size.contains("TS 35"), "{}", w.size);
-    assert!(w.gives.iter().any(|g| g.contains("connection points")), "{:?}", w.gives);
+    assert!(
+        w.gives.iter().any(|g| g.contains("connection points")),
+        "{:?}",
+        w.gives
+    );
     assert!(w.gives.len() > 1, "its functions too: {:?}", w.gives);
-    assert!(w.source.contains("ElektraWatt starter parts, version"), "{}", w.source);
+    assert!(
+        w.source.contains("ElektraWatt starter parts, version"),
+        "{}",
+        w.source
+    );
     d.input(&Input::Wait { ms: 100 });
     let texts = d.texts();
     for heading in ["Size", "Gives", "From"] {
@@ -48,12 +59,19 @@ fn the_device_browser_shows_a_parts_data_and_a_placed_device_links_them() {
     }
     // Placed, the device's sheet links Part details.
     assert_eq!(d.shell_mut().dispatch("picker.choose", &json!({})), Outcome::Done);
-    let _ = d.shell_mut().dispatch("cursor.set", &json!({"x_mm": 100.0, "y_mm": 100.0}));
+    let _ = d
+        .shell_mut()
+        .dispatch("cursor.set", &json!({"x_mm": 100.0, "y_mm": 100.0}));
     let _ = d.shell_mut().dispatch("canvas.activate", &json!({}));
     d.input(&key("Escape"));
     d.settle();
-    let rep = d.shell_mut().canvas().expect("the page").page().tables.reps[0].id.to_string();
-    assert_eq!(d.shell_mut().dispatch("select.set", &json!({"ids": [rep]})), Outcome::Done);
+    let rep = d.shell_mut().canvas().expect("the page").page().tables.reps[0]
+        .id
+        .to_string();
+    assert_eq!(
+        d.shell_mut().dispatch("select.set", &json!({"ids": [rep]})),
+        Outcome::Done
+    );
     d.input(&Input::Wait { ms: 100 });
     assert!(
         d.labels().iter().any(|(l, _)| l == "Part details"),

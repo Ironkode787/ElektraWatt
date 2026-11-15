@@ -1644,7 +1644,10 @@ fn round3_the_valve_terminal_is_filed_with_its_plate_and_found_first() {
     d.settle();
     // F28: the fluid groups are the Pneumatics trade's sub-groups.
     let pneumatics = json!({"to": "pneumatics"});
-    assert_eq!(d.shell_mut().dispatch("picker.category", &pneumatics), Outcome::Done);
+    assert_eq!(
+        d.shell_mut().dispatch("picker.category", &pneumatics),
+        Outcome::Done
+    );
     d.settle();
     let (rows, nodes) = browser_parts(&mut d);
     let node = |number: &str| {

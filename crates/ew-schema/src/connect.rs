@@ -134,10 +134,10 @@ pub struct BusLine {
     pub cable: Option<Id<Device>>,
     /// The plug at end a (doc 10 §2.7: a part on the line's end, not a drawn device).
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub plug_a: Option<BusPlug>,
+    pub plug_a: Option<Box<BusPlug>>,
     /// The plug at end b.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub plug_b: Option<BusPlug>,
+    pub plug_b: Option<Box<BusPlug>>,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

@@ -1897,7 +1897,7 @@ fn bus_line_rows(q: &Q, cx: &SheetCx<'_>, conns: &[Id<Connection>]) -> Vec<Built
     }
     // No cable or plug reads as a dash, in every language.
     let none = "\u{2014}".to_owned();
-    let end = |e: &ew_schema::Endpoint, plug: &Option<ew_schema::BusPlug>| {
+    let end = |e: &ew_schema::Endpoint, plug: &Option<Box<ew_schema::BusPlug>>| {
         let at = match e {
             ew_schema::Endpoint::Cp(f, _) => port_words(q, *f),
             _ => String::new(),
