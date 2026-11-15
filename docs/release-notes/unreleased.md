@@ -834,3 +834,6 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   moves it from another station), and a drop that cannot be taken says why (persona run m3-p4)
 - behaviour-change: the part editor keeps its place and size while one types (its body scrolls), and an interface
   row just added comes into sight whole above the footer (persona run m3-p4)
+- text-change: the part editor says under Allowed slots what it takes ("1-8, 10"; empty: any slot); New page says
+  under Type what the chosen type is for; the command search finds the Bus panel and New page by "network", "bus",
+  "PROFINET" and "PROFIBUS" (the glossary's term Bus topology) (persona run m3-p4)

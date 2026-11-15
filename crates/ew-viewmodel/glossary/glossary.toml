@@ -8,6 +8,7 @@
 # One [[term]] per EW term:
 #   ew          the EW term (English)
 #   eplan, qet  what an EPLAN or QElectroTech user calls it (lists; each entry is a palette alias)
+#   panels      the rail panels the aliases find, by their words (`bus`)
 #   actions     the action IDs the aliases find; an empty list is a term the palette cannot act on (it still has its
 #               glossary row)
 #   [term.labels]      the term in each UI language (en-GB, nl-NL)
@@ -232,3 +233,16 @@ nl-NL = "Kruisverwijzing"
 [term.definition]
 en-GB = "The derived reference between a device's main and auxiliary functions on their pages, with the contact image."
 nl-NL = "De afgeleide verwijzing tussen de hoofd- en hulpfuncties van een apparaat op hun pagina's, met het contactbeeld."
+
+[[term]]
+ew = "Bus topology"
+eplan = ["Network", "Topology", "Fieldbus", "PROFINET", "PROFIBUS"]
+qet = []
+actions = ["page.new"]
+panels = ["bus"]
+[term.labels]
+en-GB = "Bus topology"
+nl-NL = "Bustopologie"
+[term.definition]
+en-GB = "A page of the network: the devices as boxes with their bus ports and the bus lines between them; the Bus panel lists the nets and the ports."
+nl-NL = "Een pagina van het netwerk: de apparaten als kaders met hun buspoorten en de buslijnen ertussen; het Bus-paneel toont de netten en de poorten."

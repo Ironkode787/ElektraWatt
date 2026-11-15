@@ -26,6 +26,8 @@ pub struct Term {
     pub definition: Vec<(String, String)>,
     /// The action IDs its aliases find; empty for a term the palette cannot act on.
     pub actions: Vec<String>,
+    /// The rail panels its aliases find, by their words (`bus`); empty for none.
+    pub panels: Vec<String>,
 }
 
 impl Term {
@@ -107,12 +109,14 @@ pub fn parse(text: &str) -> Result<Vec<Term>, String> {
             Ok(pairs)
         };
         let (eplan, qet, actions) = (strings("eplan")?, strings("qet")?, strings("actions")?);
+        let panels = strings("panels")?;
         out.push(Term {
             labels: locales("labels")?,
             eplan,
             qet,
             definition: locales("definition")?,
             actions,
+            panels,
             ew,
         });
     }
@@ -130,6 +134,15 @@ pub fn aliases_of(id: &str) -> Vec<&'static str> {
     terms()
         .iter()
         .filter(|t| t.actions.iter().any(|a| a == id))
+        .flat_map(Term::aliases)
+        .collect()
+}
+
+/// The palette aliases of the rail panel `word` (`bus`): the aliases of every term that names it, in file order.
+pub fn panel_aliases(word: &str) -> Vec<&'static str> {
+    terms()
+        .iter()
+        .filter(|t| t.panels.iter().any(|p| p == word))
         .flat_map(Term::aliases)
         .collect()
 }

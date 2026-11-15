@@ -244,6 +244,51 @@ fn the_new_part_dialog_holds_still_while_one_types_and_adds_rows() {
     assert_eq!(save, before.1, "the footer stays where it was");
 }
 
+/// Item 7: the small words. Allowed slots says what it takes, with an example; New page's line under Type says what
+/// the chosen type is for (Bus topology: the network), not where lists are made; the command search finds the Bus
+/// panel and New page by "network", "bus", "PROFINET" and "PROFIBUS".
+#[test]
+fn the_small_words_say_what_slots_and_a_bus_page_are_and_the_search_finds_the_network() {
+    let tmp = Tmp::new();
+    let mut d = new_project(&tmp);
+    d.input(&key("Shift+I"));
+    d.settle();
+    press(&mut d, "New part…");
+    press(&mut d, "PLC role");
+    press(&mut d, "Module");
+    let texts = d.texts();
+    assert!(
+        texts.iter().any(|t| t.starts_with("The slots the card may stand in") && t.contains("1-8, 10")),
+        "Allowed slots says what it takes: {texts:?}"
+    );
+    d.input(&key("Escape"));
+    d.settle();
+    let _ = d.shell_mut().dispatch("ui.dismiss", &json!({}));
+    press(&mut d, "New page");
+    d.shell_mut().set_form_field("type", "bus_topology");
+    d.input(&Input::Hover { at: (900, 600) });
+    d.settle();
+    let texts = d.texts();
+    assert!(
+        texts.iter().any(|t| t.starts_with("The network: the devices as boxes")),
+        "the line under Type: {texts:?}"
+    );
+    assert!(!texts.iter().any(|t| t.starts_with("Lists (parts")), "no word of lists");
+    d.input(&key("Escape"));
+    d.settle();
+    for word in ["network", "bus", "PROFINET", "PROFIBUS"] {
+        if d.shell_mut().palette().is_none() {
+            let _ = d.shell_mut().dispatch("tools.palette", &json!({}));
+        }
+        d.shell_mut().set_palette_query(word);
+        let ids: Vec<String> = d.shell_mut().palette_entries().into_iter().map(|e| e.id).collect();
+        assert!(
+            ids.iter().any(|i| i == "bus") && ids.iter().any(|i| i == "page.new"),
+            "{word}: {ids:?}"
+        );
+    }
+}
+
 /// The labels of the PLC panel's rows under Cards without a station.
 fn waiting(d: &mut Driver) -> Vec<String> {
     let _ = d.shell_mut().dispatch("navigator.show", &json!({"kind": "plc"}));

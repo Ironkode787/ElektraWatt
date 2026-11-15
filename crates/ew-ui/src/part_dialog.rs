@@ -701,6 +701,10 @@ fn plc_section(ui: &mut Ui, d: &ew_viewmodel::ew_api::PartDraft, events: &mut Ve
     }
     for m in ["l_plus", "m", "slots", "max_modules"] {
         text_field(ui, m);
+        // What Allowed slots takes, with an example (the persona run m3-p4 could not tell a list from a count).
+        if m == "slots" {
+            note(ui, strings::text(key!("part-plc-slots-hint")));
+        }
     }
     save
 }
