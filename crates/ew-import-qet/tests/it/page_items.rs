@@ -394,7 +394,11 @@ fn a_turned_elements_texts_keep_qets_angle_unless_qet_keeps_them_upright() {
         .unwrap();
     let angle = |x: &str| {
         let r = reps(&b).into_iter().find(|r| r.pos.x.0 == px(x)).unwrap();
-        r.text_slots.iter().next().and_then(|o| o.angle).map(|a| a.normalized().0)
+        r.text_slots
+            .iter()
+            .next()
+            .and_then(|o| o.angle)
+            .map(|a| a.normalized().0)
     };
     // Turned with its element: a quarter clockwise, 270° counter-clockwise.
     assert_eq!(angle("900"), Some(270_000));
