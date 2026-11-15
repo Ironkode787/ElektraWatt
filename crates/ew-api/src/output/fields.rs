@@ -1451,11 +1451,23 @@ fn parse_csa(text: &str) -> Result<Value, InputError> {
     parse_dec3(number, &Value::String)
 }
 
-/// A length in millimetres (at most six fraction digits, an optional `mm`) as whole nanometres.
+/// A length in millimetres (at most six fraction digits, an optional `mm`), or with its unit `cm` or `m` (`2 m`, `35
+/// cm`; the persona round typed a tube's length so), as whole nanometres.
 fn parse_nm(text: &str) -> Result<Value, InputError> {
-    let t = text.trim();
-    let t = t.strip_suffix("mm").unwrap_or(t).trim();
-    let bad = || invalid(api_text!("refusal-input-mm", t));
+    let typed = text.trim();
+    let bad = || invalid(api_text!("refusal-input-mm", typed));
+    let lower = typed.to_ascii_lowercase();
+    // The unit's fraction digits down to the nanometre, and its size in nanometres.
+    let (t, places, unit) = if lower.ends_with("mm") {
+        (&typed[..typed.len() - 2], 6, 1_000_000)
+    } else if lower.ends_with("cm") {
+        (&typed[..typed.len() - 2], 7, 10_000_000)
+    } else if lower.ends_with('m') {
+        (&typed[..typed.len() - 1], 9, 1_000_000_000)
+    } else {
+        (typed, 6, 1_000_000)
+    };
+    let t = t.trim();
     let (neg, digits) = match t.strip_prefix('-') {
         Some(rest) => (true, rest),
         None => (false, t),
@@ -1465,7 +1477,7 @@ fn parse_nm(text: &str) -> Result<Value, InputError> {
         None => (digits, ""),
     };
     if int.is_empty() && frac.is_empty()
-        || frac.len() > 6
+        || frac.len() > places
         || !int.bytes().all(|b| b.is_ascii_digit())
         || !frac.bytes().all(|b| b.is_ascii_digit())
     {
@@ -1476,9 +1488,9 @@ fn parse_nm(text: &str) -> Result<Value, InputError> {
     } else {
         int.parse().map_err(|_| bad())?
     };
-    let frac: i64 = format!("{frac:0<6}").parse().map_err(|_| bad())?;
+    let frac: i64 = format!("{frac:0<places$}").parse().map_err(|_| bad())?;
     let nm = int
-        .checked_mul(1_000_000)
+        .checked_mul(unit)
         .and_then(|v| v.checked_add(frac))
         .filter(|v| *v <= ew_units::MAX_SAFE_INTEGER)
         .ok_or_else(bad)?;
@@ -2093,10 +2105,17 @@ mod tests {
             "0.75 mm²"
         );
         assert_eq!(parse(FieldType::Nm, "12.5 mm").unwrap(), 12_500_000);
+        // A length with its unit (persona round 3: "2 m" was refused).
+        assert_eq!(parse(FieldType::Nm, "2 m").unwrap(), 2_000_000_000);
+        assert_eq!(parse(FieldType::Nm, "35 cm").unwrap(), 350_000_000);
+        assert_eq!(parse(FieldType::Nm, "1.5M").unwrap(), 1_500_000_000);
+        assert!(parse(FieldType::Nm, "m").is_err());
         assert_eq!(
             parse(FieldType::Nm, "0.0000001").map_err(|e| e.text()),
             Err(Some(
-                "`0.0000001` is not a length in millimetres (at most 6 decimals)".to_owned()
+                "`0.0000001` is not a length: type millimetres (at most 6 decimals), or the length with its unit, such \
+                 as 2 m or 35 cm"
+                    .to_owned()
             ))
         );
         assert_eq!(

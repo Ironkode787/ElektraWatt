@@ -1553,6 +1553,28 @@ fn round3_autoconnect_keeps_a_working_port_off_the_plates_exhaust_and_names_its_
     d.shell_mut().shutdown();
 }
 
+/// Item 6 of round 3 (friction 4): the field said "Tube length" with no unit and refused "2 m" with an error that named
+/// millimetres. The row's name says mm, and a length typed with its unit is taken: 2 m, 35 cm, 350 mm.
+#[test]
+fn round3_a_tube_length_names_its_unit_and_takes_one_typed() {
+    let tmp = Tmp::new();
+    let mut d = fluid_page(&tmp);
+    one_tube(&mut d);
+    d.input(&Input::Hover { at: (1000, 600) });
+    d.settle();
+    assert!(
+        d.texts().iter().any(|t| t == "Tube length (mm)"),
+        "the row names its unit"
+    );
+    for (typed, shown) in [("2 m", "2000 mm"), ("35 cm", "350 mm"), ("350 mm", "350 mm")] {
+        let set = json!({"row": "connection/tube_length", "value": typed});
+        assert_eq!(d.shell_mut().dispatch("props.set", &set), Outcome::Done, "{typed}");
+        one_tube_selected(&mut d);
+        assert_eq!(prop_row(&mut d, "connection/tube_length").0, shown, "{typed}");
+    }
+    d.shell_mut().shutdown();
+}
+
 /// The labels of the context menu that a right-click at `at` opens, which Escape closes again.
 fn menu_at(d: &mut Driver, at: (i64, i64)) -> Vec<String> {
     d.input(&right_click(at));

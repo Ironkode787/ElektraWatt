@@ -810,3 +810,7 @@ Line kinds: `api-add`, `api-break`, `behaviour-change`, `dependency`, `format-va
   toast on a fluid page counts the tubes it drew ("connected 1 tube") (persona round 3)
 - behaviour-change: a valve terminal's box and row offer Blank position n at each empty position; it stood on a valve's
   own menu only, so a position had to take a valve before it could be blanked (persona round 3)
+- behaviour-change: a length field takes a length typed with its unit (2 m, 35 cm, 350 mm; millimetres without one),
+  and a tube's Properties row reads "Tube length (mm)"; "2 m" was refused with an error that named millimetres
+  (persona round 3)
+- text-change: `refusal-input-mm` names the units a length takes; `field-connection-tube-length` says mm

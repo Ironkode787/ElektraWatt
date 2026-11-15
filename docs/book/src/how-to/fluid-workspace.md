@@ -42,8 +42,9 @@ the middle, and the tube table and the medium table in the bottom dock.
 
 ## Tubes
 
-8. The tube table has one row per tube. Type a length in millimetres into **Length** or a tube part into **Tube
-   part**; **Source** then says the value is manual. Leave a cell empty to take the derived value again. A tube's
+8. The tube table has one row per tube. Type a length in millimetres into **Length** (or with its unit: `2 m`, `35 cm`;
+   in Properties the row is **Tube length (mm)**) or a tube part into **Tube part**; **Source** then says the value is
+   manual. Leave a cell empty to take the derived value again. A tube's
    **Tube part** in Properties offers the tube parts, such as the starter tubes PU 6 × 4, 8 × 6 and 10 × 8 mm.
 9. Choose **Project ▸ Fluid settings…** for the default tube of every line (its outer and inner diameter in mm and
    its material) and to tag tubes by page and counter. A toast says what the default tube is now; it reaches the
