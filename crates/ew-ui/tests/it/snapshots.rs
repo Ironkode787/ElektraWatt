@@ -186,36 +186,32 @@ fn window_on(
     (h, recorder)
 }
 
-/// The main window in light and dark at both densities (the high-contrast themes are gated by the gallery).
+/// The main window, light and Comfortable, at 1920 × 1080: one of the two whole-window pictures (the other is the
+/// extension, `main-light-comfortable-2560`). A whole-window picture differs with every change of the command bar,
+/// a panel or a row, so there are two and no more: dark and the high-contrast themes are gated by the gallery,
+/// Compact and the parts of the window by the cropped pictures below.
 #[test]
-fn the_main_window_in_light_and_dark_at_both_densities() {
+fn the_main_window_in_light() {
     let dev = device();
-    let mut failures = Vec::new();
-    for theme in ["light", "dark"] {
-        for density in ["comfortable", "compact"] {
-            let (h, recorder, tmp) = main_window(theme, density);
-            let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-            assert_eq!((image.width, image.height), (1920, 1080));
-            failures.extend(record(&format!("main-{theme}-{density}"), &image, true));
-            // The project closes before its directory is removed.
-            drop(h);
-            drop(tmp);
-        }
-    }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
+    let (h, recorder, tmp) = main_window("light", "comfortable");
+    let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
+    assert_eq!((image.width, image.height), (1920, 1080));
+    assert_eq!(record("main-light-comfortable", &image, true), None);
+    // The project closes before its directory is removed.
+    drop(h);
+    drop(tmp);
 }
 
 /// The 200 % variant: the main window, light and Comfortable, at 1920 × 1080 points on a 200 % display (a 3840 × 2160
-/// screen). The setting `ui_scale` reaches 300 % too (`UI_SCALES`); this variant takes 200 % as the
-/// system's scale (egui's native pixels per point), which is how a high-density display reaches the window. Gated and
-/// re-blessed with the main-window images.
+/// screen) is drawn at that size. The setting `ui_scale` reaches 300 % too (`UI_SCALES`); this variant takes 200 % as
+/// the system's scale (egui's native pixels per point), which is how a high-density display reaches the window. No
+/// picture is kept of it.
 #[test]
-fn the_main_window_at_200_percent() {
+fn the_main_window_is_drawn_at_200_percent() {
     let dev = device();
     let (h, recorder, tmp) = main_window_at("light", "comfortable", 2.0);
     let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
     assert_eq!((image.width, image.height), (3840, 2160));
-    assert_eq!(record("main-light-comfortable-200", &image, true), None);
     drop(h);
     drop(tmp);
 }
@@ -223,7 +219,8 @@ fn the_main_window_at_200_percent() {
 /// The main views at the extension, 2560 × 1440 (doc 16a §2: the extra space goes to the work), light and
 /// Comfortable at ppp 1, each the whole window: the main window on schematic folio 101, the Devices navigator in
 /// table mode, a form dialog (New page…) and the print pre-dialog (no page chosen yet: its empty state, so no
-/// render thread's picture decides a pixel). Gated.
+/// render thread's picture decides a pixel). Each is drawn at that size; only the main window keeps a picture
+/// (the second of the two whole-window pictures).
 #[test]
 fn the_main_views_at_2560() {
     let dev = device();
@@ -252,7 +249,9 @@ fn the_main_views_at_2560() {
         }
         let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         assert_eq!((image.width, image.height), (2560, 1440), "{name}");
-        failures.extend(record(name, &image, true));
+        if name == "main-light-comfortable-2560" {
+            failures.extend(record(name, &image, true));
+        }
         h.state_mut().shell_mut().shutdown();
         drop(h);
         drop(tmp);
@@ -318,8 +317,9 @@ fn crop(image: &ew_render_cpu::RgbaImage, rect: egui::Rect) -> ew_render_cpu::Rg
     }
 }
 
-/// CB7 (§12.2): the command bar alone, cropped to its frame, for each of the tabs, light Comfortable (gated; the
-/// bar in dark and Compact is in the `main-*` images).
+/// CB7 (§12.2): the command bar alone, cropped to its frame, light Comfortable. Every tab is shown and drawn; the
+/// Draw tab keeps a picture, as the look of the bar. What a tab holds is tested as data (every command once, nothing
+/// folds at 1920, one icon per concept), not as a picture that every new button changes.
 #[test]
 fn the_command_bar_on_every_tab() {
     let dev = device();
@@ -340,11 +340,14 @@ fn the_command_bar_on_every_tab() {
             let (bar, _, _) = h.state().command_surface_rects();
             let bar = bar.expect("the command bar");
             let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-            failures.extend(record(
-                &format!("command-bar-{tab}-{theme}-{density}"),
-                &crop(&image, bar),
-                true,
-            ));
+            let bar = crop(&image, bar);
+            if tab == "draw" {
+                failures.extend(record(
+                    &format!("command-bar-{tab}-{theme}-{density}"),
+                    &bar,
+                    true,
+                ));
+            }
         }
         drop(h);
         drop(tmp);
@@ -359,12 +362,12 @@ fn luma(image: &ew_render_cpu::RgbaImage, x: u32, y: u32) -> f32 {
     0.2126 * f32::from(p[0]) + 0.7152 * f32::from(p[1]) + 0.0722 * f32::from(p[2])
 }
 
-/// The quit prompt over the toast, the app menu's File submenu, the command palette and
-/// the Preview tab with the property grid's "Preview open" strip, in light and dark, gated.
+/// The quit prompt over the toast (its scrim dims the window behind it), the app menu's File submenu, the command
+/// palette and the Preview tab with the property grid's "Preview open" strip are opened and drawn in light and dark.
+/// No whole-window picture is kept of them: the dialogs, toasts and cards have their cropped pictures below.
 #[test]
 fn dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
     let dev = device();
-    let mut failures = Vec::new();
     for theme in ["light", "dark"] {
         // An edit gives the toast and the dirty project; closing asks to save.
         let (mut h, recorder, tmp) = main_window(theme, "comfortable");
@@ -405,7 +408,6 @@ fn dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
                 "{theme}: the scrim dims the {part} ({a} to {b})"
             );
         }
-        failures.extend(record(&format!("part4-dialog-toast-{theme}"), &image, true));
         let _ = h.state_mut().shell_mut().dispatch("ui.dismiss", &json!(null));
         // The toast leaves on the wall clock, so it is dismissed before the shots that do not show it.
         let shell = h.state_mut().shell_mut();
@@ -417,8 +419,7 @@ fn dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
         // The app menu with its File submenu.
         support::open_menu(&mut h, &["File"]);
         h.run_ok();
-        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-        failures.extend(record(&format!("part4-menu-{theme}"), &image, true));
+        let _ = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         h.key_press(egui::Key::Escape);
         h.run_ok();
         h.key_press(egui::Key::Escape);
@@ -430,8 +431,7 @@ fn dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
         );
         h.run_ok();
         h.run_ok();
-        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-        failures.extend(record(&format!("part4-palette-{theme}"), &image, true));
+        let _ = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         h.key_press(egui::Key::Escape);
         h.run_ok();
         // A card in the Preview tab and the grid's strip.
@@ -446,13 +446,11 @@ fn dialogs_toasts_menu_palette_and_preview_in_light_and_dark() {
         h.run_ok();
         support::wait_for_page(&mut h);
         h.run_ok();
-        let image = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
-        failures.extend(record(&format!("part4-preview-{theme}"), &image, true));
+        let _ = offscreen::render(&dev, &h.ctx, h.output(), &recorder);
         h.state_mut().shell_mut().shutdown();
         drop(h);
         drop(tmp);
     }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 /// The rectangle of the first node named `name` (its label, or a label node's value).
