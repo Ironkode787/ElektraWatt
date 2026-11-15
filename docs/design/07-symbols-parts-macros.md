@@ -678,11 +678,11 @@ preview shows:
    its left edge ("106-G3", [20](20-golden-project.md) §4.4). The xref cell comes from the anchor, never from the
    bounding box (D-14). The resolved anchor offset is snapped to the symbol's connection grid at save (ties toward
    the origin), because the integer cell lookup of [06](06-schematic-editor.md) §5.1 requires anchors on the grid.
-6. **Text readability.** Text primitives and slots are never mirrored and never render at R180 or R90: on a symbol
-   at R180 they render at R0, on a symbol at R90 at R270, reading from the bottom or the right of the sheet
-   ([06](06-schematic-editor.md) §2.5). Under a mirroring variant the glyphs stay unmirrored; instead the text's
-   alignment flips as §4.1 decides for all eight variants (left ↔ right for the plain mirror E), so the text stays
-   on the same side of the symbol and readable.
+6. **Text readability.** Text primitives and slots are never mirrored and never turned by the symbol's variant:
+   turning or mirroring a placement leaves every text at the angle it has in the unturned symbol (owner,
+   2026-11-15: "it should always remain upright"), made readable from the bottom or the right of the sheet
+   ([06](06-schematic-editor.md) §2.5). The anchor moves with the symbol and the alignment is chosen as §4.1 decides
+   for all eight variants, so the text stays on the same side of the symbol and of its connection point.
 7. **Exchange** (FR-SYM-022) maps CPs by `fn_cp`, then by designation. The preview lists unmapped CPs, and a CP that
    carries a connection must be mapped.
 8. **Linkages** (FR-SYM-014) are derived lines between `link_points` of the functions related by a `DeviceLink`
@@ -908,28 +908,29 @@ Variant `v ∈ {R0, R90, R180, R270, M0, M90, M180, M270}` maps a point by an in
 Geometry, CP positions and CP directions transform exactly in `i64` nm. Arcs swap their sweep direction under
 mirror. Text anchors transform; text glyphs do not.
 
-**Text under a variant** (decided by the project owner for all eight variants). A text
-primitive or slot is laid out in the symbol frame with its
-anchor, rotation and alignment, and placed in three steps:
+**Text under a variant** (decided by the project owner for all eight variants; revised 2026-11-15: a text stays
+upright). A text primitive or slot is laid out in the symbol frame with its anchor, rotation and alignment, and
+placed in three steps:
 1. The anchor transforms with the variant's matrix like any point.
-2. The glyphs are never mirrored. The text renders at its *readable* rotation: the transformed baseline direction
-   if that reads left to right or bottom to top, otherwise turned by 180° (§3.2 rule 6; `readable_angle` of
-   `ew-scene`).
-3. The horizontal alignment (left ↔ right; centre stays) flips exactly when step 2 turned the text by 180°. The
-   vertical alignment (top ↔ bottom; middle and baseline stay) flips when exactly one of "step 2 turned the text"
-   and "the variant mirrors" applies.
+2. The glyphs are never mirrored and never turned by the variant: the text renders at its own rotation, made
+   readable (a rotation in (90°, 270°] is turned by 180°; `upright_angle` of `ew-scene`). A rotation that a person
+   set (a representation's slot override with an angle, a free text) is kept the same way.
+3. The alignment keeps the text's side: the direction from the anchor into the text's box (opposite to the
+   alignment; a text aligned middle right lies left of its anchor) is mapped by the variant and read back in the
+   printed text's frame; each component of at least half the length keeps its sign, a smaller one becomes centre or
+   middle (`placed_align` of `ew-scene`). A connection point's designation that this brings centred above or below
+   its point while the point's line leaves sideways runs along the line, away from the body, instead (`slot_align`).
 
-The text then occupies the box that the variant maps its unrotated box to, so it keeps its side of the anchor and
-of the symbol and stays readable. For a text without its own rotation:
+So a tag left of its body that the turn brings above the body stands centred above it, and a designation beside a
+connection point stays beside it on the side away from the line. For a text without its own rotation, aligned
+middle right:
 
 | Variant | A R0 | B R90 | C R180 | D R270 | E M0 | F M90 | G M180 | H M270 |
 |---|---|---|---|---|---|---|---|---|
-| Rendered as | R0 | R270 | R0 | R270 | R0 | R270 | R0 | R270 |
-| Horizontal alignment | kept | flipped | flipped | kept | flipped | kept | kept | flipped |
-| Vertical alignment | kept | flipped | flipped | kept | kept | flipped | flipped | kept |
+| Rendered as | R0 | R0 | R0 | R0 | R0 | R0 | R0 | R0 |
+| Alignment | middle right | bottom centre | middle left | top centre | middle left | top centre | middle right | bottom centre |
 
-For the plain mirror E this is the left ↔ right flip. Under F and G the transformed baseline already reads
-correctly, so no turn applies: the horizontal alignment stays and only the mirrored axis flips (top ↔ bottom).
+Under A, C, E and G this is the earlier flip (left ↔ right under the plain mirror E, both under the half turn C).
 
 **Invariance.** Every CP offset and the anchor offset from the symbol origin are multiples of the connection grid
 `g` (§3.2 rules 1 and 5), and the matrix entries are 0 or ±1. Every transformed offset is therefore again a

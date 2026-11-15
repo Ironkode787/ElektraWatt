@@ -53,25 +53,20 @@
 //!
 //! # Texts
 //!
-//! Text positions transform, glyphs do not (doc 07 §3.2 rule 6, doc 06 §2.5): a text keeps its alignment and
-//! style, and its angle is made readable from the bottom or the right of the sheet by [`readable_angle`].
-//! For a text drawn at 0° in the symbol frame:
+//! Text positions transform, glyphs do not (doc 07 §3.2 rule 6, doc 06 §2.5), and turning or mirroring a symbol
+//! never turns a text (owner, 2026-11-15: a text stays upright): a text keeps the angle it has in the symbol frame,
+//! made readable by [`upright_angle`], in every variant. 90° is [`Angle2`] `90_000`, counter-clockwise on the
+//! sheet: text reading bottom to top. Glyphs are **never mirrored**: a [`PlacedText`] carries a rotation only, so the
+//! glyph run built from it has an unmirrored transform. The alignment is chosen instead ([`placed_align`]) so that
+//! the text lies on the side of its anchor the variant maps its side in the symbol to; a connection point's
+//! designation that a quarter turn brings centred above or below its point, beside a line that now leaves sideways,
+//! runs along that line away from the body instead ([`slot_align`]). For a text without its own rotation:
 //!
 //! | Variant | A `R0` | B `R90` | C `R180` | D `R270` | E `M0` | F `M90` | G `M180` | H `M270` |
 //! |---|---|---|---|---|---|---|---|---|
-//! | Text angle | 0° | 90° | 0° | 90° | 0° | 90° | 0° | 90° |
+//! | Text angle | 0° | 0° | 0° | 0° | 0° | 0° | 0° | 0° |
+//! | Middle right becomes | middle right | bottom centre | middle left | top centre | middle left | top centre | middle right | bottom centre |
 //!
-//! 90° is [`Angle2`] `90_000`, counter-clockwise on the sheet: text reading bottom to top, which doc 06 calls
-//! "R270". Glyphs are **never mirrored**: a [`PlacedText`] carries a rotation only, so the glyph run built
-//! from it has an unmirrored transform. The alignment flips instead (doc 07 §4.1): horizontally
-//! (left ↔ right, centre stays) exactly when the text was turned by 180° to stay readable, vertically
-//! (top ↔ bottom, middle stays) when exactly one of that turn and the variant's mirror applies. For a text
-//! without its own rotation:
-//!
-//! | Variant | A | B | C | D | E | F | G | H |
-//! |---|---|---|---|---|---|---|---|---|
-//! | Horizontal | kept | flipped | flipped | kept | flipped | kept | kept | flipped |
-//! | Vertical | kept | flipped | flipped | kept | kept | flipped | flipped | kept |
 //! Slot texts come after static texts; a slot text's style key is the slot's own `style`, else the binding of
 //! [`default_style_key`]. The page resolves it against the project's table ([`slot_style_key`], ADR-0032), which
 //! a symbol's geometry does not depend on.
@@ -148,17 +143,17 @@ pub enum TextSource {
     Static(MlText),
 }
 
-/// A text placed in a variant: an anchor point, a readable angle and the layout parameters `ew-text` needs.
+/// A text placed in a variant: an anchor point, its upright angle and the layout parameters `ew-text` needs.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PlacedText {
     /// What it prints.
     pub source: TextSource,
     /// The anchor point.
     pub pos: Pt2,
-    /// The readable angle, counter-clockwise on the sheet, in `[0°, 90°] ∪ (270°, 360°)`.
+    /// The angle, counter-clockwise on the sheet, in `[0°, 90°] ∪ (270°, 360°)`: the symbol frame's, whatever the
+    /// variant ([`upright_angle`]).
     pub angle: Angle2,
-    /// Alignment at `pos` after the variant: flipped as the readability turn and the mirror require
-    /// (see the module documentation), so the text keeps its side of the anchor.
+    /// Alignment at `pos` after the variant ([`placed_align`]), so the text keeps its side of the anchor.
     pub align: Align,
     /// The text style key.
     pub style_key: String,
@@ -184,7 +179,7 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
             texts.push(PlacedText {
                 source: TextSource::Static(text.text.clone()),
                 pos: variant.apply(text.pos),
-                angle: placement(text.angle, variant).0,
+                angle: upright_angle(text.angle),
                 align: placed_align(&text.align, text.angle, variant),
                 style_key: text
                     .style
@@ -199,8 +194,8 @@ pub fn lower(def: &SymbolDef, variant: Orient2) -> SymbolGeometry {
         texts.push(PlacedText {
             source: TextSource::Slot(slot.kind.clone()),
             pos: variant.apply(slot.pos),
-            angle: placement(slot.rot, variant).0,
-            align: placed_align(&slot.align, slot.rot, variant),
+            angle: upright_angle(slot.rot),
+            align: slot_align(def, slot, slot.rot, variant),
             style_key: slot.style.as_ref().map_or_else(
                 || default_style_key(&slot.kind).to_owned(),
                 |s| s.as_str().to_owned(),
@@ -408,49 +403,104 @@ pub fn transform_dir(d: &Dir4, variant: Orient2) -> Dir4 {
     }
 }
 
-/// The readable angle of a text at `angle` (symbol frame) on a symbol in `variant`.
-///
-/// The baseline direction is transformed (a mirror maps `a` to `180° − a`, then the variant's clockwise
-/// quarter turns subtract `90°` each), and a direction in `(90°, 270°]`, which would read upside down or top
-/// to bottom, is turned by 180°. The result is normalised to `[0°, 360°)` and lies in
-/// `[0°, 90°] ∪ (270°, 360°)`.
+/// The angle a text drawn at `angle` in the symbol frame prints at, on any placement of its symbol: turning or
+/// mirroring a placement never turns a text (owner, 2026-11-15), so it is `angle` itself, made readable (a direction
+/// in `(90°, 270°]`, which would read upside down or top to bottom, is turned by 180°). The result is normalised to
+/// `[0°, 360°)` and lies in `[0°, 90°] ∪ (270°, 360°)`.
 ///
 /// ```
-/// use ew_scene::symbol::readable_angle;
-/// use ew_units::{Angle2, Orient2};
+/// use ew_scene::symbol::upright_angle;
+/// use ew_units::Angle2;
 ///
-/// assert_eq!(readable_angle(Angle2(0), Orient2::R180), Angle2(0));
-/// assert_eq!(readable_angle(Angle2(0), Orient2::R90), Angle2(90_000));
-/// assert_eq!(readable_angle(Angle2(90_000), Orient2::R90), Angle2(0));
-/// assert_eq!(readable_angle(Angle2(30_000), Orient2::M0), Angle2(330_000));
+/// assert_eq!(upright_angle(Angle2(0)), Angle2(0));
+/// assert_eq!(upright_angle(Angle2(90_000)), Angle2(90_000));
+/// assert_eq!(upright_angle(Angle2(180_000)), Angle2(0));
+/// assert_eq!(upright_angle(Angle2(-30_000)), Angle2(330_000));
 /// ```
-pub fn readable_angle(angle: Angle2, variant: Orient2) -> Angle2 {
-    placement(angle, variant).0
+pub fn upright_angle(angle: Angle2) -> Angle2 {
+    readable(angle).0
 }
 
-/// The readable angle and whether the readability turn of 180° was applied to reach it.
-fn placement(angle: Angle2, variant: Orient2) -> (Angle2, bool) {
-    let mut a = i64::from(angle.normalized().0);
-    if variant.is_mirrored() {
-        a = 180_000 - a;
-    }
-    a -= i64::from(variant.quarter_turns()) * 90_000;
-    a = a.rem_euclid(360_000);
+/// The readable angle of `angle` and whether the readability turn of 180° was applied to reach it.
+fn readable(angle: Angle2) -> (Angle2, bool) {
+    let a = i64::from(angle.normalized().0);
     let turned = a > 90_000 && a <= 270_000;
-    if turned {
-        a -= 180_000;
-    }
+    let a = if turned { a - 180_000 } else { a };
     (Angle2(a.rem_euclid(360_000) as i32), turned)
 }
 
-/// The alignment of a text at `angle` (symbol frame) on a symbol in `variant`: horizontal flips when the
-/// text was turned by 180°, vertical when exactly one of the turn and the mirror applies (doc 07 §4.1).
-/// An alignment of a newer format is kept.
+/// The alignment of a text drawn at `angle` and aligned `align` in the symbol frame, on a symbol in `variant`. The
+/// text prints at [`upright_angle`]; its alignment is chosen so that the text lies on the side of its anchor that the
+/// variant maps its side in the symbol to: the direction from the anchor into the text's box (the opposite of the
+/// alignment: a text aligned middle right lies left of its anchor) is mapped by the variant and read back in the
+/// text's own frame, and a component of at least half its length keeps its sign. So a tag left of its body (middle
+/// right) on a symbol turned a quarter clockwise stands centred above it (bottom centre), and a designation beside a
+/// connection point stays beside it, on the side away from the line. An alignment of a newer format is kept.
 pub fn placed_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
-    let turned = placement(angle, variant).1;
-    let flip_h = turned;
-    let flip_v = turned != variant.is_mirrored();
-    let (h, v) = match align {
+    let Some((h, v)) = align_parts(align) else {
+        return align.clone();
+    };
+    let (upright, turned) = readable(angle);
+    // Into the box, in the printed text's frame (x along the baseline, y down the glyphs); the readability turn
+    // reverses both.
+    let (dx, dy) = if turned { (h, v) } else { (-h, -v) };
+    const R: i64 = 1_000_000;
+    let base = ew_dl::num::arc_point(Pt2::ORIGIN, Nm(R), Nm(R), upright);
+    let down = Pt2::new(Nm(-base.y.0), base.x);
+    let (bx, by, wx, wy) = (
+        i128::from(base.x.0),
+        i128::from(base.y.0),
+        i128::from(down.x.0),
+        i128::from(down.y.0),
+    );
+    // Every value is at most 2·R, so the sheet vector fits `i64`.
+    let sheet = Pt2::new(
+        Nm((dx * bx + dy * wx) as i64),
+        Nm((dx * by + dy * wy) as i64),
+    );
+    let moved = variant.apply(sheet);
+    let (mx, my) = (i128::from(moved.x.0), i128::from(moved.y.0));
+    let side = |c: i128| {
+        if 2 * c.abs() < i128::from(R) * i128::from(R) {
+            0
+        } else {
+            c.signum()
+        }
+    };
+    align_of(-side(mx * bx + my * by), -side(mx * wx + my * wy))
+}
+
+/// The alignment of slot `slot` of `def`, drawn at `angle`, on a symbol in `variant`: [`placed_align`], except for a
+/// connection point's designation printing horizontally that the variant brought centred above or below its anchor
+/// (it stood beside it in the symbol) while its point's line leaves sideways: it runs along the line, away from the
+/// body (left-aligned on a line leaving right), so that it does not run into the body.
+pub fn slot_align(def: &SymbolDef, slot: &TextSlot, angle: Angle2, variant: Orient2) -> Align {
+    let placed = placed_align(&slot.align, angle, variant);
+    let SlotKind::CpDesignation(idx) = &slot.kind else {
+        return placed;
+    };
+    let (Some((h0, _)), Some((0, v))) = (align_parts(&slot.align), align_parts(&placed)) else {
+        return placed;
+    };
+    if h0 == 0 || upright_angle(angle) != Angle2::ZERO {
+        return placed;
+    }
+    match def
+        .cps
+        .iter()
+        .find(|cp| cp.idx == *idx)
+        .map(|cp| transform_dir(&cp.dir, variant))
+    {
+        Some(Dir4::Right) => align_of(-1, v),
+        Some(Dir4::Left) => align_of(1, v),
+        _ => placed,
+    }
+}
+
+/// The horizontal and vertical parts of `align`, each −1 (left, top), 0 (centre, middle) or 1 (right, bottom); `None`
+/// for an alignment of a newer format.
+fn align_parts(align: &Align) -> Option<(i128, i128)> {
+    Some(match align {
         Align::TopLeft => (-1, -1),
         Align::TopCentre => (0, -1),
         Align::TopRight => (1, -1),
@@ -460,10 +510,13 @@ pub fn placed_align(align: &Align, angle: Angle2, variant: Orient2) -> Align {
         Align::BottomLeft => (-1, 1),
         Align::BottomCentre => (0, 1),
         Align::BottomRight => (1, 1),
-        Align::Unknown(_) => return align.clone(),
-    };
-    let (h, v) = (if flip_h { -h } else { h }, if flip_v { -v } else { v });
-    match (h, v) {
+        Align::Unknown(_) => return None,
+    })
+}
+
+/// The alignment of the parts `h` and `v` ([`align_parts`]; any value above 0 counts as 1).
+fn align_of(h: i128, v: i128) -> Align {
+    match (h.signum(), v.signum()) {
         (-1, -1) => Align::TopLeft,
         (0, -1) => Align::TopCentre,
         (1, -1) => Align::TopRight,
@@ -533,20 +586,32 @@ mod tests {
     use ew_dl::PathEl;
 
     #[test]
-    fn text_angle_table() {
-        let want = [0, 90_000, 0, 90_000, 0, 90_000, 0, 90_000];
+    fn a_turned_or_mirrored_text_keeps_its_angle_and_its_side() {
+        // A tag left of its body (middle right): the side of the body it lands on, in all eight variants.
+        let want = [
+            Align::MiddleRight,
+            Align::BottomCentre,
+            Align::MiddleLeft,
+            Align::TopCentre,
+            Align::MiddleLeft,
+            Align::TopCentre,
+            Align::MiddleRight,
+            Align::BottomCentre,
+        ];
         for (v, w) in Orient2::ALL.into_iter().zip(want) {
-            assert_eq!(readable_angle(Angle2(0), v), Angle2(w), "{v:?}");
+            assert_eq!(placed_align(&Align::MiddleRight, Angle2(0), v), w, "{v:?}");
         }
+        // A designation right of a connection line leaving up, starting at the point and running up and right
+        // (bottom left): turned a quarter clockwise the line leaves right, and the text stands below it.
+        assert_eq!(placed_align(&Align::BottomLeft, Angle2(0), Orient2::R90), Align::TopLeft);
+        // A text at 90° (reading bottom to top) keeps 90°; mirrored, it keeps its side along the baseline.
+        assert_eq!(upright_angle(Angle2(90_000)), Angle2(90_000));
+        assert_eq!(placed_align(&Align::MiddleLeft, Angle2(90_000), Orient2::M0), Align::MiddleLeft);
+        assert_eq!(placed_align(&Align::TopLeft, Angle2(90_000), Orient2::M0), Align::BottomLeft);
         // Every result is readable, for every input angle.
         for a in (0..360_000).step_by(7_500) {
-            for v in Orient2::ALL {
-                let r = readable_angle(Angle2(a), v).0;
-                assert!(
-                    (0..=90_000).contains(&r) || (270_001..360_000).contains(&r),
-                    "{a} {v:?} → {r}"
-                );
-            }
+            let r = upright_angle(Angle2(a)).0;
+            assert!((0..=90_000).contains(&r) || (270_001..360_000).contains(&r), "{a} → {r}");
         }
     }
 

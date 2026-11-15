@@ -224,7 +224,7 @@ fn text(b: &mut Builder<'_>, t: &FreeText, moved: &dyn Fn(Pt2) -> Pt2) {
     b.text(&TextSpec {
         text: content,
         at: moved(t.at),
-        angle: symbol::readable_angle(t.angle, Orient2::R0),
+        angle: symbol::upright_angle(t.angle),
         align: &symbol::placed_align(&align, t.angle, Orient2::R0),
         style_key: t.style.as_ref().map_or(DEFAULT_STYLE_KEY, |s| s.as_str()),
         entity: EntityRef(ew_ids::Uuid::nil()),

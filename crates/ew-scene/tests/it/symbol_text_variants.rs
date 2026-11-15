@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 //! Text under the eight symbol variants (doc 07 §4.1): the anchor transforms, glyphs are never
-//! mirrored, and the alignment flips as the readability turn and the mirror require.
+//! mirrored or turned, and the alignment keeps the text's side of its anchor.
 
 use ew_dl::Transform;
 use ew_scene::symbol::{TextSource, lower};
@@ -33,17 +33,17 @@ fn symbol_with_slot(rot: i32, align: &str) -> SymbolDef {
 
 #[test]
 fn alignment_and_angle_per_variant_for_a_top_left_slot() {
-    // Variant, rendered angle, alignment of a TopLeft text (doc 07 §4.1 table: horizontal flips with the
-    // turn, vertical flips when exactly one of turn and mirror applies).
+    // Variant, rendered angle, alignment of a TopLeft text (doc 07 §4.1: the text stays upright and lies on the side
+    // of its anchor that the variant maps its side to; a TopLeft text lies right of and below its anchor).
     let table = [
         (Orient2::R0, 0, Align::TopLeft),
-        (Orient2::R90, 90_000, Align::BottomRight),
+        (Orient2::R90, 0, Align::TopRight),
         (Orient2::R180, 0, Align::BottomRight),
-        (Orient2::R270, 90_000, Align::TopLeft),
+        (Orient2::R270, 0, Align::BottomLeft),
         (Orient2::M0, 0, Align::TopRight),
-        (Orient2::M90, 90_000, Align::BottomLeft),
+        (Orient2::M90, 0, Align::BottomRight),
         (Orient2::M180, 0, Align::BottomLeft),
-        (Orient2::M270, 90_000, Align::TopRight),
+        (Orient2::M270, 0, Align::TopLeft),
     ];
     let def = symbol_with_slot(0, "top_left");
     for (variant, angle, align) in table {
@@ -57,8 +57,9 @@ fn alignment_and_angle_per_variant_for_a_top_left_slot() {
 }
 
 #[test]
-fn centre_and_middle_alignments_flip_only_on_their_axis() {
-    // E (plain mirror): left <-> right, vertical stays; centre stays everywhere except under a vertical flip.
+fn alignments_keep_their_side_of_the_anchor() {
+    // E (plain mirror): left <-> right, vertical stays; under a quarter turn a text beside its anchor goes above or
+    // below it, centred.
     let cases = [
         ("middle_left", Orient2::M0, Align::MiddleRight),
         ("middle_right", Orient2::M0, Align::MiddleLeft),
@@ -67,8 +68,8 @@ fn centre_and_middle_alignments_flip_only_on_their_axis() {
         ("bottom_left", Orient2::M0, Align::BottomRight),
         ("middle_left", Orient2::R180, Align::MiddleRight),
         ("top_centre", Orient2::R180, Align::BottomCentre),
-        ("middle_left", Orient2::M90, Align::MiddleLeft),
-        ("top_left", Orient2::M90, Align::BottomLeft),
+        ("middle_left", Orient2::M90, Align::BottomCentre),
+        ("top_left", Orient2::M90, Align::BottomRight),
     ];
     for (align, variant, want) in cases {
         let g = lower(&symbol_with_slot(0, align), variant);
@@ -103,4 +104,54 @@ fn mirrored_variants_place_the_text_on_the_mirrored_side_without_mirroring_glyph
         let det = i128::from(along.x.0) * i128::from(up.y.0) - i128::from(along.y.0) * i128::from(up.x.0);
         assert!(det < 0, "{variant:?}: det {det}");
     }
+}
+
+/// A starter symbol as it ships.
+fn starter(json: &str) -> SymbolDef {
+    match LibDocument::from_json(json).expect("symbol document") {
+        LibDocument::Symbol(copy) => copy.item,
+        other => panic!("not a symbol: {other:?}"),
+    }
+}
+
+/// The alignment of the slot text of `kind` in `g`.
+fn align_of(g: &ew_scene::symbol::SymbolGeometry, kind: &ew_schema::SlotKind) -> Align {
+    g.texts
+        .iter()
+        .find(|t| t.source == TextSource::Slot(kind.clone()))
+        .map(|t| t.align.clone())
+        .unwrap_or_else(|| panic!("no {kind:?}"))
+}
+
+/// Turning or mirroring a symbol never turns a text (a turned part's tag and connection texts stay upright). A
+/// transformer has its tag left of the body and a designation beside each of its four points.
+#[test]
+fn a_turned_transformer_keeps_every_text_upright_and_beside_its_point() {
+    use ew_schema::SlotKind::{CpDesignation, Tag};
+    let def = starter(include_str!("../../../../content/symbols/ew.iec.transformer-1ph.json"));
+    for variant in Orient2::ALL {
+        let g = lower(&def, variant);
+        assert!(g.texts.iter().all(|t| t.angle == Angle2::ZERO), "{variant:?}");
+    }
+    let r90 = lower(&def, Orient2::R90);
+    // The tag, left of the body, stands centred above it.
+    assert_eq!(align_of(&r90, &Tag), Align::BottomCentre);
+    // The points' lines leave right: the designations run right along their lines, one above and one below.
+    assert_eq!(align_of(&r90, &CpDesignation(0)), Align::BottomLeft);
+    assert_eq!(align_of(&r90, &CpDesignation(2)), Align::TopLeft);
+    // Unturned and mirrored they keep their sides as before.
+    assert_eq!(align_of(&lower(&def, Orient2::R0), &CpDesignation(0)), Align::MiddleRight);
+    assert_eq!(align_of(&lower(&def, Orient2::M0), &CpDesignation(0)), Align::MiddleLeft);
+}
+
+/// An air supply turned by 270° shows its tag and its port's designation horizontally, the designation above the
+/// port's line, which now leaves right.
+#[test]
+fn an_air_supply_turned_by_270_degrees_reads_horizontally() {
+    use ew_schema::SlotKind::{CpDesignation, Tag};
+    let def = starter(include_str!("../../../../content/symbols/ew.iso.air-supply.json"));
+    let g = lower(&def, Orient2::R270);
+    assert!(g.texts.iter().all(|t| t.angle == Angle2::ZERO));
+    assert_eq!(align_of(&g, &CpDesignation(0)), Align::BottomLeft);
+    assert_eq!(align_of(&g, &Tag), Align::BottomRight);
 }

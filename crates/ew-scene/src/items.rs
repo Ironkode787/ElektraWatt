@@ -220,7 +220,7 @@ impl Builder<'_> {
         self.text(&TextSpec {
             text: &iv.text,
             at: t.at,
-            angle: symbol::readable_angle(t.angle, Orient2::R0),
+            angle: symbol::upright_angle(t.angle),
             align: &symbol::placed_align(&align, t.angle, Orient2::R0),
             style_key: style,
             entity,

@@ -1367,10 +1367,10 @@ fn snapshot_contact_no_m90() {
     F
       cp 0 fn 0 (0,0) Right
       cp 1 fn 1 (-12000000,0) Left
-      text slot Tag (-6000000,4000000) 90000 MiddleRight visible=true
-      text slot Xref (-6000000,-4000000) 90000 MiddleLeft visible=true
-      text slot CpDesignation(0) (-2000000,-1000000) 90000 MiddleLeft visible=true
-      text slot CpDesignation(1) (-10000000,-1000000) 90000 MiddleLeft visible=true
+      text slot Tag (-6000000,4000000) 0 TopCentre visible=true
+      text slot Xref (-6000000,-4000000) 0 BottomCentre visible=true
+      text slot CpDesignation(0) (-2000000,-1000000) 0 BottomLeft visible=true
+      text slot CpDesignation(1) (-10000000,-1000000) 0 BottomRight visible=true
       anchor (0,0)
       bounds (-12000000,-4000000) (0,4000000)
       items 3

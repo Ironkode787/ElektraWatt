@@ -68,7 +68,8 @@
 //!   representation's arrangement (FR-SYM-012), else by the symbol's default; an empty value prints
 //!   nothing. Position and angle overrides are in the symbol frame. Placement follows
 //!   [`crate::symbol`] in the representation's text frame (`ew_derive::text_frame`): the position turns with the
-//!   orientation, the angle is made readable, the alignment flips (doc 07 §4.1). The text frame is the
+//!   orientation, the angle stays the symbol frame's (a text stays upright), the alignment keeps the text's side
+//!   (doc 07 §4.1). The text frame is the
 //!   representation's own, except on a black box turned by a half turn without a mirror: its texts
 //!   are placed as on the same box unturned (origin `2C − pos`, `C` the box's centre on the page, no turn), so they
 //!   keep their place relative to the box and their collision rules; the style is the slot's own `style` when it names a known text style, else
@@ -1268,8 +1269,8 @@ impl Builder<'_> {
                     symbol: rep.symbol.as_uuid(),
                     value,
                     at: frame.origin + frame.orient.apply(pos),
-                    angle: symbol::readable_angle(rot, frame.orient),
-                    align: symbol::placed_align(&slot.align, rot, frame.orient),
+                    angle: symbol::upright_angle(rot),
+                    align: symbol::slot_align(def, slot, rot, frame.orient),
                     style_key,
                     unknown,
                     entity,
@@ -1369,8 +1370,8 @@ impl Builder<'_> {
             let ov = rep.text_slots.iter().find(|o| o.slot == i);
             let pos = ov.and_then(|o| o.pos).unwrap_or(slot.pos);
             let rot = ov.and_then(|o| o.angle).unwrap_or(slot.rot);
-            let angle = symbol::readable_angle(rot, frame.orient);
-            let align = bottom_align(&symbol::placed_align(&slot.align, rot, frame.orient));
+            let angle = symbol::upright_angle(rot);
+            let align = bottom_align(&symbol::slot_align(def, slot, rot, frame.orient));
             let at = frame.origin + frame.orient.apply(pos) + up_by(angle, step);
             let (style_key, _) = symbol::slot_style_key(slot, self.styles);
             self.text(&TextSpec {

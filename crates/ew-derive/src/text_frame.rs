@@ -4,8 +4,8 @@
 //! The frame a representation's slot texts are placed in: [`text_frame`].
 //!
 //! A slot text's position and angle (the symbol slot's, else the representation's `SlotOverride`) are points and
-//! angles of this frame: the text sits at `origin + orient(pos)`, its angle is made readable and its alignment flips
-//! under `orient` (`ew_scene::symbol::readable_angle`, `placed_align`). For every representation but one the frame is
+//! angles of this frame: the text sits at `origin + orient(pos)`, keeps its angle (made readable) and takes the
+//! alignment that keeps its side under `orient` (`ew_scene::symbol::upright_angle`, `placed_align`). For every representation but one the frame is
 //! the representation's own (`pos`, `orient`).
 //!
 //! **A half-turned black box.** A black box (a symbol without CPs on a representation that carries

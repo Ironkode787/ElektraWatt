@@ -193,12 +193,12 @@ text_slots}` ([03](03-domain-model.md) §6). The editor exposes three independen
 xref, PLC address and user properties. A **property arrangement** chooses which slots show (FR-SYM-012). Slot text
 is always derived; the representation stores only overrides of position, rotation, alignment and visibility. Text
 height comes from the text style bound to the slot kind (FR-SYM-013, D-29), so dragging a label moves it but never
-resizes it. Texts stay readable from the bottom or the right of the sheet (common drawing practice; the governing
-clause is unverified), so slot text never renders at R180 or R90: on a symbol at R180 it renders at R0, on a symbol
-at R90 at R270 (reading bottom to top); a mirror never mirrors glyphs. Instead the text's alignment flips: left ↔
-right when the readable rotation turns the text by 180°, top ↔ bottom when exactly one of that turn and a mirror
-applies, so the text keeps its side of the symbol and stays readable (the table for all eight
-variants is in [07](07-symbols-parts-macros.md) §4.1).
+resizes it. A text stays upright: turning or mirroring a symbol never turns its texts (owner, 2026-11-15), which keep
+the angle they have in the unturned symbol, read from the bottom or the right of the sheet (common drawing practice;
+the governing clause is unverified); a mirror never mirrors glyphs. The anchor moves with the symbol and the
+alignment is chosen so the text keeps its side of the symbol and of its connection point (a tag left of the body
+that a quarter turn brings above it stands centred above; the table for all eight variants is in
+[07](07-symbols-parts-macros.md) §4.1).
 
 ### 2.6 Devices, functions, main and auxiliary
 
