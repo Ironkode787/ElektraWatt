@@ -635,7 +635,8 @@ impl ShellModel {
         if matches!(self.dialog, Some(Dialog::ConfirmUpgrade { .. })) {
             self.dialog = None;
         }
-        let saved = self.act_save();
+        // A save in the new format is no change of the project's: its edited date stays.
+        let saved = self.save_project_on(None);
         if saved == Outcome::Done
             && self.banner.as_deref() == Some(strings::text(key!("banner-older-format")))
         {

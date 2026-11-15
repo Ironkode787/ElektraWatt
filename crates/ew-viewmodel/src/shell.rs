@@ -2273,14 +2273,22 @@ impl ShellModel {
         self.save_project()
     }
 
+    /// A person's save: with changes it takes today's date as the project's edited date (`Session::save`).
     fn save_project(&mut self) -> Outcome {
         let today = self.today_date();
+        self.save_project_on(today)
+    }
+
+    /// Saves the project, writing `today` as its edited date when it has changes (`None`: a save a step makes
+    /// itself, which keeps the date, as an approval's must to keep the content its sign-off covers).
+    pub(super) fn save_project_on(&mut self, today: Option<ew_api::catalog::Date>) -> Outcome {
         let Some(p) = &mut self.project else {
             return Outcome::refused(key!("reason-no-project"));
         };
-        // A save with changes takes today's date as the project's edited date (`Session::save`).
         p.session.set_today(today);
-        match p.session.save() {
+        let result = p.session.save();
+        p.session.set_today(None);
+        match result {
             Ok(saved) => {
                 self.record.saved_steps = self.record.steps.clone();
                 // A save is a marker line of the history panel.

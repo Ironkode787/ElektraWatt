@@ -280,9 +280,9 @@ pub struct SessionOptions {
     /// an in-memory index and no file read (tests, `ew apply`). The GUI and the CLI pass
     /// [`library::LibraryTiers::for_user`].
     pub libraries: Option<library::LibraryTiers>,
-    /// The session's date, as the front-end read it (the window's today; the CLI's `SOURCE_DATE_EPOCH`): a new
-    /// project's created date, and the edited date a save with changes writes ([`Session::save`]). `None` (tests,
-    /// scripts): no date is written, so no output depends on the day it is made.
+    /// The date a new project is created on (`master.created`, [`Session::new_project`]), as the front-end read it
+    /// (the window's today). `None` (tests, scripts): no date is written, so no output depends on the day it is made.
+    /// The edited date a save writes is [`Session::set_today`]'s.
     pub today: Option<ew_schema::Date>,
 }
 
@@ -628,7 +628,7 @@ pub struct Session {
     libraries: std::sync::OnceLock<(library::Registry, Option<library::LibraryError>)>,
     /// The release's housekeeping trouble not yet taken by the front-end ([`Session::take_release_troubles`]).
     release_troubles: std::cell::RefCell<Vec<release_run::ReleaseTrouble>>,
-    /// The session's date ([`SessionOptions::today`], [`Session::set_today`]).
+    /// The date a save with changes writes as the edited date ([`Session::set_today`]).
     today: Option<ew_schema::Date>,
 }
 
@@ -661,7 +661,7 @@ impl Session {
             }
         };
         Session {
-            today: options.today,
+            today: None,
             library_tiers: options.libraries,
             libraries: std::sync::OnceLock::new(),
             release_troubles: std::cell::RefCell::new(Vec::new()),
@@ -1594,7 +1594,9 @@ impl Session {
         result
     }
 
-    /// The session's date from now on (the window passes today's before each action; it moves past midnight).
+    /// The date the next saves with changes write as the project's edited date (a person's save: the window sets it
+    /// for its Save and clears it after, so a save a step makes itself, as an approval's, keeps the date the
+    /// sign-off covers; `ew`'s editing commands set `SOURCE_DATE_EPOCH`'s). `None`: no date is written.
     pub fn set_today(&mut self, today: Option<ew_schema::Date>) {
         self.today = today;
     }

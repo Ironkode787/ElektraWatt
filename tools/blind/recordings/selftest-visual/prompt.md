@@ -51,7 +51,7 @@ at it before you decide what to do next. `frames/t0000.png` is the window before
 
 ## The picture and the coordinates
 
-The picture's size is stated at the end of this text, at the start of the run; usually it is 1536 × 994 pixels. The top
+The picture's size is stated at the end of this text, at the start of the run; usually it is 1920 × 1108 pixels. The top
 strip (34 pixels in the usual picture) is the window's title bar (the project's name, and a `*` while there are unsaved
 changes); clicks there do nothing. Everything below it is the window. Coordinates are whole pixels of the normal
 picture, `x` from 0 (left) to the width less one and `y` from 0 (top) to the height less one, the title bar included:
@@ -143,5 +143,5 @@ Eight headings in this order, each a line that starts with its number and title:
 
 The harness checks the eight headings; the content is yours. Filing it ends the run.
 
-This run's picture is 1536 × 994 pixels: `x` from 0 to 1535, `y` from 0 to 993; the title bar is the top 34 pixels.
+This run's picture is 1920 × 1108 pixels: `x` from 0 to 1919, `y` from 0 to 1107; the title bar is the top 28 pixels.
 

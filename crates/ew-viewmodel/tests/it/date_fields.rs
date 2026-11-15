@@ -17,7 +17,11 @@ const CREATED: &str = "project/master.created";
 /// The value text of the property row `key`.
 fn shown(shell: &ShellModel, key: &str) -> String {
     let sheet = shell.properties().sheet().expect("a sheet");
-    match &find_row(sheet, key).unwrap_or_else(|| panic!("no row {key}")).1.value {
+    match &find_row(sheet, key)
+        .unwrap_or_else(|| panic!("no row {key}"))
+        .1
+        .value
+    {
         RowValue::One { text, .. } => text.clone(),
         other => format!("{other:?}"),
     }
@@ -29,10 +33,18 @@ fn a_date_is_typed_and_shown_in_the_projects_format() {
     let mut shell = new_project(&tmp);
     done(&mut shell, "props.project", json!({}));
     // Day first, with dots and a two-digit year, in a project that prints dd-mm-yyyy.
-    done(&mut shell, "props.set", json!({"row": CREATED, "value": "15.11.26"}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": CREATED, "value": "15.11.26"}),
+    );
     assert_eq!(shown(&shell, CREATED), "15-11-2026");
     // ISO is taken too.
-    done(&mut shell, "props.set", json!({"row": CREATED, "value": "2026-11-16"}));
+    done(
+        &mut shell,
+        "props.set",
+        json!({"row": CREATED, "value": "2026-11-16"}),
+    );
     assert_eq!(shown(&shell, CREATED), "16-11-2026");
     // A wrong date is refused with an example in the project's format.
     let Outcome::Failed { message } =
@@ -45,7 +57,11 @@ fn a_date_is_typed_and_shown_in_the_projects_format() {
     // The Title block fields form takes the format too (with its parameters, as its Apply sends them), on a copy of
     // Golden A, whose title block prints the date and whose project prints dd-mm-yyyy.
     let mut shell = tmp.shell_in(ew_viewmodel::shell::Mode::Headless, true, "101");
-    done(&mut shell, "page.title_block", json!({"project.created": "1/2/2027"}));
+    done(
+        &mut shell,
+        "page.title_block",
+        json!({"project.created": "1/2/2027"}),
+    );
     done(&mut shell, "props.project", json!({}));
     assert_eq!(shown(&shell, CREATED), "01-02-2027");
     // Stored as one date: an ISO project shows the same day in ISO.
@@ -76,7 +92,11 @@ fn the_edited_date_is_set_by_a_save_with_changes() {
         json!({"dir": dir.to_string_lossy(), "template": "builtin"}),
     );
     done(&mut shell, "props.project", json!({}));
-    assert_eq!(shown(&shell, CREATED), "04-03-2026", "created on the session's date");
+    assert_eq!(
+        shown(&shell, CREATED),
+        "04-03-2026",
+        "created on the session's date"
+    );
     let Outcome::Failed { message } =
         shell.dispatch("props.set", &json!({"row": EDITED, "value": "01-01-2026"}))
     else {
@@ -99,7 +119,10 @@ fn the_edited_date_is_set_by_a_save_with_changes() {
     assert_eq!(shown(&shell, EDITED), "05-03-2026");
     // The date is no step of its own: one undo takes back the new page and the date with it.
     done(&mut shell, "edit.undo", json!({}));
-    assert!(!shell.page_labels().iter().any(|f| f == "2"), "the page is undone");
+    assert!(
+        !shell.page_labels().iter().any(|f| f == "2"),
+        "the page is undone"
+    );
     done(&mut shell, "props.project", json!({}));
     assert_ne!(shown(&shell, EDITED), "05-03-2026", "the date is undone with it");
     shell.shutdown();

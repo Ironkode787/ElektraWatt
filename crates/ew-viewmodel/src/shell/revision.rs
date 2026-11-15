@@ -679,7 +679,8 @@ impl ShellModel {
             return self.revision_failed(approve_words(&e, Some(&gate.report), &Value::Null));
         }
         self.revision_done();
-        let saved = self.act_save();
+        // The approval's own save keeps the edited date: the sign-off covers the content as saved.
+        let saved = self.save_project_on(None);
         self.notify_with(
             strings::format(key!("toast-revision-approved"), &[&label]),
             "edit",

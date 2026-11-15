@@ -14,14 +14,14 @@
     "looks": 200,
     "refusals": 50
   },
-  "app_version": "0.1.0",
-  "harness_version": "0.1.0",
+  "app_version": "0.3.0",
+  "harness_version": "0.3.0",
   "stateless": false,
   "senses": "visual",
-  "ppp": 1.2,
+  "ppp": 1.0,
   "window": [
-    1280,
-    800
+    1920,
+    1080
   ],
   "counts": {
     "turns": 7,
