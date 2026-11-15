@@ -362,13 +362,13 @@ rule-ew-fl-001 = { $form ->
 rule-ew-fl-002 = { $form ->
         [excess] { WORD($valve) }: magneetspoel { WORD($solenoid) } is aan { $count } kanalen gebonden: { $channels_nl }
         [undeclared] { WORD($valve) }: { $channel_nl } stuurt een spoel aan die het artikel niet declareert
-       *[unbound] { WORD($valve) }: magneetspoel { WORD($solenoid) } heeft geen kanaal
+       *[unbound] { WORD($valve) }: geen PLC-uitgang stuurt magneetspoel { WORD($solenoid) } aan; koppel er een aan
     }
-    .title = Kanalen en magneetspoelen komen niet overeen
-    .hint = Bind elke magneetspoel die het ventielartikel declareert aan één kanaal, en geen kanaal aan een andere spoel.
+    .title = Magneetspoelen en hun uitgangen
+    .hint = Geef elke magneetspoel die het ventielartikel noemt één PLC-uitgang (op een ventieleiland met busknooppunt een kanaal van het eiland, op een multipol-eiland de uitgang die op zijn stekkerpen is bedraad), en geen uitgang aan een andere spoel.
 
 rule-ew-fl-004 = { $form ->
-        [blank] { WORD($module) }: ventielplaats { $position } bevat een blindplaat, { WORD($device) }
+        [blank] { WORD($module) }: ventielplaats { $position } is afgesloten met een blindplaat, { WORD($device) }
        *[valve] { WORD($module) }: ventielplaats { $position } bevat een reserveventiel, { WORD($device) }
     }
     .title = Ventielplaatsen in reserve
@@ -404,10 +404,10 @@ rule-ew-fl-009 = { WORD($valve) }: de spoel neemt { $voltage }, maar { $feeds_nl
     .hint = Kies een ventiel waarvan de spoel de spanning van zijn voeding neemt, of voed haar uit een potentiaal van die spanning.
 
 rule-ew-fl-010 = { $form ->
-        [valve] { WORD($device) }: poort { $port } heeft geen voeding; definieer er een medium of teken de voedingsleiding
-       *[gallery] { WORD($device) }: verdeelkanaal 1 heeft geen voeding; definieer een medium aan een voedingspoort of teken de voedingsleiding
+        [valve] { WORD($device) }: er komt geen lucht op poort { $port }; teken de voedingsleiding erheen, of definieer daar een medium
+       *[gallery] { WORD($device) }: er komt geen lucht in verdeelkanaal 1, de gemeenschappelijke voeding van de ventielen; teken de voedingsleiding naar de voedingspoort, of definieer daar een medium
     }
-    .title = Geen voeding op poort 1
+    .title = Geen voeding
     .hint = Definieer een medium aan de voedingspoort, of teken de leiding die het aanvoert.
 
 rule-ew-fl-011 = { WORD($valve) } stuurt { $target } aan, maar de leidingen van zijn werkpoorten bereiken { WORD($device) }

@@ -350,6 +350,19 @@ pub(in crate::actions) const ACTIONS: &[ActionMeta] = &[
             ),
         ))),
     ),
+    // A terminal valve's Go to output (rc.2, F15): the channel that drives its solenoid, in the PLC list.
+    with_params(
+        "channel?:ref",
+        hidden(act(
+            "fluid.go_output",
+            Command,
+            Menu::Project,
+            &[],
+            project_open,
+            None,
+            |s, p| s.act_fluid_go_output(p),
+        )),
+    ),
     // A valve terminal drawn before as a free box: Draw as slots (rc.2, F15), previewed.
     with_params(
         "rep:ref",

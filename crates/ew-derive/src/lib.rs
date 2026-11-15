@@ -160,7 +160,7 @@ pub use fluid::{
 };
 pub use valve_cells::{
     BAND_TOP, CELL_STEPS, END_STEPS, HEIGHT_STEPS, SlotFrame, ValveCell, device_fits_terminal, fits_terminal,
-    graphics_x_extent, terminal_cells, terminal_supply,
+    graphics_x_extent, is_fluid_terminal, is_multipin_terminal, solenoid_pin, terminal_cells, terminal_supply,
 };
 pub use fluid_media::{
     Effective, MediumKey, MediumOrigin, MediumZones, MediumZonesV, Sourced, TubeProps, TubePropsOf,

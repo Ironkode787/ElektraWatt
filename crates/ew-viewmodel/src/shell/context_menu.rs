@@ -706,6 +706,32 @@ impl ShellModel {
             }
             None => {
                 for s in session.valve_solenoids(device) {
+                    // A terminal valve's solenoid (rc.2, F15): Go to output, or its plug pin; never Draw solenoid.
+                    match &s.seat {
+                        Some(ew_api::output::SolenoidSeat::Terminal { channel, .. }) => {
+                            let output = s.output.clone().unwrap_or_default();
+                            let label = strings::format(key!("canvas-solenoid-output"), &[&s.name, &output]);
+                            let params = json!({ "channel": channel.map(|c| c.to_string()) });
+                            out.extend(self.aimed("fluid.go_output", params, label));
+                            continue;
+                        }
+                        Some(ew_api::output::SolenoidSeat::Multipin { terminal, plug_function, pin, plug }) => {
+                            out.extend(match plug {
+                                Some(place) => self.aimed(
+                                    "nav.goto",
+                                    json!({ "text": place }),
+                                    strings::format(key!("canvas-solenoid-pin"), &[&s.name, pin, terminal]),
+                                ),
+                                None => self.aimed(
+                                    "place.pick",
+                                    json!({ "function": plug_function.map(|f| f.to_string()) }),
+                                    strings::format(key!("canvas-plug-draw"), &[terminal]),
+                                ),
+                            });
+                            continue;
+                        }
+                        None => {}
+                    }
                     out.extend(match &s.drawn {
                         Some(place) => self.aimed(
                             "nav.goto",
@@ -720,6 +746,13 @@ impl ShellModel {
                     });
                 }
             }
+        }
+        // What kind of valve terminal it is, in words (F15: a PLC station or a multipin terminal); chosen, Properties.
+        if let Some(words) = self.terminal_kind_words(device) {
+            out.extend(self.menu_item("props.focus").map(|mut i| {
+                i.label = words;
+                i
+            }));
         }
         self.device_medium_entries(session, device, out);
         let menu = session.fluid_menu(device);

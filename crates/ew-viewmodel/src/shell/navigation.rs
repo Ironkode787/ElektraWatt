@@ -901,6 +901,24 @@ impl ShellModel {
             });
         if let Some(json) = solenoid {
             let mut params = Map::new();
+            // A terminal valve's solenoid (rc.2, F15): its output in the PLC list, or its plug pin on the page.
+            let seat = &json["seat"];
+            match seat.get("kind").and_then(Value::as_str) {
+                Some("terminal") => {
+                    let channel = seat.get("channel").cloned().unwrap_or(Value::Null);
+                    return self.dispatch("fluid.go_output", &serde_json::json!({ "channel": channel }));
+                }
+                Some(_) => {
+                    return match seat.get("plug").and_then(Value::as_str) {
+                        Some(place) => self.dispatch("nav.goto", &serde_json::json!({ "text": place })),
+                        None => {
+                            let f = seat.get("plug_function").cloned().unwrap_or(Value::Null);
+                            self.dispatch("place.pick", &serde_json::json!({ "function": f }))
+                        }
+                    };
+                }
+                None => {}
+            }
             return match json.get("drawn").and_then(Value::as_str) {
                 Some(place) => {
                     params.insert("text".into(), Value::String(place.to_owned()));

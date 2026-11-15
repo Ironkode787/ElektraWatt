@@ -17,7 +17,7 @@ use ew_derive::ew_schema::{
 use ew_derive::ew_units::Dec3;
 use ew_derive::{
     CpRef, EndpointKey, FluidNets, FunctionCps, Galleries, MediumKey, MediumOrigin, MediumZones, NetId,
-    PotentialAttrsOf, PotentialPartition, Q, TubeRow, TubeRows, cp_label, is_fluid, is_valve_terminal,
+    PotentialAttrsOf, PotentialPartition, Q, TubeRow, TubeRows, cp_label, is_fluid, is_fluid_terminal,
     node_net, parent_chain, solenoid_coil, valve_functions, valve_solenoids,
 };
 
@@ -436,7 +436,7 @@ impl Rule for ExhaustOpen {
         }
         // The gallery segments by the net of their first member: (terminal, gallery).
         let mut galleries: BTreeMap<NetId, (Id<Device>, FluidPortRole)> = BTreeMap::new();
-        for vt in q.devices().ids().filter(|d| is_valve_terminal(q, *d)) {
+        for vt in q.devices().ids().filter(|d| is_fluid_terminal(q, *d)) {
             for s in q.get::<Galleries>(vt).iter() {
                 if let Some(net) = s.members.first().and_then(|m| node_net(q, *m)) {
                     galleries.insert(net, (vt, s.gallery.clone()));
@@ -746,7 +746,7 @@ impl Rule for NoSupply {
             return Vec::new();
         };
         let mut out = Vec::new();
-        if is_valve_terminal(q, d) {
+        if is_fluid_terminal(q, d) {
             let inside = |x: Id<Device>| parent_chain(q, x).contains(&d);
             for s in q
                 .get::<Galleries>(d)
@@ -765,7 +765,7 @@ impl Rule for NoSupply {
                         [Target::new(Kind::Device, d)],
                         format!("gallery {}", cp_text(q, *first)),
                         full_tag(q, d, "device"),
-                        format!("{vt}: gallery 1 has no supply; define a medium at a supply port or draw the supply line"),
+                        format!("{vt}: no air reaches gallery 1, the common supply of its valves; draw the supply line to its supply port, or define a medium there"),
                     )
                     .arg("form", "gallery")
                     .arg("device", vt),
@@ -776,7 +776,7 @@ impl Rule for NoSupply {
         if q.devices()
             .get(d)
             .is_none_or(|x| x.state == DeviceState::NotFitted)
-            || parent_chain(q, d).iter().any(|a| is_valve_terminal(q, *a))
+            || parent_chain(q, d).iter().any(|a| is_fluid_terminal(q, *a))
         {
             return out;
         }
@@ -799,7 +799,7 @@ impl Rule for NoSupply {
                         format!("port {}", cp.designation),
                         full_tag(q, d, "device"),
                         format!(
-                            "{valve}: port {} has no supply; define a medium at it or draw the supply line",
+                            "{valve}: no air reaches port {}; draw the supply line to it, or define a medium there",
                             cp.designation
                         ),
                     )

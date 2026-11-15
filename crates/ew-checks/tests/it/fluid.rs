@@ -226,12 +226,12 @@ fn ew_fl_002_reports_excess_and_unbound_coils() {
                 Severity::Error,
                 "-1Q1: solenoid 14 is bound to 2 channels: channel 0 of -1U3, channel 1 of -1U3".to_owned()
             ),
-            (Severity::Warning, "-1Q2: solenoid 14 has no channel".to_owned()),
+            (Severity::Warning, "-1Q2: no PLC output drives solenoid 14; bind one to it".to_owned()),
             (
                 Severity::Error,
                 "-1Q4: channel 6 of -1U3 drives a coil that the part does not declare".to_owned()
             ),
-            (Severity::Warning, "-1Q4: solenoid 14 has no channel".to_owned()),
+            (Severity::Warning, "-1Q4: no PLC output drives solenoid 14; bind one to it".to_owned()),
         ]
     );
     assert_eq!(
@@ -259,7 +259,7 @@ fn ew_fl_004_lists_spare_valves_and_blanking_plates() {
             ),
             (
                 Severity::Info,
-                "-1U3: position 3 holds a blanking plate, -?Q3".to_owned()
+                "-1U3: position 3 is closed by a blanking plate, -?Q3".to_owned()
             ),
         ]
     );

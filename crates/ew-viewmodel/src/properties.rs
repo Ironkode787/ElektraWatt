@@ -1128,13 +1128,34 @@ pub fn solenoids_in_words(sheet: &mut PropertySheet) {
         let RowValue::One { json, text } = &mut row.value else {
             continue;
         };
-        if row.key.starts_with("device/derived.solenoid[") && json.get("drawn").is_some_and(Value::is_null) {
+        if row.key.starts_with("device/derived.solenoid[")
+            && let Some(words) = solenoid_seat_words(&json["seat"])
+        {
+            *text = words;
+        } else if row.key.starts_with("device/derived.solenoid[") && json.get("drawn").is_some_and(Value::is_null) {
             *text = strings::text(key!("props-solenoid-not-drawn")).to_owned();
         } else if row.key == "representation/derived.solenoid_of" {
             let word = |k: &str| json.get(k).and_then(Value::as_str).unwrap_or_default().to_owned();
             *text = strings::format(key!("props-solenoid-of"), &[&word("name"), &word("tag")]);
         }
     }
+}
+
+/// Where a terminal valve's solenoid is driven from, in words (rc.2, F15), from its row's `seat`: `driven by output
+/// Q0.0 of -201K1 (inside the terminal: nothing to wire)`, `pin 3 of -201K1's plug at 101-C2`, or that the plug is not
+/// drawn yet; `None` for a stand-alone valve's solenoid.
+pub fn solenoid_seat_words(seat: &Value) -> Option<String> {
+    let word = |k: &str| seat.get(k).and_then(Value::as_str).unwrap_or_default().to_owned();
+    Some(match seat.get("kind").and_then(Value::as_str)? {
+        "terminal" => match seat.get("output").and_then(Value::as_str) {
+            Some(output) => strings::format(key!("props-solenoid-terminal"), &[output, &word("terminal")]),
+            None => strings::format(key!("props-solenoid-terminal-unbound"), &[&word("terminal")]),
+        },
+        _ => match seat.get("plug").and_then(Value::as_str) {
+            Some(plug) => strings::format(key!("props-solenoid-pin"), &[&word("pin"), &word("terminal"), plug]),
+            None => strings::format(key!("props-solenoid-pin-undrawn"), &[&word("pin"), &word("terminal")]),
+        },
+    })
 }
 
 /// Whether a row is one of a device's connection points (its value names the point: `function`, `idx`, `unused`).

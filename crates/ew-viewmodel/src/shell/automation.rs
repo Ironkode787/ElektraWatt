@@ -159,6 +159,18 @@ impl ShellModel {
             .unwrap_or_default()
     }
 
+    /// What kind of valve terminal `device` is, in words (rc.2, F15): `Valve terminal · PLC station on PROFIBUS DP`,
+    /// `Valve terminal · PLC station with bus node`, `Valve terminal · multipin, wired`; `None` for any other device.
+    /// The terminal's menu says it; Properties' header can show it.
+    pub fn terminal_kind_words(&self, device: Uuid) -> Option<String> {
+        use ew_api::output::TerminalKind;
+        Some(match self.project_session()?.terminal_kind(device)? {
+            TerminalKind::BusNode { bus: Some(bus) } => strings::format(key!("kind-terminal-bus"), &[&bus]),
+            TerminalKind::BusNode { bus: None } => strings::text(key!("kind-terminal-bus-node")).to_owned(),
+            TerminalKind::Multipin => strings::text(key!("kind-terminal-multipin")).to_owned(),
+        })
+    }
+
     /// The valve parts a valve terminal's empty position offers in the rack dialog (rc.2, `Session::terminal_valve_parts`).
     pub fn terminal_valve_parts(&self) -> Vec<ew_api::output::ModulePart> {
         self.project_session()
@@ -1023,6 +1035,23 @@ impl ShellModel {
             let _ = self.act_place_pick(&pick);
         }
         Outcome::Done
+    }
+
+    /// `fluid.go_output {channel?}` (rc.2, F15): a terminal valve's Go to output: the PLC list shown with the channel
+    /// that drives the solenoid marked; refused in words while no output drives it.
+    pub(crate) fn act_fluid_go_output(&mut self, p: &Map<String, Value>) -> Outcome {
+        if p.get("channel").is_none_or(Value::is_null) {
+            return Outcome::refused(key!("reason-solenoid-no-output"));
+        }
+        let channel = or_return!(self.record_param(p, "channel"));
+        let shown = self.dispatch("navigator.show", &json!({ "kind": "plc" }));
+        if shown != Outcome::Done {
+            return shown;
+        }
+        self.dispatch(
+            "navigator.select",
+            &json!({ "kind": "plc", "keys": [format!("channel:{channel}")] }),
+        )
     }
 
     /// `fluid.draw_slots {rep}` (rc.2, F15): Draw as slots on a valve terminal drawn before as a free box: the preview

@@ -177,7 +177,7 @@ impl Query for Galleries {
     const POLICY: Policy = Policy::Memo;
 
     fn run(q: &Q, key: &Id<Device>) -> Arc<Vec<GallerySegment>> {
-        if !is_valve_terminal(q, *key) {
+        if !crate::is_fluid_terminal(q, *key) {
             return Arc::new(Vec::new());
         }
         // The terminal itself first: a terminal with a supply of its own (its part taps the galleries) feeds them from
@@ -300,7 +300,7 @@ impl Query for FluidNets {
             via.entry(b).or_default().insert(id);
         }
         // The gallery edges of every valve terminal: one star per segment.
-        let mut terminals: Vec<Id<Device>> = q.devices().ids().filter(|d| is_valve_terminal(q, *d)).collect();
+        let mut terminals: Vec<Id<Device>> = q.devices().ids().filter(|d| crate::is_fluid_terminal(q, *d)).collect();
         terminals.sort();
         for vt in terminals {
             for segment in q.get::<Galleries>(vt).iter() {

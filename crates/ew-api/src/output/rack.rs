@@ -772,6 +772,28 @@ impl Session {
         }
     }
 
+    /// What kind of valve terminal `device` is (rc.2, F15): with a bus node (a PLC station: the outputs that drive its
+    /// solenoids are inside it), with the bus its part's first bus port names, or multipin (wired through its plug);
+    /// `None` for any other device.
+    pub fn terminal_kind(&self, device: Uuid) -> Option<TerminalKind> {
+        let q = self.query();
+        let id: Id<Device> = Id::from_uuid(device);
+        if ew_derive::is_multipin_terminal(&q, id) {
+            return Some(TerminalKind::Multipin);
+        }
+        if !ew_derive::is_valve_terminal(&q, id) {
+            return None;
+        }
+        let bus = q.devices().get(id).and_then(|d| {
+            d.parts.iter().find_map(|u| {
+                let copy = q.parts().get(u.part.copy)?;
+                let port = copy.item.sections.bus.as_ref()?.ports.first()?.clone();
+                Some(ew_derive::bus_word(&port.bus).to_owned())
+            })
+        });
+        Some(TerminalKind::BusNode { bus })
+    }
+
     /// The valve positions of a valve terminal, left to right (`ew_derive::terminal_cells`: its own, then its modules'),
     /// each its number on its module and what holds it; empty for a device without (rc.2).
     pub fn terminal_positions(&self, terminal: Uuid) -> Vec<(u32, RackPosition)> {
@@ -924,6 +946,19 @@ pub enum PlcOffer {
     None,
 }
 
+/// The kind of a valve terminal ([`Session::terminal_kind`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum TerminalKind {
+    /// A PLC station with a bus node: its outputs drive the solenoids, nothing is wired per solenoid; the bus its part
+    /// names, if any.
+    BusNode {
+        /// The bus in words (`PROFIBUS DP`).
+        bus: Option<String>,
+    },
+    /// No station: every solenoid is wired through one multi-pin plug to an output card elsewhere.
+    Multipin,
+}
+
 /// Where a device dropped into a valve terminal's box sits ([`Session::terminal_seat`]).
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum TerminalSeat {
@@ -960,6 +995,31 @@ pub struct ValveSolenoid {
     pub drawn: Option<String>,
     /// The PLC output that drives it (`Q0.1`); `None` while none does.
     pub output: Option<String>,
+    /// Where it is driven from when its valve sits on a valve terminal (rc.2, F15); `None` for a stand-alone valve.
+    pub seat: Option<SolenoidSeat>,
+}
+
+/// Where a terminal valve's solenoid is driven from ([`ValveSolenoid::seat`]).
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum SolenoidSeat {
+    /// A valve terminal with a bus node drives it from an output inside it: nothing to wire.
+    Terminal {
+        /// The terminal's tag.
+        terminal: String,
+        /// The output channel bound to the coil, if any (the PLC list's row).
+        channel: Option<Uuid>,
+    },
+    /// A multipin valve terminal's plug pin carries it.
+    Multipin {
+        /// The terminal's tag.
+        terminal: String,
+        /// The terminal's main function: drawn on an electrical page, it is the plug.
+        plug_function: Option<Uuid>,
+        /// The pin (`3`).
+        pin: String,
+        /// Where the plug is drawn on a page that is no fluid page (`101-C2`); `None` while it is not.
+        plug: Option<String>,
+    },
 }
 
 /// [`Session::valve_solenoids`] of `device`.
@@ -967,10 +1027,15 @@ pub(crate) fn solenoids(q: &Q, device: Id<Device>) -> Vec<ValveSolenoid> {
     let Some(dev) = q.devices().get(device) else {
         return Vec::new();
     };
-    if dev
-        .parent
-        .is_some_and(|m| ew_derive::valve_positions(q, m).is_some())
-    {
+    // A valve on a valve terminal (or on a module of one): its solenoids are driven from the terminal (rc.2, F15).
+    let on = dev.parent.filter(|m| ew_derive::valve_positions(q, *m).is_some());
+    let terminal = on.and_then(|m| {
+        [Some(m), q.devices().get(m).and_then(|d| d.parent)]
+            .into_iter()
+            .flatten()
+            .find(|t| ew_derive::is_fluid_terminal(q, *t))
+    });
+    if on.is_some() && terminal.is_none() {
         return Vec::new();
     }
     let parts = q.parts();
@@ -1004,8 +1069,57 @@ pub(crate) fn solenoids(q: &Q, device: Id<Device>) -> Vec<ValveSolenoid> {
                 .min()
                 .and_then(|r| super::properties::rep_location(q, r)),
             output: q.get::<ew_derive::PlcAddressText>(f).text.clone(),
+            seat: terminal.map(|t| solenoid_seat(q, device, t, name, f)),
         })
         .collect()
+}
+
+/// Where solenoid `name` (coil function `coil`) of `valve` on valve terminal `terminal` is driven from: a plug pin of a
+/// multipin terminal, else an output inside the terminal.
+fn solenoid_seat(
+    q: &Q,
+    valve: Id<Device>,
+    terminal: Id<Device>,
+    name: &ew_derive::ew_mltext::Ident,
+    coil: Id<Function>,
+) -> SolenoidSeat {
+    let tag = super::properties::device_tag_text(q, terminal);
+    match ew_derive::solenoid_pin(q, valve, name.as_str()) {
+        Some((t, pin)) => {
+            let main = *q.get::<ew_derive::MainFunction>(t);
+            let pages = q.pages();
+            let plug = main.and_then(|f| {
+                let mut reps: Vec<_> = q
+                    .idx()
+                    .reps_of_function(f)
+                    .filter(|r| {
+                        q.reps()
+                            .get(*r)
+                            .and_then(|r| pages.get(r.page))
+                            .is_some_and(|p| p.kind != ew_derive::ew_schema::PageType::Fluid)
+                    })
+                    .collect();
+                reps.sort();
+                reps.first().and_then(|r| super::properties::rep_location(q, *r))
+            });
+            SolenoidSeat::Multipin {
+                terminal: tag,
+                plug_function: main.map(|f| f.as_uuid()),
+                pin,
+                plug,
+            }
+        }
+        None => {
+            let bound = q.get::<ew_derive::ChannelsByCp>(());
+            let channel = ew_derive::solenoid_coil(q, valve, name)
+                .map_or((coil, 0), |cp| (cp.function, cp.idx));
+            let channel = bound.at_cp(channel.0, channel.1).next();
+            SolenoidSeat::Terminal {
+                terminal: tag,
+                channel: channel.map(|c| c.as_uuid()),
+            }
+        }
+    }
 }
 
 /// What a device row's fluid actions act on ([`Session::fluid_menu`]).

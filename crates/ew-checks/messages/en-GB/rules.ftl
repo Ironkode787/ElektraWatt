@@ -359,13 +359,13 @@ rule-ew-fl-001 = { $form ->
 rule-ew-fl-002 = { $form ->
         [excess] { $valve }: solenoid { $solenoid } is bound to { $count } channels: { $channels }
         [undeclared] { $valve }: { $channel } drives a coil that the part does not declare
-       *[unbound] { $valve }: solenoid { $solenoid } has no channel
+       *[unbound] { $valve }: no PLC output drives solenoid { $solenoid }; bind one to it
     }
-    .title = Coil bindings against solenoids
-    .hint = Bind each solenoid the valve part declares to one channel, and no channel to another coil.
+    .title = Solenoids and their outputs
+    .hint = Give each solenoid the valve's part names one PLC output (on a valve terminal with a bus node, a channel of the terminal; on a multipin terminal, the output wired to its plug pin), and no output to another coil.
 
 rule-ew-fl-004 = { $form ->
-        [blank] { $module }: position { $position } holds a blanking plate, { $device }
+        [blank] { $module }: position { $position } is closed by a blanking plate, { $device }
        *[valve] { $module }: position { $position } holds a spare valve, { $device }
     }
     .title = Spare positions
@@ -401,10 +401,10 @@ rule-ew-fl-009 = { $valve }: the coil takes { $voltage }, but { $feeds } feed it
     .hint = Choose a valve whose coil takes the voltage of its supply, or feed it from a potential of that voltage.
 
 rule-ew-fl-010 = { $form ->
-        [valve] { $device }: port { $port } has no supply; define a medium at it or draw the supply line
-       *[gallery] { $device }: gallery 1 has no supply; define a medium at a supply port or draw the supply line
+        [valve] { $device }: no air reaches port { $port }; draw the supply line to it, or define a medium there
+       *[gallery] { $device }: no air reaches gallery 1, the common supply of its valves; draw the supply line to its supply port, or define a medium there
     }
-    .title = No supply on port 1
+    .title = No supply
     .hint = Define a medium at the supply port, or draw the line that brings it.
 
 rule-ew-fl-011 = { $valve } drives { $target }, but its working-port lines reach { $device }

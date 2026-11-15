@@ -83,7 +83,7 @@ fn place_terminal(d: &mut Driver, a: (i64, i64)) {
     d.input(&typed("valve terminal"));
     d.settle();
     d.input(&Input::DoubleClick {
-        at: starting_with(d, "Valve terminal, 4"),
+        at: starting_with(d, "Valve terminal with bus node, 4"),
         mods: Modifiers::NONE,
     });
     d.settle();

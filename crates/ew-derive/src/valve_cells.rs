@@ -236,3 +236,42 @@ pub fn terminal_supply(q: &Q, terminal: Id<Device>) -> Option<Id<ew_schema::Func
         })
     })
 }
+
+/// Whether a device is a multipin valve terminal (doc 10 §2.3, rc.2): no PLC station, and a part whose fluid section
+/// names its plug's pins (`fluid.pins`); its solenoids are wired through the plug to outputs of a PLC card elsewhere.
+pub fn is_multipin_terminal(q: &Q, device: Id<Device>) -> bool {
+    let Some(dev) = q.devices().get(device) else {
+        return false;
+    };
+    let parts = q.parts();
+    dev.aspects.plc_station.is_none()
+        && dev.parts.iter().any(|u| {
+            parts
+                .get(u.part.copy)
+                .and_then(|c| c.item.sections.fluid.as_ref().map(|f| !f.pins.is_empty()))
+                .unwrap_or(false)
+        })
+}
+
+/// Whether a device is a valve terminal of either kind: with a bus node (a PLC station, [`crate::is_valve_terminal`])
+/// or multipin ([`is_multipin_terminal`]).
+pub fn is_fluid_terminal(q: &Q, device: Id<Device>) -> bool {
+    crate::is_valve_terminal(q, device) || is_multipin_terminal(q, device)
+}
+
+/// The plug pin a solenoid of a valve on a multipin valve terminal is wired through (rc.2): the terminal and the pin's
+/// designation, the part's `fluid.pins` entry of `solenoid` at the valve's position index (position − 1); `None` for a
+/// valve on no multipin terminal or a solenoid its plug does not name.
+pub fn solenoid_pin(q: &Q, valve: Id<Device>, solenoid: &str) -> Option<(Id<Device>, String)> {
+    let dev = q.devices().get(valve)?;
+    let terminal = dev.parent.filter(|t| is_multipin_terminal(q, *t))?;
+    let index = dev.position?.checked_sub(1)?;
+    let parts = q.parts();
+    let t = q.devices().get(terminal)?;
+    let pin = t.parts.iter().find_map(|u| {
+        let fluid = parts.get(u.part.copy)?.item.sections.fluid.clone()?;
+        let entry = fluid.pins.iter().find(|e| e.solenoid.as_str() == solenoid)?.clone();
+        crate::eval_map(&entry.pin, ew_plcaddr::MapVar::P, index)
+    })?;
+    Some((terminal, pin.to_string()))
+}

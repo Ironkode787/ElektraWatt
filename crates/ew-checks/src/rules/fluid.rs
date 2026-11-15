@@ -283,7 +283,7 @@ impl Rule for CoilBindings {
                         [Target::new(Kind::Device, d)],
                         format!("unbound:{s}"),
                         full_tag(q, d, "device"),
-                        format!("{valve}: solenoid {s} has no channel"),
+                        format!("{valve}: no PLC output drives solenoid {s}; bind one to it"),
                     )
                     .with_severity(Severity::Warning)
                     .arg("form", "unbound")
@@ -347,7 +347,7 @@ impl Rule for SparePositions {
                     *device,
                     "blank",
                     format!(
-                        "{module}: position {p} holds a blanking plate, {}",
+                        "{module}: position {p} is closed by a blanking plate, {}",
                         tag(q, *device)
                     ),
                 ),

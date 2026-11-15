@@ -293,3 +293,60 @@ fn a_free_box_is_redrawn_as_its_positions_with_its_valves_and_tubes() {
     let again = bulk(&mut s, "valve_terminal.draw_slots", json!({"rep": free.id.to_string()}));
     assert!(again.expect_err("refused").contains("drawn as its positions already"));
 }
+
+/// Places starter terminal part `number` drawn as its positions near `at`; its ID.
+fn place_terminal_of(s: &mut Session, number: &str, at: (i64, i64)) -> Uuid {
+    let part = library_part(s, number);
+    let key = edition(s, "ew.gen.blackbox");
+    let copies = s.starter_embed_part(part, &key).expect("closure").unwrap_or(json!({"copies": []}));
+    let symbol = s.starter_symbol_copy(&key).expect("the black box");
+    let page = fluid_page(s);
+    let count = s.part_positions(part).expect("the terminal's positions");
+    let (pos, b) = s.slot_box(page, at, count).expect("a box");
+    let made = new_devices(s, |s| {
+        run(
+            s,
+            "box.black",
+            json!({"page": page.to_string(), "symbol": symbol.to_string(), "pos": [pos.0, pos.1], "box": b,
+            "target": {"from_part": {"part": part.to_string(), "template": 0, "letter": "K"}},
+            "copies": copies["copies"]}),
+        )
+        .expect("the terminal");
+    });
+    made[0]
+}
+
+/// F15: the two kinds are said apart, and a terminal valve's solenoid says where it is driven from: inside a terminal
+/// with a bus node, or through a pin of a multipin terminal's plug (solenoid 14 of position 2 on pin 3), never drawn.
+#[test]
+fn the_two_kinds_of_terminal_drive_their_valves_solenoids_apart() {
+    let mut s = project(183);
+    let bus = place_terminal_of(&mut s, "EW-GEN-VTM-1", (60_000_000, 40_000_000));
+    assert!(matches!(
+        s.terminal_kind(bus),
+        Some(ew_api::output::TerminalKind::BusNode { .. })
+    ));
+    let c = cells(&s, bus);
+    let v = place_into(&mut s, "EW-GEN-VLV-3", "ew.iso.valve-5-2-sol-spring", centre(&c[0]), bus).expect("placed");
+    let sol = s.valve_solenoids(v);
+    assert!(
+        matches!(
+            sol.first().and_then(|x| x.seat.clone()),
+            Some(ew_api::output::SolenoidSeat::Terminal { .. })
+        ),
+        "{sol:?}"
+    );
+    let multi = place_terminal_of(&mut s, "EW-GEN-VTP-1", (60_000_000, 140_000_000));
+    assert_eq!(s.terminal_kind(multi), Some(ew_api::output::TerminalKind::Multipin));
+    let c = cells(&s, multi);
+    assert_eq!(c.len(), 8, "the multipin terminal's eight positions");
+    let w = place_into(&mut s, "EW-GEN-VLV-3", "ew.iso.valve-5-2-sol-spring", centre(&c[1]), multi).expect("placed");
+    assert_eq!(device(&s, w).position, Some(2), "a multipin terminal's cell takes its valve too");
+    match s.valve_solenoids(w).first().and_then(|x| x.seat.clone()) {
+        Some(ew_api::output::SolenoidSeat::Multipin { pin, plug, .. }) => {
+            assert_eq!(pin, "3", "solenoid 14 of position 2 on pin 3");
+            assert_eq!(plug, None, "the plug is drawn on no electrical page yet");
+        }
+        other => panic!("{other:?}"),
+    }
+}

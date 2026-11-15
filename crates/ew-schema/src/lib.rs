@@ -156,7 +156,7 @@ pub use library::{
     PlcAllocationStart, PlcAreaMnemonics, PlcMnemonics, PlcParse, PlcProfileDef, PlcProfilePin, PlcRender,
     PlcSizeMnemonics, PolygonPrim, PolylinePrim, Primitive, RailSection, RectPrim, RepType, Rgb, RowTemplate,
     RowTemplates, SheetSpec, SheetTransform, ShrinkSpec, Side, SlotFallback, SlotKind, Stroke, SwitchPos,
-    SymbolCp, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, TubeData, ValueSet, ValveModel,
+    SymbolCp, SolenoidPin, SymbolDef, TableStyle, TemplateFn, TextPrim, TextSlot, TubeData, ValueSet, ValveModel,
     ValvePath, ValveSection, VarBinding, VarDef, VarType, WrapPolicy,
 };
 pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};

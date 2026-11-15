@@ -244,13 +244,15 @@ pub(crate) fn fits_terminal(tx: &TxBuilder<'_>, device: Id<Device>) -> bool {
     ew_derive::fits_terminal(defs.iter().map(|d| &d.item))
 }
 
-/// Whether `device` is a valve terminal: a PLC station of role `valve_terminal`.
+/// Whether `device` is a valve terminal: a PLC station of role `valve_terminal`, or a multipin terminal (no station, a
+/// part that names its plug's pins; `ew_derive::is_multipin_terminal`).
 fn is_terminal(tx: &TxBuilder<'_>, device: Id<Device>) -> bool {
-    tx.get::<Device>(device).is_some_and(|t| {
-        t.aspects
-            .plc_station
-            .as_ref()
-            .is_some_and(|s| s.role == ew_schema::StationRole::ValveTerminal)
+    tx.get::<Device>(device).is_some_and(|t| match &t.aspects.plc_station {
+        Some(s) => s.role == ew_schema::StationRole::ValveTerminal,
+        None => t.parts.iter().any(|u| {
+            tx.get::<LibCopy<ew_schema::Part>>(u.part.copy)
+                .is_some_and(|c| c.item.sections.fluid.as_ref().is_some_and(|f| !f.pins.is_empty()))
+        }),
     })
 }
 

@@ -2261,7 +2261,7 @@ impl Session {
                     valve_terminal: first
                         .as_ref()
                         .and_then(|f| f.device)
-                        .is_some_and(|d| ew_derive::is_valve_terminal(&q, d)),
+                        .is_some_and(|d| ew_derive::is_fluid_terminal(&q, d)),
                     cells: Vec::new(),
                     supply_end: None,
                 }

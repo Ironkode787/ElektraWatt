@@ -47,8 +47,9 @@ const VERSION: &str = "0.1.0";
 /// generic PROFINET device EW-GEN-PND-1; FT-1767), with the cylinder EW-GEN-CYL-1 and the air supply EW-GEN-AIR-1 (the
 /// persona re-test), 0.10.0 since the two solenoid valves have the valve as their main function, the basic
 /// pneumatic parts were added (rc.2, F10 and F11) and the bus plugs (EW-GEN-PLG-1 to -5, a bus line's plugs, doc 10
-/// §2.7).
-const LIBRARY_VERSION: &str = "0.10.0";
+/// §2.7), 0.11.0 since the multipin valve terminal EW-GEN-VTP-1 was added and the valve terminal EW-GEN-VTM-1 says
+/// that it has a bus node (rc.2, F15).
+const LIBRARY_VERSION: &str = "0.11.0";
 /// The parts whose content changed after 0.1.0, at their next patch version (the selector switch on a
 /// manual-command FnDef, letter S; the valve's coil on a solenoid-actuator FnDef, letter M or Y. The relay
 /// and the contactor template their contacts beside the coil. The CPU's bus section, after 0.2.0.
@@ -72,6 +73,7 @@ const BUMPED: &[(&str, &str)] = &[
     ("EW-GEN-TRM-1", "0.1.1"),
     ("EW-GEN-TRM-2", "0.1.1"),
     ("EW-GEN-CBL-1", "0.1.1"),
+    ("EW-GEN-VTM-1", "0.1.1"),
 ];
 
 /// The bus section of part `number`: the generic CPUs' interfaces (EW-GEN-CPU-1's DP master; EW-GEN-CPU-2's DP
@@ -128,6 +130,7 @@ fn own_category(number: &str) -> Option<Value> {
     match number {
         "EW-GEN-CON-1" => Some(json!(["SwitchingPower", "Contactor", "3P"])),
         "EW-GEN-VTM-1" => Some(json!(["ValveTerminalNode", "Station", "Generic"])),
+        "EW-GEN-VTP-1" => Some(json!(["ValveTerminalNode", "Multipin", "Generic"])),
         _ => None,
     }
 }
@@ -633,7 +636,7 @@ fn defs() -> Vec<Def> {
         Def {
             number: "EW-GEN-VTM-1",
             kind: None,
-            description: "Valve terminal, 4 valve positions, 8 outputs",
+            description: "Valve terminal with bus node, 4 valve positions, 8 outputs",
             cps: Vec::new(),
             template: vec![("ew.fn.overview", true, Vec::new())],
             contacts: Vec::new(),
@@ -648,6 +651,27 @@ fn defs() -> Vec<Def> {
             })),
             mech: ts35("40", "107", "70"),
             sections: Some(json!({"fluid": {"positions": 4}})),
+            unit: None,
+        },
+        // F15 of the rc.1 test: a multipin valve terminal, no station: its eight positions' solenoids are wired through
+        // one 25-pin plug to outputs of a PLC card elsewhere (doc 10 §2.3). The plug is the overview box's CP pattern:
+        // solenoid 14 of position p on pin 2p+1, 12 on pin 2p+2 (p from 0), the common on pin 25.
+        Def {
+            number: "EW-GEN-VTP-1",
+            kind: None,
+            description: "Multipin valve terminal, 8 valve positions, 25-pin plug",
+            cps: cps(&[
+                "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "25",
+            ]),
+            template: vec![("ew.fn.overview", true, range(0, 17))],
+            contacts: Vec::new(),
+            tech: vec![("rated_voltage", q("24", "V"))],
+            plc: None,
+            mech: ts35("80", "107", "70"),
+            sections: Some(json!({"fluid": {"positions": 8, "pins": [
+                {"solenoid": "14", "pin": "2p+1"},
+                {"solenoid": "12", "pin": "2p+2"},
+            ]}})),
             unit: None,
         },
         Def {

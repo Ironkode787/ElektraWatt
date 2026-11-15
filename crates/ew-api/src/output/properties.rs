@@ -3096,9 +3096,21 @@ impl Session {
                     .output
                     .as_ref()
                     .map_or_else(|| "no PLC output".to_owned(), |o| format!("PLC output {o}"));
+                // A terminal valve's solenoid says where it is driven from (rc.2, F15): an output inside the terminal,
+                // or a pin of a multipin terminal's plug; the window words it.
+                let seat = match &s.seat {
+                    None => Value::Null,
+                    Some(super::rack::SolenoidSeat::Terminal { terminal, channel }) => serde_json::json!({
+                        "kind": "terminal", "terminal": terminal, "output": s.output,
+                        "channel": channel.map(|c| c.to_string()) }),
+                    Some(super::rack::SolenoidSeat::Multipin { terminal, plug_function, pin, plug }) => {
+                        serde_json::json!({ "kind": "multipin", "terminal": terminal, "pin": pin, "plug": plug,
+                            "plug_function": plug_function.map(|f| f.to_string()) })
+                    }
+                };
                 let value = RowValue::One {
                     json: serde_json::json!({
-                        "name": s.name, "function": s.function.to_string(), "drawn": s.drawn }),
+                        "name": s.name, "function": s.function.to_string(), "drawn": s.drawn, "seat": seat }),
                     text: s.drawn.clone().unwrap_or_default(),
                 };
                 out.push(derived(

@@ -1716,6 +1716,11 @@ pub struct FluidSection {
     /// The valve positions of a valve module (occupancy, FI-02); absent: `plc.positions.count`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub positions: Option<u16>,
+    /// A multipin valve terminal's plug (doc 10 §2.3, rc.2): which pin of the part's CP pattern each solenoid of the
+    /// valve at position p is wired through, as `{solenoid, pin}` with `pin` an expression in p (`2p-1`); the plug's
+    /// common pin is a pattern CP named in no entry. Empty for any other part. Additive within format 0.1.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub pins: Vec<SolenoidPin>,
     /// The coil data of a solenoid valve (EW-FL-009).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub coil: Option<CoilData>,
@@ -1731,6 +1736,20 @@ pub struct FluidSection {
     /// How the part changes the medium it passes (doc 11 §5.3): a regulator or an ejector.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub transform: Option<FluidTransform>,
+    /// Unknown members.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One entry of a multipin valve terminal's plug ([`FluidSection::pins`]): the pin of one solenoid as a function of the
+/// position index p (0 … count − 1), as a PLC module's position map gives its channel.
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct SolenoidPin {
+    /// The solenoid ("14", "12").
+    #[schemars(with = "IdentS")]
+    pub solenoid: Ident,
+    /// The pin's number at position index p: a `p` expression ("2p+1") or a list indexed by p.
+    pub pin: crate::plc::MapSpec,
     /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,

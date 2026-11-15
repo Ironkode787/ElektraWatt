@@ -1081,6 +1081,13 @@
           },
           "type": "array"
         },
+        "pins": {
+          "description": "A multipin valve terminal's plug (doc 10 §2.3, rc.2): which pin of the part's CP pattern each solenoid of the\nvalve at position p is wired through, as `{solenoid, pin}` with `pin` an expression in p (`2p-1`); the plug's\ncommon pin is a pattern CP named in no entry. Empty for any other part. Additive within format 0.1.",
+          "items": {
+            "$ref": "#/$defs/SolenoidPin"
+          },
+          "type": "array"
+        },
         "ports": {
           "description": "Physical port data by designation; on a valve module an entry with `position = p` supplies the data of that\nport of the valve at position p and wins over the valve part's own entry (EW-FL-006).",
           "items": {
@@ -2560,6 +2567,25 @@
       "required": [
         "solenoid",
         "channel"
+      ],
+      "type": "object"
+    },
+    "SolenoidPin": {
+      "additionalProperties": true,
+      "description": "One entry of a multipin valve terminal's plug ([`FluidSection::pins`]): the pin of one solenoid as a function of the\nposition index p (0 … count − 1), as a PLC module's position map gives its channel.",
+      "properties": {
+        "pin": {
+          "$ref": "#/$defs/MapSpec",
+          "description": "The pin's number at position index p: a `p` expression (\"2p+1\") or a list indexed by p."
+        },
+        "solenoid": {
+          "$ref": "#/$defs/Ident",
+          "description": "The solenoid (\"14\", \"12\")."
+        }
+      },
+      "required": [
+        "solenoid",
+        "pin"
       ],
       "type": "object"
     },

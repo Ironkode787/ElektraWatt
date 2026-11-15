@@ -2657,7 +2657,7 @@ fn fluid_table(q: &Q, b: &mut Builder, lang: Option<&str>) {
         q.devices()
             .iter()
             .map(|(id, _)| id)
-            .filter(|id| ew_derive::is_valve_terminal(q, *id))
+            .filter(|id| ew_derive::is_fluid_terminal(q, *id))
             .collect(),
     );
     let mut listed: std::collections::BTreeSet<Id<Device>> = std::collections::BTreeSet::new();

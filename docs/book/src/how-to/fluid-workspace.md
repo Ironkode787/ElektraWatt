@@ -31,7 +31,7 @@ the middle, and the tube table and the medium table in the bottom dock.
 
 ## Valve terminals
 
-6. To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal, 4 valve positions, 8 outputs** under
+6. To start a valve terminal, choose **Draw ▸ Device**, find **Valve terminal with bus node, 4 valve positions, 8 outputs** under
    **Valve terminals** (or type "valve terminal") and click once where its top-left corner goes. It is drawn as its
    positions: a supply end on the left, then one cell per valve position in a row, numbered in the sub-base along the
    bottom. An empty position is a dashed cell, a blanking plate a plate with both diagonals. It is a valve terminal
