@@ -2772,6 +2772,27 @@ impl Session {
                 Vec::new(),
             ));
         }
+        // An embedded block's printed columns in words, the report's own column names ("Pos, DT, Qty, …").
+        if kind == Kind::ReportBlock
+            && let [block] = targets.as_slice()
+            && let Some(b) = q.report_blocks().get(Id::from_uuid(*block))
+            && let ew_schema::ReportSource::Kind(k) = &b.source
+            && let Some(def) = ew_reports::Registry::builtin().get(k)
+            && let Some(row) = built.iter_mut().find(|r| r.row.key == "report_block/columns")
+            && let RowValue::One { text, .. } = &mut row.row.value
+        {
+            let defs = def.columns();
+            let words: Vec<String> = b
+                .columns
+                .iter()
+                .map(|c| {
+                    defs.iter()
+                        .find(|d| d.key == c.key)
+                        .map_or_else(|| c.key.clone(), |d| super::view::neutral(&d.label))
+                })
+                .collect();
+            *text = words.join(", ");
+        }
         // A panel layout page's Surface view rows.
         if kind == Kind::Page
             && let [page] = targets.as_slice()

@@ -177,6 +177,7 @@ pub fn map(project: &QetProject, facts: &[DiagramFacts], ids: &Ids, findings: &m
             embedded: None,
             source_ref: Some(ids.source_ref(&key)),
             extra: Default::default(),
+            columns: Vec::new(),
         };
         if table_only {
             let numbers: Vec<u32> = diagrams

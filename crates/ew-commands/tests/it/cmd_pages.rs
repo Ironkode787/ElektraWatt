@@ -80,6 +80,7 @@ fn block(first_folio: Option<u32>) -> CreateReportBlock {
         continuation: ContinuationPolicy::default(),
         empty: EmptyPolicy::default(),
         embedded: None,
+        columns: Vec::new(),
         form_copies: Vec::new(),
     }
 }
@@ -807,6 +808,7 @@ fn report_block(block: Id<ReportBlock>, first: u32) -> ReportBlock {
         empty: EmptyPolicy::default(),
         embedded: None,
         source_ref: None,
+        columns: Vec::new(),
         extra: Default::default(),
     }
 }

@@ -510,6 +510,7 @@ pub(crate) fn emit_report_blocks(cx: &mut Cx<'_>, table: Option<&Table>) {
             empty: Default::default(),
             embedded,
             source_ref: Some(source_ref("report_blocks", row.key())),
+            columns: Vec::new(),
             extra: Default::default(),
         }));
     }

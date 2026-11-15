@@ -1077,6 +1077,11 @@ impl HeapSize for ReportBlock {
             + empty
             + self.embedded.as_ref().map_or(0, |e| e.extra.heap_size())
             + self.source_ref.heap_size()
+            + self
+                .columns
+                .iter()
+                .map(|c| c.key.capacity() + c.extra.heap_size())
+                .sum::<usize>()
             + self.extra.heap_size()
     }
 }

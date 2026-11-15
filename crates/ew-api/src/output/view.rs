@@ -1131,6 +1131,15 @@ fn boxed_table(q: &Q, block: &ReportBlock, page: Id<Page>) -> EmbeddedTable {
         _ => None,
     }
     .unwrap_or_else(|| EmbeddedLayout::every_column(&set.columns));
+    // A block's own printed columns replace the kind's (Add legend's description, doc 09 §2.2).
+    let layout = if block.columns.is_empty() {
+        layout
+    } else {
+        EmbeddedLayout {
+            columns: block.columns.iter().map(|c| (c.key.clone(), c.weight)).collect(),
+            ..layout
+        }
+    };
     let opts = RenderOptions {
         page: Some(PageRef::Drawn(page)),
         ..RenderOptions::default()

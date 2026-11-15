@@ -574,6 +574,18 @@ impl ShellModel {
                     .any(|(f, _)| f.as_uuid().to_string() == id)
             })
         });
+        // The legend a person adds prints the description too (Golden A's block keeps the kind's four columns); a
+        // long description is cut with an ellipsis at its column's width, as every table cell is.
+        let columns: Vec<Value> = [
+            ("pos", 8),
+            ("tag", 18),
+            ("qty", 10),
+            ("part_number", 24),
+            ("description", 40),
+        ]
+        .iter()
+        .map(|(key, weight)| json!({"key": key, "weight": weight}))
+        .collect();
         let mut params = json!({
             "source": { "kind": "enclosure_legend" },
             "form": form,
@@ -581,6 +593,7 @@ impl ShellModel {
                 "page": page.to_string(),
                 "rect": [[r.min().x.0, r.min().y.0], [r.max().x.0, r.max().y.0]],
             },
+            "columns": columns,
         });
         if !held {
             let copies: Vec<Value> = [crate::wizard_data::NOGRID_FRAME, crate::wizard_data::TITLE_BLOCK]

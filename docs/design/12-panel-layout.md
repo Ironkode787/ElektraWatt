@@ -607,8 +607,10 @@ surface view shows, and carrier lines are left out. A `layout.move` rebuilds no 
 the free spot) puts an embedded `enclosure_legend` block on a panel page that shows a surface and holds none: in the largest
 free part of the frame's drawing area right of, left of, below or above the layout (its enclosure's outline as
 projected), 10 mm off the layout and 5 mm inside the area, when that part is at least 60 × 40 mm; else it is refused in
-words. The printed columns stay Golden A's (position, DT, quantity, part number); the description stays in the rows and
-the CSV.
+words. Such a legend prints position, DT, quantity, part number and description through the block's own printed
+columns (`ReportBlock.columns`, added in 0.3: `{key, weight}` per column, absent means the kind's layout, which an older
+build prints); a long description is cut with an ellipsis at its column's width like every table cell. Golden A's
+block has no `columns` and prints its four columns as before.
 
 ### 5.5 Dimensions and views (1.0)
 

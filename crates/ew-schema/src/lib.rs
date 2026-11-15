@@ -162,8 +162,8 @@ pub use library::{
 pub use medium::{FluidSettings, LineKindTube, LineTagScheme, Medium, MediumDef};
 pub use page::{
     BoxCp, BoxSpec, ContinuationPolicy, EmbedSpec, EmptyPolicy, Folio, GroupBreak, GroupSpec,
-    ManualSelection, Page, PageType, PinMapEntry, ReportBlock, ReportKind, ReportSource, Representation,
-    Scale, SlotOverride, SortKey, SqlQuery,
+    ManualSelection, Page, PageType, PinMapEntry, ReportBlock, ReportColumn, ReportKind, ReportSource,
+    Representation, Scale, SlotOverride, SortKey, SqlQuery,
 };
 pub use page_item::{
     BoxStyle, FreeText, Graphic, GraphicShape, GraphicStroke, ImageItem, LayoutLabels, LineDash, MarkerField,

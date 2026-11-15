@@ -326,10 +326,27 @@ pub struct ReportBlock {
     /// Placement on a page for embedded blocks.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub embedded: Option<EmbedSpec>,
+    /// The printed columns of an embedded block, in order: each a column of its report kind with its relative width;
+    /// empty: the kind's own layout (doc 09 §2.2). Additive: an older build prints the kind's layout.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub columns: Vec<ReportColumn>,
     /// Import provenance.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_ref: Option<SourceRef>,
     /// Unknown members and plugin keys.
+    #[serde(flatten, deserialize_with = "de_extra")]
+    pub extra: Extra,
+}
+
+/// One printed column of an embedded report block (`ReportBlock.columns`).
+#[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ReportColumn {
+    /// The column's key in the report kind's row set (`pos`, `tag`, `description`, …); a key the rows do not have
+    /// prints nothing.
+    pub key: String,
+    /// The relative width.
+    pub weight: u32,
+    /// Unknown members.
     #[serde(flatten, deserialize_with = "de_extra")]
     pub extra: Extra,
 }

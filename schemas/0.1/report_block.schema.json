@@ -177,6 +177,27 @@
       ],
       "type": "array"
     },
+    "ReportColumn": {
+      "additionalProperties": true,
+      "description": "One printed column of an embedded report block (`ReportBlock.columns`).",
+      "properties": {
+        "key": {
+          "description": "The column's key in the report kind's row set (`pos`, `tag`, `description`, …); a key the rows do not have\nprints nothing.",
+          "type": "string"
+        },
+        "weight": {
+          "description": "The relative width.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "key",
+        "weight"
+      ],
+      "type": "object"
+    },
     "ReportKind": {
       "description": "The built-in report kinds of the MVP (doc 09 §2.4); later kinds arrive as additive variants.",
       "oneOf": [
@@ -441,6 +462,13 @@
       "maximum": 65535,
       "minimum": 0,
       "type": "integer"
+    },
+    "columns": {
+      "description": "The printed columns of an embedded block, in order: each a column of its report kind with its relative width;\nempty: the kind's own layout (doc 09 §2.2). Additive: an older build prints the kind's layout.",
+      "items": {
+        "$ref": "#/$defs/ReportColumn"
+      },
+      "type": "array"
     },
     "continuation": {
       "$ref": "#/$defs/ContinuationPolicy",

@@ -285,6 +285,7 @@ fn the_logo_and_library_form_verbs_send_their_command_parameters() {
         embedded: None,
         source_ref: None,
         extra: Default::default(),
+        columns: Vec::new(),
     };
     let copy = serde_json::json!({"$k": "form", "id": "00000000-0000-0000-0000-000000000008"});
     assert_eq!(

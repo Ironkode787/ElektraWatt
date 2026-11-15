@@ -257,6 +257,7 @@ pub fn project_rows(q: &Q, kind: &str, include: Option<ew_derive::ew_ids::Uuid>)
         embedded: None,
         source_ref: None,
         extra: Default::default(),
+        columns: Vec::new(),
     };
     Some(def.rows(q, &block))
 }

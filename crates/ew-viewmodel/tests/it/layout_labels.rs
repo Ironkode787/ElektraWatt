@@ -4,7 +4,7 @@
 //! A layout page that can be read (the owner's finding of the first 0.3.0 candidate: at 1:10 the tags ran into each
 //! other; he asked for numbers, a table beside the layout and labels that move), through the shell on temporary copies
 //! of Golden A: a balloon off its device drags alone and the device's menu puts it back; a new layout page at 1:10 shows
-//! item numbers, gets its legend and prints its tags without the cabinet's location; Add legend is refused where the
+//! item numbers, gets its legend (with the description) and prints its tags without the cabinet's location; Add legend is refused where the
 //! page holds one.
 
 use crate::common;
@@ -34,6 +34,23 @@ fn placed(shell: &ShellModel, tag: &str) -> Uuid {
         .find(|p| p.tag == tag)
         .unwrap_or_else(|| panic!("{tag} is not placed"))
         .id
+}
+
+/// The texts the page on show prints.
+fn texts(shell: &ShellModel) -> Vec<String> {
+    use ew_viewmodel::ew_api::output::ew_dl::{Item, ItemKind};
+    fn walk(items: &[Item], out: &mut Vec<String>) {
+        for item in items {
+            match &item.kind {
+                ItemKind::Glyphs(run) => out.push(run.text.clone()),
+                ItemKind::Group(group) => walk(&group.items, out),
+                _ => {}
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(&shell.canvas().unwrap().page().list.items, &mut out);
+    out
 }
 
 #[test]
@@ -94,7 +111,8 @@ fn a_balloon_off_its_device_drags_alone_and_the_devices_menu_puts_it_back() {
 fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
     let tmp = Tmp::new("layout-legend");
     let mut shell = tmp.shell_in(Mode::Headless, true, "902");
-    // Golden A's 902 holds its legend.
+    // Golden A's 902 holds its legend, printed with the kind's columns.
+    assert!(!texts(&shell).iter().any(|t| t == "Description"));
     assert_eq!(
         refused(&mut shell, "page.add_legend", json!({})),
         "reason-legend-exists"
@@ -117,6 +135,11 @@ fn a_new_layout_page_at_one_to_ten_numbers_its_devices_and_gets_its_legend() {
         refused(&mut shell, "page.add_legend", json!({})),
         "reason-legend-exists",
         "the new page got its legend with the view"
+    );
+    // The legend a person gets prints the description too; Golden A's legend on 902 keeps its four columns.
+    assert!(
+        texts(&shell).iter().any(|t| t == "Description"),
+        "the new legend's Description"
     );
     // The page has no location of its own: the cabinet's is not printed before every tag.
     assert!(

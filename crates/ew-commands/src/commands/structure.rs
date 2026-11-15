@@ -9,8 +9,8 @@ use ew_mltext::{Ident, MlText};
 use ew_rds::Aspect;
 use ew_schema::{
     ContinuationPolicy, EmbedSpec, EmptyPolicy, ExternalRef, Extra, FormDef, Function, FunctionKind,
-    GroupSpec, Kind, LibCopy, LibDocument, ManualSelection, Open, Page, ReportBlock, ReportSource, Section,
-    Set, SortKey, StructureNode,
+    GroupSpec, Kind, LibCopy, LibDocument, ManualSelection, Open, Page, ReportBlock, ReportColumn,
+    ReportSource, Section, Set, SortKey, StructureNode,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -210,6 +210,10 @@ pub struct CreateReportBlock {
     /// Embedding into a drawn page.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub embedded: Option<EmbedSpec>,
+    /// The printed columns of an embedded block (each a column key of the report kind with its relative width);
+    /// absent: the kind's own layout.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub columns: Vec<ReportColumn>,
     /// The library documents of the form and of its closure (`lib/` JSON form, kind form), embedded with the block
     /// where the project does not hold them.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -346,6 +350,7 @@ impl Command for CreateReportBlock {
             embedded: self.embedded.clone(),
             source_ref: None,
             extra: Extra::new(),
+            columns: self.columns.clone(),
         })?;
         Ok(Outcome::primary((Kind::ReportBlock, id.cast())))
     }

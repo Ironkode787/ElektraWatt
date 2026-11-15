@@ -6923,3 +6923,9 @@ symbol-discipline = Discipline
 symbol-discipline-help = What the symbol is drawn for. Its connection points take it, and the function types follow it: a valve for a fluid symbol, a contact or a coil for an electrical one. One point can differ: set it under Connection points.
 symbol-discipline-invalid = Choose electrical, pneumatic, vacuum, hydraulic or bus.
 symbol-discipline-column = Discipline
+# The printed columns of an embedded report block (Add legend's description).
+field-word-columns = Printed columns
+field-word-columns-item = Column
+field-word-weight = Width share
+field-help-word-columns = The columns the block prints on its page, in order, each with its share of the width; empty prints the report's own columns.
+field-help-word-weight = The column's share of the block's width.

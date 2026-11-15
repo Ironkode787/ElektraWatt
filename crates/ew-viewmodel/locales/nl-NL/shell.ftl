@@ -6661,3 +6661,9 @@ symbol-discipline = Discipline
 symbol-discipline-help = Waarvoor het symbool getekend is. De aansluitpunten nemen het over en de functietypen volgen het: een ventiel voor een fluïdumsymbool, een contact of een spoel voor een elektrisch. Eén punt kan afwijken: stel dat in onder Aansluitpunten.
 symbol-discipline-invalid = Kies elektrisch, pneumatisch, vacuüm, hydraulisch of bus.
 symbol-discipline-column = Discipline
+# De gedrukte kolommen van een ingebed rapportblok (de omschrijving van Legenda toevoegen).
+field-word-columns = Gedrukte kolommen
+field-word-columns-item = Kolom
+field-word-weight = Breedteaandeel
+field-help-word-columns = De kolommen die het blok op zijn pagina drukt, op volgorde, elk met zijn aandeel in de breedte; leeg drukt de eigen kolommen van het rapport.
+field-help-word-weight = Het aandeel van de kolom in de breedte van het blok.
